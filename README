@@ -39,7 +39,7 @@ will be fine.
    CCACHE_DIR
 
    the CCACHE_DIR environment variable specifies where ccache will
-   keep its cached compiler output. The default is "/tmp/ccache". 
+   keep its cached compiler output. The default is "$HOME/.ccache". 
 
 
    CCACHE_LOGFILE

@@ -18,8 +18,6 @@
 #define STATUS_FATAL 4
 #define STATUS_NOCACHE 5
 
-#define CACHE_DIR_DEFAULT "/tmp/ccache"
-
 #define MAX_LINE_SIZE 102400
 
 typedef unsigned uint32;

@@ -473,7 +473,9 @@ static void ccache(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	cache_dir = getenv("CCACHE_DIR");
-	if (!cache_dir) cache_dir = CACHE_DIR_DEFAULT;
+	if (!cache_dir) {
+		x_asprintf(&cache_dir, "%s/.ccache", getenv("HOME"));
+	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
