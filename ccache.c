@@ -462,6 +462,11 @@ static void ccache(int argc, char *argv[])
 	orig_args->argv = argv;
 	orig_args->argc = argc;
 
+	if (getenv("CCACHE_DISABLE")) {
+		cc_log("ccache is disabled\n");
+		failed();
+	}
+
 	/* process argument list, returning a new set of arguments for pre-processing */
 	process_args(argc, argv);
 
