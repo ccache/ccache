@@ -38,6 +38,8 @@ void fatal(const char *msg);
 void copy_fd(int fd_in, int fd_out);
 
 int create_dir(const char *dir);
+int x_asprintf(char **ptr, const char *format, ...);
+char *x_strdup(const char *s);
 
 int execute(char **argv, 
 	    const char *path_stdout,
@@ -48,9 +50,6 @@ typedef struct {
 	int argc;
 } ARGS;
 
-
-#define x_asprintf asprintf
-#define x_strdup strdup
 
 ARGS *args_init(void);
 void args_add(ARGS *args, const char *s);

@@ -75,3 +75,44 @@ int create_dir(const char *dir)
 	}
 	return 0;
 }
+
+/*
+  this is like asprintf() but dies if the malloc fails
+*/
+int x_asprintf(char **ptr, const char *format, ...)
+{
+	va_list ap;
+	int ret;
+	
+	*ptr = NULL;
+	va_start(ap, format);
+	ret = vsnprintf(NULL, 0, format, ap);
+	va_end(ap);
+
+	if (ret <= 0) {
+		fatal("Bad vsnprintf implementation!?\n");
+	}
+
+	*ptr = (char *)malloc(ret+1);
+	if (! *ptr) {
+		fatal("out of memory in x_asprintf\n");
+	}
+	va_start(ap, format);
+	ret = vsnprintf(*ptr, ret+1, format, ap);
+	va_end(ap);
+
+	return ret;
+}
+
+/*
+  this is like strdup() but dies if the malloc fails
+*/
+char *x_strdup(const char *s)
+{
+	char *ret;
+	ret = strdup(s);
+	if (!ret) {
+		fatal("out of memory in strdup\n");
+	}
+	return ret;
+}
