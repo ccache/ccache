@@ -114,6 +114,15 @@ dit(bf(CCACHE_DISABLE)) If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
 
+dit(bf(CCACHE_CPP2)) If you set the environment variable CCACHE_CPP2
+then ccache will not use the optimisation of avoiding the 2nd call to
+the pre-processor by compiling the pre-processed output that was used
+for finding the hash in the case of a cache miss. This is primarily a
+debugging option, although it is possible that some unusual compilers
+will have problems with the intermediate filename extensions used in
+this optimisation, in which case this option could allow ccache to be
+used.
+
 dit(bf(CCACHE_NOSTATS)) If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile.
@@ -214,6 +223,16 @@ verb(
 
   ccache uncached 24.6 seconds
   ccache cached 4.6 seconds
+)
+
+manpagesection(CREDITS)
+
+Thanks to the following people for their contributions to ccache
+itemize(
+ it() Erik Thiele for the original compilercache script
+ it() Luciano Rocha for the idea of compiling the pre-processor output
+ to avoid a 2nd cpp pass
+ it() Paul Russell for many suggestions and the debian packaging
 )
 
 manpageauthor()

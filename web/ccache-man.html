@@ -113,6 +113,14 @@ ccache itself.
 <p><p></p><dt><strong><strong>CCACHE_DISABLE</strong></strong><dd> If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
+<p><p></p><dt><strong><strong>CCACHE_CPP2</strong></strong><dd> If you set the environment variable CCACHE_CPP2
+then ccache will not use the optimisation of avoiding the 2nd call to
+the pre-processor by compiling the pre-processed output that was used
+for finding the hash in the case of a cache miss. This is primarily a
+debugging option, although it is possible that some unusual compilers
+will have problems with the intermediate filename extensions used in
+this optimisation, in which case this option could allow ccache to be
+used.
 <p><p></p><dt><strong><strong>CCACHE_NOSTATS</strong></strong><dd> If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile.
@@ -202,6 +210,15 @@ compiling rsync I get:
 
 </pre>
 
+<p><h2>CREDITS</h2>
+    
+<p>Thanks to the following people for their contributions to ccache
+<ul>
+ <li > Erik Thiele for the original compilercache script
+ <li > Luciano Rocha for the idea of compiling the pre-processor output
+ to avoid a 2nd cpp pass
+ <li > Paul Russell for many suggestions and the debian packaging
+</ul>
 <p><h2>AUTHOR</h2>
     
 <p>ccache was written by Andrew Tridgell

@@ -22,21 +22,68 @@
 
 #include "ccache.h"
 
+/* the base cache directory */
 char *cache_dir = NULL;
+
+/* the debug logfile name, if set */
 char *cache_logfile = NULL;
+
+/* the argument list after processing */
 static ARGS *stripped_args;
+
+/* the original argument list */
 static ARGS *orig_args;
+
+/* the output filename being compiled to */
 static char *output_file;
+
+/* the source file */
 static char *input_file;
+
+/* the name of the file containing the cached object code */
 static char *hashname;
+
+/* the extension of the file after pre-processing */
+static char *i_extension;
+
+/* the name of the temporary pre-processor file */
+static char *i_tmpfile;
+
+/* the name of the statistics file */
 char *stats_file = NULL;
+
+/* did we find a -g option? */
 static int found_debug;
+
+/* a list of supported file extensions, and the equivalent
+   extension for code that has been through the pre-processor
+*/
+static struct {
+	char *extension;
+	char *i_extension;
+} extensions[] = {
+	{"c", "i"},
+	{"C", "ii"},
+	{"m", "mi"},
+	{"cc", "ii"},
+	{"CC", "ii"},
+	{"cpp", "ii"},
+	{"CPP", "ii"},
+	{"cxx", "ii"},
+	{"CXX", "ii"},
+	{NULL, NULL}};
 
 /*
   something went badly wrong - just execute the real compiler
 */
 static void failed(void)
 {
+	/* delete intermediate pre-processor file if needed */
+	if (i_tmpfile) {
+		unlink(i_tmpfile);
+		free(i_tmpfile);
+		i_tmpfile = NULL;
+	}
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!\n", strerror(errno));
 	perror(orig_args->argv[0]);
@@ -57,8 +104,14 @@ static void to_cache(ARGS *args)
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
+	
+	if (getenv("CCACHE_CPP2")) {
+		args_add(args, input_file);
+	} else {
+		args_add(args, i_tmpfile);
+	}
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
-	args_pop(args, 2);
+	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st1) != 0 || st1.st_size != 0) {
 		cc_log("compiler produced stdout for %s\n", output_file);
@@ -136,9 +189,6 @@ static void find_hash(ARGS *args)
 		   theory is that these arguments will change the
 		   output of -E if they are going to have any effect
 		   at all, or they only affect linking */
-		if (strcmp(args->argv[i], input_file) == 0) {
-			continue;
-		}
 		if (i < args->argc-1) {
 			if (strcmp(args->argv[i], "-I") == 0 ||
 			    strcmp(args->argv[i], "-include") == 0 ||
@@ -169,12 +219,14 @@ static void find_hash(ARGS *args)
 	hash_int(st.st_mtime);
 
 	/* now the run */
-	x_asprintf(&path_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
+	x_asprintf(&path_stdout, "%s/tmp.stdout.%d.%s", cache_dir, getpid(), 
+		   i_extension);
 	x_asprintf(&path_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
 
 	args_add(args, "-E");
+	args_add(args, input_file);
 	status = execute(args->argv, path_stdout, path_stderr);
-	args_pop(args, 1);
+	args_pop(args, 2);
 
 	if (status != 0) {
 		unlink(path_stdout);
@@ -198,9 +250,8 @@ static void find_hash(ARGS *args)
 	}
 	hash_file(path_stderr);
 
-	unlink(path_stdout);
+	i_tmpfile = path_stdout;
 	unlink(path_stderr);
-	free(path_stdout);
 	free(path_stderr);
 
 	/* we use a N level subdir for the cache path to reduce the impact
@@ -286,6 +337,13 @@ static void from_cache(int first)
 	if (ret == 0) {
 		/* update the mtime on the file so that make doesn't get confused */
 		utime(output_file, NULL);
+	}
+
+	/* get rid of the intermediate preprocessor file */
+	if (i_tmpfile) {
+		unlink(i_tmpfile);
+		free(i_tmpfile);
+		i_tmpfile = NULL;
 	}
 
 	/* send the stderr */
@@ -383,20 +441,22 @@ static void find_compiler(int argc, char **argv)
 }
 
 
-/* check a filename for C/C++ extension */
-static int check_extension(const char *fname)
+/* check a filename for C/C++ extension. Return the pre-processor
+   extension */
+static char *check_extension(const char *fname)
 {
-	char *extensions[] = {"c", "C", "m", "cc", "CC", "cpp", "CPP", "cxx", "CXX", 0};
 	int i;
 	char *p;
 
 	p = strrchr(fname, '.');
-	if (!p) return -1;
+	if (!p) return NULL;
 	p++;
-	for (i=0; extensions[i]; i++) {
-		if (strcmp(p, extensions[i]) == 0) return 0;
+	for (i=0; extensions[i].extension; i++) {
+		if (strcmp(p, extensions[i].extension) == 0) {
+			return extensions[i].i_extension;
+		}
 	}
-	return -1;
+	return NULL;
 }
 
 
@@ -499,7 +559,6 @@ static void process_args(int argc, char **argv)
 		}
 
 		input_file = argv[i];
-		args_add(stripped_args, argv[i]);
 	}
 
 	if (!input_file) {
@@ -508,7 +567,8 @@ static void process_args(int argc, char **argv)
 		failed();
 	}
 
-	if (check_extension(input_file) != 0) {
+	i_extension = check_extension(input_file);
+	if (i_extension == NULL) {
 		cc_log("Not a C/C++ file - %s\n", input_file);
 		stats_update(STATS_NOTC);
 		failed();
