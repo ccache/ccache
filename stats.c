@@ -222,6 +222,12 @@ void stats_summary(void)
 
 		stats_read(fname, counters);
 		free(fname);
+
+		/* oh what a nasty hack ... */
+		if (dir == -1) {
+			counters[STATS_MAXSIZE] = 0;
+		}
+
 	}
 
 	/* and display them */
