@@ -79,6 +79,12 @@ are:
 
 - ccache can handle argument lists with spaces
 
+- compilercache does much smarter token unification using a C
+  lexer. This means that reformatting of source code is much more
+  likely to result in a cache miss with ccache than with
+  compilercache. I may add this in future, although it is perhaps
+  debatable whether the much slower parsing is worth it.
+
 Note however that ccache is a very new piece of code (as of March
 2002) whereas Erik's scripts have had a *lot* more testing. 
 
