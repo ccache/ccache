@@ -115,7 +115,7 @@ void x_asprintf(char **ptr, const char *format, ...)
 {
 	va_list ap;
 	unsigned ret;
-	char tmp[1024];
+	static char tmp[1024];
 
 	*ptr = NULL;
 	va_start(ap, format);
