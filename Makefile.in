@@ -26,3 +26,6 @@ install:
 
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
+
+distclean:
+	/bin/rm -f Makefile config.h config.sub config.log build-stamp config.status
