@@ -288,6 +288,7 @@ static void find_hash(ARGS *args)
 			    strcmp(args->argv[i], "-include") == 0 ||
 			    strcmp(args->argv[i], "-L") == 0 ||
 			    strcmp(args->argv[i], "-D") == 0 ||
+			    strcmp(args->argv[i], "-idirafter") == 0 ||
 			    strcmp(args->argv[i], "-isystem") == 0) {
 				i++;
 				continue;
@@ -296,6 +297,7 @@ static void find_hash(ARGS *args)
 		if (strncmp(args->argv[i], "-I", 2) == 0 ||
 		    strncmp(args->argv[i], "-L", 2) == 0 ||
 		    strncmp(args->argv[i], "-D", 2) == 0 ||
+		    strncmp(args->argv[i], "-idirafter", 10) == 0 ||
 		    strncmp(args->argv[i], "-isystem", 8) == 0) {
 			continue;
 		}
@@ -698,6 +700,7 @@ static void process_args(int argc, char **argv)
 					      "-L", "-D", "-U", "-x", "-MF", 
 					      "-MT", "-MQ", "-isystem", "-aux-info",
 					      "--param", "-A", "-Xlinker", "-u",
+					      "-idirafter", 
 					      NULL};
 			int j;
 			for (j=0;opts[j];j++) {
