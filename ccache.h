@@ -1,6 +1,6 @@
-#define _GNU_SOURCE
+#define CCACHE_VERSION "1.2"
 
-#define CCACHE_VERSION "1.1"
+#include "config.h"
 
 #include <stdio.h>
 #include <unistd.h>

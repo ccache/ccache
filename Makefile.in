@@ -1,12 +1,12 @@
 
-prefix=/usr/local
-exec_prefix=${prefix}
-bindir=${exec_prefix}/bin
-mandir=${prefix}/man
-INSTALLCMD=/usr/bin/install -c
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+mandir=@mandir@
+INSTALLCMD=@INSTALL@
 
-CC=gcc
-CFLAGS=-g -O2 -Wall -W
+CC=@CC@
+CFLAGS=@CFLAGS@
 
 OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o cleanup.o snprintf.o
 HEADERS = ccache.h mdfour.h

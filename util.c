@@ -115,18 +115,13 @@ void x_asprintf(char **ptr, const char *format, ...)
 {
 	va_list ap;
 	unsigned ret;
-	static char tmp[1024];
 
 	*ptr = NULL;
 	va_start(ap, format);
-	ret = vsnprintf(tmp, sizeof(tmp), format, ap);
+	ret = vasprintf(ptr, format, ap);
 	va_end(ap);
-
-	if (ret >= sizeof(tmp)-1) {
-		fatal("vsnprintf - too long\n");
-	}
-
-	*ptr = x_strdup(tmp);
+	
+	if (!ptr) fatal("out of memory in x_asprintf");
 }
 
 /*
