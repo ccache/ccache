@@ -28,7 +28,7 @@ web/ccache-man.html: ccache.yo
 	mkdir -p man
 	yodl2html -o web/ccache-man.html ccache.yo
 
-install:
+install: ccache ccache.1
 	${INSTALLCMD} -d $(DESTDIR)${bindir}
 	${INSTALLCMD} -m 755 ccache $(DESTDIR)${bindir}
 	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1/
