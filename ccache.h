@@ -34,6 +34,7 @@ void cc_log(const char *format, ...);
 void fatal(const char *msg);
 
 void copy_fd(int fd_in, int fd_out);
+int copy_file(const char *src, const char *dest);
 
 int create_dir(const char *dir);
 void x_asprintf(char **ptr, const char *format, ...);

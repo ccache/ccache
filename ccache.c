@@ -237,7 +237,12 @@ static void from_cache(int first)
 	unlink(output_file);
 	ret = link(hashname, output_file);
 	if (ret == -1 && errno != ENOENT) {
-		ret = symlink(hashname, output_file);
+		ret = copy_file(hashname, output_file);
+		if (ret == -1 && errno != ENOENT) {
+			cc_log("failed to copy %s -> %s (%s)\n", 
+			       hashname, output_file, strerror(errno));
+			failed();
+		}
 	}
 	if (ret == 0) {
 		utime(output_file, NULL);

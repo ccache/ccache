@@ -58,6 +58,37 @@ void copy_fd(int fd_in, int fd_out)
 	}
 }
 
+/* copy a file - used when hard links don't work */
+int copy_file(const char *src, const char *dest)
+{
+	int fd1, fd2;
+	char buf[10240];
+	int n;
+
+	fd1 = open(src, O_RDONLY);
+	if (fd1 == -1) return -1;
+
+	unlink(dest);
+	fd2 = open(dest, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
+	if (fd2 == -1) {
+		close(fd1);
+		return -1;
+	}
+
+	while ((n = read(fd1, buf, sizeof(buf))) > 0) {
+		if (write(fd2, buf, n) != n) {
+			close(fd2);
+			close(fd1);
+			unlink(dest);
+			return -1;
+		}
+	}
+
+	close(fd2);
+	close(fd1);
+	return 0;
+}
+
 
 /* make sure a directory exists */
 int create_dir(const char *dir)
