@@ -68,6 +68,16 @@ I have coded ccache very carefully to try to provide these guarantees.
 See the <a
 href="http://samba.org/ftp/unpacked/ccache/README">README</a>
 
+<h2>How to use it</h2>
+
+You can use ccache in two ways. The first is just to prefix your
+compile commands with "ccache". For example, you could change the
+"CC=gcc" line in your Makefile to be "CC=ccache gcc".<p>
+
+Alternatively, you can create symbolic links from your compilers name
+to ccache. This allows you to use ccache without any changes to your
+build system.
+
 <h2>Download</h2>
 
 The latest version is ccache-1.0. You can download it from the <a
