@@ -575,6 +575,9 @@ static void process_args(int argc, char **argv)
 				cc_log("multiple input files (%s and %s)\n",
 				       input_file, argv[i]);
 				stats_update(STATS_MULTIPLE);
+			} else if (!found_c_opt) {
+				cc_log("called for link with %s\n", argv[i]);
+				stats_update(STATS_LINK);
 			} else {
 				cc_log("non C/C++ file %s\n", argv[i]);
 				stats_update(STATS_NOTC);
