@@ -91,6 +91,8 @@ static void find_hash(ARGS *args)
 {
 	int i;
 	char *path_stdout, *path_stderr, *path_status;
+	char *hash_dir;
+	char *s;
 
 	hash_start();
 
@@ -123,7 +125,11 @@ static void find_hash(ARGS *args)
 	free(path_stderr);
 	free(path_status);
 
-	x_asprintf(&hashname, "%s/%s", cache_dir, hash_result());
+	s = hash_result();
+	x_asprintf(&hash_dir, "%s/%c", cache_dir, *s);
+	mkdir(hash_dir, 0755);
+	x_asprintf(&hashname, "%s/%s", hash_dir, s+1);
+	free(hash_dir);
 }
 
 
@@ -176,6 +182,17 @@ static void from_cache(int first)
 		cc_log("got cached result for %s with status = %d\n", 
 		       output_file, status);
 	}
+
+	if (status != 0) {
+		/* we delete cached entries with non-zero status as we use them,
+		   which basically means we do them non-cached. This is needed to cope
+		   with someone interrupting a compile
+		   Is there a better way?
+		*/
+		x_asprintf(&s, "%s.status", hashname);
+		unlink(s);
+	}
+
 	exit(status);
 }
 
@@ -297,13 +314,13 @@ static void process_args(int argc, char **argv)
 		args_add(stripped_args, argv[i]);
 	}
 
-	if (!found_c_opt) {
-		cc_log("No -c option found\n");
+	if (!input_file) {
+		cc_log("No input file found\n");
 		failed();
 	}
 
-	if (!input_file) {
-		cc_log("No input file found\n");
+	if (!found_c_opt) {
+		cc_log("No -c option found for %s\n", input_file);
 		failed();
 	}
 
