@@ -285,6 +285,7 @@ static void find_compiler(int argc, char **argv)
 	struct stat st1, st2;
 
 	orig_args = args_init();
+	free(orig_args->argv);
 
 	orig_args->argv = argv;
 	orig_args->argc = argc;

@@ -41,6 +41,9 @@ void args_add(ARGS *args, const char *s)
 
 void args_pop(ARGS *args, int n)
 {
-	args->argc -= n;
-	args->argv[args->argc] = NULL;
+	while (n--) {
+		args->argc--;
+		free(args->argv[args->argc]);
+		args->argv[args->argc] = NULL;
+	}
 }
