@@ -41,3 +41,19 @@ void oom(const char *msg)
 	cc_log("Out of memory: %s\n", msg);
 	exit(1);
 }
+
+int create_dir(const char *dir)
+{
+	struct stat st;
+	if (stat(dir, &st) == 0) {
+		if (S_ISDIR(st.st_mode)) {
+			return 0;
+		}
+		errno = ENOTDIR;
+		return 1;
+	}
+	if (mkdir(dir, 0777) != 0) {
+		return 1;
+	}
+	return 0;
+}

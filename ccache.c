@@ -57,7 +57,7 @@ static void stabs_hash(const char *fname)
 {
 	FILE *f;
 	char *s;
-	char line[1024];
+	static char line[102400];
 
 	line[sizeof(line)-2] = 0;
 
@@ -93,6 +93,7 @@ static void find_hash(ARGS *args)
 	char *path_stdout, *path_stderr, *path_status;
 	char *hash_dir;
 	char *s;
+	struct stat st;
 
 	hash_start();
 
@@ -100,6 +101,15 @@ static void find_hash(ARGS *args)
 	for (i=0;i<args->argc;i++) {
 		hash_string(args->argv[i]);
 	}
+
+	/* the compiler driver size and date. This is a simple minded way
+	   to try and detect compiler upgrades. It is not 100% reliable */
+	if (stat(args->argv[0], &st) != 0) {
+		cc_log("Couldn't stat the compiler!?\n");
+		failed();
+	}
+	hash_int(st.st_size);
+	hash_int(st.st_mtime);
 
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
@@ -110,6 +120,11 @@ static void find_hash(ARGS *args)
 	execute(args->argv, path_stdout, path_stderr, path_status);
 	args->argc--;
 
+	/* if the compilation is with -g then we have to inlcude the whole of the
+	   preprocessor output, which means we are sensitive to line number
+	   information. Otherwise we can discard line number info, which makes
+	   us less sensitive to reformatting changes 
+	*/
 	if (found_debug) {
 		hash_file(path_stdout);
 	} else {
@@ -127,7 +142,10 @@ static void find_hash(ARGS *args)
 
 	s = hash_result();
 	x_asprintf(&hash_dir, "%s/%c", cache_dir, *s);
-	mkdir(hash_dir, 0755);
+	if (create_dir(hash_dir) != 0) {
+		cc_log("failed to create %s\n", cache_dir);
+		failed();
+	}
 	x_asprintf(&hashname, "%s/%s", hash_dir, s+1);
 	free(hash_dir);
 }
@@ -168,9 +186,10 @@ static void from_cache(int first)
 	unlink(output_file);
 	ret = link(hashname, output_file);
 	if (ret == -1 && errno != ENOENT) {
-		/* copy it instead */
-		cc_log("copy not implemented\n");
-		failed();
+		ret = symlink(hashname, output_file);
+	}
+	if (ret == 0) {
+		utime(output_file, NULL);
 	}
 
 	/* send the stderr */
@@ -217,8 +236,14 @@ static char *find_compiler(const char *argv0)
 		base = argv0;
 	}
 
-	path = getenv("PATH");
-	if (!path) return NULL;
+	path = getenv("CCACHE_PATH");
+	if (!path) {
+		path = getenv("PATH");
+	}
+	if (!path) {
+		cc_log("no PATH variable!?\n");
+		failed();
+	}
 
 	path = x_strdup(path);
 	
@@ -380,8 +405,8 @@ static void ccache(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	if (mkdir(cache_dir, 0755) != 0 && errno != EEXIST) {
-		fprintf(stderr,"Failed to create %s (%s)\n", 
+	if (create_dir(cache_dir) != 0) {
+		fprintf(stderr,"ccache: failed to create %s (%s)\n", 
 			cache_dir, strerror(errno));
 		exit(1);
 	}

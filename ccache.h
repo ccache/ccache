@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
+#include <utime.h>
 #include <stdarg.h>
 
 #define STATUS_NOTFOUND 3
@@ -27,6 +28,7 @@ typedef unsigned uint32;
 
 void hash_start(void);
 void hash_string(const char *s);
+void hash_int(int x);
 void hash_file(const char *fname);
 char *hash_result(void);
 
@@ -35,6 +37,8 @@ void fatal(const char *msg);
 void oom(const char *msg);
 
 void copy_fd(int fd_in, int fd_out);
+
+int create_dir(const char *dir);
 
 void execute(char **argv, 
 	     const char *path_stdout,
