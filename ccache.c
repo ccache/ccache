@@ -97,6 +97,9 @@ static void failed(void)
 		cpp_stderr = NULL;
 	}
 
+	/* strip any local args */
+	args_strip(orig_args, "--ccache-");
+
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!\n", strerror(errno));
 	perror(orig_args->argv[0]);

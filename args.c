@@ -47,3 +47,24 @@ void args_pop(ARGS *args, int n)
 		args->argv[args->argc] = NULL;
 	}
 }
+
+/* strip any arguments beginning with the specified prefix */
+void args_strip(ARGS *args, const char *prefix)
+{
+	int i;
+	for (i=0; i<args->argc; ) {
+		if (strncmp(args->argv[i], prefix, strlen(prefix)) == 0) {
+			if (i < args->argc-1) {
+				/* note that we can't free the entry we are removing
+				   as it may be part of the original argc/argv passed
+				   to main() */
+				memmove(&args->argv[i], 
+					&args->argv[i+1], 
+					(args->argc-1) * sizeof(args->argv[i]));
+			}
+			args->argc--;
+		} else {
+			i++;
+		}
+	}
+}
