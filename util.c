@@ -83,8 +83,14 @@ int copy_file(const char *src, const char *dest)
 		}
 	}
 
-	close(fd2);
 	close(fd1);
+
+	/* the close can fail on NFS if out of space */
+	if (close(fd2) == -1) {
+		unlink(dest);
+		return -1;
+	}
+
 	return 0;
 }
 

@@ -49,6 +49,9 @@ static char *i_extension;
 /* the name of the temporary pre-processor file */
 static char *i_tmpfile;
 
+/* the name of the cpp stderr file */
+static char *cpp_stderr;
+
 /* the name of the statistics file */
 char *stats_file = NULL;
 
@@ -86,6 +89,14 @@ static void failed(void)
 		free(i_tmpfile);
 		i_tmpfile = NULL;
 	}
+
+	/* delete the cpp stderr file if necessary */
+	if (cpp_stderr) {
+		unlink(cpp_stderr);
+		free(cpp_stderr);
+		cpp_stderr = NULL;
+	}
+
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!\n", strerror(errno));
 	perror(orig_args->argv[0]);
@@ -134,7 +145,19 @@ static void to_cache(ARGS *args)
 		if (fd != -1) {
 			if (strcmp(output_file, "/dev/null") == 0 ||
 			    rename(tmp_hashname, output_file) == 0 || errno == ENOENT) {
-				/* we can use a quick method of getting the failed output */
+				if (cpp_stderr) {
+					/* we might have some stderr from cpp */
+					int fd2 = open(cpp_stderr, O_RDONLY);
+					if (fd2 != -1) {
+						copy_fd(fd2, 2);
+						close(fd2);
+						unlink(cpp_stderr);
+						cpp_stderr = NULL;
+					}
+				}
+
+				/* we can use a quick method of
+                                   getting the failed output */
 				copy_fd(fd, 2);
 				close(fd);
 				unlink(tmp_stderr);
@@ -244,7 +267,7 @@ static void find_hash(ARGS *args)
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/tmp.stdout.%d.%s", cache_dir, getpid(), 
 		   i_extension);
-	x_asprintf(&path_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
+	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%d", cache_dir, getpid());
 
 	args_add(args, "-E");
 	args_add(args, input_file);
@@ -278,8 +301,16 @@ static void find_hash(ARGS *args)
 	hash_file(path_stderr);
 
 	i_tmpfile = path_stdout;
-	unlink(path_stderr);
-	free(path_stderr);
+
+	if (!getenv("CCACHE_CPP2")) {
+		/* if we are using the CPP trick then we need to remember this stderr
+		   data and output it just before the main stderr from the compiler
+		   pass */
+		cpp_stderr = path_stderr;
+	} else {	
+		unlink(path_stderr);
+		free(path_stderr);
+	}
 
 	/* we use a N level subdir for the cache path to reduce the impact
 	   on filesystems which are slow for large directories
@@ -312,7 +343,7 @@ static void find_hash(ARGS *args)
    otherwise it returns */
 static void from_cache(int first)
 {
-	int fd_stderr;
+	int fd_stderr, fd_cpp_stderr;
 	char *stderr_file;
 	int ret;
 	struct stat st;
@@ -375,6 +406,16 @@ static void from_cache(int first)
 		unlink(i_tmpfile);
 		free(i_tmpfile);
 		i_tmpfile = NULL;
+	}
+
+	/* send the cpp stderr, if applicable */
+	fd_cpp_stderr = open(cpp_stderr, O_RDONLY);
+	if (fd_cpp_stderr != -1) {
+		copy_fd(fd_cpp_stderr, 2);
+		close(fd_cpp_stderr);
+		unlink(cpp_stderr);
+		free(cpp_stderr);
+		cpp_stderr = NULL;
 	}
 
 	/* send the stderr */
@@ -699,7 +740,7 @@ static void ccache(int argc, char *argv[])
 	/* if we can return from cache at this point then do */
 	from_cache(1);
 	
-	/* run real compiler, semding output to cache */
+	/* run real compiler, sending output to cache */
 	to_cache(stripped_args);
 
 	/* return from cache */

@@ -1,4 +1,4 @@
-#define CCACHE_VERSION "1.8"
+#define CCACHE_VERSION "1.9"
 
 #include "config.h"
 
