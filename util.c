@@ -430,3 +430,25 @@ int create_empty_file(const char *fname)
 	close(fd);
 	return 0;
 }
+
+/*
+  return current users home directory or die
+*/
+const char *get_home_directory(void)
+{
+	const char *p = getenv("HOME");
+	if (p) {
+		return p;
+	}
+#ifdef HAVE_GETPWUID
+	{
+		struct passwd *pwd = getpwuid(getuid());
+		if (pwd) {
+			return pwd->pw_dir;
+		}
+	}
+#endif
+	fatal("Unable to determine home directory");
+	return NULL;
+}
+

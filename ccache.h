@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <dirent.h>
 #include <limits.h>
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
 
 #define STATUS_NOTFOUND 3
 #define STATUS_FATAL 4
@@ -91,6 +94,7 @@ int safe_open(const char *fname);
 char *x_realpath(const char *path);
 char *gnu_getcwd(void);
 int create_empty_file(const char *fname);
+const char *get_home_directory(void);
 
 void stats_update(enum stats stat);
 void stats_zero(void);

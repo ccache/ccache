@@ -969,7 +969,7 @@ int main(int argc, char *argv[])
 
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
-		x_asprintf(&cache_dir, "%s/.ccache", getenv("HOME"));
+		x_asprintf(&cache_dir, "%s/.ccache", get_home_directory());
 	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
