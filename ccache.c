@@ -883,7 +883,6 @@ static void usage(void)
 /* the main program when not doing a compile */
 static int ccache_main(int argc, char *argv[])
 {
-	extern int optind;
 	int c;
 	size_t v;
 
