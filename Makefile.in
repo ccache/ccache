@@ -31,7 +31,7 @@ web/ccache-man.html: ccache.yo
 install: ccache ccache.1
 	${INSTALLCMD} -d $(DESTDIR)${bindir}
 	${INSTALLCMD} -m 755 ccache $(DESTDIR)${bindir}
-	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1/
+	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1
 	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
 
 clean:
