@@ -368,22 +368,19 @@ static void find_compiler(int argc, char **argv)
 		    lstat(fname, &st1) == 0 &&
 		    stat(fname, &st2) == 0 &&
 		    S_ISREG(st2.st_mode)) {
-			char buf[1024];
-			int len;
-
 			/* if its a symlink then ensure it doesn't
                            point at something called "ccache" */
 			if (S_ISLNK(st1.st_mode)) {
-				char *p;
-				len = readlink(fname, buf, sizeof(buf));
-				if (len != -1 && len < (int)sizeof(buf)) {
-					buf[len] = 0;
-					p = basename(buf);
+				char *buf = x_realpath(fname);
+				if (buf) {
+					char *p = basename(buf);
 					if (strcmp(p, MYNAME) == 0) {
 						/* its a link to "ccache" ! */
 						free(p);
+						free(buf);
 						continue;
 					}
+					free(buf);
 					free(p);
 				}
 			}

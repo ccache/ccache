@@ -295,3 +295,33 @@ size_t value_units(const char *s)
 	}
 	return v;
 }
+
+
+/*
+  a sane realpath() function, trying to cope with stupid path limits and 
+  a broken API
+*/
+char *x_realpath(const char *path)
+{
+	int maxlen;
+	char *ret, *p;
+#ifdef PATH_MAX
+	maxlen = PATH_MAX;
+#elif defined(MAXPATHLEN)
+	maxlen = MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+	maxlen = pathconf(path, _PC_PATH_MAX);
+#endif
+	if (maxlen < 4096) maxlen = 4096;
+	
+	ret = x_malloc(maxlen);
+	
+	p = realpath(path, ret);
+	if (p) {
+		p = x_strdup(p);
+		free(ret);
+		return p;
+	}
+	free(ret);
+	return NULL;
+}
