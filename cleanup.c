@@ -80,7 +80,8 @@ static void sort_and_clean(void)
 
 	if (num_files > 1) {
 		/* sort in ascending data order */
-		qsort(files, num_files, sizeof(struct files *), files_compare);
+		qsort(files, num_files, sizeof(struct files *), 
+		      (COMPAR_FN_T)files_compare);
 	}
 	
 	/* delete enough files to bring us below the threshold */

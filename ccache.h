@@ -1,4 +1,4 @@
-#define CCACHE_VERSION "1.4"
+#define CCACHE_VERSION "1.5"
 
 #include "config.h"
 
@@ -112,3 +112,8 @@ ARGS *args_init(void);
 void args_add(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
 
+#if HAVE_COMPAR_FN_T
+#define COMPAR_FN_T __compar_fn_t
+#else
+typedef int (*COMPAR_FN_T)(const void *, const void *);
+#endif

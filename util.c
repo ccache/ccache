@@ -249,7 +249,7 @@ int lock_fd(int fd)
 size_t file_size(struct stat *st)
 {
 	size_t size = st->st_blocks * 512;
-	if (st->st_size > size) {
+	if ((size_t)st->st_size > size) {
 		/* probably a broken stat() call ... */
 		size = (st->st_size + 1023) & ~1023;
 	}

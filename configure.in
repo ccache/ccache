@@ -33,7 +33,18 @@ AC_HEADER_SYS_WAIT
 
 AC_CHECK_FUNCS(realpath snprintf vsnprintf vasprintf asprintf)
 
-AC_CACHE_CHECK([for C99 vsnprintf],rsync_cv_HAVE_C99_VSNPRINTF,[
+AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
+    AC_TRY_COMPILE(
+[#include <stdlib.h>],
+[
+void test_fn(void) { qsort(NULL, 0, 0, (__compar_fn_t)NULL); }
+],
+	ccache_cv_COMPAR_FN_T=yes,ccache_cv_COMPAR_FN_T=no)])
+if test x"$ccache_cv_COMPAR_FN_T" = x"yes"; then
+   AC_DEFINE(HAVE_COMPAR_FN_T, 1, [ ])
+fi
+
+AC_CACHE_CHECK([for C99 vsnprintf],ccache_cv_HAVE_C99_VSNPRINTF,[
 AC_TRY_RUN([
 #include <sys/types.h>
 #include <stdarg.h>
@@ -53,8 +64,8 @@ void foo(const char *format, ...) {
 }
 main() { foo("hello"); }
 ],
-rsync_cv_HAVE_C99_VSNPRINTF=yes,rsync_cv_HAVE_C99_VSNPRINTF=no,rsync_cv_HAVE_C99_VSNPRINTF=cross)])
-if test x"$rsync_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
+ccache_cv_HAVE_C99_VSNPRINTF=yes,ccache_cv_HAVE_C99_VSNPRINTF=no,ccache_cv_HAVE_C99_VSNPRINTF=cross)])
+if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
     AC_DEFINE(HAVE_C99_VSNPRINTF, 1, [ ])
 fi
 

@@ -6,6 +6,9 @@
 /* */
 #undef HAVE_C99_VSNPRINTF
 
+/* */
+#undef HAVE_COMPAR_FN_T
+
 /* Define if you have the <dirent.h> header file, and it defines `DIR'. */
 #undef HAVE_DIRENT_H
 

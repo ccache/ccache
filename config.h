@@ -7,6 +7,9 @@
 /* */
 #define HAVE_C99_VSNPRINTF 1
 
+/* */
+#define HAVE_COMPAR_FN_T 1
+
 /* Define if you have the <dirent.h> header file, and it defines `DIR'. */
 #define HAVE_DIRENT_H 1
 
