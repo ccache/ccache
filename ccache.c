@@ -575,16 +575,8 @@ static void process_args(int argc, char **argv)
 			failed();
 		}
 
-		/* cope with -MD, -MM, -MMD before the code below chucks them */
-		if (strcmp(argv[i], "-MD") == 0 ||
-		    strcmp(argv[i], "-MM") == 0 ||
-		    strcmp(argv[i], "-MMD") == 0) {
-			args_add(stripped_args, argv[i]);
-			continue;
-		}
-
 		/* check for bad options */
-		if (strncmp(argv[i], "-M", 2) == 0) {
+		if (strcmp(argv[i], "-M") == 0) {
 			cc_log("argument %s is unsupported\n", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			failed();
@@ -635,21 +627,30 @@ static void process_args(int argc, char **argv)
 		}
 
 		/* options that take an argument */
-		if (strcmp(argv[i], "-I") == 0 ||
-		    strcmp(argv[i], "-include") == 0 ||
-		    strcmp(argv[i], "-L") == 0 ||
-		    strcmp(argv[i], "-D") == 0 ||
-		    strcmp(argv[i], "-isystem") == 0) {
-			if (i == argc-1) {
-				cc_log("missing argument to %s\n", argv[i]);
-				stats_update(STATS_ARGS);
-				failed();
-			}
+		{
+			const char *opts[] = {"-I", "-Iinclude", "-imacros", "-iprefix",
+					      "-iwithprefix", "-iwithprefixbefore",
+					      "-L", "-D", "-U", "-x", "-MF", "-MT",
+					      "-MT", "-MQ", "-isystem", "-aux-info",
+					      "--param", "-A", "-Xlinker", "-u",
+					      NULL};
+			int j;
+			for (j=0;opts[j];j++) {
+				if (strcmp(argv[i], opts[j]) == 0) {
+					if (i == argc-1) {
+						cc_log("missing argument to %s\n", 
+						       argv[i]);
+						stats_update(STATS_ARGS);
+						failed();
+					}
 						
-			args_add(stripped_args, argv[i]);
-			args_add(stripped_args, argv[i+1]);
-			i++;
-			continue;
+					args_add(stripped_args, argv[i]);
+					args_add(stripped_args, argv[i+1]);
+					i++;
+					break;
+				}
+			}
+			if (opts[j]) continue;
 		}
 
 		/* other options */
