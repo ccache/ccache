@@ -273,6 +273,7 @@ static void from_cache(int first)
 		}
 	}
 	if (ret == 0) {
+		/* update the mtime on the file so that make doesn't get confused */
 		utime(output_file, NULL);
 	}
 

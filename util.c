@@ -141,3 +141,41 @@ char *x_strdup(const char *s)
 	}
 	return ret;
 }
+
+
+/* 
+   revsusive directory traversal - used for cleanup
+   fn() is called on all files/dirs in the tree
+ */
+void traverse(const char *dir, void (*fn)(const char *))
+{
+	DIR *d;
+	struct dirent *de;
+
+	d = opendir(dir);
+	if (!d) return;
+
+	while ((de = readdir(d))) {
+		char *fname;
+		struct stat st;
+
+		if (strcmp(de->d_name,".") == 0) continue;
+		if (strcmp(de->d_name,"..") == 0) continue;
+
+		x_asprintf(&fname, "%s/%s", dir, de->d_name);
+		if (lstat(fname, &st)) {
+			perror(fname);
+			free(fname);
+			continue;
+		}
+
+		if (S_ISDIR(st.st_mode)) {
+			traverse(fname, fn);
+		}
+
+		fn(fname);
+		free(fname);
+	}
+
+	closedir(d);
+}

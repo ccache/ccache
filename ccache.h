@@ -10,10 +10,12 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <time.h>
 #include <string.h>
 #include <ctype.h>
 #include <utime.h>
 #include <stdarg.h>
+#include <dirent.h>
 
 #define STATUS_NOTFOUND 3
 #define STATUS_FATAL 4
@@ -39,6 +41,7 @@ int copy_file(const char *src, const char *dest);
 int create_dir(const char *dir);
 void x_asprintf(char **ptr, const char *format, ...);
 char *x_strdup(const char *s);
+void traverse(const char *dir, void (*fn)(const char *));
 
 int execute(char **argv, 
 	    const char *path_stdout,
