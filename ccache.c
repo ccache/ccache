@@ -118,6 +118,9 @@ static void stabs_hash(const char *fname)
 		failed();
 	}
 
+	/* we use mmap() to make it easy to handle arbitraryily long
+           lines in preprocessor output. I have seen lines of over
+           100k in length, so this is well worth it */
 	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (map == (void *)-1) {
 		cc_log("Failed to mmap %s\n", fname);
@@ -131,6 +134,8 @@ static void stabs_hash(const char *fname)
 		while (l_end < st.st_size && map[l_end] != '\n') {
 			l_end++;
 		}
+		/* skip the hash on any lines that look like compiler line
+		   numbers */
 		if ((l_end - l_start) > 2 &&
 		    map[l_start] == '#' && map[l_start+1] == ' ' && 
 		    isdigit(map[l_start+2])) {

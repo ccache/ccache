@@ -19,8 +19,6 @@
 #define STATUS_FATAL 4
 #define STATUS_NOCACHE 5
 
-#define MAX_LINE_SIZE 102400
-
 typedef unsigned uint32;
 
 #include "mdfour.h"
