@@ -1,17 +1,28 @@
 /*
-  this file isn't used yet, but probably will be soon
+   Copyright (C) Andrew Tridgell 2002
+   
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+   
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
+/*
+  C/C++ unifier
+
+  the idea is that changes that don't affect the resulting C code should not change
+  the hash
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-
+#include "ccache.h"
 
 static char *s_tokens[] = {
 	"...",	">>=",	"<<=",	"+=",	"-=",	"*=",	"/=",	"%=",	"&=",	"^=",
@@ -37,10 +48,15 @@ static struct {
 	char *toks[7];
 } tokens[256];
 
+/* build up the table used by the unifier */
 static void build_table(void)
 {
 	unsigned char c;
 	int i;
+	static int done;
+
+	if (done) return;
+	done = 1;
 
 	memset(tokens, 0, sizeof(tokens));
 	for (c=0;c<128;c++) {
@@ -69,29 +85,34 @@ static void build_table(void)
 	}
 }
 
+/* buffer up characters before hashing them */
 static void pushchar(unsigned char c)
 {
 	static unsigned char buf[64];
 	static int len;
 
 	if (c == 0) {
-		write(1, buf, len);
+		hash_buffer(buf, len);
 		len = 0;
+		hash_buffer(NULL, 0);
 		return;
 	}
 
 	buf[len++] = c;
 	if (len == 64) {
-		write(1, buf, len);
+		hash_buffer(buf, len);
 		len = 0;
 	}
 }
 
-static void unify(unsigned char *p, size_t size)
+/* hash some C/C++ code after unifying */
+void unify(unsigned char *p, size_t size)
 {
 	size_t ofs;
 	unsigned char q;
 	int i;
+
+	build_table();
 
 	for (ofs=0; ofs<size;) {
 		if (p[ofs] == '#') {
@@ -199,36 +220,3 @@ static void unify(unsigned char *p, size_t size)
 	pushchar(0);
 }
 
-
-static unsigned char *map_file(const char *fname, size_t *size)
-{
-	int fd;
-	unsigned char *map;
-	struct stat st;
-
-	fd = open(fname, O_RDONLY);
-	if (fd == -1 || fstat(fd, &st) != 0) {
-		return NULL;
-	}
-	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (map == (unsigned char *)-1) {
-		return NULL;
-	}
-	close(fd);
-	*size = st.st_size;
-	return map;
-}
-
-
-int main(int argc, char *argv[])
-{
-	unsigned char *p;
-	size_t size;
-
-	build_table();
-
-	p = map_file(argv[1], &size);
-
-	unify(p, size);
-	return 0;
-}

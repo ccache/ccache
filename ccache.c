@@ -117,7 +117,6 @@ static void stabs_hash(const char *fname)
 	int fd;
 	struct stat st;	
 	char *map;
-	int l_start, l_end;
 
 	fd = open(fname, O_RDONLY);
 	if (fd == -1 || fstat(fd, &st) != 0) {
@@ -136,23 +135,8 @@ static void stabs_hash(const char *fname)
 	}
 	close(fd);
 
-	l_start = 0;
-	while (l_start < st.st_size) {
-		l_end = l_start;
-		while (l_end < st.st_size && map[l_end] != '\n') {
-			l_end++;
-		}
-		/* skip the hash on any lines that look like compiler line
-		   numbers */
-		if ((l_end - l_start) > 2 &&
-		    map[l_start] == '#' && map[l_start+1] == ' ' && 
-		    isdigit(map[l_start+2])) {
-			l_start = l_end+1;
-			continue;
-		}
-		hash_buffer(&map[l_start], 1 + l_end - l_start);
-		l_start = l_end+1;
-	}
+	/* pass it through the unifier */
+	unify(map, st.st_size);
 
 	munmap(map, st.st_size);
 }
