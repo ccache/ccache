@@ -1,0 +1,237 @@
+.TH "ccache" "1" "April 2002" "" "" 
+.SH "NAME" 
+ccache \- a fast compiler cache
+.SH "SYNOPSIS" 
+.PP 
+ccache [OPTION]
+.PP 
+ccache <compiler> [COMPILER OPTIONS]
+.PP 
+<compiler> [COMPILER OPTIONS]
+.PP 
+.SH "DESCRIPTION" 
+.PP 
+ccache is a compiler cache\&. It speeds up re-compilation of C/C++ code 
+by caching previous compiles and detecting when the same compile is
+being done again\&.
+.PP 
+.SH "OPTIONS SUMMARY" 
+.PP 
+Here is a summary of the options to ccache\&.
+.PP 
+
+.nf 
+ 
+
+-s                      show statistics summary
+-z                      zero statistics
+-c                      run a cache cleanup
+-F <maxfiles>           set maximum files in cache
+-M <maxsize>            set maximum size of cache (use G, M or K)
+-h                      this help page
+-V                      print version number
+
+.fi 
+ 
+
+.PP 
+.SH "OPTIONS" 
+.PP 
+These options only apply when you invoke ccache as "ccache"\&. When
+invoked as a compiler none of these options apply\&. In that case your
+normal compiler options apply and you should refer to your compilers
+documentation\&.
+.PP 
+.IP "\fB-h\fP" 
+Print a options summary page
+.IP 
+.IP "\fB-s\fP" 
+Print the current statistics summary for the cache\&. The
+statistics are stored spread across the subdirectories of the
+cache\&. Using "ccache -s" adds up the statistics across all
+subdirectories and prints the totals\&.
+.IP 
+.IP "\fB-z\fP" 
+Zero the cache statistics\&. 
+.IP 
+.IP "\fB-V\fP" 
+Print the ccache version number
+.IP 
+.IP "\fB-c\fP" 
+Clean the cache and re-calculate the cache file count and
+size totals\&. Normally the -c option should not be necessary as ccache
+keeps the cache below the specified limits at runtime and keeps
+statistics up to date on each compile\&. This option is mostly useful
+if you manually modify the cache contents or believe that the cache
+size statitics may be inaccurate\&.
+.IP 
+.IP "\fB-F maxfiles\fP" 
+This sets the maximum number of files allowed in
+the cache\&. The value is stored inside the cache directory and applies
+to all future compiles\&. Due to the way the value is stored the actual
+value used is always rounded down to the nearest multiple of 16\&.
+.IP 
+.IP "\fB-M maxsize\fP" 
+This sets the maximum cache size\&. You can specify
+a value in gigabytes, megabytes or kilobytes by appending a G, M or K
+to the value\&. The default is gigabytes\&. The actual value stored is
+rounded down to the nearest multiple of 16 kilobytes\&.
+.IP 
+.PP 
+.SH "INSTALLATION" 
+.PP 
+There are two ways to use ccache\&. You can either prefix your compile
+commands with "ccache" or you can create a symbolic link between
+ccache and the names of your compilers\&. The first method is most
+convenient if you just want to try out ccache or wish to use it for
+some specific projects\&. The second method is most useful for when you
+wish to use ccache for all your compiles\&.
+.PP 
+To install for usage by the first method just copy ccache to somewhere
+in your path\&. 
+.PP 
+To install for the second method do something like this:
+
+.nf 
+ 
+
+  cp ccache /usr/local/bin/
+  ln -s /usr/local/bin/ccache /usr/local/bin/gcc
+  ln -s /usr/local/bin/ccache /usr/local/bin/cc
+
+.fi 
+ 
+
+This will work as long as /usr/local/bin comes before the path to gcc
+(which is usually in /usr/bin)\&. After installing you may wish to run
+"which gcc" to make sure that the correct link is being used\&.
+.PP 
+.SH "ENVIRONMENT VARIABLES" 
+.PP 
+ccache used a number of environment variables to control operation\&. In
+most cases you won\&'t need any of these as the defaults will be fine\&.
+.PP 
+.IP 
+.IP "\fBCCACHE_DIR\fP" 
+the CCACHE_DIR environment variable specifies
+where ccache will keep its cached compiler output\&. The default is
+"$HOME/\&.ccache"\&.
+.IP 
+.IP "\fBCCACHE_LOGFILE\fP" 
+If you set the CCACHE_LOGFILE environment
+variable then ccache will write some log information on cache hits
+and misses in that file\&. This is useful for tracking down problems\&.
+.IP 
+.IP "\fBCCACHE_PATH\fP" 
+You can optionally set CCACHE_PATH to a colon
+separated path where ccache will look for the real compilers\&. If you
+don\&'t do this then ccache will look for the first executable matching
+the compiler name in the normal PATH that isn\&'t a symbolic link to
+ccache itself\&.
+.IP 
+.IP "\fBCCACHE_DISABLE\fP" 
+If you set the environment variable
+CCACHE_DISABLE then ccache will just call the real compiler,
+bypassing the cache completely\&.
+.IP 
+.PP 
+.SH "CACHE SIZE MANAGEMENT" 
+.PP 
+By default ccache has no limit on the cache size\&. You can set a limit
+using the "ccache -M" and "ccache -F" options, which set the size and
+number of files limits\&.
+.PP 
+When these limits are reached ccache will reduce the cache to 20%
+below the numbers you specified in order to avoid doing the cache
+clean operation too often\&.
+.PP 
+.SH "HOW IT WORKS" 
+.PP 
+The basic idea is to detect when you are compiling exactly the same
+code a 2nd time and use the previously compiled output\&. You detect
+that it is the same code by forming a hash of:
+.PP 
+.IP o 
+the pre-processor output from running the compiler with -E
+.IP o 
+the command line options
+.IP o 
+the real compilers size and modification time
+.IP o 
+any stderr output generated by the compiler
+.PP 
+These are hashed using md4 (a strong hash) and a cache file is formed
+based on that hash result\&. When the same compilation is done a second
+time ccache is able to supply the correct compiler output (including
+all warnings etc) from the cache\&.
+.PP 
+ccache has been carefully written to always produce exactly the same
+compiler output that you would get without the cache\&. If you ever
+discover a case where ccache changes the output of your compiler then
+please let me know\&.
+.PP 
+.SH "HISTORY" 
+.PP 
+ccache was inspired by the compilercache shell script script written
+by Erik Thiele and I would like to thank him for an excellent piece of
+work\&. See 
+http://www\&.erikyyy\&.de/compilercache/
+for the Erik\&'s scripts\&.
+.PP 
+I wrote ccache because I wanted to get a bit more speed out of a
+compiler cache and I wanted to remove some of the limitations of the
+shell-script version\&.
+.PP 
+.SH "DIFFERENCES FROM COMPILERCACHE" 
+.PP 
+The biggest differences between Erik\&'s compilercache script and ccache
+are:
+.IP o 
+ccache is written in C, which makes it a bit faster (calling out to
+external programs is mostly what slowed down the scripts)\&.
+.IP o 
+ccache can automatically find the real compiler
+.IP o 
+ccache keeps statistics on hits/misses
+.IP o 
+ccache can do automatic cache management
+.IP o 
+ccache can cache compiler output that includes warnings\&. In many
+cases this gives ccache a much higher cache hit rate\&.
+.IP o 
+ccache can handle a much wider ranger of compiler options
+.IP o 
+compilercache does much smarter token unification using a C
+lexer\&. This means that reformatting of source code is much more
+likely to result in a cache miss with ccache than with
+compilercache\&. I may add this in future, although it is perhaps
+debatable whether the much slower parsing is worth it\&.
+Note however that ccache is a very new piece of code (as of March
+2002) whereas Erik\&'s scripts have had more testing\&. 
+.PP 
+The overall speedup compared to compilercache is quite dramatic\&. For
+compiling rsync I get:
+.PP 
+
+.nf 
+ 
+
+  normal build 20\&.74 seconds
+
+  compilercache uncached 28\&.9 seconds
+  compilercache cached 10\&.5 seconds
+
+  ccache uncached 24\&.6 seconds
+  ccache cached 4\&.6 seconds
+
+.fi 
+ 
+
+.PP 
+.SH "AUTHOR" 
+.PP 
+ccache was written by Andrew Tridgell
+http://samba\&.org/~tridge/
+.PP 
+If you wish to report a problem or make a suggestion then please email
+bugs@ccache\&.samba\&.org
