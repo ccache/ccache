@@ -371,8 +371,9 @@ static void process_args(int argc, char **argv)
 	args_add(stripped_args, argv[0]);
 
 	for (i=1; i<argc; i++) {
-		/* -E will never work ... */
-		if (strcmp(argv[i], "-E") == 0) {
+		/* some options will never work ... */
+		if (strncmp(argv[i], "-E", 2) == 0 ||
+		    strncmp(argv[i], "-M", 2) == 0) {
 			failed();
 		}
 
