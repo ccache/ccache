@@ -410,3 +410,17 @@ int mkstemp(char *template)
 	return open(template, O_RDWR | O_CREAT | O_EXCL, 0600);
 }
 #endif
+
+
+/* create an empty file */
+int create_empty_file(const char *fname)
+{
+	int fd;
+
+	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
+	if (fd == -1) {
+		return -1;
+	}
+	close(fd);
+	return 0;
+}

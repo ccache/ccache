@@ -50,14 +50,17 @@ static const char *i_extension;
 /* the name of the temporary pre-processor file */
 static char *i_tmpfile;
 
+/* are we compiling a .i or .ii file directly? */
+static int direct_i_file;
+
 /* the name of the cpp stderr file */
 static char *cpp_stderr;
 
 /* the name of the statistics file */
 char *stats_file = NULL;
 
-/* did we find a -g option? */
-static int found_debug;
+/* can we safely use the unification hashing backend? */
+static int enable_unify;
 
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
@@ -77,6 +80,8 @@ static struct {
 	{"CXX", "ii"},
 	{"c++", "ii"},
 	{"C++", "ii"},
+	{"i", "i"},
+	{"ii", "ii"},
 	{NULL, NULL}};
 
 /*
@@ -88,7 +93,9 @@ static void failed(void)
 
 	/* delete intermediate pre-processor file if needed */
 	if (i_tmpfile) {
-		unlink(i_tmpfile);
+		if (!direct_i_file) {
+			unlink(i_tmpfile);
+		}
 		free(i_tmpfile);
 		i_tmpfile = NULL;
 	}
@@ -206,7 +213,7 @@ static void to_cache(ARGS *args)
 				copy_fd(fd, 2);
 				close(fd);
 				unlink(tmp_stderr);
-				if (i_tmpfile) {
+				if (i_tmpfile && !direct_i_file) {
 					unlink(i_tmpfile);
 				}
 				exit(status);
@@ -262,7 +269,7 @@ static void find_hash(ARGS *args)
 
 	/* when we are doing the unifying tricks we need to include
            the input file name in the hash to get the warnings right */
-	if (!found_debug) {
+	if (enable_unify) {
 		hash_string(input_file);
 	}
 
@@ -339,20 +346,35 @@ static void find_hash(ARGS *args)
 		   i_extension);
 	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", cache_dir, tmp_string());
 
-	args_add(args, "-E");
-	args_add(args, input_file);
-	status = execute(args->argv, path_stdout, path_stderr);
-	args_pop(args, 2);
+	if (!direct_i_file) {
+		/* run cpp on the input file to obtain the .i */
+		args_add(args, "-E");
+		args_add(args, input_file);
+		status = execute(args->argv, path_stdout, path_stderr);
+		args_pop(args, 2);
+	} else {
+		/* we are compiling a .i or .ii file - that means we can skip the cpp stage
+		   and directly form the correct i_tmpfile */
+		path_stdout = input_file;
+		if (create_empty_file(path_stderr) != 0) {
+			stats_update(STATS_ERROR);
+			cc_log("failed to create empty stderr file\n");
+			failed();
+		}
+		status = 0;
+	}
 
 	if (status != 0) {
-		unlink(path_stdout);
+		if (!direct_i_file) {
+			unlink(path_stdout);
+		}
 		unlink(path_stderr);
 		cc_log("the preprocessor gave %d\n", status);
 		stats_update(STATS_PREPROCESSOR);
 		failed();
 	}
 
-	/* if the compilation is with -g then we have to inlcude the whole of the
+	/* if the compilation is with -g then we have to include the whole of the
 	   preprocessor output, which means we are sensitive to line number
 	   information. Otherwise we can discard line number info, which makes
 	   us less sensitive to reformatting changes 
@@ -360,7 +382,7 @@ static void find_hash(ARGS *args)
 	   Note! I have now disabled the unification code by default
 	   as it gives the wrong line numbers for warnings. Pity.
 	*/
-	if (found_debug || !getenv("CCACHE_UNIFY")) {
+	if (!enable_unify) {
 		hash_file(path_stdout);
 	} else {
 		if (unify_hash(path_stdout) != 0) {
@@ -481,7 +503,9 @@ static void from_cache(int first)
 
 	/* get rid of the intermediate preprocessor file */
 	if (i_tmpfile) {
-		unlink(i_tmpfile);
+		if (!direct_i_file) {
+			unlink(i_tmpfile);
+		}
 		free(i_tmpfile);
 		i_tmpfile = NULL;
 	}
@@ -549,16 +573,23 @@ static void find_compiler(int argc, char **argv)
 
 /* check a filename for C/C++ extension. Return the pre-processor
    extension */
-static const char *check_extension(const char *fname)
+static const char *check_extension(const char *fname, int *direct_i)
 {
 	int i;
 	const char *p;
+
+	if (direct_i) {
+		*direct_i = 0;
+	}
 
 	p = strrchr(fname, '.');
 	if (!p) return NULL;
 	p++;
 	for (i=0; extensions[i].extension; i++) {
 		if (strcmp(p, extensions[i].extension) == 0) {
+			if (direct_i && strcmp(p, extensions[i].i_extension) == 0) {
+				*direct_i = 1;
+			}
 			p = getenv("CCACHE_EXTENSION");
 			if (p) return p;
 			return extensions[i].i_extension;
@@ -638,7 +669,7 @@ static void process_args(int argc, char **argv)
 		if (strncmp(argv[i], "-g", 2) == 0) {
 			args_add(stripped_args, argv[i]);
 			if (strcmp(argv[i], "-g0") != 0) {
-				found_debug = 1;
+				enable_unify = 0;
 			}
 			continue;
 		}
@@ -695,7 +726,7 @@ static void process_args(int argc, char **argv)
 		}
 
 		if (input_file) {
-			if (check_extension(argv[i])) {
+			if (check_extension(argv[i], NULL)) {
 				cc_log("multiple input files (%s and %s)\n",
 				       input_file, argv[i]);
 				stats_update(STATS_MULTIPLE);
@@ -722,7 +753,7 @@ static void process_args(int argc, char **argv)
 		failed();
 	}
 
-	i_extension = check_extension(input_file);
+	i_extension = check_extension(input_file, &direct_i_file);
 	if (i_extension == NULL) {
 		cc_log("Not a C/C++ file - %s\n", input_file);
 		stats_update(STATS_NOTC);
@@ -791,6 +822,10 @@ static void ccache(int argc, char *argv[])
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled\n");
 		failed();
+	}
+
+	if (getenv("CCACHE_UNIFY")) {
+		enable_unify = 1;
 	}
 
 	/* process argument list, returning a new set of arguments for pre-processing */
@@ -897,8 +932,8 @@ static int ccache_main(int argc, char *argv[])
 
 
 /* Make a copy of stderr that will not be cached, so things like
- * distcc can send networking errors to it. */
-int setup_uncached_err(void)
+   distcc can send networking errors to it. */
+static void setup_uncached_err(void)
 {
 	char *buf;
 	int uncached_fd;
@@ -916,8 +951,6 @@ int setup_uncached_err(void)
 		cc_log("putenv failed\n");
 		failed();
 	}
-
-	return 0;
 }
 
 

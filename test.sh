@@ -203,6 +203,25 @@ basetests() {
 	test_failed '-F test failed'
     fi
 
+    testname="cpp call"
+    $CCACHE_COMPILE -c test1.c -E > test1.i
+    checkstat 'cache hit' 8
+    checkstat 'cache miss' 37
+
+    testname="direct .i compile"
+    $CCACHE_COMPILE -c test1.c
+    checkstat 'cache hit' 8
+    checkstat 'cache miss' 38
+
+    $CCACHE_COMPILE -c test1.i
+    checkstat 'cache hit' 9
+    checkstat 'cache miss' 38
+
+    $CCACHE_COMPILE -c test1.i
+    checkstat 'cache hit' 10
+    checkstat 'cache miss' 38
+    
+
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit' 0
