@@ -57,18 +57,6 @@ static struct {
 	{ STATS_NONE, NULL, NULL, 0 }
 };
 
-/* return a string description of a statistic */
-static int stats_find(enum stats stat)
-{
-	int i;
-	for (i=0;stats_info[i].stat != STATS_NONE; i++) {
-		if (stats_info[i].stat == stat) {
-			return i;
-		}
-	}
-	return -1;
-}
-
 /* parse a stats file from a buffer - adding to the counters */
 static void parse_stats(unsigned counters[STATS_END], char *buf)
 {
@@ -133,10 +121,12 @@ static void stats_update_size(enum stats stat, size_t size)
 
 	/* still can't get it? don't bother ... */
 	if (fd == -1) return;
+
+	memset(counters, 0, sizeof(counters));
+
 	if (lock_fd(fd) != 0) return;
 
 	/* read in the old stats */
-	memset(counters, 0, sizeof(counters));
 	stats_read_fd(fd, counters);
 
 	/* update them */
@@ -146,21 +136,21 @@ static void stats_update_size(enum stats stat, size_t size)
 	if (stat == STATS_TOCACHE) {
 		counters[STATS_NUMFILES] += 2;
 		counters[STATS_TOTALSIZE] += size;
-
-		/* we might need to cleanup if the cache has now got too big */
-		if (counters[STATS_MAXFILES] != 0 &&
-		    counters[STATS_NUMFILES] > counters[STATS_MAXFILES]) {
-			need_cleanup = 1;
-		}
-		if (counters[STATS_MAXSIZE] != 0 &&
-		    counters[STATS_TOTALSIZE] > counters[STATS_MAXSIZE]) {
-			need_cleanup = 1;
-		}
 	}
 
 	/* and write them out */
 	write_stats(fd, counters);
 	close(fd);
+
+	/* we might need to cleanup if the cache has now got too big */
+	if (counters[STATS_MAXFILES] != 0 &&
+	    counters[STATS_NUMFILES] > counters[STATS_MAXFILES]) {
+		need_cleanup = 1;
+	}
+	if (counters[STATS_MAXSIZE] != 0 &&
+	    counters[STATS_TOTALSIZE] > counters[STATS_MAXSIZE]) {
+		need_cleanup = 1;
+	}
 
 	if (need_cleanup) {
 		char *p = dirname(stats_file);
@@ -253,13 +243,12 @@ void stats_zero(void)
 			free(fname);
 			continue;
 		}
-		lock_fd(fd);
 		memset(counters, 0, sizeof(counters));
+		lock_fd(fd);
 		stats_read_fd(fd, counters);
-		for (i=0;i<=STATS_END;i++) {
-			int n = stats_find(i);
-			if (n != -1 && (!stats_info[n].flags & FLAG_NOZERO)) {
-				counters[i] = 0;
+		for (i=0;stats_info[i].message;i++) {
+			if (!(stats_info[i].flags & FLAG_NOZERO)) {
+				counters[stats_info[i].stat] = 0;
 			}
 		}
 		write_stats(fd, counters);
