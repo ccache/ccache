@@ -302,6 +302,12 @@ it() ccache can handle a much wider ranger of compiler options
 it() ccache avoids a double call to cpp on a cache miss
 )
 
+manpagesection(BUGS)
+
+When the cache is stored on an NFS filesystem, the filesystem must be
+exported with the bf(no_subtree_check) option to make renames between
+directories reliable.
+
 manpagesection(CREDITS)
 
 Thanks to the following people for their contributions to ccache
