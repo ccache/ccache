@@ -630,9 +630,8 @@ static void process_args(int argc, char **argv)
 
 		/* these are too hard */
 		if (strcmp(argv[i], "-fbranch-probabilities")==0 ||
-		    (strncmp(argv[i], "-M", 2) == 0 &&
-		     strcmp(argv[i], "-MD") != 0 &&
-		     strcmp(argv[i], "-MMD") != 0) ||
+		    strcmp(argv[i], "-M") == 0 ||
+		    strcmp(argv[i], "-MM") == 0 ||
 		    strcmp(argv[i], "-x") == 0) {
 			cc_log("argument %s is unsupported\n", argv[i]);
 			stats_update(STATS_UNSUPPORTED);

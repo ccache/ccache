@@ -86,6 +86,7 @@ To install for the second method do something like this:
 verb(
   cp ccache /usr/local/bin/
   ln -s /usr/local/bin/ccache /usr/local/bin/gcc
+  ln -s /usr/local/bin/ccache /usr/local/bin/g++
   ln -s /usr/local/bin/ccache /usr/local/bin/cc
 )
 This will work as long as /usr/local/bin comes before the path to gcc
@@ -100,7 +101,7 @@ manpagesection(EXTRA OPTIONS)
 When run as a compiler front end ccache usually just takes the same
 command line options as the compiler you are using. The only exception
 to this is the option '--ccache-skip'. That option can be used to tell
-ccache that the next option is definately not a input filename, and
+ccache that the next option is definitely not a input filename, and
 should be passed along to the compiler as-is. 
 
 The reason this can be important is that ccache does need to parse the
@@ -270,10 +271,12 @@ following conditions need to be met:
 
 itemize(
   it() Use the same bf(CCACHE_DIR) environment variable setting
+  it() Set the bf(CCACHE_NOLINK) environment variable
+  it() Make sure everyone sets the CCACHE_UMASK environment variable
+  to 002, this ensures that cached files are accessible to everyone in
+  the group.
   it() Make sure that all users have write permission in the entire
   cache directory (and that you trust all users of the shared cache). 
-  it() Make sure everyone sets the CCACHE_UMASK environment variable
-  to 002, this ensures that cached files are accessible to everyone.
   it() Make sure that the setgid bit is set on all directories in the
   cache. This tells the filesystem to inherit group ownership for new
   directories. The command "chmod g+s `find $CCACHE_DIR -type d`" might
