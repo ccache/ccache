@@ -179,6 +179,17 @@ This forces ccache to not use any cached
 results, even if it finds them\&. New results are still cached, but
 existing cache entries are ignored\&.
 .IP 
+.IP "\fBCCACHE_HASHDIR\fP" 
+This tells ccache to hash the current working
+directory when calculating the hash that is used to distinguish two
+compiles\&. This prevents a problem with the storage of the current
+working directory in the debug info of a object file, which can lead
+ccache to give a cached object file that has the working directory in
+the debug info set incorrectly\&. This option is off by default as the
+incorrect setting of this debug info rarely causes problems\&. If you
+strike problems with gdb not using the correct directory then enable
+this option\&.
+.IP 
 .IP "\fBCCACHE_UNIFY\fP" 
 If you set the environment variable CCACHE_UNIFY
 then ccache will use the C/C++ unifier when hashing the pre-processor

@@ -18,11 +18,25 @@ in C with more features and better performance.<p>
 
 <h2>Latest release</h2>
 
-The latest release is ccache 1.9. This release adds:
+The latest release is ccache 2.0. This release adds:
 
 <ul>
-<li>fixed cpp warning output in CPP2 optimisation
+<li>minor Makefile install fixes
+<li>fixed some compilation warnings
+<li>added -C option for 'clear cache completely'
+<li>added CCACHE_CC option
+<li>added CCACHE_RECACHE option
+<li>added CCACHE_EXTENSION option
+<li>added CCACHE_HASHDIR option
+<li>embed the hostname in temporary file names for NFS sharing
+<li>better handling of the various -M compiler options
+<li>handle attempts to compile to stdout
+<li>set default max cache size to 1GB
+<li>better signal handling
 </ul>
+
+See the <a href="/ccache/ccache-man.html">manual page</a> for details
+on the new options.
 
 You can get this release from the <a href="/ftp/ccache/">download directory</a> 
 

@@ -143,6 +143,15 @@ the same compilation in a different directory.
 <p><p></p><dt><strong><strong>CCACHE_RECACHE</strong></strong><dd> This forces ccache to not use any cached
 results, even if it finds them. New results are still cached, but
 existing cache entries are ignored.
+<p><p></p><dt><strong><strong>CCACHE_HASHDIR</strong></strong><dd> This tells ccache to hash the current working
+directory when calculating the hash that is used to distinguish two
+compiles. This prevents a problem with the storage of the current
+working directory in the debug info of a object file, which can lead
+ccache to give a cached object file that has the working directory in
+the debug info set incorrectly. This option is off by default as the
+incorrect setting of this debug info rarely causes problems. If you
+strike problems with gdb not using the correct directory then enable
+this option.
 <p><p></p><dt><strong><strong>CCACHE_UNIFY</strong></strong><dd> If you set the environment variable CCACHE_UNIFY
 then ccache will use the C/C++ unifier when hashing the pre-processor
 output if -g is not used in the compile. The unifier is slower than a

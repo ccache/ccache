@@ -89,6 +89,7 @@ int lock_fd(int fd);
 size_t file_size(struct stat *st);
 int safe_open(const char *fname);
 char *x_realpath(const char *path);
+char *gnu_getcwd(void);
 
 void stats_update(enum stats stat);
 void stats_zero(void);

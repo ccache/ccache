@@ -343,3 +343,21 @@ char *x_realpath(const char *path)
 	free(ret);
 	return NULL;
 }
+
+/* a getcwd that will returns an allocated buffer */
+char *gnu_getcwd(void)
+{
+	unsigned size = 128;
+
+	while (1) {
+		char *buffer = (char *)x_malloc(size);
+		if (getcwd(buffer, size) == buffer) {
+			return buffer;
+		}
+		free(buffer);
+		if (errno != ERANGE) {
+			return 0;
+		}
+		size *= 2;
+	}
+}
