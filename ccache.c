@@ -275,9 +275,9 @@ static void from_cache(int first)
 	}
 	free(stderr_file);
 
-	if (ret == -1 && errno != ENOENT) {
+	if (ret == -1) {
 		ret = copy_file(hashname, output_file);
-		if (ret == -1 && errno != ENOENT) {
+		if (ret == -1) {
 			cc_log("failed to copy %s -> %s (%s)\n", 
 			       hashname, output_file, strerror(errno));
 			failed();
