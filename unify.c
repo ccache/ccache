@@ -101,7 +101,7 @@ static void pushchar(unsigned char c)
 
 	if (c == 0) {
 		if (len > 0) {
-			hash_buffer(buf, len);
+			hash_buffer((char *)buf, len);
 			len = 0;
 		}
 		hash_buffer(NULL, 0);
@@ -110,7 +110,7 @@ static void pushchar(unsigned char c)
 
 	buf[len++] = c;
 	if (len == 64) {
-		hash_buffer(buf, len);
+		hash_buffer((char *)buf, len);
 		len = 0;
 	}
 }
@@ -208,8 +208,8 @@ static void unify(unsigned char *p, size_t size)
 		if (tokens[p[ofs]].type & C_TOKEN) {
 			q = p[ofs];
 			for (i=0;i<tokens[q].num_toks;i++) {
-				unsigned char *s = tokens[q].toks[i];
-				int len = strlen(s);
+				unsigned char *s = (unsigned char *)tokens[q].toks[i];
+				int len = strlen((char *)s);
 				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
 					for (j=0;s[j];j++) {
@@ -260,7 +260,7 @@ int unify_hash(const char *fname)
 	close(fd);
 
 	/* pass it through the unifier */
-	unify(map, st.st_size);
+	unify((unsigned char *)map, st.st_size);
 
 	munmap(map, st.st_size);
 

@@ -31,7 +31,7 @@ void hash_buffer(const char *s, int len)
 	/* s == NULL means push the last chunk */
 	if (s == NULL) {
 		if (tail_len > 0) {
-			mdfour_update(&md, tail, tail_len);
+			mdfour_update(&md, (unsigned char *)tail, tail_len);
 			tail_len = 0;
 		}
 		return;
@@ -45,13 +45,13 @@ void hash_buffer(const char *s, int len)
 		len -= n;
 		s += n;
 		if (tail_len == 64) {
-			mdfour_update(&md, tail, 64);
+			mdfour_update(&md, (unsigned char *)tail, 64);
 			tail_len = 0;
 		}
 	}
 
 	while (len >= 64) {
-		mdfour_update(&md, s, 64);
+		mdfour_update(&md, (unsigned char *)s, 64);
 		s += 64;
 		len -= 64;
 	}
