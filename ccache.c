@@ -331,6 +331,7 @@ static void process_args(int argc, char **argv)
 {
 	int i;
 	int found_c_opt = 0;
+	int found_S_opt = 0;
 	char *input_file = NULL;
 
 	stripped_args = args_init();
@@ -347,6 +348,13 @@ static void process_args(int argc, char **argv)
 		if (strcmp(argv[i], "-c") == 0) {
 			args_add(stripped_args, argv[i]);
 			found_c_opt = 1;
+			continue;
+		}
+
+		/* -S changes the default extension */
+		if (strcmp(argv[i], "-S") == 0) {
+			args_add(stripped_args, argv[i]);
+			found_S_opt = 1;
 			continue;
 		}
 		
@@ -426,7 +434,7 @@ static void process_args(int argc, char **argv)
 			cc_log("badly formed output_file %s\n", output_file);
 			failed();
 		}
-		p[1] = 'o';
+		p[1] = found_S_opt ? 's' : 'o';
 		p[2] = 0;
 #if 0
 		cc_log("Formed output file %s from input_file %s\n", 
