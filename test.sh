@@ -20,7 +20,7 @@ test_failed() {
 randcode() {
     outfile="$1"
     nlines=$2
-    i=0;
+    i=1;
     (
     while [ $i -lt $nlines ]; do
 	echo "int foo$nlines$i(int x) { return x; }"
