@@ -70,7 +70,7 @@ int create_dir(const char *dir)
 		errno = ENOTDIR;
 		return 1;
 	}
-	if (mkdir(dir, 0777) != 0) {
+	if (mkdir(dir, 0777) != 0 && errno != EEXIST) {
 		return 1;
 	}
 	return 0;
