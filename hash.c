@@ -23,6 +23,46 @@
 
 static struct mdfour md;
 
+void hash_buffer(const char *s, int len)
+{
+	static char tail[64];
+	static int tail_len;
+
+	/* s == NULL means push the last chunk */
+	if (s == NULL) {
+		if (tail_len > 0) {
+			mdfour_update(&md, tail, tail_len);
+			tail_len = 0;
+		}
+		return;
+	}
+
+	if (tail_len) {
+		int n = 64-tail_len;
+		if (n > len) n = len;
+		memcpy(tail+tail_len, s, n);
+		tail_len += n;
+		len -= n;
+		s += n;
+		if (tail_len == 64) {
+			mdfour_update(&md, tail, 64);
+			tail_len = 0;
+		}
+	}
+
+	while (len >= 64) {
+		mdfour_update(&md, s, 64);
+		s += 64;
+		len -= 64;
+	}
+
+	if (len) {
+		memcpy(tail, s, len);
+		tail_len = len;
+	}
+}
+
+
 void hash_start(void)
 {
 	mdfour_begin(&md);
@@ -30,17 +70,12 @@ void hash_start(void)
 
 void hash_string(const char *s)
 {
-	mdfour_update(&md, s, strlen(s));
-}
-
-void hash_buffer(const char *s, int len)
-{
-	mdfour_update(&md, s, len);
+	hash_buffer(s, strlen(s));
 }
 
 void hash_int(int x)
 {
-	mdfour_update(&md, (unsigned char *)&x, sizeof(x));
+	hash_buffer((char *)&x, sizeof(x));
 }
 
 /* add contents of a file to the hash */
@@ -56,7 +91,7 @@ void hash_file(const char *fname)
 	}
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
-		mdfour_update(&md, buf, n);
+		hash_buffer(buf, n);
 	}
 	close(fd);
 }
@@ -68,6 +103,7 @@ char *hash_result(void)
 	static char ret[33];
 	int i;
 
+	hash_buffer(NULL, 0);
 	mdfour_result(&md, sum);
 	
 	for (i=0;i<16;i++) {
