@@ -153,12 +153,11 @@ each compile.
 <p><p></p><dt><strong><strong>CCACHE_NLEVELS</strong></strong><dd> The environment variable CCACHE_NLEVELS allows
 you to choose the number of levels of hash in the cache directory. The
 default is 2. The minimum is 1 and the maximum is 8. 
-<p><p></p><dt><strong><strong>CCACHE_NOLINK</strong></strong><dd> If you set the environment variable
-CCACHE_NOLINK then ccache will not use hard links from the cache
-directory when creating the compiler output and will do a file copy
-instead. The main reason for setting this option is to avoid the
-update of the modification time on object files that are the result of
-the same compilation in a different directory.
+<p><p></p><dt><strong><strong>CCACHE_HARDLINK</strong></strong><dd> If you set the environment variable
+CCACHE_HARDLINK then ccache will attempt to use hard links from the
+cache directory when creating the compiler output rather than using a
+file copy. Using hard links is faster, but can confuse programs like
+'make' that rely on modification times.
 <p><p></p><dt><strong><strong>CCACHE_RECACHE</strong></strong><dd> This forces ccache to not use any cached
 results, even if it finds them. New results are still cached, but
 existing cache entries are ignored.
@@ -240,7 +239,6 @@ relinked without reason.  To share a cache without side effects, the
 following conditions need to be met:
 <p><ul>
   <li > Use the same <strong>CCACHE_DIR</strong> environment variable setting
-  <li > Set the <strong>CCACHE_NOLINK</strong> environment variable
   <li > Make sure that all users have write permission in the entire
   cache directory (and that you trust all users of the shared cache). 
   <li > Tell your users to set a umask that allows group writes
