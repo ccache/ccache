@@ -57,14 +57,6 @@ static void to_cache(ARGS *args)
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args->argc -= 2;
 
-	if (status != 0) {
-		cc_log("compile of %s gave status = %d\n", output_file, status);
-		unlink(tmp_stdout);
-		unlink(tmp_stderr);
-		unlink(tmp_hashname);
-		failed();
-	}
-
 	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
 		cc_log("compiler produced stdout for %s\n", output_file);
 		unlink(tmp_stdout);
@@ -72,8 +64,26 @@ static void to_cache(ARGS *args)
 		unlink(tmp_hashname);
 		failed();
 	}
-
 	unlink(tmp_stdout);
+
+	if (status != 0) {
+		int fd;
+		cc_log("compile of %s gave status = %d\n", output_file, status);
+
+		fd = open(tmp_stderr, O_RDONLY);
+		if (fd != -1 && 
+		    (rename(tmp_hashname, output_file) == 0 || errno == ENOENT)) {
+			/* we can use a quick method of getting the failed output */
+			copy_fd(fd, 2);
+			close(fd);
+			unlink(tmp_stderr);
+			exit(status);
+		}
+		
+		unlink(tmp_stderr);
+		unlink(tmp_hashname);
+		failed();
+	}
 
 	x_asprintf(&path_stderr, "%s.stderr", hashname);
 
@@ -253,6 +263,7 @@ static char *find_compiler(const char *argv0)
 	char *base;
 	char *path, *tok;
 	struct stat st1, st2;
+	int found_one = 0;
 
 	p = strrchr(argv0, '/');
 	if (p) {
@@ -261,16 +272,14 @@ static char *find_compiler(const char *argv0)
 		base = x_strdup(argv0);
 	}
 
-	/* we compare size, device and inode. On non-Linux systems
-	   we rely on CCACHE_PATH being set and end up just using the first 
-	   executable we find in the path
-	*/
-	if (stat("/proc/self/exe", &st1) != 0) {
-		if (!getenv("CCACHE_PATH")) {
-			cc_log("You must set CCACHE_PATH\n");
-			exit(1);
-		}
-		memset(&st1, 0, sizeof(st1));
+	/* try to find ourselves the linux way */
+	if (stat("/proc/self/exe", &st1) == 0) {
+		found_one = 1;
+	}
+
+	/* they might have given a full path ... */
+	if (!found_one && strchr(argv0, '/') && stat(argv0, &st1) == 0) {
+		found_one = 1;
 	}
 
 	path = getenv("CCACHE_PATH");
@@ -293,6 +302,13 @@ static char *find_compiler(const char *argv0)
 		if (access(fname, X_OK) == 0 &&
 		    stat(fname, &st2) == 0 &&
 		    S_ISREG(st2.st_mode)) {
+			/* we have a candidate */
+			if (!found_one) {
+				st1 = st2;
+				found_one = 1;
+				continue;
+			}
+
 			if (st1.st_size != st2.st_size ||
 			    st1.st_dev != st2.st_dev ||
 			    st1.st_ino != st2.st_ino) {

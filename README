@@ -29,11 +29,6 @@ This will work as long as /usr/local/bin comes before the path to gcc
 (which is usually in /usr/bin). After installing you may wish to run
 "rehash; type gcc" to make sure that the correct link is being used.
 
-If you are installing on a system that doesn't have a /proc/self/exe
-link (ie. most non-Linux systems) then you also also need to set the
-CCACHE_PATH environment variable. 
-
-
 Configuration
 -------------
 
@@ -56,12 +51,10 @@ will be fine.
 
    CCACHE_PATH
 
-   You need to set the CCACHE_PATH environment variable on systems
-   that don't have a Linux-like /proc filesystem. It should be set to
-   a colon separated list of directories where ccache will look for
-   the real compilers. On Linux this is not needed because ccache can
-   use /proc/self/exe and the normal PATH variable to find the
-   compiler. 
+   You can optionally set CCACHE_PATH to a colon separated path where ccache will
+   look for the real compilers. If you don't do this then ccache will
+   look for the first executable in the normal PATH that isn't a link
+   to ccache itself.
 
 
 Differences
