@@ -29,7 +29,8 @@ extern char *cache_dir;
 
 #define STATS_VERSION 1
 
-#define FLAG_NOZERO 1
+#define FLAG_NOZERO 1 /* don't zero with the -z option */
+#define FLAG_ALWAYS 2 /* always show, even if zero */
 
 static struct {
 	enum stats stat;
@@ -37,8 +38,8 @@ static struct {
 	void (*fn)(unsigned );
 	unsigned flags;
 } stats_info[] = {
-	{ STATS_CACHED,       "cache hit                      ", NULL, 0 },
-	{ STATS_TOCACHE,      "cache miss                     ", NULL, 0 },
+	{ STATS_CACHED,       "cache hit                      ", NULL, FLAG_ALWAYS },
+	{ STATS_TOCACHE,      "cache miss                     ", NULL, FLAG_ALWAYS },
 	{ STATS_LINK,         "called for link                ", NULL, 0 },
 	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
 	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
@@ -50,8 +51,8 @@ static struct {
 	{ STATS_NOTC,         "not a C/C++ file               ", NULL, 0 },
 	{ STATS_DEVICE,       "output to a non-regular file   ", NULL, 0 },
 	{ STATS_NOINPUT,      "no input file                  ", NULL, 0 },
-	{ STATS_NUMFILES,     "files in cache                 ", NULL, FLAG_NOZERO },
-	{ STATS_TOTALSIZE,    "cache size                     ", display_size , FLAG_NOZERO },
+	{ STATS_NUMFILES,     "files in cache                 ", NULL, FLAG_NOZERO|FLAG_ALWAYS },
+	{ STATS_TOTALSIZE,    "cache size                     ", display_size , FLAG_NOZERO|FLAG_ALWAYS },
 	{ STATS_MAXFILES,     "max files                      ", NULL, FLAG_NOZERO },
 	{ STATS_MAXSIZE,      "max cache size                 ", display_size, FLAG_NOZERO },
 	{ STATS_NONE, NULL, NULL, 0 }
@@ -212,7 +213,10 @@ void stats_summary(void)
 	for (i=0;stats_info[i].message;i++) {
 		enum stats stat = stats_info[i].stat;
 
-		if (counters[stat] == 0) continue;
+		if (counters[stat] == 0 && 
+		    !(stats_info[i].flags & FLAG_ALWAYS)) {
+			continue;
+		}
 
 		printf("%s ", stats_info[i].message);
 		if (stats_info[i].fn) {
