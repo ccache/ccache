@@ -165,8 +165,10 @@ basetests() {
     checkstat 'files in cache' 8
     
     testname="comments"
-    echo '/* a silly comment */' >> test1.c
-    $CCACHE_COMPILE -c test1.c
+    echo '/* a silly comment */' > test1-comment.c
+    cat test1.c >> test1-comment.c
+    $CCACHE_COMPILE -c test1-comment.c
+    rm -f test1-comment*
     checkstat 'cache hit' 6
     checkstat 'cache miss' 6
 
@@ -183,9 +185,9 @@ basetests() {
     for f in *.c; do
 	$CCACHE_COMPILE -c $f
     done
-    checkstat 'cache hit' 7
-    checkstat 'cache miss' 39
-    checkstat 'files in cache' 76
+    checkstat 'cache hit' 8
+    checkstat 'cache miss' 38
+    checkstat 'files in cache' 74
     $CCACHE -F 48 -c > /dev/null
     if [ `getstat 'files in cache'` -gt 48 ]; then
 	test_failed '-F test failed'
