@@ -200,12 +200,6 @@ ccache can cache compiler output that includes warnings\&. In many
 cases this gives ccache a much higher cache hit rate\&.
 .IP o 
 ccache can handle a much wider ranger of compiler options
-.IP o 
-compilercache does much smarter token unification using a C
-lexer\&. This means that reformatting of source code is much more
-likely to result in a cache miss with ccache than with
-compilercache\&. I may add this in future, although it is perhaps
-debatable whether the much slower parsing is worth it\&.
 Note however that ccache is a very new piece of code (as of March
 2002) whereas Erik\&'s scripts have had more testing\&. 
 .PP 
