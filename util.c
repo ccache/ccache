@@ -114,7 +114,7 @@ int create_dir(const char *dir)
 void x_asprintf(char **ptr, const char *format, ...)
 {
 	va_list ap;
-	int ret;
+	unsigned ret;
 	char tmp[1024];
 
 	*ptr = NULL;
@@ -122,7 +122,7 @@ void x_asprintf(char **ptr, const char *format, ...)
 	ret = vsnprintf(tmp, sizeof(tmp), format, ap);
 	va_end(ap);
 
-	if (ret == sizeof(tmp)) {
+	if (ret >= sizeof(tmp)-1) {
 		fatal("vsnprintf - too long\n");
 	}
 
