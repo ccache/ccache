@@ -39,3 +39,8 @@ void args_add(ARGS *args, const char *s)
 	args->argv[args->argc] = NULL;
 }
 
+void args_pop(ARGS *args, int n)
+{
+	args->argc -= n;
+	args->argv[args->argc] = NULL;
+}

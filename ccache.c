@@ -55,7 +55,7 @@ static void to_cache(ARGS *args)
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
-	args->argc -= 2;
+	args_pop(args, 2);
 
 	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
 		cc_log("compiler produced stdout for %s\n", output_file);
@@ -204,7 +204,7 @@ static void find_hash(ARGS *args)
 
 	args_add(args, "-E");
 	status = execute(args->argv, path_stdout, path_stderr);
-	args->argc--;
+	args_pop(args, 1);
 
 	if (status != 0) {
 		unlink(path_stdout);

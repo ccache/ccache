@@ -52,3 +52,5 @@ typedef struct {
 
 ARGS *args_init(void);
 void args_add(ARGS *args, const char *s);
+void args_pop(ARGS *args, int n);
+
