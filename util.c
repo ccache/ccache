@@ -23,7 +23,6 @@ static FILE *logfile;
 /* log a message to the CCACHE_LOGFILE location */
 void cc_log(const char *format, ...)
 {
-	int ret;
 	va_list ap;
 	extern char *cache_logfile;
 
@@ -33,7 +32,7 @@ void cc_log(const char *format, ...)
 	if (!logfile) return;
 	
 	va_start(ap, format);
-	ret = vfprintf(logfile, format, ap);
+	vfprintf(logfile, format, ap);
 	va_end(ap);
 	fflush(logfile);
 }
@@ -114,11 +113,10 @@ int create_dir(const char *dir)
 void x_asprintf(char **ptr, const char *format, ...)
 {
 	va_list ap;
-	unsigned ret;
 
 	*ptr = NULL;
 	va_start(ap, format);
-	ret = vasprintf(ptr, format, ap);
+	vasprintf(ptr, format, ap);
 	va_end(ap);
 	
 	if (!ptr) fatal("out of memory in x_asprintf");
