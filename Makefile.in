@@ -1,3 +1,6 @@
+srcdir=@srcdir@
+VPATH=@srcdir@
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
@@ -5,7 +8,7 @@ mandir=@mandir@
 INSTALLCMD=@INSTALL@
 
 CC=@CC@
-CFLAGS=@CFLAGS@
+CFLAGS=@CFLAGS@ -I.
 
 OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o \
 	cleanup.o snprintf.o unify.o
@@ -27,7 +30,7 @@ web/ccache-man.html: ccache.yo
 
 install:
 	${INSTALLCMD} -m 755 ccache ${bindir}
-	${INSTALLCMD} -m 644 ccache.1 ${mandir}/man1
+	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 ${mandir}/man1
 
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
