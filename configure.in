@@ -23,6 +23,8 @@ AC_DEFINE([_GNU_SOURCE], 1,
 if test "x$GCC" = "xyes"
 then
 	CFLAGS="$CFLAGS -Wall -W"
+else
+	CFLAGS="$CFLAGS -O"
 fi
 
 AC_HEADER_DIRENT
