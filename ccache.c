@@ -158,6 +158,26 @@ static void find_hash(ARGS *args)
 
 	/* first the arguments */
 	for (i=0;i<args->argc;i++) {
+		/* some arguments don't contribute to the hash. The
+		   theory is that these arguments will change the
+		   output of -E if they are going to have any effect
+		   at all, or they only affect linking */
+		if (i < args->argc-1) {
+			if (strcmp(args->argv[i], "-I") == 0 ||
+			    strcmp(args->argv[i], "-include") == 0 ||
+			    strcmp(args->argv[i], "-L") == 0 ||
+			    strcmp(args->argv[i], "-D") == 0 ||
+			    strcmp(args->argv[i], "-isystem") == 0) {
+				i++;
+				continue;
+			}
+			if (strncmp(args->argv[i], "-I", 2) == 0 ||
+			    strncmp(args->argv[i], "-L", 2) == 0 ||
+			    strncmp(args->argv[i], "-D", 2) == 0) {
+				continue;
+			}
+		}
+
 		hash_string(args->argv[i]);
 	}
 
