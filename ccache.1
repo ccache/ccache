@@ -136,6 +136,11 @@ don\&'t do this then ccache will look for the first executable matching
 the compiler name in the normal PATH that isn\&'t a symbolic link to
 ccache itself\&.
 .IP 
+.IP "\fBCCACHE_CC\fP" 
+You can optionally set CCACHE_CC to force the name
+of the compiler to use\&. If you don\&'t do this then ccache works it out
+from the command line\&.
+.IP 
 .IP "\fBCCACHE_DISABLE\fP" 
 If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,

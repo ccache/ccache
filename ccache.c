@@ -487,6 +487,11 @@ static void find_compiler(int argc, char **argv)
 		base = basename(argv[1]);
 	}
 
+	/* support user override of the compiler */
+	if ((path=getenv("CCACHE_CC"))) {
+		base = strdup(path);
+	}
+
 	path = getenv("CCACHE_PATH");
 	if (!path) {
 		path = getenv("PATH");
