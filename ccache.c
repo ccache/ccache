@@ -128,7 +128,9 @@ static const char *tmp_string(void)
 	if (!ret) {
 		char hostname[200];
 		strcpy(hostname, "unknown");
+#if HAVE_GETHOSTNAME
 		gethostname(hostname, sizeof(hostname)-1);
+#endif
 		hostname[sizeof(hostname)-1] = 0;
 		asprintf(&ret, "%s.%u", hostname, (unsigned)getpid());
 	}

@@ -29,7 +29,7 @@ AC_HEADER_SYS_WAIT
 
 AC_CHECK_HEADERS(ctype.h strings.h stdlib.h string.h)
 
-AC_CHECK_FUNCS(realpath snprintf vsnprintf vasprintf asprintf mkstemp)
+AC_CHECK_FUNCS(realpath snprintf vsnprintf vasprintf asprintf mkstemp gethostname)
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(
