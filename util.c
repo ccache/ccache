@@ -142,12 +142,38 @@ char *x_strdup(const char *s)
 	return ret;
 }
 
+/*
+  this is like malloc() but dies if the malloc fails
+*/
+void *x_malloc(size_t size)
+{
+	void *ret;
+	ret = malloc(size);
+	if (!ret) {
+		fatal("out of memory in malloc\n");
+	}
+	return ret;
+}
+
+/*
+  this is like strdup() but dies if the malloc fails
+*/
+void *x_realloc(void *ptr, size_t size)
+{
+	if (!ptr) return x_malloc(size);
+	ptr = realloc(ptr, size);
+	if (!ptr) {
+		fatal("out of memory in x_realloc");
+	}
+	return ptr;
+}
+
 
 /* 
    revsusive directory traversal - used for cleanup
    fn() is called on all files/dirs in the tree
  */
-void traverse(const char *dir, void (*fn)(const char *))
+void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 {
 	DIR *d;
 	struct dirent *de;
@@ -173,7 +199,7 @@ void traverse(const char *dir, void (*fn)(const char *))
 			traverse(fname, fn);
 		}
 
-		fn(fname);
+		fn(fname, &st);
 		free(fname);
 	}
 

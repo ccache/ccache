@@ -41,7 +41,9 @@ int copy_file(const char *src, const char *dest);
 int create_dir(const char *dir);
 void x_asprintf(char **ptr, const char *format, ...);
 char *x_strdup(const char *s);
-void traverse(const char *dir, void (*fn)(const char *));
+void *x_realloc(void *ptr, size_t size);
+void *x_malloc(size_t size);
+void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 
 int execute(char **argv, 
 	    const char *path_stdout,

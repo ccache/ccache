@@ -105,14 +105,15 @@ Cleaning the cache
 
 ccache tends to quickly fill up the cache directory. You may find the
 ccache_clean utility for removing old cache files. If called with no
-arguments it will remove any cache files older than a week. You can
-also pass a single argument specifying the number of days old files
-need to be to be cleaned. For example:
+arguments it will trim the cache to be less than 1 Gigabyte. You can
+also pass a single argument specifying the size limit on the cache,
+for example:
+     ccache_clean 2G
+would clear the oldest files to bring the cache below 2G in size. You
+can use 'M' for megabytes, 'G' for gigabytes or 'K' for kilobytes.
 
-     ccache_clean 3
-
-will remove any files older than 3 days. You may wish to call
-ccache_clean from a cron job to keep your disk space usage reasonable.
+You may wish to call ccache_clean from a cron job to keep your disk
+space usage reasonable.
 
 How it works
 ------------
