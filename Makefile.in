@@ -29,10 +29,10 @@ web/ccache-man.html: ccache.yo
 	yodl2html -o web/ccache-man.html ccache.yo
 
 install:
-	${INSTALLCMD} -d ${bindir}
-	${INSTALLCMD} -m 755 ccache ${bindir}
-	${INSTALLCMD} -d ${mandir}/man1
-	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 ${mandir}/man1/
+	${INSTALLCMD} -d $(DESTDIR)${bindir}
+	${INSTALLCMD} -m 755 ccache $(DESTDIR)${bindir}
+	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1/
+	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
 
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
