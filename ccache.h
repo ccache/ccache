@@ -86,6 +86,7 @@ void stats_tocache(size_t size);
 void stats_read(const char *stats_file, unsigned counters[STATS_END]);
 void stats_set_limits(long maxfiles, long maxsize);
 size_t value_units(const char *s);
+void display_size(unsigned v);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
 int unify_hash(const char *fname);

@@ -32,34 +32,35 @@ extern char *cache_dir;
 static struct {
 	enum stats stat;
 	char *message;
+	void (*fn)(unsigned );
 } stats_messages[] = {
-	{ STATS_TOCACHE, "cache miss" },
-	{ STATS_CACHED, "cache hit" },
-	{ STATS_LINK, "called for link" },
-	{ STATS_STDOUT, "compiler produced stdout" },
-	{ STATS_STATUS, "compile failed" },
-	{ STATS_ERROR, "ccache internal error" },
-	{ STATS_PREPROCESSOR, "preprocessor error" },
-	{ STATS_COMPILER, "couldn't find the compiler" },
-	{ STATS_MISSING, "cache file missing" },
-	{ STATS_ARGS, "bad compiler arguments" },
-	{ STATS_NUMFILES, "files in cache" },
-	{ STATS_TOTALSIZE, "cache size" },
-	{ STATS_MAXFILES, "max files" },
-	{ STATS_MAXSIZE, "max cache size" },
-	{ STATS_NONE, NULL }
+	{ STATS_TOCACHE,      "cache miss                     ", NULL },
+	{ STATS_CACHED,       "cache hit                      ", NULL },
+	{ STATS_LINK,         "called for link                ", NULL },
+	{ STATS_STDOUT,       "compiler produced stdout       ", NULL },
+	{ STATS_STATUS,       "compile failed                 ", NULL },
+	{ STATS_ERROR,        "ccache internal error          ", NULL },
+	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL },
+	{ STATS_COMPILER,     "couldn't find the compiler     ", NULL },
+	{ STATS_MISSING,      "cache file missing             ", NULL },
+	{ STATS_ARGS,         "bad compiler arguments         ", NULL },
+	{ STATS_NUMFILES,     "files in cache                 ", NULL },
+	{ STATS_TOTALSIZE,    "cache size                     ", display_size },
+	{ STATS_MAXFILES,     "max files                      ", NULL },
+	{ STATS_MAXSIZE,      "max cache size                 ", display_size },
+	{ STATS_NONE, NULL, NULL }
 };
 
 /* return a string description of a statistic */
-static char *stats_message(enum stats stat)
+static int stats_message(enum stats stat)
 {
 	int i;
 	for (i=0;stats_messages[i].stat != STATS_NONE; i++) {
 		if (stats_messages[i].stat == stat) {
-			return stats_messages[i].message;
+			return i;
 		}
 	}
-	return "unknown";
+	return -1;
 }
 
 /* parse a stats file from a buffer - adding to the counters */
@@ -212,7 +213,15 @@ void stats_summary(void)
 	/* and display them */
 	for (i=0;i<STATS_END;i++) {
 		if (counters[i] != 0) {
-			printf("%s: %u\n", stats_message(i), counters[i]);
+			int n = stats_message(i);
+			if (n == -1) continue;
+			printf("%s ", stats_messages[n].message);
+			if (stats_messages[n].fn) {
+				stats_messages[n].fn(counters[i]);
+				printf("\n");
+			} else {
+				printf("%8u\n", counters[i]);
+			}
 		}
 	}
 }

@@ -267,13 +267,25 @@ int safe_open(const char *fname)
 	return fd;
 }
 
+/* display a kilobyte unsigned value in M, k or G */
+void display_size(unsigned v)
+{
+	if (v > 1024*1024) {
+		printf("%8.1f Gbytes", v/((double)(1024*1024)));
+	} else if (v > 1024) {
+		printf("%8.1f Mbytes", v/((double)(1024)));
+	} else {
+		printf("%8u Kbytes", v);
+	}
+}
+
 /* return a value in multiples of 1024 give a string that can end
    in K, M or G
 */
 size_t value_units(const char *s)
 {
 	char m;
-	size_t v = atoi(s);
+	double v = atof(s);
 	m = s[strlen(s)-1];
 	switch (m) {
 	case 'G':
@@ -290,7 +302,7 @@ size_t value_units(const char *s)
 		v *= 1;
 		break;
 	}
-	return v;
+	return (size_t)v;
 }
 
 
