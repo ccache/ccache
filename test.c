@@ -1,0 +1,4 @@
+foo()
+{
+	printf("blah");
+
