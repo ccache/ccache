@@ -218,6 +218,8 @@ static void find_hash(ARGS *args)
 			hash_file(args->argv[i]+8);
 			continue;
 		}
+
+		/* all other arguments are included in the hash */
 		hash_string(args->argv[i]);
 	}
 
