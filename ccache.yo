@@ -123,7 +123,10 @@ CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing
 the pre-processor output. The unifier is slower than a normal hash, so
 setting this environment variable gains a little bit of speed, but it
 means that ccache can't take advantage of not recompiling when the
-changes to the source code consist of reformatting only.
+changes to the source code consist of reformatting only. Note that
+using CCACHE_NOUNIFY changes the hash, so cached compiles with
+CCACHE_NOUNIFY set cannot be used when CCACHE_NOUNIFY is not set and
+vice versa.
 
 enddit()
 
