@@ -61,10 +61,11 @@ static void traverse_fn(const char *fname, struct stat *st)
 
 	if (num_files == allocated) {
 		allocated = 10000 + num_files*2;
-		files = x_realloc(files, sizeof(struct files *)*allocated);
+		files = (struct files **)x_realloc(files, 
+						   sizeof(struct files *)*allocated);
 	}
 
-	files[num_files] = x_malloc(sizeof(struct files));
+	files[num_files] = (struct files *)x_malloc(sizeof(struct files));
 	files[num_files]->fname = x_strdup(fname);
 	files[num_files]->mtime = st->st_mtime;
 	files[num_files]->size = file_size(st) / 1024;

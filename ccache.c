@@ -44,7 +44,7 @@ static char *input_file;
 static char *hashname;
 
 /* the extension of the file after pre-processing */
-static char *i_extension;
+static const char *i_extension;
 
 /* the name of the temporary pre-processor file */
 static char *i_tmpfile;
@@ -543,10 +543,10 @@ static void find_compiler(int argc, char **argv)
 
 /* check a filename for C/C++ extension. Return the pre-processor
    extension */
-static char *check_extension(const char *fname)
+static const char *check_extension(const char *fname)
 {
 	int i;
-	char *p;
+	const char *p;
 
 	p = strrchr(fname, '.');
 	if (!p) return NULL;
