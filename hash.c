@@ -100,15 +100,16 @@ void hash_file(const char *fname)
 char *hash_result(void)
 {
 	unsigned char sum[16];
-	static char ret[33];
+	static char ret[53];
 	int i;
 
 	hash_buffer(NULL, 0);
 	mdfour_result(&md, sum);
 	
 	for (i=0;i<16;i++) {
-		sprintf(&ret[i*2], "%02x-%d", (unsigned)sum[i], md.totalN);
+		sprintf(&ret[i*2], "%02x", (unsigned)sum[i]);
 	}
+	sprintf(&ret[i*2], "-%u", (unsigned)md.totalN);
 
 	return ret;
 }
