@@ -507,6 +507,22 @@ static void process_args(int argc, char **argv)
 			failed();
 		}
 
+		/* cope with -MD, -MM, -MMD before the code below chucks them */
+		if (strcmp(argv[i], "-MD") == 0 ||
+		    strcmp(argv[i], "-MM") == 0 ||
+		    strcmp(argv[i], "-MMD") == 0) {
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+
+		/* check for bad options */
+		if (strncmp(argv[i], "-M", 2) == 0) {
+			cc_log("argument %s is unsupported\n", argv[i]);
+			stats_update(STATS_UNSUPPORTED);
+			failed();
+			continue;
+		}
+
 		/* we must have -c */
 		if (strcmp(argv[i], "-c") == 0) {
 			args_add(stripped_args, argv[i]);
