@@ -30,7 +30,7 @@ web/ccache-man.html: ccache.yo
 
 install:
 	${INSTALLCMD} -m 755 ccache ${bindir}
-	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 ${mandir}/man1
+	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 ${mandir}/man1/
 
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
