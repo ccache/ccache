@@ -324,6 +324,13 @@ static void find_hash(ARGS *args)
 		stats_update(STATS_COMPILER);
 		failed();
 	}
+
+	/* also include the hash of the compiler name - as some compilers
+	   use hard links and behave differently depending on the real name */
+	if (st.st_nlink > 1) {
+		hash_string(str_basename(args->argv[0]));
+	}
+
 	hash_int(st.st_size);
 	hash_int(st.st_mtime);
 
