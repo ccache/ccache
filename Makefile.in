@@ -40,5 +40,8 @@ clean:
 test: test.sh
 	./test.sh
 
+check: test.sh
+	./test.sh
+
 distclean: clean
 	/bin/rm -f Makefile config.h config.sub config.log build-stamp config.status

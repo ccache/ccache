@@ -563,8 +563,11 @@ static void process_args(int argc, char **argv)
 			failed();
 		}
 
-		/* check for bad options */
-		if (strcmp(argv[i], "-M") == 0) {
+		/* these are too hard */
+		if (strcmp(argv[i], "-fprofile-arcs")==0 ||
+		    strcmp(argv[i], "-fbranch-probabilities")==0 ||
+		    strcmp(argv[i], "-M") == 0 ||
+		    strcmp(argv[i], "-x") == 0) {
 			cc_log("argument %s is unsupported\n", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			failed();
