@@ -28,6 +28,11 @@
 
 #define LIMIT_MULTIPLE 0.8
 
+/* default maximum cache size */
+#ifndef DEFAULT_MAXSIZE
+#define DEFAULT_MAXSIZE (1000*1000)
+#endif
+
 enum stats {
 	STATS_NONE=0,
 	STATS_STDOUT,

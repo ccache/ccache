@@ -93,6 +93,13 @@ static void write_stats(int fd, unsigned counters[STATS_END])
 	write(fd, buf, len);
 }
 
+
+/* fill in some default stats values */
+static void stats_default(unsigned counters[STATS_END])
+{
+	counters[STATS_MAXSIZE] += DEFAULT_MAXSIZE / 16;
+}
+
 /* read in the stats from one dir and add to the counters */
 static void stats_read_fd(int fd, unsigned counters[STATS_END])
 {
@@ -100,6 +107,7 @@ static void stats_read_fd(int fd, unsigned counters[STATS_END])
 	int len;
 	len = read(fd, buf, sizeof(buf)-1);
 	if (len <= 0) {
+		stats_default(counters);
 		return;
 	}
 	buf[len] = 0;
@@ -184,7 +192,10 @@ void stats_read(const char *stats_file, unsigned counters[STATS_END])
 	int fd;
 
 	fd = open(stats_file, O_RDONLY);
-	if (fd == -1) return;
+	if (fd == -1) {
+		stats_default(counters);
+		return;
+	}
 	lock_fd(fd);
 	stats_read_fd(fd, counters);
 	close(fd);
