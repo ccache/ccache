@@ -50,7 +50,7 @@ static void to_cache(ARGS *args)
 
 	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
 	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
-	x_asprintf(&tmp_hashname, "%s/tmp.hash.%d", cache_dir, getpid());
+	x_asprintf(&tmp_hashname, "%s/tmp.hash.%d.o", cache_dir, getpid());
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
