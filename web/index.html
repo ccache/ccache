@@ -80,6 +80,20 @@ I have coded ccache very carefully to try to provide these guarantees.
 
 See the <a href="/ccache/ccache-man.html">manual page</a>
 
+
+<h2>Performance</h2>
+
+Here are some results for compiling Samba on my Linux laptop. I have
+also included the results of using Erik's compilercache program
+(version 1.0.10) for comparison.<p>
+
+<table border=1>
+<tr><th>              </th>      <th>&nbsp;&nbsp;&nbsp;&nbsp;ccache</th>     <th>&nbsp;compilercache</th>    </tr>
+<tr><td>normal        </td>      <td align=right>13m 4s     </td><td align=right>13m 4s</td> </tr>
+<tr><td>uncached      </td>      <td align=right>13m 15s     </td><td align=right>15m 41s</td> </tr>
+<tr><td>cached        </td>      <td align=right>2m 45s     </td><td align=right>4m 26s</td> </tr>
+</table>
+
 <h2>How to use it</h2>
 
 You can use ccache in two ways. The first is just to prefix your
@@ -92,8 +106,8 @@ build system.
 
 <h2>Download</h2>
 
-The latest version is ccache-1.0. You can download it from the <a
-href="/ftp/ccache/">download</a> directory.
+You can download the latest release from the <a
+href="/ftp/ccache/">download directory</a>.<p>
 
 For the bleeding edge, you can fetch ccache via CVS or
 rsync. To fetch via cvs use the following command:
