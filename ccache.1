@@ -133,7 +133,7 @@ compiler as a command line option\&.
 .PP 
 .SH "ENVIRONMENT VARIABLES" 
 .PP 
-ccache used a number of environment variables to control operation\&. In
+ccache uses a number of environment variables to control operation\&. In
 most cases you won\&'t need any of these as the defaults will be fine\&.
 .PP 
 .IP 
@@ -200,6 +200,13 @@ file copy\&. Using hard links is faster, but can confuse programs like
 This forces ccache to not use any cached
 results, even if it finds them\&. New results are still cached, but
 existing cache entries are ignored\&.
+.IP 
+.IP "\fBCCACHE_UMASK\fP" 
+This sets the umask for ccache and all child
+processes (such as the compiler)\&. This is mostly useful when you wish
+to share your cache with other users\&. Note that this also affects the
+file permissions set on the object files created from your
+compilations\&.
 .IP 
 .IP "\fBCCACHE_HASHDIR\fP" 
 This tells ccache to hash the current working
@@ -300,8 +307,8 @@ Use the same \fBCCACHE_DIR\fP environment variable setting
 Make sure that all users have write permission in the entire
 cache directory (and that you trust all users of the shared cache)\&. 
 .IP o 
-Tell your users to set a umask that allows group writes
-(eg\&. umask 002)
+Make sure everyone sets the CCACHE_UMASK environment variable
+to 002, this ensures that cached files are accessible to everyone\&.
 .IP o 
 Make sure that the setgid bit is set on all directories in the
 cache\&. This tells the filesystem to inherit group ownership for new

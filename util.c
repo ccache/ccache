@@ -423,7 +423,7 @@ int create_empty_file(const char *fname)
 {
 	int fd;
 
-	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
+	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
 	if (fd == -1) {
 		return -1;
 	}

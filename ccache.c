@@ -961,6 +961,8 @@ static void setup_uncached_err(void)
 
 int main(int argc, char *argv[])
 {
+	char *p;
+
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
 		x_asprintf(&cache_dir, "%s/.ccache", getenv("HOME"));
@@ -969,6 +971,19 @@ int main(int argc, char *argv[])
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
 	setup_uncached_err();
+	
+
+	/* the user might have set CCACHE_UMASK */
+	p = getenv("CCACHE_UMASK");
+	if (p) {
+		mode_t mask;
+		errno = 0;
+		mask = strtol(p, NULL, 8);
+		if (errno == 0) {
+			umask(mask);
+		}
+	}
+
 
 	/* check if we are being invoked as "ccache" */
 	if (strlen(argv[0]) >= strlen(MYNAME) &&

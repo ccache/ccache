@@ -115,7 +115,7 @@ compiler as a command line option.
 
 manpagesection(ENVIRONMENT VARIABLES)
 
-ccache used a number of environment variables to control operation. In
+ccache uses a number of environment variables to control operation. In
 most cases you won't need any of these as the defaults will be fine.
 
 startdit()
@@ -172,6 +172,12 @@ file copy. Using hard links is faster, but can confuse programs like
 dit(bf(CCACHE_RECACHE)) This forces ccache to not use any cached
 results, even if it finds them. New results are still cached, but
 existing cache entries are ignored.
+
+dit(bf(CCACHE_UMASK)) This sets the umask for ccache and all child
+processes (such as the compiler). This is mostly useful when you wish
+to share your cache with other users. Note that this also affects the
+file permissions set on the object files created from your
+compilations.
 
 dit(bf(CCACHE_HASHDIR)) This tells ccache to hash the current working
 directory when calculating the hash that is used to distinguish two
@@ -266,8 +272,8 @@ itemize(
   it() Use the same bf(CCACHE_DIR) environment variable setting
   it() Make sure that all users have write permission in the entire
   cache directory (and that you trust all users of the shared cache). 
-  it() Tell your users to set a umask that allows group writes
-  (eg. umask 002)
+  it() Make sure everyone sets the CCACHE_UMASK environment variable
+  to 002, this ensures that cached files are accessible to everyone.
   it() Make sure that the setgid bit is set on all directories in the
   cache. This tells the filesystem to inherit group ownership for new
   directories. The command "chmod g+s `find $CCACHE_DIR -type d`" might

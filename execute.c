@@ -37,7 +37,7 @@ int execute(char **argv,
 		int fd;
 
 		unlink(path_stdout);
-		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
+		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
 		if (fd == -1) {
 			exit(STATUS_NOCACHE);
 		}
@@ -45,7 +45,7 @@ int execute(char **argv,
 		close(fd);
 
 		unlink(path_stderr);
-		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
+		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
 		if (fd == -1) {
 			exit(STATUS_NOCACHE);
 		}
