@@ -248,7 +248,12 @@ int lock_fd(int fd)
 /* return size on disk of a file */
 size_t file_size(struct stat *st)
 {
-	return st->st_blocks * 512;
+	size_t size = st->st_blocks * 512;
+	if (st->st_size > size) {
+		/* probably a broken stat() call ... */
+		size = (st->st_size + 1023) & ~1023;
+	}
+	return size;
 }
 
 
