@@ -401,6 +401,23 @@ static void find_compiler(int argc, char **argv)
 }
 
 
+/* check a filename for C/C++ extension */
+static int check_extension(const char *fname)
+{
+	char *extensions[] = {"c", "C", "m", "cc", "CC", "cpp", "CPP", "cxx", "CXX", 0};
+	int i;
+	char *p;
+
+	p = strrchr(fname, '.');
+	if (!p) return -1;
+	p++;
+	for (i=0; extensions[i]; i++) {
+		if (strcmp(p, extensions[i]) == 0) return 0;
+	}
+	return -1;
+}
+
+
 /* 
    process the compiler options to form the correct set of options 
    for obtaining the preprocessor output
@@ -507,6 +524,11 @@ static void process_args(int argc, char **argv)
 	if (!input_file) {
 		cc_log("No input file found\n");
 		stats_update(STATS_ARGS);
+		failed();
+	}
+
+	if (check_extension(input_file) != 0) {
+		cc_log("Not a C/C++ file - %s\n", input_file);
 		failed();
 	}
 
