@@ -384,6 +384,14 @@ static void from_cache(int first)
 		return;
 	}
 
+	/* the user might be disabling cache hits */
+	if (first && getenv("CCACHE_RECACHE")) {
+		close(fd_stderr);
+		unlink(stderr_file);
+		free(stderr_file);
+		return;
+	}
+
 	utime(stderr_file, NULL);
 
 	if (strcmp(output_file, "/dev/null") == 0) {
@@ -630,7 +638,7 @@ static void process_args(int argc, char **argv)
 		{
 			const char *opts[] = {"-I", "-Iinclude", "-imacros", "-iprefix",
 					      "-iwithprefix", "-iwithprefixbefore",
-					      "-L", "-D", "-U", "-x", "-MF", "-MT",
+					      "-L", "-D", "-U", "-x", "-MF", 
 					      "-MT", "-MQ", "-isystem", "-aux-info",
 					      "--param", "-A", "-Xlinker", "-u",
 					      NULL};

@@ -137,6 +137,9 @@ directory when creating the compiler output and will do a file copy
 instead. The main reason for setting this option is to avoid the
 update of the modification time on object files that are the result of
 the same compilation in a different directory.
+<p><p></p><dt><strong><strong>CCACHE_RECACHE</strong></strong><dd> This forces ccache to not use any cached
+results, even if it finds them. New results are still cached, but
+existing cache entries are ignored.
 <p><p></p><dt><strong><strong>CCACHE_UNIFY</strong></strong><dd> If you set the environment variable CCACHE_UNIFY
 then ccache will use the C/C++ unifier when hashing the pre-processor
 output if -g is not used in the compile. The unifier is slower than a

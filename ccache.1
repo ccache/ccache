@@ -169,6 +169,11 @@ instead\&. The main reason for setting this option is to avoid the
 update of the modification time on object files that are the result of
 the same compilation in a different directory\&.
 .IP 
+.IP "\fBCCACHE_RECACHE\fP" 
+This forces ccache to not use any cached
+results, even if it finds them\&. New results are still cached, but
+existing cache entries are ignored\&.
+.IP 
 .IP "\fBCCACHE_UNIFY\fP" 
 If you set the environment variable CCACHE_UNIFY
 then ccache will use the C/C++ unifier when hashing the pre-processor
