@@ -586,7 +586,7 @@ static void usage(void)
 	printf("\nOptions:\n");
 
 	printf("-s                      show statistics summary\n");
-	printf("-h                      zero statistics\n");
+	printf("-z                      zero statistics\n");
 	printf("-c                      run a cache cleanup\n");
 	printf("-F <maxfiles>           set maximum files in cache\n");
 	printf("-M <maxsize>            set maximum size of cache (use G, M or K)\n");
