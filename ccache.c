@@ -129,16 +129,18 @@ static void to_cache(ARGS *args)
 		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY);
-		if (fd != -1 && 
-		    (rename(tmp_hashname, output_file) == 0 || errno == ENOENT)) {
-			/* we can use a quick method of getting the failed output */
-			copy_fd(fd, 2);
-			close(fd);
-			unlink(tmp_stderr);
-			if (i_tmpfile) {
-				unlink(i_tmpfile);
+		if (fd != -1) {
+			if (strcmp(output_file, "/dev/null") == 0 ||
+			    rename(tmp_hashname, output_file) == 0 || errno == ENOENT) {
+				/* we can use a quick method of getting the failed output */
+				copy_fd(fd, 2);
+				close(fd);
+				unlink(tmp_stderr);
+				if (i_tmpfile) {
+					unlink(i_tmpfile);
+				}
+				exit(status);
 			}
-			exit(status);
 		}
 		
 		unlink(tmp_stderr);
@@ -311,11 +313,15 @@ static void from_cache(int first)
 
 	utime(stderr_file, NULL);
 
-	unlink(output_file);
-	if (getenv("CCACHE_NOLINK")) {
-		ret = copy_file(hashname, output_file);
+	if (strcmp(output_file, "/dev/null") == 0) {
+		ret = 0;
 	} else {
-		ret = link(hashname, output_file);
+		unlink(output_file);
+		if (getenv("CCACHE_NOLINK")) {
+			ret = copy_file(hashname, output_file);
+		} else {
+			ret = link(hashname, output_file);
+		}
 	}
 
 	/* the hash file might have been deleted by some external process */
@@ -609,7 +615,7 @@ static void process_args(int argc, char **argv)
 	}
 
 	/* cope with -o /dev/null */
-	if (stat(output_file, &st) == 0 && !S_ISREG(st.st_mode)) {
+	if (strcmp(output_file,"/dev/null") != 0 && stat(output_file, &st) == 0 && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file %s\n", output_file);
 		stats_update(STATS_DEVICE);
 		failed();
