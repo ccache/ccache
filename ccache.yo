@@ -204,3 +204,5 @@ url(http://samba.org/~tridge/)(http://samba.org/~tridge/)
 If you wish to report a problem or make a suggestion then please email
 bugs@ccache.samba.org
 
+ccache is released under the GNU General Public License version 2 or
+later. Please see the file COPYING for license details.
