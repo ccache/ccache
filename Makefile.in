@@ -8,7 +8,8 @@ INSTALLCMD=@INSTALL@
 CC=@CC@
 CFLAGS=@CFLAGS@
 
-OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o cleanup.o snprintf.o
+OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o \
+	cleanup.o snprintf.o unify.o
 HEADERS = ccache.h mdfour.h
 
 all: ccache ccache.1
