@@ -20,8 +20,8 @@ PATH.
 
 For example the following will work on many systems:
 
-  make ccache
-  cp ccache /usr/local/bin
+  make
+  cp ccache ccache_clean /usr/local/bin/
   ln -s /usr/local/bin/ccache /usr/local/bin/gcc
   ln -s /usr/local/bin/ccache /usr/local/bin/cc
 
@@ -97,6 +97,20 @@ compiling rsync I get:
   ccache uncached 24.6 seconds
   ccache cached 4.6 seconds
 
+
+Cleaning the cache
+------------------
+
+ccache tends to quickly fill up the cache directory. You may find the
+ccache_clean utility for removing old cache files. If called with no
+arguments it will remove any cache files older than a week. You can
+also pass a single argument specifying the number of days old files
+need to be to be cleaned. For example:
+
+     ccache_clean 3
+
+will remove any files older than 3 days. You may wish to call
+ccache_clean from a cron job to keep your disk space usage reasonable.
 
 How it works
 ------------
