@@ -103,6 +103,26 @@ static void failed(void)
 	exit(1);
 }
 
+
+/* return a string to be used to distinguish temporary files 
+   this also tries to cope with NFS by adding the local hostname 
+*/
+static const char *tmp_string(void)
+{
+	static char *ret;
+
+	if (!ret) {
+		char hostname[200];
+		strcpy(hostname, "unknown");
+		gethostname(hostname, sizeof(hostname)-1);
+		hostname[sizeof(hostname)-1] = 0;
+		asprintf(&ret, "%s.%u", hostname, (unsigned)getpid());
+	}
+
+	return ret;
+}
+
+
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
 {
@@ -111,9 +131,9 @@ static void to_cache(ARGS *args)
 	struct stat st1, st2;
 	int status;
 
-	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
-	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
-	x_asprintf(&tmp_hashname, "%s/tmp.hash.%d.o", cache_dir, getpid());
+	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%s", cache_dir, tmp_string());
+	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%s", cache_dir, tmp_string());
+	x_asprintf(&tmp_hashname, "%s/tmp.hash.%s.o", cache_dir, tmp_string());
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
@@ -265,9 +285,9 @@ static void find_hash(ARGS *args)
 	hash_int(st.st_mtime);
 
 	/* now the run */
-	x_asprintf(&path_stdout, "%s/tmp.stdout.%d.%s", cache_dir, getpid(), 
+	x_asprintf(&path_stdout, "%s/tmp.stdout.%s.%s", cache_dir, tmp_string(), 
 		   i_extension);
-	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%d", cache_dir, getpid());
+	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", cache_dir, tmp_string());
 
 	args_add(args, "-E");
 	args_add(args, input_file);
