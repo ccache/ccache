@@ -122,7 +122,7 @@ static void find_hash(ARGS *args)
 	hash_start();
 
 	/* first the arguments */
-	for (i=0;i<args->argc;i++) {
+	for (i=1;i<args->argc;i++) {
 		/* some arguments don't contribute to the hash. The
 		   theory is that these arguments will change the
 		   output of -E if they are going to have any effect
