@@ -18,8 +18,16 @@
 /*
   C/C++ unifier
 
-  the idea is that changes that don't affect the resulting C code should not change
-  the hash
+  the idea is that changes that don't affect the resulting C code
+  should not change the hash. This is achieved by folding white-space
+  and other non-semantic fluff in the input into a single unified format.
+
+  This unifier was design to match the output of the unifier in
+  compilercache, which is flex based. The major difference is that
+  this unifier is much faster (about 2x) and more forgiving of
+  syntactic errors. Continuing on syntactic errors is important to
+  cope with C/C++ extensions in the local compiler (for example,
+  inline assembly systems).  
 */
 
 #include "ccache.h"
