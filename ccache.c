@@ -201,12 +201,12 @@ static void find_hash(ARGS *args)
 				i++;
 				continue;
 			}
-			if (strncmp(args->argv[i], "-I", 2) == 0 ||
-			    strncmp(args->argv[i], "-L", 2) == 0 ||
-			    strncmp(args->argv[i], "-D", 2) == 0 ||
-			    strncmp(args->argv[i], "-isystem", 8) == 0) {
-				continue;
-			}
+		}
+		if (strncmp(args->argv[i], "-I", 2) == 0 ||
+		    strncmp(args->argv[i], "-L", 2) == 0 ||
+		    strncmp(args->argv[i], "-D", 2) == 0 ||
+		    strncmp(args->argv[i], "-isystem", 8) == 0) {
+			continue;
 		}
 		hash_string(args->argv[i]);
 	}
