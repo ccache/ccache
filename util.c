@@ -234,7 +234,15 @@ char *dirname(char *s)
 
 int lock_fd(int fd)
 {
-	return flock(fd, LOCK_EX);
+	struct flock fl;
+
+	fl.l_type = F_WRLCK;
+	fl.l_whence = SEEK_SET;
+	fl.l_start = 0;
+	fl.l_len = 1;
+	fl.l_pid = 0;
+
+	return fcntl(fd, F_SETLKW, &fl);
 }
 
 /* return size on disk of a file */

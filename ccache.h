@@ -103,6 +103,3 @@ ARGS *args_init(void);
 void args_add(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
 
-#ifndef LOCK_EX
-#define LOCK_EX 2
-#endif
