@@ -101,6 +101,7 @@ To install for the second method do something like this:
 
   cp ccache /usr/local/bin/
   ln -s /usr/local/bin/ccache /usr/local/bin/gcc
+  ln -s /usr/local/bin/ccache /usr/local/bin/g++
   ln -s /usr/local/bin/ccache /usr/local/bin/cc
 
 .fi 
@@ -118,7 +119,7 @@ cause "interesting" problems\&.
 When run as a compiler front end ccache usually just takes the same
 command line options as the compiler you are using\&. The only exception
 to this is the option \&'--ccache-skip\&'\&. That option can be used to tell
-ccache that the next option is definately not a input filename, and
+ccache that the next option is definitely not a input filename, and
 should be passed along to the compiler as-is\&. 
 .PP 
 The reason this can be important is that ccache does need to parse the
@@ -141,6 +142,13 @@ most cases you won\&'t need any of these as the defaults will be fine\&.
 the CCACHE_DIR environment variable specifies
 where ccache will keep its cached compiler output\&. The default is
 "$HOME/\&.ccache"\&.
+.IP 
+.IP "\fBCCACHE_TEMPDIR\fP" 
+the CCACHE_TEMPDIR environment variable specifies
+where ccache will put temporary files\&. The default is the same as
+CCACHE_DIR\&. Note that the CCACHE_TEMPDIR path must be on the same
+filesystem as the CCACHE_DIR path, so that renames of files between
+the two directories can work\&.
 .IP 
 .IP "\fBCCACHE_LOGFILE\fP" 
 If you set the CCACHE_LOGFILE environment
@@ -168,6 +176,14 @@ below on using ccache with distcc\&.
 If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely\&.
+.IP 
+.IP "\fBCCACHE_READONLY\fP" 
+the CCACHE_READONLY environment variable
+tells ccache to attempt to use existing cached object files, but not
+to try to add anything new to the cache\&. If you are using this because
+your CCACHE_DIR is read-only, then you may find that you also need to
+set CCACHE_TEMPDIR as otherwise ccache will fail to create the
+temporary files\&.
 .IP 
 .IP "\fBCCACHE_CPP2\fP" 
 If you set the environment variable CCACHE_CPP2
@@ -304,11 +320,14 @@ following conditions need to be met:
 .IP o 
 Use the same \fBCCACHE_DIR\fP environment variable setting
 .IP o 
-Make sure that all users have write permission in the entire
-cache directory (and that you trust all users of the shared cache)\&. 
+Set the \fBCCACHE_NOLINK\fP environment variable
 .IP o 
 Make sure everyone sets the CCACHE_UMASK environment variable
-to 002, this ensures that cached files are accessible to everyone\&.
+to 002, this ensures that cached files are accessible to everyone in
+the group\&.
+.IP o 
+Make sure that all users have write permission in the entire
+cache directory (and that you trust all users of the shared cache)\&. 
 .IP o 
 Make sure that the setgid bit is set on all directories in the
 cache\&. This tells the filesystem to inherit group ownership for new

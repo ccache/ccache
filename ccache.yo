@@ -125,6 +125,12 @@ dit(bf(CCACHE_DIR)) the CCACHE_DIR environment variable specifies
 where ccache will keep its cached compiler output. The default is
 "$HOME/.ccache".
 
+dit(bf(CCACHE_TEMPDIR)) the CCACHE_TEMPDIR environment variable specifies
+where ccache will put temporary files. The default is the same as
+CCACHE_DIR. Note that the CCACHE_TEMPDIR path must be on the same
+filesystem as the CCACHE_DIR path, so that renames of files between
+the two directories can work.
+
 dit(bf(CCACHE_LOGFILE)) If you set the CCACHE_LOGFILE environment
 variable then ccache will write some log information on cache hits
 and misses in that file. This is useful for tracking down problems.
@@ -146,6 +152,13 @@ below on using ccache with distcc.
 dit(bf(CCACHE_DISABLE)) If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
+
+dit(bf(CCACHE_READONLY)) the CCACHE_READONLY environment variable
+tells ccache to attempt to use existing cached object files, but not
+to try to add anything new to the cache. If you are using this because
+your CCACHE_DIR is read-only, then you may find that you also need to
+set CCACHE_TEMPDIR as otherwise ccache will fail to create the
+temporary files.
 
 dit(bf(CCACHE_CPP2)) If you set the environment variable CCACHE_CPP2
 then ccache will not use the optimisation of avoiding the 2nd call to

@@ -26,6 +26,9 @@
 /* the base cache directory */
 char *cache_dir = NULL;
 
+/* the directory for temporary files */
+static char *temp_dir = NULL;
+
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
 
@@ -155,9 +158,9 @@ static void to_cache(ARGS *args)
 	struct stat st1, st2;
 	int status;
 
-	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%s", cache_dir, tmp_string());
-	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%s", cache_dir, tmp_string());
-	x_asprintf(&tmp_hashname, "%s/tmp.hash.%s.o", cache_dir, tmp_string());
+	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%s", temp_dir, tmp_string());
+	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%s", temp_dir, tmp_string());
+	x_asprintf(&tmp_hashname, "%s/tmp.hash.%s.o", temp_dir, tmp_string());
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
@@ -347,10 +350,10 @@ static void find_hash(ARGS *args)
 	}
 
 	/* now the run */
-	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", cache_dir,
+	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", temp_dir,
 		   input_base, tmp_string(), 
 		   i_extension);
-	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", cache_dir, tmp_string());
+	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
 
 	if (!direct_i_file) {
 		/* run cpp on the input file to obtain the .i */
@@ -845,6 +848,11 @@ static void ccache(int argc, char *argv[])
 
 	/* if we can return from cache at this point then do */
 	from_cache(1);
+
+	if (getenv("CCACHE_READONLY")) {
+		cc_log("read-only set - doing real compile\n");
+		failed();
+	}
 	
 	/* run real compiler, sending output to cache */
 	to_cache(stripped_args);
@@ -969,6 +977,11 @@ int main(int argc, char *argv[])
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
 		x_asprintf(&cache_dir, "%s/.ccache", get_home_directory());
+	}
+
+	temp_dir = getenv("CCACHE_TEMPDIR");
+	if (!temp_dir) {
+		temp_dir = cache_dir;
 	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
