@@ -251,16 +251,18 @@ static void find_hash(ARGS *args)
 static void from_cache(int first)
 {
 	int fd_stderr;
-	char *s;
+	char *stderr_file;
 	int ret;
 
-	x_asprintf(&s, "%s.stderr", hashname);
-	fd_stderr = open(s, O_RDONLY);
-	free(s);
+	x_asprintf(&stderr_file, "%s.stderr", hashname);
+	fd_stderr = open(stderr_file, O_RDONLY);
 	if (fd_stderr == -1) {
 		/* it isn't in cache ... */
+		free(stderr_file);
 		return;
 	}
+	utime(stderr_file, NULL);
+	free(stderr_file);
 
 	unlink(output_file);
 	ret = link(hashname, output_file);
