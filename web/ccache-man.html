@@ -148,6 +148,13 @@ cached compiles with CCACHE_UNIFY set cannot be used when
 CCACHE_UNIFY is not set and vice versa. The reason the unifier is off
 by default is that it can give incorrect line number information in
 compiler warning messages.
+<p><p></p><dt><strong><strong>CCACHE_EXTENSION</strong></strong><dd> Normally ccache tries to automatically
+determine the extension to use for intermediate C pre-processor files
+based on the type of file being compiled. Unfortunately this sometimes
+doesn't work, for example when using the aCC compiler on HP-UX. On
+systems like this you can use the CCACHE_EXTENSION option to override
+the default. On HP-UX set this environment variable to "i" if you use
+the aCC compiler.
 <p></dl>
 <p><h2>CACHE SIZE MANAGEMENT</h2>
     

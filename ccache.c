@@ -545,6 +545,8 @@ static char *check_extension(const char *fname)
 	p++;
 	for (i=0; extensions[i].extension; i++) {
 		if (strcmp(p, extensions[i].extension) == 0) {
+			p = getenv("CCACHE_EXTENSION");
+			if (p) return p;
 			return extensions[i].i_extension;
 		}
 	}
