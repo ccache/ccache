@@ -188,6 +188,8 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		if (strcmp(de->d_name,".") == 0) continue;
 		if (strcmp(de->d_name,"..") == 0) continue;
 
+		if (strlen(de->d_name) == 0) continue;
+
 		x_asprintf(&fname, "%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
 			if (errno != ENOENT) {
