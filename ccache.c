@@ -115,6 +115,7 @@ static void find_hash(ARGS *args)
 {
 	int i;
 	char *path_stdout, *path_stderr;
+	char *hash_dir1;
 	char *hash_dir;
 	char *s;
 	struct stat st;
@@ -195,17 +196,23 @@ static void find_hash(ARGS *args)
 	free(path_stdout);
 	free(path_stderr);
 
-	/* we use a single level subdir for the cache path to reduce the impact
+	/* we use a 2 level subdir for the cache path to reduce the impact
 	   on filesystems which are slow for large directories
 	*/
 	s = hash_result();
-	x_asprintf(&hash_dir, "%s/%c", cache_dir, *s);
-	if (create_dir(hash_dir) != 0) {
-		cc_log("failed to create %s\n", cache_dir);
+	x_asprintf(&hash_dir1, "%s/%c", cache_dir, s[0]);
+	x_asprintf(&stats_file, "%s/stats", hash_dir1);
+	if (create_dir(hash_dir1) != 0) {
+		cc_log("failed to create %s\n", hash_dir1);
 		failed();
 	}
-	x_asprintf(&hashname, "%s/%s", hash_dir, s+1);
-	x_asprintf(&stats_file, "%s/stats", hash_dir);
+	x_asprintf(&hash_dir, "%s/%c", hash_dir1, s[1]);
+	free(hash_dir1);
+	if (create_dir(hash_dir) != 0) {
+		cc_log("failed to create %s\n", hash_dir);
+		failed();
+	}
+	x_asprintf(&hashname, "%s/%s", hash_dir, s+2);
 	free(hash_dir);
 }
 
