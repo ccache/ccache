@@ -188,6 +188,12 @@ static void find_hash(ARGS *args)
 
 	hash_start();
 
+	/* when we are doing the unifying tricks we need to include
+           the input file name in the hash to get the warnings right */
+	if (!found_debug) {
+		hash_string(input_file);
+	}
+
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
 		/* some arguments don't contribute to the hash. The
