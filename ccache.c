@@ -566,8 +566,7 @@ static void process_args(int argc, char **argv)
 		}
 
 		/* these are too hard */
-		if (strcmp(argv[i], "-fprofile-arcs")==0 ||
-		    strcmp(argv[i], "-fbranch-probabilities")==0 ||
+		if (strcmp(argv[i], "-fbranch-probabilities")==0 ||
 		    strcmp(argv[i], "-M") == 0 ||
 		    strcmp(argv[i], "-x") == 0) {
 			cc_log("argument %s is unsupported\n", argv[i]);
