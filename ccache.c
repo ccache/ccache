@@ -237,7 +237,11 @@ static void from_cache(int first)
 	utime(stderr_file, NULL);
 
 	unlink(output_file);
-	ret = link(hashname, output_file);
+	if (getenv("CCACHE_NOLINK")) {
+		ret = copy_file(hashname, output_file);
+	} else {
+		ret = link(hashname, output_file);
+	}
 
 	/* the hash file might have been deleted by some external process */
 	if (ret == -1 && errno == ENOENT) {

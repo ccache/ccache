@@ -139,6 +139,14 @@ If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile\&.
 .IP 
+.IP "\fBCCACHE_NOLINK\fP" 
+If you set the environment variable
+CCACHE_NOLINK then ccache will not use hard links from the cache
+directory when creating the compiler output and will do a file copy
+instead\&. The main reason for setting this option is to avoid the
+update of the modification time on object files that are the result of
+the same compilation in a different directory\&.
+.IP 
 .IP "\fBCCACHE_NOUNIFY\fP" 
 If you set the environment variable
 CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing

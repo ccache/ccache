@@ -118,6 +118,13 @@ dit(bf(CCACHE_NOSTATS)) If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile.
 
+dit(bf(CCACHE_NOLINK)) If you set the environment variable
+CCACHE_NOLINK then ccache will not use hard links from the cache
+directory when creating the compiler output and will do a file copy
+instead. The main reason for setting this option is to avoid the
+update of the modification time on object files that are the result of
+the same compilation in a different directory.
+
 dit(bf(CCACHE_NOUNIFY)) If you set the environment variable
 CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing
 the pre-processor output. The unifier is slower than a normal hash, so
