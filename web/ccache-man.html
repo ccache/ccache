@@ -116,6 +116,9 @@ bypassing the cache completely.
 <p><p></p><dt><strong><strong>CCACHE_NOSTATS</strong></strong><dd> If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile.
+<p><p></p><dt><strong><strong>CCACHE_NLEVELS</strong></strong><dd> The environment variable CCACHE_NLEVELS allows
+you to choose the number of levels of hash in the cache directory. The
+default is 2. The minimum is 1 and the maximum is 8. 
 <p><p></p><dt><strong><strong>CCACHE_NOLINK</strong></strong><dd> If you set the environment variable
 CCACHE_NOLINK then ccache will not use hard links from the cache
 directory when creating the compiler output and will do a file copy

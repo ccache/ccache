@@ -39,6 +39,7 @@ static void failed(void)
 {
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!\n", strerror(errno));
+	perror(orig_args->argv[0]);
 	exit(1);
 }
 
@@ -115,11 +116,17 @@ static void find_hash(ARGS *args)
 {
 	int i;
 	char *path_stdout, *path_stderr;
-	char *hash_dir1;
 	char *hash_dir;
 	char *s;
 	struct stat st;
 	int status;
+	int nlevels = 2;
+
+	if ((s = getenv("CCACHE_NLEVELS"))) {
+		nlevels = atoi(s);
+		if (nlevels < 1) nlevels = 1;
+		if (nlevels > 8) nlevels = 8;
+	}
 
 	hash_start();
 
@@ -196,23 +203,27 @@ static void find_hash(ARGS *args)
 	free(path_stdout);
 	free(path_stderr);
 
-	/* we use a 2 level subdir for the cache path to reduce the impact
+	/* we use a N level subdir for the cache path to reduce the impact
 	   on filesystems which are slow for large directories
 	*/
 	s = hash_result();
-	x_asprintf(&hash_dir1, "%s/%c", cache_dir, s[0]);
-	x_asprintf(&stats_file, "%s/stats", hash_dir1);
-	if (create_dir(hash_dir1) != 0) {
-		cc_log("failed to create %s\n", hash_dir1);
-		failed();
+	x_asprintf(&hash_dir, "%s/%c", cache_dir, s[0]);
+	x_asprintf(&stats_file, "%s/stats", hash_dir);
+	for (i=1; i<nlevels; i++) {
+		char *p;
+		if (create_dir(hash_dir) != 0) {
+			cc_log("failed to create %s\n", hash_dir);
+			failed();
+		}
+		x_asprintf(&p, "%s/%c", hash_dir, s[i]);
+		free(hash_dir);
+		hash_dir = p;
 	}
-	x_asprintf(&hash_dir, "%s/%c", hash_dir1, s[1]);
-	free(hash_dir1);
 	if (create_dir(hash_dir) != 0) {
 		cc_log("failed to create %s\n", hash_dir);
 		failed();
 	}
-	x_asprintf(&hashname, "%s/%s", hash_dir, s+2);
+	x_asprintf(&hashname, "%s/%s", hash_dir, s+nlevels);
 	free(hash_dir);
 }
 
@@ -311,6 +322,10 @@ static void find_compiler(int argc, char **argv)
 		orig_args->argv++;
 		orig_args->argc--;
 		free(base);
+		if (strchr(argv[1],'/')) {
+			/* a full path was given */
+			return;
+		}
 		base = basename(argv[1]);
 	}
 
