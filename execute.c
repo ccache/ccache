@@ -59,5 +59,9 @@ int execute(char **argv,
 		fatal("waitpid failed");
 	}
 
+	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
+		return -1;
+	}
+
 	return WEXITSTATUS(status);
 }
