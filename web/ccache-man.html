@@ -89,6 +89,7 @@ in your path.
 
   cp ccache /usr/local/bin/
   ln -s /usr/local/bin/ccache /usr/local/bin/gcc
+  ln -s /usr/local/bin/ccache /usr/local/bin/g++
   ln -s /usr/local/bin/ccache /usr/local/bin/cc
 
 </pre>
@@ -103,7 +104,7 @@ cause "interesting" problems.
 <p>When run as a compiler front end ccache usually just takes the same
 command line options as the compiler you are using. The only exception
 to this is the option '--ccache-skip'. That option can be used to tell
-ccache that the next option is definately not a input filename, and
+ccache that the next option is definitely not a input filename, and
 should be passed along to the compiler as-is. 
 <p>The reason this can be important is that ccache does need to parse the
 command line and determine what is an input filename and what is a
@@ -244,10 +245,12 @@ relinked without reason.  To share a cache without side effects, the
 following conditions need to be met:
 <p><ul>
   <li > Use the same <strong>CCACHE_DIR</strong> environment variable setting
+  <li > Set the <strong>CCACHE_NOLINK</strong> environment variable
+  <li > Make sure everyone sets the CCACHE_UMASK environment variable
+  to 002, this ensures that cached files are accessible to everyone in
+  the group.
   <li > Make sure that all users have write permission in the entire
   cache directory (and that you trust all users of the shared cache). 
-  <li > Make sure everyone sets the CCACHE_UMASK environment variable
-  to 002, this ensures that cached files are accessible to everyone.
   <li > Make sure that the setgid bit is set on all directories in the
   cache. This tells the filesystem to inherit group ownership for new
   directories. The command "chmod g+s `find $CCACHE_DIR -type d`" might
