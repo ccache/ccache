@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#define CCACHE_VERSION "1.0"
 
 #include <stdio.h>
 #include <unistd.h>

@@ -576,7 +576,7 @@ static void ccache(int argc, char *argv[])
 
 static void usage(void)
 {
-	printf("ccache, a compiler cache\n");
+	printf("ccache, a compiler cache. Version %s\n", CCACHE_VERSION);
 	printf("Copyright Andrew Tridgell, 2002\n\n");
 	
 	printf("Usage:\n");
@@ -585,12 +585,13 @@ static void usage(void)
 	printf("\tcompiler [compile options]    (via symbolic link)\n");
 	printf("\nOptions:\n");
 
-	printf("-h                      this help page\n");
 	printf("-s                      show statistics summary\n");
 	printf("-h                      zero statistics\n");
 	printf("-c                      run a cache cleanup\n");
 	printf("-F <maxfiles>           set maximum files in cache\n");
 	printf("-M <maxsize>            set maximum size of cache (use G, M or K)\n");
+	printf("-h                      this help page\n");
+	printf("-V                      print version number\n");
 }
 
 /* the main program when not doing a compile */
@@ -600,8 +601,12 @@ static int ccache_main(int argc, char *argv[])
 	int c;
 	size_t v;
 
-	while ((c = getopt(argc, argv, "hszcF:M:")) != -1) {
+	while ((c = getopt(argc, argv, "hszcF:M:V")) != -1) {
 		switch (c) {
+		case 'V':
+			printf("ccache version %s\n", CCACHE_VERSION);
+			exit(0);
+
 		case 'h':
 			usage();
 			exit(0);

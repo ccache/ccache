@@ -1,5 +1,5 @@
-CFLAGS=-W -Wall -O2
 CC=gcc
+CFLAGS=-W -Wall -O2
 
 OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o cleanup.o
 HEADERS = ccache.h mdfour.h
