@@ -135,6 +135,9 @@ static void to_cache(ARGS *args)
 			copy_fd(fd, 2);
 			close(fd);
 			unlink(tmp_stderr);
+			if (i_tmpfile) {
+				unlink(i_tmpfile);
+			}
 			exit(status);
 		}
 		
