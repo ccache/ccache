@@ -76,6 +76,10 @@ char *find_executable(const char *name, const char *exclude_name)
 	char *tok;
 	struct stat st1, st2;
 
+	if (*name == '/') {
+		return x_strdup(name);
+	}
+
 	path = getenv("CCACHE_PATH");
 	if (!path) {
 		path = getenv("PATH");
