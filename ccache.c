@@ -118,7 +118,7 @@ static void stabs_hash(const char *fname)
 		failed();
 	}
 
-	/* we use mmap() to make it easy to handle arbitraryily long
+	/* we use mmap() to make it easy to handle arbitrarily long
            lines in preprocessor output. I have seen lines of over
            100k in length, so this is well worth it */
 	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -180,7 +180,8 @@ static void find_hash(ARGS *args)
 			}
 			if (strncmp(args->argv[i], "-I", 2) == 0 ||
 			    strncmp(args->argv[i], "-L", 2) == 0 ||
-			    strncmp(args->argv[i], "-D", 2) == 0) {
+			    strncmp(args->argv[i], "-D", 2) == 0 ||
+			    strncmp(args->argv[i], "-isystem", 8) == 0) {
 				continue;
 			}
 		}
