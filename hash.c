@@ -33,6 +33,11 @@ void hash_string(const char *s)
 	mdfour_update(&md, s, strlen(s));
 }
 
+void hash_buffer(const char *s, int len)
+{
+	mdfour_update(&md, s, len);
+}
+
 void hash_int(int x)
 {
 	mdfour_update(&md, (unsigned char *)&x, sizeof(x));

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
@@ -29,6 +30,7 @@ void hash_string(const char *s);
 void hash_int(int x);
 void hash_file(const char *fname);
 char *hash_result(void);
+void hash_buffer(const char *s, int len);
 
 void cc_log(const char *format, ...);
 void fatal(const char *msg);

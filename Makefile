@@ -1,4 +1,4 @@
-CFLAGS=-W -Wall -g 
+CFLAGS=-W -Wall -O2
 CC=gcc
 
 OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o

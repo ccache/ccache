@@ -107,39 +107,41 @@ static void to_cache(ARGS *args)
 */
 static void stabs_hash(const char *fname)
 {
-	FILE *f;
-	char *s;
-	static char *line;
+	int fd;
+	struct stat st;	
+	char *map;
+	int l_start, l_end;
 
-	if (!line) line = malloc(MAX_LINE_SIZE);
-	if (!line) {
-		cc_log("Can't allocate in stabs hash!\n");
+	fd = open(fname, O_RDONLY);
+	if (fd == -1 || fstat(fd, &st) != 0) {
+		cc_log("Failed to open preprocessor output %s\n", fname);
 		failed();
 	}
 
-	line[MAX_LINE_SIZE-2] = 0;
-
-	f = fopen(fname, "r");
-	if (!f) {
-		cc_log("Failed to open preprocessor output\n");
+	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (map == (void *)-1) {
+		cc_log("Failed to mmap %s\n", fname);
 		failed();
 	}
-	
-	while ((s = fgets(line, MAX_LINE_SIZE, f))) {
-		if (line[MAX_LINE_SIZE-2]) {
-			cc_log("line too long in preprocessor output!\n");
-			failed();
+	close(fd);
+
+	l_start = 0;
+	while (l_start < st.st_size) {
+		l_end = l_start;
+		while (l_end < st.st_size && map[l_end] != '\n') {
+			l_end++;
 		}
-
-		/* ignore debugging output */
-		if (line[0] == '#' && line[1] == ' ' && isdigit(line[2])) {
+		if ((l_end - l_start) > 2 &&
+		    map[l_start] == '#' && map[l_start+1] == ' ' && 
+		    isdigit(map[l_start+2])) {
+			l_start = l_end+1;
 			continue;
 		}
-
-		hash_string(s);
+		hash_buffer(&map[l_start], 1 + l_end - l_start);
+		l_start = l_end+1;
 	}
 
-	fclose(f);
+	munmap(map, st.st_size);
 }
 
 
