@@ -20,7 +20,7 @@ test_failed() {
 randcode() {
     outfile="$1"
     nlines=$2
-    i=1;
+    i=0;
     (
     while [ $i -lt $nlines ]; do
 	echo "int foo$nlines$i(int x) { return x; }"
@@ -52,7 +52,7 @@ basetests() {
     checkstat 'cache hit' 0
     checkstat 'cache miss' 0
 
-    j=0
+    j=1
     rm -f *.c
     while [ $j -lt 32 ]; do
 	randcode test$j.c $j
@@ -178,8 +178,11 @@ basetests() {
     CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit' 6
     checkstat 'cache miss' 7
-    echo '/* another comment */' >> test1.c
+    mv test1.c test1-saved.c
+    echo '/* another comment */' > test1.c
+    cat test1-saved.c >> test1.c
     CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
+    mv test1-saved.c test1.c
     checkstat 'cache hit' 7
     checkstat 'cache miss' 7
 
@@ -188,8 +191,8 @@ basetests() {
 	$CCACHE_COMPILE -c $f
     done
     checkstat 'cache hit' 8
-    checkstat 'cache miss' 38
-    checkstat 'files in cache' 74
+    checkstat 'cache miss' 37
+    checkstat 'files in cache' 72
     $CCACHE -F 48 -c > /dev/null
     if [ `getstat 'files in cache'` -gt 48 ]; then
 	test_failed '-F test failed'
