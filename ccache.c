@@ -526,6 +526,12 @@ static void process_args(int argc, char **argv)
 			i++;
 			continue;
 		}
+		
+		/* alternate form of -o, with no space */
+		if (strncmp(argv[i], "-o", 2) == 0) {
+			output_file = &argv[i][2];
+			continue;
+		}
 
 		/* debugging is handled specially, so that we know if we
 		   can strip line number info 
