@@ -123,6 +123,11 @@ most cases you won't need any of these as the defaults will be fine.
 <p><p></p><dt><strong><strong>CCACHE_DIR</strong></strong><dd> the CCACHE_DIR environment variable specifies
 where ccache will keep its cached compiler output. The default is
 "$HOME/.ccache".
+<p><p></p><dt><strong><strong>CCACHE_TEMPDIR</strong></strong><dd> the CCACHE_TEMPDIR environment variable specifies
+where ccache will put temporary files. The default is the same as
+CCACHE_DIR. Note that the CCACHE_TEMPDIR path must be on the same
+filesystem as the CCACHE_DIR path, so that renames of files between
+the two directories can work.
 <p><p></p><dt><strong><strong>CCACHE_LOGFILE</strong></strong><dd> If you set the CCACHE_LOGFILE environment
 variable then ccache will write some log information on cache hits
 and misses in that file. This is useful for tracking down problems.
@@ -140,6 +145,12 @@ below on using ccache with distcc.
 <p><p></p><dt><strong><strong>CCACHE_DISABLE</strong></strong><dd> If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
+<p><p></p><dt><strong><strong>CCACHE_READONLY</strong></strong><dd> the CCACHE_READONLY environment variable
+tells ccache to attempt to use existing cached object files, but not
+to try to add anything new to the cache. If you are using this because
+your CCACHE_DIR is read-only, then you may find that you also need to
+set CCACHE_TEMPDIR as otherwise ccache will fail to create the
+temporary files.
 <p><p></p><dt><strong><strong>CCACHE_CPP2</strong></strong><dd> If you set the environment variable CCACHE_CPP2
 then ccache will not use the optimisation of avoiding the 2nd call to
 the pre-processor by compiling the pre-processed output that was used
