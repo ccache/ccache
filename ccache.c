@@ -76,6 +76,8 @@ static struct {
 	{"CXX", "ii"},
 	{"c++", "ii"},
 	{"C++", "ii"},
+	{"i", "i"},
+	{"ii", "ii"},
 	{NULL, NULL}};
 
 /*
