@@ -579,7 +579,7 @@ static void process_args(int argc, char **argv)
 
 	for (i=1; i<argc; i++) {
 		/* some options will never work ... */
-		if (strncmp(argv[i], "-E", 2) == 0) {
+		if (strcmp(argv[i], "-E") == 0) {
 			failed();
 		}
 
