@@ -271,6 +271,8 @@ void stats_set_limits(long maxfiles, long maxsize)
 		maxsize /= 16;
 	}
 
+	create_dir(cache_dir);
+
 	/* set the limits in each directory */
 	for (dir=0;dir<=0xF;dir++) {
 		char *fname, *cdir;
