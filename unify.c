@@ -207,10 +207,10 @@ static void unify(unsigned char *p, size_t size)
 
 		if (tokens[p[ofs]].type & C_TOKEN) {
 			q = p[ofs];
-			for (i=0;tokens[q].num_toks;i++) {
+			for (i=0;i<tokens[q].num_toks;i++) {
 				unsigned char *s = tokens[q].toks[i];
 				int len = strlen(s);
-				if (strncmp(&p[ofs], s, len) == 0) {
+				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
 					for (j=0;s[j];j++) {
 						pushchar(s[j]);
@@ -220,7 +220,9 @@ static void unify(unsigned char *p, size_t size)
 					break;
 				}
 			}
-			continue;
+			if (i < tokens[q].num_toks) {
+				continue;
+			}
 		}
 
 		pushchar(p[ofs]);
