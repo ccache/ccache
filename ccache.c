@@ -210,6 +210,14 @@ static void find_hash(ARGS *args)
 		    strncmp(args->argv[i], "-isystem", 8) == 0) {
 			continue;
 		}
+
+		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
+		    stat(args->argv[i]+8, &st) == 0) {
+			/* if given a explicit specs file, then hash that file, but
+			   don't include the path to it in the hash */
+			hash_file(args->argv[i]+8);
+			continue;
+		}
 		hash_string(args->argv[i]);
 	}
 
