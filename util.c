@@ -70,7 +70,7 @@ int copy_file(const char *src, const char *dest)
 
 	x_asprintf(&tmp_name, "%s.XXXXXX", dest);
 
-	fd1 = open(src, O_RDONLY);
+	fd1 = open(src, O_RDONLY|O_BINARY);
 	if (fd1 == -1) {
 		free(tmp_name);
 		return -1;
@@ -298,11 +298,11 @@ size_t file_size(struct stat *st)
 /* a safe open/create for read-write */
 int safe_open(const char *fname)
 {
-	int fd = open(fname, O_RDWR);
+	int fd = open(fname, O_RDWR|O_BINARY);
 	if (fd == -1 && errno == ENOENT) {
-		fd = open(fname, O_RDWR|O_CREAT|O_EXCL, 0666);
+		fd = open(fname, O_RDWR|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1 && errno == EEXIST) {
-			fd = open(fname, O_RDWR);
+			fd = open(fname, O_RDWR|O_BINARY);
 		}
 	}
 	return fd;
@@ -413,7 +413,7 @@ char *gnu_getcwd(void)
 int mkstemp(char *template)
 {
 	mktemp(template);
-	return open(template, O_RDWR | O_CREAT | O_EXCL, 0600);
+	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
 }
 #endif
 
@@ -423,7 +423,7 @@ int create_empty_file(const char *fname)
 {
 	int fd;
 
-	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
+	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 	if (fd == -1) {
 		return -1;
 	}

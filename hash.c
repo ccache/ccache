@@ -49,7 +49,7 @@ void hash_file(const char *fname)
 	char buf[1024];
 	int fd, n;
 
-	fd = open(fname, O_RDONLY);
+	fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		cc_log("Failed to open %s\n", fname);
 		fatal("hash_file");

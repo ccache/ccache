@@ -242,7 +242,7 @@ int unify_hash(const char *fname)
 	struct stat st;	
 	char *map;
 
-	fd = open(fname, O_RDONLY);
+	fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1 || fstat(fd, &st) != 0) {
 		cc_log("Failed to open preprocessor output %s\n", fname);
 		stats_update(STATS_PREPROCESSOR);

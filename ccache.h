@@ -142,3 +142,14 @@ void args_remove_first(ARGS *args);
 #else
 typedef int (*COMPAR_FN_T)(const void *, const void *);
 #endif
+
+/* work with silly DOS binary open */
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
+/* mkstemp() on some versions of cygwin don't handle binary files, so
+   override */
+#ifdef __CYGWIN__
+#undef HAVE_MKSTEMP
+#endif

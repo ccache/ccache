@@ -207,7 +207,7 @@ static void file_checksum1(char *fname)
 	unsigned char buf[1024], sum[16];
 	unsigned chunk;
 	
-	fd = open(fname,O_RDONLY);
+	fd = open(fname,O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		perror("fname");
 		exit(1);
@@ -245,7 +245,7 @@ static void file_checksum2(char *fname)
 	MDstruct md;
 	unsigned char buf[64], sum[16];
 
-	fd = open(fname,O_RDONLY);
+	fd = open(fname,O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		perror("fname");
 		exit(1);

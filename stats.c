@@ -192,7 +192,7 @@ void stats_read(const char *stats_file, unsigned counters[STATS_END])
 {
 	int fd;
 
-	fd = open(stats_file, O_RDONLY);
+	fd = open(stats_file, O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		stats_default(counters);
 		return;

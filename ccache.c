@@ -193,13 +193,13 @@ static void to_cache(ARGS *args)
 		cc_log("compile of %s gave status = %d\n", output_file, status);
 		stats_update(STATS_STATUS);
 
-		fd = open(tmp_stderr, O_RDONLY);
+		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
 			if (strcmp(output_file, "/dev/null") == 0 ||
 			    rename(tmp_hashname, output_file) == 0 || errno == ENOENT) {
 				if (cpp_stderr) {
 					/* we might have some stderr from cpp */
-					int fd2 = open(cpp_stderr, O_RDONLY);
+					int fd2 = open(cpp_stderr, O_RDONLY | O_BINARY);
 					if (fd2 != -1) {
 						copy_fd(fd2, 2);
 						close(fd2);
@@ -448,7 +448,7 @@ static void from_cache(int first)
 	struct stat st;
 
 	x_asprintf(&stderr_file, "%s.stderr", hashname);
-	fd_stderr = open(stderr_file, O_RDONLY);
+	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
 	if (fd_stderr == -1) {
 		/* it isn't in cache ... */
 		free(stderr_file);
@@ -518,7 +518,7 @@ static void from_cache(int first)
 	}
 
 	/* send the cpp stderr, if applicable */
-	fd_cpp_stderr = open(cpp_stderr, O_RDONLY);
+	fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 	if (fd_cpp_stderr != -1) {
 		copy_fd(fd_cpp_stderr, 2);
 		close(fd_cpp_stderr);
