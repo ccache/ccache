@@ -18,23 +18,15 @@ in C with more features and better performance.<p>
 
 <h2>Latest release</h2>
 
-The latest release is ccache 2.1. This release fixes a segv introduced
-for a a simple compile with 2.0. The 2.0 release had the following
-features:
+The latest release is ccache 2.2.
 
 <ul>
-<li>minor Makefile install fixes
-<li>fixed some compilation warnings
-<li>added -C option for 'clear cache completely'
-<li>added CCACHE_CC option
-<li>added CCACHE_RECACHE option
-<li>added CCACHE_EXTENSION option
-<li>added CCACHE_HASHDIR option
-<li>embed the hostname in temporary file names for NFS sharing
-<li>better handling of the various -M compiler options
-<li>handle attempts to compile to stdout
-<li>set default max cache size to 1GB
-<li>better signal handling
+<li>added a test suite
+<li>better integration with distcc
+<li>added CCACHE_PREFIX option
+<li>disabled hard links by default
+<li>recognise some more gcc options (eg. profiling)
+<li>added --ccache-skip option
 </ul>
 
 See the <a href="/ccache/ccache-man.html">manual page</a> for details
