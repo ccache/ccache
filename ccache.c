@@ -378,6 +378,7 @@ static void process_args(int argc, char **argv)
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	char *input_file = NULL;
+	struct stat st;
 
 	stripped_args = args_init();
 
@@ -447,6 +448,14 @@ static void process_args(int argc, char **argv)
 		if (argv[i][0] == '-') {
 			args_add(stripped_args, argv[i]);
 			continue;
+		}
+
+		/* if an argument isn't a plain file then assume its
+		   an option, not an input file. This allows us to
+		   cope better with unusual compiler options */
+		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
+			args_add(stripped_args, argv[i]);
+			continue;			
 		}
 
 		if (input_file) {
