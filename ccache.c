@@ -512,7 +512,8 @@ static void find_compiler(int argc, char **argv)
 	orig_args->argv[0] = find_executable(base, MYNAME);
 
 	/* can't find the compiler! */
-	if (!argv[0]) {
+	if (!orig_args->argv[0]) {
+		stats_update(STATS_COMPILER);
 		perror(base);
 		exit(1);
 	}
@@ -831,7 +832,7 @@ static int ccache_main(int argc, char *argv[])
 
 		case 'c':
 			cleanup_all(cache_dir);
-			printf("Cleaned cached\n");
+			printf("Cleaned cache\n");
 			break;
 
 		case 'C':
