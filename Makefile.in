@@ -9,16 +9,17 @@ INSTALLCMD=@INSTALL@
 
 CC=@CC@
 CFLAGS=@CFLAGS@ -I.
+EXEEXT=@EXEEXT@
 
 OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o \
 	cleanup.o snprintf.o unify.o
 HEADERS = ccache.h mdfour.h
 
-all: ccache
+all: ccache$(EXEEXT)
 
 docs: ccache.1 web/ccache-man.html
 
-ccache: $(OBJS) $(HEADERS)
+ccache$(EXEEXT): $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 ccache.1: ccache.yo
@@ -28,14 +29,14 @@ web/ccache-man.html: ccache.yo
 	mkdir -p man
 	yodl2html -o web/ccache-man.html ccache.yo
 
-install: ccache ccache.1
+install: ccache$(EXEEXT) ccache.1
 	${INSTALLCMD} -d $(DESTDIR)${bindir}
-	${INSTALLCMD} -m 755 ccache $(DESTDIR)${bindir}
+	${INSTALLCMD} -m 755 ccache$(EXEEXT) $(DESTDIR)${bindir}
 	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1
 	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
 
 clean:
-	/bin/rm -f $(OBJS) *~ ccache
+	/bin/rm -f $(OBJS) *~ ccache$(EXEEXT)
 
 test: test.sh
 	./test.sh
