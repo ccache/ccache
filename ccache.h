@@ -21,6 +21,8 @@
 #define STATUS_FATAL 4
 #define STATUS_NOCACHE 5
 
+#define MYNAME "ccache"
+
 typedef unsigned uint32;
 
 #include "mdfour.h"
@@ -44,6 +46,7 @@ char *x_strdup(const char *s);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
+char *basename(const char *s);
 
 int execute(char **argv, 
 	    const char *path_stdout,

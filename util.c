@@ -207,3 +207,15 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 	closedir(d);
 }
+
+
+/* return the base name of a file - caller frees */
+char *basename(const char *s)
+{
+	char *p = strrchr(s, '/');
+	if (p) {
+		return x_strdup(p+1);
+	} 
+
+	return x_strdup(s);
+}

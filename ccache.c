@@ -302,29 +302,25 @@ static void from_cache(int first)
 
 /* find the real compiler. We just search the PATH to find a executable of the 
    same name that isn't a link to ourselves */
-static char *find_compiler(const char *argv0)
+static void find_compiler(int argc, char **argv)
 {
-	char *p;
 	char *base;
 	char *path, *tok;
 	struct stat st1, st2;
-	int found_one = 0;
 
-	p = strrchr(argv0, '/');
-	if (p) {
-		base = x_strdup(p+1);
-	} else {
-		base = x_strdup(argv0);
-	}
+	orig_args = args_init();
 
-	/* try to find ourselves the linux way */
-	if (stat("/proc/self/exe", &st1) == 0) {
-		found_one = 1;
-	}
+	orig_args->argv = argv;
+	orig_args->argc = argc;
 
-	/* they might have given a full path ... */
-	if (!found_one && strchr(argv0, '/') && stat(argv0, &st1) == 0) {
-		found_one = 1;
+	base = basename(argv[0]);
+
+	/* we might be being invoked like "ccache gcc -c foo.c" */
+	if (strcmp(base, MYNAME) == 0) {
+		orig_args->argv++;
+		orig_args->argc--;
+		free(base);
+		base = basename(argv[1]);
 	}
 
 	path = getenv("CCACHE_PATH");
@@ -338,33 +334,49 @@ static char *find_compiler(const char *argv0)
 
 	path = x_strdup(path);
 	
-	/* search the path looking for the first compiler of the same name
+	/* search the path looking for the first compiler of the right name
 	   that isn't us */
 	for (tok=strtok(path,":"); tok; tok = strtok(NULL, ":")) {
 		char *fname;
 		x_asprintf(&fname, "%s/%s", tok, base);
 		/* look for a normal executable file */
 		if (access(fname, X_OK) == 0 &&
+		    lstat(fname, &st1) == 0 &&
 		    stat(fname, &st2) == 0 &&
 		    S_ISREG(st2.st_mode)) {
-			/* we have a candidate */
-			if (!found_one) {
-				st1 = st2;
-				found_one = 1;
-				continue;
+			char buf[1024];
+			int len;
+
+			/* if its a symlink then ensure it doesn't
+                           point at something called "ccache" */
+			if (S_ISLNK(st1.st_mode)) {
+				char *p;
+				len = readlink(fname, buf, sizeof(buf));
+				if (len != -1 && len < (int)sizeof(buf)) {
+					buf[len] = 0;
+					p = basename(buf);
+					if (strcmp(p, MYNAME) == 0) {
+						/* its a link to "ccache" ! */
+						free(p);
+						continue;
+					}
+					free(p);
+				}
 			}
 
-			if (st1.st_size != st2.st_size ||
-			    st1.st_dev != st2.st_dev ||
-			    st1.st_ino != st2.st_ino) {
-				/* found it! */
-				free(path);
-				return fname;
-			}
+
+			/* found it! */
+			free(path);
+			orig_args->argv[0] = fname;
+			free(base);
+			return;
 		}
+		free(fname);
 	}
-	
-	return NULL;
+
+	/* can't find the compiler! */
+	perror(base);
+	exit(1);
 }
 
 
@@ -502,23 +514,16 @@ static void process_args(int argc, char **argv)
 static void ccache(int argc, char *argv[])
 {
 	/* find the real compiler */
-	argv[0] = find_compiler(argv[0]);
-	if (!argv[0]) {
-		exit(STATUS_NOTFOUND);
-	}
-
-	orig_args = args_init();
-
-	orig_args->argv = argv;
-	orig_args->argc = argc;
-
+	find_compiler(argc, argv);
+	
+	/* we might be disabled */
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled\n");
 		failed();
 	}
 
 	/* process argument list, returning a new set of arguments for pre-processing */
-	process_args(argc, argv);
+	process_args(orig_args->argc, orig_args->argv);
 
 	/* run with -E to find the hash */
 	find_hash(stripped_args);
@@ -538,6 +543,17 @@ static void ccache(int argc, char *argv[])
 }
 
 
+static void usage(void)
+{
+	printf("Usage: read the docs\n");
+}
+
+static int ccache_main(int argc, char *argv[])
+{
+	usage();
+	return 1;
+}
+
 int main(int argc, char *argv[])
 {
 	cache_dir = getenv("CCACHE_DIR");
@@ -546,6 +562,20 @@ int main(int argc, char *argv[])
 	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
+
+	/* check if we are being invoked as "ccache" */
+	if (strlen(argv[0]) >= strlen(MYNAME) &&
+	    strcmp(argv[0] + strlen(argv[0]) - strlen(MYNAME), MYNAME) == 0) {
+		if (argc < 2) {
+			usage();
+			exit(1);
+		}
+		/* if the first argument isn't an option, then assume we are
+		   being passed a compiler name and options */
+		if (argv[1][0] == '-') {
+			return ccache_main(argc, argv);
+		}
+	}
 
 	/* make sure the cache dir exists */
 	if (create_dir(cache_dir) != 0) {
