@@ -215,9 +215,10 @@ the aCC compiler\&.
 .PP 
 .SH "CACHE SIZE MANAGEMENT" 
 .PP 
-By default ccache has no limit on the cache size\&. You can set a limit
-using the "ccache -M" and "ccache -F" options, which set the size and
-number of files limits\&.
+By default ccache has a one gigabyte limit on the cache size and no
+maximum number of files\&. You can set a different limit using the
+"ccache -M" and "ccache -F" options, which set the size and number of
+files limits\&.
 .PP 
 When these limits are reached ccache will reduce the cache to 20%
 below the numbers you specified in order to avoid doing the cache

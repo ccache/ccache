@@ -648,6 +648,16 @@ static void process_args(int argc, char **argv)
 			continue;
 		}
 
+		/* The user knows best: just swallow the next arg */
+		if (strcmp(argv[i], "--ccache-skip") == 0) {
+			i++;
+			if (i == argc) {
+				failed();
+			}
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+
 		/* options that take an argument */
 		{
 			const char *opts[] = {"-I", "-include", "-imacros", "-iprefix",
