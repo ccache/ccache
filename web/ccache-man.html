@@ -98,6 +98,22 @@ This will work as long as /usr/local/bin comes before the path to gcc
 "which gcc" to make sure that the correct link is being used.
 <p>Note! Do not use a hard link, use a symbolic link. A hardlink will
 cause "interesting" problems.
+<p><h2>EXTRA OPTIONS</h2>
+    
+<p>When run as a compiler front end ccache usually just takes the same
+command line options as the compiler you are using. The only exception
+to this is the option '--ccache-skip'. That option can be used to tell
+ccache that the next option is definately not a input filename, and
+should be passed along to the compiler as-is. 
+<p>The reason this can be important is that ccache does need to parse the
+command line and determine what is an input filename and what is a
+compiler option, as it needs the input filename to determine the name
+of the resulting object file (among other things). The heuristic
+ccache uses in this parse is that any string on the command line that
+exists as a file is treated as an input file name (usually a C
+file). By using --ccache-skip you can force an option to not be
+treated as an input file name and instead be passed along to the
+compiler as a command line option.
 <p><h2>ENVIRONMENT VARIABLES</h2>
     
 <p>ccache used a number of environment variables to control operation. In
@@ -173,9 +189,10 @@ the aCC compiler.
 <p></dl>
 <p><h2>CACHE SIZE MANAGEMENT</h2>
     
-<p>By default ccache has no limit on the cache size. You can set a limit
-using the "ccache -M" and "ccache -F" options, which set the size and
-number of files limits.
+<p>By default ccache has a one gigabyte limit on the cache size and no
+maximum number of files. You can set a different limit using the
+"ccache -M" and "ccache -F" options, which set the size and number of
+files limits.
 <p>When these limits are reached ccache will reduce the cache to 20%
 below the numbers you specified in order to avoid doing the cache
 clean operation too often.
