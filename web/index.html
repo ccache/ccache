@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+<TITLE>ccache</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffffff" TEXT="#000000" VLINK="#292555" LINK="#292555" ALINK="#cc0033">
+<h1>ccache</h1>
+
+ccache is a compiler cache. It acts a caching pre-processor to C/C++
+compilers and uses the -E compiler switch and a hash to detect when a
+compilation can be satisfied from cache. This often results in a 5 to
+10 times speedup in common compilations.<p>
+
+The idea came from Erik Thiele <a
+href=mailto:erikyyy@erikyyy.de>erikyyy@erikyyy.de</a> who wrote the
+original <a
+href="http://compilercache.sourceforge.net/">compilercache</a> program
+as a bourne shell script. ccache is a re-implementation of Erik's idea
+in C.<p>
+
+<h1>documentation</h1>
+
+See the <a
+href="http://samba.org/ftp/unpacked/ccache/README">README</a>
+
+<h1>download</h1>
+
+You should fetch compilercache via CVS or rsync. To fetch via cvs use
+the following command:
+
+<pre>
+  cvs -d :pserver:cvs@pserver.samba.org:/cvsroot co ccache
+</pre>
+
+To fetch via rsync use this command:
+
+<pre>
+  rsync -Pavz samba.org::ftp/unpacked/ccache .
+</pre>
+
+<hr>
+<tiny>
+<a href="http://samba.org/~tridge/">Andrew Tridgell</a>
+</tiny>
+
+</BODY>
+</HTML>
