@@ -36,6 +36,7 @@ being done again.
 -s                      show statistics summary
 -z                      zero statistics
 -c                      run a cache cleanup
+-C                      clear the cache completely
 -F &lt;maxfiles&gt;           set maximum files in cache
 -M &lt;maxsize&gt;            set maximum size of cache (use G, M or K)
 -h                      this help page
@@ -63,6 +64,7 @@ keeps the cache below the specified limits at runtime and keeps
 statistics up to date on each compile. This option is mostly useful
 if you manually modify the cache contents or believe that the cache
 size statistics may be inaccurate.
+<p><p></p><dt><strong><strong>-C</strong></strong><dd> Clear the entire cache, removing all cached files.
 <p><p></p><dt><strong><strong>-F maxfiles</strong></strong><dd> This sets the maximum number of files allowed in
 the cache. The value is stored inside the cache directory and applies
 to all future compiles. Due to the way the value is stored the actual

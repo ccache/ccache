@@ -199,7 +199,7 @@ static void to_cache(ARGS *args)
 	    stat(tmp_hashname, &st2) != 0 ||
 	    rename(tmp_hashname, hashname) != 0 ||
 	    rename(tmp_stderr, path_stderr) != 0) {
-		cc_log("failed to rename tmp files\n");
+		cc_log("failed to rename tmp files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -787,6 +787,7 @@ static void usage(void)
 	printf("-s                      show statistics summary\n");
 	printf("-z                      zero statistics\n");
 	printf("-c                      run a cache cleanup\n");
+	printf("-C                      clear the cache completely\n");
 	printf("-F <maxfiles>           set maximum files in cache\n");
 	printf("-M <maxsize>            set maximum size of cache (use G, M or K)\n");
 	printf("-h                      this help page\n");
@@ -800,7 +801,7 @@ static int ccache_main(int argc, char *argv[])
 	int c;
 	size_t v;
 
-	while ((c = getopt(argc, argv, "hszcF:M:V")) != -1) {
+	while ((c = getopt(argc, argv, "hszcCF:M:V")) != -1) {
 		switch (c) {
 		case 'V':
 			printf("ccache version %s\n", CCACHE_VERSION);
@@ -819,6 +820,11 @@ static int ccache_main(int argc, char *argv[])
 		case 'c':
 			cleanup_all(cache_dir);
 			printf("Cleaned cached\n");
+			break;
+
+		case 'C':
+			wipe_all(cache_dir);
+			printf("Cleared cache\n");
 			break;
 
 		case 'z':
