@@ -650,7 +650,7 @@ static void process_args(int argc, char **argv)
 
 		/* options that take an argument */
 		{
-			const char *opts[] = {"-I", "-Iinclude", "-imacros", "-iprefix",
+			const char *opts[] = {"-I", "-include", "-imacros", "-iprefix",
 					      "-iwithprefix", "-iwithprefixbefore",
 					      "-L", "-D", "-U", "-x", "-MF", 
 					      "-MT", "-MQ", "-isystem", "-aux-info",
