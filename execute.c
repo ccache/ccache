@@ -102,7 +102,7 @@ char *find_executable(const char *name, const char *exclude_name)
 			if (S_ISLNK(st1.st_mode)) {
 				char *buf = x_realpath(fname);
 				if (buf) {
-					char *p = basename(buf);
+					char *p = str_basename(buf);
 					if (strcmp(p, exclude_name) == 0) {
 						/* its a link to "ccache" ! */
 						free(p);

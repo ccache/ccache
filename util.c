@@ -242,7 +242,7 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 
 /* return the base name of a file - caller frees */
-char *basename(const char *s)
+char *str_basename(const char *s)
 {
 	char *p = strrchr(s, '/');
 	if (p) {
@@ -267,6 +267,7 @@ char *dirname(char *s)
 int lock_fd(int fd)
 {
 	struct flock fl;
+	int ret;
 
 	fl.l_type = F_WRLCK;
 	fl.l_whence = SEEK_SET;
@@ -274,7 +275,12 @@ int lock_fd(int fd)
 	fl.l_len = 1;
 	fl.l_pid = 0;
 
-	return fcntl(fd, F_SETLKW, &fl);
+	/* not sure why we would be getting a signal here,
+	   but one user claimed it is possible */
+	do {
+		ret = fcntl(fd, F_SETLKW, &fl);
+	} while (ret == -1 && errno == EINTR);
+	return ret;
 }
 
 /* return size on disk of a file */

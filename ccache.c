@@ -335,7 +335,7 @@ static void find_hash(ARGS *args)
 	   limit the basename to 10
 	   characters in order to cope with filesystem with small
 	   maximum filename length limits */
-	input_base = basename(input_file);
+	input_base = str_basename(input_file);
 	tmp = strchr(input_base, '.');
 	if (tmp != NULL) {
 		*tmp = 0;
@@ -547,7 +547,7 @@ static void find_compiler(int argc, char **argv)
 
 	orig_args = args_init(argc, argv);
 
-	base = basename(argv[0]);
+	base = str_basename(argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
 	if (strcmp(base, MYNAME) == 0) {
@@ -557,7 +557,7 @@ static void find_compiler(int argc, char **argv)
 			/* a full path was given */
 			return;
 		}
-		base = basename(argv[1]);
+		base = str_basename(argv[1]);
 	}
 
 	/* support user override of the compiler */

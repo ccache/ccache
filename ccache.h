@@ -83,7 +83,7 @@ char *x_strdup(const char *s);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
-char *basename(const char *s);
+char *str_basename(const char *s);
 char *dirname(char *s);
 int lock_fd(int fd);
 size_t file_size(struct stat *st);
@@ -106,6 +106,9 @@ int unify_hash(const char *fname);
 
 #ifndef HAVE_VASPRINTF
 int vasprintf(char **, const char *, va_list );
+#endif
+#ifndef HAVE_ASPRINTF
+int asprintf(char **ptr, const char *format, ...);
 #endif
 
 #ifndef HAVE_SNPRINTF
