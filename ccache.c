@@ -895,6 +895,32 @@ static int ccache_main(int argc, char *argv[])
 	return 0;
 }
 
+
+/* Make a copy of stderr that will not be cached, so things like
+ * distcc can send networking errors to it. */
+int setup_uncached_err(void)
+{
+	char *buf;
+	int uncached_fd;
+	
+	uncached_fd = dup(2);
+	if (uncached_fd == -1) {
+		cc_log("dup(2) failed\n");
+		failed();
+	}
+
+	/* leak a pointer to the environment */
+	x_asprintf(&buf, "UNCACHED_ERR_FD=%d", uncached_fd);
+
+	if (putenv(buf) == -1) {
+		cc_log("putenv failed\n");
+		failed();
+	}
+
+	return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
 	cache_dir = getenv("CCACHE_DIR");
@@ -903,6 +929,8 @@ int main(int argc, char *argv[])
 	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
+
+	setup_uncached_err();
 
 	/* check if we are being invoked as "ccache" */
 	if (strlen(argv[0]) >= strlen(MYNAME) &&
