@@ -15,6 +15,14 @@ AC_PROG_INSTALL
 AC_DEFINE([_GNU_SOURCE], 1,
           [Define _GNU_SOURCE so that we get all necessary prototypes])
 
+# The definition of _GNU_SOURCE potentially causes a change of the value
+# of _XOPEN_SOURCE. So define it only conditionally.
+AH_VERBATIM([_XOPEN_SOURCE],
+[/* Define on UNIX to activate XPG/5 features.  */
+#if !defined(_XOPEN_SOURCE)
+# define _XOPEN_SOURCE 500
+#endif])
+
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"
 then
