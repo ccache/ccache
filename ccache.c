@@ -22,12 +22,13 @@
 
 #include "ccache.h"
 
-static char *cache_dir;
+char *cache_dir = NULL;
 char *cache_logfile = NULL;
 static ARGS *stripped_args;
 static ARGS *orig_args;
 static char *output_file;
 static char *hashname;
+char *stats_file = NULL;
 static int found_debug;
 
 /*
@@ -45,7 +46,7 @@ static void to_cache(ARGS *args)
 {
 	char *path_stderr;
 	char *tmp_stdout, *tmp_stderr, *tmp_hashname;
-	struct stat st;
+	struct stat st1, st2;
 	int status;
 
 	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
@@ -57,8 +58,9 @@ static void to_cache(ARGS *args)
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args_pop(args, 2);
 
-	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
+	if (stat(tmp_stdout, &st1) != 0 || st1.st_size != 0) {
 		cc_log("compiler produced stdout for %s\n", output_file);
+		stats_update(STATS_STDOUT);
 		unlink(tmp_stdout);
 		unlink(tmp_stderr);
 		unlink(tmp_hashname);
@@ -69,6 +71,7 @@ static void to_cache(ARGS *args)
 	if (status != 0) {
 		int fd;
 		cc_log("compile of %s gave status = %d\n", output_file, status);
+		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY);
 		if (fd != -1 && 
@@ -87,13 +90,17 @@ static void to_cache(ARGS *args)
 
 	x_asprintf(&path_stderr, "%s.stderr", hashname);
 
-	if (rename(tmp_hashname, hashname) != 0 ||
+	if (stat(tmp_stderr, &st1) != 0 ||
+	    stat(tmp_hashname, &st2) != 0 ||
+	    rename(tmp_hashname, hashname) != 0 ||
 	    rename(tmp_stderr, path_stderr) != 0) {
 		cc_log("failed to rename tmp files\n");
+		stats_update(STATS_ERROR);
 		failed();
 	}
 
 	cc_log("Placed %s into cache\n", output_file);
+	stats_tocache(file_size(&st1) + file_size(&st2));
 
 	free(tmp_hashname);
 	free(tmp_stderr);
@@ -115,6 +122,7 @@ static void stabs_hash(const char *fname)
 	fd = open(fname, O_RDONLY);
 	if (fd == -1 || fstat(fd, &st) != 0) {
 		cc_log("Failed to open preprocessor output %s\n", fname);
+		stats_update(STATS_PREPROCESSOR);
 		failed();
 	}
 
@@ -193,6 +201,7 @@ static void find_hash(ARGS *args)
 	   to try and detect compiler upgrades. It is not 100% reliable */
 	if (stat(args->argv[0], &st) != 0) {
 		cc_log("Couldn't stat the compiler!?\n");
+		stats_update(STATS_COMPILER);
 		failed();
 	}
 	hash_int(st.st_size);
@@ -210,6 +219,7 @@ static void find_hash(ARGS *args)
 		unlink(path_stdout);
 		unlink(path_stderr);
 		cc_log("the preprocessor gave %d\n", status);
+		stats_update(STATS_PREPROCESSOR);
 		failed();
 	}
 
@@ -240,6 +250,7 @@ static void find_hash(ARGS *args)
 		failed();
 	}
 	x_asprintf(&hashname, "%s/%s", hash_dir, s+1);
+	x_asprintf(&stats_file, "%s/stats", hash_dir);
 	free(hash_dir);
 }
 
@@ -253,6 +264,7 @@ static void from_cache(int first)
 	int fd_stderr;
 	char *stderr_file;
 	int ret;
+	struct stat st;
 
 	x_asprintf(&stderr_file, "%s.stderr", hashname);
 	fd_stderr = open(stderr_file, O_RDONLY);
@@ -261,6 +273,15 @@ static void from_cache(int first)
 		free(stderr_file);
 		return;
 	}
+
+	/* make sure the output is there too */
+	if (stat(hashname, &st) != 0) {
+		close(fd_stderr);
+		unlink(stderr_file);
+		free(stderr_file);
+		return;
+	}
+
 	utime(stderr_file, NULL);
 
 	unlink(output_file);
@@ -269,6 +290,7 @@ static void from_cache(int first)
 	/* the hash file might have been deleted by some external process */
 	if (ret == -1 && errno == ENOENT) {
 		cc_log("hashfile missing for %s\n", output_file);
+		stats_update(STATS_MISSING);
 		close(fd_stderr);
 		unlink(stderr_file);
 		return;
@@ -280,6 +302,7 @@ static void from_cache(int first)
 		if (ret == -1) {
 			cc_log("failed to copy %s -> %s (%s)\n", 
 			       hashname, output_file, strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
@@ -295,6 +318,7 @@ static void from_cache(int first)
 	/* and exit with the right status code */
 	if (first) {
 		cc_log("got cached result for %s\n", output_file);
+		stats_update(STATS_CACHED);
 	}
 
 	exit(0);
@@ -421,6 +445,7 @@ static void process_args(int argc, char **argv)
 		if (strcmp(argv[i], "-o") == 0) {
 			if (i == argc-1) {
 				cc_log("missing argument to %s\n", argv[i]);
+				stats_update(STATS_ARGS);
 				failed();
 			}
 			output_file = argv[i+1];
@@ -447,6 +472,7 @@ static void process_args(int argc, char **argv)
 		    strcmp(argv[i], "-isystem") == 0) {
 			if (i == argc-1) {
 				cc_log("missing argument to %s\n", argv[i]);
+				stats_update(STATS_ARGS);
 				failed();
 			}
 						
@@ -473,6 +499,7 @@ static void process_args(int argc, char **argv)
 		if (input_file) {
 			cc_log("multiple input files (%s and %s)\n",
 			       input_file, argv[i]);
+			stats_update(STATS_LINK);
 			failed();
 		}
 
@@ -482,11 +509,13 @@ static void process_args(int argc, char **argv)
 
 	if (!input_file) {
 		cc_log("No input file found\n");
+		stats_update(STATS_ARGS);
 		failed();
 	}
 
 	if (!found_c_opt) {
 		cc_log("No -c option found for %s\n", input_file);
+		stats_update(STATS_LINK);
 		failed();
 	}
 
@@ -499,6 +528,7 @@ static void process_args(int argc, char **argv)
 		p = strrchr(output_file, '.');
 		if (!p || !p[1]) {
 			cc_log("badly formed output_file %s\n", output_file);
+			stats_update(STATS_ARGS);
 			failed();
 		}
 		p[1] = found_S_opt ? 's' : 'o';
@@ -539,19 +569,76 @@ static void ccache(int argc, char *argv[])
 
 	/* oh oh! */
 	cc_log("secondary from_cache failed!\n");
+	stats_update(STATS_ERROR);
 	failed();
 }
 
 
 static void usage(void)
 {
-	printf("Usage: read the docs\n");
+	printf("ccache, a compiler cache\n");
+	printf("Copyright Andrew Tridgell, 2002\n\n");
+	
+	printf("Usage:\n");
+	printf("\tccache [options]\n");
+	printf("\tccache compiler [compile options]\n");
+	printf("\tcompiler [compile options]    (via symbolic link)\n");
+	printf("\nOptions:\n");
+
+	printf("-h                      this help page\n");
+	printf("-s                      show statistics summary\n");
+	printf("-h                      zero statistics\n");
+	printf("-c                      run a cache cleanup\n");
+	printf("-F <maxfiles>           set maximum files in cache\n");
+	printf("-M <maxsize>            set maximum size of cache (use G, M or K)\n");
 }
 
+/* the main program when not doing a compile */
 static int ccache_main(int argc, char *argv[])
 {
-	usage();
-	return 1;
+	extern int optind;
+	int c;
+	size_t v;
+
+	while ((c = getopt(argc, argv, "hszcF:M:")) != -1) {
+		switch (c) {
+		case 'h':
+			usage();
+			exit(0);
+			
+		case 's':
+			stats_summary();
+			break;
+
+		case 'c':
+			cleanup_all(cache_dir);
+			printf("Cleaned cached\n");
+			break;
+
+		case 'z':
+			stats_zero();
+			printf("Statistics cleared\n");
+			break;
+
+		case 'F':
+			v = atoi(optarg);
+			stats_set_limits(v, -1);
+			printf("Set cache file limit to %u\n", (unsigned)v);
+			break;
+
+		case 'M':
+			v = value_units(optarg);
+			stats_set_limits(-1, v);
+			printf("Set cache size limit to %uk\n", (unsigned)v);
+			break;
+
+		default:
+			usage();
+			exit(1);
+		}
+	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[])

@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
@@ -22,6 +23,29 @@
 #define STATUS_NOCACHE 5
 
 #define MYNAME "ccache"
+
+#define LIMIT_MULTIPLE 0.8
+
+enum stats {
+	STATS_NONE=0,
+	STATS_STDOUT,
+	STATS_STATUS,
+	STATS_ERROR,
+	STATS_TOCACHE,
+	STATS_PREPROCESSOR,
+	STATS_COMPILER,
+	STATS_MISSING,
+	STATS_CACHED,
+	STATS_ARGS,
+	STATS_LINK,
+
+	STATS_NUMFILES,
+	STATS_TOTALSIZE,
+	STATS_MAXFILES,
+	STATS_MAXSIZE,
+
+	STATS_END
+};
 
 typedef unsigned uint32;
 
@@ -47,6 +71,23 @@ void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *basename(const char *s);
+char *dirname(char *s);
+int lock_fd(int fd);
+size_t file_size(struct stat *st);
+int safe_open(const char *fname);
+
+void stats_update(enum stats stat);
+void stats_zero(void);
+void stats_summary(void);
+void stats_tocache(size_t size);
+void stats_read(const char *stats_file, unsigned counters[STATS_END]);
+void stats_set_limits(long maxfiles, long maxsize);
+size_t value_units(const char *s);
+void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
+
+
+void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
+void cleanup_all(const char *dir);
 
 int execute(char **argv, 
 	    const char *path_stdout,

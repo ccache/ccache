@@ -219,3 +219,66 @@ char *basename(const char *s)
 
 	return x_strdup(s);
 }
+
+/* return the dir name of a file - caller frees */
+char *dirname(char *s)
+{
+	char *p;
+	s = x_strdup(s);
+	p = strrchr(s, '/');
+	if (p) {
+		*p = 0;
+	} 
+	return s;
+}
+
+int lock_fd(int fd)
+{
+	return flock(fd, LOCK_EX);
+}
+
+/* return size on disk of a file */
+size_t file_size(struct stat *st)
+{
+	return st->st_blocks * 512;
+}
+
+
+/* a safe open/create for read-write */
+int safe_open(const char *fname)
+{
+	int fd = open(fname, O_RDWR);
+	if (fd == -1 && errno == ENOENT) {
+		fd = open(fname, O_RDWR|O_CREAT|O_EXCL, 0666);
+		if (fd == -1 && errno == EEXIST) {
+			fd = open(fname, O_RDWR);
+		}
+	}
+	return fd;
+}
+
+/* return a value in multiples of 1024 give a string that can end
+   in K, M or G
+*/
+size_t value_units(const char *s)
+{
+	char m;
+	size_t v = atoi(s);
+	m = s[strlen(s)-1];
+	switch (m) {
+	case 'G':
+	case 'g':
+	default:
+		v *= 1024*1024;
+		break;
+	case 'M':
+	case 'm':
+		v *= 1024;
+		break;
+	case 'K':
+	case 'k':
+		v *= 1;
+		break;
+	}
+	return v;
+}
