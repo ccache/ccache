@@ -609,7 +609,11 @@ static void process_args(int argc, char **argv)
 
 	if (!found_c_opt) {
 		cc_log("No -c option found for %s\n", input_file);
-		stats_update(STATS_LINK);
+		if (strstr(input_file, "conftest.")) {
+			stats_update(STATS_CONFTEST);
+		} else {
+			stats_update(STATS_LINK);
+		}
 		failed();
 	}
 

@@ -50,6 +50,7 @@ static struct {
 	{ STATS_MISSING,      "cache file missing             ", NULL, 0 },
 	{ STATS_ARGS,         "bad compiler arguments         ", NULL, 0 },
 	{ STATS_NOTC,         "not a C/C++ file               ", NULL, 0 },
+	{ STATS_CONFTEST,     "autoconf compile/link          ", NULL, 0 },
 	{ STATS_DEVICE,       "output to a non-regular file   ", NULL, 0 },
 	{ STATS_NOINPUT,      "no input file                  ", NULL, 0 },
 	{ STATS_NUMFILES,     "files in cache                 ", NULL, FLAG_NOZERO|FLAG_ALWAYS },
