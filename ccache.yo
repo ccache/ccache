@@ -138,6 +138,10 @@ dit(bf(CCACHE_CC)) You can optionally set CCACHE_CC to force the name
 of the compiler to use. If you don't do this then ccache works it out
 from the command line.
 
+dit(bf(CCACHE_PREFIX)) This option adds a prefix to the command line
+that ccache runs when invoking the compiler. Also see the section
+below on using ccache with distcc.
+
 dit(bf(CCACHE_DISABLE)) If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
@@ -235,6 +239,18 @@ ccache has been carefully written to always produce exactly the same
 compiler output that you would get without the cache. If you ever
 discover a case where ccache changes the output of your compiler then
 please let me know.
+
+manpagesection(USING CCACHE WITH DISTCC)
+
+distcc is a very useful program for distributing compilation across a
+range of compiler servers. It is often useful to combine distcc with
+ccache, so that compiles that are done are sped up by distcc, but that
+ccache avoids the compile completely where possible.
+
+To use distcc with ccache I recommend using the CCACHE_PREFIX
+option. You just need to set the environment variable CCACHE_PREFIX to
+'distcc' and ccache will prefix the command line used with the
+compiler with the command 'distcc'. 
 
 manpagesection(SHARING A CACHE)
 

@@ -133,6 +133,9 @@ ccache itself.
 <p><p></p><dt><strong><strong>CCACHE_CC</strong></strong><dd> You can optionally set CCACHE_CC to force the name
 of the compiler to use. If you don't do this then ccache works it out
 from the command line.
+<p><p></p><dt><strong><strong>CCACHE_PREFIX</strong></strong><dd> This option adds a prefix to the command line
+that ccache runs when invoking the compiler. Also see the section
+below on using ccache with distcc.
 <p><p></p><dt><strong><strong>CCACHE_DISABLE</strong></strong><dd> If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
@@ -215,6 +218,16 @@ all warnings etc) from the cache.
 compiler output that you would get without the cache. If you ever
 discover a case where ccache changes the output of your compiler then
 please let me know.
+<p><h2>USING CCACHE WITH DISTCC</h2>
+    
+<p>distcc is a very useful program for distributing compilation across a
+range of compiler servers. It is often useful to combine distcc with
+ccache, so that compiles that are done are sped up by distcc, but that
+ccache avoids the compile completely where possible.
+<p>To use distcc with ccache I recommend using the CCACHE_PREFIX
+option. You just need to set the environment variable CCACHE_PREFIX to
+'distcc' and ccache will prefix the command line used with the
+compiler with the command 'distcc'. 
 <p><h2>SHARING A CACHE</h2>
     
 <p>A group of developers can increase the cache hit rate by sharing a
