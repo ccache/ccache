@@ -12,6 +12,17 @@ shell-script version.
 Please see the manual page and documentation at
 http://ccache.samba.org/
 
+INSTALLATION
+------------
+
+Please run:
+
+  ./configure
+  make
+  make install
+
+then read the ccache manual page
+
 -----------
 
 Andrew Tridgell
