@@ -609,6 +609,8 @@ static void process_args(int argc, char **argv)
 
 	if (!found_c_opt) {
 		cc_log("No -c option found for %s\n", input_file);
+		/* I find that having a separate statistic for autoconf tests is useful,
+		   as they are the dominant form of "called for link" in many cases */
 		if (strstr(input_file, "conftest.")) {
 			stats_update(STATS_CONFTEST);
 		} else {
