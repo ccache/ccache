@@ -27,6 +27,7 @@ char *cache_logfile = NULL;
 static ARGS *stripped_args;
 static ARGS *orig_args;
 static char *output_file;
+static char *input_file;
 static char *hashname;
 char *stats_file = NULL;
 static int found_debug;
@@ -127,6 +128,9 @@ static void find_hash(ARGS *args)
 		   theory is that these arguments will change the
 		   output of -E if they are going to have any effect
 		   at all, or they only affect linking */
+		if (strcmp(args->argv[i], input_file) == 0) {
+			continue;
+		}
 		if (i < args->argc-1) {
 			if (strcmp(args->argv[i], "-I") == 0 ||
 			    strcmp(args->argv[i], "-include") == 0 ||
@@ -143,7 +147,6 @@ static void find_hash(ARGS *args)
 				continue;
 			}
 		}
-
 		hash_string(args->argv[i]);
 	}
 
@@ -384,7 +387,6 @@ static void process_args(int argc, char **argv)
 	int i;
 	int found_c_opt = 0;
 	int found_S_opt = 0;
-	char *input_file = NULL;
 	struct stat st;
 
 	stripped_args = args_init();
