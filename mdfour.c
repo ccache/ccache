@@ -141,8 +141,6 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, int n)
 {
 	uint32 M[16];
 
-	if (n == 0) mdfour_tail(in, n);
-
 	m = md;
 
 	while (n >= 64) {
@@ -153,7 +151,7 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, int n)
 		m->totalN += 64;
 	}
 
-	if (n) mdfour_tail(in, n);
+	mdfour_tail(in, n);
 }
 
 
@@ -193,8 +191,10 @@ static void file_checksum1(char *fname)
 
 	while (1) {
 		int n = read(fd, buf, sizeof(buf));
-		if (n <= 0) break;
-		mdfour_update(&md, buf, n);
+		if (n >= 0) {
+			mdfour_update(&md, buf, n);
+		}
+		if (n < sizeof(buf)) break;
 	}
 
 	close(fd);
@@ -202,7 +202,7 @@ static void file_checksum1(char *fname)
 	mdfour_result(&md, sum);
 
 	for (i=0;i<16;i++)
-		printf("%02X", sum[i]);
+		printf("%02x", sum[i]);
 	printf("\n");
 }
 
@@ -238,7 +238,7 @@ static void file_checksum2(char *fname)
 	memcpy(sum, md.buffer, 16);
 
 	for (i=0;i<16;i++)
-		printf("%02X", sum[i]);
+		printf("%02x", sum[i]);
 	printf("\n");
 }
 #endif
