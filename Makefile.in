@@ -1,4 +1,3 @@
-
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
@@ -12,13 +11,18 @@ OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o \
 	cleanup.o snprintf.o unify.o
 HEADERS = ccache.h mdfour.h
 
-all: ccache ccache.1
+all: ccache
+
+docs: ccache.1 web/ccache-man.html
 
 ccache: $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 ccache.1: ccache.yo
 	yodl2man -o ccache.1 ccache.yo
+
+web/ccache-man.html: ccache.yo
+	mkdir -p man
 	yodl2html -o web/ccache-man.html ccache.yo
 
 install:

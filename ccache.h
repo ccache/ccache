@@ -88,7 +88,8 @@ void stats_set_limits(long maxfiles, long maxsize);
 size_t value_units(const char *s);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
-void unify(unsigned char *p, size_t size);
+int unify_hash(const char *fname);
+
 
 
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);

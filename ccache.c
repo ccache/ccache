@@ -108,40 +108,6 @@ static void to_cache(ARGS *args)
 	free(path_stderr);
 }
 
-
-/* hash a file that consists of preprocessor output, but remove any line 
-   number information from the hash
-*/
-static void stabs_hash(const char *fname)
-{
-	int fd;
-	struct stat st;	
-	char *map;
-
-	fd = open(fname, O_RDONLY);
-	if (fd == -1 || fstat(fd, &st) != 0) {
-		cc_log("Failed to open preprocessor output %s\n", fname);
-		stats_update(STATS_PREPROCESSOR);
-		failed();
-	}
-
-	/* we use mmap() to make it easy to handle arbitrarily long
-           lines in preprocessor output. I have seen lines of over
-           100k in length, so this is well worth it */
-	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	if (map == (char *)-1) {
-		cc_log("Failed to mmap %s\n", fname);
-		failed();
-	}
-	close(fd);
-
-	/* pass it through the unifier */
-	unify(map, st.st_size);
-
-	munmap(map, st.st_size);
-}
-
-
 /* find the hash for a command. The hash includes all argument lists,
    plus the output from running the compiler with -E */
 static void find_hash(ARGS *args)
@@ -212,10 +178,12 @@ static void find_hash(ARGS *args)
 	   information. Otherwise we can discard line number info, which makes
 	   us less sensitive to reformatting changes 
 	*/
-	if (found_debug) {
+	if (found_debug || getenv("CCACHE_NOUNIFY")) {
 		hash_file(path_stdout);
 	} else {
-		stabs_hash(path_stdout);
+		if (unify_hash(path_stdout) != 0) {
+			failed();
+		}
 	}
 	hash_file(path_stderr);
 

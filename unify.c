@@ -106,7 +106,7 @@ static void pushchar(unsigned char c)
 }
 
 /* hash some C/C++ code after unifying */
-void unify(unsigned char *p, size_t size)
+static void unify(unsigned char *p, size_t size)
 {
 	size_t ofs;
 	unsigned char q;
@@ -218,5 +218,40 @@ void unify(unsigned char *p, size_t size)
 		ofs++;
 	}
 	pushchar(0);
+}
+
+
+/* hash a file that consists of preprocessor output, but remove any line 
+   number information from the hash
+*/
+int unify_hash(const char *fname)
+{
+	int fd;
+	struct stat st;	
+	char *map;
+
+	fd = open(fname, O_RDONLY);
+	if (fd == -1 || fstat(fd, &st) != 0) {
+		cc_log("Failed to open preprocessor output %s\n", fname);
+		stats_update(STATS_PREPROCESSOR);
+		return -1;
+	}
+
+	/* we use mmap() to make it easy to handle arbitrarily long
+           lines in preprocessor output. I have seen lines of over
+           100k in length, so this is well worth it */
+	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (map == (char *)-1) {
+		cc_log("Failed to mmap %s\n", fname);
+		return -1;
+	}
+	close(fd);
+
+	/* pass it through the unifier */
+	unify(map, st.st_size);
+
+	munmap(map, st.st_size);
+
+	return 0;
 }
 
