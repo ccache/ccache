@@ -156,16 +156,21 @@ void *x_malloc(size_t size)
 }
 
 /*
-  this is like strdup() but dies if the malloc fails
+  this is like realloc() but dies if the malloc fails
 */
 void *x_realloc(void *ptr, size_t size)
 {
+	void *p2;
 	if (!ptr) return x_malloc(size);
-	ptr = realloc(ptr, size);
-	if (!ptr) {
+	p2 = malloc(size);
+	if (!p2) {
 		fatal("out of memory in x_realloc");
 	}
-	return ptr;
+	if (ptr) {
+		memcpy(p2, ptr, size);
+		free(ptr);
+	}
+	return p2;
 }
 
 

@@ -64,7 +64,7 @@ static void traverse_fn(const char *fname, struct stat *st)
 		files = x_realloc(files, sizeof(struct files *)*allocated);
 	}
 
-	files[num_files] = x_malloc(sizeof(struct files *));
+	files[num_files] = x_malloc(sizeof(struct files));
 	files[num_files]->fname = x_strdup(fname);
 	files[num_files]->mtime = st->st_mtime;
 	files[num_files]->size = file_size(st) / 1024;
@@ -108,6 +108,9 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 	size_threshold = maxsize * LIMIT_MULTIPLE;
 	files_threshold = maxfiles * LIMIT_MULTIPLE;
 
+	num_files = 0;
+	total_size = 0;
+
 	/* build a list of files */
 	traverse(dir, traverse_fn);
 
@@ -120,7 +123,11 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 	for (i=0;i<num_files;i++) {
 		free(files[i]->fname);
 		free(files[i]);
+		files[i] = NULL;
 	}
+	if (files) free(files);
+	allocated = 0;
+	files = NULL;
 
 	num_files = 0;
 	total_size = 0;
