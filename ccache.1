@@ -189,13 +189,12 @@ The environment variable CCACHE_NLEVELS allows
 you to choose the number of levels of hash in the cache directory\&. The
 default is 2\&. The minimum is 1 and the maximum is 8\&. 
 .IP 
-.IP "\fBCCACHE_NOLINK\fP" 
+.IP "\fBCCACHE_HARDLINK\fP" 
 If you set the environment variable
-CCACHE_NOLINK then ccache will not use hard links from the cache
-directory when creating the compiler output and will do a file copy
-instead\&. The main reason for setting this option is to avoid the
-update of the modification time on object files that are the result of
-the same compilation in a different directory\&.
+CCACHE_HARDLINK then ccache will attempt to use hard links from the
+cache directory when creating the compiler output rather than using a
+file copy\&. Using hard links is faster, but can confuse programs like
+\&'make\&' that rely on modification times\&.
 .IP 
 .IP "\fBCCACHE_RECACHE\fP" 
 This forces ccache to not use any cached
@@ -297,8 +296,6 @@ following conditions need to be met:
 .PP 
 .IP o 
 Use the same \fBCCACHE_DIR\fP environment variable setting
-.IP o 
-Set the \fBCCACHE_NOLINK\fP environment variable
 .IP o 
 Make sure that all users have write permission in the entire
 cache directory (and that you trust all users of the shared cache)\&. 
