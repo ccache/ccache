@@ -93,7 +93,13 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
 int unify_hash(const char *fname);
 
+#ifndef HAVE_VASPRINTF
+int vasprintf(char **, const char *, va_list );
+#endif
 
+#ifndef HAVE_SNPRINTF
+int snprintf(char *,size_t ,const char *, ...);
+#endif
 
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
 void cleanup_all(const char *dir);
