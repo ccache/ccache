@@ -1,21 +1,38 @@
 /*
   a re-implementation of the compilercache scripts in C
-  Copyright tridge@samba.org 2002
 
   The idea is based on the shell-script compilercache by Erik Thiele <erikyyy@erikyyy.de>
+
+   Copyright (C) Andrew Tridgell 2002
+   
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+   
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #include "ccache.h"
 
-static char *cache_dir = CACHE_BASEDIR;
-
-
+static char *cache_dir;
+char *cache_logfile = NULL;
 static ARGS *stripped_args;
 static ARGS *orig_args;
 static char *output_file;
 static char *hashname;
 static int found_debug;
 
+/*
+  something went badly wrong - just execute the real compiler
+*/
 static void failed(void)
 {
 	execv(orig_args->argv[0], orig_args->argv);
@@ -53,13 +70,23 @@ static void to_cache(ARGS *args)
 	cc_log("Placed %s into cache\n", output_file);
 }
 
+
+/* hash a file that consists of preprocessor output, but remove any line 
+   number information from the hash
+*/
 static void stabs_hash(const char *fname)
 {
 	FILE *f;
 	char *s;
-	static char line[102400];
+	static char *line;
 
-	line[sizeof(line)-2] = 0;
+	if (!line) line = malloc(MAX_LINE_SIZE);
+	if (!line) {
+		cc_log("Can't allocate in stabs hash!\n");
+		failed();
+	}
+
+	line[MAX_LINE_SIZE-2] = 0;
 
 	f = fopen(fname, "r");
 	if (!f) {
@@ -67,8 +94,8 @@ static void stabs_hash(const char *fname)
 		failed();
 	}
 	
-	while ((s = fgets(line, sizeof(line), f))) {
-		if (line[sizeof(line)-2]) {
+	while ((s = fgets(line, MAX_LINE_SIZE, f))) {
+		if (line[MAX_LINE_SIZE-2]) {
 			cc_log("line too long in preprocessor output!\n");
 			failed();
 		}
@@ -140,6 +167,9 @@ static void find_hash(ARGS *args)
 	free(path_stderr);
 	free(path_status);
 
+	/* we use a single level subdir for the cache path to reduce the impact
+	   on filesystems which are slow for large directories
+	*/
 	s = hash_result();
 	x_asprintf(&hash_dir, "%s/%c", cache_dir, *s);
 	if (create_dir(hash_dir) != 0) {
@@ -215,7 +245,8 @@ static void from_cache(int first)
 	exit(status);
 }
 
-
+/* find the real compiler. We just search the PATH to find a executable of the 
+   same name that isn't a link to ourselves */
 static char *find_compiler(const char *argv0)
 {
 	char *p;
@@ -276,6 +307,10 @@ static char *find_compiler(const char *argv0)
 }
 
 
+/* 
+   process the compiler options to form the correct set of options 
+   for obtaining the preprocessor output
+*/
 static void process_args(int argc, char **argv)
 {
 	int i;
@@ -287,17 +322,19 @@ static void process_args(int argc, char **argv)
 	args_add(stripped_args, argv[0]);
 
 	for (i=1; i<argc; i++) {
+		/* -E will never work ... */
 		if (strcmp(argv[i], "-E") == 0) {
-			cc_log("Tried to do -E\n");
 			failed();
 		}
 
+		/* we must have -c */
 		if (strcmp(argv[i], "-c") == 0) {
 			args_add(stripped_args, argv[i]);
 			found_c_opt = 1;
 			continue;
 		}
-
+		
+		/* we need to work out where the output was meant to go */
 		if (strcmp(argv[i], "-o") == 0) {
 			if (i == argc-1) {
 				cc_log("missing argument to %s\n", argv[i]);
@@ -308,6 +345,9 @@ static void process_args(int argc, char **argv)
 			continue;
 		}
 
+		/* debugging is handled specially, so that we know if we
+		   can strip line number info 
+		*/
 		if (strncmp(argv[i], "-g", 2) == 0) {
 			args_add(stripped_args, argv[i]);
 			if (strcmp(argv[i], "-g0") != 0) {
@@ -332,7 +372,8 @@ static void process_args(int argc, char **argv)
 			i++;
 			continue;
 		}
-		    
+
+		/* other options */
 		if (argv[i][0] == '-') {
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -360,7 +401,7 @@ static void process_args(int argc, char **argv)
 
 	if (!output_file) {
 		char *p;
-		output_file = strdup(input_file);
+		output_file = x_strdup(input_file);
 		if ((p = strrchr(output_file, '/'))) {
 			output_file = p+1;
 		}
@@ -378,6 +419,7 @@ static void process_args(int argc, char **argv)
 	}
 }
 
+/* the main ccache driver function */
 static void ccache(int argc, char *argv[])
 {
 	/* find the real compiler */
@@ -414,11 +456,18 @@ static void ccache(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+	cache_dir = getenv("CCACHE_DIR");
+	if (!cache_dir) cache_dir = CACHE_DIR_DEFAULT;
+
+	cache_logfile = getenv("CCACHE_LOGFILE");
+
+	/* make sure the cache dir exists */
 	if (create_dir(cache_dir) != 0) {
 		fprintf(stderr,"ccache: failed to create %s (%s)\n", 
 			cache_dir, strerror(errno));
 		exit(1);
 	}
+
 	ccache(argc, argv);
 	return 1;
 }

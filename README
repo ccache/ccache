@@ -1,0 +1,94 @@
+This is a re-implementation of "compilercache" in C
+
+The original compilercache scripts were by Erik Thiele
+(erikyyy@erikyyy.de) and I would like to thank him for an excellent
+piece of work. See http://www.erikyyy.de/compilercache/ for the
+original shell scripts.
+
+I wrote ccache because I wanted to get a bit more speed out of a
+compiler cache and I wanted to remove some of the limitations of the
+shell-script version.
+
+Installation
+------------
+
+To install ccache first compile it, then place the "ccache" somewhere
+in your path. You then need to create symbolic links from the ccache
+executable to symlinks of the same name as your compiler. These
+symlinks must come before the location of your real compiler in your
+PATH.
+
+For example the following will work on many systems:
+
+  make ccache
+  cp ccache /usr/local/bin
+  ln -s /usr/local/bin/ccache /usr/local/bin/gcc
+  ln -s /usr/local/bin/ccache /usr/local/bin/cc
+
+This will work as long as /usr/local/bin comes before the path to gcc
+(which is usually in /usr/bin). After installing you may wish to run
+"rehash; type gcc" to make sure that the correct link is being used.
+
+If you are installing on a system that doesn't have a /proc/self/exe
+link (ie. most non-Linux systems) then you also also need to set the
+CCACHE_PATH environment variable. 
+
+
+Configuration
+-------------
+
+Configuration of ccache is done via a number of environment
+variables. In most cases you won't need any of these as the defaults
+will be fine.
+
+   CCACHE_DIR
+
+   the CCACHE_DIR environment variable specifies where ccache will
+   keep its cached compiler output. The default is "/tmp/ccache". 
+
+
+   CCACHE_LOGFILE
+
+   If you set the CCACHE_LOGFILE environment variable then ccache will
+   write some log information on cache hits and misses in that
+   file. This is useful for tracking down problems.
+
+
+   CCACHE_PATH
+
+   You need to set the CCACHE_PATH environment variable on systems
+   that don't have a Linux-like /proc filesystem. It should be set to
+   a colon separated list of directories where ccache will look for
+   the real compilers. On Linux this is not needed because ccache can
+   use /proc/self/exe and the normal PATH variable to find the
+   compiler. 
+
+
+Differences
+-----------
+
+The biggest differences between Erik's compilercache script and ccache
+are:
+
+- ccache is written in C, which makes it a bit faster (calling out to
+  external programs is mostly what slowed down the scripts).
+
+- ccache can automatically find the real compiler on Linux
+
+- ccache can cache compiler output that includes warnings. In many
+  cases this gives ccache a much higher cache hit rate.
+
+- ccache can handle argument lists with spaces
+
+Note however that ccache is a very new piece of code (as of March
+2002) whereas Erik's scripts have had a *lot* more testing. 
+
+
+===================
+tridge@samba.org
+March 2002
+
+PS: I get far too much email to answer, so don't be surprised if you
+have a hard time getting hold of me. You might try the
+#samba-technical IRC channel on irc.openprojects.net if you need me
+quickly.

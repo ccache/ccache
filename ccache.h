@@ -18,9 +18,9 @@
 #define STATUS_FATAL 4
 #define STATUS_NOCACHE 5
 
+#define CACHE_DIR_DEFAULT "/tmp/ccache"
 
-#define CACHE_BASEDIR "/tmp/ccache"
-#define CCACHE_LOGFILE "/tmp/ccache.log"
+#define MAX_LINE_SIZE 102400
 
 typedef unsigned uint32;
 
@@ -32,9 +32,8 @@ void hash_int(int x);
 void hash_file(const char *fname);
 char *hash_result(void);
 
-int cc_log(const char *format, ...);
+void cc_log(const char *format, ...);
 void fatal(const char *msg);
-void oom(const char *msg);
 
 void copy_fd(int fd_in, int fd_out);
 
