@@ -18,13 +18,14 @@ in C with more features and better performance.<p>
 
 <h2>Latest release</h2>
 
-The latest release is ccache 1.5. This release adds:
+The latest release is ccache 1.6. This release adds:
 
 <ul>
-<li>fixed absolute paths to compilers
-<li>added CCACHE_NLEVELS option
-<li>fixed warnings on IRIX, AIX and Solaris
-<li>fixed distclean target
+<li>avoid 2nd call to cpp on cache miss
+<li>added CCACHE_CPP2 option
+<li>added explicit handling of /dev/null as an output
+<li>added <i>multiple source files</i> statistic
+<li>minor documentation updates
 </ul>
 
 You can get this release from the <a href="/ftp/ccache/">download directory</a> 
