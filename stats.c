@@ -29,34 +29,40 @@ extern char *cache_dir;
 
 #define STATS_VERSION 1
 
+#define FLAG_NOZERO 1
+
 static struct {
 	enum stats stat;
 	char *message;
 	void (*fn)(unsigned );
-} stats_messages[] = {
-	{ STATS_TOCACHE,      "cache miss                     ", NULL },
-	{ STATS_CACHED,       "cache hit                      ", NULL },
-	{ STATS_LINK,         "called for link                ", NULL },
-	{ STATS_STDOUT,       "compiler produced stdout       ", NULL },
-	{ STATS_STATUS,       "compile failed                 ", NULL },
-	{ STATS_ERROR,        "ccache internal error          ", NULL },
-	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL },
-	{ STATS_COMPILER,     "couldn't find the compiler     ", NULL },
-	{ STATS_MISSING,      "cache file missing             ", NULL },
-	{ STATS_ARGS,         "bad compiler arguments         ", NULL },
-	{ STATS_NUMFILES,     "files in cache                 ", NULL },
-	{ STATS_TOTALSIZE,    "cache size                     ", display_size },
-	{ STATS_MAXFILES,     "max files                      ", NULL },
-	{ STATS_MAXSIZE,      "max cache size                 ", display_size },
-	{ STATS_NONE, NULL, NULL }
+	unsigned flags;
+} stats_info[] = {
+	{ STATS_CACHED,       "cache hit                      ", NULL, 0 },
+	{ STATS_TOCACHE,      "cache miss                     ", NULL, 0 },
+	{ STATS_LINK,         "called for link                ", NULL, 0 },
+	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
+	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
+	{ STATS_ERROR,        "ccache internal error          ", NULL, 0 },
+	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL, 0 },
+	{ STATS_COMPILER,     "couldn't find the compiler     ", NULL, 0 },
+	{ STATS_MISSING,      "cache file missing             ", NULL, 0 },
+	{ STATS_ARGS,         "bad compiler arguments         ", NULL, 0 },
+	{ STATS_NOTC,         "not a C/C++ file               ", NULL, 0 },
+	{ STATS_DEVICE,       "output to a non-regular file   ", NULL, 0 },
+	{ STATS_NOINPUT,      "no input file                  ", NULL, 0 },
+	{ STATS_NUMFILES,     "files in cache                 ", NULL, FLAG_NOZERO },
+	{ STATS_TOTALSIZE,    "cache size                     ", display_size , FLAG_NOZERO },
+	{ STATS_MAXFILES,     "max files                      ", NULL, FLAG_NOZERO },
+	{ STATS_MAXSIZE,      "max cache size                 ", display_size, FLAG_NOZERO },
+	{ STATS_NONE, NULL, NULL, 0 }
 };
 
 /* return a string description of a statistic */
-static int stats_message(enum stats stat)
+static int stats_find(enum stats stat)
 {
 	int i;
-	for (i=0;stats_messages[i].stat != STATS_NONE; i++) {
-		if (stats_messages[i].stat == stat) {
+	for (i=0;stats_info[i].stat != STATS_NONE; i++) {
+		if (stats_info[i].stat == stat) {
 			return i;
 		}
 	}
@@ -114,6 +120,8 @@ static void stats_update_size(enum stats stat, size_t size)
 	int fd;
 	unsigned counters[STATS_END];
 	int need_cleanup = 0;
+
+	if (getenv("CCACHE_NOSTATS")) return;
 
 	if (!stats_file) {
 		if (!cache_dir) return;
@@ -211,17 +219,17 @@ void stats_summary(void)
 	}
 
 	/* and display them */
-	for (i=0;i<STATS_END;i++) {
-		if (counters[i] != 0) {
-			int n = stats_message(i);
-			if (n == -1) continue;
-			printf("%s ", stats_messages[n].message);
-			if (stats_messages[n].fn) {
-				stats_messages[n].fn(counters[i]);
-				printf("\n");
-			} else {
-				printf("%8u\n", counters[i]);
-			}
+	for (i=0;stats_info[i].message;i++) {
+		enum stats stat = stats_info[i].stat;
+
+		if (counters[stat] == 0) continue;
+
+		printf("%s ", stats_info[i].message);
+		if (stats_info[i].fn) {
+			stats_info[i].fn(counters[stat]);
+			printf("\n");
+		} else {
+			printf("%8u\n", counters[stat]);
 		}
 	}
 }
@@ -248,8 +256,11 @@ void stats_zero(void)
 		lock_fd(fd);
 		memset(counters, 0, sizeof(counters));
 		stats_read_fd(fd, counters);
-		for (i=0;i<=STATS_LINK;i++) {
-			counters[i] = 0;
+		for (i=0;i<=STATS_END;i++) {
+			int n = stats_find(i);
+			if (n != -1 && (!stats_info[n].flags & FLAG_NOZERO)) {
+				counters[i] = 0;
+			}
 		}
 		write_stats(fd, counters);
 		close(fd);

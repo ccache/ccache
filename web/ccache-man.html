@@ -113,6 +113,9 @@ ccache itself.
 <p><p></p><dt><strong><strong>CCACHE_DISABLE</strong></strong><dd> If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
+<p><p></p><dt><strong><strong>CCACHE_NOSTATS</strong></strong><dd> If you set the environment variable
+CCACHE_NOSTATS then ccache will not update the statistics files on
+each compile.
 <p><p></p><dt><strong><strong>CCACHE_NOUNIFY</strong></strong><dd> If you set the environment variable
 CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing
 the pre-processor output. The unifier is slower than a normal hash, so

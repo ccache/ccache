@@ -475,12 +475,13 @@ static void process_args(int argc, char **argv)
 
 	if (!input_file) {
 		cc_log("No input file found\n");
-		stats_update(STATS_ARGS);
+		stats_update(STATS_NOINPUT);
 		failed();
 	}
 
 	if (check_extension(input_file) != 0) {
 		cc_log("Not a C/C++ file - %s\n", input_file);
+		stats_update(STATS_NOTC);
 		failed();
 	}
 
@@ -513,7 +514,7 @@ static void process_args(int argc, char **argv)
 	/* cope with -o /dev/null */
 	if (stat(output_file, &st) == 0 && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file %s\n", output_file);
-		stats_update(STATS_ARGS);
+		stats_update(STATS_DEVICE);
 		failed();
 	}
 }
