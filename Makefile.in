@@ -23,7 +23,7 @@ ccache$(EXEEXT): $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 ccache.1: ccache.yo
-	yodl2man -o ccache.1 ccache.yo
+	-yodl2man -o ccache.1 ccache.yo
 
 web/ccache-man.html: ccache.yo
 	mkdir -p man
