@@ -248,6 +248,33 @@ compiler output that you would get without the cache\&. If you ever
 discover a case where ccache changes the output of your compiler then
 please let me know\&.
 .PP 
+.SH "SHARING A CACHE" 
+.PP 
+A group of developers can increase the cache hit rate by sharing a
+cache directory\&.  The hard links however cause unwanted side effects,
+as all links to a cached file share the file\&'s modification timestamp\&.
+This results in false dependencies to be triggered by timestamp-based
+build systems whenever another user links to an existing
+file\&. Typically, users will see that their libraries and binaries are
+relinked without reason\&.  To share a cache without side effects, the
+following conditions need to be met:
+.PP 
+.IP o 
+Use the same \fBCCACHE_DIR\fP environment variable setting
+.IP o 
+Set the \fBCCACHE_NOLINK\fP environment variable
+.IP o 
+Make sure that all users have write permission in the entire
+cache directory (and that you trust all users of the shared cache)\&. 
+.IP o 
+Tell your users to set a umask that allows group writes
+(eg\&. umask 002)
+.IP o 
+Make sure that the setgid bit is set on all directories in the
+cache\&. This tells the filesystem to inherit group ownership for new
+directories\&. The command "chmod g+s `find $CCACHE_DIR -type d`" might
+be useful for this\&.
+.PP 
 .SH "HISTORY" 
 .PP 
 ccache was inspired by the compilercache shell script script written
