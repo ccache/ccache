@@ -359,8 +359,22 @@ char *x_realpath(const char *path)
 	if (maxlen < 4096) maxlen = 4096;
 	
 	ret = x_malloc(maxlen);
-	
+
+#if HAVE_REALPATH
 	p = realpath(path, ret);
+#else
+	/* yes, there are such systems. This replacement relies on
+	   the fact that when we call x_realpath we only care about symlinks */
+	{
+		int len = readlink(path, ret, maxlen-1);
+		if (len == -1) {
+			free(ret);
+			return NULL;
+		}
+		ret[len] = 0;
+		p = ret;
+	}
+#endif
 	if (p) {
 		p = x_strdup(p);
 		free(ret);
