@@ -239,27 +239,8 @@ ccache can cache compiler output that includes warnings\&. In many
 cases this gives ccache a much higher cache hit rate\&.
 .IP o 
 ccache can handle a much wider ranger of compiler options
-Note however that ccache is a very new piece of code (as of March
-2002) whereas Erik\&'s scripts have had more testing\&. 
-.PP 
-The overall speedup compared to compilercache is quite dramatic\&. For
-compiling rsync I get:
-.PP 
-
-.nf 
- 
-
-  normal build 20\&.74 seconds
-
-  compilercache uncached 28\&.9 seconds
-  compilercache cached 10\&.5 seconds
-
-  ccache uncached 24\&.6 seconds
-  ccache cached 4\&.6 seconds
-
-.fi 
- 
-
+.IP o 
+ccache avoids a double call to cpp on a cache miss
 .PP 
 .SH "CREDITS" 
 .PP 
