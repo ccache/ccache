@@ -262,10 +262,19 @@ static void from_cache(int first)
 		return;
 	}
 	utime(stderr_file, NULL);
-	free(stderr_file);
 
 	unlink(output_file);
 	ret = link(hashname, output_file);
+
+	/* the hash file might have been deleted by some external process */
+	if (ret == -1 && errno == ENOENT) {
+		cc_log("hashfile missing for %s\n", output_file);
+		close(fd_stderr);
+		unlink(stderr_file);
+		return;
+	}
+	free(stderr_file);
+
 	if (ret == -1 && errno != ENOENT) {
 		ret = copy_file(hashname, output_file);
 		if (ret == -1 && errno != ENOENT) {
