@@ -6,10 +6,10 @@
 <BODY BGCOLOR="#ffffff" TEXT="#000000" VLINK="#292555" LINK="#292555" ALINK="#cc0033">
 <h2>ccache</h2>
 
-ccache is a compiler cache. It acts a caching pre-processor to C/C++
-compilers and uses the -E compiler switch and a hash to detect when a
-compilation can be satisfied from cache. This often results in a 5 to
-10 times speedup in common compilations.<p>
+ccache is a compiler cache. It acts as a caching pre-processor to
+C/C++ compilers, using the -E compiler switch and a hash to detect
+when a compilation can be satisfied from cache. This often results in
+a 5 to 10 times speedup in common compilations.<p>
 
 The idea came from Erik Thiele <a
 href=mailto:erikyyy@erikyyy.de>erikyyy@erikyyy.de</a> who wrote the
@@ -17,6 +17,36 @@ original <a
 href="http://compilercache.sourceforge.net/">compilercache</a> program
 as a bourne shell script. ccache is a re-implementation of Erik's idea
 in C with more features and better performance.<p>
+
+<h2>Why bother?</h2>
+
+Why bother with a compiler cache? If you ever run "make clean; make"
+then you can probably benefit from ccache. It is very common for
+developers to do a clean build of a project for a whole host of
+reasons, and this throws away all the information from your previous
+compiles.<p>
+
+By using ccache you can get exactly the same effect as "make clean;
+make" but much faster. It also helps a lot when doing RPM builds,
+as RPM can make doing incremental build tricky.<p>
+
+I put the effort into writing ccache for 2 reasons. The first is the
+Samba build farm (http://build.samba.org/) which constantly does clean
+builds of Samba on about 30 machines after each CVS commit. On some of
+those machines the build took over an hour. By using ccache we get the
+same effect as clean builds but about 6 times faster.<p>
+
+The second reason is the autobuild system I run for Quantum. That
+system builds our whole Linux based OS from scratch after every CVS
+commit to catch compilation problems quickly. Using ccache those
+builds are much faster.
+
+<h2>Is it safe?</h2>
+
+The short answer is "yes". The most important aspect of a compiler
+cache is to <b>always</b> produce exactly the same output that the
+real compiler would produce. I have coded ccache very carefully to try
+to provide this guarantee.
 
 <h2>Features</h2>
 
@@ -26,6 +56,7 @@ in C with more features and better performance.<p>
 <li> can cache compiles that generate warnings
 <li> easy installation
 <li> very low overhead
+<li> uses hard links where possible to avoid copies
 </ul>
 
 <h2>Documentation</h2>
