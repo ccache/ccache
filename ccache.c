@@ -223,17 +223,23 @@ static char *find_compiler(const char *argv0)
 	char *path, *tok;
 	struct stat st1, st2;
 
-	/* we compare size, device and inode */
-	if (stat("/proc/self/exe", &st1) != 0) {
-		cc_log("Can't stat ccache executable!?\n");
-		exit(1);
-	}
-
 	p = strrchr(argv0, '/');
 	if (p) {
-		base = p+1;
+		base = x_strdup(p+1);
 	} else {
-		base = argv0;
+		base = x_strdup(argv0);
+	}
+
+	/* we compare size, device and inode. On non-Linux systems
+	   we rely on CCACHE_PATH being set and end up just using the first 
+	   executable we find in the path
+	*/
+	if (stat("/proc/self/exe", &st1) != 0) {
+		if (!getenv("CCACHE_PATH")) {
+			cc_log("You must set CCACHE_PATH\n");
+			exit(1);
+		}
+		memset(&st1, 0, sizeof(st1));
 	}
 
 	path = getenv("CCACHE_PATH");
@@ -252,7 +258,10 @@ static char *find_compiler(const char *argv0)
 	for (tok=strtok(path,":"); tok; tok = strtok(NULL, ":")) {
 		char *fname;
 		x_asprintf(&fname, "%s/%s", tok, base);
-		if (stat(fname, &st2) == 0) {
+		/* look for a normal executable file */
+		if (access(fname, X_OK) == 0 &&
+		    stat(fname, &st2) == 0 &&
+		    S_ISREG(st2.st_mode)) {
 			if (st1.st_size != st2.st_size ||
 			    st1.st_dev != st2.st_dev ||
 			    st1.st_ino != st2.st_ino) {
