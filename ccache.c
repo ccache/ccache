@@ -260,6 +260,7 @@ static void find_hash(ARGS *args)
 		hash_file(path_stdout);
 	} else {
 		if (unify_hash(path_stdout) != 0) {
+			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
@@ -496,8 +497,7 @@ static void process_args(int argc, char **argv)
 
 	for (i=1; i<argc; i++) {
 		/* some options will never work ... */
-		if (strncmp(argv[i], "-E", 2) == 0 ||
-		    strncmp(argv[i], "-M", 2) == 0) {
+		if (strncmp(argv[i], "-E", 2) == 0) {
 			failed();
 		}
 
