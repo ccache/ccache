@@ -4,7 +4,7 @@
 <TITLE>ccache</TITLE>
 </HEAD>
 <BODY BGCOLOR="#ffffff" TEXT="#000000" VLINK="#292555" LINK="#292555" ALINK="#cc0033">
-<h1>ccache</h1>
+<h2>ccache</h2>
 
 ccache is a compiler cache. It acts a caching pre-processor to C/C++
 compilers and uses the -E compiler switch and a hash to detect when a
@@ -18,12 +18,22 @@ href="http://compilercache.sourceforge.net/">compilercache</a> program
 as a bourne shell script. ccache is a re-implementation of Erik's idea
 in C with more features and better performance.<p>
 
-<h1>documentation</h1>
+<h2>Features</h2>
+
+<ul>
+<li> keeps statistics on hits/misses
+<li> automatic cache size management
+<li> can cache compiles that generate warnings
+<li> easy installation
+<li> very low overhead
+</ul>
+
+<h2>Documentation</h2>
 
 See the <a
 href="http://samba.org/ftp/unpacked/ccache/README">README</a>
 
-<h1>download</h1>
+<h2>Download</h2>
 
 You should fetch compilercache via CVS or rsync. To fetch via cvs use
 the following command:
