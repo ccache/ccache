@@ -328,7 +328,6 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 	char *stats_file;
 
 	create_dir(dir);
-
 	x_asprintf(&stats_file, "%s/stats", dir);
 
 	memset(counters, 0, sizeof(counters));

@@ -57,20 +57,29 @@ void copy_fd(int fd_in, int fd_out)
 	}
 }
 
-/* copy a file - used when hard links don't work */
+/* copy a file - used when hard links don't work 
+   the copy is done via a temporary file and atomic rename
+*/
 int copy_file(const char *src, const char *dest)
 {
 	int fd1, fd2;
 	char buf[10240];
 	int n;
+	char *tmp_name;
+	mode_t mask;
+
+	x_asprintf(&tmp_name, "%s.XXXXXX", dest);
 
 	fd1 = open(src, O_RDONLY);
-	if (fd1 == -1) return -1;
+	if (fd1 == -1) {
+		free(tmp_name);
+		return -1;
+	}
 
-	unlink(dest);
-	fd2 = open(dest, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0666);
+	fd2 = mkstemp(tmp_name);
 	if (fd2 == -1) {
 		close(fd1);
+		free(tmp_name);
 		return -1;
 	}
 
@@ -78,18 +87,35 @@ int copy_file(const char *src, const char *dest)
 		if (write(fd2, buf, n) != n) {
 			close(fd2);
 			close(fd1);
-			unlink(dest);
+			unlink(tmp_name);
+			free(tmp_name);
 			return -1;
 		}
 	}
 
 	close(fd1);
 
+	/* get perms right on the tmp file */
+	mask = umask(0);
+	fchmod(fd2, 0666 & ~mask);
+	umask(mask);
+
 	/* the close can fail on NFS if out of space */
 	if (close(fd2) == -1) {
-		unlink(dest);
+		unlink(tmp_name);
+		free(tmp_name);
 		return -1;
 	}
+
+	unlink(dest);
+
+	if (rename(tmp_name, dest) == -1) {
+		unlink(tmp_name);
+		free(tmp_name);
+		return -1;
+	}
+
+	free(tmp_name);
 
 	return 0;
 }
@@ -361,3 +387,12 @@ char *gnu_getcwd(void)
 		size *= 2;
 	}
 }
+
+#ifndef HAVE_MKSTEMP
+/* cheap and nasty mkstemp replacement */
+int mkstemp(char *template)
+{
+	mktemp(template);
+	return open(template, O_RDWR | O_CREAT | O_EXCL, 0600);
+}
+#endif
