@@ -41,6 +41,7 @@ static struct {
 	{ STATS_CACHED,       "cache hit                      ", NULL, FLAG_ALWAYS },
 	{ STATS_TOCACHE,      "cache miss                     ", NULL, FLAG_ALWAYS },
 	{ STATS_LINK,         "called for link                ", NULL, 0 },
+	{ STATS_MULTIPLE,     "multiple source files          ", NULL, 0 },
 	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
 	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
 	{ STATS_ERROR,        "ccache internal error          ", NULL, 0 },

@@ -555,9 +555,14 @@ static void process_args(int argc, char **argv)
 		}
 
 		if (input_file) {
-			cc_log("multiple input files (%s and %s)\n",
-			       input_file, argv[i]);
-			stats_update(STATS_LINK);
+			if (check_extension(argv[i])) {
+				cc_log("multiple input files (%s and %s)\n",
+				       input_file, argv[i]);
+				stats_update(STATS_MULTIPLE);
+			} else {
+				cc_log("non C/C++ file %s\n", argv[i]);
+				stats_update(STATS_NOTC);
+			}
 			failed();
 		}
 
