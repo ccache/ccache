@@ -78,19 +78,23 @@ int create_dir(const char *dir)
 
 /*
   this is like asprintf() but dies if the malloc fails
+  note the rather strange use of vsnprintf() to try to make this
+  work on non C99 systems like Solaris
 */
 int x_asprintf(char **ptr, const char *format, ...)
 {
 	va_list ap;
 	int ret;
-	
+	char tmp[2];
+
 	*ptr = NULL;
 	va_start(ap, format);
-	ret = vsnprintf(NULL, 0, format, ap);
+	ret = vsnprintf(tmp, 1, format, ap);
 	va_end(ap);
 
-	if (ret <= 0) {
-		fatal("Bad vsnprintf implementation!?\n");
+	if (ret <= 1) {
+		cc_log("Bad vsnprintf implementation (%d)!?\n", ret);
+		exit(1);
 	}
 
 	*ptr = (char *)malloc(ret+1);
