@@ -4,6 +4,7 @@
   The idea is based on the shell-script compilercache by Erik Thiele <erikyyy@erikyyy.de>
 
    Copyright (C) Andrew Tridgell 2002
+   Copyright (C) Martin Pool 2003
    
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -153,6 +154,14 @@ static void to_cache(ARGS *args)
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
+
+	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
+	 * otherwise it will emit a line like
+	 *
+	 *  tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
+	 *
+	 * unsetenv() is on BSD and Linux but not portable. */
+	putenv("DEPENDENCIES_OUTPUT");
 	
 	if (getenv("CCACHE_CPP2")) {
 		args_add(args, input_file);
