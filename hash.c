@@ -71,7 +71,7 @@ char *hash_result(void)
 	mdfour_result(&md, sum);
 	
 	for (i=0;i<16;i++) {
-		sprintf(&ret[i*2], "%02x", (unsigned)sum[i]);
+		sprintf(&ret[i*2], "%02x-%d", (unsigned)sum[i], md.totalN);
 	}
 
 	return ret;
