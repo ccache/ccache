@@ -13,5 +13,9 @@ ccache.1: ccache.yo
 	yodl2man -o ccache.1 ccache.yo
 	yodl2html -o web/ccache-man.html ccache.yo
 
+install:
+	cp ccache /usr/local/bin
+	cp ccache.1 /usr/local/man/man1/
+
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
