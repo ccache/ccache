@@ -47,7 +47,7 @@ void fatal(const char *msg)
 /* copy all data from one file descriptor to another */
 void copy_fd(int fd_in, int fd_out)
 {
-	char buf[1024];
+	char buf[10240];
 	int n;
 
 	while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
