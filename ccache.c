@@ -609,6 +609,8 @@ static int ccache_main(int argc, char *argv[])
 		switch (c) {
 		case 'V':
 			printf("ccache version %s\n", CCACHE_VERSION);
+			printf("Copyright Andrew Tridgell 2002\n");
+			printf("Released under the GNU GPL v2 or later\n");
 			exit(0);
 
 		case 'h':

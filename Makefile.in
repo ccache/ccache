@@ -22,7 +22,7 @@ ccache.1: ccache.yo
 
 install:
 	${INSTALLCMD} -m 755 ccache ${bindir}
-	${INSTALLCMD} -m 644 ccache.1 ${mandir}
+	${INSTALLCMD} -m 644 ccache.1 ${mandir}/man1
 
 clean:
 	/bin/rm -f $(OBJS) *~ ccache
