@@ -43,12 +43,12 @@ builds are much faster.
 
 <h2>Is it safe?</h2>
 
-The short answer is "yes". The most important aspect of a compiler
-cache is to <b>always</b> produce exactly the same output that the
-real compiler would produce. The includes providing exactly the same
-object files and exactly the same compiler warnings that would be
-produced if you use the real compiler. The only way you should be able
-to tell that you are using ccache is the speed.<p>
+Yes. The most important aspect of a compiler cache is to <b>always</b>
+produce exactly the same output that the real compiler would
+produce. The includes providing exactly the same object files and
+exactly the same compiler warnings that would be produced if you use
+the real compiler. The only way you should be able to tell that you
+are using ccache is the speed.<p>
 
 I have coded ccache very carefully to try to provide these guarantees.
 
