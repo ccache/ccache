@@ -118,6 +118,7 @@ void wipe_all(const char *dir);
 int execute(char **argv, 
 	    const char *path_stdout,
 	    const char *path_stderr);
+char *find_executable(const char *name, const char *exclude_name);
 
 typedef struct {
 	char **argv;
@@ -125,10 +126,12 @@ typedef struct {
 } ARGS;
 
 
-ARGS *args_init(void);
+ARGS *args_init(int , char **);
 void args_add(ARGS *args, const char *s);
+void args_add_prefix(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
 void args_strip(ARGS *args, const char *prefix);
+void args_remove_first(ARGS *args);
 
 #if HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
