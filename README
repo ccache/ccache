@@ -76,6 +76,15 @@ are:
 Note however that ccache is a very new piece of code (as of March
 2002) whereas Erik's scripts have had a *lot* more testing. 
 
+The overall speedup compared to compilercache is quite dramatic. For
+compiling rsync I get:
+
+  compilercache uncached 28.9 seconds
+  compilercache cached 10.5 seconds
+
+  ccache uncached 24.6 seconds
+  ccache cached 4.6 seconds
+
 
 How it works
 ------------
