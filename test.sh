@@ -217,7 +217,8 @@ rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
 mkdir .ccache
-export CCACHE_DIR=.ccache
+CCACHE_DIR=.ccache
+export CCACHE_DIR
 
 testsuite="base"
 CCACHE_COMPILE="$CCACHE $COMPILER"
