@@ -538,6 +538,13 @@ static void process_args(int argc, char **argv)
 		       output_file, input_file);
 #endif
 	}
+
+	/* cope with -o /dev/null */
+	if (stat(output_file, &st) == 0 && !S_ISREG(st.st_mode)) {
+		cc_log("Not a regular file %s\n", output_file);
+		stats_update(STATS_ARGS);
+		failed();
+	}
 }
 
 /* the main ccache driver function */
