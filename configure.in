@@ -15,10 +15,6 @@ AC_PROG_INSTALL
 AC_DEFINE([_GNU_SOURCE], 1,
           [Define _GNU_SOURCE so that we get all necessary prototypes])
 
-# We must decide this before testing the compiler.
-# Please allow this to default to yes, so that your users have more
-# chance of getting a useful stack trace if problems occur.
-
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"
 then
