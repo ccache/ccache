@@ -3,7 +3,12 @@
 # a simple test suite for ccache
 # tridge@samba.org
 
-COMPILER=cc
+if test -n "$CC"; then
+ COMPILER="$CC"
+else
+ COMPILER=cc
+fi
+
 CCACHE=../ccache
 TESTDIR=test.$$
 
