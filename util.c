@@ -190,7 +190,9 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		x_asprintf(&fname, "%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
-			perror(fname);
+			if (errno != ENOENT) {
+				perror(fname);
+			}
 			free(fname);
 			continue;
 		}

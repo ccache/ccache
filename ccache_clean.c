@@ -71,7 +71,7 @@ static void sort_and_clean(void)
 
 	/* delete enough files to bring us below the threshold */
 	for (i=0;i<num_files && total_size >= size_threshold;i++) {
-		if (unlink(files[i]->fname) != 0) {
+		if (unlink(files[i]->fname) != 0 && errno != ENOENT) {
 			fprintf(stderr, "unlink %s - %s\n", 
 				files[i]->fname, strerror(errno));
 			continue;
