@@ -220,8 +220,17 @@ basetests() {
     $CCACHE_COMPILE -c test1.i
     checkstat 'cache hit' 10
     checkstat 'cache miss' 38
-    
 
+    testname="direct .ii file"
+    mv test1.i test1.ii
+    $CCACHE_COMPILE -c test1.ii
+    checkstat 'cache hit' 10
+    checkstat 'cache miss' 39
+
+    $CCACHE_COMPILE -c test1.ii
+    checkstat 'cache hit' 11
+    checkstat 'cache miss' 39
+    
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit' 0

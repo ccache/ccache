@@ -273,6 +273,10 @@ static void find_hash(ARGS *args)
 		hash_string(input_file);
 	}
 
+	/* we have to hash the extension, as a .i file isn't treated the same
+	   by the compiler as a .ii file */
+	hash_string(i_extension);
+
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
 		/* some arguments don't contribute to the hash. The
@@ -353,8 +357,9 @@ static void find_hash(ARGS *args)
 		status = execute(args->argv, path_stdout, path_stderr);
 		args_pop(args, 2);
 	} else {
-		/* we are compiling a .i or .ii file - that means we can skip the cpp stage
-		   and directly form the correct i_tmpfile */
+		/* we are compiling a .i or .ii file - that means we
+		   can skip the cpp stage and directly form the
+		   correct i_tmpfile */
 		path_stdout = input_file;
 		if (create_empty_file(path_stderr) != 0) {
 			stats_update(STATS_ERROR);
