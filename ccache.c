@@ -284,6 +284,15 @@ static void find_hash(ARGS *args)
 	hash_int(st.st_size);
 	hash_int(st.st_mtime);
 
+	/* possibly hash the current working directory */
+	if (getenv("CCACHE_HASHDIR")) {
+		char *cwd = gnu_getcwd();
+		if (cwd) {
+			hash_string(cwd);
+			free(cwd);
+		}
+	}
+
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/tmp.stdout.%s.%s", cache_dir, tmp_string(), 
 		   i_extension);
