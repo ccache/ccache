@@ -421,10 +421,10 @@ static void from_cache(int first)
 		ret = 0;
 	} else {
 		unlink(output_file);
-		if (getenv("CCACHE_NOLINK")) {
-			ret = copy_file(hashname, output_file);
-		} else {
+		if (getenv("CCACHE_HARDLINK")) {
 			ret = link(hashname, output_file);
+		} else {
+			ret = copy_file(hashname, output_file);
 		}
 	}
 
