@@ -25,43 +25,8 @@ static struct mdfour md;
 
 void hash_buffer(const char *s, int len)
 {
-	static char tail[64];
-	static int tail_len;
-
-	/* s == NULL means push the last chunk */
-	if (s == NULL) {
-		if (tail_len > 0) {
-			mdfour_update(&md, (unsigned char *)tail, tail_len);
-			tail_len = 0;
-		}
-		return;
-	}
-
-	if (tail_len) {
-		int n = 64-tail_len;
-		if (n > len) n = len;
-		memcpy(tail+tail_len, s, n);
-		tail_len += n;
-		len -= n;
-		s += n;
-		if (tail_len == 64) {
-			mdfour_update(&md, (unsigned char *)tail, 64);
-			tail_len = 0;
-		}
-	}
-
-	while (len >= 64) {
-		mdfour_update(&md, (unsigned char *)s, 64);
-		s += 64;
-		len -= 64;
-	}
-
-	if (len) {
-		memcpy(tail, s, len);
-		tail_len = len;
-	}
+	mdfour_update(&md, (unsigned char *)s, len);
 }
-
 
 void hash_start(void)
 {

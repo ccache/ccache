@@ -94,6 +94,8 @@ in your path.
 This will work as long as /usr/local/bin comes before the path to gcc
 (which is usually in /usr/bin). After installing you may wish to run
 "which gcc" to make sure that the correct link is being used.
+<p>Note! Do not use a hard link, use a symbolic link. A hardlink will
+cause "interesting" problems.
 <p><h2>ENVIRONMENT VARIABLES</h2>
     
 <p>ccache used a number of environment variables to control operation. In
@@ -133,15 +135,17 @@ directory when creating the compiler output and will do a file copy
 instead. The main reason for setting this option is to avoid the
 update of the modification time on object files that are the result of
 the same compilation in a different directory.
-<p><p></p><dt><strong><strong>CCACHE_NOUNIFY</strong></strong><dd> If you set the environment variable
-CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing
-the pre-processor output. The unifier is slower than a normal hash, so
-setting this environment variable gains a little bit of speed, but it
-means that ccache can't take advantage of not recompiling when the
-changes to the source code consist of reformatting only. Note that
-using CCACHE_NOUNIFY changes the hash, so cached compiles with
-CCACHE_NOUNIFY set cannot be used when CCACHE_NOUNIFY is not set and
-vice versa.
+<p><p></p><dt><strong><strong>CCACHE_UNIFY</strong></strong><dd> If you set the environment variable CCACHE_UNIFY
+then ccache will use the C/C++ unifier when hashing the pre-processor
+output if -g is not used in the compile. The unifier is slower than a
+normal hash, so setting this environment variable loses a little bit
+of speed, but it means that ccache can take advantage of not
+recompiling when the changes to the source code consist of
+reformatting only. Note that using CCACHE_UNIFY changes the hash, so
+cached compiles with CCACHE_UNIFY set cannot be used when
+CCACHE_UNIFY is not set and vice versa. The reason the unifier is off
+by default is that it can give incorrect line number information in
+compiler warning messages.
 <p></dl>
 <p><h2>CACHE SIZE MANAGEMENT</h2>
     

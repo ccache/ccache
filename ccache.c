@@ -263,8 +263,11 @@ static void find_hash(ARGS *args)
 	   preprocessor output, which means we are sensitive to line number
 	   information. Otherwise we can discard line number info, which makes
 	   us less sensitive to reformatting changes 
+
+	   Note! I have now disabled the unification code by default
+	   as it gives the wrong line numbers for warnings. Pity.
 	*/
-	if (found_debug || getenv("CCACHE_NOUNIFY")) {
+	if (found_debug || !getenv("CCACHE_UNIFY")) {
 		hash_file(path_stdout);
 	} else {
 		if (unify_hash(path_stdout) != 0) {
