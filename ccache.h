@@ -39,10 +39,9 @@ void copy_fd(int fd_in, int fd_out);
 
 int create_dir(const char *dir);
 
-void execute(char **argv, 
-	     const char *path_stdout,
-	     const char *path_stderr,
-	     const char *path_status);
+int execute(char **argv, 
+	    const char *path_stdout,
+	    const char *path_stderr);
 
 typedef struct {
 	char **argv;

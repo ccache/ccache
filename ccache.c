@@ -43,31 +43,52 @@ static void failed(void)
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
 {
-	char *path_stdout, *path_status, *path_stderr;
+	char *path_stderr;
+	char *tmp_stdout, *tmp_stderr, *tmp_hashname;
 	struct stat st;
+	int status;
 
-	x_asprintf(&path_status, "%s.status", hashname);
-	x_asprintf(&path_stderr, "%s.stderr", hashname);
-	x_asprintf(&path_stdout, "%s.stdout", hashname);
+	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
+	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
+	x_asprintf(&tmp_hashname, "%s/tmp.hash.%d", cache_dir, getpid());
 
 	args_add(args, "-o");
-	args_add(args, hashname);
-
-	execute(args->argv, path_stdout, path_stderr, path_status);
-
+	args_add(args, tmp_hashname);
+	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args->argc -= 2;
 
-	if (stat(path_stdout, &st) != 0 || st.st_size != 0) {
-		cc_log("compiler produced stdout!\n");
-		unlink(path_stdout);
-		unlink(path_stderr);
-		unlink(path_status);
-		unlink(hashname);
+	if (status != 0) {
+		cc_log("compile of %s gave status = %d\n", output_file, status);
+		unlink(tmp_stdout);
+		unlink(tmp_stderr);
+		unlink(tmp_hashname);
 		failed();
 	}
 
-	unlink(path_stdout);
+	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
+		cc_log("compiler produced stdout for %s\n", output_file);
+		unlink(tmp_stdout);
+		unlink(tmp_stderr);
+		unlink(tmp_hashname);
+		failed();
+	}
+
+	unlink(tmp_stdout);
+
+	x_asprintf(&path_stderr, "%s.stderr", hashname);
+
+	if (rename(tmp_hashname, hashname) != 0 ||
+	    rename(tmp_stderr, path_stderr) != 0) {
+		cc_log("failed to rename tmp files\n");
+		failed();
+	}
+
 	cc_log("Placed %s into cache\n", output_file);
+
+	free(tmp_hashname);
+	free(tmp_stderr);
+	free(tmp_stdout);
+	free(path_stderr);
 }
 
 
@@ -117,10 +138,11 @@ static void stabs_hash(const char *fname)
 static void find_hash(ARGS *args)
 {
 	int i;
-	char *path_stdout, *path_stderr, *path_status;
+	char *path_stdout, *path_stderr;
 	char *hash_dir;
 	char *s;
 	struct stat st;
+	int status;
 
 	hash_start();
 
@@ -141,11 +163,17 @@ static void find_hash(ARGS *args)
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/tmp.stdout.%d", cache_dir, getpid());
 	x_asprintf(&path_stderr, "%s/tmp.stderr.%d", cache_dir, getpid());
-	x_asprintf(&path_status, "%s/tmp.status.%d", cache_dir, getpid());
 
 	args_add(args, "-E");
-	execute(args->argv, path_stdout, path_stderr, path_status);
+	status = execute(args->argv, path_stdout, path_stderr);
 	args->argc--;
+
+	if (status != 0) {
+		unlink(path_stdout);
+		unlink(path_stderr);
+		cc_log("the preprocessor gave %d\n", status);
+		failed();
+	}
 
 	/* if the compilation is with -g then we have to inlcude the whole of the
 	   preprocessor output, which means we are sensitive to line number
@@ -158,14 +186,11 @@ static void find_hash(ARGS *args)
 		stabs_hash(path_stdout);
 	}
 	hash_file(path_stderr);
-	hash_file(path_status);
 
 	unlink(path_stdout);
 	unlink(path_stderr);
-	unlink(path_status);
 	free(path_stdout);
 	free(path_stderr);
-	free(path_status);
 
 	/* we use a single level subdir for the cache path to reduce the impact
 	   on filesystems which are slow for large directories
@@ -187,29 +212,15 @@ static void find_hash(ARGS *args)
    otherwise it returns */
 static void from_cache(int first)
 {
-	int fd_status, fd_stderr;
+	int fd_stderr;
 	char *s;
-	int ret, status;
-
-	x_asprintf(&s, "%s.status", hashname);
-	fd_status = open(s, O_RDONLY);
-	free(s);
-	if (fd_status == -1) {
-		/* its not cached */
-		return;
-	}
-	if (read(fd_status, &status, sizeof(status)) != sizeof(status)) {
-		cc_log("status file is too short\n");
-		close(fd_status);
-		return;
-	}
-	close(fd_status);
+	int ret;
 
 	x_asprintf(&s, "%s.stderr", hashname);
 	fd_stderr = open(s, O_RDONLY);
 	free(s);
 	if (fd_stderr == -1) {
-		cc_log("stderr file not found\n");
+		/* it isn't in cache ... */
 		return;
 	}
 
@@ -228,21 +239,10 @@ static void from_cache(int first)
 
 	/* and exit with the right status code */
 	if (first) {
-		cc_log("got cached result for %s with status = %d\n", 
-		       output_file, status);
+		cc_log("got cached result for %s\n", output_file);
 	}
 
-	if (status != 0) {
-		/* we delete cached entries with non-zero status as we use them,
-		   which basically means we do them non-cached. This is needed to cope
-		   with someone interrupting a compile
-		   Is there a better way?
-		*/
-		x_asprintf(&s, "%s.status", hashname);
-		unlink(s);
-	}
-
-	exit(status);
+	exit(0);
 }
 
 /* find the real compiler. We just search the PATH to find a executable of the 
