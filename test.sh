@@ -131,21 +131,21 @@ basetests() {
     checkstat 'cache hit' 4 
 
     testname="CCACHE_CPP2"
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 4 
     checkstat 'cache miss' 3
 
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 5 
     checkstat 'cache miss' 3
 
     testname="CCACHE_NOSTATS"
-    CCACHE_NOSTATS=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_NOSTATS=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 5
     checkstat 'cache miss' 3
     
     testname="CCACHE_RECACHE"
-    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 5 
     checkstat 'cache miss' 4
 
@@ -156,11 +156,11 @@ basetests() {
 
 
     testname="CCACHE_HASHDIR"
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 5
     checkstat 'cache miss' 5
 
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -Wall
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 6
     checkstat 'cache miss' 5
 
