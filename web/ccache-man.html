@@ -113,6 +113,12 @@ ccache itself.
 <p><p></p><dt><strong><strong>CCACHE_DISABLE</strong></strong><dd> If you set the environment variable
 CCACHE_DISABLE then ccache will just call the real compiler,
 bypassing the cache completely.
+<p><p></p><dt><strong><strong>CCACHE_NOUNIFY</strong></strong><dd> If you set the environment variable
+CCACHE_NOUNIFY then ccache will not use the C/C++ unifier when hashing
+the pre-processor output. The unifier is slower than a normal hash, so
+setting this environment variable gains a little bit of speed, but it
+means that ccache can't take advantage of not recompiling when the
+changes to the source code consist of reformatting only.
 <p></dl>
 <p><h2>CACHE SIZE MANAGEMENT</h2>
     
