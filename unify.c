@@ -92,8 +92,10 @@ static void pushchar(unsigned char c)
 	static int len;
 
 	if (c == 0) {
-		hash_buffer(buf, len);
-		len = 0;
+		if (len > 0) {
+			hash_buffer(buf, len);
+			len = 0;
+		}
 		hash_buffer(NULL, 0);
 		return;
 	}
@@ -147,23 +149,23 @@ static void unify(unsigned char *p, size_t size)
 				pushchar(p[ofs]);
 				ofs++;
 			} while (ofs < size && 
-				 (tokens[p[ofs]].type & C_DIGIT || p[ofs] == '.'));
-			if (p[ofs] == 'x' || p[ofs] == 'X') {
+				 ((tokens[p[ofs]].type & C_DIGIT) || p[ofs] == '.'));
+			if (ofs < size && (p[ofs] == 'x' || p[ofs] == 'X')) {
 				do {
 					pushchar(p[ofs]);
 					ofs++;
-				} while (ofs < size && tokens[p[ofs]].type & C_HEX);
+				} while (ofs < size && (tokens[p[ofs]].type & C_HEX));
 			}
-			if (p[ofs] == 'E' || p[ofs] == 'e') {
+			if (ofs < size && (p[ofs] == 'E' || p[ofs] == 'e')) {
 				pushchar(p[ofs]);
 				ofs++;
 				while (ofs < size && 
-				       tokens[p[ofs]].type & (C_DIGIT|C_SIGN)) {
+				       (tokens[p[ofs]].type & (C_DIGIT|C_SIGN))) {
 					pushchar(p[ofs]);
 					ofs++;
 				}
 			}
-			while (ofs < size && tokens[p[ofs]].type & C_FLOAT) {
+			while (ofs < size && (tokens[p[ofs]].type & C_FLOAT)) {
 				pushchar(p[ofs]);
 				ofs++;
 			}
@@ -174,7 +176,7 @@ static void unify(unsigned char *p, size_t size)
 		if (tokens[p[ofs]].type & C_SPACE) {
 			do {
 				ofs++;
-			} while (ofs < size && tokens[p[ofs]].type & C_SPACE);
+			} while (ofs < size && (tokens[p[ofs]].type & C_SPACE));
 			continue;
 		}
 			
