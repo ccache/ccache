@@ -18,6 +18,7 @@ void execute(char **argv,
 	if (pid == -1) fatal("Failed to fork");
 	
 	if (pid == 0) {
+		unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
 		if (fd == -1) {
 			exit(STATUS_NOCACHE);
@@ -25,6 +26,7 @@ void execute(char **argv,
 		dup2(fd, 1);
 		close(fd);
 
+		unlink(path_stderr);
 		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL, 0644);
 		if (fd == -1) {
 			exit(STATUS_NOCACHE);
