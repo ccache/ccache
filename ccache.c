@@ -240,7 +240,9 @@ static void find_hash(ARGS *args)
 	struct stat st;
 	int status;
 	int nlevels = 2;
-
+	char *input_base;
+	char *tmp;
+	
 	if ((s = getenv("CCACHE_NLEVELS"))) {
 		nlevels = atoi(s);
 		if (nlevels < 1) nlevels = 1;
@@ -309,8 +311,22 @@ static void find_hash(ARGS *args)
 		}
 	}
 
+	/* ~/hello.c -> tmp.hello.123.i 
+	   limit the basename to 10
+	   characters in order to cope with filesystem with small
+	   maximum filename length limits */
+	input_base = basename(input_file);
+	tmp = strchr(input_base, '.');
+	if (tmp != NULL) {
+		*tmp = 0;
+	}
+	if (strlen(input_base) > 10) {
+		input_base[10] = 0;
+	}
+
 	/* now the run */
-	x_asprintf(&path_stdout, "%s/tmp.stdout.%s.%s", cache_dir, tmp_string(), 
+	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", cache_dir,
+		   input_base, tmp_string(), 
 		   i_extension);
 	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", cache_dir, tmp_string());
 
