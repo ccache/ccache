@@ -785,7 +785,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 {
 	int ret;
 	
-	ret = vsnprintf(NULL, 0, format, ap);
+	ret = vsnprintf(0, 0, format, ap);
 	if (ret <= 0) return ret;
 
 	(*ptr) = (char *)malloc(ret+1);
@@ -803,7 +803,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 	va_list ap;
 	int ret;
 	
-	*ptr = NULL;
+	*ptr = 0;
 	va_start(ap, format);
 	ret = vasprintf(ptr, format, ap);
 	va_end(ap);
@@ -816,7 +816,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 #ifdef HAVE_SYSLOG
  void vsyslog (int facility_priority, char *format, va_list arglist)
 {
-	char *msg = NULL;
+	char *msg = 0;
 	vasprintf(&msg, format, arglist);
         if (!msg)
                 return;
@@ -850,7 +850,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 		"%.0f",
 		"%f",
 		"-16.16f",
-		NULL
+		0
 	};
 	double fp_nums[] = { 6442452944.1234, -1.5, 134.21, 91340.2, 341.1234, 0203.9, 0.96, 0.996, 
 			     0.9996, 1.996, 4.136,  0};
@@ -865,7 +865,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 		"%01.3d",
 		"%4d",
 		"%d",
-		NULL
+		0
 	};
 	long int_nums[] = { -1, 134, 91340, 341, 0203, 0};
 	char *str_fmt[] = {
@@ -879,9 +879,9 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 		"%.1s",
 		"%.10s",
 		"%10s",
-		NULL
+		0
 	};
-	char *str_vals[] = {"hello", "a", "", "a longer string", NULL};
+	char *str_vals[] = {"hello", "a", "", "a longer string", 0};
 	int x, y;
 	int fail = 0;
 	int num = 0;
@@ -890,7 +890,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 
 	for (x = 0; fp_fmt[x] ; x++) {
 		for (y = 0; fp_nums[y] != 0 ; y++) {
-			int l1 = snprintf(NULL, 0, fp_fmt[x], fp_nums[y]);
+			int l1 = snprintf(0, 0, fp_fmt[x], fp_nums[y]);
 			int l2 = snprintf(buf1, sizeof(buf1), fp_fmt[x], fp_nums[y]);
 			sprintf (buf2, fp_fmt[x], fp_nums[y]);
 			if (strcmp (buf1, buf2)) {
@@ -908,7 +908,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 
 	for (x = 0; int_fmt[x] ; x++) {
 		for (y = 0; int_nums[y] != 0 ; y++) {
-			int l1 = snprintf(NULL, 0, int_fmt[x], int_nums[y]);
+			int l1 = snprintf(0, 0, int_fmt[x], int_nums[y]);
 			int l2 = snprintf(buf1, sizeof(buf1), int_fmt[x], int_nums[y]);
 			sprintf (buf2, int_fmt[x], int_nums[y]);
 			if (strcmp (buf1, buf2)) {
@@ -926,7 +926,7 @@ static void dopr_outch(char *buffer, size_t *currlen, size_t maxlen, char c)
 
 	for (x = 0; str_fmt[x] ; x++) {
 		for (y = 0; str_vals[y] != 0 ; y++) {
-			int l1 = snprintf(NULL, 0, str_fmt[x], str_vals[y]);
+			int l1 = snprintf(0, 0, str_fmt[x], str_vals[y]);
 			int l2 = snprintf(buf1, sizeof(buf1), str_fmt[x], str_vals[y]);
 			sprintf (buf2, str_fmt[x], str_vals[y]);
 			if (strcmp (buf1, buf2)) {
