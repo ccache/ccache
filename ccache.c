@@ -738,7 +738,7 @@ static void process_args(int argc, char **argv)
 
 
 	/* don't try to second guess the compilers heuristics for stdout handling */
-	if (strcmp(output_file, "-") == 0) {
+	if (output_file && strcmp(output_file, "-") == 0) {
 		stats_update(STATS_OUTSTDOUT);
 		failed();
 	}
