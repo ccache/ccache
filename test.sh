@@ -114,7 +114,9 @@ basetests() {
     checkstat 'compiler produced stdout' 1
 
     testname="non-regular"
-    $CCACHE_COMPILE -o /dev/zero -c test1.c
+    mkdir testd
+    $CCACHE_COMPILE -o testd -c test1.c > /dev/null 2>&1
+    rmdir testd
     checkstat 'output to a non-regular file' 1
 
     testname="no-input"
