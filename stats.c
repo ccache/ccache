@@ -230,6 +230,8 @@ void stats_summary(void)
 
 	}
 
+	printf("cache directory                     %s\n", cache_dir);
+
 	/* and display them */
 	for (i=0;stats_info[i].message;i++) {
 		enum stats stat = stats_info[i].stat;
