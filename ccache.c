@@ -583,7 +583,11 @@ static void process_args(int argc, char **argv)
 				stats_update(STATS_MULTIPLE);
 			} else if (!found_c_opt) {
 				cc_log("called for link with %s\n", argv[i]);
-				stats_update(STATS_LINK);
+				if (strstr(argv[i], "conftest.")) {
+					stats_update(STATS_CONFTEST);
+				} else {
+					stats_update(STATS_LINK);
+				}
 			} else {
 				cc_log("non C/C++ file %s\n", argv[i]);
 				stats_update(STATS_NOTC);
