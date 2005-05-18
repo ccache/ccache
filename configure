@@ -2560,6 +2560,11 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+# The definition of _GNU_SOURCE potentially causes a change of the value
+# of _XOPEN_SOURCE. So define it only conditionally.
+
+
+
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"
 then
