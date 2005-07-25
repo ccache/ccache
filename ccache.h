@@ -6,11 +6,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
-#include <sys/file.h>
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
@@ -19,6 +18,7 @@
 #include <stdarg.h>
 #include <dirent.h>
 #include <limits.h>
+#include <sys/file.h>
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
