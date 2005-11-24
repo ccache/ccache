@@ -234,6 +234,16 @@ the debug info set incorrectly\&. This option is off by default as the
 incorrect setting of this debug info rarely causes problems\&. If you
 strike problems with gdb not using the correct directory then enable
 this option\&.
+.IP
+.IP "\fBCCACHE_NOHASH_SIZE_MTIME\fP"
+This tells ccache to not hash the real compiler's size and modification
+time. Normally this is the mechanism to detect compiler upgrades.
+There are situations however, where even though the compiler's size or
+modification time has changed you can safely use the cached objects
+(e.g. if as part of your build system the compiler is built as well
+and the compiler's source has not changed; or if the compiler has only
+changes that do not affect code generation). Use this feature only if
+you know what you are doing.
 .IP 
 .IP "\fBCCACHE_UNIFY\fP" 
 If you set the environment variable CCACHE_UNIFY

@@ -331,8 +331,10 @@ static void find_hash(ARGS *args)
 		hash_string(str_basename(args->argv[0]));
 	}
 
-	hash_int(st.st_size);
-	hash_int(st.st_mtime);
+	if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
+		hash_int(st.st_size);
+		hash_int(st.st_mtime);
+	}
 
 	/* possibly hash the current working directory */
 	if (getenv("CCACHE_HASHDIR")) {
