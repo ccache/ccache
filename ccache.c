@@ -331,7 +331,9 @@ static void find_hash(ARGS *args)
 		hash_string(str_basename(args->argv[0]));
 	}
 
-	if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
+	if (getenv("CCACHE_HASH_COMPILER")) {
+		hash_file(args->argv[0]);
+	} else if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
 		hash_int(st.st_size);
 		hash_int(st.st_mtime);
 	}

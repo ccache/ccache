@@ -203,6 +203,11 @@ incorrect setting of this debug info rarely causes problems. If you
 strike problems with gdb not using the correct directory then enable
 this option.
 
+dit(bf(CCACHE_HASH_COMPILER)) This tells ccache to hash binary of the
+compiler instead of hashing just its size and mtime. This is very
+slightly slower, but makes copes better with compiler upgrades during
+a build bootstrapping process.
+
 dit(bf(CCACHE_UNIFY)) If you set the environment variable CCACHE_UNIFY
 then ccache will use the C/C++ unifier when hashing the pre-processor
 output if -g is not used in the compile. The unifier is slower than a
