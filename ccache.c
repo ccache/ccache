@@ -158,9 +158,9 @@ static void to_cache(ARGS *args)
 	struct stat st1, st2;
 	int status;
 
-	x_asprintf(&tmp_stdout, "%s/tmp.stdout.%s", temp_dir, tmp_string());
-	x_asprintf(&tmp_stderr, "%s/tmp.stderr.%s", temp_dir, tmp_string());
-	x_asprintf(&tmp_hashname, "%s/tmp.hash.%s.o", temp_dir, tmp_string());
+	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", hashname, tmp_string());
+	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", hashname, tmp_string());
+	x_asprintf(&tmp_hashname, "%s.tmp.%s", hashname, tmp_string());
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
