@@ -57,6 +57,17 @@ static void traverse_fn(const char *fname, struct stat *st)
 		free(p);
 		return;
 	}
+
+	if (strstr(fname, ".tmp.") != NULL) {
+		/* delete any tmp files older than 1 hour */
+		if (st->st_mtime + 3600 < time(NULL)) {
+			unlink(fname);
+			free(p);
+			return;
+		}
+	}
+
+
 	free(p);
 
 	if (num_files == allocated) {
