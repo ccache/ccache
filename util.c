@@ -187,13 +187,9 @@ void *x_realloc(void *ptr, size_t size)
 {
 	void *p2;
 	if (!ptr) return x_malloc(size);
-	p2 = malloc(size);
+	p2 = realloc(ptr, size);
 	if (!p2) {
 		fatal("out of memory in x_realloc");
-	}
-	if (ptr) {
-		memcpy(p2, ptr, size);
-		free(ptr);
 	}
 	return p2;
 }
