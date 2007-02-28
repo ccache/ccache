@@ -12,6 +12,9 @@ fi
 CCACHE=../ccache
 TESTDIR=test.$$
 
+unset CCACHE_DISABLE
+
+
 test_failed() {
     reason="$1"
     echo $1
