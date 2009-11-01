@@ -256,7 +256,7 @@ relinked without reason.  To share a cache without side effects, the
 following conditions need to be met:
 <p><ul>
   <li > Use the same <strong>CCACHE_DIR</strong> environment variable setting
-  <li > Set the <strong>CCACHE_NOLINK</strong> environment variable
+  <li > Unset the <strong>CCACHE_HARDLINK</strong> environment variable
   <li > Make sure everyone sets the CCACHE_UMASK environment variable
   to 002, this ensures that cached files are accessible to everyone in
   the group.
