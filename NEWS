@@ -3,6 +3,11 @@ Changes since ccache 2.4
 
 New features and improvements:
 
+  - Object files are now by default stored compressed in the cache. The runtime
+    cost is negligible, and more files will fit in the ccache directory and in
+    the disk cache. CCACHE_NOCOMPRESS can be set to disable object file
+    compression.
+
   - Added CCACHE_NOHASH_SIZE_MTIME option that tells ccache not to hash the
     real compiler's size and modification time.
 
@@ -12,6 +17,11 @@ New features and improvements:
   - Temporary files are now created in the directory they will end up in. This
     makes ccache more friendly to Linux's directory layout.
 
+  - Added support for long command-line options.
+
+  - A CACHEDIR.TAG file is now created in the cache directory. See
+    <http://www.brynosaurus.com/cachedir/>.
+
 Bug fixes:
 
   - Fixed build on FreeBSD.
@@ -19,3 +29,19 @@ Bug fixes:
   - Improved detection of home directory.
 
   - User-defined CPPFLAGS and LDFLAGS is now respected in the Makefile.
+
+  - Bail out on profiling flags --coverage, -fprofile-arcs and -ftest-coverage.
+
+  - Fixed NFS issues.
+
+  - -MD/-MMD flags without -MT/-MF are now handled correctly.
+
+  - Corrected LRU cleanup handling of object files.
+
+  - utimes() is now used instead of utime() when available.
+
+  - Non-writable cache directories are now handled gracefully.
+
+  - Corrected documentation about sharing the cache directory.
+
+  - Fixed compilation warnings from GCC 4.3.
