@@ -1,0 +1,21 @@
+Changes since ccache 2.4
+------------------------
+
+New features and improvements:
+
+  - Added CCACHE_NOHASH_SIZE_MTIME option that tells ccache not to hash the
+    real compiler's size and modification time.
+
+  - Added CCACHE_HASH_COMPILER option that tells ccache to hash binary of the
+    compiler instead of hashing just its size and modification time.
+
+  - Temporary files are now created in the directory they will end up in. This
+    makes ccache more friendly to Linux's directory layout.
+
+Bug fixes:
+
+  - Fixed build on FreeBSD.
+
+  - Improved detection of home directory.
+
+  - User-defined CPPFLAGS and LDFLAGS is now respected in the Makefile.
