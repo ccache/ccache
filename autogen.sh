@@ -1,5 +1,7 @@
 #!/bin/sh
 
-autoheader && autoconf
+set -e
 
+autoheader
+autoconf
 echo "Now run ./configure and make"
