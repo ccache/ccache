@@ -22,6 +22,7 @@
 */
 
 #include "ccache.h"
+#include <getopt.h>
 
 /* the base cache directory */
 char *cache_dir = NULL;
@@ -917,14 +918,14 @@ static void usage(void)
 	printf("\tcompiler [compile options]    (via symbolic link)\n");
 	printf("\nOptions:\n");
 
-	printf("-s                      show statistics summary\n");
-	printf("-z                      zero statistics\n");
-	printf("-c                      run a cache cleanup\n");
-	printf("-C                      clear the cache completely\n");
-	printf("-F <maxfiles>           set maximum files in cache\n");
-	printf("-M <maxsize>            set maximum size of cache (use G, M or K)\n");
-	printf("-h                      this help page\n");
-	printf("-V                      print version number\n");
+	printf("-s, --show-stats         show statistics summary\n");
+	printf("-z, --zero-stats         zero statistics\n");
+	printf("-c, --cleanup            run a cache cleanup\n");
+	printf("-C, --clear              clear the cache completely\n");
+	printf("-F <n>, --max-files=<n>  set maximum files in cache\n");
+	printf("-M <n>, --max-size=<n>   set maximum size of cache (use G, M or K)\n");
+	printf("-h, --help               this help page\n");
+	printf("-V, --version            print version number\n");
 }
 
 static void check_cache_dir(void)
@@ -940,7 +941,21 @@ static int ccache_main(int argc, char *argv[])
 	int c;
 	size_t v;
 
-	while ((c = getopt(argc, argv, "hszcCF:M:V")) != -1) {
+	static struct option long_options[] =
+        {
+		{"show-stats", no_argument,       0, 's'},
+		{"zero-stats", no_argument,       0, 'z'},
+		{"cleanup",    no_argument,       0, 'c'},
+		{"clear",      no_argument,       0, 'C'},
+		{"max-files",  required_argument, 0, 'F'},
+		{"max-size",   required_argument, 0, 'M'},
+		{"help",       no_argument,       0, 'h'},
+		{"version",    no_argument,       0, 'V'},
+		{0, 0, 0, 0}
+        };
+	int option_index = 0;
+
+	while ((c = getopt_long(argc, argv, "hszcCF:M:V", long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'V':
 			printf("ccache version %s\n", CCACHE_VERSION);
