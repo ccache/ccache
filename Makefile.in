@@ -54,3 +54,6 @@ distclean: clean
 installcheck: 
 	@echo "WARNING!  This is not really \"installcheck\" yet."
 	$(MAKE) check
+
+check-syntax:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
