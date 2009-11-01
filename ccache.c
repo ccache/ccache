@@ -842,6 +842,13 @@ static void ccache(int argc, char *argv[])
 {
 	/* find the real compiler */
 	find_compiler(argc, argv);
+
+	/* use the real compiler if HOME is not set */
+	if (!cache_dir) {
+		cc_log("Unable to determine home directory\n");
+		cc_log("ccache is disabled\n");
+		failed();
+	}
 	
 	/* we might be disabled */
 	if (getenv("CCACHE_DISABLE")) {
@@ -901,6 +908,13 @@ static void usage(void)
 	printf("-V                      print version number\n");
 }
 
+static void check_cache_dir(void)
+{
+	if (!cache_dir) {
+		fatal("Unable to determine home directory");
+	}
+}
+
 /* the main program when not doing a compile */
 static int ccache_main(int argc, char *argv[])
 {
@@ -920,31 +934,37 @@ static int ccache_main(int argc, char *argv[])
 			exit(0);
 			
 		case 's':
+			check_cache_dir();
 			stats_summary();
 			break;
 
 		case 'c':
+			check_cache_dir();
 			cleanup_all(cache_dir);
 			printf("Cleaned cache\n");
 			break;
 
 		case 'C':
+			check_cache_dir();
 			wipe_all(cache_dir);
 			printf("Cleared cache\n");
 			break;
 
 		case 'z':
+			check_cache_dir();
 			stats_zero();
 			printf("Statistics cleared\n");
 			break;
 
 		case 'F':
+			check_cache_dir();
 			v = atoi(optarg);
 			stats_set_limits(v, -1);
 			printf("Set cache file limit to %u\n", (unsigned)v);
 			break;
 
 		case 'M':
+			check_cache_dir();
 			v = value_units(optarg);
 			stats_set_limits(-1, v);
 			printf("Set cache size limit to %uk\n", (unsigned)v);
@@ -989,7 +1009,10 @@ int main(int argc, char *argv[])
 
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
-		x_asprintf(&cache_dir, "%s/.ccache", get_home_directory());
+		const char *home_directory = get_home_directory();
+		if (home_directory) {
+			x_asprintf(&cache_dir, "%s/.ccache", home_directory);
+		}
 	}
 
 	temp_dir = getenv("CCACHE_TEMPDIR");
@@ -1029,7 +1052,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* make sure the cache dir exists */
-	if (create_dir(cache_dir) != 0) {
+	if (cache_dir && (create_dir(cache_dir) != 0)) {
 		fprintf(stderr,"ccache: failed to create %s (%s)\n", 
 			cache_dir, strerror(errno));
 		exit(1);
