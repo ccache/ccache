@@ -78,6 +78,7 @@ if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
 fi
 
 dnl Check for zlib.
+AC_DEFINE([ENABLE_ZLIB], [], [Define to 1 if you have zlib])
 AC_ARG_ENABLE([zlib],
               AS_HELP_STRING([--enable-zlib], [enable zlib support for ccache compression]),,
               [enable_zlib=yes])
