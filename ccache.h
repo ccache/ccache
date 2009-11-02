@@ -30,6 +30,12 @@
 #include <zlib.h>
 #endif
 
+#ifdef __GNUC__
+#define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
+#else
+#define ATTR_FORMAT(x, y, z)
+#endif
+
 #define STATUS_NOTFOUND 3
 #define STATUS_FATAL 4
 #define STATUS_NOCACHE 5
@@ -88,7 +94,7 @@ void hash_file(const char *fname);
 char *hash_result(void);
 void hash_buffer(const char *s, int len);
 
-void cc_log(const char *format, ...);
+void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void fatal(const char *msg);
 
 void copy_fd(int fd_in, int fd_out);
@@ -98,7 +104,7 @@ int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
 int create_cachedirtag(const char *dir);
-void x_asprintf(char **ptr, const char *format, ...);
+void x_asprintf(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
@@ -126,14 +132,14 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 int unify_hash(const char *fname);
 
 #ifndef HAVE_VASPRINTF
-int vasprintf(char **, const char *, va_list );
+int vasprintf(char **, const char *, va_list) ATTR_FORMAT(printf, 2, 0);
 #endif
 #ifndef HAVE_ASPRINTF
-int asprintf(char **ptr, const char *format, ...);
+int asprintf(char **ptr, const char *, ...) ATTR_FORMAT(printf, 2, 3);
 #endif
 
 #ifndef HAVE_SNPRINTF
-int snprintf(char *,size_t ,const char *, ...);
+int snprintf(char *, size_t, const char *, ...) ATTR_FORMAT(printf, 3, 4);
 #endif
 
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
