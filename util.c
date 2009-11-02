@@ -60,19 +60,17 @@ void copy_fd(int fd_in, int fd_out)
 
 static int safe_rename(const char* oldpath, const char* newpath)
 {
-    /* safe_rename is for creating entries in the cache.
+	/* safe_rename is for creating entries in the cache.
 
-       Works like rename(), but it never overwrites an existing
-       cache entry. This avoids corruption on NFS. */
-    int status = link( oldpath, newpath );
-    if( status == 0 || errno == EEXIST )
-    {
-	return unlink( oldpath );
-    }
-    else
-    {
-	return -1;
-    }
+	   Works like rename(), but it never overwrites an existing
+	   cache entry. This avoids corruption on NFS. */
+	int status = link(oldpath, newpath);
+	if (status == 0 || errno == EEXIST) {
+		return unlink(oldpath);
+	}
+	else {
+		return -1;
+	}
 }
  
 /* move a file using rename */

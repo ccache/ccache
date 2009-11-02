@@ -215,7 +215,7 @@ static void to_cache(ARGS *args)
 				}
 
 				/* we can use a quick method of
-                                   getting the failed output */
+				   getting the failed output */
 				copy_fd(fd, 2);
 				close(fd);
 				unlink(tmp_stderr);
@@ -250,7 +250,7 @@ static void to_cache(ARGS *args)
 		cc_log("failed to stat cache files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
-    }
+	}
 #endif
 
 	cc_log("Placed %s into cache\n", output_file);
@@ -508,7 +508,7 @@ static void from_cache(int first)
 	/* update timestamps for LRU cleanup
 	   also gives output_file a sensible mtime when hard-linking (for make) */
 #ifdef HAVE_UTIMES
-       utimes(hashname, NULL);
+	utimes(hashname, NULL);
 	utimes(stderr_file, NULL);
 #else
 	utime(hashname, NULL);
@@ -1002,8 +1002,7 @@ static int ccache_main(int argc, char *argv[])
 	int c;
 	size_t v;
 
-	static struct option long_options[] =
-        {
+	static struct option long_options[] = {
 		{"show-stats", no_argument,       0, 's'},
 		{"zero-stats", no_argument,       0, 'z'},
 		{"cleanup",    no_argument,       0, 'c'},
@@ -1013,7 +1012,7 @@ static int ccache_main(int argc, char *argv[])
 		{"help",       no_argument,       0, 'h'},
 		{"version",    no_argument,       0, 'V'},
 		{0, 0, 0, 0}
-        };
+	};
 	int option_index = 0;
 
 	while ((c = getopt_long(argc, argv, "hszcCF:M:V", long_options, &option_index)) != -1) {
