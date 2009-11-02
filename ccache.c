@@ -656,7 +656,6 @@ static void process_args(int argc, char **argv)
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	struct stat st;
-	char *e;
 	/* is gcc being asked to output dependencies? */
 	int generating_dependencies = 0;
 	/* is the dependency makefile name overridden with -MF? */
@@ -907,20 +906,13 @@ static void process_args(int argc, char **argv)
 		stats_update(STATS_DEVICE);
 		failed();
 	}
-
-	if ((e=getenv("CCACHE_PREFIX"))) {
-		char *p = find_executable(e, MYNAME);
-		if (!p) {
-			perror(e);
-			exit(1);
-		}
-		args_add_prefix(stripped_args, p);
-	}
 }
 
 /* the main ccache driver function */
 static void ccache(int argc, char *argv[])
 {
+	char *prefix;
+
 	/* find the real compiler */
 	find_compiler(argc, argv);
 
@@ -955,6 +947,16 @@ static void ccache(int argc, char *argv[])
 		failed();
 	}
 	
+	prefix = getenv("CCACHE_PREFIX");
+	if (prefix) {
+		char *p = find_executable(prefix, MYNAME);
+		if (!p) {
+			perror(prefix);
+			exit(1);
+		}
+		args_add_prefix(stripped_args, p);
+	}
+
 	/* run real compiler, sending output to cache */
 	to_cache(stripped_args);
 
