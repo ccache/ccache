@@ -4,9 +4,9 @@
 # tridge@samba.org
 
 if test -n "$CC"; then
- COMPILER="$CC"
+    COMPILER="$CC"
 else
- COMPILER=cc
+    COMPILER=cc
 fi
 
 CCACHE=../ccache
@@ -31,8 +31,8 @@ randcode() {
     i=0;
     (
     while [ $i -lt $nlines ]; do
-	echo "int foo$nlines$i(int x) { return x; }"
-	i=`expr $i + 1`
+        echo "int foo$nlines$i(int x) { return x; }"
+        i=`expr $i + 1`
     done
     ) >> "$outfile"
 }
@@ -49,7 +49,7 @@ checkstat() {
     expected_value="$2"
     value=`getstat "$stat"`
     if [ "$expected_value" != "$value" ]; then
-	test_failed "SUITE: $testsuite TEST: $testname - Expected $stat to be $expected_value got $value"
+        test_failed "SUITE: $testsuite TEST: $testname - Expected $stat to be $expected_value got $value"
     fi
 }
 
@@ -63,8 +63,8 @@ basetests() {
     j=1
     rm -f *.c
     while [ $j -lt 32 ]; do
-	randcode test$j.c $j
-	j=`expr $j + 1`
+        randcode test$j.c $j
+        j=`expr $j + 1`
     done
 
     testname="BASIC"
@@ -196,14 +196,14 @@ basetests() {
 
     testname="cache-size"
     for f in *.c; do
-	$CCACHE_COMPILE -c $f
+        $CCACHE_COMPILE -c $f
     done
     checkstat 'cache hit' 8
     checkstat 'cache miss' 37
     checkstat 'files in cache' 72
     $CCACHE -F 48 -c > /dev/null
     if [ `getstat 'files in cache'` -gt 48 ]; then
-	test_failed '-F test failed'
+        test_failed '-F test failed'
     fi
 
     testname="cpp call"
