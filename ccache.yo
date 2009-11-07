@@ -11,7 +11,7 @@ ccache <compiler> [COMPILER OPTIONS]
 
 manpagedescription()
 
-ccache is a compiler cache. It speeds up re-compilation of C/C++ code 
+ccache is a compiler cache. It speeds up re-compilation of C/C++ code
 by caching previous compiles and detecting when the same compile is
 being done again.
 
@@ -45,7 +45,7 @@ cache. The statistics are stored spread across the subdirectories of
 the cache. Using "ccache -s" adds up the statistics across all
 subdirectories and prints the totals.
 
-dit(bf(-z, --zero-stats)) Zero the cache statistics. 
+dit(bf(-z, --zero-stats)) Zero the cache statistics.
 
 dit(bf(-V, --version)) Print the ccache version number
 
@@ -83,7 +83,7 @@ some specific projects. The second method is most useful for when you
 wish to use ccache for all your compiles.
 
 To install for usage by the first method just copy ccache to somewhere
-in your path. 
+in your path.
 
 To install for the second method do something like this:
 verb(
@@ -105,7 +105,7 @@ When run as a compiler front end ccache usually just takes the same
 command line options as the compiler you are using. The only exception
 to this is the option '--ccache-skip'. That option can be used to tell
 ccache that the next option is definitely not a input filename, and
-should be passed along to the compiler as-is. 
+should be passed along to the compiler as-is.
 
 The reason this can be important is that ccache does need to parse the
 command line and determine what is an input filename and what is a
@@ -183,7 +183,7 @@ each compile.
 
 dit(bf(CCACHE_NLEVELS)) The environment variable CCACHE_NLEVELS allows
 you to choose the number of levels of hash in the cache directory. The
-default is 2. The minimum is 1 and the maximum is 8. 
+default is 2. The minimum is 1 and the maximum is 8.
 
 dit(bf(CCACHE_HARDLINK)) If you set the environment variable
 CCACHE_HARDLINK then ccache will attempt to use hard links from the
@@ -300,7 +300,7 @@ ccache avoids the compile completely where possible.
 To use distcc with ccache I recommend using the CCACHE_PREFIX
 option. You just need to set the environment variable CCACHE_PREFIX to
 'distcc' and ccache will prefix the command line used with the
-compiler with the command 'distcc'. 
+compiler with the command 'distcc'.
 
 manpagesection(SHARING A CACHE)
 
@@ -320,7 +320,7 @@ itemize(
   to 002, this ensures that cached files are accessible to everyone in
   the group.
   it() Make sure that all users have write permission in the entire
-  cache directory (and that you trust all users of the shared cache). 
+  cache directory (and that you trust all users of the shared cache).
   it() Make sure that the setgid bit is set on all directories in the
   cache. This tells the filesystem to inherit group ownership for new
   directories. The command "chmod g+s `find $CCACHE_DIR -type d`" might
@@ -333,7 +333,7 @@ manpagesection(HISTORY)
 
 ccache was inspired by the compilercache shell script script written
 by Erik Thiele and I would like to thank him for an excellent piece of
-work. See 
+work. See
 url(http://www.erikyyy.de/compilercache/)(http://www.erikyyy.de/compilercache/)
 for the Erik's scripts.
 

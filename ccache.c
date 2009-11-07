@@ -5,17 +5,17 @@
 
    Copyright (C) Andrew Tridgell 2002
    Copyright (C) Martin Pool 2003
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -130,8 +130,8 @@ static void failed(void)
 }
 
 
-/* return a string to be used to distinguish temporary files 
-   this also tries to cope with NFS by adding the local hostname 
+/* return a string to be used to distinguish temporary files
+   this also tries to cope with NFS by adding the local hostname
 */
 static const char *tmp_string(void)
 {
@@ -175,7 +175,7 @@ static void to_cache(ARGS *args)
 	 *
 	 * unsetenv() is on BSD and Linux but not portable. */
 	putenv("DEPENDENCIES_OUTPUT");
-	
+
 	if (getenv("CCACHE_CPP2")) {
 		args_add(args, input_file);
 	} else {
@@ -225,7 +225,7 @@ static void to_cache(ARGS *args)
 				exit(status);
 			}
 		}
-		
+
 		unlink(tmp_stderr);
 		unlink(tmp_hashname);
 		failed();
@@ -275,7 +275,7 @@ static void find_hash(ARGS *args)
 	int nlevels = 2;
 	char *input_base;
 	char *tmp;
-	
+
 	if ((s = getenv("CCACHE_NLEVELS"))) {
 		nlevels = atoi(s);
 		if (nlevels < 1) nlevels = 1;
@@ -361,7 +361,7 @@ static void find_hash(ARGS *args)
 		}
 	}
 
-	/* ~/hello.c -> tmp.hello.123.i 
+	/* ~/hello.c -> tmp.hello.123.i
 	   limit the basename to 10
 	   characters in order to cope with filesystem with small
 	   maximum filename length limits */
@@ -376,7 +376,7 @@ static void find_hash(ARGS *args)
 
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", temp_dir,
-		   input_base, tmp_string(), 
+		   input_base, tmp_string(),
 		   i_extension);
 	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
 
@@ -412,7 +412,7 @@ static void find_hash(ARGS *args)
 	/* if the compilation is with -g then we have to include the whole of the
 	   preprocessor output, which means we are sensitive to line number
 	   information. Otherwise we can discard line number info, which makes
-	   us less sensitive to reformatting changes 
+	   us less sensitive to reformatting changes
 
 	   Note! I have now disabled the unification code by default
 	   as it gives the wrong line numbers for warnings. Pity.
@@ -434,7 +434,7 @@ static void find_hash(ARGS *args)
 		   data and output it just before the main stderr from the compiler
 		   pass */
 		cpp_stderr = path_stderr;
-	} else {	
+	} else {
 		unlink(path_stderr);
 		free(path_stderr);
 	}
@@ -464,7 +464,7 @@ static void find_hash(ARGS *args)
 }
 
 
-/* 
+/*
    try to return the compile result from cache. If we can return from
    cache then this function exits with the correct status code,
    otherwise it returns */
@@ -541,7 +541,7 @@ static void from_cache(int first)
 	if (ret == -1) {
 		ret = copy_file(hashname, output_file);
 		if (ret == -1) {
-			cc_log("failed to copy %s -> %s (%s)\n", 
+			cc_log("failed to copy %s -> %s (%s)\n",
 			       hashname, output_file, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
@@ -580,7 +580,7 @@ static void from_cache(int first)
 	exit(0);
 }
 
-/* find the real compiler. We just search the PATH to find a executable of the 
+/* find the real compiler. We just search the PATH to find a executable of the
    same name that isn't a link to ourselves */
 static void find_compiler(int argc, char **argv)
 {
@@ -646,8 +646,8 @@ static const char *check_extension(const char *fname, int *direct_i)
 }
 
 
-/* 
-   process the compiler options to form the correct set of options 
+/*
+   process the compiler options to form the correct set of options
    for obtaining the preprocessor output
 */
 static void process_args(int argc, char **argv)
@@ -701,7 +701,7 @@ static void process_args(int argc, char **argv)
 			found_S_opt = 1;
 			continue;
 		}
-		
+
 		/* we need to work out where the output was meant to go */
 		if (strcmp(argv[i], "-o") == 0) {
 			if (i == argc-1) {
@@ -713,7 +713,7 @@ static void process_args(int argc, char **argv)
 			i++;
 			continue;
 		}
-		
+
 		/* alternate form of -o, with no space */
 		if (strncmp(argv[i], "-o", 2) == 0) {
 			output_file = &argv[i][2];
@@ -721,7 +721,7 @@ static void process_args(int argc, char **argv)
 		}
 
 		/* debugging is handled specially, so that we know if we
-		   can strip line number info 
+		   can strip line number info
 		*/
 		if (strncmp(argv[i], "-g", 2) == 0) {
 			args_add(stripped_args, argv[i]);
@@ -757,21 +757,21 @@ static void process_args(int argc, char **argv)
 		{
 			const char *opts[] = {"-I", "-include", "-imacros", "-iprefix",
 					      "-iwithprefix", "-iwithprefixbefore",
-					      "-L", "-D", "-U", "-x", "-MF", 
+					      "-L", "-D", "-U", "-x", "-MF",
 					      "-MT", "-MQ", "-isystem", "-aux-info",
 					      "--param", "-A", "-Xlinker", "-u",
-					      "-idirafter", 
+					      "-idirafter",
 					      NULL};
 			int j;
 			for (j=0;opts[j];j++) {
 				if (strcmp(argv[i], opts[j]) == 0) {
 					if (i == argc-1) {
-						cc_log("missing argument to %s\n", 
+						cc_log("missing argument to %s\n",
 						       argv[i]);
 						stats_update(STATS_ARGS);
 						failed();
 					}
-						
+
 					args_add(stripped_args, argv[i]);
 					args_add(stripped_args, argv[i+1]);
 					i++;
@@ -792,7 +792,7 @@ static void process_args(int argc, char **argv)
 		   cope better with unusual compiler options */
 		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
 			args_add(stripped_args, argv[i]);
-			continue;			
+			continue;
 		}
 
 		if (input_file) {
@@ -882,7 +882,7 @@ static void process_args(int argc, char **argv)
 			}
 			else  {
 				int len = p - default_depfile_name;
-				
+
 				p = x_malloc(len + 3);
 				strncpy(default_depfile_name, p, len - 1);
 				free(default_depfile_name);
@@ -922,7 +922,7 @@ static void ccache(int argc, char *argv[])
 		cc_log("ccache is disabled\n");
 		failed();
 	}
-	
+
 	/* we might be disabled */
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled\n");
@@ -946,7 +946,7 @@ static void ccache(int argc, char *argv[])
 		cc_log("read-only set - doing real compile\n");
 		failed();
 	}
-	
+
 	prefix = getenv("CCACHE_PREFIX");
 	if (prefix) {
 		char *p = find_executable(prefix, MYNAME);
@@ -974,7 +974,7 @@ static void usage(void)
 {
 	printf("ccache, a compiler cache. Version %s\n", CCACHE_VERSION);
 	printf("Copyright Andrew Tridgell, 2002\n\n");
-	
+
 	printf("Usage:\n");
 	printf("\tccache [options]\n");
 	printf("\tccache compiler [compile options]\n");
@@ -1028,7 +1028,7 @@ static int ccache_main(int argc, char *argv[])
 		case 'h':
 			usage();
 			exit(0);
-			
+
 		case 's':
 			check_cache_dir();
 			stats_summary();
@@ -1090,7 +1090,7 @@ static void setup_uncached_err(void)
 {
 	char *buf;
 	int uncached_fd;
-	
+
 	uncached_fd = dup(2);
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed\n");
@@ -1127,7 +1127,7 @@ int main(int argc, char *argv[])
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
 	setup_uncached_err();
-	
+
 
 	/* the user might have set CCACHE_UMASK */
 	p = getenv("CCACHE_UMASK");
@@ -1157,7 +1157,7 @@ int main(int argc, char *argv[])
 
 	/* make sure the cache dir exists */
 	if (cache_dir && (create_dir(cache_dir) != 0)) {
-		fprintf(stderr,"ccache: failed to create %s (%s)\n", 
+		fprintf(stderr,"ccache: failed to create %s (%s)\n",
 			cache_dir, strerror(errno));
 		exit(1);
 	}

@@ -1,16 +1,16 @@
 /*
    Copyright (C) Andrew Tridgell 2002
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -23,7 +23,7 @@
   execute a compiler backend, capturing all output to the given paths
   the full path to the compiler to run is in argv[0]
 */
-int execute(char **argv, 
+int execute(char **argv,
 	    const char *path_stdout,
 	    const char *path_stderr)
 {
@@ -32,7 +32,7 @@ int execute(char **argv,
 
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork");
-	
+
 	if (pid == 0) {
 		int fd;
 
@@ -68,7 +68,7 @@ int execute(char **argv,
 
 
 /*
-  find an executable by name in $PATH. Exclude any that are links to exclude_name 
+  find an executable by name in $PATH. Exclude any that are links to exclude_name
 */
 char *find_executable(const char *name, const char *exclude_name)
 {
@@ -90,7 +90,7 @@ char *find_executable(const char *name, const char *exclude_name)
 	}
 
 	path = x_strdup(path);
-	
+
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
 	for (tok=strtok(path,":"); tok; tok = strtok(NULL, ":")) {

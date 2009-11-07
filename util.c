@@ -1,16 +1,16 @@
 /*
    Copyright (C) Andrew Tridgell 2002
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -30,7 +30,7 @@ void cc_log(const char *format, ...)
 
 	if (!logfile) logfile = fopen(cache_logfile, "a");
 	if (!logfile) return;
-	
+
 	va_start(ap, format);
 	vfprintf(logfile, format, ap);
 	va_end(ap);
@@ -72,13 +72,13 @@ static int safe_rename(const char* oldpath, const char* newpath)
 		return -1;
 	}
 }
- 
+
 /* move a file using rename */
 int move_file(const char *src, const char *dest) {
 	return safe_rename(src, dest);
 }
 
-/* copy a file - used when hard links don't work 
+/* copy a file - used when hard links don't work
    the copy is done via a temporary file and atomic rename
 */
 int copy_file(const char *src, const char *dest)
@@ -305,7 +305,7 @@ int test_if_compressed(const char *filename) {
 		fclose(f);
 		return 0;
 	}
-	
+
 	fclose(f);
 	return 1;
 }
@@ -374,7 +374,7 @@ void x_asprintf(char **ptr, const char *format, ...)
 		fatal("out of memory in x_asprintf");
 	}
 	va_end(ap);
-	
+
 	if (!*ptr) fatal("out of memory in x_asprintf");
 }
 
@@ -419,7 +419,7 @@ void *x_realloc(void *ptr, size_t size)
 }
 
 
-/* 
+/*
    revsusive directory traversal - used for cleanup
    fn() is called on all files/dirs in the tree
  */
@@ -467,7 +467,7 @@ char *str_basename(const char *s)
 	char *p = strrchr(s, '/');
 	if (p) {
 		return x_strdup(p+1);
-	} 
+	}
 
 	return x_strdup(s);
 }
@@ -480,7 +480,7 @@ char *dirname(char *s)
 	p = strrchr(s, '/');
 	if (p) {
 		*p = 0;
-	} 
+	}
 	return s;
 }
 
@@ -568,7 +568,7 @@ size_t value_units(const char *s)
 
 
 /*
-  a sane realpath() function, trying to cope with stupid path limits and 
+  a sane realpath() function, trying to cope with stupid path limits and
   a broken API
 */
 char *x_realpath(const char *path)
@@ -583,7 +583,7 @@ char *x_realpath(const char *path)
 	maxlen = pathconf(path, _PC_PATH_MAX);
 #endif
 	if (maxlen < 4096) maxlen = 4096;
-	
+
 	ret = x_malloc(maxlen);
 
 #if HAVE_REALPATH

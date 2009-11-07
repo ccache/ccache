@@ -1,22 +1,22 @@
 /*
    Copyright (C) Andrew Tridgell 2002
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 /*
-  functions to cleanup the cache directory when it gets too large 
+  functions to cleanup the cache directory when it gets too large
  */
 
 #include "ccache.h"
@@ -72,7 +72,7 @@ static void traverse_fn(const char *fname, struct stat *st)
 
 	if (num_files == allocated) {
 		allocated = 10000 + num_files*2;
-		files = (struct files **)x_realloc(files, 
+		files = (struct files **)x_realloc(files,
 						   sizeof(struct files *)*allocated);
 	}
 
@@ -92,23 +92,23 @@ static void sort_and_clean(void)
 
 	if (num_files > 1) {
 		/* sort in ascending data order */
-		qsort(files, num_files, sizeof(struct files *), 
+		qsort(files, num_files, sizeof(struct files *),
 		      (COMPAR_FN_T)files_compare);
 	}
-	
+
 	/* delete enough files to bring us below the threshold */
 	for (i=0;i<num_files; i++) {
 		if ((size_threshold==0 || total_size < size_threshold) &&
 		    (files_threshold==0 || (num_files-i) < files_threshold)) break;
 
 		if (unlink(files[i]->fname) != 0 && errno != ENOENT) {
-			fprintf(stderr, "unlink %s - %s\n", 
+			fprintf(stderr, "unlink %s - %s\n",
 				files[i]->fname, strerror(errno));
 			continue;
 		}
-		
+
 		total_size -= files[i]->size;
-	}	
+	}
 
 	total_files = num_files - i;
 }
@@ -152,7 +152,7 @@ void cleanup_all(const char *dir)
 	unsigned counters[STATS_END];
 	char *dname, *sfile;
 	int i;
-	
+
 	for (i=0;i<=0xF;i++) {
 		x_asprintf(&dname, "%s/%1x", dir, i);
 		x_asprintf(&sfile, "%s/%1x/stats", dir, i);
@@ -160,8 +160,8 @@ void cleanup_all(const char *dir)
 		memset(counters, 0, sizeof(counters));
 		stats_read(sfile, counters);
 
-		cleanup_dir(dname, 
-			    counters[STATS_MAXFILES], 
+		cleanup_dir(dname,
+			    counters[STATS_MAXFILES],
 			    counters[STATS_MAXSIZE]);
 		free(dname);
 		free(sfile);
@@ -192,7 +192,7 @@ void wipe_all(const char *dir)
 {
 	char *dname;
 	int i;
-	
+
 	for (i=0;i<=0xF;i++) {
 		x_asprintf(&dname, "%s/%1x", dir, i);
 		traverse(dir, wipe_fn);

@@ -146,7 +146,7 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
 void cleanup_all(const char *dir);
 void wipe_all(const char *dir);
 
-int execute(char **argv, 
+int execute(char **argv,
 	    const char *path_stdout,
 	    const char *path_stderr);
 char *find_executable(const char *name, const char *exclude_name);

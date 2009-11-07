@@ -71,22 +71,22 @@ basetests() {
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit' 0
     checkstat 'cache miss' 1
-    
+
     testname="BASIC2"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit' 1
     checkstat 'cache miss' 1
-    
+
     testname="debug"
     $CCACHE_COMPILE -c test1.c -g
     checkstat 'cache hit' 1
     checkstat 'cache miss' 2
-    
+
     testname="debug2"
     $CCACHE_COMPILE -c test1.c -g
     checkstat 'cache hit' 2
     checkstat 'cache miss' 2
-    
+
     testname="output"
     $CCACHE_COMPILE -c test1.c -o foo.o
     checkstat 'cache hit' 3
@@ -102,7 +102,7 @@ basetests() {
 
     testname="find"
     $CCACHE blahblah -c test1.c 2> /dev/null
-    checkstat "couldn't find the compiler" 1 
+    checkstat "couldn't find the compiler" 1
 
     testname="bad"
     $CCACHE_COMPILE -c test1.c -I 2> /dev/null
@@ -134,31 +134,31 @@ basetests() {
 
     testname="CCACHE_DISABLE"
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2> /dev/null
-    checkstat 'cache hit' 3 
+    checkstat 'cache hit' 3
     $CCACHE_COMPILE -c test1.c
-    checkstat 'cache hit' 4 
+    checkstat 'cache hit' 4
 
     testname="CCACHE_CPP2"
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
-    checkstat 'cache hit' 4 
+    checkstat 'cache hit' 4
     checkstat 'cache miss' 3
 
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
-    checkstat 'cache hit' 5 
+    checkstat 'cache hit' 5
     checkstat 'cache miss' 3
 
     testname="CCACHE_NOSTATS"
     CCACHE_NOSTATS=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit' 5
     checkstat 'cache miss' 3
-    
+
     testname="CCACHE_RECACHE"
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c -O -O
-    checkstat 'cache hit' 5 
+    checkstat 'cache hit' 5
     checkstat 'cache miss' 4
 
     # strictly speaking should be 6 - RECACHE causes a double counting!
-    checkstat 'files in cache' 8 
+    checkstat 'files in cache' 8
     $CCACHE -c > /dev/null
     checkstat 'files in cache' 6
 
@@ -173,7 +173,7 @@ basetests() {
     checkstat 'cache miss' 5
 
     checkstat 'files in cache' 8
-    
+
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c
     cat test1.c >> test1-comment.c
@@ -225,7 +225,7 @@ basetests() {
     checkstat 'cache miss' 38
 
     # removed these tests as some compilers (including newer versions of gcc)
-    # determine which language to use based on .ii/.i extension, and C++ may 
+    # determine which language to use based on .ii/.i extension, and C++ may
     # not be installed
 #     testname="direct .ii file"
 #     mv test1.i test1.ii
@@ -236,7 +236,7 @@ basetests() {
 #     $CCACHE_COMPILE -c test1.ii
 #     checkstat 'cache hit' 11
 #     checkstat 'cache miss' 39
-    
+
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit' 0

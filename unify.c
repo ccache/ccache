@@ -1,16 +1,16 @@
 /*
    Copyright (C) Andrew Tridgell 2002
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -27,7 +27,7 @@
   this unifier is much faster (about 2x) and more forgiving of
   syntactic errors. Continuing on syntactic errors is important to
   cope with C/C++ extensions in the local compiler (for example,
-  inline assembly systems).  
+  inline assembly systems).
 */
 
 #include "ccache.h"
@@ -146,7 +146,7 @@ static void unify(unsigned char *p, size_t size)
 			do {
 				pushchar(p[ofs]);
 				ofs++;
-			} while (ofs < size && 
+			} while (ofs < size &&
 				 (tokens[p[ofs]].type & (C_ALPHA|C_DIGIT)));
 			pushchar('\n');
 			continue;
@@ -156,7 +156,7 @@ static void unify(unsigned char *p, size_t size)
 			do {
 				pushchar(p[ofs]);
 				ofs++;
-			} while (ofs < size && 
+			} while (ofs < size &&
 				 ((tokens[p[ofs]].type & C_DIGIT) || p[ofs] == '.'));
 			if (ofs < size && (p[ofs] == 'x' || p[ofs] == 'X')) {
 				do {
@@ -167,7 +167,7 @@ static void unify(unsigned char *p, size_t size)
 			if (ofs < size && (p[ofs] == 'E' || p[ofs] == 'e')) {
 				pushchar(p[ofs]);
 				ofs++;
-				while (ofs < size && 
+				while (ofs < size &&
 				       (tokens[p[ofs]].type & (C_DIGIT|C_SIGN))) {
 					pushchar(p[ofs]);
 					ofs++;
@@ -187,7 +187,7 @@ static void unify(unsigned char *p, size_t size)
 			} while (ofs < size && (tokens[p[ofs]].type & C_SPACE));
 			continue;
 		}
-			
+
 		if (tokens[p[ofs]].type & C_QUOTE) {
 			q = p[ofs];
 			pushchar(p[ofs]);
@@ -233,13 +233,13 @@ static void unify(unsigned char *p, size_t size)
 }
 
 
-/* hash a file that consists of preprocessor output, but remove any line 
+/* hash a file that consists of preprocessor output, but remove any line
    number information from the hash
 */
 int unify_hash(const char *fname)
 {
 	int fd;
-	struct stat st;	
+	struct stat st;
 	char *map;
 
 	fd = open(fname, O_RDONLY|O_BINARY);
@@ -266,4 +266,3 @@ int unify_hash(const char *fname)
 
 	return 0;
 }
-
