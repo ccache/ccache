@@ -270,19 +270,31 @@ basetests
 
 testsuite="hardlink"
 CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_HARDLINK=1 basetests
+CCACHE_HARDLINK=1
+export CCACHE_HARDLINK
+basetests
+unset CCACHE_HARDLINK
 
 testsuite="cpp2"
 CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_CPP2=1 basetests
+CCACHE_CPP2=1
+export CCACHE_CPP2
+basetests
+unset CCACHE_CPP2
 
 testsuite="nlevels4"
 CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_NLEVELS=4 basetests
+CCACHE_NLEVELS=4
+export CCACHE_NLEVELS
+basetests
+unset CCACHE_NLEVELS
 
 testsuite="nlevels1"
 CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_NLEVELS=1 basetests
+CCACHE_NLEVELS=1
+export CCACHE_NLEVELS
+basetests
+unset CCACHE_NLEVELS
 
 cd ..
 rm -rf $TESTDIR
