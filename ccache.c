@@ -275,6 +275,8 @@ static void find_hash(ARGS *args)
 	int nlevels = 2;
 	char *input_base;
 	char *tmp;
+	struct mdfour hash;
+
 
 	if ((s = getenv("CCACHE_NLEVELS"))) {
 		nlevels = atoi(s);
@@ -282,17 +284,17 @@ static void find_hash(ARGS *args)
 		if (nlevels > 8) nlevels = 8;
 	}
 
-	hash_start();
+	hash_start(&hash);
 
 	/* when we are doing the unifying tricks we need to include
            the input file name in the hash to get the warnings right */
 	if (enable_unify) {
-		hash_string(input_file);
+		hash_string(&hash, input_file);
 	}
 
 	/* we have to hash the extension, as a .i file isn't treated the same
 	   by the compiler as a .ii file */
-	hash_string(i_extension);
+	hash_string(&hash, i_extension);
 
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
@@ -323,12 +325,12 @@ static void find_hash(ARGS *args)
 		    stat(args->argv[i]+8, &st) == 0) {
 			/* if given a explicit specs file, then hash that file, but
 			   don't include the path to it in the hash */
-			hash_file(args->argv[i]+8);
+			hash_file(&hash, args->argv[i]+8);
 			continue;
 		}
 
 		/* all other arguments are included in the hash */
-		hash_string(args->argv[i]);
+		hash_string(&hash, args->argv[i]);
 	}
 
 	/* the compiler driver size and date. This is a simple minded way
@@ -342,21 +344,21 @@ static void find_hash(ARGS *args)
 	/* also include the hash of the compiler name - as some compilers
 	   use hard links and behave differently depending on the real name */
 	if (st.st_nlink > 1) {
-		hash_string(str_basename(args->argv[0]));
+		hash_string(&hash, str_basename(args->argv[0]));
 	}
 
 	if (getenv("CCACHE_HASH_COMPILER")) {
-		hash_file(args->argv[0]);
+		hash_file(&hash, args->argv[0]);
 	} else if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
-		hash_int(st.st_size);
-		hash_int(st.st_mtime);
+		hash_int(&hash, st.st_size);
+		hash_int(&hash, st.st_mtime);
 	}
 
 	/* possibly hash the current working directory */
 	if (getenv("CCACHE_HASHDIR")) {
 		char *cwd = gnu_getcwd();
 		if (cwd) {
-			hash_string(cwd);
+			hash_string(&hash, cwd);
 			free(cwd);
 		}
 	}
@@ -418,14 +420,14 @@ static void find_hash(ARGS *args)
 	   as it gives the wrong line numbers for warnings. Pity.
 	*/
 	if (!enable_unify) {
-		hash_file(path_stdout);
+		hash_file(&hash, path_stdout);
 	} else {
-		if (unify_hash(path_stdout) != 0) {
+		if (unify_hash(&hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
-	hash_file(path_stderr);
+	hash_file(&hash, path_stderr);
 
 	i_tmpfile = path_stdout;
 
@@ -442,7 +444,7 @@ static void find_hash(ARGS *args)
 	/* we use a N level subdir for the cache path to reduce the impact
 	   on filesystems which are slow for large directories
 	*/
-	s = hash_result();
+	s = hash_result(&hash);
 	x_asprintf(&hash_dir, "%s/%c", cache_dir, s[0]);
 	x_asprintf(&stats_file, "%s/stats", hash_dir);
 	for (i=1; i<nlevels; i++) {

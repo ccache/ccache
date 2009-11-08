@@ -94,29 +94,29 @@ static void build_table(void)
 }
 
 /* buffer up characters before hashing them */
-static void pushchar(unsigned char c)
+static void pushchar(struct mdfour *hash, unsigned char c)
 {
 	static unsigned char buf[64];
 	static int len;
 
 	if (c == 0) {
 		if (len > 0) {
-			hash_buffer((char *)buf, len);
+			hash_buffer(hash, (char *)buf, len);
 			len = 0;
 		}
-		hash_buffer(NULL, 0);
+		hash_buffer(hash, NULL, 0);
 		return;
 	}
 
 	buf[len++] = c;
 	if (len == 64) {
-		hash_buffer((char *)buf, len);
+		hash_buffer(hash, (char *)buf, len);
 		len = 0;
 	}
 }
 
 /* hash some C/C++ code after unifying */
-static void unify(unsigned char *p, size_t size)
+static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 {
 	size_t ofs;
 	unsigned char q;
@@ -133,10 +133,10 @@ static void unify(unsigned char *p, size_t size)
 				ofs++;
 			} else {
 				do {
-					pushchar(p[ofs]);
+					pushchar(hash, p[ofs]);
 					ofs++;
 				} while (ofs < size && p[ofs] != '\n');
-				pushchar('\n');
+				pushchar(hash, '\n');
 				ofs++;
 			}
 			continue;
@@ -144,40 +144,40 @@ static void unify(unsigned char *p, size_t size)
 
 		if (tokens[p[ofs]].type & C_ALPHA) {
 			do {
-				pushchar(p[ofs]);
+				pushchar(hash, p[ofs]);
 				ofs++;
 			} while (ofs < size &&
 				 (tokens[p[ofs]].type & (C_ALPHA|C_DIGIT)));
-			pushchar('\n');
+			pushchar(hash, '\n');
 			continue;
 		}
 
 		if (tokens[p[ofs]].type & C_DIGIT) {
 			do {
-				pushchar(p[ofs]);
+				pushchar(hash, p[ofs]);
 				ofs++;
 			} while (ofs < size &&
 				 ((tokens[p[ofs]].type & C_DIGIT) || p[ofs] == '.'));
 			if (ofs < size && (p[ofs] == 'x' || p[ofs] == 'X')) {
 				do {
-					pushchar(p[ofs]);
+					pushchar(hash, p[ofs]);
 					ofs++;
 				} while (ofs < size && (tokens[p[ofs]].type & C_HEX));
 			}
 			if (ofs < size && (p[ofs] == 'E' || p[ofs] == 'e')) {
-				pushchar(p[ofs]);
+				pushchar(hash, p[ofs]);
 				ofs++;
 				while (ofs < size &&
 				       (tokens[p[ofs]].type & (C_DIGIT|C_SIGN))) {
-					pushchar(p[ofs]);
+					pushchar(hash, p[ofs]);
 					ofs++;
 				}
 			}
 			while (ofs < size && (tokens[p[ofs]].type & C_FLOAT)) {
-				pushchar(p[ofs]);
+				pushchar(hash, p[ofs]);
 				ofs++;
 			}
-			pushchar('\n');
+			pushchar(hash, '\n');
 			continue;
 		}
 
@@ -190,17 +190,17 @@ static void unify(unsigned char *p, size_t size)
 
 		if (tokens[p[ofs]].type & C_QUOTE) {
 			q = p[ofs];
-			pushchar(p[ofs]);
+			pushchar(hash, p[ofs]);
 			do {
 				ofs++;
 				while (ofs < size-1 && p[ofs] == '\\') {
-					pushchar(p[ofs]);
-					pushchar(p[ofs+1]);
+					pushchar(hash, p[ofs]);
+					pushchar(hash, p[ofs+1]);
 					ofs+=2;
 				}
-				pushchar(p[ofs]);
+				pushchar(hash, p[ofs]);
 			} while (ofs < size && p[ofs] != q);
-			pushchar('\n');
+			pushchar(hash, '\n');
 			ofs++;
 			continue;
 		}
@@ -213,10 +213,10 @@ static void unify(unsigned char *p, size_t size)
 				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
 					for (j=0;s[j];j++) {
-						pushchar(s[j]);
+						pushchar(hash, s[j]);
 						ofs++;
 					}
-					pushchar('\n');
+					pushchar(hash, '\n');
 					break;
 				}
 			}
@@ -225,18 +225,18 @@ static void unify(unsigned char *p, size_t size)
 			}
 		}
 
-		pushchar(p[ofs]);
-		pushchar('\n');
+		pushchar(hash, p[ofs]);
+		pushchar(hash, '\n');
 		ofs++;
 	}
-	pushchar(0);
+	pushchar(hash, 0);
 }
 
 
 /* hash a file that consists of preprocessor output, but remove any line
    number information from the hash
 */
-int unify_hash(const char *fname)
+int unify_hash(struct mdfour *hash, const char *fname)
 {
 	int fd;
 	struct stat st;
@@ -260,7 +260,7 @@ int unify_hash(const char *fname)
 	close(fd);
 
 	/* pass it through the unifier */
-	unify((unsigned char *)map, st.st_size);
+	unify(hash, (unsigned char *)map, st.st_size);
 
 	munmap(map, st.st_size);
 

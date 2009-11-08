@@ -87,12 +87,12 @@ typedef unsigned uint32;
 
 #include "mdfour.h"
 
-void hash_start(void);
-void hash_string(const char *s);
-void hash_int(int x);
-void hash_file(const char *fname);
-char *hash_result(void);
-void hash_buffer(const char *s, int len);
+void hash_start(struct mdfour *md);
+void hash_string(struct mdfour *md, const char *s);
+void hash_int(struct mdfour *md, int x);
+void hash_file(struct mdfour *md, const char *fname);
+char *hash_result(struct mdfour *md);
+void hash_buffer(struct mdfour *md, const char *s, int len);
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void fatal(const char *msg);
@@ -129,7 +129,7 @@ size_t value_units(const char *s);
 void display_size(unsigned v);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
-int unify_hash(const char *fname);
+int unify_hash(struct mdfour *hash, const char *fname);
 
 #ifndef HAVE_VASPRINTF
 int vasprintf(char **, const char *, va_list) ATTR_FORMAT(printf, 2, 0);

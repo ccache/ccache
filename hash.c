@@ -21,30 +21,28 @@
 
 #include "ccache.h"
 
-static struct mdfour md;
-
-void hash_buffer(const char *s, int len)
+void hash_buffer(struct mdfour *md, const char *s, int len)
 {
-	mdfour_update(&md, (unsigned char *)s, len);
+	mdfour_update(md, (unsigned char *)s, len);
 }
 
-void hash_start(void)
+void hash_start(struct mdfour *md)
 {
-	mdfour_begin(&md);
+	mdfour_begin(md);
 }
 
-void hash_string(const char *s)
+void hash_string(struct mdfour *md, const char *s)
 {
-	hash_buffer(s, strlen(s));
+	hash_buffer(md, s, strlen(s));
 }
 
-void hash_int(int x)
+void hash_int(struct mdfour *md, int x)
 {
-	hash_buffer((char *)&x, sizeof(x));
+	hash_buffer(md, (char *)&x, sizeof(x));
 }
 
 /* add contents of a file to the hash */
-void hash_file(const char *fname)
+void hash_file(struct mdfour *md, const char *fname)
 {
 	char buf[1024];
 	int fd, n;
@@ -56,25 +54,25 @@ void hash_file(const char *fname)
 	}
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
-		hash_buffer(buf, n);
+		hash_buffer(md, buf, n);
 	}
 	close(fd);
 }
 
 /* return the hash result as a static string */
-char *hash_result(void)
+char *hash_result(struct mdfour *md)
 {
 	unsigned char sum[16];
 	static char ret[53];
 	int i;
 
-	hash_buffer(NULL, 0);
-	mdfour_result(&md, sum);
+	hash_buffer(md, NULL, 0);
+	mdfour_result(md, sum);
 
 	for (i=0;i<16;i++) {
 		sprintf(&ret[i*2], "%02x", (unsigned)sum[i]);
 	}
-	sprintf(&ret[i*2], "-%u", (unsigned)md.totalN);
+	sprintf(&ret[i*2], "-%u", (unsigned)md->totalN);
 
 	return ret;
 }
