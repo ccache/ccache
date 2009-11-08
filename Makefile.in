@@ -8,22 +8,25 @@ mandir=@mandir@
 INSTALLCMD=@INSTALL@
 
 CC=@CC@
-CPPFLAGS=@CPPFLAGS@ -I.
+CPPFLAGS=@CPPFLAGS@ -MD -MP -I.
 CFLAGS=$(CPPFLAGS) @CFLAGS@
 LDFLAGS=@LDFLAGS@
 EXEEXT=@EXEEXT@
 
 LIBS= @LIBS@
-OBJS= ccache.o mdfour.o hash.o execute.o util.o args.o stats.o \
-	cleanup.o snprintf.o unify.o
-HEADERS = ccache.h mdfour.h
+
+sources = \
+	ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
+	cleanup.c snprintf.c unify.c
+
+objs = $(sources:.c=.o)
 
 all: ccache$(EXEEXT)
 
 docs: ccache.1 web/ccache-man.html
 
-ccache$(EXEEXT): $(OBJS) $(HEADERS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+ccache$(EXEEXT): $(objs)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(LIBS)
 
 ccache.1: ccache.yo
 	-yodl2man -o ccache.1 ccache.yo
@@ -39,7 +42,7 @@ install: ccache$(EXEEXT) ccache.1
 	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
 
 clean:
-	/bin/rm -f $(OBJS) *~ ccache$(EXEEXT)
+	/bin/rm -f $(objs) *~ ccache$(EXEEXT) *.d
 
 test: test.sh
 	CC='$(CC)' ./test.sh
@@ -56,4 +59,6 @@ installcheck:
 	$(MAKE) check
 
 check-syntax:
-	$(CC) $(CPPFLAGS) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
+
+-include $(sources:.c=.d)
