@@ -145,7 +145,7 @@ static const char *tmp_string(void)
 #endif
 		hostname[sizeof(hostname)-1] = 0;
 		if (asprintf(&ret, "%s.%u", hostname, (unsigned)getpid()) == -1) {
-			fatal("could not allocate tmp_string");
+			fatal("Could not allocate tmp_string\n");
 		}
 	}
 
@@ -996,7 +996,7 @@ static void usage(void)
 static void check_cache_dir(void)
 {
 	if (!cache_dir) {
-		fatal("Unable to determine home directory");
+		fatal("Unable to determine home directory\n");
 	}
 }
 

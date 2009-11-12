@@ -95,7 +95,7 @@ char *hash_result(struct mdfour *md);
 void hash_buffer(struct mdfour *md, const char *s, int len);
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-void fatal(const char *msg);
+void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);
 int copy_file(const char *src, const char *dest);

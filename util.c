@@ -38,9 +38,26 @@ void cc_log(const char *format, ...)
 }
 
 /* something went badly wrong! */
-void fatal(const char *msg)
+void fatal(const char *format, ...)
 {
-	cc_log("FATAL: %s\n", msg);
+	va_list ap;
+	extern char *cache_logfile;
+
+	if (!cache_logfile) return;
+
+	if (!logfile) logfile = fopen(cache_logfile, "a");
+	if (!logfile) return;
+
+	va_start(ap, format);
+
+	fprintf(logfile, "FATAL: ");
+	vfprintf(logfile, format, ap);
+	fflush(logfile);
+
+	fprintf(stderr, "ccache: FATAL: ");
+	vfprintf(stderr, format, ap);
+
+	va_end(ap);
 	exit(1);
 }
 
@@ -53,7 +70,7 @@ void copy_fd(int fd_in, int fd_out)
 
 	while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
 		if (write(fd_out, buf, n) != n) {
-			fatal("Failed to copy fd");
+			fatal("Failed to copy fd\n");
 		}
 	}
 }
@@ -154,12 +171,12 @@ void copy_fd(int fd_in, int fd_out) {
 	gz_in = gzdopen(dup(fd_in), "rb");
 
 	if (!gz_in) {
-		fatal("Failed to copy fd");
+		fatal("Failed to copy fd\n");
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		if (write(fd_out, buf, n) != n) {
-			fatal("Failed to copy fd");
+			fatal("Failed to copy fd\n");
 		}
 	}
 }
@@ -371,11 +388,11 @@ void x_asprintf(char **ptr, const char *format, ...)
 	*ptr = NULL;
 	va_start(ap, format);
 	if (vasprintf(ptr, format, ap) == -1) {
-		fatal("out of memory in x_asprintf");
+		fatal("Out of memory in x_asprintf\n");
 	}
 	va_end(ap);
 
-	if (!*ptr) fatal("out of memory in x_asprintf");
+	if (!*ptr) fatal("Out of memory in x_asprintf\n");
 }
 
 /*
@@ -386,7 +403,7 @@ char *x_strdup(const char *s)
 	char *ret;
 	ret = strdup(s);
 	if (!ret) {
-		fatal("out of memory in strdup\n");
+		fatal("Out of memory in strdup\n");
 	}
 	return ret;
 }
@@ -399,7 +416,7 @@ void *x_malloc(size_t size)
 	void *ret;
 	ret = malloc(size);
 	if (!ret) {
-		fatal("out of memory in malloc\n");
+		fatal("Out of memory in malloc\n");
 	}
 	return ret;
 }
@@ -413,7 +430,7 @@ void *x_realloc(void *ptr, size_t size)
 	if (!ptr) return x_malloc(size);
 	p2 = realloc(ptr, size);
 	if (!p2) {
-		fatal("out of memory in x_realloc");
+		fatal("Out of memory in x_realloc\n");
 	}
 	return p2;
 }

@@ -31,7 +31,7 @@ int execute(char **argv,
 	int status;
 
 	pid = fork();
-	if (pid == -1) fatal("Failed to fork");
+	if (pid == -1) fatal("Failed to fork\n");
 
 	if (pid == 0) {
 		int fd;
@@ -56,7 +56,7 @@ int execute(char **argv,
 	}
 
 	if (waitpid(pid, &status, 0) != pid) {
-		fatal("waitpid failed");
+		fatal("waitpid failed\n");
 	}
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
