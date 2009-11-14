@@ -1,3 +1,6 @@
+#ifndef CCACHE_H
+#define CCACHE_H
+
 #define CCACHE_VERSION "2.4"
 
 #include "config.h"
@@ -56,6 +59,7 @@
 #define COPY_TO_CACHE 2
 #endif
 
+/* statistics fields in storage order */
 enum stats {
 	STATS_NONE=0,
 	STATS_STDOUT,
@@ -65,7 +69,7 @@ enum stats {
 	STATS_PREPROCESSOR,
 	STATS_COMPILER,
 	STATS_MISSING,
-	STATS_CACHED,
+	STATS_CACHEHIT_CPP,
 	STATS_ARGS,
 	STATS_LINK,
 	STATS_NUMFILES,
@@ -79,6 +83,7 @@ enum stats {
 	STATS_CONFTEST,
 	STATS_UNSUPPORTED,
 	STATS_OUTSTDOUT,
+	STATS_CACHEHIT_DIR,
 
 	STATS_END
 };
@@ -90,8 +95,10 @@ typedef unsigned uint32;
 void hash_start(struct mdfour *md);
 void hash_string(struct mdfour *md, const char *s);
 void hash_int(struct mdfour *md, int x);
-void hash_file(struct mdfour *md, const char *fname);
+int hash_fd(struct mdfour *md, int fd);
+int hash_file(struct mdfour *md, const char *fname);
 char *hash_result(struct mdfour *md);
+void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
 void hash_buffer(struct mdfour *md, const char *s, int len);
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -103,15 +110,19 @@ int move_file(const char *src, const char *dest);
 int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
+const char *tmp_string(void);
+int create_hash_dir(char **dir, const char *hash, const char *cache_dir);
 int create_cachedirtag(const char *dir);
 void x_asprintf(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);
+char *x_strndup(const char *s, size_t n);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *str_basename(const char *s);
 char *dirname(char *s);
-int lock_fd(int fd);
+int read_lock_fd(int fd);
+int write_lock_fd(int fd);
 size_t file_size(struct stat *st);
 int safe_open(const char *fname);
 char *x_realpath(const char *path);
@@ -180,3 +191,5 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #ifdef __CYGWIN__
 #undef HAVE_MKSTEMP
 #endif
+
+#endif /* ifndef CCACHE_H */

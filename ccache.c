@@ -5,6 +5,7 @@
 
    Copyright (C) Andrew Tridgell 2002
    Copyright (C) Martin Pool 2003
+   Copyright (C) Joel Rosdahl 2009
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,13 +23,18 @@
 */
 
 #include "ccache.h"
+#include "hashtable.h"
+#include "hashtable_itr.h"
+#include "hashutil.h"
+#include "manifest.h"
+
 #include <getopt.h>
 
 /* the base cache directory */
 char *cache_dir = NULL;
 
 /* the directory for temporary files */
-static char *temp_dir = NULL;
+char *temp_dir = NULL;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
@@ -45,8 +51,42 @@ static char *output_file;
 /* the source file */
 static char *input_file;
 
-/* the name of the file containing the cached object code */
-static char *hashname;
+/*
+ * the hash of the file containing the cached object code (abcdef[...]-size)
+ */
+struct file_hash *object_hash;
+
+/*
+ * the name of the file containing the cached object code (abcdef[...]-size)
+ */
+static char *object_name;
+
+/*
+ * the full path of the file containing the cached object code
+ * (cachedir/a/b/cdef[...]-size)
+ */
+static char *object_path;
+
+/* the name of the manifest file without the extension (abcdef[...]-size) */
+static char *manifest_name;
+
+/*
+ * the full path of the file containing the manifest
+ * (cachedir/a/b/cdef[...]-size.manifest)
+ */
+static char *manifest_path;
+
+/*
+ * Time of compilation. Used to see if include files have changed after
+ * compilation.
+ */
+static time_t time_of_compilation;
+
+/*
+ * Files included by the preprocessor and their hashes/sizes. Key: file path.
+ * Value: struct file_hash.
+ */
+static struct hashtable *included_files;
 
 /* the extension of the file after pre-processing */
 static const char *i_extension;
@@ -65,6 +105,9 @@ char *stats_file = NULL;
 
 /* can we safely use the unification hashing backend? */
 static int enable_unify;
+
+/* should we use the direct mode? */
+static int enable_direct = 1;
 
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
@@ -87,6 +130,17 @@ static struct {
 	{"i", "i"},
 	{"ii", "ii"},
 	{NULL, NULL}};
+
+enum fromcache_call_mode {
+	FROMCACHE_DIRECT_MODE,
+	FROMCACHE_CPP_MODE,
+	FROMCACHE_COMPILED_MODE
+};
+
+enum findhash_call_mode {
+	FINDHASH_DIRECT_MODE,
+	FINDHASH_CPP_MODE
+};
 
 /*
   something went badly wrong - just execute the real compiler
@@ -129,29 +183,197 @@ static void failed(void)
 	exit(1);
 }
 
-
-/* return a string to be used to distinguish temporary files
-   this also tries to cope with NFS by adding the local hostname
-*/
-static const char *tmp_string(void)
+char *format_file_hash(struct file_hash *file_hash)
 {
-	static char *ret;
+	char *ret;
+	int i;
 
-	if (!ret) {
-		char hostname[200];
-		strcpy(hostname, "unknown");
-#if HAVE_GETHOSTNAME
-		gethostname(hostname, sizeof(hostname)-1);
-#endif
-		hostname[sizeof(hostname)-1] = 0;
-		if (asprintf(&ret, "%s.%u", hostname, (unsigned)getpid()) == -1) {
-			fatal("Could not allocate tmp_string\n");
-		}
+	ret = x_malloc(53);
+	for (i = 0; i < 16; i++) {
+		sprintf(&ret[i*2], "%02x", (unsigned)file_hash->hash[i]);
 	}
+	sprintf(&ret[i*2], "-%u", (unsigned)file_hash->size);
 
 	return ret;
 }
 
+/*
+ * Transform a name to a full path into the cache directory, creating needed
+ * sublevels if needed. Caller frees.
+ */
+static char *get_path_in_cache(const char *name, const char *suffix,
+                               int nlevels)
+{
+	int i;
+	char *path;
+	char *result;
+
+	path = x_strdup(cache_dir);
+	for (i = 0; i < nlevels; ++i) {
+		char *p;
+		x_asprintf(&p, "%s/%c", path, name[i]);
+		free(path);
+		path = p;
+		if (create_dir(path) != 0) {
+			cc_log("failed to create %s\n", path);
+			failed();
+		}
+	}
+	x_asprintf(&result, "%s/%s%s", path, name + nlevels, suffix);
+	free(path);
+	return result;
+}
+
+/* Takes over ownership of path. */
+static void remember_include_file(char *path, size_t path_len)
+{
+	struct file_hash *h;
+	struct mdfour fhash;
+	struct stat st;
+	int fd = -1;
+	int ret;
+
+	if (!included_files) {
+		goto ignore;
+	}
+
+	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
+		/* Typically <built-in> or <command-line>. */
+		goto ignore;
+	}
+
+	if (strcmp(path, input_file) == 0) {
+		/* Don't remember the input file. */
+		goto ignore;
+	}
+
+	if (hashtable_search(included_files, path)) {
+		/* Already known include file. */
+		goto ignore;
+	}
+
+	/* Let's hash the include file. */
+	fd = open(path, O_RDONLY|O_BINARY);
+	if (fd == -1) {
+		cc_log("Failed to open include file \"%s\"\n", path);
+		goto failure;
+	}
+	if (fstat(fd, &st) != 0) {
+		cc_log("Failed to fstat include file \"%s\"\n", path);
+		goto failure;
+	}
+	if (S_ISDIR(st.st_mode)) {
+		cc_log("Ignoring directory %s\n", path);
+		goto ignore;
+	}
+	if (st.st_mtime >= time_of_compilation
+	    || st.st_ctime >= time_of_compilation) {
+		cc_log("Include file \"%s\" too new\n", path);
+		goto failure;
+	}
+	hash_start(&fhash);
+	ret = hash_fd(&fhash, fd);
+	if (!ret) {
+		cc_log("Failed hashing include file \"%s\"\n", path);
+		goto failure;
+	}
+
+	/* Hashing OK. */
+	h = x_malloc(sizeof(*h));
+	hash_result_as_bytes(&fhash, h->hash);
+	h->size = fhash.totalN;
+	hashtable_insert(included_files, path, h);
+	close(fd);
+	return;
+
+failure:
+	cc_log("Disabling direct mode\n");
+	enable_direct = 0;
+	hashtable_destroy(included_files, 1);
+	included_files = NULL;
+	/* Fall through. */
+ignore:
+	free(path);
+	if (fd != -1) {
+		close(fd);
+	}
+}
+
+/*
+ * This function reads and hashes a file. While doing this, it also does these
+ * things with preprocessor lines starting with a hash:
+ *
+ * - TODO: Makes include file paths that match CCACHE_RELDIRS relative.
+ * - Stores the paths of included files in the global variable included_files.
+ */
+static void process_preprocessed_file(struct mdfour *hash, const char *path)
+{
+	int fd;
+	char *data;
+	char *p, *q, *end;
+	off_t size;
+	struct stat st;
+
+	fd = open(path, O_RDONLY);
+	if (fd == -1) {
+		cc_log("failed to open %s\n", path);
+		failed();
+	}
+	if (fstat(fd, &st) != 0) {
+		cc_log("failed to fstat %s\n", path);
+		failed();
+	}
+	size = st.st_size;
+	data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == (void *)-1) {
+		cc_log("failed to mmap %s\n", path);
+		failed();
+	}
+	close(fd);
+
+	if (enable_direct) {
+		included_files = create_hashtable(1000, hash_from_string,
+		                                  strings_equal);
+	}
+
+	/* Bytes between p and q are pending to be hashed. */
+	end = data + size;
+	p = data;
+	q = data;
+	while (q < end - 1) {
+		if (q[0] == '#' && q[1] == ' ' /* Need to avoid "#pragma"... */
+		    && (q == data || q[-1] == '\n')) {
+			char *path;
+
+			while (q < end && *q != '"') {
+				q++;
+			}
+			q++;
+			if (q >= end) {
+				failed();
+			}
+			/* q points to the beginning of an include file path */
+			hash_buffer(hash, p, q - p);
+			p = q;
+			while (q < end && *q != '"') {
+				q++;
+			}
+			/* p and q span the include file path */
+			path = x_strndup(p, q - p);
+			/* TODO: Rewrite path using CCACHE_RELDIRS here. */
+			hash_string(hash, path);
+			if (enable_direct) {
+				remember_include_file(path, q - p);
+			}
+			p = q;
+		} else {
+			q++;
+		}
+	}
+
+	hash_buffer(hash, p, (end - p));
+	munmap(data, size);
+}
 
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
@@ -161,9 +383,9 @@ static void to_cache(ARGS *args)
 	struct stat st1, st2;
 	int status;
 
-	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", hashname, tmp_string());
-	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", hashname, tmp_string());
-	x_asprintf(&tmp_hashname, "%s.tmp.%s", hashname, tmp_string());
+	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", object_path, tmp_string());
+	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", object_path, tmp_string());
+	x_asprintf(&tmp_hashname, "%s.tmp.%s", object_path, tmp_string());
 
 	args_add(args, "-o");
 	args_add(args, tmp_hashname);
@@ -231,11 +453,11 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	x_asprintf(&path_stderr, "%s.stderr", hashname);
+	x_asprintf(&path_stderr, "%s.stderr", object_path);
 
 	if (stat(tmp_stderr, &st1) != 0 ||
 		stat(tmp_hashname, &st2) != 0 ||
-		move_file(tmp_hashname, hashname) != 0 ||
+		move_file(tmp_hashname, object_path) != 0 ||
 		move_file(tmp_stderr, path_stderr) != 0) {
 		cc_log("failed to rename tmp files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
@@ -246,7 +468,7 @@ static void to_cache(ARGS *args)
 	/* do an extra stat on the cache files for
 	   the size statistics */
 	if (stat(path_stderr, &st1) != 0 ||
-		stat(hashname, &st2) != 0) {
+		stat(object_path, &st2) != 0) {
 		cc_log("failed to stat cache files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
@@ -262,106 +484,18 @@ static void to_cache(ARGS *args)
 	free(path_stderr);
 }
 
-/* find the hash for a command. The hash includes all argument lists,
-   plus the output from running the compiler with -E */
-static void find_hash(ARGS *args)
+/*
+ * Find the object file name by running the compiler in preprocessor mode.
+ * Returns the hash as a heap-allocated hex string.
+ */
+static struct file_hash *
+get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 {
-	int i;
-	char *path_stdout, *path_stderr;
-	char *hash_dir;
-	char *s;
-	struct stat st;
-	int status;
-	int nlevels = 2;
 	char *input_base;
 	char *tmp;
-	struct mdfour hash;
-
-
-	if ((s = getenv("CCACHE_NLEVELS"))) {
-		nlevels = atoi(s);
-		if (nlevels < 1) nlevels = 1;
-		if (nlevels > 8) nlevels = 8;
-	}
-
-	hash_start(&hash);
-
-	/* when we are doing the unifying tricks we need to include
-           the input file name in the hash to get the warnings right */
-	if (enable_unify) {
-		hash_string(&hash, input_file);
-	}
-
-	/* we have to hash the extension, as a .i file isn't treated the same
-	   by the compiler as a .ii file */
-	hash_string(&hash, i_extension);
-
-	/* first the arguments */
-	for (i=1;i<args->argc;i++) {
-		/* some arguments don't contribute to the hash. The
-		   theory is that these arguments will change the
-		   output of -E if they are going to have any effect
-		   at all, or they only affect linking */
-		if (i < args->argc-1) {
-			if (strcmp(args->argv[i], "-I") == 0 ||
-			    strcmp(args->argv[i], "-include") == 0 ||
-			    strcmp(args->argv[i], "-L") == 0 ||
-			    strcmp(args->argv[i], "-D") == 0 ||
-			    strcmp(args->argv[i], "-idirafter") == 0 ||
-			    strcmp(args->argv[i], "-isystem") == 0) {
-				i++;
-				continue;
-			}
-		}
-		if (strncmp(args->argv[i], "-I", 2) == 0 ||
-		    strncmp(args->argv[i], "-L", 2) == 0 ||
-		    strncmp(args->argv[i], "-D", 2) == 0 ||
-		    strncmp(args->argv[i], "-idirafter", 10) == 0 ||
-		    strncmp(args->argv[i], "-isystem", 8) == 0) {
-			continue;
-		}
-
-		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
-		    stat(args->argv[i]+8, &st) == 0) {
-			/* if given a explicit specs file, then hash that file, but
-			   don't include the path to it in the hash */
-			hash_file(&hash, args->argv[i]+8);
-			continue;
-		}
-
-		/* all other arguments are included in the hash */
-		hash_string(&hash, args->argv[i]);
-	}
-
-	/* the compiler driver size and date. This is a simple minded way
-	   to try and detect compiler upgrades. It is not 100% reliable */
-	if (stat(args->argv[0], &st) != 0) {
-		cc_log("Couldn't stat the compiler!? (argv[0]='%s')\n", args->argv[0]);
-		stats_update(STATS_COMPILER);
-		failed();
-	}
-
-	/* also include the hash of the compiler name - as some compilers
-	   use hard links and behave differently depending on the real name */
-	if (st.st_nlink > 1) {
-		hash_string(&hash, str_basename(args->argv[0]));
-	}
-
-	if (getenv("CCACHE_HASH_COMPILER")) {
-		hash_file(&hash, args->argv[0]);
-	} else if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
-		hash_int(&hash, st.st_size);
-		hash_int(&hash, st.st_mtime);
-	}
-
-	/* possibly hash the current working directory */
-	if (getenv("CCACHE_HASHDIR")) {
-		char *cwd = gnu_getcwd();
-		if (cwd) {
-			hash_string(&hash, cwd);
-			free(cwd);
-		}
-	}
+	char *path_stdout, *path_stderr;
+	int status;
+	struct file_hash *result;
 
 	/* ~/hello.c -> tmp.hello.123.i
 	   limit the basename to 10
@@ -378,9 +512,11 @@ static void find_hash(ARGS *args)
 
 	/* now the run */
 	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", temp_dir,
-		   input_base, tmp_string(),
-		   i_extension);
-	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
+	           input_base, tmp_string(), i_extension);
+	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", temp_dir,
+	           tmp_string());
+
+	time_of_compilation = time(NULL);
 
 	if (!direct_i_file) {
 		/* run cpp on the input file to obtain the .i */
@@ -420,64 +556,183 @@ static void find_hash(ARGS *args)
 	   as it gives the wrong line numbers for warnings. Pity.
 	*/
 	if (!enable_unify) {
-		hash_file(&hash, path_stdout);
+		process_preprocessed_file(hash, path_stdout);
 	} else {
-		if (unify_hash(&hash, path_stdout) != 0) {
+		if (unify_hash(hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
-	hash_file(&hash, path_stderr);
+
+	if (!hash_file(hash, path_stderr)) {
+		fatal("Failed to open %s\n", path_stderr);
+	}
 
 	i_tmpfile = path_stdout;
 
 	if (!getenv("CCACHE_CPP2")) {
-		/* if we are using the CPP trick then we need to remember this stderr
-		   data and output it just before the main stderr from the compiler
-		   pass */
+		/* if we are using the CPP trick then we need to remember this
+		   stderr stderr data and output it just before the main stderr
+		   from the compiler pass */
 		cpp_stderr = path_stderr;
 	} else {
 		unlink(path_stderr);
 		free(path_stderr);
 	}
 
-	/* we use a N level subdir for the cache path to reduce the impact
-	   on filesystems which are slow for large directories
-	*/
-	s = hash_result(&hash);
-	x_asprintf(&hash_dir, "%s/%c", cache_dir, s[0]);
-	x_asprintf(&stats_file, "%s/stats", hash_dir);
-	for (i=1; i<nlevels; i++) {
-		char *p;
-		if (create_dir(hash_dir) != 0) {
-			cc_log("failed to create %s\n", hash_dir);
-			failed();
-		}
-		x_asprintf(&p, "%s/%c", hash_dir, s[i]);
-		free(hash_dir);
-		hash_dir = p;
-	}
-	if (create_dir(hash_dir) != 0) {
-		cc_log("failed to create %s\n", hash_dir);
-		failed();
-	}
-	x_asprintf(&hashname, "%s/%s", hash_dir, s+nlevels);
-	free(hash_dir);
+	result = x_malloc(sizeof(*result));
+	hash_result_as_bytes(hash, result->hash);
+	result->size = hash->totalN;
+	return result;
 }
 
+/* find the hash for a command. The hash includes all argument lists,
+   plus the output from running the compiler with -E */
+static int find_hash(ARGS *args, enum findhash_call_mode mode)
+{
+	int i;
+	char *s;
+	struct stat st;
+	int nlevels = 2;
+	struct mdfour hash;
+
+	if ((s = getenv("CCACHE_NLEVELS"))) {
+		nlevels = atoi(s);
+		if (nlevels < 1) nlevels = 1;
+		if (nlevels > 8) nlevels = 8;
+	}
+
+	hash_start(&hash);
+
+	/* when we are doing the unifying tricks we need to include
+	   the input file name in the hash to get the warnings right */
+	if (enable_unify) {
+		hash_string(&hash, input_file);
+	}
+
+	/* we have to hash the extension, as a .i file isn't treated the same
+	   by the compiler as a .ii file */
+	hash_string(&hash, i_extension);
+
+	/* first the arguments */
+	for (i=1;i<args->argc;i++) {
+		/* -L doesn't affect compilation. */
+		if (i < args->argc-1 && strcmp(args->argv[i], "-L") == 0) {
+			i++;
+			continue;
+		}
+		if (strncmp(args->argv[i], "-L", 2) == 0) {
+			continue;
+		}
+
+		if (mode == FINDHASH_CPP_MODE) {
+			/* When using the preprocessor, some arguments don't
+			   contribute to the hash. The theory is that these
+			   arguments will change the output of -E if they are
+			   going to have any effect at all. */
+			if (i < args->argc-1) {
+				if (strcmp(args->argv[i], "-I") == 0 ||
+				    strcmp(args->argv[i], "-include") == 0 ||
+				    strcmp(args->argv[i], "-D") == 0 ||
+				    strcmp(args->argv[i], "-idirafter") == 0 ||
+				    strcmp(args->argv[i], "-isystem") == 0) {
+					i++;
+					continue;
+				}
+			}
+			if (strncmp(args->argv[i], "-I", 2) == 0 ||
+			    strncmp(args->argv[i], "-D", 2) == 0 ||
+			    strncmp(args->argv[i], "-idirafter", 10) == 0 ||
+			    strncmp(args->argv[i], "-isystem", 8) == 0) {
+				continue;
+			}
+		}
+
+		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
+		    stat(args->argv[i]+8, &st) == 0) {
+			/* If given a explicit specs file, then hash that file,
+			   but don't include the path to it in the hash. */
+			if (!hash_file(&hash, args->argv[i]+8)) {
+				failed();
+			}
+			continue;
+		}
+
+		/* All other arguments are included in the hash. */
+		hash_string(&hash, args->argv[i]);
+	}
+
+	/* The compiler driver size and date. This is a simple minded way
+	   to try and detect compiler upgrades. It is not 100% reliable. */
+	if (stat(args->argv[0], &st) != 0) {
+		cc_log("Couldn't stat the compiler!? (argv[0]='%s')\n", args->argv[0]);
+		stats_update(STATS_COMPILER);
+		failed();
+	}
+
+	/* also include the hash of the compiler name - as some compilers
+	   use hard links and behave differently depending on the real name */
+	if (st.st_nlink > 1) {
+		hash_string(&hash, str_basename(args->argv[0]));
+	}
+
+	if (getenv("CCACHE_HASH_COMPILER")) {
+		hash_file(&hash, args->argv[0]);
+	} else if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
+		hash_int(&hash, st.st_size);
+		hash_int(&hash, st.st_mtime);
+	}
+
+	/* possibly hash the current working directory */
+	if (getenv("CCACHE_HASHDIR")) {
+		char *cwd = gnu_getcwd();
+		if (cwd) {
+			hash_string(&hash, cwd);
+			free(cwd);
+		}
+	}
+
+	switch (mode) {
+	case FINDHASH_DIRECT_MODE:
+		if (!hash_file(&hash, input_file)) {
+			failed();
+		}
+		manifest_name = hash_result(&hash);
+		manifest_path = get_path_in_cache(manifest_name, ".manifest",
+		                                  nlevels);
+		object_hash = manifest_get(manifest_path);
+		if (object_hash) {
+			cc_log("Direct match\n");
+		} else {
+			cc_log("No direct match\n");
+			return 0;
+		}
+		break;
+
+	case FINDHASH_CPP_MODE:
+		object_hash = get_object_name_from_cpp(args, &hash);
+		break;
+	}
+
+	object_name = format_file_hash(object_hash);
+	object_path = get_path_in_cache(object_name, "", nlevels);
+	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
+
+	return 1;
+}
 
 /*
    try to return the compile result from cache. If we can return from
    cache then this function exits with the correct status code,
    otherwise it returns */
-static void from_cache(int first)
+static void from_cache(enum fromcache_call_mode mode)
 {
 	int fd_stderr, fd_cpp_stderr;
 	char *stderr_file;
 	int ret;
 	struct stat st;
 
-	x_asprintf(&stderr_file, "%s.stderr", hashname);
+	x_asprintf(&stderr_file, "%s.stderr", object_path);
 	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
 	if (fd_stderr == -1) {
 		/* it isn't in cache ... */
@@ -486,7 +741,7 @@ static void from_cache(int first)
 	}
 
 	/* make sure the output is there too */
-	if (stat(hashname, &st) != 0) {
+	if (stat(object_path, &st) != 0) {
 		close(fd_stderr);
 		unlink(stderr_file);
 		free(stderr_file);
@@ -494,13 +749,12 @@ static void from_cache(int first)
 	}
 
 	/* the user might be disabling cache hits */
+	if ((mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE"))
 #ifndef ENABLE_ZLIB
 	/* if the cache file is compressed we must recache */
-	if ((first && getenv("CCACHE_RECACHE")) ||
-		test_if_compressed(hashname) == 1) {
-#else
-	if (first && getenv("CCACHE_RECACHE")) {
+	    || test_if_compressed(object_path)
 #endif
+	) {
 		close(fd_stderr);
 		unlink(stderr_file);
 		free(stderr_file);
@@ -510,10 +764,10 @@ static void from_cache(int first)
 	/* update timestamps for LRU cleanup
 	   also gives output_file a sensible mtime when hard-linking (for make) */
 #ifdef HAVE_UTIMES
-	utimes(hashname, NULL);
+	utimes(object_path, NULL);
 	utimes(stderr_file, NULL);
 #else
-	utime(hashname, NULL);
+	utime(object_path, NULL);
 	utime(stderr_file, NULL);
 #endif
 
@@ -523,10 +777,10 @@ static void from_cache(int first)
 		unlink(output_file);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (getenv("CCACHE_HARDLINK") &&
-			test_if_compressed(hashname) == 0) {
-			ret = link(hashname, output_file);
+		    test_if_compressed(object_path) == 0) {
+			ret = link(object_path, output_file);
 		} else {
-			ret = copy_file(hashname, output_file);
+			ret = copy_file(object_path, output_file);
 		}
 	}
 
@@ -541,10 +795,10 @@ static void from_cache(int first)
 	free(stderr_file);
 
 	if (ret == -1) {
-		ret = copy_file(hashname, output_file);
+		ret = copy_file(object_path, output_file);
 		if (ret == -1) {
 			cc_log("failed to copy %s -> %s (%s)\n",
-			       hashname, output_file, strerror(errno));
+			       object_path, output_file, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
@@ -573,12 +827,41 @@ static void from_cache(int first)
 	copy_fd(fd_stderr, 2);
 	close(fd_stderr);
 
-	/* and exit with the right status code */
-	if (first) {
-		cc_log("got cached result for %s\n", output_file);
-		stats_update(STATS_CACHED);
+	/* Create or update the manifest file. */
+	if (enable_direct && mode != FROMCACHE_DIRECT_MODE) {
+		if (manifest_put(manifest_path, object_hash, included_files)) {
+			cc_log("Added %s (hash: %s) to manifest %s\n",
+			       output_file, object_name, manifest_name);
+			/* Update timestamp for LRU cleanup. */
+#ifdef HAVE_UTIMES
+			utimes(manifest_path, NULL);
+#else
+			utime(manifest_path, NULL);
+#endif
+		} else {
+			cc_log("Failed to add %s (hash: %s) to the manifest\n",
+			       output_file, object_name);
+		}
 	}
 
+	/* log the cache hit */
+	switch (mode) {
+	case FROMCACHE_DIRECT_MODE:
+		cc_log("Got cached result from manifest for %s\n", output_file);
+		stats_update(STATS_CACHEHIT_DIR);
+		break;
+
+	case FROMCACHE_CPP_MODE:
+		cc_log("Got cached result from preprocessor for %s\n",
+		       output_file);
+		stats_update(STATS_CACHEHIT_CPP);
+		break;
+
+	case FROMCACHE_COMPILED_MODE:
+		break;
+	}
+
+	/* and exit with the right status code */
 	exit(0);
 }
 
@@ -935,14 +1218,28 @@ static void ccache(int argc, char *argv[])
 		enable_unify = 1;
 	}
 
-	/* process argument list, returning a new set of arguments for pre-processing */
+	if (getenv("CCACHE_NODIRECT") || enable_unify) {
+		enable_direct = 0;
+	}
+
+	/* process argument list, returning a new set of arguments for
+	   pre-processing */
 	process_args(orig_args->argc, orig_args->argv);
 
-	/* run with -E to find the hash */
-	find_hash(stripped_args);
+	/* try to find the hash using the manifest */
+	if (enable_direct && find_hash(stripped_args, FINDHASH_DIRECT_MODE)) {
+		/* if we can return from cache at this point then do */
+		from_cache(FROMCACHE_DIRECT_MODE);
+	}
+
+	/*
+	 * Find the hash using the preprocessed output. Also updates
+	 * included_files.
+	 */
+	find_hash(stripped_args, FINDHASH_CPP_MODE);
 
 	/* if we can return from cache at this point then do */
-	from_cache(1);
+	from_cache(FROMCACHE_CPP_MODE);
 
 	if (getenv("CCACHE_READONLY")) {
 		cc_log("read-only set - doing real compile\n");
@@ -963,7 +1260,7 @@ static void ccache(int argc, char *argv[])
 	to_cache(stripped_args);
 
 	/* return from cache */
-	from_cache(0);
+	from_cache(FROMCACHE_COMPILED_MODE);
 
 	/* oh oh! */
 	cc_log("secondary from_cache failed!\n");

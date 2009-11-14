@@ -20,6 +20,7 @@
 */
 
 #include "ccache.h"
+#include <stdio.h>
 
 void hash_buffer(struct mdfour *md, const char *s, int len)
 {
@@ -41,32 +42,51 @@ void hash_int(struct mdfour *md, int x)
 	hash_buffer(md, (char *)&x, sizeof(x));
 }
 
-/* add contents of a file to the hash */
-void hash_file(struct mdfour *md, const char *fname)
+/*
+ * Add contents of an open file to the hash. Returns 1 on success, otherwise 0.
+ */
+int hash_fd(struct mdfour *md, int fd)
 {
 	char buf[1024];
-	int fd, n;
-
-	fd = open(fname, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		fatal("Failed to open %s\n", fname);
-	}
+	int n;
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
 		hash_buffer(md, buf, n);
 	}
-	close(fd);
+	if (n == 0) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
-/* return the hash result as a static string */
+/*
+ * Add contents of a file to the hash. Returns 1 on success, otherwise 0.
+ */
+int hash_file(struct mdfour *md, const char *fname)
+{
+	int fd;
+	int ret;
+
+	fd = open(fname, O_RDONLY|O_BINARY);
+	if (fd == -1) {
+		return 0;
+	}
+
+	ret = hash_fd(md, fd);
+	close(fd);
+	return ret;
+}
+
+/* return the hash result as a hex string */
 char *hash_result(struct mdfour *md)
 {
 	unsigned char sum[16];
-	static char ret[53];
+	char *ret;
 	int i;
 
-	hash_buffer(md, NULL, 0);
-	mdfour_result(md, sum);
+	ret = x_malloc(53);
+	hash_result_as_bytes(md, sum);
 
 	for (i=0;i<16;i++) {
 		sprintf(&ret[i*2], "%02x", (unsigned)sum[i]);
@@ -74,4 +94,11 @@ char *hash_result(struct mdfour *md)
 	sprintf(&ret[i*2], "-%u", (unsigned)md->totalN);
 
 	return ret;
+}
+
+/* return the hash result as 16 binary bytes */
+void hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+{
+	hash_buffer(md, NULL, 0);
+	mdfour_result(md, out);
 }

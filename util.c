@@ -344,6 +344,29 @@ int create_dir(const char *dir)
 	return 0;
 }
 
+/*
+ * Return a string to be used to distinguish temporary files. Also tries to
+ * cope with NFS by adding the local hostname.
+ */
+const char *tmp_string(void)
+{
+	static char *ret;
+
+	if (!ret) {
+		char hostname[200];
+		strcpy(hostname, "unknown");
+#if HAVE_GETHOSTNAME
+		gethostname(hostname, sizeof(hostname)-1);
+#endif
+		hostname[sizeof(hostname)-1] = 0;
+		if (asprintf(&ret, "%s.%u", hostname, (unsigned)getpid()) == -1) {
+			fatal("could not allocate tmp_string\n");
+		}
+	}
+
+	return ret;
+}
+
 char const CACHEDIR_TAG[] =
 	"Signature: 8a477f597d28d172789f06886806bc55\n"
 	"# This file is a cache directory tag created by ccache.\n"
@@ -404,6 +427,19 @@ char *x_strdup(const char *s)
 	ret = strdup(s);
 	if (!ret) {
 		fatal("Out of memory in strdup\n");
+	}
+	return ret;
+}
+
+/*
+  this is like strndup() but dies if the malloc fails
+*/
+char *x_strndup(const char *s, size_t n)
+{
+	char *ret;
+	ret = strndup(s, n);
+	if (!ret) {
+		fatal("Out of memory in strndup\n");
 	}
 	return ret;
 }
@@ -501,12 +537,12 @@ char *dirname(char *s)
 	return s;
 }
 
-int lock_fd(int fd)
+static int lock_fd(int fd, short type)
 {
 	struct flock fl;
 	int ret;
 
-	fl.l_type = F_WRLCK;
+	fl.l_type = type;
 	fl.l_whence = SEEK_SET;
 	fl.l_start = 0;
 	fl.l_len = 1;
@@ -518,6 +554,16 @@ int lock_fd(int fd)
 		ret = fcntl(fd, F_SETLKW, &fl);
 	} while (ret == -1 && errno == EINTR);
 	return ret;
+}
+
+int read_lock_fd(int fd)
+{
+	return lock_fd(fd, F_RDLCK);
+}
+
+int write_lock_fd(int fd)
+{
+	return lock_fd(fd, F_WRLCK);
 }
 
 /* return size on disk of a file */
@@ -688,4 +734,3 @@ const char *get_home_directory(void)
 	cc_log("Unable to determine home directory");
 	return NULL;
 }
-

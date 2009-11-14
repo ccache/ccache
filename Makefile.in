@@ -13,11 +13,12 @@ CFLAGS=$(CPPFLAGS) @CFLAGS@
 LDFLAGS=@LDFLAGS@
 EXEEXT=@EXEEXT@
 
-LIBS= @LIBS@
+libs = @LIBS@ -lm
 
 sources = \
 	ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
-	cleanup.c snprintf.c unify.c
+	cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
+	murmurhashneutral2.c hashutil.c
 
 objs = $(sources:.c=.o)
 
@@ -26,7 +27,7 @@ all: ccache$(EXEEXT)
 docs: ccache.1 web/ccache-man.html
 
 ccache$(EXEEXT): $(objs)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
 ccache.1: ccache.yo
 	-yodl2man -o ccache.1 ccache.yo

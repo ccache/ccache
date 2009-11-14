@@ -177,6 +177,9 @@ CCACHE_NOCOMPRESS then there is no compression used on files that go
 into the cache. However, this setting has no effect on how files are
 retrieved from the cache, compressed results will still be usable.
 
+dit(bf(CCACHE_NODIRECT)) If you set the environment variable
+CCACHE_NODIRECT then ccache will not use the direct mode.
+
 dit(bf(CCACHE_NOSTATS)) If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on
 each compile.
@@ -236,7 +239,8 @@ reformatting only. Note that using CCACHE_UNIFY changes the hash, so
 cached compiles with CCACHE_UNIFY set cannot be used when
 CCACHE_UNIFY is not set and vice versa. The reason the unifier is off
 by default is that it can give incorrect line number information in
-compiler warning messages.
+compiler warning messages. Enabling the unifier implies turning off
+the direct mode.
 
 dit(bf(CCACHE_EXTENSION)) Normally ccache tries to automatically
 determine the extension to use for intermediate C pre-processor files

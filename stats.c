@@ -32,13 +32,15 @@ extern char *cache_dir;
 #define FLAG_NOZERO 1 /* don't zero with the -z option */
 #define FLAG_ALWAYS 2 /* always show, even if zero */
 
+/* statistics fields in display order */
 static struct {
 	enum stats stat;
 	char *message;
 	void (*fn)(unsigned );
 	unsigned flags;
 } stats_info[] = {
-	{ STATS_CACHED,       "cache hit                      ", NULL, FLAG_ALWAYS },
+	{ STATS_CACHEHIT_DIR, "cache hit (direct)             ", NULL, FLAG_ALWAYS },
+	{ STATS_CACHEHIT_CPP, "cache hit (preprocessed)       ", NULL, FLAG_ALWAYS },
 	{ STATS_TOCACHE,      "cache miss                     ", NULL, FLAG_ALWAYS },
 	{ STATS_LINK,         "called for link                ", NULL, 0 },
 	{ STATS_MULTIPLE,     "multiple source files          ", NULL, 0 },
@@ -137,7 +139,7 @@ static void stats_update_size(enum stats stat, size_t size)
 
 	memset(counters, 0, sizeof(counters));
 
-	if (lock_fd(fd) != 0) return;
+	if (write_lock_fd(fd) != 0) return;
 
 	/* read in the old stats */
 	stats_read_fd(fd, counters);
@@ -197,7 +199,7 @@ void stats_read(const char *stats_file, unsigned counters[STATS_END])
 		stats_default(counters);
 		return;
 	}
-	lock_fd(fd);
+	write_lock_fd(fd);
 	stats_read_fd(fd, counters);
 	close(fd);
 }
@@ -271,7 +273,7 @@ void stats_zero(void)
 			continue;
 		}
 		memset(counters, 0, sizeof(counters));
-		lock_fd(fd);
+		write_lock_fd(fd);
 		stats_read_fd(fd, counters);
 		for (i=0;stats_info[i].message;i++) {
 			if (!(stats_info[i].flags & FLAG_NOZERO)) {
@@ -317,7 +319,7 @@ int stats_set_limits(long maxfiles, long maxsize)
 		memset(counters, 0, sizeof(counters));
 		fd = safe_open(fname);
 		if (fd != -1) {
-			lock_fd(fd);
+			write_lock_fd(fd);
 			stats_read_fd(fd, counters);
 			if (maxfiles != -1) {
 				counters[STATS_MAXFILES] = maxfiles;
@@ -348,7 +350,7 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 
 	fd = safe_open(stats_file);
 	if (fd != -1) {
-		lock_fd(fd);
+		write_lock_fd(fd);
 		stats_read_fd(fd, counters);
 		counters[STATS_NUMFILES] = num_files;
 		counters[STATS_TOTALSIZE] = total_size;

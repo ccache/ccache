@@ -3,6 +3,13 @@ Changes since ccache 2.4
 
 New features and improvements:
 
+  - Implemented a mode called "direct mode" where ccache computes a hash of the
+    source code and compiler arguments without running the preprocessor. By not
+    running the preprocessor, CPU usage is reduced; the runtime is about
+    0.2-1.0 times that of ccache running in traditional mode. The relative
+    speedup will be higher when I/O is fast (e.g., when files are in the disk
+    cache). The direct mode can be disabled by setting CCACHE_NODIRECT.
+
   - Object files are now by default stored compressed in the cache. The runtime
     cost is negligible, and more files will fit in the ccache directory and in
     the disk cache. CCACHE_NOCOMPRESS can be set to disable object file
