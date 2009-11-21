@@ -29,6 +29,8 @@ New features and improvements:
   - A CACHEDIR.TAG file is now created in the cache directory. See
     <http://www.brynosaurus.com/cachedir/>.
 
+  - Improved logging.
+
 Bug fixes:
 
   - Fixed build on FreeBSD.

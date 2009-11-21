@@ -177,6 +177,7 @@ static void failed(void)
 		args_add_prefix(orig_args, p);
 	}
 
+	cc_log("Failed; falling back to running the real compiler\n");
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!\n", strerror(errno));
 	perror(orig_args->argv[0]);
@@ -596,6 +597,16 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	int nlevels = 2;
 	struct mdfour hash;
 
+	switch (mode) {
+	case FINDHASH_DIRECT_MODE:
+		cc_log("Trying direct lookup\n");
+		break;
+
+	case FINDHASH_CPP_MODE:
+		cc_log("Trying to run preprocessor\n");
+		break;
+	}
+
 	if ((s = getenv("CCACHE_NLEVELS"))) {
 		nlevels = atoi(s);
 		if (nlevels < 1) nlevels = 1;
@@ -702,15 +713,16 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		                                  nlevels);
 		object_hash = manifest_get(manifest_path);
 		if (object_hash) {
-			cc_log("Direct match\n");
+			cc_log("Got object hash from manifest\n");
 		} else {
-			cc_log("No direct match\n");
+			cc_log("Did not find object hash in manifest\n");
 			return 0;
 		}
 		break;
 
 	case FINDHASH_CPP_MODE:
 		object_hash = get_object_name_from_cpp(args, &hash);
+		cc_log("Got object hash from preprocessor\n");
 		break;
 	}
 
@@ -832,8 +844,7 @@ static void from_cache(enum fromcache_call_mode mode)
 	/* Create or update the manifest file. */
 	if (enable_direct && mode != FROMCACHE_DIRECT_MODE) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
-			cc_log("Added %s (hash: %s) to manifest %s\n",
-			       output_file, object_name, manifest_name);
+			cc_log("Added object hash to manifest\n");
 			/* Update timestamp for LRU cleanup. */
 #ifdef HAVE_UTIMES
 			utimes(manifest_path, NULL);
@@ -841,21 +852,19 @@ static void from_cache(enum fromcache_call_mode mode)
 			utime(manifest_path, NULL);
 #endif
 		} else {
-			cc_log("Failed to add %s (hash: %s) to the manifest\n",
-			       output_file, object_name);
+			cc_log("Failed to add object hash to manifest\n");
 		}
 	}
 
 	/* log the cache hit */
 	switch (mode) {
 	case FROMCACHE_DIRECT_MODE:
-		cc_log("Got cached result from manifest for %s\n", output_file);
+		cc_log("Succeded getting cached result\n");
 		stats_update(STATS_CACHEHIT_DIR);
 		break;
 
 	case FROMCACHE_CPP_MODE:
-		cc_log("Got cached result from preprocessor for %s\n",
-		       output_file);
+		cc_log("Succeded getting cached result\n");
 		stats_update(STATS_CACHEHIT_CPP);
 		break;
 
@@ -1199,6 +1208,23 @@ static void process_args(int argc, char **argv)
 static void ccache(int argc, char *argv[])
 {
 	char *prefix;
+	char now[64];
+	time_t t;
+	struct tm *tm;
+
+	t = time(NULL);
+	tm = localtime(&t);
+	if (!tm) {
+		cc_log("localtime failed\n");
+		failed();
+	}
+
+	if (strftime(now, sizeof(now), "%Y-%m-%d %H:%M:%S", tm) == 0) {
+		cc_log("strftime failed\n");
+		failed();
+	}
+
+	cc_log("=== %s ===\n", now);
 
 	/* find the real compiler */
 	find_compiler(argc, argv);
@@ -1221,12 +1247,16 @@ static void ccache(int argc, char *argv[])
 	}
 
 	if (getenv("CCACHE_NODIRECT") || enable_unify) {
+		cc_log("Direct mode disabled\n");
 		enable_direct = 0;
 	}
 
 	/* process argument list, returning a new set of arguments for
 	   pre-processing */
 	process_args(orig_args->argc, orig_args->argv);
+
+	cc_log("Source file: %s\n", input_file);
+	cc_log("Object file: %s\n", output_file);
 
 	/* try to find the hash using the manifest */
 	if (enable_direct && find_hash(stripped_args, FINDHASH_DIRECT_MODE)) {
