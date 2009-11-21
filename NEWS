@@ -54,3 +54,5 @@ Bug fixes:
   - Fixed compilation warnings from GCC 4.3.
 
   - The command specified by CCACHE_PREFIX is no longer part of the hash.
+
+  - Fixed bad memory access spotted by Valgrind.
