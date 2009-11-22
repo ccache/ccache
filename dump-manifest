@@ -37,7 +37,7 @@ print "File infos:"
 n = get_uint16()
 for i in range(n):
     print "  %d:" % i
-    print "    Include path index: %d" % get_uint16()
+    print "    Path index: %d" % get_uint16()
     print "    Hash: %s" % get_md4()
     print "    Size: %d" %  get_uint32()
 

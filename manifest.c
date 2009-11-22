@@ -332,7 +332,7 @@ error:
 }
 
 static int verify_object(struct manifest *mf, struct object *obj,
-                         struct hashtable *hashed_files)
+			 struct hashtable *hashed_files)
 {
 	uint32_t i;
 	struct file_info *fi;
@@ -354,8 +354,8 @@ static int verify_object(struct manifest *mf, struct object *obj,
 			hash_result_as_bytes(&hash, actual->hash);
 			actual->size = hash.totalN;
 			hashtable_insert(hashed_files,
-			                 x_strdup(mf->files[fi->index]),
-			                 actual);
+					 x_strdup(mf->files[fi->index]),
+					 actual);
 		}
 		if (memcmp(fi->hash, actual->hash, 16) != 0
 		    || fi->size != actual->size) {
@@ -382,7 +382,7 @@ static struct hashtable *create_string_index_map(char **strings, uint32_t len)
 }
 
 static struct hashtable *create_file_info_index_map(struct file_info *infos,
-                                                    uint32_t len)
+						    uint32_t len)
 {
 	uint32_t i;
 	struct hashtable *h;
@@ -401,8 +401,8 @@ static struct hashtable *create_file_info_index_map(struct file_info *infos,
 }
 
 static uint32_t get_include_file_index(struct manifest *mf,
-                                       char *path,
-                                       struct hashtable *mf_files)
+				       char *path,
+				       struct hashtable *mf_files)
 {
 	uint32_t *index;
 	uint32_t n;
@@ -421,10 +421,10 @@ static uint32_t get_include_file_index(struct manifest *mf,
 }
 
 static uint32 get_file_hash_index(struct manifest *mf,
-                                  char *path,
-                                  struct file_hash *file_hash,
-                                  struct hashtable *mf_files,
-                                  struct hashtable *mf_file_infos)
+				  char *path,
+				  struct file_hash *file_hash,
+				  struct hashtable *mf_files,
+				  struct hashtable *mf_file_infos)
 {
 	struct file_info fi;
 	uint32_t *fi_index;
@@ -441,7 +441,7 @@ static uint32 get_file_hash_index(struct manifest *mf,
 
 	n = mf->n_file_infos;
 	mf->file_infos = x_realloc(mf->file_infos,
-	                           (n + 1) * sizeof(*mf->file_infos));
+				   (n + 1) * sizeof(*mf->file_infos));
 	mf->n_file_infos++;
 	mf->file_infos[n] = fi;
 
@@ -450,7 +450,7 @@ static uint32 get_file_hash_index(struct manifest *mf,
 
 static void
 add_file_info_indexes(uint32_t *indexes, uint32_t size,
-                      struct manifest *mf, struct hashtable *included_files)
+		      struct manifest *mf, struct hashtable *included_files)
 {
 	struct hashtable_itr *iter;
 	uint32_t i;
@@ -465,14 +465,14 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 
 	mf_files = create_string_index_map(mf->files, mf->n_files);
 	mf_file_infos = create_file_info_index_map(mf->file_infos,
-	                                           mf->n_file_infos);
+						   mf->n_file_infos);
 	iter = hashtable_iterator(included_files);
 	i = 0;
 	do {
 		path = hashtable_iterator_key(iter);
 		file_hash = hashtable_iterator_value(iter);
 		indexes[i] = get_file_hash_index(mf, path, file_hash, mf_files,
-		                                 mf_file_infos);
+						 mf_file_infos);
 		i++;
 	} while (hashtable_iterator_advance(iter));
 	assert(i == size);
@@ -482,8 +482,8 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 }
 
 static void add_object_entry(struct manifest *mf,
-                             struct file_hash *object_hash,
-                             struct hashtable *included_files)
+			     struct file_hash *object_hash,
+			     struct hashtable *included_files)
 {
 	struct object *obj;
 	uint32_t n;
@@ -563,7 +563,7 @@ out:
  * Returns 1 on success, otherwise 0.
  */
 int manifest_put(const char *manifest_path, struct file_hash *object_hash,
-                 struct hashtable *included_files)
+		 struct hashtable *included_files)
 {
 	int ret = 0;
 	int fd1;

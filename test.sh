@@ -48,16 +48,16 @@ checkstat() {
     expected_value="$2"
     value=`getstat "$stat"`
     if [ "$expected_value" != "$value" ]; then
-        test_failed "SUITE: $testsuite, TEST: $testname - Expected $stat to be $expected_value, got $value"
+        test_failed "SUITE: $testsuite, TEST: \"$testname\" - Expected $stat to be $expected_value, got $value"
     fi
 }
 
 checkfile() {
     if [ ! -f $1 ]; then
-        test_failed "SUITE: $testsuite, TEST: $testname - $1 not found"
+        test_failed "SUITE: $testsuite, TEST: \"$testname\" - $1 not found"
     fi
-    if [ `cat $1` != "$2" ]; then
-        test_failed "SUITE: $testsuite, TEST: $testname - Bad content of $2.\nExpected: $2\nActual: `cat $1`"
+    if [ "`cat $1`" != "$2" ]; then
+        test_failed "SUITE: $testsuite, TEST: \"$testname\" - Bad content of $2.\nExpected: $2\nActual: `cat $1`"
     fi
 }
 
@@ -285,7 +285,7 @@ EOF
     ##################################################################
     # First compilation is a miss.
     testname="first compilation"
-    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
@@ -331,12 +331,13 @@ EOF
     testname="missing header file"
     $CCACHE -z >/dev/null
 
+    mv test1.h test1.h.saved
+    mv test3.h test3.h.saved
     cat <<EOF >test1.h
 /* No more include of test3.h */
 int test1;
 EOF
     sleep 1 # Sleep to make the include file trusted.
-    rm -f test3.h
 
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
@@ -348,9 +349,102 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
+    # Restore
+    mv test1.h.saved test1.h
+    mv test3.h.saved test3.h
+    sleep 1 # Sleep to make the include files trusted.
+
     ##################################################################
-    # Reset CCACHE_NODIRECT again.
+    # Test some header modifications to get multiple objects in the manifest.
+    testname="several objects"
+    $CCACHE -z >/dev/null
+    for i in 0 1 2 3 4; do
+        echo "int test1_$i;" >>test1.h
+        sleep 1 # Sleep to make the include file trusted.
+        $CCACHE $COMPILER -c test.c
+        $CCACHE $COMPILER -c test.c
+    done
+    checkstat 'cache hit (direct)' 5
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 5
+
+    ##################################################################
+    # Check that -MD works.
+    testname="-MD"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f test.d
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    ##################################################################
+    # Check the scenario of running a ccache with direct mode on a cache
+    # built up by a ccache without direct mode support.
+    testname="direct mode on old cache"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+    CCACHE_NODIRECT=1 $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f test.d
+
+    CCACHE_NODIRECT=1 $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f test.d
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f test.d
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 1
+    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+
+    ##################################################################
+    # Check that -MF works.
+    testname="-MF"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -MD -MF other.d test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f other.d
+
+    $CCACHE $COMPILER -c -MD -MF other.d test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    ##################################################################
+    # Reset things.
     CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
+    $CCACHE -C >/dev/null
 }
 
 ######
@@ -361,6 +455,8 @@ cd $TESTDIR || exit 1
 mkdir .ccache
 CCACHE_DIR=.ccache
 export CCACHE_DIR
+CCACHE_LOGFILE=ccache.log
+export CCACHE_LOGFILE
 CCACHE_NODIRECT=1
 export CCACHE_NODIRECT
 
