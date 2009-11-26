@@ -748,7 +748,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
    try to return the compile result from cache. If we can return from
    cache then this function exits with the correct status code,
    otherwise it returns */
-static void from_cache(enum fromcache_call_mode mode)
+static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest)
 {
 	int fd_stderr, fd_cpp_stderr;
 	char *stderr_file;
@@ -803,6 +803,7 @@ static void from_cache(enum fromcache_call_mode mode)
 	) {
 		close(fd_stderr);
 		unlink(stderr_file);
+		unlink(object_path);
 		unlink(dep_file);
 		free(stderr_file);
 		return;
@@ -849,6 +850,8 @@ static void from_cache(enum fromcache_call_mode mode)
 		}
 		close(fd_stderr);
 		unlink(stderr_file);
+		unlink(object_path);
+		unlink(dep_file);
 		free(stderr_file);
 		return;
 	} else {
@@ -878,8 +881,9 @@ static void from_cache(enum fromcache_call_mode mode)
 			}
 			close(fd_stderr);
 			unlink(stderr_file);
-			free(stderr_file);
 			unlink(object_path);
+			unlink(dep_file);
+			free(stderr_file);
 			return;
 		} else {
 			cc_log("Created %s\n", dependency_path);
@@ -924,7 +928,7 @@ static void from_cache(enum fromcache_call_mode mode)
 	close(fd_stderr);
 
 	/* Create or update the manifest file. */
-	if (enable_direct && mode != FROMCACHE_DIRECT_MODE) {
+	if (put_object_in_manifest) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
 			cc_log("Added object file hash to manifest\n");
 			/* Update timestamp for LRU cleanup. */
@@ -1295,6 +1299,7 @@ static void ccache(int argc, char *argv[])
 	char now[64];
 	time_t t;
 	struct tm *tm;
+	int put_object_in_manifest = 0;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -1346,9 +1351,24 @@ static void ccache(int argc, char *argv[])
 	cc_log("Object file: %s\n", output_file);
 
 	/* try to find the hash using the manifest */
-	if (enable_direct && find_hash(stripped_args, FINDHASH_DIRECT_MODE)) {
-		/* if we can return from cache at this point then do */
-		from_cache(FROMCACHE_DIRECT_MODE);
+	if (enable_direct) {
+		if (find_hash(stripped_args, FINDHASH_DIRECT_MODE)) {
+			/*
+			 * If we can return from cache at this point then do
+			 * so.
+			 */
+			from_cache(FROMCACHE_DIRECT_MODE, 0);
+
+			/*
+			 * Wasn't able to return from cache at this point.
+			 * However, the object was already found in manifest,
+			 * so don't readd it later.
+			 */
+			put_object_in_manifest = 0;
+		} else {
+			/* Add object to manifest later. */
+			put_object_in_manifest = 1;
+		}
 	}
 
 	/*
@@ -1358,7 +1378,7 @@ static void ccache(int argc, char *argv[])
 	find_hash(stripped_args, FINDHASH_CPP_MODE);
 
 	/* if we can return from cache at this point then do */
-	from_cache(FROMCACHE_CPP_MODE);
+	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
 	if (getenv("CCACHE_READONLY")) {
 		cc_log("read-only set - doing real compile\n");
@@ -1379,7 +1399,7 @@ static void ccache(int argc, char *argv[])
 	to_cache(stripped_args);
 
 	/* return from cache */
-	from_cache(FROMCACHE_COMPILED_MODE);
+	from_cache(FROMCACHE_COMPILED_MODE, put_object_in_manifest);
 
 	/* oh oh! */
 	cc_log("secondary from_cache failed!\n");
