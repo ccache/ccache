@@ -473,6 +473,27 @@ void *x_realloc(void *ptr, size_t size)
 
 
 /*
+ * This is like x_asprintf() but frees *ptr if *ptr != NULL.
+ */
+void x_asprintf2(char **ptr, const char *format, ...)
+{
+	char *saved = *ptr;
+	va_list ap;
+
+	*ptr = NULL;
+	va_start(ap, format);
+	if (vasprintf(ptr, format, ap) == -1) {
+		fatal("Out of memory in x_asprintf2\n");
+	}
+	va_end(ap);
+
+	if (!ptr) fatal("Out of memory in x_asprintf2\n");
+	if (saved) {
+		free(saved);
+	}
+}
+
+/*
    revsusive directory traversal - used for cleanup
    fn() is called on all files/dirs in the tree
  */
@@ -733,4 +754,90 @@ const char *get_home_directory(void)
 #endif
 	cc_log("Unable to determine home directory");
 	return NULL;
+}
+
+/*
+ * Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
+ * is used.
+ */
+char *get_cwd()
+{
+	char *pwd;
+	char *cwd;
+	struct stat st_pwd;
+	struct stat st_cwd;
+
+	cwd = gnu_getcwd();
+	pwd = getenv("PWD");
+	if (!pwd) {
+		return cwd;
+	}
+	if (stat(pwd, &st_pwd) != 0) {
+		return cwd;
+	}
+	if (stat(cwd, &st_cwd) != 0) {
+		return cwd;
+	}
+	if (st_pwd.st_dev == st_cwd.st_dev && st_pwd.st_ino == st_cwd.st_ino) {
+		return x_strdup(pwd);
+	} else {
+		return cwd;
+	}
+}
+
+/*
+ * Compute the length of the longest directory path that is common to two
+ * strings.
+ */
+size_t common_dir_prefix_length(const char *s1, const char *s2)
+{
+	const char *p1 = s1;
+	const char *p2 = s2;
+
+	while (*p1 && *p2 && *p1 == *p2) {
+		++p1;
+		++p2;
+	}
+	while (p1 > s1 && ((*p1 && *p1 != '/' ) || (*p2 && *p2 != '/'))) {
+		p1--;
+		p2--;
+	}
+	return p1 - s1;
+}
+
+/*
+ * Compute a relative path from from to to. Caller frees.
+ */
+char *get_relative_path(const char *from, const char *to)
+{
+	size_t common_prefix_len;
+	int i;
+	const char *p;
+	char *result;
+
+	if (!*to || *to != '/') {
+		return x_strdup(to);
+	}
+
+	result = x_strdup("");
+	common_prefix_len = common_dir_prefix_length(from, to);
+	for (p = from + common_prefix_len; *p; p++) {
+		if (*p == '/') {
+			x_asprintf2(&result, "../%s", result);
+		}
+	}
+	if (strlen(to) > common_prefix_len) {
+		x_asprintf2(&result, "%s%s", result,
+			    to + common_prefix_len + 1);
+	}
+	i = strlen(result) - 1;
+	while (i >= 0 && result[i] == '/') {
+		result[i] = '\0';
+		i--;
+	}
+	if (strcmp(result, "") == 0) {
+		free(result);
+		result = x_strdup(".");
+	}
+	return result;
 }

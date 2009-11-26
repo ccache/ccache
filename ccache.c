@@ -30,6 +30,9 @@
 
 #include <getopt.h>
 
+/* current working directory taken from $PWD, or getcwd() if $PWD is bad */
+char *current_working_dir;
+
 /* the base cache directory */
 char *cache_dir = NULL;
 
@@ -38,6 +41,9 @@ char *temp_dir = NULL;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
+
+/* base directory (from CCACHE_BASEDIR) */
+char *base_dir;
 
 /* the argument list after processing */
 static ARGS *stripped_args;
@@ -307,10 +313,27 @@ ignore:
 }
 
 /*
+ * Make a relative path from CCACHE_BASEDIR to path. Takes over ownership of
+ * path. Caller frees.
+ */
+static char *make_relative_path(char *path)
+{
+	char *relpath;
+
+	if (!base_dir || strncmp(path, base_dir, strlen(base_dir)) != 0) {
+		return path;
+	}
+
+	relpath = get_relative_path(current_working_dir, path);
+	free(path);
+	return relpath;
+}
+
+/*
  * This function reads and hashes a file. While doing this, it also does these
  * things with preprocessor lines starting with a hash:
  *
- * - TODO: Makes include file paths that match CCACHE_RELDIRS relative.
+ * - Makes include file paths whose prefix is CCACHE_BASEDIR relative.
  * - Stores the paths of included files in the global variable included_files.
  */
 static void process_preprocessed_file(struct mdfour *hash, const char *path)
@@ -367,10 +390,12 @@ static void process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			/* p and q span the include file path */
 			path = x_strndup(p, q - p);
-			/* TODO: Rewrite path using CCACHE_RELDIRS here. */
+			path = make_relative_path(path);
 			hash_string(hash, path);
 			if (enable_direct) {
 				remember_include_file(path, q - p);
+			} else {
+				free(path);
 			}
 			p = q;
 		} else {
@@ -644,27 +669,35 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 			continue;
 		}
 
-		if (mode == FINDHASH_CPP_MODE) {
-			/* When using the preprocessor, some arguments don't
-			   contribute to the hash. The theory is that these
-			   arguments will change the output of -E if they are
-			   going to have any effect at all. */
-			if (i < args->argc-1) {
-				if (strcmp(args->argv[i], "-I") == 0 ||
-				    strcmp(args->argv[i], "-include") == 0 ||
-				    strcmp(args->argv[i], "-D") == 0 ||
-				    strcmp(args->argv[i], "-idirafter") == 0 ||
-				    strcmp(args->argv[i], "-isystem") == 0) {
-					i++;
-					continue;
-				}
-			}
-			if (strncmp(args->argv[i], "-I", 2) == 0 ||
-			    strncmp(args->argv[i], "-D", 2) == 0 ||
-			    strncmp(args->argv[i], "-idirafter", 10) == 0 ||
-			    strncmp(args->argv[i], "-isystem", 8) == 0) {
+		/* When using the preprocessor, some arguments don't contribute
+		   to the hash. The theory is that these arguments will change
+		   the output of -E if they are going to have any effect at
+		   all. */
+		if (i < args->argc-1) {
+			if (strcmp(args->argv[i], "-I") == 0 ||
+			    strcmp(args->argv[i], "-include") == 0 ||
+			    strcmp(args->argv[i], "-D") == 0 ||
+			    strcmp(args->argv[i], "-idirafter") == 0 ||
+			    strcmp(args->argv[i], "-isystem") == 0) {
+				if (mode == FINDHASH_DIRECT_MODE) {
+					hash_string(&hash, args->argv[i]);
+					s = make_relative_path(x_strdup(args->argv[i+1]));
+					hash_string(&hash, s);
+					free(s);
+				} /* else: skip from hash */
+				i++;
 				continue;
 			}
+		}
+		if (strncmp(args->argv[i], "-I", 2) == 0 ||
+		    strncmp(args->argv[i], "-D", 2) == 0) {
+			if (mode == FINDHASH_DIRECT_MODE) {
+				hash_buffer(&hash, args->argv[i], 2);
+				s = make_relative_path(x_strdup(args->argv[i] + 2));
+				hash_string(&hash, s);
+				free(s);
+			} /* else: skip from hash */
+			continue;
 		}
 
 		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
@@ -928,7 +961,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	close(fd_stderr);
 
 	/* Create or update the manifest file. */
-	if (put_object_in_manifest) {
+	if (put_object_in_manifest && included_files) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
 			cc_log("Added object file hash to manifest\n");
 			/* Update timestamp for LRU cleanup. */
@@ -1315,6 +1348,8 @@ static void ccache(int argc, char *argv[])
 
 	cc_log("=== %s ===\n", now);
 
+	cc_log("Base directory: %s\n", base_dir);
+
 	/* find the real compiler */
 	find_compiler(argc, argv);
 
@@ -1549,6 +1584,8 @@ int main(int argc, char *argv[])
 {
 	char *p;
 
+	current_working_dir = get_cwd();
+
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
 		const char *home_directory = get_home_directory();
@@ -1564,8 +1601,16 @@ int main(int argc, char *argv[])
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
-	setup_uncached_err();
+	base_dir = getenv("CCACHE_BASEDIR");
+	if (base_dir) {
+		if (strcmp(base_dir, "") == 0) {
+			base_dir = NULL;
+		}
+	} else {
+		base_dir = get_cwd();
+	}
 
+	setup_uncached_err();
 
 	/* the user might have set CCACHE_UMASK */
 	p = getenv("CCACHE_UMASK");

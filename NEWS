@@ -10,6 +10,14 @@ New features and improvements:
     speedup will be higher when I/O is fast (e.g., when files are in the disk
     cache). The direct mode can be disabled by setting CCACHE_NODIRECT.
 
+  - When hashing the output from the preprocessor, absolute paths for which the
+    path specified by CCACHE_BASEDIR is a prefix are rewritten to relative.
+    Paths specified by -I and similar flags get the same treatment. This is
+    done to get cache hits even when compiling with -g and when using absolute
+    include directory paths. Absolute paths in the standard error text will
+    also be more accurate. CCACHE_BASEDIR defaults to the current working
+    directory.
+
   - Object files are now by default stored compressed in the cache. The runtime
     cost is negligible, and more files will fit in the ccache directory and in
     the disk cache. CCACHE_NOCOMPRESS can be set to disable object file

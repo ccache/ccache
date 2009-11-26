@@ -9,7 +9,7 @@ else
     COMPILER=cc
 fi
 
-CCACHE=../ccache
+CCACHE=$PWD/ccache
 TESTDIR=testdir.$$
 
 unset CCACHE_DISABLE
@@ -63,7 +63,7 @@ checkfile() {
 
 basetests() {
     echo "starting testsuite $testsuite"
-    rm -rf .ccache
+    rm -rf $CCACHE_DIR
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
 
@@ -253,13 +253,12 @@ basetests() {
     $CCACHE -C > /dev/null
     checkstat 'files in cache' 0
 
-
     rm -f test1.c
 }
 
 direct_tests() {
     echo "starting testsuite $testsuite"
-    rm -rf .ccache
+    rm -rf $CCACHE_DIR
     unset CCACHE_NODIRECT
 
     ##################################################################
@@ -285,7 +284,7 @@ EOF
     ##################################################################
     # First compilation is a miss.
     testname="first compilation"
-    $CCACHE -C >/dev/null
+    $CCACHE -z >/dev/null
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
@@ -447,18 +446,117 @@ EOF
     $CCACHE -C >/dev/null
 }
 
+basedir_tests() {
+    echo "starting testsuite $testsuite"
+    rm -rf $CCACHE_DIR
+
+    ##################################################################
+    # Create some code to compile.
+    mkdir -p dir1/src dir1/include
+    cat <<EOF >dir1/src/test.c
+#include <test.h>
+EOF
+    cat <<EOF >dir1/include/test.h
+int test;
+EOF
+    cp -r dir1 dir2
+
+    sleep 1 # Sleep to make the include files trusted.
+
+    ##################################################################
+    # CCACHE_BASEDIR="" and using absolute include path will result in a cache
+    # miss.
+    testname="empty CCACHE_BASEDIR"
+    $CCACHE -z >/dev/null
+
+    cd dir1
+    CCACHE_BASEDIR="" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    cd ..
+
+    cd dir2
+    CCACHE_BASEDIR="" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+    cd ..
+
+    ##################################################################
+    # Setting CCACHE_BASEDIR will result in a cache hit because include paths
+    # in the preprocessed output are rewritten.
+    testname="set CCACHE_BASEDIR"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+
+    cd dir1
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    cd ..
+
+    cd dir2
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I $PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    cd ..
+
+    ##################################################################
+    # Setting CCACHE_BASEDIR will result in a cache hit because -I arguments
+    # are rewritten, as are the paths stored in the manifest.
+    testname="set CCACHE_BASEDIR, direct lookup"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+    unset CCACHE_NODIRECT
+
+    cd dir1
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    cd ..
+
+    cd dir2
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I $PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    cd ..
+
+    CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
+
+    ##################################################################
+    # CCACHE_BASEDIR="$PWD" is the default.
+    testname="default CCACHE_BASEDIR"
+    cd dir1
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 0
+    cd ..
+}
+
 ######
 # main program
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
-mkdir .ccache
-CCACHE_DIR=.ccache
+
+CCACHE_DIR=$PWD/.ccache
 export CCACHE_DIR
-CCACHE_LOGFILE=ccache.log
+CCACHE_LOGFILE=$PWD/ccache.log
 export CCACHE_LOGFILE
 CCACHE_NODIRECT=1
 export CCACHE_NODIRECT
+
+mkdir $CCACHE_DIR
+
+# ---------------------------------------
 
 testsuite="base"
 CCACHE_COMPILE="$CCACHE $COMPILER"
@@ -499,6 +597,11 @@ unset CCACHE_NLEVELS
 
 testsuite="direct"
 direct_tests
+
+testsuite="basedir"
+basedir_tests
+
+# ---------------------------------------
 
 cd ..
 rm -rf $TESTDIR

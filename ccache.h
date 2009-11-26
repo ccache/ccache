@@ -129,6 +129,9 @@ char *x_realpath(const char *path);
 char *gnu_getcwd(void);
 int create_empty_file(const char *fname);
 const char *get_home_directory(void);
+char *get_cwd();
+size_t common_dir_prefix_length(const char *s1, const char *s2);
+char *get_relative_path(const char *from, const char *to);
 
 void stats_update(enum stats stat);
 void stats_zero(void);
