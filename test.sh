@@ -353,6 +353,48 @@ EOF
     mv test3.h.saved test3.h
     sleep 1 # Sleep to make the include files trusted.
 
+    rm -f other.d
+
+    ##################################################################
+    # Check that -Wp,-MD,file.d works.
+    testname="-Wp,-MD"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -Wp,-MD,other.d test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f other.d
+
+    $CCACHE $COMPILER -c -Wp,-MD,other.d test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f other.d
+
+    ##################################################################
+    # Check that -Wp,-MMD,file.d works.
+    testname="-Wp,-MMD"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -Wp,-MMD,other.d test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f other.d
+
+    $CCACHE $COMPILER -c -Wp,-MMD,other.d test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    rm -f other.d
+
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
     testname="several objects"

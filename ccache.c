@@ -1156,7 +1156,8 @@ static void process_args(int argc, char **argv)
 		/* These options require special handling, because they
 		   behave differently with gcc -E, when the output
 		   file is not specified. */
-		if (strcmp(argv[i], "-MD") == 0 || strcmp(argv[i], "-MMD") == 0) {
+		if (strcmp(argv[i], "-MD") == 0
+		    || strcmp(argv[i], "-MMD") == 0) {
 			generating_dependencies = 1;
 		}
 		if (i < argc - 1) {
@@ -1166,6 +1167,22 @@ static void process_args(int argc, char **argv)
 			} else if (strcmp(argv[i], "-MQ") == 0
 				   || strcmp(argv[i], "-MT") == 0) {
 				dependency_target_specified = 1;
+			}
+		}
+
+		if (enable_direct && strncmp(argv[i], "-Wp,", 4) == 0) {
+			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0) {
+				generating_dependencies = 1;
+				dependency_filename_specified = 1;
+				dependency_path = x_strdup(argv[i] + 8);
+			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0) {
+				generating_dependencies = 1;
+				dependency_filename_specified = 1;
+				dependency_path = x_strdup(argv[i] + 9);
+			} else if (enable_direct) {
+				cc_log("Unsupported compiler option for direct mode: %s\n",
+				       argv[i]);
+				enable_direct = 0;
 			}
 		}
 

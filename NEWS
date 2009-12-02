@@ -47,11 +47,13 @@ Bug fixes:
 
   - User-defined CPPFLAGS and LDFLAGS is now respected in the Makefile.
 
-  - Bail out on profiling flags --coverage, -fprofile-arcs and -ftest-coverage.
-
   - Fixed NFS issues.
 
+  - Bail out on profiling flags --coverage, -fprofile-arcs and -ftest-coverage.
+
   - -MD/-MMD flags without -MT/-MF are now handled correctly.
+
+  - Added support for -Wp,-MD and -Wp,-MMD flags.
 
   - Corrected LRU cleanup handling of object files.
 
