@@ -1402,6 +1402,7 @@ static void ccache(int argc, char *argv[])
 	time_t t;
 	struct tm *tm;
 	int put_object_in_manifest = 0;
+	struct file_hash *object_hash_from_manifest = NULL;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -1469,6 +1470,9 @@ static void ccache(int argc, char *argv[])
 			 * so don't readd it later.
 			 */
 			put_object_in_manifest = 0;
+
+			object_hash_from_manifest = object_hash;
+			object_hash = NULL;
 		} else {
 			/* Add object to manifest later. */
 			put_object_in_manifest = 1;
@@ -1480,6 +1484,31 @@ static void ccache(int argc, char *argv[])
 	 * included_files.
 	 */
 	find_hash(stripped_args, FINDHASH_CPP_MODE);
+
+	if (object_hash_from_manifest
+	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
+		/*
+		 * The hash from manifest differs from the hash of the
+		 * preprocessor output. This could be because:
+		 *
+		 * - The preprocessor produces different output for the same
+		 *   input (not likely).
+		 * - There's a bug in ccache (maybe incorrect handling of
+		 *   compiler arguments).
+		 * - The user has used a different CCACHE_BASEDIR (most
+		 *   likely).
+		 *
+		 * The best thing here would probably be to remove the hash
+		 * entry from the manifest. For now, we use a simpler method:
+		 * just remove the manifest file.
+		 */
+		cc_log("Hash from manifest doesn't match preprocessor output\n");
+		cc_log("Likely reason: different CCACHE_BASEDIRs used\n");
+		cc_log("Removing manifest as a safety measure\n");
+		unlink(manifest_path);
+
+		put_object_in_manifest = 1;
+	}
 
 	/* if we can return from cache at this point then do */
 	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
