@@ -1163,7 +1163,8 @@ static void process_args(int argc, char **argv)
 		if (i < argc - 1) {
 			if (strcmp(argv[i], "-MF") == 0) {
 				dependency_filename_specified = 1;
-				dependency_path = x_strdup(argv[i + 1]);
+				dependency_path = make_relative_path(
+					x_strdup(argv[i + 1]));
 			} else if (strcmp(argv[i], "-MQ") == 0
 				   || strcmp(argv[i], "-MT") == 0) {
 				dependency_target_specified = 1;
@@ -1174,11 +1175,13 @@ static void process_args(int argc, char **argv)
 			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				dependency_path = x_strdup(argv[i] + 8);
+				dependency_path = make_relative_path(
+					x_strdup(argv[i] + 8));
 			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				dependency_path = x_strdup(argv[i] + 9);
+				dependency_path = make_relative_path(
+					x_strdup(argv[i] + 9));
 			} else if (enable_direct) {
 				cc_log("Unsupported compiler option for direct mode: %s\n",
 				       argv[i]);
@@ -1325,7 +1328,8 @@ static void process_args(int argc, char **argv)
 			strcat(default_depfile_name, ".d");
 			args_add(stripped_args, "-MF");
 			args_add(stripped_args, default_depfile_name);
-			dependency_path = x_strdup(default_depfile_name);
+			dependency_path = make_relative_path(
+				x_strdup(default_depfile_name));
 		}
 
 		if (!dependency_target_specified) {
