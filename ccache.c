@@ -276,7 +276,7 @@ static void remember_include_file(char *path, size_t path_len)
 		goto failure;
 	}
 	if (S_ISDIR(st.st_mode)) {
-		cc_log("Ignoring directory %s\n", path);
+		/* Ignore directory, typically $PWD. */
 		goto ignore;
 	}
 	if (st.st_mtime >= time_of_compilation
