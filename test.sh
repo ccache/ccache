@@ -15,8 +15,7 @@ TESTDIR=testdir.$$
 unset CCACHE_DISABLE
 
 test_failed() {
-    reason="$1"
-    echo $1
+    echo "SUITE: \"$testsuite\", TEST: \"$testname\" - $1"
     $CCACHE -s
     cd ..
     rm -rf $TESTDIR
@@ -48,16 +47,16 @@ checkstat() {
     expected_value="$2"
     value=`getstat "$stat"`
     if [ "$expected_value" != "$value" ]; then
-        test_failed "SUITE: $testsuite, TEST: \"$testname\" - Expected $stat to be $expected_value, got $value"
+        test_failed "Expected $stat to be $expected_value, got $value"
     fi
 }
 
 checkfile() {
     if [ ! -f $1 ]; then
-        test_failed "SUITE: $testsuite, TEST: \"$testname\" - $1 not found"
+        test_failed "$1 not found"
     fi
     if [ "`cat $1`" != "$2" ]; then
-        test_failed "SUITE: $testsuite, TEST: \"$testname\" - Bad content of $2.\nExpected: $2\nActual: `cat $1`"
+        test_failed "Bad content of $2.\nExpected: $2\nActual: `cat $1`"
     fi
 }
 
@@ -503,6 +502,16 @@ int test;
 EOF
     cp -r dir1 dir2
 
+    cat <<EOF >stderr.h
+int stderr(void)
+{
+	/* Trigger warning by having no return statement. */
+}
+EOF
+    cat <<EOF >stderr.c
+#include <stderr.h>
+EOF
+
     sleep 1 # Sleep to make the include files trusted.
 
     ##################################################################
@@ -581,6 +590,26 @@ EOF
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 0
     cd ..
+
+    ##################################################################
+    # Check that rewriting triggered by CCACHE_BASEDIR also affects stderr.
+    testname="stderr"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if grep -q $PWD stderr.txt; then
+        test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
+    fi
+
+    $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    if grep -q $PWD stderr.txt; then
+        test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
+    fi
 }
 
 ######

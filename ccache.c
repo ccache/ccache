@@ -673,31 +673,23 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		   to the hash. The theory is that these arguments will change
 		   the output of -E if they are going to have any effect at
 		   all. */
-		if (i < args->argc-1) {
-			if (strcmp(args->argv[i], "-I") == 0 ||
-			    strcmp(args->argv[i], "-include") == 0 ||
-			    strcmp(args->argv[i], "-D") == 0 ||
-			    strcmp(args->argv[i], "-idirafter") == 0 ||
-			    strcmp(args->argv[i], "-isystem") == 0) {
-				if (mode == FINDHASH_DIRECT_MODE) {
-					hash_string(&hash, args->argv[i]);
-					s = make_relative_path(x_strdup(args->argv[i+1]));
-					hash_string(&hash, s);
-					free(s);
-				} /* else: skip from hash */
-				i++;
+		if (mode == FINDHASH_CPP_MODE) {
+			if (i < args->argc-1) {
+				if (strcmp(args->argv[i], "-I") == 0 ||
+				    strcmp(args->argv[i], "-include") == 0 ||
+				    strcmp(args->argv[i], "-D") == 0 ||
+				    strcmp(args->argv[i], "-idirafter") == 0 ||
+				    strcmp(args->argv[i], "-isystem") == 0) {
+					/* Skip from hash. */
+					i++;
+					continue;
+				}
+			}
+			if (strncmp(args->argv[i], "-I", 2) == 0 ||
+			    strncmp(args->argv[i], "-D", 2) == 0) {
+				/* Skip from hash. */
 				continue;
 			}
-		}
-		if (strncmp(args->argv[i], "-I", 2) == 0 ||
-		    strncmp(args->argv[i], "-D", 2) == 0) {
-			if (mode == FINDHASH_DIRECT_MODE) {
-				hash_buffer(&hash, args->argv[i], 2);
-				s = make_relative_path(x_strdup(args->argv[i] + 2));
-				hash_string(&hash, s);
-				free(s);
-			} /* else: skip from hash */
-			continue;
 		}
 
 		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
@@ -1189,14 +1181,69 @@ static void process_args(int argc, char **argv)
 			}
 		}
 
+		/*
+		 * Options taking an argument that that we may want to rewrite
+		 * to relative paths to get better hit rate. A secondary effect
+		 * is that paths in the standard error output produced by the
+		 * compiler will be normalized.
+		 */
+		{
+			const char *opts[] = {
+				"-I", "-idirafter", "-include", "-isystem", NULL
+			};
+			int j;
+			char *relpath;
+			for (j = 0; opts[j]; j++) {
+				if (strcmp(argv[i], opts[j]) == 0) {
+					if (i == argc-1) {
+						cc_log("missing argument to %s\n",
+						       argv[i]);
+						stats_update(STATS_ARGS);
+						failed();
+					}
+
+					args_add(stripped_args, argv[i]);
+					relpath = make_relative_path(x_strdup(argv[i+1]));
+					args_add(stripped_args, relpath);
+					free(relpath);
+					i++;
+					break;
+				}
+			}
+			if (opts[j]) {
+				continue;
+			}
+		}
+
+		/* Same as above but options with concatenated argument. */
+		{
+			const char *opts[] = {"-I", NULL};
+			int j;
+			char *relpath;
+			char *option;
+			for (j = 0; opts[j]; j++) {
+				if (strncmp(argv[i], opts[j], strlen(opts[j])) == 0) {
+					relpath = make_relative_path(
+						x_strdup(argv[i] + strlen(opts[j])));
+					x_asprintf(&option, "%s%s", opts[j], relpath);
+					args_add(stripped_args, option);
+					free(relpath);
+					free(option);
+					break;
+				}
+			}
+			if (opts[j]) {
+				continue;
+			}
+		}
+
 		/* options that take an argument */
 		{
-			const char *opts[] = {"-I", "-include", "-imacros", "-iprefix",
+			const char *opts[] = {"-imacros", "-iprefix",
 					      "-iwithprefix", "-iwithprefixbefore",
 					      "-L", "-D", "-U", "-x", "-MF",
-					      "-MT", "-MQ", "-isystem", "-aux-info",
+					      "-MT", "-MQ", "-aux-info",
 					      "--param", "-A", "-Xlinker", "-u",
-					      "-idirafter",
 					      NULL};
 			int j;
 			for (j=0;opts[j];j++) {
@@ -1250,7 +1297,8 @@ static void process_args(int argc, char **argv)
 			failed();
 		}
 
-		input_file = argv[i];
+		/* Rewrite to relative to increase hit rate. */
+		input_file = make_relative_path(x_strdup(argv[i]));
 	}
 
 	if (!input_file) {
