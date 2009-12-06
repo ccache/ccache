@@ -78,14 +78,14 @@ if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
 fi
 
 dnl Check for zlib.
-AC_DEFINE([ENABLE_ZLIB], [], [Define to 1 if you have zlib])
-AC_ARG_ENABLE([zlib],
-              AS_HELP_STRING([--enable-zlib], [enable zlib support for ccache compression]),,
-              [enable_zlib=yes])
-
-if test x"$enable_zlib" = x"yes"; then
-    AC_CHECK_HEADER(zlib.h, AC_CHECK_LIB(z, gzdopen, LIBS="-lz $LIBS"; AC_DEFINE(ENABLE_ZLIB)))
-fi
+AC_CHECK_HEADER(
+	zlib.h,
+	AC_CHECK_LIB(
+		z,
+		gzdopen,
+		LIBS="-lz $LIBS",
+		AC_MSG_ERROR(Required library zlib missing.)),
+	AC_MSG_ERROR(Header file for required library zlib missing.))
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

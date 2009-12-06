@@ -498,7 +498,6 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-#if ENABLE_ZLIB
 	/* do an extra stat on the cache files for
 	   the size statistics */
 	if (stat(path_stderr, &st1) != 0 ||
@@ -507,7 +506,6 @@ static void to_cache(ARGS *args)
 		stats_update(STATS_ERROR);
 		failed();
 	}
-#endif
 
 	cc_log("Placed object file into the cache\n");
 	stats_tocache(file_size(&st1) + file_size(&st2));
@@ -820,12 +818,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* the user might be disabling cache hits */
-	if ((mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE"))
-#ifndef ENABLE_ZLIB
-	/* if the cache file is compressed we must recache */
-	    || test_if_compressed(object_path)
-#endif
-	) {
+	if (mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE")) {
 		close(fd_stderr);
 		unlink(stderr_file);
 		unlink(object_path);

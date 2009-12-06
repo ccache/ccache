@@ -61,105 +61,6 @@ void fatal(const char *format, ...)
 	exit(1);
 }
 
-#ifndef ENABLE_ZLIB
-/* copy all data from one file descriptor to another */
-void copy_fd(int fd_in, int fd_out)
-{
-	char buf[10240];
-	int n;
-
-	while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
-		if (write(fd_out, buf, n) != n) {
-			fatal("Failed to copy fd\n");
-		}
-	}
-}
-
-static int safe_rename(const char* oldpath, const char* newpath)
-{
-	/* safe_rename is for creating entries in the cache.
-
-	   Works like rename(), but it never overwrites an existing
-	   cache entry. This avoids corruption on NFS. */
-	int status = link(oldpath, newpath);
-	if (status == 0 || errno == EEXIST) {
-		return unlink(oldpath);
-	}
-	else {
-		return -1;
-	}
-}
-
-/* move a file using rename */
-int move_file(const char *src, const char *dest) {
-	return safe_rename(src, dest);
-}
-
-/* copy a file - used when hard links don't work
-   the copy is done via a temporary file and atomic rename
-*/
-int copy_file(const char *src, const char *dest)
-{
-	int fd1, fd2;
-	char buf[10240];
-	int n;
-	char *tmp_name;
-	mode_t mask;
-
-	x_asprintf(&tmp_name, "%s.XXXXXX", dest);
-
-	fd1 = open(src, O_RDONLY|O_BINARY);
-	if (fd1 == -1) {
-		free(tmp_name);
-		return -1;
-	}
-
-	fd2 = mkstemp(tmp_name);
-	if (fd2 == -1) {
-		close(fd1);
-		free(tmp_name);
-		return -1;
-	}
-
-	while ((n = read(fd1, buf, sizeof(buf))) > 0) {
-		if (write(fd2, buf, n) != n) {
-			close(fd2);
-			close(fd1);
-			unlink(tmp_name);
-			free(tmp_name);
-			return -1;
-		}
-	}
-
-	close(fd1);
-
-	/* get perms right on the tmp file */
-	mask = umask(0);
-	fchmod(fd2, 0666 & ~mask);
-	umask(mask);
-
-	/* the close can fail on NFS if out of space */
-	if (close(fd2) == -1) {
-		unlink(tmp_name);
-		free(tmp_name);
-		return -1;
-	}
-
-	unlink(dest);
-
-	if (rename(tmp_name, dest) == -1) {
-		unlink(tmp_name);
-		free(tmp_name);
-		return -1;
-	}
-
-	free(tmp_name);
-
-	return 0;
-}
-
-#else /* ENABLE_ZLIB */
-
 /* copy all data from one file descriptor to another
    possibly decompressing it
 */
@@ -305,7 +206,6 @@ int move_file(const char *src, const char *dest) {
 int copy_file(const char *src, const char *dest) {
 	return _copy_file(src, dest, COPY_FROM_CACHE);
 }
-#endif /* ENABLE_ZLIB */
 
 /* test if a file is zlib compressed */
 int test_if_compressed(const char *filename) {

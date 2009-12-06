@@ -29,9 +29,7 @@
 #include <sys/time.h>
 #endif
 
-#ifdef ENABLE_ZLIB
 #include <zlib.h>
-#endif
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
@@ -53,11 +51,9 @@
 #endif
 
 /* file copy mode */
-#ifdef ENABLE_ZLIB
 #define COPY_UNCOMPRESSED 0
 #define COPY_FROM_CACHE 1
 #define COPY_TO_CACHE 2
-#endif
 
 /* statistics fields in storage order */
 enum stats {
