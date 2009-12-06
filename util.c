@@ -61,10 +61,11 @@ void fatal(const char *format, ...)
 	exit(1);
 }
 
-/* copy all data from one file descriptor to another
-   possibly decompressing it
-*/
-void copy_fd(int fd_in, int fd_out) {
+/*
+ * Copy all data from fd_in to fd_out, decompressing data from fd_in if needed.
+ */
+void copy_fd(int fd_in, int fd_out)
+{
 	char buf[10240];
 	int n;
 	gzFile gz_in;
@@ -82,7 +83,12 @@ void copy_fd(int fd_in, int fd_out) {
 	}
 }
 
-static int _copy_file(const char *src, const char *dest, int mode) {
+/*
+ * Copy src to dest, decompressing src if needed. compress_dest decides whether
+ * dest will be compressed.
+ */
+int copy_file(const char *src, const char *dest, int compress_dest)
+{
 	int fd_in, fd_out;
 	gzFile gz_in, gz_out = NULL;
 	char buf[10240];
@@ -92,10 +98,6 @@ static int _copy_file(const char *src, const char *dest, int mode) {
 	struct stat st;
 
 	x_asprintf(&tmp_name, "%s.XXXXXX", dest);
-
-	if (getenv("CCACHE_NOCOMPRESS")) {
-		mode = COPY_UNCOMPRESSED;
-	}
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY);
@@ -117,13 +119,12 @@ static int _copy_file(const char *src, const char *dest, int mode) {
 		return -1;
 	}
 
-	if (mode == COPY_TO_CACHE) {
-		/* The gzip file format occupies at least 20 bytes. So
-		   it will always occupy an entire filesystem block,
-		   even for empty files.
-		   Since most stderr files will be empty, we turn off
-		   compression in this case to save space.
-		*/
+	if (compress_dest) {
+		/*
+		 * A gzip file occupies at least 20 bytes, so it will always
+		 * occupy an entire filesystem block, even for empty files.
+		 * Turn off compression for empty files to save some space.
+		 */
 		if (fstat(fd_in, &st) != 0) {
 			gzclose(gz_in);
 			close(fd_out);
@@ -131,11 +132,11 @@ static int _copy_file(const char *src, const char *dest, int mode) {
 			return -1;
 		}
 		if (file_size(&st) == 0) {
-			mode = COPY_UNCOMPRESSED;
+			compress_dest = 0;
 		}
 	}
 
-	if (mode == COPY_TO_CACHE) {
+	if (compress_dest) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
 			gzclose(gz_in);
@@ -146,7 +147,7 @@ static int _copy_file(const char *src, const char *dest, int mode) {
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		if (mode == COPY_TO_CACHE) {
+		if (compress_dest) {
 			ret = gzwrite(gz_out, buf, n);
 		} else {
 			ret = write(fd_out, buf, n);
@@ -193,22 +194,21 @@ static int _copy_file(const char *src, const char *dest, int mode) {
 	return 0;
 }
 
-/* move a file to the cache, compressing it */
-int move_file(const char *src, const char *dest) {
+/* Run copy_file() and, if successful, delete the source file. */
+int move_file(const char *src, const char *dest, int compress_dest)
+{
 	int ret;
 
-	ret = _copy_file(src, dest, COPY_TO_CACHE);
-	if (ret != -1) unlink(src);
+	ret = copy_file(src, dest, compress_dest);
+	if (ret != -1) {
+		unlink(src);
+	}
 	return ret;
 }
 
-/* copy a file from the cache, decompressing it */
-int copy_file(const char *src, const char *dest) {
-	return _copy_file(src, dest, COPY_FROM_CACHE);
-}
-
 /* test if a file is zlib compressed */
-int test_if_compressed(const char *filename) {
+int test_if_compressed(const char *filename)
+{
 	FILE *f;
 
 	f = fopen(filename, "rb");

@@ -414,6 +414,7 @@ static void to_cache(ARGS *args)
 	char *tmp_stdout, *tmp_stderr, *tmp_hashname;
 	struct stat st1, st2;
 	int status;
+	int compress;
 
 	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", object_path, tmp_string());
 	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", object_path, tmp_string());
@@ -441,7 +442,7 @@ static void to_cache(ARGS *args)
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st1) != 0 || st1.st_size != 0) {
-		cc_log("compiler produced stdout for %s\n", output_file);
+		cc_log("Compiler produced stdout for %s\n", output_file);
 		stats_update(STATS_STDOUT);
 		unlink(tmp_stdout);
 		unlink(tmp_stderr);
@@ -452,13 +453,14 @@ static void to_cache(ARGS *args)
 
 	if (status != 0) {
 		int fd;
-		cc_log("compile of %s gave status = %d\n", output_file, status);
+		cc_log("Compile of %s gave status = %d\n", output_file, status);
 		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			if (strcmp(output_file, "/dev/null") == 0 ||
-			    move_file(tmp_hashname, output_file) == 0 || errno == ENOENT) {
+			if (strcmp(output_file, "/dev/null") == 0
+			    || move_file(tmp_hashname, output_file, 0) == 0
+			    || errno == ENOENT) {
 				if (cpp_stderr) {
 					/* we might have some stderr from cpp */
 					int fd2 = open(cpp_stderr, O_RDONLY | O_BINARY);
@@ -488,21 +490,22 @@ static void to_cache(ARGS *args)
 	}
 
 	x_asprintf(&path_stderr, "%s.stderr", object_path);
+	compress = !getenv("CCACHE_NOCOMPRESS");
 
-	if (stat(tmp_stderr, &st1) != 0 ||
-		stat(tmp_hashname, &st2) != 0 ||
-		move_file(tmp_hashname, object_path) != 0 ||
-		move_file(tmp_stderr, path_stderr) != 0) {
-		cc_log("failed to rename tmp files - %s\n", strerror(errno));
+	if (stat(tmp_stderr, &st1) != 0
+	    || stat(tmp_hashname, &st2) != 0
+	    || move_file(tmp_hashname, object_path, compress) != 0
+	    || move_file(tmp_stderr, path_stderr, compress) != 0) {
+		cc_log("Failed to rename tmp files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
 
 	/* do an extra stat on the cache files for
 	   the size statistics */
-	if (stat(path_stderr, &st1) != 0 ||
-		stat(object_path, &st2) != 0) {
-		cc_log("failed to stat cache files - %s\n", strerror(errno));
+	if (stat(path_stderr, &st1) != 0
+	    || stat(object_path, &st2) != 0) {
+		cc_log("Failed to stat cache files - %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -852,7 +855,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		    test_if_compressed(object_path) == 0) {
 			ret = link(object_path, output_file);
 		} else {
-			ret = copy_file(object_path, output_file);
+			ret = copy_file(object_path, output_file, 0);
 		}
 	}
 
@@ -883,7 +886,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		    test_if_compressed(dep_file) == 0) {
 			ret = link(dep_file, dependency_path);
 		} else {
-			ret = copy_file(dep_file, dependency_path);
+			ret = copy_file(dep_file, dependency_path, 0);
 		}
 		if (ret == -1) {
 			if (errno == ENOENT) {
@@ -910,7 +913,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
-		ret = copy_file(dependency_path, dep_file);
+		ret = copy_file(dependency_path, dep_file, 1);
 		if (ret == -1) {
 			cc_log("Failed to copy %s -> %s\n", dependency_path,
 			       dep_file);

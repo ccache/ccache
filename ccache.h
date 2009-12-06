@@ -50,11 +50,6 @@
 #define DEFAULT_MAXSIZE (1000*1000)
 #endif
 
-/* file copy mode */
-#define COPY_UNCOMPRESSED 0
-#define COPY_FROM_CACHE 1
-#define COPY_TO_CACHE 2
-
 /* statistics fields in storage order */
 enum stats {
 	STATS_NONE=0,
@@ -101,8 +96,8 @@ void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);
-int copy_file(const char *src, const char *dest);
-int move_file(const char *src, const char *dest);
+int copy_file(const char *src, const char *dest, int compress_dest);
+int move_file(const char *src, const char *dest, int compress_dest);
 int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
