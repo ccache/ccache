@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #include "ccache.h"
 #include "hashtable_itr.h"
@@ -35,15 +36,15 @@ extern char *temp_dir;
  * Sketchy specification of the manifest disk format:
  *
  * <magic>         magic number                        (4 bytes)
- * <version>       version                             (2 bytes unsigned int)
+ * <version>       version                             (4 bytes unsigned int)
  * ----------------------------------------------------------------------------
- * <n>             number of include file paths        (2 bytes unsigned int)
+ * <n>             number of include file paths        (4 bytes unsigned int)
  * <path_0>        path to include file                (NUL-terminated string,
  * ...                                                  at most 1024 bytes)
  * <path_n-1>
  * ----------------------------------------------------------------------------
- * <n>             number of include file hash entries (2 bytes unsigned int)
- * <index[0]>      index of include file path          (2 bytes unsigned int)
+ * <n>             number of include file hash entries (4 bytes unsigned int)
+ * <index[0]>      index of include file path          (4 bytes unsigned int)
  * <hash[0]>       hash of include file                (16 bytes)
  * <size[0]>       size of include file                (4 bytes unsigned int)
  * ...
@@ -51,9 +52,9 @@ extern char *temp_dir;
  * <size[n-1]>
  * <index[n-1]>
  * ----------------------------------------------------------------------------
- * <n>             number of object name entries       (2 bytes unsigned int)
- * <m[0]>          number of include file hash indexes (2 bytes unsigned int)
- * <index[0][0]>   include file hash index             (2 bytes unsigned int)
+ * <n>             number of object name entries       (4 bytes unsigned int)
+ * <m[0]>          number of include file hash indexes (4 bytes unsigned int)
+ * <index[0][0]>   include file hash index             (4 bytes unsigned int)
  * ...
  * <index[0][m[0]-1]>
  * <hash[0]>       hash part of object name            (16 bytes)
@@ -142,7 +143,7 @@ static void free_manifest(struct manifest *mf)
 		size_t i_;				\
 		(var) = 0;				\
 		for (i_ = 0; i_ < (size); i_++) {	\
-			ch_ = getc(f);			\
+			ch_ = gzgetc(f);		\
 			if (ch_ == EOF) {		\
 				goto error;		\
 			}				\
@@ -157,7 +158,7 @@ static void free_manifest(struct manifest *mf)
 		size_t i_;				\
 		int ch_;				\
 		for (i_ = 0; i_ < sizeof(buf_); i_++) {	\
-			ch_ = getc(f);			\
+			ch_ = gzgetc(f);		\
 			if (ch_ == EOF) {		\
 				goto error;		\
 			}				\
@@ -177,7 +178,7 @@ static void free_manifest(struct manifest *mf)
 		size_t i_;			\
 		int ch_;			\
 		for (i_ = 0; i_ < (n); i_++) {	\
-			ch_ = getc(f);		\
+			ch_ = gzgetc(f);	\
 			if (ch_ == EOF) {	\
 				goto error;	\
 			}			\
@@ -185,17 +186,9 @@ static void free_manifest(struct manifest *mf)
 		}				\
 	} while (0)
 
-static struct manifest *read_manifest(FILE *f)
+static struct manifest *create_empty_manifest()
 {
-	struct stat st;
 	struct manifest *mf;
-	uint16_t i, j;
-	size_t n;
-	uint32_t magic, version;
-
-	if (fstat(fileno(f), &st) != 0) {
-		return NULL;
-	}
 
 	mf = x_malloc(sizeof(*mf));
 	mf->n_files = 0;
@@ -205,10 +198,17 @@ static struct manifest *read_manifest(FILE *f)
 	mf->n_objects = 0;
 	mf->objects = NULL;
 
-	if (st.st_size == 0) {
-		/* New file. */
-		return mf;
-	}
+	return mf;
+}
+
+static struct manifest *read_manifest(gzFile f)
+{
+	struct manifest *mf;
+	uint16_t i, j;
+	size_t n;
+	uint32_t magic, version;
+
+	mf = create_empty_manifest();
 
 	READ_INT(4, magic);
 	if (magic != MAGIC) {
@@ -216,14 +216,14 @@ static struct manifest *read_manifest(FILE *f)
 		free_manifest(mf);
 		return NULL;
 	}
-	READ_INT(2, version);
+	READ_INT(4, version);
 	if (version != VERSION) {
 		cc_log("Manifest file has unknown version %u\n", version);
 		free_manifest(mf);
 		return NULL;
 	}
 
-	READ_INT(2, mf->n_files);
+	READ_INT(4, mf->n_files);
 	n = mf->n_files * sizeof(*mf->files);
 	mf->files = x_malloc(n);
 	memset(mf->files, 0, n);
@@ -231,28 +231,28 @@ static struct manifest *read_manifest(FILE *f)
 		READ_STR(mf->files[i]);
 	}
 
-	READ_INT(2, mf->n_file_infos);
+	READ_INT(4, mf->n_file_infos);
 	n = mf->n_file_infos * sizeof(*mf->file_infos);
 	mf->file_infos = x_malloc(n);
 	memset(mf->file_infos, 0, n);
 	for (i = 0; i < mf->n_file_infos; i++) {
-		READ_INT(2, mf->file_infos[i].index);
+		READ_INT(4, mf->file_infos[i].index);
 		READ_BYTES(16, mf->file_infos[i].hash);
 		READ_INT(4, mf->file_infos[i].size);
 	}
 
-	READ_INT(2, mf->n_objects);
+	READ_INT(4, mf->n_objects);
 	n = mf->n_objects * sizeof(*mf->objects);
 	mf->objects = x_malloc(n);
 	memset(mf->objects, 0, n);
 	for (i = 0; i < mf->n_objects; i++) {
-		READ_INT(2, mf->objects[i].n_file_info_indexes);
+		READ_INT(4, mf->objects[i].n_file_info_indexes);
 		n = mf->objects[i].n_file_info_indexes
 		    * sizeof(*mf->objects[i].file_info_indexes);
 		mf->objects[i].file_info_indexes = x_malloc(n);
 		memset(mf->objects[i].file_info_indexes, 0, n);
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
-			READ_INT(2, mf->objects[i].file_info_indexes[j]);
+			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		READ_BYTES(16, mf->objects[i].hash.hash);
 		READ_INT(4, mf->objects[i].hash.size);
@@ -272,7 +272,7 @@ error:
 		size_t i_;						\
 		for (i_ = 0; i_ < (size); i_++) {			\
 			ch_ = ((var) >> (8 * ((size) - i_ - 1)));	\
-			if (putc(ch_, f) == EOF) {			\
+			if (gzputc(f, ch_) == EOF) {			\
 				goto error;				\
 			}						\
 		}							\
@@ -280,7 +280,7 @@ error:
 
 #define WRITE_STR(var)							\
 	do {								\
-		if (fputs(var, f) == EOF || putc('\0', f) == EOF) {	\
+		if (gzputs(f, var) == EOF || gzputc(f, '\0') == EOF) {	\
 			goto error;					\
 		}							\
 	} while (0)
@@ -289,36 +289,36 @@ error:
 	do {							\
 		size_t i_;					\
 		for (i_ = 0; i_ < (n); i_++) {			\
-			if (putc((var)[i_], f) == EOF) {	\
+			if (gzputc(f, (var)[i_]) == EOF) {	\
 				goto error;			\
 			}					\
 		}						\
 	} while (0)
 
-static int write_manifest(FILE *f, const struct manifest *mf)
+static int write_manifest(gzFile f, const struct manifest *mf)
 {
 	uint16_t i, j;
 
 	WRITE_INT(4, MAGIC);
-	WRITE_INT(2, VERSION);
+	WRITE_INT(4, VERSION);
 
-	WRITE_INT(2, mf->n_files);
+	WRITE_INT(4, mf->n_files);
 	for (i = 0; i < mf->n_files; i++) {
 		WRITE_STR(mf->files[i]);
 	}
 
-	WRITE_INT(2, mf->n_file_infos);
+	WRITE_INT(4, mf->n_file_infos);
 	for (i = 0; i < mf->n_file_infos; i++) {
-		WRITE_INT(2, mf->file_infos[i].index);
+		WRITE_INT(4, mf->file_infos[i].index);
 		WRITE_BYTES(16, mf->file_infos[i].hash);
 		WRITE_INT(4, mf->file_infos[i].size);
 	}
 
-	WRITE_INT(2, mf->n_objects);
+	WRITE_INT(4, mf->n_objects);
 	for (i = 0; i < mf->n_objects; i++) {
-		WRITE_INT(2, mf->objects[i].n_file_info_indexes);
+		WRITE_INT(4, mf->objects[i].n_file_info_indexes);
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
-			WRITE_INT(2, mf->objects[i].file_info_indexes[j]);
+			WRITE_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		WRITE_BYTES(16, mf->objects[i].hash.hash);
 		WRITE_INT(4, mf->objects[i].hash.size);
@@ -508,7 +508,7 @@ static void add_object_entry(struct manifest *mf,
 struct file_hash *manifest_get(const char *manifest_path)
 {
 	int fd;
-	FILE *f = NULL;
+	gzFile f = NULL;
 	struct manifest *mf = NULL;
 	struct hashtable *hashed_files = NULL; /* path --> struct file_hash */
 	uint32_t i;
@@ -523,9 +523,9 @@ struct file_hash *manifest_get(const char *manifest_path)
 		cc_log("Failed to read lock %s\n", manifest_path);
 		goto out;
 	}
-	f = fdopen(fd, "rb");
+	f = gzdopen(fd, "rb");
 	if (!f) {
-		cc_log("Failed to fdopen lock %s\n", manifest_path);
+		cc_log("Failed to gzdopen %s\n", manifest_path);
 		goto out;
 	}
 	mf = read_manifest(f);
@@ -550,7 +550,7 @@ out:
 		hashtable_destroy(hashed_files, 1);
 	}
 	if (f) {
-		fclose(f);
+		gzclose(f);
 	}
 	if (mf) {
 		free_manifest(mf);
@@ -568,8 +568,9 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	int ret = 0;
 	int fd1;
 	int fd2;
-	FILE *f1 = NULL;
-	FILE *f2 = NULL;
+	struct stat st;
+	gzFile f1 = NULL;
+	gzFile f2 = NULL;
 	struct manifest *mf = NULL;
 	char *tmp_file = NULL;
 
@@ -583,28 +584,37 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		close(fd1);
 		goto out;
 	}
-	f1 = fdopen(fd1, "rb");
-	if (!f1) {
-		cc_log("Failed to fdopen %s\n", manifest_path);
+	if (fstat(fd1, &st) != 0) {
+		cc_log("Failed to stat %s\n", manifest_path);
 		close(fd1);
 		goto out;
 	}
-	mf = read_manifest(f1);
-	if (!mf) {
-		cc_log("Failed to read %s\n", manifest_path);
-		goto out;
+	if (st.st_size == 0) {
+		/* New file. */
+		mf = create_empty_manifest();
+	} else {
+		f1 = gzdopen(fd1, "rb");
+		if (!f1) {
+			cc_log("Failed to gzdopen %s\n", manifest_path);
+			close(fd1);
+			goto out;
+		}
+		mf = read_manifest(f1);
+		if (!mf) {
+			cc_log("Failed to read %s\n", manifest_path);
+			goto out;
+		}
 	}
 
 	x_asprintf(&tmp_file, "%s/manifest.tmp.%s", temp_dir, tmp_string());
-
 	fd2 = safe_open(tmp_file);
 	if (fd2 == -1) {
 		cc_log("Failed to open %s\n", tmp_file);
 		goto out;
 	}
-	f2 = fdopen(fd2, "wb");
+	f2 = gzdopen(fd2, "wb");
 	if (!f2) {
-		cc_log("Failed to fdopen %s\n", tmp_file);
+		cc_log("Failed to gzdopen %s\n", tmp_file);
 		goto out;
 	}
 
@@ -630,10 +640,10 @@ out:
 		free(tmp_file);
 	}
 	if (f2) {
-		fclose(f2);
+		gzclose(f2);
 	}
 	if (f1) {
-		fclose(f1);
+		gzclose(f1);
 	}
 	return ret;
 }
