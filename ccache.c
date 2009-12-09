@@ -501,17 +501,18 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	/* do an extra stat on the cache files for
-	   the size statistics */
-	if (stat(path_stderr, &st1) != 0
-	    || stat(object_path, &st2) != 0) {
-		cc_log("Failed to stat cache files - %s\n", strerror(errno));
+	/*
+	 * Do an extra stat on the potentially compressed object file for the
+	 * size statistics.
+	 */
+	if (stat(object_path, &st2) != 0) {
+		cc_log("Failed to stat %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
 
 	cc_log("Placed object file into the cache\n");
-	stats_tocache(file_size(&st1) + file_size(&st2));
+	stats_tocache(file_size(&st2));
 
 	free(tmp_hashname);
 	free(tmp_stderr);
@@ -1731,7 +1732,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* make sure the cache dir exists */
-	if (cache_dir && (create_dir(cache_dir) != 0)) {
+	if (cache_dir && (create_dir(cache_dir)) != 0) {
 		fprintf(stderr,"ccache: failed to create %s (%s)\n",
 			cache_dir, strerror(errno));
 		exit(1);

@@ -65,6 +65,7 @@ basetests() {
     rm -rf $CCACHE_DIR
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
+    checkstat 'files in cache' 0
 
     j=1
     rm -f *.c
@@ -77,16 +78,19 @@ basetests() {
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
+    checkstat 'files in cache' 1
 
     testname="BASIC2"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
+    checkstat 'files in cache' 1
 
     testname="debug"
     $CCACHE_COMPILE -c test1.c -g
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
+    checkstat 'files in cache' 2
 
     testname="debug2"
     $CCACHE_COMPILE -c test1.c -g
@@ -137,7 +141,6 @@ basetests() {
     $CCACHE_COMPILE -c -O2 2> /dev/null
     checkstat 'no input file' 1
 
-
     testname="CCACHE_DISABLE"
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2> /dev/null
     checkstat 'cache hit (preprocessed)' 3
@@ -163,11 +166,10 @@ basetests() {
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 4
 
-    # strictly speaking should be 6 - RECACHE causes a double counting!
-    checkstat 'files in cache' 8
+    # strictly speaking should be 3 - RECACHE causes a double counting!
+    checkstat 'files in cache' 4
     $CCACHE -c > /dev/null
-    checkstat 'files in cache' 6
-
+    checkstat 'files in cache' 3
 
     testname="CCACHE_HASHDIR"
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
@@ -177,8 +179,7 @@ basetests() {
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
-
-    checkstat 'files in cache' 8
+    checkstat 'files in cache' 4
 
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c
@@ -206,9 +207,10 @@ basetests() {
     done
     checkstat 'cache hit (preprocessed)' 8
     checkstat 'cache miss' 37
-    checkstat 'files in cache' 72
-    $CCACHE -F 48 -c > /dev/null
-    if [ `getstat 'files in cache'` -gt 48 ]; then
+    checkstat 'files in cache' 36
+
+    $CCACHE -F 32 -c > /dev/null
+    if [ `getstat 'files in cache'` -gt 32 ]; then
         test_failed '-F test failed'
     fi
 

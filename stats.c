@@ -149,7 +149,7 @@ static void stats_update_size(enum stats stat, size_t size)
 
 	/* on a cache miss we up the file count and size */
 	if (stat == STATS_TOCACHE) {
-		counters[STATS_NUMFILES] += 2;
+		counters[STATS_NUMFILES] += 1;
 		counters[STATS_TOTALSIZE] += size;
 	}
 
