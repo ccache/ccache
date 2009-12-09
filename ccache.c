@@ -814,8 +814,6 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	if (produce_dep_file && stat(dep_file, &st) != 0) {
 		cc_log("Dependency file missing in cache\n");
 		close(fd_stderr);
-		unlink(stderr_file);
-		unlink(object_path);
 		free(stderr_file);
 		return;
 	}

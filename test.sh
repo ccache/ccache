@@ -481,6 +481,32 @@ EOF
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
 
     ##################################################################
+    # Check that a missing .d file in the cache is handled correctly.
+    testname="missing dependency file"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    find $CCACHE_DIR -name '*.d' -exec rm -f '{}' \;
+
+    $CCACHE $COMPILER -c -MD test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    ##################################################################
     # Reset things.
     CCACHE_NODIRECT=1
     export CCACHE_NODIRECT
