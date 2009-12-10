@@ -42,6 +42,9 @@ New features and improvements:
   - By default, ccache now puts temporary files in CCACHE_DIR/tmp to avoid
     cluttering the top directory.
 
+  - Improved the test suite and added tests for most of the new functionality.
+    It's now also possible to specify a subset of tests to run.
+
 Bug fixes:
 
   - Fixed build on FreeBSD.

@@ -60,8 +60,13 @@ checkfile() {
     fi
 }
 
-basetests() {
-    echo "starting testsuite $testsuite"
+run_suite() {
+    echo "starting testsuite $1"
+    testsuite=$1
+    ${1}_suite
+}
+
+base_tests() {
     rm -rf $CCACHE_DIR
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
@@ -257,8 +262,50 @@ basetests() {
     rm -f test1.c
 }
 
-direct_tests() {
-    echo "starting testsuite $testsuite"
+base_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    base_tests
+}
+
+link_suite() {
+    ln -s ../ccache $COMPILER
+    CCACHE_COMPILE="./$COMPILER"
+    base_tests
+}
+
+hardlink_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    CCACHE_HARDLINK=1
+    export CCACHE_HARDLINK
+    base_tests
+    unset CCACHE_HARDLINK
+}
+
+cpp2_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    CCACHE_CPP2=1
+    export CCACHE_CPP2
+    base_tests
+    unset CCACHE_CPP2
+}
+
+nlevels4_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    CCACHE_NLEVELS=4
+    export CCACHE_NLEVELS
+    base_tests
+    unset CCACHE_NLEVELS
+}
+
+nlevels1_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    CCACHE_NLEVELS=1
+    export CCACHE_NLEVELS
+    base_tests
+    unset CCACHE_NLEVELS
+}
+
+direct_suite() {
     rm -rf $CCACHE_DIR
     unset CCACHE_NODIRECT
 
@@ -515,8 +562,7 @@ EOF
     $CCACHE -C >/dev/null
 }
 
-basedir_tests() {
-    echo "starting testsuite $testsuite"
+basedir_suite() {
     rm -rf $CCACHE_DIR
 
     ##################################################################
@@ -640,8 +686,10 @@ EOF
     fi
 }
 
-######
+######################################################################
 # main program
+
+suites="$*"
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
@@ -657,48 +705,14 @@ mkdir $CCACHE_DIR
 
 # ---------------------------------------
 
-testsuite="base"
-CCACHE_COMPILE="$CCACHE $COMPILER"
-basetests
+all_suites="base link hardlink cpp2 nlevels4 nlevels1 direct basedir"
+if [ -z "$suites" ]; then
+    suites="$all_suites"
+fi
 
-testsuite="link"
-ln -s ../ccache $COMPILER
-CCACHE_COMPILE="./$COMPILER"
-basetests
-
-testsuite="hardlink"
-CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_HARDLINK=1
-export CCACHE_HARDLINK
-basetests
-unset CCACHE_HARDLINK
-
-testsuite="cpp2"
-CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_CPP2=1
-export CCACHE_CPP2
-basetests
-unset CCACHE_CPP2
-
-testsuite="nlevels4"
-CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_NLEVELS=4
-export CCACHE_NLEVELS
-basetests
-unset CCACHE_NLEVELS
-
-testsuite="nlevels1"
-CCACHE_COMPILE="$CCACHE $COMPILER"
-CCACHE_NLEVELS=1
-export CCACHE_NLEVELS
-basetests
-unset CCACHE_NLEVELS
-
-testsuite="direct"
-direct_tests
-
-testsuite="basedir"
-basedir_tests
+for suite in $suites; do
+    run_suite $suite
+done
 
 # ---------------------------------------
 
