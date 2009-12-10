@@ -1689,7 +1689,7 @@ int main(int argc, char *argv[])
 
 	temp_dir = getenv("CCACHE_TEMPDIR");
 	if (!temp_dir) {
-		temp_dir = cache_dir;
+		x_asprintf(&temp_dir, "%s/tmp", cache_dir);
 	}
 
 	cache_logfile = getenv("CCACHE_LOGFILE");
@@ -1732,9 +1732,16 @@ int main(int argc, char *argv[])
 	}
 
 	/* make sure the cache dir exists */
-	if (cache_dir && (create_dir(cache_dir)) != 0) {
+	if (create_dir(cache_dir) != 0) {
 		fprintf(stderr,"ccache: failed to create %s (%s)\n",
 			cache_dir, strerror(errno));
+		exit(1);
+	}
+
+	/* make sure the temp dir exists */
+	if (create_dir(temp_dir) != 0) {
+		fprintf(stderr,"ccache: failed to create %s (%s)\n",
+			temp_dir, strerror(errno));
 		exit(1);
 	}
 

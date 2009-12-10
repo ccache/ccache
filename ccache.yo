@@ -129,8 +129,8 @@ where ccache will keep its cached compiler output. The default is
 "$HOME/.ccache".
 
 dit(bf(CCACHE_TEMPDIR)) the CCACHE_TEMPDIR environment variable specifies
-where ccache will put temporary files. The default is the same as
-CCACHE_DIR. Note that the CCACHE_TEMPDIR path must be on the same
+where ccache will put temporary files. The default is
+CCACHE_DIR/tmp. Note that the CCACHE_TEMPDIR path must be on the same
 filesystem as the CCACHE_DIR path, so that renames of files between
 the two directories can work.
 

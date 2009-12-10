@@ -39,6 +39,9 @@ New features and improvements:
 
   - Improved logging.
 
+  - By default, ccache now puts temporary files in CCACHE_DIR/tmp to avoid
+    cluttering the top directory.
+
 Bug fixes:
 
   - Fixed build on FreeBSD.
