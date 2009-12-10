@@ -259,9 +259,7 @@ const char *tmp_string(void)
 		gethostname(hostname, sizeof(hostname)-1);
 #endif
 		hostname[sizeof(hostname)-1] = 0;
-		if (asprintf(&ret, "%s.%u", hostname, (unsigned)getpid()) == -1) {
-			fatal("could not allocate tmp_string\n");
-		}
+		x_asprintf(&ret, "%s.%u", hostname, (unsigned)getpid());
 	}
 
 	return ret;
