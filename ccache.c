@@ -450,6 +450,39 @@ static void to_cache(ARGS *args)
 	}
 	unlink(tmp_stdout);
 
+	/*
+	 * Merge stderr from the preprocessor (if any) and stderr from the real
+	 * compiler into tmp_stderr.
+	 */
+	if (cpp_stderr) {
+		int fd_cpp_stderr;
+		int fd_real_stderr;
+		int fd_result;
+
+		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
+		if (fd_cpp_stderr == -1) {
+			failed();
+		}
+		fd_real_stderr = open(tmp_stderr, O_RDONLY | O_BINARY);
+		if (fd_real_stderr == -1) {
+			failed();
+		}
+		unlink(tmp_stderr);
+		fd_result = open(tmp_stderr,
+				 O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+				 0666);
+		if (fd_result == -1) {
+			failed();
+		}
+		copy_fd(fd_cpp_stderr, fd_result);
+		copy_fd(fd_real_stderr, fd_result);
+		close(fd_cpp_stderr);
+		close(fd_real_stderr);
+		close(fd_result);
+		unlink(cpp_stderr);
+		free(cpp_stderr);
+	}
+
 	if (status != 0) {
 		int fd;
 		cc_log("Compile of %s gave status = %d\n", output_file, status);
@@ -460,17 +493,6 @@ static void to_cache(ARGS *args)
 			if (strcmp(output_file, "/dev/null") == 0
 			    || move_file(tmp_hashname, output_file, 0) == 0
 			    || errno == ENOENT) {
-				if (cpp_stderr) {
-					/* we might have some stderr from cpp */
-					int fd2 = open(cpp_stderr, O_RDONLY | O_BINARY);
-					if (fd2 != -1) {
-						copy_fd(fd2, 2);
-						close(fd2);
-						unlink(cpp_stderr);
-						cpp_stderr = NULL;
-					}
-				}
-
 				/* we can use a quick method of
 				   getting the failed output */
 				copy_fd(fd, 2);
@@ -789,7 +811,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
    otherwise it returns */
 static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest)
 {
-	int fd_stderr, fd_cpp_stderr;
+	int fd_stderr;
 	char *stderr_file;
 	char *dep_file;
 	int ret;
@@ -934,18 +956,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		i_tmpfile = NULL;
 	}
 
-	/* send the cpp stderr, if applicable */
-	if (cpp_stderr) {
-		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
-		if (fd_cpp_stderr != -1) {
-			copy_fd(fd_cpp_stderr, 2);
-			close(fd_cpp_stderr);
-			unlink(cpp_stderr);
-		}
-		free(cpp_stderr);
-	}
-
-	/* send the stderr */
+	/* Send the stderr, if any. */
 	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
 	if (fd_stderr != -1) {
 		copy_fd(fd_stderr, 2);

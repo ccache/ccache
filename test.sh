@@ -56,7 +56,7 @@ checkfile() {
         test_failed "$1 not found"
     fi
     if [ "`cat $1`" != "$2" ]; then
-        test_failed "Bad content of $2.\nExpected: $2\nActual: `cat $1`"
+        test_failed "Bad content of $1.\nExpected: $2\nActual: `cat $1`"
     fi
 }
 
@@ -571,6 +571,38 @@ EOF
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+
+    ##################################################################
+    # Check that stderr from both the preprocessor and the compiler is emitted
+    # in direct mode too.
+    testname="cpp stderr"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+cat <<EOF >cpp-warning.c
+#if FOO
+/* Trigger preprocessor warning about extra token after #endif. */
+#endif FOO
+int stderr(void)
+{
+	/* Trigger compiler warning by having no return statement. */
+}
+EOF
+    $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-orig.txt
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    CCACHE_NODIRECT=1 $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-cpp.txt
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile stderr-cpp.txt "`cat stderr-orig.txt`"
+
+    $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-mf.txt
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile stderr-mf.txt "`cat stderr-orig.txt`"
 
     ##################################################################
     # Reset things.
