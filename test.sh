@@ -237,18 +237,15 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 10
     checkstat 'cache miss' 38
 
-    # removed these tests as some compilers (including newer versions of gcc)
-    # determine which language to use based on .ii/.i extension, and C++ may
-    # not be installed
-#     testname="direct .ii file"
-#     mv test1.i test1.ii
-#     $CCACHE_COMPILE -c test1.ii
-#     checkstat 'cache hit (preprocessed)' 10
-#     checkstat 'cache miss' 39
+    testname="direct .ii file"
+    mv test1.i test1.ii
+    $CCACHE_COMPILE -c test1.ii
+    checkstat 'cache hit (preprocessed)' 10
+    checkstat 'cache miss' 39
 
-#     $CCACHE_COMPILE -c test1.ii
-#     checkstat 'cache hit (preprocessed)' 11
-#     checkstat 'cache miss' 39
+    $CCACHE_COMPILE -c test1.ii
+    checkstat 'cache hit (preprocessed)' 11
+    checkstat 'cache miss' 39
 
     testname="stderr-files"
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
