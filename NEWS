@@ -45,6 +45,9 @@ New features and improvements:
   - Improved the test suite and added tests for most of the new functionality.
     It's now also possible to specify a subset of tests to run.
 
+  - Standard error output from the compiler is now only stored in the cache if
+    it's non-empty.
+
 Bug fixes:
 
   - Fixed build on FreeBSD.

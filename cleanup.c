@@ -129,8 +129,21 @@ static void sort_and_clean(void)
 		}
 
 		if (is_object_file(files[i]->fname)) {
+			char *path;
+
 			total_object_files -= 1;
 			total_object_size -= files[i]->size;
+
+			/*
+			 * If we have deleted an object file, we should delete
+			 * any .stderr and .d file as well.
+			 */
+			x_asprintf(&path, "%s.stderr", files[i]->fname);
+			unlink(path);
+			free(path);
+			x_asprintf(&path, "%s.d", files[i]->fname);
+			unlink(path);
+			free(path);
 		}
 	}
 }

@@ -410,9 +410,8 @@ static void process_preprocessed_file(struct mdfour *hash, const char *path)
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
 {
-	char *path_stderr;
 	char *tmp_stdout, *tmp_stderr, *tmp_hashname;
-	struct stat st1, st2;
+	struct stat st;
 	int status;
 	int compress;
 
@@ -441,7 +440,7 @@ static void to_cache(ARGS *args)
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args_pop(args, 3);
 
-	if (stat(tmp_stdout, &st1) != 0 || st1.st_size != 0) {
+	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
 		cc_log("Compiler produced stdout for %s\n", output_file);
 		stats_update(STATS_STDOUT);
 		unlink(tmp_stdout);
@@ -489,14 +488,28 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	x_asprintf(&path_stderr, "%s.stderr", object_path);
 	compress = !getenv("CCACHE_NOCOMPRESS");
 
-	if (stat(tmp_stderr, &st1) != 0
-	    || stat(tmp_hashname, &st2) != 0
-	    || move_file(tmp_hashname, object_path, compress) != 0
-	    || move_file(tmp_stderr, path_stderr, compress) != 0) {
-		cc_log("Failed to rename tmp files - %s\n", strerror(errno));
+	if (stat(tmp_stderr, &st) != 0) {
+		cc_log("Failed to stat %s\n", tmp_stderr);
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	if (st.st_size > 0) {
+		char *path_stderr;
+		x_asprintf(&path_stderr, "%s.stderr", object_path);
+		if (move_file(tmp_stderr, path_stderr, compress) != 0) {
+			cc_log("Failed to move tmp stderr to the cache\n");
+			stats_update(STATS_ERROR);
+			failed();
+		}
+		cc_log("Stored stderr from the compiler in the cache\n");
+		free(path_stderr);
+	} else {
+		unlink(tmp_stderr);
+	}
+	if (move_file(tmp_hashname, object_path, compress) != 0) {
+		cc_log("Failed to move tmp object file into the cache\n");
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -505,19 +518,18 @@ static void to_cache(ARGS *args)
 	 * Do an extra stat on the potentially compressed object file for the
 	 * size statistics.
 	 */
-	if (stat(object_path, &st2) != 0) {
+	if (stat(object_path, &st) != 0) {
 		cc_log("Failed to stat %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
 
 	cc_log("Placed object file into the cache\n");
-	stats_tocache(file_size(&st2));
+	stats_tocache(file_size(&st));
 
 	free(tmp_hashname);
 	free(tmp_stderr);
 	free(tmp_stdout);
-	free(path_stderr);
 }
 
 /*
@@ -784,6 +796,17 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	struct stat st;
 	int produce_dep_file;
 
+	/* the user might be disabling cache hits */
+	if (mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE")) {
+		return;
+	}
+
+	/* Check if the object file is there. */
+	if (stat(object_path, &st) != 0) {
+		cc_log("Did not find object file in cache\n");
+		return;
+	}
+
 	/*
 	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
 	 * gcc.)
@@ -791,42 +814,86 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	produce_dep_file = \
 		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
-	x_asprintf(&stderr_file, "%s.stderr", object_path);
+	/* If the dependency file should be in the cache, check that it is. */
 	x_asprintf(&dep_file, "%s.d", object_path);
-
-	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
-	if (fd_stderr == -1) {
-		/* it isn't in cache ... */
-		cc_log("Did not find object file in cache\n");
-		free(stderr_file);
-		return;
-	}
-
-	/* make sure the output is there too */
-	if (stat(object_path, &st) != 0) {
-		cc_log("Object file missing in cache\n");
-		close(fd_stderr);
-		unlink(stderr_file);
-		free(stderr_file);
-		return;
-	}
-
-	/* ...and the dependency file, if wanted */
 	if (produce_dep_file && stat(dep_file, &st) != 0) {
 		cc_log("Dependency file missing in cache\n");
-		close(fd_stderr);
-		free(stderr_file);
+		free(dep_file);
 		return;
 	}
 
-	/* the user might be disabling cache hits */
-	if (mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE")) {
-		close(fd_stderr);
+	x_asprintf(&stderr_file, "%s.stderr", object_path);
+
+	if (strcmp(output_file, "/dev/null") == 0) {
+		ret = 0;
+	} else {
+		unlink(output_file);
+		/* only make a hardlink if the cache file is uncompressed */
+		if (getenv("CCACHE_HARDLINK") &&
+		    test_if_compressed(object_path) == 0) {
+			ret = link(object_path, output_file);
+		} else {
+			ret = copy_file(object_path, output_file, 0);
+		}
+	}
+
+	if (ret == -1) {
+		if (errno == ENOENT) {
+			/* Someone removed the file just before we began copying? */
+			cc_log("Object file missing for %s\n", output_file);
+			stats_update(STATS_MISSING);
+		} else {
+			cc_log("Failed to copy/link %s -> %s (%s)\n",
+			       object_path, output_file, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+		unlink(output_file);
 		unlink(stderr_file);
 		unlink(object_path);
 		unlink(dep_file);
+		free(dep_file);
 		free(stderr_file);
 		return;
+	} else {
+		cc_log("Created %s\n", output_file);
+	}
+
+	if (produce_dep_file) {
+		unlink(dependency_path);
+		/* only make a hardlink if the cache file is uncompressed */
+		if (getenv("CCACHE_HARDLINK") &&
+		    test_if_compressed(dep_file) == 0) {
+			ret = link(dep_file, dependency_path);
+		} else {
+			ret = copy_file(dep_file, dependency_path, 0);
+		}
+		if (ret == -1) {
+			if (errno == ENOENT) {
+				/*
+				 * Someone removed the file just before we
+				 * began copying?
+				 */
+				cc_log("dependency file missing for %s\n",
+				       output_file);
+				stats_update(STATS_MISSING);
+			} else {
+				cc_log("failed to copy/link %s -> %s (%s)\n",
+				       dep_file, dependency_path,
+				       strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
+			unlink(output_file);
+			unlink(stderr_file);
+			unlink(object_path);
+			unlink(dep_file);
+			free(dep_file);
+			free(stderr_file);
+			return;
+		} else {
+			cc_log("Created %s\n", dependency_path);
+		}
 	}
 
 	/* update timestamps for LRU cleanup
@@ -845,71 +912,6 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 #endif
 
-	if (strcmp(output_file, "/dev/null") == 0) {
-		ret = 0;
-	} else {
-		unlink(output_file);
-		/* only make a hardlink if the cache file is uncompressed */
-		if (getenv("CCACHE_HARDLINK") &&
-		    test_if_compressed(object_path) == 0) {
-			ret = link(object_path, output_file);
-		} else {
-			ret = copy_file(object_path, output_file, 0);
-		}
-	}
-
-	if (ret == -1) {
-		if (errno == ENOENT) {
-			cc_log("Object file missing for %s\n", output_file);
-			stats_update(STATS_MISSING);
-		} else {
-			cc_log("Failed to copy/link %s -> %s (%s)\n",
-			       object_path, output_file, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		close(fd_stderr);
-		unlink(stderr_file);
-		unlink(object_path);
-		unlink(dep_file);
-		free(stderr_file);
-		return;
-	} else {
-		cc_log("Created %s\n", output_file);
-	}
-
-	if (produce_dep_file) {
-		unlink(dependency_path);
-		/* only make a hardlink if the cache file is uncompressed */
-		if (getenv("CCACHE_HARDLINK") &&
-		    test_if_compressed(dep_file) == 0) {
-			ret = link(dep_file, dependency_path);
-		} else {
-			ret = copy_file(dep_file, dependency_path, 0);
-		}
-		if (ret == -1) {
-			if (errno == ENOENT) {
-				cc_log("dependency file missing for %s\n",
-				       output_file);
-				stats_update(STATS_MISSING);
-			} else {
-				cc_log("failed to copy/link %s -> %s (%s)\n",
-				       dep_file, dependency_path,
-				       strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			close(fd_stderr);
-			unlink(stderr_file);
-			unlink(object_path);
-			unlink(dep_file);
-			free(stderr_file);
-			return;
-		} else {
-			cc_log("Created %s\n", dependency_path);
-		}
-	}
-
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
 		ret = copy_file(dependency_path, dep_file, 1);
@@ -921,6 +923,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			cc_log("Placed dependency file into the cache\n");
 		}
 	}
+	free(dep_file);
 
 	/* get rid of the intermediate preprocessor file */
 	if (i_tmpfile) {
@@ -938,14 +941,17 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			copy_fd(fd_cpp_stderr, 2);
 			close(fd_cpp_stderr);
 			unlink(cpp_stderr);
-			free(cpp_stderr);
-			cpp_stderr = NULL;
 		}
+		free(cpp_stderr);
 	}
 
 	/* send the stderr */
-	copy_fd(fd_stderr, 2);
-	close(fd_stderr);
+	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
+	if (fd_stderr != -1) {
+		copy_fd(fd_stderr, 2);
+		close(fd_stderr);
+	}
+	free(stderr_file);
 
 	/* Create or update the manifest file. */
 	if (put_object_in_manifest && included_files) {

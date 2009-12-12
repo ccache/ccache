@@ -250,6 +250,23 @@ base_tests() {
 #     checkstat 'cache hit (preprocessed)' 11
 #     checkstat 'cache miss' 39
 
+    testname="stderr-files"
+    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
+    if [ $num -ne 0 ]; then
+        test_failed "$num stderr files found, expected 0"
+    fi
+    cat <<EOF >stderr.c
+int stderr(void)
+{
+	/* Trigger warning by having no return statement. */
+}
+EOF
+    $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
+    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
+    if [ $num -ne 1 ]; then
+        test_failed "$num stderr files found, expected 1"
+    fi
+
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit (preprocessed)' 0
@@ -705,7 +722,17 @@ mkdir $CCACHE_DIR
 
 # ---------------------------------------
 
-all_suites="base link hardlink cpp2 nlevels4 nlevels1 direct basedir"
+all_suites="
+base
+link
+hardlink
+cpp2
+nlevels4
+nlevels1
+direct
+basedir
+"
+
 if [ -z "$suites" ]; then
     suites="$all_suites"
 fi
