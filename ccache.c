@@ -336,7 +336,7 @@ static char *make_relative_path(char *path)
  * - Makes include file paths whose prefix is CCACHE_BASEDIR relative.
  * - Stores the paths of included files in the global variable included_files.
  */
-static void process_preprocessed_file(struct mdfour *hash, const char *path)
+static int process_preprocessed_file(struct mdfour *hash, const char *path)
 {
 	int fd;
 	char *data;
@@ -347,17 +347,17 @@ static void process_preprocessed_file(struct mdfour *hash, const char *path)
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
 		cc_log("failed to open %s\n", path);
-		failed();
+		return 0;
 	}
 	if (fstat(fd, &st) != 0) {
 		cc_log("failed to fstat %s\n", path);
-		failed();
+		return 0;
 	}
 	size = st.st_size;
 	data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (data == (void *)-1) {
 		cc_log("failed to mmap %s\n", path);
-		failed();
+		return 0;
 	}
 	close(fd);
 
@@ -380,7 +380,9 @@ static void process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			q++;
 			if (q >= end) {
-				failed();
+				cc_log("Failed parsing included file path\n");
+				munmap(data, size);
+				return 0;
 			}
 			/* q points to the beginning of an include file path */
 			hash_buffer(hash, p, q - p);
@@ -405,6 +407,7 @@ static void process_preprocessed_file(struct mdfour *hash, const char *path)
 
 	hash_buffer(hash, p, (end - p));
 	munmap(data, size);
+	return 1;
 }
 
 /* run the real compiler and put the result in cache */
@@ -461,10 +464,12 @@ static void to_cache(ARGS *args)
 
 		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 		if (fd_cpp_stderr == -1) {
+			cc_log("Failed opening %s\n", cpp_stderr);
 			failed();
 		}
 		fd_real_stderr = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd_real_stderr == -1) {
+			cc_log("Failed opening %s\n", tmp_stderr);
 			failed();
 		}
 		unlink(tmp_stderr);
@@ -472,6 +477,7 @@ static void to_cache(ARGS *args)
 				 O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
 				 0666);
 		if (fd_result == -1) {
+			cc_log("Failed opening %s\n", tmp_stderr);
 			failed();
 		}
 		copy_fd(fd_cpp_stderr, fd_result);
@@ -626,10 +632,16 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 	   as it gives the wrong line numbers for warnings. Pity.
 	*/
 	if (!enable_unify) {
-		process_preprocessed_file(hash, path_stdout);
+		if (!process_preprocessed_file(hash, path_stdout)) {
+			stats_update(STATS_ERROR);
+			unlink(path_stderr);
+			failed();
+		}
 	} else {
 		if (unify_hash(hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
+			unlink(path_stderr);
+			cc_log("Failed to unify %s\n", path_stdout);
 			failed();
 		}
 	}
@@ -775,6 +787,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
 		if (!hash_file(&hash, input_file)) {
+			cc_log("Failed hashing %s\n", input_file);
 			failed();
 		}
 		manifest_name = hash_result(&hash);
@@ -1087,6 +1100,7 @@ static void process_args(int argc, char **argv)
 	for (i=1; i<argc; i++) {
 		/* some options will never work ... */
 		if (strcmp(argv[i], "-E") == 0) {
+			cc_log("Compiler option -E is unsupported\n");
 			failed();
 		}
 
@@ -1098,7 +1112,7 @@ static void process_args(int argc, char **argv)
 		    strcmp(argv[i], "-M") == 0 ||
 		    strcmp(argv[i], "-MM") == 0 ||
 		    strcmp(argv[i], "-x") == 0) {
-			cc_log("argument %s is unsupported\n", argv[i]);
+			cc_log("Compiler option %s is unsupported\n", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			failed();
 			continue;
@@ -1151,6 +1165,7 @@ static void process_args(int argc, char **argv)
 		if (strcmp(argv[i], "--ccache-skip") == 0) {
 			i++;
 			if (i == argc) {
+				cc_log("--ccache-skip lacks an argument\n");
 				failed();
 			}
 			args_add(stripped_args, argv[i]);
@@ -1342,6 +1357,7 @@ static void process_args(int argc, char **argv)
 	/* don't try to second guess the compilers heuristics for stdout handling */
 	if (output_file && strcmp(output_file, "-") == 0) {
 		stats_update(STATS_OUTSTDOUT);
+		cc_log("Output file is -\n");
 		failed();
 	}
 
@@ -1371,6 +1387,8 @@ static void process_args(int argc, char **argv)
 			if (p) {
 				if (strlen(p) < 2) {
 					stats_update(STATS_ARGS);
+					cc_log("Too short file extension in %s\n",
+					       default_depfile_name);
 					failed();
 					return;
 				}
