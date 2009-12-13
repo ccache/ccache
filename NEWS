@@ -77,3 +77,5 @@ Bug fixes:
   - The command specified by CCACHE_PREFIX is no longer part of the hash.
 
   - Fixed bad memory access spotted by Valgrind.
+
+  - Removed deprecated constructions from ccache.yo.
