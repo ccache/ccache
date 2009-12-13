@@ -9,7 +9,9 @@ else
     COMPILER=cc
 fi
 
-CCACHE=$PWD/ccache
+if [ -z "$CCACHE" ]; then
+    CCACHE=$PWD/ccache
+fi
 TESTDIR=testdir.$$
 
 unset CCACHE_DISABLE

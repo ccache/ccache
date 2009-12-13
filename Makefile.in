@@ -87,11 +87,8 @@ check: test
 distclean: clean
 	rm -f Makefile config.h config.log config.status
 
-# FIXME: To fix this, test.sh needs to be able to take ccache from the
-# installed prefix, not from the source dir.
 installcheck:
-	@echo "WARNING!  This is not really \"installcheck\" yet."
-	$(MAKE) check
+	CCACHE=$(bindir)/ccache ./test.sh
 
 check-syntax:
 	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
