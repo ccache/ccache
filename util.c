@@ -725,8 +725,11 @@ char *get_relative_path(const char *from, const char *to)
 		}
 	}
 	if (strlen(to) > common_prefix_len) {
-		x_asprintf2(&result, "%s%s", result,
-			    to + common_prefix_len + 1);
+		p = to + common_prefix_len + 1;
+		while (*p == '/') {
+			p++;
+		}
+		x_asprintf2(&result, "%s%s", result, p);
 	}
 	i = strlen(result) - 1;
 	while (i >= 0 && result[i] == '/') {

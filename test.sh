@@ -714,6 +714,20 @@ EOF
     cd ..
 
     ##################################################################
+    # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
+    # slashes correctly.
+    testname="path normalization"
+    cd dir1
+    $CCACHE -z >/dev/null
+    unset CCACHE_NODIRECT
+    $CCACHE $COMPILER -I$PWD//include -c $PWD//.///src/test.c
+    export CCACHE_NODIRECT=1
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    cd ..
+
+    ##################################################################
     # Check that rewriting triggered by CCACHE_BASEDIR also affects stderr.
     testname="stderr"
     $CCACHE -z >/dev/null
