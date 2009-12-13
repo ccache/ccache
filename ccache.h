@@ -79,8 +79,6 @@ enum stats {
 	STATS_END
 };
 
-typedef unsigned uint32;
-
 #include "mdfour.h"
 
 void hash_start(struct mdfour *md);

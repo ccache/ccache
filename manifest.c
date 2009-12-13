@@ -420,11 +420,11 @@ static uint32_t get_include_file_index(struct manifest *mf,
 	return n;
 }
 
-static uint32 get_file_hash_index(struct manifest *mf,
-				  char *path,
-				  struct file_hash *file_hash,
-				  struct hashtable *mf_files,
-				  struct hashtable *mf_file_infos)
+static uint32_t get_file_hash_index(struct manifest *mf,
+				    char *path,
+				    struct file_hash *file_hash,
+				    struct hashtable *mf_files,
+				    struct hashtable *mf_file_infos)
 {
 	struct file_info fi;
 	uint32_t *fi_index;

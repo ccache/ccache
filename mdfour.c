@@ -38,10 +38,10 @@ static struct mdfour *m;
 #define ROUND3(a,b,c,d,k,s) a = lshift((a + H(b,c,d) + M[k] + 0x6ED9EBA1)&MASK32,s)
 
 /* this applies md4 to 64 byte chunks */
-static void mdfour64(uint32 *M)
+static void mdfour64(uint32_t *M)
 {
-	uint32 AA, BB, CC, DD;
-	uint32 A,B,C,D;
+	uint32_t AA, BB, CC, DD;
+	uint32_t A,B,C,D;
 
 	A = m->A; B = m->B; C = m->C; D = m->D;
 	AA = A; BB = B; CC = C; DD = D;
@@ -83,7 +83,7 @@ static void mdfour64(uint32 *M)
 	m->A = A; m->B = B; m->C = C; m->D = D;
 }
 
-static void copy64(uint32 *M, const unsigned char *in)
+static void copy64(uint32_t *M, const unsigned char *in)
 {
 	int i;
 
@@ -92,7 +92,7 @@ static void copy64(uint32 *M, const unsigned char *in)
 			(in[i*4+1]<<8) | (in[i*4+0]<<0);
 }
 
-static void copy4(unsigned char *out,uint32 x)
+static void copy4(unsigned char *out, uint32_t x)
 {
 	out[0] = x&0xFF;
 	out[1] = (x>>8)&0xFF;
@@ -114,8 +114,8 @@ void mdfour_begin(struct mdfour *md)
 static void mdfour_tail(const unsigned char *in, int n)
 {
 	unsigned char buf[128];
-	uint32 M[16];
-	uint32 b;
+	uint32_t M[16];
+	uint32_t b;
 
 	m->totalN += n;
 
@@ -140,7 +140,7 @@ static void mdfour_tail(const unsigned char *in, int n)
 
 void mdfour_update(struct mdfour *md, const unsigned char *in, int n)
 {
-	uint32 M[16];
+	uint32_t M[16];
 
 	m = md;
 
