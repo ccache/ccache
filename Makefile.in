@@ -25,17 +25,16 @@ objs = $(sources:.c=.o)
 
 all: ccache$(EXEEXT)
 
-docs: ccache.1 web/ccache-man.html
+docs: ccache.1 #web/ccache-man.html
 
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
 ccache.1: ccache.yo
-	-yodl2man -o ccache.1 ccache.yo
+	yodl2man -o ccache.1 ccache.yo
 
-web/ccache-man.html: ccache.yo
-	mkdir -p man
-	yodl2html -o web/ccache-man.html ccache.yo
+#web/ccache-man.html: ccache.yo
+#	yodl2html -o web/ccache-man.html ccache.yo
 
 install: ccache$(EXEEXT) ccache.1
 	${INSTALLCMD} -d $(DESTDIR)${bindir}
@@ -44,7 +43,7 @@ install: ccache$(EXEEXT) ccache.1
 	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
 
 clean:
-	/bin/rm -f $(objs) *~ ccache$(EXEEXT) *.d
+	rm -f $(objs) *~ ccache$(EXEEXT) *.d ccache.1 web/ccache-man.html
 
 test: test.sh
 	CC='$(CC)' ./test.sh
