@@ -1,7 +1,7 @@
 #ifndef CCACHE_H
 #define CCACHE_H
 
-#define CCACHE_VERSION "2.4"
+#define CCACHE_VERSION "2.4+jrosdahl"
 
 #include "config.h"
 

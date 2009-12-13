@@ -1,27 +1,40 @@
-srcdir=@srcdir@
-VPATH=@srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-bindir=@bindir@
-mandir=@mandir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+mandir = @mandir@
 datarootdir = @datarootdir@
-INSTALLCMD=@INSTALL@
+installcmd = @INSTALL@
 
-CC=@CC@
-CPPFLAGS=@CPPFLAGS@ -MD -MP -I.
-CFLAGS=$(CPPFLAGS) @CFLAGS@
-LDFLAGS=@LDFLAGS@
-EXEEXT=@EXEEXT@
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@ -MD -MP -I.
+LDFLAGS = @LDFLAGS@
+EXEEXT = @EXEEXT@
 
 libs = @LIBS@ -lm
 
 sources = \
-	ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
-	cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-	murmurhashneutral2.c hashutil.c
+    ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
+    cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
+    murmurhashneutral2.c hashutil.c
+
+headers = \
+    ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
+    manifest.h mdfour.h murmurhashneutral2.h
 
 objs = $(sources:.c=.o)
+
+dist_files = \
+    $(sources) $(headers) configure Makefile.in config.h.in ccache.1 \
+    test.sh install-sh README COPYING
+
+version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' ccache.h)
+dist_dir := ccache-$(version)
+dist_archive_tar_bz2 := ccache-$(version).tar.bz2
+dist_archive_tar_gz := ccache-$(version).tar.gz
 
 all: ccache$(EXEEXT)
 
@@ -36,14 +49,35 @@ ccache.1: ccache.yo
 #web/ccache-man.html: ccache.yo
 #	yodl2html -o web/ccache-man.html ccache.yo
 
-install: ccache$(EXEEXT) ccache.1
-	${INSTALLCMD} -d $(DESTDIR)${bindir}
-	${INSTALLCMD} -m 755 ccache$(EXEEXT) $(DESTDIR)${bindir}
-	${INSTALLCMD} -d $(DESTDIR)${mandir}/man1
-	${INSTALLCMD} -m 644 ${srcdir}/ccache.1 $(DESTDIR)${mandir}/man1/
+install: all
+	$(installcmd) -d $(DESTDIR)$(bindir)
+	$(installcmd) -s -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
+	$(installcmd) -d $(DESTDIR)$(mandir)/man1
+	$(installcmd) -m 644 $(srcdir)/ccache.1 $(DESTDIR)$(mandir)/man1/
+
+dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
+
+$(dist_archive_tar_bz2): $(dist_files)
+	tmpdir=$$(mktemp -d) && \
+	dir=$$tmpdir/$(dist_dir) && \
+	mkdir $$dir && \
+	cp $(dist_files) $$dir && \
+	(cd $$tmpdir && \
+	 tar cjf $(CURDIR)/$(dist_archive_tar_bz2) $(dist_dir)) && \
+	rm -rf $$tmpdir
+
+$(dist_archive_tar_gz): $(dist_files)
+	tmpdir=$$(mktemp -d) && \
+	dir=$$tmpdir/$(dist_dir) && \
+	mkdir $$dir && \
+	cp $(dist_files) $$dir && \
+	(cd $$tmpdir && \
+	 tar czf $(CURDIR)/$(dist_archive_tar_gz) $(dist_dir)) && \
+	rm -rf $$tmpdir
 
 clean:
-	rm -f $(objs) *~ ccache$(EXEEXT) *.d ccache.1 web/ccache-man.html
+	rm -f $(objs) *~ ccache$(EXEEXT) *.d ccache.1 web/ccache-man.html \
+	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 test: test.sh
 	CC='$(CC)' ./test.sh
@@ -51,7 +85,7 @@ test: test.sh
 check: test
 
 distclean: clean
-	/bin/rm -f Makefile config.h config.sub config.log build-stamp config.status
+	rm -f Makefile config.h config.log config.status
 
 # FIXME: To fix this, test.sh needs to be able to take ccache from the
 # installed prefix, not from the source dir.
