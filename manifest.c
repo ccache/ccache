@@ -29,6 +29,7 @@
 #include "hashutil.h"
 #include "manifest.h"
 #include "murmurhashneutral2.h"
+#include "comments.h"
 
 extern char *temp_dir;
 
@@ -345,7 +346,8 @@ static int verify_object(struct manifest *mf, struct object *obj,
 		if (!actual) {
 			actual = x_malloc(sizeof(*actual));
 			hash_start(&hash);
-			if (!hash_file(&hash, mf->files[fi->index])) {
+			if (!hash_file_ignoring_comments(
+				    &hash, mf->files[fi->index])) {
 				cc_log("Failed hashing %s\n",
 				       mf->files[fi->index]);
 				free(actual);

@@ -27,6 +27,7 @@
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
+#include "comments.h"
 
 #include <getopt.h>
 
@@ -244,7 +245,7 @@ static void remember_include_file(char *path, size_t path_len)
 	struct mdfour fhash;
 	struct stat st;
 	int fd = -1;
-	int ret;
+	char *data = (char *)-1;
 
 	if (!included_files) {
 		goto ignore;
@@ -284,19 +285,20 @@ static void remember_include_file(char *path, size_t path_len)
 		cc_log("Include file \"%s\" too new\n", path);
 		goto failure;
 	}
-	hash_start(&fhash);
-	ret = hash_fd(&fhash, fd);
-	if (!ret) {
-		cc_log("Failed hashing include file \"%s\"\n", path);
+	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == (char *)-1) {
+		cc_log("Failed to mmap %s\n", path);
 		goto failure;
 	}
 
-	/* Hashing OK. */
+	hash_start(&fhash);
+	hash_string_ignoring_comments(&fhash, data, st.st_size);
+
 	h = x_malloc(sizeof(*h));
 	hash_result_as_bytes(&fhash, h->hash);
 	h->size = fhash.totalN;
 	hashtable_insert(included_files, path, h);
-	close(fd);
+	munmap(data, st.st_size);
 	return;
 
 failure:
@@ -307,6 +309,9 @@ failure:
 	/* Fall through. */
 ignore:
 	free(path);
+	if (data != (char *)-1) {
+		munmap(data, st.st_size);
+	}
 	if (fd != -1) {
 		close(fd);
 	}
@@ -786,7 +791,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
-		if (!hash_file(&hash, input_file)) {
+		if (!hash_file_ignoring_comments(&hash, input_file)) {
 			cc_log("Failed hashing %s\n", input_file);
 			failed();
 		}
@@ -980,7 +985,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	/* Create or update the manifest file. */
 	if (put_object_in_manifest && included_files) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
-			cc_log("Added object file hash to manifest\n");
+			cc_log("Added object file hash to manifest %s\n",
+				manifest_path);
 			/* Update timestamp for LRU cleanup. */
 #ifdef HAVE_UTIMES
 			utimes(manifest_path, NULL);
