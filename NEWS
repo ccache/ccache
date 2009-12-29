@@ -48,7 +48,7 @@ New features and improvements:
   - Standard error output from the compiler is now only stored in the cache if
     it's non-empty.
 
-  - Added installcheck make target.
+  - Added installcheck and distcheck make targets.
 
 Bug fixes:
 

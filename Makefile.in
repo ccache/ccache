@@ -91,6 +91,17 @@ distclean: clean
 installcheck:
 	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
 
+distcheck: $(dist_archive_tar_bz2)
+	tmpdir=$$(mktemp -d) && \
+	(cd $$tmpdir && \
+	 tar xjf $(CURDIR)/$(dist_archive_tar_bz2) && \
+	 mkdir -p $(dist_dir)/build && \
+	 cd $(dist_dir)/build && \
+	 ../configure --prefix=$$tmpdir/root && \
+	 make install && \
+	 make installcheck) && \
+	rm -rf $$tmpdir
+
 check-syntax:
 	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
