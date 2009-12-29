@@ -31,7 +31,8 @@ dist_files = \
     $(sources) $(headers) configure Makefile.in config.h.in ccache.1 \
     test.sh install-sh README COPYING
 
-version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' ccache.h)
+version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
+		       $(srcdir)/ccache.h)
 dist_dir := ccache-$(version)
 dist_archive_tar_bz2 := ccache-$(version).tar.bz2
 dist_archive_tar_gz := ccache-$(version).tar.gz
@@ -80,7 +81,7 @@ clean:
 	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 test: test.sh
-	CC='$(CC)' ./test.sh
+	CC='$(CC)' $(srcdir)/test.sh
 
 check: test
 
@@ -88,7 +89,7 @@ distclean: clean
 	rm -f Makefile config.h config.log config.status
 
 installcheck:
-	CCACHE=$(bindir)/ccache ./test.sh
+	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
 
 check-syntax:
 	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
