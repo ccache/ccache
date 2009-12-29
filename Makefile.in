@@ -37,8 +37,10 @@ dist_dir := ccache-$(version)
 dist_archive_tar_bz2 := ccache-$(version).tar.bz2
 dist_archive_tar_gz := ccache-$(version).tar.gz
 
+.PHONY: all
 all: ccache$(EXEEXT)
 
+.PHONY: docs
 docs: ccache.1 #web/ccache-man.html
 
 ccache$(EXEEXT): $(objs)
@@ -50,12 +52,14 @@ ccache.1: ccache.yo
 #web/ccache-man.html: ccache.yo
 #	yodl2html -o web/ccache-man.html ccache.yo
 
+.PHONY: install
 install: all
 	$(installcmd) -d $(DESTDIR)$(bindir)
 	$(installcmd) -s -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
 	$(installcmd) -m 644 $(srcdir)/ccache.1 $(DESTDIR)$(mandir)/man1/
 
+.PHONY: dist
 dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 $(dist_archive_tar_bz2): $(dist_files)
@@ -76,21 +80,27 @@ $(dist_archive_tar_gz): $(dist_files)
 	 tar czf $(CURDIR)/$(dist_archive_tar_gz) $(dist_dir)) && \
 	rm -rf $$tmpdir
 
+.PHONY: clean
 clean:
 	rm -f $(objs) *~ ccache$(EXEEXT) *.d ccache.1 web/ccache-man.html \
 	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
+.PHONY: test
 test: test.sh
 	CC='$(CC)' $(srcdir)/test.sh
 
+.PHONY: check
 check: test
 
+.PHONY: distclean
 distclean: clean
 	rm -f Makefile config.h config.log config.status
 
+.PHONY: installcheck
 installcheck:
 	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
 
+.PHONY: distcheck
 distcheck: $(dist_archive_tar_bz2)
 	tmpdir=$$(mktemp -d) && \
 	(cd $$tmpdir && \
@@ -102,6 +112,7 @@ distcheck: $(dist_archive_tar_bz2)
 	 make installcheck) && \
 	rm -rf $$tmpdir
 
+.PHONY: check-syntax
 check-syntax:
 	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
