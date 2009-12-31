@@ -10,7 +10,7 @@ installcmd = @INSTALL@
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ -MD -MP -I.
+CPPFLAGS = @CPPFLAGS@ -MD -MP -MF .deps/$(notdir $<).d -I.
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
@@ -82,7 +82,7 @@ $(dist_archive_tar_gz): $(dist_files)
 
 .PHONY: clean
 clean:
-	rm -f $(objs) *~ ccache$(EXEEXT) *.d ccache.1 web/ccache-man.html \
+	rm -f $(objs) *~ ccache$(EXEEXT) .deps/* ccache.1 web/ccache-man.html \
 	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 .PHONY: test
@@ -94,7 +94,7 @@ check: test
 
 .PHONY: distclean
 distclean: clean
-	rm -f Makefile config.h config.log config.status
+	rm -rf Makefile config.h config.log config.status .deps
 
 .PHONY: installcheck
 installcheck:
@@ -116,4 +116,4 @@ distcheck: $(dist_archive_tar_bz2)
 check-syntax:
 	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
--include $(sources:.c=.d)
+-include $(sources:%=.deps/%.d)

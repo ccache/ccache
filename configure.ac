@@ -89,3 +89,5 @@ AC_CHECK_HEADER(
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
+
+mkdir -p .deps
