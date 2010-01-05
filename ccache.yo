@@ -24,7 +24,7 @@ verb(
 -z, --zero-stats        zero statistics
 -c, --cleanup           run a cache cleanup
 -C, --clear             clear the cache completely
--F <n>, --max-files=<n> set maximum files in cache
+-F <n>, --max-files=<n> set maximum number of files in cache
 -M <n>, --max-size=<n>  set maximum size of cache (use G, M or K)
 -h, --help              this help page
 -V, --version           print version number
@@ -60,16 +60,16 @@ dit(bf(-C, --clear)) Clear the entire cache, removing all cached
 files.
 
 dit(bf(-F <maxfiles>, --max-files=<maxfiles>)) This sets the maximum
-number of files allowed in the cache. The value is stored inside the
-cache directory and applies to all future compiles. Due to the way the
-value is stored the actual value used is always rounded down to the
-nearest multiple of 16.
+number of object files allowed in the cache. The value is stored
+inside the cache directory and applies to all future compiles. Due to
+the way the value is stored the actual value used is always rounded
+down to the nearest multiple of 16.
 
-dit(bf(-M <maxsize>, --max-size=<maxsize>)) This sets the maximum
-cache size. You can specify a value in gigabytes, megabytes or
-kilobytes by appending a G, M or K to the value. The default is
-gigabytes. The actual value stored is rounded down to the nearest
-multiple of 16 kilobytes.
+dit(bf(-M <maxsize>, --max-size=<maxsize>)) This sets the maximum size
+of the object files stored in the cache. You can specify a value in
+gigabytes, megabytes or kilobytes by appending a G, M or K to the
+value. The default is gigabytes. The actual value stored is rounded
+down to the nearest multiple of 16 kilobytes.
 
 enddit()
 
@@ -255,10 +255,10 @@ enddit()
 
 manpagesection(CACHE SIZE MANAGEMENT)
 
-By default ccache has a one gigabyte limit on the cache size and no
-maximum number of files. You can set a different limit using the
-"ccache -M" and "ccache -F" options, which set the size and number of
-files limits.
+By default ccache has a one gigabyte limit on the total size of object
+files in the cache and no maximum number of object files. You can set
+a different limit using the "ccache -M" and "ccache -F" options, which
+set the size and number of files limits.
 
 When these limits are reached ccache will reduce the cache to 20%
 below the numbers you specified in order to avoid doing the cache
