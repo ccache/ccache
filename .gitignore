@@ -1,0 +1,13 @@
+*.o
+*~
+.deps
+Makefile
+autom4te.cache
+ccache
+ccache.1
+config.h
+config.h.in
+config.log
+config.status
+configure
+testdir.*
