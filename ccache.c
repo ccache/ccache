@@ -701,6 +701,15 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 
 	hash_start(&hash);
 
+	/*
+	 * Let compressed files get a different hash sums than uncompressed
+	 * files to avoid problems when older ccache versions (without
+	 * compression support) access the cache.
+	 */
+	if (!getenv("CCACHE_NOCOMPRESS")) {
+		hash_buffer(&hash, "compression", 12); /* also hash NUL byte */
+	}
+
 	/* when we are doing the unifying tricks we need to include
 	   the input file name in the hash to get the warnings right */
 	if (enable_unify) {

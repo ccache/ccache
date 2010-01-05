@@ -792,6 +792,40 @@ EOF
     fi
 }
 
+compression_suite() {
+    rm -rf $CCACHE_DIR
+
+    ##################################################################
+    # Create some code to compile.
+    cat <<EOF >test.c
+int test;
+EOF
+
+    ##################################################################
+    # Check that compressed and uncompressed files get different hash sums in
+    # order to maintain forward compatibility of previous ccache versions.
+    testname="compression hash sum"
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    CCACHE_NOCOMPRESS=1 $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+
+    CCACHE_NOCOMPRESS=1 $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+}
+
 ######################################################################
 # main program
 
@@ -820,6 +854,7 @@ nlevels4
 nlevels1
 direct
 basedir
+compression
 "
 
 if [ -z "$suites" ]; then

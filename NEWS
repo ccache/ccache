@@ -84,12 +84,6 @@ Bug fixes:
 
 Compatibility notes:
 
-  - The object files cached by ccache are now stored compressed. ccache
-    understands old ccache directories (created by ccache versions without
-    compression support), but not the other way around. Thus, if you need to be
-    able to run both old and new ccache versions on the same ccache directory,
-    you have to tell ccache not to use compression by setting CCACHE_NOCOMPRESS.
-
   - The statistics counters "files in cache" and "cache size" now only include
     object files (previously, files containing cached standard error output
     were counted as well). Consequently, the "max file" and "max cache size"
