@@ -193,7 +193,8 @@ CCACHE_HARDLINK then ccache will attempt to use hard links from the
 cache directory when creating the compiler output rather than using a
 file copy. Using hard links is faster, but can confuse programs like
 'make' that rely on modification times. Hard links are never made for
-compressed cache files.
+compressed cache files. This means that you typically also should set
+the CCACHE_NOCOMPRESS variable if you want to use hard links.
 
 dit(bf(CCACHE_RECACHE)) This forces ccache to not use any cached
 results, even if it finds them. New results are still cached, but
