@@ -114,6 +114,6 @@ distcheck: $(dist_archive_tar_bz2)
 
 .PHONY: check-syntax
 check-syntax:
-	$(CC) $(filter-out -M%, $(CPPFLAGS)) $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
 -include $(sources:%=.deps/%.d)
