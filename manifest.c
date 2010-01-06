@@ -31,8 +31,6 @@
 #include "murmurhashneutral2.h"
 #include "comments.h"
 
-extern char *temp_dir;
-
 /*
  * Sketchy specification of the manifest disk format:
  *
@@ -608,7 +606,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		}
 	}
 
-	x_asprintf(&tmp_file, "%s/manifest.tmp.%s", temp_dir, tmp_string());
+	x_asprintf(&tmp_file, "%s.tmp.%s", manifest_path, tmp_string());
 	fd2 = safe_open(tmp_file);
 	if (fd2 == -1) {
 		cc_log("Failed to open %s\n", tmp_file);
