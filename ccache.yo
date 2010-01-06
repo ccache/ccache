@@ -24,8 +24,8 @@ verb(
 -z, --zero-stats        zero statistics
 -c, --cleanup           run a cache cleanup
 -C, --clear             clear the cache completely
--F <n>, --max-files=<n> set maximum number of files in cache
--M <n>, --max-size=<n>  set maximum size of cache (use G, M or K)
+-F <n>, --max-files=<n> set maximum number of files in cache (0: no limit)
+-M <n>, --max-size=<n>  set maximum size of cache (use G, M or K; 0: no limit)
 -h, --help              this help page
 -V, --version           print version number
 )

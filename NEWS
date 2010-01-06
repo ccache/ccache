@@ -50,6 +50,8 @@ New features and improvements:
 
   - Added installcheck and distcheck make targets.
 
+  - Clarified cache size limit options' semantics
+
 Bug fixes:
 
   - Fixed build on FreeBSD.

@@ -1606,8 +1606,8 @@ static void usage(void)
 	printf("-z, --zero-stats         zero statistics\n");
 	printf("-c, --cleanup            run a cache cleanup\n");
 	printf("-C, --clear              clear the cache completely\n");
-	printf("-F <n>, --max-files=<n>  set maximum files in cache\n");
-	printf("-M <n>, --max-size=<n>   set maximum size of cache (use G, M or K)\n");
+	printf("-F <n>, --max-files=<n>  set maximum number of files in cache (0: no limit)\n");
+	printf("-M <n>, --max-size=<n>   set maximum size of cache (use G, M or K; 0: no limit)\n");
 	printf("-h, --help               this help page\n");
 	printf("-V, --version            print version number\n");
 }
@@ -1677,7 +1677,11 @@ static int ccache_main(int argc, char *argv[])
 			check_cache_dir();
 			v = atoi(optarg);
 			if (stats_set_limits(v, -1) == 0) {
-				printf("Set cache file limit to %u\n", (unsigned)v);
+				if (v == 0) {
+					printf("Unset cache file limit\n");
+				} else {
+					printf("Set cache file limit to %u\n", (unsigned)v);
+				}
 			} else {
 				printf("Could not set cache file limit.\n");
 				exit(1);
@@ -1688,7 +1692,11 @@ static int ccache_main(int argc, char *argv[])
 			check_cache_dir();
 			v = value_units(optarg);
 			if (stats_set_limits(-1, v) == 0) {
-				printf("Set cache size limit to %uk\n", (unsigned)v);
+				if (v == 0) {
+					printf("Unset cache size limit\n");
+				} else {
+					printf("Set cache size limit to %uk\n", (unsigned)v);
+				}
 			} else {
 				printf("Could not set cache size limit.\n");
 				exit(1);
