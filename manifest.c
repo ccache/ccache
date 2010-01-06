@@ -67,8 +67,8 @@
  * <size[n-1]>
  */
 
-#define MAGIC 0x63436d46U
-#define VERSION 0
+static const uint32_t MAGIC = 0x63436d46U;
+static const uint32_t VERSION = 0;
 
 #define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (0)
 
