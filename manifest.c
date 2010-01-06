@@ -69,6 +69,7 @@
 
 static const uint32_t MAGIC = 0x63436d46U;
 static const uint32_t VERSION = 0;
+static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 
 #define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (0)
 
@@ -604,6 +605,27 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 			cc_log("Failed to read %s\n", manifest_path);
 			goto out;
 		}
+	}
+
+	if (mf->n_objects > MAX_MANIFEST_ENTRIES) {
+		/*
+		 * Normally, there shouldn't be many object entries in the
+		 * manifest since new entries are added only if an include file
+		 * has changed but not the source file, and you typically
+		 * change source files more often than header files. However,
+		 * it's certainly possible to imagine cases where the manifest
+		 * will grow large (for instance, a generated header file that
+		 * changes for every build), and this must be taken care of
+		 * since processing an ever growing manifest eventually will
+		 * take too much time. A good way of solving this would be to
+		 * maintain the object entries in LRU order and discarding the
+		 * old ones. An easy way is to throw away all entries when
+		 * there are too many. Let's do that for now.
+		 */
+		cc_log("More than %u entries in %s; discarding\n",
+			MAX_MANIFEST_ENTRIES, manifest_path);
+		free_manifest(mf);
+		mf = create_empty_manifest();
 	}
 
 	x_asprintf(&tmp_file, "%s.tmp.%s", manifest_path, tmp_string());
