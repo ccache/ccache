@@ -29,7 +29,7 @@ objs = $(sources:.c=.o)
 
 dist_files = \
     $(sources) $(headers) configure Makefile.in config.h.in ccache.1 \
-    test.sh install-sh README COPYING
+    test.sh install-sh COPYING README NEWS
 
 version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
 		       $(srcdir)/ccache.h)
