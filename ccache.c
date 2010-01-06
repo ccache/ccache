@@ -1124,7 +1124,8 @@ static void process_args(int argc, char **argv)
 		}
 
 		/* these are too hard */
-		if (strcmp(argv[i], "-fbranch-probabilities") == 0 ||
+		if (argv[i][0] == '@' ||
+		    strcmp(argv[i], "-fbranch-probabilities") == 0 ||
 		    strcmp(argv[i], "--coverage") == 0 ||
 		    strcmp(argv[i], "-fprofile-arcs") == 0 ||
 		    strcmp(argv[i], "-ftest-coverage") == 0 ||
