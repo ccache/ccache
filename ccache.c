@@ -738,8 +738,12 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		if (mode == FINDHASH_CPP_MODE) {
 			if (i < args->argc-1) {
 				if (strcmp(args->argv[i], "-I") == 0 ||
+				    strcmp(args->argv[i], "-imacros") == 0 ||
 				    strcmp(args->argv[i], "-include") == 0 ||
 				    strcmp(args->argv[i], "-D") == 0 ||
+				    strcmp(args->argv[i], "-iprefix") == 0 ||
+				    strcmp(args->argv[i], "-iwithprefix") == 0 ||
+				    strcmp(args->argv[i], "-iwithprefixbefore") == 0 ||
 				    strcmp(args->argv[i], "-idirafter") == 0 ||
 				    strcmp(args->argv[i], "-isystem") == 0) {
 					/* Skip from hash. */
@@ -1231,7 +1235,8 @@ static void process_args(int argc, char **argv)
 		 */
 		{
 			const char *opts[] = {
-				"-I", "-idirafter", "-include", "-isystem", NULL
+				"-I", "-idirafter", "-imacros", "-include",
+				"-iprefix", "-isystem", NULL
 			};
 			int j;
 			char *relpath;
@@ -1281,8 +1286,7 @@ static void process_args(int argc, char **argv)
 
 		/* options that take an argument */
 		{
-			const char *opts[] = {"-imacros", "-iprefix",
-					      "-iwithprefix", "-iwithprefixbefore",
+			const char *opts[] = {"-iwithprefix", "-iwithprefixbefore",
 					      "-L", "-D", "-U", "-x", "-MF",
 					      "-MT", "-MQ", "-aux-info",
 					      "--param", "-A", "-Xlinker", "-u",
