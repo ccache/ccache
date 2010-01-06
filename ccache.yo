@@ -124,6 +124,15 @@ most cases you won't need any of these as the defaults will be fine.
 
 startdit()
 
+dit(bf(CCACHE_BASEDIR)) When hashing the output from the preprocessor,
+absolute paths are rewritten to relative paths, but only for paths
+under the directory specified by CCACHE_BASEDIR. Paths specified by -I
+and similar options get the same treatment. This is done to get cache
+hits even when compiling with -g and when using absolute include
+directory paths. The default value of CCACHE_BASEDIR is the current
+working directory. To disable the rewriting, set CCACHE_BASEDIR to the
+empty string.
+
 dit(bf(CCACHE_CC)) You can optionally set CCACHE_CC to force the name
 of the compiler to use. If you don't do this then ccache works it out
 from the command line.
