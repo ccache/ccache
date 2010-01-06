@@ -63,11 +63,11 @@ Bug fixes:
 
   - Fixed NFS issues.
 
-  - Bail out on profiling flags --coverage, -fprofile-arcs and -ftest-coverage.
+  - Bail out on profiling options --coverage, -fprofile-arcs and -ftest-coverage.
 
-  - -MD/-MMD flags without -MT/-MF are now handled correctly.
+  - -MD/-MMD options without -MT/-MF are now handled correctly.
 
-  - Added support for -Wp,-MD and -Wp,-MMD flags.
+  - Added support for -Wp,-MD and -Wp,-MMD options.
 
   - Corrected LRU cleanup handling of object files.
 
