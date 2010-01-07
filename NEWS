@@ -3,12 +3,12 @@ Changes since ccache 2.4
 
 New features and improvements:
 
-  - Implemented a mode called "direct mode" where ccache computes a hash of the
-    source code and compiler arguments without running the preprocessor. By not
-    running the preprocessor, CPU usage is reduced; the runtime is about
-    0.2-1.0 times that of ccache running in traditional mode. The relative
-    speedup will be higher when I/O is fast (e.g., when files are in the disk
-    cache). The direct mode can be disabled by setting CCACHE_NODIRECT.
+  - ccache now has a "direct mode" where it computes a hash of the source code
+    and compiler arguments without running the preprocessor. By not running the
+    preprocessor, CPU usage is reduced; the runtime is about 0.2-1.0 times that
+    of ccache running in traditional mode. The relative speedup will be higher
+    when I/O is fast (e.g., when files are in the disk cache). The direct mode
+    can be disabled by setting CCACHE_NODIRECT.
 
   - When hashing the output from the preprocessor, absolute paths are rewritten
     to relative paths, but only for paths under the directory specified by
@@ -59,7 +59,7 @@ Bug fixes:
 
   - Improved detection of home directory.
 
-  - User-defined CPPFLAGS and LDFLAGS is now respected in the Makefile.
+  - User-defined CPPFLAGS and LDFLAGS are now respected in the Makefile.
 
   - Fixed NFS issues.
 
