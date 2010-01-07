@@ -702,7 +702,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	hash_start(&hash);
 
 	/*
-	 * Let compressed files get a different hash sums than uncompressed
+	 * Let compressed files get a different hash sum than uncompressed
 	 * files to avoid problems when older ccache versions (without
 	 * compression support) access the cache.
 	 */
