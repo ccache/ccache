@@ -1,30 +1,79 @@
-This is a re-implementation of "compilercache" in C
+CCACHE
+======
 
-The original compilercache scripts were by Erik Thiele
-(erikyyy@erikyyy.de) and I would like to thank him for an excellent
-piece of work. See http://www.erikyyy.de/compilercache/ for the
-original shell scripts.
+ABOUT
+-----
 
-I wrote ccache because I wanted to get a bit more speed out of a
-compiler cache and I wanted to remove some of the limitations of the
-shell-script version.
+ccache is a compiler cache. It speeds up recompilation of C/C++ code by caching
+previous compiles and detecting when the same compile is being done again. The
+main focus is to handle the GNU C/C++ compiler (GCC), but it may also work with
+compilers that mimic GCC good enough.
 
-Please see the manual page and documentation at
-http://ccache.samba.org/
+Please see the manual page and documentation at http://ccache.samba.org for
+more information.
+
 
 INSTALLATION
-------------
-
-Please run:
-
-  ./configure
-  make
-  make install
-
-then read the ccache manual page
-
 -----------
 
-Andrew Tridgell
-http://samba.org/~tridge/
-bugs@ccache.samba.org
+See the INSTALL file.
+
+
+WEB SITE
+--------
+
+The main ccache web site is here:
+
+    http://ccache.samba.org
+
+
+MAILING LIST
+------------
+
+There is a mailing list for discussing usage and development of ccache:
+
+    http://lists.samba.org/mailman/listinfo/ccache/
+
+Anyone is welcome to join.
+
+
+BUG REPORTS
+-----------
+
+To submit a bug report or to search for existing reports, please visit this web
+page:
+
+    http://ccache.samba.org/bugs.html
+
+
+SOURCE CODE REPOSITORY
+----------------------
+
+To get the very latest version of ccache directly from the source code
+repository, use git:
+
+    git clone git://git.samba.org/ccache.git
+
+You can also browse the repository:
+
+    http://gitweb.samba.org/?p=ccache.git
+
+
+HISTORY
+-------
+
+ccache was originally written by Andrew Tridgell and is currently maintained by
+Joel Rosdahl. ccache started out as a re-implementation of Erik Thiele's
+"compilercache" (see http://www.erikyyy.de/compilercache/) in C.
+
+See also the NEWS file.
+
+
+COPYRIGHT
+---------
+
+ccache may be used, modified and redistributed only under the terms of the GNU
+General Public License, found in the file COPYING in this distribution, or on
+this web page:
+
+    http://www.fsf.org/licenses/gpl.html
