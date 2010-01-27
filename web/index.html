@@ -16,27 +16,12 @@ href="http://compilercache.sourceforge.net/">compilercache</a> program
 as a bourne shell script. ccache is a re-implementation of Erik's idea
 in C with more features and better performance.<p>
 
-<h2>Latest release</h2>
+<h2>New maintainer!</h2>
 
-The latest release is ccache 2.4.
-
-<ul>
-<li>Added CCACHE_READONLY option
-<li>Added CCACHE_TEMPDIR option
-<li>fixed handling of hard-linked compilers on AIX
-<li>added O_BINARY support, to try and support win32 compiles
-<li>show cache directory in stats output
-<li>fixed handling of HOME environment variable
-</ul>
-
-See the <a href="/ccache-man.html">manual page</a> for details
-on the new options.<p>
-
-You can get this release from the <a href="http://samba.org/ftp/ccache/">download directory</a> 
-
-<p>NOTE! This release changes the hash input slighly, so you will
-probably find that you will not get any hits against your existing
-cache when you upgrade.
+I'm pleased to announce that <a href="http://joel.rosdahl.net/">Joel
+Rosedahl</a> has volunteered to take over maintainence of ccache. Joel
+has been working on enhancements to ccache for a while, and has
+considerable experience with other free software projects.
 
 <h2>Why bother?</h2>
 
@@ -117,11 +102,11 @@ build system.
 You can download the latest release from the <a
 href="http://samba.org/ftp/ccache/">download directory</a>.<p>
 
-For the bleeding edge, you can fetch ccache via CVS or
+For the bleeding edge, you can fetch ccache via git or
 rsync. To fetch via cvs use the following command:
 
 <pre>
-  cvs -d :pserver:cvs@pserver.samba.org:/cvsroot co ccache
+  git clone git://git.samba.org/ccache.git
 </pre>
 
 To fetch via rsync use this command:
