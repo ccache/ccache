@@ -492,6 +492,7 @@ static void to_cache(ARGS *args)
 		close(fd_result);
 		unlink(cpp_stderr);
 		free(cpp_stderr);
+		cpp_stderr = NULL;
 	}
 
 	if (status != 0) {
@@ -985,6 +986,13 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		}
 		free(i_tmpfile);
 		i_tmpfile = NULL;
+	}
+
+	/* Delete the cpp stderr file if necessary. */
+	if (cpp_stderr) {
+		unlink(cpp_stderr);
+		free(cpp_stderr);
+		cpp_stderr = NULL;
 	}
 
 	/* Send the stderr, if any. */

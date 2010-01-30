@@ -65,7 +65,13 @@ checkfile() {
 run_suite() {
     echo "starting testsuite $1"
     testsuite=$1
+
     ${1}_suite
+
+    testname="the tmp directory should be empty"
+    if [ "`find $CCACHE_DIR/tmp -type f | wc -l`" -gt 0 ]; then
+        test_failed "$CCACHE_DIR/tmp is not empty"
+    fi
 }
 
 base_tests() {
