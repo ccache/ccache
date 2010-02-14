@@ -89,6 +89,22 @@ AC_CHECK_HEADER(
         AC_MSG_ERROR(Required library zlib missing.)),
     AC_MSG_ERROR(Header file for required library zlib missing.))
 
+dnl Check for GNU make.
+AC_PATH_PROGS(MAKE, gmake make)
+AC_CACHE_CHECK(
+    for GNU make,
+    ccache_cv_gnu_make,
+    [
+    if $ac_cv_path_MAKE --version | head -1 | grep GNU >/dev/null 2>&1; then
+        ccache_cv_gnu_make=yes
+    else
+        ccache_cv_gnu_make=no
+    fi
+    ])
+if test x$ccache_cv_gnu_make = xno; then
+    AC_MSG_ERROR(Please install GNU make as gmake or make)
+fi
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
