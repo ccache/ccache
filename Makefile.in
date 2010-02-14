@@ -108,8 +108,8 @@ distcheck: $(dist_archive_tar_bz2)
 	 mkdir -p $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
-	 make install && \
-	 make installcheck) && \
+	 $(MAKE) install && \
+	 $(MAKE) installcheck) && \
 	rm -rf $$tmpdir
 
 .PHONY: check-syntax
