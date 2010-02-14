@@ -41,16 +41,13 @@ dist_archive_tar_gz := ccache-$(version).tar.gz
 all: ccache$(EXEEXT)
 
 .PHONY: docs
-docs: ccache.1 #web/ccache-man.html
+docs: ccache.1
 
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
 ccache.1: ccache.yo
 	yodl2man -o ccache.1 ccache.yo
-
-#web/ccache-man.html: ccache.yo
-#	yodl2html -o web/ccache-man.html ccache.yo
 
 .PHONY: install
 install: all
@@ -82,7 +79,7 @@ $(dist_archive_tar_gz): $(dist_files)
 
 .PHONY: clean
 clean:
-	rm -f $(objs) *~ ccache$(EXEEXT) .deps/* ccache.1 web/ccache-man.html \
+	rm -f $(objs) *~ ccache$(EXEEXT) .deps/* ccache.1 \
 	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 .PHONY: test
