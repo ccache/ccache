@@ -24,11 +24,10 @@ AH_VERBATIM([_XOPEN_SOURCE],
 #endif])
 
 # If GCC, turn on warnings.
-if test "x$GCC" = "xyes"
-then
-	CFLAGS="$CFLAGS -Wall -W"
+if test "x$GCC" = "xyes"; then
+    CFLAGS="$CFLAGS -Wall -W"
 else
-	CFLAGS="$CFLAGS -O"
+    CFLAGS="$CFLAGS -O"
 fi
 
 AC_HEADER_DIRENT
@@ -43,13 +42,13 @@ AC_CHECK_FUNCS(utimes)
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(
-[#include <stdlib.h>],
-[
-void test_fn(void) { qsort(NULL, 0, 0, (__compar_fn_t)NULL); }
-],
-	ccache_cv_COMPAR_FN_T=yes,ccache_cv_COMPAR_FN_T=no)])
+        [#include <stdlib.h>],
+        [void test_fn(void) { qsort(NULL, 0, 0, (__compar_fn_t)NULL); }],
+        ccache_cv_COMPAR_FN_T=yes,
+        ccache_cv_COMPAR_FN_T=no)])
 if test x"$ccache_cv_COMPAR_FN_T" = x"yes"; then
-   AC_DEFINE(HAVE_COMPAR_FN_T, 1, [ ])
+   AC_DEFINE(HAVE_COMPAR_FN_T, 1,
+             Define to 1 if you have the `__compar_fn_t' typedef.)
 fi
 
 AC_CACHE_CHECK([for C99 vsnprintf],ccache_cv_HAVE_C99_VSNPRINTF,[
@@ -57,35 +56,38 @@ AC_TRY_RUN([
 #include <sys/types.h>
 #include <stdarg.h>
 void foo(const char *format, ...) {
-       va_list ap;
-       int len;
-       char buf[5];
+    va_list ap;
+    int len;
+    char buf[5];
 
-       va_start(ap, format);
-       len = vsnprintf(0, 0, format, ap);
-       va_end(ap);
-       if (len != 5) exit(1);
+    va_start(ap, format);
+    len = vsnprintf(0, 0, format, ap);
+    va_end(ap);
+    if (len != 5) exit(1);
 
-       if (snprintf(buf, 3, "hello") != 5 || strcmp(buf, "he") != 0) exit(1);
+    if (snprintf(buf, 3, "hello") != 5 || strcmp(buf, "he") != 0) exit(1);
 
-       exit(0);
+    exit(0);
 }
 main() { foo("hello"); }
 ],
-ccache_cv_HAVE_C99_VSNPRINTF=yes,ccache_cv_HAVE_C99_VSNPRINTF=no,ccache_cv_HAVE_C99_VSNPRINTF=cross)])
+ccache_cv_HAVE_C99_VSNPRINTF=yes,
+ccache_cv_HAVE_C99_VSNPRINTF=no,
+ccache_cv_HAVE_C99_VSNPRINTF=cross)])
 if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
-    AC_DEFINE(HAVE_C99_VSNPRINTF, 1, [ ])
+    AC_DEFINE(HAVE_C99_VSNPRINTF, 1,
+              Define to 1 if you have the `vsnprintf' function.)
 fi
 
 dnl Check for zlib.
 AC_CHECK_HEADER(
-	zlib.h,
-	AC_CHECK_LIB(
-		z,
-		gzdopen,
-		LIBS="-lz $LIBS",
-		AC_MSG_ERROR(Required library zlib missing.)),
-	AC_MSG_ERROR(Header file for required library zlib missing.))
+    zlib.h,
+    AC_CHECK_LIB(
+        z,
+        gzdopen,
+        LIBS="-lz $LIBS",
+        AC_MSG_ERROR(Required library zlib missing.)),
+    AC_MSG_ERROR(Header file for required library zlib missing.))
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
