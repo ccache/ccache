@@ -59,23 +59,21 @@ install: all
 .PHONY: dist
 dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
-$(dist_archive_tar_bz2): $(dist_files)
+define create_dist_archive
 	tmpdir=$$(mktemp -d) && \
 	dir=$$tmpdir/$(dist_dir) && \
 	mkdir $$dir && \
 	cp $(dist_files) $$dir && \
 	(cd $$tmpdir && \
-	 tar cjf $(CURDIR)/$(dist_archive_tar_bz2) $(dist_dir)) && \
+	 tar $(1) $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
+endef
+
+$(dist_archive_tar_bz2): $(dist_files)
+	$(call create_dist_archive, cjf)
 
 $(dist_archive_tar_gz): $(dist_files)
-	tmpdir=$$(mktemp -d) && \
-	dir=$$tmpdir/$(dist_dir) && \
-	mkdir $$dir && \
-	cp $(dist_files) $$dir && \
-	(cd $$tmpdir && \
-	 tar czf $(CURDIR)/$(dist_archive_tar_gz) $(dist_dir)) && \
-	rm -rf $$tmpdir
+	$(call create_dist_archive, czf)
 
 .PHONY: clean
 clean:
