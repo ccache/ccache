@@ -108,3 +108,5 @@ AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
 mkdir -p .deps
+
+AC_MSG_NOTICE(Now please build ccache by running $ac_cv_path_MAKE)
