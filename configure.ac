@@ -36,8 +36,8 @@ AC_HEADER_SYS_WAIT
 
 AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h)
 
-AC_CHECK_FUNCS(asprintf gethostname getpwuid mkstemp realpath snprintf utimes)
-AC_CHECK_FUNCS(vasprintf vsnprintf)
+AC_CHECK_FUNCS(asprintf gethostname getpwuid mkstemp realpath snprintf strndup)
+AC_CHECK_FUNCS(utimes vasprintf vsnprintf)
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(

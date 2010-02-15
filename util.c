@@ -335,7 +335,21 @@ char *x_strdup(const char *s)
 char *x_strndup(const char *s, size_t n)
 {
 	char *ret;
+#ifndef HAVE_STRNDUP
+	size_t m;
+
+	if (!s)
+		return NULL;
+	m = strlen(s);
+	m = n < m ? n : m;
+	ret = malloc(m + 1);
+	if (ret) {
+		memcpy(ret, s, m);
+		ret[m] = '\0';
+	}
+#else
 	ret = strndup(s, n);
+#endif
 	if (!ret) {
 		fatal("Out of memory in strndup\n");
 	}
