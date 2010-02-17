@@ -11,18 +11,18 @@
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *	  notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *	  notice, this list of conditions and the following disclaimer in the
- *	  documentation and/or other materials provided with the distribution.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
  * 3. Neither the name of the University nor the names of its contributors
- *	  may be used to endorse or promote products derived from this software
- *	  without specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.	IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -30,37 +30,28 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $PostgreSQL: pgsql/src/port/getopt_long.c,v 1.8 2009/06/11 14:49:15 momjian Exp $
  */
-
-#include "c.h"
 
 #include "getopt_long.h"
 
-#ifndef HAVE_INT_OPTRESET
-int			optreset;
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-/* else the "extern" was provided by getopt_long.h */
-#endif
-
-#define BADCH	'?'
-#define BADARG	':'
-#define EMSG	""
-
+#define BADCH  '?'
+#define BADARG ':'
+#define EMSG   ""
 
 int
 getopt_long(int argc, char *const argv[],
-			const char *optstring,
-			const struct option * longopts, int *longindex)
+	    const char *optstring,
+	    const struct option * longopts, int *longindex)
 {
-	static char *place = EMSG;	/* option letter processing */
-	char	   *oli;			/* option letter list index */
+	static char *place = EMSG; /* option letter processing */
+	char        *oli;          /* option letter list index */
 
-	if (optreset || !*place)
-	{							/* update scanning pointer */
-		optreset = 0;
-
+	if (!*place)
+	{ /* update scanning pointer */
 		if (optind >= argc)
 		{
 			place = EMSG;
@@ -78,7 +69,7 @@ getopt_long(int argc, char *const argv[],
 		place++;
 
 		if (place[0] && place[0] == '-' && place[1] == '\0')
-		{						/* found "--" */
+		{ /* found "--" */
 			++optind;
 			place = EMSG;
 			return -1;
@@ -87,8 +78,8 @@ getopt_long(int argc, char *const argv[],
 		if (place[0] && place[0] == '-' && place[1])
 		{
 			/* long option */
-			size_t		namelen;
-			int			i;
+			size_t namelen;
+			int    i;
 
 			place++;
 
@@ -113,8 +104,8 @@ getopt_long(int argc, char *const argv[],
 								return BADARG;
 							if (opterr)
 								fprintf(stderr,
-								   "%s: option requires an argument -- %s\n",
-										argv[0], place);
+									"%s: option requires an argument -- %s\n",
+									argv[0], place);
 							place = EMSG;
 							optind++;
 							return BADCH;
@@ -148,7 +139,7 @@ getopt_long(int argc, char *const argv[],
 
 			if (opterr && optstring[0] != ':')
 				fprintf(stderr,
-						"%s: illegal option -- %s\n", argv[0], place);
+					"%s: illegal option -- %s\n", argv[0], place);
 			place = EMSG;
 			optind++;
 			return BADCH;
@@ -165,29 +156,29 @@ getopt_long(int argc, char *const argv[],
 			++optind;
 		if (opterr && *optstring != ':')
 			fprintf(stderr,
-					"%s: illegal option -- %c\n", argv[0], optopt);
+				"%s: illegal option -- %c\n", argv[0], optopt);
 		return BADCH;
 	}
 
 	if (oli[1] != ':')
-	{							/* don't need argument */
+	{ /* don't need argument */
 		optarg = NULL;
 		if (!*place)
 			++optind;
 	}
 	else
-	{							/* need an argument */
-		if (*place)				/* no white space */
+	{ /* need an argument */
+		if (*place) /* no white space */
 			optarg = place;
 		else if (argc <= ++optind)
-		{						/* no arg */
+		{ /* no arg */
 			place = EMSG;
 			if (*optstring == ':')
 				return BADARG;
 			if (opterr)
 				fprintf(stderr,
-						"%s: option requires an argument -- %c\n",
-						argv[0], optopt);
+					"%s: option requires an argument -- %c\n",
+					argv[0], optopt);
 			return BADCH;
 		}
 		else
