@@ -949,21 +949,13 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		}
 	}
 
-	/* update timestamps for LRU cleanup
-	   also gives output_file a sensible mtime when hard-linking (for make) */
-#ifdef HAVE_UTIMES
-	utimes(object_path, NULL);
-	utimes(stderr_file, NULL);
+	/* Update modification timestamps to save files from LRU cleanup.
+	   Also gives files a sensible mtime when hard-linking. */
+	update_mtime(object_path);
+	update_mtime(stderr_file);
 	if (produce_dep_file) {
-		utimes(dep_file, NULL);
+		update_mtime(dep_file);
 	}
-#else
-	utime(object_path, NULL);
-	utime(stderr_file, NULL);
-	if (produce_dep_file) {
-		utime(dep_file, NULL);
-	}
-#endif
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
@@ -1007,12 +999,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		if (manifest_put(manifest_path, object_hash, included_files)) {
 			cc_log("Added object file hash to manifest %s\n",
 				manifest_path);
-			/* Update timestamp for LRU cleanup. */
-#ifdef HAVE_UTIMES
-			utimes(manifest_path, NULL);
-#else
-			utime(manifest_path, NULL);
-#endif
+			update_mtime(manifest_path);
 		} else {
 			cc_log("Failed to add object file hash to manifest\n");
 		}

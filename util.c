@@ -756,3 +756,17 @@ char *get_relative_path(const char *from, const char *to)
 	}
 	return result;
 }
+
+/*
+ * Update the modification time of a file in the cache to save it from LRU
+ * cleanup.
+ */
+void
+update_mtime(const char *path)
+{
+#ifdef HAVE_UTIMES
+	utimes(path, NULL);
+#else
+	utime(path, NULL);
+#endif
+}
