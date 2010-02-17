@@ -1644,9 +1644,18 @@ static int ccache_main(int argc, char *argv[])
 		switch (c) {
 		case 'V':
 			printf("ccache version %s\n", CCACHE_VERSION);
-			printf("Copyright Andrew Tridgell 2002-2007\n");
-			printf("Copyright Joel Rosdahl 2009-2010\n");
-			printf("Released under the GNU GPL v2 or later\n");
+			printf("\n");
+			printf("See http://ccache.samba.org.\n");
+			printf("\n");
+			printf("Copyright (C) Andrew Tridgell 2002-2007\n");
+			printf("Copyright (C) Joel Rosdahl 2009-2010\n");
+			printf("\n");
+			printf("This program is free software; you can");
+			printf(" redistribute it and/or modify it under\nthe");
+			printf(" terms of the GNU General Public License as");
+			printf(" published by the Free Software\nFoundation;");
+			printf(" either version 2 of the License, or (at");
+			printf(" your option) any later\nversion.\n");
 			exit(0);
 
 		case 'h':
