@@ -23,13 +23,12 @@
 */
 
 #include "ccache.h"
+#include "getopt_long.h"
 #include "hashtable.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
 #include "comments.h"
-
-#include <getopt.h>
 
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir;
