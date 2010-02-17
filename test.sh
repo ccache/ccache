@@ -652,7 +652,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    sed -i 's/foo/ignored/' comments.h comments.c
+    perl -pi -e 's/foo/ignored/' comments.h comments.c
     sleep 1 # Sleep to make the include file trusted.
 
     $CCACHE $COMPILER -c comments.c
@@ -661,7 +661,7 @@ EOF
     checkstat 'cache miss' 1
 
     # Check that comment-like string contents are hashed.
-    sed -i 's/apple/orange/' comments.c
+    perl -pi -e 's/apple/orange/' comments.c
     sleep 1 # Sleep to make the include file trusted.
 
     $CCACHE $COMPILER -c comments.c
