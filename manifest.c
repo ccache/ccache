@@ -16,20 +16,22 @@
  * Ave, Cambridge, MA 02139, USA.
  */
 
-#include <assert.h>
-#include <inttypes.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <zlib.h>
-
 #include "ccache.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
 #include "murmurhashneutral2.h"
 #include "comments.h"
+
+#include <assert.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <zlib.h>
 
 /*
  * Sketchy specification of the manifest disk format:

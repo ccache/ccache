@@ -20,7 +20,10 @@
 */
 
 #include "ccache.h"
+
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 void hash_buffer(struct mdfour *md, const char *s, int len)
 {

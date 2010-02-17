@@ -30,6 +30,14 @@
 #include "manifest.h"
 #include "comments.h"
 
+#include <sys/mman.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir;
 

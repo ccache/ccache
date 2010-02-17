@@ -21,6 +21,13 @@
 
 #include "ccache.h"
 
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+
 static struct files {
 	char *fname;
 	time_t mtime;

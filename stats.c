@@ -24,6 +24,11 @@
 
 #include "ccache.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 extern char *stats_file;
 extern char *cache_dir;
 

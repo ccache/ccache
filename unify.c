@@ -32,6 +32,11 @@
 
 #include "ccache.h"
 
+#include <sys/mman.h>
+#include <ctype.h>
+#include <string.h>
+#include <unistd.h>
+
 static char *s_tokens[] = {
 	"...",	">>=",	"<<=",	"+=",	"-=",	"*=",	"/=",	"%=",	"&=",	"^=",
 	"|=",	">>",	"<<",	"++",	"--",	"->",	"&&",	"||",	"<=",	">=",

@@ -18,6 +18,12 @@
 
 #include "ccache.h"
 
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 /*
   execute a compiler backend, capturing all output to the given paths

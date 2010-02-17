@@ -4,32 +4,9 @@
 #define CCACHE_VERSION "3.0pre0"
 
 #include "config.h"
+#include "mdfour.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <utime.h>
-#include <stdarg.h>
-#include <dirent.h>
-#include <limits.h>
 #include <sys/file.h>
-#ifdef HAVE_PWD_H
-#include <pwd.h>
-#endif
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#include <zlib.h>
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
@@ -80,8 +57,6 @@ enum stats {
 
 	STATS_END
 };
-
-#include "mdfour.h"
 
 void hash_start(struct mdfour *md);
 void hash_string(struct mdfour *md, const char *s);

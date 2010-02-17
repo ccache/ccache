@@ -20,6 +20,9 @@
 
 #include "ccache.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 ARGS *args_init(int init_argc, char **init_args)
 {
 	ARGS *args;

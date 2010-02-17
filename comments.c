@@ -19,6 +19,9 @@
 #include "ccache.h"
 #include "comments.h"
 
+#include <unistd.h>
+#include <sys/mman.h>
+
 #define HASH(ch)							\
 	do {								\
 		hashbuf[hashbuflen] = ch;				\

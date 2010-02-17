@@ -18,6 +18,24 @@
 
 #include "ccache.h"
 
+#include <ctype.h>
+#include <sys/types.h>
+#include <stdarg.h>
+#include <dirent.h>
+#include <utime.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <zlib.h>
+
+#ifdef HAVE_PWD_H
+#include <pwd.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 static FILE *logfile;
 
 /* log a message to the CCACHE_LOGFILE location */
