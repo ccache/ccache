@@ -3,9 +3,9 @@
 
   The idea is based on the shell-script compilercache by Erik Thiele <erikyyy@erikyyy.de>
 
-   Copyright (C) Andrew Tridgell 2002
+   Copyright (C) Andrew Tridgell 2002-2007
    Copyright (C) Martin Pool 2003
-   Copyright (C) Joel Rosdahl 2009
+   Copyright (C) Joel Rosdahl 2009-2010
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1644,7 +1644,8 @@ static int ccache_main(int argc, char *argv[])
 		switch (c) {
 		case 'V':
 			printf("ccache version %s\n", CCACHE_VERSION);
-			printf("Copyright Andrew Tridgell 2002\n");
+			printf("Copyright Andrew Tridgell 2002-2007\n");
+			printf("Copyright Joel Rosdahl 2009-2010\n");
 			printf("Released under the GNU GPL v2 or later\n");
 			exit(0);
 
