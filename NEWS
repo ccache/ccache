@@ -63,15 +63,16 @@ Bug fixes:
 
   - Fixed NFS issues.
 
-  - Bail out on profiling options --coverage, -fprofile-arcs and -ftest-coverage.
+  - Bail out on profiling options --coverage, -fprofile-arcs,
+    -fprofile-generate, -fprofile-use and -ftest-coverage. [Bug #7091]
 
-  - -MD/-MMD options without -MT/-MF are now handled correctly.
+  - -MD/-MMD options without -MT/-MF are now handled correctly. [Bug #7093]
 
   - Added support for -Wp,-MD and -Wp,-MMD options.
 
   - Corrected LRU cleanup handling of object files.
 
-  - utimes() is now used instead of utime() when available.
+  - utimes() is now used instead of utime() when available. [Bug #7089]
 
   - Non-writable cache directories are now handled gracefully.
 
@@ -83,7 +84,15 @@ Bug fixes:
 
   - Fixed bad memory access spotted by Valgrind.
 
+  - Fixed a bug in x_realloc. [Bug #7090]
+
   - Removed deprecated constructions from ccache.yo.
+
+  - Freed memory is no longer referenced when compiling a .i/.ii file and
+    falling back to running the real compiler. [Bug #7092]
+
+  - The test suite is now immune to external values of the CCACHE_* environment
+    variables. [Bug #7161]
 
 Compatibility notes:
 
