@@ -59,34 +59,42 @@ static ARGS *stripped_args;
 /* the original argument list */
 static ARGS *orig_args;
 
-/* the output filename being compiled to */
-static char *output_file;
-
 /* the source file */
 static char *input_file;
 
+/* The output file being compiled to. */
+static char *output_obj;
+
+/* The path to the dependency file (implicit or specified with -MF). */
+static char *output_dep;
+
 /*
- * the hash of the file containing the cached object code (abcdef[...]-size)
+ * Name (represented as a struct file_hash) of the file containing the cached
+ * object code.
  */
-struct file_hash *object_hash;
+static struct file_hash *object_hash;
 
 /*
- * the name of the file containing the cached object code (abcdef[...]-size)
+ * Full path to the file containing the cached object code
+ * (cachedir/a/b/cdef[...]-size).
  */
-static char *object_name;
+static char *cached_obj;
 
 /*
- * the full path of the file containing the cached object code
- * (cachedir/a/b/cdef[...]-size)
+ * Full path to the file containing the standard error output
+ * (cachedir/a/b/cdef[...]-size.stderr).
  */
-static char *object_path;
-
-/* the name of the manifest file without the extension (abcdef[...]-size) */
-static char *manifest_name;
+static char *cached_stderr;
 
 /*
- * the full path of the file containing the manifest
- * (cachedir/a/b/cdef[...]-size.manifest)
+ * Full path to the file containing the dependency information
+ * (cachedir/a/b/cdef[...]-size.d).
+ */
+static char *cached_dep;
+
+/*
+ * Full path to the file containing the manifest
+ * (cachedir/a/b/cdef[...]-size.manifest).
  */
 static char *manifest_path;
 
@@ -104,9 +112,6 @@ static struct hashtable *included_files;
 
 /* is gcc being asked to output dependencies? */
 static int generating_dependencies;
-
-/* the path to the dependency file (implicit or specified with -MF) */
-static char *dependency_path;
 
 /* the extension of the file after pre-processing */
 static const char *i_extension;
@@ -434,17 +439,17 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_hashname;
+	char *tmp_stdout, *tmp_stderr, *tmp_obj;
 	struct stat st;
 	int status;
 	int compress;
 
-	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", object_path, tmp_string());
-	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", object_path, tmp_string());
-	x_asprintf(&tmp_hashname, "%s.tmp.%s", object_path, tmp_string());
+	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", cached_obj, tmp_string());
+	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", cached_obj, tmp_string());
+	x_asprintf(&tmp_obj, "%s.tmp.%s", cached_obj, tmp_string());
 
 	args_add(args, "-o");
-	args_add(args, tmp_hashname);
+	args_add(args, tmp_obj);
 
 	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
 	 * otherwise it will emit a line like
@@ -465,11 +470,11 @@ static void to_cache(ARGS *args)
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
-		cc_log("Compiler produced stdout for %s\n", output_file);
+		cc_log("Compiler produced stdout for %s\n", output_obj);
 		stats_update(STATS_STDOUT);
 		unlink(tmp_stdout);
 		unlink(tmp_stderr);
-		unlink(tmp_hashname);
+		unlink(tmp_obj);
 		failed();
 	}
 	unlink(tmp_stdout);
@@ -513,13 +518,13 @@ static void to_cache(ARGS *args)
 
 	if (status != 0) {
 		int fd;
-		cc_log("Compile of %s gave status = %d\n", output_file, status);
+		cc_log("Compile of %s gave status = %d\n", output_obj, status);
 		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			if (strcmp(output_file, "/dev/null") == 0
-			    || move_file(tmp_hashname, output_file, 0) == 0
+			if (strcmp(output_obj, "/dev/null") == 0
+			    || move_file(tmp_obj, output_obj, 0) == 0
 			    || errno == ENOENT) {
 				/* we can use a quick method of
 				   getting the failed output */
@@ -534,7 +539,7 @@ static void to_cache(ARGS *args)
 		}
 
 		unlink(tmp_stderr);
-		unlink(tmp_hashname);
+		unlink(tmp_obj);
 		failed();
 	}
 
@@ -546,19 +551,16 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		char *path_stderr;
-		x_asprintf(&path_stderr, "%s.stderr", object_path);
-		if (move_file(tmp_stderr, path_stderr, compress) != 0) {
+		if (move_file(tmp_stderr, cached_stderr, compress) != 0) {
 			cc_log("Failed to move tmp stderr to the cache\n");
 			stats_update(STATS_ERROR);
 			failed();
 		}
 		cc_log("Stored stderr from the compiler in the cache\n");
-		free(path_stderr);
 	} else {
 		unlink(tmp_stderr);
 	}
-	if (move_file(tmp_hashname, object_path, compress) != 0) {
+	if (move_file(tmp_obj, cached_obj, compress) != 0) {
 		cc_log("Failed to move tmp object file into the cache\n");
 		stats_update(STATS_ERROR);
 		failed();
@@ -568,7 +570,7 @@ static void to_cache(ARGS *args)
 	 * Do an extra stat on the potentially compressed object file for the
 	 * size statistics.
 	 */
-	if (stat(object_path, &st) != 0) {
+	if (stat(cached_obj, &st) != 0) {
 		cc_log("Failed to stat %s\n", strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
@@ -577,7 +579,7 @@ static void to_cache(ARGS *args)
 	cc_log("Placed object file into the cache\n");
 	stats_tocache(file_size(&st));
 
-	free(tmp_hashname);
+	free(tmp_obj);
 	free(tmp_stderr);
 	free(tmp_stdout);
 }
@@ -699,6 +701,8 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	struct stat st;
 	int nlevels = 2;
 	struct mdfour hash;
+	char *object_name;
+	char *manifest_name;
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
@@ -820,6 +824,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		manifest_name = hash_result(&hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest",
 						  nlevels);
+		free(manifest_name);
 		object_hash = manifest_get(manifest_path);
 		if (object_hash) {
 			cc_log("Got object file hash from manifest\n");
@@ -833,14 +838,17 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		object_hash = get_object_name_from_cpp(args, &hash);
 		cc_log("Got object file hash from preprocessor\n");
 		if (generating_dependencies) {
-			cc_log("Preprocessor created %s\n", dependency_path);
+			cc_log("Preprocessor created %s\n", output_dep);
 		}
 		break;
 	}
 
 	object_name = format_file_hash(object_hash);
-	object_path = get_path_in_cache(object_name, "", nlevels);
+	cached_obj = get_path_in_cache(object_name, "", nlevels);
+	cached_stderr = get_path_in_cache(object_name, ".stderr", nlevels);
+	cached_dep = get_path_in_cache(object_name, ".d", nlevels);
 	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
+	free(object_name);
 
 	return 1;
 }
@@ -852,8 +860,6 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest)
 {
 	int fd_stderr;
-	char *stderr_file;
-	char *dep_file;
 	int ret;
 	struct stat st;
 	int produce_dep_file;
@@ -864,7 +870,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* Check if the object file is there. */
-	if (stat(object_path, &st) != 0) {
+	if (stat(cached_obj, &st) != 0) {
 		cc_log("Did not find object file in cache\n");
 		return;
 	}
@@ -877,58 +883,52 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
 	/* If the dependency file should be in the cache, check that it is. */
-	x_asprintf(&dep_file, "%s.d", object_path);
-	if (produce_dep_file && stat(dep_file, &st) != 0) {
+	if (produce_dep_file && stat(cached_dep, &st) != 0) {
 		cc_log("Dependency file missing in cache\n");
-		free(dep_file);
 		return;
 	}
 
-	x_asprintf(&stderr_file, "%s.stderr", object_path);
-
-	if (strcmp(output_file, "/dev/null") == 0) {
+	if (strcmp(output_obj, "/dev/null") == 0) {
 		ret = 0;
 	} else {
-		unlink(output_file);
+		unlink(output_obj);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (getenv("CCACHE_HARDLINK") &&
-		    test_if_compressed(object_path) == 0) {
-			ret = link(object_path, output_file);
+		    test_if_compressed(cached_obj) == 0) {
+			ret = link(cached_obj, output_obj);
 		} else {
-			ret = copy_file(object_path, output_file, 0);
+			ret = copy_file(cached_obj, output_obj, 0);
 		}
 	}
 
 	if (ret == -1) {
 		if (errno == ENOENT) {
 			/* Someone removed the file just before we began copying? */
-			cc_log("Object file missing for %s\n", output_file);
+			cc_log("Object file missing for %s\n", output_obj);
 			stats_update(STATS_MISSING);
 		} else {
 			cc_log("Failed to copy/link %s -> %s (%s)\n",
-			       object_path, output_file, strerror(errno));
+			       cached_obj, output_obj, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		unlink(output_file);
-		unlink(stderr_file);
-		unlink(object_path);
-		unlink(dep_file);
-		free(dep_file);
-		free(stderr_file);
+		unlink(output_obj);
+		unlink(cached_stderr);
+		unlink(cached_obj);
+		unlink(cached_dep);
 		return;
 	} else {
-		cc_log("Created %s\n", output_file);
+		cc_log("Created %s\n", output_obj);
 	}
 
 	if (produce_dep_file) {
-		unlink(dependency_path);
+		unlink(output_dep);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (getenv("CCACHE_HARDLINK") &&
-		    test_if_compressed(dep_file) == 0) {
-			ret = link(dep_file, dependency_path);
+		    test_if_compressed(cached_dep) == 0) {
+			ret = link(cached_dep, output_dep);
 		} else {
-			ret = copy_file(dep_file, dependency_path, 0);
+			ret = copy_file(cached_dep, output_dep, 0);
 		}
 		if (ret == -1) {
 			if (errno == ENOENT) {
@@ -937,47 +937,45 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 				 * began copying?
 				 */
 				cc_log("dependency file missing for %s\n",
-				       output_file);
+				       output_obj);
 				stats_update(STATS_MISSING);
 			} else {
 				cc_log("failed to copy/link %s -> %s (%s)\n",
-				       dep_file, dependency_path,
+				       cached_dep, output_dep,
 				       strerror(errno));
 				stats_update(STATS_ERROR);
 				failed();
 			}
-			unlink(output_file);
-			unlink(stderr_file);
-			unlink(object_path);
-			unlink(dep_file);
-			free(dep_file);
-			free(stderr_file);
+			unlink(output_obj);
+			unlink(output_dep);
+			unlink(cached_stderr);
+			unlink(cached_obj);
+			unlink(cached_dep);
 			return;
 		} else {
-			cc_log("Created %s\n", dependency_path);
+			cc_log("Created %s\n", output_dep);
 		}
 	}
 
 	/* Update modification timestamps to save files from LRU cleanup.
 	   Also gives files a sensible mtime when hard-linking. */
-	update_mtime(object_path);
-	update_mtime(stderr_file);
+	update_mtime(cached_obj);
+	update_mtime(cached_stderr);
 	if (produce_dep_file) {
-		update_mtime(dep_file);
+		update_mtime(cached_dep);
 	}
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
-		ret = copy_file(dependency_path, dep_file, 1);
+		ret = copy_file(output_dep, cached_dep, 1);
 		if (ret == -1) {
-			cc_log("Failed to copy %s -> %s\n", dependency_path,
-			       dep_file);
+			cc_log("Failed to copy %s -> %s\n", output_dep,
+			       cached_dep);
 			/* Continue despite the error. */
 		} else {
 			cc_log("Placed dependency file into the cache\n");
 		}
 	}
-	free(dep_file);
 
 	/* get rid of the intermediate preprocessor file */
 	if (i_tmpfile) {
@@ -996,12 +994,11 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* Send the stderr, if any. */
-	fd_stderr = open(stderr_file, O_RDONLY | O_BINARY);
+	fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
 	if (fd_stderr != -1) {
 		copy_fd(fd_stderr, 2);
 		close(fd_stderr);
 	}
-	free(stderr_file);
 
 	/* Create or update the manifest file. */
 	if (put_object_in_manifest && included_files) {
@@ -1164,14 +1161,14 @@ static void process_args(int argc, char **argv)
 				stats_update(STATS_ARGS);
 				failed();
 			}
-			output_file = argv[i+1];
+			output_obj = argv[i+1];
 			i++;
 			continue;
 		}
 
 		/* alternate form of -o, with no space */
 		if (strncmp(argv[i], "-o", 2) == 0) {
-			output_file = &argv[i][2];
+			output_obj = &argv[i][2];
 			continue;
 		}
 
@@ -1207,7 +1204,7 @@ static void process_args(int argc, char **argv)
 		if (i < argc - 1) {
 			if (strcmp(argv[i], "-MF") == 0) {
 				dependency_filename_specified = 1;
-				dependency_path = make_relative_path(
+				output_dep = make_relative_path(
 					x_strdup(argv[i + 1]));
 			} else if (strcmp(argv[i], "-MQ") == 0
 				   || strcmp(argv[i], "-MT") == 0) {
@@ -1219,12 +1216,12 @@ static void process_args(int argc, char **argv)
 			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				dependency_path = make_relative_path(
+				output_dep = make_relative_path(
 					x_strdup(argv[i] + 8));
 			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				dependency_path = make_relative_path(
+				output_dep = make_relative_path(
 					x_strdup(argv[i] + 9));
 			} else if (enable_direct) {
 				cc_log("Unsupported compiler option for direct mode: %s\n",
@@ -1380,21 +1377,21 @@ static void process_args(int argc, char **argv)
 
 
 	/* don't try to second guess the compilers heuristics for stdout handling */
-	if (output_file && strcmp(output_file, "-") == 0) {
+	if (output_obj && strcmp(output_obj, "-") == 0) {
 		stats_update(STATS_OUTSTDOUT);
 		cc_log("Output file is -\n");
 		failed();
 	}
 
-	if (!output_file) {
+	if (!output_obj) {
 		char *p;
-		output_file = x_strdup(input_file);
-		if ((p = strrchr(output_file, '/'))) {
-			output_file = p+1;
+		output_obj = x_strdup(input_file);
+		if ((p = strrchr(output_obj, '/'))) {
+			output_obj = p+1;
 		}
-		p = strrchr(output_file, '.');
+		p = strrchr(output_obj, '.');
 		if (!p || !p[1]) {
-			cc_log("badly formed output_file %s\n", output_file);
+			cc_log("badly formed output file %s\n", output_obj);
 			stats_update(STATS_ARGS);
 			failed();
 		}
@@ -1404,9 +1401,9 @@ static void process_args(int argc, char **argv)
 
 	/* If dependencies are generated, configure the preprocessor */
 
-	if (generating_dependencies && output_file) {
+	if (generating_dependencies && output_obj) {
 		if (!dependency_filename_specified) {
-			char *default_depfile_name = x_strdup(output_file);
+			char *default_depfile_name = x_strdup(output_obj);
 			char *p = strrchr(default_depfile_name, '.');
 
 			if (p) {
@@ -1431,19 +1428,21 @@ static void process_args(int argc, char **argv)
 			strcat(default_depfile_name, ".d");
 			args_add(stripped_args, "-MF");
 			args_add(stripped_args, default_depfile_name);
-			dependency_path = make_relative_path(
+			output_dep = make_relative_path(
 				x_strdup(default_depfile_name));
 		}
 
 		if (!dependency_target_specified) {
 			args_add(stripped_args, "-MT");
-			args_add(stripped_args, output_file);
+			args_add(stripped_args, output_obj);
 		}
 	}
 
 	/* cope with -o /dev/null */
-	if (strcmp(output_file,"/dev/null") != 0 && stat(output_file, &st) == 0 && !S_ISREG(st.st_mode)) {
-		cc_log("Not a regular file %s\n", output_file);
+	if (strcmp(output_obj,"/dev/null") != 0
+	    && stat(output_obj, &st) == 0
+	    && !S_ISREG(st.st_mode)) {
+		cc_log("Not a regular file %s\n", output_obj);
 		stats_update(STATS_DEVICE);
 		failed();
 	}
@@ -1506,9 +1505,9 @@ static void ccache(int argc, char *argv[])
 
 	cc_log("Source file: %s\n", input_file);
 	if (generating_dependencies) {
-		cc_log("Dependency file: %s\n", dependency_path);
+		cc_log("Dependency file: %s\n", output_dep);
 	}
-	cc_log("Object file: %s\n", output_file);
+	cc_log("Object file: %s\n", output_obj);
 
 	/* try to find the hash using the manifest */
 	if (enable_direct) {
