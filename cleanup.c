@@ -51,8 +51,20 @@ static size_t object_files_threshold;
 static int is_object_file(const char *fname)
 {
 	int i;
+	int len;
 
-	for (i = strlen(fname) - 1; i >= 0; i--) {
+	len = strlen(fname);
+	if (len < 2) {
+		return 0;
+	}
+
+	/* ccache 3.0 and later: */
+	if (len >= 2 && fname[len - 2] == '.' && fname[len - 1] == 'o') {
+		return 1;
+	}
+
+	/* ccache 2.4 and earlier: */
+	for (i = len - 1; i >= 0; i--) {
 		if (fname[i] == '.') {
 			return 0;
 		} else if (fname[i] == '-') {

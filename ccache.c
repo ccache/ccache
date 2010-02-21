@@ -76,7 +76,7 @@ static struct file_hash *object_hash;
 
 /*
  * Full path to the file containing the cached object code
- * (cachedir/a/b/cdef[...]-size).
+ * (cachedir/a/b/cdef[...]-size.o).
  */
 static char *cached_obj;
 
@@ -847,7 +847,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	}
 
 	object_name = format_file_hash(object_hash);
-	cached_obj = get_path_in_cache(object_name, "", nlevels);
+	cached_obj = get_path_in_cache(object_name, ".o", nlevels);
 	cached_stderr = get_path_in_cache(object_name, ".stderr", nlevels);
 	cached_dep = get_path_in_cache(object_name, ".d", nlevels);
 	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
