@@ -33,8 +33,6 @@
 extern char *stats_file;
 extern char *cache_dir;
 
-#define STATS_VERSION 1
-
 #define FLAG_NOZERO 1 /* don't zero with the -z option */
 #define FLAG_ALWAYS 2 /* always show, even if zero */
 
