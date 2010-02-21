@@ -40,8 +40,8 @@ test_failed() {
     echo "SUITE: \"$testsuite\", TEST: \"$testname\" - $1"
     $CCACHE -s
     cd ..
-    rm -rf $TESTDIR
     echo TEST FAILED
+    echo "Test data and log file have been left in $TESTDIR"
     exit 1
 }
 
