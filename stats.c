@@ -213,7 +213,7 @@ void stats_read(const char *stats_file, unsigned counters[STATS_END])
 		stats_default(counters);
 		return;
 	}
-	write_lock_fd(fd);
+	read_lock_fd(fd);
 	stats_read_fd(fd, counters);
 	close(fd);
 }
