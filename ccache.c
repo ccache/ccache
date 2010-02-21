@@ -132,9 +132,9 @@ static int enable_direct = 1;
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
 */
-static struct {
-	char *extension;
-	char *i_extension;
+static const struct {
+	const char *extension;
+	const char *i_extension;
 } extensions[] = {
 	{"c", "i"},
 	{"C", "ii"},
