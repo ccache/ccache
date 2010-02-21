@@ -136,6 +136,11 @@ static void stats_update_size(enum stats stat, size_t size)
 	if (getenv("CCACHE_NOSTATS")) return;
 
 	if (!stats_file) {
+		/*
+		 * A NULL stats file means that we didn't get past find_hash(),
+		 * so we update the counter in the cache-wide statistics file
+		 * CCACHE_DIR/stats instead of a subdirectory stats file.
+		 */
 		if (!cache_dir) return;
 		x_asprintf(&stats_file, "%s/stats", cache_dir);
 	}

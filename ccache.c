@@ -125,7 +125,10 @@ static int direct_i_file;
 /* the name of the cpp stderr file */
 static char *cpp_stderr;
 
-/* the name of the statistics file */
+/*
+ * Full path to the statistics file in the subdirectory where the cached result
+ * belongs (CCACHE_DIR/X/stats).
+ */
 char *stats_file = NULL;
 
 /* can we safely use the unification hashing backend? */
