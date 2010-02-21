@@ -828,8 +828,7 @@ int test;
 EOF
 
     ##################################################################
-    # Check that compressed and uncompressed files get different hash sums in
-    # order to maintain forward compatibility of previous ccache versions.
+    # Check that compressed and uncompressed files get the same hash sum.
     testname="compression hash sum"
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
@@ -843,13 +842,8 @@ EOF
 
     CCACHE_NOCOMPRESS=1 $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 2
-
-    CCACHE_NOCOMPRESS=1 $CCACHE $COMPILER -c test.c
-    checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 2
-    checkstat 'cache miss' 2
+    checkstat 'cache miss' 1
 }
 
 ######################################################################

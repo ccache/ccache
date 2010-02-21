@@ -163,6 +163,15 @@ enum findhash_call_mode {
 };
 
 /*
+ * This is a string that identifies the current "version" of the hash sum
+ * computed by ccache. If, for any reason, we want to force the hash sum to be
+ * different for the same input in a new ccache version, we can just change
+ * this string. A typical example would be if the format of one of the files
+ * stored in the cache changes in a backwards-incompatible way.
+ */
+static const char HASH_PREFIX[] = "ccache3";
+
+/*
   something went badly wrong - just execute the real compiler
 */
 static void failed(void)
@@ -708,15 +717,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	}
 
 	hash_start(&hash);
-
-	/*
-	 * Let compressed files get a different hash sum than uncompressed
-	 * files to avoid problems when older ccache versions (without
-	 * compression support) access the cache.
-	 */
-	if (!getenv("CCACHE_NOCOMPRESS")) {
-		hash_buffer(&hash, "compression", 12); /* also hash NUL byte */
-	}
+	hash_buffer(&hash, HASH_PREFIX, sizeof(HASH_PREFIX));
 
 	/* when we are doing the unifying tricks we need to include
 	   the input file name in the hash to get the warnings right */
