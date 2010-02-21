@@ -81,7 +81,7 @@ int hash_file(struct mdfour *md, const char *fname)
 	return ret;
 }
 
-/* return the hash result as a hex string */
+/* Return the hash result as a hex string. Caller frees. */
 char *hash_result(struct mdfour *md)
 {
 	unsigned char sum[16];
