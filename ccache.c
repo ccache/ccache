@@ -39,19 +39,19 @@
 #include <unistd.h>
 
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
-char *current_working_dir;
+static char *current_working_dir;
 
 /* the base cache directory */
 char *cache_dir = NULL;
 
 /* the directory for temporary files */
-char *temp_dir = NULL;
+static char *temp_dir = NULL;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
 
 /* base directory (from CCACHE_BASEDIR) */
-char *base_dir;
+static char *base_dir;
 
 /* the argument list after processing */
 static ARGS *stripped_args;
@@ -68,7 +68,7 @@ static char *input_file;
 /*
  * the hash of the file containing the cached object code (abcdef[...]-size)
  */
-struct file_hash *object_hash;
+static struct file_hash *object_hash;
 
 /*
  * the name of the file containing the cached object code (abcdef[...]-size)
