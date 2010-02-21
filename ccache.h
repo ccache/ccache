@@ -14,19 +14,8 @@
 #define ATTR_FORMAT(x, y, z)
 #endif
 
-#define STATUS_NOTFOUND 3
-#define STATUS_FATAL 4
-#define STATUS_NOCACHE 5
-
 #ifndef MYNAME
 #define MYNAME "ccache"
-#endif
-
-#define LIMIT_MULTIPLE 0.8
-
-/* default maximum cache size */
-#ifndef DEFAULT_MAXSIZE
-#define DEFAULT_MAXSIZE (1000*1000)
 #endif
 
 /* statistics fields in storage order */

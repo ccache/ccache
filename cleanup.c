@@ -29,6 +29,13 @@
 #include <unistd.h>
 #include <time.h>
 
+/*
+ * When "max files" or "max cache size" is reached, one of the 16 cache
+ * subdirectories is cleaned up. When doing so, files are deleted (in LRU
+ * order) until the levels are below LIMIT_MULTIPLE.
+ */
+#define LIMIT_MULTIPLE 0.8
+
 static struct files {
 	char *fname;
 	time_t mtime;

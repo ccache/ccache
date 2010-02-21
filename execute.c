@@ -45,7 +45,7 @@ int execute(char **argv,
 		unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			exit(STATUS_NOCACHE);
+			exit(1);
 		}
 		dup2(fd, 1);
 		close(fd);
@@ -53,7 +53,7 @@ int execute(char **argv,
 		unlink(path_stderr);
 		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			exit(STATUS_NOCACHE);
+			exit(1);
 		}
 		dup2(fd, 2);
 		close(fd);
