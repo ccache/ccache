@@ -94,17 +94,20 @@ Bug fixes:
   - The test suite is now immune to external values of the CCACHE_* environment
     variables. [Bug #7161]
 
-Compatibility notes:
+Upgrading notes:
 
   - The way the hashes are calculated has changed, so you won't get cache hits
-    for compilation results stored by older ccache versions. In fact, you might
-    as well clear the old cache directory if you want, unless if you plan to
-    keep using an older ccache version.
+    for compilation results stored by older ccache versions.
 
-  - The statistics counters "files in cache" and "cache size" now only include
-    object files (previously, files containing cached standard error output
-    were counted as well). Consequently, the "max file" and "max cache size"
-    settings now specify thresholds for object files count and size.
+  - The statistics counters "files in cache" and "cache size" now only count
+    object files. (Previously, files containing cached standard error output
+    were counted as well.) The existing values of the two counters will be
+    erroneous at first after the upgrade, but will correct themselves
+    eventually when enough cleanups have been made.
 
-  - Using ccache 3.0 and older ccache versions with the same cache directory
-    works OK, except that the statistics counters will be a bit messed up.
+  - The "max file" and "max cache size" settings now specify thresholds for
+    object files count and size.
+
+  - Because of the changes mentioned above, you might as well clear the old
+    cache directory with "ccache -C" if you want, unless you plan to keep using
+    an older ccache version.
