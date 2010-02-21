@@ -691,7 +691,7 @@ const char *get_home_directory(void)
  * Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
  * is used.
  */
-char *get_cwd()
+char *get_cwd(void)
 {
 	char *pwd;
 	char *cwd;

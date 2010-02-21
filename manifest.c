@@ -188,7 +188,7 @@ static void free_manifest(struct manifest *mf)
 		}				\
 	} while (0)
 
-static struct manifest *create_empty_manifest()
+static struct manifest *create_empty_manifest(void)
 {
 	struct manifest *mf;
 
