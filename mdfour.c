@@ -187,13 +187,3 @@ void mdfour_result(struct mdfour *md, unsigned char *out)
 	copy4(out+8, m->C);
 	copy4(out+12, m->D);
 }
-
-
-void mdfour(unsigned char *out, const unsigned char *in, int n)
-{
-	struct mdfour md;
-	mdfour_begin(&md);
-	mdfour_update(&md, in, n);
-	mdfour_update(&md, NULL, 0);
-	mdfour_result(&md, out);
-}

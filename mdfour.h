@@ -34,6 +34,5 @@ struct mdfour {
 void mdfour_begin(struct mdfour *md);
 void mdfour_update(struct mdfour *md, const unsigned char *in, int n);
 void mdfour_result(struct mdfour *md, unsigned char *out);
-void mdfour(unsigned char *out, const unsigned char *in, int n);
 
 #endif
