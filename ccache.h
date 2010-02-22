@@ -56,7 +56,7 @@ int hash_fd(struct mdfour *md, int fd);
 int hash_file(struct mdfour *md, const char *fname);
 char *hash_result(struct mdfour *md);
 void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-void hash_buffer(struct mdfour *md, const char *s, int len);
+void hash_buffer(struct mdfour *md, const char *s, size_t len);
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);

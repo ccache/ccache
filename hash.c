@@ -25,7 +25,7 @@
 #include <string.h>
 #include <unistd.h>
 
-void hash_buffer(struct mdfour *md, const char *s, int len)
+void hash_buffer(struct mdfour *md, const char *s, size_t len)
 {
 	mdfour_update(md, (unsigned char *)s, len);
 }
@@ -51,7 +51,7 @@ void hash_int(struct mdfour *md, int x)
 int hash_fd(struct mdfour *md, int fd)
 {
 	char buf[1024];
-	int n;
+	size_t n;
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
 		hash_buffer(md, buf, n);
