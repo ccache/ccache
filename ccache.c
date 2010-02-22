@@ -39,19 +39,19 @@
 #include <unistd.h>
 
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
-char *current_working_dir;
+static char *current_working_dir;
 
 /* the base cache directory */
 char *cache_dir = NULL;
 
 /* the directory for temporary files */
-char *temp_dir = NULL;
+static char *temp_dir = NULL;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
 
 /* base directory (from CCACHE_BASEDIR) */
-char *base_dir;
+static char *base_dir;
 
 /* the argument list after processing */
 static ARGS *stripped_args;
@@ -140,9 +140,9 @@ static int enable_direct = 1;
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
 */
-static struct {
-	char *extension;
-	char *i_extension;
+static const struct {
+	const char *extension;
+	const char *i_extension;
 } extensions[] = {
 	{"c", "i"},
 	{"C", "ii"},
