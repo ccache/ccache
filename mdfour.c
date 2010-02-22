@@ -21,10 +21,7 @@
 
 #include <string.h>
 
-/* NOTE: This code makes no attempt to be fast!
-
-   It assumes that a int is at least 32 bits long
-*/
+/* NOTE: This code makes no attempt to be fast! */
 
 static struct mdfour *m;
 
