@@ -1582,6 +1582,7 @@ static void ccache(int argc, char *argv[])
 			perror(prefix);
 			exit(1);
 		}
+		cc_log("Using command-line prefix %s\n", prefix);
 		args_add_prefix(stripped_args, p);
 	}
 
