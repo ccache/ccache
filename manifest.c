@@ -37,7 +37,9 @@
  * Sketchy specification of the manifest disk format:
  *
  * <magic>         magic number                        (4 bytes)
- * <version>       version                             (4 bytes unsigned int)
+ * <version>       file format version                 (1 byte unsigned int)
+ * <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
+ * <reserved>      reserved for future use             (2 bytes)
  * ----------------------------------------------------------------------------
  * <n>             number of include file paths        (4 bytes unsigned int)
  * <path_0>        path to include file                (NUL-terminated string,
@@ -46,7 +48,7 @@
  * ----------------------------------------------------------------------------
  * <n>             number of include file hash entries (4 bytes unsigned int)
  * <index[0]>      index of include file path          (4 bytes unsigned int)
- * <hash[0]>       hash of include file                (16 bytes)
+ * <hash[0]>       hash of include file                (<hash_size> bytes)
  * <size[0]>       size of include file                (4 bytes unsigned int)
  * ...
  * <hash[n-1]>
@@ -58,7 +60,7 @@
  * <index[0][0]>   include file hash index             (4 bytes unsigned int)
  * ...
  * <index[0][m[0]-1]>
- * <hash[0]>       hash part of object name            (16 bytes)
+ * <hash[0]>       hash part of object name            (<hash_size> bytes)
  * <size[0]>       size part of object name            (4 bytes unsigned int)
  * ...
  * <m[n-1]>        number of include file hash indexes
@@ -70,7 +72,7 @@
  */
 
 static const uint32_t MAGIC = 0x63436d46U;
-static const uint32_t VERSION = 0;
+static const uint8_t  VERSION = 0;
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 
 #define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (0)
@@ -97,6 +99,9 @@ struct object
 
 struct manifest
 {
+	/* Size of hash fields (in bytes). */
+	uint8_t hash_size;
+
 	/* Referenced include files. */
 	uint32_t n_files;
 	char **files;
@@ -193,6 +198,7 @@ static struct manifest *create_empty_manifest(void)
 	struct manifest *mf;
 
 	mf = x_malloc(sizeof(*mf));
+	mf->hash_size = 16;
 	mf->n_files = 0;
 	mf->files = NULL;
 	mf->n_file_infos = 0;
@@ -208,7 +214,9 @@ static struct manifest *read_manifest(gzFile f)
 	struct manifest *mf;
 	uint16_t i, j;
 	size_t n;
-	uint32_t magic, version;
+	uint32_t magic;
+	uint8_t version;
+	uint16_t dummy;
 
 	mf = create_empty_manifest();
 
@@ -218,12 +226,25 @@ static struct manifest *read_manifest(gzFile f)
 		free_manifest(mf);
 		return NULL;
 	}
-	READ_INT(4, version);
+	READ_INT(1, version);
 	if (version != VERSION) {
 		cc_log("Manifest file has unknown version %u\n", version);
 		free_manifest(mf);
 		return NULL;
 	}
+
+	READ_INT(1, mf->hash_size);
+	if (mf->hash_size != 16) {
+		/* Temporary measure until we support different hash
+		 * algorithms. */
+		cc_log("Manifest file has unsupported hash size %u\n",
+		       mf->hash_size);
+		free_manifest(mf);
+		return NULL;
+	}
+
+
+	READ_INT(2, dummy);
 
 	READ_INT(4, mf->n_files);
 	n = mf->n_files * sizeof(*mf->files);
@@ -239,7 +260,7 @@ static struct manifest *read_manifest(gzFile f)
 	memset(mf->file_infos, 0, n);
 	for (i = 0; i < mf->n_file_infos; i++) {
 		READ_INT(4, mf->file_infos[i].index);
-		READ_BYTES(16, mf->file_infos[i].hash);
+		READ_BYTES(mf->hash_size, mf->file_infos[i].hash);
 		READ_INT(4, mf->file_infos[i].size);
 	}
 
@@ -256,7 +277,7 @@ static struct manifest *read_manifest(gzFile f)
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
-		READ_BYTES(16, mf->objects[i].hash.hash);
+		READ_BYTES(mf->hash_size, mf->objects[i].hash.hash);
 		READ_INT(4, mf->objects[i].hash.size);
 	}
 
@@ -302,7 +323,9 @@ static int write_manifest(gzFile f, const struct manifest *mf)
 	uint16_t i, j;
 
 	WRITE_INT(4, MAGIC);
-	WRITE_INT(4, VERSION);
+	WRITE_INT(1, VERSION);
+	WRITE_INT(1, 16);
+	WRITE_INT(2, 0);
 
 	WRITE_INT(4, mf->n_files);
 	for (i = 0; i < mf->n_files; i++) {
@@ -312,7 +335,7 @@ static int write_manifest(gzFile f, const struct manifest *mf)
 	WRITE_INT(4, mf->n_file_infos);
 	for (i = 0; i < mf->n_file_infos; i++) {
 		WRITE_INT(4, mf->file_infos[i].index);
-		WRITE_BYTES(16, mf->file_infos[i].hash);
+		WRITE_BYTES(mf->hash_size, mf->file_infos[i].hash);
 		WRITE_INT(4, mf->file_infos[i].size);
 	}
 
@@ -322,7 +345,7 @@ static int write_manifest(gzFile f, const struct manifest *mf)
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			WRITE_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
-		WRITE_BYTES(16, mf->objects[i].hash.hash);
+		WRITE_BYTES(mf->hash_size, mf->objects[i].hash.hash);
 		WRITE_INT(4, mf->objects[i].hash.size);
 	}
 
@@ -360,7 +383,7 @@ static int verify_object(struct manifest *mf, struct object *obj,
 					 x_strdup(mf->files[fi->index]),
 					 actual);
 		}
-		if (memcmp(fi->hash, actual->hash, 16) != 0
+		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0
 		    || fi->size != actual->size) {
 			return 0;
 		}
@@ -500,7 +523,7 @@ static void add_object_entry(struct manifest *mf,
 	obj->n_file_info_indexes = n;
 	obj->file_info_indexes = x_malloc(n * sizeof(*obj->file_info_indexes));
 	add_file_info_indexes(obj->file_info_indexes, n, mf, included_files);
-	memcpy(obj->hash.hash, object_hash->hash, 16);
+	memcpy(obj->hash.hash, object_hash->hash, mf->hash_size);
 	obj->hash.size = object_hash->size;
 }
 

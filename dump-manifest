@@ -9,8 +9,8 @@ f = gzip.open(sys.argv[1])
 def get_fixstr(n):
     return f.read(n)
 
-def get_md4():
-    return f.read(16).encode("hex")
+def get_hash():
+    return f.read(hash_size).encode("hex")
 
 def get_str():
     result = ""
@@ -20,11 +20,20 @@ def get_str():
             return result
         result += ch
 
+def get_uint8():
+    return unpack("!B", f.read(1))[0]
+
+def get_uint16():
+    return unpack("!H", f.read(2))[0]
+
 def get_uint32():
     return unpack("!I", f.read(4))[0]
 
 print "Magic: %s" % get_fixstr(4)
-print "Version: %s" % get_uint32()
+print "Version: %s" % get_uint8()
+hash_size = get_uint8()
+print "Hash size: %s" % hash_size
+print "Reserved field: %s" % get_uint16()
 
 n = get_uint32()
 print "File paths (%d):" % n
@@ -36,7 +45,7 @@ print "File infos (%d):" % n
 for i in range(n):
     print "  %d:" % i
     print "    Path index: %d" % get_uint32()
-    print "    Hash: %s" % get_md4()
+    print "    Hash: %s" % get_hash()
     print "    Size: %d" %  get_uint32()
 
 n = get_uint32()
@@ -48,5 +57,5 @@ for i in range(n):
     for j in range(m):
         print get_uint32(),
     print
-    print "    Hash: %s" % get_md4()
+    print "    Hash: %s" % get_hash()
     print "    Size: %d" % get_uint32()
