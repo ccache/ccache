@@ -55,5 +55,6 @@ In addition to the prerequisites mentioned above, you also need:
 
  * asciidoc (http://www.methods.co.nz/asciidoc/) to build the documentation.
  * autoconf (http://www.gnu.org/software/autoconf/)
+ * perl (http://www.perl.com/) to run the testsuite
 
 Run "./autogen.sh" to generate "configure" and "config.h.in".
