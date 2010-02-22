@@ -51,7 +51,9 @@ Note! Do not use hard links, use symbolic links. Hard links will cause
 BUILDING CODE FROM THE SOURCE CODE REPOSITORY
 =============================================
 
-In addition to the prerequisites mentioned above, you also need asciidoc
-(http://www.methods.co.nz/asciidoc/) to build the documentation.
+In addition to the prerequisites mentioned above, you also need:
+
+ * asciidoc (http://www.methods.co.nz/asciidoc/) to build the documentation.
+ * autoconf (http://www.gnu.org/software/autoconf/)
 
 Run "./autogen.sh" to generate "configure" and "config.h.in".
