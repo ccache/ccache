@@ -69,7 +69,7 @@ checkstat() {
     expected_value="$2"
     value=`getstat "$stat"`
     if [ "$expected_value" != "$value" ]; then
-        test_failed "Expected $stat to be $expected_value, got $value"
+        test_failed "Expected \"$stat\" to be $expected_value, got $value"
     fi
 }
 
