@@ -547,12 +547,12 @@ static void to_cache(ARGS *args)
 	}
 
 	if (stat(tmp_obj, &st) != 0) {
-		cc_log("The compiler didn't produce an object file");
+		cc_log("The compiler didn't produce an object file\n");
 		stats_update(STATS_NOOUTPUT);
 		failed();
 	}
 	if (st.st_size == 0) {
-		cc_log("The compiler produced an empty object file");
+		cc_log("The compiler produced an empty object file\n");
 		stats_update(STATS_EMPTYOUTPUT);
 		failed();
 	}
