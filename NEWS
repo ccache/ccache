@@ -49,6 +49,10 @@ New features and improvements:
   - Standard error output from the compiler is now only stored in the cache if
     it's non-empty.
 
+  - If the compiler produces no object file or an empty object file, but gives
+    a zero exit status (could be due to a file system problem, a buggy program
+    specified by CCACHE_PREFIX, etc.), ccache copes with it properly.
+
   - Added installcheck and distcheck make targets.
 
   - Clarified cache size limit options' semantics

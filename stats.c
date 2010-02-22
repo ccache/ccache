@@ -54,6 +54,8 @@ static struct {
 	{ STATS_LINK,         "called for link                ", NULL, 0 },
 	{ STATS_MULTIPLE,     "multiple source files          ", NULL, 0 },
 	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
+	{ STATS_NOOUTPUT,     "compiler produced no output    ", NULL, 0 },
+	{ STATS_EMPTYOUTPUT,  "compiler produced empty output ", NULL, 0 },
 	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
 	{ STATS_ERROR,        "ccache internal error          ", NULL, 0 },
 	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL, 0 },

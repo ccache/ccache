@@ -275,6 +275,33 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 11
     checkstat 'cache miss' 39
 
+    testname="no object file"
+    cat <<'EOF' >test_no_obj.c
+int test_no_obj;
+EOF
+    cat <<'EOF' >prefix-remove.sh
+#!/bin/sh
+echo "$*" >>/tmp/foo
+"$@"
+[ x$3 = x-o ] && rm $4
+EOF
+    chmod +x prefix-remove.sh
+    CCACHE_PREFIX=$PWD/prefix-remove.sh $CCACHE_COMPILE -c test_no_obj.c
+    checkstat 'compiler produced no output' 1
+
+    testname="empty object file"
+    cat <<'EOF' >test_empty_obj.c
+int test_empty_obj;
+EOF
+    cat <<'EOF' >prefix-empty.sh
+#!/bin/sh
+"$@"
+[ x$3 = x-o ] && cp /dev/null $4
+EOF
+    chmod +x prefix-empty.sh
+    CCACHE_PREFIX=$PWD/prefix-empty.sh $CCACHE_COMPILE -c test_empty_obj.c
+    checkstat 'compiler produced empty output' 1
+
     testname="stderr-files"
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
     if [ $num -ne 0 ]; then
