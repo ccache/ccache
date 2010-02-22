@@ -57,4 +57,5 @@ In addition to the prerequisites mentioned above, you also need:
  * autoconf (http://www.gnu.org/software/autoconf/)
  * perl (http://www.perl.com/) to run the testsuite
 
-Run "./autogen.sh" to generate "configure" and "config.h.in".
+Run "./autogen.sh" to generate "configure" and "config.h.in" and then follow
+the steps mentioned in INSTALLATION.
