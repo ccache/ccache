@@ -137,6 +137,22 @@ dit(bf(CCACHE_CC)) You can optionally set CCACHE_CC to force the name
 of the compiler to use. If you don't do this then ccache works it out
 from the command line.
 
+dit(bf(CCACHE_COMPILERCHECK)) By default, ccache includes the
+modification time (mtime) and size of the compiler in the hash to
+ensure that results retrieved from the cache are accurate. The
+CCACHE_COMPILERCHECK environment variable can be used to select
+another strategy. Possible values are: bf(none) (don't hash anything),
+bf(mtime) (hash the compiler's mtime and size) and bf(content) (hash
+the content of the compiler binary). Setting the variable to
+bf(content) makes ccache very slightly slower, but makes it cope
+better with compiler upgrades during a build bootstrapping process.
+The bf(none) setting may be good for situations where you can safely
+use the cached results even though the compiler's mtime or size has
+changed (e.g. if the compiler is built as part of your build system
+and the compiler's source has not changed, or if the compiler only has
+changes that don't affect code generation). You should only set the
+variable to bf(none) if you know what you are doing.
+
 dit(bf(CCACHE_CPP2)) If you set the environment variable CCACHE_CPP2
 then ccache will not use the optimisation of avoiding the 2nd call to
 the preprocessor by compiling the preprocessed output that was used
@@ -180,11 +196,6 @@ incorrect setting of this debug info rarely causes problems. If you
 strike problems with gdb not using the correct directory then enable
 this option.
 
-dit(bf(CCACHE_HASH_COMPILER)) This tells ccache to hash binary of the
-compiler instead of hashing just its size and mtime. This is very
-slightly slower, but makes copes better with compiler upgrades during
-a build bootstrapping process.
-
 dit(bf(CCACHE_LOGFILE)) If you set the CCACHE_LOGFILE environment
 variable then ccache will write some log information on cache hits
 and misses in that file. This is useful for tracking down problems.
@@ -200,15 +211,6 @@ retrieved from the cache, compressed results will still be usable.
 
 dit(bf(CCACHE_NODIRECT)) If you set the environment variable
 CCACHE_NODIRECT then ccache will not use the direct mode.
-
-dit(bf(CCACHE_NOHASH_SIZE_MTIME)) This tells ccache to not hash the
-real compiler's size and modification time. Normally this is the
-mechanism to detect compiler upgrades. There are situations, however,
-where even though the compiler's size or modification time has changed
-you can safely use the cached objects (e.g. if as part of your build
-system the compiler is built as well and the compiler's source has not
-changed; or if the compiler has only changes that do not affect code
-generation). Use this feature only if you know what you are doing.
 
 dit(bf(CCACHE_NOSTATS)) If you set the environment variable
 CCACHE_NOSTATS then ccache will not update the statistics files on

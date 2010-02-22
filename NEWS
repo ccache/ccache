@@ -24,11 +24,11 @@ New features and improvements:
     the disk cache. CCACHE_NOCOMPRESS can be set to disable object file
     compression.
 
-  - Added CCACHE_NOHASH_SIZE_MTIME option that tells ccache not to hash the
-    real compiler's size and modification time.
-
-  - Added CCACHE_HASH_COMPILER option that tells ccache to hash binary of the
-    compiler instead of hashing just its size and modification time.
+  - Added CCACHE_COMPILERCHECK option that tells ccache what
+    compiler-identifying information to hash to ensure that results retrieved
+    from the cache are accurate. Possible values are: none (don't hash
+    anything), mtime (hash the compiler's mtime and size) and content (hash the
+    content of the compiler binary). The default is mtime.
 
   - Temporary files are now created in the directory they will end up in. This
     makes ccache more friendly to Linux's directory layout.

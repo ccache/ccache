@@ -717,6 +717,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	struct mdfour hash;
 	char *object_name;
 	char *manifest_name;
+	const char *compilercheck;
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
@@ -813,9 +814,15 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		hash_string(&hash, str_basename(args->argv[0]));
 	}
 
-	if (getenv("CCACHE_HASH_COMPILER")) {
+	compilercheck = getenv("CCACHE_COMPILERCHECK");
+	if (!compilercheck) {
+		compilercheck = "mtime";
+	}
+	if (strcmp(compilercheck, "none") == 0) {
+		/* Do nothing. */
+	} else if (strcmp(compilercheck, "content") == 0) {
 		hash_file(&hash, args->argv[0]);
-	} else if (!getenv("CCACHE_NOHASH_SIZE_MTIME")) {
+	} else { /* mtime */
 		hash_int(&hash, st.st_size);
 		hash_int(&hash, st.st_mtime);
 	}
