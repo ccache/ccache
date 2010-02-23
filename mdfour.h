@@ -22,18 +22,18 @@
 #ifndef MDFOUR_H
 #define MDFOUR_H
 
+#include <stddef.h>
 #include <inttypes.h>
 
 struct mdfour {
 	uint32_t A, B, C, D;
-	uint32_t totalN;
+	size_t totalN;
 	unsigned char tail[64];
-	unsigned tail_len;
+	size_t tail_len;
 };
 
 void mdfour_begin(struct mdfour *md);
-void mdfour_update(struct mdfour *md, const unsigned char *in, int n);
+void mdfour_update(struct mdfour *md, const unsigned char *in, size_t n);
 void mdfour_result(struct mdfour *md, unsigned char *out);
-void mdfour(unsigned char *out, const unsigned char *in, int n);
 
 #endif

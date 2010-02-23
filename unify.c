@@ -102,7 +102,7 @@ static void build_table(void)
 static void pushchar(struct mdfour *hash, unsigned char c)
 {
 	static unsigned char buf[64];
-	static int len;
+	static size_t len;
 
 	if (c == 0) {
 		if (len > 0) {

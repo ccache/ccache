@@ -21,10 +21,7 @@
 
 #include <string.h>
 
-/* NOTE: This code makes no attempt to be fast!
-
-   It assumes that a int is at least 32 bits long
-*/
+/* NOTE: This code makes no attempt to be fast! */
 
 static struct mdfour *m;
 
@@ -113,7 +110,7 @@ void mdfour_begin(struct mdfour *md)
 }
 
 
-static void mdfour_tail(const unsigned char *in, int n)
+static void mdfour_tail(const unsigned char *in, size_t n)
 {
 	unsigned char buf[128];
 	uint32_t M[16];
@@ -140,7 +137,7 @@ static void mdfour_tail(const unsigned char *in, int n)
 	}
 }
 
-void mdfour_update(struct mdfour *md, const unsigned char *in, int n)
+void mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
 	uint32_t M[16];
 
@@ -152,7 +149,7 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, int n)
 	}
 
 	if (md->tail_len) {
-		int len = 64 - md->tail_len;
+		size_t len = 64 - md->tail_len;
 		if (len > n) len = n;
 		memcpy(md->tail+md->tail_len, in, len);
 		md->tail_len += len;
@@ -190,97 +187,3 @@ void mdfour_result(struct mdfour *md, unsigned char *out)
 	copy4(out+8, m->C);
 	copy4(out+12, m->D);
 }
-
-
-void mdfour(unsigned char *out, const unsigned char *in, int n)
-{
-	struct mdfour md;
-	mdfour_begin(&md);
-	mdfour_update(&md, in, n);
-	mdfour_update(&md, NULL, 0);
-	mdfour_result(&md, out);
-}
-
-#ifdef TEST_MDFOUR
-static void file_checksum1(char *fname)
-{
-	int fd, i;
-	struct mdfour md;
-	unsigned char buf[1024], sum[16];
-	unsigned chunk;
-
-	fd = open(fname,O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		perror("fname");
-		exit(1);
-	}
-
-	chunk = 1 + random() % (sizeof(buf) - 1);
-
-	mdfour_begin(&md);
-
-	while (1) {
-		int n = read(fd, buf, chunk);
-		if (n >= 0) {
-			mdfour_update(&md, buf, n);
-		}
-		if (n < chunk) break;
-	}
-
-	close(fd);
-
-	mdfour_update(&md, NULL, 0);
-
-	mdfour_result(&md, sum);
-
-	for (i=0;i<16;i++)
-		printf("%02x", sum[i]);
-	printf("\n");
-}
-
-#if 0
-#include "../md4.h"
-
-static void file_checksum2(char *fname)
-{
-	int fd, i;
-	MDstruct md;
-	unsigned char buf[64], sum[16];
-
-	fd = open(fname,O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		perror("fname");
-		exit(1);
-	}
-
-	MDbegin(&md);
-
-	while (1) {
-		int n = read(fd, buf, sizeof(buf));
-		if (n <= 0) break;
-		MDupdate(&md, buf, n*8);
-	}
-
-	if (!md.done) {
-		MDupdate(&md, buf, 0);
-	}
-
-	close(fd);
-
-	memcpy(sum, md.buffer, 16);
-
-	for (i=0;i<16;i++)
-		printf("%02x", sum[i]);
-	printf("\n");
-}
-#endif
-
-int main(int argc, char *argv[])
-{
-	file_checksum1(argv[1]);
-#if 0
-	file_checksum2(argv[1]);
-#endif
-	return 0;
-}
-#endif
