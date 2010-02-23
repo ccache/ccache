@@ -82,6 +82,14 @@ checkfile() {
     fi
 }
 
+sed_in_place() {
+    expr=$1
+    shift
+    for file in $*; do
+        (rm $file; sed "$expr" >$file) <$file
+    done
+}
+
 run_suite() {
     echo "starting testsuite $1"
     testsuite=$1
@@ -683,7 +691,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    perl -pi -e 's/foo/ignored/' comments.h comments.c
+    sed_in_place 's/foo/ignored/' comments.h comments.c
     sleep 1 # Sleep to make the include file trusted.
 
     $CCACHE $COMPILER -c comments.c
@@ -692,7 +700,7 @@ EOF
     checkstat 'cache miss' 1
 
     # Check that comment-like string contents are hashed.
-    perl -pi -e 's/apple/orange/' comments.c
+    sed_in_place 's/apple/orange/' comments.c
     sleep 1 # Sleep to make the include file trusted.
 
     $CCACHE $COMPILER -c comments.c
