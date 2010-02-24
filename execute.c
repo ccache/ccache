@@ -91,7 +91,7 @@ char *find_executable(const char *name, const char *exclude_name)
 		path = getenv("PATH");
 	}
 	if (!path) {
-		cc_log("no PATH variable!?");
+		cc_log("No PATH variable");
 		return NULL;
 	}
 

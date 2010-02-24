@@ -345,7 +345,7 @@ char *x_strdup(const char *s)
 	char *ret;
 	ret = strdup(s);
 	if (!ret) {
-		fatal("Out of memory in strdup");
+		fatal("Out of memory in x_strdup");
 	}
 	return ret;
 }
@@ -372,7 +372,7 @@ char *x_strndup(const char *s, size_t n)
 	ret = strndup(s, n);
 #endif
 	if (!ret) {
-		fatal("Out of memory in strndup");
+		fatal("Out of memory in x_strndup");
 	}
 	return ret;
 }
@@ -385,7 +385,7 @@ void *x_malloc(size_t size)
 	void *ret;
 	ret = malloc(size);
 	if (!ret) {
-		fatal("Out of memory in malloc");
+		fatal("Out of memory in x_malloc");
 	}
 	return ret;
 }

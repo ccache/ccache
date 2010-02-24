@@ -253,7 +253,7 @@ static char *get_path_in_cache(const char *name, const char *suffix,
 		free(path);
 		path = p;
 		if (create_dir(path) != 0) {
-			cc_log("failed to create %s", path);
+			cc_log("Failed to create %s", path);
 			failed();
 		}
 	}
@@ -293,11 +293,11 @@ static void remember_include_file(char *path, size_t path_len)
 	/* Let's hash the include file. */
 	fd = open(path, O_RDONLY|O_BINARY);
 	if (fd == -1) {
-		cc_log("Failed to open include file \"%s\"", path);
+		cc_log("Failed to open include file %s", path);
 		goto failure;
 	}
 	if (fstat(fd, &st) != 0) {
-		cc_log("Failed to fstat include file \"%s\"", path);
+		cc_log("Failed to fstat include file %s", path);
 		goto failure;
 	}
 	if (S_ISDIR(st.st_mode)) {
@@ -306,7 +306,7 @@ static void remember_include_file(char *path, size_t path_len)
 	}
 	if (st.st_mtime >= time_of_compilation
 	    || st.st_ctime >= time_of_compilation) {
-		cc_log("Include file \"%s\" too new", path);
+		cc_log("Include file %s too new", path);
 		goto failure;
 	}
 	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -375,17 +375,17 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
-		cc_log("failed to open %s", path);
+		cc_log("Failed to open %s", path);
 		return 0;
 	}
 	if (fstat(fd, &st) != 0) {
-		cc_log("failed to fstat %s", path);
+		cc_log("Failed to fstat %s", path);
 		return 0;
 	}
 	size = st.st_size;
 	data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (data == (void *)-1) {
-		cc_log("failed to mmap %s", path);
+		cc_log("Failed to mmap %s", path);
 		return 0;
 	}
 	close(fd);
@@ -409,7 +409,7 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			q++;
 			if (q >= end) {
-				cc_log("Failed parsing included file path");
+				cc_log("Failed to parse included file path");
 				munmap(data, size);
 				return 0;
 			}
@@ -521,7 +521,8 @@ static void to_cache(ARGS *args)
 
 	if (status != 0) {
 		int fd;
-		cc_log("Compile of %s gave status = %d", output_obj, status);
+		cc_log("Compile of %s gave exit status %d",
+		       output_obj, status);
 		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
@@ -566,18 +567,21 @@ static void to_cache(ARGS *args)
 	}
 	if (st.st_size > 0) {
 		if (move_file(tmp_stderr, cached_stderr, compress) != 0) {
-			cc_log("Failed to move tmp stderr to the cache");
+			cc_log("Failed to move %s to %s",
+			       tmp_stderr, cached_stderr);
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		cc_log("Stored stderr from the compiler in the cache");
+		cc_log("Stored in cache: %s", cached_stderr);
 	} else {
 		unlink(tmp_stderr);
 	}
 	if (move_file(tmp_obj, cached_obj, compress) != 0) {
-		cc_log("Failed to move tmp object file into the cache");
+		cc_log("Failed to move %s to %s", tmp_obj, cached_obj);
 		stats_update(STATS_ERROR);
 		failed();
+	} else {
+		cc_log("Stored in cache: %s", cached_obj);
 	}
 
 	/*
@@ -590,7 +594,6 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	cc_log("Placed object file into the cache");
 	stats_tocache(file_size(&st));
 
 	free(tmp_obj);
@@ -645,7 +648,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 		path_stdout = input_file;
 		if (create_empty_file(path_stderr) != 0) {
 			stats_update(STATS_ERROR);
-			cc_log("failed to create empty stderr file");
+			cc_log("Failed to create empty stderr file");
 			failed();
 		}
 		status = 0;
@@ -656,7 +659,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 			unlink(path_stdout);
 		}
 		unlink(path_stderr);
-		cc_log("the preprocessor gave %d", status);
+		cc_log("The preprocessor gave exit status %d", status);
 		stats_update(STATS_PREPROCESSOR);
 		failed();
 	}
@@ -803,7 +806,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	/* The compiler driver size and date. This is a simple minded way
 	   to try and detect compiler upgrades. It is not 100% reliable. */
 	if (stat(args->argv[0], &st) != 0) {
-		cc_log("Couldn't stat the compiler!? (argv[0]='%s')", args->argv[0]);
+		cc_log("Couldn't stat the compiler (%s)", args->argv[0]);
 		stats_update(STATS_COMPILER);
 		failed();
 	}
@@ -839,13 +842,15 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
 		if (!hash_file_ignoring_comments(&hash, input_file)) {
-			cc_log("Failed hashing %s", input_file);
+			cc_log("Failed to hash %s", input_file);
 			failed();
 		}
 		manifest_name = hash_result(&hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest",
 						  nlevels);
 		free(manifest_name);
+		cc_log("Looking for object file hash in %s",
+		       manifest_path);
 		object_hash = manifest_get(manifest_path);
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
@@ -928,7 +933,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			cc_log("Object file missing for %s", output_obj);
 			stats_update(STATS_MISSING);
 		} else {
-			cc_log("Failed to copy/link %s -> %s (%s)",
+			cc_log("Failed to copy/link %s to %s (%s)",
 			       cached_obj, output_obj, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
@@ -939,7 +944,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		unlink(cached_dep);
 		return;
 	} else {
-		cc_log("Created %s", output_obj);
+		cc_log("Created %s from %s", output_obj, cached_obj);
 	}
 
 	if (produce_dep_file) {
@@ -957,11 +962,11 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 				 * Someone removed the file just before we
 				 * began copying?
 				 */
-				cc_log("dependency file missing for %s",
+				cc_log("Dependency file missing for %s",
 				       output_obj);
 				stats_update(STATS_MISSING);
 			} else {
-				cc_log("failed to copy/link %s -> %s (%s)",
+				cc_log("Failed to copy/link %s to %s (%s)",
 				       cached_dep, output_dep,
 				       strerror(errno));
 				stats_update(STATS_ERROR);
@@ -974,7 +979,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			unlink(cached_dep);
 			return;
 		} else {
-			cc_log("Created %s", output_dep);
+			cc_log("Created %s from %s", output_dep, cached_dep);
 		}
 	}
 
@@ -990,11 +995,11 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		/* Store the dependency file in the cache. */
 		ret = copy_file(output_dep, cached_dep, 1);
 		if (ret == -1) {
-			cc_log("Failed to copy %s -> %s", output_dep,
+			cc_log("Failed to copy %s to %s", output_dep,
 			       cached_dep);
 			/* Continue despite the error. */
 		} else {
-			cc_log("Placed dependency file into the cache");
+			cc_log("Stored in cache: %s", cached_dep);
 		}
 	}
 
@@ -1028,7 +1033,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 				manifest_path);
 			update_mtime(manifest_path);
 		} else {
-			cc_log("Failed to add object file hash to manifest");
+			cc_log("Failed to add object file hash to manifest %s",
+				manifest_path);
 		}
 	}
 
@@ -1178,7 +1184,7 @@ static void process_args(int argc, char **argv)
 		/* we need to work out where the output was meant to go */
 		if (strcmp(argv[i], "-o") == 0) {
 			if (i == argc-1) {
-				cc_log("missing argument to %s", argv[i]);
+				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				failed();
 			}
@@ -1267,7 +1273,7 @@ static void process_args(int argc, char **argv)
 			for (j = 0; opts[j]; j++) {
 				if (strcmp(argv[i], opts[j]) == 0) {
 					if (i == argc-1) {
-						cc_log("missing argument to %s",
+						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
 						failed();
@@ -1319,7 +1325,7 @@ static void process_args(int argc, char **argv)
 			for (j=0;opts[j];j++) {
 				if (strcmp(argv[i], opts[j]) == 0) {
 					if (i == argc-1) {
-						cc_log("missing argument to %s",
+						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
 						failed();
@@ -1350,18 +1356,18 @@ static void process_args(int argc, char **argv)
 
 		if (input_file) {
 			if (check_extension(argv[i], NULL)) {
-				cc_log("multiple input files (%s and %s)",
+				cc_log("Multiple input files: %s and %s",
 				       input_file, argv[i]);
 				stats_update(STATS_MULTIPLE);
 			} else if (!found_c_opt) {
-				cc_log("called for link with %s", argv[i]);
+				cc_log("Called for link with %s", argv[i]);
 				if (strstr(argv[i], "conftest.")) {
 					stats_update(STATS_CONFTEST);
 				} else {
 					stats_update(STATS_LINK);
 				}
 			} else {
-				cc_log("non C/C++ file %s", argv[i]);
+				cc_log("Non-C/C++ file: %s", argv[i]);
 				stats_update(STATS_NOTC);
 			}
 			failed();
@@ -1379,13 +1385,13 @@ static void process_args(int argc, char **argv)
 
 	i_extension = check_extension(input_file, &direct_i_file);
 	if (i_extension == NULL) {
-		cc_log("Not a C/C++ file - %s", input_file);
+		cc_log("Not a C/C++ file: %s", input_file);
 		stats_update(STATS_NOTC);
 		failed();
 	}
 
 	if (!found_c_opt) {
-		cc_log("No -c option found for %s", input_file);
+		cc_log("No -c option found");
 		/* I find that having a separate statistic for autoconf tests is useful,
 		   as they are the dominant form of "called for link" in many cases */
 		if (strstr(input_file, "conftest.")) {
@@ -1412,7 +1418,7 @@ static void process_args(int argc, char **argv)
 		}
 		p = strrchr(output_obj, '.');
 		if (!p || !p[1]) {
-			cc_log("badly formed output file %s", output_obj);
+			cc_log("Badly formed object filename");
 			stats_update(STATS_ARGS);
 			failed();
 		}
@@ -1463,7 +1469,7 @@ static void process_args(int argc, char **argv)
 	if (strcmp(output_obj,"/dev/null") != 0
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
-		cc_log("Not a regular file %s", output_obj);
+		cc_log("Not a regular file: %s", output_obj);
 		stats_update(STATS_DEVICE);
 		failed();
 	}
@@ -1589,7 +1595,7 @@ static void ccache(int argc, char *argv[])
 	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
 	if (getenv("CCACHE_READONLY")) {
-		cc_log("read-only set - doing real compile");
+		cc_log("Read-only mode; running real compiler");
 		failed();
 	}
 
@@ -1611,7 +1617,7 @@ static void ccache(int argc, char *argv[])
 	from_cache(FROMCACHE_COMPILED_MODE, put_object_in_manifest);
 
 	/* oh oh! */
-	cc_log("secondary from_cache failed!");
+	cc_log("Secondary from_cache failed");
 	stats_update(STATS_ERROR);
 	failed();
 }

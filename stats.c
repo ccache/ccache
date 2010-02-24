@@ -98,10 +98,10 @@ static void write_stats(int fd, unsigned counters[STATS_END])
 
 	for (i=0;i<STATS_END;i++) {
 		len += snprintf(buf+len, sizeof(buf)-(len+1), "%u ", counters[i]);
-		if (len >= (int)sizeof(buf)-1) fatal("stats too long?!");
+		if (len >= (int)sizeof(buf)-1) fatal("stats too long");
 	}
 	len += snprintf(buf+len, sizeof(buf)-(len+1), "\n");
-	if (len >= (int)sizeof(buf)-1) fatal("stats too long?!");
+	if (len >= (int)sizeof(buf)-1) fatal("stats too long");
 
 	lseek(fd, 0, SEEK_SET);
 	if (write(fd, buf, len) == -1) fatal("Could not write stats");

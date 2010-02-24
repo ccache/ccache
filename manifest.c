@@ -546,17 +546,17 @@ struct file_hash *manifest_get(const char *manifest_path)
 		goto out;
 	}
 	if (read_lock_fd(fd) == -1) {
-		cc_log("Failed to read lock %s", manifest_path);
+		cc_log("Failed to read lock manifest file");
 		goto out;
 	}
 	f = gzdopen(fd, "rb");
 	if (!f) {
-		cc_log("Failed to gzdopen %s", manifest_path);
+		cc_log("Failed to gzdopen manifest file");
 		goto out;
 	}
 	mf = read_manifest(f);
 	if (!mf) {
-		cc_log("Error reading %s", manifest_path);
+		cc_log("Error reading manifest file");
 		goto out;
 	}
 
@@ -602,16 +602,16 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 
 	fd1 = safe_open(manifest_path);
 	if (fd1 == -1) {
-		cc_log("Failed to open %s", manifest_path);
+		cc_log("Failed to open manifest file");
 		goto out;
 	}
 	if (write_lock_fd(fd1) == -1) {
-		cc_log("Failed to write lock %s", manifest_path);
+		cc_log("Failed to write lock manifest file");
 		close(fd1);
 		goto out;
 	}
 	if (fstat(fd1, &st) != 0) {
-		cc_log("Failed to stat %s", manifest_path);
+		cc_log("Failed to stat manifest file");
 		close(fd1);
 		goto out;
 	}
@@ -621,13 +621,13 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	} else {
 		f1 = gzdopen(fd1, "rb");
 		if (!f1) {
-			cc_log("Failed to gzdopen %s", manifest_path);
+			cc_log("Failed to gzdopen manifest file");
 			close(fd1);
 			goto out;
 		}
 		mf = read_manifest(f1);
 		if (!mf) {
-			cc_log("Failed to read %s", manifest_path);
+			cc_log("Failed to read manifest file");
 			goto out;
 		}
 	}
@@ -647,8 +647,8 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		 * old ones. An easy way is to throw away all entries when
 		 * there are too many. Let's do that for now.
 		 */
-		cc_log("More than %u entries in %s; discarding",
-			MAX_MANIFEST_ENTRIES, manifest_path);
+		cc_log("More than %u entries in manifest file; discarding",
+			MAX_MANIFEST_ENTRIES);
 		free_manifest(mf);
 		mf = create_empty_manifest();
 	}
@@ -675,7 +675,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 			goto out;
 		}
 	} else {
-		cc_log("Failed to write manifest %s", manifest_path);
+		cc_log("Failed to write manifest file");
 		goto out;
 	}
 
