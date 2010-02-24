@@ -249,7 +249,7 @@ int unify_hash(struct mdfour *hash, const char *fname)
 
 	fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1 || fstat(fd, &st) != 0) {
-		cc_log("Failed to open preprocessor output %s\n", fname);
+		cc_log("Failed to open preprocessor output %s", fname);
 		stats_update(STATS_PREPROCESSOR);
 		return -1;
 	}
@@ -259,7 +259,7 @@ int unify_hash(struct mdfour *hash, const char *fname)
            100k in length, so this is well worth it */
 	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (map == (char *)-1) {
-		cc_log("Failed to mmap %s\n", fname);
+		cc_log("Failed to mmap %s", fname);
 		return -1;
 	}
 	close(fd);

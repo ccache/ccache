@@ -37,7 +37,7 @@ int execute(char **argv,
 	int status;
 
 	pid = fork();
-	if (pid == -1) fatal("Failed to fork\n");
+	if (pid == -1) fatal("Failed to fork");
 
 	if (pid == 0) {
 		int fd;
@@ -62,7 +62,7 @@ int execute(char **argv,
 	}
 
 	if (waitpid(pid, &status, 0) != pid) {
-		fatal("waitpid failed\n");
+		fatal("waitpid failed");
 	}
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
@@ -91,7 +91,7 @@ char *find_executable(const char *name, const char *exclude_name)
 		path = getenv("PATH");
 	}
 	if (!path) {
-		cc_log("no PATH variable!?\n");
+		cc_log("no PATH variable!?");
 		return NULL;
 	}
 

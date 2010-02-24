@@ -53,6 +53,7 @@ void cc_log(const char *format, ...)
 	va_start(ap, format);
 	vfprintf(logfile, format, ap);
 	va_end(ap);
+	fprintf(logfile, "\n");
 	fflush(logfile);
 }
 
@@ -75,6 +76,7 @@ void fatal(const char *format, ...)
 
 	fprintf(stderr, "ccache: FATAL: ");
 	vfprintf(stderr, format, ap);
+	fprintf(stderr, "\n");
 
 	va_end(ap);
 	exit(1);
@@ -92,12 +94,12 @@ void copy_fd(int fd_in, int fd_out)
 	gz_in = gzdopen(dup(fd_in), "rb");
 
 	if (!gz_in) {
-		fatal("Failed to copy fd\n");
+		fatal("Failed to copy fd");
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		if (write(fd_out, buf, n) != n) {
-			fatal("Failed to copy fd\n");
+			fatal("Failed to copy fd");
 		}
 	}
 }
@@ -328,11 +330,11 @@ void x_asprintf(char **ptr, const char *format, ...)
 	*ptr = NULL;
 	va_start(ap, format);
 	if (vasprintf(ptr, format, ap) == -1) {
-		fatal("Out of memory in x_asprintf\n");
+		fatal("Out of memory in x_asprintf");
 	}
 	va_end(ap);
 
-	if (!*ptr) fatal("Out of memory in x_asprintf\n");
+	if (!*ptr) fatal("Out of memory in x_asprintf");
 }
 
 /*
@@ -343,7 +345,7 @@ char *x_strdup(const char *s)
 	char *ret;
 	ret = strdup(s);
 	if (!ret) {
-		fatal("Out of memory in strdup\n");
+		fatal("Out of memory in strdup");
 	}
 	return ret;
 }
@@ -370,7 +372,7 @@ char *x_strndup(const char *s, size_t n)
 	ret = strndup(s, n);
 #endif
 	if (!ret) {
-		fatal("Out of memory in strndup\n");
+		fatal("Out of memory in strndup");
 	}
 	return ret;
 }
@@ -383,7 +385,7 @@ void *x_malloc(size_t size)
 	void *ret;
 	ret = malloc(size);
 	if (!ret) {
-		fatal("Out of memory in malloc\n");
+		fatal("Out of memory in malloc");
 	}
 	return ret;
 }
@@ -397,7 +399,7 @@ void *x_realloc(void *ptr, size_t size)
 	if (!ptr) return x_malloc(size);
 	p2 = realloc(ptr, size);
 	if (!p2) {
-		fatal("Out of memory in x_realloc\n");
+		fatal("Out of memory in x_realloc");
 	}
 	return p2;
 }
@@ -414,11 +416,11 @@ void x_asprintf2(char **ptr, const char *format, ...)
 	*ptr = NULL;
 	va_start(ap, format);
 	if (vasprintf(ptr, format, ap) == -1) {
-		fatal("Out of memory in x_asprintf2\n");
+		fatal("Out of memory in x_asprintf2");
 	}
 	va_end(ap);
 
-	if (!ptr) fatal("Out of memory in x_asprintf2\n");
+	if (!ptr) fatal("Out of memory in x_asprintf2");
 	if (saved) {
 		free(saved);
 	}

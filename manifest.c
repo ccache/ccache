@@ -222,13 +222,13 @@ static struct manifest *read_manifest(gzFile f)
 
 	READ_INT(4, magic);
 	if (magic != MAGIC) {
-		cc_log("Manifest file has bad magic number %u\n", magic);
+		cc_log("Manifest file has bad magic number %u", magic);
 		free_manifest(mf);
 		return NULL;
 	}
 	READ_INT(1, version);
 	if (version != VERSION) {
-		cc_log("Manifest file has unknown version %u\n", version);
+		cc_log("Manifest file has unknown version %u", version);
 		free_manifest(mf);
 		return NULL;
 	}
@@ -237,7 +237,7 @@ static struct manifest *read_manifest(gzFile f)
 	if (mf->hash_size != 16) {
 		/* Temporary measure until we support different hash
 		 * algorithms. */
-		cc_log("Manifest file has unsupported hash size %u\n",
+		cc_log("Manifest file has unsupported hash size %u",
 		       mf->hash_size);
 		free_manifest(mf);
 		return NULL;
@@ -284,7 +284,7 @@ static struct manifest *read_manifest(gzFile f)
 	return mf;
 
 error:
-	cc_log("Corrupt manifest file\n");
+	cc_log("Corrupt manifest file");
 	free_manifest(mf);
 	return NULL;
 }
@@ -372,7 +372,7 @@ static int verify_object(struct manifest *mf, struct object *obj,
 			hash_start(&hash);
 			if (!hash_file_ignoring_comments(
 				    &hash, mf->files[fi->index])) {
-				cc_log("Failed hashing %s\n",
+				cc_log("Failed hashing %s",
 				       mf->files[fi->index]);
 				free(actual);
 				return 0;
@@ -546,17 +546,17 @@ struct file_hash *manifest_get(const char *manifest_path)
 		goto out;
 	}
 	if (read_lock_fd(fd) == -1) {
-		cc_log("Failed to read lock %s\n", manifest_path);
+		cc_log("Failed to read lock %s", manifest_path);
 		goto out;
 	}
 	f = gzdopen(fd, "rb");
 	if (!f) {
-		cc_log("Failed to gzdopen %s\n", manifest_path);
+		cc_log("Failed to gzdopen %s", manifest_path);
 		goto out;
 	}
 	mf = read_manifest(f);
 	if (!mf) {
-		cc_log("Error reading %s\n", manifest_path);
+		cc_log("Error reading %s", manifest_path);
 		goto out;
 	}
 
@@ -602,16 +602,16 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 
 	fd1 = safe_open(manifest_path);
 	if (fd1 == -1) {
-		cc_log("Failed to open %s\n", manifest_path);
+		cc_log("Failed to open %s", manifest_path);
 		goto out;
 	}
 	if (write_lock_fd(fd1) == -1) {
-		cc_log("Failed to write lock %s\n", manifest_path);
+		cc_log("Failed to write lock %s", manifest_path);
 		close(fd1);
 		goto out;
 	}
 	if (fstat(fd1, &st) != 0) {
-		cc_log("Failed to stat %s\n", manifest_path);
+		cc_log("Failed to stat %s", manifest_path);
 		close(fd1);
 		goto out;
 	}
@@ -621,13 +621,13 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	} else {
 		f1 = gzdopen(fd1, "rb");
 		if (!f1) {
-			cc_log("Failed to gzdopen %s\n", manifest_path);
+			cc_log("Failed to gzdopen %s", manifest_path);
 			close(fd1);
 			goto out;
 		}
 		mf = read_manifest(f1);
 		if (!mf) {
-			cc_log("Failed to read %s\n", manifest_path);
+			cc_log("Failed to read %s", manifest_path);
 			goto out;
 		}
 	}
@@ -647,7 +647,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		 * old ones. An easy way is to throw away all entries when
 		 * there are too many. Let's do that for now.
 		 */
-		cc_log("More than %u entries in %s; discarding\n",
+		cc_log("More than %u entries in %s; discarding",
 			MAX_MANIFEST_ENTRIES, manifest_path);
 		free_manifest(mf);
 		mf = create_empty_manifest();
@@ -656,12 +656,12 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	x_asprintf(&tmp_file, "%s.tmp.%s", manifest_path, tmp_string());
 	fd2 = safe_open(tmp_file);
 	if (fd2 == -1) {
-		cc_log("Failed to open %s\n", tmp_file);
+		cc_log("Failed to open %s", tmp_file);
 		goto out;
 	}
 	f2 = gzdopen(fd2, "wb");
 	if (!f2) {
-		cc_log("Failed to gzdopen %s\n", tmp_file);
+		cc_log("Failed to gzdopen %s", tmp_file);
 		goto out;
 	}
 
@@ -670,12 +670,12 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		if (rename(tmp_file, manifest_path) == 0) {
 			ret = 1;
 		} else {
-			cc_log("Failed to rename %s to %s\n",
+			cc_log("Failed to rename %s to %s",
 			       tmp_file, manifest_path);
 			goto out;
 		}
 	} else {
-		cc_log("Failed to write manifest %s\n", manifest_path);
+		cc_log("Failed to write manifest %s", manifest_path);
 		goto out;
 	}
 
