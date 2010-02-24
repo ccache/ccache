@@ -50,6 +50,7 @@ void cc_log(const char *format, ...)
 	if (!logfile) logfile = fopen(cache_logfile, "a");
 	if (!logfile) return;
 
+	fprintf(logfile, "[%-5d] ", getpid());
 	va_start(ap, format);
 	vfprintf(logfile, format, ap);
 	va_end(ap);
@@ -70,7 +71,7 @@ void fatal(const char *format, ...)
 
 	va_start(ap, format);
 
-	fprintf(logfile, "FATAL: ");
+	fprintf(logfile, "[%-5d] FATAL: ", getpid());
 	vfprintf(logfile, format, ap);
 	fflush(logfile);
 
