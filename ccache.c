@@ -473,7 +473,7 @@ static void to_cache(ARGS *args)
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
-		cc_log("Compiler produced stdout for %s", output_obj);
+		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
 		unlink(tmp_stdout);
 		unlink(tmp_stderr);
@@ -521,8 +521,7 @@ static void to_cache(ARGS *args)
 
 	if (status != 0) {
 		int fd;
-		cc_log("Compile of %s gave exit status %d",
-		       output_obj, status);
+		cc_log("Compiler gave exit status %d", status);
 		stats_update(STATS_STATUS);
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
@@ -548,12 +547,12 @@ static void to_cache(ARGS *args)
 	}
 
 	if (stat(tmp_obj, &st) != 0) {
-		cc_log("The compiler didn't produce an object file");
+		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
 		failed();
 	}
 	if (st.st_size == 0) {
-		cc_log("The compiler produced an empty object file");
+		cc_log("Compiler produced an empty object file");
 		stats_update(STATS_EMPTYOUTPUT);
 		failed();
 	}
@@ -648,7 +647,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 		path_stdout = input_file;
 		if (create_empty_file(path_stderr) != 0) {
 			stats_update(STATS_ERROR);
-			cc_log("Failed to create empty stderr file");
+			cc_log("Failed to create %s", path_stderr);
 			failed();
 		}
 		status = 0;
@@ -659,7 +658,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 			unlink(path_stdout);
 		}
 		unlink(path_stderr);
-		cc_log("The preprocessor gave exit status %d", status);
+		cc_log("Preprocessor gave exit status %d", status);
 		stats_update(STATS_PREPROCESSOR);
 		failed();
 	}
@@ -897,7 +896,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 
 	/* Check if the object file is there. */
 	if (stat(cached_obj, &st) != 0) {
-		cc_log("Did not find object file in cache");
+		cc_log("Object file %s not in cache", cached_obj);
 		return;
 	}
 
@@ -910,7 +909,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 
 	/* If the dependency file should be in the cache, check that it is. */
 	if (produce_dep_file && stat(cached_dep, &st) != 0) {
-		cc_log("Dependency file missing in cache");
+		cc_log("Dependency file %s missing in cache", cached_dep);
 		return;
 	}
 
@@ -930,7 +929,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	if (ret == -1) {
 		if (errno == ENOENT) {
 			/* Someone removed the file just before we began copying? */
-			cc_log("Object file missing for %s", output_obj);
+			cc_log("Object file %s just disappeared from cache",
+			       cached_obj);
 			stats_update(STATS_MISSING);
 		} else {
 			cc_log("Failed to copy/link %s to %s (%s)",
@@ -962,8 +962,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 				 * Someone removed the file just before we
 				 * began copying?
 				 */
-				cc_log("Dependency file missing for %s",
-				       output_obj);
+				cc_log("Dependency file %s just disappeared"
+				       " from cache", output_obj);
 				stats_update(STATS_MISSING);
 			} else {
 				cc_log("Failed to copy/link %s to %s (%s)",
@@ -1029,11 +1029,11 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	/* Create or update the manifest file. */
 	if (put_object_in_manifest && included_files) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
-			cc_log("Added object file hash to manifest %s",
+			cc_log("Added object file hash to %s",
 				manifest_path);
 			update_mtime(manifest_path);
 		} else {
-			cc_log("Failed to add object file hash to manifest %s",
+			cc_log("Failed to add object file hash to %s",
 				manifest_path);
 		}
 	}
