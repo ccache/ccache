@@ -6,9 +6,13 @@ PREREQUISITES
 
 To build ccache, you need:
 
-  - GNU make (http://www.gnu.org/software/make/)
+  - GNU make <http://www.gnu.org/software/make/>
   - A C compiler (for instance GCC)
-  - zlib (http://www.zlib.net)
+
+It is also recommended that you have:
+
+  - zlib <http://www.zlib.net> (if you don't have zlib installed, ccache will
+    use a bundled copy)
 
 
 INSTALLATION

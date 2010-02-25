@@ -7,6 +7,8 @@ AC_MSG_NOTICE([Configuring ccache])
 
 AC_CONFIG_HEADER(config.h)
 
+AC_SUBST(extra_sources)
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -79,14 +81,32 @@ if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
 fi
 
 dnl Check for zlib.
-AC_CHECK_HEADER(
-    zlib.h,
-    AC_CHECK_LIB(
-        z,
-        gzdopen,
-        LIBS="-lz $LIBS",
-        AC_MSG_ERROR(Required library zlib missing.)),
-    AC_MSG_ERROR(Header file for required library zlib missing.))
+AC_CACHE_CHECK(
+    [for zlib >= 1.2.3],
+    [ccache_cv_zlib_1_2_3],
+    AC_TRY_COMPILE(
+        [#include <zlib.h>],
+        [
+        #if (ZLIB_VERNUM >= 0x1230)
+        #else
+        #error "ZLIB_VERNUM < 0x1230"
+        #endif
+        ],
+        [ccache_cv_zlib_1_2_3=yes],
+        [ccache_cv_zlib_1_2_3=no]))
+AC_CHECK_LIB(z, gzdopen, true)
+if test $ccache_cv_zlib_1_2_3 = yes && test $ac_cv_lib_z_gzdopen = yes; then
+    use_bundled_zlib=no
+    LIBS="-lz $LIBS"
+else
+    use_bundled_zlib=yes
+    extra_sources="$extra_sources zlib/adler32.c zlib/compress.c zlib/crc32.c"
+    extra_sources="$extra_sources zlib/deflate.c zlib/gzio.c zlib/inffast.c"
+    extra_sources="$extra_sources zlib/inflate.c zlib/inftrees.c zlib/trees.c"
+    extra_sources="$extra_sources zlib/zutil.c"
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
+    mkdir -p zlib
+fi
 
 dnl Check for GNU make.
 AC_PATH_PROGS(MAKE, gmake make)
@@ -109,4 +129,8 @@ AC_OUTPUT
 
 mkdir -p .deps
 
-AC_MSG_NOTICE(Now please build ccache by running $ac_cv_path_MAKE)
+if test x$use_bundled_zlib = xyes; then
+   AC_MSG_WARN(using bundled zlib)
+fi
+
+AC_MSG_NOTICE(now please build ccache by running $ac_cv_path_MAKE)

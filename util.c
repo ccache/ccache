@@ -21,6 +21,7 @@
 
 #include <ctype.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <stdarg.h>
 #include <dirent.h>
 #include <utime.h>

@@ -1,0 +1,6 @@
+ZLIB BUNDLED WITH CCACHE
+========================
+
+This directory contains a subset of files from zlib 1.2.3. The full release can
+be found at <http://www.zlib.net>. For conditions of distribution and use, see
+copyright notice in zlib.h.

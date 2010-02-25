@@ -10,7 +10,7 @@ installcmd = @INSTALL@
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ -MD -MP -MF .deps/$(notdir $<).d -I.
+CPPFLAGS = @CPPFLAGS@ -I. -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
@@ -20,16 +20,17 @@ sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
     murmurhashneutral2.c hashutil.c comments.c getopt_long.c
+all_sources = $(sources) @extra_sources@
 
 headers = \
     ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
     manifest.h mdfour.h murmurhashneutral2.h comments.h getopt_long.h
 
-objs = $(sources:.c=.o)
+objs = $(all_sources:.c=.o)
 
 dist_files = \
-    $(sources) $(headers) configure Makefile.in config.h.in ccache.1 \
-    test.sh install-sh COPYING INSTALL NEWS README
+    $(sources) $(headers) ccache.1 config.h.in configure install-sh \
+    Makefile.in test.sh zlib/*.h zlib/*.c COPYING INSTALL NEWS README
 
 version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
 		       $(srcdir)/ccache.h)
@@ -63,7 +64,7 @@ define create_dist_archive
 	tmpdir=$$(mktemp -d) && \
 	dir=$$tmpdir/$(dist_dir) && \
 	mkdir $$dir && \
-	cp $(dist_files) $$dir && \
+	cp -r --parents $(dist_files) $$dir && \
 	(cd $$tmpdir && \
 	 tar $(1) $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
@@ -111,4 +112,4 @@ distcheck: $(dist_archive_tar_bz2)
 check-syntax:
 	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
--include $(sources:%=.deps/%.d)
+-include $(all_sources:%=.deps/%.d)
