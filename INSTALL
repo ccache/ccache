@@ -6,7 +6,6 @@ PREREQUISITES
 
 To build ccache, you need:
 
-  - GNU make <http://www.gnu.org/software/make/>
   - A C compiler (for instance GCC)
 
 It is also recommended that you have:
@@ -60,5 +59,5 @@ In addition to the prerequisites mentioned above, you also need:
   - asciidoc (http://www.methods.co.nz/asciidoc/) to build the documentation.
   - autoconf (http://www.gnu.org/software/autoconf/)
 
-Run "./autogen.sh" to generate "configure" and "config.h.in" and then follow
-the steps mentioned under INSTALLATION above.
+Run "./autogen.sh" and then follow the steps mentioned under INSTALLATION
+above.

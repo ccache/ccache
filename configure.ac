@@ -8,6 +8,12 @@ AC_MSG_NOTICE([Configuring ccache])
 AC_CONFIG_HEADER(config.h)
 
 AC_SUBST(extra_sources)
+AC_SUBST(include_dev_mk)
+
+AC_ARG_ENABLE(
+    dev,
+    AS_HELP_STRING(--enable-dev, enable developer mode (requires GNU make)),
+    [include_dev_mk='include dev.mk'])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -108,23 +114,7 @@ else
     mkdir -p zlib
 fi
 
-dnl Check for GNU make.
-AC_PATH_PROGS(MAKE, gmake make)
-AC_CACHE_CHECK(
-    for GNU make,
-    ccache_cv_gnu_make,
-    [
-    if $ac_cv_path_MAKE --version | head -1 | grep GNU >/dev/null 2>&1; then
-        ccache_cv_gnu_make=yes
-    else
-        ccache_cv_gnu_make=no
-    fi
-    ])
-if test x$ccache_cv_gnu_make = xno; then
-    AC_MSG_ERROR(Please install GNU make as gmake or make)
-fi
-
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile dev.mk])
 AC_OUTPUT
 
 mkdir -p .deps
@@ -133,4 +123,4 @@ if test x$use_bundled_zlib = xyes; then
    AC_MSG_WARN(using bundled zlib)
 fi
 
-AC_MSG_NOTICE(now please build ccache by running $ac_cv_path_MAKE)
+AC_MSG_NOTICE(now build ccache by running make)

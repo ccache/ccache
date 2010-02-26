@@ -4,4 +4,4 @@ set -e
 
 autoheader
 autoconf
-echo "Now run ./configure and make"
+echo "Now run ./configure-dev and make"

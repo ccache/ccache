@@ -10,7 +10,7 @@ installcmd = @INSTALL@
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ -I. -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+CPPFLAGS = @CPPFLAGS@ -I.
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
@@ -28,16 +28,6 @@ headers = \
 
 objs = $(all_sources:.c=.o)
 
-dist_files = \
-    $(sources) $(headers) ccache.1 config.h.in configure install-sh \
-    Makefile.in test.sh zlib/*.h zlib/*.c COPYING INSTALL NEWS README
-
-version := $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
-		       $(srcdir)/ccache.h)
-dist_dir := ccache-$(version)
-dist_archive_tar_bz2 := ccache-$(version).tar.bz2
-dist_archive_tar_gz := ccache-$(version).tar.gz
-
 .PHONY: all
 all: ccache$(EXEEXT)
 
@@ -48,7 +38,7 @@ ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
 ccache.1: ccache.yo
-	yodl2man -o ccache.1 ccache.yo
+	yodl2man -o ccache.1 $(srcdir)/ccache.yo
 
 .PHONY: install
 install: all
@@ -56,25 +46,6 @@ install: all
 	$(installcmd) -s -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
 	-$(installcmd) -m 644 $(srcdir)/ccache.1 $(DESTDIR)$(mandir)/man1/
-
-.PHONY: dist
-dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
-
-define create_dist_archive
-	tmpdir=$$(mktemp -d) && \
-	dir=$$tmpdir/$(dist_dir) && \
-	mkdir $$dir && \
-	cp -r --parents $(dist_files) $$dir && \
-	(cd $$tmpdir && \
-	 tar $(1) $(CURDIR)/$@ $(dist_dir)) && \
-	rm -rf $$tmpdir
-endef
-
-$(dist_archive_tar_bz2): $(dist_files)
-	$(call create_dist_archive, cjf)
-
-$(dist_archive_tar_gz): $(dist_files)
-	$(call create_dist_archive, czf)
 
 .PHONY: clean
 clean:
@@ -90,26 +61,10 @@ check: test
 
 .PHONY: distclean
 distclean: clean
-	rm -rf Makefile config.h config.log config.status .deps
+	rm -rf Makefile dev.mk config.h config.log config.status .deps
 
 .PHONY: installcheck
 installcheck:
 	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
 
-.PHONY: distcheck
-distcheck: $(dist_archive_tar_bz2)
-	tmpdir=$$(mktemp -d) && \
-	(cd $$tmpdir && \
-	 tar xjf $(CURDIR)/$(dist_archive_tar_bz2) && \
-	 mkdir -p $(dist_dir)/build && \
-	 cd $(dist_dir)/build && \
-	 ../configure --prefix=$$tmpdir/root && \
-	 $(MAKE) install && \
-	 $(MAKE) installcheck) && \
-	rm -rf $$tmpdir
-
-.PHONY: check-syntax
-check-syntax:
-	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
-
--include $(all_sources:%=.deps/%.d)
+@include_dev_mk@

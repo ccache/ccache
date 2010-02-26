@@ -10,4 +10,5 @@ config.h.in
 config.log
 config.status
 configure
+dev.mk
 testdir.*
