@@ -28,6 +28,8 @@ headers = \
 
 objs = $(all_sources:.c=.o)
 
+files_to_clean = $(objs) *~ ccache$(EXEEXT) ccache.1
+
 .PHONY: all
 all: ccache$(EXEEXT)
 
@@ -49,8 +51,7 @@ install: all
 
 .PHONY: clean
 clean:
-	rm -f $(objs) *~ ccache$(EXEEXT) .deps/* ccache.1 \
-	      $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
+	rm -f $(files_to_clean)
 
 .PHONY: test
 test: test.sh
