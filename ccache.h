@@ -6,7 +6,10 @@
 #include "config.h"
 #include "mdfour.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
