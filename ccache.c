@@ -1462,7 +1462,7 @@ static void process_args(int argc, char **argv)
 
 	/* If dependencies are generated, configure the preprocessor */
 
-	if (generating_dependencies && output_obj) {
+	if (generating_dependencies) {
 		if (!dependency_filename_specified) {
 			char *default_depfile_name = x_strdup(output_obj);
 			char *p = strrchr(default_depfile_name, '.');
