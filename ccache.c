@@ -38,6 +38,38 @@
 #include <time.h>
 #include <unistd.h>
 
+static const char VERSION_TEXT[] =
+"ccache version " CCACHE_VERSION "\n"
+"\n"
+"Copyright (C) Andrew Tridgell 2002-2007\n"
+"Copyright (C) Joel Rosdahl 2009-2010\n"
+"\n"
+"This program is free software; you can redistribute it and/or modify it under\n"
+"the terms of the GNU General Public License as published by the Free Software\n"
+"Foundation; either version 2 of the License, or (at your option) any later\n"
+"version.\n";
+
+static const char USAGE_TEXT[] =
+"Usage:\n"
+"    ccache [options]\n"
+"    ccache compiler [compiler options]\n"
+"    compiler [compiler options]          (via symbolic link)\n"
+"\n"
+"Options:\n"
+"    -c, --cleanup         run a cache cleanup\n"
+"    -C, --clear           clear the cache completely\n"
+"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
+"                          no limit)\n"
+"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
+"                          limit; available suffixes: G, M and K)\n"
+"    -s, --show-stats      show statistics summary\n"
+"    -z, --zero-stats      zero statistics counters\n"
+"\n"
+"    -h, --help            print this help text\n"
+"    -V, --version         print version and copyright information\n"
+"\n"
+"See also <http://ccache.samba.org>.\n";
+
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 static char *current_working_dir;
 
@@ -1622,28 +1654,6 @@ static void ccache(int argc, char *argv[])
 	failed();
 }
 
-
-static void usage(void)
-{
-	printf("ccache, a compiler cache. Version %s\n", CCACHE_VERSION);
-	printf("Copyright Andrew Tridgell, 2002\n\n");
-
-	printf("Usage:\n");
-	printf("\tccache [options]\n");
-	printf("\tccache compiler [compile options]\n");
-	printf("\tcompiler [compile options]    (via symbolic link)\n");
-	printf("\nOptions:\n");
-
-	printf("-s, --show-stats         show statistics summary\n");
-	printf("-z, --zero-stats         zero statistics\n");
-	printf("-c, --cleanup            run a cache cleanup\n");
-	printf("-C, --clear              clear the cache completely\n");
-	printf("-F <n>, --max-files=<n>  set maximum number of files in cache (0: no limit)\n");
-	printf("-M <n>, --max-size=<n>   set maximum size of cache (use G, M or K; 0: no limit)\n");
-	printf("-h, --help               this help page\n");
-	printf("-V, --version            print version number\n");
-}
-
 static void check_cache_dir(void)
 {
 	if (!cache_dir) {
@@ -1673,23 +1683,11 @@ static int ccache_main(int argc, char *argv[])
 	while ((c = getopt_long(argc, argv, "hszcCF:M:V", long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'V':
-			printf("ccache version %s\n", CCACHE_VERSION);
-			printf("\n");
-			printf("See http://ccache.samba.org.\n");
-			printf("\n");
-			printf("Copyright (C) Andrew Tridgell 2002-2007\n");
-			printf("Copyright (C) Joel Rosdahl 2009-2010\n");
-			printf("\n");
-			printf("This program is free software; you can");
-			printf(" redistribute it and/or modify it under\nthe");
-			printf(" terms of the GNU General Public License as");
-			printf(" published by the Free Software\nFoundation;");
-			printf(" either version 2 of the License, or (at");
-			printf(" your option) any later\nversion.\n");
+			fputs(VERSION_TEXT, stdout);
 			exit(0);
 
 		case 'h':
-			usage();
+			fputs(USAGE_TEXT, stdout);
 			exit(0);
 
 		case 's':
@@ -1746,7 +1744,7 @@ static int ccache_main(int argc, char *argv[])
 			break;
 
 		default:
-			usage();
+			fputs(USAGE_TEXT, stderr);
 			exit(1);
 		}
 	}
@@ -1795,7 +1793,7 @@ int main(int argc, char *argv[])
 	if (strlen(argv[0]) >= strlen(MYNAME) &&
 	    strcmp(argv[0] + strlen(argv[0]) - strlen(MYNAME), MYNAME) == 0) {
 		if (argc < 2) {
-			usage();
+			fputs(USAGE_TEXT, stderr);
 			exit(1);
 		}
 		/* if the first argument isn't an option, then assume we are
