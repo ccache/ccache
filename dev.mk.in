@@ -1,3 +1,4 @@
+CFLAGS += -Werror
 CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 version = $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
                          $(srcdir)/ccache.h)
