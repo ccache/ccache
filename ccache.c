@@ -61,7 +61,8 @@ static const char USAGE_TEXT[] =
 "    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
 "                          no limit)\n"
 "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
-"                          limit; available suffixes: G, M and K)\n"
+"                          limit; available suffixes: G, M and K; default\n"
+"                          suffix: G)\n"
 "    -s, --show-stats      show statistics summary\n"
 "    -z, --zero-stats      zero statistics counters\n"
 "\n"
@@ -1736,7 +1737,10 @@ static int ccache_main(int argc, char *argv[])
 				if (v == 0) {
 					printf("Unset cache size limit\n");
 				} else {
-					printf("Set cache size limit to %uk\n", (unsigned)v);
+					char *s = format_size(v);
+					printf("Set cache size limit to %s\n",
+					       s);
+					free(s);
 				}
 			} else {
 				printf("Could not set cache size limit.\n");

@@ -102,7 +102,7 @@ void stats_tocache(size_t size);
 void stats_read(const char *stats_file, unsigned counters[STATS_END]);
 int stats_set_limits(long maxfiles, long maxsize);
 size_t value_units(const char *s);
-void display_size(unsigned v);
+char *format_size(size_t v);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
 int unify_hash(struct mdfour *hash, const char *fname);

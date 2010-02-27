@@ -25,7 +25,8 @@ verb(
 -F, --max-files=N     set maximum number of files in cache to N (use 0 for
                       no limit)
 -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no
-                      limit; available suffixes: G, M and K)
+                      limit; available suffixes: G, M and K; default
+                      suffix: G)
 -s, --show-stats      show statistics summary
 -z, --zero-stats      zero statistics counters
 

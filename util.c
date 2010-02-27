@@ -547,16 +547,18 @@ int safe_open(const char *fname)
 	return fd;
 }
 
-/* display a kilobyte unsigned value in M, k or G */
-void display_size(unsigned v)
+/* Format a size as a human-readable string. Caller frees. */
+char *format_size(size_t v)
 {
-	if (v > 1024*1024) {
-		printf("%8.1f Gbytes", v/((double)(1024*1024)));
-	} else if (v > 1024) {
-		printf("%8.1f Mbytes", v/((double)(1024)));
+	char *s;
+	if (v >= 1024*1024) {
+		x_asprintf(&s, "%.1f Gbytes", v/((double)(1024*1024)));
+	} else if (v >= 1024) {
+		x_asprintf(&s, "%.1f Mbytes", v/((double)(1024)));
 	} else {
-		printf("%8u Kbytes", v);
+		x_asprintf(&s, "%.0f Kbytes", (double)v);
 	}
+	return s;
 }
 
 /* return a value in multiples of 1024 give a string that can end

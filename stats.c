@@ -41,11 +41,13 @@ extern char *cache_dir;
 #define FLAG_NOZERO 1 /* don't zero with the -z option */
 #define FLAG_ALWAYS 2 /* always show, even if zero */
 
+static void display_size(size_t v);
+
 /* statistics fields in display order */
 static struct {
 	enum stats stat;
 	char *message;
-	void (*fn)(unsigned );
+	void (*fn)(size_t );
 	unsigned flags;
 } stats_info[] = {
 	{ STATS_CACHEHIT_DIR, "cache hit (direct)             ", NULL, FLAG_ALWAYS },
@@ -74,6 +76,13 @@ static struct {
 	{ STATS_MAXSIZE,      "max cache size                 ", display_size, FLAG_NOZERO },
 	{ STATS_NONE, NULL, NULL, 0 }
 };
+
+static void display_size(size_t v)
+{
+	char *s = format_size(v);
+	printf("%15s", s);
+	free(s);
+}
 
 /* parse a stats file from a buffer - adding to the counters */
 static void parse_stats(unsigned counters[STATS_END], char *buf)
