@@ -35,7 +35,7 @@ extern char *cache_dir;
 
 /* default maximum cache size */
 #ifndef DEFAULT_MAXSIZE
-#define DEFAULT_MAXSIZE (1000*1000)
+#define DEFAULT_MAXSIZE (1024*1024)
 #endif
 
 #define FLAG_NOZERO 1 /* don't zero with the -z option */
