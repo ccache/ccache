@@ -114,6 +114,8 @@ else
     mkdir -p zlib
 fi
 
+AC_C_INLINE
+
 AC_CONFIG_FILES([Makefile dev.mk])
 AC_OUTPUT
 

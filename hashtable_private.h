@@ -29,7 +29,10 @@ hash(struct hashtable *h, void *k);
 
 /*****************************************************************************/
 /* indexFor */
-#define indexFor(tablelength, hashvalue) ((hashvalue) % (tablelength))
+static inline unsigned int
+indexFor(unsigned int tablelength, unsigned int hashvalue) {
+    return (hashvalue % tablelength);
+}
 
 /* Only works if tablelength == 2^N */
 /*static inline unsigned int
