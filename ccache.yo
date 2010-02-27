@@ -3,11 +3,11 @@ manpage(ccache)(1)(April 2002)()()
 manpagename(ccache)(a fast compiler cache)
 manpagesynopsis()
 
-ccache [OPTION]
+ccache [options]
 
-ccache <compiler> [COMPILER OPTIONS]
+ccache compiler [compiler options]
 
-<compiler> [COMPILER OPTIONS]
+compiler [compiler options]          (via symbolic link)
 
 manpagedescription()
 
@@ -20,14 +20,17 @@ manpagesection(OPTIONS SUMMARY)
 Here is a summary of the options to ccache.
 
 verb(
--s, --show-stats        show statistics summary
--z, --zero-stats        zero statistics
--c, --cleanup           run a cache cleanup
--C, --clear             clear the cache completely
--F <n>, --max-files=<n> set maximum number of files in cache (0: no limit)
--M <n>, --max-size=<n>  set maximum size of cache (use G, M or K; 0: no limit)
--h, --help              this help page
--V, --version           print version number
+-c, --cleanup         run a cache cleanup
+-C, --clear           clear the cache completely
+-F, --max-files=N     set maximum number of files in cache to N (use 0 for
+                      no limit)
+-M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no
+                      limit; available suffixes: G, M and K)
+-s, --show-stats      show statistics summary
+-z, --zero-stats      zero statistics counters
+
+-h, --help            print this help text
+-V, --version         print version and copyright information
 )
 
 manpageoptions()
