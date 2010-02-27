@@ -108,7 +108,8 @@ Upgrading notes:
     object files. (Previously, files containing cached standard error output
     were counted as well.) The existing values of the two counters will be
     erroneous at first after the upgrade, but will correct themselves
-    eventually when enough cleanups have been made.
+    eventually when enough cleanups have been made, or when you run "ccache
+    --cleanup".
 
   - The "max file" and "max cache size" settings now specify thresholds for
     object files count and size.
