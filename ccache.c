@@ -1647,7 +1647,7 @@ static void usage(void)
 static void check_cache_dir(void)
 {
 	if (!cache_dir) {
-		fatal("Unable to determine home directory");
+		fatal("Unable to determine cache directory");
 	}
 }
 
@@ -1783,7 +1783,6 @@ int main(int argc, char *argv[])
 	char *p;
 
 	current_working_dir = get_cwd();
-
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
 		const char *home_directory = get_home_directory();
@@ -1791,6 +1790,22 @@ int main(int argc, char *argv[])
 			x_asprintf(&cache_dir, "%s/.ccache", home_directory);
 		}
 	}
+
+	/* check if we are being invoked as "ccache" */
+	if (strlen(argv[0]) >= strlen(MYNAME) &&
+	    strcmp(argv[0] + strlen(argv[0]) - strlen(MYNAME), MYNAME) == 0) {
+		if (argc < 2) {
+			usage();
+			exit(1);
+		}
+		/* if the first argument isn't an option, then assume we are
+		   being passed a compiler name and options */
+		if (argv[1][0] == '-') {
+			return ccache_main(argc, argv);
+		}
+	}
+
+	check_cache_dir();
 
 	temp_dir = getenv("CCACHE_TEMPDIR");
 	if (!temp_dir) {
@@ -1818,21 +1833,6 @@ int main(int argc, char *argv[])
 		mask = strtol(p, NULL, 8);
 		if (errno == 0) {
 			umask(mask);
-		}
-	}
-
-
-	/* check if we are being invoked as "ccache" */
-	if (strlen(argv[0]) >= strlen(MYNAME) &&
-	    strcmp(argv[0] + strlen(argv[0]) - strlen(MYNAME), MYNAME) == 0) {
-		if (argc < 2) {
-			usage();
-			exit(1);
-		}
-		/* if the first argument isn't an option, then assume we are
-		   being passed a compiler name and options */
-		if (argv[1][0] == '-') {
-			return ccache_main(argc, argv);
 		}
 	}
 
