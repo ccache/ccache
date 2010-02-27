@@ -48,7 +48,7 @@ test_failed() {
 randcode() {
     outfile="$1"
     nlines=$2
-    i=0;
+    i=0
     (
     while [ $i -lt $nlines ]; do
         echo "int foo$nlines$i(int x) { return x; }"
@@ -91,6 +91,8 @@ sed_in_place() {
 }
 
 run_suite() {
+    rm -rf $CCACHE_DIR
+
     echo "starting testsuite $1"
     testsuite=$1
 
@@ -103,7 +105,6 @@ run_suite() {
 }
 
 base_tests() {
-    rm -rf $CCACHE_DIR
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat 'files in cache' 0
@@ -386,7 +387,6 @@ nlevels1_suite() {
 }
 
 direct_suite() {
-    rm -rf $CCACHE_DIR
     unset CCACHE_NODIRECT
 
     ##################################################################
@@ -716,8 +716,6 @@ EOF
 }
 
 basedir_suite() {
-    rm -rf $CCACHE_DIR
-
     ##################################################################
     # Create some code to compile.
     mkdir -p dir1/src dir1/include
@@ -854,8 +852,6 @@ EOF
 }
 
 compression_suite() {
-    rm -rf $CCACHE_DIR
-
     ##################################################################
     # Create some code to compile.
     cat <<EOF >test.c
@@ -895,8 +891,6 @@ CCACHE_LOGFILE=$PWD/ccache.log
 export CCACHE_LOGFILE
 CCACHE_NODIRECT=1
 export CCACHE_NODIRECT
-
-mkdir $CCACHE_DIR
 
 # ---------------------------------------
 
