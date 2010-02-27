@@ -67,8 +67,9 @@ Bug fixes:
 
   - Fixed NFS issues.
 
-  - Bail out on profiling options --coverage, -fprofile-arcs,
-    -fprofile-generate, -fprofile-use and -ftest-coverage.
+  - Bail out on too hard compiler options --coverage, -fprofile-arcs,
+    -fprofile-generate, -fprofile-use, -ftest-coverage and -save-temps. Also
+    bail out on "@file" style options.
 
   - -MD/-MMD options without -MT/-MF are now handled correctly.
 

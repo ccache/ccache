@@ -1192,6 +1192,7 @@ static void process_args(int argc, char **argv)
 		    strcmp(argv[i], "-fprofile-generate") == 0 ||
 		    strcmp(argv[i], "-fprofile-use") == 0 ||
 		    strcmp(argv[i], "-ftest-coverage") == 0 ||
+		    strcmp(argv[i], "-save-temps") == 0 ||
 		    strcmp(argv[i], "-x") == 0) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
