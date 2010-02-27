@@ -1779,6 +1779,7 @@ static void setup_uncached_err(void)
 int main(int argc, char *argv[])
 {
 	char *p;
+	char *program_name;
 
 	current_working_dir = get_cwd();
 	cache_dir = getenv("CCACHE_DIR");
@@ -1790,8 +1791,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* check if we are being invoked as "ccache" */
-	if (strlen(argv[0]) >= strlen(MYNAME) &&
-	    strcmp(argv[0] + strlen(argv[0]) - strlen(MYNAME), MYNAME) == 0) {
+	program_name = str_basename(argv[0]);
+	if (strcmp(program_name, MYNAME) == 0) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);
 			exit(1);
@@ -1802,6 +1803,7 @@ int main(int argc, char *argv[])
 			return ccache_main(argc, argv);
 		}
 	}
+	free(program_name);
 
 	check_cache_dir();
 
