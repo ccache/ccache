@@ -41,17 +41,6 @@ normal compiler options apply and you should refer to your compilers
 documentation.
 
 startdit()
-dit(bf(-h, --help)) Print a options summary page
-
-dit(bf(-s, --show-stats)) Print the current statistics summary for the
-cache. The statistics are stored spread across the subdirectories of
-the cache. Using "ccache -s" adds up the statistics across all
-subdirectories and prints the totals.
-
-dit(bf(-z, --zero-stats)) Zero the cache statistics.
-
-dit(bf(-V, --version)) Print the ccache version number
-
 dit(bf(-c, --cleanup)) Clean the cache and re-calculate the cache file
 count and size totals. Normally the -c option should not be necessary
 as ccache keeps the cache below the specified limits at runtime and
@@ -73,6 +62,17 @@ of the object files stored in the cache. You can specify a value in
 gigabytes, megabytes or kilobytes by appending a G, M or K to the
 value. The default is gigabytes. The actual value stored is rounded
 down to the nearest multiple of 16 kilobytes.
+
+dit(bf(-s, --show-stats)) Print the current statistics summary for the
+cache. The statistics are stored spread across the subdirectories of
+the cache. Using "ccache -s" adds up the statistics across all
+subdirectories and prints the totals.
+
+dit(bf(-z, --zero-stats)) Zero the cache statistics.
+
+dit(bf(-h, --help)) Print a options summary page.
+
+dit(bf(-V, --version)) Print version and copyright information.
 
 enddit()
 
