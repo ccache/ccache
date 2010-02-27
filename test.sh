@@ -484,6 +484,22 @@ EOF
     rm -f other.d
 
     ##################################################################
+    # Check calculation of dependency file names.
+    $CCACHE -z >/dev/null
+    mkdir test.dir
+    # Make sure the dependency file is in the cache:
+    $CCACHE $COMPILER -MD -c test.c
+    for ext in .obj "" . .foo.bar; do
+        testname="dependency file calculation from object file 'test$ext'"
+        dep_file=test.dir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
+        rm -f $dep_file
+        $CCACHE $COMPILER -MD -c test.c -o test.dir/test$ext
+        if [ ! -f $dep_file ]; then
+            test_failed "$dep_file missing"
+        fi
+    done
+
+    ##################################################################
     # Check that -Wp,-MD,file.d works.
     testname="-Wp,-MD"
     $CCACHE -z >/dev/null

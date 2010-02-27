@@ -1464,29 +1464,20 @@ static void process_args(int argc, char **argv)
 
 	if (generating_dependencies) {
 		if (!dependency_filename_specified) {
-			char *default_depfile_name = x_strdup(output_obj);
-			char *p = strrchr(default_depfile_name, '.');
+			char *default_depfile_name;
+			char *last_dot, *last_slash;
 
-			if (p) {
-				if (strlen(p) < 2) {
-					stats_update(STATS_ARGS);
-					cc_log("Too short file extension in %s",
-					       default_depfile_name);
-					failed();
-					return;
-				}
-				*p = 0;
+			last_dot = strrchr(output_obj, '.');
+			last_slash = strrchr(output_obj, '/');
+			if (!last_dot
+			    || (last_slash && last_dot < last_slash)) {
+				/* No extension, just add .d. */
+				last_dot = output_obj + strlen(output_obj);
 			}
-			else  {
-				int len = p - default_depfile_name;
-
-				p = x_malloc(len + 3);
-				strncpy(default_depfile_name, p, len - 1);
-				free(default_depfile_name);
-				default_depfile_name = p;
-			}
-
-			strcat(default_depfile_name, ".d");
+			x_asprintf(&default_depfile_name,
+				   "%.*s.d",
+				   (int)(last_dot - output_obj),
+				   output_obj);
 			args_add(stripped_args, "-MF");
 			args_add(stripped_args, default_depfile_name);
 			output_dep = make_relative_path(
