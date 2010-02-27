@@ -1,121 +1,122 @@
-Changes since ccache 2.4
-------------------------
+News for ccache 3.0 (UNRELEASED)
+Changes since ccache 2.4:
 
-New features and improvements:
+  UPGRADING NOTES:
 
-  - ccache now has a "direct mode" where it computes a hash of the source code
-    and compiler arguments without running the preprocessor. By not running the
-    preprocessor, CPU usage is reduced; the runtime is about 0.2-1.0 times that
-    of ccache running in traditional mode. The relative speedup will be higher
-    when I/O is fast (e.g., when files are in the disk cache). The direct mode
-    can be disabled by setting CCACHE_NODIRECT.
+    - The way the hashes are calculated has changed, so you won't get cache
+      hits for compilation results stored by older ccache versions.
 
-  - When hashing the output from the preprocessor, absolute paths are rewritten
-    to relative paths, but only for paths under the directory specified by
-    CCACHE_BASEDIR. Paths specified by -I and similar options get the same
-    treatment. This is done to get cache hits even when compiling with -g and
-    when using absolute include directory paths. Absolute paths in the standard
-    error text will also be more accurate. The default value of CCACHE_BASEDIR
-    is the current working directory. To disable the rewriting, set
-    CCACHE_BASEDIR to the empty string.
+    - The statistics counters "files in cache" and "cache size" now only count
+      object files. (Previously, files containing cached standard error output
+      were counted as well.) The existing values of the two counters will be
+      erroneous at first after the upgrade, but will correct themselves
+      eventually when enough cleanups have been made, or when you run "ccache
+      --cleanup".
 
-  - Object files are now by default stored compressed in the cache. The runtime
-    cost is negligible, and more files will fit in the ccache directory and in
-    the disk cache. CCACHE_NOCOMPRESS can be set to disable object file
-    compression.
+    - The "max file" and "max cache size" settings now specify thresholds for
+      object files count and size.
 
-  - Added CCACHE_COMPILERCHECK option that tells ccache what
-    compiler-identifying information to hash to ensure that results retrieved
-    from the cache are accurate. Possible values are: none (don't hash
-    anything), mtime (hash the compiler's mtime and size) and content (hash the
-    content of the compiler binary). The default is mtime.
+    - Because of the changes mentioned above, you might as well clear the old
+      cache directory with "ccache -C" if you want, unless you plan to keep
+      using an older ccache version.
 
-  - Temporary files are now created in the directory they will end up in. This
-    makes ccache more friendly to Linux's directory layout.
+  NEW FEATURES AND IMPROVEMENTS:
 
-  - Added support for long command-line options.
+    - ccache now has a "direct mode" where it computes a hash of the source
+      code and compiler arguments without running the preprocessor. By not
+      running the preprocessor, CPU usage is reduced; the runtime is about
+      0.2-1.0 times that of ccache running in traditional mode. The relative
+      speedup will be higher when I/O is fast (e.g., when files are in the disk
+      cache). The direct mode can be disabled by setting CCACHE_NODIRECT.
 
-  - A CACHEDIR.TAG file is now created in the cache directory. See
-    <http://www.brynosaurus.com/cachedir/>.
+    - When hashing the output from the preprocessor, absolute paths are
+      rewritten to relative paths, but only for paths under the directory
+      specified by CCACHE_BASEDIR. Paths specified by -I and similar options
+      get the same treatment. This is done to get cache hits even when
+      compiling with -g and when using absolute include directory paths.
+      Absolute paths in the standard error text will also be more accurate. The
+      default value of CCACHE_BASEDIR is the current working directory. To
+      disable the rewriting, set CCACHE_BASEDIR to the empty string.
 
-  - Improved logging.
+    - Object files are now by default stored compressed in the cache. The
+      runtime cost is negligible, and more files will fit in the ccache
+      directory and in the disk cache. CCACHE_NOCOMPRESS can be set to disable
+      object file compression.
 
-  - By default, ccache now puts temporary files in CCACHE_DIR/tmp to avoid
-    cluttering the top directory.
+    - Added CCACHE_COMPILERCHECK option that tells ccache what
+      compiler-identifying information to hash to ensure that results retrieved
+      from the cache are accurate. Possible values are: none (don't hash
+      anything), mtime (hash the compiler's mtime and size) and content (hash
+      the content of the compiler binary). The default is mtime.
 
-  - Improved the test suite and added tests for most of the new functionality.
-    It's now also possible to specify a subset of tests to run.
+    - Temporary files are now created in the directory they will end up in.
+      This makes ccache more friendly to Linux's directory layout.
 
-  - Standard error output from the compiler is now only stored in the cache if
-    it's non-empty.
+    - Added support for long command-line options.
 
-  - If the compiler produces no object file or an empty object file, but gives
-    a zero exit status (could be due to a file system problem, a buggy program
-    specified by CCACHE_PREFIX, etc.), ccache copes with it properly.
+    - A CACHEDIR.TAG file is now created in the cache directory. See
+      <http://www.brynosaurus.com/cachedir/>.
 
-  - Added installcheck and distcheck make targets.
+    - Improved logging.
 
-  - Clarified cache size limit options' semantics
+    - By default, ccache now puts temporary files in CCACHE_DIR/tmp to avoid
+      cluttering the top directory.
 
-  - Improved display of cache max size values.
+    - Improved the test suite and added tests for most of the new
+      functionality. It's now also possible to specify a subset of tests to
+      run.
 
-Bug fixes:
+    - Standard error output from the compiler is now only stored in the cache
+      if it's non-empty.
 
-  - Fixed build on FreeBSD.
+    - If the compiler produces no object file or an empty object file, but
+      gives a zero exit status (could be due to a file system problem, a buggy
+      program specified by CCACHE_PREFIX, etc.), ccache copes with it properly.
 
-  - Improved detection of home directory.
+    - Added installcheck and distcheck make targets.
 
-  - User-defined CPPFLAGS and LDFLAGS are now respected in the Makefile.
+    - Clarified cache size limit options' semantics
 
-  - Fixed NFS issues.
+    - Improved display of cache max size values.
 
-  - Bail out on too hard compiler options --coverage, -fprofile-arcs,
-    -fprofile-generate, -fprofile-use, -ftest-coverage and -save-temps. Also
-    bail out on "@file" style options.
+  BUG FIXES:
 
-  - -MD/-MMD options without -MT/-MF are now handled correctly.
+    - Fixed build on FreeBSD.
 
-  - Added support for -Wp,-MD and -Wp,-MMD options.
+    - Improved detection of home directory.
 
-  - Corrected LRU cleanup handling of object files.
+    - User-defined CPPFLAGS and LDFLAGS are now respected in the Makefile.
 
-  - utimes() is now used instead of utime() when available.
+    - Fixed NFS issues.
 
-  - Non-writable cache directories are now handled gracefully.
+    - Bail out on too hard compiler options --coverage, -fprofile-arcs,
+      -fprofile-generate, -fprofile-use, -ftest-coverage and -save-temps. Also
+      bail out on "@file" style options.
 
-  - Corrected documentation about sharing the cache directory.
+    - -MD/-MMD options without -MT/-MF are now handled correctly.
 
-  - Fixed compilation warnings from GCC 4.3.
+    - Added support for -Wp,-MD and -Wp,-MMD options.
 
-  - The command specified by CCACHE_PREFIX is no longer part of the hash.
+    - Corrected LRU cleanup handling of object files.
 
-  - Fixed bad memory access spotted by Valgrind.
+    - utimes() is now used instead of utime() when available.
 
-  - Fixed a bug in x_realloc.
+    - Non-writable cache directories are now handled gracefully.
 
-  - Removed deprecated constructions from ccache.yo.
+    - Corrected documentation about sharing the cache directory.
 
-  - Freed memory is no longer referenced when compiling a .i/.ii file and
-    falling back to running the real compiler.
+    - Fixed compilation warnings from GCC 4.3.
 
-  - The test suite is now immune to external values of the CCACHE_* environment
-    variables.
+    - The command specified by CCACHE_PREFIX is no longer part of the hash.
 
-Upgrading notes:
+    - Fixed bad memory access spotted by Valgrind.
 
-  - The way the hashes are calculated has changed, so you won't get cache hits
-    for compilation results stored by older ccache versions.
+    - Fixed a bug in x_realloc.
 
-  - The statistics counters "files in cache" and "cache size" now only count
-    object files. (Previously, files containing cached standard error output
-    were counted as well.) The existing values of the two counters will be
-    erroneous at first after the upgrade, but will correct themselves
-    eventually when enough cleanups have been made, or when you run "ccache
-    --cleanup".
+    - Removed deprecated constructions from ccache.yo.
 
-  - The "max file" and "max cache size" settings now specify thresholds for
-    object files count and size.
+    - Freed memory is no longer referenced when compiling a .i/.ii file and
+      falling back to running the real compiler.
 
-  - Because of the changes mentioned above, you might as well clear the old
-    cache directory with "ccache -C" if you want, unless you plan to keep using
-    an older ccache version.
+    - The test suite is now immune to external values of the CCACHE_*
+      environment variables.
