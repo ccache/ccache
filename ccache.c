@@ -81,7 +81,7 @@ static char *current_working_dir;
 char *cache_dir = NULL;
 
 /* the directory for temporary files */
-static char *temp_dir = NULL;
+static char *temp_dir;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
