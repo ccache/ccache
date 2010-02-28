@@ -1,7 +1,7 @@
 News for ccache 3.0 (UNRELEASED)
 Changes since ccache 2.4:
 
-  UPGRADING NOTES:
+  UPGRADE NOTES:
 
     - The way the hashes are calculated has changed, so you won't get cache
       hits for compilation results stored by older ccache versions.
@@ -43,11 +43,11 @@ Changes since ccache 2.4:
       directory and in the disk cache. CCACHE_NOCOMPRESS can be set to disable
       object file compression.
 
-    - Added CCACHE_COMPILERCHECK option that tells ccache what
-      compiler-identifying information to hash to ensure that results retrieved
-      from the cache are accurate. Possible values are: none (don't hash
-      anything), mtime (hash the compiler's mtime and size) and content (hash
-      the content of the compiler binary). The default is mtime.
+    - A CCACHE_COMPILERCHECK option has been added. This option tells ccache
+      what compiler-identifying information to hash to ensure that results
+      retrieved from the cache are accurate. Possible values are: none (don't
+      hash anything), mtime (hash the compiler's mtime and size) and content
+      (hash the content of the compiler binary). The default is mtime.
 
     - Temporary files are now created in the directory they will end up in.
       This makes ccache more friendly to Linux's directory layout.
@@ -57,7 +57,8 @@ Changes since ccache 2.4:
     - A CACHEDIR.TAG file is now created in the cache directory. See
       <http://www.brynosaurus.com/cachedir/>.
 
-    - Improved logging.
+    - Messages printed to the debug log (specified by CCACHE_LOGFILE) have been
+      improved.
 
     - By default, ccache now puts temporary files in CCACHE_DIR/tmp to avoid
       cluttering the top directory.
@@ -75,7 +76,7 @@ Changes since ccache 2.4:
 
     - Added installcheck and distcheck make targets.
 
-    - Clarified cache size limit options' semantics
+    - Clarified cache size limit options' semantics.
 
     - Improved display of cache max size values.
 
