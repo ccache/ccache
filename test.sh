@@ -278,16 +278,6 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 10
     checkstat 'cache miss' 38
 
-    testname="direct .ii file"
-    mv test1.i test1.ii
-    $CCACHE_COMPILE -c test1.ii
-    checkstat 'cache hit (preprocessed)' 10
-    checkstat 'cache miss' 39
-
-    $CCACHE_COMPILE -c test1.ii
-    checkstat 'cache hit (preprocessed)' 11
-    checkstat 'cache miss' 39
-
     testname="no object file"
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;
