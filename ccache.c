@@ -655,7 +655,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 	   limit the basename to 10
 	   characters in order to cope with filesystem with small
 	   maximum filename length limits */
-	input_base = str_basename(input_file);
+	input_base = basename(input_file);
 	tmp = strchr(input_base, '.');
 	if (tmp != NULL) {
 		*tmp = 0;
@@ -843,7 +843,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	/* also include the hash of the compiler name - as some compilers
 	   use hard links and behave differently depending on the real name */
 	if (st.st_nlink > 1) {
-		hash_string(&hash, str_basename(args->argv[0]));
+		hash_string(&hash, basename(args->argv[0]));
 	}
 
 	compilercheck = getenv("CCACHE_COMPILERCHECK");
@@ -1096,7 +1096,7 @@ static void find_compiler(int argc, char **argv)
 
 	orig_args = args_init(argc, argv);
 
-	base = str_basename(argv[0]);
+	base = basename(argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
 	if (strcmp(base, MYNAME) == 0) {
@@ -1106,7 +1106,7 @@ static void find_compiler(int argc, char **argv)
 			/* a full path was given */
 			return;
 		}
-		base = str_basename(argv[1]);
+		base = basename(argv[1]);
 	}
 
 	/* support user override of the compiler */
@@ -1781,7 +1781,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* check if we are being invoked as "ccache" */
-	program_name = str_basename(argv[0]);
+	program_name = basename(argv[0]);
 	if (strcmp(program_name, MYNAME) == 0) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);

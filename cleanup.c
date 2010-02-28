@@ -93,7 +93,7 @@ static void traverse_fn(const char *fname, struct stat *st)
 
 	if (!S_ISREG(st->st_mode)) return;
 
-	p = str_basename(fname);
+	p = basename(fname);
 	if (strcmp(p, "stats") == 0) {
 		free(p);
 		return;
@@ -241,7 +241,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 
 	if (!S_ISREG(st->st_mode)) return;
 
-	p = str_basename(fname);
+	p = basename(fname);
 	if (strcmp(p, "stats") == 0) {
 		free(p);
 		return;

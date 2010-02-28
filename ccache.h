@@ -80,7 +80,7 @@ char *x_strndup(const char *s, size_t n);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
-char *str_basename(const char *s);
+char *basename(const char *s);
 char *dirname(char *s);
 char *remove_extension(const char *path);
 int read_lock_fd(int fd);
