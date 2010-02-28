@@ -260,7 +260,7 @@ static void failed(void)
 	exit(1);
 }
 
-char *format_file_hash(struct file_hash *file_hash)
+static char *format_file_hash(struct file_hash *file_hash)
 {
 	char *ret;
 	int i;
