@@ -150,7 +150,7 @@ static void sort_and_clean(void)
 		}
 
 		if (unlink(files[i]->fname) != 0 && errno != ENOENT) {
-			fprintf(stderr, "unlink %s - %s\n",
+			fprintf(stderr, "ccache: failed to unlink %s (%s)\n",
 				files[i]->fname, strerror(errno));
 			continue;
 		}
