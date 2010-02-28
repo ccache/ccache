@@ -5,13 +5,12 @@ version = $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
 dist_dir = ccache-$(version)
 dist_archive_tar_bz2 = ccache-$(version).tar.bz2
 dist_archive_tar_gz = ccache-$(version).tar.gz
-files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
+files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
 
 source_dist_files = \
     $(sources) $(headers) zlib/*.c zlib/*.h \
     config.h.in configure configure-dev dev.mk.in install-sh Makefile.in \
-    test.sh COPYING INSTALL NEWS README \
-    .deps/*
+    test.sh COPYING INSTALL NEWS README
 built_dist_files = ccache.1
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
