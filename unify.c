@@ -261,11 +261,11 @@ int unify_hash(struct mdfour *hash, const char *fname)
            lines in preprocessor output. I have seen lines of over
            100k in length, so this is well worth it */
 	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
 	if (map == (char *)-1) {
 		cc_log("Failed to mmap %s", fname);
 		return -1;
 	}
-	close(fd);
 
 	/* pass it through the unifier */
 	unify(hash, (unsigned char *)map, st.st_size);

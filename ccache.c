@@ -348,6 +348,7 @@ static void remember_include_file(char *path, size_t path_len)
 		goto failure;
 	}
 	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
 	if (data == (char *)-1) {
 		cc_log("Failed to mmap %s", path);
 		goto failure;
@@ -422,11 +423,11 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 	size = st.st_size;
 	data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
 	if (data == (void *)-1) {
 		cc_log("Failed to mmap %s", path);
 		return 0;
 	}
-	close(fd);
 
 	if (enable_direct) {
 		included_files = create_hashtable(1000, hash_from_string,
