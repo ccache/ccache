@@ -497,6 +497,29 @@ char *dirname(char *s)
 	return s;
 }
 
+/*
+ * Return a string containing the given path without the filename extension.
+ * Caller frees.
+ */
+char *remove_extension(const char *path)
+{
+	char *ret = x_strdup(path);
+	size_t len = strlen(path);
+	char *p;
+
+	for (p = &ret[len - 1]; p >= ret; --p) {
+		if (*p == '.') {
+			*p = '\0';
+			break;
+		}
+		if (*p == '/') {
+			break;
+		}
+	}
+
+	return ret;
+}
+
 static int lock_fd(int fd, short type)
 {
 	struct flock fl;

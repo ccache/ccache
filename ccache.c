@@ -1461,19 +1461,11 @@ static void process_args(int argc, char **argv)
 	if (generating_dependencies) {
 		if (!dependency_filename_specified) {
 			char *default_depfile_name;
-			char *last_dot, *last_slash;
+			char *base_name;
 
-			last_dot = strrchr(output_obj, '.');
-			last_slash = strrchr(output_obj, '/');
-			if (!last_dot
-			    || (last_slash && last_dot < last_slash)) {
-				/* No extension, just add .d. */
-				last_dot = output_obj + strlen(output_obj);
-			}
-			x_asprintf(&default_depfile_name,
-				   "%.*s.d",
-				   (int)(last_dot - output_obj),
-				   output_obj);
+			base_name = remove_extension(output_obj);
+			x_asprintf(&default_depfile_name, "%s.d", base_name);
+			free(base_name);
 			args_add(stripped_args, "-MF");
 			args_add(stripped_args, default_depfile_name);
 			output_dep = make_relative_path(

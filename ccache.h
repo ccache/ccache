@@ -82,6 +82,7 @@ void *x_malloc(size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *str_basename(const char *s);
 char *dirname(char *s);
+char *remove_extension(const char *path);
 int read_lock_fd(int fd);
 int write_lock_fd(int fd);
 size_t file_size(struct stat *st);
