@@ -173,6 +173,9 @@ static int enable_unify;
 /* should we use the direct mode? */
 static int enable_direct = 1;
 
+/* number of levels (1 <= nlevels <= 8) */
+static int nlevels = 2;
+
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
 */
@@ -275,8 +278,7 @@ char *format_file_hash(struct file_hash *file_hash)
  * Transform a name to a full path into the cache directory, creating needed
  * sublevels if needed. Caller frees.
  */
-static char *get_path_in_cache(const char *name, const char *suffix,
-			       int nlevels)
+static char *get_path_in_cache(const char *name, const char *suffix)
 {
 	int i;
 	char *path;
@@ -749,9 +751,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 static int find_hash(ARGS *args, enum findhash_call_mode mode)
 {
 	int i;
-	char *s;
 	struct stat st;
-	int nlevels = 2;
 	struct mdfour hash;
 	char *object_name;
 	char *manifest_name;
@@ -765,12 +765,6 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	case FINDHASH_CPP_MODE:
 		cc_log("Running preprocessor");
 		break;
-	}
-
-	if ((s = getenv("CCACHE_NLEVELS"))) {
-		nlevels = atoi(s);
-		if (nlevels < 1) nlevels = 1;
-		if (nlevels > 8) nlevels = 8;
 	}
 
 	hash_start(&hash);
@@ -881,8 +875,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 			failed();
 		}
 		manifest_name = hash_result(&hash);
-		manifest_path = get_path_in_cache(manifest_name, ".manifest",
-						  nlevels);
+		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s",
 		       manifest_path);
@@ -905,9 +898,9 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	}
 
 	object_name = format_file_hash(object_hash);
-	cached_obj = get_path_in_cache(object_name, ".o", nlevels);
-	cached_stderr = get_path_in_cache(object_name, ".stderr", nlevels);
-	cached_dep = get_path_in_cache(object_name, ".d", nlevels);
+	cached_obj = get_path_in_cache(object_name, ".o");
+	cached_stderr = get_path_in_cache(object_name, ".stderr");
+	cached_dep = get_path_in_cache(object_name, ".d");
 	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
 	free(object_name);
 
@@ -1512,6 +1505,7 @@ static void ccache(int argc, char *argv[])
 	struct tm *tm;
 	int put_object_in_manifest = 0;
 	struct file_hash *object_hash_from_manifest = NULL;
+	char *s;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -1552,6 +1546,12 @@ static void ccache(int argc, char *argv[])
 	if (getenv("CCACHE_NODIRECT") || enable_unify) {
 		cc_log("Direct mode disabled");
 		enable_direct = 0;
+	}
+
+	if ((s = getenv("CCACHE_NLEVELS"))) {
+		nlevels = atoi(s);
+		if (nlevels < 1) nlevels = 1;
+		if (nlevels > 8) nlevels = 8;
 	}
 
 	/* process argument list, returning a new set of arguments for
