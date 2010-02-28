@@ -116,6 +116,25 @@ fi
 
 AC_C_INLINE
 
+dnl Check for "extern inline".
+AC_CACHE_CHECK(
+    for extern inline,
+    ac_cv_c_extern_inline,
+    [
+    ac_cv_c_extern_inline=no
+    AC_TRY_COMPILE(
+        [
+        extern $ac_cv_c_inline double foo(double x);
+        extern $ac_cv_c_inline double foo(double x) { return x+1.0; };
+        double foo (double x) { return x + 1.0; };
+        ],
+        [foo(1.0)],
+        [ac_cv_c_extern_inline="yes"])])
+if test "$ac_cv_c_extern_inline" != no ; then
+    AC_DEFINE(HAVE_EXTERN_INLINE, 1,
+              Define to 1 if your compiler supports extern inline)
+fi
+
 AC_CONFIG_FILES([Makefile dev.mk])
 AC_OUTPUT
 
