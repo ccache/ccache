@@ -693,7 +693,6 @@ const char *get_home_directory(void)
 		}
 	}
 #endif
-	cc_log("Unable to determine home directory");
 	return NULL;
 }
 
