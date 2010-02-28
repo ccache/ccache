@@ -68,4 +68,7 @@ distclean: clean
 installcheck:
 	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
 
+.c.o:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
 @include_dev_mk@
