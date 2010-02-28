@@ -1662,7 +1662,7 @@ static int ccache_main(int argc, char *argv[])
 	int c;
 	size_t v;
 
-	static struct option long_options[] = {
+	static const struct option long_options[] = {
 		{"show-stats", no_argument,       0, 's'},
 		{"zero-stats", no_argument,       0, 'z'},
 		{"cleanup",    no_argument,       0, 'c'},
