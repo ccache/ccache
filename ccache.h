@@ -1,7 +1,7 @@
 #ifndef CCACHE_H
 #define CCACHE_H
 
-#define CCACHE_VERSION "3.0pre0"
+#define CCACHE_VERSION "3.0pre1"
 
 #include "config.h"
 #include "mdfour.h"
