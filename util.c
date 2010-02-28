@@ -677,8 +677,8 @@ int create_empty_file(const char *fname)
 }
 
 /*
-  return current users home directory or die
-*/
+ * Return current user's home directory, or NULL if it can't be determined.
+ */
 const char *get_home_directory(void)
 {
 	const char *p = getenv("HOME");
