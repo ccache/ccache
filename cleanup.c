@@ -39,7 +39,7 @@
 static struct files {
 	char *fname;
 	time_t mtime;
-	size_t size;
+	size_t size; /* In KiB. */
 } **files;
 static unsigned allocated;
 static unsigned num_files;
@@ -128,11 +128,40 @@ static void traverse_fn(const char *fname, struct stat *st)
 	num_files++;
 }
 
+static void delete_file(const char *path, size_t size)
+{
+	if (unlink(path) == 0) {
+		if (is_object_file(path)) {
+			total_object_files -= 1;
+			total_object_size -= size;
+		}
+	} else if (errno != ENOENT) {
+		fprintf(stderr, "ccache: failed to unlink %s (%s)\n",
+			path, strerror(errno));
+	}
+}
+
+static void delete_sibling_file(const char *base, const char *extension)
+{
+	struct stat st;
+	char *path;
+
+	x_asprintf(&path, "%s%s", base, extension);
+	if (lstat(path, &st) == 0) {
+		delete_file(path, file_size(&st) / 1024);
+	} else if (errno != ENOENT) {
+		fprintf(stderr, "ccache: failed to stat %s (%s)\n",
+			path, strerror(errno));
+	}
+	free(path);
+}
+
 /* sort the files we've found and delete the oldest ones until we are
    below the thresholds */
 static void sort_and_clean(void)
 {
 	unsigned i;
+	const char *ext;
 
 	if (num_files > 1) {
 		/* sort in ascending data order */
@@ -149,28 +178,31 @@ static void sort_and_clean(void)
 			break;
 		}
 
-		if (unlink(files[i]->fname) != 0 && errno != ENOENT) {
-			fprintf(stderr, "ccache: failed to unlink %s (%s)\n",
-				files[i]->fname, strerror(errno));
-			continue;
-		}
+		delete_file(files[i]->fname, files[i]->size);
 
-		if (is_object_file(files[i]->fname)) {
-			char *path;
-
-			total_object_files -= 1;
-			total_object_size -= files[i]->size;
-
+		ext = get_extension(files[i]->fname);
+		if (strcmp(ext, ".manifest") == 0) {
+			/* Nothing more to do. */
+		} else {
 			/*
-			 * If we have deleted an object file, we should delete
-			 * any .stderr and .d file as well.
+			 * Make sure that any sibling files are deleted as
+			 * well.
 			 */
-			x_asprintf(&path, "%s.stderr", files[i]->fname);
-			unlink(path);
-			free(path);
-			x_asprintf(&path, "%s.d", files[i]->fname);
-			unlink(path);
-			free(path);
+			char *base = remove_extension(files[i]->fname);
+			if (strcmp(ext, "") != 0) {
+				/* Object file from ccache 2.4. */
+				delete_sibling_file(base, "");
+			}
+			if (strcmp(ext, ".d") != 0) {
+				delete_sibling_file(base, ".d");
+			}
+			if (strcmp(ext, ".o") != 0) {
+				delete_sibling_file(base, ".o");
+			}
+			if (strcmp(ext, ".stderr") != 0) {
+				delete_sibling_file(base, ".stderr");
+			}
+			free(base);
 		}
 	}
 }
@@ -179,6 +211,8 @@ static void sort_and_clean(void)
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 {
 	unsigned i;
+
+	cc_log("Cleaning up cache directory %s", dir);
 
 	object_size_threshold = maxsize * LIMIT_MULTIPLE;
 	object_files_threshold = maxfiles * LIMIT_MULTIPLE;
