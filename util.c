@@ -498,26 +498,32 @@ char *dirname(char *s)
 }
 
 /*
- * Return a string containing the given path without the filename extension.
- * Caller frees.
+ * Return the file extension of a path as a pointer into path. If path has no
+ * file extension, the empty string is returned.
  */
-char *remove_extension(const char *path)
+const char *get_extension(const char *path)
 {
-	char *ret = x_strdup(path);
 	size_t len = strlen(path);
-	char *p;
+	const char *p;
 
-	for (p = &ret[len - 1]; p >= ret; --p) {
+	for (p = &path[len - 1]; p >= path; --p) {
 		if (*p == '.') {
-			*p = '\0';
-			break;
+			return p;
 		}
 		if (*p == '/') {
 			break;
 		}
 	}
+	return &path[len];
+}
 
-	return ret;
+/*
+ * Return a string containing the given path without the filename extension.
+ * Caller frees.
+ */
+char *remove_extension(const char *path)
+{
+	return x_strndup(path, strlen(path) - strlen(get_extension(path)));
 }
 
 static int lock_fd(int fd, short type)
