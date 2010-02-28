@@ -1499,13 +1499,12 @@ static void process_args(int argc, char **argv)
 /* the main ccache driver function */
 static void ccache(int argc, char *argv[])
 {
-	char *prefix;
 	char now[64];
 	time_t t;
 	struct tm *tm;
 	int put_object_in_manifest = 0;
 	struct file_hash *object_hash_from_manifest = NULL;
-	char *s;
+	char *env;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -1548,8 +1547,8 @@ static void ccache(int argc, char *argv[])
 		enable_direct = 0;
 	}
 
-	if ((s = getenv("CCACHE_NLEVELS"))) {
-		nlevels = atoi(s);
+	if ((env = getenv("CCACHE_NLEVELS"))) {
+		nlevels = atoi(env);
 		if (nlevels < 1) nlevels = 1;
 		if (nlevels > 8) nlevels = 8;
 	}
@@ -1627,14 +1626,14 @@ static void ccache(int argc, char *argv[])
 		failed();
 	}
 
-	prefix = getenv("CCACHE_PREFIX");
-	if (prefix) {
-		char *p = find_executable(prefix, MYNAME);
+	env = getenv("CCACHE_PREFIX");
+	if (env) {
+		char *p = find_executable(env, MYNAME);
 		if (!p) {
-			perror(prefix);
+			perror(env);
 			exit(1);
 		}
-		cc_log("Using command-line prefix %s", prefix);
+		cc_log("Using command-line prefix %s", env);
 		args_add_prefix(stripped_args, p);
 	}
 
