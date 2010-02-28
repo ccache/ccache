@@ -25,6 +25,10 @@ else
     COMPILER=cc
 fi
 
+if [ "x$PWD" = x ]; then
+    PWD=`pwd`
+fi
+
 if [ -z "$CCACHE" ]; then
     CCACHE=$PWD/ccache
 fi
