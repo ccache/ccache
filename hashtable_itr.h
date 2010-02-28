@@ -29,29 +29,29 @@ hashtable_iterator(struct hashtable *h);
  * - return the value of the (key,value) pair at the current position */
 
 #ifdef HAVE_EXTERN_INLINE
-extern inline
-#else
-static
-#endif
-void *
+extern inline void *
 hashtable_iterator_key(struct hashtable_itr *i)
 {
     return i->e->k;
 }
+#else
+void *
+hashtable_iterator_key(struct hashtable_itr *i);
+#endif
 
 /*****************************************************************************/
 /* value - return the value of the (key,value) pair at the current position */
 
 #ifdef HAVE_EXTERN_INLINE
-extern inline
-#else
-static
-#endif
-void *
+extern inline void *
 hashtable_iterator_value(struct hashtable_itr *i)
 {
     return i->e->v;
 }
+#else
+void *
+hashtable_iterator_value(struct hashtable_itr *i);
+#endif
 
 /*****************************************************************************/
 /* advance - advance the iterator to the next element
