@@ -1,6 +1,6 @@
 Summary: Compiler Cache
 Name: ccache
-Version: 2.3
+Version: X
 Release: 1
 Group: Development/Languages
 License: GPL
