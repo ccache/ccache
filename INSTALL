@@ -59,5 +59,10 @@ In addition to the prerequisites mentioned above, you also need:
   - asciidoc (http://www.methods.co.nz/asciidoc/) to build the documentation.
   - autoconf (http://www.gnu.org/software/autoconf/)
 
+To debug and run the performance test suite you'll also need:
+
+  - perl (http://www.perl.org/)
+  - python (http://www.python.org/)
+
 Run "./autogen.sh" and then follow the steps mentioned under INSTALLATION
 above.
