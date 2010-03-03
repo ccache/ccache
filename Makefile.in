@@ -54,11 +54,11 @@ clean:
 	rm -f $(files_to_clean)
 
 .PHONY: perf
-perf: perf.sh
+perf:
 	$(srcdir)/perf.sh
 
 .PHONY: test
-test: test.sh
+test:
 	CC='$(CC)' $(srcdir)/test.sh
 
 .PHONY: check
