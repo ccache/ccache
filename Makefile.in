@@ -55,7 +55,7 @@ clean:
 
 .PHONY: perf
 perf: perf.sh
-	CC='$(CC)' $(srcdir)/perf.sh
+	$(srcdir)/perf.sh
 
 .PHONY: test
 test: test.sh
