@@ -53,6 +53,10 @@ install: all
 clean:
 	rm -f $(files_to_clean)
 
+.PHONY: perf
+perf: perf.sh
+	CC='$(CC)' $(srcdir)/perf.sh
+
 .PHONY: test
 test: test.sh
 	CC='$(CC)' $(srcdir)/test.sh
