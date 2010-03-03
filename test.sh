@@ -886,6 +886,63 @@ EOF
     checkstat 'cache miss' 1
 }
 
+readonly_suite() {
+    ##################################################################
+    # Create some code to compile.
+    echo "int test;" >test.c
+    echo "int test2;" >test2.c
+
+    # Cache a compilation.
+    $CCACHE $COMPILER -c test.c -o test.o
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    # Make the cache readonly
+    # Check that readonly mode finds the result.
+    testname="cache hit"
+    rm -f test.o
+    chmod -R a-w $CCACHE_DIR
+    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp CCACHE_PREFIX=false $CCACHE $COMPILER -c test.c -o test.o
+    status=$?
+    chmod -R a+w $CCACHE_DIR
+    if [ $status -ne 0 ]; then
+        test_failed "failure when compiling test.c readonly"
+    fi
+    if [ ! -f test.o ]; then
+        test_failed "test.o missing"
+    fi
+
+    # Check that readonly mode doesn't try to store new results.
+    testname="cache miss"
+    files_before=`find $CCACHE_DIR -type f | wc -l`
+    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE $COMPILER -c test2.c -o test2.o
+    if [ $? -ne 0 ]; then
+        test_failed "failure when compiling test2.c readonly"
+    fi
+    if [ ! -f test2.o ]; then
+        test_failed "test2.o missing"
+    fi
+    files_after=`find $CCACHE_DIR -type f | wc -l`
+    if [ $files_before -ne $files_after ]; then
+        test_failed "readonly mode stored files in the cache"
+    fi
+
+    # Chech that readonly mode and direct mode works.
+    unset CCACHE_NODIRECT
+    files_before=`find $CCACHE_DIR -type f | wc -l`
+    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE $COMPILER -c test.c -o test.o
+    export CCACHE_NODIRECT=1
+    if [ $? -ne 0 ]; then
+        test_failed "failure when compiling test2.c readonly"
+    fi
+    files_after=`find $CCACHE_DIR -type f | wc -l`
+    if [ $files_before -ne $files_after ]; then
+        test_failed "readonly mode + direct mode stored files in the cache"
+    fi
+
+    ##################################################################
+}
+
 ######################################################################
 # main program
 
@@ -913,6 +970,7 @@ nlevels1
 direct
 basedir
 compression
+readonly
 "
 
 if [ -z "$suites" ]; then

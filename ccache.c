@@ -1057,7 +1057,9 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* Create or update the manifest file. */
-	if (put_object_in_manifest && included_files) {
+	if (put_object_in_manifest
+	    && included_files
+	    && !getenv("CCACHE_READONLY")) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {
 			cc_log("Added object file hash to %s",
 				manifest_path);
