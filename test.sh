@@ -284,7 +284,6 @@ int test_no_obj;
 EOF
     cat <<'EOF' >prefix-remove.sh
 #!/bin/sh
-echo "$*" >>/tmp/foo
 "$@"
 [ x$3 = x-o ] && rm $4
 EOF
