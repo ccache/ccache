@@ -98,6 +98,9 @@ Changes since ccache 2.4:
 
     - Added support for -Wp,-MD and -Wp,-MMD options.
 
+    - Debug information containing line numbers of predefined and command-line
+      macros (enabled with the compiler option -g3) will now be correct.
+
     - Corrected LRU cleanup handling of object files.
 
     - utimes() is now used instead of utime() when available.

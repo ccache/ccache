@@ -1248,6 +1248,13 @@ static void process_args(int argc, char **argv)
 			if (strcmp(argv[i], "-g0") != 0) {
 				enable_unify = 0;
 			}
+			if (strcmp(argv[i], "-g3") == 0) {
+				/*
+				 * Fix for bug 7190 ("commandline macros (-D)
+				 * have non-zero lineno when using -g3").
+				 */
+				compile_preprocessed_source_code = 0;
+			}
 			continue;
 		}
 
