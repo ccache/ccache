@@ -718,6 +718,20 @@ EOF
     checkstat 'cache miss' 2
 
     ##################################################################
+    # Check that it's possible to compile and cache an empty source code file.
+    testname="empty source file"
+    $CCACHE -Cz >/dev/null
+    cp /dev/null empty.c
+    $CCACHE_COMPILE -c empty.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c empty.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    ##################################################################
     # Reset things.
     CCACHE_NODIRECT=1
     export CCACHE_NODIRECT

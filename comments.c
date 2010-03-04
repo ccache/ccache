@@ -128,6 +128,10 @@ int hash_file_ignoring_comments(struct mdfour *hash, const char *path)
 		close(fd);
 		return 0;
 	}
+	if (st.st_size == 0) {
+		close(fd);
+		return 1;
+	}
 	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	close(fd);
 	if (data == (void *)-1) {
