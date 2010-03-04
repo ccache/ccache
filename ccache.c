@@ -176,6 +176,12 @@ static int enable_direct = 1;
 /* number of levels (1 <= nlevels <= 8) */
 static int nlevels = 2;
 
+/*
+ * Whether we should use the optimization of passing the already existing
+ * preprocessed source code to the compiler.
+ */
+static int compile_preprocessed_source_code;
+
 /* a list of supported file extensions, and the equivalent
    extension for code that has been through the pre-processor
 */
@@ -501,10 +507,10 @@ static void to_cache(ARGS *args)
 	 * unsetenv() is on BSD and Linux but not portable. */
 	putenv("DEPENDENCIES_OUTPUT");
 
-	if (getenv("CCACHE_CPP2")) {
-		args_add(args, input_file);
-	} else {
+	if (compile_preprocessed_source_code) {
 		args_add(args, i_tmpfile);
+	} else {
+		args_add(args, input_file);
 	}
 
 	cc_log("Running real compiler");
@@ -731,10 +737,12 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 
 	i_tmpfile = path_stdout;
 
-	if (!getenv("CCACHE_CPP2")) {
-		/* if we are using the CPP trick then we need to remember this
-		   stderr stderr data and output it just before the main stderr
-		   from the compiler pass */
+	if (compile_preprocessed_source_code) {
+		/*
+		 * If we are using the CPP trick, we need to remember this
+		 * stderr data and output it just before the main stderr from
+		 * the compiler pass.
+		 */
 		cpp_stderr = path_stderr;
 	} else {
 		unlink(path_stderr);
@@ -1815,6 +1823,8 @@ int main(int argc, char *argv[])
 	} else {
 		base_dir = get_cwd();
 	}
+
+	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();
 
