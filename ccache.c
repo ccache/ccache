@@ -1789,6 +1789,17 @@ int main(int argc, char *argv[])
 	char *p;
 	char *program_name;
 
+	/* the user might have set CCACHE_UMASK */
+	p = getenv("CCACHE_UMASK");
+	if (p) {
+		mode_t mask;
+		errno = 0;
+		mask = strtol(p, NULL, 8);
+		if (errno == 0) {
+			umask(mask);
+		}
+	}
+
 	current_working_dir = get_cwd();
 	cache_dir = getenv("CCACHE_DIR");
 	if (!cache_dir) {
@@ -1834,17 +1845,6 @@ int main(int argc, char *argv[])
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();
-
-	/* the user might have set CCACHE_UMASK */
-	p = getenv("CCACHE_UMASK");
-	if (p) {
-		mode_t mask;
-		errno = 0;
-		mask = strtol(p, NULL, 8);
-		if (errno == 0) {
-			umask(mask);
-		}
-	}
 
 	/* make sure the cache dir exists */
 	if (create_dir(cache_dir) != 0) {
