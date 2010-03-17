@@ -1,4 +1,4 @@
-News for ccache 3.0pre0 (2010-02-28)
+News for ccache 3.0pre1 (unreleased)
 Changes since ccache 2.4:
 
   UPGRADE NOTES:
@@ -79,6 +79,9 @@ Changes since ccache 2.4:
     - Clarified cache size limit options' semantics.
 
     - Improved display of cache max size values.
+
+    - For debugging purposes, the variable CCACHE_VERBOSE may now be set to
+      make ccache print executed commands to standard output.
 
   BUG FIXES:
 

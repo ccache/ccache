@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -43,6 +44,10 @@ int execute(char **argv,
 
 	if (pid == 0) {
 		int fd;
+
+		if (getenv("CCACHE_VERBOSE")) {
+			print_executed_command(argv);
+		}
 
 		unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
@@ -134,4 +139,14 @@ char *find_executable(const char *name, const char *exclude_name)
 	}
 
 	return NULL;
+}
+
+void print_executed_command(char **argv)
+{
+	int i;
+	printf("%s: executing ", MYNAME);
+	for (i = 0; argv[i]; i++) {
+		printf("%s%s",  (i == 0) ? "" : " ", argv[i]);
+	}
+	printf("\n");
 }

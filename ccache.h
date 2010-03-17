@@ -128,6 +128,7 @@ int execute(char **argv,
 	    const char *path_stdout,
 	    const char *path_stderr);
 char *find_executable(const char *name, const char *exclude_name);
+void print_executed_command(char **argv);
 
 typedef struct {
 	char **argv;
