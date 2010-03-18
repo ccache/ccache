@@ -112,7 +112,7 @@ void mdfour_begin(struct mdfour *md)
 
 static void mdfour_tail(const unsigned char *in, size_t n)
 {
-	unsigned char buf[128];
+	unsigned char buf[128] = { 0 };
 	uint32_t M[16];
 	uint32_t b;
 
@@ -120,7 +120,6 @@ static void mdfour_tail(const unsigned char *in, size_t n)
 
 	b = m->totalN * 8;
 
-	memset(buf, 0, 128);
 	if (n) memcpy(buf, in, n);
 	buf[n] = 0x80;
 
