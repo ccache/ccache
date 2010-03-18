@@ -266,20 +266,6 @@ static void failed(void)
 	exit(1);
 }
 
-static char *format_file_hash(struct file_hash *file_hash)
-{
-	char *ret;
-	int i;
-
-	ret = x_malloc(53);
-	for (i = 0; i < 16; i++) {
-		sprintf(&ret[i*2], "%02x", (unsigned)file_hash->hash[i]);
-	}
-	sprintf(&ret[i*2], "-%u", (unsigned)file_hash->size);
-
-	return ret;
-}
-
 /*
  * Transform a name to a full path into the cache directory, creating needed
  * sublevels if needed. Caller frees.
@@ -906,7 +892,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		break;
 	}
 
-	object_name = format_file_hash(object_hash);
+	object_name = format_hash_as_string(object_hash->hash, object_hash->size);
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
