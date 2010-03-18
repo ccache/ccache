@@ -179,10 +179,8 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 
 void mdfour_result(struct mdfour *md, unsigned char *out)
 {
-	m = md;
-
-	copy4(out, m->A);
-	copy4(out+4, m->B);
-	copy4(out+8, m->C);
-	copy4(out+12, m->D);
+	copy4(out, md->A);
+	copy4(out+4, md->B);
+	copy4(out+8, md->C);
+	copy4(out+12, md->D);
 }
