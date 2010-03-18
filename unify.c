@@ -40,7 +40,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static char *s_tokens[] = {
+static const char *const s_tokens[] = {
 	"...",	">>=",	"<<=",	"+=",	"-=",	"*=",	"/=",	"%=",	"&=",	"^=",
 	"|=",	">>",	"<<",	"++",	"--",	"->",	"&&",	"||",	"<=",	">=",
 	"==",	"!=",	";",	"{",	"<%",	"}",	"%>",	",",	":",	"=",
@@ -61,7 +61,7 @@ static char *s_tokens[] = {
 static struct {
 	unsigned char type;
 	unsigned char num_toks;
-	char *toks[7];
+	const char *toks[7];
 } tokens[256];
 
 /* build up the table used by the unifier */
