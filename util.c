@@ -292,6 +292,7 @@ const char *tmp_string(void)
 	return ret;
 }
 
+/* Return the hash result as a hex string. Caller frees. */
 char *format_hash_as_string(const unsigned char *hash, unsigned size)
 {
 	char *ret;
