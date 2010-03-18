@@ -88,18 +88,9 @@ int hash_file(struct mdfour *md, const char *fname)
 char *hash_result(struct mdfour *md)
 {
 	unsigned char sum[16];
-	char *ret;
-	int i;
 
-	ret = x_malloc(53);
 	hash_result_as_bytes(md, sum);
-
-	for (i=0;i<16;i++) {
-		sprintf(&ret[i*2], "%02x", (unsigned)sum[i]);
-	}
-	sprintf(&ret[i*2], "-%u", (unsigned)md->totalN);
-
-	return ret;
+	return format_hash_as_string(sum, (unsigned) md->totalN);
 }
 
 /* return the hash result as 16 binary bytes */
