@@ -292,6 +292,21 @@ const char *tmp_string(void)
 	return ret;
 }
 
+/* Return the hash result as a hex string. Caller frees. */
+char *format_hash_as_string(const unsigned char *hash, unsigned size)
+{
+	char *ret;
+	int i;
+
+	ret = x_malloc(53);
+	for (i = 0; i < 16; i++) {
+		sprintf(&ret[i*2], "%02x", (unsigned) hash[i]);
+	}
+	sprintf(&ret[i*2], "-%u", size);
+
+	return ret;
+}
+
 char const CACHEDIR_TAG[] =
 	"Signature: 8a477f597d28d172789f06886806bc55\n"
 	"# This file is a cache directory tag created by ccache.\n"
