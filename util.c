@@ -382,7 +382,7 @@ char *x_strndup(const char *s, size_t n)
 
 	if (!s)
 		return NULL;
-	m = strlen(s);
+	m = strnlen(s, n);
 	m = n < m ? n : m;
 	ret = malloc(m + 1);
 	if (ret) {
