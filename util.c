@@ -382,8 +382,10 @@ char *x_strndup(const char *s, size_t n)
 
 	if (!s)
 		return NULL;
-	m = strnlen(s, n);
-	m = n < m ? n : m;
+	m = 0;
+	while (m < n && s[m]) {
+		m++;
+	}
 	ret = malloc(m + 1);
 	if (ret) {
 		memcpy(ret, s, m);
