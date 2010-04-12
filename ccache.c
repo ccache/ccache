@@ -89,9 +89,6 @@ char *cache_logfile = NULL;
 /* base directory (from CCACHE_BASEDIR) */
 static char *base_dir;
 
-/* the argument list after processing */
-static ARGS *stripped_args;
-
 /* the original argument list */
 static ARGS *orig_args;
 
@@ -1157,7 +1154,8 @@ static const char *check_extension(const char *fname, int *direct_i)
    process the compiler options to form the correct set of options
    for obtaining the preprocessor output
 */
-static void process_args(int argc, char **argv)
+static void process_args(int argc, char **argv, ARGS **preprocessor_args,
+			 ARGS **compiler_args)
 {
 	int i;
 	int found_c_opt = 0;
@@ -1167,6 +1165,8 @@ static void process_args(int argc, char **argv)
 	int dependency_filename_specified = 0;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
+	ARGS *stripped_args;
+	char *input_charset = NULL;
 
 	stripped_args = args_init(0, NULL);
 
@@ -1292,6 +1292,12 @@ static void process_args(int argc, char **argv)
 				       argv[i]);
 				enable_direct = 0;
 			}
+		}
+
+		/* Input charset needs to be handled specially. */
+		if (strncmp(argv[i], "-finput-charset=", 16) == 0) {
+			input_charset = argv[i];
+			continue;
 		}
 
 		/*
@@ -1493,6 +1499,19 @@ static void process_args(int argc, char **argv)
 		stats_update(STATS_DEVICE);
 		failed();
 	}
+
+	/*
+	 * Only include -finput-charset=XXX when running the preprocessor since
+	 * the conversion otherwise will happen twice.
+	 */
+	if (input_charset) {
+		*preprocessor_args = args_init(stripped_args->argc,
+					       stripped_args->argv);
+		args_add(*preprocessor_args, input_charset);
+	} else {
+		*preprocessor_args = stripped_args;
+	}
+	*compiler_args = stripped_args;
 }
 
 /* the main ccache driver function */
@@ -1504,6 +1523,12 @@ static void ccache(int argc, char *argv[])
 	int put_object_in_manifest = 0;
 	struct file_hash *object_hash_from_manifest = NULL;
 	char *env;
+
+	/* argument list to be sent to the preprocessor (except -E) */
+	ARGS *preprocessor_args;
+
+	/* argument list to be sent to the read compiler */
+	ARGS *compiler_args;
 
 	t = time(NULL);
 	tm = localtime(&t);
@@ -1552,9 +1577,12 @@ static void ccache(int argc, char *argv[])
 		if (nlevels > 8) nlevels = 8;
 	}
 
-	/* process argument list, returning a new set of arguments for
-	   pre-processing */
-	process_args(orig_args->argc, orig_args->argv);
+	/*
+	 * Process argument list, returning a new set of arguments to pass to
+	 * the preprocessor and the real compiler.
+	 */
+	process_args(orig_args->argc, orig_args->argv, &preprocessor_args,
+		     &compiler_args);
 
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
@@ -1564,7 +1592,7 @@ static void ccache(int argc, char *argv[])
 
 	/* try to find the hash using the manifest */
 	if (enable_direct) {
-		if (find_hash(stripped_args, FINDHASH_DIRECT_MODE)) {
+		if (find_hash(preprocessor_args, FINDHASH_DIRECT_MODE)) {
 			/*
 			 * If we can return from cache at this point then do
 			 * so.
@@ -1590,7 +1618,7 @@ static void ccache(int argc, char *argv[])
 	 * Find the hash using the preprocessed output. Also updates
 	 * included_files.
 	 */
-	find_hash(stripped_args, FINDHASH_CPP_MODE);
+	find_hash(preprocessor_args, FINDHASH_CPP_MODE);
 
 	if (object_hash_from_manifest
 	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
@@ -1633,11 +1661,11 @@ static void ccache(int argc, char *argv[])
 			exit(1);
 		}
 		cc_log("Using command-line prefix %s", env);
-		args_add_prefix(stripped_args, p);
+		args_add_prefix(compiler_args, p);
 	}
 
 	/* run real compiler, sending output to cache */
-	to_cache(stripped_args);
+	to_cache(compiler_args);
 
 	/* return from cache */
 	from_cache(FROMCACHE_COMPILED_MODE, put_object_in_manifest);

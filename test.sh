@@ -278,6 +278,17 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 10
     checkstat 'cache miss' 38
 
+    if [ -x /usr/bin/printf ]; then
+        testname="-finput-charset"
+        /usr/bin/printf 'char foo[] = "\xa3";\n' >cp1250.c
+        $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
+        checkstat 'cache hit (preprocessed)' 10
+        checkstat 'cache miss' 39
+        $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
+        checkstat 'cache hit (preprocessed)' 11
+        checkstat 'cache miss' 39
+    fi
+
     testname="no object file"
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;

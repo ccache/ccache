@@ -99,6 +99,8 @@ Changes since ccache 2.4:
 
     - -MD/-MMD options without -MT/-MF are now handled correctly.
 
+    - The -finput-charset option is now handled correctly.
+
     - Added support for -Wp,-MD and -Wp,-MMD options.
 
     - Debug information containing line numbers of predefined and command-line
