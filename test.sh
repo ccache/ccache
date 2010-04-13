@@ -279,14 +279,16 @@ base_tests() {
     checkstat 'cache miss' 38
 
     if [ -x /usr/bin/printf ]; then
-        testname="-finput-charset"
         /usr/bin/printf 'char foo[] = "\xa3";\n' >cp1250.c
-        $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
-        checkstat 'cache hit (preprocessed)' 10
-        checkstat 'cache miss' 39
-        $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
-        checkstat 'cache hit (preprocessed)' 11
-        checkstat 'cache miss' 39
+        if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=cp1250 cp1250.c >/dev/null 2>&1; then
+            testname="-finput-charset"
+            $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
+            checkstat 'cache hit (preprocessed)' 10
+            checkstat 'cache miss' 39
+            $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
+            checkstat 'cache hit (preprocessed)' 11
+            checkstat 'cache miss' 39
+        fi
     fi
 
     testname="no object file"
