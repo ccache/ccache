@@ -29,7 +29,7 @@ output that you would get without the cache. If you ever discover a case where
 ccache changes the output of your compiler then please let us know.
 
 
-Features
+FEATURES
 ~~~~~~~~
 
 * Keeps statistics on hits/misses.
@@ -40,7 +40,7 @@ Features
 * Optionally uses hard links where possible to avoid copies.
 
 
-Limitations
+LIMITATIONS
 ~~~~~~~~~~~
 
 * Only knows how to cache the compilation of a single C/C++ file. Other types
@@ -363,7 +363,7 @@ ccache has two ways of doing the detection:
 * The *prepreprocessor mode* (hashes output from the preprocessor)
 
 
-The direct mode
+THE DIRECT MODE
 ~~~~~~~~~~~~~~~
 
 In the direct mode, a hash is formed of:
@@ -390,7 +390,7 @@ The direct mode will be disabled if any of the following holds:
 * A compiler option unsupported by the direct mode is used
 
 
-The preprocessor mode
+THE PREPROCESSOR MODE
 ~~~~~~~~~~~~~~~~~~~~~
 
 In the preprocessor mode, a hash is formed of:
