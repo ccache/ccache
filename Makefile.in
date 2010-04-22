@@ -14,6 +14,10 @@ CPPFLAGS = @CPPFLAGS@ -I.
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
+ASCIIDOC = asciidoc
+XSLTPROC = xsltproc
+MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
+
 libs = @LIBS@ -lm
 
 sources = \
@@ -39,8 +43,11 @@ docs: ccache.1
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
-ccache.1: ccache.yo
-	yodl2man -o ccache.1 $(srcdir)/ccache.yo
+ccache.xml: ccache.txt
+	$(ASCIIDOC) -d manpage -b docbook $<
+
+ccache.1: ccache.xml
+	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
 
 .PHONY: install
 install: all
