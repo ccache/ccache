@@ -47,7 +47,7 @@ ccache.xml: ccache.txt
 	$(ASCIIDOC) -d manpage -b docbook $<
 
 ccache.html: ccache.txt
-	$(ASCIIDOC) -d manpage -b xhtml11 $<
+	$(ASCIIDOC) -a toc -b xhtml11 $<
 
 ccache.1: ccache.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
