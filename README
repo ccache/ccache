@@ -14,7 +14,7 @@ more information.
 
 
 INSTALLATION
------------
+------------
 
 See the INSTALL file.
 
@@ -72,8 +72,11 @@ See also the NEWS file.
 COPYRIGHT
 ---------
 
+Copyright (C) 2002-2007 Andrew Tridgell
+Copyright (C) 2009-2010 Joel Rosdahl
+
 ccache may be used, modified and redistributed only under the terms of the GNU
-General Public License, found in the file COPYING in this distribution, or on
-this web page:
+General Public License version 3 or later, found in the file COPYING in this
+distribution, or on this web page:
 
     http://www.fsf.org/licenses/gpl.html

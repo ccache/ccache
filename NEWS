@@ -129,3 +129,8 @@ Changes since ccache 2.4:
 
     - The test suite is now immune to external values of the CCACHE_*
       environment variables.
+
+  OTHER NOTABLE CHANGES:
+
+    - ccache is now licensed under the GNU Public License (GPL) version 3 or
+      later.

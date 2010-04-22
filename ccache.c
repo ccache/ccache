@@ -1,23 +1,22 @@
 /*
  * ccache -- a fast C/C++ compiler cache
  *
- * Copyright (C) Andrew Tridgell 2002-2007
- * Copyright (C) Martin Pool 2003
- * Copyright (C) Joel Rosdahl 2009-2010
+ * Copyright (C) 2002-2007 Andrew Tridgell
+ * Copyright (C) 2009-2010 Joel Rosdahl
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #include "ccache.h"
@@ -42,12 +41,12 @@
 static const char VERSION_TEXT[] =
 "ccache version " CCACHE_VERSION "\n"
 "\n"
-"Copyright (C) Andrew Tridgell 2002-2007\n"
-"Copyright (C) Joel Rosdahl 2009-2010\n"
+"Copyright (C) 2002-2007 Andrew Tridgell\n"
+"Copyright (C) 2009-2010 Joel Rosdahl\n"
 "\n"
 "This program is free software; you can redistribute it and/or modify it under\n"
 "the terms of the GNU General Public License as published by the Free Software\n"
-"Foundation; either version 2 of the License, or (at your option) any later\n"
+"Foundation; either version 3 of the License, or (at your option) any later\n"
 "version.\n";
 
 static const char USAGE_TEXT[] =
