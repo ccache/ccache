@@ -842,14 +842,14 @@ EOF
     export CCACHE_NODIRECT
 
     ##################################################################
-    # CCACHE_BASEDIR="$PWD" is the default.
+    # CCACHE_BASEDIR="" is the default.
     testname="default CCACHE_BASEDIR"
     cd dir1
     $CCACHE -z >/dev/null
     $CCACHE $COMPILER -I$PWD/include -c src/test.c
     checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
     cd ..
 
     ##################################################################
@@ -859,7 +859,7 @@ EOF
     cd dir1
     $CCACHE -z >/dev/null
     unset CCACHE_NODIRECT
-    $CCACHE $COMPILER -I$PWD//include -c $PWD//.///src/test.c
+    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -I$PWD//include -c $PWD//.///src/test.c
     export CCACHE_NODIRECT=1
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
@@ -870,7 +870,7 @@ EOF
     # Check that rewriting triggered by CCACHE_BASEDIR also affects stderr.
     testname="stderr"
     $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -878,7 +878,7 @@ EOF
         test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
     fi
 
-    $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1

@@ -46,14 +46,12 @@ New features and improvements
       speedup will be higher when I/O is fast (e.g., when files are in the disk
       cache). The direct mode can be disabled by setting +CCACHE_NODIRECT+.
 
-    - When hashing the output from the preprocessor, absolute paths are
-      rewritten to relative paths, but only for paths under the directory
-      specified by `CCACHE_BASEDIR`. Paths specified by `-I` and similar
-      options get the same treatment. This is done to get cache hits even when
-      compiling with `-g` and when using absolute include directory paths.
-      Absolute paths in the standard error text will also be more accurate. The
-      default value of `CCACHE_BASEDIR` is the current working directory. To
-      disable the rewriting, set `CCACHE_BASEDIR` to the empty string.
+    - Support has been added for rewriting absolute paths to relative paths
+      when hashing, in order to increase cache hit rate when building the same
+      source code in different directories even when compiling with `-g` and
+      when using absolute include directory paths. This is done by setting the
+      `CCACHE_BASEDIR` environment variable to an absolute path that specifies
+      which paths to rewrite.
 
     - Object files are now by default stored compressed in the cache. The
       runtime cost is negligible, and more files will fit in the ccache

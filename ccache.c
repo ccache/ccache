@@ -1848,12 +1848,9 @@ int main(int argc, char *argv[])
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
 	base_dir = getenv("CCACHE_BASEDIR");
-	if (base_dir) {
-		if (strcmp(base_dir, "") == 0) {
-			base_dir = NULL;
-		}
-	} else {
-		base_dir = get_cwd();
+	if (base_dir && base_dir[0] != '/') {
+		cc_log("Ignoring non-absolute base directory %s", base_dir);
+		base_dir = NULL;
 	}
 
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
