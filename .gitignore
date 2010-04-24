@@ -2,9 +2,12 @@
 *~
 .deps
 Makefile
+NEWS.html
 autom4te.cache
 ccache
 ccache.1
+ccache.html
+ccache.xml
 config.h
 config.h.in
 config.log
