@@ -38,7 +38,7 @@ files_to_clean = $(objs) *~ ccache$(EXEEXT) ccache.1
 all: ccache$(EXEEXT)
 
 .PHONY: docs
-docs: ccache.1
+docs: ccache.1 ccache.html NEWS.html
 
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
@@ -51,6 +51,9 @@ ccache.html: ccache.txt
 
 ccache.1: ccache.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
+
+NEWS.html: NEWS.txt
+	$(ASCIIDOC) -a toc -b xhtml11 $<
 
 .PHONY: install
 install: all
