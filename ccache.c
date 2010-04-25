@@ -331,8 +331,7 @@ static void remember_include_file(char *path, size_t path_len)
 		/* Ignore directory, typically $PWD. */
 		goto ignore;
 	}
-	if (st.st_mtime >= time_of_compilation
-	    || st.st_ctime >= time_of_compilation) {
+	if (st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
