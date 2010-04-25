@@ -735,11 +735,11 @@ EOF
     testname="empty source file"
     $CCACHE -Cz >/dev/null
     cp /dev/null empty.c
-    $CCACHE_COMPILE -c empty.c
+    $CCACHE $COMPILER -c empty.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE_COMPILE -c empty.c
+    $CCACHE $COMPILER -c empty.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
