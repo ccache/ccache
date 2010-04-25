@@ -811,7 +811,9 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 				    strcmp(args->argv[i], "-iwithprefix") == 0 ||
 				    strcmp(args->argv[i], "-iwithprefixbefore") == 0 ||
 				    strcmp(args->argv[i], "-idirafter") == 0 ||
-				    strcmp(args->argv[i], "-isystem") == 0) {
+				    strcmp(args->argv[i], "-isystem") == 0 ||
+				    strcmp(args->argv[i], "-nostdinc") == 0 ||
+				    strcmp(args->argv[i], "-nostdinc++") == 0) {
 					/* Skip from hash. */
 					i++;
 					continue;
