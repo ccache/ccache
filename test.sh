@@ -954,7 +954,7 @@ readonly_suite() {
         test_failed "readonly mode stored files in the cache"
     fi
 
-    # Chech that readonly mode and direct mode works.
+    # Check that readonly mode and direct mode works.
     unset CCACHE_NODIRECT
     files_before=`find $CCACHE_DIR -type f | wc -l`
     CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE $COMPILER -c test.c -o test.o
