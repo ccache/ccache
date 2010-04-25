@@ -65,6 +65,7 @@ void hash_include_file_string(
 			goto end;
 		}
 		switch (*p) {
+		/* Potential start of comment. */
 		case '/':
 			if (p+1 == end) {
 				break;
@@ -101,6 +102,7 @@ void hash_include_file_string(
 			}
 			break;
 
+		/* Start of string. */
 		case '"':
 			HASH(*p);
 			p++;

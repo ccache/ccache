@@ -386,12 +386,10 @@ static char *make_relative_path(char *path)
 
 /*
  * This function reads and hashes a file. While doing this, it also does these
- * things:
+ * things with preprocessor lines starting with a hash:
  *
- * - Makes include file paths whose prefix is CCACHE_BASEDIR relative when
- *   computing the hash sum.
- * - Stores the paths and hashes of included files in the global variable
- *   included_files.
+ * - Makes include file paths whose prefix is CCACHE_BASEDIR relative.
+ * - Stores the paths of included files in the global variable included_files.
  */
 static int process_preprocessed_file(struct mdfour *hash, const char *path)
 {
