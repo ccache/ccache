@@ -94,6 +94,10 @@ sed_in_place() {
     done
 }
 
+backdate() {
+    touch -t 197001010000 "$@"
+}
+
 run_suite() {
     rm -rf $CCACHE_DIR
 
@@ -412,8 +416,7 @@ EOF
     cat <<EOF >test3.h
 int test3;
 EOF
-
-    sleep 1 # Sleep to make the include files trusted.
+    backdate test1.h test2.h test3.h
 
     ##################################################################
     # First compilation is a miss.
@@ -447,7 +450,7 @@ EOF
     testname="modified include file"
     $CCACHE -z >/dev/null
     echo "int test3_2;" >>test3.h
-    sleep 1 # Sleep to make the include file trusted.
+    backdate test3.h
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
@@ -470,7 +473,7 @@ EOF
 /* No more include of test3.h */
 int test1;
 EOF
-    sleep 1 # Sleep to make the include file trusted.
+    backdate test1.h
 
     $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
@@ -485,7 +488,6 @@ EOF
     # Restore
     mv test1.h.saved test1.h
     mv test3.h.saved test3.h
-    sleep 1 # Sleep to make the include files trusted.
 
     rm -f other.d
 
@@ -580,7 +582,7 @@ EOF
     $CCACHE -z >/dev/null
     for i in 0 1 2 3 4; do
         echo "int test1_$i;" >>test1.h
-        sleep 1 # Sleep to make the include file trusted.
+        backdate test1.h
         $CCACHE $COMPILER -c test.c
         $CCACHE $COMPILER -c test.c
     done
@@ -729,12 +731,12 @@ EOF
  * /* foo comment
  */
 EOF
+    backdate comments.h
     cat <<'EOF' >comments.c
 #include "comments.h"
 char test[] = "\
 /* apple */ // banana"; // foo comment
 EOF
-    sleep 1 # Sleep to make the include file trusted.
 
     $CCACHE $COMPILER -c comments.c
     checkstat 'cache hit (direct)' 0
@@ -742,7 +744,7 @@ EOF
     checkstat 'cache miss' 1
 
     sed_in_place 's/foo/ignored/' comments.h comments.c
-    sleep 1 # Sleep to make the include file trusted.
+    backdate comments.h
 
     $CCACHE $COMPILER -c comments.c
     checkstat 'cache hit (direct)' 1
@@ -751,7 +753,7 @@ EOF
 
     # Check that comment-like string contents are hashed.
     sed_in_place 's/apple/orange/' comments.c
-    sleep 1 # Sleep to make the include file trusted.
+    backdate comments.h
 
     $CCACHE $COMPILER -c comments.c
     checkstat 'cache hit (direct)' 1
@@ -790,6 +792,7 @@ EOF
 int test;
 EOF
     cp -r dir1 dir2
+    backdate dir1/include/test.h dir2/include/test.h
 
     cat <<EOF >stderr.h
 int stderr(void)
@@ -800,8 +803,7 @@ EOF
     cat <<EOF >stderr.c
 #include <stderr.h>
 EOF
-
-    sleep 1 # Sleep to make the include files trusted.
+    backdate stderr.h
 
     ##################################################################
     # CCACHE_BASEDIR="" and using absolute include path will result in a cache
