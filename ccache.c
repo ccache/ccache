@@ -1546,7 +1546,9 @@ static void ccache(int argc, char *argv[])
 
 	cc_log("=== %s ===", now);
 
-	cc_log("Base directory: %s", base_dir);
+	if (base_dir) {
+		cc_log("Base directory: %s", base_dir);
+	}
 
 	/* find the real compiler */
 	find_compiler(argc, argv);
