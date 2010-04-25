@@ -288,7 +288,12 @@ static char *get_path_in_cache(const char *name, const char *suffix)
 	return result;
 }
 
-/* Takes over ownership of path. */
+/*
+ * This function hashes an include file and stores the path and hash in the
+ * global included_files variable. It also checks if the include file contains
+ * __DATE__/__FILE__/__TIME__ macros, in which case the file is not stored and
+ * direct mode is disabled. Takes over ownership of path.
+ */
 static void remember_include_file(char *path, size_t path_len)
 {
 	struct file_hash *h;
@@ -296,6 +301,7 @@ static void remember_include_file(char *path, size_t path_len)
 	struct stat st;
 	int fd = -1;
 	char *data = (char *)-1;
+	enum hash_source_code_result result;
 
 	if (!included_files) {
 		goto ignore;
@@ -342,7 +348,16 @@ static void remember_include_file(char *path, size_t path_len)
 	}
 
 	hash_start(&fhash);
-	hash_include_file_string(&fhash, data, st.st_size);
+	result = hash_source_code_string(&fhash, data, st.st_size, 1);
+	switch (result) {
+	case HASH_SOURCE_CODE_OK:
+		break;
+	case HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO:
+		cc_log("Found __DATE__/__FILE__/__TIME__ macro in %s", path);
+		/* Fall through. */
+	case HASH_SOURCE_CODE_ERROR:
+		goto failure;
+	}
 
 	h = x_malloc(sizeof(*h));
 	hash_result_as_bytes(&fhash, h->hash);
@@ -354,8 +369,6 @@ static void remember_include_file(char *path, size_t path_len)
 failure:
 	cc_log("Disabling direct mode");
 	enable_direct = 0;
-	hashtable_destroy(included_files, 1);
-	included_files = NULL;
 	/* Fall through. */
 ignore:
 	free(path);
@@ -386,10 +399,12 @@ static char *make_relative_path(char *path)
 
 /*
  * This function reads and hashes a file. While doing this, it also does these
- * things with preprocessor lines starting with a hash:
+ * things:
  *
- * - Makes include file paths whose prefix is CCACHE_BASEDIR relative.
- * - Stores the paths of included files in the global variable included_files.
+ * - Makes include file paths whose prefix is CCACHE_BASEDIR relative when
+ *   computing the hash sum.
+ * - Stores the paths and hashes of included files in the global variable
+ *   included_files.
  */
 static int process_preprocessed_file(struct mdfour *hash, const char *path)
 {
@@ -746,6 +761,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	char *object_name;
 	char *manifest_name;
 	const char *compilercheck;
+	enum hash_source_code_result result;
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
@@ -860,9 +876,19 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
-		if (!hash_include_file(&hash, input_file)) {
-			cc_log("Failed to hash %s", input_file);
+		result = hash_source_code_file(&hash, input_file, 1);
+		switch (result) {
+		case HASH_SOURCE_CODE_OK:
+			break;
+		case HASH_SOURCE_CODE_ERROR:
 			failed();
+			break;
+		case HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO:
+			cc_log("Found __DATE__/__FILE__/__TIME__ macro in %s",
+			       input_file);
+			cc_log("Disabling direct mode");
+			enable_direct = 0;
+			break;
 		}
 		manifest_name = hash_result(&hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
@@ -1046,7 +1072,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* Create or update the manifest file. */
-	if (put_object_in_manifest
+	if (enable_direct
+	    && put_object_in_manifest
 	    && included_files
 	    && !getenv("CCACHE_READONLY")) {
 		if (manifest_put(manifest_path, object_hash, included_files)) {

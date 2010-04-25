@@ -50,8 +50,15 @@ int file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 		}							\
 	} while (0)
 
-void hash_include_file_string(
-	struct mdfour *hash, const char *str, size_t len)
+/*
+ * Hash a string ignoring comments. If check_volatile_macros is true, also
+ * check for volatile preprocessor macros (__{DATE,FILE,TIME}__) and, if found,
+ * stop hashing.
+ */
+enum hash_source_code_result
+hash_source_code_string(
+	struct mdfour *hash, const char *str, size_t len,
+	int check_volatile_macros)
 {
 	const char *p;
 	const char *end;
@@ -115,6 +122,20 @@ void hash_include_file_string(
 			}
 			break;
 
+		/* Potential start of volatile macro. */
+		case '_':
+			if (check_volatile_macros
+			    && p + 7 < end
+			    && p[1] == '_'
+			    && p[6] == '_'
+			    && p[7] == '_'
+			    && (strncmp(p + 2, "DATE", 4) == 0
+				|| strncmp(p + 2, "FILE", 4) == 0
+				|| strncmp(p + 2, "TIME", 4) == 0)) {
+				return HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO;
+			}
+			break;
+
 		default:
 			break;
 		}
@@ -125,38 +146,45 @@ void hash_include_file_string(
 
 end:
 	hash_buffer(hash, hashbuf, hashbuflen);
+	return HASH_SOURCE_CODE_OK;
 }
 
 /*
- * Add contents of a file to a hash, but don't hash comments. Returns 1 on
- * success, otherwise 0.
+ * Add contents of a source code file to a hash, but don't hash comments.
  */
-int hash_include_file(struct mdfour *hash, const char *path)
+enum hash_source_code_result
+hash_source_code_file(
+	struct mdfour *hash, const char *path,
+	int check_volatile_macros)
 {
 	int fd;
 	struct stat st;
 	char *data;
+	enum hash_source_code_result result;
 
-	fd = open(path, O_RDONLY);
+	fd = open(path, O_RDONLY|O_BINARY);
 	if (fd == -1) {
-		return 0;
+		cc_log("Failed to open %s", path);
+		return HASH_SOURCE_CODE_ERROR;
 	}
 	if (fstat(fd, &st) == -1) {
+		cc_log("Failed to fstat %s", path);
 		close(fd);
-		return 0;
+		return HASH_SOURCE_CODE_ERROR;
 	}
 	if (st.st_size == 0) {
 		close(fd);
-		return 1;
+		return HASH_SOURCE_CODE_OK;
 	}
 	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	close(fd);
 	if (data == (void *)-1) {
-		return 0;
+		cc_log("Failed to mmap %s", path);
+		return HASH_SOURCE_CODE_ERROR;
 	}
 
-	hash_include_file_string(hash, data, st.st_size);
-
+	result = hash_source_code_string(
+		hash, data, st.st_size, check_volatile_macros);
 	munmap(data, st.st_size);
-	return 1;
+	return result;
 }

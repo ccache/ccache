@@ -381,13 +381,14 @@ disabled), ccache falls back to the preprocessor mode.
 
 The direct mode will be disabled if any of the following holds:
 
-* the environment variable CCACHE_NODIRECT is set
+* the environment variable *CCACHE_NODIRECT* is set
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * the unifier is enabled (the environment variable *CCACHE_UNIFY* is set)
-* a compiler option unsupported by the direct mode is used
-** Currently, *-Wp,_X_* options are not supported, except if _X_ is
-   *-MD,_path_* or *-MMD,_path_*.
+* a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and *-Wp,-MMD,_path_*
+  is used
+* a *\_\_DATE\_\_*, *\_\_FILE\_\_* or *\_\_TIME__* macro is used in the source
+  code
 
 
 THE PREPROCESSOR MODE

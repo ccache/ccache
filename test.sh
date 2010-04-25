@@ -506,6 +506,7 @@ EOF
             test_failed "$dep_file missing"
         fi
     done
+    rm -rf test.dir
 
     ##################################################################
     # Check that -Wp,-MD,file.d works.
@@ -773,6 +774,40 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that direct mode is disabled if __DATE__, __FILE__ or __TIME__
+    # macros are used.
+    for x in date file time; do
+        X=`echo $x | tr 'a-z' 'A-Z'`
+        testname="__${X}__ in source file"
+        $CCACHE -Cz >/dev/null
+        cat <<EOF >$x.c
+char $x[] = __${X}__;
+EOF
+        $CCACHE $COMPILER -c $x.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        $CCACHE $COMPILER -c $x.c
+        checkstat 'cache hit (direct)' 0
+
+        testname="__${X}__ in include file"
+        $CCACHE -Cz >/dev/null
+        cat <<EOF >$x.h
+char $x[] = __${X}__;
+EOF
+        backdate $x.h
+        cat <<EOF >${x}_h.c
+#include "$x.h"
+EOF
+        $CCACHE $COMPILER -c ${x}_h.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        $CCACHE $COMPILER -c ${x}_h.c
+        checkstat 'cache hit (direct)' 0
+    done
 
     ##################################################################
     # Reset things.

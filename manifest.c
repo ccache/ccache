@@ -370,7 +370,9 @@ static int verify_object(struct manifest *mf, struct object *obj,
 		if (!actual) {
 			actual = x_malloc(sizeof(*actual));
 			hash_start(&hash);
-			if (!hash_include_file(&hash, mf->files[fi->index])) {
+			if (hash_source_code_file(&hash, mf->files[fi->index],
+						  0)
+			    != HASH_SOURCE_CODE_OK) {
 				cc_log("Failed hashing %s",
 				       mf->files[fi->index]);
 				free(actual);
