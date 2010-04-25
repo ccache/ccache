@@ -386,6 +386,8 @@ The direct mode will be disabled if any of the following holds:
   race condition)
 * the unifier is enabled (the environment variable *CCACHE_UNIFY* is set)
 * a compiler option unsupported by the direct mode is used
+** Currently, *-Wp,_X_* options are not supported, except if _X_ is
+   *-MD,_path_* or *-MMD,_path_*.
 
 
 THE PREPROCESSOR MODE

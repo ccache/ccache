@@ -1274,17 +1274,24 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		}
 
 		if (enable_direct && strncmp(argv[i], "-Wp,", 4) == 0) {
-			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0) {
+			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0
+			    && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
 				output_dep = make_relative_path(
 					x_strdup(argv[i] + 8));
-			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0) {
+			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0
+			    && !strchr(argv[i] + 9, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
 				output_dep = make_relative_path(
 					x_strdup(argv[i] + 9));
 			} else if (enable_direct) {
+				/*
+				 * -Wp, can be used to pass too hard options to
+				 * the preprocessor. Hence, disable direct
+				 * mode.
+				 */
 				cc_log("Unsupported compiler option for direct mode: %s",
 				       argv[i]);
 				enable_direct = 0;

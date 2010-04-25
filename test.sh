@@ -547,6 +547,34 @@ EOF
     rm -f other.d
 
     ##################################################################
+    # Check that -Wp,-MD,file.d,-P disables direct mode.
+    testname="-Wp,-MD,file.d,-P"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -Wp,-MD,/dev/null,-P test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    $CCACHE $COMPILER -c -Wp,-MD,/dev/null,-P test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that -Wp,-MMD,file.d,-P disables direct mode.
+    testname="-Wp,-MDD,file.d,-P"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -Wp,-MMD,/dev/null,-P test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    $CCACHE $COMPILER -c -Wp,-MMD,/dev/null,-P test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
     testname="several objects"
     $CCACHE -z >/dev/null
