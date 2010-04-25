@@ -21,7 +21,6 @@
 #include "hashutil.h"
 #include "manifest.h"
 #include "murmurhashneutral2.h"
-#include "comments.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -371,8 +370,7 @@ static int verify_object(struct manifest *mf, struct object *obj,
 		if (!actual) {
 			actual = x_malloc(sizeof(*actual));
 			hash_start(&hash);
-			if (!hash_file_ignoring_comments(
-				    &hash, mf->files[fi->index])) {
+			if (!hash_include_file(&hash, mf->files[fi->index])) {
 				cc_log("Failed hashing %s",
 				       mf->files[fi->index]);
 				free(actual);

@@ -23,12 +23,12 @@ libs = @LIBS@ -lm
 sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-    murmurhashneutral2.c hashutil.c comments.c getopt_long.c
+    murmurhashneutral2.c hashutil.c getopt_long.c
 all_sources = $(sources) @extra_sources@
 
 headers = \
     ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
-    manifest.h mdfour.h murmurhashneutral2.h comments.h getopt_long.h
+    manifest.h mdfour.h murmurhashneutral2.h getopt_long.h
 
 objs = $(all_sources:.c=.o)
 

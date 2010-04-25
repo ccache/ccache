@@ -25,7 +25,6 @@
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
-#include "comments.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -343,7 +342,7 @@ static void remember_include_file(char *path, size_t path_len)
 	}
 
 	hash_start(&fhash);
-	hash_string_ignoring_comments(&fhash, data, st.st_size);
+	hash_include_file_string(&fhash, data, st.st_size);
 
 	h = x_malloc(sizeof(*h));
 	hash_result_as_bytes(&fhash, h->hash);
@@ -861,7 +860,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:
-		if (!hash_file_ignoring_comments(&hash, input_file)) {
+		if (!hash_include_file(&hash, input_file)) {
 			cc_log("Failed to hash %s", input_file);
 			failed();
 		}
