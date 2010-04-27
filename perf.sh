@@ -83,8 +83,6 @@ compile $n "$ccache $cxx"
 echo "Time: $(elapsed $t0)"
 
 unset CCACHE_NODIRECT
-CCACHE_LOGFILE=ccache.log
-export CCACHE_LOGFILE
 rm -rf $CCACHE_DIR
 
 echo "With ccache, direct, cache miss:"
