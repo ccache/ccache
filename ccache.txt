@@ -230,8 +230,8 @@ cases you won't need any of these as the defaults will be fine.
     object file, which can lead ccache to give a cached object file that has
     the working directory in the debug info set incorrectly. This option is off
     by default as the incorrect setting of this debug info rarely causes
-    problems. If you strike problems with ``gdb'' not using the correct
-    directory then enable this option.
+    problems. If you strike problems with GDB not using the correct directory
+    then enable this option.
 
 *CCACHE_LOGFILE*::
 
