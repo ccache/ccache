@@ -42,10 +42,10 @@ New features and improvements
     - ccache now has a ``direct mode'' where it computes a hash of the source
       code (including all included files) and compiler arguments without
       running the preprocessor. By not running the preprocessor, CPU usage is
-      reduced; the speed is about 1-5 times that of ccache running in
-      traditional mode. The relative speedup will be higher when I/O is fast
-      (e.g., when files are in the disk cache). The direct mode can be disabled
-      by setting +CCACHE_NODIRECT+.
+      reduced; the speed is somewhere between 1 and 5 times that of ccache
+      running in traditional mode, depending on the circumstances. The speedup
+      will be higher when I/O is fast (e.g., when files are in the disk cache).
+      The direct mode can be disabled by setting +CCACHE_NODIRECT+.
 
     - Support has been added for rewriting absolute paths to relative paths
       when hashing, in order to increase cache hit rate when building the same
