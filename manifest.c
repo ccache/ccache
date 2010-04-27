@@ -363,6 +363,7 @@ static int verify_object(struct manifest *mf, struct object *obj,
 	struct file_info *fi;
 	struct file_hash *actual;
 	struct mdfour hash;
+	int result;
 
 	for (i = 0; i < obj->n_file_info_indexes; i++) {
 		fi = &mf->file_infos[obj->file_info_indexes[i]];
@@ -370,11 +371,15 @@ static int verify_object(struct manifest *mf, struct object *obj,
 		if (!actual) {
 			actual = x_malloc(sizeof(*actual));
 			hash_start(&hash);
-			if (hash_source_code_file(&hash, mf->files[fi->index],
-						  0)
-			    != HASH_SOURCE_CODE_OK) {
+			result = hash_source_code_file(&hash,
+						       mf->files[fi->index]);
+			if (result & HASH_SOURCE_CODE_ERROR) {
 				cc_log("Failed hashing %s",
 				       mf->files[fi->index]);
+				free(actual);
+				return 0;
+			}
+			if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 				free(actual);
 				return 0;
 			}

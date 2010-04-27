@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <time.h>
 
 unsigned int hash_from_string(void *str)
 {
@@ -51,19 +52,18 @@ int file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 	} while (0)
 
 /*
- * Hash a string ignoring comments. If check_volatile_macros is true, also
- * check for volatile preprocessor macros (__{DATE,FILE,TIME}__) and, if found,
- * stop hashing.
+ * Hash a string ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+ * results.
  */
-enum hash_source_code_result
+int
 hash_source_code_string(
-	struct mdfour *hash, const char *str, size_t len,
-	int check_volatile_macros)
+	struct mdfour *hash, const char *str, size_t len, const char *path)
 {
 	const char *p;
 	const char *end;
 	char hashbuf[64];
 	size_t hashbuflen = 0;
+	int result = HASH_SOURCE_CODE_OK;
 
 	p = str;
 	end = str + len;
@@ -124,15 +124,27 @@ hash_source_code_string(
 
 		/* Potential start of volatile macro. */
 		case '_':
-			if (check_volatile_macros
-			    && p + 7 < end
-			    && p[1] == '_'
-			    && p[6] == '_'
-			    && p[7] == '_'
-			    && (strncmp(p + 2, "DATE", 4) == 0
-				|| strncmp(p + 2, "FILE", 4) == 0
-				|| strncmp(p + 2, "TIME", 4) == 0)) {
-				return HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO;
+			if (p + 7 < end
+			    && p[1] == '_' && p[5] == 'E'
+			    && p[6] == '_' && p[7] == '_') {
+				if (p[2] == 'D' && p[3] == 'A'
+				    && p[4] == 'T') {
+					result |= HASH_SOURCE_CODE_FOUND_DATE;
+				} else if (p[2] == 'T' && p[3] == 'I'
+					   && p[4] == 'M') {
+					result |= HASH_SOURCE_CODE_FOUND_TIME;
+				}
+				/*
+				 * Of course, we can't be sure that we have
+				 * found a __{DATE,TIME}__ that's actually
+				 * used, but better safe than sorry. And if you
+				 * do something like
+				 *
+				 * #define TIME __TI ## ME__
+				 *
+				 * in your code, you deserve to get a false
+				 * cache hit.
+				 */
 			}
 			break;
 
@@ -146,21 +158,47 @@ hash_source_code_string(
 
 end:
 	hash_buffer(hash, hashbuf, hashbuflen);
-	return HASH_SOURCE_CODE_OK;
+
+	if (result & HASH_SOURCE_CODE_FOUND_DATE) {
+		/*
+		 * Make sure that the hash sum changes if the (potential)
+		 * expansion of __DATE__ changes.
+		 */
+		cc_log("Found __DATE__ in %s", path);
+		time_t t = time(NULL);
+		struct tm *now = localtime(&t);
+		hash_delimiter(hash);
+		hash_buffer(hash, &now->tm_year, sizeof(now->tm_year));
+		hash_buffer(hash, &now->tm_mon, sizeof(now->tm_mon));
+		hash_buffer(hash, &now->tm_mday, sizeof(now->tm_mday));
+	}
+	if (result & HASH_SOURCE_CODE_FOUND_TIME) {
+		/*
+		 * We don't know for sure that the program actually uses the
+		 * __TIME__ macro, but we have to assume it anyway and hash the
+		 * time stamp. However, that's not very useful since the chance
+		 * that we get a cache hit later the same second should be
+		 * quite slim... So, just signal back to the caller that
+		 * __TIME__ has been found so that the direct mode can be
+		 * disabled.
+		 */
+		cc_log("Found __TIME__ in %s", path);
+	}
+
+	return result;
 }
 
 /*
- * Add contents of a source code file to a hash, but don't hash comments.
+ * Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+ * results.
  */
-enum hash_source_code_result
-hash_source_code_file(
-	struct mdfour *hash, const char *path,
-	int check_volatile_macros)
+int
+hash_source_code_file(struct mdfour *hash, const char *path)
 {
 	int fd;
 	struct stat st;
 	char *data;
-	enum hash_source_code_result result;
+	int result;
 
 	fd = open(path, O_RDONLY|O_BINARY);
 	if (fd == -1) {
@@ -183,8 +221,7 @@ hash_source_code_file(
 		return HASH_SOURCE_CODE_ERROR;
 	}
 
-	result = hash_source_code_string(
-		hash, data, st.st_size, check_volatile_macros);
+	result = hash_source_code_string(hash, data, st.st_size, path);
 	munmap(data, st.st_size);
 	return result;
 }

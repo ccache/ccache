@@ -203,11 +203,6 @@ enum fromcache_call_mode {
 	FROMCACHE_COMPILED_MODE
 };
 
-enum findhash_call_mode {
-	FINDHASH_DIRECT_MODE,
-	FINDHASH_CPP_MODE
-};
-
 /*
  * This is a string that identifies the current "version" of the hash sum
  * computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -290,9 +285,7 @@ static char *get_path_in_cache(const char *name, const char *suffix)
 
 /*
  * This function hashes an include file and stores the path and hash in the
- * global included_files variable. It also checks if the include file contains
- * __DATE__/__FILE__/__TIME__ macros, in which case the file is not stored and
- * direct mode is disabled. Takes over ownership of path.
+ * global included_files variable. Takes over ownership of path.
  */
 static void remember_include_file(char *path, size_t path_len)
 {
@@ -301,7 +294,7 @@ static void remember_include_file(char *path, size_t path_len)
 	struct stat st;
 	int fd = -1;
 	char *data = (char *)-1;
-	enum hash_source_code_result result;
+	int result;
 
 	if (!included_files) {
 		goto ignore;
@@ -348,14 +341,9 @@ static void remember_include_file(char *path, size_t path_len)
 	}
 
 	hash_start(&fhash);
-	result = hash_source_code_string(&fhash, data, st.st_size, 1);
-	switch (result) {
-	case HASH_SOURCE_CODE_OK:
-		break;
-	case HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO:
-		cc_log("Found __DATE__/__FILE__/__TIME__ macro in %s", path);
-		/* Fall through. */
-	case HASH_SOURCE_CODE_ERROR:
+	result = hash_source_code_string(&fhash, data, st.st_size, path);
+	if (result & HASH_SOURCE_CODE_ERROR
+	    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 		goto failure;
 	}
 
@@ -845,7 +833,7 @@ static struct file_hash *calculate_object_hash(
 	int i;
 	char *manifest_name;
 	struct stat st;
-	enum hash_source_code_result result;
+	int result;
 	struct file_hash *object_hash = NULL;
 
 	/* first the arguments */
@@ -905,19 +893,22 @@ static struct file_hash *calculate_object_hash(
 	}
 
 	if (direct_mode) {
-		result = hash_source_code_file(hash, input_file, 1);
-		switch (result) {
-		case HASH_SOURCE_CODE_OK:
-			break;
-		case HASH_SOURCE_CODE_ERROR:
+		/*
+		 * The source code file or an include file may contain
+		 * __FILE__, so make sure that the hash is unique for the file
+		 * name.
+		 */
+		hash_string(hash, input_file);
+		hash_delimiter(hash);
+
+		result = hash_source_code_file(hash, input_file);
+		if (result & HASH_SOURCE_CODE_ERROR) {
 			failed();
-			break;
-		case HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO:
-			cc_log("Found __DATE__/__FILE__/__TIME__ macro in %s",
-			       input_file);
+		}
+		if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 			cc_log("Disabling direct mode");
 			enable_direct = 0;
-			break;
+			return NULL;
 		}
 		manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
@@ -1575,10 +1566,10 @@ static void ccache(int argc, char *argv[])
 	struct mdfour direct_hash;
 	struct mdfour cpp_hash;
 
-	/* Argument list to be sent to the preprocessor (except -E). */
+	/* Arguments (except -E) to send to the preprocessor. */
 	ARGS *preprocessor_args;
 
-	/* Argument list to be sent to the real compiler. */
+	/* Arguments to send to the real compiler. */
 	ARGS *compiler_args;
 
 	t = time(NULL);

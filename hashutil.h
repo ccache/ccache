@@ -14,19 +14,13 @@ unsigned int hash_from_string(void *str);
 int strings_equal(void *str1, void *str2);
 int file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2);
 
-enum hash_source_code_result {
-	HASH_SOURCE_CODE_OK,
-	HASH_SOURCE_CODE_ERROR,
-	HASH_SOURCE_CODE_FOUND_VOLATILE_MACRO
-};
+#define HASH_SOURCE_CODE_OK 0
+#define HASH_SOURCE_CODE_ERROR 1
+#define	HASH_SOURCE_CODE_FOUND_DATE 2
+#define	HASH_SOURCE_CODE_FOUND_TIME 4
 
-enum hash_source_code_result
-hash_source_code_string(
-	struct mdfour *hash, const char *str, size_t len,
-	int check_volatile_macros);
-enum hash_source_code_result
-hash_source_code_file(
-	struct mdfour *hash, const char *path,
-	int check_volatile_macros);
+int hash_source_code_string(
+	struct mdfour *hash, const char *str, size_t len, const char *path);
+int hash_source_code_file(struct mdfour *hash, const char *path);
 
 #endif

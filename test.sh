@@ -792,38 +792,85 @@ EOF
     checkstat 'cache miss' 1
 
     ##################################################################
-    # Check that direct mode is disabled if __DATE__, __FILE__ or __TIME__
-    # macros are used.
-    for x in date file time; do
-        X=`echo $x | tr 'a-z' 'A-Z'`
-        testname="__${X}__ in source file"
-        $CCACHE -Cz >/dev/null
-        cat <<EOF >$x.c
-char $x[] = __${X}__;
+    # Check that direct mode correctly detects file name/path changes.
+    testname="__FILE__ in source file"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >file.c
+#define file __FILE__
+int test;
 EOF
-        $CCACHE $COMPILER -c $x.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-        $CCACHE $COMPILER -c $x.c
-        checkstat 'cache hit (direct)' 0
+    $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c $PWD/file.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
 
-        testname="__${X}__ in include file"
-        $CCACHE -Cz >/dev/null
-        cat <<EOF >$x.h
-char $x[] = __${X}__;
+    testname="__FILE__ in include file"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >file.h
+#define file __FILE__
+int test;
 EOF
-        backdate $x.h
-        cat <<EOF >${x}_h.c
-#include "$x.h"
+    backdate file.h
+    cat <<EOF >file_h.c
+#include "file.h"
 EOF
-        $CCACHE $COMPILER -c ${x}_h.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-        $CCACHE $COMPILER -c ${x}_h.c
-        checkstat 'cache hit (direct)' 0
-    done
+    $CCACHE $COMPILER -c file_h.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c file_h.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    mv file_h.c file2_h.c
+    $CCACHE $COMPILER -c $PWD/file2_h.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    ##################################################################
+    # Check that we never get direct hits when __TIME__ is used.
+    testname="__TIME__ in source file"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >time.c
+#define time __TIME__
+int test;
+EOF
+    $CCACHE $COMPILER -c time.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c time.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    testname="__TIME__ in include time"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >time.h
+#define time __TIME__
+int test;
+EOF
+    backdate time.h
+    cat <<EOF >time_h.c
+#include "time.h"
+EOF
+    $CCACHE $COMPILER -c time_h.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c time_h.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
 
     ##################################################################
     # Reset things.
@@ -919,9 +966,6 @@ EOF
     checkstat 'cache miss' 1
     cd ..
 
-    CCACHE_NODIRECT=1
-    export CCACHE_NODIRECT
-
     ##################################################################
     # CCACHE_BASEDIR="" is the default.
     testname="default CCACHE_BASEDIR"
@@ -939,9 +983,7 @@ EOF
     testname="path normalization"
     cd dir1
     $CCACHE -z >/dev/null
-    unset CCACHE_NODIRECT
-    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -I$PWD//include -c $PWD//.///src/test.c
-    export CCACHE_NODIRECT=1
+    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -I$PWD//include -c $PWD//src/test.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
@@ -960,12 +1002,14 @@ EOF
     fi
 
     CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     if grep -q $PWD stderr.txt; then
         test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
     fi
+
+    export CCACHE_NODIRECT=1
 }
 
 compression_suite() {

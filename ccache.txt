@@ -397,8 +397,8 @@ The direct mode will be disabled if any of the following holds:
 * the unifier is enabled (the environment variable *CCACHE_UNIFY* is set)
 * a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and *-Wp,-MMD,_path_*
   is used
-* a *\_\_DATE\_\_*, *\_\_FILE\_\_* or *\_\_TIME__* macro is used in the source
-  code
+* the string ``\_\_TIME__'' is present outside comments and string literals in
+  the source code
 
 
 THE PREPROCESSOR MODE
@@ -429,8 +429,9 @@ contain absolute paths:
   similar compiler options.
 * Paths specified by compiler options (such as *-I*, *-MF*, etc) may be
   absolute.
-* The source code file path may be absolute, and that path may be included in
-  warnings emitted to standard error by the preprocessor.
+* The source code file path may be absolute, and that path may substituted for
+  *\_\_FILE__* macros in the source code or included in warnings emitted to
+  standard error by the preprocessor.
 
 This means that if you compile the same code in different locations, you can't
 share compilation results between the different build directories since you get
@@ -444,11 +445,15 @@ directory that is a parent of your build directories. (Don't use +/+ as the
 base directory since that will make ccache also rewrite paths to system header
 files, which doesn't gain anything.)
 
-The only drawback of using *CCACHE_BASEDIR* is that if you compile with *-g*
-and use absolute paths to the source code files, the source code paths that are
-stored in the object files may point to the wrong directory, which may prevent
-debuggers like GDB from finding the source code. Sometimes, a work-around is to
-change the directory explicitly with the ``cd'' command in GDB.
+The drawbacks of using *CCACHE_BASEDIR* are:
+
+* If you specify an absolute path to the source code file, *\_\_FILE__* macros
+  will be expanded to a relative path instead.
+* If you specify an absolute path to the source code file and compile with
+  *-g*, the source code path stored in the object file may point to the wrong
+  directory, which may prevent debuggers like GDB from finding the source code.
+  Sometimes, a work-around is to change the directory explicitly with the
+  ``cd'' command in GDB.
 
 
 SHARING A CACHE
