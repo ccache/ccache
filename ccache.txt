@@ -358,7 +358,7 @@ dependency file, etc) from the cache.
 ccache has two ways of doing the detection:
 
 * the *direct mode* (hashes the source code and include files directly)
-* the *prepreprocessor mode* (hashes output from the preprocessor)
+* the *preprocessor mode* (hashes output from the preprocessor)
 
 
 THE DIRECT MODE
