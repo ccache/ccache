@@ -752,43 +752,101 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 	return result;
 }
 
-/* find the hash for a command. The hash includes all argument lists,
-   plus the output from running the compiler with -E */
-static int find_hash(ARGS *args, enum findhash_call_mode mode)
+static void update_cached_result_globals(struct file_hash *hash)
+{
+	char *object_name;
+
+	object_name = format_hash_as_string(hash->hash, hash->size);
+	cached_obj_hash = hash;
+	cached_obj = get_path_in_cache(object_name, ".o");
+	cached_stderr = get_path_in_cache(object_name, ".stderr");
+	cached_dep = get_path_in_cache(object_name, ".d");
+	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
+	free(object_name);
+}
+
+/*
+ * Update a hash sum with information common for the direct and preprocessor
+ * modes.
+ */
+static void calculate_common_hash(ARGS *args, struct mdfour *hash)
+{
+	struct stat st;
+	const char *compilercheck;
+
+	hash_string(hash, HASH_PREFIX);
+	hash_delimiter(hash);
+
+	/*
+	 * When we are doing the unifying tricks we need to include the input
+	 * file name in the hash to get the warnings right.
+	 */
+	if (enable_unify) {
+		hash_string(hash, input_file);
+	}
+	hash_delimiter(hash);
+
+	/*
+	 * We have to hash the extension, as a .i file isn't treated the same
+	 * by the compiler as a .ii file.
+	 */
+	hash_string(hash, i_extension);
+	hash_delimiter(hash);
+
+	if (stat(args->argv[0], &st) != 0) {
+		cc_log("Couldn't stat the compiler (%s)", args->argv[0]);
+		stats_update(STATS_COMPILER);
+		failed();
+	}
+
+	/*
+	 * Hash information about the compiler.
+	 */
+	compilercheck = getenv("CCACHE_COMPILERCHECK");
+	if (!compilercheck) {
+		compilercheck = "mtime";
+	}
+	if (strcmp(compilercheck, "none") == 0) {
+		/* Do nothing. */
+	} else if (strcmp(compilercheck, "content") == 0) {
+		hash_file(hash, args->argv[0]);
+	} else { /* mtime */
+		hash_int(hash, st.st_size);
+		hash_int(hash, st.st_mtime);
+	}
+	hash_delimiter(hash);
+
+	/*
+	 * Also hash the compiler name as some compilers use hard links and
+	 * behave differently depending on the real name.
+	 */
+	hash_string(hash, basename(args->argv[0]));
+	hash_delimiter(hash);
+
+	/* Possibly hash the current working directory. */
+	if (getenv("CCACHE_HASHDIR")) {
+		char *cwd = gnu_getcwd();
+		if (cwd) {
+			hash_string(hash, cwd);
+			free(cwd);
+		}
+	}
+	hash_delimiter(hash);
+}
+
+/*
+ * Update a hash sum with information specific to the direct and preprocessor
+ * modes and calculate the object hash. Returns the object hash on success,
+ * otherwise NULL. Caller frees.
+ */
+static struct file_hash *calculate_object_hash(
+	ARGS *args, struct mdfour *hash, int direct_mode)
 {
 	int i;
-	struct stat st;
-	struct mdfour hash;
-	char *object_name;
 	char *manifest_name;
-	const char *compilercheck;
+	struct stat st;
 	enum hash_source_code_result result;
-
-	switch (mode) {
-	case FINDHASH_DIRECT_MODE:
-		cc_log("Trying direct lookup");
-		break;
-
-	case FINDHASH_CPP_MODE:
-		cc_log("Running preprocessor");
-		break;
-	}
-
-	hash_start(&hash);
-	hash_buffer(&hash, HASH_PREFIX, sizeof(HASH_PREFIX));
-	hash_delimiter(&hash);
-
-	/* when we are doing the unifying tricks we need to include
-	   the input file name in the hash to get the warnings right */
-	if (enable_unify) {
-		hash_string(&hash, input_file);
-	}
-	hash_delimiter(&hash);
-
-	/* we have to hash the extension, as a .i file isn't treated the same
-	   by the compiler as a .ii file */
-	hash_string(&hash, i_extension);
-	hash_delimiter(&hash);
+	struct file_hash *object_hash = NULL;
 
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
@@ -805,7 +863,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		   to the hash. The theory is that these arguments will change
 		   the output of -E if they are going to have any effect at
 		   all. */
-		if (mode == FINDHASH_CPP_MODE) {
+		if (!direct_mode) {
 			if (i < args->argc-1) {
 				if (strcmp(args->argv[i], "-I") == 0 ||
 				    strcmp(args->argv[i], "-imacros") == 0 ||
@@ -831,63 +889,23 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		}
 
 		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
-		    stat(args->argv[i]+8, &st) == 0) {
+		    stat(args->argv[i] + 8, &st) == 0) {
 			/* If given a explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
-			if (!hash_file(&hash, args->argv[i]+8)) {
+			if (!hash_file(hash, args->argv[i] + 8)) {
 				failed();
 			}
-			hash_delimiter(&hash);
+			hash_delimiter(hash);
 			continue;
 		}
 
 		/* All other arguments are included in the hash. */
-		hash_string(&hash, args->argv[i]);
-		hash_delimiter(&hash);
+		hash_string(hash, args->argv[i]);
+		hash_delimiter(hash);
 	}
 
-	/* The compiler driver size and date. This is a simple minded way
-	   to try and detect compiler upgrades. It is not 100% reliable. */
-	if (stat(args->argv[0], &st) != 0) {
-		cc_log("Couldn't stat the compiler (%s)", args->argv[0]);
-		stats_update(STATS_COMPILER);
-		failed();
-	}
-
-	/* also include the hash of the compiler name - as some compilers
-	   use hard links and behave differently depending on the real name */
-	if (st.st_nlink > 1) {
-		hash_string(&hash, basename(args->argv[0]));
-	}
-	hash_delimiter(&hash);
-
-	compilercheck = getenv("CCACHE_COMPILERCHECK");
-	if (!compilercheck) {
-		compilercheck = "mtime";
-	}
-	if (strcmp(compilercheck, "none") == 0) {
-		/* Do nothing. */
-	} else if (strcmp(compilercheck, "content") == 0) {
-		hash_file(&hash, args->argv[0]);
-	} else { /* mtime */
-		hash_int(&hash, st.st_size);
-		hash_int(&hash, st.st_mtime);
-	}
-	hash_delimiter(&hash);
-
-	/* possibly hash the current working directory */
-	if (getenv("CCACHE_HASHDIR")) {
-		char *cwd = gnu_getcwd();
-		if (cwd) {
-			hash_string(&hash, cwd);
-			free(cwd);
-		}
-	}
-	hash_delimiter(&hash);
-
-	switch (mode) {
-	case FINDHASH_DIRECT_MODE:
-		result = hash_source_code_file(&hash, input_file, 1);
+	if (direct_mode) {
+		result = hash_source_code_file(hash, input_file, 1);
 		switch (result) {
 		case HASH_SOURCE_CODE_OK:
 			break;
@@ -901,38 +919,26 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 			enable_direct = 0;
 			break;
 		}
-		manifest_name = hash_result(&hash);
+		manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s",
 		       manifest_path);
-		cached_obj_hash = manifest_get(manifest_path);
-		if (cached_obj_hash) {
+		object_hash = manifest_get(manifest_path);
+		if (object_hash) {
 			cc_log("Got object file hash from manifest");
 		} else {
 			cc_log("Did not find object file hash in manifest");
-			return 0;
 		}
-		break;
-
-	case FINDHASH_CPP_MODE:
-		cached_obj_hash = get_object_name_from_cpp(args, &hash);
+	} else {
+		object_hash = get_object_name_from_cpp(args, hash);
 		cc_log("Got object file hash from preprocessor");
 		if (generating_dependencies) {
 			cc_log("Preprocessor created %s", output_dep);
 		}
-		break;
 	}
 
-	object_name = format_hash_as_string(cached_obj_hash->hash,
-					    cached_obj_hash->size);
-	cached_obj = get_path_in_cache(object_name, ".o");
-	cached_stderr = get_path_in_cache(object_name, ".stderr");
-	cached_dep = get_path_in_cache(object_name, ".d");
-	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
-	free(object_name);
-
-	return 1;
+	return object_hash;
 }
 
 /*
@@ -1562,13 +1568,17 @@ static void ccache(int argc, char *argv[])
 	time_t t;
 	struct tm *tm;
 	int put_object_in_manifest = 0;
+	struct file_hash *object_hash;
 	struct file_hash *object_hash_from_manifest = NULL;
 	char *env;
+	struct mdfour common_hash;
+	struct mdfour direct_hash;
+	struct mdfour cpp_hash;
 
-	/* argument list to be sent to the preprocessor (except -E) */
+	/* Argument list to be sent to the preprocessor (except -E). */
 	ARGS *preprocessor_args;
 
-	/* argument list to be sent to the read compiler */
+	/* Argument list to be sent to the real compiler. */
 	ARGS *compiler_args;
 
 	t = time(NULL);
@@ -1633,9 +1643,18 @@ static void ccache(int argc, char *argv[])
 	}
 	cc_log("Object file: %s", output_obj);
 
+	hash_start(&common_hash);
+	calculate_common_hash(preprocessor_args, &common_hash);
+
 	/* try to find the hash using the manifest */
+	direct_hash = common_hash;
 	if (enable_direct) {
-		if (find_hash(preprocessor_args, FINDHASH_DIRECT_MODE)) {
+		cc_log("Trying direct lookup");
+		object_hash = calculate_object_hash(
+			preprocessor_args, &direct_hash, 1);
+		if (object_hash) {
+			update_cached_result_globals(object_hash);
+
 			/*
 			 * If we can return from cache at this point then do
 			 * so.
@@ -1649,8 +1668,7 @@ static void ccache(int argc, char *argv[])
 			 */
 			put_object_in_manifest = 0;
 
-			object_hash_from_manifest = cached_obj_hash;
-			cached_obj_hash = NULL;
+			object_hash_from_manifest = object_hash;
 		} else {
 			/* Add object to manifest later. */
 			put_object_in_manifest = 1;
@@ -1661,11 +1679,16 @@ static void ccache(int argc, char *argv[])
 	 * Find the hash using the preprocessed output. Also updates
 	 * included_files.
 	 */
-	find_hash(preprocessor_args, FINDHASH_CPP_MODE);
+	cpp_hash = common_hash;
+	cc_log("Running preprocessor");
+	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
+	if (!object_hash) {
+		fatal("internal error: object hash from cpp returned NULL");
+	}
+	update_cached_result_globals(object_hash);
 
 	if (object_hash_from_manifest
-	    && !file_hashes_equal(object_hash_from_manifest,
-				  cached_obj_hash)) {
+	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
 		/*
 		 * The hash from manifest differs from the hash of the
 		 * preprocessor output. This could be because:
