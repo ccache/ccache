@@ -26,7 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
-void hash_buffer(struct mdfour *md, const char *s, size_t len)
+void hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
 	mdfour_update(md, (unsigned char *)s, len);
 }
