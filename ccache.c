@@ -101,7 +101,7 @@ static char *output_dep;
  * Name (represented as a struct file_hash) of the file containing the cached
  * object code.
  */
-static struct file_hash *object_hash;
+static struct file_hash *cached_obj_hash;
 
 /*
  * Full path to the file containing the cached object code
@@ -897,8 +897,8 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s",
 		       manifest_path);
-		object_hash = manifest_get(manifest_path);
-		if (object_hash) {
+		cached_obj_hash = manifest_get(manifest_path);
+		if (cached_obj_hash) {
 			cc_log("Got object file hash from manifest");
 		} else {
 			cc_log("Did not find object file hash in manifest");
@@ -907,7 +907,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		break;
 
 	case FINDHASH_CPP_MODE:
-		object_hash = get_object_name_from_cpp(args, &hash);
+		cached_obj_hash = get_object_name_from_cpp(args, &hash);
 		cc_log("Got object file hash from preprocessor");
 		if (generating_dependencies) {
 			cc_log("Preprocessor created %s", output_dep);
@@ -915,7 +915,8 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		break;
 	}
 
-	object_name = format_hash_as_string(object_hash->hash, object_hash->size);
+	object_name = format_hash_as_string(cached_obj_hash->hash,
+					    cached_obj_hash->size);
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
@@ -1078,7 +1079,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	    && put_object_in_manifest
 	    && included_files
 	    && !getenv("CCACHE_READONLY")) {
-		if (manifest_put(manifest_path, object_hash, included_files)) {
+		if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 			cc_log("Added object file hash to %s",
 				manifest_path);
 			update_mtime(manifest_path);
@@ -1639,8 +1640,8 @@ static void ccache(int argc, char *argv[])
 			 */
 			put_object_in_manifest = 0;
 
-			object_hash_from_manifest = object_hash;
-			object_hash = NULL;
+			object_hash_from_manifest = cached_obj_hash;
+			cached_obj_hash = NULL;
 		} else {
 			/* Add object to manifest later. */
 			put_object_in_manifest = 1;
@@ -1654,7 +1655,8 @@ static void ccache(int argc, char *argv[])
 	find_hash(preprocessor_args, FINDHASH_CPP_MODE);
 
 	if (object_hash_from_manifest
-	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
+	    && !file_hashes_equal(object_hash_from_manifest,
+				  cached_obj_hash)) {
 		/*
 		 * The hash from manifest differs from the hash of the
 		 * preprocessor output. This could be because:
