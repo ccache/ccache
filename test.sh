@@ -891,7 +891,7 @@ EOF
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I $PWD/include -c src/test.c
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -913,7 +913,7 @@ EOF
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I $PWD/include -c src/test.c
+    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1

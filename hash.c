@@ -26,6 +26,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define HASH_DELIMITER "\000cCaChE\000"
+
 void hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
 	mdfour_update(md, (unsigned char *)s, len);
@@ -34,6 +36,12 @@ void hash_buffer(struct mdfour *md, const void *s, size_t len)
 void hash_start(struct mdfour *md)
 {
 	mdfour_begin(md);
+}
+
+void hash_delimiter(struct mdfour *md)
+{
+	/* Hash some string that is unlikely to occur in the input. */
+	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
 }
 
 void hash_string(struct mdfour *md, const char *s)

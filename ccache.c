@@ -215,7 +215,7 @@ enum findhash_call_mode {
  * this string. A typical example would be if the format of one of the files
  * stored in the cache changes in a backwards-incompatible way.
  */
-static const char HASH_PREFIX[] = "ccache3";
+static const char HASH_PREFIX[] = "3";
 
 /*
   something went badly wrong - just execute the real compiler
@@ -730,6 +730,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 	if (!hash_file(hash, path_stderr)) {
 		fatal("Failed to open %s", path_stderr);
 	}
+	hash_delimiter(hash);
 
 	i_tmpfile = path_stdout;
 
@@ -775,16 +776,19 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 
 	hash_start(&hash);
 	hash_buffer(&hash, HASH_PREFIX, sizeof(HASH_PREFIX));
+	hash_delimiter(&hash);
 
 	/* when we are doing the unifying tricks we need to include
 	   the input file name in the hash to get the warnings right */
 	if (enable_unify) {
 		hash_string(&hash, input_file);
 	}
+	hash_delimiter(&hash);
 
 	/* we have to hash the extension, as a .i file isn't treated the same
 	   by the compiler as a .ii file */
 	hash_string(&hash, i_extension);
+	hash_delimiter(&hash);
 
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
@@ -833,11 +837,13 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 			if (!hash_file(&hash, args->argv[i]+8)) {
 				failed();
 			}
+			hash_delimiter(&hash);
 			continue;
 		}
 
 		/* All other arguments are included in the hash. */
 		hash_string(&hash, args->argv[i]);
+		hash_delimiter(&hash);
 	}
 
 	/* The compiler driver size and date. This is a simple minded way
@@ -853,6 +859,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 	if (st.st_nlink > 1) {
 		hash_string(&hash, basename(args->argv[0]));
 	}
+	hash_delimiter(&hash);
 
 	compilercheck = getenv("CCACHE_COMPILERCHECK");
 	if (!compilercheck) {
@@ -866,6 +873,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 		hash_int(&hash, st.st_size);
 		hash_int(&hash, st.st_mtime);
 	}
+	hash_delimiter(&hash);
 
 	/* possibly hash the current working directory */
 	if (getenv("CCACHE_HASHDIR")) {
@@ -875,6 +883,7 @@ static int find_hash(ARGS *args, enum findhash_call_mode mode)
 			free(cwd);
 		}
 	}
+	hash_delimiter(&hash);
 
 	switch (mode) {
 	case FINDHASH_DIRECT_MODE:

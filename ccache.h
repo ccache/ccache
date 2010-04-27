@@ -54,6 +54,7 @@ enum stats {
 };
 
 void hash_start(struct mdfour *md);
+void hash_delimiter(struct mdfour *md);
 void hash_string(struct mdfour *md, const char *s);
 void hash_int(struct mdfour *md, int x);
 int hash_fd(struct mdfour *md, int fd);
