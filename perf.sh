@@ -73,7 +73,11 @@ rm -rf $tmpdir
 mkdir $tmpdir
 cd $tmpdir
 
-n=30
+if [ "$#" -gt 0 ]; then
+    n=$1
+else
+    n=30
+fi
 create_src $n
 
 echo "Without ccache:"
