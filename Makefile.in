@@ -68,7 +68,7 @@ clean:
 
 .PHONY: perf
 perf:
-	$(srcdir)/perf.sh
+	CXX='$(CXX)' $(srcdir)/perf.sh
 
 .PHONY: test
 test:
