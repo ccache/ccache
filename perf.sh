@@ -50,7 +50,7 @@ elapsed() {
 if [ -n "$CXX" ]; then
     cxx="$CXX"
 else
-    cxx=c++
+    cxx=/usr/bin/c++
 fi
 
 ccache=../ccache
