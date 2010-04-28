@@ -31,7 +31,7 @@ dist_files = \
 dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
 
 define create_dist_archive
-	tmpdir=$$(mktemp -d) && \
+	tmpdir=$$(mktemp -d /tmp/tmp-ccache-dist.XXXXXX) && \
 	dir=$$tmpdir/$(dist_dir) && \
 	mkdir $$dir && \
 	(cd $(srcdir) && \
@@ -50,7 +50,7 @@ $(dist_archive_tar_gz): $(dist_files)
 
 .PHONY: distcheck
 distcheck: $(dist_archive_tar_bz2)
-	tmpdir=$$(mktemp -d) && \
+	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
 	(cd $$tmpdir && \
 	 tar xjf $(CURDIR)/$(dist_archive_tar_bz2) && \
 	 mkdir -p $(dist_dir)/build && \
