@@ -863,7 +863,8 @@ static struct file_hash *calculate_object_hash(
 				    strcmp(args->argv[i], "-idirafter") == 0 ||
 				    strcmp(args->argv[i], "-isystem") == 0 ||
 				    strcmp(args->argv[i], "-nostdinc") == 0 ||
-				    strcmp(args->argv[i], "-nostdinc++") == 0) {
+				    strcmp(args->argv[i], "-nostdinc++") == 0 ||
+				    strcmp(args->argv[i], "-U") == 0) {
 					/* Skip from hash. */
 					i++;
 					continue;
