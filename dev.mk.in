@@ -1,17 +1,28 @@
+# GNU make syntax reigns in this file.
+
 CFLAGS += -Werror
 CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+
+ASCIIDOC = asciidoc
+XSLTPROC = xsltproc
+MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
+
 version = $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
                          $(srcdir)/ccache.h)
 dist_dir = ccache-$(version)
 dist_archive_tar_bz2 = ccache-$(version).tar.bz2
 dist_archive_tar_gz = ccache-$(version).tar.gz
+
+generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
+built_dist_files = $(generated_docs)
+
 files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
+files_to_clean += $(built_dist_files)
 
 source_dist_files = \
     $(sources) $(headers) zlib/*.c zlib/*.h \
     config.h.in configure configure-dev dev.mk.in install-sh Makefile.in \
-    test.sh COPYING INSTALL NEWS README
-built_dist_files = ccache.1
+    test.sh COPYING INSTALL.txt NEWS.txt README.txt
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
@@ -48,6 +59,15 @@ distcheck: $(dist_archive_tar_bz2)
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
 	rm -rf $$tmpdir
+
+.PHONY: docs
+docs: $(generated_docs)
+
+%.html: %.txt
+	$(ASCIIDOC) -a toc -b xhtml11 $<
+
+%.xml: %.txt
+	$(ASCIIDOC) -d manpage -b docbook $<
 
 .PHONY: check-syntax
 check-syntax:

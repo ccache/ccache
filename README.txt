@@ -1,7 +1,8 @@
-CCACHE
-======
+ccache README
+=============
 
-ABOUT
+
+About
 -----
 
 ccache is a compiler cache. It speeds up recompilation of C/C++ code by caching
@@ -13,13 +14,19 @@ Please see the manual page and documentation at http://ccache.samba.org for
 more information.
 
 
-INSTALLATION
+Documentation
+-------------
+
+See the ccache(1) man page. It's also avaiable as manual.txt and manual.html.
+
+
+Installation
 ------------
 
-See the INSTALL file.
+See INSTALL.txt or INSTALL.html.
 
 
-WEB SITE
+Web site
 --------
 
 The main ccache web site is here:
@@ -27,7 +34,7 @@ The main ccache web site is here:
     http://ccache.samba.org
 
 
-MAILING LIST
+Mailing list
 ------------
 
 There is a mailing list for discussing usage and development of ccache:
@@ -37,7 +44,7 @@ There is a mailing list for discussing usage and development of ccache:
 Anyone is welcome to join.
 
 
-BUG REPORTS
+Bug reports
 -----------
 
 To submit a bug report or to search for existing reports, please visit this web
@@ -46,7 +53,7 @@ page:
     http://ccache.samba.org/bugs.html
 
 
-SOURCE CODE REPOSITORY
+Source code repository
 ----------------------
 
 To get the very latest version of ccache directly from the source code
@@ -59,17 +66,17 @@ You can also browse the repository:
     http://gitweb.samba.org/?p=ccache.git
 
 
-HISTORY
+History
 -------
 
 ccache was originally written by Andrew Tridgell and is currently maintained by
-Joel Rosdahl. ccache started out as a re-implementation of Erik Thiele's
-"compilercache" (see http://www.erikyyy.de/compilercache/) in C.
+Joel Rosdahl. ccache started out as a reimplementation of Erik Thiele's
+``compilercache'' (see http://www.erikyyy.de/compilercache/) in C.
 
 See also the NEWS file.
 
 
-COPYRIGHT
+Copyright
 ---------
 
 Copyright (C) 2002-2007 Andrew Tridgell

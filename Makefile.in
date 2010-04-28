@@ -14,10 +14,6 @@ CPPFLAGS = @CPPFLAGS@ -I.
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
-ASCIIDOC = asciidoc
-XSLTPROC = xsltproc
-MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
-
 libs = @LIBS@ -lm
 
 sources = \
@@ -32,28 +28,21 @@ headers = \
 
 objs = $(all_sources:.c=.o)
 
-files_to_clean = $(objs) *~ ccache$(EXEEXT) ccache.1
+generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
+
+files_to_clean = $(objs) ccache$(EXEEXT) *~
 
 .PHONY: all
 all: ccache$(EXEEXT)
 
 .PHONY: docs
-docs: ccache.1 ccache.html NEWS.html
+docs: $(generated_docs)
 
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
-ccache.xml: ccache.txt
-	$(ASCIIDOC) -d manpage -b docbook $<
-
-ccache.html: ccache.txt
-	$(ASCIIDOC) -a toc -b xhtml11 $<
-
-ccache.1: ccache.xml
+ccache.1: manual.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
-
-NEWS.html: NEWS.txt
-	$(ASCIIDOC) -a toc -b xhtml11 $<
 
 .PHONY: install
 install: all
@@ -87,5 +76,11 @@ installcheck:
 
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+.txt.html:
+	$(ASCIIDOC) -a toc -b xhtml11 $<
+
+.txt.xml: manual.txt
+	$(ASCIIDOC) -d manpage -b docbook $<
 
 @include_dev_mk@

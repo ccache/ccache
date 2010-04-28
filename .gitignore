@@ -1,10 +1,12 @@
+*.html
 *.o
+*.xml
 *~
 .deps
 Makefile
-NEWS.html
 autom4te.cache
 ccache
+ccache-*.tar.*
 ccache.1
 ccache.html
 ccache.xml
