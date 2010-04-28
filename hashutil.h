@@ -1,7 +1,7 @@
 #ifndef HASHUTIL_H
 #define HASHUTIL_H
 
-#include <mdfour.h>
+#include "mdfour.h"
 #include <inttypes.h>
 
 struct file_hash
