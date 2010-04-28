@@ -25,8 +25,10 @@ the result of previous compilations and detecting when the same compilation is
 being done again.
 
 ccache has been carefully written to always produce exactly the same compiler
-output that you would get without the cache. If you ever discover a case where
-ccache changes the output of your compiler then please let us know.
+output that you would get without the cache. The only way you should be able to
+tell that you are using ccache is the speed. Currently known exceptions to this
+goal are listed under <<_bugs,BUGS>>. If you ever discover an undocumented case
+where ccache changes the output of your compiler, please let us know.
 
 
 FEATURES
@@ -504,6 +506,17 @@ The recommended way of combining distcc and ccache is by using the
 *CCACHE_PREFIX* option. You just need to set the environment variable
 *CCACHE_PREFIX* to *distcc* and ccache will prefix the command line used with
 the compiler with the command ``distcc''.
+
+
+BUGS
+----
+
+ccache doesn't handle the GNU Assembler's *.incbin* directive correctly. This
+directive can be embedded in the source code inside an *__asm__* statement in
+order to include a file verbatim in the object file. If the included file is
+changed, ccache doesn't pick up the change since the inclusion isn't done by
+the preprocessor. A workaround of this problem is to set *CCACHE_EXTRAFILES* to
+the path of the included file.
 
 
 MORE INFORMATION
