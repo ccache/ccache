@@ -41,6 +41,7 @@ unset CCACHE_CPP2
 unset CCACHE_DIR
 unset CCACHE_DISABLE
 unset CCACHE_EXTENSION
+unset CCACHE_EXTRAFILES
 unset CCACHE_HARDLINK
 unset CCACHE_HASHDIR
 unset CCACHE_LOGFILE
@@ -1095,6 +1096,56 @@ readonly_suite() {
     ##################################################################
 }
 
+extrafiles_suite() {
+    ##################################################################
+    # Create some code to compile.
+    cat <<EOF >test.c
+int test;
+EOF
+    echo a >a
+    echo b >b
+
+    ##################################################################
+    # Test the CCACHE_EXTRAFILES feature.
+
+    testname="cache hit"
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="cache miss"
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    testname="cache miss a b"
+    CCACHE_EXTRAFILES="a b" $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+
+    testname="cache hit a b"
+    CCACHE_EXTRAFILES="a b" $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
+    testname="cache miss a b2"
+    echo b2 >b
+    CCACHE_EXTRAFILES="a b" $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 3
+
+    testname="cache hit a b2"
+    CCACHE_EXTRAFILES="a b" $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 3
+    checkstat 'cache miss' 3
+
+    testname="cache miss doesntexist"
+    CCACHE_EXTRAFILES="doesntexist" $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (preprocessed)' 3
+    checkstat 'cache miss' 3
+    checkstat 'error hashing extra file' 1
+}
+
 ######################################################################
 # main program
 
@@ -1123,6 +1174,7 @@ direct
 basedir
 compression
 readonly
+extrafiles
 "
 
 if [ -z "$suites" ]; then

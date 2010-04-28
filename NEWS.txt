@@ -65,6 +65,9 @@ New features and improvements
       hash anything), mtime (hash the compiler's mtime and size) and content
       (hash the content of the compiler binary). The default is mtime.
 
+    - It is now possible to specify extra files whose contents should be
+      included in the hash sum by setting the `CCACHE_EXTRAFILES` option.
+
     - Temporary files are now created in the directory they will end up in.
       This makes ccache more friendly to Linux's directory layout.
 

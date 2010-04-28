@@ -761,6 +761,7 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 {
 	struct stat st;
 	const char *compilercheck;
+	char *p;
 
 	hash_string(hash, HASH_PREFIX);
 	hash_delimiter(hash);
@@ -820,6 +821,23 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 		}
 	}
 	hash_delimiter(hash);
+
+	p = getenv("CCACHE_EXTRAFILES");
+	if (p) {
+		char *path, *q;
+		p = x_strdup(p);
+		q = p;
+		while ((path = strtok(q, " \t\r\n"))) {
+			cc_log("Hashing extra file %s", path);
+			if (!hash_file(hash, path)) {
+				stats_update(STATS_BADEXTRAFILE);
+				failed();
+			}
+			hash_delimiter(hash);
+			q = NULL;
+		}
+		free(p);
+	}
 }
 
 /*
