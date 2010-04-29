@@ -111,7 +111,7 @@ t_d_h=$(elapsed $t0)
 
 echo
 stat "Without ccache" $t_wo $t_wo
-stat "With ccache, no direct, cache miss" $t_p_m $t_wo
-stat "With ccache, no direct, cache hit" $t_p_h $t_wo
-stat "With ccache, direct, cache miss" $t_d_m $t_wo
-stat "With ccache, direct, cache hit" $t_d_h $t_wo
+stat "With ccache, preprocessor mode, cache miss" $t_p_m $t_wo
+stat "With ccache, preprocessor mode, cache hit" $t_p_h $t_wo
+stat "With ccache, direct mode, cache miss" $t_d_m $t_wo
+stat "With ccache, direct mode, cache hit" $t_d_h $t_wo
