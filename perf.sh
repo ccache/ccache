@@ -24,10 +24,10 @@ EOF
 }
 
 compile() {
-    n=$1
-    compiler=$2
-    i=0
-    objdir=objs
+    local n=$1
+    local compiler="$2"
+    local i=0
+    local objdir=objs
     rm -rf $objdir
     mkdir -p $objdir
     while [ $i -lt $n ]; do
@@ -47,12 +47,12 @@ elapsed() {
 }
 
 stat() {
-    desc=$1
-    time=$2
-    ref_time=$3
-    perc=$(perl -e "print 100 * $time / $ref_time")
-    factor=$(perl -e "print $ref_time / $time")
-    printf "%-36s %5.2f s (%6.2f %%) (%5.2f x)\n" "$desc:" $time $perc $factor
+    local desc="$1"
+    local time=$2
+    local ref_time=$3
+    local perc=$(perl -e "print 100 * $time / $ref_time")
+    local factor=$(perl -e "print $ref_time / $time")
+    printf "%-43s %5.2f s (%6.2f %%) (%5.2f x)\n" "$desc:" $time $perc $factor
 }
 
 ###############################################################################
