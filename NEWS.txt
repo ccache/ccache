@@ -54,10 +54,11 @@ New features and improvements
       `CCACHE_BASEDIR` environment variable to an absolute path that specifies
       which paths to rewrite.
 
-    - Object files are now by default stored compressed in the cache. The
+    - Object files are now optionally stored compressed in the cache. The
       runtime cost is negligible, and more files will fit in the ccache
-      directory and in the disk cache. `CCACHE_NOCOMPRESS` can be set to
-      disable object file compression.
+      directory and in the disk cache. Set `CCACHE_COMPRESS` to enable object
+      file compression. Note that you can't use compression in combination with
+      the hard link feature.
 
     - A `CCACHE_COMPILERCHECK` option has been added. This option tells ccache
       what compiler-identifying information to hash to ensure that results

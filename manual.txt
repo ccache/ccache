@@ -40,6 +40,7 @@ FEATURES
 * Easy installation.
 * Low overhead.
 * Optionally uses hard links where possible to avoid copies.
+* Optionally compresses files in the cache to reduce disk space.
 
 
 LIMITATIONS
@@ -170,6 +171,14 @@ cases you won't need any of these as the defaults will be fine.
     You can optionally set *CCACHE_CC* to force the name of the compiler to
     use. If you don't do this then ccache works it out from the command line.
 
+*CCACHE_COMPRESS*::
+
+    If you set the environment variable *CCACHE_COMPRESS* then ccache will
+    compress object files and other compiler output it puts in the cache.
+    However, this setting has no effect on how files are retrieved from the
+    cache; compressed and uncompressed results will still be usable regardless
+    of this setting.
+
 *CCACHE_COMPILERCHECK*::
 
     By default, ccache includes the modification time (mtime) and size of the
@@ -228,8 +237,8 @@ cases you won't need any of these as the defaults will be fine.
     compiler output rather than using a file copy. Using hard links is faster,
     but can confuse programs like ``make'' that rely on modification times.
     Hard links are never made for compressed cache files. This means that you
-    typically also should set the *CCACHE_NOCOMPRESS* variable if you want to
-    use hard links.
+    typically should not set the *CCACHE_COMPRESS* variable if you want to use
+    hard links.
 
 *CCACHE_HASHDIR*::
 
@@ -253,13 +262,6 @@ cases you won't need any of these as the defaults will be fine.
     The environment variable *CCACHE_NLEVELS* allows you to choose the number
     of levels of hash in the cache directory. The default is 2. The minimum is
     1 and the maximum is 8.
-
-*CCACHE_NOCOMPRESS*::
-
-    If you set the environment variable *CCACHE_NOCOMPRESS* then no compression
-    is used for files that go into the cache. However, this setting has no
-    effect on how files are retrieved from the cache; compressed results will
-    still be usable.
 
 *CCACHE_NODIRECT*::
 
@@ -344,10 +346,10 @@ various statistics).
 CACHE COMPRESSION
 -----------------
 
-By default, ccache will compress all files it puts into the cache using the
+ccache can optionally compress all files it puts into the cache using the
 compression library zlib. While this involves a negligible performance
 slowdown, it significantly increases the number of files that fit in the cache.
-You can turn off compression by setting the *CCACHE_NOCOMPRESS* environment
+You can turn on compression by setting the *CCACHE_COMPRESS* environment
 variable.
 
 

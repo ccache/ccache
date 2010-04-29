@@ -586,7 +586,7 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	compress = !getenv("CCACHE_NOCOMPRESS");
+	compress = getenv("CCACHE_COMPRESS") ? 1 : 0;
 
 	if (stat(tmp_stderr, &st) != 0) {
 		cc_log("Failed to stat %s", tmp_stderr);

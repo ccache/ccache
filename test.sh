@@ -37,6 +37,7 @@ TESTDIR=testdir.$$
 unset CCACHE_BASEDIR
 unset CCACHE_CC
 unset CCACHE_COMPILERCHECK
+unset CCACHE_COMPRESS
 unset CCACHE_CPP2
 unset CCACHE_DIR
 unset CCACHE_DISABLE
@@ -46,7 +47,6 @@ unset CCACHE_HARDLINK
 unset CCACHE_HASHDIR
 unset CCACHE_LOGFILE
 unset CCACHE_NLEVELS
-unset CCACHE_NOCOMPRESS
 unset CCACHE_NODIRECT
 unset CCACHE_NOSTATS
 unset CCACHE_PATH
@@ -1023,17 +1023,17 @@ EOF
     ##################################################################
     # Check that compressed and uncompressed files get the same hash sum.
     testname="compression hash sum"
-    $CCACHE $COMPILER -c test.c
+    CCACHE_COMPRESS=1 $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    $CCACHE $COMPILER -c test.c
+    CCACHE_COMPRESS=1 $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
 
-    CCACHE_NOCOMPRESS=1 $CCACHE $COMPILER -c test.c
+    $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
