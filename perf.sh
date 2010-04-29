@@ -81,6 +81,9 @@ else
 fi
 create_src $n
 
+# Perform a compilation to warm up the disk cache.
+compile 1 $cxx >/dev/null
+
 echo "Without ccache:"
 t0=$(now)
 compile $n $cxx
