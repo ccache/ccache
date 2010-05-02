@@ -56,11 +56,11 @@ clean:
 	rm -f $(files_to_clean)
 
 .PHONY: perf
-perf:
-	CXX='$(CXX)' $(srcdir)/perf.sh
+perf: ccache$(EXEEXT)
+	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(CFLAGS) $(CPPFLAGS) $(srcdir)/ccache.c
 
 .PHONY: test
-test:
+test: ccache$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
 
 .PHONY: check

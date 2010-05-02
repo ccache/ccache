@@ -16,5 +16,5 @@ config.log
 config.status
 configure
 dev.mk
+perfdir.*
 testdir.*
-tmpdir.*
