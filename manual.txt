@@ -234,11 +234,11 @@ cases you won't need any of these as the defaults will be fine.
 
     If you set the environment variable *CCACHE_HARDLINK* then ccache will
     attempt to use hard links from the cache directory when creating the
-    compiler output rather than using a file copy. Using hard links is faster,
-    but can confuse programs like ``make'' that rely on modification times.
-    Hard links are never made for compressed cache files. This means that you
-    typically should not set the *CCACHE_COMPRESS* variable if you want to use
-    hard links.
+    compiler output rather than using a file copy. Using hard links may be
+    slightly faster in some situations, but can confuse programs like ``make''
+    that rely on modification times. Hard links are never made for compressed
+    cache files. This means that you should not set the *CCACHE_COMPRESS*
+    variable if you want to use hard links.
 
 *CCACHE_HASHDIR*::
 
