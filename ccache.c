@@ -1323,7 +1323,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 			}
 		}
 
-		if (enable_direct && strncmp(argv[i], "-Wp,", 4) == 0) {
+		if (strncmp(argv[i], "-Wp,", 4) == 0) {
 			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0
 			    && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = 1;
