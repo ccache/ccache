@@ -40,7 +40,7 @@ New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     - ccache now has a ``direct mode'' where it computes a hash of the source
-      code (including all included files) and compiler arguments without
+      code (including all included files) and compiler options without
       running the preprocessor. By not running the preprocessor, CPU usage is
       reduced; the speed is somewhere between 1 and 5 times that of ccache
       running in traditional mode, depending on the circumstances. The speedup
@@ -121,7 +121,7 @@ Bug fixes
     - Fixed NFS issues.
 
     - Computation of the hash sum has been improved to decrease the risk of
-      hash collisions. For instance, the compiler arguments `-X -Y` and `-X-Y`
+      hash collisions. For instance, the compiler options `-X -Y` and `-X-Y`
       previously contributed equally to the hash sum.
 
     - Bail out on too hard compiler options `--coverage`, `-fprofile-arcs`,
