@@ -692,22 +692,7 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 		failed();
 	}
 
-	/* if the compilation is with -g then we have to include the whole of the
-	   preprocessor output, which means we are sensitive to line number
-	   information. Otherwise we can discard line number info, which makes
-	   us less sensitive to reformatting changes
-
-	   Note! I have now disabled the unification code by default
-	   as it gives the wrong line numbers for warnings. Pity.
-	*/
-	if (!enable_unify) {
-		hash_delimiter(hash, "cpp");
-		if (!process_preprocessed_file(hash, path_stdout)) {
-			stats_update(STATS_ERROR);
-			unlink(path_stderr);
-			failed();
-		}
-	} else {
+	if (enable_unify) {
 		/*
 		 * When we are doing the unifying tricks we need to include the
 		 * input file name in the hash to get the warnings right.
@@ -720,6 +705,13 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 			stats_update(STATS_ERROR);
 			unlink(path_stderr);
 			cc_log("Failed to unify %s", path_stdout);
+			failed();
+		}
+	} else {
+		hash_delimiter(hash, "cpp");
+		if (!process_preprocessed_file(hash, path_stdout)) {
+			stats_update(STATS_ERROR);
+			unlink(path_stderr);
 			failed();
 		}
 	}
