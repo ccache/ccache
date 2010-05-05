@@ -120,6 +120,10 @@ Bug fixes
 
     - Fixed NFS issues.
 
+    - Computation of the hash sum has been improved to decrease the risk of
+      hash collisions. For instance, the compiler arguments `-X -Y` and `-X-Y`
+      previously contributed equally to the hash sum.
+
     - Bail out on too hard compiler options `--coverage`, `-fprofile-arcs`,
       `-fprofile-generate`, `-fprofile-use`, `-ftest-coverage` and
       `-save-temps`. Also bail out on `@file` style options.

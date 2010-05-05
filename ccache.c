@@ -701,12 +701,21 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 	   as it gives the wrong line numbers for warnings. Pity.
 	*/
 	if (!enable_unify) {
+		hash_delimiter(hash, "cpp");
 		if (!process_preprocessed_file(hash, path_stdout)) {
 			stats_update(STATS_ERROR);
 			unlink(path_stderr);
 			failed();
 		}
 	} else {
+		/*
+		 * When we are doing the unifying tricks we need to include the
+		 * input file name in the hash to get the warnings right.
+		 */
+		hash_delimiter(hash, "unifyfilename");
+		hash_string(hash, input_file);
+
+		hash_delimiter(hash, "unifycpp");
 		if (unify_hash(hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
 			unlink(path_stderr);
@@ -715,10 +724,10 @@ get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
 		}
 	}
 
+	hash_delimiter(hash, "cppstderr");
 	if (!hash_file(hash, path_stderr)) {
 		fatal("Failed to open %s", path_stderr);
 	}
-	hash_delimiter(hash);
 
 	i_tmpfile = path_stdout;
 
@@ -764,23 +773,13 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 	char *p;
 
 	hash_string(hash, HASH_PREFIX);
-	hash_delimiter(hash);
-
-	/*
-	 * When we are doing the unifying tricks we need to include the input
-	 * file name in the hash to get the warnings right.
-	 */
-	if (enable_unify) {
-		hash_string(hash, input_file);
-	}
-	hash_delimiter(hash);
 
 	/*
 	 * We have to hash the extension, as a .i file isn't treated the same
 	 * by the compiler as a .ii file.
 	 */
+	hash_delimiter(hash, "ext");
 	hash_string(hash, i_extension);
-	hash_delimiter(hash);
 
 	if (stat(args->argv[0], &st) != 0) {
 		cc_log("Couldn't stat the compiler (%s)", args->argv[0]);
@@ -798,29 +797,30 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 	if (strcmp(compilercheck, "none") == 0) {
 		/* Do nothing. */
 	} else if (strcmp(compilercheck, "content") == 0) {
+		hash_delimiter(hash, "cc_content");
 		hash_file(hash, args->argv[0]);
 	} else { /* mtime */
+		hash_delimiter(hash, "cc_mtime");
 		hash_int(hash, st.st_size);
 		hash_int(hash, st.st_mtime);
 	}
-	hash_delimiter(hash);
 
 	/*
 	 * Also hash the compiler name as some compilers use hard links and
 	 * behave differently depending on the real name.
 	 */
+	hash_delimiter(hash, "cc_name");
 	hash_string(hash, basename(args->argv[0]));
-	hash_delimiter(hash);
 
 	/* Possibly hash the current working directory. */
 	if (getenv("CCACHE_HASHDIR")) {
 		char *cwd = gnu_getcwd();
 		if (cwd) {
+			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
 		}
 	}
-	hash_delimiter(hash);
 
 	p = getenv("CCACHE_EXTRAFILES");
 	if (p) {
@@ -829,11 +829,11 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 		q = p;
 		while ((path = strtok(q, " \t\r\n"))) {
 			cc_log("Hashing extra file %s", path);
+			hash_delimiter(hash, "extrafile");
 			if (!hash_file(hash, path)) {
 				stats_update(STATS_BADEXTRAFILE);
 				failed();
 			}
-			hash_delimiter(hash);
 			q = NULL;
 		}
 		free(p);
@@ -899,16 +899,16 @@ static struct file_hash *calculate_object_hash(
 		    stat(args->argv[i] + 8, &st) == 0) {
 			/* If given a explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
+			hash_delimiter(hash, "specs");
 			if (!hash_file(hash, args->argv[i] + 8)) {
 				failed();
 			}
-			hash_delimiter(hash);
 			continue;
 		}
 
 		/* All other arguments are included in the hash. */
+		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
-		hash_delimiter(hash);
 	}
 
 	if (direct_mode) {
@@ -917,9 +917,10 @@ static struct file_hash *calculate_object_hash(
 		 * __FILE__, so make sure that the hash is unique for the file
 		 * name.
 		 */
+		hash_delimiter(hash, "inputfile");
 		hash_string(hash, input_file);
-		hash_delimiter(hash);
 
+		hash_delimiter(hash, "sourcecode");
 		result = hash_source_code_file(hash, input_file);
 		if (result & HASH_SOURCE_CODE_ERROR) {
 			failed();

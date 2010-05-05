@@ -167,7 +167,7 @@ end:
 		cc_log("Found __DATE__ in %s", path);
 		time_t t = time(NULL);
 		struct tm *now = localtime(&t);
-		hash_delimiter(hash);
+		hash_delimiter(hash, "date");
 		hash_buffer(hash, &now->tm_year, sizeof(now->tm_year));
 		hash_buffer(hash, &now->tm_mon, sizeof(now->tm_mon));
 		hash_buffer(hash, &now->tm_mday, sizeof(now->tm_mday));

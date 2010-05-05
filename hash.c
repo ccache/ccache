@@ -26,7 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define HASH_DELIMITER "\000cCaChE\000"
+#define HASH_DELIMITER "\000cCaChE"
 
 void hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
@@ -38,10 +38,20 @@ void hash_start(struct mdfour *md)
 	mdfour_begin(md);
 }
 
-void hash_delimiter(struct mdfour *md)
+/*
+ * Hash some data that is unlikely to occur in the input. The idea is twofold:
+ *
+ * - Delimit things like arguments from each other (e.g., so that -I -O2 and
+ *   -I-O2 hash differently).
+ * - Tag different types of hashed information so that it's possible to do
+ *   conditional hashing of information in a safe way (e.g., if we want to hash
+ *   information X if CCACHE_A is set and information Y if CCACHE_B is set,
+ *   there should never be a hash collision risk).
+ */
+void hash_delimiter(struct mdfour *md, const char *type)
 {
-	/* Hash some string that is unlikely to occur in the input. */
 	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
+	hash_buffer(md, type, strlen(type) + 1); /* Include NUL. */
 }
 
 void hash_string(struct mdfour *md, const char *s)
