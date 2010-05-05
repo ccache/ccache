@@ -863,25 +863,29 @@ static struct file_hash *calculate_object_hash(
 		   all. */
 		if (!direct_mode) {
 			if (i < args->argc-1) {
-				if (strcmp(args->argv[i], "-I") == 0 ||
+				if (strcmp(args->argv[i], "-D") == 0 ||
+				    strcmp(args->argv[i], "-I") == 0 ||
+				    strcmp(args->argv[i], "-U") == 0 ||
+				    strcmp(args->argv[i], "-idirafter") == 0 ||
 				    strcmp(args->argv[i], "-imacros") == 0 ||
+				    strcmp(args->argv[i], "-imultilib") == 0 ||
 				    strcmp(args->argv[i], "-include") == 0 ||
-				    strcmp(args->argv[i], "-D") == 0 ||
 				    strcmp(args->argv[i], "-iprefix") == 0 ||
+				    strcmp(args->argv[i], "-iquote") == 0 ||
+				    strcmp(args->argv[i], "-isysroot") == 0 ||
+				    strcmp(args->argv[i], "-isystem") == 0 ||
 				    strcmp(args->argv[i], "-iwithprefix") == 0 ||
 				    strcmp(args->argv[i], "-iwithprefixbefore") == 0 ||
-				    strcmp(args->argv[i], "-idirafter") == 0 ||
-				    strcmp(args->argv[i], "-isystem") == 0 ||
 				    strcmp(args->argv[i], "-nostdinc") == 0 ||
-				    strcmp(args->argv[i], "-nostdinc++") == 0 ||
-				    strcmp(args->argv[i], "-U") == 0) {
+				    strcmp(args->argv[i], "-nostdinc++") == 0) {
 					/* Skip from hash. */
 					i++;
 					continue;
 				}
 			}
-			if (strncmp(args->argv[i], "-I", 2) == 0 ||
-			    strncmp(args->argv[i], "-D", 2) == 0) {
+			if (strncmp(args->argv[i], "-D", 2) == 0 ||
+			    strncmp(args->argv[i], "-I", 2) == 0 ||
+			    strncmp(args->argv[i], "-U", 2) == 0) {
 				/* Skip from hash. */
 				continue;
 			}
@@ -1233,11 +1237,20 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		    strcmp(argv[i], "-fprofile-use") == 0 ||
 		    strcmp(argv[i], "-ftest-coverage") == 0 ||
 		    strcmp(argv[i], "-save-temps") == 0 ||
-		    strcmp(argv[i], "-x") == 0) {
+		    strncmp(argv[i], "-x", 2) == 0) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			failed();
 			continue;
+		}
+
+		/* These are too hard in direct mode. */
+		if (enable_direct) {
+			if (strcmp(argv[i], "-Xpreprocessor") == 0) {
+				cc_log("Unsupported compiler option for direct"
+				       " mode: %s", argv[i]);
+				enable_direct = 0;
+			}
 		}
 
 		/* we must have -c */
@@ -1413,13 +1426,28 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 
 		/* options that take an argument */
 		{
-			const char *opts[] = {"-iwithprefix", "-iwithprefixbefore",
-					      "-L", "-D", "-U", "-x", "-MF",
-					      "-MT", "-MQ", "-aux-info",
-					      "--param", "-A", "-Xlinker", "-u",
-					      NULL};
+			const char *opts[] = {
+				"--param",
+				"-A",
+				"-D",
+				"-G",
+				"-L",
+				"-MF",
+				"-MQ",
+				"-MT",
+				"-U",
+				"-V",
+				"-Xassembler",
+				"-Xlinker",
+				"-aux-info",
+				"-b",
+				"-iwithprefix",
+				"-iwithprefixbefore",
+				"-u",
+				NULL
+			};
 			int j;
-			for (j=0;opts[j];j++) {
+			for (j = 0; opts[j]; j++) {
 				if (strcmp(argv[i], opts[j]) == 0) {
 					if (i == argc-1) {
 						cc_log("Missing argument to %s",

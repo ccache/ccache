@@ -105,8 +105,9 @@ New features and improvements
       make ccache print executed commands to standard output.
 
     - The following options are no longer hashed in the preprocessor mode:
-      `-imacros`, `-iprefix`, `-iwithprefix`, `-iwithprefixbefore`,
-      `-nostdinc`, `-nostdinc++` and `-U`.
+      `-imacros`, `-imultilib`, `-iprefix`, `-iquote`, `-isysroot`,
+      `-iwithprefix`, `-iwithprefixbefore`, `-nostdinc`, `-nostdinc++` and
+      `-U`.
 
 
 Bug fixes
@@ -133,6 +134,9 @@ Bug fixes
     - The `-finput-charset` option is now handled correctly.
 
     - Added support for `-Wp,-MD` and `-Wp,-MMD` options.
+
+    - The compiler options `-Xassembler`, `-b`, `-G` and `-V` are now correctly
+      recognized as taking an argument.
 
     - Debug information containing line numbers of predefined and command-line
       macros (enabled with the compiler option `-g3`) will now be correct.
