@@ -1277,7 +1277,9 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		*/
 		if (strncmp(argv[i], "-g", 2) == 0) {
 			args_add(stripped_args, argv[i]);
-			if (strcmp(argv[i], "-g0") != 0) {
+			if (enable_unify && strcmp(argv[i], "-g0") != 0) {
+				cc_log("%s used; disabling unify mode",
+				       argv[i]);
 				enable_unify = 0;
 			}
 			if (strcmp(argv[i], "-g3") == 0) {
@@ -1285,6 +1287,8 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 				 * Fix for bug 7190 ("commandline macros (-D)
 				 * have non-zero lineno when using -g3").
 				 */
+				cc_log("%s used; not compiling preprocessed"
+				       " code", argv[i]);
 				compile_preprocessed_source_code = 0;
 			}
 			continue;
@@ -1619,6 +1623,7 @@ static void ccache(int argc, char *argv[])
 	}
 
 	if (getenv("CCACHE_UNIFY")) {
+		cc_log("Unify mode disabled");
 		enable_unify = 1;
 	}
 
