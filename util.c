@@ -66,25 +66,24 @@ void fatal(const char *format, ...)
 {
 	va_list ap;
 	extern char *cache_logfile;
+	char msg[1000];
 
 	va_start(ap, format);
+	vsnprintf(msg, sizeof(msg), format, ap);
+	va_end(ap);
 
 	if (cache_logfile) {
 		if (!logfile) {
 			logfile = fopen(cache_logfile, "a");
 		}
 		if (logfile) {
-			fprintf(logfile, "[%-5d] FATAL: ", getpid());
-			vfprintf(logfile, format, ap);
+			fprintf(logfile, "[%-5d] FATAL: %s", getpid(), msg);
 			fflush(logfile);
 		}
 	}
 
-	fprintf(stderr, "ccache: FATAL: ");
-	vfprintf(stderr, format, ap);
-	fprintf(stderr, "\n");
+	fprintf(stderr, "ccache: FATAL: %s\n", msg);
 
-	va_end(ap);
 	exit(1);
 }
 
