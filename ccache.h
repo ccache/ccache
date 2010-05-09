@@ -70,6 +70,8 @@ void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void copy_fd(int fd_in, int fd_out);
 int copy_file(const char *src, const char *dest, int compress_dest);
 int move_file(const char *src, const char *dest, int compress_dest);
+int move_uncompressed_file(const char *src, const char *dest,
+			   int compress_dest);
 int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);

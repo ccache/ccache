@@ -594,7 +594,8 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		if (move_file(tmp_stderr, cached_stderr, compress) != 0) {
+		if (move_uncompressed_file(tmp_stderr, cached_stderr,
+					   compress) != 0) {
 			cc_log("Failed to move %s to %s",
 			       tmp_stderr, cached_stderr);
 			stats_update(STATS_ERROR);
@@ -604,7 +605,7 @@ static void to_cache(ARGS *args)
 	} else {
 		unlink(tmp_stderr);
 	}
-	if (move_file(tmp_obj, cached_obj, compress) != 0) {
+	if (move_uncompressed_file(tmp_obj, cached_obj, compress) != 0) {
 		cc_log("Failed to move %s to %s", tmp_obj, cached_obj);
 		stats_update(STATS_ERROR);
 		failed();

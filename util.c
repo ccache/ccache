@@ -259,6 +259,20 @@ int move_file(const char *src, const char *dest, int compress_dest)
 	return ret;
 }
 
+/*
+ * Like move_file(), but assumes that src is uncompressed and that src and dest
+ * are on the same file system.
+ */
+int
+move_uncompressed_file(const char *src, const char *dest, int compress_dest)
+{
+	if (compress_dest) {
+		return move_file(src, dest, compress_dest);
+	} else {
+		return rename(src, dest);
+	}
+}
+
 /* test if a file is zlib compressed */
 int test_if_compressed(const char *filename)
 {
