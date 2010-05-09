@@ -116,8 +116,8 @@ void copy_fd(int fd_in, int fd_out)
  */
 int copy_file(const char *src, const char *dest, int compress_dest)
 {
-	int fd_in, fd_out;
-	gzFile gz_in, gz_out = NULL;
+	int fd_in = -1, fd_out = -1;
+	gzFile gz_in = NULL, gz_out = NULL;
 	char buf[10240];
 	int n, ret;
 	char *tmp_name;
@@ -127,8 +127,6 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 
 	cc_log("Copying %s to %s (%s)",
 	       src, dest, compress_dest ? "compressed": "uncompressed");
-
-	x_asprintf(&tmp_name, "%s.%s.XXXXXX", dest, tmp_string());
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY);
@@ -145,12 +143,11 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	}
 
 	/* open destination file */
+	x_asprintf(&tmp_name, "%s.%s.XXXXXX", dest, tmp_string());
 	fd_out = mkstemp(tmp_name);
 	if (fd_out == -1) {
 		cc_log("mkstemp error: %s", strerror(errno));
-		gzclose(gz_in);
-		free(tmp_name);
-		return -1;
+		goto error;
 	}
 
 	if (compress_dest) {
@@ -161,10 +158,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		 */
 		if (fstat(fd_in, &st) != 0) {
 			cc_log("fstat error: %s", strerror(errno));
-			gzclose(gz_in);
-			close(fd_out);
-			free(tmp_name);
-			return -1;
+			goto error;
 		}
 		if (file_size(&st) == 0) {
 			compress_dest = 0;
@@ -175,10 +169,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
 			cc_log("gzdopen(dest) error: %s", strerror(errno));
-			gzclose(gz_in);
-			close(fd_out);
-			free(tmp_name);
-			return -1;
+			goto error;
 		}
 	}
 
@@ -196,14 +187,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 			} else {
 				cc_log("write error: %s", strerror(errno));
 			}
-			gzclose(gz_in);
-			if (gz_out) {
-				gzclose(gz_out);
-			}
-			close(fd_out);
-			unlink(tmp_name);
-			free(tmp_name);
-			return -1;
+			goto error;
 		}
 	}
 	if (n == 0 && !gzeof(gz_in)) {
@@ -220,8 +204,10 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	}
 
 	gzclose(gz_in);
+	gz_in = NULL;
 	if (gz_out) {
 		gzclose(gz_out);
+		gz_out = NULL;
 	}
 
 	/* get perms right on the tmp file */
@@ -232,23 +218,33 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	/* the close can fail on NFS if out of space */
 	if (close(fd_out) == -1) {
 		cc_log("close error: %s", strerror(errno));
-		unlink(tmp_name);
-		free(tmp_name);
-		return -1;
+		goto error;
 	}
 
 	unlink(dest);
 
 	if (rename(tmp_name, dest) == -1) {
 		cc_log("rename error: %s", strerror(errno));
-		unlink(tmp_name);
-		free(tmp_name);
-		return -1;
+		goto error;
 	}
 
 	free(tmp_name);
 
 	return 0;
+
+error:
+	if (gz_in) {
+		gzclose(gz_in);
+	}
+	if (gz_out) {
+		gzclose(gz_out);
+	}
+	if (fd_out != -1) {
+		close(fd_out);
+	}
+	unlink(tmp_name);
+	free(tmp_name);
+	return -1;
 }
 
 /* Run copy_file() and, if successful, delete the source file. */
