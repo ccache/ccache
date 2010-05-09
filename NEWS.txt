@@ -69,9 +69,6 @@ New features and improvements
     - It is now possible to specify extra files whose contents should be
       included in the hash sum by setting the `CCACHE_EXTRAFILES` option.
 
-    - Temporary files are now created in the directory they will end up in.
-      This makes ccache more friendly to Linux's directory layout.
-
     - Added support for long command-line options.
 
     - A `CACHEDIR.TAG` file is now created in the cache directory. See
@@ -80,8 +77,15 @@ New features and improvements
     - Messages printed to the debug log (specified by `CCACHE_LOGFILE`) have
       been improved.
 
-    - By default, ccache now puts temporary files in `$CCACHE_DIR/tmp` to avoid
-      cluttering the top directory.
+    - `CCACHE_TEMPDIR` no longer needs to be on the same filesystem as
+      `CCACHE_DIR`.
+
+    - The default value of `CCACHE_TEMPDIR` has been changed to
+      `$CCACHE_DIR/tmp` to avoid cluttering the top directory.
+
+    - Temporary files that later will be moved into the cache are now created
+      in the cache directory they will end up in. This makes ccache more
+      friendly to Linux's directory layout.
 
     - Improved the test suite and added tests for most of the new
       functionality. It's now also possible to specify a subset of tests to

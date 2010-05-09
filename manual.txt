@@ -302,9 +302,9 @@ cases you won't need any of these as the defaults will be fine.
 *CCACHE_TEMPDIR*::
 
     The *CCACHE_TEMPDIR* environment variable specifies where ccache will put
-    temporary files. The default is *$CCACHE_DIR/tmp*. Note that the
-    *CCACHE_TEMPDIR* path must be on the same filesystem as the *CCACHE_DIR*
-    path, so that renames of files between the two directories can work.
+    temporary files. The default is *$CCACHE_DIR/tmp*. (Note: In previous
+    versions of ccache, *CCACHE_TEMPDIR* had to be on the same filesystem as
+    the *CCACHE_DIR* path, but this requirement has been relaxed.)
 
 *CCACHE_UMASK*::
 
