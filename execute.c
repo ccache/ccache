@@ -45,6 +45,7 @@ int execute(char **argv,
 	if (pid == 0) {
 		int fd;
 
+		cc_log_executed_command(argv);
 		if (getenv("CCACHE_VERBOSE")) {
 			print_executed_command(stdout, argv);
 		}

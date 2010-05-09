@@ -67,6 +67,7 @@ void hash_buffer(struct mdfour *md, const void *s, size_t len);
 
 void cc_log_no_newline(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+void cc_log_executed_command(char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);

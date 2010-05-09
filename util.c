@@ -80,6 +80,13 @@ void cc_log(const char *format, ...)
 	fflush(logfile);
 }
 
+void cc_log_executed_command(char **argv)
+{
+	cc_log_no_newline("Executing ");
+	print_command(logfile, argv);
+	fflush(logfile);
+}
+
 /* something went badly wrong! */
 void fatal(const char *format, ...)
 {

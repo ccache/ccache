@@ -248,6 +248,7 @@ static void failed(void)
 	}
 
 	cc_log("Failed; falling back to running the real compiler");
+	cc_log_executed_command(orig_args->argv);
 	if (getenv("CCACHE_VERBOSE")) {
 		print_executed_command(stdout, orig_args->argv);
 	}
