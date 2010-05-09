@@ -73,6 +73,7 @@ int move_file(const char *src, const char *dest, int compress_dest);
 int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
+const char *get_hostname(void);
 const char *tmp_string(void);
 char *format_hash_as_string(const unsigned char *hash, unsigned size);
 int create_hash_dir(char **dir, const char *hash, const char *cache_dir);

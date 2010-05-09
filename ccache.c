@@ -1674,6 +1674,10 @@ static void ccache(int argc, char *argv[])
 	process_args(orig_args->argc, orig_args->argv, &preprocessor_args,
 		     &compiler_args);
 
+	cc_log("Hostname: %s", get_hostname());
+
+	cc_log("Cwd: %s", current_working_dir);
+
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);

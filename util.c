@@ -272,6 +272,24 @@ int create_dir(const char *dir)
 }
 
 /*
+ * Return a static string with the current hostname.
+ */
+const char *get_hostname(void)
+{
+	static char hostname[200] = "";
+
+	if (!hostname[0]) {
+		strcpy(hostname, "unknown");
+#if HAVE_GETHOSTNAME
+		gethostname(hostname, sizeof(hostname)-1);
+#endif
+		hostname[sizeof(hostname)-1] = 0;
+	}
+
+	return hostname;
+}
+
+/*
  * Return a string to be used to distinguish temporary files. Also tries to
  * cope with NFS by adding the local hostname.
  */
@@ -280,13 +298,7 @@ const char *tmp_string(void)
 	static char *ret;
 
 	if (!ret) {
-		char hostname[200];
-		strcpy(hostname, "unknown");
-#if HAVE_GETHOSTNAME
-		gethostname(hostname, sizeof(hostname)-1);
-#endif
-		hostname[sizeof(hostname)-1] = 0;
-		x_asprintf(&ret, "%s.%u", hostname, (unsigned)getpid());
+		x_asprintf(&ret, "%s.%u", get_hostname(), (unsigned)getpid());
 	}
 
 	return ret;
