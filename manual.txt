@@ -254,8 +254,8 @@ cases you won't need any of these as the defaults will be fine.
 *CCACHE_LOGFILE*::
 
     If you set the *CCACHE_LOGFILE* environment variable then ccache will write
-    some log information on cache hits and misses to that file. This is useful
-    for tracking down problems.
+    some information on what it is doing to the log. This is useful for
+    tracking down problems.
 
 *CCACHE_NLEVELS*::
 
