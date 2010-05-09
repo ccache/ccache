@@ -496,6 +496,20 @@ You may also want to make sure that the developers have *CCACHE_BASEDIR* set
 appropriately, as discussed in the previous section.
 
 
+SHARING A CACHE ON NFS
+----------------------
+
+It is possible to put the cache directory on an NFS filesystem (or similar
+filesystems), but keep in mind that:
+
+* Having the cache on NFS may slow down compilation. Make sure to do some
+  benchmarking to see if it's worth it.
+* ccache hasn't been tested very thoroughly on NFS.
+
+A tip is to set CCACHE_TEMPDIR to a directory on the local host to avoid NFS
+traffic for temporary files.
+
+
 USING CCACHE WITH DISTCC
 ------------------------
 
