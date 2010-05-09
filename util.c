@@ -42,49 +42,67 @@
 
 static FILE *logfile;
 
-static void cc_log_va_list(const char *format, va_list ap)
+static int cc_log_va_list(const char *format, va_list ap)
 {
 	extern char *cache_logfile;
 
-	if (!cache_logfile) return;
+	if (!cache_logfile) {
+		return 0;
+	}
 
-	if (!logfile) logfile = fopen(cache_logfile, "a");
-	if (!logfile) return;
+	if (!logfile) {
+		logfile = fopen(cache_logfile, "a");
+		if (!logfile) {
+			return 0;
+		}
+	}
 
 	fprintf(logfile, "[%-5d] ", getpid());
 	vfprintf(logfile, format, ap);
+
+	return 1;
 }
 
 /*
  * Log a message to the CCACHE_LOGFILE location without newline and without
  * flushing.
  */
-void cc_log_no_newline(const char *format, ...)
+int cc_log_no_newline(const char *format, ...)
 {
+	int logged;
 	va_list ap;
 	va_start(ap, format);
-	cc_log_va_list(format, ap);
+	logged = cc_log_va_list(format, ap);
 	va_end(ap);
+	return logged;
 }
 
 /*
  * Log a message to the CCACHE_LOGFILE location adding a newline and flushing.
  */
-void cc_log(const char *format, ...)
+int cc_log(const char *format, ...)
 {
+	int logged;
 	va_list ap;
 	va_start(ap, format);
-	cc_log_va_list(format, ap);
+	logged = cc_log_va_list(format, ap);
+	if (logged) {
+		fprintf(logfile, "\n");
+		fflush(logfile);
+	}
 	va_end(ap);
-	fprintf(logfile, "\n");
-	fflush(logfile);
+	return logged;
 }
 
-void cc_log_executed_command(char **argv)
+int cc_log_executed_command(char **argv)
 {
-	cc_log_no_newline("Executing ");
-	print_command(logfile, argv);
-	fflush(logfile);
+	if (cc_log_no_newline("Executing ")) {
+		print_command(logfile, argv);
+		fflush(logfile);
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /* something went badly wrong! */
