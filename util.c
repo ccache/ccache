@@ -190,6 +190,19 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 			return -1;
 		}
 	}
+	if (n == 0 && !gzeof(gz_in)) {
+		int errnum;
+		cc_log("gzread error: %s (errno: %s)",
+		       gzerror(gz_in, &errnum), strerror(errno));
+		gzclose(gz_in);
+		if (gz_out) {
+			gzclose(gz_out);
+		}
+		close(fd_out);
+		unlink(tmp_name);
+		free(tmp_name);
+		return -1;
+	}
 
 	gzclose(gz_in);
 	if (gz_out) {
