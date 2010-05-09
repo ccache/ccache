@@ -1138,6 +1138,7 @@ static void find_compiler(int argc, char **argv)
 {
 	char *base;
 	char *path;
+	char *compiler;
 
 	orig_args = args_init(argc, argv);
 
@@ -1159,14 +1160,14 @@ static void find_compiler(int argc, char **argv)
 		base = strdup(path);
 	}
 
-	orig_args->argv[0] = find_executable(base, MYNAME);
+	compiler = find_executable(base, MYNAME);
 
 	/* can't find the compiler! */
-	if (!orig_args->argv[0]) {
+	if (!compiler) {
 		stats_update(STATS_COMPILER);
-		perror(base);
-		exit(1);
+		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
+	orig_args->argv[0] = compiler;
 }
 
 
