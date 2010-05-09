@@ -11,6 +11,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
@@ -134,7 +135,8 @@ int execute(char **argv,
 	    const char *path_stdout,
 	    const char *path_stderr);
 char *find_executable(const char *name, const char *exclude_name);
-void print_executed_command(char **argv);
+void print_command(FILE *fp, char **argv);
+void print_executed_command(FILE *fp, char **argv);
 
 typedef struct {
 	char **argv;

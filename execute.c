@@ -46,7 +46,7 @@ int execute(char **argv,
 		int fd;
 
 		if (getenv("CCACHE_VERBOSE")) {
-			print_executed_command(argv);
+			print_executed_command(stdout, argv);
 		}
 
 		unlink(path_stdout);
@@ -141,12 +141,17 @@ char *find_executable(const char *name, const char *exclude_name)
 	return NULL;
 }
 
-void print_executed_command(char **argv)
+void print_command(FILE *fp, char **argv)
 {
 	int i;
-	printf("%s: executing ", MYNAME);
 	for (i = 0; argv[i]; i++) {
-		printf("%s%s",  (i == 0) ? "" : " ", argv[i]);
+		fprintf(fp, "%s%s",  (i == 0) ? "" : " ", argv[i]);
 	}
-	printf("\n");
+	fprintf(fp, "\n");
+}
+
+void print_executed_command(FILE *fp, char **argv)
+{
+	fprintf(fp, "%s: executing ", MYNAME);
+	print_command(fp, argv);
 }
