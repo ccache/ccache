@@ -162,6 +162,16 @@ void copy_fd(int fd_in, int fd_out)
 	}
 }
 
+#ifndef HAVE_MKSTEMP
+/* cheap and nasty mkstemp replacement */
+int mkstemp(char *template)
+{
+	mktemp(template);
+	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
+}
+#endif
+
+
 /*
  * Copy src to dest, decompressing src if needed. compress_dest decides whether
  * dest will be compressed.
@@ -802,16 +812,6 @@ char *gnu_getcwd(void)
 		size *= 2;
 	}
 }
-
-#ifndef HAVE_MKSTEMP
-/* cheap and nasty mkstemp replacement */
-int mkstemp(char *template)
-{
-	mktemp(template);
-	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
-}
-#endif
-
 
 /* create an empty file */
 int create_empty_file(const char *fname)
