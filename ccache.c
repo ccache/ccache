@@ -820,7 +820,7 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
 		char *path, *q;
 		p = x_strdup(p);
 		q = p;
-		while ((path = strtok(q, " \t\r\n"))) {
+		while ((path = strtok(q, ":"))) {
 			cc_log("Hashing extra file %s", path);
 			hash_delimiter(hash, "extrafile");
 			if (!hash_file(hash, path)) {

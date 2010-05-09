@@ -227,7 +227,7 @@ cases you won't need any of these as the defaults will be fine.
 *CCACHE_EXTRAFILES*::
 
     If you set the environment variable *CCACHE_EXTRAFILES* to a
-    space-separated list of paths then ccache will include the contents of
+    colon-separated list of paths then ccache will include the contents of
     those files when calculating the hash sum.
 
 *CCACHE_HARDLINK*::
