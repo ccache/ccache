@@ -1231,6 +1231,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		    strcmp(argv[i], "--coverage") == 0 ||
 		    strcmp(argv[i], "-M") == 0 ||
 		    strcmp(argv[i], "-MM") == 0 ||
+		    strcmp(argv[i], "-arch") == 0 ||
 		    strcmp(argv[i], "-fbranch-probabilities") == 0 ||
 		    strcmp(argv[i], "-fprofile-arcs") == 0 ||
 		    strcmp(argv[i], "-fprofile-generate") == 0 ||
