@@ -124,7 +124,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	mode_t mask;
 	struct stat st;
 
-	x_asprintf(&tmp_name, "%s.XXXXXX", dest);
+	x_asprintf(&tmp_name, "%s.%s.XXXXXX", dest, tmp_string());
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY);
