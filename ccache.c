@@ -1167,6 +1167,10 @@ static void find_compiler(int argc, char **argv)
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
+	if (strcmp(compiler, argv[0]) == 0) {
+		fatal("Recursive invocation (the name of the ccache binary"
+		      " must be \"%s\")", MYNAME);
+	}
 	orig_args->argv[0] = compiler;
 }
 
