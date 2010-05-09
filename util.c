@@ -42,10 +42,8 @@
 
 static FILE *logfile;
 
-/* log a message to the CCACHE_LOGFILE location */
-void cc_log(const char *format, ...)
+static void cc_log_va_list(const char *format, va_list ap)
 {
-	va_list ap;
 	extern char *cache_logfile;
 
 	if (!cache_logfile) return;
@@ -54,8 +52,29 @@ void cc_log(const char *format, ...)
 	if (!logfile) return;
 
 	fprintf(logfile, "[%-5d] ", getpid());
-	va_start(ap, format);
 	vfprintf(logfile, format, ap);
+}
+
+/*
+ * Log a message to the CCACHE_LOGFILE location without newline and without
+ * flushing.
+ */
+void cc_log_no_newline(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	cc_log_va_list(format, ap);
+	va_end(ap);
+}
+
+/*
+ * Log a message to the CCACHE_LOGFILE location adding a newline and flushing.
+ */
+void cc_log(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	cc_log_va_list(format, ap);
 	va_end(ap);
 	fprintf(logfile, "\n");
 	fflush(logfile);
