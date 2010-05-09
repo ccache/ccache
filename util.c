@@ -123,17 +123,23 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	char *tmp_name;
 	mode_t mask;
 	struct stat st;
+	int errnum;
+
+	cc_log("Copying %s to %s (%s)",
+	       src, dest, compress_dest ? "compressed": "uncompressed");
 
 	x_asprintf(&tmp_name, "%s.%s.XXXXXX", dest, tmp_string());
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY);
 	if (fd_in == -1) {
+		cc_log("open error: %s", strerror(errno));
 		return -1;
 	}
 
 	gz_in = gzdopen(fd_in, "rb");
 	if (!gz_in) {
+		cc_log("gzdopen(src) error: %s", strerror(errno));
 		close(fd_in);
 		return -1;
 	}
@@ -141,6 +147,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	/* open destination file */
 	fd_out = mkstemp(tmp_name);
 	if (fd_out == -1) {
+		cc_log("mkstemp error: %s", strerror(errno));
 		gzclose(gz_in);
 		free(tmp_name);
 		return -1;
@@ -153,6 +160,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		 * Turn off compression for empty files to save some space.
 		 */
 		if (fstat(fd_in, &st) != 0) {
+			cc_log("fstat error: %s", strerror(errno));
 			gzclose(gz_in);
 			close(fd_out);
 			free(tmp_name);
@@ -166,6 +174,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	if (compress_dest) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
+			cc_log("gzdopen(dest) error: %s", strerror(errno));
 			gzclose(gz_in);
 			close(fd_out);
 			free(tmp_name);
@@ -180,6 +189,13 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 			ret = write(fd_out, buf, n);
 		}
 		if (ret != n) {
+			if (compress_dest) {
+				cc_log("gzwrite error: %s (errno: %s)",
+				       gzerror(gz_in, &errnum),
+				       strerror(errno));
+			} else {
+				cc_log("write error: %s", strerror(errno));
+			}
 			gzclose(gz_in);
 			if (gz_out) {
 				gzclose(gz_out);
@@ -191,7 +207,6 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		}
 	}
 	if (n == 0 && !gzeof(gz_in)) {
-		int errnum;
 		cc_log("gzread error: %s (errno: %s)",
 		       gzerror(gz_in, &errnum), strerror(errno));
 		gzclose(gz_in);
@@ -216,6 +231,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 
 	/* the close can fail on NFS if out of space */
 	if (close(fd_out) == -1) {
+		cc_log("close error: %s", strerror(errno));
 		unlink(tmp_name);
 		free(tmp_name);
 		return -1;
@@ -224,6 +240,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	unlink(dest);
 
 	if (rename(tmp_name, dest) == -1) {
+		cc_log("rename error: %s", strerror(errno));
 		unlink(tmp_name);
 		free(tmp_name);
 		return -1;
