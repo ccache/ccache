@@ -167,3 +167,5 @@ Bug fixes
 
     - The test suite is now immune to external values of the `CCACHE_*`
       environment variables.
+
+    - Improved detection of recursive invocation.
