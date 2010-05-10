@@ -1607,9 +1607,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 /* the main ccache driver function */
 static void ccache(int argc, char *argv[])
 {
-	char now[64];
-	time_t t;
-	struct tm *tm;
 	int put_object_in_manifest = 0;
 	struct file_hash *object_hash;
 	struct file_hash *object_hash_from_manifest = NULL;
@@ -1624,19 +1621,7 @@ static void ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	ARGS *compiler_args;
 
-	t = time(NULL);
-	tm = localtime(&t);
-	if (!tm) {
-		cc_log("localtime failed");
-		failed();
-	}
-
-	if (strftime(now, sizeof(now), "%Y-%m-%d %H:%M:%S", tm) == 0) {
-		cc_log("strftime failed");
-		failed();
-	}
-
-	cc_log("=== %s ===", now);
+	cc_log("=== CCACHE STARTED =========================================");
 
 	if (base_dir) {
 		cc_log("Base directory: %s", base_dir);

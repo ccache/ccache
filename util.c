@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <zlib.h>
 
 #ifdef HAVE_PWD_H
@@ -62,7 +63,18 @@ static int init_log(void)
 
 static void log_prefix(void)
 {
+#ifdef HAVE_GETTIMEOFDAY
+	char timestamp[100];
+	struct timeval tv;
+	struct tm *tm;
+
+	gettimeofday(&tv, NULL);
+	tm = localtime(&tv.tv_sec);
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
+	fprintf(logfile, "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, getpid());
+#else
 	fprintf(logfile, "[%-5d] ", getpid());
+#endif
 }
 
 /*
