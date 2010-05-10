@@ -2,7 +2,7 @@ ccache news
 ===========
 
 
-ccache 3.0pre1 (unreleased)
+ccache 3.0pre1 (2010-05-10)
 ---------------------------
 
 Changes since version 2.4.
