@@ -39,16 +39,16 @@ int execute(char **argv,
 	pid_t pid;
 	int status;
 
+	cc_log_executed_command(argv);
+	if (getenv("CCACHE_VERBOSE")) {
+		print_executed_command(stdout, argv);
+	}
+
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork");
 
 	if (pid == 0) {
 		int fd;
-
-		cc_log_executed_command(argv);
-		if (getenv("CCACHE_VERBOSE")) {
-			print_executed_command(stdout, argv);
-		}
 
 		unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
