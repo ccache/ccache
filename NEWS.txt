@@ -129,10 +129,12 @@ Bug fixes
       hash collisions. For instance, the compiler options `-X -Y` and `-X-Y`
       previously contributed equally to the hash sum.
 
-    - Bail out on too hard compiler options `--coverage`, `-arch`,
-      `-fprofile-arcs`, `-fprofile-generate`, `-fprofile-use`,
-      `-ftest-coverage` and `-save-temps`. Also bail out on `@file` style
-      options.
+    - Bail out on too hard compiler options `--coverage`, `-fprofile-arcs`,
+      `-fprofile-generate`, `-fprofile-use`, `-ftest-coverage` and
+      `-save-temps`. Also bail out on `@file` style options.
+
+    - Errors when using multiple `-arch` compiler options are now noted as
+      ``unsupported compiler option''.
 
     - `-MD`/`-MMD` options without `-MT`/`-MF` are now handled correctly.
 

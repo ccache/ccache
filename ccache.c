@@ -1214,6 +1214,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	int i;
 	int found_c_opt = 0;
 	int found_S_opt = 0;
+	int found_arch_opt = 0;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
 	int dependency_filename_specified = 0;
@@ -1238,7 +1239,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		    strcmp(argv[i], "--coverage") == 0 ||
 		    strcmp(argv[i], "-M") == 0 ||
 		    strcmp(argv[i], "-MM") == 0 ||
-		    strcmp(argv[i], "-arch") == 0 ||
 		    strcmp(argv[i], "-fbranch-probabilities") == 0 ||
 		    strcmp(argv[i], "-fprofile-arcs") == 0 ||
 		    strcmp(argv[i], "-fprofile-generate") == 0 ||
@@ -1258,6 +1258,18 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 				cc_log("Unsupported compiler option for direct"
 				       " mode: %s", argv[i]);
 				enable_direct = 0;
+			}
+		}
+
+		/* Multiple -arch options are too hard. */
+		if (strcmp(argv[i], "-arch") == 0) {
+			if (found_arch_opt) {
+				cc_log("More than one -arch compiler option"
+				       " is unsupported");
+				stats_update(STATS_UNSUPPORTED);
+				failed();
+			} else {
+				found_arch_opt = 1;
 			}
 		}
 
