@@ -47,7 +47,7 @@ ccache.1: manual.xml
 .PHONY: install
 install: all
 	$(installcmd) -d $(DESTDIR)$(bindir)
-	$(installcmd) -s -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
+	$(installcmd) -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
 	-$(installcmd) -m 644 $(srcdir)/ccache.1 $(DESTDIR)$(mandir)/man1/
 
