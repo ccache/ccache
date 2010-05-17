@@ -406,8 +406,10 @@ The direct mode will be disabled if any of the following holds:
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * the unifier is enabled (the environment variable *CCACHE_UNIFY* is set)
-* a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and *-Wp,-MMD,_path_*
-  is used
+* a compiler option not supported by the direct mode is used:
+** a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and
+   *-Wp,-MMD,_path_*
+** *-Xpreprocessor*
 * the string ``\_\_TIME__'' is present outside comments and string literals in
   the source code
 
