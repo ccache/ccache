@@ -309,7 +309,8 @@ cases you won't need any of these as the defaults will be fine.
     Available options are: *file_macro* (ignore *\_\_FILE\__* being present in
     the source), *include_file_mtime* (don't check the modification time of
     include files in direct mode) and *time_macros* (ignore *\_\_DATE\__* and
-    *\_\_TIME__* being present in the source code).
+    *\_\_TIME__* being present in the source code). See the discussion under
+    <<_troubleshooting,TROUBLESHOOTING>> for more information.
 
 *CCACHE_TEMPDIR*::
 
@@ -547,6 +548,116 @@ order to include a file verbatim in the object file. If the included file is
 changed, ccache doesn't pick up the change since the inclusion isn't done by
 the preprocessor. A workaround of this problem is to set *CCACHE_EXTRAFILES* to
 the path of the included file.
+
+
+
+TROUBLESHOOTING
+---------------
+
+GENERAL
+~~~~~~~
+
+A general tip for getting information about what ccache is doing is to enable
+debug logging by setting *CCACHE_LOGFILE*. The log contains executed commands,
+important decisions that ccache makes, read and written files, etc. Another way
+of keeping track of what is happening is to check the output of *ccache -s*.
+
+
+PERFORMANCE
+~~~~~~~~~~~
+
+ccache has been written to perform well out of the box, but sometimes you may
+have to do some adjustments of how you use the compiler and ccache in order to
+improve performance.
+
+Since ccache works best when I/O is fast, put the cache directory on a fast
+storage device if possible. Having lots of free memory so that files in the
+cache directory stay in the disk cache is also a good idea.
+
+A good way of monitoring how well ccache works is to run *ccache -s* before and
+after your build and then compare the statistics counters. Here are some common
+problems and what may be done to increase the hit rate:
+
+* If ``cache hit (preprocessed)'' has been incremented instead of ``cache hit
+  (direct)'', ccache has fallen back to preprocessor mode, which is generally
+  slower. Some possible reasons are:
+** The compiler option *-Xpreprocessor* or *-Wp,_X_* (except *-Wp,-MD,_path_*
+   and *Wp,-MMD,_path_*) is used.
+** This was the first compilation with a new value of *CCACHE_BASEDIR*.
+** A modification time of one of the include files is too new (created the same
+   second as the compilation is being done). This check is made to avoid a race
+   condition. To fix this, create the include file earlier in the build
+   process, if possible, or set *CCACHE_SLOPPINESS* to *include_file_mtime* if
+   you are willing to take the risk. (The race condition consists of these
+   events: the preprocessor is run; an include file is modified by someone; the
+   new include file is hashed by ccache; the real compiler is run on the
+   preprocessor's output, which contains data from the old header file; the
+   wrong object file is stored in the cache.)
+** The *\_\_TIME\__* preprocessor macro is (potentially) being used. ccache
+   turns off direct mode if ``\_\_TIME\__'' is present in the source code
+   outside comments and string literals. This is done as a safety measure since
+   the string indicates that a *\_\_TIME\__* macro _may_ affect the output. (To
+   be sure, ccache would have to run the preprocessor, but the sole point of
+   the direct mode is to avoid that.) If you know that *\_\_TIME\__* isn't used
+   in practise, or don't care if ccache produces objects where *\_\_TIME__* is
+   expanded to something in the past, you can set *CCACHE_SLOPPINESS* to
+   *time_macros*.
+** The *\_\_DATE\__* preprocessor macro is (potentially) being used and the
+   date has changed. This is similar to how *\_\_TIME\__* is handled. If
+   ``\_\_DATE\__'' is present in the source code outside comments and string
+   literals, ccache hashes the current date in order to be able to produce the
+   correct object file if the *\_\_DATE\__* macro affects the output. If you
+   know that *\_\_DATE\__* isn't used in practise, or don't care if ccache
+   produces objects where *\_\_DATE__* is expanded to something in the past,
+   you can set *CCACHE_SLOPPINESS* to *time_macros*.
+** The *\_\_FILE\__* preprocessor macro is (potentially) being used and the
+   file path has changed. If ``\_\_FILE\__'' is present in the source code
+   outside comments and string literals, ccache hashes the current input file
+   path in order to be able to produce the correct object file if the
+   *\_\_FILE\__* macro affects the output. If you know that *\_\_FILE\__* isn't
+   used in practise, or don't care if ccache produces objects where
+   *\_\_FILE__* is expanded to the wrong path, you can set *CCACHE_SLOPPINESS*
+   to *file_macro*.
+* If ``cache miss'' has been incremented even though this wasn't the first
+  compilation of the same source code, ccache has either detected that
+  something has changed anyway or a cleanup has been performed (either
+  explicitly or implicitly when a cache limit has been reached). Some perhaps
+  unobvious things that may result in a cache miss are usage of *\_\_TIME\__*
+  or *\_\_DATE__* macros, or use of automatically generated code that contains
+  a timestamp, build counter or other volatile information.
+* If ``multiple source files'' has been incremented, it's an indication that
+  the compiler has been invoked on several source code files at once. ccache
+  doesn't support that. Compile the source code files separately if possible.
+* If ``preprocessor error'' has been incremented, one possible reason is that
+  precompiled headers are being used. ccache currently doesn't handle that.
+* If ``unsupported compiler option'' has been incremented, enable debug logging
+  and check which option was rejected.
+
+
+ERRORS WHEN COMPILING WITH CCACHE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If compilation doesn't work with ccache, but it works without it, one possible
+reason is that the compiler can't compile the output from the preprocessor
+correctly. A workaround that may work is to set *CCACHE_CPP2*. This will make
+cache misses slower, though, so it is better to find and fix the root cause.
+
+
+ERRONEOUS OBJECT FILES
+~~~~~~~~~~~~~~~~~~~~~~
+
+There are no reported issues about ccache producing broken object files. That
+doesn't mean it can't happen, so if you find a repeatable case, please report
+it.
+
+That said, it should be noted that ccache is susceptible to general storage
+problems. If a bad object file sneaks into the cache for some reason, it will
+of course stay bad. Some possible reasons for erroneous object files are bad
+hardware (disk drive, disk controller, memory, etc), buggy drivers or file
+systems, a bad *CCACHE_PREFIX* command or compiler wrapper. If this happens,
+you can either find out which object file is broken by reading the debug log
+and then delete the bad object file from the cache, or you can simply clear the
+whole cache with *ccache -C* if you don't mind losing other cached results.
 
 
 MORE INFORMATION
