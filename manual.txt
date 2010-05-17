@@ -299,6 +299,18 @@ cases you won't need any of these as the defaults will be fine.
     This forces ccache to not use any cached results, even if it finds them.
     New results are still cached, but existing cache entries are ignored.
 
+*CCACHE_SLOPPINESS*::
+
+    By default, ccache tries to give as few false cache hits as possible.
+    However, in certain situations it's possible that you know things that
+    ccache can't take for granted. The *CCACHE_SLOPPINESS* environment variable
+    makes it possible to tell ccache to relax some checks in order to increase
+    the hit rate. The value should be a comma-separated string with options.
+    Available options are: *file_macro* (ignore *\_\_FILE\__* being present in
+    the source), *include_file_mtime* (don't check the modification time of
+    include files in direct mode) and *time_macros* (ignore *\_\_DATE\__* and
+    *\_\_TIME__* being present in the source code).
+
 *CCACHE_TEMPDIR*::
 
     The *CCACHE_TEMPDIR* environment variable specifies where ccache will put

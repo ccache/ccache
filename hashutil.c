@@ -64,6 +64,7 @@ hash_source_code_string(
 	char hashbuf[64];
 	size_t hashbuflen = 0;
 	int result = HASH_SOURCE_CODE_OK;
+	extern unsigned sloppiness;
 
 	p = str;
 	end = str + len;
@@ -159,6 +160,9 @@ hash_source_code_string(
 end:
 	hash_buffer(hash, hashbuf, hashbuflen);
 
+	if (sloppiness & SLOPPY_TIME_MACROS) {
+		return 0;
+	}
 	if (result & HASH_SOURCE_CODE_FOUND_DATE) {
 		/*
 		 * Make sure that the hash sum changes if the (potential)

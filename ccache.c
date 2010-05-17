@@ -133,6 +133,9 @@ static char *manifest_path;
  */
 static time_t time_of_compilation;
 
+/* Bitmask of SLOPPY_*. */
+unsigned sloppiness = 0;
+
 /*
  * Files included by the preprocessor and their hashes/sizes. Key: file path.
  * Value: struct file_hash.
@@ -330,7 +333,8 @@ static void remember_include_file(char *path, size_t path_len)
 		/* Ignore directory, typically $PWD. */
 		goto ignore;
 	}
-	if (st.st_mtime >= time_of_compilation) {
+	if (!(sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
+	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
@@ -910,13 +914,15 @@ static struct file_hash *calculate_object_hash(
 	}
 
 	if (direct_mode) {
-		/*
-		 * The source code file or an include file may contain
-		 * __FILE__, so make sure that the hash is unique for the file
-		 * name.
-		 */
-		hash_delimiter(hash, "inputfile");
-		hash_string(hash, input_file);
+		if (!(sloppiness & SLOPPY_FILE_MACRO)) {
+			/*
+			 * The source code file or an include file may contain
+			 * __FILE__, so make sure that the hash is unique for
+			 * the file name.
+			 */
+			hash_delimiter(hash, "inputfile");
+			hash_string(hash, input_file);
+		}
 
 		hash_delimiter(hash, "sourcecode");
 		result = hash_source_code_file(hash, input_file);
@@ -1617,6 +1623,35 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	*compiler_args = stripped_args;
 }
 
+static unsigned parse_sloppiness(char *p)
+{
+	unsigned result = 0;
+	char *word, *q;
+
+	if (!p) {
+		return result;
+	}
+	p = x_strdup(p);
+	q = p;
+	while ((word = strtok(q, ", "))) {
+		if (strcmp(word, "file_macro") == 0) {
+			cc_log("Being sloppy about __FILE__");
+			result |= SLOPPY_FILE_MACRO;
+		}
+		if (strcmp(word, "include_file_mtime") == 0) {
+			cc_log("Being sloppy about include file mtime");
+			result |= SLOPPY_INCLUDE_FILE_MTIME;
+		}
+		if (strcmp(word, "time_macros") == 0) {
+			cc_log("Being sloppy about __DATE__ and __TIME__");
+			result |= SLOPPY_TIME_MACROS;
+		}
+		q = NULL;
+	}
+	free(p);
+	return result;
+}
+
 /* the main ccache driver function */
 static void ccache(int argc, char *argv[])
 {
@@ -1635,6 +1670,8 @@ static void ccache(int argc, char *argv[])
 	ARGS *compiler_args;
 
 	cc_log("=== CCACHE STARTED =========================================");
+
+	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
 	if (base_dir) {
 		cc_log("Base directory: %s", base_dir);

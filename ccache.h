@@ -55,6 +55,10 @@ enum stats {
 	STATS_END
 };
 
+#define SLOPPY_INCLUDE_FILE_MTIME 1
+#define SLOPPY_FILE_MACRO 2
+#define SLOPPY_TIME_MACROS 4
+
 void hash_start(struct mdfour *md);
 void hash_delimiter(struct mdfour *md, const char* type);
 void hash_string(struct mdfour *md, const char *s);

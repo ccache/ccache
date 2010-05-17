@@ -77,6 +77,9 @@ New features and improvements
     - Messages printed to the debug log (specified by `CCACHE_LOGFILE`) have
       been improved.
 
+    - You can relax some checks that ccache does in direct mode by setting
+      `CCACHE_SLOPPINESS`. See the manual for more information.
+
     - `CCACHE_TEMPDIR` no longer needs to be on the same filesystem as
       `CCACHE_DIR`.
 

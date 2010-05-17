@@ -53,6 +53,7 @@ unset CCACHE_PATH
 unset CCACHE_PREFIX
 unset CCACHE_READONLY
 unset CCACHE_RECACHE
+unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
@@ -838,6 +839,51 @@ EOF
     checkstat 'cache miss' 2
 
     ##################################################################
+    # Check that direct mode ignores __FILE__ if sloppiness is specified.
+    testname="__FILE__ in source file, sloppy"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >file.c
+#define file __FILE__
+int test;
+EOF
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c $PWD/file.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="__FILE__ in include file, sloppy"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >file.h
+#define file __FILE__
+int test;
+EOF
+    backdate file.h
+    cat <<EOF >file_h.c
+#include "file.h"
+EOF
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file_h.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file_h.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    mv file_h.c file2_h.c
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c $PWD/file2_h.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    ##################################################################
     # Check that we never get direct hits when __TIME__ is used.
     testname="__TIME__ in source file"
     $CCACHE -Cz >/dev/null
@@ -871,6 +917,100 @@ EOF
     $CCACHE $COMPILER -c time_h.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that direct mode ignores __TIME__ when sloppiness is specified.
+    testname="__TIME__ in source file, sloppy"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >time.c
+#define time __TIME__
+int test;
+EOF
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="__TIME__ in include time, sloppy"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >time.h
+#define time __TIME__
+int test;
+EOF
+    backdate time.h
+    cat <<EOF >time_h.c
+#include "time.h"
+EOF
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time_h.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time_h.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that a too new include file turns off direct mode.
+    testname="too new include file"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >new.c
+#include "new.h"
+EOF
+    cat <<EOF >new.h
+int test;
+EOF
+    touchy_compiler=touchy-compiler.sh
+    cat <<EOF >$touchy_compiler
+#!/bin/sh
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+[ x\$2 = "x-E" ] && touch \$3 # Be sure that mtime >= time_of_compilation
+exec $COMPILER "\$@"
+EOF
+    chmod +x $touchy_compiler
+
+    $CCACHE ./$touchy_compiler -c new.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE ./$touchy_compiler -c new.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that include file mtime is ignored when sloppiness is specified.
+    testname="too new include file, sloppy"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >new.c
+#include "new.h"
+EOF
+    cat <<EOF >new.h
+int test;
+EOF
+    touchy_compiler=touchy-compiler.sh
+    cat <<EOF >$touchy_compiler
+#!/bin/sh
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+[ x\$2 = "x-E" ] && touch \$3 # Be sure that mtime >= time_of_compilation
+exec $COMPILER "\$@"
+EOF
+    chmod +x $touchy_compiler
+
+    CCACHE_SLOPPINESS=include_file_mtime $CCACHE ./$touchy_compiler -c new.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=include_file_mtime $CCACHE ./$touchy_compiler -c new.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
     ##################################################################
