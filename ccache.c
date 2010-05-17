@@ -1231,6 +1231,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		/* some options will never work ... */
 		if (strcmp(argv[i], "-E") == 0) {
 			cc_log("Compiler option -E is unsupported");
+			stats_update(STATS_UNSUPPORTED);
 			failed();
 		}
 
