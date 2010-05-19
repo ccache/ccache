@@ -298,6 +298,7 @@ static void remember_include_file(char *path, size_t path_len)
 	struct stat st;
 	int fd = -1;
 	char *data = (char *)-1;
+	char *source;
 	int result;
 
 	if (!included_files) {
@@ -338,15 +339,20 @@ static void remember_include_file(char *path, size_t path_len)
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
-	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	close(fd);
-	if (data == (char *)-1) {
-		cc_log("Failed to mmap %s", path);
-		goto failure;
+	if (st.st_size > 0) {
+		data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (data == (char *)-1) {
+			cc_log("Failed to mmap %s", path);
+			goto failure;
+		}
+		source = data;
+	} else {
+		source = "";
 	}
+	close(fd);
 
 	hash_start(&fhash);
-	result = hash_source_code_string(&fhash, data, st.st_size, path);
+	result = hash_source_code_string(&fhash, source, st.st_size, path);
 	if (result & HASH_SOURCE_CODE_ERROR
 	    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 		goto failure;

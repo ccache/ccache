@@ -794,6 +794,24 @@ EOF
     checkstat 'cache miss' 1
 
     ##################################################################
+    # Check that empty include files are handled as well.
+    testname="empty include file"
+    $CCACHE -Cz >/dev/null
+    cp /dev/null empty.h
+    cat <<EOF >include_empty.c
+#include "empty.h"
+EOF
+    backdate empty.h
+    $CCACHE $COMPILER -c include_empty.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c include_empty.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    ##################################################################
     # Check that direct mode correctly detects file name/path changes.
     testname="__FILE__ in source file"
     $CCACHE -Cz >/dev/null
