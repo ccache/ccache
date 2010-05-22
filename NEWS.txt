@@ -102,7 +102,7 @@ New features and improvements
       program specified by `CCACHE_PREFIX`, etc.), ccache copes with it
       properly.
 
-    - Added installcheck and distcheck make targets.
+    - Added `installcheck` and `distcheck` make targets.
 
     - Clarified cache size limit options' semantics.
 
