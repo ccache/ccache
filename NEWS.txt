@@ -11,8 +11,8 @@ Changes since version 2.4.
 General
 ~~~~~~~
 
-    - ccache is now licensed under the GNU Public License (GPL) version 3 or
-      later.
+    - ccache is now licensed under the GNU General Public License (GPL) version
+      3 or later.
 
 
 Upgrade notes
