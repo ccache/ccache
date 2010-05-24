@@ -178,9 +178,7 @@ static int nlevels = 2;
  */
 static int compile_preprocessed_source_code;
 
-/* a list of supported file extensions, and the equivalent
-   language
-*/
+/* a list of supported file extensions, and the equivalent language. */
 static const struct {
 	const char *extension;
 	const char *language;
@@ -204,9 +202,10 @@ static const struct {
 	{"C++", "c++"},
 	{NULL, NULL}};
 
-/* A list of languages and the equivalent language
-   after it has been preprocessed.
-*/
+/*
+ * A list of languages and the equivalent language
+ * after it has been preprocessed.
+ */
 static const struct {
   const char *language;
   const char *preprocessed_language;
