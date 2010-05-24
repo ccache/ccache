@@ -183,7 +183,7 @@ static const struct {
 	const char *extension;
 	const char *language;
 } extensions[] = {
-	{"i", "c-cpp-output"},
+	{"i", "cpp-output"},
 	{"ii", "c++-cpp-output"},
 	{"mi", "objective-c-cpp-output"},
 	{"mii", "objective-c++-cpp-output"},
@@ -210,7 +210,7 @@ static const struct {
   const char *language;
   const char *preprocessed_language;
 } preprocessed_languages[] = {
-  {"c", "c-cpp-output"},
+  {"c", "cpp-output"},
   {"c++", "c++-cpp-output"},
   {"objective-c", "objective-c-cpp-output"},
   {"objective-c++", "objective-c++-cpp-output"},
