@@ -185,8 +185,8 @@ static const struct {
 } extensions[] = {
 	{"i", "cpp-output"},
 	{"ii", "c++-cpp-output"},
-	{"mi", "objective-c-cpp-output"},
-	{"mii", "objective-c++-cpp-output"},
+	{"mi", "objc-cpp-output"},
+	{"mii", "objc++-cpp-output"},
 	{"c", "c"},
 	{"C", "c++"},
 	{"m", "objective-c"},
@@ -212,8 +212,8 @@ static const struct {
 } preprocessed_languages[] = {
   {"c", "cpp-output"},
   {"c++", "c++-cpp-output"},
-  {"objective-c", "objective-c-cpp-output"},
-  {"objective-c++", "objective-c++-cpp-output"},
+  {"objective-c", "objc-cpp-output"},
+  {"objective-c++", "objc++-cpp-output"},
   {NULL, NULL}};
 
 enum fromcache_call_mode {
