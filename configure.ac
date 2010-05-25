@@ -28,7 +28,7 @@ AC_DEFINE([_GNU_SOURCE], 1,
 AH_VERBATIM([_XOPEN_SOURCE],
 [/* Define on UNIX to activate XPG/5 features.  */
 #if !defined(_XOPEN_SOURCE)
-# define _XOPEN_SOURCE
+# define _XOPEN_SOURCE 500
 #endif])
 
 # If GCC, turn on warnings.
