@@ -542,6 +542,7 @@ static const char *extension_for_language(const char *language)
 	int i;
 	const char *extension = getenv("CCACHE_EXTENSION");
 	if (extension) return extension;
+	if (language == NULL) return NULL;
 
 	for (i=0; extensions[i].extension; i++) {
 		if (strcmp(language, extensions[i].language) == 0) {
@@ -1609,12 +1610,12 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
   if ((input_language == NULL) || (strcmp(input_language, "none") == 0)) {
     input_language = language_for_file(input_file);
   }
-  if (input_language == NULL) {
+  i_extension = extension_for_language(preprocessed_language(input_language, &direct_i_file));
+  if (i_extension == NULL) {
 		cc_log("Not a C/C++ file: %s", input_file);
 		stats_update(STATS_NOTC);
 		failed();
   }
-  i_extension = extension_for_language(preprocessed_language(input_language, &direct_i_file));
 
 	if (!found_c_opt) {
 		cc_log("No -c option found");
