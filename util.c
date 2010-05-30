@@ -71,9 +71,10 @@ static void log_prefix(void)
 	gettimeofday(&tv, NULL);
 	tm = localtime(&tv.tv_sec);
 	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
-	fprintf(logfile, "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, getpid());
+	fprintf(logfile, "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec,
+	        (int)getpid());
 #else
-	fprintf(logfile, "[%-5d] ", getpid());
+	fprintf(logfile, "[%-5d] ", (int)getpid());
 #endif
 }
 
@@ -127,7 +128,8 @@ void fatal(const char *format, ...)
 			logfile = fopen(cache_logfile, "a");
 		}
 		if (logfile) {
-			fprintf(logfile, "[%-5d] FATAL: %s", getpid(), msg);
+			fprintf(logfile, "[%-5d] FATAL: %s", (int)getpid(),
+			        msg);
 			fflush(logfile);
 		}
 	}
