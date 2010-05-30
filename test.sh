@@ -98,7 +98,7 @@ sed_in_place() {
 }
 
 backdate() {
-    touch -t 197001010000 "$@"
+    touch -t 199901010000 "$@"
 }
 
 run_suite() {
