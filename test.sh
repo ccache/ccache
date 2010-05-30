@@ -308,7 +308,7 @@ EOF
 [ x$3 = x-o ] && rm $4
 EOF
     chmod +x prefix-remove.sh
-    CCACHE_PREFIX=$PWD/prefix-remove.sh $CCACHE_COMPILE -c test_no_obj.c
+    CCACHE_PREFIX=`pwd`/prefix-remove.sh $CCACHE_COMPILE -c test_no_obj.c
     checkstat 'compiler produced no output' 1
 
     testname="empty object file"
@@ -321,7 +321,7 @@ EOF
 [ x$3 = x-o ] && cp /dev/null $4
 EOF
     chmod +x prefix-empty.sh
-    CCACHE_PREFIX=$PWD/prefix-empty.sh $CCACHE_COMPILE -c test_empty_obj.c
+    CCACHE_PREFIX=`pwd`/prefix-empty.sh $CCACHE_COMPILE -c test_empty_obj.c
     checkstat 'compiler produced empty output' 1
 
     testname="stderr-files"
@@ -816,7 +816,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE $COMPILER -c $PWD/file.c
+    $CCACHE $COMPILER -c `pwd`/file.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
@@ -840,7 +840,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     mv file_h.c file2_h.c
-    $CCACHE $COMPILER -c $PWD/file2_h.c
+    $CCACHE $COMPILER -c `pwd`/file2_h.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
@@ -861,7 +861,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c $PWD/file.c
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c `pwd`/file.c
     checkstat 'cache hit (direct)' 2
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -885,7 +885,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     mv file_h.c file2_h.c
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c $PWD/file2_h.c
+    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c `pwd`/file2_h.c
     checkstat 'cache hit (direct)' 2
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1058,14 +1058,14 @@ EOF
     $CCACHE -z >/dev/null
 
     cd dir1
-    CCACHE_BASEDIR="" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
@@ -1079,14 +1079,14 @@ EOF
     $CCACHE -C >/dev/null
 
     cd dir1
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -1101,14 +1101,14 @@ EOF
     unset CCACHE_NODIRECT
 
     cd dir1
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="$PWD" $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1119,7 +1119,7 @@ EOF
     testname="default CCACHE_BASEDIR"
     cd dir1
     $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -I$PWD/include -c src/test.c
+    $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1131,7 +1131,7 @@ EOF
     testname="path normalization"
     cd dir1
     $CCACHE -z >/dev/null
-    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -I$PWD//include -c $PWD//src/test.c
+    CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -I`pwd`//include -c `pwd`//src/test.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
@@ -1141,20 +1141,20 @@ EOF
     # Check that rewriting triggered by CCACHE_BASEDIR also affects stderr.
     testname="stderr"
     $CCACHE -z >/dev/null
-    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    if grep -q $PWD stderr.txt; then
-        test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
+    if grep -q `pwd` stderr.txt; then
+        test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
 
-    CCACHE_BASEDIR=$PWD $CCACHE $COMPILER -Wall -W -I$PWD -c $PWD/stderr.c -o $PWD/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    if grep -q $PWD stderr.txt; then
-        test_failed "Base dir ($PWD) found in stderr:\n`cat stderr.txt`"
+    if grep -q `pwd` stderr.txt; then
+        test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
 
     export CCACHE_NODIRECT=1
@@ -1296,12 +1296,6 @@ EOF
 ######################################################################
 # main program
 
-TESTDIR=testdir.$$
-rm -rf $TESTDIR
-mkdir $TESTDIR
-cd $TESTDIR || exit 1
-PWD=`pwd`
-
 suites="$*"
 if [ -n "$CC" ]; then
     COMPILER="$CC"
@@ -1309,12 +1303,17 @@ else
     COMPILER=cc
 fi
 if [ -z "$CCACHE" ]; then
-    CCACHE=`dirname $PWD`/ccache
+    CCACHE=`pwd`/ccache
 fi
 
-CCACHE_DIR=$PWD/.ccache
+TESTDIR=testdir.$$
+rm -rf $TESTDIR
+mkdir $TESTDIR
+cd $TESTDIR || exit 1
+
+CCACHE_DIR=`pwd`/.ccache
 export CCACHE_DIR
-CCACHE_LOGFILE=$PWD/ccache.log
+CCACHE_LOGFILE=`pwd`/ccache.log
 export CCACHE_LOGFILE
 CCACHE_NODIRECT=1
 export CCACHE_NODIRECT
