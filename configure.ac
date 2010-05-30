@@ -205,6 +205,7 @@ AC_CACHE_CHECK([for C99 vsnprintf],ccache_cv_HAVE_C99_VSNPRINTF,[
 AC_TRY_RUN([
 #include <sys/types.h>
 #include <stdarg.h>
+#include <stdio.h>
 void foo(const char *format, ...) {
     va_list ap;
     int len;
