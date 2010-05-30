@@ -1313,7 +1313,7 @@ fi
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
-    gcc*|2.95*)
+    *gcc*|2.95*)
         ;;
     *)
         echo "Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
