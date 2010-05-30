@@ -980,7 +980,7 @@ EOF
 #!/bin/sh
 CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 export CCACHE_DISABLE
-[ x\$2 = "x-E" ] && touch new.h # Be sure that mtime >= time_of_compilation
+[ x\$2 = "x-E" ] && touch -t `date +%Y%m%d%H%M.%S` new.h # Be sure that mtime >= time_of_compilation
 exec $COMPILER "\$@"
 EOF
     chmod +x $touchy_compiler
@@ -1009,7 +1009,7 @@ EOF
 #!/bin/sh
 CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 export CCACHE_DISABLE
-[ x\$2 = "x-E" ] && touch new.h # Be sure that mtime >= time_of_compilation
+[ x\$2 = "x-E" ] && touch -t `date +%Y%m%d%H%M.%S` new.h # Be sure that mtime >= time_of_compilation
 exec $COMPILER "\$@"
 EOF
     chmod +x $touchy_compiler
