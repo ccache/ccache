@@ -19,21 +19,6 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-if test -n "$CC"; then
-    COMPILER="$CC"
-else
-    COMPILER=cc
-fi
-
-if [ "x$PWD" = x ]; then
-    PWD=`pwd`
-fi
-
-if [ -z "$CCACHE" ]; then
-    CCACHE=$PWD/ccache
-fi
-TESTDIR=testdir.$$
-
 unset CCACHE_BASEDIR
 unset CCACHE_CC
 unset CCACHE_COMPILERCHECK
@@ -1307,10 +1292,21 @@ EOF
 ######################################################################
 # main program
 
-suites="$*"
+TESTDIR=testdir.$$
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
+PWD=`pwd`
+
+suites="$*"
+if [ -n "$CC" ]; then
+    COMPILER="$CC"
+else
+    COMPILER=cc
+fi
+if [ -z "$CCACHE" ]; then
+    CCACHE=`dirname $PWD`/ccache
+fi
 
 CCACHE_DIR=$PWD/.ccache
 export CCACHE_DIR
