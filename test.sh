@@ -1312,7 +1312,7 @@ if [ -z "$CCACHE" ]; then
 fi
 
 case `$COMPILER --version 2>&1 | head -1` in
-    gcc*)
+    gcc*|2.95*)
         ;;
     *)
         echo "$COMPILER not supported -- not running tests"
