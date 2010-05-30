@@ -110,7 +110,7 @@ run_suite() {
     ${1}_suite
 
     testname="the tmp directory should be empty"
-    if [ "`find $CCACHE_DIR/tmp -type f | wc -l`" -gt 0 ]; then
+    if [ -d $CCACHE_DIR/tmp ] && [ "`find $CCACHE_DIR/tmp -type f | wc -l`" -gt 0 ]; then
         test_failed "$CCACHE_DIR/tmp is not empty"
     fi
 }
@@ -359,9 +359,13 @@ base_suite() {
 }
 
 link_suite() {
-    ln -s ../ccache $COMPILER
-    CCACHE_COMPILE="./$COMPILER"
-    base_tests
+    if [ `dirname $COMPILER` = . ]; then
+        ln -s ../ccache $COMPILER
+        CCACHE_COMPILE="./$COMPILER"
+        base_tests
+    else
+        echo "Compiler ($COMPILER) not taken from PATH -- not running link test"
+    fi
 }
 
 hardlink_suite() {
