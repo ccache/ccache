@@ -1305,11 +1305,20 @@ suites="$*"
 if [ -n "$CC" ]; then
     COMPILER="$CC"
 else
-    COMPILER=cc
+    COMPILER=gcc
 fi
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
+
+case `$COMPILER --version 2>&1 | head -1` in
+    gcc*)
+        ;;
+    *)
+        echo "$COMPILER not supported -- not running tests"
+        exit 0
+        ;;
+esac
 
 TESTDIR=testdir.$$
 rm -rf $TESTDIR
