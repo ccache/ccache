@@ -581,6 +581,9 @@ problems and what may be done to increase the hit rate:
 * If ``cache hit (preprocessed)'' has been incremented instead of ``cache hit
   (direct)'', ccache has fallen back to preprocessor mode, which is generally
   slower. Some possible reasons are:
+** Compiler arguments that are hashed in the direct mode but not in the
+   preprocessor mode have changed (*-I*, *-include*, *-D*, etc) and they didn't
+   affect the preprocessor output.
 ** The compiler option *-Xpreprocessor* or *-Wp,_X_* (except *-Wp,-MD,_path_*
    and *Wp,-MMD,_path_*) is used.
 ** This was the first compilation with a new value of *CCACHE_BASEDIR*.
