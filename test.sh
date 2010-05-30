@@ -988,9 +988,7 @@ EOF
 #!/bin/sh
 CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 export CCACHE_DISABLE
-stat new.h >>/tmp/stat.log
 [ x\$2 = "x-E" ] && touch new.h # Be sure that mtime >= time_of_compilation
-stat new.h >>/tmp/stat.log
 exec $COMPILER "\$@"
 EOF
     chmod +x $touchy_compiler
