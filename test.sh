@@ -1157,7 +1157,8 @@ EOF
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
 
-    export CCACHE_NODIRECT=1
+    CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
 }
 
 compression_suite() {
@@ -1231,7 +1232,8 @@ readonly_suite() {
     unset CCACHE_NODIRECT
     files_before=`find $CCACHE_DIR -type f | wc -l`
     CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE $COMPILER -c test.c -o test.o
-    export CCACHE_NODIRECT=1
+    CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
     if [ $? -ne 0 ]; then
         test_failed "failure when compiling test2.c readonly"
     fi
