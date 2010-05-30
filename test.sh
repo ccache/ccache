@@ -1316,7 +1316,7 @@ case $compiler_version in
     *gcc*|2.95*)
         ;;
     *)
-        echo "Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
+        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
         exit 0
         ;;
 esac
