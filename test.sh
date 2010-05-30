@@ -717,7 +717,10 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    CCACHE_NODIRECT=1 $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-cpp.txt
+    CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
+    $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-cpp.txt
+    unset CCACHE_NODIRECT
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
