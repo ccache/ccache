@@ -168,9 +168,9 @@ end:
 		 * Make sure that the hash sum changes if the (potential)
 		 * expansion of __DATE__ changes.
 		 */
-		cc_log("Found __DATE__ in %s", path);
 		time_t t = time(NULL);
 		struct tm *now = localtime(&t);
+		cc_log("Found __DATE__ in %s", path);
 		hash_delimiter(hash, "date");
 		hash_buffer(hash, &now->tm_year, sizeof(now->tm_year));
 		hash_buffer(hash, &now->tm_mon, sizeof(now->tm_mon));
