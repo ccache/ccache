@@ -203,18 +203,18 @@ static const struct {
 	{NULL, NULL}};
 
 /*
- * A list of languages and the equivalent language
- * after it has been preprocessed.
+ * A list of languages and the corresponding language after it has been
+ * preprocessed.
  */
 static const struct {
-  const char *language;
-  const char *preprocessed_language;
+	const char *language;
+	const char *preprocessed_language;
 } preprocessed_languages[] = {
-  {"c", "cpp-output"},
-  {"c++", "c++-cpp-output"},
-  {"objective-c", "objc-cpp-output"},
-  {"objective-c++", "objc++-cpp-output"},
-  {NULL, NULL}};
+	{"c", "cpp-output"},
+	{"c++", "c++-cpp-output"},
+	{"objective-c", "objc-cpp-output"},
+	{"objective-c++", "objc++-cpp-output"},
+	{NULL, NULL}};
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
@@ -495,8 +495,9 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 	return 1;
 }
 
-/* Try to guess the language of a file based on its extension.
- *  Return NULL if the extension is unknown.
+/*
+ * Try to guess the language of a file based on its extension. Returns NULL if
+ * the extension is unknown.
  */
 static const char *language_for_file(const char *fname)
 {
@@ -514,7 +515,10 @@ static const char *language_for_file(const char *fname)
 	return NULL;
 }
 
-/* For a given language, return the language of the preprocessed file. */
+/*
+ * For a given language, return the language of the preprocessed file, or NULL
+ * if unknown.
+ */
 static const char *preprocessed_language(const char *language, int *direct_i)
 {
 	int i;
@@ -531,18 +535,18 @@ static const char *preprocessed_language(const char *language, int *direct_i)
 				*direct_i = 1;
 			}
 			return preprocessed_languages[i].preprocessed_language;
-    }
-  }
-  return NULL;
+		}
+	}
+	return NULL;
 }
 
-/* Return the default file extension for a language */
+/* Return the default file extension for a language, or NULL if unknown. */
 static const char *extension_for_language(const char *language)
 {
 	int i;
 	const char *extension = getenv("CCACHE_EXTENSION");
 	if (extension) return extension;
-	if (language == NULL) return NULL;
+	if (!language) return NULL;
 
 	for (i=0; extensions[i].extension; i++) {
 		if (strcmp(language, extensions[i].language) == 0) {
@@ -581,9 +585,9 @@ static void to_cache(ARGS *args)
 			if (strcmp(args->argv[i], "-x") == 0) {
 				i++;
 				if (i < args->argc) {
-					char* language = args->argv[i];
-					const char* prepr_language = preprocessed_language(language, NULL);
-					if (prepr_language == NULL) {
+					char *language = args->argv[i];
+					const char *prepr_language = preprocessed_language(language, NULL);
+					if (!prepr_language) {
 						failed();
 					}
 					args->argv[i] = x_strdup(prepr_language);
@@ -1361,7 +1365,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		}
 
 		/* -x can change the extension for the next input file */
-		if ((strcmp(argv[i], "-x") == 0) && !input_file) {
+		if (strcmp(argv[i], "-x") == 0 && !input_file) {
 			found_x_opt = 1;
 			input_language = argv[i+1];
 		}
@@ -1607,15 +1611,16 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		failed();
 	}
 
-  if ((input_language == NULL) || (strcmp(input_language, "none") == 0)) {
-    input_language = language_for_file(input_file);
-  }
-  i_extension = extension_for_language(preprocessed_language(input_language, &direct_i_file));
-  if (i_extension == NULL) {
+	if (!input_language || strcmp(input_language, "none") == 0) {
+		input_language = language_for_file(input_file);
+	}
+	i_extension = extension_for_language(
+		preprocessed_language(input_language, &direct_i_file));
+	if (!i_extension) {
 		cc_log("Not a C/C++ file: %s", input_file);
 		stats_update(STATS_NOTC);
 		failed();
-  }
+	}
 
 	if (!found_c_opt) {
 		cc_log("No -c option found");
@@ -1628,7 +1633,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		}
 		failed();
 	}
-
 
 	/* don't try to second guess the compilers heuristics for stdout handling */
 	if (output_obj && strcmp(output_obj, "-") == 0) {
