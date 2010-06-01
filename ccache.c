@@ -589,6 +589,7 @@ static void to_cache(ARGS *args)
 					char *language = args->argv[i];
 					const char *prepr_language = preprocessed_language(language, NULL);
 					if (!prepr_language) {
+						stats_update(STATS_ERROR);
 						failed();
 					}
 					args->argv[i] = x_strdup(prepr_language);
