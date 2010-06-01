@@ -1293,7 +1293,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	int found_arch_opt = 0;
-	int found_x_opt = 0;
 	const char *input_language = NULL;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
@@ -1369,7 +1368,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 
 		/* -x can change the extension for the next input file */
 		if (strcmp(argv[i], "-x") == 0 && !input_file) {
-			found_x_opt = 1;
 			input_language = argv[i+1];
 		}
 
