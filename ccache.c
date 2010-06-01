@@ -523,6 +523,9 @@ static const char *preprocessed_language(const char *language, int *direct_i)
 {
 	int i;
 
+	if (!language) {
+		return NULL;
+	}
 	if (direct_i) {
 		*direct_i = 0;
 	}
