@@ -557,6 +557,27 @@ static const char *extension_for_language(const char *language)
 	return NULL;
 }
 
+static void rewrite_x_option_to_preprocessed_language(ARGS *args)
+{
+	int i;
+
+	for (i = 0; i < args->argc; i++) {
+		if (strcmp(args->argv[i], "-x") == 0) {
+			i++;
+			if (i < args->argc) {
+				char *language = args->argv[i];
+				const char *prepr_language = preprocessed_language(language, NULL);
+				if (!prepr_language) {
+					stats_update(STATS_ERROR);
+					failed();
+				}
+				args->argv[i] = x_strdup(prepr_language);
+				free(language);
+			}
+		}
+	}
+}
+
 /* run the real compiler and put the result in cache */
 static void to_cache(ARGS *args)
 {
@@ -564,7 +585,6 @@ static void to_cache(ARGS *args)
 	struct stat st;
 	int status;
 	int compress;
-	int i;
 
 	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", cached_obj, tmp_string());
 	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", cached_obj, tmp_string());
@@ -582,21 +602,7 @@ static void to_cache(ARGS *args)
 	putenv("DEPENDENCIES_OUTPUT");
 
 	if (compile_preprocessed_source_code) {
-		for (i=0; i<args->argc; i++) {
-			if (strcmp(args->argv[i], "-x") == 0) {
-				i++;
-				if (i < args->argc) {
-					char *language = args->argv[i];
-					const char *prepr_language = preprocessed_language(language, NULL);
-					if (!prepr_language) {
-						stats_update(STATS_ERROR);
-						failed();
-					}
-					args->argv[i] = x_strdup(prepr_language);
-					free(language);
-				}
-			}
-		}
+		rewrite_x_option_to_preprocessed_language(args);
 		args_add(args, i_tmpfile);
 	} else {
 		args_add(args, input_file);
