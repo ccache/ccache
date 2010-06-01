@@ -128,8 +128,7 @@ void fatal(const char *format, ...)
 			logfile = fopen(cache_logfile, "a");
 		}
 		if (logfile) {
-			fprintf(logfile, "[%-5d] FATAL: %s", (int)getpid(),
-			        msg);
+			fprintf(logfile, "[%-5d] FATAL: %s\n", (int)getpid(), msg);
 			fflush(logfile);
 		}
 	}
