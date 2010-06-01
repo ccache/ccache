@@ -285,16 +285,21 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 10
     checkstat 'cache miss' 38
 
+    testname="-x"
+    $CCACHE_COMPILE -x c -c test1.ccc 2> /dev/null
+    checkstat 'cache hit (preprocessed)' 10
+    checkstat 'cache miss' 39
+
     if [ -x /usr/bin/printf ]; then
         /usr/bin/printf 'char foo[] = "\xa3";\n' >cp1250.c
         if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=cp1250 cp1250.c >/dev/null 2>&1; then
             testname="-finput-charset"
             $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
             checkstat 'cache hit (preprocessed)' 10
-            checkstat 'cache miss' 39
+            checkstat 'cache miss' 40
             $CCACHE_COMPILE -c -finput-charset=cp1250 cp1250.c
             checkstat 'cache hit (preprocessed)' 11
-            checkstat 'cache miss' 39
+            checkstat 'cache miss' 40
         fi
     fi
 
