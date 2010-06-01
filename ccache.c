@@ -547,10 +547,8 @@ static const char *preprocessed_language(const char *language, int *direct_i)
 static const char *extension_for_language(const char *language)
 {
 	int i;
-	const char *extension = getenv("CCACHE_EXTENSION");
-	if (extension) return extension;
-	if (!language) return NULL;
 
+	if (!language) return NULL;
 	for (i=0; extensions[i].extension; i++) {
 		if (strcmp(language, extensions[i].language) == 0) {
 			return extensions[i].extension;
@@ -1294,6 +1292,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	int found_S_opt = 0;
 	int found_arch_opt = 0;
 	const char *input_language = NULL;
+	const char *prepr_language;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
 	int dependency_filename_specified = 0;
@@ -1615,9 +1614,12 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	if (!input_language || strcmp(input_language, "none") == 0) {
 		input_language = language_for_file(input_file);
 	}
-	i_extension = extension_for_language(
-		preprocessed_language(input_language, &direct_i_file));
+	prepr_language = preprocessed_language(input_language, &direct_i_file);
+	i_extension = getenv("CCACHE_EXTENSION");
 	if (!i_extension) {
+		i_extension = extension_for_language(prepr_language);
+	}
+	if (!input_language || !i_extension) {
 		cc_log("Not a C/C++ file: %s", input_file);
 		stats_update(STATS_NOTC);
 		failed();
