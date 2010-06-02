@@ -35,6 +35,11 @@ ARGS *args_init(int init_argc, char **init_args)
 	return args;
 }
 
+ARGS *args_copy(ARGS *args)
+{
+	return args_init(args->argc, args->argv);
+}
+
 void args_free(ARGS *args)
 {
 	int i;
