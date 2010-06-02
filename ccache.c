@@ -1703,13 +1703,19 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	 * the conversion otherwise will happen twice.
 	 */
 	if (input_charset) {
-		*preprocessor_args = args_init(stripped_args->argc,
-					       stripped_args->argv);
+		*preprocessor_args = args_init(stripped_args->argc, stripped_args->argv);
 		args_add(*preprocessor_args, input_charset);
+		if (compile_preprocessed_source_code) {
+			*compiler_args = stripped_args;
+		} else {
+			*compiler_args = args_init(stripped_args->argc, stripped_args->argv);
+			args_add(*compiler_args, input_charset);
+			args_free(stripped_args);
+		}
 	} else {
 		*preprocessor_args = stripped_args;
+		*compiler_args = stripped_args;
 	}
-	*compiler_args = stripped_args;
 }
 
 static unsigned parse_sloppiness(char *p)

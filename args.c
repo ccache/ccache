@@ -35,6 +35,17 @@ ARGS *args_init(int init_argc, char **init_args)
 	return args;
 }
 
+void args_free(ARGS *args)
+{
+	int i;
+	for (i = 0; i < args->argc; ++i) {
+		if (args->argv[i]) {
+			free(args->argv[i]);
+		}
+	}
+	free(args->argv);
+	free(args);
+}
 
 void args_add(ARGS *args, const char *s)
 {

@@ -150,6 +150,7 @@ typedef struct {
 
 
 ARGS *args_init(int , char **);
+void args_free(ARGS *args);
 void args_add(ARGS *args, const char *s);
 void args_add_prefix(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
