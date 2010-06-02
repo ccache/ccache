@@ -627,8 +627,9 @@ char *dirname(char *s)
 }
 
 /*
- * Return the file extension of a path as a pointer into path. If path has no
- * file extension, the empty string is returned.
+ * Return the file extension (including the dot) of a path as a pointer into
+ * path. If path has no file extension, the empty string and the end of path is
+ * returned.
  */
 const char *get_extension(const char *path)
 {
