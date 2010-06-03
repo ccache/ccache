@@ -1783,10 +1783,8 @@ static void ccache(int argc, char *argv[])
 		cc_log("Base directory: %s", base_dir);
 	}
 
-	/* find the real compiler */
 	find_compiler(argc, argv);
 
-	/* we might be disabled */
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled");
 		failed();
