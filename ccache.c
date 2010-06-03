@@ -458,8 +458,30 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 	end = data + size;
 	p = data;
 	q = data;
-	while (q < end - 1) {
-		if (q[0] == '#' && q[1] == ' ' /* Need to avoid "#pragma"... */
+	while (q < end - 7) { /* There must be at least 7 characters (# 1 "x") left
+	                         to potentially find an include file path. */
+		/*
+		 * Check if we look at a line containing the file name of an included file.
+		 * At least the following formats exist (where N is a positive integer):
+		 *
+		 * GCC:
+		 *
+		 *   # N "file"
+		 *   # N "file" N
+		 *
+		 * HP's compiler:
+		 *
+		 *   #line N "file"
+		 *
+		 * Note that there may be other lines starting with '#' left after
+		 * preprocessing as well, for instance "#    pragma".
+		 */
+		if (q[0] == '#'
+		        /* GCC: */
+		    && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
+		        /* HP: */
+		        || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
+		            && q[5] == ' '))
 		    && (q == data || q[-1] == '\n')) {
 			char *path;
 
