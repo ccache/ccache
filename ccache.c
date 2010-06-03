@@ -274,9 +274,6 @@ static void failed(void)
 
 	cc_log("Failed; falling back to running the real compiler");
 	cc_log_executed_command(orig_args->argv);
-	if (getenv("CCACHE_VERBOSE")) {
-		print_executed_command(stdout, orig_args->argv);
-	}
 	execv(orig_args->argv[0], orig_args->argv);
 	cc_log("execv returned (%s)!", strerror(errno));
 	perror(orig_args->argv[0]);

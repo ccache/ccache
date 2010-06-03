@@ -40,9 +40,6 @@ int execute(char **argv,
 	int status;
 
 	cc_log_executed_command(argv);
-	if (getenv("CCACHE_VERBOSE")) {
-		print_executed_command(stdout, argv);
-	}
 
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork");

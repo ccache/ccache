@@ -108,9 +108,6 @@ New features and improvements
 
     - Improved display of cache max size values.
 
-    - For debugging purposes, the variable `CCACHE_VERBOSE` may now be set to
-      make ccache print executed commands to standard output.
-
     - The following options are no longer hashed in the preprocessor mode:
       `-imacros`, `-imultilib`, `-iprefix`, `-iquote`, `-isysroot`,
       `-iwithprefix`, `-iwithprefixbefore`, `-nostdinc`, `-nostdinc++` and

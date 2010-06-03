@@ -339,12 +339,6 @@ cases you won't need any of these as the defaults will be fine.
     default is that it can give incorrect line number information in compiler
     warning messages. Enabling the unifier implies turning off the direct mode.
 
-*CCACHE_VERBOSE*::
-
-    If you set the environment variable *CCACHE_VERBOSE*, ccache prints (to the
-    standard output) the executed command lines when running the preprocessor
-    and the compiler.
-
 
 CACHE SIZE MANAGEMENT
 ---------------------
