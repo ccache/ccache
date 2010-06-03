@@ -1776,6 +1776,9 @@ static void ccache(int argc, char *argv[])
 
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
+	cc_log("Hostname: %s", get_hostname());
+	cc_log("Working directory: %s", current_working_dir);
+
 	if (base_dir) {
 		cc_log("Base directory: %s", base_dir);
 	}
@@ -1818,10 +1821,6 @@ static void ccache(int argc, char *argv[])
 	 */
 	process_args(orig_args->argc, orig_args->argv, &preprocessor_args,
 		     &compiler_args);
-
-	cc_log("Hostname: %s", get_hostname());
-
-	cc_log("Cwd: %s", current_working_dir);
 
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
