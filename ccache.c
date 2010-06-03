@@ -1786,13 +1786,6 @@ static void ccache(int argc, char *argv[])
 	/* find the real compiler */
 	find_compiler(argc, argv);
 
-	/* use the real compiler if HOME is not set */
-	if (!cache_dir) {
-		cc_log("Unable to determine home directory");
-		cc_log("ccache is disabled");
-		failed();
-	}
-
 	/* we might be disabled */
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled");
