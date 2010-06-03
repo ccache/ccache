@@ -145,7 +145,7 @@ static struct hashtable *included_files;
 /* is gcc being asked to output dependencies? */
 static int generating_dependencies;
 
-/* the extension of the file after pre-processing */
+/* the extension of the file (without dot) after pre-processing */
 static const char *i_extension;
 
 /* the name of the temporary pre-processor file */
@@ -178,43 +178,49 @@ static int nlevels = 2;
  */
 static int compile_preprocessed_source_code;
 
-/* a list of supported file extensions, and the equivalent language. */
+/*
+ * Supported file extensions and corresponding languages (as in parameter to
+ * the -x option).
+ */
 static const struct {
 	const char *extension;
 	const char *language;
 } extensions[] = {
-	{"i", "cpp-output"},
-	{"ii", "c++-cpp-output"},
-	{"mi", "objc-cpp-output"},
-	{"mii", "objc++-cpp-output"},
-	{"c", "c"},
-	{"C", "c++"},
-	{"m", "objective-c"},
-	{"M", "objective-c++"},
-	{"mm", "objective-c++"},
-	{"cc", "c++"},
-	{"CC", "c++"},
-	{"cpp", "c++"},
-	{"CPP", "c++"},
-	{"cxx", "c++"},
-	{"CXX", "c++"},
-	{"c++", "c++"},
-	{"C++", "c++"},
-	{NULL, NULL}};
+	{".c",   "c"},
+	{".C",   "c++"},
+	{".cc",  "c++"},
+	{".CC",  "c++"},
+	{".cpp", "c++"},
+	{".CPP", "c++"},
+	{".cxx", "c++"},
+	{".CXX", "c++"},
+	{".c++", "c++"},
+	{".C++", "c++"},
+	{".i",   "cpp-output"},
+	{".ii",  "c++-cpp-output"},
+	{".mi",  "objc-cpp-output"},
+	{".mii", "objc++-cpp-output"},
+	{".m",   "objective-c"},
+	{".M",   "objective-c++"},
+	{".mm",  "objective-c++"},
+	{NULL,  NULL}};
 
 /*
- * A list of languages and the corresponding language after it has been
- * preprocessed.
+ * Supported languages and corresponding file extensions.
  */
 static const struct {
 	const char *language;
-	const char *preprocessed_language;
-} preprocessed_languages[] = {
-	{"c", "cpp-output"},
-	{"c++", "c++-cpp-output"},
-	{"objective-c", "objc-cpp-output"},
-	{"objective-c++", "objc++-cpp-output"},
-	{NULL, NULL}};
+	const char *i_extension;
+} languages[] = {
+	{"c",                 ".i"},
+	{"cpp-output",        ".i"},
+	{"c++",               ".ii"},
+	{"c++-cpp-output",    ".ii"},
+	{"objective-c",       ".mi"},
+	{"objc-cpp-output",   ".mi"},
+	{"objective-c++",     ".mii"},
+	{"objc++-cpp-output", ".mii"},
+	{NULL,  NULL}};
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
@@ -499,15 +505,14 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
  * Try to guess the language of a file based on its extension. Returns NULL if
  * the extension is unknown.
  */
-static const char *language_for_file(const char *fname)
+static const char *
+language_for_file(const char *fname)
 {
 	int i;
 	const char *p;
 
-	p = strrchr(fname, '.');
-	if (!p) return NULL;
-	p++;
-	for (i=0; extensions[i].extension; i++) {
+	p = get_extension(fname);
+	for (i = 0; extensions[i].extension; i++) {
 		if (strcmp(p, extensions[i].extension) == 0) {
 			return extensions[i].language;
 		}
@@ -516,66 +521,36 @@ static const char *language_for_file(const char *fname)
 }
 
 /*
- * For a given language, return the language of the preprocessed file, or NULL
- * if unknown.
+ * Return the default file extension (including dot) for a language, or NULL if
+ * unknown.
  */
-static const char *preprocessed_language(const char *language, int *direct_i)
+static const char *
+i_extension_for_language(const char *language)
 {
 	int i;
 
 	if (!language) {
 		return NULL;
 	}
-	if (direct_i) {
-		*direct_i = 0;
-	}
-	for (i=0; preprocessed_languages[i].language; i++) {
-		if (strcmp(language, preprocessed_languages[i].language) == 0) {
-			return preprocessed_languages[i].preprocessed_language;
-		}
-		if (strcmp(language, preprocessed_languages[i].preprocessed_language) == 0) {
-			if (direct_i) {
-				*direct_i = 1;
-			}
-			return preprocessed_languages[i].preprocessed_language;
+	for (i = 0; languages[i].language; i++) {
+		if (strcmp(language, languages[i].language) == 0) {
+			return languages[i].i_extension;
 		}
 	}
 	return NULL;
 }
 
-/* Return the default file extension for a language, or NULL if unknown. */
-static const char *extension_for_language(const char *language)
+static int
+language_is_supported(const char *language)
 {
-	int i;
-
-	if (!language) return NULL;
-	for (i=0; extensions[i].extension; i++) {
-		if (strcmp(language, extensions[i].language) == 0) {
-			return extensions[i].extension;
-		}
-	}
-	return NULL;
+	return i_extension_for_language(language) != NULL;
 }
 
-static void rewrite_x_option_to_preprocessed_language(ARGS *args)
+static int
+language_is_preprocessed(const char *language)
 {
-	int i;
-
-	for (i = 0; i < args->argc; i++) {
-		if (strcmp(args->argv[i], "-x") == 0) {
-			i++;
-			if (i < args->argc) {
-				char *language = args->argv[i];
-				const char *prepr_language = preprocessed_language(language, NULL);
-				if (!prepr_language) {
-					stats_update(STATS_ERROR);
-					failed();
-				}
-				args->argv[i] = x_strdup(prepr_language);
-				free(language);
-			}
-		}
-	}
+	const char *i_ext = i_extension_for_language(language);
+	return strcmp(language, language_for_file(i_ext)) == 0;
 }
 
 /* run the real compiler and put the result in cache */
@@ -602,7 +577,6 @@ static void to_cache(ARGS *args)
 	putenv("DEPENDENCIES_OUTPUT");
 
 	if (compile_preprocessed_source_code) {
-		rewrite_x_option_to_preprocessed_language(args);
 		args_add(args, i_tmpfile);
 	} else {
 		args_add(args, input_file);
@@ -1298,15 +1272,16 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	int found_arch_opt = 0;
-	const char *input_language = NULL;
-	const char *prepr_language;
+	const char *explicit_language = NULL; /* As specified with -x. */
+	const char *file_language;            /* As deduced from file extension. */
+	const char *actual_language;          /* Language to actually use. */
+	const char *input_charset = NULL;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
 	int dependency_filename_specified = 0;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
 	ARGS *stripped_args;
-	char *input_charset = NULL;
 
 	stripped_args = args_init(0, NULL);
 
@@ -1372,9 +1347,27 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 			continue;
 		}
 
-		/* -x can change the extension for the next input file */
-		if (strcmp(argv[i], "-x") == 0 && !input_file) {
-			input_language = argv[i+1];
+		/*
+		 * Special handling for -x: remember the last specified language before the
+		 * input file and strip all -x options from the arguments.
+		 */
+		if (strcmp(argv[i], "-x") == 0) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				failed();
+			}
+			if (!input_file) {
+				explicit_language = argv[i+1];
+			}
+			i++;
+			continue;
+		}
+		if (strncmp(argv[i], "-x", 2) == 0) {
+			if (!input_file) {
+				explicit_language = &argv[i][2];
+			}
+			continue;
 		}
 
 		/* we need to work out where the output was meant to go */
@@ -1618,18 +1611,30 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		failed();
 	}
 
-	if (!input_language || strcmp(input_language, "none") == 0) {
-		input_language = language_for_file(input_file);
+	if (explicit_language && strcmp(explicit_language, "none") == 0) {
+		explicit_language = NULL;
 	}
-	prepr_language = preprocessed_language(input_language, &direct_i_file);
-	i_extension = getenv("CCACHE_EXTENSION");
-	if (!i_extension) {
-		i_extension = extension_for_language(prepr_language);
+	file_language = language_for_file(input_file);
+	if (explicit_language) {
+		if (!language_is_supported(explicit_language)) {
+			cc_log("Unsupported language: %s", explicit_language);
+			stats_update(STATS_UNSUPPORTED);
+			failed();
+		}
+		actual_language = explicit_language;
+	} else {
+		actual_language = file_language;
 	}
-	if (!input_language || !i_extension) {
+	if (!actual_language) {
 		cc_log("Not a C/C++ file: %s", input_file);
 		stats_update(STATS_NOTC);
 		failed();
+	}
+	direct_i_file = language_is_preprocessed(actual_language);
+
+	i_extension = getenv("CCACHE_EXTENSION");
+	if (!i_extension) {
+		i_extension = i_extension_for_language(actual_language) + 1;
 	}
 
 	if (!found_c_opt) {
@@ -1699,23 +1704,26 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	}
 
 	/*
-	 * Only include -finput-charset=XXX when running the preprocessor since
-	 * the conversion otherwise will happen twice.
+	 * Some options shouldn't be passed to the real compiler when it compiles
+	 * preprocessed code:
+	 *
+	 * -finput-charset=XXX (otherwise conversion happens twice)
+	 * -x XXX (otherwise the wrong language is selected)
 	 */
+	*preprocessor_args = args_copy(stripped_args);
 	if (input_charset) {
-		*preprocessor_args = args_init(stripped_args->argc, stripped_args->argv);
 		args_add(*preprocessor_args, input_charset);
-		if (compile_preprocessed_source_code) {
-			*compiler_args = stripped_args;
-		} else {
-			*compiler_args = args_init(stripped_args->argc, stripped_args->argv);
-			args_add(*compiler_args, input_charset);
-			args_free(stripped_args);
-		}
-	} else {
-		*preprocessor_args = stripped_args;
-		*compiler_args = stripped_args;
 	}
+	if (explicit_language) {
+		args_add(*preprocessor_args, "-x");
+		args_add(*preprocessor_args, explicit_language);
+	}
+	if (compile_preprocessed_source_code) {
+		*compiler_args = args_copy(stripped_args);
+	} else {
+		*compiler_args = args_copy(*preprocessor_args);
+	}
+	args_free(stripped_args);
 }
 
 static unsigned parse_sloppiness(char *p)

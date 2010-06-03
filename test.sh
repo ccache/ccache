@@ -285,9 +285,22 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 10
     checkstat 'cache miss' 38
 
-    testname="-x"
-    $CCACHE_COMPILE -x c -c test1.ccc 2> /dev/null
+    testname="-x c"
+    $CCACHE_COMPILE -x c -c test1.ccc
     checkstat 'cache hit (preprocessed)' 10
+    checkstat 'cache miss' 39
+    $CCACHE_COMPILE -x c -c test1.ccc
+    checkstat 'cache hit (preprocessed)' 11
+    checkstat 'cache miss' 39
+
+    testname="-xc"
+    $CCACHE_COMPILE -xc -c test1.ccc
+    checkstat 'cache hit (preprocessed)' 12
+    checkstat 'cache miss' 39
+
+    testname="-x none"
+    $CCACHE_COMPILE -x assembler -x none -c test1.c
+    checkstat 'cache hit (preprocessed)' 13
     checkstat 'cache miss' 39
 
     if [ -x /usr/bin/printf ]; then
@@ -295,10 +308,10 @@ base_tests() {
         if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
             testname="-finput-charset"
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-            checkstat 'cache hit (preprocessed)' 10
+            checkstat 'cache hit (preprocessed)' 13
             checkstat 'cache miss' 40
             $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-            checkstat 'cache hit (preprocessed)' 11
+            checkstat 'cache hit (preprocessed)' 14
             checkstat 'cache miss' 40
         fi
     fi
