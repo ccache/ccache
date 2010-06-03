@@ -1595,8 +1595,8 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 					stats_update(STATS_LINK);
 				}
 			} else {
-				cc_log("Non-C/C++ file: %s", argv[i]);
-				stats_update(STATS_NOTC);
+				cc_log("Unsupported source extension: %s", argv[i]);
+				stats_update(STATS_SOURCELANG);
 			}
 			failed();
 		}
@@ -1618,7 +1618,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	if (explicit_language) {
 		if (!language_is_supported(explicit_language)) {
 			cc_log("Unsupported language: %s", explicit_language);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_SOURCELANG);
 			failed();
 		}
 		actual_language = explicit_language;
@@ -1626,8 +1626,8 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		actual_language = file_language;
 	}
 	if (!actual_language) {
-		cc_log("Not a C/C++ file: %s", input_file);
-		stats_update(STATS_NOTC);
+		cc_log("Unsupported source extension: %s", input_file);
+		stats_update(STATS_SOURCELANG);
 		failed();
 	}
 	direct_i_file = language_is_preprocessed(actual_language);

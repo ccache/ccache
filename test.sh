@@ -171,10 +171,10 @@ base_tests() {
     $CCACHE_COMPILE -c test1.c -I 2> /dev/null
     checkstat 'bad compiler arguments' 1
 
-    testname="c/c++"
+    testname="unsupported source language"
     ln -f test1.c test1.ccc
     $CCACHE_COMPILE -c test1.ccc 2> /dev/null
-    checkstat 'not a C/C++ file' 1
+    checkstat 'unsupported source language' 1
 
     testname="unsupported"
     $CCACHE_COMPILE -M foo -c test1.c > /dev/null 2>&1
