@@ -660,7 +660,8 @@ static void to_cache(ARGS *args)
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
 			if (strcmp(output_obj, "/dev/null") == 0
-			    || move_file(tmp_obj, output_obj, 0) == 0
+			    || (access(tmp_obj, R_OK) == 0
+			        && move_file(tmp_obj, output_obj, 0) == 0)
 			    || errno == ENOENT) {
 				/* we can use a quick method of
 				   getting the failed output */
