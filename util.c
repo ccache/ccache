@@ -562,8 +562,7 @@ void x_asprintf2(char **ptr, const char *format, ...)
 }
 
 /*
-   revsusive directory traversal - used for cleanup
-   fn() is called on all files/dirs in the tree
+ * Recursive directory traversal. fn() is called on all entries in the tree.
  */
 void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 {
@@ -577,8 +576,8 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		char *fname;
 		struct stat st;
 
-		if (strcmp(de->d_name,".") == 0) continue;
-		if (strcmp(de->d_name,"..") == 0) continue;
+		if (strcmp(de->d_name, ".") == 0) continue;
+		if (strcmp(de->d_name, "..") == 0) continue;
 
 		if (strlen(de->d_name) == 0) continue;
 
