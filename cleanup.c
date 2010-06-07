@@ -71,11 +71,11 @@ static int is_object_file(const char *fname)
 	return 1;
 }
 
-/* file comparison function to try to delete the oldest files first */
+/* File comparison function that orders files in mtime order, oldest first. */
 static int files_compare(struct files **f1, struct files **f2)
 {
 	if ((*f2)->mtime == (*f1)->mtime) {
-		return strcmp((*f2)->fname, (*f1)->fname);
+		return strcmp((*f1)->fname, (*f2)->fname);
 	}
 	if ((*f2)->mtime > (*f1)->mtime) {
 		return -1;
