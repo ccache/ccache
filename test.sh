@@ -89,6 +89,16 @@ checkfile() {
     fi
 }
 
+checkfilecount() {
+    expected=$1
+    pattern=$2
+    dir=$3
+    actual=`find $dir -name "$pattern" | wc -l`
+    if [ $actual -ne $expected ]; then
+        test_failed "Found $actual (expected $expected) $pattern files in $dir"
+    fi
+}
+
 sed_in_place() {
     expr=$1
     shift
@@ -262,10 +272,7 @@ base_tests() {
     checkstat 'cache miss' 37
     checkstat 'files in cache' 36
 
-    $CCACHE -F 32 -c > /dev/null
-    if [ `getstat 'files in cache'` -gt 32 ]; then
-        test_failed '-F test failed'
-    fi
+    $CCACHE -C >/dev/null
 
     testname="cpp call"
     $CCACHE_COMPILE -c test1.c -E > test1.i
@@ -1316,6 +1323,151 @@ EOF
     checkstat 'error hashing extra file' 1
 }
 
+prepare_cleanup_test() {
+    dir=$1
+    mkdir -p $dir
+    i=0
+    while [ $i -lt 10 ]; do
+        dd if=/dev/zero of=$dir/result$i-4096.o count=1 bs=4096 2>/dev/null
+        touch $dir/result$i-4096.stderr
+        touch $dir/result$i-4096.d
+        if [ $i -gt 5 ]; then
+            backdate $dir/result$i-4096.o
+        fi
+        i=`expr $i + 1`
+    done
+    # NUMFILES: 10, TOTALSIZE: 10 KiB, MAXFILES: 0, MAXSIZE: 0
+    echo "0 0 0 0 0 0 0 0 0 0 0 10 40 0 0" >$dir/stats
+}
+
+cleanup_suite() {
+    testname="clear"
+    prepare_cleanup_test $CCACHE_DIR/a
+    $CCACHE -C >/dev/null
+    checkfilecount 0 '*.o' $CCACHE_DIR
+    checkfilecount 0 '*.d' $CCACHE_DIR
+    checkfilecount 0 '*.stderr' $CCACHE_DIR
+
+    testname="forced cleanup, no limits"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    $CCACHE -F 0 -M 0 >/dev/null
+    $CCACHE -c >/dev/null
+    checkfilecount 10 '*.o' $CCACHE_DIR
+    checkfilecount 10 '*.d' $CCACHE_DIR
+    checkfilecount 10 '*.stderr' $CCACHE_DIR
+
+    testname="forced cleanup, file limit"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (9/10) * 10 * 16 = 144
+    $CCACHE -F 144 -M 0 >/dev/null
+    $CCACHE -c >/dev/null
+    # floor(0.8 * 9) = 7
+    checkfilecount 7 '*.o' $CCACHE_DIR
+    checkfilecount 7 '*.d' $CCACHE_DIR
+    checkfilecount 7 '*.stderr' $CCACHE_DIR
+    for i in 0 1 2 3 4 5 9; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ ! -f $file ]; then
+            test_failed "File $file removed when it shouldn't"
+        fi
+    done
+    for i in 6 7 8; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ -f $file ]; then
+            test_failed "File $file not removed when it should"
+        fi
+    done
+
+    testname="forced cleanup, size limit"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (4/10) * 10 * 4 * 16 = 256
+    $CCACHE -F 0 -M 256K >/dev/null
+    $CCACHE -c >/dev/null
+    # floor(0.8 * 4) = 3
+    checkfilecount 3 '*.o' $CCACHE_DIR
+    checkfilecount 3 '*.d' $CCACHE_DIR
+    checkfilecount 3 '*.stderr' $CCACHE_DIR
+    for i in 3 4 5; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ ! -f $file ]; then
+            test_failed "File $file removed when it shouldn't"
+        fi
+    done
+    for i in 0 1 2 6 7 8 9; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ -f $file ]; then
+            test_failed "File $file not removed when it should"
+        fi
+    done
+
+    testname="autocleanup"
+    $CCACHE -C >/dev/null
+    for x in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
+        prepare_cleanup_test $CCACHE_DIR/$x
+    done
+    # (9/10) * 10 * 16 = 144
+    $CCACHE -F 144 -M 0 >/dev/null
+    touch empty.c
+    checkfilecount 160 '*.o' $CCACHE_DIR
+    checkstat 'files in cache' 160
+    checkstat 'cache size' 640
+    $CCACHE $COMPILER -c empty.c -o empty.o
+    # floor(0.8 * 10) = 7
+    checkfilecount 157 '*.o' $CCACHE_DIR
+    checkstat 'files in cache' 157
+    checkstat 'cache size' 628
+
+    testname="sibling cleanup"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (9/10) * 10 * 16 = 144
+    $CCACHE -F 144 -M 0 >/dev/null
+    backdate $CCACHE_DIR/a/result2-4096.stderr
+    $CCACHE -c >/dev/null
+    # floor(0.8 * 9) = 7
+    checkfilecount 7 '*.o' $CCACHE_DIR
+    checkfilecount 7 '*.d' $CCACHE_DIR
+    checkfilecount 7 '*.stderr' $CCACHE_DIR
+    for i in 0 1 3 4 5 8 9; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ ! -f $file ]; then
+            test_failed "File $file removed when it shouldn't"
+        fi
+    done
+    for i in 2 6 7; do
+        file=$CCACHE_DIR/a/result$i-4096.o
+        if [ -f $file ]; then
+            test_failed "File $file not removed when it should"
+        fi
+    done
+
+    testname="new unknown file"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (9/10) * 10 * 16 = 144
+    $CCACHE -F 144 -M 0 >/dev/null
+    touch $CCACHE_DIR/a/abcd.unknown
+    $CCACHE -c >/dev/null
+    if [ ! -f $CCACHE_DIR/a/abcd.unknown ]; then
+        test_failed "$CCACHE_DIR/a/abcd.unknown removed"
+    fi
+
+    testname="old unknown file"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (9/10) * 10 * 16 = 144
+    $CCACHE -F 144 -M 0 >/dev/null
+    touch $CCACHE_DIR/a/abcd.unknown
+    backdate $CCACHE_DIR/a/abcd.unknown
+    $CCACHE -c >/dev/null
+    if [ -f $CCACHE_DIR/a/abcd.unknown ]; then
+        test_failed "$CCACHE_DIR/a/abcd.unknown not removed"
+    fi
+}
+
 ######################################################################
 # main program
 
@@ -1365,6 +1517,7 @@ basedir
 compression
 readonly
 extrafiles
+cleanup
 "
 
 if [ -z "$suites" ]; then
