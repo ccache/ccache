@@ -1598,6 +1598,8 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		   an option, not an input file. This allows us to
 		   cope better with unusual compiler options */
 		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
+			cc_log("%s is not a regular file, not considering as input file",
+			       argv[i]);
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
