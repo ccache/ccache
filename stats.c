@@ -151,7 +151,7 @@ static void stats_update_size(enum stats stat, size_t size)
 
 	if (!stats_file) {
 		/*
-		 * A NULL stats file means that we didn't get past find_hash(),
+		 * A NULL stats_file means that we didn't get past calculate_object_hash(),
 		 * so we update the counter in the cache-wide statistics file
 		 * CCACHE_DIR/stats instead of a subdirectory stats file.
 		 */
