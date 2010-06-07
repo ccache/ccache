@@ -158,9 +158,10 @@ static void sort_and_clean(void)
 {
 	unsigned i;
 	const char *ext;
+	char *last_base = x_strdup("");
 
 	if (num_files > 1) {
-		/* sort in ascending data order */
+		/* Sort in ascending mtime order. */
 		qsort(files, num_files, sizeof(struct files *),
 		      (COMPAR_FN_T)files_compare);
 	}
@@ -168,39 +169,39 @@ static void sort_and_clean(void)
 	/* delete enough files to bring us below the threshold */
 	for (i = 0; i < num_files; i++) {
 		if ((object_size_threshold == 0
-		     || total_object_size < object_size_threshold)
+		     || total_object_size <= object_size_threshold)
 		    && (object_files_threshold == 0
-			|| (num_files-i) < object_files_threshold)) {
+		        || total_object_files <= object_files_threshold)) {
 			break;
 		}
 
-		delete_file(files[i]->fname, files[i]->size);
-
 		ext = get_extension(files[i]->fname);
-		if (strcmp(ext, ".manifest") == 0) {
-			/* Nothing more to do. */
-		} else {
-			/*
-			 * Make sure that any sibling files are deleted as
-			 * well.
-			 */
+		if (strcmp(ext, ".o") == 0
+		    || strcmp(ext, ".d") == 0
+		    || strcmp(ext, ".stderr") == 0
+		    || strcmp(ext, "") == 0) {
 			char *base = remove_extension(files[i]->fname);
-			if (strcmp(ext, "") != 0) {
-				/* Object file from ccache 2.4. */
-				delete_sibling_file(base, "");
-			}
-			if (strcmp(ext, ".d") != 0) {
-				delete_sibling_file(base, ".d");
-			}
-			if (strcmp(ext, ".o") != 0) {
+			if (strcmp(base, last_base) != 0) { /* Avoid redundant unlinks. */
+				/*
+				 * Make sure that all sibling files are deleted so that a cached result
+				 * is removed completely. Note the order of deletions -- the stderr
+				 * file must be deleted last because if the ccache process gets killed
+				 * after deleting the .stderr but before deleting the .o, the cached
+				 * result would be inconsistent.
+				 */
 				delete_sibling_file(base, ".o");
-			}
-			if (strcmp(ext, ".stderr") != 0) {
+				delete_sibling_file(base, ".d");
 				delete_sibling_file(base, ".stderr");
+				delete_sibling_file(base, ""); /* Object file from ccache 2.4. */
 			}
-			free(base);
+			free(last_base);
+			last_base = base;
+		} else {
+			/* .manifest or unknown file. */
+			delete_file(files[i]->fname, files[i]->size);
 		}
 	}
+	free(last_base);
 }
 
 /* cleanup in one cache subdir */
