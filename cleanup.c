@@ -96,7 +96,7 @@ static void traverse_fn(const char *fname, struct stat *st)
 		return;
 	}
 
-	if (strstr(fname, ".tmp.") != NULL) {
+	if (strstr(p, ".tmp.") != NULL) {
 		/* delete any tmp files older than 1 hour */
 		if (st->st_mtime + 3600 < time(NULL)) {
 			unlink(fname);
@@ -104,7 +104,6 @@ static void traverse_fn(const char *fname, struct stat *st)
 			return;
 		}
 	}
-
 
 	free(p);
 
