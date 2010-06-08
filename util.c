@@ -709,7 +709,7 @@ int safe_open(const char *fname)
 	return fd;
 }
 
-/* Format a size as a human-readable string. Caller frees. */
+/* Format a size (in KiB) as a human-readable string. Caller frees. */
 char *format_size(size_t v)
 {
 	char *s;
