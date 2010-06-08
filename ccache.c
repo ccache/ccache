@@ -169,6 +169,12 @@ static int enable_unify;
 /* should we use the direct mode? */
 static int enable_direct = 1;
 
+/*
+ * Whether to enable compression of files stored in the cache. (Manifest files
+ * are always compressed.)
+ */
+static int enable_compression = 0;
+
 /* number of levels (1 <= nlevels <= 8) */
 static int nlevels = 2;
 
@@ -578,7 +584,6 @@ static void to_cache(ARGS *args)
 	char *tmp_stdout, *tmp_stderr, *tmp_obj;
 	struct stat st;
 	int status;
-	int compress;
 
 	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", cached_obj, tmp_string());
 	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", cached_obj, tmp_string());
@@ -691,8 +696,6 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	compress = getenv("CCACHE_COMPRESS") ? 1 : 0;
-
 	if (stat(tmp_stderr, &st) != 0) {
 		cc_log("Failed to stat %s", tmp_stderr);
 		stats_update(STATS_ERROR);
@@ -700,7 +703,7 @@ static void to_cache(ARGS *args)
 	}
 	if (st.st_size > 0) {
 		if (move_uncompressed_file(tmp_stderr, cached_stderr,
-					   compress) != 0) {
+		                           enable_compression) != 0) {
 			cc_log("Failed to move %s to %s",
 			       tmp_stderr, cached_stderr);
 			stats_update(STATS_ERROR);
@@ -710,7 +713,7 @@ static void to_cache(ARGS *args)
 	} else {
 		unlink(tmp_stderr);
 	}
-	if (move_uncompressed_file(tmp_obj, cached_obj, compress) != 0) {
+	if (move_uncompressed_file(tmp_obj, cached_obj, enable_compression) != 0) {
 		cc_log("Failed to move %s to %s", tmp_obj, cached_obj);
 		stats_update(STATS_ERROR);
 		failed();
@@ -1820,6 +1823,11 @@ static void ccache(int argc, char *argv[])
 	if (getenv("CCACHE_NODIRECT") || enable_unify) {
 		cc_log("Direct mode disabled");
 		enable_direct = 0;
+	}
+
+	if (getenv("CCACHE_COMPRESS")) {
+		cc_log("Compression enabled");
+		enable_compression = 1;
 	}
 
 	if ((env = getenv("CCACHE_NLEVELS"))) {
