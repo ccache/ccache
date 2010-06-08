@@ -1174,10 +1174,9 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
-		ret = copy_file(output_dep, cached_dep, 1);
+		ret = copy_file(output_dep, cached_dep, enable_compression);
 		if (ret == -1) {
-			cc_log("Failed to copy %s to %s", output_dep,
-			       cached_dep);
+			cc_log("Failed to copy %s to %s", output_dep, cached_dep);
 			/* Continue despite the error. */
 		} else {
 			cc_log("Stored in cache: %s", cached_dep);
