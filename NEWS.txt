@@ -19,21 +19,10 @@ Upgrade notes
 ~~~~~~~~~~~~~
 
     - The way the hashes are calculated has changed, so you won't get cache
-      hits for compilation results stored by older ccache versions.
-
-    - The statistics counters ``files in cache'' and ``cache size'' now only
-      count object files. (Previously, files containing cached standard error
-      output were counted as well.) The existing values of the two counters
-      will be erroneous at first after the upgrade, but will correct themselves
-      eventually when enough cleanups have been made, or when you run +ccache
-      --cleanup+.
-
-    - The ``max file'' and ``max cache size'' settings now specify thresholds
-      for object files count and size.
-
-    - Because of the changes mentioned above, you might as well clear the old
-      cache directory with `ccache --cleanup` if you want, unless you plan to
-      keep using an older ccache version.
+      hits for compilation results stored by older ccache versions. Because of
+      this, you might as well clear the old cache directory with `ccache
+      --cleanup` if you want, unless you plan to keep using an older ccache
+      version.
 
 
 New features and improvements

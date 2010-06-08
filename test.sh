@@ -360,16 +360,19 @@ int stderr(void)
 	/* Trigger warning by having no return statement. */
 }
 EOF
+    checkstat 'files in cache' 3
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
     if [ $num -ne 1 ]; then
         test_failed "$num stderr files found, expected 1"
     fi
+    checkstat 'files in cache' 5
 
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
+    checkstat 'files in cache' 5
 
     testname="clear"
     $CCACHE -C > /dev/null
@@ -525,13 +528,13 @@ EOF
 
     ##################################################################
     # Check calculation of dependency file names.
-    $CCACHE -z >/dev/null
+    $CCACHE -Cz >/dev/null
+    checkstat 'files in cache' 0
     mkdir test.dir
-    # Make sure the dependency file is in the cache:
-    $CCACHE $COMPILER -MD -c test.c
     for ext in .obj "" . .foo.bar; do
         testname="dependency file calculation from object file 'test$ext'"
         dep_file=test.dir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
+        $CCACHE $COMPILER -MD -c test.c -o test.dir/test$ext
         rm -f $dep_file
         $CCACHE $COMPILER -MD -c test.c -o test.dir/test$ext
         if [ ! -f $dep_file ]; then
@@ -539,6 +542,7 @@ EOF
         fi
     done
     rm -rf test.dir
+    checkstat 'files in cache' 12
 
     ##################################################################
     # Check that -Wp,-MD,file.d works.

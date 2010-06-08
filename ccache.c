@@ -584,6 +584,8 @@ static void to_cache(ARGS *args)
 	char *tmp_stdout, *tmp_stderr, *tmp_obj;
 	struct stat st;
 	int status;
+	size_t added_bytes = 0;
+	unsigned added_files = 0;
 
 	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", cached_obj, tmp_string());
 	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", cached_obj, tmp_string());
@@ -710,6 +712,11 @@ static void to_cache(ARGS *args)
 			failed();
 		}
 		cc_log("Stored in cache: %s", cached_stderr);
+		if (enable_compression) {
+			stat(cached_stderr, &st);
+		}
+		added_bytes += file_size(&st);
+		added_files += 1;
 	} else {
 		unlink(tmp_stderr);
 	}
@@ -719,6 +726,9 @@ static void to_cache(ARGS *args)
 		failed();
 	} else {
 		cc_log("Stored in cache: %s", cached_obj);
+		stat(cached_obj, &st);
+		added_bytes += file_size(&st);
+		added_files += 1;
 	}
 
 	/*
@@ -731,7 +741,7 @@ static void to_cache(ARGS *args)
 		failed();
 	}
 
-	stats_tocache(file_size(&st));
+	stats_update_size(STATS_TOCACHE, added_bytes / 1024, added_files);
 
 	free(tmp_obj);
 	free(tmp_stderr);
@@ -1180,6 +1190,8 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			/* Continue despite the error. */
 		} else {
 			cc_log("Stored in cache: %s", cached_dep);
+			stat(cached_dep, &st);
+			stats_update_size(STATS_NONE, file_size(&st) / 1024, 1);
 		}
 	}
 
@@ -1211,13 +1223,21 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	    && put_object_in_manifest
 	    && included_files
 	    && !getenv("CCACHE_READONLY")) {
+		struct stat st;
+		size_t old_size = 0; /* in bytes */
+		if (stat(manifest_path, &st) == 0) {
+			old_size = file_size(&st);
+		}
 		if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
-			cc_log("Added object file hash to %s",
-				manifest_path);
+			cc_log("Added object file hash to %s", manifest_path);
 			update_mtime(manifest_path);
+			stat(manifest_path, &st);
+			stats_update_size(
+				STATS_NONE,
+				(file_size(&st) - old_size) / 1024,
+				old_size == 0 ? 1 : 0);
 		} else {
-			cc_log("Failed to add object file hash to %s",
-				manifest_path);
+			cc_log("Failed to add object file hash to %s", manifest_path);
 		}
 	}
 
@@ -1234,6 +1254,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		break;
 
 	case FROMCACHE_COMPILED_MODE:
+		// Stats already updated in to_cache().
 		break;
 	}
 

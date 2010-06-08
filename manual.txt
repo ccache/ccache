@@ -104,10 +104,10 @@ refer to the compiler's documentation.
 
 *-F, --max-files*='N'::
 
-    Set the maximum number of object files allowed in the cache. The value is
-    stored inside the cache directory and applies to all future compilations.
-    Due to the way the value is stored the actual value used is always rounded
-    down to the nearest multiple of 16.
+    Set the maximum number of files allowed in the cache. The value is stored
+    inside the cache directory and applies to all future compilations. Due to
+    the way the value is stored the actual value used is always rounded down to
+    the nearest multiple of 16.
 
 *-h, --help*::
 
@@ -115,10 +115,10 @@ refer to the compiler's documentation.
 
 *-M, --max-size*='SIZE'::
 
-    Set the maximum size of the object files stored in the cache. You can
-    specify a value in gigabytes, megabytes or kilobytes by appending a G, M or
-    K to the value. The default is gigabytes. The actual value stored is
-    rounded down to the nearest multiple of 16 kilobytes.
+    Set the maximum size of the files stored in the cache. You can specify a
+    value in gigabytes, megabytes or kilobytes by appending a G, M or K to the
+    value. The default is gigabytes. The actual value stored is rounded down to
+    the nearest multiple of 16 kilobytes.
 
 *-s, --show-stats*::
 
@@ -343,11 +343,11 @@ cases you won't need any of these as the defaults will be fine.
 CACHE SIZE MANAGEMENT
 ---------------------
 
-By default ccache has a one gigabyte limit on the total size of object files in
-the cache and no maximum number of object files. You can set different limits
-using the *-M*/*--max-size* and *-F*/*--max-files* options. Use *ccache -s* to
-see the cache size and the currently configured limits (in addition to other
-various statistics).
+By default ccache has a one gigabyte limit on the total size of files in the
+cache and no maximum number of files. You can set different limits using the
+*-M*/*--max-size* and *-F*/*--max-files* options. Use *ccache -s* to see the
+cache size and the currently configured limits (in addition to other various
+statistics).
 
 
 CACHE COMPRESSION

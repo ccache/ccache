@@ -140,8 +140,11 @@ static void stats_read_fd(int fd, unsigned counters[STATS_END])
 	parse_stats(counters, buf);
 }
 
-/* update the stats counter for this compile */
-static void stats_update_size(enum stats stat, size_t size)
+/*
+ * Update a statistics counter (unless it's STATS_NONE) and also record that a
+ * number of bytes and files have been added to the cache. Size is in KiB.
+ */
+void stats_update_size(enum stats stat, size_t size, unsigned files)
 {
 	int fd;
 	unsigned counters[STATS_END];
@@ -159,33 +162,22 @@ static void stats_update_size(enum stats stat, size_t size)
 		x_asprintf(&stats_file, "%s/stats", cache_dir);
 	}
 
-	/* open safely to try to prevent symlink races */
 	fd = safe_open(stats_file);
-
-	/* still can't get it? don't bother ... */
 	if (fd == -1) return;
-
-	memset(counters, 0, sizeof(counters));
-
 	if (write_lock_fd(fd) != 0) return;
 
-	/* read in the old stats */
+	memset(counters, 0, sizeof(counters));
 	stats_read_fd(fd, counters);
 
-	/* update them */
-	counters[stat]++;
-
-	/* on a cache miss we up the file count and size */
-	if (stat == STATS_TOCACHE) {
-		counters[STATS_NUMFILES] += 1;
-		counters[STATS_TOTALSIZE] += size;
+	if (stat != STATS_NONE) {
+		counters[stat]++;
 	}
+	counters[STATS_NUMFILES] += files;
+	counters[STATS_TOTALSIZE] += size;
 
-	/* and write them out */
 	write_stats(fd, counters);
 	close(fd);
 
-	/* we might need to cleanup if the cache has now got too big */
 	if (counters[STATS_MAXFILES] != 0 &&
 	    counters[STATS_NUMFILES] > counters[STATS_MAXFILES]) {
 		need_cleanup = 1;
@@ -202,19 +194,10 @@ static void stats_update_size(enum stats stat, size_t size)
 	}
 }
 
-/* record a cache miss */
-void stats_tocache(size_t size)
-{
-	/* convert size to kilobytes */
-	size = size / 1024;
-
-	stats_update_size(STATS_TOCACHE, size);
-}
-
 /* update a normal stat */
 void stats_update(enum stats stat)
 {
-	stats_update_size(stat, 0);
+	stats_update_size(stat, 0, 0);
 }
 
 /* read in the stats from one dir and add to the counters */

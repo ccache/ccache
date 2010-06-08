@@ -112,7 +112,7 @@ void update_mtime(const char *path);
 void stats_update(enum stats stat);
 void stats_zero(void);
 void stats_summary(void);
-void stats_tocache(size_t size);
+void stats_update_size(enum stats stat, size_t size, unsigned files);
 void stats_read(const char *stats_file, unsigned counters[STATS_END]);
 int stats_set_limits(long maxfiles, long maxsize);
 size_t value_units(const char *s);
