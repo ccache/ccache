@@ -18,6 +18,7 @@
 
 #include "ccache.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 /* NOTE: This code makes no attempt to be fast! */
@@ -140,9 +141,11 @@ void mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 	uint32_t M[16];
 
 #ifdef CCACHE_DEBUG_HASH
-	FILE* f = fopen("ccache-debug-hash.bin", "a");
-	fwrite(in, 1, n, f);
-	fclose(f);
+	if (getenv("CCACHE_DEBUG_HASH")) {
+		FILE* f = fopen("ccache-debug-hash.bin", "a");
+		fwrite(in, 1, n, f);
+		fclose(f);
+	}
 #endif
 
 	m = md;
