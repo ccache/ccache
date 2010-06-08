@@ -69,6 +69,8 @@ New features and improvements
     - It is now possible to specify extra files whose contents should be
       included in the hash sum by setting the `CCACHE_EXTRAFILES` option.
 
+    - Added support for Objective-C and Objective-C++.
+
     - Added support for long command-line options.
 
     - A `CACHEDIR.TAG` file is now created in the cache directory. See
@@ -117,7 +119,7 @@ New features and improvements
 Bug fixes
 ~~~~~~~~~
 
-    - Fixed build on FreeBSD.
+    - Improved feature macro handling for better portability.
 
     - Improved detection of home directory.
 
