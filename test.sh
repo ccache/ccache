@@ -1413,12 +1413,10 @@ cleanup_suite() {
     touch empty.c
     checkfilecount 160 '*.o' $CCACHE_DIR
     checkstat 'files in cache' 160
-    checkstat 'cache size' 640
     $CCACHE $COMPILER -c empty.c -o empty.o
     # floor(0.8 * 10) = 7
     checkfilecount 157 '*.o' $CCACHE_DIR
     checkstat 'files in cache' 157
-    checkstat 'cache size' 628
 
     testname="sibling cleanup"
     $CCACHE -C >/dev/null
