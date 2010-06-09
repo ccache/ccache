@@ -1330,19 +1330,20 @@ EOF
 
 prepare_cleanup_test() {
     dir=$1
+    rm -rf $dir
     mkdir -p $dir
     i=0
     while [ $i -lt 10 ]; do
-        dd if=/dev/zero of=$dir/result$i-4096.o count=1 bs=4096 2>/dev/null
-        touch $dir/result$i-4096.stderr
-        touch $dir/result$i-4096.d
+        dd if=/dev/zero of=$dir/result$i-4017.o count=1 bs=4017 2>/dev/null
+        touch $dir/result$i-4017.stderr
+        touch $dir/result$i-4017.d
         if [ $i -gt 5 ]; then
-            backdate $dir/result$i-4096.o
+            backdate $dir/result$i-4017.stderr
         fi
         i=`expr $i + 1`
     done
-    # NUMFILES: 10, TOTALSIZE: 10 KiB, MAXFILES: 0, MAXSIZE: 0
-    echo "0 0 0 0 0 0 0 0 0 0 0 10 40 0 0" >$dir/stats
+    # NUMFILES: 30, TOTALSIZE: 40 KiB, MAXFILES: 0, MAXSIZE: 0
+    echo "0 0 0 0 0 0 0 0 0 0 0 30 40 0 0" >$dir/stats
 }
 
 cleanup_suite() {
@@ -1352,6 +1353,7 @@ cleanup_suite() {
     checkfilecount 0 '*.o' $CCACHE_DIR
     checkfilecount 0 '*.d' $CCACHE_DIR
     checkfilecount 0 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 0
 
     testname="forced cleanup, no limits"
     $CCACHE -C >/dev/null
@@ -1361,25 +1363,27 @@ cleanup_suite() {
     checkfilecount 10 '*.o' $CCACHE_DIR
     checkfilecount 10 '*.d' $CCACHE_DIR
     checkfilecount 10 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 30
 
     testname="forced cleanup, file limit"
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
-    # (9/10) * 10 * 16 = 144
-    $CCACHE -F 144 -M 0 >/dev/null
+    # (9/10) * 30 * 16 = 432
+    $CCACHE -F 432 -M 0 >/dev/null
     $CCACHE -c >/dev/null
     # floor(0.8 * 9) = 7
     checkfilecount 7 '*.o' $CCACHE_DIR
     checkfilecount 7 '*.d' $CCACHE_DIR
     checkfilecount 7 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 21
     for i in 0 1 2 3 4 5 9; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ ! -f $file ]; then
             test_failed "File $file removed when it shouldn't"
         fi
     done
     for i in 6 7 8; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ -f $file ]; then
             test_failed "File $file not removed when it should"
         fi
@@ -1395,14 +1399,15 @@ cleanup_suite() {
     checkfilecount 3 '*.o' $CCACHE_DIR
     checkfilecount 3 '*.d' $CCACHE_DIR
     checkfilecount 3 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 9
     for i in 3 4 5; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ ! -f $file ]; then
             test_failed "File $file removed when it shouldn't"
         fi
     done
     for i in 0 1 2 6 7 8 9; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ -f $file ]; then
             test_failed "File $file not removed when it should"
         fi
@@ -1413,35 +1418,40 @@ cleanup_suite() {
     for x in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do
         prepare_cleanup_test $CCACHE_DIR/$x
     done
-    # (9/10) * 10 * 16 = 144
-    $CCACHE -F 144 -M 0 >/dev/null
+    # (9/10) * 30 * 16 = 432
+    $CCACHE -F 432 -M 0 >/dev/null
     touch empty.c
     checkfilecount 160 '*.o' $CCACHE_DIR
-    checkstat 'files in cache' 160
+    checkfilecount 160 '*.d' $CCACHE_DIR
+    checkfilecount 160 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 480
     $CCACHE $COMPILER -c empty.c -o empty.o
-    # floor(0.8 * 10) = 7
+    # floor(0.8 * 9) = 7
     checkfilecount 157 '*.o' $CCACHE_DIR
-    checkstat 'files in cache' 157
+    checkfilecount 156 '*.d' $CCACHE_DIR
+    checkfilecount 156 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 469
 
     testname="sibling cleanup"
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
-    # (9/10) * 10 * 16 = 144
-    $CCACHE -F 144 -M 0 >/dev/null
-    backdate $CCACHE_DIR/a/result2-4096.stderr
+    # (9/10) * 30 * 16 = 432
+    $CCACHE -F 432 -M 0 >/dev/null
+    backdate $CCACHE_DIR/a/result2-4017.stderr
     $CCACHE -c >/dev/null
     # floor(0.8 * 9) = 7
     checkfilecount 7 '*.o' $CCACHE_DIR
     checkfilecount 7 '*.d' $CCACHE_DIR
     checkfilecount 7 '*.stderr' $CCACHE_DIR
+    checkstat 'files in cache' 21
     for i in 0 1 3 4 5 8 9; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ ! -f $file ]; then
             test_failed "File $file removed when it shouldn't"
         fi
     done
     for i in 2 6 7; do
-        file=$CCACHE_DIR/a/result$i-4096.o
+        file=$CCACHE_DIR/a/result$i-4017.o
         if [ -f $file ]; then
             test_failed "File $file not removed when it should"
         fi
@@ -1450,25 +1460,40 @@ cleanup_suite() {
     testname="new unknown file"
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
-    # (9/10) * 10 * 16 = 144
-    $CCACHE -F 144 -M 0 >/dev/null
     touch $CCACHE_DIR/a/abcd.unknown
+    $CCACHE -c >/dev/null # update counters
+    checkstat 'files in cache' 31
+    # (9/10) * 30 * 16 = 432
+    $CCACHE -F 432 -M 0 >/dev/null
     $CCACHE -c >/dev/null
     if [ ! -f $CCACHE_DIR/a/abcd.unknown ]; then
         test_failed "$CCACHE_DIR/a/abcd.unknown removed"
     fi
+    checkstat 'files in cache' 19
 
     testname="old unknown file"
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
-    # (9/10) * 10 * 16 = 144
-    $CCACHE -F 144 -M 0 >/dev/null
+    # (9/10) * 30 * 16 = 432
+    $CCACHE -F 432 -M 0 >/dev/null
     touch $CCACHE_DIR/a/abcd.unknown
     backdate $CCACHE_DIR/a/abcd.unknown
     $CCACHE -c >/dev/null
     if [ -f $CCACHE_DIR/a/abcd.unknown ]; then
         test_failed "$CCACHE_DIR/a/abcd.unknown not removed"
     fi
+
+    testname="cleanup of tmp files"
+    $CCACHE -C >/dev/null
+    touch $CCACHE_DIR/a/abcd.tmp.efgh
+    $CCACHE -c >/dev/null # update counters
+    checkstat 'files in cache' 1
+    backdate $CCACHE_DIR/a/abcd.tmp.efgh
+    $CCACHE -c >/dev/null
+    if [ -f $CCACHE_DIR/a/abcd.tmp.efgh ]; then
+        test_failed "$CCACHE_DIR/a/abcd.tmp.unknown not removed"
+    fi
+    checkstat 'files in cache' 0
 }
 
 ######################################################################

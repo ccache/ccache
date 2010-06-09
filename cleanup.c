@@ -38,38 +38,13 @@ static struct files {
 	time_t mtime;
 	size_t size; /* In KiB. */
 } **files;
-static unsigned allocated;
-static unsigned num_files;
-static size_t total_object_size;
-static size_t total_object_files;
-static size_t object_size_threshold;
-static size_t object_files_threshold;
+static unsigned allocated; /* Size of the files array. */
+static unsigned num_files; /* Number of used entries in the files array. */
 
-static int is_object_file(const char *fname)
-{
-	int i;
-	int len;
-
-	len = strlen(fname);
-	if (len < 2) {
-		return 0;
-	}
-
-	/* ccache 3.0 and later: */
-	if (len >= 2 && fname[len - 2] == '.' && fname[len - 1] == 'o') {
-		return 1;
-	}
-
-	/* ccache 2.4 and earlier: */
-	for (i = len - 1; i >= 0; i--) {
-		if (fname[i] == '.') {
-			return 0;
-		} else if (fname[i] == '-') {
-			return 1;
-		}
-	}
-	return 1;
-}
+static size_t cache_size; /* In KiB. */
+static size_t files_in_cache;
+static size_t cache_size_threshold;
+static size_t files_in_cache_threshold;
 
 /* File comparison function that orders files in mtime order, oldest first. */
 static int files_compare(struct files **f1, struct files **f2)
@@ -117,20 +92,16 @@ static void traverse_fn(const char *fname, struct stat *st)
 	files[num_files]->fname = x_strdup(fname);
 	files[num_files]->mtime = st->st_mtime;
 	files[num_files]->size = file_size(st) / 1024;
-	if (is_object_file(fname)) {
-		total_object_files += 1;
-		total_object_size += files[num_files]->size;
-	}
+	cache_size += files[num_files]->size;
+	files_in_cache++;
 	num_files++;
 }
 
 static void delete_file(const char *path, size_t size)
 {
 	if (unlink(path) == 0) {
-		if (is_object_file(path)) {
-			total_object_files -= 1;
-			total_object_size -= size;
-		}
+		cache_size -= size;
+		files_in_cache--;
 	} else if (errno != ENOENT) {
 		cc_log("Failed to unlink %s (%s)", path, strerror(errno));
 	}
@@ -166,10 +137,10 @@ static void sort_and_clean(void)
 
 	/* delete enough files to bring us below the threshold */
 	for (i = 0; i < num_files; i++) {
-		if ((object_size_threshold == 0
-		     || total_object_size <= object_size_threshold)
-		    && (object_files_threshold == 0
-		        || total_object_files <= object_files_threshold)) {
+		if ((cache_size_threshold == 0
+		     || cache_size <= cache_size_threshold)
+		    && (files_in_cache_threshold == 0
+		        || files_in_cache <= files_in_cache_threshold)) {
 			break;
 		}
 
@@ -209,12 +180,12 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 
 	cc_log("Cleaning up cache directory %s", dir);
 
-	object_size_threshold = maxsize * LIMIT_MULTIPLE;
-	object_files_threshold = maxfiles * LIMIT_MULTIPLE;
+	cache_size_threshold = maxsize * LIMIT_MULTIPLE;
+	files_in_cache_threshold = maxfiles * LIMIT_MULTIPLE;
 
 	num_files = 0;
-	total_object_files = 0;
-	total_object_size = 0;
+	cache_size = 0;
+	files_in_cache = 0;
 
 	/* build a list of files */
 	traverse(dir, traverse_fn);
@@ -222,7 +193,7 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 	/* clean the cache */
 	sort_and_clean();
 
-	stats_set_sizes(dir, total_object_files, total_object_size);
+	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	/* free it up */
 	for (i = 0; i < num_files; i++) {
@@ -237,8 +208,8 @@ void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 	files = NULL;
 
 	num_files = 0;
-	total_object_files = 0;
-	total_object_size = 0;
+	cache_size = 0;
+	files_in_cache = 0;
 }
 
 /* cleanup in all cache subdirs */
