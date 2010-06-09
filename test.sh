@@ -350,6 +350,7 @@ EOF
     checkstat 'compiler produced empty output' 1
 
     testname="stderr-files"
+    $CCACHE -Cz >/dev/null
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
     if [ $num -ne 0 ]; then
         test_failed "$num stderr files found, expected 0"
@@ -360,19 +361,19 @@ int stderr(void)
 	/* Trigger warning by having no return statement. */
 }
 EOF
-    checkstat 'files in cache' 3
+    checkstat 'files in cache' 0
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
     if [ $num -ne 1 ]; then
         test_failed "$num stderr files found, expected 1"
     fi
-    checkstat 'files in cache' 5
+    checkstat 'files in cache' 2
 
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
-    checkstat 'files in cache' 5
+    checkstat 'files in cache' 2
 
     testname="clear"
     $CCACHE -C > /dev/null
