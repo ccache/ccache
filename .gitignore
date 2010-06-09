@@ -18,3 +18,4 @@ configure
 dev.mk
 perfdir.*
 testdir.*
+version.c

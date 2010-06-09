@@ -1,8 +1,6 @@
 #ifndef CCACHE_H
 #define CCACHE_H
 
-#define CCACHE_VERSION "3.0pre1"
-
 #include "config.h"
 #include "mdfour.h"
 
@@ -22,6 +20,8 @@
 #ifndef MYNAME
 #define MYNAME "ccache"
 #endif
+
+extern const char CCACHE_VERSION[];
 
 /* statistics fields in storage order */
 enum stats {

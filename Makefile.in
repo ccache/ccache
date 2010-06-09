@@ -17,7 +17,7 @@ EXEEXT = @EXEEXT@
 libs = @LIBS@ -lm
 
 sources = \
-    ccache.c mdfour.c hash.c execute.c util.c args.c stats.c \
+    ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
     murmurhashneutral2.c hashutil.c getopt_long.c
 all_sources = $(sources) @extra_sources@
@@ -68,7 +68,7 @@ check: test
 
 .PHONY: distclean
 distclean: clean
-	rm -rf Makefile dev.mk config.h config.log config.status .deps
+	rm -rf Makefile dev.mk config.h config.log config.status .deps version.c
 
 .PHONY: installcheck
 installcheck:

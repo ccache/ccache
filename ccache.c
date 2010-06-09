@@ -38,7 +38,7 @@
 #include <unistd.h>
 
 static const char VERSION_TEXT[] =
-"ccache version " CCACHE_VERSION "\n"
+"ccache version %s\n"
 "\n"
 "Copyright (C) 2002-2007 Andrew Tridgell\n"
 "Copyright (C) 2009-2010 Joel Rosdahl\n"
@@ -1998,7 +1998,7 @@ static int ccache_main(int argc, char *argv[])
 	while ((c = getopt_long(argc, argv, "hszcCF:M:V", long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'V':
-			fputs(VERSION_TEXT, stdout);
+			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
 			exit(0);
 
 		case 'h':

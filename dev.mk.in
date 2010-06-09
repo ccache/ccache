@@ -7,8 +7,9 @@ ASCIIDOC = asciidoc
 XSLTPROC = xsltproc
 MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
 
-version = $(shell sed -n 's/^\#define CCACHE_VERSION "\(.*\)"/\1/p' \
-                         $(srcdir)/ccache.h)
+version := \
+    $(shell (git describe --dirty 2>/dev/null || echo vunknown) | cut -b 2-)
+
 dist_dir = ccache-$(version)
 dist_archive_tar_bz2 = ccache-$(version).tar.bz2
 dist_archive_tar_gz = ccache-$(version).tar.gz
@@ -17,7 +18,7 @@ generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
 built_dist_files = $(generated_docs)
 
 files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
-files_to_clean += $(built_dist_files)
+files_to_clean += $(built_dist_files) version.c
 
 source_dist_files = \
     $(sources) $(headers) zlib/*.c zlib/*.h \
@@ -26,6 +27,11 @@ source_dist_files = \
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
+
+ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
+  $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)
+endif
+version.o: version.c
 
 .PHONY: dist
 dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)

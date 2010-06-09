@@ -290,6 +290,9 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
+version=`(git describe --dirty 2>/dev/null || echo vunknown) | cut -b 2-`
+echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+
 mkdir -p .deps
 
 if test x$use_bundled_zlib = xyes; then
