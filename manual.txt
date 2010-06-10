@@ -576,6 +576,8 @@ problems and what may be done to increase the hit rate:
 * If ``cache hit (preprocessed)'' has been incremented instead of ``cache hit
   (direct)'', ccache has fallen back to preprocessor mode, which is generally
   slower. Some possible reasons are:
+** The source code has been modified in such a way that the preprocessor output
+   is not affected.
 ** Compiler arguments that are hashed in the direct mode but not in the
    preprocessor mode have changed (*-I*, *-include*, *-D*, etc) and they didn't
    affect the preprocessor output.
