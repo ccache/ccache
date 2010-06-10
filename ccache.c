@@ -1255,7 +1255,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		break;
 
 	case FROMCACHE_COMPILED_MODE:
-		// Stats already updated in to_cache().
+		/* Stats already updated in to_cache(). */
 		break;
 	}
 
