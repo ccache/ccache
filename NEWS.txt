@@ -58,7 +58,10 @@ New features and improvements
     - It is now possible to specify extra files whose contents should be
       included in the hash sum by setting the `CCACHE_EXTRAFILES` option.
 
-    - Added support for Objective-C and Objective-C++.
+    - Added support for Objective-C and Objective-C++. The statistics counter
+      ``not a C/C++ file'' has been renamed to ``unsupported source language''.
+
+    - Added support for the `-x` compiler option.
 
     - Added support for long command-line options.
 
@@ -95,7 +98,7 @@ New features and improvements
 
     - Added `installcheck` and `distcheck` make targets.
 
-    - Clarified cache size limit options' semantics.
+    - Clarified cache size limit options' and cleanup semantics.
 
     - Improved display of cache max size values.
 
@@ -108,7 +111,7 @@ New features and improvements
 Bug fixes
 ~~~~~~~~~
 
-    - Improved feature macro handling for better portability.
+    - Various portability improvements.
 
     - Improved detection of home directory.
 
@@ -162,3 +165,8 @@ Bug fixes
       environment variables.
 
     - Improved detection of recursive invocation.
+
+    - The ccache binary is now not unconditionally stripped when installing.
+
+    - Statistics counters are now correctly updated for -E option failures and
+      internal errors.
