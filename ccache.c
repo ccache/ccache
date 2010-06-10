@@ -1818,8 +1818,6 @@ static void ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	ARGS *compiler_args;
 
-	cc_log("=== CCACHE STARTED =========================================");
-
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
 	cc_log("Hostname: %s", get_hostname());
@@ -2100,6 +2098,10 @@ int main(int argc, char *argv[])
 	char *p;
 	char *program_name;
 
+	/* check for logging early so cc_log messages start working ASAP */
+	cache_logfile = getenv("CCACHE_LOGFILE");
+	cc_log("=== CCACHE STARTED =========================================");
+
 	/* the user might have set CCACHE_UMASK */
 	p = getenv("CCACHE_UMASK");
 	if (p) {
@@ -2141,8 +2143,6 @@ int main(int argc, char *argv[])
 	if (!temp_dir) {
 		x_asprintf(&temp_dir, "%s/tmp", cache_dir);
 	}
-
-	cache_logfile = getenv("CCACHE_LOGFILE");
 
 	base_dir = getenv("CCACHE_BASEDIR");
 	if (base_dir && base_dir[0] != '/') {
