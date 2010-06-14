@@ -310,6 +310,12 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 13
     checkstat 'cache miss' 39
 
+    testname="-x unknown"
+    $CCACHE_COMPILE -x unknown -c test1.c 2>/dev/null
+    checkstat 'cache hit (preprocessed)' 13
+    checkstat 'cache miss' 39
+    checkstat 'unsupported source language' 2
+
     if [ -x /usr/bin/printf ]; then
         /usr/bin/printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
         if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
