@@ -193,6 +193,12 @@ static const struct {
 	const char *extension;
 	const char *language;
 } extensions[] = {
+	/* Preprocessed: */
+	{".i",   "cpp-output"},
+	{".ii",  "c++-cpp-output"},
+	{".mi",  "objc-cpp-output"},
+	{".mii", "objc++-cpp-output"},
+	/* Other: */
 	{".c",   "c"},
 	{".C",   "c++"},
 	{".cc",  "c++"},
@@ -203,30 +209,26 @@ static const struct {
 	{".CXX", "c++"},
 	{".c++", "c++"},
 	{".C++", "c++"},
-	{".i",   "cpp-output"},
-	{".ii",  "c++-cpp-output"},
-	{".mi",  "objc-cpp-output"},
-	{".mii", "objc++-cpp-output"},
 	{".m",   "objective-c"},
 	{".M",   "objective-c++"},
 	{".mm",  "objective-c++"},
 	{NULL,  NULL}};
 
 /*
- * Supported languages and corresponding file extensions.
+ * Supported languages and corresponding preprocessed languages.
  */
 static const struct {
 	const char *language;
-	const char *i_extension;
+	const char *p_language;
 } languages[] = {
-	{"c",                 ".i"},
-	{"cpp-output",        ".i"},
-	{"c++",               ".ii"},
-	{"c++-cpp-output",    ".ii"},
-	{"objective-c",       ".mi"},
-	{"objc-cpp-output",   ".mi"},
-	{"objective-c++",     ".mii"},
-	{"objc++-cpp-output", ".mii"},
+	{"c",                 "cpp-output"},
+	{"cpp-output",        "cpp-output"},
+	{"c++",               "c++-cpp-output"},
+	{"c++-cpp-output",    "c++-cpp-output"},
+	{"objective-c",       "objc-cpp-output"},
+	{"objc-cpp-output",   "objc-cpp-output"},
+	{"objective-c++",     "objc++-cpp-output"},
+	{"objc++-cpp-output", "objc++-cpp-output"},
 	{NULL,  NULL}};
 
 enum fromcache_call_mode {
@@ -528,8 +530,8 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 }
 
 /*
- * Try to guess the language of a file based on its extension. Returns NULL if
- * the extension is unknown.
+ * Guess the language of a file based on its extension. Returns NULL if the
+ * extension is unknown.
  */
 static const char *
 language_for_file(const char *fname)
@@ -547,20 +549,39 @@ language_for_file(const char *fname)
 }
 
 /*
- * Return the default file extension (including dot) for a language, or NULL if
- * unknown.
+ * Return the preprocessed language for a given language, or NULL if unknown.
  */
 static const char *
-i_extension_for_language(const char *language)
+p_language_for_language(const char *language)
 {
 	int i;
 
 	if (!language) {
 		return NULL;
 	}
-	for (i = 0; languages[i].language; i++) {
+	for (i = 0; languages[i].language; ++i) {
 		if (strcmp(language, languages[i].language) == 0) {
-			return languages[i].i_extension;
+			return languages[i].p_language;
+		}
+	}
+	return NULL;
+}
+
+/*
+ * Return the default file extension (including dot) for a language, or NULL if
+ * unknown.
+ */
+static const char *
+extension_for_language(const char *language)
+{
+	int i;
+
+	if (!language) {
+		return NULL;
+	}
+	for (i = 0; extensions[i].extension; i++) {
+		if (strcmp(language, languages[i].language) == 0) {
+			return extensions[i].extension;
 		}
 	}
 	return NULL;
@@ -569,14 +590,13 @@ i_extension_for_language(const char *language)
 static int
 language_is_supported(const char *language)
 {
-	return i_extension_for_language(language) != NULL;
+	return p_language_for_language(language) != NULL;
 }
 
 static int
 language_is_preprocessed(const char *language)
 {
-	const char *i_ext = i_extension_for_language(language);
-	return strcmp(language, language_for_file(i_ext)) == 0;
+	return strcmp(language, p_language_for_language(language)) == 0;
 }
 
 /* run the real compiler and put the result in cache */
@@ -1680,7 +1700,8 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 
 	i_extension = getenv("CCACHE_EXTENSION");
 	if (!i_extension) {
-		i_extension = i_extension_for_language(actual_language) + 1;
+		const char *p_language = p_language_for_language(actual_language);
+		i_extension = extension_for_language(p_language) + 1;
 	}
 
 	if (!found_c_opt) {
