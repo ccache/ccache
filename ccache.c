@@ -1787,6 +1787,15 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	}
 	if (compile_preprocessed_source_code) {
 		*compiler_args = args_copy(stripped_args);
+		if (explicit_language) {
+			/*
+			 * Workaround for a bug in Apple's patched distcc -- it doesn't properly
+			 * reset the language specified with -x, so if -x is given, we have to
+			 * specify the preprocessed language explicitly.
+			 */
+			args_add(*compiler_args, "-x");
+			args_add(*compiler_args, p_language_for_language(explicit_language));
+		}
 	} else {
 		*compiler_args = args_copy(*preprocessor_args);
 	}
