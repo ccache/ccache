@@ -20,9 +20,9 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-ccache is a compiler cache. It speeds up recompilation of C/C++ code by caching
-the result of previous compilations and detecting when the same compilation is
-being done again.
+ccache is a compiler cache. It speeds up recompilation by caching the result of
+previous compilations and detecting when the same compilation is being done
+again. Supported languages are C, C++, Objective-C and Objective-C++.
 
 ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
@@ -46,9 +46,10 @@ FEATURES
 LIMITATIONS
 ~~~~~~~~~~~
 
-* Only knows how to cache the compilation of a single C/C++ file. Other types
-  of compilations (multi-file compilation, linking, etc) will silently fall
-  back to running the real compiler.
+* Only knows how to cache the compilation of a single
+  C/C++/Objective-C/Objective-C++ file. Other types of compilations (multi-file
+  compilation, linking, etc) will silently fall back to running the real
+  compiler.
 * Only works with GCC and compilers that behave similar enough.
 * Some compiler flags are not supported. If such a flag is detected, ccache
   will silently fall back to running the real compiler.
@@ -63,7 +64,8 @@ compiler) to ccache. The first method is most convenient if you just want to
 try out ccache or wish to use it for some specific projects. The second method
 is most useful for when you wish to use ccache for all your compilations.
 
-To install for usage by the first method just make sure *ccache* is in your path.
+To install for usage by the first method just make sure *ccache* is in your
+path.
 
 To install for the second method, do something like this:
 
@@ -147,10 +149,9 @@ The reason this can be important is that ccache does need to parse the command
 line and determine what is an input filename and what is a compiler option, as
 it needs the input filename to determine the name of the resulting object file
 (among other things). The heuristic ccache uses when parsing the command line
-is that any argument that exists as a file is treated as an input file name
-(usually a C/C++ file). By using *--ccache-skip* you can force an option to not
-be treated as an input file name and instead be passed along to the compiler as
-a command line option.
+is that any argument that exists as a file is treated as an input file name. By
+using *--ccache-skip* you can force an option to not be treated as an input
+file name and instead be passed along to the compiler as a command line option.
 
 
 ENVIRONMENT VARIABLES
