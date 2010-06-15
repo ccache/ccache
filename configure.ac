@@ -294,6 +294,9 @@ mv config.h.tmp config.h
 if test "x$ccache_dev" = "xyes"; then
     version=`(git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+elif test ! -f version.c; then
+    AC_MSG_WARN(unable to determine ccache version)
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
 fi
 
 mkdir -p .deps
