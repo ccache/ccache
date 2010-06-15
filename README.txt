@@ -5,10 +5,9 @@ ccache README
 About
 -----
 
-ccache is a compiler cache. It speeds up recompilation of C/C++ code by caching
-previous compiles and detecting when the same compile is being done again. The
-main focus is to handle the GNU C/C++ compiler (GCC), but it may also work with
-compilers that mimic GCC good enough.
+ccache is a compiler cache. It speeds up recompilation by caching the result of
+previous compilations and detecting when the same compilation is being done
+again. Supported languages are C, C++, Objective-C and Objective-C++.
 
 Please see the manual page and documentation at http://ccache.samba.org for
 more information.
@@ -73,7 +72,7 @@ ccache was originally written by Andrew Tridgell and is currently maintained by
 Joel Rosdahl. ccache started out as a reimplementation of Erik Thiele's
 ``compilercache'' (see http://www.erikyyy.de/compilercache/) in C.
 
-See also the NEWS file.
+See also NEWS.txt or NEWS.html.
 
 
 Copyright
