@@ -10,10 +10,11 @@ AC_CONFIG_HEADER(config.h)
 AC_SUBST(extra_sources)
 AC_SUBST(include_dev_mk)
 
+ccache_dev=no
 AC_ARG_ENABLE(
     dev,
     AS_HELP_STRING(--enable-dev, enable developer mode (requires GNU make)),
-    [include_dev_mk='include dev.mk'])
+    [include_dev_mk='include dev.mk'; ccache_dev=yes])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -290,8 +291,10 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-version=`(git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+if test "x$ccache_dev" = "xyes"; then
+    version=`(git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+fi
 
 mkdir -p .deps
 
