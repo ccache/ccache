@@ -580,7 +580,7 @@ extension_for_language(const char *language)
 		return NULL;
 	}
 	for (i = 0; extensions[i].extension; i++) {
-		if (strcmp(language, languages[i].language) == 0) {
+		if (strcmp(language, extensions[i].language) == 0) {
 			return extensions[i].extension;
 		}
 	}
