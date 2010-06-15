@@ -21,7 +21,7 @@ Upgrade notes
     - The way the hashes are calculated has changed, so you won't get cache
       hits for compilation results stored by older ccache versions. Because of
       this, you might as well clear the old cache directory with `ccache
-      --cleanup` if you want, unless you plan to keep using an older ccache
+      --clear` if you want, unless you plan to keep using an older ccache
       version.
 
 
