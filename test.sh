@@ -1436,8 +1436,8 @@ cleanup_suite() {
     checkfilecount 157 '*.o' $CCACHE_DIR
     checkfilecount 156 '*.d' $CCACHE_DIR
     checkfilecount 156 '*.stderr' $CCACHE_DIR
-    checkstat 'files in cache' 469
     find -ls
+    checkstat 'files in cache' 469
 
     testname="sibling cleanup"
     $CCACHE -C >/dev/null
