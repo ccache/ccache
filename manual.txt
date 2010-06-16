@@ -536,6 +536,12 @@ The recommended way of combining distcc and ccache is by using the
 *CCACHE_PREFIX* to *distcc* and ccache will prefix the command line used with
 the compiler with the command ``distcc''.
 
+It is not recommended to use the form *ccache distcc compiler args* as the
+compilation command, because ccache will in that case hash the mtime of distcc
+instead of the compiler (see the *CCACHE_COMPILERCHECK* option), which means
+that compiler upgrades will not be detected properly and that the cached
+results will not be shared between compilations with and without distcc.
+
 
 BUGS
 ----
