@@ -124,7 +124,7 @@ Bug fixes
       previously contributed equally to the hash sum.
 
     - Bail out on too hard compiler options `--coverage`, `-fprofile-arcs`,
-      `-fprofile-generate`, `-fprofile-use`, `-ftest-coverage` and
+      `-fprofile-generate`, `-fprofile-use`, `-frepo`, `-ftest-coverage` and
       `-save-temps`. Also bail out on `@file` style options.
 
     - Errors when using multiple `-arch` compiler options are now noted as

@@ -1368,6 +1368,7 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		    strcmp(argv[i], "-fprofile-arcs") == 0 ||
 		    strcmp(argv[i], "-fprofile-generate") == 0 ||
 		    strcmp(argv[i], "-fprofile-use") == 0 ||
+		    strcmp(argv[i], "-frepo") == 0 ||
 		    strcmp(argv[i], "-ftest-coverage") == 0 ||
 		    strcmp(argv[i], "-save-temps") == 0) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
