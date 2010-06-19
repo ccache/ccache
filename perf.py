@@ -52,8 +52,8 @@ verbose = False
 
 def progress(msg):
     if verbose:
-        sys.stdout.write(msg)
-        sys.stdout.flush()
+        sys.stderr.write(msg)
+        sys.stderr.flush()
 
 def recreate_dir(x):
     if exists(x):
@@ -163,13 +163,25 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     return result
 
-def print_result(result):
+def print_result_as_text(result):
     for (i, x) in enumerate(PHASES):
         print "%-43s %6.2f s (%6.2f %%) (%5.2f x)" % (
             x.capitalize() + ":",
             result[i],
             100 * (result[i] / result[0]),
             result[0] / result[i])
+
+def print_result_as_xml(result):
+    print '<?xml version="1.0" encoding="UTF-8"?>'
+    print "<ccache-perf>"
+    for (i, x) in enumerate(PHASES):
+        print "<measurement>"
+        print "<name>%s</name>" % x.capitalize()
+        print "<seconds>%.2f</seconds>" % result[i]
+        print "<percent>%.2f</percent>" % (100 * (result[i] / result[0]))
+        print "<times>%.2f</times>" % (result[0] / result[i])
+        print "</measurement>"
+    print "</ccache-perf>"
 
 def on_off(x):
     return "on" if x else "off"
@@ -212,6 +224,10 @@ def main(argv):
         "-v", "--verbose",
         help="print progress messages",
         action="store_true")
+    op.add_option(
+        "--xml",
+        help="print result as XML",
+        action="store_true")
     op.set_defaults(
         ccache=DEFAULT_CCACHE,
         directory=DEFAULT_DIRECTORY,
@@ -233,16 +249,20 @@ def main(argv):
             "%s seems to be a symlink to ccache; please specify the path to"
             " the real compiler instead" % compiler)
 
-    print "Compilation command: %s -c -o %s.o" % (
-        " ".join(args),
-        splitext(argv[-1])[0])
-    print "Compression:", on_off(options.compression)
-    print "Hardlink:", on_off(options.hardlink)
+    if not options.xml:
+        print "Compilation command: %s -c -o %s.o" % (
+            " ".join(args),
+            splitext(argv[-1])[0])
+        print "Compression:", on_off(options.compression)
+        print "Hardlink:", on_off(options.hardlink)
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
     recreate_dir(tmp_dir)
     result = test(tmp_dir, options, args[:-1], args[-1])
     rmtree(tmp_dir)
-    print_result(result)
+    if options.xml:
+        print_result_as_xml(result)
+    else:
+        print_result_as_text(result)
 
 main(sys.argv)
