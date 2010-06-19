@@ -71,10 +71,10 @@ distcheck: $(dist_archive_tar_bz2)
 docs: $(generated_docs)
 
 %.html: %.txt
-	$(ASCIIDOC) -a toc -b xhtml11 $<
+	$(ASCIIDOC) -a revnumber=$(version) -a toc -b xhtml11 $<
 
 %.xml: %.txt
-	$(ASCIIDOC) -d manpage -b docbook $<
+	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook $<
 
 ccache.1: manual.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<

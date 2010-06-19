@@ -1,5 +1,8 @@
 CCACHE(1)
 =========
+:man source:  ccache
+:man version: {revnumber}
+:man manual:  ccache Manual
 
 
 Name
