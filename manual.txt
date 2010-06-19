@@ -185,16 +185,25 @@ cases you won't need any of these as the defaults will be fine.
     By default, ccache includes the modification time (mtime) and size of the
     compiler in the hash to ensure that results retrieved from the cache are
     accurate. The *CCACHE_COMPILERCHECK* environment variable can be used to
-    select another strategy. Possible values are: *none* (don't hash anything),
-    *mtime* (hash the compiler's mtime and size) and *content* (hash the
-    content of the compiler binary). Setting the variable to *content* makes
-    ccache very slightly slower, but makes it cope better with compiler
-    upgrades during a build bootstrapping process. The *none* setting may be
-    good for situations where you can safely use the cached results even though
-    the compiler's mtime or size has changed (e.g. if the compiler is built as
-    part of your build system and the compiler's source has not changed, or if
-    the compiler only has changes that don't affect code generation). You
-    should only set the variable to *none* if you know what you are doing.
+    select another strategy. Possible values are:
++
+--
+*content*::
+    Hash the content of the compiler binary.
+*mtime*::
+    Hash the compiler's mtime and size. This is the default.
+*none*::
+    Don't hash anything.
+--
++
+Setting the variable to *content* makes ccache very slightly slower, but makes
+it cope better with compiler upgrades during a build bootstrapping process. The
+*none* setting may be good for situations where you can safely use the cached
+results even though the compiler's mtime or size has changed (e.g. if the
+compiler is built as part of your build system and the compiler's source has
+not changed, or if the compiler only has changes that don't affect code
+generation). You should only set the variable to *none* if you know what you
+are doing.
 
 *CCACHE_CPP2*::
 
@@ -309,11 +318,19 @@ cases you won't need any of these as the defaults will be fine.
     ccache can't take for granted. The *CCACHE_SLOPPINESS* environment variable
     makes it possible to tell ccache to relax some checks in order to increase
     the hit rate. The value should be a comma-separated string with options.
-    Available options are: *file_macro* (ignore *\_\_FILE\__* being present in
-    the source), *include_file_mtime* (don't check the modification time of
-    include files in direct mode) and *time_macros* (ignore *\_\_DATE\__* and
-    *\_\_TIME__* being present in the source code). See the discussion under
-    <<_troubleshooting,TROUBLESHOOTING>> for more information.
+    Available options are:
++
+--
+*file_macro*::
+    Ignore *\_\_FILE__* being present in the source.
+*include_file_mtime*::
+    Don't check the modification time of include files in the direct mode.
+*time_macros*::
+    Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
+--
++
+See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
+information.
 
 *CCACHE_TEMPDIR*::
 
