@@ -401,8 +401,13 @@ dependency file, etc) from the cache.
 
 ccache has two ways of doing the detection:
 
-* the *direct mode* (hashes the source code and include files directly)
-* the *preprocessor mode* (hashes output from the preprocessor)
+* the *direct mode*, where ccache hashes the source code and include files
+  directly
+* the *preprocessor mode*, where ccache runs the preprocessor on the source
+  code and hashes the result
+
+The direct mode is generally faster since running the preprocessor has some
+overhead.
 
 
 The direct mode
