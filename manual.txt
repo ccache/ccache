@@ -701,6 +701,6 @@ etc, can be found on ccache's web site: <http://ccache.samba.org>.
 Author
 ------
 
-ccache was originally written by Andrew Tridgell and is currently maintained by
-Joel Rosdahl. See <http://ccache.samba.org/credits.html> for a list of
+ccache is currently maintained by Joel Rosdahl and was originally written by
+Andrew Tridgell. See <http://ccache.samba.org/credits.html> for a list of
 contributors.
