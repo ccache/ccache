@@ -1849,6 +1849,13 @@ static void ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	ARGS *compiler_args;
 
+	find_compiler(argc, argv);
+
+	if (getenv("CCACHE_DISABLE")) {
+		cc_log("ccache is disabled");
+		failed();
+	}
+
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
 	cc_log("Hostname: %s", get_hostname());
@@ -1856,13 +1863,6 @@ static void ccache(int argc, char *argv[])
 
 	if (base_dir) {
 		cc_log("Base directory: %s", base_dir);
-	}
-
-	find_compiler(argc, argv);
-
-	if (getenv("CCACHE_DISABLE")) {
-		cc_log("ccache is disabled");
-		failed();
 	}
 
 	if (getenv("CCACHE_UNIFY")) {
