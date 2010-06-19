@@ -77,10 +77,4 @@ installcheck:
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-.txt.html:
-	$(ASCIIDOC) -a toc -b xhtml11 $<
-
-.txt.xml: manual.txt
-	$(ASCIIDOC) -d manpage -b docbook $<
-
 @include_dev_mk@
