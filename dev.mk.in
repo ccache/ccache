@@ -76,6 +76,9 @@ docs: $(generated_docs)
 %.xml: %.txt
 	$(ASCIIDOC) -d manpage -b docbook $<
 
+ccache.1: manual.xml
+	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
+
 .PHONY: check-syntax
 check-syntax:
 	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)

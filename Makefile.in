@@ -41,9 +41,6 @@ docs: $(generated_docs)
 ccache$(EXEEXT): $(objs)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
 
-ccache.1: manual.xml
-	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
-
 .PHONY: install
 install: all
 	$(installcmd) -d $(DESTDIR)$(bindir)
