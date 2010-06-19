@@ -19,6 +19,7 @@ built_dist_files = $(generated_docs)
 
 files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
 files_to_clean += $(built_dist_files) version.c
+files_to_clean += *.xml
 
 source_dist_files = \
     $(sources) $(headers) zlib/*.c zlib/*.h \
