@@ -8,7 +8,8 @@ XSLTPROC = xsltproc
 MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
 
 version := \
-    $(shell (git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g')
+    $(shell (git describe --dirty 2>/dev/null || echo vunknown) \
+            | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g')
 
 dist_dir = ccache-$(version)
 dist_archive_tar_bz2 = ccache-$(version).tar.bz2
