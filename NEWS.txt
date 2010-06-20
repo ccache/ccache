@@ -58,7 +58,7 @@ New features and improvements
     - It is now possible to specify extra files whose contents should be
       included in the hash sum by setting the `CCACHE_EXTRAFILES` option.
 
-    - Added support for Objective-C and Objective-C++. The statistics counter
+    - Added support for Objective-C and Objective-C\+\+. The statistics counter
       ``not a C/C++ file'' has been renamed to ``unsupported source language''.
 
     - Added support for the `-x` compiler option.
