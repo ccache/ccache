@@ -32,6 +32,10 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
+#ifndef HAVE_GETOPT_LONG
+
 #include "getopt_long.h"
 
 #include <stdio.h>
@@ -189,3 +193,5 @@ getopt_long(int argc, char *const argv[],
 	}
 	return optopt;
 }
+
+#endif /* HAVE_GETOPT_LONG */
