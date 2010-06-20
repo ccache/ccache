@@ -25,7 +25,7 @@ Description
 
 ccache is a compiler cache. It speeds up recompilation by caching the result of
 previous compilations and detecting when the same compilation is being done
-again. Supported languages are C, C++, Objective-C and Objective-C++.
+again. Supported languages are C, C\+\+, Objective-C and Objective-C++.
 
 ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
@@ -50,9 +50,9 @@ Limitations
 ~~~~~~~~~~~
 
 * Only knows how to cache the compilation of a single
-  C/C++/Objective-C/Objective-C++ file. Other types of compilations (multi-file
-  compilation, linking, etc) will silently fall back to running the real
-  compiler.
+  C/C\+\+/Objective-C/Objective-C++ file. Other types of compilations
+  (multi-file compilation, linking, etc) will silently fall back to running the
+  real compiler.
 * Only works with GCC and compilers that behave similar enough.
 * Some compiler flags are not supported. If such a flag is detected, ccache
   will silently fall back to running the real compiler.
