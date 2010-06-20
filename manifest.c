@@ -546,7 +546,7 @@ struct file_hash *manifest_get(const char *manifest_path)
 	uint32_t i;
 	struct file_hash *fh = NULL;
 
-	fd = open(manifest_path, O_RDONLY);
+	fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		/* Cache miss. */
 		goto out;

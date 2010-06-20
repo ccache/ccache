@@ -189,7 +189,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	       src, dest, compress_dest ? "compressed": "uncompressed");
 
 	/* open source file */
-	fd_in = open(src, O_RDONLY);
+	fd_in = open(src, O_RDONLY | O_BINARY);
 	if (fd_in == -1) {
 		cc_log("open error: %s", strerror(errno));
 		return -1;
