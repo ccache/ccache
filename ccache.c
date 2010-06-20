@@ -651,18 +651,23 @@ static void to_cache(ARGS *args)
 		int fd_cpp_stderr;
 		int fd_real_stderr;
 		int fd_result;
+		char *tmp_stderr2;
 
+		x_asprintf(&tmp_stderr2, "%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		if (rename(tmp_stderr, tmp_stderr2)) {
+			cc_log("Failed to rename %s to %s", tmp_stderr, tmp_stderr2);
+			failed();
+		}
 		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 		if (fd_cpp_stderr == -1) {
 			cc_log("Failed opening %s", cpp_stderr);
 			failed();
 		}
-		fd_real_stderr = open(tmp_stderr, O_RDONLY | O_BINARY);
+		fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
 		if (fd_real_stderr == -1) {
-			cc_log("Failed opening %s", tmp_stderr);
+			cc_log("Failed opening %s", tmp_stderr2);
 			failed();
 		}
-		unlink(tmp_stderr);
 		fd_result = open(tmp_stderr,
 				 O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
 				 0666);
@@ -675,7 +680,9 @@ static void to_cache(ARGS *args)
 		close(fd_cpp_stderr);
 		close(fd_real_stderr);
 		close(fd_result);
+		unlink(tmp_stderr2);
 		unlink(cpp_stderr);
+		free(tmp_stderr2);
 		free(cpp_stderr);
 		cpp_stderr = NULL;
 	}
