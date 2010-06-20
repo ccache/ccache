@@ -30,6 +30,9 @@
 #include <time.h>
 #include <unistd.h>
 
+static char *
+find_executable_in_path(const char *name, const char *exclude_name, char *path);
+
 /*
   execute a compiler backend, capturing all output to the given paths
   the full path to the compiler to run is in argv[0]
@@ -86,8 +89,6 @@ int execute(char **argv,
 char *find_executable(const char *name, const char *exclude_name)
 {
 	char *path;
-	char *tok;
-	struct stat st1, st2;
 
 	if (*name == '/') {
 		return x_strdup(name);
@@ -104,9 +105,18 @@ char *find_executable(const char *name, const char *exclude_name)
 
 	path = x_strdup(path);
 
+	return find_executable_in_path(name, exclude_name, path);
+}
+
+static char *
+find_executable_in_path(const char *name, const char *exclude_name, char *path)
+{
+	char *tok;
+
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
 	for (tok=strtok(path,":"); tok; tok = strtok(NULL, ":")) {
+		struct stat st1, st2;
 		char *fname;
 		x_asprintf(&fname, "%s/%s", tok, name);
 		/* look for a normal executable file */
@@ -138,6 +148,7 @@ char *find_executable(const char *name, const char *exclude_name)
 		free(fname);
 	}
 
+	free(path);
 	return NULL;
 }
 
