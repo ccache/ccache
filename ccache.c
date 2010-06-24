@@ -1678,6 +1678,18 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 		failed();
 	}
 
+	if (!found_c_opt) {
+		cc_log("No -c option found");
+		/* I find that having a separate statistic for autoconf tests is useful,
+		   as they are the dominant form of "called for link" in many cases */
+		if (strstr(input_file, "conftest.")) {
+			stats_update(STATS_CONFTEST);
+		} else {
+			stats_update(STATS_LINK);
+		}
+		failed();
+	}
+
 	if (explicit_language && strcmp(explicit_language, "none") == 0) {
 		explicit_language = NULL;
 	}
@@ -1703,18 +1715,6 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	if (!i_extension) {
 		const char *p_language = p_language_for_language(actual_language);
 		i_extension = extension_for_language(p_language) + 1;
-	}
-
-	if (!found_c_opt) {
-		cc_log("No -c option found");
-		/* I find that having a separate statistic for autoconf tests is useful,
-		   as they are the dominant form of "called for link" in many cases */
-		if (strstr(input_file, "conftest.")) {
-			stats_update(STATS_CONFTEST);
-		} else {
-			stats_update(STATS_LINK);
-		}
-		failed();
 	}
 
 	/* don't try to second guess the compilers heuristics for stdout handling */

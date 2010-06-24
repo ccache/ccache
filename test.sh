@@ -169,6 +169,10 @@ base_tests() {
     $CCACHE_COMPILE test1.c -o test 2> /dev/null
     checkstat 'called for link' 1
 
+    testname="linkobj"
+    $CCACHE_COMPILE foo.o -o test 2> /dev/null
+    checkstat 'called for link' 2
+
     testname="multiple"
     $CCACHE_COMPILE -c test1.c test2.c
     checkstat 'multiple source files' 1
