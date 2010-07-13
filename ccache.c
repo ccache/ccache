@@ -1336,8 +1336,8 @@ static void find_compiler(int argc, char **argv)
    process the compiler options to form the correct set of options
    for obtaining the preprocessor output
 */
-static void process_args(int argc, char **argv, ARGS **preprocessor_args,
-			 ARGS **compiler_args)
+static void
+process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 {
 	int i;
 	int found_c_opt = 0;
@@ -1353,12 +1353,14 @@ static void process_args(int argc, char **argv, ARGS **preprocessor_args,
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
 	ARGS *stripped_args;
+	int argc = orig_args->argc;
+	char **argv = orig_args->argv;
 
 	stripped_args = args_init(0, NULL);
 
 	args_add(stripped_args, argv[0]);
 
-	for (i=1; i<argc; i++) {
+	for (i = 1; i < argc; i++) {
 		/* some options will never work ... */
 		if (strcmp(argv[i], "-E") == 0) {
 			cc_log("Compiler option -E is unsupported");
@@ -1897,8 +1899,7 @@ static void ccache(int argc, char *argv[])
 	 * Process argument list, returning a new set of arguments to pass to
 	 * the preprocessor and the real compiler.
 	 */
-	process_args(orig_args->argc, orig_args->argv, &preprocessor_args,
-		     &compiler_args);
+	process_args(orig_args, &preprocessor_args, &compiler_args);
 
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
