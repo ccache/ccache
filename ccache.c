@@ -1333,11 +1333,12 @@ static void find_compiler(int argc, char **argv)
 }
 
 /*
-   process the compiler options to form the correct set of options
-   for obtaining the preprocessor output
-*/
-static void
-process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
+ * Process the compiler options into options suitable for passing to the
+ * preprocessor and the real compiler. The preprocessor options don't include
+ * -E; this is added later. Returns 0 on failure, otherwise 1.
+ */
+int
+cc_process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 {
 	int i;
 	int found_c_opt = 0;
@@ -1365,7 +1366,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		if (strcmp(argv[i], "-E") == 0) {
 			cc_log("Compiler option -E is unsupported");
 			stats_update(STATS_UNSUPPORTED);
-			failed();
+			return 0;
 		}
 
 		/* these are too hard */
@@ -1382,7 +1383,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		    strcmp(argv[i], "-save-temps") == 0) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
-			failed();
+			return 0;
 			continue;
 		}
 
@@ -1401,7 +1402,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 				cc_log("More than one -arch compiler option"
 				       " is unsupported");
 				stats_update(STATS_UNSUPPORTED);
-				failed();
+				return 0;
 			} else {
 				found_arch_opt = 1;
 			}
@@ -1429,7 +1430,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				failed();
+				return 0;
 			}
 			if (!input_file) {
 				explicit_language = argv[i+1];
@@ -1449,7 +1450,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				failed();
+				return 0;
 			}
 			output_obj = argv[i+1];
 			i++;
@@ -1489,7 +1490,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 			i++;
 			if (i == argc) {
 				cc_log("--ccache-skip lacks an argument");
-				failed();
+				return 0;
 			}
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -1563,7 +1564,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
-						failed();
+						return 0;
 					}
 
 					args_add(stripped_args, argv[i]);
@@ -1630,7 +1631,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
-						failed();
+						return 0;
 					}
 
 					args_add(stripped_args, argv[i]);
@@ -1674,7 +1675,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 				cc_log("Unsupported source extension: %s", argv[i]);
 				stats_update(STATS_SOURCELANG);
 			}
-			failed();
+			return 0;
 		}
 
 		/* Rewrite to relative to increase hit rate. */
@@ -1684,7 +1685,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 	if (!input_file) {
 		cc_log("No input file found");
 		stats_update(STATS_NOINPUT);
-		failed();
+		return 0;
 	}
 
 	if (!found_c_opt) {
@@ -1696,7 +1697,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		} else {
 			stats_update(STATS_LINK);
 		}
-		failed();
+		return 0;
 	}
 
 	if (explicit_language && strcmp(explicit_language, "none") == 0) {
@@ -1707,7 +1708,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		if (!language_is_supported(explicit_language)) {
 			cc_log("Unsupported language: %s", explicit_language);
 			stats_update(STATS_SOURCELANG);
-			failed();
+			return 0;
 		}
 		actual_language = explicit_language;
 	} else {
@@ -1716,7 +1717,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 	if (!actual_language) {
 		cc_log("Unsupported source extension: %s", input_file);
 		stats_update(STATS_SOURCELANG);
-		failed();
+		return 0;
 	}
 	direct_i_file = language_is_preprocessed(actual_language);
 
@@ -1730,7 +1731,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 	if (output_obj && strcmp(output_obj, "-") == 0) {
 		stats_update(STATS_OUTSTDOUT);
 		cc_log("Output file is -");
-		failed();
+		return 0;
 	}
 
 	if (!output_obj) {
@@ -1743,7 +1744,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		if (!p || !p[1]) {
 			cc_log("Badly formed object filename");
 			stats_update(STATS_ARGS);
-			failed();
+			return 0;
 		}
 		p[1] = found_S_opt ? 's' : 'o';
 		p[2] = 0;
@@ -1777,7 +1778,7 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
 		stats_update(STATS_DEVICE);
-		failed();
+		return 0;
 	}
 
 	/*
@@ -1810,6 +1811,8 @@ process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 		*compiler_args = args_copy(*preprocessor_args);
 	}
 	args_free(stripped_args);
+
+	return 1;
 }
 
 static unsigned parse_sloppiness(char *p)
@@ -1895,11 +1898,9 @@ static void ccache(int argc, char *argv[])
 		if (nlevels > 8) nlevels = 8;
 	}
 
-	/*
-	 * Process argument list, returning a new set of arguments to pass to
-	 * the preprocessor and the real compiler.
-	 */
-	process_args(orig_args, &preprocessor_args, &compiler_args);
+	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
+		failed();
+	}
 
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {

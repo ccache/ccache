@@ -158,6 +158,11 @@ void args_pop(ARGS *args, int n);
 void args_strip(ARGS *args, const char *prefix);
 void args_remove_first(ARGS *args);
 
+int
+cc_process_args(ARGS *orig_args,
+                ARGS **preprocessor_args,
+                ARGS **compiler_args);
+
 #if HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
 #else
