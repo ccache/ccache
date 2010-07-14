@@ -253,22 +253,6 @@ static void failed(void)
 {
 	char *e;
 
-	/* delete intermediate pre-processor file if needed */
-	if (i_tmpfile) {
-		if (!direct_i_file) {
-			unlink(i_tmpfile);
-		}
-		free(i_tmpfile);
-		i_tmpfile = NULL;
-	}
-
-	/* delete the cpp stderr file if necessary */
-	if (cpp_stderr) {
-		unlink(cpp_stderr);
-		free(cpp_stderr);
-		cpp_stderr = NULL;
-	}
-
 	/* strip any local args */
 	args_strip(orig_args, "--ccache-");
 
@@ -285,6 +269,26 @@ static void failed(void)
 	exitfn_call();
 	execv(orig_args->argv[0], orig_args->argv);
 	fatal("%s: execv returned (%s)", orig_args->argv[0], strerror(errno));
+}
+
+static void
+clean_up_tmp_files()
+{
+	/* delete intermediate pre-processor file if needed */
+	if (i_tmpfile) {
+		if (!direct_i_file) {
+			unlink(i_tmpfile);
+		}
+		free(i_tmpfile);
+		i_tmpfile = NULL;
+	}
+
+	/* delete the cpp stderr file if necessary */
+	if (cpp_stderr) {
+		unlink(cpp_stderr);
+		free(cpp_stderr);
+		cpp_stderr = NULL;
+	}
 }
 
 /*
@@ -679,10 +683,7 @@ static void to_cache(ARGS *args)
 		close(fd_real_stderr);
 		close(fd_result);
 		unlink(tmp_stderr2);
-		unlink(cpp_stderr);
 		free(tmp_stderr2);
-		free(cpp_stderr);
-		cpp_stderr = NULL;
 	}
 
 	if (status != 0) {
@@ -701,9 +702,6 @@ static void to_cache(ARGS *args)
 				copy_fd(fd, 2);
 				close(fd);
 				unlink(tmp_stderr);
-				if (i_tmpfile && !direct_i_file) {
-					unlink(i_tmpfile);
-				}
 				exit(status);
 			}
 		}
@@ -1219,22 +1217,6 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 			stat(cached_dep, &st);
 			stats_update_size(STATS_NONE, file_size(&st) / 1024, 1);
 		}
-	}
-
-	/* get rid of the intermediate preprocessor file */
-	if (i_tmpfile) {
-		if (!direct_i_file) {
-			unlink(i_tmpfile);
-		}
-		free(i_tmpfile);
-		i_tmpfile = NULL;
-	}
-
-	/* Delete the cpp stderr file if necessary. */
-	if (cpp_stderr) {
-		unlink(cpp_stderr);
-		free(cpp_stderr);
-		cpp_stderr = NULL;
 	}
 
 	/* Send the stderr, if any. */
@@ -2137,6 +2119,7 @@ int main(int argc, char *argv[])
 
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
+	exitfn_add_nullary(clean_up_tmp_files);
 
 	/* check for logging early so cc_log messages start working ASAP */
 	cache_logfile = getenv("CCACHE_LOGFILE");
