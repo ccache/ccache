@@ -135,6 +135,7 @@ void fatal(const char *format, ...)
 
 	fprintf(stderr, "ccache: FATAL: %s\n", msg);
 
+	stats_flush();
 	exit(1);
 }
 

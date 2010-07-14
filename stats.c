@@ -35,6 +35,8 @@
 extern char *stats_file;
 extern char *cache_dir;
 
+static unsigned counter_updates[STATS_END];
+
 /* default maximum cache size */
 #ifndef DEFAULT_MAXSIZE
 #define DEFAULT_MAXSIZE (1024*1024)
@@ -146,11 +148,32 @@ static void stats_read_fd(int fd, unsigned counters[STATS_END])
  */
 void stats_update_size(enum stats stat, size_t size, unsigned files)
 {
+	if (stat != STATS_NONE) {
+		counter_updates[stat]++;
+	}
+	counter_updates[STATS_NUMFILES] += files;
+	counter_updates[STATS_TOTALSIZE] += size;
+}
+
+/*
+ * Write counter updates in pending_counters to disk.
+ */
+void stats_flush(void)
+{
 	int fd;
 	unsigned counters[STATS_END];
 	int need_cleanup = 0;
+	int should_flush = 0;
+	int i;
 
 	if (getenv("CCACHE_NOSTATS")) return;
+
+	for (i = 0; i < STATS_END; ++i) {
+		if (counter_updates[i] > 0) {
+			should_flush = 1;
+		}
+	}
+	if (!should_flush) return;
 
 	if (!stats_file) {
 		/*
@@ -169,11 +192,9 @@ void stats_update_size(enum stats stat, size_t size, unsigned files)
 	memset(counters, 0, sizeof(counters));
 	stats_read_fd(fd, counters);
 
-	if (stat != STATS_NONE) {
-		counters[stat]++;
+	for (i = 0; i < STATS_END; ++i) {
+		counters[i] += counter_updates[i];
 	}
-	counters[STATS_NUMFILES] += files;
-	counters[STATS_TOTALSIZE] += size;
 
 	write_stats(fd, counters);
 	close(fd);

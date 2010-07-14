@@ -110,6 +110,7 @@ char *get_relative_path(const char *from, const char *to);
 void update_mtime(const char *path);
 
 void stats_update(enum stats stat);
+void stats_flush(void);
 void stats_zero(void);
 void stats_summary(void);
 void stats_update_size(enum stats stat, size_t size, unsigned files);
