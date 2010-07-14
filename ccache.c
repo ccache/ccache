@@ -275,8 +275,7 @@ static void failed(void)
 	if ((e=getenv("CCACHE_PREFIX"))) {
 		char *p = find_executable(e, MYNAME);
 		if (!p) {
-			perror(e);
-			exit(1);
+			fatal("%s: %s", e, strerror(errno));
 		}
 		args_add_prefix(orig_args, p);
 	}
@@ -284,9 +283,7 @@ static void failed(void)
 	cc_log("Failed; falling back to running the real compiler");
 	cc_log_executed_command(orig_args->argv);
 	execv(orig_args->argv[0], orig_args->argv);
-	cc_log("execv returned (%s)!", strerror(errno));
-	perror(orig_args->argv[0]);
-	exit(1);
+	fatal("%s: execv returned (%s)", orig_args->argv[0], strerror(errno));
 }
 
 /*
@@ -1989,8 +1986,7 @@ static void ccache(int argc, char *argv[])
 	if (env) {
 		char *p = find_executable(env, MYNAME);
 		if (!p) {
-			perror(env);
-			exit(1);
+			fatal("%s: %s", env, strerror(errno));
 		}
 		cc_log("Using command-line prefix %s", env);
 		args_add_prefix(compiler_args, p);
