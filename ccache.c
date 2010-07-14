@@ -253,8 +253,6 @@ static void failed(void)
 {
 	char *e;
 
-	stats_flush();
-
 	/* delete intermediate pre-processor file if needed */
 	if (i_tmpfile) {
 		if (!direct_i_file) {
@@ -706,7 +704,6 @@ static void to_cache(ARGS *args)
 				if (i_tmpfile && !direct_i_file) {
 					unlink(i_tmpfile);
 				}
-				stats_flush();
 				exit(status);
 			}
 		}
@@ -1288,7 +1285,6 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 	}
 
 	/* and exit with the right status code */
-	stats_flush();
 	exit(0);
 }
 
@@ -2140,6 +2136,7 @@ int main(int argc, char *argv[])
 	char *program_name;
 
 	exitfn_init();
+	exitfn_add_nullary(stats_flush);
 
 	/* check for logging early so cc_log messages start working ASAP */
 	cache_logfile = getenv("CCACHE_LOGFILE");
