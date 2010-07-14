@@ -10,12 +10,6 @@ AC_CONFIG_HEADER(config.h)
 AC_SUBST(extra_sources)
 AC_SUBST(include_dev_mk)
 
-ccache_dev=no
-AC_ARG_ENABLE(
-    dev,
-    AS_HELP_STRING(--enable-dev, enable developer mode (requires GNU make)),
-    [include_dev_mk='include dev.mk'; ccache_dev=yes])
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
@@ -281,7 +275,19 @@ if test "$ac_cv_c_extern_inline" != no ; then
               Define to 1 if your compiler supports extern inline)
 fi
 
-AC_CONFIG_FILES([Makefile dev.mk])
+dnl Enable developer mode if dev.mk.in exists.
+if test -f $srcdir/dev.mk.in; then
+    AC_MSG_NOTICE(Enabling developer mode)
+    AC_CONFIG_FILES([dev.mk])
+    include_dev_mk='include dev.mk'
+    version=`(git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+elif test ! -f $srcdir/version.c; then
+    AC_MSG_WARN(unable to determine ccache version)
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
+fi
+
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
 cat <<EOF >config.h.tmp
@@ -291,14 +297,6 @@ EOF
 cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
-
-if test "x$ccache_dev" = "xyes"; then
-    version=`(git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
-elif test ! -f version.c; then
-    AC_MSG_WARN(unable to determine ccache version)
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
-fi
 
 mkdir -p .deps
 

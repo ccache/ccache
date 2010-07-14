@@ -24,7 +24,7 @@ files_to_clean += *.xml
 
 source_dist_files = \
     $(sources) $(headers) zlib/*.c zlib/*.h \
-    config.h.in configure configure-dev dev.mk.in install-sh Makefile.in \
+    config.h.in configure install-sh Makefile.in \
     test.sh COPYING INSTALL.txt NEWS.txt README.txt
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
