@@ -276,7 +276,7 @@ if test "$ac_cv_c_extern_inline" != no ; then
 fi
 
 dnl Enable developer mode if dev.mk.in exists.
-if test -f $srcdir/dev.mk.in; then
+if test -f $srcdir/dev.mk.in && test "$RUN_FROM_BUILD_FARM" != yes; then
     AC_MSG_NOTICE(Enabling developer mode)
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
