@@ -284,6 +284,7 @@ static void failed(void)
 
 	cc_log("Failed; falling back to running the real compiler");
 	cc_log_executed_command(orig_args->argv);
+	exitfn_call();
 	execv(orig_args->argv[0], orig_args->argv);
 	fatal("%s: execv returned (%s)", orig_args->argv[0], strerror(errno));
 }
@@ -2137,6 +2138,8 @@ int main(int argc, char *argv[])
 {
 	char *p;
 	char *program_name;
+
+	exitfn_init();
 
 	/* check for logging early so cc_log messages start working ASAP */
 	cache_logfile = getenv("CCACHE_LOGFILE");

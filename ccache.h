@@ -122,6 +122,11 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
 int unify_hash(struct mdfour *hash, const char *fname);
 
+void exitfn_init(void);
+void exitfn_add_nullary(void (*function)(void));
+void exitfn_add(void (*function)(void *), void *context);
+void exitfn_call(void);
+
 #ifndef HAVE_VASPRINTF
 int vasprintf(char **, const char *, va_list) ATTR_FORMAT(printf, 2, 0);
 #endif

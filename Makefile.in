@@ -19,7 +19,7 @@ libs = @LIBS@ -lm
 sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-    murmurhashneutral2.c hashutil.c getopt_long.c
+    murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c
 all_sources = $(sources) @extra_sources@
 
 headers = \
