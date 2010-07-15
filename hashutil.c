@@ -21,7 +21,6 @@
 #include "murmurhashneutral2.h"
 
 #include <string.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <time.h>
 
@@ -199,7 +198,6 @@ end:
 int
 hash_source_code_file(struct mdfour *hash, const char *path)
 {
-	int fd;
 	struct stat st;
 	char *data;
 	int result;
@@ -211,19 +209,13 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 	if (st.st_size == 0) {
 		return HASH_SOURCE_CODE_OK;
 	}
-	fd = open(path, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		cc_log("Failed to open %s", path);
-		return HASH_SOURCE_CODE_ERROR;
-	}
-	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	close(fd);
+
+	data = x_fmmap(path, &st.st_size, "source code file");
 	if (data == (void *)-1) {
-		cc_log("Failed to mmap %s", path);
 		return HASH_SOURCE_CODE_ERROR;
 	}
 
 	result = hash_source_code_string(hash, data, st.st_size, path);
-	munmap(data, st.st_size);
+	x_munmap(data, st.st_size);
 	return result;
 }

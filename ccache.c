@@ -32,7 +32,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -330,7 +329,6 @@ static void remember_include_file(char *path, size_t path_len)
 	struct file_hash *h;
 	struct mdfour fhash;
 	struct stat st;
-	int fd = -1;
 	char *data = (char *)-1;
 	char *source;
 	int result;
@@ -364,27 +362,20 @@ static void remember_include_file(char *path, size_t path_len)
 	}
 
 	/* Let's hash the include file. */
-	fd = open(path, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		cc_log("Failed to open include file %s", path);
-		goto failure;
-	}
 	if (!(sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
 	if (st.st_size > 0) {
-		data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+		data = x_fmmap(path, &st.st_size, "include file");
 		if (data == (char *)-1) {
-			cc_log("Failed to mmap %s", path);
 			goto failure;
 		}
 		source = data;
 	} else {
 		source = "";
 	}
-	close(fd);
 
 	hash_start(&fhash);
 	result = hash_source_code_string(&fhash, source, st.st_size, path);
@@ -397,7 +388,7 @@ static void remember_include_file(char *path, size_t path_len)
 	hash_result_as_bytes(&fhash, h->hash);
 	h->size = fhash.totalN;
 	hashtable_insert(included_files, path, h);
-	munmap(data, st.st_size);
+	x_munmap(data, st.st_size);
 	return;
 
 failure:
@@ -407,10 +398,7 @@ failure:
 ignore:
 	free(path);
 	if (data != (char *)-1) {
-		munmap(data, st.st_size);
-	}
-	if (fd != -1) {
-		close(fd);
+		x_munmap(data, st.st_size);
 	}
 }
 
@@ -442,26 +430,12 @@ static char *make_relative_path(char *path)
  */
 static int process_preprocessed_file(struct mdfour *hash, const char *path)
 {
-	int fd;
 	char *data;
 	char *p, *q, *end;
 	off_t size;
-	struct stat st;
 
-	fd = open(path, O_RDONLY);
-	if (fd == -1) {
-		cc_log("Failed to open %s", path);
-		return 0;
-	}
-	if (fstat(fd, &st) != 0) {
-		cc_log("Failed to fstat %s", path);
-		return 0;
-	}
-	size = st.st_size;
-	data = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-	close(fd);
+	data = x_fmmap(path, &size, "preprocessed file");
 	if (data == (void *)-1) {
-		cc_log("Failed to mmap %s", path);
 		return 0;
 	}
 
@@ -507,7 +481,7 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 			q++;
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
-				munmap(data, size);
+				x_munmap(data, size);
 				return 0;
 			}
 			/* q points to the beginning of an include file path */
@@ -532,7 +506,7 @@ static int process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	hash_buffer(hash, p, (end - p));
-	munmap(data, size);
+	x_munmap(data, size);
 	return 1;
 }
 

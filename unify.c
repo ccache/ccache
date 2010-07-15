@@ -33,8 +33,6 @@
 #include "ccache.h"
 
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <string.h>
@@ -246,31 +244,19 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 */
 int unify_hash(struct mdfour *hash, const char *fname)
 {
-	int fd;
-	struct stat st;
+	off_t size;
 	char *map;
 
-	fd = open(fname, O_RDONLY|O_BINARY);
-	if (fd == -1 || fstat(fd, &st) != 0) {
-		cc_log("Failed to open preprocessor output %s", fname);
+	map = x_fmmap(fname, &size, "preprocessor output");
+	if (map == (void *) -1) {
 		stats_update(STATS_PREPROCESSOR);
 		return -1;
 	}
 
-	/* we use mmap() to make it easy to handle arbitrarily long
-           lines in preprocessor output. I have seen lines of over
-           100k in length, so this is well worth it */
-	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	close(fd);
-	if (map == (char *)-1) {
-		cc_log("Failed to mmap %s", fname);
-		return -1;
-	}
-
 	/* pass it through the unifier */
-	unify(hash, (unsigned char *)map, st.st_size);
+	unify(hash, (unsigned char *)map, size);
 
-	munmap(map, st.st_size);
+	x_munmap(map, size);
 
 	return 0;
 }

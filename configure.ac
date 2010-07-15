@@ -171,7 +171,7 @@ AC_HEADER_DIRENT
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
 
-AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h)
+AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
 
 AC_CHECK_FUNCS(asprintf)
 AC_CHECK_FUNCS(gethostname)

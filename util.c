@@ -21,6 +21,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
 #include <fcntl.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -945,4 +948,41 @@ update_mtime(const char *path)
 #else
 	utime(path, NULL);
 #endif
+}
+
+/*
+ * Map file into memory. Return a pointer to the mapped area if successful or
+ * -1 if any error occurred. The file size is also returned,
+ */
+void *x_fmmap(const char *fname, off_t *size, const char *errstr)
+{
+	struct stat st;
+	void *data = (void *) -1;
+	int fd = -1;
+	fd = open(fname, O_RDONLY | O_BINARY);
+	if (fd == -1) {
+		cc_log("Failed to open %s %s", errstr, fname);
+		goto error;
+	}
+	if (fstat(fd, &st) == -1) {
+		cc_log("Failed to fstat %s %s", errstr, fname);
+		close(fd);
+		goto error;
+	}
+	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	close(fd);
+	if (data == (void *) -1) {
+		cc_log("Failed to mmap %s %s", errstr, fname);
+	}
+	*size = st.st_size;
+error:
+	return data;
+}
+
+/*
+ * Unmap file from memory.
+ */
+int x_munmap(void *addr, size_t length)
+{
+	return munmap(addr, length);
 }
