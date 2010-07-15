@@ -939,6 +939,15 @@ char *get_relative_path(const char *from, const char *to)
 }
 
 /*
+ * Return whether path is absolute.
+ */
+int
+is_absolute_path(const char *path)
+{
+	return path[0] == '/';
+}
+
+/*
  * Update the modification time of a file in the cache to save it from LRU
  * cleanup.
  */

@@ -107,6 +107,7 @@ const char *get_home_directory(void);
 char *get_cwd();
 size_t common_dir_prefix_length(const char *s1, const char *s2);
 char *get_relative_path(const char *from, const char *to);
+int is_absolute_path(const char *path);
 void update_mtime(const char *path);
 void *x_fmmap(const char *fname, off_t *size, const char *errstr);
 int x_munmap(void *addr, size_t length);

@@ -90,7 +90,7 @@ char *find_executable(const char *name, const char *exclude_name)
 {
 	char *path;
 
-	if (*name == '/') {
+	if (is_absolute_path(name)) {
 		return x_strdup(name);
 	}
 
