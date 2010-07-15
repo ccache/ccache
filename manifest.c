@@ -673,6 +673,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 
 	add_object_entry(mf, object_hash, included_files);
 	if (write_manifest(f2, mf)) {
+		unlink(manifest_path);
 		if (rename(tmp_file, manifest_path) == 0) {
 			ret = 1;
 		} else {

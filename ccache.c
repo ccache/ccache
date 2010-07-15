@@ -661,6 +661,7 @@ static void to_cache(ARGS *args)
 		char *tmp_stderr2;
 
 		x_asprintf(&tmp_stderr2, "%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		unlink(tmp_stderr2);
 		if (rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s", tmp_stderr, tmp_stderr2);
 			failed();

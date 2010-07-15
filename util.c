@@ -329,6 +329,7 @@ move_uncompressed_file(const char *src, const char *dest, int compress_dest)
 	if (compress_dest) {
 		return move_file(src, dest, compress_dest);
 	} else {
+		unlink(dest);
 		return rename(src, dest);
 	}
 }
