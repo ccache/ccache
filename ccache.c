@@ -350,19 +350,20 @@ static void remember_include_file(char *path, size_t path_len)
 		goto ignore;
 	}
 
-	/* Let's hash the include file. */
-	fd = open(path, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		cc_log("Failed to open include file %s", path);
-		goto failure;
-	}
-	if (fstat(fd, &st) != 0) {
-		cc_log("Failed to fstat include file %s", path);
+	if (stat(path, &st) != 0) {
+		cc_log("Failed to stat include file %s", path);
 		goto failure;
 	}
 	if (S_ISDIR(st.st_mode)) {
 		/* Ignore directory, typically $PWD. */
 		goto ignore;
+	}
+
+	/* Let's hash the include file. */
+	fd = open(path, O_RDONLY|O_BINARY);
+	if (fd == -1) {
+		cc_log("Failed to open include file %s", path);
+		goto failure;
 	}
 	if (!(sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {

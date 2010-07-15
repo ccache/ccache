@@ -204,19 +204,17 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 	char *data;
 	int result;
 
+	if (stat(path, &st) == -1) {
+		cc_log("Failed to stat %s", path);
+		return HASH_SOURCE_CODE_ERROR;
+	}
+	if (st.st_size == 0) {
+		return HASH_SOURCE_CODE_OK;
+	}
 	fd = open(path, O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		cc_log("Failed to open %s", path);
 		return HASH_SOURCE_CODE_ERROR;
-	}
-	if (fstat(fd, &st) == -1) {
-		cc_log("Failed to fstat %s", path);
-		close(fd);
-		return HASH_SOURCE_CODE_ERROR;
-	}
-	if (st.st_size == 0) {
-		close(fd);
-		return HASH_SOURCE_CODE_OK;
 	}
 	data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	close(fd);
