@@ -161,6 +161,8 @@ void copy_fd(int fd_in, int fd_out)
 			fatal("Failed to copy fd");
 		}
 	}
+
+	gzclose(gz_in);
 }
 
 #ifndef HAVE_MKSTEMP
