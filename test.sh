@@ -601,12 +601,12 @@ EOF
     # Check that -Wp,-MD,file.d,-P disables direct mode.
     testname="-Wp,-MD,file.d,-P"
     $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -Wp,-MD,/dev/null,-P test.c
+    $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    $CCACHE $COMPILER -c -Wp,-MD,/dev/null,-P test.c
+    $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -615,12 +615,12 @@ EOF
     # Check that -Wp,-MMD,file.d,-P disables direct mode.
     testname="-Wp,-MDD,file.d,-P"
     $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -Wp,-MMD,/dev/null,-P test.c
+    $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    $CCACHE $COMPILER -c -Wp,-MMD,/dev/null,-P test.c
+    $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -1546,18 +1546,27 @@ export CCACHE_NODIRECT
 
 all_suites="
 base
-link
 hardlink
 cpp2
 nlevels4
 nlevels1
 direct
-basedir
 compression
 readonly
 extrafiles
 cleanup
 "
+
+host_os="`uname -s`"
+case $host_os in
+    *MINGW*|*mingw*)
+        DEVNULL=NUL
+        ;;
+    *)
+        DEVNULL=/dev/null
+        all_suites="$all_suites link basedir"
+        ;;
+esac
 
 if [ -z "$suites" ]; then
     suites="$all_suites"
