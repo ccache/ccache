@@ -103,7 +103,8 @@ sed_in_place() {
     expr=$1
     shift
     for file in $*; do
-        (rm $file; sed "$expr" >$file) <$file
+        sed "$expr" > ${file}.sed < $file
+        mv ${file}.sed $file
     done
 }
 
