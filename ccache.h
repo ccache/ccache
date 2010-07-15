@@ -190,4 +190,6 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #undef HAVE_MKSTEMP
 #endif
 
+#    define PATH_DELIM ":"
+
 #endif /* ifndef CCACHE_H */

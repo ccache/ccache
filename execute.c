@@ -115,7 +115,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
-	for (tok=strtok(path,":"); tok; tok = strtok(NULL, ":")) {
+	for (tok=strtok(path, PATH_DELIM); tok; tok = strtok(NULL, PATH_DELIM)) {
 		struct stat st1, st2;
 		char *fname;
 		x_asprintf(&fname, "%s/%s", tok, name);
