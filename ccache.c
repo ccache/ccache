@@ -1263,7 +1263,7 @@ static void find_compiler(int argc, char **argv)
 	base = basename(argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
-	if (strcmp(base, MYNAME) == 0) {
+	if (compare_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
 		if (strchr(argv[1],'/')) {
@@ -2127,7 +2127,7 @@ int main(int argc, char *argv[])
 
 	/* check if we are being invoked as "ccache" */
 	program_name = basename(argv[0]);
-	if (strcmp(program_name, MYNAME) == 0) {
+	if (compare_executable_name(program_name, MYNAME)) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);
 			exit(1);

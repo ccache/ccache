@@ -879,6 +879,15 @@ char *get_cwd(void)
 }
 
 /*
+ * Check whether s1 and s2 have the same executable name.
+ */
+int
+compare_executable_name(const char *s1, const char *s2)
+{
+	return !strcmp(s1, s2);
+}
+
+/*
  * Compute the length of the longest directory path that is common to two
  * strings.
  */
