@@ -2,8 +2,9 @@ ccache news
 ===========
 
 
-ccache 3.0.1 (2010-07-15)
--------------------------
+ccache 3.0.1
+------------
+Release date: 2010-07-15
 
 Bug fixes
 ~~~~~~~~~
@@ -13,11 +14,9 @@ Bug fixes
     - Fixed a problem with out-of-source builds.
 
 
-ccache 3.0 (2010-06-20)
------------------------
-
-Changes since version 2.4.
-
+ccache 3.0
+----------
+Release date: 2010-06-20
 
 General
 ~~~~~~~
