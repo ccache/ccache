@@ -93,4 +93,5 @@ exitfn_call(void)
 		p = p->next;
 		free(q);
 	}
+	exit_functions = NULL;
 }
