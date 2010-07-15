@@ -634,8 +634,15 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		mf = read_manifest(f1);
 		if (!mf) {
 			cc_log("Failed to read manifest file");
+			gzclose(f1);
 			goto out;
 		}
+	}
+
+	if (f1) {
+		gzclose(f1);
+	} else {
+		close(fd1);
 	}
 
 	if (mf->n_objects > MAX_MANIFEST_ENTRIES) {
@@ -673,6 +680,8 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 
 	add_object_entry(mf, object_hash, included_files);
 	if (write_manifest(f2, mf)) {
+		gzclose(f2);
+		f2 = NULL;
 		unlink(manifest_path);
 		if (rename(tmp_file, manifest_path) == 0) {
 			ret = 1;
@@ -695,9 +704,6 @@ out:
 	}
 	if (f2) {
 		gzclose(f2);
-	}
-	if (f1) {
-		gzclose(f1);
 	}
 	return ret;
 }
