@@ -103,8 +103,6 @@ char *find_executable(const char *name, const char *exclude_name)
 		return NULL;
 	}
 
-	path = x_strdup(path);
-
 	return find_executable_in_path(name, exclude_name, path);
 }
 
@@ -112,6 +110,8 @@ static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path)
 {
 	char *tok;
+
+	path = x_strdup(path);
 
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
