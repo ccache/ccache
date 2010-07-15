@@ -33,4 +33,12 @@ TEST(basename)
 	CHECK_STR_EQ_FREE2("", basename("dir1/dir2/"));
 }
 
+TEST(dirname)
+{
+	CHECK_STR_EQ_FREE2(".", dirname("foo.c"));
+	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/foo.c"));
+	CHECK_STR_EQ_FREE2("/dir", dirname("/dir/foo.c"));
+	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
+}
+
 TEST_SUITE_END
