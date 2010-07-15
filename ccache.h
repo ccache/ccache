@@ -111,6 +111,7 @@ void update_mtime(const char *path);
 
 void stats_update(enum stats stat);
 void stats_flush(void);
+unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(void);
 void stats_update_size(enum stats stat, size_t size, unsigned files);

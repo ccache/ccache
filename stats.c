@@ -221,6 +221,12 @@ void stats_update(enum stats stat)
 	stats_update_size(stat, 0, 0);
 }
 
+/* Get the pending update a counter value. */
+unsigned stats_get_pending(enum stats stat)
+{
+	return counter_updates[stat];
+}
+
 /* read in the stats from one dir and add to the counters */
 void stats_read(const char *stats_file, unsigned counters[STATS_END])
 {
