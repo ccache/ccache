@@ -2,6 +2,16 @@ ccache news
 ===========
 
 
+ccache 3.0.1 (2010-07-15)
+-------------------------
+
+Bug fixes
+~~~~~~~~~
+
+    - The statistics counter ``called for link'' is now correctly updated when
+      linking with a single object file.
+
+
 ccache 3.0 (2010-06-20)
 -----------------------
 
