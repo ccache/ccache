@@ -10,6 +10,7 @@ Bug fixes
 
     - The statistics counter ``called for link'' is now correctly updated when
       linking with a single object file.
+    - Fixed a problem with out-of-source builds.
 
 
 ccache 3.0 (2010-06-20)
