@@ -84,4 +84,4 @@ ccache.1: manual.xml
 check-syntax:
 	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
 
--include $(all_sources:%=.deps/%.d)
+-include .deps/*.d
