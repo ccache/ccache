@@ -18,12 +18,17 @@ dist_archive_tar_gz = ccache-$(version).tar.gz
 generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
 built_dist_files = $(generated_docs)
 
+headers = \
+    ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
+    manifest.h mdfour.h murmurhashneutral2.h getopt_long.h \
+    test/framework.h test/suites.h
+
 files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
-files_to_clean += $(built_dist_files) version.c
+files_to_clean += $(built_dist_files) version.c test/suites.h
 files_to_clean += *.xml
 
 source_dist_files = \
-    $(sources) $(headers) zlib/*.c zlib/*.h \
+    main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
     config.h.in configure install-sh Makefile.in \
     test.sh COPYING INSTALL.txt NEWS.txt README.txt
 dist_files = \
@@ -64,6 +69,7 @@ distcheck: $(dist_archive_tar_bz2)
 	 mkdir -p $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
+	 $(MAKE) test && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
 	rm -rf $$tmpdir

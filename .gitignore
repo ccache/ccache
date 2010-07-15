@@ -17,5 +17,7 @@ config.status
 configure
 dev.mk
 perfdir.*
+test/main
+test/suites.h
 testdir.*
 version.c

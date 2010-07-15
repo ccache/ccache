@@ -16,21 +16,25 @@ EXEEXT = @EXEEXT@
 
 libs = @LIBS@ -lm
 
-sources = \
+base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-    murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c main.c
-all_sources = $(sources) @extra_sources@
+    murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c
+base_objs = $(base_sources:.c=.o)
 
-headers = \
-    ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
-    manifest.h mdfour.h murmurhashneutral2.h getopt_long.h
+ccache_sources = main.c $(base_sources) @extra_sources@
+ccache_objs = $(ccache_sources:.c=.o)
 
-objs = $(all_sources:.c=.o)
+test_suites = test/test_util.c
+test_sources = test/main.c test/framework.c $(test_suites)
+test_objs = $(test_sources:.c=.o)
+
+all_sources = $(ccache_sources) $(test_sources)
+all_objs = $(ccache_objs) $(test_objs)
 
 generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
 
-files_to_clean = $(objs) ccache$(EXEEXT) *~
+files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~
 
 .PHONY: all
 all: ccache$(EXEEXT)
@@ -38,8 +42,8 @@ all: ccache$(EXEEXT)
 .PHONY: docs
 docs: $(generated_docs)
 
-ccache$(EXEEXT): $(objs)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) $(libs)
+ccache$(EXEEXT): $(ccache_objs)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
 
 .PHONY: install
 install: all
@@ -57,8 +61,17 @@ perf: ccache$(EXEEXT)
 	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(CFLAGS) $(CPPFLAGS) $(srcdir)/ccache.c
 
 .PHONY: test
-test: ccache$(EXEEXT)
+test: ccache$(EXEEXT) test/main$(EXEEXT)
+	test/main$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
+
+test/main$(EXEEXT): $(base_objs) $(test_objs)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
+
+test/main.o: test/suites.h
+
+test/suites.h: $(test_suites)
+	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $^ >$@
 
 .PHONY: check
 check: test

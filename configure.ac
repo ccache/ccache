@@ -172,6 +172,7 @@ AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
 
 AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h)
+AC_CHECK_HEADERS(sys/ioctl.h termios.h)
 
 AC_CHECK_FUNCS(asprintf)
 AC_CHECK_FUNCS(gethostname)
@@ -298,7 +299,7 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-mkdir -p .deps
+mkdir -p .deps test
 
 if test x$use_bundled_zlib = xyes; then
    AC_MSG_WARN(using bundled zlib)
