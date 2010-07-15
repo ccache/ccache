@@ -1995,7 +1995,7 @@ static void check_cache_dir(void)
 }
 
 /* the main program when not doing a compile */
-static int ccache_main(int argc, char *argv[])
+static int ccache_main_options(int argc, char *argv[])
 {
 	int c;
 	size_t v;
@@ -2110,8 +2110,7 @@ static void setup_uncached_err(void)
 	}
 }
 
-
-int main(int argc, char *argv[])
+int ccache_main(int argc, char *argv[])
 {
 	char *p;
 	char *program_name;
@@ -2154,7 +2153,7 @@ int main(int argc, char *argv[])
 		/* if the first argument isn't an option, then assume we are
 		   being passed a compiler name and options */
 		if (argv[1][0] == '-') {
-			return ccache_main(argc, argv);
+			return ccache_main_options(argc, argv);
 		}
 	}
 	free(program_name);
