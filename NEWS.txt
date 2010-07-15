@@ -2,11 +2,21 @@ ccache news
 ===========
 
 
-ccache 3.0 (2010-06-20)
------------------------
+ccache 3.0.1
+------------
+Release date: 2010-07-15
 
-Changes since version 2.4.
+Bug fixes
+~~~~~~~~~
 
+    - The statistics counter ``called for link'' is now correctly updated when
+      linking with a single object file.
+    - Fixed a problem with out-of-source builds.
+
+
+ccache 3.0
+----------
+Release date: 2010-06-20
 
 General
 ~~~~~~~
