@@ -35,6 +35,23 @@ ARGS *args_init(int init_argc, char **init_args)
 	return args;
 }
 
+ARGS *args_init_from_string(const char *command)
+{
+	ARGS *args;
+	char *p = x_strdup(command);
+	char *q = p;
+	char *word;
+
+	args = args_init(0, NULL);
+	while ((word = strtok(q, " "))) {
+		args_add(args, word);
+		q = NULL;
+	}
+
+	free(p);
+	return args;
+}
+
 ARGS *args_copy(ARGS *args)
 {
 	return args_init(args->argc, args->argv);

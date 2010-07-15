@@ -157,6 +157,7 @@ typedef struct {
 
 
 ARGS *args_init(int , char **);
+ARGS *args_init_from_string(const char *);
 ARGS *args_copy(ARGS *args);
 void args_free(ARGS *args);
 void args_add(ARGS *args, const char *s);
