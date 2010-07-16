@@ -20,7 +20,7 @@
  * This file contains tests for functions in util.c.
  */
 
-#include "../ccache.h"
+#include "ccache.h"
 #include "framework.h"
 
 TEST_SUITE(util)
