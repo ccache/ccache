@@ -81,8 +81,9 @@ distclean: clean
 	rm -rf Makefile dev.mk config.h config.log config.status .deps version.c
 
 .PHONY: installcheck
-installcheck:
-	CCACHE=$(bindir)/ccache $(srcdir)/test.sh
+installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
+	test/main$(EXEEXT)
+	CCACHE=$(bindir)/ccache CC='$(CC)' $(srcdir)/test.sh
 
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
