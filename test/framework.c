@@ -19,10 +19,9 @@
 #include "ccache.h"
 #include "framework.h"
 #include <stdio.h>
-#if defined(HAVE_TERMIOS_H) && defined(HAVE_SYS_IOCTL_H)
+#if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
 #include <termios.h>
-#include <sys/ioctl.h>
 #endif
 
 static unsigned passed_asserts;
@@ -48,7 +47,7 @@ is_tty(int fd)
 {
 #ifdef USE_COLOR
 	struct termios t;
-	return ioctl(fd, TCGETS, &t) == 0;
+	return tcgetattr(fd, &t) == 0;
 #else
 	(void)fd;
 	return 0;
