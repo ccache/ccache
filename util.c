@@ -77,7 +77,11 @@ static void log_prefix(void)
 	struct tm *tm;
 
 	gettimeofday(&tv, NULL);
+#ifdef _WIN32
+	tm = _localtime32(&tv.tv_sec);
+#else
 	tm = localtime(&tv.tv_sec);
+#endif
 	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
 	fprintf(logfile, "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec,
 	        (int)getpid());
