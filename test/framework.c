@@ -16,7 +16,7 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "config.h"
+#include "ccache.h"
 #include "framework.h"
 #include <stdio.h>
 #if defined(HAVE_TERMIOS_H) && defined(HAVE_SYS_IOCTL_H)
@@ -141,4 +141,76 @@ cct_check_failed(const char *file, int line, const char *what,
 		fprintf(stderr, "  Assertion:  %s\n", what);
 	}
 	fprintf(stderr, "\n");
+}
+
+int
+cct_check_int_eq(const char *file, int line, const char *expression,
+                 int expected, int actual)
+{
+	if (expected == actual) {
+		cct_check_passed();
+		return 1;
+	} else {
+		char *exp_str, *act_str;
+		x_asprintf(&exp_str, "%i", expected);
+		x_asprintf(&act_str, "%i", actual);
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		return 0;
+	}
+}
+
+int
+cct_check_uns_eq(const char *file, int line, const char *expression,
+                 unsigned expected, unsigned actual)
+{
+	if (expected == actual) {
+		cct_check_passed();
+		return 1;
+	} else {
+		char *exp_str, *act_str;
+		x_asprintf(&exp_str, "%i", expected);
+		x_asprintf(&act_str, "%i", actual);
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		return 0;
+	}
+}
+
+int
+cct_check_str_eq(const char *file, int line, const char *expression,
+                 char *expected, char *actual, int free1, int free2)
+{
+	int result;
+
+	if (expected && actual && strcmp(actual, expected) == 0) {
+		cct_check_passed();
+		result = 1;
+	} else {
+		char *exp_str, *act_str;
+		if (expected) {
+			x_asprintf(&exp_str, "\"%s\"", expected);
+		} else {
+			exp_str = x_strdup("(null)");
+		}
+		if (actual) {
+			x_asprintf(&act_str, "\"%s\"", actual);
+		} else {
+			act_str = x_strdup("(null)");
+		}
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		result = 0;
+	}
+
+	if (free1) {
+		free(expected);
+	}
+	if (free2) {
+		free(actual);
+	}
+	return result;
 }

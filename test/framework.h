@@ -59,82 +59,43 @@
 		} \
 	} while (0)
 
-#define CHECK_UNS_EQ(expected, actual) \
+#define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2)        \
 	do { \
-		unsigned exp = (expected); \
-		unsigned act = (actual); \
-		if (exp == act) { \
-			cct_check_passed(); \
-		} else { \
-			char *exp_str, *act_str; \
-			x_asprintf(&exp_str, "%u", exp); \
-			x_asprintf(&act_str, "%u", act); \
-			cct_check_failed(__FILE__, __LINE__, #actual, exp_str, act_str); \
-			free(exp_str); \
-			free(act_str); \
+		if (cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
 			return _test_counter; \
 		} \
 	} while (0)
+
+/*****************************************************************************/
 
 #define CHECK_INT_EQ(expected, actual) \
 	do { \
-		int exp = (expected); \
-		int act = (actual); \
-		if (exp == act) { \
-			cct_check_passed(); \
-		} else { \
-			char *exp_str, *act_str; \
-			x_asprintf(&exp_str, "%u", exp); \
-			x_asprintf(&act_str, "%u", act); \
-			cct_check_failed(__FILE__, __LINE__, #actual, exp_str, act_str); \
-			free(exp_str); \
-			free(act_str); \
+		if (cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
 			return _test_counter; \
 		} \
 	} while (0)
 
-#define CHECK_STR_EQ_BASE(expected, actual, free1, free2) \
+#define CHECK_UNS_EQ(expected, actual) \
 	do { \
-		char *exp = (expected); \
-		char *act = (actual); \
-		if (exp && act && strcmp(act, exp) == 0) { \
-			cct_check_passed(); \
-			if (free1) { \
-				free(exp); \
-			} \
-			if (free2) { \
-				free(act); \
-			} \
-		} else { \
-			char *exp_str, *act_str; \
-			if (exp) { \
-				x_asprintf(&exp_str, "\"%s\"", exp); \
-			} else { \
-				exp_str = x_strdup("(null)"); \
-			} \
-			if (act) { \
-				x_asprintf(&act_str, "\"%s\"", act); \
-			} else { \
-				act_str = x_strdup("(null)"); \
-			} \
-			cct_check_failed(__FILE__, __LINE__, #actual, exp_str, act_str); \
-			free(exp_str); \
-			free(act_str); \
+		if (cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
 			return _test_counter; \
 		} \
 	} while (0)
+
+/*****************************************************************************/
 
 #define CHECK_STR_EQ(expected, actual) \
-	CHECK_STR_EQ_BASE(expected, actual, 0, 0)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, 0, 0)
 
 #define CHECK_STR_EQ_FREE1(expected, actual) \
-	CHECK_STR_EQ_BASE(expected, actual, 1, 0)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, 1, 0)
 
 #define CHECK_STR_EQ_FREE2(expected, actual) \
-	CHECK_STR_EQ_BASE(expected, actual, 0, 1)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, 0, 1)
 
 #define CHECK_STR_EQ_FREE12(expected, actual) \
-	CHECK_STR_EQ_BASE(expected, actual, 1, 1)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, 1, 1)
+
 
 /*****************************************************************************/
 
@@ -148,5 +109,11 @@ void cct_test_end();
 void cct_check_passed(void);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
+int cct_check_int_eq(const char *file, int line, const char *expression,
+                     int expected, int actual);
+int cct_check_uns_eq(const char *file, int line, const char *expression,
+                     unsigned expected, unsigned actual);
+int cct_check_str_eq(const char *file, int line, const char *expression,
+                     char *expected, char *actual, int free1, int free2);
 
 #endif
