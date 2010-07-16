@@ -25,8 +25,9 @@ base_objs = $(base_sources:.c=.o)
 ccache_sources = main.c $(base_sources) @extra_sources@
 ccache_objs = $(ccache_sources:.c=.o)
 
-test_suites = test/test_util.c
-test_sources = test/main.c test/framework.c $(test_suites)
+test_suites = util
+test_suite_files = $(test_suites:%=$(srcdir)/test/test_%.c)
+test_sources = test/main.c test/framework.c $(test_suite_files)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
@@ -70,8 +71,8 @@ test/main$(EXEEXT): $(base_objs) $(test_objs)
 
 test/main.o: test/suites.h
 
-test/suites.h: $(test_suites) Makefile
-	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suites) >$@
+test/suites.h: $(test_suite_files) Makefile
+	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suite_files) >$@
 
 .PHONY: check
 check: test
