@@ -10,7 +10,7 @@ installcmd = @INSTALL@
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@ -I.
+CPPFLAGS = @CPPFLAGS@ -I. -I$(srcdir)
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 
