@@ -7,13 +7,18 @@ AC_MSG_NOTICE([Configuring ccache])
 
 AC_CONFIG_HEADER(config.h)
 
-AC_SUBST(extra_sources)
+AC_SUBST(extra_deps)
 AC_SUBST(include_dev_mk)
 
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
+AC_PROG_RANLIB
+AC_CHECK_TOOL(AR, ar)
+if test -z "$ac_ct_AR"; then
+    AC_MSG_ERROR(cannot find ar)
+fi
 
 dnl ===========================================================================
 dnl Feature macro stuff borrowed from Python's configure.in
@@ -244,14 +249,11 @@ AC_CACHE_CHECK(
 AC_CHECK_LIB(z, gzdopen, true)
 if test $ccache_cv_zlib_1_2_3 = yes && test $ac_cv_lib_z_gzdopen = yes; then
     use_bundled_zlib=no
-    LIBS="-lz $LIBS"
 else
     use_bundled_zlib=yes
-    extra_sources="$extra_sources zlib/adler32.c zlib/compress.c zlib/crc32.c"
-    extra_sources="$extra_sources zlib/deflate.c zlib/gzio.c zlib/inffast.c"
-    extra_sources="$extra_sources zlib/inflate.c zlib/inftrees.c zlib/trees.c"
-    extra_sources="$extra_sources zlib/zutil.c"
+    extra_deps="zlib/libz.a"
     CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
+    LIBS="-Lzlib $LIBS"
     mkdir -p zlib
 fi
 

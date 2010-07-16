@@ -8,13 +8,15 @@ mandir = @mandir@
 datarootdir = @datarootdir@
 installcmd = @INSTALL@
 
+AR = @AR@
 CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@ -I. -I$(srcdir)
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
+RANLIB = @RANLIB@
 
-libs = @LIBS@ -lm
+libs = @LIBS@ -lm -lz
 
 base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
@@ -22,8 +24,13 @@ base_sources = \
     murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c
 base_objs = $(base_sources:.c=.o)
 
-ccache_sources = main.c $(base_sources) @extra_sources@
+ccache_sources = main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
+
+zlib_sources = \
+    zlib/adler32.c zlib/compress.c zlib/crc32.c zlib/deflate.c zlib/gzio.c \
+    zlib/inffast.c zlib/inflate.c zlib/inftrees.c zlib/trees.c zlib/zutil.c
+zlib_objs = $(zlib_sources:.c=.o)
 
 test_suites = \
     $(srcdir)/test/test_util.c
@@ -31,7 +38,7 @@ test_sources = test/main.c test/framework.c $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
-all_objs = $(ccache_objs) $(test_objs)
+all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
 
 generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
 
@@ -43,7 +50,7 @@ all: ccache$(EXEEXT)
 .PHONY: docs
 docs: $(generated_docs)
 
-ccache$(EXEEXT): $(ccache_objs)
+ccache$(EXEEXT): $(ccache_objs) @extra_deps@
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
 
 .PHONY: install
@@ -57,6 +64,10 @@ install: all
 clean:
 	rm -f $(files_to_clean)
 
+zlib/libz.a: $(zlib_objs)
+	$(AR) cr $@ $^
+	$(RANLIB) $@
+
 .PHONY: perf
 perf: ccache$(EXEEXT)
 	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(CFLAGS) $(CPPFLAGS) $(srcdir)/ccache.c
@@ -66,7 +77,7 @@ test: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
 
-test/main$(EXEEXT): $(base_objs) $(test_objs)
+test/main$(EXEEXT): $(base_objs) $(test_objs) @extra_deps@
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
 
 test/main.o: test/suites.h
