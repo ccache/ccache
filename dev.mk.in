@@ -69,7 +69,6 @@ distcheck: $(dist_archive_tar_bz2)
 	 mkdir -p $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
-	 $(MAKE) test && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
 	rm -rf $$tmpdir
