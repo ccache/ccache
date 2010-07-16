@@ -67,6 +67,7 @@ cct_run(suite_fn *suites, int verbose_output)
 		do {
 			test_index = (*suite)(test_index + 1);
 		} while (test_index != 0);
+		--passed_tests; /* Fix false increase in first TEST expansion. */
 	}
 
 	if (failed_asserts == 0) {
