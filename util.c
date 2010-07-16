@@ -44,6 +44,11 @@
 #include <sys/time.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#include <sys/locking.h>
+#endif
+
 static FILE *logfile;
 
 static int init_log(void)
@@ -186,7 +191,9 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	char buf[10240];
 	int n, ret;
 	char *tmp_name;
+#ifndef _WIN32
 	mode_t mask;
+#endif
 	struct stat st;
 	int errnum;
 
@@ -275,10 +282,12 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		gz_out = NULL;
 	}
 
+#ifndef _WIN32
 	/* get perms right on the tmp file */
 	mask = umask(0);
 	fchmod(fd_out, 0666 & ~mask);
 	umask(mask);
+#endif
 
 	/* the close can fail on NFS if out of space */
 	if (close(fd_out) == -1) {
@@ -614,6 +623,10 @@ char *basename(const char *s)
 	char *p;
 	p = strrchr(s, '/');
 	if (p) s = p + 1;
+#ifdef _WIN32
+	p = strrchr(s, '\\');
+	if (p) s = p + 1;
+#endif
 
 	return x_strdup(s);
 }
@@ -622,8 +635,14 @@ char *basename(const char *s)
 char *dirname(char *s)
 {
 	char *p;
+	char *p2 = NULL;
 	s = x_strdup(s);
 	p = strrchr(s, '/');
+#ifdef _WIN32
+	p2 = strrchr(s, '\\');
+#endif
+	if (p < p2)
+		p = p2;
 	if (p) {
 		*p = 0;
 		return s;
@@ -665,6 +684,10 @@ char *remove_extension(const char *path)
 
 static int lock_fd(int fd, short type)
 {
+#ifdef _WIN32
+	(void) type;
+	return _locking(fd, _LK_NBLCK, 1);
+#else
 	struct flock fl;
 	int ret;
 
@@ -680,6 +703,7 @@ static int lock_fd(int fd, short type)
 		ret = fcntl(fd, F_SETLKW, &fl);
 	} while (ret == -1 && errno == EINTR);
 	return ret;
+#endif
 }
 
 int read_lock_fd(int fd)
@@ -695,12 +719,16 @@ int write_lock_fd(int fd)
 /* return size on disk of a file */
 size_t file_size(struct stat *st)
 {
+#ifdef _WIN32
+	return (st->st_size + 1023) & ~1023;
+#else
 	size_t size = st->st_blocks * 512;
 	if ((size_t)st->st_size > size) {
 		/* probably a broken stat() call ... */
 		size = (st->st_size + 1023) & ~1023;
 	}
 	return size;
+#endif
 }
 
 
@@ -758,6 +786,7 @@ size_t value_units(const char *s)
 }
 
 
+#ifndef _WIN32
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
@@ -800,6 +829,7 @@ char *x_realpath(const char *path)
 	free(ret);
 	return NULL;
 }
+#endif /* !_WIN32 */
 
 /* a getcwd that will returns an allocated buffer */
 char *gnu_getcwd(void)
@@ -887,7 +917,18 @@ char *get_cwd(void)
 int
 compare_executable_name(const char *s1, const char *s2)
 {
+#ifdef _WIN32
+	int ret = !strcasecmp(s1, s2);
+	if (!ret) {
+		char *tmp;
+		x_asprintf(&tmp, "%s.exe", s2);
+		ret = !strcasecmp(s1, tmp);
+		free(tmp);
+	}
+	return ret;
+#else
 	return !strcmp(s1, s2);
+#endif
 }
 
 /*
@@ -956,7 +997,11 @@ char *get_relative_path(const char *from, const char *to)
 int
 is_absolute_path(const char *path)
 {
+#ifdef _WIN32
+	return path[0] && path[1] == ':';
+#else
 	return path[0] == '/';
+#endif
 }
 
 /*
@@ -967,6 +1012,10 @@ is_full_path(const char *path)
 {
 	if (strchr(path, '/'))
 		return 1;
+#ifdef _WIN32
+	if (strchr(path, '\\'))
+		return 1;
+#endif
 	return 0;
 }
 
@@ -993,6 +1042,35 @@ void *x_fmmap(const char *fname, off_t *size, const char *errstr)
 	struct stat st;
 	void *data = (void *) -1;
 	int fd = -1;
+#ifdef _WIN32
+	HANDLE section;
+	HANDLE file;
+	file = CreateFile(fname, GENERIC_READ, FILE_SHARE_READ, NULL,
+	                  OPEN_EXISTING, 0, NULL);
+	if (file == INVALID_HANDLE_VALUE) {
+		cc_log("Failed to open %s%s", errstr, fname);
+		goto error;
+	}
+	fd = _open_osfhandle((intptr_t) file, O_RDONLY | O_BINARY);
+	if (fd == -1) {
+		cc_log("Failed to open %s%s", errstr, fname);
+		CloseHandle(file);
+		goto error;
+	}
+	if (fstat(fd, &st) == -1) {
+		cc_log("Failed to fstat %s%s", errstr, fname);
+		CloseHandle(file);
+		goto error;
+	}
+	section = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+	CloseHandle(file);
+	if (!section) {
+		cc_log("Failed to mmap %s%s", errstr, fname);
+		goto error;
+	}
+	data = MapViewOfFile(section, FILE_MAP_READ, 0, 0, 0);
+	CloseHandle(section);
+#else
 	fd = open(fname, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		cc_log("Failed to open %s %s", errstr, fname);
@@ -1008,6 +1086,7 @@ void *x_fmmap(const char *fname, off_t *size, const char *errstr)
 	if (data == (void *) -1) {
 		cc_log("Failed to mmap %s %s", errstr, fname);
 	}
+#endif
 	*size = st.st_size;
 error:
 	return data;
@@ -1018,5 +1097,10 @@ error:
  */
 int x_munmap(void *addr, size_t length)
 {
+#ifdef _WIN32
+	(void) length;
+	return UnmapViewOfFile(addr) ? 0 : -1;
+#else
 	return munmap(addr, length);
+#endif
 }
