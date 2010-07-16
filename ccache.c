@@ -1266,7 +1266,7 @@ static void find_compiler(int argc, char **argv)
 	if (compare_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
-		if (strchr(argv[1],'/')) {
+		if (is_full_path(argv[1])) {
 			/* a full path was given */
 			return;
 		}

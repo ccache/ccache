@@ -960,6 +960,17 @@ is_absolute_path(const char *path)
 }
 
 /*
+ * Return whether the argument is a full path.
+ */
+int
+is_full_path(const char *path)
+{
+	if (strchr(path, '/'))
+		return 1;
+	return 0;
+}
+
+/*
  * Update the modification time of a file in the cache to save it from LRU
  * cleanup.
  */
