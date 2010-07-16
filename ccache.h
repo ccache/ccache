@@ -165,6 +165,8 @@ void args_add_prefix(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
 void args_strip(ARGS *args, const char *prefix);
 void args_remove_first(ARGS *args);
+char *args_to_string(ARGS *args);
+int args_equal(ARGS *args1, ARGS *args2);
 
 int
 cc_process_args(ARGS *orig_args,

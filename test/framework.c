@@ -214,3 +214,31 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	}
 	return result;
 }
+
+int
+cct_check_args_eq(const char *file, int line, const char *expression,
+                  ARGS *expected, ARGS *actual, int free1, int free2)
+{
+	int result;
+
+	if (expected && actual && args_equal(actual, expected)) {
+		cct_check_passed();
+		result = 1;
+	} else {
+		char *exp_str, *act_str;
+		exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
+		act_str = actual ? args_to_string(actual) : x_strdup("(null)");
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		result = 0;
+	}
+
+	if (free1) {
+		args_free(expected);
+	}
+	if (free2) {
+		args_free(actual);
+	}
+	return result;
+}

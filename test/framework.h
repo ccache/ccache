@@ -19,6 +19,7 @@
 #ifndef TEST_FRAMEWORK_H
 #define TEST_FRAMEWORK_H
 
+#include "ccache.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -96,6 +97,19 @@
 #define CHECK_STR_EQ_FREE12(expected, actual) \
 	CHECK_POINTER_EQ_BASE(str, expected, actual, 1, 1)
 
+/*****************************************************************************/
+
+#define CHECK_ARGS_EQ(expected, actual) \
+	CHECK_POINTER_EQ_BASE(args, expected, actual, 0, 0)
+
+#define CHECK_ARGS_EQ_FREE1(expected, actual) \
+	CHECK_POINTER_EQ_BASE(args, expected, actual, 1, 0)
+
+#define CHECK_ARGS_EQ_FREE2(expected, actual) \
+	CHECK_POINTER_EQ_BASE(args, expected, actual, 0, 1)
+
+#define CHECK_ARGS_EQ_FREE12(expected, actual) \
+	CHECK_POINTER_EQ_BASE(args, expected, actual, 1, 1)
 
 /*****************************************************************************/
 
@@ -115,5 +129,7 @@ int cct_check_uns_eq(const char *file, int line, const char *expression,
                      unsigned expected, unsigned actual);
 int cct_check_str_eq(const char *file, int line, const char *expression,
                      char *expected, char *actual, int free1, int free2);
+int cct_check_args_eq(const char *file, int line, const char *expression,
+                      ARGS *expected, ARGS *actual, int free1, int free2);
 
 #endif
