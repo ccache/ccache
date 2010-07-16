@@ -62,7 +62,7 @@
 
 #define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2)        \
 	do { \
-		if (cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
+		if (!cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
 			return _test_counter; \
 		} \
 	} while (0)
@@ -71,14 +71,14 @@
 
 #define CHECK_INT_EQ(expected, actual) \
 	do { \
-		if (cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
 			return _test_counter; \
 		} \
 	} while (0)
 
 #define CHECK_UNS_EQ(expected, actual) \
 	do { \
-		if (cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
 			return _test_counter; \
 		} \
 	} while (0)
