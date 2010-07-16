@@ -626,8 +626,11 @@ char *dirname(char *s)
 	p = strrchr(s, '/');
 	if (p) {
 		*p = 0;
+		return s;
+	} else {
+		free(s);
+		return x_strdup(".");
 	}
-	return s;
 }
 
 /*

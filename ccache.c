@@ -1975,12 +1975,12 @@ static void check_cache_dir(void)
 }
 
 /* the main program when not doing a compile */
-static int ccache_main(int argc, char *argv[])
+static int ccache_main_options(int argc, char *argv[])
 {
 	int c;
 	size_t v;
 
-	static const struct option long_options[] = {
+	static const struct option options[] = {
 		{"show-stats", no_argument,       0, 's'},
 		{"zero-stats", no_argument,       0, 'z'},
 		{"cleanup",    no_argument,       0, 'c'},
@@ -1991,9 +1991,8 @@ static int ccache_main(int argc, char *argv[])
 		{"version",    no_argument,       0, 'V'},
 		{0, 0, 0, 0}
 	};
-	int option_index = 0;
 
-	while ((c = getopt_long(argc, argv, "hszcCF:M:V", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "hszcCF:M:V", options, NULL)) != -1) {
 		switch (c) {
 		case 'V':
 			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
@@ -2091,8 +2090,7 @@ static void setup_uncached_err(void)
 	}
 }
 
-
-int main(int argc, char *argv[])
+int ccache_main(int argc, char *argv[])
 {
 	char *p;
 	char *program_name;
@@ -2135,7 +2133,7 @@ int main(int argc, char *argv[])
 		/* if the first argument isn't an option, then assume we are
 		   being passed a compiler name and options */
 		if (argv[1][0] == '-') {
-			return ccache_main(argc, argv);
+			return ccache_main_options(argc, argv);
 		}
 	}
 	free(program_name);

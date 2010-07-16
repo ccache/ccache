@@ -115,6 +115,7 @@ int x_munmap(void *addr, size_t length);
 
 void stats_update(enum stats stat);
 void stats_flush(void);
+unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(void);
 void stats_update_size(enum stats stat, size_t size, unsigned files);
@@ -160,6 +161,7 @@ typedef struct {
 
 
 ARGS *args_init(int , char **);
+ARGS *args_init_from_string(const char *);
 ARGS *args_copy(ARGS *args);
 void args_free(ARGS *args);
 void args_add(ARGS *args, const char *s);
@@ -167,6 +169,8 @@ void args_add_prefix(ARGS *args, const char *s);
 void args_pop(ARGS *args, int n);
 void args_strip(ARGS *args, const char *prefix);
 void args_remove_first(ARGS *args);
+char *args_to_string(ARGS *args);
+int args_equal(ARGS *args1, ARGS *args2);
 
 int
 cc_process_args(ARGS *orig_args,

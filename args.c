@@ -35,6 +35,23 @@ ARGS *args_init(int init_argc, char **init_args)
 	return args;
 }
 
+ARGS *args_init_from_string(const char *command)
+{
+	ARGS *args;
+	char *p = x_strdup(command);
+	char *q = p;
+	char *word;
+
+	args = args_init(0, NULL);
+	while ((word = strtok(q, " "))) {
+		args_add(args, word);
+		q = NULL;
+	}
+
+	free(p);
+	return args;
+}
+
 ARGS *args_copy(ARGS *args)
 {
 	return args_init(args->argc, args->argv);
@@ -106,3 +123,41 @@ void args_strip(ARGS *args, const char *prefix)
 		}
 	}
 }
+
+/*
+ * Format args to a space-separated string. Does not quote spaces. Caller
+ * frees.
+ */
+char *args_to_string(ARGS *args)
+{
+	char *result;
+	char **p;
+	unsigned size = 0;
+	int pos;
+	for (p = args->argv; *p; p++) {
+		size += strlen(*p) + 1;
+	}
+	result = x_malloc(size);
+	pos = 0;
+	for (p = args->argv; *p; p++) {
+		pos += sprintf(&result[pos], "%s ", *p);
+	}
+	result[pos - 1] = '\0';
+	return result;
+}
+
+/* Returns 1 if args1 equals args2, else 0. */
+int args_equal(ARGS *args1, ARGS *args2)
+{
+	int i;
+	if (args1->argc != args2->argc) {
+		return 0;
+	}
+	for (i = 0; i < args1->argc; i++) {
+		if (strcmp(args1->argv[i], args2->argv[i]) != 0) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
