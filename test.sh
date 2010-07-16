@@ -1312,23 +1312,23 @@ EOF
     checkstat 'cache miss' 1
 
     testname="cache miss a b"
-    CCACHE_EXTRAFILES="a:b" $CCACHE $COMPILER -c test.c
+    CCACHE_EXTRAFILES="a${PATH_DELIM}b" $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
 
     testname="cache hit a b"
-    CCACHE_EXTRAFILES="a:b" $CCACHE $COMPILER -c test.c
+    CCACHE_EXTRAFILES="a${PATH_DELIM}b" $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2
 
     testname="cache miss a b2"
     echo b2 >b
-    CCACHE_EXTRAFILES="a:b" $CCACHE $COMPILER -c test.c
+    CCACHE_EXTRAFILES="a${PATH_DELIM}b" $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 3
 
     testname="cache hit a b2"
-    CCACHE_EXTRAFILES="a:b" $CCACHE $COMPILER -c test.c
+    CCACHE_EXTRAFILES="a${PATH_DELIM}b" $CCACHE $COMPILER -c test.c
     checkstat 'cache hit (preprocessed)' 3
     checkstat 'cache miss' 3
 
@@ -1561,9 +1561,11 @@ host_os="`uname -s`"
 case $host_os in
     *MINGW*|*mingw*)
         DEVNULL=NUL
+        PATH_DELIM=";"
         ;;
     *)
         DEVNULL=/dev/null
+        PATH_DELIM=":"
         all_suites="$all_suites link basedir"
         ;;
 esac
