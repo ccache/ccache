@@ -1560,6 +1560,8 @@ cleanup
 host_os="`uname -s`"
 case $host_os in
     *MINGW*|*mingw*)
+        export CCACHE_DETECT_SHEBANG
+        CCACHE_DETECT_SHEBANG=1
         DEVNULL=NUL
         PATH_DELIM=";"
         ;;

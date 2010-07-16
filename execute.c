@@ -33,6 +33,140 @@
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
 
+#ifdef _WIN32
+/*
+ * Re-create a win32 command line string based on **argv.
+ * http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
+ */
+static char *argvtos(char *prefix, char **argv)
+{
+	char *arg;
+	char *ptr;
+	char *str;
+	int l = 0;
+	int i, j;
+
+	i = 0;
+	arg = prefix ? prefix : argv[i++];
+	do {
+		int bs = 0;
+		for (j = 0; arg[j]; j++) {
+			switch (arg[j]) {
+				case '\\':
+					bs++;
+					break;
+				case '"':
+					bs = (bs << 1) + 1;
+				default:
+					l += bs + 1;
+					bs = 0;
+			}
+		}
+		l += (bs << 1) + 3;
+	} while ((arg = argv[i++]));
+
+	str = ptr = malloc(l + 1);
+	if (str == NULL)
+		return NULL;
+
+	i = 0;
+	arg = prefix ? prefix : argv[i++];
+	do {
+		int bs = 0;
+		*ptr++ = '"';
+		for (j = 0; arg[j]; j++) {
+			switch (arg[j]) {
+				case '\\':
+					bs++;
+					break;
+				case '"':
+					bs = (bs << 1) + 1;
+				default:
+					while (bs && bs--)
+						*ptr++ = '\\';
+					*ptr++ = arg[j];
+			}
+		}
+		bs <<= 1;
+		while (bs && bs--)
+			*ptr++ = '\\';
+		*ptr++ = '"';
+		*ptr++ = ' ';
+	} while ((arg = argv[i++]));
+	ptr[-1] = '\0';
+
+	return str;
+}
+
+int win32execute(char *path, char **argv, int doreturn,
+                 const char *path_stdout, const char *path_stderr)
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	BOOL ret;
+	DWORD exitcode;
+	char *path_env;
+	char *sh = NULL;
+	char *args;
+	const char *ext;
+
+	memset(&pi, 0x00, sizeof(pi));
+	memset(&si, 0x00, sizeof(si));
+
+	ext = get_extension(path);
+	if (ext && !strcasecmp(ext, ".sh") && (path_env = getenv("PATH")))
+		sh = find_executable_in_path("sh.exe", NULL, path_env);
+	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
+		/* Detect shebang. */
+		FILE *fp;
+		fp = fopen(path, "r");
+		if (fp) {
+			char buf[10];
+			fgets(buf, sizeof(buf), fp);
+			buf[9] = 0;
+			if (!strcmp(buf, "#!/bin/sh") && (path_env = getenv("PATH")))
+				sh = find_executable_in_path("sh.exe", NULL, path_env);
+			fclose(fp);
+		}
+	}
+	if (sh)
+		path = sh;
+
+	si.cb = sizeof(STARTUPINFO);
+	if (path_stdout) {
+		SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+		si.hStdOutput = CreateFile(path_stdout, GENERIC_WRITE, 0, &sa,
+		                           CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY |
+		                           FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		si.hStdError  = CreateFile(path_stderr, GENERIC_WRITE, 0, &sa,
+		                           CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY |
+		                           FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+		si.dwFlags    = STARTF_USESTDHANDLES;
+		if (si.hStdOutput == INVALID_HANDLE_VALUE ||
+			si.hStdError  == INVALID_HANDLE_VALUE)
+			return -1;
+	}
+	args = argvtos(sh, argv);
+	ret = CreateProcess(path, args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+	free(args);
+	if (path_stdout) {
+		CloseHandle(si.hStdOutput);
+		CloseHandle(si.hStdError);
+	}
+	if (ret == 0)
+		return -1;
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	GetExitCodeProcess(pi.hProcess, &exitcode);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	if (!doreturn)
+		exit(exitcode);
+	return exitcode;
+}
+
+#else
+
 /*
   execute a compiler backend, capturing all output to the given paths
   the full path to the compiler to run is in argv[0]
@@ -81,6 +215,7 @@ int execute(char **argv,
 
 	return WEXITSTATUS(status);
 }
+#endif
 
 
 /*
@@ -116,6 +251,19 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
 	for (tok=strtok(path, PATH_DELIM); tok; tok = strtok(NULL, PATH_DELIM)) {
+#ifdef _WIN32
+		char namebuf[MAX_PATH];
+		int ret = SearchPath(tok, name, ".exe",
+		                     sizeof(namebuf), namebuf, NULL);
+		if (!ret)
+			ret = SearchPath(tok, name, NULL,
+		                     sizeof(namebuf), namebuf, NULL);
+		(void) exclude_name;
+		if (ret) {
+			free(path);
+			return x_strdup(namebuf);
+		}
+#else
 		struct stat st1, st2;
 		char *fname;
 		x_asprintf(&fname, "%s/%s", tok, name);
@@ -146,6 +294,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 			return fname;
 		}
 		free(fname);
+#endif
 	}
 
 	free(path);

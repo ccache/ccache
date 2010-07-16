@@ -109,6 +109,7 @@ int compare_executable_name(const char *s1, const char *s2);
 size_t common_dir_prefix_length(const char *s1, const char *s2);
 char *get_relative_path(const char *from, const char *to);
 int is_absolute_path(const char *path);
+int is_full_path(const char *path);
 void update_mtime(const char *path);
 void *x_fmmap(const char *fname, off_t *size, const char *errstr);
 int x_munmap(void *addr, size_t length);
@@ -194,6 +195,23 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #undef HAVE_MKSTEMP
 #endif
 
-#define PATH_DELIM ":"
+#ifdef _WIN32
+int win32execute(char *path, char **argv, int doreturn,
+                 const char *path_stdout, const char *path_stderr);
+#    ifndef _WIN32_WINNT
+#    define _WIN32_WINNT 0x0501
+#    endif
+#    include <windows.h>
+#    define mkdir(a,b) mkdir(a)
+#    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
+#    define lstat(a,b) stat(a,b)
+#    define execv(a,b) win32execute(a,b,0,NULL,NULL)
+#    define execute(a,b,c) win32execute(*(a),a,1,b,c)
+#    define PATH_DELIM ";"
+#    define F_RDLCK 0
+#    define F_WRLCK 0
+#else
+#    define PATH_DELIM ":"
+#endif
 
 #endif /* ifndef CCACHE_H */
