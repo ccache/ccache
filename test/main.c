@@ -23,7 +23,7 @@
 #include <stdio.h>
 
 #define SUITE(name) unsigned suite_##name(unsigned);
-#include "suites.h"
+#include "test/suites.h"
 #undef SUITE
 
 const char USAGE_TEXT[] =
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
 	suite_fn suites[] = {
 #define SUITE(name) &suite_##name,
-#include "suites.h"
+#include "test/suites.h"
 #undef SUITE
 		NULL
 	};
