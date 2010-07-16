@@ -64,9 +64,13 @@ cct_run(suite_fn *suites, int verbose_output)
 
 	for (suite = suites; *suite; suite++) {
 		unsigned test_index = 0;
-		do {
+		while (1) {
 			test_index = (*suite)(test_index + 1);
-		} while (test_index != 0);
+			if (test_index == 0) {
+				break;
+			}
+			++failed_suites;
+		}
 		--passed_tests; /* Fix false increase in first TEST expansion. */
 	}
 
