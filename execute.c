@@ -114,7 +114,7 @@ int win32execute(char *path, char **argv, int doreturn,
 	memset(&si, 0x00, sizeof(si));
 
 	ext = get_extension(path);
-	if (ext && !strcasecmp(ext, ".sh") && (path_env = getenv("PATH")))
+	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH")))
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
 	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
 		/* Detect shebang. */
@@ -124,7 +124,7 @@ int win32execute(char *path, char **argv, int doreturn,
 			char buf[10];
 			fgets(buf, sizeof(buf), fp);
 			buf[9] = 0;
-			if (!strcmp(buf, "#!/bin/sh") && (path_env = getenv("PATH")))
+			if (strcmp(buf, "#!/bin/sh") == 0 && (path_env = getenv("PATH")))
 				sh = find_executable_in_path("sh.exe", NULL, path_env);
 			fclose(fp);
 		}

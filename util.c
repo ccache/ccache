@@ -922,16 +922,16 @@ int
 compare_executable_name(const char *s1, const char *s2)
 {
 #ifdef _WIN32
-	int ret = !strcasecmp(s1, s2);
-	if (!ret) {
+	int eq = strcasecmp(s1, s2) == 0;
+	if (!eq) {
 		char *tmp;
 		x_asprintf(&tmp, "%s.exe", s2);
-		ret = !strcasecmp(s1, tmp);
+		eq = strcasecmp(s1, tmp) == 0;
 		free(tmp);
 	}
-	return ret;
+	return eq;
 #else
-	return !strcmp(s1, s2);
+	return strcmp(s1, s2) == 0;
 #endif
 }
 
