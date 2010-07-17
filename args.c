@@ -64,6 +64,7 @@ void
 args_free(struct args *args)
 {
 	int i;
+	if (!args) return;
 	for (i = 0; i < args->argc; ++i) {
 		if (args->argv[i]) {
 			free(args->argv[i]);
