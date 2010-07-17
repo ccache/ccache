@@ -237,7 +237,8 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 
 int
 cct_check_args_eq(const char *file, int line, const char *expression,
-                  ARGS *expected, ARGS *actual, int free1, int free2)
+                  struct args *expected, struct args *actual,
+                  int free1, int free2)
 {
 	int result;
 

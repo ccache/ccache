@@ -155,28 +155,32 @@ char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 void print_executed_command(FILE *fp, char **argv);
 
-typedef struct {
+/* ------------------------------------------------------------------------- */
+/* args */
+
+struct args {
 	char **argv;
 	int argc;
-} ARGS;
+};
 
+struct args *args_init(int, char **);
+struct args *args_init_from_string(const char *);
+struct args *args_copy(struct args *args);
+void args_free(struct args *args);
+void args_add(struct args *args, const char *s);
+void args_add_prefix(struct args *args, const char *s);
+void args_pop(struct args *args, int n);
+void args_strip(struct args *args, const char *prefix);
+void args_remove_first(struct args *args);
+char *args_to_string(struct args *args);
+int args_equal(struct args *args1, struct args *args2);
 
-ARGS *args_init(int , char **);
-ARGS *args_init_from_string(const char *);
-ARGS *args_copy(ARGS *args);
-void args_free(ARGS *args);
-void args_add(ARGS *args, const char *s);
-void args_add_prefix(ARGS *args, const char *s);
-void args_pop(ARGS *args, int n);
-void args_strip(ARGS *args, const char *prefix);
-void args_remove_first(ARGS *args);
-char *args_to_string(ARGS *args);
-int args_equal(ARGS *args1, ARGS *args2);
+/* ------------------------------------------------------------------------- */
 
 int
-cc_process_args(ARGS *orig_args,
-                ARGS **preprocessor_args,
-                ARGS **compiler_args);
+cc_process_args(struct args *orig_args,
+                struct args **preprocessor_args,
+                struct args **compiler_args);
 
 #if HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t

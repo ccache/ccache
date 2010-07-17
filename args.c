@@ -21,11 +21,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-ARGS *args_init(int init_argc, char **init_args)
+struct args *
+args_init(int init_argc, char **init_args)
 {
-	ARGS *args;
+	struct args *args;
 	int i;
-	args = (ARGS *)x_malloc(sizeof(ARGS));
+	args = (struct args *)x_malloc(sizeof(struct args));
 	args->argc = 0;
 	args->argv = (char **)x_malloc(sizeof(char *));
 	args->argv[0] = NULL;
@@ -35,9 +36,10 @@ ARGS *args_init(int init_argc, char **init_args)
 	return args;
 }
 
-ARGS *args_init_from_string(const char *command)
+struct args *
+args_init_from_string(const char *command)
 {
-	ARGS *args;
+	struct args *args;
 	char *p = x_strdup(command);
 	char *q = p;
 	char *word;
@@ -52,12 +54,14 @@ ARGS *args_init_from_string(const char *command)
 	return args;
 }
 
-ARGS *args_copy(ARGS *args)
+struct args *
+args_copy(struct args *args)
 {
 	return args_init(args->argc, args->argv);
 }
 
-void args_free(ARGS *args)
+void
+args_free(struct args *args)
 {
 	int i;
 	for (i = 0; i < args->argc; ++i) {
@@ -69,7 +73,8 @@ void args_free(ARGS *args)
 	free(args);
 }
 
-void args_add(ARGS *args, const char *s)
+void
+args_add(struct args *args, const char *s)
 {
 	args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char *));
 	args->argv[args->argc] = x_strdup(s);
@@ -78,7 +83,8 @@ void args_add(ARGS *args, const char *s)
 }
 
 /* pop the last element off the args list */
-void args_pop(ARGS *args, int n)
+void
+args_pop(struct args *args, int n)
 {
 	while (n--) {
 		args->argc--;
@@ -88,7 +94,8 @@ void args_pop(ARGS *args, int n)
 }
 
 /* remove the first element of the argument list */
-void args_remove_first(ARGS *args)
+void
+args_remove_first(struct args *args)
 {
 	free(args->argv[0]);
 	memmove(&args->argv[0],
@@ -98,7 +105,8 @@ void args_remove_first(ARGS *args)
 }
 
 /* add an argument into the front of the argument list */
-void args_add_prefix(ARGS *args, const char *s)
+void
+args_add_prefix(struct args *args, const char *s)
 {
 	args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char *));
 	memmove(&args->argv[1], &args->argv[0],
@@ -108,7 +116,8 @@ void args_add_prefix(ARGS *args, const char *s)
 }
 
 /* strip any arguments beginning with the specified prefix */
-void args_strip(ARGS *args, const char *prefix)
+void
+args_strip(struct args *args, const char *prefix)
 {
 	int i;
 	for (i=0; i<args->argc; ) {
@@ -128,7 +137,8 @@ void args_strip(ARGS *args, const char *prefix)
  * Format args to a space-separated string. Does not quote spaces. Caller
  * frees.
  */
-char *args_to_string(ARGS *args)
+char *
+args_to_string(struct args *args)
 {
 	char *result;
 	char **p;
@@ -147,7 +157,8 @@ char *args_to_string(ARGS *args)
 }
 
 /* Returns 1 if args1 equals args2, else 0. */
-int args_equal(ARGS *args1, ARGS *args2)
+int
+args_equal(struct args *args1, struct args *args2)
 {
 	int i;
 	if (args1->argc != args2->argc) {

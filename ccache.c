@@ -90,7 +90,7 @@ char *cache_logfile = NULL;
 static char *base_dir;
 
 /* the original argument list */
-static ARGS *orig_args;
+static struct args *orig_args;
 
 /* the source file */
 static char *input_file;
@@ -581,7 +581,7 @@ language_is_preprocessed(const char *language)
 }
 
 /* run the real compiler and put the result in cache */
-static void to_cache(ARGS *args)
+static void to_cache(struct args *args)
 {
 	char *tmp_stdout, *tmp_stderr, *tmp_obj;
 	struct stat st;
@@ -757,7 +757,7 @@ static void to_cache(ARGS *args)
  * Returns the hash as a heap-allocated hex string.
  */
 static struct file_hash *
-get_object_name_from_cpp(ARGS *args, struct mdfour *hash)
+get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 {
 	char *input_base;
 	char *tmp;
@@ -881,7 +881,7 @@ static void update_cached_result_globals(struct file_hash *hash)
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
  */
-static void calculate_common_hash(ARGS *args, struct mdfour *hash)
+static void calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
 	const char *compilercheck;
@@ -960,8 +960,8 @@ static void calculate_common_hash(ARGS *args, struct mdfour *hash)
  * modes and calculate the object hash. Returns the object hash on success,
  * otherwise NULL. Caller frees.
  */
-static struct file_hash *calculate_object_hash(
-	ARGS *args, struct mdfour *hash, int direct_mode)
+static struct file_hash *
+calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 {
 	int i;
 	char *manifest_name;
@@ -1298,7 +1298,8 @@ static void find_compiler(int argc, char **argv)
  * -E; this is added later. Returns 0 on failure, otherwise 1.
  */
 int
-cc_process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
+cc_process_args(struct args *orig_args, struct args **preprocessor_args,
+                struct args **compiler_args)
 {
 	int i;
 	int found_c_opt = 0;
@@ -1313,7 +1314,7 @@ cc_process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 	int dependency_filename_specified = 0;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
-	ARGS *stripped_args;
+	struct args *stripped_args;
 	int argc = orig_args->argc;
 	char **argv = orig_args->argv;
 
@@ -1815,10 +1816,10 @@ static void ccache(int argc, char *argv[])
 	struct mdfour cpp_hash;
 
 	/* Arguments (except -E) to send to the preprocessor. */
-	ARGS *preprocessor_args;
+	struct args *preprocessor_args;
 
 	/* Arguments to send to the real compiler. */
-	ARGS *compiler_args;
+	struct args *compiler_args;
 
 	find_compiler(argc, argv);
 
