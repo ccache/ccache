@@ -51,7 +51,7 @@ all: ccache$(EXEEXT)
 docs: $(generated_docs)
 
 ccache$(EXEEXT): $(ccache_objs) @extra_deps@
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(ccache_objs) $(libs)
 
 .PHONY: install
 install: all
@@ -65,7 +65,7 @@ clean:
 	rm -f $(files_to_clean)
 
 zlib/libz.a: $(zlib_objs)
-	$(AR) cr $@ $^
+	$(AR) cr $@ $(zlib_objs)
 	$(RANLIB) $@
 
 .PHONY: perf
@@ -78,7 +78,7 @@ test: ccache$(EXEEXT) test/main$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
 
 test/main$(EXEEXT): $(base_objs) $(test_objs) @extra_deps@
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(libs)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(base_objs) $(test_objs) $(libs)
 
 test/main.o: test/suites.h
 
