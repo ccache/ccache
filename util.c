@@ -471,6 +471,23 @@ error:
 	return 1;
 }
 
+/* Construct a string according to a format. Caller frees. */
+char*
+format(const char *format, ...)
+{
+	va_list ap;
+	char *ptr = NULL;
+
+	va_start(ap, format);
+	if (vasprintf(&ptr, format, ap) == -1) {
+		fatal("Out of memory in format");
+	}
+	va_end(ap);
+
+	if (!*ptr) fatal("Internal error in format");
+	return ptr;
+}
+
 /*
   this is like asprintf() but dies if the malloc fails
   note that we use vsnprintf in a rather poor way to make this more portable

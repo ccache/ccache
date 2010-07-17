@@ -86,6 +86,7 @@ const char *tmp_string(void);
 char *format_hash_as_string(const unsigned char *hash, unsigned size);
 int create_hash_dir(char **dir, const char *hash, const char *cache_dir);
 int create_cachedirtag(const char *dir);
+char *format(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void x_asprintf(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);
 char *x_strndup(const char *s, size_t n);
