@@ -1314,9 +1314,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	int dependency_filename_specified = 0;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
-	struct args *stripped_args;
+	struct args *stripped_args = NULL;
 	int argc = orig_args->argc;
 	char **argv = orig_args->argv;
+	int result = 1;
 
 	stripped_args = args_init(0, NULL);
 
@@ -1327,7 +1328,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (strcmp(argv[i], "-E") == 0) {
 			cc_log("Compiler option -E is unsupported");
 			stats_update(STATS_UNSUPPORTED);
-			return 0;
+			result = 0;
+			goto out;
 		}
 
 		/* these are too hard */
@@ -1344,7 +1346,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		    strcmp(argv[i], "-save-temps") == 0) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
-			return 0;
+			result = 0;
+			goto out;
 		}
 
 		/* These are too hard in direct mode. */
@@ -1362,7 +1365,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				cc_log("More than one -arch compiler option"
 				       " is unsupported");
 				stats_update(STATS_UNSUPPORTED);
-				return 0;
+				result = 0;
+				goto out;
 			} else {
 				found_arch_opt = 1;
 			}
@@ -1390,7 +1394,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				return 0;
+				result = 0;
+				goto out;
 			}
 			if (!input_file) {
 				explicit_language = argv[i+1];
@@ -1410,7 +1415,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				return 0;
+				result = 0;
+				goto out;
 			}
 			output_obj = argv[i+1];
 			i++;
@@ -1450,7 +1456,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			i++;
 			if (i == argc) {
 				cc_log("--ccache-skip lacks an argument");
-				return 0;
+				result = 0;
+				goto out;
 			}
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -1524,7 +1531,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
-						return 0;
+						result = 0;
+						goto out;
 					}
 
 					args_add(stripped_args, argv[i]);
@@ -1591,7 +1599,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 						cc_log("Missing argument to %s",
 						       argv[i]);
 						stats_update(STATS_ARGS);
-						return 0;
+						result = 0;
+						goto out;
 					}
 
 					args_add(stripped_args, argv[i]);
@@ -1635,7 +1644,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				cc_log("Unsupported source extension: %s", argv[i]);
 				stats_update(STATS_SOURCELANG);
 			}
-			return 0;
+			result = 0;
+			goto out;
 		}
 
 		/* Rewrite to relative to increase hit rate. */
@@ -1645,7 +1655,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (!input_file) {
 		cc_log("No input file found");
 		stats_update(STATS_NOINPUT);
-		return 0;
+		result = 0;
+		goto out;
 	}
 
 	if (!found_c_opt) {
@@ -1657,7 +1668,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		} else {
 			stats_update(STATS_LINK);
 		}
-		return 0;
+		result = 0;
+		goto out;
 	}
 
 	if (explicit_language && strcmp(explicit_language, "none") == 0) {
@@ -1668,7 +1680,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (!language_is_supported(explicit_language)) {
 			cc_log("Unsupported language: %s", explicit_language);
 			stats_update(STATS_SOURCELANG);
-			return 0;
+			result = 0;
+			goto out;
 		}
 		actual_language = explicit_language;
 	} else {
@@ -1677,7 +1690,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (!actual_language) {
 		cc_log("Unsupported source extension: %s", input_file);
 		stats_update(STATS_SOURCELANG);
-		return 0;
+		result = 0;
+		goto out;
 	}
 	direct_i_file = language_is_preprocessed(actual_language);
 
@@ -1691,7 +1705,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (output_obj && strcmp(output_obj, "-") == 0) {
 		stats_update(STATS_OUTSTDOUT);
 		cc_log("Output file is -");
-		return 0;
+		result = 0;
+		goto out;
 	}
 
 	if (!output_obj) {
@@ -1704,7 +1719,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (!p || !p[1]) {
 			cc_log("Badly formed object filename");
 			stats_update(STATS_ARGS);
-			return 0;
+			result = 0;
+			goto out;
 		}
 		p[1] = found_S_opt ? 's' : 'o';
 		p[2] = 0;
@@ -1738,7 +1754,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
 		stats_update(STATS_DEVICE);
-		return 0;
+		result = 0;
+		goto out;
 	}
 
 	/*
@@ -1770,9 +1787,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	} else {
 		*compiler_args = args_copy(*preprocessor_args);
 	}
-	args_free(stripped_args);
 
-	return 1;
+out:
+	args_free(stripped_args);
+	return result;
 }
 
 static unsigned parse_sloppiness(char *p)
