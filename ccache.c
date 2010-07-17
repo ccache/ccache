@@ -1344,7 +1344,6 @@ cc_process_args(ARGS *orig_args, ARGS **preprocessor_args, ARGS **compiler_args)
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			return 0;
-			continue;
 		}
 
 		/* These are too hard in direct mode. */
