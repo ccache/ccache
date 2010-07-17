@@ -147,7 +147,7 @@ args_to_string(struct args *args)
 	for (p = args->argv; *p; p++) {
 		size += strlen(*p) + 1;
 	}
-	result = x_malloc(size);
+	result = x_malloc(size + 1);
 	pos = 0;
 	for (p = args->argv; *p; p++) {
 		pos += sprintf(&result[pos], "%s ", *p);
