@@ -105,7 +105,7 @@ cct_run(suite_fn *suites, int verbose_output)
 void cct_suite_begin(const char *name)
 {
 	if (verbose) {
-		printf("Running suite %s...\n", name);
+		printf("=== SUITE: %s ===\n", name);
 	}
 	current_suite = name;
 	failed_asserts_before_suite = failed_asserts;
@@ -124,7 +124,7 @@ void cct_suite_end()
 void cct_test_begin(const char *name)
 {
 	if (verbose) {
-		printf("Running test %s...\n", name);
+		printf("--- TEST: %s ---\n", name);
 	}
 	current_test = name;
 	failed_asserts_before_test = failed_asserts;
