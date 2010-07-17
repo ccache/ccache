@@ -32,8 +32,7 @@ zlib_sources = \
     zlib/inffast.c zlib/inflate.c zlib/inftrees.c zlib/trees.c zlib/zutil.c
 zlib_objs = $(zlib_sources:.c=.o)
 
-test_suites = \
-    $(srcdir)/test/test_util.c
+test_suites = @test_suites@
 test_sources = test/main.c test/framework.c $(test_suites)
 test_objs = $(test_sources:.c=.o)
 

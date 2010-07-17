@@ -9,6 +9,7 @@ AC_CONFIG_HEADER(config.h)
 
 AC_SUBST(extra_deps)
 AC_SUBST(include_dev_mk)
+AC_SUBST(test_suites)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -289,6 +290,12 @@ elif test ! -f $srcdir/version.c; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
 fi
+
+dnl Find test suite files.
+test_suites=""
+for x in $srcdir/test/test_*.c; do
+    test_suites="$test_suites $x"
+done
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
