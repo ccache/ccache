@@ -82,6 +82,16 @@ args_add(struct args *args, const char *s)
 	args->argv[args->argc] = NULL;
 }
 
+/* Add all arguments in to_append to args. */
+void
+args_extend(struct args *args, struct args *to_append)
+{
+	int i;
+	for (i = 0; i < to_append->argc; i++) {
+		args_add(args, to_append->argv[i]);
+	}
+}
+
 /* pop the last element off the args list */
 void
 args_pop(struct args *args, int n)
