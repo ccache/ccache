@@ -219,7 +219,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 	}
 
 	/* open destination file */
-	x_asprintf(&tmp_name, "%s.%s.XXXXXX", dest, tmp_string());
+	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
 	fd_out = mkstemp(tmp_name);
 	if (fd_out == -1) {
 		cc_log("mkstemp error: %s", strerror(errno));
@@ -417,7 +417,7 @@ const char *tmp_string(void)
 	static char *ret;
 
 	if (!ret) {
-		x_asprintf(&ret, "%s.%u", get_hostname(), (unsigned)getpid());
+		ret = format("%s.%u", get_hostname(), (unsigned)getpid());
 	}
 
 	return ret;
@@ -446,10 +446,9 @@ char const CACHEDIR_TAG[] =
 
 int create_cachedirtag(const char *dir)
 {
-	char *filename;
 	struct stat st;
 	FILE *f;
-	x_asprintf(&filename, "%s/CACHEDIR.TAG", dir);
+	char *filename = format("%s/CACHEDIR.TAG", dir);
 	if (stat(filename, &st) == 0) {
 		if (S_ISREG(st.st_mode)) {
 			goto success;
@@ -617,7 +616,7 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		if (strlen(de->d_name) == 0) continue;
 
-		x_asprintf(&fname, "%s/%s", dir, de->d_name);
+		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
 			if (errno != ENOENT) {
 				perror(fname);
@@ -771,11 +770,11 @@ char *format_size(size_t v)
 {
 	char *s;
 	if (v >= 1024*1024) {
-		x_asprintf(&s, "%.1f Gbytes", v/((double)(1024*1024)));
+		s = format("%.1f Gbytes", v/((double)(1024*1024)));
 	} else if (v >= 1024) {
-		x_asprintf(&s, "%.1f Mbytes", v/((double)(1024)));
+		s = format("%.1f Mbytes", v/((double)(1024)));
 	} else {
-		x_asprintf(&s, "%.0f Kbytes", (double)v);
+		s = format("%.0f Kbytes", (double)v);
 	}
 	return s;
 }
@@ -941,8 +940,7 @@ compare_executable_name(const char *s1, const char *s2)
 #ifdef _WIN32
 	int eq = strcasecmp(s1, s2) == 0;
 	if (!eq) {
-		char *tmp;
-		x_asprintf(&tmp, "%s.exe", s2);
+		char *tmp = format("%s.exe", s2);
 		eq = strcasecmp(s1, tmp) == 0;
 		free(tmp);
 	}

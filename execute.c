@@ -265,8 +265,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 		}
 #else
 		struct stat st1, st2;
-		char *fname;
-		x_asprintf(&fname, "%s/%s", tok, name);
+		char *fname = format("%s/%s", tok, name);
 		/* look for a normal executable file */
 		if (access(fname, X_OK) == 0 &&
 		    lstat(fname, &st1) == 0 &&

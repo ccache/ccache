@@ -666,7 +666,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		mf = create_empty_manifest();
 	}
 
-	x_asprintf(&tmp_file, "%s.tmp.%s", manifest_path, tmp_string());
+	tmp_file = format("%s.tmp.%s", manifest_path, tmp_string());
 	fd2 = safe_open(tmp_file);
 	if (fd2 == -1) {
 		cc_log("Failed to open %s", tmp_file);

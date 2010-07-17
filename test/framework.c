@@ -199,9 +199,8 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 		cct_check_passed();
 		return 1;
 	} else {
-		char *exp_str, *act_str;
-		x_asprintf(&exp_str, "%i", expected);
-		x_asprintf(&act_str, "%i", actual);
+		char *exp_str = format("%i", expected);
+		char *act_str = format("%i", actual);
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
@@ -217,9 +216,8 @@ cct_check_uns_eq(const char *file, int line, const char *expression,
 		cct_check_passed();
 		return 1;
 	} else {
-		char *exp_str, *act_str;
-		x_asprintf(&exp_str, "%i", expected);
-		x_asprintf(&act_str, "%i", actual);
+		char *exp_str = format("%i", expected);
+		char *act_str = format("%i", actual);
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
@@ -237,17 +235,8 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 		cct_check_passed();
 		result = 1;
 	} else {
-		char *exp_str, *act_str;
-		if (expected) {
-			x_asprintf(&exp_str, "\"%s\"", expected);
-		} else {
-			exp_str = x_strdup("(null)");
-		}
-		if (actual) {
-			x_asprintf(&act_str, "\"%s\"", actual);
-		} else {
-			act_str = x_strdup("(null)");
-		}
+		char *exp_str = expected ? format("\"%s\"", expected) : x_strdup("(null)");
+		char *act_str = actual ? format("\"%s\"", actual) : x_strdup("(null)");
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
@@ -274,9 +263,8 @@ cct_check_args_eq(const char *file, int line, const char *expression,
 		cct_check_passed();
 		result = 1;
 	} else {
-		char *exp_str, *act_str;
-		exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
-		act_str = actual ? args_to_string(actual) : x_strdup("(null)");
+		char *exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
+		char *act_str = actual ? args_to_string(actual) : x_strdup("(null)");
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
@@ -304,8 +292,7 @@ void
 cct_wipe(const char *path)
 {
 	/* TODO: rewrite using traverse(). */
-	char *command;
-	x_asprintf(&command, "rm -rf %s", path);
+	char *command = format("rm -rf %s", path);
 	if (system(command) != 0) {
 		perror(command);
 	}

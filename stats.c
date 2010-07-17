@@ -182,7 +182,7 @@ void stats_flush(void)
 		 * CCACHE_DIR/stats instead of a subdirectory stats file.
 		 */
 		if (!cache_dir) return;
-		x_asprintf(&stats_file, "%s/stats", cache_dir);
+		stats_file = format("%s/stats", cache_dir);
 	}
 
 	fd = safe_open(stats_file);
@@ -255,9 +255,9 @@ void stats_summary(void)
 		char *fname;
 
 		if (dir == -1) {
-			x_asprintf(&fname, "%s/stats", cache_dir);
+			fname = format("%s/stats", cache_dir);
 		} else {
-			x_asprintf(&fname, "%s/%1x/stats", cache_dir, dir);
+			fname = format("%s/%1x/stats", cache_dir, dir);
 		}
 
 		stats_read(fname, counters);
@@ -299,12 +299,12 @@ void stats_zero(void)
 	char *fname;
 	unsigned counters[STATS_END];
 
-	x_asprintf(&fname, "%s/stats", cache_dir);
+	fname = format("%s/stats", cache_dir);
 	unlink(fname);
 	free(fname);
 
 	for (dir=0;dir<=0xF;dir++) {
-		x_asprintf(&fname, "%s/%1x/stats", cache_dir, dir);
+		fname = format("%s/%1x/stats", cache_dir, dir);
 		fd = safe_open(fname);
 		if (fd == -1) {
 			free(fname);
@@ -347,11 +347,11 @@ int stats_set_limits(long maxfiles, long maxsize)
 		char *fname, *cdir;
 		int fd;
 
-		x_asprintf(&cdir, "%s/%1x", cache_dir, dir);
+		cdir = format("%s/%1x", cache_dir, dir);
 		if (create_dir(cdir) != 0) {
 			return 1;
 		}
-		x_asprintf(&fname, "%s/stats", cdir);
+		fname = format("%s/stats", cdir);
 		free(cdir);
 
 		memset(counters, 0, sizeof(counters));
@@ -382,7 +382,7 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 	char *stats_file;
 
 	create_dir(dir);
-	x_asprintf(&stats_file, "%s/stats", dir);
+	stats_file = format("%s/stats", dir);
 
 	memset(counters, 0, sizeof(counters));
 

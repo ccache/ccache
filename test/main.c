@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	}
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
-	x_asprintf(&testdir, "testdir.%d", (int)getpid());
+	testdir = format("testdir.%d", (int)getpid());
 	cct_create_fresh_dir(testdir);
 	cct_chdir(testdir);
 	result = cct_run(suites, verbose);

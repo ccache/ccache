@@ -306,8 +306,7 @@ static char *get_path_in_cache(const char *name, const char *suffix)
 
 	path = x_strdup(cache_dir);
 	for (i = 0; i < nlevels; ++i) {
-		char *p;
-		x_asprintf(&p, "%s/%c", path, name[i]);
+		char *p = format("%s/%c", path, name[i]);
 		free(path);
 		path = p;
 		if (create_dir(path) != 0) {
@@ -315,7 +314,7 @@ static char *get_path_in_cache(const char *name, const char *suffix)
 			failed();
 		}
 	}
-	x_asprintf(&result, "%s/%s%s", path, name + nlevels, suffix);
+	result = format("%s/%s%s", path, name + nlevels, suffix);
 	free(path);
 	return result;
 }
@@ -589,9 +588,9 @@ static void to_cache(struct args *args)
 	size_t added_bytes = 0;
 	unsigned added_files = 0;
 
-	x_asprintf(&tmp_stdout, "%s.tmp.stdout.%s", cached_obj, tmp_string());
-	x_asprintf(&tmp_stderr, "%s.tmp.stderr.%s", cached_obj, tmp_string());
-	x_asprintf(&tmp_obj, "%s.tmp.%s", cached_obj, tmp_string());
+	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
+	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
+	tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
 
 	args_add(args, "-o");
 	args_add(args, tmp_obj);
@@ -634,7 +633,7 @@ static void to_cache(struct args *args)
 		int fd_result;
 		char *tmp_stderr2;
 
-		x_asprintf(&tmp_stderr2, "%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		tmp_stderr2 = format("%s.tmp.stderr2.%s", cached_obj, tmp_string());
 		unlink(tmp_stderr2);
 		if (rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s", tmp_stderr, tmp_stderr2);
@@ -779,10 +778,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	/* now the run */
-	x_asprintf(&path_stdout, "%s/%s.tmp.%s.%s", temp_dir,
-		   input_base, tmp_string(), i_extension);
-	x_asprintf(&path_stderr, "%s/tmp.cpp_stderr.%s", temp_dir,
-		   tmp_string());
+	path_stdout = format("%s/%s.tmp.%s.%s",
+	                     temp_dir, input_base, tmp_string(), i_extension);
+	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
 
 	time_of_compilation = time(NULL);
 
@@ -873,7 +871,7 @@ static void update_cached_result_globals(struct file_hash *hash)
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
-	x_asprintf(&stats_file, "%s/%c/stats", cache_dir, object_name[0]);
+	stats_file = format("%s/%c/stats", cache_dir, object_name[0]);
 	free(object_name);
 }
 
@@ -1567,9 +1565,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			char *option;
 			for (j = 0; opts[j]; j++) {
 				if (strncmp(argv[i], opts[j], strlen(opts[j])) == 0) {
-					relpath = make_relative_path(
-						x_strdup(argv[i] + strlen(opts[j])));
-					x_asprintf(&option, "%s%s", opts[j], relpath);
+					relpath = make_relative_path(x_strdup(argv[i] + strlen(opts[j])));
+					option = format("%s%s", opts[j], relpath);
 					args_add(stripped_args, option);
 					free(relpath);
 					free(option);
@@ -1772,12 +1769,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			char *base_name;
 
 			base_name = remove_extension(output_obj);
-			x_asprintf(&default_depfile_name, "%s.d", base_name);
+			default_depfile_name = format("%s.d", base_name);
 			free(base_name);
 			args_add(dep_args, "-MF");
 			args_add(dep_args, default_depfile_name);
-			output_dep = make_relative_path(
-				x_strdup(default_depfile_name));
+			output_dep = make_relative_path(x_strdup(default_depfile_name));
 		}
 
 		if (!dependency_target_specified) {
@@ -2121,7 +2117,7 @@ static void setup_uncached_err(void)
 	}
 
 	/* leak a pointer to the environment */
-	x_asprintf(&buf, "UNCACHED_ERR_FD=%d", uncached_fd);
+	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
 
 	if (putenv(buf) == -1) {
 		cc_log("putenv failed");
@@ -2158,7 +2154,7 @@ int ccache_main(int argc, char *argv[])
 	if (!cache_dir) {
 		const char *home_directory = get_home_directory();
 		if (home_directory) {
-			x_asprintf(&cache_dir, "%s/.ccache", home_directory);
+			cache_dir = format("%s/.ccache", home_directory);
 		}
 	}
 
@@ -2181,7 +2177,7 @@ int ccache_main(int argc, char *argv[])
 
 	temp_dir = getenv("CCACHE_TEMPDIR");
 	if (!temp_dir) {
-		x_asprintf(&temp_dir, "%s/tmp", cache_dir);
+		temp_dir = format("%s/tmp", cache_dir);
 	}
 
 	base_dir = getenv("CCACHE_BASEDIR");

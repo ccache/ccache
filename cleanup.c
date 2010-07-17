@@ -112,7 +112,7 @@ static void delete_sibling_file(const char *base, const char *extension)
 	struct stat st;
 	char *path;
 
-	x_asprintf(&path, "%s%s", base, extension);
+	path = format("%s%s", base, extension);
 	if (lstat(path, &st) == 0) {
 		delete_file(path, file_size(&st) / 1024);
 	} else if (errno != ENOENT) {
@@ -220,8 +220,8 @@ void cleanup_all(const char *dir)
 	int i;
 
 	for (i = 0; i <= 0xF; i++) {
-		x_asprintf(&dname, "%s/%1x", dir, i);
-		x_asprintf(&sfile, "%s/%1x/stats", dir, i);
+		dname = format("%s/%1x", dir, i);
+		sfile = format("%s/%1x/stats", dir, i);
 
 		memset(counters, 0, sizeof(counters));
 		stats_read(sfile, counters);
@@ -258,7 +258,7 @@ void wipe_all(const char *dir)
 	int i;
 
 	for (i = 0; i <= 0xF; i++) {
-		x_asprintf(&dname, "%s/%1x", dir, i);
+		dname = format("%s/%1x", dir, i);
 		traverse(dir, wipe_fn);
 		free(dname);
 	}
