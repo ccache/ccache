@@ -488,24 +488,6 @@ format(const char *format, ...)
 }
 
 /*
-  this is like asprintf() but dies if the malloc fails
-  note that we use vsnprintf in a rather poor way to make this more portable
-*/
-void x_asprintf(char **ptr, const char *format, ...)
-{
-	va_list ap;
-
-	*ptr = NULL;
-	va_start(ap, format);
-	if (vasprintf(ptr, format, ap) == -1) {
-		fatal("Out of memory in x_asprintf");
-	}
-	va_end(ap);
-
-	if (!*ptr) fatal("Out of memory in x_asprintf");
-}
-
-/*
   this is like strdup() but dies if the malloc fails
 */
 char *x_strdup(const char *s)
