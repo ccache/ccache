@@ -302,3 +302,14 @@ void cct_create_fresh_dir(const char *path)
 		abort();
 	}
 }
+
+void cct_create_file(const char *path, const char *content)
+{
+	FILE *f = fopen(path, "w");
+	if (!f || fputs(content, f) < 0) {
+		fprintf(stderr, "cct_create_file: %s: %s", path, strerror(errno));
+	}
+	if (f) {
+		fclose(f);
+	}
+}

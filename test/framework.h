@@ -143,5 +143,6 @@ int cct_check_args_eq(const char *file, int line, const char *expression,
 void cct_chdir(const char *path);
 void cct_wipe(const char *path);
 void cct_create_fresh_dir(const char *path);
+void cct_create_file(const char *path, const char *content);
 
 #endif
