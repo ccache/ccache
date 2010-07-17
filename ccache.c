@@ -1314,12 +1314,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	int dependency_filename_specified = 0;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	int dependency_target_specified = 0;
-	struct args *stripped_args = NULL;
+	struct args *stripped_args = NULL, *dep_args = NULL;
 	int argc = orig_args->argc;
 	char **argv = orig_args->argv;
 	int result = 1;
 
 	stripped_args = args_init(0, NULL);
+	dep_args = args_init(0, NULL);
 
 	args_add(stripped_args, argv[0]);
 
@@ -1466,44 +1467,54 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		/* These options require special handling, because they
 		   behave differently with gcc -E, when the output
 		   file is not specified. */
-		if (strcmp(argv[i], "-MD") == 0
-		    || strcmp(argv[i], "-MMD") == 0) {
+		if (strcmp(argv[i], "-MD") == 0 || strcmp(argv[i], "-MMD") == 0) {
 			generating_dependencies = 1;
+			args_add(dep_args, argv[i]);
+			continue;
 		}
 		if (i < argc - 1) {
 			if (strcmp(argv[i], "-MF") == 0) {
 				dependency_filename_specified = 1;
-				output_dep = make_relative_path(
-					x_strdup(argv[i + 1]));
-			} else if (strcmp(argv[i], "-MQ") == 0
-				   || strcmp(argv[i], "-MT") == 0) {
+				output_dep = make_relative_path(x_strdup(argv[i + 1]));
+				args_add(dep_args, argv[i]);
+				args_add(dep_args, argv[i + 1]);
+				i++;
+				continue;
+			} else if (strcmp(argv[i], "-MQ") == 0 || strcmp(argv[i], "-MT") == 0) {
 				dependency_target_specified = 1;
+				args_add(dep_args, argv[i]);
+				args_add(dep_args, argv[i + 1]);
+				i++;
+				continue;
 			}
 		}
-
 		if (strncmp(argv[i], "-Wp,", 4) == 0) {
-			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0
-			    && !strchr(argv[i] + 8, ',')) {
+			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0 && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				output_dep = make_relative_path(
-					x_strdup(argv[i] + 8));
+				output_dep = make_relative_path(x_strdup(argv[i] + 8));
+				args_add(dep_args, argv[i]);
+				continue;
 			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0
-			    && !strchr(argv[i] + 9, ',')) {
+			           && !strchr(argv[i] + 9, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
-				output_dep = make_relative_path(
-					x_strdup(argv[i] + 9));
+				output_dep = make_relative_path(x_strdup(argv[i] + 9));
+				args_add(dep_args, argv[i]);
+				continue;
 			} else if (enable_direct) {
 				/*
 				 * -Wp, can be used to pass too hard options to
 				 * the preprocessor. Hence, disable direct
 				 * mode.
 				 */
-				cc_log("Unsupported compiler option for direct mode: %s",
-				       argv[i]);
+				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
 				enable_direct = 0;
 			}
+		}
+		if (strcmp(argv[i], "-MP") == 0) {
+			args_add(dep_args, argv[i]);
+			continue;
 		}
 
 		/* Input charset needs to be handled specially. */
@@ -1726,28 +1737,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		p[2] = 0;
 	}
 
-	/* If dependencies are generated, configure the preprocessor */
-
-	if (generating_dependencies) {
-		if (!dependency_filename_specified) {
-			char *default_depfile_name;
-			char *base_name;
-
-			base_name = remove_extension(output_obj);
-			x_asprintf(&default_depfile_name, "%s.d", base_name);
-			free(base_name);
-			args_add(stripped_args, "-MF");
-			args_add(stripped_args, default_depfile_name);
-			output_dep = make_relative_path(
-				x_strdup(default_depfile_name));
-		}
-
-		if (!dependency_target_specified) {
-			args_add(stripped_args, "-MT");
-			args_add(stripped_args, output_obj);
-		}
-	}
-
 	/* cope with -o /dev/null */
 	if (strcmp(output_obj,"/dev/null") != 0
 	    && stat(output_obj, &st) == 0
@@ -1773,6 +1762,30 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		args_add(*preprocessor_args, "-x");
 		args_add(*preprocessor_args, explicit_language);
 	}
+
+	/*
+	 * Add flags for dependency generation only to the preprocessor command line.
+	 */
+	if (generating_dependencies) {
+		if (!dependency_filename_specified) {
+			char *default_depfile_name;
+			char *base_name;
+
+			base_name = remove_extension(output_obj);
+			x_asprintf(&default_depfile_name, "%s.d", base_name);
+			free(base_name);
+			args_add(dep_args, "-MF");
+			args_add(dep_args, default_depfile_name);
+			output_dep = make_relative_path(
+				x_strdup(default_depfile_name));
+		}
+
+		if (!dependency_target_specified) {
+			args_add(dep_args, "-MT");
+			args_add(dep_args, output_obj);
+		}
+	}
+
 	if (compile_preprocessed_source_code) {
 		*compiler_args = args_copy(stripped_args);
 		if (explicit_language) {
@@ -1788,8 +1801,16 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		*compiler_args = args_copy(*preprocessor_args);
 	}
 
+	/*
+	 * Only pass dependency arguments to the preprocesor since Intel's C++
+	 * compiler doesn't produce a correct .d file when compiling preprocessed
+	 * source.
+	 */
+	args_extend(*preprocessor_args, dep_args);
+
 out:
 	args_free(stripped_args);
+	args_free(dep_args);
 	return result;
 }
 

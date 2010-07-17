@@ -36,4 +36,23 @@ TEST(dash_E_should_be_unsupported)
 	args_free(orig);
 }
 
+TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
+{
+#define CMD \
+	"cc -c -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2" \
+	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	struct args *orig = args_init_from_string(CMD " foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string(CMD);
+#undef CMD
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	cct_create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST_SUITE_END
