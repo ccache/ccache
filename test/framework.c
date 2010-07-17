@@ -18,6 +18,7 @@
 
 #include "ccache.h"
 #include "framework.h"
+#include <errno.h>
 #include <stdio.h>
 #if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
@@ -34,6 +35,8 @@ static unsigned failed_asserts_before_suite;
 static unsigned failed_asserts_before_test;
 static const char *current_suite;
 static const char *current_test;
+static char *dir_before_suite;
+static char *dir_before_test;
 static int verbose;
 
 static const char COLOR_END[] = "\x1b[m";
@@ -55,7 +58,7 @@ is_tty(int fd)
 }
 
 static const char *
-numerus(unsigned n)
+plural_s(unsigned n)
 {
 	return n == 1 ? "" : "s";
 }
@@ -75,7 +78,6 @@ cct_run(suite_fn *suites, int verbose_output)
 			if (test_index == 0) {
 				break;
 			}
-			++failed_suites;
 		}
 		--passed_tests; /* Fix false increase in first TEST expansion. */
 	}
@@ -83,21 +85,15 @@ cct_run(suite_fn *suites, int verbose_output)
 	if (failed_asserts == 0) {
 		printf("%sPASSED%s: %u assertion%s, %u test%s, %u suite%s\n",
 		       COLOR(tty, GREEN), COLOR(tty, END),
-		       passed_asserts,
-		       numerus(passed_asserts),
-		       passed_tests,
-		       numerus(passed_tests),
-		       passed_suites,
-		       numerus(passed_suites));
+		       passed_asserts, plural_s(passed_asserts),
+		       passed_tests, plural_s(passed_tests),
+		       passed_suites, plural_s(passed_suites));
 	} else {
 		printf("%sFAILED%s: %u assertion%s, %u test%s, %u suite%s\n",
 		       COLOR(tty, RED), COLOR(tty, END),
-		       failed_asserts,
-		       numerus(failed_asserts),
-		       failed_tests,
-		       numerus(failed_tests),
-		       failed_suites,
-		       numerus(failed_suites));
+		       failed_asserts, plural_s(failed_asserts),
+		       failed_tests, plural_s(failed_tests),
+		       failed_suites, plural_s(failed_suites));
 	}
 	return failed_asserts > 0 ? 1 : 0;
 }
@@ -107,6 +103,9 @@ void cct_suite_begin(const char *name)
 	if (verbose) {
 		printf("=== SUITE: %s ===\n", name);
 	}
+	dir_before_suite = gnu_getcwd();
+	create_dir(name);
+	cct_chdir(name);
 	current_suite = name;
 	failed_asserts_before_suite = failed_asserts;
 	failed_asserts_before_test = failed_tests; /* For first cct_test_end(). */
@@ -114,6 +113,9 @@ void cct_suite_begin(const char *name)
 
 void cct_suite_end()
 {
+	cct_chdir(dir_before_suite);
+	free(dir_before_suite);
+	dir_before_suite = NULL;
 	if (failed_asserts > failed_asserts_before_suite) {
 		++failed_suites;
 	} else {
@@ -126,12 +128,20 @@ void cct_test_begin(const char *name)
 	if (verbose) {
 		printf("--- TEST: %s ---\n", name);
 	}
+	dir_before_test = gnu_getcwd();
+	create_dir(name);
+	cct_chdir(name);
 	current_test = name;
 	failed_asserts_before_test = failed_asserts;
 }
 
 void cct_test_end()
 {
+	if (dir_before_test) {
+		cct_chdir(dir_before_test);
+		free(dir_before_test);
+		dir_before_test = NULL;
+	}
 	if (failed_asserts > failed_asserts_before_test) {
 		++failed_tests;
 	} else {
@@ -262,4 +272,33 @@ cct_check_args_eq(const char *file, int line, const char *expression,
 		args_free(actual);
 	}
 	return result;
+}
+
+void cct_chdir(const char *path)
+{
+	if (chdir(path) != 0) {
+		fprintf(stderr, "chdir: %s: %s", path, strerror(errno));
+		abort();
+	}
+}
+
+void
+cct_wipe(const char *path)
+{
+	/* TODO: rewrite using traverse(). */
+	char *command;
+	x_asprintf(&command, "rm -rf %s", path);
+	if (system(command) != 0) {
+		perror(command);
+	}
+	free(command);
+}
+
+void cct_create_fresh_dir(const char *path)
+{
+	cct_wipe(path);
+	if (mkdir(path, 0777) != 0) {
+		fprintf(stderr, "mkdir: %s: %s", path, strerror(errno));;
+		abort();
+	}
 }

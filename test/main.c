@@ -45,6 +45,8 @@ int main(int argc, char **argv)
 	};
 	int verbose = 0;
 	int c;
+	char *testdir;
+	int result;
 
 	while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
 		switch (c) {
@@ -74,5 +76,13 @@ int main(int argc, char **argv)
 	}
 	cache_logfile = getenv("CCACHE_LOGFILE");
 
-	return cct_run(suites, verbose);
+	x_asprintf(&testdir, "testdir.%d", (int)getpid());
+	cct_create_fresh_dir(testdir);
+	cct_chdir(testdir);
+	result = cct_run(suites, verbose);
+	if (result == 0) {
+		cct_wipe(testdir);
+	}
+	free(testdir);
+	return result;
 }

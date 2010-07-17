@@ -56,6 +56,8 @@
 			cct_check_passed(); \
 		} else { \
 			cct_check_failed(__FILE__, __LINE__, #assertion, NULL, NULL); \
+			cct_test_end(); \
+			cct_suite_end(); \
 			return _test_counter; \
 		} \
 	} while (0)
@@ -63,6 +65,8 @@
 #define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2)        \
 	do { \
 		if (!cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
+			cct_test_end(); \
+			cct_suite_end(); \
 			return _test_counter; \
 		} \
 	} while (0)
@@ -72,6 +76,8 @@
 #define CHECK_INT_EQ(expected, actual) \
 	do { \
 		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+			cct_test_end(); \
+			cct_suite_end(); \
 			return _test_counter; \
 		} \
 	} while (0)
@@ -79,6 +85,8 @@
 #define CHECK_UNS_EQ(expected, actual) \
 	do { \
 		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+			cct_test_end(); \
+			cct_suite_end(); \
 			return _test_counter; \
 		} \
 	} while (0)
@@ -132,5 +140,8 @@ int cct_check_str_eq(const char *file, int line, const char *expression,
 int cct_check_args_eq(const char *file, int line, const char *expression,
                       struct args *expected, struct args *actual,
                       int free1, int free2);
+void cct_chdir(const char *path);
+void cct_wipe(const char *path);
+void cct_create_fresh_dir(const char *path);
 
 #endif
