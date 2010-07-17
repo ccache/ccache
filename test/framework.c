@@ -54,6 +54,12 @@ is_tty(int fd)
 #endif
 }
 
+static const char *
+numerus(unsigned n)
+{
+	return n == 1 ? "" : "s";
+}
+
 int
 cct_run(suite_fn *suites, int verbose_output)
 {
@@ -75,13 +81,23 @@ cct_run(suite_fn *suites, int verbose_output)
 	}
 
 	if (failed_asserts == 0) {
-		printf("%sPASSED%s: %u assertions, %u tests, %u suites\n",
+		printf("%sPASSED%s: %u assertion%s, %u test%s, %u suite%s\n",
 		       COLOR(tty, GREEN), COLOR(tty, END),
-		       passed_asserts, passed_tests, passed_suites);
+		       passed_asserts,
+		       numerus(passed_asserts),
+		       passed_tests,
+		       numerus(passed_tests),
+		       passed_suites,
+		       numerus(passed_suites));
 	} else {
-		printf("%sFAILED%s: %u assertions, %u tests, %u suites\n",
+		printf("%sFAILED%s: %u assertion%s, %u test%s, %u suite%s\n",
 		       COLOR(tty, RED), COLOR(tty, END),
-		       failed_asserts, failed_tests, failed_suites);
+		       failed_asserts,
+		       numerus(failed_asserts),
+		       failed_tests,
+		       numerus(failed_tests),
+		       failed_suites,
+		       numerus(failed_suites));
 	}
 	return failed_asserts > 0 ? 1 : 0;
 }
