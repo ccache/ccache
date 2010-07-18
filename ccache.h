@@ -59,6 +59,9 @@ enum stats {
 #define SLOPPY_FILE_MACRO 2
 #define SLOPPY_TIME_MACROS 4
 
+/* ------------------------------------------------------------------------- */
+/* hash.c */
+
 void hash_start(struct mdfour *md);
 void hash_delimiter(struct mdfour *md, const char* type);
 void hash_string(struct mdfour *md, const char *s);
@@ -69,6 +72,9 @@ char *hash_result(struct mdfour *md);
 void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
 void hash_buffer(struct mdfour *md, const void *s, size_t len);
 
+/* ------------------------------------------------------------------------- */
+/* util.c */
+
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_executed_command(char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -77,7 +83,7 @@ void copy_fd(int fd_in, int fd_out);
 int copy_file(const char *src, const char *dest, int compress_dest);
 int move_file(const char *src, const char *dest, int compress_dest);
 int move_uncompressed_file(const char *src, const char *dest,
-			   int compress_dest);
+                           int compress_dest);
 int test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
@@ -114,6 +120,9 @@ void update_mtime(const char *path);
 void *x_fmmap(const char *fname, off_t *size, const char *errstr);
 int x_munmap(void *addr, size_t length);
 
+/* ------------------------------------------------------------------------- */
+/* stats.c */
+
 void stats_update(enum stats stat);
 void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
@@ -126,12 +135,21 @@ size_t value_units(const char *s);
 char *format_size(size_t v);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 
+/* ------------------------------------------------------------------------- */
+/* unify.c */
+
 int unify_hash(struct mdfour *hash, const char *fname);
+
+/* ------------------------------------------------------------------------- */
+/* exitfn.c */
 
 void exitfn_init(void);
 void exitfn_add_nullary(void (*function)(void));
 void exitfn_add(void (*function)(void *), void *context);
 void exitfn_call(void);
+
+/* ------------------------------------------------------------------------- */
+/* snprintf.c */
 
 #ifndef HAVE_VASPRINTF
 int vasprintf(char **, const char *, va_list) ATTR_FORMAT(printf, 2, 0);
@@ -144,19 +162,25 @@ int asprintf(char **ptr, const char *, ...) ATTR_FORMAT(printf, 2, 3);
 int snprintf(char *, size_t, const char *, ...) ATTR_FORMAT(printf, 3, 4);
 #endif
 
+/* ------------------------------------------------------------------------- */
+/* cleanup.c */
+
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
 void cleanup_all(const char *dir);
 void wipe_all(const char *dir);
 
+/* ------------------------------------------------------------------------- */
+/* execute.c */
+
 int execute(char **argv,
-	    const char *path_stdout,
-	    const char *path_stderr);
+            const char *path_stdout,
+            const char *path_stderr);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 void print_executed_command(FILE *fp, char **argv);
 
 /* ------------------------------------------------------------------------- */
-/* args */
+/* args.c */
 
 struct args {
 	char **argv;
@@ -177,11 +201,12 @@ char *args_to_string(struct args *args);
 int args_equal(struct args *args1, struct args *args2);
 
 /* ------------------------------------------------------------------------- */
+/* ccache.c */
 
-int
-cc_process_args(struct args *orig_args,
-                struct args **preprocessor_args,
-                struct args **compiler_args);
+int cc_process_args(struct args *orig_args, struct args **preprocessor_args,
+                    struct args **compiler_args);
+
+/* ------------------------------------------------------------------------- */
 
 #if HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
