@@ -77,7 +77,7 @@ static void log_prefix(void)
 	struct tm *tm;
 
 	gettimeofday(&tv, NULL);
-#ifdef _WIN32
+#ifdef __MINGW64_VERSION_MAJOR
 	tm = _localtime32(&tv.tv_sec);
 #else
 	tm = localtime(&tv.tv_sec);
