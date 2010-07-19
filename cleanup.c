@@ -70,6 +70,11 @@ static void traverse_fn(const char *fname, struct stat *st)
 		goto out;
 	}
 
+	if (strncmp(p, ".nfs", 4) == 0) {
+		/* Ignore temporary NFS files that may be left for open but deleted files. */
+		goto out;
+	}
+
 	if (strstr(p, ".tmp.") != NULL) {
 		/* delete any tmp files older than 1 hour */
 		if (st->st_mtime + 3600 < time(NULL)) {

@@ -1505,6 +1505,14 @@ cleanup_suite() {
         test_failed "$CCACHE_DIR/a/abcd.tmp.unknown not removed"
     fi
     checkstat 'files in cache' 0
+
+    testname="ignore .nfs* files"
+    prepare_cleanup_test $CCACHE_DIR/a
+    touch $CCACHE_DIR/a/.nfs0123456789
+    $CCACHE -F 0 -M 0 >/dev/null
+    $CCACHE -c >/dev/null
+    checkfilecount 1 '.nfs*' $CCACHE_DIR
+    checkstat 'files in cache' 30
 }
 
 ######################################################################
