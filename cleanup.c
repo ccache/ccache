@@ -67,20 +67,16 @@ static void traverse_fn(const char *fname, struct stat *st)
 
 	p = basename(fname);
 	if (strcmp(p, "stats") == 0) {
-		free(p);
-		return;
+		goto out;
 	}
 
 	if (strstr(p, ".tmp.") != NULL) {
 		/* delete any tmp files older than 1 hour */
 		if (st->st_mtime + 3600 < time(NULL)) {
 			unlink(fname);
-			free(p);
-			return;
+			goto out;
 		}
 	}
-
-	free(p);
 
 	if (num_files == allocated) {
 		allocated = 10000 + num_files*2;
@@ -95,6 +91,9 @@ static void traverse_fn(const char *fname, struct stat *st)
 	cache_size += files[num_files]->size;
 	files_in_cache++;
 	num_files++;
+
+out:
+	free(p);
 }
 
 static void delete_file(const char *path, size_t size)
