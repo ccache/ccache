@@ -1049,24 +1049,24 @@ void *x_fmmap(const char *fname, off_t *size, const char *errstr)
 	file = CreateFile(fname, GENERIC_READ, FILE_SHARE_READ, NULL,
 	                  OPEN_EXISTING, 0, NULL);
 	if (file == INVALID_HANDLE_VALUE) {
-		cc_log("Failed to open %s%s", errstr, fname);
+		cc_log("Failed to open %s %s", errstr, fname);
 		goto error;
 	}
 	fd = _open_osfhandle((intptr_t) file, O_RDONLY | O_BINARY);
 	if (fd == -1) {
-		cc_log("Failed to open %s%s", errstr, fname);
+		cc_log("Failed to open %s %s", errstr, fname);
 		CloseHandle(file);
 		goto error;
 	}
 	if (fstat(fd, &st) == -1) {
-		cc_log("Failed to fstat %s%s", errstr, fname);
+		cc_log("Failed to fstat %s %s", errstr, fname);
 		CloseHandle(file);
 		goto error;
 	}
 	section = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
 	CloseHandle(file);
 	if (!section) {
-		cc_log("Failed to mmap %s%s", errstr, fname);
+		cc_log("Failed to mmap %s %s", errstr, fname);
 		goto error;
 	}
 	data = MapViewOfFile(section, FILE_MAP_READ, 0, 0, 0);
