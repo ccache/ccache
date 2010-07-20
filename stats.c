@@ -23,6 +23,7 @@
  */
 
 #include "ccache.h"
+#include "hashutil.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -176,13 +177,17 @@ void stats_flush(void)
 	if (!should_flush) return;
 
 	if (!stats_file) {
+		char *stats_dir;
+
 		/*
 		 * A NULL stats_file means that we didn't get past calculate_object_hash(),
-		 * so we update the counter in the cache-wide statistics file
-		 * CCACHE_DIR/stats instead of a subdirectory stats file.
+		 * so we just choose one of stats files in the 16 subdirectories.
 		 */
 		if (!cache_dir) return;
-		stats_file = format("%s/stats", cache_dir);
+		stats_dir = format("%s/%x", cache_dir, hash_from_int(getpid()) % 16);
+		stats_file = format("%s/stats", stats_dir);
+		create_dir(stats_dir);
+		free(stats_dir);
 	}
 
 	fd = safe_open(stats_file);
