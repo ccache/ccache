@@ -30,6 +30,12 @@ hash_from_string(void *str)
 	return murmurhashneutral2(str, strlen((const char *)str), 0);
 }
 
+unsigned
+hash_from_int(int i)
+{
+	return murmurhashneutral2(&i, sizeof(int), 0);
+}
+
 int
 strings_equal(void *str1, void *str2)
 {
