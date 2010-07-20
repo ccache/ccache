@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	};
 	int verbose = 0;
 	int c;
-	char *testdir;
+	char *testdir, *dir_before;
 	int result;
 
 	while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
@@ -78,9 +78,11 @@ int main(int argc, char **argv)
 
 	testdir = format("testdir.%d", (int)getpid());
 	cct_create_fresh_dir(testdir);
+	dir_before = gnu_getcwd();
 	cct_chdir(testdir);
 	result = cct_run(suites, verbose);
 	if (result == 0) {
+		cct_chdir(dir_before);
 		cct_wipe(testdir);
 	}
 	free(testdir);
