@@ -299,9 +299,7 @@ int copy_file(const char *src, const char *dest, int compress_dest)
 		goto error;
 	}
 
-	unlink(dest);
-
-	if (rename(tmp_name, dest) == -1) {
+	if (x_rename(tmp_name, dest) == -1) {
 		cc_log("rename error: %s", strerror(errno));
 		goto error;
 	}
@@ -347,8 +345,7 @@ move_uncompressed_file(const char *src, const char *dest, int compress_dest)
 	if (compress_dest) {
 		return move_file(src, dest, compress_dest);
 	} else {
-		unlink(dest);
-		return rename(src, dest);
+		return x_rename(src, dest);
 	}
 }
 
@@ -1104,4 +1101,16 @@ int x_munmap(void *addr, size_t length)
 #else
 	return munmap(addr, length);
 #endif
+}
+
+/*
+ * Rename oldpath to newpath (deleting newpath).
+ */
+int x_rename(const char *oldpath, const char *newpath)
+{
+#ifdef _WIN32
+	/* Windows' rename() refuses to overwrite an existing file. */
+	unlink(newpath);
+#endif
+	return rename(oldpath, newpath);
 }

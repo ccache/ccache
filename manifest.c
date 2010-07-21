@@ -682,8 +682,7 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	if (write_manifest(f2, mf)) {
 		gzclose(f2);
 		f2 = NULL;
-		unlink(manifest_path);
-		if (rename(tmp_file, manifest_path) == 0) {
+		if (x_rename(tmp_file, manifest_path) == 0) {
 			ret = 1;
 		} else {
 			cc_log("Failed to rename %s to %s",

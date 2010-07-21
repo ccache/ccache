@@ -634,8 +634,7 @@ static void to_cache(struct args *args)
 		char *tmp_stderr2;
 
 		tmp_stderr2 = format("%s.tmp.stderr2.%s", cached_obj, tmp_string());
-		unlink(tmp_stderr2);
-		if (rename(tmp_stderr, tmp_stderr2)) {
+		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s", tmp_stderr, tmp_stderr2);
 			failed();
 		}
