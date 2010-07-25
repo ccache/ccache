@@ -33,7 +33,7 @@ zlib_sources = \
 zlib_objs = $(zlib_sources:.c=.o)
 
 test_suites = @test_suites@
-test_sources = test/main.c test/framework.c $(test_suites)
+test_sources = test/main.c test/framework.c test/util.c $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)

@@ -17,7 +17,7 @@
  */
 
 #include "ccache.h"
-#include "framework.h"
+#include "test/framework.h"
 #include <errno.h>
 #include <stdio.h>
 #if defined(HAVE_TERMIOS_H)
@@ -305,16 +305,5 @@ void cct_create_fresh_dir(const char *path)
 	if (mkdir(path, 0777) != 0) {
 		fprintf(stderr, "mkdir: %s: %s", path, strerror(errno));;
 		abort();
-	}
-}
-
-void cct_create_file(const char *path, const char *content)
-{
-	FILE *f = fopen(path, "w");
-	if (!f || fputs(content, f) < 0) {
-		fprintf(stderr, "cct_create_file: %s: %s", path, strerror(errno));
-	}
-	if (f) {
-		fclose(f);
 	}
 }

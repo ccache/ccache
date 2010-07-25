@@ -16,29 +16,35 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/*
- * This file contains tests for functions in util.c.
- */
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#include "ccache.h"
-#include "test/framework.h"
-
-TEST_SUITE(util)
-
-TEST(basename)
+int
+path_exists(const char *path)
 {
-	CHECK_STR_EQ_FREE2("foo.c", basename("foo.c"));
-	CHECK_STR_EQ_FREE2("foo.c", basename("dir1/dir2/foo.c"));
-	CHECK_STR_EQ_FREE2("foo.c", basename("/dir/foo.c"));
-	CHECK_STR_EQ_FREE2("", basename("dir1/dir2/"));
+	struct stat st;
+	return lstat(path, &st) == 0;
 }
 
-TEST(dirname)
+int
+is_symlink(const char *path)
 {
-	CHECK_STR_EQ_FREE2(".", dirname("foo.c"));
-	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/foo.c"));
-	CHECK_STR_EQ_FREE2("/dir", dirname("/dir/foo.c"));
-	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
+	struct stat st;
+	return lstat(path, &st) == 0 && S_ISLNK(st.st_mode);
 }
 
-TEST_SUITE_END
+void
+create_file(const char *path, const char *content)
+{
+	FILE *f = fopen(path, "w");
+	if (!f || fputs(content, f) < 0) {
+		fprintf(stderr, "create_file: %s: %s\n", path, strerror(errno));
+	}
+	if (f) {
+		fclose(f);
+	}
+}

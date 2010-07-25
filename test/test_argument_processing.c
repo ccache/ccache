@@ -21,7 +21,8 @@
  */
 
 #include "ccache.h"
-#include "framework.h"
+#include "test/framework.h"
+#include "test/util.h"
 
 TEST_SUITE(argument_processing)
 
@@ -46,7 +47,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 #undef CMD
 	struct args *exp_cc = args_init_from_string("cc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
-	cct_create_file("foo.c", "");
+	create_file("foo.c", "");
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);

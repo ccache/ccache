@@ -17,7 +17,7 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "framework.h"
+#include "test/framework.h"
 #include "getopt_long.h"
 #include <stdlib.h>
 #include <stdio.h>
