@@ -62,10 +62,11 @@ Run modes
 ---------
 
 There are two ways to use ccache. You can either prefix your compilation
-commands with *ccache* or you can create a symbolic link (named as your
-compiler) to ccache. The first method is most convenient if you just want to
-try out ccache or wish to use it for some specific projects. The second method
-is most useful for when you wish to use ccache for all your compilations.
+commands with *ccache* or you can let ccache masquerade as the compiler by
+creating a symbolic link (named as the compiler) to ccache. The first method is
+most convenient if you just want to try out ccache or wish to use it for some
+specific projects. The second method is most useful for when you wish to use
+ccache for all your compilations.
 
 To install for usage by the first method just make sure *ccache* is in your
 path.
@@ -82,9 +83,13 @@ And so forth. This will work as long as +/usr/local/bin+ comes before the path
 to the compiler (which is usually in +/usr/bin+). After installing you may wish
 to run ``which gcc'' to make sure that the correct link is being used.
 
-NOTE: Do not use a hard link, use a symbolic link. A hard link will cause
-``interesting'' problems.
+WARNING: The technique of letting ccache masquerade as the compiler works well,
+but currently doesn't interact well with other tools that do the same thing.
+See <<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER
+COMPILER WRAPPERS>>.
 
+WARNING: Do not use a hard link, use a symbolic link. A hard link will cause
+``interesting'' problems.
 
 Options
 -------
@@ -557,24 +562,26 @@ A tip is to set *CCACHE_TEMPDIR* to a directory on the local host to avoid NFS
 traffic for temporary files.
 
 
-Using ccache with distcc
-------------------------
+Using ccache with other compiler wrappers
+-----------------------------------------
 
-``distcc'' is a very useful program for distributing compilation across a range
-of compiler servers. It is often useful to combine distcc with ccache so that
-compilations that are done are sped up by distcc, but ccache avoids the
-compilation completely where possible.
+The recommended way of combining ccache with another compiler wrapper (such as
+``distcc'') is by using the *CCACHE_PREFIX* option. You just need to set the
+environment variable *CCACHE_PREFIX* to the name of the wrapper (e.g. *distcc*)
+and ccache will prefix the command line with the specified command when running
+the compiler.
 
-The recommended way of combining distcc and ccache is by using the
-*CCACHE_PREFIX* option. You just need to set the environment variable
-*CCACHE_PREFIX* to *distcc* and ccache will prefix the command line used with
-the compiler with the command ``distcc''.
+It is not recommended to use the form *ccache anotherwrapper compiler args* as
+the compilation command. It's also not recommended to use the masquerading
+technique for the other compiler wrapper. The reason is that ccache will in
+both cases hash the mtime of the other wrapper instead of the real compiler
+(see the *CCACHE_COMPILERCHECK* option), which means that:
 
-It is not recommended to use the form *ccache distcc compiler args* as the
-compilation command, because ccache will in that case hash the mtime of distcc
-instead of the compiler (see the *CCACHE_COMPILERCHECK* option), which means
-that compiler upgrades will not be detected properly and that the cached
-results will not be shared between compilations with and without distcc.
+* Compiler upgrades will not be detected properly.
+* The cached results will not be shared between compilations with and without
+  the other wrapper.
+* ccache will needlessly invoke the other wrapper when running the
+  preprocessor.
 
 
 Bugs
