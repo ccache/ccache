@@ -1812,6 +1812,40 @@ out:
 	return result;
 }
 
+/* Reset the global state. Used by the test suite. */
+void cc_reset(void)
+{
+	free(current_working_dir); current_working_dir = NULL;
+	free(cache_dir); cache_dir = NULL;
+	cache_logfile = NULL;
+	base_dir = NULL;
+	args_free(orig_args); orig_args = NULL;
+	free(input_file); input_file = NULL;
+	output_obj = NULL;
+	free(output_dep); output_dep = NULL;
+	free(cached_obj_hash); cached_obj_hash = NULL;
+	free(cached_obj); cached_obj = NULL;
+	free(cached_stderr); cached_stderr = NULL;
+	free(cached_dep); cached_dep = NULL;
+	free(manifest_path); manifest_path = NULL;
+	time_of_compilation = 0;
+	sloppiness = 0;
+	if (included_files) {
+		hashtable_destroy(included_files, 1); included_files = NULL;
+	}
+	generating_dependencies = 0;
+	i_extension = NULL;
+	i_tmpfile = NULL;
+	direct_i_file = 0;
+	free(cpp_stderr); cpp_stderr = NULL;
+	free(stats_file); stats_file = NULL;
+	enable_unify = 0;
+	enable_direct = 1;
+	enable_compression = 0;
+	nlevels = 2;
+	compile_preprocessed_source_code = 0;
+}
+
 static unsigned parse_sloppiness(char *p)
 {
 	unsigned result = 0;
@@ -2153,7 +2187,9 @@ int ccache_main(int argc, char *argv[])
 
 	current_working_dir = get_cwd();
 	cache_dir = getenv("CCACHE_DIR");
-	if (!cache_dir) {
+	if (cache_dir) {
+		cache_dir = x_strdup(cache_dir);
+	} else {
 		const char *home_directory = get_home_directory();
 		if (home_directory) {
 			cache_dir = format("%s/.ccache", home_directory);

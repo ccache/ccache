@@ -206,6 +206,7 @@ int args_equal(struct args *args1, struct args *args2);
 
 int cc_process_args(struct args *orig_args, struct args **preprocessor_args,
                     struct args **compiler_args);
+void cc_reset(void);
 
 /* ------------------------------------------------------------------------- */
 

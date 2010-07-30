@@ -151,6 +151,7 @@ void cct_test_begin(const char *name)
 	cct_chdir(name);
 	current_test = name;
 	failed_asserts_before_test = failed_asserts;
+	cc_reset();
 }
 
 void cct_test_end()
