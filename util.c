@@ -590,8 +590,8 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		char *fname;
 		struct stat st;
 
-		if (strcmp(de->d_name, ".") == 0) continue;
-		if (strcmp(de->d_name, "..") == 0) continue;
+		if (str_eq(de->d_name, ".")) continue;
+		if (str_eq(de->d_name, "..")) continue;
 
 		if (strlen(de->d_name) == 0) continue;
 
@@ -925,7 +925,7 @@ compare_executable_name(const char *s1, const char *s2)
 	}
 	return eq;
 #else
-	return strcmp(s1, s2) == 0;
+	return str_eq(s1, s2);
 #endif
 }
 
@@ -982,7 +982,7 @@ char *get_relative_path(const char *from, const char *to)
 		result[i] = '\0';
 		i--;
 	}
-	if (strcmp(result, "") == 0) {
+	if (str_eq(result, "")) {
 		free(result);
 		result = x_strdup(".");
 	}

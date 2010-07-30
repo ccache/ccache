@@ -132,7 +132,7 @@ args_strip(struct args *args, const char *prefix)
 {
 	int i;
 	for (i=0; i<args->argc; ) {
-		if (strncmp(args->argv[i], prefix, strlen(prefix)) == 0) {
+		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],
 				&args->argv[i+1],
@@ -176,7 +176,7 @@ args_equal(struct args *args1, struct args *args2)
 		return 0;
 	}
 	for (i = 0; i < args1->argc; i++) {
-		if (strcmp(args1->argv[i], args2->argv[i]) != 0) {
+		if (!str_eq(args1->argv[i], args2->argv[i])) {
 			return 0;
 		}
 	}

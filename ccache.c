@@ -341,7 +341,7 @@ static void remember_include_file(char *path, size_t path_len)
 		goto ignore;
 	}
 
-	if (strcmp(path, input_file) == 0) {
+	if (str_eq(path, input_file)) {
 		/* Don't remember the input file. */
 		goto ignore;
 	}
@@ -409,7 +409,7 @@ static char *make_relative_path(char *path)
 {
 	char *relpath;
 
-	if (!base_dir || strncmp(path, base_dir, strlen(base_dir)) != 0) {
+	if (!base_dir || !str_startswith(path, base_dir)) {
 		return path;
 	}
 
@@ -521,7 +521,7 @@ language_for_file(const char *fname)
 
 	p = get_extension(fname);
 	for (i = 0; extensions[i].extension; i++) {
-		if (strcmp(p, extensions[i].extension) == 0) {
+		if (str_eq(p, extensions[i].extension)) {
 			return extensions[i].language;
 		}
 	}
@@ -540,7 +540,7 @@ p_language_for_language(const char *language)
 		return NULL;
 	}
 	for (i = 0; languages[i].language; ++i) {
-		if (strcmp(language, languages[i].language) == 0) {
+		if (str_eq(language, languages[i].language)) {
 			return languages[i].p_language;
 		}
 	}
@@ -560,7 +560,7 @@ extension_for_language(const char *language)
 		return NULL;
 	}
 	for (i = 0; extensions[i].extension; i++) {
-		if (strcmp(language, extensions[i].language) == 0) {
+		if (str_eq(language, extensions[i].language)) {
 			return extensions[i].extension;
 		}
 	}
@@ -576,7 +576,7 @@ language_is_supported(const char *language)
 static int
 language_is_preprocessed(const char *language)
 {
-	return strcmp(language, p_language_for_language(language)) == 0;
+	return str_eq(language, p_language_for_language(language));
 }
 
 /* run the real compiler and put the result in cache */
@@ -671,7 +671,7 @@ static void to_cache(struct args *args)
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			if (strcmp(output_obj, "/dev/null") == 0
+			if (str_eq(output_obj, "/dev/null")
 			    || (access(tmp_obj, R_OK) == 0
 			        && move_file(tmp_obj, output_obj, 0) == 0)
 			    || errno == ENOENT) {
@@ -906,9 +906,9 @@ static void calculate_common_hash(struct args *args, struct mdfour *hash)
 	if (!compilercheck) {
 		compilercheck = "mtime";
 	}
-	if (strcmp(compilercheck, "none") == 0) {
+	if (str_eq(compilercheck, "none")) {
 		/* Do nothing. */
-	} else if (strcmp(compilercheck, "content") == 0) {
+	} else if (str_eq(compilercheck, "content")) {
 		hash_delimiter(hash, "cc_content");
 		hash_file(hash, args->argv[0]);
 	} else { /* mtime */
@@ -969,11 +969,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	/* first the arguments */
 	for (i=1;i<args->argc;i++) {
 		/* -L doesn't affect compilation. */
-		if (i < args->argc-1 && strcmp(args->argv[i], "-L") == 0) {
+		if (i < args->argc-1 && str_eq(args->argv[i], "-L")) {
 			i++;
 			continue;
 		}
-		if (strncmp(args->argv[i], "-L", 2) == 0) {
+		if (str_startswith(args->argv[i], "-L")) {
 			continue;
 		}
 
@@ -983,35 +983,35 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		   all. */
 		if (!direct_mode) {
 			if (i < args->argc-1) {
-				if (strcmp(args->argv[i], "-D") == 0 ||
-				    strcmp(args->argv[i], "-I") == 0 ||
-				    strcmp(args->argv[i], "-U") == 0 ||
-				    strcmp(args->argv[i], "-idirafter") == 0 ||
-				    strcmp(args->argv[i], "-imacros") == 0 ||
-				    strcmp(args->argv[i], "-imultilib") == 0 ||
-				    strcmp(args->argv[i], "-include") == 0 ||
-				    strcmp(args->argv[i], "-iprefix") == 0 ||
-				    strcmp(args->argv[i], "-iquote") == 0 ||
-				    strcmp(args->argv[i], "-isysroot") == 0 ||
-				    strcmp(args->argv[i], "-isystem") == 0 ||
-				    strcmp(args->argv[i], "-iwithprefix") == 0 ||
-				    strcmp(args->argv[i], "-iwithprefixbefore") == 0 ||
-				    strcmp(args->argv[i], "-nostdinc") == 0 ||
-				    strcmp(args->argv[i], "-nostdinc++") == 0) {
+				if (str_eq(args->argv[i], "-D") ||
+				    str_eq(args->argv[i], "-I") ||
+				    str_eq(args->argv[i], "-U") ||
+				    str_eq(args->argv[i], "-idirafter") ||
+				    str_eq(args->argv[i], "-imacros") ||
+				    str_eq(args->argv[i], "-imultilib") ||
+				    str_eq(args->argv[i], "-include") ||
+				    str_eq(args->argv[i], "-iprefix") ||
+				    str_eq(args->argv[i], "-iquote") ||
+				    str_eq(args->argv[i], "-isysroot") ||
+				    str_eq(args->argv[i], "-isystem") ||
+				    str_eq(args->argv[i], "-iwithprefix") ||
+				    str_eq(args->argv[i], "-iwithprefixbefore") ||
+				    str_eq(args->argv[i], "-nostdinc") ||
+				    str_eq(args->argv[i], "-nostdinc++")) {
 					/* Skip from hash. */
 					i++;
 					continue;
 				}
 			}
-			if (strncmp(args->argv[i], "-D", 2) == 0 ||
-			    strncmp(args->argv[i], "-I", 2) == 0 ||
-			    strncmp(args->argv[i], "-U", 2) == 0) {
+			if (str_startswith(args->argv[i], "-D") ||
+			    str_startswith(args->argv[i], "-I") ||
+			    str_startswith(args->argv[i], "-U")) {
 				/* Skip from hash. */
 				continue;
 			}
 		}
 
-		if (strncmp(args->argv[i], "--specs=", 8) == 0 &&
+		if (str_startswith(args->argv[i], "--specs=") &&
 		    stat(args->argv[i] + 8, &st) == 0) {
 			/* If given a explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
@@ -1105,7 +1105,7 @@ static void from_cache(enum fromcache_call_mode mode, int put_object_in_manifest
 		return;
 	}
 
-	if (strcmp(output_obj, "/dev/null") == 0) {
+	if (str_eq(output_obj, "/dev/null")) {
 		ret = 0;
 	} else {
 		unlink(output_obj);
@@ -1282,7 +1282,7 @@ static void find_compiler(int argc, char **argv)
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
-	if (strcmp(compiler, argv[0]) == 0) {
+	if (str_eq(compiler, argv[0])) {
 		fatal("Recursive invocation (the name of the ccache binary"
 		      " must be \"%s\")", MYNAME);
 	}
@@ -1323,7 +1323,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 	for (i = 1; i < argc; i++) {
 		/* some options will never work ... */
-		if (strcmp(argv[i], "-E") == 0) {
+		if (str_eq(argv[i], "-E")) {
 			cc_log("Compiler option -E is unsupported");
 			stats_update(STATS_UNSUPPORTED);
 			result = 0;
@@ -1331,17 +1331,17 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* these are too hard */
-		if (strncmp(argv[i], "@", 1) == 0 ||
-		    strcmp(argv[i], "--coverage") == 0 ||
-		    strcmp(argv[i], "-M") == 0 ||
-		    strcmp(argv[i], "-MM") == 0 ||
-		    strcmp(argv[i], "-fbranch-probabilities") == 0 ||
-		    strcmp(argv[i], "-fprofile-arcs") == 0 ||
-		    strcmp(argv[i], "-fprofile-generate") == 0 ||
-		    strcmp(argv[i], "-fprofile-use") == 0 ||
-		    strcmp(argv[i], "-frepo") == 0 ||
-		    strcmp(argv[i], "-ftest-coverage") == 0 ||
-		    strcmp(argv[i], "-save-temps") == 0) {
+		if (str_startswith(argv[i], "@") ||
+		    str_eq(argv[i], "--coverage") ||
+		    str_eq(argv[i], "-M") ||
+		    str_eq(argv[i], "-MM") ||
+		    str_eq(argv[i], "-fbranch-probabilities") ||
+		    str_eq(argv[i], "-fprofile-arcs") ||
+		    str_eq(argv[i], "-fprofile-generate") ||
+		    str_eq(argv[i], "-fprofile-use") ||
+		    str_eq(argv[i], "-frepo") ||
+		    str_eq(argv[i], "-ftest-coverage") ||
+		    str_eq(argv[i], "-save-temps")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			result = 0;
@@ -1350,7 +1350,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		/* These are too hard in direct mode. */
 		if (enable_direct) {
-			if (strcmp(argv[i], "-Xpreprocessor") == 0) {
+			if (str_eq(argv[i], "-Xpreprocessor")) {
 				cc_log("Unsupported compiler option for direct"
 				       " mode: %s", argv[i]);
 				enable_direct = 0;
@@ -1358,7 +1358,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* Multiple -arch options are too hard. */
-		if (strcmp(argv[i], "-arch") == 0) {
+		if (str_eq(argv[i], "-arch")) {
 			if (found_arch_opt) {
 				cc_log("More than one -arch compiler option"
 				       " is unsupported");
@@ -1371,14 +1371,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* we must have -c */
-		if (strcmp(argv[i], "-c") == 0) {
+		if (str_eq(argv[i], "-c")) {
 			args_add(stripped_args, argv[i]);
 			found_c_opt = 1;
 			continue;
 		}
 
 		/* -S changes the default extension */
-		if (strcmp(argv[i], "-S") == 0) {
+		if (str_eq(argv[i], "-S")) {
 			args_add(stripped_args, argv[i]);
 			found_S_opt = 1;
 			continue;
@@ -1388,7 +1388,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		 * Special handling for -x: remember the last specified language before the
 		 * input file and strip all -x options from the arguments.
 		 */
-		if (strcmp(argv[i], "-x") == 0) {
+		if (str_eq(argv[i], "-x")) {
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -1401,7 +1401,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			i++;
 			continue;
 		}
-		if (strncmp(argv[i], "-x", 2) == 0) {
+		if (str_startswith(argv[i], "-x")) {
 			if (!input_file) {
 				explicit_language = &argv[i][2];
 			}
@@ -1409,7 +1409,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* we need to work out where the output was meant to go */
-		if (strcmp(argv[i], "-o") == 0) {
+		if (str_eq(argv[i], "-o")) {
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -1422,7 +1422,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* alternate form of -o, with no space */
-		if (strncmp(argv[i], "-o", 2) == 0) {
+		if (str_startswith(argv[i], "-o")) {
 			output_obj = &argv[i][2];
 			continue;
 		}
@@ -1430,14 +1430,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		/* debugging is handled specially, so that we know if we
 		   can strip line number info
 		*/
-		if (strncmp(argv[i], "-g", 2) == 0) {
+		if (str_startswith(argv[i], "-g")) {
 			args_add(stripped_args, argv[i]);
-			if (enable_unify && strcmp(argv[i], "-g0") != 0) {
+			if (enable_unify && !str_eq(argv[i], "-g0")) {
 				cc_log("%s used; disabling unify mode",
 				       argv[i]);
 				enable_unify = 0;
 			}
-			if (strcmp(argv[i], "-g3") == 0) {
+			if (str_eq(argv[i], "-g3")) {
 				/*
 				 * Fix for bug 7190 ("commandline macros (-D)
 				 * have non-zero lineno when using -g3").
@@ -1450,7 +1450,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* The user knows best: just swallow the next arg */
-		if (strcmp(argv[i], "--ccache-skip") == 0) {
+		if (str_eq(argv[i], "--ccache-skip")) {
 			i++;
 			if (i == argc) {
 				cc_log("--ccache-skip lacks an argument");
@@ -1464,13 +1464,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		/* These options require special handling, because they
 		   behave differently with gcc -E, when the output
 		   file is not specified. */
-		if (strcmp(argv[i], "-MD") == 0 || strcmp(argv[i], "-MMD") == 0) {
+		if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
 			generating_dependencies = 1;
 			args_add(dep_args, argv[i]);
 			continue;
 		}
 		if (i < argc - 1) {
-			if (strcmp(argv[i], "-MF") == 0) {
+			if (str_eq(argv[i], "-MF")) {
 				dependency_filename_specified = 1;
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i + 1]));
@@ -1478,7 +1478,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				args_add(dep_args, argv[i + 1]);
 				i++;
 				continue;
-			} else if (strcmp(argv[i], "-MQ") == 0 || strcmp(argv[i], "-MT") == 0) {
+			} else if (str_eq(argv[i], "-MQ") || str_eq(argv[i], "-MT")) {
 				dependency_target_specified = 1;
 				args_add(dep_args, argv[i]);
 				args_add(dep_args, argv[i + 1]);
@@ -1486,15 +1486,15 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				continue;
 			}
 		}
-		if (strncmp(argv[i], "-Wp,", 4) == 0) {
-			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0 && !strchr(argv[i] + 8, ',')) {
+		if (str_startswith(argv[i], "-Wp,")) {
+			if (str_startswith(argv[i], "-Wp,-MD,") && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 8));
 				args_add(dep_args, argv[i]);
 				continue;
-			} else if (strncmp(argv[i], "-Wp,-MMD,", 9) == 0
+			} else if (str_startswith(argv[i], "-Wp,-MMD,")
 			           && !strchr(argv[i] + 9, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
@@ -1512,13 +1512,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				enable_direct = 0;
 			}
 		}
-		if (strcmp(argv[i], "-MP") == 0) {
+		if (str_eq(argv[i], "-MP")) {
 			args_add(dep_args, argv[i]);
 			continue;
 		}
 
 		/* Input charset needs to be handled specially. */
-		if (strncmp(argv[i], "-finput-charset=", 16) == 0) {
+		if (str_startswith(argv[i], "-finput-charset=")) {
 			input_charset = argv[i];
 			continue;
 		}
@@ -1537,7 +1537,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			int j;
 			char *relpath;
 			for (j = 0; opts[j]; j++) {
-				if (strcmp(argv[i], opts[j]) == 0) {
+				if (str_eq(argv[i], opts[j])) {
 					if (i == argc-1) {
 						cc_log("Missing argument to %s",
 						       argv[i]);
@@ -1566,7 +1566,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			char *relpath;
 			char *option;
 			for (j = 0; opts[j]; j++) {
-				if (strncmp(argv[i], opts[j], strlen(opts[j])) == 0) {
+				if (str_startswith(argv[i], opts[j])) {
 					relpath = make_relative_path(x_strdup(argv[i] + strlen(opts[j])));
 					option = format("%s%s", opts[j], relpath);
 					args_add(stripped_args, option);
@@ -1604,7 +1604,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			};
 			int j;
 			for (j = 0; opts[j]; j++) {
-				if (strcmp(argv[i], opts[j]) == 0) {
+				if (str_eq(argv[i], opts[j])) {
 					if (i == argc-1) {
 						cc_log("Missing argument to %s",
 						       argv[i]);
@@ -1682,7 +1682,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	if (explicit_language && strcmp(explicit_language, "none") == 0) {
+	if (explicit_language && str_eq(explicit_language, "none")) {
 		explicit_language = NULL;
 	}
 	file_language = language_for_file(input_file);
@@ -1712,7 +1712,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	}
 
 	/* don't try to second guess the compilers heuristics for stdout handling */
-	if (output_obj && strcmp(output_obj, "-") == 0) {
+	if (output_obj && str_eq(output_obj, "-")) {
 		stats_update(STATS_OUTSTDOUT);
 		cc_log("Output file is -");
 		result = 0;
@@ -1737,7 +1737,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	}
 
 	/* cope with -o /dev/null */
-	if (strcmp(output_obj,"/dev/null") != 0
+	if (!str_eq(output_obj,"/dev/null")
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
@@ -1857,15 +1857,15 @@ static unsigned parse_sloppiness(char *p)
 	p = x_strdup(p);
 	q = p;
 	while ((word = strtok(q, ", "))) {
-		if (strcmp(word, "file_macro") == 0) {
+		if (str_eq(word, "file_macro")) {
 			cc_log("Being sloppy about __FILE__");
 			result |= SLOPPY_FILE_MACRO;
 		}
-		if (strcmp(word, "include_file_mtime") == 0) {
+		if (str_eq(word, "include_file_mtime")) {
 			cc_log("Being sloppy about include file mtime");
 			result |= SLOPPY_INCLUDE_FILE_MTIME;
 		}
-		if (strcmp(word, "time_macros") == 0) {
+		if (str_eq(word, "time_macros")) {
 			cc_log("Being sloppy about __DATE__ and __TIME__");
 			result |= SLOPPY_TIME_MACROS;
 		}

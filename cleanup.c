@@ -66,11 +66,11 @@ static void traverse_fn(const char *fname, struct stat *st)
 	if (!S_ISREG(st->st_mode)) return;
 
 	p = basename(fname);
-	if (strcmp(p, "stats") == 0) {
+	if (str_eq(p, "stats")) {
 		goto out;
 	}
 
-	if (strncmp(p, ".nfs", 4) == 0) {
+	if (str_startswith(p, ".nfs")) {
 		/* Ignore temporary NFS files that may be left for open but deleted files. */
 		goto out;
 	}
@@ -149,12 +149,12 @@ static void sort_and_clean(void)
 		}
 
 		ext = get_extension(files[i]->fname);
-		if (strcmp(ext, ".o") == 0
-		    || strcmp(ext, ".d") == 0
-		    || strcmp(ext, ".stderr") == 0
-		    || strcmp(ext, "") == 0) {
+		if (str_eq(ext, ".o")
+		    || str_eq(ext, ".d")
+		    || str_eq(ext, ".stderr")
+		    || str_eq(ext, "")) {
 			char *base = remove_extension(files[i]->fname);
-			if (strcmp(base, last_base) != 0) { /* Avoid redundant unlinks. */
+			if (!str_eq(base, last_base)) { /* Avoid redundant unlinks. */
 				/*
 				 * Make sure that all sibling files are deleted so that a cached result
 				 * is removed completely. Note the order of deletions -- the stderr
@@ -246,7 +246,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 	if (!S_ISREG(st->st_mode)) return;
 
 	p = basename(fname);
-	if (strcmp(p, "stats") == 0) {
+	if (str_eq(p, "stats")) {
 		free(p);
 		return;
 	}

@@ -39,7 +39,7 @@ hash_from_int(int i)
 int
 strings_equal(void *str1, void *str2)
 {
-	return strcmp((const char *)str1, (const char *)str2) == 0;
+	return str_eq((const char *)str1, (const char *)str2);
 }
 
 int

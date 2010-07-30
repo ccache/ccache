@@ -59,6 +59,9 @@ enum stats {
 #define SLOPPY_FILE_MACRO 2
 #define SLOPPY_TIME_MACROS 4
 
+#define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
+#define str_startswith(s, p) (strncmp((s), (p), strlen((p))) == 0)
+
 /* ------------------------------------------------------------------------- */
 /* hash.c */
 

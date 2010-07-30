@@ -124,7 +124,7 @@ int win32execute(char *path, char **argv, int doreturn,
 			char buf[10];
 			fgets(buf, sizeof(buf), fp);
 			buf[9] = 0;
-			if (strcmp(buf, "#!/bin/sh") == 0 && (path_env = getenv("PATH")))
+			if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH")))
 				sh = find_executable_in_path("sh.exe", NULL, path_env);
 			fclose(fp);
 		}
@@ -277,7 +277,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 				char *buf = x_realpath(fname);
 				if (buf) {
 					char *p = basename(buf);
-					if (strcmp(p, exclude_name) == 0) {
+					if (str_eq(p, exclude_name)) {
 						/* its a link to "ccache" ! */
 						free(p);
 						free(buf);

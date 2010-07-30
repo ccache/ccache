@@ -232,7 +232,7 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 {
 	int result;
 
-	if (expected && actual && strcmp(actual, expected) == 0) {
+	if (expected && actual && str_eq(actual, expected)) {
 		cct_check_passed();
 		result = 1;
 	} else {
