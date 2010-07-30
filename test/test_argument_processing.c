@@ -31,6 +31,7 @@ TEST(dash_E_should_be_unsupported)
 	struct args *orig = args_init_from_string("cc -c foo.c -E");
 	struct args *preprocessed, *compiler;
 
+	create_file("foo.c", "");
 	CHECK(!cc_process_args(orig, &preprocessed, &compiler));
 	CHECK_UNS_EQ(1, stats_get_pending(STATS_UNSUPPORTED));
 
