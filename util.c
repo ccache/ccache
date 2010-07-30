@@ -883,7 +883,7 @@ const char *get_home_directory(void)
 
 /*
  * Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
- * is used.
+ * is used. Caller frees.
  */
 char *get_cwd(void)
 {

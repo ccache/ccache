@@ -1472,6 +1472,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (i < argc - 1) {
 			if (strcmp(argv[i], "-MF") == 0) {
 				dependency_filename_specified = 1;
+				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i + 1]));
 				args_add(dep_args, argv[i]);
 				args_add(dep_args, argv[i + 1]);
@@ -1489,6 +1490,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (strncmp(argv[i], "-Wp,-MD,", 8) == 0 && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
+				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 8));
 				args_add(dep_args, argv[i]);
 				continue;
@@ -1496,6 +1498,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			           && !strchr(argv[i] + 9, ',')) {
 				generating_dependencies = 1;
 				dependency_filename_specified = 1;
+				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 9));
 				args_add(dep_args, argv[i]);
 				continue;

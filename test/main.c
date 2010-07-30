@@ -86,5 +86,6 @@ int main(int argc, char **argv)
 		cct_wipe(testdir);
 	}
 	free(testdir);
+	free(dir_before);
 	return result;
 }
