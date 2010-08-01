@@ -123,6 +123,7 @@ void update_mtime(const char *path);
 void *x_fmmap(const char *fname, off_t *size, const char *errstr);
 int x_munmap(void *addr, size_t length);
 int x_rename(const char *oldpath, const char *newpath);
+char *x_readlink(const char *path);
 
 /* ------------------------------------------------------------------------- */
 /* stats.c */

@@ -1114,3 +1114,29 @@ int x_rename(const char *oldpath, const char *newpath)
 #endif
 	return rename(oldpath, newpath);
 }
+
+/* Like readlink() but returns the string or NULL on failure. Caller frees. */
+char *
+x_readlink(const char *path)
+{
+	size_t maxlen;
+	ssize_t len;
+	char *buf;
+#ifdef PATH_MAX
+	maxlen = PATH_MAX;
+#elif defined(MAXPATHLEN)
+	maxlen = MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+	maxlen = pathconf(path, _PC_PATH_MAX);
+#endif
+	if (maxlen < 4096) maxlen = 4096;
+
+	buf = x_malloc(maxlen);
+	len = readlink(path, buf, maxlen-1);
+	if (len == -1) {
+		free(buf);
+		return NULL;
+	}
+	buf[len] = 0;
+	return buf;
+}
