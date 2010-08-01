@@ -52,7 +52,7 @@
 #define CHECK(assertion) \
 	do { \
 		if ((assertion)) { \
-			cct_check_passed(); \
+			cct_check_passed(__FILE__, __LINE__, #assertion); \
 		} else { \
 			cct_check_failed(__FILE__, __LINE__, #assertion, NULL, NULL); \
 			cct_test_end(); \
@@ -127,7 +127,7 @@ void cct_suite_begin(const char *name);
 void cct_suite_end();
 void cct_test_begin(const char *name);
 void cct_test_end();
-void cct_check_passed(void);
+void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
 int cct_check_int_eq(const char *file, int line, const char *expression,

@@ -173,9 +173,12 @@ void cct_test_end()
 }
 
 void
-cct_check_passed(void)
+cct_check_passed(const char *file, int line, const char *what)
 {
 	++passed_asserts;
+	if (verbose) {
+		printf("%s:%d: Passed assertion: %s\n", file, line, what);
+	}
 }
 
 void
@@ -201,7 +204,7 @@ cct_check_int_eq(const char *file, int line, const char *expression,
                  int expected, int actual)
 {
 	if (expected == actual) {
-		cct_check_passed();
+		cct_check_passed(file, line, expression);
 		return 1;
 	} else {
 		char *exp_str = format("%i", expected);
@@ -218,7 +221,7 @@ cct_check_uns_eq(const char *file, int line, const char *expression,
                  unsigned expected, unsigned actual)
 {
 	if (expected == actual) {
-		cct_check_passed();
+		cct_check_passed(file, line, expression);
 		return 1;
 	} else {
 		char *exp_str = format("%i", expected);
@@ -237,7 +240,7 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	int result;
 
 	if (expected && actual && str_eq(actual, expected)) {
-		cct_check_passed();
+		cct_check_passed(file, line, expression);
 		result = 1;
 	} else {
 		char *exp_str = expected ? format("\"%s\"", expected) : x_strdup("(null)");
@@ -265,7 +268,7 @@ cct_check_args_eq(const char *file, int line, const char *expression,
 	int result;
 
 	if (expected && actual && args_equal(actual, expected)) {
-		cct_check_passed();
+		cct_check_passed(file, line, expression);
 		result = 1;
 	} else {
 		char *exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
