@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 int
 path_exists(const char *path)
@@ -47,4 +49,35 @@ create_file(const char *path, const char *content)
 	if (f) {
 		fclose(f);
 	}
+}
+
+/* Return the content of a text file, or NULL on error. Caller frees. */
+char *
+read_file(const char *path)
+{
+	int fd, ret;
+	size_t pos = 0, allocated = 1024;
+	char *result = malloc(allocated);
+
+	fd = open(path, O_RDONLY);
+	if (fd == -1) {
+		free(result);
+		return NULL;
+	}
+	ret = 0;
+	do {
+		pos += ret;
+		if (pos > allocated / 2) {
+			allocated *= 2;
+			result = realloc(result, allocated);
+		}
+	} while ((ret = read(fd, result + pos, allocated - pos - 1)) > 0);
+	close(fd);
+	if (ret == -1) {
+		free(result);
+		return NULL;
+	}
+	result[pos] = '\0';
+
+	return result;
 }
