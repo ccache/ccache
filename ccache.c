@@ -188,6 +188,9 @@ static int nlevels = 2;
  */
 static int compile_preprocessed_source_code;
 
+/* How long (in microseconds) to wait before breaking a stale lock. */
+unsigned lock_staleness_limit = 2000000;
+
 /*
  * Supported file extensions and corresponding languages (as in parameter to
  * the -x option).

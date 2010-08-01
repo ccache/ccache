@@ -681,40 +681,6 @@ char *remove_extension(const char *path)
 	return x_strndup(path, strlen(path) - strlen(get_extension(path)));
 }
 
-static int lock_fd(int fd, short type)
-{
-#ifdef _WIN32
-	(void) type;
-	return _locking(fd, _LK_NBLCK, 1);
-#else
-	struct flock fl;
-	int ret;
-
-	fl.l_type = type;
-	fl.l_whence = SEEK_SET;
-	fl.l_start = 0;
-	fl.l_len = 1;
-	fl.l_pid = 0;
-
-	/* not sure why we would be getting a signal here,
-	   but one user claimed it is possible */
-	do {
-		ret = fcntl(fd, F_SETLKW, &fl);
-	} while (ret == -1 && errno == EINTR);
-	return ret;
-#endif
-}
-
-int read_lock_fd(int fd)
-{
-	return lock_fd(fd, F_RDLCK);
-}
-
-int write_lock_fd(int fd)
-{
-	return lock_fd(fd, F_WRLCK);
-}
-
 /* return size on disk of a file */
 size_t file_size(struct stat *st)
 {

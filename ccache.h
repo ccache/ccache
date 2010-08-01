@@ -105,8 +105,6 @@ char *basename(const char *s);
 char *dirname(char *s);
 const char *get_extension(const char *path);
 char *remove_extension(const char *path);
-int read_lock_fd(int fd);
-int write_lock_fd(int fd);
 size_t file_size(struct stat *st);
 int safe_open(const char *fname);
 char *x_realpath(const char *path);

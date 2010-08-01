@@ -35,6 +35,7 @@
 
 extern char *stats_file;
 extern char *cache_dir;
+extern unsigned lock_staleness_limit;
 
 static unsigned counter_updates[STATS_END];
 
@@ -105,23 +106,28 @@ static void parse_stats(unsigned counters[STATS_END], char *buf)
 }
 
 /* write out a stats file */
-static void write_stats(int fd, unsigned counters[STATS_END])
+static void
+write_stats(const char *path, unsigned counters[STATS_END])
 {
 	int i;
-	int len = 0;
-	char buf[1024];
+	char *tmp_file;
+	FILE *f;
 
-	for (i=0;i<STATS_END;i++) {
-		len += snprintf(buf+len, sizeof(buf)-(len+1), "%u ", counters[i]);
-		if (len >= (int)sizeof(buf)-1) fatal("stats too long");
+	tmp_file = format("%s.tmp.%s", path, tmp_string());
+	f = fopen(tmp_file, "wb");
+	if (!f) {
+		cc_log("Failed to open %s", tmp_file);
+		return;
 	}
-	len += snprintf(buf+len, sizeof(buf)-(len+1), "\n");
-	if (len >= (int)sizeof(buf)-1) fatal("stats too long");
-
-	lseek(fd, 0, SEEK_SET);
-	if (write(fd, buf, len) == -1) fatal("Could not write stats");
+	for (i = 0; i < STATS_END; i++) {
+		if (fprintf(f, "%u ", counters[i]) < 0) {
+			fatal("Failed to write to %s", tmp_file);
+		}
+	}
+	fputs("\n", f);
+	fclose(f);
+	x_rename(tmp_file, path);
 }
-
 
 /* fill in some default stats values */
 static void stats_default(unsigned counters[STATS_END])
@@ -191,19 +197,23 @@ void stats_flush(void)
 		free(stats_dir);
 	}
 
-	fd = safe_open(stats_file);
-	if (fd == -1) return;
-	if (write_lock_fd(fd) != 0) return;
-
 	memset(counters, 0, sizeof(counters));
-	stats_read_fd(fd, counters);
 
+	if (!lockfile_acquire(stats_file, lock_staleness_limit)) {
+		return;
+	}
+	fd = open(stats_file, O_RDONLY|O_BINARY);
+	if (fd == -1) {
+		stats_default(counters);
+	} else {
+		stats_read_fd(fd, counters);
+		close(fd);
+	}
 	for (i = 0; i < STATS_END; ++i) {
 		counters[i] += counter_updates[i];
 	}
-
-	write_stats(fd, counters);
-	close(fd);
+	write_stats(stats_file, counters);
+	lockfile_release(stats_file);
 
 	if (counters[STATS_MAXFILES] != 0 &&
 	    counters[STATS_NUMFILES] > counters[STATS_MAXFILES]) {
@@ -234,18 +244,17 @@ unsigned stats_get_pending(enum stats stat)
 }
 
 /* read in the stats from one dir and add to the counters */
-void stats_read(const char *stats_file, unsigned counters[STATS_END])
+void stats_read(const char *path, unsigned counters[STATS_END])
 {
 	int fd;
 
-	fd = open(stats_file, O_RDONLY|O_BINARY);
+	fd = open(path, O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		stats_default(counters);
-		return;
+	} else {
+		stats_read_fd(fd, counters);
+		close(fd);
 	}
-	read_lock_fd(fd);
-	stats_read_fd(fd, counters);
-	close(fd);
 }
 
 /* sum and display the total stats for all cache dirs */
@@ -311,25 +320,28 @@ void stats_zero(void)
 
 	for (dir=0;dir<=0xF;dir++) {
 		fname = format("%s/%1x/stats", cache_dir, dir);
-		fd = safe_open(fname);
-		if (fd == -1) {
+		memset(counters, 0, sizeof(counters));
+		if (!lockfile_acquire(fname, lock_staleness_limit)) {
 			free(fname);
 			continue;
 		}
-		memset(counters, 0, sizeof(counters));
-		write_lock_fd(fd);
-		stats_read_fd(fd, counters);
-		for (i=0;stats_info[i].message;i++) {
+		fd = open(fname, O_RDONLY|O_BINARY);
+		if (fd == -1) {
+			stats_default(counters);
+		} else {
+			stats_read_fd(fd, counters);
+			close(fd);
+		}
+		for (i = 0; stats_info[i].message; i++) {
 			if (!(stats_info[i].flags & FLAG_NOZERO)) {
 				counters[stats_info[i].stat] = 0;
 			}
 		}
-		write_stats(fd, counters);
-		close(fd);
+		write_stats(fname, counters);
+		lockfile_release(fname);
 		free(fname);
 	}
 }
-
 
 /* set the per directory limits */
 int stats_set_limits(long maxfiles, long maxsize)
@@ -349,7 +361,7 @@ int stats_set_limits(long maxfiles, long maxsize)
 	}
 
 	/* set the limits in each directory */
-	for (dir=0;dir<=0xF;dir++) {
+	for (dir = 0; dir <= 0xF; dir++) {
 		char *fname, *cdir;
 		int fd;
 
@@ -360,20 +372,26 @@ int stats_set_limits(long maxfiles, long maxsize)
 		fname = format("%s/stats", cdir);
 		free(cdir);
 
+		if (!lockfile_acquire(fname, lock_staleness_limit)) {
+			free(fname);
+			continue;
+		}
+		fd = open(fname, O_RDONLY|O_BINARY);
 		memset(counters, 0, sizeof(counters));
-		fd = safe_open(fname);
-		if (fd != -1) {
-			write_lock_fd(fd);
+		if (fd == -1) {
+			stats_default(counters);
+		} else {
 			stats_read_fd(fd, counters);
-			if (maxfiles != -1) {
-				counters[STATS_MAXFILES] = maxfiles;
-			}
-			if (maxsize != -1) {
-				counters[STATS_MAXSIZE] = maxsize;
-			}
-			write_stats(fd, counters);
 			close(fd);
 		}
+		if (maxfiles != -1) {
+			counters[STATS_MAXFILES] = maxfiles;
+		}
+		if (maxsize != -1) {
+			counters[STATS_MAXSIZE] = maxsize;
+		}
+		write_stats(fname, counters);
+		lockfile_release(fname);
 		free(fname);
 	}
 
@@ -385,22 +403,28 @@ void stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 {
 	int fd;
 	unsigned counters[STATS_END];
-	char *stats_file;
+	char *statsfile;
 
 	create_dir(dir);
-	stats_file = format("%s/stats", dir);
+	statsfile = format("%s/stats", dir);
 
 	memset(counters, 0, sizeof(counters));
 
-	fd = safe_open(stats_file);
-	if (fd != -1) {
-		write_lock_fd(fd);
+	if (!lockfile_acquire(statsfile, lock_staleness_limit)) {
+		free(statsfile);
+		return;
+	}
+	fd = safe_open(statsfile);
+	if (fd == -1) {
+		stats_default(counters);
+	} else {
 		stats_read_fd(fd, counters);
-		counters[STATS_NUMFILES] = num_files;
-		counters[STATS_TOTALSIZE] = total_size;
-		write_stats(fd, counters);
 		close(fd);
 	}
-
-	free(stats_file);
+	counters[STATS_NUMFILES] = num_files;
+	counters[STATS_TOTALSIZE] = total_size;
+	close(fd);
+	write_stats(statsfile, counters);
+	lockfile_release(statsfile);
+	free(statsfile);
 }
