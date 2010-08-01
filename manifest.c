@@ -551,10 +551,6 @@ struct file_hash *manifest_get(const char *manifest_path)
 		/* Cache miss. */
 		goto out;
 	}
-	if (read_lock_fd(fd) == -1) {
-		cc_log("Failed to read lock manifest file");
-		goto out;
-	}
 	f = gzdopen(fd, "rb");
 	if (!f) {
 		cc_log("Failed to gzdopen manifest file");
@@ -606,14 +602,15 @@ int manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	struct manifest *mf = NULL;
 	char *tmp_file = NULL;
 
+	/*
+	 * We don't bother to acquire a lock when writing the manifest to disk. A
+	 * race between two processes will only result in one lost entry, which is
+	 * not a big deal, and it's also very unlikely.
+	 */
+
 	fd1 = safe_open(manifest_path);
 	if (fd1 == -1) {
 		cc_log("Failed to open manifest file");
-		goto out;
-	}
-	if (write_lock_fd(fd1) == -1) {
-		cc_log("Failed to write lock manifest file");
-		close(fd1);
 		goto out;
 	}
 	if (fstat(fd1, &st) != 0) {
