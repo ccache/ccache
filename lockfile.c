@@ -21,13 +21,63 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 	char *my_content = NULL, *content = NULL, *initial_content = NULL;
 	const char *hostname = get_hostname();
 	int result = 0;
+#ifdef _WIN32
+	const size_t bufsize = 1024;
+	int fd, len;
+#else
 	int ret;
+#endif
 	unsigned to_sleep = 1000, slept = 0; /* Microseconds. */
 
 	while (1) {
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
+#ifdef _WIN32
+		fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
+		if (fd == -1) {
+			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
+			if (errno != EEXIST) {
+				/* Directory doesn't exist or isn't writable? */
+				goto out;
+			}
+			/* Someone else has the lock. */
+			fd = open(lockfile, O_RDONLY|O_BINARY);
+			if (fd == -1) {
+				if (errno == ENOENT) {
+					/*
+					 * The file was removed after the open() call above, so retry
+					 * acquiring it.
+					 */
+					continue;
+				} else {
+					cc_log("lockfile_acquire: open RDONLY %s: %s",
+					       lockfile, strerror(errno));
+					goto out;
+				}
+			}
+			free(content);
+			content = x_malloc(bufsize);
+			if ((len = read(fd, content, bufsize - 1)) == -1) {
+				cc_log("lockfile_acquire: read %s: %s", lockfile, strerror(errno));
+				close(fd);
+				goto out;
+			}
+			close(fd);
+			content[len] = '\0';
+		} else {
+			/* We got the lock. */
+			if (write(fd, my_content, strlen(my_content)) == -1) {
+				cc_log("lockfile_acquire: write %s: %s", lockfile, strerror(errno));
+				close(fd);
+				unlink(lockfile);
+				goto out;
+			}
+			close(fd);
+			result = 1;
+			goto out;
+		}
+#else
 		ret = symlink(my_content, lockfile);
 		if (ret == 0) {
 			/* We got the lock. */
@@ -53,6 +103,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				goto out;
 			}
 		}
+#endif
 
 		if (str_eq(content, my_content)) {
 			/* Lost NFS reply? */

@@ -30,7 +30,11 @@ TEST(acquire_should_create_symlink)
 {
 	lockfile_acquire("test", 1000);
 
+#ifdef _WIN32
+	CHECK(path_exists("test.lock"));
+#else
 	CHECK(is_symlink("test.lock"));
+#endif
 }
 
 TEST(release_should_delete_file)
@@ -45,11 +49,20 @@ TEST(lock_breaking)
 {
 	char *p;
 
+#ifdef _WIN32
+	create_file("test.lock", "foo");
+	create_file("test.lock.lock", "foo");
+#else
 	CHECK_INT_EQ(0, symlink("foo", "test.lock"));
 	CHECK_INT_EQ(0, symlink("foo", "test.lock.lock"));
+#endif
 	CHECK(lockfile_acquire("test", 1000));
 
+#ifdef _WIN32
+	p = read_file("test.lock");
+#else
 	p = x_readlink("test.lock");
+#endif
 	CHECK(p);
 	CHECK(!str_eq(p, "foo"));
 	CHECK(!path_exists("test.lock.lock"));
@@ -57,10 +70,12 @@ TEST(lock_breaking)
 	free(p);
 }
 
+#ifndef _WIN32
 TEST(failed_lock_breaking)
 {
 	create_file("test.lock", "");
 	CHECK(!lockfile_acquire("test", 1000));
 }
+#endif
 
 TEST_SUITE_END
