@@ -183,7 +183,7 @@ cct_check_failed(const char *file, int line, const char *what,
                  const char *expected, const char *actual)
 {
 	++failed_asserts;
-	fprintf(stderr, "%s:%u: Failed assertion:\n", file, line);
+	fprintf(stderr, "%s:%d: Failed assertion:\n", file, line);
 	fprintf(stderr, "  Suite:      %s\n", current_suite);
 	fprintf(stderr, "  Test:       %s\n", current_test);
 	if (expected && actual) {
