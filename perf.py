@@ -83,6 +83,8 @@ def test(tmp_dir, options, compiler_args, source_file):
         environment["CCACHE_COMPRESS"] = "1"
     if options.hardlink:
         environment["CCACHE_HARDLINK"] = "1"
+    if options.nostats:
+        environment["CCACHE_NOSTATS"] = "1"
 
     result = [None] * len(PHASES)
 
@@ -216,6 +218,10 @@ def main(argv):
         help="use hard links",
         action="store_true")
     op.add_option(
+        "--nostats",
+        help="don't write statistics",
+        action="store_true")
+    op.add_option(
         "-n", "--times",
         help="number of times to compile the file (default: %d)" \
             % DEFAULT_TIMES,
@@ -255,6 +261,7 @@ def main(argv):
             splitext(argv[-1])[0])
         print "Compression:", on_off(options.compression)
         print "Hardlink:", on_off(options.hardlink)
+        print "Nostats:", on_off(options.nostats)
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
     recreate_dir(tmp_dir)
