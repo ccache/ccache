@@ -206,6 +206,12 @@ char *args_to_string(struct args *args);
 int args_equal(struct args *args1, struct args *args2);
 
 /* ------------------------------------------------------------------------- */
+/* lockfile.c */
+
+int lockfile_acquire(const char *path, unsigned staleness_limit);
+void lockfile_release(const char *path);
+
+/* ------------------------------------------------------------------------- */
 /* ccache.c */
 
 int cc_process_args(struct args *orig_args, struct args **preprocessor_args,
