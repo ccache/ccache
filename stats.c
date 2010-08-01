@@ -120,11 +120,10 @@ write_stats(const char *path, unsigned counters[STATS_END])
 		return;
 	}
 	for (i = 0; i < STATS_END; i++) {
-		if (fprintf(f, "%u ", counters[i]) < 0) {
+		if (fprintf(f, "%u\n", counters[i]) < 0) {
 			fatal("Failed to write to %s", tmp_file);
 		}
 	}
-	fputs("\n", f);
 	fclose(f);
 	x_rename(tmp_file, path);
 }
