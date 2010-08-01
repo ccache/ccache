@@ -51,8 +51,7 @@
 
 #define CHECK(assertion) \
 	do { \
-		int ok = (assertion); \
-		if (ok) { \
+		if ((assertion)) { \
 			cct_check_passed(); \
 		} else { \
 			cct_check_failed(__FILE__, __LINE__, #assertion, NULL, NULL); \
