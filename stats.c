@@ -172,6 +172,7 @@ void stats_flush(void)
 	for (i = 0; i < STATS_END; ++i) {
 		if (counter_updates[i] > 0) {
 			should_flush = 1;
+			break;
 		}
 	}
 	if (!should_flush) return;
