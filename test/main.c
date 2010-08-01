@@ -34,8 +34,6 @@ const char USAGE_TEXT[] =
 	"    -h, --help      print this help text\n"
 	"    -v, --verbose   enable verbose logging of tests\n";
 
-extern char *cache_logfile;
-
 int main(int argc, char **argv)
 {
 	static const struct option options[] = {
@@ -74,7 +72,6 @@ int main(int argc, char **argv)
 	if (getenv("RUN_FROM_BUILD_FARM")) {
 		verbose = 1;
 	}
-	cache_logfile = getenv("CCACHE_LOGFILE");
 
 	testdir = format("testdir.%d", (int)getpid());
 	cct_create_fresh_dir(testdir);

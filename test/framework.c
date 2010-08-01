@@ -142,6 +142,8 @@ void cct_suite_end()
 
 void cct_test_begin(const char *name)
 {
+	extern char *cache_logfile;
+
 	verify_test_suite_name(name);
 	if (verbose) {
 		printf("--- TEST: %s ---\n", name);
@@ -151,7 +153,9 @@ void cct_test_begin(const char *name)
 	cct_chdir(name);
 	current_test = name;
 	failed_asserts_before_test = failed_asserts;
+
 	cc_reset();
+	cache_logfile = getenv("CCACHE_LOGFILE");
 }
 
 void cct_test_end()
