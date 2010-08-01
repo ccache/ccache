@@ -30,7 +30,7 @@ args_init(int init_argc, char **init_args)
 	args->argc = 0;
 	args->argv = (char **)x_malloc(sizeof(char *));
 	args->argv[0] = NULL;
-	for (i=0;i<init_argc;i++) {
+	for (i = 0; i < init_argc; i++) {
 		args_add(args, init_args[i]);
 	}
 	return args;
@@ -109,9 +109,7 @@ void
 args_remove_first(struct args *args)
 {
 	free(args->argv[0]);
-	memmove(&args->argv[0],
-		&args->argv[1],
-		args->argc * sizeof(args->argv[0]));
+	memmove(&args->argv[0], &args->argv[1], args->argc * sizeof(args->argv[0]));
 	args->argc--;
 }
 
@@ -121,7 +119,7 @@ args_add_prefix(struct args *args, const char *s)
 {
 	args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char *));
 	memmove(&args->argv[1], &args->argv[0],
-		(args->argc+1) * sizeof(args->argv[0]));
+	        (args->argc+1) * sizeof(args->argv[0]));
 	args->argv[0] = x_strdup(s);
 	args->argc++;
 }
@@ -131,12 +129,12 @@ void
 args_strip(struct args *args, const char *prefix)
 {
 	int i;
-	for (i=0; i<args->argc; ) {
+	for (i = 0; i < args->argc; ) {
 		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],
-				&args->argv[i+1],
-				args->argc * sizeof(args->argv[i]));
+			        &args->argv[i+1],
+			        args->argc * sizeof(args->argv[i]));
 			args->argc--;
 		} else {
 			i++;

@@ -47,7 +47,8 @@ static size_t cache_size_threshold;
 static size_t files_in_cache_threshold;
 
 /* File comparison function that orders files in mtime order, oldest first. */
-static int files_compare(struct files **f1, struct files **f2)
+static int
+files_compare(struct files **f1, struct files **f2)
 {
 	if ((*f2)->mtime == (*f1)->mtime) {
 		return strcmp((*f1)->fname, (*f2)->fname);
@@ -59,7 +60,8 @@ static int files_compare(struct files **f1, struct files **f2)
 }
 
 /* this builds the list of files in the cache */
-static void traverse_fn(const char *fname, struct stat *st)
+static void
+traverse_fn(const char *fname, struct stat *st)
 {
 	char *p;
 
@@ -85,8 +87,7 @@ static void traverse_fn(const char *fname, struct stat *st)
 
 	if (num_files == allocated) {
 		allocated = 10000 + num_files*2;
-		files = (struct files **)x_realloc(
-			files, sizeof(struct files *)*allocated);
+		files = (struct files **)x_realloc(files, sizeof(struct files *)*allocated);
 	}
 
 	files[num_files] = (struct files *)x_malloc(sizeof(struct files));
@@ -101,7 +102,8 @@ out:
 	free(p);
 }
 
-static void delete_file(const char *path, size_t size)
+static void
+delete_file(const char *path, size_t size)
 {
 	if (unlink(path) == 0) {
 		cache_size -= size;
@@ -111,7 +113,8 @@ static void delete_file(const char *path, size_t size)
 	}
 }
 
-static void delete_sibling_file(const char *base, const char *extension)
+static void
+delete_sibling_file(const char *base, const char *extension)
 {
 	struct stat st;
 	char *path;
@@ -127,7 +130,8 @@ static void delete_sibling_file(const char *base, const char *extension)
 
 /* sort the files we've found and delete the oldest ones until we are
    below the thresholds */
-static void sort_and_clean(void)
+static void
+sort_and_clean(void)
 {
 	unsigned i;
 	const char *ext;
@@ -135,8 +139,7 @@ static void sort_and_clean(void)
 
 	if (num_files > 1) {
 		/* Sort in ascending mtime order. */
-		qsort(files, num_files, sizeof(struct files *),
-		      (COMPAR_FN_T)files_compare);
+		qsort(files, num_files, sizeof(struct files *), (COMPAR_FN_T)files_compare);
 	}
 
 	/* delete enough files to bring us below the threshold */
@@ -178,7 +181,8 @@ static void sort_and_clean(void)
 }
 
 /* cleanup in one cache subdir */
-void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
+void
+cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 {
 	unsigned i;
 
@@ -230,9 +234,7 @@ void cleanup_all(const char *dir)
 		memset(counters, 0, sizeof(counters));
 		stats_read(sfile, counters);
 
-		cleanup_dir(dname,
-			    counters[STATS_MAXFILES],
-			    counters[STATS_MAXSIZE]);
+		cleanup_dir(dname, counters[STATS_MAXFILES], counters[STATS_MAXSIZE]);
 		free(dname);
 		free(sfile);
 	}

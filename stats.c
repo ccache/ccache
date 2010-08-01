@@ -84,7 +84,8 @@ static struct {
 	{ STATS_NONE, NULL, NULL, 0 }
 };
 
-static void display_size(size_t v)
+static void
+display_size(size_t v)
 {
 	char *s = format_size(v);
 	printf("%15s", s);
@@ -92,13 +93,14 @@ static void display_size(size_t v)
 }
 
 /* parse a stats file from a buffer - adding to the counters */
-static void parse_stats(unsigned counters[STATS_END], char *buf)
+static void
+parse_stats(unsigned counters[STATS_END], char *buf)
 {
 	int i;
 	char *p, *p2;
 
 	p = buf;
-	for (i=0;i<STATS_END;i++) {
+	for (i = 0; i < STATS_END; i++) {
 		counters[i] += strtol(p, &p2, 10);
 		if (!p2 || p2 == p) break;
 		p = p2;
@@ -129,13 +131,15 @@ write_stats(const char *path, unsigned counters[STATS_END])
 }
 
 /* fill in some default stats values */
-static void stats_default(unsigned counters[STATS_END])
+static void
+stats_default(unsigned counters[STATS_END])
 {
 	counters[STATS_MAXSIZE] += DEFAULT_MAXSIZE / 16;
 }
 
 /* read in the stats from one dir and add to the counters */
-static void stats_read_fd(int fd, unsigned counters[STATS_END])
+static void
+stats_read_fd(int fd, unsigned counters[STATS_END])
 {
 	char buf[1024];
 	int len;
@@ -152,7 +156,8 @@ static void stats_read_fd(int fd, unsigned counters[STATS_END])
  * Update a statistics counter (unless it's STATS_NONE) and also record that a
  * number of bytes and files have been added to the cache. Size is in KiB.
  */
-void stats_update_size(enum stats stat, size_t size, unsigned files)
+void
+stats_update_size(enum stats stat, size_t size, unsigned files)
 {
 	if (stat != STATS_NONE) {
 		counter_updates[stat]++;
@@ -164,7 +169,8 @@ void stats_update_size(enum stats stat, size_t size, unsigned files)
 /*
  * Write counter updates in pending_counters to disk.
  */
-void stats_flush(void)
+void
+stats_flush(void)
 {
 	int fd;
 	unsigned counters[STATS_END];
@@ -231,19 +237,22 @@ void stats_flush(void)
 }
 
 /* update a normal stat */
-void stats_update(enum stats stat)
+void
+stats_update(enum stats stat)
 {
 	stats_update_size(stat, 0, 0);
 }
 
 /* Get the pending update a counter value. */
-unsigned stats_get_pending(enum stats stat)
+unsigned
+stats_get_pending(enum stats stat)
 {
 	return counter_updates[stat];
 }
 
 /* read in the stats from one dir and add to the counters */
-void stats_read(const char *path, unsigned counters[STATS_END])
+void
+stats_read(const char *path, unsigned counters[STATS_END])
 {
 	int fd;
 
@@ -257,7 +266,8 @@ void stats_read(const char *path, unsigned counters[STATS_END])
 }
 
 /* sum and display the total stats for all cache dirs */
-void stats_summary(void)
+void
+stats_summary(void)
 {
 	int dir, i;
 	unsigned counters[STATS_END];
@@ -265,7 +275,7 @@ void stats_summary(void)
 	memset(counters, 0, sizeof(counters));
 
 	/* add up the stats in each directory */
-	for (dir=-1;dir<=0xF;dir++) {
+	for (dir = -1; dir <= 0xF; dir++) {
 		char *fname;
 
 		if (dir == -1) {
@@ -287,11 +297,10 @@ void stats_summary(void)
 	printf("cache directory                     %s\n", cache_dir);
 
 	/* and display them */
-	for (i=0;stats_info[i].message;i++) {
+	for (i = 0; stats_info[i].message; i++) {
 		enum stats stat = stats_info[i].stat;
 
-		if (counters[stat] == 0 &&
-		    !(stats_info[i].flags & FLAG_ALWAYS)) {
+		if (counters[stat] == 0 && !(stats_info[i].flags & FLAG_ALWAYS)) {
 			continue;
 		}
 
@@ -306,7 +315,8 @@ void stats_summary(void)
 }
 
 /* zero all the stats structures */
-void stats_zero(void)
+void
+stats_zero(void)
 {
 	int dir, fd;
 	unsigned i;
@@ -317,7 +327,7 @@ void stats_zero(void)
 	unlink(fname);
 	free(fname);
 
-	for (dir=0;dir<=0xF;dir++) {
+	for (dir = 0; dir <= 0xF; dir++) {
 		fname = format("%s/%1x/stats", cache_dir, dir);
 		memset(counters, 0, sizeof(counters));
 		if (!lockfile_acquire(fname, lock_staleness_limit)) {
@@ -343,7 +353,8 @@ void stats_zero(void)
 }
 
 /* set the per directory limits */
-int stats_set_limits(long maxfiles, long maxsize)
+int
+stats_set_limits(long maxfiles, long maxsize)
 {
 	int dir;
 	unsigned counters[STATS_END];
@@ -398,7 +409,8 @@ int stats_set_limits(long maxfiles, long maxsize)
 }
 
 /* set the per directory sizes */
-void stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
+void
+stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 {
 	int fd;
 	unsigned counters[STATS_END];

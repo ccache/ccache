@@ -39,11 +39,11 @@
 #include <unistd.h>
 
 static const char *const s_tokens[] = {
-	"...",	">>=",	"<<=",	"+=",	"-=",	"*=",	"/=",	"%=",	"&=",	"^=",
-	"|=",	">>",	"<<",	"++",	"--",	"->",	"&&",	"||",	"<=",	">=",
-	"==",	"!=",	";",	"{",	"<%",	"}",	"%>",	",",	":",	"=",
-	"(",	")",	"[",	"<:",	"]",	":>",	".",	"&",	"!",	"~",
-	"-",	"+",	"*",	"/",	"%",	"<",	">",	"^",	"|",	"?",
+	"...", ">>=", "<<=", "+=", "-=", "*=", "/=", "%=", "&=", "^=",
+	"|=",  ">>",  "<<",  "++", "--", "->", "&&", "||", "<=", ">=",
+	"==",  "!=",  ";",   "{",  "<%", "}",  "%>", ",",  ":",  "=",
+	"(",   ")",   "[",   "<:", "]",  ":>", ".",  "&",  "!",  "~",
+	"-",   "+",   "*",   "/",  "%",  "<",  ">",  "^",  "|",  "?",
 	0
 };
 
@@ -63,7 +63,8 @@ static struct {
 } tokens[256];
 
 /* build up the table used by the unifier */
-static void build_table(void)
+static void
+build_table(void)
 {
 	unsigned char c;
 	int i;
@@ -73,7 +74,7 @@ static void build_table(void)
 	done = 1;
 
 	memset(tokens, 0, sizeof(tokens));
-	for (c=0;c<128;c++) {
+	for (c = 0; c < 128; c++) {
 		if (isalpha(c) || c == '_') tokens[c].type |= C_ALPHA;
 		if (isdigit(c)) tokens[c].type |= C_DIGIT;
 		if (isspace(c)) tokens[c].type |= C_SPACE;
@@ -91,7 +92,7 @@ static void build_table(void)
 	tokens['-'].type |= C_SIGN;
 	tokens['+'].type |= C_SIGN;
 
-	for (i=0;s_tokens[i];i++) {
+	for (i = 0; s_tokens[i]; i++) {
 		c = s_tokens[i][0];
 		tokens[c].type |= C_TOKEN;
 		tokens[c].toks[tokens[c].num_toks] = s_tokens[i];
@@ -100,7 +101,8 @@ static void build_table(void)
 }
 
 /* buffer up characters before hashing them */
-static void pushchar(struct mdfour *hash, unsigned char c)
+static void
+pushchar(struct mdfour *hash, unsigned char c)
 {
 	static unsigned char buf[64];
 	static size_t len;
@@ -122,7 +124,8 @@ static void pushchar(struct mdfour *hash, unsigned char c)
 }
 
 /* hash some C/C++ code after unifying */
-static void unify(struct mdfour *hash, unsigned char *p, size_t size)
+static void
+unify(struct mdfour *hash, unsigned char *p, size_t size)
 {
 	size_t ofs;
 	unsigned char q;
@@ -130,7 +133,7 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 
 	build_table();
 
-	for (ofs=0; ofs<size;) {
+	for (ofs = 0; ofs < size;) {
 		if (p[ofs] == '#') {
 			if ((size-ofs) > 2 && p[ofs+1] == ' ' && isdigit(p[ofs+2])) {
 				do {
@@ -152,8 +155,7 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 			do {
 				pushchar(hash, p[ofs]);
 				ofs++;
-			} while (ofs < size &&
-				 (tokens[p[ofs]].type & (C_ALPHA|C_DIGIT)));
+			} while (ofs < size && (tokens[p[ofs]].type & (C_ALPHA|C_DIGIT)));
 			pushchar(hash, '\n');
 			continue;
 		}
@@ -173,8 +175,7 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 			if (ofs < size && (p[ofs] == 'E' || p[ofs] == 'e')) {
 				pushchar(hash, p[ofs]);
 				ofs++;
-				while (ofs < size &&
-				       (tokens[p[ofs]].type & (C_DIGIT|C_SIGN))) {
+				while (ofs < size && (tokens[p[ofs]].type & (C_DIGIT|C_SIGN))) {
 					pushchar(hash, p[ofs]);
 					ofs++;
 				}
@@ -202,7 +203,7 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 				while (ofs < size-1 && p[ofs] == '\\') {
 					pushchar(hash, p[ofs]);
 					pushchar(hash, p[ofs+1]);
-					ofs+=2;
+					ofs += 2;
 				}
 				pushchar(hash, p[ofs]);
 			} while (ofs < size && p[ofs] != q);
@@ -213,12 +214,12 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 
 		if (tokens[p[ofs]].type & C_TOKEN) {
 			q = p[ofs];
-			for (i=0;i<tokens[q].num_toks;i++) {
+			for (i = 0; i < tokens[q].num_toks; i++) {
 				unsigned char *s = (unsigned char *)tokens[q].toks[i];
 				int len = strlen((char *)s);
 				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
-					for (j=0;s[j];j++) {
+					for (j = 0; s[j]; j++) {
 						pushchar(hash, s[j]);
 						ofs++;
 					}
@@ -242,7 +243,8 @@ static void unify(struct mdfour *hash, unsigned char *p, size_t size)
 /* hash a file that consists of preprocessor output, but remove any line
    number information from the hash
 */
-int unify_hash(struct mdfour *hash, const char *fname)
+int
+unify_hash(struct mdfour *hash, const char *fname)
 {
 	off_t size;
 	char *map;

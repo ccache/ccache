@@ -28,12 +28,14 @@
 
 #define HASH_DELIMITER "\000cCaChE"
 
-void hash_buffer(struct mdfour *md, const void *s, size_t len)
+void
+hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
 	mdfour_update(md, (unsigned char *)s, len);
 }
 
-void hash_start(struct mdfour *md)
+void
+hash_start(struct mdfour *md)
 {
 	mdfour_begin(md);
 }
@@ -48,18 +50,21 @@ void hash_start(struct mdfour *md)
  *   information X if CCACHE_A is set and information Y if CCACHE_B is set,
  *   there should never be a hash collision risk).
  */
-void hash_delimiter(struct mdfour *md, const char *type)
+void
+hash_delimiter(struct mdfour *md, const char *type)
 {
 	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
 	hash_buffer(md, type, strlen(type) + 1); /* Include NUL. */
 }
 
-void hash_string(struct mdfour *md, const char *s)
+void
+hash_string(struct mdfour *md, const char *s)
 {
 	hash_buffer(md, s, strlen(s));
 }
 
-void hash_int(struct mdfour *md, int x)
+void
+hash_int(struct mdfour *md, int x)
 {
 	hash_buffer(md, (char *)&x, sizeof(x));
 }
@@ -67,7 +72,8 @@ void hash_int(struct mdfour *md, int x)
 /*
  * Add contents of an open file to the hash. Returns 1 on success, otherwise 0.
  */
-int hash_fd(struct mdfour *md, int fd)
+int
+hash_fd(struct mdfour *md, int fd)
 {
 	char buf[1024];
 	size_t n;
@@ -85,7 +91,8 @@ int hash_fd(struct mdfour *md, int fd)
 /*
  * Add contents of a file to the hash. Returns 1 on success, otherwise 0.
  */
-int hash_file(struct mdfour *md, const char *fname)
+int
+hash_file(struct mdfour *md, const char *fname)
 {
 	int fd;
 	int ret;
@@ -101,7 +108,8 @@ int hash_file(struct mdfour *md, const char *fname)
 }
 
 /* Return the hash result as a hex string. Caller frees. */
-char *hash_result(struct mdfour *md)
+char *
+hash_result(struct mdfour *md)
 {
 	unsigned char sum[16];
 
@@ -110,7 +118,8 @@ char *hash_result(struct mdfour *md)
 }
 
 /* return the hash result as 16 binary bytes */
-void hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+void
+hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 {
 	hash_buffer(md, NULL, 0);
 	mdfour_result(md, out);

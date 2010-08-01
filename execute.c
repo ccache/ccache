@@ -38,7 +38,8 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path);
  * Re-create a win32 command line string based on **argv.
  * http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
  */
-static char *argvtos(char *prefix, char **argv)
+static char *
+argvtos(char *prefix, char **argv)
 {
 	char *arg;
 	char *ptr;
@@ -52,14 +53,14 @@ static char *argvtos(char *prefix, char **argv)
 		int bs = 0;
 		for (j = 0; arg[j]; j++) {
 			switch (arg[j]) {
-				case '\\':
-					bs++;
-					break;
-				case '"':
-					bs = (bs << 1) + 1;
-				default:
-					l += bs + 1;
-					bs = 0;
+			case '\\':
+				bs++;
+				break;
+			case '"':
+				bs = (bs << 1) + 1;
+			default:
+				l += bs + 1;
+				bs = 0;
 			}
 		}
 		l += (bs << 1) + 3;
@@ -76,15 +77,15 @@ static char *argvtos(char *prefix, char **argv)
 		*ptr++ = '"';
 		for (j = 0; arg[j]; j++) {
 			switch (arg[j]) {
-				case '\\':
-					bs++;
-					break;
-				case '"':
-					bs = (bs << 1) + 1;
-				default:
-					while (bs && bs--)
-						*ptr++ = '\\';
-					*ptr++ = arg[j];
+			case '\\':
+				bs++;
+				break;
+			case '"':
+				bs = (bs << 1) + 1;
+			default:
+				while (bs && bs--)
+					*ptr++ = '\\';
+				*ptr++ = arg[j];
 			}
 		}
 		bs <<= 1;
@@ -98,8 +99,9 @@ static char *argvtos(char *prefix, char **argv)
 	return str;
 }
 
-int win32execute(char *path, char **argv, int doreturn,
-                 const char *path_stdout, const char *path_stderr)
+int
+win32execute(char *path, char **argv, int doreturn,
+             const char *path_stdout, const char *path_stderr)
 {
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
@@ -144,7 +146,7 @@ int win32execute(char *path, char **argv, int doreturn,
 		si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
 		si.dwFlags    = STARTF_USESTDHANDLES;
 		if (si.hStdOutput == INVALID_HANDLE_VALUE ||
-			si.hStdError  == INVALID_HANDLE_VALUE)
+		    si.hStdError  == INVALID_HANDLE_VALUE)
 			return -1;
 	}
 	args = argvtos(sh, argv);
@@ -171,9 +173,8 @@ int win32execute(char *path, char **argv, int doreturn,
   execute a compiler backend, capturing all output to the given paths
   the full path to the compiler to run is in argv[0]
 */
-int execute(char **argv,
-	    const char *path_stdout,
-	    const char *path_stderr)
+int
+execute(char **argv, const char *path_stdout, const char *path_stderr)
 {
 	pid_t pid;
 	int status;
@@ -219,9 +220,11 @@ int execute(char **argv,
 
 
 /*
-  find an executable by name in $PATH. Exclude any that are links to exclude_name
+ * Find an executable by name in $PATH. Exclude any that are links to
+ * exclude_name.
 */
-char *find_executable(const char *name, const char *exclude_name)
+char *
+find_executable(const char *name, const char *exclude_name)
 {
 	char *path;
 
@@ -250,14 +253,14 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
-	for (tok=strtok(path, PATH_DELIM); tok; tok = strtok(NULL, PATH_DELIM)) {
+	for (tok = strtok(path, PATH_DELIM); tok; tok = strtok(NULL, PATH_DELIM)) {
 #ifdef _WIN32
 		char namebuf[MAX_PATH];
 		int ret = SearchPath(tok, name, ".exe",
 		                     sizeof(namebuf), namebuf, NULL);
 		if (!ret)
 			ret = SearchPath(tok, name, NULL,
-		                     sizeof(namebuf), namebuf, NULL);
+			                 sizeof(namebuf), namebuf, NULL);
 		(void) exclude_name;
 		if (ret) {
 			free(path);
@@ -271,14 +274,12 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 		    lstat(fname, &st1) == 0 &&
 		    stat(fname, &st2) == 0 &&
 		    S_ISREG(st2.st_mode)) {
-			/* if its a symlink then ensure it doesn't
-                           point at something called exclude_name */
 			if (S_ISLNK(st1.st_mode)) {
 				char *buf = x_realpath(fname);
 				if (buf) {
 					char *p = basename(buf);
 					if (str_eq(p, exclude_name)) {
-						/* its a link to "ccache" ! */
+						/* It's a link to "ccache"! */
 						free(p);
 						free(buf);
 						continue;
@@ -288,7 +289,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 				}
 			}
 
-			/* found it! */
+			/* Found it! */
 			free(path);
 			return fname;
 		}
@@ -300,7 +301,8 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 	return NULL;
 }
 
-void print_command(FILE *fp, char **argv)
+void
+print_command(FILE *fp, char **argv)
 {
 	int i;
 	for (i = 0; argv[i]; i++) {
@@ -309,7 +311,8 @@ void print_command(FILE *fp, char **argv)
 	fprintf(fp, "\n");
 }
 
-void print_executed_command(FILE *fp, char **argv)
+void
+print_executed_command(FILE *fp, char **argv)
 {
 	fprintf(fp, "%s: executing ", MYNAME);
 	print_command(fp, argv);

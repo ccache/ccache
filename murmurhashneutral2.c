@@ -5,7 +5,8 @@
 
 #include "murmurhashneutral2.h"
 
-unsigned int murmurhashneutral2(const void *key, int len, unsigned int seed)
+unsigned int
+murmurhashneutral2(const void *key, int len, unsigned int seed)
 {
 	const unsigned int m = 0x5bd1e995;
 	const int r = 24;

@@ -25,7 +25,7 @@ extern const char CCACHE_VERSION[];
 
 /* statistics fields in storage order */
 enum stats {
-	STATS_NONE=0,
+	STATS_NONE = 0,
 	STATS_STDOUT,
 	STATS_STATUS,
 	STATS_ERROR,

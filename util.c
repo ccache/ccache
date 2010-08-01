@@ -51,7 +51,8 @@
 
 static FILE *logfile;
 
-static int init_log(void)
+static int
+init_log(void)
 {
 	extern char *cache_logfile;
 
@@ -69,7 +70,8 @@ static int init_log(void)
 	}
 }
 
-static void log_prefix(void)
+static void
+log_prefix(void)
 {
 #ifdef HAVE_GETTIMEOFDAY
 	char timestamp[100];

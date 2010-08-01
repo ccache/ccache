@@ -49,14 +49,14 @@ file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 		&& fh1->size == fh2->size;
 }
 
-#define HASH(ch)							\
-	do {								\
-		hashbuf[hashbuflen] = ch;				\
-		hashbuflen++;						\
-		if (hashbuflen == sizeof(hashbuf)) {			\
-			hash_buffer(hash, hashbuf, sizeof(hashbuf));	\
-			hashbuflen = 0;					\
-		}							\
+#define HASH(ch) \
+	do {\
+		hashbuf[hashbuflen] = ch; \
+		hashbuflen++; \
+		if (hashbuflen == sizeof(hashbuf)) {\
+			hash_buffer(hash, hashbuf, sizeof(hashbuf)); \
+			hashbuflen = 0; \
+		} \
 	} while (0)
 
 /*
@@ -88,8 +88,7 @@ hash_source_code_string(
 			}
 			switch (*(p+1)) {
 			case '*':
-				HASH(' '); /* Don't paste tokens together when
-					    * removing the comment. */
+				HASH(' '); /* Don't paste tokens together when removing the comment. */
 				p += 2;
 				while (p+1 < end
 				       && (*p != '*' || *(p+1) != '/')) {
@@ -140,19 +139,17 @@ hash_source_code_string(
 				    && p[4] == 'T') {
 					result |= HASH_SOURCE_CODE_FOUND_DATE;
 				} else if (p[2] == 'T' && p[3] == 'I'
-					   && p[4] == 'M') {
+				           && p[4] == 'M') {
 					result |= HASH_SOURCE_CODE_FOUND_TIME;
 				}
 				/*
-				 * Of course, we can't be sure that we have
-				 * found a __{DATE,TIME}__ that's actually
-				 * used, but better safe than sorry. And if you
-				 * do something like
+				 * Of course, we can't be sure that we have found a __{DATE,TIME}__
+				 * that's actually used, but better safe than sorry. And if you do
+				 * something like
 				 *
 				 * #define TIME __TI ## ME__
 				 *
-				 * in your code, you deserve to get a false
-				 * cache hit.
+				 * in your code, you deserve to get a false cache hit.
 				 */
 			}
 			break;
@@ -173,8 +170,8 @@ end:
 	}
 	if (result & HASH_SOURCE_CODE_FOUND_DATE) {
 		/*
-		 * Make sure that the hash sum changes if the (potential)
-		 * expansion of __DATE__ changes.
+		 * Make sure that the hash sum changes if the (potential) expansion of
+		 * __DATE__ changes.
 		 */
 		time_t t = time(NULL);
 		struct tm *now = localtime(&t);
@@ -186,12 +183,11 @@ end:
 	}
 	if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 		/*
-		 * We don't know for sure that the program actually uses the
-		 * __TIME__ macro, but we have to assume it anyway and hash the
-		 * time stamp. However, that's not very useful since the chance
-		 * that we get a cache hit later the same second should be
-		 * quite slim... So, just signal back to the caller that
-		 * __TIME__ has been found so that the direct mode can be
+		 * We don't know for sure that the program actually uses the __TIME__
+		 * macro, but we have to assume it anyway and hash the time stamp. However,
+		 * that's not very useful since the chance that we get a cache hit later
+		 * the same second should be quite slim... So, just signal back to the
+		 * caller that __TIME__ has been found so that the direct mode can be
 		 * disabled.
 		 */
 		cc_log("Found __TIME__ in %s", path);
