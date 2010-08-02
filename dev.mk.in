@@ -30,8 +30,8 @@ files_to_clean += $(built_dist_files) version.c test/suites.h
 
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
-    config.h.in configure install-sh Makefile.in test.sh \
-    AUTHORS.txt GPL-3.0.txt INSTALL.txt LICENSE.txt NEWS.txt README.txt
+    config.h.in configure install-sh Makefile.in test.sh GPL-3.0.txt \
+    AUTHORS.txt INSTALL.txt LICENSE.txt MANUAL.txt NEWS.txt README.txt
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
