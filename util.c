@@ -777,7 +777,6 @@ value_units(const char *s)
 	return (size_t)v;
 }
 
-
 #ifndef _WIN32
 /*
   a sane realpath() function, trying to cope with stupid path limits and
@@ -1118,6 +1117,7 @@ x_rename(const char *oldpath, const char *newpath)
 	return rename(oldpath, newpath);
 }
 
+#ifndef _WIN32
 /* Like readlink() but returns the string or NULL on failure. Caller frees. */
 char *
 x_readlink(const char *path)
@@ -1143,3 +1143,4 @@ x_readlink(const char *path)
 	buf[len] = 0;
 	return buf;
 }
+#endif
