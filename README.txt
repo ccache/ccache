@@ -16,13 +16,13 @@ more information.
 Documentation
 -------------
 
-See the ccache(1) man page. It's also avaiable as manual.txt and manual.html.
+See the ccache(1) man page. It's also available as MANUAL.{txt,html}.
 
 
 Installation
 ------------
 
-See INSTALL.txt or INSTALL.html.
+See INSTALL.{txt.html}.
 
 
 Web site
@@ -68,21 +68,14 @@ You can also browse the repository:
 History
 -------
 
-ccache was originally written by Andrew Tridgell and is currently maintained by
-Joel Rosdahl. ccache started out as a reimplementation of Erik Thiele's
-``compilercache'' (see http://www.erikyyy.de/compilercache/) in C.
+ccache was originally written by Andrew Tridgell and is currently developed and
+maintained by Joel Rosdahl. ccache started out as a reimplementation of Erik
+Thiele's ``compilercache'' (see http://www.erikyyy.de/compilercache/) in C.
 
-See also NEWS.txt or NEWS.html.
+See also NEWS.{txt,html}.
 
 
-Copyright
----------
+License and copyright
+---------------------
 
-Copyright (C) 2002-2007 Andrew Tridgell
-Copyright (C) 2009-2010 Joel Rosdahl
-
-ccache may be used, modified and redistributed only under the terms of the GNU
-General Public License version 3 or later, found in the file COPYING in this
-distribution, or on this web page:
-
-    http://www.fsf.org/licenses/gpl.html
+See LICENSE.{txt,html} and AUTHORS.{txt,html}.

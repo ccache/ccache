@@ -1,5 +1,8 @@
 dnl ===========================================================================
 dnl Feature macro stuff borrowed from Python's configure.in
+dnl
+dnl For license information, see
+dnl <http://www.python.org/download/releases/2.6.2/license/>.
 dnl ===========================================================================
 
 # The later defininition of _XOPEN_SOURCE disables certain features

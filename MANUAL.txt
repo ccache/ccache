@@ -73,11 +73,13 @@ path.
 
 To install for the second method, do something like this:
 
-    cp ccache /usr/local/bin/
-    ln -s ccache /usr/local/bin/gcc
-    ln -s ccache /usr/local/bin/g++
-    ln -s ccache /usr/local/bin/cc
-    ln -s ccache /usr/local/bin/c++
+-------------------------------------------------------------------------------
+cp ccache /usr/local/bin/
+ln -s ccache /usr/local/bin/gcc
+ln -s ccache /usr/local/bin/g++
+ln -s ccache /usr/local/bin/cc
+ln -s ccache /usr/local/bin/c++
+-------------------------------------------------------------------------------
 
 And so forth. This will work as long as +/usr/local/bin+ comes before the path
 to the compiler (which is usually in +/usr/bin+). After installing you may wish
@@ -720,6 +722,6 @@ etc, can be found on ccache's web site: <http://ccache.samba.org>.
 Author
 ------
 
-ccache is currently maintained by Joel Rosdahl and was originally written by
-Andrew Tridgell. See <http://ccache.samba.org/credits.html> for a list of
-contributors.
+ccache was originally written by Andrew Tridgell and is currently developed and
+maintained by Joel Rosdahl. See AUTHORS.txt or AUTHORS.html and
+<http://ccache.samba.org/credits.html> for a list of contributors.

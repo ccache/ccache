@@ -1,0 +1,30 @@
+ccache authors
+==============
+
+ccache was originally written by Andrew Tridgell and is currently developed and
+maintained by Joel Rosdahl.
+
+ccache is a collective work with contributions from many people, including:
+
+* Andrea Bittau <a.bittau@cs.ucl.ac.uk>
+* Andrew Tridgell <tridge@samba.org>
+* Bernhard Bauer <bauerb@google.com>
+* Clemens Rabe <crabe@gmx.de>
+* Francois Marier <francois@debian.org>
+* Joel Rosdahl <joel@rosdahl.net>
+* John Coiner <john.coiner@amd.com>
+* Karl Chen <quarl@cs.berkeley.edu>
+* Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
+* Lars Gustäbel <lars@gustaebel.de>
+* Martin Pool <mbp@sourcefrog.net>
+* Owen Mann <owen@mann.org>
+* Paul Griffith <paulg@cse.yorku.ca>
+* Ramiro Polla <ramiro.polla@gmail.com>
+* Robin H. Johnson <robbat2@gentoo.org>
+* RW <fbsd06@mlists.homeunix.com>
+* Tim Potter <tpot@samba.org>
+* Ville Skytta <ville.skytta@iki.fi>
+* William S Fulton <wsf@fultondesigns.co.uk>
+* Wilson Snyder <wsnyder@wsnyder.org>
+
+Thanks!

@@ -15,7 +15,9 @@ dist_dir = ccache-$(version)
 dist_archive_tar_bz2 = ccache-$(version).tar.bz2
 dist_archive_tar_gz = ccache-$(version).tar.gz
 
-generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
+generated_docs = \
+    ccache.1 AUTHORS.html INSTALL.html LICENSE.html MANUAL.html NEWS.html \
+    README.html
 built_dist_files = $(generated_docs)
 
 headers = \
@@ -29,8 +31,8 @@ files_to_clean += *.xml
 
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
-    config.h.in configure install-sh Makefile.in \
-    test.sh COPYING INSTALL.txt NEWS.txt README.txt
+    config.h.in configure install-sh Makefile.in test.sh \
+    AUTHORS.txt GPL-3.0.txt INSTALL.txt LICENSE.txt NEWS.txt README.txt
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
@@ -82,7 +84,7 @@ docs: $(generated_docs)
 %.xml: %.txt
 	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook $<
 
-ccache.1: manual.xml
+ccache.1: MANUAL.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
 
 .PHONY: check-syntax
