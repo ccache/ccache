@@ -39,15 +39,10 @@ test_objs = $(test_sources:.c=.o)
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
 
-generated_docs = ccache.1 INSTALL.html manual.html NEWS.html README.html
-
 files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~
 
 .PHONY: all
 all: ccache$(EXEEXT)
-
-.PHONY: docs
-docs: $(generated_docs)
 
 ccache$(EXEEXT): $(ccache_objs) @extra_deps@
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(ccache_objs) $(libs)
