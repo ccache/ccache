@@ -25,9 +25,8 @@ headers = \
     manifest.h mdfour.h murmurhashneutral2.h getopt_long.h \
     test/framework.h test/suites.h test/util.h
 
-files_to_clean += $(dist_archive_tar_bz2) $(dist_archive_tar_gz) .deps/*
+files_to_clean += *.tar.bz2 *.tar.gz *.xml .deps/*
 files_to_clean += $(built_dist_files) version.c test/suites.h
-files_to_clean += *.xml
 
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
