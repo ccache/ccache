@@ -114,7 +114,8 @@ cct_run(suite_fn *suites, int verbose_output)
 	return failed_asserts > 0 ? 1 : 0;
 }
 
-void cct_suite_begin(const char *name)
+void
+cct_suite_begin(const char *name)
 {
 	verify_test_suite_name(name);
 	if (verbose) {
@@ -128,7 +129,8 @@ void cct_suite_begin(const char *name)
 	failed_asserts_before_test = failed_tests; /* For first cct_test_end(). */
 }
 
-void cct_suite_end()
+void
+cct_suite_end()
 {
 	cct_chdir(dir_before_suite);
 	free(dir_before_suite);
@@ -140,7 +142,8 @@ void cct_suite_end()
 	}
 }
 
-void cct_test_begin(const char *name)
+void
+cct_test_begin(const char *name)
 {
 	extern char *cache_logfile;
 
@@ -158,7 +161,8 @@ void cct_test_begin(const char *name)
 	cache_logfile = getenv("CCACHE_LOGFILE");
 }
 
-void cct_test_end()
+void
+cct_test_end()
 {
 	if (dir_before_test) {
 		cct_chdir(dir_before_test);
@@ -288,7 +292,8 @@ cct_check_args_eq(const char *file, int line, const char *expression,
 	return result;
 }
 
-void cct_chdir(const char *path)
+void
+cct_chdir(const char *path)
 {
 	if (chdir(path) != 0) {
 		fprintf(stderr, "chdir: %s: %s", path, strerror(errno));
@@ -307,7 +312,8 @@ cct_wipe(const char *path)
 	free(command);
 }
 
-void cct_create_fresh_dir(const char *path)
+void
+cct_create_fresh_dir(const char *path)
 {
 	cct_wipe(path);
 	if (mkdir(path, 0777) != 0) {
