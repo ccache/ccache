@@ -95,7 +95,8 @@ log_prefix(void)
 /*
  * Write a message to the CCACHE_LOGFILE location (adding a newline).
  */
-void cc_log(const char *format, ...)
+void
+cc_log(const char *format, ...)
 {
 	va_list ap;
 
@@ -114,7 +115,8 @@ void cc_log(const char *format, ...)
 /*
  * Log an executed command to the CCACHE_LOGFILE location.
  */
-void cc_log_executed_command(char **argv)
+void
+cc_log_executed_command(char **argv)
 {
 	if (!init_log()) {
 		return;
@@ -127,7 +129,8 @@ void cc_log_executed_command(char **argv)
 }
 
 /* something went badly wrong! */
-void fatal(const char *format, ...)
+void
+fatal(const char *format, ...)
 {
 	va_list ap;
 	extern char *cache_logfile;
@@ -155,7 +158,8 @@ void fatal(const char *format, ...)
 /*
  * Copy all data from fd_in to fd_out, decompressing data from fd_in if needed.
  */
-void copy_fd(int fd_in, int fd_out)
+void
+copy_fd(int fd_in, int fd_out)
 {
 	char buf[10240];
 	int n;
@@ -178,19 +182,20 @@ void copy_fd(int fd_in, int fd_out)
 
 #ifndef HAVE_MKSTEMP
 /* cheap and nasty mkstemp replacement */
-int mkstemp(char *template)
+int
+mkstemp(char *template)
 {
 	mktemp(template);
 	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
 }
 #endif
 
-
 /*
  * Copy src to dest, decompressing src if needed. compress_dest decides whether
  * dest will be compressed.
  */
-int copy_file(const char *src, const char *dest, int compress_dest)
+int
+copy_file(const char *src, const char *dest, int compress_dest)
 {
 	int fd_in = -1, fd_out = -1;
 	gzFile gz_in = NULL, gz_out = NULL;
@@ -326,7 +331,8 @@ error:
 }
 
 /* Run copy_file() and, if successful, delete the source file. */
-int move_file(const char *src, const char *dest, int compress_dest)
+int
+move_file(const char *src, const char *dest, int compress_dest)
 {
 	int ret;
 
@@ -352,7 +358,8 @@ move_uncompressed_file(const char *src, const char *dest, int compress_dest)
 }
 
 /* test if a file is zlib compressed */
-int test_if_compressed(const char *filename)
+int
+test_if_compressed(const char *filename)
 {
 	FILE *f;
 
@@ -373,7 +380,8 @@ int test_if_compressed(const char *filename)
 }
 
 /* make sure a directory exists */
-int create_dir(const char *dir)
+int
+create_dir(const char *dir)
 {
 	struct stat st;
 	if (stat(dir, &st) == 0) {
@@ -392,7 +400,8 @@ int create_dir(const char *dir)
 /*
  * Return a static string with the current hostname.
  */
-const char *get_hostname(void)
+const char *
+get_hostname(void)
 {
 	static char hostname[200] = "";
 
@@ -411,7 +420,8 @@ const char *get_hostname(void)
  * Return a string to be used to distinguish temporary files. Also tries to
  * cope with NFS by adding the local hostname.
  */
-const char *tmp_string(void)
+const char *
+tmp_string(void)
 {
 	static char *ret;
 
@@ -423,7 +433,8 @@ const char *tmp_string(void)
 }
 
 /* Return the hash result as a hex string. Caller frees. */
-char *format_hash_as_string(const unsigned char *hash, unsigned size)
+char *
+format_hash_as_string(const unsigned char *hash, unsigned size)
 {
 	char *ret;
 	int i;
@@ -443,7 +454,8 @@ char const CACHEDIR_TAG[] =
 	"# For information about cache directory tags, see:\n"
 	"#	http://www.brynosaurus.com/cachedir/\n";
 
-int create_cachedirtag(const char *dir)
+int
+create_cachedirtag(const char *dir)
 {
 	struct stat st;
 	FILE *f;
@@ -470,7 +482,7 @@ error:
 }
 
 /* Construct a string according to a format. Caller frees. */
-char*
+char *
 format(const char *format, ...)
 {
 	va_list ap;
@@ -489,7 +501,8 @@ format(const char *format, ...)
 /*
   this is like strdup() but dies if the malloc fails
 */
-char *x_strdup(const char *s)
+char *
+x_strdup(const char *s)
 {
 	char *ret;
 	ret = strdup(s);
@@ -502,7 +515,8 @@ char *x_strdup(const char *s)
 /*
   this is like strndup() but dies if the malloc fails
 */
-char *x_strndup(const char *s, size_t n)
+char *
+x_strndup(const char *s, size_t n)
 {
 	char *ret;
 #ifndef HAVE_STRNDUP
@@ -531,7 +545,8 @@ char *x_strndup(const char *s, size_t n)
 /*
   this is like malloc() but dies if the malloc fails
 */
-void *x_malloc(size_t size)
+void *
+x_malloc(size_t size)
 {
 	void *ret;
 	ret = malloc(size);
@@ -544,7 +559,8 @@ void *x_malloc(size_t size)
 /*
   this is like realloc() but dies if the malloc fails
 */
-void *x_realloc(void *ptr, size_t size)
+void *
+x_realloc(void *ptr, size_t size)
 {
 	void *p2;
 	if (!ptr) return x_malloc(size);
@@ -559,7 +575,8 @@ void *x_realloc(void *ptr, size_t size)
 /*
  * This is like x_asprintf() but frees *ptr if *ptr != NULL.
  */
-void x_asprintf2(char **ptr, const char *format, ...)
+void
+x_asprintf2(char **ptr, const char *format, ...)
 {
 	char *saved = *ptr;
 	va_list ap;
@@ -580,7 +597,8 @@ void x_asprintf2(char **ptr, const char *format, ...)
 /*
  * Recursive directory traversal. fn() is called on all entries in the tree.
  */
-void traverse(const char *dir, void (*fn)(const char *, struct stat *))
+void
+traverse(const char *dir, void (*fn)(const char *, struct stat *))
 {
 	DIR *d;
 	struct dirent *de;
@@ -619,7 +637,8 @@ void traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 
 /* return the base name of a file - caller frees */
-char *basename(const char *s)
+char *
+basename(const char *s)
 {
 	char *p;
 	p = strrchr(s, '/');
@@ -633,7 +652,8 @@ char *basename(const char *s)
 }
 
 /* return the dir name of a file - caller frees */
-char *dirname(char *s)
+char *
+dirname(char *s)
 {
 	char *p;
 	char *p2 = NULL;
@@ -658,7 +678,8 @@ char *dirname(char *s)
  * path. If path has no file extension, the empty string and the end of path is
  * returned.
  */
-const char *get_extension(const char *path)
+const char *
+get_extension(const char *path)
 {
 	size_t len = strlen(path);
 	const char *p;
@@ -678,13 +699,15 @@ const char *get_extension(const char *path)
  * Return a string containing the given path without the filename extension.
  * Caller frees.
  */
-char *remove_extension(const char *path)
+char *
+remove_extension(const char *path)
 {
 	return x_strndup(path, strlen(path) - strlen(get_extension(path)));
 }
 
 /* return size on disk of a file */
-size_t file_size(struct stat *st)
+size_t
+file_size(struct stat *st)
 {
 #ifdef _WIN32
 	return (st->st_size + 1023) & ~1023;
@@ -698,9 +721,9 @@ size_t file_size(struct stat *st)
 #endif
 }
 
-
 /* a safe open/create for read-write */
-int safe_open(const char *fname)
+int
+safe_open(const char *fname)
 {
 	int fd = open(fname, O_RDWR|O_BINARY);
 	if (fd == -1 && errno == ENOENT) {
@@ -713,7 +736,8 @@ int safe_open(const char *fname)
 }
 
 /* Format a size (in KiB) as a human-readable string. Caller frees. */
-char *format_size(size_t v)
+char *
+format_size(size_t v)
 {
 	char *s;
 	if (v >= 1024*1024) {
@@ -729,7 +753,8 @@ char *format_size(size_t v)
 /* return a value in multiples of 1024 give a string that can end
    in K, M or G
 */
-size_t value_units(const char *s)
+size_t
+value_units(const char *s)
 {
 	char m;
 	double v = atof(s);
@@ -758,7 +783,8 @@ size_t value_units(const char *s)
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
 */
-char *x_realpath(const char *path)
+char *
+x_realpath(const char *path)
 {
 	int maxlen;
 	char *ret, *p;
@@ -799,7 +825,8 @@ char *x_realpath(const char *path)
 #endif /* !_WIN32 */
 
 /* a getcwd that will returns an allocated buffer */
-char *gnu_getcwd(void)
+char *
+gnu_getcwd(void)
 {
 	unsigned size = 128;
 
@@ -817,7 +844,8 @@ char *gnu_getcwd(void)
 }
 
 /* create an empty file */
-int create_empty_file(const char *fname)
+int
+create_empty_file(const char *fname)
 {
 	int fd;
 
@@ -832,7 +860,8 @@ int create_empty_file(const char *fname)
 /*
  * Return current user's home directory, or NULL if it can't be determined.
  */
-const char *get_home_directory(void)
+const char *
+get_home_directory(void)
 {
 	const char *p = getenv("HOME");
 	if (p) {
@@ -853,7 +882,8 @@ const char *get_home_directory(void)
  * Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
  * is used. Caller frees.
  */
-char *get_cwd(void)
+char *
+get_cwd(void)
 {
 	char *pwd;
 	char *cwd;
@@ -901,7 +931,8 @@ compare_executable_name(const char *s1, const char *s2)
  * Compute the length of the longest directory path that is common to two
  * strings.
  */
-size_t common_dir_prefix_length(const char *s1, const char *s2)
+size_t
+common_dir_prefix_length(const char *s1, const char *s2)
 {
 	const char *p1 = s1;
 	const char *p2 = s2;
@@ -920,7 +951,8 @@ size_t common_dir_prefix_length(const char *s1, const char *s2)
 /*
  * Compute a relative path from from to to. Caller frees.
  */
-char *get_relative_path(const char *from, const char *to)
+char *
+get_relative_path(const char *from, const char *to)
 {
 	size_t common_prefix_len;
 	int i;
@@ -1003,7 +1035,8 @@ update_mtime(const char *path)
  * Map file into memory. Return a pointer to the mapped area if successful or
  * -1 if any error occurred. The file size is also returned,
  */
-void *x_fmmap(const char *fname, off_t *size, const char *errstr)
+void *
+x_fmmap(const char *fname, off_t *size, const char *errstr)
 {
 	struct stat st;
 	void *data = (void *) -1;
@@ -1061,7 +1094,8 @@ error:
 /*
  * Unmap file from memory.
  */
-int x_munmap(void *addr, size_t length)
+int
+x_munmap(void *addr, size_t length)
 {
 #ifdef _WIN32
 	(void) length;
@@ -1074,7 +1108,8 @@ int x_munmap(void *addr, size_t length)
 /*
  * Rename oldpath to newpath (deleting newpath).
  */
-int x_rename(const char *oldpath, const char *newpath)
+int
+x_rename(const char *oldpath, const char *newpath)
 {
 #ifdef _WIN32
 	/* Windows' rename() refuses to overwrite an existing file. */
