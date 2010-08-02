@@ -34,8 +34,15 @@ const char USAGE_TEXT[] =
 	"    -h, --help      print this help text\n"
 	"    -v, --verbose   enable verbose logging of tests\n";
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
+	suite_fn suites[] = {
+#define SUITE(name) &suite_##name,
+#include "test/suites.h"
+#undef SUITE
+		NULL
+	};
 	static const struct option options[] = {
 		{"help", no_argument, NULL, 'h'},
 		{"verbose", no_argument, NULL, 'v'},
@@ -61,13 +68,6 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-
-	suite_fn suites[] = {
-#define SUITE(name) &suite_##name,
-#include "test/suites.h"
-#undef SUITE
-		NULL
-	};
 
 	if (getenv("RUN_FROM_BUILD_FARM")) {
 		verbose = 1;
