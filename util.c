@@ -537,7 +537,7 @@ x_strndup(const char *s, size_t n)
 	ret = strndup(s, n);
 #endif
 	if (!ret) {
-		fatal("Out of memory in x_strndup");
+		fatal("x_strndup: Could not allocate %lu bytes", (unsigned long)n);
 	}
 	return ret;
 }
@@ -551,7 +551,7 @@ x_malloc(size_t size)
 	void *ret;
 	ret = malloc(size);
 	if (!ret) {
-		fatal("Out of memory in x_malloc");
+		fatal("x_malloc: Could not allocate %lu bytes", (unsigned long)size);
 	}
 	return ret;
 }
@@ -566,7 +566,7 @@ x_realloc(void *ptr, size_t size)
 	if (!ptr) return x_malloc(size);
 	p2 = realloc(ptr, size);
 	if (!p2) {
-		fatal("Out of memory in x_realloc");
+		fatal("x_realloc: Could not allocate %lu bytes", (unsigned long)size);
 	}
 	return p2;
 }
