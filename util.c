@@ -778,6 +778,25 @@ value_units(const char *s)
 }
 
 #ifndef _WIN32
+static long
+path_max(const char *path)
+{
+#ifdef PATH_MAX
+	(void)path;
+	return PATH_MAX;
+#elif defined(MAXPATHLEN)
+	(void)path;
+	return MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+	long maxlen = pathconf(path, _PC_PATH_MAX);
+	if (maxlen >= 4096) {
+		return maxlen;
+	} else {
+		return 4096;
+	}
+#endif
+}
+
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
@@ -785,16 +804,8 @@ value_units(const char *s)
 char *
 x_realpath(const char *path)
 {
-	int maxlen;
+	long maxlen = path_max(path);
 	char *ret, *p;
-#ifdef PATH_MAX
-	maxlen = PATH_MAX;
-#elif defined(MAXPATHLEN)
-	maxlen = MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-	maxlen = pathconf(path, _PC_PATH_MAX);
-#endif
-	if (maxlen < 4096) maxlen = 4096;
 
 	ret = x_malloc(maxlen);
 
@@ -1122,7 +1133,7 @@ x_rename(const char *oldpath, const char *newpath)
 char *
 x_readlink(const char *path)
 {
-	size_t maxlen;
+	long maxlen = path_max(path);
 	ssize_t len;
 	char *buf;
 #ifdef PATH_MAX
