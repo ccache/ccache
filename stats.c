@@ -137,21 +137,6 @@ stats_default(unsigned counters[STATS_END])
 	counters[STATS_MAXSIZE] += DEFAULT_MAXSIZE / 16;
 }
 
-/* read in the stats from one dir and add to the counters */
-static void
-stats_read_fd(int fd, unsigned counters[STATS_END])
-{
-	char buf[1024];
-	int len;
-	len = read(fd, buf, sizeof(buf)-1);
-	if (len <= 0) {
-		stats_default(counters);
-		return;
-	}
-	buf[len] = 0;
-	parse_stats(counters, buf);
-}
-
 /*
  * Update a statistics counter (unless it's STATS_NONE) and also record that a
  * number of bytes and files have been added to the cache. Size is in KiB.
@@ -253,7 +238,14 @@ stats_read(const char *path, unsigned counters[STATS_END])
 	if (fd == -1) {
 		stats_default(counters);
 	} else {
-		stats_read_fd(fd, counters);
+		char buf[1024];
+		int len = read(fd, buf, sizeof(buf)-1);
+		if (len <= 0) {
+			stats_default(counters);
+			return;
+		}
+		buf[len] = 0;
+		parse_stats(counters, buf);
 		close(fd);
 	}
 }
