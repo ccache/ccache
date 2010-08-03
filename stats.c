@@ -151,6 +151,28 @@ stats_update_size(enum stats stat, size_t size, unsigned files)
 	counter_updates[STATS_TOTALSIZE] += size;
 }
 
+/* Read in the stats from one directory and add to the counters. */
+static void
+stats_read(const char *path, unsigned counters[STATS_END])
+{
+	int fd;
+
+	fd = open(path, O_RDONLY|O_BINARY);
+	if (fd == -1) {
+		stats_default(counters);
+	} else {
+		char buf[1024];
+		int len = read(fd, buf, sizeof(buf)-1);
+		if (len <= 0) {
+			stats_default(counters);
+			return;
+		}
+		buf[len] = 0;
+		parse_stats(counters, buf);
+		close(fd);
+	}
+}
+
 /*
  * Write counter updates in pending_counters to disk.
  */
@@ -226,28 +248,6 @@ unsigned
 stats_get_pending(enum stats stat)
 {
 	return counter_updates[stat];
-}
-
-/* read in the stats from one dir and add to the counters */
-void
-stats_read(const char *path, unsigned counters[STATS_END])
-{
-	int fd;
-
-	fd = open(path, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		stats_default(counters);
-	} else {
-		char buf[1024];
-		int len = read(fd, buf, sizeof(buf)-1);
-		if (len <= 0) {
-			stats_default(counters);
-			return;
-		}
-		buf[len] = 0;
-		parse_stats(counters, buf);
-		close(fd);
-	}
 }
 
 /* sum and display the total stats for all cache dirs */
@@ -329,6 +329,19 @@ stats_zero(void)
 		lockfile_release(fname);
 		free(fname);
 	}
+}
+
+/* Get the per directory limits */
+void
+stats_get_limits(const char *dir, unsigned *maxfiles, unsigned *maxsize)
+{
+	unsigned counters[STATS_END];
+	char *sname = format("%s/stats", dir);
+	memset(counters, 0, sizeof(counters));
+	stats_read(sname, counters);
+	free(sname);
+	*maxfiles = counters[STATS_MAXFILES];
+	*maxsize = counters[STATS_MAXSIZE];
 }
 
 /* set the per directory limits */

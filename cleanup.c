@@ -223,20 +223,15 @@ cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 /* cleanup in all cache subdirs */
 void cleanup_all(const char *dir)
 {
-	unsigned counters[STATS_END];
-	char *dname, *sfile;
+	unsigned maxfiles, maxsize;
+	char *dname;
 	int i;
 
 	for (i = 0; i <= 0xF; i++) {
 		dname = format("%s/%1x", dir, i);
-		sfile = format("%s/%1x/stats", dir, i);
-
-		memset(counters, 0, sizeof(counters));
-		stats_read(sfile, counters);
-
-		cleanup_dir(dname, counters[STATS_MAXFILES], counters[STATS_MAXSIZE]);
+		stats_get_limits(dname, &maxfiles, &maxsize);
+		cleanup_dir(dname, maxfiles, maxsize);
 		free(dname);
-		free(sfile);
 	}
 }
 
