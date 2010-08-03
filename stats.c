@@ -172,7 +172,6 @@ stats_update_size(enum stats stat, size_t size, unsigned files)
 void
 stats_flush(void)
 {
-	int fd;
 	unsigned counters[STATS_END];
 	int need_cleanup = 0;
 	int should_flush = 0;
@@ -207,13 +206,7 @@ stats_flush(void)
 	if (!lockfile_acquire(stats_file, lock_staleness_limit)) {
 		return;
 	}
-	fd = open(stats_file, O_RDONLY|O_BINARY);
-	if (fd == -1) {
-		stats_default(counters);
-	} else {
-		stats_read_fd(fd, counters);
-		close(fd);
-	}
+	stats_read(stats_file, counters);
 	for (i = 0; i < STATS_END; ++i) {
 		counters[i] += counter_updates[i];
 	}
@@ -318,7 +311,7 @@ stats_summary(void)
 void
 stats_zero(void)
 {
-	int dir, fd;
+	int dir;
 	unsigned i;
 	char *fname;
 	unsigned counters[STATS_END];
@@ -334,13 +327,7 @@ stats_zero(void)
 			free(fname);
 			continue;
 		}
-		fd = open(fname, O_RDONLY|O_BINARY);
-		if (fd == -1) {
-			stats_default(counters);
-		} else {
-			stats_read_fd(fd, counters);
-			close(fd);
-		}
+		stats_read(fname, counters);
 		for (i = 0; stats_info[i].message; i++) {
 			if (!(stats_info[i].flags & FLAG_NOZERO)) {
 				counters[stats_info[i].stat] = 0;
@@ -373,7 +360,6 @@ stats_set_limits(long maxfiles, long maxsize)
 	/* set the limits in each directory */
 	for (dir = 0; dir <= 0xF; dir++) {
 		char *fname, *cdir;
-		int fd;
 
 		cdir = format("%s/%1x", cache_dir, dir);
 		if (create_dir(cdir) != 0) {
@@ -386,14 +372,8 @@ stats_set_limits(long maxfiles, long maxsize)
 			free(fname);
 			continue;
 		}
-		fd = open(fname, O_RDONLY|O_BINARY);
 		memset(counters, 0, sizeof(counters));
-		if (fd == -1) {
-			stats_default(counters);
-		} else {
-			stats_read_fd(fd, counters);
-			close(fd);
-		}
+		stats_read(fname, counters);
 		if (maxfiles != -1) {
 			counters[STATS_MAXFILES] = maxfiles;
 		}
@@ -412,7 +392,6 @@ stats_set_limits(long maxfiles, long maxsize)
 void
 stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 {
-	int fd;
 	unsigned counters[STATS_END];
 	char *statsfile;
 
@@ -425,16 +404,9 @@ stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 		free(statsfile);
 		return;
 	}
-	fd = safe_open(statsfile);
-	if (fd == -1) {
-		stats_default(counters);
-	} else {
-		stats_read_fd(fd, counters);
-		close(fd);
-	}
+	stats_read(statsfile, counters);
 	counters[STATS_NUMFILES] = num_files;
 	counters[STATS_TOTALSIZE] = total_size;
-	close(fd);
 	write_stats(statsfile, counters);
 	lockfile_release(statsfile);
 	free(statsfile);
