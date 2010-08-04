@@ -41,6 +41,7 @@ all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
 
 files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~
+files_to_distclean = Makefile config.h config.log config.status
 
 .PHONY: all
 all: ccache$(EXEEXT)
@@ -85,7 +86,7 @@ check: test
 
 .PHONY: distclean
 distclean: clean
-	rm -rf Makefile dev.mk config.h config.log config.status .deps version.c
+	rm -rf $(files_to_distclean)
 
 .PHONY: installcheck
 installcheck: ccache$(EXEEXT) test/main$(EXEEXT)

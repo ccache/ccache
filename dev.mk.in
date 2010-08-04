@@ -27,6 +27,7 @@ headers = \
 
 files_to_clean += *.tar.bz2 *.tar.gz *.xml .deps/*
 files_to_clean += $(built_dist_files) version.c test/suites.h
+files_to_distclean += .deps version.c dev.mk
 
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
