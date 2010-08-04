@@ -23,7 +23,7 @@ ccache is a collective work with contributions from many people, including:
 * Robin H. Johnson <robbat2@gentoo.org>
 * RW <fbsd06@mlists.homeunix.com>
 * Tim Potter <tpot@samba.org>
-* Ville Skytta <ville.skytta@iki.fi>
+* Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
 * Wilson Snyder <wsnyder@wsnyder.org>
 
