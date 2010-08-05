@@ -42,7 +42,7 @@ Commit messages
   description with a context follow by a colon.
 * The short description should be in "command form" (see examples below).
 * Don't put a final period after the short description.
-* Keep lines in the message at most 80 characters wide.
+* Keep lines in the message at most 75 characters wide.
 
 Example 1:
 
