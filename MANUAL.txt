@@ -68,10 +68,9 @@ most convenient if you just want to try out ccache or wish to use it for some
 specific projects. The second method is most useful for when you wish to use
 ccache for all your compilations.
 
-To install for usage by the first method just make sure *ccache* is in your
-path.
+To use the first method, just make sure that *ccache* is in your *PATH*.
 
-To install for the second method, do something like this:
+To use the symlinks method, do something like this:
 
 -------------------------------------------------------------------------------
 cp ccache /usr/local/bin/
@@ -81,9 +80,10 @@ ln -s ccache /usr/local/bin/cc
 ln -s ccache /usr/local/bin/c++
 -------------------------------------------------------------------------------
 
-And so forth. This will work as long as +/usr/local/bin+ comes before the path
-to the compiler (which is usually in +/usr/bin+). After installing you may wish
-to run ``which gcc'' to make sure that the correct link is being used.
+And so forth. This will work as long as the directory with symlinks comes
+before the path to the compiler (which is usually in +/usr/bin+). After
+installing you may wish to run ``which gcc'' to make sure that the correct link
+is being used.
 
 WARNING: The technique of letting ccache masquerade as the compiler works well,
 but currently doesn't interact well with other tools that do the same thing.
