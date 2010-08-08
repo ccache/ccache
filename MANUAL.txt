@@ -192,28 +192,26 @@ cases you won't need any of these as the defaults will be fine.
 
 *CCACHE_COMPILERCHECK*::
 
-    By default, ccache includes the modification time (mtime) and size of the
-    compiler in the hash to ensure that results retrieved from the cache are
-    accurate. The *CCACHE_COMPILERCHECK* environment variable can be used to
-    select another strategy. Possible values are:
+    By default, ccache includes the modification time (``mtime'') and size of
+    the compiler in the hash to ensure that results retrieved from the cache
+    are accurate. The *CCACHE_COMPILERCHECK* environment variable can be used
+    to select another strategy. Possible values are:
 +
 --
 *content*::
-    Hash the content of the compiler binary.
+    Hash the content of the compiler binary. This makes ccache very slightly
+    slower compared to the *mtime* setting, but makes it cope better with
+    compiler upgrades during a build bootstrapping process.
 *mtime*::
-    Hash the compiler's mtime and size. This is the default.
+    Hash the compiler's mtime and size, which is fast. This is the default.
 *none*::
-    Don't hash anything.
+    Don't hash anything. This may be good for situations where you can safely
+    use the cached results even though the compiler's mtime or size has changed
+    (e.g. if the compiler is built as part of your build system and the
+    compiler's source has not changed, or if the compiler only has changes that
+    don't affect code generation). You should only use the *none* setting if
+    you know what you are doing.
 --
-+
-Setting the variable to *content* makes ccache very slightly slower, but makes
-it cope better with compiler upgrades during a build bootstrapping process. The
-*none* setting may be good for situations where you can safely use the cached
-results even though the compiler's mtime or size has changed (e.g. if the
-compiler is built as part of your build system and the compiler's source has
-not changed, or if the compiler only has changes that don't affect code
-generation). You should only set the variable to *none* if you know what you
-are doing.
 
 *CCACHE_CPP2*::
 
