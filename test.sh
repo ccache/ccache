@@ -334,6 +334,60 @@ base_tests() {
         fi
     fi
 
+    testname="compilercheck=mtime"
+    $CCACHE -Cz >/dev/null
+    cat >compiler.sh <<EOF
+#!/bin/sh
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+exec $COMPILER "\$@"
+# A comment
+EOF
+    chmod +x compiler.sh
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=mtime $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    sed_in_place 's/comment/yoghurt/' compiler.sh # Don't change the size
+    chmod +x compiler.sh
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=mtime $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    touch compiler.sh
+    CCACHE_COMPILERCHECK=mtime $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+
+    testname="compilercheck=content"
+    $CCACHE -z >/dev/null
+    CCACHE_COMPILERCHECK=content $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=content $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    echo "# Compiler upgrade" >>compiler.sh
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=content $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+
+    testname="compilercheck=none"
+    $CCACHE -z >/dev/null
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=none $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK=none $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    echo "# Compiler upgrade" >>compiler.sh
+    CCACHE_COMPILERCHECK=none $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 1
+
     testname="no object file"
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;
