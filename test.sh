@@ -1554,10 +1554,12 @@ export CCACHE_NODIRECT
 
 all_suites="
 base
+link          !win32
 hardlink
 cpp2
 nlevels4
 nlevels1
+basedir       !win32
 direct
 compression
 readonly
@@ -1572,11 +1574,12 @@ case $host_os in
         CCACHE_DETECT_SHEBANG=1
         DEVNULL=NUL
         PATH_DELIM=";"
+        all_suites="`echo "$all_suites" | grep -v '!win32'`"
         ;;
     *)
         DEVNULL=/dev/null
         PATH_DELIM=":"
-        all_suites="$all_suites link basedir"
+        all_suites="`echo "$all_suites" | cut -d' ' -f1`"
         ;;
 esac
 
