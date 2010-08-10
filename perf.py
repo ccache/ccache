@@ -79,6 +79,7 @@ def test(tmp_dir, options, compiler_args, source_file):
         fp.close()
 
     environment = {"CCACHE_DIR": ccache_dir, "PATH": environ["PATH"]}
+    environment["CCACHE_COMPILERCHECK"] = options.compilercheck
     if options.compression:
         environment["CCACHE_COMPRESS"] = "1"
     if options.hardlink:
@@ -205,6 +206,9 @@ def main(argv):
         "--ccache",
         help="location of ccache (default: %s)" % DEFAULT_CCACHE)
     op.add_option(
+        "--compilercheck",
+        help="specify compilercheck (default: mtime)")
+    op.add_option(
         "--compression",
         help="use compression",
         action="store_true")
@@ -236,6 +240,7 @@ def main(argv):
         action="store_true")
     op.set_defaults(
         ccache=DEFAULT_CCACHE,
+        compilercheck="mtime",
         directory=DEFAULT_DIRECTORY,
         times=DEFAULT_TIMES)
     (options, args) = op.parse_args(argv[1:])
@@ -259,6 +264,7 @@ def main(argv):
         print "Compilation command: %s -c -o %s.o" % (
             " ".join(args),
             splitext(argv[-1])[0])
+        print "Compilercheck:", options.compilercheck
         print "Compression:", on_off(options.compression)
         print "Hardlink:", on_off(options.hardlink)
         print "Nostats:", on_off(options.nostats)

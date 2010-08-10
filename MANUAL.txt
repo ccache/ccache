@@ -211,6 +211,32 @@ cases you won't need any of these as the defaults will be fine.
     compiler's source has not changed, or if the compiler only has changes that
     don't affect code generation). You should only use the *none* setting if
     you know what you are doing.
+_a command string_::
+    Hash the standard output and standard error output of the specified
+    command. The command is passed to +/bin/sh+ for execution. You can use
+    ``$compiler'' in the command string to refer to the compiler. Example
+    commands:
++
+--
+* +$compiler -v+
+* +$compiler -dumpmachine && $compiler -dumpversion+
+
+You should make sure that the specified command is as fast as possible since it
+will be run once for each ccache invocation.
+
+Identifying the compiler using a command is useful if you want to avoid cache
+misses when the compiler has been rebuilt but not changed.
+
+Another case is when the compiler (as seen by ccache) actually isn't the real
+compiler but another compiler wrapper -- in that case, the default *mtime*
+method will hash the mtime and size of the other compiler wrapper, which means
+that ccache won't be able to detect a compiler upgrade. Using a suitable
+command to identify the compiler is thus safer, but it's also slower, so you
+should consider continue using the *mtime* method in combination with
+*CCACHE_PREFIX* if possible. See
+<<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER COMPILER
+WRAPPERS>>.
+--
 --
 
 *CCACHE_CPP2*::
@@ -572,17 +598,20 @@ environment variable *CCACHE_PREFIX* to the name of the wrapper (e.g. *distcc*)
 and ccache will prefix the command line with the specified command when running
 the compiler.
 
-It is not recommended to use the form *ccache anotherwrapper compiler args* as
-the compilation command. It's also not recommended to use the masquerading
-technique for the other compiler wrapper. The reason is that ccache will in
-both cases hash the mtime of the other wrapper instead of the real compiler
-(see the *CCACHE_COMPILERCHECK* option), which means that:
+Unless you set *CCACHE_COMPILERCHECK* to a suitable command (see the
+description of that configuration option), it is not recommended to use the
+form *ccache anotherwrapper compiler args* as the compilation command. It's
+also not recommended to use the masquerading technique for the other compiler
+wrapper. The reason is that by default, ccache will in both cases hash the
+mtime and size of the other wrapper instead of the real compiler, which means
+that:
 
 * Compiler upgrades will not be detected properly.
 * The cached results will not be shared between compilations with and without
   the other wrapper.
-* ccache will needlessly invoke the other wrapper when running the
-  preprocessor.
+
+Another minor thing is that if *CCACHE_PREFIX* is not used, ccache will
+needlessly invoke the other wrapper when running the preprocessor.
 
 
 Bugs

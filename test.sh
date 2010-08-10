@@ -388,6 +388,32 @@ EOF
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
 
+    testname="compilercheck=command"
+    $CCACHE -z >/dev/null
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK='echo $compiler' $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    echo "# Compiler upgrade" >>compiler.sh
+    CCACHE_COMPILERCHECK="echo ./compiler.sh" $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK='echo bar >&2' $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_COMPILERCHECK='read x; echo -n b >&2; echo ar >&2' $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
+    testname="compilercheck=unknown_command"
+    $CCACHE -z >/dev/null
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK="unknown_command" $CCACHE ./compiler.sh -c test1.c 2>/dev/null
+    if [ "$?" -eq 0 ]; then
+        test_failed "Expected failure running unknown_command to verify compiler but was success"
+    fi
+    checkstat 'compiler check failed' 1
+
     testname="no object file"
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;

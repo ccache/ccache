@@ -140,16 +140,7 @@ fatal(const char *format, ...)
 	vsnprintf(msg, sizeof(msg), format, ap);
 	va_end(ap);
 
-	if (cache_logfile) {
-		if (!logfile) {
-			logfile = fopen(cache_logfile, "a");
-		}
-		if (logfile) {
-			fprintf(logfile, "[%-5d] FATAL: %s\n", (int)getpid(), msg);
-			fflush(logfile);
-		}
-	}
-
+	cc_log("FATAL: %s", msg);
 	fprintf(stderr, "ccache: FATAL: %s\n", msg);
 
 	exit(1);

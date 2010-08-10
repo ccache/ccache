@@ -71,6 +71,7 @@ static struct {
 	{ STATS_MISSING,      "cache file missing             ", NULL, 0 },
 	{ STATS_ARGS,         "bad compiler arguments         ", NULL, 0 },
 	{ STATS_SOURCELANG,   "unsupported source language    ", NULL, 0 },
+	{ STATS_COMPCHECK,    "compiler check failed          ", NULL, 0 },
 	{ STATS_CONFTEST,     "autoconf compile/link          ", NULL, 0 },
 	{ STATS_UNSUPPORTED,  "unsupported compiler option    ", NULL, 0 },
 	{ STATS_OUTSTDOUT,    "output to stdout               ", NULL, 0 },
