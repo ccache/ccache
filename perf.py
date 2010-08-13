@@ -39,6 +39,7 @@ must not contain -c or -o as these options will be added later. Example:
 
 DEFAULT_CCACHE = "./ccache"
 DEFAULT_DIRECTORY = "."
+DEFAULT_HIT_FACTOR = 1
 DEFAULT_TIMES = 30
 
 PHASES = [
@@ -69,6 +70,7 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     compiler_args += ["-c", "-o"]
     extension = splitext(source_file)[1]
+    hit_factor = options.hit_factor
     times = options.times
 
     progress("Creating source code\n")
@@ -137,10 +139,11 @@ def test(tmp_dir, options, compiler_args, source_file):
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[2])
     t0 = time()
-    for i in range(times):
-        run(i, True, False)
-        progress(".")
-    result[2] = time() - t0
+    for j in range(hit_factor):
+        for i in range(times):
+            run(i, True, False)
+            progress(".")
+    result[2] = (time() - t0) / hit_factor
     progress("\n")
 
     ###########################################################################
@@ -158,10 +161,11 @@ def test(tmp_dir, options, compiler_args, source_file):
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[4])
     t0 = time()
-    for i in range(times):
-        run(i, True, True)
-        progress(".")
-    result[4] = time() - t0
+    for j in range(hit_factor):
+        for i in range(times):
+            run(i, True, True)
+            progress(".")
+    result[4] = (time() - t0) / hit_factor
     progress("\n")
 
     return result
@@ -222,6 +226,11 @@ def main(argv):
         help="use hard links",
         action="store_true")
     op.add_option(
+        "--hit-factor",
+        help="how many times more to compile the file for cache hits (default: %d)" \
+            % DEFAULT_HIT_FACTOR,
+        type="int")
+    op.add_option(
         "--nostats",
         help="don't write statistics",
         action="store_true")
@@ -242,6 +251,7 @@ def main(argv):
         ccache=DEFAULT_CCACHE,
         compilercheck="mtime",
         directory=DEFAULT_DIRECTORY,
+        hit_factor=DEFAULT_HIT_FACTOR,
         times=DEFAULT_TIMES)
     (options, args) = op.parse_args(argv[1:])
     if len(args) < 2:
