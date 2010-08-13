@@ -58,6 +58,15 @@ hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 	mdfour_result(md, out);
 }
 
+int
+hash_equal(struct mdfour *md1, struct mdfour *md2)
+{
+	unsigned char sum1[16], sum2[16];
+	hash_result_as_bytes(md1, sum1);
+	hash_result_as_bytes(md2, sum2);
+	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
+}
+
 /*
  * Hash some data that is unlikely to occur in the input. The idea is twofold:
  *

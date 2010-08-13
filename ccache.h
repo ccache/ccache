@@ -71,6 +71,7 @@ void hash_start(struct mdfour *md);
 void hash_buffer(struct mdfour *md, const void *s, size_t len);
 char *hash_result(struct mdfour *md);
 void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
+int hash_equal(struct mdfour *md1, struct mdfour *md2);
 void hash_delimiter(struct mdfour *md, const char* type);
 void hash_string(struct mdfour *md, const char *s);
 void hash_int(struct mdfour *md, int x);
