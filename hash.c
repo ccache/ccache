@@ -29,15 +29,33 @@
 #define HASH_DELIMITER "\000cCaChE"
 
 void
+hash_start(struct mdfour *md)
+{
+	mdfour_begin(md);
+}
+
+void
 hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
 	mdfour_update(md, (unsigned char *)s, len);
 }
 
-void
-hash_start(struct mdfour *md)
+/* Return the hash result as a hex string. Caller frees. */
+char *
+hash_result(struct mdfour *md)
 {
-	mdfour_begin(md);
+	unsigned char sum[16];
+
+	hash_result_as_bytes(md, sum);
+	return format_hash_as_string(sum, (unsigned) md->totalN);
+}
+
+/* return the hash result as 16 binary bytes */
+void
+hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+{
+	hash_buffer(md, NULL, 0);
+	mdfour_result(md, out);
 }
 
 /*
@@ -105,22 +123,4 @@ hash_file(struct mdfour *md, const char *fname)
 	ret = hash_fd(md, fd);
 	close(fd);
 	return ret;
-}
-
-/* Return the hash result as a hex string. Caller frees. */
-char *
-hash_result(struct mdfour *md)
-{
-	unsigned char sum[16];
-
-	hash_result_as_bytes(md, sum);
-	return format_hash_as_string(sum, (unsigned) md->totalN);
-}
-
-/* return the hash result as 16 binary bytes */
-void
-hash_result_as_bytes(struct mdfour *md, unsigned char *out)
-{
-	hash_buffer(md, NULL, 0);
-	mdfour_result(md, out);
 }
