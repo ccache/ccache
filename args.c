@@ -18,6 +18,7 @@
 
 #include "ccache.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -102,6 +103,15 @@ args_pop(struct args *args, int n)
 		free(args->argv[args->argc]);
 		args->argv[args->argc] = NULL;
 	}
+}
+
+/* set argument at given index */
+void
+args_set(struct args *args, int index, const char *value)
+{
+	assert(index < args->argc);
+	free(args->argv[index]);
+	args->argv[index] = x_strdup(value);
 }
 
 /* remove the first element of the argument list */
