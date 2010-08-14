@@ -287,12 +287,12 @@ int
 hash_multicommand_output(struct mdfour *hash, const char *commands,
                          const char *compiler)
 {
-	char *command_string, *command, *p;
+	char *command_string, *command, *p, *saveptr = NULL;
 	int ok = 1;
 
 	command_string = x_strdup(commands);
 	p = command_string;
-	while ((command = strtok(p, ";"))) {
+	while ((command = strtok_r(p, ";", &saveptr))) {
 		if (!hash_command_output(hash, command, compiler)) {
 			ok = 0;
 		}

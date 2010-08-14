@@ -43,10 +43,10 @@ args_init_from_string(const char *command)
 	struct args *args;
 	char *p = x_strdup(command);
 	char *q = p;
-	char *word;
+	char *word, *saveptr = NULL;
 
 	args = args_init(0, NULL);
-	while ((word = strtok(q, " \t\r\n"))) {
+	while ((word = strtok_r(q, " \t\r\n", &saveptr))) {
 		args_add(args, word);
 		q = NULL;
 	}

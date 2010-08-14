@@ -944,10 +944,10 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 
 	p = getenv("CCACHE_EXTRAFILES");
 	if (p) {
-		char *path, *q;
+		char *path, *q, *saveptr = NULL;
 		p = x_strdup(p);
 		q = p;
-		while ((path = strtok(q, PATH_DELIM))) {
+		while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
 			cc_log("Hashing extra file %s", path);
 			hash_delimiter(hash, "extrafile");
 			if (!hash_file(hash, path)) {
@@ -1847,14 +1847,14 @@ static unsigned
 parse_sloppiness(char *p)
 {
 	unsigned result = 0;
-	char *word, *q;
+	char *word, *q, *saveptr = NULL;
 
 	if (!p) {
 		return result;
 	}
 	p = x_strdup(p);
 	q = p;
-	while ((word = strtok(q, ", "))) {
+	while ((word = strtok_r(q, ", ", &saveptr))) {
 		if (str_eq(word, "file_macro")) {
 			cc_log("Being sloppy about __FILE__");
 			result |= SLOPPY_FILE_MACRO;

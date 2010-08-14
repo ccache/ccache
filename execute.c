@@ -247,13 +247,15 @@ find_executable(const char *name, const char *exclude_name)
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path)
 {
-	char *tok;
+	char *tok, *saveptr = NULL;
 
 	path = x_strdup(path);
 
 	/* search the path looking for the first compiler of the right name
 	   that isn't us */
-	for (tok = strtok(path, PATH_DELIM); tok; tok = strtok(NULL, PATH_DELIM)) {
+	for (tok = strtok_r(path, PATH_DELIM, &saveptr);
+	     tok;
+	     tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
 #ifdef _WIN32
 		char namebuf[MAX_PATH];
 		int ret = SearchPath(tok, name, ".exe",
