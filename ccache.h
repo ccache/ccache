@@ -65,6 +65,28 @@ enum stats {
 #define str_startswith(s, p) (strncmp((s), (p), strlen((p))) == 0)
 
 /* ------------------------------------------------------------------------- */
+/* args.c */
+
+struct args {
+	char **argv;
+	int argc;
+};
+
+struct args *args_init(int, char **);
+struct args *args_init_from_string(const char *);
+struct args *args_copy(struct args *args);
+void args_free(struct args *args);
+void args_add(struct args *args, const char *s);
+void args_add_prefix(struct args *args, const char *s);
+void args_extend(struct args *args, struct args *to_append);
+void args_pop(struct args *args, int n);
+void args_set(struct args *args, int index, const char *value);
+void args_strip(struct args *args, const char *prefix);
+void args_remove_first(struct args *args);
+char *args_to_string(struct args *args);
+int args_equal(struct args *args1, struct args *args2);
+
+/* ------------------------------------------------------------------------- */
 /* hash.c */
 
 void hash_start(struct mdfour *md);
@@ -187,28 +209,6 @@ int execute(char **argv,
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 void print_executed_command(FILE *fp, char **argv);
-
-/* ------------------------------------------------------------------------- */
-/* args.c */
-
-struct args {
-	char **argv;
-	int argc;
-};
-
-struct args *args_init(int, char **);
-struct args *args_init_from_string(const char *);
-struct args *args_copy(struct args *args);
-void args_free(struct args *args);
-void args_add(struct args *args, const char *s);
-void args_add_prefix(struct args *args, const char *s);
-void args_extend(struct args *args, struct args *to_append);
-void args_pop(struct args *args, int n);
-void args_set(struct args *args, int index, const char *value);
-void args_strip(struct args *args, const char *prefix);
-void args_remove_first(struct args *args);
-char *args_to_string(struct args *args);
-int args_equal(struct args *args1, struct args *args2);
 
 /* ------------------------------------------------------------------------- */
 /* lockfile.c */
