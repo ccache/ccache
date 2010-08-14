@@ -133,7 +133,6 @@ void
 fatal(const char *format, ...)
 {
 	va_list ap;
-	extern char *cache_logfile;
 	char msg[1000];
 
 	va_start(ap, format);
