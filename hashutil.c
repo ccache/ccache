@@ -20,9 +20,13 @@
 #include "hashutil.h"
 #include "murmurhashneutral2.h"
 
-#include <string.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 unsigned
 hash_from_string(void *str)
@@ -223,4 +227,77 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 	result = hash_source_code_string(hash, data, st.st_size, path);
 	x_munmap(data, st.st_size);
 	return result;
+}
+
+int
+hash_command_output(struct mdfour *hash, const char *command,
+                    const char *compiler)
+{
+	pid_t pid;
+	int pipefd[2];
+
+	if (pipe(pipefd) == -1) {
+		fatal("pipe failed");
+	}
+	pid = fork();
+	if (pid == -1) {
+		fatal("fork failed");
+	}
+
+	if (pid == 0) {
+		/* Child. */
+		struct args *args = args_init_from_string(command);
+		int i;
+		for (i = 0; i < args->argc; i++) {
+			if (str_eq(args->argv[i], "%compiler%")) {
+				args_set(args, i, compiler);
+			}
+		}
+		cc_log_argv("Executing compiler check command ", args->argv);
+		close(pipefd[0]);
+		close(0);
+		dup2(pipefd[1], 1);
+		dup2(pipefd[1], 2);
+		_exit(execvp(args->argv[0], args->argv));
+		return 0; /* Never reached. */
+	} else {
+		/* Parent. */
+		int status, ok;
+		close(pipefd[1]);
+		ok = hash_fd(hash, pipefd[0]);
+		if (!ok) {
+			cc_log("Error hashing compiler check command output: %s", strerror(errno));
+			stats_update(STATS_COMPCHECK);
+		}
+		close(pipefd[0]);
+		if (waitpid(pid, &status, 0) != pid) {
+			cc_log("waitpid failed");
+			return 0;
+		}
+		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+			cc_log("Compiler check command returned %d", WEXITSTATUS(status));
+			stats_update(STATS_COMPCHECK);
+			return 0;
+		}
+		return ok;
+	}
+}
+
+int
+hash_multicommand_output(struct mdfour *hash, const char *commands,
+                         const char *compiler)
+{
+	char *command_string, *command, *p;
+	int ok = 1;
+
+	command_string = x_strdup(commands);
+	p = command_string;
+	while ((command = strtok(p, ";"))) {
+		if (!hash_command_output(hash, command, compiler)) {
+			ok = 0;
+		}
+		p = NULL;
+	}
+	free(command_string);
+	return ok;
 }
