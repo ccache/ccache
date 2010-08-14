@@ -25,14 +25,10 @@
 #include <termios.h>
 #endif
 
-static unsigned passed_asserts;
-static unsigned failed_asserts;
-static unsigned passed_tests;
+static unsigned total_asserts;
+static unsigned total_tests;
+static unsigned total_suites;
 static unsigned failed_tests;
-static unsigned passed_suites;
-static unsigned failed_suites;
-static unsigned failed_asserts_before_suite;
-static unsigned failed_asserts_before_test;
 static const char *current_suite;
 static const char *current_test;
 static char *dir_before_suite;
@@ -92,32 +88,31 @@ cct_run(suite_fn *suites, int verbose_output)
 		while (1) {
 			test_index = (*suite)(test_index + 1);
 			if (test_index == 0) {
+				/* We have reached the end of the suite. */
 				break;
 			}
 		}
-		--passed_tests; /* Fix false increase in first TEST expansion. */
 	}
 
-	if (failed_asserts == 0) {
+	if (failed_tests == 0) {
 		printf("%sPASSED%s: %u assertion%s, %u test%s, %u suite%s\n",
 		       COLOR(tty, GREEN), COLOR(tty, END),
-		       passed_asserts, plural_s(passed_asserts),
-		       passed_tests, plural_s(passed_tests),
-		       passed_suites, plural_s(passed_suites));
+		       total_asserts, plural_s(total_asserts),
+		       total_tests, plural_s(total_tests),
+		       total_suites, plural_s(total_suites));
 	} else {
-		printf("%sFAILED%s: %u assertion%s, %u test%s, %u suite%s\n",
+		printf("%sFAILED%s: %u test%s\n",
 		       COLOR(tty, RED), COLOR(tty, END),
-		       failed_asserts, plural_s(failed_asserts),
-		       failed_tests, plural_s(failed_tests),
-		       failed_suites, plural_s(failed_suites));
+		       failed_tests, plural_s(failed_tests));
 	}
-	return failed_asserts > 0 ? 1 : 0;
+	return failed_tests > 0 ? 1 : 0;
 }
 
 void
 cct_suite_begin(const char *name)
 {
 	verify_test_suite_name(name);
+	++total_suites;
 	if (verbose) {
 		printf("=== SUITE: %s ===\n", name);
 	}
@@ -125,8 +120,6 @@ cct_suite_begin(const char *name)
 	create_dir(name);
 	cct_chdir(name);
 	current_suite = name;
-	failed_asserts_before_suite = failed_asserts;
-	failed_asserts_before_test = failed_tests; /* For first cct_test_end(). */
 }
 
 void
@@ -135,11 +128,6 @@ cct_suite_end()
 	cct_chdir(dir_before_suite);
 	free(dir_before_suite);
 	dir_before_suite = NULL;
-	if (failed_asserts > failed_asserts_before_suite) {
-		++failed_suites;
-	} else {
-		++passed_suites;
-	}
 }
 
 void
@@ -148,6 +136,7 @@ cct_test_begin(const char *name)
 	extern char *cache_logfile;
 
 	verify_test_suite_name(name);
+	++total_tests;
 	if (verbose) {
 		printf("--- TEST: %s ---\n", name);
 	}
@@ -155,7 +144,6 @@ cct_test_begin(const char *name)
 	create_dir(name);
 	cct_chdir(name);
 	current_test = name;
-	failed_asserts_before_test = failed_asserts;
 
 	cc_reset();
 	cache_logfile = getenv("CCACHE_LOGFILE");
@@ -169,17 +157,12 @@ cct_test_end()
 		free(dir_before_test);
 		dir_before_test = NULL;
 	}
-	if (failed_asserts > failed_asserts_before_test) {
-		++failed_tests;
-	} else {
-		++passed_tests;
-	}
 }
 
 void
 cct_check_passed(const char *file, int line, const char *what)
 {
-	++passed_asserts;
+	++total_asserts;
 	if (verbose) {
 		printf("%s:%d: Passed assertion: %s\n", file, line, what);
 	}
@@ -189,7 +172,8 @@ void
 cct_check_failed(const char *file, int line, const char *what,
                  const char *expected, const char *actual)
 {
-	++failed_asserts;
+	++total_asserts;
+	++failed_tests;
 	fprintf(stderr, "%s:%d: Failed assertion:\n", file, line);
 	fprintf(stderr, "  Suite:      %s\n", current_suite);
 	fprintf(stderr, "  Test:       %s\n", current_test);
