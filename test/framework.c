@@ -59,22 +59,6 @@ plural_s(unsigned n)
 	return n == 1 ? "" : "s";
 }
 
-static void
-verify_test_suite_name(const char *name)
-{
-	const char *p = name;
-	while (*p) {
-		if ((*p < '0' || *p > '9')
-		      && (*p < 'A' || *p > 'Z')
-		      && *p != '_'
-		      && (*p < 'a' || *p > 'z')) {
-			fprintf(stderr, "Bad character ('%c') in suite/test name: %s\n", *p, name);
-			exit(1);
-		}
-		++p;
-	}
-}
-
 int
 cct_run(suite_fn *suites, int verbose_output)
 {
@@ -111,7 +95,6 @@ cct_run(suite_fn *suites, int verbose_output)
 void
 cct_suite_begin(const char *name)
 {
-	verify_test_suite_name(name);
 	++total_suites;
 	if (verbose) {
 		printf("=== SUITE: %s ===\n", name);
@@ -135,7 +118,6 @@ cct_test_begin(const char *name)
 {
 	extern char *cache_logfile;
 
-	verify_test_suite_name(name);
 	++total_tests;
 	if (verbose) {
 		printf("--- TEST: %s ---\n", name);

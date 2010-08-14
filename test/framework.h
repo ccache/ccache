@@ -38,6 +38,8 @@
 		} \
 		++_test_counter; \
 		if (_test_counter >= _start_point) { \
+			static int _verify_test_name##name = 0; \
+			(void)_verify_test_name##name; \
 			cct_test_begin(#name);
 
 #define TEST_SUITE_END \
