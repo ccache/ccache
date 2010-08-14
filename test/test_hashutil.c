@@ -84,8 +84,10 @@ TEST(hash_multicommand_output)
 	struct mdfour h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
-	CHECK(hash_multicommand_output(&h1, "echo -n foo", "not used"));
-	CHECK(hash_multicommand_output(&h2, "echo -n f; echo -n oo", "not used"));
+	create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
+	chmod("foo.sh", 0555);
+	CHECK(hash_multicommand_output(&h2, "echo foo; echo bar", "not used"));
+	CHECK(hash_multicommand_output(&h1, "./foo.sh", "not used"));
 	CHECK(hash_equal(&h1, &h2));
 }
 
