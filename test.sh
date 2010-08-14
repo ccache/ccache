@@ -398,10 +398,16 @@ EOF
     CCACHE_COMPILERCHECK="echo ./compiler.sh" $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
-    CCACHE_COMPILERCHECK='echo bar' $CCACHE ./compiler.sh -c test1.c
+    cat <<EOF >foobar.sh
+#!/bin/sh
+echo foo
+echo bar
+EOF
+    chmod +x foobar.sh
+    CCACHE_COMPILERCHECK='./foobar.sh' $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
-    CCACHE_COMPILERCHECK='echo -n b; echo ar' $CCACHE ./compiler.sh -c test1.c
+    CCACHE_COMPILERCHECK='echo foo; echo bar' $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2
 
