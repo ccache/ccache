@@ -46,7 +46,7 @@ args_init_from_string(const char *command)
 	char *word;
 
 	args = args_init(0, NULL);
-	while ((word = strtok(q, " "))) {
+	while ((word = strtok(q, " \t\r\n"))) {
 		args_add(args, word);
 		q = NULL;
 	}
