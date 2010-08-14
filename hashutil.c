@@ -236,6 +236,15 @@ hash_command_output(struct mdfour *hash, const char *command,
 	pid_t pid;
 	int pipefd[2];
 
+	struct args *args = args_init_from_string(command);
+	int i;
+	for (i = 0; i < args->argc; i++) {
+		if (str_eq(args->argv[i], "%compiler%")) {
+			args_set(args, i, compiler);
+		}
+	}
+	cc_log_argv("Executing compiler check command ", args->argv);
+
 	if (pipe(pipefd) == -1) {
 		fatal("pipe failed");
 	}
@@ -246,14 +255,6 @@ hash_command_output(struct mdfour *hash, const char *command,
 
 	if (pid == 0) {
 		/* Child. */
-		struct args *args = args_init_from_string(command);
-		int i;
-		for (i = 0; i < args->argc; i++) {
-			if (str_eq(args->argv[i], "%compiler%")) {
-				args_set(args, i, compiler);
-			}
-		}
-		cc_log_argv("Executing compiler check command ", args->argv);
 		close(pipefd[0]);
 		close(0);
 		dup2(pipefd[1], 1);
@@ -263,6 +264,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 	} else {
 		/* Parent. */
 		int status, ok;
+		args_free(args);
 		close(pipefd[1]);
 		ok = hash_fd(hash, pipefd[0]);
 		if (!ok) {
