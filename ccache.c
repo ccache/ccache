@@ -271,7 +271,7 @@ failed(void)
 	}
 
 	cc_log("Failed; falling back to running the real compiler");
-	cc_log_executed_command(orig_args->argv);
+	cc_log_argv("Executing ", orig_args->argv);
 	exitfn_call();
 	execv(orig_args->argv[0], orig_args->argv);
 	fatal("%s: execv returned (%s)", orig_args->argv[0], strerror(errno));

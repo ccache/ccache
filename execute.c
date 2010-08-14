@@ -179,7 +179,7 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 	pid_t pid;
 	int status;
 
-	cc_log_executed_command(argv);
+	cc_log_argv("Executing ", argv);
 
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork");

@@ -104,7 +104,7 @@ int hash_file(struct mdfour *md, const char *fname);
 /* util.c */
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_executed_command(char **argv);
+void cc_log_argv(const char *prefix, char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);

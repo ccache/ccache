@@ -116,14 +116,14 @@ cc_log(const char *format, ...)
  * Log an executed command to the CCACHE_LOGFILE location.
  */
 void
-cc_log_executed_command(char **argv)
+cc_log_argv(const char *prefix, char **argv)
 {
 	if (!init_log()) {
 		return;
 	}
 
 	log_prefix();
-	fprintf(logfile, "Executing ");
+	fputs(prefix, logfile);
 	print_command(logfile, argv);
 	fflush(logfile);
 }
