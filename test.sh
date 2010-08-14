@@ -391,17 +391,17 @@ EOF
     testname="compilercheck=command"
     $CCACHE -z >/dev/null
     backdate compiler.sh
-    CCACHE_COMPILERCHECK='echo $compiler' $CCACHE ./compiler.sh -c test1.c
+    CCACHE_COMPILERCHECK='echo %compiler%' $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     echo "# Compiler upgrade" >>compiler.sh
     CCACHE_COMPILERCHECK="echo ./compiler.sh" $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
-    CCACHE_COMPILERCHECK='echo bar >&2' $CCACHE ./compiler.sh -c test1.c
+    CCACHE_COMPILERCHECK='echo bar' $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
-    CCACHE_COMPILERCHECK='read x; echo -n b >&2; echo ar >&2' $CCACHE ./compiler.sh -c test1.c
+    CCACHE_COMPILERCHECK='echo -n b; echo ar' $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2
 

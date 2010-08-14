@@ -920,41 +920,8 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		hash_int(hash, st.st_size);
 		hash_int(hash, st.st_mtime);
 	} else { /* command string */
-		char buf[8192];
-		static char compiler_env[1024];
-		size_t n;
-		char *command;
-		FILE *f;
-		int status;
-
-		cc_log("Running compiler check command: %s", compilercheck);
-		snprintf(compiler_env, sizeof(compiler_env),
-		         "compiler=%s", orig_args->argv[0]);
-		putenv(compiler_env);
-		command = format("{ %s ; } </dev/null 2>&1", compilercheck);
-		f = popen(command, "r");
-		free(command);
-		if (!f) {
-			stats_update(STATS_COMPCHECK);
-			fatal("Compiler check popen failed");
-		}
-		hash_delimiter(hash, "cc_command");
-		while (1) {
-			n = fread(buf, 1, sizeof(buf), f);
-			hash_buffer(hash, buf, n);
-			if (n < sizeof(buf)) {
-				if (feof(f)) {
-					break;
-				} else {
-					stats_update(STATS_COMPCHECK);
-					fatal("Failed reading from compiler check command");
-				}
-			}
-		}
-		status = pclose(f);
-		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-			stats_update(STATS_COMPCHECK);
-			fatal("Compiler check command returned %d", WEXITSTATUS(status));
+		if (!hash_multicommand_output(hash, compilercheck, orig_args->argv[0])) {
+			fatal("Failure running compiler check command: %s", compilercheck);
 		}
 	}
 

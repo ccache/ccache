@@ -213,13 +213,15 @@ cases you won't need any of these as the defaults will be fine.
     you know what you are doing.
 _a command string_::
     Hash the standard output and standard error output of the specified
-    command. The command is passed to +/bin/sh+ for execution. You can use
-    ``$compiler'' in the command string to refer to the compiler. Example
-    commands:
+    command. The string will be split on whitespace to find out the command and
+    arguments to run. No other interpretation of the command string will be
+    done, except that the special word ``%compiler%'' will be replaced with the
+    path to the compiler. Several commands can be specified with semicolon as
+    separator. Examples:
 +
 --
-* +$compiler -v+
-* +$compiler -dumpmachine && $compiler -dumpversion+
+* +%compiler% -v+
+* +%compiler% -dumpmachine; %compiler% -dumpversion+
 
 You should make sure that the specified command is as fast as possible since it
 will be run once for each ccache invocation.
