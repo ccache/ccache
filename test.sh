@@ -114,6 +114,8 @@ backdate() {
 
 run_suite() {
     rm -rf $CCACHE_DIR
+    CCACHE_NODIRECT=1
+    export CCACHE_NODIRECT
 
     echo "starting testsuite $1"
     testsuite=$1
@@ -1149,12 +1151,6 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-
-    ##################################################################
-    # Reset things.
-    CCACHE_NODIRECT=1
-    export CCACHE_NODIRECT
-    $CCACHE -C >/dev/null
 }
 
 basedir_suite() {
@@ -1286,9 +1282,6 @@ EOF
     if grep `pwd` stderr.txt >/dev/null 2>&1; then
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
-
-    CCACHE_NODIRECT=1
-    export CCACHE_NODIRECT
 }
 
 compression_suite() {
@@ -1633,8 +1626,6 @@ CCACHE_DIR=`pwd`/.ccache
 export CCACHE_DIR
 CCACHE_LOGFILE=`pwd`/ccache.log
 export CCACHE_LOGFILE
-CCACHE_NODIRECT=1
-export CCACHE_NODIRECT
 
 # ---------------------------------------
 
