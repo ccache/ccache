@@ -103,7 +103,7 @@ int
 hash_fd(struct mdfour *md, int fd)
 {
 	char buf[1024];
-	size_t n;
+	ssize_t n;
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
 		hash_buffer(md, buf, n);
