@@ -9,6 +9,7 @@ struct mdfour {
 	size_t totalN;
 	unsigned char tail[64];
 	size_t tail_len;
+	int finalized;
 };
 
 void mdfour_begin(struct mdfour *md);
