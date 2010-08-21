@@ -222,6 +222,7 @@ void lockfile_release(const char *path);
 int cc_process_args(struct args *orig_args, struct args **preprocessor_args,
                     struct args **compiler_args);
 void cc_reset(void);
+int is_precompiled_header(const char *path);
 
 /* ------------------------------------------------------------------------- */
 

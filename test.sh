@@ -1594,6 +1594,64 @@ cleanup_suite() {
     checkstat 'files in cache' 30
 }
 
+pch_suite() {
+    unset CCACHE_NODIRECT
+
+    cat <<EOF >pch.c
+#include "pch.h"
+void *p = NULL;
+EOF
+    cat <<EOF >pch.h
+#include <stdlib.h>
+EOF
+
+    if ! $COMPILER pch.h 2>/dev/null; then
+        return
+    fi
+
+    ##################################################################
+    # Tests for using a .gch.
+
+    rm -f pch.h
+    backdate pch.h.gch
+
+    testname="no -fpch-preprocess"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c pch.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'preprocessor error' 1
+
+    testname="-fpch-preprocess, no sloppy time macros"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 1
+
+    testname="-fpch-preprocess, sloppy time macros"
+    $CCACHE -z >/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="-fpch-preprocess, file changed, direct mode"
+    $CCACHE -z >/dev/null
+    echo "updated" >>pch.h.gch # GCC seems to cope with this...
+    backdate pch.h.gch
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 0
+}
+
 ######################################################################
 # main program
 
@@ -1642,6 +1700,7 @@ compression
 readonly
 extrafiles
 cleanup
+pch
 "
 
 host_os="`uname -s`"

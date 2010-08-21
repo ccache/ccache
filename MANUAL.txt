@@ -548,6 +548,24 @@ The drawbacks of using *CCACHE_BASEDIR* are:
   ``cd'' command in GDB.
 
 
+Precompiled headers
+-------------------
+
+ccache has support for GCC's precompiled headers. However, you currently have
+to do two things to make it work:
+
+* You must add the *-fpch-preprocess* option when compiling, as this option
+  makes it possible for ccache to correctly detect the header file in the
+  preprocessor output. If you don't do this, either the non-preprocessed
+  version of the header file will be used (if available) or ccache will fall
+  back to running the real compiler and increase the statistics counter
+  ``preprocessor error'' (if the non-preprocessed header file is not
+  available).
+* You must set *CCACHE_SLOPPINESS* to *time_macros*. The reason is that ccache
+  can't tell whether *\_\_TIME\__* or *\_\_DATE__* is used when using a
+  precompiled header.
+
+
 Sharing a cache
 ---------------
 
@@ -710,8 +728,6 @@ problems and what may be done to increase the hit rate:
 * If ``multiple source files'' has been incremented, it's an indication that
   the compiler has been invoked on several source code files at once. ccache
   doesn't support that. Compile the source code files separately if possible.
-* If ``preprocessor error'' has been incremented, one possible reason is that
-  precompiled headers are being used. ccache currently doesn't handle that.
 * If ``unsupported compiler option'' has been incremented, enable debug logging
   and check which option was rejected.
 

@@ -371,20 +371,27 @@ remember_include_file(char *path, size_t path_len)
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
-	if (st.st_size > 0) {
-		data = x_fmmap(path, &st.st_size, "include file");
-		if (data == (char *)-1) {
-			goto failure;
-		}
-		source = data;
-	} else {
-		source = "";
-	}
 
 	hash_start(&fhash);
-	result = hash_source_code_string(&fhash, source, st.st_size, path);
-	if (result & HASH_SOURCE_CODE_ERROR || result & HASH_SOURCE_CODE_FOUND_TIME) {
-		goto failure;
+
+	if (is_precompiled_header(path)) {
+		hash_file(&fhash, path);
+	} else {
+		if (st.st_size > 0) {
+			data = x_fmmap(path, &st.st_size, "include file");
+			if (data == (char *)-1) {
+				goto failure;
+			}
+			source = data;
+		} else {
+			source = "";
+		}
+
+		result = hash_source_code_string(&fhash, source, st.st_size, path);
+		if (result & HASH_SOURCE_CODE_ERROR
+		    || result & HASH_SOURCE_CODE_FOUND_TIME) {
+			goto failure;
+		}
 	}
 
 	h = x_malloc(sizeof(*h));
@@ -462,6 +469,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		 *
 		 *   # N "file"
 		 *   # N "file" N
+		 *   #pragma GCC pch_preprocess "file"
 		 *
 		 * HP's compiler:
 		 *
@@ -473,6 +481,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		if (q[0] == '#'
 		        /* GCC: */
 		    && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
+		        /* GCC precompiled header: */
+		        || (q[1] == 'p'
+		            && str_startswith(&q[2], "ragma GCC pch_preprocess "))
 		        /* HP: */
 		        || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
 		            && q[5] == ' '))
@@ -1292,6 +1303,12 @@ find_compiler(int argc, char **argv)
 	orig_args->argv[0] = compiler;
 }
 
+int
+is_precompiled_header(const char *path)
+{
+	return str_eq(get_extension(path), ".gch");
+}
+
 /*
  * Process the compiler options into options suitable for passing to the
  * preprocessor and the real compiler. The preprocessor options don't include
@@ -1369,6 +1386,15 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			} else {
 				found_arch_opt = 1;
 			}
+		}
+
+		if (str_eq(argv[i], "-fpch-preprocess")
+		    && !(sloppiness & SLOPPY_TIME_MACROS)) {
+			cc_log("You have to specify \"time_macros\" sloppiness when using"
+			       " -fpch-preprocess");
+			stats_update(STATS_UNSUPPORTED);
+			result = 0;
+			goto out;
 		}
 
 		/* we must have -c */

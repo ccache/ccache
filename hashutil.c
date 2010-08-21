@@ -219,14 +219,22 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 		return HASH_SOURCE_CODE_OK;
 	}
 
-	data = x_fmmap(path, &st.st_size, "source code file");
-	if (data == (void *)-1) {
-		return HASH_SOURCE_CODE_ERROR;
-	}
+	if (is_precompiled_header(path)) {
+		if (hash_file(hash, path)) {
+			return HASH_SOURCE_CODE_OK;
+		} else {
+			return HASH_SOURCE_CODE_ERROR;
+		}
+	} else {
+		data = x_fmmap(path, &st.st_size, "source code file");
+		if (data == (void *)-1) {
+			return HASH_SOURCE_CODE_ERROR;
+		}
 
-	result = hash_source_code_string(hash, data, st.st_size, path);
-	x_munmap(data, st.st_size);
-	return result;
+		result = hash_source_code_string(hash, data, st.st_size, path);
+		x_munmap(data, st.st_size);
+		return result;
+	}
 }
 
 int
