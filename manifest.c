@@ -549,6 +549,7 @@ manifest_get(const char *manifest_path)
 	fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		/* Cache miss. */
+		cc_log("No such manifest file");
 		goto out;
 	}
 	f = gzdopen(fd, "rb");
