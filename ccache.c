@@ -200,12 +200,6 @@ static const struct {
 	const char *extension;
 	const char *language;
 } extensions[] = {
-	/* Preprocessed: */
-	{".i",   "cpp-output"},
-	{".ii",  "c++-cpp-output"},
-	{".mi",  "objc-cpp-output"},
-	{".mii", "objc++-cpp-output"},
-	/* Other: */
 	{".c",   "c"},
 	{".C",   "c++"},
 	{".cc",  "c++"},
@@ -221,6 +215,11 @@ static const struct {
 	{".m",   "objective-c"},
 	{".M",   "objective-c++"},
 	{".mm",  "objective-c++"},
+	/* Preprocessed: */
+	{".i",   "cpp-output"},
+	{".ii",  "c++-cpp-output"},
+	{".mi",  "objc-cpp-output"},
+	{".mii", "objc++-cpp-output"},
 	{NULL,  NULL}};
 
 /*
