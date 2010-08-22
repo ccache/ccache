@@ -1604,9 +1604,41 @@ EOF
     cat <<EOF >pch.h
 #include <stdlib.h>
 EOF
-
     if ! $COMPILER pch.h 2>/dev/null; then
         return
+    fi
+
+    ##################################################################
+    # Tests for creating a .gch.
+
+    backdate pch.h
+
+    testname="create .gch, -c, no -o"
+    $CCACHE $COMPILER -c pch.h
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    rm -f pch.h.gch
+    $CCACHE $COMPILER -c pch.h
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if [ ! -f pch.h.gch ]; then
+        test_failed "pch.h.gch missing"
+    fi
+
+    testname="create .gch, no -c, -o"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER pch.h -o pch.gch
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER pch.h -o pch.gch
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if [ ! -f pch.gch ]; then
+        test_failed "pch.gch missing"
     fi
 
     ##################################################################

@@ -220,6 +220,21 @@ static const struct {
 	{".ii",  "c++-cpp-output"},
 	{".mi",  "objc-cpp-output"},
 	{".mii", "objc++-cpp-output"},
+	/* Header file (for precompilation): */
+	{".h",   "c-header"},
+	{".H",   "c++-header"},
+	{".h++", "c++-header"},
+	{".H++", "c++-header"},
+	{".hh",  "c++-header"},
+	{".HH",  "c++-header"},
+	{".hp",  "c++-header"},
+	{".HP",  "c++-header"},
+	{".hpp", "c++-header"},
+	{".HPP", "c++-header"},
+	{".hxx", "c++-header"},
+	{".HXX", "c++-header"},
+	{".tcc", "c++-header"},
+	{".TCC", "c++-header"},
 	{NULL,  NULL}};
 
 /*
@@ -229,14 +244,18 @@ static const struct {
 	const char *language;
 	const char *p_language;
 } languages[] = {
-	{"c",                 "cpp-output"},
-	{"cpp-output",        "cpp-output"},
-	{"c++",               "c++-cpp-output"},
-	{"c++-cpp-output",    "c++-cpp-output"},
-	{"objective-c",       "objc-cpp-output"},
-	{"objc-cpp-output",   "objc-cpp-output"},
-	{"objective-c++",     "objc++-cpp-output"},
-	{"objc++-cpp-output", "objc++-cpp-output"},
+	{"c",                    "cpp-output"},
+	{"cpp-output",           "cpp-output"},
+	{"c-header",             "cpp-output"},
+	{"c++",                  "c++-cpp-output"},
+	{"c++-cpp-output",       "c++-cpp-output"},
+	{"c++-header",           "c++-cpp-output"},
+	{"objective-c",          "objc-cpp-output"},
+	{"objective-c-header",   "objc-cpp-output"},
+	{"objc-cpp-output",      "objc-cpp-output"},
+	{"objective-c++",        "objc++-cpp-output"},
+	{"objc++-cpp-output",    "objc++-cpp-output"},
+	{"objective-c++-header", "objc++-cpp-output"},
 	{NULL,  NULL}};
 
 enum fromcache_call_mode {
@@ -1323,6 +1342,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	int found_arch_opt = 0;
+	int output_is_precompiled_header = 0;
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
 	const char *actual_language;          /* Language to actually use. */
@@ -1692,19 +1712,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	if (!found_c_opt) {
-		cc_log("No -c option found");
-		/* I find that having a separate statistic for autoconf tests is useful,
-		   as they are the dominant form of "called for link" in many cases */
-		if (strstr(input_file, "conftest.")) {
-			stats_update(STATS_CONFTEST);
-		} else {
-			stats_update(STATS_LINK);
-		}
-		result = 0;
-		goto out;
-	}
-
 	if (explicit_language && str_eq(explicit_language, "none")) {
 		explicit_language = NULL;
 	}
@@ -1720,13 +1727,37 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	} else {
 		actual_language = file_language;
 	}
+
+	output_is_precompiled_header =
+		actual_language && strstr(actual_language, "-header") != NULL;
+
+	if (!found_c_opt && !output_is_precompiled_header) {
+		cc_log("No -c option found");
+		/* I find that having a separate statistic for autoconf tests is useful,
+		   as they are the dominant form of "called for link" in many cases */
+		if (strstr(input_file, "conftest.")) {
+			stats_update(STATS_CONFTEST);
+		} else {
+			stats_update(STATS_LINK);
+		}
+		result = 0;
+		goto out;
+	}
+
 	if (!actual_language) {
 		cc_log("Unsupported source extension: %s", input_file);
 		stats_update(STATS_SOURCELANG);
 		result = 0;
 		goto out;
 	}
+
 	direct_i_file = language_is_preprocessed(actual_language);
+
+	if (output_is_precompiled_header) {
+		/* It doesn't work to create the .gch from preprocessed source. */
+		cc_log("Creating precompiled header; not compiling preprocessed code");
+		compile_preprocessed_source_code = 0;
+	}
 
 	i_extension = getenv("CCACHE_EXTENSION");
 	if (!i_extension) {
@@ -1743,20 +1774,24 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	}
 
 	if (!output_obj) {
-		char *p;
-		output_obj = x_strdup(input_file);
-		if ((p = strrchr(output_obj, '/'))) {
-			output_obj = p+1;
+		if (output_is_precompiled_header) {
+			output_obj = format("%s.gch", input_file);
+		} else {
+			char *p;
+			output_obj = x_strdup(input_file);
+			if ((p = strrchr(output_obj, '/'))) {
+				output_obj = p+1;
+			}
+			p = strrchr(output_obj, '.');
+			if (!p || !p[1]) {
+				cc_log("Badly formed object filename");
+				stats_update(STATS_ARGS);
+				result = 0;
+				goto out;
+			}
+			p[1] = found_S_opt ? 's' : 'o';
+			p[2] = 0;
 		}
-		p = strrchr(output_obj, '.');
-		if (!p || !p[1]) {
-			cc_log("Badly formed object filename");
-			stats_update(STATS_ARGS);
-			result = 0;
-			goto out;
-		}
-		p[1] = found_S_opt ? 's' : 'o';
-		p[2] = 0;
 	}
 
 	/* cope with -o /dev/null */
