@@ -1604,7 +1604,9 @@ EOF
     cat <<EOF >pch.h
 #include <stdlib.h>
 EOF
-    if ! $COMPILER pch.h 2>/dev/null; then
+    if $COMPILER pch.h 2>/dev/null; then
+        :
+    else
         return
     fi
 
