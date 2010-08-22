@@ -1607,6 +1607,7 @@ EOF
     if $COMPILER -fpch-preprocess pch.h 2>/dev/null; then
         :
     else
+        echo "Compiler ($COMPILER) doesn't support precompiled headers -- not running pch test"
         return
     fi
 
