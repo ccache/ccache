@@ -144,7 +144,7 @@ args_strip(struct args *args, const char *prefix)
 			free(args->argv[i]);
 			memmove(&args->argv[i],
 			        &args->argv[i+1],
-			        args->argc * sizeof(args->argv[i]));
+			        (args->argc - i) * sizeof(args->argv[i]));
 			args->argc--;
 		} else {
 			i++;
