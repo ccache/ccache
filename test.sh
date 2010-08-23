@@ -1599,7 +1599,11 @@ pch_suite() {
 
     cat <<EOF >pch.c
 #include "pch.h"
-void *p = NULL;
+int main()
+{
+  void *p = NULL;
+  return 0;
+}
 EOF
     cat <<EOF >pch.h
 #include <stdlib.h>
