@@ -1604,10 +1604,10 @@ EOF
     cat <<EOF >pch.h
 #include <stdlib.h>
 EOF
-    if $COMPILER -fpch-preprocess pch.h 2>/dev/null; then
+    if $COMPILER -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER pch.c -o pch; then
         :
     else
-        echo "Compiler ($COMPILER) doesn't support precompiled headers -- not running pch test"
+        echo "Compiler (`$COMPILER --version | head -1`) doesn't support precompiled headers -- not running pch test"
         return
     fi
 
