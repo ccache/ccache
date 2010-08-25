@@ -1152,13 +1152,13 @@ read_file(const char *path)
 {
 	int fd, ret;
 	size_t pos = 0, allocated = 1024;
-	char *result = malloc(allocated);
+	char *result;
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
-		free(result);
 		return NULL;
 	}
+	result = x_malloc(allocated);
 	ret = 0;
 	do {
 		pos += ret;
