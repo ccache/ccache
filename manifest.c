@@ -215,7 +215,6 @@ read_manifest(gzFile f)
 {
 	struct manifest *mf;
 	uint16_t i, j;
-	size_t n;
 	uint32_t magic;
 	uint8_t version;
 	uint16_t dummy;
@@ -243,21 +242,16 @@ read_manifest(gzFile f)
 		return NULL;
 	}
 
-
 	READ_INT(2, dummy);
 
 	READ_INT(4, mf->n_files);
-	n = mf->n_files * sizeof(*mf->files);
-	mf->files = x_malloc(n);
-	memset(mf->files, 0, n);
+	mf->files = x_calloc(mf->n_files, sizeof(*mf->files));
 	for (i = 0; i < mf->n_files; i++) {
 		READ_STR(mf->files[i]);
 	}
 
 	READ_INT(4, mf->n_file_infos);
-	n = mf->n_file_infos * sizeof(*mf->file_infos);
-	mf->file_infos = x_malloc(n);
-	memset(mf->file_infos, 0, n);
+	mf->file_infos = x_calloc(mf->n_file_infos, sizeof(*mf->file_infos));
 	for (i = 0; i < mf->n_file_infos; i++) {
 		READ_INT(4, mf->file_infos[i].index);
 		READ_BYTES(mf->hash_size, mf->file_infos[i].hash);
@@ -265,15 +259,12 @@ read_manifest(gzFile f)
 	}
 
 	READ_INT(4, mf->n_objects);
-	n = mf->n_objects * sizeof(*mf->objects);
-	mf->objects = x_malloc(n);
-	memset(mf->objects, 0, n);
+	mf->objects = x_calloc(mf->n_objects, sizeof(*mf->objects));
 	for (i = 0; i < mf->n_objects; i++) {
 		READ_INT(4, mf->objects[i].n_file_info_indexes);
-		n = mf->objects[i].n_file_info_indexes
-		    * sizeof(*mf->objects[i].file_info_indexes);
-		mf->objects[i].file_info_indexes = x_malloc(n);
-		memset(mf->objects[i].file_info_indexes, 0, n);
+		mf->objects[i].file_info_indexes =
+			x_calloc(mf->objects[i].n_file_info_indexes,
+			         sizeof(*mf->objects[i].file_info_indexes));
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
