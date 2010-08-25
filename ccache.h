@@ -125,6 +125,7 @@ char *x_strdup(const char *s);
 char *x_strndup(const char *s, size_t n);
 void *x_realloc(void *ptr, size_t size);
 void *x_malloc(size_t size);
+void *x_calloc(size_t nmemb, size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *basename(const char *s);
 char *dirname(char *s);
