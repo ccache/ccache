@@ -1160,7 +1160,7 @@ x_readlink(const char *path)
 
 /* Return the content of a text file, or NULL on error. Caller frees. */
 char *
-read_file(const char *path)
+read_text_file(const char *path)
 {
 	int fd, ret;
 	size_t pos = 0, allocated = 1024;

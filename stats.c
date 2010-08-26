@@ -177,7 +177,7 @@ stats_update_size(enum stats stat, size_t size, unsigned files)
 void
 stats_read(const char *sfile, struct counters *counters)
 {
-	char *data = read_file(sfile);
+	char *data = read_text_file(sfile);
 	if (data) {
 		parse_stats(counters, data);
 	} else {
