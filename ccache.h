@@ -149,6 +149,7 @@ int x_munmap(void *addr, size_t length);
 int x_rename(const char *oldpath, const char *newpath);
 char *x_readlink(const char *path);
 char *read_text_file(const char *path);
+int read_file(const char *path, size_t size_hint, char **data, size_t *size);
 
 /* ------------------------------------------------------------------------- */
 /* stats.c */

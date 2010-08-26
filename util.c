@@ -1158,33 +1158,55 @@ x_readlink(const char *path)
 }
 #endif
 
-/* Return the content of a text file, or NULL on error. Caller frees. */
-char *
-read_text_file(const char *path)
+/*
+ * Reads the content of a file. Size hint 0 means no hint. Returns 0 on
+ * failure, otherwise 1.
+ */
+int
+read_file(const char *path, size_t size_hint, char **data, size_t *size)
 {
 	int fd, ret;
-	size_t pos = 0, allocated = 1024;
-	char *result;
+	size_t pos = 0, allocated = (size_hint == 0) ? 16384 : size_hint;
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
-		return NULL;
+		return 0;
 	}
-	result = x_malloc(allocated);
+	*data = x_malloc(allocated);
 	ret = 0;
 	do {
 		pos += ret;
 		if (pos > allocated / 2) {
 			allocated *= 2;
-			result = realloc(result, allocated);
+			*data = realloc(*data, allocated);
 		}
-	} while ((ret = read(fd, result + pos, allocated - pos - 1)) > 0);
+	} while ((ret = read(fd, *data + pos, allocated - pos)) > 0);
 	close(fd);
 	if (ret == -1) {
-		free(result);
+		cc_log("Failed reading %s", path);
+		free(*data);
+		return 0;
+	}
+
+	*size = pos;
+	return 1;
+}
+
+/*
+ * Return the content (with NUL termination) of a text file, or NULL on error.
+ * Caller frees.
+ */
+char *
+read_text_file(const char *path)
+{
+	size_t size;
+	char *data;
+
+	if (read_file(path, 0, &data, &size)) {
+		data = x_realloc(data, size + 1);
+		data[size] = '\0';
+		return data;
+	} else {
 		return NULL;
 	}
-	result[pos] = '\0';
-
-	return result;
 }
