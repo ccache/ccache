@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 static const char *const s_tokens[] = {
 	"...", ">>=", "<<=", "+=", "-=", "*=", "/=", "%=", "&=", "^=",
@@ -246,19 +247,14 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 int
 unify_hash(struct mdfour *hash, const char *fname)
 {
-	off_t size;
-	char *map;
+	char *data;
+	size_t size;
 
-	map = x_fmmap(fname, &size, "preprocessor output");
-	if (map == (void *) -1) {
+	if (!read_file(fname, 0, &data, &size)) {
 		stats_update(STATS_PREPROCESSOR);
 		return -1;
 	}
-
-	/* pass it through the unifier */
-	unify(hash, (unsigned char *)map, size);
-
-	x_munmap(map, size);
-
+	unify(hash, (unsigned char *)data, size);
+	free(data);
 	return 0;
 }

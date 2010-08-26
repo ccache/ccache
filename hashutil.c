@@ -207,17 +207,9 @@ end:
 int
 hash_source_code_file(struct mdfour *hash, const char *path)
 {
-	struct stat st;
 	char *data;
+	size_t size;
 	int result;
-
-	if (stat(path, &st) == -1) {
-		cc_log("Failed to stat %s", path);
-		return HASH_SOURCE_CODE_ERROR;
-	}
-	if (st.st_size == 0) {
-		return HASH_SOURCE_CODE_OK;
-	}
 
 	if (is_precompiled_header(path)) {
 		if (hash_file(hash, path)) {
@@ -226,13 +218,11 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 			return HASH_SOURCE_CODE_ERROR;
 		}
 	} else {
-		data = x_fmmap(path, &st.st_size, "source code file");
-		if (data == (void *)-1) {
+		if (!read_file(path, 0, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}
-
-		result = hash_source_code_string(hash, data, st.st_size, path);
-		x_munmap(data, st.st_size);
+		result = hash_source_code_string(hash, data, size, path);
+		free(data);
 		return result;
 	}
 }

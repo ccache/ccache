@@ -353,8 +353,8 @@ remember_include_file(char *path, size_t path_len)
 	struct file_hash *h;
 	struct mdfour fhash;
 	struct stat st;
-	char *data = (char *)-1;
-	char *source;
+	char *source = NULL;
+	size_t size;
 	int result;
 
 	if (!included_files) {
@@ -398,16 +398,15 @@ remember_include_file(char *path, size_t path_len)
 		hash_file(&fhash, path);
 	} else {
 		if (st.st_size > 0) {
-			data = x_fmmap(path, &st.st_size, "include file");
-			if (data == (char *)-1) {
+			if (!read_file(path, st.st_size, &source, &size)) {
 				goto failure;
 			}
-			source = data;
 		} else {
-			source = "";
+			source = x_strdup("");
+			size = 0;
 		}
 
-		result = hash_source_code_string(&fhash, source, st.st_size, path);
+		result = hash_source_code_string(&fhash, source, size, path);
 		if (result & HASH_SOURCE_CODE_ERROR
 		    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 			goto failure;
@@ -418,7 +417,6 @@ remember_include_file(char *path, size_t path_len)
 	hash_result_as_bytes(&fhash, h->hash);
 	h->size = fhash.totalN;
 	hashtable_insert(included_files, path, h);
-	x_munmap(data, st.st_size);
 	return;
 
 failure:
@@ -427,9 +425,7 @@ failure:
 	/* Fall through. */
 ignore:
 	free(path);
-	if (data != (char *)-1) {
-		x_munmap(data, st.st_size);
-	}
+	free(source);
 }
 
 /*
@@ -464,10 +460,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 {
 	char *data;
 	char *p, *q, *end;
-	off_t size;
+	size_t size;
 
-	data = x_fmmap(path, &size, "preprocessed file");
-	if (data == (void *)-1) {
+	if (!read_file(path, 32768, &data, &size)) {
 		return 0;
 	}
 
@@ -516,7 +511,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			q++;
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
-				x_munmap(data, size);
+				free(data);
 				return 0;
 			}
 			/* q points to the beginning of an include file path */
@@ -541,7 +536,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	hash_buffer(hash, p, (end - p));
-	x_munmap(data, size);
+	free(data);
 	return 1;
 }
 
