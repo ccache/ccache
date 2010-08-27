@@ -1104,7 +1104,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 		pos += ret;
 		if (pos > allocated / 2) {
 			allocated *= 2;
-			*data = realloc(*data, allocated);
+			*data = x_realloc(*data, allocated);
 		}
 	} while ((ret = read(fd, *data + pos, allocated - pos)) > 0);
 	close(fd);
