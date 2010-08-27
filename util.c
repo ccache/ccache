@@ -1111,6 +1111,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 	if (ret == -1) {
 		cc_log("Failed reading %s", path);
 		free(*data);
+		*data = NULL;
 		return 0;
 	}
 
