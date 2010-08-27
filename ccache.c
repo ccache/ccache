@@ -1637,6 +1637,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				"-Xlinker",
 				"-aux-info",
 				"-b",
+				"-install_name", /* Darwin linker option */
 				"-iwithprefix",
 				"-iwithprefixbefore",
 				"-u",
