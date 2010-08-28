@@ -189,6 +189,9 @@ static int nlevels = 2;
  */
 static int compile_preprocessed_source_code;
 
+/* Whether the output is a precompiled header */
+static int output_is_precompiled_header = 0;
+
 /* How long (in microseconds) to wait before breaking a stale lock. */
 unsigned lock_staleness_limit = 2000000;
 
@@ -1014,8 +1017,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* When using the preprocessor, some arguments don't contribute
 		   to the hash. The theory is that these arguments will change
 		   the output of -E if they are going to have any effect at
-		   all. */
-		if (!direct_mode) {
+		   all. For precompiled headers this might not be the case. */
+		if (!direct_mode && !output_is_precompiled_header) {
 			if (i < args->argc-1) {
 				if (str_eq(args->argv[i], "-D") ||
 				    str_eq(args->argv[i], "-I") ||
@@ -1337,7 +1340,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	int found_c_opt = 0;
 	int found_S_opt = 0;
 	int found_arch_opt = 0;
-	int output_is_precompiled_header = 0;
+	int found_pch = 0;
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
 	const char *actual_language;          /* Language to actually use. */
@@ -1577,6 +1580,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			};
 			int j;
 			char *relpath;
+			char *pchpath;
 			for (j = 0; opts[j]; j++) {
 				if (str_eq(argv[i], opts[j])) {
 					if (i == argc-1) {
@@ -1589,6 +1593,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					args_add(stripped_args, argv[i]);
 					relpath = make_relative_path(x_strdup(argv[i+1]));
 					args_add(stripped_args, relpath);
+
+					/* Try to be smart about detecting precompiled headers */
+					pchpath = format("%s.gch", argv[i+1]);
+					if (stat(pchpath, &st) == 0 && S_ISDIR(st.st_mode)) {
+						found_pch = 1;
+					}
+
+					free(pchpath);
 					free(relpath);
 					i++;
 					break;
@@ -1810,6 +1822,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	*preprocessor_args = args_copy(stripped_args);
 	if (input_charset) {
 		args_add(*preprocessor_args, input_charset);
+	}
+	if (found_pch) {
+		cc_log("Use of precompiled header detected, adding -fpch-preprocess");
+		args_add(*preprocessor_args, "-fpch-preprocess");
 	}
 	if (explicit_language) {
 		args_add(*preprocessor_args, "-x");
