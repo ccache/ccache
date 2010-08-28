@@ -1608,6 +1608,14 @@ EOF
     cat <<EOF >pch.h
 #include <stdlib.h>
 EOF
+    cat <<EOF >pch2.c
+int main()
+{
+  void *p = NULL;
+  return 0;
+}
+EOF
+
     if $COMPILER -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER pch.c -o pch; then
         :
     else
@@ -1661,6 +1669,17 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat 'preprocessor error' 1
+
+    testname="no -fpch-preprocess, using -include"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
 
     testname="-fpch-preprocess, no sloppy time macros"
     $CCACHE -z >/dev/null
