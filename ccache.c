@@ -1596,7 +1596,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 					/* Try to be smart about detecting precompiled headers */
 					pchpath = format("%s.gch", argv[i+1]);
-					if (stat(pchpath, &st) == 0 && S_ISDIR(st.st_mode)) {
+					if (stat(pchpath, &st) == 0) {
 						found_pch = 1;
 					}
 
