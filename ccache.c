@@ -42,7 +42,7 @@
 #include <unistd.h>
 
 static const char VERSION_TEXT[] =
-"ccache version %s\n"
+MYNAME " version %s\n"
 "\n"
 "Copyright (C) 2002-2007 Andrew Tridgell\n"
 "Copyright (C) 2009-2010 Joel Rosdahl\n"
@@ -54,8 +54,8 @@ static const char VERSION_TEXT[] =
 
 static const char USAGE_TEXT[] =
 "Usage:\n"
-"    ccache [options]\n"
-"    ccache compiler [compiler options]\n"
+"    " MYNAME " [options]\n"
+"    " MYNAME " compiler [compiler options]\n"
 "    compiler [compiler options]          (via symbolic link)\n"
 "\n"
 "Options:\n"
