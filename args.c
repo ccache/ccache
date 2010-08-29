@@ -18,10 +18,6 @@
 
 #include "ccache.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
 struct args *
 args_init(int init_argc, char **init_args)
 {

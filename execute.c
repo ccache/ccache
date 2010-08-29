@@ -18,18 +18,6 @@
 
 #include "ccache.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
-#endif
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
 

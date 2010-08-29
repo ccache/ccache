@@ -32,13 +32,6 @@
 
 #include "ccache.h"
 
-#include <sys/types.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-
 static const char *const s_tokens[] = {
 	"...", ">>=", "<<=", "+=", "-=", "*=", "/=", "%=", "&=", "^=",
 	"|=",  ">>",  "<<",  "++", "--", "->", "&&", "||", "<=", ">=",

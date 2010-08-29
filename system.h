@@ -20,9 +20,22 @@
 #define CCACHE_SYSTEM_H
 
 #include "config.h"
+
 #include <sys/file.h>
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
+#include <assert.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -30,5 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <utime.h>
 
 #endif /* CCACHE_SYSTEM_H */

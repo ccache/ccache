@@ -17,10 +17,6 @@
  */
 
 #include "ccache.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 /*
  * This function acquires a lockfile for the given path. Returns true if the

@@ -18,9 +18,6 @@
 
 #include "ccache.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 /* NOTE: This code makes no attempt to be fast! */
 
 static struct mdfour *m;

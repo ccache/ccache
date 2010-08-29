@@ -17,9 +17,6 @@
  */
 
 #include "ccache.h"
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 
 struct exit_function {
 	void (*function)(void *);

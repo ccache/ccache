@@ -19,7 +19,6 @@
 /* A simple array of unsigned integers used for the statistics counters. */
 
 #include "ccache.h"
-#include <stdlib.h>
 
 /*
  * Allocate and initialize a struct counters. Data entries up to the size are

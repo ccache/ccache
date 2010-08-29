@@ -18,8 +18,7 @@
 
 #include "ccache.h"
 #include "test/framework.h"
-#include <errno.h>
-#include <stdio.h>
+
 #if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
 #include <termios.h>

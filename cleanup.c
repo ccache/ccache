@@ -19,13 +19,6 @@
 
 #include "ccache.h"
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-
 /*
  * When "max files" or "max cache size" is reached, one of the 16 cache
  * subdirectories is cleaned up. When doing so, files are deleted (in LRU

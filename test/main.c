@@ -18,9 +18,11 @@
  */
 
 #include "test/framework.h"
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#else
 #include "getopt_long.h"
-#include <stdlib.h>
-#include <stdio.h>
+#endif
 
 #define SUITE(name) unsigned suite_##name(unsigned);
 #include "test/suites.h"

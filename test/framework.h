@@ -20,8 +20,6 @@
 #define TEST_FRAMEWORK_H
 
 #include "ccache.h"
-#include <string.h>
-#include <stdlib.h>
 
 /*****************************************************************************/
 

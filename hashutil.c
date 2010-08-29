@@ -20,14 +20,6 @@
 #include "hashutil.h"
 #include "murmurhashneutral2.h"
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 unsigned
 hash_from_string(void *str)
 {
