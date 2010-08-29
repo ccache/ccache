@@ -1,17 +1,9 @@
 #ifndef CCACHE_H
 #define CCACHE_H
 
-#include "config.h"
+#include "system.h"
 #include "mdfour.h"
 #include "counters.h"
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
