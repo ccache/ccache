@@ -53,11 +53,11 @@ counters_resize(struct counters *c, size_t new_size)
 {
 	if (new_size > c->size) {
 		size_t i;
-		int realloc = 0;
+		bool realloc = false;
 
 		while (c->allocated < new_size) {
 			c->allocated += 32 + c->allocated;
-			realloc = 1;
+			realloc = true;
 		}
 		if (realloc) {
 			c->data = x_realloc(c->data, c->allocated * sizeof(c->data[0]));

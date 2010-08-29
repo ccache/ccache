@@ -62,10 +62,10 @@ build_table(void)
 {
 	unsigned char c;
 	int i;
-	static int done;
+	static bool done;
 
 	if (done) return;
-	done = 1;
+	done = true;
 
 	memset(tokens, 0, sizeof(tokens));
 	for (c = 0; c < 128; c++) {

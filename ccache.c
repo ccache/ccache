@@ -138,7 +138,7 @@ unsigned sloppiness = 0;
 static struct hashtable *included_files;
 
 /* is gcc being asked to output dependencies? */
-static int generating_dependencies;
+static bool generating_dependencies;
 
 /* the extension of the file (without dot) after pre-processing */
 static const char *i_extension;
@@ -147,7 +147,7 @@ static const char *i_extension;
 static char *i_tmpfile;
 
 /* are we compiling a .i or .ii file directly? */
-static int direct_i_file;
+static bool direct_i_file;
 
 /* the name of the cpp stderr file */
 static char *cpp_stderr;
@@ -159,16 +159,16 @@ static char *cpp_stderr;
 char *stats_file = NULL;
 
 /* can we safely use the unification hashing backend? */
-static int enable_unify;
+static bool enable_unify;
 
 /* should we use the direct mode? */
-static int enable_direct = 1;
+static bool enable_direct = true;
 
 /*
  * Whether to enable compression of files stored in the cache. (Manifest files
  * are always compressed.)
  */
-static int enable_compression = 0;
+static bool enable_compression = false;
 
 /* number of levels (1 <= nlevels <= 8) */
 static int nlevels = 2;
@@ -177,10 +177,10 @@ static int nlevels = 2;
  * Whether we should use the optimization of passing the already existing
  * preprocessed source code to the compiler.
  */
-static int compile_preprocessed_source_code;
+static bool compile_preprocessed_source_code;
 
 /* Whether the output is a precompiled header */
-static int output_is_precompiled_header = 0;
+static bool output_is_precompiled_header = false;
 
 /* How long (in microseconds) to wait before breaking a stale lock. */
 unsigned lock_staleness_limit = 2000000;
@@ -348,7 +348,7 @@ remember_include_file(char *path, size_t path_len)
 
 failure:
 	cc_log("Disabling direct mode");
-	enable_direct = 0;
+	enable_direct = false;
 	/* Fall through. */
 ignore:
 	free(path);
@@ -382,7 +382,7 @@ make_relative_path(char *path)
  * - Stores the paths and hashes of included files in the global variable
  *   included_files.
  */
-static int
+static bool
 process_preprocessed_file(struct mdfour *hash, const char *path)
 {
 	char *data;
@@ -390,7 +390,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	size_t size;
 
 	if (!read_file(path, 32768, &data, &size)) {
-		return 0;
+		return false;
 	}
 
 	if (enable_direct) {
@@ -439,7 +439,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
 				free(data);
-				return 0;
+				return false;
 			}
 			/* q points to the beginning of an include file path */
 			hash_buffer(hash, p, q - p);
@@ -464,7 +464,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 
 	hash_buffer(hash, p, (end - p));
 	free(data);
-	return 1;
+	return true;
 }
 
 /* run the real compiler and put the result in cache */
@@ -936,7 +936,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 		if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 			cc_log("Disabling direct mode");
-			enable_direct = 0;
+			enable_direct = false;
 			return NULL;
 		}
 		manifest_name = hash_result(hash);
@@ -965,12 +965,12 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
  * then this function exits with the correct status code, otherwise it returns.
  */
 static void
-from_cache(enum fromcache_call_mode mode, int put_object_in_manifest)
+from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
 	int fd_stderr;
 	int ret;
 	struct stat st;
-	int produce_dep_file;
+	bool produce_dep_file;
 
 	/* the user might be disabling cache hits */
 	if (mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE")) {
@@ -1146,7 +1146,7 @@ find_compiler(int argc, char **argv)
 	base = basename(argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
-	if (compare_executable_name(base, MYNAME)) {
+	if (same_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
 		if (is_full_path(argv[1])) {
@@ -1175,7 +1175,7 @@ find_compiler(int argc, char **argv)
 	orig_args->argv[0] = compiler;
 }
 
-int
+bool
 is_precompiled_header(const char *path)
 {
 	return str_eq(get_extension(path), ".gch");
@@ -1184,30 +1184,30 @@ is_precompiled_header(const char *path)
 /*
  * Process the compiler options into options suitable for passing to the
  * preprocessor and the real compiler. The preprocessor options don't include
- * -E; this is added later. Returns 0 on failure, otherwise 1.
+ * -E; this is added later. Returns true on success, otherwise false.
  */
-int
+bool
 cc_process_args(struct args *orig_args, struct args **preprocessor_args,
                 struct args **compiler_args)
 {
 	int i;
-	int found_c_opt = 0;
-	int found_S_opt = 0;
-	int found_arch_opt = 0;
-	int found_pch = 0;
+	bool found_c_opt = false;
+	bool found_S_opt = false;
+	bool found_arch_opt = false;
+	bool found_pch = false;
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
 	const char *actual_language;          /* Language to actually use. */
 	const char *input_charset = NULL;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
-	int dependency_filename_specified = 0;
+	bool dependency_filename_specified = false;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
-	int dependency_target_specified = 0;
+	bool dependency_target_specified = false;
 	struct args *stripped_args = NULL, *dep_args = NULL;
 	int argc = orig_args->argc;
 	char **argv = orig_args->argv;
-	int result = 1;
+	bool result = true;
 
 	stripped_args = args_init(0, NULL);
 	dep_args = args_init(0, NULL);
@@ -1219,7 +1219,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-E")) {
 			cc_log("Compiler option -E is unsupported");
 			stats_update(STATS_UNSUPPORTED);
-			result = 0;
+			result = false;
 			goto out;
 		}
 
@@ -1237,7 +1237,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		    str_eq(argv[i], "-save-temps")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
-			result = 0;
+			result = false;
 			goto out;
 		}
 
@@ -1245,7 +1245,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (enable_direct) {
 			if (str_eq(argv[i], "-Xpreprocessor")) {
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-				enable_direct = 0;
+				enable_direct = false;
 			}
 		}
 
@@ -1254,10 +1254,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (found_arch_opt) {
 				cc_log("More than one -arch compiler option is unsupported");
 				stats_update(STATS_UNSUPPORTED);
-				result = 0;
+				result = false;
 				goto out;
 			} else {
-				found_arch_opt = 1;
+				found_arch_opt = true;
 			}
 		}
 
@@ -1266,21 +1266,21 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			cc_log("You have to specify \"time_macros\" sloppiness when using"
 			       " -fpch-preprocess");
 			stats_update(STATS_UNSUPPORTED);
-			result = 0;
+			result = false;
 			goto out;
 		}
 
 		/* we must have -c */
 		if (str_eq(argv[i], "-c")) {
 			args_add(stripped_args, argv[i]);
-			found_c_opt = 1;
+			found_c_opt = true;
 			continue;
 		}
 
 		/* -S changes the default extension */
 		if (str_eq(argv[i], "-S")) {
 			args_add(stripped_args, argv[i]);
-			found_S_opt = 1;
+			found_S_opt = true;
 			continue;
 		}
 
@@ -1292,7 +1292,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				result = 0;
+				result = false;
 				goto out;
 			}
 			if (!input_file) {
@@ -1313,7 +1313,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
-				result = 0;
+				result = false;
 				goto out;
 			}
 			output_obj = argv[i+1];
@@ -1334,7 +1334,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			if (enable_unify && !str_eq(argv[i], "-g0")) {
 				cc_log("%s used; disabling unify mode", argv[i]);
-				enable_unify = 0;
+				enable_unify = false;
 			}
 			if (str_eq(argv[i], "-g3")) {
 				/*
@@ -1342,7 +1342,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				 * have non-zero lineno when using -g3").
 				 */
 				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				compile_preprocessed_source_code = 0;
+				compile_preprocessed_source_code = false;
 			}
 			continue;
 		}
@@ -1352,7 +1352,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			i++;
 			if (i == argc) {
 				cc_log("--ccache-skip lacks an argument");
-				result = 0;
+				result = false;
 				goto out;
 			}
 			args_add(stripped_args, argv[i]);
@@ -1363,13 +1363,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		   behave differently with gcc -E, when the output
 		   file is not specified. */
 		if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
-			generating_dependencies = 1;
+			generating_dependencies = true;
 			args_add(dep_args, argv[i]);
 			continue;
 		}
 		if (i < argc - 1) {
 			if (str_eq(argv[i], "-MF")) {
-				dependency_filename_specified = 1;
+				dependency_filename_specified = true;
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i + 1]));
 				args_add(dep_args, argv[i]);
@@ -1377,7 +1377,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				i++;
 				continue;
 			} else if (str_eq(argv[i], "-MQ") || str_eq(argv[i], "-MT")) {
-				dependency_target_specified = 1;
+				dependency_target_specified = true;
 				args_add(dep_args, argv[i]);
 				args_add(dep_args, argv[i + 1]);
 				i++;
@@ -1386,16 +1386,16 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_startswith(argv[i], "-Wp,-MD,") && !strchr(argv[i] + 8, ',')) {
-				generating_dependencies = 1;
-				dependency_filename_specified = 1;
+				generating_dependencies = true;
+				dependency_filename_specified = true;
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 8));
 				args_add(dep_args, argv[i]);
 				continue;
 			} else if (str_startswith(argv[i], "-Wp,-MMD,")
 			           && !strchr(argv[i] + 9, ',')) {
-				generating_dependencies = 1;
-				dependency_filename_specified = 1;
+				generating_dependencies = true;
+				dependency_filename_specified = true;
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 9));
 				args_add(dep_args, argv[i]);
@@ -1407,7 +1407,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				 * mode.
 				 */
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-				enable_direct = 0;
+				enable_direct = false;
 			}
 		}
 		if (str_eq(argv[i], "-MP")) {
@@ -1440,7 +1440,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					if (i == argc-1) {
 						cc_log("Missing argument to %s", argv[i]);
 						stats_update(STATS_ARGS);
-						result = 0;
+						result = false;
 						goto out;
 					}
 
@@ -1451,7 +1451,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					/* Try to be smart about detecting precompiled headers */
 					pchpath = format("%s.gch", argv[i+1]);
 					if (stat(pchpath, &st) == 0) {
-						found_pch = 1;
+						found_pch = true;
 					}
 
 					free(pchpath);
@@ -1515,7 +1515,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					if (i == argc-1) {
 						cc_log("Missing argument to %s", argv[i]);
 						stats_update(STATS_ARGS);
-						result = 0;
+						result = false;
 						goto out;
 					}
 
@@ -1559,7 +1559,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				cc_log("Unsupported source extension: %s", argv[i]);
 				stats_update(STATS_SOURCELANG);
 			}
-			result = 0;
+			result = false;
 			goto out;
 		}
 
@@ -1570,7 +1570,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (!input_file) {
 		cc_log("No input file found");
 		stats_update(STATS_NOINPUT);
-		result = 0;
+		result = false;
 		goto out;
 	}
 
@@ -1582,7 +1582,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (!language_is_supported(explicit_language)) {
 			cc_log("Unsupported language: %s", explicit_language);
 			stats_update(STATS_SOURCELANG);
-			result = 0;
+			result = false;
 			goto out;
 		}
 		actual_language = explicit_language;
@@ -1602,14 +1602,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		} else {
 			stats_update(STATS_LINK);
 		}
-		result = 0;
+		result = false;
 		goto out;
 	}
 
 	if (!actual_language) {
 		cc_log("Unsupported source extension: %s", input_file);
 		stats_update(STATS_SOURCELANG);
-		result = 0;
+		result = false;
 		goto out;
 	}
 
@@ -1618,7 +1618,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (output_is_precompiled_header) {
 		/* It doesn't work to create the .gch from preprocessed source. */
 		cc_log("Creating precompiled header; not compiling preprocessed code");
-		compile_preprocessed_source_code = 0;
+		compile_preprocessed_source_code = false;
 	}
 
 	i_extension = getenv("CCACHE_EXTENSION");
@@ -1631,7 +1631,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (output_obj && str_eq(output_obj, "-")) {
 		stats_update(STATS_OUTSTDOUT);
 		cc_log("Output file is -");
-		result = 0;
+		result = false;
 		goto out;
 	}
 
@@ -1648,7 +1648,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (!p || !p[1]) {
 				cc_log("Badly formed object filename");
 				stats_update(STATS_ARGS);
-				result = 0;
+				result = false;
 				goto out;
 			}
 			p[1] = found_S_opt ? 's' : 'o';
@@ -1662,7 +1662,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
 		stats_update(STATS_DEVICE);
-		result = 0;
+		result = false;
 		goto out;
 	}
 
@@ -1754,21 +1754,21 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
-	sloppiness = 0;
+	sloppiness = false;
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
-	generating_dependencies = 0;
+	generating_dependencies = false;
 	i_extension = NULL;
 	i_tmpfile = NULL;
-	direct_i_file = 0;
+	direct_i_file = false;
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
-	enable_unify = 0;
-	enable_direct = 1;
-	enable_compression = 0;
+	enable_unify = false;
+	enable_direct = true;
+	enable_compression = false;
 	nlevels = 2;
-	compile_preprocessed_source_code = 0;
+	compile_preprocessed_source_code = false;
 }
 
 static unsigned
@@ -1805,7 +1805,7 @@ parse_sloppiness(char *p)
 static void
 ccache(int argc, char *argv[])
 {
-	int put_object_in_manifest = 0;
+	bool put_object_in_manifest = false;
 	struct file_hash *object_hash;
 	struct file_hash *object_hash_from_manifest = NULL;
 	char *env;
@@ -1837,17 +1837,17 @@ ccache(int argc, char *argv[])
 
 	if (getenv("CCACHE_UNIFY")) {
 		cc_log("Unify mode disabled");
-		enable_unify = 1;
+		enable_unify = true;
 	}
 
 	if (getenv("CCACHE_NODIRECT") || enable_unify) {
 		cc_log("Direct mode disabled");
-		enable_direct = 0;
+		enable_direct = false;
 	}
 
 	if (getenv("CCACHE_COMPRESS")) {
 		cc_log("Compression enabled");
-		enable_compression = 1;
+		enable_compression = true;
 	}
 
 	if ((env = getenv("CCACHE_NLEVELS"))) {
@@ -1888,12 +1888,12 @@ ccache(int argc, char *argv[])
 			 * However, the object was already found in manifest,
 			 * so don't readd it later.
 			 */
-			put_object_in_manifest = 0;
+			put_object_in_manifest = false;
 
 			object_hash_from_manifest = object_hash;
 		} else {
 			/* Add object to manifest later. */
-			put_object_in_manifest = 1;
+			put_object_in_manifest = true;
 		}
 	}
 
@@ -1931,7 +1931,7 @@ ccache(int argc, char *argv[])
 		cc_log("Removing manifest as a safety measure");
 		unlink(manifest_path);
 
-		put_object_in_manifest = 1;
+		put_object_in_manifest = true;
 	}
 
 	/* if we can return from cache at this point then do */
@@ -2127,7 +2127,7 @@ ccache_main(int argc, char *argv[])
 
 	/* check if we are being invoked as "ccache" */
 	program_name = basename(argv[0]);
-	if (compare_executable_name(program_name, MYNAME)) {
+	if (same_executable_name(program_name, MYNAME)) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);
 			exit(1);

@@ -171,19 +171,19 @@ args_to_string(struct args *args)
 	return result;
 }
 
-/* Returns 1 if args1 equals args2, else 0. */
-int
+/* Returns true if args1 equals args2, else false. */
+bool
 args_equal(struct args *args1, struct args *args2)
 {
 	int i;
 	if (args1->argc != args2->argc) {
-		return 0;
+		return false;
 	}
 	for (i = 0; i < args1->argc; i++) {
 		if (!str_eq(args1->argv[i], args2->argv[i])) {
-			return 0;
+			return false;
 		}
 	}
-	return 1;
+	return true;
 }
 

@@ -571,9 +571,9 @@ out:
 
 /*
  * Put the object name into a manifest file given a set of included files.
- * Returns 1 on success, otherwise 0.
+ * Returns true on success, otherwise false.
  */
-int
+bool
 manifest_put(const char *manifest_path, struct file_hash *object_hash,
              struct hashtable *included_files)
 {

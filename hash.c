@@ -51,7 +51,7 @@ hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 	mdfour_result(md, out);
 }
 
-int
+bool
 hash_equal(struct mdfour *md1, struct mdfour *md2)
 {
 	unsigned char sum1[16], sum2[16];
@@ -90,9 +90,10 @@ hash_int(struct mdfour *md, int x)
 }
 
 /*
- * Add contents of an open file to the hash. Returns 1 on success, otherwise 0.
+ * Add contents of an open file to the hash. Returns true on success, otherwise
+ * false.
  */
-int
+bool
 hash_fd(struct mdfour *md, int fd)
 {
 	char buf[1024];
@@ -102,24 +103,25 @@ hash_fd(struct mdfour *md, int fd)
 		hash_buffer(md, buf, n);
 	}
 	if (n == 0) {
-		return 1;
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
 /*
- * Add contents of a file to the hash. Returns 1 on success, otherwise 0.
+ * Add contents of a file to the hash. Returns true on success, otherwise
+ * false.
  */
-int
+bool
 hash_file(struct mdfour *md, const char *fname)
 {
 	int fd;
-	int ret;
+	bool ret;
 
 	fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1) {
-		return 0;
+		return false;
 	}
 
 	ret = hash_fd(md, fd);

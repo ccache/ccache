@@ -28,13 +28,13 @@
  * probably be made with an atomic rename(2) to avoid corruption in the rare
  * case that the lock is broken by another process.
  */
-int
+bool
 lockfile_acquire(const char *path, unsigned staleness_limit)
 {
 	char *lockfile = format("%s.lock", path);
 	char *my_content = NULL, *content = NULL, *initial_content = NULL;
 	const char *hostname = get_hostname();
-	int result = 0;
+	bool acquired = false;
 #ifdef _WIN32
 	const size_t bufsize = 1024;
 	int fd, len;
@@ -88,14 +88,14 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				goto out;
 			}
 			close(fd);
-			result = 1;
+			acquired = true;
 			goto out;
 		}
 #else
 		ret = symlink(my_content, lockfile);
 		if (ret == 0) {
 			/* We got the lock. */
-			result = 1;
+			acquired = true;
 			goto out;
 		}
 		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(errno));
@@ -123,7 +123,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			/* Lost NFS reply? */
 			cc_log("lockfile_acquire: symlink %s failed but we got the lock anyway",
 			       lockfile);
-			result = 1;
+			acquired = true;
 			goto out;
 		}
 		/*
@@ -157,7 +157,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 	}
 
 out:
-	if (result == 1) {
+	if (acquired) {
 		cc_log("Acquired lock %s", lockfile);
 	} else {
 		cc_log("Failed to acquire lock %s", lockfile);
@@ -166,7 +166,7 @@ out:
 	free(my_content);
 	free(initial_content);
 	free(content);
-	return result;
+	return acquired;
 }
 
 /*

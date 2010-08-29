@@ -77,7 +77,7 @@ void args_set(struct args *args, int index, const char *value);
 void args_strip(struct args *args, const char *prefix);
 void args_remove_first(struct args *args);
 char *args_to_string(struct args *args);
-int args_equal(struct args *args1, struct args *args2);
+bool args_equal(struct args *args1, struct args *args2);
 
 /* ------------------------------------------------------------------------- */
 /* hash.c */
@@ -86,12 +86,12 @@ void hash_start(struct mdfour *md);
 void hash_buffer(struct mdfour *md, const void *s, size_t len);
 char *hash_result(struct mdfour *md);
 void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-int hash_equal(struct mdfour *md1, struct mdfour *md2);
+bool hash_equal(struct mdfour *md1, struct mdfour *md2);
 void hash_delimiter(struct mdfour *md, const char* type);
 void hash_string(struct mdfour *md, const char *s);
 void hash_int(struct mdfour *md, int x);
-int hash_fd(struct mdfour *md, int fd);
-int hash_file(struct mdfour *md, const char *fname);
+bool hash_fd(struct mdfour *md, int fd);
+bool hash_file(struct mdfour *md, const char *fname);
 
 /* ------------------------------------------------------------------------- */
 /* util.c */
@@ -105,7 +105,7 @@ int copy_file(const char *src, const char *dest, int compress_dest);
 int move_file(const char *src, const char *dest, int compress_dest);
 int move_uncompressed_file(const char *src, const char *dest,
                            int compress_dest);
-int test_if_compressed(const char *filename);
+bool test_if_compressed(const char *filename);
 
 int create_dir(const char *dir);
 const char *get_hostname(void);
@@ -131,16 +131,16 @@ char *gnu_getcwd(void);
 int create_empty_file(const char *fname);
 const char *get_home_directory(void);
 char *get_cwd();
-int compare_executable_name(const char *s1, const char *s2);
+bool same_executable_name(const char *s1, const char *s2);
 size_t common_dir_prefix_length(const char *s1, const char *s2);
 char *get_relative_path(const char *from, const char *to);
-int is_absolute_path(const char *path);
-int is_full_path(const char *path);
+bool is_absolute_path(const char *path);
+bool is_full_path(const char *path);
 void update_mtime(const char *path);
 int x_rename(const char *oldpath, const char *newpath);
 char *x_readlink(const char *path);
 char *read_text_file(const char *path);
-int read_file(const char *path, size_t size_hint, char **data, size_t *size);
+bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
 
 /* ------------------------------------------------------------------------- */
 /* stats.c */
@@ -206,16 +206,16 @@ void print_executed_command(FILE *fp, char **argv);
 /* ------------------------------------------------------------------------- */
 /* lockfile.c */
 
-int lockfile_acquire(const char *path, unsigned staleness_limit);
+bool lockfile_acquire(const char *path, unsigned staleness_limit);
 void lockfile_release(const char *path);
 
 /* ------------------------------------------------------------------------- */
 /* ccache.c */
 
-int cc_process_args(struct args *orig_args, struct args **preprocessor_args,
+bool cc_process_args(struct args *orig_args, struct args **preprocessor_args,
                     struct args **compiler_args);
 void cc_reset(void);
-int is_precompiled_header(const char *path);
+bool is_precompiled_header(const char *path);
 
 /* ------------------------------------------------------------------------- */
 

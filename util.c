@@ -35,22 +35,22 @@
 
 static FILE *logfile;
 
-static int
+static bool
 init_log(void)
 {
 	extern char *cache_logfile;
 
 	if (logfile) {
-		return 1;
+		return true;
 	}
 	if (!cache_logfile) {
-		return 0;
+		return false;
 	}
 	logfile = fopen(cache_logfile, "a");
 	if (logfile) {
-		return 1;
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
@@ -332,25 +332,25 @@ move_uncompressed_file(const char *src, const char *dest, int compress_dest)
 }
 
 /* test if a file is zlib compressed */
-int
+bool
 test_if_compressed(const char *filename)
 {
 	FILE *f;
 
 	f = fopen(filename, "rb");
 	if (!f) {
-		return 0;
+		return false;
 	}
 
 	/* test if file starts with 1F8B, which is zlib's
 	 * magic number */
 	if ((fgetc(f) != 0x1f) || (fgetc(f) != 0x8b)) {
 		fclose(f);
-		return 0;
+		return false;
 	}
 
 	fclose(f);
-	return 1;
+	return true;
 }
 
 /* make sure a directory exists */
@@ -907,11 +907,11 @@ get_cwd(void)
 /*
  * Check whether s1 and s2 have the same executable name.
  */
-int
-compare_executable_name(const char *s1, const char *s2)
+bool
+same_executable_name(const char *s1, const char *s2)
 {
 #ifdef _WIN32
-	int eq = strcasecmp(s1, s2) == 0;
+	bool eq = strcasecmp(s1, s2) == 0;
 	if (!eq) {
 		char *tmp = format("%s.exe", s2);
 		eq = strcasecmp(s1, tmp) == 0;
@@ -988,7 +988,7 @@ get_relative_path(const char *from, const char *to)
 /*
  * Return whether path is absolute.
  */
-int
+bool
 is_absolute_path(const char *path)
 {
 #ifdef _WIN32
@@ -1001,7 +1001,7 @@ is_absolute_path(const char *path)
 /*
  * Return whether the argument is a full path.
  */
-int
+bool
 is_full_path(const char *path)
 {
 	if (strchr(path, '/'))
@@ -1069,10 +1069,10 @@ x_readlink(const char *path)
 #endif
 
 /*
- * Reads the content of a file. Size hint 0 means no hint. Returns 0 on
- * failure, otherwise 1.
+ * Reads the content of a file. Size hint 0 means no hint. Returns true on
+ * success, otherwise false.
  */
-int
+bool
 read_file(const char *path, size_t size_hint, char **data, size_t *size)
 {
 	int fd, ret;
@@ -1080,7 +1080,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
-		return 0;
+		return false;
 	}
 	*data = x_malloc(allocated);
 	ret = 0;
@@ -1096,11 +1096,11 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 		cc_log("Failed reading %s", path);
 		free(*data);
 		*data = NULL;
-		return 0;
+		return false;
 	}
 
 	*size = pos;
-	return 1;
+	return true;
 }
 
 /*

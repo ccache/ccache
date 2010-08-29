@@ -219,7 +219,7 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 	}
 }
 
-int
+bool
 hash_command_output(struct mdfour *hash, const char *command,
                     const char *compiler)
 {
@@ -250,10 +250,11 @@ hash_command_output(struct mdfour *hash, const char *command,
 		dup2(pipefd[1], 1);
 		dup2(pipefd[1], 2);
 		_exit(execvp(args->argv[0], args->argv));
-		return 0; /* Never reached. */
+		return false; /* Never reached. */
 	} else {
 		/* Parent. */
-		int status, ok;
+		int status;
+		bool ok;
 		args_free(args);
 		close(pipefd[1]);
 		ok = hash_fd(hash, pipefd[0]);
@@ -264,29 +265,29 @@ hash_command_output(struct mdfour *hash, const char *command,
 		close(pipefd[0]);
 		if (waitpid(pid, &status, 0) != pid) {
 			cc_log("waitpid failed");
-			return 0;
+			return false;
 		}
 		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
 			cc_log("Compiler check command returned %d", WEXITSTATUS(status));
 			stats_update(STATS_COMPCHECK);
-			return 0;
+			return false;
 		}
 		return ok;
 	}
 }
 
-int
+bool
 hash_multicommand_output(struct mdfour *hash, const char *commands,
                          const char *compiler)
 {
 	char *command_string, *command, *p, *saveptr = NULL;
-	int ok = 1;
+	bool ok = true;
 
 	command_string = x_strdup(commands);
 	p = command_string;
 	while ((command = strtok_r(p, ";", &saveptr))) {
 		if (!hash_command_output(hash, command, compiler)) {
-			ok = 0;
+			ok = false;
 		}
 		p = NULL;
 	}

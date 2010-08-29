@@ -142,13 +142,13 @@ extension_for_language(const char *language)
 	return NULL;
 }
 
-int
+bool
 language_is_supported(const char *language)
 {
 	return p_language_for_language(language) != NULL;
 }
 
-int
+bool
 language_is_preprocessed(const char *language)
 {
 	return str_eq(language, p_language_for_language(language));

@@ -17,15 +17,16 @@
  */
 
 #include "system.h"
+#include "test/util.h"
 
-int
+bool
 path_exists(const char *path)
 {
 	struct stat st;
 	return lstat(path, &st) == 0;
 }
 
-int
+bool
 is_symlink(const char *path)
 {
 	struct stat st;

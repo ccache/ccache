@@ -26,6 +26,7 @@ Idioms
   allocation failure explicitly.
 * Use str_eq() instead of strcmp() when testing for string (in)equality.
 * Consider using str_startswith() instead of strncmp().
+* Use bool, true and false for boolean values.
 
 Other
 -----

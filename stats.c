@@ -193,8 +193,8 @@ void
 stats_flush(void)
 {
 	struct counters *counters;
-	int need_cleanup = 0;
-	int should_flush = 0;
+	bool need_cleanup = false;
+	bool should_flush = false;
 	int i;
 
 	if (getenv("CCACHE_NOSTATS")) return;
@@ -203,7 +203,7 @@ stats_flush(void)
 
 	for (i = 0; i < STATS_END; ++i) {
 		if (counter_updates->data[i] > 0) {
-			should_flush = 1;
+			should_flush = true;
 			break;
 		}
 	}
@@ -236,11 +236,11 @@ stats_flush(void)
 
 	if (counters->data[STATS_MAXFILES] != 0 &&
 	    counters->data[STATS_NUMFILES] > counters->data[STATS_MAXFILES]) {
-		need_cleanup = 1;
+		need_cleanup = true;
 	}
 	if (counters->data[STATS_MAXSIZE] != 0 &&
 	    counters->data[STATS_TOTALSIZE] > counters->data[STATS_MAXSIZE]) {
-		need_cleanup = 1;
+		need_cleanup = true;
 	}
 
 	if (need_cleanup) {
