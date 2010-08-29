@@ -1769,6 +1769,7 @@ cc_reset(void)
 	enable_compression = false;
 	nlevels = 2;
 	compile_preprocessed_source_code = false;
+	output_is_precompiled_header = false;
 }
 
 static unsigned
