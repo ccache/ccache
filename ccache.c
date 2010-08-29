@@ -28,6 +28,7 @@
 #include "hashtable.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
+#include "language.h"
 #include "manifest.h"
 
 #include <sys/types.h>
@@ -194,72 +195,6 @@ static int output_is_precompiled_header = 0;
 
 /* How long (in microseconds) to wait before breaking a stale lock. */
 unsigned lock_staleness_limit = 2000000;
-
-/*
- * Supported file extensions and corresponding languages (as in parameter to
- * the -x option).
- */
-static const struct {
-	const char *extension;
-	const char *language;
-} extensions[] = {
-	{".c",   "c"},
-	{".C",   "c++"},
-	{".cc",  "c++"},
-	{".CC",  "c++"},
-	{".cp",  "c++"},
-	{".CP",  "c++"},
-	{".cpp", "c++"},
-	{".CPP", "c++"},
-	{".cxx", "c++"},
-	{".CXX", "c++"},
-	{".c++", "c++"},
-	{".C++", "c++"},
-	{".m",   "objective-c"},
-	{".M",   "objective-c++"},
-	{".mm",  "objective-c++"},
-	/* Preprocessed: */
-	{".i",   "cpp-output"},
-	{".ii",  "c++-cpp-output"},
-	{".mi",  "objc-cpp-output"},
-	{".mii", "objc++-cpp-output"},
-	/* Header file (for precompilation): */
-	{".h",   "c-header"},
-	{".H",   "c++-header"},
-	{".h++", "c++-header"},
-	{".H++", "c++-header"},
-	{".hh",  "c++-header"},
-	{".HH",  "c++-header"},
-	{".hp",  "c++-header"},
-	{".HP",  "c++-header"},
-	{".hpp", "c++-header"},
-	{".HPP", "c++-header"},
-	{".hxx", "c++-header"},
-	{".HXX", "c++-header"},
-	{".tcc", "c++-header"},
-	{".TCC", "c++-header"},
-	{NULL,  NULL}};
-
-/*
- * Supported languages and corresponding preprocessed languages.
- */
-static const struct {
-	const char *language;
-	const char *p_language;
-} languages[] = {
-	{"c",                    "cpp-output"},
-	{"cpp-output",           "cpp-output"},
-	{"c-header",             "cpp-output"},
-	{"c++",                  "c++-cpp-output"},
-	{"c++-cpp-output",       "c++-cpp-output"},
-	{"c++-header",           "c++-cpp-output"},
-	{"objective-c",          "objc-cpp-output"},
-	{"objective-c-header",   "objc-cpp-output"},
-	{"objc-cpp-output",      "objc-cpp-output"},
-	{"objective-c++",        "objc++-cpp-output"},
-	{"objc++-cpp-output",    "objc++-cpp-output"},
-	{"objective-c++-header", "objc++-cpp-output"},
-	{NULL,  NULL}};
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
@@ -541,76 +476,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	hash_buffer(hash, p, (end - p));
 	free(data);
 	return 1;
-}
-
-/*
- * Guess the language of a file based on its extension. Returns NULL if the
- * extension is unknown.
- */
-static const char *
-language_for_file(const char *fname)
-{
-	int i;
-	const char *p;
-
-	p = get_extension(fname);
-	for (i = 0; extensions[i].extension; i++) {
-		if (str_eq(p, extensions[i].extension)) {
-			return extensions[i].language;
-		}
-	}
-	return NULL;
-}
-
-/*
- * Return the preprocessed language for a given language, or NULL if unknown.
- */
-static const char *
-p_language_for_language(const char *language)
-{
-	int i;
-
-	if (!language) {
-		return NULL;
-	}
-	for (i = 0; languages[i].language; ++i) {
-		if (str_eq(language, languages[i].language)) {
-			return languages[i].p_language;
-		}
-	}
-	return NULL;
-}
-
-/*
- * Return the default file extension (including dot) for a language, or NULL if
- * unknown.
- */
-static const char *
-extension_for_language(const char *language)
-{
-	int i;
-
-	if (!language) {
-		return NULL;
-	}
-	for (i = 0; extensions[i].extension; i++) {
-		if (str_eq(language, extensions[i].language)) {
-			return extensions[i].extension;
-		}
-	}
-	return NULL;
-}
-
-static int
-language_is_supported(const char *language)
-{
-	return p_language_for_language(language) != NULL;
-}
-
-static int
-language_is_preprocessed(const char *language)
-{
-	return str_eq(language, p_language_for_language(language));
 }
 
 /* run the real compiler and put the result in cache */

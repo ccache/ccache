@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))

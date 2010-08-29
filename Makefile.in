@@ -22,7 +22,7 @@ base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
     murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c lockfile.c \
-    counters.c
+    counters.c language.c
 base_objs = $(base_sources:.c=.o)
 
 ccache_sources = main.c $(base_sources)
