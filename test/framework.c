@@ -204,7 +204,8 @@ cct_check_uns_eq(const char *file, int line, const char *expression,
 
 int
 cct_check_str_eq(const char *file, int line, const char *expression,
-                 char *expected, char *actual, int free1, int free2)
+                 const char *expected, const char *actual, int free1,
+                 int free2)
 {
 	int result;
 
@@ -221,10 +222,10 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	}
 
 	if (free1) {
-		free(expected);
+		free((char *)expected);
 	}
 	if (free2) {
-		free(actual);
+		free((char *)actual);
 	}
 	return result;
 }

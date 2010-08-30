@@ -135,7 +135,8 @@ int cct_check_int_eq(const char *file, int line, const char *expression,
 int cct_check_uns_eq(const char *file, int line, const char *expression,
                      unsigned expected, unsigned actual);
 int cct_check_str_eq(const char *file, int line, const char *expression,
-                     char *expected, char *actual, int free1, int free2);
+                     const char *expected, const char *actual, int free1,
+                     int free2);
 int cct_check_args_eq(const char *file, int line, const char *expression,
                       struct args *expected, struct args *actual,
                       int free1, int free2);
