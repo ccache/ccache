@@ -323,15 +323,20 @@ base_tests() {
     checkstat 'cache miss' 39
     checkstat 'unsupported source language' 2
 
+    testname="-D not hashed"
+    $CCACHE_COMPILE -DNOT_AFFECTING=1 -c test1.c 2>/dev/null
+    checkstat 'cache hit (preprocessed)' 14
+    checkstat 'cache miss' 39
+
     if [ -x /usr/bin/printf ]; then
         /usr/bin/printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
         if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
             testname="-finput-charset"
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-            checkstat 'cache hit (preprocessed)' 13
+            checkstat 'cache hit (preprocessed)' 14
             checkstat 'cache miss' 40
             $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-            checkstat 'cache hit (preprocessed)' 14
+            checkstat 'cache hit (preprocessed)' 15
             checkstat 'cache miss' 40
         fi
     fi
