@@ -20,6 +20,7 @@
  */
 
 #include "ccache.h"
+#include "compopt.h"
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
@@ -873,31 +874,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		   the output of -E if they are going to have any effect at
 		   all. For precompiled headers this might not be the case. */
 		if (!direct_mode && !output_is_precompiled_header) {
-			if (i < args->argc-1) {
-				if (str_eq(args->argv[i], "-D") ||
-				    str_eq(args->argv[i], "-I") ||
-				    str_eq(args->argv[i], "-U") ||
-				    str_eq(args->argv[i], "-idirafter") ||
-				    str_eq(args->argv[i], "-imacros") ||
-				    str_eq(args->argv[i], "-imultilib") ||
-				    str_eq(args->argv[i], "-include") ||
-				    str_eq(args->argv[i], "-iprefix") ||
-				    str_eq(args->argv[i], "-iquote") ||
-				    str_eq(args->argv[i], "-isysroot") ||
-				    str_eq(args->argv[i], "-isystem") ||
-				    str_eq(args->argv[i], "-iwithprefix") ||
-				    str_eq(args->argv[i], "-iwithprefixbefore") ||
-				    str_eq(args->argv[i], "-nostdinc") ||
-				    str_eq(args->argv[i], "-nostdinc++")) {
-					/* Skip from hash. */
-					i++;
-					continue;
-				}
+			if (compopt_affects_cpp(args->argv[i])) {
+				i++;
+				continue;
 			}
-			if (str_startswith(args->argv[i], "-D") ||
-			    str_startswith(args->argv[i], "-I") ||
-			    str_startswith(args->argv[i], "-U")) {
-				/* Skip from hash. */
+			if (compopt_short(compopt_affects_cpp, args->argv[i])) {
 				continue;
 			}
 		}
@@ -1224,17 +1205,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* these are too hard */
-		if (str_startswith(argv[i], "@") ||
-		    str_eq(argv[i], "--coverage") ||
-		    str_eq(argv[i], "-M") ||
-		    str_eq(argv[i], "-MM") ||
-		    str_eq(argv[i], "-fbranch-probabilities") ||
-		    str_eq(argv[i], "-fprofile-arcs") ||
-		    str_eq(argv[i], "-fprofile-generate") ||
-		    str_eq(argv[i], "-fprofile-use") ||
-		    str_eq(argv[i], "-frepo") ||
-		    str_eq(argv[i], "-ftest-coverage") ||
-		    str_eq(argv[i], "-save-temps")) {
+		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "@")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
@@ -1243,7 +1214,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		/* These are too hard in direct mode. */
 		if (enable_direct) {
-			if (str_eq(argv[i], "-Xpreprocessor")) {
+			if (compopt_too_hard_for_direct_mode(argv[i])) {
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
 				enable_direct = false;
 			}
@@ -1427,105 +1398,56 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		 * is that paths in the standard error output produced by the
 		 * compiler will be normalized.
 		 */
-		{
-			const char *opts[] = {
-				"-I", "-idirafter", "-imacros", "-include",
-				"-iprefix", "-isystem", NULL
-			};
-			int j;
+		if (compopt_takes_path(argv[i])) {
 			char *relpath;
 			char *pchpath;
-			for (j = 0; opts[j]; j++) {
-				if (str_eq(argv[i], opts[j])) {
-					if (i == argc-1) {
-						cc_log("Missing argument to %s", argv[i]);
-						stats_update(STATS_ARGS);
-						result = false;
-						goto out;
-					}
-
-					args_add(stripped_args, argv[i]);
-					relpath = make_relative_path(x_strdup(argv[i+1]));
-					args_add(stripped_args, relpath);
-
-					/* Try to be smart about detecting precompiled headers */
-					pchpath = format("%s.gch", argv[i+1]);
-					if (stat(pchpath, &st) == 0) {
-						found_pch = true;
-					}
-
-					free(pchpath);
-					free(relpath);
-					i++;
-					break;
-				}
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
 			}
-			if (opts[j]) {
-				continue;
+
+			args_add(stripped_args, argv[i]);
+			relpath = make_relative_path(x_strdup(argv[i+1]));
+			args_add(stripped_args, relpath);
+
+			/* Try to be smart about detecting precompiled headers */
+			pchpath = format("%s.gch", argv[i+1]);
+			if (stat(pchpath, &st) == 0) {
+				found_pch = true;
 			}
+
+			free(pchpath);
+			free(relpath);
+			i++;
+			continue;
 		}
 
 		/* Same as above but options with concatenated argument. */
-		{
-			const char *opts[] = {"-I", NULL};
-			int j;
+		if (compopt_short(compopt_takes_path, argv[i])) {
 			char *relpath;
 			char *option;
-			for (j = 0; opts[j]; j++) {
-				if (str_startswith(argv[i], opts[j])) {
-					relpath = make_relative_path(x_strdup(argv[i] + strlen(opts[j])));
-					option = format("%s%s", opts[j], relpath);
-					args_add(stripped_args, option);
-					free(relpath);
-					free(option);
-					break;
-				}
-			}
-			if (opts[j]) {
-				continue;
-			}
+			relpath = make_relative_path(x_strdup(argv[i] + 2));
+			option = format("-%c%s", argv[i][1], relpath);
+			args_add(stripped_args, option);
+			free(relpath);
+			free(option);
+			continue;
 		}
 
 		/* options that take an argument */
-		{
-			const char *opts[] = {
-				"--param",
-				"-A",
-				"-D",
-				"-G",
-				"-L",
-				"-MF",
-				"-MQ",
-				"-MT",
-				"-U",
-				"-V",
-				"-Xassembler",
-				"-Xlinker",
-				"-aux-info",
-				"-b",
-				"-install_name", /* Darwin linker option */
-				"-iwithprefix",
-				"-iwithprefixbefore",
-				"-u",
-				NULL
-			};
-			int j;
-			for (j = 0; opts[j]; j++) {
-				if (str_eq(argv[i], opts[j])) {
-					if (i == argc-1) {
-						cc_log("Missing argument to %s", argv[i]);
-						stats_update(STATS_ARGS);
-						result = false;
-						goto out;
-					}
-
-					args_add(stripped_args, argv[i]);
-					args_add(stripped_args, argv[i+1]);
-					i++;
-					break;
-				}
+		if (compopt_takes_arg(argv[i])) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
 			}
-			if (opts[j]) continue;
+			args_add(stripped_args, argv[i]);
+			args_add(stripped_args, argv[i+1]);
+			i++;
+			continue;
 		}
 
 		/* other options */
