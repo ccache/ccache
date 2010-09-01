@@ -1217,7 +1217,8 @@ EOF
     cd ..
 
     cd dir2
-    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
+    # The space after -I is there to test an extra code path.
+    CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I `pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
