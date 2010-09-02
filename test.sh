@@ -1678,11 +1678,11 @@ EOF
 
     testname="no -fpch-preprocess, using -include"
     $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1692,11 +1692,14 @@ EOF
     $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 0
-    checkstat 'unsupported compiler option' 1
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
 
     testname="-fpch-preprocess, sloppy time macros"
-    $CCACHE -z >/dev/null
+    $CCACHE -zC >/dev/null
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0

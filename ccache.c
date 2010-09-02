@@ -1176,6 +1176,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	bool found_S_opt = false;
 	bool found_arch_opt = false;
 	bool found_pch = false;
+	bool found_fpch_preprocess = false;
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
 	const char *actual_language;          /* Language to actually use. */
@@ -1232,13 +1233,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			}
 		}
 
-		if (str_eq(argv[i], "-fpch-preprocess")
-		    && !(sloppiness & SLOPPY_TIME_MACROS)) {
-			cc_log("You have to specify \"time_macros\" sloppiness when using"
-			       " -fpch-preprocess");
-			stats_update(STATS_UNSUPPORTED);
-			result = false;
-			goto out;
+		if (str_eq(argv[i], "-fpch-preprocess")) {
+			found_fpch_preprocess = true;
 		}
 
 		/* we must have -c */
@@ -1495,6 +1491,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		stats_update(STATS_NOINPUT);
 		result = false;
 		goto out;
+	}
+
+	if ((found_pch || found_fpch_preprocess)
+	    && !(sloppiness & SLOPPY_TIME_MACROS)) {
+		cc_log("You have to specify \"time_macros\" sloppiness when using"
+		       " precompiled headers to get direct hits");
+		cc_log("Disabling direct mode");
+		enable_direct = false;
 	}
 
 	if (explicit_language && str_eq(explicit_language, "none")) {
