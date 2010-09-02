@@ -1415,6 +1415,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			/* Try to be smart about detecting precompiled headers */
 			pchpath = format("%s.gch", argv[i+1]);
 			if (stat(pchpath, &st) == 0) {
+				cc_log("Detected use of precompiled header: %s", pchpath);
 				found_pch = true;
 			}
 
@@ -1600,7 +1601,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		args_add(*preprocessor_args, input_charset);
 	}
 	if (found_pch) {
-		cc_log("Use of precompiled header detected, adding -fpch-preprocess");
 		args_add(*preprocessor_args, "-fpch-preprocess");
 	}
 	if (explicit_language) {
