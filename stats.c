@@ -196,6 +196,7 @@ stats_flush(void)
 	bool need_cleanup = false;
 	bool should_flush = false;
 	int i;
+	extern char *cache_logfile;
 
 	if (getenv("CCACHE_NOSTATS")) return;
 
@@ -233,6 +234,15 @@ stats_flush(void)
 	}
 	stats_write(stats_file, counters);
 	lockfile_release(stats_file);
+
+	if (cache_logfile) {
+		for (i = 0; i < STATS_END; ++i) {
+			if (counter_updates->data[stats_info[i].stat] != 0
+			    && !(stats_info[i].flags & FLAG_NOZERO)) {
+				cc_log("Result: %s", stats_info[i].message);
+			}
+		}
+	}
 
 	if (counters->data[STATS_MAXFILES] != 0 &&
 	    counters->data[STATS_NUMFILES] > counters->data[STATS_MAXFILES]) {
