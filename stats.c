@@ -187,7 +187,7 @@ stats_read(const char *sfile, struct counters *counters)
 }
 
 /*
- * Write counter updates in pending_counters to disk.
+ * Write counter updates in counter_updates to disk.
  */
 void
 stats_flush(void)
