@@ -1635,6 +1635,7 @@ EOF
     backdate pch.h
 
     testname="create .gch, -c, no -o"
+    $CCACHE -zC >/dev/null
     $CCACHE $COMPILER -c pch.h
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
