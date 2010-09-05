@@ -278,10 +278,11 @@ get_path_in_cache(const char *name, const char *suffix)
 
 /*
  * This function hashes an include file and stores the path and hash in the
- * global included_files variable. Takes over ownership of path.
+ * global included_files variable. If the include file is a PCH, cpp_hash is
+ * also updated. Takes over ownership of path.
  */
 static void
-remember_include_file(char *path, size_t path_len)
+remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 {
 	struct file_hash *h;
 	struct mdfour fhash;
@@ -289,10 +290,6 @@ remember_include_file(char *path, size_t path_len)
 	char *source = NULL;
 	size_t size;
 	int result;
-
-	if (!included_files) {
-		goto ignore;
-	}
 
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		/* Typically <built-in> or <command-line>. */
@@ -328,29 +325,36 @@ remember_include_file(char *path, size_t path_len)
 	hash_start(&fhash);
 
 	if (is_precompiled_header(path)) {
-		hash_file(&fhash, path);
-	} else {
-		if (st.st_size > 0) {
-			if (!read_file(path, st.st_size, &source, &size)) {
+		hash_file2(&fhash, cpp_hash, path);
+	}
+
+	if (enable_direct) {
+		if (!is_precompiled_header(path)) {
+			if (st.st_size > 0) {
+				if (!read_file(path, st.st_size, &source, &size)) {
+					goto failure;
+				}
+			} else {
+				source = x_strdup("");
+				size = 0;
+			}
+
+			result = hash_source_code_string(&fhash, source, size, path);
+			if (result & HASH_SOURCE_CODE_ERROR
+			    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 				goto failure;
 			}
-		} else {
-			source = x_strdup("");
-			size = 0;
 		}
 
-		result = hash_source_code_string(&fhash, source, size, path);
-		if (result & HASH_SOURCE_CODE_ERROR
-		    || result & HASH_SOURCE_CODE_FOUND_TIME) {
-			goto failure;
-		}
+		h = x_malloc(sizeof(*h));
+		hash_result_as_bytes(&fhash, h->hash);
+		h->size = fhash.totalN;
+		hashtable_insert(included_files, path, h);
+	} else {
+		free(path);
 	}
 
 	free(source);
-	h = x_malloc(sizeof(*h));
-	hash_result_as_bytes(&fhash, h->hash);
-	h->size = fhash.totalN;
-	hashtable_insert(included_files, path, h);
 	return;
 
 failure:
@@ -400,9 +404,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		return false;
 	}
 
-	if (enable_direct) {
-		included_files = create_hashtable(1000, hash_from_string, strings_equal);
-	}
+	included_files = create_hashtable(1000, hash_from_string, strings_equal);
 
 	/* Bytes between p and q are pending to be hashed. */
 	end = data + size;
@@ -458,11 +460,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			path = x_strndup(p, q - p);
 			path = make_relative_path(path);
 			hash_string(hash, path);
-			if (enable_direct) {
-				remember_include_file(path, q - p);
-			} else {
-				free(path);
-			}
+			remember_include_file(path, q - p, hash);
 			p = q;
 		} else {
 			q++;
@@ -1875,8 +1873,16 @@ ccache(int argc, char *argv[])
 		put_object_in_manifest = true;
 	}
 
-	/* if we can return from cache at this point then do */
-	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+	if (using_precompiled_header) {
+		/*
+		 * We must avoid a preprocessed hit when using a PCH. Otherwise, we would
+		 * get a false hit if the PCH has changed (but the rest of the source has
+		 * not) since the preprocessed output doesn't include the PCH content.
+		 */
+	} else {
+		/* if we can return from cache at this point then do */
+		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+	}
 
 	if (getenv("CCACHE_READONLY")) {
 		cc_log("Read-only mode; running real compiler");

@@ -1669,35 +1669,54 @@ EOF
     rm -f pch.h
     backdate pch.h.gch
 
-    testname="no -fpch-preprocess"
-    $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c pch.c 2>/dev/null
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 0
-    checkstat 'preprocessor error' 1
-
-    testname="no -fpch-preprocess, using -include"
-    $CCACHE -z >/dev/null
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
-    checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-
-    testname="-fpch-preprocess, no sloppy time macros"
-    $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    testname="preprocessor mode"
+    $CCACHE -Cz >/dev/null
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat "can't use precompiled header" 1
 
-    testname="-fpch-preprocess, sloppy time macros"
-    $CCACHE -zC >/dev/null
+    testname="no -fpch-preprocess, #include"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER -c pch.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    # Preprocessor error because GCC can't find the real include file when
+    # trying to preprocess:
+    checkstat 'preprocessor error' 1
+
+    testname="no -fpch-preprocess, -include, no sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    # Must enable sloppy time macros:
+    checkstat "can't use precompiled header" 1
+
+    testname="no -fpch-preprocess, -include"
+    $CCACHE -Cz >/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="-fpch-preprocess, #include, no sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    # Must enable sloppy time macros:
+    checkstat "can't use precompiled header" 1
+
+    testname="-fpch-preprocess, #include, sloppy time macros"
+    $CCACHE -Cz >/dev/null
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
@@ -1707,14 +1726,15 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
-    testname="-fpch-preprocess, file changed, direct mode"
-    $CCACHE -z >/dev/null
+    testname="-fpch-preprocess, #include, file changed"
     echo "updated" >>pch.h.gch # GCC seems to cope with this...
     backdate pch.h.gch
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 0
+    checkstat 'cache hit (direct)' 1
+    # Shouldnt' get a preprocessed hit since the preprocessed output doesn't
+    # include the PCH header:
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
 }
 
 ######################################################################
