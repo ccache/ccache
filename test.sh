@@ -1693,11 +1693,8 @@ EOF
     $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-    $CCACHE $COMPILER -c -fpch-preprocess pch.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 1
+    checkstat 'cache miss' 0
+    checkstat "can't use precompiled header" 1
 
     testname="-fpch-preprocess, sloppy time macros"
     $CCACHE -zC >/dev/null

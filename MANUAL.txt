@@ -735,6 +735,11 @@ problems and what may be done to increase the hit rate:
   doesn't support that. Compile the source code files separately if possible.
 * If ``unsupported compiler option'' has been incremented, enable debug logging
   and check which option was rejected.
+* If ``preprocessor error'' has been incremented, one possible reason is that
+  precompiled headers are being used. See <<_precompiled_headers,PRECOMPILED
+  HEADERS>> for how to remedy this.
+* If ``can't use precompiled header'' has been incremented, see
+  <<_precompiled_headers,PRECOMPILED HEADERS>>.
 
 
 Errors when compiling with ccache

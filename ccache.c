@@ -183,6 +183,11 @@ static bool compile_preprocessed_source_code;
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
+/*
+ * Whether we are using a precompiled header (either via -include or #include).
+ */
+static bool using_precompiled_header = false;
+
 /* How long (in microseconds) to wait before breaking a stale lock. */
 unsigned lock_staleness_limit = 2000000;
 
@@ -1494,12 +1499,16 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	if ((found_pch || found_fpch_preprocess)
-	    && !(sloppiness & SLOPPY_TIME_MACROS)) {
-		cc_log("You have to specify \"time_macros\" sloppiness when using"
-		       " precompiled headers to get direct hits");
-		cc_log("Disabling direct mode");
-		enable_direct = false;
+	if (found_pch || found_fpch_preprocess) {
+		using_precompiled_header = true;
+		if (!(sloppiness & SLOPPY_TIME_MACROS)) {
+			cc_log("You have to specify \"time_macros\" sloppiness when using"
+			       " precompiled headers to get direct hits");
+			cc_log("Disabling direct mode");
+			stats_update(STATS_CANTUSEPCH);
+			result = false;
+			goto out;
+		}
 	}
 
 	if (explicit_language && str_eq(explicit_language, "none")) {
@@ -1823,6 +1832,10 @@ ccache(int argc, char *argv[])
 			/* Add object to manifest later. */
 			put_object_in_manifest = true;
 		}
+	} else if (using_precompiled_header) {
+		cc_log("Direct mode must be enabled when using a precompiled header");
+		stats_update(STATS_CANTUSEPCH);
+		failed();
 	}
 
 	/*
