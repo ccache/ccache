@@ -284,12 +284,12 @@ get_path_in_cache(const char *name, const char *suffix)
 static void
 remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 {
-	struct file_hash *h;
 	struct mdfour fhash;
 	struct stat st;
 	char *source = NULL;
 	size_t size;
 	int result;
+	bool is_pch;
 
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		/* Typically <built-in> or <command-line>. */
@@ -324,12 +324,21 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 
 	hash_start(&fhash);
 
-	if (is_precompiled_header(path)) {
-		hash_file2(&fhash, cpp_hash, path);
+	is_pch = is_precompiled_header(path);
+	if (is_pch) {
+		struct file_hash pch_hash;
+		if (!hash_file(&fhash, path)) {
+			goto failure;
+		}
+		hash_result_as_bytes(&fhash, pch_hash.hash);
+		pch_hash.size = fhash.totalN;
+		hash_delimiter(cpp_hash, "pch_hash");
+		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
-
 	if (enable_direct) {
-		if (!is_precompiled_header(path)) {
+		struct file_hash *h;
+
+		if (!is_pch) { /* else: the file has already been hashed. */
 			if (st.st_size > 0) {
 				if (!read_file(path, st.st_size, &source, &size)) {
 					goto failure;
