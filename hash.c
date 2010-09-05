@@ -106,7 +106,7 @@ hash_fd(struct mdfour *md, int fd)
 bool
 hash_fd2(struct mdfour *md1, struct mdfour *md2, int fd)
 {
-	char buf[1024];
+	char buf[16384];
 	ssize_t n;
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
