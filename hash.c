@@ -117,11 +117,7 @@ hash_fd2(struct mdfour *md1, struct mdfour *md2, int fd)
 			hash_buffer(md2, buf, n);
 		}
 	}
-	if (n == 0) {
-		return true;
-	} else {
-		return false;
-	}
+	return n == 0;
 }
 
 /*
