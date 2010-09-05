@@ -1669,14 +1669,6 @@ EOF
     rm -f pch.h
     backdate pch.h.gch
 
-    testname="preprocessor mode"
-    $CCACHE -Cz >/dev/null
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 0
-    checkstat "can't use precompiled header" 1
-
     testname="no -fpch-preprocess, #include"
     $CCACHE -Cz >/dev/null
     $CCACHE $COMPILER -c pch.c 2>/dev/null
@@ -1731,9 +1723,30 @@ EOF
     backdate pch.h.gch
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 1
-    # Shouldnt' get a preprocessed hit since the preprocessed output doesn't
-    # include the PCH header:
     checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    testname="preprocessor mode"
+    $CCACHE -Cz >/dev/null
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    testname="preprocessor mode, file changed"
+    echo "updated" >>pch.h.gch # GCC seems to cope with this...
+    backdate pch.h.gch
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2
 }
 

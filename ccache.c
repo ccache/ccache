@@ -877,7 +877,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		   to the hash. The theory is that these arguments will change
 		   the output of -E if they are going to have any effect at
 		   all. For precompiled headers this might not be the case. */
-		if (!direct_mode && !output_is_precompiled_header) {
+		if (!direct_mode && !output_is_precompiled_header
+		    && !using_precompiled_header) {
 			if (compopt_affects_cpp(args->argv[i])) {
 				i++;
 				continue;
@@ -1830,10 +1831,6 @@ ccache(int argc, char *argv[])
 			/* Add object to manifest later. */
 			put_object_in_manifest = true;
 		}
-	} else if (using_precompiled_header) {
-		cc_log("Direct mode must be enabled when using a precompiled header");
-		stats_update(STATS_CANTUSEPCH);
-		failed();
 	}
 
 	/*
@@ -1873,16 +1870,8 @@ ccache(int argc, char *argv[])
 		put_object_in_manifest = true;
 	}
 
-	if (using_precompiled_header) {
-		/*
-		 * We must avoid a preprocessed hit when using a PCH. Otherwise, we would
-		 * get a false hit if the PCH has changed (but the rest of the source has
-		 * not) since the preprocessed output doesn't include the PCH content.
-		 */
-	} else {
-		/* if we can return from cache at this point then do */
-		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
-	}
+	/* if we can return from cache at this point then do */
+	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
 	if (getenv("CCACHE_READONLY")) {
 		cc_log("Read-only mode; running real compiler");
