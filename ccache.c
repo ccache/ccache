@@ -341,6 +341,7 @@ remember_include_file(char *path, size_t path_len)
 		}
 	}
 
+	free(source);
 	h = x_malloc(sizeof(*h));
 	hash_result_as_bytes(&fhash, h->hash);
 	h->size = fhash.totalN;
