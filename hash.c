@@ -96,11 +96,26 @@ hash_int(struct mdfour *md, int x)
 bool
 hash_fd(struct mdfour *md, int fd)
 {
+	return hash_fd2(md, NULL, fd);
+}
+
+/*
+ * Add contents of an open file to the hash. Returns true on success, otherwise
+ * false.
+ */
+bool
+hash_fd2(struct mdfour *md1, struct mdfour *md2, int fd)
+{
 	char buf[1024];
 	ssize_t n;
 
 	while ((n = read(fd, buf, sizeof(buf))) > 0) {
-		hash_buffer(md, buf, n);
+		if (md1) {
+			hash_buffer(md1, buf, n);
+		}
+		if (md2) {
+			hash_buffer(md2, buf, n);
+		}
 	}
 	if (n == 0) {
 		return true;
@@ -116,6 +131,16 @@ hash_fd(struct mdfour *md, int fd)
 bool
 hash_file(struct mdfour *md, const char *fname)
 {
+	return hash_file2(md, NULL, fname);
+}
+
+/*
+ * Add contents of a file to two hash sums. Returns true on success, otherwise
+ * false.
+ */
+bool
+hash_file2(struct mdfour *md1, struct mdfour *md2, const char *fname)
+{
 	int fd;
 	bool ret;
 
@@ -124,7 +149,7 @@ hash_file(struct mdfour *md, const char *fname)
 		return false;
 	}
 
-	ret = hash_fd(md, fd);
+	ret = hash_fd2(md1, md2, fd);
 	close(fd);
 	return ret;
 }
