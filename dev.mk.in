@@ -54,15 +54,15 @@ define create_dist_archive
 	 cp -r --parents $(source_dist_files) $$dir) && \
 	cp $(built_dist_files) $$dir && \
 	(cd $$tmpdir && \
-	 tar $(1) $(CURDIR)/$@ $(dist_dir)) && \
+	 tar caf $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
 endef
 
 $(dist_archive_tar_bz2): $(dist_files)
-	$(call create_dist_archive, cjf)
+	$(call create_dist_archive)
 
 $(dist_archive_tar_gz): $(dist_files)
-	$(call create_dist_archive, czf)
+	$(call create_dist_archive)
 
 .PHONY: distcheck
 distcheck: $(dist_archive_tar_bz2)
