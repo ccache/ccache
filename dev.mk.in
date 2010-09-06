@@ -12,8 +12,10 @@ version := \
             | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g')
 
 dist_dir = ccache-$(version)
-dist_archive_tar_bz2 = ccache-$(version).tar.bz2
-dist_archive_tar_gz = ccache-$(version).tar.gz
+dist_archives = \
+    ccache-$(version).tar.bz2 \
+    ccache-$(version).tar.gz \
+    ccache-$(version).tar.xz
 
 generated_docs = \
     ccache.1 AUTHORS.html INSTALL.html LICENSE.html MANUAL.html NEWS.html \
@@ -26,7 +28,7 @@ headers = \
     language.h system.h compopt.h \
     test/framework.h test/suites.h test/util.h
 
-files_to_clean += *.tar.bz2 *.tar.gz *.xml .deps/*
+files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/*
 files_to_clean += $(built_dist_files) version.c test/suites.h
 files_to_distclean += .deps version.c dev.mk
 
@@ -44,9 +46,9 @@ endif
 version.o: version.c
 
 .PHONY: dist
-dist: $(dist_archive_tar_bz2) $(dist_archive_tar_gz)
+dist: $(dist_archives)
 
-define create_dist_archive
+$(dist_archives): $(dist_files)
 	tmpdir=$$(mktemp -d /tmp/tmp-ccache-dist.XXXXXX) && \
 	dir=$$tmpdir/$(dist_dir) && \
 	mkdir $$dir && \
@@ -56,19 +58,12 @@ define create_dist_archive
 	(cd $$tmpdir && \
 	 tar caf $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
-endef
-
-$(dist_archive_tar_bz2): $(dist_files)
-	$(call create_dist_archive)
-
-$(dist_archive_tar_gz): $(dist_files)
-	$(call create_dist_archive)
 
 .PHONY: distcheck
-distcheck: $(dist_archive_tar_bz2)
+distcheck: $(firstword $(dist_archives))
 	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
 	(cd $$tmpdir && \
-	 tar xjf $(CURDIR)/$(dist_archive_tar_bz2) && \
+	 tar xjf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
