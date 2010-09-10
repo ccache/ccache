@@ -9,18 +9,18 @@ Release date: TBD
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    - Added support for hashing the output of a custom command to identify the
-      compiler instead of stat-ing or hashing the compiler binary. This can
-      improve robustness when the compiler (as seen by ccache) actually isn't
-      the real compiler but another compiler wrapper.
+    - Added support for hashing the output of a custom command (e.g. `$compiler
+      --version`) to identify the compiler instead of stat-ing or hashing the
+      compiler binary. This can improve robustness when the compiler (as seen
+      by ccache) actually isn't the real compiler but another compiler wrapper.
 
-    - Added support for compilations using precompiled headers. (See the manual
-      for important instructions regarding this.)
+    - Added support for compiling with precompiled headers. (See the manual for
+      important instructions regarding this.)
 
     - Locking of the files containing statistics counters is now done using
       symlinks instead of POSIX locks. This should make ccache behave a lot
-      better on file systems (e.g. NFS) where broken POSIX locks are slow or
-      broken.
+      better on file systems where POSIX locks are slow or broken (e.g. NFS on
+      some systems).
 
     - Locks are no longer taken when updating manifest files. (A race between
       two writing processes will only result in one lost entry, which is not a
@@ -30,12 +30,12 @@ New features and improvements
       sub-level statistics files. This reduces lock contention, which
       especially improves performance on slow NFS mounts.
 
-    - Reading and writing of statistics counters is now forward-compatible
-      (unknown counters are retained).
+    - Reading and writing of statistics counters has been made
+      forward-compatible (unknown counters are retained).
 
-    - Files are now read without using mmap(). (This has two benefits: it's
-      more robust against file changes during reading and it improves
-      performance on poor systems where mmap() doesn't use the disk cache.)
+    - Files are now read without using mmap(). This has two benefits: it's more
+      robust against file changes during reading and it improves performance on
+      poor systems where mmap() doesn't use the disk cache.
 
     - Added `.cp` and `.CP` as known C++ suffixes.
 
@@ -51,7 +51,7 @@ Bug fixes
     - Non-fatal error messages are now never printed to stderr but logged
       instead.
 
-    - Fixed bug affecting failing commands when `--ccache-skip` is used.
+    - Fixed a bug affecting failing commands when `--ccache-skip` is used.
 
 
 Other
@@ -61,19 +61,20 @@ Other
       The port is not yet finished, but will hopefully be complete in some
       subsequent release.
 
-    - Added a --nostats flag to the performance benchmark program.
+    - Added a `--nostats` flag to the performance benchmark program.
 
     - Made the performance benchmark program more accurate when measuring cache
       hits.
 
     - Added a new test framework for unit tests written in C.
 
-    - Got rid of configure-dev; dev mode is now given by dev.mk.in presence.
+    - Got rid of `configure-dev`; dev mode is now given by `dev.mk.in`
+      presence.
 
     - Improved documentation on how to combine ccache with other compiler
-      wrappers (like distcc).
+      wrappers (like `distcc`).
 
-    - New `LICENSE.txt` file with licensing and copyright detail about bundled
+    - New `LICENSE.txt` file with licensing and copyright details about bundled
       source code.
 
     - New `AUTHORS.txt` file with a list of ccache contributors.
