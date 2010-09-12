@@ -409,7 +409,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	char *p, *q, *end;
 	size_t size;
 
-	if (!read_file(path, 32768, &data, &size)) {
+	if (!read_file(path, 0, &data, &size)) {
 		return false;
 	}
 
