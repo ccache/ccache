@@ -1076,12 +1076,21 @@ bool
 read_file(const char *path, size_t size_hint, char **data, size_t *size)
 {
 	int fd, ret;
-	size_t pos = 0, allocated = (size_hint == 0) ? 16384 : size_hint;
+	size_t pos = 0, allocated;
+
+	if (size_hint == 0) {
+		struct stat st;
+		if (stat(path, &st) == 0) {
+			size_hint = st.st_size;
+		}
+	}
+	size_hint = (size_hint < 1024) ? 1024 : size_hint;
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
 		return false;
 	}
+	allocated = size_hint;
 	*data = x_malloc(allocated);
 	ret = 0;
 	do {
