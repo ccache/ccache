@@ -995,7 +995,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	} else {
 		unlink(output_obj);
 		/* only make a hardlink if the cache file is uncompressed */
-		if (getenv("CCACHE_HARDLINK") && file_is_compressed(cached_obj) == 0) {
+		if (getenv("CCACHE_HARDLINK") && !file_is_compressed(cached_obj)) {
 			ret = link(cached_obj, output_obj);
 		} else {
 			ret = copy_file(cached_obj, output_obj, 0);
@@ -1025,7 +1025,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (produce_dep_file) {
 		unlink(output_dep);
 		/* only make a hardlink if the cache file is uncompressed */
-		if (getenv("CCACHE_HARDLINK") && file_is_compressed(cached_dep) == 0) {
+		if (getenv("CCACHE_HARDLINK") && !file_is_compressed(cached_dep)) {
 			ret = link(cached_dep, output_dep);
 		} else {
 			ret = copy_file(cached_dep, output_dep, 0);
