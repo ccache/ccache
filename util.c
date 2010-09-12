@@ -333,7 +333,7 @@ move_uncompressed_file(const char *src, const char *dest, int compress_dest)
 
 /* test if a file is zlib compressed */
 bool
-test_if_compressed(const char *filename)
+file_is_compressed(const char *filename)
 {
 	FILE *f;
 
