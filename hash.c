@@ -99,8 +99,13 @@ hash_fd(struct mdfour *md, int fd)
 	char buf[16384];
 	ssize_t n;
 
-	while ((n = read(fd, buf, sizeof(buf))) > 0) {
-		hash_buffer(md, buf, n);
+	while ((n = read(fd, buf, sizeof(buf))) != 0) {
+		if (n == -1 && errno != EINTR) {
+			break;
+		}
+		if (n > 0) {
+			hash_buffer(md, buf, n);
+		}
 	}
 	return n == 0;
 }

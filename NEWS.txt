@@ -55,6 +55,8 @@ Bug fixes
 
     - Made `--ccache-skip` work for all options.
 
+    - EINTR is now handled correctly.
+
 
 Other
 ~~~~~

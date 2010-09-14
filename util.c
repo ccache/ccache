@@ -146,9 +146,14 @@ copy_fd(int fd_in, int fd_out)
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		if (write(fd_out, buf, n) != n) {
-			fatal("Failed to copy fd");
-		}
+		ssize_t count, written = 0;
+		do {
+			count = write(fd_out, buf + written, n - written);
+			if (count == -1 && errno != EINTR) {
+				fatal("Failed to copy fd");
+			}
+			written += count;
+		} while (written < n);
 	}
 
 	gzclose(gz_in);
@@ -174,7 +179,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 	int fd_in = -1, fd_out = -1;
 	gzFile gz_in = NULL, gz_out = NULL;
 	char buf[10240];
-	int n, ret;
+	int n, written;
 	char *tmp_name;
 #ifndef _WIN32
 	mode_t mask;
@@ -232,11 +237,19 @@ copy_file(const char *src, const char *dest, int compress_dest)
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		if (compress_dest) {
-			ret = gzwrite(gz_out, buf, n);
+			written = gzwrite(gz_out, buf, n);
 		} else {
-			ret = write(fd_out, buf, n);
+			ssize_t count;
+			written = 0;
+			do {
+				count = write(fd_out, buf + written, n - written);
+				if (count == -1 && errno != EINTR) {
+					break;
+				}
+				written += count;
+			} while (written < n);
 		}
-		if (ret != n) {
+		if (written != n) {
 			if (compress_dest) {
 				cc_log("gzwrite error: %s (errno: %s)",
 				       gzerror(gz_in, &errnum),
@@ -1093,13 +1106,19 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 	allocated = size_hint;
 	*data = x_malloc(allocated);
 	ret = 0;
-	do {
-		pos += ret;
+	while (true) {
 		if (pos > allocated / 2) {
 			allocated *= 2;
 			*data = x_realloc(*data, allocated);
 		}
-	} while ((ret = read(fd, *data + pos, allocated - pos)) > 0);
+		ret = read(fd, *data + pos, allocated - pos);
+		if (ret == 0 || (ret == -1 && errno != EINTR)) {
+			break;
+		}
+		if (ret > 0) {
+			pos += ret;
+		}
+	}
 	close(fd);
 	if (ret == -1) {
 		cc_log("Failed reading %s", path);
