@@ -1211,6 +1211,18 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	args_add(stripped_args, argv[0]);
 
 	for (i = 1; i < argc; i++) {
+		/* The user knows best: just swallow the next arg */
+		if (str_eq(argv[i], "--ccache-skip")) {
+			i++;
+			if (i == argc) {
+				cc_log("--ccache-skip lacks an argument");
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+
 		/* some options will never work ... */
 		if (str_eq(argv[i], "-E")) {
 			cc_log("Compiler option -E is unsupported");
@@ -1325,18 +1337,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				cc_log("%s used; not compiling preprocessed code", argv[i]);
 				compile_preprocessed_source_code = false;
 			}
-			continue;
-		}
-
-		/* The user knows best: just swallow the next arg */
-		if (str_eq(argv[i], "--ccache-skip")) {
-			i++;
-			if (i == argc) {
-				cc_log("--ccache-skip lacks an argument");
-				result = false;
-				goto out;
-			}
-			args_add(stripped_args, argv[i]);
 			continue;
 		}
 

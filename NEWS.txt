@@ -53,6 +53,8 @@ Bug fixes
 
     - Fixed a bug affecting failing commands when `--ccache-skip` is used.
 
+    - Made `--ccache-skip` work for all options.
+
 
 Other
 ~~~~~
