@@ -22,9 +22,7 @@ New features and improvements
       better on file systems where POSIX locks are slow or broken (e.g. NFS on
       some systems).
 
-    - Locks are no longer taken when updating manifest files. (A race between
-      two writing processes will only result in one lost entry, which is not a
-      big deal, and it's also very unlikely.)
+    - Manifest files are now updated without the need of taking locks.
 
     - Updates of statistics counters are now always done in one of the
       sub-level statistics files. This reduces lock contention, which
