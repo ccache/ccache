@@ -2,9 +2,9 @@ ccache news
 ===========
 
 
-ccache 3.1pre1
---------------
-Release date: TBD
+ccache 3.1
+----------
+Release date: 2010-09-16
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
