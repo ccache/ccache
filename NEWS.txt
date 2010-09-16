@@ -14,8 +14,8 @@ New features and improvements
       compiler binary. This can improve robustness when the compiler (as seen
       by ccache) actually isn't the real compiler but another compiler wrapper.
 
-    - Added support for compiling with precompiled headers. (See the manual for
-      important instructions regarding this.)
+    - Added support for caching compilations that use precompiled headers. (See
+      the manual for important instructions regarding this.)
 
     - Locking of the files containing statistics counters is now done using
       symlinks instead of POSIX locks. This should make ccache behave a lot
