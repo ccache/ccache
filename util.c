@@ -187,8 +187,9 @@ copy_file(const char *src, const char *dest, int compress_dest)
 	struct stat st;
 	int errnum;
 
-	cc_log("Copying %s to %s (%s)",
-	       src, dest, compress_dest ? "compressed": "uncompressed");
+	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
+	cc_log("Copying %s to %s via %s (%s)",
+	       src, dest, tmp_name, compress_dest ? "compressed": "uncompressed");
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY | O_BINARY);
@@ -205,7 +206,6 @@ copy_file(const char *src, const char *dest, int compress_dest)
 	}
 
 	/* open destination file */
-	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
 	fd_out = mkstemp(tmp_name);
 	if (fd_out == -1) {
 		cc_log("mkstemp error: %s", strerror(errno));
