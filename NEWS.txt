@@ -9,10 +9,11 @@ Release date: 2010-09-16
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    - Added support for hashing the output of a custom command (e.g. `$compiler
-      --version`) to identify the compiler instead of stat-ing or hashing the
-      compiler binary. This can improve robustness when the compiler (as seen
-      by ccache) actually isn't the real compiler but another compiler wrapper.
+    - Added support for hashing the output of a custom command (e.g.
+      `%compiler% --version`) to identify the compiler instead of stat-ing or
+      hashing the compiler binary. This can improve robustness when the
+      compiler (as seen by ccache) actually isn't the real compiler but another
+      compiler wrapper.
 
     - Added support for caching compilations that use precompiled headers. (See
       the manual for important instructions regarding this.)
