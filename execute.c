@@ -26,8 +26,8 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path);
  * Re-create a win32 command line string based on **argv.
  * http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
  */
-static char *
-argvtos(char *prefix, char **argv)
+char *
+win32argvtos(char *prefix, char **argv)
 {
 	char *arg;
 	char *ptr;
@@ -137,7 +137,7 @@ win32execute(char *path, char **argv, int doreturn,
 		    si.hStdError  == INVALID_HANDLE_VALUE)
 			return -1;
 	}
-	args = argvtos(sh, argv);
+	args = win32argvtos(sh, argv);
 	ret = CreateProcess(path, args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	free(args);
 	if (path_stdout) {

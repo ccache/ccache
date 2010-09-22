@@ -238,6 +238,7 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #endif
 
 #ifdef _WIN32
+char *win32argvtos(char *prefix, char **argv);
 int win32execute(char *path, char **argv, int doreturn,
                  const char *path_stdout, const char *path_stderr);
 #    ifndef _WIN32_WINNT
