@@ -876,6 +876,12 @@ get_home_directory(void)
 	if (p) {
 		return p;
 	}
+#ifdef _WIN32
+	p = getenv("APPDATA");
+	if (p) {
+		return p;
+	}
+#endif
 #ifdef HAVE_GETPWUID
 	{
 		struct passwd *pwd = getpwuid(getuid());
