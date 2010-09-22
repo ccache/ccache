@@ -19,6 +19,10 @@
 #include "system.h"
 #include "test/util.h"
 
+#ifdef _WIN32
+#    define lstat(a,b) stat(a,b)
+#endif
+
 bool
 path_exists(const char *path)
 {
@@ -29,8 +33,13 @@ path_exists(const char *path)
 bool
 is_symlink(const char *path)
 {
+#ifdef _WIN32
+	(void) path;
+	return 0;
+#else
 	struct stat st;
 	return lstat(path, &st) == 0 && S_ISLNK(st.st_mode);
+#endif
 }
 
 void

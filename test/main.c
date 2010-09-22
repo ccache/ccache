@@ -55,6 +55,10 @@ main(int argc, char **argv)
 	char *testdir, *dir_before;
 	int result;
 
+#ifdef _WIN32
+	putenv("CCACHE_DETECT_SHEBANG=1");
+#endif
+
 	while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
