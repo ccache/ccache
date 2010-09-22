@@ -1099,7 +1099,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 	}
 	size_hint = (size_hint < 1024) ? 1024 : size_hint;
 
-	fd = open(path, O_RDONLY);
+	fd = open(path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		return false;
 	}
