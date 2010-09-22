@@ -223,8 +223,22 @@ bool
 hash_command_output(struct mdfour *hash, const char *command,
                     const char *compiler)
 {
+#ifdef _WIN32
+	SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
+	HANDLE pipe_out[2];
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	DWORD exitcode;
+	char *sh = NULL;
+	char *win32args;
+	char *path;
+	BOOL ret;
+	bool ok;
+	int fd;
+#else
 	pid_t pid;
 	int pipefd[2];
+#endif
 
 	struct args *args = args_init_from_string(command);
 	int i;
@@ -235,6 +249,51 @@ hash_command_output(struct mdfour *hash, const char *command,
 	}
 	cc_log_argv("Executing compiler check command ", args->argv);
 
+#ifdef _WIN32
+	memset(&pi, 0x00, sizeof(pi));
+	memset(&si, 0x00, sizeof(si));
+
+	path = find_executable(args->argv[0], NULL);
+	if (!path)
+		path = args->argv[0];
+	sh = win32getshell(path);
+	if (sh)
+		path = sh;
+
+	si.cb = sizeof(STARTUPINFO);
+	CreatePipe(&pipe_out[0], &pipe_out[1], &sa, 0);
+	SetHandleInformation(pipe_out[0], HANDLE_FLAG_INHERIT, 0);
+	si.hStdOutput = pipe_out[1];
+	si.hStdError  = pipe_out[1];
+	si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+	si.dwFlags    = STARTF_USESTDHANDLES;
+	win32args = win32argvtos(sh, args->argv);
+	ret = CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+	CloseHandle(pipe_out[1]);
+	args_free(args);
+	free(win32args);
+	if (ret == 0) {
+		stats_update(STATS_COMPCHECK);
+		return false;
+	}
+	fd = _open_osfhandle((intptr_t) pipe_out[0], O_BINARY);
+	ok = hash_fd(hash, fd);
+	if (!ok) {
+		cc_log("Error hashing compiler check command output: %s", strerror(errno));
+		stats_update(STATS_COMPCHECK);
+	}
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	GetExitCodeProcess(pi.hProcess, &exitcode);
+	CloseHandle(pipe_out[0]);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+	if (exitcode != 0) {
+		cc_log("Compiler check command returned %d", (int) exitcode);
+		stats_update(STATS_COMPCHECK);
+		return false;
+	}
+	return ok;
+#else
 	if (pipe(pipefd) == -1) {
 		fatal("pipe failed");
 	}
@@ -274,6 +333,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 		}
 		return ok;
 	}
+#endif
 }
 
 bool
