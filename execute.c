@@ -87,21 +87,12 @@ win32argvtos(char *prefix, char **argv)
 	return str;
 }
 
-int
-win32execute(char *path, char **argv, int doreturn,
-             const char *path_stdout, const char *path_stderr)
+char *
+win32getshell(char *path)
 {
-	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	BOOL ret;
-	DWORD exitcode;
 	char *path_env;
 	char *sh = NULL;
-	char *args;
 	const char *ext;
-
-	memset(&pi, 0x00, sizeof(pi));
-	memset(&si, 0x00, sizeof(si));
 
 	ext = get_extension(path);
 	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH")))
@@ -119,6 +110,25 @@ win32execute(char *path, char **argv, int doreturn,
 			fclose(fp);
 		}
 	}
+
+	return sh;
+}
+
+int
+win32execute(char *path, char **argv, int doreturn,
+             const char *path_stdout, const char *path_stderr)
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	BOOL ret;
+	DWORD exitcode;
+	char *sh = NULL;
+	char *args;
+
+	memset(&pi, 0x00, sizeof(pi));
+	memset(&si, 0x00, sizeof(si));
+
+	sh = win32getshell(path);
 	if (sh)
 		path = sh;
 
