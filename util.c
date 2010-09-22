@@ -169,6 +169,28 @@ mkstemp(char *template)
 }
 #endif
 
+#ifndef HAVE_STRTOK_R
+/* strtok_r replacement */
+char *
+strtok_r(char *str, const char *delim, char **saveptr)
+{
+	int len;
+	char *ret;
+	if (*saveptr)
+		str = *saveptr;
+	len = strlen(str);
+	ret = strtok(str, delim);
+	if (ret) {
+		char *save = ret;
+		while (*save++);
+		if ((len + 1) == (intptr_t) (save - str))
+			save--;
+		*saveptr = save;
+	}
+	return ret;
+}
+#endif
+
 /*
  * Copy src to dest, decompressing src if needed. compress_dest decides whether
  * dest will be compressed.

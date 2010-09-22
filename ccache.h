@@ -142,6 +142,9 @@ int x_rename(const char *oldpath, const char *newpath);
 char *x_readlink(const char *path);
 char *read_text_file(const char *path);
 bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
+#ifndef HAVE_STRTOK_R
+char *strtok_r(char *str, const char *delim, char **saveptr);
+#endif
 
 /* ------------------------------------------------------------------------- */
 /* stats.c */
