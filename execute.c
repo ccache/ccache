@@ -256,11 +256,14 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 	     tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
 #ifdef _WIN32
 		char namebuf[MAX_PATH];
-		int ret = SearchPath(tok, name, ".exe",
+		int ret = SearchPath(tok, name, NULL,
 		                     sizeof(namebuf), namebuf, NULL);
-		if (!ret)
-			ret = SearchPath(tok, name, NULL,
+		if (!ret) {
+			char *exename = format("%s.exe", name);
+			ret = SearchPath(tok, exename, NULL,
 			                 sizeof(namebuf), namebuf, NULL);
+			free(exename);
+		}
 		(void) exclude_name;
 		if (ret) {
 			free(path);
