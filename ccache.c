@@ -284,6 +284,9 @@ get_path_in_cache(const char *name, const char *suffix)
 static void
 remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 {
+#ifdef _WIN32
+	DWORD attributes;
+#endif
 	struct mdfour fhash;
 	struct stat st;
 	char *source = NULL;
@@ -305,6 +308,14 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 		/* Already known include file. */
 		goto ignore;
 	}
+
+#ifdef _WIN32
+	/* stat fails on directories on win32 */
+	attributes = GetFileAttributes(path);
+	if (attributes != INVALID_FILE_ATTRIBUTES &&
+	    attributes & FILE_ATTRIBUTE_DIRECTORY)
+		goto ignore;
+#endif
 
 	if (stat(path, &st) != 0) {
 		cc_log("Failed to stat include file %s", path);
