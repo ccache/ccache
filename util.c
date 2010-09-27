@@ -176,7 +176,7 @@ strtok_r(char *str, const char *delim, char **saveptr)
 {
 	int len;
 	char *ret;
-	if (*saveptr)
+	if (!str)
 		str = *saveptr;
 	len = strlen(str);
 	ret = strtok(str, delim);
