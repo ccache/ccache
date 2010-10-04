@@ -253,6 +253,10 @@ clean_up_tmp_files()
 /*
  * Transform a name to a full path into the cache directory, creating needed
  * sublevels if needed. Caller frees.
+ *
+ * stat() calls can be expensive on the cache, so we both avoid checking a
+ * single path multiple times, and also avoid stat()ing each level in a
+ * many level cache.
  */
 static char *
 get_path_in_cache(const char *name, const char *suffix)
@@ -260,17 +264,32 @@ get_path_in_cache(const char *name, const char *suffix)
 	int i;
 	char *path;
 	char *result;
+	struct stat st;
 
+	/* Form the entire path */
 	path = x_strdup(cache_dir);
 	for (i = 0; i < nlevels; ++i) {
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
 		path = p;
-		if (create_dir(path) != 0) {
-			cc_log("Failed to create %s", path);
-			failed();
+	}
+
+	/* First see if whole path exists, so can avoid directory one-by-one check */
+	if (!(stat(path, &st) == 0
+	      && S_ISDIR(st.st_mode))) {
+		free(path);
+		path = x_strdup(cache_dir);
+		for (i = 0; i < nlevels; ++i) {
+			char *p = format("%s/%c", path, name[i]);
+			free(path);
+			path = p;
+			if (create_dir(path) != 0) {
+				cc_log("Failed to create %s", path);
+				failed();
+			}
 		}
 	}
+
 	result = format("%s/%s%s", path, name + nlevels, suffix);
 	free(path);
 	return result;
