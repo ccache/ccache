@@ -73,7 +73,7 @@ static char *current_working_dir;
 char *cache_dir = NULL;
 
 /* the directory for temporary files */
-static char *temp_dir;
+static const char* temp_dir();
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
@@ -248,6 +248,25 @@ clean_up_tmp_files()
 		free(cpp_stderr);
 		cpp_stderr = NULL;
 	}
+}
+
+static const char*
+temp_dir() {
+	static char* path = NULL;
+	if (path) return path;  /* Memoize */
+	path = getenv("CCACHE_TEMPDIR");
+	if (!path) {
+		path = format("%s/tmp", cache_dir);
+	}
+
+	/* make sure the temp dir exists */
+	if (create_dir(path) != 0) {
+		fprintf(stderr,
+		        "ccache: failed to create %s (%s)\n",
+		        path, strerror(errno));
+		exit(1);
+	}
+	return path;
 }
 
 /*
@@ -674,6 +693,17 @@ to_cache(struct args *args)
 
 	stats_update_size(STATS_TOCACHE, added_bytes / 1024, added_files);
 
+	/* Make sure we have a CACHEDIR.TAG
+	 * This can be almost anywhere, but might as well do it near the end
+	 * as if we exit early we save the stat call
+	 */
+	if (create_cachedirtag(cache_dir) != 0) {
+		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
+		        cache_dir, strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+
 	free(tmp_obj);
 	free(tmp_stderr);
 	free(tmp_stdout);
@@ -707,8 +737,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	/* now the run */
 	path_stdout = format("%s/%s.tmp.%s.%s",
-	                     temp_dir, input_base, tmp_string(), i_extension);
-	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
+	                     temp_dir(), input_base, tmp_string(), i_extension);
+	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
 
 	time_of_compilation = time(NULL);
 
@@ -2117,11 +2147,6 @@ ccache_main(int argc, char *argv[])
 
 	check_cache_dir();
 
-	temp_dir = getenv("CCACHE_TEMPDIR");
-	if (!temp_dir) {
-		temp_dir = format("%s/tmp", cache_dir);
-	}
-
 	base_dir = getenv("CCACHE_BASEDIR");
 	if (base_dir && base_dir[0] != '/') {
 		cc_log("Ignoring non-absolute base directory %s", base_dir);
@@ -2138,23 +2163,6 @@ ccache_main(int argc, char *argv[])
 		        "ccache: failed to create %s (%s)\n",
 		        cache_dir, strerror(errno));
 		exit(1);
-	}
-
-	/* make sure the temp dir exists */
-	if (create_dir(temp_dir) != 0) {
-		fprintf(stderr,
-		        "ccache: failed to create %s (%s)\n",
-		        temp_dir, strerror(errno));
-		exit(1);
-	}
-
-	if (!getenv("CCACHE_READONLY")) {
-		if (create_cachedirtag(cache_dir) != 0) {
-			fprintf(stderr,
-			        "ccache: failed to create %s/CACHEDIR.TAG (%s)\n",
-			        cache_dir, strerror(errno));
-			exit(1);
-		}
 	}
 
 	ccache(argc, argv);
