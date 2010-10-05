@@ -72,9 +72,6 @@ static char *current_working_dir;
 /* the base cache directory */
 char *cache_dir = NULL;
 
-/* the directory for temporary files */
-static const char* temp_dir();
-
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
 
@@ -250,8 +247,9 @@ clean_up_tmp_files()
 	}
 }
 
-static const char*
-temp_dir() {
+static const char *
+temp_dir()
+{
 	static char* path = NULL;
 	if (path) return path;  /* Memoize */
 	path = getenv("CCACHE_TEMPDIR");
@@ -294,8 +292,7 @@ get_path_in_cache(const char *name, const char *suffix)
 	}
 
 	/* First see if whole path exists, so can avoid directory one-by-one check */
-	if (!(stat(path, &st) == 0
-	      && S_ISDIR(st.st_mode))) {
+	if (!(stat(path, &st) == 0 && S_ISDIR(st.st_mode))) {
 		free(path);
 		path = x_strdup(cache_dir);
 		for (i = 0; i < nlevels; ++i) {
