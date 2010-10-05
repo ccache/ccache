@@ -14,14 +14,14 @@ Code formatting
 * If possible, keep lines at most 80 character wide for a 2 character tab
   width.
 * Use only lowercase names for functions and variables.
-* Use only uppercase names for enum items and (with some exceptins) macros.
+* Use only uppercase names for enum items and (with some exceptions) macros.
 * Don't use typedefs for structs and enums.
 
 Idioms
 ------
 
 * Use NULL to initialize null pointers.
-* Don't use NULL to compare null pointers.
+* Don't use NULL when comparing pointers.
 * Use format(), x_malloc() and friends instead of checking for memory
   allocation failure explicitly.
 * Use str_eq() instead of strcmp() when testing for string (in)equality.
