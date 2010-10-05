@@ -59,7 +59,7 @@ TEST(lock_breaking)
 	CHECK(lockfile_acquire("test", 1000));
 
 #ifdef _WIN32
-	p = read_text_file("test.lock");
+	p = read_text_file("test.lock", 0);
 #else
 	p = x_readlink("test.lock");
 #endif

@@ -1161,15 +1161,15 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 
 /*
  * Return the content (with NUL termination) of a text file, or NULL on error.
- * Caller frees.
+ * Caller frees. Size hint 0 means no hint.
  */
 char *
-read_text_file(const char *path)
+read_text_file(const char *path, size_t size_hint)
 {
 	size_t size;
 	char *data;
 
-	if (read_file(path, 0, &data, &size)) {
+	if (read_file(path, size_hint, &data, &size)) {
 		data = x_realloc(data, size + 1);
 		data[size] = '\0';
 		return data;
