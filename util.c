@@ -770,15 +770,20 @@ file_size(struct stat *st)
 #endif
 }
 
-/* a safe open/create for read-write */
+/*
+ * Create a file for writing. Creates parent directories if they don't exist.
+ */
 int
-safe_open(const char *fname)
+safe_create_wronly(const char *fname)
 {
-	int fd = open(fname, O_RDWR|O_BINARY);
+	int fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, 0666);
 	if (fd == -1 && errno == ENOENT) {
-		fd = open(fname, O_RDWR|O_CREAT|O_EXCL|O_BINARY, 0666);
-		if (fd == -1 && errno == EEXIST) {
-			fd = open(fname, O_RDWR|O_BINARY);
+		/*
+		 * Only make sure parent directories exist when have failed to open the
+		 * file -- this saves stat() calls.
+		 */
+		if (create_parent_dirs(fname) == 0) {
+			fd = open(fname, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0666);
 		}
 	}
 	return fd;

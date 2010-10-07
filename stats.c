@@ -128,6 +128,11 @@ stats_write(const char *path, struct counters *counters)
 
 	tmp_file = format("%s.tmp.%s", path, tmp_string());
 	f = fopen(tmp_file, "wb");
+	if (!f && errno == ENOENT) {
+		if (create_parent_dirs(path) == 0) {
+			f = fopen(tmp_file, "wb");
+		}
+	}
 	if (!f) {
 		cc_log("Failed to open %s", tmp_file);
 		goto end;
@@ -221,7 +226,6 @@ stats_flush(void)
 		if (!cache_dir) return;
 		stats_dir = format("%s/%x", cache_dir, hash_from_int(getpid()) % 16);
 		stats_file = format("%s/stats", stats_dir);
-		create_dir(stats_dir);
 		free(stats_dir);
 	}
 
@@ -382,19 +386,11 @@ stats_set_limits(long maxfiles, long maxsize)
 		maxsize /= 16;
 	}
 
-	if (create_dir(cache_dir) != 0) {
-		return 1;
-	}
-
 	/* set the limits in each directory */
 	for (dir = 0; dir <= 0xF; dir++) {
 		char *fname, *cdir;
 
 		cdir = format("%s/%1x", cache_dir, dir);
-		if (create_dir(cdir) != 0) {
-			free(cdir);
-			return 1;
-		}
 		fname = format("%s/stats", cdir);
 		free(cdir);
 
@@ -424,7 +420,6 @@ stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
 	struct counters *counters = counters_init(STATS_END);
 	char *statsfile;
 
-	create_dir(dir);
 	statsfile = format("%s/stats", dir);
 
 	if (lockfile_acquire(statsfile, lock_staleness_limit)) {

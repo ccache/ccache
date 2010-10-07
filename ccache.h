@@ -127,7 +127,7 @@ char *dirname(const char *path);
 const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);
-int safe_open(const char *fname);
+int safe_create_wronly(const char *fname);
 char *x_realpath(const char *path);
 char *gnu_getcwd(void);
 int create_empty_file(const char *fname);

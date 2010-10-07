@@ -51,6 +51,13 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
 			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
+			if (errno == ENOENT) {
+				/* Directory doesn't exist? */
+				if (create_parent_dirs(lockfile) == 0) {
+					/* OK. Retry. */
+					continue;
+				}
+			}
 			if (errno != EEXIST) {
 				/* Directory doesn't exist or isn't writable? */
 				goto out;
@@ -99,6 +106,13 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			goto out;
 		}
 		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(errno));
+		if (errno == ENOENT) {
+			/* Directory doesn't exist? */
+			if (create_parent_dirs(lockfile) == 0) {
+				/* OK. Retry. */
+				continue;
+			}
+		}
 		if (errno != EEXIST) {
 			/* Directory doesn't exist or isn't writable? */
 			goto out;
