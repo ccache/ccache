@@ -406,6 +406,33 @@ create_dir(const char *dir)
 	return 0;
 }
 
+/* Create directories leading to path. Returns 0 on success, otherwise -1. */
+int
+create_parent_dirs(const char *path)
+{
+	struct stat st;
+	int res;
+	char *parent = dirname(path);
+
+	if (stat(parent, &st) == 0) {
+		if (S_ISDIR(st.st_mode)) {
+			res = 0;
+		} else {
+			res = -1;
+			errno = ENOTDIR;
+		}
+	} else {
+		res = create_parent_dirs(parent);
+		if (res == 0) {
+			res = mkdir(parent, 0777);
+		} else {
+			res = -1;
+		}
+	}
+	free(parent);
+	return res;
+}
+
 /*
  * Return a static string with the current hostname.
  */

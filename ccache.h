@@ -109,6 +109,7 @@ int move_uncompressed_file(const char *src, const char *dest,
 bool file_is_compressed(const char *filename);
 
 int create_dir(const char *dir);
+int create_parent_dirs(const char *path);
 const char *get_hostname(void);
 const char *tmp_string(void);
 char *format_hash_as_string(const unsigned char *hash, unsigned size);
