@@ -659,17 +659,17 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 /* return the base name of a file - caller frees */
 char *
-basename(const char *s)
+basename(const char *path)
 {
 	char *p;
-	p = strrchr(s, '/');
-	if (p) s = p + 1;
+	p = strrchr(path, '/');
+	if (p) path = p + 1;
 #ifdef _WIN32
-	p = strrchr(s, '\\');
-	if (p) s = p + 1;
+	p = strrchr(path, '\\');
+	if (p) path = p + 1;
 #endif
 
-	return x_strdup(s);
+	return x_strdup(path);
 }
 
 /* return the dir name of a file - caller frees */
