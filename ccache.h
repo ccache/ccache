@@ -122,7 +122,7 @@ void *x_malloc(size_t size);
 void *x_calloc(size_t nmemb, size_t size);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *basename(const char *s);
-char *dirname(char *s);
+char *dirname(const char *path);
 const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);

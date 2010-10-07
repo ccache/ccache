@@ -674,11 +674,12 @@ basename(const char *s)
 
 /* return the dir name of a file - caller frees */
 char *
-dirname(char *s)
+dirname(const char *path)
 {
 	char *p;
 	char *p2 = NULL;
-	s = x_strdup(s);
+	char *s;
+	s = x_strdup(path);
 	p = strrchr(s, '/');
 #ifdef _WIN32
 	p2 = strrchr(s, '\\');
