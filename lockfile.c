@@ -84,7 +84,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			if (write(fd, my_content, strlen(my_content)) == -1) {
 				cc_log("lockfile_acquire: write %s: %s", lockfile, strerror(errno));
 				close(fd);
-				unlink(lockfile);
+				x_unlink(lockfile);
 				goto out;
 			}
 			close(fd);
@@ -178,7 +178,7 @@ lockfile_release(const char *path)
 {
 	char *lockfile = format("%s.lock", path);
 	cc_log("Releasing lock %s", lockfile);
-	unlink(lockfile);
+	tmp_unlink(lockfile);
 	free(lockfile);
 }
 

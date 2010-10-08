@@ -139,6 +139,8 @@ bool is_absolute_path(const char *path);
 bool is_full_path(const char *path);
 void update_mtime(const char *path);
 int x_rename(const char *oldpath, const char *newpath);
+int x_unlink(const char *path);
+int tmp_unlink(const char *path);
 char *x_readlink(const char *path);
 char *read_text_file(const char *path);
 bool read_file(const char *path, size_t size_hint, char **data, size_t *size);

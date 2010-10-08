@@ -335,7 +335,7 @@ stats_zero(void)
 	char *fname;
 
 	fname = format("%s/stats", cache_dir);
-	unlink(fname);
+	x_unlink(fname);
 	free(fname);
 
 	for (dir = 0; dir <= 0xF; dir++) {

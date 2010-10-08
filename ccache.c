@@ -236,7 +236,7 @@ clean_up_tmp_files()
 	/* delete intermediate pre-processor file if needed */
 	if (i_tmpfile) {
 		if (!direct_i_file) {
-			unlink(i_tmpfile);
+			tmp_unlink(i_tmpfile);
 		}
 		free(i_tmpfile);
 		i_tmpfile = NULL;
@@ -244,7 +244,7 @@ clean_up_tmp_files()
 
 	/* delete the cpp stderr file if necessary */
 	if (cpp_stderr) {
-		unlink(cpp_stderr);
+		tmp_unlink(cpp_stderr);
 		free(cpp_stderr);
 		cpp_stderr = NULL;
 	}
@@ -519,12 +519,12 @@ to_cache(struct args *args)
 	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
-		unlink(tmp_stdout);
-		unlink(tmp_stderr);
-		unlink(tmp_obj);
+		tmp_unlink(tmp_stdout);
+		tmp_unlink(tmp_stderr);
+		tmp_unlink(tmp_obj);
 		failed();
 	}
-	unlink(tmp_stdout);
+	tmp_unlink(tmp_stdout);
 
 	/*
 	 * Merge stderr from the preprocessor (if any) and stderr from the real
@@ -561,7 +561,7 @@ to_cache(struct args *args)
 		close(fd_cpp_stderr);
 		close(fd_real_stderr);
 		close(fd_result);
-		unlink(tmp_stderr2);
+		tmp_unlink(tmp_stderr2);
 		free(tmp_stderr2);
 	}
 
@@ -579,13 +579,13 @@ to_cache(struct args *args)
 				/* we can use a quick method of getting the failed output */
 				copy_fd(fd, 2);
 				close(fd);
-				unlink(tmp_stderr);
+				tmp_unlink(tmp_stderr);
 				exit(status);
 			}
 		}
 
-		unlink(tmp_stderr);
-		unlink(tmp_obj);
+		tmp_unlink(tmp_stderr);
+		tmp_unlink(tmp_obj);
 		failed();
 	}
 
@@ -619,7 +619,7 @@ to_cache(struct args *args)
 		added_bytes += file_size(&st);
 		added_files += 1;
 	} else {
-		unlink(tmp_stderr);
+		tmp_unlink(tmp_stderr);
 	}
 	if (move_uncompressed_file(tmp_obj, cached_obj, enable_compression) != 0) {
 		cc_log("Failed to move %s to %s", tmp_obj, cached_obj);
@@ -703,9 +703,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	if (status != 0) {
 		if (!direct_i_file) {
-			unlink(path_stdout);
+			tmp_unlink(path_stdout);
 		}
-		unlink(path_stderr);
+		tmp_unlink(path_stderr);
 		cc_log("Preprocessor gave exit status %d", status);
 		stats_update(STATS_PREPROCESSOR);
 		failed();
@@ -722,7 +722,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_delimiter(hash, "unifycpp");
 		if (unify_hash(hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
-			unlink(path_stderr);
+			tmp_unlink(path_stderr);
 			cc_log("Failed to unify %s", path_stdout);
 			failed();
 		}
@@ -730,7 +730,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_delimiter(hash, "cpp");
 		if (!process_preprocessed_file(hash, path_stdout)) {
 			stats_update(STATS_ERROR);
-			unlink(path_stderr);
+			tmp_unlink(path_stderr);
 			failed();
 		}
 	}
@@ -750,7 +750,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		 */
 		cpp_stderr = path_stderr;
 	} else {
-		unlink(path_stderr);
+		tmp_unlink(path_stderr);
 		free(path_stderr);
 	}
 
@@ -993,7 +993,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (str_eq(output_obj, "/dev/null")) {
 		ret = 0;
 	} else {
-		unlink(output_obj);
+		x_unlink(output_obj);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (getenv("CCACHE_HARDLINK") && !file_is_compressed(cached_obj)) {
 			ret = link(cached_obj, output_obj);
@@ -1013,17 +1013,17 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		unlink(output_obj);
-		unlink(cached_stderr);
-		unlink(cached_obj);
-		unlink(cached_dep);
+		x_unlink(output_obj);
+		x_unlink(cached_stderr);
+		x_unlink(cached_obj);
+		x_unlink(cached_dep);
 		return;
 	} else {
 		cc_log("Created %s from %s", output_obj, cached_obj);
 	}
 
 	if (produce_dep_file) {
-		unlink(output_dep);
+		x_unlink(output_dep);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (getenv("CCACHE_HARDLINK") && !file_is_compressed(cached_dep)) {
 			ret = link(cached_dep, output_dep);
@@ -1045,11 +1045,11 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 				stats_update(STATS_ERROR);
 				failed();
 			}
-			unlink(output_obj);
-			unlink(output_dep);
-			unlink(cached_stderr);
-			unlink(cached_obj);
-			unlink(cached_dep);
+			x_unlink(output_obj);
+			x_unlink(output_dep);
+			x_unlink(cached_stderr);
+			x_unlink(cached_obj);
+			x_unlink(cached_dep);
 			return;
 		} else {
 			cc_log("Created %s from %s", output_dep, cached_dep);
@@ -1874,7 +1874,7 @@ ccache(int argc, char *argv[])
 		cc_log("Hash from manifest doesn't match preprocessor output");
 		cc_log("Likely reason: different CCACHE_BASEDIRs used");
 		cc_log("Removing manifest as a safety measure");
-		unlink(manifest_path);
+		x_unlink(manifest_path);
 
 		put_object_in_manifest = true;
 	}

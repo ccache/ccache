@@ -73,7 +73,7 @@ traverse_fn(const char *fname, struct stat *st)
 	if (strstr(p, ".tmp.") != NULL) {
 		/* delete any tmp files older than 1 hour */
 		if (st->st_mtime + 3600 < time(NULL)) {
-			unlink(fname);
+			x_unlink(fname);
 			goto out;
 		}
 	}
@@ -98,7 +98,7 @@ out:
 static void
 delete_file(const char *path, size_t size)
 {
-	if (unlink(path) == 0) {
+	if (x_unlink(path) == 0) {
 		cache_size -= size;
 		files_in_cache--;
 	} else if (errno != ENOENT) {
@@ -242,7 +242,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 	}
 	free(p);
 
-	unlink(fname);
+	x_unlink(fname);
 }
 
 /* wipe all cached files in all subdirs */
