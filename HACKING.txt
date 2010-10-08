@@ -27,6 +27,8 @@ Idioms
 * Use str_eq() instead of strcmp() when testing for string (in)equality.
 * Consider using str_startswith() instead of strncmp().
 * Use bool, true and false for boolean values.
+* Use tmp_unlink() or x_unlink() instead of unlink().
+* Use x_rename() instead of rename().
 
 Other
 -----

@@ -185,7 +185,7 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 	if (pid == 0) {
 		int fd;
 
-		unlink(path_stdout);
+		tmp_unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
 			exit(1);
@@ -193,7 +193,7 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 		dup2(fd, 1);
 		close(fd);
 
-		unlink(path_stderr);
+		tmp_unlink(path_stderr);
 		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
 			exit(1);
