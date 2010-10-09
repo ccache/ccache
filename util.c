@@ -1115,32 +1115,33 @@ x_rename(const char *oldpath, const char *newpath)
 }
 
 /*
- * Remove path, NFS hazardous, for temporary files that will not exist
- * on other systems only.  IE the "path" should include tmp_string().
+ * Remove path, NFS hazardous. Use only for temporary files that will not exist
+ * on other systems. That is, the path should include tmp_string().
  */
 int
 tmp_unlink(const char *path)
 {
 	cc_log("Unlink %s (as-tmp)", path);
-	return (unlink(path));
+	return unlink(path);
 }
 
 /*
- * Remove path, safely for NFS
+ * Remove path, NFS safe.
  */
 int
 x_unlink(const char *path)
 {
-	/* If path is on an NFS share, unlink isn't atomic, so we rename to a temp file */
-	/* We don't care if tempfile is trashed, so it's always safe to unlink it first */
+	/*
+	 * If path is on an NFS share, unlink isn't atomic, so we rename to a temp
+	 * file. We don't care if the temp file is trashed, so it's always safe to
+	 * unlink it first.
+	 */
 	const char* tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
-		/* let caller report the error, or not */
 		return -1;
 	}
 	if (unlink(tmp_name) == -1) {
-		/* let caller report the error, or not */
 		return -1;
 	}
 	return 0;
