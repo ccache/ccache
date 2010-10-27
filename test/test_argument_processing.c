@@ -57,4 +57,28 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 	args_free(orig);
 }
 
+TEST(sysroot_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *base_dir;
+	extern char *current_working_dir;
+	struct args *orig =
+		args_init_from_string("cc --sysroot=/some/directory -c foo.c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=/some/directory");
+
+	cc_reset();
+	base_dir = "/some";
+	current_working_dir = get_cwd();
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=../"));
+
+	args_free(orig);
+	base_dir = NULL;
+	current_working_dir = NULL;
+}
+
 TEST_SUITE_END
