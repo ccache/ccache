@@ -67,7 +67,7 @@ static const char USAGE_TEXT[] =
 "See also <http://ccache.samba.org>.\n";
 
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
-static char *current_working_dir;
+char *current_working_dir = NULL;
 
 /* the base cache directory */
 char *cache_dir = NULL;
@@ -79,7 +79,7 @@ static char *temp_dir;
 char *cache_logfile = NULL;
 
 /* base directory (from CCACHE_BASEDIR) */
-static char *base_dir;
+char *base_dir = NULL;
 
 /* the original argument list */
 static struct args *orig_args;
@@ -1408,6 +1408,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				 */
 				dependency_target_specified = true;
 			}
+			continue;
+		}
+		if (str_startswith(argv[i], "--sysroot=")) {
+			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
+			char *option = format("--sysroot=%s", relpath);
+			args_add(stripped_args, option);
+			free(relpath);
+			free(option);
 			continue;
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
