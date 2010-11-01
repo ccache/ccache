@@ -314,6 +314,11 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 		/* Ignore directory, typically $PWD. */
 		goto ignore;
 	}
+	if (!S_ISREG(st.st_mode)) {
+		/* Device, pipe, socket or other strange creature. */
+		cc_log("Non-regular include file %s", path);
+		goto failure;
+	}
 
 	/* Let's hash the include file. */
 	if (!(sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
