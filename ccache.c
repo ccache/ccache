@@ -1971,51 +1971,36 @@ ccache_main_options(int argc, char *argv[])
 	size_t v;
 
 	static const struct option options[] = {
-		{"show-stats", no_argument,       0, 's'},
-		{"zero-stats", no_argument,       0, 'z'},
-		{"cleanup",    no_argument,       0, 'c'},
-		{"clear",      no_argument,       0, 'C'},
-		{"max-files",  required_argument, 0, 'F'},
-		{"max-size",   required_argument, 0, 'M'},
-		{"help",       no_argument,       0, 'h'},
-		{"version",    no_argument,       0, 'V'},
+		{"cleanup",       no_argument,       0, 'c'},
+		{"clear",         no_argument,       0, 'C'},
+		{"help",          no_argument,       0, 'h'},
+		{"max-files",     required_argument, 0, 'F'},
+		{"max-size",      required_argument, 0, 'M'},
+		{"show-stats",    no_argument,       0, 's'},
+		{"version",       no_argument,       0, 'V'},
+		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
 
-	while ((c = getopt_long(argc, argv, "hszcCF:M:V", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cChF:M:sVz", options, NULL)) != -1) {
 		switch (c) {
-		case 'V':
-			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
-			exit(0);
-
-		case 'h':
-			fputs(USAGE_TEXT, stdout);
-			exit(0);
-
-		case 's':
-			check_cache_dir();
-			stats_summary();
-			break;
-
-		case 'c':
+		case 'c': /* --cleanup */
 			check_cache_dir();
 			cleanup_all(cache_dir);
 			printf("Cleaned cache\n");
 			break;
 
-		case 'C':
+		case 'C': /* --clear */
 			check_cache_dir();
 			wipe_all(cache_dir);
 			printf("Cleared cache\n");
 			break;
 
-		case 'z':
-			check_cache_dir();
-			stats_zero();
-			printf("Statistics cleared\n");
-			break;
+		case 'h': /* --help */
+			fputs(USAGE_TEXT, stdout);
+			exit(0);
 
-		case 'F':
+		case 'F': /* --max-files */
 			check_cache_dir();
 			v = atoi(optarg);
 			if (stats_set_limits(v, -1) == 0) {
@@ -2030,7 +2015,7 @@ ccache_main_options(int argc, char *argv[])
 			}
 			break;
 
-		case 'M':
+		case 'M': /* --max-size */
 			check_cache_dir();
 			v = value_units(optarg);
 			if (stats_set_limits(-1, v) == 0) {
@@ -2045,6 +2030,21 @@ ccache_main_options(int argc, char *argv[])
 				printf("Could not set cache size limit.\n");
 				exit(1);
 			}
+			break;
+
+		case 's': /* --show-stats */
+			check_cache_dir();
+			stats_summary();
+			break;
+
+		case 'V': /* --version */
+			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
+			exit(0);
+
+		case 'z': /* --zero-stats */
+			check_cache_dir();
+			stats_zero();
+			printf("Statistics cleared\n");
 			break;
 
 		default:
