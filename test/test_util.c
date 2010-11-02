@@ -41,4 +41,19 @@ TEST(dirname)
 	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
 }
 
+TEST(format_hash_as_string)
+{
+	unsigned char hash[16] = {
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"};
+
+	CHECK_STR_EQ_FREE2("00000000000000000000000000000000",
+	                   format_hash_as_string(hash, -1));
+	CHECK_STR_EQ_FREE2("00000000000000000000000000000000-0",
+	                   format_hash_as_string(hash, 0));
+	hash[0] = 17;
+	hash[15] = 42;
+	CHECK_STR_EQ_FREE2("1100000000000000000000000000002a-12345",
+	                   format_hash_as_string(hash, 12345));
+}
+
 TEST_SUITE_END

@@ -474,9 +474,12 @@ tmp_string(void)
 	return ret;
 }
 
-/* Return the hash result as a hex string. Caller frees. */
+/*
+ * Return the hash result as a hex string. Size -1 means don't include size
+ * suffix. Caller frees.
+ */
 char *
-format_hash_as_string(const unsigned char *hash, unsigned size)
+format_hash_as_string(const unsigned char *hash, int size)
 {
 	char *ret;
 	int i;
@@ -485,7 +488,9 @@ format_hash_as_string(const unsigned char *hash, unsigned size)
 	for (i = 0; i < 16; i++) {
 		sprintf(&ret[i*2], "%02x", (unsigned) hash[i]);
 	}
-	sprintf(&ret[i*2], "-%u", size);
+	if (size >= 0) {
+		sprintf(&ret[i*2], "-%u", size);
+	}
 
 	return ret;
 }

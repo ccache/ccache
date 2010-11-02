@@ -112,7 +112,7 @@ int create_dir(const char *dir);
 int create_parent_dirs(const char *path);
 const char *get_hostname(void);
 const char *tmp_string(void);
-char *format_hash_as_string(const unsigned char *hash, unsigned size);
+char *format_hash_as_string(const unsigned char *hash, int size);
 int create_hash_dir(char **dir, const char *hash, const char *cache_dir);
 int create_cachedirtag(const char *dir);
 char *format(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
