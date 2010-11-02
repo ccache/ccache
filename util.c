@@ -282,7 +282,13 @@ copy_file(const char *src, const char *dest, int compress_dest)
 			goto error;
 		}
 	}
-	if (n == 0 && !gzeof(gz_in)) {
+
+	/*
+	 * gzeof won't tell if there's an error in the trailing CRC, so we must check
+	 * gzerror before considering everything OK.
+	 */
+	gzerror(gz_in, &errnum);
+	if (!gzeof(gz_in) || (errnum != Z_OK && errnum != Z_STREAM_END)) {
 		cc_log("gzread error: %s (errno: %s)",
 		       gzerror(gz_in, &errnum), strerror(errno));
 		gzclose(gz_in);

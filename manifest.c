@@ -536,6 +536,7 @@ manifest_get(const char *manifest_path)
 	}
 	f = gzdopen(fd, "rb");
 	if (!f) {
+		close(fd);
 		cc_log("Failed to gzdopen manifest file");
 		goto out;
 	}
