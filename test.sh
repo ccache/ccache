@@ -1156,6 +1156,28 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
+
+    ##################################################################
+    # Check that strange "#line" directives are handled.
+    testname="#line directives with troublesome files"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >strange.c
+int foo;
+EOF
+    for x in stdout tty sda hda; do
+        if [ -e /dev/$x ]; then
+            echo "#line 1 \"/dev/$x\"" >> strange.c
+        fi
+    done
+    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c strange.c
+    manifest=$(find $CCACHE_DIR -name '*.manifest')
+    if [ -n "$manifest" ]; then
+        data="$($CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda)')"
+        if [ -n "$data" ]; then
+            test_failed "$manifest contained troublesome file(s): $data"
+        fi
+    fi
+    exit
 }
 
 basedir_suite() {
