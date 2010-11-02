@@ -87,6 +87,12 @@ struct object {
 };
 
 struct manifest {
+	/* Version of decoded file. */
+	uint8_t version;
+
+	/* Reserved for future use. */
+	uint16_t reserved;
+
 	/* Size of hash fields (in bytes). */
 	uint8_t hash_size;
 
@@ -207,8 +213,6 @@ read_manifest(gzFile f)
 	struct manifest *mf;
 	uint16_t i, j;
 	uint32_t magic;
-	uint8_t version;
-	uint16_t dummy;
 
 	mf = create_empty_manifest();
 
@@ -218,9 +222,9 @@ read_manifest(gzFile f)
 		free_manifest(mf);
 		return NULL;
 	}
-	READ_INT(1, version);
-	if (version != VERSION) {
-		cc_log("Manifest file has unknown version %u", version);
+	READ_INT(1, mf->version);
+	if (mf->version != VERSION) {
+		cc_log("Manifest file has unknown version %u", mf->version);
 		free_manifest(mf);
 		return NULL;
 	}
@@ -233,7 +237,7 @@ read_manifest(gzFile f)
 		return NULL;
 	}
 
-	READ_INT(2, dummy);
+	READ_INT(2, mf->reserved);
 
 	READ_INT(4, mf->n_files);
 	mf->files = x_calloc(mf->n_files, sizeof(*mf->files));
