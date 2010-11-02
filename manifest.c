@@ -679,3 +679,78 @@ out:
 	}
 	return ret;
 }
+
+bool
+manifest_dump(const char *manifest_path, FILE *stream)
+{
+	struct manifest *mf = NULL;
+	int fd;
+	gzFile *f = NULL;
+	bool ret = false;
+	unsigned i, j;
+
+	fd = open(manifest_path, O_RDONLY | O_BINARY);
+	if (fd == -1) {
+		fprintf(stderr, "No such manifest file: %s\n", manifest_path);
+		goto out;
+	}
+	f = gzdopen(fd, "rb");
+	if (!f) {
+		fprintf(stderr, "Failed to dzopen manifest file\n");
+		close(fd);
+		goto out;
+	}
+	mf = read_manifest(f);
+	if (!mf) {
+		fprintf(stderr, "Error reading manifest file\n");
+		goto out;
+	}
+
+	fprintf(stream, "Magic: %c%c%c%c\n",
+	        (MAGIC >> 24) & 0xFF,
+	        (MAGIC >> 16) & 0xFF,
+	        (MAGIC >> 8) & 0xFF,
+	        MAGIC & 0xFF);
+	fprintf(stream, "Version: %u\n", mf->version);
+	fprintf(stream, "Hash size: %u\n", (unsigned)mf->hash_size);
+	fprintf(stream, "Reserved field: %u\n", (unsigned)mf->reserved);
+	fprintf(stream, "File paths (%u):\n", (unsigned)mf->n_files);
+	for (i = 0; i < mf->n_files; ++i) {
+		fprintf(stream, "  %u: %s\n", i, mf->files[i]);
+	}
+	fprintf(stream, "File infos (%u):\n", (unsigned)mf->n_file_infos);
+	for (i = 0; i < mf->n_file_infos; ++i) {
+		char *hash;
+		fprintf(stream, "  %u:\n", i);
+		fprintf(stream, "    Path index: %u\n", mf->file_infos[i].index);
+		hash = format_hash_as_string(mf->file_infos[i].hash, -1);
+		fprintf(stream, "    Hash: %s\n", hash);
+		free(hash);
+		fprintf(stream, "    Size: %u\n", mf->file_infos[i].size);
+	}
+	fprintf(stream, "Results (%u):\n", (unsigned)mf->n_objects);
+	for (i = 0; i < mf->n_objects; ++i) {
+		char *hash;
+		fprintf(stream, "  %u:\n", i);
+		fprintf(stream, "    File hash indexes:");
+		for (j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
+			fprintf(stream, " %u", mf->objects[i].file_info_indexes[j]);
+		}
+		fprintf(stream, "\n");
+		hash = format_hash_as_string(mf->objects[i].hash.hash, -1);
+		fprintf(stream, "    Hash: %s\n", hash);
+		free(hash);
+		fprintf(stream, "    Size: %u\n", (unsigned)mf->objects[i].hash.size);
+	}
+
+	ret = true;
+
+out:
+	if (mf) {
+		free_manifest(mf);
+	}
+	if (f) {
+		gzclose(f);
+	}
+	return ret;
+}
