@@ -1975,9 +1975,13 @@ ccache_main_options(int argc, char *argv[])
 	int c;
 	size_t v;
 
+	enum longopts {
+		DUMP_MANIFEST
+	};
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
+		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
@@ -1989,6 +1993,10 @@ ccache_main_options(int argc, char *argv[])
 
 	while ((c = getopt_long(argc, argv, "cChF:M:sVz", options, NULL)) != -1) {
 		switch (c) {
+		case DUMP_MANIFEST:
+			manifest_dump(optarg, stdout);
+			break;
+
 		case 'c': /* --cleanup */
 			check_cache_dir();
 			cleanup_all(cache_dir);
