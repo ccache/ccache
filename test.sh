@@ -1170,9 +1170,9 @@ EOF
         fi
     done
     CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c strange.c
-    manifest=$(find $CCACHE_DIR -name '*.manifest')
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
     if [ -n "$manifest" ]; then
-        data="$($CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda)')"
+        data="`$CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
         if [ -n "$data" ]; then
             test_failed "$manifest contained troublesome file(s): $data"
         fi
