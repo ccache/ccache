@@ -1177,7 +1177,6 @@ EOF
             test_failed "$manifest contained troublesome file(s): $data"
         fi
     fi
-    exit
 }
 
 basedir_suite() {
