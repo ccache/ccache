@@ -1177,6 +1177,45 @@ EOF
             test_failed "$manifest contained troublesome file(s): $data"
         fi
     fi
+
+    ##################################################################
+    # Test --dump-manifest output.
+    testname="--dump-manifest"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER test.c -c -o test.o
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    $CCACHE --dump-manifest $manifest >manifest.dump
+    cat <<EOF >expected.dump
+Magic: cCmF
+Version: 0
+Hash size: 16
+Reserved field: 0
+File paths (3):
+  0: test2.h
+  1: test3.h
+  2: test1.h
+File infos (3):
+  0:
+    Path index: 0
+    Hash: e94ceb9f1b196c387d098a5f1f4fe862
+    Size: 11
+  1:
+    Path index: 1
+    Hash: c2f5392dbc7e8ff6138d01608445240a
+    Size: 24
+  2:
+    Path index: 2
+    Hash: e6b009695d072974f2c4d1dd7e7ed4fc
+    Size: 95
+Results (1):
+  0:
+    File hash indexes: 0 1 2
+    Hash: 77dac7b483033b8e0225770b3ef4034e
+    Size: 372
+EOF
+    if ! diff -u expected.dump manifest.dump; then
+        test_failed "unexpected output of --dump-manifest"
+    fi
 }
 
 basedir_suite() {
