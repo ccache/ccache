@@ -906,7 +906,7 @@ EOF
     checkstat 'cache miss' 2
 
     ##################################################################
-    # Check that it's possible to compile and cache an empty source code file.
+    # Check that it is possible to compile and cache an empty source code file.
     testname="empty source file"
     $CCACHE -Cz >/dev/null
     cp /dev/null empty.c
