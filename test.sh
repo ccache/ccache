@@ -1184,7 +1184,9 @@ EOF
     $CCACHE -Cz >/dev/null
     $CCACHE $COMPILER test.c -c -o test.o
     manifest=`find $CCACHE_DIR -name '*.manifest'`
-    $CCACHE --dump-manifest $manifest >manifest.dump
+    $CCACHE --dump-manifest $manifest |
+        perl -ape 's/:.*/: objhash/ if $F[0] eq "Hash:" and ++$n == 4' \
+        >manifest.dump
     cat <<EOF >expected.dump
 Magic: cCmF
 Version: 0
@@ -1210,7 +1212,7 @@ File infos (3):
 Results (1):
   0:
     File hash indexes: 0 1 2
-    Hash: 77dac7b483033b8e0225770b3ef4034e
+    Hash: objhash
     Size: 372
 EOF
     if ! diff -u expected.dump manifest.dump; then
