@@ -1185,7 +1185,7 @@ EOF
     $CCACHE $COMPILER test.c -c -o test.o
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest |
-        perl -ape 's/:.*/: objhash/ if $F[0] eq "Hash:" and ++$n == 4' \
+        perl -ape 's/:.*/: normalized/ if $F[0] =~ "(Hash|Size):" and ++$n > 6' \
         >manifest.dump
     cat <<EOF >expected.dump
 Magic: cCmF
@@ -1212,8 +1212,8 @@ File infos (3):
 Results (1):
   0:
     File hash indexes: 0 1 2
-    Hash: objhash
-    Size: 372
+    Hash: normalized
+    Size: normalized
 EOF
     if ! diff -u expected.dump manifest.dump; then
         test_failed "unexpected output of --dump-manifest"
