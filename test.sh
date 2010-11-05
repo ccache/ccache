@@ -1215,7 +1215,7 @@ Results (1):
     Hash: normalized
     Size: normalized
 EOF
-    if ! diff -u expected.dump manifest.dump; then
+    if ! diff expected.dump manifest.dump; then
         test_failed "unexpected output of --dump-manifest"
     fi
 }
