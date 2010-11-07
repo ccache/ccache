@@ -2,6 +2,37 @@ ccache news
 ===========
 
 
+ccache 3.1.1
+------------
+Release date: 2010-11-07
+
+
+Bug fixes
+~~~~~~~~~
+
+    - ccache now falls back to preprocessor mode when a non-regular include
+      file (device, socket, etc) has been detected so that potential hanging
+      due to blocking reads is avoided.
+
+    - CRC errors are now detected when decompressing compressed files in the
+      cache.
+
+    - Fixed potential object file corruption race on NFS.
+
+    - Minor documentation corrections.
+
+    - Fixed configure detection of ar.
+
+    - ccache development version (set by dev.mk) now works with gits whose
+      `describe` command doesn't understand `--dirty`.
+
+
+Other
+~~~~~
+
+    - Minor debug log message improvements.
+
+
 ccache 3.1
 ----------
 Release date: 2010-09-16
