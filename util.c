@@ -596,6 +596,13 @@ void *
 x_malloc(size_t size)
 {
 	void *ret;
+	if (size == 0) {
+		/*
+		 * malloc() may return NULL if size is zero, so always do this to make sure
+		 * that the code handles it regardless of platform.
+		 */
+		return NULL;
+	}
 	ret = malloc(size);
 	if (!ret) {
 		fatal("x_malloc: Could not allocate %lu bytes", (unsigned long)size);
@@ -608,8 +615,15 @@ void *
 x_calloc(size_t nmemb, size_t size)
 {
 	void *ret;
+	if (nmemb * size == 0) {
+		/*
+		 * calloc() may return NULL if nmemb or size is 0, so always do this to
+		 * make sure that the code handles it regardless of platform.
+		 */
+		return NULL;
+	}
 	ret = calloc(nmemb, size);
-	if (!ret) {
+	if (!retr) {
 		fatal("x_calloc: Could not allocate %lu bytes", (unsigned long)size);
 	}
 	return ret;
