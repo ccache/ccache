@@ -569,7 +569,7 @@ x_calloc(size_t nmemb, size_t size)
 		return NULL;
 	}
 	ret = calloc(nmemb, size);
-	if (!retr) {
+	if (!ret) {
 		fatal("x_calloc: Could not allocate %lu bytes", (unsigned long)size);
 	}
 	return ret;
