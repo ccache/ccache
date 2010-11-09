@@ -543,7 +543,7 @@ x_malloc(size_t size)
 {
 	void *ret;
 	ret = malloc(size);
-	if (!ret) {
+	if (!ret && size) {
 		fatal("x_malloc: Could not allocate %lu bytes", (unsigned long)size);
 	}
 	return ret;
