@@ -460,8 +460,12 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		    && (q == data || q[-1] == '\n')) {
 			char *path;
 
-			while (q < end && *q != '"') {
+			while (q < end && *q != '"' && *q != '\n') {
 				q++;
+			}
+			if (q < end && *q == '\n') {
+				/* A newline before the quotation mark -> no match. */
+				continue;
 			}
 			q++;
 			if (q >= end) {
