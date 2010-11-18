@@ -125,9 +125,7 @@ AC_DEFUN([HW_FUNC_VSNPRINTF],
   AS_IF([test "$hw_cv_func_vsnprintf_c99" = yes],
     [AC_DEFINE([HAVE_VSNPRINTF], [1],
       [Define to 1 if you have a C99 compliant `vsnprintf' function.])],
-    [AC_DEFINE([vsnprintf], [rpl_vsnprintf],
-      [Define to rpl_vsnprintf if the replacement function should be used.])
-    AC_CHECK_HEADERS([inttypes.h locale.h stddef.h stdint.h])
+    [AC_CHECK_HEADERS([inttypes.h locale.h stddef.h stdint.h])
     AC_CHECK_MEMBERS([struct lconv.decimal_point, struct lconv.thousands_sep],
       [], [], [#include <locale.h>])
     AC_TYPE_LONG_DOUBLE
@@ -171,9 +169,7 @@ AC_DEFUN([HW_FUNC_SNPRINTF],
   AS_IF([test "$hw_cv_func_snprintf_c99" = yes],
     [AC_DEFINE([HAVE_SNPRINTF], [1],
       [Define to 1 if you have a C99 compliant `snprintf' function.])],
-    [AC_DEFINE([snprintf], [rpl_snprintf],
-      [Define to rpl_snprintf if the replacement function should be used.])
-    _HW_FUNC_XPRINTF_REPLACE])
+    [_HW_FUNC_XPRINTF_REPLACE])
 ])# HW_FUNC_SNPRINTF
 
 # HW_FUNC_VASPRINTF
@@ -188,9 +184,7 @@ AC_DEFUN([HW_FUNC_VASPRINTF],
     [hw_cv_func_vasprintf=yes],
     [hw_cv_func_vasprintf=no])
   AS_IF([test "$hw_cv_func_vasprintf" = no],
-    [AC_DEFINE([vasprintf], [rpl_vasprintf],
-      [Define to rpl_vasprintf if the replacement function should be used.])
-    AC_CHECK_HEADERS([stdlib.h])
+    [AC_CHECK_HEADERS([stdlib.h])
     HW_FUNC_VA_COPY
     AS_IF([test "$hw_cv_func_va_copy" = no],
       [HW_FUNC___VA_COPY])
@@ -209,9 +203,7 @@ AC_DEFUN([HW_FUNC_ASPRINTF],
     [hw_cv_func_asprintf=yes],
     [hw_cv_func_asprintf=no])
   AS_IF([test "$hw_cv_func_asprintf" = no],
-    [AC_DEFINE([asprintf], [rpl_asprintf],
-      [Define to rpl_asprintf if the replacement function should be used.])
-    _HW_FUNC_XPRINTF_REPLACE])
+    [_HW_FUNC_XPRINTF_REPLACE])
 ])# HW_FUNC_ASPRINTF
 
 # _HW_FUNC_XPRINTF_REPLACE

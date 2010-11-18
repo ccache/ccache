@@ -524,6 +524,23 @@ static LDOUBLE mypow10(int);
 
 extern int errno;
 
+#if !HAVE_VSNPRINTF
+  int rpl_vsnprintf(char *, size_t, const char *, va_list);
+  #define vsnprintf rpl_vsnprintf
+#endif
+#if !HAVE_SNPRINTF
+  int rpl_snprintf(char *, size_t, const char *, ...);
+  #define snprintf rpl_snprintf
+#endif
+#if !HAVE_VASPRINTF
+  int rpl_vasprintf(char **, const char *, va_list);
+  #define vasprintf rpl_vasprintf
+#endif
+#if !HAVE_ASPRINTF
+  int rpl_asprintf(char **, const char *, ...);
+  #define asprintf rpl_asprintf
+#endif
+
 int
 rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 {
