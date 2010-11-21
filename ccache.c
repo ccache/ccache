@@ -1238,7 +1238,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* These are always too hard. */
-		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "@")) {
+		if (compopt_too_hard(argv[i])
+		    || str_startswith(argv[i], "@")
+		    || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
