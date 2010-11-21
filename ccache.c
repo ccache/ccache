@@ -1275,16 +1275,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* some options will never work ... */
-		if (str_eq(argv[i], "-E")) {
-			cc_log("Compiler option -E is unsupported");
-			stats_update(STATS_UNSUPPORTED);
-			result = false;
-			goto out;
-		}
-
-		/* these are too hard */
-		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "@")) {
+		/* These are always too hard. */
+		if (compopt_too_hard(argv[i])
+		    || str_startswith(argv[i], "@")
+		    || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
