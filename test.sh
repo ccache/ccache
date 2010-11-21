@@ -1165,7 +1165,7 @@ EOF
 int foo;
 EOF
     for x in stdout tty sda hda; do
-        if [ -e /dev/$x ]; then
+        if [ -b /dev/$x ] || [ -c /dev/$x ]; then
             echo "#line 1 \"/dev/$x\"" >> strange.c
         fi
     done
