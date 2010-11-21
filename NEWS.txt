@@ -2,6 +2,33 @@ ccache news
 ===========
 
 
+ccache 3.1.2
+------------
+Release date: 2010-11-21
+
+
+Bug fixes
+~~~~~~~~~
+
+    - Bail out on too hard compiler options `-fdump-*`.
+
+    - NULL return values from malloc/calloc of zero bytes are now handled
+      correctly.
+
+    - Fixed issue when parsing precompiler output on AIX.
+
+
+Other
+~~~~~
+
+    - Improved documentation on which information is included in the hash sum.
+
+    - Made the ``too new header file'' test case work on file systems with
+      unsynchronized clocks.
+
+    - The test suite now also works on systems that lack a /dev/zero.
+
+
 ccache 3.1.1
 ------------
 Release date: 2010-11-07
