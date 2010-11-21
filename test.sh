@@ -1109,21 +1109,12 @@ EOF
     cat <<EOF >new.h
 int test;
 EOF
-    touchy_compiler=touchy-compiler.sh
-    cat <<EOF >$touchy_compiler
-#!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
-[ x\$2 = "x-E" ] && touch -t `date +%Y%m%d%H%M.%S` new.h # Be sure that mtime >= time_of_compilation
-exec $COMPILER "\$@"
-EOF
-    chmod +x $touchy_compiler
-
-    $CCACHE ./$touchy_compiler -c new.c
+    touch -t 203801010000 new.h
+    $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE ./$touchy_compiler -c new.c
+    $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -1138,21 +1129,12 @@ EOF
     cat <<EOF >new.h
 int test;
 EOF
-    touchy_compiler=touchy-compiler.sh
-    cat <<EOF >$touchy_compiler
-#!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
-[ x\$2 = "x-E" ] && touch -t `date +%Y%m%d%H%M.%S` new.h # Be sure that mtime >= time_of_compilation
-exec $COMPILER "\$@"
-EOF
-    chmod +x $touchy_compiler
-
-    CCACHE_SLOPPINESS=include_file_mtime $CCACHE ./$touchy_compiler -c new.c
+    touch -t 203801010000 new.h
+    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=include_file_mtime $CCACHE ./$touchy_compiler -c new.c
+    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
