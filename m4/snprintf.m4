@@ -128,7 +128,9 @@ AC_DEFUN([HW_FUNC_VSNPRINTF],
     [AC_CHECK_HEADERS([inttypes.h locale.h stddef.h stdint.h])
     AC_CHECK_MEMBERS([struct lconv.decimal_point, struct lconv.thousands_sep],
       [], [], [#include <locale.h>])
-    AC_TYPE_LONG_DOUBLE
+dnl ccache doesn't link correctly on HP-UX 11.00 when support for long double
+dnl is enabled.
+dnl    AC_TYPE_LONG_DOUBLE
     AC_TYPE_LONG_LONG_INT
     AC_TYPE_UNSIGNED_LONG_LONG_INT
     AC_TYPE_SIZE_T
