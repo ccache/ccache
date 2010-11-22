@@ -180,20 +180,6 @@ void exitfn_add(void (*function)(void *), void *context);
 void exitfn_call(void);
 
 /* ------------------------------------------------------------------------- */
-/* snprintf.c */
-
-#ifndef HAVE_VASPRINTF
-int vasprintf(char **, const char *, va_list) ATTR_FORMAT(printf, 2, 0);
-#endif
-#ifndef HAVE_ASPRINTF
-int asprintf(char **ptr, const char *, ...) ATTR_FORMAT(printf, 2, 3);
-#endif
-
-#ifndef HAVE_SNPRINTF
-int snprintf(char *, size_t, const char *, ...) ATTR_FORMAT(printf, 3, 4);
-#endif
-
-/* ------------------------------------------------------------------------- */
 /* cleanup.c */
 
 void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);

@@ -38,19 +38,15 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
 AC_CHECK_HEADERS(termios.h)
 
-AC_CHECK_FUNCS(asprintf)
 AC_CHECK_FUNCS(gethostname)
 AC_CHECK_FUNCS(getopt_long)
 AC_CHECK_FUNCS(getpwuid)
 AC_CHECK_FUNCS(gettimeofday)
 AC_CHECK_FUNCS(mkstemp)
 AC_CHECK_FUNCS(realpath)
-AC_CHECK_FUNCS(snprintf)
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strtok_r)
 AC_CHECK_FUNCS(utimes)
-AC_CHECK_FUNCS(vasprintf)
-AC_CHECK_FUNCS(vsnprintf)
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(
@@ -63,34 +59,12 @@ if test x"$ccache_cv_COMPAR_FN_T" = x"yes"; then
              Define to 1 if you have the `__compar_fn_t' typedef.)
 fi
 
-AC_CACHE_CHECK([for C99 vsnprintf],ccache_cv_HAVE_C99_VSNPRINTF,[
-AC_TRY_RUN([
-#include <sys/types.h>
-#include <stdarg.h>
-#include <stdio.h>
-void foo(const char *format, ...) {
-    va_list ap;
-    int len;
-    char buf[5];
-
-    va_start(ap, format);
-    len = vsnprintf(0, 0, format, ap);
-    va_end(ap);
-    if (len != 5) exit(1);
-
-    if (snprintf(buf, 3, "hello") != 5 || strcmp(buf, "he") != 0) exit(1);
-
-    exit(0);
-}
-main() { foo("hello"); }
-],
-ccache_cv_HAVE_C99_VSNPRINTF=yes,
-ccache_cv_HAVE_C99_VSNPRINTF=no,
-ccache_cv_HAVE_C99_VSNPRINTF=cross)])
-if test x"$ccache_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
-    AC_DEFINE(HAVE_C99_VSNPRINTF, 1,
-              Define to 1 if you have the `vsnprintf' function.)
-fi
+dnl Replacements of snprintf and friends.
+m4_include(m4/snprintf.m4)
+HW_FUNC_VSNPRINTF
+HW_FUNC_SNPRINTF
+HW_FUNC_VASPRINTF
+HW_FUNC_ASPRINTF
 
 dnl Check for zlib.
 AC_CACHE_CHECK(
