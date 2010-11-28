@@ -1357,19 +1357,31 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 		if (i < argc - 1) {
-			if (str_eq(argv[i], "-MF")) {
+			if (str_startswith(argv[i], "-MF")) {
+				char *arg;
 				dependency_filename_specified = true;
 				free(output_dep);
-				output_dep = make_relative_path(x_strdup(argv[i + 1]));
 				args_add(dep_args, argv[i]);
-				args_add(dep_args, argv[i + 1]);
-				i++;
+				if (strlen(argv[i]) == 3) {
+					/* -MF arg */
+					arg = argv[i + 1];
+					args_add(dep_args, argv[i + 1]);
+					i++;
+				} else {
+					/* -MFarg */
+					arg = &argv[i][3];
+				}
+				output_dep = make_relative_path(x_strdup(arg));
 				continue;
-			} else if (str_eq(argv[i], "-MQ") || str_eq(argv[i], "-MT")) {
+			} else if (str_startswith(argv[i], "-MQ")
+			           || str_startswith(argv[i], "-MT")) {
 				dependency_target_specified = true;
 				args_add(dep_args, argv[i]);
-				args_add(dep_args, argv[i + 1]);
-				i++;
+				if (strlen(argv[i]) == 3) {
+					/* -MQ arg or -MT arg */
+					args_add(dep_args, argv[i + 1]);
+					i++;
+				}
 				continue;
 			}
 		}
