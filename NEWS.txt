@@ -2,6 +2,24 @@ ccache news
 ===========
 
 
+ccache 3.1.3
+------------
+Release date: 2010-11-28
+
+
+Bug fixes
+~~~~~~~~~
+
+    - The -MFarg, -MTarg and -MQarg compiler options (i.e, without space
+      between option and argument) are now handled correctly.
+
+
+Other
+~~~~~
+
+    - Portability fixes for HP-UX 11.00 and other esoteric systems.
+
+
 ccache 3.1.2
 ------------
 Release date: 2010-11-21

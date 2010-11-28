@@ -57,6 +57,23 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 	args_free(orig);
 }
 
+TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
+{
+	struct args *orig = args_init_from_string(
+		"cc -c -MMD -MFfoo.d -MTmt -MQmq foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string(
+		"cc -c -MMD -MFfoo.d -MTmt -MQmq");
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
 	extern char *base_dir;
