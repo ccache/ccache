@@ -867,45 +867,6 @@ EOF
     checkfile stderr-mf.txt "`cat stderr-orig.txt`"
 
     ##################################################################
-    # Check that changes in comments are ignored when hashing.
-    testname="changes in comments"
-    $CCACHE -C >/dev/null
-    $CCACHE -z >/dev/null
-    cat <<EOF >comments.h
-/*
- * /* foo comment
- */
-EOF
-    backdate comments.h
-    cat <<'EOF' >comments.c
-#include "comments.h"
-char test[] = "\
-/* apple */ // banana"; // foo comment
-EOF
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-
-    sed_in_place 's/foo/ignored/' comments.h comments.c
-    backdate comments.h
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-
-    # Check that comment-like string contents are hashed.
-    sed_in_place 's/apple/orange/' comments.c
-    backdate comments.h
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
-
-    ##################################################################
     # Check that it is possible to compile and cache an empty source code file.
     testname="empty source file"
     $CCACHE -Cz >/dev/null
