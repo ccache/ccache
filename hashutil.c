@@ -58,29 +58,27 @@ check_for_temporal_macros(const char *str, size_t len)
 	int result = 0;
 
 	/*
-	 * We're using the Boyer-Moore-Horspool algorithm, which searches
-	 * starting from the *end* of the needle.  Our needles are 8 characters
-	 * long, so i starts at 7.
+	 * We're using the Boyer-Moore-Horspool algorithm, which searches starting
+	 * from the *end* of the needle. Our needles are 8 characters long, so i
+	 * starts at 7.
 	 */
 	size_t i = 7;
 
 	while (i < len) {
 		/*
-		 * Check whether the substring ending at str[i] has the form
-		 * '__...E__'.  On the assumption that 'E' is less common in
-		 * source than '_', we check str[i-2] first.
+		 * Check whether the substring ending at str[i] has the form "__...E__". On
+		 * the assumption that 'E' is less common in source than '_', we check
+		 * str[i-2] first.
 		 */
 		if (str[i - 2] == 'E' &&
 		    str[i - 0] == '_' &&
 		    str[i - 7] == '_' &&
 		    str[i - 1] == '_' &&
 		    str[i - 6] == '_') {
-
 			/*
-			 * Check the remaining characters to see if the
-			 * substring is '__DATE__' or '__TIME__'.
+			 * Check the remaining characters to see if the substring is "__DATE__"
+			 * or "__TIME__".
 			 */
-
 			if (str[i - 5] == 'D' && str[i - 4] == 'A' &&
 			    str[i - 3] == 'T') {
 				result |= HASH_SOURCE_CODE_FOUND_DATE;
@@ -92,8 +90,8 @@ check_for_temporal_macros(const char *str, size_t len)
 		}
 
 		/*
-		 * macro_skip tells us how far we can skip forward upon seeing
-		 * str[i] at the end of a substring.
+		 * macro_skip tells us how far we can skip forward upon seeing str[i] at
+		 * the end of a substring.
 		 */
 		i += macro_skip[(uint8_t)str[i]];
 	}
