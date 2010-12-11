@@ -448,11 +448,11 @@ http://www.jhweiss.de/software/snprintf.html and has the following license:
 zlib/*.[hc]
 ~~~~~~~~~~~
 
-This is a bundled subset of zlib 1.2.3 from <http://www.zlib.net> with the
+This is a bundled subset of zlib 1.2.5 from <http://zlib.net> with the
 following license:
 
 -------------------------------------------------------------------------------
-  Copyright (C) 1995-2005 Jean-loup Gailly and Mark Adler
+  Copyright (C) 1995-2010 Jean-loup Gailly and Mark Adler
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -472,9 +472,4 @@ following license:
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
-
-
-  The data format used by the zlib library is described by RFCs (Request for
-  Comments) 1950 to 1952 in the files http://www.ietf.org/rfc/rfc1950.txt
-  (zlib format), rfc1951.txt (deflate format) and rfc1952.txt (gzip format).
 -------------------------------------------------------------------------------
