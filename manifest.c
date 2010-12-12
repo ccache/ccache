@@ -273,7 +273,7 @@ error:
 
 #define WRITE_INT(size, var) \
 	do { \
-		char ch_; \
+		uint8_t ch_; \
 		size_t i_; \
 		for (i_ = 0; i_ < (size); i_++) { \
 			ch_ = ((var) >> (8 * ((size) - i_ - 1))); \
