@@ -581,7 +581,6 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	int ret = 0;
 	int fd1;
 	int fd2;
-	struct stat st;
 	gzFile f1 = NULL;
 	gzFile f2 = NULL;
 	struct manifest *mf = NULL;
@@ -593,17 +592,8 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	 * not a big deal, and it's also very unlikely.
 	 */
 
-	fd1 = safe_open(manifest_path);
+	fd1 = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd1 == -1) {
-		cc_log("Failed to open manifest file");
-		goto out;
-	}
-	if (fstat(fd1, &st) != 0) {
-		cc_log("Failed to stat manifest file");
-		close(fd1);
-		goto out;
-	}
-	if (st.st_size == 0) {
 		/* New file. */
 		mf = create_empty_manifest();
 	} else {
