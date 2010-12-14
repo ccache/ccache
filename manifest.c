@@ -581,7 +581,6 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	int ret = 0;
 	int fd1;
 	int fd2;
-	gzFile f1 = NULL;
 	gzFile f2 = NULL;
 	struct manifest *mf = NULL;
 	char *tmp_file = NULL;
@@ -597,24 +596,19 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		/* New file. */
 		mf = create_empty_manifest();
 	} else {
-		f1 = gzdopen(fd1, "rb");
+		gzFile f1 = gzdopen(fd1, "rb");
 		if (!f1) {
 			cc_log("Failed to gzdopen manifest file");
 			close(fd1);
 			goto out;
 		}
 		mf = read_manifest(f1);
-		if (!mf) {
-			cc_log("Failed to read manifest file");
-			gzclose(f1);
-			goto out;
-		}
-	}
-
-	if (f1) {
 		gzclose(f1);
-	} else {
-		close(fd1);
+		if (!mf) {
+			cc_log("Failed to read manifest file; deleting it");
+			x_unlink(manifest_path);
+			mf = create_empty_manifest();
+		}
 	}
 
 	if (mf->n_objects > MAX_MANIFEST_ENTRIES) {
