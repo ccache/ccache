@@ -577,6 +577,22 @@ EOF
     checkstat 'cache miss' 0
 
     ##################################################################
+    # Check that corrupt manifest files are handled and rewritten.
+    testname="corrupt manifest file"
+    $CCACHE -z >/dev/null
+    manifest_file=`find $CCACHE_DIR -name '*.manifest'`
+    rm $manifest_file
+    touch $manifest_file
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 0
+    $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 0
+
+    ##################################################################
     # Compiling with CCACHE_NODIRECT set should generate a preprocessed hit.
     testname="preprocessed hit"
     $CCACHE -z >/dev/null
