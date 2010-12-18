@@ -463,6 +463,7 @@ create_cachedirtag(const char *dir)
 	f = fopen(filename, "w");
 	if (!f) goto error;
 	if (fwrite(CACHEDIR_TAG, sizeof(CACHEDIR_TAG)-1, 1, f) != 1) {
+		fclose(f);
 		goto error;
 	}
 	if (fclose(f)) goto error;
