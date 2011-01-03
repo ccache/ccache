@@ -113,6 +113,14 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				continue;
 			}
 		}
+		if (errno == EPERM) {
+			/*
+			 * The file system does not support symbolic links. We have no choice but
+			 * to grant the lock anyway.
+			 */
+			acquired = true;
+			goto out;
+		}
 		if (errno != EEXIST) {
 			/* Directory doesn't exist or isn't writable? */
 			goto out;
