@@ -2,6 +2,25 @@ ccache news
 ===========
 
 
+ccache 3.1.4
+------------
+Release date: 2011-01-09
+
+
+Bug fixes
+~~~~~~~~~
+
+    - Made a work-around for a bug in gzputc() in zlib 1.2.5.
+
+    - Corrupt manifest files are now removed so that they won't block direct
+      mode hits.
+
+    - ccache now copes with file systems that don't know about symbolic links.
+
+    - The file handle in now correctly closed on write error when trying to
+      create a cache dir tag.
+
+
 ccache 3.1.3
 ------------
 Release date: 2010-11-28
