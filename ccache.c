@@ -1311,7 +1311,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		/* we must have -c */
 		if (str_eq(argv[i], "-c")) {
-			args_add(stripped_args, argv[i]);
 			found_c_opt = true;
 			continue;
 		}
@@ -1731,6 +1730,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 	} else {
 		*compiler_args = args_copy(*preprocessor_args);
+	}
+
+	if (found_c_opt) {
+		args_add(*compiler_args, "-c");
 	}
 
 	/*
