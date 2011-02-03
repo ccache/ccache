@@ -212,7 +212,7 @@ add_prefix(struct args *orig_args)
 	if (env && strlen(env) > 0) {
 		char *e;
 		char *tok, *saveptr = NULL;
-		struct args *prefix = NULL;
+		struct args *prefix = args_init(0, NULL);
 		int i;
 
 		e = x_strdup(env);
@@ -226,11 +226,7 @@ add_prefix(struct args *orig_args)
 				fatal("%s: %s", tok, strerror(errno));
 			}
 
-			if (prefix) {
-				args_add(prefix, p);
-			} else {
-				prefix = args_init_from_string(p);
-			}
+			args_add(prefix, p);
 		}
 		free(e);
 
