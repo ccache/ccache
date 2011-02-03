@@ -227,6 +227,7 @@ add_prefix(struct args *orig_args)
 			}
 
 			args_add(prefix, p);
+			free(p);
 		}
 		free(e);
 
@@ -234,6 +235,7 @@ add_prefix(struct args *orig_args)
 		for (i = prefix->argc; i != 0; i--) {
 			args_add_prefix(orig_args, prefix->argv[i-1]);
 		}
+		args_free(prefix);
 	}
 }
 
