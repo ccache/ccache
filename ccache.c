@@ -204,7 +204,7 @@ enum fromcache_call_mode {
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(struct args* orig_args)
+add_prefix(struct args *orig_args)
 {
 	char *env;
 
@@ -226,13 +226,16 @@ add_prefix(struct args* orig_args)
 				fatal("%s: %s", tok, strerror(errno));
 			}
 
-			if (prefix == NULL) prefix = args_init_from_string(p);
-			else args_add(prefix, p);
+			if (prefix) {
+				args_add(prefix, p);
+			} else {
+				prefix = args_init_from_string(p);
+			}
 		}
 		free(e);
 
 		cc_log("Using command-line prefix %s", env);
-		for (i=prefix->argc; i!=0; i--) {
+		for (i = prefix->argc; i != 0; i--) {
 			args_add_prefix(orig_args, prefix->argv[i-1]);
 		}
 	}
