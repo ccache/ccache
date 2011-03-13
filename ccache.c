@@ -427,8 +427,8 @@ ignore:
 }
 
 /*
- * Make a relative path from CCACHE_BASEDIR to path. Takes over ownership of
- * path. Caller frees.
+ * Make a relative path from current working directory to path if path is under
+ * CCACHE_BASEDIR. Takes over ownership of path. Caller frees.
  */
 static char *
 make_relative_path(char *path)
