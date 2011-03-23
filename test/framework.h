@@ -123,9 +123,9 @@ typedef unsigned (*suite_fn)(unsigned);
 int cct_run(suite_fn *suites, int verbose);
 
 void cct_suite_begin(const char *name);
-void cct_suite_end();
+void cct_suite_end(void);
 void cct_test_begin(const char *name);
-void cct_test_end();
+void cct_test_end(void);
 void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
