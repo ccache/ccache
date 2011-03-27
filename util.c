@@ -76,6 +76,26 @@ log_prefix(void)
 #endif
 }
 
+#ifndef _WIN32
+static long
+path_max(const char *path)
+{
+#ifdef PATH_MAX
+	(void)path;
+	return PATH_MAX;
+#elif defined(MAXPATHLEN)
+	(void)path;
+	return MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+	long maxlen = pathconf(path, _PC_PATH_MAX);
+	if (maxlen >= 4096) {
+		return maxlen;
+	} else {
+		return 4096;
+	}
+#endif
+}
+
 /*
  * Write a message to the CCACHE_LOGFILE location (adding a newline).
  */
@@ -166,28 +186,6 @@ mkstemp(char *template)
 {
 	mktemp(template);
 	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
-}
-#endif
-
-#ifndef HAVE_STRTOK_R
-/* strtok_r replacement */
-char *
-strtok_r(char *str, const char *delim, char **saveptr)
-{
-	int len;
-	char *ret;
-	if (!str)
-		str = *saveptr;
-	len = strlen(str);
-	ret = strtok(str, delim);
-	if (ret) {
-		char *save = ret;
-		while (*save++);
-		if ((len + 1) == (intptr_t) (save - str))
-			save--;
-		*saveptr = save;
-	}
-	return ret;
 }
 #endif
 
@@ -857,26 +855,6 @@ value_units(const char *s)
 	return (size_t)v;
 }
 
-#ifndef _WIN32
-static long
-path_max(const char *path)
-{
-#ifdef PATH_MAX
-	(void)path;
-	return PATH_MAX;
-#elif defined(MAXPATHLEN)
-	(void)path;
-	return MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-	long maxlen = pathconf(path, _PC_PATH_MAX);
-	if (maxlen >= 4096) {
-		return maxlen;
-	} else {
-		return 4096;
-	}
-#endif
-}
-
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
@@ -932,6 +910,28 @@ gnu_getcwd(void)
 		size *= 2;
 	}
 }
+
+#ifndef HAVE_STRTOK_R
+/* strtok_r replacement */
+char *
+strtok_r(char *str, const char *delim, char **saveptr)
+{
+	int len;
+	char *ret;
+	if (!str)
+		str = *saveptr;
+	len = strlen(str);
+	ret = strtok(str, delim);
+	if (ret) {
+		char *save = ret;
+		while (*save++);
+		if ((len + 1) == (intptr_t) (save - str))
+			save--;
+		*saveptr = save;
+	}
+	return ret;
+}
+#endif
 
 /* create an empty file */
 int
