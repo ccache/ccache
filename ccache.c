@@ -1239,6 +1239,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 
+		/* Special case for -E. */
+		if (str_eq(argv[i], "-E")) {
+			stats_update(STATS_PREPROCESSING);
+			result = false;
+			goto out;
+		}
+
 		/* These are always too hard. */
 		if (compopt_too_hard(argv[i])
 		    || str_startswith(argv[i], "@")
