@@ -551,7 +551,11 @@ to_cache(struct args *args)
 	size_t added_bytes = 0;
 	unsigned added_files = 0;
 
-	create_parent_dirs(cached_obj);
+	if (create_parent_dirs(cached_obj) != 0) {
+		cc_log("Failed to create parent directories for %s: %s",
+		       cached_obj, strerror(errno));
+		failed();
+	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
 	tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
