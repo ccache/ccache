@@ -97,17 +97,18 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=/some/directory");
-
+	args_free(act_cpp);
+	args_free(act_cc);
 	cc_reset();
+
 	base_dir = "/some";
 	current_working_dir = get_cwd();
-
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=../"));
-
 	args_free(orig);
-	base_dir = NULL;
-	current_working_dir = NULL;
+	args_free(act_cpp);
+	args_free(act_cc);
+	cc_reset();
 }
 
 TEST_SUITE_END

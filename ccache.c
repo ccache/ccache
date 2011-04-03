@@ -1396,14 +1396,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			output_obj = argv[i+1];
+			output_obj = x_strdup(argv[i+1]);
 			i++;
 			continue;
 		}
 
 		/* alternate form of -o, with no space */
 		if (str_startswith(argv[i], "-o")) {
-			output_obj = &argv[i][2];
+			output_obj = x_strdup(&argv[i][2]);
 			continue;
 		}
 
@@ -1692,10 +1692,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			output_obj = format("%s.gch", input_file);
 		} else {
 			char *p;
-			output_obj = x_strdup(input_file);
-			if ((p = strrchr(output_obj, '/'))) {
-				output_obj = p+1;
-			}
+			output_obj = basename(input_file);
 			p = strrchr(output_obj, '.');
 			if (!p || !p[1]) {
 				cc_log("Badly formed object filename");
@@ -1801,7 +1798,7 @@ cc_reset(void)
 	base_dir = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
-	output_obj = NULL;
+	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
