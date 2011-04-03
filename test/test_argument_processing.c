@@ -26,9 +26,21 @@
 
 TEST_SUITE(argument_processing)
 
-TEST(dash_E_should_be_unsupported)
+TEST(dash_E_should_result_in_called_for_preprocessing)
 {
 	struct args *orig = args_init_from_string("cc -c foo.c -E");
+	struct args *preprocessed, *compiler;
+
+	create_file("foo.c", "");
+	CHECK(!cc_process_args(orig, &preprocessed, &compiler));
+	CHECK_UNS_EQ(1, stats_get_pending(STATS_PREPROCESSING));
+
+	args_free(orig);
+}
+
+TEST(dash_M_should_be_unsupported)
+{
+	struct args *orig = args_init_from_string("cc -c foo.c -M");
 	struct args *preprocessed, *compiler;
 
 	create_file("foo.c", "");

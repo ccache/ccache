@@ -176,6 +176,10 @@ base_tests() {
     $CCACHE_COMPILE foo.o -o test 2> /dev/null
     checkstat 'called for link' 2
 
+    testname="preprocessing"
+    $CCACHE_COMPILE -E -c test1.c > /dev/null 2>&1
+    checkstat 'called for preprocessing' 1
+
     testname="multiple"
     $CCACHE_COMPILE -c test1.c test2.c
     checkstat 'multiple source files' 1
