@@ -1270,3 +1270,83 @@ read_text_file(const char *path, size_t size_hint)
 		return NULL;
 	}
 }
+
+static bool
+expand_variable(const char **str, char **result, char **errmsg)
+{
+	bool curly;
+	const char *p, *q;
+	char *name;
+	const char *value;
+
+	assert(**str == '$');
+	p = *str + 1;
+	if (*p == '{') {
+		curly = true;
+		++p;
+	} else {
+		curly = false;
+	}
+	q = p;
+	while (isalnum(*q) || *q == '_') {
+		++q;
+	}
+	if (curly) {
+		if (*q != '}') {
+			*errmsg = format("syntax error: missing '}' after \"%s\"", p);
+			return NULL;
+		}
+	}
+
+	if (q == p) {
+		/* Special case: don't consider a single $ the start of a variable. */
+		x_asprintf2(result, "%s$", *result);
+		return true;
+	}
+
+	name = x_strndup(p, q - p);
+	value = getenv(name);
+	if (!value) {
+		*errmsg = format("environment variable \"%s\" not set", name);
+		return false;
+	}
+	x_asprintf2(result, "%s%s", *result, value);
+	if (!curly) {
+		--q;
+	}
+	*str = q;
+	return true;
+}
+
+/*
+ * Substitute all instances of $VAR or ${VAR}, where VAR is an environment
+ * variable, in a string. Caller frees. If one of the environment variables
+ * doesn't exist, NULL will be returned and *errmsg will be an appropriate
+ * error message (caller frees).
+ */
+char *
+subst_env_in_string(const char *str, char **errmsg)
+{
+	const char *p; /* Interval start. */
+	const char *q; /* Interval end. */
+	char *result;
+
+	assert(errmsg);
+	*errmsg = NULL;
+
+	result = x_strdup("");
+	p = str;
+	q = str;
+	for (q = str; *q; ++q) {
+		if (*q == '$') {
+			x_asprintf2(&result, "%s%.*s", result, (int)(q - p), p);
+			if (!expand_variable(&q, &result, errmsg)) {
+				free(result);
+				return NULL;
+			}
+			p = q + 1;
+		}
+	}
+	x_asprintf2(&result, "%s%.*s", result, (int)(q - p), p);
+	return result;
+}

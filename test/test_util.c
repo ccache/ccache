@@ -56,4 +56,42 @@ TEST(format_hash_as_string)
 	                   format_hash_as_string(hash, 12345));
 }
 
+TEST(subst_env_in_string)
+{
+	char *errmsg;
+	const char *shell = getenv("SHELL");
+
+	errmsg = "";
+	CHECK_STR_EQ_FREE2(shell,
+	                   subst_env_in_string("$SHELL", &errmsg));
+	CHECK(!errmsg);
+
+	errmsg = "";
+	CHECK_STR_EQ_FREE2("$",
+	                   subst_env_in_string("$", &errmsg));
+	CHECK(!errmsg);
+
+	errmsg = "";
+	CHECK_STR_EQ_FREE12(format("%s %s:%s", shell, shell, shell),
+	                    subst_env_in_string("$SHELL $SHELL:$SHELL", &errmsg));
+	CHECK(!errmsg);
+
+	errmsg = "";
+	CHECK_STR_EQ_FREE12(format("x%s", shell),
+	                    subst_env_in_string("x$SHELL", &errmsg));
+	CHECK(!errmsg);
+
+	errmsg = "";
+	CHECK_STR_EQ_FREE12(format("%sx", shell),
+	                    subst_env_in_string("${SHELL}x", &errmsg));
+	CHECK(!errmsg);
+
+	CHECK(!subst_env_in_string("$surelydoesntexist", &errmsg));
+	CHECK_STR_EQ_FREE2("environment variable \"surelydoesntexist\" not set",
+	                   errmsg);
+
+	CHECK(!subst_env_in_string("${SHELL", &errmsg));
+	CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"SHELL\"", errmsg);
+}
+
 TEST_SUITE_END
