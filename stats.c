@@ -18,7 +18,7 @@
  */
 
 /*
- * Routines to handle the stats files The stats file is stored one per cache
+ * Routines to handle the stats files. The stats file is stored one per cache
  * subdirectory to make this more scalable.
  */
 
