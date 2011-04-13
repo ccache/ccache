@@ -86,4 +86,55 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 	args_free(orig);
 }
 
+TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
+{
+	struct args *orig = args_init_from_string(
+		"cc -c foo.c -o foo.o -MMD -MTbar -MFfoo.d");
+	struct args *exp_cpp = args_init_from_string(
+		"cc -c -MMD -MTbar -MFfoo.d");
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
+{
+	struct args *orig = args_init_from_string(
+		"cc -c foo.c -o foo.o -MMD -MFfoo.d -MTbar");
+	struct args *exp_cpp = args_init_from_string(
+		"cc -c -MMD -MFfoo.d -MTbar");
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
+{
+	struct args *orig = args_init_from_string(
+		"cc -c foo.c -o foo.o -MMD -MFfoo.d -MQbar");
+	struct args *exp_cpp = args_init_from_string(
+		"cc -c -MMD -MFfoo.d -MQbar");
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST_SUITE_END
