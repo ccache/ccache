@@ -1812,6 +1812,7 @@ ccache(int argc, char *argv[])
 
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
+	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", current_working_dir);
 
