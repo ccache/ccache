@@ -1435,34 +1435,50 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			args_add(dep_args, argv[i]);
 			continue;
 		}
-		if (i < argc - 1) {
-			if (str_startswith(argv[i], "-MF")) {
-				char *arg;
-				dependency_filename_specified = true;
-				free(output_dep);
-				args_add(dep_args, argv[i]);
-				if (strlen(argv[i]) == 3) {
-					/* -MF arg */
-					arg = argv[i + 1];
-					args_add(dep_args, argv[i + 1]);
-					i++;
-				} else {
-					/* -MFarg */
-					arg = &argv[i][3];
+		if (str_startswith(argv[i], "-MF")) {
+			char *arg;
+			dependency_filename_specified = true;
+			free(output_dep);
+			args_add(dep_args, argv[i]);
+			if (strlen(argv[i]) == 3) {
+				/* -MF arg */
+				if (i >= argc - 1) {
+					cc_log("Missing argument to %s", argv[i]);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
 				}
-				output_dep = make_relative_path(x_strdup(arg));
-				continue;
-			} else if (str_startswith(argv[i], "-MQ")
-			           || str_startswith(argv[i], "-MT")) {
-				dependency_target_specified = true;
-				args_add(dep_args, argv[i]);
-				if (strlen(argv[i]) == 3) {
-					/* -MQ arg or -MT arg */
-					args_add(dep_args, argv[i + 1]);
-					i++;
-				}
-				continue;
+				arg = argv[i + 1];
+				args_add(dep_args, argv[i + 1]);
+				i++;
+			} else {
+				/* -MFarg */
+				arg = &argv[i][3];
 			}
+			output_dep = make_relative_path(x_strdup(arg));
+			continue;
+		}
+		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
+			args_add(dep_args, argv[i]);
+			if (strlen(argv[i]) == 3) {
+				/* -MQ arg or -MT arg */
+				if (i >= argc - 1) {
+					cc_log("Missing argument to %s", argv[i]);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+				args_add(dep_args, argv[i + 1]);
+				i++;
+				/*
+				 * Yes, that's right. It's strange, but apparently, GCC behaves
+				 * differently for -MT arg and -MTarg (and similar for -MQ): in the
+				 * latter case, but not in the former, an implicit dependency for the
+				 * object file is added to the dependency file.
+				 */
+				dependency_target_specified = true;
+			}
+			continue;
 		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
@@ -1751,7 +1767,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		if (!dependency_target_specified) {
-			args_add(dep_args, "-MT");
+			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}
 	}
@@ -1881,6 +1897,7 @@ ccache(int argc, char *argv[])
 
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
+	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", current_working_dir);
 
