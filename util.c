@@ -828,31 +828,39 @@ format_size(size_t v)
 	return s;
 }
 
-/* return a value in multiples of 1024 give a string that can end
-   in K, M or G
-*/
-size_t
-value_units(const char *s)
+/*
+ * Parse a value in multiples of 1024 given a string that can end in K, M or G.
+ * Default suffix: G.
+ */
+bool
+parse_size_with_suffix(const char *str, size_t *size)
 {
-	char m;
-	double v = atof(s);
-	m = s[strlen(s)-1];
-	switch (m) {
+	char *endptr;
+	long x;
+	errno = 0;
+	x = strtol(str, &endptr, 10);
+	if (errno != 0 || x < 0 || endptr == str || *str == '\0') {
+		return false;
+	}
+
+	*size = x;
+	switch (*endptr) {
 	case 'G':
 	case 'g':
-	default:
-		v *= 1024*1024;
+	case '\0':
+		*size *= 1024 * 1024;
 		break;
 	case 'M':
 	case 'm':
-		v *= 1024;
+		*size *= 1024;
 		break;
 	case 'K':
 	case 'k':
-		v *= 1;
 		break;
+	default:
+		return false;
 	}
-	return (size_t)v;
+	return true;
 }
 
 /*

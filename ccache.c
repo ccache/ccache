@@ -2097,7 +2097,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'M': /* --max-size */
 			check_cache_dir();
-			v = value_units(optarg);
+			parse_size_with_suffix(optarg, &v);
 			if (stats_set_limits(-1, v) == 0) {
 				if (v == 0) {
 					printf("Unset cache size limit\n");
