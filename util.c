@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2010 Joel Rosdahl
+ * Copyright (C) 2009-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -932,6 +932,7 @@ get_cwd(void)
 		return cwd;
 	}
 	if (st_pwd.st_dev == st_cwd.st_dev && st_pwd.st_ino == st_cwd.st_ino) {
+		free(cwd);
 		return x_strdup(pwd);
 	} else {
 		return cwd;
