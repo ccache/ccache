@@ -998,6 +998,7 @@ get_cwd(void)
 		return cwd;
 	}
 	if (st_pwd.st_dev == st_cwd.st_dev && st_pwd.st_ino == st_cwd.st_ino) {
+		free(cwd);
 		return x_strdup(pwd);
 	} else {
 		return cwd;
