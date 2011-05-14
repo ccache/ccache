@@ -144,7 +144,7 @@ fatal(const char *format, ...)
 	va_end(ap);
 
 	cc_log("FATAL: %s", msg);
-	fprintf(stderr, "ccache: FATAL: %s\n", msg);
+	fprintf(stderr, "ccache: error: %s\n", msg);
 
 	exit(1);
 }
