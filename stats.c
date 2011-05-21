@@ -68,6 +68,7 @@ static struct {
 	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
 	{ STATS_ERROR,        "ccache internal error          ", NULL, 0 },
 	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL, 0 },
+	{ STATS_CANTUSEPCH,   "can't use precompiled header   ", NULL, 0 },
 	{ STATS_COMPILER,     "couldn't find the compiler     ", NULL, 0 },
 	{ STATS_MISSING,      "cache file missing             ", NULL, 0 },
 	{ STATS_ARGS,         "bad compiler arguments         ", NULL, 0 },
@@ -83,7 +84,6 @@ static struct {
 	{ STATS_TOTALSIZE,    "cache size                     ", display_size , FLAG_NOZERO|FLAG_ALWAYS },
 	{ STATS_MAXFILES,     "max files                      ", NULL, FLAG_NOZERO },
 	{ STATS_MAXSIZE,      "max cache size                 ", display_size, FLAG_NOZERO },
-	{ STATS_CANTUSEPCH,   "can't use precompiled header   ", NULL, 0 },
 	{ STATS_NONE, NULL, NULL, 0 }
 };
 
