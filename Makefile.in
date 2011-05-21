@@ -16,7 +16,7 @@ LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 RANLIB = @RANLIB@
 
-libs = @LIBS@ -lm -lz
+libs = @LIBS@ -lz
 
 base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \

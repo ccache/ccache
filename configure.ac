@@ -66,6 +66,9 @@ HW_FUNC_SNPRINTF
 HW_FUNC_VASPRINTF
 HW_FUNC_ASPRINTF
 
+dnl Check if -lm is needed.
+AC_SEARCH_LIBS(cos, m)
+
 dnl Check for zlib.
 AC_CACHE_CHECK(
     [for zlib >= 1.2.3],
