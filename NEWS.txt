@@ -23,7 +23,7 @@ Bug fixes
 ~~~~~~~~~
 
     - The `-MF`/`-MT`/`-MQ` options with concatenated argument are now handled
-      correctly when they are last on the commandline.
+      correctly when they are last on the command line.
     - ccache is now bug compatible with GCC for the `-MT`/`-MQ` options with
       concatenated arguments.
     - Fixed a minor memory leak.
