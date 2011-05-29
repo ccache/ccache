@@ -2,6 +2,35 @@ ccache news
 ===========
 
 
+ccache 3.1.5
+------------
+Release date: 2011-05-29
+
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Added a new statistics counter named ``called for preprocessing''.
+    - The original command line is now logged to the file specified with
+      `CCACHE_LOGFILE`.
+    - Improved error logging when system calls fail.
+    - Added support for rewriting absolute paths in `-F`/`-iframework` GCC
+      options.
+    - Improved order of statistics counters in `ccache -s` output.
+
+
+Bug fixes
+~~~~~~~~~
+
+    - The `-MF`/`-MT`/`-MQ` options with concatenated argument are now handled
+      correctly when they are last on the command line.
+    - ccache is now bug compatible with GCC for the `-MT`/`-MQ` options with
+      concatenated arguments.
+    - Fixed a minor memory leak.
+    - Systems that lack (and don't need to be linked with) libm are now
+      supported.
+
+
 ccache 3.1.4
 ------------
 Release date: 2011-01-09

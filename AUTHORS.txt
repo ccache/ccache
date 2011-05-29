@@ -10,6 +10,7 @@ ccache is a collective work with contributions from many people, including:
 * Andrew Tridgell <tridge@samba.org>
 * Bernhard Bauer <bauerb@google.com>
 * Björn Jacke <bj@sernet.de>
+* Bo Rydberg <bolry@hotmail.com>
 * Clemens Rabe <crabe@gmx.de>
 * Francois Marier <francois@debian.org>
 * Joel Rosdahl <joel@rosdahl.net>
