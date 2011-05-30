@@ -60,7 +60,7 @@ static struct {
 	{ STATS_CACHEHIT_CPP, "cache hit (preprocessed)       ", NULL, FLAG_ALWAYS },
 	{ STATS_TOCACHE,      "cache miss                     ", NULL, FLAG_ALWAYS },
 	{ STATS_LINK,         "called for link                ", NULL, 0 },
-	{ STATS_PREPROCESSING, "called for preprocessing      ", NULL, 0 },
+	{ STATS_PREPROCESSING, "called for preprocessing       ", NULL, 0 },
 	{ STATS_MULTIPLE,     "multiple source files          ", NULL, 0 },
 	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
 	{ STATS_NOOUTPUT,     "compiler produced no output    ", NULL, 0 },
