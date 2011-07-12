@@ -1316,6 +1316,7 @@ expand_variable(const char **str, char **result, char **errmsg)
 	value = getenv(name);
 	if (!value) {
 		*errmsg = format("environment variable \"%s\" not set", name);
+		free(name);
 		return false;
 	}
 	x_asprintf2(result, "%s%s", *result, value);
@@ -1323,6 +1324,7 @@ expand_variable(const char **str, char **result, char **errmsg)
 		--q;
 	}
 	*str = q;
+	free(name);
 	return true;
 }
 
