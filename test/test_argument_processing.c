@@ -21,8 +21,11 @@
  */
 
 #include "ccache.h"
+#include "conf.h"
 #include "test/framework.h"
 #include "test/util.h"
+
+extern struct conf *conf;
 
 TEST_SUITE(argument_processing)
 
@@ -88,7 +91,6 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 
 TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
-	extern char *base_dir;
 	extern char *current_working_dir;
 	struct args *orig =
 		args_init_from_string("cc --sysroot=/some/directory -c foo.c");
@@ -96,19 +98,19 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 	create_file("foo.c", "");
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=/some/directory");
+	CHECK_STR_EQ("--sysroot=/some/directory", act_cpp->argv[1]);
 	args_free(act_cpp);
 	args_free(act_cc);
 	cc_reset();
 
-	base_dir = "/some";
+	free(conf->base_dir);
+	conf->base_dir = x_strdup("/some");
 	current_working_dir = get_cwd();
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=../"));
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);
-	cc_reset();
 }
 
 TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)

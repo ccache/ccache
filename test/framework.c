@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -126,6 +126,7 @@ cct_test_begin(const char *name)
 	cct_chdir(name);
 	current_test = name;
 
+	putenv("CCACHE_CONFIG_PATH=/dev/null");
 	cc_reset();
 	cache_logfile = getenv("CCACHE_LOGFILE");
 }

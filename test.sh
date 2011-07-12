@@ -1809,6 +1809,8 @@ CCACHE_DIR=`pwd`/.ccache
 export CCACHE_DIR
 CCACHE_LOGFILE=`pwd`/ccache.log
 export CCACHE_LOGFILE
+CCACHE_CONFIG_PATH=/dev/null
+export CCACHE_CONFIG_PATH
 
 # ---------------------------------------
 

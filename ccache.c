@@ -21,6 +21,7 @@
 
 #include "ccache.h"
 #include "compopt.h"
+#include "conf.h"
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
@@ -31,6 +32,9 @@
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
+
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)
 
 static const char VERSION_TEXT[] =
 MYNAME " version %s\n"
@@ -66,6 +70,9 @@ static const char USAGE_TEXT[] =
 "\n"
 "See also <http://ccache.samba.org>.\n";
 
+/* Global configuration data. */
+struct conf *conf = NULL;
+
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
@@ -74,9 +81,6 @@ char *cache_dir = NULL;
 
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
-
-/* base directory (from CCACHE_BASEDIR) */
-char *base_dir = NULL;
 
 /* the original argument list */
 static struct args *orig_args;
@@ -435,7 +439,7 @@ make_relative_path(char *path)
 {
 	char *relpath;
 
-	if (!base_dir || !str_startswith(path, base_dir)) {
+	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
 	}
 
@@ -1804,14 +1808,84 @@ out:
 	return result;
 }
 
+/*
+ * Read config file(s), populate variables, create cache directory if missing,
+ * etc.
+ */
+static void
+initialize(void)
+{
+	char *errmsg;
+	char *p;
+
+	conf_free(conf);
+	conf = conf_create();
+
+	p = getenv("CCACHE_CONFIG_PATH");
+	if (p) {
+		if (!conf_read(conf, p, &errmsg)) {
+			fatal("%s", errmsg);
+		}
+	} else {
+		char *sysconf_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+		if (!conf_read(conf, sysconf_config_path, &errmsg)) {
+			fatal("%s", errmsg);
+		}
+		free(sysconf_config_path);
+
+		if ((p = getenv("CCACHE_DIR"))) {
+			free(conf->cache_dir);
+			conf->cache_dir = strdup(p);
+		}
+
+		char *cachedir_config_path = format("%s/ccache.conf", conf->cache_dir);
+		if (!conf_read(conf, cachedir_config_path, &errmsg)) {
+			fatal("%s", errmsg);
+		}
+		free(cachedir_config_path);
+	}
+
+	conf_update_from_environment(conf, &errmsg);
+
+	exitfn_init();
+	exitfn_add_nullary(stats_flush);
+	exitfn_add_nullary(clean_up_tmp_files);
+
+	/* check for logging early so cc_log messages start working ASAP */
+	cache_logfile = getenv("CCACHE_LOGFILE");
+	cc_log("=== CCACHE STARTED =========================================");
+
+	/* the user might have set CCACHE_UMASK */
+	p = getenv("CCACHE_UMASK");
+	if (p) {
+		mode_t mask;
+		errno = 0;
+		mask = strtol(p, NULL, 8);
+		if (errno == 0) {
+			umask(mask);
+		}
+	}
+
+	current_working_dir = get_cwd();
+	cache_dir = getenv("CCACHE_DIR");
+	if (cache_dir) {
+		cache_dir = x_strdup(cache_dir);
+	} else {
+		const char *home_directory = get_home_directory();
+		if (home_directory) {
+			cache_dir = format("%s/.ccache", home_directory);
+		}
+	}
+}
+
 /* Reset the global state. Used by the test suite. */
 void
 cc_reset(void)
 {
+	conf_free(conf); conf = NULL;
 	free(current_working_dir); current_working_dir = NULL;
 	free(cache_dir); cache_dir = NULL;
 	cache_logfile = NULL;
-	base_dir = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
@@ -1838,6 +1912,8 @@ cc_reset(void)
 	nlevels = 2;
 	compile_preprocessed_source_code = false;
 	output_is_precompiled_header = false;
+
+	initialize();
 }
 
 static unsigned
@@ -1870,6 +1946,29 @@ parse_sloppiness(char *p)
 	return result;
 }
 
+/* Make a copy of stderr that will not be cached, so things like
+   distcc can send networking errors to it. */
+static void
+setup_uncached_err(void)
+{
+	char *buf;
+	int uncached_fd;
+
+	uncached_fd = dup(2);
+	if (uncached_fd == -1) {
+		cc_log("dup(2) failed: %s", strerror(errno));
+		failed();
+	}
+
+	/* leak a pointer to the environment */
+	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
+
+	if (putenv(buf) == -1) {
+		cc_log("putenv failed: %s", strerror(errno));
+		failed();
+	}
+}
+
 /* the main ccache driver function */
 static void
 ccache(int argc, char *argv[])
@@ -1888,6 +1987,12 @@ ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	struct args *compiler_args;
 
+	initialize();
+
+	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
+
+	setup_uncached_err();
+
 	find_compiler(argc, argv);
 
 	if (getenv("CCACHE_DISABLE")) {
@@ -1901,8 +2006,8 @@ ccache(int argc, char *argv[])
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", current_working_dir);
 
-	if (base_dir) {
-		cc_log("Base directory: %s", base_dir);
+	if (!str_eq(conf->base_dir, "")) {
+		cc_log("Base directory: %s", conf->base_dir);
 	}
 
 	if (getenv("CCACHE_UNIFY")) {
@@ -2027,14 +2132,6 @@ ccache(int argc, char *argv[])
 	failed();
 }
 
-static void
-check_cache_dir(void)
-{
-	if (!cache_dir) {
-		fatal("Unable to determine cache directory");
-	}
-}
-
 /* the main program when not doing a compile */
 static int
 ccache_main_options(int argc, char *argv[])
@@ -2065,13 +2162,13 @@ ccache_main_options(int argc, char *argv[])
 			break;
 
 		case 'c': /* --cleanup */
-			check_cache_dir();
+			initialize();
 			cleanup_all(cache_dir);
 			printf("Cleaned cache\n");
 			break;
 
 		case 'C': /* --clear */
-			check_cache_dir();
+			initialize();
 			wipe_all(cache_dir);
 			printf("Cleared cache\n");
 			break;
@@ -2081,7 +2178,7 @@ ccache_main_options(int argc, char *argv[])
 			exit(0);
 
 		case 'F': /* --max-files */
-			check_cache_dir();
+			initialize();
 			v = atoi(optarg);
 			if (stats_set_limits(v, -1) == 0) {
 				if (v == 0) {
@@ -2096,7 +2193,7 @@ ccache_main_options(int argc, char *argv[])
 			break;
 
 		case 'M': /* --max-size */
-			check_cache_dir();
+			initialize();
 			parse_size_with_suffix(optarg, &v);
 			if (stats_set_limits(-1, v) == 0) {
 				if (v == 0) {
@@ -2113,7 +2210,7 @@ ccache_main_options(int argc, char *argv[])
 			break;
 
 		case 's': /* --show-stats */
-			check_cache_dir();
+			initialize();
 			stats_summary();
 			break;
 
@@ -2122,7 +2219,7 @@ ccache_main_options(int argc, char *argv[])
 			exit(0);
 
 		case 'z': /* --zero-stats */
-			check_cache_dir();
+			initialize();
 			stats_zero();
 			printf("Statistics cleared\n");
 			break;
@@ -2136,68 +2233,11 @@ ccache_main_options(int argc, char *argv[])
 	return 0;
 }
 
-
-/* Make a copy of stderr that will not be cached, so things like
-   distcc can send networking errors to it. */
-static void
-setup_uncached_err(void)
-{
-	char *buf;
-	int uncached_fd;
-
-	uncached_fd = dup(2);
-	if (uncached_fd == -1) {
-		cc_log("dup(2) failed: %s", strerror(errno));
-		failed();
-	}
-
-	/* leak a pointer to the environment */
-	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
-
-	if (putenv(buf) == -1) {
-		cc_log("putenv failed: %s", strerror(errno));
-		failed();
-	}
-}
-
 int
 ccache_main(int argc, char *argv[])
 {
-	char *p;
-	char *program_name;
-
-	exitfn_init();
-	exitfn_add_nullary(stats_flush);
-	exitfn_add_nullary(clean_up_tmp_files);
-
-	/* check for logging early so cc_log messages start working ASAP */
-	cache_logfile = getenv("CCACHE_LOGFILE");
-	cc_log("=== CCACHE STARTED =========================================");
-
-	/* the user might have set CCACHE_UMASK */
-	p = getenv("CCACHE_UMASK");
-	if (p) {
-		mode_t mask;
-		errno = 0;
-		mask = strtol(p, NULL, 8);
-		if (errno == 0) {
-			umask(mask);
-		}
-	}
-
-	current_working_dir = get_cwd();
-	cache_dir = getenv("CCACHE_DIR");
-	if (cache_dir) {
-		cache_dir = x_strdup(cache_dir);
-	} else {
-		const char *home_directory = get_home_directory();
-		if (home_directory) {
-			cache_dir = format("%s/.ccache", home_directory);
-		}
-	}
-
 	/* check if we are being invoked as "ccache" */
-	program_name = basename(argv[0]);
+	char *program_name = basename(argv[0]);
 	if (same_executable_name(program_name, MYNAME)) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);
@@ -2210,18 +2250,6 @@ ccache_main(int argc, char *argv[])
 		}
 	}
 	free(program_name);
-
-	check_cache_dir();
-
-	base_dir = getenv("CCACHE_BASEDIR");
-	if (base_dir && base_dir[0] != '/') {
-		cc_log("Ignoring non-absolute base directory %s", base_dir);
-		base_dir = NULL;
-	}
-
-	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
-
-	setup_uncached_err();
 
 	ccache(argc, argv);
 	return 1;
