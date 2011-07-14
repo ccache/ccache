@@ -1218,7 +1218,6 @@ static void
 find_compiler(int argc, char **argv)
 {
 	char *base;
-	char *path;
 	char *compiler;
 
 	orig_args = args_init(argc, argv);
@@ -1237,8 +1236,8 @@ find_compiler(int argc, char **argv)
 	}
 
 	/* support user override of the compiler */
-	if ((path = getenv("CCACHE_CC"))) {
-		base = x_strdup(path);
+	if (!str_eq(conf->compiler, "")) {
+		base = conf->compiler;
 	}
 
 	compiler = find_executable(base, MYNAME);
