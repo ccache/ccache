@@ -23,6 +23,7 @@
  */
 
 #include "ccache.h"
+#include "conf.h"
 #include "hashutil.h"
 
 #include <sys/types.h>
@@ -34,7 +35,7 @@
 #include <unistd.h>
 
 extern char *stats_file;
-extern char *cache_dir;
+extern struct conf *conf;
 extern unsigned lock_staleness_limit;
 
 static struct counters *counter_updates;
@@ -224,8 +225,7 @@ stats_flush(void)
 		 * A NULL stats_file means that we didn't get past calculate_object_hash(),
 		 * so we just choose one of stats files in the 16 subdirectories.
 		 */
-		if (!cache_dir) return;
-		stats_dir = format("%s/%x", cache_dir, hash_from_int(getpid()) % 16);
+		stats_dir = format("%s/%x", conf->cache_dir, hash_from_int(getpid()) % 16);
 		stats_file = format("%s/stats", stats_dir);
 		free(stats_dir);
 	}
@@ -295,9 +295,9 @@ stats_summary(void)
 		char *fname;
 
 		if (dir == -1) {
-			fname = format("%s/stats", cache_dir);
+			fname = format("%s/stats", conf->cache_dir);
 		} else {
-			fname = format("%s/%1x/stats", cache_dir, dir);
+			fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		}
 
 		stats_read(fname, counters);
@@ -309,7 +309,7 @@ stats_summary(void)
 		}
 	}
 
-	printf("cache directory                     %s\n", cache_dir);
+	printf("cache directory                     %s\n", conf->cache_dir);
 
 	/* and display them */
 	for (i = 0; stats_info[i].message; i++) {
@@ -339,13 +339,13 @@ stats_zero(void)
 	unsigned i;
 	char *fname;
 
-	fname = format("%s/stats", cache_dir);
+	fname = format("%s/stats", conf->cache_dir);
 	x_unlink(fname);
 	free(fname);
 
 	for (dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
-		fname = format("%s/%1x/stats", cache_dir, dir);
+		fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		if (lockfile_acquire(fname, lock_staleness_limit)) {
 			stats_read(fname, counters);
 			for (i = 0; stats_info[i].message; i++) {
@@ -391,7 +391,7 @@ stats_set_limits(long maxfiles, long maxsize)
 	for (dir = 0; dir <= 0xF; dir++) {
 		char *fname, *cdir;
 
-		cdir = format("%s/%1x", cache_dir, dir);
+		cdir = format("%s/%1x", conf->cache_dir, dir);
 		fname = format("%s/stats", cdir);
 		free(cdir);
 

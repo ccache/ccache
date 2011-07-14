@@ -76,9 +76,6 @@ struct conf *conf = NULL;
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
-/* the base cache directory */
-char *cache_dir = NULL;
-
 /* the debug logfile name, if set */
 char *cache_logfile = NULL;
 
@@ -156,7 +153,7 @@ static char *cpp_stderr;
 
 /*
  * Full path to the statistics file in the subdirectory where the cached result
- * belongs (CCACHE_DIR/X/stats).
+ * belongs (<cache_dir>/<x>/stats).
  */
 char *stats_file = NULL;
 
@@ -287,7 +284,7 @@ temp_dir()
 	if (path) return path;  /* Memoize */
 	path = getenv("CCACHE_TEMPDIR");
 	if (!path) {
-		path = format("%s/tmp", cache_dir);
+		path = format("%s/tmp", conf->cache_dir);
 	}
 	return path;
 }
@@ -303,7 +300,7 @@ get_path_in_cache(const char *name, const char *suffix)
 	char *path;
 	char *result;
 
-	path = x_strdup(cache_dir);
+	path = x_strdup(conf->cache_dir);
 	for (i = 0; i < nlevels; ++i) {
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
@@ -719,9 +716,9 @@ to_cache(struct args *args)
 	 * This can be almost anywhere, but might as well do it near the end
 	 * as if we exit early we save the stat call
 	 */
-	if (create_cachedirtag(cache_dir) != 0) {
+	if (create_cachedirtag(conf->cache_dir) != 0) {
 		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
-		        cache_dir, strerror(errno));
+		        conf->cache_dir, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -861,7 +858,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
-	stats_file = format("%s/%c/stats", cache_dir, object_name[0]);
+	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
 }
 
@@ -1867,15 +1864,6 @@ initialize(void)
 	}
 
 	current_working_dir = get_cwd();
-	cache_dir = getenv("CCACHE_DIR");
-	if (cache_dir) {
-		cache_dir = x_strdup(cache_dir);
-	} else {
-		const char *home_directory = get_home_directory();
-		if (home_directory) {
-			cache_dir = format("%s/.ccache", home_directory);
-		}
-	}
 }
 
 /* Reset the global state. Used by the test suite. */
@@ -1884,7 +1872,6 @@ cc_reset(void)
 {
 	conf_free(conf); conf = NULL;
 	free(current_working_dir); current_working_dir = NULL;
-	free(cache_dir); cache_dir = NULL;
 	cache_logfile = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
@@ -2163,13 +2150,13 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'c': /* --cleanup */
 			initialize();
-			cleanup_all(cache_dir);
+			cleanup_all(conf->cache_dir);
 			printf("Cleaned cache\n");
 			break;
 
 		case 'C': /* --clear */
 			initialize();
-			wipe_all(cache_dir);
+			wipe_all(conf->cache_dir);
 			printf("Cleared cache\n");
 			break;
 
