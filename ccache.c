@@ -169,9 +169,6 @@ static bool enable_direct = true;
  */
 static bool enable_compression = false;
 
-/* number of levels (1 <= nlevels <= 8) */
-static int nlevels = 2;
-
 /*
  * Whether we should use the optimization of passing the already existing
  * preprocessed source code to the compiler.
@@ -296,18 +293,18 @@ temp_dir()
 static char *
 get_path_in_cache(const char *name, const char *suffix)
 {
-	int i;
+	unsigned i;
 	char *path;
 	char *result;
 
 	path = x_strdup(conf->cache_dir);
-	for (i = 0; i < nlevels; ++i) {
+	for (i = 0; i < conf->cache_dir_levels; ++i) {
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
 		path = p;
 	}
 
-	result = format("%s/%s%s", path, name + nlevels, suffix);
+	result = format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
 	free(path);
 	return result;
 }
@@ -1896,7 +1893,6 @@ cc_reset(void)
 	enable_unify = false;
 	enable_direct = true;
 	enable_compression = false;
-	nlevels = 2;
 	compile_preprocessed_source_code = false;
 	output_is_precompiled_header = false;
 
@@ -1963,7 +1959,6 @@ ccache(int argc, char *argv[])
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash;
 	struct file_hash *object_hash_from_manifest = NULL;
-	char *env;
 	struct mdfour common_hash;
 	struct mdfour direct_hash;
 	struct mdfour cpp_hash;
@@ -2010,12 +2005,6 @@ ccache(int argc, char *argv[])
 	if (getenv("CCACHE_COMPRESS")) {
 		cc_log("Compression enabled");
 		enable_compression = true;
-	}
-
-	if ((env = getenv("CCACHE_NLEVELS"))) {
-		nlevels = atoi(env);
-		if (nlevels < 1) nlevels = 1;
-		if (nlevels > 8) nlevels = 8;
 	}
 
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {

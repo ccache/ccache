@@ -160,6 +160,19 @@ verify_absolute_path(void *value, char **errmsg)
 	}
 }
 
+static bool
+verify_dir_levels(void *value, char **errmsg)
+{
+	unsigned *levels = (unsigned *)value;
+	assert(levels);
+	if (*levels >= 1 && *levels <= 8) {
+		return true;
+	} else {
+		*errmsg = format("cache directory levels must be between 1 and 8");
+		return false;
+	}
+}
+
 #define ITEM(name, type) \
 	{#name, parse_##type, offsetof(struct conf, name), NULL}
 #define ITEM_V(name, type, verification) \
@@ -168,7 +181,7 @@ verify_absolute_path(void *value, char **errmsg)
 static const struct conf_item conf_items[] = {
 	ITEM_V(base_dir, env_string, absolute_path),
 	ITEM(cache_dir, env_string),
-	ITEM(cache_dir_levels, unsigned),
+	ITEM_V(cache_dir_levels, unsigned, dir_levels),
 	ITEM(compiler, string),
 	ITEM(compiler_check, string),
 	ITEM(compression, bool),

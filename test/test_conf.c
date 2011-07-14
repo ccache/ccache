@@ -265,4 +265,21 @@ TEST(verify_absolute_base_dir)
 	conf_free(conf);
 }
 
+TEST(verify_dir_levels)
+{
+	struct conf *conf = conf_create();
+	char *errmsg;
+
+	create_file("ccache.conf", "cache_dir_levels = 0");
+	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_STR_EQ_FREE2("ccache.conf:1: cache directory levels must be between 1 and 8",
+	                   errmsg);
+	create_file("ccache.conf", "cache_dir_levels = 9");
+	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_STR_EQ_FREE2("ccache.conf:1: cache directory levels must be between 1 and 8",
+	                   errmsg);
+
+	conf_free(conf);
+}
+
 TEST_SUITE_END
