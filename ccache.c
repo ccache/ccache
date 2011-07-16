@@ -899,7 +899,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_string(hash, basename(args->argv[0]));
 
 	/* Possibly hash the current working directory. */
-	if (getenv("CCACHE_HASHDIR")) {
+	if (conf->hash_dir) {
 		char *cwd = gnu_getcwd();
 		if (cwd) {
 			hash_delimiter(hash, "cwd");
