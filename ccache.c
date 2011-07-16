@@ -252,8 +252,8 @@ temp_dir()
 {
 	static char* path = NULL;
 	if (path) return path;  /* Memoize */
-	path = getenv("CCACHE_TEMPDIR");
-	if (!path) {
+	path = conf->temporary_dir;
+	if (str_eq(path, "")) {
 		path = format("%s/tmp", conf->cache_dir);
 	}
 	return path;
