@@ -1030,7 +1030,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	bool produce_dep_file;
 
 	/* the user might be disabling cache hits */
-	if (mode != FROMCACHE_COMPILED_MODE && getenv("CCACHE_RECACHE")) {
+	if (mode != FROMCACHE_COMPILED_MODE && conf->recache) {
 		return;
 	}
 
