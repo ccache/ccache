@@ -154,12 +154,6 @@ char *stats_file = NULL;
 /* can we safely use the unification hashing backend? */
 static bool enable_unify;
 
-/*
- * Whether we should use the optimization of passing the already existing
- * preprocessed source code to the compiler.
- */
-static bool compile_preprocessed_source_code;
-
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
@@ -551,10 +545,10 @@ to_cache(struct args *args)
 	 * unsetenv() is on BSD and Linux but not portable. */
 	putenv("DEPENDENCIES_OUTPUT");
 
-	if (compile_preprocessed_source_code) {
-		args_add(args, i_tmpfile);
-	} else {
+	if (conf->run_second_cpp) {
 		args_add(args, input_file);
+	} else {
+		args_add(args, i_tmpfile);
 	}
 
 	cc_log("Running real compiler");
@@ -810,16 +804,16 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	i_tmpfile = path_stdout;
 
-	if (compile_preprocessed_source_code) {
+	if (conf->run_second_cpp) {
+		tmp_unlink(path_stderr);
+		free(path_stderr);
+	} else {
 		/*
 		 * If we are using the CPP trick, we need to remember this
 		 * stderr data and output it just before the main stderr from
 		 * the compiler pass.
 		 */
 		cpp_stderr = path_stderr;
-	} else {
-		tmp_unlink(path_stderr);
-		free(path_stderr);
 	}
 
 	result = x_malloc(sizeof(*result));
@@ -1396,7 +1390,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				 * have non-zero lineno when using -g3").
 				 */
 				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				compile_preprocessed_source_code = false;
+				conf->run_second_cpp = true;
 			}
 			continue;
 		}
@@ -1660,7 +1654,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (output_is_precompiled_header) {
 		/* It doesn't work to create the .gch from preprocessed source. */
 		cc_log("Creating precompiled header; not compiling preprocessed code");
-		compile_preprocessed_source_code = false;
+		conf->run_second_cpp = true;
 	}
 
 	if (str_eq(conf->cpp_extension, "")) {
@@ -1746,7 +1740,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 	}
 
-	if (compile_preprocessed_source_code) {
+	if (conf->run_second_cpp) {
+		*compiler_args = args_copy(*preprocessor_args);
+	} else {
 		*compiler_args = args_copy(stripped_args);
 		if (explicit_language) {
 			/*
@@ -1757,8 +1753,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			args_add(*compiler_args, "-x");
 			args_add(*compiler_args, p_language_for_language(explicit_language));
 		}
-	} else {
-		*compiler_args = args_copy(*preprocessor_args);
 	}
 
 	if (found_c_opt) {
@@ -1865,7 +1859,6 @@ cc_reset(void)
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
 	enable_unify = false;
-	compile_preprocessed_source_code = false;
 	output_is_precompiled_header = false;
 
 	initialize();
@@ -1947,8 +1940,6 @@ ccache(int argc, char *argv[])
 		cc_log("ccache is disabled");
 		failed();
 	}
-
-	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();
 
