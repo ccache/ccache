@@ -189,16 +189,13 @@ static const char HASH_PREFIX[] = "3";
 static void
 add_prefix(struct args *orig_args)
 {
-	char *env;
-
-	env = getenv("CCACHE_PREFIX");
-	if (env && strlen(env) > 0) {
+	if (!str_eq(conf->prefix_command, "")) {
 		char *e;
 		char *tok, *saveptr = NULL;
 		struct args *prefix = args_init(0, NULL);
 		int i;
 
-		e = x_strdup(env);
+		e = x_strdup(conf->prefix_command);
 		for (tok = strtok_r(e, " ", &saveptr);
 		     tok;
 		     tok = strtok_r(NULL, " ", &saveptr)) {
@@ -214,7 +211,7 @@ add_prefix(struct args *orig_args)
 		}
 		free(e);
 
-		cc_log("Using command-line prefix %s", env);
+		cc_log("Using command-line prefix %s", conf->prefix_command);
 		for (i = prefix->argc; i != 0; i--) {
 			args_add_prefix(orig_args, prefix->argv[i-1]);
 		}
