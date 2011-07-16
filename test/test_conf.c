@@ -285,4 +285,21 @@ TEST(verify_dir_levels)
 	conf_free(conf);
 }
 
+TEST(conf_update_from_environment)
+{
+	struct conf *conf = conf_create();
+	char *errmsg;
+
+	putenv("CCACHE_COMPRESS=1");
+	CHECK(conf_update_from_environment(conf, &errmsg));
+	CHECK(conf->compression);
+
+	unsetenv("CCACHE_COMPRESS");
+	putenv("CCACHE_NOCOMPRESS=1");
+	CHECK(conf_update_from_environment(conf, &errmsg));
+	CHECK(!conf->compression);
+
+	conf_free(conf);
+}
+
 TEST_SUITE_END

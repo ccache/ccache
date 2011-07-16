@@ -283,7 +283,7 @@ find_env_to_conf(const char *name)
 
 static bool
 handle_conf_setting(struct conf *conf, const char *key, const char *value,
-                    char **errmsg, bool from_env_variable)
+                    char **errmsg, bool from_env_variable, bool negate_boolean)
 {
 	const struct conf_item *item;
 
@@ -299,7 +299,7 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		 * true.
 		 */
 		bool *value = (bool *)((void *)conf + item->offset);
-		*value = true;
+		*value = !negate_boolean;
 		return true;
 	}
 
@@ -355,7 +355,7 @@ parse_line(struct conf *conf, const char *line, char **errmsg)
 
 #undef SKIP_WS
 
-	result = handle_conf_setting(conf, key, value, errmsg, false);
+	result = handle_conf_setting(conf, key, value, errmsg, false, false);
 
 	free(key);
 	free(value);
@@ -507,6 +507,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 	char *key;
 	char *errmsg2;
 	const struct env_to_conf_item *env_to_conf_item;
+	bool negate;
+	size_t key_start;
 
 	for (p = environ; *p; ++p) {
 		if (!str_startswith(*p, "CCACHE_")) {
@@ -517,7 +519,15 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 			continue;
 		}
 
-		key = x_strndup(*p + 7, q - *p - 7);
+		if (str_startswith(*p + 7, "NO")) {
+			negate = true;
+			key_start = 9;
+		} else {
+			negate = false;
+			key_start = 7;
+		}
+		key = x_strndup(*p + key_start, q - *p - key_start);
+
 		++q; /* Now points to the value. */
 
 		env_to_conf_item = find_env_to_conf(key);
@@ -527,7 +537,7 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 
 		if (!handle_conf_setting(
-			    conf, env_to_conf_item->conf_name, q, &errmsg2, true)) {
+			    conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate)) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);
