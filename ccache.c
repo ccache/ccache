@@ -1954,16 +1954,16 @@ ccache(int argc, char *argv[])
 
 	initialize();
 
+	if (conf->disable) {
+		cc_log("ccache is disabled");
+		failed();
+	}
+
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();
 
 	find_compiler(argc, argv);
-
-	if (getenv("CCACHE_DISABLE")) {
-		cc_log("ccache is disabled");
-		failed();
-	}
 
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
