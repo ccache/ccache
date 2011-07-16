@@ -283,7 +283,7 @@ find_env_to_conf(const char *name)
 
 static bool
 handle_conf_setting(struct conf *conf, const char *key, const char *value,
-                    char **errmsg)
+                    char **errmsg, bool from_env_variable)
 {
 	const struct conf_item *item;
 
@@ -291,6 +291,16 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 	if (!item) {
 		*errmsg = format("unknown configuration option \"%s\"", key);
 		return false;
+	}
+
+	if (from_env_variable && item->parser == parse_bool) {
+		/*
+		 * Special rule for boolean settings from the environment: any value means
+		 * true.
+		 */
+		bool *value = (bool *)((void *)conf + item->offset);
+		*value = true;
+		return true;
 	}
 
 	if (!item->parser(value, (void *)conf + item->offset, errmsg)) {
@@ -345,7 +355,7 @@ parse_line(struct conf *conf, const char *line, char **errmsg)
 
 #undef SKIP_WS
 
-	result = handle_conf_setting(conf, key, value, errmsg);
+	result = handle_conf_setting(conf, key, value, errmsg, false);
 
 	free(key);
 	free(value);
@@ -516,7 +526,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 			continue;
 		}
 
-		if (!handle_conf_setting(conf, env_to_conf_item->conf_name, q, &errmsg2)) {
+		if (!handle_conf_setting(
+			    conf, env_to_conf_item->conf_name, q, &errmsg2, true)) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);
