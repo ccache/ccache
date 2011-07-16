@@ -8,7 +8,7 @@ Code formatting
   <http://www.emacswiki.org/emacs/SmartTabs>.
 * Use 4 spaces for indenting other code (and spaces for aligning).
 * Put the opening curly brace on a new line when defining a function, otherwise
-  at the end of the same row.
+  at the end of the same line.
 * Put no space between function name and the following parenthesis.
 * Put one space between if/switch/for/while/do and opening curly brace.
 * If possible, keep lines at most 80 character wide for a 2 character tab
@@ -42,7 +42,7 @@ Commit messages
 * Write a short description on the first line. If wanted, leave the second line
   empty and write a longer description on line three and below.
 * Start the short description with a capital letter. Optional: prefix the short
-  description with a context follow by a colon.
+  description with a context followed by a colon.
 * The short description should be in "command form" (see examples below).
 * Don't put a final period after the short description.
 * Keep lines in the message at most 75 characters wide.
