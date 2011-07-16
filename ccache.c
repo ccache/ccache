@@ -157,9 +157,6 @@ char *stats_file = NULL;
 /* can we safely use the unification hashing backend? */
 static bool enable_unify;
 
-/* should we use the direct mode? */
-static bool enable_direct = true;
-
 /*
  * Whether we should use the optimization of passing the already existing
  * preprocessed source code to the compiler.
@@ -375,7 +372,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 		hash_delimiter(cpp_hash, "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
-	if (enable_direct) {
+	if (conf->direct_mode) {
 		struct file_hash *h;
 
 		if (!is_pch) { /* else: the file has already been hashed. */
@@ -408,7 +405,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 
 failure:
 	cc_log("Disabling direct mode");
-	enable_direct = false;
+	conf->direct_mode = false;
 	/* Fall through. */
 ignore:
 	free(path);
@@ -1004,7 +1001,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 		if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 			cc_log("Disabling direct mode");
-			enable_direct = false;
+			conf->direct_mode = false;
 			return NULL;
 		}
 		manifest_name = hash_result(hash);
@@ -1158,7 +1155,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/* Create or update the manifest file. */
-	if (enable_direct
+	if (conf->direct_mode
 	    && put_object_in_manifest
 	    && included_files
 	    && !getenv("CCACHE_READONLY")) {
@@ -1313,10 +1310,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* These are too hard in direct mode. */
-		if (enable_direct) {
+		if (conf->direct_mode) {
 			if (compopt_too_hard_for_direct_mode(argv[i])) {
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-				enable_direct = false;
+				conf->direct_mode = false;
 			}
 		}
 
@@ -1489,14 +1486,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				output_dep = make_relative_path(x_strdup(argv[i] + 9));
 				args_add(dep_args, argv[i]);
 				continue;
-			} else if (enable_direct) {
+			} else if (conf->direct_mode) {
 				/*
 				 * -Wp, can be used to pass too hard options to
 				 * the preprocessor. Hence, disable direct
 				 * mode.
 				 */
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-				enable_direct = false;
+				conf->direct_mode = false;
 			}
 		}
 		if (str_eq(argv[i], "-MP")) {
@@ -1879,7 +1876,6 @@ cc_reset(void)
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
 	enable_unify = false;
-	enable_direct = true;
 	compile_preprocessed_source_code = false;
 	output_is_precompiled_header = false;
 
@@ -1984,9 +1980,9 @@ ccache(int argc, char *argv[])
 		enable_unify = true;
 	}
 
-	if (getenv("CCACHE_NODIRECT") || enable_unify) {
-		cc_log("Direct mode disabled");
-		enable_direct = false;
+	if (enable_unify) {
+		cc_log("Direct mode disabled because unify mode is enabled");
+		conf->direct_mode = false;
 	}
 
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
@@ -2004,7 +2000,7 @@ ccache(int argc, char *argv[])
 
 	/* try to find the hash using the manifest */
 	direct_hash = common_hash;
-	if (enable_direct) {
+	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		object_hash = calculate_object_hash(preprocessor_args, &direct_hash, 1);
 		if (object_hash) {
