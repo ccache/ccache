@@ -867,7 +867,6 @@ static void
 calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
-	const char *compilercheck;
 	char *p;
 
 	hash_string(hash, HASH_PREFIX);
@@ -888,22 +887,19 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	/*
 	 * Hash information about the compiler.
 	 */
-	compilercheck = getenv("CCACHE_COMPILERCHECK");
-	if (!compilercheck) {
-		compilercheck = "mtime";
-	}
-	if (str_eq(compilercheck, "none")) {
+	if (str_eq(conf->compiler_check, "none")) {
 		/* Do nothing. */
-	} else if (str_eq(compilercheck, "content")) {
+	} else if (str_eq(conf->compiler_check, "content")) {
 		hash_delimiter(hash, "cc_content");
 		hash_file(hash, args->argv[0]);
-	} else if (str_eq(compilercheck, "mtime")) {
+	} else if (str_eq(conf->compiler_check, "mtime")) {
 		hash_delimiter(hash, "cc_mtime");
 		hash_int(hash, st.st_size);
 		hash_int(hash, st.st_mtime);
 	} else { /* command string */
-		if (!hash_multicommand_output(hash, compilercheck, orig_args->argv[0])) {
-			fatal("Failure running compiler check command: %s", compilercheck);
+		if (!hash_multicommand_output(
+			    hash, conf->compiler_check, orig_args->argv[0])) {
+			fatal("Failure running compiler check command: %s", conf->compiler_check);
 		}
 	}
 
