@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Joel Rosdahl
+ * Copyright (C) 2009-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -344,7 +344,7 @@ error:
 }
 
 static int
-verify_object(struct manifest *mf, struct object *obj,
+verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
               struct hashtable *hashed_files)
 {
 	uint32_t i;
@@ -359,7 +359,7 @@ verify_object(struct manifest *mf, struct object *obj,
 		if (!actual) {
 			actual = x_malloc(sizeof(*actual));
 			hash_start(&hash);
-			result = hash_source_code_file(&hash, mf->files[fi->index]);
+			result = hash_source_code_file(conf, &hash, mf->files[fi->index]);
 			if (result & HASH_SOURCE_CODE_ERROR) {
 				cc_log("Failed hashing %s", mf->files[fi->index]);
 				free(actual);
@@ -523,7 +523,7 @@ add_object_entry(struct manifest *mf,
  * on failure.
  */
 struct file_hash *
-manifest_get(const char *manifest_path)
+manifest_get(struct conf *conf, const char *manifest_path)
 {
 	int fd;
 	gzFile f = NULL;
@@ -554,7 +554,7 @@ manifest_get(const char *manifest_path)
 
 	/* Check newest object first since it's a bit more likely to match. */
 	for (i = mf->n_objects; i > 0; i--) {
-		if (verify_object(mf, &mf->objects[i - 1], hashed_files)) {
+		if (verify_object(conf, mf, &mf->objects[i - 1], hashed_files)) {
 			fh = x_malloc(sizeof(*fh));
 			*fh = mf->objects[i - 1].hash;
 			goto out;

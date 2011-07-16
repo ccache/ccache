@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Joel Rosdahl
+ * Copyright (C) 2009-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -104,16 +104,16 @@ check_for_temporal_macros(const char *str, size_t len)
  */
 int
 hash_source_code_string(
-	struct mdfour *hash, const char *str, size_t len, const char *path)
+	struct conf *conf, struct mdfour *hash, const char *str, size_t len,
+	const char *path)
 {
 	int result = HASH_SOURCE_CODE_OK;
-	extern unsigned sloppiness;
 
 	/*
-	 * Check for __DATE__ and __TIME__ if the sloppiness argument tells us
-	 * we have to.
+	 * Check for __DATE__ and __TIME__ if the sloppiness configuration tells us
+	 * we should.
 	 */
-	if (!(sloppiness & SLOPPY_TIME_MACROS)) {
+	if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
 		result |= check_for_temporal_macros(str, len);
 	}
 
@@ -155,7 +155,7 @@ hash_source_code_string(
  * results.
  */
 int
-hash_source_code_file(struct mdfour *hash, const char *path)
+hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 {
 	char *data;
 	size_t size;
@@ -171,7 +171,7 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 		if (!read_file(path, 0, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}
-		result = hash_source_code_string(hash, data, size, path);
+		result = hash_source_code_string(conf, hash, data, size, path);
 		free(data);
 		return result;
 	}

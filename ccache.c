@@ -124,9 +124,6 @@ static char *manifest_path;
  */
 static time_t time_of_compilation;
 
-/* Bitmask of SLOPPY_*. */
-unsigned sloppiness = 0;
-
 /*
  * Files included by the preprocessor and their hashes/sizes. Key: file path.
  * Value: struct file_hash.
@@ -341,7 +338,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 	}
 
 	/* Let's hash the include file. */
-	if (!(sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
+	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
 		goto failure;
@@ -373,7 +370,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 				size = 0;
 			}
 
-			result = hash_source_code_string(&fhash, source, size, path);
+			result = hash_source_code_string(conf, &fhash, source, size, path);
 			if (result & HASH_SOURCE_CODE_ERROR
 			    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 				goto failure;
@@ -970,7 +967,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 
 	if (direct_mode) {
-		if (!(sloppiness & SLOPPY_FILE_MACRO)) {
+		if (!(conf->sloppiness & SLOPPY_FILE_MACRO)) {
 			/*
 			 * The source code file or an include file may contain
 			 * __FILE__, so make sure that the hash is unique for
@@ -981,7 +978,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 
 		hash_delimiter(hash, "sourcecode");
-		result = hash_source_code_file(hash, input_file);
+		result = hash_source_code_file(conf, hash, input_file);
 		if (result & HASH_SOURCE_CODE_ERROR) {
 			failed();
 		}
@@ -994,7 +991,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s", manifest_path);
-		object_hash = manifest_get(manifest_path);
+		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
 		} else {
@@ -1600,7 +1597,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 	if (found_pch || found_fpch_preprocess) {
 		using_precompiled_header = true;
-		if (!(sloppiness & SLOPPY_TIME_MACROS)) {
+		if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
 			cc_log("You have to specify \"time_macros\" sloppiness when using"
 			       " precompiled headers to get direct hits");
 			cc_log("Disabling direct mode");
@@ -1849,7 +1846,6 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
-	sloppiness = false;
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
@@ -1862,36 +1858,6 @@ cc_reset(void)
 	output_is_precompiled_header = false;
 
 	initialize();
-}
-
-static unsigned
-parse_sloppiness(char *p)
-{
-	unsigned result = 0;
-	char *word, *q, *saveptr = NULL;
-
-	if (!p) {
-		return result;
-	}
-	p = x_strdup(p);
-	q = p;
-	while ((word = strtok_r(q, ", ", &saveptr))) {
-		if (str_eq(word, "file_macro")) {
-			cc_log("Being sloppy about __FILE__");
-			result |= SLOPPY_FILE_MACRO;
-		}
-		if (str_eq(word, "include_file_mtime")) {
-			cc_log("Being sloppy about include file mtime");
-			result |= SLOPPY_INCLUDE_FILE_MTIME;
-		}
-		if (str_eq(word, "time_macros")) {
-			cc_log("Being sloppy about __DATE__ and __TIME__");
-			result |= SLOPPY_TIME_MACROS;
-		}
-		q = NULL;
-	}
-	free(p);
-	return result;
 }
 
 /* Make a copy of stderr that will not be cached, so things like
@@ -1945,7 +1911,13 @@ ccache(int argc, char *argv[])
 
 	find_compiler(argc, argv);
 
-	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
+	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
+		cc_log("Being sloppy about __FILE__");
+	} else if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
+		cc_log("Being sloppy about include file mtime");
+	} else if (conf->sloppiness & SLOPPY_TIME_MACROS) {
+		cc_log("Being sloppy about __DATE__ and __TIME__");
+	}
 
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
