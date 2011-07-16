@@ -1838,7 +1838,9 @@ initialize(void)
 		free(cachedir_config_path);
 	}
 
-	conf_update_from_environment(conf, &errmsg);
+	if (!conf_update_from_environment(conf, &errmsg)) {
+		fatal("%s", errmsg);
+	}
 
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
