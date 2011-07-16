@@ -509,11 +509,8 @@ hardlink_suite() {
     CCACHE_COMPILE="$CCACHE $COMPILER"
     CCACHE_HARDLINK=1
     export CCACHE_HARDLINK
-    CCACHE_NOCOMPRESS=1
-    export CCACHE_NOCOMPRESS
     base_tests
     unset CCACHE_HARDLINK
-    unset CCACHE_NOCOMPRESS
 }
 
 cpp2_suite() {
