@@ -76,9 +76,6 @@ struct conf *conf = NULL;
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
-/* the debug logfile name, if set */
-char *cache_logfile = NULL;
-
 /* the original argument list */
 static struct args *orig_args;
 
@@ -1829,8 +1826,6 @@ initialize(void)
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_tmp_files);
 
-	/* check for logging early so cc_log messages start working ASAP */
-	cache_logfile = getenv("CCACHE_LOGFILE");
 	cc_log("=== CCACHE STARTED =========================================");
 
 	/* the user might have set CCACHE_UMASK */
@@ -1853,7 +1848,6 @@ cc_reset(void)
 {
 	conf_free(conf); conf = NULL;
 	free(current_working_dir); current_working_dir = NULL;
-	cache_logfile = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;

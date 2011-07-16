@@ -18,6 +18,7 @@
  */
 
 #include "ccache.h"
+#include "conf.h"
 
 #include <zlib.h>
 
@@ -38,15 +39,16 @@ static FILE *logfile;
 static bool
 init_log(void)
 {
-	extern char *cache_logfile;
+	extern struct conf *conf;
 
 	if (logfile) {
 		return true;
 	}
-	if (!cache_logfile) {
+	assert(conf);
+	if (str_eq(conf->log_file, "")) {
 		return false;
 	}
-	logfile = fopen(cache_logfile, "a");
+	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
 		return true;
 	} else {

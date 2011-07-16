@@ -204,7 +204,6 @@ stats_flush(void)
 	bool need_cleanup = false;
 	bool should_flush = false;
 	int i;
-	extern char *cache_logfile;
 
 	if (getenv("CCACHE_NOSTATS")) return;
 
@@ -225,6 +224,7 @@ stats_flush(void)
 		 * A NULL stats_file means that we didn't get past calculate_object_hash(),
 		 * so we just choose one of stats files in the 16 subdirectories.
 		 */
+		assert(conf);
 		stats_dir = format("%s/%x", conf->cache_dir, hash_from_int(getpid()) % 16);
 		stats_file = format("%s/stats", stats_dir);
 		free(stats_dir);
@@ -241,7 +241,7 @@ stats_flush(void)
 	stats_write(stats_file, counters);
 	lockfile_release(stats_file);
 
-	if (cache_logfile) {
+	if (!str_eq(conf->log_file, "")) {
 		for (i = 0; i < STATS_END; ++i) {
 			if (counter_updates->data[stats_info[i].stat] != 0
 			    && !(stats_info[i].flags & FLAG_NOZERO)) {

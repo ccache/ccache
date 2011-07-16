@@ -115,8 +115,6 @@ cct_suite_end()
 void
 cct_test_begin(const char *name)
 {
-	extern char *cache_logfile;
-
 	++total_tests;
 	if (verbose) {
 		printf("--- TEST: %s ---\n", name);
@@ -128,7 +126,6 @@ cct_test_begin(const char *name)
 
 	putenv("CCACHE_CONFIG_PATH=/dev/null");
 	cc_reset();
-	cache_logfile = getenv("CCACHE_LOGFILE");
 }
 
 void
