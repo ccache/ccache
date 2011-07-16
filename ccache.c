@@ -139,9 +139,6 @@ static struct hashtable *included_files;
 /* is gcc being asked to output dependencies? */
 static bool generating_dependencies;
 
-/* the extension of the file (without dot) after pre-processing */
-static const char *i_extension;
-
 /* the name of the temporary pre-processor file */
 static char *i_tmpfile;
 
@@ -746,8 +743,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	/* now the run */
-	path_stdout = format("%s/%s.tmp.%s.%s",
-	                     temp_dir(), input_base, tmp_string(), i_extension);
+	path_stdout = format(
+		"%s/%s.tmp.%s.%s",
+		temp_dir(), input_base, tmp_string(), conf->cpp_extension);
 	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
 
 	if (create_parent_dirs(path_stdout) != 0) {
@@ -870,7 +868,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	 * by the compiler as a .ii file.
 	 */
 	hash_delimiter(hash, "ext");
-	hash_string(hash, i_extension);
+	hash_string(hash, conf->cpp_extension);
 
 	if (stat(args->argv[0], &st) != 0) {
 		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
@@ -1676,10 +1674,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		compile_preprocessed_source_code = false;
 	}
 
-	i_extension = getenv("CCACHE_EXTENSION");
-	if (!i_extension) {
+	if (str_eq(conf->cpp_extension, "")) {
 		const char *p_language = p_language_for_language(actual_language);
-		i_extension = extension_for_language(p_language) + 1;
+		free(conf->cpp_extension);
+		conf->cpp_extension = x_strdup(extension_for_language(p_language) + 1);
 	}
 
 	/* don't try to second guess the compilers heuristics for stdout handling */
@@ -1876,7 +1874,6 @@ cc_reset(void)
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
 	generating_dependencies = false;
-	i_extension = NULL;
 	i_tmpfile = NULL;
 	direct_i_file = false;
 	free(cpp_stderr); cpp_stderr = NULL;
