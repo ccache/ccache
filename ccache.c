@@ -164,12 +164,6 @@ static bool enable_unify;
 static bool enable_direct = true;
 
 /*
- * Whether to enable compression of files stored in the cache. (Manifest files
- * are always compressed.)
- */
-static bool enable_compression = false;
-
-/*
  * Whether we should use the optimization of passing the already existing
  * preprocessed source code to the compiler.
  */
@@ -671,14 +665,14 @@ to_cache(struct args *args)
 	}
 	if (st.st_size > 0) {
 		if (move_uncompressed_file(tmp_stderr, cached_stderr,
-		                           enable_compression) != 0) {
+		                           conf->compression) != 0) {
 			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
 			       strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
 		cc_log("Stored in cache: %s", cached_stderr);
-		if (enable_compression) {
+		if (conf->compression) {
 			stat(cached_stderr, &st);
 		}
 		added_bytes += file_size(&st);
@@ -686,7 +680,7 @@ to_cache(struct args *args)
 	} else {
 		tmp_unlink(tmp_stderr);
 	}
-	if (move_uncompressed_file(tmp_obj, cached_obj, enable_compression) != 0) {
+	if (move_uncompressed_file(tmp_obj, cached_obj, conf->compression) != 0) {
 		cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
@@ -1146,7 +1140,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
 		/* Store the dependency file in the cache. */
-		ret = copy_file(output_dep, cached_dep, enable_compression);
+		ret = copy_file(output_dep, cached_dep, conf->compression);
 		if (ret == -1) {
 			cc_log("Failed to copy %s to %s: %s", output_dep, cached_dep,
 			       strerror(errno));
@@ -1889,7 +1883,6 @@ cc_reset(void)
 	free(stats_file); stats_file = NULL;
 	enable_unify = false;
 	enable_direct = true;
-	enable_compression = false;
 	compile_preprocessed_source_code = false;
 	output_is_precompiled_header = false;
 
@@ -1997,11 +1990,6 @@ ccache(int argc, char *argv[])
 	if (getenv("CCACHE_NODIRECT") || enable_unify) {
 		cc_log("Direct mode disabled");
 		enable_direct = false;
-	}
-
-	if (getenv("CCACHE_COMPRESS")) {
-		cc_log("Compression enabled");
-		enable_compression = true;
 	}
 
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
