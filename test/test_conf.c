@@ -62,7 +62,7 @@ TEST(conf_create)
 	CHECK_UNS_EQ(0, conf->sloppiness);
 	CHECK(conf->stats);
 	CHECK_STR_EQ("", conf->temporary_dir);
-	CHECK_UNS_EQ(0, conf->umask);
+	CHECK_UNS_EQ(UINT_MAX, conf->umask);
 	CHECK(!conf->unify);
 	conf_free(conf);
 }

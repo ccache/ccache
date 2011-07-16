@@ -437,7 +437,7 @@ conf_create(void)
 	conf->sloppiness = 0;
 	conf->stats = true;
 	conf->temporary_dir = x_strdup("");
-	conf->umask = 0;
+	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
 	return conf;
 }

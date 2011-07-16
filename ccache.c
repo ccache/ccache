@@ -1816,15 +1816,8 @@ initialize(void)
 
 	cc_log("=== CCACHE STARTED =========================================");
 
-	/* the user might have set CCACHE_UMASK */
-	p = getenv("CCACHE_UMASK");
-	if (p) {
-		mode_t mask;
-		errno = 0;
-		mask = strtol(p, NULL, 8);
-		if (errno == 0) {
-			umask(mask);
-		}
+	if (conf->umask != UINT_MAX) {
+		umask(conf->umask);
 	}
 
 	current_working_dir = get_cwd();
