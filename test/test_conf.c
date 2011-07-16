@@ -262,6 +262,9 @@ TEST(verify_absolute_base_dir)
 	CHECK_STR_EQ_FREE2("ccache.conf:1: not an absolute path: \"relative/path\"",
 	                   errmsg);
 
+	create_file("ccache.conf", "base_dir =");
+	CHECK(conf_read(conf, "ccache.conf", &errmsg));
+
 	conf_free(conf);
 }
 

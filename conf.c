@@ -152,7 +152,10 @@ verify_absolute_path(void *value, char **errmsg)
 {
 	char **path = (char **)value;
 	assert(*path);
-	if (is_absolute_path(*path)) {
+	if (str_eq(*path, "")) {
+		/* The empty string means "disable" in this case. */
+		return true;
+	} else if (is_absolute_path(*path)) {
 		return true;
 	} else {
 		*errmsg = format("not an absolute path: \"%s\"", *path);
