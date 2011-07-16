@@ -856,7 +856,6 @@ static void
 calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
-	char *p;
 
 	hash_string(hash, HASH_PREFIX);
 
@@ -909,10 +908,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 	}
 
-	p = getenv("CCACHE_EXTRAFILES");
-	if (p) {
-		char *path, *q, *saveptr = NULL;
-		p = x_strdup(p);
+	if (!str_eq(conf->extra_files_to_hash, "")) {
+		char *path, *p, *q, *saveptr = NULL;
+		p = x_strdup(conf->extra_files_to_hash);
 		q = p;
 		while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
 			cc_log("Hashing extra file %s", path);
