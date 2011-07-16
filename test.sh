@@ -345,6 +345,21 @@ base_tests() {
         fi
     fi
 
+    testname="override path"
+    $CCACHE -Cz >/dev/null
+    override_path=`pwd`/override_path
+    rm -rf $override_path
+    mkdir $override_path
+    cat >$override_path/cc <<EOF
+#!/bin/sh
+touch override_path_compiler_executed
+EOF
+    chmod +x $override_path/cc
+    CCACHE_PATH=$override_path $CCACHE cc -c test1.c
+    if [ ! -e override_path_compiler_executed ]; then
+        test_failed "CCACHE_PATH had no effect"
+    fi
+
     testname="compilercheck=mtime"
     $CCACHE -Cz >/dev/null
     cat >compiler.sh <<EOF
