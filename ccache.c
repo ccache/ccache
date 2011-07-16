@@ -1150,7 +1150,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (conf->direct_mode
 	    && put_object_in_manifest
 	    && included_files
-	    && !getenv("CCACHE_READONLY")) {
+	    && !conf->read_only) {
 		struct stat st;
 		size_t old_size = 0; /* in bytes */
 		if (stat(manifest_path, &st) == 0) {
@@ -2055,7 +2055,7 @@ ccache(int argc, char *argv[])
 	/* if we can return from cache at this point then do */
 	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
-	if (getenv("CCACHE_READONLY")) {
+	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
 		failed();
 	}
