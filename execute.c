@@ -18,6 +18,9 @@
  */
 
 #include "ccache.h"
+#include "conf.h"
+
+extern struct conf *conf;
 
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
@@ -98,7 +101,7 @@ win32getshell(char *path)
 	ext = get_extension(path);
 	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH")))
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
-	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
+	if (!sh && conf->detect_shebang) {
 		/* Detect shebang. */
 		FILE *fp;
 		fp = fopen(path, "r");
