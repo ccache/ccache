@@ -234,8 +234,8 @@ find_executable(const char *name, const char *exclude_name)
 		return x_strdup(name);
 	}
 
-	path = getenv("CCACHE_PATH");
-	if (!path) {
+	path = conf->path;
+	if (str_eq(path, "")) {
 		path = getenv("PATH");
 	}
 	if (!path) {
