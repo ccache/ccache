@@ -205,7 +205,9 @@ stats_flush(void)
 	bool should_flush = false;
 	int i;
 
-	if (getenv("CCACHE_NOSTATS")) return;
+	if (!conf->stats) {
+		return;
+	}
 
 	init_counter_updates();
 
