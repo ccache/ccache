@@ -148,9 +148,6 @@ static char *cpp_stderr;
  */
 char *stats_file = NULL;
 
-/* can we safely use the unification hashing backend? */
-static bool enable_unify;
-
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
@@ -770,7 +767,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		failed();
 	}
 
-	if (enable_unify) {
+	if (conf->unify) {
 		/*
 		 * When we are doing the unifying tricks we need to include the
 		 * input file name in the hash to get the warnings right.
@@ -1377,9 +1374,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		*/
 		if (str_startswith(argv[i], "-g")) {
 			args_add(stripped_args, argv[i]);
-			if (enable_unify && !str_eq(argv[i], "-g0")) {
+			if (conf->unify && !str_eq(argv[i], "-g0")) {
 				cc_log("%s used; disabling unify mode", argv[i]);
-				enable_unify = false;
+				conf->unify = false;
 			}
 			if (str_eq(argv[i], "-g3")) {
 				/*
@@ -1847,7 +1844,6 @@ cc_reset(void)
 	direct_i_file = false;
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
-	enable_unify = false;
 	output_is_precompiled_header = false;
 
 	initialize();
@@ -1920,12 +1916,7 @@ ccache(int argc, char *argv[])
 		cc_log("Base directory: %s", conf->base_dir);
 	}
 
-	if (getenv("CCACHE_UNIFY")) {
-		cc_log("Unify mode disabled");
-		enable_unify = true;
-	}
-
-	if (enable_unify) {
+	if (conf->unify) {
 		cc_log("Direct mode disabled because unify mode is enabled");
 		conf->direct_mode = false;
 	}
