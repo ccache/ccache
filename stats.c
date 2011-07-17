@@ -205,6 +205,8 @@ stats_flush(void)
 	bool should_flush = false;
 	int i;
 
+	assert(conf);
+
 	if (!conf->stats) {
 		return;
 	}
@@ -292,6 +294,8 @@ stats_summary(void)
 	int dir, i;
 	struct counters *counters = counters_init(STATS_END);
 
+	assert(conf);
+
 	/* add up the stats in each directory */
 	for (dir = -1; dir <= 0xF; dir++) {
 		char *fname;
@@ -341,6 +345,8 @@ stats_zero(void)
 	unsigned i;
 	char *fname;
 
+	assert(conf);
+
 	fname = format("%s/stats", conf->cache_dir);
 	x_unlink(fname);
 	free(fname);
@@ -381,6 +387,8 @@ int
 stats_set_limits(long maxfiles, long maxsize)
 {
 	int dir;
+
+	assert(conf);
 
 	if (maxfiles != -1) {
 		maxfiles /= 16;
