@@ -211,6 +211,8 @@ add_prefix(struct args *orig_args)
 static void
 failed(void)
 {
+	assert(orig_args);
+
 	/* strip any local args */
 	args_strip(orig_args, "--ccache-");
 
@@ -1180,24 +1182,23 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 /* find the real compiler. We just search the PATH to find a executable of the
    same name that isn't a link to ourselves */
 static void
-find_compiler(int argc, char **argv)
+find_compiler(void)
 {
 	char *base;
 	char *compiler;
+	const char *orig_first_argument = orig_args->argv[0];
 
-	orig_args = args_init(argc, argv);
-
-	base = basename(argv[0]);
+	base = basename(orig_args->argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
 	if (same_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
-		if (is_full_path(argv[1])) {
+		if (is_full_path(orig_args->argv[0])) {
 			/* a full path was given */
 			return;
 		}
-		base = basename(argv[1]);
+		base = basename(orig_args->argv[0]);
 	}
 
 	/* support user override of the compiler */
@@ -1212,7 +1213,7 @@ find_compiler(int argc, char **argv)
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
-	if (str_eq(compiler, argv[0])) {
+	if (str_eq(compiler, orig_first_argument)) {
 		fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
 		      MYNAME);
 	}
@@ -1826,7 +1827,6 @@ cc_reset(void)
 {
 	conf_free(conf); conf = NULL;
 	free(current_working_dir); current_working_dir = NULL;
-	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;
@@ -1889,7 +1889,10 @@ ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	struct args *compiler_args;
 
+	orig_args = args_init(argc, argv);
+
 	initialize();
+	find_compiler();
 
 	if (conf->disable) {
 		cc_log("ccache is disabled");
@@ -1897,8 +1900,6 @@ ccache(int argc, char *argv[])
 	}
 
 	setup_uncached_err();
-
-	find_compiler(argc, argv);
 
 	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
 		cc_log("Being sloppy about __FILE__");
