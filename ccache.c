@@ -70,6 +70,10 @@ static const char USAGE_TEXT[] =
 "\n"
 "See also <http://ccache.samba.org>.\n";
 
+#ifndef DEFAULT_MAXSIZE
+#define DEFAULT_MAXSIZE (1024*1024)
+#endif
+
 /* Global configuration data. */
 struct conf *conf = NULL;
 
@@ -1767,15 +1771,55 @@ out:
 	return result;
 }
 
+static void
+create_initial_config_file(const char *path)
+{
+	unsigned max_files, max_size;
+	char *stats_dir;
+	FILE *f;
+	struct stat st;
+
+	if (create_parent_dirs(path) != 0) {
+		return;
+	}
+
+	stats_dir = format("%s/0", conf->cache_dir);
+	if (stat(stats_dir, &st) == 0) {
+		stats_get_limits(stats_dir, &max_files, &max_size);
+		/* STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory. */
+		max_files *= 16;
+		max_size *= 16;
+	} else {
+		max_files = 0;
+		max_size = DEFAULT_MAXSIZE;
+	}
+	free(stats_dir);
+
+	f = fopen(path, "w");
+	if (!f) {
+		return;
+	}
+	if (max_files != 0) {
+		fprintf(f, "max_files = %u\n", max_files);
+	}
+	if (max_size != 0) {
+		char *size = format_parsable_size_with_suffix(max_size);
+		fprintf(f, "max_size = %s\n", size);
+		free(size);
+	}
+	fclose(f);
+}
+
 /*
- * Read config file(s), populate variables, create cache directory if missing,
- * etc.
+ * Read config file(s), populate variables, create configuration file in cache
+ * directory if missing, etc.
  */
 static void
 initialize(void)
 {
 	char *errmsg;
 	char *p;
+	struct stat st;
 
 	conf_free(conf);
 	conf = conf_create();
@@ -1786,9 +1830,15 @@ initialize(void)
 			fatal("%s", errmsg);
 		}
 	} else {
-		char *sysconf_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+		char *sysconf_config_path;
+		char *cachedir_config_path;
+
+		sysconf_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, sysconf_config_path, &errmsg)) {
-			fatal("%s", errmsg);
+			if (stat(sysconf_config_path, &st) == 0) {
+				fatal("%s", errmsg);
+			}
+			/* Missing config file in SYSCONFDIR is OK. */
 		}
 		free(sysconf_config_path);
 
@@ -1797,9 +1847,12 @@ initialize(void)
 			conf->cache_dir = strdup(p);
 		}
 
-		char *cachedir_config_path = format("%s/ccache.conf", conf->cache_dir);
+		cachedir_config_path = format("%s/ccache.conf", conf->cache_dir);
 		if (!conf_read(conf, cachedir_config_path, &errmsg)) {
-			fatal("%s", errmsg);
+			if (stat(cachedir_config_path, &st) == 0) {
+				fatal("%s", errmsg);
+			}
+			create_initial_config_file(cachedir_config_path);
 		}
 		free(cachedir_config_path);
 	}
