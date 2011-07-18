@@ -94,4 +94,16 @@ TEST(subst_env_in_string)
 	CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"SHELL\"", errmsg);
 }
 
+TEST(format_human_readable_size)
+{
+	CHECK_STR_EQ_FREE2("0 Kbytes", format_human_readable_size(0));
+	CHECK_STR_EQ_FREE2("42 Kbytes", format_human_readable_size(42));
+	CHECK_STR_EQ_FREE2("1.0 Mbytes", format_human_readable_size(1024));
+	CHECK_STR_EQ_FREE2("1.2 Mbytes", format_human_readable_size(1234));
+	CHECK_STR_EQ_FREE2("438.5 Mbytes", format_human_readable_size(438.5 * 1024));
+	CHECK_STR_EQ_FREE2("1.0 Gbytes", format_human_readable_size(1024 * 1024));
+	CHECK_STR_EQ_FREE2("17.1 Gbytes",
+	                   format_human_readable_size(17.11 * 1024 * 1024));
+}
+
 TEST_SUITE_END
