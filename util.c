@@ -830,6 +830,23 @@ format_human_readable_size(size_t v)
 	return s;
 }
 
+/* Format a size (in KiB) as a human-readable string. Caller frees. */
+char *
+format_parsable_size_with_suffix(size_t size)
+{
+	char *s;
+	if (size >= 1024*1024) {
+		s = format("%.1fG", size / ((double)(1024*1024)));
+	} else if (size >= 1024) {
+		s = format("%.1fM", size / ((double)(1024)));
+	} else if (size > 0) {
+		s = format("%.0fK", (double)size);
+	} else {
+		s = x_strdup("0");
+	}
+	return s;
+}
+
 /*
  * Parse a value in multiples of 1024 given a string that can end in K, M or G.
  * Default suffix: G.
