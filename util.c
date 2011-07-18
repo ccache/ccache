@@ -855,23 +855,22 @@ bool
 parse_size_with_suffix(const char *str, size_t *size)
 {
 	char *endptr;
-	long x;
+	double x;
 	errno = 0;
-	x = strtol(str, &endptr, 10);
+	x = strtod(str, &endptr);
 	if (errno != 0 || x < 0 || endptr == str || *str == '\0') {
 		return false;
 	}
 
-	*size = x;
 	switch (*endptr) {
 	case 'G':
 	case 'g':
 	case '\0':
-		*size *= 1024 * 1024;
+		x *= 1024 * 1024;
 		break;
 	case 'M':
 	case 'm':
-		*size *= 1024;
+		x *= 1024;
 		break;
 	case 'K':
 	case 'k':
@@ -879,6 +878,7 @@ parse_size_with_suffix(const char *str, size_t *size)
 	default:
 		return false;
 	}
+	*size = x;
 	return true;
 }
 

@@ -120,4 +120,23 @@ TEST(format_parsable_size_with_suffix)
 	                   format_parsable_size_with_suffix(17.11 * 1024 * 1024));
 }
 
+TEST(parse_size_with_suffix)
+{
+	size_t size;
+	CHECK(parse_size_with_suffix("0", &size));
+	CHECK_UNS_EQ(0, size);
+	CHECK(parse_size_with_suffix("42K", &size));
+	CHECK_UNS_EQ(42, size);
+	CHECK(parse_size_with_suffix("1.0M", &size));
+	CHECK_UNS_EQ(1024, size);
+	CHECK(parse_size_with_suffix("1.1M", &size));
+	CHECK_UNS_EQ(1.1 * 1024, size);
+	CHECK(parse_size_with_suffix("438.5M", &size));
+	CHECK_UNS_EQ(438.5 * 1024, size);
+	CHECK(parse_size_with_suffix("1.0G", &size));
+	CHECK_UNS_EQ(1024 * 1024, size);
+	CHECK(parse_size_with_suffix("17.1G", &size));
+	CHECK_UNS_EQ(17.1 * 1024 * 1024, size);
+}
+
 TEST_SUITE_END
