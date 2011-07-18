@@ -91,7 +91,7 @@ static struct {
 static void
 display_size(size_t v)
 {
-	char *s = format_size(v);
+	char *s = format_human_readable_size(v);
 	printf("%15s", s);
 	free(s);
 }

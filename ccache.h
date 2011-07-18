@@ -128,7 +128,7 @@ const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);
 int safe_create_wronly(const char *fname);
-char *format_size(size_t v);
+char *format_human_readable_size(size_t v);
 bool parse_size_with_suffix(const char *str, size_t *size);
 char *x_realpath(const char *path);
 char *gnu_getcwd(void);

@@ -2090,7 +2090,7 @@ ccache_main_options(int argc, char *argv[])
 				if (v == 0) {
 					printf("Unset cache size limit\n");
 				} else {
-					char *s = format_size(v);
+					char *s = format_human_readable_size(v);
 					printf("Set cache size limit to %s\n", s);
 					free(s);
 				}

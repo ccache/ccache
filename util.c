@@ -817,7 +817,7 @@ safe_create_wronly(const char *fname)
 
 /* Format a size (in KiB) as a human-readable string. Caller frees. */
 char *
-format_size(size_t v)
+format_human_readable_size(size_t v)
 {
 	char *s;
 	if (v >= 1024*1024) {
