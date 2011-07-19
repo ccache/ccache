@@ -314,29 +314,29 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 }
 
 static bool
-parse_line(struct conf *conf, const char *line, char **errmsg)
+parse_line(const char *line, char **key, char **value, char **errmsg)
 {
 	const char *p, *q;
-	char *key, *value;
-	bool result;
 
 #define SKIP_WS(x) while (isspace(*x)) { ++x; }
 
 	p = line;
 	SKIP_WS(p);
 	if (*p == '\0' || *p == '#') {
+		*key = NULL;
+		*value = NULL;
 		return true;
 	}
 	q = p;
 	while (isalpha(*q) || *q == '_') {
 		++q;
 	}
-	key = x_strndup(p, q - p);
+	*key = x_strndup(p, q - p);
 	p = q;
 	SKIP_WS(p);
 	if (*p != '=') {
 		*errmsg = x_strdup("missing equal sign");
-		free(key);
+		free(*key);
 		return false;
 	}
 	++p;
@@ -351,15 +351,11 @@ parse_line(struct conf *conf, const char *line, char **errmsg)
 	while (isspace(q[-1])) {
 		--q;
 	}
-	value = x_strndup(p, q - p);
+	*value = x_strndup(p, q - p);
+
+	return true;
 
 #undef SKIP_WS
-
-	result = handle_conf_setting(conf, key, value, errmsg, false, false);
-
-	free(key);
-	free(value);
-	return result;
 }
 
 /* For test purposes. */
@@ -480,9 +476,14 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 
 	line_number = 0;
 	while (fgets(buf, sizeof(buf), f)) {
-		char *errmsg2;
+		char *errmsg2, *key, *value;
+		bool ok;
 		++line_number;
-		if (!parse_line(conf, buf, &errmsg2)) {
+		ok = parse_line(buf, &key, &value, &errmsg2);
+		if (ok && key) { /* key == NULL if comment or blank line */
+			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false);
+		}
+		if (!ok) {
 			*errmsg = format("%s:%u: %s", path, line_number, errmsg2);
 			free(errmsg2);
 			result = false;
