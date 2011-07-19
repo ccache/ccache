@@ -550,3 +550,55 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 
 	return true;
 }
+
+bool
+conf_set_value_in_file(const char *path, const char *key, const char *value,
+                       char **errmsg)
+{
+	FILE *infile, *outfile;
+	char *outpath;
+	char buf[10000];
+	bool found;
+
+	infile = fopen(path, "r");
+	if (!infile) {
+		*errmsg = format("%s: %s", path, strerror(errno));
+		return false;
+	}
+
+	outpath = format("%s.tmp.%s", path, tmp_string());
+	outfile = fopen(outpath, "w");
+	if (!outfile) {
+		*errmsg = format("%s: %s", outpath, strerror(errno));
+		free(outpath);
+		fclose(infile);
+		return false;
+	}
+
+	found = false;
+	while (fgets(buf, sizeof(buf), infile)) {
+		char *errmsg2, *key2, *value2;
+		bool ok;
+		ok = parse_line(buf, &key2, &value2, &errmsg2);
+		if (ok && key2 && str_eq(key2, key)) {
+			found = true;
+			fprintf(outfile, "%s = %s\n", key, value);
+		} else {
+			fputs(buf, outfile);
+		}
+	}
+
+	if (!found) {
+		fprintf(outfile, "%s = %s\n", key, value);
+	}
+
+	fclose(infile);
+	fclose(outfile);
+	if (x_rename(outpath, path) != 0) {
+		*errmsg = format("rename %s to %s: %s", outpath, path, strerror(errno));
+		return false;
+	}
+	free(outpath);
+
+	return true;
+}
