@@ -77,6 +77,9 @@ static const char USAGE_TEXT[] =
 /* Global configuration data. */
 struct conf *conf = NULL;
 
+/* Where to write configuration changes. */
+char *primary_config_path = NULL;
+
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
@@ -1820,18 +1823,16 @@ initialize(void)
 	char *errmsg;
 	char *p;
 	struct stat st;
+	bool should_create_initial_config = false;
 
 	conf_free(conf);
 	conf = conf_create();
 
 	p = getenv("CCACHE_CONFIG_PATH");
 	if (p) {
-		if (!conf_read(conf, p, &errmsg)) {
-			fatal("%s", errmsg);
-		}
+		primary_config_path = x_strdup(p);
 	} else {
 		char *sysconf_config_path;
-		char *cachedir_config_path;
 
 		sysconf_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, sysconf_config_path, &errmsg)) {
@@ -1847,18 +1848,22 @@ initialize(void)
 			conf->cache_dir = strdup(p);
 		}
 
-		cachedir_config_path = format("%s/ccache.conf", conf->cache_dir);
-		if (!conf_read(conf, cachedir_config_path, &errmsg)) {
-			if (stat(cachedir_config_path, &st) == 0) {
-				fatal("%s", errmsg);
-			}
-			create_initial_config_file(cachedir_config_path);
+		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
+	}
+
+	if (!conf_read(conf, primary_config_path, &errmsg)) {
+		if (stat(primary_config_path, &st) == 0) {
+			fatal("%s", errmsg);
 		}
-		free(cachedir_config_path);
+		should_create_initial_config = true;
 	}
 
 	if (!conf_update_from_environment(conf, &errmsg)) {
 		fatal("%s", errmsg);
+	}
+
+	if (should_create_initial_config) {
+		create_initial_config_file(conf, primary_config_path);
 	}
 
 	exitfn_init();
@@ -1879,6 +1884,7 @@ void
 cc_reset(void)
 {
 	conf_free(conf); conf = NULL;
+	free(primary_config_path); primary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
