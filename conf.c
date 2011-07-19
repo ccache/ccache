@@ -320,11 +320,12 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 
 #define SKIP_WS(x) while (isspace(*x)) { ++x; }
 
+	*key = NULL;
+	*value = NULL;
+
 	p = line;
 	SKIP_WS(p);
 	if (*p == '\0' || *p == '#') {
-		*key = NULL;
-		*value = NULL;
 		return true;
 	}
 	q = p;
@@ -337,6 +338,7 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 	if (*p != '=') {
 		*errmsg = x_strdup("missing equal sign");
 		free(*key);
+		*key = NULL;
 		return false;
 	}
 	++p;
@@ -483,6 +485,8 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		if (ok && key) { /* key == NULL if comment or blank line */
 			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false);
 		}
+		free(key);
+		free(value);
 		if (!ok) {
 			*errmsg = format("%s:%u: %s", path, line_number, errmsg2);
 			free(errmsg2);
@@ -586,6 +590,8 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		} else {
 			fputs(buf, outfile);
 		}
+		free(key2);
+		free(value2);
 	}
 
 	if (!found) {
