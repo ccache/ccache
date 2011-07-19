@@ -67,7 +67,7 @@ randcode() {
 
 getstat() {
     stat="$1"
-    value=`$CCACHE -s | grep "$stat" | cut -c34-40`
+    value=`$CCACHE -s | grep "$stat" | cut -c34-`
     echo $value
 }
 
@@ -1596,7 +1596,7 @@ cleanup_suite() {
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
     touch $CCACHE_DIR/a/abcd.unknown
-    $CCACHE -c >/dev/null # update counters
+    $CCACHE -F 0 -M 0 -c >/dev/null # update counters
     checkstat 'files in cache' 31
     # (9/10) * 30 * 16 = 432
     $CCACHE -F 432 -M 0 >/dev/null
@@ -1789,6 +1789,15 @@ EOF
     checkstat 'cache miss' 2
 }
 
+upgrade_suite() {
+    testname="keep maxfiles and maxsize settings"
+    rm -rf $CCACHE_DIR $CCACHE_CONFIG_PATH
+    mkdir -p $CCACHE_DIR/0
+    echo "0 0 0 0 0 0 0 0 0 0 0 0 0 2000 131072" >$CCACHE_DIR/0/stats
+    checkstat 'max files' 32000
+    checkstat 'max cache size' '2.0 Gbytes'
+}
+
 ######################################################################
 # main program
 
@@ -1821,8 +1830,9 @@ CCACHE_DIR=`pwd`/.ccache
 export CCACHE_DIR
 CCACHE_LOGFILE=`pwd`/ccache.log
 export CCACHE_LOGFILE
-CCACHE_CONFIG_PATH=/dev/null
+CCACHE_CONFIG_PATH=`pwd`/ccache.conf
 export CCACHE_CONFIG_PATH
+touch $CCACHE_CONFIG_PATH
 
 # ---------------------------------------
 
@@ -1840,6 +1850,7 @@ readonly
 extrafiles
 cleanup
 pch
+upgrade
 "
 
 host_os="`uname -s`"

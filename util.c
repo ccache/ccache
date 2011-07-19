@@ -18,7 +18,6 @@
  */
 
 #include "ccache.h"
-#include "conf.h"
 
 #include <zlib.h>
 

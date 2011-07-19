@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2006 Andrew Tridgell
- * Copyright (C) 2009-2010 Joel Rosdahl
+ * Copyright (C) 2009-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -175,14 +175,14 @@ sort_and_clean(void)
 
 /* cleanup in one cache subdir */
 void
-cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
+cleanup_dir(struct conf *conf, const char *dir)
 {
 	unsigned i;
 
 	cc_log("Cleaning up cache directory %s", dir);
 
-	cache_size_threshold = maxsize * LIMIT_MULTIPLE;
-	files_in_cache_threshold = maxfiles * LIMIT_MULTIPLE;
+	cache_size_threshold = conf->max_size * LIMIT_MULTIPLE / 16;
+	files_in_cache_threshold = conf->max_files * LIMIT_MULTIPLE / 16;
 
 	num_files = 0;
 	cache_size = 0;
@@ -214,16 +214,14 @@ cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize)
 }
 
 /* cleanup in all cache subdirs */
-void cleanup_all(const char *dir)
+void cleanup_all(struct conf *conf)
 {
-	unsigned maxfiles, maxsize;
 	char *dname;
 	int i;
 
 	for (i = 0; i <= 0xF; i++) {
-		dname = format("%s/%1x", dir, i);
-		stats_get_limits(dname, &maxfiles, &maxsize);
-		cleanup_dir(dname, maxfiles, maxsize);
+		dname = format("%s/%1x", conf->cache_dir, i);
+		cleanup_dir(conf, dname);
 		free(dname);
 	}
 }
@@ -246,17 +244,17 @@ static void wipe_fn(const char *fname, struct stat *st)
 }
 
 /* wipe all cached files in all subdirs */
-void wipe_all(const char *dir)
+void wipe_all(struct conf *conf)
 {
 	char *dname;
 	int i;
 
 	for (i = 0; i <= 0xF; i++) {
-		dname = format("%s/%1x", dir, i);
-		traverse(dir, wipe_fn);
+		dname = format("%s/%1x", conf->cache_dir, i);
+		traverse(dname, wipe_fn);
 		free(dname);
 	}
 
 	/* and fix the counters */
-	cleanup_all(dir);
+	cleanup_all(conf);
 }

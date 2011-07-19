@@ -3,6 +3,7 @@
 
 #include "system.h"
 #include "mdfour.h"
+#include "conf.h"
 #include "counters.h"
 
 #ifdef __GNUC__
@@ -32,8 +33,8 @@ enum stats {
 	STATS_LINK = 10,
 	STATS_NUMFILES = 11,
 	STATS_TOTALSIZE = 12,
-	STATS_MAXFILES = 13,
-	STATS_MAXSIZE = 14,
+	STATS_OBSOLETE_MAXFILES = 13,
+	STATS_OBSOLETE_MAXSIZE = 14,
 	STATS_SOURCELANG = 15,
 	STATS_DEVICE = 16,
 	STATS_NOINPUT = 17,
@@ -162,10 +163,10 @@ void stats_update(enum stats stat);
 void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
-void stats_summary(void);
+void stats_summary(struct conf *conf);
 void stats_update_size(enum stats stat, size_t size, unsigned files);
-void stats_get_limits(const char *dir, unsigned *maxfiles, unsigned *maxsize);
-int stats_set_limits(long maxfiles, long maxsize);
+void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
+                               unsigned *maxsize);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
@@ -186,9 +187,9 @@ void exitfn_call(void);
 /* ------------------------------------------------------------------------- */
 /* cleanup.c */
 
-void cleanup_dir(const char *dir, size_t maxfiles, size_t maxsize);
-void cleanup_all(const char *dir);
-void wipe_all(const char *dir);
+void cleanup_dir(struct conf *conf, const char *dir);
+void cleanup_all(struct conf *conf);
+void wipe_all(struct conf *conf);
 
 /* ------------------------------------------------------------------------- */
 /* execute.c */

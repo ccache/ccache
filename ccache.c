@@ -21,7 +21,6 @@
 
 #include "ccache.h"
 #include "compopt.h"
-#include "conf.h"
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
@@ -1775,7 +1774,7 @@ out:
 }
 
 static void
-create_initial_config_file(const char *path)
+create_initial_config_file(struct conf *conf, const char *path)
 {
 	unsigned max_files, max_size;
 	char *stats_dir;
@@ -1788,7 +1787,7 @@ create_initial_config_file(const char *path)
 
 	stats_dir = format("%s/0", conf->cache_dir);
 	if (stat(stats_dir, &st) == 0) {
-		stats_get_limits(stats_dir, &max_files, &max_size);
+		stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
 		/* STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory. */
 		max_files *= 16;
 		max_size *= 16;
@@ -1804,11 +1803,13 @@ create_initial_config_file(const char *path)
 	}
 	if (max_files != 0) {
 		fprintf(f, "max_files = %u\n", max_files);
+		conf->max_files = max_files;
 	}
 	if (max_size != 0) {
 		char *size = format_parsable_size_with_suffix(max_size);
 		fprintf(f, "max_size = %s\n", size);
 		free(size);
+		conf->max_size = max_size;
 	}
 	fclose(f);
 }
@@ -2088,6 +2089,7 @@ ccache_main_options(int argc, char *argv[])
 {
 	int c;
 	size_t v;
+	char *errmsg;
 
 	enum longopts {
 		DUMP_MANIFEST
@@ -2113,13 +2115,13 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'c': /* --cleanup */
 			initialize();
-			cleanup_all(conf->cache_dir);
+			cleanup_all(conf);
 			printf("Cleaned cache\n");
 			break;
 
 		case 'C': /* --clear */
 			initialize();
-			wipe_all(conf->cache_dir);
+			wipe_all(conf);
 			printf("Cleared cache\n");
 			break;
 
@@ -2130,22 +2132,23 @@ ccache_main_options(int argc, char *argv[])
 		case 'F': /* --max-files */
 			initialize();
 			v = atoi(optarg);
-			if (stats_set_limits(v, -1) == 0) {
+			if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
+			                           &errmsg)) {
 				if (v == 0) {
 					printf("Unset cache file limit\n");
 				} else {
 					printf("Set cache file limit to %u\n", (unsigned)v);
 				}
 			} else {
-				printf("Could not set cache file limit.\n");
-				exit(1);
+				fatal("could not set cache file limit: %s", errmsg);
 			}
 			break;
 
 		case 'M': /* --max-size */
 			initialize();
 			parse_size_with_suffix(optarg, &v);
-			if (stats_set_limits(-1, v) == 0) {
+			if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
+			                           &errmsg)) {
 				if (v == 0) {
 					printf("Unset cache size limit\n");
 				} else {
@@ -2154,14 +2157,13 @@ ccache_main_options(int argc, char *argv[])
 					free(s);
 				}
 			} else {
-				printf("Could not set cache size limit.\n");
-				exit(1);
+				fatal("could not set cache size limit: %s", errmsg);
 			}
 			break;
 
 		case 's': /* --show-stats */
 			initialize();
-			stats_summary();
+			stats_summary(conf);
 			break;
 
 		case 'V': /* --version */
