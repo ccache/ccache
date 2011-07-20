@@ -9,5 +9,6 @@ bool compopt_too_hard(const char *option);
 bool compopt_too_hard_for_direct_mode(const char *option);
 bool compopt_takes_path(const char *option);
 bool compopt_takes_arg(const char *option);
+bool compopt_needs_realdir(const char *option);
 
 #endif /* CCACHE_COMPOPT_H */

@@ -180,6 +180,9 @@ static bool compile_preprocessed_source_code;
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
+/* Whether we should output to the real object first before saving into cache */
+static bool output_to_real_object_first = false;
+
 /*
  * Whether we are using a precompiled header (either via -include or #include).
  */
@@ -558,7 +561,13 @@ to_cache(struct args *args)
 	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
-	tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
+
+	if (output_to_real_object_first) {
+		cc_log("Outputting to final destination");
+		tmp_obj = output_obj;
+	} else {
+		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
+	}
 
 	args_add(args, "-o");
 	args_add(args, tmp_obj);
@@ -639,7 +648,8 @@ to_cache(struct args *args)
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
 			if (str_eq(output_obj, "/dev/null")
-			    || (access(tmp_obj, R_OK) == 0
+			    || (! output_to_real_object_first
+                                && access(tmp_obj, R_OK) == 0
 			        && move_file(tmp_obj, output_obj, 0) == 0)
 			    || errno == ENOENT) {
 				/* we can use a quick method of getting the failed output */
@@ -688,16 +698,22 @@ to_cache(struct args *args)
 	} else {
 		tmp_unlink(tmp_stderr);
 	}
-	if (move_uncompressed_file(tmp_obj, cached_obj, enable_compression) != 0) {
+
+	if (output_to_real_object_first) {
+		if (copy_file(tmp_obj, cached_obj, enable_compression) != 0) {
+			cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+	} else if (move_uncompressed_file(tmp_obj, cached_obj, enable_compression) != 0) {
 		cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
-	} else {
-		cc_log("Stored in cache: %s", cached_obj);
-		stat(cached_obj, &st);
-		added_bytes += file_size(&st);
-		added_files += 1;
 	}
+	cc_log("Stored in cache: %s", cached_obj);
+	stat(cached_obj, &st);
+	added_bytes += file_size(&st);
+	added_files += 1;
 
 	/*
 	 * Do an extra stat on the potentially compressed object file for the
@@ -957,6 +973,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	int result;
 	struct file_hash *object_hash = NULL;
+	char *gcda_name;
+	char *base_name;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -998,6 +1016,18 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
+
+		if (str_eq(args->argv[i], "-fprofile-use")) {
+			// Calculate gcda name
+			base_name = remove_extension(output_obj);
+			gcda_name = format("%s.gcda", base_name);
+			free(base_name);
+			// Add the gcda to our hash
+			if (!hash_file(hash, gcda_name)) {
+				// If it doesn't exist, add some null data
+				hash_string(hash, "no data");
+			}
+		}
 	}
 
 	if (direct_mode) {
@@ -1325,6 +1355,16 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
 			goto out;
+		}
+
+		/* We need to output to the real object first here, otherwise
+		 * runtime artifacts will be produced in the wrong place. */
+		if (compopt_needs_realdir(argv[i])) {
+			output_to_real_object_first = true;
+			if (base_dir) {
+				cc_log("Disabling base dir due to %s", argv[i]);
+				base_dir = NULL;
+			}
 		}
 
 		/* These are too hard in direct mode. */
