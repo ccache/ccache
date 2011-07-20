@@ -973,6 +973,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	int result;
 	struct file_hash *object_hash = NULL;
+	char *gcda_name;
+	char *base_name;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -1014,6 +1016,18 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
+
+		if (str_eq(args->argv[i], "-fprofile-use")) {
+			// Calculate gcda name
+			base_name = remove_extension(output_obj);
+			gcda_name = format("%s.gcda", base_name);
+			free(base_name);
+			// Add the gcda to our hash
+			if (!hash_file(hash, gcda_name)) {
+				// If it doesn't exist, add some null data
+				hash_string(hash, "no data");
+			}
+		}
 	}
 
 	if (direct_mode) {

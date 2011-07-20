@@ -57,7 +57,7 @@ static const struct compopt compopts[] = {
 	{"-fbranch-probabilities", TOO_HARD},
 	{"-fprofile-arcs",  NEEDS_REALDIR},
 	{"-fprofile-generate", NEEDS_REALDIR},
-	{"-fprofile-use",   TOO_HARD},
+	{"-fprofile-use",   NEEDS_REALDIR},
 	{"-frepo",          TOO_HARD},
 	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},

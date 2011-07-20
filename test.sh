@@ -511,12 +511,12 @@ EOF
     testname="profile-use"
     $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
     checkstat 'cache hit (preprocessed)' 2
-    checkstat 'cache miss' 2
-    checkstat 'files in cache' 2
+    checkstat 'cache miss' 3
+    checkstat 'files in cache' 4
     $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
-    checkstat 'cache hit (preprocessed)' 2
-    checkstat 'cache miss' 2
-    checkstat 'files in cache' 2
+    checkstat 'cache hit (preprocessed)' 3
+    checkstat 'cache miss' 3
+    checkstat 'files in cache' 4
 
     rm -f test1.c
 }
