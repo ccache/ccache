@@ -25,6 +25,7 @@
 #define TAKES_CONCAT_ARG (1 << 3)
 #define TAKES_PATH       (1 << 4)
 #define AFFECTS_CPP      (1 << 5)
+#define NEEDS_REALDIR    (1 << 6)
 
 struct compopt {
 	const char *name;
@@ -32,7 +33,7 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
-	{"--coverage",      TOO_HARD},
+	{"--coverage",      TOO_HARD}, /* implies -ftest-coverage */
 	{"--param",         TAKES_ARG},
 	{"-A",              TAKES_ARG},
 	{"-D",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
@@ -54,11 +55,11 @@ static const struct compopt compopts[] = {
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
 	{"-fbranch-probabilities", TOO_HARD},
-	{"-fprofile-arcs",  TOO_HARD},
-	{"-fprofile-generate", TOO_HARD},
+	{"-fprofile-arcs",  NEEDS_REALDIR},
+	{"-fprofile-generate", NEEDS_REALDIR},
 	{"-fprofile-use",   TOO_HARD},
 	{"-frepo",          TOO_HARD},
-	{"-ftest-coverage", TOO_HARD},
+	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
@@ -155,4 +156,11 @@ compopt_takes_arg(const char *option)
 {
 	const struct compopt *co = find(option);
 	return co && (co->type & TAKES_ARG);
+}
+
+bool
+compopt_needs_realdir(const char *option)
+{
+	const struct compopt *co = find(option);
+	return co && (co->type & NEEDS_REALDIR);
 }
