@@ -1018,13 +1018,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_string(hash, args->argv[i]);
 
 		if (str_eq(args->argv[i], "-fprofile-use")) {
-			// Calculate gcda name
+			/* Calculate gcda name */
 			base_name = remove_extension(output_obj);
 			gcda_name = format("%s.gcda", base_name);
 			free(base_name);
-			// Add the gcda to our hash
+			/* Add the gcda to our hash */
 			if (!hash_file(hash, gcda_name)) {
-				// If it doesn't exist, add some null data
+				/* If it doesn't exist, add some null data */
 				hash_string(hash, "no data");
 			}
 		}
