@@ -1022,11 +1022,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			base_name = remove_extension(output_obj);
 			gcda_name = format("%s.gcda", base_name);
 			free(base_name);
+			hash_delimiter(hash, "-fprofile-use");
 			/* Add the gcda to our hash */
-			if (!hash_file(hash, gcda_name)) {
-				/* If it doesn't exist, add some null data */
-				hash_string(hash, "no data");
-			}
+			hash_file(hash, gcda_name);
 		}
 	}
 
