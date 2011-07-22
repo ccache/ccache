@@ -564,7 +564,7 @@ to_cache(struct args *args)
 
 	if (output_to_real_object_first) {
 		cc_log("Outputting to final destination");
-		tmp_obj = output_obj;
+		tmp_obj = x_strdup(output_obj);
 	} else {
 		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
 	}
