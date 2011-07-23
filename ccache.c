@@ -563,8 +563,8 @@ to_cache(struct args *args)
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
 
 	if (output_to_real_object_first) {
-		cc_log("Outputting to final destination");
 		tmp_obj = x_strdup(output_obj);
+		cc_log("Outputting to final destination: %s", tmp_obj);
 	} else {
 		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
 	}
@@ -975,7 +975,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct file_hash *object_hash = NULL;
 	char *gcda_name;
 	char *base_name;
-	char *profile_dir;
+	char *profile_dir = NULL;
 	bool profile_generate = false;
 	bool profile_use = false;
 
@@ -1069,6 +1069,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	if (profile_use) {
 		/* Calculate gcda name */
 		/* TODO: Look at value of -fprofile-use= or -fprofile-dir= */
+		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
 		gcda_name = format("%s.gcda", base_name);
 		free(base_name);
