@@ -933,7 +933,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_string(hash, basename(args->argv[0]));
 
 	/* Possibly hash the current working directory. */
-	if (getenv("CCACHE_HASHDIR") || output_to_real_object_first) {
+	if (getenv("CCACHE_HASHDIR")) {
 		char *cwd = gnu_getcwd();
 		if (cwd) {
 			hash_delimiter(hash, "cwd");
@@ -975,6 +975,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct file_hash *object_hash = NULL;
 	char *gcda_name;
 	char *base_name;
+	char *profile_dir;
+	bool profile_generate = false;
+	bool profile_use = false;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -1017,15 +1020,61 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
 
-		if (str_eq(args->argv[i], "-fprofile-use")) {
-			/* Calculate gcda name */
-			base_name = remove_extension(output_obj);
-			gcda_name = format("%s.gcda", base_name);
-			free(base_name);
-			hash_delimiter(hash, "-fprofile-use");
-			/* Add the gcda to our hash */
-			hash_file(hash, gcda_name);
+		if (str_startswith(args->argv[i], "-fprofile-")) {
+			char* arg_profile_dir = strchr(args->argv[i], '=');
+			if (arg_profile_dir) {
+				profile_dir = x_strdup(arg_profile_dir + 1);
+			}
+			if (str_startswith(args->argv[i], "-fprofile-generate")
+			    || str_eq(args->argv[i], "-fprofile-arcs")) {
+				profile_generate = true;
+			} else if (str_startswith(args->argv[i], "-fprofile-use")
+			           || str_eq(args->argv[i], "-fbranch-probabilities")) {
+				profile_use = true;
+			}
 		}
+	}
+
+	/*
+ 	 * For profile generation (-fprofile-arcs, -fprofile-generate):
+	 * - hash profile directory 
+	 * - output to the real file first
+	 *
+	 * For profile usage (-fprofile-use):
+	 * - hash profile data
+	 *
+	 *  -fbranch-probabilities, -fvpt usage are covered by
+	 *  -fprofile-generate/-fprofile-use
+	 *
+	 *  The profile directory can be specified as an argument to
+	 *  -fprofile-generate=, -fprofile-use=, or -fprofile-dir
+	 */
+
+	/* We need to output to the real object first here, otherwise runtime
+	 * artifacts will be produced in the wrong place. */
+	if (profile_generate) {
+		// TODO: Disable base_dir if profile_dir is NULL?
+		output_to_real_object_first = true;
+		hash_delimiter(hash, "profile-dir");
+		if (profile_dir) {
+			hash_string(hash, profile_dir);
+		} else {
+			char *cwd = gnu_getcwd();
+			if (cwd) {
+				hash_string(hash, cwd);
+				free(cwd);
+			}
+		}
+	}
+	if (profile_use) {
+		/* Calculate gcda name */
+		/* TODO: Look at value of -fprofile-use= or -fprofile-dir= */
+		base_name = remove_extension(output_obj);
+		gcda_name = format("%s.gcda", base_name);
+		free(base_name);
+		hash_delimiter(hash, "-fprofile-use");
+		/* Add the gcda to our hash */
+		hash_file(hash, gcda_name);
 	}
 
 	if (direct_mode) {
@@ -1353,16 +1402,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
 			goto out;
-		}
-
-		/* We need to output to the real object first here, otherwise
-		 * runtime artifacts will be produced in the wrong place. */
-		if (compopt_needs_realdir(argv[i])) {
-			output_to_real_object_first = true;
-			if (base_dir) {
-				cc_log("Disabling base dir due to %s", argv[i]);
-				base_dir = NULL;
-			}
 		}
 
 		/* These are too hard in direct mode. */
