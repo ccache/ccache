@@ -63,7 +63,7 @@
 #define CHECK(assertion) \
 	CHECKM(assertion, NULL)
 
-#define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2)        \
+#define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2) \
 	do { \
 		if (!cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
 			cct_test_end(); \
