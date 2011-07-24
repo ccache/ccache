@@ -82,7 +82,7 @@
 
 #define CHECK_UNS_EQ(expected, actual) \
 	do { \
-		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+		if (!cct_check_uns_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \
