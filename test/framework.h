@@ -48,17 +48,20 @@
 
 /*****************************************************************************/
 
-#define CHECK(assertion) \
+#define CHECKM(assertion, message) \
 	do { \
 		if ((assertion)) { \
 			cct_check_passed(__FILE__, __LINE__, #assertion); \
 		} else { \
-			cct_check_failed(__FILE__, __LINE__, #assertion, NULL, NULL); \
+			cct_check_failed(__FILE__, __LINE__, #assertion, (message), NULL); \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \
 		} \
 	} while (0)
+
+#define CHECK(assertion) \
+	CHECKM(assertion, NULL)
 
 #define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2)        \
 	do { \

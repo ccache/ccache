@@ -156,10 +156,14 @@ cct_check_failed(const char *file, int line, const char *what,
 	fprintf(stderr, "%s:%d: Failed assertion:\n", file, line);
 	fprintf(stderr, "  Suite:      %s\n", current_suite);
 	fprintf(stderr, "  Test:       %s\n", current_test);
-	if (expected && actual) {
+	if (expected) {
 		fprintf(stderr, "  Expression: %s\n", what);
-		fprintf(stderr, "  Expected:   %s\n", expected);
-		fprintf(stderr, "  Actual:     %s\n", actual);
+		if (actual) {
+			fprintf(stderr, "  Expected:   %s\n", expected);
+			fprintf(stderr, "  Actual:     %s\n", actual);
+		} else {
+			fprintf(stderr, "  Message:    %s\n", expected);
+		}
 	} else {
 		fprintf(stderr, "  Assertion:  %s\n", what);
 	}
