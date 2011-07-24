@@ -73,16 +73,8 @@
 
 #define CHECK_INT_EQ(expected, actual) \
 	do { \
-		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
-			cct_test_end(); \
-			cct_suite_end(); \
-			return _test_counter; \
-		} \
-	} while (0)
-
-#define CHECK_UNS_EQ(expected, actual) \
-	do { \
-		if (!cct_check_uns_eq(__FILE__, __LINE__, #actual, (expected), (actual))) { \
+		if (!cct_check_int_eq(__FILE__, __LINE__, #actual, (expected), \
+		                      (actual))) { \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \
@@ -130,9 +122,7 @@ void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
 int cct_check_int_eq(const char *file, int line, const char *expression,
-                     int expected, int actual);
-int cct_check_uns_eq(const char *file, int line, const char *expression,
-                     unsigned expected, unsigned actual);
+                     int64_t expected, int64_t actual);
 int cct_check_str_eq(const char *file, int line, const char *expression,
                      const char *expected, const char *actual, int free1,
                      int free2);

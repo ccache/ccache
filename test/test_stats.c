@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -40,12 +40,12 @@ TEST(forward_compatibility)
 	fclose(f);
 
 	stats_read("stats", counters);
-	CHECK_UNS_EQ(100, counters->size);
-	CHECK_UNS_EQ(73, counters->data[73]);
+	CHECK_INT_EQ(100, counters->size);
+	CHECK_INT_EQ(73, counters->data[73]);
 
 	stats_write("stats", counters);
-	CHECK_UNS_EQ(100, counters->size);
-	CHECK_UNS_EQ(99, counters->data[99]);
+	CHECK_INT_EQ(100, counters->size);
+	CHECK_INT_EQ(99, counters->data[99]);
 
 	counters_free(counters);
 }

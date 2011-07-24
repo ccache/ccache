@@ -35,6 +35,8 @@ AC_HEADER_TIME
 AC_HEADER_STDBOOL
 AC_HEADER_SYS_WAIT
 
+AC_CHECK_TYPES(long long)
+
 AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
 AC_CHECK_HEADERS(termios.h)
 

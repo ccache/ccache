@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010-2011 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -27,8 +27,8 @@ TEST(counters_init_0_should_allocate_0)
 {
 	struct counters *counters = counters_init(0);
 
-	CHECK_UNS_EQ(0, counters->allocated);
-	CHECK_UNS_EQ(0, counters->size);
+	CHECK_INT_EQ(0, counters->allocated);
+	CHECK_INT_EQ(0, counters->size);
 
 	counters_free(counters);
 }
@@ -38,10 +38,10 @@ TEST(counters_init_7_should_allocate_32)
 	int i;
 	struct counters *counters = counters_init(7);
 
-	CHECK_UNS_EQ(32, counters->allocated);
-	CHECK_UNS_EQ(7, counters->size);
+	CHECK_INT_EQ(32, counters->allocated);
+	CHECK_INT_EQ(7, counters->size);
 	for (i = 0; i < 7; i++) {
-		CHECK_UNS_EQ(0, counters->data[i]);
+		CHECK_INT_EQ(0, counters->data[i]);
 	}
 
 	counters_free(counters);
@@ -51,10 +51,10 @@ TEST(counters_resize_50_should_allocate_96)
 {
 	struct counters *counters = counters_init(0);
 
-	CHECK_UNS_EQ(0, counters->allocated);
+	CHECK_INT_EQ(0, counters->allocated);
 	counters_resize(counters, 50);
-	CHECK_UNS_EQ(50, counters->size);
-	CHECK_UNS_EQ(96, counters->allocated);
+	CHECK_INT_EQ(50, counters->size);
+	CHECK_INT_EQ(96, counters->allocated);
 
 	counters_free(counters);
 }

@@ -40,7 +40,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->base_dir);
 	CHECK_STR_EQ_FREE1(format("%s/.ccache", get_home_directory()),
 	                   conf->cache_dir);
-	CHECK_UNS_EQ(2, conf->cache_dir_levels);
+	CHECK_INT_EQ(2, conf->cache_dir_levels);
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
 	CHECK(!conf->compression);
@@ -52,17 +52,17 @@ TEST(conf_create)
 	CHECK(!conf->hard_link);
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("", conf->log_file);
-	CHECK_UNS_EQ(0, conf->max_files);
-	CHECK_UNS_EQ(1024*1024, conf->max_size);
+	CHECK_INT_EQ(0, conf->max_files);
+	CHECK_INT_EQ(1024*1024, conf->max_size);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK(!conf->read_only);
 	CHECK(!conf->recache);
 	CHECK(!conf->run_second_cpp);
-	CHECK_UNS_EQ(0, conf->sloppiness);
+	CHECK_INT_EQ(0, conf->sloppiness);
 	CHECK(conf->stats);
 	CHECK_STR_EQ("", conf->temporary_dir);
-	CHECK_UNS_EQ(UINT_MAX, conf->umask);
+	CHECK_INT_EQ(UINT_MAX, conf->umask);
 	CHECK(!conf->unify);
 	conf_free(conf);
 }
@@ -110,7 +110,7 @@ TEST(conf_read_valid_config)
 
 	CHECK_STR_EQ_FREE1(format("/%s/foo/%s", user, user), conf->base_dir);
 	CHECK_STR_EQ_FREE1(format("%s$/%s/.ccache", user, user), conf->cache_dir);
-	CHECK_UNS_EQ(4, conf->cache_dir_levels);
+	CHECK_INT_EQ(4, conf->cache_dir_levels);
 	CHECK_STR_EQ("foo", conf->compiler);
 	CHECK_STR_EQ("none", conf->compiler_check);
 	CHECK(conf->compression);
@@ -122,18 +122,18 @@ TEST(conf_read_valid_config)
 	CHECK(conf->hard_link);
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
-	CHECK_UNS_EQ(17, conf->max_files);
-	CHECK_UNS_EQ(123 * 1024, conf->max_size);
+	CHECK_INT_EQ(17, conf->max_files);
+	CHECK_INT_EQ(123 * 1024, conf->max_size);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK(conf->read_only);
 	CHECK(conf->recache);
 	CHECK(conf->run_second_cpp);
-	CHECK_UNS_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS,
+	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS,
 	             conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);
-	CHECK_UNS_EQ(0777, conf->umask);
+	CHECK_INT_EQ(0777, conf->umask);
 	CHECK(conf->unify);
 
 	conf_free(conf);

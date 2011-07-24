@@ -168,31 +168,19 @@ cct_check_failed(const char *file, int line, const char *what,
 
 int
 cct_check_int_eq(const char *file, int line, const char *expression,
-                 int expected, int actual)
+                 int64_t expected, int64_t actual)
 {
 	if (expected == actual) {
 		cct_check_passed(file, line, expression);
 		return 1;
 	} else {
-		char *exp_str = format("%i", expected);
-		char *act_str = format("%i", actual);
-		cct_check_failed(file, line, expression, exp_str, act_str);
-		free(exp_str);
-		free(act_str);
-		return 0;
-	}
-}
-
-int
-cct_check_uns_eq(const char *file, int line, const char *expression,
-                 unsigned expected, unsigned actual)
-{
-	if (expected == actual) {
-		cct_check_passed(file, line, expression);
-		return 1;
-	} else {
-		char *exp_str = format("%i", expected);
-		char *act_str = format("%i", actual);
+#ifdef HAVE_LONG_LONG
+		char *exp_str = format("%lld", (long long)expected);
+		char *act_str = format("%lld", (long long)actual);
+#else
+		char *exp_str = format("%ld", (long)expected);
+		char *act_str = format("%ld", (long)actual);
+#endif
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
