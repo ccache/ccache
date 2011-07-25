@@ -1588,22 +1588,50 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		if (str_startswith(argv[i], "-fprofile-")) {
 			char* arg_profile_dir = strchr(argv[i], '=');
+			char* arg = x_strdup(argv[i]);
 			if (arg_profile_dir) {
+				char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
+
 				/* convert to absolute path */
-				profile_dir = x_realpath(arg_profile_dir + 1);
-				cc_log("Setting profile directory to %s", profile_dir);
+				arg_profile_dir = x_realpath(arg_profile_dir + 1);
+
+				/* We can get a better hit rate by using the
+				 * real path here */
+				free(arg);
+				arg = format("%s=%s", option, profile_dir);
+				cc_log("Rewriting arg to %s", arg);
+				free(option);
 			}
+
 			if (str_startswith(argv[i], "-fprofile-generate")
 			    || str_eq(argv[i], "-fprofile-arcs")) {
 				profile_generate = true;
+				if (arg_profile_dir) {
+					profile_dir = arg_profile_dir;
+				}
+				cc_log("Setting profile directory to %s", profile_dir);
+				args_add(stripped_args, arg);
+				free(arg);
+				continue;
 			} else if (str_startswith(argv[i], "-fprofile-use")
 			           || str_eq(argv[i], "-fbranch-probabilities")) {
 				profile_use = true;
-			} else {
-				cc_log("Unsupported profile option: %s", argv[i]);
+				if (arg_profile_dir) {
+					profile_dir = arg_profile_dir;
+				}
+				cc_log("Setting profile directory to %s", profile_dir);
+				args_add(stripped_args, arg);
+				free(arg);
+				continue;
+			} else if (str_eq(argv[i], "-fprofile-dir")) {
+				if (arg_profile_dir) {
+					profile_dir = arg_profile_dir;
+				}
+				cc_log("Setting profile directory to %s", profile_dir);
+				args_add(stripped_args, arg);
+				continue;
 			}
-			args_add(stripped_args, argv[i]);
-			continue;
+			cc_log("Unknown profile option: %s", argv[i]);
 		}
 
 		/*
