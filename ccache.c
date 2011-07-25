@@ -1036,8 +1036,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 
 	/*
- 	 * For profile generation (-fprofile-arcs, -fprofile-generate):
-	 * - hash profile directory 
+	 * For profile generation (-fprofile-arcs, -fprofile-generate):
+	 * - hash profile directory
 	 * - output to the real file first
 	 *
 	 * For profile usage (-fprofile-use):
@@ -1068,10 +1068,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 	if (profile_use) {
 		/* Calculate gcda name */
-		/* TODO: Look at value of -fprofile-use= or -fprofile-dir= */
 		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
-		gcda_name = format("%s.gcda", base_name);
+		if (profile_dir) {
+			gcda_name = format("%s.gcda", base_name);
+		} else {
+			gcda_name = format("%s/%s.gcda", profile_dir, base_name);
+		}
 		free(base_name);
 		hash_delimiter(hash, "-fprofile-use");
 		/* Add the gcda to our hash */
