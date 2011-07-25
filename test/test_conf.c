@@ -53,7 +53,7 @@ TEST(conf_create)
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
-	CHECK_INT_EQ(1000 * 1000 * 1000, conf->max_size);
+	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK(!conf->read_only);

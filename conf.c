@@ -426,7 +426,7 @@ conf_create(void)
 	conf->hash_dir = false;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
-	conf->max_size = 1000 * 1000 * 1000;
+	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
 	conf->read_only = false;
