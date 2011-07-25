@@ -181,7 +181,13 @@ static bool compile_preprocessed_source_code;
 static bool output_is_precompiled_header = false;
 
 /* Whether we should output to the real object first before saving into cache */
-static bool output_to_real_object_first = false;
+//static bool output_to_real_object_first = false;
+static bool output_to_real_object_first = true;
+
+/* Profile generation / usage information */
+static char* profile_dir = NULL;
+static bool profile_use = false;
+static bool profile_generate = false;
 
 /*
  * Whether we are using a precompiled header (either via -include or #include).
@@ -973,11 +979,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	int result;
 	struct file_hash *object_hash = NULL;
-	char *gcda_name;
-	char *base_name;
-	char *profile_dir = NULL;
-	bool profile_generate = false;
-	bool profile_use = false;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -1019,20 +1020,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
-
-		if (str_startswith(args->argv[i], "-fprofile-")) {
-			char* arg_profile_dir = strchr(args->argv[i], '=');
-			if (arg_profile_dir) {
-				profile_dir = x_strdup(arg_profile_dir + 1);
-			}
-			if (str_startswith(args->argv[i], "-fprofile-generate")
-			    || str_eq(args->argv[i], "-fprofile-arcs")) {
-				profile_generate = true;
-			} else if (str_startswith(args->argv[i], "-fprofile-use")
-			           || str_eq(args->argv[i], "-fbranch-probabilities")) {
-				profile_use = true;
-			}
-		}
 	}
 
 	/*
@@ -1055,30 +1042,23 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	if (profile_generate) {
 		// TODO: Disable base_dir if profile_dir is NULL?
 		output_to_real_object_first = true;
-		hash_delimiter(hash, "profile-dir");
-		if (profile_dir) {
-			hash_string(hash, profile_dir);
-		} else {
-			char *cwd = gnu_getcwd();
-			if (cwd) {
-				hash_string(hash, cwd);
-				free(cwd);
-			}
-		}
+		cc_log("Adding profile directory %s to our hash", profile_dir);
+		hash_delimiter(hash, "-fprofile-dir");
+		hash_string(hash, profile_dir);
 	}
 	if (profile_use) {
 		/* Calculate gcda name */
+		char *gcda_name;
+		char *base_name;
 		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
-		if (profile_dir) {
-			gcda_name = format("%s.gcda", base_name);
-		} else {
-			gcda_name = format("%s/%s.gcda", profile_dir, base_name);
-		}
-		free(base_name);
-		hash_delimiter(hash, "-fprofile-use");
+		gcda_name = format("%s/%s.gcda", profile_dir, base_name);
+		cc_log("Adding profile data %s to our hash", gcda_name);
 		/* Add the gcda to our hash */
+		hash_delimiter(hash, "-fprofile-use");
 		hash_file(hash, gcda_name);
+		free(base_name);
+		free(gcda_name);
 	}
 
 	if (direct_mode) {
@@ -1606,6 +1586,26 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 
+		if (str_startswith(argv[i], "-fprofile-")) {
+			char* arg_profile_dir = strchr(argv[i], '=');
+			if (arg_profile_dir) {
+				/* convert to absolute path */
+				profile_dir = x_realpath(arg_profile_dir + 1);
+				cc_log("Setting profile directory to %s", profile_dir);
+			}
+			if (str_startswith(argv[i], "-fprofile-generate")
+			    || str_eq(argv[i], "-fprofile-arcs")) {
+				profile_generate = true;
+			} else if (str_startswith(argv[i], "-fprofile-use")
+			           || str_eq(argv[i], "-fbranch-probabilities")) {
+				profile_use = true;
+			} else {
+				cc_log("Unsupported profile option: %s", argv[i]);
+			}
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+
 		/*
 		 * Options taking an argument that that we may want to rewrite
 		 * to relative paths to get better hit rate. A secondary effect
@@ -1889,6 +1889,10 @@ out:
 void
 cc_reset(void)
 {
+	if (profile_dir != current_working_dir) {
+		free(profile_dir);
+	}
+	profile_dir = NULL;
 	free(current_working_dir); current_working_dir = NULL;
 	free(cache_dir); cache_dir = NULL;
 	cache_logfile = NULL;
@@ -2267,6 +2271,7 @@ ccache_main(int argc, char *argv[])
 	}
 
 	current_working_dir = get_cwd();
+	profile_dir = current_working_dir;
 	cache_dir = getenv("CCACHE_DIR");
 	if (cache_dir) {
 		cache_dir = x_strdup(cache_dir);
