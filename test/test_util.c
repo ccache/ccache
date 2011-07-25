@@ -96,47 +96,50 @@ TEST(subst_env_in_string)
 
 TEST(format_human_readable_size)
 {
-	CHECK_STR_EQ_FREE2("0 Kbytes", format_human_readable_size(0));
-	CHECK_STR_EQ_FREE2("42 Kbytes", format_human_readable_size(42));
-	CHECK_STR_EQ_FREE2("1.0 Mbytes", format_human_readable_size(1024));
-	CHECK_STR_EQ_FREE2("1.2 Mbytes", format_human_readable_size(1234));
-	CHECK_STR_EQ_FREE2("438.5 Mbytes", format_human_readable_size(438.5 * 1024));
-	CHECK_STR_EQ_FREE2("1.0 Gbytes", format_human_readable_size(1024 * 1024));
+	CHECK_STR_EQ_FREE2("0 bytes", format_human_readable_size(0));
+	CHECK_STR_EQ_FREE2("42.0 Kbytes", format_human_readable_size(42 * 1024));
+	CHECK_STR_EQ_FREE2("1.0 Mbytes", format_human_readable_size(1024 * 1024));
+	CHECK_STR_EQ_FREE2("1.2 Mbytes", format_human_readable_size(1234 * 1024));
+	CHECK_STR_EQ_FREE2("438.5 Mbytes",
+	                   format_human_readable_size(438.5 * 1024 * 1024));
+	CHECK_STR_EQ_FREE2("1.0 Gbytes",
+	                   format_human_readable_size(1024 * 1024 * 1024));
 	CHECK_STR_EQ_FREE2("17.1 Gbytes",
-	                   format_human_readable_size(17.11 * 1024 * 1024));
+	                   format_human_readable_size(17.11 * 1024 * 1024 * 1024));
 }
 
 TEST(format_parsable_size_with_suffix)
 {
 	CHECK_STR_EQ_FREE2("0", format_parsable_size_with_suffix(0));
-	CHECK_STR_EQ_FREE2("42K", format_parsable_size_with_suffix(42));
-	CHECK_STR_EQ_FREE2("1.0M", format_parsable_size_with_suffix(1024));
-	CHECK_STR_EQ_FREE2("1.2M", format_parsable_size_with_suffix(1234));
+	CHECK_STR_EQ_FREE2("42.0K", format_parsable_size_with_suffix(42 * 1024));
+	CHECK_STR_EQ_FREE2("1.0M", format_parsable_size_with_suffix(1024 * 1024));
+	CHECK_STR_EQ_FREE2("1.2M", format_parsable_size_with_suffix(1234 * 1024));
 	CHECK_STR_EQ_FREE2("438.5M",
-	                   format_parsable_size_with_suffix(438.5 * 1024));
+	                   format_parsable_size_with_suffix(438.5 * 1024 * 1024));
 	CHECK_STR_EQ_FREE2("1.0G",
-	                   format_parsable_size_with_suffix(1024 * 1024));
-	CHECK_STR_EQ_FREE2("17.1G",
-	                   format_parsable_size_with_suffix(17.11 * 1024 * 1024));
+	                   format_parsable_size_with_suffix(1024 * 1024 * 1024));
+	CHECK_STR_EQ_FREE2(
+		"17.1G",
+		format_parsable_size_with_suffix(17.11 * 1024 * 1024 * 1024));
 }
 
 TEST(parse_size_with_suffix)
 {
-	size_t size;
+	uint64_t size;
 	CHECK(parse_size_with_suffix("0", &size));
 	CHECK_INT_EQ(0, size);
 	CHECK(parse_size_with_suffix("42K", &size));
-	CHECK_INT_EQ(42, size);
+	CHECK_INT_EQ(42 * 1024, size);
 	CHECK(parse_size_with_suffix("1.0M", &size));
-	CHECK_INT_EQ(1024, size);
-	CHECK(parse_size_with_suffix("1.1M", &size));
-	CHECK_INT_EQ(1.1 * 1024, size);
-	CHECK(parse_size_with_suffix("438.5M", &size));
-	CHECK_INT_EQ(438.5 * 1024, size);
-	CHECK(parse_size_with_suffix("1.0G", &size));
 	CHECK_INT_EQ(1024 * 1024, size);
+	CHECK(parse_size_with_suffix("1.1M", &size));
+	CHECK_INT_EQ(1.1 * 1024 * 1024, size);
+	CHECK(parse_size_with_suffix("438.5M", &size));
+	CHECK_INT_EQ(438.5 * 1024 * 1024, size);
+	CHECK(parse_size_with_suffix("1.0G", &size));
+	CHECK_INT_EQ(1024 * 1024 * 1024, size);
 	CHECK(parse_size_with_suffix("17.1G", &size));
-	CHECK_INT_EQ(17.1 * 1024 * 1024, size);
+	CHECK_INT_EQ(17.1 * 1024 * 1024 * 1024, size);
 }
 
 TEST_SUITE_END

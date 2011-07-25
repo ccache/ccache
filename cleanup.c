@@ -29,14 +29,14 @@
 static struct files {
 	char *fname;
 	time_t mtime;
-	size_t size; /* In KiB. */
+	uint64_t size;
 } **files;
 static unsigned allocated; /* Size of the files array. */
 static unsigned num_files; /* Number of used entries in the files array. */
 
-static size_t cache_size; /* In KiB. */
+static uint64_t cache_size;
 static size_t files_in_cache;
-static size_t cache_size_threshold;
+static uint64_t cache_size_threshold;
 static size_t files_in_cache_threshold;
 
 /* File comparison function that orders files in mtime order, oldest first. */
@@ -86,7 +86,7 @@ traverse_fn(const char *fname, struct stat *st)
 	files[num_files] = (struct files *)x_malloc(sizeof(struct files));
 	files[num_files]->fname = x_strdup(fname);
 	files[num_files]->mtime = st->st_mtime;
-	files[num_files]->size = file_size(st) / 1024;
+	files[num_files]->size = file_size(st);
 	cache_size += files[num_files]->size;
 	files_in_cache++;
 	num_files++;
@@ -114,7 +114,7 @@ delete_sibling_file(const char *base, const char *extension)
 
 	path = format("%s%s", base, extension);
 	if (lstat(path, &st) == 0) {
-		delete_file(path, file_size(&st) / 1024);
+		delete_file(path, file_size(&st));
 	} else if (errno != ENOENT) {
 		cc_log("Failed to stat %s (%s)", path, strerror(errno));
 	}

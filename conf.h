@@ -19,7 +19,7 @@ struct conf {
 	bool hash_dir;
 	char *log_file;
 	unsigned max_files;
-	unsigned max_size;
+	uint64_t max_size;
 	char *path;
 	char *prefix_command;
 	bool read_only;

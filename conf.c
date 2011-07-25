@@ -78,8 +78,8 @@ parse_octal(const char *str, void *result, char **errmsg)
 static bool
 parse_size(const char *str, void *result, char **errmsg)
 {
-	unsigned *value = (unsigned *)result;
-	size_t size;
+	uint64_t *value = (uint64_t *)result;
+	uint64_t size;
 	*errmsg = NULL;
 	if (parse_size_with_suffix(str, &size)) {
 		*value = size;
@@ -426,7 +426,7 @@ conf_create(void)
 	conf->hash_dir = false;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
-	conf->max_size = 1024 * 1024; /* kilobyte */
+	conf->max_size = 1024 * 1024 * 1024;
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
 	conf->read_only = false;

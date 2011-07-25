@@ -53,7 +53,7 @@ TEST(conf_create)
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
-	CHECK_INT_EQ(1024*1024, conf->max_size);
+	CHECK_INT_EQ(1024 * 1024 * 1024, conf->max_size);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK(!conf->read_only);
@@ -123,7 +123,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
 	CHECK_INT_EQ(17, conf->max_files);
-	CHECK_INT_EQ(123 * 1024, conf->max_size);
+	CHECK_INT_EQ(123 * 1024 * 1024, conf->max_size);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK(conf->read_only);

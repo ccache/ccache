@@ -129,9 +129,9 @@ const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);
 int safe_create_wronly(const char *fname);
-char *format_human_readable_size(size_t size);
-char *format_parsable_size_with_suffix(size_t size);
-bool parse_size_with_suffix(const char *str, size_t *size);
+char *format_human_readable_size(uint64_t size);
+char *format_parsable_size_with_suffix(uint64_t size);
+bool parse_size_with_suffix(const char *str, uint64_t *size);
 char *x_realpath(const char *path);
 char *gnu_getcwd(void);
 #ifndef HAVE_STRTOK_R
@@ -164,9 +164,9 @@ void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(struct conf *conf);
-void stats_update_size(enum stats stat, size_t size, unsigned files);
+void stats_update_size(enum stats stat, uint64_t size, unsigned files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
-                               unsigned *maxsize);
+                               uint64_t *maxsize);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);

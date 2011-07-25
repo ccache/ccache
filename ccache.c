@@ -69,10 +69,6 @@ static const char USAGE_TEXT[] =
 "\n"
 "See also <http://ccache.samba.org>.\n";
 
-#ifndef DEFAULT_MAXSIZE
-#define DEFAULT_MAXSIZE (1024*1024)
-#endif
-
 /* Global configuration data. */
 struct conf *conf = NULL;
 
@@ -685,7 +681,7 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	stats_update_size(STATS_TOCACHE, added_bytes / 1024, added_files);
+	stats_update_size(STATS_TOCACHE, added_bytes, added_files);
 
 	/* Make sure we have a CACHEDIR.TAG
 	 * This can be almost anywhere, but might as well do it near the end
@@ -1131,7 +1127,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		} else {
 			cc_log("Stored in cache: %s", cached_dep);
 			stat(cached_dep, &st);
-			stats_update_size(STATS_NONE, file_size(&st) / 1024, 1);
+			stats_update_size(STATS_NONE, file_size(&st), 1);
 		}
 	}
 
@@ -1157,7 +1153,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			update_mtime(manifest_path);
 			stat(manifest_path, &st);
 			stats_update_size(STATS_NONE,
-			                  (file_size(&st) - old_size) / 1024,
+			                  (file_size(&st) - old_size),
 			                  old_size == 0 ? 1 : 0);
 		} else {
 			cc_log("Failed to add object file hash to %s", manifest_path);
@@ -1776,7 +1772,8 @@ out:
 static void
 create_initial_config_file(struct conf *conf, const char *path)
 {
-	unsigned max_files, max_size;
+	unsigned max_files;
+	uint64_t max_size;
 	char *stats_dir;
 	FILE *f;
 	struct stat st;
@@ -1793,7 +1790,7 @@ create_initial_config_file(struct conf *conf, const char *path)
 		max_size *= 16;
 	} else {
 		max_files = 0;
-		max_size = DEFAULT_MAXSIZE;
+		max_size = conf->max_size;
 	}
 	free(stats_dir);
 
@@ -2088,7 +2085,6 @@ static int
 ccache_main_options(int argc, char *argv[])
 {
 	int c;
-	size_t v;
 	char *errmsg;
 
 	enum longopts {
@@ -2130,34 +2126,42 @@ ccache_main_options(int argc, char *argv[])
 			exit(0);
 
 		case 'F': /* --max-files */
-			initialize();
-			v = atoi(optarg);
-			if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
-			                           &errmsg)) {
-				if (v == 0) {
-					printf("Unset cache file limit\n");
+			{
+				unsigned files;
+				initialize();
+				files = atoi(optarg);
+				if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
+				                           &errmsg)) {
+					if (files == 0) {
+						printf("Unset cache file limit\n");
+					} else {
+						printf("Set cache file limit to %u\n", files);
+					}
 				} else {
-					printf("Set cache file limit to %u\n", (unsigned)v);
+					fatal("could not set cache file limit: %s", errmsg);
 				}
-			} else {
-				fatal("could not set cache file limit: %s", errmsg);
 			}
 			break;
 
 		case 'M': /* --max-size */
-			initialize();
-			parse_size_with_suffix(optarg, &v);
-			if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
-			                           &errmsg)) {
-				if (v == 0) {
-					printf("Unset cache size limit\n");
-				} else {
-					char *s = format_human_readable_size(v);
-					printf("Set cache size limit to %s\n", s);
-					free(s);
+			{
+				uint64_t size;
+				initialize();
+				if (!parse_size_with_suffix(optarg, &size)) {
+					fatal("invalid size: %s", optarg);
 				}
-			} else {
-				fatal("could not set cache size limit: %s", errmsg);
+				if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
+				                           &errmsg)) {
+					if (size == 0) {
+						printf("Unset cache size limit\n");
+					} else {
+						char *s = format_human_readable_size(size);
+						printf("Set cache size limit to %s\n", s);
+						free(s);
+					}
+				} else {
+					fatal("could not set cache size limit: %s", errmsg);
+				}
 			}
 			break;
 

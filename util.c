@@ -814,44 +814,45 @@ safe_create_wronly(const char *fname)
 	return fd;
 }
 
-/* Format a size (in KiB) as a human-readable string. Caller frees. */
+/* Format a size as a human-readable string. Caller frees. */
 char *
-format_human_readable_size(size_t v)
+format_human_readable_size(uint64_t v)
 {
 	char *s;
-	if (v >= 1024*1024) {
-		s = format("%.1f Gbytes", v/((double)(1024*1024)));
+	if (v >= 1024*1024*1024) {
+		s = format("%.1f Gbytes", v/((double)(1024*1024*1024)));
+	} else if (v >= 1024*1024) {
+		s = format("%.1f Mbytes", v/((double)(1024*1024)));
 	} else if (v >= 1024) {
-		s = format("%.1f Mbytes", v/((double)(1024)));
+		s = format("%.1f Kbytes", v/((double)(1024)));
 	} else {
-		s = format("%.0f Kbytes", (double)v);
+		s = format("%u bytes", (unsigned)v);
 	}
 	return s;
 }
 
 /* Format a size (in KiB) as a human-readable string. Caller frees. */
 char *
-format_parsable_size_with_suffix(size_t size)
+format_parsable_size_with_suffix(uint64_t size)
 {
 	char *s;
-	if (size >= 1024*1024) {
-		s = format("%.1fG", size / ((double)(1024*1024)));
+	if (size >= 1024*1024*1024) {
+		s = format("%.1fG", size / ((double)(1024*1024*1024)));
+	} else if (size >= 1024*1024) {
+		s = format("%.1fM", size / ((double)(1024*1024)));
 	} else if (size >= 1024) {
-		s = format("%.1fM", size / ((double)(1024)));
-	} else if (size > 0) {
-		s = format("%.0fK", (double)size);
+		s = format("%.1fK", size / ((double)(1024)));
 	} else {
-		s = x_strdup("0");
+		s = format("%u", (unsigned)size);
 	}
 	return s;
 }
 
 /*
- * Parse a value in multiples of 1024 given a string that can end in K, M or G.
- * Default suffix: G.
+ * Parse a value given a string that can end in K, M or G. Default suffix: G.
  */
 bool
-parse_size_with_suffix(const char *str, size_t *size)
+parse_size_with_suffix(const char *str, uint64_t *size)
 {
 	char *endptr;
 	double x;
@@ -877,7 +878,7 @@ parse_size_with_suffix(const char *str, size_t *size)
 	default:
 		return false;
 	}
-	*size = x;
+	*size = x * 1024;
 	return true;
 }
 
