@@ -96,50 +96,61 @@ TEST(subst_env_in_string)
 
 TEST(format_human_readable_size)
 {
-	CHECK_STR_EQ_FREE2("0 bytes", format_human_readable_size(0));
-	CHECK_STR_EQ_FREE2("42.0 Kbytes", format_human_readable_size(42 * 1024));
-	CHECK_STR_EQ_FREE2("1.0 Mbytes", format_human_readable_size(1024 * 1024));
-	CHECK_STR_EQ_FREE2("1.2 Mbytes", format_human_readable_size(1234 * 1024));
-	CHECK_STR_EQ_FREE2("438.5 Mbytes",
-	                   format_human_readable_size(438.5 * 1024 * 1024));
-	CHECK_STR_EQ_FREE2("1.0 Gbytes",
-	                   format_human_readable_size(1024 * 1024 * 1024));
-	CHECK_STR_EQ_FREE2("17.1 Gbytes",
-	                   format_human_readable_size(17.11 * 1024 * 1024 * 1024));
+	CHECK_STR_EQ_FREE2("0", format_human_readable_size(0));
+	CHECK_STR_EQ_FREE2("1 B", format_human_readable_size(1));
+	CHECK_STR_EQ_FREE2("42.0 kB", format_human_readable_size(42 * 1000));
+	CHECK_STR_EQ_FREE2("1.0 MB", format_human_readable_size(1000 * 1000));
+	CHECK_STR_EQ_FREE2("1.2 MB", format_human_readable_size(1234 * 1000));
+	CHECK_STR_EQ_FREE2("438.5 MB",
+	                   format_human_readable_size(438.5 * 1000 * 1000));
+	CHECK_STR_EQ_FREE2("1.0 GB",
+	                   format_human_readable_size(1000 * 1000 * 1000));
+	CHECK_STR_EQ_FREE2("17.1 GB",
+	                   format_human_readable_size(17.11 * 1000 * 1000 * 1000));
 }
 
 TEST(format_parsable_size_with_suffix)
 {
 	CHECK_STR_EQ_FREE2("0", format_parsable_size_with_suffix(0));
-	CHECK_STR_EQ_FREE2("42.0K", format_parsable_size_with_suffix(42 * 1024));
-	CHECK_STR_EQ_FREE2("1.0M", format_parsable_size_with_suffix(1024 * 1024));
-	CHECK_STR_EQ_FREE2("1.2M", format_parsable_size_with_suffix(1234 * 1024));
+	CHECK_STR_EQ_FREE2("42.0k", format_parsable_size_with_suffix(42 * 1000));
+	CHECK_STR_EQ_FREE2("1.0M", format_parsable_size_with_suffix(1000 * 1000));
+	CHECK_STR_EQ_FREE2("1.2M", format_parsable_size_with_suffix(1234 * 1000));
 	CHECK_STR_EQ_FREE2("438.5M",
-	                   format_parsable_size_with_suffix(438.5 * 1024 * 1024));
+	                   format_parsable_size_with_suffix(438.5 * 1000 * 1000));
 	CHECK_STR_EQ_FREE2("1.0G",
-	                   format_parsable_size_with_suffix(1024 * 1024 * 1024));
+	                   format_parsable_size_with_suffix(1000 * 1000 * 1000));
 	CHECK_STR_EQ_FREE2(
 		"17.1G",
-		format_parsable_size_with_suffix(17.11 * 1024 * 1024 * 1024));
+		format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
 }
 
 TEST(parse_size_with_suffix)
 {
-	uint64_t size;
-	CHECK(parse_size_with_suffix("0", &size));
-	CHECK_INT_EQ(0, size);
-	CHECK(parse_size_with_suffix("42K", &size));
-	CHECK_INT_EQ(42 * 1024, size);
-	CHECK(parse_size_with_suffix("1.0M", &size));
-	CHECK_INT_EQ(1024 * 1024, size);
-	CHECK(parse_size_with_suffix("1.1M", &size));
-	CHECK_INT_EQ(1.1 * 1024 * 1024, size);
-	CHECK(parse_size_with_suffix("438.5M", &size));
-	CHECK_INT_EQ(438.5 * 1024 * 1024, size);
-	CHECK(parse_size_with_suffix("1.0G", &size));
-	CHECK_INT_EQ(1024 * 1024 * 1024, size);
-	CHECK(parse_size_with_suffix("17.1G", &size));
-	CHECK_INT_EQ(17.1 * 1024 * 1024 * 1024, size);
+	size_t size;
+	size_t i;
+	struct { const char *size; int64_t expected; } sizes[] = {
+		{"0", 0},
+		{"42", 42},
+
+		{"78k",       78 * 1000},
+		{"78K",       78 * 1000},
+		{"1.1 M",     1.1 * 1000 * 1000},
+		{"438.55M",   438.55 * 1000 * 1000},
+		{"1 G",       1 * 1000 * 1000 * 1000},
+		{"2T",        2L * 1000 * 1000 * 1000 * 1000},
+
+		{"78 Ki",     78 * 1024},
+		{"1.1Mi",     1.1 * 1024 * 1024},
+		{"438.55 Mi", 438.55 * 1024 * 1024},
+		{"1Gi",       1 * 1024 * 1024 * 1024},
+		{"2 Ti",      2L * 1024 * 1024 * 1024 * 1024},
+
+	};
+
+	for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+		CHECKM(parse_size_with_suffix(sizes[i].size, &size), sizes[i].size);
+		CHECK_INT_EQ(sizes[i].expected, size);
+	}
 }
 
 TEST_SUITE_END

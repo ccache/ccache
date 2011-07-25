@@ -87,7 +87,7 @@ static void
 display_size(uint64_t size)
 {
 	char *s = format_human_readable_size(size);
-	printf("%15s", s);
+	printf("%11s", s);
 	free(s);
 }
 

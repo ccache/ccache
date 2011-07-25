@@ -1795,7 +1795,7 @@ upgrade_suite() {
     mkdir -p $CCACHE_DIR/0
     echo "0 0 0 0 0 0 0 0 0 0 0 0 0 2000 131072" >$CCACHE_DIR/0/stats
     checkstat 'max files' 32000
-    checkstat 'max cache size' '2.0 Gbytes'
+    checkstat 'max cache size' '2.1 GB'
 }
 
 ######################################################################

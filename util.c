@@ -819,29 +819,31 @@ char *
 format_human_readable_size(uint64_t v)
 {
 	char *s;
-	if (v >= 1024*1024*1024) {
-		s = format("%.1f Gbytes", v/((double)(1024*1024*1024)));
-	} else if (v >= 1024*1024) {
-		s = format("%.1f Mbytes", v/((double)(1024*1024)));
-	} else if (v >= 1024) {
-		s = format("%.1f Kbytes", v/((double)(1024)));
+	if (v >= 1000*1000*1000) {
+		s = format("%.1f GB", v/((double)(1000*1000*1000)));
+	} else if (v >= 1000*1000) {
+		s = format("%.1f MB", v/((double)(1000*1000)));
+	} else if (v >= 1000) {
+		s = format("%.1f kB", v/((double)(1000)));
+	} else if (v > 0) {
+		s = format("%u B", (unsigned)v);
 	} else {
-		s = format("%u bytes", (unsigned)v);
+			s = x_strdup("0");
 	}
 	return s;
 }
 
-/* Format a size (in KiB) as a human-readable string. Caller frees. */
+/* Format a size as a parsable string. Caller frees. */
 char *
 format_parsable_size_with_suffix(uint64_t size)
 {
 	char *s;
-	if (size >= 1024*1024*1024) {
-		s = format("%.1fG", size / ((double)(1024*1024*1024)));
-	} else if (size >= 1024*1024) {
-		s = format("%.1fM", size / ((double)(1024*1024)));
-	} else if (size >= 1024) {
-		s = format("%.1fK", size / ((double)(1024)));
+	if (size >= 1000*1000*1000) {
+		s = format("%.1fG", size / ((double)(1000*1000*1000)));
+	} else if (size >= 1000*1000) {
+		s = format("%.1fM", size / ((double)(1000*1000)));
+	} else if (size >= 1000) {
+		s = format("%.1fk", size / ((double)(1000)));
 	} else {
 		s = format("%u", (unsigned)size);
 	}
@@ -849,36 +851,49 @@ format_parsable_size_with_suffix(uint64_t size)
 }
 
 /*
- * Parse a value given a string that can end in K, M or G. Default suffix: G.
+ * Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
+ * suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility,
+ * K is also recognized as a synonym of k.
  */
 bool
 parse_size_with_suffix(const char *str, uint64_t *size)
 {
-	char *endptr;
+	char *p;
 	double x;
+
 	errno = 0;
-	x = strtod(str, &endptr);
-	if (errno != 0 || x < 0 || endptr == str || *str == '\0') {
+	x = strtod(str, &p);
+	if (errno != 0 || x < 0 || p == str || *str == '\0') {
 		return false;
 	}
 
-	switch (*endptr) {
-	case 'G':
-	case 'g':
-	case '\0':
-		x *= 1024 * 1024;
-		break;
-	case 'M':
-	case 'm':
-		x *= 1024;
-		break;
-	case 'K':
-	case 'k':
-		break;
-	default:
-		return false;
+	while (isspace(*p)) {
+		++p;
 	}
-	*size = x * 1024;
+
+	if (*p != '\0') {
+		unsigned multiplier;
+		if (*(p+1) == 'i') {
+			multiplier = 1024;
+		} else {
+			multiplier = 1000;
+		}
+		switch (*p) {
+		case 'T':
+			x *= multiplier;
+		case 'G':
+			x *= multiplier;
+		case 'M':
+			x *= multiplier;
+		case 'K':
+		case 'k':
+			x *= multiplier;
+			break;
+		default:
+			return false;
+		}
+	}
+	*size = x;
 	return true;
 }
 
