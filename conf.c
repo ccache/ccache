@@ -615,3 +615,107 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 
 	return true;
 }
+
+bool conf_print_items(struct conf *conf,
+                      void(*printer)(const char *s, void *context),
+                      void *context)
+{
+	char *s = x_strdup("");
+	char *s2;
+
+	reformat(&s, "base_dir = %s", conf->base_dir);
+	printer(s, context);
+
+	reformat(&s, "cache_dir = %s", conf->cache_dir);
+	printer(s, context);
+
+	reformat(&s, "cache_dir_levels = %u", conf->cache_dir_levels);
+	printer(s, context);
+
+	reformat(&s, "compiler = %s", conf->compiler);
+	printer(s, context);
+
+	reformat(&s, "compiler_check = %s", conf->compiler_check);
+	printer(s, context);
+
+	reformat(&s, "compression = %s", conf->compression ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
+	printer(s, context);
+
+	reformat(&s, "detect_shebang = %s", conf->detect_shebang ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "direct_mode = %s", conf->direct_mode ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "disable = %s", conf->disable ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
+	printer(s, context);
+
+	reformat(&s, "hard_link = %s", conf->hard_link ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "hash_dir = %s", conf->hash_dir ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "log_file = %s", conf->log_file);
+	printer(s, context);
+
+	reformat(&s, "max_files = %u", conf->max_files);
+	printer(s, context);
+
+	s2 = format_parsable_size_with_suffix(conf->max_size);
+	reformat(&s, "max_size = %s", s2);
+	printer(s, context);
+	free(s2);
+
+	reformat(&s, "path = %s", conf->path);
+	printer(s, context);
+
+	reformat(&s, "prefix_command = %s", conf->prefix_command);
+	printer(s, context);
+
+	reformat(&s, "read_only = %s", conf->read_only ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "recache = %s", conf->recache ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "run_second_cpp = %s", conf->run_second_cpp ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "sloppiness = ");
+	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
+		reformat(&s, "%sfile_macro, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
+		reformat(&s, "%sinclude_file_mtime, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
+		reformat(&s, "%stime_macros, ", s);
+	}
+	if (conf->sloppiness) {
+		/* Strip last ", ". */
+		s[strlen(s) - 2] = '\0';
+	}
+	printer(s, context);
+
+	reformat(&s, "stats = %s", conf->stats ? "true" : "false");
+	printer(s, context);
+
+	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
+	printer(s, context);
+
+	reformat(&s, "umask = %03o", conf->umask);
+	printer(s, context);
+
+	reformat(&s, "unify = %s", conf->unify ? "true" : "false");
+	printer(s, context);
+
+	free(s);
+	return true;
+}

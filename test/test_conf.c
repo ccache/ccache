@@ -20,6 +20,26 @@
 #include "test/framework.h"
 #include "test/util.h"
 
+static char *received_conf_items[100];
+static size_t n_received_conf_items = 0;
+
+static void
+conf_item_receiver(const char *s, void *context)
+{
+	(void)context;
+	received_conf_items[n_received_conf_items] = x_strdup(s);
+	++n_received_conf_items;
+}
+
+static void
+free_received_conf_items(void)
+{
+	while (n_received_conf_items > 0) {
+		--n_received_conf_items;
+		free(received_conf_items[n_received_conf_items]);
+	}
+}
+
 TEST_SUITE(conf)
 
 TEST(conf_item_table_should_be_sorted)
@@ -324,6 +344,70 @@ TEST(conf_set_existing_value)
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
+}
+
+TEST(conf_print_items)
+{
+	struct conf conf = {
+		"bd",
+		"cd",
+		7,
+		"c",
+		"cc",
+		true,
+		"ce",
+		true,
+		false,
+		true,
+		"efth",
+		true,
+		true,
+		"lf",
+		4711,
+		98.7 * 1000 * 1000,
+		"p",
+		"pc",
+		true,
+		true,
+		true,
+		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_TIME_MACROS,
+		false,
+		"td",
+		022,
+		true
+	};
+	size_t n = 0;
+
+	conf_print_items(&conf, conf_item_receiver, NULL);
+	CHECK_INT_EQ(26, n_received_conf_items);
+	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++]);
+	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++]);
+	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++]);
+	CHECK_STR_EQ("compiler = c", received_conf_items[n++]);
+	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++]);
+	CHECK_STR_EQ("compression = true", received_conf_items[n++]);
+	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++]);
+	CHECK_STR_EQ("detect_shebang = true", received_conf_items[n++]);
+	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++]);
+	CHECK_STR_EQ("disable = true", received_conf_items[n++]);
+	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++]);
+	CHECK_STR_EQ("hard_link = true", received_conf_items[n++]);
+	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++]);
+	CHECK_STR_EQ("log_file = lf", received_conf_items[n++]);
+	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++]);
+	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++]);
+	CHECK_STR_EQ("path = p", received_conf_items[n++]);
+	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++]);
+	CHECK_STR_EQ("read_only = true", received_conf_items[n++]);
+	CHECK_STR_EQ("recache = true", received_conf_items[n++]);
+	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++]);
+	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime, time_macros",
+	             received_conf_items[n++]);
+	CHECK_STR_EQ("stats = false", received_conf_items[n++]);
+	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++]);
+	CHECK_STR_EQ("umask = 022", received_conf_items[n++]);
+	CHECK_STR_EQ("unify = true", received_conf_items[n++]);
+	free_received_conf_items();
 }
 
 TEST_SUITE_END
