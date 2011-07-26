@@ -115,13 +115,12 @@ const char *tmp_string(void);
 char *format_hash_as_string(const unsigned char *hash, int size);
 int create_cachedirtag(const char *dir);
 char *format(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+void reformat(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);
 char *x_strndup(const char *s, size_t n);
 void *x_malloc(size_t size);
 void *x_calloc(size_t nmemb, size_t size);
 void *x_realloc(void *ptr, size_t size);
-void x_asprintf2(char **ptr, const char *format, ...)
-	ATTR_FORMAT(printf, 2, 3);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *basename(const char *path);
 char *dirname(const char *path);

@@ -646,10 +646,11 @@ x_realloc(void *ptr, size_t size)
 
 
 /*
- * This is like x_asprintf() but frees *ptr if *ptr != NULL.
+ * Construct a string according to the format and store it in *ptr. The
+ * original *ptr is then freed.
  */
 void
-x_asprintf2(char **ptr, const char *format, ...)
+reformat(char **ptr, const char *format, ...)
 {
 	char *saved = *ptr;
 	va_list ap;
@@ -657,11 +658,11 @@ x_asprintf2(char **ptr, const char *format, ...)
 	*ptr = NULL;
 	va_start(ap, format);
 	if (vasprintf(ptr, format, ap) == -1) {
-		fatal("Out of memory in x_asprintf2");
+		fatal("Out of memory in reformat");
 	}
 	va_end(ap);
 
-	if (!ptr) fatal("Out of memory in x_asprintf2");
+	if (!ptr) fatal("Out of memory in reformat");
 	if (saved) {
 		free(saved);
 	}
@@ -1106,7 +1107,7 @@ get_relative_path(const char *from, const char *to)
 	common_prefix_len = common_dir_prefix_length(from, to);
 	for (p = from + common_prefix_len; *p; p++) {
 		if (*p == '/') {
-			x_asprintf2(&result, "../%s", result);
+			reformat(&result, "../%s", result);
 		}
 	}
 	if (strlen(to) > common_prefix_len) {
@@ -1114,7 +1115,7 @@ get_relative_path(const char *from, const char *to)
 		while (*p == '/') {
 			p++;
 		}
-		x_asprintf2(&result, "%s%s", result, p);
+		reformat(&result, "%s%s", result, p);
 	}
 	i = strlen(result) - 1;
 	while (i >= 0 && result[i] == '/') {
@@ -1342,7 +1343,7 @@ expand_variable(const char **str, char **result, char **errmsg)
 
 	if (q == p) {
 		/* Special case: don't consider a single $ the start of a variable. */
-		x_asprintf2(result, "%s$", *result);
+		reformat(result, "%s$", *result);
 		return true;
 	}
 
@@ -1353,7 +1354,7 @@ expand_variable(const char **str, char **result, char **errmsg)
 		free(name);
 		return false;
 	}
-	x_asprintf2(result, "%s%s", *result, value);
+	reformat(result, "%s%s", *result, value);
 	if (!curly) {
 		--q;
 	}
@@ -1383,7 +1384,7 @@ subst_env_in_string(const char *str, char **errmsg)
 	q = str;
 	for (q = str; *q; ++q) {
 		if (*q == '$') {
-			x_asprintf2(&result, "%s%.*s", result, (int)(q - p), p);
+			reformat(&result, "%s%.*s", result, (int)(q - p), p);
 			if (!expand_variable(&q, &result, errmsg)) {
 				free(result);
 				return NULL;
@@ -1391,6 +1392,6 @@ subst_env_in_string(const char *str, char **errmsg)
 			p = q + 1;
 		}
 	}
-	x_asprintf2(&result, "%s%.*s", result, (int)(q - p), p);
+	reformat(&result, "%s%.*s", result, (int)(q - p), p);
 	return result;
 }
