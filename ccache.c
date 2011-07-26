@@ -61,6 +61,7 @@ static const char USAGE_TEXT[] =
 "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
 "                          limit; available suffixes: G, M and K; default\n"
 "                          suffix: G)\n"
+"    -o, --set-option=K=V  set configuration option K to V\n"
 "    -s, --show-stats      show statistics summary\n"
 "    -z, --zero-stats      zero statistics counters\n"
 "\n"
@@ -2097,13 +2098,14 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
+		{"set-option",    required_argument, 0, 'o'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
 
-	while ((c = getopt_long(argc, argv, "cChF:M:sVz", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cChF:M:o:sVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
@@ -2162,6 +2164,23 @@ ccache_main_options(int argc, char *argv[])
 				} else {
 					fatal("could not set cache size limit: %s", errmsg);
 				}
+			}
+			break;
+
+		case 'o': /* --set-option */
+			{
+				char *errmsg, *key, *value, *p;
+				initialize();
+				p = strchr(optarg, '=');
+				if (!p) {
+					fatal("missing equal sign in \"%s\"", optarg);
+				}
+				key = x_strndup(optarg, p - optarg);
+				value = p + 1;
+				if (!conf_set_value_in_file(primary_config_path, key, value, &errmsg)) {
+					fatal("%s", errmsg);
+				}
+				free(key);
 			}
 			break;
 

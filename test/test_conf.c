@@ -307,11 +307,11 @@ TEST(conf_set_new_value)
 	char *errmsg;
 	char *data;
 
-	create_file("ccache.conf", "flavour = vanilla\n");
-	CHECK(conf_set_value_in_file("ccache.conf", "topping", "chocolate", &errmsg));
+	create_file("ccache.conf", "path = vanilla\n");
+	CHECK(conf_set_value_in_file("ccache.conf", "stats", "chocolate", &errmsg));
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
-	CHECK_STR_EQ_FREE2("flavour = vanilla\ntopping = chocolate\n", data);
+	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
 }
 
 TEST(conf_set_existing_value)
@@ -319,11 +319,11 @@ TEST(conf_set_existing_value)
 	char *errmsg;
 	char *data;
 
-	create_file("ccache.conf", "flavour = chocolate\ntopping = chocolate\n");
-	CHECK(conf_set_value_in_file("ccache.conf", "flavour", "vanilla", &errmsg));
+	create_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+	CHECK(conf_set_value_in_file("ccache.conf", "path", "vanilla", &errmsg));
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
-	CHECK_STR_EQ_FREE2("flavour = vanilla\ntopping = chocolate\n", data);
+	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
 }
 
 TEST_SUITE_END

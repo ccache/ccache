@@ -563,6 +563,13 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	char *outpath;
 	char buf[10000];
 	bool found;
+	const struct conf_item *item;
+
+	item = find_conf(key);
+	if (!item) {
+		*errmsg = format("unknown configuration option \"%s\"", key);
+		return false;
+	}
 
 	infile = fopen(path, "r");
 	if (!infile) {
