@@ -61,21 +61,6 @@ parse_env_string(const char *str, void *result, char **errmsg)
 }
 
 static bool
-parse_octal(const char *str, void *result, char **errmsg)
-{
-	unsigned *value = (unsigned *)result;
-	char *endptr;
-	errno = 0;
-	*value = strtoul(str, &endptr, 8);
-	if (errno == 0 && *str != '\0' && *endptr == '\0') {
-		return true;
-	} else {
-		*errmsg = format("not an octal integer: \"%s\"", str);
-		return false;
-	}
-}
-
-static bool
 parse_size(const char *str, void *result, char **errmsg)
 {
 	uint64_t *value = (uint64_t *)result;
@@ -127,6 +112,25 @@ parse_string(const char *str, void *result, char **errmsg)
 	free(*value);
 	*value = x_strdup(str);
 	return true;
+}
+
+static bool
+parse_umask(const char *str, void *result, char **errmsg)
+{
+	unsigned *value = (unsigned *)result;
+	char *endptr;
+	if (str_eq(str, "")) {
+		*value = UINT_MAX;
+		return true;
+	}
+	errno = 0;
+	*value = strtoul(str, &endptr, 8);
+	if (errno == 0 && *str != '\0' && *endptr == '\0') {
+		return true;
+	} else {
+		*errmsg = format("not an octal integer: \"%s\"", str);
+		return false;
+	}
 }
 
 static bool
@@ -206,7 +210,7 @@ static const struct conf_item conf_items[] = {
 	ITEM(sloppiness, sloppiness),
 	ITEM(stats, bool),
 	ITEM(temporary_dir, env_string),
-	ITEM(umask, octal),
+	ITEM(umask, umask),
 	ITEM(unify, bool)
 };
 
@@ -710,8 +714,12 @@ bool conf_print_items(struct conf *conf,
 	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
 	printer(s, context);
 
-	reformat(&s, "umask = %03o", conf->umask);
-	printer(s, context);
+	if (conf->umask == UINT_MAX) {
+		printer("umask = ", context);
+	} else {
+		reformat(&s, "umask = %03o", conf->umask);
+		printer(s, context);
+	}
 
 	reformat(&s, "unify = %s", conf->unify ? "true" : "false");
 	printer(s, context);

@@ -210,14 +210,13 @@ TEST(conf_read_invalid_env_string)
 	conf_free(conf);
 }
 
-TEST(conf_read_invalid_octal)
+TEST(conf_read_empty_umask)
 {
 	struct conf *conf = conf_create();
 	char *errmsg;
-	create_file("ccache.conf", "umask = 890x");
-	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_STR_EQ_FREE2("ccache.conf:1: not an octal integer: \"890x\"",
-	                   errmsg);
+	create_file("ccache.conf", "umask = ");
+	CHECK(conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(conf->umask, UINT_MAX);
 	conf_free(conf);
 }
 

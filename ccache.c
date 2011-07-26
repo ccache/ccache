@@ -62,6 +62,7 @@ static const char USAGE_TEXT[] =
 "                          limit; available suffixes: G, M and K; default\n"
 "                          suffix: G)\n"
 "    -o, --set-option=K=V  set configuration option K to V\n"
+"    -p, --print-config    print current configuration options\n"
 "    -s, --show-stats      show statistics summary\n"
 "    -z, --zero-stats      zero statistics counters\n"
 "\n"
@@ -2081,6 +2082,16 @@ ccache(int argc, char *argv[])
 	failed();
 }
 
+static void
+conf_printer(const char *s, void *context)
+{
+	if (context == NULL) {
+		cc_log("%s\n", s);
+	} else {
+		fprintf(context, "%s\n", s);
+	}
+}
+
 /* the main program when not doing a compile */
 static int
 ccache_main_options(int argc, char *argv[])
@@ -2099,13 +2110,14 @@ ccache_main_options(int argc, char *argv[])
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
 		{"set-option",    required_argument, 0, 'o'},
+		{"print-config",  no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
 
-	while ((c = getopt_long(argc, argv, "cChF:M:o:sVz", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
@@ -2182,6 +2194,11 @@ ccache_main_options(int argc, char *argv[])
 				}
 				free(key);
 			}
+			break;
+
+		case 'p': /* --print-config */
+			initialize();
+			conf_print_items(conf, conf_printer, stdout);
 			break;
 
 		case 's': /* --show-stats */
