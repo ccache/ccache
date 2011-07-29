@@ -1,0 +1,36 @@
+%language=ANSI-C
+%enum
+%struct-type
+%readonly-tables
+%define hash-function-name envtoconfitems_hash
+%define lookup-function-name envtoconfitems_get
+%define slot-name env_name
+%define initializer-suffix ,""
+struct env_to_conf_item;
+%%
+BASEDIR, "base_dir"
+CC, "compiler"
+COMPILERCHECK, "compiler_check"
+COMPRESS, "compression"
+CPP2, "run_second_cpp"
+DETECT_SHEBANG, "detect_shebang"
+DIR, "cache_dir"
+DIRECT, "direct_mode"
+DISABLE, "disable"
+EXTENSION, "cpp_extension"
+EXTRAFILES, "extra_files_to_hash"
+HARDLINK, "hard_link"
+HASHDIR, "hash_dir"
+LOGFILE, "log_file"
+MAXFILES, "max_files"
+MAXSIZE, "max_size"
+NLEVELS, "cache_dir_levels"
+PATH, "path"
+PREFIX, "prefix_command"
+READONLY, "read_only"
+RECACHE, "recache"
+SLOPPINESS, "sloppiness"
+STATS, "stats"
+TEMPDIR, "temporary_dir"
+UMASK, "umask"
+UNIFY, "unify"

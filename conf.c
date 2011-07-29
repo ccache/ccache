@@ -181,108 +181,23 @@ verify_dir_levels(void *value, char **errmsg)
 }
 
 #define ITEM(name, type) \
-	{#name, parse_##type, offsetof(struct conf, name), NULL}
+	parse_##type, offsetof(struct conf, name), NULL
 #define ITEM_V(name, type, verification) \
-	{#name, parse_##type, offsetof(struct conf, name), verify_##verification}
+	parse_##type, offsetof(struct conf, name), verify_##verification
 
-static const struct conf_item conf_items[] = {
-	ITEM_V(base_dir, env_string, absolute_path),
-	ITEM(cache_dir, env_string),
-	ITEM_V(cache_dir_levels, unsigned, dir_levels),
-	ITEM(compiler, string),
-	ITEM(compiler_check, string),
-	ITEM(compression, bool),
-	ITEM(cpp_extension, string),
-	ITEM(detect_shebang, bool),
-	ITEM(direct_mode, bool),
-	ITEM(disable, bool),
-	ITEM(extra_files_to_hash, env_string),
-	ITEM(hard_link, bool),
-	ITEM(hash_dir, bool),
-	ITEM(log_file, env_string),
-	ITEM(max_files, unsigned),
-	ITEM(max_size, size),
-	ITEM(path, env_string),
-	ITEM(prefix_command, env_string),
-	ITEM(read_only, bool),
-	ITEM(recache, bool),
-	ITEM(run_second_cpp, bool),
-	ITEM(sloppiness, sloppiness),
-	ITEM(stats, bool),
-	ITEM(temporary_dir, env_string),
-	ITEM(umask, umask),
-	ITEM(unify, bool)
-};
-
-#define ENV_TO_CONF(env_name, conf_name) \
-	{#env_name, #conf_name}
-
-static const struct env_to_conf_item env_to_conf_items[] = {
-	ENV_TO_CONF(BASEDIR, base_dir),
-	ENV_TO_CONF(CC, compiler),
-	ENV_TO_CONF(COMPILERCHECK, compiler_check),
-	ENV_TO_CONF(COMPRESS, compression),
-	ENV_TO_CONF(CPP2, run_second_cpp),
-	ENV_TO_CONF(DETECT_SHEBANG, detect_shebang),
-	ENV_TO_CONF(DIR, cache_dir),
-	ENV_TO_CONF(DIRECT, direct_mode),
-	ENV_TO_CONF(DISABLE, disable),
-	ENV_TO_CONF(EXTENSION, cpp_extension),
-	ENV_TO_CONF(EXTRAFILES, extra_files_to_hash),
-	ENV_TO_CONF(HARDLINK, hard_link),
-	ENV_TO_CONF(HASHDIR, hash_dir),
-	ENV_TO_CONF(LOGFILE, log_file),
-	ENV_TO_CONF(MAXFILES, max_files),
-	ENV_TO_CONF(MAXSIZE, max_size),
-	ENV_TO_CONF(NLEVELS, cache_dir_levels),
-	ENV_TO_CONF(PATH, path),
-	ENV_TO_CONF(PREFIX, prefix_command),
-	ENV_TO_CONF(READONLY, read_only),
-	ENV_TO_CONF(RECACHE, recache),
-	ENV_TO_CONF(SLOPPINESS, sloppiness),
-	ENV_TO_CONF(STATS, stats),
-	ENV_TO_CONF(TEMPDIR, temporary_dir),
-	ENV_TO_CONF(UMASK, umask),
-	ENV_TO_CONF(UNIFY, unify)
-};
-
-static int
-compare_conf_items(const void *key1, const void *key2)
-{
-	const struct conf_item *conf1 = (const struct conf_item *)key1;
-	const struct conf_item *conf2 = (const struct conf_item *)key2;
-	return strcmp(conf1->name, conf2->name);
-}
+#include "confitems_lookup.c"
+#include "envtoconfitems_lookup.c"
 
 static const struct conf_item *
 find_conf(const char *name)
 {
-	struct conf_item key;
-	key.name = name;
-	return bsearch(
-		&key, conf_items, sizeof(conf_items) / sizeof(conf_items[0]),
-		sizeof(conf_items[0]), compare_conf_items);
-}
-
-static int
-compare_env_to_conf_items(const void *key1, const void *key2)
-{
-	const struct env_to_conf_item *conf1 = (const struct env_to_conf_item *)key1;
-	const struct env_to_conf_item *conf2 = (const struct env_to_conf_item *)key2;
-	return strcmp(conf1->env_name, conf2->env_name);
+	return confitems_get(name, strlen(name));
 }
 
 static const struct env_to_conf_item *
 find_env_to_conf(const char *name)
 {
-	struct env_to_conf_item key;
-	key.env_name = name;
-	return bsearch(
-		&key,
-		env_to_conf_items,
-		sizeof(env_to_conf_items) / sizeof(env_to_conf_items[0]),
-		sizeof(env_to_conf_items[0]),
-		compare_env_to_conf_items);
+	return envtoconfitems_get(name, strlen(name));
 }
 
 static bool
@@ -362,52 +277,6 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 	return true;
 
 #undef SKIP_WS
-}
-
-/* For test purposes. */
-bool
-conf_verify_sortedness(void)
-{
-	size_t i;
-	for (i = 1; i < sizeof(conf_items)/sizeof(conf_items[0]); i++) {
-		if (strcmp(conf_items[i-1].name, conf_items[i].name) >= 0) {
-			fprintf(stderr,
-			        "conf_verify_sortedness: %s >= %s\n",
-			        conf_items[i-1].name,
-			        conf_items[i].name);
-			return false;
-		}
-	}
-	return true;
-}
-
-/* For test purposes. */
-bool
-conf_verify_env_table_correctness(void)
-{
-	size_t i;
-	for (i = 0;
-	     i < sizeof(env_to_conf_items) / sizeof(env_to_conf_items[0]);
-	     i++) {
-		if (i > 0
-		    && strcmp(env_to_conf_items[i-1].env_name,
-		              env_to_conf_items[i].env_name) >= 0) {
-			fprintf(stderr,
-			        "conf_verify_env_table_correctness: %s >= %s\n",
-			        env_to_conf_items[i-1].env_name,
-			        env_to_conf_items[i].env_name);
-			return false;
-		}
-		if (!find_conf(env_to_conf_items[i].conf_name)) {
-			fprintf(stderr,
-			        "conf_verify_env_table_correctness: %s -> %s,"
-			        " which doesn't exist\n",
-			        env_to_conf_items[i].env_name,
-			        env_to_conf_items[i].conf_name);
-			return false;
-		}
-	}
-	return true;
 }
 
 /* Create a conf struct with default values. */

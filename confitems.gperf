@@ -1,0 +1,35 @@
+%language=ANSI-C
+%enum
+%struct-type
+%readonly-tables
+%define hash-function-name confitems_hash
+%define lookup-function-name confitems_get
+%define initializer-suffix ,NULL,0,NULL
+struct conf_item;
+%%
+base_dir, ITEM_V(base_dir, env_string, absolute_path)
+cache_dir, ITEM(cache_dir, env_string)
+cache_dir_levels, ITEM_V(cache_dir_levels, unsigned, dir_levels)
+compiler, ITEM(compiler, string)
+compiler_check, ITEM(compiler_check, string)
+compression, ITEM(compression, bool)
+cpp_extension, ITEM(cpp_extension, string)
+detect_shebang, ITEM(detect_shebang, bool)
+direct_mode, ITEM(direct_mode, bool)
+disable, ITEM(disable, bool)
+extra_files_to_hash, ITEM(extra_files_to_hash, env_string)
+hard_link, ITEM(hard_link, bool)
+hash_dir, ITEM(hash_dir, bool)
+log_file, ITEM(log_file, env_string)
+max_files, ITEM(max_files, unsigned)
+max_size, ITEM(max_size, size)
+path, ITEM(path, env_string)
+prefix_command, ITEM(prefix_command, env_string)
+read_only, ITEM(read_only, bool)
+recache, ITEM(recache, bool)
+run_second_cpp, ITEM(run_second_cpp, bool)
+sloppiness, ITEM(sloppiness, sloppiness)
+stats, ITEM(stats, bool)
+temporary_dir, ITEM(temporary_dir, env_string)
+umask, ITEM(umask, umask)
+unify, ITEM(unify, bool)

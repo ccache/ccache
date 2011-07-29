@@ -4,6 +4,7 @@ CFLAGS += -Werror
 CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 ASCIIDOC = asciidoc
+GPERF = gperf
 XSLTPROC = xsltproc
 MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
 
@@ -34,6 +35,7 @@ files_to_distclean += .deps version.c dev.mk
 
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
+    confitems_lookup.c envtoconfitems_lookup.c \
     config.h.in configure install-sh Makefile.in test.sh GPL-3.0.txt \
     AUTHORS.txt INSTALL.txt LICENSE.txt MANUAL.txt NEWS.txt README.txt
 dist_files = \
@@ -44,6 +46,9 @@ ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
   $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)
 endif
 version.o: version.c
+
+%_lookup.c: %.gperf
+	$(GPERF) $< >$@
 
 .PHONY: dist
 dist: $(dist_archives)

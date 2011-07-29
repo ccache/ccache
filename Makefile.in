@@ -62,6 +62,8 @@ install: all
 clean:
 	rm -f $(files_to_clean)
 
+conf.c: confitems_lookup.c envtoconfitems_lookup.c
+
 zlib/libz.a: $(zlib_objs)
 	$(AR) cr $@ $(zlib_objs)
 	$(RANLIB) $@

@@ -42,18 +42,6 @@ free_received_conf_items(void)
 
 TEST_SUITE(conf)
 
-TEST(conf_item_table_should_be_sorted)
-{
-	bool conf_verify_sortedness();
-	CHECK(conf_verify_sortedness());
-}
-
-TEST(conf_env_item_table_should_be_sorted_and_otherwise_correct)
-{
-	bool conf_verify_env_table_correctness();
-	CHECK(conf_verify_env_table_correctness());
-}
-
 TEST(conf_create)
 {
 	struct conf *conf = conf_create();
