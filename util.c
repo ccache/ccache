@@ -948,7 +948,7 @@ gnu_getcwd(void)
 		}
 		free(buffer);
 		if (errno != ERANGE) {
-			return 0;
+			return NULL;
 		}
 		size *= 2;
 	}
