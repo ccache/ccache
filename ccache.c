@@ -706,8 +706,14 @@ to_cache(struct args *args)
 	}
 
 	if (output_to_real_object_first) {
-		if (copy_file(tmp_obj, cached_obj, enable_compression) != 0) {
-			cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
+		int ret;
+		if (getenv("CCACHE_HARDLINK")) {
+			ret = link(tmp_obj, cached_obj);
+		} else {
+			ret = copy_file(tmp_obj, cached_obj, enable_compression);
+		}
+		if (ret != 0) {
+			cc_log("Failed to copy/link %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
