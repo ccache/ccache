@@ -1052,6 +1052,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		char *base_name;
 		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
+		/* profile_dir is cwd by default unless overridden by
+		 * -fprofile-use=<dir>, or -fprofile-dir */
 		gcda_name = format("%s/%s.gcda", profile_dir, base_name);
 		cc_log("Adding profile data %s to our hash", gcda_name);
 		/* Add the gcda to our hash */
