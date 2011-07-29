@@ -1932,6 +1932,13 @@ setup_uncached_err(void)
 	}
 }
 
+static void
+configuration_logger(const char *descr, const char *origin, void *context)
+{
+	(void)context;
+	cc_log_without_flush("Config: (%s) %s", origin, descr);
+}
+
 /* the main ccache driver function */
 static void
 ccache(int argc, char *argv[])
@@ -1954,6 +1961,10 @@ ccache(int argc, char *argv[])
 	initialize();
 	find_compiler();
 
+	if (!str_eq(conf->log_file, "")) {
+		conf_print_items(conf, configuration_logger, NULL);
+	}
+
 	if (conf->disable) {
 		cc_log("ccache is disabled");
 		failed();
@@ -1961,21 +1972,9 @@ ccache(int argc, char *argv[])
 
 	setup_uncached_err();
 
-	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
-		cc_log("Being sloppy about __FILE__");
-	} else if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
-		cc_log("Being sloppy about include file mtime");
-	} else if (conf->sloppiness & SLOPPY_TIME_MACROS) {
-		cc_log("Being sloppy about __DATE__ and __TIME__");
-	}
-
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", current_working_dir);
-
-	if (!str_eq(conf->base_dir, "")) {
-		cc_log("Base directory: %s", conf->base_dir);
-	}
 
 	if (conf->unify) {
 		cc_log("Direct mode disabled because unify mode is enabled");
@@ -2084,13 +2083,10 @@ ccache(int argc, char *argv[])
 }
 
 static void
-conf_printer(const char *descr, const char *origin, void *context)
+configuration_printer(const char *descr, const char *origin, void *context)
 {
-	if (context == NULL) {
-		cc_log("(%s) %s", origin, descr);
-	} else {
-		fprintf(context, "(%s) %s\n", origin, descr);
-	}
+	assert(context);
+	fprintf(context, "(%s) %s\n", origin, descr);
 }
 
 /* the main program when not doing a compile */
@@ -2199,7 +2195,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'p': /* --print-config */
 			initialize();
-			conf_print_items(conf, conf_printer, stdout);
+			conf_print_items(conf, configuration_printer, stdout);
 			break;
 
 		case 's': /* --show-stats */
