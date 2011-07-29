@@ -98,23 +98,45 @@ path_max(const char *path)
 }
 
 /*
- * Write a message to the CCACHE_LOGFILE location (adding a newline).
+ * Write a message to the log file (adding a newline) and flush.
  */
 void
-cc_log(const char *format, ...)
+cc_vlog(const char *format, va_list ap)
 {
-	va_list ap;
-
 	if (!init_log()) {
 		return;
 	}
 
 	log_prefix();
-	va_start(ap, format);
 	vfprintf(logfile, format, ap);
-	va_end(ap);
 	fprintf(logfile, "\n");
-	fflush(logfile);
+}
+
+/*
+ * Write a message to the log file (adding a newline) and flush.
+ */
+void
+cc_log(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	cc_vlog(format, ap);
+	va_end(ap);
+	if (logfile) {
+		fflush(logfile);
+	}
+}
+
+/*
+ * Write a message to the log file (adding a newline).
+ */
+void
+cc_log_without_flush(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	cc_vlog(format, ap);
+	va_end(ap);
 }
 
 /*
