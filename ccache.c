@@ -1042,11 +1042,15 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	 *  -fprofile-generate=, -fprofile-use=, or -fprofile-dir
 	 */
 
-	/* We need to output to the real object first here, otherwise runtime
-	 * artifacts will be produced in the wrong place. */
+	/*
+	 * We need to output to the real object first here, otherwise runtime
+	 * artifacts will be produced in the wrong place.
+	 */
 	if (profile_generate) {
-		// TODO: Disable base_dir if profile_dir is NULL?
 		output_to_real_object_first = true;
+		if (!profile_dir) {
+			profile_dir = get_cwd();
+		}
 		cc_log("Adding profile directory %s to our hash", profile_dir);
 		hash_delimiter(hash, "-fprofile-dir");
 		hash_string(hash, profile_dir);
@@ -1057,8 +1061,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		char *base_name;
 		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
-		/* profile_dir is cwd by default unless overridden by
-		 * -fprofile-use=<dir>, or -fprofile-dir */
+		if (!profile_dir) {
+			profile_dir = get_cwd();
+		}
 		gcda_name = format("%s/%s.gcda", profile_dir, base_name);
 		cc_log("Adding profile data %s to our hash", gcda_name);
 		/* Add the gcda to our hash */
@@ -1596,6 +1601,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (str_startswith(argv[i], "-fprofile-")) {
 			char* arg_profile_dir = strchr(argv[i], '=');
 			char* arg = x_strdup(argv[i]);
+			bool supported_profile_option = false;
+
 			if (arg_profile_dir) {
 				char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
 
@@ -1613,29 +1620,32 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (str_startswith(argv[i], "-fprofile-generate")
 			    || str_eq(argv[i], "-fprofile-arcs")) {
 				profile_generate = true;
-				if (arg_profile_dir) {
-					profile_dir = arg_profile_dir;
-				}
-				cc_log("Setting profile directory to %s", profile_dir);
-				args_add(stripped_args, arg);
-				free(arg);
-				continue;
+				supported_profile_option = true;
 			} else if (str_startswith(argv[i], "-fprofile-use")
 			           || str_eq(argv[i], "-fbranch-probabilities")) {
 				profile_use = true;
-				if (arg_profile_dir) {
-					profile_dir = arg_profile_dir;
-				}
-				cc_log("Setting profile directory to %s", profile_dir);
+				supported_profile_option = true;
+			} else if (str_eq(argv[i], "-fprofile-dir")) {
+				supported_profile_option = true;
+			}
+
+			if (supported_profile_option) {
 				args_add(stripped_args, arg);
 				free(arg);
-				continue;
-			} else if (str_eq(argv[i], "-fprofile-dir")) {
-				if (arg_profile_dir) {
+
+				/* 
+				 * If the profile directory has already been
+				 * set, give up...hard to know what the user
+				 * means, and what the compiler will do.
+				 */
+				if (arg_profile_dir && profile_dir) {
+					cc_log("Profile directory already set; giving up");
+					result = false;
+					goto out;
+				} else if (arg_profile_dir) {
+					cc_log("Setting profile directory to %s", profile_dir);
 					profile_dir = arg_profile_dir;
 				}
-				cc_log("Setting profile directory to %s", profile_dir);
-				args_add(stripped_args, arg);
 				continue;
 			}
 			cc_log("Unknown profile option: %s", argv[i]);
@@ -1924,11 +1934,8 @@ out:
 void
 cc_reset(void)
 {
-	if (profile_dir != current_working_dir) {
-		free(profile_dir);
-	}
-	profile_dir = NULL;
 	free(current_working_dir); current_working_dir = NULL;
+	free(profile_dir); profile_dir = NULL;
 	free(cache_dir); cache_dir = NULL;
 	cache_logfile = NULL;
 	base_dir = NULL;
@@ -2306,7 +2313,6 @@ ccache_main(int argc, char *argv[])
 	}
 
 	current_working_dir = get_cwd();
-	profile_dir = current_working_dir;
 	cache_dir = getenv("CCACHE_DIR");
 	if (cache_dir) {
 		cache_dir = x_strdup(cache_dir);
