@@ -101,7 +101,7 @@ bool hash_file(struct mdfour *md, const char *fname);
 
 void cc_vlog(const char *format, va_list ap);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_without_flush(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void copy_fd(int fd_in, int fd_out);

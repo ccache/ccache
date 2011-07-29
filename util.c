@@ -56,22 +56,26 @@ init_log(void)
 }
 
 static void
-log_prefix(void)
+log_prefix(bool log_updated_time)
 {
 #ifdef HAVE_GETTIMEOFDAY
 	char timestamp[100];
 	struct timeval tv;
 	struct tm *tm;
+	static char prefix[200];
 
-	gettimeofday(&tv, NULL);
+	if (log_updated_time) {
+		gettimeofday(&tv, NULL);
 #ifdef __MINGW64_VERSION_MAJOR
-	tm = _localtime32(&tv.tv_sec);
+		tm = _localtime32(&tv.tv_sec);
 #else
-	tm = localtime(&tv.tv_sec);
+		tm = localtime(&tv.tv_sec);
 #endif
-	strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
-	fprintf(logfile, "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec,
-	        (int)getpid());
+		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
+		snprintf(prefix, sizeof(prefix),
+		         "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
+	}
+	fputs(prefix, logfile);
 #else
 	fprintf(logfile, "[%-5d] ", (int)getpid());
 #endif
@@ -97,19 +101,25 @@ path_max(const char *path)
 #endif
 }
 
+static void
+vlog(const char *format, va_list ap, bool log_updated_time)
+{
+	if (!init_log()) {
+		return;
+	}
+
+	log_prefix(log_updated_time);
+	vfprintf(logfile, format, ap);
+	fprintf(logfile, "\n");
+}
+
 /*
  * Write a message to the log file (adding a newline) and flush.
  */
 void
 cc_vlog(const char *format, va_list ap)
 {
-	if (!init_log()) {
-		return;
-	}
-
-	log_prefix();
-	vfprintf(logfile, format, ap);
-	fprintf(logfile, "\n");
+	vlog(format, ap, true);
 }
 
 /*
@@ -120,7 +130,7 @@ cc_log(const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
-	cc_vlog(format, ap);
+	vlog(format, ap, true);
 	va_end(ap);
 	if (logfile) {
 		fflush(logfile);
@@ -128,14 +138,15 @@ cc_log(const char *format, ...)
 }
 
 /*
- * Write a message to the log file (adding a newline).
+ * Write a message to the log file (adding a newline) without flushing and with
+ * a reused timestamp.
  */
 void
-cc_log_without_flush(const char *format, ...)
+cc_bulklog(const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
-	cc_vlog(format, ap);
+	vlog(format, ap, false);
 	va_end(ap);
 }
 
@@ -149,7 +160,7 @@ cc_log_argv(const char *prefix, char **argv)
 		return;
 	}
 
-	log_prefix();
+	log_prefix(true);
 	fputs(prefix, logfile);
 	print_command(logfile, argv);
 	fflush(logfile);

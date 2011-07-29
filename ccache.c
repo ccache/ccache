@@ -1936,7 +1936,7 @@ static void
 configuration_logger(const char *descr, const char *origin, void *context)
 {
 	(void)context;
-	cc_log_without_flush("Config: (%s) %s", origin, descr);
+	cc_bulklog("Config: (%s) %s", origin, descr);
 }
 
 /* the main ccache driver function */
