@@ -24,6 +24,7 @@ typedef bool (*conf_item_verifier)(void *value, char **errmsg);
 
 struct conf_item {
 	const char *name;
+	size_t number;
 	conf_item_parser parser;
 	size_t offset;
 	conf_item_verifier verifier;
@@ -202,7 +203,8 @@ find_env_to_conf(const char *name)
 
 static bool
 handle_conf_setting(struct conf *conf, const char *key, const char *value,
-                    char **errmsg, bool from_env_variable, bool negate_boolean)
+                    char **errmsg, bool from_env_variable, bool negate_boolean,
+                    const char *origin)
 {
 	const struct conf_item *item;
 
@@ -219,7 +221,7 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		 */
 		bool *value = (bool *)((void *)conf + item->offset);
 		*value = !negate_boolean;
-		return true;
+		goto out;
 	}
 
 	if (!item->parser(value, (void *)conf + item->offset, errmsg)) {
@@ -229,6 +231,8 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		return false;
 	}
 
+out:
+	conf->item_origins[item->number] = origin;
 	return true;
 }
 
@@ -283,6 +287,7 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 struct conf *
 conf_create(void)
 {
+	size_t i;
 	struct conf *conf = x_malloc(sizeof(*conf));
 	conf->base_dir = x_strdup("");
 	conf->cache_dir = format("%s/.ccache", get_home_directory());
@@ -310,6 +315,10 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
+	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char*));
+	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
+		conf->item_origins[i] = "default";
+	}
 	return conf;
 }
 
@@ -329,9 +338,11 @@ conf_free(struct conf *conf)
 	free(conf->path);
 	free(conf->prefix_command);
 	free(conf->temporary_dir);
+	free(conf->item_origins);
 	free(conf);
 }
 
+/* Note: The path pointer is stored in conf, so path must outlive conf. */
 bool
 conf_read(struct conf *conf, const char *path, char **errmsg)
 {
@@ -356,7 +367,7 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		++line_number;
 		ok = parse_line(buf, &key, &value, &errmsg2);
 		if (ok && key) { /* key == NULL if comment or blank line */
-			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false);
+			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
 		}
 		free(key);
 		free(value);
@@ -415,7 +426,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 
 		if (!handle_conf_setting(
-			    conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate)) {
+			    conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
+			    "environment")) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);
@@ -489,77 +501,79 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	return true;
 }
 
-bool conf_print_items(struct conf *conf,
-                      void(*printer)(const char *s, void *context),
-                      void *context)
+bool
+conf_print_items(struct conf *conf,
+                 void (*printer)(const char *descr, const char *origin,
+                                 void *context),
+                 void *context)
 {
 	char *s = x_strdup("");
 	char *s2;
 
 	reformat(&s, "base_dir = %s", conf->base_dir);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("base_dir")->number], context);
 
 	reformat(&s, "cache_dir = %s", conf->cache_dir);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("cache_dir")->number], context);
 
 	reformat(&s, "cache_dir_levels = %u", conf->cache_dir_levels);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("cache_dir_levels")->number], context);
 
 	reformat(&s, "compiler = %s", conf->compiler);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("compiler")->number], context);
 
 	reformat(&s, "compiler_check = %s", conf->compiler_check);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("compiler_check")->number], context);
 
 	reformat(&s, "compression = %s", conf->compression ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("compression")->number], context);
 
 	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("cpp_extension")->number], context);
 
 	reformat(&s, "detect_shebang = %s", conf->detect_shebang ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("detect_shebang")->number], context);
 
 	reformat(&s, "direct_mode = %s", conf->direct_mode ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);
 
 	reformat(&s, "disable = %s", conf->disable ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("disable")->number], context);
 
 	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number], context);
 
 	reformat(&s, "hard_link = %s", conf->hard_link ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("hard_link")->number], context);
 
 	reformat(&s, "hash_dir = %s", conf->hash_dir ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("log_file")->number], context);
 
 	reformat(&s, "max_files = %u", conf->max_files);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("max_files")->number], context);
 
 	s2 = format_parsable_size_with_suffix(conf->max_size);
 	reformat(&s, "max_size = %s", s2);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("max_size")->number], context);
 	free(s2);
 
 	reformat(&s, "path = %s", conf->path);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("path")->number], context);
 
 	reformat(&s, "prefix_command = %s", conf->prefix_command);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);
 
 	reformat(&s, "read_only = %s", conf->read_only ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("read_only")->number], context);
 
 	reformat(&s, "recache = %s", conf->recache ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("recache")->number], context);
 
 	reformat(&s, "run_second_cpp = %s", conf->run_second_cpp ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("run_second_cpp")->number], context);
 
 	reformat(&s, "sloppiness = ");
 	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
@@ -575,23 +589,23 @@ bool conf_print_items(struct conf *conf,
 		/* Strip last ", ". */
 		s[strlen(s) - 2] = '\0';
 	}
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("sloppiness")->number], context);
 
 	reformat(&s, "stats = %s", conf->stats ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("stats")->number], context);
 
 	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("temporary_dir")->number], context);
 
 	if (conf->umask == UINT_MAX) {
-		printer("umask = ", context);
+		reformat(&s, "umask = ");
 	} else {
 		reformat(&s, "umask = %03o", conf->umask);
-		printer(s, context);
 	}
+	printer(s, conf->item_origins[find_conf("umask")->number], context);
 
 	reformat(&s, "unify = %s", conf->unify ? "true" : "false");
-	printer(s, context);
+	printer(s, conf->item_origins[find_conf("unify")->number], context);
 
 	free(s);
 	return true;

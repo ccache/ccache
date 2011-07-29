@@ -20,14 +20,19 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-static char *received_conf_items[100];
+#define N_CONFIG_ITEMS 26
+static struct {
+	char *descr;
+	const char *origin;
+} received_conf_items[N_CONFIG_ITEMS];
 static size_t n_received_conf_items = 0;
 
 static void
-conf_item_receiver(const char *s, void *context)
+conf_item_receiver(const char *descr, const char *origin, void *context)
 {
 	(void)context;
-	received_conf_items[n_received_conf_items] = x_strdup(s);
+	received_conf_items[n_received_conf_items].descr = x_strdup(descr);
+	received_conf_items[n_received_conf_items].origin = origin;
 	++n_received_conf_items;
 }
 
@@ -36,7 +41,7 @@ free_received_conf_items(void)
 {
 	while (n_received_conf_items > 0) {
 		--n_received_conf_items;
-		free(received_conf_items[n_received_conf_items]);
+		free(received_conf_items[n_received_conf_items].descr);
 	}
 }
 
@@ -335,6 +340,7 @@ TEST(conf_set_existing_value)
 
 TEST(conf_print_items)
 {
+	size_t i;
 	struct conf conf = {
 		"bd",
 		"cd",
@@ -361,40 +367,53 @@ TEST(conf_print_items)
 		false,
 		"td",
 		022,
-		true
+		true,
+		NULL
 	};
 	size_t n = 0;
 
+	conf.item_origins = x_malloc(N_CONFIG_ITEMS * sizeof(char *));
+	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+		conf.item_origins[i] = format("origin%zu", i);
+	}
+
 	conf_print_items(&conf, conf_item_receiver, NULL);
 	CHECK_INT_EQ(26, n_received_conf_items);
-	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++]);
-	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++]);
-	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++]);
-	CHECK_STR_EQ("compiler = c", received_conf_items[n++]);
-	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++]);
-	CHECK_STR_EQ("compression = true", received_conf_items[n++]);
-	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++]);
-	CHECK_STR_EQ("detect_shebang = true", received_conf_items[n++]);
-	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++]);
-	CHECK_STR_EQ("disable = true", received_conf_items[n++]);
-	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++]);
-	CHECK_STR_EQ("hard_link = true", received_conf_items[n++]);
-	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++]);
-	CHECK_STR_EQ("log_file = lf", received_conf_items[n++]);
-	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++]);
-	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++]);
-	CHECK_STR_EQ("path = p", received_conf_items[n++]);
-	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++]);
-	CHECK_STR_EQ("read_only = true", received_conf_items[n++]);
-	CHECK_STR_EQ("recache = true", received_conf_items[n++]);
-	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++]);
+	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++].descr);
+	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++].descr);
+	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++].descr);
+	CHECK_STR_EQ("compiler = c", received_conf_items[n++].descr);
+	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++].descr);
+	CHECK_STR_EQ("compression = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
+	CHECK_STR_EQ("detect_shebang = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
+	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
+	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("log_file = lf", received_conf_items[n++].descr);
+	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
+	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);
+	CHECK_STR_EQ("path = p", received_conf_items[n++].descr);
+	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
+	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("recache = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime, time_macros",
-	             received_conf_items[n++]);
-	CHECK_STR_EQ("stats = false", received_conf_items[n++]);
-	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++]);
-	CHECK_STR_EQ("umask = 022", received_conf_items[n++]);
-	CHECK_STR_EQ("unify = true", received_conf_items[n++]);
+	             received_conf_items[n++].descr);
+	CHECK_STR_EQ("stats = false", received_conf_items[n++].descr);
+	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++].descr);
+	CHECK_STR_EQ("umask = 022", received_conf_items[n++].descr);
+	CHECK_STR_EQ("unify = true", received_conf_items[n++].descr);
+
+	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+		char *expected = format("origin%zu", i);
+		CHECK_STR_EQ(expected, received_conf_items[i].origin);
+	}
+
 	free_received_conf_items();
+	free(conf.item_origins);
 }
 
 TEST_SUITE_END

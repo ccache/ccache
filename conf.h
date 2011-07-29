@@ -30,6 +30,8 @@ struct conf {
 	char *temporary_dir;
 	unsigned umask;
 	bool unify;
+
+	const char **item_origins;
 };
 
 struct conf *conf_create(void);
@@ -39,7 +41,8 @@ bool conf_update_from_environment(struct conf *conf, char **errmsg);
 bool conf_set_value_in_file(const char *path, const char *key,
                             const char *value, char **errmsg);
 bool conf_print_items(struct conf *conf,
-                      void(*printer)(const char *s, void *context),
+                      void (*printer)(const char *descr, const char *origin,
+                                      void *context),
                       void *context);
 
 #endif

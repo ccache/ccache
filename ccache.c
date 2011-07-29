@@ -77,6 +77,9 @@ struct conf *conf = NULL;
 /* Where to write configuration changes. */
 char *primary_config_path = NULL;
 
+/* Secondary, read-only configuration file (if any). */
+char *secondary_config_path = NULL;
+
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
@@ -1832,16 +1835,13 @@ initialize(void)
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
-		char *sysconf_config_path;
-
-		sysconf_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
-		if (!conf_read(conf, sysconf_config_path, &errmsg)) {
-			if (stat(sysconf_config_path, &st) == 0) {
+		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+		if (!conf_read(conf, secondary_config_path, &errmsg)) {
+			if (stat(secondary_config_path, &st) == 0) {
 				fatal("%s", errmsg);
 			}
 			/* Missing config file in SYSCONFDIR is OK. */
 		}
-		free(sysconf_config_path);
 
 		if ((p = getenv("CCACHE_DIR"))) {
 			free(conf->cache_dir);
@@ -1885,6 +1885,7 @@ cc_reset(void)
 {
 	conf_free(conf); conf = NULL;
 	free(primary_config_path); primary_config_path = NULL;
+	free(secondary_config_path); secondary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
@@ -2083,12 +2084,12 @@ ccache(int argc, char *argv[])
 }
 
 static void
-conf_printer(const char *s, void *context)
+conf_printer(const char *descr, const char *origin, void *context)
 {
 	if (context == NULL) {
-		cc_log("%s\n", s);
+		cc_log("(%s) %s", origin, descr);
 	} else {
-		fprintf(context, "%s\n", s);
+		fprintf(context, "(%s) %s\n", origin, descr);
 	}
 }
 
