@@ -181,8 +181,7 @@ static bool compile_preprocessed_source_code;
 static bool output_is_precompiled_header = false;
 
 /* Whether we should output to the real object first before saving into cache */
-//static bool output_to_real_object_first = false;
-static bool output_to_real_object_first = true;
+static bool output_to_real_object_first = false;
 
 /* Profile generation / usage information */
 static char* profile_dir = NULL;
@@ -707,7 +706,7 @@ to_cache(struct args *args)
 
 	if (output_to_real_object_first) {
 		int ret;
-		if (getenv("CCACHE_HARDLINK")) {
+		if (getenv("CCACHE_HARDLINK") && !enable_compression) {
 			ret = link(tmp_obj, cached_obj);
 		} else {
 			ret = copy_file(tmp_obj, cached_obj, enable_compression);
