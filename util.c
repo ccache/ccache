@@ -867,7 +867,8 @@ gnu_getcwd(void)
 		}
 		free(buffer);
 		if (errno != ERANGE) {
-			return 0;
+			cc_log("getcwd error: %d (%s)", errno, strerror(errno));
+			return NULL;
 		}
 		size *= 2;
 	}
@@ -921,6 +922,9 @@ get_cwd(void)
 	struct stat st_cwd;
 
 	cwd = gnu_getcwd();
+	if (!cwd) {
+		return NULL;
+	}
 	pwd = getenv("PWD");
 	if (!pwd) {
 		return cwd;
