@@ -76,26 +76,6 @@ log_prefix(void)
 #endif
 }
 
-#ifndef _WIN32
-static long
-path_max(const char *path)
-{
-#ifdef PATH_MAX
-	(void)path;
-	return PATH_MAX;
-#elif defined(MAXPATHLEN)
-	(void)path;
-	return MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-	long maxlen = pathconf(path, _PC_PATH_MAX);
-	if (maxlen >= 4096) {
-		return maxlen;
-	} else {
-		return 4096;
-	}
-#endif
-}
-
 /*
  * Write a message to the CCACHE_LOGFILE location (adding a newline).
  */
@@ -853,6 +833,26 @@ value_units(const char *s)
 		break;
 	}
 	return (size_t)v;
+}
+
+#ifndef _WIN32
+static long
+path_max(const char *path)
+{
+#ifdef PATH_MAX
+	(void)path;
+	return PATH_MAX;
+#elif defined(MAXPATHLEN)
+	(void)path;
+	return MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+	long maxlen = pathconf(path, _PC_PATH_MAX);
+	if (maxlen >= 4096) {
+		return maxlen;
+	} else {
+		return 4096;
+	}
+#endif
 }
 
 /*
