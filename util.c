@@ -95,6 +95,7 @@ path_max(const char *path)
 	}
 #endif
 }
+#endif /* !_WIN32 */
 
 /*
  * Write a message to the CCACHE_LOGFILE location (adding a newline).
@@ -855,6 +856,7 @@ value_units(const char *s)
 	return (size_t)v;
 }
 
+#ifndef _WIN32
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
