@@ -1599,7 +1599,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		if (str_startswith(argv[i], "-fprofile-")) {
-			char* arg_profile_dir = strchr(argv[i], '=');
+			const char* arg_profile_dir = strchr(argv[i], '=');
 			char* arg = x_strdup(argv[i]);
 			bool supported_profile_option = false;
 
@@ -1642,7 +1642,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					goto out;
 				} else if (arg_profile_dir) {
 					cc_log("Setting profile directory to %s", profile_dir);
-					profile_dir = arg_profile_dir;
+					profile_dir = x_strdup(arg_profile_dir);
 				}
 				continue;
 			}
