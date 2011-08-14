@@ -1647,6 +1647,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				continue;
 			}
 			cc_log("Unknown profile option: %s", argv[i]);
+			free(arg);
 		}
 
 		/*
