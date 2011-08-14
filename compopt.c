@@ -32,7 +32,7 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
-	{"--coverage",      TOO_HARD},
+	{"--coverage",      TOO_HARD}, /* implies -ftest-coverage */
 	{"--param",         TAKES_ARG},
 	{"-A",              TAKES_ARG},
 	{"-D",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
@@ -53,12 +53,8 @@ static const struct compopt compopts[] = {
 	{"-Xpreprocessor",  TOO_HARD_DIRECT | TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
-	{"-fbranch-probabilities", TOO_HARD},
-	{"-fprofile-arcs",  TOO_HARD},
-	{"-fprofile-generate", TOO_HARD},
-	{"-fprofile-use",   TOO_HARD},
 	{"-frepo",          TOO_HARD},
-	{"-ftest-coverage", TOO_HARD},
+	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
