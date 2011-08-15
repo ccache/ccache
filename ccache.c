@@ -158,6 +158,14 @@ char *stats_file = NULL;
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
+/* Whether we should output to the real object first before saving into cache */
+static bool output_to_real_object_first = false;
+
+/* Profile generation / usage information */
+static char* profile_dir = NULL;
+static bool profile_use = false;
+static bool profile_generate = false;
+
 /*
  * Whether we are using a precompiled header (either via -include or #include).
  */
@@ -535,7 +543,13 @@ to_cache(struct args *args)
 	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
-	tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
+
+	if (output_to_real_object_first) {
+		tmp_obj = x_strdup(output_obj);
+		cc_log("Outputting to final destination: %s", tmp_obj);
+	} else {
+		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
+	}
 
 	args_add(args, "-o");
 	args_add(args, tmp_obj);
@@ -616,7 +630,8 @@ to_cache(struct args *args)
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
 			if (str_eq(output_obj, "/dev/null")
-			    || (access(tmp_obj, R_OK) == 0
+			    || (!output_to_real_object_first
+			        && access(tmp_obj, R_OK) == 0
 			        && move_file(tmp_obj, output_obj, 0) == 0)
 			    || errno == ENOENT) {
 				/* we can use a quick method of getting the failed output */
@@ -665,16 +680,28 @@ to_cache(struct args *args)
 	} else {
 		tmp_unlink(tmp_stderr);
 	}
-	if (move_uncompressed_file(tmp_obj, cached_obj, conf->compression) != 0) {
+
+	if (output_to_real_object_first) {
+		int ret;
+		if (getenv("CCACHE_HARDLINK") && !conf->compression) {
+			ret = link(tmp_obj, cached_obj);
+		} else {
+			ret = copy_file(tmp_obj, cached_obj, conf->compression);
+		}
+		if (ret != 0) {
+			cc_log("Failed to copy/link %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+	} else if (move_uncompressed_file(tmp_obj, cached_obj, conf->compression) != 0) {
 		cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
-	} else {
-		cc_log("Stored in cache: %s", cached_obj);
-		stat(cached_obj, &st);
-		added_bytes += file_size(&st);
-		added_files += 1;
 	}
+	cc_log("Stored in cache: %s", cached_obj);
+	stat(cached_obj, &st);
+	added_bytes += file_size(&st);
+	added_files += 1;
 
 	/*
 	 * Do an extra stat on the potentially compressed object file for the
@@ -970,6 +997,52 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
+	}
+
+	/*
+	 * For profile generation (-fprofile-arcs, -fprofile-generate):
+	 * - hash profile directory
+	 * - output to the real file first
+	 *
+	 * For profile usage (-fprofile-use):
+	 * - hash profile data
+	 *
+	 * -fbranch-probabilities and -fvpt usage is covered by
+	 * -fprofile-generate/-fprofile-use.
+	 *
+	 * The profile directory can be specified as an argument to
+	 * -fprofile-generate=, -fprofile-use=, or -fprofile-dir=.
+	 */
+
+	/*
+	 * We need to output to the real object first here, otherwise runtime
+	 * artifacts will be produced in the wrong place.
+	 */
+	if (profile_generate) {
+		output_to_real_object_first = true;
+		if (!profile_dir) {
+			profile_dir = get_cwd();
+		}
+		cc_log("Adding profile directory %s to our hash", profile_dir);
+		hash_delimiter(hash, "-fprofile-dir");
+		hash_string(hash, profile_dir);
+	}
+	if (profile_use) {
+		/* Calculate gcda name */
+		char *gcda_name;
+		char *base_name;
+		output_to_real_object_first = true;
+		base_name = remove_extension(output_obj);
+		if (!profile_dir) {
+			profile_dir = get_cwd();
+		}
+		gcda_name = format("%s/%s.gcda", profile_dir, base_name);
+		cc_log("Adding profile data %s to our hash", gcda_name);
+		/* Add the gcda to our hash */
+		hash_delimiter(hash, "-fprofile-use");
+		hash_file(hash, gcda_name);
+		free(base_name);
+		free(gcda_name);
 	}
 
 	if (direct_mode) {
@@ -1495,6 +1568,58 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 
+		if (str_startswith(argv[i], "-fprofile-")) {
+			const char* arg_profile_dir = strchr(argv[i], '=');
+			char* arg = x_strdup(argv[i]);
+			bool supported_profile_option = false;
+
+			if (arg_profile_dir) {
+				char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
+
+				/* Convert to absolute path. */
+				arg_profile_dir = x_realpath(arg_profile_dir + 1);
+
+				/* We can get a better hit rate by using the real path here. */
+				free(arg);
+				arg = format("%s=%s", option, profile_dir);
+				cc_log("Rewriting arg to %s", arg);
+				free(option);
+			}
+
+			if (str_startswith(argv[i], "-fprofile-generate")
+			    || str_eq(argv[i], "-fprofile-arcs")) {
+				profile_generate = true;
+				supported_profile_option = true;
+			} else if (str_startswith(argv[i], "-fprofile-use")
+			           || str_eq(argv[i], "-fbranch-probabilities")) {
+				profile_use = true;
+				supported_profile_option = true;
+			} else if (str_eq(argv[i], "-fprofile-dir")) {
+				supported_profile_option = true;
+			}
+
+			if (supported_profile_option) {
+				args_add(stripped_args, arg);
+				free(arg);
+
+				/*
+				 * If the profile directory has already been set, give up... Hard to
+				 * know what the user means, and what the compiler will do.
+				 */
+				if (arg_profile_dir && profile_dir) {
+					cc_log("Profile directory already set; giving up");
+					result = false;
+					goto out;
+				} else if (arg_profile_dir) {
+					cc_log("Setting profile directory to %s", profile_dir);
+					profile_dir = x_strdup(arg_profile_dir);
+				}
+				continue;
+			}
+			cc_log("Unknown profile option: %s", argv[i]);
+			free(arg);
+		}
+
 		/*
 		 * Options taking an argument that that we may want to rewrite
 		 * to relative paths to get better hit rate. A secondary effect
@@ -1887,6 +2012,8 @@ cc_reset(void)
 	free(primary_config_path); primary_config_path = NULL;
 	free(secondary_config_path); secondary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
+	free(profile_dir); profile_dir = NULL;
+	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;

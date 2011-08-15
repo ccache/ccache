@@ -100,6 +100,7 @@ path_max(const char *path)
 	}
 #endif
 }
+#endif /* !_WIN32 */
 
 static void
 vlog(const char *format, va_list ap, bool log_updated_time)
@@ -931,6 +932,7 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 	return true;
 }
 
+#ifndef _WIN32
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
@@ -981,6 +983,7 @@ gnu_getcwd(void)
 		}
 		free(buffer);
 		if (errno != ERANGE) {
+			cc_log("getcwd error: %d (%s)", errno, strerror(errno));
 			return NULL;
 		}
 		size *= 2;
@@ -1063,6 +1066,9 @@ get_cwd(void)
 	struct stat st_cwd;
 
 	cwd = gnu_getcwd();
+	if (!cwd) {
+		return NULL;
+	}
 	pwd = getenv("PWD");
 	if (!pwd) {
 		return cwd;

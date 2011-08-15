@@ -11,19 +11,23 @@ ccache is a collective work with contributions from many people, including:
 * Bernhard Bauer <bauerb@google.com>
 * Björn Jacke <bj@sernet.de>
 * Bo Rydberg <bolry@hotmail.com>
+* Chris AtLee <chris@atlee.ca>
 * Clemens Rabe <crabe@gmx.de>
 * Francois Marier <francois@debian.org>
 * Joel Rosdahl <joel@rosdahl.net>
 * John Coiner <john.coiner@amd.com>
+* Jon Bernard <jbernard@tuxion.com>
+* Justin Lebar <justin.lebar@gmail.com>
 * Karl Chen <quarl@cs.berkeley.edu>
 * Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
 * Lars Gustäbel <lars@gustaebel.de>
+* Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
 * Owen Mann <owen@mann.org>
 * Paul Griffith <paulg@cse.yorku.ca>
+* RW <fbsd06@mlists.homeunix.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
-* RW <fbsd06@mlists.homeunix.com>
 * Tim Potter <tpot@samba.org>
 * Tor Arne Vestbø <torarnv@gmail.com>
 * Ville Skyttä <ville.skytta@iki.fi>
