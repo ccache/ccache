@@ -1188,12 +1188,12 @@ bool
 is_full_path(const char *path)
 {
 	if (strchr(path, '/'))
-		return 1;
+		return true;
 #ifdef _WIN32
 	if (strchr(path, '\\'))
-		return 1;
+		return true;
 #endif
-	return 0;
+	return false;
 }
 
 /*
