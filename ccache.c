@@ -162,7 +162,7 @@ static bool output_is_precompiled_header = false;
 static bool output_to_real_object_first = false;
 
 /* Profile generation / usage information */
-static char* profile_dir = NULL;
+static char *profile_dir = NULL;
 static bool profile_use = false;
 static bool profile_generate = false;
 
