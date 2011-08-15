@@ -230,4 +230,48 @@ TEST(MT_flag_with_immediate_argument_should_add_MQobj)
 	args_free(orig);
 }
 
+TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
+{
+	struct args *orig = args_init_from_string(
+		"gcc -c -fprofile-generate=some/dir foo.c");
+	struct args *exp_cpp = args_init_from_string("gcc");
+	struct args *exp_cc = args_init_from_string("gcc");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	char *s;
+
+	create_file("foo.c", "");
+	mkdir("some", 0777);
+	mkdir("some/dir", 0777);
+	s = format("-fprofile-generate=%s", x_realpath("some/dir"));
+	args_add(exp_cpp, s);
+	args_add(exp_cc, s);
+	args_add(exp_cc, "-c");
+	free(s);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(fprofile_flag_with_nonexisting_dir_not_be_rewritten)
+{
+	struct args *orig = args_init_from_string(
+		"gcc -c -fprofile-generate=some/dir foo.c");
+	struct args *exp_cpp = args_init_from_string(
+		"gcc -fprofile-generate=some/dir");
+	struct args *exp_cc = args_init_from_string(
+		"gcc -fprofile-generate=some/dir -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST_SUITE_END

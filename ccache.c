@@ -1605,15 +1605,21 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 			if (arg_profile_dir) {
 				char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
+				char *dir;
 
 				/* Convert to absolute path. */
-				arg_profile_dir = x_realpath(arg_profile_dir + 1);
+				dir = x_realpath(arg_profile_dir + 1);
+				if (!dir) {
+					/* Directory doesn't exist. */
+					dir = x_strdup(arg_profile_dir + 1);
+				}
 
 				/* We can get a better hit rate by using the real path here. */
 				free(arg);
-				arg = format("%s=%s", option, profile_dir);
-				cc_log("Rewriting arg to %s", arg);
+				arg = format("%s=%s", option, dir);
+				cc_log("Rewriting %s to %s", argv[i], arg);
 				free(option);
+				free(dir);
 			}
 
 			if (str_startswith(argv[i], "-fprofile-generate")
