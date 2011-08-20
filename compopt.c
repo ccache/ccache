@@ -49,6 +49,7 @@ static const struct compopt compopts[] = {
 	{"-U",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
 	{"-V",              TAKES_ARG},
 	{"-Xassembler",     TAKES_ARG},
+	{"-Xclang",         TAKES_ARG},
 	{"-Xlinker",        TAKES_ARG},
 	{"-Xpreprocessor",  TOO_HARD_DIRECT | TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
