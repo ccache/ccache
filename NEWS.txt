@@ -2,6 +2,24 @@ ccache news
 ===========
 
 
+ccache 3.1.6
+------------
+Release date: 2011-08-21
+
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Rewrite argument to --sysroot if CCACHE_BASEDIR is used.
+
+
+Bug fixes
+~~~~~~~~~
+
+    - Don't crash if getcwd() fails.
+    - Fixed alignment of "called for preprocessing" counter.
+
+
 ccache 3.1.5
 ------------
 Release date: 2011-05-29
