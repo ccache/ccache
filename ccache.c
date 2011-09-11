@@ -1824,6 +1824,14 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
+	if (!getenv("CCACHE_READONLY")) {
+		if (create_cachedirtag(cache_dir) != 0) {
+			cc_log("failed to create %s/CACHEDIR.TAG (%s)\n",
+			        cache_dir, strerror(errno));
+			failed();
+		}
+	}
+
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
 	cc_log_argv("Command line: ", argv);
@@ -2174,15 +2182,6 @@ ccache_main(int argc, char *argv[])
 		        "ccache: failed to create %s (%s)\n",
 		        temp_dir, strerror(errno));
 		exit(1);
-	}
-
-	if (!getenv("CCACHE_READONLY")) {
-		if (create_cachedirtag(cache_dir) != 0) {
-			fprintf(stderr,
-			        "ccache: failed to create %s/CACHEDIR.TAG (%s)\n",
-			        cache_dir, strerror(errno));
-			exit(1);
-		}
 	}
 
 	ccache(argc, argv);
