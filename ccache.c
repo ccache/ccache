@@ -61,7 +61,7 @@ static const char USAGE_TEXT[] =
 "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
 "                          limit; available suffixes: G, M and K; default\n"
 "                          suffix: G)\n"
-"    -o, --set-option=K=V  set configuration option K to V\n"
+"    -o, --set-config=K=V  set configuration key K to value V\n"
 "    -p, --print-config    print current configuration options\n"
 "    -s, --show-stats      show statistics summary\n"
 "    -z, --zero-stats      zero statistics counters\n"
@@ -2239,7 +2239,7 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
-		{"set-option",    required_argument, 0, 'o'},
+		{"set-config",    required_argument, 0, 'o'},
 		{"print-config",  no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
@@ -2309,7 +2309,7 @@ ccache_main_options(int argc, char *argv[])
 			}
 			break;
 
-		case 'o': /* --set-option */
+		case 'o': /* --set-config */
 			{
 				char *errmsg, *key, *value, *p;
 				initialize();
