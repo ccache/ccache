@@ -100,7 +100,7 @@ win32getshell(char *path)
 	ext = get_extension(path);
 	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH")))
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
-	if (!sh && conf->detect_shebang) {
+	if (!sh && gevenv("CCACHE_DETECT_SHEBANG")) {
 		/* Detect shebang. */
 		FILE *fp;
 		fp = fopen(path, "r");

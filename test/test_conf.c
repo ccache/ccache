@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 26
+#define N_CONFIG_ITEMS 25
 static struct {
 	char *descr;
 	const char *origin;
@@ -58,7 +58,6 @@ TEST(conf_create)
 	CHECK_STR_EQ("mtime", conf->compiler_check);
 	CHECK(!conf->compression);
 	CHECK_STR_EQ("", conf->cpp_extension);
-	CHECK(!conf->detect_shebang);
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
@@ -99,7 +98,6 @@ TEST(conf_read_valid_config)
 		"compiler_check = none\n"
 		"compression=true\n"
 		"cpp_extension = .foo\n"
-		"detect_shebang = true\n"
 		"direct_mode = false\n"
 		"disable = true\n"
 		"extra_files_to_hash = a:b c:$USER\n"
@@ -128,7 +126,6 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ("none", conf->compiler_check);
 	CHECK(conf->compression);
 	CHECK_STR_EQ(".foo", conf->cpp_extension);
-	CHECK(conf->detect_shebang);
 	CHECK(!conf->direct_mode);
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
@@ -349,7 +346,6 @@ TEST(conf_print_items)
 		"cc",
 		true,
 		"ce",
-		true,
 		false,
 		true,
 		"efth",
@@ -378,7 +374,7 @@ TEST(conf_print_items)
 	}
 
 	conf_print_items(&conf, conf_item_receiver, NULL);
-	CHECK_INT_EQ(26, n_received_conf_items);
+	CHECK_INT_EQ(25, n_received_conf_items);
 	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++].descr);
@@ -386,7 +382,6 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compression = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
-	CHECK_STR_EQ("detect_shebang = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);

@@ -11,7 +11,6 @@ struct conf {
 	char *compiler_check;
 	bool compression;
 	char *cpp_extension;
-	bool detect_shebang;
 	bool direct_mode;
 	bool disable;
 	char *extra_files_to_hash;

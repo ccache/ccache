@@ -254,13 +254,6 @@ WRAPPERS>>.
     intermediate filename extensions used in this optimisation, in which case
     this option could allow ccache to be used anyway.
 
-*CCACHE_DETECT_SHEBANG*::
-
-    The *CCACHE_DETECT_SHEBANG* environment variable only has meaning on
-    Windows. It instructs ccache to open the executable file to detect the
-    *#!/bin/sh* string, in which case ccache will search for *sh.exe* in
-    *PATH* and use that to launch the executable.
-
 *CCACHE_DIR*::
 
     The *CCACHE_DIR* environment variable specifies where ccache will keep its
