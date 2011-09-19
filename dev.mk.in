@@ -36,8 +36,8 @@ files_to_distclean += .deps version.c dev.mk
 source_dist_files = \
     main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
     config.h.in configure install-sh Makefile.in test.sh GPL-3.0.txt \
-    AUTHORS.txt INSTALL.txt LICENSE.txt MANUAL.txt NEWS.txt README.txt
-built_dist_files += confitems_lookup.c envtoconfitems_lookup.c
+    AUTHORS.txt INSTALL.txt LICENSE.txt MANUAL.txt NEWS.txt README.txt \
+    confitems_lookup.c envtoconfitems_lookup.c
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
