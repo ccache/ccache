@@ -267,8 +267,7 @@ get_path_in_cache(const char *name, const char *suffix)
 		free(path);
 		path = p;
 		if (create_dir(path) != 0) {
-			cc_log("Failed to create %s: %s", path, strerror(errno));
-			failed();
+			fatal("Failed to create %s: %s", path, strerror(errno));
 		}
 	}
 	result = format("%s/%s%s", path, name + nlevels, suffix);
