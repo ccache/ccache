@@ -529,7 +529,10 @@ to_cache(struct args *args)
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args_pop(args, 3);
 
-	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
+	if (stat(tmp_stdout, &st) != 0) {
+		fatal("Could not create %s (permission denied?)", tmp_stdout);
+	}
+	if (st.st_size != 0) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
