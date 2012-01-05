@@ -936,6 +936,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		if (str_startswith(args->argv[i], "-fplugin=")
+		    && stat(args->argv[i] + 9, &st) == 0) {
+			hash_delimiter(hash, "plugin");
+			hash_compiler(hash, &st, args->argv[i] + 9, false);
+			continue;
+		}
+
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
