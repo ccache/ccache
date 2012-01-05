@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2011 Joel Rosdahl
+ * Copyright (C) 2009-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -793,6 +793,36 @@ update_cached_result_globals(struct file_hash *hash)
 }
 
 /*
+ * Hash mtime or content of a file, or the output of a command, according to
+ * the CCACHE_COMPILERCHECK setting.
+ */
+static void
+hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
+              bool allow_command)
+{
+	const char *compilercheck;
+
+	compilercheck = getenv("CCACHE_COMPILERCHECK");
+	if (!compilercheck) {
+		compilercheck = "mtime";
+	}
+	if (str_eq(compilercheck, "none")) {
+		/* Do nothing. */
+	} else if (str_eq(compilercheck, "mtime")) {
+		hash_delimiter(hash, "cc_mtime");
+		hash_int(hash, st->st_size);
+		hash_int(hash, st->st_mtime);
+	} else if (str_eq(compilercheck, "content") || !allow_command) {
+		hash_delimiter(hash, "cc_content");
+		hash_file(hash, path);
+	} else { /* command string */
+		if (!hash_multicommand_output(hash, compilercheck, orig_args->argv[0])) {
+			fatal("Failure running compiler check command: %s", compilercheck);
+		}
+	}
+}
+
+/*
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
  */
@@ -800,7 +830,6 @@ static void
 calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
-	const char *compilercheck;
 	char *p;
 
 	hash_string(hash, HASH_PREFIX);
@@ -821,24 +850,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	/*
 	 * Hash information about the compiler.
 	 */
-	compilercheck = getenv("CCACHE_COMPILERCHECK");
-	if (!compilercheck) {
-		compilercheck = "mtime";
-	}
-	if (str_eq(compilercheck, "none")) {
-		/* Do nothing. */
-	} else if (str_eq(compilercheck, "content")) {
-		hash_delimiter(hash, "cc_content");
-		hash_file(hash, args->argv[0]);
-	} else if (str_eq(compilercheck, "mtime")) {
-		hash_delimiter(hash, "cc_mtime");
-		hash_int(hash, st.st_size);
-		hash_int(hash, st.st_mtime);
-	} else { /* command string */
-		if (!hash_multicommand_output(hash, compilercheck, orig_args->argv[0])) {
-			fatal("Failure running compiler check command: %s", compilercheck);
-		}
-	}
+	hash_compiler(hash, &st, args->argv[0], true);
 
 	/*
 	 * Also hash the compiler name as some compilers use hard links and
