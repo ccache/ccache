@@ -949,6 +949,24 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 
 	if (direct_mode) {
+		/* Hash environment variables that affect the preprocessor output. */
+		const char **p;
+		const char *envvars[] = {
+			"CPATH",
+			"C_INCLUDE_PATH",
+			"CPLUS_INCLUDE_PATH",
+			"OBJC_INCLUDE_PATH",
+			"OBJCPLUS_INCLUDE_PATH", /* clang */
+			NULL
+		};
+		for (p = envvars; *p != NULL ; ++p) {
+			char *v = getenv(*p);
+			if (v) {
+				hash_delimiter(hash, *p);
+				hash_string(hash, v);
+			}
+		}
+
 		if (!(sloppiness & SLOPPY_FILE_MACRO)) {
 			/*
 			 * The source code file or an include file may contain
