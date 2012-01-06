@@ -200,7 +200,6 @@ int execute(char **argv,
             const char *path_stderr);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
-void print_executed_command(FILE *fp, char **argv);
 
 /* ------------------------------------------------------------------------- */
 /* lockfile.c */

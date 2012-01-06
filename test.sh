@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2011 Joel Rosdahl
+# Copyright (C) 2009-2012 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -1164,6 +1164,40 @@ EOF
     checkstat 'cache miss' 1
 
     ##################################################################
+    # Check that environment variables that affect the preprocessor are taken
+    # into account.
+    testname="environment variables"
+    $CCACHE -Cz >/dev/null
+    rm -rf subdir1 subdir2
+    mkdir subdir1 subdir2
+    cat <<EOF >subdir1/foo.h
+int foo;
+EOF
+    cat <<EOF >subdir2/foo.h
+int foo;
+EOF
+    cat <<EOF >foo.c
+#include <foo.h>
+EOF
+    backdate subdir1/foo.h subdir2/foo.h
+    CPATH=subdir1 $CCACHE $COMPILER -c foo.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CPATH=subdir1 $CCACHE $COMPILER -c foo.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CPATH=subdir2 $CCACHE $COMPILER -c foo.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2 # subdir2 is part of the preprocessor output
+    CPATH=subdir2 $CCACHE $COMPILER -c foo.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    #################################################################
     # Check that strange "#line" directives are handled.
     testname="#line directives with troublesome files"
     $CCACHE -Cz >/dev/null

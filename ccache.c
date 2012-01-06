@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2011 Joel Rosdahl
+ * Copyright (C) 2009-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -572,7 +572,10 @@ to_cache(struct args *args)
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args_pop(args, 3);
 
-	if (stat(tmp_stdout, &st) != 0 || st.st_size != 0) {
+	if (stat(tmp_stdout, &st) != 0) {
+		fatal("Could not create %s (permission denied?)", tmp_stdout);
+	}
+	if (st.st_size != 0) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
@@ -867,6 +870,31 @@ update_cached_result_globals(struct file_hash *hash)
 }
 
 /*
+ * Hash mtime or content of a file, or the output of a command, according to
+ * the CCACHE_COMPILERCHECK setting.
+ */
+static void
+hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
+              bool allow_command)
+{
+	if (str_eq(conf->compiler_check, "none")) {
+		/* Do nothing. */
+	} else if (str_eq(conf->compiler_check, "mtime")) {
+		hash_delimiter(hash, "cc_mtime");
+		hash_int(hash, st->st_size);
+		hash_int(hash, st->st_mtime);
+	} else if (str_eq(conf->compiler_check, "content") || !allow_command) {
+		hash_delimiter(hash, "cc_content");
+		hash_file(hash, path);
+	} else { /* command string */
+		if (!hash_multicommand_output(
+			    hash, conf->compiler_check, orig_args->argv[0])) {
+			fatal("Failure running compiler check command: %s", conf->compiler_check);
+		}
+	}
+}
+
+/*
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
  */
@@ -893,21 +921,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	/*
 	 * Hash information about the compiler.
 	 */
-	if (str_eq(conf->compiler_check, "none")) {
-		/* Do nothing. */
-	} else if (str_eq(conf->compiler_check, "content")) {
-		hash_delimiter(hash, "cc_content");
-		hash_file(hash, args->argv[0]);
-	} else if (str_eq(conf->compiler_check, "mtime")) {
-		hash_delimiter(hash, "cc_mtime");
-		hash_int(hash, st.st_size);
-		hash_int(hash, st.st_mtime);
-	} else { /* command string */
-		if (!hash_multicommand_output(
-			    hash, conf->compiler_check, orig_args->argv[0])) {
-			fatal("Failure running compiler check command: %s", conf->compiler_check);
-		}
-	}
+	hash_compiler(hash, &st, args->argv[0], true);
 
 	/*
 	 * Also hash the compiler name as some compilers use hard links and
@@ -983,14 +997,19 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 		}
 
-		if (str_startswith(args->argv[i], "--specs=") &&
-		    stat(args->argv[i] + 8, &st) == 0) {
-			/* If given a explicit specs file, then hash that file,
+		if (str_startswith(args->argv[i], "--specs=")
+		    && stat(args->argv[i] + 8, &st) == 0) {
+			/* If given an explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
 			hash_delimiter(hash, "specs");
-			if (!hash_file(hash, args->argv[i] + 8)) {
-				failed();
-			}
+			hash_compiler(hash, &st, args->argv[i] + 8, false);
+			continue;
+		}
+
+		if (str_startswith(args->argv[i], "-fplugin=")
+		    && stat(args->argv[i] + 9, &st) == 0) {
+			hash_delimiter(hash, "plugin");
+			hash_compiler(hash, &st, args->argv[i] + 9, false);
 			continue;
 		}
 
@@ -1046,6 +1065,24 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 
 	if (direct_mode) {
+		/* Hash environment variables that affect the preprocessor output. */
+		const char **p;
+		const char *envvars[] = {
+			"CPATH",
+			"C_INCLUDE_PATH",
+			"CPLUS_INCLUDE_PATH",
+			"OBJC_INCLUDE_PATH",
+			"OBJCPLUS_INCLUDE_PATH", /* clang */
+			NULL
+		};
+		for (p = envvars; *p != NULL ; ++p) {
+			char *v = getenv(*p);
+			if (v) {
+				hash_delimiter(hash, *p);
+				hash_string(hash, v);
+			}
+		}
+
 		if (!(conf->sloppiness & SLOPPY_FILE_MACRO)) {
 			/*
 			 * The source code file or an include file may contain
