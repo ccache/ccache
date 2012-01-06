@@ -314,10 +314,3 @@ print_command(FILE *fp, char **argv)
 	}
 	fprintf(fp, "\n");
 }
-
-void
-print_executed_command(FILE *fp, char **argv)
-{
-	fprintf(fp, "%s: executing ", MYNAME);
-	print_command(fp, argv);
-}

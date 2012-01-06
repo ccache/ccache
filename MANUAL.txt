@@ -771,10 +771,15 @@ It should be noted that ccache is susceptible to general storage problems. If a
 bad object file sneaks into the cache for some reason, it will of course stay
 bad. Some possible reasons for erroneous object files are bad hardware (disk
 drive, disk controller, memory, etc), buggy drivers or file systems, a bad
-*CCACHE_PREFIX* command or compiler wrapper. If this happens, you can either
-find out which object file is broken by reading the debug log and then delete
-the bad object file from the cache, or you can simply clear the whole cache
-with *ccache -C* if you don't mind losing other cached results.
+*CCACHE_PREFIX* command or compiler wrapper. If this happens, the easiest way
+of fixing it is this:
+
+1. Build so that the bad object file ends up in the build tree.
+2. Remove the bad object file from the build tree.
+3. Rebuild with *CCACHE_RECACHE* set.
+
+An alternative is to clear the whole cache with *ccache -C* if you don't mind
+losing other cached results.
 
 There are no reported issues about ccache producing broken object files
 reproducibly. That doesn't mean it can't happen, so if you find a repeatable
