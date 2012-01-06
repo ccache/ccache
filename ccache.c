@@ -1880,7 +1880,7 @@ ccache(int argc, char *argv[])
 	}
 
 	if (getenv("CCACHE_UNIFY")) {
-		cc_log("Unify mode disabled");
+		cc_log("Unify mode enabled");
 		enable_unify = true;
 	}
 
