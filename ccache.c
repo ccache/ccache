@@ -857,7 +857,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	 * behave differently depending on the real name.
 	 */
 	hash_delimiter(hash, "cc_name");
-	hash_string(hash, basename(args->argv[0]));
+	p = basename(args->argv[0]);
+	hash_string(hash, p);
+	free(p);
 
 	/* Possibly hash the current working directory. */
 	if (getenv("CCACHE_HASHDIR")) {
