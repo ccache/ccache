@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010, 2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -68,7 +68,7 @@ cct_run(suite_fn *suites, int verbose_output)
 
 	for (suite = suites; *suite; suite++) {
 		unsigned test_index = 0;
-		while (1) {
+		while (true) {
 			test_index = (*suite)(test_index + 1);
 			if (test_index == 0) {
 				/* We have reached the end of the suite. */

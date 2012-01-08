@@ -900,7 +900,7 @@ gnu_getcwd(void)
 {
 	unsigned size = 128;
 
-	while (1) {
+	while (true) {
 		char *buffer = (char *)x_malloc(size);
 		if (getcwd(buffer, size) == buffer) {
 			return buffer;
