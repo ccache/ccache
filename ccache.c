@@ -1428,6 +1428,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
+			dependency_target_specified = true;
 			args_add(dep_args, argv[i]);
 			if (strlen(argv[i]) == 3) {
 				/* -MQ arg or -MT arg */
@@ -1439,13 +1440,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				}
 				args_add(dep_args, argv[i + 1]);
 				i++;
-				/*
-				 * Yes, that's right. It's strange, but apparently, GCC behaves
-				 * differently for -MT arg and -MTarg (and similar for -MQ): in the
-				 * latter case, but not in the former, an implicit dependency for the
-				 * object file is added to the dependency file.
-				 */
-				dependency_target_specified = true;
 			}
 			continue;
 		}
