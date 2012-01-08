@@ -560,9 +560,8 @@ to_cache(struct args *args)
 	unsigned added_files = 0;
 
 	if (create_parent_dirs(cached_obj) != 0) {
-		cc_log("Failed to create parent directories for %s: %s",
-		       cached_obj, strerror(errno));
-		failed();
+		fatal("Failed to create parent directory for %s: %s",
+		      cached_obj, strerror(errno));
 	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
@@ -789,12 +788,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
 
 	if (create_parent_dirs(path_stdout) != 0) {
-		char *parent = dirname(path_stdout);
-		fprintf(stderr,
-		        "ccache: failed to create %s (%s)\n",
-		        parent, strerror(errno));
-		free(parent);
-		exit(1);
+		fatal("Failed to create parent directory for %s: %s\n",
+		      path_stdout, strerror(errno));
 	}
 
 	time_of_compilation = time(NULL);
