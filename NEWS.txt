@@ -23,8 +23,8 @@ Bug fixes
     - Added `CPATH`, `C_INCLUDE_PATH` and similar environment variables to the
       hash to avoid false cache hits when such variables have changed.
     - Corrected log message when unify mode is enabled.
-    - Reverted the GCC bug compatibility for `-MT`/`-MQ` options with
-      concatenated arguments introduced in ccache 3.1.5. (The bug is fixed in
+    - Reverted the GCC bug compatibility introduced in ccache 3.1.5 for
+      `-MT`/`-MQ` options with concatenated arguments. (The bug is fixed in
       recent GCC versions.)
 
 
