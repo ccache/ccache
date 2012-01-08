@@ -2,6 +2,40 @@ ccache news
 ===========
 
 
+ccache 3.1.7
+------------
+Release date: 2012-01-08
+
+
+Bug fixes
+~~~~~~~~~
+
+    - Non-writable `CCACHE_DIR` is now handled gracefully when
+      `CCACHE_READONLY` is set.
+    - Made failure to create files (typically due to bad directory permissions)
+      in the cache directory fatal. Previously, such failures were silently and
+      erroneously flagged as "compiler produced stdout".
+    - Both the `-specs=file` and `--specs=file` forms are now recognized.
+    - Added recognition and hashing of GCC plugins specified with
+      `-fplugin=file`.
+    - `CCACHE_COMPILERCHECK` now also determines how to hash explicit specs
+      files (`-specs=file`).
+    - Added `CPATH`, `C_INCLUDE_PATH` and similar environment variables to the
+      hash to avoid false cache hits when such variables have changed.
+    - Corrected log message when unify mode is enabled.
+    - Reverted the GCC bug compatibility for `-MT`/`-MQ` options with
+      concatenated arguments introduced in ccache 3.1.5. (The bug is fixed in
+      recent GCC versions.)
+
+
+Other
+~~~~~
+
+    - Corrected license header for `mdfour.c`.
+    - Improved documentation on how to fix bad object files in the cache.
+
+
+
 ccache 3.1.6
 ------------
 Release date: 2011-08-21

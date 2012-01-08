@@ -537,9 +537,8 @@ to_cache(struct args *args)
 	unsigned added_files = 0;
 
 	if (create_parent_dirs(cached_obj) != 0) {
-		cc_log("Failed to create parent directories for %s: %s",
-		       cached_obj, strerror(errno));
-		failed();
+		fatal("Failed to create parent directory for %s: %s",
+		      cached_obj, strerror(errno));
 	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
@@ -767,12 +766,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
 
 	if (create_parent_dirs(path_stdout) != 0) {
-		char *parent = dirname(path_stdout);
-		fprintf(stderr,
-		        "ccache: failed to create %s (%s)\n",
-		        parent, strerror(errno));
-		free(parent);
-		exit(1);
+		fatal("Failed to create parent directory for %s: %s\n",
+		      path_stdout, strerror(errno));
 	}
 
 	time_of_compilation = time(NULL);
@@ -902,6 +897,7 @@ static void
 calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
+	char *p;
 
 	hash_string(hash, HASH_PREFIX);
 
@@ -928,7 +924,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	 * behave differently depending on the real name.
 	 */
 	hash_delimiter(hash, "cc_name");
-	hash_string(hash, basename(args->argv[0]));
+	p = basename(args->argv[0]);
+	hash_string(hash, p);
+	free(p);
 
 	/* Possibly hash the current working directory. */
 	if (conf->hash_dir) {
@@ -970,6 +968,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	int result;
 	struct file_hash *object_hash = NULL;
+	char *p;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -997,12 +996,17 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 		}
 
-		if (str_startswith(args->argv[i], "--specs=")
-		    && stat(args->argv[i] + 8, &st) == 0) {
+		p = NULL;
+		if (str_startswith(args->argv[i], "-specs=")) {
+			p = args->argv[i] + 7;
+		} else if (str_startswith(args->argv[i], "--specs=")) {
+			p = args->argv[i] + 8;
+		}
+		if (p && stat(p, &st) == 0) {
 			/* If given an explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
 			hash_delimiter(hash, "specs");
-			hash_compiler(hash, &st, args->argv[i] + 8, false);
+			hash_compiler(hash, &st, p, false);
 			continue;
 		}
 
@@ -1539,6 +1543,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
+			dependency_target_specified = true;
 			args_add(dep_args, argv[i]);
 			if (strlen(argv[i]) == 3) {
 				/* -MQ arg or -MT arg */
@@ -1550,13 +1555,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				}
 				args_add(dep_args, argv[i + 1]);
 				i++;
-				/*
-				 * Yes, that's right. It's strange, but apparently, GCC behaves
-				 * differently for -MT arg and -MTarg (and similar for -MQ): in the
-				 * latter case, but not in the former, an implicit dependency for the
-				 * object file is added to the dependency file.
-				 */
-				dependency_target_specified = true;
 			}
 			continue;
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Joel Rosdahl
+ * Copyright (C) 2010-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -43,7 +43,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 #endif
 	unsigned to_sleep = 1000, slept = 0; /* Microseconds. */
 
-	while (1) {
+	while (true) {
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
