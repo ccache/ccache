@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Joel Rosdahl
+ * Copyright (C) 2010-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -58,7 +58,7 @@
 			cct_suite_end(); \
 			return _test_counter; \
 		} \
-	} while (0)
+	} while (false)
 
 #define CHECK(assertion) \
 	CHECKM(assertion, NULL)
@@ -70,7 +70,7 @@
 			cct_suite_end(); \
 			return _test_counter; \
 		} \
-	} while (0)
+	} while (false)
 
 /*****************************************************************************/
 
@@ -82,35 +82,35 @@
 			cct_suite_end(); \
 			return _test_counter; \
 		} \
-	} while (0)
+	} while (false)
 
 /*****************************************************************************/
 
 #define CHECK_STR_EQ(expected, actual) \
-	CHECK_POINTER_EQ_BASE(str, expected, actual, 0, 0)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, false, false)
 
 #define CHECK_STR_EQ_FREE1(expected, actual) \
-	CHECK_POINTER_EQ_BASE(str, expected, actual, 1, 0)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, true, false)
 
 #define CHECK_STR_EQ_FREE2(expected, actual) \
-	CHECK_POINTER_EQ_BASE(str, expected, actual, 0, 1)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, false, true)
 
 #define CHECK_STR_EQ_FREE12(expected, actual) \
-	CHECK_POINTER_EQ_BASE(str, expected, actual, 1, 1)
+	CHECK_POINTER_EQ_BASE(str, expected, actual, true, true)
 
 /*****************************************************************************/
 
 #define CHECK_ARGS_EQ(expected, actual) \
-	CHECK_POINTER_EQ_BASE(args, expected, actual, 0, 0)
+	CHECK_POINTER_EQ_BASE(args, expected, actual, false, false)
 
 #define CHECK_ARGS_EQ_FREE1(expected, actual) \
-	CHECK_POINTER_EQ_BASE(args, expected, actual, 1, 0)
+	CHECK_POINTER_EQ_BASE(args, expected, actual, true, false)
 
 #define CHECK_ARGS_EQ_FREE2(expected, actual) \
-	CHECK_POINTER_EQ_BASE(args, expected, actual, 0, 1)
+	CHECK_POINTER_EQ_BASE(args, expected, actual, false, true)
 
 #define CHECK_ARGS_EQ_FREE12(expected, actual) \
-	CHECK_POINTER_EQ_BASE(args, expected, actual, 1, 1)
+	CHECK_POINTER_EQ_BASE(args, expected, actual, true, true)
 
 /*****************************************************************************/
 
@@ -124,14 +124,14 @@ void cct_test_end(void);
 void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
-int cct_check_int_eq(const char *file, int line, const char *expression,
-                     int64_t expected, int64_t actual);
-int cct_check_str_eq(const char *file, int line, const char *expression,
-                     const char *expected, const char *actual, int free1,
-                     int free2);
-int cct_check_args_eq(const char *file, int line, const char *expression,
-                      struct args *expected, struct args *actual,
-                      int free1, int free2);
+bool cct_check_int_eq(const char *file, int line, const char *expression,
+                      int64_t expected, int64_t actual);
+bool cct_check_str_eq(const char *file, int line, const char *expression,
+                      const char *expected, const char *actual, bool free1,
+                      bool free2);
+bool cct_check_args_eq(const char *file, int line, const char *expression,
+                       struct args *expected, struct args *actual,
+                       bool free1, bool free2);
 void cct_chdir(const char *path);
 void cct_wipe(const char *path);
 void cct_create_fresh_dir(const char *path);

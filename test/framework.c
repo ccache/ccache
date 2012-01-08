@@ -170,13 +170,13 @@ cct_check_failed(const char *file, int line, const char *what,
 	fprintf(stderr, "\n");
 }
 
-int
+bool
 cct_check_int_eq(const char *file, int line, const char *expression,
                  int64_t expected, int64_t actual)
 {
 	if (expected == actual) {
 		cct_check_passed(file, line, expression);
-		return 1;
+		return true;
 	} else {
 #ifdef HAVE_LONG_LONG
 		char *exp_str = format("%lld", (long long)expected);
@@ -188,27 +188,27 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
-		return 0;
+		return false;
 	}
 }
 
-int
+bool
 cct_check_str_eq(const char *file, int line, const char *expression,
-                 const char *expected, const char *actual, int free1,
-                 int free2)
+                 const char *expected, const char *actual, bool free1,
+                 bool free2)
 {
-	int result;
+	bool result;
 
 	if (expected && actual && str_eq(actual, expected)) {
 		cct_check_passed(file, line, expression);
-		result = 1;
+		result = true;
 	} else {
 		char *exp_str = expected ? format("\"%s\"", expected) : x_strdup("(null)");
 		char *act_str = actual ? format("\"%s\"", actual) : x_strdup("(null)");
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
-		result = 0;
+		result = false;
 	}
 
 	if (free1) {
@@ -220,23 +220,23 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	return result;
 }
 
-int
+bool
 cct_check_args_eq(const char *file, int line, const char *expression,
                   struct args *expected, struct args *actual,
-                  int free1, int free2)
+                  bool free1, bool free2)
 {
-	int result;
+	bool result;
 
 	if (expected && actual && args_equal(actual, expected)) {
 		cct_check_passed(file, line, expression);
-		result = 1;
+		result = true;
 	} else {
 		char *exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
 		char *act_str = actual ? args_to_string(actual) : x_strdup("(null)");
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
-		result = 0;
+		result = false;
 	}
 
 	if (free1) {

@@ -66,7 +66,7 @@ static const uint32_t MAGIC = 0x63436d46U;
 static const uint8_t  VERSION = 0;
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 
-#define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (0)
+#define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (false)
 
 struct file_info {
 	/* Index to n_files. */
@@ -155,7 +155,7 @@ free_manifest(struct manifest *mf)
 			(var) <<= 8; \
 			(var) |= ch_ & 0xFF; \
 		} \
-	} while (0)
+	} while (false)
 
 #define READ_STR(var) \
 	do { \
@@ -176,7 +176,7 @@ free_manifest(struct manifest *mf)
 			goto error; \
 		} \
 		(var) = x_strdup(buf_); \
-	} while (0)
+	} while (false)
 
 #define READ_BYTES(n, var) \
 	do { \
@@ -189,7 +189,7 @@ free_manifest(struct manifest *mf)
 			} \
 			(var)[i_] = ch_; \
 		} \
-	} while (0)
+	} while (false)
 
 static struct manifest *
 create_empty_manifest(void)
@@ -286,14 +286,14 @@ error:
 				goto error; \
 			} \
 		} \
-	} while (0)
+	} while (false)
 
 #define WRITE_STR(var) \
 	do { \
 		if (gzputs(f, var) == EOF || gzputc(f, '\0') == EOF) { \
 			goto error; \
 		} \
-	} while (0)
+	} while (false)
 
 #define WRITE_BYTES(n, var) \
 	do { \
@@ -303,7 +303,7 @@ error:
 				goto error; \
 			} \
 		} \
-	} while (0)
+	} while (false)
 
 static int
 write_manifest(gzFile f, const struct manifest *mf)
