@@ -902,6 +902,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	int result;
 	struct file_hash *object_hash = NULL;
+	char *p;
 
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
@@ -929,12 +930,17 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 		}
 
-		if (str_startswith(args->argv[i], "--specs=")
-		    && stat(args->argv[i] + 8, &st) == 0) {
+		p = NULL;
+		if (str_startswith(args->argv[i], "-specs=")) {
+			p = args->argv[i] + 7;
+		} else if (str_startswith(args->argv[i], "--specs=")) {
+			p = args->argv[i] + 8;
+		}
+		if (p && stat(p, &st) == 0) {
 			/* If given an explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
 			hash_delimiter(hash, "specs");
-			hash_compiler(hash, &st, args->argv[i] + 8, false);
+			hash_compiler(hash, &st, p, false);
 			continue;
 		}
 
