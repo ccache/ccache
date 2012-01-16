@@ -392,6 +392,15 @@ make_relative_path(char *path)
 		return path;
 	}
 
+	if (!current_working_dir) {
+		current_working_dir = get_cwd();
+		if (!current_working_dir) {
+			cc_log("Unable to determine current working directory: %s",
+			       strerror(errno));
+			failed();
+		}
+	}
+
 	relpath = get_relative_path(current_working_dir, path);
 	free(path);
 	return relpath;
@@ -2160,11 +2169,6 @@ ccache_main(int argc, char *argv[])
 		}
 	}
 
-	current_working_dir = get_cwd();
-	if (!current_working_dir) {
-		cc_log("Could not determine current working directory");
-		failed();
-	}
 	cache_dir = getenv("CCACHE_DIR");
 	if (cache_dir) {
 		cache_dir = x_strdup(cache_dir);
