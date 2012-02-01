@@ -1686,7 +1686,7 @@ EOF
     fi
 
     testname="create .gch, no -c, -o"
-    $CCACHE -z >/dev/null
+    $CCACHE -Cz >/dev/null
     $CCACHE $COMPILER pch.h -o pch.gch
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
