@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Joel Rosdahl
+ * Copyright (C) 2011-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -516,7 +516,8 @@ conf_print_items(struct conf *conf,
 	printer(s, conf->item_origins[find_conf("cache_dir")->number], context);
 
 	reformat(&s, "cache_dir_levels = %u", conf->cache_dir_levels);
-	printer(s, conf->item_origins[find_conf("cache_dir_levels")->number], context);
+	printer(s, conf->item_origins[find_conf("cache_dir_levels")->number],
+	        context);
 
 	reformat(&s, "compiler = %s", conf->compiler);
 	printer(s, conf->item_origins[find_conf("compiler")->number], context);
@@ -537,7 +538,8 @@ conf_print_items(struct conf *conf,
 	printer(s, conf->item_origins[find_conf("disable")->number], context);
 
 	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
-	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number], context);
+	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number],
+	        context);
 
 	reformat(&s, "hard_link = %s", conf->hard_link ? "true" : "false");
 	printer(s, conf->item_origins[find_conf("hard_link")->number], context);

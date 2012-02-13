@@ -192,34 +192,37 @@ static const char HASH_PREFIX[] = "3";
 static void
 add_prefix(struct args *orig_args)
 {
-	if (!str_eq(conf->prefix_command, "")) {
-		char *e;
-		char *tok, *saveptr = NULL;
-		struct args *prefix = args_init(0, NULL);
-		int i;
+	char *e;
+	char *tok, *saveptr = NULL;
+	struct args *prefix;
+	int i;
 
-		e = x_strdup(conf->prefix_command);
-		for (tok = strtok_r(e, " ", &saveptr);
-		     tok;
-		     tok = strtok_r(NULL, " ", &saveptr)) {
-			char *p;
-
-			p = find_executable(tok, MYNAME);
-			if (!p) {
-				fatal("%s: %s", tok, strerror(errno));
-			}
-
-			args_add(prefix, p);
-			free(p);
-		}
-		free(e);
-
-		cc_log("Using command-line prefix %s", conf->prefix_command);
-		for (i = prefix->argc; i != 0; i--) {
-			args_add_prefix(orig_args, prefix->argv[i-1]);
-		}
-		args_free(prefix);
+	if (str_eq(conf->prefix_command, "")) {
+		return;
 	}
+
+	prefix = args_init(0, NULL);
+	e = x_strdup(conf->prefix_command);
+	for (tok = strtok_r(e, " ", &saveptr);
+	     tok;
+	     tok = strtok_r(NULL, " ", &saveptr)) {
+		char *p;
+
+		p = find_executable(tok, MYNAME);
+		if (!p) {
+			fatal("%s: %s", tok, strerror(errno));
+		}
+
+		args_add(prefix, p);
+		free(p);
+	}
+	free(e);
+
+	cc_log("Using command-line prefix %s", conf->prefix_command);
+	for (i = prefix->argc; i != 0; i--) {
+		args_add_prefix(orig_args, prefix->argv[i-1]);
+	}
+	args_free(prefix);
 }
 
 /* Something went badly wrong - just execute the real compiler. */
@@ -228,10 +231,7 @@ failed(void)
 {
 	assert(orig_args);
 
-	/* strip any local args */
 	args_strip(orig_args, "--ccache-");
-
-	/* add prefix from CCACHE_PREFIX */
 	add_prefix(orig_args);
 
 	cc_log("Failed; falling back to running the real compiler");
@@ -2235,7 +2235,6 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	/* add prefix from CCACHE_PREFIX */
 	add_prefix(compiler_args);
 
 	/* run real compiler, sending output to cache */
