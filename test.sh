@@ -1863,6 +1863,38 @@ upgrade_suite() {
     checkstat 'max cache size' '2.1 GB'
 }
 
+prefix_suite() {
+    testname="prefix"
+    $CCACHE -Cz >/dev/null
+    rm -f prefix.result
+    cat <<'EOF' >prefix-a
+#!/bin/sh
+echo a >>prefix.result
+exec "$@"
+EOF
+    cat <<'EOF' >prefix-b
+#!/bin/sh
+echo b >>prefix.result
+exec "$@"
+EOF
+    chmod +x prefix-a prefix-b
+    cat <<'EOF' >file.c
+int foo;
+EOF
+    PATH=.:$PATH CCACHE_PREFIX="prefix-a prefix-b" $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile prefix.result "a
+b"
+    PATH=.:$PATH CCACHE_PREFIX="prefix-a prefix-b" $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile prefix.result "a
+b"
+}
+
 ######################################################################
 # main program
 
@@ -1916,6 +1948,7 @@ extrafiles
 cleanup
 pch
 upgrade
+prefix
 "
 
 host_os="`uname -s`"
