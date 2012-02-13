@@ -858,12 +858,8 @@ format_human_readable_size(uint64_t v)
 		s = format("%.1f GB", v/((double)(1000*1000*1000)));
 	} else if (v >= 1000*1000) {
 		s = format("%.1f MB", v/((double)(1000*1000)));
-	} else if (v >= 1000) {
-		s = format("%.1f kB", v/((double)(1000)));
-	} else if (v > 0) {
-		s = format("%u B", (unsigned)v);
 	} else {
-			s = x_strdup("0");
+		s = format("%.1f kB", v/((double)(1000)));
 	}
 	return s;
 }

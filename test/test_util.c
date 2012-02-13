@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Joel Rosdahl
+ * Copyright (C) 2010-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -96,8 +96,9 @@ TEST(subst_env_in_string)
 
 TEST(format_human_readable_size)
 {
-	CHECK_STR_EQ_FREE2("0", format_human_readable_size(0));
-	CHECK_STR_EQ_FREE2("1 B", format_human_readable_size(1));
+	CHECK_STR_EQ_FREE2("0.0 kB", format_human_readable_size(0));
+	CHECK_STR_EQ_FREE2("0.0 kB", format_human_readable_size(49));
+	CHECK_STR_EQ_FREE2("0.1 kB", format_human_readable_size(50));
 	CHECK_STR_EQ_FREE2("42.0 kB", format_human_readable_size(42 * 1000));
 	CHECK_STR_EQ_FREE2("1.0 MB", format_human_readable_size(1000 * 1000));
 	CHECK_STR_EQ_FREE2("1.2 MB", format_human_readable_size(1234 * 1000));
