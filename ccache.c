@@ -81,6 +81,9 @@ char *cache_logfile = NULL;
 /* base directory (from CCACHE_BASEDIR) */
 char *base_dir = NULL;
 
+/* VISUAL STUDIO used as compiler (from CCACHE_MVSC)*/
+char *ccache_mvsc = NULL;
+
 /* the original argument list */
 static struct args *orig_args;
 
@@ -455,12 +458,19 @@ static char *
 make_relative_path(char *path)
 {
 	char *relpath;
-
-	if (!base_dir || !str_startswith(path, base_dir)) {
+	char* formated_base_dir;
+	relpath = x_strdup(path);
+#ifdef _WIN32
+	path = win32_format_path(path);
+	formated_base_dir = win32_format_path(base_dir);
+#else
+	formated_base_dir = x_strdup(base_dir);
+#endif	
+	if (!base_dir || !str_startswith(path, formated_base_dir)) {
 		return path;
 	}
-
 	relpath = get_relative_path(current_working_dir, path);
+	free(formated_base_dir);
 	free(path);
 	return relpath;
 }
@@ -480,7 +490,7 @@ make_relative_to_source_dir(char *path)
 	if (!source_dir || !str_startswith(path, formated_source_dir)) {
 		return path;
 	}
-	relpath = get_relative_path(source_dir, path);
+	relpath = get_relative_path(formated_source_dir, path);
 	free(formated_source_dir);
 	free(path);
 	return relpath;
@@ -538,6 +548,10 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		 *   #N "file"
 		 *   #N
 		 *
+		 * Visual Studio's compiler:
+		 *
+		 *   #line N "file"
+		 *
 		 * Note that there may be other lines starting with '#' left after
 		 * preprocessing as well, for instance "#    pragma".
 		 */
@@ -547,7 +561,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		        /* GCC precompiled header: */
 		        || (q[1] == 'p'
 		            && str_startswith(&q[2], "ragma GCC pch_preprocess "))
-		        /* HP/AIX: */
+		        /* HP/AIX/VS: */
 		        || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
 		            && q[5] == ' ')
 				/* CC: */
@@ -598,12 +612,15 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_obj;
+	char *tmp_stdout, *tmp_stderr, *tmp_obj,*compiler_basename;
 	struct stat st;
 	int status;
 	size_t added_bytes = 0;
 	unsigned added_files = 0;
-
+#ifdef _WIN32
+	char *vs_tmp_obj;
+#endif
+	compiler_basename = basename(args->argv[0]);
 	if (create_parent_dirs(cached_obj) != 0) {
 		fatal("Failed to create parent directory for %s: %s",
 		      cached_obj, strerror(errno));
@@ -618,8 +635,18 @@ to_cache(struct args *args)
 		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
 	}
 
-	args_add(args, "-o");
-	args_add(args, tmp_obj);
+#ifdef _WIN32
+   if (ccache_mvsc && strcmp(compiler_basename,"cl.exe") == 0){   
+      vs_tmp_obj = x_vs_output_arg_strdup(tmp_obj);
+      args_add(args,vs_tmp_obj);
+   }
+   else{
+#endif
+      args_add(args, "-o");
+      args_add(args, tmp_obj);
+#ifdef _WIN32
+   }
+#endif	
 
 	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
 	 * otherwise it will emit a line like
@@ -638,7 +665,20 @@ to_cache(struct args *args)
 	cc_log("Running real compiler");
 	status = execute(args->argv, tmp_stdout, tmp_stderr);
 	args_pop(args, 3);
-
+	
+#ifdef _WIN32   
+   if (ccache_mvsc && strcmp(compiler_basename,"cl.exe") == 0){
+      if (stat(tmp_stdout, &st) != 0) {
+         cc_log("Compiler produced stdout");
+         stats_update(STATS_STDOUT);
+         tmp_unlink(tmp_stdout);
+         tmp_unlink(tmp_stderr);
+         tmp_unlink(tmp_obj);
+         failed();
+      }
+   }
+   else{
+#endif
 	if (stat(tmp_stdout, &st) != 0) {
 		fatal("Could not create %s (permission denied?)", tmp_stdout);
 	}
@@ -649,9 +689,11 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
 		failed();
-	}
+	}	
+#ifdef _WIN32
+   }
+#endif
 	tmp_unlink(tmp_stdout);
-
 	/*
 	 * Merge stderr from the preprocessor (if any) and stderr from the real
 	 * compiler into tmp_stderr.
@@ -691,7 +733,6 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stderr2);
 		free(tmp_stderr2);
 	}
-
 	if (status != 0) {
 		int fd;
 		cc_log("Compiler gave exit status %d", status);
@@ -708,15 +749,13 @@ to_cache(struct args *args)
 				copy_fd(fd, 2);
 				close(fd);
 				tmp_unlink(tmp_stderr);
-				exit(status);
+				failed();
 			}
 		}
-
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
 		failed();
 	}
-
 	if (stat(tmp_obj, &st) != 0) {
 		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
@@ -727,7 +766,6 @@ to_cache(struct args *args)
 		stats_update(STATS_EMPTYOUTPUT);
 		failed();
 	}
-
 	if (stat(tmp_stderr, &st) != 0) {
 		cc_log("Failed to stat %s: %s", tmp_stderr, strerror(errno));
 		stats_update(STATS_ERROR);
@@ -750,7 +788,6 @@ to_cache(struct args *args)
 	} else {
 		tmp_unlink(tmp_stderr);
 	}
-
 	if (output_to_real_object_first) {
 		int ret;
 		if (getenv("CCACHE_HARDLINK") && !enable_compression) {
@@ -773,6 +810,7 @@ to_cache(struct args *args)
 	added_bytes += file_size(&st);
 	added_files += 1;
 
+	
 	/*
 	 * Do an extra stat on the potentially compressed object file for the
 	 * size statistics.
@@ -930,7 +968,16 @@ update_cached_result_globals(struct file_hash *hash)
 
 	object_name = format_hash_as_string(hash->hash, hash->size);
 	cached_obj_hash = hash;
-	cached_obj = get_path_in_cache(object_name, ".o");
+#ifdef _WIN32
+	if (ccache_mvsc){
+		cached_obj = get_path_in_cache(object_name, ".obj");
+	}
+	else{
+#endif
+		cached_obj = get_path_in_cache(object_name, ".o");
+#ifdef _WIN32
+	}
+#endif
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
 	stats_file = format("%s/%c/stats", cache_dir, object_name[0]);
@@ -1517,7 +1564,12 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* we must have -c */
-		if (str_eq(argv[i], "-c")) {
+		if (str_eq(argv[i], "-c") 
+#ifdef _WIN32  
+			|| 	( str_eq(argv[i], "/c") && ccache_mvsc)
+#endif
+		)
+		{
 			found_c_opt = true;
 			continue;
 		}
@@ -1595,6 +1647,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		/* These options require special handling, because they
 		   behave differently with gcc -E, when the output
 		   file is not specified. */
+#ifdef _WIN32
+      if (ccache_mvsc == 0){
+#endif
 		if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
 			generating_dependencies = true;
 			args_add(dep_args, argv[i]);
@@ -1639,6 +1694,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			}
 			continue;
 		}
+#ifdef _WIN32
+      }
+#endif
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath;
 			if (source_dir){
@@ -1652,6 +1710,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
+#ifdef _WIN32
+      if (ccache_mvsc == 0){
+#endif
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_startswith(argv[i], "-Wp,-MD,") && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = true;
@@ -1678,6 +1739,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				enable_direct = false;
 			}
 		}
+#ifdef _WIN32
+      }
+#endif		
 		if (str_eq(argv[i], "-MP")) {
 			args_add(dep_args, argv[i]);
 			continue;
@@ -1688,7 +1752,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			input_charset = argv[i];
 			continue;
 		}
-
+#ifndef _WIN32
 		if (str_startswith(argv[i], "-fprofile-")) {
 			const char* arg_profile_dir = strchr(argv[i], '=');
 			char* arg = x_strdup(argv[i]);
@@ -1699,11 +1763,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				char *dir;
 
 				/* Convert to absolute path. */
-#ifndef _WIN32
 				dir = x_realpath(arg_profile_dir + 1);
-#else
-				dir = arg_profile_dir;
-#endif				
 				if (!dir) {
 					/* Directory doesn't exist. */
 					dir = x_strdup(arg_profile_dir + 1);
@@ -1750,7 +1810,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			cc_log("Unknown profile option: %s", argv[i]);
 			free(arg);
 		}
-
+#endif
 		/*
 		 * Options taking an argument that that we may want to rewrite
 		 * to relative paths to get better hit rate. A secondary effect
@@ -1820,7 +1880,12 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* other options */
-		if (argv[i][0] == '-') {
+		if (argv[i][0] == '-'
+#ifdef _WIN32  
+			|| ( argv[i][0] == '/' &&  ccache_mvsc )
+#endif
+        ) 
+        {
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
@@ -1947,16 +2012,31 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			output_obj = format("%s.gch", input_file);
 		} else {
 			char *p;
-			output_obj = basename(input_file);
-			p = strrchr(output_obj, '.');
-			if (!p || !p[1]) {
-				cc_log("Badly formed object filename");
-				stats_update(STATS_ARGS);
-				result = false;
-				goto out;
+#ifdef _WIN32
+			if (ccache_mvsc){
+				output_obj = get_vs_output_obj_name(input_file);
+				p = strrchr(output_obj, '.');
+				if (!p || !p[1]) {
+					cc_log("Badly formed object filename");
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+			}else{
+#endif
+				output_obj = basename(input_file);
+				p = strrchr(output_obj, '.');
+				if (!p || !p[1]) {
+					cc_log("Badly formed object filename");
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+				p[1] = found_S_opt ? 's' : 'o';
+				p[2] = 0;
+#ifdef _WIN32
 			}
-			p[1] = found_S_opt ? 's' : 'o';
-			p[2] = 0;
+#endif
 		}
 	}
 
@@ -2460,11 +2540,15 @@ ccache_main(int argc, char *argv[])
 	check_cache_dir();
 
 	base_dir = getenv("CCACHE_BASEDIR");
-	if (base_dir && base_dir[0] != '/') {
+	if (base_dir && base_dir[0] != '/' 
+#ifdef _WIN32	
+	&& base_dir[1] != ':'
+#endif
+	){
 		cc_log("Ignoring non-absolute base directory %s", base_dir);
 		base_dir = NULL;
 	}
-
+	ccache_mvsc  = getenv("CCACHE_MVSC");
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();

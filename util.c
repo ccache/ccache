@@ -545,6 +545,46 @@ format(const char *format, ...)
 	return ptr;
 }
 
+#ifdef _WIN32
+char*
+x_vs_output_arg_strdup(const char* s)
+{
+   /* Visual studio ouput file syntaxe should -Fo... */
+   size_t len = strlen(s); 
+   char  *new_arg = x_malloc(len+3*1+1); /* Make room for -Fo */
+   new_arg[0] = '-';
+   new_arg[1] = 'F';
+   new_arg[2] = 'o';
+   memcpy(new_arg+3, s, len);
+   new_arg[len+3] = 0;
+   return new_arg;
+}
+
+char*
+get_vs_output_obj_name(const char* input_file_name)
+{
+   char *ouput_file_base_name;
+   ouput_file_base_name=format("%s.obj",remove_extension(basename(input_file_name)));
+   return ouput_file_base_name;
+}
+
+char*
+get_vs_output_path(const char* input_file_name, const char* ouput_file_base_name)
+{
+    char *trunk;
+	trunk = strrchr(input_file_name, '/');
+    if (trunk[-1] != 'c' && trunk[-2]!= '/')
+    {
+       trunk = x_strndup(input_file_name, strlen(input_file_name) - strlen(trunk));
+       return format("%s/obj/%s", trunk, ouput_file_base_name);
+    }
+   else{
+      trunk = x_strndup(input_file_name, strlen(input_file_name) - strlen(trunk) -2);
+      return format("%s/obj/%s", trunk, ouput_file_base_name);
+   }
+}
+#endif
+
 /*
   this is like strdup() but dies if the malloc fails
 */
@@ -1050,7 +1090,6 @@ common_dir_prefix_length(const char *s1, const char *s2)
 	}
 	return p1 - s1;
 }
-
 #ifdef _WIN32
 char *
 win32_format_path(const char *path){
@@ -1084,20 +1123,32 @@ get_relative_path(const char *from, const char *to)
 	int i;
 	const char *p;
 	char *result;
+#ifdef _WIN32
+	char* from_formated = win32_format_path(from);
+	char* to_formated = win32_format_path(to);
+#else
+	char* from_formated = x_strdup(from);
+	char* to_formated = x_strdup(to);
+#endif
 
-	if (!*to || *to != '/') {
-		return x_strdup(to);
+	if (!*to_formated ||
+#ifdef _WIN32
+	*(to_formated+1) != ':'
+#else
+	*to_formated != '/' 
+#endif
+	) {
+		return x_strdup(to_formated);
 	}
-
 	result = x_strdup("");
-	common_prefix_len = common_dir_prefix_length(from, to);
-	for (p = from + common_prefix_len; *p; p++) {
+	common_prefix_len = common_dir_prefix_length(from_formated, to_formated);
+	for (p = from_formated + common_prefix_len; *p; p++) {
 		if (*p == '/') {
 			x_asprintf2(&result, "../%s", result);
 		}
 	}
-	if (strlen(to) > common_prefix_len) {
-		p = to + common_prefix_len + 1;
+	if (strlen(to_formated) > common_prefix_len) {
+		p = to_formated + common_prefix_len + 1;
 		while (*p == '/') {
 			p++;
 		}

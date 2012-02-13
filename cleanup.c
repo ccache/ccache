@@ -146,6 +146,7 @@ sort_and_clean(void)
 
 		ext = get_extension(files[i]->fname);
 		if (str_eq(ext, ".o")
+			|| str_eq(ext, ".obj") //Visual studio compiler
 		    || str_eq(ext, ".d")
 		    || str_eq(ext, ".stderr")
 		    || str_eq(ext, "")) {
@@ -158,6 +159,7 @@ sort_and_clean(void)
 				 * after deleting the .stderr but before deleting the .o, the cached
 				 * result would be inconsistent.
 				 */
+				delete_sibling_file(base, ".obj");
 				delete_sibling_file(base, ".o");
 				delete_sibling_file(base, ".d");
 				delete_sibling_file(base, ".stderr");

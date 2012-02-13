@@ -149,6 +149,7 @@ win32execute(char *path, char **argv, int doreturn,
 			return -1;
 	}
 	args = win32argvtos(sh, argv);
+	cc_log_argv("Executing ", argv);
 	ret = CreateProcess(path, args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	free(args);
 	if (path_stdout) {

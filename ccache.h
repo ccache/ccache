@@ -150,6 +150,9 @@ int x_unlink(const char *path);
 #ifndef _WIN32
 char *x_readlink(const char *path);
 #endif
+#ifdef _WIN32
+char *win32_format_path(const char *path);
+#endif
 bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
 char *read_text_file(const char *path, size_t size_hint);
 
@@ -235,6 +238,9 @@ char *win32argvtos(char *prefix, char **argv);
 char *win32getshell(char *path);
 int win32execute(char *path, char **argv, int doreturn,
                  const char *path_stdout, const char *path_stderr);
+char *x_vs_output_arg_strdup(const char* s);
+char *get_vs_output_obj_name(const char* s);
+char *get_vs_output_path(const char *s,const char *path);
 #    ifndef _WIN32_WINNT
 #    define _WIN32_WINNT 0x0501
 #    endif
