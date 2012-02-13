@@ -499,6 +499,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		 *   #line N "file"
 		 *   #line N
 		 *
+		 * Sun Studio compiler (CC):
+		 *
+		 *   #N "file"
+		 *   #N
+		 *
 		 * Note that there may be other lines starting with '#' left after
 		 * preprocessing as well, for instance "#    pragma".
 		 */
@@ -510,7 +515,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		            && str_startswith(&q[2], "ragma GCC pch_preprocess "))
 		        /* HP/AIX: */
 		        || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
-		            && q[5] == ' '))
+		            && q[5] == ' ')
+				/* CC: */
+				|| (q[1] >= '0' && q[1] <= '9'))
 		    && (q == data || q[-1] == '\n')) {
 			char *path;
 
