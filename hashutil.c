@@ -160,15 +160,26 @@ hash_source_code_file(struct mdfour *hash, const char *path)
 	char *data;
 	size_t size;
 	int result;
-
+	char* absolute_path;
+	char* source_dir = getenv("CCACHE_SOURCEDIR");
+	
+	if (source_dir && path[1] != ':' && path[0]!='/' ){
+		absolute_path= format("%s/%s", source_dir, path);
+	}
+	else{
+		absolute_path= x_strdup(path);
+	}
+	
 	if (is_precompiled_header(path)) {
-		if (hash_file(hash, path)) {
+		if (hash_file(hash, absolute_path)) {
+
 			return HASH_SOURCE_CODE_OK;
 		} else {
+
 			return HASH_SOURCE_CODE_ERROR;
 		}
 	} else {
-		if (!read_file(path, 0, &data, &size)) {
+		if (!read_file(absolute_path, 0, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}
 		result = hash_source_code_string(hash, data, size, path);

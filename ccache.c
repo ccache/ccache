@@ -69,6 +69,9 @@ static const char USAGE_TEXT[] =
 /* current working directory taken from $PWD, or getcwd() if $PWD is bad */
 char *current_working_dir = NULL;
 
+/* root dir of the sources, used to make relative path, it might increse the cache hit */
+char *source_dir = NULL;
+
 /* the base cache directory */
 char *cache_dir = NULL;
 
@@ -336,7 +339,17 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 	size_t size;
 	int result;
 	bool is_pch;
-
+	char * absolute_path;
+#ifdef _WIN32	
+	if  (source_dir && path[1] !=':'){
+#else
+	if  (source_dir && !str_startswith(path, "/") ){
+#endif
+		absolute_path= format("%s/%s",source_dir,path);
+	}else{
+		absolute_path = x_strdup(path);
+	}
+	
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		/* Typically <built-in> or <command-line>. */
 		goto ignore;
@@ -359,9 +372,9 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 	    attributes & FILE_ATTRIBUTE_DIRECTORY)
 		goto ignore;
 #endif
-
-	if (stat(path, &st) != 0) {
-		cc_log("Failed to stat include file %s: %s", path, strerror(errno));
+	
+	if (stat(absolute_path, &st) != 0) {
+		cc_log("Failed to stat include file %s: %s", absolute_path, strerror(errno));
 		goto failure;
 	}
 	if (S_ISDIR(st.st_mode)) {
@@ -386,7 +399,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 	is_pch = is_precompiled_header(path);
 	if (is_pch) {
 		struct file_hash pch_hash;
-		if (!hash_file(&fhash, path)) {
+		if (!hash_file(&fhash, absolute_path)) {
 			goto failure;
 		}
 		hash_result_as_bytes(&fhash, pch_hash.hash);
@@ -399,7 +412,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 
 		if (!is_pch) { /* else: the file has already been hashed. */
 			if (st.st_size > 0) {
-				if (!read_file(path, st.st_size, &source, &size)) {
+				if (!read_file(absolute_path, st.st_size, &source, &size)) {
 					goto failure;
 				}
 			} else {
@@ -448,6 +461,27 @@ make_relative_path(char *path)
 	}
 
 	relpath = get_relative_path(current_working_dir, path);
+	free(path);
+	return relpath;
+}
+
+static char *
+make_relative_to_source_dir(char *path)
+{
+	char *relpath;
+	char* formated_source_dir;
+	relpath = x_strdup(path);
+#ifdef _WIN32
+	path = win32_format_path(path);
+	formated_source_dir = win32_format_path(source_dir);
+#else
+	formated_source_dir = x_strdup(source_dir);
+#endif	
+	if (!source_dir || !str_startswith(path, formated_source_dir)) {
+		return path;
+	}
+	relpath = get_relative_path(source_dir, path);
+	free(formated_source_dir);
 	free(path);
 	return relpath;
 }
@@ -542,7 +576,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			/* p and q span the include file path */
 			path = x_strndup(p, q - p);
-			path = make_relative_path(path);
+			if (source_dir){
+				path = make_relative_to_source_dir(path);
+			}else{
+				path = make_relative_path(path);
+			}
 			hash_string(hash, path);
 			remember_include_file(path, q - p, hash);
 			p = q;
@@ -805,7 +843,13 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		/* run cpp on the input file to obtain the .i */
 		args_add(args, "-E");
 		args_add(args, input_file);
+		if (source_dir && current_working_dir){
+			chdir(source_dir);
+		}
 		status = execute(args->argv, path_stdout, path_stderr);
+		if (source_dir && current_working_dir){
+			chdir(current_working_dir);
+		}
 		args_pop(args, 2);
 	} else {
 		/* we are compiling a .i or .ii file - that means we
@@ -1596,7 +1640,12 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "--sysroot=")) {
-			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
+			char *relpath;
+			if (source_dir){
+				relpath = make_relative_to_source_dir(x_strdup(argv[i] + 10));
+			}else{
+				relpath = make_relative_path(x_strdup(argv[i] + 10));
+			}
 			char *option = format("--sysroot=%s", relpath);
 			args_add(stripped_args, option);
 			free(relpath);
@@ -1720,6 +1769,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 			args_add(stripped_args, argv[i]);
 			relpath = make_relative_path(x_strdup(argv[i+1]));
+			if (source_dir){
+				relpath = make_relative_to_source_dir(x_strdup(argv[i+1]));
+			}else{
+				relpath = make_relative_path(x_strdup(argv[i+1]));
+			}
 			args_add(stripped_args, relpath);
 
 			/* Try to be smart about detecting precompiled headers */
@@ -1739,7 +1793,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		if (compopt_short(compopt_takes_path, argv[i])) {
 			char *relpath;
 			char *option;
-			relpath = make_relative_path(x_strdup(argv[i] + 2));
+			if (source_dir){
+				relpath = make_relative_to_source_dir(x_strdup(argv[i] + 2));
+			}else{
+				relpath = make_relative_path(x_strdup(argv[i] + 2));
+			}
 			option = format("-%c%s", argv[i][1], relpath);
 			args_add(stripped_args, option);
 			free(relpath);
@@ -1797,7 +1855,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		/* Rewrite to relative to increase hit rate. */
-		input_file = make_relative_path(x_strdup(argv[i]));
+		if (source_dir){
+			input_file = make_relative_to_source_dir(x_strdup(argv[i]));
+		}else{
+			input_file = make_relative_path(x_strdup(argv[i]));
+		}
 	}
 
 	if (!input_file) {
@@ -2075,14 +2137,17 @@ ccache(int argc, char *argv[])
 
 	sloppiness = parse_sloppiness(getenv("CCACHE_SLOPPINESS"));
 
-	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", current_working_dir);
 
 	if (base_dir) {
 		cc_log("Base directory: %s", base_dir);
 	}
-
+	
+	if ((source_dir = getenv("CCACHE_SOURCEDIR"))) {
+		cc_log("Root source directory : %s", source_dir);
+	}
+	
 	if (getenv("CCACHE_UNIFY")) {
 		cc_log("Unify mode enabled");
 		enable_unify = true;
@@ -2137,7 +2202,6 @@ ccache(int argc, char *argv[])
 			 * so don't readd it later.
 			 */
 			put_object_in_manifest = false;
-
 			object_hash_from_manifest = object_hash;
 		} else {
 			/* Add object to manifest later. */

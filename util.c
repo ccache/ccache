@@ -207,7 +207,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 #endif
 	struct stat st;
 	int errnum;
-
+	
 	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
 	cc_log("Copying %s to %s via %s (%s)",
 	       src, dest, tmp_name, compress_dest ? "compressed": "uncompressed");
@@ -1050,6 +1050,29 @@ common_dir_prefix_length(const char *s1, const char *s2)
 	}
 	return p1 - s1;
 }
+
+#ifdef _WIN32
+char *
+win32_format_path(const char *path){
+	char c,c2;
+	char* p = strdup(path);
+	char* result="";
+	while (*p) { 
+		c = *p;
+		c2 = *(p+1);
+		if (c =='\\'){
+			result = format("%s%s", result,"/"); 
+			if (c2=='\\'){
+				p++;
+			}
+		}else{
+			result= format("%s%c", result,tolower(c)); 
+		}
+		p++; 
+	}
+	return result;
+}
+#endif
 
 /*
  * Compute a relative path from from to to. Caller frees.
