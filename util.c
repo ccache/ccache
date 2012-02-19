@@ -191,11 +191,11 @@ mkstemp(char *template)
 #endif
 
 /*
- * Copy src to dest, decompressing src if needed. compress_dest decides whether
- * dest will be compressed.
+ * Copy src to dest, decompressing src if needed. compress_level > 0 decides whether
+ * dest will be compressed, and with which compression level.
  */
 int
-copy_file(const char *src, const char *dest, int compress_dest)
+copy_file(const char *src, const char *dest, int compress_level)
 {
 	int fd_in = -1, fd_out = -1;
 	gzFile gz_in = NULL, gz_out = NULL;
@@ -210,7 +210,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 
 	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
 	cc_log("Copying %s to %s via %s (%s)",
-	       src, dest, tmp_name, compress_dest ? "compressed": "uncompressed");
+	       src, dest, tmp_name, compress_level ? "compressed": "uncompressed");
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY | O_BINARY);
@@ -233,7 +233,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 		goto error;
 	}
 
-	if (compress_dest) {
+	if (compress_level) {
 		/*
 		 * A gzip file occupies at least 20 bytes, so it will always
 		 * occupy an entire filesystem block, even for empty files.
@@ -244,20 +244,21 @@ copy_file(const char *src, const char *dest, int compress_dest)
 			goto error;
 		}
 		if (file_size(&st) == 0) {
-			compress_dest = 0;
+			compress_level = 0;
 		}
 	}
 
-	if (compress_dest) {
+	if (compress_level) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
 			cc_log("gzdopen(dest) error: %s", strerror(errno));
 			goto error;
 		}
+		gzsetparams(gz_out, compress_level, Z_DEFAULT_STRATEGY);
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		if (compress_dest) {
+		if (compress_level) {
 			written = gzwrite(gz_out, buf, n);
 		} else {
 			ssize_t count;
@@ -271,7 +272,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 			} while (written < n);
 		}
 		if (written != n) {
-			if (compress_dest) {
+			if (compress_level) {
 				cc_log("gzwrite error: %s (errno: %s)",
 				       gzerror(gz_in, &errnum),
 				       strerror(errno));
@@ -346,11 +347,11 @@ error:
 
 /* Run copy_file() and, if successful, delete the source file. */
 int
-move_file(const char *src, const char *dest, int compress_dest)
+move_file(const char *src, const char *dest, int compress_level)
 {
 	int ret;
 
-	ret = copy_file(src, dest, compress_dest);
+	ret = copy_file(src, dest, compress_level);
 	if (ret != -1) {
 		x_unlink(src);
 	}
@@ -362,10 +363,10 @@ move_file(const char *src, const char *dest, int compress_dest)
  * are on the same file system.
  */
 int
-move_uncompressed_file(const char *src, const char *dest, int compress_dest)
+move_uncompressed_file(const char *src, const char *dest, int compress_level)
 {
-	if (compress_dest) {
-		return move_file(src, dest, compress_dest);
+	if (compress_level) {
+		return move_file(src, dest, compress_level);
 	} else {
 		return x_rename(src, dest);
 	}

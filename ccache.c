@@ -163,10 +163,10 @@ static bool enable_unify;
 static bool enable_direct = true;
 
 /*
- * Whether to enable compression of files stored in the cache. (Manifest files
- * are always compressed.)
+ * If non-zero, enables compression of files stored in the cache, compressed
+ * at the given level. (Manifest files are always compressed.)
  */
-static bool enable_compression = false;
+static int enable_compression = 0;
 
 /* number of levels (1 <= nlevels <= 8) */
 static int nlevels = 2;
@@ -2097,7 +2097,11 @@ ccache(int argc, char *argv[])
 
 	if (getenv("CCACHE_COMPRESS")) {
 		cc_log("Compression enabled");
-		enable_compression = true;
+		if (getenv("CCACHE_COMPRESS_LEVEL")) {
+			enable_compression = atoi(getenv("CCACHE_COMPRESS_LEVEL"));
+		} else {
+			enable_compression = 6;
+		}
 	}
 
 	if ((env = getenv("CCACHE_NLEVELS"))) {
