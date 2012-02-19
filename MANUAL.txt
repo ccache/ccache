@@ -244,6 +244,13 @@ WRAPPERS>>.
     cache; compressed and uncompressed results will still be usable regardless
     of this setting.
 
+*CCACHE_COMPRESS_LEVEL*::
+
+    This environment variable determines the level at which ccache will
+    compress object files. It only has effect if *CCACHE_COMPRESS* is also
+    set. The value defaults to 6, and must be no lower than 1 (fastest, worst
+    compression) and no higher than 9 (slowest, best compression).
+
 *CCACHE_CPP2*::
 
     If you set the environment variable *CCACHE_CPP2* then ccache will not use
