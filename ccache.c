@@ -447,6 +447,15 @@ make_relative_path(char *path)
 		return path;
 	}
 
+	if (!current_working_dir) {
+		current_working_dir = get_cwd();
+		if (!current_working_dir) {
+			cc_log("Unable to determine current working directory: %s",
+			       strerror(errno));
+			failed();
+		}
+	}
+
 	relpath = get_relative_path(current_working_dir, path);
 	free(path);
 	return relpath;
@@ -1827,17 +1836,21 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	output_is_precompiled_header =
 		actual_language && strstr(actual_language, "-header") != NULL;
 
-	if (!found_c_opt && !output_is_precompiled_header) {
-		cc_log("No -c option found");
-		/* I find that having a separate statistic for autoconf tests is useful,
-		   as they are the dominant form of "called for link" in many cases */
-		if (strstr(input_file, "conftest.")) {
-			stats_update(STATS_CONFTEST);
+	if (!found_c_opt) {
+		if (output_is_precompiled_header) {
+			args_add(stripped_args, "-c");
 		} else {
-			stats_update(STATS_LINK);
+			cc_log("No -c option found");
+			/* I find that having a separate statistic for autoconf tests is useful,
+			   as they are the dominant form of "called for link" in many cases */
+			if (strstr(input_file, "conftest.")) {
+				stats_update(STATS_CONFTEST);
+			} else {
+				stats_update(STATS_LINK);
+			}
+			result = false;
+			goto out;
 		}
-		result = false;
-		goto out;
 	}
 
 	if (!actual_language) {
@@ -2352,11 +2365,6 @@ ccache_main(int argc, char *argv[])
 		}
 	}
 
-	current_working_dir = get_cwd();
-	if (!current_working_dir) {
-		cc_log("Could not determine current working directory");
-		failed();
-	}
 	cache_dir = getenv("CCACHE_DIR");
 	if (cache_dir) {
 		cache_dir = x_strdup(cache_dir);
