@@ -191,8 +191,8 @@ mkstemp(char *template)
 #endif
 
 /*
- * Copy src to dest, decompressing src if needed. compress_level > 0 decides whether
- * dest will be compressed, and with which compression level.
+ * Copy src to dest, decompressing src if needed. compress_level > 0 decides
+ * whether dest will be compressed, and with which compression level.
  */
 int
 copy_file(const char *src, const char *dest, int compress_level)
@@ -209,8 +209,8 @@ copy_file(const char *src, const char *dest, int compress_level)
 	int errnum;
 
 	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
-	cc_log("Copying %s to %s via %s (%s)",
-	       src, dest, tmp_name, compress_level ? "compressed": "uncompressed");
+	cc_log("Copying %s to %s via %s (%scompressed)",
+	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
 	/* open source file */
 	fd_in = open(src, O_RDONLY | O_BINARY);
@@ -233,7 +233,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 		goto error;
 	}
 
-	if (compress_level) {
+	if (compress_level > 0) {
 		/*
 		 * A gzip file occupies at least 20 bytes, so it will always
 		 * occupy an entire filesystem block, even for empty files.
@@ -248,7 +248,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 		}
 	}
 
-	if (compress_level) {
+	if (compress_level > 0) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
 			cc_log("gzdopen(dest) error: %s", strerror(errno));
@@ -258,7 +258,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	}
 
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		if (compress_level) {
+		if (compress_level > 0) {
 			written = gzwrite(gz_out, buf, n);
 		} else {
 			ssize_t count;
@@ -272,7 +272,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 			} while (written < n);
 		}
 		if (written != n) {
-			if (compress_level) {
+			if (compress_level > 0) {
 				cc_log("gzwrite error: %s (errno: %s)",
 				       gzerror(gz_in, &errnum),
 				       strerror(errno));
@@ -365,7 +365,7 @@ move_file(const char *src, const char *dest, int compress_level)
 int
 move_uncompressed_file(const char *src, const char *dest, int compress_level)
 {
-	if (compress_level) {
+	if (compress_level > 0) {
 		return move_file(src, dest, compress_level);
 	} else {
 		return x_rename(src, dest);
