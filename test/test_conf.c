@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Joel Rosdahl
+ * Copyright (C) 2011-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 25
+#define N_CONFIG_ITEMS 26
 static struct {
 	char *descr;
 	const char *origin;
@@ -57,6 +57,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
 	CHECK(!conf->compression);
+	CHECK_INT_EQ(6, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
@@ -97,6 +98,7 @@ TEST(conf_read_valid_config)
 		"\t compiler = foo\n"
 		"compiler_check = none\n"
 		"compression=true\n"
+		"compression_level= 2\n"
 		"cpp_extension = .foo\n"
 		"direct_mode = false\n"
 		"disable = true\n"
@@ -125,6 +127,7 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ("foo", conf->compiler);
 	CHECK_STR_EQ("none", conf->compiler_check);
 	CHECK(conf->compression);
+	CHECK_INT_EQ(2, conf->compression_level);
 	CHECK_STR_EQ(".foo", conf->cpp_extension);
 	CHECK(!conf->direct_mode);
 	CHECK(conf->disable);
@@ -345,6 +348,7 @@ TEST(conf_print_items)
 		"c",
 		"cc",
 		true,
+		8,
 		"ce",
 		false,
 		true,
@@ -374,13 +378,14 @@ TEST(conf_print_items)
 	}
 
 	conf_print_items(&conf, conf_item_receiver, NULL);
-	CHECK_INT_EQ(25, n_received_conf_items);
+	CHECK_INT_EQ(N_CONFIG_ITEMS, n_received_conf_items);
 	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compiler = c", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compression = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("compression_level = 8", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);

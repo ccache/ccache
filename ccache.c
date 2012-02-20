@@ -675,8 +675,9 @@ to_cache(struct args *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		if (move_uncompressed_file(tmp_stderr, cached_stderr,
-		                           conf->compression) != 0) {
+		if (move_uncompressed_file(
+			    tmp_stderr, cached_stderr,
+			    conf->compression ? conf->compression_level : 0) != 0) {
 			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
 			       strerror(errno));
 			stats_update(STATS_ERROR);
@@ -704,7 +705,9 @@ to_cache(struct args *args)
 			stats_update(STATS_ERROR);
 			failed();
 		}
-	} else if (move_uncompressed_file(tmp_obj, cached_obj, conf->compression) != 0) {
+	} else if (move_uncompressed_file(
+		           tmp_obj, cached_obj,
+		           conf->compression ? conf->compression_level : 0) != 0) {
 		cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();

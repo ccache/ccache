@@ -314,6 +314,13 @@ WRAPPERS>>.
     retrieved from the cache; compressed and uncompressed results will still be
     usable regardless of this setting. The default is false.
 
+*compression_level* (*CCACHE_COMPRESSLEVEL*)::
+
+    This setting determines the level at which ccache will compress object
+    files. It only has effect if *compression* is enabled. The value defaults
+    to 6, and must be no lower than 1 (fastest, worst compression) and no
+    higher than 9 (slowest, best compression).
+
 *cpp_extension* (*CCACHE_EXTENSION*)::
 
     This setting can be used to force a certain extension for the intermediate
@@ -471,7 +478,8 @@ Cache compression
 ccache can optionally compress all files it puts into the cache using the
 compression library zlib. While this may involve a tiny performance slowdown,
 it increases the number of files that fit in the cache. You can turn on
-compression with the *compress* configuration setting.
+compression with the *compression* configuration setting and you can also tweak
+the compression level with *compression_level*.
 
 
 How ccache works
