@@ -127,7 +127,7 @@ TEST(format_parsable_size_with_suffix)
 
 TEST(parse_size_with_suffix)
 {
-	size_t size;
+	uint64_t size;
 	size_t i;
 	struct { const char *size; int64_t expected; } sizes[] = {
 		{"0", 0},
@@ -138,13 +138,13 @@ TEST(parse_size_with_suffix)
 		{"1.1 M",     1.1 * 1000 * 1000},
 		{"438.55M",   438.55 * 1000 * 1000},
 		{"1 G",       1 * 1000 * 1000 * 1000},
-		{"2T",        2L * 1000 * 1000 * 1000 * 1000},
+		{"2T",        (int64_t)2 * 1000 * 1000 * 1000 * 1000},
 
 		{"78 Ki",     78 * 1024},
 		{"1.1Mi",     1.1 * 1024 * 1024},
 		{"438.55 Mi", 438.55 * 1024 * 1024},
 		{"1Gi",       1 * 1024 * 1024 * 1024},
-		{"2 Ti",      2L * 1024 * 1024 * 1024 * 1024},
+		{"2 Ti",      (int64_t)2 * 1024 * 1024 * 1024 * 1024},
 
 	};
 

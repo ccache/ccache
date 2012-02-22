@@ -306,7 +306,7 @@ TEST(conf_update_from_environment)
 	CHECK(conf_update_from_environment(conf, &errmsg));
 	CHECK(conf->compression);
 
-	unsetenv("CCACHE_COMPRESS");
+	putenv("CCACHE_COMPRESS"); /* unsetenv isn't portable */
 	putenv("CCACHE_NOCOMPRESS=1");
 	CHECK(conf_update_from_environment(conf, &errmsg));
 	CHECK(!conf->compression);

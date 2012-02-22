@@ -356,7 +356,7 @@ touch override_path_compiler_executed
 EOF
     chmod +x $override_path/cc
     CCACHE_PATH=$override_path $CCACHE cc -c test1.c
-    if [ ! -e override_path_compiler_executed ]; then
+    if [ ! -f override_path_compiler_executed ]; then
         test_failed "CCACHE_PATH had no effect"
     fi
 

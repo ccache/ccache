@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011 Joel Rosdahl
+ * Copyright (C) 2010-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -46,6 +46,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <utime.h>
+
+extern char **environ;
 
 #if !HAVE_VSNPRINTF
   int rpl_vsnprintf(char *, size_t, const char *, va_list);
