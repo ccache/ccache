@@ -1856,7 +1856,7 @@ EOF
 
 upgrade_suite() {
     testname="keep maxfiles and maxsize settings"
-    rm -rf $CCACHE_DIR $CCACHE_CONFIG_PATH
+    rm -rf $CCACHE_DIR $CCACHE_CONFIGPATH
     mkdir -p $CCACHE_DIR/0
     echo "0 0 0 0 0 0 0 0 0 0 0 0 0 2000 131072" >$CCACHE_DIR/0/stats
     checkstat 'max files' 32000
@@ -1927,9 +1927,9 @@ CCACHE_DIR=`pwd`/.ccache
 export CCACHE_DIR
 CCACHE_LOGFILE=`pwd`/ccache.log
 export CCACHE_LOGFILE
-CCACHE_CONFIG_PATH=`pwd`/ccache.conf
-export CCACHE_CONFIG_PATH
-touch $CCACHE_CONFIG_PATH
+CCACHE_CONFIGPATH=`pwd`/ccache.conf
+export CCACHE_CONFIGPATH
+touch $CCACHE_CONFIGPATH
 
 # ---------------------------------------
 

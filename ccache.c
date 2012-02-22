@@ -2013,7 +2013,7 @@ initialize(void)
 	conf_free(conf);
 	conf = conf_create();
 
-	p = getenv("CCACHE_CONFIG_PATH");
+	p = getenv("CCACHE_CONFIGPATH");
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
