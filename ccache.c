@@ -84,6 +84,9 @@ char *base_dir = NULL;
 /* VISUAL STUDIO used as compiler (from CCACHE_MVSC)*/
 char *ccache_mvsc = NULL;
 
+/* Sun STUDIO used as compiler (from CCACHE_SUNSTUDIO)*/
+char *ccache_sunstudio = NULL;
+
 /* the original argument list */
 static struct args *orig_args;
 
@@ -1585,26 +1588,28 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		 * Special handling for -x: remember the last specified language before the
 		 * input file and strip all -x options from the arguments.
 		 */
-		if (str_eq(argv[i], "-x")) {
-			if (i == argc-1) {
-				cc_log("Missing argument to %s", argv[i]);
-				stats_update(STATS_ARGS);
-				result = false;
-				goto out;
+		if ( !ccache_sunstudio){
+			if (str_eq(argv[i], "-x")) {
+				if (i == argc-1) {
+					cc_log("Missing argument to %s", argv[i]);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+				if (!input_file) {
+					explicit_language = argv[i+1];
+				}
+				i++;
+				continue;
 			}
-			if (!input_file) {
-				explicit_language = argv[i+1];
+			if (str_startswith(argv[i], "-x")) {
+				if (!input_file) {
+					explicit_language = &argv[i][2];
+				}
+				continue;
 			}
-			i++;
-			continue;
 		}
-		if (str_startswith(argv[i], "-x")) {
-			if (!input_file) {
-				explicit_language = &argv[i][2];
-			}
-			continue;
-		}
-
+			
 		/* we need to work out where the output was meant to go */
 		if (str_eq(argv[i], "-o")) {
 			if (i == argc-1) {
@@ -2064,9 +2069,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	if (found_pch) {
 		args_add(*preprocessor_args, "-fpch-preprocess");
 	}
-	if (explicit_language) {
-		args_add(*preprocessor_args, "-x");
-		args_add(*preprocessor_args, explicit_language);
+	if (!ccache_sunstudio){
+		if (explicit_language) {
+			args_add(*preprocessor_args, "-x");
+			args_add(*preprocessor_args, explicit_language);
+		}
 	}
 
 	/*
@@ -2093,7 +2100,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 	if (compile_preprocessed_source_code) {
 		*compiler_args = args_copy(stripped_args);
-		if (explicit_language) {
+		if (explicit_language && !ccache_sunstudio ) {
 			/*
 			 * Workaround for a bug in Apple's patched distcc -- it doesn't properly
 			 * reset the language specified with -x, so if -x is given, we have to
@@ -2549,6 +2556,7 @@ ccache_main(int argc, char *argv[])
 		base_dir = NULL;
 	}
 	ccache_mvsc  = getenv("CCACHE_MVSC");
+	ccache_sunstudio = getenv("CCACHE_SUNSTUDIO");
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
 
 	setup_uncached_err();
