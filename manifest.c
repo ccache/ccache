@@ -142,6 +142,16 @@ free_manifest(struct manifest *mf)
 	free(mf);
 }
 
+#define READ_BYTE(var) \
+	do { \
+		int ch_; \
+		ch_ = gzgetc(f); \
+		if (ch_ == EOF) { \
+			goto error; \
+		} \
+		(var) = ch_ & 0xFF; \
+	} while (false)
+
 #define READ_INT(size, var) \
 	do { \
 		int ch_; \
@@ -223,14 +233,14 @@ read_manifest(gzFile f)
 		free_manifest(mf);
 		return NULL;
 	}
-	READ_INT(1, mf->version);
+	READ_BYTE(mf->version);
 	if (mf->version != VERSION) {
 		cc_log("Manifest file has unknown version %u", mf->version);
 		free_manifest(mf);
 		return NULL;
 	}
 
-	READ_INT(1, mf->hash_size);
+	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
 		/* Temporary measure until we support different hash algorithms. */
 		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
