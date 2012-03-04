@@ -104,7 +104,7 @@ compiler options apply and you should refer to the compiler's documentation.
 
     Clean up the cache by removing old cached files until the specified file
     number and cache size limits are not exceeded. This also recalculates the
-    cache file count and size totals. Normally, it's not needed to initiate
+    cache file count and size totals. Normally, there is no need to initiate
     cleanup manually as ccache keeps the cache below the specified limits at
     runtime and keeps statistics up to date on each compilation. Forcing a
     cleanup is mostly useful if you manually modify the cache contents or
@@ -112,7 +112,8 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *-C, --clear*::
 
-    Clear the entire cache, removing all cached files.
+    Clear the entire cache, removing all cached files, but keeping the
+    configuration file.
 
 *-F, --max-files*='N'::
 
@@ -201,9 +202,9 @@ paths.
 Configuration file syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configuration files are in a simple ``key = value'' format, one per line. Lines
-starting with a hash sign are comments. Blank lines are ignored, as is
-whitespace surrounding keys and values. Example:
+Configuration files are in a simple ``key = value'' format, one setting per
+line. Lines starting with a hash sign are comments. Blank lines are ignored, as
+is whitespace surrounding keys and values. Example:
 
 -------------------------------------------------------------------------------
 # Set maximum cache size to 10 GB:
@@ -214,10 +215,10 @@ Boolean values
 ~~~~~~~~~~~~~~
 
 Some settings are boolean values (i.e. truth values). In a configuration file,
-such values should be set to the string *true* or *false*. For the
-corresponding environment variables, the semantics are a bit different: a set
-environment variable means ``true'' regardless of the value (even if set to the
-empty string), and an unset environment variable means ``false''. Each boolean
+such values must be set to the string *true* or *false*. For the corresponding
+environment variables, the semantics are a bit different: a set environment
+variable means ``true'' regardless of the value (even if set to the empty
+string), and an unset environment variable means ``false''. Each boolean
 environment variable also has a negated form starting with *CCACHE_NO*. For
 example, *CCACHE_COMPRESS* can be set to force compression and
 *CCACHE_NOCOMPRESS* can be set to force no compression.
@@ -228,7 +229,7 @@ Configuration settings
 
 Below is a list of available configuration settings. The corresponding
 environment variable name is indicated in parentheses after each configuration
-setting key.
+setting key. Boolean options are indicated with ``[boolean]''
 
 *base_dir* (*CCACHE_BASEDIR*)::
 
@@ -241,7 +242,7 @@ setting key.
 
 *cache_dir* (*CCACHE_DIR*)::
 
-    This setting specifies where ccache will keep its cached compiler output.
+    This setting specifies where ccache will keep its cached compiler outputs.
     It will only take effect if set in the system-wide configuration file or as
     an environment variable. The default is *$HOME/.ccache*.
 

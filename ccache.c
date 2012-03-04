@@ -55,7 +55,7 @@ static const char USAGE_TEXT[] =
 "Options:\n"
 "    -c, --cleanup         delete old files and recalculate size counters\n"
 "                          (normally not needed as this is done automatically)\n"
-"    -C, --clear           clear the cache completely\n"
+"    -C, --clear           clear the cache completely (except configuration)\n"
 "    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
 "                          no limit)\n"
 "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
