@@ -413,7 +413,7 @@ ignore:
 
 /*
  * Make a relative path from current working directory to path if path is under
- * CCACHE_BASEDIR. Takes over ownership of path. Caller frees.
+ * the base directory. Takes over ownership of path. Caller frees.
  */
 static char *
 make_relative_path(char *path)
@@ -442,8 +442,8 @@ make_relative_path(char *path)
  * This function reads and hashes a file. While doing this, it also does these
  * things:
  *
- * - Makes include file paths whose prefix is CCACHE_BASEDIR relative when
- *   computing the hash sum.
+ * - Makes include file paths for which the base directory is a prefix relative
+ *   when computing the hash sum.
  * - Stores the paths and hashes of included files in the global variable
  *   included_files.
  */
@@ -695,7 +695,7 @@ to_cache(struct args *args)
 
 	if (output_to_real_object_first) {
 		int ret;
-		if (getenv("CCACHE_HARDLINK") && !conf->compression) {
+		if (conf->hard_link && !conf->compression) {
 			ret = link(tmp_obj, cached_obj);
 		} else {
 			ret = copy_file(tmp_obj, cached_obj, conf->compression);
