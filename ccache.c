@@ -701,7 +701,8 @@ to_cache(struct args *args)
 			ret = copy_file(tmp_obj, cached_obj, conf->compression);
 		}
 		if (ret != 0) {
-			cc_log("Failed to copy/link %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
+			cc_log("Failed to copy/link %s to %s: %s",
+			       tmp_obj, cached_obj, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
