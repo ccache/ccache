@@ -219,15 +219,15 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		 * Special rule for boolean settings from the environment: any value means
 		 * true.
 		 */
-		bool *value = (bool *)((void *)conf + item->offset);
+		bool *value = (bool *)((char *)conf + item->offset);
 		*value = !negate_boolean;
 		goto out;
 	}
 
-	if (!item->parser(value, (void *)conf + item->offset, errmsg)) {
+	if (!item->parser(value, (char *)conf + item->offset, errmsg)) {
 		return false;
 	}
-	if (item->verifier && !item->verifier((void *)conf + item->offset, errmsg)) {
+	if (item->verifier && !item->verifier((char *)conf + item->offset, errmsg)) {
 		return false;
 	}
 

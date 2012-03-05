@@ -49,7 +49,7 @@ static void display_size_times_1024(uint64_t size);
 static struct {
 	enum stats stat;
 	char *message;
-	void (*fn)(size_t );
+	void (*fn)(uint64_t);
 	unsigned flags;
 } stats_info[] = {
 	{ STATS_CACHEHIT_DIR, "cache hit (direct)             ", NULL, FLAG_ALWAYS },
