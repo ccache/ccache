@@ -123,6 +123,7 @@ char *x_strndup(const char *s, size_t n);
 void *x_malloc(size_t size);
 void *x_calloc(size_t nmemb, size_t size);
 void *x_realloc(void *ptr, size_t size);
+int x_unsetenv(const char *name);
 void traverse(const char *dir, void (*fn)(const char *, struct stat *));
 char *basename(const char *path);
 char *dirname(const char *path);

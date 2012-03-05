@@ -679,6 +679,15 @@ x_realloc(void *ptr, size_t size)
 	return p2;
 }
 
+/* This is like unsetenv. */
+int x_unsetenv(const char *name)
+{
+#ifdef HAVE_UNSETENV
+	return unsetenv(name);
+#else
+	return putenv(x_strdup(name)); /* Leak to environment. */
+#endif
+}
 
 /*
  * Construct a string according to the format and store it in *ptr. The

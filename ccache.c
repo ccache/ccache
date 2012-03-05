@@ -566,9 +566,8 @@ to_cache(struct args *args)
 	 * otherwise it will emit a line like
 	 *
 	 *  tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
-	 *
-	 * unsetenv() is on BSD and Linux but not portable. */
-	putenv("DEPENDENCIES_OUTPUT");
+	 */
+	x_unsetenv("DEPENDENCIES_OUTPUT");
 
 	if (conf->run_second_cpp) {
 		args_add(args, input_file);
