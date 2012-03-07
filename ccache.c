@@ -1851,6 +1851,29 @@ parse_sloppiness(char *p)
 	return result;
 }
 
+/* Make a copy of stderr that will not be cached, so things like
+   distcc can send networking errors to it. */
+static void
+setup_uncached_err(void)
+{
+	char *buf;
+	int uncached_fd;
+
+	uncached_fd = dup(2);
+	if (uncached_fd == -1) {
+		cc_log("dup(2) failed: %s", strerror(errno));
+		failed();
+	}
+
+	/* leak a pointer to the environment */
+	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
+
+	if (putenv(buf) == -1) {
+		cc_log("putenv failed: %s", strerror(errno));
+		failed();
+	}
+}
+
 /* the main ccache driver function */
 static void
 ccache(int argc, char *argv[])
@@ -1870,6 +1893,7 @@ ccache(int argc, char *argv[])
 	struct args *compiler_args;
 
 	find_compiler(argc, argv);
+	setup_uncached_err();
 
 	if (getenv("CCACHE_DISABLE")) {
 		cc_log("ccache is disabled");
@@ -2124,30 +2148,6 @@ ccache_main_options(int argc, char *argv[])
 	return 0;
 }
 
-
-/* Make a copy of stderr that will not be cached, so things like
-   distcc can send networking errors to it. */
-static void
-setup_uncached_err(void)
-{
-	char *buf;
-	int uncached_fd;
-
-	uncached_fd = dup(2);
-	if (uncached_fd == -1) {
-		cc_log("dup(2) failed: %s", strerror(errno));
-		failed();
-	}
-
-	/* leak a pointer to the environment */
-	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
-
-	if (putenv(buf) == -1) {
-		cc_log("putenv failed: %s", strerror(errno));
-		failed();
-	}
-}
-
 int
 ccache_main(int argc, char *argv[])
 {
@@ -2212,8 +2212,6 @@ ccache_main(int argc, char *argv[])
 	}
 
 	compile_preprocessed_source_code = !getenv("CCACHE_CPP2");
-
-	setup_uncached_err();
 
 	/* make sure the cache dir exists */
 	if (create_dir(cache_dir) != 0) {
