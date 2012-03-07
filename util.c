@@ -680,12 +680,12 @@ x_realloc(void *ptr, size_t size)
 }
 
 /* This is like unsetenv. */
-int x_unsetenv(const char *name)
+void x_unsetenv(const char *name)
 {
 #ifdef HAVE_UNSETENV
-	return unsetenv(name);
+	unsetenv(name);
 #else
-	return putenv(x_strdup(name)); /* Leak to environment. */
+	putenv(x_strdup(name)); /* Leak to environment. */
 #endif
 }
 
