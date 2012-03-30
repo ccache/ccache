@@ -690,7 +690,7 @@ manifest_dump(const char *manifest_path, FILE *stream)
 {
 	struct manifest *mf = NULL;
 	int fd;
-	gzFile *f = NULL;
+	gzFile f = NULL;
 	bool ret = false;
 	unsigned i, j;
 
