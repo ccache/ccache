@@ -502,36 +502,38 @@ EOF
     $CCACHE -C > /dev/null
     checkstat 'files in cache' 0
 
-    testname="profile-generate"
-    $CCACHE -Cz > /dev/null
-    $CCACHE_COMPILE -c -fprofile-generate test1.c
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-    checkstat 'files in cache' 1
-    $CCACHE_COMPILE -c -fprofile-generate test1.c
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 1
-    checkstat 'files in cache' 1
+    if $COMPILER -c -fprofile-generate test1.c 2>/dev/null; then
+        testname="profile-generate"
+        $CCACHE -Cz > /dev/null
+        $CCACHE_COMPILE -c -fprofile-generate test1.c
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 1
+        $CCACHE_COMPILE -c -fprofile-generate test1.c
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 1
 
-    testname="profile-arcs"
-    $CCACHE_COMPILE -c -fprofile-arcs test1.c
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 2
-    checkstat 'files in cache' 2
-    $CCACHE_COMPILE -c -fprofile-arcs test1.c
-    checkstat 'cache hit (preprocessed)' 2
-    checkstat 'cache miss' 2
-    checkstat 'files in cache' 2
+        testname="profile-arcs"
+        $CCACHE_COMPILE -c -fprofile-arcs test1.c
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 2
+        checkstat 'files in cache' 2
+        $CCACHE_COMPILE -c -fprofile-arcs test1.c
+        checkstat 'cache hit (preprocessed)' 2
+        checkstat 'cache miss' 2
+        checkstat 'files in cache' 2
 
-    testname="profile-use"
-    $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
-    checkstat 'cache hit (preprocessed)' 2
-    checkstat 'cache miss' 3
-    checkstat 'files in cache' 4
-    $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
-    checkstat 'cache hit (preprocessed)' 3
-    checkstat 'cache miss' 3
-    checkstat 'files in cache' 4
+        testname="profile-use"
+        $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
+        checkstat 'cache hit (preprocessed)' 2
+        checkstat 'cache miss' 3
+        checkstat 'files in cache' 4
+        $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
+        checkstat 'cache hit (preprocessed)' 3
+        checkstat 'cache miss' 3
+        checkstat 'files in cache' 4
+    fi
 
     rm -f test1.c
 }
