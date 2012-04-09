@@ -83,9 +83,9 @@ TEST(conf_create)
 TEST(conf_read_valid_config)
 {
 	struct conf *conf = conf_create();
-	char *errmsg;
+	char *errmsg, *user;
 	putenv("USER=rabbit");
-	const char *user = getenv("USER");
+	user = getenv("USER");
 	CHECK_STR_EQ("rabbit", user);
 	create_file(
 		"ccache.conf",
