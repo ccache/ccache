@@ -548,6 +548,7 @@ link_suite() {
         ln -s ../ccache $COMPILER
         CCACHE_COMPILE="./$COMPILER"
         base_tests
+        rm -f $COMPILER
     else
         echo "Compiler ($COMPILER) not taken from PATH -- not running link test"
     fi
