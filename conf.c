@@ -142,7 +142,7 @@ parse_unsigned(const char *str, void *result, char **errmsg)
 	char *endptr;
 	errno = 0;
 	x = strtol(str, &endptr, 10);
-	if (errno == 0 && x >= 0 && x <= (long)(unsigned)-1 && *str != '\0'
+	if (errno == 0 && x >= 0 && x <= (long)UINT_MAX && *str != '\0'
 	    && *endptr == '\0') {
 		*value = x;
 		return true;
