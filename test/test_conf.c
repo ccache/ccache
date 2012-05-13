@@ -252,11 +252,6 @@ TEST(conf_read_invalid_unsigned)
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid unsigned integer: \"-42\"",
 	                   errmsg);
 
-	create_file("ccache.conf", "max_files = 4294967296");
-	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid unsigned integer: \"4294967296\"",
-	                   errmsg);
-
 	create_file("ccache.conf", "max_files = foo");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid unsigned integer: \"foo\"",
