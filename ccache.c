@@ -1315,13 +1315,12 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 /* find the real compiler. We just search the PATH to find a executable of the
    same name that isn't a link to ourselves */
 static void
-find_compiler(void)
+find_compiler(char** argv)
 {
 	char *base;
 	char *compiler;
-	const char *orig_first_argument = orig_args->argv[0];
 
-	base = basename(orig_args->argv[0]);
+	base = basename(argv[0]);
 
 	/* we might be being invoked like "ccache gcc -c foo.c" */
 	if (same_executable_name(base, MYNAME)) {
@@ -1346,7 +1345,7 @@ find_compiler(void)
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
-	if (str_eq(compiler, orig_first_argument)) {
+	if (str_eq(compiler, argv[0])) {
 		fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
 		      MYNAME);
 	}
@@ -2143,7 +2142,7 @@ ccache(int argc, char *argv[])
 	orig_args = args_init(argc, argv);
 
 	initialize();
-	find_compiler();
+	find_compiler(argv);
 
 	if (!str_eq(conf->log_file, "")) {
 		conf_print_items(conf, configuration_logger, NULL);
