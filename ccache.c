@@ -2022,6 +2022,7 @@ initialize(void)
 				fatal("%s", errmsg);
 			}
 			/* Missing config file in SYSCONFDIR is OK. */
+			free(errmsg);
 		}
 
 		if ((p = getenv("CCACHE_DIR"))) {
