@@ -425,7 +425,8 @@ WRAPPERS>>.
 *file_macro*::
     Ignore *\_\_FILE__* being present in the source.
 *include_file_mtime*::
-    Don't check the modification time of include files in the direct mode.
+    By default, ccache will not cache a file if it includes a header whose
+    mtime is too new.  This option disables that check.
 *time_macros*::
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
 --
