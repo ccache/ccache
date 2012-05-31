@@ -69,6 +69,7 @@ hash_source_code_string(
 	size_t hashbuflen = 0;
 	int result = HASH_SOURCE_CODE_OK;
 	extern unsigned sloppiness;
+	bool seen_backslash;
 
 	p = str;
 	end = str + len;
@@ -115,7 +116,18 @@ hash_source_code_string(
 		case '"':
 			HASH(*p);
 			p++;
-			while (p < end && (*p != '"' || *(p-1) == '\\')) {
+			seen_backslash = false;
+			while (p < end) {
+				if (seen_backslash) {
+					seen_backslash = false;
+				} else if (*p == '"') {
+					/* Found end of string. */
+					HASH(*p);
+					p++;
+					break;
+				} else if (*p == '\\') {
+					seen_backslash = true;
+				}
 				HASH(*p);
 				p++;
 			}
