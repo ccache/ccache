@@ -250,7 +250,7 @@ stats_flush(void)
 		need_cleanup = true;
 	}
 	if (conf->max_size != 0
-	    && counters->data[STATS_TOTALSIZE] * 1024 > conf->max_size / 16) {
+	    && counters->data[STATS_TOTALSIZE] > conf->max_size / 1024 / 16) {
 		need_cleanup = true;
 	}
 
