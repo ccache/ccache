@@ -373,7 +373,7 @@ stats_get_obsolete_limits(const char *dir, unsigned *maxfiles, uint64_t *maxsize
 	char *sname = format("%s/stats", dir);
 	stats_read(sname, counters);
 	*maxfiles = counters->data[STATS_OBSOLETE_MAXFILES];
-	*maxsize = counters->data[STATS_OBSOLETE_MAXSIZE] * 1024;
+	*maxsize = (uint64_t)counters->data[STATS_OBSOLETE_MAXSIZE] * 1024;
 	free(sname);
 	counters_free(counters);
 }
