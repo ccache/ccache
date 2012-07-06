@@ -171,6 +171,11 @@ static bool profile_generate = false;
  */
 static bool using_precompiled_header = false;
 
+/*
+ * The .gch/.pch file used for compilation.
+ */
+static char *included_pch_file = NULL;
+
 /* How long (in microseconds) to wait before breaking a stale lock. */
 unsigned lock_staleness_limit = 2000000;
 
@@ -532,6 +537,16 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 
 	hash_buffer(hash, p, (end - p));
 	free(data);
+
+	/* Explicitly check the .gch/.pch file, Clang does not include any mention of it
+	   in the preprocessed output. */
+	if (included_pch_file) {
+		char *path = x_strdup(included_pch_file);
+		path = make_relative_path(path);
+		hash_string(hash, path);
+		remember_include_file(path, strlen(included_pch_file), hash);
+	}
+
 	return true;
 }
 
@@ -1680,6 +1695,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		 */
 		if (compopt_takes_path(argv[i])) {
 			char *relpath;
+			char *pch_file = NULL;
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -1696,21 +1712,35 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				if (stat(argv[i+1], &st) == 0) {
 					cc_log("Detected use of precompiled header: %s", argv[i+1]);
 					found_pch = true;
+					pch_file = x_strdup(argv[i+1]);
 				}
 			} else {
 				char* gchpath = format("%s.gch", argv[i+1]);
 				if (stat(gchpath, &st) == 0) {
 					cc_log("Detected use of precompiled header: %s", gchpath);
 					found_pch = true;
+					pch_file = x_strdup(gchpath);
 				} else {
 					char* pchpath = format("%s.pch", argv[i+1]);
 					if (stat(pchpath, &st) == 0) {
 						cc_log("Detected use of precompiled header: %s", pchpath);
 						found_pch = true;
+						pch_file = x_strdup(pchpath);
 					}
 					free(pchpath);
 				}
 				free(gchpath);
+			}
+
+			if (pch_file) {
+				if (included_pch_file) {
+					cc_log("Multiple precompiled headers used: %s and %s\n",
+					    included_pch_file, pch_file);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+				included_pch_file = pch_file;
 			}
 
 			free(relpath);
@@ -2083,6 +2113,7 @@ cc_reset(void)
 	free(secondary_config_path); secondary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
 	free(profile_dir); profile_dir = NULL;
+	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
