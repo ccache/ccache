@@ -307,7 +307,7 @@ get_path_in_cache(const char *name, const char *suffix)
  * also updated. Takes over ownership of path.
  */
 static void
-remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
+remember_include_file(char *path, struct mdfour *cpp_hash)
 {
 #ifdef _WIN32
 	DWORD attributes;
@@ -318,6 +318,7 @@ remember_include_file(char *path, size_t path_len, struct mdfour *cpp_hash)
 	size_t size;
 	int result;
 	bool is_pch;
+	size_t path_len = strlen(path);
 
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		/* Typically <built-in> or <command-line>. */
@@ -528,7 +529,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			path = x_strndup(p, q - p);
 			path = make_relative_path(path);
 			hash_string(hash, path);
-			remember_include_file(path, q - p, hash);
+			remember_include_file(path, hash);
 			p = q;
 		} else {
 			q++;
@@ -544,7 +545,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
 		hash_string(hash, path);
-		remember_include_file(path, strlen(included_pch_file), hash);
+		remember_include_file(path, hash);
 	}
 
 	return true;
