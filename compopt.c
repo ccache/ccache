@@ -61,6 +61,7 @@ static const struct compopt compopts[] = {
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-imultilib",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-include",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
+	{"-include-pch",    AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-install_name",   TAKES_ARG}, /* Darwin linker option */
 	{"-iprefix",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iquote",         AFFECTS_CPP | TAKES_ARG | TAKES_PATH},

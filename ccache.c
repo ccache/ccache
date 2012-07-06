@@ -167,7 +167,7 @@ static bool profile_use = false;
 static bool profile_generate = false;
 
 /*
- * Whether we are using a precompiled header (either via -include or #include).
+ * Whether we are using a precompiled header (either via -include, #include or clang's -include-pch).
  */
 static bool using_precompiled_header = false;
 
@@ -1355,7 +1355,7 @@ find_compiler(char** argv)
 bool
 is_precompiled_header(const char *path)
 {
-	return str_eq(get_extension(path), ".gch");
+	return str_eq(get_extension(path), ".gch") || str_eq(get_extension(path), ".pch");
 }
 
 /*
@@ -1680,7 +1680,6 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		 */
 		if (compopt_takes_path(argv[i])) {
 			char *relpath;
-			char *pchpath;
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -1693,13 +1692,27 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			args_add(stripped_args, relpath);
 
 			/* Try to be smart about detecting precompiled headers */
-			pchpath = format("%s.gch", argv[i+1]);
-			if (stat(pchpath, &st) == 0) {
-				cc_log("Detected use of precompiled header: %s", pchpath);
-				found_pch = true;
+			if (str_eq(argv[i], "-include-pch")) {
+				if (stat(argv[i+1], &st) == 0) {
+					cc_log("Detected use of precompiled header: %s", argv[i+1]);
+					found_pch = true;
+				}
+			} else {
+				char* gchpath = format("%s.gch", argv[i+1]);
+				if (stat(gchpath, &st) == 0) {
+					cc_log("Detected use of precompiled header: %s", gchpath);
+					found_pch = true;
+				} else {
+					char* pchpath = format("%s.pch", argv[i+1]);
+					if (stat(pchpath, &st) == 0) {
+						cc_log("Detected use of precompiled header: %s", pchpath);
+						found_pch = true;
+					}
+					free(pchpath);
+				}
+				free(gchpath);
 			}
 
-			free(pchpath);
 			free(relpath);
 			i++;
 			continue;

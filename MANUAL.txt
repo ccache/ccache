@@ -629,6 +629,8 @@ things to make it work properly:
 --
 ** use the *-include* compiler option to include the precompiled header
    (i.e., don't use *#include* in the source code to include the header); or
+** (Clang compiler) use the *-include-pch* compiler option to include
+   the PCH file generated from the precompiled header; or
 ** add the *-fpch-preprocess* compiler option when compiling.
 
 If you don't do this, either the non-precompiled version of the header file
