@@ -167,7 +167,8 @@ static bool profile_use = false;
 static bool profile_generate = false;
 
 /*
- * Whether we are using a precompiled header (either via -include, #include or clang's -include-pch).
+ * Whether we are using a precompiled header (either via -include, #include or
+ * clang's -include-pch).
  */
 static bool using_precompiled_header = false;
 
@@ -269,7 +270,7 @@ clean_up_tmp_files()
 static const char *
 temp_dir()
 {
-	static char* path = NULL;
+	static char *path = NULL;
 	if (path) return path;  /* Memoize */
 	path = conf->temporary_dir;
 	if (str_eq(path, "")) {
@@ -539,8 +540,10 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	hash_buffer(hash, p, (end - p));
 	free(data);
 
-	/* Explicitly check the .gch/.pch file, Clang does not include any mention of it
-	   in the preprocessed output. */
+	/*
+	 * Explicitly check the .gch/.pch file, Clang does not include any mention of
+	 * it in the preprocessed output.
+	 */
 	if (included_pch_file) {
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
@@ -1331,7 +1334,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 /* find the real compiler. We just search the PATH to find a executable of the
    same name that isn't a link to ourselves */
 static void
-find_compiler(char** argv)
+find_compiler(char **argv)
 {
 	char *base;
 	char *compiler;
@@ -1371,7 +1374,8 @@ find_compiler(char** argv)
 bool
 is_precompiled_header(const char *path)
 {
-	return str_eq(get_extension(path), ".gch") || str_eq(get_extension(path), ".pch");
+	return str_eq(get_extension(path), ".gch")
+	       || str_eq(get_extension(path), ".pch");
 }
 
 /*
@@ -1631,12 +1635,12 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 
 		if (str_startswith(argv[i], "-fprofile-")) {
-			const char* arg_profile_dir = strchr(argv[i], '=');
-			char* arg = x_strdup(argv[i]);
+			const char *arg_profile_dir = strchr(argv[i], '=');
+			char *arg = x_strdup(argv[i]);
 			bool supported_profile_option = false;
 
 			if (arg_profile_dir) {
-				char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
+				char *option = x_strndup(argv[i], arg_profile_dir - argv[i]);
 				char *dir;
 
 				/* Convert to absolute path. */
@@ -1716,13 +1720,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					pch_file = x_strdup(argv[i+1]);
 				}
 			} else {
-				char* gchpath = format("%s.gch", argv[i+1]);
+				char *gchpath = format("%s.gch", argv[i+1]);
 				if (stat(gchpath, &st) == 0) {
 					cc_log("Detected use of precompiled header: %s", gchpath);
 					found_pch = true;
 					pch_file = x_strdup(gchpath);
 				} else {
-					char* pchpath = format("%s.pch", argv[i+1]);
+					char *pchpath = format("%s.pch", argv[i+1]);
 					if (stat(pchpath, &st) == 0) {
 						cc_log("Detected use of precompiled header: %s", pchpath);
 						found_pch = true;
@@ -1736,7 +1740,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			if (pch_file) {
 				if (included_pch_file) {
 					cc_log("Multiple precompiled headers used: %s and %s\n",
-					    included_pch_file, pch_file);
+					       included_pch_file, pch_file);
 					stats_update(STATS_ARGS);
 					result = false;
 					goto out;
