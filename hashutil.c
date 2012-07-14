@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 Joel Rosdahl
+ * Copyright (C) 2009-2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -159,7 +159,6 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 {
 	char *data;
 	size_t size;
-	int result;
 
 	if (is_precompiled_header(path)) {
 		if (hash_file(hash, path)) {
@@ -168,6 +167,8 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 			return HASH_SOURCE_CODE_ERROR;
 		}
 	} else {
+		int result;
+
 		if (!read_file(path, 0, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}

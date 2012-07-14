@@ -317,7 +317,6 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 	struct stat st;
 	char *source = NULL;
 	size_t size;
-	int result;
 	bool is_pch;
 	size_t path_len = strlen(path);
 
@@ -382,6 +381,8 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 		struct file_hash *h;
 
 		if (!is_pch) { /* else: the file has already been hashed. */
+			int result;
+
 			if (st.st_size > 0) {
 				if (!read_file(path, st.st_size, &source, &size)) {
 					goto failure;
