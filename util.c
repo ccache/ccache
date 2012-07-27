@@ -984,7 +984,8 @@ common_dir_prefix_length(const char *s1, const char *s2)
 }
 
 /*
- * Compute a relative path from from to to. Caller frees.
+ * Compute a relative path from from to to. Assumes that both from and to are
+ * well-formed and canonical. Caller frees.
  */
 char *
 get_relative_path(const char *from, const char *to)
