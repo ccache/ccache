@@ -1114,7 +1114,7 @@ same_executable_name(const char *s1, const char *s2)
 
 /*
  * Compute the length of the longest directory path that is common to two
- * strings.
+ * paths. s1 is assumed to be the path to a directory.
  */
 size_t
 common_dir_prefix_length(const char *s1, const char *s2)
@@ -1126,7 +1126,21 @@ common_dir_prefix_length(const char *s1, const char *s2)
 		++p1;
 		++p2;
 	}
-	while (p1 > s1 && ((*p1 && *p1 != '/' ) || (*p2 && *p2 != '/'))) {
+	if (*p2 == '/') {
+		/* s2 starts with "s1/". */
+		return p1 - s1;
+	}
+	if (!*p2) {
+		/* s2 is equal to s1. */
+		if (p2 == s2 + 1) {
+			/* Special case for s1 and s2 both being "/". */
+			return 0;
+		} else {
+			return p1 - s1;
+		}
+	}
+	/* Compute the common directory prefix */
+	while (p1 > s1 && *p1 != '/') {
 		p1--;
 		p2--;
 	}
@@ -1134,7 +1148,9 @@ common_dir_prefix_length(const char *s1, const char *s2)
 }
 
 /*
- * Compute a relative path from from to to. Caller frees.
+ * Compute a relative path from from (an absolute path to a directory) to to (a
+ * path). Assumes that both from and to are well-formed and canonical. Caller
+ * frees.
  */
 char *
 get_relative_path(const char *from, const char *to)
@@ -1144,23 +1160,24 @@ get_relative_path(const char *from, const char *to)
 	const char *p;
 	char *result;
 
+	assert(from && from[0] == '/');
+	assert(to);
+
 	if (!*to || *to != '/') {
 		return x_strdup(to);
 	}
 
 	result = x_strdup("");
 	common_prefix_len = common_dir_prefix_length(from, to);
-	for (p = from + common_prefix_len; *p; p++) {
-		if (*p == '/') {
-			reformat(&result, "../%s", result);
+	if (common_prefix_len > 0 || !str_eq(from, "/")) {
+		for (p = from + common_prefix_len; *p; p++) {
+			if (*p == '/') {
+				reformat(&result, "../%s", result);
+			}
 		}
 	}
 	if (strlen(to) > common_prefix_len) {
-		p = to + common_prefix_len + 1;
-		while (*p == '/') {
-			p++;
-		}
-		reformat(&result, "%s%s", result, p);
+		reformat(&result, "%s%s", result, to + common_prefix_len + 1);
 	}
 	i = strlen(result) - 1;
 	while (i >= 0 && result[i] == '/') {

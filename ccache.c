@@ -426,19 +426,31 @@ ignore:
 static char *
 make_relative_path(char *path)
 {
-	char *relpath;
+	char *relpath, *canon_path;
 
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
 	}
 
 	if (!current_working_dir) {
-		current_working_dir = get_cwd();
+		char *cwd = get_cwd();
+		if (cwd) {
+			current_working_dir = x_realpath(cwd);
+			free(cwd);
+		}
 		if (!current_working_dir) {
 			cc_log("Unable to determine current working directory: %s",
 			       strerror(errno));
 			failed();
 		}
+	}
+
+	canon_path = x_realpath(path);
+	if (canon_path) {
+		free(path);
+		path = canon_path;
+	} else {
+		/* path doesn't exist, so leave it as it is. */
 	}
 
 	relpath = get_relative_path(current_working_dir, path);

@@ -41,6 +41,34 @@ TEST(dirname)
 	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
 }
 
+TEST(common_dir_prefix_length)
+{
+	CHECK_INT_EQ(0, common_dir_prefix_length("", ""));
+	CHECK_INT_EQ(0, common_dir_prefix_length("/", "/"));
+	CHECK_INT_EQ(0, common_dir_prefix_length("/", "/b"));
+	CHECK_INT_EQ(0, common_dir_prefix_length("/a", "/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a", "/a"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a", "/a/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/c"));
+	CHECK_INT_EQ(4, common_dir_prefix_length("/a/b", "/a/b"));
+}
+
+TEST(get_relative_path)
+{
+	CHECK_STR_EQ_FREE2("a", get_relative_path("/doesn't matter", "a"));
+	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/doesn't matter", "a/b"));
+	CHECK_STR_EQ_FREE2(".", get_relative_path("/a", "/a"));
+	CHECK_STR_EQ_FREE2("..", get_relative_path("/a/b", "/a"));
+	CHECK_STR_EQ_FREE2("b", get_relative_path("/a", "/a/b"));
+	CHECK_STR_EQ_FREE2("b/c", get_relative_path("/a", "/a/b/c"));
+	CHECK_STR_EQ_FREE2("../c", get_relative_path("/a/b", "/a/c"));
+	CHECK_STR_EQ_FREE2("../c/d", get_relative_path("/a/b", "/a/c/d"));
+	CHECK_STR_EQ_FREE2("../../c/d", get_relative_path("/a/b/c", "/a/c/d"));
+	CHECK_STR_EQ_FREE2("../..", get_relative_path("/a/b", "/"));
+	CHECK_STR_EQ_FREE2("../../c", get_relative_path("/a/b", "/c"));
+	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/", "/a/b"));
+}
+
 TEST(format_hash_as_string)
 {
 	unsigned char hash[16] = {
