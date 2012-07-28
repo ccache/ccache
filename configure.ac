@@ -131,10 +131,7 @@ elif test ! -f $srcdir/version.c; then
 fi
 
 dnl Find test suite files.
-test_suites=""
-for x in $srcdir/test/test_*.c; do
-    test_suites="$test_suites $x"
-done
+test_suites=`ls test/test_*.c | grep -Ev 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
