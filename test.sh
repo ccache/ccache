@@ -1395,6 +1395,27 @@ EOF
     if grep `pwd` stderr.txt >/dev/null 2>&1; then
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
+
+    ##################################################################
+    # Check that -MF, -MQ and -MT arguments with absolute paths are rewritten
+    # to relative.
+    testname="-MF/-MQ/-MT with absolute paths"
+    for option in MF "MF " MQ "MQ " MT "MT "; do
+        $CCACHE -Cz >/dev/null
+        cd dir1
+        CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        checkstat 'cache hit (direct)' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        cd ..
+    done
 }
 
 compression_suite() {
