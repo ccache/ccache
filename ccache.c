@@ -1392,14 +1392,14 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			output_obj = argv[i+1];
+			output_obj = make_relative_path(x_strdup(argv[i+1]));
 			i++;
 			continue;
 		}
 
 		/* alternate form of -o, with no space */
 		if (str_startswith(argv[i], "-o")) {
-			output_obj = &argv[i][2];
+			output_obj = make_relative_path(x_strdup(&argv[i][2]));
 			continue;
 		}
 
@@ -1772,13 +1772,11 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	 * Add flags for dependency generation only to the preprocessor command line.
 	 */
 	if (generating_dependencies) {
-		char *stripped_output_obj;
-		stripped_output_obj = make_relative_path(x_strdup(output_obj));
 		if (!dependency_filename_specified) {
 			char *default_depfile_name;
 			char *base_name;
 
-			base_name = remove_extension(stripped_output_obj);
+			base_name = remove_extension(output_obj);
 			default_depfile_name = format("%s.d", base_name);
 			free(base_name);
 			args_add(dep_args, "-MF");
@@ -1788,9 +1786,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		if (!dependency_target_specified) {
 			args_add(dep_args, "-MQ");
-			args_add(dep_args, stripped_output_obj);
+			args_add(dep_args, output_obj);
 		}
-		free(stripped_output_obj);
 	}
 
 	if (compile_preprocessed_source_code) {
@@ -1831,7 +1828,7 @@ cc_reset(void)
 	base_dir = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
-	output_obj = NULL;
+	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
