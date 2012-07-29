@@ -1433,10 +1433,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-MF")) {
 			char *arg;
-			bool use_nxt_arg = (strlen(argv[i]) == 3);
+			bool separate_argument = (strlen(argv[i]) == 3);
 			dependency_filename_specified = true;
 			free(output_dep);
-			if (use_nxt_arg) {
+			if (separate_argument) {
 				/* -MF arg */
 				if (i >= argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
@@ -1452,7 +1452,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			}
 			output_dep = make_relative_path(x_strdup(arg));
 			/* Keep the format of the args the same */
-			if (use_nxt_arg) {
+			if (separate_argument) {
 				args_add(dep_args, "-MF");
 				args_add(dep_args, output_dep);
 			} else {
@@ -1463,7 +1463,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
-                        char *relpath;
+			char *relpath;
 			dependency_target_specified = true;
 			if (strlen(argv[i]) == 3) {
 				/* -MQ arg or -MT arg */
@@ -1481,9 +1481,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			} else {
 				char *arg_opt;
 				char *option;
-				arg_opt  = x_strndup(argv[i], 3);
+				arg_opt = x_strndup(argv[i], 3);
 				relpath = make_relative_path(x_strdup(argv[i] + 3));
-				option  = format("%s%s", arg_opt, relpath);
+				option = format("%s%s", arg_opt, relpath);
 				args_add(dep_args, option);
 				free(arg_opt);
 				free(relpath);
@@ -1790,7 +1790,7 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, stripped_output_obj);
 		}
-                free(stripped_output_obj);
+		free(stripped_output_obj);
 	}
 
 	if (compile_preprocessed_source_code) {
