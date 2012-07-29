@@ -1433,10 +1433,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-MF")) {
 			char *arg;
+			bool use_nxt_arg = (strlen(argv[i]) == 3);
 			dependency_filename_specified = true;
 			free(output_dep);
-			args_add(dep_args, argv[i]);
-			if (strlen(argv[i]) == 3) {
+			if (use_nxt_arg) {
 				/* -MF arg */
 				if (i >= argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
@@ -1445,18 +1445,26 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					goto out;
 				}
 				arg = argv[i + 1];
-				args_add(dep_args, argv[i + 1]);
 				i++;
 			} else {
 				/* -MFarg */
 				arg = &argv[i][3];
 			}
 			output_dep = make_relative_path(x_strdup(arg));
+			/* Keep the format of the args the same */
+			if (use_nxt_arg) {
+				args_add(dep_args, "-MF");
+				args_add(dep_args, output_dep);
+			} else {
+				char *option = format("-MF%s", output_dep);
+				args_add(dep_args, option);
+				free(option);
+			}
 			continue;
 		}
 		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
+                        char *relpath;
 			dependency_target_specified = true;
-			args_add(dep_args, argv[i]);
 			if (strlen(argv[i]) == 3) {
 				/* -MQ arg or -MT arg */
 				if (i >= argc - 1) {
@@ -1465,8 +1473,21 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 					result = false;
 					goto out;
 				}
-				args_add(dep_args, argv[i + 1]);
+				args_add(dep_args, argv[i]);
+				relpath = make_relative_path(x_strdup(argv[i + 1]));
+				args_add(dep_args, relpath);
+				free(relpath);
 				i++;
+			} else {
+				char *arg_opt;
+				char *option;
+				arg_opt  = x_strndup(argv[i], 3);
+				relpath = make_relative_path(x_strdup(argv[i] + 3));
+				option  = format("%s%s", arg_opt, relpath);
+				args_add(dep_args, option);
+				free(arg_opt);
+				free(relpath);
+				free(option);
 			}
 			continue;
 		}
@@ -1751,11 +1772,13 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	 * Add flags for dependency generation only to the preprocessor command line.
 	 */
 	if (generating_dependencies) {
+		char *stripped_output_obj;
+		stripped_output_obj = make_relative_path(x_strdup(output_obj));
 		if (!dependency_filename_specified) {
 			char *default_depfile_name;
 			char *base_name;
 
-			base_name = remove_extension(output_obj);
+			base_name = remove_extension(stripped_output_obj);
 			default_depfile_name = format("%s.d", base_name);
 			free(base_name);
 			args_add(dep_args, "-MF");
@@ -1765,8 +1788,9 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 		if (!dependency_target_specified) {
 			args_add(dep_args, "-MQ");
-			args_add(dep_args, output_obj);
+			args_add(dep_args, stripped_output_obj);
 		}
+                free(stripped_output_obj);
 	}
 
 	if (compile_preprocessed_source_code) {
