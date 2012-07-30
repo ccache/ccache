@@ -1061,6 +1061,16 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		if (str_eq(args->argv[i], "-Xclang")
+		    && i + 3 < args->argc
+		    && str_eq(args->argv[i+1], "-load")
+		    && str_eq(args->argv[i+2], "-Xclang")
+		    && stat(args->argv[i+3], &st) == 0) {
+			hash_delimiter(hash, "plugin");
+			hash_compiler(hash, &st, args->argv[i+3], false);
+			continue;
+		}
+
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
