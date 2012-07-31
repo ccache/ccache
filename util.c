@@ -81,7 +81,6 @@ log_prefix(bool log_updated_time)
 #endif
 }
 
-#ifndef _WIN32
 static long
 path_max(const char *path)
 {
@@ -100,7 +99,6 @@ path_max(const char *path)
 	}
 #endif
 }
-#endif /* !_WIN32 */
 
 static void
 vlog(const char *format, va_list ap, bool log_updated_time)
@@ -938,7 +936,7 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 	return true;
 }
 
-#ifndef _WIN32
+
 /*
   a sane realpath() function, trying to cope with stupid path limits and
   a broken API
@@ -948,11 +946,21 @@ x_realpath(const char *path)
 {
 	long maxlen = path_max(path);
 	char *ret, *p;
+#ifdef _WIN32
+	HANDLE path_handle;
+#endif
 
 	ret = x_malloc(maxlen);
 
 #if HAVE_REALPATH
 	p = realpath(path, ret);
+#elif defined(_WIN32)
+	path_handle = CreateFile(
+		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL);
+	GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
+	CloseHandle(path_handle);
+	p = ret+4;// strip the \\?\ from the file name
 #else
 	/* yes, there are such systems. This replacement relies on
 	   the fact that when we call x_realpath we only care about symlinks */
@@ -974,7 +982,6 @@ x_realpath(const char *path)
 	free(ret);
 	return NULL;
 }
-#endif /* !_WIN32 */
 
 /* a getcwd that will returns an allocated buffer */
 char *
