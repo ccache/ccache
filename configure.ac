@@ -7,6 +7,14 @@ AC_MSG_NOTICE([Configuring ccache])
 
 AC_CONFIG_HEADER(config.h)
 
+AC_CANONICAL_HOST
+
+case $host in
+    *mingw32* | *cygwin* | *wince* | *mingwce*)
+        AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
+        ;;
+esac
+
 AC_SUBST(extra_deps)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
