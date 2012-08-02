@@ -8,7 +8,7 @@ XSLTPROC = xsltproc
 MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
 
 version := \
-    $(shell (git describe --dirty || git describe || echo vunknown) \
+    $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
             2>/dev/null | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g')
 
 dist_dir = ccache-$(version)
