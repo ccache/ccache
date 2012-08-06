@@ -1455,9 +1455,28 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 			goto out;
 		}
 
+		if (str_startswith(argv[i], "@")) {
+			char *argpath = argv[i] + 1;
+			struct args *file_args;
+
+			file_args = args_init_from_gcc_atfile(argpath);
+			if (!file_args) {
+				cc_log("Coudln't read arg file %s", argpath);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+
+			args_insert(orig_args, i, file_args, true);
+
+			argc = orig_args->argc;
+			argv = orig_args->argv;
+			i--;
+			continue;
+		}
+
 		/* These are always too hard. */
 		if (compopt_too_hard(argv[i])
-		    || str_startswith(argv[i], "@")
 		    || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);

@@ -52,9 +52,134 @@ args_init_from_string(const char *command)
 }
 
 struct args *
+args_init_from_gcc_atfile(const char *filename)
+{
+	struct args *args;
+	char *pos, *argtext, *argpos, *argbuf;
+	char quoting;
+
+	/* Used to track quoting state; if \0, we're not
+	 * inside quotes. Otherwise stores the quoting character
+	 * that started it, for matching the end quote */
+	quoting = '\0';
+
+	if (!(argtext = read_text_file(filename, 0)))
+		return NULL;
+
+	args = args_init(0, NULL);
+	pos = argtext;
+	argbuf = x_malloc(strlen(argtext) + 1);
+	argpos = argbuf;
+
+	while (1) {
+		switch (*pos) {
+		case '\\':
+			pos++;
+			if (*pos == '\0')
+				continue;
+			break;
+
+		case '\"': case '\'':
+			if (quoting != '\0') {
+				if (quoting == *pos) {
+					quoting = '\0';
+					pos++;
+					continue;
+				} else
+					break;
+			} else {
+				quoting = *pos;
+				pos++;
+				continue;
+			}
+		case '\n': case '\t': case ' ':
+			if (quoting)
+				break;
+			/* Fall through */
+		case '\0':
+			/* end of token */
+			*argpos = '\0';
+			if (argbuf[0] != '\0')
+				args_add(args, argbuf);
+			argpos = argbuf;
+			if (*pos == '\0')
+				goto out;
+			else {
+				pos++;
+				continue;
+			}
+		}
+		*argpos = *pos;
+		pos++;
+		argpos++;
+	}
+out:
+	free(argbuf);
+	free(argtext);
+	return args;
+}
+
+struct args *
 args_copy(struct args *args)
 {
 	return args_init(args->argc, args->argv);
+}
+
+/* Insert all arguments in src into dest at position index.
+ * If replace is true, the element at dest->argv[index] is replaced
+ * with the contents of src and everything past it is shifted.
+ * Otherwise, dest->argv[index] is also shifted.
+ *
+ * src is consumed by this operation and should not be freed or used
+ * again by the caller */
+void
+args_insert(struct args *dest, int index, struct args *src, bool replace)
+{
+	int offset;
+	int j;
+
+	/* Adjustments made if we are replacing or shifting the element
+	 * currently at dest->argv[index] */
+	offset = replace ? 1 : 0;
+
+	if (replace)
+		free(dest->argv[index]);
+
+	if (src->argc == 0) {
+		if (replace) {
+			/* Have to shift everything down by 1 since
+			 * we replaced with an empty list */
+			for (j = index; j < dest->argc; j++)
+				dest->argv[j] = dest->argv[j + 1];
+			dest->argc--;
+		}
+		args_free(src);
+		return;
+	}
+
+	if (src->argc == 1 && replace) {
+		/* Trivial case; replace with 1 element */
+		dest->argv[index] = src->argv[0];
+		src->argc = 0;
+		args_free(src);
+		return;
+	}
+
+	dest->argv = (char**)x_realloc(dest->argv,
+			(src->argc + dest->argc + 1 - offset) *
+			sizeof(char *));
+
+	/* Shift arguments over */
+	for (j = dest->argc; j >= index + offset; j--)
+		dest->argv[j + src->argc - offset] = dest->argv[j];
+
+	/* Copy the new arguments into place */
+	for (j = 0; j < src->argc; j++)
+		dest->argv[j + index] = src->argv[j];
+
+	dest->argc += src->argc - offset;
+	src->argc = 0;
+	args_free(src);
 }
 
 void
