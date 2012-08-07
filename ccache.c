@@ -1425,13 +1425,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	bool dependency_filename_specified = false;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	bool dependency_target_specified = false;
-	struct args *stripped_args = NULL, *dep_args = NULL;
-	int argc = args->argc;
-	char **argv = args->argv;
+	struct args *expanded_args, *stripped_args, *dep_args;
+	int argc;
+	char **argv;
 	bool result = true;
 
+	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
 	dep_args = args_init(0, NULL);
+
+	argc = expanded_args->argc;
+	argv = expanded_args->argv;
 
 	args_add(stripped_args, argv[0]);
 
@@ -1468,9 +1472,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			args_insert(args, i, file_args, true);
-			argc = args->argc;
-			argv = args->argv;
+			args_insert(expanded_args, i, file_args, true);
+			argc = expanded_args->argc;
+			argv = expanded_args->argv;
 			i--;
 			continue;
 		}
@@ -2061,6 +2065,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	args_extend(*preprocessor_args, dep_args);
 
 out:
+	args_free(expanded_args);
 	args_free(stripped_args);
 	args_free(dep_args);
 	return result;
