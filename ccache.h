@@ -213,7 +213,7 @@ void lockfile_release(const char *path);
 /* ------------------------------------------------------------------------- */
 /* ccache.c */
 
-bool cc_process_args(struct args *orig_args, struct args **preprocessor_args,
+bool cc_process_args(struct args *args, struct args **preprocessor_args,
                     struct args **compiler_args);
 void cc_reset(void);
 bool is_precompiled_header(const char *path);

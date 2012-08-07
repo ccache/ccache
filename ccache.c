@@ -196,7 +196,7 @@ enum fromcache_call_mode {
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(struct args *orig_args)
+add_prefix(struct args *args)
 {
 	char *e;
 	char *tok, *saveptr = NULL;
@@ -226,7 +226,7 @@ add_prefix(struct args *orig_args)
 
 	cc_log("Using command-line prefix %s", conf->prefix_command);
 	for (i = prefix->argc; i != 0; i--) {
-		args_add_prefix(orig_args, prefix->argv[i-1]);
+		args_add_prefix(args, prefix->argv[i-1]);
 	}
 	args_free(prefix);
 }
@@ -1407,7 +1407,7 @@ is_precompiled_header(const char *path)
  * -E; this is added later. Returns true on success, otherwise false.
  */
 bool
-cc_process_args(struct args *orig_args, struct args **preprocessor_args,
+cc_process_args(struct args *args, struct args **preprocessor_args,
                 struct args **compiler_args)
 {
 	int i;
@@ -1426,8 +1426,8 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	bool dependency_target_specified = false;
 	struct args *stripped_args = NULL, *dep_args = NULL;
-	int argc = orig_args->argc;
-	char **argv = orig_args->argv;
+	int argc = args->argc;
+	char **argv = args->argv;
 	bool result = true;
 
 	stripped_args = args_init(0, NULL);
@@ -1467,10 +1467,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			args_insert(orig_args, i, file_args, true);
+			args_insert(args, i, file_args, true);
 
-			argc = orig_args->argc;
-			argv = orig_args->argv;
+			argc = args->argc;
+			argv = args->argv;
 			i--;
 			continue;
 		}
