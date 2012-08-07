@@ -75,44 +75,54 @@ args_init_from_gcc_atfile(const char *filename)
 		switch (*pos) {
 		case '\\':
 			pos++;
-			if (*pos == '\0')
+			if (*pos == '\0') {
 				continue;
+			}
 			break;
 
-		case '\"': case '\'':
+		case '\"':
+		case '\'':
 			if (quoting != '\0') {
 				if (quoting == *pos) {
 					quoting = '\0';
 					pos++;
 					continue;
-				} else
+				} else {
 					break;
+				}
 			} else {
 				quoting = *pos;
 				pos++;
 				continue;
 			}
-		case '\n': case '\t': case ' ':
-			if (quoting)
+
+		case '\n':
+		case '\t':
+		case ' ':
+			if (quoting) {
 				break;
+			}
 			/* Fall through */
+
 		case '\0':
 			/* end of token */
 			*argpos = '\0';
 			if (argbuf[0] != '\0')
 				args_add(args, argbuf);
 			argpos = argbuf;
-			if (*pos == '\0')
+			if (*pos == '\0') {
 				goto out;
-			else {
+			} else {
 				pos++;
 				continue;
 			}
 		}
+
 		*argpos = *pos;
 		pos++;
 		argpos++;
 	}
+
 out:
 	free(argbuf);
 	free(argtext);
@@ -136,21 +146,23 @@ void
 args_insert(struct args *dest, int index, struct args *src, bool replace)
 {
 	int offset;
-	int j;
+	int i;
 
 	/* Adjustments made if we are replacing or shifting the element
 	 * currently at dest->argv[index] */
 	offset = replace ? 1 : 0;
 
-	if (replace)
+	if (replace) {
 		free(dest->argv[index]);
+	}
 
 	if (src->argc == 0) {
 		if (replace) {
 			/* Have to shift everything down by 1 since
 			 * we replaced with an empty list */
-			for (j = index; j < dest->argc; j++)
-				dest->argv[j] = dest->argv[j + 1];
+			for (i = index; i < dest->argc; i++) {
+				dest->argv[i] = dest->argv[i + 1];
+			}
 			dest->argc--;
 		}
 		args_free(src);
@@ -165,17 +177,20 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 		return;
 	}
 
-	dest->argv = (char**)x_realloc(dest->argv,
-			(src->argc + dest->argc + 1 - offset) *
-			sizeof(char *));
+	dest->argv = (char**)x_realloc(
+		dest->argv,
+		(src->argc + dest->argc + 1 - offset) *
+		sizeof(char *));
 
 	/* Shift arguments over */
-	for (j = dest->argc; j >= index + offset; j--)
-		dest->argv[j + src->argc - offset] = dest->argv[j];
+	for (i = dest->argc; i >= index + offset; i--) {
+		dest->argv[i + src->argc - offset] = dest->argv[i];
+	}
 
 	/* Copy the new arguments into place */
-	for (j = 0; j < src->argc; j++)
-		dest->argv[j + index] = src->argv[j];
+	for (i = 0; i < src->argc; i++) {
+		dest->argv[i + index] = src->argv[i];
+	}
 
 	dest->argc += src->argc - offset;
 	src->argc = 0;

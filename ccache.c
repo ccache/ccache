@@ -1455,20 +1455,20 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			goto out;
 		}
 
+		/* Handle "@file" argument. */
 		if (str_startswith(argv[i], "@")) {
 			char *argpath = argv[i] + 1;
 			struct args *file_args;
 
 			file_args = args_init_from_gcc_atfile(argpath);
 			if (!file_args) {
-				cc_log("Coudln't read arg file %s", argpath);
+				cc_log("Couldn't read arg file %s", argpath);
 				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}
 
 			args_insert(args, i, file_args, true);
-
 			argc = args->argc;
 			argv = args->argv;
 			i--;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010, 2012 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -22,6 +22,7 @@
 
 #include "ccache.h"
 #include "test/framework.h"
+#include "test/util.h"
 
 TEST_SUITE(args)
 
@@ -61,14 +62,10 @@ TEST(args_init_from_string)
 
 TEST(args_init_from_gcc_atfile)
 {
-	int fd;
 	struct args *args;
 	const char *argtext = "first sec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\" 'seve\nth'\\";
 
-	fd = open("gcc_atfile", O_CREAT | O_WRONLY, 0600);
-	CHECK(fd >= 0);
-	CHECK(write(fd, argtext, strlen(argtext)) == (ssize_t)strlen(argtext));
-	close(fd);
+	create_file("gcc_atfile", argtext);
 
 	args = args_init_from_gcc_atfile("gcc_atfile");
 	CHECK(args);
@@ -182,28 +179,30 @@ TEST(args_insert)
 
 	args_insert(args, 2, src1, true);
 	CHECK_STR_EQ_FREE2("first second alpha beta gamma fourth fifth",
-			args_to_string(args));
+	                   args_to_string(args));
 	CHECK_INT_EQ(7, args->argc);
 	args_insert(args, 2, src2, true);
 	CHECK_STR_EQ_FREE2("first second one beta gamma fourth fifth",
-			args_to_string(args));
+	                   args_to_string(args));
 	CHECK_INT_EQ(7, args->argc);
 	args_insert(args, 2, src3, true);
 	CHECK_STR_EQ_FREE2("first second beta gamma fourth fifth",
-			args_to_string(args));
+	                   args_to_string(args));
 	CHECK_INT_EQ(6, args->argc);
 
 	args_insert(args, 1, src4, false);
 	CHECK_STR_EQ_FREE2("first alpha beta gamma second beta gamma fourth fifth",
-			args_to_string(args));
+	                   args_to_string(args));
 	CHECK_INT_EQ(9, args->argc);
 	args_insert(args, 1, src5, false);
-	CHECK_STR_EQ_FREE2("first one alpha beta gamma second beta gamma fourth fifth",
-			args_to_string(args));
+	CHECK_STR_EQ_FREE2(
+		"first one alpha beta gamma second beta gamma fourth fifth",
+		args_to_string(args));
 	CHECK_INT_EQ(10, args->argc);
 	args_insert(args, 1, src6, false);
-	CHECK_STR_EQ_FREE2("first one alpha beta gamma second beta gamma fourth fifth",
-			args_to_string(args));
+	CHECK_STR_EQ_FREE2(
+		"first one alpha beta gamma second beta gamma fourth fifth",
+		args_to_string(args));
 	CHECK_INT_EQ(10, args->argc);
 
 	args_free(args);
