@@ -80,25 +80,38 @@ HW_FUNC_ASPRINTF
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
-dnl Check for zlib.
-AC_CACHE_CHECK(
-    [for zlib >= 1.2.3],
-    [ccache_cv_zlib_1_2_3],
-    AC_TRY_COMPILE(
-        [#include <zlib.h>],
-        [
-        #if (ZLIB_VERNUM >= 0x1230)
-        #else
-        #error "ZLIB_VERNUM < 0x1230"
-        #endif
-        ],
-        [ccache_cv_zlib_1_2_3=yes],
-        [ccache_cv_zlib_1_2_3=no]))
-AC_CHECK_LIB(z, gzdopen, true)
-if test $ccache_cv_zlib_1_2_3 = yes && test $ac_cv_lib_z_gzdopen = yes; then
-    use_bundled_zlib=no
+
+dnl Check for zlib
+AC_ARG_WITH(bundled-zlib,
+  [AS_HELP_STRING([--with-bundled-zlib],
+    [use bundled zlib instead of the system's default zlib])])
+if test x${with_bundled_zlib} = x; then
+    AC_CACHE_CHECK(
+        [for zlib >= 1.2.3],
+        [ccache_cv_zlib_1_2_3],
+        AC_TRY_COMPILE(
+            [#include <zlib.h>],
+            [
+            #if (ZLIB_VERNUM >= 0x1230)
+            #else
+            #error "ZLIB_VERNUM < 0x1230"
+            #endif
+            ],
+            [ccache_cv_zlib_1_2_3=yes],
+            [ccache_cv_zlib_1_2_3=no]))
+    AC_CHECK_LIB(z, gzdopen, true)
+    if test $ccache_cv_zlib_1_2_3 = yes && test $ac_cv_lib_z_gzdopen = yes; then
+        use_bundled_zlib=no
+    else
+        AC_MSG_WARN(using bundled zlib)
+        use_bundled_zlib=yes
+    fi
 else
+    AC_MSG_NOTICE(using bundled zlib as requested)
     use_bundled_zlib=yes
+fi
+
+if test x${use_bundled_zlib} = xyes; then
     extra_deps="zlib/libz.a"
     CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
     LIBS="-Lzlib $LIBS"
@@ -154,8 +167,5 @@ mv config.h.tmp config.h
 
 mkdir -p .deps test
 
-if test x$use_bundled_zlib = xyes; then
-   AC_MSG_WARN(using bundled zlib)
-fi
 
 AC_MSG_NOTICE(now build ccache by running make)
