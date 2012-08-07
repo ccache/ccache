@@ -1,7 +1,7 @@
 # GNU make syntax reigns in this file.
 
-CFLAGS += -Werror
-CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+all_cflags += -Werror
+all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 ASCIIDOC = asciidoc
 GPERF = gperf
@@ -92,6 +92,6 @@ ccache.1: MANUAL.xml
 
 .PHONY: check-syntax
 check-syntax:
-	$(CC) @CPPFLAGS@ -I. $(CFLAGS) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) $(all_cppflags) -I. $(all_cflags) -S -o /dev/null $(CHK_SOURCES)
 
 -include .deps/*.d

@@ -12,12 +12,16 @@ installcmd = @INSTALL@
 AR = @AR@
 CC = @CC@
 CFLAGS = @CFLAGS@
-CPPFLAGS = @DEFS@ @CPPFLAGS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)
-LDFLAGS = @LDFLAGS@
+CPPFLAGS = @CPPFLAGS@
 EXEEXT = @EXEEXT@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
 RANLIB = @RANLIB@
 
-libs = @LIBS@ -lz
+all_cflags = $(CFLAGS)
+all_cppflags = @DEFS@ @extra_cppflags@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
+all_ldflags = @extra_ldflags@ $(LDFLAGS)
+all_libs = @extra_libs@ $(LIBS)
 
 base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
@@ -48,8 +52,8 @@ files_to_distclean = Makefile config.h config.log config.status
 .PHONY: all
 all: ccache$(EXEEXT)
 
-ccache$(EXEEXT): $(ccache_objs) @extra_deps@
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(ccache_objs) $(libs)
+ccache$(EXEEXT): $(ccache_objs) $(all_libs)
+	$(CC) $(all_cflags) $(all_ldflags) -o $@ $(ccache_objs) $(all_libs)
 
 .PHONY: install
 install: all
@@ -70,15 +74,15 @@ zlib/libz.a: $(zlib_objs)
 
 .PHONY: perf
 perf: ccache$(EXEEXT)
-	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(CFLAGS) $(CPPFLAGS) $(srcdir)/ccache.c
+	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/ccache.c
 
 .PHONY: test
 test: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
 
-test/main$(EXEEXT): $(base_objs) $(test_objs) @extra_deps@
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(base_objs) $(test_objs) $(libs)
+test/main$(EXEEXT): $(base_objs) $(test_objs) $(all_libs)
+	$(CC) $(all_cflags) $(all_ldflags) -o $@ $(base_objs) $(test_objs) $(all_libs)
 
 test/main.o: test/suites.h
 
@@ -98,6 +102,6 @@ installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
 	CCACHE=$(bindir)/ccache CC='$(CC)' $(srcdir)/test.sh
 
 .c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
 
 @include_dev_mk@

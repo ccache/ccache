@@ -15,7 +15,9 @@ case $host in
         ;;
 esac
 
-AC_SUBST(extra_deps)
+AC_SUBST(extra_cppflags)
+AC_SUBST(extra_ldflags)
+AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
 
@@ -112,10 +114,12 @@ else
 fi
 
 if test x${use_bundled_zlib} = xyes; then
-    extra_deps="zlib/libz.a"
-    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
-    LIBS="-Lzlib $LIBS"
+    extra_cppflags="-I\$(srcdir)/zlib"
+    extra_ldflags="-Lzlib"
+    extra_libs="zlib/libz.a"
     mkdir -p zlib
+else
+    extra_libs="-lz"
 fi
 
 AC_C_INLINE
