@@ -53,17 +53,23 @@ source_dist_files = \
     $(test_sources) \
     AUTHORS.txt \
     GPL-3.0.txt \
+    HACKING.txt \
     INSTALL.txt \
     LICENSE.txt \
     MANUAL.txt \
     Makefile.in \
     NEWS.txt \
     README.txt \
+    autogen.sh \
     config.guess \
     config.h.in \
     config.sub \
     configure \
+    configure.ac \
+    confitems.gperf \
     confitems_lookup.c \
+    dev.mk.in \
+    envtoconfitems.gperf \
     envtoconfitems_lookup.c \
     install-sh \
     main.c \
