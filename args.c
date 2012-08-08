@@ -97,6 +97,7 @@ args_init_from_gcc_atfile(const char *filename)
 			}
 
 		case '\n':
+		case '\r':
 		case '\t':
 		case ' ':
 			if (quoting) {

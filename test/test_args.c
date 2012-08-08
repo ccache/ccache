@@ -63,7 +63,9 @@ TEST(args_init_from_string)
 TEST(args_init_from_gcc_atfile)
 {
 	struct args *args;
-	const char *argtext = "first sec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\" 'seve\nth'\\";
+	const char *argtext =
+		"first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
+		" 'seve\nth'\\";
 
 	create_file("gcc_atfile", argtext);
 
