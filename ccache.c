@@ -820,6 +820,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		/* run cpp on the input file to obtain the .i */
 		args_add(args, "-E");
 		args_add(args, input_file);
+		cc_log("Running preprocessor");
 		status = execute(args->argv, path_stdout, path_stderr);
 		args_pop(args, 2);
 	} else {
@@ -2329,7 +2330,6 @@ ccache(int argc, char *argv[])
 	 * included_files.
 	 */
 	cpp_hash = common_hash;
-	cc_log("Running preprocessor");
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
