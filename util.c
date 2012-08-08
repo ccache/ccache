@@ -241,6 +241,14 @@ copy_file(const char *src, const char *dest, int compress_level)
 	int errnum;
 
 	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
+
+	/* open destination file */
+	fd_out = mkstemp(tmp_name);
+	if (fd_out == -1) {
+		cc_log("mkstemp error: %s", strerror(errno));
+		goto error;
+	}
+
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
@@ -248,20 +256,13 @@ copy_file(const char *src, const char *dest, int compress_level)
 	fd_in = open(src, O_RDONLY | O_BINARY);
 	if (fd_in == -1) {
 		cc_log("open error: %s", strerror(errno));
-		return -1;
+		goto error;
 	}
 
 	gz_in = gzdopen(fd_in, "rb");
 	if (!gz_in) {
 		cc_log("gzdopen(src) error: %s", strerror(errno));
 		close(fd_in);
-		return -1;
-	}
-
-	/* open destination file */
-	fd_out = mkstemp(tmp_name);
-	if (fd_out == -1) {
-		cc_log("mkstemp error: %s", strerror(errno));
 		goto error;
 	}
 
@@ -1260,7 +1261,7 @@ x_rename(const char *oldpath, const char *newpath)
 int
 tmp_unlink(const char *path)
 {
-	cc_log("Unlink %s (as-tmp)", path);
+	cc_log("Unlink %s", path);
 	return unlink(path);
 }
 
