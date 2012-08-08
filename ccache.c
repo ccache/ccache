@@ -2168,7 +2168,8 @@ initialize(void)
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_tmp_files);
 
-	cc_log("=== CCACHE STARTED =========================================");
+	cc_log("=== CCACHE %s STARTED =========================================",
+	       CCACHE_VERSION);
 
 	if (conf->umask != UINT_MAX) {
 		umask(conf->umask);
