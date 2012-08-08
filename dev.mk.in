@@ -24,21 +24,53 @@ generated_docs = \
 built_dist_files = $(generated_docs)
 
 headers = \
-    ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
-    manifest.h mdfour.h counters.h murmurhashneutral2.h getopt_long.h \
-    language.h system.h compopt.h macroskip.h conf.h \
-    test/framework.h test/suites.h test/util.h
+    ccache.h \
+    compopt.h \
+    conf.h \
+    counters.h \
+    getopt_long.h \
+    hashtable.h \
+    hashtable_itr.h \
+    hashtable_private.h \
+    hashutil.h \
+    language.h \
+    macroskip.h \
+    manifest.h \
+    mdfour.h \
+    murmurhashneutral2.h \
+    system.h \
+    test/framework.h \
+    test/suites.h \
+    test/util.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/*
 files_to_clean += $(built_dist_files) version.c test/suites.h
 files_to_distclean += .deps version.c dev.mk
 
 source_dist_files = \
-    main.c $(base_sources) $(test_sources) $(headers) zlib/*.c zlib/*.h \
-    config.h.in configure config.guess config.sub install-sh Makefile.in \
-    test.sh GPL-3.0.txt \
-    AUTHORS.txt INSTALL.txt LICENSE.txt MANUAL.txt NEWS.txt README.txt \
-    confitems_lookup.c envtoconfitems_lookup.c
+    $(base_sources) \
+    $(headers) \
+    $(test_sources) \
+    AUTHORS.txt \
+    GPL-3.0.txt \
+    INSTALL.txt \
+    LICENSE.txt \
+    MANUAL.txt \
+    Makefile.in \
+    NEWS.txt \
+    README.txt \
+    config.guess \
+    config.h.in \
+    config.sub \
+    configure \
+    confitems_lookup.c \
+    envtoconfitems_lookup.c \
+    install-sh \
+    main.c \
+    test.sh \
+    zlib/*.c \
+    zlib/*.h
+
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
