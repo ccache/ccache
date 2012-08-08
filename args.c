@@ -177,7 +177,7 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 		return;
 	}
 
-	dest->argv = (char**)x_realloc(
+	dest->argv = (char **)x_realloc(
 		dest->argv,
 		(src->argc + dest->argc + 1 - offset) *
 		sizeof(char *));
@@ -214,7 +214,8 @@ args_free(struct args *args)
 void
 args_add(struct args *args, const char *s)
 {
-	args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char *));
+	args->argv = (char **)x_realloc(args->argv,
+	                                (args->argc + 2) * sizeof(char *));
 	args->argv[args->argc] = x_strdup(s);
 	args->argc++;
 	args->argv[args->argc] = NULL;
@@ -263,7 +264,8 @@ args_remove_first(struct args *args)
 void
 args_add_prefix(struct args *args, const char *s)
 {
-	args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char *));
+	args->argv = (char **)x_realloc(args->argv,
+	                                (args->argc + 2) * sizeof(char *));
 	memmove(&args->argv[1], &args->argv[0],
 	        (args->argc+1) * sizeof(args->argv[0]));
 	args->argv[0] = x_strdup(s);

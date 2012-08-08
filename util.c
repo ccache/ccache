@@ -1275,7 +1275,7 @@ x_unlink(const char *path)
 	 * file. We don't care if the temp file is trashed, so it's always safe to
 	 * unlink it first.
 	 */
-	char* tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
+	char *tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
 	int result = 0;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {

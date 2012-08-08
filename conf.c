@@ -314,7 +314,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
-	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char*));
+	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
 	}
