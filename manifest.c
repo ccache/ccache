@@ -66,7 +66,8 @@ static const uint32_t MAGIC = 0x63436d46U;
 static const uint8_t  VERSION = 0;
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 
-#define static_assert(e) do { enum { static_assert__ = 1/(e) }; } while (0)
+#define ccache_static_assert(e) \
+	do { enum { ccache_static_assert__ = 1/(e) }; } while (0)
 
 struct file_info {
 	/* Index to n_files. */
@@ -106,7 +107,7 @@ struct manifest {
 static unsigned int
 hash_from_file_info(void *key)
 {
-	static_assert(sizeof(struct file_info) == 24); /* No padding. */
+	ccache_static_assert(sizeof(struct file_info) == 24); /* No padding. */
 	return murmurhashneutral2(key, sizeof(struct file_info), 0);
 }
 
