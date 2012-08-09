@@ -446,7 +446,26 @@ EOF
     fi
     checkstat 'compiler check failed' 1
 
+    testname="recache should remove previous .stderr"
+    $CCACHE -Cz >/dev/null
+    $CCACHE_COMPILE -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
+    if [ $num -ne 0 ]; then
+        test_failed "$num stderr files found, expected 0 (#1)"
+    fi
+    obj_file=`find $CCACHE_DIR -name '*.o'`
+    stderr_file=`echo $obj_file | sed 's/..$/.stderr/'`
+    echo "Warning: foo" >$stderr_file
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
+    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
+    if [ $num -ne 0 ]; then
+        test_failed "$num stderr files found, expected 0 (#2)"
+    fi
+
     testname="no object file"
+    $CCACHE -Cz >/dev/null
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;
 EOF

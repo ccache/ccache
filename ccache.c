@@ -722,6 +722,10 @@ to_cache(struct args *args)
 		added_files += 1;
 	} else {
 		tmp_unlink(tmp_stderr);
+		if (conf->recache) {
+			/* If recaching, we need to remove any previous .stderr. */
+			x_unlink(cached_stderr);
+		}
 	}
 
 	if (output_to_real_object_first) {
