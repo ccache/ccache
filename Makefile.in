@@ -73,6 +73,10 @@ test: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
 	CC='$(CC)' $(srcdir)/test.sh
 
+.PHONY: quicktest
+quicktest: test/main$(EXEEXT)
+	test/main$(EXEEXT)
+
 test/main$(EXEEXT): $(base_objs) $(test_objs) @extra_deps@
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(base_objs) $(test_objs) $(libs)
 
