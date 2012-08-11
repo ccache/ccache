@@ -2,6 +2,39 @@ ccache news
 ===========
 
 
+ccache 3.1.8
+------------
+Release date: 2012-08-11
+
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    - Made paths to dependency files relative in order to increase cache hits.
+    - Added work-around to make ccache work with buggy GCC 4.1 when creating a
+      pre-compiled header.
+    - Clang plugins are now hashed to catch plugin upgrades.
+
+
+Bug fixes
+~~~~~~~~~
+
+    - Fixed crash when the current working directory has been removed.
+    - Fixed crash when stderr is closed.
+    - Corrected a corner case when parsing backslash escapes in string
+      literals.
+    - Paths are now correctly canonicalized when computing paths relative to
+      the base directory.
+
+
+Other
+~~~~~
+
+    - Made git version macro work when compiling outside of the source
+      directory.
+    - Fixed `static_assert` macro definition clash with GCC 4.7.
+
+
 ccache 3.1.7
 ------------
 Release date: 2012-01-08
