@@ -160,7 +160,7 @@ TEST(hash_source_code_with_comment_inside_string)
 TEST(hash_source_code_with_quote_in_string)
 {
 	struct mdfour h;
-	char input[] = "a\"\\\"b//c\""; // a"\"b//c"
+	char input[] = "a\"\\\"b//c\""; /* a"\"b//c" */
 	size_t input_len = strlen(input);
 
 	hash_start(&h);
@@ -176,7 +176,7 @@ TEST(hash_source_code_with_quote_in_string)
 TEST(hash_source_code_with_backslash_at_string_end)
 {
 	struct mdfour h;
-	char input[] = "a\"\\\\\"b//c"; // a"\\"b//c
+	char input[] = "a\"\\\\\"b//c"; /* a"\\"b//c */
 	size_t input_len = strlen(input);
 
 	hash_start(&h);
