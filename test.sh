@@ -1277,7 +1277,7 @@ Results (1):
     Hash: normalized
     Size: normalized
 EOF
-    if diff expected.dump manifest.dump; then
+    if diff --strip-trailing-cr expected.dump manifest.dump; then
         :
     else
         test_failed "unexpected output of --dump-manifest"
