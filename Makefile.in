@@ -68,6 +68,8 @@ clean:
 
 conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
+.PHONY: -lz
+
 zlib/libz.a: $(zlib_objs)
 	$(AR) cr $@ $(zlib_objs)
 	$(RANLIB) $@
