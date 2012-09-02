@@ -36,6 +36,8 @@
 extern char *stats_file;
 extern struct conf *conf;
 extern unsigned lock_staleness_limit;
+extern char *primary_config_path;
+extern char *secondary_config_path;
 
 static struct counters *counter_updates;
 
@@ -300,6 +302,10 @@ stats_summary(struct conf *conf)
 	}
 
 	printf("cache directory                     %s\n", conf->cache_dir);
+	printf("primary config path                 %s\n",
+	       primary_config_path ? primary_config_path : "");
+	printf("secondary config path (readonly)    %s\n",
+	       secondary_config_path ? secondary_config_path : "");
 
 	/* and display them */
 	for (i = 0; stats_info[i].message; i++) {
