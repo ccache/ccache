@@ -6,7 +6,10 @@ all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 ASCIIDOC = asciidoc
 GPERF = gperf
 XSLTPROC = xsltproc
-MANPAGE_XSL = /etc/asciidoc/docbook-xsl/manpage.xsl
+MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
+                then echo /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl; \
+                else echo /etc/asciidoc/docbook-xsl/manpage.xsl; fi)
+
 
 version := \
     $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
@@ -98,10 +101,10 @@ $(dist_archives): $(dist_files)
 	dir=$$tmpdir/$(dist_dir) && \
 	mkdir $$dir && \
 	(cd $(srcdir) && \
-	 cp -r --parents $(source_dist_files) $$dir) && \
+	 rsync -r --relative $(source_dist_files) $$dir) && \
 	cp $(built_dist_files) $$dir && \
 	(cd $$tmpdir && \
-	 tar caf $(CURDIR)/$@ $(dist_dir)) && \
+	 tar cf $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
 
 .PHONY: distcheck
