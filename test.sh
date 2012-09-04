@@ -208,7 +208,7 @@ base_tests() {
     testname="non-regular"
     mkdir testd
     $CCACHE_COMPILE -o testd -c test1.c > /dev/null 2>&1
-    rmdir testd
+    rmdir testd > /dev/null 2>&1
     checkstat 'output to a non-regular file' 1
 
     testname="no-input"
@@ -521,7 +521,18 @@ EOF
     $CCACHE -C > /dev/null
     checkstat 'files in cache' 0
 
-    if $COMPILER -c -fprofile-generate test1.c 2>/dev/null; then
+    # the profile options do not seem to work correctly with clang or gcc-llvm
+    # on darwin machines
+    if [[ $host_os =~ "Darwin" ]] && \
+        ([[ $COMPILER =~ "clang" ]] || \
+         [[ $compiler_version =~ "llvm" ]]); then
+        darwin_llvm=1
+    else
+        darwin_llvm=0
+    fi
+
+    $COMPILER -c -fprofile-generate test1.c 2>/dev/null
+    if [[ $? -eq 0 ]] && [[ darwin_llvm -eq 0 ]]; then
         testname="profile-generate"
         $CCACHE -Cz > /dev/null
         $CCACHE_COMPILE -c -fprofile-generate test1.c
@@ -777,31 +788,37 @@ EOF
 
     ##################################################################
     # Check that -Wp,-MD,file.d,-P disables direct mode.
-    testname="-Wp,-MD,file.d,-P"
-    $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
+    # currently clang does not support -Wp form of options
+    if [[ $COMPILER =~ "gcc" ]]; then
+        testname="-Wp,-MD,file.d,-P"
+        $CCACHE -z >/dev/null
+        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
 
-    $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 1
+        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 1
+    fi
 
     ##################################################################
     # Check that -Wp,-MMD,file.d,-P disables direct mode.
-    testname="-Wp,-MDD,file.d,-P"
-    $CCACHE -z >/dev/null
-    $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
+    # currently clang does not support -Wp form of options
+    if [[ $COMPILER =~ "gcc" ]]; then
+        testname="-Wp,-MDD,file.d,-P"
+        $CCACHE -z >/dev/null
+        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
 
-    $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 1
+        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 1
+    fi
 
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
@@ -1249,7 +1266,8 @@ EOF
     $CCACHE --dump-manifest $manifest |
         perl -ape 's/:.*/: normalized/ if $F[0] =~ "(Hash|Size):" and ++$n > 6' \
         >manifest.dump
-    cat <<EOF >expected.dump
+    if [[ $COMPILER =~ "gcc" ]]; then
+        cat <<EOF >expected.dump
 Magic: cCmF
 Version: 0
 Hash size: 16
@@ -1277,6 +1295,37 @@ Results (1):
     Hash: normalized
     Size: normalized
 EOF
+    else
+        cat <<EOF >expected.dump
+Magic: cCmF
+Version: 0
+Hash size: 16
+Reserved field: 0
+File paths (3):
+  0: ./test3.h
+  1: ./test1.h
+  2: ./test2.h
+File infos (3):
+  0:
+    Path index: 0
+    Hash: c2f5392dbc7e8ff6138d01608445240a
+    Size: 24
+  1:
+    Path index: 1
+    Hash: e6b009695d072974f2c4d1dd7e7ed4fc
+    Size: 95
+  2:
+    Path index: 2
+    Hash: e94ceb9f1b196c387d098a5f1f4fe862
+    Size: 11
+Results (1):
+  0:
+    File hash indexes: 0 1 2
+    Hash: normalized
+    Size: normalized
+EOF
+    fi
+
     if diff expected.dump manifest.dump; then
         :
     else
@@ -1954,6 +2003,8 @@ fi
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
     *gcc*|2.95*)
+        ;;
+    *clang*)
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
