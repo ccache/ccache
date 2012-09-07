@@ -149,10 +149,13 @@ copy_fd(int fd_in, int fd_out)
 		ssize_t count, written = 0;
 		do {
 			count = write(fd_out, buf + written, n - written);
-			if (count == -1 && errno != EINTR) {
-				fatal("Failed to copy fd");
+			if (count == -1) {
+				if (errno != EAGAIN && errno != EINTR) {
+					fatal("Failed to copy fd");
+				}
+			} else {
+				written += count;
 			}
-			written += count;
 		} while (written < n);
 	}
 
