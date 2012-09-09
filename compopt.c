@@ -52,6 +52,7 @@ static const struct compopt compopts[] = {
 	{"-Xclang",         TAKES_ARG},
 	{"-Xlinker",        TAKES_ARG},
 	{"-Xpreprocessor",  TOO_HARD_DIRECT | TAKES_ARG},
+	{"-arch",           TAKES_ARG }, /* Darwin compiler option to specify architecture which sets a define */
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
 	{"-frepo",          TOO_HARD},
