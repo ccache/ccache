@@ -523,16 +523,14 @@ EOF
 
     # the profile options do not seem to work correctly with clang or gcc-llvm
     # on darwin machines
-    if [[ $host_os =~ "Darwin" ]] && \
-        ([[ $COMPILER =~ "clang" ]] || \
-         [[ $compiler_version =~ "llvm" ]]); then
+    darwin_llvm=0
+    if [ $HOST_OS_APPLE -eq 1 ] && \
+        [ $COMPILER_USES_LLVM -eq 1 ]; then
         darwin_llvm=1
-    else
-        darwin_llvm=0
     fi
 
     $COMPILER -c -fprofile-generate test1.c 2>/dev/null
-    if [[ $? -eq 0 ]] && [[ darwin_llvm -eq 0 ]]; then
+    if [ $? -eq 0 ] && [ $darwin_llvm -eq 0 ]; then
         testname="profile-generate"
         $CCACHE -Cz > /dev/null
         $CCACHE_COMPILE -c -fprofile-generate test1.c
@@ -789,7 +787,7 @@ EOF
     ##################################################################
     # Check that -Wp,-MD,file.d,-P disables direct mode.
     # currently clang does not support -Wp form of options
-    if [[ $COMPILER =~ "gcc" ]]; then
+    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
         testname="-Wp,-MD,file.d,-P"
         $CCACHE -z >/dev/null
         $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
@@ -806,7 +804,7 @@ EOF
     ##################################################################
     # Check that -Wp,-MMD,file.d,-P disables direct mode.
     # currently clang does not support -Wp form of options
-    if [[ $COMPILER =~ "gcc" ]]; then
+    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
         testname="-Wp,-MDD,file.d,-P"
         $CCACHE -z >/dev/null
         $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
@@ -1266,36 +1264,7 @@ EOF
     $CCACHE --dump-manifest $manifest |
         perl -ape 's/:.*/: normalized/ if $F[0] =~ "(Hash|Size):" and ++$n > 6' \
         >manifest.dump
-    if [[ $COMPILER =~ "gcc" ]]; then
-        cat <<EOF >expected.dump
-Magic: cCmF
-Version: 0
-Hash size: 16
-Reserved field: 0
-File paths (3):
-  0: test2.h
-  1: test3.h
-  2: test1.h
-File infos (3):
-  0:
-    Path index: 0
-    Hash: e94ceb9f1b196c387d098a5f1f4fe862
-    Size: 11
-  1:
-    Path index: 1
-    Hash: c2f5392dbc7e8ff6138d01608445240a
-    Size: 24
-  2:
-    Path index: 2
-    Hash: e6b009695d072974f2c4d1dd7e7ed4fc
-    Size: 95
-Results (1):
-  0:
-    File hash indexes: 0 1 2
-    Hash: normalized
-    Size: normalized
-EOF
-    else
+    if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         cat <<EOF >expected.dump
 Magic: cCmF
 Version: 0
@@ -1318,6 +1287,35 @@ File infos (3):
     Path index: 2
     Hash: e94ceb9f1b196c387d098a5f1f4fe862
     Size: 11
+Results (1):
+  0:
+    File hash indexes: 0 1 2
+    Hash: normalized
+    Size: normalized
+EOF
+    else
+        cat <<EOF >expected.dump
+Magic: cCmF
+Version: 0
+Hash size: 16
+Reserved field: 0
+File paths (3):
+  0: test2.h
+  1: test3.h
+  2: test1.h
+File infos (3):
+  0:
+    Path index: 0
+    Hash: e94ceb9f1b196c387d098a5f1f4fe862
+    Size: 11
+  1:
+    Path index: 1
+    Hash: c2f5392dbc7e8ff6138d01608445240a
+    Size: 24
+  2:
+    Path index: 2
+    Hash: e6b009695d072974f2c4d1dd7e7ed4fc
+    Size: 95
 Results (1):
   0:
     File hash indexes: 0 1 2
@@ -2000,17 +1998,41 @@ if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
 
+
+# save the type of compiler because some test may not work on all compilers
+COMPILER_TYPE_CLANG=0
+COMPILER_TYPE_GCC=0
+
+COMPILER_USES_LLVM=0
+HOST_OS_APPLE=0
+
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
-    *gcc*|2.95*)
+    *gcc*|*g++*|2.95*)
+        COMPILER_TYPE_GCC=1
         ;;
     *clang*)
+        COMPILER_TYPE_CLANG=1
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
         exit 0
         ;;
 esac
+
+case $compiler_version in
+    *llvm*|*LLVM*)
+        COMPILER_USES_LLVM=1
+        ;;
+esac
+
+host_os="`uname -s`"
+case $host_os in
+    *Darwin*)
+        HOST_OS_APPLE=1
+        ;;
+esac
+
 
 TESTDIR=testdir.$$
 rm -rf $TESTDIR
@@ -2045,7 +2067,6 @@ upgrade
 prefix
 "
 
-host_os="`uname -s`"
 case $host_os in
     *MINGW*|*mingw*)
         export CCACHE_DETECT_SHEBANG
