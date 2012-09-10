@@ -497,7 +497,7 @@ base_suite() {
 
 link_suite() {
     if [ `dirname $COMPILER` = . ]; then
-        ln -s ../ccache $COMPILER
+        ln -s "$CCACHE" $COMPILER
         CCACHE_COMPILE="./$COMPILER"
         base_tests
     else
@@ -1542,6 +1542,11 @@ cleanup_suite() {
         fi
     done
 
+    # Warning: this test is known to fail on filesystems that have
+    # unusual block sizes, including ecryptfs.  The workaround is
+    # to place the test directory elsewhere:
+    #     cd /tmp
+    #     CCACHE=$DIR/ccache $DIR/test.sh
     testname="forced cleanup, size limit"
     $CCACHE -C >/dev/null
     prepare_cleanup_test $CCACHE_DIR/a
