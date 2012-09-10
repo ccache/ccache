@@ -1430,7 +1430,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	bool dependency_filename_specified = false;
 	/* is the dependency makefile target name specified with -MT or -MQ? */
 	bool dependency_target_specified = false;
-	struct args *expanded_args, *stripped_args, *dep_args;
+	struct args *expanded_args, *stripped_args, *dep_args, *cpp_args;
 	int argc;
 	char **argv;
 	bool result = true;
@@ -1438,6 +1438,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
 	dep_args = args_init(0, NULL);
+	cpp_args = args_init(0, NULL);
 
 	argc = expanded_args->argc;
 	argv = expanded_args->argv;
@@ -1770,6 +1771,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		 * is that paths in the standard error output produced by the
 		 * compiler will be normalized.
 		 */
+
 		if (compopt_takes_path(argv[i])) {
 			char *relpath;
 			char *pch_file = NULL;
@@ -1780,9 +1782,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			args_add(stripped_args, argv[i]);
+			/* if the argument only affects the preprocessed output then
+			 * it should not affect the compiling the .c file
+			 */
 			relpath = make_relative_path(x_strdup(argv[i+1]));
-			args_add(stripped_args, relpath);
+			if (compopt_affects_cpp(argv[i])) {
+				args_add(cpp_args, argv[i]);
+				args_add(cpp_args, relpath);
+			} else {
+				args_add(stripped_args, argv[i]);
+				args_add(stripped_args, relpath);
+			}
 
 			/* Try to be smart about detecting precompiled headers */
 			if (str_eq(argv[i], "-include-pch")) {
@@ -1831,7 +1841,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			char *option;
 			relpath = make_relative_path(x_strdup(argv[i] + 2));
 			option = format("-%c%s", argv[i][1], relpath);
-			args_add(stripped_args, option);
+
+			/* if the argument only affects the preprocessed output then
+			 * it should not affect the compiling the .c file
+			 */
+			if (compopt_short(compopt_affects_cpp, argv[i])) {
+				args_add(cpp_args, option);
+			} else {
+				args_add(stripped_args, option);
+			}
+
 			free(relpath);
 			free(option);
 			continue;
@@ -1845,8 +1864,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			args_add(stripped_args, argv[i]);
-			args_add(stripped_args, argv[i+1]);
+
+			/* if the argument only affects the preprocessed output then
+			 * it should not affect the compiling the .c file
+			 */
+			if (compopt_affects_cpp(argv[i])) {
+				args_add(cpp_args, argv[i]);
+				args_add(cpp_args, argv[i+1]);
+			} else {
+				args_add(stripped_args, argv[i]);
+				args_add(stripped_args, argv[i+1]);
+			}
+
 			i++;
 			continue;
 		}
@@ -2009,16 +2038,15 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	 * -finput-charset=XXX (otherwise conversion happens twice)
 	 * -x XXX (otherwise the wrong language is selected)
 	 */
-	*preprocessor_args = args_copy(stripped_args);
 	if (input_charset) {
-		args_add(*preprocessor_args, input_charset);
+		args_add(cpp_args, input_charset);
 	}
 	if (found_pch) {
-		args_add(*preprocessor_args, "-fpch-preprocess");
+		args_add(cpp_args, "-fpch-preprocess");
 	}
 	if (explicit_language) {
-		args_add(*preprocessor_args, "-x");
-		args_add(*preprocessor_args, explicit_language);
+		args_add(cpp_args, "-x");
+		args_add(cpp_args, explicit_language);
 	}
 
 	/*
@@ -2043,10 +2071,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	}
 
+	*compiler_args = args_copy(stripped_args);
 	if (conf->run_second_cpp) {
-		*compiler_args = args_copy(*preprocessor_args);
+		args_extend(*compiler_args, cpp_args);
 	} else {
-		*compiler_args = args_copy(stripped_args);
 		if (explicit_language) {
 			/*
 			 * Workaround for a bug in Apple's patched distcc -- it doesn't properly
@@ -2067,12 +2095,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	 * compiler doesn't produce a correct .d file when compiling preprocessed
 	 * source.
 	 */
-	args_extend(*preprocessor_args, dep_args);
+	args_extend(cpp_args, dep_args);
+
+	*preprocessor_args = args_copy(stripped_args);
+	args_extend(*preprocessor_args, cpp_args);
 
 out:
 	args_free(expanded_args);
 	args_free(stripped_args);
 	args_free(dep_args);
+	args_free(cpp_args);
 	return result;
 }
 
