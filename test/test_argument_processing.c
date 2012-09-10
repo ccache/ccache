@@ -72,6 +72,29 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 	args_free(orig);
 }
 
+TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
+{
+#define CMD \
+	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
+	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
+	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
+	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
+	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 "\
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string(CMD);
+#undef CMD
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 {
 	struct args *orig = args_init_from_string(
