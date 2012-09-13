@@ -53,7 +53,7 @@ files_to_distclean = Makefile config.h config.log config.status
 all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(all_libs)
-	$(CC) $(all_cflags) $(all_ldflags) -o $@ $(ccache_objs) $(all_libs)
+	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(all_ldflags) $(all_libs)
 
 .PHONY: install
 install: all
@@ -86,7 +86,7 @@ quicktest: test/main$(EXEEXT)
 	test/main$(EXEEXT)
 
 test/main$(EXEEXT): $(base_objs) $(test_objs) $(all_libs)
-	$(CC) $(all_cflags) $(all_ldflags) -o $@ $(base_objs) $(test_objs) $(all_libs)
+	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(all_ldflags) $(all_libs)
 
 test/main.o: test/suites.h
 
