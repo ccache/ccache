@@ -34,6 +34,7 @@ struct compopt {
 static const struct compopt compopts[] = {
 	{"--coverage",      TOO_HARD}, /* implies -ftest-coverage */
 	{"--param",         TAKES_ARG},
+	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},	
 	{"-A",              TAKES_ARG},
 	{"-D",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
 	{"-E",              TOO_HARD},

@@ -95,6 +95,9 @@ static char *output_obj;
 /* The path to the dependency file (implicit or specified with -MF). */
 static char *output_dep;
 
+/* diagnostic generation information (clang) */
+static char *output_dia = NULL;
+
 /*
  * Name (represented as a struct file_hash) of the file containing the cached
  * object code.
@@ -118,6 +121,12 @@ static char *cached_stderr;
  * (cachedir/a/b/cdef[...]-size.d).
  */
 static char *cached_dep;
+
+/*
+ * Full path to the file containing the diagnostic information (for clang)
+ * (cachedir/a/b/cdef[...]-size.dia).
+ */
+static char *cached_dia;
 
 /*
  * Full path to the file containing the manifest
@@ -571,7 +580,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_obj;
+	char *tmp_stdout, *tmp_stderr, *tmp_obj, *tmp_dia;
 	struct stat st;
 	int status;
 	size_t added_bytes = 0;
@@ -593,6 +602,19 @@ to_cache(struct args *args)
 
 	args_add(args, "-o");
 	args_add(args, tmp_obj);
+
+	if( output_dia != 0 ) {
+		if( output_to_real_object_first ) {
+			tmp_dia = x_strdup(output_dia);
+			cc_log("Outputting to final destination: %s", tmp_dia);
+		} else {
+			tmp_dia = format("%s.tmp.dia.%s", cached_obj, tmp_string());
+		}
+		args_add(args, "--serialize-diagnostics");
+		args_add(args, tmp_dia);
+	} else {
+		tmp_dia = NULL;
+	}
 
 	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
 	 * otherwise it will emit a line like
@@ -621,6 +643,9 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
+		if( tmp_dia != 0 ) {
+			tmp_unlink(tmp_dia);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -687,6 +712,9 @@ to_cache(struct args *args)
 
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
+		if( tmp_dia != 0 ) {
+			tmp_unlink(tmp_dia);
+		}
 		failed();
 	}
 
@@ -726,6 +754,39 @@ to_cache(struct args *args)
 		if (conf->recache) {
 			/* If recaching, we need to remove any previous .stderr. */
 			x_unlink(cached_stderr);
+		}
+	}
+
+	if( tmp_dia != 0 ) {
+		if (stat(tmp_dia, &st) != 0) {
+			cc_log("Failed to stat %s: %s", tmp_dia, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+		if (st.st_size > 0) {
+			if (output_to_real_object_first) {
+				int ret;
+				if (conf->hard_link && !conf->compression) {
+					ret = link(tmp_dia, cached_dia);
+				} else {
+					ret = copy_file(tmp_dia, cached_dia, conf->compression);
+				}
+				if (ret != 0) {
+					cc_log("Failed to copy/link %s to %s: %s",
+					       tmp_dia, cached_dia, strerror(errno));
+					stats_update(STATS_ERROR);
+					failed();
+				}
+			} else if (move_uncompressed_file( tmp_dia, cached_dia,
+						    conf->compression ? conf->compression_level : 0) != 0) {
+						cc_log("Failed to move %s to %s: %s", tmp_dia, cached_dia, strerror(errno));
+						stats_update(STATS_ERROR);
+						failed();
+			}
+			cc_log("Stored in cache: %s", cached_dia);
+			stat(cached_dia, &st);
+			added_bytes += file_size(&st);
+			added_files += 1;
 		}
 	}
 
@@ -780,6 +841,7 @@ to_cache(struct args *args)
 	free(tmp_obj);
 	free(tmp_stderr);
 	free(tmp_stdout);
+	free(tmp_dia);
 }
 
 /*
@@ -904,12 +966,12 @@ static void
 update_cached_result_globals(struct file_hash *hash)
 {
 	char *object_name;
-
 	object_name = format_hash_as_string(hash->hash, hash->size);
 	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
+	cached_dia = get_path_in_cache(object_name, ".dia");
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
 }
@@ -1211,6 +1273,12 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
+	/* Check if the diagnostic file is there. */
+	if ((output_dia != 0) && (stat(cached_dia, &st) != 0)) {
+		cc_log("Diagnostic file %s not in cache", cached_dia);
+		return;
+	}
+
 	/*
 	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
 	 * gcc.)
@@ -1250,6 +1318,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
 		x_unlink(cached_dep);
+		x_unlink(cached_dia);		
 		return;
 	} else {
 		cc_log("Created %s from %s", output_obj, cached_obj);
@@ -1282,11 +1351,51 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			x_unlink(cached_stderr);
 			x_unlink(cached_obj);
 			x_unlink(cached_dep);
+			x_unlink(cached_dia);			
 			return;
 		} else {
 			cc_log("Created %s from %s", output_dep, cached_dep);
 		}
 	}
+
+	if ( output_dia != 0 ) {
+		cc_log("[from_cache]: output_dia: %s", output_dia);
+		x_unlink(output_dia);
+		/* only make a hardlink if the cache file is uncompressed */
+		if (conf->hard_link && !file_is_compressed(cached_dia)) {
+			ret = link(cached_dia, output_dia);
+		} else {
+			ret = copy_file(cached_dia, output_dia, 0);
+		}
+				cc_log("[from_cache]: ret: %d", ret);
+
+		if (ret == -1) {
+			if (errno == ENOENT) {
+				/*
+				 * Someone removed the file just before we
+				 * began copying?
+				 */
+				cc_log("Diagnostic file %s just disappeared from cache", output_dia);
+				stats_update(STATS_MISSING);
+			} else {
+				cc_log("Failed to copy/link %s to %s: %s",
+				       cached_dia, output_dia, strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
+			x_unlink(output_obj);
+			x_unlink(output_dep);
+			x_unlink(output_dia);
+			x_unlink(cached_stderr);
+			x_unlink(cached_obj);
+			x_unlink(cached_dep);		
+			x_unlink(cached_dia);
+			return;
+		} else {
+			cc_log("Created %s from %s", output_dia, cached_dia);
+		}
+	}
+
 
 	/* Update modification timestamps to save files from LRU cleanup.
 	   Also gives files a sensible mtime when hard-linking. */
@@ -1294,6 +1403,9 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	update_mtime(cached_stderr);
 	if (produce_dep_file) {
 		update_mtime(cached_dep);
+	}
+	if(output_dia != 0) {
+		update_mtime(cached_dia);		
 	}
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
@@ -1713,6 +1825,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Input charset needs to be handled specially. */
 		if (str_startswith(argv[i], "-finput-charset=")) {
 			input_charset = argv[i];
+			continue;
+		}
+
+		if (str_eq(argv[i], "--serialize-diagnostics")) {
+			if (i >= argc - 1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			output_dia = make_relative_path(x_strdup(argv[i+1]));
+			i++;
 			continue;
 		}
 
@@ -2232,10 +2356,12 @@ cc_reset(void)
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;
+	free(output_dia); output_dia = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_dep); cached_dep = NULL;
+	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	if (included_files) {
@@ -2330,6 +2456,9 @@ ccache(int argc, char *argv[])
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);
+	}
+	if (output_dia != 0) {
+		cc_log("Diagnostic file: %s", output_dia);
 	}
 	cc_log("Object file: %s", output_obj);
 
