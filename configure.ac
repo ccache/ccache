@@ -144,13 +144,17 @@ if test "$ac_cv_c_extern_inline" != no ; then
 fi
 
 dnl Enable developer mode if dev.mk.in exists.
-if test -f $srcdir/dev.mk.in && test "$RUN_FROM_BUILD_FARM" != yes; then
-    AC_MSG_NOTICE(Enabling developer mode)
+if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; then
+    AC_MSG_NOTICE(Developer mode enabled)
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
-elif test ! -f $srcdir/version.c; then
+else
+    AC_MSG_NOTICE(Developer mode disabled)
+fi
+
+if test ! -f $srcdir/version.c; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
 fi

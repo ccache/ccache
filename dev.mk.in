@@ -105,6 +105,7 @@ $(dist_archives): $(dist_files)
 	(cd $(srcdir) && \
 	 rsync -r --relative $(source_dist_files) $$dir) && \
 	cp $(built_dist_files) $$dir && \
+	echo "Remove this file to enable developer mode." >$$dir/dev_mode_disabled && \
 	(cd $$tmpdir && \
 	 tarcompression= && \
 	 case $@ in \
