@@ -119,7 +119,7 @@ if test x${use_bundled_zlib} = xyes; then
     extra_libs="zlib/libz.a"
     mkdir -p zlib
 else
-    extra_libs="-lz"
+    extra_ldflags="-lz"
 fi
 
 AC_C_INLINE
