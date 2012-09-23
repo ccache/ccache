@@ -467,6 +467,17 @@ create_parent_dirs(const char *path)
 		res = create_parent_dirs(parent);
 		if (res == 0) {
 			res = mkdir(parent, 0777);
+			/* if have to handle the condition of the directory already existing because
+			   the file system could have changed in between calling stat and actually
+			   creating the directory. This can happen when there are multiple instances of 
+			   ccache running and trying to create the same directory chain, which usually 
+			   is the case when the cache root does not initially exist. As long as one of 
+			   the processes creates the directories than our condition is satisfied and we 
+			   avoid a race condition.
+			*/
+			if( (res != 0) && (errno == EEXIST) ) {
+				res = 0;
+			}
 		} else {
 			res = -1;
 		}
