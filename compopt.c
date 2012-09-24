@@ -51,12 +51,14 @@ static const struct compopt compopts[] = {
 	{"-Xassembler",     TAKES_ARG},
 	{"-Xclang",         TAKES_ARG},
 	{"-Xlinker",        TAKES_ARG},
-	{"-Xpreprocessor",  TOO_HARD_DIRECT | TAKES_ARG},
+	{"-Xpreprocessor",  AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
+	{"-fno-working-directory", AFFECTS_CPP},
 	{"-frepo",          TOO_HARD},
 	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
+	{"-fworking-directory", AFFECTS_CPP},	
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
@@ -72,9 +74,12 @@ static const struct compopt compopts[] = {
 	{"-iwithprefixbefore", AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-nostdinc",       AFFECTS_CPP},
 	{"-nostdinc++",     AFFECTS_CPP},
+	{"-remap",          AFFECTS_CPP},
 	{"-save-temps",     TOO_HARD},
+	{"-trigraphs",      AFFECTS_CPP},
 	{"-u",              TAKES_ARG},
 };
+
 
 static int
 compare_compopts(const void *key1, const void *key2)

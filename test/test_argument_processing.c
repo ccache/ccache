@@ -78,9 +78,9 @@ TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
 	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
 	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
 	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
-	" -DTEST_MACRO -DTEST_MACRO2=1 -F. " \
-	"-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2" \
-	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
+	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 "\
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
 	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(CMD);
 #undef CMD
