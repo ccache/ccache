@@ -84,6 +84,14 @@ compare_compopts(const void *key1, const void *key2)
 	return strcmp(opt1->name, opt2->name);
 }
 
+static int
+compare_prefix_compopts(const void *key1, const void *key2)
+{
+	const struct compopt *opt1 = (const struct compopt *)key1;
+	const struct compopt *opt2 = (const struct compopt *)key2;
+	return strncmp(opt1->name, opt2->name, strlen(opt2->name));
+}
+
 static const struct compopt *
 find(const char *option)
 {
@@ -92,6 +100,16 @@ find(const char *option)
 	return bsearch(
 		&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
 		sizeof(compopts[0]), compare_compopts);
+}
+
+static const struct compopt *
+find_prefix(const char *option)
+{
+	struct compopt key;
+	key.name = option;
+	return bsearch(
+		&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
+		sizeof(compopts[0]), compare_prefix_compopts);
 }
 
 /* Runs fn on the first two characters of option. */
@@ -154,4 +172,26 @@ compopt_takes_arg(const char *option)
 {
 	const struct compopt *co = find(option);
 	return co && (co->type & TAKES_ARG);
+}
+
+/* determines if argument takes a concatentated argument
+   by comparing prefixes
+*/
+bool
+compopt_takes_concat_arg(const char *option)
+{
+	const struct compopt *co = find_prefix(option);
+	return co && (co->type & TAKES_CONCAT_ARG);
+}
+
+/* determines if the prefix of the option matches
+   any option and affects the preprocessor
+*/
+bool
+compopt_prefix_affects_cpp(const char *option)
+{
+	/* prefix options have to take concatentated args */
+	const struct compopt *co = find_prefix(option);
+	return co && (co->type & TAKES_CONCAT_ARG) && 
+				 (co->type & AFFECTS_CPP);
 }
