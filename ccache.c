@@ -612,7 +612,8 @@ to_cache(struct args *args)
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st) != 0) {
-		fatal("Could not create %s (permission denied?)", tmp_stdout);
+		fatal("Could not stat %s (permission denied when creating?): %s",
+		      tmp_stdout, strerror(errno));
 	}
 	if (st.st_size != 0) {
 		cc_log("Compiler produced stdout");
