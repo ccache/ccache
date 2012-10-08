@@ -81,7 +81,7 @@ checkstat() {
 }
 
 compare_file() {
-    diff "$1" "$2" 2>&1 >/dev/null
+    cmp -s "$1" "$2"
     if [ $? -eq 0 ]; then
         :
     else
@@ -2104,7 +2104,7 @@ export CCACHE_CONFIGPATH
 touch $CCACHE_CONFIGPATH
 
 # comand used to bypass ccache
-DIRECT_COMPILE=$(which $COMPILER)
+DIRECT_COMPILE=`which $COMPILER`
 
 # ---------------------------------------
 
