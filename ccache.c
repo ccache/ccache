@@ -1671,7 +1671,15 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
-			if (str_startswith(argv[i], "-Wp,-MD,") && !strchr(argv[i] + 8, ',')) {
+			if (str_eq(argv[i], "-Wp,-P") || strstr(argv[i], ",-P,")) {
+				/* -P removes preprocessor information in such a way that the object
+				 * file from compiling the preprocessed file will not be equal to the
+				 * object file produced when compiling without ccache. */
+				cc_log("Too hard option -Wp,-P detected");
+				stats_update(STATS_UNSUPPORTED);
+				failed();
+			} else if (str_startswith(argv[i], "-Wp,-MD,")
+			           && !strchr(argv[i] + 8, ',')) {
 				generating_dependencies = true;
 				dependency_filename_specified = true;
 				free(output_dep);

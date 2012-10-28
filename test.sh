@@ -583,6 +583,36 @@ EOF
         checkstat 'files in cache' 4
     fi
 
+    ##################################################################
+    # Check that -Wp,-P disables ccache. (-P removes preprocessor information
+    # in such a way that the object file from compiling the preprocessed file
+    # will not be equal to the object file produced when compiling without
+    # ccache.)
+    testname="-Wp,-P"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER -c -Wp,-P test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 1
+    $CCACHE $COMPILER -c -Wp,-P test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 2
+    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 3
+    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 4
+
+    ##################################################################
+
     rm -f test1.c
 }
 
@@ -809,46 +839,6 @@ EOF
     compare_file reference_test.o test.o
 
     rm -f other.d
-
-    ##################################################################
-    # Check that -Wp,-MD,file.d,-P disables direct mode.
-    # currently clang does not support -Wp form of options
-    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
-        testname="-Wp,-MD,file.d,-P"
-        $CCACHE -z >/dev/null
-        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-        CCACHE_DISABLE=1 $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c -o reference_test.o
-        compare_file reference_test.o test.o
-
-        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 1
-        checkstat 'cache miss' 1
-        compare_file reference_test.o test.o
-    fi
-
-    ##################################################################
-    # Check that -Wp,-MMD,file.d,-P disables direct mode.
-    # currently clang does not support -Wp form of options
-    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
-        testname="-Wp,-MDD,file.d,-P"
-        $CCACHE -z >/dev/null
-        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-        CCACHE_DISABLE=1 $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c -o reference_test.o
-        compare_file reference_test.o test.o
-
-        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 1
-        checkstat 'cache miss' 1
-        compare_file reference_test.o test.o
-    fi
 
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
