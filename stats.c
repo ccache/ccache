@@ -302,9 +302,9 @@ stats_summary(struct conf *conf)
 	}
 
 	printf("cache directory                     %s\n", conf->cache_dir);
-	printf("primary config path                 %s\n",
+	printf("primary config                      %s\n",
 	       primary_config_path ? primary_config_path : "");
-	printf("secondary config path (readonly)    %s\n",
+	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
 
 	/* and display them */
