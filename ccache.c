@@ -266,7 +266,7 @@ get_path_in_cache(const char *name, const char *suffix)
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
 		path = p;
-		if (create_dir(path) != 0) {
+		if (!getenv("CCACHE_READONLY") && create_dir(path) != 0) {
 			fatal("Failed to create %s: %s", path, strerror(errno));
 		}
 	}
