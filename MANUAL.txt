@@ -332,7 +332,7 @@ WRAPPERS>>.
 
 *direct_mode* (*CCACHE_DIRECT*) [boolean]::
 
-    If true, the direct mode will be used. The default is false. See
+    If true, the direct mode will be used. The default is true. See
     <<_the_direct_mode,THE DIRECT MODE>>.
 
 *disable* (*CCACHE_DISABLE*) [boolean]::
@@ -553,13 +553,12 @@ There is a catch with the direct mode: header files that were used by the
 compiler are recorded, but header files that were *not* used, but would have
 been used if they existed, are not. So, when ccache checks if a result can be
 taken from the cache, it currently can't check if the existence of a new header
-file should invalidate the result. This is why the direct mode is off by
-default. In practice, the direct mode is safe to use in the absolute majority
-of cases.
+file should invalidate the result. In practice, the direct mode is safe to use
+in the absolute majority of cases.
 
 The direct mode will be disabled if any of the following holds:
 
-* the configuration setting *direct_mode* is false (which is the default)
+* the configuration setting *direct_mode* is false
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * the unifier is enabled (the configuration setting *unify* is true)
@@ -730,6 +729,8 @@ Bugs
   the preprocessor. A workaround of this problem is to set
   *extra_files_to_hash* to the path of the included file.
 
+* The direct mode fails to pick up new header files in some rare scenarios. See
+  <<_the_direct_mode,THE DIRECT MODE>> above.
 
 
 Troubleshooting
