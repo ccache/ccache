@@ -1818,10 +1818,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 						pch_file = x_strdup(pchpath);
 					}
 					else {
-						/* clang may use pre-tokenized headers */
+						/* clang may use pretokenized headers */
 						char *pthpath = format("%s.pth", argv[i+1]);
 						if (stat(pthpath, &st) == 0) {
-							cc_log("Detected use of precompiled header: %s", pthpath);
+							cc_log("Detected use of pretokenized header: %s", pthpath);
 							found_pch = true;
 							pch_file = x_strdup(pthpath);
 						}
