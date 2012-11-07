@@ -21,7 +21,7 @@ RANLIB = @RANLIB@
 all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ @extra_cppflags@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 all_ldflags = @extra_ldflags@ $(LDFLAGS)
-all_libs = @extra_libs@ $(LIBS)
+extra_libs = @extra_libs@
 
 base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
@@ -52,8 +52,8 @@ files_to_distclean = Makefile config.h config.log config.status
 .PHONY: all
 all: ccache$(EXEEXT)
 
-ccache$(EXEEXT): $(ccache_objs) $(all_libs)
-	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(all_ldflags) $(all_libs)
+ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
+	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(all_ldflags) $(extra_libs) $(LIBS)
 
 .PHONY: install
 install: all
@@ -85,8 +85,8 @@ test: ccache$(EXEEXT) test/main$(EXEEXT)
 quicktest: test/main$(EXEEXT)
 	test/main$(EXEEXT)
 
-test/main$(EXEEXT): $(base_objs) $(test_objs) $(all_libs)
-	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(all_ldflags) $(all_libs)
+test/main$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
+	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(all_ldflags) $(extra_libs) $(LIBS)
 
 test/main.o: test/suites.h
 

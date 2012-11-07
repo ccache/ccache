@@ -52,7 +52,7 @@ file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
  * Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE and
  * HASH_SOURCE_CODE_FOUND_TIME set appropriately.
  */
-static int
+int
 check_for_temporal_macros(const char *str, size_t len)
 {
 	int result = 0;
