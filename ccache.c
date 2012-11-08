@@ -1792,7 +1792,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compiling the .c file
+			 * it should not affect the compilation of the .c file
 			 */
 			relpath = make_relative_path(x_strdup(argv[i+1]));
 			if (compopt_affects_cpp(argv[i])) {
@@ -1852,7 +1852,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			option = format("-%c%s", argv[i][1], relpath);
 
 			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compiling the .c file
+			 * it should not affect the compilation of the .c file
 			 */
 			if (compopt_short(compopt_affects_cpp, argv[i])) {
 				args_add(cpp_args, option);
@@ -1875,7 +1875,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compiling the .c file
+			 * it should not affect the compilation of the .c file
 			 */
 			if (compopt_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
