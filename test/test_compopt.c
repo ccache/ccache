@@ -94,4 +94,10 @@ TEST(dash_xxx_doesnt_take_arg)
 	CHECK(!compopt_takes_arg("-xxx"));
 }
 
+TEST(dash_iframework_prefix_affects_cpp)
+{
+	CHECK(compopt_prefix_affects_cpp("-iframework"));
+}
+
+
 TEST_SUITE_END
