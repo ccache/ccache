@@ -2335,7 +2335,7 @@ cc_reset(void)
 	free(cached_obj); cached_obj = NULL;
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_dep); cached_dep = NULL;
-	free(cached_dia); cached_dep = NULL;
+	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	if (included_files) {
