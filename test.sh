@@ -80,6 +80,12 @@ checkstat() {
     fi
 }
 
+compare_file() {
+    if ! cmp -s "$1" "$2"; then
+        test_failed "Files differ: $1 != $2"
+    fi
+}
+
 checkfile() {
     if [ ! -f $1 ]; then
         test_failed "$1 not found"
@@ -140,17 +146,21 @@ base_tests() {
         j=`expr $j + 1`
     done
 
+    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+
     testname="BASIC"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkstat 'files in cache' 1
+    compare_file reference_test1.o test1.o
 
     testname="BASIC2"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
     checkstat 'files in cache' 1
+    compare_file reference_test1.o test1.o
 
     testname="debug"
     $CCACHE_COMPILE -c test1.c -g
@@ -167,6 +177,7 @@ base_tests() {
     $CCACHE_COMPILE -c test1.c -o foo.o
     checkstat 'cache hit (preprocessed)' 3
     checkstat 'cache miss' 2
+    compare_file reference_test1.o foo.o
 
     testname="link"
     $CCACHE_COMPILE test1.c -o test 2> /dev/null
@@ -225,10 +236,13 @@ base_tests() {
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 4
     checkstat 'cache miss' 3
+    CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o -O -O
+    compare_file reference_test1.o test1.o
 
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 3
+    compare_file reference_test1.o test1.o
 
     testname="CCACHE_NOSTATS"
     CCACHE_NOSTATS=1 $CCACHE_COMPILE -c test1.c -O -O
@@ -239,6 +253,7 @@ base_tests() {
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 4
+    compare_file reference_test1.o test1.o
 
     # strictly speaking should be 3 - RECACHE causes a double counting!
     checkstat 'files in cache' 4
@@ -249,11 +264,13 @@ base_tests() {
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 5
+    compare_file reference_test1.o test1.o
 
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
     checkstat 'files in cache' 4
+    compare_file reference_test1.o test1.o
 
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c
@@ -274,6 +291,9 @@ base_tests() {
     mv test1-saved.c test1.c
     checkstat 'cache hit (preprocessed)' 7
     checkstat 'cache miss' 7
+    CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o
+    compare_file reference_test1.o test1.o
+
 
     testname="cache-size"
     for f in *.c; do
@@ -576,6 +596,36 @@ EOF
         checkstat 'files in cache' 2
     fi
 
+    ##################################################################
+    # Check that -Wp,-P disables ccache. (-P removes preprocessor information
+    # in such a way that the object file from compiling the preprocessed file
+    # will not be equal to the object file produced when compiling without
+    # ccache.)
+    testname="-Wp,-P"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER -c -Wp,-P test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 1
+    $CCACHE $COMPILER -c -Wp,-P test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 2
+    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 3
+    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat 'unsupported compiler option' 4
+
+    ##################################################################
+
     rm -f test1.c
 }
 
@@ -765,6 +815,8 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
+    compare_file reference_test.o test.o
 
     rm -f other.d
 
@@ -773,6 +825,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     rm -f other.d
 
@@ -786,6 +839,8 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
+    compare_file reference_test.o test.o
 
     rm -f other.d
 
@@ -794,42 +849,9 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     rm -f other.d
-
-    ##################################################################
-    # Check that -Wp,-MD,file.d,-P disables direct mode.
-    # currently clang does not support -Wp form of options
-    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
-        testname="-Wp,-MD,file.d,-P"
-        $CCACHE -z >/dev/null
-        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-
-        $CCACHE $COMPILER -c -Wp,-MD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 1
-        checkstat 'cache miss' 1
-    fi
-
-    ##################################################################
-    # Check that -Wp,-MMD,file.d,-P disables direct mode.
-    # currently clang does not support -Wp form of options
-    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
-        testname="-Wp,-MDD,file.d,-P"
-        $CCACHE -z >/dev/null
-        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 0
-        checkstat 'cache miss' 1
-
-        $CCACHE $COMPILER -c -Wp,-MMD,$DEVNULL,-P test.c
-        checkstat 'cache hit (direct)' 0
-        checkstat 'cache hit (preprocessed)' 1
-        checkstat 'cache miss' 1
-    fi
 
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
@@ -854,6 +876,9 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
+    compare_file reference_test.o test.o
+
 
     rm -f test.d
 
@@ -862,6 +887,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     ##################################################################
     # Check the scenario of running a ccache with direct mode on a cache
@@ -874,6 +900,8 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
+    compare_file reference_test.o test.o
 
     rm -f test.d
 
@@ -882,6 +910,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     rm -f test.d
 
@@ -890,6 +919,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     rm -f test.d
 
@@ -898,6 +928,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     ##################################################################
     # Check that -MF works.
@@ -909,6 +940,8 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -MD -MF other.d test.c -o reference_test.o
+    compare_file reference_test.o test.o
 
     rm -f other.d
 
@@ -917,6 +950,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     ##################################################################
     # Check that a missing .d file in the cache is handled correctly.
@@ -929,12 +963,15 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
+    compare_file reference_test.o test.o
 
     $CCACHE $COMPILER -c -MD test.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     find $CCACHE_DIR -name '*.d' -exec rm -f '{}' \;
 
@@ -943,6 +980,7 @@ EOF
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
     checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    compare_file reference_test.o test.o
 
     ##################################################################
     # Check that stderr from both the preprocessor and the compiler is emitted
@@ -1562,16 +1600,25 @@ readonly_suite() {
     # Make the cache readonly
     # Check that readonly mode finds the result.
     testname="cache hit"
-    rm -f test.o
+    rm -f test.o test2.o
     chmod -R a-w $CCACHE_DIR
-    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp CCACHE_PREFIX=false $CCACHE $COMPILER -c test.c -o test.o
-    status=$?
+    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp CCACHE_PREFIX=false $CCACHE $COMPILER -c test.c -o test.o >/dev/null 2>&1
+    status1=$?
+    # Check that fallback to the real compiler works for a cache miss.
+    CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE $COMPILER -c test2.c -o test2.o >/dev/null 2>&1
+    status2=$?
     chmod -R a+w $CCACHE_DIR
-    if [ $status -ne 0 ]; then
+    if [ $status1 -ne 0 ]; then
         test_failed "failure when compiling test.c readonly"
+    fi
+    if [ $status2 -ne 0 ]; then
+        test_failed "failure when compiling test2.c readonly"
     fi
     if [ ! -f test.o ]; then
         test_failed "test.o missing"
+    fi
+    if [ ! -f test2.o ]; then
+        test_failed "test2.o missing"
     fi
 
     # Check that readonly mode doesn't try to store new results.
