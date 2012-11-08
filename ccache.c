@@ -1775,12 +1775,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		/*
-		 * Options taking an argument that that we may want to rewrite
-		 * to relative paths to get better hit rate. A secondary effect
-		 * is that paths in the standard error output produced by the
-		 * compiler will be normalized.
+		 * Options taking an argument that we may want to rewrite to relative paths
+		 * to get better hit rate. A secondary effect is that paths in the standard
+		 * error output produced by the compiler will be normalized.
 		 */
-
 		if (compopt_takes_path(argv[i])) {
 			char *relpath;
 			char *pch_file = NULL;
@@ -1791,9 +1789,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compilation of the .c file
-			 */
 			relpath = make_relative_path(x_strdup(argv[i+1]));
 			if (compopt_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
@@ -1851,9 +1846,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			relpath = make_relative_path(x_strdup(argv[i] + 2));
 			option = format("-%c%s", argv[i][1], relpath);
 
-			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compilation of the .c file
-			 */
 			if (compopt_short(compopt_affects_cpp, argv[i])) {
 				args_add(cpp_args, option);
 			} else {
@@ -1874,9 +1866,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			/* if the argument only affects the preprocessed output then
-			 * it should not affect the compilation of the .c file
-			 */
 			if (compopt_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
 				args_add(cpp_args, argv[i+1]);
@@ -1891,8 +1880,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		/* other options */
 		if (argv[i][0] == '-') {
-			if (compopt_affects_cpp(argv[i]) || 
-			    compopt_prefix_affects_cpp(argv[i])) {
+			if (compopt_affects_cpp(argv[i])
+			    || compopt_prefix_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
 			} else {
 				args_add(stripped_args, argv[i]);
