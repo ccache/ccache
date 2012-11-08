@@ -147,6 +147,7 @@ sort_and_clean(void)
 		ext = get_extension(files[i]->fname);
 		if (str_eq(ext, ".o")
 		    || str_eq(ext, ".d")
+		    || str_eq(ext, ".dia")
 		    || str_eq(ext, ".stderr")
 		    || str_eq(ext, "")) {
 			char *base = remove_extension(files[i]->fname);
@@ -160,6 +161,7 @@ sort_and_clean(void)
 				 */
 				delete_sibling_file(base, ".o");
 				delete_sibling_file(base, ".d");
+				delete_sibling_file(base, ".dia");
 				delete_sibling_file(base, ".stderr");
 				delete_sibling_file(base, ""); /* Object file from ccache 2.4. */
 			}
