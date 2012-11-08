@@ -81,7 +81,8 @@ checkstat() {
 }
 
 compare_file() {
-    if ! cmp -s "$1" "$2"; then
+    cmp -s "$1" "$2"
+    if [ $? -ne 0 ]; then
         test_failed "Files differ: $1 != $2"
     fi
 }
