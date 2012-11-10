@@ -168,12 +168,12 @@ static bool profile_generate = false;
 
 /*
  * Whether we are using a precompiled header (either via -include, #include or
- * clang's -include-pch).
+ * clang's -include-pch or -include-pth).
  */
 static bool using_precompiled_header = false;
 
 /*
- * The .gch/.pch file used for compilation.
+ * The .gch/.pch/.pth file used for compilation.
  */
 static char *included_pch_file = NULL;
 
@@ -554,7 +554,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	free(data);
 
 	/*
-	 * Explicitly check the .gch/.pch file, Clang does not include any mention of
+	 * Explicitly check the .gch/.pch/.pth file, Clang does not include any mention of
 	 * it in the preprocessed output.
 	 */
 	if (included_pch_file) {
@@ -1404,7 +1404,8 @@ bool
 is_precompiled_header(const char *path)
 {
 	return str_eq(get_extension(path), ".gch")
-	       || str_eq(get_extension(path), ".pch");
+	       || str_eq(get_extension(path), ".pch")
+	       || str_eq(get_extension(path), ".pth");
 }
 
 /*
@@ -1515,7 +1516,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-		if (str_eq(argv[i], "-fpch-preprocess")) {
+		if (str_eq(argv[i], "-fpch-preprocess")
+			  || str_eq(argv[i], "-emit-pch")
+			  || str_eq(argv[i], "-emit-pth")) {
 			found_fpch_preprocess = true;
 		}
 
@@ -1799,7 +1802,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			/* Try to be smart about detecting precompiled headers */
-			if (str_eq(argv[i], "-include-pch")) {
+			if (str_eq(argv[i], "-include-pch") ||
+				  str_eq(argv[i], "-include-pth")) {
 				if (stat(argv[i+1], &st) == 0) {
 					cc_log("Detected use of precompiled header: %s", argv[i+1]);
 					found_pch = true;
@@ -1817,6 +1821,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 						cc_log("Detected use of precompiled header: %s", pchpath);
 						found_pch = true;
 						pch_file = x_strdup(pchpath);
+					}
+					else {
+						/* clang may use pretokenized headers */
+						char *pthpath = format("%s.pth", argv[i+1]);
+						if (stat(pthpath, &st) == 0) {
+							cc_log("Detected use of pretokenized header: %s", pthpath);
+							found_pch = true;
+							pch_file = x_strdup(pthpath);
+						}
+						free(pthpath);
 					}
 					free(pchpath);
 				}
