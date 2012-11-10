@@ -64,7 +64,6 @@ randcode() {
     ) >> "$outfile"
 }
 
-
 getstat() {
     stat="$1"
     value=`$CCACHE -s | grep "$stat" | cut -c34-`
@@ -294,7 +293,6 @@ base_tests() {
     checkstat 'cache miss' 7
     CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o
     compare_file reference_test1.o test1.o
-
 
     testname="cache-size"
     for f in *.c; do
@@ -866,7 +864,6 @@ EOF
     checkfile test.d "test.o: test.c test1.h test3.h test2.h"
     CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
     compare_file reference_test.o test.o
-
 
     rm -f test.d
 
@@ -2041,6 +2038,14 @@ b"
 ######################################################################
 # main program
 
+if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
+    cat <<EOF
+Error: The test suite doesn't work in directories with whitespace or other
+funny characters in the name. Sorry.
+EOF
+    exit 1
+fi
+
 suites="$*"
 if [ -n "$CC" ]; then
     COMPILER="$CC"
@@ -2050,7 +2055,6 @@ fi
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
-
 
 # save the type of compiler because some test may not work on all compilers
 COMPILER_TYPE_CLANG=0
@@ -2085,7 +2089,6 @@ case $host_os in
         HOST_OS_APPLE=1
         ;;
 esac
-
 
 TESTDIR=testdir.$$
 rm -rf $TESTDIR
