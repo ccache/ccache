@@ -584,6 +584,19 @@ EOF
         checkstat 'files in cache' 4
     fi
 
+    if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
+        $CCACHE -Cz > /dev/null
+        testname="serialize-diagnostics"
+        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+    fi
+
     ##################################################################
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information
     # in such a way that the object file from compiling the preprocessed file
@@ -1521,6 +1534,31 @@ EOF
         checkstat 'cache miss' 1
         cd ..
     done
+
+    ##################################################################
+    # Check that clang's --serialize-diagnostics arguments with absolute paths are rewritten
+    # to relative.
+    if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
+        testname="serialize-diagnostics"
+        $CCACHE -Cz >/dev/null
+        cd dir1
+        CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -w -MD -MF `pwd`/test.d -I`pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 4
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -w -MD -MF `pwd`/test.d -I`pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 4
+        cd ..
+    fi
+
+
 }
 
 compression_suite() {
