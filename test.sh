@@ -589,22 +589,22 @@ EOF
     # ccache.)
     testname="-Wp,-P"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER -c -Wp,-P test1.c
+    $CCACHE_COMPILE -c -Wp,-P test1.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat 'unsupported compiler option' 1
-    $CCACHE $COMPILER -c -Wp,-P test1.c
+    $CCACHE_COMPILE -c -Wp,-P test1.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat 'unsupported compiler option' 2
-    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    $CCACHE_COMPILE -c -Wp,-DFOO,-P,-DGOO test1.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
     checkstat 'unsupported compiler option' 3
-    $CCACHE $COMPILER -c -Wp,-DFOO,-P,-DGOO test1.c
+    $CCACHE_COMPILE -c -Wp,-DFOO,-P,-DGOO test1.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
