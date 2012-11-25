@@ -95,7 +95,7 @@ static char *output_obj;
 /* The path to the dependency file (implicit or specified with -MF). */
 static char *output_dep;
 
-/* diagnostic generation information (clang) */
+/* Diagnostic generation information (clang). */
 static char *output_dia = NULL;
 
 /*
@@ -603,8 +603,8 @@ to_cache(struct args *args)
 	args_add(args, "-o");
 	args_add(args, tmp_obj);
 
-	if( output_dia != 0 ) {
-		if( output_to_real_object_first ) {
+	if (output_dia) {
+		if (output_to_real_object_first) {
 			tmp_dia = x_strdup(output_dia);
 			cc_log("Outputting to final destination: %s", tmp_dia);
 		} else {
@@ -643,7 +643,7 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
-		if( tmp_dia != 0 ) {
+		if (tmp_dia) {
 			tmp_unlink(tmp_dia);
 		}
 		failed();
@@ -712,7 +712,7 @@ to_cache(struct args *args)
 
 		tmp_unlink(tmp_stderr);
 		tmp_unlink(tmp_obj);
-		if( tmp_dia != 0 ) {
+		if (tmp_dia) {
 			tmp_unlink(tmp_dia);
 		}
 		failed();
@@ -757,7 +757,7 @@ to_cache(struct args *args)
 		}
 	}
 
-	if( tmp_dia != 0 ) {
+	if (tmp_dia) {
 		if (stat(tmp_dia, &st) != 0) {
 			cc_log("Failed to stat %s: %s", tmp_dia, strerror(errno));
 			stats_update(STATS_ERROR);
@@ -777,11 +777,13 @@ to_cache(struct args *args)
 					stats_update(STATS_ERROR);
 					failed();
 				}
-			} else if (move_uncompressed_file( tmp_dia, cached_dia,
-						    conf->compression ? conf->compression_level : 0) != 0) {
-						cc_log("Failed to move %s to %s: %s", tmp_dia, cached_dia, strerror(errno));
-						stats_update(STATS_ERROR);
-						failed();
+			} else if (move_uncompressed_file(
+				           tmp_dia, cached_dia,
+				           conf->compression ? conf->compression_level : 0) != 0) {
+				cc_log("Failed to move %s to %s: %s", tmp_dia, cached_dia,
+				       strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
 			}
 			cc_log("Stored in cache: %s", cached_dia);
 			stat(cached_dia, &st);
@@ -1274,7 +1276,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/* Check if the diagnostic file is there. */
-	if ((output_dia != 0) && (stat(cached_dia, &st) != 0)) {
+	if (output_dia && stat(cached_dia, &st) != 0) {
 		cc_log("Diagnostic file %s not in cache", cached_dia);
 		return;
 	}
@@ -1318,7 +1320,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
 		x_unlink(cached_dep);
-		x_unlink(cached_dia);		
+		x_unlink(cached_dia);
 		return;
 	} else {
 		cc_log("Created %s from %s", output_obj, cached_obj);
@@ -1351,15 +1353,14 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			x_unlink(cached_stderr);
 			x_unlink(cached_obj);
 			x_unlink(cached_dep);
-			x_unlink(cached_dia);			
+			x_unlink(cached_dia);
 			return;
 		} else {
 			cc_log("Created %s from %s", output_dep, cached_dep);
 		}
 	}
 
-	if ( output_dia != 0 ) {
-		cc_log("[from_cache]: output_dia: %s", output_dia);
+	if (output_dia) {
 		x_unlink(output_dia);
 		/* only make a hardlink if the cache file is uncompressed */
 		if (conf->hard_link && !file_is_compressed(cached_dia)) {
@@ -1367,7 +1368,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		} else {
 			ret = copy_file(cached_dia, output_dia, 0);
 		}
-				cc_log("[from_cache]: ret: %d", ret);
 
 		if (ret == -1) {
 			if (errno == ENOENT) {
@@ -1388,7 +1388,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			x_unlink(output_dia);
 			x_unlink(cached_stderr);
 			x_unlink(cached_obj);
-			x_unlink(cached_dep);		
+			x_unlink(cached_dep);
 			x_unlink(cached_dia);
 			return;
 		} else {
@@ -1404,8 +1404,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (produce_dep_file) {
 		update_mtime(cached_dep);
 	}
-	if(output_dia != 0) {
-		update_mtime(cached_dia);		
+	if (output_dia) {
+		update_mtime(cached_dia);
 	}
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
@@ -2457,7 +2457,7 @@ ccache(int argc, char *argv[])
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);
 	}
-	if (output_dia != 0) {
+	if (output_dia) {
 		cc_log("Diagnostic file: %s", output_dia);
 	}
 	cc_log("Object file: %s", output_obj);

@@ -1556,8 +1556,6 @@ EOF
         checkstat 'files in cache' 4
         cd ..
     fi
-
-
 }
 
 compression_suite() {
