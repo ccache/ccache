@@ -1904,12 +1904,31 @@ int main()
 }
 EOF
 
-    if $COMPILER -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER pch.c -o pch; then
-        :
+
+    if $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER $SYSROOT pch.c -o pch; then
+        rm pch.h.gch
     else
         echo "Compiler (`$COMPILER --version | head -1`) doesn't support precompiled headers -- not running pch test"
         return
     fi
+
+    # clang and gcc handle precompiled headers similarly, but gcc
+    # is much more forgiving with precompiled headers. Both gcc and clang keep
+    # an absolute path reference to original file that created except that
+    # clang uses that reference to validate the pch and gcc ignores the reference.
+    # Also, clang has an additional feature: pre-tokenized headers. For these
+    # reasons clang should be tested separately than gcc.
+    # clang can only use pch or pth headers on the command line and not as an #include
+    # statement inside a source file
+
+    if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
+        clang_pch_suite
+    else
+        gcc_pch_suite
+    fi    
+}
+
+gcc_pch_suite() {
 
     ##################################################################
     # Tests for creating a .gch.
@@ -1918,12 +1937,12 @@ EOF
 
     testname="create .gch, -c, no -o"
     $CCACHE -zC >/dev/null
-    $CCACHE $COMPILER -c pch.h
+    $CCACHE $COMPILER $SYSROOT -c pch.h
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     rm -f pch.h.gch
-    $CCACHE $COMPILER -c pch.h
+    $CCACHE $COMPILER $SYSROOT -c pch.h
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1933,17 +1952,18 @@ EOF
 
     testname="create .gch, no -c, -o"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER pch.h -o pch.gch
+    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE $COMPILER pch.h -o pch.gch
+    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     if [ ! -f pch.gch ]; then
         test_failed "pch.gch missing"
     fi
+    rm pch.gch
 
     ##################################################################
     # Tests for using a .gch.
@@ -1953,7 +1973,7 @@ EOF
 
     testname="no -fpch-preprocess, #include"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER -c pch.c 2>/dev/null
+    $CCACHE $COMPILER $SYSROOT -c pch.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
@@ -1963,7 +1983,7 @@ EOF
 
     testname="no -fpch-preprocess, -include, no sloppy time macros"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
@@ -1972,18 +1992,18 @@ EOF
 
     testname="no -fpch-preprocess, -include"
     $CCACHE -Cz >/dev/null
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
 
     testname="-fpch-preprocess, #include, no sloppy time macros"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     # Must enable sloppy time macros:
@@ -1991,11 +2011,11 @@ EOF
 
     testname="-fpch-preprocess, #include, sloppy time macros"
     $CCACHE -Cz >/dev/null
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -2003,18 +2023,18 @@ EOF
     testname="-fpch-preprocess, #include, file changed"
     echo "updated" >>pch.h.gch # GCC seems to cope with this...
     backdate pch.h.gch
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
 
     testname="preprocessor mode"
     $CCACHE -Cz >/dev/null
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -2022,14 +2042,191 @@ EOF
     testname="preprocessor mode, file changed"
     echo "updated" >>pch.h.gch # GCC seems to cope with this...
     backdate pch.h.gch
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2
+}
+
+clang_pch_suite() {
+
+
+    ##################################################################
+    # Tests for creating a .gch.
+
+    backdate pch.h
+
+    testname="create .gch, -c, no -o"
+    $CCACHE -zC >/dev/null
+    $CCACHE $COMPILER $SYSROOT -c pch.h
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    rm -f pch.h.gch
+    $CCACHE $COMPILER $SYSROOT -c pch.h
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if [ ! -f pch.h.gch ]; then
+        test_failed "pch.h.gch missing"
+    fi
+
+    testname="create .gch, no -c, -o"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if [ ! -f pch.gch ]; then
+        test_failed "pch.gch missing"
+    fi
+    rm pch.gch
+
+    ##################################################################
+    # Tests for using a .gch.
+
+    backdate pch.h.gch
+
+    testname="gch, no -fpch-preprocess, -include, no sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    # Must enable sloppy time macros:
+    checkstat "can't use precompiled header" 1
+
+    testname="gch, no -fpch-preprocess, -include, sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1    
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="gch, -fpch-preprocess, -include, file changed"
+    echo "updated" >>pch.h.gch # clang seems to cope with this...
+    backdate pch.h.gch
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    testname="gch, preprocessor mode"
+    $CCACHE -Cz >/dev/null
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    testname="gch, preprocessor mode, file changed"
+    echo "updated" >>pch.h.gch # clang seems to cope with this...
+    backdate pch.h.gch
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
+    rm pch.h.gch
+    
+
+    ##################################################################
+    # Tests for creating a .pth.
+
+    backdate pch.h
+
+    testname="create .pth, -c, -o"
+    $CCACHE -zC >/dev/null
+    $CCACHE $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    rm -f pch.h.pth
+    $CCACHE $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    if [ ! -f pch.h.pth ]; then
+        test_failed "pch.h.pth missing"
+    fi    
+
+    ##################################################################
+    # Tests for using a .pth.
+
+    backdate pch.h.pth
+
+    testname="pth, no -fpch-preprocess, -include, no sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    # Must enable sloppy time macros:
+    checkstat "can't use precompiled header" 1
+
+    testname="pth, no -fpch-preprocess, -include, sloppy time macros"
+    $CCACHE -Cz >/dev/null
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1    
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="pth, -fpch-preprocess, -include, file changed"
+    echo "updated" >>pch.h.pth # clang seems to cope with this...
+    backdate pch.h.pth
+    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    testname="pth, preprocessor mode"
+    $CCACHE -Cz >/dev/null
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+
+    testname="pth, preprocessor mode, file changed"
+    echo "updated" >>pch.h.pth # clang seems to cope with this...
+    backdate pch.h.pth
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
+    rm pch.h.pth
+
 }
 
 upgrade_suite() {
@@ -2141,6 +2338,32 @@ CCACHE_CONFIGPATH=`pwd`/ccache.conf
 export CCACHE_CONFIGPATH
 touch $CCACHE_CONFIGPATH
 
+
+if [ $HOST_OS_APPLE -eq 1 ]; then
+    # grab the developer directory from the environment if not try xcode-select
+    if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
+        XCODE_DEVELOPER_DIR=$(xcode-select --print-path)
+      if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
+        echo "Error: XCODE_DEVELOPER_DIR environment variable not set and xcode-select path not set."
+        exit 1
+      fi
+    fi
+
+    # choose the latest SDK if a sdk root is not set
+    MAC_PLATFORM_DIR=$XCODE_DEVELOPER_DIR/Platforms/MacOSX.platform
+    if [ "$SDKROOT" = "" ]; then
+        SDKROOT="`eval ls -f -1 -d \"$MAC_PLATFORM_DIR/Developer/SDKs/\"*.sdk | tail -1`"
+        if [ "$SDKROOT" = "" ]; then
+            echo "Error: Cannot find a valid sdk root directory"
+            exit 1
+        fi
+    fi
+
+    SYSROOT="-isysroot `echo \"$SDKROOT\" | sed 's/ /\\ /g'`"
+else
+    SYSROOT=
+fi
+
 # ---------------------------------------
 
 all_suites="
@@ -2176,12 +2399,16 @@ case $host_os in
         ;;
 esac
 
+echo compiler: `which $COMPILER`
+echo version: `$COMPILER --version`
+echo test dir: $TESTDIR
+
 if [ -z "$suites" ]; then
     suites="$all_suites"
 fi
 
 for suite in $suites; do
-    run_suite $suite
+   run_suite $suite
 done
 
 # ---------------------------------------
