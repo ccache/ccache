@@ -213,6 +213,7 @@ void lockfile_release(const char *path);
 /* ------------------------------------------------------------------------- */
 /* ccache.c */
 
+extern time_t time_of_compilation;
 bool cc_process_args(struct args *args, struct args **preprocessor_args,
                     struct args **compiler_args);
 void cc_reset(void);

@@ -138,7 +138,7 @@ static char *manifest_path;
  * Time of compilation. Used to see if include files have changed after
  * compilation.
  */
-static time_t time_of_compilation;
+time_t time_of_compilation;
 
 /*
  * Files included by the preprocessor and their hashes/sizes. Key: file path.
