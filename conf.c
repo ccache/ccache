@@ -96,6 +96,8 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_INCLUDE_FILE_CTIME;
 		} else if (str_eq(word, "time_macros")) {
 			*value |= SLOPPY_TIME_MACROS;
+		} else if (str_eq(word, "file_stat_matches")) {
+			*value |= SLOPPY_FILE_STAT_MATCHES;
 		} else {
 			*errmsg = format("unknown sloppiness: \"%s\"", word);
 			free(p);
@@ -591,6 +593,9 @@ conf_print_items(struct conf *conf,
 	}
 	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
 		reformat(&s, "%stime_macros, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
+		reformat(&s, "%sfile_stat_matches, ", s);
 	}
 	if (conf->sloppiness) {
 		/* Strip last ", ". */

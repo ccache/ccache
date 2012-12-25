@@ -58,6 +58,12 @@ enum stats {
 #define SLOPPY_FILE_MACRO 4
 #define SLOPPY_TIME_MACROS 8
 
+/*
+ * Allow us to match files based on their stats (size, mtime, ctime), without
+ * looking at their contents.
+ */
+#define SLOPPY_FILE_STAT_MATCHES 16
+
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, p) (strncmp((s), (p), strlen((p))) == 0)
 
@@ -259,5 +265,7 @@ int win32execute(char *path, char **argv, int doreturn,
 #else
 #    define PATH_DELIM ":"
 #endif
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #endif /* ifndef CCACHE_H */

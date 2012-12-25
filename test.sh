@@ -1318,12 +1318,12 @@ EOF
     $CCACHE $COMPILER test.c -c -o test.o
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest |
-        perl -ape 's/:.*/: normalized/ if ($F[0] =~ "Mtime:") or ($F[0] =~ "(Hash|Size):" and ++$n > 6)' \
+        perl -ape 's/:.*/: normalized/ if ($F[0] =~ "(Mtime|Ctime):") or ($F[0] =~ "(Hash|Size):" and ++$n > 6)' \
         >manifest.dump
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         cat <<EOF >expected.dump
 Magic: cCmF
-Version: 0
+Version: 1
 Hash size: 16
 Reserved field: 0
 File paths (3):
@@ -1335,14 +1335,20 @@ File infos (3):
     Path index: 0
     Hash: c2f5392dbc7e8ff6138d01608445240a
     Size: 24
+    Mtime: normalized
+    Ctime: normalized
   1:
     Path index: 1
     Hash: e6b009695d072974f2c4d1dd7e7ed4fc
     Size: 95
+    Mtime: normalized
+    Ctime: normalized
   2:
     Path index: 2
     Hash: e94ceb9f1b196c387d098a5f1f4fe862
     Size: 11
+    Mtime: normalized
+    Ctime: normalized
 Results (1):
   0:
     File hash indexes: 0 1 2
@@ -1352,7 +1358,7 @@ EOF
     else
         cat <<EOF >expected.dump
 Magic: cCmF
-Version: 0
+Version: 1
 Hash size: 16
 Reserved field: 0
 File paths (3):
@@ -1364,14 +1370,20 @@ File infos (3):
     Path index: 0
     Hash: e94ceb9f1b196c387d098a5f1f4fe862
     Size: 11
+    Mtime: normalized
+    Ctime: normalized
   1:
     Path index: 1
     Hash: c2f5392dbc7e8ff6138d01608445240a
     Size: 24
+    Mtime: normalized
+    Ctime: normalized
   2:
     Path index: 2
     Hash: e6b009695d072974f2c4d1dd7e7ed4fc
     Size: 95
+    Mtime: normalized
+    Ctime: normalized
 Results (1):
   0:
     File hash indexes: 0 1 2
