@@ -43,6 +43,11 @@ unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
 
+# Many tests backdate files, which updates their ctimes.  In those tests, we
+# must ignore ctimes.  Might as well do so everywhere.
+default_sloppiness=include_file_ctime
+export CCACHE_SLOPPINESS="$default_sloppiness"
+
 test_failed() {
     echo "SUITE: \"$testsuite\", TEST: \"$testname\" - $1"
     $CCACHE -s
@@ -1102,15 +1107,15 @@ EOF
 #define file __FILE__
 int test;
 EOF
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c file.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c file.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c `pwd`/file.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c `pwd`/file.c
     checkstat 'cache hit (direct)' 2
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1125,16 +1130,16 @@ EOF
     cat <<EOF >file_h.c
 #include "file.h"
 EOF
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file_h.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c file_h.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c file_h.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c file_h.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     mv file_h.c file2_h.c
-    CCACHE_SLOPPINESS=file_macro $CCACHE $COMPILER -c `pwd`/file2_h.c
+    CCACHE_SLOPPINESS="$default_sloppiness file_macro" $CCACHE $COMPILER -c `pwd`/file2_h.c
     checkstat 'cache hit (direct)' 2
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1183,11 +1188,11 @@ EOF
 #define time __TIME__
 int test;
 EOF
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER -c time.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER -c time.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1202,11 +1207,11 @@ EOF
     cat <<EOF >time_h.c
 #include "time.h"
 EOF
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time_h.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER -c time_h.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER -c time_h.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER -c time_h.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1242,11 +1247,11 @@ EOF
 int test;
 EOF
     touch -t 203801010000 new.h
-    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c new.c
+    CCACHE_SLOPPINESS="$default_sloppiness include_file_mtime" $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c new.c
+    CCACHE_SLOPPINESS="$default_sloppiness include_file_mtime" $CCACHE $COMPILER -c new.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1297,7 +1302,7 @@ EOF
             echo "#line 1 \"/dev/$x\"" >> strange.c
         fi
     done
-    CCACHE_SLOPPINESS=include_file_mtime $CCACHE $COMPILER -c strange.c
+    CCACHE_SLOPPINESS="$default_sloppiness include_file_mtime" $CCACHE $COMPILER -c strange.c
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     if [ -n "$manifest" ]; then
         data="`$CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
@@ -1313,7 +1318,7 @@ EOF
     $CCACHE $COMPILER test.c -c -o test.o
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest |
-        perl -ape 's/:.*/: normalized/ if $F[0] =~ "(Hash|Size):" and ++$n > 6' \
+        perl -ape 's/:.*/: normalized/ if ($F[0] =~ "Mtime:") or ($F[0] =~ "(Hash|Size):" and ++$n > 6)' \
         >manifest.dump
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         cat <<EOF >expected.dump
@@ -1989,11 +1994,11 @@ gcc_pch_suite() {
 
     testname="no -fpch-preprocess, -include"
     $CCACHE -Cz >/dev/null
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -2008,11 +2013,11 @@ gcc_pch_suite() {
 
     testname="-fpch-preprocess, #include, sloppy time macros"
     $CCACHE -Cz >/dev/null
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -2020,18 +2025,18 @@ gcc_pch_suite() {
     testname="-fpch-preprocess, #include, file changed"
     echo "updated" >>pch.h.gch # GCC seems to cope with this...
     backdate pch.h.gch
-    CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
 
     testname="preprocessor mode"
     $CCACHE -Cz >/dev/null
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -2039,11 +2044,11 @@ gcc_pch_suite() {
     testname="preprocessor mode, file changed"
     echo "updated" >>pch.h.gch # GCC seems to cope with this...
     backdate pch.h.gch
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness time_macros" $CCACHE $COMPILER $SYSROOT -c -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 2

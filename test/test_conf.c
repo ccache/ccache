@@ -143,7 +143,8 @@ TEST(conf_read_valid_config)
 	CHECK(conf->read_only);
 	CHECK(conf->recache);
 	CHECK(conf->run_second_cpp);
-	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS,
+	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_INCLUDE_FILE_CTIME|
+		     SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS,
 	             conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);
@@ -359,7 +360,8 @@ TEST(conf_print_items)
 		true,
 		true,
 		true,
-		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_TIME_MACROS,
+		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
+		  SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS,
 		false,
 		"td",
 		022,

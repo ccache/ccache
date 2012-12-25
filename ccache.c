@@ -373,6 +373,12 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 		goto failure;
 	}
 
+	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME)
+	    && st.st_ctime >= time_of_compilation) {
+		cc_log("Include file %s ctime too new", path);
+		goto failure;
+	}
+
 	hash_start(&fhash);
 
 	is_pch = is_precompiled_header(path);

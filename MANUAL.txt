@@ -428,6 +428,9 @@ WRAPPERS>>.
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
     mtime is too new.  This option disables that check.
+*include_file_ctime*::
+    ccache also will not cache a file if it includes a header whose ctime is
+    too new.  This option disables that check.
 *time_macros*::
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
 --

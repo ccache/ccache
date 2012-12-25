@@ -92,6 +92,8 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_FILE_MACRO;
 		} else if (str_eq(word, "include_file_mtime")) {
 			*value |= SLOPPY_INCLUDE_FILE_MTIME;
+		} else if (str_eq(word, "include_file_ctime")) {
+			*value |= SLOPPY_INCLUDE_FILE_CTIME;
 		} else if (str_eq(word, "time_macros")) {
 			*value |= SLOPPY_TIME_MACROS;
 		} else {
@@ -583,6 +585,9 @@ conf_print_items(struct conf *conf,
 	}
 	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
 		reformat(&s, "%sinclude_file_mtime, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME) {
+		reformat(&s, "%sinclude_file_ctime, ", s);
 	}
 	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
 		reformat(&s, "%stime_macros, ", s);
