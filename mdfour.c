@@ -83,20 +83,28 @@ mdfour64(uint32_t *M)
 static void
 copy64(uint32_t *M, const unsigned char *in)
 {
+#ifdef WORDS_BIGENDIAN
 	int i;
 
 	for (i = 0; i < 16; i++)
 		M[i] = (in[i*4+3]<<24) | (in[i*4+2]<<16) |
 			(in[i*4+1]<<8) | (in[i*4+0]<<0);
+#else
+	memcpy(M, in, 16*4);
+#endif
 }
 
 static void
 copy4(unsigned char *out, uint32_t x)
 {
+#ifdef WORDS_BIGENDIAN
 	out[0] = x&0xFF;
 	out[1] = (x>>8)&0xFF;
 	out[2] = (x>>16)&0xFF;
 	out[3] = (x>>24)&0xFF;
+#else
+	memcpy(out, &x, 4);
+#endif
 }
 
 void

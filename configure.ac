@@ -122,6 +122,8 @@ else
     extra_ldflags="-lz"
 fi
 
+AC_C_BIGENDIAN
+
 AC_C_INLINE
 
 dnl Check for "extern inline".
