@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2012 Joel Rosdahl
+ * Copyright (C) 2009-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -562,10 +562,8 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	hash_buffer(hash, p, (end - p));
 	free(data);
 
-	/*
-	 * Explicitly check the .gch/.pch/.pth file, Clang does not include any mention of
-	 * it in the preprocessed output.
-	 */
+	/* Explicitly check the .gch/.pch/.pth file, Clang does not include any
+	 * mention of it in the preprocessed output. */
 	if (included_pch_file) {
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
@@ -1629,8 +1627,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (str_eq(argv[i], "-fpch-preprocess")
-			  || str_eq(argv[i], "-emit-pch")
-			  || str_eq(argv[i], "-emit-pth")) {
+		    || str_eq(argv[i], "-emit-pch")
+		    || str_eq(argv[i], "-emit-pth")) {
 			found_fpch_preprocess = true;
 		}
 
@@ -1926,8 +1924,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			/* Try to be smart about detecting precompiled headers */
-			if (str_eq(argv[i], "-include-pch") ||
-				  str_eq(argv[i], "-include-pth")) {
+			if (str_eq(argv[i], "-include-pch")
+			    || str_eq(argv[i], "-include-pth")) {
 				if (stat(argv[i+1], &st) == 0) {
 					cc_log("Detected use of precompiled header: %s", argv[i+1]);
 					found_pch = true;
@@ -1945,8 +1943,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 						cc_log("Detected use of precompiled header: %s", pchpath);
 						found_pch = true;
 						pch_file = x_strdup(pchpath);
-					}
-					else {
+					} else {
 						/* clang may use pretokenized headers */
 						char *pthpath = format("%s.pth", argv[i+1]);
 						if (stat(pthpath, &st) == 0) {

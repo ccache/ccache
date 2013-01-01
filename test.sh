@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2012 Joel Rosdahl
+# Copyright (C) 2009-2013 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -1904,7 +1904,6 @@ int main()
 }
 EOF
 
-
     if $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER $SYSROOT pch.c -o pch; then
         rm pch.h.gch
     else
@@ -1912,24 +1911,22 @@ EOF
         return
     fi
 
-    # clang and gcc handle precompiled headers similarly, but gcc
-    # is much more forgiving with precompiled headers. Both gcc and clang keep
-    # an absolute path reference to original file that created except that
-    # clang uses that reference to validate the pch and gcc ignores the reference.
-    # Also, clang has an additional feature: pre-tokenized headers. For these
-    # reasons clang should be tested separately than gcc.
-    # clang can only use pch or pth headers on the command line and not as an #include
-    # statement inside a source file
+    # clang and gcc handle precompiled headers similarly, but gcc is much more
+    # forgiving with precompiled headers. Both gcc and clang keep an absolute
+    # path reference to the original file except that clang uses that reference
+    # to validate the pch and gcc ignores the reference. Also, clang has an
+    # additional feature: pre-tokenized headers. For these reasons clang should
+    # be tested separately than gcc. clang can only use pch or pth headers on
+    # the command line and not as an #include statement inside a source file.
 
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         clang_pch_suite
     else
         gcc_pch_suite
-    fi    
+    fi
 }
 
 gcc_pch_suite() {
-
     ##################################################################
     # Tests for creating a .gch.
 
@@ -2053,8 +2050,6 @@ gcc_pch_suite() {
 }
 
 clang_pch_suite() {
-
-
     ##################################################################
     # Tests for creating a .gch.
 
@@ -2109,7 +2104,7 @@ clang_pch_suite() {
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1    
+    checkstat 'cache miss' 1
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
@@ -2147,7 +2142,6 @@ clang_pch_suite() {
     checkstat 'cache miss' 2
 
     rm pch.h.gch
-    
 
     ##################################################################
     # Tests for creating a .pth.
@@ -2167,7 +2161,7 @@ clang_pch_suite() {
     checkstat 'cache miss' 1
     if [ ! -f pch.h.pth ]; then
         test_failed "pch.h.pth missing"
-    fi    
+    fi
 
     ##################################################################
     # Tests for using a .pth.
@@ -2188,7 +2182,7 @@ clang_pch_suite() {
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1    
+    checkstat 'cache miss' 1
     CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h pch2.c 2>/dev/null
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
@@ -2226,7 +2220,6 @@ clang_pch_suite() {
     checkstat 'cache miss' 2
 
     rm pch.h.pth
-
 }
 
 upgrade_suite() {
@@ -2340,21 +2333,21 @@ touch $CCACHE_CONFIGPATH
 
 
 if [ $HOST_OS_APPLE -eq 1 ]; then
-    # grab the developer directory from the environment if not try xcode-select
+    # Grab the developer directory from the environment or try xcode-select
     if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
-        XCODE_DEVELOPER_DIR=$(xcode-select --print-path)
+      XCODE_DEVELOPER_DIR=`xcode-select --print-path`
       if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
-        echo "Error: XCODE_DEVELOPER_DIR environment variable not set and xcode-select path not set."
+        echo "Error: XCODE_DEVELOPER_DIR environment variable not set and xcode-select path not set"
         exit 1
       fi
     fi
 
-    # choose the latest SDK if a sdk root is not set
+    # Choose the latest SDK if an SDK root is not set
     MAC_PLATFORM_DIR=$XCODE_DEVELOPER_DIR/Platforms/MacOSX.platform
     if [ "$SDKROOT" = "" ]; then
         SDKROOT="`eval ls -f -1 -d \"$MAC_PLATFORM_DIR/Developer/SDKs/\"*.sdk | tail -1`"
         if [ "$SDKROOT" = "" ]; then
-            echo "Error: Cannot find a valid sdk root directory"
+            echo "Error: Cannot find a valid SDK root directory"
             exit 1
         fi
     fi
@@ -2408,7 +2401,7 @@ if [ -z "$suites" ]; then
 fi
 
 for suite in $suites; do
-   run_suite $suite
+    run_suite $suite
 done
 
 # ---------------------------------------
