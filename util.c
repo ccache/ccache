@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2012 Joel Rosdahl
+ * Copyright (C) 2009-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -1121,7 +1121,7 @@ x_unlink(const char *path)
 	 * file. We don't care if the temp file is trashed, so it's always safe to
 	 * unlink it first.
 	 */
-	char* tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
+	char *tmp_name = format("%s.tmp.rm.%s", path, tmp_string());
 	int result = 0;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
