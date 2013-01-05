@@ -19,6 +19,10 @@
 
 #include "ccache.h"
 
+/* Let's hope no compiler uses these exit statuses. */
+#define FAILED_TO_CREATE_STDOUT 212
+#define FAILED_TO_CREATE_STDERR 213
+
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
 
@@ -179,7 +183,8 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 		tmp_unlink(path_stdout);
 		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			exit(1);
+			cc_log("Error creating %s: %s", path_stdout, strerror(errno));
+			exit(FAILED_TO_CREATE_STDOUT);
 		}
 		dup2(fd, 1);
 		close(fd);
@@ -187,7 +192,8 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 		tmp_unlink(path_stderr);
 		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			exit(1);
+			cc_log("Error creating %s: %s", path_stderr, strerror(errno));
+			exit(FAILED_TO_CREATE_STDERR);
 		}
 		dup2(fd, 2);
 		close(fd);
@@ -201,6 +207,12 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
 		return -1;
+	}
+
+	if (status == FAILED_TO_CREATE_STDOUT) {
+		fatal("Could not create %s (permission denied?)", path_stdout);
+	} else if (status == FAILED_TO_CREATE_STDERR) {
+		fatal("Could not create %s (permission denied?)", path_stderr);
 	}
 
 	return WEXITSTATUS(status);
