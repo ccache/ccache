@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2012 Joel Rosdahl
+ * Copyright (C) 2009-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -49,6 +49,11 @@ init_log(void)
 	}
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
+		int fd = fileno(logfile);
+		int flags = fcntl(fd, F_GETFD, 0);
+		if (flags >= 0) {
+			fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+		}
 		return true;
 	} else {
 		return false;
