@@ -48,6 +48,11 @@ init_log(void)
 	}
 	logfile = fopen(cache_logfile, "a");
 	if (logfile) {
+		int fd = fileno(logfile);
+		int flags = fcntl(fd, F_GETFD, 0);
+		if (flags >= 0) {
+			fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+		}
 		return true;
 	} else {
 		return false;
