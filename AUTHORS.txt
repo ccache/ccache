@@ -6,7 +6,9 @@ maintained by Joel Rosdahl.
 
 ccache is a collective work with contributions from many people, including:
 
+* Alfred Landrum <alfred.landrum@riverbed.com>
 * Andrea Bittau <a.bittau@cs.ucl.ac.uk>
+* Andrew Stubbs <ams@codesourcery.com>
 * Andrew Tridgell <tridge@samba.org>
 * Bernhard Bauer <bauerb@google.com>
 * Björn Jacke <bj@sernet.de>

@@ -2,6 +2,31 @@ ccache news
 ===========
 
 
+ccache 3.1.9
+------------
+Release date: 2013-01-06
+
+
+Bug fixes
+~~~~~~~~~
+
+    - The EAGAIN signal is now handled correctly when emitting cached stderr
+      output. This fixes a problem triggered by large error outputs from the
+      compiler.
+    - Subdirectories in the cache are no longer created in read-only mode.
+    - Fixed so that ccache's log file descriptor is not made available to the
+      compiler.
+    - Improved error reporting when failing to create temporary stdout/stderr
+      files when executing the compiler.
+    - Disappearing temporary stdout/stderr files are now handled gracefully.
+
+
+Other
+~~~~~
+
+    - Fixed test suite to work on ecryptfs.
+
+
 ccache 3.1.8
 ------------
 Release date: 2012-08-11
