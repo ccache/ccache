@@ -44,8 +44,8 @@ static const struct {
 	/* Preprocessed: */
 	{".i",   "cpp-output"},
 	{".ii",  "c++-cpp-output"},
-	{".mi",  "objc-cpp-output"},
-	{".mii", "objc++-cpp-output"},
+	{".mi",  "objective-c-cpp-output"},
+	{".mii", "objective-c++-cpp-output"},
 	/* Header file (for precompilation): */
 	{".h",   "c-header"},
 	{".H",   "c++-header"},
@@ -70,18 +70,20 @@ static const struct {
 	const char *language;
 	const char *p_language;
 } languages[] = {
-	{"c",                    "cpp-output"},
-	{"cpp-output",           "cpp-output"},
-	{"c-header",             "cpp-output"},
-	{"c++",                  "c++-cpp-output"},
-	{"c++-cpp-output",       "c++-cpp-output"},
-	{"c++-header",           "c++-cpp-output"},
-	{"objective-c",          "objc-cpp-output"},
-	{"objective-c-header",   "objc-cpp-output"},
-	{"objc-cpp-output",      "objc-cpp-output"},
-	{"objective-c++",        "objc++-cpp-output"},
-	{"objc++-cpp-output",    "objc++-cpp-output"},
-	{"objective-c++-header", "objc++-cpp-output"},
+	{"c",                        "cpp-output"},
+	{"cpp-output",               "cpp-output"},
+	{"c-header",                 "cpp-output"},
+	{"c++",                      "c++-cpp-output"},
+	{"c++-cpp-output",           "c++-cpp-output"},
+	{"c++-header",               "c++-cpp-output"},
+	{"objective-c",              "objective-c-cpp-output"},
+	{"objective-c-header",       "objective-c-cpp-output"},
+	{"objc-cpp-output",          "objective-c-cpp-output"},
+	{"objective-c-cpp-output",   "objective-c-cpp-output"},
+	{"objective-c++",            "objective-c++-cpp-output"},
+	{"objc++-cpp-output",        "objective-c++-cpp-output"},
+	{"objective-c++-header",     "objective-c++-cpp-output"},
+	{"objective-c++-cpp-output", "objective-c++-cpp-output"}
 	{NULL,  NULL}};
 
 /*
