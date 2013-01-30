@@ -75,6 +75,7 @@ confitems_hash (register const char *str, register unsigned int len)
   return len + asso_values[(unsigned char)str[1]] + asso_values[(unsigned char)str[0]];
 }
 
+static
 #ifdef __GNUC__
 __inline
 #ifdef __GNUC_STDC_INLINE__
