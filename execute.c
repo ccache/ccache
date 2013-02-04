@@ -19,10 +19,6 @@
 
 #include "ccache.h"
 
-/* Let's hope no compiler uses these exit statuses. */
-#define FAILED_TO_CREATE_STDOUT 212
-#define FAILED_TO_CREATE_STDERR 213
-
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
 
@@ -170,36 +166,36 @@ int
 execute(char **argv, const char *path_stdout, const char *path_stderr)
 {
 	pid_t pid;
-	int status;
+	int status, fd_out, fd_err;
 
 	cc_log_argv("Executing ", argv);
+
+	tmp_unlink(path_stdout);
+	fd_out = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
+	if (fd_out == -1) {
+		fatal("Error creating %s: %s", path_stdout, strerror(errno));
+	}
+
+	tmp_unlink(path_stderr);
+	fd_err = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
+	if (fd_err == -1) {
+		fatal("Error creating %s: %s", path_stderr, strerror(errno));
+	}
 
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork: %s", strerror(errno));
 
 	if (pid == 0) {
-		int fd;
-
-		tmp_unlink(path_stdout);
-		fd = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
-		if (fd == -1) {
-			cc_log("Error creating %s: %s", path_stdout, strerror(errno));
-			exit(FAILED_TO_CREATE_STDOUT);
-		}
-		dup2(fd, 1);
-		close(fd);
-
-		tmp_unlink(path_stderr);
-		fd = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
-		if (fd == -1) {
-			cc_log("Error creating %s: %s", path_stderr, strerror(errno));
-			exit(FAILED_TO_CREATE_STDERR);
-		}
-		dup2(fd, 2);
-		close(fd);
-
+		/* Child. */
+		dup2(fd_out, 1);
+		close(fd_out);
+		dup2(fd_err, 2);
+		close(fd_err);
 		exit(execv(argv[0], argv));
 	}
+
+	close(fd_out);
+	close(fd_err);
 
 	if (waitpid(pid, &status, 0) != pid) {
 		fatal("waitpid failed: %s", strerror(errno));
@@ -207,12 +203,6 @@ execute(char **argv, const char *path_stdout, const char *path_stderr)
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
 		return -1;
-	}
-
-	if (status == FAILED_TO_CREATE_STDOUT) {
-		fatal("Could not create %s (permission denied?)", path_stdout);
-	} else if (status == FAILED_TO_CREATE_STDERR) {
-		fatal("Could not create %s (permission denied?)", path_stderr);
 	}
 
 	return WEXITSTATUS(status);
