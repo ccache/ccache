@@ -427,16 +427,16 @@ WRAPPERS>>.
     Ignore *\_\_FILE__* being present in the source.
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
-    mtime is too new.  This option disables that check.
+    mtime is too new. This option disables that check.
 *include_file_ctime*::
     By default, ccache also will not cache a file if it includes a header whose
-    ctime is too new.  This option disables that check.
+    ctime is too new. This option disables that check.
 *time_macros*::
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
     the cached version.  But with this option set, ccache will consider a file
-    as matching its cached version if the sizes, mtime's, and ctime's match.
+    as matching its cached version if the sizes, mtimes, and ctimes match.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
