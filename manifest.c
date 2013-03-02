@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 Joel Rosdahl
+ * Copyright (C) 2009-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -377,7 +377,7 @@ error:
 
 static int
 verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
-	      struct hashtable *stated_files, struct hashtable *hashed_files)
+              struct hashtable *stated_files, struct hashtable *hashed_files)
 {
 	uint32_t i;
 	struct file_info *fi;
@@ -406,20 +406,19 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 			/*
-			 * st->ctime is sometimes 0, so we can't check that both
-			 * st->ctime and st->mtime are greater than
-			 * time_of_compilation.  But it's sufficient to check that
-			 * either is.
+			 * st->ctime is sometimes 0, so we can't check that both st->ctime and
+			 * st->mtime are greater than time_of_compilation. But it's sufficient to
+			 * check that either is.
 			 */
 			if (fi->size == st->size
 			    && fi->mtime == st->mtime
 			    && fi->ctime == st->ctime
 			    && MAX(st->mtime, st->ctime) >= time_of_compilation) {
-				cc_log("size/mtime/ctime hit for %s.", path);
+				cc_log("size/mtime/ctime hit for %s", path);
 				continue;
 			}
 			else {
-				cc_log("size/mtime/ctime miss for %s.", path);
+				cc_log("size/mtime/ctime miss for %s", path);
 			}
 		}
 
@@ -522,9 +521,9 @@ get_file_hash_index(struct manifest *mf,
 	fi.size = file_hash->size;
 
 	/*
-	 * file_stat.st_{m,c}time has a resolution of 1s, so we can cache the
-	 * file's mtime and ctime only if they're at least one second older
-	 * than time_of_compilation.
+	 * file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
+	 * file's mtime and ctime only if they're at least one second older than
+	 * time_of_compilation.
 	 *
 	 * st->ctime may be 0, so we have to check time_of_compilation against
 	 * MAX(mtime, ctime).
