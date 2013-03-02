@@ -838,7 +838,7 @@ to_cache(struct args *args)
 	 */
 	if (create_cachedirtag(conf->cache_dir) != 0) {
 		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
-		        conf->cache_dir, strerror(errno));
+		       conf->cache_dir, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -1206,7 +1206,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			"OBJCPLUS_INCLUDE_PATH", /* clang */
 			NULL
 		};
-		for (p = envvars; *p != NULL ; ++p) {
+		for (p = envvars; *p != NULL; ++p) {
 			char *v = getenv(*p);
 			if (v) {
 				hash_delimiter(hash, *p);
