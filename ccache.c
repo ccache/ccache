@@ -1093,6 +1093,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct file_hash *object_hash = NULL;
 	char *p;
 
+	if (direct_mode) {
+		hash_delimiter(hash, "manifest version");
+		hash_int(hash, MANIFEST_VERSION);
+	}
+
 	/* first the arguments */
 	for (i = 1; i < args->argc; i++) {
 		/* -L doesn't affect compilation. */

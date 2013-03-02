@@ -67,7 +67,6 @@
  */
 
 static const uint32_t MAGIC = 0x63436d46U;
-static const uint8_t  VERSION = 1;
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 
 #define ccache_static_assert(e) \
@@ -251,7 +250,7 @@ read_manifest(gzFile f)
 		return NULL;
 	}
 	READ_BYTE(mf->version);
-	if (mf->version != VERSION) {
+	if (mf->version != MANIFEST_VERSION) {
 		cc_log("Manifest file has unknown version %u", mf->version);
 		free_manifest(mf);
 		return NULL;
@@ -340,7 +339,7 @@ write_manifest(gzFile f, const struct manifest *mf)
 	uint16_t i, j;
 
 	WRITE_INT(4, MAGIC);
-	WRITE_INT(1, VERSION);
+	WRITE_INT(1, MANIFEST_VERSION);
 	WRITE_INT(1, 16);
 	WRITE_INT(2, 0);
 
