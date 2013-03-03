@@ -46,7 +46,8 @@ unset CCACHE_UNIFY
 # Many tests backdate files, which updates their ctimes.  In those tests, we
 # must ignore ctimes.  Might as well do so everywhere.
 default_sloppiness=include_file_ctime
-export CCACHE_SLOPPINESS="$default_sloppiness"
+CCACHE_SLOPPINESS="$default_sloppiness"
+export CCACHE_SLOPPINESS
 
 test_failed() {
     echo "SUITE: \"$testsuite\", TEST: \"$testname\" - $1"
