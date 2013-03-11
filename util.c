@@ -49,11 +49,13 @@ init_log(void)
 	}
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
+#ifndef _WIN32
 		int fd = fileno(logfile);
 		int flags = fcntl(fd, F_GETFD, 0);
 		if (flags >= 0) {
 			fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 		}
+#endif
 		return true;
 	} else {
 		return false;
