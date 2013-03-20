@@ -706,6 +706,9 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
+    $COMPILER -c -Wp,-MD,expected.d test.c
+    expected_d_content=`cat expected.d`
+
     ##################################################################
     # First compilation is a miss.
     testname="first compilation"
@@ -821,7 +824,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -831,7 +834,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     rm -f other.d
@@ -845,7 +848,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -855,7 +858,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     rm -f other.d
@@ -882,7 +885,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -892,7 +895,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     ##################################################################
@@ -905,7 +908,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -915,7 +918,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     rm -f test.d
@@ -924,7 +927,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     rm -f test.d
@@ -933,7 +936,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
-    checkfile test.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile test.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     ##################################################################
@@ -945,7 +948,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -MD -MF other.d test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -955,7 +958,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     ##################################################################
@@ -968,7 +971,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
     compare_file reference_test.o test.o
 
@@ -976,7 +979,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     find $CCACHE_DIR -name '*.d' -exec rm -f '{}' \;
@@ -985,7 +988,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
-    checkfile other.d "test.o: test.c test1.h test3.h test2.h"
+    checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
 
     ##################################################################
