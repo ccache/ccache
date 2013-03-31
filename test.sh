@@ -709,7 +709,7 @@ EOF
     $COMPILER -c -Wp,-MD,expected.d test.c
     expected_d_content=`cat expected.d`
 
-    $COMPILER -c -Wp,-MD,expected_mmd.d test.c
+    $COMPILER -c -Wp,-MMD,expected_mmd.d test.c
     expected_mmd_d_content=`cat expected_mmd.d`
 
     ##################################################################
