@@ -565,6 +565,9 @@ EOF
     $COMPILER -c -Wp,-MD,expected.d test.c
     expected_d_content=`cat expected.d`
 
+    $COMPILER -c -Wp,-MD,expected_mmd.d test.c
+    expected_mmd_d_content=`cat expected_mmd.d`
+
     ##################################################################
     # First compilation is a miss.
     testname="first compilation"
@@ -701,7 +704,7 @@ EOF
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "$expected_d_content"
+    checkfile other.d "$expected_mmd_d_content"
 
     rm -f other.d
 
@@ -709,7 +712,7 @@ EOF
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkfile other.d "$expected_d_content"
+    checkfile other.d "$expected_mmd_d_content"
 
     rm -f other.d
 
