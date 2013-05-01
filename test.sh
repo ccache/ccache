@@ -549,8 +549,7 @@ EOF
     # the profile options do not seem to work correctly with clang or gcc-llvm
     # on darwin machines
     darwin_llvm=0
-    if [ $HOST_OS_APPLE -eq 1 ] && \
-        [ $COMPILER_USES_LLVM -eq 1 ]; then
+    if [ $HOST_OS_APPLE -eq 1 ] && [ $COMPILER_USES_LLVM -eq 1 ]; then
         darwin_llvm=1
     fi
 
@@ -1559,8 +1558,8 @@ EOF
     done
 
     ##################################################################
-    # Check that clang's --serialize-diagnostics arguments with absolute paths are rewritten
-    # to relative.
+    # Check that clang's --serialize-diagnostics arguments with absolute paths
+    # are rewritten to relative.
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         testname="serialize-diagnostics"
         $CCACHE -Cz >/dev/null
@@ -2405,12 +2404,10 @@ case $host_os in
     *MINGW*|*mingw*)
         export CCACHE_DETECT_SHEBANG
         CCACHE_DETECT_SHEBANG=1
-        DEVNULL=NUL
         PATH_DELIM=";"
         all_suites="`echo "$all_suites" | grep -v '!win32'`"
         ;;
     *)
-        DEVNULL=/dev/null
         PATH_DELIM=":"
         all_suites="`echo "$all_suites" | cut -d' ' -f1`"
         ;;
