@@ -7,6 +7,7 @@
 Makefile
 autom4te.cache
 ccache
+ccache.exe
 ccache-*.tar.*
 ccache.1
 ccache.html
@@ -16,6 +17,7 @@ config.h.in
 config.log
 config.status
 configure
+dev_mode_disabled
 dev.mk
 perfdir.*
 test/main
