@@ -1632,10 +1632,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		/* Handle "@file" argument. */
-		if (str_startswith(argv[i], "@")) {
+		if (str_startswith(argv[i], "@") || str_startswith(argv[i], "-@")) {
 			char *argpath = argv[i] + 1;
 			struct args *file_args;
 
+			if (argpath[-1] == '-') {
+				++argpath;
+			}
 			file_args = args_init_from_gcc_atfile(argpath);
 			if (!file_args) {
 				cc_log("Couldn't read arg file %s", argpath);
