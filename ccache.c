@@ -1124,6 +1124,36 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 		}
 
+		/* If we're generating dependencies, we make sure to skip the
+		 * filename of the dependency file, since it doesn't impact the
+		 * output.
+		 */
+		if (generating_dependencies) {
+			if (str_startswith(args->argv[i], "-Wp,")) {
+				if (str_startswith(args->argv[i], "-Wp,-MD,")
+						&& !strchr(args->argv[i] + 8, ',')) {
+					hash_string_length(hash, args->argv[i], 8);
+					continue;
+				} else if (str_startswith(args->argv[i], "-Wp,-MMD,")
+						&& !strchr(args->argv[i] + 9, ',')) {
+					hash_string_length(hash, args->argv[i], 9);
+					continue;
+				}
+			} else if (str_startswith(args->argv[i], "-MF")) {
+				bool separate_argument = (strlen(args->argv[i]) == 3);
+
+				/* In either case, hash the "-MF" part. */
+				hash_string_length(hash, args->argv[i], 3);
+
+				if (separate_argument) {
+					/* Next argument is dependency name, so
+					 * skip it. */
+					i++;
+				}
+				continue;
+			}
+		}
+
 		p = NULL;
 		if (str_startswith(args->argv[i], "-specs=")) {
 			p = args->argv[i] + 7;

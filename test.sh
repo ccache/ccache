@@ -842,6 +842,15 @@ EOF
 
     rm -f other.d
 
+    $CCACHE $COMPILER -c -Wp,-MD,different_name.d test.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile different_name.d "$expected_d_content"
+    compare_file reference_test.o test.o
+
+    rm -f different_name.d
+
     ##################################################################
     # Check that -Wp,-MMD,file.d works.
     testname="-Wp,-MMD"
@@ -865,6 +874,15 @@ EOF
     compare_file reference_test.o test.o
 
     rm -f other.d
+
+    $CCACHE $COMPILER -c -Wp,-MMD,different_name.d test.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile different_name.d "$expected_mmd_d_content"
+    compare_file reference_test.o test.o
+
+    rm -f different_name.d
 
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
@@ -963,6 +981,24 @@ EOF
     checkstat 'cache miss' 1
     checkfile other.d "$expected_d_content"
     compare_file reference_test.o test.o
+
+    $CCACHE $COMPILER -c -MD -MF different_name.d test.c
+    checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile different_name.d "$expected_d_content"
+    compare_file reference_test.o test.o
+
+    rm -f different_name.d
+
+    $CCACHE $COMPILER -c -MD -MFthird_name.d test.c
+    checkstat 'cache hit (direct)' 3
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    checkfile third_name.d "$expected_d_content"
+    compare_file reference_test.o test.o
+
+    rm -f third_name.d
 
     ##################################################################
     # Check that a missing .d file in the cache is handled correctly.

@@ -101,6 +101,7 @@ void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
 bool hash_equal(struct mdfour *md1, struct mdfour *md2);
 void hash_delimiter(struct mdfour *md, const char *type);
 void hash_string(struct mdfour *md, const char *s);
+void hash_string_length(struct mdfour *md, const char *s, int length);
 void hash_int(struct mdfour *md, int x);
 bool hash_fd(struct mdfour *md, int fd);
 bool hash_file(struct mdfour *md, const char *fname);

@@ -80,7 +80,13 @@ hash_delimiter(struct mdfour *md, const char *type)
 void
 hash_string(struct mdfour *md, const char *s)
 {
-	hash_buffer(md, s, strlen(s));
+	hash_string_length(md, s, strlen(s));
+}
+
+void
+hash_string_length(struct mdfour *md, const char *s, int length)
+{
+        hash_buffer(md, s, length);
 }
 
 void
