@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 26
+#define N_CONFIG_ITEMS 27
 static struct {
 	char *descr;
 	const char *origin;
@@ -368,6 +368,7 @@ TEST(conf_print_items)
 		"td",
 		022,
 		true,
+		"ss",
 		NULL
 	};
 	size_t n = 0;

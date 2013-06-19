@@ -26,6 +26,9 @@
 #else
 #include "getopt_long.h"
 #endif
+#ifdef HAVE_LIBMEMCACHED
+#include <libmemcached/memcached.h>
+#endif
 #include "hashtable.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
@@ -203,6 +206,11 @@ enum fromcache_call_mode {
  * stored in the cache changes in a backwards-incompatible way.
  */
 static const char HASH_PREFIX[] = "3";
+/*
+ * status variables for memcached */
+#ifdef HAVE_LIBMEMCACHED
+static memcached_st *memcached_status;
+#endif
 
 static void
 add_prefix(struct args *args)
@@ -2354,7 +2362,11 @@ initialize(void)
 	if (should_create_initial_config) {
 		create_initial_config_file(conf, primary_config_path);
 	}
-
+#ifdef HAVE_LIBMEMCACHED
+	if (conf->memcached_conf != NULL) {
+		memcached_status = memcached(conf->memcached_conf, strlen(conf->memcached_conf));
+	}
+#endif
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_tmp_files);
@@ -2390,6 +2402,7 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
+
 	time_of_compilation = 0;
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
@@ -2400,6 +2413,12 @@ cc_reset(void)
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
+
+#ifdef HAVE_LIBMEMCACHED
+	if (memcached_status) {
+		memcached_free(memcached_status);
+	}
+#endif
 
 	initialize();
 }

@@ -318,6 +318,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
+	conf->memcached_conf = x_strdup("");
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
@@ -618,6 +619,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "unify = %s", conf->unify ? "true" : "false");
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
+
+	reformat(&s, "memcached_conf = %s", conf->memcached_conf);
+	printer(s, conf->item_origins[find_conf("memcached_conf")->number], context);
 
 	free(s);
 	return true;

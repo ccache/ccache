@@ -30,6 +30,7 @@ struct conf {
 	char *temporary_dir;
 	unsigned umask;
 	bool unify;
+	char *memcached_conf;
 
 	const char **item_origins;
 };
