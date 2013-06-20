@@ -387,6 +387,27 @@ error:
 	free(tmp_name);
 	return -1;
 }
+/* Write data to a fd. */
+int safe_write(int fd_out, const char * data, size_t length)
+{
+	size_t written = 0;
+	int ret;
+	do {
+		ret = write(fd_out, data + written, length - written);
+		if (ret < 0)
+			return ret;
+		written += ret;
+	} while (written < length);
+	return 0;
+}
+/* Write data to a file. */
+int write_file(const char *data, const char *dest, size_t length)
+{
+	int fd_out = safe_create_wronly(dest);
+	if (fd_out < 0)
+		return -1;
+	return safe_write(fd_out, data, length);
+}
 
 /* Run copy_file() and, if successful, delete the source file. */
 int
