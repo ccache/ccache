@@ -206,15 +206,13 @@ enum fromcache_call_mode {
  * stored in the cache changes in a backwards-incompatible way.
  */
 static const char HASH_PREFIX[] = "3";
-/*
- * status variables for memcached */
-#ifdef HAVE_LIBMEMCACHED
-static memcached_st *memc;
-#endif
+
 static void from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest);
-static void from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest);
 static void to_fscache(struct args *args);
+#ifdef HAVE_LIBMEMCACHED
+static void from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest);
 static void to_memcached(struct args *args);
+#endif
 static void (*from_cache)(enum fromcache_call_mode mode, bool put_object_in_manifest);
 static void (*to_cache)(struct args *args);
 
@@ -315,7 +313,7 @@ get_path_in_cache(const char *name, const char *suffix)
 
 #if HAVE_LIBMEMCACHED
 	/* in memcached mode, we create simpler keys */
-	if(memc)
+	if (conf->memcached_conf[0] != '\0' && strcmp(suffix,".manifest") !=0 )
 		return format("%s%s", name, suffix);
 #endif
 
@@ -1507,15 +1505,6 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 }
 
 #ifdef HAVE_LIBMEMCACHED
-#define CHECK_MEMCACHED(tmp, cached) \
-	do { \
-		if (mret != MEMCACHED_SUCCESS) { \
-			cc_log("Failed to move %s to memcached%s: %s", tmp, cached, \
-			       memcached_strerror(memc, mret)); \
-			stats_update(STATS_ERROR); \
-			failed(); \
-		} \
-	} while(0)
 
 /* run the real compiler and put the result in memcached */
 /* TBD: split this function, to factorize the common logic with to_fscache */
@@ -1524,10 +1513,9 @@ to_memcached(struct args *args)
 {
 	const char *tmp_dir = temp_dir();
 	int added_bytes=0;
-	memcached_return_t mret;
 	char *tmp_stdout, *tmp_stderr, *tmp_obj, *tmp_dia;
-	char *data;
-	size_t data_length;
+	char  *stderr_d, *obj_d, *dia_d, *dep_d=0;
+	size_t stderr_l=0,  obj_l=0,  dia_l=0, dep_l=0;
 	struct stat st;
 	int status;
 
@@ -1672,48 +1660,44 @@ to_memcached(struct args *args)
 		failed();
 	}
 	/* cache stderr */
-	if (!read_file(tmp_stderr, 0, &data, &data_length)) {
-		mret = MEMCACHED_FAILURE;
-	} else {
-		mret = memcached_set(memc, cached_stderr, strlen(cached_stderr),
-							 data, data_length, 0, 0);
-		free(data);
+	if (!read_file(tmp_stderr, 0, &stderr_d, &stderr_l)) {
+		stats_update(STATS_ERROR);
+		failed();
 	}
-	CHECK_MEMCACHED(tmp_stderr, cached_stderr);
-	added_bytes += data_length;
 	tmp_unlink(tmp_stderr);
+	added_bytes += stderr_l;
 
 	/* cache dia */
 	if (tmp_dia) {
-		if (!read_file(tmp_dia, 0, &data, &data_length)){
-			mret = MEMCACHED_FAILURE;
+		if (!read_file(tmp_dia, 0, &dia_d, &dia_l)){
+			stats_update(STATS_ERROR);
+			failed();
 		}
-	} else {
-		data = x_strdup("");
-		data_length = 0;
 	}
-	if (mret == MEMCACHED_SUCCESS) {
-		mret = memcached_set(memc, cached_dia, strlen(cached_dia),
-							 data, data_length, 0, 0);
-		free(data);
+	added_bytes += dia_l;
+
+	if (generating_dependencies) {
+		/* Cache the dependency file. */
+		if (!read_file(output_dep, 0, &dep_d, &dep_l)){
+			stats_update(STATS_ERROR);
+			failed();
+		} else {
+			stats_update_size(STATS_NONE, dep_l, 1);
+		}
 	}
-	CHECK_MEMCACHED(tmp_dia, cached_dia);
-	added_bytes += data_length;
 
 	/* cache output */
-
-	if (!read_file(tmp_obj, 0, &data, &data_length)){
-		mret = MEMCACHED_FAILURE;
-	} else {
-		mret = memcached_set(memc, cached_obj, strlen(cached_obj),
-							 data, data_length, 0, 0);
-		free(data);
+	if (!read_file(tmp_obj, 0, &obj_d, &obj_l)){
+		stats_update(STATS_ERROR);
+		failed();
 	}
-	CHECK_MEMCACHED(tmp_obj, cached_obj);
-	added_bytes += data_length;
+	if (memccached_store(cached_obj, obj_d, stderr_d,dia_d, dep_d,
+									 obj_l, stderr_l,dia_l, dep_l) < 0) {
+		stats_update(STATS_ERROR);
+		failed();
+	}
 
 	cc_log("Stored in cache: %s", cached_obj);
-	stat(cached_obj, &st);
 
 
 	/* Make sure we have a CACHEDIR.TAG
@@ -1732,16 +1716,10 @@ to_memcached(struct args *args)
 	free(tmp_stderr);
 	free(tmp_stdout);
 	free(tmp_dia);
+	free(obj_d);
+	free(stderr_d);
+	free(dia_d);
 }
-#undef CHECK_MEMCACHED
-#define CHECK_MEMCACHED(res) \
-	do { \
-		if (res != MEMCACHED_SUCCESS) { \
-			cc_log("%s:%d Object file %s not in cache", __func__, __LINE__, cached_obj); \
-			return; \
-		} \
-	}while(0)
-
 /*
  * Try to return the compile result from cache. If we can return from cache
  * then this function exits with the correct status code, otherwise it returns.
@@ -1751,57 +1729,33 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
 	bool produce_dep_file;
 	int ret;
-	memcached_return_t mret;
-	memcached_result_st *cached_obj_value=0,
+	void *cached_buf;
+	char *cached_obj_value=0,
 		 *cached_stderr_value=0,
 		 *cached_dep_value=0,
 		 *cached_dia_value=0;
-	char *keys[] = {
-		cached_obj,
-		cached_stderr,
-		cached_dep,
-		cached_dia
-	};
-	size_t keys_lengths[] = {
-		strlen(cached_obj),
-		strlen(cached_stderr),
-		strlen(cached_dep),
-		strlen(cached_dia)
-	};
-	memcached_result_st **results[] = {
-		&cached_obj_value,
-		&cached_stderr_value,
-		&cached_dep_value,
-		&cached_dia_value
-	};
-	const int n_keys = 4;
-	int i;
-	memcached_result_st *result;
-
+	size_t cached_obj_length=0,
+		   cached_stderr_length=0,
+		   cached_dep_length=0,
+		   cached_dia_length=0;
 	/* the user might be disabling cache hits */
 	if (mode != FROMCACHE_COMPILED_MODE && conf->recache) {
 		return;
 	}
 
 	/*  Quick check if the object file is there. */
-	mret = memcached_exist(memc, cached_obj, strlen(cached_obj));
-	CHECK_MEMCACHED(mret);
-
-	/*  Once we know the object exists, we optimistically download all objects */
-	mret = memcached_mget(memc, (const char * const*)keys, keys_lengths, n_keys);
-	CHECK_MEMCACHED(mret);
-
-	do {
-		result = memcached_fetch_result(memc, NULL, &mret);
-		if (result == NULL)
-			break;
-		CHECK_MEMCACHED(mret);
-		for (i=0; i < n_keys; i++) {
-			if (strcmp(memcached_result_key_value(result), keys[i]) ==0 )
-				*results[i] = result;
-		}
-	} while (1);
-
+	cached_buf = memccached_get(cached_obj,
+								&cached_obj_value,
+								&cached_stderr_value,
+								&cached_dia_value,
+								&cached_dep_value,
+								&cached_obj_length,
+								&cached_stderr_length,
+								&cached_dia_length,
+								&cached_dep_length);
+	if (cached_buf == NULL) {
+		return;
+	}
 
 	/*
 	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
@@ -1813,32 +1767,32 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		ret = 0;
 	} else {
 		x_unlink(output_obj);
-		ret = write_file(memcached_result_value(cached_obj_value), output_obj,
-						 memcached_result_length(cached_obj_value));
+		ret = write_file(cached_obj_value, output_obj,
+						 cached_obj_length);
 	}
 	if (ret < 0 ) {
 		cc_log("Problem creating %s from %s", output_obj, cached_obj);
-		goto cleanup;
+		failed();
 	}
 	cc_log("Created %s from %s", output_obj, cached_obj);
 
 
 	if (produce_dep_file) {
 		x_unlink(output_dep);
-		ret = write_file(memcached_result_value(cached_dep_value), output_dep,
-						 memcached_result_length(cached_dep_value));
+		ret = write_file(cached_dep_value, output_dep,
+						 cached_dep_length);
 		if (ret < 0) {
 			cc_log("Problem creating %s from %s", output_dep, cached_dep);
-			goto cleanup;
+			failed();
 		}
 	}
 	if (output_dia) {
 		x_unlink(output_dia);
-		ret = write_file(memcached_result_value(cached_dia_value), output_dia,
-						 memcached_result_length(cached_dia_value));
+		ret = write_file(cached_dia_value, output_dia,
+						 cached_dia_length);
 		if (ret < 0) {
 			cc_log("Problem creating %s from %s", output_dia, cached_dia);
-			goto cleanup;
+			failed();
 		}
 	}
 
@@ -1846,13 +1800,13 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		/* Store the dependency file in the cache. */
 		/* TBD */
 		cc_log("Does no support non direct mode");
-		goto cleanup;
 	}
 
 	/* Send the stderr, if any. */
-	safe_write(2, memcached_result_value(cached_stderr_value),
-					 memcached_result_length(cached_stderr_value));
+	safe_write(2, cached_stderr_value,
+				  cached_stderr_length);
 
+	free(cached_buf);
 	/* Create or update the manifest file. */
 	if (conf->direct_mode
 	    && put_object_in_manifest
@@ -1891,16 +1845,10 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		/* Stats already updated in to_cache(). */
 		break;
 	}
-cleanup:
-	for(i=0; i<n_keys; i++){
-		memcached_result_free(*results[i]);
-	}
-	if (ret == 0) {
-		/* and exit with the right status code */
-		exit(0);
-	}
-	failed();
+	/* and exit with the right status code */
+	exit(0);
 }
+
 #endif /* HAVE_LIBMEMCACHED */
 
 /* find the real compiler. We just search the PATH to find a executable of the
@@ -2776,7 +2724,7 @@ initialize(void)
 
 #ifdef HAVE_LIBMEMCACHED
 	if (strlen(conf->memcached_conf) > 0) {
-		memc = memcached(conf->memcached_conf, strlen(conf->memcached_conf));
+		memccached_init(conf->memcached_conf);
 		from_cache = from_memcached;
 		to_cache = to_memcached;
 	}
@@ -2829,9 +2777,7 @@ cc_reset(void)
 	output_is_precompiled_header = false;
 
 #ifdef HAVE_LIBMEMCACHED
-	if (memc) {
-		memcached_free(memc);
-	}
+	memccached_release();
 #endif
 
 	initialize();

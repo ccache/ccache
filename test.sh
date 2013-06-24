@@ -57,7 +57,10 @@ test_failed() {
     echo TEST FAILED
     echo "Test data and log file have been left in $TESTDIR"
     tail -n 50 $CCACHE_LOGFILE
-    kill %1
+    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
+        memstat --servers=localhost:22122
+        kill %1
+    fi
     exit 1
 }
 

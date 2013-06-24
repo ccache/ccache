@@ -88,12 +88,11 @@ AC_ARG_WITH(memcached,
 
 dnl with-memcached: Check if -lmemcached is needed.
 if test x${with_memcached} != x; then
-    AC_CHECK_LIB(memcached, memcached)
-    if test x${ac_cv_lib_memcached_memcached} == xno; then
+    AC_CHECK_LIB(memcached, memcached,[],[
     echo '  WARNING: recent version libmemcached not found'
     echo '  please install libmemcached>1.0 with development files'
-    echo '  memcached support disabled.'
-    fi
+    exit 1
+    ])
 fi
 
 dnl Check for zlib
