@@ -26,6 +26,9 @@
 #else
 #include "getopt_long.h"
 #endif
+#ifdef HAVE_LIBMEMCACHED
+#include <libmemcached/memcached.h>
+#endif
 #include "hashtable.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
@@ -204,6 +207,15 @@ enum fromcache_call_mode {
  */
 static const char HASH_PREFIX[] = "3";
 
+static void from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest);
+static void to_fscache(struct args *args);
+#ifdef HAVE_LIBMEMCACHED
+static void from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest);
+static void to_memcached(struct args *args);
+#endif
+static void (*from_cache)(enum fromcache_call_mode mode, bool put_object_in_manifest);
+static void (*to_cache)(struct args *args);
+
 static void
 add_prefix(struct args *args)
 {
@@ -298,6 +310,12 @@ get_path_in_cache(const char *name, const char *suffix)
 	unsigned i;
 	char *path;
 	char *result;
+
+#if HAVE_LIBMEMCACHED
+	/* in memcached mode, we create simpler keys */
+	if (conf->memcached_conf[0] != '\0' && strcmp(suffix,".manifest") !=0 )
+		return format("%s%s", name, suffix);
+#endif
 
 	path = x_strdup(conf->cache_dir);
 	for (i = 0; i < conf->cache_dir_levels; ++i) {
@@ -582,7 +600,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 
 /* run the real compiler and put the result in cache */
 static void
-to_cache(struct args *args)
+to_fscache(struct args *args)
 {
 	char *tmp_stdout, *tmp_stderr, *tmp_obj, *tmp_dia;
 	struct stat st;
@@ -1271,7 +1289,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
  * then this function exits with the correct status code, otherwise it returns.
  */
 static void
-from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
+from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
 	int fd_stderr;
 	int ret;
@@ -1485,6 +1503,353 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	/* and exit with the right status code */
 	exit(0);
 }
+
+#ifdef HAVE_LIBMEMCACHED
+
+/* run the real compiler and put the result in memcached */
+/* TBD: split this function, to factorize the common logic with to_fscache */
+static void
+to_memcached(struct args *args)
+{
+	const char *tmp_dir = temp_dir();
+	int added_bytes=0;
+	char *tmp_stdout, *tmp_stderr, *tmp_obj, *tmp_dia;
+	char  *stderr_d, *obj_d, *dia_d, *dep_d=0;
+	size_t stderr_l=0,  obj_l=0,  dia_l=0, dep_l=0;
+	struct stat st;
+	int status;
+
+	tmp_stdout = format("%s/%s.tmp.stdout.%s", tmp_dir, cached_obj, tmp_string());
+	tmp_stderr = format("%s/%s.tmp.stderr.%s", tmp_dir, cached_obj, tmp_string());
+
+	if (create_parent_dirs(tmp_stdout) != 0) {
+		fatal("Failed to create parent directory for %s: %s",
+		      tmp_stdout, strerror(errno));
+	}
+
+	/* !output_to_real_object_first does not make sense in case of memcached */
+	tmp_obj = x_strdup(output_obj);
+	cc_log("Outputting to final destination: %s", tmp_obj);
+
+	args_add(args, "-o");
+	args_add(args, tmp_obj); /* XXX not sure its really needed */
+
+	if (output_dia) {
+		tmp_dia = x_strdup(output_dia);
+		args_add(args, "--serialize-diagnostics");
+		args_add(args, tmp_dia);
+	} else {
+		tmp_dia = NULL;
+	}
+
+	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
+	 * otherwise it will emit a line like
+	 *
+	 *  tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
+	 */
+	x_unsetenv("DEPENDENCIES_OUTPUT");
+
+	if (conf->run_second_cpp) {
+		args_add(args, input_file);
+	} else {
+		args_add(args, i_tmpfile);
+	}
+
+	cc_log("Running real compiler");
+	status = execute(args->argv, tmp_stdout, tmp_stderr);
+	args_pop(args, 3);
+
+	if (stat(tmp_stdout, &st) != 0) {
+		/* The stdout file was removed - cleanup in progress? Better bail out. */
+		cc_log("%s not found: %s", tmp_stdout, strerror(errno));
+		stats_update(STATS_MISSING);
+		tmp_unlink(tmp_stdout);
+		tmp_unlink(tmp_stderr);
+		tmp_unlink(tmp_obj);
+		failed();
+	}
+	if (st.st_size != 0) {
+		cc_log("Compiler produced stdout");
+		stats_update(STATS_STDOUT);
+		tmp_unlink(tmp_stdout);
+		tmp_unlink(tmp_stderr);
+		tmp_unlink(tmp_obj);
+		if (tmp_dia) {
+			tmp_unlink(tmp_dia);
+		}
+		failed();
+	}
+	tmp_unlink(tmp_stdout);
+
+	/*
+	 * Merge stderr from the preprocessor (if any) and stderr from the real
+	 * compiler into tmp_stderr.
+	 */
+	if (cpp_stderr) {
+		int fd_cpp_stderr;
+		int fd_real_stderr;
+		int fd_result;
+		char *tmp_stderr2;
+
+		tmp_stderr2 = format("%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		if (x_rename(tmp_stderr, tmp_stderr2)) {
+			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
+			       strerror(errno));
+			failed();
+		}
+		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
+		if (fd_cpp_stderr == -1) {
+			cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
+			failed();
+		}
+		fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
+		if (fd_real_stderr == -1) {
+			cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
+			failed();
+		}
+		fd_result = open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+		if (fd_result == -1) {
+			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
+			failed();
+		}
+		copy_fd(fd_cpp_stderr, fd_result);
+		copy_fd(fd_real_stderr, fd_result);
+		close(fd_cpp_stderr);
+		close(fd_real_stderr);
+		close(fd_result);
+		tmp_unlink(tmp_stderr2);
+		free(tmp_stderr2);
+	}
+
+	if (status != 0) {
+		int fd;
+		cc_log("Compiler gave exit status %d", status);
+		stats_update(STATS_STATUS);
+
+		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
+		if (fd != -1) {
+			/* we can use a quick method of getting the failed output */
+			copy_fd(fd, 2);
+			close(fd);
+			tmp_unlink(tmp_stderr);
+			exit(status);
+		}
+
+		tmp_unlink(tmp_stderr);
+		tmp_unlink(tmp_obj);
+		if (tmp_dia) {
+			tmp_unlink(tmp_dia);
+		}
+		failed();
+	}
+
+	if (stat(tmp_obj, &st) != 0) {
+		cc_log("Compiler didn't produce an object file");
+		stats_update(STATS_NOOUTPUT);
+		failed();
+	}
+	if (st.st_size == 0) {
+		cc_log("Compiler produced an empty object file");
+		stats_update(STATS_EMPTYOUTPUT);
+		failed();
+	}
+
+	if (stat(tmp_stderr, &st) != 0) {
+		cc_log("Failed to stat %s: %s", tmp_stderr, strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	/* cache stderr */
+	if (!read_file(tmp_stderr, 0, &stderr_d, &stderr_l)) {
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	tmp_unlink(tmp_stderr);
+	added_bytes += stderr_l;
+
+	/* cache dia */
+	if (tmp_dia) {
+		if (!read_file(tmp_dia, 0, &dia_d, &dia_l)){
+			stats_update(STATS_ERROR);
+			failed();
+		}
+	}
+	added_bytes += dia_l;
+
+	if (generating_dependencies) {
+		/* Cache the dependency file. */
+		if (!read_file(output_dep, 0, &dep_d, &dep_l)){
+			stats_update(STATS_ERROR);
+			failed();
+		} else {
+			stats_update_size(STATS_NONE, dep_l, 1);
+		}
+	}
+
+	/* cache output */
+	if (!read_file(tmp_obj, 0, &obj_d, &obj_l)){
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	if (memccached_store(cached_obj, obj_d, stderr_d,dia_d, dep_d,
+									 obj_l, stderr_l,dia_l, dep_l) < 0) {
+		stats_update(STATS_ERROR);
+		failed();
+	}
+
+	cc_log("Stored in cache: %s", cached_obj);
+
+
+	/* Make sure we have a CACHEDIR.TAG
+	 * This can be almost anywhere, but might as well do it near the end
+	 * as if we exit early we save the stat call
+	 */
+	if (create_cachedirtag(conf->cache_dir) != 0) {
+		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
+		       conf->cache_dir, strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	stats_update_size(STATS_TOCACHE, added_bytes, 1);
+
+	free(tmp_obj);
+	free(tmp_stderr);
+	free(tmp_stdout);
+	free(tmp_dia);
+	free(obj_d);
+	free(stderr_d);
+	free(dia_d);
+}
+/*
+ * Try to return the compile result from cache. If we can return from cache
+ * then this function exits with the correct status code, otherwise it returns.
+ */
+static void
+from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
+{
+	bool produce_dep_file;
+	int ret;
+	void *cached_buf;
+	char *cached_obj_value=0,
+		 *cached_stderr_value=0,
+		 *cached_dep_value=0,
+		 *cached_dia_value=0;
+	size_t cached_obj_length=0,
+		   cached_stderr_length=0,
+		   cached_dep_length=0,
+		   cached_dia_length=0;
+	/* the user might be disabling cache hits */
+	if (mode != FROMCACHE_COMPILED_MODE && conf->recache) {
+		return;
+	}
+
+	/*  Quick check if the object file is there. */
+	cached_buf = memccached_get(cached_obj,
+								&cached_obj_value,
+								&cached_stderr_value,
+								&cached_dia_value,
+								&cached_dep_value,
+								&cached_obj_length,
+								&cached_stderr_length,
+								&cached_dia_length,
+								&cached_dep_length);
+	if (cached_buf == NULL) {
+		return;
+	}
+
+	/*
+	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
+	 * gcc.)
+	 */
+	produce_dep_file = generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+
+	if (str_eq(output_obj, "/dev/null")) {
+		ret = 0;
+	} else {
+		x_unlink(output_obj);
+		ret = write_file(cached_obj_value, output_obj,
+						 cached_obj_length);
+	}
+	if (ret < 0 ) {
+		cc_log("Problem creating %s from %s", output_obj, cached_obj);
+		failed();
+	}
+	cc_log("Created %s from %s", output_obj, cached_obj);
+
+
+	if (produce_dep_file) {
+		x_unlink(output_dep);
+		ret = write_file(cached_dep_value, output_dep,
+						 cached_dep_length);
+		if (ret < 0) {
+			cc_log("Problem creating %s from %s", output_dep, cached_dep);
+			failed();
+		}
+	}
+	if (output_dia) {
+		x_unlink(output_dia);
+		ret = write_file(cached_dia_value, output_dia,
+						 cached_dia_length);
+		if (ret < 0) {
+			cc_log("Problem creating %s from %s", output_dia, cached_dia);
+			failed();
+		}
+	}
+
+	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
+		/* Store the dependency file in the cache. */
+		/* TBD */
+		cc_log("Does no support non direct mode");
+	}
+
+	/* Send the stderr, if any. */
+	safe_write(2, cached_stderr_value,
+				  cached_stderr_length);
+
+	free(cached_buf);
+	/* Create or update the manifest file. */
+	if (conf->direct_mode
+	    && put_object_in_manifest
+	    && included_files
+	    && !conf->read_only) {
+		struct stat st;
+		size_t old_size = 0; /* in bytes */
+		if (stat(manifest_path, &st) == 0) {
+			old_size = file_size(&st);
+		}
+		if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
+			cc_log("Added object file hash to %s", manifest_path);
+			update_mtime(manifest_path);
+			stat(manifest_path, &st);
+			stats_update_size(STATS_NONE,
+			                  (file_size(&st) - old_size),
+			                  old_size == 0 ? 1 : 0);
+		} else {
+			cc_log("Failed to add object file hash to %s", manifest_path);
+		}
+	}
+
+	/* log the cache hit */
+	switch (mode) {
+	case FROMCACHE_DIRECT_MODE:
+		cc_log("Succeded getting cached result");
+		stats_update(STATS_CACHEHIT_DIR);
+		break;
+
+	case FROMCACHE_CPP_MODE:
+		cc_log("Succeded getting cached result");
+		stats_update(STATS_CACHEHIT_CPP);
+		break;
+
+	case FROMCACHE_COMPILED_MODE:
+		/* Stats already updated in to_cache(). */
+		break;
+	}
+	/* and exit with the right status code */
+	exit(0);
+}
+
+#endif /* HAVE_LIBMEMCACHED */
 
 /* find the real compiler. We just search the PATH to find a executable of the
    same name that isn't a link to ourselves */
@@ -2354,7 +2719,16 @@ initialize(void)
 	if (should_create_initial_config) {
 		create_initial_config_file(conf, primary_config_path);
 	}
+	from_cache = from_fscache;
+	to_cache = to_fscache;
 
+#ifdef HAVE_LIBMEMCACHED
+	if (strlen(conf->memcached_conf) > 0) {
+		memccached_init(conf->memcached_conf);
+		from_cache = from_memcached;
+		to_cache = to_memcached;
+	}
+#endif
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_tmp_files);
@@ -2390,6 +2764,7 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
+
 	time_of_compilation = 0;
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
@@ -2400,6 +2775,10 @@ cc_reset(void)
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
+
+#ifdef HAVE_LIBMEMCACHED
+	memccached_release();
+#endif
 
 	initialize();
 }

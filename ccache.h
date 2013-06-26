@@ -58,6 +58,9 @@ enum stats {
 #define SLOPPY_FILE_MACRO 4
 #define SLOPPY_TIME_MACROS 8
 
+
+#define MEMCCACHE_MAGIC "CCH1"
+
 /*
  * Allow us to match files based on their stats (size, mtime, ctime), without
  * looking at their contents.
@@ -114,10 +117,23 @@ void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void copy_fd(int fd_in, int fd_out);
+int safe_write(int fd_out, const char * data, size_t length);
+int write_file(const char *data, const char *dest, size_t length);
 int copy_file(const char *src, const char *dest, int compress_level);
 int move_file(const char *src, const char *dest, int compress_level);
 int move_uncompressed_file(const char *src, const char *dest,
                            int compress_level);
+
+int memccached_init(char * conf);
+int memccached_store(const char *key,
+				   const char *out, const char *stderr, const char *dia, const char *dep,
+				   size_t out_len, size_t stderr_len, size_t dia_len, size_t dep_len);
+
+void* memccached_get(const char *key,
+					 char **out, char **stderr, char **dia, char **dep,
+					 size_t *out_len, size_t *stderr_len, size_t *dia_len, size_t *dep_len);
+int memccached_release(void);
+
 bool file_is_compressed(const char *filename);
 int create_dir(const char *dir);
 int create_parent_dirs(const char *path);

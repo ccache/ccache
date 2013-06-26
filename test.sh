@@ -42,6 +42,7 @@ unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
+unset CCACHE_MEMCACHED_CONF
 
 # Many tests backdate files, which updates their ctimes.  In those tests, we
 # must ignore ctimes.  Might as well do so everywhere.
@@ -55,6 +56,11 @@ test_failed() {
     cd ..
     echo TEST FAILED
     echo "Test data and log file have been left in $TESTDIR"
+    tail -n 50 $CCACHE_LOGFILE
+    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
+        memstat --servers=localhost:22122
+        kill %1
+    fi
     exit 1
 }
 
@@ -261,6 +267,9 @@ base_tests() {
     checkstat 'cache miss' 4
     compare_file reference_test1.o test1.o
 
+    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
+        return
+    fi
     # strictly speaking should be 3 - RECACHE causes a double counting!
     checkstat 'files in cache' 4
     $CCACHE -c > /dev/null
@@ -682,6 +691,15 @@ nlevels1_suite() {
     export CCACHE_NLEVELS
     base_tests
     unset CCACHE_NLEVELS
+}
+
+memcached_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    memcached -p 22122 &
+    base_tests
+    kill %1
+    unset CCACHE_MEMCACHED_CONF
 }
 
 direct_suite() {
@@ -2399,6 +2417,7 @@ cleanup
 pch
 upgrade
 prefix
+memcached
 "
 
 case $host_os in
