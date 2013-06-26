@@ -7,6 +7,8 @@
 
 /* status variables for memcached */
 static memcached_st *memc;
+static char *current_cache = NULL;
+static int current_length = 0;
 
 int memccached_init(char *conf)
 {
@@ -17,6 +19,9 @@ int memccached_init(char *conf)
         cc_log("Problem creating memcached with conf %s:\n%s\n", conf, errorbuf);
         return -1;
     }
+    /* Consistent hashing delivers better distribution and allows servers to be added
+       to the cluster with minimal cache losses */
+    memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_DISTRIBUTION, MEMCACHED_DISTRIBUTION_CONSISTENT);
     return 0;
 }
 /* blob format for storing:
@@ -73,6 +78,8 @@ int memccached_store(const char *key,
                memcached_strerror(memc, mret));
         return -1;
     }
+    current_cache = buf;
+    current_length = buf_len;
     return 0;
 }
 
@@ -90,8 +97,18 @@ void *memccached_get(const char *key,
     memcached_return_t mret;
     char *value, *ptr;
     size_t value_l;
-    value = memcached_get(memc, key, strlen(key), &value_l,
+    /* micro optimization: for the second from_cache, we don't hit memcached
+       and just reuse the data that we just sent
+       I don't understand anyway the need for a second from_cache ;-/
+       */
+    if (current_cache){
+        value = current_cache;
+        value_l = current_length;
+        current_cache = NULL;
+    } else {
+        value = memcached_get(memc, key, strlen(key), &value_l,
                           NULL/*flags*/, &mret);
+    }
     if (value == NULL) {
             cc_log("Failed to get key from memcached %s: %s", key,
                    memcached_strerror(memc, mret));
