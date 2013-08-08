@@ -1106,6 +1106,16 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/*
+	 * Occasionally, e.g. on hard reset, our cache ends up as just filesystem
+	 * meta-data with no content catch an easy case of this.
+	 */
+	if (st.st_size == 0) {
+		cc_log("Invalid (empty) object file %s in cache", cached_obj);
+		x_unlink(cached_obj);
+		return;
+	}
+
+	/*
 	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
 	 * gcc.)
 	 */
