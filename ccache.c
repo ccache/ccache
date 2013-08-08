@@ -387,12 +387,14 @@ ignore:
 static char *
 make_relative_path(char *path)
 {
-	char *relpath, *canon_path;
+	char *relpath, *canon_path, *path_suffix = NULL;
+	struct stat st;
 
 	if (!base_dir || !str_startswith(path, base_dir)) {
 		return path;
 	}
 
+	/* Look up CWD and cache it in the global current_working_dir variable. */
 	if (!current_working_dir) {
 		char *cwd = get_cwd();
 		if (cwd) {
@@ -406,17 +408,43 @@ make_relative_path(char *path)
 		}
 	}
 
+	/* x_realpath only works for existing paths, so if path doesn't exist, try
+	 * dirname(path) and assemble the path afterwards. We only bother to try
+	 * canonicalizing one of these two paths since a compiler path argument
+	 * typically only makes sense if path or dirname(path) exists. */
+	if (stat(path, &st) != 0) {
+		/* path doesn't exist. */
+		char *dir, *p;
+		dir = dirname(path);
+		if (stat(dir, &st) != 0) {
+			/* And neither does its parent directory, so no action to take. */
+			free(dir);
+			return path;
+		}
+		path_suffix = basename(path);
+		p = path;
+		path = dirname(path);
+		free(p);
+	}
+
 	canon_path = x_realpath(path);
 	if (canon_path) {
 		free(path);
-		path = canon_path;
+		relpath = get_relative_path(current_working_dir, canon_path);
+		free(canon_path);
+		if (path_suffix) {
+			path = format("%s/%s", relpath, path_suffix);
+			free(relpath);
+			free(path_suffix);
+			return path;
+		} else {
+			return relpath;
+		}
 	} else {
 		/* path doesn't exist, so leave it as it is. */
+		free(path_suffix);
+		return path;
 	}
-
-	relpath = get_relative_path(current_working_dir, path);
-	free(path);
-	return relpath;
 }
 
 /*
