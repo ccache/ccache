@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Joel Rosdahl
+ * Copyright (C) 2010-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -115,22 +115,20 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
 	extern char *current_working_dir;
-	struct args *orig =
-		args_init_from_string("cc --sysroot=/some/directory -c foo.c");
+	char *arg_string;
+	struct args *orig;
 	struct args *act_cpp = NULL, *act_cc = NULL;
+
 	create_file("foo.c", "");
-
-	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ("--sysroot=/some/directory", act_cpp->argv[1]);
-	args_free(act_cpp);
-	args_free(act_cc);
-	cc_reset();
-
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/some");
+	conf->base_dir = x_strdup("/");
 	current_working_dir = get_cwd();
+	arg_string = format("cc --sysroot=%s/foo -c foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=../"));
+	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=./foo"));
+
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);

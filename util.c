@@ -804,7 +804,9 @@ dirname(const char *path)
 #endif
 	if (p < p2)
 		p = p2;
-	if (p) {
+	if (p == s) {
+		return s;
+	} else if (p) {
 		*p = 0;
 		return s;
 	} else {

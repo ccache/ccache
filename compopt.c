@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2012 Joel Rosdahl
+ * Copyright (C) 2010, 2012-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -60,6 +60,7 @@ static const struct compopt compopts[] = {
 	{"-frepo",          TOO_HARD},
 	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-fworking-directory", AFFECTS_CPP},
+	{"-gsplit-dwarf",   TOO_HARD}, /* generates a .dwo file at the same time */
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
