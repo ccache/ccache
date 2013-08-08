@@ -380,8 +380,9 @@ ignore:
 }
 
 /*
- * Make a relative path from current working directory to path if CCACHE_PREFIX
- * is a prefix of path. Takes over ownership of path. Caller frees.
+ * Make a relative path from current working directory to path if
+ * CCACHE_BASEDIR is a prefix of path. Takes over ownership of path. Caller
+ * frees.
  */
 static char *
 make_relative_path(char *path)
