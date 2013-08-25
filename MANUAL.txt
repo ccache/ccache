@@ -573,8 +573,7 @@ The direct mode will be disabled if any of the following holds:
 ** a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and
    *-Wp,-MMD,_path_*
 ** *-Xpreprocessor*
-* the string ``\_\_TIME__'' is present outside comments and string literals in
-  the source code
+* the string ``\_\_TIME__'' is present in the source code
 
 
 The preprocessor mode
