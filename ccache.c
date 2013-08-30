@@ -1560,12 +1560,12 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	/* log the cache hit */
 	switch (mode) {
 	case FROMCACHE_DIRECT_MODE:
-		cc_log("Succeded getting cached result");
+		cc_log("Succeeded getting cached result");
 		stats_update(STATS_CACHEHIT_DIR);
 		break;
 
 	case FROMCACHE_CPP_MODE:
-		cc_log("Succeded getting cached result");
+		cc_log("Succeeded getting cached result");
 		stats_update(STATS_CACHEHIT_CPP);
 		break;
 
@@ -2444,6 +2444,10 @@ initialize(void)
 
 	if (!conf_update_from_environment(conf, &errmsg)) {
 		fatal("%s", errmsg);
+	}
+
+	if (conf->disable) {
+		should_create_initial_config = false;
 	}
 
 	if (should_create_initial_config) {
