@@ -1964,7 +1964,7 @@ setup_uncached_err(void)
 
 /* the main ccache driver function */
 static void
-ccache(int argc, char *argv[])
+ccache(char *argv[])
 {
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash;
@@ -1980,13 +1980,7 @@ ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	struct args *compiler_args;
 
-	find_compiler(argc, argv);
 	setup_uncached_err();
-
-	if (getenv("CCACHE_DISABLE")) {
-		cc_log("ccache is disabled");
-		failed();
-	}
 
 	if (!getenv("CCACHE_READONLY")) {
 		if (create_cachedirtag(cache_dir) != 0) {
@@ -2286,6 +2280,14 @@ ccache_main(int argc, char *argv[])
 	}
 	free(program_name);
 
+	/* find_compiler sets up orig_args, needed by failed(), so do it early. */
+	find_compiler(argc, argv);
+
+	if (getenv("CCACHE_DISABLE")) {
+		cc_log("ccache is disabled");
+		failed();
+	}
+
 	check_cache_dir();
 
 	temp_dir = getenv("CCACHE_TEMPDIR");
@@ -2317,6 +2319,6 @@ ccache_main(int argc, char *argv[])
 		exit(1);
 	}
 
-	ccache(argc, argv);
+	ccache(argv);
 	return 1;
 }
