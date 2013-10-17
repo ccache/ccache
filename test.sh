@@ -1429,7 +1429,8 @@ EOF
     $CCACHE -z >/dev/null
     $CCACHE -C >/dev/null
 
-    cd dir1
+    ln -s dir1 symlink_to_dir1
+    cd symlink_to_dir1
     CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0

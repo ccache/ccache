@@ -2464,8 +2464,6 @@ initialize(void)
 	if (conf->umask != UINT_MAX) {
 		umask(conf->umask);
 	}
-
-	current_working_dir = get_cwd();
 }
 
 /* Reset the global state. Used by the test suite. */
