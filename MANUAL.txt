@@ -435,8 +435,8 @@ WRAPPERS>>.
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
-    the cached version.  But with this option set, ccache will consider a file
-    as matching its cached version if the sizes, mtimes, and ctimes match.
+    the cached version. With this option set, ccache will consider a file as
+    matching its cached version if the sizes, mtimes and ctimes match.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
