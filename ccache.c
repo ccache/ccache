@@ -1099,6 +1099,26 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 }
 
 /*
+ * Note that these compiler checks are unreliable, so nothing should hard-depend on them.
+ */
+
+static bool compiler_is_clang(struct args *args)
+{
+	char* name = basename(args->argv[ 0 ]);
+	bool is = strstr( name, "clang" ) != NULL;
+	free(name);
+	return is;
+}
+
+static bool compiler_is_gcc(struct args *args)
+{
+	char* name = basename(args->argv[ 0 ]);
+	bool is = strstr(name, "gcc") != NULL || strstr(name, "g++") != NULL;
+	free(name);
+	return is;
+}
+
+/*
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
  */
@@ -1161,6 +1181,15 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			q = NULL;
 		}
 		free(p);
+	}
+
+	/* Possibly hash GCC_COLORS (for color diagnostics). */
+	if (compiler_is_gcc(args)) {
+		const char* gcc_colors = getenv("GCC_COLORS");
+		if (gcc_colors != NULL) {
+			hash_delimiter(hash,"gcccolors");
+			hash_string(hash, gcc_colors);
+		}
 	}
 }
 
@@ -1558,6 +1587,13 @@ is_precompiled_header(const char *path)
 	       || str_eq(get_extension(path), ".pth");
 }
 
+static bool color_output_possible()
+{
+	const char* term_env = getenv("TERM");
+
+	return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
+}
+
 /*
  * Process the compiler options into options suitable for passing to the
  * preprocessor and the real compiler. The preprocessor options don't include
@@ -1586,6 +1622,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	int argc;
 	char **argv;
 	bool result = true;
+	bool found_color_diagnostics = false;
 
 	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
@@ -1942,6 +1979,26 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(arg);
 		}
 
+		if (str_eq(argv[i], "-fcolor-diagnostics")
+		    || str_eq(argv[i], "-fno-color-diagnostics")
+		    || str_eq(argv[i], "-fdiagnostics-color")
+		    || str_eq(argv[i], "-fdiagnostics-color=always")
+		    || str_eq(argv[i], "-fno-diagnostics-color")
+		    || str_eq(argv[i], "-fdiagnostics-color=never")) {
+			args_add(stripped_args, argv[i]);
+			found_color_diagnostics = true;
+			continue;
+		}
+		if (str_eq(argv[i], "-fdiagnostics-color=auto")) {
+			if (color_output_possible()) {
+				/* Output is redirected, so color output must be forced. */
+				args_add(stripped_args, "-fdiagnostics-color=always");
+				cc_log("Automatically forcing colors");
+			}
+			found_color_diagnostics = true;
+			continue;
+		}
+
 		/*
 		 * Options taking an argument that we may want to rewrite to relative paths
 		 * to get better hit rate. A secondary effect is that paths in the standard
@@ -2229,6 +2286,28 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	if (explicit_language) {
 		args_add(cpp_args, "-x");
 		args_add(cpp_args, explicit_language);
+	}
+
+	/*
+	 * Since output is redirected, compilers will not color their output by default,
+	 * so force it explicitly if it would be otherwise done.
+	 */
+	if (!found_color_diagnostics && color_output_possible()) {
+		if (compiler_is_clang(args)) {
+			args_add(stripped_args, "-fcolor-diagnostics");
+			cc_log("Automatically enabling colors");
+		} else if (compiler_is_gcc(args)) {
+			/*
+			 * GCC has it since 4.9, but that'd require detecting what GCC
+			 * version is used for the actual compile. However it requires
+			 * also GCC_COLORS to be set (and not empty), so use that
+			 * for detecting if GCC would use colors.
+			 */
+			if (getenv("GCC_COLORS") != NULL && getenv("GCC_COLORS")[ 0 ] != '\0') {
+				args_add(stripped_args, "-fdiagnostics-color");
+				cc_log("Automatically enabling colors");
+			}
+		}
 	}
 
 	/*
