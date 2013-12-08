@@ -161,7 +161,7 @@ mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 
 	m = md;
 
-	if (in == NULL) {
+	if (!in) {
 		if (!md->finalized) {
 			mdfour_tail(md->tail, md->tail_len);
 			md->finalized = 1;

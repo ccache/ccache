@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Joel Rosdahl
+ * Copyright (C) 2011-2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -58,7 +58,7 @@ parse_env_string(const char *str, void *result, char **errmsg)
 	char **value = (char **)result;
 	free(*value);
 	*value = subst_env_in_string(str, errmsg);
-	return *value != NULL;
+	return *value;
 }
 
 static bool

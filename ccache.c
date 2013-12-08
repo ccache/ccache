@@ -926,7 +926,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	   maximum filename length limits */
 	input_base = basename(input_file);
 	tmp = strchr(input_base, '.');
-	if (tmp != NULL) {
+	if (tmp) {
 		*tmp = 0;
 	}
 	if (strlen(input_base) > 10) {
@@ -1299,7 +1299,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			"OBJCPLUS_INCLUDE_PATH", /* clang */
 			NULL
 		};
-		for (p = envvars; *p != NULL; ++p) {
+		for (p = envvars; *p; ++p) {
 			char *v = getenv(*p);
 			if (v) {
 				hash_delimiter(hash, *p);
@@ -2204,7 +2204,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	output_is_precompiled_header =
-		actual_language && strstr(actual_language, "-header") != NULL;
+		actual_language && strstr(actual_language, "-header");
 
 	if (!found_c_opt) {
 		if (output_is_precompiled_header) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010, 2013 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -147,7 +147,7 @@ extension_for_language(const char *language)
 bool
 language_is_supported(const char *language)
 {
-	return p_language_for_language(language) != NULL;
+	return p_language_for_language(language);
 }
 
 bool

@@ -58,7 +58,7 @@ win32argvtos(char *prefix, char **argv)
 	} while ((arg = argv[i++]));
 
 	str = ptr = malloc(l + 1);
-	if (str == NULL)
+	if (!str)
 		return NULL;
 
 	i = 0;
