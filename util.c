@@ -184,7 +184,7 @@ mkstemp(char *template)
 int
 copy_file(const char *src, const char *dest, int compress_dest)
 {
-	int fd_in = -1, fd_out = -1;
+	int fd_in, fd_out;
 	gzFile gz_in = NULL, gz_out = NULL;
 	char buf[10240];
 	int n, written;
@@ -1141,13 +1141,6 @@ x_readlink(const char *path)
 	long maxlen = path_max(path);
 	ssize_t len;
 	char *buf;
-#ifdef PATH_MAX
-	maxlen = PATH_MAX;
-#elif defined(MAXPATHLEN)
-	maxlen = MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-	maxlen = pathconf(path, _PC_PATH_MAX);
-#endif
 	if (maxlen < 4096) maxlen = 4096;
 
 	buf = x_malloc(maxlen);
@@ -1185,7 +1178,6 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 	}
 	allocated = size_hint;
 	*data = x_malloc(allocated);
-	ret = 0;
 	while (true) {
 		if (pos > allocated / 2) {
 			allocated *= 2;
