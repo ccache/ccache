@@ -1705,9 +1705,10 @@ cc_process_args(struct args *orig_args, struct args **preprocessor_args,
 
 	if (found_pch || found_fpch_preprocess) {
 		using_precompiled_header = true;
-		if (!(sloppiness & SLOPPY_TIME_MACROS)) {
-			cc_log("You have to specify \"time_macros\" sloppiness when using"
-			       " precompiled headers to get direct hits");
+		if (!(sloppiness & SLOPPY_PCH_DEFINES)
+		    || !(sloppiness & SLOPPY_TIME_MACROS)) {
+			cc_log("You have to specify \"pch_defines,time_macros\" sloppiness when"
+			       " using precompiled headers to get direct hits");
 			cc_log("Disabling direct mode");
 			stats_update(STATS_CANTUSEPCH);
 			result = false;
@@ -1939,6 +1940,10 @@ parse_sloppiness(char *p)
 		if (str_eq(word, "time_macros")) {
 			cc_log("Being sloppy about __DATE__ and __TIME__");
 			result |= SLOPPY_TIME_MACROS;
+		}
+		if (str_eq(word, "pch_defines")) {
+			cc_log("Being sloppy about PCH #defines");
+			result |= SLOPPY_PCH_DEFINES;
 		}
 		q = NULL;
 	}

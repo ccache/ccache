@@ -375,6 +375,9 @@ WRAPPERS>>.
     Ignore *\_\_FILE__* being present in the source.
 *include_file_mtime*::
     Don't check the modification time of include files in the direct mode.
+*pch_defines*::
+    Be sloppy about #defines when precompiling a header file. See
+    <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *time_macros*::
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
 --
@@ -570,9 +573,11 @@ Precompiled headers
 ccache has support for GCC's precompiled headers. However, you have to do some
 things to make it work properly:
 
-* You must set *CCACHE_SLOPPINESS* to *time_macros*. The reason is that ccache
-  can't tell whether *\_\_TIME\__* or *\_\_DATE__* is used when using a
-  precompiled header.
+* You must set *CCACHE_SLOPPINESS* to *pch_defines,time_macros*. The reason is
+  that ccache can't tell whether *\_\_TIME\__* or *\_\_DATE__* is used when
+  using a precompiled header. Further, it can't detect changes in #defines in
+  the source code because of how preprocessing works in combination with
+  precompiled headers.
 * You must either:
 +
 --
