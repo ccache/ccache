@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2013 Joel Rosdahl
+ * Copyright (C) 2009-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -968,6 +968,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 		if (str_startswith(args->argv[i], "-L")) {
+			continue;
+		}
+
+		/* The -fdebug-prefix-map option may be used in combination with
+		   CCACHE_BASEDIR to reuse results across different directories. Skip it
+		   from hashing. */
+		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
 			continue;
 		}
 
