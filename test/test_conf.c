@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Joel Rosdahl
+ * Copyright (C) 2011-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -114,7 +114,7 @@ TEST(conf_read_valid_config)
 		"read_only = true\n"
 		"recache = true\n"
 		"run_second_cpp = true\n"
-		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches  \n"
+		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches  pch_defines  \n"
 		"stats = false\n"
 		"temporary_dir = ${USER}_foo\n"
 		"umask = 777\n"
@@ -145,7 +145,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->run_second_cpp);
 	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_INCLUDE_FILE_CTIME|
 	             SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS|
-	             SLOPPY_FILE_STAT_MATCHES,
+	             SLOPPY_FILE_STAT_MATCHES|SLOPPY_PCH_DEFINES,
 	             conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);

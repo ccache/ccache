@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Joel Rosdahl
+ * Copyright (C) 2011-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -90,14 +90,16 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 	while ((word = strtok_r(q, ", ", &saveptr))) {
 		if (str_eq(word, "file_macro")) {
 			*value |= SLOPPY_FILE_MACRO;
-		} else if (str_eq(word, "include_file_mtime")) {
-			*value |= SLOPPY_INCLUDE_FILE_MTIME;
-		} else if (str_eq(word, "include_file_ctime")) {
-			*value |= SLOPPY_INCLUDE_FILE_CTIME;
-		} else if (str_eq(word, "time_macros")) {
-			*value |= SLOPPY_TIME_MACROS;
 		} else if (str_eq(word, "file_stat_matches")) {
 			*value |= SLOPPY_FILE_STAT_MATCHES;
+		} else if (str_eq(word, "include_file_ctime")) {
+			*value |= SLOPPY_INCLUDE_FILE_CTIME;
+		} else if (str_eq(word, "include_file_mtime")) {
+			*value |= SLOPPY_INCLUDE_FILE_MTIME;
+		} else if (str_eq(word, "pch_defines")) {
+			*value |= SLOPPY_PCH_DEFINES;
+		} else if (str_eq(word, "time_macros")) {
+			*value |= SLOPPY_TIME_MACROS;
 		} else {
 			*errmsg = format("unknown sloppiness: \"%s\"", word);
 			free(p);

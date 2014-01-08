@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2013 Joel Rosdahl
+ * Copyright (C) 2009-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -1161,6 +1161,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		/* The -fdebug-prefix-map option may be used in combination with
+		   CCACHE_BASEDIR to reuse results across different directories. Skip it
+		   from hashing. */
+		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
+			continue;
+		}
+
 		/* When using the preprocessor, some arguments don't contribute
 		   to the hash. The theory is that these arguments will change
 		   the output of -E if they are going to have any effect at
@@ -2177,7 +2184,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	if (found_pch || found_fpch_preprocess) {
 		using_precompiled_header = true;
-		if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
+		if (!(conf->sloppiness & SLOPPY_PCH_DEFINES)
+		    || !(conf->sloppiness & SLOPPY_TIME_MACROS)) {
 			cc_log("You have to specify \"time_macros\" sloppiness when using"
 			       " precompiled headers to get direct hits");
 			cc_log("Disabling direct mode");
