@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2013 Joel Rosdahl
+ * Copyright (C) 2009-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -986,23 +986,13 @@ common_dir_prefix_length(const char *s1, const char *s2)
 		++p1;
 		++p2;
 	}
-	if (*p2 == '/') {
-		/* s2 starts with "s1/". */
-		return p1 - s1;
-	}
-	if (!*p2) {
-		/* s2 is equal to s1. */
-		if (p2 == s2 + 1) {
-			/* Special case for s1 and s2 both being "/". */
-			return 0;
-		} else {
-			return p1 - s1;
-		}
-	}
-	/* Compute the common directory prefix */
-	while (p1 > s1 && *p1 != '/') {
+	while ((*p1 && *p1 != '/') || (*p2 && *p2 != '/')) {
 		p1--;
 		p2--;
+	}
+	if (!*p1 && !*p2 && p2 == s2 + 1) {
+		/* Special case for s1 and s2 both being "/". */
+		return 0;
 	}
 	return p1 - s1;
 }
