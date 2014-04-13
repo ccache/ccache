@@ -7,8 +7,10 @@
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
+#define ATTR_NORETURN __attribute__((noreturn));
 #else
 #define ATTR_FORMAT(x, y, z)
+#define ATTR_NORETURN
 #endif
 
 #ifndef MYNAME
@@ -101,7 +103,7 @@ bool hash_file(struct mdfour *md, const char *fname);
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
-void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 
 void copy_fd(int fd_in, int fd_out);
 int copy_file(const char *src, const char *dest, int compress_dest);
