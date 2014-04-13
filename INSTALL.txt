@@ -62,6 +62,8 @@ In addition to the prerequisites mentioned above, you also need:
 
 - AsciiDoc (http://www.methods.co.nz/asciidoc/) to build the documentation.
 - Autoconf (http://www.gnu.org/software/autoconf/)
+- gperf (http://www.gnu.org/software/gperf/)
+- xsltproc (http://xmlsoft.org/XSLT/xsltproc2.html)
 
 To debug and run the performance test suite you'll also need:
 
