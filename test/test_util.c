@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD
  * Copyright (C) 2010-2013 Joel Rosdahl
+=======
+ * Copyright (C) 2010, 2012-2014 Joel Rosdahl
+>>>>>>> maint
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -53,6 +57,8 @@ TEST(common_dir_prefix_length)
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a", "/a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/c"));
 	CHECK_INT_EQ(4, common_dir_prefix_length("/a/b", "/a/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a/bc", "/a/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/bc"));
 }
 
 TEST(get_relative_path)
