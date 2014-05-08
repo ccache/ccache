@@ -123,15 +123,6 @@ vlog(const char *format, va_list ap, bool log_updated_time)
  * Write a message to the log file (adding a newline) and flush.
  */
 void
-cc_vlog(const char *format, va_list ap)
-{
-	vlog(format, ap, true);
-}
-
-/*
- * Write a message to the log file (adding a newline) and flush.
- */
-void
 cc_log(const char *format, ...)
 {
 	va_list ap;
