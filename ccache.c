@@ -197,6 +197,14 @@ enum fromcache_call_mode {
 	FROMCACHE_COMPILED_MODE
 };
 
+struct pending_tmp_file {
+	char *path;
+	struct pending_tmp_file *next;
+};
+
+/* Temporary files to remove at program exit. */
+static struct pending_tmp_file *pending_tmp_files = NULL;
+
 /*
  * This is a string that identifies the current "version" of the hash sum
  * computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -231,23 +239,31 @@ failed(void)
 }
 
 static void
-clean_up_tmp_files()
+add_pending_tmp_file(const char *path)
 {
-	/* delete intermediate pre-processor file if needed */
-	if (i_tmpfile) {
-		if (!direct_i_file) {
-			tmp_unlink(i_tmpfile);
-		}
-		free(i_tmpfile);
-		i_tmpfile = NULL;
-	}
+	struct pending_tmp_file *e = x_malloc(sizeof(*e));
+	e->path = x_strdup(path);
+	e->next = pending_tmp_files;
+	pending_tmp_files = e;
+}
 
-	/* delete the cpp stderr file if necessary */
-	if (cpp_stderr) {
-		tmp_unlink(cpp_stderr);
-		free(cpp_stderr);
-		cpp_stderr = NULL;
+static void
+clean_up_pending_tmp_files(void)
+{
+	struct pending_tmp_file *p = pending_tmp_files;
+	while (p) {
+		tmp_unlink(p->path);
+		p = p->next;
+		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be signal
+		 * safe. */
 	}
+}
+
+static void
+signal_handler(int signo)
+{
+	(void)signo;
+	clean_up_pending_tmp_files();
 }
 
 /*
@@ -749,14 +765,16 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		input_base[10] = 0;
 	}
 
-	/* now the run */
-	path_stdout = format("%s/%s.tmp.%s.%s",
-	                     temp_dir, input_base, tmp_string(), i_extension);
 	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir, tmp_string());
+	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
 
 	if (!direct_i_file) {
+		path_stdout = format("%s/%s.tmp.%s.%s",
+		                     temp_dir, input_base, tmp_string(), i_extension);
+		add_pending_tmp_file(path_stdout);
+
 		/* run cpp on the input file to obtain the .i */
 		args_add(args, "-E");
 		args_add(args, input_file);
@@ -776,10 +794,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	if (status != 0) {
-		if (!direct_i_file) {
-			tmp_unlink(path_stdout);
-		}
-		tmp_unlink(path_stderr);
 		cc_log("Preprocessor gave exit status %d", status);
 		stats_update(STATS_PREPROCESSOR);
 		failed();
@@ -796,7 +810,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_delimiter(hash, "unifycpp");
 		if (unify_hash(hash, path_stdout) != 0) {
 			stats_update(STATS_ERROR);
-			tmp_unlink(path_stderr);
 			cc_log("Failed to unify %s", path_stdout);
 			failed();
 		}
@@ -804,7 +817,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_delimiter(hash, "cpp");
 		if (!process_preprocessed_file(hash, path_stdout)) {
 			stats_update(STATS_ERROR);
-			tmp_unlink(path_stderr);
 			failed();
 		}
 	}
@@ -824,7 +836,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		 */
 		cpp_stderr = path_stderr;
 	} else {
-		tmp_unlink(path_stderr);
 		free(path_stderr);
 	}
 
@@ -2248,9 +2259,13 @@ ccache_main(int argc, char *argv[])
 	char *p;
 	char *program_name;
 
+	signal(SIGHUP, signal_handler);
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
-	exitfn_add_nullary(clean_up_tmp_files);
+	exitfn_add_nullary(clean_up_pending_tmp_files);
 
 	/* check for logging early so cc_log messages start working ASAP */
 	cache_logfile = getenv("CCACHE_LOGFILE");
