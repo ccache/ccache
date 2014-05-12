@@ -266,6 +266,44 @@ signal_handler(int signo)
 	clean_up_pending_tmp_files();
 }
 
+static void
+clean_up_internal_tempdir(void)
+{
+	DIR *dir;
+	struct dirent *entry;
+	struct stat st;
+	time_t now = time(NULL);
+
+	stat(cache_dir, &st);
+	if (st.st_mtime + 3600 >= now) {
+		/* No cleanup needed. */
+		return;
+	}
+
+	update_mtime(cache_dir);
+
+	dir = opendir(temp_dir);
+	if (!dir) {
+		return;
+	}
+
+	while ((entry = readdir(dir))) {
+		char *path;
+
+		if (str_eq(entry->d_name, ".") || str_eq(entry->d_name, "..")) {
+			continue;
+		}
+
+		path = format("%s/%s", temp_dir, entry->d_name);
+		if (lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
+			tmp_unlink(path);
+		}
+		free(path);
+	}
+
+	closedir(dir);
+}
+
 /*
  * Transform a name to a full path into the cache directory, creating needed
  * sublevels if needed. Caller frees.
@@ -2258,6 +2296,7 @@ ccache_main(int argc, char *argv[])
 {
 	char *p;
 	char *program_name;
+	bool external_tempdir;
 
 	signal(SIGHUP, signal_handler);
 	signal(SIGINT, signal_handler);
@@ -2317,11 +2356,6 @@ ccache_main(int argc, char *argv[])
 
 	check_cache_dir();
 
-	temp_dir = getenv("CCACHE_TEMPDIR");
-	if (!temp_dir) {
-		temp_dir = format("%s/tmp", cache_dir);
-	}
-
 	base_dir = getenv("CCACHE_BASEDIR");
 	if (base_dir && base_dir[0] != '/') {
 		cc_log("Ignoring non-absolute base directory %s", base_dir);
@@ -2339,11 +2373,22 @@ ccache_main(int argc, char *argv[])
 	}
 
 	/* make sure the temp dir exists */
+	temp_dir = getenv("CCACHE_TEMPDIR");
+	if (temp_dir) {
+		external_tempdir = true;
+	} else {
+		temp_dir = format("%s/tmp", cache_dir);
+		external_tempdir = false;
+	}
 	if (create_dir(temp_dir) != 0) {
 		fprintf(stderr,
 		        "ccache: failed to create %s (%s)\n",
 		        temp_dir, strerror(errno));
 		exit(1);
+	}
+
+	if (!external_tempdir) {
+		clean_up_internal_tempdir();
 	}
 
 	ccache(argv);
