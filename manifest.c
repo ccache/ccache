@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010, 2012 Joel Rosdahl
+ * Copyright (C) 2009-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -138,6 +138,16 @@ free_manifest(struct manifest *mf)
 	free(mf);
 }
 
+#define READ_BYTE(var) \
+	do { \
+		int ch_; \
+		ch_ = gzgetc(f); \
+		if (ch_ == EOF) { \
+			goto error; \
+		} \
+		(var) = ch_ & 0xFF; \
+	} while (0)
+
 #define READ_INT(size, var) \
 	do { \
 		int ch_; \
@@ -221,14 +231,14 @@ read_manifest(gzFile f)
 		free_manifest(mf);
 		return NULL;
 	}
-	READ_INT(1, version);
+	READ_BYTE(version);
 	if (version != VERSION) {
 		cc_log("Manifest file has unknown version %u", version);
 		free_manifest(mf);
 		return NULL;
 	}
 
-	READ_INT(1, mf->hash_size);
+	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
 		/* Temporary measure until we support different hash algorithms. */
 		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
