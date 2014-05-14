@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2004 Andrew Tridgell
- * Copyright (C) 2009-2012, 2014 Joel Rosdahl
+ * Copyright (C) 2009-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -205,7 +205,9 @@ stats_flush(void)
 		return;
 	}
 
-	init_counter_updates();
+	if (!counter_updates) {
+		return;
+	}
 
 	for (i = 0; i < STATS_END; ++i) {
 		if (counter_updates->data[i] > 0) {
@@ -213,7 +215,9 @@ stats_flush(void)
 			break;
 		}
 	}
-	if (!should_flush) return;
+	if (!should_flush) {
+		return;
+	}
 
 	if (!stats_file) {
 		char *stats_dir;
