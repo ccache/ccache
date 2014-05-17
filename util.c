@@ -74,7 +74,7 @@ log_prefix(bool log_updated_time)
 	if (log_updated_time) {
 		gettimeofday(&tv, NULL);
 #ifdef __MINGW64_VERSION_MAJOR
-		tm = _localtime32(&tv.tv_sec);
+		tm = localtime((time_t*)&tv.tv_sec);
 #else
 		tm = localtime(&tv.tv_sec);
 #endif
