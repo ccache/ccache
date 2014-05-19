@@ -2610,7 +2610,9 @@ ccache(int argc, char *argv[])
 	initialize();
 	find_compiler(argv);
 
+#ifndef _WIN32
 	signal(SIGHUP, signal_handler);
+#endif
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 
