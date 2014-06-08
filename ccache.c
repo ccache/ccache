@@ -167,9 +167,6 @@ char *stats_file = NULL;
 /* Whether the output is a precompiled header */
 static bool output_is_precompiled_header = false;
 
-/* Whether we should output to the real object first before saving into cache */
-static bool output_to_real_object_first = false;
-
 /* Profile generation / usage information */
 static char *profile_dir = NULL;
 static bool profile_use = false;
@@ -666,7 +663,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_obj, *tmp_dia;
+	char *tmp_stdout, *tmp_stderr, *tmp_dia;
 	struct stat st;
 	int status;
 	size_t added_bytes = 0;
@@ -679,23 +676,11 @@ to_cache(struct args *args)
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
 
-	if (output_to_real_object_first) {
-		tmp_obj = x_strdup(output_obj);
-		cc_log("Outputting to final destination: %s", tmp_obj);
-	} else {
-		tmp_obj = format("%s.tmp.%s", cached_obj, tmp_string());
-	}
-
 	args_add(args, "-o");
-	args_add(args, tmp_obj);
+	args_add(args, output_obj);
 
 	if (output_dia) {
-		if (output_to_real_object_first) {
-			tmp_dia = x_strdup(output_dia);
-			cc_log("Outputting to final destination: %s", tmp_dia);
-		} else {
-			tmp_dia = format("%s.tmp.dia.%s", cached_obj, tmp_string());
-		}
+		tmp_dia = x_strdup(output_dia);
 		args_add(args, "--serialize-diagnostics");
 		args_add(args, tmp_dia);
 	} else {
@@ -725,7 +710,6 @@ to_cache(struct args *args)
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		tmp_unlink(tmp_obj);
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -733,7 +717,6 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		tmp_unlink(tmp_obj);
 		if (tmp_dia) {
 			tmp_unlink(tmp_dia);
 		}
@@ -788,11 +771,7 @@ to_cache(struct args *args)
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			if (str_eq(output_obj, "/dev/null")
-			    || (!output_to_real_object_first
-			        && access(tmp_obj, R_OK) == 0
-			        && move_file(tmp_obj, output_obj, 0) == 0)
-			    || errno == ENOENT) {
+			if (str_eq(output_obj, "/dev/null") || errno == ENOENT) {
 				/* we can use a quick method of getting the failed output */
 				copy_fd(fd, 2);
 				close(fd);
@@ -826,14 +805,13 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
-		tmp_unlink(tmp_obj);
 		if (tmp_dia) {
 			tmp_unlink(tmp_dia);
 		}
 		failed();
 	}
 
-	if (stat(tmp_obj, &st) != 0) {
+	if (stat(output_obj, &st) != 0) {
 		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
 		failed();
@@ -879,24 +857,15 @@ to_cache(struct args *args)
 			failed();
 		}
 		if (st.st_size > 0) {
-			if (output_to_real_object_first) {
-				int ret;
-				if (conf->hard_link && !conf->compression) {
-					ret = link(tmp_dia, cached_dia);
-				} else {
-					ret = copy_file(tmp_dia, cached_dia, conf->compression);
-				}
-				if (ret != 0) {
-					cc_log("Failed to copy/link %s to %s: %s",
-					       tmp_dia, cached_dia, strerror(errno));
-					stats_update(STATS_ERROR);
-					failed();
-				}
-			} else if (move_uncompressed_file(
-				           tmp_dia, cached_dia,
-				           conf->compression ? conf->compression_level : 0) != 0) {
-				cc_log("Failed to move %s to %s: %s", tmp_dia, cached_dia,
-				       strerror(errno));
+			int ret;
+			if (conf->hard_link && !conf->compression) {
+				ret = link(tmp_dia, cached_dia);
+			} else {
+				ret = copy_file(tmp_dia, cached_dia, conf->compression);
+			}
+			if (ret != 0) {
+				cc_log("Failed to copy/link %s to %s: %s",
+				       tmp_dia, cached_dia, strerror(errno));
 				stats_update(STATS_ERROR);
 				failed();
 			}
@@ -907,23 +876,16 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (output_to_real_object_first) {
-		int ret;
-		if (conf->hard_link && !conf->compression) {
-			ret = link(tmp_obj, cached_obj);
-		} else {
-			ret = copy_file(tmp_obj, cached_obj, conf->compression);
-		}
-		if (ret != 0) {
-			cc_log("Failed to copy/link %s to %s: %s",
-			       tmp_obj, cached_obj, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-	} else if (move_uncompressed_file(
-		           tmp_obj, cached_obj,
-		           conf->compression ? conf->compression_level : 0) != 0) {
-		cc_log("Failed to move %s to %s: %s", tmp_obj, cached_obj, strerror(errno));
+	int ret;
+	if (conf->hard_link && !conf->compression) {
+		x_unlink(cached_obj);
+		ret = link(output_obj, cached_obj);
+	} else {
+		ret = copy_file(output_obj, cached_obj, conf->compression);
+	}
+	if (ret != 0) {
+		cc_log("Failed to copy/link %s to %s: %s",
+		       output_obj, cached_obj, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -955,7 +917,6 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	free(tmp_obj);
 	free(tmp_stderr);
 	free(tmp_stdout);
 	free(tmp_dia);
@@ -1318,7 +1279,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	 * artifacts will be produced in the wrong place.
 	 */
 	if (profile_generate) {
-		output_to_real_object_first = true;
 		if (!profile_dir) {
 			profile_dir = get_cwd();
 		}
@@ -1330,7 +1290,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* Calculate gcda name */
 		char *gcda_name;
 		char *base_name;
-		output_to_real_object_first = true;
 		base_name = remove_extension(output_obj);
 		if (!profile_dir) {
 			profile_dir = get_cwd();
