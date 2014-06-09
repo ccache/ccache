@@ -659,6 +659,71 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	return true;
 }
 
+/* Copy or link a file to the cache. */
+static void
+put_file_in_cache(const char *source, const char *dest)
+{
+	int ret;
+	struct stat st;
+	bool do_link = conf->hard_link && !conf->compression;
+
+	if (do_link) {
+		x_unlink(dest);
+		ret = link(source, dest);
+	} else {
+		ret = copy_file(source, dest, conf->compression);
+	}
+	if (ret != 0) {
+		cc_log("Failed to %s %s to %s: %s",
+		       do_link ? "link" : "copy",
+		       source,
+		       dest,
+		       strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	cc_log("Stored in cache: %s -> %s", source, dest);
+	if (stat(dest, &st) != 0) {
+		cc_log("Failed to stat %s: %s", dest, strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	stats_update_size(file_size(&st), 1);
+}
+
+/* Copy or link a file from the cache. */
+static void
+get_file_from_cache(const char *source, const char *dest)
+{
+	int ret;
+	bool do_link = conf->hard_link && !file_is_compressed(source);
+
+	if (do_link) {
+		x_unlink(dest);
+		ret = link(source, dest);
+	} else {
+		ret = copy_file(source, dest, 0);
+	}
+
+	if (ret == -1) {
+		if (errno == ENOENT) {
+			/* Someone removed the file just before we began copying? */
+			cc_log("Cache file %s just disappeared from cache", source);
+			stats_update(STATS_MISSING);
+		} else {
+			cc_log("Failed to %s %s to %s: %s",
+			       do_link ? "link" : "copy",
+			       source,
+			       dest,
+			       strerror(errno));
+			stats_update(STATS_ERROR);
+		}
+		failed();
+	}
+
+	cc_log("Created from cache: %s -> %s", source, dest);
+}
+
 /* run the real compiler and put the result in cache */
 static void
 to_cache(struct args *args)
@@ -666,8 +731,6 @@ to_cache(struct args *args)
 	char *tmp_stdout, *tmp_stderr, *tmp_dia;
 	struct stat st;
 	int status;
-	size_t added_bytes = 0;
-	unsigned added_files = 0;
 
 	if (create_parent_dirs(cached_obj) != 0) {
 		fatal("Failed to create parent directory for %s: %s",
@@ -840,8 +903,7 @@ to_cache(struct args *args)
 		if (conf->compression) {
 			stat(cached_stderr, &st);
 		}
-		added_bytes += file_size(&st);
-		added_files += 1;
+		stats_update_size(file_size(&st), 1);
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
@@ -857,54 +919,12 @@ to_cache(struct args *args)
 			failed();
 		}
 		if (st.st_size > 0) {
-			int ret;
-			if (conf->hard_link && !conf->compression) {
-				ret = link(tmp_dia, cached_dia);
-			} else {
-				ret = copy_file(tmp_dia, cached_dia, conf->compression);
-			}
-			if (ret != 0) {
-				cc_log("Failed to copy/link %s to %s: %s",
-				       tmp_dia, cached_dia, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			cc_log("Stored in cache: %s", cached_dia);
-			stat(cached_dia, &st);
-			added_bytes += file_size(&st);
-			added_files += 1;
+			put_file_in_cache(tmp_dia, cached_dia);
 		}
 	}
 
-	int ret;
-	if (conf->hard_link && !conf->compression) {
-		x_unlink(cached_obj);
-		ret = link(output_obj, cached_obj);
-	} else {
-		ret = copy_file(output_obj, cached_obj, conf->compression);
-	}
-	if (ret != 0) {
-		cc_log("Failed to copy/link %s to %s: %s",
-		       output_obj, cached_obj, strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
-	}
-	cc_log("Stored in cache: %s", cached_obj);
-	stat(cached_obj, &st);
-	added_bytes += file_size(&st);
-	added_files += 1;
-
-	/*
-	 * Do an extra stat on the potentially compressed object file for the
-	 * size statistics.
-	 */
-	if (stat(cached_obj, &st) != 0) {
-		cc_log("Failed to stat %s: %s", cached_obj, strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
-	}
-
-	stats_update_size(STATS_TOCACHE, added_bytes, added_files);
+	put_file_in_cache(output_obj, cached_obj);
+	stats_update(STATS_TOCACHE);
 
 	/* Make sure we have a CACHEDIR.TAG
 	 * This can be almost anywhere, but might as well do it near the end
@@ -1371,7 +1391,6 @@ static void
 from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
 	int fd_stderr;
-	int ret;
 	struct stat st;
 	bool produce_dep_file;
 
@@ -1414,109 +1433,15 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	if (str_eq(output_obj, "/dev/null")) {
-		ret = 0;
-	} else {
-		x_unlink(output_obj);
-		/* only make a hardlink if the cache file is uncompressed */
-		if (conf->hard_link && !file_is_compressed(cached_obj)) {
-			ret = link(cached_obj, output_obj);
-		} else {
-			ret = copy_file(cached_obj, output_obj, 0);
-		}
+	if (!str_eq(output_obj, "/dev/null")) {
+		get_file_from_cache(cached_obj, output_obj);
 	}
-
-	if (ret == -1) {
-		if (errno == ENOENT) {
-			/* Someone removed the file just before we began copying? */
-			cc_log("Object file %s just disappeared from cache", cached_obj);
-			stats_update(STATS_MISSING);
-		} else {
-			cc_log("Failed to copy/link %s to %s: %s",
-			       cached_obj, output_obj, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		x_unlink(output_obj);
-		x_unlink(cached_stderr);
-		x_unlink(cached_obj);
-		x_unlink(cached_dep);
-		x_unlink(cached_dia);
-		return;
-	} else {
-		cc_log("Created %s from %s", output_obj, cached_obj);
-	}
-
 	if (produce_dep_file) {
-		x_unlink(output_dep);
-		/* only make a hardlink if the cache file is uncompressed */
-		if (conf->hard_link && !file_is_compressed(cached_dep)) {
-			ret = link(cached_dep, output_dep);
-		} else {
-			ret = copy_file(cached_dep, output_dep, 0);
-		}
-		if (ret == -1) {
-			if (errno == ENOENT) {
-				/*
-				 * Someone removed the file just before we
-				 * began copying?
-				 */
-				cc_log("Dependency file %s just disappeared from cache", output_obj);
-				stats_update(STATS_MISSING);
-			} else {
-				cc_log("Failed to copy/link %s to %s: %s",
-				       cached_dep, output_dep, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			x_unlink(output_obj);
-			x_unlink(output_dep);
-			x_unlink(cached_stderr);
-			x_unlink(cached_obj);
-			x_unlink(cached_dep);
-			x_unlink(cached_dia);
-			return;
-		} else {
-			cc_log("Created %s from %s", output_dep, cached_dep);
-		}
+		get_file_from_cache(cached_dep, output_dep);
 	}
-
 	if (output_dia) {
-		x_unlink(output_dia);
-		/* only make a hardlink if the cache file is uncompressed */
-		if (conf->hard_link && !file_is_compressed(cached_dia)) {
-			ret = link(cached_dia, output_dia);
-		} else {
-			ret = copy_file(cached_dia, output_dia, 0);
-		}
-
-		if (ret == -1) {
-			if (errno == ENOENT) {
-				/*
-				 * Someone removed the file just before we
-				 * began copying?
-				 */
-				cc_log("Diagnostic file %s just disappeared from cache", output_dia);
-				stats_update(STATS_MISSING);
-			} else {
-				cc_log("Failed to copy/link %s to %s: %s",
-				       cached_dia, output_dia, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			x_unlink(output_obj);
-			x_unlink(output_dep);
-			x_unlink(output_dia);
-			x_unlink(cached_stderr);
-			x_unlink(cached_obj);
-			x_unlink(cached_dep);
-			x_unlink(cached_dia);
-			return;
-		} else {
-			cc_log("Created %s from %s", output_dia, cached_dia);
-		}
+		get_file_from_cache(cached_dia, output_dia);
 	}
-
 
 	/* Update modification timestamps to save files from LRU cleanup.
 	   Also gives files a sensible mtime when hard-linking. */
@@ -1530,17 +1455,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
-		/* Store the dependency file in the cache. */
-		ret = copy_file(output_dep, cached_dep, conf->compression);
-		if (ret == -1) {
-			cc_log("Failed to copy %s to %s: %s", output_dep, cached_dep,
-			       strerror(errno));
-			/* Continue despite the error. */
-		} else {
-			cc_log("Stored in cache: %s", cached_dep);
-			stat(cached_dep, &st);
-			stats_update_size(STATS_NONE, file_size(&st), 1);
-		}
+		put_file_in_cache(output_dep, cached_dep);
 	}
 
 	/* Send the stderr, if any. */
@@ -1564,9 +1479,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			cc_log("Added object file hash to %s", manifest_path);
 			update_mtime(manifest_path);
 			stat(manifest_path, &st);
-			stats_update_size(STATS_NONE,
-			                  (file_size(&st) - old_size),
-			                  old_size == 0 ? 1 : 0);
+			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 		} else {
 			cc_log("Failed to add object file hash to %s", manifest_path);
 		}

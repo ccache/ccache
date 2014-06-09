@@ -163,16 +163,13 @@ init_counter_updates(void)
 }
 
 /*
- * Update a statistics counter (unless it's STATS_NONE) and also record that a
- * number of bytes and files have been added to the cache. Size is in KiB.
+ * Record that a number of bytes and files have been added to the cache. Size
+ * is in KiB.
  */
 void
-stats_update_size(enum stats stat, uint64_t size, unsigned files)
+stats_update_size(uint64_t size, unsigned files)
 {
 	init_counter_updates();
-	if (stat != STATS_NONE) {
-		counter_updates->data[stat]++;
-	}
 	counter_updates->data[STATS_NUMFILES] += files;
 	counter_updates->data[STATS_TOTALSIZE] += size / 1024;
 }
@@ -273,7 +270,9 @@ stats_flush(void)
 void
 stats_update(enum stats stat)
 {
-	stats_update_size(stat, 0, 0);
+	assert(stat > STATS_NONE && stat < STATS_END);
+	init_counter_updates();
+	counter_updates->data[stat]++;
 }
 
 /* Get the pending update of a counter value. */

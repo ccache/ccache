@@ -178,7 +178,7 @@ void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(struct conf *conf);
-void stats_update_size(enum stats stat, uint64_t size, unsigned files);
+void stats_update_size(uint64_t size, unsigned files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
 void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
