@@ -30,6 +30,7 @@ unset CCACHE_EXTENSION
 unset CCACHE_EXTRAFILES
 unset CCACHE_HARDLINK
 unset CCACHE_HASHDIR
+unset CCACHE_LIMIT_MULTIPLE
 unset CCACHE_LOGFILE
 unset CCACHE_NLEVELS
 unset CCACHE_NODIRECT
@@ -2007,6 +2008,14 @@ cleanup_suite() {
     $CCACHE -c >/dev/null
     checkfilecount 1 '.nfs*' $CCACHE_DIR
     checkstat 'files in cache' 30
+
+    testname="cleanup limit multiple"
+    $CCACHE -C >/dev/null
+    prepare_cleanup_test $CCACHE_DIR/a
+    # (1/1) * 30 * 16 = 480
+    $CCACHE -F 480  >/dev/null
+    CCACHE_LIMIT_MULTIPLE=0.5 $CCACHE -c >/dev/null
+    checkstat 'files in cache' 15
 }
 
 pch_suite() {

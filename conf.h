@@ -17,6 +17,7 @@ struct conf {
 	char *extra_files_to_hash;
 	bool hard_link;
 	bool hash_dir;
+	float limit_multiple;
 	char *log_file;
 	unsigned max_files;
 	uint64_t max_size;
