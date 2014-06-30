@@ -186,6 +186,7 @@ TEST() {
     unset CCACHE_EXTRAFILES
     unset CCACHE_HARDLINK
     unset CCACHE_IGNOREHEADERS
+    unset CCACHE_LIMIT_MULTIPLE
     unset CCACHE_LOGFILE
     unset CCACHE_NLEVELS
     unset CCACHE_NOCPP2
@@ -2647,6 +2648,16 @@ SUITE_cleanup() {
     $CCACHE -c >/dev/null
     expect_file_count 1 '.nfs*' $CCACHE_DIR
     expect_stat 'files in cache' 30
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_LIMIT_MULTIPLE"
+
+    prepare_cleanup_test_dir $CCACHE_DIR/a
+
+    # (1/1) * 30 * 16 = 480
+    $CCACHE -F 480 >/dev/null
+    CCACHE_LIMIT_MULTIPLE=0.5 $CCACHE -c >/dev/null
+    expect_stat 'files in cache' 15
 }
 
 # =============================================================================

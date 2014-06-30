@@ -60,6 +60,23 @@ parse_env_string(const char *str, void *result, char **errmsg)
 }
 
 static bool
+parse_float(const char *str, void *result, char **errmsg)
+{
+	float *value = (float *)result;
+	float x;
+	char *endptr;
+	errno = 0;
+	x = strtof(str, &endptr);
+	if (errno == 0 && *str != '\0' && *endptr == '\0') {
+		*value = x;
+		return true;
+	} else {
+		*errmsg = format("invalid floating point: \"%s\"", str);
+		return false;
+	}
+}
+
+static bool
 parse_size(const char *str, void *result, char **errmsg)
 {
 	uint64_t *value = (uint64_t *)result;
@@ -309,6 +326,7 @@ conf_create(void)
 	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->keep_comments_cpp = false;
+	conf->limit_multiple = 0.8f;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
@@ -561,6 +579,9 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "keep_comments_cpp = %s", bool_to_string(conf->keep_comments_cpp));
 	printer(s, conf->item_origins[find_conf(
 	                                "keep_comments_cpp")->number], context);
+
+	reformat(&s, "limit_multiple = %.1f", (double) conf->limit_multiple);
+	printer(s, conf->item_origins[find_conf("limit_multiple")->number], context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
 	printer(s, conf->item_origins[find_conf("log_file")->number], context);

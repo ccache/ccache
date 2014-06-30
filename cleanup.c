@@ -17,11 +17,6 @@
 
 #include "ccache.h"
 
-// When "max files" or "max cache size" is reached, one of the 16 cache
-// subdirectories is cleaned up. When doing so, files are deleted (in LRU
-// order) until the levels are below LIMIT_MULTIPLE.
-#define LIMIT_MULTIPLE 0.8
-
 static struct files {
 	char *fname;
 	time_t mtime;
@@ -179,8 +174,13 @@ cleanup_dir(struct conf *conf, const char *dir)
 {
 	cc_log("Cleaning up cache directory %s", dir);
 
-	cache_size_threshold = conf->max_size * LIMIT_MULTIPLE / 16;
-	files_in_cache_threshold = conf->max_files * LIMIT_MULTIPLE / 16;
+	/*
+	 * When "max files" or "max cache size" is reached, one of the 16 cache
+	 * subdirectories is cleaned up. When doing so, files are deleted (in LRU
+	 * order) until the levels are below limit_multiple.
+	 */
+	cache_size_threshold = conf->max_size * conf->limit_multiple / 16;
+	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
 
 	num_files = 0;
 	cache_size = 0;
@@ -250,7 +250,7 @@ wipe_dir(struct conf *conf, const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);
 
-	files_in_cache_threshold = conf->max_files * LIMIT_MULTIPLE / 16;
+	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
 	files_in_cache = 0;
 
 	traverse(dir, wipe_fn);
