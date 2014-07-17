@@ -2,6 +2,56 @@ ccache news
 ===========
 
 
+ccache 3.1.notyetreleased
+-------------------------
+Release date: unknown
+
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for `-Xclang` compiler option.
+
+- Improved handling of exit code of internally executed processes.
+
+- Zero length object files in the cache are now rejected as invalid.
+
+- Bail out on option `-gsplit-dwarf` (since it produces multiple output files).
+
+- Compiler option `-fdebug-prefix-map` is now ignored (not part of the hash).
+  (The `-fdebug-prefix-map` option may be used in combination with
+  `CCACHE_BASEDIR` to reuse results across different directories.)
+
+- Added note in documentation that `--ccache-skip` currently does not mean
+  ``don't hash the following option''.
+
+- To enable support for precompiled headers (PCH), `CCACHE_SLOPPINESS` now also
+  needs to include the new `pch_defines` sloppiness. This is because ccache
+  can't detect changes in the source code when only `#define`s have been
+  changed.
+
+- Stale files in the internal temporary directory (`<ccache_dir>/tmp`) are now
+  cleaned up if they are older than one hour.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed path canonicalization in `make_relative_path()` when path doesn't
+  exist.
+
+- Fixed bug in `common_dir_prefix_length()`. This fixes a bug in the
+  `CCACHE_BASEDIR` behavior.
+
+- ccache no longer tries to create the cache directory when `CCACHE_DISABLE` is
+  set.
+
+- Fixed bug when reading manifests with a very large number of file info
+  entries.
+
+- Fixed problem with logging of current working directory.
+
+
 ccache 3.1.9
 ------------
 Release date: 2013-01-06
@@ -172,7 +222,7 @@ Release date: 2011-01-09
 Bug fixes
 ~~~~~~~~~
 
-- Made a work-around for a bug in gzputc() in zlib 1.2.5.
+- Made a work-around for a bug in `gzputc()` in zlib 1.2.5.
 
 - Corrupt manifest files are now removed so that they won't block direct mode
   hits.
@@ -288,9 +338,9 @@ New features and improvements
 - Reading and writing of statistics counters has been made forward-compatible
   (unknown counters are retained).
 
-- Files are now read without using mmap(). This has two benefits: it's more
+- Files are now read without using `mmap()`. This has two benefits: it's more
   robust against file changes during reading and it improves performance on
-  poor systems where mmap() doesn't use the disk cache.
+  poor systems where `mmap()` doesn't use the disk cache.
 
 - Added `.cp` and `.CP` as known C++ suffixes.
 
