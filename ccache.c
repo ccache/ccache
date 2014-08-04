@@ -339,6 +339,24 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
+static char *
+get_current_working_dir(void)
+{
+	if (!current_working_dir) {
+		char *cwd = get_cwd();
+		if (cwd) {
+			current_working_dir = x_realpath(cwd);
+			free(cwd);
+		}
+		if (!current_working_dir) {
+			cc_log("Unable to determine current working directory: %s",
+			       strerror(errno));
+			failed();
+		}
+	}
+	return current_working_dir;
+}
+
 /*
  * Transform a name to a full path into the cache directory, creating needed
  * sublevels if needed. Caller frees.
@@ -499,20 +517,6 @@ make_relative_path(char *path)
 		return path;
 	}
 
-	/* Look up CWD and cache it in the global current_working_dir variable. */
-	if (!current_working_dir) {
-		char *cwd = get_cwd();
-		if (cwd) {
-			current_working_dir = x_realpath(cwd);
-			free(cwd);
-		}
-		if (!current_working_dir) {
-			cc_log("Unable to determine current working directory: %s",
-			       strerror(errno));
-			failed();
-		}
-	}
-
 	/* x_realpath only works for existing paths, so if path doesn't exist, try
 	 * dirname(path) and assemble the path afterwards. We only bother to try
 	 * canonicalizing one of these two paths since a compiler path argument
@@ -535,7 +539,7 @@ make_relative_path(char *path)
 	canon_path = x_realpath(path);
 	if (canon_path) {
 		free(path);
-		relpath = get_relative_path(current_working_dir, canon_path);
+		relpath = get_relative_path(get_current_working_dir(), canon_path);
 		free(canon_path);
 		if (path_suffix) {
 			path = format("%s/%s", relpath, path_suffix);
@@ -2505,7 +2509,7 @@ ccache(int argc, char *argv[])
 
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
-	cc_log("Working directory: %s", current_working_dir);
+	cc_log("Working directory: %s", get_current_working_dir());
 
 	if (conf->unify) {
 		cc_log("Direct mode disabled because unify mode is enabled");
