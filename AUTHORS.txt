@@ -10,7 +10,7 @@ ccache is a collective work with contributions from many people, including:
 * Andrea Bittau <a.bittau@cs.ucl.ac.uk>
 * Andrew Stubbs <ams@codesourcery.com>
 * Andrew Tridgell <tridge@samba.org>
-* Bernhard Bauer <bauerb@google.com>
+* Bernhard Bauer <bauerb@chromium.org>
 * Björn Jacke <bj@sernet.de>
 * Bo Rydberg <bolry@hotmail.com>
 * Clemens Rabe <crabe@gmx.de>
@@ -24,6 +24,7 @@ ccache is a collective work with contributions from many people, including:
 * Lars Gustäbel <lars@gustaebel.de>
 * Lubos Lunak <l.lunak@suse.cz>
 * Martin Pool <mbp@sourcefrog.net>
+* Michael Meeks <michael.meeks@suse.com>
 * Owen Mann <owen@mann.org>
 * Patrick von Reth <vonreth@kde.org>
 * Paul Griffith <paulg@cse.yorku.ca>
@@ -35,5 +36,6 @@ ccache is a collective work with contributions from many people, including:
 * Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
 * Wilson Snyder <wsnyder@wsnyder.org>
+* Yiding Jia <yiding@fb.com>
 
 Thanks!
