@@ -1099,21 +1099,24 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 }
 
 /*
- * Note that these compiler checks are unreliable, so nothing should hard-depend on them.
+ * Note that these compiler checks are unreliable, so nothing should
+ * hard-depend on them.
  */
 
-static bool compiler_is_clang(struct args *args)
+static bool
+compiler_is_clang(struct args *args)
 {
-	char* name = basename(args->argv[ 0 ]);
-	bool is = strstr( name, "clang" ) != NULL;
+	char* name = basename(args->argv[0]);
+	bool is = strstr(name, "clang");
 	free(name);
 	return is;
 }
 
-static bool compiler_is_gcc(struct args *args)
+static bool
+compiler_is_gcc(struct args *args)
 {
-	char* name = basename(args->argv[ 0 ]);
-	bool is = strstr(name, "gcc") != NULL || strstr(name, "g++") != NULL;
+	char* name = basename(args->argv[0]);
+	bool is = strstr(name, "gcc") || strstr(name, "g++");
 	free(name);
 	return is;
 }
@@ -1185,9 +1188,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 
 	/* Possibly hash GCC_COLORS (for color diagnostics). */
 	if (compiler_is_gcc(args)) {
-		const char* gcc_colors = getenv("GCC_COLORS");
-		if (gcc_colors != NULL) {
-			hash_delimiter(hash,"gcccolors");
+		const char *gcc_colors = getenv("GCC_COLORS");
+		if (gcc_colors) {
+			hash_delimiter(hash, "gcccolors");
 			hash_string(hash, gcc_colors);
 		}
 	}
@@ -1587,10 +1590,10 @@ is_precompiled_header(const char *path)
 	       || str_eq(get_extension(path), ".pth");
 }
 
-static bool color_output_possible()
+static bool
+color_output_possible(void)
 {
-	const char* term_env = getenv("TERM");
-
+	const char *term_env = getenv("TERM");
 	return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
 }
 
@@ -2289,8 +2292,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	/*
-	 * Since output is redirected, compilers will not color their output by default,
-	 * so force it explicitly if it would be otherwise done.
+	 * Since output is redirected, compilers will not color their output by
+	 * default, so force it explicitly if it would be otherwise done.
 	 */
 	if (!found_color_diagnostics && color_output_possible()) {
 		if (compiler_is_clang(args)) {
@@ -2298,12 +2301,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			cc_log("Automatically enabling colors");
 		} else if (compiler_is_gcc(args)) {
 			/*
-			 * GCC has it since 4.9, but that'd require detecting what GCC
-			 * version is used for the actual compile. However it requires
-			 * also GCC_COLORS to be set (and not empty), so use that
-			 * for detecting if GCC would use colors.
+			 * GCC has it since 4.9, but that'd require detecting what GCC version is
+			 * used for the actual compile. However it requires also GCC_COLORS to be
+			 * set (and not empty), so use that for detecting if GCC would use
+			 * colors.
 			 */
-			if (getenv("GCC_COLORS") != NULL && getenv("GCC_COLORS")[ 0 ] != '\0') {
+			if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
 				args_add(stripped_args, "-fdiagnostics-color");
 				cc_log("Automatically enabling colors");
 			}
