@@ -1925,18 +1925,39 @@ EOF
 
 gcc_pch_suite() {
     ##################################################################
-    # Tests for creating a .gch.
+    # Tests for creating a .gch without opt-in.
 
     backdate pch.h
 
-    testname="create .gch, -c, no -o"
+    testname="create .gch, -c, no -o, without opt-in"
     $CCACHE -zC >/dev/null
     $CCACHE $COMPILER $SYSROOT -c pch.h
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat "can't use precompiled header" 1
+
+    testname="create .gch, no -c, -o, without opt-in"
+    $CCACHE -Cz >/dev/null
+    $CCACHE $COMPILER pch.h -o pch.gch
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 0
+    checkstat "can't use precompiled header" 1
+
+    ##################################################################
+    # Tests for creating a .gch with opt-in.
+
+    backdate pch.h
+
+    testname="create .gch, -c, no -o, with opt-in"
+    $CCACHE -zC >/dev/null
+    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE $COMPILER $SYSROOT -c pch.h
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
     rm -f pch.h.gch
-    $CCACHE $COMPILER $SYSROOT -c pch.h
+    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE $COMPILER $SYSROOT -c pch.h
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
@@ -1944,13 +1965,13 @@ gcc_pch_suite() {
         test_failed "pch.h.gch missing"
     fi
 
-    testname="create .gch, no -c, -o"
+    testname="create .gch, no -c, -o, with opt-in"
     $CCACHE -Cz >/dev/null
-    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE $COMPILER $SYSROOT pch.h -o pch.gch
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1

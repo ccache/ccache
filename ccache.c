@@ -2169,8 +2169,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	if (found_pch || found_fpch_preprocess) {
 		using_precompiled_header = true;
-		if (!(conf->sloppiness & SLOPPY_PCH_DEFINES)
-		    || !(conf->sloppiness & SLOPPY_TIME_MACROS)) {
+		if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
 			cc_log("You have to specify \"time_macros\" sloppiness when using"
 			       " precompiled headers to get direct hits");
 			cc_log("Disabling direct mode");
@@ -2198,6 +2197,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	output_is_precompiled_header =
 		actual_language && strstr(actual_language, "-header");
+
+	if (output_is_precompiled_header && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
+		cc_log("You have to specify \"pch_defines,time_macros\" sloppiness when"
+		       " creating precompiled headers");
+		stats_update(STATS_CANTUSEPCH);
+		result = false;
+		goto out;
+	}
 
 	if (!found_c_opt) {
 		if (output_is_precompiled_header) {
