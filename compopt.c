@@ -32,7 +32,6 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
-	{"--coverage",      TOO_HARD}, /* implies -ftest-coverage */
 	{"--param",         TAKES_ARG},
 	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
 	{"-A",              TAKES_ARG},
@@ -60,7 +59,6 @@ static const struct compopt compopts[] = {
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-fplugin=libcc1plugin", TOO_HARD}, /* interaction with GDB */
 	{"-frepo",          TOO_HARD},
-	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-fworking-directory", AFFECTS_CPP},
 	{"-gsplit-dwarf",   TOO_HARD}, /* generates a .dwo file at the same time */
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},

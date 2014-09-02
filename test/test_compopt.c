@@ -64,6 +64,16 @@ TEST(dash_MD_not_too_hard)
 	CHECK(!compopt_too_hard("-MD"));
 }
 
+TEST(dash_fprofile_arcs_not_too_hard)
+{
+	CHECK(!compopt_too_hard("-fprofile-arcs"));
+}
+
+TEST(dash_ftest_coverage_not_too_hard)
+{
+	CHECK(!compopt_too_hard("-ftest-coverage"));
+}
+
 TEST(dash_doesnexist_not_too_hard)
 {
 	CHECK(!compopt_too_hard("-doesntexist"));
