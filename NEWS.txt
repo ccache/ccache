@@ -10,13 +10,44 @@ Release date: unknown
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[To be done]
+- Added support for configuring ccache via one or several configuration files
+  instead of via environment variables. Environment variables still have
+  priority but are no longer the recommended way of customizing ccache
+  behavior. See the manual for more information.
+
+- Made creation of temporary directories and cache directories smarter to avoid
+  unnecessary `stat()` calls.
+
+- Various improvements and fixes on win32.
+
+- Improved test suite.
+
+- Added `--dump-manifest` command-line option for debugging purposes.
+
+- Improved efficiency of the algorithm that scans for `__DATE_` and `__TIME__`
+  tokens in the hashed source code.
+
+- Upgraded bundled zlib to version 1.2.8.
+
+- Added support for several binaries in `CCACHE_PREFIX` (separated by space).
+
+- Compiler options `-fprofile-generate`, `-fprofile-arcs` and `-fprofile-use`
+  are now handled without bailing.
+
+- The displaying and interpretation of cache size has been changed to use SI
+  units.
+
+- Default cache size is now 5 GB (was previously 1 GiB).
+
+
+[News added up to commit 757ffb19cb69f88db48f732eb8d3fc8eeb333e17.]
 
 
 Bug fixes
 ~~~~~~~~~
 
-[To be done]
+- The `-c` option is no longer passed to the preprocessor. This fixes problems
+  with clang and Solaris's C++ compiler.
 
 
 ccache 3.1.notyetreleased
