@@ -75,7 +75,7 @@ New features and improvements
 
 - To enable support for precompiled headers (PCH), `CCACHE_SLOPPINESS` now also
   needs to include the new `pch_defines` sloppiness. This is because ccache
-  can't detect changes in the source code when only `#define`s have been
+  can't detect changes in the source code when only defined macros have been
   changed.
 
 - Stale files in the internal temporary directory (`<ccache_dir>/tmp`) are now
