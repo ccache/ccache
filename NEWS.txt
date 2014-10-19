@@ -50,15 +50,15 @@ Bug fixes
   with clang and Solaris's C++ compiler.
 
 
-ccache 3.1.notyetreleased
--------------------------
-Release date: unknown
+ccache 3.1.10
+-------------
+Release date: 2014-10-19
 
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added support for `-Xclang` compiler option.
+- Added support for the `-Xclang` compiler option.
 
 - Improved handling of exit code of internally executed processes.
 
@@ -88,8 +88,8 @@ Bug fixes
 - Fixed path canonicalization in `make_relative_path()` when path doesn't
   exist.
 
-- Fixed bug in `common_dir_prefix_length()`. This fixes a bug in the
-  `CCACHE_BASEDIR` behavior.
+- Fixed bug in `common_dir_prefix_length()`. This corrects the `CCACHE_BASEDIR`
+  behavior.
 
 - ccache no longer tries to create the cache directory when `CCACHE_DISABLE` is
   set.

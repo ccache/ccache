@@ -29,6 +29,7 @@ ccache is a collective work with contributions from many people, including:
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
 * Michael Meeks <michael.meeks@suse.com>
+* Mike Frysinger <vapier@gentoo.org>
 * Owen Mann <owen@mann.org>
 * Patrick von Reth <vonreth@kde.org>
 * Paul Griffith <paulg@cse.yorku.ca>

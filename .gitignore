@@ -12,6 +12,7 @@ ccache-*.tar.*
 ccache.1
 ccache.html
 ccache.xml
+config.cache
 config.h
 config.h.in
 config.log
