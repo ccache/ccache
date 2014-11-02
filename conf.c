@@ -319,6 +319,7 @@ conf_create(void)
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
 	conf->read_only = false;
+	conf->read_only_direct = false;
 	conf->recache = false;
 	conf->run_second_cpp = false;
 	conf->sloppiness = 0;
@@ -582,6 +583,10 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
 	printer(s, conf->item_origins[find_conf("read_only")->number], context);
+
+	reformat(&s, "read_only_direct = %s", bool_to_string(conf->read_only_direct));
+	printer(s, conf->item_origins[find_conf("read_only_direct")->number],
+	        context);
 
 	reformat(&s, "recache = %s", bool_to_string(conf->recache));
 	printer(s, conf->item_origins[find_conf("recache")->number], context);

@@ -37,6 +37,7 @@ unset CCACHE_NOSTATS
 unset CCACHE_PATH
 unset CCACHE_PREFIX
 unset CCACHE_READONLY
+unset CCACHE_READONLY_DIRECT
 unset CCACHE_RECACHE
 unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
@@ -1648,6 +1649,35 @@ readonly_suite() {
     ##################################################################
 }
 
+readonly_direct_suite() {
+    unset CCACHE_NODIRECT
+
+    ##################################################################
+    # Create some code to compile.
+    echo "int test;" >test.c
+
+    # Cache a compilation.
+    testname="fill cache"
+    $CCACHE $COMPILER -c test.c -o test.o
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    # Check that "readonly direct" mode gets a direct hit.
+    testname="direct hit"
+    CCACHE_READONLY_DIRECT=1 $CCACHE $COMPILER -c test.c -o test.o
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    # Check that "readonly direct" mode doesn't get a preprocessed hit.
+    testname="preprocessed miss"
+    CCACHE_READONLY_DIRECT=1 $CCACHE $COMPILER -DFOO -c test.c -o test.o
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+}
+
 extrafiles_suite() {
     ##################################################################
     # Create some code to compile.
@@ -2388,6 +2418,7 @@ basedir       !win32
 direct
 compression
 readonly
+readonly_direct
 extrafiles
 cleanup
 pch

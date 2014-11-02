@@ -1,4 +1,4 @@
-/* ANSI-C code produced by gperf version 3.0.3 */
+/* ANSI-C code produced by gperf version 3.0.4 */
 /* Command-line: gperf envtoconfitems.gperf  */
 /* Computed positions: -k'1,5' */
 
@@ -51,10 +51,10 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
-      43, 43, 43, 43, 43, 43,  5,  0,  0, 10,
-      20, 43, 15, 43, 10, 43, 20, 10, 15,  0,
-       5,  5,  5,  0,  0,  5, 43, 43, 43, 43,
-       0, 43, 43, 43, 43, 43, 43, 43, 43, 43,
+      43, 43, 43, 43, 43, 43, 20,  0,  0, 10,
+      20, 43, 15, 43, 10, 43,  5, 10, 15,  0,
+       5, 10,  5,  0,  0,  0, 43, 43, 43, 43,
+      10, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
@@ -89,10 +89,9 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
   return hval;
 }
 
-static
 #ifdef __GNUC__
 __inline
-#ifdef __GNUC_STDC_INLINE__
+#if defined __GNUC_STDC_INLINE__ || defined __GNUC_GNU_INLINE__
 __attribute__ ((__gnu_inline__))
 #endif
 #endif
@@ -101,9 +100,9 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 26,
+      TOTAL_KEYWORDS = 27,
       MIN_WORD_LENGTH = 2,
-      MAX_WORD_LENGTH = 13,
+      MAX_WORD_LENGTH = 15,
       MIN_HASH_VALUE = 2,
       MAX_HASH_VALUE = 42
     };
@@ -117,7 +116,7 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"DIR", "cache_dir"},
 #line 16 "envtoconfitems.gperf"
       {"CPP2", "run_second_cpp"},
-#line 33 "envtoconfitems.gperf"
+#line 34 "envtoconfitems.gperf"
       {"STATS", "stats"},
 #line 18 "envtoconfitems.gperf"
       {"DIRECT", "direct_mode"},
@@ -128,49 +127,50 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 #line 28 "envtoconfitems.gperf"
       {"PATH", "path"},
 #line 36 "envtoconfitems.gperf"
-      {"UNIFY", "unify"},
+      {"UMASK", "umask"},
       {"",""},
-#line 31 "envtoconfitems.gperf"
+#line 32 "envtoconfitems.gperf"
       {"RECACHE", "recache"},
 #line 15 "envtoconfitems.gperf"
       {"COMPRESSLEVEL", "compression_level"},
       {"",""},
-#line 32 "envtoconfitems.gperf"
-      {"SLOPPINESS", "sloppiness"},
+#line 37 "envtoconfitems.gperf"
+      {"UNIFY", "unify"},
       {"",""},
-#line 34 "envtoconfitems.gperf"
+#line 35 "envtoconfitems.gperf"
       {"TEMPDIR", "temporary_dir"},
 #line 30 "envtoconfitems.gperf"
       {"READONLY", "read_only"},
 #line 20 "envtoconfitems.gperf"
       {"EXTENSION", "cpp_extension"},
-      {"",""},
+#line 33 "envtoconfitems.gperf"
+      {"SLOPPINESS", "sloppiness"},
 #line 29 "envtoconfitems.gperf"
       {"PREFIX", "prefix_command"},
-#line 11 "envtoconfitems.gperf"
-      {"BASEDIR", "base_dir"},
+#line 24 "envtoconfitems.gperf"
+      {"LOGFILE", "log_file"},
 #line 13 "envtoconfitems.gperf"
       {"COMPILERCHECK", "compiler_check"},
       {"",""},
-#line 21 "envtoconfitems.gperf"
-      {"EXTRAFILES", "extra_files_to_hash"},
+#line 31 "envtoconfitems.gperf"
+      {"READONLY_DIRECT", "read_only_direct"},
       {"",""},
 #line 26 "envtoconfitems.gperf"
       {"MAXSIZE", "max_size"},
 #line 25 "envtoconfitems.gperf"
       {"MAXFILES", "max_files"},
-      {"",""},
-#line 35 "envtoconfitems.gperf"
-      {"UMASK", "umask"},
-      {"",""},
+      {"",""}, {"",""}, {"",""},
 #line 23 "envtoconfitems.gperf"
       {"HASHDIR", "hash_dir"},
 #line 22 "envtoconfitems.gperf"
       {"HARDLINK", "hard_link"},
       {"",""}, {"",""}, {"",""},
-#line 24 "envtoconfitems.gperf"
-      {"LOGFILE", "log_file"},
-      {"",""}, {"",""}, {"",""}, {"",""},
+#line 11 "envtoconfitems.gperf"
+      {"BASEDIR", "base_dir"},
+      {"",""}, {"",""},
+#line 21 "envtoconfitems.gperf"
+      {"EXTRAFILES", "extra_files_to_hash"},
+      {"",""},
 #line 27 "envtoconfitems.gperf"
       {"NLEVELS", "cache_dir_levels"}
     };
@@ -189,4 +189,4 @@ envtoconfitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 26;
+static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 27;

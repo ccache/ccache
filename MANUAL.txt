@@ -403,6 +403,12 @@ WRAPPERS>>.
     because your ccache directory is read-only, then you need to set
     *temporary_dir* as otherwise ccache will fail to create temporary files.
 
+*read_only_direct* (*CCACHE_READONLY_DIRECT*) [boolean]::
+
+    Just like *read_only* except that ccache will only try to retrieve results
+    from the cache using the direct mode, not the preprocessor mode. See
+    documentation for *read_only* regarding using a read-only ccache directory.
+
 *reache* (*CCACHE_RECACHE*) [boolean]::
 
     If true, ccache will not use any previously stored result. New results will

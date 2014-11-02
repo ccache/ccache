@@ -1505,7 +1505,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (conf->direct_mode
 	    && put_object_in_manifest
 	    && included_files
-	    && !conf->read_only) {
+	    && !conf->read_only
+	    && !conf->read_only_direct) {
 		struct stat st;
 		size_t old_size = 0; /* in bytes */
 		if (stat(manifest_path, &st) == 0) {
@@ -2647,6 +2648,11 @@ ccache(int argc, char *argv[])
 			/* Add object to manifest later. */
 			put_object_in_manifest = true;
 		}
+	}
+
+	if (conf->read_only_direct) {
+		cc_log("Read-only direct mode; running real compiler");
+		failed();
 	}
 
 	/*
