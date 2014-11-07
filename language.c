@@ -61,6 +61,8 @@ static const struct {
 	{".HXX", "c++-header"},
 	{".tcc", "c++-header"},
 	{".TCC", "c++-header"},
+	{".cu",  "cuda"},
+	{".ic",  "cuda-output"},
 	{NULL,  NULL}
 };
 
@@ -85,6 +87,7 @@ static const struct {
 	{"objc++-cpp-output",        "objective-c++-cpp-output"},
 	{"objective-c++-header",     "objective-c++-cpp-output"},
 	{"objective-c++-cpp-output", "objective-c++-cpp-output"},
+	{"cuda",                     "cuda-output"},
 	{NULL,  NULL}
 };
 
