@@ -353,7 +353,13 @@ stats_zero(void)
 
 	for (dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
+		struct stat st;
 		fname = format("%s/%1x/stats", cache_dir, dir);
+		if (stat(fname, &st) != 0) {
+			/* No point in trying to reset the stats file if it doesn't exist. */
+			free(fname);
+			continue;
+		}
 		if (lockfile_acquire(fname, lock_staleness_limit)) {
 			stats_read(fname, counters);
 			for (i = 0; stats_info[i].message; i++) {
