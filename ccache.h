@@ -142,7 +142,6 @@ char *dirname(const char *path);
 const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);
-int safe_create_wronly(const char *fname);
 char *format_human_readable_size(uint64_t size);
 char *format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char *str, uint64_t *size);
@@ -151,7 +150,7 @@ char *gnu_getcwd(void);
 #ifndef HAVE_STRTOK_R
 char *strtok_r(char *str, const char *delim, char **saveptr);
 #endif
-int create_empty_file(const char *fname);
+int create_empty_file(char *fname);
 const char *get_home_directory(void);
 char *get_cwd(void);
 bool same_executable_name(const char *s1, const char *s2);

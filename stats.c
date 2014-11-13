@@ -130,14 +130,22 @@ stats_write(const char *path, struct counters *counters)
 	size_t i;
 	char *tmp_file;
 	FILE *f;
+	int fd;
 
 	tmp_file = format("%s.tmp.%s", path, tmp_string());
-	f = fopen(tmp_file, "wb");
-	if (!f && errno == ENOENT) {
-		if (create_parent_dirs(path) == 0) {
-			f = fopen(tmp_file, "wb");
+	fd = mkstemp(tmp_file);
+	if (fd == -1 && errno == ENOENT) {
+		if (create_parent_dirs(tmp_file) == 0) {
+			reformat(&tmp_file, "%s.tmp.%s", path, tmp_string());
+			fd = mkstemp(tmp_file);
 		}
 	}
+	if (fd == -1) {
+		cc_log("Failed to open %s", tmp_file);
+		close(fd);
+		goto end;
+	}
+	f = fdopen(fd, "wb");
 	if (!f) {
 		cc_log("Failed to open %s", tmp_file);
 		goto end;
@@ -147,7 +155,7 @@ stats_write(const char *path, struct counters *counters)
 			fatal("Failed to write to %s", tmp_file);
 		}
 	}
-	fclose(f);
+	fclose(f); /* This also implicitly closes the fd. */
 	x_rename(tmp_file, path);
 
 end:
@@ -360,7 +368,13 @@ stats_zero(void)
 
 	for (dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
+		struct stat st;
 		fname = format("%s/%1x/stats", conf->cache_dir, dir);
+		if (stat(fname, &st) != 0) {
+			/* No point in trying to reset the stats file if it doesn't exist. */
+			free(fname);
+			continue;
+		}
 		if (lockfile_acquire(fname, lock_staleness_limit)) {
 			stats_read(fname, counters);
 			for (i = 0; stats_info[i].message; i++) {

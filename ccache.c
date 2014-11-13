@@ -741,7 +741,9 @@ to_cache(struct args *args)
 		      cached_obj, strerror(errno));
 	}
 	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
+	create_empty_file(tmp_stdout);
 	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
+	create_empty_file(tmp_stderr);
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
@@ -801,7 +803,7 @@ to_cache(struct args *args)
 		int fd_result;
 		char *tmp_stderr2;
 
-		tmp_stderr2 = format("%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		tmp_stderr2 = format("%s.2", tmp_stderr);
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
 			       strerror(errno));
@@ -972,22 +974,28 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		input_base[10] = 0;
 	}
 
-	path_stdout = format(
-		"%s/%s.tmp.%s.%s",
-		temp_dir(), input_base, tmp_string(), conf->cpp_extension);
 	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
-
-	if (create_parent_dirs(path_stdout) != 0) {
+	if (create_parent_dirs(path_stderr) != 0) {
 		fatal("Failed to create parent directory for %s: %s\n",
-		      path_stdout, strerror(errno));
+		      path_stderr, strerror(errno));
 	}
-
-	add_pending_tmp_file(path_stdout);
+	create_empty_file(path_stderr);
 	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
 
 	if (!direct_i_file) {
+		/* The temporary file needs the proper i_extension for the compiler to do
+		 * its thing. However, create_empty_file requires the tmp_string() part to
+		 * be last, which is why the temporary file is created in two steps. */
+		char *path_stdout_tmp =
+			format("%s/%s.tmp.%s", temp_dir(), input_base, tmp_string());
+		create_empty_file(path_stdout_tmp);
+		path_stdout = format("%s.%s", path_stdout_tmp, conf->cpp_extension);
+		x_rename(path_stdout_tmp, path_stdout);
+		free(path_stdout_tmp);
+		add_pending_tmp_file(path_stdout);
+
 		/* run cpp on the input file to obtain the .i */
 		args_add(args, "-E");
 		args_add(args, input_file);
@@ -999,11 +1007,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		   can skip the cpp stage and directly form the
 		   correct i_tmpfile */
 		path_stdout = input_file;
-		if (create_empty_file(path_stderr) != 0) {
-			cc_log("Failed to create %s: %s", path_stderr, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
 		status = 0;
 	}
 

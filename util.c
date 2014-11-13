@@ -241,7 +241,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	struct stat st;
 	int errnum;
 
-	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
+	tmp_name = format("%s.%s", dest, tmp_string());
 
 	/* open destination file */
 	fd_out = mkstemp(tmp_name);
@@ -505,8 +505,8 @@ get_hostname(void)
 }
 
 /*
- * Return a string to be used to distinguish temporary files. Also tries to
- * cope with NFS by adding the local hostname.
+ * Return a string to be passed to mkstemp to create a temporary file. Also
+ * tries to cope with NFS by adding the local hostname.
  */
 const char *
 tmp_string(void)
@@ -514,7 +514,7 @@ tmp_string(void)
 	static char *ret;
 
 	if (!ret) {
-		ret = format("%s.%u", get_hostname(), (unsigned)getpid());
+		ret = format("%s.%u.XXXXXX", get_hostname(), (unsigned)getpid());
 	}
 
 	return ret;
@@ -854,25 +854,6 @@ file_size(struct stat *st)
 #endif
 }
 
-/*
- * Create a file for writing. Creates parent directories if they don't exist.
- */
-int
-safe_create_wronly(const char *fname)
-{
-	int fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, 0666);
-	if (fd == -1 && errno == ENOENT) {
-		/*
-		 * Only make sure parent directories exist when have failed to open the
-		 * file -- this saves stat() calls.
-		 */
-		if (create_parent_dirs(fname) == 0) {
-			fd = open(fname, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0666);
-		}
-	}
-	return fd;
-}
-
 /* Format a size as a human-readable string. Caller frees. */
 char *
 format_human_readable_size(uint64_t v)
@@ -1043,12 +1024,13 @@ strtok_r(char *str, const char *delim, char **saveptr)
 
 /* create an empty file */
 int
-create_empty_file(const char *fname)
+create_empty_file(char *fname)
 {
 	int fd;
 
-	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
+	fd = mkstemp(fname);
 	if (fd == -1) {
+		cc_log("Failed to create %s: %s", fname, strerror(errno));
 		return -1;
 	}
 	close(fd);
@@ -1289,7 +1271,10 @@ x_unlink(const char *path)
 		goto out;
 	}
 	if (unlink(tmp_name) == -1) {
-		result = -1;
+		/* If it was released in a race, that's OK. */
+		if (errno != ENOENT) {
+			result = -1;
+		}
 	}
 out:
 	free(tmp_name);
