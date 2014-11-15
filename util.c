@@ -241,15 +241,9 @@ copy_file(const char *src, const char *dest, int compress_level)
 	struct stat st;
 	int errnum;
 
-	tmp_name = format("%s.%s", dest, tmp_string());
-
 	/* open destination file */
-	fd_out = mkstemp(tmp_name);
-	if (fd_out == -1) {
-		cc_log("mkstemp error: %s", strerror(errno));
-		goto error;
-	}
-
+	tmp_name = x_strdup(dest);
+	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
@@ -1022,19 +1016,53 @@ strtok_r(char *str, const char *delim, char **saveptr)
 }
 #endif
 
-/* create an empty file */
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename. Returns an open file descriptor to the file.
+ */
 int
-create_empty_file(char *fname)
+create_tmp_fd(char **fname)
 {
-	int fd;
-
-	fd = mkstemp(fname);
-	if (fd == -1) {
-		cc_log("Failed to create %s: %s", fname, strerror(errno));
-		return -1;
+	char *template = format("%s.%s", *fname, tmp_string());
+	int fd = mkstemp(template);
+	if (fd == -1 && errno == ENOENT) {
+		if (create_parent_dirs(template) != 0) {
+			fatal("Failed to create directory %s: %s",
+			      dirname(template), strerror(errno));
+		}
+		reformat(&template, "%s.%s", *fname, tmp_string());
+		fd = mkstemp(template);
 	}
-	close(fd);
-	return 0;
+	if (fd == -1) {
+		fatal("Failed to create file %s: %s", template, strerror(errno));
+	}
+	free(*fname);
+	*fname = template;
+	return fd;
+}
+
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename. Returns an open FILE*.
+ */
+FILE *
+create_tmp_file(char **fname, const char *mode)
+{
+	FILE *file = fdopen(create_tmp_fd(fname), mode);
+	if (!file) {
+		fatal("Failed to create file %s: %s", *fname, strerror(errno));
+	}
+	return file;
+}
+
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename.
+ */
+void
+create_empty_tmp_file(char **fname)
+{
+	close(create_tmp_fd(fname));
 }
 
 /*
@@ -1263,7 +1291,7 @@ x_unlink(const char *path)
 	 * file. We don't care if the temp file is trashed, so it's always safe to
 	 * unlink it first.
 	 */
-	char *tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
+	char *tmp_name = format("%s.rm.%s", path, tmp_string());
 	int result = 0;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {

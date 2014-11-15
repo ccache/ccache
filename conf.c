@@ -474,8 +474,8 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		return false;
 	}
 
-	outpath = format("%s.tmp.%s", path, tmp_string());
-	outfile = fopen(outpath, "w");
+	outpath = format("%s.tmp", path);
+	outfile = create_tmp_file(&outpath, "w");
 	if (!outfile) {
 		*errmsg = format("%s: %s", outpath, strerror(errno));
 		free(outpath);

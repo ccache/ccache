@@ -736,14 +736,10 @@ to_cache(struct args *args)
 	struct stat st;
 	int status;
 
-	if (create_parent_dirs(cached_obj) != 0) {
-		fatal("Failed to create parent directory for %s: %s",
-		      cached_obj, strerror(errno));
-	}
-	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
-	create_empty_file(tmp_stdout);
-	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
-	create_empty_file(tmp_stderr);
+	tmp_stdout = format("%s.tmp.stdout", cached_obj);
+	create_empty_tmp_file(&tmp_stdout);
+	tmp_stderr = format("%s.tmp.stderr", cached_obj);
+	create_empty_tmp_file(&tmp_stderr);
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
@@ -974,23 +970,18 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		input_base[10] = 0;
 	}
 
-	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
-	if (create_parent_dirs(path_stderr) != 0) {
-		fatal("Failed to create parent directory for %s: %s\n",
-		      path_stderr, strerror(errno));
-	}
-	create_empty_file(path_stderr);
+	path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+	create_empty_tmp_file(&path_stderr);
 	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
 
 	if (!direct_i_file) {
 		/* The temporary file needs the proper i_extension for the compiler to do
-		 * its thing. However, create_empty_file requires the tmp_string() part to
-		 * be last, which is why the temporary file is created in two steps. */
-		char *path_stdout_tmp =
-			format("%s/%s.tmp.%s", temp_dir(), input_base, tmp_string());
-		create_empty_file(path_stdout_tmp);
+		 * its thing. However, create_empty_tmp_file appends a suffix to the
+		 * filename, which is why the temporary file is created in two steps. */
+		char *path_stdout_tmp = format("%s/%s.tmp", temp_dir(), input_base);
+		create_empty_tmp_file(&path_stdout_tmp);
 		path_stdout = format("%s.%s", path_stdout_tmp, conf->cpp_extension);
 		x_rename(path_stdout_tmp, path_stdout);
 		free(path_stdout_tmp);
