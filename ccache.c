@@ -2449,9 +2449,15 @@ initialize(void)
 			free(errmsg);
 		}
 
+		if (str_eq(conf->cache_dir, "")) {
+			fatal("configuration setting \"cache_dir\" must not be the empty string");
+		}
 		if ((p = getenv("CCACHE_DIR"))) {
 			free(conf->cache_dir);
 			conf->cache_dir = strdup(p);
+		}
+		if (str_eq(conf->cache_dir, "")) {
+			fatal("CCACHE_DIR must not be the empty string");
 		}
 
 		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
