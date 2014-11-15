@@ -1221,6 +1221,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		/* -Wl,... doesn't affect compilation. */
+		if (str_startswith(args->argv[i], "-Wl,")) {
+			continue;
+		}
+
 		/* The -fdebug-prefix-map option may be used in combination with
 		   CCACHE_BASEDIR to reuse results across different directories. Skip it
 		   from hashing. */
