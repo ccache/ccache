@@ -780,24 +780,27 @@ char *
 dirname(const char *path)
 {
 	char *p;
-	char *p2 = NULL;
+#ifdef _WIN32
+	char *p2;
+#endif
 	char *s;
 	s = x_strdup(path);
 	p = strrchr(s, '/');
 #ifdef _WIN32
 	p2 = strrchr(s, '\\');
-#endif
-	if (p < p2)
+	if (!p || (p2 && p < p2)) {
 		p = p2;
-	if (p == s) {
-		return s;
-	} else if (p) {
-		*p = 0;
-		return s;
-	} else {
-		free(s);
-		return x_strdup(".");
 	}
+#endif
+	if (!p) {
+		free(s);
+		s = x_strdup(".");
+	} else if (p == s) {
+		*(p + 1) = 0;
+	} else {
+		*p = 0;
+	}
+	return s;
 }
 
 /*
