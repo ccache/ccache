@@ -209,9 +209,7 @@ void wipe_all(struct conf *conf);
 /* ------------------------------------------------------------------------- */
 /* execute.c */
 
-int execute(char **argv,
-            const char *path_stdout,
-            const char *path_stderr);
+int execute(char **argv, int fd_out, int fd_err);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 
@@ -262,6 +260,7 @@ int win32execute(char *path, char **argv, int doreturn,
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)
 #    define execv(a,b) win32execute(a,b,0,NULL,NULL)
+#error TODO: Adapt win32execute to new execute API
 #    define execute(a,b,c) win32execute(*(a),a,1,b,c)
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0

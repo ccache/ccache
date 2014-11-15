@@ -734,12 +734,12 @@ to_cache(struct args *args)
 {
 	char *tmp_stdout, *tmp_stderr, *tmp_dia;
 	struct stat st;
-	int status;
+	int status, tmp_stdout_fd, tmp_stderr_fd;
 
 	tmp_stdout = format("%s.tmp.stdout", cached_obj);
-	create_empty_tmp_file(&tmp_stdout);
+	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 	tmp_stderr = format("%s.tmp.stderr", cached_obj);
-	create_empty_tmp_file(&tmp_stderr);
+	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
@@ -766,7 +766,7 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout, tmp_stderr);
+	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd);
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st) != 0) {
@@ -954,7 +954,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	char *input_base;
 	char *tmp;
 	char *path_stdout, *path_stderr;
-	int status;
+	int status, path_stderr_fd;
 	struct file_hash *result;
 
 	/* ~/hello.c -> tmp.hello.123.i
@@ -971,34 +971,28 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
-	create_empty_tmp_file(&path_stderr);
+	path_stderr_fd = create_tmp_fd(&path_stderr);
 	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
 
-	if (!direct_i_file) {
-		/* The temporary file needs the proper i_extension for the compiler to do
-		 * its thing. However, create_empty_tmp_file appends a suffix to the
-		 * filename, which is why the temporary file is created in two steps. */
-		char *path_stdout_tmp = format("%s/%s.tmp", temp_dir(), input_base);
-		create_empty_tmp_file(&path_stdout_tmp);
-		path_stdout = format("%s.%s", path_stdout_tmp, conf->cpp_extension);
-		x_rename(path_stdout_tmp, path_stdout);
-		free(path_stdout_tmp);
+	if (direct_i_file) {
+		/* We are compiling a .i or .ii file - that means we can skip the cpp stage
+		 * and directly form the correct i_tmpfile. */
+		path_stdout = input_file;
+		status = 0;
+	} else {
+		/* Run cpp on the input file to obtain the .i. */
+		int path_stdout_fd;
+		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
+		path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
-		/* run cpp on the input file to obtain the .i */
 		args_add(args, "-E");
 		args_add(args, input_file);
 		cc_log("Running preprocessor");
-		status = execute(args->argv, path_stdout, path_stderr);
+		status = execute(args->argv, path_stdout_fd, path_stderr_fd);
 		args_pop(args, 2);
-	} else {
-		/* we are compiling a .i or .ii file - that means we
-		   can skip the cpp stage and directly form the
-		   correct i_tmpfile */
-		path_stdout = input_file;
-		status = 0;
 	}
 
 	if (status != 0) {
@@ -1008,10 +1002,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	if (conf->unify) {
-		/*
-		 * When we are doing the unifying tricks we need to include the
-		 * input file name in the hash to get the warnings right.
-		 */
+		/* When we are doing the unifying tricks we need to include the input file
+		 * name in the hash to get the warnings right. */
 		hash_delimiter(hash, "unifyfilename");
 		hash_string(hash, input_file);
 
@@ -1034,7 +1026,15 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		fatal("Failed to open %s: %s", path_stderr, strerror(errno));
 	}
 
-	i_tmpfile = path_stdout;
+	if (direct_i_file) {
+		i_tmpfile = input_file;
+	} else {
+		/* i_tmpfile needs the proper cpp_extension for the compiler to do its
+		 * thing correctly. */
+		i_tmpfile = format("%s.%s", path_stdout, conf->cpp_extension);
+		x_rename(path_stdout, i_tmpfile);
+		add_pending_tmp_file(i_tmpfile);
+	}
 
 	if (conf->run_second_cpp) {
 		free(path_stderr);

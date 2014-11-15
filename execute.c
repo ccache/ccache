@@ -175,25 +175,12 @@ win32execute(char *path, char **argv, int doreturn,
   the full path to the compiler to run is in argv[0]
 */
 int
-execute(char **argv, const char *path_stdout, const char *path_stderr)
+execute(char **argv, int fd_out, int fd_err)
 {
 	pid_t pid;
-	int status, fd_out, fd_err;
+	int status;
 
 	cc_log_argv("Executing ", argv);
-
-	tmp_unlink(path_stdout);
-	fd_out = open(path_stdout, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
-	if (fd_out == -1) {
-		fatal("Error creating %s: %s", path_stdout, strerror(errno));
-	}
-
-	tmp_unlink(path_stderr);
-	fd_err = open(path_stderr, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
-	if (fd_err == -1) {
-		fatal("Error creating %s: %s", path_stderr, strerror(errno));
-	}
-
 	pid = fork();
 	if (pid == -1) fatal("Failed to fork: %s", strerror(errno));
 
