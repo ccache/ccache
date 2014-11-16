@@ -182,7 +182,9 @@ execute(char **argv, int fd_out, int fd_err)
 
 	cc_log_argv("Executing ", argv);
 	pid = fork();
-	if (pid == -1) fatal("Failed to fork: %s", strerror(errno));
+	if (pid == -1) {
+		fatal("Failed to fork: %s", strerror(errno));
+	}
 
 	if (pid == 0) {
 		/* Child. */

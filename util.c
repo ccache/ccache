@@ -555,12 +555,16 @@ create_cachedirtag(const char *dir)
 		goto error;
 	}
 	f = fopen(filename, "w");
-	if (!f) goto error;
+	if (!f) {
+		goto error;
+	}
 	if (fwrite(CACHEDIR_TAG, sizeof(CACHEDIR_TAG)-1, 1, f) != 1) {
 		fclose(f);
 		goto error;
 	}
-	if (fclose(f)) goto error;
+	if (fclose(f)) {
+		goto error;
+	}
 success:
 	free(filename);
 	return 0;
@@ -582,7 +586,9 @@ format(const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!*ptr) fatal("Internal error in format");
+	if (!*ptr) {
+		fatal("Internal error in format");
+	}
 	return ptr;
 }
 
@@ -677,7 +683,9 @@ void *
 x_realloc(void *ptr, size_t size)
 {
 	void *p2;
-	if (!ptr) return x_malloc(size);
+	if (!ptr) {
+		return x_malloc(size);
+	}
 	p2 = realloc(ptr, size);
 	if (!p2) {
 		fatal("x_realloc: Could not allocate %lu bytes", (unsigned long)size);
@@ -712,7 +720,9 @@ reformat(char **ptr, const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!ptr) fatal("Out of memory in reformat");
+	if (!ptr) {
+		fatal("Out of memory in reformat");
+	}
 	if (saved) {
 		free(saved);
 	}
@@ -728,16 +738,24 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 	struct dirent *de;
 
 	d = opendir(dir);
-	if (!d) return;
+	if (!d) {
+		return;
+	}
 
 	while ((de = readdir(d))) {
 		char *fname;
 		struct stat st;
 
-		if (str_eq(de->d_name, ".")) continue;
-		if (str_eq(de->d_name, "..")) continue;
+		if (str_eq(de->d_name, ".")) {
+			continue;
+		}
+		if (str_eq(de->d_name, "..")) {
+			continue;
+		}
 
-		if (strlen(de->d_name) == 0) continue;
+		if (strlen(de->d_name) == 0) {
+			continue;
+		}
 
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
@@ -766,10 +784,14 @@ basename(const char *path)
 {
 	char *p;
 	p = strrchr(path, '/');
-	if (p) path = p + 1;
+	if (p) {
+		path = p + 1;
+	}
 #ifdef _WIN32
 	p = strrchr(path, '\\');
-	if (p) path = p + 1;
+	if (p) {
+		path = p + 1;
+	}
 #endif
 
 	return x_strdup(path);
