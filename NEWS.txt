@@ -2,9 +2,9 @@ ccache news
 ===========
 
 
-ccache 3.2.notyetreleased
--------------------------
-Release date: unknown
+ccache 3.2
+----------
+Release date: 2014-11-17
 
 
 New features and improvements
@@ -15,39 +15,102 @@ New features and improvements
   priority but are no longer the recommended way of customizing ccache
   behavior. See the manual for more information.
 
+- Added support for compiler error/warning messages with color.
+
 - Made creation of temporary directories and cache directories smarter to avoid
-  unnecessary `stat()` calls.
-
-- Various improvements and fixes on win32.
-
-- Improved test suite.
-
-- Added `--dump-manifest` command-line option for debugging purposes.
+  unnecessary `stat` calls.
 
 - Improved efficiency of the algorithm that scans for `__DATE_` and `__TIME__`
   tokens in the hashed source code.
 
-- Upgraded bundled zlib to version 1.2.8.
+- Added support for several binaries (separated by space) in `CCACHE_PREFIX`.
 
-- Added support for several binaries in `CCACHE_PREFIX` (separated by space).
+- The `-c` option is no longer passed to the preprocessor. This fixes problems
+  with clang and Solaris's C++ compiler.
 
-- Compiler options `-fprofile-generate`, `-fprofile-arcs` and `-fprofile-use`
-  are now handled without bailing.
+- ccache no longer passes preprocessor options like `-D` and `-I` to the
+  compiler when compiling preprocessed output. This fixes warnings emitted by
+  clang.
 
-- The displaying and interpretation of cache size has been changed to use SI
+- Compiler options `-fprofile-generate`, `-fprofile-arcs`, `-fprofile-use` and
+  `-fbranch-probabilities` are now handled without bailing.
+
+- Added support for clang's `--serialize-diagnostic` option, storing the
+  diagnostic file (`.dia`) in the cache.
+
+- Added support for precompiled headers when using clang.
+
+- Added support for clang `.pth` (pretokenized header) files.
+
+- Changed the `-x` language option to use the new objective C standard for GCC
+  and clang.
+
+- On a cache miss, ccache now instructs the compiler to create the object file
+  at the real destination and then copies the file into the cache instead of
+  the other way around. This is needed to support compiler options like
+  `-fprofile-arcs` and `--serialize-diagnostics`.
+
+- ccache now checks that included files' ctimes aren't too new. This check can
+  be turned off by adding `include_file_ctime` to the ``ccache sloppiness''
+  setting.
+
+- Added possibility to get cache hits based on filename, size, mtime and ctime
+  only. On other words, source code files are not even read, only stat-ed. This
+  operation mode is opt-in by adding `file_stat_matches` to the ``ccache
+  sloppiness'' setting.
+
+- The filename part of options like `-Wp,-MDfilename` is no longer included in
+  the hash since the filename doesn't have any bearing on the result.
+
+- Added a ``read-only direct'' configuration setting, which is like the
+  ordinary read-only setting except that ccache will only try to retrieve
+  results from the cache using the direct mode, not the preprocessor mode.
+
+- The display and interpretation of cache size has been changed to use SI
   units.
 
 - Default cache size is now 5 GB (was previously 1 GiB).
 
+- Added configuration option to set the compression level of compressed object
+  files in the cache.
 
-[News added up to commit 757ffb19cb69f88db48f732eb8d3fc8eeb333e17.]
+- Added support for `@file` and `-@file` arguments (reading options from a
+  file).
+
+- `-Wl,` options are no longer included in the hash since they don't affect
+  compilation.
+
+- Bail out on too hard compiler option `-Wp,-P`.
+
+- Optimized MD4 calculation code on little-endian systems.
+
+- Various improvements and fixes on win32.
+
+- Improved logging to the ccache log file.
+
+- Added `--dump-manifest` command-line option for debugging purposes.
+
+- Added `--with-bundled-zlib` configure option.
+
+- Upgraded bundled zlib to version 1.2.8.
+
+- Improved `dev.mk` to be more platform independent.
+
+- Made the test suite work with clang and gcc-llvm on OS X.
+
+- Various other improvements of the test suite.
 
 
 Bug fixes
 ~~~~~~~~~
 
-- The `-c` option is no longer passed to the preprocessor. This fixes problems
-  with clang and Solaris's C++ compiler.
+- Any previous `.stderr` is now removed from the cache when recaching.
+
+- Fixed an issue when handling the `-arch` compiler option with an argument.
+
+- Fixed race condition when creating the initial cache directory.
+
+- Fixed test suite failures when `CC` is a ccache-wrapped compiler.
 
 
 ccache 3.1.10

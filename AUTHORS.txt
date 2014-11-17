@@ -8,6 +8,7 @@ ccache is a collective work with contributions from many people, including:
 
 * Alfred Landrum <alfred.landrum@riverbed.com>
 * Andrea Bittau <a.bittau@cs.ucl.ac.uk>
+* Andrew P Boie <andrew.p.boie@intel.com>
 * Andrew Stubbs <ams@codesourcery.com>
 * Andrew Tridgell <tridge@samba.org>
 * Bernhard Bauer <bauerb@chromium.org>
@@ -15,21 +16,25 @@ ccache is a collective work with contributions from many people, including:
 * Bo Rydberg <bolry@hotmail.com>
 * Chris AtLee <chris@atlee.ca>
 * Clemens Rabe <crabe@gmx.de>
+* David Givone <david@givone.net>
 * Eric Blau <Eric.Blau@tekelec.com>
 * Francois Marier <francois@debian.org>
+* Hongli Lai <hongli@phusion.nl>
 * Joel Rosdahl <joel@rosdahl.net>
 * John Coiner <john.coiner@amd.com>
 * Jon Bernard <jbernard@tuxion.com>
 * Justin Lebar <justin.lebar@gmail.com>
+* Jørgen P. Tjernø <jorgen@valvesoftware.com>
 * Karl Chen <quarl@cs.berkeley.edu>
 * Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
 * Lalit Chhabra <lchhabra@linuxmail.org>
 * Lars Gustäbel <lars@gustaebel.de>
-* Lubos Lunak <l.lunak@suse.cz>
+* Luboš Luňák <l.lunak@suse.cz>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
 * Michael Meeks <michael.meeks@suse.com>
 * Mike Frysinger <vapier@gentoo.org>
+* Orgad Shaneh <orgad.shaneh@audiocodes.com>
 * Owen Mann <owen@mann.org>
 * Patrick von Reth <vonreth@kde.org>
 * Paul Griffith <paulg@cse.yorku.ca>
