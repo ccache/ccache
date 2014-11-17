@@ -2528,7 +2528,7 @@ cc_reset(void)
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
 
-	initialize();
+	conf = conf_create();
 }
 
 /* Make a copy of stderr that will not be cached, so things like
