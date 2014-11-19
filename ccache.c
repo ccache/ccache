@@ -1999,6 +1999,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				/* Output is redirected, so color output must be forced. */
 				args_add(stripped_args, "-fdiagnostics-color=always");
 				cc_log("Automatically forcing colors");
+			} else {
+				args_add(stripped_args, argv[i]);
 			}
 			found_color_diagnostics = true;
 			continue;
