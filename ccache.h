@@ -251,7 +251,7 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 char *win32argvtos(char *prefix, char **argv);
 char *win32getshell(char *path);
 int win32execute(char *path, char **argv, int doreturn,
-                 const char *path_stdout, const char *path_stderr);
+                 int fd_stdout, int fd_stderr);
 #    ifndef _WIN32_WINNT
 #    define _WIN32_WINNT 0x0501
 #    endif
@@ -259,8 +259,7 @@ int win32execute(char *path, char **argv, int doreturn,
 #    define mkdir(a,b) mkdir(a)
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)
-#    define execv(a,b) win32execute(a,b,0,NULL,NULL)
-#error TODO: Adapt win32execute to new execute API
+#    define execv(a,b) win32execute(a,b,0,0,0)
 #    define execute(a,b,c) win32execute(*(a),a,1,b,c)
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0
