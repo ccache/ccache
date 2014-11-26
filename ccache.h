@@ -5,6 +5,7 @@
 #include "mdfour.h"
 #include "conf.h"
 #include "counters.h"
+#include "xxhash.h"
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))

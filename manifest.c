@@ -20,7 +20,6 @@
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
-#include "murmurhashneutral2.h"
 
 #include <zlib.h>
 
@@ -128,7 +127,7 @@ static unsigned int
 hash_from_file_info(void *key)
 {
 	ccache_static_assert(sizeof(struct file_info) == 40); /* No padding. */
-	return murmurhashneutral2(key, sizeof(struct file_info), 0);
+	return XXH32(key, sizeof(struct file_info), 0);
 }
 
 static int

@@ -26,7 +26,7 @@ extra_libs = @extra_libs@
 base_sources = \
     ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
     cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-    murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c lockfile.c \
+    xxhash.c hashutil.c getopt_long.c exitfn.c lockfile.c \
     counters.c language.c compopt.c conf.c
 base_objs = $(base_sources:.c=.o)
 
