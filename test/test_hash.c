@@ -27,33 +27,33 @@ TEST_SUITE(hash)
 
 TEST(test_vectors_from_rfc_1320_should_be_correct)
 {
-	struct mdfour h;
+	HSTATE_T h;
 
 	hash_start(&h);
 	hash_string(&h, "");
-	CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(&h));
+	CHECK_STR_EQ_FREE2("99e9d85137db46ef0000000000000000-0", hash_result(&h));
 
 	hash_start(&h);
 	hash_string(&h, "a");
-	CHECK_STR_EQ_FREE2("bde52cb31de33e46245e05fbdbd6fb24-1", hash_result(&h));
+	CHECK_STR_EQ_FREE2("5b6e8ca9f1c44ed20000000000000000-1", hash_result(&h));
 
 	hash_start(&h);
 	hash_string(&h, "message digest");
-	CHECK_STR_EQ_FREE2("d9130a8164549fe818874806e1c7014b-14", hash_result(&h));
+	CHECK_STR_EQ_FREE2("beb3eefc28d76e060000000000000000-14", hash_result(&h));
 
 	hash_start(&h);
 	hash_string(&h, "12345678901234567890123456789012345678901234567890123456789012345678901234567890");
-	CHECK_STR_EQ_FREE2("e33b4ddc9c38f2199c3e7b164fcc0536-80", hash_result(&h));
+	CHECK_STR_EQ_FREE2("5d14ee197f474ae00000000000000000-80", hash_result(&h));
 }
 
 TEST(hash_result_should_be_idempotent)
 {
-	struct mdfour h;
+	HSTATE_T h;
 
 	hash_start(&h);
 	hash_string(&h, "");
-	CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(&h));
-	CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(&h));
+	CHECK_STR_EQ_FREE2("99e9d85137db46ef0000000000000000-0", hash_result(&h));
+	CHECK_STR_EQ_FREE2("99e9d85137db46ef0000000000000000-0", hash_result(&h));
 }
 
 TEST_SUITE_END

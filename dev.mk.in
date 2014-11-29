@@ -41,7 +41,6 @@ headers = \
     language.h \
     macroskip.h \
     manifest.h \
-    mdfour.h \
     murmurhashneutral2.h \
     system.h \
     test/framework.h \

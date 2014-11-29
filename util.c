@@ -522,10 +522,10 @@ char *
 format_hash_as_string(const unsigned char *hash, int size)
 {
 	char *ret;
-	int i;
+	unsigned i;
 
 	ret = x_malloc(53);
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < HSIZE; i++) {
 		sprintf(&ret[i*2], "%02x", (unsigned) hash[i]);
 	}
 	if (size >= 0) {
