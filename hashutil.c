@@ -18,19 +18,18 @@
 
 #include "ccache.h"
 #include "hashutil.h"
-#include "murmurhashneutral2.h"
 #include "macroskip.h"
 
 unsigned
 hash_from_string(void *str)
 {
-	return murmurhashneutral2(str, strlen((const char *)str), 0);
+	return hash_simple(str, strlen((const char *)str), 0);
 }
 
 unsigned
 hash_from_int(int i)
 {
-	return murmurhashneutral2(&i, sizeof(int), 0);
+	return hash_simple(&i, sizeof(int), 0);
 }
 
 int
@@ -42,7 +41,7 @@ strings_equal(void *str1, void *str2)
 int
 file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 {
-	return memcmp(fh1->hash, fh2->hash, 16) == 0
+	return memcmp(fh1->hash, fh2->hash, sizeof(fh1->hash)) == 0
 		&& fh1->size == fh2->size;
 }
 
@@ -104,7 +103,7 @@ check_for_temporal_macros(const char *str, size_t len)
  */
 int
 hash_source_code_string(
-	struct conf *conf, struct mdfour *hash, const char *str, size_t len,
+	struct conf *conf, HSTATE_T *hash, const char *str, size_t len,
 	const char *path)
 {
 	int result = HASH_SOURCE_CODE_OK;
@@ -155,7 +154,7 @@ hash_source_code_string(
  * results.
  */
 int
-hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
+hash_source_code_file(struct conf *conf, HSTATE_T *hash, const char *path)
 {
 	char *data;
 	size_t size;
@@ -179,7 +178,7 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 }
 
 bool
-hash_command_output(struct mdfour *hash, const char *command,
+hash_command_output(HSTATE_T *hash, const char *command,
                     const char *compiler)
 {
 #ifdef _WIN32
@@ -296,7 +295,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 }
 
 bool
-hash_multicommand_output(struct mdfour *hash, const char *commands,
+hash_multicommand_output(HSTATE_T *hash, const char *commands,
                          const char *compiler)
 {
 	char *command_string, *command, *p, *saveptr = NULL;

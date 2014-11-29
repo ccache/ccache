@@ -41,12 +41,12 @@ headers = \
     language.h \
     macroskip.h \
     manifest.h \
-    mdfour.h \
     murmurhashneutral2.h \
     system.h \
     test/framework.h \
     test/suites.h \
-    test/util.h
+    test/util.h \
+    xxhash.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/*
 files_to_distclean += $(built_dist_files) version.c test/suites.h

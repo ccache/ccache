@@ -20,7 +20,6 @@
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "manifest.h"
-#include "murmurhashneutral2.h"
 
 #include <zlib.h>
 
@@ -128,7 +127,7 @@ static unsigned int
 hash_from_file_info(void *key)
 {
 	ccache_static_assert(sizeof(struct file_info) == 40); /* No padding. */
-	return murmurhashneutral2(key, sizeof(struct file_info), 0);
+	return hash_simple(key, sizeof(struct file_info), 0);
 }
 
 static int
@@ -224,7 +223,7 @@ create_empty_manifest(void)
 	struct manifest *mf;
 
 	mf = x_malloc(sizeof(*mf));
-	mf->hash_size = 16;
+	mf->hash_size = HSIZE;
 	mf->n_files = 0;
 	mf->files = NULL;
 	mf->n_file_infos = 0;
@@ -258,7 +257,7 @@ read_manifest(gzFile f)
 	}
 
 	READ_BYTE(mf->hash_size);
-	if (mf->hash_size != 16) {
+	if (mf->hash_size != HSIZE) {
 		/* Temporary measure until we support different hash algorithms. */
 		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
 		free_manifest(mf);
@@ -383,7 +382,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 	struct file_info *fi;
 	struct file_hash *actual;
 	struct file_stats *st;
-	struct mdfour hash;
+	HSTATE_T hash;
 	int result;
 	char *path;
 
@@ -437,7 +436,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 				return 0;
 			}
 			hash_result_as_bytes(&hash, actual->hash);
-			actual->size = hash.totalN;
+			actual->size = hash_get_len(&hash);
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 		}
 		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0

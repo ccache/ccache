@@ -2,9 +2,9 @@
 #define CCACHE_H
 
 #include "system.h"
-#include "mdfour.h"
 #include "conf.h"
 #include "counters.h"
+#include "xxhash.h"
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
@@ -96,17 +96,22 @@ bool args_equal(struct args *args1, struct args *args2);
 /* ------------------------------------------------------------------------- */
 /* hash.c */
 
-void hash_start(struct mdfour *md);
-void hash_buffer(struct mdfour *md, const void *s, size_t len);
-char *hash_result(struct mdfour *md);
-void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-bool hash_equal(struct mdfour *md1, struct mdfour *md2);
-void hash_delimiter(struct mdfour *md, const char *type);
-void hash_string(struct mdfour *md, const char *s);
-void hash_string_length(struct mdfour *md, const char *s, int length);
-void hash_int(struct mdfour *md, int x);
-bool hash_fd(struct mdfour *md, int fd);
-bool hash_file(struct mdfour *md, const char *fname);
+#define HSTATE_T struct xxh64_state_t
+#define HSIZE 16
+
+unsigned hash_simple(const void* input, size_t length, unsigned seed);
+void hash_start(HSTATE_T *hstate);
+size_t hash_get_len(HSTATE_T *hstate);
+void hash_buffer(HSTATE_T *hstate, const void *s, size_t len);
+char *hash_result(HSTATE_T *hstate);
+void hash_result_as_bytes(HSTATE_T *hstate, void *out);
+bool hash_equal(HSTATE_T *hstate1, HSTATE_T *hstate2);
+void hash_delimiter(HSTATE_T *hstate, const char *type);
+void hash_string(HSTATE_T *hstate, const char *s);
+void hash_string_length(HSTATE_T *hstate, const char *s, int length);
+void hash_int(HSTATE_T *hstate, int x);
+bool hash_fd(HSTATE_T *hstate, int fd);
+bool hash_file(HSTATE_T *hstate, const char *fname);
 
 /* ------------------------------------------------------------------------- */
 /* util.c */
@@ -189,7 +194,7 @@ void stats_write(const char *path, struct counters *counters);
 /* ------------------------------------------------------------------------- */
 /* unify.c */
 
-int unify_hash(struct mdfour *hash, const char *fname);
+int unify_hash(HSTATE_T *hash, const char *fname);
 
 /* ------------------------------------------------------------------------- */
 /* exitfn.c */

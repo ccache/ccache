@@ -76,15 +76,17 @@ TEST(get_relative_path)
 
 TEST(format_hash_as_string)
 {
-	unsigned char hash[16] = {
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"};
+	unsigned char hash[HSIZE];
+	int i;
+	for (i=0; i<HSIZE; i++)
+		hash[i] = '\x00';
 
 	CHECK_STR_EQ_FREE2("00000000000000000000000000000000",
 	                   format_hash_as_string(hash, -1));
 	CHECK_STR_EQ_FREE2("00000000000000000000000000000000-0",
 	                   format_hash_as_string(hash, 0));
 	hash[0] = 17;
-	hash[15] = 42;
+	hash[HSIZE-1] = 42;
 	CHECK_STR_EQ_FREE2("1100000000000000000000000000002a-12345",
 	                   format_hash_as_string(hash, 12345));
 }

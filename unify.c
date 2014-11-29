@@ -106,7 +106,7 @@ build_table(void)
 
 /* buffer up characters before hashing them */
 static void
-pushchar(struct mdfour *hash, unsigned char c)
+pushchar(HSTATE_T *hash, unsigned char c)
 {
 	static unsigned char buf[64];
 	static size_t len;
@@ -129,7 +129,7 @@ pushchar(struct mdfour *hash, unsigned char c)
 
 /* hash some C/C++ code after unifying */
 static void
-unify(struct mdfour *hash, unsigned char *p, size_t size)
+unify(HSTATE_T *hash, unsigned char *p, size_t size)
 {
 	size_t ofs;
 	unsigned char q;
@@ -248,7 +248,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
    number information from the hash
 */
 int
-unify_hash(struct mdfour *hash, const char *fname)
+unify_hash(HSTATE_T *hash, const char *fname)
 {
 	char *data;
 	size_t size;

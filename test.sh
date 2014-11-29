@@ -1369,9 +1369,9 @@ EOF
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest >manifest.dump
 
-    if grep 'Hash: e6b009695d072974f2c4d1dd7e7ed4fc' manifest.dump >/dev/null 2>&1 && \
-       grep 'Hash: e94ceb9f1b196c387d098a5f1f4fe862' manifest.dump >/dev/null 2>&1 && \
-       grep 'Hash: c2f5392dbc7e8ff6138d01608445240a' manifest.dump >/dev/null 2>&1; then
+    if grep 'Hash: 71e857513dc107910000000000000000' manifest.dump >/dev/null 2>&1 && \
+       grep 'Hash: c829109127254f6d0000000000000000' manifest.dump >/dev/null 2>&1 && \
+       grep 'Hash: 585632b68ef564af0000000000000000' manifest.dump >/dev/null 2>&1; then
         : OK
     else
         test_failed "unexpected output of --dump-manifest"

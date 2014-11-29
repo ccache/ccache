@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
  * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2014 Timofey Titovets
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -21,43 +22,51 @@
 
 #define HASH_DELIMITER "\000cCaChE"
 
-void
-hash_start(struct mdfour *md)
-{
-	mdfour_begin(md);
+unsigned hash_simple(const void* input, size_t length, unsigned seed) {
+        return xxh32 (input, length, seed);
 }
 
 void
-hash_buffer(struct mdfour *md, const void *s, size_t len)
+hash_start(HSTATE_T *hstate)
 {
-	mdfour_update(md, (unsigned char *)s, len);
+	xxh64_reset(hstate, 0);
+}
+
+size_t hash_get_len(HSTATE_T *hstate)
+{
+	return (size_t) hstate->total_len;
+}
+
+void
+hash_buffer(HSTATE_T *hstate, const void *input, size_t len)
+{
+	xxh64_update(hstate, input, len);
 }
 
 /* Return the hash result as a hex string. Caller frees. */
 char *
-hash_result(struct mdfour *md)
+hash_result(HSTATE_T *hstate)
 {
-	unsigned char sum[16];
-
-	hash_result_as_bytes(md, sum);
-	return format_hash_as_string(sum, (unsigned) md->totalN);
+	unsigned char sum[HSIZE];
+	hash_result_as_bytes(hstate, sum);
+	return format_hash_as_string(sum, hash_get_len(hstate));
 }
 
-/* return the hash result as 16 binary bytes */
+/* return the hash result as HSIZE binary bytes */
 void
-hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+hash_result_as_bytes(HSTATE_T *hstate, void *out)
 {
-	hash_buffer(md, NULL, 0);
-	mdfour_result(md, out);
+	unsigned long long *hash = out;
+#if HSIZE == 16
+	hash[1] = 0;
+#endif
+	hash[0] = xxh64_digest(hstate);
 }
 
 bool
-hash_equal(struct mdfour *md1, struct mdfour *md2)
+hash_equal(HSTATE_T *hstate1, HSTATE_T *hstate2)
 {
-	unsigned char sum1[16], sum2[16];
-	hash_result_as_bytes(md1, sum1);
-	hash_result_as_bytes(md2, sum2);
-	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
+	return xxh64_digest(hstate1) == xxh64_digest(hstate2);
 }
 
 /*
@@ -71,28 +80,28 @@ hash_equal(struct mdfour *md1, struct mdfour *md2)
  *   there should never be a hash collision risk).
  */
 void
-hash_delimiter(struct mdfour *md, const char *type)
+hash_delimiter(HSTATE_T *hstate, const char *type)
 {
-	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
-	hash_buffer(md, type, strlen(type) + 1); /* Include NUL. */
+	hash_buffer(hstate, HASH_DELIMITER, sizeof(HASH_DELIMITER));
+	hash_buffer(hstate, type, strlen(type) + 1); /* Include NUL. */
 }
 
 void
-hash_string(struct mdfour *md, const char *s)
+hash_string(HSTATE_T *hstate, const char *s)
 {
-	hash_string_length(md, s, strlen(s));
+	hash_buffer(hstate, s, strlen(s));
 }
 
 void
-hash_string_length(struct mdfour *md, const char *s, int length)
+hash_string_length(HSTATE_T *hstate, const char *s, int length)
 {
-        hash_buffer(md, s, length);
+        hash_buffer(hstate, s, length);
 }
 
 void
-hash_int(struct mdfour *md, int x)
+hash_int(HSTATE_T *hstate, int x)
 {
-	hash_buffer(md, (char *)&x, sizeof(x));
+	hash_buffer(hstate, &x, sizeof(x));
 }
 
 /*
@@ -100,7 +109,7 @@ hash_int(struct mdfour *md, int x)
  * false.
  */
 bool
-hash_fd(struct mdfour *md, int fd)
+hash_fd(HSTATE_T *hstate, int fd)
 {
 	char buf[16384];
 	ssize_t n;
@@ -110,7 +119,7 @@ hash_fd(struct mdfour *md, int fd)
 			break;
 		}
 		if (n > 0) {
-			hash_buffer(md, buf, n);
+			hash_buffer(hstate, buf, n);
 		}
 	}
 	return n == 0;
@@ -121,7 +130,7 @@ hash_fd(struct mdfour *md, int fd)
  * false.
  */
 bool
-hash_file(struct mdfour *md, const char *fname)
+hash_file(HSTATE_T *hstate, const char *fname)
 {
 	int fd;
 	bool ret;
@@ -131,7 +140,7 @@ hash_file(struct mdfour *md, const char *fname)
 		return false;
 	}
 
-	ret = hash_fd(md, fd);
+	ret = hash_fd(hstate, fd);
 	close(fd);
 	return ret;
 }
