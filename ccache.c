@@ -1106,6 +1106,9 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 		hash_delimiter(hash, "cc_mtime");
 		hash_int(hash, st->st_size);
 		hash_int(hash, st->st_mtime);
+	} else if (str_startswith(conf->compiler_check, "string:")) {
+		hash_delimiter(hash, "cc_hash");
+		hash_string(hash, conf->compiler_check + strlen("string:"));
 	} else if (str_eq(conf->compiler_check, "content") || !allow_command) {
 		hash_delimiter(hash, "cc_content");
 		hash_file(hash, path);
