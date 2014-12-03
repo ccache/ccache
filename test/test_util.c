@@ -164,7 +164,7 @@ TEST(parse_size_with_suffix)
 	size_t i;
 	struct { const char *size; int64_t expected; } sizes[] = {
 		{"0", 0},
-		{"42", 42},
+		{"42", (int64_t)42 * 1000 * 1000 * 1000}, /* Default suffix: G */
 
 		{"78k",       78 * 1000},
 		{"78K",       78 * 1000},

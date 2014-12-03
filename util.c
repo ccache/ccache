@@ -947,6 +947,9 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 		default:
 			return false;
 		}
+	} else {
+		/* Default suffix: G. */
+		x *= 1000 * 1000 * 1000;
 	}
 	*size = x;
 	return true;
