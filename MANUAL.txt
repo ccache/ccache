@@ -376,11 +376,6 @@ WRAPPERS>>.
     If set to a file path, ccache will write information on what it is doing to
     the specified file. This is useful for tracking down problems.
 
-*stats* (*CCACHE_STATS*) [boolean]::
-
-    If true, ccache will update the statistics counters on each compilation.
-    The default is true.
-
 *path* (*CCACHE_PATH*)::
 
     If set, ccache will search directories in this list when looking for the
@@ -409,7 +404,7 @@ WRAPPERS>>.
     from the cache using the direct mode, not the preprocessor mode. See
     documentation for *read_only* regarding using a read-only ccache directory.
 
-*reache* (*CCACHE_RECACHE*) [boolean]::
+*recache* (*CCACHE_RECACHE*) [boolean]::
 
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
@@ -453,6 +448,11 @@ WRAPPERS>>.
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
 information.
+
+*stats* (*CCACHE_STATS*) [boolean]::
+
+    If true, ccache will update the statistics counters on each compilation.
+    The default is true.
 
 *temporary_dir* (*CCACHE_TEMPDIR*)::
 
