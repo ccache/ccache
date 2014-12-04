@@ -376,6 +376,17 @@ WRAPPERS>>.
     If set to a file path, ccache will write information on what it is doing to
     the specified file. This is useful for tracking down problems.
 
+*max_files* (*CCACHE_MAXFILES*)::
+
+    This option specifies the maximum number of files to keep in the cache. Use
+    0 for no limit (which is the default).
+
+*max_size* (*CCACHE_MAXSIZE*)::
+
+    This option specifies the maximum size of the cache. Use 0 for no limit.
+    The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
+    Mi, Gi, Ti (binary). The default suffix is "G".
+
 *path* (*CCACHE_PATH*)::
 
     If set, ccache will search directories in this list when looking for the
