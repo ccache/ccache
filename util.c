@@ -510,7 +510,7 @@ get_hostname(void)
 		if (err != 0) {
 			/* Tell the user that we could not find a usable */
 			/* Winsock DLL.                                  */
-			cc_log("WSAStartup failed with error: %d\n", err);
+			cc_log("WSAStartup failed with error: %d", err);
 			return hostname;
 		}
 
@@ -523,8 +523,7 @@ get_hostname(void)
 	    }
 
 		int result = gethostname(hostname, sizeof(hostname)-1);
-		if (result != 0)
-		{
+		if (result != 0) {
 			int last_error = WSAGetLastError();
 			LPVOID lpMsgBuf;
 			LPVOID lpDisplayBuf;
@@ -1360,8 +1359,7 @@ x_rename(const char *oldpath, const char *newpath)
 	/* Windows' rename() refuses to overwrite an existing file. */
 	unlink(newpath);  /* not x_unlink, as x_unlink calls x_rename */
 	/*If the function succeeds, the return value is nonzero.*/
-	if (MoveFileA(oldpath, newpath) == 0)
-	{
+	if (MoveFileA(oldpath, newpath) == 0) {
 		LPVOID lpMsgBuf;
 		LPVOID lpDisplayBuf;
 		DWORD dw = GetLastError();

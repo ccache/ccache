@@ -802,20 +802,9 @@ to_cache(struct args *args)
 		char *tmp_stderr2;
 
 		tmp_stderr2 = format("%s.2", tmp_stderr);
-#ifdef _WIN32
-		// on Windows file descriptor should be closed before rename
-		int prev_stderr_fd = tmp_stderr_fd;
-		close(tmp_stderr_fd);
-#endif
-		int rename_result = x_rename(tmp_stderr, tmp_stderr2);
-#ifdef _WIN32
-		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-		assert(prev_stderr_fd == tmp_stderr_fd);
-#endif
-		if (rename_result) {
-			const char* err_str = strerror(errno);
+		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
-			       err_str);
+					strerror(errno));
 			failed();
 		}
 		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
@@ -969,6 +958,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	char *path_stdout, *path_stderr;
 	int status, path_stderr_fd;
 	struct file_hash *result;
+	int path_stdout_fd = -1;
 
 	/* ~/hello.c -> tmp.hello.123.i
 	   limit the basename to 10
@@ -988,8 +978,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
-
-	int path_stdout_fd = -1;
 
 	if (direct_i_file) {
 		/* We are compiling a .i or .ii file - that means we can skip the cpp stage
@@ -1046,21 +1034,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		/* i_tmpfile needs the proper cpp_extension for the compiler to do its
 		 * thing correctly. */
 		i_tmpfile = format("%s.%s", path_stdout, conf->cpp_extension);
-#ifdef _WIN32
-		// on Windows rename only if file descriptor closed
-		if (path_stdout_fd != -1)
-		{
-			close(path_stdout_fd);
-		}
-#endif
 		x_rename(path_stdout, i_tmpfile);
-#ifdef _WIN32
-		if (path_stdout_fd != -1)
-		{
-			int tmp_fd = create_tmp_fd(&path_stdout);
-			assert(tmp_fd == path_stdout_fd);
-		}
-#endif
 		add_pending_tmp_file(i_tmpfile);
 	}
 
@@ -1143,6 +1117,8 @@ compiler_is_gcc(struct args *args)
 	return is;
 }
 
+
+
 /*
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
@@ -1162,32 +1138,19 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_delimiter(hash, "ext");
 	hash_string(hash, conf->cpp_extension);
 
+	const char* full_path = args->argv[0];
 #ifdef _WIN32
-	const char* ext = strchr(args->argv[0], '.');
-	char full_path_win_ext[MAX_PATH] = {0};
-	strncat(full_path_win_ext, args->argv[0], MAX_PATH);
-	if (!ext
-		|| (strcmp(".exe", ext) != 0
-			&& strcmp(".bat", ext) != 0
-			&& strcmp(".EXE", ext) != 0
-			&& strcmp(".BAT", ext) != 0
-			)
-		)
-	{
-		strncat(full_path_win_ext, ".exe", MAX_PATH);
-	}
-	if (stat(full_path_win_ext, &st) != 0) {
-		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
-		stats_update(STATS_COMPILER);
-		failed();
-	}
-#else
-	if (stat(args->argv[0], &st) != 0) {
-		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
-		stats_update(STATS_COMPILER);
-		failed();
-	}
+	const char* ext = strrchr(args->argv[0], '.');
+	char full_path_win_ext[MAX_PATH + 1] = {0};
+	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext,
+			args->argv[0]);
+	full_path = full_path_win_ext;
 #endif
+	if (stat(full_path, &st) != 0) {
+		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
+		stats_update(STATS_COMPILER);
+		failed();
+	}
 
 	/*
 	 * Hash information about the compiler.
