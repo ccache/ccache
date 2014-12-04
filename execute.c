@@ -117,6 +117,18 @@ win32getshell(char *path)
 	return sh;
 }
 
+void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
+		const char* ext, char* path) {
+	strncat(full_path_win_ext, path, max_size);
+	if (!ext
+			|| (!str_eq(".exe", ext)
+				&& !str_eq(".bat", ext)
+				&& !str_eq(".EXE", ext)
+				&& !str_eq(".BAT", ext))) {
+		strncat(full_path_win_ext, ".exe", max_size);
+	}
+}
+
 int
 win32execute(char *path, char **argv, int doreturn,
              int fd_stdout, int fd_stderr)
@@ -149,17 +161,13 @@ win32execute(char *path, char **argv, int doreturn,
 	}
 	args = win32argvtos(sh, argv);
 
-	const char* ext = strchr(path, '.');
+	const char* ext = strrchr(path, '.');
 	char full_path_win_ext[MAX_PATH] = { 0 };
-	strncat(full_path_win_ext, path, MAX_PATH);
-	if (!ext
-			|| (strcmp(".exe", ext) != 0 && strcmp(".bat", ext) != 0
-					&& strcmp(".EXE", ext) != 0 && strcmp(".BAT", ext) != 0)) {
-		strncat(full_path_win_ext, ".exe", MAX_PATH);
-	}
-
+	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
 	ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
 			&si, &pi);
+	close(fd_stdout);
+	close(fd_stderr);
 	free(args);
 	if (ret == 0) {
 		LPVOID lpMsgBuf;
