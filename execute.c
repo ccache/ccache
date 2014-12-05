@@ -158,6 +158,17 @@ win32execute(char *path, char **argv, int doreturn,
 				|| si.hStdError == INVALID_HANDLE_VALUE) {
 			return -1;
 		}
+	} else {
+		/* redirect subprocess stdout, stderr into current process */
+		si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+		si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+		si.dwFlags = STARTF_USESTDHANDLES;
+		if (si.hStdOutput == INVALID_HANDLE_VALUE
+				|| si.hStdError == INVALID_HANDLE_VALUE) {
+			return -1;
+		}
 	}
 	args = win32argvtos(sh, argv);
 
@@ -166,8 +177,11 @@ win32execute(char *path, char **argv, int doreturn,
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
 	ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
 			&si, &pi);
-	close(fd_stdout);
-	close(fd_stderr);
+	if (fd_stdout != -1)
+	{
+		close(fd_stdout);
+		close(fd_stderr);
+	}
 	free(args);
 	if (ret == 0) {
 		LPVOID lpMsgBuf;
