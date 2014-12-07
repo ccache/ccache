@@ -373,7 +373,8 @@ stats_zero(void)
 
 /* Get the per directory limits */
 void
-stats_get_obsolete_limits(const char *dir, unsigned *maxfiles, uint64_t *maxsize)
+stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
+                          uint64_t *maxsize)
 {
 	struct counters *counters = counters_init(STATS_END);
 	char *sname = format("%s/stats", dir);

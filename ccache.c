@@ -291,8 +291,8 @@ clean_up_pending_tmp_files(void)
 	while (p) {
 		tmp_unlink(p->path);
 		p = p->next;
-		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be signal
-		 * safe. */
+		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be
+		 * signal safe. */
 	}
 }
 
@@ -2202,7 +2202,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	output_is_precompiled_header =
 		actual_language && strstr(actual_language, "-header");
 
-	if (output_is_precompiled_header && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
+	if (output_is_precompiled_header
+	    && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
 		cc_log("You have to specify \"pch_defines,time_macros\" sloppiness when"
 		       " creating precompiled headers");
 		stats_update(STATS_CANTUSEPCH);
