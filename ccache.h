@@ -2,7 +2,6 @@
 #define CCACHE_H
 
 #include "system.h"
-#include "mdfour.h"
 #include "conf.h"
 #include "counters.h"
 
@@ -61,9 +60,9 @@ enum stats {
 #define SLOPPY_TIME_MACROS 8
 #define SLOPPY_PCH_DEFINES 16
 /*
- * Allow us to match files based on their stats (size, mtime, ctime), without
- * looking at their contents.
- */
+* Allow us to match files based on their stats (size, mtime, ctime), without
+* looking at their contents.
+*/
 #define SLOPPY_FILE_STAT_MATCHES 32
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
@@ -96,17 +95,30 @@ bool args_equal(struct args *args1, struct args *args2);
 /* ------------------------------------------------------------------------- */
 /* hash.c */
 
-void hash_start(struct mdfour *md);
-void hash_buffer(struct mdfour *md, const void *s, size_t len);
-char *hash_result(struct mdfour *md);
-void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-bool hash_equal(struct mdfour *md1, struct mdfour *md2);
-void hash_delimiter(struct mdfour *md, const char *type);
-void hash_string(struct mdfour *md, const char *s);
-void hash_string_length(struct mdfour *md, const char *s, int length);
-void hash_int(struct mdfour *md, int x);
-bool hash_fd(struct mdfour *md, int fd);
-bool hash_file(struct mdfour *md, const char *fname);
+#define HSIZE 16
+
+/* special struct what can must store any supported hash state */
+struct hstate {
+	unsigned char size[128];
+};
+/* For easy change hash algorithm */
+#ifndef HNAME
+#define HNAME mdfour
+#endif
+
+unsigned hash_simple(const void* input, size_t length, unsigned seed);
+void hash_start(struct hstate *hstate);
+size_t hash_get_len(struct hstate *hstate);
+void hash_buffer(struct hstate *hstate, const void *s, size_t len);
+char *hash_result(struct hstate *hstate);
+void hash_result_as_bytes(struct hstate *hstate, void *out);
+bool hash_equal(struct hstate *hstate1, struct hstate *hstate2);
+void hash_delimiter(struct hstate *hstate, const char *type);
+void hash_string(struct hstate *hstate, const char *s);
+void hash_string_length(struct hstate *hstate, const char *s, int length);
+void hash_int(struct hstate *hstate, int x);
+bool hash_fd(struct hstate *hstate, int fd);
+bool hash_file(struct hstate *hstate, const char *fname);
 
 /* ------------------------------------------------------------------------- */
 /* util.c */
@@ -189,7 +201,7 @@ void stats_write(const char *path, struct counters *counters);
 /* ------------------------------------------------------------------------- */
 /* unify.c */
 
-int unify_hash(struct mdfour *hash, const char *fname);
+int unify_hash(struct hstate *hash, const char *fname);
 
 /* ------------------------------------------------------------------------- */
 /* exitfn.c */

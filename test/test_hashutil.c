@@ -29,7 +29,7 @@ TEST_SUITE(hashutil)
 
 TEST(hash_command_output_simple)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	CHECK(hash_command_output(&h1, "echo", "not used"));
@@ -39,7 +39,7 @@ TEST(hash_command_output_simple)
 
 TEST(hash_command_output_space_removal)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	CHECK(hash_command_output(&h1, "echo", "not used"));
@@ -49,7 +49,7 @@ TEST(hash_command_output_space_removal)
 
 TEST(hash_command_output_hash_inequality)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	CHECK(hash_command_output(&h1, "echo foo", "not used"));
@@ -59,7 +59,7 @@ TEST(hash_command_output_hash_inequality)
 
 TEST(hash_command_output_compiler_substitution)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	CHECK(hash_command_output(&h1, "echo foo", "not used"));
@@ -69,7 +69,7 @@ TEST(hash_command_output_compiler_substitution)
 
 TEST(hash_command_output_stdout_versus_stderr)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	create_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
@@ -81,7 +81,7 @@ TEST(hash_command_output_stdout_versus_stderr)
 
 TEST(hash_multicommand_output)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
@@ -93,7 +93,7 @@ TEST(hash_multicommand_output)
 
 TEST(hash_multicommand_output_error_handling)
 {
-	struct mdfour h1, h2;
+	struct hstate h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
 	CHECK(!hash_multicommand_output(&h2, "false; true", "not used"));

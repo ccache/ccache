@@ -27,7 +27,7 @@ TEST_SUITE(hash)
 
 TEST(test_vectors_from_rfc_1320_should_be_correct)
 {
-	struct mdfour h;
+	struct hstate h;
 
 	hash_start(&h);
 	hash_string(&h, "");
@@ -48,7 +48,7 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 
 TEST(hash_result_should_be_idempotent)
 {
-	struct mdfour h;
+	struct hstate h;
 
 	hash_start(&h);
 	hash_string(&h, "");
