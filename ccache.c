@@ -930,15 +930,27 @@ to_cache(struct args *args)
 	put_file_in_cache(output_obj, cached_obj);
 	stats_update(STATS_TOCACHE);
 
-	/* Make sure we have a CACHEDIR.TAG
-	 * This can be almost anywhere, but might as well do it near the end
-	 * as if we exit early we save the stat call
+	/* Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
+	 * be done almost anywhere, but we might as well do it near the end as we
+	 * save the stat call if we exit early.
 	 */
-	if (create_cachedirtag(conf->cache_dir) != 0) {
-		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
-		       conf->cache_dir, strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
+	{
+		char *first_level_dir = dirname(stats_file);
+		if (create_cachedirtag(first_level_dir) != 0) {
+			cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
+			       first_level_dir, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+		free(first_level_dir);
+
+		/* Remove any CACHEDIR.TAG on the cache_dir level where it was located in
+		 * previous ccache versions. */
+		if (getpid() % 1000 == 0) {
+			char *path = format("%s/CACHEDIR.TAG", conf->cache_dir);
+			unlink(path);
+			free(path);
+		}
 	}
 
 	free(tmp_stderr);

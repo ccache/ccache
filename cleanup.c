@@ -80,6 +80,10 @@ traverse_fn(const char *fname, struct stat *st)
 		}
 	}
 
+	if (strstr(p, "CACHEDIR.TAG")) {
+		goto out;
+	}
+
 	if (num_files == allocated) {
 		allocated = 10000 + num_files*2;
 		files = (struct files **)x_realloc(files, sizeof(struct files *)*allocated);
