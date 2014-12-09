@@ -653,7 +653,7 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	}
 
 	tmp_file = format("%s.tmp.%s", manifest_path, tmp_string());
-	fd2 = mkstemp(tmp_file);
+	fd2 = safe_open(tmp_file);
 	if (fd2 == -1) {
 		cc_log("Failed to open %s", tmp_file);
 		goto out;

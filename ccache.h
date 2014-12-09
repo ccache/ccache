@@ -133,7 +133,7 @@ size_t file_size(struct stat *st);
 int safe_open(const char *fname);
 char *x_realpath(const char *path);
 char *gnu_getcwd(void);
-int create_empty_file(char *fname);
+int create_empty_file(const char *fname);
 const char *get_home_directory(void);
 char *get_cwd();
 bool same_executable_name(const char *s1, const char *s2);

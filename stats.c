@@ -126,15 +126,9 @@ stats_write(const char *path, struct counters *counters)
 	size_t i;
 	char *tmp_file;
 	FILE *f;
-	int fd;
 
 	tmp_file = format("%s.tmp.%s", path, tmp_string());
-	fd = mkstemp(tmp_file);
-	if (fd == -1) {
-		cc_log("Failed to open %s", tmp_file);
-		goto end;
-	}
-	f = fdopen(fd, "wb");
+	f = fopen(tmp_file, "wb");
 	if (!f) {
 		cc_log("Failed to open %s", tmp_file);
 		goto end;
@@ -144,7 +138,7 @@ stats_write(const char *path, struct counters *counters)
 			fatal("Failed to write to %s", tmp_file);
 		}
 	}
-	fclose(f); /* This also implicitly closes the fd. */
+	fclose(f);
 	x_rename(tmp_file, path);
 
 end:

@@ -195,7 +195,7 @@ copy_file(const char *src, const char *dest, int compress_dest)
 	struct stat st;
 	int errnum;
 
-	tmp_name = format("%s.%s", dest, tmp_string());
+	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
 	cc_log("Copying %s to %s via %s (%s)",
 	       src, dest, tmp_name, compress_dest ? "compressed": "uncompressed");
 
@@ -418,8 +418,8 @@ get_hostname(void)
 }
 
 /*
- * Return a string to be passed to mkstemp to create a temporary file. Also
- * tries to cope with NFS by adding the local hostname.
+ * Return a string to be used to distinguish temporary files. Also tries to
+ * cope with NFS by adding the local hostname.
  */
 const char *
 tmp_string(void)
@@ -427,7 +427,7 @@ tmp_string(void)
 	static char *ret;
 
 	if (!ret) {
-		ret = format("%s.%u.XXXXXX", get_hostname(), (unsigned)getpid());
+		ret = format("%s.%u", get_hostname(), (unsigned)getpid());
 	}
 
 	return ret;
@@ -886,13 +886,12 @@ gnu_getcwd(void)
 
 /* create an empty file */
 int
-create_empty_file(char *fname)
+create_empty_file(const char *fname)
 {
 	int fd;
 
-	fd = mkstemp(fname);
+	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
 	if (fd == -1) {
-		cc_log("Failed to create %s: %s", fname, strerror(errno));
 		return -1;
 	}
 	close(fd);
@@ -1127,10 +1126,7 @@ x_unlink(const char *path)
 		goto out;
 	}
 	if (unlink(tmp_name) == -1) {
-		/* If it was released in a race, that's OK. */
-		if (errno != ENOENT) {
-			result = -1;
-		}
+		result = -1;
 	}
 out:
 	free(tmp_name);
