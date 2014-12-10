@@ -223,6 +223,21 @@ mkstemp(char *template)
 }
 #endif
 
+#ifndef _WIN32
+static mode_t
+get_umask(void)
+{
+	static bool mask_retrieved = false;
+	static mode_t mask;
+	if (!mask_retrieved) {
+		mask = umask(0);
+		umask(mask);
+		mask_retrieved = true;
+	}
+	return mask;
+}
+#endif
+
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides
  * whether dest will be compressed, and with which compression level.
@@ -235,9 +250,6 @@ copy_file(const char *src, const char *dest, int compress_level)
 	char buf[10240];
 	int n, written;
 	char *tmp_name;
-#ifndef _WIN32
-	mode_t mask;
-#endif
 	struct stat st;
 	int errnum;
 
@@ -337,10 +349,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	}
 
 #ifndef _WIN32
-	/* get perms right on the tmp file */
-	mask = umask(0);
-	fchmod(fd_out, 0666 & ~mask);
-	umask(mask);
+	fchmod(fd_out, 0666 & ~get_umask());
 #endif
 
 	/* the close can fail on NFS if out of space */
@@ -1064,6 +1073,11 @@ create_tmp_fd(char **fname)
 	if (fd == -1) {
 		fatal("Failed to create file %s: %s", template, strerror(errno));
 	}
+
+#ifndef _WIN32
+	fchmod(fd, 0666 & ~get_umask());
+#endif
+
 	free(*fname);
 	*fname = template;
 	return fd;
