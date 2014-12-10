@@ -2,6 +2,30 @@ ccache news
 ===========
 
 
+ccache 3.2.1
+------------
+Release date: 2014-12-10
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed regression in temporary file handling, which lead to incorrect
+  permissions for stats, manifest and ccache.conf files in the cache.
+
+- `CACHEDIR.TAG` files are now created in the [0-9a-f] subdirectories so that
+  ccache.conf is not lost in backups.
+
+- Made the default cache size suffix `G`, as previously documented.
+
+- `-fdiagnostics-color=auto` is now passed to the compiler even if stderr is
+  redirected. This fixes a problem when, for instance, a configure test probes
+  if the compiler (wrapped via ccache) supports `-fdiagnostics-color=auto`.
+
+- Added missing documentation for `max_files` and `max_size` configuration
+  options.
+
+
 ccache 3.2
 ----------
 Release date: 2014-11-17
