@@ -117,9 +117,21 @@ win32getshell(char *path)
 	return sh;
 }
 
+void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
+		const char* ext, char* path) {
+	strncat(full_path_win_ext, path, max_size);
+	if (!ext
+			|| (!str_eq(".exe", ext)
+				&& !str_eq(".bat", ext)
+				&& !str_eq(".EXE", ext)
+				&& !str_eq(".BAT", ext))) {
+		strncat(full_path_win_ext, ".exe", max_size);
+	}
+}
+
 int
 win32execute(char *path, char **argv, int doreturn,
-             const char *path_stdout, const char *path_stderr)
+             int fd_stdout, int fd_stderr)
 {
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
@@ -136,29 +148,70 @@ win32execute(char *path, char **argv, int doreturn,
 		path = sh;
 
 	si.cb = sizeof(STARTUPINFO);
-	if (path_stdout) {
-		SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
-		si.hStdOutput = CreateFile(path_stdout, GENERIC_WRITE, 0, &sa,
-		                           CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY |
-		                           FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		si.hStdError  = CreateFile(path_stderr, GENERIC_WRITE, 0, &sa,
-		                           CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY |
-		                           FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-		si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
-		si.dwFlags    = STARTF_USESTDHANDLES;
-		if (si.hStdOutput == INVALID_HANDLE_VALUE ||
-		    si.hStdError  == INVALID_HANDLE_VALUE)
+	if (fd_stdout != -1) {
+		si.hStdOutput = (HANDLE)_get_osfhandle(fd_stdout);
+		si.hStdError = (HANDLE)_get_osfhandle(fd_stderr);
+
+		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+		si.dwFlags = STARTF_USESTDHANDLES;
+		if (si.hStdOutput == INVALID_HANDLE_VALUE
+				|| si.hStdError == INVALID_HANDLE_VALUE) {
 			return -1;
+		}
+	} else {
+		/* redirect subprocess stdout, stderr into current process */
+		si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+		si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+		si.dwFlags = STARTF_USESTDHANDLES;
+		if (si.hStdOutput == INVALID_HANDLE_VALUE
+				|| si.hStdError == INVALID_HANDLE_VALUE) {
+			return -1;
+		}
 	}
 	args = win32argvtos(sh, argv);
-	ret = CreateProcess(path, args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
-	free(args);
-	if (path_stdout) {
-		CloseHandle(si.hStdOutput);
-		CloseHandle(si.hStdError);
+
+	const char* ext = strrchr(path, '.');
+	char full_path_win_ext[MAX_PATH] = { 0 };
+	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
+	ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+			&si, &pi);
+	if (fd_stdout != -1)
+	{
+		close(fd_stdout);
+		close(fd_stderr);
 	}
-	if (ret == 0)
+	free(args);
+	if (ret == 0) {
+		LPVOID lpMsgBuf;
+		LPVOID lpDisplayBuf;
+		DWORD dw = GetLastError();
+
+		FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+				0, NULL);
+
+		lpDisplayBuf =
+				(LPVOID) LocalAlloc(LMEM_ZEROINIT,
+						(lstrlen((LPCTSTR) lpMsgBuf)
+								+ lstrlen((LPCTSTR) __FILE__) + 200)
+								* sizeof(TCHAR));
+		_snprintf((LPTSTR) lpDisplayBuf,
+				LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+				TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
+
+		cc_log("can't execute %s\nOS returned error: %s\n",
+				full_path_win_ext, (char*)lpDisplayBuf);
+
+		LocalFree(lpMsgBuf);
+		LocalFree(lpDisplayBuf);
+
 		return -1;
+	}
 	WaitForSingleObject(pi.hProcess, INFINITE);
 	GetExitCodeProcess(pi.hProcess, &exitcode);
 	CloseHandle(pi.hProcess);

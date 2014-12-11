@@ -804,7 +804,7 @@ to_cache(struct args *args)
 		tmp_stderr2 = format("%s.2", tmp_stderr);
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
-			       strerror(errno));
+					strerror(errno));
 			failed();
 		}
 		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
@@ -970,6 +970,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	char *path_stdout, *path_stderr;
 	int status, path_stderr_fd;
 	struct file_hash *result;
+	int path_stdout_fd = -1;
 
 	/* ~/hello.c -> tmp.hello.123.i
 	   limit the basename to 10
@@ -997,7 +998,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		status = 0;
 	} else {
 		/* Run cpp on the input file to obtain the .i. */
-		int path_stdout_fd;
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
 		path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
@@ -1129,6 +1129,8 @@ compiler_is_gcc(struct args *args)
 	return is;
 }
 
+
+
 /*
  * Update a hash sum with information common for the direct and preprocessor
  * modes.
@@ -1148,7 +1150,15 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_delimiter(hash, "ext");
 	hash_string(hash, conf->cpp_extension);
 
-	if (stat(args->argv[0], &st) != 0) {
+	const char* full_path = args->argv[0];
+#ifdef _WIN32
+	const char* ext = strrchr(args->argv[0], '.');
+	char full_path_win_ext[MAX_PATH + 1] = {0};
+	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext,
+			args->argv[0]);
+	full_path = full_path_win_ext;
+#endif
+	if (stat(full_path, &st) != 0) {
 		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
 		stats_update(STATS_COMPILER);
 		failed();
