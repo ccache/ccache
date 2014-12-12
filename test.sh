@@ -219,7 +219,7 @@ base_tests() {
     mv $CCACHE_DIR $CCACHE_DIR.saved
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2> /dev/null
     if [ -d $CCACHE_DIR ]; then
-        test_failed "$CCACHE_DIR created dispite CCACHE_DISABLE being set"
+        test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
     mv $CCACHE_DIR.saved $CCACHE_DIR
     checkstat 'cache hit (preprocessed)' 3
