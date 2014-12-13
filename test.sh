@@ -240,7 +240,7 @@ base_tests() {
     unset CCACHE_CONFIGPATH
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2> /dev/null
     if [ -d $CCACHE_DIR ]; then
-        test_failed "$CCACHE_DIR created dispite CCACHE_DISABLE being set"
+        test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
     CCACHE_CONFIGPATH=$saved_config_path
     mv $CCACHE_DIR.saved $CCACHE_DIR
