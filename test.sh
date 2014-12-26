@@ -271,10 +271,10 @@ base_tests() {
     checkstat 'cache miss' 4
     compare_file reference_test1.o test1.o
 
-    # strictly speaking should be 3 - RECACHE causes a double counting!
+    # strictly speaking should be 4 - RECACHE causes a double counting!
     checkstat 'files in cache' 4
     $CCACHE -c > /dev/null
-    checkstat 'files in cache' 3
+    checkstat 'files in cache' 4
 
     testname="CCACHE_HASHDIR"
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
@@ -285,7 +285,7 @@ base_tests() {
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
-    checkstat 'files in cache' 4
+    checkstat 'files in cache' 5
     compare_file reference_test1.o test1.o
 
     testname="comments"
@@ -316,7 +316,7 @@ base_tests() {
     done
     checkstat 'cache hit (preprocessed)' 8
     checkstat 'cache miss' 37
-    checkstat 'files in cache' 36
+    checkstat 'files in cache' 37
 
     $CCACHE -C >/dev/null
 
@@ -374,9 +374,15 @@ base_tests() {
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 14
             checkstat 'cache miss' 40
-            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 15
             checkstat 'cache miss' 40
+            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            checkstat 'cache hit (preprocessed)' 15
+            checkstat 'cache miss' 41
+            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            checkstat 'cache hit (preprocessed)' 16
+            checkstat 'cache miss' 41
         fi
     fi
 
@@ -2410,7 +2416,6 @@ all_suites="
 base
 link          !win32
 hardlink
-cpp2
 nlevels4
 nlevels1
 basedir       !win32

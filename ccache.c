@@ -1059,6 +1059,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		 * the compiler pass.
 		 */
 		cpp_stderr = path_stderr;
+		hash_delimiter(hash, "runsecondcpp");
+		hash_string(hash, "false");
 	}
 
 	result = x_malloc(sizeof(*result));
