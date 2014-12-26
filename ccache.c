@@ -878,6 +878,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		 */
 		cpp_stderr = path_stderr;
 	} else {
+		hash_delimiter(hash, "runsecondcpp");
+		hash_string(hash, "false");
 		free(path_stderr);
 	}
 
