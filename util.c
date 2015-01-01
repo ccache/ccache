@@ -973,40 +973,28 @@ char *
 x_realpath(const char *path)
 {
 	long maxlen = path_max(path);
-	char *ret, *p;
-#ifdef _WIN32
-	HANDLE path_handle;
-#endif
+	char *ret, *p = NULL;
 
 	ret = x_malloc(maxlen);
 
 #if HAVE_REALPATH
 	p = realpath(path, ret);
 #elif defined(_WIN32)
-	path_handle = CreateFile(
-		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, NULL);
-	GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
-	CloseHandle(path_handle);
-	p = ret+4;// strip the \\?\ from the file name
+	GetFullPathName(path, maxlen, ret, NULL);
+	p = ret;
 #else
 	/* yes, there are such systems. This replacement relies on
 	   the fact that when we call x_realpath we only care about symlinks */
 	{
 		int len = readlink(path, ret, maxlen-1);
-		if (len == -1) {
-			free(ret);
-			return NULL;
+		if (len != -1) {
+			ret[len] = 0;
+			p = ret;
 		}
-		ret[len] = 0;
-		p = ret;
 	}
 #endif
-	if (p) {
-		p = x_strdup(p);
-		free(ret);
+	if (p)
 		return p;
-	}
 	free(ret);
 	return NULL;
 }
