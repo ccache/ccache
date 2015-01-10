@@ -995,6 +995,25 @@ file_size(struct stat *st)
 #endif
 }
 
+/*
+ * Create a file for writing. Creates parent directories if they don't exist.
+ */
+int
+safe_create_wronly(const char *fname)
+{
+	int fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, 0666);
+	if (fd == -1 && errno == ENOENT) {
+		/*
+		 * Only make sure parent directories exist when have failed to open the
+		 * file -- this saves stat() calls.
+		 */
+		if (create_parent_dirs(fname) == 0) {
+			fd = open(fname, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0666);
+		}
+	}
+	return fd;
+}
+
 /* Format a size as a human-readable string. Caller frees. */
 char *
 format_human_readable_size(uint64_t v)
