@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -496,74 +496,72 @@ get_hostname(void)
 {
 	static char hostname[260] = "";
 
-	if (!hostname[0]) {
-		strcpy(hostname, "unknown");
-#if HAVE_GETHOSTNAME
-		gethostname(hostname, sizeof(hostname)-1);
-#elif defined(_WIN32)
-
-		const char* computer_name = getenv("COMPUTERNAME");
-		if (computer_name)
-		{
-			strncpy(hostname, computer_name, sizeof(hostname) -1);
-			return hostname;
-		}
-
-		WORD wVersionRequested;
-		WSADATA wsaData;
-		int err;
-
-		wVersionRequested = MAKEWORD(2, 2);
-
-		err = WSAStartup(wVersionRequested, &wsaData);
-		if (err != 0) {
-			/* Tell the user that we could not find a usable */
-			/* Winsock DLL.                                  */
-			cc_log("WSAStartup failed with error: %d", err);
-			return hostname;
-		}
-
-	    if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
-	        /* Tell the user that we could not find a usable */
-	        /* WinSock DLL.                                  */
-	    	cc_log("Could not find a usable version of Winsock.dll\n");
-	        WSACleanup();
-	        return hostname;
-	    }
-
-		int result = gethostname(hostname, sizeof(hostname)-1);
-		if (result != 0) {
-			int last_error = WSAGetLastError();
-			LPVOID lpMsgBuf;
-			LPVOID lpDisplayBuf;
-			DWORD dw = last_error;
-
-			FormatMessage(
-				FORMAT_MESSAGE_ALLOCATE_BUFFER |
-				FORMAT_MESSAGE_FROM_SYSTEM |
-				FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				(LPTSTR) &lpMsgBuf, 0, NULL);
-
-			lpDisplayBuf = (LPVOID) LocalAlloc(LMEM_ZEROINIT,
-					(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__)
-							+ 200) * sizeof(TCHAR));
-			_snprintf((LPTSTR) lpDisplayBuf,
-					LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-					TEXT("%s failed with error %d: %s"), __FILE__, dw,
-					lpMsgBuf);
-
-			cc_log("can't get hostname OS returned error: %s\n",
-					(char*) lpDisplayBuf);
-
-			LocalFree(lpMsgBuf);
-			LocalFree(lpDisplayBuf);
-		}
-		WSACleanup();
-#endif
-		hostname[sizeof(hostname)-1] = 0;
+	if (hostname[0]) {
+		return hostname;
 	}
 
+	strcpy(hostname, "unknown");
+#if HAVE_GETHOSTNAME
+	gethostname(hostname, sizeof(hostname) - 1);
+#elif defined(_WIN32)
+	const char *computer_name = getenv("COMPUTERNAME");
+	if (computer_name) {
+		snprintf(hostname, sizeof(hostname), "%s", computer_name);
+		return hostname;
+	}
+
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+
+	wVersionRequested = MAKEWORD(2, 2);
+
+	err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+		/* Tell the user that we could not find a usable Winsock DLL. */
+		cc_log("WSAStartup failed with error: %d", err);
+		return hostname;
+	}
+
+	if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
+		/* Tell the user that we could not find a usable WinSock DLL. */
+		cc_log("Could not find a usable version of Winsock.dll");
+		WSACleanup();
+		return hostname;
+	}
+
+	int result = gethostname(hostname, sizeof(hostname) - 1);
+	if (result != 0) {
+		int last_error = WSAGetLastError();
+		LPVOID lpMsgBuf;
+		LPVOID lpDisplayBuf;
+		DWORD dw = last_error;
+
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR) &lpMsgBuf, 0, NULL);
+
+		lpDisplayBuf = (LPVOID) LocalAlloc(
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__) + 200)
+			* sizeof(TCHAR));
+		_snprintf((LPTSTR) lpDisplayBuf,
+		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+		          TEXT("%s failed with error %d: %s"), __FILE__, dw,
+		          lpMsgBuf);
+
+		cc_log("can't get hostname OS returned error: %s", (char*)lpDisplayBuf);
+
+		LocalFree(lpMsgBuf);
+		LocalFree(lpDisplayBuf);
+	}
+	WSACleanup();
+#endif
+
+	hostname[sizeof(hostname) - 1] = 0;
 	return hostname;
 }
 
@@ -1046,14 +1044,12 @@ x_realpath(const char *path)
 	path_handle = CreateFile(
 		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
-	if(INVALID_HANDLE_VALUE != path_handle)
-	{
+	if (INVALID_HANDLE_VALUE != path_handle) {
 		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
 		CloseHandle(path_handle);
-		p = ret+4;// strip the \\?\ from the file name
-	} else
-	{
-		strncpy(ret, path, maxlen);
+		p = ret + 4; /* strip \\?\ from the file name */
+	} else {
+		snprintf(ret, maxlen, "%s", path);
 		p = ret;
 	}
 #else
@@ -1372,41 +1368,41 @@ update_mtime(const char *path)
 int
 x_rename(const char *oldpath, const char *newpath)
 {
-#ifdef _WIN32
+#ifndef _WIN32
+	return rename(oldpath, newpath);
+#else
 	/* Windows' rename() refuses to overwrite an existing file. */
 	unlink(newpath);  /* not x_unlink, as x_unlink calls x_rename */
-	/*If the function succeeds, the return value is nonzero.*/
+	/* If the function succeeds, the return value is nonzero. */
 	if (MoveFileA(oldpath, newpath) == 0) {
 		LPVOID lpMsgBuf;
 		LPVOID lpDisplayBuf;
 		DWORD dw = GetLastError();
 
 		FormatMessage(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
-				0, NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+			0, NULL);
 
-		lpDisplayBuf = (LPVOID) LocalAlloc(LMEM_ZEROINIT,
-				(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__) + 40)
-						* sizeof(TCHAR));
+		lpDisplayBuf = (LPVOID) LocalAlloc(
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__) + 40)
+			* sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
-				LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-				TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
+		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
 
-		cc_log("can't rename file %s to %s OS returned error: %s\n",
-				oldpath, newpath, (char*) lpDisplayBuf);
+		cc_log("can't rename file %s to %s OS returned error: %s",
+		       oldpath, newpath, (char*) lpDisplayBuf);
 
 		LocalFree(lpMsgBuf);
 		LocalFree(lpDisplayBuf);
 		return -1;
-	} else
-	{
+	} else {
 		return 0;
 	}
-#else
-	return rename(oldpath, newpath);
 #endif
 }
 
