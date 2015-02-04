@@ -1275,10 +1275,14 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		if (profile_dir) {
 			dir = x_strdup(profile_dir);
 		} else {
-			dir = x_realpath(dir);
+			char *real_dir = x_realpath(dir);
+			free(dir);
+			dir = real_dir;
 		}
 		if (dir) {
-			p = remove_extension(basename(output_obj));
+			char *base_name = basename(output_obj);
+			p = remove_extension(base_name);
+			free(base_name);
 			gcda_path = format("%s/%s.gcda", dir, p);
 			cc_log("Hashing coverage path %s", gcda_path);
 			free(p);
