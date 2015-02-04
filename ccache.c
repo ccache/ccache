@@ -158,7 +158,7 @@ static struct hashtable *included_files;
 /* is gcc being asked to output dependencies? */
 static bool generating_dependencies;
 
-/* is gcc being asked to output coverage ? */
+/* is gcc being asked to output coverage? */
 static bool generating_coverage;
 
 /* is gcc being asked to output coverage data (.gcda) at runtime? */
@@ -1601,11 +1601,9 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (produce_dep_file) {
 		get_file_from_cache(cached_dep, output_dep);
 	}
-	if (generating_coverage) {
+	if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
 		/* gcc won't generate notes if there is no code */
-		if (stat(cached_cov, &st) == 0 && st.st_size > 0) {
-			get_file_from_cache(cached_cov, output_cov);
-		}
+		get_file_from_cache(cached_cov, output_cov);
 	}
 	if (output_dia) {
 		get_file_from_cache(cached_dia, output_dia);
@@ -1979,7 +1977,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
-		if (str_eq(argv[i], "--coverage") /* == -fprofile-arcs -ftest-coverage */ ) {
+		if (str_eq(argv[i], "--coverage")) { /* = -fprofile-arcs -ftest-coverage */
 			profile_arcs = true;
 			generating_coverage = true;
 			args_add(stripped_args, argv[i]);
