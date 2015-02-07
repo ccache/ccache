@@ -781,9 +781,6 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (output_dia) {
-			tmp_unlink(output_dia);
-		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -845,9 +842,6 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
-		if (output_dia) {
-			tmp_unlink(output_dia);
-		}
 		failed();
 	}
 
