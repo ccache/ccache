@@ -632,16 +632,45 @@ EOF
     ##################################################################
 
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
-        $CCACHE -Cz > /dev/null
         testname="serialize-diagnostics"
-        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        $CCACHE -Cz > /dev/null
+        $COMPILER -c --serialize-diagnostics expected.dia test1.c 2> /dev/null
+        # Run with CCACHE_CPP2 to ensure the same diagnostics output as above
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
         checkstat 'files in cache' 2
-        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        compare_file expected.dia test.dia
+        rm -f test.dia
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 1
         checkstat 'files in cache' 2
+        compare_file expected.dia test.dia
+
+        rm -f test.dia
+        rm -f expected.dia
+
+        testname="serialize-diagnostics-compile-failed"
+        $CCACHE -Cz > /dev/null
+        echo "bad source" >error.c
+        $COMPILER -c --serialize-diagnostics expected.dia error.c 2> /dev/null
+        if [ $? -eq 0 ]; then
+            test_failed "expected an error compiling error.c"
+        fi
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2> /dev/null
+        checkstat 'compile failed' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 0
+        checkstat 'files in cache' 0
+        compare_file expected.dia test.dia
+        rm -f test.dia
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2> /dev/null
+        checkstat 'compile failed' 2
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 0
+        checkstat 'files in cache' 0
+        compare_file expected.dia test.dia
     fi
 
     ##################################################################
