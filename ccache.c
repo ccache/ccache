@@ -734,7 +734,7 @@ get_file_from_cache(const char *source, const char *dest)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_dia;
+	char *tmp_stdout, *tmp_stderr;
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
 
@@ -747,11 +747,8 @@ to_cache(struct args *args)
 	args_add(args, output_obj);
 
 	if (output_dia) {
-		tmp_dia = x_strdup(output_dia);
 		args_add(args, "--serialize-diagnostics");
-		args_add(args, tmp_dia);
-	} else {
-		tmp_dia = NULL;
+		args_add(args, output_dia);
 	}
 
 	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
@@ -784,8 +781,8 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_dia) {
-			tmp_unlink(tmp_dia);
+		if (output_dia) {
+			tmp_unlink(output_dia);
 		}
 		failed();
 	}
@@ -848,7 +845,7 @@ to_cache(struct args *args)
 				int ret;
 				x_unlink(output_dia);
 				/* only make a hardlink if the cache file is uncompressed */
-				ret = move_file(tmp_dia, output_dia, 0);
+				ret = move_file(output_dia, output_dia, 0);
 
 				if (ret == -1) {
 					if (errno == ENOENT) {
@@ -857,13 +854,13 @@ to_cache(struct args *args)
 						stats_update(STATS_MISSING);
 					} else {
 						cc_log("Failed to move %s to %s: %s",
-						       tmp_dia, output_dia, strerror(errno));
+						       output_dia, output_dia, strerror(errno));
 						stats_update(STATS_ERROR);
 						failed();
 					}
-					x_unlink(tmp_dia);
+					x_unlink(output_dia);
 				} else {
-					cc_log("Created %s from %s", output_dia, tmp_dia);
+					cc_log("Created %s from %s", output_dia, output_dia);
 				}
 			}
 
@@ -871,8 +868,8 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
-		if (tmp_dia) {
-			tmp_unlink(tmp_dia);
+		if (output_dia) {
+			tmp_unlink(output_dia);
 		}
 		failed();
 	}
@@ -915,14 +912,14 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (tmp_dia) {
-		if (stat(tmp_dia, &st) != 0) {
-			cc_log("Failed to stat %s: %s", tmp_dia, strerror(errno));
+	if (output_dia) {
+		if (stat(output_dia, &st) != 0) {
+			cc_log("Failed to stat %s: %s", output_dia, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
 		if (st.st_size > 0) {
-			put_file_in_cache(tmp_dia, cached_dia);
+			put_file_in_cache(output_dia, cached_dia);
 		}
 	}
 
@@ -954,7 +951,6 @@ to_cache(struct args *args)
 
 	free(tmp_stderr);
 	free(tmp_stdout);
-	free(tmp_dia);
 }
 
 /*
