@@ -841,29 +841,6 @@ to_cache(struct args *args)
 			close(fd);
 			tmp_unlink(tmp_stderr);
 
-			if (output_dia) {
-				int ret;
-				x_unlink(output_dia);
-				/* only make a hardlink if the cache file is uncompressed */
-				ret = move_file(output_dia, output_dia, 0);
-
-				if (ret == -1) {
-					if (errno == ENOENT) {
-						/* Someone removed the file just before we began copying? */
-						cc_log("Diagnostic file %s just disappeared", output_dia);
-						stats_update(STATS_MISSING);
-					} else {
-						cc_log("Failed to move %s to %s: %s",
-						       output_dia, output_dia, strerror(errno));
-						stats_update(STATS_ERROR);
-						failed();
-					}
-					x_unlink(output_dia);
-				} else {
-					cc_log("Created %s from %s", output_dia, output_dia);
-				}
-			}
-
 			exit(status);
 		}
 
