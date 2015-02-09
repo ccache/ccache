@@ -12,6 +12,8 @@ Bug fixes
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
+- Fixed a bug where ccache deleted clang diagnostics after compiler failures.
+
 
 ccache 3.2.1
 ------------
