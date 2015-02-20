@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2012 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -109,83 +109,82 @@ TEST(hash_source_code_simple_case)
 	CHECK_STR_EQ_FREE2("a448017aaf21d8525fc10ae87aa6729d-3", hash_result(&h));
 }
 
-TEST(hash_source_code_with_c_style_comment)
+TEST(check_for_temporal_macros)
 {
-	struct mdfour h;
-	char input[] = "a/*b*/c";
-	size_t input_len = strlen(input);
+	const char time_start[] =
+		"__TIME__\n"
+		"int a;\n";
+	const char time_middle[] =
+		"#define a __TIME__\n"
+		"int a;\n";
+	const char time_end[] =
+		"#define a __TIME__";
 
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("1c2c87080ee03418fb1279e3b1f09a68-3", hash_result(&h));
+	const char date_start[] =
+		"__DATE__\n"
+		"int ab;\n";
+	const char date_middle[] =
+		"#define ab __DATE__\n"
+		"int ab;\n";
+	const char date_end[] =
+		"#define ab __DATE__";
 
-	input[3] = 'd';
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("1c2c87080ee03418fb1279e3b1f09a68-3", hash_result(&h));
-}
+	const char no_temporal[] =
+		"#define ab _ _DATE__\n"
+		"#define ab __ DATE__\n"
+		"#define ab __D ATE__\n"
+		"#define ab __DA TE__\n"
+		"#define ab __DAT E__\n"
+		"#define ab __DATE __\n"
+		"#define ab __DATE_ _\n"
+		"#define ab _ _TIME__\n"
+		"#define ab __ TIME__\n"
+		"#define ab __T IME__\n"
+		"#define ab __TI ME__\n"
+		"#define ab __TIM E__\n"
+		"#define ab __TIME __\n"
+		"#define ab __TIME_ _\n";
 
-TEST(hash_source_code_with_cplusplus_style_comment)
-{
-	struct mdfour h;
-	char input[] = "a//b\nc";
-	size_t input_len = strlen(input);
+	CHECK(check_for_temporal_macros(time_start + 0, sizeof(time_start) - 0));
+	CHECK(!check_for_temporal_macros(time_start + 1, sizeof(time_start) - 1));
 
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("4a3fbbe3c140fa193227dba3814db6e6-3", hash_result(&h));
+	CHECK(check_for_temporal_macros(time_middle + 0, sizeof(time_middle) - 0));
+	CHECK(check_for_temporal_macros(time_middle + 1, sizeof(time_middle) - 1));
+	CHECK(check_for_temporal_macros(time_middle + 2, sizeof(time_middle) - 2));
+	CHECK(check_for_temporal_macros(time_middle + 3, sizeof(time_middle) - 3));
+	CHECK(check_for_temporal_macros(time_middle + 4, sizeof(time_middle) - 4));
+	CHECK(check_for_temporal_macros(time_middle + 5, sizeof(time_middle) - 5));
+	CHECK(check_for_temporal_macros(time_middle + 6, sizeof(time_middle) - 6));
+	CHECK(check_for_temporal_macros(time_middle + 7, sizeof(time_middle) - 7));
 
-	input[3] = 'd';
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("4a3fbbe3c140fa193227dba3814db6e6-3", hash_result(&h));
-}
+	CHECK(check_for_temporal_macros(time_end + 0, sizeof(time_end) - 0));
+	CHECK(check_for_temporal_macros(time_end + sizeof(time_end) - 9, 9));
+	CHECK(!check_for_temporal_macros(time_end + sizeof(time_end) - 8, 8));
 
-TEST(hash_source_code_with_comment_inside_string)
-{
-	struct mdfour h;
-	char input[] = "a\"//b\"c";
-	size_t input_len = strlen(input);
+	CHECK(check_for_temporal_macros(date_start + 0, sizeof(date_start) - 0));
+	CHECK(!check_for_temporal_macros(date_start + 1, sizeof(date_start) - 1));
 
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("4c2fa74b0843d8f93df5c04c98ccb0a4-7", hash_result(&h));
+	CHECK(check_for_temporal_macros(date_middle + 0, sizeof(date_middle) - 0));
+	CHECK(check_for_temporal_macros(date_middle + 1, sizeof(date_middle) - 1));
+	CHECK(check_for_temporal_macros(date_middle + 2, sizeof(date_middle) - 2));
+	CHECK(check_for_temporal_macros(date_middle + 3, sizeof(date_middle) - 3));
+	CHECK(check_for_temporal_macros(date_middle + 4, sizeof(date_middle) - 4));
+	CHECK(check_for_temporal_macros(date_middle + 5, sizeof(date_middle) - 5));
+	CHECK(check_for_temporal_macros(date_middle + 6, sizeof(date_middle) - 6));
+	CHECK(check_for_temporal_macros(date_middle + 7, sizeof(date_middle) - 7));
 
-	input[4] = 'd';
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("f0069218ec640008cbfa2d150c1061bb-7", hash_result(&h));
-}
+	CHECK(check_for_temporal_macros(date_end + 0, sizeof(date_end) - 0));
+	CHECK(check_for_temporal_macros(date_end + sizeof(date_end) - 9, 9));
+	CHECK(!check_for_temporal_macros(date_end + sizeof(date_end) - 8, 8));
 
-TEST(hash_source_code_with_quote_in_string)
-{
-	struct mdfour h;
-	char input[] = "a\"\\\"b//c\""; /* a"\"b//c" */
-	size_t input_len = strlen(input);
-
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("c4e45e7a7f6f29b000a51f187dc4cf06-9", hash_result(&h));
-
-	hash_start(&h);
-	input[7] = 'd';
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("bef8fb852dddcee189b91b068a621c55-9", hash_result(&h));
-}
-
-TEST(hash_source_code_with_backslash_at_string_end)
-{
-	struct mdfour h;
-	char input[] = "a\"\\\\\"b//c"; /* a"\\"b//c */
-	size_t input_len = strlen(input);
-
-	hash_start(&h);
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("7f3ccf27edadad1b90cb2cffb59775d6-6", hash_result(&h));
-
-	input[input_len - 1] = 'd';
-	hash_source_code_string(&h, input, input_len, "");
-	CHECK_STR_EQ_FREE2("7f3ccf27edadad1b90cb2cffb59775d6-6", hash_result(&h));
+	CHECK(!check_for_temporal_macros(no_temporal + 0, sizeof(no_temporal) - 0));
+	CHECK(!check_for_temporal_macros(no_temporal + 1, sizeof(no_temporal) - 1));
+	CHECK(!check_for_temporal_macros(no_temporal + 2, sizeof(no_temporal) - 2));
+	CHECK(!check_for_temporal_macros(no_temporal + 3, sizeof(no_temporal) - 3));
+	CHECK(!check_for_temporal_macros(no_temporal + 4, sizeof(no_temporal) - 4));
+	CHECK(!check_for_temporal_macros(no_temporal + 5, sizeof(no_temporal) - 5));
+	CHECK(!check_for_temporal_macros(no_temporal + 6, sizeof(no_temporal) - 6));
+	CHECK(!check_for_temporal_macros(no_temporal + 7, sizeof(no_temporal) - 7));
 }
 
 TEST_SUITE_END

@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2014 Joel Rosdahl
+# Copyright (C) 2009-2015 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -904,45 +904,6 @@ EOF
     checkfile stderr-mf.txt "`cat stderr-orig.txt`"
 
     ##################################################################
-    # Check that changes in comments are ignored when hashing.
-    testname="changes in comments"
-    $CCACHE -C >/dev/null
-    $CCACHE -z >/dev/null
-    cat <<EOF >comments.h
-/*
- * /* foo comment
- */
-EOF
-    backdate comments.h
-    cat <<'EOF' >comments.c
-#include "comments.h"
-char test[] = "\
-/* apple */ // banana"; // foo comment
-EOF
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-
-    sed_in_place 's/foo/ignored/' comments.h comments.c
-    backdate comments.h
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
-
-    # Check that comment-like string contents are hashed.
-    sed_in_place 's/apple/orange/' comments.c
-    backdate comments.h
-
-    $CCACHE $COMPILER -c comments.c
-    checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
-
-    ##################################################################
     # Check that it's possible to compile and cache an empty source code file.
     testname="empty source file"
     $CCACHE -Cz >/dev/null
@@ -1207,6 +1168,23 @@ EOF
     checkstat 'cache miss' 2 # subdir2 is part of the preprocessor output
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    testname="comment in strings"
+    $CCACHE -Cz >/dev/null
+    echo 'char *comment = " /* \\\\u" "foo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    echo 'char *comment = " /* \\\\u" "goo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
 }

@@ -25,7 +25,7 @@ built_dist_files = $(generated_docs)
 headers = \
     ccache.h hashtable.h hashtable_itr.h hashtable_private.h hashutil.h \
     manifest.h mdfour.h counters.h murmurhashneutral2.h getopt_long.h \
-    language.h system.h compopt.h \
+    language.h macroskip.h system.h compopt.h \
     test/framework.h test/suites.h test/util.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/*
