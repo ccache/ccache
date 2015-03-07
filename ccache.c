@@ -1082,7 +1082,7 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 static bool
 compiler_is_clang(struct args *args)
 {
-	char* name = basename(args->argv[0]);
+	char *name = basename(args->argv[0]);
 	bool is = strstr(name, "clang");
 	free(name);
 	return is;
@@ -1091,7 +1091,7 @@ compiler_is_clang(struct args *args)
 static bool
 compiler_is_gcc(struct args *args)
 {
-	char* name = basename(args->argv[0]);
+	char *name = basename(args->argv[0]);
 	bool is = strstr(name, "gcc") || strstr(name, "g++");
 	free(name);
 	return is;
@@ -1108,7 +1108,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	char *p;
 	const char *full_path = args->argv[0];
 #ifdef _WIN32
-	const char* ext;
+	const char *ext;
 	char full_path_win_ext[MAX_PATH + 1] = {0};
 #endif
 
@@ -1249,11 +1249,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		if (generating_dependencies) {
 			if (str_startswith(args->argv[i], "-Wp,")) {
 				if (str_startswith(args->argv[i], "-Wp,-MD,")
-						&& !strchr(args->argv[i] + 8, ',')) {
+				    && !strchr(args->argv[i] + 8, ',')) {
 					hash_string_length(hash, args->argv[i], 8);
 					continue;
 				} else if (str_startswith(args->argv[i], "-Wp,-MMD,")
-						&& !strchr(args->argv[i] + 9, ',')) {
+				           && !strchr(args->argv[i] + 9, ',')) {
 					hash_string_length(hash, args->argv[i], 9);
 					continue;
 				}
