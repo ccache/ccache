@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2014 Joel Rosdahl
+# Copyright (C) 2009-2015 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -1372,6 +1372,23 @@ EOF
     checkstat 'cache miss' 2 # subdir2 is part of the preprocessor output
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 2
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
+    testname="comment in strings"
+    $CCACHE -Cz >/dev/null
+    echo 'char *comment = " /* \\\\u" "foo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    echo 'char *comment = " /* \\\\u" "goo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
 

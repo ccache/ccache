@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2012 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -18,8 +18,8 @@
 
 #include "ccache.h"
 #include "hashutil.h"
-#include "murmurhashneutral2.h"
 #include "macroskip.h"
+#include "murmurhashneutral2.h"
 
 unsigned
 hash_from_string(void *str)
@@ -84,7 +84,7 @@ check_for_temporal_macros(const char *str, size_t len)
 				result |= HASH_SOURCE_CODE_FOUND_DATE;
 			}
 			else if (str[i - 5] == 'T' && str[i - 4] == 'I' &&
-				 str[i - 3] == 'M') {
+			         str[i - 3] == 'M') {
 				result |= HASH_SOURCE_CODE_FOUND_TIME;
 			}
 		}
