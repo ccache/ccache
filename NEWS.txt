@@ -12,6 +12,10 @@ Bug fixes
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
+- Don't try to reset a non-existing stats file. This avoids ``No such file or
+  directory'' messages in the ccache log when the cache directory doesn't
+  exist.
+
 - Fixed a bug where ccache deleted clang diagnostics after compiler failures.
 
 
@@ -168,8 +172,6 @@ Bug fixes
 - Don't try to reset a non-existing stats file. This avoids ``No such file or
   directory'' messages in the ccache log when the cache directory doesn't
   exist.
-
-- Fixed a bug where ccache deleted clang diagnostics after compiler failures.
 
 
 ccache 3.1.10
