@@ -18,6 +18,8 @@ Bug fixes
 
 - Fixed a bug where ccache deleted clang diagnostics after compiler failures.
 
+- Avoid performing an unnecessary copy of the object file on a cache miss.
+
 
 ccache 3.2.1
 ------------

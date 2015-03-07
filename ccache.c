@@ -188,8 +188,7 @@ unsigned lock_staleness_limit = 2000000;
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
-	FROMCACHE_CPP_MODE,
-	FROMCACHE_COMPILED_MODE
+	FROMCACHE_CPP_MODE
 };
 
 struct pending_tmp_file {
@@ -730,6 +729,43 @@ get_file_from_cache(const char *source, const char *dest)
 	cc_log("Created from cache: %s -> %s", source, dest);
 }
 
+/* Send cached stderr, if any, to stderr. */
+static void
+send_cached_stderr(void)
+{
+	int fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
+	if (fd_stderr != -1) {
+		copy_fd(fd_stderr, 2);
+		close(fd_stderr);
+	}
+}
+
+/* Create or update the manifest file. */
+void update_manifest_file(void)
+{
+	struct stat st;
+	size_t old_size = 0; /* in bytes */
+
+	if (!conf->direct_mode
+	    || !included_files
+	    || conf->read_only
+	    || conf->read_only_direct) {
+		return;
+	}
+
+	if (stat(manifest_path, &st) == 0) {
+		old_size = file_size(&st);
+	}
+	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
+		cc_log("Added object file hash to %s", manifest_path);
+		update_mtime(manifest_path);
+		stat(manifest_path, &st);
+		stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+	} else {
+		cc_log("Failed to add object file hash to %s", manifest_path);
+	}
+}
+
 /* run the real compiler and put the result in cache */
 static void
 to_cache(struct args *args)
@@ -895,6 +931,9 @@ to_cache(struct args *args)
 	}
 
 	put_file_in_cache(output_obj, cached_obj);
+	if (generating_dependencies) {
+		put_file_in_cache(output_dep, cached_dep);
+	}
 	stats_update(STATS_TOCACHE);
 
 	/* Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
@@ -919,6 +958,10 @@ to_cache(struct args *args)
 			free(path);
 		}
 	}
+
+	/* Everything OK. */
+	send_cached_stderr();
+	update_manifest_file();
 
 	free(tmp_stderr);
 	free(tmp_stdout);
@@ -1419,12 +1462,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 static void
 from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
-	int fd_stderr;
 	struct stat st;
-	bool produce_dep_file;
+	bool produce_dep_file = false;
 
 	/* the user might be disabling cache hits */
-	if (mode != FROMCACHE_COMPILED_MODE && conf->recache) {
+	if (conf->recache) {
 		return;
 	}
 
@@ -1442,7 +1484,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	/*
 	 * Occasionally, e.g. on hard reset, our cache ends up as just filesystem
-	 * meta-data with no content catch an easy case of this.
+	 * meta-data with no content. Catch an easy case of this.
 	 */
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
@@ -1483,36 +1525,14 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_mtime(cached_dia);
 	}
 
-	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
+	if (generating_dependencies && mode == FROMCACHE_CPP_MODE) {
 		put_file_in_cache(output_dep, cached_dep);
 	}
 
-	/* Send the stderr, if any. */
-	fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
-	if (fd_stderr != -1) {
-		copy_fd(fd_stderr, 2);
-		close(fd_stderr);
-	}
+  send_cached_stderr();
 
-	/* Create or update the manifest file. */
-	if (conf->direct_mode
-	    && put_object_in_manifest
-	    && included_files
-	    && !conf->read_only
-	    && !conf->read_only_direct) {
-		struct stat st;
-		size_t old_size = 0; /* in bytes */
-		if (stat(manifest_path, &st) == 0) {
-			old_size = file_size(&st);
-		}
-		if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
-			cc_log("Added object file hash to %s", manifest_path);
-			update_mtime(manifest_path);
-			stat(manifest_path, &st);
-			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
-		} else {
-			cc_log("Failed to add object file hash to %s", manifest_path);
-		}
+	if (put_object_in_manifest) {
+		update_manifest_file();
 	}
 
 	/* log the cache hit */
@@ -1525,10 +1545,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	case FROMCACHE_CPP_MODE:
 		cc_log("Succeeded getting cached result");
 		stats_update(STATS_CACHEHIT_CPP);
-		break;
-
-	case FROMCACHE_COMPILED_MODE:
-		/* Stats already updated in to_cache(). */
 		break;
 	}
 
@@ -2706,13 +2722,7 @@ ccache(int argc, char *argv[])
 	/* run real compiler, sending output to cache */
 	to_cache(compiler_args);
 
-	/* return from cache */
-	from_cache(FROMCACHE_COMPILED_MODE, put_object_in_manifest);
-
-	/* oh oh! */
-	cc_log("Secondary from_cache failed");
-	stats_update(STATS_ERROR);
-	failed();
+	exit(0);
 }
 
 static void
