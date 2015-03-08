@@ -455,6 +455,22 @@ EOF
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
 
+    testname="compilercheck=string"
+    $CCACHE -z >/dev/null
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=string:foo $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK=string:foo $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK=string:bar $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_COMPILERCHECK=string:bar $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
     testname="compilercheck=command"
     $CCACHE -z >/dev/null
     backdate compiler.sh
