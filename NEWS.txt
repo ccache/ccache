@@ -5,6 +5,14 @@ ccache news
 Unreleased
 ----------
 
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for `CCACHE_COMPILERCHECK=string:<value>`. This is a faster
+  alternative to `CCACHE_COMPILERCHECK=<command>` if the command's output can
+  be precalculated by the build system.
+
+
 Bug fixes
 ~~~~~~~~~
 
