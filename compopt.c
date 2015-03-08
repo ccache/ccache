@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2012-2013 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -56,6 +56,7 @@ static const struct compopt compopts[] = {
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
+	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-frepo",          TOO_HARD},
 	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */

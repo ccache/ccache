@@ -20,6 +20,8 @@ Bug fixes
 
 - Avoid performing an unnecessary copy of the object file on a cache miss.
 
+- Bail out on too hard compiler option `-fmodules`.
+
 
 ccache 3.2.1
 ------------
