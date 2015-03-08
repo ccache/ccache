@@ -22,6 +22,9 @@ Bug fixes
 
 - Bail out on too hard compiler option `-fmodules`.
 
+- Bail out on too hard compiler option `-fplugin=libcc1plugin` (interaction
+  with GDB).
+
 
 ccache 3.2.1
 ------------

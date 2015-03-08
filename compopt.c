@@ -58,6 +58,7 @@ static const struct compopt compopts[] = {
 	{"-b",              TAKES_ARG},
 	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
+	{"-fplugin=libcc1plugin", TOO_HARD}, /* interaction with GDB */
 	{"-frepo",          TOO_HARD},
 	{"-ftest-coverage", TOO_HARD}, /* generates a .gcno file at the same time */
 	{"-fworking-directory", AFFECTS_CPP},
