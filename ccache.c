@@ -954,7 +954,7 @@ to_cache(struct args *args)
 		 * previous ccache versions. */
 		if (getpid() % 1000 == 0) {
 			char *path = format("%s/CACHEDIR.TAG", conf->cache_dir);
-			unlink(path);
+			x_unlink(path);
 			free(path);
 		}
 	}
