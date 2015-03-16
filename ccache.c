@@ -723,6 +723,14 @@ get_file_from_cache(const char *source, const char *dest)
 			       strerror(errno));
 			stats_update(STATS_ERROR);
 		}
+
+		/* If there was trouble getting a file from the cached result, wipe the
+		 * whole cached result for consistency. */
+		x_unlink(cached_stderr);
+		x_unlink(cached_obj);
+		x_unlink(cached_dep);
+		x_unlink(cached_dia);
+
 		failed();
 	}
 
