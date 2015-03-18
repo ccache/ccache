@@ -767,8 +767,11 @@ void update_manifest_file(void)
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		update_mtime(manifest_path);
-		stat(manifest_path, &st);
-		stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+		if (stat(manifest_path, &st) == 0) {
+			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+		} else {
+			cc_log("Failed to stat %s: %s", manifest_path, strerror(errno));
+		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
 	}
@@ -916,9 +919,15 @@ to_cache(struct args *args)
 		}
 		cc_log("Stored in cache: %s", cached_stderr);
 		if (conf->compression) {
-			stat(cached_stderr, &st);
+			/* The file was compressed, so obtain the size again. */
+			if (stat(cached_stderr, &st) == 0) {
+				stats_update_size(file_size(&st), 1);
+			} else {
+				cc_log("Failed to stat %s: %s", cached_stderr, strerror(errno));
+			}
+		} else {
+			stats_update_size(file_size(&st), 1);
 		}
-		stats_update_size(file_size(&st), 1);
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
