@@ -107,16 +107,34 @@ path_max(const char *path)
 #endif
 }
 
+/*
+ * Warn about failure writing to the log file and then exit.
+ */
+static void
+warn_log_fail(void)
+{
+	extern struct conf *conf;
+
+	/* Note: Can't call fatal() since that would lead to recursion. */
+	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
+	        conf->log_file, strerror(errno));
+	exit(EXIT_FAILURE);
+}
+
 static void
 vlog(const char *format, va_list ap, bool log_updated_time)
 {
+	int rc1, rc2;
 	if (!init_log()) {
 		return;
 	}
 
 	log_prefix(log_updated_time);
-	vfprintf(logfile, format, ap);
-	fprintf(logfile, "\n");
+	rc1 = vfprintf(logfile, format, ap);
+	rc2 = fprintf(logfile, "\n");
+	if (rc1 < 0 || rc2 < 0) {
+		warn_log_fail();
+	}
 }
 
 /*
@@ -153,6 +171,7 @@ cc_bulklog(const char *format, ...)
 void
 cc_log_argv(const char *prefix, char **argv)
 {
+	int rc;
 	if (!init_log()) {
 		return;
 	}
@@ -160,7 +179,9 @@ cc_log_argv(const char *prefix, char **argv)
 	log_prefix(true);
 	fputs(prefix, logfile);
 	print_command(logfile, argv);
-	fflush(logfile);
+	rc = fflush(logfile);
+	if (rc)
+		warn_log_fail();
 }
 
 /* something went badly wrong! */
@@ -279,8 +300,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 		 * occupy an entire filesystem block, even for empty files.
 		 * Turn off compression for empty files to save some space.
 		 */
-		if (fstat(fd_in, &st) != 0) {
-			cc_log("fstat error: %s", strerror(errno));
+		if (x_fstat(fd_in, &st) != 0) {
 			goto error;
 		}
 		if (file_size(&st) == 0) {
@@ -770,6 +790,39 @@ void x_unsetenv(const char *name)
 #endif
 }
 
+/* Like fstat() but also call cc_log on failure. */
+int
+x_fstat(int fd, struct stat *buf)
+{
+	int result = fstat(fd, buf);
+	if (result != 0) {
+		cc_log("Failed to fstat fd %d: %s", fd, strerror(errno));
+	}
+	return result;
+}
+
+/* Like lstat() but also call cc_log on failure. */
+int
+x_lstat(const char *pathname, struct stat *buf)
+{
+	int result = lstat(pathname, buf);
+	if (result != 0) {
+		cc_log("Failed to lstat %s: %s", pathname, strerror(errno));
+	}
+	return result;
+}
+
+/* Like stat() but also call cc_log on failure. */
+int
+x_stat(const char *pathname, struct stat *buf)
+{
+	int result = stat(pathname, buf);
+	if (result != 0) {
+		cc_log("Failed to stat %s: %s", pathname, strerror(errno));
+	}
+	return result;
+}
+
 /*
  * Construct a string according to the format and store it in *ptr. The
  * original *ptr is then freed.
@@ -827,7 +880,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
 			if (errno != ENOENT) {
-				perror(fname);
+				fatal("lstat %s failed: %s", fname, strerror(errno));
 			}
 			free(fname);
 			continue;
@@ -1413,8 +1466,13 @@ x_rename(const char *oldpath, const char *newpath)
 int
 tmp_unlink(const char *path)
 {
+	int rc;
 	cc_log("Unlink %s", path);
-	return unlink(path);
+	rc = unlink(path);
+	if (rc) {
+		cc_log("Unlink failed: %s", strerror(errno));
+	}
+	return rc;
 }
 
 /*
@@ -1430,19 +1488,25 @@ x_unlink(const char *path)
 	 */
 	char *tmp_name = format("%s.rm.%s", path, tmp_string());
 	int result = 0;
+	int saved_errno;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
 		result = -1;
+		saved_errno = errno;
 		goto out;
 	}
 	if (unlink(tmp_name) == -1) {
 		/* If it was released in a race, that's OK. */
 		if (errno != ENOENT) {
 			result = -1;
+			saved_errno = errno;
 		}
 	}
 out:
 	free(tmp_name);
+	if (result) {
+		cc_log("x_unlink failed: %s", strerror(saved_errno));
+	}
 	return result;
 }
 
@@ -1478,7 +1542,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 
 	if (size_hint == 0) {
 		struct stat st;
-		if (stat(path, &st) == 0) {
+		if (x_stat(path, &st) == 0) {
 			size_hint = st.st_size;
 		}
 	}

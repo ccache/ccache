@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -393,8 +393,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 		st = hashtable_search(hashed_files, path);
 		if (!st) {
 			struct stat file_stat;
-			if (stat(path, &file_stat) == -1) {
-				cc_log("Failed to stat include file %s: %s", path, strerror(errno));
+			if (x_stat(path, &file_stat) != 0) {
 				return 0;
 			}
 			st = x_malloc(sizeof(*st));

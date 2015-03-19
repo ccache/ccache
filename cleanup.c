@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2006 Andrew Tridgell
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -122,7 +122,7 @@ delete_sibling_file(const char *base, const char *extension)
 	if (lstat(path, &st) == 0) {
 		delete_file(path, file_size(&st));
 	} else if (errno != ENOENT) {
-		cc_log("Failed to stat %s (%s)", path, strerror(errno));
+		cc_log("Failed to stat %s: %s", path, strerror(errno));
 	}
 	free(path);
 }
