@@ -310,8 +310,7 @@ clean_up_internal_tempdir(void)
 	struct stat st;
 	time_t now = time(NULL);
 
-	stat(conf->cache_dir, &st);
-	if (st.st_mtime + 3600 >= now) {
+	if (x_stat(conf->cache_dir, &st) != 0 || st.st_mtime + 3600 >= now) {
 		/* No cleanup needed. */
 		return;
 	}
@@ -331,7 +330,7 @@ clean_up_internal_tempdir(void)
 		}
 
 		path = format("%s/%s", temp_dir(), entry->d_name);
-		if (lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
+		if (x_lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
 			tmp_unlink(path);
 		}
 		free(path);
@@ -422,8 +421,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 		goto ignore;
 #endif
 
-	if (stat(path, &st) != 0) {
-		cc_log("Failed to stat include file %s: %s", path, strerror(errno));
+	if (x_stat(path, &st) != 0) {
 		goto failure;
 	}
 	if (S_ISDIR(st.st_mode)) {
@@ -688,8 +686,7 @@ put_file_in_cache(const char *source, const char *dest)
 		failed();
 	}
 	cc_log("Stored in cache: %s -> %s", source, dest);
-	if (stat(dest, &st) != 0) {
-		cc_log("Failed to stat %s: %s", dest, strerror(errno));
+	if (x_stat(dest, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -767,10 +764,8 @@ void update_manifest_file(void)
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		update_mtime(manifest_path);
-		if (stat(manifest_path, &st) == 0) {
+		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
-		} else {
-			cc_log("Failed to stat %s: %s", manifest_path, strerror(errno));
 		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
@@ -815,9 +810,8 @@ to_cache(struct args *args)
 	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd);
 	args_pop(args, 3);
 
-	if (stat(tmp_stdout, &st) != 0) {
+	if (x_stat(tmp_stdout, &st) != 0) {
 		/* The stdout file was removed - cleanup in progress? Better bail out. */
-		cc_log("%s not found: %s", tmp_stdout, strerror(errno));
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
@@ -892,7 +886,7 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	if (stat(output_obj, &st) != 0) {
+	if (x_stat(output_obj, &st) != 0) {
 		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
 		failed();
@@ -903,8 +897,7 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	if (stat(tmp_stderr, &st) != 0) {
-		cc_log("Failed to stat %s: %s", tmp_stderr, strerror(errno));
+	if (x_stat(tmp_stderr, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -918,14 +911,9 @@ to_cache(struct args *args)
 			failed();
 		}
 		cc_log("Stored in cache: %s", cached_stderr);
-		if (conf->compression) {
-			/* The file was compressed, so obtain the size again. */
-			if (stat(cached_stderr, &st) == 0) {
-				stats_update_size(file_size(&st), 1);
-			} else {
-				cc_log("Failed to stat %s: %s", cached_stderr, strerror(errno));
-			}
-		} else {
+		if (!conf->compression
+		    /* If the file was compressed, obtain the size again: */
+		    || (conf->compression && x_stat(cached_stderr, &st) == 0)) {
 			stats_update_size(file_size(&st), 1);
 		}
 	} else {
@@ -937,8 +925,7 @@ to_cache(struct args *args)
 	}
 
 	if (output_dia) {
-		if (stat(output_dia, &st) != 0) {
-			cc_log("Failed to stat %s: %s", output_dia, strerror(errno));
+		if (x_stat(output_dia, &st) != 0) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
@@ -1191,8 +1178,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	full_path = full_path_win_ext;
 #endif
 
-	if (stat(full_path, &st) != 0) {
-		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
+	if (x_stat(full_path, &st) != 0) {
 		stats_update(STATS_COMPILER);
 		failed();
 	}
@@ -1341,7 +1327,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		} else if (str_startswith(args->argv[i], "--specs=")) {
 			p = args->argv[i] + 8;
 		}
-		if (p && stat(p, &st) == 0) {
+		if (p && x_stat(p, &st) == 0) {
 			/* If given an explicit specs file, then hash that file,
 			   but don't include the path to it in the hash. */
 			hash_delimiter(hash, "specs");
@@ -1350,7 +1336,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 
 		if (str_startswith(args->argv[i], "-fplugin=")
-		    && stat(args->argv[i] + 9, &st) == 0) {
+		    && x_stat(args->argv[i] + 9, &st) == 0) {
 			hash_delimiter(hash, "plugin");
 			hash_compiler(hash, &st, args->argv[i] + 9, false);
 			continue;
@@ -1360,7 +1346,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		    && i + 3 < args->argc
 		    && str_eq(args->argv[i+1], "-load")
 		    && str_eq(args->argv[i+2], "-Xclang")
-		    && stat(args->argv[i+3], &st) == 0) {
+		    && x_stat(args->argv[i+3], &st) == 0) {
 			hash_delimiter(hash, "plugin");
 			hash_compiler(hash, &st, args->argv[i+3], false);
 			continue;

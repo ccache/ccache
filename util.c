@@ -300,8 +300,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 		 * occupy an entire filesystem block, even for empty files.
 		 * Turn off compression for empty files to save some space.
 		 */
-		if (fstat(fd_in, &st) != 0) {
-			cc_log("fstat error: %s", strerror(errno));
+		if (x_fstat(fd_in, &st) != 0) {
 			goto error;
 		}
 		if (file_size(&st) == 0) {
@@ -789,6 +788,39 @@ void x_unsetenv(const char *name)
 #else
 	putenv(x_strdup(name)); /* Leak to environment. */
 #endif
+}
+
+/* Like fstat() but also call cc_log on failure. */
+int
+x_fstat(int fd, struct stat *buf)
+{
+	int result = fstat(fd, buf);
+	if (result != 0) {
+		cc_log("Failed to fstat fd %d: %s", fd, strerror(errno));
+	}
+	return result;
+}
+
+/* Like lstat() but also call cc_log on failure. */
+int
+x_lstat(const char *pathname, struct stat *buf)
+{
+	int result = lstat(pathname, buf);
+	if (result != 0) {
+		cc_log("Failed to lstat %s: %s", pathname, strerror(errno));
+	}
+	return result;
+}
+
+/* Like stat() but also call cc_log on failure. */
+int
+x_stat(const char *pathname, struct stat *buf)
+{
+	int result = stat(pathname, buf);
+	if (result != 0) {
+		cc_log("Failed to stat %s: %s", pathname, strerror(errno));
+	}
+	return result;
 }
 
 /*
@@ -1510,7 +1542,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 
 	if (size_hint == 0) {
 		struct stat st;
-		if (stat(path, &st) == 0) {
+		if (x_stat(path, &st) == 0) {
 			size_hint = st.st_size;
 		}
 	}
