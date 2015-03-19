@@ -281,6 +281,9 @@ setting key. Boolean options are indicated with ``[boolean]''
     compiler's source has not changed, or if the compiler only has changes that
     don't affect code generation). You should only use the *none* setting if
     you know what you are doing.
+*string:value*::
+    Use *value* as the string to calculate hash from. This can be the compiler
+    revision number you retrieved earlier and set here via environment variable.
 _a command string_::
     Hash the standard output and standard error output of the specified
     command. The string will be split on whitespace to find out the command and
@@ -376,10 +379,16 @@ WRAPPERS>>.
     If set to a file path, ccache will write information on what it is doing to
     the specified file. This is useful for tracking down problems.
 
-*stats* (*CCACHE_STATS*) [boolean]::
+*max_files* (*CCACHE_MAXFILES*)::
 
-    If true, ccache will update the statistics counters on each compilation.
-    The default is true.
+    This option specifies the maximum number of files to keep in the cache. Use
+    0 for no limit (which is the default).
+
+*max_size* (*CCACHE_MAXSIZE*)::
+
+    This option specifies the maximum size of the cache. Use 0 for no limit.
+    The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
+    Mi, Gi, Ti (binary). The default suffix is "G".
 
 *path* (*CCACHE_PATH*)::
 
@@ -403,7 +412,13 @@ WRAPPERS>>.
     because your ccache directory is read-only, then you need to set
     *temporary_dir* as otherwise ccache will fail to create temporary files.
 
-*reache* (*CCACHE_RECACHE*) [boolean]::
+*read_only_direct* (*CCACHE_READONLY_DIRECT*) [boolean]::
+
+    Just like *read_only* except that ccache will only try to retrieve results
+    from the cache using the direct mode, not the preprocessor mode. See
+    documentation for *read_only* regarding using a read-only ccache directory.
+
+*recache* (*CCACHE_RECACHE*) [boolean]::
 
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
@@ -447,6 +462,11 @@ WRAPPERS>>.
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
 information.
+
+*stats* (*CCACHE_STATS*) [boolean]::
+
+    If true, ccache will update the statistics counters on each compilation.
+    The default is true.
 
 *temporary_dir* (*CCACHE_TEMPDIR*)::
 

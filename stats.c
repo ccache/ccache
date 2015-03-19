@@ -131,17 +131,8 @@ stats_write(const char *path, struct counters *counters)
 	char *tmp_file;
 	FILE *f;
 
-	tmp_file = format("%s.tmp.%s", path, tmp_string());
-	f = fopen(tmp_file, "wb");
-	if (!f && errno == ENOENT) {
-		if (create_parent_dirs(path) == 0) {
-			f = fopen(tmp_file, "wb");
-		}
-	}
-	if (!f) {
-		cc_log("Failed to open %s", tmp_file);
-		goto end;
-	}
+	tmp_file = format("%s.tmp", path);
+	f = create_tmp_file(&tmp_file, "wb");
 	for (i = 0; i < counters->size; i++) {
 		if (fprintf(f, "%u\n", counters->data[i]) < 0) {
 			fatal("Failed to write to %s", tmp_file);
@@ -149,8 +140,6 @@ stats_write(const char *path, struct counters *counters)
 	}
 	fclose(f);
 	x_rename(tmp_file, path);
-
-end:
 	free(tmp_file);
 }
 
@@ -360,7 +349,13 @@ stats_zero(void)
 
 	for (dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
+		struct stat st;
 		fname = format("%s/%1x/stats", conf->cache_dir, dir);
+		if (stat(fname, &st) != 0) {
+			/* No point in trying to reset the stats file if it doesn't exist. */
+			free(fname);
+			continue;
+		}
 		if (lockfile_acquire(fname, lock_staleness_limit)) {
 			stats_read(fname, counters);
 			for (i = 0; stats_info[i].message; i++) {
@@ -378,7 +373,8 @@ stats_zero(void)
 
 /* Get the per directory limits */
 void
-stats_get_obsolete_limits(const char *dir, unsigned *maxfiles, uint64_t *maxsize)
+stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
+                          uint64_t *maxsize)
 {
 	struct counters *counters = counters_init(STATS_END);
 	char *sname = format("%s/stats", dir);

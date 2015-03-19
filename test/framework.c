@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2012 Joel Rosdahl
+ * Copyright (C) 2010-2014 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -18,6 +18,7 @@
 
 #include "ccache.h"
 #include "test/framework.h"
+#include "util.h"
 
 #if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
@@ -64,6 +65,7 @@ cct_run(suite_fn *suites, int verbose_output)
 	suite_fn *suite;
 	int tty = is_tty(1);
 
+	x_unsetenv("GCC_COLORS"); /* Avoid confusing argument processing tests. */
 	verbose = verbose_output;
 
 	for (suite = suites; *suite; suite++) {

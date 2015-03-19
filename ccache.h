@@ -142,7 +142,6 @@ char *dirname(const char *path);
 const char *get_extension(const char *path);
 char *remove_extension(const char *path);
 size_t file_size(struct stat *st);
-int safe_create_wronly(const char *fname);
 char *format_human_readable_size(uint64_t size);
 char *format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char *str, uint64_t *size);
@@ -151,7 +150,9 @@ char *gnu_getcwd(void);
 #ifndef HAVE_STRTOK_R
 char *strtok_r(char *str, const char *delim, char **saveptr);
 #endif
-int create_empty_file(const char *fname);
+int create_tmp_fd(char **fname);
+FILE *create_tmp_file(char **fname, const char *mode);
+void create_empty_tmp_file(char **fname);
 const char *get_home_directory(void);
 char *get_cwd(void);
 bool same_executable_name(const char *s1, const char *s2);
@@ -208,9 +209,7 @@ void wipe_all(struct conf *conf);
 /* ------------------------------------------------------------------------- */
 /* execute.c */
 
-int execute(char **argv,
-            const char *path_stdout,
-            const char *path_stderr);
+int execute(char **argv, int fd_out, int fd_err);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 
@@ -252,7 +251,9 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 char *win32argvtos(char *prefix, char **argv);
 char *win32getshell(char *path);
 int win32execute(char *path, char **argv, int doreturn,
-                 const char *path_stdout, const char *path_stderr);
+                 int fd_stdout, int fd_stderr);
+void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
+                                   const char *ext, const char *path);
 #    ifndef _WIN32_WINNT
 #    define _WIN32_WINNT 0x0501
 #    endif
@@ -260,7 +261,7 @@ int win32execute(char *path, char **argv, int doreturn,
 #    define mkdir(a,b) mkdir(a)
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)
-#    define execv(a,b) win32execute(a,b,0,NULL,NULL)
+#    define execv(a,b) win32execute(a,b,0,-1,-1)
 #    define execute(a,b,c) win32execute(*(a),a,1,b,c)
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0

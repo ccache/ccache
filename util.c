@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -223,6 +223,21 @@ mkstemp(char *template)
 }
 #endif
 
+#ifndef _WIN32
+static mode_t
+get_umask(void)
+{
+	static bool mask_retrieved = false;
+	static mode_t mask;
+	if (!mask_retrieved) {
+		mask = umask(0);
+		umask(mask);
+		mask_retrieved = true;
+	}
+	return mask;
+}
+#endif
+
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides
  * whether dest will be compressed, and with which compression level.
@@ -235,21 +250,12 @@ copy_file(const char *src, const char *dest, int compress_level)
 	char buf[10240];
 	int n, written;
 	char *tmp_name;
-#ifndef _WIN32
-	mode_t mask;
-#endif
 	struct stat st;
 	int errnum;
 
-	tmp_name = format("%s.%s.XXXXXX", dest, tmp_string());
-
 	/* open destination file */
-	fd_out = mkstemp(tmp_name);
-	if (fd_out == -1) {
-		cc_log("mkstemp error: %s", strerror(errno));
-		goto error;
-	}
-
+	tmp_name = x_strdup(dest);
+	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
@@ -343,10 +349,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	}
 
 #ifndef _WIN32
-	/* get perms right on the tmp file */
-	mask = umask(0);
-	fchmod(fd_out, 0666 & ~mask);
-	umask(mask);
+	fchmod(fd_out, 0666 & ~get_umask());
 #endif
 
 	/* the close can fail on NFS if out of space */
@@ -491,22 +494,80 @@ create_parent_dirs(const char *path)
 const char *
 get_hostname(void)
 {
-	static char hostname[200] = "";
+	static char hostname[260] = "";
 
-	if (!hostname[0]) {
-		strcpy(hostname, "unknown");
-#if HAVE_GETHOSTNAME
-		gethostname(hostname, sizeof(hostname)-1);
-#endif
-		hostname[sizeof(hostname)-1] = 0;
+	if (hostname[0]) {
+		return hostname;
 	}
 
+	strcpy(hostname, "unknown");
+#if HAVE_GETHOSTNAME
+	gethostname(hostname, sizeof(hostname) - 1);
+#elif defined(_WIN32)
+	const char *computer_name = getenv("COMPUTERNAME");
+	if (computer_name) {
+		snprintf(hostname, sizeof(hostname), "%s", computer_name);
+		return hostname;
+	}
+
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+
+	wVersionRequested = MAKEWORD(2, 2);
+
+	err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+		/* Tell the user that we could not find a usable Winsock DLL. */
+		cc_log("WSAStartup failed with error: %d", err);
+		return hostname;
+	}
+
+	if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
+		/* Tell the user that we could not find a usable WinSock DLL. */
+		cc_log("Could not find a usable version of Winsock.dll");
+		WSACleanup();
+		return hostname;
+	}
+
+	int result = gethostname(hostname, sizeof(hostname) - 1);
+	if (result != 0) {
+		int last_error = WSAGetLastError();
+		LPVOID lpMsgBuf;
+		LPVOID lpDisplayBuf;
+		DWORD dw = last_error;
+
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR) &lpMsgBuf, 0, NULL);
+
+		lpDisplayBuf = (LPVOID) LocalAlloc(
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__) + 200)
+			* sizeof(TCHAR));
+		_snprintf((LPTSTR) lpDisplayBuf,
+		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+		          TEXT("%s failed with error %d: %s"), __FILE__, dw,
+		          lpMsgBuf);
+
+		cc_log("can't get hostname OS returned error: %s", (char*)lpDisplayBuf);
+
+		LocalFree(lpMsgBuf);
+		LocalFree(lpDisplayBuf);
+	}
+	WSACleanup();
+#endif
+
+	hostname[sizeof(hostname) - 1] = 0;
 	return hostname;
 }
 
 /*
- * Return a string to be used to distinguish temporary files. Also tries to
- * cope with NFS by adding the local hostname.
+ * Return a string to be passed to mkstemp to create a temporary file. Also
+ * tries to cope with NFS by adding the local hostname.
  */
 const char *
 tmp_string(void)
@@ -514,7 +575,7 @@ tmp_string(void)
 	static char *ret;
 
 	if (!ret) {
-		ret = format("%s.%u", get_hostname(), (unsigned)getpid());
+		ret = format("%s.%u.XXXXXX", get_hostname(), (unsigned)getpid());
 	}
 
 	return ret;
@@ -561,12 +622,16 @@ create_cachedirtag(const char *dir)
 		goto error;
 	}
 	f = fopen(filename, "w");
-	if (!f) goto error;
+	if (!f) {
+		goto error;
+	}
 	if (fwrite(CACHEDIR_TAG, sizeof(CACHEDIR_TAG)-1, 1, f) != 1) {
 		fclose(f);
 		goto error;
 	}
-	if (fclose(f)) goto error;
+	if (fclose(f)) {
+		goto error;
+	}
 success:
 	free(filename);
 	return 0;
@@ -588,7 +653,9 @@ format(const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!*ptr) fatal("Internal error in format");
+	if (!*ptr) {
+		fatal("Internal error in format");
+	}
 	return ptr;
 }
 
@@ -683,7 +750,9 @@ void *
 x_realloc(void *ptr, size_t size)
 {
 	void *p2;
-	if (!ptr) return x_malloc(size);
+	if (!ptr) {
+		return x_malloc(size);
+	}
 	p2 = realloc(ptr, size);
 	if (!p2) {
 		fatal("x_realloc: Could not allocate %lu bytes", (unsigned long)size);
@@ -718,7 +787,9 @@ reformat(char **ptr, const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!ptr) fatal("Out of memory in reformat");
+	if (!ptr) {
+		fatal("Out of memory in reformat");
+	}
 	if (saved) {
 		free(saved);
 	}
@@ -734,16 +805,24 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 	struct dirent *de;
 
 	d = opendir(dir);
-	if (!d) return;
+	if (!d) {
+		return;
+	}
 
 	while ((de = readdir(d))) {
 		char *fname;
 		struct stat st;
 
-		if (str_eq(de->d_name, ".")) continue;
-		if (str_eq(de->d_name, "..")) continue;
+		if (str_eq(de->d_name, ".")) {
+			continue;
+		}
+		if (str_eq(de->d_name, "..")) {
+			continue;
+		}
 
-		if (strlen(de->d_name) == 0) continue;
+		if (strlen(de->d_name) == 0) {
+			continue;
+		}
 
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
@@ -772,10 +851,14 @@ basename(const char *path)
 {
 	char *p;
 	p = strrchr(path, '/');
-	if (p) path = p + 1;
+	if (p) {
+		path = p + 1;
+	}
 #ifdef _WIN32
 	p = strrchr(path, '\\');
-	if (p) path = p + 1;
+	if (p) {
+		path = p + 1;
+	}
 #endif
 
 	return x_strdup(path);
@@ -786,24 +869,27 @@ char *
 dirname(const char *path)
 {
 	char *p;
-	char *p2 = NULL;
+#ifdef _WIN32
+	char *p2;
+#endif
 	char *s;
 	s = x_strdup(path);
 	p = strrchr(s, '/');
 #ifdef _WIN32
 	p2 = strrchr(s, '\\');
-#endif
-	if (p < p2)
+	if (!p || (p2 && p < p2)) {
 		p = p2;
-	if (p == s) {
-		return s;
-	} else if (p) {
-		*p = 0;
-		return s;
-	} else {
-		free(s);
-		return x_strdup(".");
 	}
+#endif
+	if (!p) {
+		free(s);
+		s = x_strdup(".");
+	} else if (p == s) {
+		*(p + 1) = 0;
+	} else {
+		*p = 0;
+	}
+	return s;
 }
 
 /*
@@ -852,25 +938,6 @@ file_size(struct stat *st)
 	}
 	return size;
 #endif
-}
-
-/*
- * Create a file for writing. Creates parent directories if they don't exist.
- */
-int
-safe_create_wronly(const char *fname)
-{
-	int fd = open(fname, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, 0666);
-	if (fd == -1 && errno == ENOENT) {
-		/*
-		 * Only make sure parent directories exist when have failed to open the
-		 * file -- this saves stat() calls.
-		 */
-		if (create_parent_dirs(fname) == 0) {
-			fd = open(fname, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0666);
-		}
-	}
-	return fd;
 }
 
 /* Format a size as a human-readable string. Caller frees. */
@@ -947,6 +1014,9 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 		default:
 			return false;
 		}
+	} else {
+		/* Default suffix: G. */
+		x *= 1000 * 1000 * 1000;
 	}
 	*size = x;
 	return true;
@@ -974,9 +1044,14 @@ x_realpath(const char *path)
 	path_handle = CreateFile(
 		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
-	GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
-	CloseHandle(path_handle);
-	p = ret+4;// strip the \\?\ from the file name
+	if (INVALID_HANDLE_VALUE != path_handle) {
+		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
+		CloseHandle(path_handle);
+		p = ret + 4; /* strip \\?\ from the file name */
+	} else {
+		snprintf(ret, maxlen, "%s", path);
+		p = ret;
+	}
 #else
 	/* yes, there are such systems. This replacement relies on
 	   the fact that when we call x_realpath we only care about symlinks */
@@ -1041,18 +1116,58 @@ strtok_r(char *str, const char *delim, char **saveptr)
 }
 #endif
 
-/* create an empty file */
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename. Returns an open file descriptor to the file.
+ */
 int
-create_empty_file(const char *fname)
+create_tmp_fd(char **fname)
 {
-	int fd;
-
-	fd = open(fname, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL|O_BINARY, 0666);
-	if (fd == -1) {
-		return -1;
+	char *template = format("%s.%s", *fname, tmp_string());
+	int fd = mkstemp(template);
+	if (fd == -1 && errno == ENOENT) {
+		if (create_parent_dirs(template) != 0) {
+			fatal("Failed to create directory %s: %s",
+			      dirname(template), strerror(errno));
+		}
+		reformat(&template, "%s.%s", *fname, tmp_string());
+		fd = mkstemp(template);
 	}
-	close(fd);
-	return 0;
+	if (fd == -1) {
+		fatal("Failed to create file %s: %s", template, strerror(errno));
+	}
+
+#ifndef _WIN32
+	fchmod(fd, 0666 & ~get_umask());
+#endif
+
+	free(*fname);
+	*fname = template;
+	return fd;
+}
+
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename. Returns an open FILE*.
+ */
+FILE *
+create_tmp_file(char **fname, const char *mode)
+{
+	FILE *file = fdopen(create_tmp_fd(fname), mode);
+	if (!file) {
+		fatal("Failed to create file %s: %s", *fname, strerror(errno));
+	}
+	return file;
+}
+
+/*
+ * Create an empty temporary file. *fname will be reallocated and set to the
+ * resulting filename.
+ */
+void
+create_empty_tmp_file(char **fname)
+{
+	close(create_tmp_fd(fname));
 }
 
 /*
@@ -1249,14 +1364,46 @@ update_mtime(const char *path)
 /*
  * Rename oldpath to newpath (deleting newpath).
  */
+
 int
 x_rename(const char *oldpath, const char *newpath)
 {
-#ifdef _WIN32
+#ifndef _WIN32
+	return rename(oldpath, newpath);
+#else
 	/* Windows' rename() refuses to overwrite an existing file. */
 	unlink(newpath);  /* not x_unlink, as x_unlink calls x_rename */
+	/* If the function succeeds, the return value is nonzero. */
+	if (MoveFileA(oldpath, newpath) == 0) {
+		LPVOID lpMsgBuf;
+		LPVOID lpDisplayBuf;
+		DWORD dw = GetLastError();
+
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+			0, NULL);
+
+		lpDisplayBuf = (LPVOID) LocalAlloc(
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) __FILE__) + 40)
+			* sizeof(TCHAR));
+		_snprintf((LPTSTR) lpDisplayBuf,
+		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
+
+		cc_log("can't rename file %s to %s OS returned error: %s",
+		       oldpath, newpath, (char*) lpDisplayBuf);
+
+		LocalFree(lpMsgBuf);
+		LocalFree(lpDisplayBuf);
+		return -1;
+	} else {
+		return 0;
+	}
 #endif
-	return rename(oldpath, newpath);
 }
 
 /*
@@ -1281,7 +1428,7 @@ x_unlink(const char *path)
 	 * file. We don't care if the temp file is trashed, so it's always safe to
 	 * unlink it first.
 	 */
-	char *tmp_name = format("%s.%s.rmXXXXXX", path, tmp_string());
+	char *tmp_name = format("%s.rm.%s", path, tmp_string());
 	int result = 0;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
@@ -1289,7 +1436,10 @@ x_unlink(const char *path)
 		goto out;
 	}
 	if (unlink(tmp_name) == -1) {
-		result = -1;
+		/* If it was released in a race, that's OK. */
+		if (errno != ENOENT) {
+			result = -1;
+		}
 	}
 out:
 	free(tmp_name);

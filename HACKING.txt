@@ -39,21 +39,29 @@ Other
 Commit messages
 ---------------
 
-* Write a short description on the first line. If wanted, leave the second line
-  empty and write a longer description on line three and below.
-* Start the short description with a capital letter. Optional: prefix the short
+* Write a summary (short description) on the first line.
+* Start the summary with a capital letter. Optional: prefix the short
   description with a context followed by a colon.
-* The short description should be in "command form" (see examples below).
-* Don't put a final period after the short description.
-* Keep lines in the message at most 75 characters wide.
+* The summary should be in imperative mood (see examples below).
+* The summary should not end with a period. It's a title and titles don't end
+  with a period.
+* If a longer description is wanted, add an second line empty and write the
+  longer description on line three and below.
+* Keep lines in the message at most 72 characters wide.
 
 Example 1:
 
     Hash a delimiter string between parts to separate them
 
-    Previously, "gcc -I-O2 -c file.c" and "gcc -I -O2 -c file.c" would hash to
-    the same sum.
+    Previously, "gcc -I-O2 -c file.c" and "gcc -I -O2 -c file.c" would hash
+    to the same sum.
 
 Example 2:
 
     win32: Add a space between filename and error string in x_fmmap()
+
+See also:
+
+* http://stopwritingramblingcommitmessages.com
+* http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
+* https://github.com/erlang/otp/wiki/Writing-good-commit-messages

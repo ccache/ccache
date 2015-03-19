@@ -64,15 +64,25 @@ build_table(void)
 	int i;
 	static bool done;
 
-	if (done) return;
+	if (done) {
+		return;
+	}
 	done = true;
 
 	memset(tokens, 0, sizeof(tokens));
 	for (c = 0; c < 128; c++) {
-		if (isalpha(c) || c == '_') tokens[c].type |= C_ALPHA;
-		if (isdigit(c)) tokens[c].type |= C_DIGIT;
-		if (isspace(c)) tokens[c].type |= C_SPACE;
-		if (isxdigit(c)) tokens[c].type |= C_HEX;
+		if (isalpha(c) || c == '_') {
+			tokens[c].type |= C_ALPHA;
+		}
+		if (isdigit(c)) {
+			tokens[c].type |= C_DIGIT;
+		}
+		if (isspace(c)) {
+			tokens[c].type |= C_SPACE;
+		}
+		if (isxdigit(c)) {
+			tokens[c].type |= C_HEX;
+		}
 	}
 	tokens['\''].type |= C_QUOTE;
 	tokens['"'].type |= C_QUOTE;

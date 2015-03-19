@@ -157,6 +157,12 @@ parse_unsigned(const char *str, void *result, char **errmsg)
 	}
 }
 
+static const char*
+bool_to_string(bool value)
+{
+	return value ? "true" : "false";
+}
+
 static bool
 verify_absolute_path(void *value, char **errmsg)
 {
@@ -313,6 +319,7 @@ conf_create(void)
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
 	conf->read_only = false;
+	conf->read_only_direct = false;
 	conf->recache = false;
 	conf->run_second_cpp = false;
 	conf->sloppiness = 0;
@@ -467,8 +474,8 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		return false;
 	}
 
-	outpath = format("%s.tmp.%s", path, tmp_string());
-	outfile = fopen(outpath, "w");
+	outpath = format("%s.tmp", path);
+	outfile = create_tmp_file(&outpath, "w");
 	if (!outfile) {
 		*errmsg = format("%s: %s", outpath, strerror(errno));
 		free(outpath);
@@ -531,7 +538,7 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "compiler_check = %s", conf->compiler_check);
 	printer(s, conf->item_origins[find_conf("compiler_check")->number], context);
 
-	reformat(&s, "compression = %s", conf->compression ? "true" : "false");
+	reformat(&s, "compression = %s", bool_to_string(conf->compression));
 	printer(s, conf->item_origins[find_conf("compression")->number], context);
 
 	reformat(&s, "compression_level = %u", conf->compression_level);
@@ -541,20 +548,20 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
 	printer(s, conf->item_origins[find_conf("cpp_extension")->number], context);
 
-	reformat(&s, "direct_mode = %s", conf->direct_mode ? "true" : "false");
+	reformat(&s, "direct_mode = %s", bool_to_string(conf->direct_mode));
 	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);
 
-	reformat(&s, "disable = %s", conf->disable ? "true" : "false");
+	reformat(&s, "disable = %s", bool_to_string(conf->disable));
 	printer(s, conf->item_origins[find_conf("disable")->number], context);
 
 	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
 	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number],
 	        context);
 
-	reformat(&s, "hard_link = %s", conf->hard_link ? "true" : "false");
+	reformat(&s, "hard_link = %s", bool_to_string(conf->hard_link));
 	printer(s, conf->item_origins[find_conf("hard_link")->number], context);
 
-	reformat(&s, "hash_dir = %s", conf->hash_dir ? "true" : "false");
+	reformat(&s, "hash_dir = %s", bool_to_string(conf->hash_dir));
 	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
@@ -574,13 +581,17 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "prefix_command = %s", conf->prefix_command);
 	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);
 
-	reformat(&s, "read_only = %s", conf->read_only ? "true" : "false");
+	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
 	printer(s, conf->item_origins[find_conf("read_only")->number], context);
 
-	reformat(&s, "recache = %s", conf->recache ? "true" : "false");
+	reformat(&s, "read_only_direct = %s", bool_to_string(conf->read_only_direct));
+	printer(s, conf->item_origins[find_conf("read_only_direct")->number],
+	        context);
+
+	reformat(&s, "recache = %s", bool_to_string(conf->recache));
 	printer(s, conf->item_origins[find_conf("recache")->number], context);
 
-	reformat(&s, "run_second_cpp = %s", conf->run_second_cpp ? "true" : "false");
+	reformat(&s, "run_second_cpp = %s", bool_to_string(conf->run_second_cpp));
 	printer(s, conf->item_origins[find_conf("run_second_cpp")->number], context);
 
 	reformat(&s, "sloppiness = ");
@@ -605,7 +616,7 @@ conf_print_items(struct conf *conf,
 	}
 	printer(s, conf->item_origins[find_conf("sloppiness")->number], context);
 
-	reformat(&s, "stats = %s", conf->stats ? "true" : "false");
+	reformat(&s, "stats = %s", bool_to_string(conf->stats));
 	printer(s, conf->item_origins[find_conf("stats")->number], context);
 
 	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
@@ -618,7 +629,7 @@ conf_print_items(struct conf *conf,
 	}
 	printer(s, conf->item_origins[find_conf("umask")->number], context);
 
-	reformat(&s, "unify = %s", conf->unify ? "true" : "false");
+	reformat(&s, "unify = %s", bool_to_string(conf->unify));
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
 
 	free(s);

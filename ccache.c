@@ -2,7 +2,7 @@
  * ccache -- a fast C/C++ compiler cache
  *
  * Copyright (C) 2002-2007 Andrew Tridgell
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -39,7 +39,7 @@ static const char VERSION_TEXT[] =
 MYNAME " version %s\n"
 "\n"
 "Copyright (C) 2002-2007 Andrew Tridgell\n"
-"Copyright (C) 2009-2011 Joel Rosdahl\n"
+"Copyright (C) 2009-2015 Joel Rosdahl\n"
 "\n"
 "This program is free software; you can redistribute it and/or modify it under\n"
 "the terms of the GNU General Public License as published by the Free Software\n"
@@ -188,8 +188,7 @@ unsigned lock_staleness_limit = 2000000;
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
-	FROMCACHE_CPP_MODE,
-	FROMCACHE_COMPILED_MODE
+	FROMCACHE_CPP_MODE
 };
 
 struct pending_tmp_file {
@@ -265,7 +264,9 @@ static const char *
 temp_dir()
 {
 	static char *path = NULL;
-	if (path) return path;  /* Memoize */
+	if (path) {
+		return path; /* Memoize */
+	}
 	path = conf->temporary_dir;
 	if (str_eq(path, "")) {
 		path = format("%s/tmp", conf->cache_dir);
@@ -289,8 +290,8 @@ clean_up_pending_tmp_files(void)
 	while (p) {
 		tmp_unlink(p->path);
 		p = p->next;
-		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be signal
-		 * safe. */
+		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be
+		 * signal safe. */
 	}
 }
 
@@ -722,36 +723,76 @@ get_file_from_cache(const char *source, const char *dest)
 			       strerror(errno));
 			stats_update(STATS_ERROR);
 		}
+
+		/* If there was trouble getting a file from the cached result, wipe the
+		 * whole cached result for consistency. */
+		x_unlink(cached_stderr);
+		x_unlink(cached_obj);
+		x_unlink(cached_dep);
+		x_unlink(cached_dia);
+
 		failed();
 	}
 
 	cc_log("Created from cache: %s -> %s", source, dest);
 }
 
+/* Send cached stderr, if any, to stderr. */
+static void
+send_cached_stderr(void)
+{
+	int fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
+	if (fd_stderr != -1) {
+		copy_fd(fd_stderr, 2);
+		close(fd_stderr);
+	}
+}
+
+/* Create or update the manifest file. */
+void update_manifest_file(void)
+{
+	struct stat st;
+	size_t old_size = 0; /* in bytes */
+
+	if (!conf->direct_mode
+	    || !included_files
+	    || conf->read_only
+	    || conf->read_only_direct) {
+		return;
+	}
+
+	if (stat(manifest_path, &st) == 0) {
+		old_size = file_size(&st);
+	}
+	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
+		cc_log("Added object file hash to %s", manifest_path);
+		update_mtime(manifest_path);
+		stat(manifest_path, &st);
+		stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+	} else {
+		cc_log("Failed to add object file hash to %s", manifest_path);
+	}
+}
+
 /* run the real compiler and put the result in cache */
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_dia;
+	char *tmp_stdout, *tmp_stderr;
 	struct stat st;
-	int status;
+	int status, tmp_stdout_fd, tmp_stderr_fd;
 
-	if (create_parent_dirs(cached_obj) != 0) {
-		fatal("Failed to create parent directory for %s: %s",
-		      cached_obj, strerror(errno));
-	}
-	tmp_stdout = format("%s.tmp.stdout.%s", cached_obj, tmp_string());
-	tmp_stderr = format("%s.tmp.stderr.%s", cached_obj, tmp_string());
+	tmp_stdout = format("%s.tmp.stdout", cached_obj);
+	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+	tmp_stderr = format("%s.tmp.stderr", cached_obj);
+	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
 	if (output_dia) {
-		tmp_dia = x_strdup(output_dia);
 		args_add(args, "--serialize-diagnostics");
-		args_add(args, tmp_dia);
-	} else {
-		tmp_dia = NULL;
+		args_add(args, output_dia);
 	}
 
 	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
@@ -768,7 +809,7 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout, tmp_stderr);
+	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd);
 	args_pop(args, 3);
 
 	if (stat(tmp_stdout, &st) != 0) {
@@ -784,9 +825,6 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_dia) {
-			tmp_unlink(tmp_dia);
-		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -801,7 +839,7 @@ to_cache(struct args *args)
 		int fd_result;
 		char *tmp_stderr2;
 
-		tmp_stderr2 = format("%s.tmp.stderr2.%s", cached_obj, tmp_string());
+		tmp_stderr2 = format("%s.2", tmp_stderr);
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
 			       strerror(errno));
@@ -838,43 +876,16 @@ to_cache(struct args *args)
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			if (str_eq(output_obj, "/dev/null") || errno == ENOENT) {
-				/* we can use a quick method of getting the failed output */
-				copy_fd(fd, 2);
-				close(fd);
-				tmp_unlink(tmp_stderr);
+			/* we can output stderr immediately instead of re-running the
+			 * compiler */
+			copy_fd(fd, 2);
+			close(fd);
+			tmp_unlink(tmp_stderr);
 
-				if (output_dia) {
-					int ret;
-					x_unlink(output_dia);
-					/* only make a hardlink if the cache file is uncompressed */
-					ret = move_file(tmp_dia, output_dia, 0);
-
-					if (ret == -1) {
-						if (errno == ENOENT) {
-							/* Someone removed the file just before we began copying? */
-							cc_log("Diagnostic file %s just disappeared", output_dia);
-							stats_update(STATS_MISSING);
-						} else {
-							cc_log("Failed to move %s to %s: %s",
-							       tmp_dia, output_dia, strerror(errno));
-							stats_update(STATS_ERROR);
-							failed();
-						}
-						x_unlink(tmp_dia);
-					} else {
-						cc_log("Created %s from %s", output_dia, tmp_dia);
-					}
-				}
-
-				exit(status);
-			}
+			exit(status);
 		}
 
 		tmp_unlink(tmp_stderr);
-		if (tmp_dia) {
-			tmp_unlink(tmp_dia);
-		}
 		failed();
 	}
 
@@ -916,34 +927,52 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (tmp_dia) {
-		if (stat(tmp_dia, &st) != 0) {
-			cc_log("Failed to stat %s: %s", tmp_dia, strerror(errno));
+	if (output_dia) {
+		if (stat(output_dia, &st) != 0) {
+			cc_log("Failed to stat %s: %s", output_dia, strerror(errno));
 			stats_update(STATS_ERROR);
 			failed();
 		}
 		if (st.st_size > 0) {
-			put_file_in_cache(tmp_dia, cached_dia);
+			put_file_in_cache(output_dia, cached_dia);
 		}
 	}
 
 	put_file_in_cache(output_obj, cached_obj);
+	if (generating_dependencies) {
+		put_file_in_cache(output_dep, cached_dep);
+	}
 	stats_update(STATS_TOCACHE);
 
-	/* Make sure we have a CACHEDIR.TAG
-	 * This can be almost anywhere, but might as well do it near the end
-	 * as if we exit early we save the stat call
+	/* Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
+	 * be done almost anywhere, but we might as well do it near the end as we
+	 * save the stat call if we exit early.
 	 */
-	if (create_cachedirtag(conf->cache_dir) != 0) {
-		cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
-		       conf->cache_dir, strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
+	{
+		char *first_level_dir = dirname(stats_file);
+		if (create_cachedirtag(first_level_dir) != 0) {
+			cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
+			       first_level_dir, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
+		free(first_level_dir);
+
+		/* Remove any CACHEDIR.TAG on the cache_dir level where it was located in
+		 * previous ccache versions. */
+		if (getpid() % 1000 == 0) {
+			char *path = format("%s/CACHEDIR.TAG", conf->cache_dir);
+			x_unlink(path);
+			free(path);
+		}
 	}
+
+	/* Everything OK. */
+	send_cached_stderr();
+	update_manifest_file();
 
 	free(tmp_stderr);
 	free(tmp_stdout);
-	free(tmp_dia);
 }
 
 /*
@@ -956,7 +985,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	char *input_base;
 	char *tmp;
 	char *path_stdout, *path_stderr;
-	int status;
+	int status, path_stderr_fd;
 	struct file_hash *result;
 
 	/* ~/hello.c -> tmp.hello.123.i
@@ -972,39 +1001,29 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		input_base[10] = 0;
 	}
 
-	path_stdout = format(
-		"%s/%s.tmp.%s.%s",
-		temp_dir(), input_base, tmp_string(), conf->cpp_extension);
-	path_stderr = format("%s/tmp.cpp_stderr.%s", temp_dir(), tmp_string());
-
-	if (create_parent_dirs(path_stdout) != 0) {
-		fatal("Failed to create parent directory for %s: %s\n",
-		      path_stdout, strerror(errno));
-	}
-
-	add_pending_tmp_file(path_stdout);
+	path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+	path_stderr_fd = create_tmp_fd(&path_stderr);
 	add_pending_tmp_file(path_stderr);
 
 	time_of_compilation = time(NULL);
 
-	if (!direct_i_file) {
-		/* run cpp on the input file to obtain the .i */
+	if (direct_i_file) {
+		/* We are compiling a .i or .ii file - that means we can skip the cpp stage
+		 * and directly form the correct i_tmpfile. */
+		path_stdout = input_file;
+		status = 0;
+	} else {
+		/* Run cpp on the input file to obtain the .i. */
+		int path_stdout_fd;
+		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
+		path_stdout_fd = create_tmp_fd(&path_stdout);
+		add_pending_tmp_file(path_stdout);
+
 		args_add(args, "-E");
 		args_add(args, input_file);
 		cc_log("Running preprocessor");
-		status = execute(args->argv, path_stdout, path_stderr);
+		status = execute(args->argv, path_stdout_fd, path_stderr_fd);
 		args_pop(args, 2);
-	} else {
-		/* we are compiling a .i or .ii file - that means we
-		   can skip the cpp stage and directly form the
-		   correct i_tmpfile */
-		path_stdout = input_file;
-		if (create_empty_file(path_stderr) != 0) {
-			cc_log("Failed to create %s: %s", path_stderr, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		status = 0;
 	}
 
 	if (status != 0) {
@@ -1014,10 +1033,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	if (conf->unify) {
-		/*
-		 * When we are doing the unifying tricks we need to include the
-		 * input file name in the hash to get the warnings right.
-		 */
+		/* When we are doing the unifying tricks we need to include the input file
+		 * name in the hash to get the warnings right. */
 		hash_delimiter(hash, "unifyfilename");
 		hash_string(hash, input_file);
 
@@ -1040,7 +1057,15 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		fatal("Failed to open %s: %s", path_stderr, strerror(errno));
 	}
 
-	i_tmpfile = path_stdout;
+	if (direct_i_file) {
+		i_tmpfile = input_file;
+	} else {
+		/* i_tmpfile needs the proper cpp_extension for the compiler to do its
+		 * thing correctly. */
+		i_tmpfile = format("%s.%s", path_stdout, conf->cpp_extension);
+		x_rename(path_stdout, i_tmpfile);
+		add_pending_tmp_file(i_tmpfile);
+	}
 
 	if (conf->run_second_cpp) {
 		free(path_stderr);
@@ -1051,6 +1076,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		 * the compiler pass.
 		 */
 		cpp_stderr = path_stderr;
+		hash_delimiter(hash, "runsecondcpp");
+		hash_string(hash, "false");
 	}
 
 	result = x_malloc(sizeof(*result));
@@ -1087,6 +1114,9 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 		hash_delimiter(hash, "cc_mtime");
 		hash_int(hash, st->st_size);
 		hash_int(hash, st->st_mtime);
+	} else if (str_startswith(conf->compiler_check, "string:")) {
+		hash_delimiter(hash, "cc_hash");
+		hash_string(hash, conf->compiler_check + strlen("string:"));
 	} else if (str_eq(conf->compiler_check, "content") || !allow_command) {
 		hash_delimiter(hash, "cc_content");
 		hash_file(hash, path);
@@ -1106,7 +1136,7 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 static bool
 compiler_is_clang(struct args *args)
 {
-	char* name = basename(args->argv[0]);
+	char *name = basename(args->argv[0]);
 	bool is = strstr(name, "clang");
 	free(name);
 	return is;
@@ -1115,7 +1145,7 @@ compiler_is_clang(struct args *args)
 static bool
 compiler_is_gcc(struct args *args)
 {
-	char* name = basename(args->argv[0]);
+	char *name = basename(args->argv[0]);
 	bool is = strstr(name, "gcc") || strstr(name, "g++");
 	free(name);
 	return is;
@@ -1130,6 +1160,11 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 {
 	struct stat st;
 	char *p;
+	const char *full_path = args->argv[0];
+#ifdef _WIN32
+	const char *ext;
+	char full_path_win_ext[MAX_PATH + 1] = {0};
+#endif
 
 	hash_string(hash, HASH_PREFIX);
 
@@ -1140,7 +1175,14 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_delimiter(hash, "ext");
 	hash_string(hash, conf->cpp_extension);
 
-	if (stat(args->argv[0], &st) != 0) {
+#ifdef _WIN32
+	ext = strrchr(args->argv[0], '.');
+	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext,
+	                              args->argv[0]);
+	full_path = full_path_win_ext;
+#endif
+
+	if (stat(full_path, &st) != 0) {
 		cc_log("Couldn't stat compiler %s: %s", args->argv[0], strerror(errno));
 		stats_update(STATS_COMPILER);
 		failed();
@@ -1227,6 +1269,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		/* -Wl,... doesn't affect compilation. */
+		if (str_startswith(args->argv[i], "-Wl,")) {
+			continue;
+		}
+
 		/* The -fdebug-prefix-map option may be used in combination with
 		   CCACHE_BASEDIR to reuse results across different directories. Skip it
 		   from hashing. */
@@ -1256,11 +1303,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		if (generating_dependencies) {
 			if (str_startswith(args->argv[i], "-Wp,")) {
 				if (str_startswith(args->argv[i], "-Wp,-MD,")
-						&& !strchr(args->argv[i] + 8, ',')) {
+				    && !strchr(args->argv[i] + 8, ',')) {
 					hash_string_length(hash, args->argv[i], 8);
 					continue;
 				} else if (str_startswith(args->argv[i], "-Wp,-MMD,")
-						&& !strchr(args->argv[i] + 9, ',')) {
+				           && !strchr(args->argv[i] + 9, ',')) {
 					hash_string_length(hash, args->argv[i], 9);
 					continue;
 				}
@@ -1426,12 +1473,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 static void
 from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
-	int fd_stderr;
 	struct stat st;
-	bool produce_dep_file;
+	bool produce_dep_file = false;
 
 	/* the user might be disabling cache hits */
-	if (mode != FROMCACHE_COMPILED_MODE && conf->recache) {
+	if (conf->recache) {
 		return;
 	}
 
@@ -1449,7 +1495,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	/*
 	 * Occasionally, e.g. on hard reset, our cache ends up as just filesystem
-	 * meta-data with no content catch an easy case of this.
+	 * meta-data with no content. Catch an easy case of this.
 	 */
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
@@ -1490,35 +1536,14 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_mtime(cached_dia);
 	}
 
-	if (generating_dependencies && mode != FROMCACHE_DIRECT_MODE) {
+	if (generating_dependencies && mode == FROMCACHE_CPP_MODE) {
 		put_file_in_cache(output_dep, cached_dep);
 	}
 
-	/* Send the stderr, if any. */
-	fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
-	if (fd_stderr != -1) {
-		copy_fd(fd_stderr, 2);
-		close(fd_stderr);
-	}
+  send_cached_stderr();
 
-	/* Create or update the manifest file. */
-	if (conf->direct_mode
-	    && put_object_in_manifest
-	    && included_files
-	    && !conf->read_only) {
-		struct stat st;
-		size_t old_size = 0; /* in bytes */
-		if (stat(manifest_path, &st) == 0) {
-			old_size = file_size(&st);
-		}
-		if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
-			cc_log("Added object file hash to %s", manifest_path);
-			update_mtime(manifest_path);
-			stat(manifest_path, &st);
-			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
-		} else {
-			cc_log("Failed to add object file hash to %s", manifest_path);
-		}
+	if (put_object_in_manifest) {
+		update_manifest_file();
 	}
 
 	/* log the cache hit */
@@ -1531,10 +1556,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	case FROMCACHE_CPP_MODE:
 		cc_log("Succeeded getting cached result");
 		stats_update(STATS_CACHEHIT_CPP);
-		break;
-
-	case FROMCACHE_COMPILED_MODE:
-		/* Stats already updated in to_cache(). */
 		break;
 	}
 
@@ -2038,6 +2059,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				/* Output is redirected, so color output must be forced. */
 				args_add(stripped_args, "-fdiagnostics-color=always");
 				cc_log("Automatically forcing colors");
+			} else {
+				args_add(stripped_args, argv[i]);
 			}
 			found_color_diagnostics = true;
 			continue;
@@ -2239,7 +2262,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	output_is_precompiled_header =
 		actual_language && strstr(actual_language, "-header");
 
-	if (output_is_precompiled_header && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
+	if (output_is_precompiled_header
+	    && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
 		cc_log("You have to specify \"pch_defines,time_macros\" sloppiness when"
 		       " creating precompiled headers");
 		stats_update(STATS_CANTUSEPCH);
@@ -2495,9 +2519,15 @@ initialize(void)
 			free(errmsg);
 		}
 
+		if (str_eq(conf->cache_dir, "")) {
+			fatal("configuration setting \"cache_dir\" must not be the empty string");
+		}
 		if ((p = getenv("CCACHE_DIR"))) {
 			free(conf->cache_dir);
 			conf->cache_dir = strdup(p);
+		}
+		if (str_eq(conf->cache_dir, "")) {
+			fatal("CCACHE_DIR must not be the empty string");
 		}
 
 		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
@@ -2566,7 +2596,7 @@ cc_reset(void)
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
 
-	initialize();
+	conf = conf_create();
 }
 
 /* Make a copy of stderr that will not be cached, so things like
@@ -2695,6 +2725,11 @@ ccache(int argc, char *argv[])
 		}
 	}
 
+	if (conf->read_only_direct) {
+		cc_log("Read-only direct mode; running real compiler");
+		failed();
+	}
+
 	/*
 	 * Find the hash using the preprocessed output. Also updates
 	 * included_files.
@@ -2744,13 +2779,7 @@ ccache(int argc, char *argv[])
 	/* run real compiler, sending output to cache */
 	to_cache(compiler_args);
 
-	/* return from cache */
-	from_cache(FROMCACHE_COMPILED_MODE, put_object_in_manifest);
-
-	/* oh oh! */
-	cc_log("Secondary from_cache failed");
-	stats_update(STATS_ERROR);
-	failed();
+	exit(0);
 }
 
 static void

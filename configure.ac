@@ -11,6 +11,7 @@ AC_CANONICAL_HOST
 
 case $host in
     *mingw32* | *cygwin* | *wince* | *mingwce*)
+        windows_os=yes
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
 esac
@@ -120,6 +121,11 @@ if test x${use_bundled_zlib} = xyes; then
     mkdir -p zlib
 else
     extra_ldflags="-lz"
+fi
+
+dnl Linking on Windows needs ws2_32
+if test x${windows_os} = xyes; then
+    extra_ldflags="$extra_ldflags -lws2_32"
 fi
 
 AC_C_BIGENDIAN

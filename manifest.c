@@ -736,12 +736,8 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 		mf = create_empty_manifest();
 	}
 
-	tmp_file = format("%s.tmp.%s", manifest_path, tmp_string());
-	fd2 = safe_create_wronly(tmp_file);
-	if (fd2 == -1) {
-		cc_log("Failed to open %s", tmp_file);
-		goto out;
-	}
+	tmp_file = format("%s.tmp", manifest_path);
+	fd2 = create_tmp_fd(&tmp_file);
 	f2 = gzdopen(fd2, "wb");
 	if (!f2) {
 		cc_log("Failed to gzdopen %s", tmp_file);

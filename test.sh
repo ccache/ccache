@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2014 Joel Rosdahl
+# Copyright (C) 2009-2015 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -37,11 +37,13 @@ unset CCACHE_NOSTATS
 unset CCACHE_PATH
 unset CCACHE_PREFIX
 unset CCACHE_READONLY
+unset CCACHE_READONLY_DIRECT
 unset CCACHE_RECACHE
 unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
+unset GCC_COLORS
 
 # Many tests backdate files, which updates their ctimes.  In those tests, we
 # must ignore ctimes.  Might as well do so everywhere.
@@ -238,7 +240,7 @@ base_tests() {
     unset CCACHE_CONFIGPATH
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2> /dev/null
     if [ -d $CCACHE_DIR ]; then
-        test_failed "$CCACHE_DIR created dispite CCACHE_DISABLE being set"
+        test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
     CCACHE_CONFIGPATH=$saved_config_path
     mv $CCACHE_DIR.saved $CCACHE_DIR
@@ -269,10 +271,10 @@ base_tests() {
     checkstat 'cache miss' 4
     compare_file reference_test1.o test1.o
 
-    # strictly speaking should be 3 - RECACHE causes a double counting!
+    # strictly speaking should be 4 - RECACHE causes a double counting!
     checkstat 'files in cache' 4
     $CCACHE -c > /dev/null
-    checkstat 'files in cache' 3
+    checkstat 'files in cache' 4
 
     testname="CCACHE_HASHDIR"
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
@@ -283,7 +285,7 @@ base_tests() {
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
-    checkstat 'files in cache' 4
+    checkstat 'files in cache' 5
     compare_file reference_test1.o test1.o
 
     testname="comments"
@@ -314,7 +316,7 @@ base_tests() {
     done
     checkstat 'cache hit (preprocessed)' 8
     checkstat 'cache miss' 37
-    checkstat 'files in cache' 36
+    checkstat 'files in cache' 37
 
     $CCACHE -C >/dev/null
 
@@ -372,9 +374,15 @@ base_tests() {
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 14
             checkstat 'cache miss' 40
-            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 15
             checkstat 'cache miss' 40
+            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            checkstat 'cache hit (preprocessed)' 15
+            checkstat 'cache miss' 41
+            $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+            checkstat 'cache hit (preprocessed)' 16
+            checkstat 'cache miss' 41
         fi
     fi
 
@@ -446,6 +454,22 @@ EOF
     CCACHE_COMPILERCHECK=none $CCACHE ./compiler.sh -c test1.c
     checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
+
+    testname="compilercheck=string"
+    $CCACHE -z >/dev/null
+    backdate compiler.sh
+    CCACHE_COMPILERCHECK=string:foo $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK=string:foo $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    CCACHE_COMPILERCHECK=string:bar $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    CCACHE_COMPILERCHECK=string:bar $CCACHE ./compiler.sh -c test1.c
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
 
     testname="compilercheck=command"
     $CCACHE -z >/dev/null
@@ -585,14 +609,12 @@ EOF
         checkstat 'files in cache' 2
 
         testname="profile-use"
-        $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
+        $CCACHE_COMPILE -c -fprofile-use test1.c 2>/dev/null
         checkstat 'cache hit (preprocessed)' 2
         checkstat 'cache miss' 3
-        checkstat 'files in cache' 4
-        $CCACHE_COMPILE -c -fprofile-use test1.c 2> /dev/null
+        $CCACHE_COMPILE -c -fprofile-use test1.c 2>/dev/null
         checkstat 'cache hit (preprocessed)' 3
         checkstat 'cache miss' 3
-        checkstat 'files in cache' 4
     fi
 
     ##################################################################
@@ -626,16 +648,45 @@ EOF
     ##################################################################
 
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
-        $CCACHE -Cz > /dev/null
         testname="serialize-diagnostics"
-        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        $CCACHE -Cz > /dev/null
+        $COMPILER -c --serialize-diagnostics expected.dia test1.c 2> /dev/null
+        # Run with CCACHE_CPP2 to ensure the same diagnostics output as above
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
         checkstat 'files in cache' 2
-        $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
+        compare_file expected.dia test.dia
+        rm -f test.dia
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 1
         checkstat 'files in cache' 2
+        compare_file expected.dia test.dia
+
+        rm -f test.dia
+        rm -f expected.dia
+
+        testname="serialize-diagnostics-compile-failed"
+        $CCACHE -Cz > /dev/null
+        echo "bad source" >error.c
+        $COMPILER -c --serialize-diagnostics expected.dia error.c 2> /dev/null
+        if [ $? -eq 0 ]; then
+            test_failed "expected an error compiling error.c"
+        fi
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2> /dev/null
+        checkstat 'compile failed' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 0
+        checkstat 'files in cache' 0
+        compare_file expected.dia test.dia
+        rm -f test.dia
+        CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2> /dev/null
+        checkstat 'compile failed' 2
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 0
+        checkstat 'files in cache' 0
+        compare_file expected.dia test.dia
     fi
 
     ##################################################################
@@ -1340,6 +1391,23 @@ EOF
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 2
 
+    testname="comment in strings"
+    $CCACHE -Cz >/dev/null
+    echo 'char *comment = " /* \\\\u" "foo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    echo 'char *comment = " /* \\\\u" "goo" " */";' >comment.c
+    $CCACHE $COMPILER -c comment.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
+
     #################################################################
     # Check that strange "#line" directives are handled.
     testname="#line directives with troublesome files"
@@ -1646,6 +1714,35 @@ readonly_suite() {
     fi
 
     ##################################################################
+}
+
+readonly_direct_suite() {
+    unset CCACHE_NODIRECT
+
+    ##################################################################
+    # Create some code to compile.
+    echo "int test;" >test.c
+
+    # Cache a compilation.
+    testname="fill cache"
+    $CCACHE $COMPILER -c test.c -o test.o
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    # Check that "readonly direct" mode gets a direct hit.
+    testname="direct hit"
+    CCACHE_READONLY_DIRECT=1 $CCACHE $COMPILER -c test.c -o test.o
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    # Check that "readonly direct" mode doesn't get a preprocessed hit.
+    testname="preprocessed miss"
+    CCACHE_READONLY_DIRECT=1 $CCACHE $COMPILER -DFOO -c test.c -o test.o
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
 }
 
 extrafiles_suite() {
@@ -2381,13 +2478,13 @@ all_suites="
 base
 link          !win32
 hardlink
-cpp2
 nlevels4
 nlevels1
 basedir       !win32
 direct
 compression
 readonly
+readonly_direct
 extrafiles
 cleanup
 pch

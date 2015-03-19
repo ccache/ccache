@@ -23,6 +23,7 @@ struct conf {
 	char *path;
 	char *prefix_command;
 	bool read_only;
+	bool read_only_direct;
 	bool recache;
 	bool run_second_cpp;
 	unsigned sloppiness;
