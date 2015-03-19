@@ -107,16 +107,34 @@ path_max(const char *path)
 #endif
 }
 
+/*
+ * Warn about failure writing to the log file and then exit.
+ */
+static void
+warn_log_fail(void)
+{
+	extern struct conf *conf;
+
+	/* Note: Can't call fatal() since that would lead to recursion. */
+	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
+	        conf->log_file, strerror(errno));
+	exit(EXIT_FAILURE);
+}
+
 static void
 vlog(const char *format, va_list ap, bool log_updated_time)
 {
+	int rc1, rc2;
 	if (!init_log()) {
 		return;
 	}
 
 	log_prefix(log_updated_time);
-	vfprintf(logfile, format, ap);
-	fprintf(logfile, "\n");
+	rc1 = vfprintf(logfile, format, ap);
+	rc2 = fprintf(logfile, "\n");
+	if (rc1 < 0 || rc2 < 0) {
+		warn_log_fail();
+	}
 }
 
 /*
@@ -153,6 +171,7 @@ cc_bulklog(const char *format, ...)
 void
 cc_log_argv(const char *prefix, char **argv)
 {
+	int rc;
 	if (!init_log()) {
 		return;
 	}
@@ -160,7 +179,9 @@ cc_log_argv(const char *prefix, char **argv)
 	log_prefix(true);
 	fputs(prefix, logfile);
 	print_command(logfile, argv);
-	fflush(logfile);
+	rc = fflush(logfile);
+	if (rc)
+		warn_log_fail();
 }
 
 /* something went badly wrong! */
@@ -827,7 +848,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
 			if (errno != ENOENT) {
-				perror(fname);
+				fatal("lstat %s failed: %s", fname, strerror(errno));
 			}
 			free(fname);
 			continue;
@@ -1413,8 +1434,13 @@ x_rename(const char *oldpath, const char *newpath)
 int
 tmp_unlink(const char *path)
 {
+	int rc;
 	cc_log("Unlink %s", path);
-	return unlink(path);
+	rc = unlink(path);
+	if (rc) {
+		cc_log("Unlink failed: %s", strerror(errno));
+	}
+	return rc;
 }
 
 /*
@@ -1430,19 +1456,25 @@ x_unlink(const char *path)
 	 */
 	char *tmp_name = format("%s.rm.%s", path, tmp_string());
 	int result = 0;
+	int saved_errno;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
 		result = -1;
+		saved_errno = errno;
 		goto out;
 	}
 	if (unlink(tmp_name) == -1) {
 		/* If it was released in a race, that's OK. */
 		if (errno != ENOENT) {
 			result = -1;
+			saved_errno = errno;
 		}
 	}
 out:
 	free(tmp_name);
+	if (result) {
+		cc_log("x_unlink failed: %s", strerror(saved_errno));
+	}
 	return result;
 }
 
