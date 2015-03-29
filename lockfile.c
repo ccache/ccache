@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -31,6 +31,7 @@
 bool
 lockfile_acquire(const char *path, unsigned staleness_limit)
 {
+	int saved_errno = 0;
 	char *lockfile = format("%s.lock", path);
 	char *my_content = NULL, *content = NULL, *initial_content = NULL;
 	const char *hostname = get_hostname();
@@ -50,15 +51,16 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 #ifdef _WIN32
 		fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
+			saved_errno = errno;
 			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
-			if (errno == ENOENT) {
+			if (saved_errno == ENOENT) {
 				/* Directory doesn't exist? */
 				if (create_parent_dirs(lockfile) == 0) {
 					/* OK. Retry. */
 					continue;
 				}
 			}
-			if (errno != EEXIST) {
+			if (saved_errno != EEXIST) {
 				/* Directory doesn't exist or isn't writable? */
 				goto out;
 			}
@@ -105,15 +107,16 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			acquired = true;
 			goto out;
 		}
-		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(errno));
-		if (errno == ENOENT) {
+		saved_errno = errno;
+		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(saved_errno));
+		if (saved_errno == ENOENT) {
 			/* Directory doesn't exist? */
 			if (create_parent_dirs(lockfile) == 0) {
 				/* OK. Retry. */
 				continue;
 			}
 		}
-		if (errno == EPERM) {
+		if (saved_errno == EPERM) {
 			/*
 			 * The file system does not support symbolic links. We have no choice but
 			 * to grant the lock anyway.
@@ -121,7 +124,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			acquired = true;
 			goto out;
 		}
-		if (errno != EEXIST) {
+		if (saved_errno != EEXIST) {
 			/* Directory doesn't exist or isn't writable? */
 			goto out;
 		}
