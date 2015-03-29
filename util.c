@@ -261,7 +261,8 @@ get_umask(void)
 
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides
- * whether dest will be compressed, and with which compression level.
+ * whether dest will be compressed, and with which compression level. Returns 0
+ * on success and -1 on failure. On failure, errno represents the error.
  */
 int
 copy_file(const char *src, const char *dest, int compress_level)
@@ -273,6 +274,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	char *tmp_name;
 	struct stat st;
 	int errnum;
+	int saved_errno = 0;
 
 	/* open destination file */
 	tmp_name = x_strdup(dest);
@@ -283,13 +285,15 @@ copy_file(const char *src, const char *dest, int compress_level)
 	/* open source file */
 	fd_in = open(src, O_RDONLY | O_BINARY);
 	if (fd_in == -1) {
-		cc_log("open error: %s", strerror(errno));
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
 		goto error;
 	}
 
 	gz_in = gzdopen(fd_in, "rb");
 	if (!gz_in) {
-		cc_log("gzdopen(src) error: %s", strerror(errno));
+		saved_errno = errno;
+		cc_log("gzdopen(src) error: %s", strerror(saved_errno));
 		close(fd_in);
 		goto error;
 	}
@@ -311,7 +315,8 @@ copy_file(const char *src, const char *dest, int compress_level)
 	if (compress_level > 0) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
-			cc_log("gzdopen(dest) error: %s", strerror(errno));
+			saved_errno = errno;
+			cc_log("gzdopen(dest) error: %s", strerror(saved_errno));
 			goto error;
 		}
 		gzsetparams(gz_out, compress_level, Z_DEFAULT_STRATEGY);
@@ -326,6 +331,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 			do {
 				count = write(fd_out, buf + written, n - written);
 				if (count == -1 && errno != EINTR) {
+					saved_errno = errno;
 					break;
 				}
 				written += count;
@@ -335,9 +341,9 @@ copy_file(const char *src, const char *dest, int compress_level)
 			if (compress_level > 0) {
 				cc_log("gzwrite error: %s (errno: %s)",
 				       gzerror(gz_in, &errnum),
-				       strerror(errno));
+				       strerror(saved_errno));
 			} else {
-				cc_log("write error: %s", strerror(errno));
+				cc_log("write error: %s", strerror(saved_errno));
 			}
 			goto error;
 		}
@@ -349,8 +355,9 @@ copy_file(const char *src, const char *dest, int compress_level)
 	 */
 	gzerror(gz_in, &errnum);
 	if (!gzeof(gz_in) || (errnum != Z_OK && errnum != Z_STREAM_END)) {
+		saved_errno = errno;
 		cc_log("gzread error: %s (errno: %s)",
-		       gzerror(gz_in, &errnum), strerror(errno));
+		       gzerror(gz_in, &errnum), strerror(saved_errno));
 		gzclose(gz_in);
 		if (gz_out) {
 			gzclose(gz_out);
@@ -374,12 +381,14 @@ copy_file(const char *src, const char *dest, int compress_level)
 
 	/* the close can fail on NFS if out of space */
 	if (close(fd_out) == -1) {
-		cc_log("close error: %s", strerror(errno));
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
 		goto error;
 	}
 
 	if (x_rename(tmp_name, dest) == -1) {
-		cc_log("rename error: %s", strerror(errno));
+		saved_errno = errno;
+		cc_log("rename error: %s", strerror(saved_errno));
 		goto error;
 	}
 
@@ -399,6 +408,7 @@ error:
 	}
 	tmp_unlink(tmp_name);
 	free(tmp_name);
+	errno = saved_errno;
 	return -1;
 }
 
@@ -1488,7 +1498,7 @@ x_unlink(const char *path)
 	 */
 	char *tmp_name = format("%s.rm.%s", path, tmp_string());
 	int result = 0;
-	int saved_errno;
+	int saved_errno = 0;
 	cc_log("Unlink %s via %s", path, tmp_name);
 	if (x_rename(path, tmp_name) == -1) {
 		result = -1;
@@ -1507,6 +1517,7 @@ out:
 	if (result) {
 		cc_log("x_unlink failed: %s", strerror(saved_errno));
 	}
+	errno = saved_errno;
 	return result;
 }
 
