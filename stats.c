@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2004 Andrew Tridgell
- * Copyright (C) 2009-2014 Joel Rosdahl
+ * Copyright (C) 2009-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -153,7 +153,7 @@ init_counter_updates(void)
 
 /*
  * Record that a number of bytes and files have been added to the cache. Size
- * is in KiB.
+ * is in bytes.
  */
 void
 stats_update_size(uint64_t size, unsigned files)

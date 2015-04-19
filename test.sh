@@ -762,6 +762,10 @@ EOF
     cat <<EOF >test3.h
 int test3;
 EOF
+    cat <<EOF >code.c
+/* code.c */
+int test() {}
+EOF
     backdate test1.h test2.h test3.h
 
     $COMPILER -c -Wp,-MD,expected.d test.c
@@ -976,6 +980,35 @@ EOF
     checkstat 'cache miss' 1
     checkfile test.d "$expected_d_content"
     compare_file reference_test.o test.o
+
+    ##################################################################
+    # Check that coverage works.
+    testname="coverage (empty)"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="coverage (code)"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
+
+    rm -f code.gcno
+
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
 
     ##################################################################
     # Check the scenario of running a ccache with direct mode on a cache

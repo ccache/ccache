@@ -95,6 +95,9 @@ static char *output_obj;
 /* The path to the dependency file (implicit or specified with -MF). */
 static char *output_dep;
 
+/* The path to the coverage file (implicit when using -ftest-coverage). */
+static char *output_cov;
+
 /* Diagnostic generation information (clang). */
 static char *output_dia = NULL;
 
@@ -123,6 +126,12 @@ static char *cached_stderr;
 static char *cached_dep;
 
 /*
+ * Full path to the file containing the coverage information
+ * (cachedir/a/b/cdef[...]-size.gcno).
+ */
+static char *cached_cov;
+
+/*
  * Full path to the file containing the diagnostic information (for clang)
  * (cachedir/a/b/cdef[...]-size.dia).
  */
@@ -148,6 +157,15 @@ static struct hashtable *included_files;
 
 /* is gcc being asked to output dependencies? */
 static bool generating_dependencies;
+
+/* is gcc being asked to output coverage? */
+static bool generating_coverage;
+
+/* is gcc being asked to output coverage data (.gcda) at runtime? */
+static bool profile_arcs;
+
+/* name of the custom profile directory (default: object dirname) */
+static char *profile_dir;
 
 /* the name of the temporary pre-processor file */
 static char *i_tmpfile;
@@ -776,14 +794,28 @@ void update_manifest_file(void)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr;
+	char *tmp_stdout, *tmp_stderr, *tmp_aux, *tmp_cov;
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
+	FILE *f;
 
 	tmp_stdout = format("%s.tmp.stdout", cached_obj);
 	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 	tmp_stderr = format("%s.tmp.stderr", cached_obj);
 	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
+	if (generating_coverage) {
+		/* gcc has some funny rule about max extension length */
+		if (strlen(get_extension(output_obj)) < 6) {
+			tmp_aux = remove_extension(output_obj);
+		} else {
+			tmp_aux = x_strdup(output_obj);
+		}
+		tmp_cov = format("%s.gcno", tmp_aux);
+		free(tmp_aux);
+	} else {
+		tmp_cov = NULL;
+	}
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
@@ -815,6 +847,9 @@ to_cache(struct args *args)
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -822,6 +857,9 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -883,6 +921,9 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 
@@ -921,6 +962,24 @@ to_cache(struct args *args)
 		if (conf->recache) {
 			/* If recaching, we need to remove any previous .stderr. */
 			x_unlink(cached_stderr);
+		}
+	}
+
+	if (generating_coverage) {
+		/* gcc won't generate notes if there is no code */
+		if (stat(tmp_cov, &st) != 0 && errno == ENOENT) {
+			cc_log("Creating placeholder: %s", cached_cov);
+
+			f = fopen(cached_cov, "wb");
+			if (!f) {
+				cc_log("Failed to create %s: %s", cached_cov, strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
+			fclose(f);
+			stats_update_size(0, 1);
+		} else {
+			put_file_in_cache(tmp_cov, cached_cov);
 		}
 	}
 
@@ -969,6 +1028,7 @@ to_cache(struct args *args)
 
 	free(tmp_stderr);
 	free(tmp_stdout);
+	free(tmp_cov);
 }
 
 /*
@@ -1091,6 +1151,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
+	cached_cov = get_path_in_cache(object_name, ".gcno");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1204,6 +1265,30 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
+		}
+	}
+
+	/* Possibly hash the coverage data file path. */
+	if (generating_coverage && profile_arcs) {
+		char *gcda_path;
+		char *dir = dirname(output_obj);
+		if (profile_dir) {
+			dir = x_strdup(profile_dir);
+		} else {
+			char *real_dir = x_realpath(dir);
+			free(dir);
+			dir = real_dir;
+		}
+		if (dir) {
+			char *base_name = basename(output_obj);
+			p = remove_extension(base_name);
+			free(base_name);
+			gcda_path = format("%s/%s.gcda", dir, p);
+			cc_log("Hashing coverage path %s", gcda_path);
+			free(p);
+			hash_delimiter(hash, "gcda");
+			hash_string(hash, gcda_path);
+			free(dir);
 		}
 	}
 
@@ -1516,6 +1601,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (produce_dep_file) {
 		get_file_from_cache(cached_dep, output_dep);
 	}
+	if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
+		/* gcc won't generate notes if there is no code */
+		get_file_from_cache(cached_cov, output_cov);
+	}
 	if (output_dia) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
@@ -1526,6 +1615,9 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	update_mtime(cached_stderr);
 	if (produce_dep_file) {
 		update_mtime(cached_dep);
+	}
+	if (generating_coverage) {
+		update_mtime(cached_cov);
 	}
 	if (output_dia) {
 		update_mtime(cached_dia);
@@ -1875,6 +1967,27 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 			continue;
 		}
+		if (str_eq(argv[i], "-fprofile-arcs")) {
+			profile_arcs = true;
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+		if (str_eq(argv[i], "-ftest-coverage")) {
+			generating_coverage = true;
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+		if (str_eq(argv[i], "--coverage")) { /* = -fprofile-arcs -ftest-coverage */
+			profile_arcs = true;
+			generating_coverage = true;
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+		if (str_startswith(argv[i], "-fprofile-dir=")) {
+			profile_dir = x_strdup(argv[i] + 14);
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
 			char *option = format("--sysroot=%s", relpath);
@@ -2174,6 +2287,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			goto out;
 		}
 
+		/* The source code file path gets put into the notes */
+		if (generating_coverage) {
+			input_file = x_strdup(argv[i]);
+			continue;
+		}
+
 		/* Rewrite to relative to increase hit rate. */
 		input_file = make_relative_path(x_strdup(argv[i]));
 	}
@@ -2360,6 +2479,15 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(dep_args, output_obj);
 		}
 	}
+	if (generating_coverage) {
+		char *default_covfile_name;
+		char *base_name;
+
+		base_name = remove_extension(output_obj);
+		default_covfile_name = format("%s.gcno", base_name);
+		free(base_name);
+		output_cov = make_relative_path(x_strdup(default_covfile_name));
+	}
 
 	*compiler_args = args_copy(stripped_args);
 	if (conf->run_second_cpp) {
@@ -2527,11 +2655,13 @@ cc_reset(void)
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
 	free(output_dep); output_dep = NULL;
+	free(output_cov); output_cov = NULL;
 	free(output_dia); output_dia = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_dep); cached_dep = NULL;
+	free(cached_cov); cached_cov = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
@@ -2539,6 +2669,9 @@ cc_reset(void)
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
 	generating_dependencies = false;
+	generating_coverage = false;
+	profile_arcs = false;
+	free(profile_dir); profile_dir = NULL;
 	i_tmpfile = NULL;
 	direct_i_file = false;
 	free(cpp_stderr); cpp_stderr = NULL;
@@ -2637,6 +2770,9 @@ ccache(int argc, char *argv[])
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);
+	}
+	if (generating_coverage) {
+		cc_log("Coverage file: %s", output_cov);
 	}
 	if (output_dia) {
 		cc_log("Diagnostic file: %s", output_dia);

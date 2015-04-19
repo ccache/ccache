@@ -12,6 +12,8 @@ New features and improvements
   alternative to `CCACHE_COMPILERCHECK=<command>` if the command's output can
   be precalculated by the build system.
 
+- Add support for caching code coverage results (compiling for gcov).
+
 
 Bug fixes
 ~~~~~~~~~
