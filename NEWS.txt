@@ -35,6 +35,8 @@ Bug fixes
 - Bail out on too hard compiler option `-fplugin=libcc1plugin` (interaction
   with GDB).
 
+- Fixed build error when compiling ccache with recent clang versions.
+
 
 ccache 3.2.1
 ------------

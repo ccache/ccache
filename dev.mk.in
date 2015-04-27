@@ -92,7 +92,7 @@ endif
 version.o: version.c
 
 %_lookup.c: %.gperf
-	$(GPERF) $< >$@
+	$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
 	echo "static const size_t `echo $* | tr a-z A-Z`_TOTAL_KEYWORDS = `sed -nr 's/.*TOTAL_KEYWORDS = ([0-9]+).*/\1/p' $@`;" >>$@
 
 .PHONY: dist
