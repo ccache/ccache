@@ -89,6 +89,7 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
   return hval;
 }
 
+static
 #ifdef __GNUC__
 __inline
 #if defined __GNUC_STDC_INLINE__ || defined __GNUC_GNU_INLINE__

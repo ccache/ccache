@@ -2,8 +2,8 @@ ccache news
 ===========
 
 
-Unreleased
-----------
+Unreleased 3.2.2
+----------------
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,6 +34,10 @@ Bug fixes
 
 - Bail out on too hard compiler option `-fplugin=libcc1plugin` (interaction
   with GDB).
+
+- Fixed build error when compiling ccache with recent clang versions.
+
+- Removed signal-unsafe code from signal handler.
 
 
 ccache 3.2.1

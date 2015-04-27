@@ -306,7 +306,8 @@ clean_up_pending_tmp_files(void)
 {
 	struct pending_tmp_file *p = pending_tmp_files;
 	while (p) {
-		tmp_unlink(p->path);
+		/* Can't call tmp_unlink here since its cc_log calls aren't signal safe. */
+		unlink(p->path);
 		p = p->next;
 		/* Leak p->path and p here because clean_up_pending_tmp_files needs to be
 		 * signal safe. */
