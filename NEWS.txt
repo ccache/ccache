@@ -2,8 +2,8 @@ ccache news
 ===========
 
 
-Unreleased
-----------
+Unreleased 3.2.2
+----------------
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
