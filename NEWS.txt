@@ -37,6 +37,8 @@ Bug fixes
 
 - Fixed build error when compiling ccache with recent clang versions.
 
+- Removed signal-unsafe code from signal handler.
+
 
 ccache 3.2.1
 ------------
