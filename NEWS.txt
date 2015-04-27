@@ -5,6 +5,12 @@ ccache news
 Unreleased 3.3
 --------------
 
+Notes
+~~~~~
+
+- A C99-compatible compiler is now required to build ccache.
+
+
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
