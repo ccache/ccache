@@ -244,7 +244,8 @@ get_umask(void)
 // whether dest will be compressed, and with which compression level. Returns 0
 // on success and -1 on failure. On failure, errno represents the error.
 int
-copy_file(const char *src, const char *dest, int compress_level)
+copy_file(const char *src, const char *dest, const char *compress_type,
+          int compress_level)
 {
 	int fd_out;
 	gzFile gz_in = NULL;
@@ -253,6 +254,10 @@ copy_file(const char *src, const char *dest, int compress_level)
 
 	// Open destination file.
 	char *tmp_name = x_strdup(dest);
+	if (compress_level > 0 && !str_eq(compress_type, "gzip")) {
+		return -1;
+	}
+
 	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
@@ -390,9 +395,10 @@ error:
 
 // Run copy_file() and, if successful, delete the source file.
 int
-move_file(const char *src, const char *dest, int compress_level)
+move_file(const char *src, const char *dest, const char *compress_type,
+          int compress_level)
 {
-	int ret = copy_file(src, dest, compress_level);
+	int ret = copy_file(src, dest, compress_type, compress_level);
 	if (ret != -1) {
 		x_unlink(src);
 	}
@@ -402,10 +408,12 @@ move_file(const char *src, const char *dest, int compress_level)
 // Like move_file(), but assumes that src is uncompressed and that src and dest
 // are on the same file system.
 int
-move_uncompressed_file(const char *src, const char *dest, int compress_level)
+move_uncompressed_file(const char *src, const char *dest,
+                       const char *compress_type,
+                       int compress_level)
 {
 	if (compress_level > 0) {
-		return move_file(src, dest, compress_level);
+		return move_file(src, dest, compress_type, compress_level);
 	} else {
 		return x_rename(src, dest);
 	}

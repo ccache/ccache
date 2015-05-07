@@ -317,6 +317,7 @@ conf_create(void)
 	conf->compiler_check = x_strdup("mtime");
 	conf->compression = false;
 	conf->compression_level = 6;
+	conf->compression_type = x_strdup("gzip");
 	conf->cpp_extension = x_strdup("");
 	conf->direct_mode = true;
 	conf->disable = false;
@@ -548,6 +549,10 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "compression_level = %u", conf->compression_level);
 	printer(s, conf->item_origins[find_conf("compression_level")->number],
+	        context);
+
+	reformat(&s, "compression_type = %s", conf->compression_type);
+	printer(s, conf->item_origins[find_conf("compression_type")->number],
 	        context);
 
 	reformat(&s, "cpp_extension = %s", conf->cpp_extension);

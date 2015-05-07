@@ -933,8 +933,9 @@ put_file_in_cache(const char *source, const char *dest)
 		}
 	}
 	if (!do_link) {
-		int ret = copy_file(
-		  source, dest, conf->compression ? conf->compression_level : 0);
+		const char *type = conf->compression_type;
+		int level = conf->compression ? conf->compression_level : 0;
+		int ret = copy_file(source, dest, type, level);
 		if (ret != 0) {
 			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
 			stats_update(STATS_ERROR);
@@ -957,12 +958,15 @@ static void
 get_file_from_cache(const char *source, const char *dest)
 {
 	int ret;
-	bool do_link = conf->hard_link && !file_is_compressed(source);
+	bool compression = file_is_compressed(source);
+	bool do_link = conf->hard_link && !compression;
+
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		ret = copy_file(source, dest, 0);
+		int level = 0; /* uncompressed */
+		ret = copy_file(source, dest, NULL, level);
 	}
 
 	if (ret == -1) {
@@ -1205,6 +1209,7 @@ to_cache(struct args *args)
 	if (st.st_size > 0) {
 		if (move_uncompressed_file(
 		      tmp_stderr, cached_stderr,
+		      "gzip", /* always use gzip compression for stderr */
 		      conf->compression ? conf->compression_level : 0) != 0) {
 			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
 			       strerror(errno));

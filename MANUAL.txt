@@ -332,6 +332,10 @@ WRAPPERS>>.
     to 6, and must be no lower than 1 (fastest, worst compression) and no
     higher than 9 (slowest, best compression).
 
+*compression_type* (*CCACHE_COMPRESSTYPE*)::
+
+    The type of compression to use. The default is "gzip", using zlib library.
+
 *cpp_extension* (*CCACHE_EXTENSION*)::
 
     This setting can be used to force a certain extension for the intermediate
