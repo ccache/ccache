@@ -11,6 +11,7 @@ struct conf {
 	char *compiler_check;
 	bool compression;
 	unsigned compression_level;
+	char *compression_type;
 	char *cpp_extension;
 	bool debug;
 	bool depend_mode;
