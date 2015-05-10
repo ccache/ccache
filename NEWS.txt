@@ -2,8 +2,10 @@ ccache news
 ===========
 
 
-Unreleased 3.2.2
-----------------
+ccache 3.2.2
+------------
+Release date: 2015-05-10
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,6 +19,9 @@ New features and improvements
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed bug which could result in false cache hits when source code contains
+  `'"'` followed by `" /*"` or `" //"` (with variations).
 
 - Made hash of cached result created with and without `CCACHE_CPP2` different.
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
@@ -38,6 +43,12 @@ Bug fixes
 - Fixed build error when compiling ccache with recent clang versions.
 
 - Removed signal-unsafe code from signal handler.
+
+- Corrected logic for when to output cached stderr.
+
+- Wipe the whole cached result on failure retrieving a cached file.
+
+- Fixed build error when compiling ccache with recent clang versions.
 
 
 ccache 3.2.1

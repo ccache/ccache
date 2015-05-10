@@ -912,8 +912,7 @@ to_cache(struct args *args)
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			/* we can output stderr immediately instead of re-running the
-			 * compiler */
+			/* We can output stderr immediately instead of rerunning the compiler. */
 			copy_fd(fd, 2);
 			close(fd);
 			tmp_unlink(tmp_stderr);
