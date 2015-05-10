@@ -2,8 +2,10 @@ ccache news
 ===========
 
 
-Unreleased 3.2.2
-----------------
+ccache 3.2.2
+------------
+Release date: 2015-05-10
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
