@@ -67,7 +67,6 @@ In addition to the prerequisites mentioned above, you also need:
 
 To debug and run the performance test suite you'll also need:
 
-- Perl (http://www.perl.org/)
 - Python (http://www.python.org/)
 
 Run "./autogen.sh" and then follow the steps mentioned under "Installation"
