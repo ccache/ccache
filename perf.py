@@ -84,6 +84,10 @@ def test(tmp_dir, options, compiler_args, source_file):
     environment["CCACHE_COMPILERCHECK"] = options.compilercheck
     if options.compression:
         environment["CCACHE_COMPRESS"] = "1"
+    if options.compression_type:
+        environment["CCACHE_COMPRESSTYPE"] = options.compression_type
+    if options.compression_level:
+        environment["CCACHE_COMPRESSLEVEL"] = str(options.compression_level)
     if options.hardlink:
         environment["CCACHE_HARDLINK"] = "1"
     if options.nostats:
@@ -217,6 +221,13 @@ def main(argv):
         help="use compression",
         action="store_true")
     op.add_option(
+        "--compression-type",
+        help="use compression")
+    op.add_option(
+        "--compression-level",
+        help="use compression",
+        type=int)
+    op.add_option(
         "-d", "--directory",
         help="where to create the temporary directory with the cache and" \
              " other files (default: %s)" \
@@ -276,6 +287,9 @@ def main(argv):
             splitext(argv[-1])[0])
         print "Compilercheck:", options.compilercheck
         print "Compression:", on_off(options.compression)
+        if options.compression:
+            print "    Type:", options.compression_type or "gzip"
+            print "    Level:", options.compression_level or 6
         print "Hardlink:", on_off(options.hardlink)
         print "Nostats:", on_off(options.nostats)
 
