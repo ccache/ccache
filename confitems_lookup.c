@@ -116,7 +116,7 @@ confitems_get (register const char *str, register unsigned int len)
 #line 17 "confitems.gperf"
       {"compression_type",     7, ITEM(compression_type, string)},
 #line 16 "confitems.gperf"
-      {"compression_level",    6, ITEM(compression_level, unsigned)},
+      {"compression_level",    6, ITEM(compression_level, int)},
 #line 27 "confitems.gperf"
       {"log_file",            17, ITEM(log_file, env_string)},
 #line 31 "confitems.gperf"

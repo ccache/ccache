@@ -2391,6 +2391,12 @@ SUITE_compression() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
+
+    testname="compression default level"
+    CCACHE_COMPRESS=1 CCACHE_COMPRESSLEVEL=-1 $CCACHE $COMPILER -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 3
+    expect_stat 'cache miss' 1
 }
 
 # =============================================================================

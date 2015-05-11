@@ -329,8 +329,8 @@ WRAPPERS>>.
 
     This setting determines the level at which ccache will compress object
     files. It only has effect if *compression* is enabled. The value defaults
-    to 6, and must be no lower than 1 (fastest, worst compression) and no
-    higher than 9 (slowest, best compression).
+    to -1 (compressor default), and if it is set - it must be no lower than 1
+    (fastest, worst compression) and no higher than 9 (slowest, best compression).
 
 *compression_type* (*CCACHE_COMPRESSTYPE*)::
 

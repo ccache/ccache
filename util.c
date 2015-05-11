@@ -240,7 +240,7 @@ get_umask(void)
 }
 #endif
 
-// Copy src to dest, decompressing src if needed. compress_level > 0 decides
+// Copy src to dest, decompressing src if needed. compress_level != 0 decides
 // whether dest will be compressed, and with which compression level. Returns 0
 // on success and -1 on failure. On failure, errno represents the error.
 int
@@ -251,16 +251,17 @@ copy_file(const char *src, const char *dest, const char *compress_type,
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
+	int level;
 
 	// Open destination file.
 	char *tmp_name = x_strdup(dest);
-	if (compress_level > 0 && !str_eq(compress_type, "gzip")) {
+	if (compress_level != 0 && !str_eq(compress_type, "gzip")) {
 		return -1;
 	}
 
 	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
-	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+	       src, dest, tmp_name, compress_level != 0 ? "" : "un");
 
 	// Open source file.
 	int fd_in = open(src, O_RDONLY | O_BINARY);
@@ -278,7 +279,7 @@ copy_file(const char *src, const char *dest, const char *compress_type,
 		goto error;
 	}
 
-	if (compress_level > 0) {
+	if (compress_level != 0) {
 		// A gzip file occupies at least 20 bytes, so it will always occupy an
 		// entire filesystem block, even for empty files. Turn off compression for
 		// empty files to save some space.
@@ -291,21 +292,22 @@ copy_file(const char *src, const char *dest, const char *compress_type,
 		}
 	}
 
-	if (compress_level > 0) {
+	if (compress_level != 0) {
 		gz_out = gzdopen(dup(fd_out), "wb");
 		if (!gz_out) {
 			saved_errno = errno;
 			cc_log("gzdopen(dest) error: %s", strerror(saved_errno));
 			goto error;
 		}
-		gzsetparams(gz_out, compress_level, Z_DEFAULT_STRATEGY);
+		level = compress_level > 0 ? compress_level : Z_DEFAULT_COMPRESSION;
+		gzsetparams(gz_out, level, Z_DEFAULT_STRATEGY);
 	}
 
 	int n;
 	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		int written;
-		if (compress_level > 0) {
+		if (compress_level != 0) {
 			written = gzwrite(gz_out, buf, n);
 		} else {
 			written = 0;
@@ -319,7 +321,7 @@ copy_file(const char *src, const char *dest, const char *compress_type,
 			} while (written < n);
 		}
 		if (written != n) {
-			if (compress_level > 0) {
+			if (compress_level != 0) {
 				int errnum;
 				cc_log("gzwrite error: %s (errno: %s)",
 				       gzerror(gz_in, &errnum),

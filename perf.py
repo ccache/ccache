@@ -289,7 +289,7 @@ def main(argv):
         print "Compression:", on_off(options.compression)
         if options.compression:
             print "    Type:", options.compression_type or "gzip"
-            print "    Level:", options.compression_level or 6
+            print "    Level:", options.compression_level or -1
         print "Hardlink:", on_off(options.hardlink)
         print "Nostats:", on_off(options.nostats)
 

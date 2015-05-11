@@ -76,6 +76,22 @@ parse_float(const char *str, void *result, char **errmsg)
 }
 
 static bool
+parse_int(const char *str, void *result, char **errmsg)
+{
+	unsigned *value = (unsigned *)result;
+	char *endptr;
+	errno = 0;
+	long x = strtol(str, &endptr, 10);
+	if (errno == 0 && *str != '\0' && *endptr == '\0') {
+		*value = x;
+		return true;
+	} else {
+		*errmsg = format("invalid integer: \"%s\"", str);
+		return false;
+	}
+}
+
+static bool
 parse_size(const char *str, void *result, char **errmsg)
 {
 	uint64_t *value = (uint64_t *)result;
@@ -316,7 +332,7 @@ conf_create(void)
 	conf->compiler = x_strdup("");
 	conf->compiler_check = x_strdup("mtime");
 	conf->compression = false;
-	conf->compression_level = 6;
+	conf->compression_level = -1;
 	conf->compression_type = x_strdup("gzip");
 	conf->cpp_extension = x_strdup("");
 	conf->direct_mode = true;
@@ -547,7 +563,7 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "compression = %s", bool_to_string(conf->compression));
 	printer(s, conf->item_origins[find_conf("compression")->number], context);
 
-	reformat(&s, "compression_level = %u", conf->compression_level);
+	reformat(&s, "compression_level = %d", conf->compression_level);
 	printer(s, conf->item_origins[find_conf("compression_level")->number],
 	        context);
 
