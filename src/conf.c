@@ -133,7 +133,7 @@ conf_create(void)
 	conf->compiler = x_strdup("");
 	conf->compiler_check = x_strdup("mtime");
 	conf->compression = false;
-	conf->compression_level = 6;
+	conf->compression_level = -1;
 	conf->compression_type = x_strdup("gzip");
 	conf->cpp_extension = x_strdup("");
 	conf->debug = false;

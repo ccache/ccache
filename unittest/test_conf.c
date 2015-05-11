@@ -56,7 +56,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
 	CHECK(!conf->compression);
-	CHECK_INT_EQ(6, conf->compression_level);
+	CHECK_INT_EQ(-1, conf->compression_level);
 	CHECK_STR_EQ("gzip", conf->compression_type);
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(!conf->debug);
