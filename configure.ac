@@ -120,7 +120,7 @@ if test x${use_bundled_zlib} = xyes; then
     extra_libs="zlib/libz.a"
     mkdir -p zlib
 else
-    extra_ldflags="-lz"
+    extra_libs="-lz"
 fi
 
 dnl Linking on Windows needs ws2_32

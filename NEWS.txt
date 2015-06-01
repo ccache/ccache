@@ -2,6 +2,15 @@ ccache news
 ===========
 
 
+Unreleased
+----------
+
+Bug fixes
+~~~~~~~~~
+
+- Support external zlib in nonstandard directory.
+
+
 ccache 3.2.2
 ------------
 Release date: 2015-05-10

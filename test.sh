@@ -1834,7 +1834,7 @@ prepare_cleanup_test() {
     mkdir -p $dir
     i=0
     while [ $i -lt 10 ]; do
-        perl -e 'print "A" x 4017' >$dir/result$i-4017.o
+        printf '%4017s' '' | tr ' ' 'A' >$dir/result$i-4017.o
         touch $dir/result$i-4017.stderr
         touch $dir/result$i-4017.d
         if [ $i -gt 5 ]; then
