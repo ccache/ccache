@@ -118,7 +118,7 @@ warn_log_fail(void)
 	/* Note: Can't call fatal() since that would lead to recursion. */
 	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
 	        conf->log_file, strerror(errno));
-	exit(EXIT_FAILURE);
+	x_exit(EXIT_FAILURE);
 }
 
 static void
@@ -180,8 +180,9 @@ cc_log_argv(const char *prefix, char **argv)
 	fputs(prefix, logfile);
 	print_command(logfile, argv);
 	rc = fflush(logfile);
-	if (rc)
+	if (rc) {
 		warn_log_fail();
+	}
 }
 
 /* something went badly wrong! */
@@ -198,7 +199,7 @@ fatal(const char *format, ...)
 	cc_log("FATAL: %s", msg);
 	fprintf(stderr, "ccache: error: %s\n", msg);
 
-	exit(1);
+	x_exit(1);
 }
 
 /*
@@ -1425,9 +1426,24 @@ update_mtime(const char *path)
 }
 
 /*
+ * If exit() already has been called, call _exit(), otherwise exit(). This is
+ * used to avoid calling exit() inside an atexit handler.
+ */
+void
+x_exit(int status)
+{
+	static bool first_time = true;
+	if (first_time) {
+		first_time = false;
+		exit(status);
+	} else {
+		_exit(status);
+	}
+}
+
+/*
  * Rename oldpath to newpath (deleting newpath).
  */
-
 int
 x_rename(const char *oldpath, const char *newpath)
 {
