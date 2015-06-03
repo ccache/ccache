@@ -10,6 +10,8 @@ Bug fixes
 
 - Support external zlib in nonstandard directory.
 
+- Avoid calling `exit()` inside an exit handler.
+
 
 ccache 3.2.2
 ------------

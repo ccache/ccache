@@ -917,7 +917,7 @@ to_cache(struct args *args)
 			close(fd);
 			tmp_unlink(tmp_stderr);
 
-			exit(status);
+			x_exit(status);
 		}
 
 		tmp_unlink(tmp_stderr);
@@ -1647,7 +1647,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/* and exit with the right status code */
-	exit(0);
+	x_exit(0);
 }
 
 /* find the real compiler. We just search the PATH to find a executable of the
@@ -2864,7 +2864,7 @@ ccache(int argc, char *argv[])
 	/* run real compiler, sending output to cache */
 	to_cache(compiler_args);
 
-	exit(0);
+	x_exit(0);
 }
 
 static void
@@ -2919,7 +2919,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'h': /* --help */
 			fputs(USAGE_TEXT, stdout);
-			exit(0);
+			x_exit(0);
 
 		case 'F': /* --max-files */
 			{
@@ -2990,7 +2990,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'V': /* --version */
 			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
-			exit(0);
+			x_exit(0);
 
 		case 'z': /* --zero-stats */
 			initialize();
@@ -3000,7 +3000,7 @@ ccache_main_options(int argc, char *argv[])
 
 		default:
 			fputs(USAGE_TEXT, stderr);
-			exit(1);
+			x_exit(1);
 		}
 	}
 
@@ -3015,7 +3015,7 @@ ccache_main(int argc, char *argv[])
 	if (same_executable_name(program_name, MYNAME)) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);
-			exit(1);
+			x_exit(1);
 		}
 		/* if the first argument isn't an option, then assume we are
 		   being passed a compiler name and options */

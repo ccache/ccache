@@ -214,7 +214,7 @@ win32execute(char *path, char **argv, int doreturn,
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 	if (!doreturn)
-		exit(exitcode);
+		x_exit(exitcode);
 	return exitcode;
 }
 
@@ -242,7 +242,7 @@ execute(char **argv, int fd_out, int fd_err)
 		close(fd_out);
 		dup2(fd_err, 2);
 		close(fd_err);
-		exit(execv(argv[0], argv));
+		x_exit(execv(argv[0], argv));
 	}
 
 	close(fd_out);

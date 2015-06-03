@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2012 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -84,11 +84,11 @@ void
 exitfn_call(void)
 {
 	struct exit_function *p = exit_functions, *q;
+	exit_functions = NULL;
 	while (p) {
 		p->function(p->context);
 		q = p;
 		p = p->next;
 		free(q);
 	}
-	exit_functions = NULL;
 }

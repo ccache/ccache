@@ -164,6 +164,7 @@ char *get_relative_path(const char *from, const char *to);
 bool is_absolute_path(const char *path);
 bool is_full_path(const char *path);
 void update_mtime(const char *path);
+void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char *oldpath, const char *newpath);
 int tmp_unlink(const char *path);
 int x_unlink(const char *path);
