@@ -808,10 +808,6 @@ void update_manifest_file(void)
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 		}
-		else {
-			cc_log("stat on manifest (manifest_path) %s failed (%s), so size statistics is incorrect.",
-			       manifest_path, strerror(errno));
-		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
 	}
@@ -822,12 +818,10 @@ static void
 to_cache(struct args *args)
 {
 	char *tmp_stdout, *tmp_stderr, *tmp_aux, *tmp_cov;
-	char *tmp_dwo = NULL;	/* for supporting -gsplit-dwarf */
+	char *tmp_dwo = NULL;
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
 	FILE *f;
-
-	/* When control reaches here, cached_obj contains a file name for object */
 
 	tmp_stdout = format("%s.tmp.stdout", cached_obj);
 	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
@@ -855,9 +849,7 @@ to_cache(struct args *args)
 		char *base_name = remove_extension(output_obj);
 		tmp_dwo = format("%s.dwo", base_name);
 		free(base_name);
-		cc_log("Setting tmp_dwo to %s", tmp_dwo);
 	}
-
 
 	args_add(args, "-o");
 	args_add(args, output_obj);
@@ -909,8 +901,8 @@ to_cache(struct args *args)
 	tmp_unlink(tmp_stdout);
 
 	/*
-	 * Merge stderr from the preprocessor (if any) and stderr from
-	 * the real compiler into tmp_stderr.
+	 * Merge stderr from the preprocessor (if any) and stderr from the real
+	 * compiler into tmp_stderr.
 	 */
 	if (cpp_stderr) {
 		int fd_cpp_stderr;
@@ -1220,14 +1212,11 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_cov = get_path_in_cache(object_name, ".gcno");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 
-	/*
-	 * --gsplit-dwarf support.  We set cached_dwo to NULL to
-	 * signify --gsplit-dwarf is not used.
-	 */
-	if (using_split_dwarf)
-		cached_dwo    = get_path_in_cache(object_name, ".dwo");
-	else
-		cached_dwo    = NULL;
+	if (using_split_dwarf) {
+		cached_dwo = get_path_in_cache(object_name, ".dwo");
+	} else {
+		cached_dwo = NULL;
+	}
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1659,13 +1648,11 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	/* First, sanity checks. */
-	if (using_split_dwarf && !generating_dependencies)
+	if (using_split_dwarf && !generating_dependencies) {
 		assert(output_dwo);
-	if (output_dwo)
-		assert(cached_dwo);
-
+	}
 	if (output_dwo) {
+		assert(cached_dwo);
 		if (stat(cached_dwo, &st) != 0) {
 			cc_log("Split dwarf file %s not in cache", cached_dwo);
 			return;
@@ -1691,19 +1678,16 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/*
-	 * Copy object file from cache. Do so also for FissionDwarf
-	 * file, cached_dwo, when -gsplit-dwarf is specified.
+	 * Copy object file from cache. Do so also for FissionDwarf file, cached_dwo,
+	 * when -gsplit-dwarf is specified.
 	 */
 	if (!str_eq(output_obj, "/dev/null")) {
-
 		get_file_from_cache(cached_obj, output_obj);
-
 		if (using_split_dwarf) {
 			assert(output_dwo);
 			get_file_from_cache(cached_dwo, output_dwo);
 		}
 	}
-
 	if (produce_dep_file) {
 		get_file_from_cache(cached_dep, output_dep);
 	}
@@ -1728,13 +1712,13 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (output_dia) {
 		update_mtime(cached_dia);
 	}
+	if (cached_dwo) {
+		update_mtime(cached_dwo);
+	}
 
 	if (generating_dependencies && mode == FROMCACHE_CPP_MODE) {
 		put_file_in_cache(output_dep, cached_dep);
 	}
-
-	if (cached_dwo)
-		update_mtime(cached_dwo);
 
 	send_cached_stderr();
 
@@ -1978,7 +1962,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 			output_obj = make_relative_path(x_strdup(argv[i+1]));
-
 			i++;
 			continue;
 		}
@@ -2415,9 +2398,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	} /* for */
 
 	if (found_S_opt) {
-		/* even if -gsplit-dwarf is given, .dwo file is not
-		 * generated when found_S_opt is true (-S is also
-		 * given).
+		/* Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
+		 * is also given.
 		 */
 		using_split_dwarf = false;
 		cc_log("Disabling caching of dwarf files since -S is used");
@@ -2548,7 +2530,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			output_dwo = format("%s.dwo", base_name);
 			free(base_name);
 		}
-		cc_log("setting output_dwo to %s", output_dwo);
 	}
 
 	/* cope with -o /dev/null */
@@ -2600,18 +2581,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 	}
-
-	/* If and when "-M" option is supported by ccache, we must
-	 * modify cache file handling. "-M" means only the dependency
-	 * file is generated (presumably by specifying the destination
-	 * using -o destinationa_filepath), -gsplit-dwarf
-	 * (FissionDwarf) -gp (profile) handling and even ordinary
-	 * handling of object file must be modified.
-	 * E.g.:
-	 * ccache /usr/bin/gcc-4.8 -gsplit-dwarf -DHAVE_CONFIG_H \
-	 * -DSYSCONFDIR=/usr/local/etc -I. -I.-M -g -O2 -Wall -W \
-	 * -Werror -o .deps/ccache.c.d ccache.c
-	 */
 
 	/*
 	 * Add flags for dependency generation only to the preprocessor command line.
@@ -2936,14 +2905,12 @@ ccache(int argc, char *argv[])
 		cc_log("Diagnostic file: %s", output_dia);
 	}
 
-	/*
-	 * -gsplit-dwarf support: Sanity Check 
-	 */
 	if (using_split_dwarf ) {
-		if (!generating_dependencies)
-			assert (output_dwo);
+		if (!generating_dependencies) {
+			assert(output_dwo);
+		}
 	} else {
-		assert (!output_dwo);
+		assert(!output_dwo);
 	}
 
 	if (output_dwo) {
