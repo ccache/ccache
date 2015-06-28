@@ -5,6 +5,12 @@ ccache news
 Unreleased
 ----------
 
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for compiler option `-gsplit-dwarf`.
+
+
 Bug fixes
 ~~~~~~~~~
 
