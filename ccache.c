@@ -427,12 +427,12 @@ get_path_in_cache(const char *name, const char *suffix)
  * also updated. Takes over ownership of path.
  */
 static void
-remember_include_file(char *path, struct mdfour *cpp_hash)
+remember_include_file(char *path, struct hstate *cpp_hash)
 {
 #ifdef _WIN32
 	DWORD attributes;
 #endif
-	struct mdfour fhash;
+	struct hstate fhash;
 	struct stat st;
 	char *source = NULL;
 	size_t size;
@@ -497,7 +497,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 			goto failure;
 		}
 		hash_result_as_bytes(&fhash, pch_hash.hash);
-		pch_hash.size = fhash.totalN;
+		pch_hash.size = hash_get_len(&fhash);
 		hash_delimiter(cpp_hash, "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
@@ -525,7 +525,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 
 		h = x_malloc(sizeof(*h));
 		hash_result_as_bytes(&fhash, h->hash);
-		h->size = fhash.totalN;
+		h->size = hash_get_len(&fhash);
 		hashtable_insert(included_files, path, h);
 	} else {
 		free(path);
@@ -606,7 +606,7 @@ make_relative_path(char *path)
  *   included_files.
  */
 static bool
-process_preprocessed_file(struct mdfour *hash, const char *path)
+process_preprocessed_file(struct hstate *hash, const char *path)
 {
 	char *data;
 	char *p, *q, *end;
@@ -1094,7 +1094,7 @@ to_cache(struct args *args)
  * Returns the hash as a heap-allocated hex string.
  */
 static struct file_hash *
-get_object_name_from_cpp(struct args *args, struct mdfour *hash)
+get_object_name_from_cpp(struct args *args, struct hstate *hash)
 {
 	char *input_base;
 	char *tmp;
@@ -1196,7 +1196,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
-	result->size = hash->totalN;
+	result->size = hash_get_len(hash);
 	return result;
 }
 
@@ -1227,7 +1227,7 @@ update_cached_result_globals(struct file_hash *hash)
  * the CCACHE_COMPILERCHECK setting.
  */
 static void
-hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
+hash_compiler(struct hstate *hash, struct stat *st, const char *path,
               bool allow_command)
 {
 	if (str_eq(conf->compiler_check, "none")) {
@@ -1278,7 +1278,7 @@ compiler_is_gcc(struct args *args)
  * modes.
  */
 static void
-calculate_common_hash(struct args *args, struct mdfour *hash)
+calculate_common_hash(struct args *args, struct hstate *hash)
 {
 	struct stat st;
 	char *p;
@@ -1389,7 +1389,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
  * otherwise NULL. Caller frees.
  */
 static struct file_hash *
-calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
+calculate_object_hash(struct args *args, struct hstate *hash, int direct_mode)
 {
 	int i;
 	char *manifest_name;
@@ -2845,9 +2845,9 @@ ccache(int argc, char *argv[])
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash;
 	struct file_hash *object_hash_from_manifest = NULL;
-	struct mdfour common_hash;
-	struct mdfour direct_hash;
-	struct mdfour cpp_hash;
+	struct hstate common_hash;
+	struct hstate direct_hash;
+	struct hstate cpp_hash;
 
 	/* Arguments (except -E) to send to the preprocessor. */
 	struct args *preprocessor_args;

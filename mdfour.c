@@ -17,6 +17,7 @@
  */
 
 #include "ccache.h"
+#include "mdfour.h"
 
 /* NOTE: This code makes no attempt to be fast! */
 

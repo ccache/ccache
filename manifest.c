@@ -128,7 +128,7 @@ static unsigned int
 hash_from_file_info(void *key)
 {
 	ccache_static_assert(sizeof(struct file_info) == 40); /* No padding. */
-	return murmurhashneutral2(key, sizeof(struct file_info), 0);
+	return hash_simple(key, sizeof(struct file_info), 0);
 }
 
 static int
@@ -383,7 +383,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 	struct file_info *fi;
 	struct file_hash *actual;
 	struct file_stats *st;
-	struct mdfour hash;
+	struct hstate hash;
 	int result;
 	char *path;
 
@@ -436,7 +436,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 				return 0;
 			}
 			hash_result_as_bytes(&hash, actual->hash);
-			actual->size = hash.totalN;
+			actual->size = hash_get_len(&hash);
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 		}
 		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0

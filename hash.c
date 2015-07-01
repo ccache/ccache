@@ -18,45 +18,64 @@
  */
 
 #include "ccache.h"
+#include "mdfour.h"
+#include "murmurhashneutral2.h"
 
 #define HASH_DELIMITER "\000cCaChE"
 
-void
-hash_start(struct mdfour *md)
+unsigned
+hash_simple(const void* input, size_t length, unsigned seed) {
+        return murmurhashneutral2(input, length, seed);
+}
+
+#if HNAME == mdfour
+size_t
+hash_get_len(struct hstate *hstate)
 {
+        struct mdfour *md = (struct mdfour *) hstate;
+	return (size_t) md->totalN;
+}
+
+void
+hash_start(struct hstate *hstate)
+{
+        struct mdfour *md = (struct mdfour *) hstate;
 	mdfour_begin(md);
 }
 
 void
-hash_buffer(struct mdfour *md, const void *s, size_t len)
+hash_buffer(struct hstate *hstate, const void *s, size_t len)
 {
+        struct mdfour *md = (struct mdfour *) hstate;
 	mdfour_update(md, (unsigned char *)s, len);
-}
-
-/* Return the hash result as a hex string. Caller frees. */
-char *
-hash_result(struct mdfour *md)
-{
-	unsigned char sum[16];
-
-	hash_result_as_bytes(md, sum);
-	return format_hash_as_string(sum, (unsigned) md->totalN);
 }
 
 /* return the hash result as 16 binary bytes */
 void
-hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+hash_result_as_bytes(struct hstate *hstate, void *out)
 {
-	hash_buffer(md, NULL, 0);
-	mdfour_result(md, out);
+        struct mdfour *md = (struct mdfour *) hstate;
+        hash_buffer(hstate, NULL, 0);
+        mdfour_result(md, out);
+}
+#endif
+
+/* Return the hash result as a hex string. Caller frees. */
+char *
+hash_result(struct hstate *hstate)
+{
+	unsigned char sum[HSIZE];
+
+	hash_result_as_bytes(hstate, sum);
+	return format_hash_as_string(sum, hash_get_len(hstate));
 }
 
 bool
-hash_equal(struct mdfour *md1, struct mdfour *md2)
+hash_equal(struct hstate *hstate1, struct hstate *hstate2)
 {
-	unsigned char sum1[16], sum2[16];
-	hash_result_as_bytes(md1, sum1);
-	hash_result_as_bytes(md2, sum2);
+	unsigned char sum1[HSIZE], sum2[HSIZE];
+	hash_result_as_bytes(hstate1, sum1);
+	hash_result_as_bytes(hstate2, sum2);
 	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
 }
 
@@ -71,28 +90,28 @@ hash_equal(struct mdfour *md1, struct mdfour *md2)
  *   there should never be a hash collision risk).
  */
 void
-hash_delimiter(struct mdfour *md, const char *type)
+hash_delimiter(struct hstate *hstate, const char *type)
 {
-	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
-	hash_buffer(md, type, strlen(type) + 1); /* Include NUL. */
+	hash_buffer(hstate, HASH_DELIMITER, sizeof(HASH_DELIMITER));
+	hash_buffer(hstate, type, strlen(type) + 1); /* Include NUL. */
 }
 
 void
-hash_string(struct mdfour *md, const char *s)
+hash_string(struct hstate *hstate, const char *s)
 {
-	hash_string_length(md, s, strlen(s));
+	hash_string_length(hstate, s, strlen(s));
 }
 
 void
-hash_string_length(struct mdfour *md, const char *s, int length)
+hash_string_length(struct hstate *hstate, const char *s, int length)
 {
-        hash_buffer(md, s, length);
+        hash_buffer(hstate, s, length);
 }
 
 void
-hash_int(struct mdfour *md, int x)
+hash_int(struct hstate *hstate, int x)
 {
-	hash_buffer(md, (char *)&x, sizeof(x));
+	hash_buffer(hstate, (char *)&x, sizeof(x));
 }
 
 /*
@@ -100,7 +119,7 @@ hash_int(struct mdfour *md, int x)
  * false.
  */
 bool
-hash_fd(struct mdfour *md, int fd)
+hash_fd(struct hstate *hstate, int fd)
 {
 	char buf[16384];
 	ssize_t n;
@@ -110,7 +129,7 @@ hash_fd(struct mdfour *md, int fd)
 			break;
 		}
 		if (n > 0) {
-			hash_buffer(md, buf, n);
+			hash_buffer(hstate, buf, n);
 		}
 	}
 	return n == 0;
@@ -121,7 +140,7 @@ hash_fd(struct mdfour *md, int fd)
  * false.
  */
 bool
-hash_file(struct mdfour *md, const char *fname)
+hash_file(struct hstate *hstate, const char *fname)
 {
 	int fd;
 	bool ret;
@@ -132,7 +151,7 @@ hash_file(struct mdfour *md, const char *fname)
 		return false;
 	}
 
-	ret = hash_fd(md, fd);
+	ret = hash_fd(hstate, fd);
 	close(fd);
 	return ret;
 }
