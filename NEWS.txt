@@ -18,6 +18,9 @@ Bug fixes
 
 - Avoid calling `exit()` inside an exit handler.
 
+- Only log "Disabling direct mode" once when failing to read potential include
+  files.
+
 
 ccache 3.2.2
 ------------

@@ -535,8 +535,10 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 	return;
 
 failure:
-	cc_log("Disabling direct mode");
-	conf->direct_mode = false;
+	if (conf->direct_mode) {
+		cc_log("Disabling direct mode");
+		conf->direct_mode = false;
+	}
 	/* Fall through. */
 ignore:
 	free(path);
