@@ -20,6 +20,8 @@ Bug fixes
 
 - Let exit handler terminate properly.
 
+- Bail out on compiler option `--save-temps` in addition to `-save-temps`.
+
 - Only log "Disabling direct mode" once when failing to read potential include
   files.
 
