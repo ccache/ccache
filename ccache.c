@@ -1881,6 +1881,47 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
+		/* Handle cuda "-optf" and "--options-file" argument. */
+		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
+			if (++i >= argc) {
+				cc_log("Expected argument after the '-optf' resp. '--options-file' option!");
+				stats_update(STATS_UNSUPPORTED);
+				result = false;
+				goto out;
+			}
+
+			/* Argument is a comma separated list of files. */
+			char *strStart = argv[i];
+			char *strEnd   = strchr(strStart,',');
+			int   index    = i+1;
+
+			if (!strEnd) {
+				strEnd = strStart + strlen(strStart);
+			}
+
+			while (strEnd) {
+				*strEnd = (char) 0;
+				struct args *file_args;
+				file_args = args_init_from_gcc_atfile(strStart);
+				if (!file_args) {
+					cc_log("Couldn't read cuda options file %s", strStart);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+
+				int newIndex = file_args->argc + index;
+				args_insert(expanded_args, index, file_args, false);
+				index	 = newIndex;
+				strStart = strEnd;
+				strEnd	 = strchr(strStart,',');
+			}
+
+			argc = expanded_args->argc;
+			argv = expanded_args->argv;
+			continue;
+		}
+
 		/* These are always too hard. */
 		if (compopt_too_hard(argv[i])
 		    || str_startswith(argv[i], "-fdump-")) {
@@ -2474,6 +2515,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		stats_update(STATS_SOURCELANG);
 		result = false;
 		goto out;
+	}
+
+	if (str_eq(actual_language,"cuda")) {
+		cc_log("Call cuda compiler with original input, not preprocessed input file.");
+		conf->run_second_cpp = true;
 	}
 
 	direct_i_file = language_is_preprocessed(actual_language);
