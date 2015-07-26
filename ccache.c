@@ -624,8 +624,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	end = data + size;
 	p = data;
 	q = data;
-	while (q < end - 7) { /* There must be at least 7 characters (# 1 "x") left
-	                         to potentially find an include file path. */
+	/* There must be at least 7 characters (# 1 "x") left to potentially find an
+	 * include file path. */
+	while (q < end - 7) {
 		/*
 		 * Check if we look at a line containing the file name of an included file.
 		 * At least the following formats exist (where N is a positive integer):
@@ -1981,9 +1982,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* debugging is handled specially, so that we know if we
-		   can strip line number info
-		*/
+		/* Debugging is handled specially, so that we know if we can strip line
+		 * number info. */
 		if (str_startswith(argv[i], "-g")) {
 			args_add(stripped_args, argv[i]);
 			if (conf->unify && !str_eq(argv[i], "-g0")) {
