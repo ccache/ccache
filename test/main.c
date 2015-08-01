@@ -24,23 +24,23 @@
 #include "getopt_long.h"
 #endif
 
-#define SUITE(name) unsigned suite_##name(unsigned);
+#define SUITE(name) unsigned suite_ ## name(unsigned);
 #include "test/suites.h"
 #undef SUITE
 
 const char USAGE_TEXT[] =
-	"Usage:\n"
-	"    test [options]\n"
-	"\n"
-	"Options:\n"
-	"    -h, --help      print this help text\n"
-	"    -v, --verbose   enable verbose logging of tests\n";
+  "Usage:\n"
+  "    test [options]\n"
+  "\n"
+  "Options:\n"
+  "    -h, --help      print this help text\n"
+  "    -v, --verbose   enable verbose logging of tests\n";
 
 int
 main(int argc, char **argv)
 {
 	suite_fn suites[] = {
-#define SUITE(name) &suite_##name,
+#define SUITE(name) &suite_ ## name,
 #include "test/suites.h"
 #undef SUITE
 		NULL

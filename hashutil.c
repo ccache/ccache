@@ -43,7 +43,7 @@ int
 file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 {
 	return memcmp(fh1->hash, fh2->hash, 16) == 0
-		&& fh1->size == fh2->size;
+	       && fh1->size == fh2->size;
 }
 
 /*
@@ -82,9 +82,8 @@ check_for_temporal_macros(const char *str, size_t len)
 			if (str[i - 5] == 'D' && str[i - 4] == 'A' &&
 			    str[i - 3] == 'T') {
 				result |= HASH_SOURCE_CODE_FOUND_DATE;
-			}
-			else if (str[i - 5] == 'T' && str[i - 4] == 'I' &&
-			         str[i - 3] == 'M') {
+			} else if (str[i - 5] == 'T' && str[i - 4] == 'I' &&
+			           str[i - 3] == 'M') {
 				result |= HASH_SOURCE_CODE_FOUND_TIME;
 			}
 		}
@@ -104,8 +103,8 @@ check_for_temporal_macros(const char *str, size_t len)
  */
 int
 hash_source_code_string(
-	struct conf *conf, struct mdfour *hash, const char *str, size_t len,
-	const char *path)
+  struct conf *conf, struct mdfour *hash, const char *str, size_t len,
+  const char *path)
 {
 	int result = HASH_SOURCE_CODE_OK;
 
@@ -223,9 +222,9 @@ hash_command_output(struct mdfour *hash, const char *command,
 	CreatePipe(&pipe_out[0], &pipe_out[1], &sa, 0);
 	SetHandleInformation(pipe_out[0], HANDLE_FLAG_INHERIT, 0);
 	si.hStdOutput = pipe_out[1];
-	si.hStdError  = pipe_out[1];
-	si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
-	si.dwFlags    = STARTF_USESTDHANDLES;
+	si.hStdError = pipe_out[1];
+	si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	si.dwFlags = STARTF_USESTDHANDLES;
 	win32args = win32argvtos(sh, args->argv);
 	ret = CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);

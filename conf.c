@@ -157,7 +157,7 @@ parse_unsigned(const char *str, void *result, char **errmsg)
 	}
 }
 
-static const char*
+static const char *
 bool_to_string(bool value)
 {
 	return value ? "true" : "false";
@@ -193,9 +193,9 @@ verify_dir_levels(void *value, char **errmsg)
 }
 
 #define ITEM(name, type) \
-	parse_##type, offsetof(struct conf, name), NULL
+  parse_ ## type, offsetof(struct conf, name), NULL
 #define ITEM_V(name, type, verification) \
-	parse_##type, offsetof(struct conf, name), verify_##verification
+  parse_ ## type, offsetof(struct conf, name), verify_ ## verification
 
 #include "confitems_lookup.c"
 #include "envtoconfitems_lookup.c"
@@ -438,8 +438,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 
 		if (!handle_conf_setting(
-			    conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
-			    "environment")) {
+		      conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
+		      "environment")) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);

@@ -30,8 +30,10 @@ static struct mdfour *m;
 #define lshift(x,s) (((((x)<<(s))&MASK32) | (((x)>>(32-(s)))&MASK32)))
 
 #define ROUND1(a,b,c,d,k,s) a = lshift((a + F(b,c,d) + M[k])&MASK32, s)
-#define ROUND2(a,b,c,d,k,s) a = lshift((a + G(b,c,d) + M[k] + 0x5A827999)&MASK32,s)
-#define ROUND3(a,b,c,d,k,s) a = lshift((a + H(b,c,d) + M[k] + 0x6ED9EBA1)&MASK32,s)
+#define ROUND2(a,b,c,d,k,s) a = lshift((a + G(b,c, \
+                                              d) + M[k] + 0x5A827999)&MASK32,s)
+#define ROUND3(a,b,c,d,k,s) a = lshift((a + H(b,c, \
+                                              d) + M[k] + 0x6ED9EBA1)&MASK32,s)
 
 /* this applies md4 to 64 byte chunks */
 static void
@@ -88,7 +90,7 @@ copy64(uint32_t *M, const unsigned char *in)
 
 	for (i = 0; i < 16; i++)
 		M[i] = (in[i*4+3]<<24) | (in[i*4+2]<<16) |
-			(in[i*4+1]<<8) | (in[i*4+0]<<0);
+		       (in[i*4+1]<<8) | (in[i*4+0]<<0);
 #else
 	memcpy(M, in, 16*4);
 #endif
@@ -155,7 +157,7 @@ mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 
 #ifdef CCACHE_DEBUG_HASH
 	if (getenv("CCACHE_DEBUG_HASH")) {
-		FILE* f = fopen("ccache-debug-hash.bin", "a");
+		FILE *f = fopen("ccache-debug-hash.bin", "a");
 		fwrite(in, 1, n, f);
 		fclose(f);
 	}

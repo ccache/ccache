@@ -89,7 +89,8 @@ dist_files = \
 uncrustify_exclude_files = \
     getopt_long.c \
     hashtable.c \
-    hashtable_itr.c
+    hashtable_itr.c \
+    snprintf.c
 
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
   $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)

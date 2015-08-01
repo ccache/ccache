@@ -186,23 +186,23 @@ win32execute(char *path, char **argv, int doreturn,
 		DWORD dw = GetLastError();
 
 		FormatMessage(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
-			0, NULL);
+		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		  FORMAT_MESSAGE_FROM_SYSTEM |
+		  FORMAT_MESSAGE_IGNORE_INSERTS,
+		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+		  0, NULL);
 
 		lpDisplayBuf =
-			(LPVOID) LocalAlloc(LMEM_ZEROINIT,
-			                    (lstrlen((LPCTSTR) lpMsgBuf)
-			                     + lstrlen((LPCTSTR) __FILE__) + 200)
-			                    * sizeof(TCHAR));
+		  (LPVOID) LocalAlloc(LMEM_ZEROINIT,
+		                      (lstrlen((LPCTSTR) lpMsgBuf)
+		                       + lstrlen((LPCTSTR) __FILE__) + 200)
+		                      * sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
 		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
 		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
 
 		cc_log("can't execute %s; OS returned error: %s",
-		       full_path_win_ext, (char*)lpDisplayBuf);
+		       full_path_win_ext, (char *)lpDisplayBuf);
 
 		LocalFree(lpMsgBuf);
 		LocalFree(lpDisplayBuf);
@@ -220,10 +220,8 @@ win32execute(char *path, char **argv, int doreturn,
 
 #else
 
-/*
-  execute a compiler backend, capturing all output to the given paths
-  the full path to the compiler to run is in argv[0]
-*/
+/* Execute a compiler backend, capturing all output to the given paths the full
+ * path to the compiler to run is in argv[0]. */
 int
 execute(char **argv, int fd_out, int fd_err)
 {
@@ -264,7 +262,7 @@ execute(char **argv, int fd_out, int fd_err)
 /*
  * Find an executable by name in $PATH. Exclude any that are links to
  * exclude_name.
-*/
+ */
 char *
 find_executable(const char *name, const char *exclude_name)
 {

@@ -68,7 +68,8 @@ traverse_fn(const char *fname, struct stat *st)
 	}
 
 	if (str_startswith(p, ".nfs")) {
-		/* Ignore temporary NFS files that may be left for open but deleted files. */
+		/* Ignore temporary NFS files that may be left for open but deleted
+		 * files. */
 		goto out;
 	}
 
