@@ -86,6 +86,12 @@ dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
+uncrustify_exclude_files = \
+    getopt_long.c \
+    hashtable.c \
+    hashtable_itr.c \
+    snprintf.c
+
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
   $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)
 endif
@@ -143,5 +149,9 @@ ccache.1: MANUAL.xml
 .PHONY: check-syntax
 check-syntax:
 	$(CC) $(all_cppflags) -I. $(all_cflags) -S -o /dev/null $(CHK_SOURCES)
+
+.PHONY: uncrustify
+uncrustify:
+	uncrustify -c uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
 
 -include .deps/*.d

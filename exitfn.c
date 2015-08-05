@@ -33,7 +33,7 @@ static struct exit_function *exit_functions;
 static void
 call_nullary_exit_function(void *context)
 {
-	struct nullary_exit_function *p = (struct nullary_exit_function*)context;
+	struct nullary_exit_function *p = (struct nullary_exit_function *)context;
 	p->function();
 	free(p);
 }

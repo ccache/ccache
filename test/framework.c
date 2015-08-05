@@ -39,7 +39,7 @@ static const char COLOR_END[] = "\x1b[m";
 static const char COLOR_GREEN[] = "\x1b[32m";
 static const char COLOR_RED[] = "\x1b[31m";
 
-#define COLOR(tty, color) ((tty) ? COLOR_##color : "")
+#define COLOR(tty, color) ((tty) ? COLOR_ ## color : "")
 
 static int
 is_tty(int fd)

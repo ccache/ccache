@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License along with
  * this program; if not, write to the Free Software Foundation, Inc., 51
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 /*
  * C/C++ unifier
@@ -137,7 +137,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 
 	build_table();
 
-	for (ofs = 0; ofs < size;) {
+	for (ofs = 0; ofs < size; ) {
 		if (p[ofs] == '#') {
 			if ((size-ofs) > 2 && p[ofs+1] == ' ' && isdigit(p[ofs+2])) {
 				do {
@@ -169,7 +169,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 				pushchar(hash, p[ofs]);
 				ofs++;
 			} while (ofs < size &&
-				 ((tokens[p[ofs]].type & C_DIGIT) || p[ofs] == '.'));
+			         ((tokens[p[ofs]].type & C_DIGIT) || p[ofs] == '.'));
 			if (ofs < size && (p[ofs] == 'x' || p[ofs] == 'X')) {
 				do {
 					pushchar(hash, p[ofs]);
@@ -246,7 +246,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 
 /* hash a file that consists of preprocessor output, but remove any line
    number information from the hash
-*/
+ */
 int
 unify_hash(struct mdfour *hash, const char *fname)
 {

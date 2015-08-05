@@ -58,9 +58,9 @@ args_init_from_gcc_atfile(const char *filename)
 	char *pos, *argtext, *argpos, *argbuf;
 	char quoting;
 
-	/* Used to track quoting state; if \0, we're not
-	 * inside quotes. Otherwise stores the quoting character
-	 * that started it, for matching the end quote */
+	/* Used to track quoting state; if \0, we are not inside quotes. Otherwise
+	 * stores the quoting character that started it, for matching the end
+	 * quote */
 	quoting = '\0';
 
 	if (!(argtext = read_text_file(filename, 0)))
@@ -103,7 +103,7 @@ args_init_from_gcc_atfile(const char *filename)
 			if (quoting) {
 				break;
 			}
-			/* Fall through */
+		/* Fall through */
 
 		case '\0':
 			/* end of token */
@@ -179,9 +179,9 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 	}
 
 	dest->argv = (char **)x_realloc(
-		dest->argv,
-		(src->argc + dest->argc + 1 - offset) *
-		sizeof(char *));
+	  dest->argv,
+	  (src->argc + dest->argc + 1 - offset) *
+	  sizeof(char *));
 
 	/* Shift arguments over */
 	for (i = dest->argc; i >= index + offset; i--) {

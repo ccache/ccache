@@ -36,40 +36,40 @@
 #define TO_STRING(x) STRINGIFY(x)
 
 static const char VERSION_TEXT[] =
-MYNAME " version %s\n"
-"\n"
-"Copyright (C) 2002-2007 Andrew Tridgell\n"
-"Copyright (C) 2009-2015 Joel Rosdahl\n"
-"\n"
-"This program is free software; you can redistribute it and/or modify it under\n"
-"the terms of the GNU General Public License as published by the Free Software\n"
-"Foundation; either version 3 of the License, or (at your option) any later\n"
-"version.\n";
+  MYNAME " version %s\n"
+  "\n"
+  "Copyright (C) 2002-2007 Andrew Tridgell\n"
+  "Copyright (C) 2009-2015 Joel Rosdahl\n"
+  "\n"
+  "This program is free software; you can redistribute it and/or modify it under\n"
+  "the terms of the GNU General Public License as published by the Free Software\n"
+  "Foundation; either version 3 of the License, or (at your option) any later\n"
+  "version.\n";
 
 static const char USAGE_TEXT[] =
-"Usage:\n"
-"    " MYNAME " [options]\n"
-"    " MYNAME " compiler [compiler options]\n"
-"    compiler [compiler options]          (via symbolic link)\n"
-"\n"
-"Options:\n"
-"    -c, --cleanup         delete old files and recalculate size counters\n"
-"                          (normally not needed as this is done automatically)\n"
-"    -C, --clear           clear the cache completely (except configuration)\n"
-"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
-"                          no limit)\n"
-"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
-"                          limit); available suffixes: k, M, G, T (decimal) and\n"
-"                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
-"    -o, --set-config=K=V  set configuration key K to value V\n"
-"    -p, --print-config    print current configuration options\n"
-"    -s, --show-stats      show statistics summary\n"
-"    -z, --zero-stats      zero statistics counters\n"
-"\n"
-"    -h, --help            print this help text\n"
-"    -V, --version         print version and copyright information\n"
-"\n"
-"See also <http://ccache.samba.org>.\n";
+  "Usage:\n"
+  "    " MYNAME " [options]\n"
+  "    " MYNAME " compiler [compiler options]\n"
+  "    compiler [compiler options]          (via symbolic link)\n"
+  "\n"
+  "Options:\n"
+  "    -c, --cleanup         delete old files and recalculate size counters\n"
+  "                          (normally not needed as this is done automatically)\n"
+  "    -C, --clear           clear the cache completely (except configuration)\n"
+  "    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
+  "                          no limit)\n"
+  "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
+  "                          limit); available suffixes: k, M, G, T (decimal) and\n"
+  "                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
+  "    -o, --set-config=K=V  set configuration key K to value V\n"
+  "    -p, --print-config    print current configuration options\n"
+  "    -s, --show-stats      show statistics summary\n"
+  "    -z, --zero-stats      zero statistics counters\n"
+  "\n"
+  "    -h, --help            print this help text\n"
+  "    -V, --version         print version and copyright information\n"
+  "\n"
+  "See also <http://ccache.samba.org>.\n";
 
 /* Global configuration data. */
 struct conf *conf = NULL;
@@ -99,11 +99,11 @@ static char *output_dep;
 static char *output_cov;
 
 /* Diagnostic generation information (clang). Contains pathname if not
-   NULL. */
+ * NULL. */
 static char *output_dia = NULL;
 
 /* -gsplit-dwarf support: Split dwarf information (GCC 4.8 and
-    up). Contains pathname if not NULL. */
+ *  up). Contains pathname if not NULL. */
 static char *output_dwo = NULL;
 
 /*
@@ -535,8 +535,10 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 	return;
 
 failure:
-	cc_log("Disabling direct mode");
-	conf->direct_mode = false;
+	if (conf->direct_mode) {
+		cc_log("Disabling direct mode");
+		conf->direct_mode = false;
+	}
 	/* Fall through. */
 ignore:
 	free(path);
@@ -622,8 +624,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	end = data + size;
 	p = data;
 	q = data;
-	while (q < end - 7) { /* There must be at least 7 characters (# 1 "x") left
-	                         to potentially find an include file path. */
+	/* There must be at least 7 characters (# 1 "x") left to potentially find an
+	 * include file path. */
+	while (q < end - 7) {
 		/*
 		 * Check if we look at a line containing the file name of an included file.
 		 * At least the following formats exist (where N is a positive integer):
@@ -647,7 +650,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		 * preprocessing as well, for instance "#    pragma".
 		 */
 		if (q[0] == '#'
-		        /* GCC: */
+		    /* GCC: */
 		    && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
 		        /* GCC precompiled header: */
 		        || (q[1] == 'p'
@@ -994,8 +997,8 @@ to_cache(struct args *args)
 	}
 	if (st.st_size > 0) {
 		if (move_uncompressed_file(
-			    tmp_stderr, cached_stderr,
-			    conf->compression ? conf->compression_level : 0) != 0) {
+		      tmp_stderr, cached_stderr,
+		      conf->compression ? conf->compression_level : 0) != 0) {
 			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
 			       strerror(errno));
 			stats_update(STATS_ERROR);
@@ -1103,9 +1106,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	struct file_hash *result;
 
 	/* ~/hello.c -> tmp.hello.123.i
-	   limit the basename to 10
-	   characters in order to cope with filesystem with small
-	   maximum filename length limits */
+	 * limit the basename to 10
+	 * characters in order to cope with filesystem with small
+	 * maximum filename length limits */
 	input_base = basename(input_file);
 	tmp = strchr(input_base, '.');
 	if (tmp) {
@@ -1244,7 +1247,7 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 		hash_file(hash, path);
 	} else { /* command string */
 		if (!hash_multicommand_output(
-			    hash, conf->compiler_check, orig_args->argv[0])) {
+		      hash, conf->compiler_check, orig_args->argv[0])) {
 			fatal("Failure running compiler check command: %s", conf->compiler_check);
 		}
 	}
@@ -1420,16 +1423,16 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 
 		/* The -fdebug-prefix-map option may be used in combination with
-		   CCACHE_BASEDIR to reuse results across different directories. Skip it
-		   from hashing. */
+		 * CCACHE_BASEDIR to reuse results across different directories. Skip it
+		 * from hashing. */
 		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
 			continue;
 		}
 
 		/* When using the preprocessor, some arguments don't contribute
-		   to the hash. The theory is that these arguments will change
-		   the output of -E if they are going to have any effect at
-		   all. For precompiled headers this might not be the case. */
+		 * to the hash. The theory is that these arguments will change
+		 * the output of -E if they are going to have any effect at
+		 * all. For precompiled headers this might not be the case. */
 		if (!direct_mode && !output_is_precompiled_header
 		    && !using_precompiled_header) {
 			if (compopt_affects_cpp(args->argv[i])) {
@@ -1479,7 +1482,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 		if (p && x_stat(p, &st) == 0) {
 			/* If given an explicit specs file, then hash that file,
-			   but don't include the path to it in the hash. */
+			 * but don't include the path to it in the hash. */
 			hash_delimiter(hash, "specs");
 			hash_compiler(hash, &st, p, false);
 			continue;
@@ -1700,7 +1703,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/* Update modification timestamps to save files from LRU cleanup.
-	   Also gives files a sensible mtime when hard-linking. */
+	 * Also gives files a sensible mtime when hard-linking. */
 	update_mtime(cached_obj);
 	update_mtime(cached_stderr);
 	if (produce_dep_file) {
@@ -1744,7 +1747,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 }
 
 /* find the real compiler. We just search the PATH to find a executable of the
-   same name that isn't a link to ourselves */
+ * same name that isn't a link to ourselves */
 static void
 find_compiler(char **argv)
 {
@@ -1979,9 +1982,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* debugging is handled specially, so that we know if we
-		   can strip line number info
-		*/
+		/* Debugging is handled specially, so that we know if we can strip line
+		 * number info. */
 		if (str_startswith(argv[i], "-g")) {
 			args_add(stripped_args, argv[i]);
 			if (conf->unify && !str_eq(argv[i], "-g0")) {
@@ -2000,8 +2002,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		/* These options require special handling, because they
-		   behave differently with gcc -E, when the output
-		   file is not specified. */
+		 * behave differently with gcc -E, when the output
+		 * file is not specified. */
 		if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
 			generating_dependencies = true;
 			args_add(dep_args, argv[i]);
@@ -2359,8 +2361,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		/* if an argument isn't a plain file then assume its
-		   an option, not an input file. This allows us to
-		   cope better with unusual compiler options */
+		 * an option, not an input file. This allows us to
+		 * cope better with unusual compiler options */
 		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
 			cc_log("%s is not a regular file, not considering as input file",
 			       argv[i]);
@@ -2441,7 +2443,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	output_is_precompiled_header =
-		actual_language && strstr(actual_language, "-header");
+	  actual_language && strstr(actual_language, "-header");
 
 	if (output_is_precompiled_header
 	    && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
@@ -2458,7 +2460,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		} else {
 			cc_log("No -c option found");
 			/* I find that having a separate statistic for autoconf tests is useful,
-			   as they are the dominant form of "called for link" in many cases */
+			 * as they are the dominant form of "called for link" in many cases */
 			if (strstr(input_file, "conftest.")) {
 				stats_update(STATS_CONFTEST);
 			} else {
@@ -2809,7 +2811,7 @@ cc_reset(void)
 }
 
 /* Make a copy of stderr that will not be cached, so things like
-   distcc can send networking errors to it. */
+ * distcc can send networking errors to it. */
 static void
 setup_uncached_err(void)
 {
@@ -2905,7 +2907,7 @@ ccache(int argc, char *argv[])
 		cc_log("Diagnostic file: %s", output_dia);
 	}
 
-	if (using_split_dwarf ) {
+	if (using_split_dwarf) {
 		if (!generating_dependencies) {
 			assert(output_dwo);
 		}
@@ -3062,61 +3064,61 @@ ccache_main_options(int argc, char *argv[])
 			x_exit(0);
 
 		case 'F': /* --max-files */
-			{
-				unsigned files;
-				initialize();
-				files = atoi(optarg);
-				if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
-				                           &errmsg)) {
-					if (files == 0) {
-						printf("Unset cache file limit\n");
-					} else {
-						printf("Set cache file limit to %u\n", files);
-					}
+		{
+			unsigned files;
+			initialize();
+			files = atoi(optarg);
+			if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
+			                           &errmsg)) {
+				if (files == 0) {
+					printf("Unset cache file limit\n");
 				} else {
-					fatal("could not set cache file limit: %s", errmsg);
+					printf("Set cache file limit to %u\n", files);
 				}
+			} else {
+				fatal("could not set cache file limit: %s", errmsg);
 			}
-			break;
+		}
+		break;
 
 		case 'M': /* --max-size */
-			{
-				uint64_t size;
-				initialize();
-				if (!parse_size_with_suffix(optarg, &size)) {
-					fatal("invalid size: %s", optarg);
-				}
-				if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
-				                           &errmsg)) {
-					if (size == 0) {
-						printf("Unset cache size limit\n");
-					} else {
-						char *s = format_human_readable_size(size);
-						printf("Set cache size limit to %s\n", s);
-						free(s);
-					}
-				} else {
-					fatal("could not set cache size limit: %s", errmsg);
-				}
+		{
+			uint64_t size;
+			initialize();
+			if (!parse_size_with_suffix(optarg, &size)) {
+				fatal("invalid size: %s", optarg);
 			}
-			break;
+			if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
+			                           &errmsg)) {
+				if (size == 0) {
+					printf("Unset cache size limit\n");
+				} else {
+					char *s = format_human_readable_size(size);
+					printf("Set cache size limit to %s\n", s);
+					free(s);
+				}
+			} else {
+				fatal("could not set cache size limit: %s", errmsg);
+			}
+		}
+		break;
 
 		case 'o': /* --set-config */
-			{
-				char *errmsg, *key, *value, *p;
-				initialize();
-				p = strchr(optarg, '=');
-				if (!p) {
-					fatal("missing equal sign in \"%s\"", optarg);
-				}
-				key = x_strndup(optarg, p - optarg);
-				value = p + 1;
-				if (!conf_set_value_in_file(primary_config_path, key, value, &errmsg)) {
-					fatal("%s", errmsg);
-				}
-				free(key);
+		{
+			char *errmsg, *key, *value, *p;
+			initialize();
+			p = strchr(optarg, '=');
+			if (!p) {
+				fatal("missing equal sign in \"%s\"", optarg);
 			}
-			break;
+			key = x_strndup(optarg, p - optarg);
+			value = p + 1;
+			if (!conf_set_value_in_file(primary_config_path, key, value, &errmsg)) {
+				fatal("%s", errmsg);
+			}
+			free(key);
+		}
+		break;
 
 		case 'p': /* --print-config */
 			initialize();
@@ -3158,7 +3160,7 @@ ccache_main(int argc, char *argv[])
 			x_exit(1);
 		}
 		/* if the first argument isn't an option, then assume we are
-		   being passed a compiler name and options */
+		 * being passed a compiler name and options */
 		if (argv[1][0] == '-') {
 			return ccache_main_options(argc, argv);
 		}

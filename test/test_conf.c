@@ -89,38 +89,38 @@ TEST(conf_read_valid_config)
 	user = getenv("USER");
 	CHECK_STR_EQ("rabbit", user);
 	create_file(
-		"ccache.conf",
-		"base_dir =  /$USER/foo/${USER} \n"
-		"cache_dir=\n"
-		"cache_dir = $USER$/${USER}/.ccache\n"
-		"\n"
-		"\n"
-		"  #A comment\n"
-		" cache_dir_levels = 4\n"
-		"\t compiler = foo\n"
-		"compiler_check = none\n"
-		"compression=true\n"
-		"compression_level= 2\n"
-		"cpp_extension = .foo\n"
-		"direct_mode = false\n"
-		"disable = true\n"
-		"extra_files_to_hash = a:b c:$USER\n"
-		"hard_link = true\n"
-		"hash_dir = true\n"
-		"log_file = $USER${USER} \n"
-		"max_files = 17\n"
-		"max_size = 123M\n"
-		"path = $USER.x\n"
-		"prefix_command = x$USER\n"
-		"read_only = true\n"
-		"read_only_direct = true\n"
-		"recache = true\n"
-		"run_second_cpp = true\n"
-		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches  pch_defines  \n"
-		"stats = false\n"
-		"temporary_dir = ${USER}_foo\n"
-		"umask = 777\n"
-		"unify = true"); /* Note: no newline */
+	  "ccache.conf",
+	  "base_dir =  /$USER/foo/${USER} \n"
+	  "cache_dir=\n"
+	  "cache_dir = $USER$/${USER}/.ccache\n"
+	  "\n"
+	  "\n"
+	  "  #A comment\n"
+	  " cache_dir_levels = 4\n"
+	  "\t compiler = foo\n"
+	  "compiler_check = none\n"
+	  "compression=true\n"
+	  "compression_level= 2\n"
+	  "cpp_extension = .foo\n"
+	  "direct_mode = false\n"
+	  "disable = true\n"
+	  "extra_files_to_hash = a:b c:$USER\n"
+	  "hard_link = true\n"
+	  "hash_dir = true\n"
+	  "log_file = $USER${USER} \n"
+	  "max_files = 17\n"
+	  "max_size = 123M\n"
+	  "path = $USER.x\n"
+	  "prefix_command = x$USER\n"
+	  "read_only = true\n"
+	  "read_only_direct = true\n"
+	  "recache = true\n"
+	  "run_second_cpp = true\n"
+	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches  pch_defines  \n"
+	  "stats = false\n"
+	  "temporary_dir = ${USER}_foo\n"
+	  "umask = 777\n"
+	  "unify = true"); /* Note: no newline */
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
@@ -288,12 +288,14 @@ TEST(verify_dir_levels)
 
 	create_file("ccache.conf", "cache_dir_levels = 0");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_STR_EQ_FREE2("ccache.conf:1: cache directory levels must be between 1 and 8",
-	                   errmsg);
+	CHECK_STR_EQ_FREE2(
+	  "ccache.conf:1: cache directory levels must be between 1 and 8",
+	  errmsg);
 	create_file("ccache.conf", "cache_dir_levels = 9");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_STR_EQ_FREE2("ccache.conf:1: cache directory levels must be between 1 and 8",
-	                   errmsg);
+	CHECK_STR_EQ_FREE2(
+	  "ccache.conf:1: cache directory levels must be between 1 and 8",
+	  errmsg);
 
 	conf_free(conf);
 }
@@ -366,8 +368,8 @@ TEST(conf_print_items)
 		true,
 		true,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
-		  SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
-		  SLOPPY_FILE_STAT_MATCHES,
+		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
+		SLOPPY_FILE_STAT_MATCHES,
 		false,
 		"td",
 		022,

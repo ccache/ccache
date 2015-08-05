@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2014 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -77,7 +77,8 @@ TEST(get_relative_path)
 TEST(format_hash_as_string)
 {
 	unsigned char hash[16] = {
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"};
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	};
 
 	CHECK_STR_EQ_FREE2("00000000000000000000000000000000",
 	                   format_hash_as_string(hash, -1));
@@ -92,11 +93,11 @@ TEST(format_hash_as_string)
 TEST(subst_env_in_string)
 {
 	char *errmsg;
-	const char *shell = getenv("SHELL");
 
-	errmsg = "";
-	CHECK_STR_EQ_FREE2(shell,
-	                   subst_env_in_string("$SHELL", &errmsg));
+	putenv("FOO=bar");
+
+	CHECK_STR_EQ_FREE2("bar",
+	                   subst_env_in_string("$FOO", &errmsg));
 	CHECK(!errmsg);
 
 	errmsg = "";
@@ -105,26 +106,26 @@ TEST(subst_env_in_string)
 	CHECK(!errmsg);
 
 	errmsg = "";
-	CHECK_STR_EQ_FREE12(format("%s %s:%s", shell, shell, shell),
-	                    subst_env_in_string("$SHELL $SHELL:$SHELL", &errmsg));
+	CHECK_STR_EQ_FREE2("bar bar:bar",
+	                   subst_env_in_string("$FOO $FOO:$FOO", &errmsg));
 	CHECK(!errmsg);
 
 	errmsg = "";
-	CHECK_STR_EQ_FREE12(format("x%s", shell),
-	                    subst_env_in_string("x$SHELL", &errmsg));
+	CHECK_STR_EQ_FREE2("xbar",
+	                   subst_env_in_string("x$FOO", &errmsg));
 	CHECK(!errmsg);
 
 	errmsg = "";
-	CHECK_STR_EQ_FREE12(format("%sx", shell),
-	                    subst_env_in_string("${SHELL}x", &errmsg));
+	CHECK_STR_EQ_FREE2("barx",
+	                   subst_env_in_string("${FOO}x", &errmsg));
 	CHECK(!errmsg);
 
 	CHECK(!subst_env_in_string("$surelydoesntexist", &errmsg));
 	CHECK_STR_EQ_FREE2("environment variable \"surelydoesntexist\" not set",
 	                   errmsg);
 
-	CHECK(!subst_env_in_string("${SHELL", &errmsg));
-	CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"SHELL\"", errmsg);
+	CHECK(!subst_env_in_string("${FOO", &errmsg));
+	CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"FOO\"", errmsg);
 }
 
 TEST(format_human_readable_size)
@@ -154,8 +155,8 @@ TEST(format_parsable_size_with_suffix)
 	CHECK_STR_EQ_FREE2("1.0G",
 	                   format_parsable_size_with_suffix(1000 * 1000 * 1000));
 	CHECK_STR_EQ_FREE2(
-		"17.1G",
-		format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
+	  "17.1G",
+	  format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
 }
 
 TEST(parse_size_with_suffix)

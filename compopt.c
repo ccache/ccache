@@ -104,8 +104,8 @@ find(const char *option)
 	struct compopt key;
 	key.name = option;
 	return bsearch(
-		&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-		sizeof(compopts[0]), compare_compopts);
+	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
+	         sizeof(compopts[0]), compare_compopts);
 }
 
 static const struct compopt *
@@ -114,8 +114,8 @@ find_prefix(const char *option)
 	struct compopt key;
 	key.name = option;
 	return bsearch(
-		&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-		sizeof(compopts[0]), compare_prefix_compopts);
+	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
+	         sizeof(compopts[0]), compare_prefix_compopts);
 }
 
 /* Runs fn on the first two characters of option. */
