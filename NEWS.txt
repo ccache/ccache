@@ -40,9 +40,6 @@ New features and improvements
 Bug fixes
 ~~~~~~~~~
 
-- Fixed bug which could result in false cache hits when source code contains
-  `'"'` followed by `" /*"` or `" //"` (with variations).
-
 - Made hash of cached result created with and without `CCACHE_CPP2` different.
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
