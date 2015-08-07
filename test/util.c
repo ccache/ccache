@@ -20,7 +20,7 @@
 #include "test/util.h"
 
 #ifdef _WIN32
-#    define lstat(a,b) stat(a,b)
+#    define lstat(a, b) stat(a, b)
 #endif
 
 bool

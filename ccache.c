@@ -2576,7 +2576,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	/* cope with -o /dev/null */
-	if (!str_eq(output_obj,"/dev/null")
+	if (!str_eq(output_obj, "/dev/null")
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
