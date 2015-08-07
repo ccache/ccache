@@ -1886,38 +1886,38 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		/* Handle cuda "-optf" and "--options-file" argument. */
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
-			if (++i >= argc) {
-				cc_log("Expected argument after the '-optf' resp. '--options-file' option!");
+			if (i > argc) {
+				cc_log("Expected argument after -optf/--options-file");
 				stats_update(STATS_UNSUPPORTED);
 				result = false;
 				goto out;
 			}
+			++i;
 
-			/* Argument is a comma separated list of files. */
-			char *strStart = argv[i];
-			char *strEnd   = strchr(strStart,',');
-			int   index    = i+1;
+			/* Argument is a comma-separated list of files. */
+			char *str_start = argv[i];
+			char *str_end = strchr(str_start, ',');
+			int index = i + 1;
 
-			if (!strEnd) {
-				strEnd = strStart + strlen(strStart);
+			if (!str_end) {
+				str_end = str_start + strlen(str_start);
 			}
 
-			while (strEnd) {
-				*strEnd = (char) 0;
-				struct args *file_args;
-				file_args = args_init_from_gcc_atfile(strStart);
+			while (str_end) {
+				*str_end = '\0';
+				struct args *file_args = args_init_from_gcc_atfile(str_start);
 				if (!file_args) {
-					cc_log("Couldn't read cuda options file %s", strStart);
+					cc_log("Couldn't read cuda options file %s", str_start);
 					stats_update(STATS_ARGS);
 					result = false;
 					goto out;
 				}
 
-				int newIndex = file_args->argc + index;
+				int new_index = file_args->argc + index;
 				args_insert(expanded_args, index, file_args, false);
-				index	 = newIndex;
-				strStart = strEnd;
-				strEnd	 = strchr(strStart,',');
+				index = new_index;
+				str_start = str_end;
+				str_end = strchr(str_start, ',');
 			}
 
 			argc = expanded_args->argc;
