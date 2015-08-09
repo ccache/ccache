@@ -18,6 +18,8 @@ Bug fixes
 
 - Avoid calling `exit()` inside an exit handler.
 
+- Let exit handler terminate properly.
+
 - Only log "Disabling direct mode" once when failing to read potential include
   files.
 
