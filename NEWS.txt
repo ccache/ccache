@@ -2,15 +2,28 @@ ccache news
 ===========
 
 
-Unreleased
-----------
+Unreleased 3.3
+--------------
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added support for cuda including the -optf/--options-file option.
+
+
+Bug fixes
+~~~~~~~~~
+
+
+ccache 3.2.3
+------------
+Release date: 2015-08-16
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for compiler option `-gsplit-dwarf`.
-
-- Added support for cuda including the -optf/--options-file option.
 
 
 Bug fixes
@@ -19,6 +32,10 @@ Bug fixes
 - Support external zlib in nonstandard directory.
 
 - Avoid calling `exit()` inside an exit handler.
+
+- Let exit handler terminate properly.
+
+- Bail out on compiler option `--save-temps` in addition to `-save-temps`.
 
 - Only log "Disabling direct mode" once when failing to read potential include
   files.

@@ -823,7 +823,7 @@ manifest_dump(const char *manifest_path, FILE *stream)
 	for (i = 0; i < mf->n_objects; ++i) {
 		char *hash;
 		fprintf(stream, "  %u:\n", i);
-		fprintf(stream, "    File hash indexes:");
+		fprintf(stream, "    File info indexes:");
 		for (j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
 			fprintf(stream, " %u", mf->objects[i].file_info_indexes[j]);
 		}

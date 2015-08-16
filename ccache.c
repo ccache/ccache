@@ -341,6 +341,7 @@ signal_handler(int signo)
 {
 	(void)signo;
 	clean_up_pending_tmp_files();
+	_exit(1);
 }
 
 static void
