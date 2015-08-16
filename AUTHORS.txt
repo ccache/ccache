@@ -15,7 +15,7 @@ ccache is a collective work with contributions from many people, including:
 * Bernhard Bauer <bauerb@chromium.org>
 * Björn Jacke <bj@sernet.de>
 * Bo Rydberg <bolry@hotmail.com>
-* Chiaki ISHIKAWA <ishikawa@yk.rim.or.jp>
+* Chiaki Ishikawa <ishikawa@yk.rim.or.jp>
 * Chris AtLee <chris@atlee.ca>
 * Clemens Rabe <crabe@gmx.de>
 * David Givone <david@givone.net>
@@ -36,6 +36,7 @@ ccache is a collective work with contributions from many people, including:
 * Luboš Luňák <l.lunak@suse.cz>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
+* Michael Marineau <michael.marineau@coreos.com>
 * Michael Meeks <michael.meeks@suse.com>
 * Mike Frysinger <vapier@gentoo.org>
 * Orgad Shaneh <orgad.shaneh@audiocodes.com>
@@ -45,7 +46,7 @@ ccache is a collective work with contributions from many people, including:
 * RW <fbsd06@mlists.homeunix.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
-* Ryb <ryb@ableton.com>
+* Ryan Brown <ryb@ableton.com>
 * Tim Potter <tpot@samba.org>
 * Tor Arne Vestbø <torarnv@gmail.com>
 * Ville Skyttä <ville.skytta@iki.fi>
