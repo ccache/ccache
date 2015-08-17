@@ -20,7 +20,7 @@ RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ @extra_cppflags@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
-all_ldflags = @extra_ldflags@ $(LDFLAGS)
+all_ldflags = $(LDFLAGS) @extra_ldflags@
 extra_libs = @extra_libs@
 
 base_sources = \

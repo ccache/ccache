@@ -2,6 +2,16 @@ ccache news
 ===========
 
 
+Unreleased 3.2.4
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed build error related to zlib on systems with older make versions
+  (regression in ccache 3.2.3).
+
+
 ccache 3.2.3
 ------------
 Release date: 2015-08-16
