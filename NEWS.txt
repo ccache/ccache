@@ -11,6 +11,9 @@ Bug fixes
 - Fixed build error related to zlib on systems with older make versions
   (regression in ccache 3.2.3).
 
+- Made conversion-to-bool explicit to avoid build warnings (and potential
+  runtime errors) on legacy systems.
+
 
 ccache 3.2.3
 ------------

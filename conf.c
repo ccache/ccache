@@ -58,7 +58,7 @@ parse_env_string(const char *str, void *result, char **errmsg)
 	char **value = (char **)result;
 	free(*value);
 	*value = subst_env_in_string(str, errmsg);
-	return *value;
+	return *value != NULL;
 }
 
 static bool

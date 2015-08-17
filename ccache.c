@@ -1263,7 +1263,7 @@ static bool
 compiler_is_clang(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool is = strstr(name, "clang");
+	bool is = strstr(name, "clang") != NULL;
 	free(name);
 	return is;
 }

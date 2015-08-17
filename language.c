@@ -149,7 +149,7 @@ extension_for_language(const char *language)
 bool
 language_is_supported(const char *language)
 {
-	return p_language_for_language(language);
+	return p_language_for_language(language) != NULL;
 }
 
 bool
