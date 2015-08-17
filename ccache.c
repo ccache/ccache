@@ -239,6 +239,10 @@ struct pending_tmp_file {
 /* Temporary files to remove at program exit. */
 static struct pending_tmp_file *pending_tmp_files = NULL;
 
+/* PID of currently executing compiler that we have started, if any. 0 means no
+ * ongoing compilation. */
+static pid_t compiler_pid = 0;
+
 /*
  * This is a string that identifies the current "version" of the hash sum
  * computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -339,8 +343,13 @@ clean_up_pending_tmp_files(void)
 static void
 signal_handler(int signo)
 {
+	int status;
 	(void)signo;
 	clean_up_pending_tmp_files();
+	if (compiler_pid != 0) {
+		/* Wait for compiler subprocess to exit before we snuff it. */
+		waitpid(compiler_pid, &status, 0);
+	}
 	_exit(1);
 }
 
@@ -877,7 +886,7 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd);
+	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
 
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1140,7 +1149,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		args_add(args, "-E");
 		args_add(args, input_file);
 		cc_log("Running preprocessor");
-		status = execute(args->argv, path_stdout_fd, path_stderr_fd);
+		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
 		args_pop(args, 2);
 	}
 

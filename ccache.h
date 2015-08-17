@@ -213,7 +213,7 @@ void wipe_all(struct conf *conf);
 /* ------------------------------------------------------------------------- */
 /* execute.c */
 
-int execute(char **argv, int fd_out, int fd_err);
+int execute(char **argv, int fd_out, int fd_err, pid_t *pid);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
 

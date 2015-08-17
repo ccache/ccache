@@ -223,18 +223,17 @@ win32execute(char *path, char **argv, int doreturn,
 /* Execute a compiler backend, capturing all output to the given paths the full
  * path to the compiler to run is in argv[0]. */
 int
-execute(char **argv, int fd_out, int fd_err)
+execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 {
-	pid_t pid;
 	int status;
 
 	cc_log_argv("Executing ", argv);
-	pid = fork();
-	if (pid == -1) {
+	*pid = fork();
+	if (*pid == -1) {
 		fatal("Failed to fork: %s", strerror(errno));
 	}
 
-	if (pid == 0) {
+	if (*pid == 0) {
 		/* Child. */
 		dup2(fd_out, 1);
 		close(fd_out);
@@ -246,9 +245,10 @@ execute(char **argv, int fd_out, int fd_err)
 	close(fd_out);
 	close(fd_err);
 
-	if (waitpid(pid, &status, 0) != pid) {
+	if (waitpid(*pid, &status, 0) != *pid) {
 		fatal("waitpid failed: %s", strerror(errno));
 	}
+	*pid = 0;
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
 		return -1;
