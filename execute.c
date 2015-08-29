@@ -228,7 +228,11 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 	int status;
 
 	cc_log_argv("Executing ", argv);
+
+	block_signals();
 	*pid = fork();
+	unblock_signals();
+
 	if (*pid == -1) {
 		fatal("Failed to fork: %s", strerror(errno));
 	}
@@ -248,7 +252,10 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 	if (waitpid(*pid, &status, 0) != *pid) {
 		fatal("waitpid failed: %s", strerror(errno));
 	}
+
+	block_signals();
 	*pid = 0;
+	unblock_signals();
 
 	if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
 		return -1;

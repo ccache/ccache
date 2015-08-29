@@ -14,9 +14,8 @@ Bug fixes
 - Made conversion-to-bool explicit to avoid build warnings (and potential
   runtime errors) on legacy systems.
 
-- Wait for compiler subprocess (if any) to exit before exiting from a signal.
-  This should fix a race condition (albeit a quite unlikely one) related to
-  removal of the compiler output file(s).
+- Improved signal handling: Kill compiler on SIGTERM; wait for compiler to exit
+  before exiting; die appropriately.
 
 
 ccache 3.2.3
