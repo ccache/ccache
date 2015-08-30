@@ -239,6 +239,12 @@ struct pending_tmp_file {
 /* Temporary files to remove at program exit. */
 static struct pending_tmp_file *pending_tmp_files = NULL;
 
+static sigset_t fatal_signal_set;
+
+/* PID of currently executing compiler that we have started, if any. 0 means no
+ * ongoing compilation. */
+static pid_t compiler_pid = 0;
+
 /*
  * This is a string that identifies the current "version" of the hash sum
  * computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -314,17 +320,35 @@ temp_dir()
 	return path;
 }
 
-static void
-add_pending_tmp_file(const char *path)
+void
+block_signals(void)
 {
-	struct pending_tmp_file *e = x_malloc(sizeof(*e));
-	e->path = x_strdup(path);
-	e->next = pending_tmp_files;
-	pending_tmp_files = e;
+	sigprocmask(SIG_BLOCK, &fatal_signal_set, NULL);
+}
+
+void
+unblock_signals(void)
+{
+	sigset_t empty;
+	sigemptyset(&empty);
+	sigprocmask(SIG_SETMASK, &empty, NULL);
 }
 
 static void
-clean_up_pending_tmp_files(void)
+add_pending_tmp_file(const char *path)
+{
+	struct pending_tmp_file *e;
+
+	block_signals();
+	e = x_malloc(sizeof(*e));
+	e->path = x_strdup(path);
+	e->next = pending_tmp_files;
+	pending_tmp_files = e;
+	unblock_signals();
+}
+
+static void
+do_clean_up_pending_tmp_files(void)
 {
 	struct pending_tmp_file *p = pending_tmp_files;
 	while (p) {
@@ -337,11 +361,72 @@ clean_up_pending_tmp_files(void)
 }
 
 static void
-signal_handler(int signo)
+clean_up_pending_tmp_files(void)
 {
-	(void)signo;
-	clean_up_pending_tmp_files();
-	_exit(1);
+	block_signals();
+	do_clean_up_pending_tmp_files();
+	unblock_signals();
+}
+
+static void
+signal_handler(int signum)
+{
+	/* Unregister handler for this signal so that we can send the signal to
+	 * ourselves at the end of the handler. */
+	signal(signum, SIG_DFL);
+
+	/* If ccache was killed explicitly, then bring the compiler subprocess (if
+	 * any) with us as well. */
+	if (signum == SIGTERM
+	    && compiler_pid != 0
+	    && waitpid(compiler_pid, NULL, WNOHANG) == 0) {
+		kill(compiler_pid, signum);
+	}
+
+	do_clean_up_pending_tmp_files();
+
+	if (compiler_pid != 0) {
+		/* Wait for compiler subprocess to exit before we snuff it. */
+		waitpid(compiler_pid, NULL, 0);
+	}
+
+	/* Resend signal to ourselves to exit properly after returning from the
+	 * handler. */
+	kill(getpid(), signum);
+}
+
+static void
+register_signal_handler(int signum)
+{
+	struct sigaction act;
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = signal_handler;
+	act.sa_mask = fatal_signal_set;
+	act.sa_flags = SA_RESTART;
+	sigaction(signum, &act, NULL);
+}
+
+static void
+set_up_signal_handlers(void)
+{
+	sigemptyset(&fatal_signal_set);
+	sigaddset(&fatal_signal_set, SIGINT);
+	sigaddset(&fatal_signal_set, SIGTERM);
+#ifdef SIGHUP
+	sigaddset(&fatal_signal_set, SIGHUP);
+#endif
+#ifdef SIGQUIT
+	sigaddset(&fatal_signal_set, SIGQUIT);
+#endif
+
+	register_signal_handler(SIGINT);
+	register_signal_handler(SIGTERM);
+#ifdef SIGHUP
+	register_signal_handler(SIGHUP);
+#endif
+#ifdef SIGQUIT
+	register_signal_handler(SIGQUIT);
+#endif
 }
 
 static void
@@ -877,7 +962,7 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd);
+	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
 
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1140,7 +1225,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		args_add(args, "-E");
 		args_add(args, input_file);
 		cc_log("Running preprocessor");
-		status = execute(args->argv, path_stdout_fd, path_stderr_fd);
+		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
 		args_pop(args, 2);
 	}
 
@@ -1263,7 +1348,7 @@ static bool
 compiler_is_clang(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool is = strstr(name, "clang");
+	bool is = strstr(name, "clang") != NULL;
 	free(name);
 	return is;
 }
@@ -2899,16 +2984,12 @@ ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	struct args *compiler_args;
 
+	set_up_signal_handlers();
+
 	orig_args = args_init(argc, argv);
 
 	initialize();
 	find_compiler(argv);
-
-#ifndef _WIN32
-	signal(SIGHUP, signal_handler);
-#endif
-	signal(SIGINT, signal_handler);
-	signal(SIGTERM, signal_handler);
 
 	if (str_eq(conf->temporary_dir, "")) {
 		clean_up_internal_tempdir();

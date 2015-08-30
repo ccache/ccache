@@ -19,8 +19,7 @@ LIBS = @LIBS@
 RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
-all_cppflags = @DEFS@ @extra_cppflags@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
-all_ldflags = @extra_ldflags@ $(LDFLAGS)
+all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 base_sources = \
@@ -53,7 +52,7 @@ files_to_distclean = Makefile config.h config.log config.status
 all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
-	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(all_ldflags) $(extra_libs) $(LIBS)
+	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 .PHONY: install
 install: all
@@ -88,7 +87,7 @@ quicktest: test/main$(EXEEXT)
 	test/main$(EXEEXT)
 
 test/main$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
-	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(all_ldflags) $(extra_libs) $(LIBS)
+	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 test/main.o: test/suites.h
 

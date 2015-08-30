@@ -15,6 +15,22 @@ Bug fixes
 ~~~~~~~~~
 
 
+Unreleased 3.2.4
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed build error related to zlib on systems with older make versions
+  (regression in ccache 3.2.3).
+
+- Made conversion-to-bool explicit to avoid build warnings (and potential
+  runtime errors) on legacy systems.
+
+- Improved signal handling: Kill compiler on SIGTERM; wait for compiler to exit
+  before exiting; die appropriately.
+
+
 ccache 3.2.3
 ------------
 Release date: 2015-08-16

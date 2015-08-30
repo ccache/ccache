@@ -16,8 +16,6 @@ case $host in
         ;;
 esac
 
-AC_SUBST(extra_cppflags)
-AC_SUBST(extra_ldflags)
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
@@ -115,17 +113,16 @@ else
 fi
 
 if test x${use_bundled_zlib} = xyes; then
-    extra_cppflags="-I\$(srcdir)/zlib"
-    extra_ldflags="-Lzlib"
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
     extra_libs="zlib/libz.a"
     mkdir -p zlib
 else
-    extra_libs="-lz"
+    LIBS="$LIBS -lz"
 fi
 
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
-    extra_ldflags="$extra_ldflags -lws2_32"
+    LIBS="$LIBS -lws2_32"
 fi
 
 AC_C_BIGENDIAN

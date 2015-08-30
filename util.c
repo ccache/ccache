@@ -1638,7 +1638,7 @@ expand_variable(const char **str, char **result, char **errmsg)
 	if (curly) {
 		if (*q != '}') {
 			*errmsg = format("syntax error: missing '}' after \"%s\"", p);
-			return NULL;
+			return false;
 		}
 	}
 
