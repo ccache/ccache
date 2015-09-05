@@ -17,6 +17,9 @@ Bug fixes
 - Improved signal handling: Kill compiler on SIGTERM; wait for compiler to exit
   before exiting; die appropriately.
 
+- Recognize concatenated form of some compiler options, for instance when using
+  `-isystemfoo` instead of `-isystem foo`.
+
 
 ccache 3.2.3
 ------------
