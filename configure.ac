@@ -10,7 +10,7 @@ AC_CONFIG_HEADER(config.h)
 AC_CANONICAL_HOST
 
 case $host in
-    *mingw32* | *cygwin* | *wince* | *mingwce*)
+    *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
         windows_os=yes
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
