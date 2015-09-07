@@ -1342,12 +1342,19 @@ get_relative_path(const char *from, const char *to)
 	const char *p;
 	char *result;
 
-	assert(from && from[0] == '/');
+	assert(from && is_absolute_path(from));
 	assert(to);
 
-	if (!*to || *to != '/') {
+	if (!*to || !is_absolute_path(to)) {
 		return x_strdup(to);
 	}
+
+#ifdef _WIN32
+	// Both paths are absolute, drop the drive letters
+	assert(from[0] == to[0]); // Assume the same drive letter
+	from += 2;
+	to += 2;
+#endif
 
 	result = x_strdup("");
 	common_prefix_len = common_dir_prefix_length(from, to);

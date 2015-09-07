@@ -1,4 +1,5 @@
 *.a
+*.exe
 *.html
 *.o
 *.xml

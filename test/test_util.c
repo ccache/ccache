@@ -60,6 +60,20 @@ TEST(common_dir_prefix_length)
 
 TEST(get_relative_path)
 {
+#ifdef _WIN32
+	CHECK_STR_EQ_FREE2("a", get_relative_path("C:/doesn't matter", "a"));
+	CHECK_STR_EQ_FREE2("a/b", get_relative_path("C:/doesn't matter", "a/b"));
+	CHECK_STR_EQ_FREE2(".", get_relative_path("C:/a", "C:/a"));
+	CHECK_STR_EQ_FREE2("..", get_relative_path("C:/a/b", "C:/a"));
+	CHECK_STR_EQ_FREE2("b", get_relative_path("C:/a", "C:/a/b"));
+	CHECK_STR_EQ_FREE2("b/c", get_relative_path("C:/a", "C:/a/b/c"));
+	CHECK_STR_EQ_FREE2("../c", get_relative_path("C:/a/b", "C:/a/c"));
+	CHECK_STR_EQ_FREE2("../c/d", get_relative_path("C:/a/b", "C:/a/c/d"));
+	CHECK_STR_EQ_FREE2("../../c/d", get_relative_path("C:/a/b/c", "C:/a/c/d"));
+	CHECK_STR_EQ_FREE2("../..", get_relative_path("C:/a/b", "C:/"));
+	CHECK_STR_EQ_FREE2("../../c", get_relative_path("C:/a/b", "C:/c"));
+	CHECK_STR_EQ_FREE2("a/b", get_relative_path("C:/", "C:/a/b"));
+#else
 	CHECK_STR_EQ_FREE2("a", get_relative_path("/doesn't matter", "a"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/doesn't matter", "a/b"));
 	CHECK_STR_EQ_FREE2(".", get_relative_path("/a", "/a"));
@@ -72,6 +86,7 @@ TEST(get_relative_path)
 	CHECK_STR_EQ_FREE2("../..", get_relative_path("/a/b", "/"));
 	CHECK_STR_EQ_FREE2("../../c", get_relative_path("/a/b", "/c"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/", "/a/b"));
+#endif
 }
 
 TEST(format_hash_as_string)
