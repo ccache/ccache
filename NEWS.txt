@@ -19,6 +19,8 @@ Bug fixes
 
 - Minor fixes related to Windows support.
 
+- The correct compression level is now used if compression is requested.
+
 
 ccache 3.2.3
 ------------
