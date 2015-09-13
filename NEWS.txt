@@ -17,6 +17,8 @@ Bug fixes
 - Improved signal handling: Kill compiler on SIGTERM; wait for compiler to exit
   before exiting; die appropriately.
 
+- Minor fixes related to Windows support.
+
 
 ccache 3.2.3
 ------------
