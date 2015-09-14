@@ -805,7 +805,7 @@ put_file_in_cache(const char *source, const char *dest)
 		ret = link(source, dest);
 	} else {
 		ret = copy_file(
-			source, dest, conf->compression ? conf->compress_level : 0);
+			source, dest, conf->compression ? conf->compression_level : 0);
 	}
 	if (ret != 0) {
 		cc_log("Failed to %s %s to %s: %s",
