@@ -78,6 +78,7 @@ static struct {
 	{ STATS_DEVICE,       "output to a non-regular file   ", NULL, 0 },
 	{ STATS_NOINPUT,      "no input file                  ", NULL, 0 },
 	{ STATS_BADEXTRAFILE, "error hashing extra file       ", NULL, 0 },
+	{ STATS_NUMCLEANUPS,  "cleanups performed             ", NULL, FLAG_ALWAYS },
 	{ STATS_NUMFILES,     "files in cache                 ", NULL,
 		FLAG_NOZERO|FLAG_ALWAYS },
 	{ STATS_TOTALSIZE,    "cache size                     ",
@@ -401,6 +402,25 @@ stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 		stats_read(statsfile, counters);
 		counters->data[STATS_NUMFILES] = num_files;
 		counters->data[STATS_TOTALSIZE] = total_size / 1024;
+		stats_write(statsfile, counters);
+		lockfile_release(statsfile);
+	}
+	free(statsfile);
+	counters_free(counters);
+}
+
+/* count directory cleanup run */
+void
+stats_add_cleanup(const char *dir, unsigned count)
+{
+	struct counters *counters = counters_init(STATS_END);
+	char *statsfile;
+
+	statsfile = format("%s/stats", dir);
+
+	if (lockfile_acquire(statsfile, lock_staleness_limit)) {
+		stats_read(statsfile, counters);
+		counters->data[STATS_NUMCLEANUPS] += count;
 		stats_write(statsfile, counters);
 		lockfile_release(statsfile);
 	}
