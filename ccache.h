@@ -186,7 +186,7 @@ void stats_summary(struct conf *conf);
 void stats_update_size(uint64_t size, unsigned files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
-void stats_set_sizes(const char *dir, size_t num_files, size_t total_size);
+void stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
 

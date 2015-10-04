@@ -391,7 +391,7 @@ stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
 
 /* set the per directory sizes */
 void
-stats_set_sizes(const char *dir, size_t num_files, size_t total_size)
+stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 {
 	struct counters *counters = counters_init(STATS_END);
 	char *statsfile;
