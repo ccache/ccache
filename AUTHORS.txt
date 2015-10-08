@@ -49,6 +49,7 @@ ccache is a collective work with contributions from many people, including:
 * Ryan Brown <ryb@ableton.com>
 * Tim Potter <tpot@samba.org>
 * Tor Arne Vestbø <torarnv@gmail.com>
+* Vadim Petrochenkov <vadim.petrochenkov@gmail.com>
 * Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
 * Wilson Snyder <wsnyder@wsnyder.org>
