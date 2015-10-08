@@ -2,8 +2,10 @@ ccache news
 ===========
 
 
-Unreleased 3.2.4
-----------------
+ccache 3.2.4
+------------
+Release date: 2015-10-08
+
 
 Bug fixes
 ~~~~~~~~~
