@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2013 Joel Rosdahl
+ * Copyright (C) 2010-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -127,7 +127,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 	orig = args_init_from_string(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK(str_startswith(act_cpp->argv[1], "--sysroot=./foo"));
+	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo");
 
 	args_free(orig);
 	args_free(act_cpp);
@@ -278,7 +278,7 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
 	args_free(orig);
 }
 
-TEST(fprofile_flag_with_nonexisting_dir_not_be_rewritten)
+TEST(fprofile_flag_with_nonexisting_dir_should_not_be_rewritten)
 {
 	struct args *orig = args_init_from_string(
 	  "gcc -c -fprofile-generate=some/dir foo.c");

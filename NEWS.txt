@@ -34,6 +34,9 @@ Bug fixes
 
 - The correct compression level is now used if compression is requested.
 
+- Fixed a bug where cache cleanup could be run too early for caches larger than
+  64 GiB on 32-bit systems.
+
 
 ccache 3.2.3
 ------------
