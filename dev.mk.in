@@ -77,6 +77,7 @@ source_dist_files = \
     envtoconfitems.gperf \
     envtoconfitems_lookup.c \
     install-sh \
+    m4 \
     main.c \
     test.sh \
     zlib/*.c \
