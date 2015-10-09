@@ -2,6 +2,15 @@ ccache news
 ===========
 
 
+Unreleased ccache 3.2.5
+-----------------------
+
+Bug fixes
+~~~~~~~~~
+
+- Include m4 files used by configure.ac in the source dist archives.
+
+
 ccache 3.2.4
 ------------
 Release date: 2015-10-08
