@@ -293,7 +293,7 @@ static pid_t compiler_pid = 0;
 // different for the same input in a new ccache version, we can just change
 // this string. A typical example would be if the format of one of the files
 // stored in the cache changes in a backwards-incompatible way.
-static const char HASH_PREFIX[] = "3";
+static const char HASH_PREFIX[] = "4";
 
 static void
 add_prefix(struct args *args, char *prefix_command)
