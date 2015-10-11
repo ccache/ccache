@@ -18,6 +18,7 @@
 #include "ccache.h"
 
 #include <zlib.h>
+#include <lz4frame.h>
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -342,6 +343,195 @@ get_umask(void)
 }
 #endif
 
+static int
+lz4f_copy_file(const char *src, const char *dest, int compress_level)
+{
+	int fd_in, fd_out;
+	void *in, *out;
+	size_t in_size, out_size;
+	char magic[4] = { 0x04, 0x22, 0x4d, 0x18 };
+	LZ4F_frameInfo_t info;
+	LZ4F_preferences_t prefs;
+	LZ4F_decompressionContext_t context;
+	LZ4F_decompressOptions_t options;
+	LZ4F_errorCode_t err;
+	struct stat st;
+	ssize_t n;
+	size_t left, size;
+	char *p, *q;
+	int saved_errno = 0;
+	char *tmp_name;
+
+	/* open destination file */
+	tmp_name = x_strdup(dest);
+	fd_out = create_tmp_fd(&tmp_name);
+	cc_log("Copying %s to %s via %s (lz4 %scompressed)",
+	       src, dest, tmp_name, compress_level != 0 ? "" : "un");
+
+	/* open source file */
+	fd_in = open(src, O_RDONLY | O_BINARY);
+	if (fd_in == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	if (x_fstat(fd_in, &st) != 0) {
+		saved_errno = errno;
+		goto error;
+	}
+
+	in_size = st.st_size;
+	in = x_malloc(in_size);
+
+	/* read */
+	p = in;
+	left = in_size;
+	do {
+		n = read(fd_in, p, left);
+		if (n == -1) {
+			saved_errno = errno;
+			free(in);
+			goto error;
+		}
+		p += n;
+		left -= n;
+	} while (left > 0);
+
+	/* decompress */
+	if (in_size > 4 && memcmp(in, magic, 4) == 0) {
+		err = LZ4F_createDecompressionContext(&context, LZ4F_VERSION);
+		if (LZ4F_isError(err)) {
+			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
+			goto error;
+		}
+
+		q = in;
+		left = in_size;
+
+		p = in;
+		size = in_size;
+		err = LZ4F_getFrameInfo(context, &info, p, &size);
+		if (LZ4F_isError(err)) {
+			cc_log("frame error: %s", LZ4F_getErrorName(err));
+			free(in);
+			goto error;
+		}
+		q += size;
+		left -= size;
+
+		cc_log("read %ld header bytes", (long) size);
+
+		if (info.contentSize == 0) {
+			cc_log("unknown size: %ld", (long) info.contentSize);
+			free(in);
+			goto error;
+		}
+
+		out_size = info.contentSize;
+		out = x_malloc(out_size);
+
+		cc_log("decompressing from %ld to %ld (%.2f%%)",
+		       (long) in_size, (long) out_size, (100.0 * out_size / in_size));
+
+		p = out;
+		size = out_size;
+		memset(&options, 0, sizeof(options));
+		do {
+			size = out_size - (p - (char *) out);
+			left = in_size - (q - (char *) in);
+
+			err = LZ4F_decompress(context, p, &size, q, &left, &options);
+			if (LZ4F_isError(err)) {
+				cc_log("decompress error: %s", LZ4F_getErrorName(err));
+				free(in);
+				free(out);
+				goto error;
+			}
+			p += size;
+			q += left;
+		} while (err != 0 && left > 0);
+
+		free(in);
+		in = out;
+		in_size = out_size;
+
+		err = LZ4F_freeDecompressionContext(context);
+		if (LZ4F_isError(err)) {
+			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
+			goto error;
+		}
+	}
+
+	/* compress */
+	if (compress_level > 0) {
+		memset(&prefs, 0, sizeof(prefs));
+		prefs.frameInfo.contentChecksumFlag = LZ4F_contentChecksumEnabled;
+		prefs.frameInfo.contentSize = in_size;
+		prefs.compressionLevel = compress_level;
+		out_size = LZ4F_compressFrameBound(in_size, &prefs);
+		out = x_malloc(out_size);
+		err = LZ4F_compressFrame(out, out_size, in, in_size, &prefs);
+		if (LZ4F_isError(err)) {
+			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
+			goto error;
+		}
+		size = err;
+		out = x_realloc(out, size);
+		out_size = size;
+		cc_log("compressed from %ld to %ld (%.2f%%)",
+		       (long) in_size, (long) out_size, (100.0 * out_size / in_size));
+		free(in);
+	} else {
+		out_size = in_size;
+		out = in;
+	}
+
+	/* write */
+	p = out;
+	left = out_size;
+	do {
+		n = write(fd_out, p, left);
+		if (n == -1) {
+			saved_errno = errno;
+			free(out);
+			goto error;
+		}
+		p += n;
+		left -= n;
+	} while (left > 0);
+
+	free(out);
+
+	if (close(fd_out) == -1) {
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	if (x_rename(tmp_name, dest) == -1) {
+		saved_errno = errno;
+		cc_log("rename error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	free(tmp_name);
+
+	return 0;
+
+error:
+	if (fd_out != -1) {
+		close(fd_out);
+	}
+	tmp_unlink(tmp_name);
+	free(tmp_name);
+	errno = saved_errno;
+	return -1;
+}
+
 // Copy src to dest, decompressing src if needed. compress_level != 0 decides
 // whether dest will be compressed, and with which compression level. Returns 0
 // on success and -1 on failure. On failure, errno represents the error.
@@ -349,19 +539,23 @@ int
 copy_file(const char *src, const char *dest, const char *compress_type,
           int compress_level)
 {
-	int fd_out;
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
 	int level;
 
 	// Open destination file.
+	if (compress_type && str_eq(compress_type, "lz4f")) {
+		return lz4f_copy_file(src, dest, compress_level);
+	}
 	char *tmp_name = x_strdup(dest);
-	if (compress_level != 0 && !str_eq(compress_type, "gzip")) {
+	if (compress_type && compress_level != 0 && !str_eq(compress_type, "gzip")) {
+		cc_log("Unknown compression type %s", compress_type);
+		free(tmp_name);
 		return -1;
 	}
 
-	fd_out = create_tmp_fd(&tmp_name);
+	int fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level != 0 ? "" : "un");
 
@@ -523,23 +717,49 @@ move_uncompressed_file(const char *src, const char *dest,
 	}
 }
 
-// Test if a file is zlib compressed.
+// test if a file is zlib or lz4 compressed
 bool
-file_is_compressed(const char *filename)
+file_is_compressed(const char *filename, const char **type)
 {
 	FILE *f = fopen(filename, "rb");
 	if (!f) {
+		if (type) {
+			*type = NULL;
+		}
 		return false;
 	}
+
+	int c1 = fgetc(f);
+	int c2 = fgetc(f);
 
 	// Test if file starts with 1F8B, which is zlib's magic number.
-	if ((fgetc(f) != 0x1f) || (fgetc(f) != 0x8b)) {
+	if ((c1 == 0x1f) && (c2 == 0x8b)) {
+		if (type) {
+			*type = "gzip";
+		}
 		fclose(f);
-		return false;
+		return true;
 	}
 
+	int c3 = fgetc(f);
+	int c4 = fgetc(f);
+
+	// Test if file starts with 184D2204, which is lz4's magic number (LE).
+	if ((c4 == 0x18) && (c3 == 0x4d) &&
+	    (c2 == 0x22) && (c1 == 0x04)) {
+		if (type) {
+			*type = "lz4f";
+		}
+		fclose(f);
+		return true;
+	}
+
+	/* not compressed */
+	if (type) {
+		*type = NULL;
+	}
 	fclose(f);
-	return true;
+	return false;
 }
 
 // Make sure a directory exists.

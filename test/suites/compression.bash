@@ -36,4 +36,22 @@ SUITE_compression() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Compression type lz4f"
+
+    CCACHE_COMPRESS=1 CCACHE_COMPRESSTYPE=lz4f $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_COMPRESS=1 CCACHE_COMPRESSTYPE=lz4f $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
 }

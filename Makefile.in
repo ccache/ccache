@@ -83,13 +83,20 @@ zlib_sources = \
 
 zlib_objs = $(zlib_sources:.c=.o)
 
+lz4_sources = \
+    src/lz4/lz4.c \
+    src/lz4/lz4frame.c \
+    src/lz4/lz4hc.c \
+    src/lz4/xxhash.c
+lz4_objs = $(lz4_sources:.c=.o)
+
 test_suites = @test_suites@
 test_sources = unittest/main.c unittest/framework.c unittest/util.c
 test_sources += $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
-all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
+all_objs = $(ccache_objs) $(test_objs) $(zlib_objs) $(lz4_objs)
 
 files_to_clean = \
     $(all_objs) \
@@ -135,6 +142,10 @@ src/zlib/libz.a: $(zlib_objs)
 	$(Q)$(AR) cr $@ $(zlib_objs)
 	$(if $(quiet),@echo "  RANLIB   $@")
 	$(Q)$(RANLIB) $@
+
+src/lz4/liblz4.a: $(lz4_objs)
+	$(AR) cr $@ $(lz4_objs)
+	$(RANLIB) $@
 
 .PHONY: performance
 performance: ccache$(EXEEXT)

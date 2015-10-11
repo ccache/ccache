@@ -163,6 +163,32 @@ else
     LIBS="$LIBS -lz"
 fi
 
+dnl Check for lz4
+AC_ARG_WITH(bundled-lz4,
+  [AS_HELP_STRING([--without-bundled-lz4],
+    [use system's default lz4 (>r125) instead of the bundled lz4])])
+if test x${with_bundled_lz4} = xno; then
+    AC_CHECK_HEADERS(lz4.h lz4frame.h)
+    AC_CHECK_LIB(lz4, LZ4_versionNumber)
+    if test $ac_cv_header_lz4frame_h = yes && test $ac_cv_lib_lz4_LZ4_versionNumber = yes; then
+        use_bundled_lz4=no
+    else
+        AC_MSG_WARN(using bundled lz4)
+        use_bundled_lz4=yes
+    fi
+else
+    AC_MSG_NOTICE(using bundled lz4)
+    use_bundled_lz4=yes
+fi
+
+if test x${use_bundled_lz4} = xyes; then
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/lz4"
+    extra_libs="$extra_libs src/lz4/liblz4.a"
+    mkdir -p src/lz4
+else
+    LIBS="$LIBS -llz4"
+fi
+
 AC_ARG_ENABLE(man,
   [AS_HELP_STRING([--disable-man],
     [disable installing man pages])])

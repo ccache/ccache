@@ -1248,14 +1248,16 @@ static void
 do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
 	int ret;
-	bool compression = file_is_compressed(source);
+	const char *type;
+	bool compression = file_is_compressed(source, &type);
 	bool do_link = !copy && conf->hard_link && !compression;
+
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
 		int level = 0; /* uncompressed */
-		ret = copy_file(source, dest, NULL, level);
+		ret = copy_file(source, dest, type, level);
 	}
 
 	if (ret == -1) {
