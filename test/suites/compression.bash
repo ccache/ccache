@@ -28,4 +28,12 @@ SUITE_compression() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Compression default type"
+
+    CCACHE_COMPRESS=1 CCACHE_COMPRESSTYPE=gzip $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
 }
