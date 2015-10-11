@@ -4010,6 +4010,7 @@ static int
 ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
+		COPY_FILE,
 		DUMP_MANIFEST,
 		HASH_FILE,
 		PRINT_STATS,
@@ -4017,6 +4018,7 @@ ccache_main_options(int argc, char *argv[])
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
+		{"copy-file",     no_argument,       0, COPY_FILE},
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
 		{"get-config",    required_argument, 0, 'k'},
 		{"hash-file",     required_argument, 0, HASH_FILE},
@@ -4036,6 +4038,15 @@ ccache_main_options(int argc, char *argv[])
 	while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVz", options, NULL))
 	       != -1) {
 		switch (c) {
+		case COPY_FILE:
+			initialize();
+			if (argc > 2) {
+				copy_file(argv[optind], argv[optind+1],
+				          conf->compression_type,
+				          conf->compression ? conf->compression_level : 0);
+			}
+			break;
+
 		case DUMP_MANIFEST:
 			initialize();
 			manifest_dump(optarg, stdout);
