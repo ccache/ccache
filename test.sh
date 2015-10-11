@@ -2397,6 +2397,12 @@ SUITE_compression() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 3
     expect_stat 'cache miss' 1
+
+    testname="compression default type"
+    CCACHE_COMPRESS=1 CCACHE_COMPRESSTYPE=gzip $CCACHE $COMPILER -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 4
+    checkstat 'cache miss' 1
 }
 
 # =============================================================================
