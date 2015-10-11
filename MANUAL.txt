@@ -335,6 +335,7 @@ WRAPPERS>>.
 *compression_type* (*CCACHE_COMPRESSTYPE*)::
 
     The type of compression to use. The default is "gzip", using zlib library.
+    Also available is "lz4f", which trades compression size for higher speed.
 
 *cpp_extension* (*CCACHE_EXTENSION*)::
 

@@ -130,7 +130,7 @@ int copy_file(const char *src, const char *dest, const char *compress_type, int 
 int move_file(const char *src, const char *dest, const char *compress_type, int compress_level);
 int move_uncompressed_file(const char *src, const char *dest,
                            const char *compress_type, int compress_level);
-bool file_is_compressed(const char *filename);
+bool file_is_compressed(const char *filename, const char **type);
 int create_dir(const char *dir);
 int create_parent_dirs(const char *path);
 const char *get_hostname(void);

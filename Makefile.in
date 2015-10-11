@@ -59,12 +59,16 @@ zlib_sources = \
     zlib/inftrees.c zlib/trees.c zlib/zutil.c
 zlib_objs = $(zlib_sources:.c=.o)
 
+lz4_sources = \
+    lz4/lz4.c lz4/lz4frame.c lz4/lz4hc.c lz4/xxhash.c
+lz4_objs = $(lz4_sources:.c=.o)
+
 test_suites = @test_suites@
 test_sources = test/main.c test/framework.c test/util.c $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
-all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
+all_objs = $(ccache_objs) $(test_objs) $(zlib_objs) $(lz4_objs)
 
 files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~ testdir.*
 files_to_distclean = Makefile config.h config.log config.status
@@ -92,6 +96,10 @@ $(zlib_objs): CPPFLAGS += -include config.h
 
 zlib/libz.a: $(zlib_objs)
 	$(AR) cr $@ $(zlib_objs)
+	$(RANLIB) $@
+
+lz4/liblz4.a: $(lz4_objs)
+	$(AR) cr $@ $(lz4_objs)
 	$(RANLIB) $@
 
 .PHONY: perf
