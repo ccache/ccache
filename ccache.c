@@ -69,7 +69,7 @@ static const char USAGE_TEXT[] =
   "    -h, --help            print this help text\n"
   "    -V, --version         print version and copyright information\n"
   "\n"
-  "See also <http://ccache.samba.org>.\n";
+  "See also <https://ccache.samba.org>.\n";
 
 /* Global configuration data. */
 struct conf *conf = NULL;
