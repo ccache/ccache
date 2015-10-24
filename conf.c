@@ -96,6 +96,8 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_INCLUDE_FILE_CTIME;
 		} else if (str_eq(word, "include_file_mtime")) {
 			*value |= SLOPPY_INCLUDE_FILE_MTIME;
+		} else if (str_eq(word, "no_system_headers")) {
+			*value |= SLOPPY_NO_SYSTEM_HEADERS;
 		} else if (str_eq(word, "pch_defines")) {
 			*value |= SLOPPY_PCH_DEFINES;
 		} else if (str_eq(word, "time_macros")) {
@@ -609,6 +611,9 @@ conf_print_items(struct conf *conf,
 	}
 	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 		reformat(&s, "%sfile_stat_matches, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
+		reformat(&s, "%sno_system_headers, ", s);
 	}
 	if (conf->sloppiness) {
 		/* Strip last ", ". */
