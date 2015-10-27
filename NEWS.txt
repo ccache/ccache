@@ -10,6 +10,9 @@ Bug fixes
 
 - Include m4 files used by configure.ac in the source dist archives.
 
+- Corrected "Performance" section in the manual regarding `__DATE_`, `__TIME__`
+  and `__FILE__` macros.
+
 
 ccache 3.2.4
 ------------

@@ -816,30 +816,28 @@ problems and what may be done to increase the hit rate:
    output, which contains data from the old header file; the wrong object file
    is stored in the cache.)
 ** The *\_\_TIME\__* preprocessor macro is (potentially) being used. ccache
-   turns off direct mode if ``\_\_TIME\__'' is present in the source code
-   outside comments and string literals. This is done as a safety measure since
-   the string indicates that a *\_\_TIME\__* macro _may_ affect the output. (To
-   be sure, ccache would have to run the preprocessor, but the sole point of
-   the direct mode is to avoid that.) If you know that *\_\_TIME\__* isn't used
-   in practise, or don't care if ccache produces objects where *\_\_TIME__* is
-   expanded to something in the past, you can set *sloppiness* to
-   *time_macros*.
+   turns off direct mode if ``\_\_TIME\__'' is present in the source code. This
+   is done as a safety measure since the string indicates that a *\_\_TIME\__*
+   macro _may_ affect the output. (To be sure, ccache would have to run the
+   preprocessor, but the sole point of the direct mode is to avoid that.) If
+   you know that *\_\_TIME\__* isn't used in practise, or don't care if ccache
+   produces objects where *\_\_TIME__* is expanded to something in the past,
+   you can set *sloppiness* to *time_macros*.
 ** The *\_\_DATE\__* preprocessor macro is (potentially) being used and the
    date has changed. This is similar to how *\_\_TIME\__* is handled. If
-   ``\_\_DATE\__'' is present in the source code outside comments and string
-   literals, ccache hashes the current date in order to be able to produce the
-   correct object file if the *\_\_DATE\__* macro affects the output. If you
-   know that *\_\_DATE\__* isn't used in practise, or don't care if ccache
-   produces objects where *\_\_DATE__* is expanded to something in the past,
-   you can set *sloppiness* to *time_macros*.
-** The *\_\_FILE\__* preprocessor macro is (potentially) being used and the
-   file path has changed. If ``\_\_FILE\__'' is present in the source code
-   outside comments and string literals, ccache hashes the current input file
-   path in order to be able to produce the correct object file if the
-   *\_\_FILE\__* macro affects the output. If you know that *\_\_FILE\__* isn't
+   ``\_\_DATE\__'' is present in the source code, ccache hashes the current
+   date in order to be able to produce the correct object file if the
+   *\_\_DATE\__* macro affects the output. If you know that *\_\_DATE\__* isn't
    used in practise, or don't care if ccache produces objects where
-   *\_\_FILE__* is expanded to the wrong path, you can set *sloppiness* to
-   *file_macro*.
+   *\_\_DATE__* is expanded to something in the past, you can set *sloppiness*
+   to *time_macros*.
+** The *\_\_FILE\__* preprocessor macro is (potentially) being used and the
+   file path has changed. If ``\_\_FILE\__'' is present in the source code,
+   ccache hashes the current input file path in order to be able to produce the
+   correct object file if the *\_\_FILE\__* macro affects the output. If you
+   know that *\_\_FILE\__* isn't used in practise, or don't care if ccache
+   produces objects where *\_\_FILE__* is expanded to the wrong path, you can
+   set *sloppiness* to *file_macro*.
 * If ``cache miss'' has been incremented even though the same code has been
   compiled and cached before, ccache has either detected that something has
   changed anyway or a cleanup has been performed (either explicitly or
