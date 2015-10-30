@@ -5,6 +5,12 @@ ccache news
 Unreleased ccache 3.2.5
 -----------------------
 
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Only pass clang-specific `-stdlib=` to the preprocessor.
+
+
 Bug fixes
 ~~~~~~~~~
 
