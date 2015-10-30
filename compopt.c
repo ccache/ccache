@@ -78,6 +78,7 @@ static const struct compopt compopts[] = {
 	{"-nostdinc++",     AFFECTS_CPP},
 	{"-remap",          AFFECTS_CPP},
 	{"-save-temps",     TOO_HARD},
+	{"-stdlib=",        AFFECTS_CPP | TAKES_CONCAT_ARG},
 	{"-trigraphs",      AFFECTS_CPP},
 	{"-u",              TAKES_ARG},
 };
