@@ -95,7 +95,7 @@ case $ac_sys_system/$ac_sys_release in
   # or has another value. By not (re)defining it, the defaults come in place.
   AIX/4)
     define_xopen_source=no;;
-  AIX/5)
+  AIX/5|AIX/7)
     if test `uname -r` -eq 1; then
       define_xopen_source=no
     fi
@@ -132,7 +132,9 @@ then
   # except for Solaris 10, where it must not be defined,
   # as it implies XPG4.2
   case $ac_sys_system/$ac_sys_release in
-    SunOS/5.10)
+    SunOS/5.10|SunOS/5.11)
+      AC_DEFINE(__EXTENSIONS__, 1,
+                Define to activate Unix95-and-earlier features)
       ;;
     *)
       AC_DEFINE(_XOPEN_SOURCE_EXTENDED, 1,
