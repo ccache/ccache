@@ -32,6 +32,8 @@ Bug fixes
 - Corrected "Performance" section in the manual regarding `__DATE_`, `__TIME__`
   and `__FILE__` macros.
 
+- Fixed build on Solaris 10+ and AIX 7.
+
 
 ccache 3.2.4
 ------------
