@@ -23,6 +23,7 @@ struct conf {
 	uint64_t max_size;
 	char *path;
 	char *prefix_command;
+	char *prefix_command_cpp;
 	bool read_only;
 	bool read_only_direct;
 	bool recache;

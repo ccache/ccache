@@ -37,6 +37,7 @@ unset CCACHE_NODIRECT
 unset CCACHE_NOSTATS
 unset CCACHE_PATH
 unset CCACHE_PREFIX
+unset CCACHE_PREFIX_CPP
 unset CCACHE_READONLY
 unset CCACHE_READONLY_DIRECT
 unset CCACHE_RECACHE
@@ -2430,6 +2431,14 @@ b"
     PATH=.:$PATH CCACHE_PREFIX="prefix-a prefix-b" $CCACHE $COMPILER -c file.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    checkfile prefix.result "a
+b"
+
+    rm -f prefix.result
+    PATH=.:$PATH CCACHE_PREFIX_CPP="prefix-a prefix-b" $CCACHE $COMPILER -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 2
     checkstat 'cache miss' 1
     checkfile prefix.result "a
 b"
