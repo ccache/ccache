@@ -177,6 +177,12 @@ time_t time_of_compilation;
  */
 static struct hashtable *included_files;
 
+/* List of headers to ignore */
+static char **ignore_headers;
+
+/* Size of headers to ignore list */
+static size_t ignore_headers_len;
+
 /* is gcc being asked to output dependencies? */
 static bool generating_dependencies;
 
@@ -524,6 +530,9 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 	size_t size;
 	bool is_pch;
 	size_t path_len = strlen(path);
+	char *ignore;
+	size_t ignore_len;
+	size_t i;
 
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		/* Typically <built-in> or <command-line>. */
@@ -559,6 +568,17 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 		/* Device, pipe, socket or other strange creature. */
 		cc_log("Non-regular include file %s", path);
 		goto failure;
+	}
+
+	for (i = 0; i < ignore_headers_len; i++) {
+		ignore = ignore_headers[i];
+		ignore_len = strlen(ignore);
+		if (ignore_len > path_len) {
+			continue;
+		}
+		if (strncmp(path, ignore, ignore_len) == 0) {
+			goto ignore;
+		}
 	}
 
 	/* Let's hash the include file. */
@@ -702,6 +722,21 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 
 	if (!read_file(path, 0, &data, &size)) {
 		return false;
+	}
+
+	ignore_headers = NULL;
+	ignore_headers_len = 0;
+	if (!str_eq(conf->ignore_headers_in_manifest, "")) {
+		char *header, *p, *q, *saveptr = NULL;
+		p = x_strdup(conf->ignore_headers_in_manifest);
+		q = p;
+		while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
+			ignore_headers = x_realloc(ignore_headers,
+			                           (ignore_headers_len+1) * sizeof(char*));
+			ignore_headers[ignore_headers_len++] = x_strdup(header);
+			q = NULL;
+		}
+		free(p);
 	}
 
 	included_files = create_hashtable(1000, hash_from_string, strings_equal);
@@ -2899,6 +2934,8 @@ initialize(void)
 void
 cc_reset(void)
 {
+	size_t i;
+
 	conf_free(conf); conf = NULL;
 	free(primary_config_path); primary_config_path = NULL;
 	free(secondary_config_path); secondary_config_path = NULL;
@@ -2921,6 +2958,12 @@ cc_reset(void)
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
+	for (i = 0; i < ignore_headers_len; i++) {
+		free(ignore_headers[i]);
+		ignore_headers[i] = NULL;
+	}
+	free(ignore_headers); ignore_headers = NULL;
+	ignore_headers_len = 0;
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}

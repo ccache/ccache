@@ -30,6 +30,7 @@ unset CCACHE_EXTENSION
 unset CCACHE_EXTRAFILES
 unset CCACHE_HARDLINK
 unset CCACHE_HASHDIR
+unset CCACHE_IGNOREHEADERS
 unset CCACHE_LOGFILE
 unset CCACHE_NLEVELS
 unset CCACHE_NODIRECT
@@ -1828,6 +1829,29 @@ EOF
     checkstat 'error hashing extra file' 1
 }
 
+ignoreheaders_suite() {
+    unset CCACHE_NODIRECT
+
+    #################################################################
+    # Check the ignore headers in the manifest feature
+    testname="ignore headers in manifest"
+    $CCACHE -Cz >/dev/null
+    cat <<EOF >ignore.h
+/* We don't want this header in the manifest */
+EOF
+    backdate ignore.h
+    cat <<EOF >ignore.c
+#include "ignore.h"
+int foo;
+EOF
+    CCACHE_IGNOREHEADERS="ignore.h" $CCACHE $COMPILER -c ignore.c
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    data="`$CCACHE --dump-manifest $manifest | grep 'ignore.h'`"
+    if [ -n "$data" ]; then
+        test_failed "$manifest contained ignored header(s): $data"
+    fi
+}
+
 prepare_cleanup_test() {
     dir=$1
     rm -rf $dir
@@ -2519,6 +2543,7 @@ compression
 readonly
 readonly_direct
 extrafiles
+ignoreheaders
 cleanup
 pch
 upgrade
