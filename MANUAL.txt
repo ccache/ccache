@@ -242,6 +242,10 @@ setting key. Boolean options are indicated with ``[boolean]''
     directory. If set to the empty string (which is the default), no rewriting
     is done. See also the discussion under
     <<_compiling_in_different_directories,COMPILING IN DIFFERENT DIRECTORIES>>.
+    If using GCC*, you might want to look into the *-fdebug-prefix-map* option
+    for relocating debug info to a common prefix (mapping prefix with old=new).
+
+    * or newer versions of Clang, see: http://reviews.llvm.org/rL250094
 
 *cache_dir* (*CCACHE_DIR*)::
 

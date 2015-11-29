@@ -189,6 +189,9 @@ static bool generating_dependencies;
 /* is gcc being asked to output coverage? */
 static bool generating_coverage;
 
+/* relocating debuginfo, in the format old=new */
+static char *debug_prefix_map = NULL;
+
 /* is gcc being asked to output coverage data (.gcda) at runtime? */
 static bool profile_arcs;
 
@@ -1488,6 +1491,23 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	/* Possibly hash the current working directory. */
 	if (conf->hash_dir) {
 		char *cwd = gnu_getcwd();
+		if (debug_prefix_map) {
+			char *map = debug_prefix_map;
+			char *sep = strchr(map, '=');
+			char *dir, *old, *new;
+			if (sep) {
+				old = x_strndup(map, sep - map);
+				new = x_strdup(sep + 1);
+				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
+				if (str_startswith(cwd, old)) {
+					dir = format("%s%s", new, cwd + strlen(old));
+					free(cwd);
+					cwd = dir;
+				}
+				free(old);
+				free(new);
+			}
+		}
 		if (cwd) {
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
@@ -2183,6 +2203,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-gsplit-dwarf")) {
 			cc_log("Enabling caching of dwarf files since -gsplit-dwarf is used");
 			using_split_dwarf = true;
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
+			debug_prefix_map = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
@@ -3006,6 +3031,7 @@ cc_reset(void)
 	free(primary_config_path); primary_config_path = NULL;
 	free(secondary_config_path); secondary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
+	free(debug_prefix_map); debug_prefix_map = NULL;
 	free(profile_dir); profile_dir = NULL;
 	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
