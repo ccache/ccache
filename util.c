@@ -1180,15 +1180,16 @@ create_tmp_fd(char **fname)
 	char *template = format("%s.%s", *fname, tmp_string());
 	int fd = mkstemp(template);
 	if (fd == -1 && errno == ENOENT) {
-		if (create_parent_dirs(template) != 0) {
+		if (create_parent_dirs(*fname) != 0) {
 			fatal("Failed to create directory %s: %s",
-			      dirname(template), strerror(errno));
+			      dirname(*fname), strerror(errno));
 		}
 		reformat(&template, "%s.%s", *fname, tmp_string());
 		fd = mkstemp(template);
 	}
 	if (fd == -1) {
-		fatal("Failed to create file %s: %s", template, strerror(errno));
+		fatal("Failed to create temporary file for %s: %s",
+		      *fname, strerror(errno));
 	}
 
 #ifndef _WIN32
