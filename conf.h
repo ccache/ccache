@@ -25,6 +25,7 @@ struct conf {
 	char *prefix_command;
 	bool read_only;
 	bool read_only_direct;
+	bool read_only_memcached;
 	bool recache;
 	bool run_second_cpp;
 	unsigned sloppiness;

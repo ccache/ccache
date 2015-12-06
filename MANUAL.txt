@@ -434,6 +434,11 @@ WRAPPERS>>.
     from the cache using the direct mode, not the preprocessor mode. See
     documentation for *read_only* regarding using a read-only ccache directory.
 
+*read_only_memcached* (*CCACHE_READONLY_MEMCACHED*) [boolean]::
+
+    If true, ccache will attempt to get previously cached values from memcached,
+    but will not try to store any new values in memcached.
+
 *recache* (*CCACHE_RECACHE*) [boolean]::
 
     If true, ccache will not use any previously stored result. New results will

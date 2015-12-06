@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 28
+#define N_CONFIG_ITEMS 30
 static struct {
 	char *descr;
 	const char *origin;
@@ -72,6 +72,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK(!conf->read_only);
 	CHECK(!conf->read_only_direct);
+	CHECK(!conf->read_only_memcached);
 	CHECK(!conf->recache);
 	CHECK(!conf->run_second_cpp);
 	CHECK_INT_EQ(0, conf->sloppiness);
@@ -116,6 +117,7 @@ TEST(conf_read_valid_config)
 	  "prefix_command = x$USER\n"
 	  "read_only = true\n"
 	  "read_only_direct = true\n"
+	  "read_only_memcached = false\n"
 	  "recache = true\n"
 	  "run_second_cpp = true\n"
 	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,no_system_headers  pch_defines  \n"
@@ -147,6 +149,7 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK(conf->read_only);
 	CHECK(conf->read_only_direct);
+	CHECK(!conf->read_only_memcached);
 	CHECK(conf->recache);
 	CHECK(conf->run_second_cpp);
 	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_INCLUDE_FILE_CTIME|
@@ -370,6 +373,7 @@ TEST(conf_print_items)
 		"pc",
 		true,
 		true,
+		false,
 		true,
 		true,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
@@ -413,6 +417,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only_direct = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("read_only_memcached = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("recache = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"

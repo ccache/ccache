@@ -965,7 +965,7 @@ void update_manifest_file(void)
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 #if HAVE_LIBMEMCACHED
-			if (conf->memcached_conf) {
+			if (conf->memcached_conf && !conf->read_only_memcached) {
 				if (read_file(manifest_path, st.st_size, &data, &size)) {
 					cc_log("Storing %s in memcached", manifest_name);
 					memccached_raw_set(manifest_name, data, size);
@@ -1249,7 +1249,7 @@ to_cache(struct args *args)
 	}
 
 #ifdef HAVE_LIBMEMCACHED
-	if (strlen(conf->memcached_conf) > 0 &&
+	if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
 	    !using_split_dwarf && /* no support for the dwo files just yet */
 	    !generating_coverage) { /* coverage refers to local paths anyway */
 		cc_log("Storing %s in memcached", cached_key);
