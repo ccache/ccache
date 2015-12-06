@@ -392,6 +392,14 @@ WRAPPERS>>.
     This option specifies the maximum number of files to keep in the cache. Use
     0 for no limit (which is the default).
 
+*memcached_conf* (*CCACHE_MEMCACHED_CONF*)::
+
+    The memcached_conf option sets the memcached(3) configuration to use
+    for storing and getting cache values, if any.
+    Example configuration:
+
+    CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
+
 *max_size* (*CCACHE_MAXSIZE*)::
 
     This option specifies the maximum size of the cache. Use 0 for no limit.
