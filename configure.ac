@@ -82,12 +82,23 @@ dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
 
+AC_ARG_ENABLE(static,
+  [AS_HELP_STRING([--enable-static],
+    [enable static link])])
+
+if test x${enable_static} != x; then
+    extra_ldflags="-static"
+fi
+
 AC_ARG_ENABLE(memcached,
   [AS_HELP_STRING([--enable-memcached],
     [enable memcached as a cache backend])])
 
 dnl enable-memcached: Check if -lmemcached is needed.
 if test x${enable_memcached} != x; then
+    if test x${enable_static} != x; then
+        AC_CHECK_LIB(stdc++, __gxx_personality_v0,[])
+    fi
     AC_CHECK_LIB(memcached, memcached,[],[
     echo '  WARNING: recent version libmemcached not found'
     echo '  please install libmemcached>1.0 with development files'
