@@ -751,6 +751,14 @@ filesystems), but keep in mind that:
 A tip is to set *temporary_dir* to a directory on the local host to avoid NFS
 traffic for temporary files.
 
+Sharing a cache with memcached
+------------------------------
+
+When using the *memcached* (<http://memcached.org>) feature, the most recently
+used cache entries are also available from the configured memcached servers.
+
+The local cache directory will be searched first, but then it will still be
+possible to get cache hits (over the network) before having to run the compiler.
 
 Using ccache with other compiler wrappers
 -----------------------------------------
