@@ -400,6 +400,11 @@ WRAPPERS>>.
 
     CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
 
+*memcached_only* (*CCACHE_MEMCACHED_ONLY*)::
+
+    Only store files in memcached, don't store them in the local filesystems.
+    The manifests (for direct mode) and stats are still being stored locally.
+
 *max_size* (*CCACHE_MAXSIZE*)::
 
     This option specifies the maximum size of the cache. Use 0 for no limit.
