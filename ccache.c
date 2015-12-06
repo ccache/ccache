@@ -3634,8 +3634,14 @@ ccache(int argc, char *argv[])
 		put_object_in_manifest = true;
 	}
 
-	/* if we can return from cache at this point then do */
-	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+	/* don't hit memcached twice */
+	if (conf->memcached_only && object_hash_from_manifest
+	    && file_hashes_equal(object_hash_from_manifest, object_hash)) {
+		cc_log("Already searched for %s", cached_key);
+	} else {
+		/* if we can return from cache at this point then do */
+		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+	}
 
 	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
