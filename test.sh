@@ -45,6 +45,7 @@ unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
 unset CCACHE_MEMCACHED_CONF
+unset CCACHE_MEMCACHED_ONLY
 unset GCC_COLORS
 
 # Many tests backdate files, which updates their ctimes.  In those tests, we
@@ -167,21 +168,21 @@ base_tests() {
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    checkstat 'files in cache' 1
+    $CCACHE_NOFILES checkstat 'files in cache' 1
     compare_file reference_test1.o test1.o
 
     testname="BASIC2"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
-    checkstat 'files in cache' 1
+    $CCACHE_NOFILES checkstat 'files in cache' 1
     compare_file reference_test1.o test1.o
 
     testname="debug"
     $CCACHE_COMPILE -c test1.c -g
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 2
-    checkstat 'files in cache' 2
+    $CCACHE_NOFILES checkstat 'files in cache' 2
 
     testname="debug2"
     $CCACHE_COMPILE -c test1.c -g
@@ -283,9 +284,9 @@ base_tests() {
     fi
 
     # strictly speaking should be 4 - RECACHE causes a double counting!
-    checkstat 'files in cache' 4
+    $CCACHE_NOFILES checkstat 'files in cache' 4
     $CCACHE -c > /dev/null
-    checkstat 'files in cache' 4
+    $CCACHE_NOFILES checkstat 'files in cache' 4
 
     testname="CCACHE_HASHDIR"
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
@@ -296,7 +297,7 @@ base_tests() {
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
-    checkstat 'files in cache' 5
+    $CCACHE_NOFILES checkstat 'files in cache' 5
     compare_file reference_test1.o test1.o
 
     testname="comments"
@@ -327,7 +328,7 @@ base_tests() {
     done
     checkstat 'cache hit (preprocessed)' 8
     checkstat 'cache miss' 37
-    checkstat 'files in cache' 37
+    $CCACHE_NOFILES checkstat 'files in cache' 37
 
     $CCACHE -C >/dev/null
 
@@ -571,19 +572,19 @@ int stderr(void)
 	/* Trigger warning by having no return statement. */
 }
 EOF
-    checkstat 'files in cache' 0
+    $CCACHE_NOFILES  checkstat 'files in cache' 0
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
     num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
     if [ $num -ne 1 ]; then
         test_failed "$num stderr files found, expected 1"
     fi
-    checkstat 'files in cache' 2
+    $CCACHE_NOFILES checkstat 'files in cache' 2
 
     testname="zero-stats"
     $CCACHE -z > /dev/null
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 0
-    checkstat 'files in cache' 2
+    $CCACHE_NOFILES  checkstat 'files in cache' 2
 
     testname="clear"
     $CCACHE -C > /dev/null
@@ -603,21 +604,21 @@ EOF
         $CCACHE_COMPILE -c -fprofile-generate test1.c
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 1
+        $CCACHE_NOFILES checkstat 'files in cache' 1
         $CCACHE_COMPILE -c -fprofile-generate test1.c
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 1
+        $CCACHE_NOFILES checkstat 'files in cache' 1
 
         testname="profile-arcs"
         $CCACHE_COMPILE -c -fprofile-arcs test1.c
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 2
-        checkstat 'files in cache' 2
+        $CCACHE_NOFILES checkstat 'files in cache' 2
         $CCACHE_COMPILE -c -fprofile-arcs test1.c
         checkstat 'cache hit (preprocessed)' 2
         checkstat 'cache miss' 2
-        checkstat 'files in cache' 2
+        $CCACHE_NOFILES checkstat 'files in cache' 2
 
         testname="profile-use"
         $CCACHE_COMPILE -c -fprofile-use test1.c 2>/dev/null
@@ -666,13 +667,13 @@ EOF
         CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 2
+        $CCACHE_NOFILES checkstat 'files in cache' 2
         compare_file expected.dia test.dia
         rm -f test.dia
         CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c 2> /dev/null
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 2
+        $CCACHE_NOFILES checkstat 'files in cache' 2
         compare_file expected.dia test.dia
 
         rm -f test.dia
@@ -689,14 +690,14 @@ EOF
         checkstat 'compile failed' 1
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 0
-        checkstat 'files in cache' 0
+        $CCACHE_NOFILES checkstat 'files in cache' 0
         compare_file expected.dia test.dia
         rm -f test.dia
         CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2> /dev/null
         checkstat 'compile failed' 2
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 0
-        checkstat 'files in cache' 0
+        $CCACHE_NOFILES checkstat 'files in cache' 0
         compare_file expected.dia test.dia
     fi
 
@@ -761,6 +762,20 @@ memcached_suite() {
     base_tests
     kill $memcached_pid
     unset CCACHE_MEMCACHED_CONF
+}
+
+memcached_only_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    CCACHE_NOFILES=true
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    export CCACHE_MEMCACHED_ONLY=1
+    memcached -p 22122 &
+    memcached_pid=$!
+    base_tests
+    kill $memcached_pid
+    unset CCACHE_MEMCACHED_CONF
+    unset CCACHE_MEMCACHED_ONLY
+    unset CCACHE_NOFILES
 }
 
 memcached_socket_suite() {
@@ -911,7 +926,7 @@ EOF
         fi
     done
     rm -rf test.dir
-    checkstat 'files in cache' 12
+    $CCACHE_NOFILES checkstat 'files in cache' 12
 
     ##################################################################
     # Check that -Wp,-MD,file.d works.
@@ -1675,7 +1690,7 @@ EOF
         checkstat 'cache hit (direct)' 0
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 4
+        $CCACHE_NOFILES checkstat 'files in cache' 4
         cd ..
 
         cd dir2
@@ -1683,7 +1698,7 @@ EOF
         checkstat 'cache hit (direct)' 1
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
-        checkstat 'files in cache' 4
+        $CCACHE_NOFILES checkstat 'files in cache' 4
         cd ..
     fi
 }
@@ -2580,6 +2595,7 @@ pch
 upgrade
 prefix
 memcached
+memcached_only
 memcached_socket !win32
 "
 
