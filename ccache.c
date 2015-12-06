@@ -513,7 +513,7 @@ get_path_in_cache(const char *name, const char *suffix)
  * also updated. Takes over ownership of path.
  */
 static void
-remember_include_file(char *path, struct mdfour *cpp_hash)
+remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 {
 #ifdef _WIN32
 	DWORD attributes;
@@ -532,6 +532,11 @@ remember_include_file(char *path, struct mdfour *cpp_hash)
 
 	if (str_eq(path, input_file)) {
 		/* Don't remember the input file. */
+		goto ignore;
+	}
+
+	if (system && (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS)) {
+		/* Don't remember this system header. */
 		goto ignore;
 	}
 
@@ -697,7 +702,7 @@ static bool
 process_preprocessed_file(struct mdfour *hash, const char *path)
 {
 	char *data;
-	char *p, *q, *end;
+	char *p, *q, *r, *end;
 	size_t size;
 
 	if (!read_file(path, 0, &data, &size)) {
@@ -746,6 +751,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		            && q[5] == ' '))
 		    && (q == data || q[-1] == '\n')) {
 			char *path;
+			bool system;
 
 			while (q < end && *q != '"' && *q != '\n') {
 				q++;
@@ -766,12 +772,20 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			while (q < end && *q != '"') {
 				q++;
 			}
+			/* look for preprocessor flags, after the "filename" */
+			system = false;
+			r = q + 1;
+			while (r < end && *r != '\n') {
+				if (*r == '3') /* system header */
+					system = true;
+				r++;
+			}
 			/* p and q span the include file path */
 			path = x_strndup(p, q - p);
 			path = make_relative_path(path);
 			hash_string(hash, path);
-			remember_include_file(path, hash);
-			p = q;
+			remember_include_file(path, hash, system);
+			p = r;
 		} else {
 			q++;
 		}
@@ -786,7 +800,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
 		hash_string(hash, path);
-		remember_include_file(path, hash);
+		remember_include_file(path, hash, false);
 	}
 
 	return true;
