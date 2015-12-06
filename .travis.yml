@@ -1,0 +1,34 @@
+language: c
+
+addons:
+    apt:
+        packages:
+            - zlib1g-dev
+
+os:
+    - linux
+    - osx
+
+compiler:
+    - clang
+    - gcc
+
+matrix:
+    include:
+        - os: linux
+          compiler: clang
+          env: CFLAGS="-fsanitize=address -g" ASAN_OPTIONS="detect_leaks=0"
+    exclude:
+        - os: osx
+          compiler: gcc
+
+script:
+    - ./autogen.sh
+    - ./configure
+    - make
+    - if [ "$CC" == "gcc" ]; then
+          ./test.sh;
+      fi
+
+#notifications:
+#    email: ccache@lists.samba.org
