@@ -44,6 +44,7 @@ unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
+unset CCACHE_MEMCACHED_CONF
 unset GCC_COLORS
 
 # Many tests backdate files, which updates their ctimes.  In those tests, we
@@ -58,6 +59,11 @@ test_failed() {
     cd ..
     echo TEST FAILED
     echo "Test data and log file have been left in $TESTDIR"
+    tail -n 50 $CCACHE_LOGFILE
+    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
+        memstat --servers=localhost:22122
+        kill %1
+    fi
     exit 1
 }
 
@@ -271,6 +277,10 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 4
     compare_file reference_test1.o test1.o
+
+    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
+        return
+    fi
 
     # strictly speaking should be 4 - RECACHE causes a double counting!
     checkstat 'files in cache' 4
@@ -741,6 +751,27 @@ nlevels1_suite() {
     export CCACHE_NLEVELS
     base_tests
     unset CCACHE_NLEVELS
+}
+
+memcached_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    memcached -p 22122 &
+    memcached_pid=$!
+    base_tests
+    kill $memcached_pid
+    unset CCACHE_MEMCACHED_CONF
+}
+
+memcached_socket_suite() {
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    export CCACHE_MEMCACHED_CONF=--SOCKET=\"/tmp/memcached.$$\"
+    memcached -s /tmp/memcached.$$ &
+    memcached_pid=$!
+    base_tests
+    kill $memcached_pid
+    rm /tmp/memcached.$$
+    unset CCACHE_MEMCACHED_CONF
 }
 
 direct_suite() {
@@ -2548,6 +2579,8 @@ cleanup
 pch
 upgrade
 prefix
+memcached
+memcached_socket !win32
 "
 
 case $host_os in

@@ -82,6 +82,19 @@ dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
 
+AC_ARG_ENABLE(memcached,
+  [AS_HELP_STRING([--enable-memcached],
+    [enable memcached as a cache backend])])
+
+dnl enable-memcached: Check if -lmemcached is needed.
+if test x${enable_memcached} != x; then
+    AC_CHECK_LIB(memcached, memcached,[],[
+    echo '  WARNING: recent version libmemcached not found'
+    echo '  please install libmemcached>1.0 with development files'
+    exit 1
+    ])
+fi
+
 dnl Check for zlib
 AC_ARG_WITH(bundled-zlib,
   [AS_HELP_STRING([--with-bundled-zlib],

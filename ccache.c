@@ -106,6 +106,9 @@ static char *output_dia = NULL;
  *  up). Contains pathname if not NULL. */
 static char *output_dwo = NULL;
 
+/* the cached key */
+static char *cached_key;
+
 /*
  * Name (represented as a struct file_hash) of the file containing the cached
  * object code.
@@ -966,6 +969,10 @@ to_cache(struct args *args)
 {
 	char *tmp_stdout, *tmp_stderr, *tmp_cov;
 	char *tmp_dwo = NULL;
+#ifdef HAVE_LIBMEMCACHED
+	char *data_obj, *data_stderr, *data_dia, *data_dep;
+	size_t size_obj, size_stderr, size_dia, size_dep;
+#endif
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
 
@@ -1225,6 +1232,39 @@ to_cache(struct args *args)
 		}
 	}
 
+#ifdef HAVE_LIBMEMCACHED
+	if (strlen(conf->memcached_conf) > 0 &&
+	    !using_split_dwarf && /* no support for the dwo files just yet */
+	    !generating_coverage) { /* coverage refers to local paths anyway */
+		cc_log("Storing %s in memcached", cached_key);
+		if (!read_file(cached_obj, 0, &data_obj, &size_obj)) {
+			data_obj = NULL;
+			size_obj = 0;
+		}
+		if (!read_file(cached_stderr, 0, &data_stderr, &size_stderr)) {
+			data_stderr = NULL;
+			size_stderr = 0;
+		}
+		if (!read_file(cached_dia, 0, &data_dia, &size_dia)) {
+			data_dia = NULL;
+			size_dia = 0;
+		}
+		if (!read_file(cached_dep, 0, &data_dep, &size_dep)) {
+			data_dep = NULL;
+			size_dep = 0;
+		}
+
+		if (data_obj)
+			memccached_set(cached_key,
+			               data_obj, data_stderr, data_dia, data_dep,
+			               size_obj, size_stderr, size_dia, size_dep);
+
+		free(data_obj);
+		free(data_stderr);
+		free(data_dia);
+		free(data_dep);
+	}
+#endif
 	/* Everything OK. */
 	send_cached_stderr();
 	update_manifest_file();
@@ -1351,6 +1391,7 @@ update_cached_result_globals(struct file_hash *hash)
 {
 	char *object_name;
 	object_name = format_hash_as_string(hash->hash, hash->size);
+	cached_key = strdup(object_name);
 	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
@@ -1770,6 +1811,11 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
 	struct stat st;
 	bool produce_dep_file = false;
+#if HAVE_LIBMEMCACHED
+	void *cache = NULL;
+	char *data_obj, *data_stderr, *data_dia, *data_dep;
+	size_t size_obj, size_stderr, size_dia, size_dep;
+#endif
 
 	/* the user might be disabling cache hits */
 	if (conf->recache) {
@@ -1778,6 +1824,26 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
+#if HAVE_LIBMEMCACHED
+		if (strlen(conf->memcached_conf) > 0 &&
+		    !using_split_dwarf &&
+		    !generating_coverage) {
+			cc_log("Getting %s from memcached", cached_key);
+			cache = memccached_get(cached_key,
+			                       &data_obj, &data_stderr, &data_dia, &data_dep,
+			                       &size_obj, &size_stderr, &size_dia, &size_dep);
+		}
+		if (cache) {
+			write_file(data_obj, cached_obj, size_obj);
+			if (size_stderr > 0)
+				write_file(data_stderr, cached_stderr, size_stderr);
+			if (size_dia > 0)
+				write_file(data_dia, cached_dia, size_dia);
+			if (size_dep > 0)
+				write_file(data_dep, cached_dep, size_dep);
+			memccached_free(cache);
+		} else
+#endif
 		return;
 	}
 
@@ -2946,6 +3012,11 @@ initialize(void)
 		create_initial_config_file(conf, primary_config_path);
 	}
 
+#ifdef HAVE_LIBMEMCACHED
+	if (strlen(conf->memcached_conf) > 0) {
+		memccached_init(conf->memcached_conf);
+	}
+#endif
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_pending_tmp_files);
@@ -2977,6 +3048,7 @@ cc_reset(void)
 	free(output_dep); output_dep = NULL;
 	free(output_cov); output_cov = NULL;
 	free(output_dia); output_dia = NULL;
+	free(cached_key); cached_key = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
 	free(cached_dwo); cached_dwo = NULL;
@@ -3004,6 +3076,10 @@ cc_reset(void)
 	free(cpp_stderr); cpp_stderr = NULL;
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
+
+#ifdef HAVE_LIBMEMCACHED
+	memccached_release();
+#endif
 
 	conf = conf_create();
 	using_split_dwarf = false;

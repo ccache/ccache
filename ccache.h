@@ -183,6 +183,20 @@ char *read_text_file(const char *path, size_t size_hint);
 char *subst_env_in_string(const char *str, char **errmsg);
 
 /* ------------------------------------------------------------------------- */
+/* memccached.c */
+int memccached_init(char * conf);
+int memccached_raw_set(const char *key, const char* data, size_t len);
+int memccached_set(const char *key,
+                   const char *out, const char *stderr, const char *dia, const char *dep,
+                   size_t out_len, size_t stderr_len, size_t dia_len, size_t dep_len);
+void *memccached_raw_get(const char *key, char **data, size_t *len);
+void* memccached_get(const char *key,
+                     char **out, char **stderr, char **dia, char **dep,
+                     size_t *out_len, size_t *stderr_len, size_t *dia_len, size_t *dep_len);
+void memccached_free(void *blob);
+int memccached_release(void);
+
+/* ------------------------------------------------------------------------- */
 /* stats.c */
 
 void stats_update(enum stats stat);
