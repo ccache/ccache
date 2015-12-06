@@ -133,6 +133,9 @@ static char *cached_stderr;
  */
 static char *cached_dep;
 
+/* the manifest key */
+static char *manifest_name;
+
 /*
  * Full path to the file containing the coverage information
  * (cachedir/a/b/cdef[...]-size.gcno).
@@ -941,6 +944,10 @@ void update_manifest_file(void)
 {
 	struct stat st;
 	size_t old_size = 0; /* in bytes */
+#ifdef HAVE_LIBMEMCACHED
+	char *data;
+	size_t size;
+#endif
 
 	if (!conf->direct_mode
 	    || !included_files
@@ -957,6 +964,15 @@ void update_manifest_file(void)
 		update_mtime(manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+#if HAVE_LIBMEMCACHED
+			if (conf->memcached_conf) {
+				if (read_file(manifest_path, st.st_size, &data, &size)) {
+					cc_log("Storing %s in memcached", manifest_name);
+					memccached_raw_set(manifest_name, data, size);
+					free(data);
+				}
+			}
+#endif
 		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
@@ -1584,6 +1600,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct stat st;
 	struct file_hash *object_hash = NULL;
 	char *p;
+#if HAVE_LIBMEMCACHED
+	void *cache = NULL;
+	char *data;
+	size_t size;
+#endif
 
 	if (direct_mode) {
 		hash_delimiter(hash, "manifest version");
@@ -1740,7 +1761,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	}
 
 	if (direct_mode) {
-		char *manifest_name;
 		int result;
 
 		/* Hash environment variables that affect the preprocessor output. */
@@ -1783,7 +1803,21 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 		manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
-		free(manifest_name);
+		/* Check if the manifest file is there. */
+		if (stat(manifest_path, &st) != 0) {
+			cc_log("Manifest file %s not in cache", manifest_path);
+#if HAVE_LIBMEMCACHED
+			if (conf->memcached_conf) {
+				cc_log("Getting %s from memcached", manifest_name);
+				cache = memccached_raw_get(manifest_name, &data, &size);
+			}
+			if (cache) {
+				write_file(data, manifest_path, size);
+				free(cache);
+			} else
+#endif
+			return NULL;
+		}
 		cc_log("Looking for object file hash in %s", manifest_path);
 		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {
@@ -3056,6 +3090,7 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
 	free(cached_dia); cached_dia = NULL;
+	free(manifest_name); manifest_name = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (i = 0; i < ignore_headers_len; i++) {
