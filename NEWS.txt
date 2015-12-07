@@ -21,6 +21,8 @@ Bug fixes
 
 - Fixed build on Solaris 10+ and AIX 7.
 
+- Fixed failure to create directories on QNX.
+
 
 ccache 3.2.4
 ------------
