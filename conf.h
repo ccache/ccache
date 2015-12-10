@@ -13,6 +13,7 @@ struct conf {
 	unsigned compression_level;
 	char *cpp_extension;
 	bool direct_mode;
+	bool directives_only;
 	bool disable;
 	char *extra_files_to_hash;
 	bool hard_link;

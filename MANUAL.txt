@@ -341,6 +341,14 @@ WRAPPERS>>.
     If true, the direct mode will be used. The default is true. See
     <<_the_direct_mode,THE DIRECT MODE>>.
 
+*directives_only* (*CCACHE_DIRECTIVESONLY*) [boolean]::
+
+    If true, handle directives but do not expand macros while preprocessing.
+    For a typical C++ file, this reduces the preprocessing time by about 30%.
+    The preprocessing (-E) is limited to the handling of directives such as
+    "#define", "#ifdef", and "#error" (-fdirectives-only). Requires GCC 4.3+.
+    The default is false.
+
 *disable* (*CCACHE_DISABLE*) [boolean]::
 
     When true, ccache will just call the real compiler, bypassing the cache

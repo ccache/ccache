@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 28
+#define N_CONFIG_ITEMS 29
 static struct {
 	char *descr;
 	const char *origin;
@@ -60,6 +60,7 @@ TEST(conf_create)
 	CHECK_INT_EQ(6, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(conf->direct_mode);
+	CHECK(!conf->directives_only);
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
 	CHECK(!conf->hard_link);
@@ -104,6 +105,7 @@ TEST(conf_read_valid_config)
 	  "compression_level= 2\n"
 	  "cpp_extension = .foo\n"
 	  "direct_mode = false\n"
+	  "directives_only = false\n"
 	  "disable = true\n"
 	  "extra_files_to_hash = a:b c:$USER\n"
 	  "hard_link = true\n"
@@ -135,6 +137,7 @@ TEST(conf_read_valid_config)
 	CHECK_INT_EQ(2, conf->compression_level);
 	CHECK_STR_EQ(".foo", conf->cpp_extension);
 	CHECK(!conf->direct_mode);
+	CHECK(!conf->directives_only);
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
 	CHECK(conf->hard_link);
@@ -358,6 +361,7 @@ TEST(conf_print_items)
 		8,
 		"ce",
 		false,
+		false,
 		true,
 		"efth",
 		true,
@@ -399,6 +403,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("compression_level = 8", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
+	CHECK_STR_EQ("directives_only = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
