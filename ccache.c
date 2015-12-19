@@ -2044,11 +2044,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-		/* Multiple -arch options are too hard. */
+		/* Different -arch options are too hard. */
 		if (str_eq(argv[i], "-arch")) {
 			if (found_arch) {
 				if (!str_eq(found_arch, argv[i+1])) {
-					cc_log("More than one different -arch compiler options is unsupported. Found %s and %s.", found_arch, argv[i+1]);
+					cc_log("Different -arch compiler options are unsupported; found %s"
+					       " and %s", found_arch, argv[i+1]);
 					stats_update(STATS_UNSUPPORTED);
 					result = false;
 					goto out;
