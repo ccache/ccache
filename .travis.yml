@@ -29,6 +29,3 @@ script:
     - if [ "$CC" = "gcc" ]; then
           ./test.sh;
       fi
-
-#notifications:
-#    email: ccache@lists.samba.org
