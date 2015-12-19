@@ -776,8 +776,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			system = false;
 			r = q + 1;
 			while (r < end && *r != '\n') {
-				if (*r == '3') /* system header */
+				if (*r == '3') { /* system header */
 					system = true;
+				}
 				r++;
 			}
 			/* p and q span the include file path */
