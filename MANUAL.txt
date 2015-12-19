@@ -447,16 +447,16 @@ WRAPPERS>>.
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
     matching its cached version if the sizes, mtimes and ctimes match.
-*no_system_headers*::
-    By default, ccache will also include all system headers in the manifest.
-    With this option set, ccache will only include system headers in the hash
-    but not add the system header files to the list of include files.
 *include_file_ctime*::
     By default, ccache also will not cache a file if it includes a header whose
     ctime is too new. This option disables that check.
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
     mtime is too new. This option disables that check.
+*no_system_headers*::
+    By default, ccache will also include all system headers in the manifest.
+    With this option set, ccache will only include system headers in the hash
+    but not add the system header files to the list of include files.
 *pch_defines*::
     Be sloppy about #defines when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
