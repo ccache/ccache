@@ -10,6 +10,9 @@ New features and improvements
 
 - Added support for cuda including the -optf/--options-file option.
 
+- Added new sloppiness option `no_system_headers`, which tells ccache not to
+  include system headers in manifest files.
+
 
 Bug fixes
 ~~~~~~~~~
