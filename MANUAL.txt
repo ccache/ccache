@@ -792,7 +792,7 @@ improve performance.
 
 Since ccache works best when I/O is fast, put the cache directory on a fast
 storage device if possible. Having lots of free memory so that files in the
-cache directory stay in the disk cache is also preferrable.
+cache directory stay in the disk cache is also preferable.
 
 A good way of monitoring how well ccache works is to run *ccache -s* before and
 after your build and then compare the statistics counters. Here are some common
@@ -866,7 +866,7 @@ Errors when compiling with ccache
 
 If compilation doesn't work with ccache, but it works without it, one possible
 reason is that the compiler can't compile preprocessed output correctly. A
-workaround that may work is to enable *run_second_cpp**. This will make cache
+workaround that may work is to enable *run_second_cpp*. This will make cache
 misses slower, though, so it is better to find and fix the root cause.
 
 
