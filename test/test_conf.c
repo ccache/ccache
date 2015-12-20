@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 27
+#define N_CONFIG_ITEMS 28
 static struct {
 	char *descr;
 	const char *origin;
@@ -64,6 +64,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
 	CHECK(!conf->hard_link);
 	CHECK(!conf->hash_dir);
+	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
@@ -107,6 +108,7 @@ TEST(conf_read_valid_config)
 	  "extra_files_to_hash = a:b c:$USER\n"
 	  "hard_link = true\n"
 	  "hash_dir = true\n"
+	  "ignore_headers_in_manifest = a:b/c\n"
 	  "log_file = $USER${USER} \n"
 	  "max_files = 17\n"
 	  "max_size = 123M\n"
@@ -137,6 +139,7 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
 	CHECK(conf->hard_link);
 	CHECK(conf->hash_dir);
+	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
 	CHECK_INT_EQ(17, conf->max_files);
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
@@ -359,6 +362,7 @@ TEST(conf_print_items)
 		"efth",
 		true,
 		true,
+		"ihim",
 		"lf",
 		4711,
 		98.7 * 1000 * 1000,
@@ -399,6 +403,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("ignore_headers_in_manifest = ihim", received_conf_items[n++].descr);
 	CHECK_STR_EQ("log_file = lf", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);

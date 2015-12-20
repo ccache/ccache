@@ -315,6 +315,7 @@ conf_create(void)
 	conf->extra_files_to_hash = x_strdup("");
 	conf->hard_link = false;
 	conf->hash_dir = false;
+	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
@@ -348,6 +349,7 @@ conf_free(struct conf *conf)
 	free(conf->compiler_check);
 	free(conf->cpp_extension);
 	free(conf->extra_files_to_hash);
+	free(conf->ignore_headers_in_manifest);
 	free(conf->log_file);
 	free(conf->path);
 	free(conf->prefix_command);
@@ -565,6 +567,10 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "hash_dir = %s", bool_to_string(conf->hash_dir));
 	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
+
+	reformat(&s, "ignore_headers_in_manifest = %s", conf->ignore_headers_in_manifest);
+	printer(s, conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
+	        context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
 	printer(s, conf->item_origins[find_conf("log_file")->number], context);
