@@ -581,7 +581,10 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		if (ignore_len > path_len) {
 			continue;
 		}
-		if (strncmp(path, ignore, ignore_len) == 0) {
+		if (strncmp(path, ignore, ignore_len) == 0
+		    && (ignore[ignore_len-1] == DIR_DELIM_CH
+		        || path[ignore_len] == DIR_DELIM_CH
+		        || path[ignore_len] == '\0')) {
 			goto ignore;
 		}
 	}
