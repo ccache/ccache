@@ -737,7 +737,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		q = p;
 		while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
 			ignore_headers = x_realloc(ignore_headers,
-			                           (ignore_headers_len+1) * sizeof(char*));
+			                           (ignore_headers_len+1) * sizeof(char *));
 			ignore_headers[ignore_headers_len++] = x_strdup(header);
 			q = NULL;
 		}

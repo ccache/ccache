@@ -403,7 +403,8 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
-	CHECK_STR_EQ("ignore_headers_in_manifest = ihim", received_conf_items[n++].descr);
+	CHECK_STR_EQ("ignore_headers_in_manifest = ihim",
+	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("log_file = lf", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);

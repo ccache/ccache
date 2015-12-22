@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Joel Rosdahl
+ * Copyright (C) 2011-2015 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -568,8 +568,10 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "hash_dir = %s", bool_to_string(conf->hash_dir));
 	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
 
-	reformat(&s, "ignore_headers_in_manifest = %s", conf->ignore_headers_in_manifest);
-	printer(s, conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
+	reformat(&s, "ignore_headers_in_manifest = %s",
+	         conf->ignore_headers_in_manifest);
+	printer(s,
+	        conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
 	        context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
