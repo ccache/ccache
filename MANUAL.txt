@@ -377,9 +377,10 @@ WRAPPERS>>.
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
     This setting is a list of paths to files (or directories with headers) that
-    ccache will *not* include in the manifest list that makes up the direct mode.
-    Note that this can cause stale cache hits, if those headers do indeed change.
-    The list separator is semicolon on Windows systems and colon on other systems.
+    ccache will *not* include in the manifest list that makes up the direct
+    mode. Note that this can cause stale cache hits if those headers do indeed
+    change. The list separator is semicolon on Windows systems and colon on
+    other systems.
 
 *log_file* (*CCACHE_LOGFILE*)::
 
