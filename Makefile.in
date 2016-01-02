@@ -22,11 +22,32 @@ all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 extra_libs = @extra_libs@
 
-base_sources = \
-    ccache.c mdfour.c hash.c execute.c util.c args.c stats.c version.c \
-    cleanup.c snprintf.c unify.c manifest.c hashtable.c hashtable_itr.c \
-    murmurhashneutral2.c hashutil.c getopt_long.c exitfn.c lockfile.c \
-    counters.c language.c compopt.c conf.c
+non_3pp_sources = \
+    args.c \
+    ccache.c \
+    cleanup.c \
+    compopt.c \
+    conf.c \
+    counters.c \
+    execute.c \
+    exitfn.c \
+    hash.c \
+    hashutil.c \
+    language.c \
+    lockfile.c \
+    manifest.c \
+    mdfour.c \
+    stats.c \
+    unify.c \
+    util.c \
+    version.c
+3pp_sources = \
+    getopt_long.c \
+    hashtable.c \
+    hashtable_itr.c \
+    murmurhashneutral2.c \
+    snprintf.c
+base_sources = $(non_3pp_sources) $(3pp_sources)
 base_objs = $(base_sources:.c=.o)
 
 ccache_sources = main.c $(base_sources)

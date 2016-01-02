@@ -4,6 +4,8 @@ all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 ASCIIDOC = asciidoc
+CPPCHECK = cppcheck
+CPPCHECK_SUPPRESSIONS = cppcheck-suppressions.txt
 GPERF = gperf
 XSLTPROC = xsltproc
 MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
@@ -150,6 +152,12 @@ ccache.1: MANUAL.xml
 .PHONY: check-syntax
 check-syntax:
 	$(CC) $(all_cppflags) -I. $(all_cflags) -S -o /dev/null $(CHK_SOURCES)
+
+.PHONY: cppcheck
+cppcheck:
+	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
+	  --inline-suppr -q --enable=all \
+	  $(non_3pp_sources) main.c $(test_sources)
 
 .PHONY: uncrustify
 uncrustify:
