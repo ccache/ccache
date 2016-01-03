@@ -84,6 +84,7 @@ win32argvtos(char *prefix, char **argv)
 			*ptr++ = '\\';
 		*ptr++ = '"';
 		*ptr++ = ' ';
+		/* cppcheck-suppress unreadVariable */
 	} while ((arg = argv[i++]));
 	ptr[-1] = '\0';
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -83,9 +83,10 @@ exitfn_add(void (*function)(void *), void *context)
 void
 exitfn_call(void)
 {
-	struct exit_function *p = exit_functions, *q;
+	struct exit_function *p = exit_functions;
 	exit_functions = NULL;
 	while (p) {
+		struct exit_function *q;
 		p->function(p->context);
 		q = p;
 		p = p->next;

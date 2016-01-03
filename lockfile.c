@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -130,6 +130,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		}
 		free(content);
 		content = x_readlink(lockfile);
+		/* cppcheck-suppress nullPointer - false positive */
 		if (!content) {
 			if (errno == ENOENT) {
 				/*

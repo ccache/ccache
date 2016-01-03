@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2015 Joel Rosdahl
+ * Copyright (C) 2009-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -380,17 +380,14 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
               struct hashtable *stated_files, struct hashtable *hashed_files)
 {
 	uint32_t i;
-	struct file_info *fi;
 	struct file_hash *actual;
-	struct file_stats *st;
 	struct mdfour hash;
 	int result;
-	char *path;
 
 	for (i = 0; i < obj->n_file_info_indexes; i++) {
-		fi = &mf->file_infos[obj->file_info_indexes[i]];
-		path = mf->files[fi->index];
-		st = hashtable_search(hashed_files, path);
+		struct file_info *fi = &mf->file_infos[obj->file_info_indexes[i]];
+		char *path = mf->files[fi->index];
+		struct file_stats *st = hashtable_search(hashed_files, path);
 		if (!st) {
 			struct stat file_stat;
 			if (x_stat(path, &file_stat) != 0) {
@@ -555,8 +552,6 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 {
 	struct hashtable_itr *iter;
 	uint32_t i;
-	char *path;
-	struct file_hash *file_hash;
 	struct hashtable *mf_files; /* path --> index */
 	struct hashtable *mf_file_infos; /* struct file_info --> index */
 
@@ -569,8 +564,8 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 	iter = hashtable_iterator(included_files);
 	i = 0;
 	do {
-		path = hashtable_iterator_key(iter);
-		file_hash = hashtable_iterator_value(iter);
+		char *path = hashtable_iterator_key(iter);
+		struct file_hash *file_hash = hashtable_iterator_value(iter);
 		indexes[i] = get_file_hash_index(mf, path, file_hash, mf_files,
 		                                 mf_file_infos);
 		i++;

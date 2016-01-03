@@ -160,7 +160,6 @@ char *strtok_r(char *str, const char *delim, char **saveptr);
 #endif
 int create_tmp_fd(char **fname);
 FILE *create_tmp_file(char **fname, const char *mode);
-void create_empty_tmp_file(char **fname);
 const char *get_home_directory(void);
 char *get_cwd(void);
 bool same_executable_name(const char *s1, const char *s2);

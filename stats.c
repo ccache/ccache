@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002-2004 Andrew Tridgell
- * Copyright (C) 2009-2015 Joel Rosdahl
+ * Copyright (C) 2009-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -110,11 +110,10 @@ parse_stats(struct counters *counters, const char *buf)
 	size_t i = 0;
 	const char *p;
 	char *p2;
-	long val;
 
 	p = buf;
 	while (true) {
-		val = strtol(p, &p2, 10);
+		long val = strtol(p, &p2, 10);
 		if (p2 == p) {
 			break;
 		}
