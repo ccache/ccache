@@ -801,6 +801,9 @@ put_file_in_cache(const char *source, const char *dest)
 	struct stat st;
 	bool do_link = conf->hard_link && !conf->compression;
 
+	assert(!conf->read_only);
+	assert(!conf->read_only_direct);
+
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
@@ -1809,7 +1812,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_mtime(cached_dwo);
 	}
 
-	if (generating_dependencies && mode == FROMCACHE_CPP_MODE) {
+	if (generating_dependencies && mode == FROMCACHE_CPP_MODE
+	    && !conf->read_only && !conf->read_only_direct) {
 		put_file_in_cache(output_dep, cached_dep);
 	}
 
