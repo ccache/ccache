@@ -89,6 +89,9 @@ static struct args *orig_args;
 /* the source file */
 static char *input_file;
 
+/* the source charset (if any) */
+static char *input_charset = NULL;
+
 /* The output file being compiled to. */
 static char *output_obj;
 
@@ -1280,6 +1283,14 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		add_pending_tmp_file(path_stdout);
 
 		args_add(args, "-E");
+		if (conf->directives_only) {
+			if (conf->unify)
+				cc_log("Disabling directives only due to unify mode");
+			else if (input_charset)
+				cc_log("Disabling directives only due to input charset");
+			else
+				args_add(args, "-fdirectives-only");
+		}
 		args_add(args, input_file);
 		cc_log("Running preprocessor");
 		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
@@ -1966,7 +1977,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
 	const char *actual_language;          /* Language to actually use. */
-	const char *input_charset = NULL;
 	struct stat st;
 	/* is the dependency makefile name overridden with -MF? */
 	bool dependency_filename_specified = false;

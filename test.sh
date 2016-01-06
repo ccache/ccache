@@ -25,6 +25,7 @@ unset CCACHE_COMPILERCHECK
 unset CCACHE_COMPRESS
 unset CCACHE_CPP2
 unset CCACHE_DIR
+unset CCACHE_DIRECTIVESONLY
 unset CCACHE_DISABLE
 unset CCACHE_EXTENSION
 unset CCACHE_EXTRAFILES
@@ -322,7 +323,11 @@ base_tests() {
     $CCACHE -C >/dev/null
 
     testname="cpp call"
-    $CCACHE_COMPILE -c test1.c -E > test1.i
+    if [ -n "$CCACHE_DIRECTIVESONLY" ]; then
+        # needs to match what ccache uses
+        directives_only="-fdirectives-only"
+    fi
+    $CCACHE_COMPILE -c test1.c -E $directives_only > test1.i
     checkstat 'cache hit (preprocessed)' 8
     checkstat 'cache miss' 37
 
@@ -363,8 +368,13 @@ base_tests() {
     checkstat 'cache miss' 39
     checkstat 'unsupported source language' 2
 
-    testname="-D not hashed"
-    $CCACHE_COMPILE -DNOT_AFFECTING=1 -c test1.c 2>/dev/null
+    if [ -z "$CCACHE_DIRECTIVESONLY" ]; then
+        testname="-D not hashed"
+        $CCACHE_COMPILE -DNOT_AFFECTING=1 -c test1.c 2>/dev/null
+    else
+        # macros are included in directives
+        $CCACHE_COMPILE -c test1.c 2>/dev/null
+    fi
     checkstat 'cache hit (preprocessed)' 14
     checkstat 'cache miss' 39
 
@@ -1480,6 +1490,18 @@ EOF
     fi
 }
 
+directivesonly_suite() {
+    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
+        CCACHE_COMPILE="$CCACHE $COMPILER"
+        CCACHE_DIRECTIVESONLY=1
+        export CCACHE_DIRECTIVESONLY
+        base_tests
+        unset CCACHE_DIRECTIVESONLY
+    else
+        echo "Not GCC, not running the -fdirectives-only test"
+    fi
+}
+
 basedir_suite() {
     ##################################################################
     # Create some code to compile.
@@ -2539,6 +2561,7 @@ nlevels4
 nlevels1
 basedir       !win32
 direct
+directivesonly
 compression
 readonly
 readonly_direct

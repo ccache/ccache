@@ -311,6 +311,7 @@ conf_create(void)
 	conf->compression_level = 6;
 	conf->cpp_extension = x_strdup("");
 	conf->direct_mode = true;
+	conf->directives_only = false;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
 	conf->hard_link = false;
@@ -554,6 +555,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "direct_mode = %s", bool_to_string(conf->direct_mode));
 	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);
+
+	reformat(&s, "directives_only = %s", bool_to_string(conf->directives_only));
+	printer(s, conf->item_origins[find_conf("directives_only")->number], context);
 
 	reformat(&s, "disable = %s", bool_to_string(conf->disable));
 	printer(s, conf->item_origins[find_conf("disable")->number], context);
