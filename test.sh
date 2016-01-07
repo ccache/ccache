@@ -2594,10 +2594,15 @@ cleanup
 pch
 upgrade
 prefix
+"
+
+if [ ! -z $CCACHE_MEMCACHED ]; then
+    all_suites="$all_suites
 memcached
 memcached_only
 memcached_socket !win32
 "
+fi
 
 case $host_os in
     *MINGW*|*mingw*)
