@@ -415,8 +415,8 @@ error:
 int safe_write(int fd_out, const char *data, size_t length)
 {
 	size_t written = 0;
-	int ret;
 	do {
+		int ret;
 		ret = write(fd_out, data + written, length - written);
 		if (ret < 0) {
 			if (errno != EAGAIN && errno != EINTR)

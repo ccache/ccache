@@ -1309,7 +1309,6 @@ static void
 to_memcached(struct args *args)
 {
 	const char *tmp_dir = temp_dir();
-	int added_bytes = 0;
 	char *tmp_stdout, *tmp_stderr;
 	char *stderr_d, *obj_d, *dia_d = NULL, *dep_d = NULL;
 	size_t stderr_l = 0,  obj_l = 0,  dia_l = 0, dep_l = 0;
@@ -1456,7 +1455,6 @@ to_memcached(struct args *args)
 		failed();
 	}
 	tmp_unlink(tmp_stderr);
-	added_bytes += stderr_l;
 
 	if (output_dia) {
 		if (x_stat(output_dia, &st) != 0) {
@@ -1468,7 +1466,6 @@ to_memcached(struct args *args)
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		added_bytes += dia_l;
 	}
 
 	/* cache output */
@@ -1482,7 +1479,6 @@ to_memcached(struct args *args)
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		added_bytes += dep_l;
 	}
 
 	if (memccached_set(cached_key, obj_d, stderr_d, dia_d, dep_d,
@@ -1837,7 +1833,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	struct file_hash *object_hash = NULL;
 	char *p;
 #if HAVE_LIBMEMCACHED
-	void *cache = NULL;
 	char *data;
 	size_t size;
 #endif
@@ -2041,6 +2036,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		/* Check if the manifest file is there. */
 		if (stat(manifest_path, &st) != 0) {
+#if HAVE_LIBMEMCACHED
+			void *cache = NULL;
+#endif
 			cc_log("Manifest file %s not in cache", manifest_path);
 #if HAVE_LIBMEMCACHED
 			if (conf->memcached_conf) {
@@ -2082,7 +2080,6 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	struct stat st;
 	bool produce_dep_file = false;
 #if HAVE_LIBMEMCACHED
-	void *cache = NULL;
 	char *data_obj, *data_stderr, *data_dia, *data_dep;
 	size_t size_obj, size_stderr, size_dia, size_dep;
 #endif
@@ -2093,6 +2090,9 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	if (stat(cached_obj, &st) != 0) {
+#if HAVE_LIBMEMCACHED
+		void *cache = NULL;
+#endif
 		cc_log("Object file %s not in cache", cached_obj);
 #if HAVE_LIBMEMCACHED
 		if (strlen(conf->memcached_conf) > 0 &&

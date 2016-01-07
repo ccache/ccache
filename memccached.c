@@ -59,10 +59,9 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 	int numkeys;
 	struct mdfour md;
 	char subkey[20];
-	size_t n, remain;
+	size_t n;
 	memcached_return_t ret;
 	size_t x;
-	char *s;
 
 	numkeys = (value_length + SPLIT_VALUE_SIZE - 1) / SPLIT_VALUE_SIZE;
 	buflen = 20 + 20 * numkeys;
@@ -79,6 +78,9 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 	p += 20;
 
 	for (x = 0; x < value_length; x += n) {
+		size_t remain;
+		char *s;
+
 		remain = value_length - x;
 		n = remain > SPLIT_VALUE_SIZE ? SPLIT_VALUE_SIZE : remain;
 
@@ -167,6 +169,10 @@ static char *memccached_big_get(memcached_st *ptr,
 	if (ret) {
 		cc_log("Failed to mget keys in memcached: %s",
 		       memcached_strerror(memc, ret));
+		for (i = 0; i < numkeys; i++)
+			free(keys[i]);
+		free(keys);
+		free(key_lengths);
 		return NULL;
 	}
 
