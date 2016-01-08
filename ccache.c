@@ -899,6 +899,30 @@ put_file_in_cache(const char *source, const char *dest)
 	stats_update_size(file_size(&st), 1);
 }
 
+#ifdef HAVE_LIBMEMCACHED
+/* Copy data to the cache. */
+static void
+put_data_in_cache(void *data, size_t size, const char *dest)
+{
+	int ret;
+
+	assert(!conf->read_only);
+	assert(!conf->read_only_direct);
+
+	/* already compressed (in cache) */
+	ret = write_file(data, dest, size);
+	if (ret != 0) {
+		cc_log("Failed to write to %s: %s",
+		       dest,
+		       strerror(errno));
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	cc_log("Stored in cache: %ld bytes -> %s", size, dest);
+	stats_update_size(size, 1);
+}
+#endif
+
 /* Copy or link a file from the cache. */
 static void
 get_file_from_cache(const char *source, const char *dest)
@@ -2046,7 +2070,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 				cache = memccached_raw_get(manifest_name, &data, &size);
 			}
 			if (cache) {
+				cc_log("Added object file hash to %s", manifest_path);
 				write_file(data, manifest_path, size);
+				stats_update_size(size, 1);
 				free(cache);
 			} else
 #endif
@@ -2104,13 +2130,13 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			                       &size_obj, &size_stderr, &size_dia, &size_dep);
 		}
 		if (cache) {
-			write_file(data_obj, cached_obj, size_obj);
+			put_data_in_cache(data_obj, size_obj, cached_obj);
 			if (size_stderr > 0)
-				write_file(data_stderr, cached_stderr, size_stderr);
+				put_data_in_cache(data_stderr, size_stderr, cached_stderr);
 			if (size_dia > 0)
-				write_file(data_dia, cached_dia, size_dia);
+				put_data_in_cache(data_dia, size_dia, cached_dia);
 			if (size_dep > 0)
-				write_file(data_dep, cached_dep, size_dep);
+				put_data_in_cache(data_dep, size_dep, cached_dep);
 			memccached_free(cache);
 		} else
 #endif
