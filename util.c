@@ -430,10 +430,51 @@ int safe_write(int fd_out, const char *data, size_t length)
 /* Write data to a file. */
 int write_file(const char *data, const char *dest, size_t length)
 {
-	int fd_out = safe_create_wronly(dest);
-	if (fd_out < 0)
+	int fd_out;
+	char *tmp_name;
+	int ret;
+	int saved_errno = 0;
+
+	tmp_name = x_strdup(dest);
+	fd_out = create_tmp_fd(&tmp_name);
+	if (fd_out < 0) {
+		tmp_unlink(tmp_name);
+		free(tmp_name);
 		return -1;
-	return safe_write(fd_out, data, length);
+	}
+
+	ret = safe_write(fd_out, data, length);
+	if (ret < 0) {
+		saved_errno = errno;
+		cc_log("write error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+#ifndef _WIN32
+	fchmod(fd_out, 0666 & ~get_umask());
+#endif
+
+	/* the close can fail on NFS if out of space */
+	if (close(fd_out) == -1) {
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	if (x_rename(tmp_name, dest) == -1) {
+		saved_errno = errno;
+		cc_log("rename error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	free(tmp_name);
+	return 0;
+
+error:
+	close(fd_out);
+	tmp_unlink(tmp_name);
+	free(tmp_name);
+	return -1;
 }
 
 /* Run copy_file() and, if successful, delete the source file. */
