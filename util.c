@@ -477,6 +477,7 @@ error:
 	close(fd_out);
 	tmp_unlink(tmp_name);
 	free(tmp_name);
+	errno = saved_errno;
 	return -1;
 }
 
