@@ -916,7 +916,7 @@ put_data_in_cache(void *data, size_t size, const char *dest)
 		stats_update(STATS_ERROR);
 		failed();
 	}
-	cc_log("Stored in cache: %ld bytes -> %s", size, dest);
+	cc_log("Stored in cache: %zu bytes -> %s", size, dest);
 	stats_update_size(size, 1);
 }
 #endif
