@@ -21,6 +21,8 @@ struct conf {
 	char *log_file;
 	unsigned max_files;
 	uint64_t max_size;
+	char *memcached_conf;
+	bool memcached_only;
 	char *path;
 	char *prefix_command;
 	bool read_only;
@@ -33,8 +35,6 @@ struct conf {
 	char *temporary_dir;
 	unsigned umask;
 	bool unify;
-	char *memcached_conf;
-	bool memcached_only;
 
 	const char **item_origins;
 };

@@ -411,6 +411,7 @@ error:
 	errno = saved_errno;
 	return -1;
 }
+
 /* Write data to a fd. */
 int safe_write(int fd_out, const char *data, size_t length)
 {
@@ -419,14 +420,16 @@ int safe_write(int fd_out, const char *data, size_t length)
 		int ret;
 		ret = write(fd_out, data + written, length - written);
 		if (ret < 0) {
-			if (errno != EAGAIN && errno != EINTR)
+			if (errno != EAGAIN && errno != EINTR) {
 				return ret;
+			}
 		} else {
 			written += ret;
 		}
 	} while (written < length);
 	return 0;
 }
+
 /* Write data to a file. */
 int write_file(const char *data, const char *dest, size_t length)
 {

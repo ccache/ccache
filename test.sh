@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2015 Joel Rosdahl
+# Copyright (C) 2009-2016 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -32,6 +32,8 @@ unset CCACHE_HARDLINK
 unset CCACHE_HASHDIR
 unset CCACHE_IGNOREHEADERS
 unset CCACHE_LOGFILE
+unset CCACHE_MEMCACHED_CONF
+unset CCACHE_MEMCACHED_ONLY
 unset CCACHE_NLEVELS
 unset CCACHE_NODIRECT
 unset CCACHE_NOSTATS
@@ -44,8 +46,6 @@ unset CCACHE_SLOPPINESS
 unset CCACHE_TEMPDIR
 unset CCACHE_UMASK
 unset CCACHE_UNIFY
-unset CCACHE_MEMCACHED_CONF
-unset CCACHE_MEMCACHED_ONLY
 unset GCC_COLORS
 
 # Many tests backdate files, which updates their ctimes.  In those tests, we

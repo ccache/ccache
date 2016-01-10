@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2015 Joel Rosdahl
+ * Copyright (C) 2011-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -319,6 +319,8 @@ conf_create(void)
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
+	conf->memcached_conf = x_strdup("");
+	conf->memcached_only = false;
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
 	conf->read_only = false;
@@ -331,8 +333,6 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
-	conf->memcached_conf = x_strdup("");
-	conf->memcached_only = false;
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
@@ -588,6 +588,12 @@ conf_print_items(struct conf *conf,
 	printer(s, conf->item_origins[find_conf("max_size")->number], context);
 	free(s2);
 
+	reformat(&s, "memcached_conf = %s", conf->memcached_conf);
+	printer(s, conf->item_origins[find_conf("memcached_conf")->number], context);
+
+	reformat(&s, "memcached_only = %s", bool_to_string(conf->memcached_only));
+	printer(s, conf->item_origins[find_conf("memcached_only")->number], context);
+
 	reformat(&s, "path = %s", conf->path);
 	printer(s, conf->item_origins[find_conf("path")->number], context);
 
@@ -652,12 +658,6 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "unify = %s", bool_to_string(conf->unify));
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
-
-	reformat(&s, "memcached_conf = %s", conf->memcached_conf);
-	printer(s, conf->item_origins[find_conf("memcached_conf")->number], context);
-
-	reformat(&s, "memcached_only = %s", bool_to_string(conf->memcached_only));
-	printer(s, conf->item_origins[find_conf("memcached_only")->number], context);
 
 	free(s);
 	return true;

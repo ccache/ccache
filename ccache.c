@@ -912,9 +912,7 @@ put_data_in_cache(void *data, size_t size, const char *dest)
 	/* already compressed (in cache) */
 	ret = write_file(data, dest, size);
 	if (ret != 0) {
-		cc_log("Failed to write to %s: %s",
-		       dest,
-		       strerror(errno));
+		cc_log("Failed to write to %s: %s", dest, strerror(errno));
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -1001,12 +999,11 @@ void update_manifest_file(void)
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 #if HAVE_LIBMEMCACHED
-			if (conf->memcached_conf && !conf->read_only_memcached) {
-				if (read_file(manifest_path, st.st_size, &data, &size)) {
-					cc_log("Storing %s in memcached", manifest_name);
-					memccached_raw_set(manifest_name, data, size);
-					free(data);
-				}
+			if (conf->memcached_conf && !conf->read_only_memcached &&
+			    read_file(manifest_path, st.st_size, &data, &size)) {
+				cc_log("Storing %s in memcached", manifest_name);
+				memccached_raw_set(manifest_name, data, size);
+				free(data);
 			}
 #endif
 		}
@@ -1306,10 +1303,11 @@ to_fscache(struct args *args)
 			size_dep = 0;
 		}
 
-		if (data_obj)
+		if (data_obj) {
 			memccached_set(cached_key,
 			               data_obj, data_stderr, data_dia, data_dep,
 			               size_obj, size_stderr, size_dia, size_dep);
+		}
 
 		free(data_obj);
 		free(data_stderr);
@@ -2131,12 +2129,15 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		}
 		if (cache) {
 			put_data_in_cache(data_obj, size_obj, cached_obj);
-			if (size_stderr > 0)
+			if (size_stderr > 0) {
 				put_data_in_cache(data_stderr, size_stderr, cached_stderr);
-			if (size_dia > 0)
+			}
+			if (size_dia > 0) {
 				put_data_in_cache(data_dia, size_dia, cached_dia);
-			if (size_dep > 0)
+			}
+			if (size_dep > 0) {
 				put_data_in_cache(data_dep, size_dep, cached_dep);
+			}
 			memccached_free(cache);
 		} else
 #endif
@@ -2278,7 +2279,7 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	cache = memccached_get(cached_key,
 	                       &data_obj, &data_stderr, &data_dia, &data_dep,
 	                       &size_obj, &size_stderr, &size_dia, &size_dep);
-	if (cache == NULL) {
+	if (!cache) {
 		return;
 	}
 

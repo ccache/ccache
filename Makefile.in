@@ -36,8 +36,8 @@ non_3pp_sources = \
     language.c \
     lockfile.c \
     manifest.c \
-    memccached.c \
     mdfour.c \
+    memccached.c \
     stats.c \
     unify.c \
     util.c \

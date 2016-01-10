@@ -8,7 +8,7 @@
 #define MEMCCACHE_MAGIC "CCH1"
 #define MEMCCACHE_BIG "CCBM"
 
-#define MAX_VALUE_SIZE (1000 << 10) // 1M with memcached overhead
+#define MAX_VALUE_SIZE (1000 << 10) /* 1M with memcached overhead */
 #define SPLIT_VALUE_SIZE MAX_VALUE_SIZE
 
 /* status variables for memcached */
@@ -17,7 +17,7 @@ static memcached_st *memc;
 int memccached_init(char *conf)
 {
 	memc = memcached(conf, strlen(conf));
-	if (memc == NULL) {
+	if (!memc) {
 		char errorbuf[1024];
 		libmemcached_check_configuration(conf, strlen(conf), errorbuf, 1024);
 		cc_log("Problem creating memcached with conf %s:\n%s\n", conf, errorbuf);
@@ -66,7 +66,7 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 	numkeys = (value_length + SPLIT_VALUE_SIZE - 1) / SPLIT_VALUE_SIZE;
 	buflen = 20 + 20 * numkeys;
 	buf = malloc(buflen);
-	if (buf == NULL)
+	if (!buf)
 		return -1;
 	p = buf;
 
@@ -131,25 +131,28 @@ static char *memccached_big_get(memcached_st *ptr,
 	int n;
 	int i;
 
-	if (value == NULL) {
+	if (!value) {
 		value = memcached_get(ptr, key, key_length, value_length, flags, error);
-		if (value == NULL)
+		if (!value) {
 			return NULL;
+		}
 	}
 
 	p = (char *) value;
-	if (memcmp(p, MEMCCACHE_BIG, 4) != 0)
+	if (memcmp(p, MEMCCACHE_BIG, 4) != 0) {
 		return NULL;
+	}
 	numkeys = ntohl(*(uint32_t *) (p + 4));
-	assert(16 == ntohl(*(uint32_t *) (p + 8)));
-	assert(0 == ntohl(*(uint32_t *) (p + 12)));
+	assert(ntohl(*(uint32_t *) (p + 8)) == 16);
+	assert(ntohl(*(uint32_t *) (p + 12)) == 0);
 	totalsize = ntohl(*(uint32_t *) (p + 16));
 	p += 20;
 
 	keys = malloc(sizeof(char *) * numkeys);
 	key_lengths = malloc(sizeof(size_t) * numkeys);
-	if (keys == NULL || key_lengths == NULL)
+	if (!keys || !key_lengths) {
 		return NULL;
+	}
 
 	buflen = 0;
 	for (i = 0; i < numkeys; i++) {
@@ -169,8 +172,9 @@ static char *memccached_big_get(memcached_st *ptr,
 	if (ret) {
 		cc_log("Failed to mget keys in memcached: %s",
 		       memcached_strerror(memc, ret));
-		for (i = 0; i < numkeys; i++)
+		for (i = 0; i < numkeys; i++) {
 			free(keys[i]);
+		}
 		free(keys);
 		free(key_lengths);
 		return NULL;
@@ -179,8 +183,9 @@ static char *memccached_big_get(memcached_st *ptr,
 	result = NULL;
 	do {
 		result = memcached_fetch_result(ptr, result, &ret);
-		if (ret == MEMCACHED_END)
+		if (ret == MEMCACHED_END) {
 			break;
+		}
 		if (ret) {
 			cc_log("Failed to get key in memcached: %s",
 			       memcached_strerror(memc, ret));
@@ -193,8 +198,9 @@ static char *memccached_big_get(memcached_st *ptr,
 
 	cc_log("memcached_get %.*s %ld (%ld)", (int) key_length, key, *value_length,
 	       buflen);
-	for (i = 0; i < numkeys; i++)
+	for (i = 0; i < numkeys; i++) {
 		free(keys[i]);
+	}
 	free(keys);
 	free(key_lengths);
 
@@ -206,8 +212,7 @@ int memccached_raw_set(const char *key, const char *data, size_t len)
 {
 	memcached_return_t mret;
 
-	mret = memcached_set(memc, key, strlen(key),
-	                     data, len, 0, 0);
+	mret = memcached_set(memc, key, strlen(key), data, len, 0, 0);
 	if (mret != MEMCACHED_SUCCESS) {
 		cc_log("Failed to move %s to memcached: %s", key,
 		       memcached_strerror(memc, mret));
@@ -245,7 +250,7 @@ int memccached_set(const char *key,
 	char *ptr;
 	memcached_return_t mret;
 
-	if (buf == NULL) {
+	if (!buf) {
 		cc_log("unable to allocate %u bytes memory from memcache value",
 		       (unsigned int)buf_len);
 		return -1;
@@ -253,14 +258,15 @@ int memccached_set(const char *key,
 	memcpy(buf, MEMCCACHE_MAGIC, 4);
 	ptr = buf + 4;
 
-#define PROCESS_ONE_BUFFER(src_ptr, src_len)     \
-	do {                                         \
-		*((uint32_t *)ptr) = htonl(src_len);      \
-		ptr += 4;                                \
-		if (src_len)                             \
-			memcpy(ptr, src_ptr, src_len);       \
-		ptr += src_len;                          \
-	} while (0)
+#define PROCESS_ONE_BUFFER(src_ptr, src_len) \
+	do { \
+		*((uint32_t *)ptr) = htonl(src_len); \
+		ptr += 4; \
+		if (src_len > 0) { \
+			memcpy(ptr, src_ptr, src_len); \
+		} \
+		ptr += src_len; \
+	} while (false)
 
 	PROCESS_ONE_BUFFER(obj, obj_len);
 	PROCESS_ONE_BUFFER(stderr, stderr_len);
@@ -270,11 +276,9 @@ int memccached_set(const char *key,
 #undef PROCESS_ONE_BUFFER
 
 	if (buf_len > MAX_VALUE_SIZE)
-		mret = memccached_big_set(memc, key, strlen(key),
-		                          buf, buf_len, 0, 0);
+		mret = memccached_big_set(memc, key, strlen(key), buf, buf_len, 0, 0);
 	else
-		mret = memcached_set(memc, key, strlen(key),
-		                     buf, buf_len, 0, 0);
+		mret = memcached_set(memc, key, strlen(key), buf, buf_len, 0, 0);
 
 	if (mret != MEMCACHED_SUCCESS) {
 		cc_log("Failed to move %s to memcached: %s", key,
@@ -300,7 +304,7 @@ void *memccached_raw_get(const char *key, char **data, size_t *size)
 
 	value = memcached_get(memc, key, strlen(key), &value_l,
 	                      NULL /*flags*/, &mret);
-	if (value == NULL) {
+	if (!value) {
 		cc_log("Failed to get key from memcached %s: %s", key,
 		       memcached_strerror(memc, mret));
 		return NULL;
@@ -325,7 +329,7 @@ void *memccached_get(const char *key,
 	size_t value_l;
 	value = memcached_get(memc, key, strlen(key), &value_l,
 	                      NULL /*flags*/, &mret);
-	if (value == NULL) {
+	if (!value) {
 		cc_log("Failed to get key from memcached %s: %s", key,
 		       memcached_strerror(memc, mret));
 		return NULL;
@@ -334,7 +338,7 @@ void *memccached_get(const char *key,
 		value = memccached_big_get(memc, key, strlen(key), value, &value_l,
 		                           NULL /*flags*/, &mret);
 	}
-	if (value == NULL) {
+	if (!value) {
 		cc_log("Failed to get key from memcached %s: %s", key,
 		       memcached_strerror(memc, mret));
 		return NULL;
@@ -346,27 +350,28 @@ void *memccached_get(const char *key,
 	}
 	ptr = value;
 	/* skip the magic */
-	ptr += 4; value_l -= 4;
+	ptr += 4;
+	value_l -= 4;
 
-#define PROCESS_ONE_BUFFER(dst_ptr, dst_len)     \
-	do {                                         \
-		if (value_l < 4) {                       \
-			free(value);                         \
-			cc_log("no more buffer for %s: %d",  \
-			       #dst_ptr, (int)value_l);      \
-			return memccached_prune(key);        \
-		}                                        \
-		dst_len = ntohl(*((uint32_t *)ptr));      \
-		ptr += 4; value_l -= 4;                    \
-		if (value_l < dst_len) {                 \
+#define PROCESS_ONE_BUFFER(dst_ptr, dst_len) \
+	do { \
+		if (value_l < 4) { \
+			free(value); \
+			cc_log("no more buffer for %s: %d", \
+			       #dst_ptr, (int)value_l); \
+			return memccached_prune(key); \
+		} \
+		dst_len = ntohl(*((uint32_t *)ptr)); \
+		ptr += 4; value_l -= 4; \
+		if (value_l < dst_len) { \
 			cc_log("no more buffer for %s: %d %d", \
 			       #dst_ptr, (int)value_l, (int) dst_len); \
-			free(value);                         \
-			return memccached_prune(key);        \
-		}                                        \
-		dst_ptr = ptr;                           \
-		ptr += dst_len; value_l -= dst_len;        \
-	} while (0)
+			free(value); \
+			return memccached_prune(key); \
+		} \
+		dst_ptr = ptr; \
+		ptr += dst_len; value_l -= dst_len; \
+	} while (false)
 
 	PROCESS_ONE_BUFFER(*obj, *obj_len);
 	PROCESS_ONE_BUFFER(*stderr, *stderr_len);
@@ -377,14 +382,16 @@ void *memccached_get(const char *key,
 
 	return value;  /* caller must free this when done with the ptrs */
 }
+
 void memccached_free(void *blob)
 {
 	free(blob);
 }
+
 int memccached_release(void)
 {
 	memcached_free(memc);
 	return 1;
 }
 
-#endif // HAVE_LIBMEMCACHED
+#endif /* HAVE_LIBMEMCACHED */

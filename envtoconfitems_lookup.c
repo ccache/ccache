@@ -97,21 +97,21 @@ envtoconfitems_get (register const char *str, register unsigned int len)
   static const struct env_to_conf_item wordlist[] =
     {
       {"",""}, {"",""}, {"",""}, {"",""}, {"",""},
-#line 36 "envtoconfitems.gperf"
+#line 38 "envtoconfitems.gperf"
       {"STATS", "stats"},
-#line 30 "envtoconfitems.gperf"
+#line 32 "envtoconfitems.gperf"
       {"PREFIX", "prefix_command"},
-#line 28 "envtoconfitems.gperf"
+#line 30 "envtoconfitems.gperf"
       {"NLEVELS", "cache_dir_levels"},
 #line 17 "envtoconfitems.gperf"
       {"DIR", "cache_dir"},
       {"",""},
-#line 35 "envtoconfitems.gperf"
+#line 37 "envtoconfitems.gperf"
       {"SLOPPINESS", "sloppiness"},
       {"",""},
-#line 34 "envtoconfitems.gperf"
+#line 36 "envtoconfitems.gperf"
       {"RECACHE", "recache"},
-#line 31 "envtoconfitems.gperf"
+#line 33 "envtoconfitems.gperf"
       {"READONLY", "read_only"},
 #line 20 "envtoconfitems.gperf"
       {"EXTENSION", "cpp_extension"},
@@ -123,16 +123,16 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 #line 24 "envtoconfitems.gperf"
       {"IGNOREHEADERS", "ignore_headers_in_manifest"},
       {"",""},
-#line 39 "envtoconfitems.gperf"
+#line 41 "envtoconfitems.gperf"
       {"UNIFY", "unify"},
       {"",""},
-#line 37 "envtoconfitems.gperf"
+#line 39 "envtoconfitems.gperf"
       {"TEMPDIR", "temporary_dir"},
-#line 33 "envtoconfitems.gperf"
+#line 35 "envtoconfitems.gperf"
       {"READONLY_MEMCACHED", "read_only_memcached"},
 #line 16 "envtoconfitems.gperf"
       {"CPP2", "run_second_cpp"},
-#line 38 "envtoconfitems.gperf"
+#line 40 "envtoconfitems.gperf"
       {"UMASK", "umask"},
 #line 18 "envtoconfitems.gperf"
       {"DIRECT", "direct_mode"},
@@ -141,10 +141,10 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 #line 14 "envtoconfitems.gperf"
       {"COMPRESS", "compression"},
       {"",""},
-#line 32 "envtoconfitems.gperf"
+#line 34 "envtoconfitems.gperf"
       {"READONLY_DIRECT", "read_only_direct"},
       {"",""},
-#line 29 "envtoconfitems.gperf"
+#line 31 "envtoconfitems.gperf"
       {"PATH", "path"},
 #line 26 "envtoconfitems.gperf"
       {"MAXFILES", "max_files"},
@@ -156,14 +156,14 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"MAXSIZE", "max_size"},
 #line 11 "envtoconfitems.gperf"
       {"BASEDIR", "base_dir"},
-#line 40 "envtoconfitems.gperf"
+#line 28 "envtoconfitems.gperf"
       {"MEMCACHED_CONF", "memcached_conf"},
       {"",""}, {"",""},
 #line 12 "envtoconfitems.gperf"
       {"CC", "compiler"},
 #line 13 "envtoconfitems.gperf"
       {"COMPILERCHECK", "compiler_check"},
-#line 41 "envtoconfitems.gperf"
+#line 29 "envtoconfitems.gperf"
       {"MEMCACHED_ONLY", "memcached_only"},
       {"",""},
 #line 22 "envtoconfitems.gperf"

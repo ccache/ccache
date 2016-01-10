@@ -16,10 +16,10 @@ case $host in
         ;;
 esac
 
+AC_SUBST(ccache_memcached)
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
-AC_SUBST(ccache_memcached)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -102,7 +102,7 @@ if test x${enable_memcached} != x; then
     fi
     AC_CHECK_LIB(memcached, memcached,[],[
     echo '  WARNING: recent version libmemcached not found'
-    echo '  please install libmemcached>1.0 with development files'
+    echo '  please install libmemcached > 1.0 with development files'
     exit 1
     ])
     ccache_memcached='CCACHE_MEMCACHED=1 '

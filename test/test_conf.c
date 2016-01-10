@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Joel Rosdahl
+ * Copyright (C) 2011-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -352,39 +352,39 @@ TEST(conf_print_items)
 {
 	size_t i;
 	struct conf conf = {
-		"bd",
-		"cd",
-		7,
-		"c",
-		"cc",
-		true,
-		8,
-		"ce",
-		false,
-		true,
-		"efth",
-		true,
-		true,
-		"ihim",
-		"lf",
-		4711,
-		98.7 * 1000 * 1000,
-		"p",
-		"pc",
-		true,
-		true,
-		false,
-		true,
-		true,
+		"bd", /* base_dir */
+		"cd", /* cache_dir */
+		7, /* cache_dir_levels */
+		"c", /* compiler */
+		"cc", /* compiler_check */
+		true, /* compression */
+		8, /* compression_level */
+		"ce", /* cpp_extension */
+		false, /* direct_mode */
+		true, /* disable */
+		"efth", /* extra_files_to_hash */
+		true, /* hard_link */
+		true, /* hash_dir */
+		"ihim", /* ignore_headers_in_manifest */
+		"lf", /* log_file */
+		4711, /* max_files */
+		98.7 * 1000 * 1000, /* max_size */
+		"mc", /* memcached_conf */
+		false, /* memcached_only */
+		"p", /* path */
+		"pc", /* prefix_command */
+		true, /* read_only */
+		true, /* read_only_direct */
+		false, /* read_only_memcached */
+		true, /* recache */
+		true, /* run_second_cpp */
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
 		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
-		SLOPPY_FILE_STAT_MATCHES|SLOPPY_NO_SYSTEM_HEADERS,
-		false,
-		"td",
-		022,
-		true,
-		"ss",
-		false,
+		SLOPPY_FILE_STAT_MATCHES|SLOPPY_NO_SYSTEM_HEADERS, /* sloppiness */
+		false, /* stats */
+		"td", /* temporary_dir */
+		022, /* umask */
+		true, /* unify */
 		NULL
 	};
 	size_t n = 0;
@@ -414,6 +414,8 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("log_file = lf", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);
+	CHECK_STR_EQ("memcached_conf = mc", received_conf_items[n++].descr);
+	CHECK_STR_EQ("memcached_only = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("path = p", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);
