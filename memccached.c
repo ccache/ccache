@@ -65,9 +65,7 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 
 	numkeys = (value_length + SPLIT_VALUE_SIZE - 1) / SPLIT_VALUE_SIZE;
 	buflen = 20 + 20 * numkeys;
-	buf = malloc(buflen);
-	if (!buf)
-		return -1;
+	buf = x_malloc(buflen);
 	p = buf;
 
 	memcpy(p, MEMCCACHE_BIG, 4);
@@ -148,11 +146,8 @@ static char *memccached_big_get(memcached_st *ptr,
 	totalsize = ntohl(*(uint32_t *) (p + 16));
 	p += 20;
 
-	keys = malloc(sizeof(char *) * numkeys);
-	key_lengths = malloc(sizeof(size_t) * numkeys);
-	if (!keys || !key_lengths) {
-		return NULL;
-	}
+	keys = x_malloc(sizeof(char *) * numkeys);
+	key_lengths = x_malloc(sizeof(size_t) * numkeys);
 
 	buflen = 0;
 	for (i = 0; i < numkeys; i++) {
@@ -165,7 +160,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	}
 	assert(buflen == totalsize);
 
-	buf = malloc(buflen);
+	buf = x_malloc(buflen);
 	p = buf;
 
 	ret = memcached_mget(ptr, (const char *const *) keys, key_lengths, numkeys);
@@ -246,15 +241,10 @@ int memccached_set(const char *key,
                    size_t dep_len)
 {
 	size_t buf_len = 4 + 4*4 + obj_len + stderr_len + dia_len + dep_len;
-	char *buf = malloc(buf_len);
+	char *buf = x_malloc(buf_len);
 	char *ptr;
 	memcached_return_t mret;
 
-	if (!buf) {
-		cc_log("unable to allocate %u bytes memory from memcache value",
-		       (unsigned int)buf_len);
-		return -1;
-	}
 	memcpy(buf, MEMCCACHE_MAGIC, 4);
 	ptr = buf + 4;
 
