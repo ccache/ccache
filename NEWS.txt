@@ -15,6 +15,10 @@ New features and improvements
 
 - Multiple identical `-arch` arguments are now handled without bailing.
 
+- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option
+  which specifies one or several prefixes to add to the command line ccache
+  uses when invoking the preprocessor.
+
 
 Bug fixes
 ~~~~~~~~~
