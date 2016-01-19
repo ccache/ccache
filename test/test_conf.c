@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 31
+#define N_CONFIG_ITEMS 32
 static struct {
 	char *descr;
 	const char *origin;
@@ -70,6 +70,7 @@ TEST(conf_create)
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
+	CHECK_STR_EQ("", conf->prefix_command_cpp);
 	CHECK(!conf->read_only);
 	CHECK(!conf->read_only_direct);
 	CHECK(!conf->read_only_memcached);
@@ -115,6 +116,7 @@ TEST(conf_read_valid_config)
 	  "max_size = 123M\n"
 	  "path = $USER.x\n"
 	  "prefix_command = x$USER\n"
+	  "prefix_command_cpp = y\n"
 	  "read_only = true\n"
 	  "read_only_direct = true\n"
 	  "read_only_memcached = false\n"
@@ -147,6 +149,7 @@ TEST(conf_read_valid_config)
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
+	CHECK_STR_EQ("y", conf->prefix_command_cpp);
 	CHECK(conf->read_only);
 	CHECK(conf->read_only_direct);
 	CHECK(!conf->read_only_memcached);
@@ -373,6 +376,7 @@ TEST(conf_print_items)
 		false, /* memcached_only */
 		"p", /* path */
 		"pc", /* prefix_command */
+		"pcc", /* prefix_command_cpp */
 		true, /* read_only */
 		true, /* read_only_direct */
 		false, /* read_only_memcached */
@@ -418,6 +422,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("memcached_only = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("path = p", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
+	CHECK_STR_EQ("prefix_command_cpp = pcc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only_direct = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only_memcached = false", received_conf_items[n++].descr);

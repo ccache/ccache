@@ -427,6 +427,11 @@ CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
     <<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER
     COMPILER WRAPPERS>>.
 
+*prefix_command_cpp* (*CCACHE_PREFIX_CPP*)::
+
+    This option adds a list of prefixes (separated by space) to the command
+    line that ccache uses when invoking the preprocessor.
+
 *read_only* (*CCACHE_READONLY*) [boolean]::
 
     If true, ccache will attempt to use existing cached object files, but it
@@ -805,6 +810,8 @@ size of the other wrapper instead of the real compiler, which means that:
 
 Another minor thing is that if *prefix_command* is used, ccache will not invoke
 the other wrapper when running the preprocessor, which increase performance.
+You can use the *prefix_command_cpp* configuration setting, if you also want to
+invoke the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
 Bugs

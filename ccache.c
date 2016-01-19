@@ -279,19 +279,19 @@ static void (*from_cache)(enum fromcache_call_mode mode,
 static void (*to_cache)(struct args *args);
 
 static void
-add_prefix(struct args *args)
+add_prefix(struct args *args, char *prefix_command)
 {
 	char *e;
 	char *tok, *saveptr = NULL;
 	struct args *prefix;
 	int i;
 
-	if (str_eq(conf->prefix_command, "")) {
+	if (str_eq(prefix_command, "")) {
 		return;
 	}
 
 	prefix = args_init(0, NULL);
-	e = x_strdup(conf->prefix_command);
+	e = x_strdup(prefix_command);
 	for (tok = strtok_r(e, " ", &saveptr);
 	     tok;
 	     tok = strtok_r(NULL, " ", &saveptr)) {
@@ -307,7 +307,7 @@ add_prefix(struct args *args)
 	}
 	free(e);
 
-	cc_log("Using command-line prefix %s", conf->prefix_command);
+	cc_log("Using command-line prefix %s", prefix_command);
 	for (i = prefix->argc; i != 0; i--) {
 		args_add_prefix(args, prefix->argv[i-1]);
 	}
@@ -321,7 +321,7 @@ failed(void)
 	assert(orig_args);
 
 	args_strip(orig_args, "--ccache-");
-	add_prefix(orig_args);
+	add_prefix(orig_args, conf->prefix_command);
 
 	cc_log("Failed; falling back to running the real compiler");
 	cc_log_argv("Executing ", orig_args->argv);
@@ -1591,6 +1591,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 		args_add(args, "-E");
 		args_add(args, input_file);
+		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
 		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
 		args_pop(args, 2);
@@ -3675,7 +3676,7 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	add_prefix(compiler_args);
+	add_prefix(compiler_args, conf->prefix_command);
 
 	/* run real compiler, sending output to cache */
 	to_cache(compiler_args);

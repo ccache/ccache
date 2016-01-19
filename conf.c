@@ -323,6 +323,7 @@ conf_create(void)
 	conf->memcached_only = false;
 	conf->path = x_strdup("");
 	conf->prefix_command = x_strdup("");
+	conf->prefix_command_cpp = x_strdup("");
 	conf->read_only = false;
 	conf->read_only_direct = false;
 	conf->read_only_memcached = false;
@@ -356,6 +357,7 @@ conf_free(struct conf *conf)
 	free(conf->log_file);
 	free(conf->path);
 	free(conf->prefix_command);
+	free(conf->prefix_command_cpp);
 	free(conf->temporary_dir);
 	free(conf->item_origins);
 	free(conf);
@@ -599,6 +601,10 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "prefix_command = %s", conf->prefix_command);
 	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);
+
+	reformat(&s, "prefix_command_cpp = %s", conf->prefix_command_cpp);
+	printer(s, conf->item_origins[find_conf(
+	                                "prefix_command_cpp")->number], context);
 
 	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
 	printer(s, conf->item_origins[find_conf("read_only")->number], context);
