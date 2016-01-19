@@ -50,7 +50,7 @@ MAX_VALUE_SIZE = 1000 << 10 # 1M with memcached overhead
 SPLIT_VALUE_SIZE = MAX_VALUE_SIZE
 
 server = os.getenv("MEMCACHED_SERVERS", "localhost")
-mc = memcache.Client([server], debug=1)
+mc = memcache.Client(server.split(','), debug=1)
 
 ccache = os.getenv("CCACHE_DIR", os.path.expanduser("~/.ccache"))
 filelist = []

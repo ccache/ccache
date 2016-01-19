@@ -48,7 +48,7 @@ MEMCCACHE_BIG = 'CCBM'
 MEMCCACHE_BIG = 'CCBM'
 
 server = os.getenv("MEMCACHED_SERVERS", "localhost")
-mc = memcache.Client([server], debug=1)
+mc = memcache.Client(server.split(','), debug=1)
 
 key = sys.argv[1]
 val = mc.get(key)
