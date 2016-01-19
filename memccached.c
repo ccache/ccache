@@ -124,6 +124,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	int numkeys;
 	char **keys;
 	size_t *key_lengths;
+	size_t *key_offsets;
 	memcached_return_t ret;
 	memcached_result_st *result;
 	int n;
@@ -148,6 +149,7 @@ static char *memccached_big_get(memcached_st *ptr,
 
 	keys = x_malloc(sizeof(char *) * numkeys);
 	key_lengths = x_malloc(sizeof(size_t) * numkeys);
+	key_offsets = x_malloc(sizeof(size_t) * numkeys);
 
 	buflen = 0;
 	for (i = 0; i < numkeys; i++) {
@@ -155,13 +157,13 @@ static char *memccached_big_get(memcached_st *ptr,
 		keys[i] = format_hash_as_string((const unsigned char *) p, n);
 		key_lengths[i] = strlen(keys[i]);
 		cc_log("memcached_mget %.*s %d", (int) key_lengths[i], keys[i], n);
+		key_offsets[i] = buflen;
 		buflen += n;
 		p += 20;
 	}
 	assert(buflen == totalsize);
 
 	buf = x_malloc(buflen);
-	p = buf;
 
 	ret = memcached_mget(ptr, (const char *const *) keys, key_lengths, numkeys);
 	if (ret) {
@@ -177,6 +179,9 @@ static char *memccached_big_get(memcached_st *ptr,
 
 	result = NULL;
 	do {
+		const char *k;
+		size_t l;
+
 		result = memcached_fetch_result(ptr, result, &ret);
 		if (ret == MEMCACHED_END) {
 			break;
@@ -186,9 +191,24 @@ static char *memccached_big_get(memcached_st *ptr,
 			       memcached_strerror(memc, ret));
 			return NULL;
 		}
+		k = memcached_result_key_value(result);
+		l = memcached_result_key_length(result);
+		p = NULL;
+		for (i = 0; i < numkeys; i++) {
+			if (l != key_lengths[i]) {
+				continue;
+			}
+			if (str_eq(k, keys[i])) {
+				p = buf + key_offsets[i];
+				break;
+			}
+		}
+		if (!p) {
+			cc_log("Unknown key was returned: %s", k);
+			return NULL;
+		}
 		n = memcached_result_length(result);
 		memcpy(p, memcached_result_value(result), n);
-		p += n;
 	} while (ret == MEMCACHED_SUCCESS);
 
 	cc_log("memcached_get %.*s %ld (%ld)", (int) key_length, key, *value_length,
@@ -198,6 +218,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	}
 	free(keys);
 	free(key_lengths);
+	free(key_offsets);
 
 	*value_length = buflen;
 	return buf;
