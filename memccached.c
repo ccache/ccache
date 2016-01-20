@@ -124,7 +124,8 @@ static char *memccached_big_get(memcached_st *ptr,
 	int numkeys;
 	char **keys;
 	size_t *key_lengths;
-	size_t *key_offsets;
+	size_t *value_offsets;
+	int *value_lengths;
 	memcached_return_t ret;
 	memcached_result_st *result;
 	int n;
@@ -149,7 +150,8 @@ static char *memccached_big_get(memcached_st *ptr,
 
 	keys = x_malloc(sizeof(char *) * numkeys);
 	key_lengths = x_malloc(sizeof(size_t) * numkeys);
-	key_offsets = x_malloc(sizeof(size_t) * numkeys);
+	value_offsets = x_malloc(sizeof(size_t) * numkeys);
+	value_lengths = x_malloc(sizeof(int) * numkeys);
 
 	buflen = 0;
 	for (i = 0; i < numkeys; i++) {
@@ -157,7 +159,8 @@ static char *memccached_big_get(memcached_st *ptr,
 		keys[i] = format_hash_as_string((const unsigned char *) p, n);
 		key_lengths[i] = strlen(keys[i]);
 		cc_log("memcached_mget %.*s %d", (int) key_lengths[i], keys[i], n);
-		key_offsets[i] = buflen;
+		value_offsets[i] = buflen;
+		value_lengths[i] = n;
 		buflen += n;
 		p += 20;
 	}
@@ -199,7 +202,7 @@ static char *memccached_big_get(memcached_st *ptr,
 				continue;
 			}
 			if (str_eq(k, keys[i])) {
-				p = buf + key_offsets[i];
+				p = buf + value_offsets[i];
 				break;
 			}
 		}
@@ -208,6 +211,10 @@ static char *memccached_big_get(memcached_st *ptr,
 			return NULL;
 		}
 		n = memcached_result_length(result);
+		if (n != value_lengths[i]) {
+			cc_log("Unexpected length was returned");
+			return NULL;
+		}
 		memcpy(p, memcached_result_value(result), n);
 	} while (ret == MEMCACHED_SUCCESS);
 
@@ -218,7 +225,8 @@ static char *memccached_big_get(memcached_st *ptr,
 	}
 	free(keys);
 	free(key_lengths);
-	free(key_offsets);
+	free(value_offsets);
+	free(value_lengths);
 
 	*value_length = buflen;
 	return buf;
