@@ -363,7 +363,7 @@ void *memccached_get(const char *key,
 		return NULL;
 	}
 	if (value_l < 20 || memcmp(value, MEMCCACHE_MAGIC, 4) != 0) {
-		cc_log("wrong magic or length %s: %d", value, (int)value_l);
+		cc_log("wrong magic or length %.4s: %d", value, (int)value_l);
 		free(value);
 		return memccached_prune(key);
 	}
