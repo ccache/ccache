@@ -123,6 +123,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	char *p;
 	int numkeys;
 	char **keys;
+	bool *key_seen;
 	size_t *key_lengths;
 	size_t *value_offsets;
 	int *value_lengths;
@@ -149,6 +150,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	p += 20;
 
 	keys = x_malloc(sizeof(char *) * numkeys);
+	key_seen = x_malloc(sizeof(bool) * numkeys);
 	key_lengths = x_malloc(sizeof(size_t) * numkeys);
 	value_offsets = x_malloc(sizeof(size_t) * numkeys);
 	value_lengths = x_malloc(sizeof(int) * numkeys);
@@ -158,6 +160,7 @@ static char *memccached_big_get(memcached_st *ptr,
 		n = ntohl(*((uint32_t *) (p + 16)));
 		keys[i] = format_hash_as_string((const unsigned char *) p, n);
 		key_lengths[i] = strlen(keys[i]);
+		key_seen[i] = false;
 		cc_log("memcached_mget %.*s %d", (int) key_lengths[i], keys[i], n);
 		value_offsets[i] = buflen;
 		value_lengths[i] = n;
@@ -210,6 +213,11 @@ static char *memccached_big_get(memcached_st *ptr,
 			cc_log("Unknown key was returned: %s", k);
 			return NULL;
 		}
+		if (key_seen[i]) {
+			cc_log("Have already seen chunk: %s", k);
+			return NULL;
+		}
+		key_seen[i] = true;
 		n = memcached_result_length(result);
 		if (n != value_lengths[i]) {
 			cc_log("Unexpected length was returned");
@@ -218,6 +226,12 @@ static char *memccached_big_get(memcached_st *ptr,
 		memcpy(p, memcached_result_value(result), n);
 	} while (ret == MEMCACHED_SUCCESS);
 
+	for (i = 0; i < numkeys; i++) {
+		if (!key_seen[i]) {
+			cc_log("Failed to get all %d chunks", numkeys);
+			return NULL;
+		}
+	}
 	cc_log("memcached_get %.*s %ld (%ld)", (int) key_length, key, *value_length,
 	       buflen);
 	for (i = 0; i < numkeys; i++) {
