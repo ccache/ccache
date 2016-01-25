@@ -205,7 +205,7 @@ static char *memccached_big_get(memcached_st *ptr,
 			if (l != key_lengths[i]) {
 				continue;
 			}
-			if (str_eq(k, keys[i])) {
+			if (memcmp(k, keys[i], l) == 0) {
 				p = buf + value_offsets[i];
 				break;
 			}
