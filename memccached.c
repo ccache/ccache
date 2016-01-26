@@ -225,21 +225,6 @@ static char *memccached_big_get(memcached_st *ptr,
 			cc_log("Unexpected length was returned");
 			return NULL;
 		}
-#ifdef CCACHE_DEBUG_CHUNK
-		if (getenv("CCACHE_DEBUG_CHUNK")) {
-			struct mdfour md;
-			char *s;
-			char hash[20];
-
-			mdfour_begin(&md);
-			mdfour_update(&md, (const unsigned char *) v, n);
-			mdfour_result(&md, (unsigned char *) hash);
-			s = format_hash_as_string((const unsigned char *) hash, n);
-			assert(str_eq(s, k));
-			cc_log("Hash OK: %s", s);
-			free(s);
-		}
-#endif
 		memcpy(p, v, n);
 	} while (ret == MEMCACHED_SUCCESS);
 
