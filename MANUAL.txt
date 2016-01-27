@@ -376,7 +376,7 @@ WRAPPERS>>.
     working directory in the debug info set incorrectly. This option is off by
     default as the incorrect setting of this debug info rarely causes problems.
     If you strike problems with GDB not using the correct directory then enable
-    this option.
+    this option. The option *only* applies when generating debug info (-g).
 
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 

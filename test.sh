@@ -294,16 +294,14 @@ base_tests() {
     checkstat 'files in cache' 4
 
     testname="CCACHE_HASHDIR"
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 5
-    compare_object reference_test1.o test1.o
 
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
     checkstat 'files in cache' 5
-    compare_object reference_test1.o test1.o
 
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c

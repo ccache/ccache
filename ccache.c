@@ -183,6 +183,9 @@ static char **ignore_headers;
 /* Size of headers to ignore list */
 static size_t ignore_headers_len;
 
+/* is gcc being asked to output debug info? */
+static bool generating_debuginfo;
+
 /* is gcc being asked to output dependencies? */
 static bool generating_dependencies;
 
@@ -1489,7 +1492,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	free(p);
 
 	/* Possibly hash the current working directory. */
-	if (conf->hash_dir) {
+	if (generating_debuginfo && conf->hash_dir) {
 		char *cwd = gnu_getcwd();
 		if (debug_prefix_map) {
 			char *map = debug_prefix_map;
@@ -2215,6 +2218,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Debugging is handled specially, so that we know if we can strip line
 		 * number info. */
 		if (str_startswith(argv[i], "-g")) {
+			generating_debuginfo = true;
 			args_add(stripped_args, argv[i]);
 			if (conf->unify && !str_eq(argv[i], "-g0")) {
 				cc_log("%s used; disabling unify mode", argv[i]);
@@ -3059,6 +3063,7 @@ cc_reset(void)
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
+	generating_debuginfo = false;
 	generating_dependencies = false;
 	generating_coverage = false;
 	profile_arcs = false;
