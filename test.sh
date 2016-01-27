@@ -1680,6 +1680,34 @@ EOF
         checkstat 'files in cache' 4
         cd ..
     fi
+
+    ##################################################################
+    # Check that gcc's -fdebug-prefix-map argument maps the debuginfo cwd.
+    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
+        testname="debug-prefix-map"
+        $CCACHE -Cz >/dev/null
+        cd dir1
+        CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+        if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+            test_failed "Source dir (`pwd`) found in test.o"
+        fi
+        cd ..
+
+        cd dir2
+        CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+        if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+            test_failed "Source dir (`pwd`) found in test.o"
+        fi
+        cd ..
+    fi
 }
 
 compression_suite() {
