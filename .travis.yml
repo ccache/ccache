@@ -26,6 +26,7 @@ script:
     - ./autogen.sh
     - ./configure
     - make
+    - make quicktest
     - if [ "$CC" = "gcc" ]; then
           ./test.sh;
       fi
