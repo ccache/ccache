@@ -530,6 +530,8 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	size_t size;
 	bool is_pch;
 	size_t path_len = strlen(path);
+	char *canonical;
+	size_t canonical_len;
 	char *ignore;
 	size_t ignore_len;
 	size_t i;
@@ -575,16 +577,24 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto failure;
 	}
 
+	/* canonicalize path for comparison, clang uses ./header.h */
+	canonical = path;
+	canonical_len = path_len;
+	if (canonical[0] == '.' && canonical[1] == '/') {
+		canonical += 2;
+		canonical_len -= 2;
+	}
+
 	for (i = 0; i < ignore_headers_len; i++) {
 		ignore = ignore_headers[i];
 		ignore_len = strlen(ignore);
-		if (ignore_len > path_len) {
+		if (ignore_len > canonical_len) {
 			continue;
 		}
-		if (strncmp(path, ignore, ignore_len) == 0
+		if (strncmp(canonical, ignore, ignore_len) == 0
 		    && (ignore[ignore_len-1] == DIR_DELIM_CH
-		        || path[ignore_len] == DIR_DELIM_CH
-		        || path[ignore_len] == '\0')) {
+		        || canonical[ignore_len] == DIR_DELIM_CH
+		        || canonical[ignore_len] == '\0')) {
 			goto ignore;
 		}
 	}
