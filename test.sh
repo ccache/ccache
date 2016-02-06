@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2015 Joel Rosdahl
+# Copyright (C) 2009-2016 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -98,7 +98,11 @@ compare_file() {
 
 compare_object() {
     if [ $HOST_OS_LINUX -eq 1 ] && [ $COMPILER_TYPE_CLANG -eq 1 ]; then
-        eu-elfcmp -q "$1" "$2"
+        if which eu-elfcmp >/dev/null 2>&1; then
+            eu-elfcmp -q "$1" "$2"
+        else
+            test_failed "Please install elfutils to get eu-elfcmp"
+        fi
     else
         cmp -s "$1" "$2"
     fi
