@@ -15,13 +15,18 @@ New features and improvements
 
 - Multiple identical `-arch` arguments are now handled without bailing.
 
-- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option
+- Added new `ignore_headers_in_manifest` configuration option, which specifies
+  headers that should be ignored in the direct mode.
+
+- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
   which specifies one or several prefixes to add to the command line ccache
   uses when invoking the preprocessor.
 
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed clang test suite when running on Linux.
 
 
 Unreleased ccache 3.2.5
