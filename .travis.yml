@@ -3,8 +3,8 @@ language: c
 addons:
     apt:
         packages:
-            - zlib1g-dev
             - elfutils
+            - zlib1g-dev
 
 os:
     - linux
