@@ -22,6 +22,9 @@ New features and improvements
   which specifies one or several prefixes to add to the command line ccache
   uses when invoking the preprocessor.
 
+- The concatenated form of some long compiler options is now recognized, for
+  example when using `-isystemPATH` instead of `-isystem PATH`.
+
 
 Bug fixes
 ~~~~~~~~~
