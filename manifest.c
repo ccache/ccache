@@ -387,7 +387,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 	for (i = 0; i < obj->n_file_info_indexes; i++) {
 		struct file_info *fi = &mf->file_infos[obj->file_info_indexes[i]];
 		char *path = mf->files[fi->index];
-		struct file_stats *st = hashtable_search(hashed_files, path);
+		struct file_stats *st = hashtable_search(stated_files, path);
 		if (!st) {
 			struct stat file_stat;
 			if (x_stat(path, &file_stat) != 0) {

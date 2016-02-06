@@ -26,6 +26,9 @@ Bug fixes
 - Don't (try to) update manifest file in ``read-only and ``read-only direct''
   modes.
 
+- Fixed a bug in caching of `stat` system calls in ``file_stat_matches
+  sloppiness mode''.
+
 
 ccache 3.2.4
 ------------
