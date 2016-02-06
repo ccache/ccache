@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -125,6 +125,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 	current_working_dir = get_cwd();
 	arg_string = format("cc --sysroot=%s/foo -c foo.c", current_working_dir);
 	orig = args_init_from_string(arg_string);
+	free(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo");
@@ -260,12 +261,14 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
 	struct args *exp_cpp = args_init_from_string("gcc");
 	struct args *exp_cc = args_init_from_string("gcc");
 	struct args *act_cpp = NULL, *act_cc = NULL;
-	char *s;
+	char *s, *path;
 
 	create_file("foo.c", "");
 	mkdir("some", 0777);
 	mkdir("some/dir", 0777);
-	s = format("-fprofile-generate=%s", x_realpath("some/dir"));
+	path = x_realpath("some/dir");
+	s = format("-fprofile-generate=%s", path);
+	free(path);
 	args_add(exp_cpp, s);
 	args_add(exp_cc, s);
 	args_add(exp_cc, "-c");
@@ -295,6 +298,53 @@ TEST(fprofile_flag_with_nonexisting_dir_should_not_be_rewritten)
 	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
 	args_free(orig);
+}
+
+TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = x_strdup("/");
+	current_working_dir = get_cwd();
+	arg_string = format("cc -isystem %s/foo -c foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = x_strdup("/");
+	current_working_dir = get_cwd();
+	arg_string = format("cc -isystem%s/foo -c foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ("-isystem", act_cpp->argv[1]);
+	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
 }
 
 TEST_SUITE_END
