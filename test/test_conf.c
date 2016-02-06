@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Joel Rosdahl
+ * Copyright (C) 2011-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -430,7 +430,7 @@ TEST(conf_print_items)
 
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
 		char *expected = format("origin%zu", i);
-		CHECK_STR_EQ(expected, received_conf_items[i].origin);
+		CHECK_STR_EQ_FREE1(expected, received_conf_items[i].origin);
 	}
 
 	free_received_conf_items();

@@ -696,6 +696,7 @@ make_relative_path(char *path)
 			free(dir);
 			return path;
 		}
+		free(dir);
 		path_suffix = basename(path);
 		p = path;
 		path = dirname(path);
