@@ -77,7 +77,7 @@ ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 .PHONY: install
-install: all
+install: all $(srcdir)/ccache.1
 	$(installcmd) -d $(DESTDIR)$(bindir)
 	$(installcmd) -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
