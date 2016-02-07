@@ -25,6 +25,9 @@ New features and improvements
 - The concatenated form of some long compiler options is now recognized, for
   example when using `-isystemPATH` instead of `-isystem PATH`.
 
+- If hard-linking is enabled and but fails (e.g. due to cross-device linking),
+  ccache now falls back to copying instead of running the compiler.
+
 
 Bug fixes
 ~~~~~~~~~

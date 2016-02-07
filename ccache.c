@@ -871,18 +871,20 @@ put_file_in_cache(const char *source, const char *dest)
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
-	} else {
+		if (ret != 0) {
+			cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
+			cc_log("Falling back to copying");
+			do_link = false;
+		}
+	}
+	if (!do_link) {
 		ret = copy_file(
 		  source, dest, conf->compression ? conf->compression_level : 0);
-	}
-	if (ret != 0) {
-		cc_log("Failed to %s %s to %s: %s",
-		       do_link ? "link" : "copy",
-		       source,
-		       dest,
-		       strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
+		if (ret != 0) {
+			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
 	}
 	cc_log("Stored in cache: %s -> %s", source, dest);
 	if (x_stat(dest, &st) != 0) {
