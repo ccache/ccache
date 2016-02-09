@@ -439,7 +439,7 @@ TEST(conf_print_items)
 
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
 		char *expected = format("origin%zu", i);
-		CHECK_STR_EQ(expected, received_conf_items[i].origin);
+		CHECK_STR_EQ_FREE1(expected, received_conf_items[i].origin);
 	}
 
 	free_received_conf_items();

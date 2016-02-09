@@ -548,6 +548,8 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	size_t size;
 	bool is_pch;
 	size_t path_len = strlen(path);
+	char *canonical;
+	size_t canonical_len;
 	char *ignore;
 	size_t ignore_len;
 	size_t i;
@@ -593,16 +595,24 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto failure;
 	}
 
+	/* canonicalize path for comparison, clang uses ./header.h */
+	canonical = path;
+	canonical_len = path_len;
+	if (canonical[0] == '.' && canonical[1] == '/') {
+		canonical += 2;
+		canonical_len -= 2;
+	}
+
 	for (i = 0; i < ignore_headers_len; i++) {
 		ignore = ignore_headers[i];
 		ignore_len = strlen(ignore);
-		if (ignore_len > path_len) {
+		if (ignore_len > canonical_len) {
 			continue;
 		}
-		if (strncmp(path, ignore, ignore_len) == 0
+		if (strncmp(canonical, ignore, ignore_len) == 0
 		    && (ignore[ignore_len-1] == DIR_DELIM_CH
-		        || path[ignore_len] == DIR_DELIM_CH
-		        || path[ignore_len] == '\0')) {
+		        || canonical[ignore_len] == DIR_DELIM_CH
+		        || canonical[ignore_len] == '\0')) {
 			goto ignore;
 		}
 	}
@@ -704,6 +714,7 @@ make_relative_path(char *path)
 			free(dir);
 			return path;
 		}
+		free(dir);
 		path_suffix = basename(path);
 		p = path;
 		path = dirname(path);
@@ -878,18 +889,20 @@ put_file_in_cache(const char *source, const char *dest)
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
-	} else {
+		if (ret != 0) {
+			cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
+			cc_log("Falling back to copying");
+			do_link = false;
+		}
+	}
+	if (!do_link) {
 		ret = copy_file(
 		  source, dest, conf->compression ? conf->compression_level : 0);
-	}
-	if (ret != 0) {
-		cc_log("Failed to %s %s to %s: %s",
-		       do_link ? "link" : "copy",
-		       source,
-		       dest,
-		       strerror(errno));
-		stats_update(STATS_ERROR);
-		failed();
+		if (ret != 0) {
+			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
+			stats_update(STATS_ERROR);
+			failed();
+		}
 	}
 	cc_log("Stored in cache: %s -> %s", source, dest);
 	if (x_stat(dest, &st) != 0) {
@@ -2956,7 +2969,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* Same as above but options with concatenated argument. */
+		/* Same as above but short options with concatenated argument. */
 		if (compopt_short(compopt_takes_path, argv[i])) {
 			char *relpath;
 			char *option;
@@ -2972,6 +2985,30 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(relpath);
 			free(option);
 			continue;
+		}
+
+		/* Same as above but long options with concatenated argument beginning with
+		 * a slash. */
+		if (argv[i][0] == '-') {
+			char *slash_pos = strchr(argv[i], '/');
+			if (slash_pos) {
+				char *option = x_strndup(argv[i], slash_pos - argv[i]);
+				if (compopt_affects_cpp(option)) {
+					if (compopt_takes_concat_arg(option)) {
+						char *relpath = make_relative_path(x_strdup(slash_pos));
+						args_add(cpp_args, option);
+						args_add(cpp_args, relpath);
+						free(relpath);
+					} else {
+						args_add(cpp_args, argv[i]);
+					}
+				} else {
+					args_add(stripped_args, argv[i]);
+				}
+
+				free(option);
+				continue;
+			}
 		}
 
 		/* options that take an argument */

@@ -61,26 +61,27 @@ static const struct compopt compopts[] = {
 	{"-fplugin=libcc1plugin", TOO_HARD}, /* interaction with GDB */
 	{"-frepo",          TOO_HARD},
 	{"-fworking-directory", AFFECTS_CPP},
-	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
+	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
-	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-imultilib",      AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-include",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-include-pch",    AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
+	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-imultilib",      AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-include",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-include-pch",    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-install_name",   TAKES_ARG}, /* Darwin linker option */
-	{"-iprefix",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-iquote",         AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-isysroot",       AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-isystem",        AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-iwithprefix",    AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
-	{"-iwithprefixbefore", AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
+	{"-iprefix",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-iquote",         AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-isysroot",       AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-isystem",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-iwithprefix",    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-iwithprefixbefore",
+	                    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-nostdinc",       AFFECTS_CPP},
 	{"-nostdinc++",     AFFECTS_CPP},
 	{"-remap",          AFFECTS_CPP},
 	{"-save-temps",     TOO_HARD},
 	{"-stdlib=",        AFFECTS_CPP | TAKES_CONCAT_ARG},
 	{"-trigraphs",      AFFECTS_CPP},
-	{"-u",              TAKES_ARG},
+	{"-u",              TAKES_ARG | TAKES_CONCAT_ARG},
 };
 
 
@@ -180,6 +181,13 @@ compopt_takes_arg(const char *option)
 {
 	const struct compopt *co = find(option);
 	return co && (co->type & TAKES_ARG);
+}
+
+bool
+compopt_takes_concat_arg(const char *option)
+{
+	const struct compopt *co = find(option);
+	return co && (co->type & TAKES_CONCAT_ARG);
 }
 
 /* Determines if the prefix of the option matches any option and affects the

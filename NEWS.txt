@@ -15,13 +15,24 @@ New features and improvements
 
 - Multiple identical `-arch` arguments are now handled without bailing.
 
-- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option
+- Added new `ignore_headers_in_manifest` configuration option, which specifies
+  headers that should be ignored in the direct mode.
+
+- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
   which specifies one or several prefixes to add to the command line ccache
   uses when invoking the preprocessor.
+
+- The concatenated form of some long compiler options is now recognized, for
+  example when using `-isystemPATH` instead of `-isystem PATH`.
+
+- If hard-linking is enabled and but fails (e.g. due to cross-device linking),
+  ccache now falls back to copying instead of running the compiler.
 
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed clang test suite when running on Linux.
 
 
 Unreleased ccache 3.2.5
@@ -47,6 +58,9 @@ Bug fixes
 
 - Don't (try to) update manifest file in ``read-only and ``read-only direct''
   modes.
+
+- Fixed a bug in caching of `stat` system calls in ``file_stat_matches
+  sloppiness mode''.
 
 
 ccache 3.2.4

@@ -1148,7 +1148,7 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 
 
 /* A sane realpath() function, trying to cope with stupid path limits and a
- * broken API. */
+ * broken API. Caller frees. */
 char *
 x_realpath(const char *path)
 {

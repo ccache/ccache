@@ -3,6 +3,7 @@ language: c
 addons:
     apt:
         packages:
+            - elfutils
             - zlib1g-dev
 
 os:
@@ -26,7 +27,4 @@ script:
     - ./autogen.sh
     - ./configure
     - make
-    - make quicktest
-    - if [ "$CC" = "gcc" ]; then
-          ./test.sh;
-      fi
+    - make test
