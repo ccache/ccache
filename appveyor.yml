@@ -1,0 +1,28 @@
+version: '{build}'
+
+build_script:
+    - ps: |    
+        function CONVERT-MSYS-PATH([string] $path ) {
+            $path = $path.Replace( "`\", "/" )
+            if ( $path.Length -gt 1 -and $path[1] -eq ":" ) {
+                $path = "/{0}/{1}" -f ([string]$path[0]).ToLower() , $path.Substring(3)
+            }
+            return $path
+        }
+        function MSYS-EXEC([string] $command) {
+            Write-Host "bash:", $command
+            & "C:\msys64\usr\bin\bash.exe" "--login" "-c" ("cd {0} && $command" -f (CONVERT-MSYS-PATH $env:APPVEYOR_BUILD_FOLDER ))
+        }
+        MSYS-EXEC "./autogen.sh"
+        MSYS-EXEC "./configure --with-bundled-zlib"
+        MSYS-EXEC "make -j$env:NUMBER_OF_PROCESSORS"
+        if (Test-Path "$env:APPVEYOR_BUILD_FOLDER\ccache.exe") {
+            Push-AppveyorArtifact "$env:APPVEYOR_BUILD_FOLDER\ccache.exe"
+        } else {
+            Exit 1
+        }
+
+environment:
+    matrix:
+    - MSYSTEM: MINGW64
+    - MSYSTEM: MINGW32
