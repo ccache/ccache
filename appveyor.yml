@@ -13,11 +13,17 @@ build_script:
             Write-Host "bash:", $command
             & "C:\msys64\usr\bin\bash.exe" "--login" "-c" ("cd {0} && $command" -f (CONVERT-MSYS-PATH $env:APPVEYOR_BUILD_FOLDER ))
         }
+        mkdir work
+        cd work
+        mkdir build
+        mkdir install
         MSYS-EXEC "./autogen.sh"
-        MSYS-EXEC "./configure --with-bundled-zlib"
-        MSYS-EXEC "make -j$env:NUMBER_OF_PROCESSORS"
-        if (Test-Path "$env:APPVEYOR_BUILD_FOLDER\ccache.exe") {
-            Push-AppveyorArtifact "$env:APPVEYOR_BUILD_FOLDER\ccache.exe"
+        MSYS-EXEC ("cd work/build && {0}/configure --with-bundled-zlib --prefix={0}/work/install" -f (CONVERT-MSYS-PATH $env:APPVEYOR_BUILD_FOLDER ))
+        MSYS-EXEC "cd work/build && make -j$env:NUMBER_OF_PROCESSORS"
+        MSYS-EXEC "cd work/build && make test"
+        MSYS-EXEC "cd work/build && make install"
+        if (Test-Path "$env:APPVEYOR_BUILD_FOLDER\work\install\bin\ccache.exe") {
+            Push-AppveyorArtifact "$env:APPVEYOR_BUILD_FOLDER\work\install\bin\ccache.exe"
         } else {
             Exit 1
         }
