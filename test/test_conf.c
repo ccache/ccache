@@ -389,7 +389,11 @@ TEST(conf_print_items)
 
 	conf.item_origins = x_malloc(N_CONFIG_ITEMS * sizeof(char *));
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+#ifndef __MINGW32__
 		conf.item_origins[i] = format("origin%zu", i);
+#else
+		conf.item_origins[i] = format("origin%u", (unsigned) i);
+#endif
 	}
 
 	conf_print_items(&conf, conf_item_receiver, NULL);
@@ -429,7 +433,11 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("unify = true", received_conf_items[n++].descr);
 
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+#ifndef __MINGW32__
 		char *expected = format("origin%zu", i);
+#else
+		char *expected = format("origin%u", (unsigned) i);
+#endif
 		CHECK_STR_EQ_FREE1(expected, received_conf_items[i].origin);
 	}
 

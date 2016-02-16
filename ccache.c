@@ -251,11 +251,13 @@ struct pending_tmp_file {
 /* Temporary files to remove at program exit. */
 static struct pending_tmp_file *pending_tmp_files = NULL;
 
+#ifndef _WIN32
 static sigset_t fatal_signal_set;
 
 /* PID of currently executing compiler that we have started, if any. 0 means no
  * ongoing compilation. */
 static pid_t compiler_pid = 0;
+#endif
 
 /*
  * This is a string that identifies the current "version" of the hash sum
@@ -335,15 +337,19 @@ temp_dir()
 void
 block_signals(void)
 {
+#ifndef _WIN32
 	sigprocmask(SIG_BLOCK, &fatal_signal_set, NULL);
+#endif
 }
 
 void
 unblock_signals(void)
 {
+#ifndef _WIN32
 	sigset_t empty;
 	sigemptyset(&empty);
 	sigprocmask(SIG_SETMASK, &empty, NULL);
+#endif
 }
 
 static void
@@ -380,6 +386,7 @@ clean_up_pending_tmp_files(void)
 	unblock_signals();
 }
 
+#ifndef _WIN32
 static void
 signal_handler(int signum)
 {
@@ -440,6 +447,7 @@ set_up_signal_handlers(void)
 	register_signal_handler(SIGQUIT);
 #endif
 }
+#endif /* _WIN32 */
 
 static void
 clean_up_internal_tempdir(void)
@@ -3125,7 +3133,9 @@ ccache(int argc, char *argv[])
 	/* Arguments to send to the real compiler. */
 	struct args *compiler_args;
 
+#ifndef _WIN32
 	set_up_signal_handlers();
+#endif
 
 	orig_args = args_init(argc, argv);
 

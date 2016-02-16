@@ -272,7 +272,7 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)
 #    define execv(a,b) win32execute(a,b,0,-1,-1)
-#    define execute(a,b,c) win32execute(*(a),a,1,b,c)
+#    define execute(a,b,c,d) win32execute(*(a),a,1,b,c)
 #    define DIR_DELIM_CH '/'
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0

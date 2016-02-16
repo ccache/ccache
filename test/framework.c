@@ -180,7 +180,7 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 		cct_check_passed(file, line, expression);
 		return true;
 	} else {
-#ifdef HAVE_LONG_LONG
+#if defined(HAVE_LONG_LONG) && !defined(__MINGW32__)
 		char *exp_str = format("%lld", (long long)expected);
 		char *act_str = format("%lld", (long long)actual);
 #else
