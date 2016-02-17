@@ -881,7 +881,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
-			if (errno != ENOENT) {
+			if ((errno != ENOENT) && (errno != ESTALE)) {
 				fatal("lstat %s failed: %s", fname, strerror(errno));
 			}
 			free(fname);
