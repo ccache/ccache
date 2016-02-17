@@ -263,7 +263,11 @@ void
 cct_wipe(const char *path)
 {
 	/* TODO: rewrite using traverse(). */
+#ifndef __MINGW32__
 	char *command = format("rm -rf %s", path);
+#else
+	char *command = format("rd /s /q %s", path);
+#endif
 	if (system(command) != 0) {
 		perror(command);
 	}
