@@ -1497,8 +1497,8 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		if (debug_prefix_map) {
 			char *map = debug_prefix_map;
 			char *sep = strchr(map, '=');
-			char *dir, *old, *new;
 			if (sep) {
+				char *dir, *old, *new;
 				old = x_strndup(map, sep - map);
 				new = x_strdup(sep + 1);
 				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
