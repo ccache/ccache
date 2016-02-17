@@ -28,8 +28,11 @@ New features and improvements
 - If hard-linking is enabled and but fails (e.g. due to cross-device linking),
   ccache now falls back to copying instead of running the compiler.
 
-- Add support for relocating debuginfo cwd using `-f-debug-prefix-map`.
-  This allows getting cache hits with base_dir, even using hash_dir.
+- Made the `hash_dir` option only have effect when generating debug info.
+
+- Added support for relocating debug info directory using `-fdebug-prefix-map`.
+  This allows for cache hits even when `hash_dir` is used in combination with
+  `base_dir`.
 
 
 Bug fixes
