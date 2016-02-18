@@ -697,6 +697,11 @@ make_relative_path(char *path)
 		return path;
 	}
 
+#ifdef _WIN32
+	if (path[0] == '/')
+		path++;  /* skip leading slash */
+#endif
+
 	/* x_realpath only works for existing paths, so if path doesn't exist, try
 	 * dirname(path) and assemble the path afterwards. We only bother to try
 	 * canonicalizing one of these two paths since a compiler path argument

@@ -1094,6 +1094,8 @@ x_realpath(const char *path)
 #if HAVE_REALPATH
 	p = realpath(path, ret);
 #elif defined(_WIN32)
+	if (path[0] == '/')
+		path++;  /* skip leading slash */
 	path_handle = CreateFile(
 	  path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 	  FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1339,6 +1341,11 @@ get_relative_path(const char *from, const char *to)
 	}
 
 #ifdef _WIN32
+	// Paths can be escaped by a slash for use with -isystem
+	if (from[0] == '/')
+		from++;
+	if (to[0] == '/')
+		to++;
 	// Both paths are absolute, drop the drive letters
 	assert(from[0] == to[0]); // Assume the same drive letter
 	from += 2;

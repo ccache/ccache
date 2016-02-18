@@ -92,7 +92,11 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ("rabbit", user);
 	create_file(
 	  "ccache.conf",
+#ifndef _WIN32
 	  "base_dir =  /$USER/foo/${USER} \n"
+#else
+	  "base_dir = C:/$USER/foo/${USER}\n"
+#endif
 	  "cache_dir=\n"
 	  "cache_dir = $USER$/${USER}/.ccache\n"
 	  "\n"
@@ -128,7 +132,11 @@ TEST(conf_read_valid_config)
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
+#ifndef _WIN32
 	CHECK_STR_EQ_FREE1(format("/%s/foo/%s", user, user), conf->base_dir);
+#else
+	CHECK_STR_EQ_FREE1(format("C:/%s/foo/%s", user, user), conf->base_dir);
+#endif
 	CHECK_STR_EQ_FREE1(format("%s$/%s/.ccache", user, user), conf->cache_dir);
 	CHECK_INT_EQ(4, conf->cache_dir_levels);
 	CHECK_STR_EQ("foo", conf->compiler);

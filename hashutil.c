@@ -187,6 +187,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
 	DWORD exitcode;
+	bool cmd = false;
 	char *sh = NULL;
 	char *win32args;
 	char *path;
@@ -198,6 +199,21 @@ hash_command_output(struct mdfour *hash, const char *command,
 	int pipefd[2];
 #endif
 
+#ifdef _WIN32
+	/* trim leading space */
+	while (isspace(*command))
+		command++;
+	/* add "echo" command */
+	if (str_startswith(command, "echo")) {
+		command = format("cmd.exe /c \"%s\"", command);
+		cmd = true;
+	} else if (str_startswith(command, "%compiler%") && str_eq(compiler, "echo")) {
+		command = format("cmd.exe /c \"%s%s\"", compiler, command + 10);
+		cmd = true;
+	} else {
+		command = x_strdup(command);
+	}
+#endif
 	struct args *args = args_init_from_string(command);
 	int i;
 	for (i = 0; i < args->argc; i++) {
@@ -225,11 +241,16 @@ hash_command_output(struct mdfour *hash, const char *command,
 	si.hStdError = pipe_out[1];
 	si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	si.dwFlags = STARTF_USESTDHANDLES;
-	win32args = win32argvtos(sh, args->argv);
+	if (!cmd)
+		win32args = win32argvtos(sh, args->argv);
+	else
+		win32args = (char *) command; /* quoted */
 	ret = CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
+	if (cmd)
+		free((char *) command); /* original argument was replaced above */
 	if (ret == 0) {
 		stats_update(STATS_COMPCHECK);
 		return false;
