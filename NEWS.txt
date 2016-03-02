@@ -49,6 +49,8 @@ New features and improvements
 
 - Only pass clang-specific `-stdlib=` to the preprocessor.
 
+- Improved handling of stale NFS handles.
+
 
 Bug fixes
 ~~~~~~~~~
