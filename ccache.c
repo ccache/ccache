@@ -843,7 +843,7 @@ get_file_from_cache(const char *source, const char *dest)
 	}
 
 	if (ret == -1) {
-		if (errno == ENOENT) {
+		if (errno == ENOENT || errno == ESTALE) {
 			/* Someone removed the file just before we began copying? */
 			cc_log("Cache file %s just disappeared from cache", source);
 			stats_update(STATS_MISSING);

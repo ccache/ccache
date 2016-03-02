@@ -881,7 +881,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
-			if ((errno != ENOENT) && (errno != ESTALE)) {
+			if (errno != ENOENT && errno != ESTALE) {
 				fatal("lstat %s failed: %s", fname, strerror(errno));
 			}
 			free(fname);
@@ -1510,7 +1510,7 @@ x_unlink(const char *path)
 	}
 	if (unlink(tmp_name) == -1) {
 		/* If it was released in a race, that's OK. */
-		if (errno != ENOENT) {
+		if (errno != ENOENT && errno != ESTALE) {
 			result = -1;
 			saved_errno = errno;
 		}
