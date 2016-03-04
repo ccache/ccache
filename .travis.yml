@@ -5,6 +5,8 @@ addons:
         packages:
             - elfutils
             - zlib1g-dev
+            - gcc-mingw-w64-i686
+            - binutils-mingw-w64-i686
 
 os:
     - linux
@@ -17,14 +19,19 @@ compiler:
 matrix:
     include:
         - os: linux
+          compiler: gcc
+          env: HOST="--host=i686-w64-mingw32" TEST="test/main.exe"
+    include:
+        - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=address -g" ASAN_OPTIONS="detect_leaks=0"
+
     exclude:
         - os: osx
           compiler: gcc
 
 script:
     - ./autogen.sh
-    - ./configure
+    - ./configure $HOST
     - make
-    - make test
+    - make ${TEST:-test}
