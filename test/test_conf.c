@@ -93,7 +93,11 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ("rabbit", user);
 	create_file(
 	  "ccache.conf",
+#ifndef _WIN32
 	  "base_dir =  /$USER/foo/${USER} \n"
+#else
+	  "base_dir = C:/$USER/foo/${USER}\n"
+#endif
 	  "cache_dir=\n"
 	  "cache_dir = $USER$/${USER}/.ccache\n"
 	  "\n"
@@ -130,7 +134,11 @@ TEST(conf_read_valid_config)
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
+#ifndef _WIN32
 	CHECK_STR_EQ_FREE1(format("/%s/foo/%s", user, user), conf->base_dir);
+#else
+	CHECK_STR_EQ_FREE1(format("C:/%s/foo/%s", user, user), conf->base_dir);
+#endif
 	CHECK_STR_EQ_FREE1(format("%s$/%s/.ccache", user, user), conf->cache_dir);
 	CHECK_INT_EQ(4, conf->cache_dir_levels);
 	CHECK_STR_EQ("foo", conf->compiler);
@@ -395,7 +403,11 @@ TEST(conf_print_items)
 
 	conf.item_origins = x_malloc(N_CONFIG_ITEMS * sizeof(char *));
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+#ifndef __MINGW32__
 		conf.item_origins[i] = format("origin%zu", i);
+#else
+		conf.item_origins[i] = format("origin%u", (unsigned) i);
+#endif
 	}
 
 	conf_print_items(&conf, conf_item_receiver, NULL);
@@ -438,7 +450,11 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("unify = true", received_conf_items[n++].descr);
 
 	for (i = 0; i < N_CONFIG_ITEMS; ++i) {
+#ifndef __MINGW32__
 		char *expected = format("origin%zu", i);
+#else
+		char *expected = format("origin%u", (unsigned) i);
+#endif
 		CHECK_STR_EQ_FREE1(expected, received_conf_items[i].origin);
 	}
 

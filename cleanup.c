@@ -108,7 +108,7 @@ delete_file(const char *path, size_t size)
 	if (x_unlink(path) == 0) {
 		cache_size -= size;
 		files_in_cache--;
-	} else if (errno != ENOENT) {
+	} else if (errno != ENOENT && errno != ESTALE) {
 		cc_log("Failed to unlink %s (%s)", path, strerror(errno));
 	}
 }
@@ -122,7 +122,7 @@ delete_sibling_file(const char *base, const char *extension)
 	path = format("%s%s", base, extension);
 	if (lstat(path, &st) == 0) {
 		delete_file(path, file_size(&st));
-	} else if (errno != ENOENT) {
+	} else if (errno != ENOENT && errno != ESTALE) {
 		cc_log("Failed to stat %s: %s", path, strerror(errno));
 	}
 	free(path);
