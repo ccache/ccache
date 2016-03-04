@@ -1681,7 +1681,7 @@ EOF
 
     ##################################################################
     # Check that gcc's -fdebug-prefix-map argument maps the debuginfo cwd.
-    if [ $COMPILER_TYPE_GCC -eq 1 ]; then
+    if [ $COMPILER_TYPE_GCC -eq 1 -a $COMPILER_USES_MINGW -eq 0 ]; then
         testname="debug-prefix-map"
         $CCACHE -Cz >/dev/null
         cd dir1
@@ -2541,6 +2541,7 @@ COMPILER_TYPE_CLANG=0
 COMPILER_TYPE_GCC=0
 
 COMPILER_USES_LLVM=0
+COMPILER_USES_MINGW=0
 
 HOST_OS_APPLE=0
 HOST_OS_LINUX=0
@@ -2562,6 +2563,12 @@ esac
 case $compiler_version in
     *llvm*|*LLVM*)
         COMPILER_USES_LLVM=1
+        ;;
+esac
+
+case $compiler_version in
+    *mingw*)
+        COMPILER_USES_MINGW=1
         ;;
 esac
 
