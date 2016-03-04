@@ -5,8 +5,8 @@ addons:
         packages:
             - elfutils
             - zlib1g-dev
-            - gcc-mingw-w64-i686
-            - binutils-mingw-w64-i686
+            - mingw32
+            - mingw32-binutils
 
 os:
     - linux
@@ -19,9 +19,8 @@ compiler:
 matrix:
     include:
         - os: linux
-          compiler: gcc
-          env: HOST="--host=i686-w64-mingw32" TEST="test/main.exe"
-    include:
+          compiler: i586-mingw32msvc-gcc
+          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=address -g" ASAN_OPTIONS="detect_leaks=0"
