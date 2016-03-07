@@ -51,6 +51,10 @@
 
 extern char **environ;
 
+#ifndef ESTALE
+#define ESTALE -1
+#endif
+
 #if !HAVE_VSNPRINTF
   int rpl_vsnprintf(char *, size_t, const char *, va_list);
   #define vsnprintf rpl_vsnprintf

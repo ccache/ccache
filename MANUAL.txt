@@ -242,6 +242,9 @@ setting key. Boolean options are indicated with ``[boolean]''
     directory. If set to the empty string (which is the default), no rewriting
     is done. See also the discussion under
     <<_compiling_in_different_directories,COMPILING IN DIFFERENT DIRECTORIES>>.
+    If using GCC or newer versions of Clang, you might want to look into the
+    *-fdebug-prefix-map=old=new* option for relocating debug info to a common
+    prefix (mapping prefix with old=new).
 
 *cache_dir* (*CCACHE_DIR*)::
 
@@ -349,7 +352,7 @@ WRAPPERS>>.
 *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
     This setting is a list of paths to files that ccache will include in the
-    the hash sum that idetifies the build. The list separator is semicolon on
+    the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
 *hard_link* (*CCACHE_HARDLINK*) [boolean]::
@@ -372,7 +375,7 @@ WRAPPERS>>.
     working directory in the debug info set incorrectly. This option is off by
     default as the incorrect setting of this debug info rarely causes problems.
     If you strike problems with GDB not using the correct directory then enable
-    this option.
+    this option. The option only applies when generating debug info (*-g*).
 
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 

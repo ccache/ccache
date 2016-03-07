@@ -28,6 +28,12 @@ New features and improvements
 - If hard-linking is enabled and but fails (e.g. due to cross-device linking),
   ccache now falls back to copying instead of running the compiler.
 
+- Made the `hash_dir` option only have effect when generating debug info.
+
+- Added support for relocating debug info directory using `-fdebug-prefix-map`.
+  This allows for cache hits even when `hash_dir` is used in combination with
+  `base_dir`.
+
 
 Bug fixes
 ~~~~~~~~~
@@ -43,6 +49,8 @@ New features and improvements
 
 - Only pass clang-specific `-stdlib=` to the preprocessor.
 
+- Improved handling of stale NFS handles.
+
 
 Bug fixes
 ~~~~~~~~~
@@ -56,7 +64,7 @@ Bug fixes
 
 - Fixed failure to create directories on QNX.
 
-- Don't (try to) update manifest file in ``read-only and ``read-only direct''
+- Don't (try to) update manifest file in ``read-only'' and ``read-only direct''
   modes.
 
 - Fixed a bug in caching of `stat` system calls in ``file_stat_matches

@@ -539,7 +539,9 @@ static UINTMAX_T cast(LDOUBLE);
 static UINTMAX_T myround(LDOUBLE);
 static LDOUBLE mypow10(int);
 
+#ifndef __MINGW32__
 extern int errno;
+#endif
 
 int
 rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)

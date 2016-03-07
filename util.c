@@ -31,6 +31,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
+#include <psapi.h>
+#include <tchar.h>
 #endif
 
 static FILE *logfile;
@@ -950,7 +952,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fname = format("%s/%s", dir, de->d_name);
 		if (lstat(fname, &st)) {
-			if (errno != ENOENT) {
+			if (errno != ENOENT && errno != ESTALE) {
 				fatal("lstat %s failed: %s", fname, strerror(errno));
 			}
 			free(fname);
@@ -1147,6 +1149,84 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 }
 
 
+#if defined(_WIN32) && !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
+static BOOL GetFileNameFromHandle(HANDLE hFile, TCHAR *pszFilename,
+                                  WORD cchFilename)
+{
+	BOOL bSuccess = FALSE;
+	HANDLE hFileMap;
+
+	// Get the file size.
+	DWORD dwFileSizeHi = 0;
+	DWORD dwFileSizeLo = GetFileSize(hFile, &dwFileSizeHi);
+
+	if (dwFileSizeLo == 0 && dwFileSizeHi == 0) {
+		// Cannot map a file with a length of zero.
+		return FALSE;
+	}
+
+	// Create a file mapping object.
+	hFileMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 1, NULL);
+	if (!hFileMap) {
+		return FALSE;
+	}
+
+	// Create a file mapping to get the file name.
+	void *pMem = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 1);
+	if (pMem) {
+		if (GetMappedFileName(GetCurrentProcess(),
+		                      pMem,
+		                      pszFilename,
+		                      cchFilename)) {
+			// Translate path with device name to drive letters.
+			TCHAR szTemp[512];
+			szTemp[0] = '\0';
+
+			if (GetLogicalDriveStrings(512-1, szTemp)) {
+				TCHAR szName[MAX_PATH];
+				TCHAR szDrive[3] = TEXT(" :");
+				BOOL bFound = FALSE;
+				TCHAR *p = szTemp;
+
+				do {
+					// Copy the drive letter to the template string
+					*szDrive = *p;
+
+					// Look up each device name
+					if (QueryDosDevice(szDrive, szName, MAX_PATH)) {
+						size_t uNameLen = _tcslen(szName);
+
+						if (uNameLen < MAX_PATH) {
+							bFound = _tcsnicmp(pszFilename, szName, uNameLen) == 0
+							         && *(pszFilename + uNameLen) == _T('\\');
+							if (bFound) {
+								// Reconstruct pszFilename using szTempFile
+								// Replace device path with DOS path
+								TCHAR szTempFile[MAX_PATH];
+								_sntprintf(szTempFile,
+								           MAX_PATH - 1,
+								           TEXT("%s%s"),
+								           szDrive,
+								           pszFilename+uNameLen);
+								_tcsncpy(pszFilename, szTempFile, _tcslen(szTempFile));
+							}
+						}
+					}
+
+					// Go to the next NULL character.
+					while (*p++) ;
+				} while (!bFound && *p); // end of string
+			}
+		}
+		bSuccess = TRUE;
+		UnmapViewOfFile(pMem);
+	}
+
+	CloseHandle(hFileMap);
+	return bSuccess;
+}
+#endif
+
 /* A sane realpath() function, trying to cope with stupid path limits and a
  * broken API. Caller frees. */
 char *
@@ -1163,11 +1243,17 @@ x_realpath(const char *path)
 #if HAVE_REALPATH
 	p = realpath(path, ret);
 #elif defined(_WIN32)
+	if (path[0] == '/')
+		path++;  /* skip leading slash */
 	path_handle = CreateFile(
 	  path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 	  FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE != path_handle) {
+#ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
 		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
+#else
+		GetFileNameFromHandle(path_handle, ret, maxlen);
+#endif
 		CloseHandle(path_handle);
 		p = ret + 4; /* strip \\?\ from the file name */
 	} else {
@@ -1408,6 +1494,11 @@ get_relative_path(const char *from, const char *to)
 	}
 
 #ifdef _WIN32
+	// Paths can be escaped by a slash for use with -isystem
+	if (from[0] == '/')
+		from++;
+	if (to[0] == '/')
+		to++;
 	// Both paths are absolute, drop the drive letters
 	assert(from[0] == to[0]); // Assume the same drive letter
 	from += 2;
@@ -1579,7 +1670,7 @@ x_unlink(const char *path)
 	}
 	if (unlink(tmp_name) == -1) {
 		/* If it was released in a race, that's OK. */
-		if (errno != ENOENT) {
+		if (errno != ENOENT && errno != ESTALE) {
 			result = -1;
 			saved_errno = errno;
 		}

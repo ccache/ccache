@@ -27,6 +27,41 @@
 
 extern struct conf *conf;
 
+static char *
+get_root(void)
+{
+#ifndef _WIN32
+	return x_strdup("/");
+#else
+	char volume[4]; /* "C:\" */
+	GetVolumePathName(get_cwd(), volume, sizeof(volume));
+	return x_strdup(volume);
+#endif
+}
+
+static char *
+get_posix_path(char *path)
+{
+#ifndef _WIN32
+	return x_strdup(path);
+#else
+	char *posix;
+	char *p;
+
+	/* / escape volume */
+	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':')
+		posix = format("/%s", path);
+	else
+		posix = x_strdup(path);
+	/* convert slashes */
+	for (p = posix; *p; p++) {
+		if (*p == '\\')
+			*p = '/';
+	}
+	return posix;
+#endif
+}
+
 TEST_SUITE(argument_processing)
 
 TEST(dash_E_should_result_in_called_for_preprocessing)
@@ -121,7 +156,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/");
+	conf->base_dir = get_root();
 	current_working_dir = get_cwd();
 	arg_string = format("cc --sysroot=%s/foo -c foo.c", current_working_dir);
 	orig = args_init_from_string(arg_string);
@@ -309,7 +344,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/");
+	conf->base_dir = get_root();
 	current_working_dir = get_cwd();
 	arg_string = format("cc -isystem %s/foo -c foo.c", current_working_dir);
 	orig = args_init_from_string(arg_string);
@@ -326,15 +361,18 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
 TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 {
 	extern char *current_working_dir;
+	char *cwd;
 	char *arg_string;
 	struct args *orig;
 	struct args *act_cpp = NULL, *act_cc = NULL;
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/");
+	conf->base_dir = x_strdup("/"); /* posix */
 	current_working_dir = get_cwd();
-	arg_string = format("cc -isystem%s/foo -c foo.c", current_working_dir);
+	/* windows path don't work concatenated */
+	cwd = get_posix_path(current_working_dir);
+	arg_string = format("cc -isystem%s/foo -c foo.c", cwd);
 	orig = args_init_from_string(arg_string);
 	free(arg_string);
 
@@ -342,6 +380,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 	CHECK_STR_EQ("-isystem", act_cpp->argv[1]);
 	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
 
+	free(cwd);
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);

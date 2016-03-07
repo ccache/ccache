@@ -305,16 +305,14 @@ base_tests() {
     $CCACHE_NOFILES checkstat 'files in cache' 4
 
     testname="CCACHE_HASHDIR"
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 5
     checkstat 'cache miss' 5
-    compare_object reference_test1.o test1.o
 
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -O -O
+    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 5
     $CCACHE_NOFILES checkstat 'files in cache' 5
-    compare_object reference_test1.o test1.o
 
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c
@@ -1726,6 +1724,34 @@ EOF
         $CCACHE_NOFILES checkstat 'files in cache' 4
         cd ..
     fi
+
+    ##################################################################
+    # Check that gcc's -fdebug-prefix-map argument maps the debuginfo cwd.
+    if [ $COMPILER_TYPE_GCC -eq 1 -a $COMPILER_USES_MINGW -eq 0 ]; then
+        testname="debug-prefix-map"
+        $CCACHE -Cz >/dev/null
+        cd dir1
+        CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+        if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+            test_failed "Source dir (`pwd`) found in test.o"
+        fi
+        cd ..
+
+        cd dir2
+        CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE $COMPILER -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+        checkstat 'cache hit (direct)' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        checkstat 'files in cache' 2
+        if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+            test_failed "Source dir (`pwd`) found in test.o"
+        fi
+        cd ..
+    fi
 }
 
 compression_suite() {
@@ -2462,11 +2488,11 @@ clang_pch_suite() {
 
     testname="pth, preprocessor mode"
     $CCACHE -Cz >/dev/null
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness pch_defines time_macros" $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 0
     checkstat 'cache miss' 1
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS=time_macros $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$default_sloppiness pch_defines time_macros" $CCACHE $COMPILER $SYSROOT -c -include pch.h -fpch-preprocess pch.c
     checkstat 'cache hit (direct)' 0
     checkstat 'cache hit (preprocessed)' 1
     checkstat 'cache miss' 1
@@ -2561,6 +2587,7 @@ COMPILER_TYPE_CLANG=0
 COMPILER_TYPE_GCC=0
 
 COMPILER_USES_LLVM=0
+COMPILER_USES_MINGW=0
 
 HOST_OS_APPLE=0
 HOST_OS_LINUX=0
@@ -2582,6 +2609,12 @@ esac
 case $compiler_version in
     *llvm*|*LLVM*)
         COMPILER_USES_LLVM=1
+        ;;
+esac
+
+case $compiler_version in
+    *mingw*)
+        COMPILER_USES_MINGW=1
         ;;
 esac
 

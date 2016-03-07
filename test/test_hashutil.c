@@ -72,10 +72,16 @@ TEST(hash_command_output_stdout_versus_stderr)
 	struct mdfour h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
+#ifndef _WIN32
 	create_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
 	chmod("stderr.sh", 0555);
 	CHECK(hash_command_output(&h1, "echo foo", "not used"));
 	CHECK(hash_command_output(&h2, "./stderr.sh", "not used"));
+#else
+	create_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
+	CHECK(hash_command_output(&h1, "echo foo", "not used"));
+	CHECK(hash_command_output(&h2, "stderr.bat", "not used"));
+#endif
 	CHECK(hash_equal(&h1, &h2));
 }
 
@@ -84,10 +90,16 @@ TEST(hash_multicommand_output)
 	struct mdfour h1, h2;
 	hash_start(&h1);
 	hash_start(&h2);
+#ifndef _WIN32
 	create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
 	chmod("foo.sh", 0555);
 	CHECK(hash_multicommand_output(&h2, "echo foo; echo bar", "not used"));
 	CHECK(hash_multicommand_output(&h1, "./foo.sh", "not used"));
+#else
+	create_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
+	CHECK(hash_multicommand_output(&h2, "echo foo; echo bar", "not used"));
+	CHECK(hash_multicommand_output(&h1, "foo.bat", "not used"));
+#endif
 	CHECK(hash_equal(&h1, &h2));
 }
 
