@@ -266,43 +266,59 @@ base_tests() {
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 4
 
+    testname="CCACHE_COMMENTS"
+    mv test1.c test1-saved.c
+    echo '/* initial comment */' > test1.c
+    cat test1-saved.c >> test1.c
+    CCACHE_COMMENTS=1 $CCACHE_COMPILE -c test1.c
+    checkstat 'cache hit (preprocessed)' 4
+    checkstat 'cache miss' 3
+    echo '/* different comment */' > test1.c
+    cat test1-saved.c >> test1.c
+    CCACHE_COMMENTS=1 $CCACHE_COMPILE -c test1.c
+    mv test1-saved.c test1.c
+    checkstat 'cache hit (preprocessed)' 4
+    checkstat 'cache miss' 4
+    CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o
+    compare_object reference_test1.o test1.o
+
     testname="CCACHE_CPP2"
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 4
-    checkstat 'cache miss' 3
+    checkstat 'cache miss' 5
     CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o -O -O
     compare_object reference_test1.o test1.o
 
     CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
-    checkstat 'cache miss' 3
+    checkstat 'cache miss' 5
     compare_object reference_test1.o test1.o
 
     testname="CCACHE_NOSTATS"
     CCACHE_NOSTATS=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
-    checkstat 'cache miss' 3
+    checkstat 'cache miss' 5
 
     testname="CCACHE_RECACHE"
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c -O -O
     checkstat 'cache hit (preprocessed)' 5
-    checkstat 'cache miss' 4
+    checkstat 'cache miss' 6
     compare_object reference_test1.o test1.o
 
     # strictly speaking should be 4 - RECACHE causes a double counting!
-    checkstat 'files in cache' 4
+    checkstat 'files in cache' 6
     $CCACHE -c > /dev/null
-    checkstat 'files in cache' 4
+    checkstat 'files in cache' 6
 
     testname="CCACHE_HASHDIR"
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 5
-    checkstat 'cache miss' 5
+    checkstat 'cache miss' 7
 
     CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g -O -O
     checkstat 'cache hit (preprocessed)' 6
-    checkstat 'cache miss' 5
-    checkstat 'files in cache' 5
+    checkstat 'cache miss' 7
+    checkstat 'files in cache' 7
 
     testname="comments"
     echo '/* a silly comment */' > test1-comment.c
@@ -310,19 +326,19 @@ base_tests() {
     $CCACHE_COMPILE -c test1-comment.c
     rm -f test1-comment*
     checkstat 'cache hit (preprocessed)' 6
-    checkstat 'cache miss' 6
+    checkstat 'cache miss' 8
 
     testname="CCACHE_UNIFY"
     CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 6
-    checkstat 'cache miss' 7
+    checkstat 'cache miss' 9
     mv test1.c test1-saved.c
     echo '/* another comment */' > test1.c
     cat test1-saved.c >> test1.c
     CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
     mv test1-saved.c test1.c
     checkstat 'cache hit (preprocessed)' 7
-    checkstat 'cache miss' 7
+    checkstat 'cache miss' 9
     CCACHE_DISABLE=1 $COMPILER -c test1.c -o reference_test1.o
     compare_object reference_test1.o test1.o
 
@@ -331,57 +347,57 @@ base_tests() {
         $CCACHE_COMPILE -c $f
     done
     checkstat 'cache hit (preprocessed)' 8
-    checkstat 'cache miss' 37
-    checkstat 'files in cache' 37
+    checkstat 'cache miss' 39
+    checkstat 'files in cache' 39
 
     $CCACHE -C >/dev/null
 
     testname="cpp call"
     $CCACHE_COMPILE -c test1.c -E > test1.i
     checkstat 'cache hit (preprocessed)' 8
-    checkstat 'cache miss' 37
+    checkstat 'cache miss' 39
 
     testname="direct .i compile"
     $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 8
-    checkstat 'cache miss' 38
+    checkstat 'cache miss' 40
 
     $CCACHE_COMPILE -c test1.i
     checkstat 'cache hit (preprocessed)' 9
-    checkstat 'cache miss' 38
+    checkstat 'cache miss' 40
 
     $CCACHE_COMPILE -c test1.i
     checkstat 'cache hit (preprocessed)' 10
-    checkstat 'cache miss' 38
+    checkstat 'cache miss' 40
 
     testname="-x c"
     $CCACHE_COMPILE -x c -c test1.ccc
     checkstat 'cache hit (preprocessed)' 10
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
     $CCACHE_COMPILE -x c -c test1.ccc
     checkstat 'cache hit (preprocessed)' 11
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
 
     testname="-xc"
     $CCACHE_COMPILE -xc -c test1.ccc
     checkstat 'cache hit (preprocessed)' 12
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
 
     testname="-x none"
     $CCACHE_COMPILE -x assembler -x none -c test1.c
     checkstat 'cache hit (preprocessed)' 13
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
 
     testname="-x unknown"
     $CCACHE_COMPILE -x unknown -c test1.c 2>/dev/null
     checkstat 'cache hit (preprocessed)' 13
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
     checkstat 'unsupported source language' 2
 
     testname="-D not hashed"
     $CCACHE_COMPILE -DNOT_AFFECTING=1 -c test1.c
     checkstat 'cache hit (preprocessed)' 14
-    checkstat 'cache miss' 39
+    checkstat 'cache miss' 41
 
     if [ -x /usr/bin/printf ]; then
         /usr/bin/printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
@@ -389,16 +405,16 @@ base_tests() {
             testname="-finput-charset"
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 14
-            checkstat 'cache miss' 40
+            checkstat 'cache miss' 42
             CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 15
-            checkstat 'cache miss' 40
+            checkstat 'cache miss' 42
             $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 15
-            checkstat 'cache miss' 41
+            checkstat 'cache miss' 43
             $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
             checkstat 'cache hit (preprocessed)' 16
-            checkstat 'cache miss' 41
+            checkstat 'cache miss' 43
         fi
     fi
 
