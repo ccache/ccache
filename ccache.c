@@ -1312,6 +1312,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		add_pending_tmp_file(path_stdout);
 
 		args_add(args, "-E");
+		if (conf->keep_comments_cpp)
+			args_add(args, "-C");
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");

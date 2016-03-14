@@ -385,6 +385,11 @@ WRAPPERS>>.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
+*keep_comments_cpp* (*CCACHE_COMMENTS*) [boolean]::
+
+    If true, ccache will not discard the comments before hashing preprocessor
+    output. This can be used to check documentation with *-Wdocumentation*.
+
 *log_file* (*CCACHE_LOGFILE*)::
 
     If set to a file path, ccache will write information on what it is doing to
