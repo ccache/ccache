@@ -120,7 +120,7 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 			ptr, s, strlen(s), value + x, n, expiration, flags);
 		free(s);
 		if (ret) {
-			const memcached_instance_st * instance;
+			memcached_server_instance_st instance;
 
 			instance = memcached_server_instance_by_position(memc, 0);
 			cc_log("%s %s", memcached_last_error_message(memc),
