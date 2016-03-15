@@ -1525,6 +1525,7 @@ basedir_suite() {
     # Create some code to compile.
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
+#include <stdarg.h>
 #include <test.h>
 EOF
     cat <<EOF >dir1/include/test.h
@@ -1667,6 +1668,35 @@ EOF
 
         cd dir2
         CCACHE_BASEDIR="`pwd`" $CCACHE $COMPILER -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        checkstat 'cache hit (direct)' 1
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        cd ..
+    done
+
+    ##################################################################
+    # When BASEDIR is set to / check that -MF, -MQ and -MT arguments with absolute paths
+    # are rewritten to relative and the dependency file contains only relative# paths.
+    testname="-MF/-MQ/-MT with absolute paths and BASEDIR set to /"
+    for option in MF "MF " MQ "MQ " MT "MT "; do
+        $CCACHE -Cz >/dev/null
+        cd dir1
+        CCACHE_BASEDIR="/" $CCACHE $COMPILER -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        checkstat 'cache hit (direct)' 0
+        checkstat 'cache hit (preprocessed)' 0
+        checkstat 'cache miss' 1
+        # Check that there is no absolute path in the dependency file
+        while read line; do
+            for file in $line; do
+                case $file in /*)
+                    test_failed "Absolute file path '$file' found in dependency file '`pwd`/test.d'"
+                esac
+            done
+        done < `pwd`/test.d
+        cd ..
+
+        cd dir2
+        CCACHE_BASEDIR="/" $CCACHE $COMPILER -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         checkstat 'cache hit (direct)' 1
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1

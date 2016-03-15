@@ -177,6 +177,9 @@ time_t time_of_compilation;
  */
 static struct hashtable *included_files;
 
+/* uses absolute path for some include files */
+static bool has_absolute_include_headers = false;
+
 /* List of headers to ignore */
 static char **ignore_headers;
 
@@ -854,6 +857,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			/* p and q span the include file path */
 			path = x_strndup(p, q - p);
+			if (!has_absolute_include_headers) {
+				has_absolute_include_headers = is_absolute_path(path);
+			}
 			path = make_relative_path(path);
 			hash_string(hash, path);
 			remember_include_file(path, hash, system);
@@ -876,6 +882,96 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	return true;
+}
+
+/*
+ * Replace absolute paths with relative paths in the
+ * profided dependency file.
+ */
+static void
+use_relative_paths_in_depfile(const char *depfile)
+{
+	FILE *f, *tmpf;
+	char buf[10000];
+	char *tmp_file;
+	char *relpath;
+	bool result = false;
+	char *token, *saveptr;
+
+	if (str_eq(conf->base_dir, "")) {
+		cc_log("Base dir not set, skip using relative paths");
+		return; /* nothing to do */
+	}
+	if (!has_absolute_include_headers) {
+		cc_log("No absolute path for included files found, skip using relative paths");
+		return; /* nothing to do */
+	}
+
+	f = fopen(depfile, "r");
+	if (!f) {
+		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+		return;
+	}
+	tmp_file = format("%s.tmp", depfile);
+	tmpf = create_tmp_file(&tmp_file, "w");
+	if (!tmpf) {
+		cc_log("Cannot create temporary dependency file: %s (%s)", tmp_file,
+				strerror(errno));
+		free(tmp_file);
+		fclose(f);
+		return;
+	}
+
+	while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
+		token = strtok_r(buf, " \t", &saveptr);
+		while (token) {
+			if (is_absolute_path(token) && str_startswith(token, conf->base_dir)) {
+				relpath = make_relative_path(x_strdup(token));
+				result = true;
+			} else {
+				relpath = token;
+			}
+			if (token != buf) { /* this is a dependency file */
+				fputc(' ', tmpf);
+			}
+			fputs(relpath, tmpf);
+			if (relpath != token) {
+				free(relpath);
+			}
+			token = strtok_r(NULL, " \t", &saveptr);
+		}
+	}
+
+	if (ferror(f)) {
+		cc_log("Error reading dependency file: %s, skip relative path usage",
+				depfile);
+		result = false;
+	  goto out;
+	}
+	if (ferror(tmpf)) {
+		cc_log("Error writing temporary dependency file: %s, skip relative path usage",
+				tmp_file);
+		result = false;
+		goto out;
+	}
+
+out:
+	fclose(tmpf);
+	fclose(f);
+	if (result) {
+		if (x_rename(tmp_file, depfile) != 0) {
+			cc_log("Error renaming dependency file: %s -> %s (%s), skip relative path usage",
+			    tmp_file, depfile, strerror(errno));
+			result = false;
+	  } else {
+			cc_log("Rename dependency file: %s -> %s", tmp_file, depfile);
+	  }
+	}
+	if (!result) {
+		cc_log("Removing temporary dependency file: %s", tmp_file);
+		x_unlink(tmp_file);
+	}
+	free(tmp_file);
 }
 
 /* Copy or link a file to the cache. */
@@ -1232,6 +1328,7 @@ to_cache(struct args *args)
 	}
 
 	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
 		put_file_in_cache(output_dep, cached_dep);
 	}
 	stats_update(STATS_TOCACHE);
@@ -3082,6 +3179,7 @@ cc_reset(void)
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
+	has_absolute_include_headers = false;
 	generating_debuginfo = false;
 	generating_dependencies = false;
 	generating_coverage = false;
