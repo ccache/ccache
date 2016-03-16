@@ -34,6 +34,10 @@ New features and improvements
   This allows for cache hits even when `hash_dir` is used in combination with
   `base_dir`.
 
+- Added new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option, which
+  tells ccache not to discard the comments before hashing preprocessor output.
+  This can be used to check documentation with *-Wdocumentation*.
+
 
 Bug fixes
 ~~~~~~~~~
