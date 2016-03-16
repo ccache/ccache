@@ -578,7 +578,8 @@ conf_print_items(struct conf *conf,
 	        context);
 
 	reformat(&s, "keep_comments_cpp = %s", bool_to_string(conf->keep_comments_cpp));
-	printer(s, conf->item_origins[find_conf("keep_comments_cpp")->number], context);
+	printer(s, conf->item_origins[find_conf(
+	                                "keep_comments_cpp")->number], context);
 
 	reformat(&s, "log_file = %s", conf->log_file);
 	printer(s, conf->item_origins[find_conf("log_file")->number], context);

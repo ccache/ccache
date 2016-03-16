@@ -49,14 +49,16 @@ get_posix_path(char *path)
 	char *p;
 
 	/* / escape volume */
-	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':')
+	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
 		posix = format("/%s", path);
-	else
+	} else {
 		posix = x_strdup(path);
+	}
 	/* convert slashes */
 	for (p = posix; *p; p++) {
-		if (*p == '\\')
+		if (*p == '\\') {
 			*p = '/';
+		}
 	}
 	return posix;
 #endif

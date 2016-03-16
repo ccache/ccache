@@ -574,8 +574,9 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	/* stat fails on directories on win32 */
 	attributes = GetFileAttributes(path);
 	if (attributes != INVALID_FILE_ATTRIBUTES &&
-	    attributes & FILE_ATTRIBUTE_DIRECTORY)
+	    attributes & FILE_ATTRIBUTE_DIRECTORY) {
 		goto ignore;
+	}
 #endif
 
 	if (x_stat(path, &st) != 0) {
@@ -698,8 +699,9 @@ make_relative_path(char *path)
 	}
 
 #ifdef _WIN32
-	if (path[0] == '/')
+	if (path[0] == '/') {
 		path++;  /* skip leading slash */
+	}
 #endif
 
 	/* x_realpath only works for existing paths, so if path doesn't exist, try
@@ -1312,8 +1314,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		add_pending_tmp_file(path_stdout);
 
 		args_add(args, "-E");
-		if (conf->keep_comments_cpp)
+		if (conf->keep_comments_cpp) {
 			args_add(args, "-C");
+		}
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
