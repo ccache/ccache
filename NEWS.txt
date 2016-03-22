@@ -44,6 +44,8 @@ Bug fixes
 
 - Fixed clang test suite when running on Linux.
 
+- Fixed build and test for MinGW32 and Windows.
+
 
 Unreleased ccache 3.2.5
 -----------------------
