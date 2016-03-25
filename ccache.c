@@ -1592,6 +1592,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		    && x_stat(args->argv[i+3], &st) == 0) {
 			hash_delimiter(hash, "plugin");
 			hash_compiler(hash, &st, args->argv[i+3], false);
+			i += 3;
 			continue;
 		}
 
