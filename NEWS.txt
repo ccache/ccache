@@ -76,6 +76,8 @@ Bug fixes
 - Fixed a bug in caching of `stat` system calls in ``file_stat_matches
   sloppiness mode''.
 
+- Fixed bug in hashing of clang plugins, leading to unnecessary cache misses.
+
 
 ccache 3.2.4
 ------------
