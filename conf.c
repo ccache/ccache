@@ -628,6 +628,9 @@ conf_print_items(struct conf *conf,
 	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
 		reformat(&s, "%stime_macros, ", s);
 	}
+	if (conf->sloppiness & SLOPPY_PCH_DEFINES) {
+		reformat(&s, "%spch_defines, ", s);
+	}
 	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 		reformat(&s, "%sfile_stat_matches, ", s);
 	}
