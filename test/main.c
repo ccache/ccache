@@ -24,9 +24,11 @@
 #include "getopt_long.h"
 #endif
 
+/* *INDENT-OFF* disable uncrustify */
 #define SUITE(name) unsigned suite_ ## name(unsigned);
 #include "test/suites.h"
 #undef SUITE
+/* *INDENT-ON* enable uncrustify */
 
 const char USAGE_TEXT[] =
   "Usage:\n"
