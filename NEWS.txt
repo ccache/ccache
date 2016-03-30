@@ -78,6 +78,8 @@ Bug fixes
 
 - Fixed bug in hashing of clang plugins, leading to unnecessary cache misses.
 
+- Fixed --print-config to show ``pch_defines sloppiness''.
+
 
 ccache 3.2.4
 ------------
