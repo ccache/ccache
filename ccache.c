@@ -914,13 +914,6 @@ use_relative_paths_in_depfile(const char *depfile)
 	}
 	tmp_file = format("%s.tmp", depfile);
 	tmpf = create_tmp_file(&tmp_file, "w");
-	if (!tmpf) {
-		cc_log("Cannot create temporary dependency file: %s (%s)", tmp_file,
-		       strerror(errno));
-		free(tmp_file);
-		fclose(f);
-		return;
-	}
 
 	while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
 		token = strtok_r(buf, " \t", &saveptr);
