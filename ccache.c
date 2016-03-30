@@ -885,8 +885,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 }
 
 /*
- * Replace absolute paths with relative paths in the
- * profided dependency file.
+ * Replace absolute paths with relative paths in the provided dependency file.
  */
 static void
 use_relative_paths_in_depfile(const char *depfile)
@@ -903,7 +902,8 @@ use_relative_paths_in_depfile(const char *depfile)
 		return; /* nothing to do */
 	}
 	if (!has_absolute_include_headers) {
-		cc_log("No absolute path for included files found, skip using relative paths");
+		cc_log("No absolute path for included files found, skip using relative"
+		       " paths");
 		return; /* nothing to do */
 	}
 
@@ -916,7 +916,7 @@ use_relative_paths_in_depfile(const char *depfile)
 	tmpf = create_tmp_file(&tmp_file, "w");
 	if (!tmpf) {
 		cc_log("Cannot create temporary dependency file: %s (%s)", tmp_file,
-				strerror(errno));
+		       strerror(errno));
 		free(tmp_file);
 		fclose(f);
 		return;
@@ -944,13 +944,13 @@ use_relative_paths_in_depfile(const char *depfile)
 
 	if (ferror(f)) {
 		cc_log("Error reading dependency file: %s, skip relative path usage",
-				depfile);
+		       depfile);
 		result = false;
-	  goto out;
+		goto out;
 	}
 	if (ferror(tmpf)) {
-		cc_log("Error writing temporary dependency file: %s, skip relative path usage",
-				tmp_file);
+		cc_log("Error writing temporary dependency file: %s, skip relative path"
+		       " usage", tmp_file);
 		result = false;
 		goto out;
 	}
@@ -960,12 +960,12 @@ out:
 	fclose(f);
 	if (result) {
 		if (x_rename(tmp_file, depfile) != 0) {
-			cc_log("Error renaming dependency file: %s -> %s (%s), skip relative path usage",
-			    tmp_file, depfile, strerror(errno));
+			cc_log("Error renaming dependency file: %s -> %s (%s), skip relative"
+			       " path usage", tmp_file, depfile, strerror(errno));
 			result = false;
-	  } else {
-			cc_log("Rename dependency file: %s -> %s", tmp_file, depfile);
-	  }
+		} else {
+			cc_log("Renamed dependency file: %s -> %s", tmp_file, depfile);
+		}
 	}
 	if (!result) {
 		cc_log("Removing temporary dependency file: %s", tmp_file);
