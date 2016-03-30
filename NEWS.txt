@@ -38,6 +38,9 @@ New features and improvements
   tells ccache not to discard the comments before hashing preprocessor output.
   This can be used to check documentation with *-Wdocumentation*.
 
+- ccache now knows how to convert absolute paths to relative paths inside
+  dependency files when using `base_dir`.
+
 
 Bug fixes
 ~~~~~~~~~
