@@ -356,6 +356,7 @@ conf_free(struct conf *conf)
 	free(conf->extra_files_to_hash);
 	free(conf->ignore_headers_in_manifest);
 	free(conf->log_file);
+	free(conf->memcached_conf);
 	free(conf->path);
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
