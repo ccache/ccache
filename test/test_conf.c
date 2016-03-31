@@ -69,6 +69,8 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
+	CHECK_STR_EQ("", conf->memcached_conf);
+	CHECK(!conf->memcached_only);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK_STR_EQ("", conf->prefix_command_cpp);
@@ -120,6 +122,8 @@ TEST(conf_read_valid_config)
 	  "log_file = $USER${USER} \n"
 	  "max_files = 17\n"
 	  "max_size = 123M\n"
+	  "memcached_conf = --SERVER=localhost\n"
+	  "memcached_only = true\n"
 	  "path = $USER.x\n"
 	  "prefix_command = x$USER\n"
 	  "prefix_command_cpp = y\n"
@@ -158,6 +162,8 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
 	CHECK_INT_EQ(17, conf->max_files);
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
+	CHECK_STR_EQ("--SERVER=localhost", conf->memcached_conf);
+	CHECK(conf->memcached_only);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK_STR_EQ("y", conf->prefix_command_cpp);
