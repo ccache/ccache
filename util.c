@@ -780,8 +780,9 @@ x_strndup(const char *s, size_t n)
 #ifndef HAVE_STRNDUP
 	size_t m;
 
-	if (!s)
+	if (!s) {
 		return NULL;
+	}
 	m = 0;
 	while (m < n && s[m]) {
 		m++;
@@ -1214,7 +1215,9 @@ static BOOL GetFileNameFromHandle(HANDLE hFile, TCHAR *pszFilename,
 					}
 
 					// Go to the next NULL character.
-					while (*p++) ;
+					while (*p++) {
+						// Do nothing.
+					}
 				} while (!bFound && *p); // end of string
 			}
 		}
@@ -1243,8 +1246,9 @@ x_realpath(const char *path)
 #if HAVE_REALPATH
 	p = realpath(path, ret);
 #elif defined(_WIN32)
-	if (path[0] == '/')
+	if (path[0] == '/') {
 		path++;  /* skip leading slash */
+	}
 	path_handle = CreateFile(
 	  path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 	  FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1309,15 +1313,19 @@ strtok_r(char *str, const char *delim, char **saveptr)
 {
 	int len;
 	char *ret;
-	if (!str)
+	if (!str) {
 		str = *saveptr;
+	}
 	len = strlen(str);
 	ret = strtok(str, delim);
 	if (ret) {
 		char *save = ret;
-		while (*save++) ;
-		if ((len + 1) == (intptr_t) (save - str))
+		while (*save++) {
+			/* Do nothing. */
+		}
+		if ((len + 1) == (intptr_t) (save - str)) {
 			save--;
+		}
 		*saveptr = save;
 	}
 	return ret;
@@ -1495,10 +1503,12 @@ get_relative_path(const char *from, const char *to)
 
 #ifdef _WIN32
 	// Paths can be escaped by a slash for use with -isystem
-	if (from[0] == '/')
+	if (from[0] == '/') {
 		from++;
-	if (to[0] == '/')
+	}
+	if (to[0] == '/') {
 		to++;
+	}
 	// Both paths are absolute, drop the drive letters
 	assert(from[0] == to[0]); // Assume the same drive letter
 	from += 2;
@@ -1549,11 +1559,13 @@ is_absolute_path(const char *path)
 bool
 is_full_path(const char *path)
 {
-	if (strchr(path, '/'))
+	if (strchr(path, '/')) {
 		return true;
+	}
 #ifdef _WIN32
-	if (strchr(path, '\\'))
+	if (strchr(path, '\\')) {
 		return true;
+	}
 #endif
 	return false;
 }

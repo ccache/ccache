@@ -63,8 +63,9 @@ args_init_from_gcc_atfile(const char *filename)
 	 * quote */
 	quoting = '\0';
 
-	if (!(argtext = read_text_file(filename, 0)))
+	if (!(argtext = read_text_file(filename, 0))) {
 		return NULL;
+	}
 
 	args = args_init(0, NULL);
 	pos = argtext;
@@ -108,8 +109,9 @@ args_init_from_gcc_atfile(const char *filename)
 		case '\0':
 			/* end of token */
 			*argpos = '\0';
-			if (argbuf[0] != '\0')
+			if (argbuf[0] != '\0') {
 				args_add(args, argbuf);
+			}
 			argpos = argbuf;
 			if (*pos == '\0') {
 				goto out;

@@ -18,6 +18,7 @@ struct conf {
 	bool hard_link;
 	bool hash_dir;
 	char *ignore_headers_in_manifest;
+	bool keep_comments_cpp;
 	char *log_file;
 	unsigned max_files;
 	uint64_t max_size;

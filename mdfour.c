@@ -89,9 +89,10 @@ copy64(uint32_t *M, const unsigned char *in)
 #ifdef WORDS_BIGENDIAN
 	int i;
 
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < 16; i++) {
 		M[i] = (in[i*4+3]<<24) | (in[i*4+2]<<16) |
 		       (in[i*4+1]<<8) | (in[i*4+0]<<0);
+	}
 #else
 	memcpy(M, in, 16*4);
 #endif
