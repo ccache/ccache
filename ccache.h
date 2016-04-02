@@ -74,6 +74,9 @@ enum stats {
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, p) (strncmp((s), (p), strlen((p))) == 0)
 
+/* buffer size for IO operations */
+#define READ_BUF_SZ (1<<18)
+
 /* ------------------------------------------------------------------------- */
 /* args.c */
 
