@@ -210,7 +210,7 @@ fatal(const char *format, ...)
 void
 copy_fd(int fd_in, int fd_out)
 {
-	char buf[10240];
+	char buf[READ_BUF_SZ];
 	int n;
 	gzFile gz_in;
 
@@ -272,7 +272,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 {
 	int fd_in, fd_out;
 	gzFile gz_in = NULL, gz_out = NULL;
-	char buf[10240];
+	char buf[READ_BUF_SZ];
 	int n, written;
 	char *tmp_name;
 	struct stat st;
