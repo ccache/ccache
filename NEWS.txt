@@ -12,6 +12,9 @@ New features and improvements
 
 - Improved handling of stale NFS handles.
 
+- Made it harder to misinterpret documentation of boolean environment settings'
+  semantics.
+
 
 Bug fixes
 ~~~~~~~~~
