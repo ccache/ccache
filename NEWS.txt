@@ -50,8 +50,10 @@ Bug fixes
 - Fixed build and test for MinGW32 and Windows.
 
 
-Unreleased ccache 3.2.5
------------------------
+ccache 3.2.5
+------------
+Release date: 2016-04-17
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,6 +61,9 @@ New features and improvements
 - Only pass clang-specific `-stdlib=` to the preprocessor.
 
 - Improved handling of stale NFS handles.
+
+- Made it harder to misinterpret documentation of boolean environment settings'
+  semantics.
 
 
 Bug fixes
@@ -82,6 +87,9 @@ Bug fixes
 - Fixed bug in hashing of clang plugins, leading to unnecessary cache misses.
 
 - Fixed --print-config to show ``pch_defines sloppiness''.
+
+- The man page is now built when running ``make install'' from Git repository
+  sources.
 
 
 ccache 3.2.4

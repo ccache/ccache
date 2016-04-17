@@ -232,7 +232,7 @@ Configuration settings
 
 Below is a list of available configuration settings. The corresponding
 environment variable name is indicated in parentheses after each configuration
-setting key. Boolean options are indicated with ``[boolean]''
+setting key.
 
 *base_dir* (*CCACHE_BASEDIR*)::
 
@@ -317,7 +317,7 @@ WRAPPERS>>.
 --
 --
 
-*compression* (*CCACHE_COMPRESS*) [boolean]::
+*compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will compress object files and other compiler output it
     puts in the cache. However, this setting has no effect on how files are
@@ -339,12 +339,12 @@ WRAPPERS>>.
     compiled, but that sometimes doesn't work. For example, when using the
     ``aCC'' compiler on HP-UX, set the cpp extension to *i*.
 
-*direct_mode* (*CCACHE_DIRECT*) [boolean]::
+*direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the direct mode will be used. The default is true. See
     <<_the_direct_mode,THE DIRECT MODE>>.
 
-*disable* (*CCACHE_DISABLE*) [boolean]::
+*disable* (*CCACHE_DISABLE* or *CCACHE_NODISABLE*, see <<_boolean_values,Boolean values>> above)::
 
     When true, ccache will just call the real compiler, bypassing the cache
     completely. The default is false.
@@ -355,7 +355,7 @@ WRAPPERS>>.
     the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
-*hard_link* (*CCACHE_HARDLINK*) [boolean]::
+*hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use hard links from the cache directory
     when creating the compiler output rather than using a file copy. Using hard
@@ -366,7 +366,7 @@ WRAPPERS>>.
     compressed cache files. This means that you should not enable compression
     if you want to use hard links. The default is false.
 
-*hash_dir* (*CCACHE_HASHDIR*) [boolean]::
+*hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will include the current working directory in the hash that
     is used to distinguish two compilations. This prevents a problem with the
@@ -385,7 +385,7 @@ WRAPPERS>>.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
-*keep_comments_cpp* (*CCACHE_COMMENTS*) [boolean]::
+*keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not discard the comments before hashing preprocessor
     output. This can be used to check documentation with *-Wdocumentation*.
@@ -440,30 +440,30 @@ CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
     This option adds a list of prefixes (separated by space) to the command
     line that ccache uses when invoking the preprocessor.
 
-*read_only* (*CCACHE_READONLY*) [boolean]::
+*read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use existing cached object files, but it
     will not to try to add anything new to the cache. If you are using this
     because your ccache directory is read-only, then you need to set
     *temporary_dir* as otherwise ccache will fail to create temporary files.
 
-*read_only_direct* (*CCACHE_READONLY_DIRECT*) [boolean]::
+*read_only_direct* (*CCACHE_READONLY_DIRECT* or *CCACHE_NOREADONLY_DIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     Just like *read_only* except that ccache will only try to retrieve results
     from the cache using the direct mode, not the preprocessor mode. See
     documentation for *read_only* regarding using a read-only ccache directory.
 
-*read_only_memcached* (*CCACHE_READONLY_MEMCACHED*) [boolean]::
+*read_only_memcached* (*CCACHE_READONLY_MEMCACHED* or *CCACHE_NOREADONLY_MEMCACHED*), see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to get previously cached values from memcached,
     but will not try to store any new values in memcached.
 
-*recache* (*CCACHE_RECACHE*) [boolean]::
+*recache* (*CCACHE_RECACHE* or *CCACHE_NORECACHE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
-*run_second_cpp* (*CCACHE_CPP2*) [boolean]::
+*run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not use the optimisation of avoiding the second call
     to the preprocessor by compiling the preprocessed output that was used for
@@ -507,7 +507,7 @@ CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
 information.
 
-*stats* (*CCACHE_STATS*) [boolean]::
+*stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will update the statistics counters on each compilation.
     The default is true.
@@ -528,7 +528,7 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     with other users. Note that this also affects the file permissions set on
     the object files created from your compilations.
 
-*unify* (*CCACHE_UNIFY*) [boolean]::
+*unify* (*CCACHE_UNIFY* or *CCACHE_NOUNIFY*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will use a C/C++ unifier when hashing the preprocessor
     output if the *-g* option is not used. The unifier is slower than a normal
