@@ -38,6 +38,9 @@ Bug fixes
 
 - Fixed --print-config to show ``pch_defines sloppiness''.
 
+- The man page is now built when running ``make install'' from Git repository
+  sources.
+
 
 ccache 3.2.4
 ------------
