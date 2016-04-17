@@ -39,7 +39,7 @@ static const char VERSION_TEXT[] =
   MYNAME " version %s\n"
   "\n"
   "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2015 Joel Rosdahl\n"
+  "Copyright (C) 2009-2016 Joel Rosdahl\n"
   "\n"
   "This program is free software; you can redistribute it and/or modify it under\n"
   "the terms of the GNU General Public License as published by the Free Software\n"
@@ -182,6 +182,9 @@ time_t time_of_compilation;
  * Value: struct file_hash.
  */
 static struct hashtable *included_files;
+
+/* uses absolute path for some include files */
+static bool has_absolute_include_headers = false;
 
 /* List of headers to ignore */
 static char **ignore_headers;
@@ -592,8 +595,9 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	/* stat fails on directories on win32 */
 	attributes = GetFileAttributes(path);
 	if (attributes != INVALID_FILE_ATTRIBUTES &&
-	    attributes & FILE_ATTRIBUTE_DIRECTORY)
+	    attributes & FILE_ATTRIBUTE_DIRECTORY) {
 		goto ignore;
+	}
 #endif
 
 	if (x_stat(path, &st) != 0) {
@@ -716,8 +720,9 @@ make_relative_path(char *path)
 	}
 
 #ifdef _WIN32
-	if (path[0] == '/')
+	if (path[0] == '/') {
 		path++;  /* skip leading slash */
+	}
 #endif
 
 	/* x_realpath only works for existing paths, so if path doesn't exist, try
@@ -870,6 +875,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			/* p and q span the include file path */
 			path = x_strndup(p, q - p);
+			if (!has_absolute_include_headers) {
+				has_absolute_include_headers = is_absolute_path(path);
+			}
 			path = make_relative_path(path);
 			hash_string(hash, path);
 			remember_include_file(path, hash, system);
@@ -892,6 +900,89 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	return true;
+}
+
+/*
+ * Replace absolute paths with relative paths in the provided dependency file.
+ */
+static void
+use_relative_paths_in_depfile(const char *depfile)
+{
+	FILE *f, *tmpf;
+	char buf[10000];
+	char *tmp_file;
+	char *relpath;
+	bool result = false;
+	char *token, *saveptr;
+
+	if (str_eq(conf->base_dir, "")) {
+		cc_log("Base dir not set, skip using relative paths");
+		return; /* nothing to do */
+	}
+	if (!has_absolute_include_headers) {
+		cc_log("No absolute path for included files found, skip using relative"
+		       " paths");
+		return; /* nothing to do */
+	}
+
+	f = fopen(depfile, "r");
+	if (!f) {
+		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+		return;
+	}
+	tmp_file = format("%s.tmp", depfile);
+	tmpf = create_tmp_file(&tmp_file, "w");
+
+	while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
+		token = strtok_r(buf, " \t", &saveptr);
+		while (token) {
+			if (is_absolute_path(token) && str_startswith(token, conf->base_dir)) {
+				relpath = make_relative_path(x_strdup(token));
+				result = true;
+			} else {
+				relpath = token;
+			}
+			if (token != buf) { /* this is a dependency file */
+				fputc(' ', tmpf);
+			}
+			fputs(relpath, tmpf);
+			if (relpath != token) {
+				free(relpath);
+			}
+			token = strtok_r(NULL, " \t", &saveptr);
+		}
+	}
+
+	if (ferror(f)) {
+		cc_log("Error reading dependency file: %s, skip relative path usage",
+		       depfile);
+		result = false;
+		goto out;
+	}
+	if (ferror(tmpf)) {
+		cc_log("Error writing temporary dependency file: %s, skip relative path"
+		       " usage", tmp_file);
+		result = false;
+		goto out;
+	}
+
+out:
+	fclose(tmpf);
+	fclose(f);
+	if (result) {
+		if (x_rename(tmp_file, depfile) != 0) {
+			cc_log("Error renaming dependency file: %s -> %s (%s), skip relative"
+			       " path usage", tmp_file, depfile, strerror(errno));
+			result = false;
+		} else {
+			cc_log("Renamed dependency file: %s -> %s", tmp_file, depfile);
+		}
+	}
+	if (!result) {
+		cc_log("Removing temporary dependency file: %s", tmp_file);
+		x_unlink(tmp_file);
+	}
+	free(tmp_file);
 }
 
 /* Copy or link a file to the cache. */
@@ -1031,7 +1122,7 @@ void update_manifest_file(void)
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 #if HAVE_LIBMEMCACHED
-			if (conf->memcached_conf && !conf->read_only_memcached &&
+			if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
 			    read_file(manifest_path, st.st_size, &data, &size)) {
 				cc_log("Storing %s in memcached", manifest_name);
 				memccached_raw_set(manifest_name, data, size);
@@ -1286,6 +1377,7 @@ to_fscache(struct args *args)
 	}
 
 	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
 		put_file_in_cache(output_dep, cached_dep);
 	}
 	stats_update(STATS_TOCACHE);
@@ -1622,6 +1714,9 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		add_pending_tmp_file(path_stdout);
 
 		args_add(args, "-E");
+		if (conf->keep_comments_cpp) {
+			args_add(args, "-C");
+		}
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
@@ -2010,6 +2105,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		    && x_stat(args->argv[i+3], &st) == 0) {
 			hash_delimiter(hash, "plugin");
 			hash_compiler(hash, &st, args->argv[i+3], false);
+			i += 3;
 			continue;
 		}
 
@@ -2113,7 +2209,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 #endif
 			cc_log("Manifest file %s not in cache", manifest_path);
 #if HAVE_LIBMEMCACHED
-			if (conf->memcached_conf) {
+			if (strlen(conf->memcached_conf) > 0) {
 				cc_log("Getting %s from memcached", manifest_name);
 				cache = memccached_raw_get(manifest_name, &data, &size);
 			}
@@ -3545,6 +3641,7 @@ cc_reset(void)
 	if (included_files) {
 		hashtable_destroy(included_files, 1); included_files = NULL;
 	}
+	has_absolute_include_headers = false;
 	generating_debuginfo = false;
 	generating_dependencies = false;
 	generating_coverage = false;

@@ -316,6 +316,7 @@ conf_create(void)
 	conf->hard_link = false;
 	conf->hash_dir = false;
 	conf->ignore_headers_in_manifest = x_strdup("");
+	conf->keep_comments_cpp = false;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
@@ -355,6 +356,7 @@ conf_free(struct conf *conf)
 	free(conf->extra_files_to_hash);
 	free(conf->ignore_headers_in_manifest);
 	free(conf->log_file);
+	free(conf->memcached_conf);
 	free(conf->path);
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
@@ -579,6 +581,10 @@ conf_print_items(struct conf *conf,
 	        conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
 	        context);
 
+	reformat(&s, "keep_comments_cpp = %s", bool_to_string(conf->keep_comments_cpp));
+	printer(s, conf->item_origins[find_conf(
+	                                "keep_comments_cpp")->number], context);
+
 	reformat(&s, "log_file = %s", conf->log_file);
 	printer(s, conf->item_origins[find_conf("log_file")->number], context);
 
@@ -636,6 +642,9 @@ conf_print_items(struct conf *conf,
 	}
 	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
 		reformat(&s, "%stime_macros, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_PCH_DEFINES) {
+		reformat(&s, "%spch_defines, ", s);
 	}
 	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 		reformat(&s, "%sfile_stat_matches, ", s);

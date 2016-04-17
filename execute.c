@@ -58,8 +58,9 @@ win32argvtos(char *prefix, char **argv)
 	} while ((arg = argv[i++]));
 
 	str = ptr = malloc(l + 1);
-	if (!str)
+	if (!str) {
 		return NULL;
+	}
 
 	i = 0;
 	arg = prefix ? prefix : argv[i++];
@@ -74,14 +75,16 @@ win32argvtos(char *prefix, char **argv)
 			case '"':
 				bs = (bs << 1) + 1;
 			default:
-				while (bs && bs--)
+				while (bs && bs--) {
 					*ptr++ = '\\';
+				}
 				*ptr++ = arg[j];
 			}
 		}
 		bs <<= 1;
-		while (bs && bs--)
+		while (bs && bs--) {
 			*ptr++ = '\\';
+		}
 		*ptr++ = '"';
 		*ptr++ = ' ';
 		/* cppcheck-suppress unreadVariable */
@@ -99,8 +102,9 @@ win32getshell(char *path)
 	const char *ext;
 
 	ext = get_extension(path);
-	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH")))
+	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
+	}
 	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
 		/* Detect shebang. */
 		FILE *fp;
@@ -109,8 +113,9 @@ win32getshell(char *path)
 			char buf[10];
 			fgets(buf, sizeof(buf), fp);
 			buf[9] = 0;
-			if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH")))
+			if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH"))) {
 				sh = find_executable_in_path("sh.exe", NULL, path_env);
+			}
 			fclose(fp);
 		}
 	}
@@ -145,8 +150,9 @@ win32execute(char *path, char **argv, int doreturn,
 	memset(&si, 0x00, sizeof(si));
 
 	sh = win32getshell(path);
-	if (sh)
+	if (sh) {
 		path = sh;
+	}
 
 	si.cb = sizeof(STARTUPINFO);
 	if (fd_stdout != -1) {
@@ -214,8 +220,9 @@ win32execute(char *path, char **argv, int doreturn,
 	GetExitCodeProcess(pi.hProcess, &exitcode);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
-	if (!doreturn)
+	if (!doreturn) {
 		x_exit(exitcode);
+	}
 	return exitcode;
 }
 

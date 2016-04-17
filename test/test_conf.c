@@ -20,7 +20,7 @@
 #include "test/framework.h"
 #include "test/util.h"
 
-#define N_CONFIG_ITEMS 32
+#define N_CONFIG_ITEMS 33
 static struct {
 	char *descr;
 	const char *origin;
@@ -65,9 +65,12 @@ TEST(conf_create)
 	CHECK(!conf->hard_link);
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
+	CHECK(!conf->keep_comments_cpp);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
+	CHECK_STR_EQ("", conf->memcached_conf);
+	CHECK(!conf->memcached_only);
 	CHECK_STR_EQ("", conf->path);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK_STR_EQ("", conf->prefix_command_cpp);
@@ -115,9 +118,12 @@ TEST(conf_read_valid_config)
 	  "hard_link = true\n"
 	  "hash_dir = true\n"
 	  "ignore_headers_in_manifest = a:b/c\n"
+	  "keep_comments_cpp = true\n"
 	  "log_file = $USER${USER} \n"
 	  "max_files = 17\n"
 	  "max_size = 123M\n"
+	  "memcached_conf = --SERVER=localhost\n"
+	  "memcached_only = true\n"
 	  "path = $USER.x\n"
 	  "prefix_command = x$USER\n"
 	  "prefix_command_cpp = y\n"
@@ -126,7 +132,7 @@ TEST(conf_read_valid_config)
 	  "read_only_memcached = false\n"
 	  "recache = true\n"
 	  "run_second_cpp = true\n"
-	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,no_system_headers  pch_defines  \n"
+	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,pch_defines ,  no_system_headers  \n"
 	  "stats = false\n"
 	  "temporary_dir = ${USER}_foo\n"
 	  "umask = 777\n"
@@ -152,9 +158,12 @@ TEST(conf_read_valid_config)
 	CHECK(conf->hard_link);
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
+	CHECK(conf->keep_comments_cpp);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
 	CHECK_INT_EQ(17, conf->max_files);
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
+	CHECK_STR_EQ("--SERVER=localhost", conf->memcached_conf);
+	CHECK(conf->memcached_only);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK_STR_EQ("y", conf->prefix_command_cpp);
@@ -363,40 +372,42 @@ TEST(conf_print_items)
 {
 	size_t i;
 	struct conf conf = {
-		"bd", /* base_dir */
-		"cd", /* cache_dir */
-		7, /* cache_dir_levels */
-		"c", /* compiler */
-		"cc", /* compiler_check */
-		true, /* compression */
-		8, /* compression_level */
-		"ce", /* cpp_extension */
-		false, /* direct_mode */
-		true, /* disable */
-		"efth", /* extra_files_to_hash */
-		true, /* hard_link */
-		true, /* hash_dir */
-		"ihim", /* ignore_headers_in_manifest */
-		"lf", /* log_file */
-		4711, /* max_files */
-		98.7 * 1000 * 1000, /* max_size */
-		"mc", /* memcached_conf */
-		false, /* memcached_only */
-		"p", /* path */
-		"pc", /* prefix_command */
-		"pcc", /* prefix_command_cpp */
-		true, /* read_only */
-		true, /* read_only_direct */
-		false, /* read_only_memcached */
-		true, /* recache */
-		true, /* run_second_cpp */
+		"bd",
+		"cd",
+		7,
+		"c",
+		"cc",
+		true,
+		8,
+		"ce",
+		false,
+		true,
+		"efth",
+		true,
+		true,
+		"ihim",
+		true,
+		"lf",
+		4711,
+		98.7 * 1000 * 1000,
+		"mc",
+		false,
+		"p",
+		"pc",
+		"pcc",
+		true,
+		true,
+		false,
+		true,
+		true,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
 		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
-		SLOPPY_FILE_STAT_MATCHES|SLOPPY_NO_SYSTEM_HEADERS, /* sloppiness */
-		false, /* stats */
-		"td", /* temporary_dir */
-		022, /* umask */
-		true, /* unify */
+		SLOPPY_FILE_STAT_MATCHES|SLOPPY_PCH_DEFINES|
+		SLOPPY_NO_SYSTEM_HEADERS,
+		false,
+		"td",
+		022,
+		true,
 		NULL
 	};
 	size_t n = 0;
@@ -427,6 +438,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("ignore_headers_in_manifest = ihim",
 	             received_conf_items[n++].descr);
+	CHECK_STR_EQ("keep_comments_cpp = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("log_file = lf", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);
@@ -441,7 +453,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("recache = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"
-	             " include_file_ctime, time_macros,"
+	             " include_file_ctime, time_macros, pch_defines,"
 	             " file_stat_matches, no_system_headers",
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("stats = false", received_conf_items[n++].descr);

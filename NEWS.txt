@@ -34,15 +34,26 @@ New features and improvements
   This allows for cache hits even when `hash_dir` is used in combination with
   `base_dir`.
 
+- Added new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option, which
+  tells ccache not to discard the comments before hashing preprocessor output.
+  This can be used to check documentation with *-Wdocumentation*.
+
+- ccache now knows how to convert absolute paths to relative paths inside
+  dependency files when using `base_dir`.
+
 
 Bug fixes
 ~~~~~~~~~
 
 - Fixed clang test suite when running on Linux.
 
+- Fixed build and test for MinGW32 and Windows.
 
-Unreleased ccache 3.2.5
------------------------
+
+ccache 3.2.5
+------------
+Release date: 2016-04-17
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +61,9 @@ New features and improvements
 - Only pass clang-specific `-stdlib=` to the preprocessor.
 
 - Improved handling of stale NFS handles.
+
+- Made it harder to misinterpret documentation of boolean environment settings'
+  semantics.
 
 
 Bug fixes
@@ -69,6 +83,13 @@ Bug fixes
 
 - Fixed a bug in caching of `stat` system calls in ``file_stat_matches
   sloppiness mode''.
+
+- Fixed bug in hashing of clang plugins, leading to unnecessary cache misses.
+
+- Fixed --print-config to show ``pch_defines sloppiness''.
+
+- The man page is now built when running ``make install'' from Git repository
+  sources.
 
 
 ccache 3.2.4

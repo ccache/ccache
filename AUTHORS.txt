@@ -29,6 +29,7 @@ ccache is a collective work with contributions from many people, including:
 * Justin Lebar <justin.lebar@gmail.com>
 * Jørgen P. Tjernø <jorgen@valvesoftware.com>
 * Karl Chen <quarl@cs.berkeley.edu>
+* KonaBlend <kona8lend@gmail.com>
 * Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
 * Lalit Chhabra <lchhabra@linuxmail.org>
 * Lars Gustäbel <lars@gustaebel.de>
@@ -36,9 +37,13 @@ ccache is a collective work with contributions from many people, including:
 * Luboš Luňák <l.lunak@suse.cz>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
+* Matthias Kretz <kretz@kde.org>
 * Michael Marineau <michael.marineau@coreos.com>
 * Michael Meeks <michael.meeks@suse.com>
 * Mike Frysinger <vapier@gentoo.org>
+* Mikhail Kolomeytsev <mkolom@yandex-team.ru>
+* Neil Mushell <nmushell@bloomberg.net>
+* Nick Schultz <nick.schultz@intel.com>
 * Orgad Shaneh <orgad.shaneh@audiocodes.com>
 * Owen Mann <owen@mann.org>
 * Patrick von Reth <vonreth@kde.org>
