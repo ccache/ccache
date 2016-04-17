@@ -50,8 +50,10 @@ Bug fixes
 - Fixed build and test for MinGW32 and Windows.
 
 
-Unreleased ccache 3.2.5
------------------------
+ccache 3.2.5
+------------
+Release date: 2016-04-17
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
