@@ -2,6 +2,15 @@ ccache news
 ===========
 
 
+Unreleased 3.2.6
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed build problem on QNX, which lacks ``SA_RESTART''.
+
+
 ccache 3.2.5
 ------------
 Release date: 2016-04-17

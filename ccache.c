@@ -402,7 +402,9 @@ register_signal_handler(int signum)
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = signal_handler;
 	act.sa_mask = fatal_signal_set;
+#ifdef SA_RESTART
 	act.sa_flags = SA_RESTART;
+#endif
 	sigaction(signum, &act, NULL);
 }
 
