@@ -5,6 +5,8 @@ addons:
         packages:
             - elfutils
             - zlib1g-dev
+            - libmemcached-dev
+            - memcached
             - mingw32
             - mingw32-binutils
 
@@ -19,6 +21,11 @@ compiler:
 matrix:
     include:
         - os: linux
+          compiler: gcc
+          sudo: required
+          dist: trusty
+          env: FEATURES="--enable-memcached"
+        - os: linux
           compiler: i586-mingw32msvc-gcc
           env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
         - os: linux
@@ -31,6 +38,6 @@ matrix:
 
 script:
     - ./autogen.sh
-    - ./configure $HOST
+    - ./configure $HOST $FEATURES
     - make
     - make ${TEST:-test}
