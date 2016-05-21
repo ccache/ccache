@@ -1247,8 +1247,8 @@ EOF
     checkstat 'cache miss' 1
     $CCACHE $COMPILER -c `pwd`/file.c
     checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
 
     testname="__FILE__ in include file"
     $CCACHE -Cz >/dev/null
@@ -1271,8 +1271,8 @@ EOF
     mv file_h.c file2_h.c
     $CCACHE $COMPILER -c `pwd`/file2_h.c
     checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
 
     ##################################################################
     # Check that direct mode ignores __FILE__ if sloppiness is specified.
@@ -1458,12 +1458,12 @@ EOF
     checkstat 'cache miss' 1
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 1
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2 # subdir2 is part of the preprocessor output
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1 # subdir2 is part of the preprocessor output
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 2
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
 
     testname="comment in strings"
     $CCACHE -Cz >/dev/null
@@ -1561,8 +1561,8 @@ EOF
     cd dir2
     CCACHE_BASEDIR="" $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 2
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
     cd ..
 
     ##################################################################
@@ -1617,8 +1617,8 @@ EOF
     $CCACHE -z >/dev/null
     $CCACHE $COMPILER -I`pwd`/include -c src/test.c
     checkstat 'cache hit (direct)' 0
-    checkstat 'cache hit (preprocessed)' 0
-    checkstat 'cache miss' 1
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 0
     cd ..
 
     ##################################################################
