@@ -887,7 +887,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				has_absolute_include_headers = is_absolute_path(path);
 			}
 			path = make_relative_path(path);
-			hash_string(hash, path);
 			remember_include_file(path, hash, system);
 			p = r;
 		} else {
