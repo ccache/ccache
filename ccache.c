@@ -879,7 +879,8 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	if (included_pch_file) {
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
-		hash_string(hash, path);
+		if(!conf->ignore_pp_headers_path)
+			hash_string(hash, path);
 		remember_include_file(path, hash, false);
 	}
 

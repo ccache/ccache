@@ -55,7 +55,7 @@ confitems_hash (register const char *str, register unsigned int len)
       45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
       45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
       45, 45, 45, 45, 45, 45, 45,  0, 13,  0,
-      15, 10, 45,  5, 30, 10, 45,  0, 10, 20,
+      25, 10, 45,  5, 30,  5, 45,  0, 10, 20,
        5,  0,  0, 45,  5,  0, 10, 15, 45, 45,
       15, 45, 45, 45, 45, 45, 45, 45, 45, 45,
       45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
@@ -87,7 +87,7 @@ confitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 30,
+      TOTAL_KEYWORDS = 31,
       MIN_WORD_LENGTH = 4,
       MAX_WORD_LENGTH = 26,
       MIN_HASH_VALUE = 4,
@@ -146,24 +146,25 @@ confitems_get (register const char *str, register unsigned int len)
       {"",0,NULL,0,NULL},
 #line 32 "confitems.gperf"
       {"read_only_direct",    22, ITEM(read_only_direct, bool)},
-#line 19 "confitems.gperf"
-      {"disable",              9, ITEM(disable, bool)},
+#line 40 "confitems.gperf"
+      {"ignore_pp_headers_path", 30, ITEM(ignore_pp_headers_path, bool)},
 #line 37 "confitems.gperf"
       {"temporary_dir",       27, ITEM(temporary_dir, env_string)},
 #line 34 "confitems.gperf"
       {"run_second_cpp",      24, ITEM(run_second_cpp, bool)},
       {"",0,NULL,0,NULL},
-#line 18 "confitems.gperf"
-      {"direct_mode",          8, ITEM(direct_mode, bool)},
-      {"",0,NULL,0,NULL},
+#line 23 "confitems.gperf"
+      {"ignore_headers_in_manifest", 13, ITEM(ignore_headers_in_manifest, env_string)},
+#line 19 "confitems.gperf"
+      {"disable",              9, ITEM(disable, bool)},
 #line 22 "confitems.gperf"
       {"hash_dir",            12, ITEM(hash_dir, bool)},
 #line 21 "confitems.gperf"
       {"hard_link",           11, ITEM(hard_link, bool)},
 #line 38 "confitems.gperf"
       {"umask",               28, ITEM(umask, umask)},
-#line 23 "confitems.gperf"
-      {"ignore_headers_in_manifest", 13, ITEM(ignore_headers_in_manifest, env_string)},
+#line 18 "confitems.gperf"
+      {"direct_mode",          8, ITEM(direct_mode, bool)},
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
 #line 20 "confitems.gperf"
       {"extra_files_to_hash", 10, ITEM(extra_files_to_hash, env_string)}
@@ -183,4 +184,4 @@ confitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t CONFITEMS_TOTAL_KEYWORDS = 30;
+static const size_t CONFITEMS_TOTAL_KEYWORDS = 31;
