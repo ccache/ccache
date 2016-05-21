@@ -332,6 +332,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
+	conf->ignore_pp_headers_path = false;
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
@@ -658,6 +659,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "unify = %s", bool_to_string(conf->unify));
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
+
+	reformat(&s, "ignore_pp_headers_path = %s", bool_to_string(conf->ignore_pp_headers_path));
+	printer(s, conf->item_origins[find_conf("ignore_pp_headers_path")->number], context);
 
 	free(s);
 	return true;

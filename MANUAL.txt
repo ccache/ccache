@@ -522,6 +522,12 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     compiler warning messages and expansions of the *\_\_LINE__* macro. Also
     note that enabling the unifier implies turning off the direct mode.
 
+*ignore_pp_headers_path* (*CCACHE_IGNORE_PP_HEADERS_PATH* or *CCACHE_NOIGNORE_PP_HEADERS_PATH*, see <<_boolean_values,Boolean values>> above)::
+
+    This parameter is ignored when using direct mode. When using preprocessor mode
+    this parameter controls whether to include the preprocessor comments for the
+    hashing or simply ignore them.
+
 
 Cache size management
 ---------------------

@@ -34,6 +34,7 @@ struct conf {
 	char *temporary_dir;
 	unsigned umask;
 	bool unify;
+	bool ignore_pp_headers_path;
 
 	const char **item_origins;
 };
