@@ -1492,7 +1492,7 @@ EOF
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 1
     checkstat 'cache hit (preprocessed)' 1
-    checkstat 'cache miss' 1 # subdir2 is part of the preprocessor output
+    checkstat 'cache miss' 1
     CPATH=subdir2 $CCACHE $COMPILER -c foo.c
     checkstat 'cache hit (direct)' 2
     checkstat 'cache hit (preprocessed)' 1
