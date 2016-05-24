@@ -2441,31 +2441,25 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
-                if (str_startswith(argv[i], "-B")) {
+		if (str_startswith(argv[i], "-B") ||
+		    str_startswith(argv[i], "-L")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 2));
-			char *option = format("-B%s", relpath);
-			args_add(stripped_args, option);
+			char *option = format("-%c%s", argv[i][1], relpath);
+			args_add(cpp_args, option);
 			free(relpath);
 			free(option);
 			continue;
-                }
-                if (str_startswith(argv[i], "-iprefix")) {
+		}
+		if (str_startswith(argv[i], "-iprefix")) {
 			char *relpath = make_relative_path(x_strdup(argv[i+1]));
-			char *option = format("-iprefix %s", relpath);
-			args_add(stripped_args, option);
+			char *option = format("%s", relpath);
+			args_add(cpp_args, "-iprefix");
+			args_add(cpp_args, option);
 			free(relpath);
 			free(option);
 			i++;
 			continue;
-                }
-                if (str_startswith(argv[i], "-L")) {
-			char *relpath = make_relative_path(x_strdup(argv[i]+2));
-			char *option = format("-L%s", relpath);
-			args_add(stripped_args, option);
-			free(relpath);
-			free(option);
-			continue;
-                }
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P") || strstr(argv[i], ",-P,")) {
 				/* -P removes preprocessor information in such a way that the object
