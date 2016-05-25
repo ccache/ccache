@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2013 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -66,6 +66,30 @@ static const struct {
 	{".TCC", "c++-header"},
 	{".cu",  "cuda"},
 	{".ic",  "cuda-output"},
+	/* Fixed form Fortran without preprocessing */
+	{".f",   "f77"},
+	{".for", "f77"},
+	{".ftn", "f77"},
+	/* Fixed form Fortran with traditional preprocessing */
+	{".F",   "f77-cpp-input"},
+	{".FOR", "f77-cpp-input"},
+	{".fpp", "f77-cpp-input"},
+	{".FPP", "f77-cpp-input"},
+	{".FTN", "f77-cpp-input"},
+	/* Free form Fortran without preprocessing */
+	/* could generate modules, ignore for now!
+	{".f90", "f95"},
+	{".f95", "f95"},
+	{".f03", "f95"},
+	{".f08", "f95"},
+	*/
+	/* Free form Fortran with traditional preprocessing */
+  /* could generate modules, ignore for now!
+	{".F90", "f95-cpp-input"},
+	{".F95", "f95-cpp-input"},
+	{".F03", "f95-cpp-input"},
+	{".F08", "f95-cpp-input"},
+	*/
 	{NULL,  NULL}
 };
 
@@ -93,6 +117,12 @@ static const struct {
 	{"cuda",                     "cuda-output"},
 	{"assembler-with-cpp",       "assembler"},
 	{"assembler",                "assembler"},
+	{"f77-cpp-input",            "f77"},
+	{"f77",                      "f77"},
+	/* could generate module files, ignore for now!
+	{"f95-cpp-input",            "f95"},
+	{"f95",                      "f95"},
+	*/
 	{NULL,  NULL}
 };
 
