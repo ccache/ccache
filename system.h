@@ -48,6 +48,19 @@
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
+#ifdef __MINGW32__
+#include <pthread.h>
+#include <windows.h>
+#include <winsock.h>
+#ifndef ESTALE
+#define ESTALE WSAESTALE
+#endif // ESTALE
+#ifndef WNOHANG
+#define WNOHANG 1
+#endif // WNOHANG
+#define HAVE_GETFINALPATHNAMEBYHANDLEW
+#endif // WIN32
+
 
 extern char **environ;
 
