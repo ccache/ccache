@@ -41,6 +41,7 @@ static const struct compopt compopts[] = {
 	{"-F",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-G",              TAKES_ARG},
 	{"-I",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-J",              TAKES_ARG | TAKES_PATH},
 	{"-L",              TAKES_ARG},
 	{"-M",              TOO_HARD},
 	{"-MF",             TAKES_ARG},

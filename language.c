@@ -74,19 +74,15 @@ static const struct {
 	{".FPP", "f77-cpp-input"},
 	{".FTN", "f77-cpp-input"},
 	/* Free form Fortran without preprocessing */
-	/* could generate modules, ignore for now!
 	{".f90", "f95"},
 	{".f95", "f95"},
 	{".f03", "f95"},
 	{".f08", "f95"},
-	*/
 	/* Free form Fortran with traditional preprocessing */
-  /* could generate modules, ignore for now!
 	{".F90", "f95-cpp-input"},
 	{".F95", "f95-cpp-input"},
 	{".F03", "f95-cpp-input"},
 	{".F08", "f95-cpp-input"},
-	*/
 	{NULL,  NULL}
 };
 
@@ -114,10 +110,9 @@ static const struct {
 	{"cuda",                     "cuda-output"},
 	{"f77-cpp-input",            "f77"},
 	{"f77",                      "f77"},
-	/* could generate module files, ignore for now!
-	{"f95-cpp-input",            "f95"},
 	{"f95",                      "f95"},
-	*/
+	{"f77-cpp-input",            "f77"},
+	{"f95-cpp-input",            "f95"},
 	{NULL,  NULL}
 };
 

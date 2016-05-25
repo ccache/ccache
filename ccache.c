@@ -213,6 +213,9 @@ static bool direct_i_file;
 /* the name of the cpp stderr file */
 static char *cpp_stderr;
 
+/* the name of the custom fortran module directory (default: pwd dirname) */
+static char *fortran_module_dir = NULL;
+
 /*
  * Full path to the statistics file in the subdirectory where the cached result
  * belongs (<cache_dir>/<x>/stats).
@@ -1138,6 +1141,12 @@ to_cache(struct args *args)
 	 */
 	x_unsetenv("DEPENDENCIES_OUTPUT");
 
+  /* for Fortran explicitly specify target module directory */
+  if (fortran_module_dir) {
+    args_add(args, "-J");
+    args_add(args, fortran_module_dir);
+  }
+
 	if (conf->run_second_cpp) {
 		args_add(args, input_file);
 	} else {
@@ -1147,6 +1156,9 @@ to_cache(struct args *args)
 	cc_log("Running real compiler");
 	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
+	if (fortran_module_dir) {
+    args_pop(args, 2);
+	}
 
 	if (x_stat(tmp_stdout, &st) != 0) {
 		/* The stdout file was removed - cleanup in progress? Better bail out. */
@@ -1914,14 +1926,21 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
  * then this function exits with the correct status code, otherwise it returns.
  */
 static void
-from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
+from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest, struct args* args)
 {
 	struct stat st;
 	bool produce_dep_file = false;
+  char *tmp_stdout, *tmp_stderr;
+  int tmp_stdout_fd, tmp_stderr_fd, status;
 
 	/* the user might be disabling cache hits */
 	if (conf->recache) {
 		return;
+	}
+
+	/* Fortran 90/95 code might depend on module files, so allow only direct mode then */
+	if (fortran_module_dir && mode != FROMCACHE_DIRECT_MODE ) {
+    return;
 	}
 
 	if (stat(cached_obj, &st) != 0) {
@@ -2022,6 +2041,44 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
+	}
+
+	/* Fortran regenerate possible module files */
+	if (fortran_module_dir) {
+    tmp_stdout = format("%s.tmp.stdout", cached_obj);
+    tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+    tmp_stderr = format("%s.tmp.stderr", cached_obj);
+    tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
+    args_add(args, "-J");
+    args_add(args, fortran_module_dir);
+    args_add(args, "-fsyntax-only");
+    args_add(args, input_file);
+
+    cc_log("Running compiler to generate Fortran modules");
+    status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+    args_pop(args, 4);
+
+    if (status != 0) {
+      int fd;
+      cc_log("Compiler gave exit status %d", status);
+      stats_update(STATS_STATUS);
+
+      fd = open(tmp_stderr, O_RDONLY | O_BINARY);
+      if (fd != -1) {
+        /* We can output stderr immediately instead of rerunning the compiler. */
+        copy_fd(fd, 2);
+        close(fd);
+        tmp_unlink(tmp_stderr);
+        tmp_unlink(tmp_stdout);
+
+        x_exit(status);
+      }
+      tmp_unlink(tmp_stderr);
+      tmp_unlink(tmp_stdout);
+
+      failed();
+    }
 	}
 
 	/* log the cache hit */
@@ -2314,6 +2371,25 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
+		/* we need to work out where Fortran module files are meant to go */
+		if (str_eq(argv[i], "-J")) {
+      if (i == argc-1) {
+        cc_log("Missing argument to %s", argv[i]);
+        stats_update(STATS_ARGS);
+        result = false;
+        goto out;
+      }
+      fortran_module_dir = make_relative_path(x_strdup(argv[i+1]));
+      i++;
+      continue;
+		}
+
+		/* alternate form of -J, with no space */
+		if (str_startswith(argv[i], "-J")) {
+      fortran_module_dir = make_relative_path(x_strdup(&argv[i][2]));
+      continue;
+		}
+
 		if (str_eq(argv[i], "-gsplit-dwarf")) {
 			cc_log("Enabling caching of dwarf files since -gsplit-dwarf is used");
 			using_split_dwarf = true;
@@ -2596,7 +2672,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			relpath = make_relative_path(x_strdup(argv[i+1]));
-			if (compopt_affects_cpp(argv[i])) {
+			if (str_startswith(argv[i], "-J")) {
+          /* ignore it here - handled later */
+			} else if (compopt_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
 				args_add(cpp_args, relpath);
 			} else {
@@ -2662,7 +2740,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			relpath = make_relative_path(x_strdup(argv[i] + 2));
 			option = format("-%c%s", argv[i][1], relpath);
 
-			if (compopt_short(compopt_affects_cpp, argv[i])) {
+      if (str_startswith(argv[i], "-J")) {
+          /* ignore it here - handled later */
+			} else if (compopt_short(compopt_affects_cpp, argv[i])) {
 				args_add(cpp_args, option);
 			} else {
 				args_add(stripped_args, option);
@@ -3013,6 +3093,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	*preprocessor_args = args_copy(stripped_args);
 	args_extend(*preprocessor_args, cpp_args);
 
+	/* special handling for Fortran */
+	if (str_startswith(actual_language, "f95")) {
+  	/* do not do explicit preprocessing in Fortran 90/95 */
+    args_extend(*compiler_args, cpp_args);
+
+    /* Fortran may produce module files. Output directory was specified by -J */
+    if (!fortran_module_dir) {
+      /* defaults to current working directory */
+      fortran_module_dir = make_relative_path(x_strdup(current_working_dir));
+    }
+  } else {
+    free(fortran_module_dir); fortran_module_dir = NULL;
+  }
 out:
 	args_free(expanded_args);
 	args_free(stripped_args);
@@ -3183,6 +3276,7 @@ cc_reset(void)
 	i_tmpfile = NULL;
 	direct_i_file = false;
 	free(cpp_stderr); cpp_stderr = NULL;
+	free(fortran_module_dir); fortran_module_dir = NULL;
 	free(stats_file); stats_file = NULL;
 	output_is_precompiled_header = false;
 
@@ -3284,6 +3378,9 @@ ccache(int argc, char *argv[])
 	if (output_dia) {
 		cc_log("Diagnostic file: %s", output_dia);
 	}
+	if (fortran_module_dir) {
+    cc_log("Fortran 90/95 or newer detected, putting module files into: %s", fortran_module_dir);
+	}
 
 	if (using_split_dwarf) {
 		if (!generating_dependencies) {
@@ -3314,7 +3411,7 @@ ccache(int argc, char *argv[])
 			 * If we can return from cache at this point then do
 			 * so.
 			 */
-			from_cache(FROMCACHE_DIRECT_MODE, 0);
+			from_cache(FROMCACHE_DIRECT_MODE, 0, compiler_args);
 
 			/*
 			 * Wasn't able to return from cache at this point.
@@ -3371,8 +3468,9 @@ ccache(int argc, char *argv[])
 		put_object_in_manifest = true;
 	}
 
+
 	/* if we can return from cache at this point then do */
-	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest, compiler_args);
 
 	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
