@@ -58,11 +58,11 @@ Source code repository
 To get the very latest version of ccache directly from the source code
 repository, use git:
 
-    git clone git://git.samba.org/ccache.git
+    git clone https://github.com/ccache/ccache.git
 
 You can also browse the repository:
 
-    http://gitweb.samba.org/?p=ccache.git
+    https://github.com/ccache/ccache
 
 
 History
