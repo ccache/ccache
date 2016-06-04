@@ -10,6 +10,8 @@ Code formatting
   at the end of the same line.
 * Put no space between function name and the following parenthesis.
 * Put one space between if/switch/for/while/do and opening curly brace.
+* Always use curly braces around if/for/while/do bodies, even if they only
+  contains one statement.
 * If possible, keep lines at most 80 character wide for a 2 character tab
   width.
 * Use only lowercase names for functions and variables.
