@@ -58,6 +58,9 @@ Bug fixes
 
 - Fixed build problem on QNX, which lacks ``SA_RESTART''.
 
+- Bail out on compiler option `-fstack-usage` since it creates a `.su` file
+  which ccache currently doesn't handle.
+
 
 ccache 3.2.5
 ------------
