@@ -367,7 +367,7 @@ WRAPPERS>>.
 
     If true, ccache will include the current working directory in the hash that
     is used to distinguish two compilations. This prevents a problem with the
-    storage of the current working directory in the debug info of a object
+    storage of the current working directory in the debug info of an object
     file, which can lead ccache to give a cached object file that has the
     working directory in the debug info set incorrectly. This option is off by
     default as the incorrect setting of this debug info rarely causes problems.
