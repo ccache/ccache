@@ -11,7 +11,7 @@ Code formatting
 * Put no space between function name and the following parenthesis.
 * Put one space between if/switch/for/while/do and opening curly brace.
 * Always use curly braces around if/for/while/do bodies, even if they only
-  contains one statement.
+  contain one statement.
 * If possible, keep lines at most 80 character wide for a 2 character tab
   width.
 * Use only lowercase names for functions and variables.
@@ -49,7 +49,7 @@ Commit messages
 * The summary should be in imperative mood (see examples below).
 * The summary should not end with a period. It's a title and titles don't end
   with a period.
-* If a longer description is wanted, add an second line empty and write the
+* If a longer description is wanted, add a second line empty and write the
   longer description on line three and below.
 * Keep lines in the message at most 72 characters wide.
 
