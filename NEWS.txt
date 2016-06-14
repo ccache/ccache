@@ -43,6 +43,8 @@ New features and improvements
 
 - Improved parsing of `-g*` options.
 
+- Made ccache understand `-Wp,-D*` options.
+
 
 Bug fixes
 ~~~~~~~~~

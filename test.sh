@@ -687,6 +687,23 @@ EOF
     checkstat 'unsupported compiler option' 4
 
     ##################################################################
+    # Check that -Wp,-D works
+    testname="-Wp,-D"
+    $CCACHE -Cz >/dev/null
+    $CCACHE_COMPILE -c -Wp,-DFOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c -DFOO test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c -Wp,-DFOO,-P test1.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+
+    ##################################################################
 
     if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
         testname="serialize-diagnostics"
@@ -986,6 +1003,23 @@ EOF
     compare_object reference_test.o test.o
 
     rm -f different_name.d
+
+    ##################################################################
+    # Check that -Wp,-D works
+    testname="-Wp,-D"
+    $CCACHE -Cz >/dev/null
+    $CCACHE_COMPILE -c -Wp,-DFOO test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c -DFOO test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c -Wp,-DFOO,-P test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 2
 
     ##################################################################
     # Test some header modifications to get multiple objects in the manifest.
