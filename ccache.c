@@ -2451,10 +2451,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-iprefix")) {
-			char *relpath = make_relative_path(x_strdup(argv[i+1]));
-			char *option = format("%s", relpath);
-			args_add(cpp_args, "-iprefix");
-			args_add(cpp_args, option);
+			char *relpath = NULL;
+			char *option = NULL;
+			if (strlen(argv[i]) > strlen("-iprefix")) {
+				relpath = make_relative_path(x_strdup(argv[i] + strlen("-iprefix")));
+				option = format("-iprefix%s", relpath);
+				args_add(cpp_args, option);
+			} else {
+				relpath = make_relative_path(x_strdup(argv[i+1]));
+				option = format("%s", relpath);
+				args_add(cpp_args, "-iprefix");
+				args_add(cpp_args, option);
+			}
 			free(relpath);
 			free(option);
 			i++;
