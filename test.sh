@@ -1097,6 +1097,80 @@ EOF
     checkstat 'cache miss' 1
     test -r code.gcno || test_failed "gcov"
 
+    # Check that coverage works with memcached.
+    testname="coverage (empty) - memcached"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    memcached -p 22122 &
+    memcached_pid=$!
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="coverage (code) - memcached"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
+
+    rm -f code.gcno
+
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
+
+    kill $memcached_pid
+    unset CCACHE_MEMCACHED_CONF
+
+    # Check that coverage works with memcached-only.
+    testname="coverage (empty) - memcached-only"
+    $CCACHE -z >/dev/null
+    $CCACHE -C >/dev/null
+    CCACHE_NOFILES=true
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    export CCACHE_MEMCACHED_ONLY=1
+    memcached -p 22122 &
+    memcached_pid=$!
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage test.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+
+    testname="coverage (code) - memcached-only"
+    $CCACHE -z >/dev/null
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
+
+    rm -f code.gcno
+
+    $CCACHE $COMPILER -c -fprofile-arcs -ftest-coverage code.c
+    checkstat 'cache hit (direct)' 1
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    test -r code.gcno || test_failed "gcov"
+
+    kill $memcached_pid
+    unset CCACHE_MEMCACHED_CONF
+    unset CCACHE_MEMCACHED_ONLY
+    unset CCACHE_NOFILES
+
     ##################################################################
     # Check the scenario of running a ccache with direct mode on a cache
     # built up by a ccache without direct mode support.

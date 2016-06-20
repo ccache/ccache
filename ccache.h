@@ -187,13 +187,13 @@ int memccached_init(char *conf);
 int memccached_raw_set(const char *key, const char* data, size_t len);
 int memccached_set(
 	const char *key,
-	const char *out, const char *err, const char *dia, const char *dep,
-	size_t out_len, size_t err_len, size_t dia_len, size_t dep_len);
+	const char *out, const char *err, const char *dia, const char *dep, const char *cov,
+	size_t out_len, size_t err_len, size_t dia_len, size_t dep_len, size_t cov_len);
 void *memccached_raw_get(const char *key, char **data, size_t *len);
 void* memccached_get(
 	const char *key,
-	char **out, char **err, char **dia, char **dep,
-	size_t *out_len, size_t *err_len, size_t *dia_len, size_t *dep_len);
+	char **out, char **err, char **dia, char **dep, char **cov,
+	size_t *out_len, size_t *err_len, size_t *dia_len, size_t *dep_len, size_t *cov_len);
 void memccached_free(void *blob);
 int memccached_release(void);
 

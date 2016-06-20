@@ -273,6 +273,8 @@ int memccached_raw_set(const char *key, const char *data, size_t len)
     char *dia[dia_len];
     uint32_t dep_len; # network endian
     char *dep[dep_len];
+    uint32_t cov_len; # network endian
+    char *cov[cov_len];
 
  */
 int memccached_set(const char *key,
@@ -280,12 +282,14 @@ int memccached_set(const char *key,
                    const char *stderr,
                    const char *dia,
                    const char *dep,
+                   const char *cov,
                    size_t obj_len,
                    size_t stderr_len,
                    size_t dia_len,
-                   size_t dep_len)
+                   size_t dep_len,
+                   size_t cov_len)
 {
-	size_t buf_len = 4 + 4*4 + obj_len + stderr_len + dia_len + dep_len;
+	size_t buf_len = 4 + 5*4 + obj_len + stderr_len + dia_len + dep_len + cov_len;
 	char *buf = x_malloc(buf_len);
 	char *ptr;
 	memcached_return_t mret;
@@ -307,6 +311,7 @@ int memccached_set(const char *key,
 	PROCESS_ONE_BUFFER(stderr, stderr_len);
 	PROCESS_ONE_BUFFER(dia, dia_len);
 	PROCESS_ONE_BUFFER(dep, dep_len);
+	PROCESS_ONE_BUFFER(cov, cov_len);
 
 #undef PROCESS_ONE_BUFFER
 
@@ -354,10 +359,12 @@ void *memccached_get(const char *key,
                      char **stderr,
                      char **dia,
                      char **dep,
+                     char **cov,
                      size_t *obj_len,
                      size_t *stderr_len,
                      size_t *dia_len,
-                     size_t *dep_len)
+                     size_t *dep_len,
+                     size_t *cov_len)
 {
 	memcached_return_t mret;
 	char *value, *ptr;
@@ -378,7 +385,7 @@ void *memccached_get(const char *key,
 		       memcached_strerror(memc, mret));
 		return NULL;
 	}
-	if (value_l < 20 || memcmp(value, MEMCCACHE_MAGIC, 4) != 0) {
+	if (value_l < 24 || memcmp(value, MEMCCACHE_MAGIC, 4) != 0) {
 		cc_log("wrong magic or length %.4s: %d", value, (int)value_l);
 		free(value);
 		return memccached_prune(key);
@@ -412,6 +419,7 @@ void *memccached_get(const char *key,
 	PROCESS_ONE_BUFFER(*stderr, *stderr_len);
 	PROCESS_ONE_BUFFER(*dia, *dia_len);
 	PROCESS_ONE_BUFFER(*dep, *dep_len);
+	PROCESS_ONE_BUFFER(*cov, *cov_len);
 
 #undef PROCESS_ONE_BUFFER
 

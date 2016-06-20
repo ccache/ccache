@@ -1142,8 +1142,8 @@ to_fscache(struct args *args)
 	char *tmp_stdout, *tmp_stderr, *tmp_cov;
 	char *tmp_dwo = NULL;
 #ifdef HAVE_LIBMEMCACHED
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
+	char *data_obj, *data_stderr, *data_dia, *data_dep, *data_cov;
+	size_t size_obj, size_stderr, size_dia, size_dep, size_cov;
 #endif
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
@@ -1407,8 +1407,7 @@ to_fscache(struct args *args)
 
 #ifdef HAVE_LIBMEMCACHED
 	if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
-	    !using_split_dwarf && /* no support for the dwo files just yet */
-	    !generating_coverage) { /* coverage refers to local paths anyway */
+	    !using_split_dwarf) { /* no support for the dwo files just yet */
 		cc_log("Storing %s in memcached", cached_key);
 		if (!read_file(cached_obj, 0, &data_obj, &size_obj)) {
 			data_obj = NULL;
@@ -1427,10 +1426,15 @@ to_fscache(struct args *args)
 			size_dep = 0;
 		}
 
+		if (!read_file(cached_cov, 0, &data_cov, &size_cov)) {
+			data_cov = NULL;
+			size_cov = 0;
+		}
+
 		if (data_obj) {
 			memccached_set(cached_key,
-			               data_obj, data_stderr, data_dia, data_dep,
-			               size_obj, size_stderr, size_dia, size_dep);
+			               data_obj, data_stderr, data_dia, data_dep, data_cov,
+			               size_obj, size_stderr, size_dia, size_dep, size_cov);
 		}
 
 		free(data_obj);
@@ -1455,9 +1459,9 @@ static void
 to_memcached(struct args *args)
 {
 	const char *tmp_dir = temp_dir();
-	char *tmp_stdout, *tmp_stderr;
-	char *stderr_d, *obj_d, *dia_d = NULL, *dep_d = NULL;
-	size_t stderr_l = 0,  obj_l = 0,  dia_l = 0, dep_l = 0;
+	char *tmp_stdout, *tmp_stderr, *tmp_cov;
+	char *stderr_d, *obj_d, *dia_d = NULL, *dep_d = NULL, *cov_d = NULL;
+	size_t stderr_l = 0,  obj_l = 0,  dia_l = 0, dep_l = 0, cov_l = 0;
 	struct stat st;
 	int status, tmp_stdout_fd, tmp_stderr_fd;
 
@@ -1467,9 +1471,19 @@ to_memcached(struct args *args)
 	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
 	if (generating_coverage) {
-		cc_log("No memcached support for coverage yet");
-		failed();
+		char *tmp_aux;
+		/* gcc has some funny rule about max extension length */
+		if (strlen(get_extension(output_obj)) < 6) {
+			tmp_aux = remove_extension(output_obj);
+		} else {
+			tmp_aux = x_strdup(output_obj);
+		}
+		tmp_cov = format("%s.gcno", tmp_aux);
+		free(tmp_aux);
+	} else {
+		tmp_cov = NULL;
 	}
+
 	if (using_split_dwarf) {
 		cc_log("No memcached support for split dwarf yet");
 		failed();
@@ -1510,6 +1524,9 @@ to_memcached(struct args *args)
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -1517,6 +1534,9 @@ to_memcached(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1577,6 +1597,9 @@ to_memcached(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
+		if (tmp_cov) {
+			tmp_unlink(tmp_cov);
+		}
 		failed();
 	}
 
@@ -1627,8 +1650,15 @@ to_memcached(struct args *args)
 		}
 	}
 
-	if (memccached_set(cached_key, obj_d, stderr_d, dia_d, dep_d,
-	                   obj_l, stderr_l, dia_l, dep_l) < 0) {
+	if (generating_coverage) {
+		if (!read_file(tmp_cov, 0, &cov_d, &cov_l)) {
+			stats_update(STATS_ERROR);
+			failed();
+		}
+	}
+
+	if (memccached_set(cached_key, obj_d, stderr_d, dia_d, dep_d, cov_d,
+	                   obj_l, stderr_l, dia_l, dep_l, cov_l) < 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -1666,6 +1696,7 @@ to_memcached(struct args *args)
 
 	free(tmp_stderr);
 	free(tmp_stdout);
+	free(tmp_cov);
 }
 #endif
 
@@ -2250,8 +2281,8 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	struct stat st;
 	bool produce_dep_file = false;
 #if HAVE_LIBMEMCACHED
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
+	char *data_obj, *data_stderr, *data_dia, *data_dep, *data_cov;
+	size_t size_obj, size_stderr, size_dia, size_dep, size_cov;
 #endif
 
 	/* the user might be disabling cache hits */
@@ -2266,12 +2297,11 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		cc_log("Object file %s not in cache", cached_obj);
 #if HAVE_LIBMEMCACHED
 		if (strlen(conf->memcached_conf) > 0 &&
-		    !using_split_dwarf &&
-		    !generating_coverage) {
+		    !using_split_dwarf) {
 			cc_log("Getting %s from memcached", cached_key);
 			cache = memccached_get(cached_key,
-			                       &data_obj, &data_stderr, &data_dia, &data_dep,
-			                       &size_obj, &size_stderr, &size_dia, &size_dep);
+			                       &data_obj, &data_stderr, &data_dia, &data_dep, &data_cov,
+			                       &size_obj, &size_stderr, &size_dia, &size_dep, &size_cov);
 		}
 		if (cache) {
 			put_data_in_cache(data_obj, size_obj, cached_obj);
@@ -2283,6 +2313,9 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			}
 			if (size_dep > 0) {
 				put_data_in_cache(data_dep, size_dep, cached_dep);
+			}
+			if (size_cov > 0) {
+				put_data_in_cache(data_cov, size_cov, cached_cov);
 			}
 			memccached_free(cache);
 		} else
@@ -2413,18 +2446,18 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	bool produce_dep_file = false;
 	int ret;
 	void *cache;
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
+	char *data_obj, *data_stderr, *data_dia, *data_dep, *data_cov;
+	size_t size_obj, size_stderr, size_dia, size_dep, size_cov;
 
 	/* the user might be disabling cache hits */
-	if (conf->recache || using_split_dwarf || generating_coverage) {
+	if (conf->recache || using_split_dwarf) {
 		return;
 	}
 
 	cc_log("Getting %s from memcached", cached_key);
 	cache = memccached_get(cached_key,
-	                       &data_obj, &data_stderr, &data_dia, &data_dep,
-	                       &size_obj, &size_stderr, &size_dia, &size_dep);
+	                       &data_obj, &data_stderr, &data_dia, &data_dep, &data_cov,
+	                       &size_obj, &size_stderr, &size_dia, &size_dep, &size_cov);
 	if (!cache) {
 		return;
 	}
@@ -2451,6 +2484,15 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		ret = write_file(data_dep, output_dep, size_dep);
 		if (ret < 0) {
 			cc_log("Problem creating %s from %s", output_dep, cached_key);
+			failed();
+		}
+	}
+	if (generating_coverage && output_cov) {
+		/* gcc won't generate notes if there is no code */
+		x_unlink(output_cov);
+		ret = write_file(data_cov, output_cov, size_cov);
+		if (ret < 0) {
+			cc_log("Problem creating %s from %s", output_cov, cached_key);
 			failed();
 		}
 	}
