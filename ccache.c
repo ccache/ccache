@@ -1122,7 +1122,7 @@ to_cache(struct args *args)
 		cc_log("Stored in cache: %s", cached_stderr);
 		if (!conf->compression
 		    /* If the file was compressed, obtain the size again: */
-		    || (conf->compression && x_stat(cached_stderr, &st) == 0)) {
+		    || x_stat(cached_stderr, &st) == 0) {
 			stats_update_size(file_size(&st), 1);
 		}
 	} else {
