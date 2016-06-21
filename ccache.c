@@ -106,6 +106,11 @@ static char *output_dia = NULL;
  *  up). Contains pathname if not NULL. */
 static char *output_dwo = NULL;
 
+/* Vector for storing -arch options */
+#define MAX_ARCH_ARGS (10)
+static size_t arch_args_size = 0;
+static char* arch_args[MAX_ARCH_ARGS] = {NULL};
+
 /*
  * Name (represented as a struct file_hash) of the file containing the cached
  * object code.
@@ -175,7 +180,7 @@ time_t time_of_compilation;
  * Files included by the preprocessor and their hashes/sizes. Key: file path.
  * Value: struct file_hash.
  */
-static struct hashtable *included_files;
+static struct hashtable *included_files = NULL;
 
 /* uses absolute path for some include files */
 static bool has_absolute_include_headers = false;
@@ -785,7 +790,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		free(p);
 	}
 
-	included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	if (!included_files) {
+		included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	}
 
 	/* Bytes between p and q are pending to be hashed. */
 	end = data + size;
@@ -1428,15 +1435,17 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
+		int args_added = 2;
 		args_add(args, "-E");
 		if (conf->keep_comments_cpp) {
 			args_add(args, "-C");
+			args_added = 3;
 		}
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
 		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
-		args_pop(args, 2);
+		args_pop(args, args_added);
 	}
 
 	if (status != 0) {
@@ -1927,8 +1936,23 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			cc_log("Did not find object file hash in manifest");
 		}
 	} else {
-		object_hash = get_object_name_from_cpp(args, hash);
-		cc_log("Got object file hash from preprocessor");
+		if (arch_args_size == 0) {
+			object_hash = get_object_name_from_cpp(args, hash);
+			cc_log("Got object file hash from preprocessor");
+		} else {
+			size_t i = 0;
+			args_add(args, "-arch");
+			for(i = 0; i < arch_args_size; ++i) {
+				args_add(args, arch_args[i]);
+				object_hash = get_object_name_from_cpp(args, hash);
+				cc_log("Got object file hash from preprocessor with -arch %s", arch_args[i]);
+				if (i != arch_args_size - 1) {
+					free(object_hash);
+				}
+				args_pop(args, 1);
+			}
+			args_pop(args, 1);
+		}
 		if (generating_dependencies) {
 			cc_log("Preprocessor created %s", output_dep);
 		}
@@ -2185,7 +2209,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	int i;
 	bool found_c_opt = false;
 	bool found_S_opt = false;
-	const char *found_arch = NULL;
 	bool found_pch = false;
 	bool found_fpch_preprocess = false;
 	const char *explicit_language = NULL; /* As specified with -x. */
@@ -2331,19 +2354,28 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-		/* Different -arch options are too hard. */
+		/* -Xarch_* options are too hard */
+		if (str_startswith(argv[i], "-Xarch_")) {
+			cc_log("Unsupported compiler option :%s", argv[i]);
+			stats_update(STATS_UNSUPPORTED);
+			result = false;
+			goto out;
+		}
+
+		/* Handle -arch options. */
 		if (str_eq(argv[i], "-arch")) {
-			if (found_arch) {
-				if (!str_eq(found_arch, argv[i+1])) {
-					cc_log("Different -arch compiler options are unsupported; found %s"
-					       " and %s", found_arch, argv[i+1]);
-					stats_update(STATS_UNSUPPORTED);
-					result = false;
-					goto out;
-				}
+			if (arch_args_size == MAX_ARCH_ARGS - 1) {
+				cc_log("Too many -arch compiler options are unsupported");
+				stats_update(STATS_UNSUPPORTED);
+				result = false;
+				goto out;
 			} else {
-				found_arch = argv[i+1];
+				arch_args[arch_args_size++] = x_strdup(argv[++i]); /* it will leak */
+				if (arch_args_size == 2) {
+					conf->run_second_cpp = true;
+				}
 			}
+			continue;
 		}
 
 		if (str_eq(argv[i], "-fpch-preprocess")
@@ -3076,6 +3108,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		args_add(*compiler_args, "-c");
 	}
 
+	size_t j = 0;
+	for(j = 0; j < arch_args_size; ++j) {
+		args_add(*compiler_args, "-arch");
+		args_add(*compiler_args, arch_args[j]);
+	}
+
 	/*
 	 * Only pass dependency arguments to the preprocesor since Intel's C++
 	 * compiler doesn't produce a correct .d file when compiling preprocessed
@@ -3339,7 +3377,7 @@ ccache(int argc, char *argv[])
 	cc_log("Working directory: %s", get_current_working_dir());
 
 	if (conf->unify) {
-		cc_log("Direct mode disabled because unify mode is enabled");
+		cc_log("Direct mode is disabled because unify mode is enabled");
 		conf->direct_mode = false;
 	}
 
