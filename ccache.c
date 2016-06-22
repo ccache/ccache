@@ -180,7 +180,7 @@ time_t time_of_compilation;
  * Files included by the preprocessor and their hashes/sizes. Key: file path.
  * Value: struct file_hash.
  */
-static struct hashtable *included_files;
+static struct hashtable *included_files = NULL;
 
 /* uses absolute path for some include files */
 static bool has_absolute_include_headers = false;
@@ -790,7 +790,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		free(p);
 	}
 
-	included_files = create_hashtable(1000, hash_from_string, strings_equal);
+    if (!included_files) {
+        included_files = create_hashtable(1000, hash_from_string, strings_equal);
+    }
 
 	/* Bytes between p and q are pending to be hashed. */
 	end = data + size;
@@ -2259,7 +2261,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
         /* -Xarch_* options are too hard */
-        if (str_startswith(argv[i]), "-Xarch_") {
+        if (str_startswith(argv[i], "-Xarch_")) {
             cc_log("Unsupported compiler option :%s", argv[i]);
             stats_update(STATS_UNSUPPORTED);
             result = false;
