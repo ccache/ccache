@@ -2276,7 +2276,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
                 result = false;
                 goto out;
             } else {
-                arch_args[arch_args_size++] = argv[++i];
+                arch_args[arch_args_size++] = x_strdup(argv[++i]); /* it will leak */
+                if (arch_args_size == 2) {
+                    conf->run_second_cpp = true;
+                }
 			}
             continue;
 		}
