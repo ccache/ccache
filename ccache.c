@@ -2258,6 +2258,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
+        /* -Xarch_* options are too hard */
+        if (str_startswith(argv[i]), "-Xarch_") {
+            cc_log("Unsupported compiler option :%s", argv[i]);
+            stats_update(STATS_UNSUPPORTED);
+            result = false;
+            goto out;
+        }
+
 		/* Handle -arch options. */
 		if (str_eq(argv[i], "-arch")) {
             if (arch_args_size == MAX_ARCH_ARGS - 1) {
