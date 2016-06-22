@@ -2277,12 +2277,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
                 goto out;
             } else {
                 arch_args[arch_args_size++] = argv[i+1];
-
-                /* Remove me when direct mode is supported */
-                if (arch_args_size > 1u) {
-                    cc_log("Direct mode is disabled because multiple \"-arch\" options are found");
-                    conf->direct_mode = false;
-                }
 			}
             continue;
 		}
