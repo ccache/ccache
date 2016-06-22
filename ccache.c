@@ -2276,7 +2276,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
                 result = false;
                 goto out;
             } else {
-                arch_args[arch_args_size++] = argv[i+1];
+                arch_args[arch_args_size++] = argv[++i];
 			}
             continue;
 		}
