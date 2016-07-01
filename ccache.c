@@ -1908,25 +1908,25 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			cc_log("Did not find object file hash in manifest");
 		}
 	} else {
-        if (arch_args_size == 0) {
-            object_hash = get_object_name_from_cpp(args, hash);
-            cc_log("Got object file hash from preprocessor");
-        } else {
-            size_t i = 0;
-            args_add(args, "-arch");
-            for(i = 0; i < arch_args_size; ++i) {
-                args_add(args, arch_args[i]);
-                object_hash = get_object_name_from_cpp(args, hash);
-                cc_log("Got object file hash from preprocessor with -arch %s", arch_args[i]);
-                if (i != arch_args_size - 1) {
-                    free(object_hash);
-                }
-                args_pop(args, 1);
-            }
-            args_pop(args, 1);
-        }
+		if (arch_args_size == 0) {
+			object_hash = get_object_name_from_cpp(args, hash);
+			cc_log("Got object file hash from preprocessor");
+		} else {
+			size_t i = 0;
+			args_add(args, "-arch");
+			for(i = 0; i < arch_args_size; ++i) {
+				args_add(args, arch_args[i]);
+				object_hash = get_object_name_from_cpp(args, hash);
+				cc_log("Got object file hash from preprocessor with -arch %s", arch_args[i]);
+				if (i != arch_args_size - 1) {
+					free(object_hash);
+				}
+				args_pop(args, 1);
+			}
+			args_pop(args, 1);
+		}
         if (generating_dependencies) {
-            cc_log("Preprocessor created %s", output_dep);
+			cc_log("Preprocessor created %s", output_dep);
         }
 	}
 
@@ -2270,18 +2270,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		/* Handle -arch options. */
 		if (str_eq(argv[i], "-arch")) {
-            if (arch_args_size == MAX_ARCH_ARGS - 1) {
-                cc_log("Too many -arch compiler options are unsupported");
-                stats_update(STATS_UNSUPPORTED);
-                result = false;
-                goto out;
-            } else {
-                arch_args[arch_args_size++] = x_strdup(argv[++i]); /* it will leak */
-                if (arch_args_size == 2) {
-                    conf->run_second_cpp = true;
-                }
+			if (arch_args_size == MAX_ARCH_ARGS - 1) {
+				cc_log("Too many -arch compiler options are unsupported");
+				stats_update(STATS_UNSUPPORTED);
+				result = false;
+				goto out;
+			} else {
+				arch_args[arch_args_size++] = x_strdup(argv[++i]); /* it will leak */
+				if (arch_args_size == 2) {
+					conf->run_second_cpp = true;
+				}
 			}
-            continue;
+			continue;
 		}
 
 		if (str_eq(argv[i], "-fpch-preprocess")
@@ -3035,11 +3035,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		args_add(*compiler_args, "-c");
 	}
 
-    size_t j = 0;
-    for(j = 0; j < arch_args_size; ++j) {
-        args_add(*compiler_args, "-arch");
-        args_add(*compiler_args, arch_args[j]);
-    }
+	size_t j = 0;
+	for(j = 0; j < arch_args_size; ++j) {
+		args_add(*compiler_args, "-arch");
+		args_add(*compiler_args, arch_args[j]);
+	}
 
 	/*
 	 * Only pass dependency arguments to the preprocesor since Intel's C++
