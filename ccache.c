@@ -790,9 +790,9 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		free(p);
 	}
 
-    if (!included_files) {
-        included_files = create_hashtable(1000, hash_from_string, strings_equal);
-    }
+	if (!included_files) {
+		included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	}
 
 	/* Bytes between p and q are pending to be hashed. */
 	end = data + size;
@@ -1412,11 +1412,11 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
-        int args_added = 2;
+		int args_added = 2;
 		args_add(args, "-E");
 		if (conf->keep_comments_cpp) {
 			args_add(args, "-C");
-            args_added = 3;
+			args_added = 3;
 		}
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
@@ -1925,9 +1925,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 			args_pop(args, 1);
 		}
-        if (generating_dependencies) {
+		if (generating_dependencies) {
 			cc_log("Preprocessor created %s", output_dep);
-        }
+		}
 	}
 
 	return object_hash;
@@ -2132,7 +2132,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	int i;
 	bool found_c_opt = false;
 	bool found_S_opt = false;
-    bool found_pch = false;
+	bool found_pch = false;
 	bool found_fpch_preprocess = false;
 	const char *explicit_language = NULL; /* As specified with -x. */
 	const char *file_language;            /* As deduced from file extension. */
@@ -2260,13 +2260,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-        /* -Xarch_* options are too hard */
-        if (str_startswith(argv[i], "-Xarch_")) {
-            cc_log("Unsupported compiler option :%s", argv[i]);
-            stats_update(STATS_UNSUPPORTED);
-            result = false;
-            goto out;
-        }
+		/* -Xarch_* options are too hard */
+		if (str_startswith(argv[i], "-Xarch_")) {
+			cc_log("Unsupported compiler option :%s", argv[i]);
+			stats_update(STATS_UNSUPPORTED);
+			result = false;
+			goto out;
+		}
 
 		/* Handle -arch options. */
 		if (str_eq(argv[i], "-arch")) {
