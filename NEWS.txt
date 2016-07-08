@@ -4,7 +4,7 @@ ccache news
 
 ccache 3.1.12
 -------------
-Release date: unknown
+Release date: 2016-07-08
 
 
 Bug fixes

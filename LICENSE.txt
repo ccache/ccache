@@ -38,7 +38,7 @@ The copyright for ccache as a whole is as follows:
 
 -------------------------------------------------------------------------------
   Copyright (C) 2002-2007 Andrew Tridgell
-  Copyright (C) 2009-2011 Joel Rosdahl
+  Copyright (C) 2009-2016 Joel Rosdahl
 -------------------------------------------------------------------------------
 
 
