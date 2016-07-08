@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2015 Joel Rosdahl
+# Copyright (C) 2009-2016 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -1837,6 +1837,59 @@ EOF
     checkstat 'cache miss' 2
 }
 
+symlinks_suite() {
+    ##################################################################
+    testname="symlink to source directory"
+
+    mkdir dir
+    cd dir
+    mkdir -p d1/d2
+    echo '#define A "OK"' >d1/h.h
+    cat <<EOF >d1/d2/c.c
+#include <stdio.h>
+#include "../h.h"
+int main() { printf("%s\n", A); }
+EOF
+    echo '#define A "BUG"' >h.h
+    ln -s d1/d2 d3
+
+    CCACHE_BASEDIR=/ $CCACHE $COMPILER -c $PWD/d3/c.c
+    $COMPILER -c $PWD/d3/c.c
+    $COMPILER c.o -o c
+    result=$(./c)
+    if [ "$result" != OK ]; then
+        test_failed "Incorrect header file used"
+    fi
+
+    cd ..
+    rm -rf dir
+
+    ##################################################################
+    testname="symlink to source file"
+
+    mkdir dir
+    cd dir
+    mkdir d
+    echo '#define A "BUG"' >d/h.h
+    cat <<EOF >d/c.c
+#include <stdio.h>
+#include "h.h"
+int main() { printf("%s\n", A); }
+EOF
+    echo '#define A "OK"' >h.h
+    ln -s d/c.c c.c
+
+    CCACHE_BASEDIR=/ $CCACHE $COMPILER -c $PWD/c.c
+    $COMPILER c.o -o c
+    result=$(./c)
+    if [ "$result" != OK ]; then
+        test_failed "Incorrect header file used"
+    fi
+
+    cd ..
+    rm -rf dir
+}
+
 ######################################################################
 # main program
 
@@ -1885,6 +1938,7 @@ readonly
 extrafiles
 cleanup
 pch
+symlinks
 "
 
 host_os="`uname -s`"

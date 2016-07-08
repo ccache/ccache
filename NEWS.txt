@@ -2,6 +2,19 @@ ccache news
 ===========
 
 
+ccache 3.1.12
+-------------
+Release date: unknown
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug where (due to ccache rewriting paths) the compiler could choose
+  incorrect include files if `CCACHE_BASEDIR` is used and the source file path
+  is absolute and is a symlink.
+
+
 ccache 3.1.11
 -------------
 Release date: 2015-03-07
