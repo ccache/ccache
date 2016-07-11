@@ -13,6 +13,9 @@ Bug fixes
 - Bail out on compiler option `-fstack-usage` since it creates a `.su` file
   which ccache currently doesn't handle.
 
+- ccache now knows how to work around a glitch in the output of GCC 6's
+  preprocessor.
+
 
 ccache 3.2.5
 ------------
