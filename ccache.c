@@ -2125,6 +2125,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	char **argv;
 	bool result = true;
 	bool found_color_diagnostics = false;
+	int deb_level = 0;
+	const char *deb_argument = NULL;
 
 	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
@@ -2329,21 +2331,33 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Debugging is handled specially, so that we know if we can strip line
 		 * number info. */
 		if (str_startswith(argv[i], "-g")) {
-			generating_debuginfo = true;
-			args_add(stripped_args, argv[i]);
-			if (conf->unify && !str_eq(argv[i], "-g0")) {
-				cc_log("%s used; disabling unify mode", argv[i]);
-				conf->unify = false;
+			const char *pLevel = argv[i] + 2;
+			int foundlevel = -1;
+			if (str_startswith(argv[i], "-ggdb")) {
+				pLevel = argv[i] + 5;
+			} else if (str_startswith(argv[i], "-gstabs")) {
+				pLevel = argv[i] + 7;
+			} else if (str_startswith(argv[i], "-gcoff")) {
+				pLevel = argv[i] + 6;
+			} else if (str_startswith(argv[i], "-gxcoff")) {
+				pLevel = argv[i] + 7;
+			} else if (str_startswith(argv[i], "-gvms")) {
+				pLevel = argv[i] + 5;
 			}
-			if (str_eq(argv[i], "-g3")) {
-				/*
-				 * Fix for bug 7190 ("commandline macros (-D)
-				 * have non-zero lineno when using -g3").
-				 */
-				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				conf->run_second_cpp = true;
+
+			/* Deduce level from Argument, default is 2 */
+			if (pLevel[0] == '\0') {
+				foundlevel = 2;
 			}
-			continue;
+			else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
+				foundlevel = atoi(pLevel);
+			}
+
+			if (foundlevel >= 0) {
+				deb_level = foundlevel;
+				deb_argument = argv[i];
+				continue;
+			}
 		}
 
 		/* These options require special handling, because they
@@ -2767,6 +2781,23 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Rewrite to relative to increase hit rate. */
 		input_file = make_relative_path(x_strdup(argv[i]));
 	} /* for */
+
+	if (deb_level > 0) {
+		generating_debuginfo = true;
+		args_add(stripped_args, deb_argument);
+		if (conf->unify) {
+			cc_log("%s used; disabling unify mode", deb_argument);
+			conf->unify = false;
+		}
+		if (deb_level >= 3) {
+			/*
+			 * Fix for bug 7190 ("commandline macros (-D)
+			 * have non-zero lineno when using -g3").
+			 */
+			cc_log("%s used; not compiling preprocessed code", deb_argument);
+			conf->run_second_cpp = true;
+		}
+	}
 
 	if (found_S_opt) {
 		/* Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
