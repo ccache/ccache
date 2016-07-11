@@ -19,9 +19,6 @@ compiler:
 matrix:
     include:
         - os: linux
-          compiler: i586-mingw32msvc-gcc
-          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
-        - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=address -g" ASAN_OPTIONS="detect_leaks=0"
 
