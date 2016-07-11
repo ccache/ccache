@@ -829,6 +829,28 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			char *path;
 			bool system;
 
+			/* Workarounds for preprocessor linemarker bugs in GCC version 6 */
+			if (q[2] == '3') {
+				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
+					/* Bogus extra line with #31, after the regular #1:
+					   Ignore the whole line, and continue parsing */
+					while (q < end && *q != '\n') {
+						q++;
+					}
+					p = q;
+					continue;
+				} else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
+					/* Bogus wrong line with #32, instead of regular #1:
+					   Replace the line number with the usual one */
+					hash_buffer(hash, p, q - p);
+					q += 1;
+					q[0] = '#';
+					q[1] = ' ';
+					q[2] = '1';
+					p = q;
+				}
+			}
+
 			while (q < end && *q != '"' && *q != '\n') {
 				q++;
 			}
@@ -1276,7 +1298,7 @@ to_cache(struct args *args)
 		cc_log("Stored in cache: %s", cached_stderr);
 		if (!conf->compression
 		    /* If the file was compressed, obtain the size again: */
-		    || (conf->compression && x_stat(cached_stderr, &st) == 0)) {
+		    || x_stat(cached_stderr, &st) == 0) {
 			stats_update_size(file_size(&st), 1);
 		}
 	} else {
@@ -2041,7 +2063,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	x_exit(0);
 }
 
-/* find the real compiler. We just search the PATH to find a executable of the
+/* find the real compiler. We just search the PATH to find an executable of the
  * same name that isn't a link to ourselves */
 static void
 find_compiler(char **argv)

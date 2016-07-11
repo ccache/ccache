@@ -102,7 +102,6 @@ hashtable_expand(struct hashtable *h)
     /* Double the size of the table to accommodate more entries */
     struct entry **newtable;
     struct entry *e;
-    struct entry **pE;
     unsigned int newsize, i, index;
     /* Check we're not hitting max capacity */
     if (h->primeindex == (prime_table_length - 1)) return 0;
@@ -128,6 +127,7 @@ hashtable_expand(struct hashtable *h)
     /* Plan B: realloc instead */
     else 
     {
+        struct entry **pE;
         newtable = (struct entry **)
                    realloc(h->table, newsize * sizeof(struct entry *));
         if (NULL == newtable) { (h->primeindex)--; return 0; }
