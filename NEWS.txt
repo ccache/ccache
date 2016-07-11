@@ -41,6 +41,8 @@ New features and improvements
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
 
+- Improved parsing of `-g*` options.
+
 
 Bug fixes
 ~~~~~~~~~

@@ -2125,8 +2125,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	char **argv;
 	bool result = true;
 	bool found_color_diagnostics = false;
-	int deb_level = 0;
-	const char *deb_argument = NULL;
+	int debug_level = 0;
+	const char *debug_argument = NULL;
 
 	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
@@ -2345,17 +2345,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				pLevel = argv[i] + 5;
 			}
 
-			/* Deduce level from Argument, default is 2 */
+			/* Deduce level from argument, default is 2. */
 			if (pLevel[0] == '\0') {
 				foundlevel = 2;
-			}
-			else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
+			} else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
 				foundlevel = atoi(pLevel);
 			}
 
 			if (foundlevel >= 0) {
-				deb_level = foundlevel;
-				deb_argument = argv[i];
+				debug_level = foundlevel;
+				debug_argument = argv[i];
 				continue;
 			}
 		}
@@ -2782,19 +2781,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		input_file = make_relative_path(x_strdup(argv[i]));
 	} /* for */
 
-	if (deb_level > 0) {
+	if (debug_level > 0) {
 		generating_debuginfo = true;
-		args_add(stripped_args, deb_argument);
+		args_add(stripped_args, debug_argument);
 		if (conf->unify) {
-			cc_log("%s used; disabling unify mode", deb_argument);
+			cc_log("%s used; disabling unify mode", debug_argument);
 			conf->unify = false;
 		}
-		if (deb_level >= 3) {
+		if (debug_level >= 3) {
 			/*
 			 * Fix for bug 7190 ("commandline macros (-D)
 			 * have non-zero lineno when using -g3").
 			 */
-			cc_log("%s used; not compiling preprocessed code", deb_argument);
+			cc_log("%s used; not compiling preprocessed code", debug_argument);
 			conf->run_second_cpp = true;
 		}
 	}
