@@ -2789,10 +2789,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			conf->unify = false;
 		}
 		if (debug_level >= 3) {
-			/*
-			 * Fix for bug 7190 ("commandline macros (-D)
-			 * have non-zero lineno when using -g3").
-			 */
 			cc_log("%s used; not compiling preprocessed code", debug_argument);
 			conf->run_second_cpp = true;
 		}
