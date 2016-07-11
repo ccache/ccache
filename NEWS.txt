@@ -41,6 +41,7 @@ New features and improvements
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
 
+- Allow direct mode with -Wp,-D_define_ option
 
 Bug fixes
 ~~~~~~~~~

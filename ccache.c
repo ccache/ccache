@@ -2481,6 +2481,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				output_dep = make_relative_path(x_strdup(argv[i] + 9));
 				args_add(dep_args, argv[i]);
 				continue;
+			} else if (str_startswith(argv[i], "-Wp,-D")
+			           && !strchr(argv[i] + 6, ',')) {
+                                /* Treat it like -D */
+				args_add(dep_args, argv[i] + 4);
+				continue;
 			} else if (conf->direct_mode) {
 				/*
 				 * -Wp, can be used to pass too hard options to
