@@ -656,6 +656,14 @@ EOF
         $CCACHE_COMPILE -c -fprofile-use test1.c 2>/dev/null
         checkstat 'cache hit (preprocessed)' 3
         checkstat 'cache miss' 3
+
+		testname="multiple-arch-options"
+		$CCACHE_COMPILE -c --arch i386 --arch x86_64 -fprofile-use test1.c 2>/dev/null
+        checkstat 'cache hit (preprocessed)' 3
+        checkstat 'cache miss' 3
+		$CCACHE_COMPILE -c --arch i386 --arch x86_64 -fprofile-use test1.c 2>/dev/null
+		checkstat 'cache hit (preprocessed)' 4
+		checkstat 'cache miss' 3
     fi
 
     ##################################################################
