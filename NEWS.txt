@@ -2,8 +2,9 @@ ccache news
 ===========
 
 
-Unreleased 3.2.6
-----------------
+ccache 3.2.6
+------------
+Release date: 2016-07-12
 
 Bug fixes
 ~~~~~~~~~
