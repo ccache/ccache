@@ -370,7 +370,7 @@ WRAPPERS>>.
 
     If true, ccache will include the current working directory in the hash that
     is used to distinguish two compilations. This prevents a problem with the
-    storage of the current working directory in the debug info of a object
+    storage of the current working directory in the debug info of an object
     file, which can lead ccache to give a cached object file that has the
     working directory in the debug info set incorrectly. This option is off by
     default as the incorrect setting of this debug info rarely causes problems.
@@ -640,8 +640,8 @@ The direct mode will be disabled if any of the following holds:
   race condition)
 * the unifier is enabled (the configuration setting *unify* is true)
 * a compiler option not supported by the direct mode is used:
-** a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_* and
-   *-Wp,-MMD,_path_*
+** a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_*,
+   *-Wp,-MMD,_path_* and *-Wp,-D_define_*
 ** *-Xpreprocessor*
 * the string ``\_\_TIME__'' is present in the source code
 
@@ -871,8 +871,8 @@ problems and what may be done to increase the hit rate:
 ** Compiler arguments that are hashed in the direct mode but not in the
    preprocessor mode have changed (*-I*, *-include*, *-D*, etc) and they didn't
    affect the preprocessor output.
-** The compiler option *-Xpreprocessor* or *-Wp,_X_* (except *-Wp,-MD,_path_*
-   and *Wp,-MMD,_path_*) is used.
+** The compiler option *-Xpreprocessor* or *-Wp,_X_* (except *-Wp,-MD,_path_*,
+   *-Wp,-MMD,_path_*, and *-Wp,-D_define_*) is used.
 ** This was the first compilation with a new value of the base directory
    setting.
 ** A modification time of one of the include files is too new (created the same

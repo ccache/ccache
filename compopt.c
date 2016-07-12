@@ -60,6 +60,7 @@ static const struct compopt compopts[] = {
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-fplugin=libcc1plugin", TOO_HARD}, /* interaction with GDB */
 	{"-frepo",          TOO_HARD},
+	{"-fstack-usage",   TOO_HARD},
 	{"-fworking-directory", AFFECTS_CPP},
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},

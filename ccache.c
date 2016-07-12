@@ -442,7 +442,9 @@ register_signal_handler(int signum)
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = signal_handler;
 	act.sa_mask = fatal_signal_set;
+#ifdef SA_RESTART
 	act.sa_flags = SA_RESTART;
+#endif
 	sigaction(signum, &act, NULL);
 }
 
@@ -844,6 +846,28 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		    && (q == data || q[-1] == '\n')) {
 			char *path;
 			bool system;
+
+			/* Workarounds for preprocessor linemarker bugs in GCC version 6 */
+			if (q[2] == '3') {
+				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
+					/* Bogus extra line with #31, after the regular #1:
+					   Ignore the whole line, and continue parsing */
+					while (q < end && *q != '\n') {
+						q++;
+					}
+					p = q;
+					continue;
+				} else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
+					/* Bogus wrong line with #32, instead of regular #1:
+					   Replace the line number with the usual one */
+					hash_buffer(hash, p, q - p);
+					q += 1;
+					q[0] = '#';
+					q[1] = ' ';
+					q[2] = '1';
+					p = q;
+				}
+			}
 
 			while (q < end && *q != '"' && *q != '\n') {
 				q++;
@@ -1330,7 +1354,7 @@ to_fscache(struct args *args)
 		cc_log("Stored in cache: %s", cached_stderr);
 		if (!conf->compression
 		    /* If the file was compressed, obtain the size again: */
-		    || (conf->compression && x_stat(cached_stderr, &st) == 0)) {
+		    || x_stat(cached_stderr, &st) == 0) {
 			stats_update_size(file_size(&st), 1);
 		}
 	} else {
@@ -2493,7 +2517,7 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 }
 #endif
 
-/* find the real compiler. We just search the PATH to find a executable of the
+/* find the real compiler. We just search the PATH to find an executable of the
  * same name that isn't a link to ourselves */
 static void
 find_compiler(char **argv)
@@ -2577,6 +2601,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	char **argv;
 	bool result = true;
 	bool found_color_diagnostics = false;
+	int debug_level = 0;
+	const char *debug_argument = NULL;
 
 	expanded_args = args_copy(args);
 	stripped_args = args_init(0, NULL);
@@ -2781,21 +2807,32 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Debugging is handled specially, so that we know if we can strip line
 		 * number info. */
 		if (str_startswith(argv[i], "-g")) {
-			generating_debuginfo = true;
-			args_add(stripped_args, argv[i]);
-			if (conf->unify && !str_eq(argv[i], "-g0")) {
-				cc_log("%s used; disabling unify mode", argv[i]);
-				conf->unify = false;
+			const char *pLevel = argv[i] + 2;
+			int foundlevel = -1;
+			if (str_startswith(argv[i], "-ggdb")) {
+				pLevel = argv[i] + 5;
+			} else if (str_startswith(argv[i], "-gstabs")) {
+				pLevel = argv[i] + 7;
+			} else if (str_startswith(argv[i], "-gcoff")) {
+				pLevel = argv[i] + 6;
+			} else if (str_startswith(argv[i], "-gxcoff")) {
+				pLevel = argv[i] + 7;
+			} else if (str_startswith(argv[i], "-gvms")) {
+				pLevel = argv[i] + 5;
 			}
-			if (str_eq(argv[i], "-g3")) {
-				/*
-				 * Fix for bug 7190 ("commandline macros (-D)
-				 * have non-zero lineno when using -g3").
-				 */
-				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				conf->run_second_cpp = true;
+
+			/* Deduce level from argument, default is 2. */
+			if (pLevel[0] == '\0') {
+				foundlevel = 2;
+			} else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
+				foundlevel = atoi(pLevel);
 			}
-			continue;
+
+			if (foundlevel >= 0) {
+				debug_level = foundlevel;
+				debug_argument = argv[i];
+				continue;
+			}
 		}
 
 		/* These options require special handling, because they
@@ -2918,6 +2955,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				free(output_dep);
 				output_dep = make_relative_path(x_strdup(argv[i] + 9));
 				args_add(dep_args, argv[i]);
+				continue;
+			} else if (str_startswith(argv[i], "-Wp,-D")
+			           && !strchr(argv[i] + 6, ',')) {
+				/* Treat it like -D */
+				args_add(dep_args, argv[i] + 4);
 				continue;
 			} else if (conf->direct_mode) {
 				/*
@@ -3216,9 +3258,31 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* Rewrite to relative to increase hit rate. */
-		input_file = make_relative_path(x_strdup(argv[i]));
+		lstat(argv[i], &st);
+		if (S_ISLNK(st.st_mode)) {
+			/* Don't rewrite source file path if it's a symlink since
+			   make_relative_path resolves symlinks using realpath(3) and this leads
+			   to potentially choosing incorrect relative header files. See the
+			   "symlink to source file" test. */
+			input_file = x_strdup(argv[i]);
+		} else {
+			/* Rewrite to relative to increase hit rate. */
+			input_file = make_relative_path(x_strdup(argv[i]));
+		}
 	} /* for */
+
+	if (debug_level > 0) {
+		generating_debuginfo = true;
+		args_add(stripped_args, debug_argument);
+		if (conf->unify) {
+			cc_log("%s used; disabling unify mode", debug_argument);
+			conf->unify = false;
+		}
+		if (debug_level >= 3) {
+			cc_log("%s used; not compiling preprocessed code", debug_argument);
+			conf->run_second_cpp = true;
+		}
+	}
 
 	if (found_S_opt) {
 		/* Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
