@@ -661,12 +661,12 @@ EOF
     if [ $HOST_OS_APPLE -eq 1 ]; then
         $CCACHE -Cz > /dev/null
         testname="multiple-arch-options"
-		$CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c 2>/dev/null
+        $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c 2>/dev/null
         checkstat 'cache hit (preprocessed)' 0
         checkstat 'cache miss' 1
-		$CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c 2>/dev/null
-		checkstat 'cache hit (preprocessed)' 1
-		checkstat 'cache miss' 1
+        $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c 2>/dev/null
+        checkstat 'cache hit (preprocessed)' 1
+        checkstat 'cache miss' 1
     fi
 	
     ##################################################################
