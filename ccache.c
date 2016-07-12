@@ -2804,8 +2804,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* Rewrite to relative to increase hit rate. */
-		input_file = make_relative_path(x_strdup(argv[i]));
+		lstat(argv[i], &st);
+		if (S_ISLNK(st.st_mode)) {
+			/* Don't rewrite source file path if it's a symlink since
+			   make_relative_path resolves symlinks using realpath(3) and this leads
+			   to potentially choosing incorrect relative header files. See the
+			   "symlink to source file" test. */
+			input_file = x_strdup(argv[i]);
+		} else {
+			/* Rewrite to relative to increase hit rate. */
+			input_file = make_relative_path(x_strdup(argv[i]));
+		}
 	} /* for */
 
 	if (debug_level > 0) {

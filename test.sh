@@ -2596,6 +2596,59 @@ b"
 b"
 }
 
+symlinks_suite() {
+    ##################################################################
+    testname="symlink to source directory"
+
+    mkdir dir
+    cd dir
+    mkdir -p d1/d2
+    echo '#define A "OK"' >d1/h.h
+    cat <<EOF >d1/d2/c.c
+#include <stdio.h>
+#include "../h.h"
+int main() { printf("%s\n", A); }
+EOF
+    echo '#define A "BUG"' >h.h
+    ln -s d1/d2 d3
+
+    CCACHE_BASEDIR=/ $CCACHE $COMPILER -c $PWD/d3/c.c
+    $COMPILER -c $PWD/d3/c.c
+    $COMPILER c.o -o c
+    result=$(./c)
+    if [ "$result" != OK ]; then
+        test_failed "Incorrect header file used"
+    fi
+
+    cd ..
+    rm -rf dir
+
+    ##################################################################
+    testname="symlink to source file"
+
+    mkdir dir
+    cd dir
+    mkdir d
+    echo '#define A "BUG"' >d/h.h
+    cat <<EOF >d/c.c
+#include <stdio.h>
+#include "h.h"
+int main() { printf("%s\n", A); }
+EOF
+    echo '#define A "OK"' >h.h
+    ln -s d/c.c c.c
+
+    CCACHE_BASEDIR=/ $CCACHE $COMPILER -c $PWD/c.c
+    $COMPILER c.o -o c
+    result=$(./c)
+    if [ "$result" != OK ]; then
+        test_failed "Incorrect header file used"
+    fi
+
+    cd ..
+    rm -rf dir
+}
+
 ######################################################################
 # main program
 
@@ -2719,6 +2772,7 @@ extrafiles
 ignoreheaders
 cleanup
 pch
+symlinks
 upgrade
 prefix
 "
