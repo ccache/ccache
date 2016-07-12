@@ -16,6 +16,10 @@ Bug fixes
 - ccache now knows how to work around a glitch in the output of GCC 6's
   preprocessor.
 
+- Fixed a bug where (due to ccache rewriting paths) the compiler could choose
+  incorrect include files if `CCACHE_BASEDIR` is used and the source file path
+  is absolute and is a symlink.
+
 
 ccache 3.2.5
 ------------
@@ -288,6 +292,19 @@ Bug fixes
 - Fixed race condition when creating the initial cache directory.
 
 - Fixed test suite failures when `CC` is a ccache-wrapped compiler.
+
+
+ccache 3.1.12
+-------------
+Release date: 2016-07-12
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug where (due to ccache rewriting paths) the compiler could choose
+  incorrect include files if `CCACHE_BASEDIR` is used and the source file path
+  is absolute and is a symlink.
 
 
 ccache 3.1.11
