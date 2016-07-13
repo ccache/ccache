@@ -30,8 +30,9 @@ again. Supported languages are C, C\+\+, Objective-C and Objective-C++.
 ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
 tell that you are using ccache is the speed. Currently known exceptions to this
-goal are listed under <<_bugs,BUGS>>. If you ever discover an undocumented case
-where ccache changes the output of your compiler, please let us know.
+goal are listed under <<_caveats,CAVEATS>>. If you ever discover an
+undocumented case where ccache changes the output of your compiler, please let
+us know.
 
 
 Features
@@ -780,8 +781,8 @@ You can use the *prefix_command_cpp* configuration setting, if you also want to
 invoke the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
-Bugs
-----
+Caveats
+-------
 
 * ccache doesn't handle the GNU Assembler's *.incbin* directive correctly. This
   directive can be embedded in the source code inside an *__asm__* statement in
