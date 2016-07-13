@@ -3258,8 +3258,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		lstat(argv[i], &st);
-		if ((st.st_mode & S_IFMT) == S_IFLNK) {
+		if (is_symlink(argv[i])) {
 			/* Don't rewrite source file path if it's a symlink since
 			   make_relative_path resolves symlinks using realpath(3) and this leads
 			   to potentially choosing incorrect relative header files. See the
