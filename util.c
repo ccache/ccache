@@ -1501,6 +1501,17 @@ is_full_path(const char *path)
 	return false;
 }
 
+bool is_symlink(const char *path)
+{
+#ifdef _WIN32
+	(void)path;
+	return false;
+#else
+	struct stat st;
+	return x_lstat(path, &st) == 0 && ((st.st_mode & S_IFMT) == S_IFLNK);
+#endif
+}
+
 /*
  * Update the modification time of a file in the cache to save it from LRU
  * cleanup.

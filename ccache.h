@@ -167,6 +167,7 @@ size_t common_dir_prefix_length(const char *s1, const char *s2);
 char *get_relative_path(const char *from, const char *to);
 bool is_absolute_path(const char *path);
 bool is_full_path(const char *path);
+bool is_symlink(const char *path);
 void update_mtime(const char *path);
 void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char *oldpath, const char *newpath);
