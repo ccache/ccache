@@ -2933,7 +2933,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	if (!found_c_opt) {
+	if (!found_c_opt && !found_S_opt) {
 		if (output_is_precompiled_header) {
 			args_add(stripped_args, "-c");
 		} else {
