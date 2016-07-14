@@ -755,9 +755,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
 					/* Bogus extra line with #31, after the regular #1:
 					   Ignore the whole line, and continue parsing */
+					hash_buffer(hash, p, q - p);
 					while (q < end && *q != '\n') {
 						q++;
 					}
+					q++;
 					p = q;
 					continue;
 				} else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
