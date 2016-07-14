@@ -41,11 +41,14 @@ static const struct {
 	{".m",   "objective-c"},
 	{".M",   "objective-c++"},
 	{".mm",  "objective-c++"},
+	{".sx",  "assembler-with-cpp"},
+	{".S",   "assembler-with-cpp"},
 	/* Preprocessed: */
 	{".i",   "cpp-output"},
 	{".ii",  "c++-cpp-output"},
 	{".mi",  "objective-c-cpp-output"},
 	{".mii", "objective-c++-cpp-output"},
+	{".s",   "assembler"},
 	/* Header file (for precompilation): */
 	{".h",   "c-header"},
 	{".H",   "c++-header"},
@@ -88,6 +91,8 @@ static const struct {
 	{"objective-c++-header",     "objective-c++-cpp-output"},
 	{"objective-c++-cpp-output", "objective-c++-cpp-output"},
 	{"cuda",                     "cuda-output"},
+	{"assembler-with-cpp",       "assembler"},
+	{"assembler",                "assembler"},
 	{NULL,  NULL}
 };
 
