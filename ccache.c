@@ -1821,6 +1821,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		/* All other arguments are included in the hash. */
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
+		if (i + 1 < args->argc && compopt_takes_arg(args->argv[i])) {
+			i++;
+			hash_delimiter(hash, "arg");
+			hash_string(hash, args->argv[i]);
+		}
 	}
 
 	/*
