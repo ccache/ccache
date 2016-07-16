@@ -2138,11 +2138,26 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	const char *actual_language;          /* Language to actually use. */
 	const char *input_charset = NULL;
 	struct stat st;
-	/* is the dependency makefile name overridden with -MF? */
+	/* Is the dependency makefile name overridden with -MF? */
 	bool dependency_filename_specified = false;
-	/* is the dependency makefile target name specified with -MT or -MQ? */
+	/* Is the dependency makefile target name specified with -MT or -MQ? */
 	bool dependency_target_specified = false;
-	struct args *expanded_args, *stripped_args, *dep_args, *cpp_args;
+	/* expanded_args is a copy of the original arguments given to the compiler
+	   but with arguments from @file and similar constructs expanded. It's only
+	   used as a temporary data structure to loop over. */
+	struct args *expanded_args;
+	/* stripped_args essentially contains all original arguments except those
+	   that only should be passed to the preprocessor (if run_second_cpp is
+	   false) and except dependency options (like -MD and friends). */
+	struct args *stripped_args;
+	/* cpp_args contains arguments that were not added to stripped_args, i.e.
+	   those that should only be passed to the preprocessor if run_second_cpp is
+	   false. If run_second_cpp is true, they will be passed to the compiler as
+	   well. */
+	struct args *cpp_args;
+	/* dep_args contains dependency options like -MD. They only passed to the
+	   preprocessor, never to the compiler. */
+	struct args *dep_args;
 	int argc;
 	char **argv;
 	bool result = true;
