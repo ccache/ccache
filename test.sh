@@ -753,7 +753,6 @@ EOF
 }
 
 base_suite() {
-    CCACHE_COMPILE="$CCACHE $COMPILER"
     base_tests
 }
 
@@ -2669,6 +2668,8 @@ fi
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
+
+CCACHE_COMPILE="$CCACHE $COMPILER"
 
 # save the type of compiler because some test may not work on all compilers
 COMPILER_TYPE_CLANG=0
