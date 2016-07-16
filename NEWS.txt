@@ -2,6 +2,16 @@ ccache news
 ===========
 
 
+Unreleased ccache 3.2.7
+-----------------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug which could lead to false cache hits for compiler command lines
+  with a missing argument to an option that takes an argument.
+
+
 ccache 3.2.6
 ------------
 Release date: 2016-07-12

@@ -1477,6 +1477,27 @@ EOF
     else
         test_failed "unexpected output of --dump-manifest"
     fi
+
+    ##################################################################
+    testname="argument-less -B and -L"
+    $CCACHE -Cz > /dev/null
+    cat <<EOF >test.c
+#include <stdio.h>
+int main(void)
+{
+#ifdef FOO
+    puts("FOO");
+#endif
+    return 0;
+}
+EOF
+
+    $CCACHE $COMPILER -A -L -DFOO -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -A -L -DBAR -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache miss' 2
 }
 
 basedir_suite() {
