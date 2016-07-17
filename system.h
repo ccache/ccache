@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <utime.h>
 #ifdef __MINGW32__
+/* use pthread for some signal stuff as not all modern posix functions are available */
 #include <pthread.h>
 #include <windows.h>
 #include <winsock.h>
@@ -59,7 +60,7 @@
 #define WNOHANG 1
 #endif // WNOHANG
 #define HAVE_GETFINALPATHNAMEBYHANDLEW
-#endif // WIN32
+#endif // __MINGW32__
 
 
 extern char **environ;

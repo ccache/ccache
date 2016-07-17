@@ -338,22 +338,22 @@ temp_dir()
 void
 block_signals(void)
 {
-#ifndef WIN32
+#ifndef _WIN32
 	sigprocmask(SIG_BLOCK, &fatal_signal_set, NULL);
 #else
-  pthread_sigmask(SIG_BLOCK, &fatal_signal_set, NULL);
+	pthread_sigmask(SIG_BLOCK, &fatal_signal_set, NULL);
 #endif
 }
 
 void
 unblock_signals(void)
 {
-#ifndef WIN32
+#ifndef _WIN32
 	sigset_t empty;
 	sigemptyset(&empty);
 	sigprocmask(SIG_SETMASK, &empty, NULL);
 #else
-  pthread_sigmask(SIG_SETMASK, &empty, NULL);
+	pthread_sigmask(SIG_SETMASK, &empty, NULL);
 #endif
 }
 
@@ -415,8 +415,8 @@ signal_handler(int signum)
 
 	/* Resend signal to ourselves to exit properly after returning from the
 	 * handler. */
-#ifdef __MINGW32__
-  raise(signum);
+#ifdef _WIN32
+	raise(signum);
 #else
 	kill(getpid(), signum);
 #endif
@@ -425,8 +425,8 @@ signal_handler(int signum)
 static void
 register_signal_handler(int signum)
 {
-#ifdef WIN32
-  signal(signum,signal_handler);
+#ifdef _WIN32
+	signal(signum,signal_handler);
 #else
 	struct sigaction act;
 	memset(&act, 0, sizeof(act));
