@@ -310,10 +310,11 @@ int memccached_set(const char *key,
 
 #undef PROCESS_ONE_BUFFER
 
-	if (buf_len > MAX_VALUE_SIZE)
+	if (buf_len > MAX_VALUE_SIZE) {
 		mret = memccached_big_set(memc, key, strlen(key), buf, buf_len, 0, 0);
-	else
+	} else {
 		mret = memcached_set(memc, key, strlen(key), buf, buf_len, 0, 0);
+	}
 
 	if (mret != MEMCACHED_SUCCESS) {
 		cc_log("Failed to move %s to memcached: %s", key,
