@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -28,18 +28,6 @@ path_exists(const char *path)
 {
 	struct stat st;
 	return lstat(path, &st) == 0;
-}
-
-bool
-is_symlink(const char *path)
-{
-#ifdef _WIN32
-	(void) path;
-	return 0;
-#else
-	struct stat st;
-	return lstat(path, &st) == 0 && S_ISLNK(st.st_mode);
-#endif
 }
 
 void

@@ -41,6 +41,10 @@ New features and improvements
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
 
+- Improved parsing of `-g*` options.
+
+- Made ccache understand `-Wp,-D*` options.
+
 
 Bug fixes
 ~~~~~~~~~
@@ -50,13 +54,24 @@ Bug fixes
 - Fixed build and test for MinGW32 and Windows.
 
 
-Unreleased 3.2.6
-----------------
+ccache 3.2.6
+------------
+Release date: 2016-07-12
 
 Bug fixes
 ~~~~~~~~~
 
 - Fixed build problem on QNX, which lacks ``SA_RESTART''.
+
+- Bail out on compiler option `-fstack-usage` since it creates a `.su` file
+  which ccache currently doesn't handle.
+
+- ccache now knows how to work around a glitch in the output of GCC 6's
+  preprocessor.
+
+- Fixed a bug where (due to ccache rewriting paths) the compiler could choose
+  incorrect include files if `CCACHE_BASEDIR` is used and the source file path
+  is absolute and is a symlink.
 
 
 ccache 3.2.5
@@ -331,6 +346,19 @@ Bug fixes
 - Fixed race condition when creating the initial cache directory.
 
 - Fixed test suite failures when `CC` is a ccache-wrapped compiler.
+
+
+ccache 3.1.12
+-------------
+Release date: 2016-07-12
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug where (due to ccache rewriting paths) the compiler could choose
+  incorrect include files if `CCACHE_BASEDIR` is used and the source file path
+  is absolute and is a symlink.
 
 
 ccache 3.1.11
