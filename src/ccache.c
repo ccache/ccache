@@ -668,7 +668,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 			char *source = NULL;
 			size_t size;
 			if (st.st_size > 0) {
-				if (!read_file(path, st.st_size, &source, &size)) {
+				if (!read_file(path, st.st_size, false, &source, &size)) {
 					goto failure;
 				}
 			} else {
@@ -772,7 +772,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 {
 	char *data;
 	size_t size;
-	if (!read_file(path, 0, &data, &size)) {
+	if (!read_file(path, 0, false, &data, &size)) {
 		return false;
 	}
 

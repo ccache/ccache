@@ -141,7 +141,7 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 	} else {
 		char *data;
 		size_t size;
-		if (!read_file(path, 0, &data, &size)) {
+		if (!read_file(path, 0, false, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}
 		int result = hash_source_code_string(conf, hash, data, size, path);

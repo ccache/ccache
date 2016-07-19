@@ -1528,7 +1528,7 @@ x_readlink(const char *path)
 // Reads the content of a file. Size hint 0 means no hint. Returns true on
 // success, otherwise false.
 bool
-read_file(const char *path, size_t size_hint, char **data, size_t *size)
+read_file(const char *path, size_t size_hint, bool binary, char **data, size_t *size)
 {
 	if (size_hint == 0) {
 		struct stat st;
@@ -1538,7 +1538,7 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 	}
 	size_hint = (size_hint < 1024) ? 1024 : size_hint;
 
-	int fd = open(path, O_RDONLY | O_BINARY);
+	int fd = open(path, O_RDONLY | (binary ? O_BINARY : O_TEXT));
 	if (fd == -1) {
 		return false;
 	}
@@ -1578,13 +1578,14 @@ read_text_file(const char *path, size_t size_hint)
 {
 	size_t size;
 	char *data;
-	if (read_file(path, size_hint, &data, &size)) {
+
+	if (read_file(path, size_hint, false, &data, &size)) {
 		data = x_realloc(data, size + 1);
 		data[size] = '\0';
-		return data;
 	} else {
-		return NULL;
+		data = NULL;
 	}
+	return data;
 }
 
 static bool

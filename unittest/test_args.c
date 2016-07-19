@@ -74,11 +74,7 @@ TEST(args_init_from_gcc_atfile)
 	CHECK_STR_EQ("fourth", args->argv[3]);
 	CHECK_STR_EQ("fif th", args->argv[4]);
 	CHECK_STR_EQ("si'x\" th", args->argv[5]);
-#ifndef _WIN32
 	CHECK_STR_EQ("seve\nth", args->argv[6]);
-#else
-	CHECK_STR_EQ("seve\r\nth", args->argv[6]);
-#endif
 	CHECK(!args->argv[7]);
 	args_free(args);
 }

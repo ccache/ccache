@@ -184,7 +184,7 @@ int x_unlink(const char *path);
 #ifndef _WIN32
 char *x_readlink(const char *path);
 #endif
-bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
+bool read_file(const char *path, size_t size_hint, bool binary, char **data, size_t *size);
 char *read_text_file(const char *path, size_t size_hint);
 char *subst_env_in_string(const char *str, char **errmsg);
 void set_cloexec_flag(int fd);
