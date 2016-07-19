@@ -11,6 +11,9 @@ Bug fixes
 - Fixed a bug which could lead to false cache hits for compiler command lines
   with a missing argument to an option that takes an argument.
 
+- ccache now knows how to work around a glitch in the output of GCC 6's
+  preprocessor.
+
 
 ccache 3.2.6
 ------------
@@ -23,9 +26,6 @@ Bug fixes
 
 - Bail out on compiler option `-fstack-usage` since it creates a `.su` file
   which ccache currently doesn't handle.
-
-- ccache now knows how to work around a glitch in the output of GCC 6's
-  preprocessor.
 
 - Fixed a bug where (due to ccache rewriting paths) the compiler could choose
   incorrect include files if `CCACHE_BASEDIR` is used and the source file path
