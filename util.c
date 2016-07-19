@@ -316,7 +316,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		q += size;
 		left -= size;
 
-		cc_log("read %ld header bytes", size);
+		cc_log("read %ld header bytes", (long) size);
 
 		if (info.contentSize == 0) {
 			cc_log("unknown size: %ld", (long) info.contentSize);
@@ -326,8 +326,8 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		out_size = info.contentSize;
 		out = x_malloc(out_size);
 
-		cc_log("decompressing from %ld to %ld (%.2f%%)", in_size, out_size,
-		       (100.0 * out_size / in_size));
+		cc_log("decompressing from %ld to %ld (%.2f%%)",
+		       (long) in_size, (long) out_size, (100.0 * out_size / in_size));
 
 		p = out;
 		size = out_size;
@@ -372,8 +372,8 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		size = err;
 		out = x_realloc(out, size);
 		out_size = size;
-		cc_log("compressed from %ld to %ld (%.2f%%)", in_size, out_size,
-		       (100.0 * out_size / in_size));
+		cc_log("compressed from %ld to %ld (%.2f%%)",
+		       (long) in_size, (long) out_size, (100.0 * out_size / in_size));
 		free(in);
 	} else {
 		out_size = in_size;
