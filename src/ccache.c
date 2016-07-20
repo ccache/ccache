@@ -1691,7 +1691,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Possibly hash GCC_COLORS (for color diagnostics).
 	if (compiler_is_gcc(args)) {
 		const char *gcc_colors = getenv("GCC_COLORS");
-		if (gcc_colors) {
+		if (gcc_colors && gcc_colors[0] != '\0') {
 			hash_delimiter(hash, "gcccolors");
 			hash_string(hash, gcc_colors);
 		}
@@ -3009,7 +3009,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			// used for the actual compile. However it requires also GCC_COLORS to be
 			// set (and not empty), so use that for detecting if GCC would use
 			// colors.
-			if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
+			const char *gcc_colors = getenv("GCC_COLORS");
+			if (gcc_colors && gcc_colors[0] != '\0') {
 				args_add(stripped_args, "-fdiagnostics-color");
 				cc_log("Automatically enabling colors");
 			}
