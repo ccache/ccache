@@ -52,6 +52,7 @@ enum stats {
 	STATS_CANTUSEPCH = 27,
 	STATS_PREPROCESSING = 28,
 	STATS_NUMCLEANUPS = 29,
+	STATS_ZEROTIMESTAMP = 30,
 
 	STATS_END
 };
@@ -197,6 +198,7 @@ void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
 void stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size);
 void stats_add_cleanup(const char *dir, unsigned count);
+void stats_timestamp(time_t time, struct counters *counters);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
 
