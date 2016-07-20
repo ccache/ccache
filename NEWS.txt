@@ -2,8 +2,9 @@ ccache news
 ===========
 
 
-Unreleased ccache 3.2.7
------------------------
+ccache 3.2.7
+------------
+Release date: 2016-07-20
 
 Bug fixes
 ~~~~~~~~~
