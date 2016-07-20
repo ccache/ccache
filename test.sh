@@ -2616,6 +2616,38 @@ b"
 b"
 }
 
+buggy_cpp_suite() {
+    testname="buggy_cpp"
+    $CCACHE -Cz >/dev/null
+    cat >buggy-cpp <<EOF
+#!/bin/sh
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+if echo "\$*" | grep -- -D >/dev/null; then
+  $COMPILER "\$@"
+else
+  # mistreat the preprocessor output in the same way as gcc6 does
+  $COMPILER "\$@" |
+    sed -e '/^# 1 "<command-line>"$/ a # 31 "<command-line>"' \\
+        -e 's/^# 1 "<command-line>" 2$/# 32 "<command-line>" 2/'
+fi
+exit 0
+EOF
+    cat <<'EOF' >file.c
+int foo;
+EOF
+    chmod +x buggy-cpp
+    backdate buggy-cpp
+    $CCACHE ./buggy-cpp -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE ./buggy-cpp -DNOT_AFFECTING=1 -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+}
+
 symlinks_suite() {
     ##################################################################
     testname="symlink to source directory"
@@ -2797,6 +2829,7 @@ pch
 symlinks
 upgrade
 prefix
+buggy_cpp
 "
 
 case $host_os in
