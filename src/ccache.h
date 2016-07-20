@@ -263,6 +263,9 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+#ifndef O_TEXT
+#define O_TEXT 0
+#endif
 
 // mkstemp() on some versions of cygwin don't handle binary files, so override.
 #ifdef __CYGWIN__
