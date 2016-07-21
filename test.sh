@@ -2628,8 +2628,9 @@ if echo "\$*" | grep -- -D >/dev/null; then
 else
   # mistreat the preprocessor output in the same way as gcc6 does
   $COMPILER "\$@" |
-    sed -e '/^# 1 "<command-line>"$/ a # 31 "<command-line>"' \\
-        -e 's/^# 1 "<command-line>" 2$/# 32 "<command-line>" 2/'
+    sed -e '/^# 1 "<command-line>"\$/ a\\
+# 31 "<command-line>"' \\
+        -e 's/^# 1 "<command-line>" 2\$/# 32 "<command-line>" 2/'
 fi
 exit 0
 EOF
