@@ -57,6 +57,8 @@ New features and improvements
 
 - Added support for multiple `-arch` options to produce "fat binaries".
 
+- Added support for caching compilation of assembler code produced by e.g.
+  ``gcc -S file.c''.
 
 Bug fixes
 ~~~~~~~~~
