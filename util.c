@@ -414,6 +414,98 @@ error:
 	return -1;
 }
 
+/*
+ * Like copy_file(), but assumes that src is uncompressed.
+ */
+int
+copy_uncompressed_file(const char *src, const char *dest, int compress_level)
+{
+	int fd_in, fd_out;
+	char buf[16384];
+	int n, written;
+	char *tmp_name;
+	int saved_errno = 0;
+
+	if (compress_level > 0) {
+		return copy_file(src, dest, compress_level);
+	}
+
+	/* open destination file */
+	tmp_name = x_strdup(dest);
+	fd_out = create_tmp_fd(&tmp_name);
+	cc_log("Copying %s to %s via %s", src, dest, tmp_name);
+
+	/* open source file */
+	fd_in = open(src, O_RDONLY | O_BINARY);
+	if (fd_in == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
+		written = 0;
+		do {
+			ssize_t count = write(fd_out, buf + written, n - written);
+			if (count == -1 && errno != EINTR) {
+				saved_errno = errno;
+				break;
+			}
+			written += count;
+		} while (written < n);
+		if (written != n) {
+			cc_log("write error: %s", strerror(saved_errno));
+			goto error;
+		}
+	}
+
+	if (n == -1) {
+		saved_errno = errno;
+		cc_log("read error: %s", strerror(saved_errno));
+		close(fd_in);
+		close(fd_out);
+		tmp_unlink(tmp_name);
+		free(tmp_name);
+		return -1;
+	}
+
+	close(fd_in);
+	fd_in = -1;
+
+#ifndef _WIN32
+	fchmod(fd_out, 0666 & ~get_umask());
+#endif
+
+	/* the close can fail on NFS if out of space */
+	if (close(fd_out) == -1) {
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	if (x_rename(tmp_name, dest) == -1) {
+		saved_errno = errno;
+		cc_log("rename error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	free(tmp_name);
+
+	return 0;
+
+error:
+	if (fd_in != -1) {
+		close(fd_in);
+	}
+	if (fd_out != -1) {
+		close(fd_out);
+	}
+	tmp_unlink(tmp_name);
+	free(tmp_name);
+	errno = saved_errno;
+	return -1;
+}
+
 /* Run copy_file() and, if successful, delete the source file. */
 int
 move_file(const char *src, const char *dest, int compress_level)
