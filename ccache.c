@@ -814,7 +814,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			inc_path = make_relative_path(inc_path);
 			remember_include_file(inc_path, hash, system);
-			p = r;
+			p = q;
 		} else {
 			q++;
 		}
