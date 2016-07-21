@@ -668,7 +668,7 @@ EOF
         checkstat 'cache hit (preprocessed)' 1
         checkstat 'cache miss' 1
     fi
-	
+
     ##################################################################
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information
     # in such a way that the object file from compiling the preprocessed file

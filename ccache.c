@@ -106,10 +106,10 @@ static char *output_dia = NULL;
  *  up). Contains pathname if not NULL. */
 static char *output_dwo = NULL;
 
-/* Vector for storing -arch options */
-#define MAX_ARCH_ARGS (10)
+/* Array for storing -arch options. */
+#define MAX_ARCH_ARGS 10
 static size_t arch_args_size = 0;
-static char* arch_args[MAX_ARCH_ARGS] = {NULL};
+static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 
 /*
  * Name (represented as a struct file_hash) of the file containing the cached
@@ -1940,12 +1940,13 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			object_hash = get_object_name_from_cpp(args, hash);
 			cc_log("Got object file hash from preprocessor");
 		} else {
-			size_t i = 0;
+			size_t i;
 			args_add(args, "-arch");
-			for(i = 0; i < arch_args_size; ++i) {
+			for (i = 0; i < arch_args_size; ++i) {
 				args_add(args, arch_args[i]);
 				object_hash = get_object_name_from_cpp(args, hash);
-				cc_log("Got object file hash from preprocessor with -arch %s", arch_args[i]);
+				cc_log("Got object file hash from preprocessor with -arch %s",
+				       arch_args[i]);
 				if (i != arch_args_size - 1) {
 					free(object_hash);
 				}
@@ -2207,6 +2208,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
                 struct args **compiler_args)
 {
 	int i;
+	size_t j;
 	bool found_c_opt = false;
 	bool found_S_opt = false;
 	bool found_pch = false;
@@ -2354,7 +2356,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-		/* -Xarch_* options are too hard */
+		/* -Xarch_* options are too hard. */
 		if (str_startswith(argv[i], "-Xarch_")) {
 			cc_log("Unsupported compiler option :%s", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
@@ -2365,15 +2367,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		/* Handle -arch options. */
 		if (str_eq(argv[i], "-arch")) {
 			if (arch_args_size == MAX_ARCH_ARGS - 1) {
-				cc_log("Too many -arch compiler options are unsupported");
+				cc_log("Too many -arch compiler options; ccache supports at most %d",
+				       MAX_ARCH_ARGS);
 				stats_update(STATS_UNSUPPORTED);
 				result = false;
 				goto out;
-			} else {
-				arch_args[arch_args_size++] = x_strdup(argv[++i]); /* it will leak */
-				if (arch_args_size == 2) {
-					conf->run_second_cpp = true;
-				}
+			}
+
+			++i;
+			arch_args[arch_args_size] = x_strdup(argv[i]); /* it will leak */
+			++arch_args_size;
+			if (arch_args_size == 2) {
+				conf->run_second_cpp = true;
 			}
 			continue;
 		}
@@ -3108,8 +3113,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		args_add(*compiler_args, "-c");
 	}
 
-	size_t j = 0;
-	for(j = 0; j < arch_args_size; ++j) {
+	for (j = 0; j < arch_args_size; ++j) {
 		args_add(*compiler_args, "-arch");
 		args_add(*compiler_args, arch_args[j]);
 	}
@@ -3377,7 +3381,7 @@ ccache(int argc, char *argv[])
 	cc_log("Working directory: %s", get_current_working_dir());
 
 	if (conf->unify) {
-		cc_log("Direct mode is disabled because unify mode is enabled");
+		cc_log("Direct mode disabled because unify mode is enabled");
 		conf->direct_mode = false;
 	}
 
