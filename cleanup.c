@@ -135,7 +135,7 @@ sort_and_clean(void)
 {
 	unsigned i;
 	char *last_base = x_strdup("");
-	bool clean = false;
+	bool cleaned = false;
 
 	if (num_files > 1) {
 		/* Sort in ascending mtime order. */
@@ -182,10 +182,10 @@ sort_and_clean(void)
 			/* .manifest or unknown file. */
 			delete_file(files[i]->fname, files[i]->size);
 		}
-		clean = true;
+		cleaned = true;
 	}
 	free(last_base);
-	return clean;
+	return cleaned;
 }
 
 /* cleanup in one cache subdir */
@@ -193,7 +193,7 @@ void
 cleanup_dir(struct conf *conf, const char *dir)
 {
 	unsigned i;
-	bool clean;
+	bool cleaned;
 
 	cc_log("Cleaning up cache directory %s", dir);
 
@@ -207,10 +207,10 @@ cleanup_dir(struct conf *conf, const char *dir)
 	/* build a list of files */
 	traverse(dir, traverse_fn);
 
-	/* clean the cache */
-	clean = sort_and_clean();
+	/* cleaned the cache */
+	cleaned = sort_and_clean();
 
-	if (clean) {
+	if (cleaned) {
 		cc_log("Cleaned up cache directory %s", dir);
 		stats_add_cleanup(dir, 1);
 	}
