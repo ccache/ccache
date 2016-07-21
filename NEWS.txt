@@ -53,6 +53,8 @@ New features and improvements
   preprocessed output. This leads to more potential cache hits when not using
   the direct mode.
 
+- Added support for multiple `-arch` options to produce "fat binaries".
+
 
 Bug fixes
 ~~~~~~~~~
