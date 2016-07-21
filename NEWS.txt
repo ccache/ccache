@@ -49,6 +49,8 @@ New features and improvements
   due to the cache size being over the limit. The value is shown in the output
   of ``ccache -s''.
 
+- Added a new ``cache hit rate'' field to the output of ``ccache -s''.
+
 - Names of included files are no longer included in the hash of the compiler's
   preprocessed output. This leads to more potential cache hits when not using
   the direct mode.
