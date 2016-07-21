@@ -2125,6 +2125,55 @@ color_output_possible(void)
 	return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
 }
 
+static bool
+detect_pch(const char *option, const char *arg, bool *found_pch)
+{
+	char *pch_file = NULL;
+	struct stat st;
+
+	/* Try to be smart about detecting precompiled headers */
+	if (str_eq(option, "-include-pch") || str_eq(option, "-include-pth")) {
+		if (stat(arg, &st) == 0) {
+			cc_log("Detected use of precompiled header: %s", arg);
+			pch_file = x_strdup(arg);
+		}
+	} else {
+		char *gchpath = format("%s.gch", arg);
+		if (stat(gchpath, &st) == 0) {
+			cc_log("Detected use of precompiled header: %s", gchpath);
+			pch_file = x_strdup(gchpath);
+		} else {
+			char *pchpath = format("%s.pch", arg);
+			if (stat(pchpath, &st) == 0) {
+				cc_log("Detected use of precompiled header: %s", pchpath);
+				pch_file = x_strdup(pchpath);
+			} else {
+				/* clang may use pretokenized headers */
+				char *pthpath = format("%s.pth", arg);
+				if (stat(pthpath, &st) == 0) {
+					cc_log("Detected use of pretokenized header: %s", pthpath);
+					pch_file = x_strdup(pthpath);
+				}
+				free(pthpath);
+			}
+			free(pchpath);
+		}
+		free(gchpath);
+	}
+
+	if (pch_file) {
+		if (included_pch_file) {
+			cc_log("Multiple precompiled headers used: %s and %s\n",
+			       included_pch_file, pch_file);
+			stats_update(STATS_ARGS);
+			return false;
+		}
+		included_pch_file = pch_file;
+		*found_pch = true;
+	}
+	return true;
+}
+
 /*
  * Process the compiler options into options suitable for passing to the
  * preprocessor and the real compiler. The preprocessor options don't include
@@ -2649,10 +2698,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		 */
 		if (compopt_takes_path(argv[i])) {
 			char *relpath;
-			char *pch_file = NULL;
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+
+			if (!detect_pch(argv[i], argv[i+1], &found_pch)) {
 				result = false;
 				goto out;
 			}
@@ -2665,54 +2718,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				args_add(stripped_args, argv[i]);
 				args_add(stripped_args, relpath);
 			}
-
-			/* Try to be smart about detecting precompiled headers */
-			if (str_eq(argv[i], "-include-pch")
-			    || str_eq(argv[i], "-include-pth")) {
-				if (stat(argv[i+1], &st) == 0) {
-					cc_log("Detected use of precompiled header: %s", argv[i+1]);
-					found_pch = true;
-					pch_file = x_strdup(argv[i+1]);
-				}
-			} else {
-				char *gchpath = format("%s.gch", argv[i+1]);
-				if (stat(gchpath, &st) == 0) {
-					cc_log("Detected use of precompiled header: %s", gchpath);
-					found_pch = true;
-					pch_file = x_strdup(gchpath);
-				} else {
-					char *pchpath = format("%s.pch", argv[i+1]);
-					if (stat(pchpath, &st) == 0) {
-						cc_log("Detected use of precompiled header: %s", pchpath);
-						found_pch = true;
-						pch_file = x_strdup(pchpath);
-					} else {
-						/* clang may use pretokenized headers */
-						char *pthpath = format("%s.pth", argv[i+1]);
-						if (stat(pthpath, &st) == 0) {
-							cc_log("Detected use of pretokenized header: %s", pthpath);
-							found_pch = true;
-							pch_file = x_strdup(pthpath);
-						}
-						free(pthpath);
-					}
-					free(pchpath);
-				}
-				free(gchpath);
-			}
-
-			if (pch_file) {
-				if (included_pch_file) {
-					cc_log("Multiple precompiled headers used: %s and %s\n",
-					       included_pch_file, pch_file);
-					stats_update(STATS_ARGS);
-					result = false;
-					goto out;
-				}
-				included_pch_file = pch_file;
-			}
-
 			free(relpath);
+
 			i++;
 			continue;
 		}
