@@ -418,6 +418,21 @@ base_tests() {
         fi
     fi
 
+    testname="assembler"
+    $CCACHE -Cz >/dev/null
+    $CCACHE_COMPILE -S test1.c
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -S test1.c
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+    $CCACHE_COMPILE -c test1.s
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 2
+    $CCACHE_COMPILE -c test1.s
+    checkstat 'cache hit (preprocessed)' 2
+    checkstat 'cache miss' 2
+
     testname="override path"
     $CCACHE -Cz >/dev/null
     override_path=`pwd`/override_path
