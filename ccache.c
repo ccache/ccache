@@ -2724,45 +2724,29 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		/* Same as above but short options with concatenated argument. */
-		if (compopt_short(compopt_takes_path, argv[i])) {
-			char *relpath;
-			char *option;
-			relpath = make_relative_path(x_strdup(argv[i] + 2));
-			option = format("-%c%s", argv[i][1], relpath);
-
-			if (compopt_short(compopt_affects_cpp, argv[i])) {
-				args_add(cpp_args, option);
-			} else {
-				args_add(stripped_args, option);
-			}
-
-			free(relpath);
-			free(option);
-			continue;
-		}
-
-		/* Same as above but long options with concatenated argument beginning with
-		 * a slash. */
+		/*
+		 * Same as above but options with concatenated argument beginning with a
+		 * slash.
+		 */
 		if (argv[i][0] == '-') {
 			char *slash_pos = strchr(argv[i], '/');
 			if (slash_pos) {
 				char *option = x_strndup(argv[i], slash_pos - argv[i]);
-				if (compopt_affects_cpp(option)) {
-					if (compopt_takes_concat_arg(option)) {
-						char *relpath = make_relative_path(x_strdup(slash_pos));
-						args_add(cpp_args, option);
-						args_add(cpp_args, relpath);
-						free(relpath);
+				if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
+					char *relpath = make_relative_path(x_strdup(slash_pos));
+					char *new_option = format("%s%s", option, relpath);
+					if (compopt_affects_cpp(option)) {
+						args_add(cpp_args, new_option);
 					} else {
-						args_add(cpp_args, argv[i]);
+						args_add(stripped_args, new_option);
 					}
+					free(new_option);
+					free(relpath);
+					free(option);
+					continue;
 				} else {
-					args_add(stripped_args, argv[i]);
+					free(option);
 				}
-
-				free(option);
-				continue;
 			}
 		}
 

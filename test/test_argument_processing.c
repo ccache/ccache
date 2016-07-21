@@ -379,8 +379,34 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 	free(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ("-isystem", act_cpp->argv[1]);
-	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
+	CHECK_STR_EQ("-isystem./foo", act_cpp->argv[1]);
+
+	free(cwd);
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *cwd;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = x_strdup("/"); /* posix */
+	current_working_dir = get_cwd();
+	/* windows path don't work concatenated */
+	cwd = get_posix_path(current_working_dir);
+	arg_string = format("cc -I%s/foo -c foo.c", cwd);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ("-I./foo", act_cpp->argv[1]);
 
 	free(cwd);
 	args_free(orig);
