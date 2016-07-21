@@ -34,9 +34,9 @@ New features and improvements
   This allows for cache hits even when `hash_dir` is used in combination with
   `base_dir`.
 
-- Added new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option, which
-  tells ccache not to discard the comments before hashing preprocessor output.
-  This can be used to check documentation with *-Wdocumentation*.
+- Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
+  which tells ccache not to discard the comments before hashing preprocessor
+  output. This can be used to check documentation with *-Wdocumentation*.
 
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
@@ -44,6 +44,10 @@ New features and improvements
 - Improved parsing of `-g*` options.
 
 - Made ccache understand `-Wp,-D*` options.
+
+- Added a new statistics counter that tracks the number of performed cleanups
+  due to the cache size being over the limit. The value is shown in the output
+  of ``ccache -s''.
 
 
 Bug fixes
