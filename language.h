@@ -9,4 +9,4 @@ const char *extension_for_language(const char *language);
 bool language_is_supported(const char *language);
 bool language_is_preprocessed(const char *language);
 
-#endif /* CCACHE_LANGUAGE_H */
+#endif // CCACHE_LANGUAGE_H

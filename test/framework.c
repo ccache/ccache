@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2010-2014 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../ccache.h"
 #include "framework.h"
@@ -65,7 +63,7 @@ cct_run(suite_fn *suites, int verbose_output)
 	suite_fn *suite;
 	int tty = is_tty(1);
 
-	x_unsetenv("GCC_COLORS"); /* Avoid confusing argument processing tests. */
+	x_unsetenv("GCC_COLORS"); // Avoid confusing argument processing tests.
 	verbose = verbose_output;
 
 	for (suite = suites; *suite; suite++) {
@@ -73,7 +71,7 @@ cct_run(suite_fn *suites, int verbose_output)
 		while (true) {
 			test_index = (*suite)(test_index + 1);
 			if (test_index == 0) {
-				/* We have reached the end of the suite. */
+				// We have reached the end of the suite.
 				break;
 			}
 		}
@@ -262,7 +260,7 @@ cct_chdir(const char *path)
 void
 cct_wipe(const char *path)
 {
-	/* TODO: rewrite using traverse(). */
+	// TODO: rewrite using traverse().
 #ifndef __MINGW32__
 	char *command = format("rm -rf %s", path);
 #else

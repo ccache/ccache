@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2009-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 #include "hashtable_itr.h"
@@ -24,47 +22,45 @@
 
 #include <zlib.h>
 
-/*
- * Sketchy specification of the manifest disk format:
- *
- * <magic>         magic number                        (4 bytes)
- * <version>       file format version                 (1 byte unsigned int)
- * <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
- * <reserved>      reserved for future use             (2 bytes)
- * ----------------------------------------------------------------------------
- * <n>             number of include file paths        (4 bytes unsigned int)
- * <path_0>        path to include file                (NUL-terminated string,
- * ...                                                  at most 1024 bytes)
- * <path_n-1>
- * ----------------------------------------------------------------------------
- * <n>             number of include file hash entries (4 bytes unsigned int)
- * <index[0]>      index of include file path          (4 bytes unsigned int)
- * <hash[0]>       hash of include file                (<hash_size> bytes)
- * <size[0]>       size of include file                (4 bytes unsigned int)
- * <mtime[0]>      mtime of include file               (8 bytes signed int)
- * <ctime[0]>      ctime of include file               (8 bytes signed int)
- * ...
- * <index[n-1]>
- * <hash[n-1]>
- * <size[n-1]>
- * <mtime[n-1]>
- * <ctime[n-1]>
- * ----------------------------------------------------------------------------
- * <n>             number of object name entries       (4 bytes unsigned int)
- * <m[0]>          number of include file hash indexes (4 bytes unsigned int)
- * <index[0][0]>   include file hash index             (4 bytes unsigned int)
- * ...
- * <index[0][m[0]-1]>
- * <hash[0]>       hash part of object name            (<hash_size> bytes)
- * <size[0]>       size part of object name            (4 bytes unsigned int)
- * ...
- * <m[n-1]>        number of include file hash indexes
- * <index[n-1][0]> include file hash index
- * ...
- * <index[n-1][m[n-1]]>
- * <hash[n-1]>
- * <size[n-1]>
- */
+// Sketchy specification of the manifest disk format:
+//
+// <magic>         magic number                        (4 bytes)
+// <version>       file format version                 (1 byte unsigned int)
+// <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
+// <reserved>      reserved for future use             (2 bytes)
+// ----------------------------------------------------------------------------
+// <n>             number of include file paths        (4 bytes unsigned int)
+// <path_0>        path to include file                (NUL-terminated string,
+// ...                                                  at most 1024 bytes)
+// <path_n-1>
+// ----------------------------------------------------------------------------
+// <n>             number of include file hash entries (4 bytes unsigned int)
+// <index[0]>      index of include file path          (4 bytes unsigned int)
+// <hash[0]>       hash of include file                (<hash_size> bytes)
+// <size[0]>       size of include file                (4 bytes unsigned int)
+// <mtime[0]>      mtime of include file               (8 bytes signed int)
+// <ctime[0]>      ctime of include file               (8 bytes signed int)
+// ...
+// <index[n-1]>
+// <hash[n-1]>
+// <size[n-1]>
+// <mtime[n-1]>
+// <ctime[n-1]>
+// ----------------------------------------------------------------------------
+// <n>             number of object name entries       (4 bytes unsigned int)
+// <m[0]>          number of include file hash indexes (4 bytes unsigned int)
+// <index[0][0]>   include file hash index             (4 bytes unsigned int)
+// ...
+// <index[0][m[0]-1]>
+// <hash[0]>       hash part of object name            (<hash_size> bytes)
+// <size[0]>       size part of object name            (4 bytes unsigned int)
+// ...
+// <m[n-1]>        number of include file hash indexes
+// <index[n-1][0]> include file hash index
+// ...
+// <index[n-1][m[n-1]]>
+// <hash[n-1]>
+// <size[n-1]>
 
 static const uint32_t MAGIC = 0x63436d46U;
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
@@ -74,46 +70,46 @@ static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
   do { enum { ccache_static_assert__ = 1/(e) }; } while (false)
 
 struct file_info {
-	/* Index to n_files. */
+	// Index to n_files.
 	uint32_t index;
-	/* Hash of referenced file. */
+	// Hash of referenced file.
 	uint8_t hash[16];
-	/* Size of referenced file. */
+	// Size of referenced file.
 	uint32_t size;
-	/* mtime of referenced file. */
+	// mtime of referenced file.
 	int64_t mtime;
-	/* ctime of referenced file. */
+	// ctime of referenced file.
 	int64_t ctime;
 };
 
 struct object {
-	/* Number of entries in file_info_indexes. */
+	// Number of entries in file_info_indexes.
 	uint32_t n_file_info_indexes;
-	/* Indexes to file_infos. */
+	// Indexes to file_infos.
 	uint32_t *file_info_indexes;
-	/* Hash of the object itself. */
+	// Hash of the object itself.
 	struct file_hash hash;
 };
 
 struct manifest {
-	/* Version of decoded file. */
+	// Version of decoded file.
 	uint8_t version;
 
-	/* Reserved for future use. */
+	// Reserved for future use.
 	uint16_t reserved;
 
-	/* Size of hash fields (in bytes). */
+	// Size of hash fields (in bytes).
 	uint8_t hash_size;
 
-	/* Referenced include files. */
+	// Referenced include files.
 	uint32_t n_files;
 	char **files;
 
-	/* Information about referenced include files. */
+	// Information about referenced include files.
 	uint32_t n_file_infos;
 	struct file_info *file_infos;
 
-	/* Object names plus references to include file hashes. */
+	// Object names plus references to include file hashes.
 	uint32_t n_objects;
 	struct object *objects;
 };
@@ -127,7 +123,7 @@ struct file_stats {
 static unsigned int
 hash_from_file_info(void *key)
 {
-	ccache_static_assert(sizeof(struct file_info) == 40); /* No padding. */
+	ccache_static_assert(sizeof(struct file_info) == 40); // No padding.
 	return murmurhashneutral2(key, sizeof(struct file_info), 0);
 }
 
@@ -259,7 +255,7 @@ read_manifest(gzFile f)
 
 	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
-		/* Temporary measure until we support different hash algorithms. */
+		// Temporary measure until we support different hash algorithms.
 		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
 		free_manifest(mf);
 		return NULL;
@@ -401,11 +397,9 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 		}
 
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-			/*
-			 * st->ctime is sometimes 0, so we can't check that both st->ctime and
-			 * st->mtime are greater than time_of_compilation. But it's sufficient to
-			 * check that either is.
-			 */
+			// st->ctime is sometimes 0, so we can't check that both st->ctime and
+			// st->mtime are greater than time_of_compilation. But it's sufficient to
+			// check that either is.
 			if (fi->size == st->size
 			    && fi->mtime == st->mtime
 			    && fi->ctime == st->ctime
@@ -515,14 +509,12 @@ get_file_hash_index(struct manifest *mf,
 	memcpy(fi.hash, file_hash->hash, sizeof(fi.hash));
 	fi.size = file_hash->size;
 
-	/*
-	 * file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
-	 * file's mtime and ctime only if they're at least one second older than
-	 * time_of_compilation.
-	 *
-	 * st->ctime may be 0, so we have to check time_of_compilation against
-	 * MAX(mtime, ctime).
-	 */
+	// file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
+	// file's mtime and ctime only if they're at least one second older than
+	// time_of_compilation.
+	//
+	// st->ctime may be 0, so we have to check time_of_compilation against
+	// MAX(mtime, ctime).
 
 	if (stat(path, &file_stat) != -1
 	    && time_of_compilation > MAX(file_stat.st_mtime, file_stat.st_ctime)) {
@@ -552,8 +544,8 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 {
 	struct hashtable_itr *iter;
 	uint32_t i;
-	struct hashtable *mf_files; /* path --> index */
-	struct hashtable *mf_file_infos; /* struct file_info --> index */
+	struct hashtable *mf_files; // path --> index
+	struct hashtable *mf_file_infos; // struct file_info --> index
 
 	if (size == 0) {
 		return;
@@ -597,24 +589,22 @@ add_object_entry(struct manifest *mf,
 	obj->hash.size = object_hash->size;
 }
 
-/*
- * Try to get the object hash from a manifest file. Caller frees. Returns NULL
- * on failure.
- */
+// Try to get the object hash from a manifest file. Caller frees. Returns NULL
+// on failure.
 struct file_hash *
 manifest_get(struct conf *conf, const char *manifest_path)
 {
 	int fd;
 	gzFile f = NULL;
 	struct manifest *mf = NULL;
-	struct hashtable *hashed_files = NULL; /* path --> struct file_hash */
-	struct hashtable *stated_files = NULL; /* path --> struct file_stats */
+	struct hashtable *hashed_files = NULL; // path --> struct file_hash
+	struct hashtable *stated_files = NULL; // path --> struct file_stats
 	uint32_t i;
 	struct file_hash *fh = NULL;
 
 	fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
-		/* Cache miss. */
+		// Cache miss.
 		cc_log("No such manifest file");
 		goto out;
 	}
@@ -633,7 +623,7 @@ manifest_get(struct conf *conf, const char *manifest_path)
 	hashed_files = create_hashtable(1000, hash_from_string, strings_equal);
 	stated_files = create_hashtable(1000, hash_from_string, strings_equal);
 
-	/* Check newest object first since it's a bit more likely to match. */
+	// Check newest object first since it's a bit more likely to match.
 	for (i = mf->n_objects; i > 0; i--) {
 		if (verify_object(conf, mf, &mf->objects[i - 1],
 		                  stated_files, hashed_files)) {
@@ -659,10 +649,8 @@ out:
 	return fh;
 }
 
-/*
- * Put the object name into a manifest file given a set of included files.
- * Returns true on success, otherwise false.
- */
+// Put the object name into a manifest file given a set of included files.
+// Returns true on success, otherwise false.
 bool
 manifest_put(const char *manifest_path, struct file_hash *object_hash,
              struct hashtable *included_files)
@@ -674,15 +662,13 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	struct manifest *mf = NULL;
 	char *tmp_file = NULL;
 
-	/*
-	 * We don't bother to acquire a lock when writing the manifest to disk. A
-	 * race between two processes will only result in one lost entry, which is
-	 * not a big deal, and it's also very unlikely.
-	 */
+	// We don't bother to acquire a lock when writing the manifest to disk. A
+	// race between two processes will only result in one lost entry, which is
+	// not a big deal, and it's also very unlikely.
 
 	fd1 = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd1 == -1) {
-		/* New file. */
+		// New file.
 		mf = create_empty_manifest();
 	} else {
 		gzFile f1 = gzdopen(fd1, "rb");
@@ -701,27 +687,24 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	}
 
 	if (mf->n_objects > MAX_MANIFEST_ENTRIES) {
-		/*
-		 * Normally, there shouldn't be many object entries in the manifest since
-		 * new entries are added only if an include file has changed but not the
-		 * source file, and you typically change source files more often than
-		 * header files. However, it's certainly possible to imagine cases where
-		 * the manifest will grow large (for instance, a generated header file that
-		 * changes for every build), and this must be taken care of since
-		 * processing an ever growing manifest eventually will take too much time.
-		 * A good way of solving this would be to maintain the object entries in
-		 * LRU order and discarding the old ones. An easy way is to throw away all
-		 * entries when there are too many. Let's do that for now.
-		 */
+		// Normally, there shouldn't be many object entries in the manifest since
+		// new entries are added only if an include file has changed but not the
+		// source file, and you typically change source files more often than
+		// header files. However, it's certainly possible to imagine cases where
+		// the manifest will grow large (for instance, a generated header file that
+		// changes for every build), and this must be taken care of since
+		// processing an ever growing manifest eventually will take too much time.
+		// A good way of solving this would be to maintain the object entries in
+		// LRU order and discarding the old ones. An easy way is to throw away all
+		// entries when there are too many. Let's do that for now.
 		cc_log("More than %u entries in manifest file; discarding",
 		       MAX_MANIFEST_ENTRIES);
 		free_manifest(mf);
 		mf = create_empty_manifest();
 	} else if (mf->n_file_infos > MAX_MANIFEST_FILE_INFO_ENTRIES) {
-		/* Rarely, file_info entries can grow large in pathological cases where
-		 * many included files change, but the main file does not. This also puts
-		 * an upper bound on the number of file_info entries.
-		 */
+		// Rarely, file_info entries can grow large in pathological cases where
+		// many included files change, but the main file does not. This also puts
+		// an upper bound on the number of file_info entries.
 		cc_log("More than %u file_info entries in manifest file; discarding",
 		       MAX_MANIFEST_FILE_INFO_ENTRIES);
 		free_manifest(mf);

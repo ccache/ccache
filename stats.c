@@ -1,26 +1,22 @@
-/*
- * Copyright (C) 2002-2004 Andrew Tridgell
- * Copyright (C) 2009-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2002-2004 Andrew Tridgell
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-/*
- * Routines to handle the stats files. The stats file is stored one per cache
- * subdirectory to make this more scalable.
- */
+// Routines to handle the stats files. The stats file is stored one per cache
+// subdirectory to make this more scalable.
 
 #include "ccache.h"
 #include "hashutil.h"
@@ -41,13 +37,13 @@ extern char *secondary_config_path;
 
 static struct counters *counter_updates;
 
-#define FLAG_NOZERO 1 /* don't zero with the -z option */
-#define FLAG_ALWAYS 2 /* always show, even if zero */
-#define FLAG_NEVER 4 /* never show */
+#define FLAG_NOZERO 1 // don't zero with the -z option
+#define FLAG_ALWAYS 2 // always show, even if zero
+#define FLAG_NEVER 4 // never show
 
 static void display_size_times_1024(uint64_t size);
 
-/* statistics fields in display order */
+// Statistics fields in display order.
 static struct {
 	enum stats stat;
 	char *message;
@@ -104,7 +100,7 @@ display_size_times_1024(uint64_t size)
 	display_size(size * 1024);
 }
 
-/* parse a stats file from a buffer - adding to the counters */
+// Parse a stats file from a buffer, adding to the counters.
 static void
 parse_stats(struct counters *counters, const char *buf)
 {
@@ -127,7 +123,7 @@ parse_stats(struct counters *counters, const char *buf)
 	}
 }
 
-/* write out a stats file */
+// Write out a stats file.
 void
 stats_write(const char *path, struct counters *counters)
 {
@@ -155,10 +151,8 @@ init_counter_updates(void)
 	}
 }
 
-/*
- * Record that a number of bytes and files have been added to the cache. Size
- * is in bytes.
- */
+// Record that a number of bytes and files have been added to the cache. Size
+// is in bytes.
 void
 stats_update_size(uint64_t size, unsigned files)
 {
@@ -167,7 +161,7 @@ stats_update_size(uint64_t size, unsigned files)
 	counter_updates->data[STATS_TOTALSIZE] += size / 1024;
 }
 
-/* Read in the stats from one directory and add to the counters. */
+// Read in the stats from one directory and add to the counters.
 void
 stats_read(const char *sfile, struct counters *counters)
 {
@@ -178,9 +172,7 @@ stats_read(const char *sfile, struct counters *counters)
 	free(data);
 }
 
-/*
- * Write counter updates in counter_updates to disk.
- */
+// Write counter updates in counter_updates to disk.
 void
 stats_flush(void)
 {
@@ -212,10 +204,8 @@ stats_flush(void)
 	if (!stats_file) {
 		char *stats_dir;
 
-		/*
-		 * A NULL stats_file means that we didn't get past calculate_object_hash(),
-		 * so we just choose one of stats files in the 16 subdirectories.
-		 */
+		// A NULL stats_file means that we didn't get past calculate_object_hash(),
+		// so we just choose one of stats files in the 16 subdirectories.
 		stats_dir = format("%s/%x", conf->cache_dir, hash_from_int(getpid()) % 16);
 		stats_file = format("%s/stats", stats_dir);
 		free(stats_dir);
@@ -259,7 +249,7 @@ stats_flush(void)
 	counters_free(counters);
 }
 
-/* update a normal stat */
+// Update a normal stat.
 void
 stats_update(enum stats stat)
 {
@@ -268,7 +258,7 @@ stats_update(enum stats stat)
 	counter_updates->data[stat]++;
 }
 
-/* Get the pending update of a counter value. */
+// Get the pending update of a counter value.
 unsigned
 stats_get_pending(enum stats stat)
 {
@@ -276,7 +266,7 @@ stats_get_pending(enum stats stat)
 	return counter_updates->data[stat];
 }
 
-/* sum and display the total stats for all cache dirs */
+// Sum and display the total stats for all cache dirs.
 void
 stats_summary(struct conf *conf)
 {
@@ -288,7 +278,7 @@ stats_summary(struct conf *conf)
 
 	assert(conf);
 
-	/* add up the stats in each directory */
+	// Add up the stats in each directory.
 	for (dir = -1; dir <= 0xF; dir++) {
 		char *fname;
 
@@ -308,7 +298,7 @@ stats_summary(struct conf *conf)
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
 
-	/* and display them */
+	// ...and display them.
 	for (i = 0; stats_info[i].message; i++) {
 		enum stats stat = stats_info[i].stat;
 
@@ -356,7 +346,7 @@ stats_summary(struct conf *conf)
 	counters_free(counters);
 }
 
-/* zero all the stats structures */
+// Zero all the stats structures.
 void
 stats_zero(void)
 {
@@ -375,7 +365,7 @@ stats_zero(void)
 		struct stat st;
 		fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		if (stat(fname, &st) != 0) {
-			/* No point in trying to reset the stats file if it doesn't exist. */
+			// No point in trying to reset the stats file if it doesn't exist.
 			free(fname);
 			continue;
 		}
@@ -394,7 +384,7 @@ stats_zero(void)
 	}
 }
 
-/* Get the per directory limits */
+// Get the per-directory limits.
 void
 stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                           uint64_t *maxsize)
@@ -408,7 +398,7 @@ stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
 	counters_free(counters);
 }
 
-/* set the per directory sizes */
+// Set the per-directory sizes.
 void
 stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 {
@@ -428,7 +418,7 @@ stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 	counters_free(counters);
 }
 
-/* count directory cleanup run */
+// Count directory cleanup run.
 void
 stats_add_cleanup(const char *dir, unsigned count)
 {

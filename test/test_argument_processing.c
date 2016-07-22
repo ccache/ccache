@@ -1,24 +1,20 @@
-/*
- * Copyright (C) 2010-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-/*
- * This file contains tests for the processing of compiler arguments.
- */
+// This file contains tests for the processing of compiler arguments.
 
 #include "../ccache.h"
 #include "../conf.h"
@@ -33,7 +29,7 @@ get_root(void)
 #ifndef _WIN32
 	return x_strdup("/");
 #else
-	char volume[4]; /* "C:\" */
+	char volume[4]; // "C:\"
 	GetVolumePathName(get_cwd(), volume, sizeof(volume));
 	return x_strdup(volume);
 #endif
@@ -48,13 +44,13 @@ get_posix_path(char *path)
 	char *posix;
 	char *p;
 
-	/* / escape volume */
+	// /-escape volume.
 	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
 		posix = format("/%s", path);
 	} else {
 		posix = x_strdup(path);
 	}
-	/* convert slashes */
+	// Convert slashes.
 	for (p = posix; *p; p++) {
 		if (*p == '\\') {
 			*p = '/';
@@ -370,9 +366,9 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/"); /* posix */
+	conf->base_dir = x_strdup("/"); // posix
 	current_working_dir = get_cwd();
-	/* windows path don't work concatenated */
+	// Windows path doesn't work concatenated.
 	cwd = get_posix_path(current_working_dir);
 	arg_string = format("cc -isystem%s/foo -c foo.c", cwd);
 	orig = args_init_from_string(arg_string);
@@ -397,9 +393,9 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/"); /* posix */
+	conf->base_dir = x_strdup("/"); // posix
 	current_working_dir = get_cwd();
-	/* windows path don't work concatenated */
+	// Windows path doesn't work concatenated.
 	cwd = get_posix_path(current_working_dir);
 	arg_string = format("cc -I%s/foo -c foo.c", cwd);
 	orig = args_init_from_string(arg_string);

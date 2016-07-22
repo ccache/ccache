@@ -17,6 +17,7 @@ Code formatting
 * Use only lowercase names for functions and variables.
 * Use only uppercase names for enum items and (with some exceptions) macros.
 * Don't use typedefs for structs and enums.
+* Use //-style comments.
 
 Tip: Install the tool uncrustify <http://uncrustify.sourceforge.net> and then
 run "make uncrustify" to fix up source code formatting.

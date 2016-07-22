@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2009-2015 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 #include "hashutil.h"
@@ -46,39 +44,31 @@ file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 	       && fh1->size == fh2->size;
 }
 
-/*
- * Search for the strings "__DATE__" and "__TIME__" in str.
- *
- * Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE and
- * HASH_SOURCE_CODE_FOUND_TIME set appropriately.
- */
+// Search for the strings "__DATE__" and "__TIME__" in str.
+//
+// Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE and
+// HASH_SOURCE_CODE_FOUND_TIME set appropriately.
 int
 check_for_temporal_macros(const char *str, size_t len)
 {
 	int result = 0;
 
-	/*
-	 * We're using the Boyer-Moore-Horspool algorithm, which searches starting
-	 * from the *end* of the needle. Our needles are 8 characters long, so i
-	 * starts at 7.
-	 */
+	// We're using the Boyer-Moore-Horspool algorithm, which searches starting
+	// from the *end* of the needle. Our needles are 8 characters long, so i
+	// starts at 7.
 	size_t i = 7;
 
 	while (i < len) {
-		/*
-		 * Check whether the substring ending at str[i] has the form "__...E__". On
-		 * the assumption that 'E' is less common in source than '_', we check
-		 * str[i-2] first.
-		 */
+		// Check whether the substring ending at str[i] has the form "__...E__". On
+		// the assumption that 'E' is less common in source than '_', we check
+		// str[i-2] first.
 		if (str[i - 2] == 'E' &&
 		    str[i - 0] == '_' &&
 		    str[i - 7] == '_' &&
 		    str[i - 1] == '_' &&
 		    str[i - 6] == '_') {
-			/*
-			 * Check the remaining characters to see if the substring is "__DATE__"
-			 * or "__TIME__".
-			 */
+			// Check the remaining characters to see if the substring is "__DATE__"
+			// or "__TIME__".
 			if (str[i - 5] == 'D' && str[i - 4] == 'A' &&
 			    str[i - 3] == 'T') {
 				result |= HASH_SOURCE_CODE_FOUND_DATE;
@@ -88,19 +78,15 @@ check_for_temporal_macros(const char *str, size_t len)
 			}
 		}
 
-		/*
-		 * macro_skip tells us how far we can skip forward upon seeing str[i] at
-		 * the end of a substring.
-		 */
+		// macro_skip tells us how far we can skip forward upon seeing str[i] at
+		// the end of a substring.
 		i += macro_skip[(uint8_t)str[i]];
 	}
 
 	return result;
 }
 
-/*
- * Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
- */
+// Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
 hash_source_code_string(
   struct conf *conf, struct mdfour *hash, const char *str, size_t len,
@@ -108,24 +94,18 @@ hash_source_code_string(
 {
 	int result = HASH_SOURCE_CODE_OK;
 
-	/*
-	 * Check for __DATE__ and __TIME__ if the sloppiness configuration tells us
-	 * we should.
-	 */
+	// Check for __DATE__ and __TIME__ if the sloppiness configuration tells us
+	// we should.
 	if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
 		result |= check_for_temporal_macros(str, len);
 	}
 
-	/*
-	 * Hash the source string.
-	 */
+	// Hash the source string.
 	hash_buffer(hash, str, len);
 
 	if (result & HASH_SOURCE_CODE_FOUND_DATE) {
-		/*
-		 * Make sure that the hash sum changes if the (potential) expansion of
-		 * __DATE__ changes.
-		 */
+		// Make sure that the hash sum changes if the (potential) expansion of
+		// __DATE__ changes.
 		time_t t = time(NULL);
 		struct tm *now = localtime(&t);
 		cc_log("Found __DATE__ in %s", path);
@@ -135,24 +115,20 @@ hash_source_code_string(
 		hash_buffer(hash, &now->tm_mday, sizeof(now->tm_mday));
 	}
 	if (result & HASH_SOURCE_CODE_FOUND_TIME) {
-		/*
-		 * We don't know for sure that the program actually uses the __TIME__
-		 * macro, but we have to assume it anyway and hash the time stamp. However,
-		 * that's not very useful since the chance that we get a cache hit later
-		 * the same second should be quite slim... So, just signal back to the
-		 * caller that __TIME__ has been found so that the direct mode can be
-		 * disabled.
-		 */
+		// We don't know for sure that the program actually uses the __TIME__
+		// macro, but we have to assume it anyway and hash the time stamp. However,
+		// that's not very useful since the chance that we get a cache hit later
+		// the same second should be quite slim... So, just signal back to the
+		// caller that __TIME__ has been found so that the direct mode can be
+		// disabled.
 		cc_log("Found __TIME__ in %s", path);
 	}
 
 	return result;
 }
 
-/*
- * Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
- * results.
- */
+// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+// results.
 int
 hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 {
@@ -200,11 +176,11 @@ hash_command_output(struct mdfour *hash, const char *command,
 #endif
 
 #ifdef _WIN32
-	/* trim leading space */
+	// Trim leading space.
 	while (isspace(*command)) {
 		command++;
 	}
-	/* add "echo" command */
+	// Add "echo" command.
 	if (str_startswith(command, "echo")) {
 		command = format("cmd.exe /c \"%s\"", command);
 		cmd = true;
@@ -248,14 +224,14 @@ hash_command_output(struct mdfour *hash, const char *command,
 	if (!cmd) {
 		win32args = win32argvtos(sh, args->argv);
 	} else {
-		win32args = (char *) command;  /* quoted */
+		win32args = (char *)command;  // quoted
 	}
 	ret = CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
 	if (cmd) {
-		free((char *) command);  /* original argument was replaced above */
+		free((char *)command);  // Original argument was replaced above.
 	}
 	if (ret == 0) {
 		stats_update(STATS_COMPCHECK);
@@ -288,15 +264,15 @@ hash_command_output(struct mdfour *hash, const char *command,
 	}
 
 	if (pid == 0) {
-		/* Child. */
+		// Child.
 		close(pipefd[0]);
 		close(0);
 		dup2(pipefd[1], 1);
 		dup2(pipefd[1], 2);
 		_exit(execvp(args->argv[0], args->argv));
-		return false; /* Never reached. */
+		return false; // Never reached.
 	} else {
-		/* Parent. */
+		// Parent.
 		int status;
 		bool ok;
 		args_free(args);

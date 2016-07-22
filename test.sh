@@ -268,12 +268,12 @@ base_tests() {
 
     testname="CCACHE_COMMENTS"
     mv test1.c test1-saved.c
-    echo '/* initial comment */' > test1.c
+    echo '// initial comment' > test1.c
     cat test1-saved.c >> test1.c
     CCACHE_COMMENTS=1 $CCACHE_COMPILE -c test1.c
     checkstat 'cache hit (preprocessed)' 4
     checkstat 'cache miss' 3
-    echo '/* different comment */' > test1.c
+    echo '// different comment' > test1.c
     cat test1-saved.c >> test1.c
     CCACHE_COMMENTS=1 $CCACHE_COMPILE -c test1.c
     mv test1-saved.c test1.c
@@ -321,7 +321,7 @@ base_tests() {
     checkstat 'files in cache' 7
 
     testname="comments"
-    echo '/* a silly comment */' > test1-comment.c
+    echo '// a silly comment' > test1-comment.c
     cat test1.c >> test1-comment.c
     $CCACHE_COMPILE -c test1-comment.c
     rm -f test1-comment*
@@ -333,7 +333,7 @@ base_tests() {
     checkstat 'cache hit (preprocessed)' 6
     checkstat 'cache miss' 9
     mv test1.c test1-saved.c
-    echo '/* another comment */' > test1.c
+    echo '// another comment' > test1.c
     cat test1-saved.c >> test1.c
     CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
     mv test1-saved.c test1.c
@@ -608,7 +608,7 @@ EOF
     cat <<EOF >stderr.c
 int stderr(void)
 {
-	/* Trigger warning by having no return statement. */
+	// Trigger warning by having no return statement.
 }
 EOF
     checkstat 'files in cache' 0
@@ -831,7 +831,7 @@ direct_suite() {
     ##################################################################
     # Create some code to compile.
     cat <<EOF >test.c
-/* test.c */
+// test.c
 #include "test1.h"
 #include "test2.h"
 EOF
@@ -846,7 +846,7 @@ EOF
 int test3;
 EOF
     cat <<EOF >code.c
-/* code.c */
+// code.c
 int test() { return 0; }
 EOF
     backdate test1.h test2.h test3.h
@@ -925,7 +925,7 @@ EOF
     mv test1.h test1.h.saved
     mv test3.h test3.h.saved
     cat <<EOF >test1.h
-/* No more include of test3.h */
+// No more include of test3.h
 int test1;
 EOF
     backdate test1.h
@@ -1229,11 +1229,11 @@ EOF
     $CCACHE -C >/dev/null
 cat <<EOF >cpp-warning.c
 #if FOO
-/* Trigger preprocessor warning about extra token after #endif. */
+// Trigger preprocessor warning about extra token after #endif.
 #endif FOO
 int stderr(void)
 {
-	/* Trigger compiler warning by having no return statement. */
+	// Trigger compiler warning by having no return statement.
 }
 EOF
     $CCACHE $COMPILER -Wall -W -c cpp-warning.c 2>stderr-orig.txt
@@ -1617,7 +1617,7 @@ EOF
     cat <<EOF >stderr.h
 int stderr(void)
 {
-	/* Trigger warning by having no return statement. */
+	// Trigger warning by having no return statement.
 }
 EOF
     cat <<EOF >stderr.c
@@ -2015,7 +2015,7 @@ ignoreheaders_suite() {
     testname="ignore headers in manifest"
     $CCACHE -Cz >/dev/null
     cat <<EOF >ignore.h
-/* We don't want this header in the manifest */
+// We don't want this header in the manifest.
 EOF
     backdate ignore.h
     cat <<EOF >ignore.c

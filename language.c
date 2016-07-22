@@ -1,27 +1,23 @@
-/*
- * Copyright (C) 2010-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
-/*
- * Supported file extensions and corresponding languages (as in parameter to
- * the -x option).
- */
+// Supported file extensions and corresponding languages (as in parameter to
+// the -x option).
 static const struct {
 	const char *extension;
 	const char *language;
@@ -43,13 +39,13 @@ static const struct {
 	{".mm",  "objective-c++"},
 	{".sx",  "assembler-with-cpp"},
 	{".S",   "assembler-with-cpp"},
-	/* Preprocessed: */
+	// Preprocessed:
 	{".i",   "cpp-output"},
 	{".ii",  "c++-cpp-output"},
 	{".mi",  "objective-c-cpp-output"},
 	{".mii", "objective-c++-cpp-output"},
 	{".s",   "assembler"},
-	/* Header file (for precompilation): */
+	// Header file (for precompilation):
 	{".h",   "c-header"},
 	{".H",   "c++-header"},
 	{".h++", "c++-header"},
@@ -66,25 +62,25 @@ static const struct {
 	{".TCC", "c++-header"},
 	{".cu",  "cuda"},
 	{".ic",  "cuda-output"},
-	/* Fixed form Fortran without preprocessing: */
+	// Fixed form Fortran without preprocessing:
 	{".f",   "f77"},
 	{".for", "f77"},
 	{".ftn", "f77"},
-	/* Fixed form Fortran with traditional preprocessing: */
+	// Fixed form Fortran with traditional preprocessing:
 	{".F",   "f77-cpp-input"},
 	{".FOR", "f77-cpp-input"},
 	{".fpp", "f77-cpp-input"},
 	{".FPP", "f77-cpp-input"},
 	{".FTN", "f77-cpp-input"},
-	/* Free form Fortran without preprocessing: */
-#if 0	/* Could generate modules, ignore for now! */
+	// Free form Fortran without preprocessing:
+#if 0	// Could generate modules, ignore for now!
 	{".f90", "f95"},
 	{".f95", "f95"},
 	{".f03", "f95"},
 	{".f08", "f95"},
 #endif
-	/* Free form Fortran with traditional preprocessing: */
-#if 0 /* Could generate modules, ignore for now! */
+	// Free form Fortran with traditional preprocessing:
+#if 0 // Could generate modules, ignore for now!
 	{".F90", "f95-cpp-input"},
 	{".F95", "f95-cpp-input"},
 	{".F03", "f95-cpp-input"},
@@ -93,9 +89,7 @@ static const struct {
 	{NULL,  NULL}
 };
 
-/*
- * Supported languages and corresponding preprocessed languages.
- */
+// Supported languages and corresponding preprocessed languages.
 static const struct {
 	const char *language;
 	const char *p_language;
@@ -119,17 +113,15 @@ static const struct {
 	{"assembler",                "assembler"},
 	{"f77-cpp-input",            "f77"},
 	{"f77",                      "f77"},
-#if 0 /* Could generate module files, ignore for now! */
+#if 0 // Could generate module files, ignore for now!
 	{"f95-cpp-input",            "f95"},
 	{"f95",                      "f95"},
 #endif
 	{NULL,  NULL}
 };
 
-/*
- * Guess the language of a file based on its extension. Returns NULL if the
- * extension is unknown.
- */
+// Guess the language of a file based on its extension. Returns NULL if the
+// extension is unknown.
 const char *
 language_for_file(const char *fname)
 {
@@ -145,9 +137,7 @@ language_for_file(const char *fname)
 	return NULL;
 }
 
-/*
- * Return the preprocessed language for a given language, or NULL if unknown.
- */
+// Return the preprocessed language for a given language, or NULL if unknown.
 const char *
 p_language_for_language(const char *language)
 {
@@ -164,10 +154,8 @@ p_language_for_language(const char *language)
 	return NULL;
 }
 
-/*
- * Return the default file extension (including dot) for a language, or NULL if
- * unknown.
- */
+// Return the default file extension (including dot) for a language, or NULL if
+// unknown.
 const char *
 extension_for_language(const char *language)
 {

@@ -1,21 +1,19 @@
-/*
- * Copyright (C) 2002 Andrew Tridgell
- * Copyright (C) 2010 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2002 Andrew Tridgell
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
@@ -33,7 +31,7 @@ hash_buffer(struct mdfour *md, const void *s, size_t len)
 	mdfour_update(md, (unsigned char *)s, len);
 }
 
-/* Return the hash result as a hex string. Caller frees. */
+// Return the hash result as a hex string. Caller frees.
 char *
 hash_result(struct mdfour *md)
 {
@@ -43,7 +41,7 @@ hash_result(struct mdfour *md)
 	return format_hash_as_string(sum, (unsigned) md->totalN);
 }
 
-/* return the hash result as 16 binary bytes */
+// Return the hash result as 16 binary bytes.
 void
 hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 {
@@ -60,21 +58,19 @@ hash_equal(struct mdfour *md1, struct mdfour *md2)
 	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
 }
 
-/*
- * Hash some data that is unlikely to occur in the input. The idea is twofold:
- *
- * - Delimit things like arguments from each other (e.g., so that -I -O2 and
- *   -I-O2 hash differently).
- * - Tag different types of hashed information so that it's possible to do
- *   conditional hashing of information in a safe way (e.g., if we want to hash
- *   information X if CCACHE_A is set and information Y if CCACHE_B is set,
- *   there should never be a hash collision risk).
- */
+// Hash some data that is unlikely to occur in the input. The idea is twofold:
+//
+// - Delimit things like arguments from each other (e.g., so that -I -O2 and
+//   -I-O2 hash differently).
+// - Tag different types of hashed information so that it's possible to do
+//   conditional hashing of information in a safe way (e.g., if we want to hash
+//   information X if CCACHE_A is set and information Y if CCACHE_B is set,
+//   there should never be a hash collision risk).
 void
 hash_delimiter(struct mdfour *md, const char *type)
 {
 	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
-	hash_buffer(md, type, strlen(type) + 1); /* Include NUL. */
+	hash_buffer(md, type, strlen(type) + 1); // Include NUL.
 }
 
 void
@@ -95,10 +91,8 @@ hash_int(struct mdfour *md, int x)
 	hash_buffer(md, (char *)&x, sizeof(x));
 }
 
-/*
- * Add contents of an open file to the hash. Returns true on success, otherwise
- * false.
- */
+// Add contents of an open file to the hash. Returns true on success, otherwise
+// false.
 bool
 hash_fd(struct mdfour *md, int fd)
 {
@@ -116,10 +110,8 @@ hash_fd(struct mdfour *md, int fd)
 	return n == 0;
 }
 
-/*
- * Add contents of a file to the hash. Returns true on success, otherwise
- * false.
- */
+// Add contents of a file to the hash. Returns true on success, otherwise
+// false.
 bool
 hash_file(struct mdfour *md, const char *fname)
 {

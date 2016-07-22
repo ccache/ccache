@@ -1,29 +1,25 @@
-/*
- * Copyright (C) 2002-2006 Andrew Tridgell
- * Copyright (C) 2009-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2002-2006 Andrew Tridgell
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
-/*
- * When "max files" or "max cache size" is reached, one of the 16 cache
- * subdirectories is cleaned up. When doing so, files are deleted (in LRU
- * order) until the levels are below LIMIT_MULTIPLE.
- */
+// When "max files" or "max cache size" is reached, one of the 16 cache
+// subdirectories is cleaned up. When doing so, files are deleted (in LRU
+// order) until the levels are below LIMIT_MULTIPLE.
 #define LIMIT_MULTIPLE 0.8
 
 static struct files {
@@ -31,15 +27,15 @@ static struct files {
 	time_t mtime;
 	uint64_t size;
 } **files;
-static unsigned allocated; /* Size of the files array. */
-static unsigned num_files; /* Number of used entries in the files array. */
+static unsigned allocated; // Size of the files array.
+static unsigned num_files; // Number of used entries in the files array.
 
 static uint64_t cache_size;
 static size_t files_in_cache;
 static uint64_t cache_size_threshold;
 static size_t files_in_cache_threshold;
 
-/* File comparison function that orders files in mtime order, oldest first. */
+// File comparison function that orders files in mtime order, oldest first.
 static int
 files_compare(struct files **f1, struct files **f2)
 {
@@ -52,7 +48,7 @@ files_compare(struct files **f1, struct files **f2)
 	return 1;
 }
 
-/* this builds the list of files in the cache */
+// This builds the list of files in the cache.
 static void
 traverse_fn(const char *fname, struct stat *st)
 {
@@ -68,13 +64,12 @@ traverse_fn(const char *fname, struct stat *st)
 	}
 
 	if (str_startswith(p, ".nfs")) {
-		/* Ignore temporary NFS files that may be left for open but deleted
-		 * files. */
+		// Ignore temporary NFS files that may be left for open but deleted files.
 		goto out;
 	}
 
 	if (strstr(p, ".tmp.")) {
-		/* delete any tmp files older than 1 hour */
+		// Delete any tmp files older than 1 hour.
 		if (st->st_mtime + 3600 < time(NULL)) {
 			x_unlink(fname);
 			goto out;
@@ -128,8 +123,8 @@ delete_sibling_file(const char *base, const char *extension)
 	free(path);
 }
 
-/* sort the files we've found and delete the oldest ones until we are
-   below the thresholds */
+// Sort the files we've found and delete the oldest ones until we are below the
+// thresholds.
 static bool
 sort_and_clean(void)
 {
@@ -138,11 +133,11 @@ sort_and_clean(void)
 	bool cleaned = false;
 
 	if (num_files > 1) {
-		/* Sort in ascending mtime order. */
+		// Sort in ascending mtime order.
 		qsort(files, num_files, sizeof(struct files *), (COMPAR_FN_T)files_compare);
 	}
 
-	/* delete enough files to bring us below the threshold */
+	// Delete enough files to bring us below the threshold.
 	for (i = 0; i < num_files; i++) {
 		const char *ext;
 
@@ -161,25 +156,23 @@ sort_and_clean(void)
 		    || str_eq(ext, ".stderr")
 		    || str_eq(ext, "")) {
 			char *base = remove_extension(files[i]->fname);
-			if (!str_eq(base, last_base)) { /* Avoid redundant unlinks. */
-				/*
-				 * Make sure that all sibling files are deleted so that a cached result
-				 * is removed completely. Note the order of deletions -- the stderr
-				 * file must be deleted last because if the ccache process gets killed
-				 * after deleting the .stderr but before deleting the .o, the cached
-				 * result would be inconsistent.
-				 */
+			if (!str_eq(base, last_base)) { // Avoid redundant unlinks.
+				// Make sure that all sibling files are deleted so that a cached result
+				// is removed completely. Note the order of deletions -- the stderr
+				// file must be deleted last because if the ccache process gets killed
+				// after deleting the .stderr but before deleting the .o, the cached
+				// result would be inconsistent.
 				delete_sibling_file(base, ".o");
 				delete_sibling_file(base, ".d");
 				delete_sibling_file(base, ".gcno");
 				delete_sibling_file(base, ".dia");
 				delete_sibling_file(base, ".stderr");
-				delete_sibling_file(base, ""); /* Object file from ccache 2.4. */
+				delete_sibling_file(base, ""); // Object file from ccache 2.4.
 			}
 			free(last_base);
 			last_base = base;
 		} else {
-			/* .manifest or unknown file. */
+			// .manifest or unknown file.
 			delete_file(files[i]->fname, files[i]->size);
 		}
 		cleaned = true;
@@ -188,7 +181,7 @@ sort_and_clean(void)
 	return cleaned;
 }
 
-/* cleanup in one cache subdir */
+// Clean up one cache subdirectory.
 void
 cleanup_dir(struct conf *conf, const char *dir)
 {
@@ -204,10 +197,10 @@ cleanup_dir(struct conf *conf, const char *dir)
 	cache_size = 0;
 	files_in_cache = 0;
 
-	/* build a list of files */
+	// Build a list of files.
 	traverse(dir, traverse_fn);
 
-	/* cleaned the cache */
+	// Clean the cache.
 	cleaned = sort_and_clean();
 
 	if (cleaned) {
@@ -217,7 +210,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
-	/* free it up */
+	// Free it up.
 	for (i = 0; i < num_files; i++) {
 		free(files[i]->fname);
 		free(files[i]);
@@ -234,7 +227,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 	files_in_cache = 0;
 }
 
-/* cleanup in all cache subdirs */
+// Clean up all cache subdirectories.
 void cleanup_all(struct conf *conf)
 {
 	int i;
@@ -246,7 +239,7 @@ void cleanup_all(struct conf *conf)
 	}
 }
 
-/* traverse function for wiping files */
+// Traverse function for wiping files.
 static void wipe_fn(const char *fname, struct stat *st)
 {
 	char *p;
@@ -267,7 +260,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 	x_unlink(fname);
 }
 
-/* wipe in one cache subdir */
+// Wipe one cache subdirectory.
 void
 wipe_dir(struct conf *conf, const char *dir)
 {
@@ -287,7 +280,7 @@ wipe_dir(struct conf *conf, const char *dir)
 	files_in_cache = 0;
 }
 
-/* wipe all cached files in all subdirs */
+// Wipe all cached files in all subdirectories.
 void wipe_all(struct conf *conf)
 {
 	int i;
@@ -298,6 +291,6 @@ void wipe_all(struct conf *conf)
 		free(dname);
 	}
 
-	/* and fix the counters */
+	// Fix the counters.
 	cleanup_all(conf);
 }

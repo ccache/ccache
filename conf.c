@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2011-2015 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2011-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "conf.h"
 #include "ccache.h"
@@ -171,7 +169,7 @@ verify_absolute_path(void *value, char **errmsg)
 	char **path = (char **)value;
 	assert(*path);
 	if (str_eq(*path, "")) {
-		/* The empty string means "disable" in this case. */
+		// The empty string means "disable" in this case.
 		return true;
 	} else if (is_absolute_path(*path)) {
 		return true;
@@ -228,10 +226,8 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 	}
 
 	if (from_env_variable && item->parser == parse_bool) {
-		/*
-		 * Special rule for boolean settings from the environment: any value means
-		 * true.
-		 */
+		// Special rule for boolean settings from the environment: any value means
+		// true.
 		bool *value = (bool *)((char *)conf + item->offset);
 		*value = !negate_boolean;
 		goto out;
@@ -279,13 +275,13 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 	}
 	++p;
 
-	/* Skip leading whitespace. */
+	// Skip leading whitespace.
 	SKIP_WS(p);
 	q = p;
 	while (*q) {
 		++q;
 	}
-	/* Skip trailing whitespace. */
+	// Skip trailing whitespace.
 	while (isspace(q[-1])) {
 		--q;
 	}
@@ -296,7 +292,7 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 #undef SKIP_WS
 }
 
-/* Create a conf struct with default values. */
+// Create a conf struct with default values.
 struct conf *
 conf_create(void)
 {
@@ -330,7 +326,7 @@ conf_create(void)
 	conf->sloppiness = 0;
 	conf->stats = true;
 	conf->temporary_dir = x_strdup("");
-	conf->umask = UINT_MAX; /* default: don't set umask */
+	conf->umask = UINT_MAX; // Default: don't set umask.
 	conf->unify = false;
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
@@ -361,7 +357,7 @@ conf_free(struct conf *conf)
 	free(conf);
 }
 
-/* Note: The path pointer is stored in conf, so path must outlive conf. */
+// Note: The path pointer is stored in conf, so path must outlive conf.
 bool
 conf_read(struct conf *conf, const char *path, char **errmsg)
 {
@@ -385,7 +381,7 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		bool ok;
 		++line_number;
 		ok = parse_line(buf, &key, &value, &errmsg2);
-		if (ok && key) { /* key == NULL if comment or blank line */
+		if (ok && key) { // key == NULL if comment or blank line.
 			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
 		}
 		free(key);
@@ -436,7 +432,7 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 		key = x_strndup(*p + key_start, q - *p - key_start);
 
-		++q; /* Now points to the value. */
+		++q; // Now points to the value.
 
 		env_to_conf_item = find_env_to_conf(key);
 		if (!env_to_conf_item) {
@@ -638,7 +634,7 @@ conf_print_items(struct conf *conf,
 		reformat(&s, "%sno_system_headers, ", s);
 	}
 	if (conf->sloppiness) {
-		/* Strip last ", ". */
+		// Strip last ", ".
 		s[strlen(s) - 2] = '\0';
 	}
 	printer(s, conf->item_origins[find_conf("sloppiness")->number], context);

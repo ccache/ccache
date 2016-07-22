@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2011-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2011-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../conf.h"
 #include "framework.h"
@@ -130,7 +128,7 @@ TEST(conf_read_valid_config)
 	  "stats = false\n"
 	  "temporary_dir = ${USER}_foo\n"
 	  "umask = 777\n"
-	  "unify = true"); /* Note: no newline */
+	  "unify = true"); // Note: no newline.
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
@@ -223,7 +221,7 @@ TEST(conf_read_invalid_env_string)
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2("ccache.conf:1: syntax error: missing '}' after \"foo\"",
 	                   errmsg);
-	/* Other cases tested in test_util.c. */
+	// Other cases tested in test_util.c.
 	conf_free(conf);
 }
 
@@ -245,7 +243,7 @@ TEST(conf_read_invalid_size)
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid size: \"foo\"",
 	                   errmsg);
-	/* Other cases tested in test_util.c. */
+	// Other cases tested in test_util.c.
 	conf_free(conf);
 }
 

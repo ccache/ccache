@@ -1,34 +1,31 @@
-/*
- * Copyright (C) 2002 Andrew Tridgell
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2002 Andrew Tridgell
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-/*
- * C/C++ unifier
- *
- * The idea is that changes that don't affect the resulting C code should not
- * change the hash. This is achieved by folding white-space and other
- * non-semantic fluff in the input into a single unified format.
- *
- * This unifier was design to match the output of the unifier in compilercache,
- * which is flex based. The major difference is that this unifier is much
- * faster (about 2x) and more forgiving of syntactic errors. Continuing on
- * syntactic errors is important to cope with C/C++ extensions in the local
- * compiler (for example, inline assembly systems).
- */
+// C/C++ unifier
+//
+// The idea is that changes that don't affect the resulting C code should not
+// change the hash. This is achieved by folding white-space and other
+// non-semantic fluff in the input into a single unified format.
+//
+// This unifier was design to match the output of the unifier in compilercache,
+// which is flex based. The major difference is that this unifier is much
+// faster (about 2x) and more forgiving of syntactic errors. Continuing on
+// syntactic errors is important to cope with C/C++ extensions in the local
+// compiler (for example, inline assembly systems).
 
 #include "ccache.h"
 
@@ -56,7 +53,7 @@ static struct {
 	const char *toks[7];
 } tokens[256];
 
-/* build up the table used by the unifier */
+// Build up the table used by the unifier.
 static void
 build_table(void)
 {
@@ -104,7 +101,7 @@ build_table(void)
 	}
 }
 
-/* buffer up characters before hashing them */
+// Buffer up characters before hashing them.
 static void
 pushchar(struct mdfour *hash, unsigned char c)
 {
@@ -127,7 +124,7 @@ pushchar(struct mdfour *hash, unsigned char c)
 	}
 }
 
-/* hash some C/C++ code after unifying */
+// Hash some C/C++ code after unifying.
 static void
 unify(struct mdfour *hash, unsigned char *p, size_t size)
 {
@@ -244,9 +241,8 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 }
 
 
-/* hash a file that consists of preprocessor output, but remove any line
-   number information from the hash
- */
+// Hash a file that consists of preprocessor output, but remove any line number
+// information from the hash.
 int
 unify_hash(struct mdfour *hash, const char *fname)
 {

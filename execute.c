@@ -1,21 +1,19 @@
-/*
- * Copyright (C) Andrew Tridgell 2002
- * Copyright (C) Joel Rosdahl 2011
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2002 Andrew Tridgell
+// Copyright (C) 2011-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
@@ -25,10 +23,8 @@ static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path);
 
 #ifdef _WIN32
-/*
- * Re-create a win32 command line string based on **argv.
- * http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
- */
+// Re-create a win32 command line string based on **argv.
+// http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
 char *
 win32argvtos(char *prefix, char **argv)
 {
@@ -87,7 +83,7 @@ win32argvtos(char *prefix, char **argv)
 		}
 		*ptr++ = '"';
 		*ptr++ = ' ';
-		/* cppcheck-suppress unreadVariable */
+		// cppcheck-suppress unreadVariable
 	} while ((arg = argv[i++]));
 	ptr[-1] = '\0';
 
@@ -106,7 +102,7 @@ win32getshell(char *path)
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
 	}
 	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
-		/* Detect shebang. */
+		// Detect shebang.
 		FILE *fp;
 		fp = fopen(path, "r");
 		if (fp) {
@@ -165,7 +161,7 @@ win32execute(char *path, char **argv, int doreturn,
 			return -1;
 		}
 	} else {
-		/* redirect subprocess stdout, stderr into current process */
+		// Redirect subprocess stdout, stderr into current process.
 		si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 		si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 		si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
@@ -228,8 +224,8 @@ win32execute(char *path, char **argv, int doreturn,
 
 #else
 
-/* Execute a compiler backend, capturing all output to the given paths the full
- * path to the compiler to run is in argv[0]. */
+// Execute a compiler backend, capturing all output to the given paths the full
+// path to the compiler to run is in argv[0].
 int
 execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 {
@@ -246,7 +242,7 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 	}
 
 	if (*pid == 0) {
-		/* Child. */
+		// Child.
 		dup2(fd_out, 1);
 		close(fd_out);
 		dup2(fd_err, 2);
@@ -273,11 +269,8 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 }
 #endif
 
-
-/*
- * Find an executable by name in $PATH. Exclude any that are links to
- * exclude_name.
- */
+// Find an executable by name in $PATH. Exclude any that are links to
+// exclude_name.
 char *
 find_executable(const char *name, const char *exclude_name)
 {
@@ -306,8 +299,8 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 
 	path = x_strdup(path);
 
-	/* search the path looking for the first compiler of the right name
-	   that isn't us */
+	// Search the path looking for the first compiler of the right name that
+	// isn't us.
 	for (tok = strtok_r(path, PATH_DELIM, &saveptr);
 	     tok;
 	     tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
@@ -329,7 +322,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 #else
 		struct stat st1, st2;
 		char *fname = format("%s/%s", tok, name);
-		/* look for a normal executable file */
+		// Look for a normal executable file.
 		if (access(fname, X_OK) == 0 &&
 		    lstat(fname, &st1) == 0 &&
 		    stat(fname, &st2) == 0 &&
@@ -339,7 +332,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 				if (buf) {
 					char *p = basename(buf);
 					if (str_eq(p, exclude_name)) {
-						/* It's a link to "ccache"! */
+						// It's a link to "ccache"!
 						free(p);
 						free(buf);
 						continue;
@@ -349,7 +342,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 				}
 			}
 
-			/* Found it! */
+			// Found it!
 			free(path);
 			return fname;
 		}

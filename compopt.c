@@ -1,20 +1,18 @@
-/*
- * Copyright (C) 2010-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 #include "compopt.h"
@@ -59,7 +57,7 @@ static const struct compopt compopts[] = {
 	{"-b",              TAKES_ARG},
 	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
-	{"-fplugin=libcc1plugin", TOO_HARD}, /* interaction with GDB */
+	{"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
 	{"-frepo",          TOO_HARD},
 	{"-fstack-usage",   TOO_HARD},
 	{"-fworking-directory", AFFECTS_CPP},
@@ -69,7 +67,7 @@ static const struct compopt compopts[] = {
 	{"-imultilib",      AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-include",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-include-pch",    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
-	{"-install_name",   TAKES_ARG}, /* Darwin linker option */
+	{"-install_name",   TAKES_ARG}, // Darwin linker option
 	{"-iprefix",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iquote",         AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-isysroot",       AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
@@ -123,7 +121,7 @@ find_prefix(const char *option)
 	         sizeof(compopts[0]), compare_prefix_compopts);
 }
 
-/* Runs fn on the first two characters of option. */
+// Runs fn on the first two characters of option.
 bool
 compopt_short(bool (*fn)(const char *), const char *option)
 {
@@ -133,7 +131,7 @@ compopt_short(bool (*fn)(const char *), const char *option)
 	return retval;
 }
 
-/* For test purposes. */
+// For test purposes.
 bool
 compopt_verify_sortedness(void)
 {
@@ -192,13 +190,12 @@ compopt_takes_concat_arg(const char *option)
 	return co && (co->type & TAKES_CONCAT_ARG);
 }
 
-/* Determines if the prefix of the option matches any option and affects the
- * preprocessor.
- */
+// Determines if the prefix of the option matches any option and affects the
+// preprocessor.
 bool
 compopt_prefix_affects_cpp(const char *option)
 {
-	/* prefix options have to take concatentated args */
+	// Prefix options have to take concatentated args.
 	const struct compopt *co = find_prefix(option);
 	return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_CPP);
 }

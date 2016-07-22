@@ -1,7 +1,5 @@
-/*
- * MurmurHashNeutral2, by Austin Appleby. Released to the public domain. See
- * <http://murmurhash.googlepages.com>.
- */
+// MurmurHashNeutral2, by Austin Appleby. Released to the public domain. See
+// <http://murmurhash.googlepages.com>.
 
 #include "murmurhashneutral2.h"
 
