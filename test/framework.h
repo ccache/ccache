@@ -19,7 +19,7 @@
 #ifndef TEST_FRAMEWORK_H
 #define TEST_FRAMEWORK_H
 
-#include "ccache.h"
+#include "../ccache.h"
 
 /*****************************************************************************/
 

@@ -20,10 +20,10 @@
  * This file contains tests for the processing of compiler arguments.
  */
 
-#include "ccache.h"
-#include "conf.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "../conf.h"
+#include "framework.h"
+#include "util.h"
 
 extern struct conf *conf;
 

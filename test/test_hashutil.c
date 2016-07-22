@@ -20,10 +20,10 @@
  * This file contains tests for functions in hashutil.c.
  */
 
-#include "ccache.h"
-#include "hashutil.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "../hashutil.h"
+#include "framework.h"
+#include "util.h"
 
 TEST_SUITE(hashutil)
 

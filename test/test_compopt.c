@@ -20,9 +20,9 @@
  * This file contains tests for the compopt_* functions.
  */
 
-#include "ccache.h"
-#include "compopt.h"
-#include "test/framework.h"
+#include "../ccache.h"
+#include "../compopt.h"
+#include "framework.h"
 
 TEST_SUITE(compopt)
 

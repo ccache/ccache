@@ -16,8 +16,8 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ccache.h"
-#include "test/framework.h"
+#include "../ccache.h"
+#include "framework.h"
 #include "util.h"
 
 #if defined(HAVE_TERMIOS_H)

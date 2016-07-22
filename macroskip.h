@@ -1,3 +1,8 @@
+#ifndef CCACHE_MACROSKIP_H
+#define CCACHE_MACROSKIP_H
+
+#include <stdint.h>
+
 /*
  * A Boyer-Moore-Horspool skip table used for searching for the strings
  * "__TIME__" and "__DATE__".
@@ -54,3 +59,5 @@ static const uint32_t macro_skip[] = {
 	8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
 	8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
 };
+
+#endif

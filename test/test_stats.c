@@ -20,10 +20,10 @@
  * This file contains tests for statistics handling.
  */
 
-#include "ccache.h"
-#include "counters.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "../counters.h"
+#include "framework.h"
+#include "util.h"
 
 TEST_SUITE(stats)
 

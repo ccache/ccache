@@ -20,9 +20,9 @@
  * This file contains tests for the functions operating on struct args.
  */
 
-#include "ccache.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "framework.h"
+#include "util.h"
 
 TEST_SUITE(args)
 

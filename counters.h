@@ -19,6 +19,8 @@
 #ifndef COUNTERS_H
 #define COUNTERS_H
 
+#include <stddef.h>
+
 struct counters {
 	unsigned *data;   /* counter value */
 	size_t size;      /* logical array size */

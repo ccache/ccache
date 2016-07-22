@@ -16,9 +16,9 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "conf.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../conf.h"
+#include "framework.h"
+#include "util.h"
 
 #define N_CONFIG_ITEMS 30
 static struct {

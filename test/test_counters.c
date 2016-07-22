@@ -16,10 +16,10 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ccache.h"
-#include "counters.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "../counters.h"
+#include "framework.h"
+#include "util.h"
 
 TEST_SUITE(counters)
 

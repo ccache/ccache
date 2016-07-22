@@ -20,9 +20,9 @@
  * This file contains tests for functions in lockfile.c.
  */
 
-#include "ccache.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "framework.h"
+#include "util.h"
 
 TEST_SUITE(lockfile)
 

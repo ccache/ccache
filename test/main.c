@@ -17,11 +17,11 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "test/framework.h"
+#include "framework.h"
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
-#include "getopt_long.h"
+#include "../getopt_long.h"
 #endif
 
 /* *INDENT-OFF* disable uncrustify */
@@ -43,7 +43,7 @@ main(int argc, char **argv)
 {
 	suite_fn suites[] = {
 #define SUITE(name) &suite_ ## name,
-#include "test/suites.h"
+#include "suites.h"
 #undef SUITE
 		NULL
 	};

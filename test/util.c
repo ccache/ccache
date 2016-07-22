@@ -16,8 +16,8 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "system.h"
-#include "test/util.h"
+#include "../system.h"
+#include "util.h"
 
 #ifdef _WIN32
 #    define lstat(a, b) stat(a, b)

@@ -20,8 +20,8 @@
  * This file contains tests for functions in hash.c.
  */
 
-#include "ccache.h"
-#include "test/framework.h"
+#include "../ccache.h"
+#include "framework.h"
 
 TEST_SUITE(hash)
 
