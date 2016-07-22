@@ -48,7 +48,7 @@ headers = \
     test/suites.h \
     test/util.h
 
-files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/*
+files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
 files_to_distclean += $(built_dist_files) version.c test/suites.h
 files_to_distclean += .deps version.c dev.mk
 

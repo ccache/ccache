@@ -66,7 +66,7 @@ test_objs = $(test_sources:.c=.o)
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
 
-files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~
+files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~ testdir.*
 files_to_distclean = Makefile config.h config.log config.status
 
 .PHONY: all
