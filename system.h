@@ -48,6 +48,20 @@
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
+#ifdef __MINGW32__
+/* use pthread for some signal stuff as not all modern posix functions are available */
+#include <pthread.h>
+#include <windows.h>
+#include <winsock.h>
+#ifndef ESTALE
+#define ESTALE WSAESTALE
+#endif // ESTALE
+#ifndef WNOHANG
+#define WNOHANG 1
+#endif // WNOHANG
+#define HAVE_GETFINALPATHNAMEBYHANDLEW
+#endif // __MINGW32__
+
 
 extern char **environ;
 

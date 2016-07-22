@@ -262,6 +262,21 @@ get_umask(void)
 }
 #endif
 
+
+#ifdef __MINGW32__
+int sigemptyset(sigset_t *set)
+{
+  *set = 0;
+  return 0;
+}
+
+int sigaddset(sigset_t *set, sigset_t s)
+{
+  *set = *set | s;
+  return 0;
+}
+#endif
+
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides
  * whether dest will be compressed, and with which compression level. Returns 0

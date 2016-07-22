@@ -260,6 +260,12 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #undef HAVE_MKSTEMP
 #endif
 
+/* mkstemp() on some versions of mingw sets _O_TEMPORARY, so
+   override */
+#ifdef __MINGW32__
+#undef HAVE_MKSTEMP
+#endif
+
 #ifdef _WIN32
 char *win32argvtos(char *prefix, char **argv);
 char *win32getshell(char *path);
