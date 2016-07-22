@@ -60,6 +60,9 @@ New features and improvements
 - Added support for caching compilation of assembler code produced by e.g.
   ``gcc -S file.c''.
 
+- Added support for Fortran 77.
+
+
 Bug fixes
 ~~~~~~~~~
 
