@@ -60,9 +60,7 @@ exitfn_add_nullary(void (*function)(void))
 void
 exitfn_add(void (*function)(void *), void *context)
 {
-	struct exit_function *p;
-
-	p = x_malloc(sizeof(*p));
+	struct exit_function *p = x_malloc(sizeof(*p));
 	p->function = function;
 	p->context = context;
 	p->next = exit_functions;
@@ -76,9 +74,8 @@ exitfn_call(void)
 	struct exit_function *p = exit_functions;
 	exit_functions = NULL;
 	while (p) {
-		struct exit_function *q;
 		p->function(p->context);
-		q = p;
+		struct exit_function *q = p;
 		p = p->next;
 		free(q);
 	}

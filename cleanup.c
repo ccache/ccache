@@ -52,13 +52,11 @@ files_compare(struct files **f1, struct files **f2)
 static void
 traverse_fn(const char *fname, struct stat *st)
 {
-	char *p;
-
 	if (!S_ISREG(st->st_mode)) {
 		return;
 	}
 
-	p = basename(fname);
+	char *p = basename(fname);
 	if (str_eq(p, "stats")) {
 		goto out;
 	}
@@ -68,12 +66,10 @@ traverse_fn(const char *fname, struct stat *st)
 		goto out;
 	}
 
-	if (strstr(p, ".tmp.")) {
-		// Delete any tmp files older than 1 hour.
-		if (st->st_mtime + 3600 < time(NULL)) {
-			x_unlink(fname);
-			goto out;
-		}
+	// Delete any tmp files older than 1 hour.
+	if (strstr(p, ".tmp.") && st->st_mtime + 3600 < time(NULL)) {
+		x_unlink(fname);
+		goto out;
 	}
 
 	if (strstr(p, "CACHEDIR.TAG")) {
@@ -112,9 +108,7 @@ static void
 delete_sibling_file(const char *base, const char *extension)
 {
 	struct stat st;
-	char *path;
-
-	path = format("%s%s", base, extension);
+	char *path = format("%s%s", base, extension);
 	if (lstat(path, &st) == 0) {
 		delete_file(path, file_size(&st));
 	} else if (errno != ENOENT && errno != ESTALE) {
@@ -128,17 +122,15 @@ delete_sibling_file(const char *base, const char *extension)
 static bool
 sort_and_clean(void)
 {
-	unsigned i;
-	char *last_base = x_strdup("");
-	bool cleaned = false;
-
 	if (num_files > 1) {
 		// Sort in ascending mtime order.
 		qsort(files, num_files, sizeof(struct files *), (COMPAR_FN_T)files_compare);
 	}
 
 	// Delete enough files to bring us below the threshold.
-	for (i = 0; i < num_files; i++) {
+	char *last_base = x_strdup("");
+	bool cleaned = false;
+	for (unsigned i = 0; i < num_files; i++) {
 		const char *ext;
 
 		if ((cache_size_threshold == 0
@@ -185,9 +177,6 @@ sort_and_clean(void)
 void
 cleanup_dir(struct conf *conf, const char *dir)
 {
-	unsigned i;
-	bool cleaned;
-
 	cc_log("Cleaning up cache directory %s", dir);
 
 	cache_size_threshold = conf->max_size * LIMIT_MULTIPLE / 16;
@@ -201,8 +190,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 	traverse(dir, traverse_fn);
 
 	// Clean the cache.
-	cleaned = sort_and_clean();
-
+	bool cleaned = sort_and_clean();
 	if (cleaned) {
 		cc_log("Cleaned up cache directory %s", dir);
 		stats_add_cleanup(dir, 1);
@@ -211,7 +199,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.
-	for (i = 0; i < num_files; i++) {
+	for (unsigned i = 0; i < num_files; i++) {
 		free(files[i]->fname);
 		free(files[i]);
 		files[i] = NULL;
@@ -230,9 +218,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 // Clean up all cache subdirectories.
 void cleanup_all(struct conf *conf)
 {
-	int i;
-
-	for (i = 0; i <= 0xF; i++) {
+	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
 		cleanup_dir(conf, dname);
 		free(dname);
@@ -242,13 +228,11 @@ void cleanup_all(struct conf *conf)
 // Traverse function for wiping files.
 static void wipe_fn(const char *fname, struct stat *st)
 {
-	char *p;
-
 	if (!S_ISREG(st->st_mode)) {
 		return;
 	}
 
-	p = basename(fname);
+	char *p = basename(fname);
 	if (str_eq(p, "stats")) {
 		free(p);
 		return;
@@ -267,7 +251,6 @@ wipe_dir(struct conf *conf, const char *dir)
 	cc_log("Clearing out cache directory %s", dir);
 
 	files_in_cache_threshold = conf->max_files * LIMIT_MULTIPLE / 16;
-
 	files_in_cache = 0;
 
 	traverse(dir, wipe_fn);
@@ -283,9 +266,7 @@ wipe_dir(struct conf *conf, const char *dir)
 // Wipe all cached files in all subdirectories.
 void wipe_all(struct conf *conf)
 {
-	int i;
-
-	for (i = 0; i <= 0xF; i++) {
+	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
 		wipe_dir(conf, dname);
 		free(dname);

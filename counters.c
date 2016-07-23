@@ -44,9 +44,7 @@ void
 counters_resize(struct counters *c, size_t new_size)
 {
 	if (new_size > c->size) {
-		size_t i;
 		bool realloc = false;
-
 		while (c->allocated < new_size) {
 			c->allocated += 32 + c->allocated;
 			realloc = true;
@@ -54,7 +52,7 @@ counters_resize(struct counters *c, size_t new_size)
 		if (realloc) {
 			c->data = x_realloc(c->data, c->allocated * sizeof(c->data[0]));
 		}
-		for (i = c->size; i < new_size; i++) {
+		for (size_t i = c->size; i < new_size; i++) {
 			c->data[i] = 0;
 		}
 	}

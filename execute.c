@@ -28,17 +28,12 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path);
 char *
 win32argvtos(char *prefix, char **argv)
 {
-	char *arg;
-	char *ptr;
-	char *str;
-	int l = 0;
-	int i, j;
-
-	i = 0;
-	arg = prefix ? prefix : argv[i++];
+	int i = 0;
+	int k = 0;
+	char *arg = prefix ? prefix : argv[i++];
 	do {
 		int bs = 0;
-		for (j = 0; arg[j]; j++) {
+		for (int j = 0; arg[j]; j++) {
 			switch (arg[j]) {
 			case '\\':
 				bs++;
@@ -46,14 +41,15 @@ win32argvtos(char *prefix, char **argv)
 			case '"':
 				bs = (bs << 1) + 1;
 			default:
-				l += bs + 1;
+				k += bs + 1;
 				bs = 0;
 			}
 		}
-		l += (bs << 1) + 3;
+		k += (bs << 1) + 3;
 	} while ((arg = argv[i++]));
 
-	str = ptr = malloc(l + 1);
+	char *ptr = malloc(k + 1);
+	char *str = ptr;
 	if (!str) {
 		return NULL;
 	}
@@ -95,16 +91,13 @@ win32getshell(char *path)
 {
 	char *path_env;
 	char *sh = NULL;
-	const char *ext;
-
-	ext = get_extension(path);
+	const char *ext = get_extension(path);
 	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
 	}
 	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
 		// Detect shebang.
-		FILE *fp;
-		fp = fopen(path, "r");
+		FILE *fp = fopen(path, "r");
 		if (fp) {
 			char buf[10];
 			fgets(buf, sizeof(buf), fp);
@@ -136,16 +129,12 @@ win32execute(char *path, char **argv, int doreturn,
              int fd_stdout, int fd_stderr)
 {
 	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	BOOL ret;
-	DWORD exitcode;
-	char *sh = NULL;
-	char *args;
-
 	memset(&pi, 0x00, sizeof(pi));
+
+	STARTUPINFO si;
 	memset(&si, 0x00, sizeof(si));
 
-	sh = win32getshell(path);
+	char *sh = win32getshell(path);
 	if (sh) {
 		path = sh;
 	}
@@ -171,13 +160,14 @@ win32execute(char *path, char **argv, int doreturn,
 			return -1;
 		}
 	}
-	args = win32argvtos(sh, argv);
 
+	char *args = win32argvtos(sh, argv);
 	const char *ext = strrchr(path, '.');
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
-	ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-	                    &si, &pi);
+	BOOL ret =
+	  CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+	                &si, &pi);
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
@@ -185,9 +175,7 @@ win32execute(char *path, char **argv, int doreturn,
 	free(args);
 	if (ret == 0) {
 		LPVOID lpMsgBuf;
-		LPVOID lpDisplayBuf;
 		DWORD dw = GetLastError();
-
 		FormatMessage(
 		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		  FORMAT_MESSAGE_FROM_SYSTEM |
@@ -195,7 +183,7 @@ win32execute(char *path, char **argv, int doreturn,
 		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
 		  0, NULL);
 
-		lpDisplayBuf =
+		LPVOID lpDisplayBuf =
 		  (LPVOID) LocalAlloc(LMEM_ZEROINIT,
 		                      (lstrlen((LPCTSTR) lpMsgBuf)
 		                       + lstrlen((LPCTSTR) __FILE__) + 200)
@@ -213,6 +201,8 @@ win32execute(char *path, char **argv, int doreturn,
 		return -1;
 	}
 	WaitForSingleObject(pi.hProcess, INFINITE);
+
+	DWORD exitcode;
 	GetExitCodeProcess(pi.hProcess, &exitcode);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
@@ -229,8 +219,6 @@ win32execute(char *path, char **argv, int doreturn,
 int
 execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 {
-	int status;
-
 	cc_log_argv("Executing ", argv);
 
 	block_signals();
@@ -253,6 +241,7 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 	close(fd_out);
 	close(fd_err);
 
+	int status;
 	if (waitpid(*pid, &status, 0) != *pid) {
 		fatal("waitpid failed: %s", strerror(errno));
 	}
@@ -274,13 +263,11 @@ execute(char **argv, int fd_out, int fd_err, pid_t *pid)
 char *
 find_executable(const char *name, const char *exclude_name)
 {
-	char *path;
-
 	if (is_absolute_path(name)) {
 		return x_strdup(name);
 	}
 
-	path = conf->path;
+	char *path = conf->path;
 	if (str_eq(path, "")) {
 		path = getenv("PATH");
 	}
@@ -295,23 +282,20 @@ find_executable(const char *name, const char *exclude_name)
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path)
 {
-	char *tok, *saveptr = NULL;
-
 	path = x_strdup(path);
 
 	// Search the path looking for the first compiler of the right name that
 	// isn't us.
-	for (tok = strtok_r(path, PATH_DELIM, &saveptr);
+	char *saveptr = NULL;
+	for (char *tok = strtok_r(path, PATH_DELIM, &saveptr);
 	     tok;
 	     tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
 #ifdef _WIN32
 		char namebuf[MAX_PATH];
-		int ret = SearchPath(tok, name, NULL,
-		                     sizeof(namebuf), namebuf, NULL);
+		int ret = SearchPath(tok, name, NULL, sizeof(namebuf), namebuf, NULL);
 		if (!ret) {
 			char *exename = format("%s.exe", name);
-			ret = SearchPath(tok, exename, NULL,
-			                 sizeof(namebuf), namebuf, NULL);
+			ret = SearchPath(tok, exename, NULL, sizeof(namebuf), namebuf, NULL);
 			free(exename);
 		}
 		(void) exclude_name;
@@ -357,8 +341,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 void
 print_command(FILE *fp, char **argv)
 {
-	int i;
-	for (i = 0; argv[i]; i++) {
+	for (int i = 0; argv[i]; i++) {
 		fprintf(fp, "%s%s",  (i == 0) ? "" : " ", argv[i]);
 	}
 	fprintf(fp, "\n");

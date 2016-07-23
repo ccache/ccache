@@ -25,6 +25,8 @@ run "make uncrustify" to fix up source code formatting.
 Idioms
 ------
 
+* Declare variables as late as convenient, not necessarily at the beginning of
+  the scope.
 * Use NULL to initialize null pointers.
 * Don't use NULL when comparing pointers.
 * Use format(), x_malloc() and friends instead of checking for memory

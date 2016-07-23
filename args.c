@@ -20,13 +20,11 @@
 struct args *
 args_init(int init_argc, char **init_args)
 {
-	struct args *args;
-	int i;
-	args = (struct args *)x_malloc(sizeof(struct args));
+	struct args *args = (struct args *)x_malloc(sizeof(struct args));
 	args->argc = 0;
 	args->argv = (char **)x_malloc(sizeof(char *));
 	args->argv[0] = NULL;
-	for (i = 0; i < init_argc; i++) {
+	for (int i = 0; i < init_argc; i++) {
 		args_add(args, init_args[i]);
 	}
 	return args;
@@ -35,12 +33,10 @@ args_init(int init_argc, char **init_args)
 struct args *
 args_init_from_string(const char *command)
 {
-	struct args *args;
 	char *p = x_strdup(command);
 	char *q = p;
 	char *word, *saveptr = NULL;
-
-	args = args_init(0, NULL);
+	struct args *args = args_init(0, NULL);
 	while ((word = strtok_r(q, " \t\r\n", &saveptr))) {
 		args_add(args, word);
 		q = NULL;
@@ -53,22 +49,19 @@ args_init_from_string(const char *command)
 struct args *
 args_init_from_gcc_atfile(const char *filename)
 {
-	struct args *args;
-	char *pos, *argtext, *argpos, *argbuf;
-	char quoting;
-
-	// Used to track quoting state; if \0, we are not inside quotes. Otherwise
-	// stores the quoting character that started it, for matching the end quote.
-	quoting = '\0';
-
+	char *argtext;
 	if (!(argtext = read_text_file(filename, 0))) {
 		return NULL;
 	}
 
-	args = args_init(0, NULL);
-	pos = argtext;
-	argbuf = x_malloc(strlen(argtext) + 1);
-	argpos = argbuf;
+	struct args *args = args_init(0, NULL);
+	char *pos = argtext;
+	char *argbuf = x_malloc(strlen(argtext) + 1);
+	char *argpos = argbuf;
+
+	// Used to track quoting state; if \0, we are not inside quotes. Otherwise
+	// stores the quoting character that started it, for matching the end quote.
+	char quoting = '\0';
 
 	while (1) {
 		switch (*pos) {
@@ -102,7 +95,7 @@ args_init_from_gcc_atfile(const char *filename)
 			if (quoting) {
 				break;
 			}
-			// Fall through.
+		// Fall through.
 
 		case '\0':
 			// End of token
@@ -145,12 +138,9 @@ args_copy(struct args *args)
 void
 args_insert(struct args *dest, int index, struct args *src, bool replace)
 {
-	int offset;
-	int i;
-
 	// Adjustments made if we are replacing or shifting the element currently at
 	// dest->argv[index].
-	offset = replace ? 1 : 0;
+	int offset = replace ? 1 : 0;
 
 	if (replace) {
 		free(dest->argv[index]);
@@ -160,7 +150,7 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 		if (replace) {
 			// Have to shift everything down by 1 since we replaced with an empty
 			// list.
-			for (i = index; i < dest->argc; i++) {
+			for (int i = index; i < dest->argc; i++) {
 				dest->argv[i] = dest->argv[i + 1];
 			}
 			dest->argc--;
@@ -183,12 +173,12 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 	  sizeof(char *));
 
 	// Shift arguments over.
-	for (i = dest->argc; i >= index + offset; i--) {
+	for (int i = dest->argc; i >= index + offset; i--) {
 		dest->argv[i + src->argc - offset] = dest->argv[i];
 	}
 
 	// Copy the new arguments into place.
-	for (i = 0; i < src->argc; i++) {
+	for (int i = 0; i < src->argc; i++) {
 		dest->argv[i + index] = src->argv[i];
 	}
 
@@ -200,11 +190,10 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 void
 args_free(struct args *args)
 {
-	int i;
 	if (!args) {
 		return;
 	}
-	for (i = 0; i < args->argc; ++i) {
+	for (int i = 0; i < args->argc; ++i) {
 		if (args->argv[i]) {
 			free(args->argv[i]);
 		}
@@ -227,8 +216,7 @@ args_add(struct args *args, const char *s)
 void
 args_extend(struct args *args, struct args *to_append)
 {
-	int i;
-	for (i = 0; i < to_append->argc; i++) {
+	for (int i = 0; i < to_append->argc; i++) {
 		args_add(args, to_append->argv[i]);
 	}
 }
@@ -278,8 +266,7 @@ args_add_prefix(struct args *args, const char *s)
 void
 args_strip(struct args *args, const char *prefix)
 {
-	int i;
-	for (i = 0; i < args->argc; ) {
+	for (int i = 0; i < args->argc; ) {
 		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],
@@ -297,16 +284,14 @@ args_strip(struct args *args, const char *prefix)
 char *
 args_to_string(struct args *args)
 {
-	char *result;
-	char **p;
 	unsigned size = 0;
-	int pos;
-	for (p = args->argv; *p; p++) {
+	for (char **p = args->argv; *p; p++) {
 		size += strlen(*p) + 1;
 	}
-	result = x_malloc(size + 1);
-	pos = 0;
-	for (p = args->argv; *p; p++) {
+
+	char *result = x_malloc(size + 1);
+	int pos = 0;
+	for (char **p = args->argv; *p; p++) {
 		pos += sprintf(&result[pos], "%s ", *p);
 	}
 	result[pos - 1] = '\0';
@@ -317,11 +302,10 @@ args_to_string(struct args *args)
 bool
 args_equal(struct args *args1, struct args *args2)
 {
-	int i;
 	if (args1->argc != args2->argc) {
 		return false;
 	}
-	for (i = 0; i < args1->argc; i++) {
+	for (int i = 0; i < args1->argc; i++) {
 		if (!str_eq(args1->argv[i], args2->argv[i])) {
 			return false;
 		}

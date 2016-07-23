@@ -27,27 +27,23 @@
 bool
 lockfile_acquire(const char *path, unsigned staleness_limit)
 {
-	int saved_errno = 0;
 	char *lockfile = format("%s.lock", path);
-	char *my_content = NULL, *content = NULL, *initial_content = NULL;
+	char *my_content = NULL;
+	char *content = NULL;
+	char *initial_content = NULL;
 	const char *hostname = get_hostname();
 	bool acquired = false;
-#ifdef _WIN32
-	const size_t bufsize = 1024;
-	int fd, len;
-#else
-	int ret;
-#endif
-	unsigned to_sleep = 1000, slept = 0; // Microseconds.
+	unsigned to_sleep = 1000; // Microseconds.
+	unsigned slept = 0; // Microseconds.
 
 	while (true) {
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
 #ifdef _WIN32
-		fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
+		int fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			saved_errno = errno;
+			int saved_errno = errno;
 			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
 			if (saved_errno == ENOENT) {
 				// Directory doesn't exist?
@@ -74,8 +70,10 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				}
 			}
 			free(content);
+			const size_t bufsize = 1024;
 			content = x_malloc(bufsize);
-			if ((len = read(fd, content, bufsize - 1)) == -1) {
+			int len = read(fd, content, bufsize - 1);
+			if (len == -1) {
 				cc_log("lockfile_acquire: read %s: %s", lockfile, strerror(errno));
 				close(fd);
 				goto out;
@@ -95,13 +93,12 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			goto out;
 		}
 #else
-		ret = symlink(my_content, lockfile);
-		if (ret == 0) {
+		if (symlink(my_content, lockfile) == 0) {
 			// We got the lock.
 			acquired = true;
 			goto out;
 		}
-		saved_errno = errno;
+		int saved_errno = errno;
 		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(saved_errno));
 		if (saved_errno == ENOENT) {
 			// Directory doesn't exist?

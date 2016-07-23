@@ -142,13 +142,12 @@ file_infos_equal(void *key1, void *key2)
 static void
 free_manifest(struct manifest *mf)
 {
-	uint32_t i;
-	for (i = 0; i < mf->n_files; i++) {
+	for (uint32_t i = 0; i < mf->n_files; i++) {
 		free(mf->files[i]);
 	}
 	free(mf->files);
 	free(mf->file_infos);
-	for (i = 0; i < mf->n_objects; i++) {
+	for (uint32_t i = 0; i < mf->n_objects; i++) {
 		free(mf->objects[i].file_info_indexes);
 	}
 	free(mf->objects);
@@ -157,8 +156,7 @@ free_manifest(struct manifest *mf)
 
 #define READ_BYTE(var) \
   do { \
-		int ch_; \
-		ch_ = gzgetc(f); \
+		int ch_ = gzgetc(f); \
 		if (ch_ == EOF) { \
 			goto error; \
 		} \
@@ -167,11 +165,9 @@ free_manifest(struct manifest *mf)
 
 #define READ_INT(size, var) \
   do { \
-		int ch_; \
-		size_t i_; \
 		(var) = 0; \
-		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = gzgetc(f); \
+		for (size_t i_ = 0; i_ < (size); i_++) { \
+			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
 				goto error; \
 			} \
@@ -184,9 +180,8 @@ free_manifest(struct manifest *mf)
   do { \
 		char buf_[1024]; \
 		size_t i_; \
-		int ch_; \
 		for (i_ = 0; i_ < sizeof(buf_); i_++) { \
-			ch_ = gzgetc(f); \
+			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
 				goto error; \
 			} \
@@ -203,10 +198,8 @@ free_manifest(struct manifest *mf)
 
 #define READ_BYTES(n, var) \
   do { \
-		size_t i_; \
-		int ch_; \
-		for (i_ = 0; i_ < (n); i_++) { \
-			ch_ = gzgetc(f); \
+		for (size_t i_ = 0; i_ < (n); i_++) { \
+			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
 				goto error; \
 			} \
@@ -217,9 +210,7 @@ free_manifest(struct manifest *mf)
 static struct manifest *
 create_empty_manifest(void)
 {
-	struct manifest *mf;
-
-	mf = x_malloc(sizeof(*mf));
+	struct manifest *mf = x_malloc(sizeof(*mf));
 	mf->hash_size = 16;
 	mf->n_files = 0;
 	mf->files = NULL;
@@ -234,44 +225,39 @@ create_empty_manifest(void)
 static struct manifest *
 read_manifest(gzFile f)
 {
-	struct manifest *mf;
-	uint32_t i, j;
+	struct manifest *mf = create_empty_manifest();
+
 	uint32_t magic;
-
-	mf = create_empty_manifest();
-
 	READ_INT(4, magic);
 	if (magic != MAGIC) {
 		cc_log("Manifest file has bad magic number %u", magic);
-		free_manifest(mf);
-		return NULL;
+		goto error;
 	}
+
 	READ_BYTE(mf->version);
 	if (mf->version != MANIFEST_VERSION) {
 		cc_log("Manifest file has unknown version %u", mf->version);
-		free_manifest(mf);
-		return NULL;
+		goto error;
 	}
 
 	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
 		// Temporary measure until we support different hash algorithms.
 		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
-		free_manifest(mf);
-		return NULL;
+		goto error;
 	}
 
 	READ_INT(2, mf->reserved);
 
 	READ_INT(4, mf->n_files);
 	mf->files = x_calloc(mf->n_files, sizeof(*mf->files));
-	for (i = 0; i < mf->n_files; i++) {
+	for (uint32_t i = 0; i < mf->n_files; i++) {
 		READ_STR(mf->files[i]);
 	}
 
 	READ_INT(4, mf->n_file_infos);
 	mf->file_infos = x_calloc(mf->n_file_infos, sizeof(*mf->file_infos));
-	for (i = 0; i < mf->n_file_infos; i++) {
+	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		READ_INT(4, mf->file_infos[i].index);
 		READ_BYTES(mf->hash_size, mf->file_infos[i].hash);
 		READ_INT(4, mf->file_infos[i].size);
@@ -281,12 +267,12 @@ read_manifest(gzFile f)
 
 	READ_INT(4, mf->n_objects);
 	mf->objects = x_calloc(mf->n_objects, sizeof(*mf->objects));
-	for (i = 0; i < mf->n_objects; i++) {
+	for (uint32_t i = 0; i < mf->n_objects; i++) {
 		READ_INT(4, mf->objects[i].n_file_info_indexes);
 		mf->objects[i].file_info_indexes =
 		  x_calloc(mf->objects[i].n_file_info_indexes,
 		           sizeof(*mf->objects[i].file_info_indexes));
-		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
+		for (uint32_t j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		READ_BYTES(mf->hash_size, mf->objects[i].hash.hash);
@@ -333,20 +319,18 @@ error:
 static int
 write_manifest(gzFile f, const struct manifest *mf)
 {
-	uint32_t i, j;
-
 	WRITE_INT(4, MAGIC);
 	WRITE_INT(1, MANIFEST_VERSION);
 	WRITE_INT(1, 16);
 	WRITE_INT(2, 0);
 
 	WRITE_INT(4, mf->n_files);
-	for (i = 0; i < mf->n_files; i++) {
+	for (uint32_t i = 0; i < mf->n_files; i++) {
 		WRITE_STR(mf->files[i]);
 	}
 
 	WRITE_INT(4, mf->n_file_infos);
-	for (i = 0; i < mf->n_file_infos; i++) {
+	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		WRITE_INT(4, mf->file_infos[i].index);
 		WRITE_BYTES(mf->hash_size, mf->file_infos[i].hash);
 		WRITE_INT(4, mf->file_infos[i].size);
@@ -355,9 +339,9 @@ write_manifest(gzFile f, const struct manifest *mf)
 	}
 
 	WRITE_INT(4, mf->n_objects);
-	for (i = 0; i < mf->n_objects; i++) {
+	for (uint32_t i = 0; i < mf->n_objects; i++) {
 		WRITE_INT(4, mf->objects[i].n_file_info_indexes);
-		for (j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
+		for (uint32_t j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			WRITE_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		WRITE_BYTES(mf->hash_size, mf->objects[i].hash.hash);
@@ -375,12 +359,7 @@ static int
 verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
               struct hashtable *stated_files, struct hashtable *hashed_files)
 {
-	uint32_t i;
-	struct file_hash *actual;
-	struct mdfour hash;
-	int result;
-
-	for (i = 0; i < obj->n_file_info_indexes; i++) {
+	for (uint32_t i = 0; i < obj->n_file_info_indexes; i++) {
 		struct file_info *fi = &mf->file_infos[obj->file_info_indexes[i]];
 		char *path = mf->files[fi->index];
 		struct file_stats *st = hashtable_search(stated_files, path);
@@ -411,20 +390,19 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			}
 		}
 
-		actual = hashtable_search(hashed_files, path);
+		struct file_hash *actual = hashtable_search(hashed_files, path);
 		if (!actual) {
-			actual = x_malloc(sizeof(*actual));
+			struct mdfour hash;
 			hash_start(&hash);
-			result = hash_source_code_file(conf, &hash, path);
+			int result = hash_source_code_file(conf, &hash, path);
 			if (result & HASH_SOURCE_CODE_ERROR) {
 				cc_log("Failed hashing %s", path);
-				free(actual);
 				return 0;
 			}
 			if (result & HASH_SOURCE_CODE_FOUND_TIME) {
-				free(actual);
 				return 0;
 			}
+			actual = x_malloc(sizeof(*actual));
 			hash_result_as_bytes(&hash, actual->hash);
 			actual->size = hash.totalN;
 			hashtable_insert(hashed_files, x_strdup(path), actual);
@@ -441,13 +419,10 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 static struct hashtable *
 create_string_index_map(char **strings, uint32_t len)
 {
-	uint32_t i;
-	struct hashtable *h;
-	uint32_t *index;
-
-	h = create_hashtable(1000, hash_from_string, strings_equal);
-	for (i = 0; i < len; i++) {
-		index = x_malloc(sizeof(*index));
+	struct hashtable *h =
+	  create_hashtable(1000, hash_from_string, strings_equal);
+	for (uint32_t i = 0; i < len; i++) {
+		uint32_t *index = x_malloc(sizeof(*index));
 		*index = i;
 		hashtable_insert(h, x_strdup(strings[i]), index);
 	}
@@ -457,16 +432,12 @@ create_string_index_map(char **strings, uint32_t len)
 static struct hashtable *
 create_file_info_index_map(struct file_info *infos, uint32_t len)
 {
-	uint32_t i;
-	struct hashtable *h;
-	struct file_info *fi;
-	uint32_t *index;
-
-	h = create_hashtable(1000, hash_from_file_info, file_infos_equal);
-	for (i = 0; i < len; i++) {
-		fi = x_malloc(sizeof(*fi));
+	struct hashtable *h =
+	  create_hashtable(1000, hash_from_file_info, file_infos_equal);
+	for (uint32_t i = 0; i < len; i++) {
+		struct file_info *fi = x_malloc(sizeof(*fi));
 		*fi = infos[i];
-		index = x_malloc(sizeof(*index));
+		uint32_t *index = x_malloc(sizeof(*index));
 		*index = i;
 		hashtable_insert(h, fi, index);
 	}
@@ -477,19 +448,15 @@ static uint32_t
 get_include_file_index(struct manifest *mf, char *path,
                        struct hashtable *mf_files)
 {
-	uint32_t *index;
-	uint32_t n;
-
-	index = hashtable_search(mf_files, path);
+	uint32_t *index = hashtable_search(mf_files, path);
 	if (index) {
 		return *index;
 	}
 
-	n = mf->n_files;
+	uint32_t n = mf->n_files;
 	mf->files = x_realloc(mf->files, (n + 1) * sizeof(*mf->files));
 	mf->n_files++;
 	mf->files[n] = x_strdup(path);
-
 	return n;
 }
 
@@ -501,10 +468,6 @@ get_file_hash_index(struct manifest *mf,
                     struct hashtable *mf_file_infos)
 {
 	struct file_info fi;
-	uint32_t *fi_index;
-	uint32_t n;
-	struct stat file_stat;
-
 	fi.index = get_include_file_index(mf, path, mf_files);
 	memcpy(fi.hash, file_hash->hash, sizeof(fi.hash));
 	fi.size = file_hash->size;
@@ -516,6 +479,7 @@ get_file_hash_index(struct manifest *mf,
 	// st->ctime may be 0, so we have to check time_of_compilation against
 	// MAX(mtime, ctime).
 
+	struct stat file_stat;
 	if (stat(path, &file_stat) != -1
 	    && time_of_compilation > MAX(file_stat.st_mtime, file_stat.st_ctime)) {
 		fi.mtime = file_stat.st_mtime;
@@ -525,16 +489,15 @@ get_file_hash_index(struct manifest *mf,
 		fi.ctime = -1;
 	}
 
-	fi_index = hashtable_search(mf_file_infos, &fi);
+	uint32_t *fi_index = hashtable_search(mf_file_infos, &fi);
 	if (fi_index) {
 		return *fi_index;
 	}
 
-	n = mf->n_file_infos;
+	uint32_t n = mf->n_file_infos;
 	mf->file_infos = x_realloc(mf->file_infos, (n + 1) * sizeof(*mf->file_infos));
 	mf->n_file_infos++;
 	mf->file_infos[n] = fi;
-
 	return n;
 }
 
@@ -542,19 +505,18 @@ static void
 add_file_info_indexes(uint32_t *indexes, uint32_t size,
                       struct manifest *mf, struct hashtable *included_files)
 {
-	struct hashtable_itr *iter;
-	uint32_t i;
-	struct hashtable *mf_files; // path --> index
-	struct hashtable *mf_file_infos; // struct file_info --> index
-
 	if (size == 0) {
 		return;
 	}
 
-	mf_files = create_string_index_map(mf->files, mf->n_files);
-	mf_file_infos = create_file_info_index_map(mf->file_infos, mf->n_file_infos);
-	iter = hashtable_iterator(included_files);
-	i = 0;
+	// path --> index
+	struct hashtable *mf_files =
+	  create_string_index_map(mf->files, mf->n_files);
+	// struct file_info --> index
+	struct hashtable *mf_file_infos =
+	  create_file_info_index_map(mf->file_infos, mf->n_file_infos);
+	struct hashtable_itr *iter = hashtable_iterator(included_files);
+	uint32_t i = 0;
 	do {
 		char *path = hashtable_iterator_key(iter);
 		struct file_hash *file_hash = hashtable_iterator_value(iter);
@@ -573,18 +535,15 @@ add_object_entry(struct manifest *mf,
                  struct file_hash *object_hash,
                  struct hashtable *included_files)
 {
-	struct object *obj;
-	uint32_t n;
-
-	n = mf->n_objects;
-	mf->objects = x_realloc(mf->objects, (n + 1) * sizeof(*mf->objects));
+	uint32_t n_objs = mf->n_objects;
+	mf->objects = x_realloc(mf->objects, (n_objs + 1) * sizeof(*mf->objects));
 	mf->n_objects++;
-	obj = &mf->objects[n];
+	struct object *obj = &mf->objects[n_objs];
 
-	n = hashtable_count(included_files);
-	obj->n_file_info_indexes = n;
-	obj->file_info_indexes = x_malloc(n * sizeof(*obj->file_info_indexes));
-	add_file_info_indexes(obj->file_info_indexes, n, mf, included_files);
+	uint32_t n_fii = hashtable_count(included_files);
+	obj->n_file_info_indexes = n_fii;
+	obj->file_info_indexes = x_malloc(n_fii * sizeof(*obj->file_info_indexes));
+	add_file_info_indexes(obj->file_info_indexes, n_fii, mf, included_files);
 	memcpy(obj->hash.hash, object_hash->hash, mf->hash_size);
 	obj->hash.size = object_hash->size;
 }
@@ -594,15 +553,13 @@ add_object_entry(struct manifest *mf,
 struct file_hash *
 manifest_get(struct conf *conf, const char *manifest_path)
 {
-	int fd;
 	gzFile f = NULL;
 	struct manifest *mf = NULL;
 	struct hashtable *hashed_files = NULL; // path --> struct file_hash
 	struct hashtable *stated_files = NULL; // path --> struct file_stats
-	uint32_t i;
 	struct file_hash *fh = NULL;
 
-	fd = open(manifest_path, O_RDONLY | O_BINARY);
+	int fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		// Cache miss.
 		cc_log("No such manifest file");
@@ -624,7 +581,7 @@ manifest_get(struct conf *conf, const char *manifest_path)
 	stated_files = create_hashtable(1000, hash_from_string, strings_equal);
 
 	// Check newest object first since it's a bit more likely to match.
-	for (i = mf->n_objects; i > 0; i--) {
+	for (uint32_t i = mf->n_objects; i > 0; i--) {
 		if (verify_object(conf, mf, &mf->objects[i - 1],
 		                  stated_files, hashed_files)) {
 			fh = x_malloc(sizeof(*fh));
@@ -656,8 +613,6 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
              struct hashtable *included_files)
 {
 	int ret = 0;
-	int fd1;
-	int fd2;
 	gzFile f2 = NULL;
 	struct manifest *mf = NULL;
 	char *tmp_file = NULL;
@@ -666,7 +621,7 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	// race between two processes will only result in one lost entry, which is
 	// not a big deal, and it's also very unlikely.
 
-	fd1 = open(manifest_path, O_RDONLY | O_BINARY);
+	int fd1 = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd1 == -1) {
 		// New file.
 		mf = create_empty_manifest();
@@ -712,7 +667,7 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 	}
 
 	tmp_file = format("%s.tmp", manifest_path);
-	fd2 = create_tmp_fd(&tmp_file);
+	int fd2 = create_tmp_fd(&tmp_file);
 	f2 = gzdopen(fd2, "wb");
 	if (!f2) {
 		cc_log("Failed to gzdopen %s", tmp_file);
@@ -751,12 +706,10 @@ bool
 manifest_dump(const char *manifest_path, FILE *stream)
 {
 	struct manifest *mf = NULL;
-	int fd;
 	gzFile f = NULL;
 	bool ret = false;
-	unsigned i, j;
 
-	fd = open(manifest_path, O_RDONLY | O_BINARY);
+	int fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		fprintf(stderr, "No such manifest file: %s\n", manifest_path);
 		goto out;
@@ -782,11 +735,11 @@ manifest_dump(const char *manifest_path, FILE *stream)
 	fprintf(stream, "Hash size: %u\n", (unsigned)mf->hash_size);
 	fprintf(stream, "Reserved field: %u\n", (unsigned)mf->reserved);
 	fprintf(stream, "File paths (%u):\n", (unsigned)mf->n_files);
-	for (i = 0; i < mf->n_files; ++i) {
+	for (unsigned i = 0; i < mf->n_files; ++i) {
 		fprintf(stream, "  %u: %s\n", i, mf->files[i]);
 	}
 	fprintf(stream, "File infos (%u):\n", (unsigned)mf->n_file_infos);
-	for (i = 0; i < mf->n_file_infos; ++i) {
+	for (unsigned i = 0; i < mf->n_file_infos; ++i) {
 		char *hash;
 		fprintf(stream, "  %u:\n", i);
 		fprintf(stream, "    Path index: %u\n", mf->file_infos[i].index);
@@ -798,11 +751,11 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		fprintf(stream, "    Ctime: %lld\n", (long long)mf->file_infos[i].ctime);
 	}
 	fprintf(stream, "Results (%u):\n", (unsigned)mf->n_objects);
-	for (i = 0; i < mf->n_objects; ++i) {
+	for (unsigned i = 0; i < mf->n_objects; ++i) {
 		char *hash;
 		fprintf(stream, "  %u:\n", i);
 		fprintf(stream, "    File info indexes:");
-		for (j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
+		for (unsigned j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
 			fprintf(stream, " %u", mf->objects[i].file_info_indexes[j]);
 		}
 		fprintf(stream, "\n");

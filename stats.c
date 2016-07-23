@@ -105,11 +105,9 @@ static void
 parse_stats(struct counters *counters, const char *buf)
 {
 	size_t i = 0;
-	const char *p;
-	char *p2;
-
-	p = buf;
+	const char *p = buf;
 	while (true) {
+		char *p2;
 		long val = strtol(p, &p2, 10);
 		if (p2 == p) {
 			break;
@@ -127,13 +125,9 @@ parse_stats(struct counters *counters, const char *buf)
 void
 stats_write(const char *path, struct counters *counters)
 {
-	size_t i;
-	char *tmp_file;
-	FILE *f;
-
-	tmp_file = format("%s.tmp", path);
-	f = create_tmp_file(&tmp_file, "wb");
-	for (i = 0; i < counters->size; i++) {
+	char *tmp_file = format("%s.tmp", path);
+	FILE *f = create_tmp_file(&tmp_file, "wb");
+	for (size_t i = 0; i < counters->size; i++) {
 		if (fprintf(f, "%u\n", counters->data[i]) < 0) {
 			fatal("Failed to write to %s", tmp_file);
 		}
@@ -176,11 +170,6 @@ stats_read(const char *sfile, struct counters *counters)
 void
 stats_flush(void)
 {
-	struct counters *counters;
-	bool need_cleanup = false;
-	bool should_flush = false;
-	int i;
-
 	assert(conf);
 
 	if (!conf->stats) {
@@ -191,7 +180,8 @@ stats_flush(void)
 		return;
 	}
 
-	for (i = 0; i < STATS_END; ++i) {
+	bool should_flush = false;
+	for (int i = 0; i < STATS_END; ++i) {
 		if (counter_updates->data[i] > 0) {
 			should_flush = true;
 			break;
@@ -214,16 +204,17 @@ stats_flush(void)
 	if (!lockfile_acquire(stats_file, lock_staleness_limit)) {
 		return;
 	}
-	counters = counters_init(STATS_END);
+
+	struct counters *counters = counters_init(STATS_END);
 	stats_read(stats_file, counters);
-	for (i = 0; i < STATS_END; ++i) {
+	for (int i = 0; i < STATS_END; ++i) {
 		counters->data[i] += counter_updates->data[i];
 	}
 	stats_write(stats_file, counters);
 	lockfile_release(stats_file);
 
 	if (!str_eq(conf->log_file, "")) {
-		for (i = 0; i < STATS_END; ++i) {
+		for (int i = 0; i < STATS_END; ++i) {
 			if (counter_updates->data[stats_info[i].stat] != 0
 			    && !(stats_info[i].flags & FLAG_NOZERO)) {
 				cc_log("Result: %s", stats_info[i].message);
@@ -231,6 +222,7 @@ stats_flush(void)
 		}
 	}
 
+	bool need_cleanup = false;
 	if (conf->max_files != 0
 	    && counters->data[STATS_NUMFILES] > conf->max_files / 16) {
 		need_cleanup = true;
@@ -270,16 +262,12 @@ stats_get_pending(enum stats stat)
 void
 stats_summary(struct conf *conf)
 {
-	int dir, i;
 	struct counters *counters = counters_init(STATS_END);
-	unsigned direct = 0, preprocessed = 0;
-	unsigned hit, miss, total;
-	double percent;
 
 	assert(conf);
 
 	// Add up the stats in each directory.
-	for (dir = -1; dir <= 0xF; dir++) {
+	for (int dir = -1; dir <= 0xF; dir++) {
 		char *fname;
 
 		if (dir == -1) {
@@ -299,7 +287,7 @@ stats_summary(struct conf *conf)
 	       secondary_config_path ? secondary_config_path : "");
 
 	// ...and display them.
-	for (i = 0; stats_info[i].message; i++) {
+	for (int i = 0; stats_info[i].message; i++) {
 		enum stats stat = stats_info[i].stat;
 
 		if (stats_info[i].flags & FLAG_NEVER) {
@@ -317,19 +305,17 @@ stats_summary(struct conf *conf)
 			printf("%8u\n", counters->data[stat]);
 		}
 
+		unsigned direct = 0;
+		unsigned preprocessed = 0;
 		if (stat == STATS_CACHEHIT_DIR) {
 			direct = counters->data[stat];
 		} else if (stat == STATS_CACHEHIT_CPP) {
 			preprocessed = counters->data[stat];
 		} else if (stat == STATS_TOCACHE) {
-			miss = counters->data[stat];
-			hit = direct + preprocessed;
-			total = hit + miss;
-			if (total > 0) {
-				percent = (100.0f * hit) / total;
-			} else {
-				percent = 0.0f;
-			}
+			unsigned miss = counters->data[stat];
+			unsigned hit = direct + preprocessed;
+			unsigned total = hit + miss;
+			double percent = total > 0 ? (100.0f * hit) / total : 0.0f;
 			printf("cache hit rate                    %6.2f %%\n", percent);
 		}
 	}
@@ -350,17 +336,13 @@ stats_summary(struct conf *conf)
 void
 stats_zero(void)
 {
-	int dir;
-	unsigned i;
-	char *fname;
-
 	assert(conf);
 
-	fname = format("%s/stats", conf->cache_dir);
+	char *fname = format("%s/stats", conf->cache_dir);
 	x_unlink(fname);
 	free(fname);
 
-	for (dir = 0; dir <= 0xF; dir++) {
+	for (int dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
 		struct stat st;
 		fname = format("%s/%1x/stats", conf->cache_dir, dir);
@@ -371,7 +353,7 @@ stats_zero(void)
 		}
 		if (lockfile_acquire(fname, lock_staleness_limit)) {
 			stats_read(fname, counters);
-			for (i = 0; stats_info[i].message; i++) {
+			for (unsigned i = 0; stats_info[i].message; i++) {
 				if (!(stats_info[i].flags & FLAG_NOZERO)) {
 					counters->data[stats_info[i].stat] = 0;
 				}
@@ -403,10 +385,7 @@ void
 stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 {
 	struct counters *counters = counters_init(STATS_END);
-	char *statsfile;
-
-	statsfile = format("%s/stats", dir);
-
+	char *statsfile = format("%s/stats", dir);
 	if (lockfile_acquire(statsfile, lock_staleness_limit)) {
 		stats_read(statsfile, counters);
 		counters->data[STATS_NUMFILES] = num_files;
@@ -423,10 +402,7 @@ void
 stats_add_cleanup(const char *dir, unsigned count)
 {
 	struct counters *counters = counters_init(STATS_END);
-	char *statsfile;
-
-	statsfile = format("%s/stats", dir);
-
+	char *statsfile = format("%s/stats", dir);
 	if (lockfile_acquire(statsfile, lock_staleness_limit)) {
 		stats_read(statsfile, counters);
 		counters->data[STATS_NUMCLEANUPS] += count;

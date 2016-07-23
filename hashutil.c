@@ -132,9 +132,6 @@ hash_source_code_string(
 int
 hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 {
-	char *data;
-	size_t size;
-
 	if (is_precompiled_header(path)) {
 		if (hash_file(hash, path)) {
 			return HASH_SOURCE_CODE_OK;
@@ -142,12 +139,12 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 			return HASH_SOURCE_CODE_ERROR;
 		}
 	} else {
-		int result;
-
+		char *data;
+		size_t size;
 		if (!read_file(path, 0, &data, &size)) {
 			return HASH_SOURCE_CODE_ERROR;
 		}
-		result = hash_source_code_string(conf, hash, data, size, path);
+		int result = hash_source_code_string(conf, hash, data, size, path);
 		free(data);
 		return result;
 	}
@@ -158,29 +155,13 @@ hash_command_output(struct mdfour *hash, const char *command,
                     const char *compiler)
 {
 #ifdef _WIN32
-	SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
-	HANDLE pipe_out[2];
-	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	DWORD exitcode;
-	bool cmd = false;
-	char *sh = NULL;
-	char *win32args;
-	char *path;
-	BOOL ret;
-	bool ok;
-	int fd;
-#else
-	pid_t pid;
-	int pipefd[2];
-#endif
-
-#ifdef _WIN32
 	// Trim leading space.
 	while (isspace(*command)) {
 		command++;
 	}
+
 	// Add "echo" command.
+	bool cmd;
 	if (str_startswith(command, "echo")) {
 		command = format("cmd.exe /c \"%s\"", command);
 		cmd = true;
@@ -190,11 +171,12 @@ hash_command_output(struct mdfour *hash, const char *command,
 		cmd = true;
 	} else {
 		command = x_strdup(command);
+		cmd = false;
 	}
 #endif
+
 	struct args *args = args_init_from_string(command);
-	int i;
-	for (i = 0; i < args->argc; i++) {
+	for (int i = 0; i < args->argc; i++) {
 		if (str_eq(args->argv[i], "%compiler%")) {
 			args_set(args, i, compiler);
 		}
@@ -202,31 +184,39 @@ hash_command_output(struct mdfour *hash, const char *command,
 	cc_log_argv("Executing compiler check command ", args->argv);
 
 #ifdef _WIN32
+	PROCESS_INFORMATION pi;
 	memset(&pi, 0x00, sizeof(pi));
+	STARTUPINFO si;
 	memset(&si, 0x00, sizeof(si));
 
-	path = find_executable(args->argv[0], NULL);
+	char *path = find_executable(args->argv[0], NULL);
 	if (!path) {
 		path = args->argv[0];
 	}
-	sh = win32getshell(path);
+	char *sh = win32getshell(path);
 	if (sh) {
 		path = sh;
 	}
 
 	si.cb = sizeof(STARTUPINFO);
+
+	HANDLE pipe_out[2];
+	SECURITY_ATTRIBUTES sa = { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
 	CreatePipe(&pipe_out[0], &pipe_out[1], &sa, 0);
 	SetHandleInformation(pipe_out[0], HANDLE_FLAG_INHERIT, 0);
 	si.hStdOutput = pipe_out[1];
 	si.hStdError = pipe_out[1];
 	si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
 	si.dwFlags = STARTF_USESTDHANDLES;
+
+	char *win32args;
 	if (!cmd) {
 		win32args = win32argvtos(sh, args->argv);
 	} else {
 		win32args = (char *)command;  // quoted
 	}
-	ret = CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+	BOOL ret =
+	  CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
@@ -237,13 +227,14 @@ hash_command_output(struct mdfour *hash, const char *command,
 		stats_update(STATS_COMPCHECK);
 		return false;
 	}
-	fd = _open_osfhandle((intptr_t) pipe_out[0], O_BINARY);
-	ok = hash_fd(hash, fd);
+	int fd = _open_osfhandle((intptr_t) pipe_out[0], O_BINARY);
+	bool ok = hash_fd(hash, fd);
 	if (!ok) {
 		cc_log("Error hashing compiler check command output: %s", strerror(errno));
 		stats_update(STATS_COMPCHECK);
 	}
 	WaitForSingleObject(pi.hProcess, INFINITE);
+	DWORD exitcode;
 	GetExitCodeProcess(pi.hProcess, &exitcode);
 	CloseHandle(pipe_out[0]);
 	CloseHandle(pi.hProcess);
@@ -255,10 +246,12 @@ hash_command_output(struct mdfour *hash, const char *command,
 	}
 	return ok;
 #else
+	int pipefd[2];
 	if (pipe(pipefd) == -1) {
 		fatal("pipe failed");
 	}
-	pid = fork();
+
+	pid_t pid = fork();
 	if (pid == -1) {
 		fatal("fork failed");
 	}
@@ -273,16 +266,16 @@ hash_command_output(struct mdfour *hash, const char *command,
 		return false; // Never reached.
 	} else {
 		// Parent.
-		int status;
-		bool ok;
 		args_free(args);
 		close(pipefd[1]);
-		ok = hash_fd(hash, pipefd[0]);
+		bool ok = hash_fd(hash, pipefd[0]);
 		if (!ok) {
 			cc_log("Error hashing compiler check command output: %s", strerror(errno));
 			stats_update(STATS_COMPCHECK);
 		}
 		close(pipefd[0]);
+
+		int status;
 		if (waitpid(pid, &status, 0) != pid) {
 			cc_log("waitpid failed");
 			return false;
@@ -301,11 +294,11 @@ bool
 hash_multicommand_output(struct mdfour *hash, const char *commands,
                          const char *compiler)
 {
-	char *command_string, *command, *p, *saveptr = NULL;
+	char *command_string = x_strdup(commands);
+	char *p = command_string;
+	char *command;
+	char *saveptr = NULL;
 	bool ok = true;
-
-	command_string = x_strdup(commands);
-	p = command_string;
 	while ((command = strtok_r(p, ";", &saveptr))) {
 		if (!hash_command_output(hash, command, compiler)) {
 			ok = false;

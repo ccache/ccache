@@ -242,18 +242,14 @@ static const char HASH_PREFIX[] = "3";
 static void
 add_prefix(struct args *args, char *prefix_command)
 {
-	char *e;
-	char *tok, *saveptr = NULL;
-	struct args *prefix;
-	int i;
-
 	if (str_eq(prefix_command, "")) {
 		return;
 	}
 
-	prefix = args_init(0, NULL);
-	e = x_strdup(prefix_command);
-	for (tok = strtok_r(e, " ", &saveptr);
+	struct args *prefix = args_init(0, NULL);
+	char *e = x_strdup(prefix_command);
+	char *saveptr = NULL;
+	for (char *tok = strtok_r(e, " ", &saveptr);
 	     tok;
 	     tok = strtok_r(NULL, " ", &saveptr)) {
 		char *p;
@@ -269,7 +265,7 @@ add_prefix(struct args *args, char *prefix_command)
 	free(e);
 
 	cc_log("Using command-line prefix %s", prefix_command);
-	for (i = prefix->argc; i != 0; i--) {
+	for (int i = prefix->argc; i != 0; i--) {
 		args_add_prefix(args, prefix->argv[i-1]);
 	}
 	args_free(prefix);
@@ -326,10 +322,8 @@ unblock_signals(void)
 static void
 add_pending_tmp_file(const char *path)
 {
-	struct pending_tmp_file *e;
-
 	block_signals();
-	e = x_malloc(sizeof(*e));
+	struct pending_tmp_file *e = x_malloc(sizeof(*e));
 	e->path = x_strdup(path);
 	e->next = pending_tmp_files;
 	pending_tmp_files = e;
@@ -425,11 +419,8 @@ set_up_signal_handlers(void)
 static void
 clean_up_internal_tempdir(void)
 {
-	DIR *dir;
-	struct dirent *entry;
-	struct stat st;
 	time_t now = time(NULL);
-
+	struct stat st;
 	if (x_stat(conf->cache_dir, &st) != 0 || st.st_mtime + 3600 >= now) {
 		// No cleanup needed.
 		return;
@@ -437,19 +428,18 @@ clean_up_internal_tempdir(void)
 
 	update_mtime(conf->cache_dir);
 
-	dir = opendir(temp_dir());
+	DIR *dir = opendir(temp_dir());
 	if (!dir) {
 		return;
 	}
 
+	struct dirent *entry;
 	while ((entry = readdir(dir))) {
-		char *path;
-
 		if (str_eq(entry->d_name, ".") || str_eq(entry->d_name, "..")) {
 			continue;
 		}
 
-		path = format("%s/%s", temp_dir(), entry->d_name);
+		char *path = format("%s/%s", temp_dir(), entry->d_name);
 		if (x_lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
 			tmp_unlink(path);
 		}
@@ -482,18 +472,15 @@ get_current_working_dir(void)
 static char *
 get_path_in_cache(const char *name, const char *suffix)
 {
-	unsigned i;
-	char *path;
-	char *result;
-
-	path = x_strdup(conf->cache_dir);
-	for (i = 0; i < conf->cache_dir_levels; ++i) {
+	char *path = x_strdup(conf->cache_dir);
+	for (unsigned i = 0; i < conf->cache_dir_levels; ++i) {
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
 		path = p;
 	}
 
-	result = format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
+	char *result =
+	  format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
 	free(path);
 	return result;
 }
@@ -504,21 +491,7 @@ get_path_in_cache(const char *name, const char *suffix)
 static void
 remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 {
-#ifdef _WIN32
-	DWORD attributes;
-#endif
-	struct mdfour fhash;
-	struct stat st;
-	char *source = NULL;
-	size_t size;
-	bool is_pch;
 	size_t path_len = strlen(path);
-	char *canonical;
-	size_t canonical_len;
-	char *ignore;
-	size_t ignore_len;
-	size_t i;
-
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		// Typically <built-in> or <command-line>.
 		goto ignore;
@@ -541,13 +514,14 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 #ifdef _WIN32
 	// stat fails on directories on win32.
-	attributes = GetFileAttributes(path);
+	DWORD attributes = GetFileAttributes(path);
 	if (attributes != INVALID_FILE_ATTRIBUTES &&
 	    attributes & FILE_ATTRIBUTE_DIRECTORY) {
 		goto ignore;
 	}
 #endif
 
+	struct stat st;
 	if (x_stat(path, &st) != 0) {
 		goto failure;
 	}
@@ -562,16 +536,16 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	}
 
 	// Canonicalize path for comparison; clang uses ./header.h.
-	canonical = path;
-	canonical_len = path_len;
+	char *canonical = path;
+	size_t canonical_len = path_len;
 	if (canonical[0] == '.' && canonical[1] == '/') {
 		canonical += 2;
 		canonical_len -= 2;
 	}
 
-	for (i = 0; i < ignore_headers_len; i++) {
-		ignore = ignore_headers[i];
-		ignore_len = strlen(ignore);
+	for (size_t i = 0; i < ignore_headers_len; i++) {
+		char *ignore = ignore_headers[i];
+		size_t ignore_len = strlen(ignore);
 		if (ignore_len > canonical_len) {
 			continue;
 		}
@@ -596,25 +570,25 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto failure;
 	}
 
+	struct mdfour fhash;
 	hash_start(&fhash);
 
-	is_pch = is_precompiled_header(path);
+	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
-		struct file_hash pch_hash;
 		if (!hash_file(&fhash, path)) {
 			goto failure;
 		}
+		struct file_hash pch_hash;
 		hash_result_as_bytes(&fhash, pch_hash.hash);
 		pch_hash.size = fhash.totalN;
 		hash_delimiter(cpp_hash, "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
+
 	if (conf->direct_mode) {
-		struct file_hash *h;
-
 		if (!is_pch) { // else: the file has already been hashed.
-			int result;
-
+			char *source = NULL;
+			size_t size;
 			if (st.st_size > 0) {
 				if (!read_file(path, st.st_size, &source, &size)) {
 					goto failure;
@@ -624,14 +598,15 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 				size = 0;
 			}
 
-			result = hash_source_code_string(conf, &fhash, source, size, path);
+			int result = hash_source_code_string(conf, &fhash, source, size, path);
+			free(source);
 			if (result & HASH_SOURCE_CODE_ERROR
 			    || result & HASH_SOURCE_CODE_FOUND_TIME) {
 				goto failure;
 			}
 		}
 
-		h = x_malloc(sizeof(*h));
+		struct file_hash *h = x_malloc(sizeof(*h));
 		hash_result_as_bytes(&fhash, h->hash);
 		h->size = fhash.totalN;
 		hashtable_insert(included_files, path, h);
@@ -639,7 +614,6 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		free(path);
 	}
 
-	free(source);
 	return;
 
 failure:
@@ -650,7 +624,6 @@ failure:
 	// Fall through.
 ignore:
 	free(path);
-	free(source);
 }
 
 // Make a relative path from current working directory to path if path is under
@@ -658,9 +631,6 @@ ignore:
 static char *
 make_relative_path(char *path)
 {
-	char *canon_path, *path_suffix = NULL;
-	struct stat st;
-
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
 	}
@@ -675,10 +645,11 @@ make_relative_path(char *path)
 	// dirname(path) and assemble the path afterwards. We only bother to try
 	// canonicalizing one of these two paths since a compiler path argument
 	// typically only makes sense if path or dirname(path) exists.
+	char *path_suffix = NULL;
+	struct stat st;
 	if (stat(path, &st) != 0) {
 		// path doesn't exist.
-		char *dir, *p;
-		dir = dirname(path);
+		char *dir = dirname(path);
 		if (stat(dir, &st) != 0) {
 			// And neither does its parent directory, so no action to take.
 			free(dir);
@@ -686,16 +657,15 @@ make_relative_path(char *path)
 		}
 		free(dir);
 		path_suffix = basename(path);
-		p = path;
+		char *p = path;
 		path = dirname(path);
 		free(p);
 	}
 
-	canon_path = x_realpath(path);
+	char *canon_path = x_realpath(path);
 	if (canon_path) {
-		char *relpath;
 		free(path);
-		relpath = get_relative_path(get_current_working_dir(), canon_path);
+		char *relpath = get_relative_path(get_current_working_dir(), canon_path);
 		free(canon_path);
 		if (path_suffix) {
 			path = format("%s/%s", relpath, path_suffix);
@@ -723,9 +693,7 @@ static bool
 process_preprocessed_file(struct mdfour *hash, const char *path)
 {
 	char *data;
-	char *p, *q, *r, *end;
 	size_t size;
-
 	if (!read_file(path, 0, &data, &size)) {
 		return false;
 	}
@@ -750,9 +718,10 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	// Bytes between p and q are pending to be hashed.
-	end = data + size;
-	p = data;
-	q = data;
+	char *p = data;
+	char *q = data;
+	char *end = data + size;
+
 	// There must be at least 7 characters (# 1 "x") left to potentially find an
 	// include file path.
 	while (q < end - 7) {
@@ -786,9 +755,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		        || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
 		            && q[5] == ' '))
 		    && (q == data || q[-1] == '\n')) {
-			char *path;
-			bool system;
-
 			// Workarounds for preprocessor linemarker bugs in GCC version 6.
 			if (q[2] == '3') {
 				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
@@ -833,21 +799,21 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				q++;
 			}
 			// Look for preprocessor flags, after the "filename".
-			system = false;
-			r = q + 1;
+			bool system = false;
+			char *r = q + 1;
 			while (r < end && *r != '\n') {
-				if (*r == '3') { // system header
+				if (*r == '3') { // System header.
 					system = true;
 				}
 				r++;
 			}
 			// p and q span the include file path.
-			path = x_strndup(p, q - p);
+			char *inc_path = x_strndup(p, q - p);
 			if (!has_absolute_include_headers) {
-				has_absolute_include_headers = is_absolute_path(path);
+				has_absolute_include_headers = is_absolute_path(inc_path);
 			}
-			path = make_relative_path(path);
-			remember_include_file(path, hash, system);
+			inc_path = make_relative_path(inc_path);
+			remember_include_file(inc_path, hash, system);
 			p = r;
 		} else {
 			q++;
@@ -873,13 +839,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 static void
 use_relative_paths_in_depfile(const char *depfile)
 {
-	FILE *f, *tmpf;
-	char buf[10000];
-	char *tmp_file;
-	char *relpath;
-	bool result = false;
-	char *token, *saveptr;
-
 	if (str_eq(conf->base_dir, "")) {
 		cc_log("Base dir not set, skip using relative paths");
 		return; // nothing to do
@@ -890,24 +849,30 @@ use_relative_paths_in_depfile(const char *depfile)
 		return; // nothing to do
 	}
 
+	FILE *f;
 	f = fopen(depfile, "r");
 	if (!f) {
 		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
 		return;
 	}
-	tmp_file = format("%s.tmp", depfile);
-	tmpf = create_tmp_file(&tmp_file, "w");
 
+	char *tmp_file = format("%s.tmp", depfile);
+	FILE *tmpf = create_tmp_file(&tmp_file, "w");
+
+	bool result = false;
+	char buf[10000];
 	while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
-		token = strtok_r(buf, " \t", &saveptr);
+		char *saveptr;
+		char *token = strtok_r(buf, " \t", &saveptr);
 		while (token) {
+			char *relpath;
 			if (is_absolute_path(token) && str_startswith(token, conf->base_dir)) {
 				relpath = make_relative_path(x_strdup(token));
 				result = true;
 			} else {
 				relpath = token;
 			}
-			if (token != buf) { // this is a dependency file
+			if (token != buf) { // This is a dependency file.
 				fputc(' ', tmpf);
 			}
 			fputs(relpath, tmpf);
@@ -954,16 +919,13 @@ out:
 static void
 put_file_in_cache(const char *source, const char *dest)
 {
-	int ret;
-	struct stat st;
-	bool do_link = conf->hard_link && !conf->compression;
-
 	assert(!conf->read_only);
 	assert(!conf->read_only_direct);
 
+	bool do_link = conf->hard_link && !conf->compression;
 	if (do_link) {
 		x_unlink(dest);
-		ret = link(source, dest);
+		int ret = link(source, dest);
 		if (ret != 0) {
 			cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
 			cc_log("Falling back to copying");
@@ -971,7 +933,7 @@ put_file_in_cache(const char *source, const char *dest)
 		}
 	}
 	if (!do_link) {
-		ret = copy_file(
+		int ret = copy_file(
 		  source, dest, conf->compression ? conf->compression_level : 0);
 		if (ret != 0) {
 			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
@@ -979,7 +941,10 @@ put_file_in_cache(const char *source, const char *dest)
 			failed();
 		}
 	}
+
 	cc_log("Stored in cache: %s -> %s", source, dest);
+
+	struct stat st;
 	if (x_stat(dest, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
@@ -993,7 +958,6 @@ get_file_from_cache(const char *source, const char *dest)
 {
 	int ret;
 	bool do_link = conf->hard_link && !file_is_compressed(source);
-
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
@@ -1042,9 +1006,6 @@ send_cached_stderr(void)
 // Create or update the manifest file.
 void update_manifest_file(void)
 {
-	struct stat st;
-	size_t old_size = 0; // in bytes
-
 	if (!conf->direct_mode
 	    || !included_files
 	    || conf->read_only
@@ -1052,6 +1013,8 @@ void update_manifest_file(void)
 		return;
 	}
 
+	struct stat st;
+	size_t old_size = 0; // in bytes
 	if (stat(manifest_path, &st) == 0) {
 		old_size = file_size(&st);
 	}
@@ -1070,16 +1033,12 @@ void update_manifest_file(void)
 static void
 to_cache(struct args *args)
 {
-	char *tmp_stdout, *tmp_stderr, *tmp_cov;
-	char *tmp_dwo = NULL;
-	struct stat st;
-	int status, tmp_stdout_fd, tmp_stderr_fd;
+	char *tmp_stdout = format("%s.tmp.stdout", cached_obj);
+	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
+	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
-	tmp_stdout = format("%s.tmp.stdout", cached_obj);
-	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-	tmp_stderr = format("%s.tmp.stderr", cached_obj);
-	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
+	char *tmp_cov;
 	if (generating_coverage) {
 		char *tmp_aux;
 		// GCC has some funny rule about max extension length.
@@ -1097,6 +1056,7 @@ to_cache(struct args *args)
 	// GCC (at least 4.8 and 4.9) forms the .dwo file name by removing everything
 	// after (and including) the last "." from the object file name and then
 	// appending ".dwo".
+	char *tmp_dwo = NULL;
 	if (using_split_dwarf) {
 		char *base_name = remove_extension(output_obj);
 		tmp_dwo = format("%s.dwo", base_name);
@@ -1124,9 +1084,11 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+	int status =
+	  execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
 
+	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
 		// The stdout file was removed - cleanup in progress? Better bail out.
 		stats_update(STATS_MISSING);
@@ -1154,32 +1116,32 @@ to_cache(struct args *args)
 	// Merge stderr from the preprocessor (if any) and stderr from the real
 	// compiler into tmp_stderr.
 	if (cpp_stderr) {
-		int fd_cpp_stderr;
-		int fd_real_stderr;
-		int fd_result;
-		char *tmp_stderr2;
-
-		tmp_stderr2 = format("%s.2", tmp_stderr);
+		char *tmp_stderr2 = format("%s.2", tmp_stderr);
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
 			       strerror(errno));
 			failed();
 		}
-		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
+
+		int fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 		if (fd_cpp_stderr == -1) {
 			cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
 			failed();
 		}
-		fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
+
+		int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
 		if (fd_real_stderr == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
 			failed();
 		}
-		fd_result = open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+
+		int fd_result =
+		  open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_result == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
 			failed();
 		}
+
 		copy_fd(fd_cpp_stderr, fd_result);
 		copy_fd(fd_real_stderr, fd_result);
 		close(fd_cpp_stderr);
@@ -1190,11 +1152,10 @@ to_cache(struct args *args)
 	}
 
 	if (status != 0) {
-		int fd;
 		cc_log("Compiler gave exit status %d", status);
 		stats_update(STATS_STATUS);
 
-		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
+		int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
 			// We can output stderr immediately instead of rerunning the compiler.
 			copy_fd(fd, 2);
@@ -1342,29 +1303,14 @@ to_cache(struct args *args)
 static struct file_hash *
 get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 {
-	char *input_base;
-	char *tmp;
-	char *path_stdout, *path_stderr;
-	int status, path_stderr_fd;
-	struct file_hash *result;
-
-	// Limit the basename to 10 characters in order to cope with filesystem with
-	// small maximum filename length limits.
-	input_base = basename(input_file);
-	tmp = strchr(input_base, '.');
-	if (tmp) {
-		*tmp = 0;
-	}
-	if (strlen(input_base) > 10) {
-		input_base[10] = 0;
-	}
-
-	path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
-	path_stderr_fd = create_tmp_fd(&path_stderr);
-	add_pending_tmp_file(path_stderr);
-
 	time_of_compilation = time(NULL);
 
+	char *path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+	int path_stderr_fd = create_tmp_fd(&path_stderr);
+	add_pending_tmp_file(path_stderr);
+
+	char *path_stdout;
+	int status;
 	if (direct_i_file) {
 		// We are compiling a .i or .ii file - that means we can skip the cpp stage
 		// and directly form the correct i_tmpfile.
@@ -1372,9 +1318,20 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		status = 0;
 	} else {
 		// Run cpp on the input file to obtain the .i.
-		int path_stdout_fd;
+
+		// Limit the basename to 10 characters in order to cope with filesystem with
+		// small maximum filename length limits.
+		char *input_base = basename(input_file);
+		char *tmp = strchr(input_base, '.');
+		if (tmp) {
+			*tmp = 0;
+		}
+		if (strlen(input_base) > 10) {
+			input_base[10] = 0;
+		}
+
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
-		path_stdout_fd = create_tmp_fd(&path_stdout);
+		int path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
 		int args_added = 2;
@@ -1441,7 +1398,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_string(hash, "false");
 	}
 
-	result = x_malloc(sizeof(*result));
+	struct file_hash *result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
 	result->size = hash->totalN;
 	return result;
@@ -1450,8 +1407,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 static void
 update_cached_result_globals(struct file_hash *hash)
 {
-	char *object_name;
-	object_name = format_hash_as_string(hash->hash, hash->size);
+	char *object_name = format_hash_as_string(hash->hash, hash->size);
 	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
@@ -1502,18 +1458,18 @@ static bool
 compiler_is_clang(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool is = strstr(name, "clang") != NULL;
+	bool result = strstr(name, "clang") != NULL;
 	free(name);
-	return is;
+	return result;
 }
 
 static bool
 compiler_is_gcc(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool is = strstr(name, "gcc") || strstr(name, "g++");
+	bool result = strstr(name, "gcc") || strstr(name, "g++");
 	free(name);
-	return is;
+	return result;
 }
 
 // Update a hash sum with information common for the direct and preprocessor
@@ -1521,14 +1477,6 @@ compiler_is_gcc(struct args *args)
 static void
 calculate_common_hash(struct args *args, struct mdfour *hash)
 {
-	struct stat st;
-	char *p;
-	const char *full_path;
-#ifdef _WIN32
-	const char *ext;
-	char full_path_win_ext[MAX_PATH + 1] = {0};
-#endif
-
 	hash_string(hash, HASH_PREFIX);
 
 	// We have to hash the extension, as a .i file isn't treated the same by the
@@ -1537,14 +1485,16 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_string(hash, conf->cpp_extension);
 
 #ifdef _WIN32
-	ext = strrchr(args->argv[0], '.');
+	const char *ext = strrchr(args->argv[0], '.');
+	char full_path_win_ext[MAX_PATH + 1] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext,
 	                              args->argv[0]);
-	full_path = full_path_win_ext;
+	const char *full_path = full_path_win_ext;
 #else
-	full_path = args->argv[0];
+	const char *full_path = args->argv[0];
 #endif
 
+	struct stat st;
 	if (x_stat(full_path, &st) != 0) {
 		stats_update(STATS_COMPILER);
 		failed();
@@ -1556,7 +1506,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Also hash the compiler name as some compilers use hard links and behave
 	// differently depending on the real name.
 	hash_delimiter(hash, "cc_name");
-	p = basename(args->argv[0]);
+	char *p = basename(args->argv[0]);
 	hash_string(hash, p);
 	free(p);
 
@@ -1567,12 +1517,11 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			char *map = debug_prefix_map;
 			char *sep = strchr(map, '=');
 			if (sep) {
-				char *dir, *old, *new;
-				old = x_strndup(map, sep - map);
-				new = x_strdup(sep + 1);
+				char *old = x_strndup(map, sep - map);
+				char *new = x_strdup(sep + 1);
 				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
 				if (str_startswith(cwd, old)) {
-					dir = format("%s%s", new, cwd + strlen(old));
+					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
 					cwd = dir;
 				}
@@ -1598,11 +1547,10 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			dir = real_dir;
 		}
 		if (dir) {
-			char *gcda_path;
 			char *base_name = basename(output_obj);
 			p = remove_extension(base_name);
 			free(base_name);
-			gcda_path = format("%s/%s.gcda", dir, p);
+			char *gcda_path = format("%s/%s.gcda", dir, p);
 			cc_log("Hashing coverage path %s", gcda_path);
 			free(p);
 			hash_delimiter(hash, "gcda");
@@ -1612,9 +1560,10 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	}
 
 	if (!str_eq(conf->extra_files_to_hash, "")) {
-		char *path, *p, *q, *saveptr = NULL;
-		p = x_strdup(conf->extra_files_to_hash);
-		q = p;
+		char *p = x_strdup(conf->extra_files_to_hash);
+		char *q = p;
+		char *path;
+		char *saveptr = NULL;
 		while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
 			cc_log("Hashing extra file %s", path);
 			hash_delimiter(hash, "extrafile");
@@ -1643,18 +1592,13 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 static struct file_hash *
 calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 {
-	int i;
-	struct stat st;
-	struct file_hash *object_hash = NULL;
-	char *p;
-
 	if (direct_mode) {
 		hash_delimiter(hash, "manifest version");
 		hash_int(hash, MANIFEST_VERSION);
 	}
 
 	// First the arguments.
-	for (i = 1; i < args->argc; i++) {
+	for (int i = 1; i < args->argc; i++) {
 		// -L doesn't affect compilation.
 		if (i < args->argc-1 && str_eq(args->argv[i], "-L")) {
 			i++;
@@ -1705,11 +1649,10 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 					continue;
 				}
 			} else if (str_startswith(args->argv[i], "-MF")) {
-				bool separate_argument = (strlen(args->argv[i]) == 3);
-
 				// In either case, hash the "-MF" part.
 				hash_string_length(hash, args->argv[i], 3);
 
+				bool separate_argument = (strlen(args->argv[i]) == 3);
 				if (separate_argument) {
 					// Next argument is dependency name, so skip it.
 					i++;
@@ -1718,12 +1661,14 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			}
 		}
 
-		p = NULL;
+		char *p = NULL;
 		if (str_startswith(args->argv[i], "-specs=")) {
 			p = args->argv[i] + 7;
 		} else if (str_startswith(args->argv[i], "--specs=")) {
 			p = args->argv[i] + 8;
 		}
+
+		struct stat st;
 		if (p && x_stat(p, &st) == 0) {
 			// If given an explicit specs file, then hash that file, but don't
 			// include the path to it in the hash.
@@ -1786,13 +1731,11 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	if (profile_use) {
 		// Calculate gcda name.
-		char *gcda_name;
-		char *base_name;
-		base_name = remove_extension(output_obj);
 		if (!profile_dir) {
 			profile_dir = get_cwd();
 		}
-		gcda_name = format("%s/%s.gcda", profile_dir, base_name);
+		char *base_name = remove_extension(output_obj);
+		char *gcda_name = format("%s/%s.gcda", profile_dir, base_name);
 		cc_log("Adding profile data %s to our hash", gcda_name);
 		// Add the gcda to our hash.
 		hash_delimiter(hash, "-fprofile-use");
@@ -1801,12 +1744,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		free(gcda_name);
 	}
 
+	struct file_hash *object_hash = NULL;
 	if (direct_mode) {
-		char *manifest_name;
-		int result;
-
 		// Hash environment variables that affect the preprocessor output.
-		const char **p;
 		const char *envvars[] = {
 			"CPATH",
 			"C_INCLUDE_PATH",
@@ -1815,7 +1755,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			"OBJCPLUS_INCLUDE_PATH", // clang
 			NULL
 		};
-		for (p = envvars; *p; ++p) {
+		for (const char **p = envvars; *p; ++p) {
 			char *v = getenv(*p);
 			if (v) {
 				hash_delimiter(hash, *p);
@@ -1831,7 +1771,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		}
 
 		hash_delimiter(hash, "sourcecode");
-		result = hash_source_code_file(conf, hash, input_file);
+		int result = hash_source_code_file(conf, hash, input_file);
 		if (result & HASH_SOURCE_CODE_ERROR) {
 			failed();
 		}
@@ -1840,7 +1780,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
-		manifest_name = hash_result(hash);
+		char *manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s", manifest_path);
@@ -1855,9 +1795,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			object_hash = get_object_name_from_cpp(args, hash);
 			cc_log("Got object file hash from preprocessor");
 		} else {
-			size_t i;
 			args_add(args, "-arch");
-			for (i = 0; i < arch_args_size; ++i) {
+			for (size_t i = 0; i < arch_args_size; ++i) {
 				args_add(args, arch_args[i]);
 				object_hash = get_object_name_from_cpp(args, hash);
 				cc_log("Got object file hash from preprocessor with -arch %s",
@@ -1882,14 +1821,12 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 static void
 from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
-	struct stat st;
-	bool produce_dep_file = false;
-
 	// The user might be disabling cache hits.
 	if (conf->recache) {
 		return;
 	}
 
+	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
 		return;
@@ -1927,7 +1864,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
-	produce_dep_file = generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+	bool produce_dep_file =
+	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
 	// If the dependency file should be in the cache, check that it is.
 	if (produce_dep_file && stat(cached_dep, &st) != 0) {
@@ -2005,12 +1943,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 static void
 find_compiler(char **argv)
 {
-	char *base;
-	char *compiler;
-
-	base = basename(argv[0]);
-
 	// We might be being invoked like "ccache gcc -c foo.c".
+	char *base = basename(argv[0]);
 	if (same_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
@@ -2026,9 +1960,7 @@ find_compiler(char **argv)
 		base = conf->compiler;
 	}
 
-	compiler = find_executable(base, MYNAME);
-
-	// Can't find the compiler!
+	char *compiler = find_executable(base, MYNAME);
 	if (!compiler) {
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
@@ -2058,10 +1990,10 @@ color_output_possible(void)
 static bool
 detect_pch(const char *option, const char *arg, bool *found_pch)
 {
-	char *pch_file = NULL;
 	struct stat st;
 
 	// Try to be smart about detecting precompiled headers.
+	char *pch_file = NULL;
 	if (str_eq(option, "-include-pch") || str_eq(option, "-include-pth")) {
 		if (stat(arg, &st) == 0) {
 			cc_log("Detected use of precompiled header: %s", arg);
@@ -2111,8 +2043,6 @@ bool
 cc_process_args(struct args *args, struct args **preprocessor_args,
                 struct args **compiler_args)
 {
-	int i;
-	size_t j;
 	bool found_c_opt = false;
 	bool found_S_opt = false;
 	bool found_pch = false;
@@ -2121,7 +2051,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	const char *file_language;            // As deduced from file extension.
 	const char *actual_language;          // Language to actually use.
 	const char *input_charset = NULL;
-	struct stat st;
 	// Is the dependency makefile name overridden with -MF?
 	bool dependency_filename_specified = false;
 	// Is the dependency makefile target name specified with -MT or -MQ?
@@ -2129,37 +2058,30 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// expanded_args is a copy of the original arguments given to the compiler
 	// but with arguments from @file and similar constructs expanded. It's only
 	// used as a temporary data structure to loop over.
-	struct args *expanded_args;
+	struct args *expanded_args = args_copy(args);
 	// stripped_args essentially contains all original arguments except those
 	// that only should be passed to the preprocessor (if run_second_cpp is
 	// false) and except dependency options (like -MD and friends).
-	struct args *stripped_args;
+	struct args *stripped_args = args_init(0, NULL);
 	// cpp_args contains arguments that were not added to stripped_args, i.e.
 	// those that should only be passed to the preprocessor if run_second_cpp is
 	// false. If run_second_cpp is true, they will be passed to the compiler as
 	// well.
-	struct args *cpp_args;
+	struct args *cpp_args = args_init(0, NULL);
 	// dep_args contains dependency options like -MD. They only passed to the
 	// preprocessor, never to the compiler.
-	struct args *dep_args;
-	int argc;
-	char **argv;
-	bool result = true;
+	struct args *dep_args = args_init(0, NULL);
+
 	bool found_color_diagnostics = false;
 	int debug_level = 0;
 	const char *debug_argument = NULL;
 
-	expanded_args = args_copy(args);
-	stripped_args = args_init(0, NULL);
-	dep_args = args_init(0, NULL);
-	cpp_args = args_init(0, NULL);
-
-	argc = expanded_args->argc;
-	argv = expanded_args->argv;
-
+	int argc = expanded_args->argc;
+	char **argv = expanded_args->argv;
 	args_add(stripped_args, argv[0]);
 
-	for (i = 1; i < argc; i++) {
+	bool result = true;
+	for (int i = 1; i < argc; i++) {
 		// The user knows best: just swallow the next arg.
 		if (str_eq(argv[i], "--ccache-skip")) {
 			i++;
@@ -2182,12 +2104,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Handle "@file" argument.
 		if (str_startswith(argv[i], "@") || str_startswith(argv[i], "-@")) {
 			char *argpath = argv[i] + 1;
-			struct args *file_args;
 
 			if (argpath[-1] == '-') {
 				++argpath;
 			}
-			file_args = args_init_from_gcc_atfile(argpath);
+			struct args *file_args = args_init_from_gcc_atfile(argpath);
 			if (!file_args) {
 				cc_log("Couldn't read arg file %s", argpath);
 				stats_update(STATS_ARGS);
@@ -2244,8 +2165,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// These are always too hard.
-		if (compopt_too_hard(argv[i])
-		    || str_startswith(argv[i], "-fdump-")) {
+		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
 			stats_update(STATS_UNSUPPORTED);
 			result = false;
@@ -2253,11 +2173,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// These are too hard in direct mode.
-		if (conf->direct_mode) {
-			if (compopt_too_hard_for_direct_mode(argv[i])) {
-				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-				conf->direct_mode = false;
-			}
+		if (conf->direct_mode && compopt_too_hard_for_direct_mode(argv[i])) {
+			cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
+			conf->direct_mode = false;
 		}
 
 		// -Xarch_* options are too hard.
@@ -2363,7 +2281,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// number info.
 		if (str_startswith(argv[i], "-g")) {
 			const char *pLevel = argv[i] + 2;
-			int foundlevel = -1;
 			if (str_startswith(argv[i], "-ggdb")) {
 				pLevel = argv[i] + 5;
 			} else if (str_startswith(argv[i], "-gstabs")) {
@@ -2377,6 +2294,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			// Deduce level from argument, default is 2.
+			int foundlevel = -1;
 			if (pLevel[0] == '\0') {
 				foundlevel = 2;
 			} else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
@@ -2398,10 +2316,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-MF")) {
-			char *arg;
-			bool separate_argument = (strlen(argv[i]) == 3);
 			dependency_filename_specified = true;
 			free(output_dep);
+
+			char *arg;
+			bool separate_argument = (strlen(argv[i]) == 3);
 			if (separate_argument) {
 				// -MF arg
 				if (i >= argc - 1) {
@@ -2429,8 +2348,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
-			char *relpath;
 			dependency_target_specified = true;
+
+			char *relpath;
 			if (strlen(argv[i]) == 3) {
 				// -MQ arg or -MT arg
 				if (i >= argc - 1) {
@@ -2445,11 +2365,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				free(relpath);
 				i++;
 			} else {
-				char *arg_opt;
-				char *option;
-				arg_opt = x_strndup(argv[i], 3);
+				char *arg_opt = x_strndup(argv[i], 3);
 				relpath = make_relative_path(x_strdup(argv[i] + 3));
-				option = format("%s%s", arg_opt, relpath);
+				char *option = format("%s%s", arg_opt, relpath);
 				args_add(dep_args, option);
 				free(arg_opt);
 				free(relpath);
@@ -2546,16 +2464,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (str_startswith(argv[i], "-fprofile-")) {
-			const char *arg_profile_dir = strchr(argv[i], '=');
 			char *arg = x_strdup(argv[i]);
-			bool supported_profile_option = false;
-
+			const char *arg_profile_dir = strchr(argv[i], '=');
 			if (arg_profile_dir) {
-				char *option = x_strndup(argv[i], arg_profile_dir - argv[i]);
-				char *dir;
-
 				// Convert to absolute path.
-				dir = x_realpath(arg_profile_dir + 1);
+				char *dir = x_realpath(arg_profile_dir + 1);
 				if (!dir) {
 					// Directory doesn't exist.
 					dir = x_strdup(arg_profile_dir + 1);
@@ -2563,12 +2476,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 				// We can get a better hit rate by using the real path here.
 				free(arg);
+				char *option = x_strndup(argv[i], arg_profile_dir - argv[i]);
 				arg = format("%s=%s", option, dir);
 				cc_log("Rewriting %s to %s", argv[i], arg);
 				free(option);
 				free(dir);
 			}
 
+			bool supported_profile_option = false;
 			if (str_startswith(argv[i], "-fprofile-generate")
 			    || str_eq(argv[i], "-fprofile-arcs")) {
 				profile_generate = true;
@@ -2627,7 +2542,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// to get better hit rate. A secondary effect is that paths in the standard
 		// error output produced by the compiler will be normalized.
 		if (compopt_takes_path(argv[i])) {
-			char *relpath;
 			if (i == argc-1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -2640,7 +2554,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				goto out;
 			}
 
-			relpath = make_relative_path(x_strdup(argv[i+1]));
+			char *relpath = make_relative_path(x_strdup(argv[i+1]));
 			if (compopt_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
 				args_add(cpp_args, relpath);
@@ -2712,6 +2626,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// If an argument isn't a plain file then assume its an option, not an
 		// input file. This allows us to cope better with unusual compiler options.
+		struct stat st;
 		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
 			cc_log("%s is not a regular file, not considering as input file",
 			       argv[i]);
@@ -2873,9 +2788,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (output_is_precompiled_header) {
 			output_obj = format("%s.gch", input_file);
 		} else {
-			char *p;
 			output_obj = basename(input_file);
-			p = strrchr(output_obj, '.');
+			char *p = strrchr(output_obj, '.');
 			if (!p || !p[1]) {
 				cc_log("Badly formed object filename");
 				stats_update(STATS_ARGS);
@@ -2888,22 +2802,21 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	if (using_split_dwarf) {
-		char *p;
-		p = strrchr(output_obj, '.');
+		char *p = strrchr(output_obj, '.');
 		if (!p || !p[1]) {
 			cc_log("Badly formed object filename");
 			stats_update(STATS_ARGS);
 			result = false;
 			goto out;
 		}
-		{
-			char *base_name = remove_extension(output_obj);
-			output_dwo = format("%s.dwo", base_name);
-			free(base_name);
-		}
+
+		char *base_name = remove_extension(output_obj);
+		output_dwo = format("%s.dwo", base_name);
+		free(base_name);
 	}
 
 	// Cope with -o /dev/null.
+	struct stat st;
 	if (!str_eq(output_obj, "/dev/null")
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
@@ -2950,11 +2863,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// Add flags for dependency generation only to the preprocessor command line.
 	if (generating_dependencies) {
 		if (!dependency_filename_specified) {
-			char *default_depfile_name;
-			char *base_name;
-
-			base_name = remove_extension(output_obj);
-			default_depfile_name = format("%s.d", base_name);
+			char *base_name = remove_extension(output_obj);
+			char *default_depfile_name = format("%s.d", base_name);
 			free(base_name);
 			args_add(dep_args, "-MF");
 			args_add(dep_args, default_depfile_name);
@@ -2967,11 +2877,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	}
 	if (generating_coverage) {
-		char *default_covfile_name;
-		char *base_name;
-
-		base_name = remove_extension(output_obj);
-		default_covfile_name = format("%s.gcno", base_name);
+		char *base_name = remove_extension(output_obj);
+		char *default_covfile_name = format("%s.gcno", base_name);
 		free(base_name);
 		output_cov = make_relative_path(x_strdup(default_covfile_name));
 	}
@@ -2979,23 +2886,21 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	*compiler_args = args_copy(stripped_args);
 	if (conf->run_second_cpp) {
 		args_extend(*compiler_args, cpp_args);
-	} else {
-		if (explicit_language) {
-			// Workaround for a bug in Apple's patched distcc -- it doesn't properly
-			// reset the language specified with -x, so if -x is given, we have to
-			// specify the preprocessed language explicitly.
-			args_add(*compiler_args, "-x");
-			args_add(*compiler_args, p_language_for_language(explicit_language));
-		}
+	} else if (explicit_language) {
+		// Workaround for a bug in Apple's patched distcc -- it doesn't properly
+		// reset the language specified with -x, so if -x is given, we have to
+		// specify the preprocessed language explicitly.
+		args_add(*compiler_args, "-x");
+		args_add(*compiler_args, p_language_for_language(explicit_language));
 	}
 
 	if (found_c_opt) {
 		args_add(*compiler_args, "-c");
 	}
 
-	for (j = 0; j < arch_args_size; ++j) {
+	for (size_t i = 0; i < arch_args_size; ++i) {
 		args_add(*compiler_args, "-arch");
-		args_add(*compiler_args, arch_args[j]);
+		args_add(*compiler_args, arch_args[i]);
 	}
 
 	// Only pass dependency arguments to the preprocesor since Intel's C++
@@ -3017,17 +2922,14 @@ out:
 static void
 create_initial_config_file(struct conf *conf, const char *path)
 {
-	unsigned max_files;
-	uint64_t max_size;
-	char *stats_dir;
-	FILE *f;
-	struct stat st;
-
 	if (create_parent_dirs(path) != 0) {
 		return;
 	}
 
-	stats_dir = format("%s/0", conf->cache_dir);
+	unsigned max_files;
+	uint64_t max_size;
+	char *stats_dir = format("%s/0", conf->cache_dir);
+	struct stat st;
 	if (stat(stats_dir, &st) == 0) {
 		stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
 		// STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory.
@@ -3039,7 +2941,7 @@ create_initial_config_file(struct conf *conf, const char *path)
 	}
 	free(stats_dir);
 
-	f = fopen(path, "w");
+	FILE *f = fopen(path, "w");
 	if (!f) {
 		return;
 	}
@@ -3061,15 +2963,12 @@ create_initial_config_file(struct conf *conf, const char *path)
 static void
 initialize(void)
 {
-	char *errmsg;
-	char *p;
-	struct stat st;
-	bool should_create_initial_config = false;
-
 	conf_free(conf);
 	conf = conf_create();
 
-	p = getenv("CCACHE_CONFIGPATH");
+	char *errmsg;
+	struct stat st;
+	char *p = getenv("CCACHE_CONFIGPATH");
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
@@ -3096,6 +2995,7 @@ initialize(void)
 		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
 	}
 
+	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
 		if (stat(primary_config_path, &st) == 0) {
 			fatal("%s", errmsg);
@@ -3131,8 +3031,6 @@ initialize(void)
 void
 cc_reset(void)
 {
-	size_t i;
-
 	conf_free(conf); conf = NULL;
 	free(primary_config_path); primary_config_path = NULL;
 	free(secondary_config_path); secondary_config_path = NULL;
@@ -3156,7 +3054,7 @@ cc_reset(void)
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
-	for (i = 0; i < ignore_headers_len; i++) {
+	for (size_t i = 0; i < ignore_headers_len; i++) {
 		free(ignore_headers[i]);
 		ignore_headers[i] = NULL;
 	}
@@ -3186,18 +3084,14 @@ cc_reset(void)
 static void
 setup_uncached_err(void)
 {
-	char *buf;
-	int uncached_fd;
-
-	uncached_fd = dup(2);
+	int uncached_fd = dup(2);
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed: %s", strerror(errno));
 		failed();
 	}
 
 	// Leak a pointer to the environment.
-	buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
-
+	char *buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
 	if (putenv(buf) == -1) {
 		cc_log("putenv failed: %s", strerror(errno));
 		failed();
@@ -3215,19 +3109,6 @@ configuration_logger(const char *descr, const char *origin, void *context)
 static void
 ccache(int argc, char *argv[])
 {
-	bool put_object_in_manifest = false;
-	struct file_hash *object_hash;
-	struct file_hash *object_hash_from_manifest = NULL;
-	struct mdfour common_hash;
-	struct mdfour direct_hash;
-	struct mdfour cpp_hash;
-
-	// Arguments (except -E) to send to the preprocessor.
-	struct args *preprocessor_args;
-
-	// Arguments to send to the real compiler.
-	struct args *compiler_args;
-
 #ifndef _WIN32
 	set_up_signal_handlers();
 #endif
@@ -3261,6 +3142,10 @@ ccache(int argc, char *argv[])
 		conf->direct_mode = false;
 	}
 
+	// Arguments (except -E) to send to the preprocessor.
+	struct args *preprocessor_args;
+	// Arguments to send to the real compiler.
+	struct args *compiler_args;
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
 		failed();
 	}
@@ -3290,11 +3175,15 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
+	struct mdfour common_hash;
 	hash_start(&common_hash);
 	calculate_common_hash(preprocessor_args, &common_hash);
 
 	// Try to find the hash using the manifest.
-	direct_hash = common_hash;
+	struct mdfour direct_hash = common_hash;
+	bool put_object_in_manifest = false;
+	struct file_hash *object_hash = NULL;
+	struct file_hash *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		object_hash = calculate_object_hash(preprocessor_args, &direct_hash, 1);
@@ -3321,7 +3210,7 @@ ccache(int argc, char *argv[])
 	}
 
 	// Find the hash using the preprocessed output. Also updates included_files.
-	cpp_hash = common_hash;
+	struct mdfour cpp_hash = common_hash;
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
@@ -3377,9 +3266,6 @@ configuration_printer(const char *descr, const char *origin, void *context)
 static int
 ccache_main_options(int argc, char *argv[])
 {
-	int c;
-	char *errmsg;
-
 	enum longopts {
 		DUMP_MANIFEST
 	};
@@ -3398,6 +3284,7 @@ ccache_main_options(int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
+	int c;
 	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
@@ -3422,11 +3309,11 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'F': // --max-files
 		{
-			unsigned files;
 			initialize();
-			files = atoi(optarg);
+			char *errmsg;
 			if (conf_set_value_in_file(primary_config_path, "max_files", optarg,
 			                           &errmsg)) {
+				unsigned files = atoi(optarg);
 				if (files == 0) {
 					printf("Unset cache file limit\n");
 				} else {
@@ -3440,11 +3327,12 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'M': // --max-size
 		{
-			uint64_t size;
 			initialize();
+			uint64_t size;
 			if (!parse_size_with_suffix(optarg, &size)) {
 				fatal("invalid size: %s", optarg);
 			}
+			char *errmsg;
 			if (conf_set_value_in_file(primary_config_path, "max_size", optarg,
 			                           &errmsg)) {
 				if (size == 0) {
@@ -3462,14 +3350,14 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'o': // --set-config
 		{
-			char *errmsg, *key, *value, *p;
 			initialize();
-			p = strchr(optarg, '=');
+			char *p = strchr(optarg, '=');
 			if (!p) {
 				fatal("missing equal sign in \"%s\"", optarg);
 			}
-			key = x_strndup(optarg, p - optarg);
-			value = p + 1;
+			char *key = x_strndup(optarg, p - optarg);
+			char *value = p + 1;
+			char *errmsg;
 			if (!conf_set_value_in_file(primary_config_path, key, value, &errmsg)) {
 				fatal("%s", errmsg);
 			}

@@ -64,7 +64,6 @@ parse_size(const char *str, void *result, char **errmsg)
 {
 	uint64_t *value = (uint64_t *)result;
 	uint64_t size;
-	*errmsg = NULL;
 	if (parse_size_with_suffix(str, &size)) {
 		*value = size;
 		return true;
@@ -78,13 +77,14 @@ static bool
 parse_sloppiness(const char *str, void *result, char **errmsg)
 {
 	unsigned *value = (unsigned *)result;
-	char *word, *p, *q, *saveptr = NULL;
-
 	if (!str) {
 		return *value;
 	}
-	p = x_strdup(str);
-	q = p;
+
+	char *p = x_strdup(str);
+	char *q = p;
+	char *word;
+	char *saveptr = NULL;
 	while ((word = strtok_r(q, ", ", &saveptr))) {
 		if (str_eq(word, "file_macro")) {
 			*value |= SLOPPY_FILE_MACRO;
@@ -114,8 +114,9 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 static bool
 parse_string(const char *str, void *result, char **errmsg)
 {
-	char **value = (char **)result;
 	(void)errmsg;
+
+	char **value = (char **)result;
 	free(*value);
 	*value = x_strdup(str);
 	return true;
@@ -125,12 +126,13 @@ static bool
 parse_umask(const char *str, void *result, char **errmsg)
 {
 	unsigned *value = (unsigned *)result;
-	char *endptr;
 	if (str_eq(str, "")) {
 		*value = UINT_MAX;
 		return true;
 	}
+
 	errno = 0;
+	char *endptr;
 	*value = strtoul(str, &endptr, 8);
 	if (errno == 0 && *str != '\0' && *endptr == '\0') {
 		return true;
@@ -144,10 +146,9 @@ static bool
 parse_unsigned(const char *str, void *result, char **errmsg)
 {
 	unsigned *value = (unsigned *)result;
-	long x;
-	char *endptr;
 	errno = 0;
-	x = strtol(str, &endptr, 10);
+	char *endptr;
+	long x = strtol(str, &endptr, 10);
 	if (errno == 0 && x >= 0 && *str != '\0' && *endptr == '\0') {
 		*value = x;
 		return true;
@@ -217,9 +218,7 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
                     char **errmsg, bool from_env_variable, bool negate_boolean,
                     const char *origin)
 {
-	const struct conf_item *item;
-
-	item = find_conf(key);
+	const struct conf_item *item = find_conf(key);
 	if (!item) {
 		*errmsg = format("unknown configuration option \"%s\"", key);
 		return false;
@@ -248,19 +247,17 @@ out:
 static bool
 parse_line(const char *line, char **key, char **value, char **errmsg)
 {
-	const char *p, *q;
-
 #define SKIP_WS(x) while (isspace(*x)) { ++x; }
 
 	*key = NULL;
 	*value = NULL;
 
-	p = line;
+	const char *p = line;
 	SKIP_WS(p);
 	if (*p == '\0' || *p == '#') {
 		return true;
 	}
-	q = p;
+	const char *q = p;
 	while (isalpha(*q) || *q == '_') {
 		++q;
 	}
@@ -296,7 +293,6 @@ parse_line(const char *line, char **key, char **value, char **errmsg)
 struct conf *
 conf_create(void)
 {
-	size_t i;
 	struct conf *conf = x_malloc(sizeof(*conf));
 	conf->base_dir = x_strdup("");
 	conf->cache_dir = format("%s/.ccache", get_home_directory());
@@ -329,7 +325,7 @@ conf_create(void)
 	conf->umask = UINT_MAX; // Default: don't set umask.
 	conf->unify = false;
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
-	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
+	for (size_t i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
 	}
 	return conf;
@@ -361,26 +357,25 @@ conf_free(struct conf *conf)
 bool
 conf_read(struct conf *conf, const char *path, char **errmsg)
 {
-	FILE *f;
-	char buf[10000];
-	bool result = true;
-	unsigned line_number;
-
 	assert(errmsg);
 	*errmsg = NULL;
 
-	f = fopen(path, "r");
+	FILE *f = fopen(path, "r");
 	if (!f) {
 		*errmsg = format("%s: %s", path, strerror(errno));
 		return false;
 	}
 
-	line_number = 0;
+	unsigned line_number = 0;
+	bool result = true;
+	char buf[10000];
 	while (fgets(buf, sizeof(buf), f)) {
-		char *errmsg2, *key, *value;
-		bool ok;
 		++line_number;
-		ok = parse_line(buf, &key, &value, &errmsg2);
+
+		char *key;
+		char *value;
+		char *errmsg2;
+		bool ok = parse_line(buf, &key, &value, &errmsg2);
 		if (ok && key) { // key == NULL if comment or blank line.
 			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
 		}
@@ -406,23 +401,17 @@ out:
 bool
 conf_update_from_environment(struct conf *conf, char **errmsg)
 {
-	char **p;
-	char *q;
-	char *key;
-	char *errmsg2;
-	const struct env_to_conf_item *env_to_conf_item;
-	bool negate;
-	size_t key_start;
-
-	for (p = environ; *p; ++p) {
+	for (char **p = environ; *p; ++p) {
 		if (!str_startswith(*p, "CCACHE_")) {
 			continue;
 		}
-		q = strchr(*p, '=');
+		char *q = strchr(*p, '=');
 		if (!q) {
 			continue;
 		}
 
+		bool negate;
+		size_t key_start;
 		if (str_startswith(*p + 7, "NO")) {
 			negate = true;
 			key_start = 9;
@@ -430,16 +419,17 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 			negate = false;
 			key_start = 7;
 		}
-		key = x_strndup(*p + key_start, q - *p - key_start);
+		char *key = x_strndup(*p + key_start, q - *p - key_start);
 
 		++q; // Now points to the value.
 
-		env_to_conf_item = find_env_to_conf(key);
+		const struct env_to_conf_item *env_to_conf_item = find_env_to_conf(key);
 		if (!env_to_conf_item) {
 			free(key);
 			continue;
 		}
 
+		char *errmsg2;
 		if (!handle_conf_setting(
 		      conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
 		      "environment")) {
@@ -459,26 +449,20 @@ bool
 conf_set_value_in_file(const char *path, const char *key, const char *value,
                        char **errmsg)
 {
-	FILE *infile, *outfile;
-	char *outpath;
-	char buf[10000];
-	bool found;
-	const struct conf_item *item;
-
-	item = find_conf(key);
+	const struct conf_item *item = find_conf(key);
 	if (!item) {
 		*errmsg = format("unknown configuration option \"%s\"", key);
 		return false;
 	}
 
-	infile = fopen(path, "r");
+	FILE *infile = fopen(path, "r");
 	if (!infile) {
 		*errmsg = format("%s: %s", path, strerror(errno));
 		return false;
 	}
 
-	outpath = format("%s.tmp", path);
-	outfile = create_tmp_file(&outpath, "w");
+	char *outpath = format("%s.tmp", path);
+	FILE *outfile = create_tmp_file(&outpath, "w");
 	if (!outfile) {
 		*errmsg = format("%s: %s", outpath, strerror(errno));
 		free(outpath);
@@ -486,11 +470,13 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		return false;
 	}
 
-	found = false;
+	bool found = false;
+	char buf[10000];
 	while (fgets(buf, sizeof(buf), infile)) {
-		char *errmsg2, *key2, *value2;
-		bool ok;
-		ok = parse_line(buf, &key2, &value2, &errmsg2);
+		char *key2;
+		char *value2;
+		char *errmsg2;
+		bool ok = parse_line(buf, &key2, &value2, &errmsg2);
 		if (ok && key2 && str_eq(key2, key)) {
 			found = true;
 			fprintf(outfile, "%s = %s\n", key, value);
@@ -523,7 +509,6 @@ conf_print_items(struct conf *conf,
                  void *context)
 {
 	char *s = x_strdup("");
-	char *s2;
 
 	reformat(&s, "base_dir = %s", conf->base_dir);
 	printer(s, conf->item_origins[find_conf("base_dir")->number], context);
@@ -583,7 +568,7 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "max_files = %u", conf->max_files);
 	printer(s, conf->item_origins[find_conf("max_files")->number], context);
 
-	s2 = format_parsable_size_with_suffix(conf->max_size);
+	char *s2 = format_parsable_size_with_suffix(conf->max_size);
 	reformat(&s, "max_size = %s", s2);
 	printer(s, conf->item_origins[find_conf("max_size")->number], context);
 	free(s2);

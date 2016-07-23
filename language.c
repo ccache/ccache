@@ -73,7 +73,7 @@ static const struct {
 	{".FPP", "f77-cpp-input"},
 	{".FTN", "f77-cpp-input"},
 	// Free form Fortran without preprocessing:
-#if 0	// Could generate modules, ignore for now!
+#if 0 // Could generate modules, ignore for now!
 	{".f90", "f95"},
 	{".f95", "f95"},
 	{".f03", "f95"},
@@ -125,11 +125,8 @@ static const struct {
 const char *
 language_for_file(const char *fname)
 {
-	int i;
-	const char *p;
-
-	p = get_extension(fname);
-	for (i = 0; extensions[i].extension; i++) {
+	const char *p = get_extension(fname);
+	for (int i = 0; extensions[i].extension; i++) {
 		if (str_eq(p, extensions[i].extension)) {
 			return extensions[i].language;
 		}
@@ -141,12 +138,10 @@ language_for_file(const char *fname)
 const char *
 p_language_for_language(const char *language)
 {
-	int i;
-
 	if (!language) {
 		return NULL;
 	}
-	for (i = 0; languages[i].language; ++i) {
+	for (int i = 0; languages[i].language; ++i) {
 		if (str_eq(language, languages[i].language)) {
 			return languages[i].p_language;
 		}
@@ -159,12 +154,10 @@ p_language_for_language(const char *language)
 const char *
 extension_for_language(const char *language)
 {
-	int i;
-
 	if (!language) {
 		return NULL;
 	}
-	for (i = 0; extensions[i].extension; i++) {
+	for (int i = 0; extensions[i].extension; i++) {
 		if (str_eq(language, extensions[i].language)) {
 			return extensions[i].extension;
 		}

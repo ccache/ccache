@@ -57,17 +57,14 @@ static struct {
 static void
 build_table(void)
 {
-	unsigned char c;
-	int i;
 	static bool done;
-
 	if (done) {
 		return;
 	}
 	done = true;
 
 	memset(tokens, 0, sizeof(tokens));
-	for (c = 0; c < 128; c++) {
+	for (unsigned char c = 0; c < 128; c++) {
 		if (isalpha(c) || c == '_') {
 			tokens[c].type |= C_ALPHA;
 		}
@@ -93,8 +90,8 @@ build_table(void)
 	tokens['-'].type |= C_SIGN;
 	tokens['+'].type |= C_SIGN;
 
-	for (i = 0; s_tokens[i]; i++) {
-		c = s_tokens[i][0];
+	for (int i = 0; s_tokens[i]; i++) {
+		unsigned char c = s_tokens[i][0];
 		tokens[c].type |= C_TOKEN;
 		tokens[c].toks[tokens[c].num_toks] = s_tokens[i];
 		tokens[c].num_toks++;
@@ -128,13 +125,9 @@ pushchar(struct mdfour *hash, unsigned char c)
 static void
 unify(struct mdfour *hash, unsigned char *p, size_t size)
 {
-	size_t ofs;
-	unsigned char q;
-	int i;
-
 	build_table();
 
-	for (ofs = 0; ofs < size; ) {
+	for (size_t ofs = 0; ofs < size; ) {
 		if (p[ofs] == '#') {
 			if ((size-ofs) > 2 && p[ofs+1] == ' ' && isdigit(p[ofs+2])) {
 				do {
@@ -197,7 +190,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 		}
 
 		if (tokens[p[ofs]].type & C_QUOTE) {
-			q = p[ofs];
+			unsigned char q = p[ofs];
 			pushchar(hash, p[ofs]);
 			do {
 				ofs++;
@@ -214,7 +207,8 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 		}
 
 		if (tokens[p[ofs]].type & C_TOKEN) {
-			q = p[ofs];
+			unsigned char q = p[ofs];
+			int i;
 			for (i = 0; i < tokens[q].num_toks; i++) {
 				unsigned char *s = (unsigned char *)tokens[q].toks[i];
 				int len = strlen((char *)s);
@@ -248,7 +242,6 @@ unify_hash(struct mdfour *hash, const char *fname)
 {
 	char *data;
 	size_t size;
-
 	if (!read_file(fname, 0, &data, &size)) {
 		stats_update(STATS_PREPROCESSOR);
 		return -1;

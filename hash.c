@@ -52,8 +52,9 @@ hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 bool
 hash_equal(struct mdfour *md1, struct mdfour *md2)
 {
-	unsigned char sum1[16], sum2[16];
+	unsigned char sum1[16];
 	hash_result_as_bytes(md1, sum1);
+	unsigned char sum2[16];
 	hash_result_as_bytes(md2, sum2);
 	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
 }
@@ -115,16 +116,13 @@ hash_fd(struct mdfour *md, int fd)
 bool
 hash_file(struct mdfour *md, const char *fname)
 {
-	int fd;
-	bool ret;
-
-	fd = open(fname, O_RDONLY|O_BINARY);
+	int fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1) {
 		cc_log("Failed to open %s: %s", fname, strerror(errno));
 		return false;
 	}
 
-	ret = hash_fd(md, fd);
+	bool ret = hash_fd(md, fd);
 	close(fd);
 	return ret;
 }
