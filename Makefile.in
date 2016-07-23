@@ -84,7 +84,7 @@ install: all $(srcdir)/ccache.1
 
 .PHONY: clean
 clean:
-	rm -f $(files_to_clean)
+	rm -rf $(files_to_clean)
 
 conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
