@@ -59,7 +59,7 @@ win32argvtos(char *prefix, char **argv)
 	do {
 		int bs = 0;
 		*ptr++ = '"';
-		for (j = 0; arg[j]; j++) {
+		for (int j = 0; arg[j]; j++) {
 			switch (arg[j]) {
 			case '\\':
 				bs++;
