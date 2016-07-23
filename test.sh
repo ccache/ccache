@@ -786,7 +786,7 @@ base_suite() {
 
 link_suite() {
     compiler_binary=`echo $COMPILER | cut -d' ' -f1`
-    compiler_args=`echo $COMPILER | cut -d' ' -f2-`
+    compiler_args=`echo $COMPILER | cut -s -d' ' -f2-`
     if [ `dirname $compiler_binary` = . ]; then
         ln -s "$CCACHE" $compiler_binary
         CCACHE_COMPILE="./$compiler_binary $compiler_args"
