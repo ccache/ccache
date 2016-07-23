@@ -578,6 +578,7 @@ EOF
 "$@"
 [ x$2 = x-fcolor-diagnostics ] && shift
 [ x$2 = x-fdiagnostics-color ] && shift
+[ x$2 = x-std=gnu99 ] && shift
 [ x$3 = x-o ] && rm $4
 EOF
     chmod +x prefix-remove.sh
@@ -593,6 +594,7 @@ EOF
 "$@"
 [ x$2 = x-fcolor-diagnostics ] && shift
 [ x$2 = x-fdiagnostics-color ] && shift
+[ x$2 = x-std=gnu99 ] && shift
 [ x$3 = x-o ] && cp /dev/null $4
 EOF
     chmod +x prefix-empty.sh
@@ -783,13 +785,15 @@ base_suite() {
 }
 
 link_suite() {
-    if [ `dirname $COMPILER` = . ]; then
-        ln -s "$CCACHE" $COMPILER
-        CCACHE_COMPILE="./$COMPILER"
+    compiler_binary=`echo $COMPILER | cut -d' ' -f1`
+    compiler_args=`echo $COMPILER | cut -d' ' -f2-`
+    if [ `dirname $compiler_binary` = . ]; then
+        ln -s "$CCACHE" $compiler_binary
+        CCACHE_COMPILE="./$compiler_binary $compiler_args"
         base_tests
-        rm -f $COMPILER
+        rm -f $compiler_binary
     else
-        echo "Compiler ($COMPILER) not taken from PATH -- not running link test"
+        echo "Compiler ($compiler_binary) not taken from PATH -- not running link test"
     fi
 }
 
