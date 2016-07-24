@@ -1707,7 +1707,6 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// For profile generation (-fprofile-arcs, -fprofile-generate):
 	// - hash profile directory
-	// - output to the real file first
 	//
 	// For profile usage (-fprofile-use):
 	// - hash profile data
@@ -1716,10 +1715,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 	// -fprofile-generate/-fprofile-use.
 	//
 	// The profile directory can be specified as an argument to
-	// -fprofile-generate=, -fprofile-use=, or -fprofile-dir=.
-
-	// We need to output to the real object first here, otherwise runtime
-	// artifacts will be produced in the wrong place.
+	// -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
 	if (profile_generate) {
 		if (!profile_dir) {
 			profile_dir = get_cwd();
