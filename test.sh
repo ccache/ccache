@@ -161,27 +161,28 @@ run_suite() {
 
     CURRENT_SUITE=$name
 
-    CCACHE_NODIRECT=1
-    export CCACHE_NODIRECT
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+    export CCACHE_NODIRECT=1
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
     remove_cache
 
-    local skip_reason=""
-    if type SUITE_${name}_PREPARE >/dev/null 2>&1; then
-        mkdir $ABS_TESTDIR/fixture
-        cd $ABS_TESTDIR/fixture
-        skip_reason=$(SUITE_${name}_PREPARE)
+    if type SUITE_${name}_PROBE >/dev/null 2>&1; then
+        mkdir $ABS_TESTDIR/probe
+        cd $ABS_TESTDIR/probe
+        local skip_reason="$(SUITE_${name}_PROBE)"
         cd $ABS_TESTDIR
+        rm -rf $ABS_TESTDIR/probe
+        if [ -n "$skip_reason" ]; then
+            echo "Skipped test suite $name [$skip_reason]"
+            return
+        fi
     fi
-    if [ -z "$skip_reason" ]; then
-        printf "Running test suite %s" $name
-        SUITE_${name}
-        echo
-    else
-        echo "Skipped test suite $name [$skip_reason]"
-    fi
+
+    printf "Running test suite %s" $name
+    SUITE_$name
+    echo
 }
 
 TEST() {
@@ -196,12 +197,11 @@ TEST() {
     cd /
     remove_cache
     rm -rf $ABS_TESTDIR/run
-    if [ -d $ABS_TESTDIR/fixture ]; then
-        cp -a $ABS_TESTDIR/fixture $ABS_TESTDIR/run
-    else
-        mkdir $ABS_TESTDIR/run
-    fi
+    mkdir $ABS_TESTDIR/run
     cd $ABS_TESTDIR/run
+    if type SUITE_${name}_SETUP >/dev/null 2>&1; then
+        SUITE_${name}_SETUP
+    fi
 }
 
 # =============================================================================
@@ -1090,7 +1090,7 @@ EOF
 
 # =============================================================================
 
-SUITE_base_PREPARE() {
+SUITE_base_SETUP() {
     generate_code 1 test1.c
 }
 
@@ -1100,12 +1100,11 @@ SUITE_base() {
 
 # =============================================================================
 
-SUITE_cpp2_PREPARE() {
+SUITE_cpp2_SETUP() {
     generate_code 1 test1.c
 }
 
 SUITE_cpp2() {
-    CCACHE_COMPILE="$CCACHE $COMPILER"
     CCACHE_CPP2=1
     export CCACHE_CPP2
 
@@ -1116,18 +1115,18 @@ SUITE_cpp2() {
 
 # =============================================================================
 
-SUITE_multi_arch_PREPARE() {
+SUITE_multi_arch_PROBE() {
     if [ $HOST_OS_APPLE -eq 0 ]; then
         echo "multiple -arch options not supported on $(uname -s)"
         return
     fi
-
-    generate_code 1 test1.c
 }
 
 SUITE_multi_arch() {
     # -------------------------------------------------------------------------
     TEST "cache hit"
+
+    generate_code 1 test1.c
 
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1140,14 +1139,16 @@ SUITE_multi_arch() {
 
 # =============================================================================
 
-SUITE_serialize_diagnostics_PREPARE() {
-    generate_code 1 test1.c
-    if CCACHE_DISABLE=1 $COMPILER -c --serialize-diagnostics \
-         test1.dia test1.c 2>/dev/null; then
-        rm test1.dia
-    else
+SUITE_serialize_diagnostics_PROBE() {
+    touch test.c
+    if ! CCACHE_DISABLE=1 $COMPILER -c --serialize-diagnostics \
+         test1.dia test.c 2>/dev/null; then
         echo "--serialize-diagnostics not supported by compiler"
     fi
+}
+
+SUITE_serialize_diagnostics_SETUP() {
+    generate_code 1 test1.c
 }
 
 SUITE_serialize_diagnostics() {
@@ -1227,21 +1228,23 @@ EOF
 
 # =============================================================================
 
-SUITE_debug_prefix_map_PREPARE() {
-    if [ $COMPILER_TYPE_GCC -eq 1 -a $COMPILER_USES_MINGW -eq 0 ]; then
-        mkdir -p dir1/src dir1/include
-        cat <<EOF >dir1/src/test.c
+SUITE_debug_prefix_map_PROBE() {
+    if [ $COMPILER_TYPE_GCC -eq 0 -o $COMPILER_USES_MINGW -eq 1 ]; then
+        echo "-fdebug-prefix-map not supported by compiler"
+    fi
+}
+
+SUITE_debug_prefix_map_SETUP() {
+    mkdir -p dir1/src dir1/include
+    cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
 #include <test.h>
 EOF
-        cat <<EOF >dir1/include/test.h
+    cat <<EOF >dir1/include/test.h
 int test;
 EOF
-        cp -r dir1 dir2
-        backdate dir1/include/test.h dir2/include/test.h
-    else
-        echo "-fdebug-prefix-map not supported by compiler"
-    fi
+    cp -r dir1 dir2
+    backdate dir1/include/test.h dir2/include/test.h
 }
 
 SUITE_debug_prefix_map() {
@@ -1273,16 +1276,20 @@ SUITE_debug_prefix_map() {
 
 # =============================================================================
 
-SUITE_masquerading_PREPARE() {
+SUITE_masquerading_PROBE() {
     local compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
-    if [ "$(dirname $compiler_binary)" = . ]; then
-        ln -s "$CCACHE" $compiler_binary
-        local compiler_args=$(echo $COMPILER | cut -s -d' ' -f2-)
-        CCACHE_COMPILE="./$compiler_binary $compiler_args"
-        generate_code 1 test1.c
-    else
+    if [ "$(dirname $compiler_binary)" != . ]; then
         echo "compiler ($compiler_binary) not taken from PATH"
     fi
+}
+
+SUITE_masquerading_SETUP() {
+    local compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
+    local compiler_args=$(echo $COMPILER | cut -s -d' ' -f2-)
+
+    ln -s "$CCACHE" $compiler_binary
+    CCACHE_COMPILE="./$compiler_binary $compiler_args"
+    generate_code 1 test1.c
 }
 
 SUITE_masquerading() {
@@ -1306,17 +1313,18 @@ SUITE_masquerading() {
 
 # =============================================================================
 
-SUITE_hardlink_PREPARE() {
-    generate_code 1 test1.c
-    if ! ln test1.c foo.c >/dev/null 2>&1; then
+SUITE_hardlink_PROBE() {
+    touch file1
+    if ! ln file1 file2 >/dev/null 2>&1; then
         echo "file system doesn't support hardlinks"
     fi
-    rm foo.c
 }
 
 SUITE_hardlink() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_HARDLINK"
+
+    generate_code 1 test1.c
 
     CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
 
@@ -1340,7 +1348,7 @@ SUITE_hardlink() {
 
 # =============================================================================
 
-SUITE_direct_PREPARE() {
+SUITE_direct_SETUP() {
     cat <<EOF >test.c
 // test.c
 #include "test1.h"
@@ -1547,10 +1555,21 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-P test.c
-    expect_stat 'cache hit (direct)' 1
+    # -------------------------------------------------------------------------
+    TEST "-Wp, with multiple arguments"
+
+    # ccache could try to parse and make sense of -Wp, with multiple arguments,
+    # but it currently doesn't, so we have to disable direct mode.
+
+    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c
+    expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 2
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
     TEST "Multiple object entries in manifest"
@@ -2133,7 +2152,7 @@ EOF
 
 # =============================================================================
 
-SUITE_basedir_PREPARE() {
+SUITE_basedir_SETUP() {
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
@@ -2279,7 +2298,7 @@ EOF
 
 # =============================================================================
 
-SUITE_compression_PREPARE() {
+SUITE_compression_SETUP() {
     generate_code 1 test.c
 }
 
@@ -2305,7 +2324,7 @@ SUITE_compression() {
 
 # =============================================================================
 
-SUITE_readonly_PREPARE() {
+SUITE_readonly_SETUP() {
     generate_code 1 test.c
     generate_code 2 test2.c
 }
@@ -2388,7 +2407,9 @@ SUITE_readonly() {
     fi
 }
 
-SUITE_readonly_direct_PREPARE() {
+# =============================================================================
+
+SUITE_readonly_direct_SETUP() {
     generate_code 1 test.c
 }
 
@@ -2635,7 +2656,15 @@ SUITE_cleanup() {
 
 # =============================================================================
 
-SUITE_pch_PREPARE() {
+SUITE_pch_PROBE() {
+    touch pch.h
+    if ! CCACHE_DISABLE=1 $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
+            || [ ! -f pch.h.gch ]; then
+        echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
+    fi
+}
+
+SUITE_pch_SETUP() {
     cat <<EOF >pch.c
 #include "pch.h"
 int main()
@@ -2655,13 +2684,6 @@ int main()
   return 0;
 }
 EOF
-
-    if $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null && [ -f pch.h.gch ] && $COMPILER $SYSROOT pch.c -o pch; then
-        rm pch.h.gch pch
-    else
-        echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
-        return
-    fi
 }
 
 SUITE_pch() {
@@ -3173,8 +3195,6 @@ fi
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
-
-CCACHE_COMPILE="$CCACHE $COMPILER"
 
 export CCACHE_DETECT_SHEBANG
 CCACHE_DETECT_SHEBANG=1
