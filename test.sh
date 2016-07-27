@@ -143,6 +143,7 @@ run_suite() {
     local name=$1
 
     CURRENT_SUITE=$name
+    UNCACHED_COMPILE=uncached_compile
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
@@ -217,7 +218,6 @@ TEST() {
     touch $CCACHE_CONFIGPATH
 
     CCACHE_COMPILE="$CCACHE $COMPILER"
-    UNCACHED_COMPILE=uncached_compile
 
     if $VERBOSE; then
         printf "\n  %s" $CURRENT_TEST
@@ -673,30 +673,6 @@ b"
     $CCACHE_COMPILE -DNOT_AFFECTING=1 -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-
-    # -------------------------------------------------------------------------
-    TEST "-finput-charset"
-
-    unset CCACHE_CPP2
-
-    printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
-    if $UNCACHED_COMPILE -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
-        CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-        expect_stat 'cache hit (preprocessed)' 0
-        expect_stat 'cache miss' 1
-
-        CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-        expect_stat 'cache hit (preprocessed)' 1
-        expect_stat 'cache miss' 1
-
-        $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-        expect_stat 'cache hit (preprocessed)' 1
-        expect_stat 'cache miss' 2
-
-        $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
-        expect_stat 'cache hit (preprocessed)' 2
-        expect_stat 'cache miss' 2
-    fi
 
     # -------------------------------------------------------------------------
     TEST "-S"
@@ -3193,7 +3169,37 @@ SUITE_upgrade() {
 
 # =============================================================================
 
-# -----------------------------------------------------------------------------
+SUITE_input_charset_PROBE() {
+    touch test.c
+    if ! $UNCACHED_COMPILE -c -finput-charset=latin1 test.c >/dev/null 2>&1; then
+        echo "compiler doesn't support -finput-charset"
+    fi
+}
+
+SUITE_input_charset() {
+    # -------------------------------------------------------------------------
+    TEST "-finput-charset"
+
+    printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
+
+    CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 2
+}
+
+# =============================================================================
 # main program
 
 if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
@@ -3315,6 +3321,7 @@ readonly_direct
 cleanup
 pch
 upgrade
+input_charset
 "
 
 compiler_location=$(which $COMPILER)
