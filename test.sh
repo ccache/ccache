@@ -19,35 +19,6 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-unset CCACHE_BASEDIR
-unset CCACHE_CC
-unset CCACHE_COMPILERCHECK
-unset CCACHE_COMPRESS
-unset CCACHE_COMMENTS
-unset CCACHE_CPP2
-unset CCACHE_DIR
-unset CCACHE_DISABLE
-unset CCACHE_EXTENSION
-unset CCACHE_EXTRAFILES
-unset CCACHE_HARDLINK
-unset CCACHE_HASHDIR
-unset CCACHE_IGNOREHEADERS
-unset CCACHE_LOGFILE
-unset CCACHE_NLEVELS
-unset CCACHE_NODIRECT
-unset CCACHE_NOSTATS
-unset CCACHE_PATH
-unset CCACHE_PREFIX
-unset CCACHE_PREFIX_CPP
-unset CCACHE_READONLY
-unset CCACHE_READONLY_DIRECT
-unset CCACHE_RECACHE
-unset CCACHE_SLOPPINESS
-unset CCACHE_TEMPDIR
-unset CCACHE_UMASK
-unset CCACHE_UNIFY
-unset GCC_COLORS
-
 test_failed() {
     echo
     echo FAILED
@@ -161,12 +132,8 @@ run_suite() {
 
     CURRENT_SUITE=$name
 
-    CCACHE_COMPILE="$CCACHE $COMPILER"
-    export CCACHE_NODIRECT=1
-
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
-    remove_cache
 
     if type SUITE_${name}_PROBE >/dev/null 2>&1; then
         mkdir $ABS_TESTDIR/probe
@@ -187,6 +154,51 @@ run_suite() {
 
 TEST() {
     CURRENT_TEST=$1
+
+    unset CCACHE_BASEDIR
+    unset CCACHE_CC
+    unset CCACHE_COMPILERCHECK
+    unset CCACHE_COMPRESS
+    unset CCACHE_COMMENTS
+    unset CCACHE_CPP2
+    unset CCACHE_DIR
+    unset CCACHE_DISABLE
+    unset CCACHE_EXTENSION
+    unset CCACHE_EXTRAFILES
+    unset CCACHE_HARDLINK
+    unset CCACHE_HASHDIR
+    unset CCACHE_IGNOREHEADERS
+    unset CCACHE_LOGFILE
+    unset CCACHE_NLEVELS
+    unset CCACHE_NOSTATS
+    unset CCACHE_PATH
+    unset CCACHE_PREFIX
+    unset CCACHE_PREFIX_CPP
+    unset CCACHE_READONLY
+    unset CCACHE_READONLY_DIRECT
+    unset CCACHE_RECACHE
+    unset CCACHE_SLOPPINESS
+    unset CCACHE_TEMPDIR
+    unset CCACHE_UMASK
+    unset CCACHE_UNIFY
+    unset GCC_COLORS
+
+    export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
+    export CCACHE_DETECT_SHEBANG=1
+    export CCACHE_DIR=$ABS_TESTDIR/.ccache
+    export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
+    export CCACHE_NODIRECT=1
+
+    # Many tests backdate files, which updates their ctimes. In those tests, we
+    # must ignore ctimes. Might as well do so everywhere.
+    DEFAULT_SLOPPINESS=include_file_ctime
+    export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
+
+    remove_cache
+    rm -f $CCACHE_CONFIGPATH
+    touch $CCACHE_CONFIGPATH
+
+    CCACHE_COMPILE="$CCACHE $COMPILER"
 
     if $VERBOSE; then
         printf "\n  %s" $CURRENT_TEST
@@ -330,13 +342,10 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
-    saved_config_path=$CCACHE_CONFIGPATH
-    unset CCACHE_CONFIGPATH
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null
     if [ -d $CCACHE_DIR ]; then
         test_failed "$CCACHE_DIR created despite CCACHE_DISABLE being set"
     fi
-    export CCACHE_CONFIGPATH=$saved_config_path
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
@@ -1101,16 +1110,12 @@ SUITE_base() {
 # =============================================================================
 
 SUITE_cpp2_SETUP() {
+    export CCACHE_CPP2=1
     generate_code 1 test1.c
 }
 
 SUITE_cpp2() {
-    CCACHE_CPP2=1
-    export CCACHE_CPP2
-
     base_tests
-
-    unset CCACHE_CPP2
 }
 
 # =============================================================================
@@ -1235,6 +1240,8 @@ SUITE_debug_prefix_map_PROBE() {
 }
 
 SUITE_debug_prefix_map_SETUP() {
+    unset CCACHE_NODIRECT
+
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
@@ -1248,8 +1255,6 @@ EOF
 }
 
 SUITE_debug_prefix_map() {
-    unset CCACHE_NODIRECT
-
     # -------------------------------------------------------------------------
     TEST "Mapping of debug info CWD"
 
@@ -1349,6 +1354,8 @@ SUITE_hardlink() {
 # =============================================================================
 
 SUITE_direct_SETUP() {
+    unset CCACHE_NODIRECT
+
     cat <<EOF >test.c
 // test.c
 #include "test1.h"
@@ -1372,8 +1379,6 @@ EOF
 }
 
 SUITE_direct() {
-    unset CCACHE_NODIRECT
-
     # -------------------------------------------------------------------------
     TEST "Base case"
 
@@ -2153,6 +2158,8 @@ EOF
 # =============================================================================
 
 SUITE_basedir_SETUP() {
+    unset CCACHE_NODIRECT
+
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
@@ -2166,8 +2173,6 @@ EOF
 }
 
 SUITE_basedir() {
-    unset CCACHE_NODIRECT
-
     # -------------------------------------------------------------------------
     TEST "Enabled CCACHE_BASEDIR"
 
@@ -2410,12 +2415,12 @@ SUITE_readonly() {
 # =============================================================================
 
 SUITE_readonly_direct_SETUP() {
+    unset CCACHE_NODIRECT
+
     generate_code 1 test.c
 }
 
 SUITE_readonly_direct() {
-    unset CCACHE_NODIRECT
-
     # -------------------------------------------------------------------------
     TEST "Direct hit"
 
@@ -2665,6 +2670,8 @@ SUITE_pch_PROBE() {
 }
 
 SUITE_pch_SETUP() {
+    unset CCACHE_NODIRECT
+
     cat <<EOF >pch.c
 #include "pch.h"
 int main()
@@ -2687,8 +2694,6 @@ EOF
 }
 
 SUITE_pch() {
-    unset CCACHE_NODIRECT
-
     # Clang and GCC handle precompiled headers similarly, but GCC is much more
     # forgiving with precompiled headers. Both GCC and Clang keep an absolute
     # path reference to the original file except that Clang uses that reference
@@ -3196,15 +3201,6 @@ if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
 
-export CCACHE_DETECT_SHEBANG
-CCACHE_DETECT_SHEBANG=1
-
-# Many tests backdate files, which updates their ctimes. In those tests, we
-# must ignore ctimes. Might as well do so everywhere.
-DEFAULT_SLOPPINESS=include_file_ctime
-CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
-export CCACHE_SLOPPINESS
-
 COMPILER_TYPE_CLANG=0
 COMPILER_TYPE_GCC=0
 
@@ -3288,14 +3284,6 @@ ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
-
-CCACHE_DIR=`pwd`/.ccache
-export CCACHE_DIR
-CCACHE_LOGFILE=`pwd`/ccache.log
-export CCACHE_LOGFILE
-CCACHE_CONFIGPATH=`pwd`/ccache.conf
-export CCACHE_CONFIGPATH
-touch $CCACHE_CONFIGPATH
 
 # ---------------------------------------
 
