@@ -961,6 +961,19 @@ EOF
     expect_stat 'files in cache' 0
 
     # -------------------------------------------------------------------------
+    TEST "-P"
+
+    # Check that -P disables ccache. (-P removes preprocessor information in
+    # such a way that the object file from compiling the preprocessed file will
+    # not be equal to the object file produced when compiling without ccache.)
+
+    $CCACHE_COMPILE -c -P test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat 'unsupported compiler option' 1
+
+    # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information

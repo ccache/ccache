@@ -72,6 +72,8 @@ New features and improvements
 Bug fixes
 ~~~~~~~~~
 
+- Bail out on too hard compiler option `-P`.
+
 - Fixed clang test suite when running on Linux.
 
 - Fixed build and test for MinGW32 and Windows.
