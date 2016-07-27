@@ -3215,9 +3215,13 @@ SUITE_input_charset() {
 # =============================================================================
 
 SUITE_memcached_PROBE() {
-    if [ -z $CCACHE_MEMCACHED ]; then
-        echo "CCACHE_MEMCACHED not set"
+    if ! type memcached >/dev/null 2>&1; then
+        echo "memcached not available"
     fi
+}
+
+SUITE_memcached_SETUP() {
+    generate_code 1 test1.c
 }
 
 SUITE_memcached() {
@@ -3231,9 +3235,13 @@ SUITE_memcached() {
 # =============================================================================
 
 SUITE_memcached_only_PROBE() {
-    if [ -z $CCACHE_MEMCACHED ]; then
-        echo "CCACHE_MEMCACHED not set"
+    if ! type memcached >/dev/null 2>&1; then
+        echo "memcached not available"
     fi
+}
+
+SUITE_memcached_only_SETUP() {
+    generate_code 1 test1.c
 }
 
 SUITE_memcached_only() {
@@ -3249,9 +3257,13 @@ SUITE_memcached_only() {
 # =============================================================================
 
 SUITE_memcached_socket_PROBE() {
-    if [ -z $CCACHE_MEMCACHED ]; then
-        echo "CCACHE_MEMCACHED not set"
+    if ! type memcached >/dev/null 2>&1; then
+        echo "memcached not available"
     fi
+}
+
+SUITE_memcached_socket_SETUP() {
+    generate_code 1 test1.c
 }
 
 SUITE_memcached_socket() {
