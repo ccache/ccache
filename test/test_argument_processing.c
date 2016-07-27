@@ -1,29 +1,25 @@
-/*
- * Copyright (C) 2010-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-/*
- * This file contains tests for the processing of compiler arguments.
- */
+// This file contains tests for the processing of compiler arguments.
 
-#include "ccache.h"
-#include "conf.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../ccache.h"
+#include "../conf.h"
+#include "framework.h"
+#include "util.h"
 
 extern struct conf *conf;
 
@@ -33,7 +29,7 @@ get_root(void)
 #ifndef _WIN32
 	return x_strdup("/");
 #else
-	char volume[4]; /* "C:\" */
+	char volume[4]; // "C:\"
 	GetVolumePathName(get_cwd(), volume, sizeof(volume));
 	return x_strdup(volume);
 #endif
@@ -48,13 +44,13 @@ get_posix_path(char *path)
 	char *posix;
 	char *p;
 
-	/* / escape volume */
+	// /-escape volume.
 	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
 		posix = format("/%s", path);
 	} else {
 		posix = x_strdup(path);
 	}
-	/* convert slashes */
+	// Convert slashes.
 	for (p = posix; *p; p++) {
 		if (*p == '\\') {
 			*p = '/';
@@ -109,7 +105,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 	args_free(orig);
 }
 
-TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
+TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
 {
 #define CMD \
 	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
@@ -125,6 +121,33 @@ TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
 
+	conf->run_second_cpp = false;
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
+{
+#define CMD \
+	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
+	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
+	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
+	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
+	" -fno-working-directory"
+#define DEP_OPTS \
+	" -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 " \
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	struct args *orig = args_init_from_string(CMD DEP_OPTS " -c foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string(CMD DEP_OPTS);
+	struct args *exp_cc = args_init_from_string(CMD " -c");
+#undef CMD
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	conf->run_second_cpp = true;
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
 	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
@@ -370,17 +393,43 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/"); /* posix */
+	conf->base_dir = x_strdup("/"); // posix
 	current_working_dir = get_cwd();
-	/* windows path don't work concatenated */
+	// Windows path doesn't work concatenated.
 	cwd = get_posix_path(current_working_dir);
 	arg_string = format("cc -isystem%s/foo -c foo.c", cwd);
 	orig = args_init_from_string(arg_string);
 	free(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ("-isystem", act_cpp->argv[1]);
-	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
+	CHECK_STR_EQ("-isystem./foo", act_cpp->argv[1]);
+
+	free(cwd);
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *cwd;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = x_strdup("/"); // posix
+	current_working_dir = get_cwd();
+	// Windows path doesn't work concatenated.
+	cwd = get_posix_path(current_working_dir);
+	arg_string = format("cc -I%s/foo -c foo.c", cwd);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ("-I./foo", act_cpp->argv[1]);
 
 	free(cwd);
 	args_free(orig);

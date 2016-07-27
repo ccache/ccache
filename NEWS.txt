@@ -5,8 +5,21 @@ ccache news
 Unreleased 3.3
 --------------
 
+Notes
+~~~~~
+
+- A C99-compatible compiler is now required to build ccache.
+
+
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The configuration option `run_second_cpp` (`CCACHE_CPP2`) now defaults to
+  true. This improves ccache's out-of-the-box experience for compilers that
+  can't compile their own preprocessed output with the same outcome as if they
+  compiled the real source code directly, e.g. newer versions of GCC and Clang.
+
+- The configuration option `hash_dir` (`CCACHE_HASHDIR`) now defaults to true.
 
 - Added support for cuda including the -optf/--options-file option.
 
@@ -34,9 +47,9 @@ New features and improvements
   This allows for cache hits even when `hash_dir` is used in combination with
   `base_dir`.
 
-- Added new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option, which
-  tells ccache not to discard the comments before hashing preprocessor output.
-  This can be used to check documentation with *-Wdocumentation*.
+- Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
+  which tells ccache not to discard the comments before hashing preprocessor
+  output. This can be used to check documentation with *-Wdocumentation*.
 
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
@@ -45,13 +58,46 @@ New features and improvements
 
 - Made ccache understand `-Wp,-D*` options.
 
+- Added a new statistics counter that tracks the number of performed cleanups
+  due to the cache size being over the limit. The value is shown in the output
+  of ``ccache -s''.
+
+- Added a new ``cache hit rate'' field to the output of ``ccache -s''.
+
+- Names of included files are no longer included in the hash of the compiler's
+  preprocessed output. This leads to more potential cache hits when not using
+  the direct mode.
+
+- Added support for multiple `-arch` options to produce "fat binaries".
+
+- Added support for caching compilation of assembler code produced by e.g.
+  ``gcc -S file.c''.
+
+- Added support for Fortran 77.
+
 
 Bug fixes
 ~~~~~~~~~
 
+- Bail out on too hard compiler option `-P`.
+
 - Fixed clang test suite when running on Linux.
 
 - Fixed build and test for MinGW32 and Windows.
+
+
+ccache 3.2.7
+------------
+Release date: 2016-07-20
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug which could lead to false cache hits for compiler command lines
+  with a missing argument to an option that takes an argument.
+
+- ccache now knows how to work around a glitch in the output of GCC 6's
+  preprocessor.
 
 
 ccache 3.2.6
@@ -65,9 +111,6 @@ Bug fixes
 
 - Bail out on compiler option `-fstack-usage` since it creates a `.su` file
   which ccache currently doesn't handle.
-
-- ccache now knows how to work around a glitch in the output of GCC 6's
-  preprocessor.
 
 - Fixed a bug where (due to ccache rewriting paths) the compiler could choose
   incorrect include files if `CCACHE_BASEDIR` is used and the source file path

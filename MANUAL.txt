@@ -369,14 +369,20 @@ WRAPPERS>>.
 
 *hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, ccache will include the current working directory in the hash that
-    is used to distinguish two compilations. This prevents a problem with the
-    storage of the current working directory in the debug info of an object
-    file, which can lead ccache to give a cached object file that has the
-    working directory in the debug info set incorrectly. This option is off by
-    default as the incorrect setting of this debug info rarely causes problems.
-    If you strike problems with GDB not using the correct directory then enable
-    this option. The option only applies when generating debug info (*-g*).
+    If true (which is the default), ccache will include the current working
+    directory (CWD) in the hash that is used to distinguish two compilations
+    when generating debug info (compiler option *-g* with variations).
+    Exception: The CWD will not be included in the hash if *base_dir* is set
+    (and matches the CWD) and the compiler option *-fdebug-prefix-map* is used.
+
+    The reason for including the CWD in the hash by default is to prevent a
+    problem with the storage of the current working directory in the debug info
+    of an object file, which can lead ccache to return a cached object file
+    that has the working directory in the debug info set incorrectly.
+
+    You can disable this setting to get cache hits when compiling the same
+    source code in different directories if you don't mind that CWD in the
+    debug info might be incorrect.
 
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
@@ -466,12 +472,17 @@ CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
 
 *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, ccache will not use the optimisation of avoiding the second call
-    to the preprocessor by compiling the preprocessed output that was used for
-    finding the hash in the case of a cache miss. This is primarily a debugging
-    option, although it is possible that some unusual compilers will have
-    problems with compiling the preprocessed output, in which case this option
-    could allow ccache to be used anyway.
+    If true, ccache will first run the preprocessor to preprocess the source
+    code (see <<_the_preprocessor_mode,THE PREPROCESSOR MODE>>) and then on a
+    cache miss run the compiler on the source code to get hold of the object
+    file. This is the default.
+
+    If false, ccache will first run preprocessor to preprocess the source code
+    and then on a cache miss run the compiler on the _preprocessed source code_
+    instead of the original source code. This makes cache misses slightly
+    faster since the source code only has to be preprocessed once. The downside
+    is that some compilers won't produce the same result (for instance
+    diagnostics warnings) when compiling preprocessed source code.
 
 *sloppiness* (*CCACHE_SLOPPINESS*)::
 
@@ -925,15 +936,6 @@ problems and what may be done to increase the hit rate:
   HEADERS>> for how to remedy this.
 * If ``can't use precompiled header'' has been incremented, see
   <<_precompiled_headers,PRECOMPILED HEADERS>>.
-
-
-Errors when compiling with ccache
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If compilation doesn't work with ccache, but it works without it, one possible
-reason is that the compiler can't compile preprocessed output correctly. A
-workaround that may work is to enable *run_second_cpp*. This will make cache
-misses slower, though, so it is better to find and fix the root cause.
 
 
 Corrupt object files

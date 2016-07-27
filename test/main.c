@@ -1,34 +1,31 @@
-/* Mode: -*-c-*- */
-/*
- * Copyright (C) 2010 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "test/framework.h"
+#include "framework.h"
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
-#include "getopt_long.h"
+#include "../getopt_long.h"
 #endif
 
-/* *INDENT-OFF* disable uncrustify */
+// *INDENT-OFF* disable uncrustify
 #define SUITE(name) unsigned suite_ ## name(unsigned);
-#include "test/suites.h"
+#include "suites.h"
 #undef SUITE
-/* *INDENT-ON* enable uncrustify */
+// *INDENT-ON* enable uncrustify
 
 const char USAGE_TEXT[] =
   "Usage:\n"
@@ -43,7 +40,7 @@ main(int argc, char **argv)
 {
 	suite_fn suites[] = {
 #define SUITE(name) &suite_ ## name,
-#include "test/suites.h"
+#include "suites.h"
 #undef SUITE
 		NULL
 	};

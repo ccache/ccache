@@ -1,77 +1,67 @@
-/*
- * Copyright (C) 2010-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
-/*
- * This function acquires a lockfile for the given path. Returns true if the
- * lock was acquired, otherwise false. If the lock has been considered stale
- * for the number of microseconds specified by staleness_limit, the function
- * will (if possible) break the lock and then try to acquire it again. The
- * staleness limit should be reasonably larger than the longest time the lock
- * can be expected to be held, and the updates of the locked path should
- * probably be made with an atomic rename(2) to avoid corruption in the rare
- * case that the lock is broken by another process.
- */
+// This function acquires a lockfile for the given path. Returns true if the
+// lock was acquired, otherwise false. If the lock has been considered stale
+// for the number of microseconds specified by staleness_limit, the function
+// will (if possible) break the lock and then try to acquire it again. The
+// staleness limit should be reasonably larger than the longest time the lock
+// can be expected to be held, and the updates of the locked path should
+// probably be made with an atomic rename(2) to avoid corruption in the rare
+// case that the lock is broken by another process.
 bool
 lockfile_acquire(const char *path, unsigned staleness_limit)
 {
-	int saved_errno = 0;
 	char *lockfile = format("%s.lock", path);
-	char *my_content = NULL, *content = NULL, *initial_content = NULL;
+	char *my_content = NULL;
+	char *content = NULL;
+	char *initial_content = NULL;
 	const char *hostname = get_hostname();
 	bool acquired = false;
-#ifdef _WIN32
-	const size_t bufsize = 1024;
-	int fd, len;
-#else
-	int ret;
-#endif
-	unsigned to_sleep = 1000, slept = 0; /* Microseconds. */
+	unsigned to_sleep = 1000; // Microseconds.
+	unsigned slept = 0; // Microseconds.
 
 	while (true) {
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
 #ifdef _WIN32
-		fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
+		int fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
-			saved_errno = errno;
+			int saved_errno = errno;
 			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
 			if (saved_errno == ENOENT) {
-				/* Directory doesn't exist? */
+				// Directory doesn't exist?
 				if (create_parent_dirs(lockfile) == 0) {
-					/* OK. Retry. */
+					// OK. Retry.
 					continue;
 				}
 			}
 			if (saved_errno != EEXIST) {
-				/* Directory doesn't exist or isn't writable? */
+				// Directory doesn't exist or isn't writable?
 				goto out;
 			}
-			/* Someone else has the lock. */
+			// Someone else has the lock.
 			fd = open(lockfile, O_RDONLY|O_BINARY);
 			if (fd == -1) {
 				if (errno == ENOENT) {
-					/*
-					 * The file was removed after the open() call above, so retry
-					 * acquiring it.
-					 */
+					// The file was removed after the open() call above, so retry
+					// acquiring it.
 					continue;
 				} else {
 					cc_log("lockfile_acquire: open RDONLY %s: %s",
@@ -80,8 +70,10 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				}
 			}
 			free(content);
+			const size_t bufsize = 1024;
 			content = x_malloc(bufsize);
-			if ((len = read(fd, content, bufsize - 1)) == -1) {
+			int len = read(fd, content, bufsize - 1);
+			if (len == -1) {
 				cc_log("lockfile_acquire: read %s: %s", lockfile, strerror(errno));
 				close(fd);
 				goto out;
@@ -89,7 +81,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			close(fd);
 			content[len] = '\0';
 		} else {
-			/* We got the lock. */
+			// We got the lock.
 			if (write(fd, my_content, strlen(my_content)) == -1) {
 				cc_log("lockfile_acquire: write %s: %s", lockfile, strerror(errno));
 				close(fd);
@@ -101,42 +93,37 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			goto out;
 		}
 #else
-		ret = symlink(my_content, lockfile);
-		if (ret == 0) {
-			/* We got the lock. */
+		if (symlink(my_content, lockfile) == 0) {
+			// We got the lock.
 			acquired = true;
 			goto out;
 		}
-		saved_errno = errno;
+		int saved_errno = errno;
 		cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(saved_errno));
 		if (saved_errno == ENOENT) {
-			/* Directory doesn't exist? */
+			// Directory doesn't exist?
 			if (create_parent_dirs(lockfile) == 0) {
-				/* OK. Retry. */
+				// OK. Retry.
 				continue;
 			}
 		}
 		if (saved_errno == EPERM) {
-			/*
-			 * The file system does not support symbolic links. We have no choice but
-			 * to grant the lock anyway.
-			 */
+			// The file system does not support symbolic links. We have no choice but
+			// to grant the lock anyway.
 			acquired = true;
 			goto out;
 		}
 		if (saved_errno != EEXIST) {
-			/* Directory doesn't exist or isn't writable? */
+			// Directory doesn't exist or isn't writable?
 			goto out;
 		}
 		free(content);
 		content = x_readlink(lockfile);
-		/* cppcheck-suppress nullPointer - false positive */
+		// cppcheck-suppress nullPointer - false positive
 		if (!content) {
 			if (errno == ENOENT) {
-				/*
-				 * The symlink was removed after the symlink() call above, so retry
-				 * acquiring it.
-				 */
+				// The symlink was removed after the symlink() call above, so retry
+				// acquiring it.
 				continue;
 			} else {
 				cc_log("lockfile_acquire: readlink %s: %s", lockfile, strerror(errno));
@@ -146,23 +133,21 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 #endif
 
 		if (str_eq(content, my_content)) {
-			/* Lost NFS reply? */
+			// Lost NFS reply?
 			cc_log("lockfile_acquire: symlink %s failed but we got the lock anyway",
 			       lockfile);
 			acquired = true;
 			goto out;
 		}
-		/*
-		 * A possible improvement here would be to check if the process holding the
-		 * lock is still alive and break the lock early if it isn't.
-		 */
+		// A possible improvement here would be to check if the process holding the
+		// lock is still alive and break the lock early if it isn't.
 		cc_log("lockfile_acquire: lock info for %s: %s", lockfile, content);
 		if (!initial_content) {
 			initial_content = x_strdup(content);
 		}
 		if (slept > staleness_limit) {
 			if (str_eq(content, initial_content)) {
-				/* The lock seems to be stale -- break it. */
+				// The lock seems to be stale -- break it.
 				cc_log("lockfile_acquire: breaking %s", lockfile);
 				if (lockfile_acquire(lockfile, staleness_limit)) {
 					lockfile_release(path);
@@ -195,10 +180,8 @@ out:
 	return acquired;
 }
 
-/*
- * Release the lockfile for the given path. Assumes that we are the legitimate
- * owner.
- */
+// Release the lockfile for the given path. Assumes that we are the legitimate
+// owner.
 void
 lockfile_release(const char *path)
 {

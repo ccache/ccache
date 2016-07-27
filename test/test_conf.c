@@ -1,24 +1,22 @@
-/*
- * Copyright (C) 2011-2016 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2011-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "conf.h"
-#include "test/framework.h"
-#include "test/util.h"
+#include "../conf.h"
+#include "framework.h"
+#include "util.h"
 
 #define N_CONFIG_ITEMS 33
 static struct {
@@ -63,7 +61,7 @@ TEST(conf_create)
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
 	CHECK(!conf->hard_link);
-	CHECK(!conf->hash_dir);
+	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK(!conf->keep_comments_cpp);
 	CHECK_STR_EQ("", conf->log_file);
@@ -78,7 +76,7 @@ TEST(conf_create)
 	CHECK(!conf->read_only_direct);
 	CHECK(!conf->read_only_memcached);
 	CHECK(!conf->recache);
-	CHECK(!conf->run_second_cpp);
+	CHECK(conf->run_second_cpp);
 	CHECK_INT_EQ(0, conf->sloppiness);
 	CHECK(conf->stats);
 	CHECK_STR_EQ("", conf->temporary_dir);
@@ -116,7 +114,7 @@ TEST(conf_read_valid_config)
 	  "disable = true\n"
 	  "extra_files_to_hash = a:b c:$USER\n"
 	  "hard_link = true\n"
-	  "hash_dir = true\n"
+	  "hash_dir = false\n"
 	  "ignore_headers_in_manifest = a:b/c\n"
 	  "keep_comments_cpp = true\n"
 	  "log_file = $USER${USER} \n"
@@ -131,12 +129,12 @@ TEST(conf_read_valid_config)
 	  "read_only_direct = true\n"
 	  "read_only_memcached = false\n"
 	  "recache = true\n"
-	  "run_second_cpp = true\n"
+	  "run_second_cpp = false\n"
 	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,pch_defines ,  no_system_headers  \n"
 	  "stats = false\n"
 	  "temporary_dir = ${USER}_foo\n"
 	  "umask = 777\n"
-	  "unify = true"); /* Note: no newline */
+	  "unify = true"); // Note: no newline.
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
@@ -156,7 +154,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
 	CHECK(conf->hard_link);
-	CHECK(conf->hash_dir);
+	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
 	CHECK(conf->keep_comments_cpp);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
@@ -171,7 +169,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->read_only_direct);
 	CHECK(!conf->read_only_memcached);
 	CHECK(conf->recache);
-	CHECK(conf->run_second_cpp);
+	CHECK(!conf->run_second_cpp);
 	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_INCLUDE_FILE_CTIME|
 	             SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS|
 	             SLOPPY_FILE_STAT_MATCHES|SLOPPY_NO_SYSTEM_HEADERS|
@@ -232,7 +230,7 @@ TEST(conf_read_invalid_env_string)
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2("ccache.conf:1: syntax error: missing '}' after \"foo\"",
 	                   errmsg);
-	/* Other cases tested in test_util.c. */
+	// Other cases tested in test_util.c.
 	conf_free(conf);
 }
 
@@ -254,7 +252,7 @@ TEST(conf_read_invalid_size)
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid size: \"foo\"",
 	                   errmsg);
-	/* Other cases tested in test_util.c. */
+	// Other cases tested in test_util.c.
 	conf_free(conf);
 }
 
@@ -384,7 +382,7 @@ TEST(conf_print_items)
 		true,
 		"efth",
 		true,
-		true,
+		.hash_dir = false,
 		"ihim",
 		true,
 		"lf",
@@ -399,7 +397,7 @@ TEST(conf_print_items)
 		true,
 		false,
 		true,
-		true,
+		.run_second_cpp = false,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
 		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
 		SLOPPY_FILE_STAT_MATCHES|SLOPPY_PCH_DEFINES|
@@ -435,7 +433,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
-	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("hash_dir = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("ignore_headers_in_manifest = ihim",
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("keep_comments_cpp = true", received_conf_items[n++].descr);
@@ -451,7 +449,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("read_only_direct = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only_memcached = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("recache = true", received_conf_items[n++].descr);
-	CHECK_STR_EQ("run_second_cpp = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("run_second_cpp = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"
 	             " include_file_ctime, time_macros, pch_defines,"
 	             " file_stat_matches, no_system_headers",

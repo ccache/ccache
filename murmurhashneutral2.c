@@ -1,7 +1,5 @@
-/*
- * MurmurHashNeutral2, by Austin Appleby. Released to the public domain. See
- * <http://murmurhash.googlepages.com>.
- */
+// MurmurHashNeutral2, by Austin Appleby. Released to the public domain. See
+// <http://murmurhash.googlepages.com>.
 
 #include "murmurhashneutral2.h"
 
@@ -10,15 +8,11 @@ murmurhashneutral2(const void *key, int len, unsigned int seed)
 {
 	const unsigned int m = 0x5bd1e995;
 	const int r = 24;
-
 	unsigned int h = seed ^ len;
-
 	const unsigned char *data = (const unsigned char *)key;
 
 	while (len >= 4) {
-		unsigned int k;
-
-		k = data[0];
+		unsigned int k = data[0];
 		k |= data[1] << 8;
 		k |= data[2] << 16;
 		k |= data[3] << 24;

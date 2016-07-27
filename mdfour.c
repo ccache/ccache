@@ -1,24 +1,23 @@
-/*
- * Copyright (C) 1997-1998 Andrew Tridgell
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 1997-1998 Andrew Tridgell
+// Copyright (C) 2009-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
 
-/* NOTE: This code makes no attempt to be fast! */
+// NOTE: This code makes no attempt to be fast!
 
 static struct mdfour *m;
 
@@ -36,15 +35,21 @@ static struct mdfour *m;
 #define ROUND3(a, b, c, d, k, s) \
   a = lshift((a + H(b, c, d) + M[k] + 0x6ED9EBA1)&MASK32, s)
 
-/* this applies md4 to 64 byte chunks */
+// This applies md4 to 64 byte chunks.
 static void
 mdfour64(uint32_t *M)
 {
 	uint32_t AA, BB, CC, DD;
 	uint32_t A, B, C, D;
 
-	A = m->A; B = m->B; C = m->C; D = m->D;
-	AA = A; BB = B; CC = C; DD = D;
+	A = m->A;
+	B = m->B;
+	C = m->C;
+	D = m->D;
+	AA = A;
+	BB = B;
+	CC = C;
+	DD = D;
 
 	ROUND1(A, B, C, D,  0,  3);  ROUND1(D, A, B, C,  1,  7);
 	ROUND1(C, D, A, B,  2, 11);  ROUND1(B, C, D, A,  3, 19);
@@ -74,22 +79,27 @@ mdfour64(uint32_t *M)
 	ROUND3(A, B, C, D,  3,  3);  ROUND3(D, A, B, C, 11,  9);
 	ROUND3(C, D, A, B,  7, 11);  ROUND3(B, C, D, A, 15, 15);
 
-	A += AA; B += BB;
-	C += CC; D += DD;
+	A += AA;
+	B += BB;
+	C += CC;
+	D += DD;
 
-	A &= MASK32; B &= MASK32;
-	C &= MASK32; D &= MASK32;
+	A &= MASK32;
+	B &= MASK32;
+	C &= MASK32;
+	D &= MASK32;
 
-	m->A = A; m->B = B; m->C = C; m->D = D;
+	m->A = A;
+	m->B = B;
+	m->C = C;
+	m->D = D;
 }
 
 static void
 copy64(uint32_t *M, const unsigned char *in)
 {
 #ifdef WORDS_BIGENDIAN
-	int i;
-
-	for (i = 0; i < 16; i++) {
+	for (int i = 0; i < 16; i++) {
 		M[i] = (in[i*4+3]<<24) | (in[i*4+2]<<16) |
 		       (in[i*4+1]<<8) | (in[i*4+0]<<0);
 	}
@@ -126,14 +136,10 @@ mdfour_begin(struct mdfour *md)
 static
 void mdfour_tail(const unsigned char *in, size_t n)
 {
+	m->totalN += n;
+	uint32_t b = m->totalN * 8;
 	unsigned char buf[128] = { 0 };
 	uint32_t M[16];
-	uint32_t b;
-
-	m->totalN += n;
-
-	b = m->totalN * 8;
-
 	if (n) {
 		memcpy(buf, in, n);
 	}
@@ -155,8 +161,6 @@ void mdfour_tail(const unsigned char *in, size_t n)
 void
 mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
-	uint32_t M[16];
-
 #ifdef CCACHE_DEBUG_HASH
 	if (getenv("CCACHE_DEBUG_HASH")) {
 		FILE *f = fopen("ccache-debug-hash.bin", "a");
@@ -175,6 +179,7 @@ mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 		return;
 	}
 
+	uint32_t M[16];
 	if (md->tail_len) {
 		size_t len = 64 - md->tail_len;
 		if (len > n) {

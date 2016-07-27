@@ -12,4 +12,4 @@ bool compopt_takes_arg(const char *option);
 bool compopt_takes_concat_arg(const char *option);
 bool compopt_prefix_affects_cpp(const char *option);
 
-#endif /* CCACHE_COMPOPT_H */
+#endif // CCACHE_COMPOPT_H
