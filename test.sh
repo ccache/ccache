@@ -19,13 +19,25 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+green() {
+    printf "\033[1;32m$*\033[0;0m\n"
+}
+
+red() {
+    printf "\033[1;31m$*\033[0;0m\n"
+}
+
+bold() {
+    printf "\033[1;37m$*\033[0;0m\n"
+}
+
 test_failed() {
     echo
-    echo FAILED
+    red FAILED
     echo
-    echo "Test suite:     $CURRENT_SUITE"
-    echo "Test case:      $CURRENT_TEST"
-    echo "Failure reason: $1"
+    echo "Test suite:     $(bold $CURRENT_SUITE)"
+    echo "Test case:      $(bold $CURRENT_TEST)"
+    echo "Failure reason: $(red $1)"
     echo
     echo "ccache -s:"
     $CCACHE -s
@@ -92,7 +104,7 @@ expect_equal_files() {
 }
 
 expect_equal_object_files() {
-    if [ $HOST_OS_LINUX -eq 1 ] && [ $COMPILER_TYPE_CLANG -eq 1 ]; then
+    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
         if ! which eu-elfcmp >/dev/null 2>&1; then
             test_failed "Please install elfutils to get eu-elfcmp"
         fi
@@ -147,7 +159,7 @@ run_suite() {
         fi
     fi
 
-    printf "Running test suite %s" $name
+    printf "Running test suite %s" "$(bold $name)"
     SUITE_$name
     echo
 }
@@ -1121,7 +1133,7 @@ SUITE_cpp2() {
 # =============================================================================
 
 SUITE_multi_arch_PROBE() {
-    if [ $HOST_OS_APPLE -eq 0 ]; then
+    if ! $HOST_OS_APPLE; then
         echo "multiple -arch options not supported on $(uname -s)"
         return
     fi
@@ -1234,7 +1246,7 @@ EOF
 # =============================================================================
 
 SUITE_debug_prefix_map_PROBE() {
-    if [ $COMPILER_TYPE_GCC -eq 0 -o $COMPILER_USES_MINGW -eq 1 ]; then
+    if ! $COMPILER_TYPE_GCC || $COMPILER_USES_MINGW; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
 }
@@ -2703,7 +2715,7 @@ SUITE_pch() {
     # headers on the command line and not as an #include statement inside a
     # source file.
 
-    if [ $COMPILER_TYPE_CLANG -eq 1 ]; then
+    if $COMPILER_TYPE_CLANG; then
         pch_suite_clang
     else
         pch_suite_gcc
@@ -3201,23 +3213,23 @@ if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
 
-COMPILER_TYPE_CLANG=0
-COMPILER_TYPE_GCC=0
+COMPILER_TYPE_CLANG=false
+COMPILER_TYPE_GCC=false
 
-COMPILER_USES_LLVM=0
-COMPILER_USES_MINGW=0
+COMPILER_USES_LLVM=false
+COMPILER_USES_MINGW=false
 
-HOST_OS_APPLE=0
-HOST_OS_LINUX=0
-HOST_OS_WINDOWS=0
+HOST_OS_APPLE=false
+HOST_OS_LINUX=false
+HOST_OS_WINDOWS=false
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
     *gcc*|*g++*|2.95*)
-        COMPILER_TYPE_GCC=1
+        COMPILER_TYPE_GCC=true
         ;;
     *clang*)
-        COMPILER_TYPE_CLANG=1
+        COMPILER_TYPE_CLANG=true
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
@@ -3227,32 +3239,32 @@ esac
 
 case $compiler_version in
     *llvm*|*LLVM*)
-        COMPILER_USES_LLVM=1
+        COMPILER_USES_LLVM=true
         ;;
     *MINGW*|*mingw*)
-        COMPILER_USES_MINGW=1
+        COMPILER_USES_MINGW=true
         ;;
 esac
 
 case $(uname -s) in
     *MINGW*|*mingw*)
-        HOST_OS_WINDOWS=1
+        HOST_OS_WINDOWS=true
         ;;
     *Darwin*)
-        HOST_OS_APPLE=1
+        HOST_OS_APPLE=true
         ;;
     *Linux*)
-        HOST_OS_LINUX=1
+        HOST_OS_LINUX=true
         ;;
 esac
 
-if [ $HOST_OS_WINDOWS -eq 1 ]; then
+if $HOST_OS_WINDOWS; then
     PATH_DELIM=";"
 else
     PATH_DELIM=":"
 fi
 
-if [ $HOST_OS_APPLE -eq 1 ]; then
+if $HOST_OS_APPLE; then
     # Grab the developer directory from the environment or try xcode-select
     if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
       XCODE_DEVELOPER_DIR=`xcode-select --print-path`
@@ -3328,5 +3340,5 @@ done
 
 cd /
 rm -rf $ABS_TESTDIR
-echo OK
+green OK
 exit 0
