@@ -987,23 +987,17 @@ EOF
     expect_stat 'cache miss' 0
     expect_stat 'unsupported compiler option' 1
 
-    $CCACHE_COMPILE -c -Wp,-P test1.c
+    $CCACHE_COMPILE -c -Wp,-P,-DFOO test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported compiler option' 2
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-P,-DGOO test1.c
+    $CCACHE_COMPILE -c -Wp,-DFOO,-P test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported compiler option' 3
-
-    $CCACHE_COMPILE -c -Wp,-DFOO,-P,-DGOO test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 4
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-D"
@@ -1017,11 +1011,6 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-
-    $CCACHE_COMPILE -c -Wp,-DFOO,-P test1.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "Buggy GCC 6 cpp"

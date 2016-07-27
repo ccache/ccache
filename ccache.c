@@ -2401,7 +2401,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
-			if (str_eq(argv[i], "-Wp,-P") || strstr(argv[i], ",-P,")) {
+			if (str_eq(argv[i], "-Wp,-P")
+			    || strstr(argv[i], ",-P,")
+			    || str_endswith(argv[i], ",-P")) {
 				// -P removes preprocessor information in such a way that the object
 				// file from compiling the preprocessed file will not be equal to the
 				// object file produced when compiling without ccache.

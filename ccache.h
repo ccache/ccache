@@ -69,7 +69,11 @@ enum stats {
 #define SLOPPY_NO_SYSTEM_HEADERS 64
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
-#define str_startswith(s, p) (strncmp((s), (p), strlen((p))) == 0)
+#define str_startswith(s, prefix) \
+	(strncmp((s), (prefix), strlen((prefix))) == 0)
+#define str_endswith(s, suffix) \
+	(strlen(s) >= strlen(suffix) \
+	 && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
 
 // ----------------------------------------------------------------------------
 // args.c
