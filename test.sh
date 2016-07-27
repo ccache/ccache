@@ -1561,12 +1561,12 @@ EOF
     # ccache could try to parse and make sense of -Wp, with multiple arguments,
     # but it currently doesn't, so we have to disable direct mode.
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c
+    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c
+    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
