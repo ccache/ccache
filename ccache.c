@@ -2842,8 +2842,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// default, so force it explicitly if it would be otherwise done.
 	if (!found_color_diagnostics && color_output_possible()) {
 		if (compiler_is_clang(args)) {
-			args_add(stripped_args, "-fcolor-diagnostics");
-			cc_log("Automatically enabling colors");
+			if (!str_eq(actual_language, "assembler")) {
+				args_add(stripped_args, "-fcolor-diagnostics");
+				cc_log("Automatically enabling colors");
+			}
 		} else if (compiler_is_gcc(args)) {
 			// GCC has it since 4.9, but that'd require detecting what GCC version is
 			// used for the actual compile. However it requires also GCC_COLORS to be
