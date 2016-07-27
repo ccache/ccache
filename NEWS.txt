@@ -14,6 +14,11 @@ Notes
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The configuration option `run_second_cpp` (`CCACHE_CPP2`) now defaults to
+  true. This improves ccache's out-of-the-box experience for compilers that
+  can't compile their own preprocessed output with the same outcome as if they
+  compiled the real source code directly, e.g. newer versions of GCC and Clang.
+
 - Added support for cuda including the -optf/--options-file option.
 
 - Added new sloppiness option `no_system_headers`, which tells ccache not to

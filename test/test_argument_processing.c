@@ -105,7 +105,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 	args_free(orig);
 }
 
-TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
+TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
 {
 #define CMD \
 	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
@@ -121,6 +121,33 @@ TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
 
+	conf->run_second_cpp = false;
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
+{
+#define CMD \
+	"cc -I. -idirafter . -iframework. -imacros . -imultilib ." \
+	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
+	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
+	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
+	" -fno-working-directory"
+#define DEP_OPTS \
+	" -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 " \
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	struct args *orig = args_init_from_string(CMD DEP_OPTS " -c foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string(CMD DEP_OPTS);
+	struct args *exp_cc = args_init_from_string(CMD " -c");
+#undef CMD
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	conf->run_second_cpp = true;
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
 	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);

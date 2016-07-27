@@ -176,9 +176,9 @@ TEST() {
 
     unset CCACHE_BASEDIR
     unset CCACHE_CC
+    unset CCACHE_COMMENTS
     unset CCACHE_COMPILERCHECK
     unset CCACHE_COMPRESS
-    unset CCACHE_COMMENTS
     unset CCACHE_CPP2
     unset CCACHE_DIR
     unset CCACHE_DISABLE
@@ -189,6 +189,7 @@ TEST() {
     unset CCACHE_IGNOREHEADERS
     unset CCACHE_LOGFILE
     unset CCACHE_NLEVELS
+    unset CCACHE_NOCPP2
     unset CCACHE_NOSTATS
     unset CCACHE_PATH
     unset CCACHE_PREFIX
@@ -383,20 +384,6 @@ base_tests() {
     mv test1-saved.c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
-    expect_equal_object_files reference_test1.o test1.o
-
-    # -------------------------------------------------------------------------
-    TEST "CCACHE_CPP2"
-
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
 
     $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
@@ -1097,12 +1084,12 @@ SUITE_base() {
 
 # =============================================================================
 
-SUITE_cpp2_SETUP() {
-    export CCACHE_CPP2=1
+SUITE_nocpp2_SETUP() {
+    export CCACHE_NOCPP2=1
     generate_code 1 test1.c
 }
 
-SUITE_cpp2() {
+SUITE_nocpp2() {
     base_tests
 }
 
@@ -1150,8 +1137,7 @@ SUITE_serialize_diagnostics() {
 
     $UNCACHED_COMPILE -c --serialize-diagnostics expected.dia test1.c
 
-    # Run with CCACHE_CPP2 to ensure the same diagnostics output as above
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
+    $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
@@ -1159,7 +1145,7 @@ SUITE_serialize_diagnostics() {
 
     rm test.dia
 
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
+    $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
@@ -1173,7 +1159,7 @@ SUITE_serialize_diagnostics() {
         test_failed "Expected an error compiling error.c"
     fi
 
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2>test.stderr
+    $CCACHE_COMPILE -c --serialize-diagnostics test.dia error.c 2>test.stderr
     expect_stat 'compile failed' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
@@ -3182,19 +3168,19 @@ SUITE_input_charset() {
 
     printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
 
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    CCACHE_NOCPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
 
-    $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
+    CCACHE_NOCPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
 }
@@ -3307,7 +3293,7 @@ cd $TESTDIR || exit 1
 
 all_suites="
 base
-cpp2
+nocpp2
 multi_arch
 serialize_diagnostics
 debug_prefix_map

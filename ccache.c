@@ -2676,7 +2676,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			cc_log("%s used; disabling unify mode", debug_argument);
 			conf->unify = false;
 		}
-		if (debug_level >= 3) {
+		if (debug_level >= 3 && !conf->run_second_cpp) {
 			cc_log("%s used; not compiling preprocessed code", debug_argument);
 			conf->run_second_cpp = true;
 		}
@@ -2762,7 +2762,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	direct_i_file = language_is_preprocessed(actual_language);
 
-	if (output_is_precompiled_header) {
+	if (output_is_precompiled_header && !conf->run_second_cpp) {
 		// It doesn't work to create the .gch from preprocessed source.
 		cc_log("Creating precompiled header; not compiling preprocessed code");
 		conf->run_second_cpp = true;
