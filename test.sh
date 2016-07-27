@@ -3226,7 +3226,7 @@ SUITE_memcached_SETUP() {
 
 SUITE_memcached() {
     export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
-    memcached -p 22122 &
+    memcached -p 22122 >/dev/null &
     memcached_pid=$!
     base_tests
     kill $memcached_pid
@@ -3248,7 +3248,7 @@ SUITE_memcached_only() {
     CCACHE_NOFILES=true
     export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
     export CCACHE_MEMCACHED_ONLY=1
-    memcached -p 22122 &
+    memcached -p 22122 >/dev/null &
     memcached_pid=$!
     base_tests
     kill $memcached_pid
@@ -3268,7 +3268,7 @@ SUITE_memcached_socket_SETUP() {
 
 SUITE_memcached_socket() {
     export CCACHE_MEMCACHED_CONF="--SOCKET=\"/tmp/memcached.$$\""
-    memcached -s /tmp/memcached.$$ &
+    memcached -s /tmp/memcached.$$ >/dev/null &
     memcached_pid=$!
     base_tests
     kill $memcached_pid
