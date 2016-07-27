@@ -152,6 +152,12 @@ run_suite() {
     echo
 }
 
+uncached_compile() {
+    # $COMPILER could be a masquerading system ccache, so make sure it's
+    # disabled:
+    CCACHE_DISABLE=1 $COMPILER "$@"
+}
+
 TEST() {
     CURRENT_TEST=$1
 
@@ -199,6 +205,7 @@ TEST() {
     touch $CCACHE_CONFIGPATH
 
     CCACHE_COMPILE="$CCACHE $COMPILER"
+    UNCACHED_COMPILE=uncached_compile
 
     if $VERBOSE; then
         printf "\n  %s" $CURRENT_TEST
@@ -222,7 +229,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -248,7 +255,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c -g
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c -g
     expect_equal_object_files reference_test1.o reference_test1.o
 
     # -------------------------------------------------------------------------
@@ -262,7 +269,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o foo.o
 
     # -------------------------------------------------------------------------
@@ -350,7 +357,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
 
     mv test1.c test1-saved.c
     echo '// initial comment' >test1.c
@@ -365,7 +372,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -379,7 +386,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -400,7 +407,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # CCACHE_RECACHE replace the object file, so the statistics counter will be
@@ -465,7 +472,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -594,7 +601,7 @@ b"
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -c test1.c -E >test1.i
+    $UNCACHED_COMPILE -c test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
@@ -661,7 +668,7 @@ b"
     unset CCACHE_CPP2
 
     printf '#include <wchar.h>\nwchar_t foo[] = L"\xbf";\n' >latin1.c
-    if CCACHE_DISABLE=1 $COMPILER -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
+    if $UNCACHED_COMPILE -c -finput-charset=latin1 latin1.c >/dev/null 2>&1; then
         CCACHE_CPP2=1 $CCACHE_COMPILE -c -finput-charset=latin1 latin1.c
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
@@ -718,8 +725,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -747,8 +753,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -771,8 +776,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -795,8 +799,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -822,8 +825,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -856,8 +858,7 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -1026,8 +1027,7 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
-export CCACHE_DISABLE
+export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else
@@ -1070,7 +1070,7 @@ EOF
     ln -s d1/d2 d3
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
-    $COMPILER c.o -o c
+    $UNCACHED_COMPILE c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -1091,7 +1091,7 @@ EOF
     ln -s d/c.c c.c
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/c.c
-    $COMPILER c.o -o c
+    $UNCACHED_COMPILE c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -1146,7 +1146,7 @@ SUITE_multi_arch() {
 
 SUITE_serialize_diagnostics_PROBE() {
     touch test.c
-    if ! CCACHE_DISABLE=1 $COMPILER -c --serialize-diagnostics \
+    if ! $UNCACHED_COMPILE -c --serialize-diagnostics \
          test1.dia test.c 2>/dev/null; then
         echo "--serialize-diagnostics not supported by compiler"
     fi
@@ -1160,7 +1160,7 @@ SUITE_serialize_diagnostics() {
     # -------------------------------------------------------------------------
     TEST "Compile OK"
 
-    CCACHE_DISABLE=1 $COMPILER -c --serialize-diagnostics expected.dia test1.c
+    $UNCACHED_COMPILE -c --serialize-diagnostics expected.dia test1.c
 
     # Run with CCACHE_CPP2 to ensure the same diagnostics output as above
     CCACHE_CPP2=1 $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
@@ -1181,7 +1181,7 @@ SUITE_serialize_diagnostics() {
     TEST "Compile failed"
 
     echo "bad source" >error.c
-    if CCACHE_DISABLE=1 $COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
+    if $UNCACHED_COMPILE -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
         test_failed "Expected an error compiling error.c"
     fi
 
@@ -1301,7 +1301,7 @@ SUITE_masquerading() {
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink"
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1331,7 +1331,7 @@ SUITE_hardlink() {
 
     generate_code 1 test1.c
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1373,8 +1373,8 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
-    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MD,expected.d test.c
-    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MMD,expected_mmd.d test.c
+    $UNCACHED_COMPILE -c -Wp,-MD,expected.d test.c
+    $UNCACHED_COMPILE -c -Wp,-MMD,expected_mmd.d test.c
     rm test.o
 }
 
@@ -1382,7 +1382,7 @@ SUITE_direct() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    CCACHE_DISABLE=1 $COMPILER -c -o reference_test.o test.c
+    $UNCACHED_COMPILE -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
@@ -1502,7 +1502,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected.d
 
-    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
+    $UNCACHED_COMPILE -c -Wp,-MD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -1529,7 +1529,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected_mmd.d
 
-    CCACHE_DISABLE=1 $COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
+    $UNCACHED_COMPILE -c -Wp,-MMD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -1598,7 +1598,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
 
-    CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
+    $UNCACHED_COMPILE -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -1638,7 +1638,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
-    CCACHE_DISABLE=1 $COMPILER -c -MD test.c -o reference_test.o
+    $UNCACHED_COMPILE -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -1676,7 +1676,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected.d
-    CCACHE_DISABLE=1 $COMPILER -c -MD -MF other.d test.c -o reference_test.o
+    $UNCACHED_COMPILE -c -MD -MF other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -2663,7 +2663,7 @@ SUITE_cleanup() {
 
 SUITE_pch_PROBE() {
     touch pch.h
-    if ! CCACHE_DISABLE=1 $COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
+    if ! $UNCACHED_COMPILE $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
         echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
     fi
@@ -2765,7 +2765,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, #include"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2780,7 +2780,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2794,7 +2794,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2811,7 +2811,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, no sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2824,7 +2824,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2841,7 +2841,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2871,7 +2871,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2888,7 +2888,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2966,7 +2966,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c 2>/dev/null
@@ -2979,7 +2979,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -2995,7 +2995,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, -include, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3019,7 +3019,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3035,7 +3035,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h
+    $UNCACHED_COMPILE $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
@@ -3076,7 +3076,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .pth, no -fpch-preprocess, -include, no sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -3089,7 +3089,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .pth, no -fpch-preprocess, -include, sloppiness"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -3105,7 +3105,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .pth, -fpch-preprocess, -include, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3129,7 +3129,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .pth, preprocessor mode"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3145,7 +3145,7 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Use .pth, preprocessor mode, file changed"
 
-    CCACHE_DISABLE=1 $COMPILER $SYSROOT -c pch.h -o pch.h.pth
+    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
