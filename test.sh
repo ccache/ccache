@@ -3347,5 +3347,5 @@ done
 
 cd /
 rm -rf $ABS_TESTDIR
-green OK
+green PASSED
 exit 0
