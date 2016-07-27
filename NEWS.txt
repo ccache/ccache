@@ -19,6 +19,8 @@ New features and improvements
   can't compile their own preprocessed output with the same outcome as if they
   compiled the real source code directly, e.g. newer versions of GCC and Clang.
 
+- The configuration option `hash_dir` (`CCACHE_HASHDIR`) now defaults to true.
+
 - Added support for cuda including the -optf/--options-file option.
 
 - Added new sloppiness option `no_system_headers`, which tells ccache not to

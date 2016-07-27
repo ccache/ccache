@@ -61,7 +61,7 @@ TEST(conf_create)
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
 	CHECK(!conf->hard_link);
-	CHECK(!conf->hash_dir);
+	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK(!conf->keep_comments_cpp);
 	CHECK_STR_EQ("", conf->log_file);
@@ -111,7 +111,7 @@ TEST(conf_read_valid_config)
 	  "disable = true\n"
 	  "extra_files_to_hash = a:b c:$USER\n"
 	  "hard_link = true\n"
-	  "hash_dir = true\n"
+	  "hash_dir = false\n"
 	  "ignore_headers_in_manifest = a:b/c\n"
 	  "keep_comments_cpp = true\n"
 	  "log_file = $USER${USER} \n"
@@ -148,7 +148,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
 	CHECK(conf->hard_link);
-	CHECK(conf->hash_dir);
+	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
 	CHECK(conf->keep_comments_cpp);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
@@ -373,7 +373,7 @@ TEST(conf_print_items)
 		true,
 		"efth",
 		true,
-		true,
+		.hash_dir = false,
 		"ihim",
 		true,
 		"lf",
@@ -421,7 +421,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
-	CHECK_STR_EQ("hash_dir = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("hash_dir = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("ignore_headers_in_manifest = ihim",
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("keep_comments_cpp = true", received_conf_items[n++].descr);

@@ -185,11 +185,11 @@ TEST() {
     unset CCACHE_EXTENSION
     unset CCACHE_EXTRAFILES
     unset CCACHE_HARDLINK
-    unset CCACHE_HASHDIR
     unset CCACHE_IGNOREHEADERS
     unset CCACHE_LOGFILE
     unset CCACHE_NLEVELS
     unset CCACHE_NOCPP2
+    unset CCACHE_NOHASHDIR
     unset CCACHE_NOSTATS
     unset CCACHE_PATH
     unset CCACHE_PREFIX
@@ -416,45 +416,65 @@ base_tests() {
     expect_stat 'files in cache' 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_HASHDIR with -g"
+    TEST "Directory is hashed if using -g"
 
     mkdir dir1 dir2
     cp test1.c dir1
     cp test1.c dir2
 
     cd dir1
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c -g
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c -g
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
     cd ../dir2
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c -g
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    $CCACHE_COMPILE -c test1.c -g
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_HASHDIR without -g"
+    TEST "Directory is not hashed if not using -g"
 
     mkdir dir1 dir2
     cp test1.c dir1
     cp test1.c dir2
 
     cd dir1
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c
+    $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c
+    $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
     cd ../dir2
-    CCACHE_HASHDIR=1 $CCACHE_COMPILE -c test1.c
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_NOHASHDIR"
+
+    mkdir dir1 dir2
+    cp test1.c dir1
+    cp test1.c dir2
+
+    cd dir1
+    CCACHE_NOHASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    CCACHE_NOHASHDIR=1 $CCACHE_COMPILE -c test1.c -g
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    cd ../dir2
+    CCACHE_NOHASHDIR=1 $CCACHE_COMPILE -c test1.c -g
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
 
@@ -1233,7 +1253,7 @@ SUITE_debug_prefix_map() {
     TEST "Mapping of debug info CWD"
 
     cd dir1
-    CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -1243,7 +1263,7 @@ SUITE_debug_prefix_map() {
     fi
 
     cd ../dir2
-    CCACHE_HASHDIR=1 CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1

@@ -306,7 +306,7 @@ conf_create(void)
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
 	conf->hard_link = false;
-	conf->hash_dir = false;
+	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->keep_comments_cpp = false;
 	conf->log_file = x_strdup("");
