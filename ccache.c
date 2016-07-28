@@ -36,6 +36,12 @@
 static const char VERSION_TEXT[] =
   MYNAME " version %s\n"
   "\n"
+#ifdef HAVE_LIBMEMCACHED
+	"memcached support: yes\n"
+#else
+	"memcached support: no\n"
+#endif
+  "\n"
   "Copyright (C) 2002-2007 Andrew Tridgell\n"
   "Copyright (C) 2009-2016 Joel Rosdahl\n"
   "\n"

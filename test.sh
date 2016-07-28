@@ -152,10 +152,11 @@ get_memstat_name() {
 }
 
 probe_memcached() {
-    if ! type memcached >/dev/null 2>&1; then
+    if ! $CCACHE -V | grep -q 'memcached support: yes'; then
+        echo "ccache not built with memcached support"
+    elif ! type memcached >/dev/null 2>&1; then
         echo "memcached not available"
-    fi
-    if [ -z "$(get_memstat_name)" ]; then
+    elif [ -z "$(get_memstat_name)" ]; then
         echo "memstat/memcstat not available"
     fi
 }
