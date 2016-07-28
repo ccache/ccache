@@ -409,8 +409,8 @@ base_tests() {
     $UNCACHED_COMPILE -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
-    # CCACHE_RECACHE replace the object file, so the statistics counter will be
-    # off-by-one until next cleanup.
+    # CCACHE_RECACHE replaces the object file, so the statistics counter will
+    # be off-by-one until next cleanup.
     expect_stat 'files in cache' 2
     $CCACHE -c >/dev/null
     expect_stat 'files in cache' 1
