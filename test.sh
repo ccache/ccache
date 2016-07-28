@@ -44,9 +44,8 @@ test_failed() {
     echo
     echo "Test data and log file have been left in $TESTDIR"
     tail -n 50 $CCACHE_LOGFILE
-    if [ ! -z $CCACHE_MEMCACHED_CONF ]; then
-        memstat --servers=localhost:22122
-        kill %1
+    if [ -n $CCACHE_MEMCACHED_CONF ]; then
+        $MEMSTAT --servers=localhost:22122
     fi
     exit 1
 }
@@ -142,6 +141,28 @@ expect_file_count() {
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $pattern files in $dir"
     fi
+}
+
+get_memstat_name() {
+    if type memcstat >/dev/null 2>&1; then
+        echo memcstat
+    elif type memstat >/dev/null 2>&1; then
+        echo memstat
+    fi
+}
+
+probe_memcached() {
+    if ! type memcached >/dev/null 2>&1; then
+        echo "memcached not available"
+    fi
+    if [ -z "$(get_memstat_name)" ]; then
+        echo "memstat/memcstat not available"
+    fi
+}
+
+start_memcached() {
+    memcached "$@" >/dev/null &
+    trap "kill $!" EXIT
 }
 
 run_suite() {
@@ -3215,63 +3236,57 @@ SUITE_input_charset() {
 # =============================================================================
 
 SUITE_memcached_PROBE() {
-    if ! type memcached >/dev/null 2>&1; then
-        echo "memcached not available"
-    fi
+    probe_memcached
 }
 
 SUITE_memcached_SETUP() {
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    MEMSTAT=$(get_memstat_name)
+
     generate_code 1 test1.c
 }
 
 SUITE_memcached() {
-    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
-    memcached -p 22122 >/dev/null &
-    memcached_pid=$!
+    start_memcached -p 22122
     base_tests
-    kill $memcached_pid
 }
 
 # =============================================================================
 
 SUITE_memcached_only_PROBE() {
-    if ! type memcached >/dev/null 2>&1; then
-        echo "memcached not available"
-    fi
+    probe_memcached
 }
 
 SUITE_memcached_only_SETUP() {
+    CCACHE_NOFILES=true
+    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
+    export CCACHE_MEMCACHED_ONLY=1
+    MEMSTAT=$(get_memstat_name)
+
     generate_code 1 test1.c
 }
 
 SUITE_memcached_only() {
-    CCACHE_NOFILES=true
-    export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
-    export CCACHE_MEMCACHED_ONLY=1
-    memcached -p 22122 >/dev/null &
-    memcached_pid=$!
+    start_memcached -p 22122
     base_tests
-    kill $memcached_pid
 }
 
 # =============================================================================
 
 SUITE_memcached_socket_PROBE() {
-    if ! type memcached >/dev/null 2>&1; then
-        echo "memcached not available"
-    fi
+    probe_memcached
 }
 
 SUITE_memcached_socket_SETUP() {
+    export CCACHE_MEMCACHED_CONF="--SOCKET=\"/tmp/memcached.$$\""
+    MEMSTAT=$(get_memstat_name)
+
     generate_code 1 test1.c
 }
 
 SUITE_memcached_socket() {
-    export CCACHE_MEMCACHED_CONF="--SOCKET=\"/tmp/memcached.$$\""
-    memcached -s /tmp/memcached.$$ >/dev/null &
-    memcached_pid=$!
+    start_memcached -s /tmp/memcached.$$
     base_tests
-    kill $memcached_pid
     rm /tmp/memcached.$$
 }
 
