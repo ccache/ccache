@@ -2381,7 +2381,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
-		if (str_eq(argv[i], "--coverage")) { // = -fprofile-arcs -ftest-coverage
+		if (str_eq(argv[i], "--coverage") // = -fprofile-arcs -ftest-coverage
+		    || str_eq(argv[i], "-coverage")) { // Undocumented but still works.
 			profile_arcs = true;
 			generating_coverage = true;
 			args_add(stripped_args, argv[i]);
