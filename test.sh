@@ -61,6 +61,7 @@ generate_code() {
 }
 
 remove_cache() {
+    # TODO: Need to clear memcached cache here as well.
     if [ -d $CCACHE_DIR ]; then
         chmod -R +w $CCACHE_DIR
         rm -rf $CCACHE_DIR
