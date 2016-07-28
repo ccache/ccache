@@ -1072,7 +1072,7 @@ void update_manifest_file(void)
 #if HAVE_LIBMEMCACHED
 			char *data;
 			size_t size;
-			if (strlen(conf->memcached_conf) > 0
+			if (!str_eq(conf->memcached_conf, "")
 			    && !conf->read_only_memcached
 			    && read_file(manifest_path, st.st_size, &data, &size)) {
 				cc_log("Storing %s in memcached", manifest_key);
@@ -1346,9 +1346,10 @@ to_fscache(struct args *args)
 	}
 
 #ifdef HAVE_LIBMEMCACHED
-	if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
-	    !using_split_dwarf && // No support for the dwo files just yet.
-	    !generating_coverage) { // Coverage refers to local paths anyway.
+	if (!str_eq(conf->memcached_conf, "")
+	    && !conf->read_only_memcached
+	    && !using_split_dwarf // No support for the dwo files just yet.
+	    && !generating_coverage) { // Coverage refers to local paths anyway.
 		cc_log("Storing %s in memcached", cached_key);
 
 		char *data_obj;
@@ -2113,7 +2114,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			void *cache = NULL;
 			char *data;
 			size_t size;
-			if (strlen(conf->memcached_conf) > 0) {
+			if (!str_eq(conf->memcached_conf, "")) {
 				cc_log("Getting %s from memcached", manifest_key);
 				cache = memccached_raw_get(manifest_key, &data, &size);
 			}
@@ -2187,9 +2188,9 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		size_t size_dia;
 		size_t size_dep;
 		void *cache = NULL;
-		if (strlen(conf->memcached_conf) > 0 &&
-		    !using_split_dwarf &&
-		    !generating_coverage) {
+		if (!str_eq(conf->memcached_conf, "")
+		    && !using_split_dwarf
+		    && !generating_coverage) {
 			cc_log("Getting %s from memcached", cached_key);
 			cache = memccached_get(cached_key,
 			                       &data_obj, &data_stderr, &data_dia, &data_dep,
@@ -3501,7 +3502,7 @@ initialize(void)
 	to_cache = to_fscache;
 
 #ifdef HAVE_LIBMEMCACHED
-	if (strlen(conf->memcached_conf) > 0) {
+	if (!str_eq(conf->memcached_conf, "")) {
 		memccached_init(conf->memcached_conf);
 	}
 
