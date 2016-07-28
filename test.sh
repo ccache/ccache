@@ -62,11 +62,11 @@ generate_code() {
 }
 
 remove_cache() {
-    # TODO: Need to clear memcached cache here as well.
     if [ -d $CCACHE_DIR ]; then
         chmod -R +w $CCACHE_DIR
         rm -rf $CCACHE_DIR
     fi
+    stop_memcached
 }
 
 clear_cache() {
@@ -259,11 +259,6 @@ TEST() {
     # must ignore ctimes. Might as well do so everywhere.
     DEFAULT_SLOPPINESS=include_file_ctime
     export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
-
-    remove_cache
-    stop_memcached
-    rm -f $CCACHE_CONFIGPATH
-    touch $CCACHE_CONFIGPATH
 
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
