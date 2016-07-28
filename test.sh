@@ -43,7 +43,7 @@ test_failed() {
     $CCACHE -s
     echo
     echo "Test data and log file have been left in $TESTDIR"
-    if [ -n $CCACHE_MEMCACHED_CONF ]; then
+    if [ -n "$MEMCACHED_PID" ]; then
         $MEMSTAT --servers=localhost:22122 >$ABS_TESTDIR/memcached.memstat
         echo "memcached memstat: $TESTDIR/memcached.memstat"
     fi
@@ -70,6 +70,7 @@ remove_cache() {
 
 clear_cache() {
     $CCACHE -Cz >/dev/null
+    restart_memcached
 }
 
 sed_in_place() {
@@ -164,7 +165,21 @@ probe_memcached() {
 
 start_memcached() {
     memcached "$@" >/dev/null &
-    trap "kill $!" EXIT
+    MEMCACHED_PID=$!
+}
+
+stop_memcached() {
+    if [ -n "$MEMCACHED_PID" ]; then
+        kill $MEMCACHED_PID
+        unset MEMCACHED_PID
+    fi
+}
+
+restart_memcached() {
+    if [ -n "$MEMCACHED_PID" ]; then
+        stop_memcached
+        start_memcached
+    fi
 }
 
 run_suite() {
@@ -245,6 +260,7 @@ TEST() {
     export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
 
     remove_cache
+    stop_memcached
     rm -f $CCACHE_CONFIGPATH
     touch $CCACHE_CONFIGPATH
 
@@ -3246,10 +3262,10 @@ SUITE_memcached_SETUP() {
     MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
+    start_memcached -p 22122
 }
 
 SUITE_memcached() {
-    start_memcached -p 22122
     base_tests
 }
 
@@ -3266,10 +3282,10 @@ SUITE_memcached_only_SETUP() {
     MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
+    start_memcached -p 22122
 }
 
 SUITE_memcached_only() {
-    start_memcached -p 22122
     base_tests
     # TODO: Test the actual memcached_only functionality instead of just
     # running all base tests.
@@ -3286,10 +3302,10 @@ SUITE_memcached_socket_SETUP() {
     MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
+    start_memcached -s /tmp/memcached.$$
 }
 
 SUITE_memcached_socket() {
-    start_memcached -s /tmp/memcached.$$
     base_tests
     rm /tmp/memcached.$$
 }
@@ -3397,6 +3413,8 @@ ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
+
+trap '[ -n "$MEMCACHED_PID" ] && kill $MEMCACHED_PID' EXIT
 
 # ---------------------------------------
 
