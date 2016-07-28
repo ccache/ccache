@@ -3319,6 +3319,12 @@ SUITE_memcached_only() {
     expect_stat 'files in cache' 0 # no object file stored in filesystem cache
     expect_equal_object_files reference_test1.o test1.o
 
+    # Disable memcache and check that we don't get a hit from filesystem cache:
+    CCACHE_MEMCACHED_CONF="" $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 1
+
     # -------------------------------------------------------------------------
     TEST "Direct hit"
 

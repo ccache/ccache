@@ -3504,13 +3504,14 @@ initialize(void)
 #ifdef HAVE_LIBMEMCACHED
 	if (!str_eq(conf->memcached_conf, "")) {
 		memccached_init(conf->memcached_conf);
-	}
 
-	if (conf->memcached_only) {
-		from_cache = from_memcached;
-		to_cache = to_memcached;
+		if (conf->memcached_only) {
+			from_cache = from_memcached;
+			to_cache = to_memcached;
+		}
 	}
 #endif
+
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_pending_tmp_files);
