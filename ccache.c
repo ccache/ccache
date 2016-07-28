@@ -2162,6 +2162,7 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
+	size_t object_size;
 	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 #if HAVE_LIBMEMCACHED
@@ -2189,9 +2190,12 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 				put_data_in_cache(data_dep, size_dep, cached_dep);
 			}
 			memccached_free(cache);
+			object_size = size_obj;
 		} else
 #endif
 		return;
+	} else {
+		object_size = st.st_size;
 	}
 
 	// Check if the diagnostic file is there.
@@ -2202,7 +2206,7 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
 	// meta-data with no content. Catch an easy case of this.
-	if (st.st_size == 0) {
+	if (object_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
 		x_unlink(cached_obj);
 		return;
