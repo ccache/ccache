@@ -2,6 +2,16 @@ ccache news
 ===========
 
 
+Unreleased 3.2.8
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- ccache now understands the undocumented `-coverage` (only one dash) GCC
+  option.
+
+
 ccache 3.2.7
 ------------
 Release date: 2016-07-20
