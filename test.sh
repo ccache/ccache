@@ -172,6 +172,7 @@ start_memcached() {
 stop_memcached() {
     if [ -n "$MEMCACHED_PID" ]; then
         kill $MEMCACHED_PID
+        wait $MEMCACHED_PID
         unset MEMCACHED_PID
     fi
 }
