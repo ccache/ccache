@@ -43,9 +43,9 @@ test_failed() {
     $CCACHE -s
     echo
     echo "Test data and log file have been left in $TESTDIR"
-    tail -n 50 $CCACHE_LOGFILE
     if [ -n $CCACHE_MEMCACHED_CONF ]; then
-        $MEMSTAT --servers=localhost:22122
+        $MEMSTAT --servers=localhost:22122 >$ABS_TESTDIR/memcached.memstat
+        echo "memcached memstat: $TESTDIR/memcached.memstat"
     fi
     exit 1
 }
