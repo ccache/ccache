@@ -3269,6 +3269,8 @@ SUITE_memcached_only_SETUP() {
 SUITE_memcached_only() {
     start_memcached -p 22122
     base_tests
+    # TODO: Test the actual memcached_only functionality instead of just
+    # running all base tests.
 }
 
 # =============================================================================
