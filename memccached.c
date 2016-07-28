@@ -1,3 +1,22 @@
+// ccache -- a fast C/C++ compiler cache
+//
+// Copyright (C) 2016 Anders Björklund
+// Copyright (C) 2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
 #include "ccache.h"
 
 #ifdef HAVE_LIBMEMCACHED
@@ -8,10 +27,10 @@
 #define MEMCCACHE_MAGIC "CCH1"
 #define MEMCCACHE_BIG "CCBM"
 
-#define MAX_VALUE_SIZE (1000 << 10) /* 1M with memcached overhead */
+#define MAX_VALUE_SIZE (1000 << 10) // ~1MB with memcached overhead
 #define SPLIT_VALUE_SIZE MAX_VALUE_SIZE
 
-/* status variables for memcached */
+// Status variables for memcached.
 static memcached_st *memc;
 
 int memccached_init(char *conf)
@@ -23,28 +42,27 @@ int memccached_init(char *conf)
 		cc_log("Problem creating memcached with conf %s:\n%s\n", conf, errorbuf);
 		return -1;
 	}
-	/* Consistent hashing delivers better distribution and allows servers to be
-	   added to the cluster with minimal cache losses */
+	// Consistent hashing delivers better distribution and allows servers to be
+	// added to the cluster with minimal cache losses.
 	memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_DISTRIBUTION,
 	                       MEMCACHED_DISTRIBUTION_CONSISTENT);
 	return 0;
 }
 
-/* blob format for big values:
+// Blob format for big values:
+//
+//   char magic[4]; # 'CCBM'
+//   uint32_t numkeys; # network endian
+//   uint32_t hash_size; # network endian
+//   uint32_t reserved; # network endian
+//   uint32_t value_length; # network endian
+//
+//   <hash[0]>       hash of include file                (<hash_size> bytes)
+//   <size[0]>       size of include file                (4 bytes unsigned int)
+//   ...
+//   <hash[n-1]>
+//   <size[n-1]>
 
-    char magic[4]; # 'CCBM'
-    uint32_t numkeys; # network endian
-    uint32_t hash_size; # network endian
-    uint32_t reserved; # network endian
-    uint32_t value_length; # network endian
-
-    <hash[0]>       hash of include file                (<hash_size> bytes)
-    <size[0]>       size of include file                (4 bytes unsigned int)
-    ...
-    <hash[n-1]>
-    <size[n-1]>
-
- */
 static memcached_return_t memccached_big_set(memcached_st *ptr,
                                              const char *key,
                                              size_t key_length,
@@ -53,20 +71,10 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
                                              time_t expiration,
                                              uint32_t flags)
 {
-	char *buf;
-	size_t buflen;
-	char *p;
-	int numkeys;
-	struct mdfour md;
-	char subkey[20];
-	size_t n;
-	memcached_return_t ret;
-	size_t x;
-
-	numkeys = (value_length + SPLIT_VALUE_SIZE - 1) / SPLIT_VALUE_SIZE;
-	buflen = 20 + 20 * numkeys;
-	buf = x_malloc(buflen);
-	p = buf;
+	int numkeys = (value_length + SPLIT_VALUE_SIZE - 1) / SPLIT_VALUE_SIZE;
+	size_t buflen = 20 + 20 * numkeys;
+	char *buf = x_malloc(buflen);
+	char *p = buf;
 
 	memcpy(p, MEMCCACHE_BIG, 4);
 	*((uint32_t *) (p + 4)) = htonl(numkeys);
@@ -75,21 +83,23 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 	*((uint32_t *) (p + 16)) = htonl(value_length);
 	p += 20;
 
-	for (x = 0; x < value_length; x += n) {
-		size_t remain;
-		char *s;
-
-		remain = value_length - x;
+	size_t n = 0;
+	for (size_t x = 0; x < value_length; x += n) {
+		size_t remain = value_length - x;
 		n = remain > SPLIT_VALUE_SIZE ? SPLIT_VALUE_SIZE : remain;
 
+		struct mdfour md;
 		mdfour_begin(&md);
 		mdfour_update(&md, (const unsigned char *) value + x, n);
+
+		char subkey[20];
 		mdfour_result(&md, (unsigned char *) subkey);
 		*((uint32_t *) (subkey + 16)) = htonl(n);
-		s = format_hash_as_string((const unsigned char *) subkey, n);
+
+		char *s = format_hash_as_string((const unsigned char *) subkey, n);
 		cc_log("memcached_mset %s %ld", s, n);
-		ret = memcached_set(ptr, s, strlen(s), value + x, n,
-		                    expiration, flags);
+		memcached_return_t ret = memcached_set(
+			ptr, s, strlen(s), value + x, n, expiration, flags);
 		free(s);
 		if (ret) {
 			cc_log("Failed to set key in memcached: %s",
@@ -103,8 +113,8 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 
 	cc_log("memcached_set %.*s %ld (%ld)", (int) key_length, key, buflen,
 	       value_length);
-	ret = memcached_set(ptr, key, key_length, buf, buflen,
-	                    expiration, flags);
+	int ret = memcached_set(ptr, key, key_length, buf, buflen,
+	                        expiration, flags);
 	free(buf);
 	return ret;
 }
@@ -117,22 +127,6 @@ static char *memccached_big_get(memcached_st *ptr,
                                 uint32_t *flags,
                                 memcached_return_t *error)
 {
-	char *buf;
-	size_t buflen;
-	size_t totalsize;
-	char *p;
-	const char *v;
-	int numkeys;
-	char **keys;
-	bool *key_seen;
-	size_t *key_lengths;
-	size_t *value_offsets;
-	int *value_lengths;
-	memcached_return_t ret;
-	memcached_result_st *result;
-	int n;
-	int i;
-
 	if (!value) {
 		value = memcached_get(ptr, key, key_length, value_length, flags, error);
 		if (!value) {
@@ -140,25 +134,26 @@ static char *memccached_big_get(memcached_st *ptr,
 		}
 	}
 
-	p = (char *) value;
+	char *p = (char *)value;
 	if (memcmp(p, MEMCCACHE_BIG, 4) != 0) {
 		return NULL;
 	}
-	numkeys = ntohl(*(uint32_t *) (p + 4));
+
+	int numkeys = ntohl(*(uint32_t *) (p + 4));
 	assert(ntohl(*(uint32_t *) (p + 8)) == 16);
 	assert(ntohl(*(uint32_t *) (p + 12)) == 0);
-	totalsize = ntohl(*(uint32_t *) (p + 16));
+	size_t totalsize = ntohl(*(uint32_t *) (p + 16));
 	p += 20;
 
-	keys = x_malloc(sizeof(char *) * numkeys);
-	key_seen = x_malloc(sizeof(bool) * numkeys);
-	key_lengths = x_malloc(sizeof(size_t) * numkeys);
-	value_offsets = x_malloc(sizeof(size_t) * numkeys);
-	value_lengths = x_malloc(sizeof(int) * numkeys);
+	char **keys = x_malloc(sizeof(char *) * numkeys);
+	bool *key_seen = x_malloc(sizeof(bool) * numkeys);
+	size_t *key_lengths = x_malloc(sizeof(size_t) * numkeys);
+	size_t *value_offsets = x_malloc(sizeof(size_t) * numkeys);
+	int *value_lengths = x_malloc(sizeof(int) * numkeys);
 
-	buflen = 0;
-	for (i = 0; i < numkeys; i++) {
-		n = ntohl(*((uint32_t *) (p + 16)));
+	size_t buflen = 0;
+	for (int i = 0; i < numkeys; i++) {
+		int n = ntohl(*((uint32_t *) (p + 16)));
 		keys[i] = format_hash_as_string((const unsigned char *) p, n);
 		key_lengths[i] = strlen(keys[i]);
 		key_seen[i] = false;
@@ -170,13 +165,14 @@ static char *memccached_big_get(memcached_st *ptr,
 	}
 	assert(buflen == totalsize);
 
-	buf = x_malloc(buflen);
+	char *buf = x_malloc(buflen);
 
-	ret = memcached_mget(ptr, (const char *const *) keys, key_lengths, numkeys);
+	memcached_return_t	ret = memcached_mget(
+		ptr, (const char *const *) keys, key_lengths, numkeys);
 	if (ret) {
 		cc_log("Failed to mget keys in memcached: %s",
 		       memcached_strerror(memc, ret));
-		for (i = 0; i < numkeys; i++) {
+		for (int i = 0; i < numkeys; i++) {
 			free(keys[i]);
 		}
 		free(keys);
@@ -184,7 +180,7 @@ static char *memccached_big_get(memcached_st *ptr,
 		return NULL;
 	}
 
-	result = NULL;
+	memcached_result_st *result = NULL;
 	do {
 		const char *k;
 		size_t l;
@@ -201,6 +197,7 @@ static char *memccached_big_get(memcached_st *ptr,
 		k = memcached_result_key_value(result);
 		l = memcached_result_key_length(result);
 		p = NULL;
+		int i;
 		for (i = 0; i < numkeys; i++) {
 			if (l != key_lengths[i]) {
 				continue;
@@ -219,8 +216,8 @@ static char *memccached_big_get(memcached_st *ptr,
 			return NULL;
 		}
 		key_seen[i] = true;
-		n = memcached_result_length(result);
-		v = memcached_result_value(result);
+		int n = memcached_result_length(result);
+		const char *v = memcached_result_value(result);
 		if (n != value_lengths[i]) {
 			cc_log("Unexpected length was returned");
 			return NULL;
@@ -228,7 +225,7 @@ static char *memccached_big_get(memcached_st *ptr,
 		memcpy(p, v, n);
 	} while (ret == MEMCACHED_SUCCESS);
 
-	for (i = 0; i < numkeys; i++) {
+	for (int i = 0; i < numkeys; i++) {
 		if (!key_seen[i]) {
 			cc_log("Failed to get all %d chunks", numkeys);
 			return NULL;
@@ -236,7 +233,7 @@ static char *memccached_big_get(memcached_st *ptr,
 	}
 	cc_log("memcached_get %.*s %ld (%ld)", (int) key_length, key, *value_length,
 	       buflen);
-	for (i = 0; i < numkeys; i++) {
+	for (int i = 0; i < numkeys; i++) {
 		free(keys[i]);
 	}
 	free(keys);
@@ -261,20 +258,19 @@ int memccached_raw_set(const char *key, const char *data, size_t len)
 	return 0;
 }
 
-/* blob format for storing:
+// Blob format for storing:
 
-    char magic[4]; # 'CCH1', might change for other version of ccache
- # ccache will erase the blob in memcached if wrong magic
-    uint32_t obj_len; # network endian
-    char *obj[obj_len];
-    uint32_t stderr_len; # network endian
-    char *stderr[stderr_len];
-    uint32_t dia_len; # network endian
-    char *dia[dia_len];
-    uint32_t dep_len; # network endian
-    char *dep[dep_len];
+//   char magic[4]; # 'CCH1', might change for other version of ccache
+// # ccache will erase the blob in memcached if wrong magic
+//   uint32_t obj_len; # network endian
+//   char *obj[obj_len];
+//   uint32_t stderr_len; # network endian
+//   char *stderr[stderr_len];
+//   uint32_t dia_len; # network endian
+//   char *dia[dia_len];
+//   uint32_t dep_len; # network endian
+//   char *dep[dep_len];
 
- */
 int memccached_set(const char *key,
                    const char *obj,
                    const char *stderr,
@@ -287,11 +283,8 @@ int memccached_set(const char *key,
 {
 	size_t buf_len = 4 + 4*4 + obj_len + stderr_len + dia_len + dep_len;
 	char *buf = x_malloc(buf_len);
-	char *ptr;
-	memcached_return_t mret;
-
 	memcpy(buf, MEMCCACHE_MAGIC, 4);
-	ptr = buf + 4;
+	char *ptr = buf + 4;
 
 #define PROCESS_ONE_BUFFER(src_ptr, src_len) \
 	do { \
@@ -310,10 +303,12 @@ int memccached_set(const char *key,
 
 #undef PROCESS_ONE_BUFFER
 
-	if (buf_len > MAX_VALUE_SIZE)
+	memcached_return_t mret;
+	if (buf_len > MAX_VALUE_SIZE) {
 		mret = memccached_big_set(memc, key, strlen(key), buf, buf_len, 0, 0);
-	else
+	} else {
 		mret = memcached_set(memc, key, strlen(key), buf, buf_len, 0, 0);
+	}
 
 	if (mret != MEMCACHED_SUCCESS) {
 		cc_log("Failed to move %s to memcached: %s", key,
@@ -326,11 +321,12 @@ int memccached_set(const char *key,
 static void *memccached_prune(const char *key)
 {
 	cc_log("key from memcached has wrong data %s: pruning...", key);
-	/* don't really care whether delete failed */
+	// Don't really care whether delete failed.
 	memcached_delete(memc, key, strlen(key), 0);
 	return NULL;
 }
 
+// Caller should free the return calue when done with the pointers.
 void *memccached_raw_get(const char *key, char **data, size_t *size)
 {
 	memcached_return_t mret;
@@ -346,9 +342,10 @@ void *memccached_raw_get(const char *key, char **data, size_t *size)
 	}
 	*data = value;
 	*size = value_l;
-	return value;   /* caller must free this when done with the ptr */
+	return value;
 }
 
+// Caller should free the return value when done with the pointers.
 void *memccached_get(const char *key,
                      char **obj,
                      char **stderr,
@@ -359,9 +356,9 @@ void *memccached_get(const char *key,
                      size_t *dia_len,
                      size_t *dep_len)
 {
-	memcached_return_t mret;
-	char *value, *ptr;
+	char *value;
 	size_t value_l;
+	memcached_return_t mret;
 	value = memcached_get(memc, key, strlen(key), &value_l,
 	                      NULL /*flags*/, &mret);
 	if (!value) {
@@ -383,8 +380,9 @@ void *memccached_get(const char *key,
 		free(value);
 		return memccached_prune(key);
 	}
-	ptr = value;
-	/* skip the magic */
+
+	char *ptr = value;
+	// Skip the magic.
 	ptr += 4;
 	value_l -= 4;
 
@@ -415,7 +413,7 @@ void *memccached_get(const char *key,
 
 #undef PROCESS_ONE_BUFFER
 
-	return value;  /* caller must free this when done with the ptrs */
+	return value;
 }
 
 void memccached_free(void *blob)
@@ -429,4 +427,4 @@ int memccached_release(void)
 	return 1;
 }
 
-#endif /* HAVE_LIBMEMCACHED */
+#endif // HAVE_LIBMEMCACHED

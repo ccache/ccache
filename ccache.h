@@ -183,8 +183,8 @@ bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
 char *read_text_file(const char *path, size_t size_hint);
 char *subst_env_in_string(const char *str, char **errmsg);
 
-/* ------------------------------------------------------------------------- */
-/* memccached.c */
+// -------------------------------------------------------------------------
+// memccached.c
 int memccached_init(char *conf);
 int memccached_raw_set(const char *key, const char* data, size_t len);
 int memccached_set(

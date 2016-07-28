@@ -388,13 +388,12 @@ error:
 	return -1;
 }
 
-/* Write data to a fd. */
+// Write data to a file descriptor.
 int safe_write(int fd_out, const char *data, size_t length)
 {
 	size_t written = 0;
 	do {
-		int ret;
-		ret = write(fd_out, data + written, length - written);
+		int ret = write(fd_out, data + written, length - written);
 		if (ret < 0) {
 			if (errno != EAGAIN && errno != EINTR) {
 				return ret;
@@ -406,23 +405,20 @@ int safe_write(int fd_out, const char *data, size_t length)
 	return 0;
 }
 
-/* Write data to a file. */
+// Write data to a file.
 int write_file(const char *data, const char *dest, size_t length)
 {
-	int fd_out;
-	char *tmp_name;
-	int ret;
 	int saved_errno = 0;
 
-	tmp_name = x_strdup(dest);
-	fd_out = create_tmp_fd(&tmp_name);
+	char *tmp_name = x_strdup(dest);
+	int fd_out = create_tmp_fd(&tmp_name);
 	if (fd_out < 0) {
 		tmp_unlink(tmp_name);
 		free(tmp_name);
 		return -1;
 	}
 
-	ret = safe_write(fd_out, data, length);
+	int ret = safe_write(fd_out, data, length);
 	if (ret < 0) {
 		saved_errno = errno;
 		cc_log("write error: %s", strerror(saved_errno));
@@ -433,7 +429,7 @@ int write_file(const char *data, const char *dest, size_t length)
 	fchmod(fd_out, 0666 & ~get_umask());
 #endif
 
-	/* the close can fail on NFS if out of space */
+	// The close can fail on NFS if out of space.
 	if (close(fd_out) == -1) {
 		saved_errno = errno;
 		cc_log("close error: %s", strerror(saved_errno));

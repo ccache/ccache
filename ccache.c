@@ -108,9 +108,6 @@ static char *output_dia = NULL;
 // Split dwarf information (GCC 4.8 andup). Contains pathname if not NULL.
 static char *output_dwo = NULL;
 
-/* the cached key */
-static char *cached_key;
-
 // Array for storing -arch options.
 #define MAX_ARCH_ARGS 10
 static size_t arch_args_size = 0;
@@ -119,6 +116,10 @@ static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 // Name (represented as a struct file_hash) of the file containing the cached
 // object code.
 static struct file_hash *cached_obj_hash;
+
+// Key of the cached objects (.o, .stderr, etc.) as a hexstring representation
+// of cached_obj_hash.
+static char *cached_key;
 
 // Full path to the file containing the cached object code
 // (cachedir/a/b/cdef[...]-size.o).
@@ -132,8 +133,8 @@ static char *cached_stderr;
 // (cachedir/a/b/cdef[...]-size.d).
 static char *cached_dep;
 
-/* the manifest key */
-static char *manifest_name;
+// The manifest key as a hexstring.
+static char *manifest_key;
 
 // Full path to the file containing the coverage information
 // (cachedir/a/b/cdef[...]-size.gcno).
@@ -978,17 +979,15 @@ put_file_in_cache(const char *source, const char *dest)
 }
 
 #ifdef HAVE_LIBMEMCACHED
-/* Copy data to the cache. */
+// Copy data to the cache.
 static void
 put_data_in_cache(void *data, size_t size, const char *dest)
 {
-	int ret;
-
 	assert(!conf->read_only);
 	assert(!conf->read_only_direct);
 
-	/* already compressed (in cache) */
-	ret = write_file(data, dest, size);
+	// Already compressed (in cache).
+	int ret = write_file(data, dest, size);
 	if (ret != 0) {
 		cc_log("Failed to write to %s: %s", dest, strerror(errno));
 		stats_update(STATS_ERROR);
@@ -1053,10 +1052,6 @@ send_cached_stderr(void)
 // Create or update the manifest file.
 void update_manifest_file(void)
 {
-#ifdef HAVE_LIBMEMCACHED
-	char *data;
-	size_t size;
-#endif
 	if (!conf->direct_mode
 	    || !included_files
 	    || conf->read_only
@@ -1075,10 +1070,13 @@ void update_manifest_file(void)
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 #if HAVE_LIBMEMCACHED
-			if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
-			    read_file(manifest_path, st.st_size, &data, &size)) {
-				cc_log("Storing %s in memcached", manifest_name);
-				memccached_raw_set(manifest_name, data, size);
+			char *data;
+			size_t size;
+			if (strlen(conf->memcached_conf) > 0
+			    && !conf->read_only_memcached
+			    && read_file(manifest_path, st.st_size, &data, &size)) {
+				cc_log("Storing %s in memcached", manifest_key);
+				memccached_raw_set(manifest_key, data, size);
 				free(data);
 			}
 #endif
@@ -1096,10 +1094,6 @@ to_fscache(struct args *args)
 	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-#ifdef HAVE_LIBMEMCACHED
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
-#endif
 
 	char *tmp_cov;
 	if (generating_coverage) {
@@ -1353,9 +1347,18 @@ to_fscache(struct args *args)
 
 #ifdef HAVE_LIBMEMCACHED
 	if (strlen(conf->memcached_conf) > 0 && !conf->read_only_memcached &&
-	    !using_split_dwarf && /* no support for the dwo files just yet */
-	    !generating_coverage) { /* coverage refers to local paths anyway */
+	    !using_split_dwarf && // No support for the dwo files just yet.
+	    !generating_coverage) { // Coverage refers to local paths anyway.
 		cc_log("Storing %s in memcached", cached_key);
+
+		char *data_obj;
+		char *data_stderr;
+		char *data_dia;
+		char *data_dep;
+		size_t size_obj;
+		size_t size_stderr;
+		size_t size_dia;
+		size_t size_dep;
 		if (!read_file(cached_obj, 0, &data_obj, &size_obj)) {
 			data_obj = NULL;
 			size_obj = 0;
@@ -1385,6 +1388,7 @@ to_fscache(struct args *args)
 		free(data_dep);
 	}
 #endif
+
 	// Everything OK.
 	send_cached_stderr();
 	update_manifest_file();
@@ -1396,22 +1400,12 @@ to_fscache(struct args *args)
 }
 
 #ifdef HAVE_LIBMEMCACHED
-/* run the real compiler and put the result in cache */
+// Run the real compiler and put the result in cache.
+//
+// TODO: Too much code duplication between to_fscache and to_memcached.
 static void
 to_memcached(struct args *args)
 {
-	const char *tmp_dir = temp_dir();
-	char *tmp_stdout, *tmp_stderr;
-	char *stderr_d, *obj_d, *dia_d = NULL, *dep_d = NULL;
-	size_t stderr_l = 0,  obj_l = 0,  dia_l = 0, dep_l = 0;
-	struct stat st;
-	int status, tmp_stdout_fd, tmp_stderr_fd;
-
-	tmp_stdout = format("%s/%s.tmp.stdout.%s", tmp_dir, cached_obj, tmp_string());
-	tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-	tmp_stderr = format("%s/%s.tmp.stderr.%s", tmp_dir, cached_obj, tmp_string());
-	tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
 	if (generating_coverage) {
 		cc_log("No memcached support for coverage yet");
 		failed();
@@ -1420,6 +1414,14 @@ to_memcached(struct args *args)
 		cc_log("No memcached support for split dwarf yet");
 		failed();
 	}
+
+	const char *tmp_dir = temp_dir();
+	char *tmp_stdout =
+		format("%s/%s.tmp.stdout.%s", tmp_dir, cached_obj, tmp_string());
+	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+	char *tmp_stderr =
+		format("%s/%s.tmp.stderr.%s", tmp_dir, cached_obj, tmp_string());
+	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
 	if (create_parent_dirs(tmp_stdout) != 0) {
 		fatal("Failed to create parent directory for %s: %s",
@@ -1434,11 +1436,10 @@ to_memcached(struct args *args)
 		args_add(args, output_dia);
 	}
 
-	/* Turn off DEPENDENCIES_OUTPUT when running cc1, because
-	 * otherwise it will emit a line like
-	 *
-	 *  tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
-	 */
+	// Turn off DEPENDENCIES_OUTPUT when running cc1, because otherwise it will
+	// emit a line like this:
+	//
+	//   tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
 	x_unsetenv("DEPENDENCIES_OUTPUT");
 
 	if (conf->run_second_cpp) {
@@ -1448,11 +1449,13 @@ to_memcached(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+	int status =
+		execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
 
+	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
-		/* The stdout file was removed - cleanup in progress? Better bail out. */
+		// The stdout file was removed - cleanup in progress? Better bail out.
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
@@ -1467,37 +1470,35 @@ to_memcached(struct args *args)
 	}
 	tmp_unlink(tmp_stdout);
 
-	/*
-	 * Merge stderr from the preprocessor (if any) and stderr from the real
-	 * compiler into tmp_stderr.
-	 */
+	// Merge stderr from the preprocessor (if any) and stderr from the real
+	// compiler into tmp_stderr.
 	if (cpp_stderr) {
-		int fd_cpp_stderr;
-		int fd_real_stderr;
-		int fd_result;
-		char *tmp_stderr2;
-
-		tmp_stderr2 = format("%s.2", tmp_stderr);
+		char *tmp_stderr2 = format("%s.2", tmp_stderr);
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
 			       strerror(errno));
 			failed();
 		}
-		fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
+
+		int fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 		if (fd_cpp_stderr == -1) {
 			cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
 			failed();
 		}
-		fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
+
+		int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
 		if (fd_real_stderr == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
 			failed();
 		}
-		fd_result = open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+
+		int fd_result =
+			open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_result == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
 			failed();
 		}
+
 		copy_fd(fd_cpp_stderr, fd_result);
 		copy_fd(fd_real_stderr, fd_result);
 		close(fd_cpp_stderr);
@@ -1514,7 +1515,7 @@ to_memcached(struct args *args)
 
 		fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
-			/* We can output stderr immediately instead of rerunning the compiler. */
+			// We can output stderr immediately instead of rerunning the compiler.
 			copy_fd(fd, 2);
 			close(fd);
 			tmp_unlink(tmp_stderr);
@@ -1541,36 +1542,43 @@ to_memcached(struct args *args)
 		stats_update(STATS_ERROR);
 		failed();
 	}
-	/* cache stderr */
+
+	// Cache stderr.
+	char *stderr_d;
+	size_t stderr_l = 0;
 	if (!read_file(tmp_stderr, 0, &stderr_d, &stderr_l)) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
 	tmp_unlink(tmp_stderr);
 
+	char *dia_d = NULL;
+	size_t dia_l = 0;
 	if (output_dia) {
 		if (x_stat(output_dia, &st) != 0) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
-		/* cache dia */
+		// Cache dia.
 		if (!read_file(output_dia, 0, &dia_d, &dia_l)) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
 
-	/* cache output */
+	// Cache output.
+	char *obj_d;
+	size_t obj_l = 0;
 	if (!read_file(output_obj, 0, &obj_d, &obj_l)) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
 
-	if (generating_dependencies) {
-		if (!read_file(output_dep, 0, &dep_d, &dep_l)) {
-			stats_update(STATS_ERROR);
-			failed();
-		}
+	char *dep_d = NULL;
+	size_t dep_l = 0;
+	if (generating_dependencies && !read_file(output_dep, 0, &dep_d, &dep_l)) {
+		stats_update(STATS_ERROR);
+		failed();
 	}
 
 	if (memccached_set(cached_key, obj_d, stderr_d, dia_d, dep_d,
@@ -1583,10 +1591,9 @@ to_memcached(struct args *args)
 
 	stats_update(STATS_TOCACHE);
 
-	/* Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
-	 * be done almost anywhere, but we might as well do it near the end as we
-	 * save the stat call if we exit early.
-	 */
+	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
+	// be done almost anywhere, but we might as well do it near the end as we
+	// save the stat call if we exit early.
 	{
 		char *first_level_dir = dirname(stats_file);
 		if (create_cachedirtag(first_level_dir) != 0) {
@@ -1597,8 +1604,8 @@ to_memcached(struct args *args)
 		}
 		free(first_level_dir);
 
-		/* Remove any CACHEDIR.TAG on the cache_dir level where it was located in
-		 * previous ccache versions. */
+		// Remove any CACHEDIR.TAG on the cache_dir level where it was located in
+		// previous ccache versions.
 		if (getpid() % 1000 == 0) {
 			char *path = format("%s/CACHEDIR.TAG", conf->cache_dir);
 			x_unlink(path);
@@ -1606,7 +1613,7 @@ to_memcached(struct args *args)
 		}
 	}
 
-	/* Everything OK. */
+	// Everything OK.
 	send_cached_stderr();
 	update_manifest_file();
 
@@ -1910,10 +1917,6 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 static struct file_hash *
 calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 {
-#if HAVE_LIBMEMCACHED
-	char *data;
-	size_t size;
-#endif
 	if (direct_mode) {
 		hash_delimiter(hash, "manifest version");
 		hash_int(hash, MANIFEST_VERSION);
@@ -2098,29 +2101,34 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
-		char *manifest_name = hash_result(hash);
-		manifest_path = get_path_in_cache(manifest_name, ".manifest");
-		/* Check if the manifest file is there. */
+
+		manifest_key = hash_result(hash);
+		manifest_path = get_path_in_cache(manifest_key, ".manifest");
+
 		struct stat st;
 		if (stat(manifest_path, &st) != 0) {
+			cc_log("Manifest file %s not in cache", manifest_path);
+
 #if HAVE_LIBMEMCACHED
 			void *cache = NULL;
-#endif
-			cc_log("Manifest file %s not in cache", manifest_path);
-#if HAVE_LIBMEMCACHED
+			char *data;
+			size_t size;
 			if (strlen(conf->memcached_conf) > 0) {
-				cc_log("Getting %s from memcached", manifest_name);
-				cache = memccached_raw_get(manifest_name, &data, &size);
+				cc_log("Getting %s from memcached", manifest_key);
+				cache = memccached_raw_get(manifest_key, &data, &size);
 			}
-			if (cache) {
-				cc_log("Added object file hash to %s", manifest_path);
-				write_file(data, manifest_path, size);
-				stats_update_size(size, 1);
-				free(cache);
-			} else
-#endif
+			if (!cache) {
+				return NULL;
+			}
+			cc_log("Added object file hash to %s", manifest_path);
+			write_file(data, manifest_path, size);
+			stats_update_size(size, 1);
+			free(cache);
+#else
 			return NULL;
+#endif
 		}
+
 		cc_log("Looking for object file hash in %s", manifest_path);
 		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {
@@ -2159,23 +2167,26 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 static void
 from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
-	// The user might be disabling cache hits.
-#if HAVE_LIBMEMCACHED
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
-#endif
 	if (conf->recache) {
 		return;
 	}
 
 	size_t object_size;
 	struct stat st;
-	if (stat(cached_obj, &st) != 0) {
-#if HAVE_LIBMEMCACHED
-		void *cache = NULL;
-#endif
+	if (stat(cached_obj, &st) == 0) {
+		object_size = st.st_size;
+	} else {
 		cc_log("Object file %s not in cache", cached_obj);
 #if HAVE_LIBMEMCACHED
+		char *data_obj;
+		char *data_stderr;
+		char *data_dia;
+		char *data_dep;
+		size_t size_obj;
+		size_t size_stderr;
+		size_t size_dia;
+		size_t size_dep;
+		void *cache = NULL;
 		if (strlen(conf->memcached_conf) > 0 &&
 		    !using_split_dwarf &&
 		    !generating_coverage) {
@@ -2184,24 +2195,24 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			                       &data_obj, &data_stderr, &data_dia, &data_dep,
 			                       &size_obj, &size_stderr, &size_dia, &size_dep);
 		}
-		if (cache) {
-			put_data_in_cache(data_obj, size_obj, cached_obj);
-			if (size_stderr > 0) {
-				put_data_in_cache(data_stderr, size_stderr, cached_stderr);
-			}
-			if (size_dia > 0) {
-				put_data_in_cache(data_dia, size_dia, cached_dia);
-			}
-			if (size_dep > 0) {
-				put_data_in_cache(data_dep, size_dep, cached_dep);
-			}
-			memccached_free(cache);
-			object_size = size_obj;
-		} else
-#endif
+		if (!cache) {
+			return;
+		}
+		put_data_in_cache(data_obj, size_obj, cached_obj);
+		if (size_stderr > 0) {
+			put_data_in_cache(data_stderr, size_stderr, cached_stderr);
+		}
+		if (size_dia > 0) {
+			put_data_in_cache(data_dia, size_dia, cached_dia);
+		}
+		if (size_dep > 0) {
+			put_data_in_cache(data_dep, size_dep, cached_dep);
+		}
+		memccached_free(cache);
+		object_size = size_obj;
+#else
 		return;
-	} else {
-		object_size = st.st_size;
+#endif
 	}
 
 	// Check if the diagnostic file is there.
@@ -2311,38 +2322,39 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 }
 
 #ifdef HAVE_LIBMEMCACHED
-/*
- * Try to return the compile result from cache. If we can return from cache
- * then this function exits with the correct status code, otherwise it returns.
- */
+// Try to return the compile result from cache. If we can return from cache
+// then this function exits with the correct status code, otherwise it returns.
+//
+// TODO: Too much code duplication between from_fscache and from_memcached.
 static void
 from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 {
-	bool produce_dep_file = false;
-	int ret;
-	void *cache;
-	char *data_obj, *data_stderr, *data_dia, *data_dep;
-	size_t size_obj, size_stderr, size_dia, size_dep;
-
-	/* the user might be disabling cache hits */
 	if (conf->recache || using_split_dwarf || generating_coverage) {
 		return;
 	}
 
 	cc_log("Getting %s from memcached", cached_key);
-	cache = memccached_get(cached_key,
-	                       &data_obj, &data_stderr, &data_dia, &data_dep,
-	                       &size_obj, &size_stderr, &size_dia, &size_dep);
+
+	char *data_obj;
+	char *data_stderr;
+	char *data_dia;
+	char *data_dep;
+	size_t size_obj;
+	size_t size_stderr;
+	size_t size_dia;
+	size_t size_dep;
+	void* cache = memccached_get(cached_key,
+	                             &data_obj, &data_stderr, &data_dia, &data_dep,
+	                             &size_obj, &size_stderr, &size_dia, &size_dep);
 	if (!cache) {
 		return;
 	}
 
-	/*
-	 * (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by
-	 * gcc.)
-	 */
-	produce_dep_file = generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
+	bool produce_dep_file =
+		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
+	int ret;
 	if (!str_eq(output_obj, "/dev/null")) {
 		x_unlink(output_obj);
 		ret = write_file(data_obj, output_obj, size_obj);
@@ -2372,18 +2384,21 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	if (generating_dependencies && mode == FROMCACHE_CPP_MODE) {
-		/* Store the dependency file in the cache. */
+		// Store the dependency file in the cache.
+		//
+		// TODO: What does this mean? The comment above seems out of sync with the
+		// log and behavior.
 		cc_log("Does not support non direct mode");
 	}
 
-	/* Send the stderr, if any. */
+	// Send the stderr, if any.
 	safe_write(2, data_stderr, size_stderr);
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
 	}
 
-	/* log the cache hit */
+	// Log the cache hit.
 	switch (mode) {
 	case FROMCACHE_DIRECT_MODE:
 		cc_log("Succeeded getting cached result");
@@ -2396,7 +2411,7 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		break;
 	}
 
-	/* and exit with the right status code */
+	// And exit with the right status code.
 	x_exit(0);
 }
 #endif
@@ -3533,7 +3548,7 @@ cc_reset(void)
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
 	free(cached_dia); cached_dia = NULL;
-	free(manifest_name); manifest_name = NULL;
+	free(manifest_key); manifest_key = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
@@ -3725,7 +3740,7 @@ ccache(int argc, char *argv[])
 		put_object_in_manifest = true;
 	}
 
-	/* don't hit memcached twice */
+	// Don't hit memcached twice.
 	if (conf->memcached_only && object_hash_from_manifest
 	    && file_hashes_equal(object_hash_from_manifest, object_hash)) {
 		cc_log("Already searched for %s", cached_key);
