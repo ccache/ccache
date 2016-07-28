@@ -214,10 +214,6 @@ TEST() {
     DEFAULT_SLOPPINESS=include_file_ctime
     export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
 
-    remove_cache
-    rm -f $CCACHE_CONFIGPATH
-    touch $CCACHE_CONFIGPATH
-
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
     if $VERBOSE; then
