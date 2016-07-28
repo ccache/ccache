@@ -44,7 +44,8 @@ test_failed() {
     echo
     echo "Test data and log file have been left in $TESTDIR"
     if [ -n "$MEMCACHED_PID" ]; then
-        $MEMSTAT --servers=localhost:22122 >$ABS_TESTDIR/memcached.memstat
+        local memstat=$(get_memstat_name)
+        $memstat --servers=localhost:22122 >$ABS_TESTDIR/memcached.memstat
         echo "memcached memstat: $TESTDIR/memcached.memstat"
     fi
     exit 1
@@ -3259,7 +3260,6 @@ SUITE_memcached_PROBE() {
 
 SUITE_memcached_SETUP() {
     export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
-    MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
     start_memcached -p 22122
@@ -3276,10 +3276,8 @@ SUITE_memcached_only_PROBE() {
 }
 
 SUITE_memcached_only_SETUP() {
-    CCACHE_NOFILES=true
     export CCACHE_MEMCACHED_CONF=--SERVER=localhost:22122
     export CCACHE_MEMCACHED_ONLY=1
-    MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
     start_memcached -p 22122
@@ -3299,7 +3297,6 @@ SUITE_memcached_socket_PROBE() {
 
 SUITE_memcached_socket_SETUP() {
     export CCACHE_MEMCACHED_CONF="--SOCKET=\"/tmp/memcached.$$\""
-    MEMSTAT=$(get_memstat_name)
 
     generate_code 1 test1.c
     start_memcached -s /tmp/memcached.$$
