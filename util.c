@@ -665,6 +665,11 @@ create_cachedirtag(const char *dir)
 		errno = EEXIST;
 		goto error;
 	}
+
+	if (create_parent_dirs(filename) != 0) {
+		goto error; // create_parent_dirs sets errno
+	}
+
 	FILE *f = fopen(filename, "w");
 	if (!f) {
 		goto error;
