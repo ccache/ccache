@@ -305,15 +305,11 @@ stats_summary(struct conf *conf)
 			printf("%8u\n", counters->data[stat]);
 		}
 
-		unsigned direct = 0;
-		unsigned preprocessed = 0;
-		if (stat == STATS_CACHEHIT_DIR) {
-			direct = counters->data[stat];
-		} else if (stat == STATS_CACHEHIT_CPP) {
-			preprocessed = counters->data[stat];
-		} else if (stat == STATS_TOCACHE) {
-			unsigned miss = counters->data[stat];
+		if (stat == STATS_TOCACHE) {
+			unsigned direct = counters->data[STATS_CACHEHIT_DIR];
+			unsigned preprocessed = counters->data[STATS_CACHEHIT_CPP];
 			unsigned hit = direct + preprocessed;
+			unsigned miss = counters->data[STATS_TOCACHE];
 			unsigned total = hit + miss;
 			double percent = total > 0 ? (100.0f * hit) / total : 0.0f;
 			printf("cache hit rate                    %6.2f %%\n", percent);
