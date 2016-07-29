@@ -6,6 +6,7 @@ addons:
             - elfutils
             - zlib1g-dev
             - libmemcached-dev
+            - libmemcached-tools
             - memcached
             - mingw32
             - mingw32-binutils
