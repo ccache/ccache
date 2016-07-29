@@ -2401,6 +2401,33 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
+		if (str_startswith(argv[i], "-B") ||
+		    str_startswith(argv[i], "-L")) {
+			char *relpath = make_relative_path(x_strdup(argv[i] + 2));
+			char *option = format("-%c%s", argv[i][1], relpath);
+			args_add(cpp_args, option);
+			free(relpath);
+			free(option);
+			continue;
+		}
+		if (str_startswith(argv[i], "-iprefix")) {
+			char *relpath = NULL;
+			char *option = NULL;
+			if (strlen(argv[i]) > strlen("-iprefix")) {
+				relpath = make_relative_path(x_strdup(argv[i] + strlen("-iprefix")));
+				option = format("-iprefix%s", relpath);
+				args_add(cpp_args, option);
+			} else {
+				relpath = make_relative_path(x_strdup(argv[i+1]));
+				option = format("%s", relpath);
+				args_add(cpp_args, "-iprefix");
+				args_add(cpp_args, option);
+			}
+			free(relpath);
+			free(option);
+			i++;
+			continue;
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P")
 			    || strstr(argv[i], ",-P,")
