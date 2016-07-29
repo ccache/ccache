@@ -64,6 +64,7 @@ TEST(conf_create)
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK(!conf->keep_comments_cpp);
+	CHECK_FLOAT_EQ(0.8f, conf->limit_multiple);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);

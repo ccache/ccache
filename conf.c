@@ -63,10 +63,9 @@ static bool
 parse_float(const char *str, void *result, char **errmsg)
 {
 	float *value = (float *)result;
-	float x;
-	char *endptr;
 	errno = 0;
-	x = strtof(str, &endptr);
+	char *endptr;
+	float x = strtof(str, &endptr);
 	if (errno == 0 && *str != '\0' && *endptr == '\0') {
 		*value = x;
 		return true;
@@ -580,7 +579,7 @@ conf_print_items(struct conf *conf,
 	printer(s, conf->item_origins[find_conf(
 	                                "keep_comments_cpp")->number], context);
 
-	reformat(&s, "limit_multiple = %.1f", (double) conf->limit_multiple);
+	reformat(&s, "limit_multiple = %.1f", (double)conf->limit_multiple);
 	printer(s, conf->item_origins[find_conf("limit_multiple")->number], context);
 
 	reformat(&s, "log_file = %s", conf->log_file);

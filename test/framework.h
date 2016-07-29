@@ -82,6 +82,8 @@
 		} \
 	} while (false)
 
+// ============================================================================
+
 #define CHECK_FLOAT_EQ(expected, actual) \
 	do { \
 		if (!cct_check_float_eq(__FILE__, __LINE__, #actual, (expected), \

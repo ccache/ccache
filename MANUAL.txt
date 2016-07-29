@@ -399,8 +399,8 @@ WRAPPERS>>.
 
 *limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
 
-   Sets the limit when cleaning up. Files are deleted (in LRU order)
-   until the levels are below the limit. The default is 0.8 (= 80%).
+    Sets the limit when cleaning up. Files are deleted (in LRU order) until the
+    levels are below the limit. The default is 0.8 (= 80%).
 
 *log_file* (*CCACHE_LOGFILE*)::
 
