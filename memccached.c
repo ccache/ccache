@@ -97,7 +97,7 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 		*((uint32_t *) (subkey + 16)) = htonl(n);
 
 		char *s = format_hash_as_string((const unsigned char *) subkey, n);
-		cc_log("memcached_mset %s %ld", s, n);
+		cc_log("memcached_mset %s %zu", s, n);
 		memcached_return_t ret = memcached_set(
 			ptr, s, strlen(s), value + x, n, expiration, flags);
 		free(s);
@@ -111,7 +111,7 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 		p += 20;
 	}
 
-	cc_log("memcached_set %.*s %ld (%ld)", (int) key_length, key, buflen,
+	cc_log("memcached_set %.*s %zu (%zu)", (int) key_length, key, buflen,
 	       value_length);
 	int ret = memcached_set(ptr, key, key_length, buf, buflen,
 	                        expiration, flags);
@@ -231,7 +231,7 @@ static char *memccached_big_get(memcached_st *ptr,
 			return NULL;
 		}
 	}
-	cc_log("memcached_get %.*s %ld (%ld)", (int) key_length, key, *value_length,
+	cc_log("memcached_get %.*s %zu (%zu)", (int) key_length, key, *value_length,
 	       buflen);
 	for (int i = 0; i < numkeys; i++) {
 		free(keys[i]);

@@ -2417,8 +2417,6 @@ from_memcached(enum fromcache_call_mode mode, bool put_object_in_manifest)
 }
 #endif
 
-// Find the real compiler. We just search the PATH to find an executable of the
-// same name that isn't a link to ourselves.
 static void
 find_compiler(char **argv)
 {
