@@ -305,5 +305,8 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #ifndef MAX
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
 
 #endif // ifndef CCACHE_H

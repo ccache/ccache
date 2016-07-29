@@ -18,6 +18,8 @@
 #include "framework.h"
 #include "util.h"
 
+#include <float.h>
+#include <math.h>
 #if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
 #include <termios.h>
@@ -170,6 +172,22 @@ cct_check_failed(const char *file, int line, const char *what,
 	fprintf(stderr, "\n");
 }
 
+bool
+cct_check_float_eq(const char *file, int line, const char *expression,
+                   double expected, double actual)
+{
+	if (fabs(expected -  actual) < DBL_EPSILON) {
+		cct_check_passed(file, line, expression);
+		return true;
+	} else {
+		char *exp_str = format("%.1f", (double)expected);
+		char *act_str = format("%.1f", (double)actual);
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		return false;
+	}
+}
 bool
 cct_check_int_eq(const char *file, int line, const char *expression,
                  int64_t expected, int64_t actual)
