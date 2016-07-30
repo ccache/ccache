@@ -75,8 +75,8 @@ enum stats {
 	(strlen(s) >= strlen(suffix) \
 	 && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
 
-// Buffer size for I/O operations.
-#define READ_BUFFER_SIZE (1 << 18)
+// Buffer size for I/O operations. Should be a multiple of 4 KiB.
+#define READ_BUFFER_SIZE 65536
 
 // ----------------------------------------------------------------------------
 // args.c
