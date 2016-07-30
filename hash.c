@@ -97,7 +97,7 @@ hash_int(struct mdfour *md, int x)
 bool
 hash_fd(struct mdfour *md, int fd)
 {
-	char buf[READ_BUF_SZ];
+	char buf[READ_BUFFER_SIZE];
 	ssize_t n;
 
 	while ((n = read(fd, buf, sizeof(buf))) != 0) {
