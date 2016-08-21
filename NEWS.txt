@@ -78,6 +78,9 @@ New features and improvements
 
 - Added support for Fortran 77.
 
+- Increased buffer size used when reading file data. This improves performance
+  slightly.
+
 
 Bug fixes
 ~~~~~~~~~
