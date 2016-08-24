@@ -149,9 +149,10 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 			if (str_eq(content, initial_content)) {
 				// The lock seems to be stale -- break it.
 				cc_log("lockfile_acquire: breaking %s", lockfile);
+				// Try to acquire path.lock.lock:
 				if (lockfile_acquire(lockfile, staleness_limit)) {
-					lockfile_release(path);
-					lockfile_release(lockfile);
+					lockfile_release(path); // Remove path.lock
+					lockfile_release(lockfile); // Remove path.lock.lock
 					to_sleep = 1000;
 					slept = 0;
 					continue;
