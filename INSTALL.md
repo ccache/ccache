@@ -21,6 +21,7 @@ It is also recommended that you have:
 
 To compile and install ccache, run these commands:
 
+    ./autogen.sh
     ./configure
     make
     make install
