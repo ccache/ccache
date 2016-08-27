@@ -4,22 +4,14 @@ ccache installation
 Prerequisites
 -------------
 
-To build ccache from the source repository, you need:
+To build ccache, you need:
 
 - A C compiler (for instance GCC)
-- [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the documentation.
-- [Autoconf](http://www.gnu.org/software/autoconf/)
-- [gperf](http://www.gnu.org/software/gperf/)
-- [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html)
 
 It is also recommended that you have:
 
 - [zlib](http://www.zlib.net) (if you don't have zlib installed, ccache will
   use a bundled copy)
-
-To debug and run the performance test suite you'll also need:
-
-- [Python](http://www.python.org)
 
 
 Installation
@@ -27,7 +19,6 @@ Installation
 
 To compile and install ccache, run these commands:
 
-    ./autogen.sh
     ./configure
     make
     make install
