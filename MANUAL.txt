@@ -792,8 +792,8 @@ size of the other wrapper instead of the real compiler, which means that:
   the other wrapper.
 
 Another minor thing is that if *prefix_command* is used, ccache will not invoke
-the other wrapper when running the preprocessor, which increase performance.
-You can use the *prefix_command_cpp* configuration setting, if you also want to
+the other wrapper when running the preprocessor, which increases performance.
+You can use the *prefix_command_cpp* configuration setting if you also want to
 invoke the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
