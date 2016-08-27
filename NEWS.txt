@@ -2,6 +2,13 @@ ccache news
 ===========
 
 
+Unreleased 3.4
+--------------
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 ccache 3.3
 ----------
 Release date: 2016-08-27
