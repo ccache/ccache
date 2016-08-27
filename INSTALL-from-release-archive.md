@@ -33,7 +33,7 @@ try out ccache or wish to use it for some specific projects. The second method
 is most useful for when you wish to use ccache for all your compilations.
 
 To install for usage by the first method just copy ccache to somewhere in your
-path.s
+path.
 
 To install for the second method, do something like this:
 
