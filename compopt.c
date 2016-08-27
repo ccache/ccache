@@ -56,7 +56,6 @@ static const struct compopt compopts[] = {
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
-	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
 	{"-frepo",          TOO_HARD},
@@ -73,6 +72,7 @@ static const struct compopt compopts[] = {
 	{"-iquote",         AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-isysroot",       AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-isystem",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-ivfsoverlay",    AFFECTS_CPP | TAKES_ARG | TAKES_PATH},
 	{"-iwithprefix",    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iwithprefixbefore",
 	 AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
