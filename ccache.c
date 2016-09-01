@@ -1740,6 +1740,12 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		free(gcda_name);
 	}
 
+	// Adding -arch to hash since cpp output is affected
+	for(size_t i = 0; i < arch_args_size; ++i) {
+		hash_delimiter(hash, "-arch");
+		hash_string(hash, arch_args[i]);
+	}
+
 	struct file_hash *object_hash = NULL;
 	if (direct_mode) {
 		// Hash environment variables that affect the preprocessor output.
