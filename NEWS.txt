@@ -1,11 +1,16 @@
 ccache news
 ===========
 
-Unreleased ccache 3.3.1
------------------------
+ccache 3.3.1
+------------
+Release date: 2016-09-07
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed a problem in the ``multiple `-arch` options'' support introduced in
+  3.3. When using the direct mode (the default), different combinations of
+  `-arch` options were not detected properly.
 
 - Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
   path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
