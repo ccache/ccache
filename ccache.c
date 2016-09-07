@@ -2430,7 +2430,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			} else if (str_startswith(argv[i], "-Wp,-D")
 			           && !strchr(argv[i] + 6, ',')) {
 				// Treat it like -D.
-				args_add(dep_args, argv[i] + 4);
+				args_add(cpp_args, argv[i] + 4);
+				continue;
+			} else if (str_startswith(argv[i], "-Wp,-M")) {
+				// -MF, -MP, -MQ, -MT, etc. TODO: Make argument to MF/MQ/MT relative.
+				args_add(dep_args, argv[i]);
 				continue;
 			} else if (conf->direct_mode) {
 				// -Wp, can be used to pass too hard options to the preprocessor.
@@ -2438,6 +2442,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
 				conf->direct_mode = false;
 			}
+
+			// Any other -Wp,* arguments are only relevant for the preprocessor.
+			args_add(cpp_args, argv[i]);
+			continue;
 		}
 		if (str_eq(argv[i], "-MP")) {
 			args_add(dep_args, argv[i]);
