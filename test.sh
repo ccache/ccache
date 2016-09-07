@@ -1125,18 +1125,18 @@ SUITE_multi_arch_SETUP() {
 }
 
 SUITE_multi_arch() {
-# -------------------------------------------------------------------------
-    TEST "cache hit"
+    # -------------------------------------------------------------------------
+    TEST "cache hit, direct mode"
 
     # Different arches shouldn't affect each other
     $CCACHE_COMPILE -arch i386 -c test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
-    
+
     $CCACHE_COMPILE -arch x86_64 -c test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 2
-    
+
     $CCACHE_COMPILE -arch i386 -c test1.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 2
@@ -1145,23 +1145,24 @@ SUITE_multi_arch() {
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 3
-    
+
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 3
 
-    #The same for preprocessor mode
-    clear_cache
+    # -------------------------------------------------------------------------
+    TEST "cache hit, preprocessor mode"
+
     export CCACHE_NODIRECT=1
-    
+
     $CCACHE_COMPILE -arch i386 -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    
+
     $CCACHE_COMPILE -arch x86_64 -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-    
+
     $CCACHE_COMPILE -arch i386 -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
@@ -1170,11 +1171,10 @@ SUITE_multi_arch() {
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 3
-    
+
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 3
-
 }
 
 # =============================================================================
@@ -2445,7 +2445,7 @@ SUITE_readonly() {
         test_failed "Read-only mode + direct mode stored files in the cache"
     fi
 }
- 
+
 # =============================================================================
 
 SUITE_readonly_direct_SETUP() {
