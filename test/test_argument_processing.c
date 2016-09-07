@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2015 Joel Rosdahl
+ * Copyright (C) 2010-2016 Joel Rosdahl
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -57,7 +57,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 {
 #define CMD \
 	"cc -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2" \
-	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
 	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(CMD);
 #undef CMD
@@ -79,8 +79,9 @@ TEST(preprocessor_only_flags_should_only_be_sent_to_the_preprocessor)
 	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
 	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
 	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
-	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 " \
-	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2" \
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt" \
+	" -Wp,-MQ,wpmq -Wp,-MF,wpf"
 	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(CMD);
 #undef CMD

@@ -8,6 +8,10 @@ Unreleased 3.2.8
 Bug fixes
 ~~~~~~~~~
 
+- Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
+  path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
+  (`CCACHE_CPP2`) is enabled.
+
 - ccache now understands the undocumented `-coverage` (only one dash) GCC
   option.
 
