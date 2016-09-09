@@ -662,6 +662,9 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "unify = %s", bool_to_string(conf->unify));
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
 
+	reformat(&s, "use_dependency_file = %s", bool_to_string(conf->use_dependency_file));
+	printer(s, conf->item_origins[find_conf("use_dependency_file")->number], context);
+
 	free(s);
 	return true;
 }
