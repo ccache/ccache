@@ -682,6 +682,70 @@ make_relative_path(char *path)
 	}
 }
 
+static bool
+process_dependency_file(struct mdfour *hash, const char *path)
+{
+	char *data;
+	size_t size;
+    if (!read_file(path, 0, &data, &size)) {
+		return false;
+	}
+
+	char *q = data;
+	char *end = data + size;
+
+	while (q < end) {
+		// skip all targets
+		if (*q != ':') {
+			q++;
+			continue;
+		} else {
+			q++;
+		}
+
+		// parse dependencies
+		while (q < end) {
+			// find beginning of path
+			while (q < end && (*q == ' ' || *q == '\\' || (*q == '\n' && *(q - 1) == '\\'))) {
+				q++;
+			}
+			// found end of file
+			if (q >= end) {
+				break;
+			}
+			// found end of dependencies block
+			if (*q == '\n' && *(q - 1) != '\\') {
+				break;
+			}
+			char *p = q;
+			// find end of path
+			while (q < end && ((*q != ' ' || (*q == ' ' && *(q - 1) == '\\')) && *q != '\n')) {
+				q++;
+			}
+
+			char *inc_path = x_strndup(p, q - p);
+			char* end = inc_path + (q - p);
+
+			// remove \ from paths with spaces, eg. "file\ with\ spaces.h"
+			for (char *i = inc_path, *j = inc_path; i <= end; ++i)
+			{
+				if (*i != '\\')
+				{
+					*j = *i;
+					++j;
+				}
+			}
+
+			cc_log("Header: %s", inc_path);
+
+			inc_path = make_relative_path(inc_path);
+			remember_include_file(inc_path, hash, false);
+		}
+	}
+
+	return true;
+}
+
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -809,7 +873,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			}
 			// when using dependency file don't parse preprocessed output for included headers
 			// we will use headers from dependency file instead
-			if(!conf->use_dependency_file && generating_dependencies) {
+			if(!conf->use_dependency_file || !generating_dependencies) {
 				// p and q span the include file path.
 				char *inc_path = x_strndup(p, q - p);
 				if (!has_absolute_include_headers) {
@@ -837,7 +901,8 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	}
 
 	if (conf->use_dependency_file && generating_dependencies) {
-		cc_log("Dependency file: %s", cached_dep);
+		cc_log("Processing dependency file: %s", output_dep);
+		process_dependency_file(hash, output_dep);
 	}
 
 	return true;
