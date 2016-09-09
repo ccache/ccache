@@ -129,6 +129,18 @@ expect_file_content() {
     fi
 }
 
+expect_file_contains() {
+    local file="$1"
+    local string="$2"
+
+    if [ ! -f "$file" ]; then
+        test_failed "$file not found"
+    fi
+    if ! grep -q "$string" "$file"; then
+        test_failed "File $file does not contain: $string. Actual content: $(cat $file)"
+    fi
+}
+
 expect_file_count() {
     local expected=$1
     local pattern=$2
@@ -1120,6 +1132,100 @@ SUITE_nocpp2_SETUP() {
 
 SUITE_nocpp2() {
     base_tests
+}
+
+# =============================================================================
+
+SUITE_clang_modules_PROBE() {
+    if ! $HOST_OS_APPLE; then
+        echo "Clang modules not supported on $(uname -s)"
+        return
+    fi
+}
+
+SUITE_clang_modules_SETUP() {
+    unset CCACHE_NODIRECT
+    export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime"
+
+    cat <<EOF >test1.h
+#import <Foundation/Foundation.h>
+EOF
+
+cat <<EOF >module.modulemap
+module "Test1" {
+  header "test1.h"
+  export *
+}
+EOF
+
+   cat <<EOF >test1.m
+#import "test1.h"
+int main() { return 0; }
+EOF
+}
+
+SUITE_clang_modules() {
+    # -------------------------------------------------------------------------
+    TEST "preprocessor output"
+    $COMPILER -fmodules test1.m -E > test1.preprocessed.m
+    expect_file_contains "test1.preprocessed.m" "@import Test1;"
+
+    # -------------------------------------------------------------------------
+    TEST "fall back to real compiler, no run_second_cpp"
+
+    export CCACHE_NOCPP2=1
+
+    $CCACHE_COMPILE -fmodules -c test1.m
+    expect_stat 'unsupported compiler option' 1
+
+    # -------------------------------------------------------------------------
+    TEST "cache hit, direct mode"
+
+    export CCACHE_CPP2=1
+
+    $CCACHE_COMPILE -fmodules -c test1.m
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -fmodules -c test1.m
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "cache hit, preprocessed"
+
+    export CCACHE_CPP2=1
+
+    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # preprocessor should be disabled when dealing with modules!
+    cat <<EOF >test1.h
+#import <Foundation/Foundation.h>
+// modification
+EOF
+
+    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "cache miss"
+
+    export CCACHE_CPP2=1
+
+    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    expect_stat 'cache miss' 1
+
+    # preprocessor should be disabled when dealing with modules!
+    cat <<EOF >test1.h
+#import <Foundation/Foundation.h>
+void f();
+EOF
+
+    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    expect_stat 'cache miss' 2
 }
 
 # =============================================================================
@@ -3448,6 +3554,7 @@ cd $TESTDIR || exit 1
 all_suites="
 base
 nocpp2
+clang_modules
 multi_arch
 serialize_diagnostics
 debug_prefix_map

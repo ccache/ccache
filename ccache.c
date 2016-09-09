@@ -2172,6 +2172,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// false. If run_second_cpp is true, they will be passed to the compiler as
 	// well.
 	struct args *cpp_args = args_init(0, NULL);
+	// clang_module_args contains clang module related arguments that should not
+	// be passed to preprocessor.
+	struct args *clang_module_args = args_init(0, NULL);
 	// dep_args contains dependency options like -MD. They only passed to the
 	// preprocessor, never to the compiler.
 	struct args *dep_args = args_init(0, NULL);
@@ -2318,6 +2321,23 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// We must have -c.
 		if (str_eq(argv[i], "-c")) {
 			found_c_opt = true;
+			continue;
+		}
+
+		// clang modules cause preprocessor output to not include header files,
+		// instead headers that have a module defined for them are replaced with
+		// '@import <module name>;', this causes preprocessor output to be useless
+		// for determining included headers. To workaround this problem, don't pass
+		// '-fmodules' when generating preprocessor output.
+		if (str_eq(argv[i], "-fmodules")) {
+			if (!conf->run_second_cpp) {
+				cc_log("Clang modules are not supported when run_second_cpp = false");
+				stats_update(STATS_UNSUPPORTED);
+				result = false;
+				goto out;
+			} else {
+				args_add(clang_module_args, argv[i]);
+			}
 			continue;
 		}
 
@@ -3034,6 +3054,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	*compiler_args = args_copy(stripped_args);
+	args_extend(*compiler_args, clang_module_args);
+
 	if (conf->run_second_cpp) {
 		args_extend(*compiler_args, cpp_args);
 	} else if (explicit_language) {
