@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 31
+#define N_CONFIG_ITEMS 32
 static struct {
 	char *descr;
 	const char *origin;
