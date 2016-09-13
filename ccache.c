@@ -687,15 +687,24 @@ process_dependency_file(struct mdfour *hash, const char *path)
 {
 	char *data;
 	size_t size;
-    if (!read_file(path, 0, &data, &size)) {
+	if (!read_file(path, 0, &data, &size)) {
 		return false;
 	}
 
 	char *q = data;
 	char *end = data + size;
 
+	// Dependency file has makefile format:
+	// 		<target>: <list of dependencies>
+	// 		<new line>
+	//
+	// <list of dependencies> consists of file paths separated by spaces or new lines with continuation "\".
+	// If file path contain spaces, they are escaped with \, eg.
+	//
+	//		example.o: example.m header\ with\ spaces.h
+	//
 	while (q < end) {
-		// skip all targets
+		// Skip all targets
 		if (*q != ':') {
 			q++;
 			continue;
@@ -703,22 +712,23 @@ process_dependency_file(struct mdfour *hash, const char *path)
 			q++;
 		}
 
-		// parse dependencies
+		// Parse list of dependencies
 		while (q < end) {
-			// find beginning of path
+			// Find beginning of path (skip file separators)
 			while (q < end && (*q == ' ' || *q == '\\' || (*q == '\n' && *(q - 1) == '\\'))) {
 				q++;
 			}
-			// found end of file
+			// Found end of file
 			if (q >= end) {
 				break;
 			}
-			// found end of dependencies block
+			// Found end of dependencies block
 			if (*q == '\n' && *(q - 1) != '\\') {
 				break;
 			}
+			// q now points at beginning of file path
 			char *p = q;
-			// find end of path
+			// Find end of path (skip all non-file seaprators)
 			while (q < end && ((*q != ' ' || (*q == ' ' && *(q - 1) == '\\')) && *q != '\n')) {
 				q++;
 			}
@@ -726,17 +736,14 @@ process_dependency_file(struct mdfour *hash, const char *path)
 			char *inc_path = x_strndup(p, q - p);
 			char* end = inc_path + (q - p);
 
-			// remove \ from paths with spaces, eg. "file\ with\ spaces.h"
-			for (char *i = inc_path, *j = inc_path; i <= end; ++i)
-			{
-				if (*i != '\\')
-				{
+			// Remove space escape characters("\") from paths with spaces, eg. "file\ with\ spaces.h"
+			for (char *i = inc_path, *j = inc_path; i <= end; ++i) {
+				// Copy all characters except "\", including "\0"
+				if (*i != '\\') {
 					*j = *i;
 					++j;
 				}
 			}
-
-			cc_log("Header: %s", inc_path);
 
 			inc_path = make_relative_path(inc_path);
 			remember_include_file(inc_path, hash, false);
