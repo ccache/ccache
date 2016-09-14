@@ -3226,7 +3226,7 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	if (conf->use_dependency_files && conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
+	if (conf->use_dependency_file && conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
 		cc_log("Can't use sloppiness 'no_system_headers' with dependency files");
 		failed();
 	}
