@@ -1200,7 +1200,6 @@ SUITE_clang_modules() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    # preprocessor should be disabled when dealing with modules!
     cat <<EOF >test1.h
 #import <Foundation/Foundation.h>
 // modification
@@ -1218,7 +1217,6 @@ EOF
     $CCACHE_COMPILE -MD -fmodules -c test1.m
     expect_stat 'cache miss' 1
 
-    # preprocessor should be disabled when dealing with modules!
     cat <<EOF >test1.h
 #import <Foundation/Foundation.h>
 void f();
