@@ -2407,6 +2407,21 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
+		// Alternate form of specifying sysroot without =
+		if (str_eq(argv[i], "--sysroot")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			char *relpath = make_relative_path(x_strdup(argv[i+1]));
+			args_add(stripped_args, relpath);
+			i++;
+			free(relpath);
+			continue;
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P")
 			    || strstr(argv[i], ",-P,")
