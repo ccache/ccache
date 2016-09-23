@@ -1178,6 +1178,9 @@ SUITE_clang_modules() {
     $CCACHE_COMPILE -fmodules -c test1.m
     expect_stat 'unsupported compiler option' 1
 
+    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.m
+    expect_stat 'unsupported compiler option' 2
+
     # -------------------------------------------------------------------------
     TEST "cache hit, direct mode"
 

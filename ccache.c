@@ -2329,7 +2329,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// '@import <module name>;', this causes preprocessor output to be useless
 		// for determining included headers. To workaround this problem, don't pass
 		// '-fmodules' when generating preprocessor output.
-		if (str_eq(argv[i], "-fmodules")) {
+		if (str_eq(argv[i], "-fmodules") || str_eq(argv[i], "-fcxx-modules")) {
 			if (!conf->run_second_cpp) {
 				cc_log("Clang modules are not supported when run_second_cpp = false");
 				stats_update(STATS_UNSUPPORTED);
