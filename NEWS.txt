@@ -7,6 +7,9 @@ Unreleased 3.4
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The compiler option form `--sysroot arg` is now handled like the documented
+  `--sysroot=arg` form.
+
 
 ccache 3.3.1
 ------------
