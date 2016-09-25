@@ -196,6 +196,30 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 	args_free(act_cc);
 }
 
+TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = get_root();
+	current_working_dir = get_cwd();
+	arg_string = format("cc --sysroot %s/foo -c foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot");
+	CHECK_STR_EQ(act_cpp->argv[2], "./foo");
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
 TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
 {
 	struct args *orig = args_init_from_string(
