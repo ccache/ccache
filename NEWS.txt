@@ -1,6 +1,17 @@
 ccache news
 ===========
 
+Unreleased 3.3.2
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.3 related to potentially bad content of
+  dependency files when compiling identical source code but with different
+  source paths.
+
+
 ccache 3.3.1
 ------------
 Release date: 2016-09-07
