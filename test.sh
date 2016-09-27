@@ -3408,11 +3408,11 @@ upgrade
 input_charset
 "
 
-compiler_location=$(which $COMPILER)
+compiler_location=$(which $(echo "$COMPILER" | awk '{print $1}'))
 if [ "$compiler_location" = "$COMPILER" ]; then
     echo "Compiler:         $COMPILER"
 else
-    echo "Compiler:         $COMPILER ($(which $COMPILER))"
+    echo "Compiler:         $COMPILER ($compiler_location)"
 fi
 echo "Compiler version: $($COMPILER --version | head -n 1)"
 echo
