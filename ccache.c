@@ -1536,6 +1536,13 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 	}
 
+	// Possibly hash input file location to avoid false positive cache hits since
+	// the dependency file includes the source file path.
+	if (generating_dependencies) {
+		hash_delimiter(hash, "inputfile");
+		hash_string(hash, input_file);
+	}
+
 	// Possibly hash the coverage data file path.
 	if (generating_coverage && profile_arcs) {
 		char *dir = dirname(output_obj);

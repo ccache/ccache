@@ -976,6 +976,20 @@ EOF
     expect_stat 'unsupported compiler option' 1
 
     # -------------------------------------------------------------------------
+    TEST "-MMD for different source files"
+
+    mkdir a b
+    touch a/source.c b/source.c
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    $CCACHE_COMPILE -MMD -c b/source.c
+    expect_file_content source.d "source.o: b/source.c"
+
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information
@@ -1609,6 +1623,20 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "-MMD for different source files"
+
+    mkdir a b
+    touch a/source.c b/source.c
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    $CCACHE_COMPILE -MMD -c b/source.c
+    expect_file_content source.d "source.o: b/source.c"
+
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
 
     # -------------------------------------------------------------------------
     TEST "Multiple object entries in manifest"
