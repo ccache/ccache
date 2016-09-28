@@ -1,6 +1,16 @@
 ccache news
 ===========
 
+Unreleased 3.2.9
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.2.8: ccache could get confused when using the
+  compiler option `-Wp,` to pass multiple options to the preprocessor,
+  resulting in missing dependency files from direct mode cache hits.
+
 
 ccache 3.2.8
 ------------
