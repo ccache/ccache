@@ -138,7 +138,7 @@ Bug fixes
 
 
 ccache 3.2.9
-----------------
+------------
 Release date: 2016-09-28
 
 Bug fixes
