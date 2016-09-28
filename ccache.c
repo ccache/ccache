@@ -96,6 +96,9 @@ static char *output_dep;
 // The path to the coverage file (implicit when using -ftest-coverage).
 static char *output_cov;
 
+// The path to the stack usage (implicit when using -fstack-usage).
+static char *output_su = NULL;
+
 // Diagnostic generation information (clang). Contains pathname if not NULL.
 static char *output_dia = NULL;
 
@@ -126,6 +129,10 @@ static char *cached_dep;
 // Full path to the file containing the coverage information
 // (cachedir/a/b/cdef[...]-size.gcno).
 static char *cached_cov;
+
+// Full path to the file containing the stack usage
+// (cachedir/a/b/cdef[...]-size.su).
+static char *cached_su;
 
 // Full path to the file containing the diagnostic information (for clang)
 // (cachedir/a/b/cdef[...]-size.dia).
@@ -170,6 +177,9 @@ static bool generating_dependencies;
 
 // Is the compiler being asked to output coverage?
 static bool generating_coverage;
+
+// Is the compiler being asked to output stack usage?
+static bool generating_stackusage;
 
 // Relocating debuginfo in the format old=new.
 static char *debug_prefix_map = NULL;
@@ -984,6 +994,7 @@ get_file_from_cache(const char *source, const char *dest)
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
 		x_unlink(cached_dep);
+		x_unlink(cached_su);
 		x_unlink(cached_dia);
 
 		failed();
@@ -1053,6 +1064,21 @@ to_cache(struct args *args)
 		tmp_cov = NULL;
 	}
 
+	char *tmp_su;
+	if (generating_stackusage) {
+                char *tmp_aux;
+                // GCC has some funny rule about max extension length.
+                if (strlen(get_extension(output_obj)) < 6) {
+                        tmp_aux = remove_extension(output_obj);
+                } else {
+                        tmp_aux = x_strdup(output_obj);
+                }
+                tmp_su = format("%s.su", tmp_aux);
+                free(tmp_aux);
+	} else {
+                tmp_su = NULL;
+	}
+
 	// GCC (at least 4.8 and 4.9) forms the .dwo file name by removing everything
 	// after (and including) the last "." from the object file name and then
 	// appending ".dwo".
@@ -1097,6 +1123,9 @@ to_cache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
+		if (tmp_su) {
+			tmp_unlink(tmp_su);
+		}
 		tmp_unlink(tmp_dwo);
 		failed();
 	}
@@ -1107,6 +1136,9 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stderr);
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
+		}
+		if (tmp_su) {
+			tmp_unlink(tmp_su);
 		}
 		tmp_unlink(tmp_dwo);
 		failed();
@@ -1168,6 +1200,9 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_stderr);
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
+		}
+		if (tmp_su) {
+			tmp_unlink(tmp_su);
 		}
 		tmp_unlink(tmp_dwo);
 
@@ -1242,6 +1277,23 @@ to_cache(struct args *args)
 		}
 	}
 
+	if (generating_stackusage) {
+		// GCC won't generate notes if there is no code.
+		if (stat(tmp_su, &st) != 0 && errno == ENOENT) {
+			FILE *f = fopen(cached_su, "wb");
+			cc_log("Creating placeholder: %s", cached_su);
+			if (!f) {
+				cc_log("Failed to create %s: %s", cached_su, strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
+			fclose(f);
+			stats_update_size(0, 1);
+		} else {
+			put_file_in_cache(tmp_su, cached_su);
+		}
+	}
+
 	if (output_dia) {
 		if (x_stat(output_dia, &st) != 0) {
 			stats_update(STATS_ERROR);
@@ -1264,6 +1316,11 @@ to_cache(struct args *args)
 		use_relative_paths_in_depfile(output_dep);
 		put_file_in_cache(output_dep, cached_dep);
 	}
+
+        if (output_su) {
+          put_file_in_cache(output_su, cached_su);
+	}
+
 	stats_update(STATS_TOCACHE);
 
 	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
@@ -1295,6 +1352,7 @@ to_cache(struct args *args)
 	free(tmp_stderr);
 	free(tmp_stdout);
 	free(tmp_cov);
+	free(tmp_su);
 	free(tmp_dwo);
 }
 
@@ -1413,6 +1471,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
 	cached_cov = get_path_in_cache(object_name, ".gcno");
+	cached_su  = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 
 	if (using_split_dwarf) {
@@ -1898,6 +1957,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		// The compiler won't generate notes if there is no code
 		get_file_from_cache(cached_cov, output_cov);
 	}
+	if (generating_stackusage && stat(cached_su, &st) == 0 && st.st_size > 0) {
+		// The compiler won't generate notes if there is no code
+		get_file_from_cache(cached_su, output_su);
+	}
 	if (output_dia) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
@@ -1911,6 +1974,9 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 	if (generating_coverage) {
 		update_mtime(cached_cov);
+	}
+	if (generating_stackusage) {
+		update_mtime(cached_su);
 	}
 	if (output_dia) {
 		update_mtime(cached_dia);
@@ -2391,6 +2457,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 		if (str_eq(argv[i], "-ftest-coverage")) {
 			generating_coverage = true;
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
+		if (str_eq(argv[i], "-fstack-usage")) {
+			generating_stackusage = true;
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
@@ -2926,6 +2997,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		free(base_name);
 		output_cov = make_relative_path(x_strdup(default_covfile_name));
 	}
+	if (generating_stackusage) {
+		char *base_name = remove_extension(output_obj);
+		char *default_sufile_name = format("%s.su", base_name);
+		free(base_name);
+		output_su = make_relative_path(x_strdup(default_sufile_name));
+	}
 
 	*compiler_args = args_copy(stripped_args);
 	if (conf->run_second_cpp) {
@@ -3088,6 +3165,7 @@ cc_reset(void)
 	free(output_dwo); output_dwo = NULL;
 	free(output_dep); output_dep = NULL;
 	free(output_cov); output_cov = NULL;
+	free(output_su); output_su = NULL;
 	free(output_dia); output_dia = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_obj); cached_obj = NULL;
@@ -3095,6 +3173,7 @@ cc_reset(void)
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
+	free(cached_su); cached_su = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
@@ -3111,6 +3190,7 @@ cc_reset(void)
 	generating_debuginfo = false;
 	generating_dependencies = false;
 	generating_coverage = false;
+	generating_stackusage = false;
 	profile_arcs = false;
 	free(profile_dir); profile_dir = NULL;
 	i_tmpfile = NULL;
@@ -3202,6 +3282,9 @@ ccache(int argc, char *argv[])
 	}
 	if (generating_coverage) {
 		cc_log("Coverage file: %s", output_cov);
+	}
+	if (generating_stackusage) {
+		cc_log("Stack usage file: %s", output_su);
 	}
 	if (output_dia) {
 		cc_log("Diagnostic file: %s", output_dia);

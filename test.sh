@@ -1697,6 +1697,29 @@ EOF
     test -r code.gcno || test_failed "code.gcno missing"
 
     # -------------------------------------------------------------------------
+    TEST "-fstack-usage"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER_TYPE_GCC; then
+        $CCACHE_COMPILE -c -fstack-usage code.c
+        expect_stat 'cache hit (direct)' 0
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        test -r code.su || test_failed "code.su missing"
+
+        rm code.su
+
+        $CCACHE_COMPILE -c -fstack-usage code.c
+        expect_stat 'cache hit (direct)' 1
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        test -r code.su || test_failed "code.su missing"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Direct mode on cache created by ccache without direct mode support"
 
     CCACHE_NODIRECT=1 $CCACHE_COMPILE -c -MD test.c
