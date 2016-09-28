@@ -1614,15 +1614,19 @@ EOF
     # ccache could try to parse and make sense of -Wp, with multiple arguments,
     # but it currently doesn't, so we have to disable direct mode.
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
+    touch source.c
+
+    $CCACHE_COMPILE -c -Wp,-MMD,source.d,-MT,source.o source.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    expect_file_content source.d "source.o: source.c"
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
+    $CCACHE_COMPILE -c -Wp,-MMD,source.d,-MT,source.o source.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
+    expect_file_content source.d "source.o: source.c"
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
