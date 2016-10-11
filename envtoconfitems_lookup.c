@@ -52,8 +52,8 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
       49, 49, 49, 49, 49, 49, 49, 49, 49, 49,
       49, 49, 49, 49, 49, 49, 49, 49, 49, 49,
       49, 49, 49, 49, 49, 49,  5,  0,  0,  5,
-      40, 49, 25,  5,  0, 49, 20,  5,  0,  5,
-       5, 25, 15,  0, 20,  5, 20, 49, 49, 49,
+      40, 49, 20,  5,  0, 49, 20,  5,  0,  5,
+       5,  0, 15,  0, 25,  0, 25, 49, 49, 49,
        0, 49, 49, 49, 49, 49, 49, 49, 49, 49,
       49, 49, 49, 49, 49, 49, 49, 49, 49, 49,
       49, 49, 49, 49, 49, 49, 49, 49, 49, 49,
@@ -109,7 +109,7 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 33,
+      TOTAL_KEYWORDS = 34,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 18,
       MIN_HASH_VALUE = 2,
@@ -125,25 +125,26 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"DIR", "cache_dir"},
 #line 16 "envtoconfitems.gperf"
       {"CPP2", "run_second_cpp"},
-      {"",""},
+#line 44 "envtoconfitems.gperf"
+      {"UNIFY", "unify"},
 #line 19 "envtoconfitems.gperf"
       {"DIRECT", "direct_mode"},
 #line 20 "envtoconfitems.gperf"
       {"DISABLE", "disable"},
 #line 14 "envtoconfitems.gperf"
       {"COMPRESS", "compression"},
-#line 32 "envtoconfitems.gperf"
-      {"PATH", "path"},
-#line 43 "envtoconfitems.gperf"
-      {"UNIFY", "unify"},
 #line 33 "envtoconfitems.gperf"
+      {"PATH", "path"},
+#line 40 "envtoconfitems.gperf"
+      {"SLOPPINESS", "sloppiness"},
+#line 34 "envtoconfitems.gperf"
       {"PREFIX", "prefix_command"},
-#line 28 "envtoconfitems.gperf"
+#line 29 "envtoconfitems.gperf"
       {"MAXSIZE", "max_size"},
-#line 27 "envtoconfitems.gperf"
+#line 28 "envtoconfitems.gperf"
       {"MAXFILES", "max_files"},
       {"",""},
-#line 34 "envtoconfitems.gperf"
+#line 35 "envtoconfitems.gperf"
       {"PREFIX_CPP", "prefix_command_cpp"},
       {"",""},
 #line 11 "envtoconfitems.gperf"
@@ -155,44 +156,42 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 #line 22 "envtoconfitems.gperf"
       {"EXTRAFILES", "extra_files_to_hash"},
       {"",""},
-#line 38 "envtoconfitems.gperf"
+#line 39 "envtoconfitems.gperf"
       {"RECACHE", "recache"},
 #line 25 "envtoconfitems.gperf"
       {"IGNOREHEADERS", "ignore_headers_in_manifest"},
-#line 29 "envtoconfitems.gperf"
-      {"MEMCACHED_CONF", "memcached_conf"},
-#line 40 "envtoconfitems.gperf"
-      {"STATS", "stats"},
-      {"",""},
-#line 26 "envtoconfitems.gperf"
-      {"LOGFILE", "log_file"},
-#line 35 "envtoconfitems.gperf"
-      {"READONLY", "read_only"},
 #line 30 "envtoconfitems.gperf"
-      {"MEMCACHED_ONLY", "memcached_only"},
-#line 42 "envtoconfitems.gperf"
+      {"MEMCACHED_CONF", "memcached_conf"},
+#line 43 "envtoconfitems.gperf"
       {"UMASK", "umask"},
       {"",""},
+#line 27 "envtoconfitems.gperf"
+      {"LOGFILE", "log_file"},
+#line 36 "envtoconfitems.gperf"
+      {"READONLY", "read_only"},
+#line 31 "envtoconfitems.gperf"
+      {"MEMCACHED_ONLY", "memcached_only"},
 #line 41 "envtoconfitems.gperf"
-      {"TEMPDIR", "temporary_dir"},
-#line 15 "envtoconfitems.gperf"
-      {"COMPRESSLEVEL", "compression_level"},
-      {"",""},
-#line 39 "envtoconfitems.gperf"
-      {"SLOPPINESS", "sloppiness"},
+      {"STATS", "stats"},
       {"",""},
 #line 24 "envtoconfitems.gperf"
       {"HASHDIR", "hash_dir"},
 #line 23 "envtoconfitems.gperf"
       {"HARDLINK", "hard_link"},
-      {"",""},
-#line 36 "envtoconfitems.gperf"
+      {"",""}, {"",""}, {"",""},
+#line 42 "envtoconfitems.gperf"
+      {"TEMPDIR", "temporary_dir"},
+#line 15 "envtoconfitems.gperf"
+      {"COMPRESSLEVEL", "compression_level"},
+#line 26 "envtoconfitems.gperf"
+      {"LIMIT_MULTIPLE", "limit_multiple"},
+#line 37 "envtoconfitems.gperf"
       {"READONLY_DIRECT", "read_only_direct"},
       {"",""}, {"",""},
-#line 37 "envtoconfitems.gperf"
+#line 38 "envtoconfitems.gperf"
       {"READONLY_MEMCACHED", "read_only_memcached"},
       {"",""}, {"",""}, {"",""},
-#line 31 "envtoconfitems.gperf"
+#line 32 "envtoconfitems.gperf"
       {"NLEVELS", "cache_dir_levels"},
 #line 17 "envtoconfitems.gperf"
       {"COMMENTS", "keep_comments_cpp"}
@@ -212,4 +211,4 @@ envtoconfitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 33;
+static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 34;

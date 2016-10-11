@@ -1,25 +1,25 @@
-/*
- * Copyright (C) 2010-2014 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ccache.h"
-#include "test/framework.h"
+#include "../ccache.h"
+#include "framework.h"
 #include "util.h"
 
+#include <float.h>
+#include <math.h>
 #if defined(HAVE_TERMIOS_H)
 #define USE_COLOR
 #include <termios.h>
@@ -36,8 +36,8 @@ static char *dir_before_test;
 static int verbose;
 
 static const char COLOR_END[] = "\x1b[m";
-static const char COLOR_GREEN[] = "\x1b[32m";
-static const char COLOR_RED[] = "\x1b[31m";
+static const char COLOR_GREEN[] = "\x1b[1;32m";
+static const char COLOR_RED[] = "\x1b[1;31m";
 
 #define COLOR(tty, color) ((tty) ? COLOR_ ## color : "")
 
@@ -65,7 +65,7 @@ cct_run(suite_fn *suites, int verbose_output)
 	suite_fn *suite;
 	int tty = is_tty(1);
 
-	x_unsetenv("GCC_COLORS"); /* Avoid confusing argument processing tests. */
+	x_unsetenv("GCC_COLORS"); // Avoid confusing argument processing tests.
 	verbose = verbose_output;
 
 	for (suite = suites; *suite; suite++) {
@@ -73,7 +73,7 @@ cct_run(suite_fn *suites, int verbose_output)
 		while (true) {
 			test_index = (*suite)(test_index + 1);
 			if (test_index == 0) {
-				/* We have reached the end of the suite. */
+				// We have reached the end of the suite.
 				break;
 			}
 		}
@@ -173,6 +173,22 @@ cct_check_failed(const char *file, int line, const char *what,
 }
 
 bool
+cct_check_float_eq(const char *file, int line, const char *expression,
+                   double expected, double actual)
+{
+	if (fabs(expected -  actual) < DBL_EPSILON) {
+		cct_check_passed(file, line, expression);
+		return true;
+	} else {
+		char *exp_str = format("%.1f", (double)expected);
+		char *act_str = format("%.1f", (double)actual);
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		return false;
+	}
+}
+bool
 cct_check_int_eq(const char *file, int line, const char *expression,
                  int64_t expected, int64_t actual)
 {
@@ -262,7 +278,7 @@ cct_chdir(const char *path)
 void
 cct_wipe(const char *path)
 {
-	/* TODO: rewrite using traverse(). */
+	// TODO: rewrite using traverse().
 #ifndef __MINGW32__
 	char *command = format("rm -rf %s", path);
 #else

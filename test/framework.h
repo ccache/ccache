@@ -1,27 +1,25 @@
-/*
- * Copyright (C) 2010-2012 Joel Rosdahl
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 3 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
+// Copyright (C) 2010-2016 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #ifndef TEST_FRAMEWORK_H
 #define TEST_FRAMEWORK_H
 
-#include "ccache.h"
+#include "../ccache.h"
 
-/*****************************************************************************/
+// ============================================================================
 
 #define TEST_SUITE(name) \
 	unsigned suite_##name(unsigned _start_point) \
@@ -29,7 +27,7 @@
 		unsigned _test_counter = 0; \
 		cct_suite_begin(#name); \
 		{ \
-			/* Empty due to macro trickery. */
+			// Empty due to macro trickery.
 
 #define TEST(name) \
 			cct_test_end(); \
@@ -46,7 +44,7 @@
 		return 0; /* We have reached the end. */ \
 	}
 
-/*****************************************************************************/
+// ============================================================================
 
 #define CHECKM(assertion, message) \
 	do { \
@@ -72,7 +70,7 @@
 		} \
 	} while (false)
 
-/*****************************************************************************/
+// ============================================================================
 
 #define CHECK_INT_EQ(expected, actual) \
 	do { \
@@ -84,7 +82,19 @@
 		} \
 	} while (false)
 
-/*****************************************************************************/
+// ============================================================================
+
+#define CHECK_FLOAT_EQ(expected, actual) \
+	do { \
+		if (!cct_check_float_eq(__FILE__, __LINE__, #actual, (expected), \
+		                      (actual))) { \
+			cct_test_end(); \
+			cct_suite_end(); \
+			return _test_counter; \
+		} \
+	} while (false)
+
+// ============================================================================
 
 #define CHECK_STR_EQ(expected, actual) \
 	CHECK_POINTER_EQ_BASE(str, expected, actual, false, false)
@@ -98,7 +108,7 @@
 #define CHECK_STR_EQ_FREE12(expected, actual) \
 	CHECK_POINTER_EQ_BASE(str, expected, actual, true, true)
 
-/*****************************************************************************/
+// ============================================================================
 
 #define CHECK_ARGS_EQ(expected, actual) \
 	CHECK_POINTER_EQ_BASE(args, expected, actual, false, false)
@@ -112,7 +122,7 @@
 #define CHECK_ARGS_EQ_FREE12(expected, actual) \
 	CHECK_POINTER_EQ_BASE(args, expected, actual, true, true)
 
-/*****************************************************************************/
+// ============================================================================
 
 typedef unsigned (*suite_fn)(unsigned);
 int cct_run(suite_fn *suites, int verbose);
@@ -124,6 +134,8 @@ void cct_test_end(void);
 void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
+bool cct_check_float_eq(const char *file, int line, const char *expression,
+                        double expected, double actual);
 bool cct_check_int_eq(const char *file, int line, const char *expression,
                       int64_t expected, int64_t actual);
 bool cct_check_str_eq(const char *file, int line, const char *expression,

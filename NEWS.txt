@@ -2,25 +2,63 @@ ccache news
 ===========
 
 
-Unreleased 3.3
---------------
+ccache 3.3
+----------
+Release date: 2016-08-27
+
+Notes
+~~~~~
+
+- A C99-compatible compiler is now required to build ccache.
+
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added support for cuda including the -optf/--options-file option.
+- The configuration option `run_second_cpp` (`CCACHE_CPP2`) now defaults to
+  true. This improves ccache's out-of-the-box experience for compilers that
+  can't compile their own preprocessed output with the same outcome as if they
+  compiled the real source code directly, e.g. newer versions of GCC and Clang.
 
-- Added new sloppiness option `no_system_headers`, which tells ccache not to
-  include system headers in manifest files.
+- The configuration option `hash_dir` (`CCACHE_HASHDIR`) now defaults to true.
 
-- Multiple identical `-arch` arguments are now handled without bailing.
+- Added a new `ignore_headers_in_manifest` configuration option, which
+  specifies headers that should be ignored in the direct mode.
 
-- Added new `ignore_headers_in_manifest` configuration option, which specifies
-  headers that should be ignored in the direct mode.
-
-- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
+- Added a new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
   which specifies one or several prefixes to add to the command line ccache
   uses when invoking the preprocessor.
+
+- Added a new `limit_multiple` (`CCACHE_LIMIT_MULTIPLE`) configuration option,
+  which specifies how much of the cache to remove when cleaning.
+
+- Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
+  which tells ccache not to discard the comments before hashing preprocessor
+  output. This can be used to check documentation with *-Wdocumentation*.
+
+- Added a new sloppiness option `no_system_headers`, which tells ccache not to
+  include system headers in manifest files.
+
+- Added a new statistics counter that tracks the number of performed cleanups
+  due to the cache size being over the limit. The value is shown in the output
+  of ``ccache -s''.
+
+- Added support for relocating debug info directory using `-fdebug-prefix-map`.
+  This allows for cache hits even when `hash_dir` is used in combination with
+  `base_dir`.
+
+- Added a new ``cache hit rate'' field to the output of ``ccache -s''.
+
+- Added support for caching compilation of assembler code produced by e.g.
+  ``gcc -S file.c''.
+
+- Added support for cuda including the -optf/--options-file option.
+
+- Added support for Fortran 77.
+
+- Added support for multiple `-arch` options to produce "fat binaries".
+
+- Multiple identical `-arch` arguments are now handled without bailing.
 
 - The concatenated form of some long compiler options is now recognized, for
   example when using `-isystemPATH` instead of `-isystem PATH`.
@@ -30,14 +68,6 @@ New features and improvements
 
 - Made the `hash_dir` option only have effect when generating debug info.
 
-- Added support for relocating debug info directory using `-fdebug-prefix-map`.
-  This allows for cache hits even when `hash_dir` is used in combination with
-  `base_dir`.
-
-- Added new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option, which
-  tells ccache not to discard the comments before hashing preprocessor output.
-  This can be used to check documentation with *-Wdocumentation*.
-
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
 
@@ -45,9 +75,21 @@ New features and improvements
 
 - Made ccache understand `-Wp,-D*` options.
 
+- ccache now understands the undocumented `-coverage` (only one dash) GCC
+  option.
+
+- Names of included files are no longer included in the hash of the compiler's
+  preprocessed output. This leads to more potential cache hits when not using
+  the direct mode.
+
+- Increased buffer size used when reading file data. This improves performance
+  slightly.
+
 
 Bug fixes
 ~~~~~~~~~
+
+- Bail out on too hard compiler option `-P`.
 
 - Fixed clang test suite when running on Linux.
 
