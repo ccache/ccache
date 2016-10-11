@@ -764,7 +764,6 @@ EOF
 }
 
 base_suite() {
-    CCACHE_COMPILE="$CCACHE $COMPILER"
     base_tests
 }
 
@@ -1598,6 +1597,27 @@ EOF
     else
         test_failed "unexpected output of --dump-manifest"
     fi
+
+    ##################################################################
+    testname="argument-less -B and -L"
+    $CCACHE -Cz > /dev/null
+    cat <<EOF >test.c
+#include <stdio.h>
+int main(void)
+{
+#ifdef FOO
+    puts("FOO");
+#endif
+    return 0;
+}
+EOF
+
+    $CCACHE $COMPILER -A -L -DFOO -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache miss' 1
+    $CCACHE $COMPILER -A -L -DBAR -c test.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache miss' 2
 }
 
 basedir_suite() {
@@ -2642,6 +2662,38 @@ b"
 b"
 }
 
+buggy_cpp_suite() {
+    testname="buggy_cpp"
+    $CCACHE -Cz >/dev/null
+    cat >buggy-cpp <<EOF
+#!/bin/sh
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
+if echo "\$*" | grep -- -D >/dev/null; then
+  $COMPILER "\$@"
+else
+  # mistreat the preprocessor output in the same way as gcc6 does
+  $COMPILER "\$@" |
+    sed -e '/^# 1 "<command-line>"$/ a # 31 "<command-line>"' \\
+        -e 's/^# 1 "<command-line>" 2$/# 32 "<command-line>" 2/'
+fi
+exit 0
+EOF
+    cat <<'EOF' >file.c
+int foo;
+EOF
+    chmod +x buggy-cpp
+    backdate buggy-cpp
+    $CCACHE ./buggy-cpp -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 0
+    checkstat 'cache miss' 1
+    $CCACHE ./buggy-cpp -DNOT_AFFECTING=1 -c file.c
+    checkstat 'cache hit (direct)' 0
+    checkstat 'cache hit (preprocessed)' 1
+    checkstat 'cache miss' 1
+}
+
 symlinks_suite() {
     ##################################################################
     testname="symlink to source directory"
@@ -2715,6 +2767,8 @@ fi
 if [ -z "$CCACHE" ]; then
     CCACHE=`pwd`/ccache
 fi
+
+CCACHE_COMPILE="$CCACHE $COMPILER"
 
 # save the type of compiler because some test may not work on all compilers
 COMPILER_TYPE_CLANG=0
@@ -2821,6 +2875,7 @@ pch
 symlinks
 upgrade
 prefix
+buggy_cpp
 "
 
 if [ ! -z $CCACHE_MEMCACHED ]; then

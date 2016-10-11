@@ -36,6 +36,7 @@ static const struct compopt compopts[] = {
 	{"--save-temps",    TOO_HARD},
 	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
 	{"-A",              TAKES_ARG},
+	{"-B",              TAKES_ARG | TAKES_CONCAT_ARG},
 	{"-D",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
 	{"-E",              TOO_HARD},
 	{"-F",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
