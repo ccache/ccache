@@ -1848,6 +1848,13 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 	}
 
+	// Possibly hash input file location to avoid false positive cache hits since
+	// the dependency file includes the source file path.
+	if (generating_dependencies) {
+		hash_delimiter(hash, "inputfile");
+		hash_string(hash, input_file);
+	}
+
 	// Possibly hash the coverage data file path.
 	if (generating_coverage && profile_arcs) {
 		char *dir = dirname(output_obj);
@@ -2055,6 +2062,12 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_file(hash, gcda_name);
 		free(base_name);
 		free(gcda_name);
+	}
+
+	// Adding -arch to hash since cpp output is affected.
+	for (size_t i = 0; i < arch_args_size; ++i) {
+		hash_delimiter(hash, "-arch");
+		hash_string(hash, arch_args[i]);
 	}
 
 	struct file_hash *object_hash = NULL;
@@ -2860,6 +2873,21 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
+		// Alternate form of specifying sysroot without =
+		if (str_eq(argv[i], "--sysroot")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			char *relpath = make_relative_path(x_strdup(argv[i+1]));
+			args_add(stripped_args, relpath);
+			i++;
+			free(relpath);
+			continue;
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P")
 			    || strstr(argv[i], ",-P,")
@@ -2889,7 +2917,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			} else if (str_startswith(argv[i], "-Wp,-D")
 			           && !strchr(argv[i] + 6, ',')) {
 				// Treat it like -D.
-				args_add(dep_args, argv[i] + 4);
+				args_add(cpp_args, argv[i] + 4);
+				continue;
+			} else if (str_eq(argv[i], "-Wp,-MP")
+			           || (strlen(argv[i]) > 8
+			               && str_startswith(argv[i], "-Wp,-M")
+			               && argv[i][7] == ','
+			               && (argv[i][6] == 'F'
+			                   || argv[i][6] == 'Q'
+			                   || argv[i][6] == 'T')
+			               && !strchr(argv[i] + 8, ','))) {
+				// TODO: Make argument to MF/MQ/MT relative.
+				args_add(dep_args, argv[i]);
 				continue;
 			} else if (conf->direct_mode) {
 				// -Wp, can be used to pass too hard options to the preprocessor.
@@ -2897,6 +2936,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
 				conf->direct_mode = false;
 			}
+
+			// Any other -Wp,* arguments are only relevant for the preprocessor.
+			args_add(cpp_args, argv[i]);
+			continue;
 		}
 		if (str_eq(argv[i], "-MP")) {
 			args_add(dep_args, argv[i]);

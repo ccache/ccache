@@ -983,6 +983,20 @@ EOF
     expect_stat 'unsupported compiler option' 1
 
     # -------------------------------------------------------------------------
+    TEST "-MMD for different source files"
+
+    mkdir a b
+    touch a/source.c b/source.c
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    $CCACHE_COMPILE -MMD -c b/source.c
+    expect_file_content source.d "source.o: b/source.c"
+
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information
@@ -1126,19 +1140,62 @@ SUITE_multi_arch_PROBE() {
     fi
 }
 
+SUITE_multi_arch_SETUP() {
+    generate_code 1 test1.c
+    unset CCACHE_NODIRECT
+}
+
 SUITE_multi_arch() {
     # -------------------------------------------------------------------------
-    TEST "cache hit"
+    TEST "cache hit, direct mode"
 
-    generate_code 1 test1.c
+    # Different arches shouldn't affect each other
+    $CCACHE_COMPILE -arch i386 -c test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -arch x86_64 -c test1.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -arch i386 -c test1.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 2
+
+    # Multiple arches should be cached too
+    $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 3
 
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 3
+
+    # -------------------------------------------------------------------------
+    TEST "cache hit, preprocessor mode"
+
+    export CCACHE_NODIRECT=1
+
+    $CCACHE_COMPILE -arch i386 -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
+    $CCACHE_COMPILE -arch x86_64 -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -arch i386 -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+
+    # Multiple arches should be cached too
     $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache miss' 3
+
+    $CCACHE_COMPILE -arch i386 -arch x86_64 -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 3
 }
 
 # =============================================================================
@@ -1610,15 +1667,33 @@ EOF
     # ccache could try to parse and make sense of -Wp, with multiple arguments,
     # but it currently doesn't, so we have to disable direct mode.
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
+    touch source.c
+
+    $CCACHE_COMPILE -c -Wp,-MMD,source.d,-MT,source.o source.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    expect_file_content source.d "source.o: source.c"
 
-    $CCACHE_COMPILE -c -Wp,-DFOO,-DGOO test.c 2>/dev/null
+    $CCACHE_COMPILE -c -Wp,-MMD,source.d,-MT,source.o source.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
+    expect_file_content source.d "source.o: source.c"
+
+    # -------------------------------------------------------------------------
+    TEST "-MMD for different source files"
+
+    mkdir a b
+    touch a/source.c b/source.c
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    $CCACHE_COMPILE -MMD -c b/source.c
+    expect_file_content source.d "source.o: b/source.c"
+
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
 
     # -------------------------------------------------------------------------
     TEST "Multiple object entries in manifest"
@@ -3398,11 +3473,11 @@ memcached_socket
 "
 fi
 
-compiler_location=$(which $COMPILER)
+compiler_location=$(which $(echo "$COMPILER" | awk '{print $1}'))
 if [ "$compiler_location" = "$COMPILER" ]; then
     echo "Compiler:         $COMPILER"
 else
-    echo "Compiler:         $COMPILER ($(which $COMPILER))"
+    echo "Compiler:         $COMPILER ($compiler_location)"
 fi
 echo "Compiler version: $($COMPILER --version | head -n 1)"
 echo

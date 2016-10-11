@@ -1,6 +1,47 @@
 ccache news
 ===========
 
+Unreleased 3.4
+--------------
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The compiler option form `--sysroot arg` is now handled like the documented
+  `--sysroot=arg` form.
+
+
+ccache 3.3.2
+------------
+Release date: 2016-09-28
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.3 related to potentially bad content of
+  dependency files when compiling identical source code but with different
+  source paths.
+
+- Fixed a regression in ccache 3.3.1: ccache could get confused when using the
+  compiler option `-Wp,` to pass multiple options to the preprocessor,
+  resulting in missing dependency files from direct mode cache hits.
+
+
+ccache 3.3.1
+------------
+Release date: 2016-09-07
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a problem in the ``multiple `-arch` options'' support introduced in
+  3.3. When using the direct mode (the default), different combinations of
+  `-arch` options were not detected properly.
+
+- Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
+  path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
+  (`CCACHE_CPP2`) is enabled.
+
 
 ccache 3.3
 ----------
@@ -94,6 +135,33 @@ Bug fixes
 - Fixed clang test suite when running on Linux.
 
 - Fixed build and test for MinGW32 and Windows.
+
+
+ccache 3.2.9
+------------
+Release date: 2016-09-28
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.2.8: ccache could get confused when using the
+  compiler option `-Wp,` to pass multiple options to the preprocessor,
+  resulting in missing dependency files from direct mode cache hits.
+
+
+ccache 3.2.8
+------------
+Release date: 2016-09-07
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
+  path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
+  (`CCACHE_CPP2`) is enabled.
+
+- ccache now understands the undocumented `-coverage` (only one dash) GCC
+  option.
 
 
 ccache 3.2.7
