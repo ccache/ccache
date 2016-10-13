@@ -1405,10 +1405,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 }
 
 static void
-update_cached_result_globals(struct file_hash *hash)
+update_cached_result_globals_common(const char *object_name)
 {
-	char *object_name = format_hash_as_string(hash->hash, hash->size);
-	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
@@ -1422,6 +1420,14 @@ update_cached_result_globals(struct file_hash *hash)
 	}
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
+}
+
+static void
+update_cached_result_globals(struct file_hash *hash)
+{
+	char *object_name = format_hash_as_string(hash->hash, hash->size);
+	cached_obj_hash = hash;
+	update_cached_result_globals_common(object_name);
 	free(object_name);
 }
 
@@ -3221,6 +3227,15 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
+	const char *specified_object_hash = getenv("CCACHE_HASH");
+	if (specified_object_hash) {
+		update_cached_result_globals_common(specified_object_hash);
+		cc_log("CCACHE_HASH=%s was specified, checking if we have it", specified_object_hash);
+
+		// If we can return from cache at this point then do so.
+		from_cache(FROMCACHE_CPP_MODE, false);
+	}
+
 	struct mdfour common_hash;
 	hash_start(&common_hash);
 	calculate_common_hash(preprocessor_args, &common_hash);
@@ -3294,6 +3309,10 @@ ccache(int argc, char *argv[])
 	}
 
 	add_prefix(compiler_args, conf->prefix_command);
+	char *hash_name = format_hash_as_string(object_hash->hash, object_hash->size);
+	cc_log("Setting CCACHE_HASH=%s in case ccache is called recursively", hash_name);
+	setenv("CCACHE_HASH", hash_name, 1);
+	free(hash_name);
 
 	// Run real compiler, sending output to cache.
 	to_cache(compiler_args);
