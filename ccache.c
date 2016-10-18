@@ -1066,17 +1066,17 @@ to_cache(struct args *args)
 
 	char *tmp_su;
 	if (generating_stackusage) {
-                char *tmp_aux;
-                // GCC has some funny rule about max extension length.
-                if (strlen(get_extension(output_obj)) < 6) {
-                        tmp_aux = remove_extension(output_obj);
-                } else {
-                        tmp_aux = x_strdup(output_obj);
-                }
-                tmp_su = format("%s.su", tmp_aux);
-                free(tmp_aux);
+		char *tmp_aux;
+		// GCC has some funny rule about max extension length.
+		if (strlen(get_extension(output_obj)) < 6) {
+			tmp_aux = remove_extension(output_obj);
+		} else {
+			tmp_aux = x_strdup(output_obj);
+		}
+		tmp_su = format("%s.su", tmp_aux);
+		free(tmp_aux);
 	} else {
-                tmp_su = NULL;
+		tmp_su = NULL;
 	}
 
 	// GCC (at least 4.8 and 4.9) forms the .dwo file name by removing everything
@@ -1317,8 +1317,8 @@ to_cache(struct args *args)
 		put_file_in_cache(output_dep, cached_dep);
 	}
 
-        if (output_su) {
-          put_file_in_cache(output_su, cached_su);
+	if (output_su) {
+		put_file_in_cache(output_su, cached_su);
 	}
 
 	stats_update(STATS_TOCACHE);
@@ -1471,7 +1471,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
 	cached_cov = get_path_in_cache(object_name, ".gcno");
-	cached_su  = get_path_in_cache(object_name, ".su");
+	cached_su = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 
 	if (using_split_dwarf) {

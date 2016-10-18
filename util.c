@@ -990,8 +990,8 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 
 
 #if !defined(HAVE_REALPATH) && \
-    defined(_WIN32) && \
-    !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
+  defined(_WIN32) && \
+  !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
                                   WORD cch_filename)
 {
