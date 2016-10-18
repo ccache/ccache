@@ -2995,13 +2995,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		char *base_name = remove_extension(output_obj);
 		char *default_covfile_name = format("%s.gcno", base_name);
 		free(base_name);
-		output_cov = make_relative_path(x_strdup(default_covfile_name));
+		output_cov = make_relative_path(default_covfile_name);
 	}
 	if (generating_stackusage) {
 		char *base_name = remove_extension(output_obj);
 		char *default_sufile_name = format("%s.su", base_name);
 		free(base_name);
-		output_su = make_relative_path(x_strdup(default_sufile_name));
+		output_su = make_relative_path(default_sufile_name);
 	}
 
 	*compiler_args = args_copy(stripped_args);
