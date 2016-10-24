@@ -462,13 +462,13 @@ WRAPPERS>>.
     code (see <<_the_preprocessor_mode,THE PREPROCESSOR MODE>>) and then on a
     cache miss run the compiler on the source code to get hold of the object
     file. This is the default.
-
-    If false, ccache will first run preprocessor to preprocess the source code
-    and then on a cache miss run the compiler on the _preprocessed source code_
-    instead of the original source code. This makes cache misses slightly
-    faster since the source code only has to be preprocessed once. The downside
-    is that some compilers won't produce the same result (for instance
-    diagnostics warnings) when compiling preprocessed source code.
++
+If false, ccache will first run preprocessor to preprocess the source code
+and then on a cache miss run the compiler on the _preprocessed source code_
+instead of the original source code. This makes cache misses slightly
+faster since the source code only has to be preprocessed once. The downside
+is that some compilers won't produce the same result (for instance
+diagnostics warnings) when compiling preprocessed source code.
 
 *sloppiness* (*CCACHE_SLOPPINESS*)::
 
