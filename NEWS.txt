@@ -1,6 +1,16 @@
 ccache news
 ===========
 
+Unreleased 3.3.3
+----------------
+
+Bug fixes
+~~~~~~~~~
+
+- ccache now detects usage of `.incbin` assembler directives in the source code
+  and avoids caching such compilations.
+
+
 ccache 3.3.2
 ------------
 Release date: 2016-09-28

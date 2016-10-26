@@ -171,6 +171,12 @@ static struct {
 		0
 	},
 	{
+		STATS_UNSUPPORTED_DIRECTIVE,
+		"unsupported code directive",
+		NULL,
+		0
+	},
+	{
 		STATS_OUTSTDOUT,
 		"output to stdout",
 		NULL,

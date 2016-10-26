@@ -1101,6 +1101,18 @@ EOF
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin"
+
+    cat <<EOF >incbin.c
+char x[] = ".incbin";
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat 'unsupported code directive' 1
 }
 
 # =============================================================================

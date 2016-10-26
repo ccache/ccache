@@ -800,13 +800,6 @@ invoke the other wrapper when doing preprocessing (normally by adding *-E*).
 Caveats
 -------
 
-* ccache doesn't handle the GNU Assembler's *.incbin* directive correctly. This
-  directive can be embedded in the source code inside an *__asm__* statement in
-  order to include a file verbatim in the object file. If the included file is
-  modified, ccache doesn't pick up the change since the inclusion isn't done by
-  the preprocessor. A workaround of this problem is to set
-  *extra_files_to_hash* to the path of the included file.
-
 * The direct mode fails to pick up new header files in some rare scenarios. See
   <<_the_direct_mode,THE DIRECT MODE>> above.
 

@@ -815,6 +815,15 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			inc_path = make_relative_path(inc_path);
 			remember_include_file(inc_path, hash, system);
 			p = q;
+		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
+		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
+			// An assembler .incbin statement (which could be part of inline
+			// assembly) refers to an external file. If the file changes, the hash
+			// should change as well, but finding out what file to hash is too hard
+			// for ccache, so just bail out.
+			cc_log("Found unsupported .incbin directive in source code");
+			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
+			failed();
 		} else {
 			q++;
 		}
