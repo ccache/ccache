@@ -825,6 +825,15 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			inc_path = make_relative_path(inc_path);
 			remember_include_file(inc_path, hash, system);
 			p = q;
+		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
+		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
+			// An assembler .incbin statement (which could be part of inline
+			// assembly) refers to an external file. If the file changes, the hash
+			// should change as well, but finding out what file to hash is too hard
+			// for ccache, so just bail out.
+			cc_log("Found unsupported .incbin directive in source code");
+			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
+			failed();
 		} else {
 			q++;
 		}
@@ -2202,7 +2211,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
 			if (i > argc) {
 				cc_log("Expected argument after -optf/--options-file");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			}
@@ -2242,7 +2251,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// These are always too hard.
 		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2256,7 +2265,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// -Xarch_* options are too hard.
 		if (str_startswith(argv[i], "-Xarch_")) {
 			cc_log("Unsupported compiler option :%s", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2266,7 +2275,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			if (arch_args_size == MAX_ARCH_ARGS - 1) {
 				cc_log("Too many -arch compiler options; ccache supports at most %d",
 				       MAX_ARCH_ARGS);
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			}
@@ -2508,7 +2517,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				// file from compiling the preprocessed file will not be equal to the
 				// object file produced when compiling without ccache.
 				cc_log("Too hard option -Wp,-P detected");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				failed();
 			} else if (str_startswith(argv[i], "-Wp,-MD,")
 			           && !strchr(argv[i] + 8, ',')) {
