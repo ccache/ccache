@@ -1,8 +1,9 @@
 ccache news
 ===========
 
-Unreleased 3.3.3
-----------------
+ccache 3.3.3
+------------
+Release date: 2016-10-26
 
 Bug fixes
 ~~~~~~~~~
