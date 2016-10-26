@@ -2136,7 +2136,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
 			if (i > argc) {
 				cc_log("Expected argument after -optf/--options-file");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			}
@@ -2176,7 +2176,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// These are always too hard.
 		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2190,7 +2190,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// -Xarch_* options are too hard.
 		if (str_startswith(argv[i], "-Xarch_")) {
 			cc_log("Unsupported compiler option :%s", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2200,7 +2200,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			if (arch_args_size == MAX_ARCH_ARGS - 1) {
 				cc_log("Too many -arch compiler options; ccache supports at most %d",
 				       MAX_ARCH_ARGS);
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			}
@@ -2422,7 +2422,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				// file from compiling the preprocessed file will not be equal to the
 				// object file produced when compiling without ccache.
 				cc_log("Too hard option -Wp,-P detected");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				failed();
 			} else if (str_startswith(argv[i], "-Wp,-MD,")
 			           && !strchr(argv[i] + 8, ',')) {

@@ -165,7 +165,7 @@ static struct {
 		0
 	},
 	{
-		STATS_UNSUPPORTED,
+		STATS_UNSUPPORTED_OPTION,
 		"unsupported compiler option",
 		NULL,
 		0
