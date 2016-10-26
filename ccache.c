@@ -2106,7 +2106,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
-		char *manifest_name = hash_result(hash);
+		manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		/* Check if the manifest file is there. */
 		struct stat st;
