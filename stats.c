@@ -52,163 +52,163 @@ static struct {
 } stats_info[] = {
 	{
 		STATS_CACHEHIT_DIR,
-		"cache hit (direct)             ",
+		"cache hit (direct)",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_CACHEHIT_CPP,
-		"cache hit (preprocessed)       ",
+		"cache hit (preprocessed)",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TOCACHE,
-		"cache miss                     ",
+		"cache miss",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_LINK,
-		"called for link                ",
+		"called for link",
 		NULL,
 		0
 	},
 	{
 		STATS_PREPROCESSING,
-		"called for preprocessing       ",
+		"called for preprocessing",
 		NULL,
 		0
 	},
 	{
 		STATS_MULTIPLE,
-		"multiple source files          ",
+		"multiple source files",
 		NULL,
 		0
 	},
 	{
 		STATS_STDOUT,
-		"compiler produced stdout       ",
+		"compiler produced stdout",
 		NULL,
 		0
 	},
 	{
 		STATS_NOOUTPUT,
-		"compiler produced no output    ",
+		"compiler produced no output",
 		NULL,
 		0
 	},
 	{
 		STATS_EMPTYOUTPUT,
-		"compiler produced empty output ",
+		"compiler produced empty output",
 		NULL,
 		0
 	},
 	{
 		STATS_STATUS,
-		"compile failed                 ",
+		"compile failed",
 		NULL,
 		0
 	},
 	{
 		STATS_ERROR,
-		"ccache internal error          ",
+		"ccache internal error",
 		NULL,
 		0
 	},
 	{
 		STATS_PREPROCESSOR,
-		"preprocessor error             ",
+		"preprocessor error",
 		NULL,
 		0
 	},
 	{
 		STATS_CANTUSEPCH,
-		"can't use precompiled header   ",
+		"can't use precompiled header",
 		NULL,
 		0
 	},
 	{
 		STATS_COMPILER,
-		"couldn't find the compiler     ",
+		"couldn't find the compiler",
 		NULL,
 		0
 	},
 	{
 		STATS_MISSING,
-		"cache file missing             ",
+		"cache file missing",
 		NULL,
 		0
 	},
 	{
 		STATS_ARGS,
-		"bad compiler arguments         ",
+		"bad compiler arguments",
 		NULL,
 		0
 	},
 	{
 		STATS_SOURCELANG,
-		"unsupported source language    ",
+		"unsupported source language",
 		NULL,
 		0
 	},
 	{
 		STATS_COMPCHECK,
-		"compiler check failed          ",
+		"compiler check failed",
 		NULL,
 		0
 	},
 	{
 		STATS_CONFTEST,
-		"autoconf compile/link          ",
+		"autoconf compile/link",
 		NULL,
 		0
 	},
 	{
 		STATS_UNSUPPORTED,
-		"unsupported compiler option    ",
+		"unsupported compiler option",
 		NULL,
 		0
 	},
 	{
 		STATS_OUTSTDOUT,
-		"output to stdout               ",
+		"output to stdout",
 		NULL,
 		0
 	},
 	{
 		STATS_DEVICE,
-		"output to a non-regular file   ",
+		"output to a non-regular file",
 		NULL,
 		0
 	},
 	{
 		STATS_NOINPUT,
-		"no input file                  ",
+		"no input file",
 		NULL,
 		0
 	},
 	{
 		STATS_BADEXTRAFILE,
-		"error hashing extra file       ",
+		"error hashing extra file",
 		NULL,
 		0
 	},
 	{
 		STATS_NUMCLEANUPS,
-		"cleanups performed             ",
+		"cleanups performed",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_NUMFILES,
-		"files in cache                 ",
+		"files in cache",
 		NULL,
 		FLAG_NOZERO|FLAG_ALWAYS
 	},
 	{
 		STATS_TOTALSIZE,
-		"cache size                     ",
+		"cache size",
 		display_size_times_1024,
 		FLAG_NOZERO|FLAG_ALWAYS
 	},
@@ -443,7 +443,7 @@ stats_summary(struct conf *conf)
 			continue;
 		}
 
-		printf("%s ", stats_info[i].message);
+		printf("%-31s ", stats_info[i].message);
 		if (stats_info[i].fn) {
 			stats_info[i].fn(counters->data[stat]);
 			printf("\n");
