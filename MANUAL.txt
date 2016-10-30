@@ -163,10 +163,11 @@ Extra options
 When run as a compiler, ccache usually just takes the same command line options
 as the compiler you are using. The only exception to this is the option
 *--ccache-skip*. That option can be used to tell ccache to avoid interpreting
-the next option in any way and to pass it along to the compiler as-is. *Note*:
-*--ccache-skip* currently only tells ccache not to interpret the next option as
-a special compiler option -- the option will still be included in the direct
-mode hash.
+the next option in any way and to pass it along to the compiler as-is.
+
+NOTE: *--ccache-skip* currently only tells ccache not to interpret the next
+option as a special compiler option -- the option will still be included in the
+direct mode hash.
 
 The reason this can be important is that ccache does need to parse the command
 line and determine what is an input filename and what is a compiler option, as
@@ -297,8 +298,14 @@ _a command string_::
     separator. Examples:
 +
 --
-* +%compiler% -v+
-* +%compiler% -dumpmachine; %compiler% -dumpversion+
+
+----
+%compiler% -v
+----
+
+----
+%compiler% -dumpmachine; %compiler% -dumpversion
+----
 
 You should make sure that the specified command is as fast as possible since it
 will be run once for each ccache invocation.
@@ -374,15 +381,15 @@ WRAPPERS>>.
     when generating debug info (compiler option *-g* with variations).
     Exception: The CWD will not be included in the hash if *base_dir* is set
     (and matches the CWD) and the compiler option *-fdebug-prefix-map* is used.
-
-    The reason for including the CWD in the hash by default is to prevent a
-    problem with the storage of the current working directory in the debug info
-    of an object file, which can lead ccache to return a cached object file
-    that has the working directory in the debug info set incorrectly.
-
-    You can disable this setting to get cache hits when compiling the same
-    source code in different directories if you don't mind that CWD in the
-    debug info might be incorrect.
++
+The reason for including the CWD in the hash by default is to prevent a problem
+with the storage of the current working directory in the debug info of an
+object file, which can lead ccache to return a cached object file that has the
+working directory in the debug info set incorrectly.
++
+You can disable this setting to get cache hits when compiling the same source
+code in different directories if you don't mind that CWD in the debug info
+might be incorrect.
 
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
@@ -741,8 +748,13 @@ conditions should to be met:
   (and that you trust all users of the shared cache).
 * Make sure that the setgid bit is set on all directories in the cache. This
   tells the filesystem to inherit group ownership for new directories. The
-  command ``find $CCACHE_DIR -type d | xargs chmod g+s'' might be useful for
-  this.
+  following command might be useful for this:
++
+--
+----
+find $CCACHE_DIR -type d | xargs chmod g+s
+----
+--
 
 The reason to avoid the hard link mode is that the hard links cause unwanted
 side effects, as all links to a cached file share the file's modification
