@@ -700,7 +700,7 @@ make_relative_path(char *path)
 // - Stores the paths and hashes of included files in the global variable
 //   included_files.
 static bool
-process_preprocessed_file(struct mdfour *hash, const char *path)
+process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 {
 	char *data;
 	size_t size;
@@ -834,6 +834,19 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			cc_log("Found unsupported .incbin directive in source code");
 			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
 			failed();
+		} else if (pump && strncmp(q, "_________", 9) == 0) {
+			// Unfortunately the distcc-pump wrapper outputs standard output lines:
+			// __________Using distcc-pump from /usr/bin
+			// __________Using # distcc servers in pump mode
+			// __________Shutting down distcc-pump include server
+			while (q < end && *q != '\n') {
+				q++;
+			}
+			if (*q == '\n') {
+				q++;
+			}
+			p = q;
+			continue;
 		} else {
 			q++;
 		}
@@ -1444,7 +1457,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		}
 	} else {
 		hash_delimiter(hash, "cpp");
-		if (!process_preprocessed_file(hash, path_stdout)) {
+		if (!process_preprocessed_file(hash, path_stdout, compiler_is_pump(args))) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
