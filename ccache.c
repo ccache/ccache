@@ -1049,6 +1049,15 @@ void update_manifest_file(void)
 	}
 }
 
+static bool
+compiler_is_pump(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
+	free(name);
+	return result;
+}
+
 // Run the real compiler and put the result in cache.
 static void
 to_cache(struct args *args)
@@ -1138,7 +1147,8 @@ to_cache(struct args *args)
 		tmp_unlink(tmp_dwo);
 		failed();
 	}
-	if (st.st_size != 0) {
+	// distcc-pump outputs lines like "__________Using # distcc servers in pump mode"
+	if (st.st_size != 0 && !compiler_is_pump(args)) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
