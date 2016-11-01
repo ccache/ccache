@@ -1743,6 +1743,16 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			continue;
 		}
 
+		if ((str_eq(args->argv[i], "-ccbin")
+		     || str_eq(args->argv[i], "--compiler-bindir"))
+		     && i + 1 < args->argc
+		     && x_stat(args->argv[i+1], &st) == 0) {
+			hash_delimiter(hash, "ccbin");
+			hash_compiler(hash, &st, args->argv[i+1], false);
+			i++;
+			continue;
+		}
+
 		// All other arguments are included in the hash.
 		hash_delimiter(hash, "arg");
 		hash_string(hash, args->argv[i]);
