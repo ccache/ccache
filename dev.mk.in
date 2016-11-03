@@ -6,6 +6,7 @@ all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = cppcheck-suppressions.txt
+SCAN_BUILD = scan-build
 GPERF = gperf
 XSLTPROC = xsltproc
 MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
@@ -160,5 +161,9 @@ cppcheck:
 .PHONY: uncrustify
 uncrustify:
 	uncrustify -c uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+
+.PHONY: analyze
+analyze:
+	$(SCAN_BUILD) --status-bugs $(MAKE) -B -s
 
 -include .deps/*.d
