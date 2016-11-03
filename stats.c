@@ -231,6 +231,12 @@ static struct {
 		FLAG_NOZERO|FLAG_NEVER
 	},
 	{
+		STATS_ZEROTIMESTAMP,
+		"stats zero timestamp",
+		NULL,
+		FLAG_NEVER
+	},
+	{
 		STATS_NONE,
 		NULL,
 		NULL,
@@ -277,6 +283,13 @@ parse_stats(struct counters *counters, const char *buf)
 void
 stats_write(const char *path, struct counters *counters)
 {
+	struct stat st;
+	if (stat(path, &st) != 0 && errno == ENOENT) {
+		/* new stats, update zero timestamp */
+		time_t now;
+		time(&now);
+		stats_timestamp(now, counters);
+	}
 	char *tmp_file = format("%s.tmp", path);
 	FILE *f = create_tmp_file(&tmp_file, "wb");
 	for (size_t i = 0; i < counters->size; i++) {
@@ -316,6 +329,13 @@ stats_read(const char *sfile, struct counters *counters)
 		parse_stats(counters, data);
 	}
 	free(data);
+}
+
+// Set the timestamp when the counters were last zeroed out.
+void
+stats_timestamp(time_t time, struct counters *counters)
+{
+	counters->data[STATS_ZEROTIMESTAMP] = (unsigned) time;
 }
 
 // Write counter updates in counter_updates to disk.
@@ -415,12 +435,15 @@ void
 stats_summary(struct conf *conf)
 {
 	struct counters *counters = counters_init(STATS_END);
+	time_t oldest;
 
 	assert(conf);
+	oldest = 0;
 
 	// Add up the stats in each directory.
 	for (int dir = -1; dir <= 0xF; dir++) {
 		char *fname;
+		time_t current;
 
 		if (dir == -1) {
 			fname = format("%s/stats", conf->cache_dir);
@@ -428,7 +451,12 @@ stats_summary(struct conf *conf)
 			fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		}
 
+		counters->data[STATS_ZEROTIMESTAMP] = 0; /* don't add */
 		stats_read(fname, counters);
+		current = (time_t) counters->data[STATS_ZEROTIMESTAMP];
+		if (current != 0 && (oldest == 0 || current < oldest)) {
+			oldest = current;
+		}
 		free(fname);
 	}
 
@@ -437,6 +465,10 @@ stats_summary(struct conf *conf)
 	       primary_config_path ? primary_config_path : "");
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
+	if (oldest) {
+		struct tm *tm = localtime(&oldest);
+		printf("stats zero time                     %s", asctime(tm));
+	}
 
 	// ...and display them.
 	for (int i = 0; stats_info[i].message; i++) {
@@ -506,6 +538,7 @@ stats_zero(void)
 					counters->data[stats_info[i].stat] = 0;
 				}
 			}
+			stats_timestamp(time(NULL), counters);
 			stats_write(fname, counters);
 			lockfile_release(fname);
 		}
