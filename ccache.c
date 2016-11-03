@@ -1229,7 +1229,7 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	if (using_split_dwarf) {
+	if (using_split_dwarf && tmp_dwo) {
 		if (stat(tmp_dwo, &st) != 0) {
 			cc_log("Compiler didn't produce a split dwarf file");
 			stats_update(STATS_NOOUTPUT);
@@ -1269,7 +1269,7 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (generating_coverage) {
+	if (generating_coverage && tmp_cov) {
 		// GCC won't generate notes if there is no code.
 		if (stat(tmp_cov, &st) != 0 && errno == ENOENT) {
 			FILE *f = fopen(cached_cov, "wb");
@@ -1286,7 +1286,7 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (generating_stackusage) {
+	if (generating_stackusage && tmp_su) {
 		// GCC won't generate notes if there is no code.
 		if (stat(tmp_su, &st) != 0 && errno == ENOENT) {
 			FILE *f = fopen(cached_su, "wb");
@@ -1880,6 +1880,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 				       arch_args[i]);
 				if (i != arch_args_size - 1) {
 					free(object_hash);
+					object_hash = NULL;
 				}
 				args_pop(args, 1);
 			}
