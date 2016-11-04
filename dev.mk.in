@@ -164,6 +164,7 @@ uncrustify:
 
 .PHONY: analyze
 analyze:
-	$(SCAN_BUILD) --status-bugs $(MAKE) -B -s
+	$(SCAN_BUILD) --use-cc=$(CC) ./configure
+	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
 -include .deps/*.d
