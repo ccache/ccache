@@ -2332,7 +2332,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-fmodules") || str_eq(argv[i], "-fcxx-modules")) {
 			if (!conf->run_second_cpp) {
 				cc_log("Clang modules are not supported when run_second_cpp = false");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			} else {
