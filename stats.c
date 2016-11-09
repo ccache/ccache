@@ -285,7 +285,7 @@ stats_write(const char *path, struct counters *counters)
 {
 	struct stat st;
 	if (stat(path, &st) != 0 && errno == ENOENT) {
-		/* new stats, update zero timestamp */
+		// New stats, update zero timestamp.
 		time_t now;
 		time(&now);
 		stats_timestamp(now, counters);
@@ -435,15 +435,13 @@ void
 stats_summary(struct conf *conf)
 {
 	struct counters *counters = counters_init(STATS_END);
-	time_t oldest;
+	time_t oldest = 0;
 
 	assert(conf);
-	oldest = 0;
 
 	// Add up the stats in each directory.
 	for (int dir = -1; dir <= 0xF; dir++) {
 		char *fname;
-		time_t current;
 
 		if (dir == -1) {
 			fname = format("%s/stats", conf->cache_dir);
@@ -451,9 +449,9 @@ stats_summary(struct conf *conf)
 			fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		}
 
-		counters->data[STATS_ZEROTIMESTAMP] = 0; /* don't add */
+		counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
 		stats_read(fname, counters);
-		current = (time_t) counters->data[STATS_ZEROTIMESTAMP];
+		time_t current = (time_t) counters->data[STATS_ZEROTIMESTAMP];
 		if (current != 0 && (oldest == 0 || current < oldest)) {
 			oldest = current;
 		}
