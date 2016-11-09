@@ -232,7 +232,7 @@ static struct {
 	},
 	{
 		STATS_ZEROTIMESTAMP,
-		"stats zero timestamp",
+		"stats last zeroed at",
 		NULL,
 		FLAG_NEVER
 	},
