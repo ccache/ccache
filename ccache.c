@@ -1126,7 +1126,9 @@ to_cache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -1137,7 +1139,9 @@ to_cache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1198,7 +1202,9 @@ to_cache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 
 		failed();
 	}
