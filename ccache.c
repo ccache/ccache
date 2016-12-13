@@ -692,6 +692,77 @@ make_relative_path(char *path)
 	}
 }
 
+static bool
+process_dependency_file(struct mdfour *hash, const char *path)
+{
+	char *data;
+	size_t size;
+	if (!read_file(path, 0, &data, &size)) {
+		return false;
+	}
+
+	char *q = data;
+	char *end = data + size;
+
+	// Dependency file has makefile format:
+	// 		<target>: <list of dependencies>
+	// 		<new line>
+	//
+	// <list of dependencies> consists of file paths separated by spaces or new lines with continuation "\".
+	// If file path contain spaces, they are escaped with \, eg.
+	//
+	//		example.o: example.m header\ with\ spaces.h
+	//
+	while (q < end) {
+		// Skip all targets
+		if (*q != ':') {
+			q++;
+			continue;
+		} else {
+			q++;
+		}
+
+		// Parse list of dependencies
+		while (q < end) {
+			// Find beginning of path (skip file separators)
+			while (q < end && (*q == ' ' || *q == '\\' || (*q == '\n' && *(q - 1) == '\\'))) {
+				q++;
+			}
+			// Found end of file
+			if (q >= end) {
+				break;
+			}
+			// Found end of dependencies block
+			if (*q == '\n' && *(q - 1) != '\\') {
+				break;
+			}
+			// q now points at beginning of file path
+			char *p = q;
+			// Find end of path (skip all non-file seaprators)
+			while (q < end && ((*q != ' ' || (*q == ' ' && *(q - 1) == '\\')) && *q != '\n')) {
+				q++;
+			}
+
+			char *inc_path = x_strndup(p, q - p);
+			char* end = inc_path + (q - p);
+
+			// Remove space escape characters("\") from paths with spaces, eg. "file\ with\ spaces.h"
+			for (char *i = inc_path, *j = inc_path; i <= end; ++i) {
+				// Copy all characters except "\", including "\0"
+				if (*i != '\\') {
+					*j = *i;
+					++j;
+				}
+			}
+
+			inc_path = make_relative_path(inc_path);
+			remember_include_file(inc_path, hash, false);
+		}
+	}
+
+	return true;
+}
+
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -817,13 +888,17 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				}
 				r++;
 			}
-			// p and q span the include file path.
-			char *inc_path = x_strndup(p, q - p);
-			if (!has_absolute_include_headers) {
-				has_absolute_include_headers = is_absolute_path(inc_path);
+			// when using dependency file don't parse preprocessed output for included headers
+			// we will use headers from dependency file instead
+			if(!conf->use_dependency_file || !generating_dependencies) {
+				// p and q span the include file path.
+				char *inc_path = x_strndup(p, q - p);
+				if (!has_absolute_include_headers) {
+					has_absolute_include_headers = is_absolute_path(inc_path);
+				}
+				inc_path = make_relative_path(inc_path);
+				remember_include_file(inc_path, hash, system);
 			}
-			inc_path = make_relative_path(inc_path);
-			remember_include_file(inc_path, hash, system);
 			p = q;
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
@@ -849,6 +924,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 		path = make_relative_path(path);
 		hash_string(hash, path);
 		remember_include_file(path, hash, false);
+	}
+
+	if (conf->use_dependency_file && generating_dependencies) {
+		cc_log("Processing dependency file: %s", output_dep);
+		process_dependency_file(hash, output_dep);
 	}
 
 	return true;
@@ -3261,6 +3341,11 @@ ccache(int argc, char *argv[])
 
 	if (conf->disable) {
 		cc_log("ccache is disabled");
+		failed();
+	}
+
+	if (conf->use_dependency_file && conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
+		cc_log("Can't use sloppiness 'no_system_headers' with dependency files");
 		failed();
 	}
 

@@ -341,6 +341,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; // Default: don't set umask.
 	conf->unify = false;
+	conf->use_dependency_file = false;
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (size_t i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
@@ -660,6 +661,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "unify = %s", bool_to_string(conf->unify));
 	printer(s, conf->item_origins[find_conf("unify")->number], context);
+
+	reformat(&s, "use_dependency_file = %s", bool_to_string(conf->use_dependency_file));
+	printer(s, conf->item_origins[find_conf("use_dependency_file")->number], context);
 
 	free(s);
 	return true;

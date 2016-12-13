@@ -52,7 +52,7 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
       44, 44, 44, 44, 44, 44, 44, 44, 44, 44,
       44, 44, 44, 44, 44, 44, 44, 44, 44, 44,
       44, 44, 44, 44, 44, 44, 20,  0,  0, 10,
-       0, 44,  5, 15,  0, 44, 10, 25,  9,  0,
+       0, 44,  5, 15,  0, 44, 10, 25, 35,  0,
        5, 10,  5, 15, 10,  5, 44, 44, 44, 44,
        0, 44, 44, 44, 44, 44, 44, 44, 44, 44,
       44, 44, 44, 44, 44, 44, 44, 44, 44, 44,
@@ -101,7 +101,7 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 31,
+      TOTAL_KEYWORDS = 32,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 15,
       MIN_HASH_VALUE = 2,
@@ -134,11 +134,11 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"RECACHE", "recache"},
 #line 13 "envtoconfitems.gperf"
       {"COMPILERCHECK", "compiler_check"},
-      {"",""},
+#line 42 "envtoconfitems.gperf"
+      {"DEPENDENCYFILE", "use_dependency_file"},
 #line 33 "envtoconfitems.gperf"
       {"PREFIX_CPP", "prefix_command_cpp"},
-#line 30 "envtoconfitems.gperf"
-      {"NLEVELS", "cache_dir_levels"},
+      {"",""},
 #line 27 "envtoconfitems.gperf"
       {"LOGFILE", "log_file"},
 #line 34 "envtoconfitems.gperf"
@@ -180,7 +180,9 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"",""},
 #line 22 "envtoconfitems.gperf"
       {"EXTRAFILES", "extra_files_to_hash"},
-      {"",""}, {"",""},
+      {"",""},
+#line 30 "envtoconfitems.gperf"
+      {"NLEVELS", "cache_dir_levels"},
 #line 25 "envtoconfitems.gperf"
       {"IGNOREHEADERS", "ignore_headers_in_manifest"}
     };
@@ -199,4 +201,4 @@ envtoconfitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 31;
+static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 32;
