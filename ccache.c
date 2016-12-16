@@ -3039,6 +3039,9 @@ ccache(int argc, char *argv[])
 		conf->direct_mode = false;
 	}
 
+	if (conf->limit_multiple < 0.0) conf->limit_multiple = 0.0;
+	if (conf->limit_multiple > 1.0) conf->limit_multiple = 1.0;
+
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
 		failed();
 	}
