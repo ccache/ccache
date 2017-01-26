@@ -62,6 +62,7 @@ static const char USAGE_TEXT[] =
   "    -o, --set-config=K=V  set configuration key K to value V\n"
   "    -p, --print-config    print current configuration options\n"
   "    -s, --show-stats      show statistics summary\n"
+  "    -S NUM, --show-stats-regularly=NUM      refresh stats summary every NUM sec\n"
   "    -z, --zero-stats      zero statistics counters\n"
   "\n"
   "    -h, --help            print this help text\n"
@@ -3417,13 +3418,14 @@ ccache_main_options(int argc, char *argv[])
 		{"set-config",    required_argument, 0, 'o'},
 		{"print-config",  no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
+		{"show-stats-regularly",    required_argument,       0, 'S'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
 
 	int c;
-	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cChF:M:o:psS:Vz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
@@ -3512,6 +3514,21 @@ ccache_main_options(int argc, char *argv[])
 			initialize();
 			stats_summary(conf);
 			break;
+
+		case 'S': // --show-stats-regularly
+		{
+			int sleep_sec = atoi(optarg);
+			if (sleep_sec < 0) {
+				// zero allowed for fast refresh, whatever that might be worth
+				sleep_sec = 1;
+			}
+			initialize();
+			do {
+				stats_summary(conf);
+				printf("\n");
+			} while ( sleep(sleep_sec) == 0 ); // sleep not interrupted
+		}
+		break;
 
 		case 'V': // --version
 			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
