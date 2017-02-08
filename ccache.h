@@ -126,6 +126,7 @@ void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
+void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);
 int copy_file(const char *src, const char *dest, int compress_level);

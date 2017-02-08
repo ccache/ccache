@@ -3105,7 +3105,7 @@ initialize(void)
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
 			if (stat(secondary_config_path, &st) == 0) {
-				fatal("%s", errmsg);
+				warn("%s", errmsg);
 			}
 			// Missing config file in SYSCONFDIR is OK.
 			free(errmsg);
@@ -3128,13 +3128,13 @@ initialize(void)
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
 		if (stat(primary_config_path, &st) == 0) {
-			fatal("%s", errmsg);
+			warn("%s", errmsg);
 		}
 		should_create_initial_config = true;
 	}
 
 	if (!conf_update_from_environment(conf, &errmsg)) {
-		fatal("%s", errmsg);
+		warn("%s", errmsg);
 	}
 
 	if (conf->disable) {
