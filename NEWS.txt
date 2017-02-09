@@ -5,6 +5,12 @@ ccache 3.3.4
 ------------
 Release date: TBD
 
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Documented the different cache statistics counters.
+
+
 Bug fixes
 ~~~~~~~~~
 
