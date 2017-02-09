@@ -2158,7 +2158,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
 			if (i > argc) {
 				cc_log("Expected argument after -optf/--options-file");
-				stats_update(STATS_UNSUPPORTED_OPTION);
+				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}
