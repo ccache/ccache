@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -567,7 +567,6 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		}
 	}
 
-	// Let's hash the include file.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
@@ -580,6 +579,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto failure;
 	}
 
+	// Let's hash the include file content.
 	struct mdfour fhash;
 	hash_start(&fhash);
 
@@ -823,8 +823,28 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				has_absolute_include_headers = is_absolute_path(inc_path);
 			}
 			inc_path = make_relative_path(inc_path);
+
+			bool should_hash_inc_path = true;
+			if (!conf->hash_dir) {
+				char *cwd = gnu_getcwd();
+				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
+					// When compiling with -g or similar, GCC adds the absolute path to
+					// CWD like this:
+					//
+					//   # 1 "CWD//"
+					//
+					// If the user has opted out of including the CWD in the hash, don't
+					// hash it. See also how debug_prefix_map is handled.
+					should_hash_inc_path = false;
+				}
+				free(cwd);
+			}
+			if (should_hash_inc_path) {
+				hash_string(hash, inc_path);
+			}
+
 			remember_include_file(inc_path, hash, system);
-			p = q;
+			p = q; // Everything of interest between p and q has been hashed now.
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
 			// An assembler .incbin statement (which could be part of inline
@@ -1135,7 +1155,9 @@ to_cache(struct args *args)
 		if (tmp_su) {
 			tmp_unlink(tmp_su);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -1149,7 +1171,9 @@ to_cache(struct args *args)
 		if (tmp_su) {
 			tmp_unlink(tmp_su);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1213,7 +1237,9 @@ to_cache(struct args *args)
 		if (tmp_su) {
 			tmp_unlink(tmp_su);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 
 		failed();
 	}
@@ -1602,13 +1628,6 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			hash_string(hash, cwd);
 			free(cwd);
 		}
-	}
-
-	// Possibly hash input file location to avoid false positive cache hits since
-	// the dependency file includes the source file path.
-	if (generating_dependencies) {
-		hash_delimiter(hash, "inputfile");
-		hash_string(hash, input_file);
 	}
 
 	// Possibly hash the coverage data file path.
@@ -2211,7 +2230,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
 			if (i > argc) {
 				cc_log("Expected argument after -optf/--options-file");
-				stats_update(STATS_UNSUPPORTED_OPTION);
+				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}

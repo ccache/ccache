@@ -13,9 +13,9 @@ murmurhashneutral2(const void *key, int len, unsigned int seed)
 
 	while (len >= 4) {
 		unsigned int k = data[0];
-		k |= data[1] << 8;
-		k |= data[2] << 16;
-		k |= data[3] << 24;
+		k |= ((unsigned int) data[1]) << 8;
+		k |= ((unsigned int) data[2]) << 16;
+		k |= ((unsigned int) data[3]) << 24;
 
 		k *= m;
 		k ^= k >> r;
@@ -30,9 +30,9 @@ murmurhashneutral2(const void *key, int len, unsigned int seed)
 
 	switch (len)
 	{
-	case 3: h ^= data[2] << 16;
-	case 2: h ^= data[1] << 8;
-	case 1: h ^= data[0];
+	case 3: h ^= ((unsigned int) data[2]) << 16;
+	case 2: h ^= ((unsigned int) data[1]) << 8;
+	case 1: h ^= ((unsigned int) data[0]);
 		h *= m;
 	};
 

@@ -567,6 +567,116 @@ compression with the *compression* configuration setting and you can also tweak
 the compression level with *compression_level*.
 
 
+Cache statistics
+----------------
+
+*ccache -s/--show-stats* can show the following statistics:
+
+[options="header",cols="30%,70%"]
+|==============================================================================
+|Name | Description
+| autoconf compile/link |
+Uncachable compilation or linking by an autoconf test.
+
+| bad compiler arguments |
+Malformed compiler argument, e.g. missing a value for an option that requires
+an argument or failure to read a file specified by an option argument.
+
+| cache file missing |
+A file was unexpectedly missing from the cache. This only happens in rare
+situations, e.g. if one ccache instance is about to get a file from the cache
+while another instance removed the file as part of cache cleanup.
+
+| cache hit (direct) |
+A result was successfully found using <<_the_direct_mode,the direct mode>>.
+
+| cache hit (preprocessed) |
+A result was successfully found using <<_the_preprocessor_mode,the preprocessor
+mode>>.
+
+| cache miss |
+No result was found.
+
+| cache size |
+Current size of the cache.
+
+| called for link |
+The compiler was called for linking, not compiling.
+
+| called for preprocessing |
+The compiler was called for preprocessing, not compiling.
+
+| can't use precompiled header |
+Preconditions for using <<_precompiled_headers,precompiled headers>> were not
+fulfilled.
+
+| ccache internal error |
+Unexpected failure, e.g. due to problems reading/writing the cache.
+
+| cleanups performed |
+Number of cleanups performed, either implicitly due to the cache size limit
+being reached or due to explicit *ccache -c/--cleanup* calls.
+
+| compile failed |
+The compilation failed. No result stored in the cache.
+
+| compiler check failed |
+A compiler check program specified by *compiler_check* (*CCACHE_COMPILERCHECK*)
+failed.
+
+| compiler produced empty output |
+The compiler's output file (typically an object file) was empty after
+compilation.
+
+| compiler produced no output |
+The compiler's output file (typically an object file) was missing after
+compilation.
+
+| compiler produced stdout |
+The compiler wrote data to standard output. This is something that compilers
+normally never do, so ccache is not designed to store such output in the cache.
+
+| couldn't find the compiler |
+The compiler to execute could not be found.
+
+| error hashing extra file |
+Failure reading a file specified by *extra_files_to_hash*
+(*CCACHE_EXTRAFILES*).
+
+| files in cache |
+Current number of files in the cache.
+
+| multiple source files |
+The compiler was called to compile multiple source files in one go. This is not
+supported by ccache.
+
+| no input file |
+No input file was specified to the compiler.
+
+| output to a non-regular file |
+The output path specified with *-o* is not a file (e.g. a directory or a device
+node).
+
+| output to stdout |
+The compiler was instructed to write its output to standard output using *-o
+-*. This is not supported by ccache.
+
+| preprocessor error |
+Preprocessing the source code using the compiler's *-E* option failed.
+
+| unsupported code directive |
+Code like the assembler ``.incbin'' directive was found. This is not supported
+by ccache.
+
+| unsupported compiler option |
+A compiler option not supported by ccache was found.
+
+| unsupported source language |
+A source language e.g. specified with *-x* was unsupported by ccache.
+
+|==============================================================================
+
+
 How ccache works
 ----------------
 
