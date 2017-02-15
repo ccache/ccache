@@ -377,14 +377,12 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			hashtable_insert(stated_files, x_strdup(path), st);
 		}
 
+		if (fi->size != st->size) {
+			return 0;
+		}
+
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-			// st->ctime is sometimes 0, so we can't check that both st->ctime and
-			// st->mtime are greater than time_of_compilation. But it's sufficient to
-			// check that either is.
-			if (fi->size == st->size
-			    && fi->mtime == st->mtime
-			    && fi->ctime == st->ctime
-			    && MAX(st->mtime, st->ctime) >= time_of_compilation) {
+			if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
 				cc_log("size/mtime/ctime hit for %s", path);
 				continue;
 			} else {
