@@ -3,7 +3,7 @@ ccache news
 
 ccache 3.3.4
 ------------
-Release date: TBD
+Release date: 2017-02-17
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

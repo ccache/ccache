@@ -7,7 +7,7 @@ maintained by Joel Rosdahl.
 ccache is a collective work with contributions from many people, including:
 
 * Alfred Landrum <alfred.landrum@riverbed.com>
-* Anders Björklund <anders@itension.se>
+* Anders Björklund <anders@psqr.se>
 * Andrea Bittau <a.bittau@cs.ucl.ac.uk>
 * Andrew P Boie <andrew.p.boie@intel.com>
 * Andrew Stubbs <ams@codesourcery.com>
@@ -56,6 +56,7 @@ ccache is a collective work with contributions from many people, including:
 * Patrick von Reth <vonreth@kde.org>
 * Paul Griffith <paulg@cse.yorku.ca>
 * Pavel Boldin <pboldin@cloudlinux.com>
+* Philippe Proulx <eeppeliteloop@gmail.com>
 * RW <fbsd06@mlists.homeunix.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
