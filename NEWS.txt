@@ -17,7 +17,7 @@ New features and improvements
 
 ccache 3.3.4
 ------------
-Release date: TBD
+Release date: 2017-02-17
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,9 +31,12 @@ Bug fixes
 - Fixed a regression in ccache 3.3 related to potentially bad content of
   dependency files when compiling identical source code but with different
   source paths. This was only partially fixed in 3.3.2 and reverts the new
-  "Names of included files are no longer included in the hash of the compiler's
-  preprocessed output" feature in 3.3.
+  ``Names of included files are no longer included in the hash of the
+  compiler's preprocessed output'' feature in 3.3.
 
+- Corrected statistics counter for `-optf`/`--options-file` failure.
+
+- Fixed undefined behavior warnings in ccache found by `-fsanitize=undefined`.
 
 ccache 3.3.3
 ------------
