@@ -1869,12 +1869,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	// Check if the diagnostic file is there.
-	if (output_dia && stat(cached_dia, &st) != 0) {
-		cc_log("Diagnostic file %s not in cache", cached_dia);
-		return;
-	}
-
 	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
 	// meta-data with no content. Catch an easy case of this.
 	if (st.st_size == 0) {
@@ -1907,6 +1901,12 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	// If the dependency file should be in the cache, check that it is.
 	if (produce_dep_file && stat(cached_dep, &st) != 0) {
 		cc_log("Dependency file %s missing in cache", cached_dep);
+		return;
+	}
+
+	// Check if the diagnostic file is there.
+	if (output_dia && stat(cached_dia, &st) != 0) {
+		cc_log("Diagnostic file %s not in cache", cached_dia);
 		return;
 	}
 
