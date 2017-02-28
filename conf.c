@@ -116,6 +116,8 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_PCH_DEFINES;
 		} else if (str_eq(word, "time_macros")) {
 			*value |= SLOPPY_TIME_MACROS;
+		} else if (str_eq(word, "ignore_implicit_pch")) {
+			*value |= SLOPPY_IGNORE_IMPLICIT_PCH;
 		} else {
 			*errmsg = format("unknown sloppiness: \"%s\"", word);
 			free(p);

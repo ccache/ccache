@@ -69,6 +69,7 @@ enum stats {
 // Allow us to not include any system headers in the manifest include files,
 // similar to -MM versus -M for dependencies.
 #define SLOPPY_NO_SYSTEM_HEADERS 64
+#define SLOPPY_IGNORE_IMPLICIT_PCH 128
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix) \

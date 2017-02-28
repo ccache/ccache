@@ -2103,7 +2103,7 @@ detect_pch(const char *option, const char *arg, bool *found_pch)
 			cc_log("Detected use of precompiled header: %s", arg);
 			pch_file = x_strdup(arg);
 		}
-	} else {
+	} else if (!(conf->sloppiness & SLOPPY_IGNORE_IMPLICIT_PCH)) {
 		char *gchpath = format("%s.gch", arg);
 		if (stat(gchpath, &st) == 0) {
 			cc_log("Detected use of precompiled header: %s", gchpath);
