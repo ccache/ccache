@@ -641,6 +641,9 @@ conf_print_items(struct conf *conf,
 	if (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
 		reformat(&s, "%sno_system_headers, ", s);
 	}
+	if (conf->sloppiness & SLOPPY_IGNORE_IMPLICIT_PCH) {
+		reformat(&s, "%signore_implicit_pch, ", s);
+	}
 	if (conf->sloppiness) {
 		// Strip last ", ".
 		s[strlen(s) - 2] = '\0';
