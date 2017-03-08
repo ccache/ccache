@@ -3295,7 +3295,7 @@ ccache(int argc, char *argv[])
 		conf->direct_mode = false;
 	}
 
-	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
+	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0f), 1.0f);
 
 	// Arguments (except -E) to send to the preprocessor.
 	struct args *preprocessor_args;
