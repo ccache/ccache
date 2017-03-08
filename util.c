@@ -27,10 +27,11 @@
 #endif
 
 #ifdef _WIN32
-#include <windows.h>
-#include <sys/locking.h>
-#include <psapi.h>
-#include <tchar.h>
+#   include <sys/locking.h>
+#   include <sys/utime.h>
+#   include <Psapi.h>
+#   include <tchar.h>
+#   include <Winsock.h>
 #endif
 
 static FILE *logfile;

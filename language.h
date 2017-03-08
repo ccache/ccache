@@ -1,7 +1,9 @@
 #ifndef CCACHE_LANGUAGE_H
 #define CCACHE_LANGUAGE_H
 
-#include <stdbool.h>
+#ifndef WIN32
+#   include <stdbool.h>
+#endif
 
 const char *language_for_file(const char *fname);
 const char *p_language_for_language(const char *language);

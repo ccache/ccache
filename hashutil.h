@@ -3,7 +3,9 @@
 
 #include "conf.h"
 #include "mdfour.h"
-#include <inttypes.h>
+#ifdef HAVE_INTTYPES_H
+#   include <inttypes.h>
+#endif
 
 struct file_hash
 {
