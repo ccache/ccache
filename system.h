@@ -17,15 +17,15 @@
 #ifndef CCACHE_SYSTEM_H
 #define CCACHE_SYSTEM_H
 
-#include "config.h"
-
 #ifdef WIN32
+#	include "config_win32.h"
 #   include <windows.h>
 #   include <direct.h>
 #   include <io.h>
 #   include <process.h>
 #   include <stdint.h>
 #else
+#	include "config.h"
 #   include <sys/file.h>
 #   include <dirent.h>
 #   include <unistd.h>
