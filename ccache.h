@@ -277,6 +277,7 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #    define _WIN32_WINNT 0x0501
 #    endif
 #    include <windows.h>
+#    define strcasecmp   _stricmp
 #    define mkdir(a,b) mkdir(a)
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)
@@ -286,6 +287,8 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0
 #    define F_WRLCK 0
+#    define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
+#    define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
 #else
 #    define DIR_DELIM_CH '\\'
 #    define PATH_DELIM ":"

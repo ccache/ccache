@@ -438,6 +438,23 @@ clean_up_internal_tempdir(void)
 
 	update_mtime(conf->cache_dir);
 
+#ifdef _WIN32
+	WIN32_FIND_DATA data;
+	HANDLE hFind = FindFirstFile(temp_dir(), &data);
+	if( hFind != INVALID_HANDLE_VALUE ) {
+		do {
+			if (str_eq(data.cFileName, ".") || str_eq(data.cFileName, "..")) {
+				continue;
+			}
+			char *path = format("%s/%s", temp_dir(), data.cFileName);
+			if (x_lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
+				tmp_unlink(path);
+			}
+			free(path);
+		} while( FindNextFile(hFind, &data) );
+		FindClose(hFind);
+	}
+#else
 	DIR *dir = opendir(temp_dir());
 	if (!dir) {
 		return;
@@ -457,6 +474,7 @@ clean_up_internal_tempdir(void)
 	}
 
 	closedir(dir);
+#endif
 }
 
 static char *

@@ -805,25 +805,37 @@ reformat(char **ptr, const char *format, ...)
 void
 traverse(const char *dir, void (*fn)(const char *, struct stat *))
 {
+#ifdef _WIN32
+	WIN32_FIND_DATA data;
+	#define FNAME data.cFileName
+
+	HANDLE h = FindFirstFile(dir, &data);
+	if( h == INVALID_HANDLE_VALUE )
+		return;
+
+	do {
+#else
 	DIR *d = opendir(dir);
 	if (!d) {
 		return;
 	}
 
 	struct dirent *de;
+	#define  FNAME   de->d_name
 	while ((de = readdir(d))) {
-		if (str_eq(de->d_name, ".")) {
+#endif
+		if (str_eq(FNAME, ".")) {
 			continue;
 		}
-		if (str_eq(de->d_name, "..")) {
-			continue;
-		}
-
-		if (strlen(de->d_name) == 0) {
+		if (str_eq(FNAME, "..")) {
 			continue;
 		}
 
-		char *fname = format("%s/%s", dir, de->d_name);
+		if (strlen(FNAME) == 0) {
+			continue;
+		}
+
+		char *fname = format("%s/%s", dir, FNAME);
 		struct stat st;
 		if (lstat(fname, &st)) {
 			if (errno != ENOENT && errno != ESTALE) {
@@ -839,9 +851,13 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fn(fname, &st);
 		free(fname);
+#ifdef _WIN32
+	} while( FindNextFile(h, &data) );
+	FindClose(h);
+#else
 	}
-
 	closedir(d);
+#endif
 }
 
 

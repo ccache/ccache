@@ -164,18 +164,16 @@
  * <http://www.jhweiss.de/software/snprintf.html>.
  */
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif	/* HAVE_CONFIG_H */
+#include "system.h"
 
 #if TEST_SNPRINTF
 #include <math.h>	/* For pow(3), NAN, and INFINITY. */
 #include <string.h>	/* For strcmp(3). */
 #if defined(__NetBSD__) || \
-    defined(__FreeBSD__) || \
-    defined(__OpenBSD__) || \
-    defined(__NeXT__) || \
-    defined(__bsd__)
+	defined(__FreeBSD__) || \
+	defined(__OpenBSD__) || \
+	defined(__NeXT__) || \
+	defined(__bsd__)
 #define OS_BSD 1
 #elif defined(sgi) || defined(__sgi)
 #ifndef __c99
@@ -743,7 +741,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					break;
 				}
 				fmtint(str, &len, size, value, 10, width,
-				    precision, flags);
+					precision, flags);
 				break;
 			case 'X':
 				flags |= PRINT_F_UP;
@@ -762,11 +760,11 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 				switch (cflags) {
 				case PRINT_C_CHAR:
 					value = (unsigned char)va_arg(args,
-					    unsigned int);
+						unsigned int);
 					break;
 				case PRINT_C_SHORT:
 					value = (unsigned short int)va_arg(args,
-					    unsigned int);
+						unsigned int);
 					break;
 				case PRINT_C_LONG:
 					value = va_arg(args, unsigned long int);
@@ -788,7 +786,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					break;
 				}
 				fmtint(str, &len, size, value, base, width,
-				    precision, flags);
+					precision, flags);
 				break;
 			case 'A':
 				/* Not yet supported, we'll use "%F". */
@@ -804,7 +802,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 				else
 					fvalue = va_arg(args, double);
 				fmtflt(str, &len, size, fvalue, width,
-				    precision, flags, &overflow);
+					precision, flags, &overflow);
 				if (overflow)
 					goto out;
 				break;
@@ -818,7 +816,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 				else
 					fvalue = va_arg(args, double);
 				fmtflt(str, &len, size, fvalue, width,
-				    precision, flags, &overflow);
+					precision, flags, &overflow);
 				if (overflow)
 					goto out;
 				break;
@@ -838,7 +836,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 				if (precision == 0)
 					precision = 1;
 				fmtflt(str, &len, size, fvalue, width,
-				    precision, flags, &overflow);
+					precision, flags, &overflow);
 				if (overflow)
 					goto out;
 				break;
@@ -849,7 +847,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 			case 's':
 				strvalue = va_arg(args, char *);
 				fmtstr(str, &len, size, strvalue, width,
-				    precision, flags);
+					precision, flags);
 				break;
 			case 'p':
 				/*
@@ -864,7 +862,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					 * "0x0", SysV "0".
 					 */
 					fmtstr(str, &len, size, "(nil)", width,
-					    -1, flags);
+						-1, flags);
 				else {
 					/*
 					 * We use the BSD/glibc format.  SysV
@@ -874,8 +872,8 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					flags |= PRINT_F_NUM;
 					flags |= PRINT_F_UNSIGNED;
 					fmtint(str, &len, size,
-					    (UINTPTR_T)strvalue, 16, width,
-					    precision, flags);
+						(UINTPTR_T)strvalue, 16, width,
+						precision, flags);
 				}
 				break;
 			case 'n':
@@ -948,7 +946,7 @@ out:
 
 static void
 fmtstr(char *str, size_t *len, size_t size, const char *value, int width,
-       int precision, int flags)
+	   int precision, int flags)
 {
 	int padlen, strln;	/* Amount to pad. */
 	int noprecision = (precision == -1);
@@ -958,7 +956,7 @@ fmtstr(char *str, size_t *len, size_t size, const char *value, int width,
 
 	/* If a precision was specified, don't read the string past it. */
 	for (strln = 0; value[strln] != '\0' &&
-	    (noprecision || strln < precision); strln++)
+		(noprecision || strln < precision); strln++)
 		continue;
 
 	if ((padlen = width - strln) < 0)
@@ -982,7 +980,7 @@ fmtstr(char *str, size_t *len, size_t size, const char *value, int width,
 
 static void
 fmtint(char *str, size_t *len, size_t size, INTMAX_T value, int base, int width,
-       int precision, int flags)
+	   int precision, int flags)
 {
 	UINTMAX_T uvalue;
 	char iconvert[MAX_CONVERT_LENGTH];
@@ -1007,7 +1005,7 @@ fmtint(char *str, size_t *len, size_t size, INTMAX_T value, int base, int width,
 	}
 
 	pos = convert(uvalue, iconvert, sizeof(iconvert), base,
-	    flags & PRINT_F_UP);
+		flags & PRINT_F_UP);
 
 	if (flags & PRINT_F_NUM && uvalue != 0) {
 		/*
@@ -1034,10 +1032,10 @@ fmtint(char *str, size_t *len, size_t size, INTMAX_T value, int base, int width,
 
 	zpadlen = precision - pos - separators;
 	spadlen = width                         /* Minimum field width. */
-	    - separators                        /* Number of separators. */
-	    - MAX(precision, pos)               /* Number of integer digits. */
-	    - ((sign != 0) ? 1 : 0)             /* Will we print a sign? */
-	    - ((hexprefix != 0) ? 2 : 0);       /* Will we print a prefix? */
+		- separators                        /* Number of separators. */
+		- MAX(precision, pos)               /* Number of integer digits. */
+		- ((sign != 0) ? 1 : 0)             /* Will we print a sign? */
+		- ((hexprefix != 0) ? 2 : 0);       /* Will we print a prefix? */
 
 	if (zpadlen < 0)
 		zpadlen = 0;
@@ -1083,7 +1081,7 @@ fmtint(char *str, size_t *len, size_t size, INTMAX_T value, int base, int width,
 
 static void
 fmtflt(char *str, size_t *len, size_t size, LDOUBLE fvalue, int width,
-       int precision, int flags, int *overflow)
+	   int precision, int flags, int *overflow)
 {
 	LDOUBLE ufvalue;
 	UINTMAX_T intpart;
@@ -1247,7 +1245,7 @@ again:
 	 * Note that we had decremented the precision by one.
 	 */
 	if (flags & PRINT_F_TYPE_G && estyle &&
-	    precision + 1 > exponent && exponent >= -4) {
+		precision + 1 > exponent && exponent >= -4) {
 		precision -= exponent;
 		estyle = 0;
 		goto again;
@@ -1306,12 +1304,12 @@ again:
 		separators = getnumsep(ipos);
 
 	padlen = width                  /* Minimum field width. */
-	    - ipos                      /* Number of integer digits. */
-	    - epos                      /* Number of exponent characters. */
-	    - precision                 /* Number of fractional digits. */
-	    - separators                /* Number of group separators. */
-	    - (emitpoint ? 1 : 0)       /* Will we print a decimal point? */
-	    - ((sign != 0) ? 1 : 0);    /* Will we print a sign character? */
+		- ipos                      /* Number of integer digits. */
+		- epos                      /* Number of exponent characters. */
+		- precision                 /* Number of fractional digits. */
+		- separators                /* Number of group separators. */
+		- (emitpoint ? 1 : 0)       /* Will we print a decimal point? */
+		- ((sign != 0) ? 1 : 0);    /* Will we print a sign character? */
 
 	if (padlen < 0)
 		padlen = 0;
@@ -2074,10 +2072,10 @@ do {                                                                           \
 			r2 = snprintf(buf2, sizeof(buf2), fmt[i], val[j]);     \
 			if (strcmp(buf1, buf2) != 0 || r1 != r2) {             \
 				(void)printf("Results don't match, "           \
-				    "format string: %s\n"                      \
-				    "\t sprintf(3): [%s] (%d)\n"               \
-				    "\tsnprintf(3): [%s] (%d)\n",              \
-				    fmt[i], buf1, r1, buf2, r2);               \
+					"format string: %s\n"                      \
+					"\t sprintf(3): [%s] (%d)\n"               \
+					"\tsnprintf(3): [%s] (%d)\n",              \
+					fmt[i], buf1, r1, buf2, r2);               \
 				failed++;                                      \
 			}                                                      \
 			num++;                                                 \
