@@ -61,7 +61,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-extern char **environ;
+#ifdef WIN32
+	_CRTIMP extern char **environ;
+	typedef int pid_t;
+	typedef SSIZE_T ssize_t;
+#else
+	extern char **environ;
+#endif
 
 #ifndef ESTALE
 #define ESTALE -1
