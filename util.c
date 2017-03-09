@@ -1124,7 +1124,7 @@ x_realpath(const char *path)
 #ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
 		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
 #else
-		GetFileNameFromHandle(path_handle, ret, maxlen);
+		GetFileNameFromHandle(path_handle, ret, (WORD)maxlen);
 #endif
 		CloseHandle(path_handle);
 		p = ret + 4; // Strip \\?\ from the file name.
