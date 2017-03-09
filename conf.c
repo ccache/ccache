@@ -366,7 +366,7 @@ conf_free(struct conf *conf)
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
 	free(conf->temporary_dir);
-	free(conf->item_origins);
+	free((void*)conf->item_origins);
 	free(conf);
 }
 

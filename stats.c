@@ -48,7 +48,7 @@ static void display_size_times_1024(uint64_t size);
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
-	char *message;
+	const char *message;
 	void (*fn)(uint64_t);
 	unsigned flags;
 } stats_info[] = {
