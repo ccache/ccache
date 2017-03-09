@@ -81,7 +81,7 @@ log_prefix(bool log_updated_time)
 #endif
 		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
 		snprintf(prefix, sizeof(prefix),
-		         "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
+				 "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
 	}
 	fputs(prefix, logfile);
 #else
@@ -115,7 +115,7 @@ warn_log_fail(void)
 
 	// Note: Can't call fatal() since that would lead to recursion.
 	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
-	        conf->log_file, strerror(errno));
+			conf->log_file, strerror(errno));
 	x_exit(EXIT_FAILURE);
 }
 
@@ -216,9 +216,9 @@ copy_fd(int fd_in, int fd_out)
 	int n;
 	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		ssize_t written = 0;
+		int written = 0;
 		do {
-			ssize_t count = write(fd_out, buf + written, n - written);
+			int count = write(fd_out, buf + written, (unsigned)(n - written));
 			if (count == -1) {
 				if (errno != EAGAIN && errno != EINTR) {
 					fatal("Failed to copy fd");
@@ -272,7 +272,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	char *tmp_name = x_strdup(dest);
 	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
-	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+		   src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
 	// Open source file.
 	int fd_in = open(src, O_RDONLY | O_BINARY);
@@ -322,7 +322,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 		} else {
 			written = 0;
 			do {
-				ssize_t count = write(fd_out, buf + written, n - written);
+				int count = write(fd_out, buf + written, n - written);
 				if (count == -1 && errno != EINTR) {
 					saved_errno = errno;
 					break;
@@ -334,8 +334,8 @@ copy_file(const char *src, const char *dest, int compress_level)
 			if (compress_level > 0) {
 				int errnum;
 				cc_log("gzwrite error: %s (errno: %s)",
-				       gzerror(gz_in, &errnum),
-				       strerror(saved_errno));
+					   gzerror(gz_in, &errnum),
+					   strerror(saved_errno));
 			} else {
 				cc_log("write error: %s", strerror(saved_errno));
 			}
@@ -350,7 +350,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	if (!gzeof(gz_in) || (errnum != Z_OK && errnum != Z_STREAM_END)) {
 		saved_errno = errno;
 		cc_log("gzread error: %s (errno: %s)",
-		       gzerror(gz_in, &errnum), strerror(saved_errno));
+			   gzerror(gz_in, &errnum), strerror(saved_errno));
 		gzclose(gz_in);
 		if (gz_out) {
 			gzclose(gz_out);
@@ -555,8 +555,8 @@ get_hostname(void)
 		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 200)
 		  * sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
-		          LocalSize(lp_display_buf) / sizeof(TCHAR),
-		          TEXT("%s failed with error %d: %s"), __FILE__, dw,
+				  LocalSize(lp_display_buf) / sizeof(TCHAR),
+				  TEXT("%s failed with error %d: %s"), __FILE__, dw,
 				  (char*)lp_msg_buf);
 
 		cc_log("can't get hostname OS returned error: %s", (char *)lp_display_buf);
@@ -1026,7 +1026,7 @@ parse_size_with_suffix(const char *str, uint64_t *size)
   defined(_WIN32) && \
   !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
-                                  WORD cch_filename)
+								  WORD cch_filename)
 {
 	BOOL success = FALSE;
 
@@ -1049,9 +1049,9 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 	void *mem = MapViewOfFile(file_map, FILE_MAP_READ, 0, 0, 1);
 	if (mem) {
 		if (GetMappedFileName(GetCurrentProcess(),
-		                      mem,
-		                      filename,
-		                      cch_filename)) {
+							  mem,
+							  filename,
+							  cch_filename)) {
 			// Translate path with device name to drive letters.
 			TCHAR temp[512];
 			temp[0] = '\0';
@@ -1071,16 +1071,16 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 						size_t name_len = _tcslen(name);
 						if (name_len < MAX_PATH) {
 							found = _tcsnicmp(filename, name, name_len) == 0
-							        && *(filename + name_len) == _T('\\');
+									&& *(filename + name_len) == _T('\\');
 							if (found) {
 								// Reconstruct filename using temp_file and replace device path
 								// with DOS path.
 								TCHAR temp_file[MAX_PATH];
 								_sntprintf(temp_file,
-								           MAX_PATH - 1,
-								           TEXT("%s%s"),
-								           drive,
-								           filename+name_len);
+										   MAX_PATH - 1,
+										   TEXT("%s%s"),
+										   drive,
+										   filename+name_len);
 								_tcsncpy(filename, temp_file, _tcslen(temp_file));
 							}
 						}
@@ -1208,14 +1208,14 @@ create_tmp_fd(char **fname)
 	if (fd == -1 && errno == ENOENT) {
 		if (create_parent_dirs(*fname) != 0) {
 			fatal("Failed to create directory %s: %s",
-			      dirname(*fname), strerror(errno));
+				  dirname(*fname), strerror(errno));
 		}
 		reformat(&template, "%s.%s", *fname, tmp_string());
 		fd = mkstemp(template);
 	}
 	if (fd == -1) {
 		fatal("Failed to create temporary file for %s: %s",
-		      *fname, strerror(errno));
+			  *fname, strerror(errno));
 	}
 
 #ifndef _WIN32
@@ -1479,11 +1479,11 @@ x_rename(const char *oldpath, const char *newpath)
 		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 40)
 		  * sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
-		          LocalSize(lp_display_buf) / sizeof(TCHAR),
+				  LocalSize(lp_display_buf) / sizeof(TCHAR),
 				  TEXT("%s failed with error %d: %s"), __FILE__, dw, (char*)lp_msg_buf);
 
 		cc_log("can't rename file %s to %s OS returned error: %s",
-		       oldpath, newpath, (char *) lp_display_buf);
+			   oldpath, newpath, (char *) lp_display_buf);
 
 		LocalFree(lp_msg_buf);
 		LocalFree(lp_display_buf);
@@ -1585,7 +1585,10 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 			allocated *= 2;
 			*data = x_realloc(*data, allocated);
 		}
-		ret = read(fd, *data + pos, allocated - pos);
+		int block = (allocated - pos) > (1024*1024*1024)
+				? (1024*1024*1024)
+				: (int)(allocated - pos);
+		ret = read(fd, *data + pos, block);
 		if (ret == 0 || (ret == -1 && errno != EINTR)) {
 			break;
 		}

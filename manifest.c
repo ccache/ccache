@@ -174,7 +174,7 @@ free_manifest(struct manifest *mf)
 			u_ <<= 8; \
 			u_ |= ch_ & 0xFF; \
 		} \
-		(var) = u_; \
+		(var) = (uint32_t)u_; \
 	} while (false)
 
 #define READ_STR(var) \
@@ -294,7 +294,7 @@ error:
 		uint8_t ch_; \
 		size_t i_; \
 		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = (u_ >> (8 * ((size) - i_ - 1))); \
+			ch_ = (uint8_t)(u_ >> (8 * ((size) - i_ - 1))); \
 			if (gzputc(f, ch_) == EOF) { \
 				goto error; \
 			} \

@@ -77,7 +77,7 @@ hash_delimiter(struct mdfour *md, const char *type)
 void
 hash_string(struct mdfour *md, const char *s)
 {
-	hash_string_length(md, s, strlen(s));
+	hash_string_length(md, s, (unsigned)strlen(s));
 }
 
 void
