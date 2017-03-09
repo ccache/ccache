@@ -211,7 +211,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 			int i;
 			for (i = 0; i < tokens[q].num_toks; i++) {
 				unsigned char *s = (unsigned char *)tokens[q].toks[i];
-				int len = strlen((char *)s);
+				int len = (unsigned)strlen((char *)s);
 				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
 					for (j = 0; s[j]; j++) {

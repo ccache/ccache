@@ -22,7 +22,7 @@
 unsigned
 hash_from_string(void *str)
 {
-	return murmurhashneutral2(str, strlen((const char *)str), 0);
+	return murmurhashneutral2(str, (unsigned)strlen((const char *)str), 0);
 }
 
 unsigned

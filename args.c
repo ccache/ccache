@@ -286,7 +286,7 @@ args_to_string(struct args *args)
 {
 	unsigned size = 0;
 	for (char **p = args->argv; *p; p++) {
-		size += strlen(*p) + 1;
+		size += (unsigned)strlen(*p) + 1;
 	}
 
 	char *result = x_malloc(size + 1);

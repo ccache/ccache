@@ -220,13 +220,13 @@ verify_dir_levels(void *value, char **errmsg)
 static const struct conf_item *
 find_conf(const char *name)
 {
-	return confitems_get(name, strlen(name));
+	return confitems_get(name, (unsigned)strlen(name));
 }
 
 static const struct env_to_conf_item *
 find_env_to_conf(const char *name)
 {
-	return envtoconfitems_get(name, strlen(name));
+	return envtoconfitems_get(name, (unsigned)strlen(name));
 }
 
 static bool

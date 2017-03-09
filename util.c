@@ -1179,7 +1179,7 @@ strtok_r(char *str, const char *delim, char **saveptr)
 	if (!str) {
 		str = *saveptr;
 	}
-	int len = strlen(str);
+	int len = (unsigned)strlen(str);
 	char *ret = strtok(str, delim);
 	if (ret) {
 		char *save = ret;
@@ -1374,7 +1374,7 @@ get_relative_path(const char *from, const char *to)
 	if (strlen(to) > common_prefix_len) {
 		reformat(&result, "%s%s", result, to + common_prefix_len + 1);
 	}
-	for (int i = strlen(result) - 1; i >= 0 && result[i] == '/'; i--) {
+	for (int i = (unsigned)strlen(result) - 1; i >= 0 && result[i] == '/'; i--) {
 		result[i] = '\0';
 	}
 	if (str_eq(result, "")) {
