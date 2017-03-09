@@ -728,7 +728,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					value = va_arg(args, LLONG);
 					break;
 				case PRINT_C_SIZE:
-					value = va_arg(args, SSIZE_T);
+					value = (long)va_arg(args, SSIZE_T);
 					break;
 				case PRINT_C_INTMAX:
 					value = va_arg(args, INTMAX_T);
@@ -773,7 +773,7 @@ rpl_vsnprintf(char *str, size_t size, const char *format, va_list args)
 					value = va_arg(args, ULLONG);
 					break;
 				case PRINT_C_SIZE:
-					value = va_arg(args, size_t);
+					value = (long)va_arg(args, size_t);
 					break;
 				case PRINT_C_INTMAX:
 					value = va_arg(args, UINTMAX_T);
