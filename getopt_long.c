@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
+#include "system.h"
 
 #ifndef HAVE_GETOPT_LONG
 
@@ -48,10 +48,15 @@
 #define BADARG ':'
 #define EMSG   ""
 
+int   opterr;
+int   optind;
+int   optopt;
+char *optarg;
+
 int
 getopt_long(int argc, char *const argv[],
-            const char *optstring,
-            const struct option * longopts, int *longindex)
+			const char *optstring,
+			const struct option * longopts, int *longindex)
 {
 	static char *place = EMSG; /* option letter processing */
 	char        *oli;          /* option letter list index */
