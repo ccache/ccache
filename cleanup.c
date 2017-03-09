@@ -129,19 +129,19 @@ sort_and_clean(void)
 		const char *ext;
 
 		if ((cache_size_threshold == 0
-		     || cache_size <= cache_size_threshold)
-		    && (files_in_cache_threshold == 0
-		        || files_in_cache <= files_in_cache_threshold)) {
+			 || cache_size <= cache_size_threshold)
+			&& (files_in_cache_threshold == 0
+				|| files_in_cache <= files_in_cache_threshold)) {
 			break;
 		}
 
 		ext = get_extension(files[i]->fname);
 		if (str_eq(ext, ".o")
-		    || str_eq(ext, ".d")
-		    || str_eq(ext, ".gcno")
-		    || str_eq(ext, ".dia")
-		    || str_eq(ext, ".stderr")
-		    || str_eq(ext, "")) {
+			|| str_eq(ext, ".d")
+			|| str_eq(ext, ".gcno")
+			|| str_eq(ext, ".dia")
+			|| str_eq(ext, ".stderr")
+			|| str_eq(ext, "")) {
 			char *base = remove_extension(files[i]->fname);
 			if (!str_eq(base, last_base)) { // Avoid redundant unlinks.
 				// Make sure that all sibling files are deleted so that a cached result
@@ -194,7 +194,7 @@ cleanup_dir(struct conf *conf, const char *dir)
 		stats_add_cleanup(dir, 1);
 	}
 
-	stats_set_sizes(dir, files_in_cache, cache_size);
+	stats_set_sizes(dir, (unsigned)files_in_cache, cache_size);
 
 	// Free it up.
 	for (unsigned i = 0; i < num_files; i++) {
