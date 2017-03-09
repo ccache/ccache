@@ -1431,6 +1431,8 @@ update_mtime(const char *path)
 {
 #ifdef HAVE_UTIMES
 	utimes(path, NULL);
+#elif defined(_WIN32)
+	_utime64(path, NULL);
 #else
 	utime(path, NULL);
 #endif
