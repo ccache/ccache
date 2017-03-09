@@ -406,7 +406,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			}
 			actual = x_malloc(sizeof(*actual));
 			hash_result_as_bytes(&hash, actual->hash);
-			actual->size = hash.totalN;
+			actual->size = (uint32_t)hash.totalN;
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 		}
 		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0

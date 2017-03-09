@@ -608,7 +608,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		}
 		struct file_hash pch_hash;
 		hash_result_as_bytes(&fhash, pch_hash.hash);
-		pch_hash.size = fhash.totalN;
+		pch_hash.size = (uint32_t)fhash.totalN;
 		hash_delimiter(cpp_hash, "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
@@ -636,7 +636,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 		struct file_hash *h = x_malloc(sizeof(*h));
 		hash_result_as_bytes(&fhash, h->hash);
-		h->size = fhash.totalN;
+		h->size = (uint32_t)fhash.totalN;
 		hashtable_insert(included_files, path, h);
 	} else {
 		free(path);
@@ -1511,7 +1511,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	struct file_hash *result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
-	result->size = hash->totalN;
+	result->size = (int)hash->totalN;
 	return result;
 }
 

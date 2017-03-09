@@ -137,7 +137,7 @@ static
 void mdfour_tail(const unsigned char *in, size_t n)
 {
 	m->totalN += n;
-	uint32_t b = m->totalN * 8;
+	uint32_t b = (uint32_t)m->totalN * 8;
 	unsigned char buf[128] = { 0 };
 	uint32_t M[16];
 	if (n) {
