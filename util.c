@@ -89,18 +89,21 @@ log_prefix(bool log_updated_time)
 #endif
 }
 
-static long
+static int
 path_max(const char *path)
 {
 #ifdef PATH_MAX
 	(void)path;
 	return PATH_MAX;
+#elif defined(MAX_PATH)
+	(void)path;             // Windows variant.
+	return MAX_PATH;
 #elif defined(MAXPATHLEN)
 	(void)path;
 	return MAXPATHLEN;
 #elif defined(_PC_PATH_MAX)
 	long maxlen = pathconf(path, _PC_PATH_MAX);
-	return maxlen >= 4096 ? maxlen : 4096;
+	return maxlen >= 4096 ? (int)maxlen : 4096;
 #endif
 }
 
