@@ -2105,8 +2105,12 @@ is_precompiled_header(const char *path)
 static bool
 color_output_possible(void)
 {
+#ifdef _WIN32
+	return false;
+#else
 	const char *term_env = getenv("TERM");
 	return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
+#endif
 }
 
 static bool
