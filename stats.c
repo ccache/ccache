@@ -312,14 +312,14 @@ init_counter_updates(void)
 	}
 }
 
-// Record that a number of bytes and files have been added to the cache. Size
+// Record that a number of Kbytes and files have been added to the cache. Size
 // is in bytes.
 void
 stats_update_size(uint64_t size, unsigned files)
 {
 	init_counter_updates();
 	counter_updates->data[STATS_NUMFILES] += files;
-	counter_updates->data[STATS_TOTALSIZE] += size / 1024;
+	counter_updates->data[STATS_TOTALSIZE] += (unsigned)(size / 1024);
 }
 
 // Read in the stats from one directory and add to the counters.
@@ -569,8 +569,8 @@ stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size)
 	char *statsfile = format("%s/stats", dir);
 	if (lockfile_acquire(statsfile, lock_staleness_limit)) {
 		stats_read(statsfile, counters);
-		counters->data[STATS_NUMFILES] = num_files;
-		counters->data[STATS_TOTALSIZE] = total_size / 1024;
+		counters->data[STATS_NUMFILES] = (unsigned)(num_files);
+		counters->data[STATS_TOTALSIZE] = (unsigned)(total_size / 1024);
 		stats_write(statsfile, counters);
 		lockfile_release(statsfile);
 	}
