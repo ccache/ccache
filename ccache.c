@@ -242,6 +242,36 @@ static sigset_t fatal_signal_set;
 static pid_t compiler_pid = 0;
 #endif
 
+// Note that these compiler checks are unreliable, so nothing should
+// hard-depend on them.
+
+static bool
+compiler_is_clang(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "clang") != NULL;
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_gcc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "gcc") || strstr(name, "g++");
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_msvc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "cl") != NULL;
+	free(name);
+	return result;
+}
+
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
 // different for the same input in a new ccache version, we can just change
@@ -1563,27 +1593,6 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 	}
 }
 
-// Note that these compiler checks are unreliable, so nothing should
-// hard-depend on them.
-
-static bool
-compiler_is_clang(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "clang") != NULL;
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_gcc(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "gcc") || strstr(name, "g++");
-	free(name);
-	return result;
-}
-
 // Update a hash sum with information common for the direct and preprocessor
 // modes.
 static void
@@ -2734,7 +2743,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Same as above but options with concatenated argument beginning with a
 		// slash.
-		if (argv[i][0] == '-') {
+		if (argv[i][0] == '-' || compiler_is_msvc(args) && argv[i][0] == '/') {
 			char *slash_pos = strchr(argv[i], '/');
 			if (slash_pos) {
 				char *option = x_strndup(argv[i], slash_pos - argv[i]);
@@ -2778,7 +2787,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Other options.
-		if (argv[i][0] == '-') {
+		if (argv[i][0] == '-' || compiler_is_msvc(args) && argv[i][0] == '/') {
 			if (compopt_affects_cpp(argv[i])
 				|| compopt_prefix_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
