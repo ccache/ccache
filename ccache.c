@@ -869,7 +869,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			// assembly) refers to an external file. If the file changes, the hash
 			// should change as well, but finding out what file to hash is too hard
 			// for ccache, so just bail out.
-			cc_log("Found unsupported .incbin directive in source code");
+			cc_log("Found unsupported .inc" "bin directive in source code %s", path);
 			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
 			failed();
 		} else {

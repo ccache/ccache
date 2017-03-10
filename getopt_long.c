@@ -49,7 +49,7 @@
 #define EMSG   ""
 
 int   opterr;
-int   optind;
+int   optind = 1;
 int   optopt;
 char *optarg;
 
