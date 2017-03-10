@@ -1166,8 +1166,14 @@ to_cache(struct args *args)
 		free(base_name);
 	}
 
+	if (compiler_is_msvc(args)) {
+		char *fo = format("-Fo%s", output_obj);
+		args_add(args, fo);
+		free(fo);
+	} else {
 	args_add(args, "-o");
 	args_add(args, output_obj);
+	}
 
 	if (output_dia) {
 		args_add(args, "--serialize-diagnostics");
@@ -2394,10 +2400,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		// Alternate form of -o with no space.
+		// Alternate form of -o/-Fo with no space.
+		if (compiler_is_msvc(args)) {
+			if (str_startswith(argv[i], "-Fo")) {
+				output_obj = make_relative_path(x_strdup(&argv[i][3]));
+				continue;
+			}
+		} else {
 		if (str_startswith(argv[i], "-o")) {
 			output_obj = make_relative_path(x_strdup(&argv[i][2]));
 			continue;
+		}
 		}
 
 		if (str_eq(argv[i], "-gsplit-dwarf")) {
