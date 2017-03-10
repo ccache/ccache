@@ -2278,7 +2278,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Special case for -E.
-		if (str_eq(argv[i], "-E")) {
+		if (str_eq(argv[i], "-E") || str_eq(argv[i], "/E")) {
 			stats_update(STATS_PREPROCESSING);
 			result = false;
 			goto out;
@@ -2395,7 +2395,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// We must have -c.
-		if (str_eq(argv[i], "-c")) {
+		if (str_eq(argv[i], "-c") || str_eq(argv[i], "/c")) {
 			found_c_opt = true;
 			continue;
 		}
@@ -2469,7 +2469,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
-		if (str_startswith(argv[i], "-g")) {
+		if (str_startswith(argv[i], "-g") && !compiler_is_msvc(args)) {
 			const char *pLevel = argv[i] + 2;
 			if (str_startswith(argv[i], "-ggdb")) {
 				pLevel = argv[i] + 5;
@@ -2496,6 +2496,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				debug_argument = argv[i];
 				continue;
 			}
+		}
+
+		if( (str_startswith(argv[i], "-O") || str_startswith(argv[i], "/O")) && compiler_is_msvc(args)) {
+			debug_level = 1;
+			debug_argument = argv[i];
+			continue;
 		}
 
 		// These options require special handling, because they behave differently
