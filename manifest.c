@@ -165,15 +165,16 @@ free_manifest(struct manifest *mf)
 
 #define READ_INT(size, var) \
   do { \
-		(var) = 0; \
+		uint64_t u_ = 0; \
 		for (size_t i_ = 0; i_ < (size); i_++) { \
 			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
 				goto error; \
 			} \
-			(var) <<= 8; \
-			(var) |= ch_ & 0xFF; \
+			u_ <<= 8; \
+			u_ |= ch_ & 0xFF; \
 		} \
+		(var) = u_; \
 	} while (false)
 
 #define READ_STR(var) \
@@ -289,10 +290,11 @@ error:
 
 #define WRITE_INT(size, var) \
   do { \
+		uint64_t u_ = (var); \
 		uint8_t ch_; \
 		size_t i_; \
 		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = ((var) >> (8 * ((size) - i_ - 1))); \
+			ch_ = (u_ >> (8 * ((size) - i_ - 1))); \
 			if (gzputc(f, ch_) == EOF) { \
 				goto error; \
 			} \

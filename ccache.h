@@ -42,7 +42,7 @@ enum stats {
 	STATS_NOINPUT = 17,
 	STATS_MULTIPLE = 18,
 	STATS_CONFTEST = 19,
-	STATS_UNSUPPORTED = 20,
+	STATS_UNSUPPORTED_OPTION = 20,
 	STATS_OUTSTDOUT = 21,
 	STATS_CACHEHIT_DIR = 22,
 	STATS_NOOUTPUT = 23,
@@ -52,6 +52,8 @@ enum stats {
 	STATS_CANTUSEPCH = 27,
 	STATS_PREPROCESSING = 28,
 	STATS_NUMCLEANUPS = 29,
+	STATS_UNSUPPORTED_DIRECTIVE = 30,
+	STATS_ZEROTIMESTAMP = 31,
 
 	STATS_END
 };
@@ -124,6 +126,7 @@ void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
+void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);
 int safe_write(int fd_out, const char *data, size_t length);
@@ -216,6 +219,7 @@ void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
 void stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size);
 void stats_add_cleanup(const char *dir, unsigned count);
+void stats_timestamp(time_t time, struct counters *counters);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
 

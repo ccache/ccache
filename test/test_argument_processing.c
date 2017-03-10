@@ -81,7 +81,7 @@ TEST(dash_M_should_be_unsupported)
 
 	create_file("foo.c", "");
 	CHECK(!cc_process_args(orig, &preprocessed, &compiler));
-	CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED));
+	CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED_OPTION));
 
 	args_free(orig);
 }
