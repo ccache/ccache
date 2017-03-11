@@ -267,7 +267,7 @@ static bool
 compiler_is_msvc(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "cl") != NULL;
+	bool result = str_eq(name, "cl") || str_eq(name, "cl.exe");
 	free(name);
 	return result;
 }
