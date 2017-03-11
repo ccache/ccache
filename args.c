@@ -66,8 +66,8 @@ args_init_from_gcc_atfile(const char *filename)
 	while (1) {
 		switch (*pos) {
 		case '\\':
-			pos++;
-			if (*pos == '\0') {
+			if (pos[1] == '\0') {
+				pos++;
 				continue;
 			}
 			break;
@@ -206,7 +206,7 @@ void
 args_add(struct args *args, const char *s)
 {
 	args->argv = (char **)x_realloc(args->argv,
-	                                (args->argc + 2) * sizeof(char *));
+									(args->argc + 2) * sizeof(char *));
 	args->argv[args->argc] = x_strdup(s);
 	args->argc++;
 	args->argv[args->argc] = NULL;
@@ -255,9 +255,9 @@ void
 args_add_prefix(struct args *args, const char *s)
 {
 	args->argv = (char **)x_realloc(args->argv,
-	                                (args->argc + 2) * sizeof(char *));
+									(args->argc + 2) * sizeof(char *));
 	memmove(&args->argv[1], &args->argv[0],
-	        (args->argc+1) * sizeof(args->argv[0]));
+			(args->argc+1) * sizeof(args->argv[0]));
 	args->argv[0] = x_strdup(s);
 	args->argc++;
 }
@@ -270,8 +270,8 @@ args_strip(struct args *args, const char *prefix)
 		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],
-			        &args->argv[i+1],
-			        (args->argc - i) * sizeof(args->argv[i]));
+					&args->argv[i+1],
+					(args->argc - i) * sizeof(args->argv[i]));
 			args->argc--;
 		} else {
 			i++;
