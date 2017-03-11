@@ -919,6 +919,11 @@ get_extension(const char *path)
 		if (*p == '/') {
 			break;
 		}
+#ifdef _WIN32
+		if (*p == '\\') {
+			break;
+		}
+#endif
 	}
 	return &path[len];
 }

@@ -3053,9 +3053,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	if (input_file
 	 && compiler_is_msvc(args)
 	 && output_obj && (str_endswith(output_obj, "/") || str_endswith(output_obj, "\\"))) {
-		char* base = remove_extension(input_file);
-		char* obj = format("%s/%s.obj", output_obj, base);
+		char* base = basename(input_file);
+		char* next = remove_extension(base);
+		char* obj = format("%s%s.obj", output_obj, next);
 		free(output_obj); output_obj = obj;
+		free(next);
 		free(base);
 	}
 
