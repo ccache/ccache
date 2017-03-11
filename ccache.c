@@ -1171,8 +1171,8 @@ to_cache(struct args *args)
 		args_add(args, fo);
 		free(fo);
 	} else {
-	args_add(args, "-o");
-	args_add(args, output_obj);
+		args_add(args, "-o");
+		args_add(args, output_obj);
 	}
 
 	if (output_dia) {
@@ -2449,10 +2449,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				continue;
 			}
 		} else {
-		if (str_startswith(argv[i], "-o")) {
-			output_obj = make_relative_path(x_strdup(&argv[i][2]));
-			continue;
-		}
+			if (str_startswith(argv[i], "-o")) {
+				output_obj = make_relative_path(x_strdup(&argv[i][2]));
+				continue;
+			}
 		}
 
 		if (str_eq(argv[i], "-gsplit-dwarf")) {
@@ -2804,7 +2804,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Same as above but options with concatenated argument beginning with a
 		// slash.
-		if (argv[i][0] == '-' || compiler_is_msvc(args) && argv[i][0] == '/') {
+		if (argv[i][0] == '-' || (compiler_is_msvc(args) && argv[i][0] == '/')) {
 			char *slash_pos = strchr(argv[i], '/');
 			if (slash_pos) {
 				char *option = x_strndup(argv[i], slash_pos - argv[i]);
@@ -2848,7 +2848,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Other options.
-		if (argv[i][0] == '-' || compiler_is_msvc(args) && argv[i][0] == '/') {
+		if (argv[i][0] == '-' || (compiler_is_msvc(args) && argv[i][0] == '/')) {
 			if (compopt_affects_cpp(argv[i])
 				|| compopt_prefix_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
@@ -3047,6 +3047,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		char *base_name = remove_extension(output_obj);
 		output_dwo = format("%s.dwo", base_name);
 		free(base_name);
+	}
+
+	// Cope with -FoDebug/ directory name
+	if (input_file
+	 && compiler_is_msvc(args)
+	 && output_obj && (str_endswith(output_obj, "/") || str_endswith(output_obj, "\\"))) {
+		char* base = remove_extension(input_file);
+		char* obj = format("%s/%s.obj", output_obj, base);
+		free(output_obj); output_obj = obj;
+		free(base);
 	}
 
 	// Cope with -o /dev/null.
