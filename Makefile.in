@@ -23,30 +23,30 @@ all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 non_3pp_sources = \
-    args.c \
-    ccache.c \
-    cleanup.c \
-    compopt.c \
-    conf.c \
-    counters.c \
-    execute.c \
-    exitfn.c \
-    hash.c \
-    hashutil.c \
-    language.c \
-    lockfile.c \
-    manifest.c \
-    mdfour.c \
-    stats.c \
-    unify.c \
-    util.c \
-    version.c
+	args.c \
+	ccache.c \
+	cleanup.c \
+	compopt.c \
+	conf.c \
+	counters.c \
+	execute.c \
+	exitfn.c \
+	hash.c \
+	hashutil.c \
+	language.c \
+	lockfile.c \
+	manifest.c \
+	mdfour.c \
+	stats.c \
+	unify.c \
+	util.c \
+	version.c
 3pp_sources = \
-    getopt_long.c \
-    hashtable.c \
-    hashtable_itr.c \
-    murmurhashneutral2.c \
-    snprintf.c
+	getopt_long.c \
+	hashtable.c \
+	hashtable_itr.c \
+	murmurhashneutral2.c \
+	snprintf.c
 base_sources = $(non_3pp_sources) $(3pp_sources)
 base_objs = $(base_sources:.c=.o)
 
@@ -54,13 +54,13 @@ ccache_sources = main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
 
 zlib_sources = \
-    zlib/adler32.c zlib/crc32.c zlib/deflate.c zlib/gzclose.c zlib/gzlib.c \
-    zlib/gzread.c zlib/gzwrite.c zlib/inffast.c zlib/inflate.c \
-    zlib/inftrees.c zlib/trees.c zlib/zutil.c
+	zlib/adler32.c zlib/crc32.c zlib/deflate.c zlib/gzclose.c zlib/gzlib.c \
+	zlib/gzread.c zlib/gzwrite.c zlib/inffast.c zlib/inflate.c \
+	zlib/inftrees.c zlib/trees.c zlib/zutil.c
 zlib_objs = $(zlib_sources:.c=.o)
 
 test_suites = @test_suites@
-test_sources = test/main.c test/framework.c test/util.c $(test_suites)
+test_sources = test/main.c test/framework.c test/more_util.c $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
