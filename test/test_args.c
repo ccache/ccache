@@ -60,8 +60,15 @@ TEST(args_init_from_gcc_atfile)
 {
 	struct args *args;
 	const char *argtext =
+#ifdef _WIN32
+    // On windows, we need to keep any \ that are directory delimiter.
+    // So use quotes to put space in arguments.
+      "first\r'sec\tond'\tthi\\rd\nfourth  \t\"fif th\" \"si'x\\\" th\""
+      " 'seve\nth'\\"
+#else
 	  "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
 	  " 'seve\nth'\\";
+#endif
 
 	create_file("gcc_atfile", argtext);
 

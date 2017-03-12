@@ -65,11 +65,16 @@ args_init_from_gcc_atfile(const char *filename)
 
 	while (1) {
 		switch (*pos) {
+#ifdef _WIN32
+        // On windows, we need to keep any \ that are directory delimiter...
+#else
 		case '\\':
-			if (pos[1] == '\0') {
-				pos++;
+            // On gcc, standard syntax is that \ means next char is taken verbatim.
+			pos++;
+			if (*pos == '\0') {
 				continue;
 			}
+#endif
 			break;
 
 		case '\"':
