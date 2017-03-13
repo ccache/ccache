@@ -1,18 +1,22 @@
 # Check compilation both on 32 and 64 bit platforms
 platform:
-    - x86
     - x64
+    - x86
 
 # Try compilation with the three current compilers available
 image:
-    - Visual Studio 2013
     - Visual Studio 2015
     - Visual Studio 2017
+#   - Visual Studio 2013
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
     only:
         - windows
+
+# Stops on first failing combination
+matrix:
+  fast_finish: true
 
 environment:
   global:
@@ -22,8 +26,9 @@ environment:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
 
 build_script:
-    - $WITH_COMPILER qmake ccache.pro
+    - $WITH_COMPILER ./autogen.sh
+    - $WITH_COMPILER ./configure
     - $WITH_COMPILER nmake
 
 test_script:
-    - WITH_COMPILER nmake test
+    - $WITH_COMPILER nmake test
