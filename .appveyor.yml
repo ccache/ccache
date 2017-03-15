@@ -26,10 +26,10 @@ matrix:
 
 install:
     # Have Visual 2015 compiler (cl.exe) in path
-    - C:\Program Files (x86)/Microsoft Visual Studio 12.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat
+    - C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio\ 12.0/VC/bin/x86_amd64/vcvarsx86_amd64.bat
 
     # Have MSYS2 in path
-    - PATH=C:\MSYS64\usr\bin;%PATH%
+    - PATH=C:/MSYS64/usr/bin;%PATH%
 
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
