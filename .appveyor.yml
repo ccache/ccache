@@ -32,34 +32,36 @@ install:
     # ==== Use Windows SDK 10.0
     - SET SDK=C:\Program Files (x86)\Windows Kits\10\
 
-    # Windows 10 Anniversary:
+    # ==== Windows 10 Anniversary Release:
     - SET SDK_VERSION=10.0.14393.0
-
-    # Windows 10 Release:
     - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
         echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2
         exit /B 100
       )
-    - SET SDK_LIB=%SDK%Lib\%SDK_VERSION%\
-    - SET SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
-    - SET PATH=%SDK%Bin\x64;%PATH%
-    - SET INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
-    - SET LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
-    - SET LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
+
+    # ==== Set needed env vars
+    - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
+    - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
+    - set PATH=%SDK%Bin\x64;%PATH%
+    - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
+    - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
+    - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
     -
-    - SET PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
-    - SET INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
-    - SET LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
-    - SET LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
+    - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
+    - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
+    - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
+    - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
 
     # Have MSYS2 in path
     - set PATH=C:\MSYS64\usr\bin;%PATH%
+
+    # Misc
+    - set LC_ALL=C
 
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
 
 build_script:
-    - export LC_ALL=C
     - ./autogen.sh
     - ./configure
     - make
