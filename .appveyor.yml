@@ -9,11 +9,8 @@ platform:
     - x64
     - x86
 
-# Try compilation with the three current compilers available
-image:
-    - Visual Studio 2015
-    - Visual Studio 2017
-#   - Visual Studio 2013
+# MSVC2015 image have many stuff we need.
+image: Visual Studio 2015
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
@@ -60,6 +57,12 @@ install:
 
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
+
+    # Dump environment
+    - set
+    - where cl.exe
+    - bash printenv
+    - bash which g++
 
 build_script:
     - bash autogen.sh
