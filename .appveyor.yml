@@ -55,16 +55,16 @@ install:
     # Have MSYS2 in path
     - set PATH=C:\MSYS64\usr\bin;%PATH%
 
-    # Misc
+    # Misc.
     - set LC_ALL=C
 
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
 
 build_script:
-    - ./autogen.sh
-    - ./configure
+    - bash autogen.sh
+    - bash configure
     - make
 
 test_script:
-    - MSYS make test
+    - make test
