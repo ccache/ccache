@@ -816,8 +816,8 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 		return;
 	}
 
-	#define FNAME data.cFileName
-	#define NEXT  FindNextFile(h, &data)
+	#define FNAME   data.cFileName
+	#define NEXT()  FindNextFile(h, &data)
 #else
 	DIR *d = opendir(dir);
 	if (!d) {
@@ -826,8 +826,8 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 	struct dirent *de;
 	#define  FNAME   de->d_name
-	#define  NEXT    (de = readdir(d))
-	NEXT
+	#define  NEXT()  (de = readdir(d))
+	NEXT();
 #endif
 
 	do {
