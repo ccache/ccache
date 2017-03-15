@@ -1,5 +1,8 @@
+# Notes:
+# See https://ci.appveyor.com/tools/validate-yaml for syntax validation.
+
 # Simple versioning scheme
-version: {build}
+version: '{build}'
 
 # Check compilation both on 32 and 64 bit platforms
 platform:
@@ -20,8 +23,6 @@ branches:
 # Stops on first failing combination
 matrix:
   fast_finish: true
-
-environment:
 
 install:
     - MSYS pacman -S --needed --noconfirm autoconf make perl
