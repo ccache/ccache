@@ -29,10 +29,10 @@ install:
 
 build_script:
     - C:\Program Files (x86)/Microsoft Visual Studio 12.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat
-    - MSYS export LC_ALL=C
-    - MSYS ./autogen.sh
-    - MSYS ./configure
-    - MSYS make
+    - export LC_ALL=C
+    - ./autogen.sh
+    - ./configure
+    - make
 
 test_script:
     - MSYS make test
