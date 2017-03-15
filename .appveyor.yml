@@ -1,3 +1,6 @@
+# Simple versioning scheme
+version: {build}
+
 # Check compilation both on 32 and 64 bit platforms
 platform:
     - x64
@@ -19,16 +22,16 @@ matrix:
   fast_finish: true
 
 environment:
-  global:
-    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
-    # /E:ON and /V:ON options are not enabled in the batch script intepreter
-    # See: http://stackoverflow.com/a/13751649/163740
-    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
+
+install:
+    - MSYS pacman -S --needed --noconfirm autoconf make perl
 
 build_script:
-    - $WITH_COMPILER ./autogen.sh
-    - $WITH_COMPILER ./configure
-    - $WITH_COMPILER nmake
+    - "C:\Program Files (x86)/Microsoft Visual Studio 12.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat"
+    - MSYS export LC_ALL=C
+    - MSYS ./autogen.sh
+    - MSYS ./configure
+    - MSYS make
 
 test_script:
-    - $WITH_COMPILER nmake test
+    - MSYS make test
