@@ -1,5 +1,5 @@
 /* Copyright (C) 2002, 2004 Christopher Clark  <firstname.lastname@cl.cam.ac.uk>
-   */
+ */
 
 #include "hashtable.h"
 #include "hashtable_private.h"
@@ -41,7 +41,7 @@ hashtable_iterator(struct hashtable *h)
 /*****************************************************************************/
 /* key      - return the key of the (key,value) pair at the current position */
 /* value    - return the value of the (key,value) pair at the current position
-   */
+ */
 
 void *
 hashtable_iterator_key(struct hashtable_itr *i)

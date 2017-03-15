@@ -1,5 +1,5 @@
 /* Copyright (C) 2002, 2004 Christopher Clark <firstname.lastname@cl.cam.ac.uk>
-   */
+ */
 
 #ifndef __HASHTABLE_ITR_CWC22__
 #define __HASHTABLE_ITR_CWC22__
