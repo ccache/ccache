@@ -1,10 +1,19 @@
-# Notes:
-# See https://ci.appveyor.com/tools/validate-yaml for syntax validation.
+#-----------------------------------------------------------------------------
+# See:
+#   Syntax validator: https://ci.appveyor.com/tools/validate-yaml
+#
+#   MSYS2 build environment and example:
+#       http://www.msys2.org/
+#       https://project-renard.github.io/doc/development/meeting-log/posts/2016/05/03/windows-build-with-msys2/
+#
+#   MSYS2 packages available, in a suitable MSYS window.
+#       pacman -list
+#-----------------------------------------------------------------------------
 
-# Simple versioning scheme
+# Simple versioning scheme.
 version: '{build}'
 
-# Check compilation both on 32 and 64 bit platforms
+# Check compilation both on 32 and 64 bit platforms.
 platform:
     - x64
     - x86
@@ -17,7 +26,7 @@ branches:
     only:
         - windows
 
-# Stops on first failing combination
+# Stops on first failing matrix combination
 matrix:
   fast_finish: true
 
@@ -48,27 +57,21 @@ install:
     - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
     - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
     - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
-    - set CC=cl.exe
 
     # Have MSYS2 in path
     - set PATH=C:\MSYS64\usr\bin;%PATH%
 
     # Misc.
+    - set CC=cl.exe
     - set LC_ALL=C
 
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
 
-    # Dump environment
-    - set
-    - where cl.exe
-    - printenv
-    - which g++
-
 build_script:
     - bash autogen.sh
-    - bash configure
-    - make
+    - bash configure --help
+    - make -f Makefine.in
 
 test_script:
     - make test
