@@ -18,14 +18,14 @@
 #define CCACHE_SYSTEM_H
 
 #ifdef WIN32
-#	include "config_win32.h"
+# include "config_win32.h"
 #   include <windows.h>
 #   include <direct.h>
 #   include <io.h>
 #   include <process.h>
 #   include <stdint.h>
 #else
-#	include "config.h"
+# include "config.h"
 #   include <sys/file.h>
 #   include <dirent.h>
 #   include <unistd.h>
@@ -62,11 +62,11 @@
 #include <time.h>
 
 #ifdef WIN32
-	_CRTIMP extern char **environ;
-	typedef int pid_t;
-	typedef SSIZE_T ssize_t;
+_CRTIMP extern char **environ;
+typedef int pid_t;
+typedef SSIZE_T ssize_t;
 #else
-	extern char **environ;
+extern char **environ;
 #endif
 
 #ifndef ESTALE
@@ -74,20 +74,20 @@
 #endif
 
 #if !HAVE_VSNPRINTF
-  int rpl_vsnprintf(char *, size_t, const char *, va_list);
-  #define vsnprintf rpl_vsnprintf
+int rpl_vsnprintf(char *, size_t, const char *, va_list);
+	#define vsnprintf rpl_vsnprintf
 #endif
 #if !HAVE_SNPRINTF
-  int rpl_snprintf(char *, size_t, const char *, ...);
-  #define snprintf rpl_snprintf
+int rpl_snprintf(char *, size_t, const char *, ...);
+	#define snprintf rpl_snprintf
 #endif
 #if !HAVE_VASPRINTF
-  int rpl_vasprintf(char **, const char *, va_list);
-  #define vasprintf rpl_vasprintf
+int rpl_vasprintf(char **, const char *, va_list);
+	#define vasprintf rpl_vasprintf
 #endif
 #if !HAVE_ASPRINTF
-  int rpl_asprintf(char **, const char *, ...);
-  #define asprintf rpl_asprintf
+int rpl_asprintf(char **, const char *, ...);
+	#define asprintf rpl_asprintf
 #endif
 
 #ifdef HAVE_STDBOOL_H

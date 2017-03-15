@@ -22,7 +22,7 @@
 // ============================================================================
 
 #define TEST_SUITE(name) \
-	unsigned suite_##name(unsigned _start_point) \
+	unsigned suite_ ## name(unsigned _start_point) \
 	{ \
 		unsigned _test_counter = 0; \
 		cct_suite_begin(#name); \
@@ -30,18 +30,18 @@
 			// Empty due to macro trickery.
 
 #define TEST(name) \
-			cct_test_end(); \
-		} \
-		++_test_counter; \
-		{ static int name = 0; (void)name; /* Verify test name. */ } \
-		if (_test_counter >= _start_point) { \
-			cct_test_begin(#name);
+	cct_test_end(); \
+	} \
+	++_test_counter; \
+	{ static int name = 0; (void)name; /* Verify test name. */ } \
+	if (_test_counter >= _start_point) { \
+		cct_test_begin(#name);
 
 #define TEST_SUITE_END \
-			cct_test_end(); \
-		} \
-		cct_suite_end(); \
-		return 0; /* We have reached the end. */ \
+	cct_test_end(); \
+	} \
+	cct_suite_end(); \
+	return 0;   /* We have reached the end. */ \
 	}
 
 // ============================================================================
@@ -63,7 +63,7 @@
 
 #define CHECK_POINTER_EQ_BASE(t, e, a, f1, f2) \
 	do { \
-		if (!cct_check_##t##_eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
+		if (!cct_check_ ## t ## _eq(__FILE__, __LINE__, #a, (e), (a), (f1), (f2))) { \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \
@@ -87,7 +87,7 @@
 #define CHECK_FLOAT_EQ(expected, actual) \
 	do { \
 		if (!cct_check_float_eq(__FILE__, __LINE__, #actual, (expected), \
-		                      (actual))) { \
+		                        (actual))) { \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \

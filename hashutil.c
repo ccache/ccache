@@ -89,8 +89,8 @@ check_for_temporal_macros(const char *str, size_t len)
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
 hash_source_code_string(
-  struct conf *conf, struct mdfour *hash, const char *str, size_t len,
-  const char *path)
+	struct conf *conf, struct mdfour *hash, const char *str, size_t len,
+	const char *path)
 {
 	int result = HASH_SOURCE_CODE_OK;
 
@@ -216,7 +216,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 		win32args = (char *)command;  // quoted
 	}
 	BOOL ret =
-	  CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+		CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
@@ -270,7 +270,8 @@ hash_command_output(struct mdfour *hash, const char *command,
 		close(pipefd[1]);
 		bool ok = hash_fd(hash, pipefd[0]);
 		if (!ok) {
-			cc_log("Error hashing compiler check command output: %s", strerror(errno));
+			cc_log("Error hashing compiler check command output: %s",
+			       strerror(errno));
 			stats_update(STATS_COMPCHECK);
 		}
 		close(pipefd[0]);

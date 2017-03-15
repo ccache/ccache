@@ -173,9 +173,9 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 	}
 
 	dest->argv = (char **)x_realloc(
-	  dest->argv,
-	  (src->argc + dest->argc + 1 - offset) *
-	  sizeof(char *));
+		dest->argv,
+		(src->argc + dest->argc + 1 - offset) *
+		sizeof(char *));
 
 	// Shift arguments over.
 	for (int i = dest->argc; i >= index + offset; i--) {
@@ -211,7 +211,7 @@ void
 args_add(struct args *args, const char *s)
 {
 	args->argv = (char **)x_realloc(args->argv,
-									(args->argc + 2) * sizeof(char *));
+	                                (args->argc + 2) * sizeof(char *));
 	args->argv[args->argc] = x_strdup(s);
 	args->argc++;
 	args->argv[args->argc] = NULL;
@@ -260,9 +260,9 @@ void
 args_add_prefix(struct args *args, const char *s)
 {
 	args->argv = (char **)x_realloc(args->argv,
-									(args->argc + 2) * sizeof(char *));
+	                                (args->argc + 2) * sizeof(char *));
 	memmove(&args->argv[1], &args->argv[0],
-			(args->argc+1) * sizeof(args->argv[0]));
+	        (args->argc+1) * sizeof(args->argv[0]));
 	args->argv[0] = x_strdup(s);
 	args->argc++;
 }
@@ -275,8 +275,8 @@ args_strip(struct args *args, const char *prefix)
 		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],
-					&args->argv[i+1],
-					(args->argc - i) * sizeof(args->argv[i]));
+			        &args->argv[i+1],
+			        (args->argc - i) * sizeof(args->argv[i]));
 			args->argc--;
 		} else {
 			i++;

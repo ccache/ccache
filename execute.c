@@ -166,8 +166,8 @@ win32execute(char *path, char **argv, int doreturn,
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
 	BOOL ret =
-	  CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-	                &si, &pi);
+		CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+		              &si, &pi);
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
@@ -177,20 +177,21 @@ win32execute(char *path, char **argv, int doreturn,
 		LPVOID lpMsgBuf;
 		DWORD dw = GetLastError();
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
-		  0, NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+			0, NULL);
 
 		LPVOID lpDisplayBuf =
-		  (LPVOID) LocalAlloc(LMEM_ZEROINIT,
-		                      (lstrlen((LPCTSTR) lpMsgBuf)
-		                       + lstrlen((LPCTSTR) __FILE__) + 200)
-		                      * sizeof(TCHAR));
+			(LPVOID) LocalAlloc(LMEM_ZEROINIT,
+			                    (lstrlen((LPCTSTR) lpMsgBuf)
+			                     + lstrlen((LPCTSTR) __FILE__) + 200)
+			                    * sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
 		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-				  TEXT("%s failed with error %d: %s"), __FILE__, dw, (char*)lpMsgBuf);
+		          TEXT(
+								"%s failed with error %d: %s"), __FILE__, dw, (char *)lpMsgBuf);
 
 		cc_log("can't execute %s; OS returned error: %s",
 		       full_path_win_ext, (char *)lpDisplayBuf);

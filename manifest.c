@@ -67,7 +67,7 @@ static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
 #define ccache_static_assert(e) \
-  do { enum { ccache_static_assert__ = 1/(e) }; } while (false)
+	do { enum { ccache_static_assert__ = 1/(e) }; } while (false)
 
 struct file_info {
 	// Index to n_files.
@@ -155,7 +155,7 @@ free_manifest(struct manifest *mf)
 }
 
 #define READ_BYTE(var) \
-  do { \
+	do { \
 		int ch_ = gzgetc(f); \
 		if (ch_ == EOF) { \
 			goto error; \
@@ -164,7 +164,7 @@ free_manifest(struct manifest *mf)
 	} while (false)
 
 #define READ_INT(size, var) \
-  do { \
+	do { \
 		uint64_t u_ = 0; \
 		for (size_t i_ = 0; i_ < (size); i_++) { \
 			int ch_ = gzgetc(f); \
@@ -178,7 +178,7 @@ free_manifest(struct manifest *mf)
 	} while (false)
 
 #define READ_STR(var) \
-  do { \
+	do { \
 		char buf_[1024]; \
 		size_t i_; \
 		for (i_ = 0; i_ < sizeof(buf_); i_++) { \
@@ -198,7 +198,7 @@ free_manifest(struct manifest *mf)
 	} while (false)
 
 #define READ_BYTES(n, var) \
-  do { \
+	do { \
 		for (size_t i_ = 0; i_ < (n); i_++) { \
 			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
@@ -271,8 +271,8 @@ read_manifest(gzFile f)
 	for (uint32_t i = 0; i < mf->n_objects; i++) {
 		READ_INT(4, mf->objects[i].n_file_info_indexes);
 		mf->objects[i].file_info_indexes =
-		  x_calloc(mf->objects[i].n_file_info_indexes,
-		           sizeof(*mf->objects[i].file_info_indexes));
+			x_calloc(mf->objects[i].n_file_info_indexes,
+			         sizeof(*mf->objects[i].file_info_indexes));
 		for (uint32_t j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
@@ -289,7 +289,7 @@ error:
 }
 
 #define WRITE_INT(size, var) \
-  do { \
+	do { \
 		uint64_t u_ = (var); \
 		uint8_t ch_; \
 		size_t i_; \
@@ -302,14 +302,14 @@ error:
 	} while (false)
 
 #define WRITE_STR(var) \
-  do { \
+	do { \
 		if (gzputs(f, var) == EOF || gzputc(f, '\0') == EOF) { \
 			goto error; \
 		} \
 	} while (false)
 
 #define WRITE_BYTES(n, var) \
-  do { \
+	do { \
 		size_t i_; \
 		for (i_ = 0; i_ < (n); i_++) { \
 			if (gzputc(f, (var)[i_]) == EOF) { \
@@ -422,7 +422,7 @@ static struct hashtable *
 create_string_index_map(char **strings, uint32_t len)
 {
 	struct hashtable *h =
-	  create_hashtable(1000, hash_from_string, strings_equal);
+		create_hashtable(1000, hash_from_string, strings_equal);
 	for (uint32_t i = 0; i < len; i++) {
 		uint32_t *index = x_malloc(sizeof(*index));
 		*index = i;
@@ -435,7 +435,7 @@ static struct hashtable *
 create_file_info_index_map(struct file_info *infos, uint32_t len)
 {
 	struct hashtable *h =
-	  create_hashtable(1000, hash_from_file_info, file_infos_equal);
+		create_hashtable(1000, hash_from_file_info, file_infos_equal);
 	for (uint32_t i = 0; i < len; i++) {
 		struct file_info *fi = x_malloc(sizeof(*fi));
 		*fi = infos[i];
@@ -513,10 +513,10 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 
 	// path --> index
 	struct hashtable *mf_files =
-	  create_string_index_map(mf->files, mf->n_files);
+		create_string_index_map(mf->files, mf->n_files);
 	// struct file_info --> index
 	struct hashtable *mf_file_infos =
-	  create_file_info_index_map(mf->file_infos, mf->n_file_infos);
+		create_file_info_index_map(mf->file_infos, mf->n_file_infos);
 	struct hashtable_itr *iter = hashtable_iterator(included_files);
 	uint32_t i = 0;
 	do {

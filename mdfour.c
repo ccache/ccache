@@ -29,11 +29,11 @@ static struct mdfour *m;
 #define lshift(x, s) (((((x)<<(s))&MASK32) | (((x)>>(32-(s)))&MASK32)))
 
 #define ROUND1(a, b, c, d, k, s) \
-  a = lshift((a + F(b, c, d) + M[k])&MASK32, s)
+	a = lshift((a + F(b, c, d) + M[k])&MASK32, s)
 #define ROUND2(a, b, c, d, k, s) \
-  a = lshift((a + G(b, c, d) + M[k] + 0x5A827999)&MASK32, s)
+	a = lshift((a + G(b, c, d) + M[k] + 0x5A827999)&MASK32, s)
 #define ROUND3(a, b, c, d, k, s) \
-  a = lshift((a + H(b, c, d) + M[k] + 0x6ED9EBA1)&MASK32, s)
+	a = lshift((a + H(b, c, d) + M[k] + 0x6ED9EBA1)&MASK32, s)
 
 // This applies md4 to 64 byte chunks.
 static void

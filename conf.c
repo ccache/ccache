@@ -210,9 +210,9 @@ verify_dir_levels(void *value, char **errmsg)
 }
 
 #define ITEM(name, type) \
-  parse_ ## type, offsetof(struct conf, name), NULL
+	parse_ ## type, offsetof(struct conf, name), NULL
 #define ITEM_V(name, type, verification) \
-  parse_ ## type, offsetof(struct conf, name), verify_ ## verification
+	parse_ ## type, offsetof(struct conf, name), verify_ ## verification
 
 #include "confitems_lookup.c"
 #include "envtoconfitems_lookup.c"
@@ -366,7 +366,7 @@ conf_free(struct conf *conf)
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
 	free(conf->temporary_dir);
-	free((void*)conf->item_origins);
+	free((void *)conf->item_origins);
 	free(conf);
 }
 
@@ -448,8 +448,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 
 		char *errmsg2;
 		if (!handle_conf_setting(
-		      conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
-		      "environment")) {
+					conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
+					"environment")) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);
@@ -578,7 +578,7 @@ conf_print_items(struct conf *conf,
 	reformat(&s, "keep_comments_cpp = %s",
 	         bool_to_string(conf->keep_comments_cpp));
 	printer(s, conf->item_origins[find_conf(
-	                                "keep_comments_cpp")->number], context);
+																	"keep_comments_cpp")->number], context);
 
 	reformat(&s, "limit_multiple = %.1f", (double)conf->limit_multiple);
 	printer(s, conf->item_origins[find_conf("limit_multiple")->number], context);
@@ -602,7 +602,7 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "prefix_command_cpp = %s", conf->prefix_command_cpp);
 	printer(s, conf->item_origins[find_conf(
-	                                "prefix_command_cpp")->number], context);
+																	"prefix_command_cpp")->number], context);
 
 	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
 	printer(s, conf->item_origins[find_conf("read_only")->number], context);

@@ -1,33 +1,33 @@
 /*
-  Copyright (c) 2002, 2004, Christopher Clark
-  All rights reserved.
+   Copyright (c) 2002, 2004, Christopher Clark
+   All rights reserved.
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
 
-	* Redistributions of source code must retain the above copyright notice,
-	  this list of conditions and the following disclaimer.
+ * Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
 
-	* Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+ * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
 
-	* Neither the name of the original author; nor the names of any
-	  contributors may be used to endorse or promote products derived from this
-	  software without specific prior written permission.
+ * Neither the name of the original author; nor the names of any
+    contributors may be used to endorse or promote products derived from this
+    software without specific prior written permission.
 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE.
-*/
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #ifndef __HASHTABLE_CWC22_H__
 #define __HASHTABLE_CWC22_H__
@@ -104,8 +104,8 @@ struct hashtable;
 
 struct hashtable *
 create_hashtable(unsigned int minsize,
-				 unsigned int (*hashfunction) (void*),
-				 int (*key_eq_fn) (void*,void*));
+                 unsigned int (*hashfunction)(void *),
+                 int (*key_eq_fn)(void *, void *));
 
 /*****************************************************************************
  * hashtable_insert
@@ -130,10 +130,10 @@ int
 hashtable_insert(struct hashtable *h, void *k, void *v);
 
 #define DEFINE_HASHTABLE_INSERT(fnname, keytype, valuetype) \
-int fnname (struct hashtable *h, keytype *k, valuetype *v) \
-{ \
-	return hashtable_insert(h,k,v); \
-}
+	int fnname(struct hashtable *h, keytype *k, valuetype *v) \
+	{ \
+		return hashtable_insert(h, k, v); \
+	}
 
 /*****************************************************************************
  * hashtable_search
@@ -148,10 +148,10 @@ void *
 hashtable_search(struct hashtable *h, void *k);
 
 #define DEFINE_HASHTABLE_SEARCH(fnname, keytype, valuetype) \
-valuetype * fnname (struct hashtable *h, keytype *k) \
-{ \
-	return (valuetype *) (hashtable_search(h,k)); \
-}
+	valuetype *fnname(struct hashtable *h, keytype *k) \
+	{ \
+		return (valuetype *) (hashtable_search(h, k)); \
+	}
 
 /*****************************************************************************
  * hashtable_remove
@@ -166,10 +166,10 @@ void * /* returns value */
 hashtable_remove(struct hashtable *h, void *k);
 
 #define DEFINE_HASHTABLE_REMOVE(fnname, keytype, valuetype) \
-valuetype * fnname (struct hashtable *h, keytype *k) \
-{ \
-	return (valuetype *) (hashtable_remove(h,k)); \
-}
+	valuetype * fnname(struct hashtable *h, keytype *k) \
+	{ \
+		return (valuetype *) (hashtable_remove(h, k)); \
+	}
 
 
 /*****************************************************************************
@@ -227,4 +227,4 @@ hashtable_destroy(struct hashtable *h, int free_values);
  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */

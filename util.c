@@ -81,7 +81,7 @@ log_prefix(bool log_updated_time)
 #endif
 		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
 		snprintf(prefix, sizeof(prefix),
-				 "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
+						 "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
 	}
 	fputs(prefix, logfile);
 #else
@@ -115,7 +115,7 @@ warn_log_fail(void)
 
 	// Note: Can't call fatal() since that would lead to recursion.
 	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
-			conf->log_file, strerror(errno));
+					conf->log_file, strerror(errno));
 	x_exit(EXIT_FAILURE);
 }
 
@@ -272,7 +272,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	char *tmp_name = x_strdup(dest);
 	fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
-		   src, dest, tmp_name, compress_level > 0 ? "" : "un");
+				 src, dest, tmp_name, compress_level > 0 ? "" : "un");
 
 	// Open source file.
 	int fd_in = open(src, O_RDONLY | O_BINARY);
@@ -334,8 +334,8 @@ copy_file(const char *src, const char *dest, int compress_level)
 			if (compress_level > 0) {
 				int errnum;
 				cc_log("gzwrite error: %s (errno: %s)",
-					   gzerror(gz_in, &errnum),
-					   strerror(saved_errno));
+							 gzerror(gz_in, &errnum),
+							 strerror(saved_errno));
 			} else {
 				cc_log("write error: %s", strerror(saved_errno));
 			}
@@ -350,7 +350,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	if (!gzeof(gz_in) || (errnum != Z_OK && errnum != Z_STREAM_END)) {
 		saved_errno = errno;
 		cc_log("gzread error: %s (errno: %s)",
-			   gzerror(gz_in, &errnum), strerror(saved_errno));
+					 gzerror(gz_in, &errnum), strerror(saved_errno));
 		gzclose(gz_in);
 		if (gz_out) {
 			gzclose(gz_out);
@@ -544,20 +544,20 @@ get_hostname(void)
 		DWORD dw = WSAGetLastError();
 
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		  (LPTSTR) &lp_msg_buf, 0, NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR) &lp_msg_buf, 0, NULL);
 
 		LPVOID lp_display_buf = (LPVOID) LocalAlloc(
-		  LMEM_ZEROINIT,
-		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 200)
-		  * sizeof(TCHAR));
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 200)
+			* sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
-				  LocalSize(lp_display_buf) / sizeof(TCHAR),
-				  TEXT("%s failed with error %d: %s"), __FILE__, dw,
-				  (char*)lp_msg_buf);
+							LocalSize(lp_display_buf) / sizeof(TCHAR),
+							TEXT("%s failed with error %d: %s"), __FILE__, dw,
+							(char *)lp_msg_buf);
 
 		cc_log("can't get hostname OS returned error: %s", (char *)lp_display_buf);
 
@@ -600,10 +600,10 @@ format_hash_as_string(const unsigned char *hash, int size)
 }
 
 char const CACHEDIR_TAG[] =
-  "Signature: 8a477f597d28d172789f06886806bc55\n"
-  "# This file is a cache directory tag created by ccache.\n"
-  "# For information about cache directory tags, see:\n"
-  "#\thttp://www.brynosaurus.com/cachedir/\n";
+	"Signature: 8a477f597d28d172789f06886806bc55\n"
+	"# This file is a cache directory tag created by ccache.\n"
+	"# For information about cache directory tags, see:\n"
+	"#\thttp://www.brynosaurus.com/cachedir/\n";
 
 int
 create_cachedirtag(const char *dir)
@@ -810,13 +810,14 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 {
 #ifdef _WIN32
 	WIN32_FIND_DATA data;
-	#define FNAME data.cFileName
 
 	HANDLE h = FindFirstFile(dir, &data);
-	if( h == INVALID_HANDLE_VALUE )
+	if (h == INVALID_HANDLE_VALUE) {
 		return;
+	}
 
-	do {
+	#define FNAME data.cFileName
+	#define NEXT  FindNextFile(h, &data)
 #else
 	DIR *d = opendir(dir);
 	if (!d) {
@@ -825,8 +826,11 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 	struct dirent *de;
 	#define  FNAME   de->d_name
-	while ((de = readdir(d))) {
+	#define  NEXT    (de = readdir(d))
+	NEXT
 #endif
+
+	do {
 		if (str_eq(FNAME, ".")) {
 			continue;
 		}
@@ -854,11 +858,11 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fn(fname, &st);
 		free(fname);
+	} while(NEXT);
+
 #ifdef _WIN32
-	} while( FindNextFile(h, &data) );
 	FindClose(h);
 #else
-	}
 	closedir(d);
 #endif
 }
@@ -1028,10 +1032,10 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 
 
 #if !defined(HAVE_REALPATH) && \
-  defined(_WIN32) && \
-  !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
+	defined(_WIN32) && \
+	!defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
-								  WORD cch_filename)
+																	WORD cch_filename)
 {
 	BOOL success = FALSE;
 
@@ -1045,7 +1049,7 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 
 	// Create a file mapping object.
 	HANDLE file_map =
-	  CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
+		CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
 	if (!file_map) {
 		return FALSE;
 	}
@@ -1054,9 +1058,9 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 	void *mem = MapViewOfFile(file_map, FILE_MAP_READ, 0, 0, 1);
 	if (mem) {
 		if (GetMappedFileName(GetCurrentProcess(),
-							  mem,
-							  filename,
-							  cch_filename)) {
+													mem,
+													filename,
+													cch_filename)) {
 			// Translate path with device name to drive letters.
 			TCHAR temp[512];
 			temp[0] = '\0';
@@ -1076,16 +1080,16 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 						size_t name_len = _tcslen(name);
 						if (name_len < MAX_PATH) {
 							found = _tcsnicmp(filename, name, name_len) == 0
-									&& *(filename + name_len) == _T('\\');
+											&& *(filename + name_len) == _T('\\');
 							if (found) {
 								// Reconstruct filename using temp_file and replace device path
 								// with DOS path.
 								TCHAR temp_file[MAX_PATH];
 								_sntprintf(temp_file,
-										   MAX_PATH - 1,
-										   TEXT("%s%s"),
-										   drive,
-										   filename+name_len);
+													 MAX_PATH - 1,
+													 TEXT("%s%s"),
+													 drive,
+													 filename+name_len);
 								_tcsncpy(filename, temp_file, _tcslen(temp_file));
 							}
 						}
@@ -1123,8 +1127,8 @@ x_realpath(const char *path)
 		path++;  // Skip leading slash.
 	}
 	HANDLE path_handle = CreateFile(
-	  path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-	  FILE_ATTRIBUTE_NORMAL, NULL);
+		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE != path_handle) {
 #ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
 		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
@@ -1213,14 +1217,14 @@ create_tmp_fd(char **fname)
 	if (fd == -1 && errno == ENOENT) {
 		if (create_parent_dirs(*fname) != 0) {
 			fatal("Failed to create directory %s: %s",
-				  dirname(*fname), strerror(errno));
+						dirname(*fname), strerror(errno));
 		}
 		reformat(&template, "%s.%s", *fname, tmp_string());
 		fd = mkstemp(template);
 	}
 	if (fd == -1) {
 		fatal("Failed to create temporary file for %s: %s",
-			  *fname, strerror(errno));
+					*fname, strerror(errno));
 	}
 
 #ifndef _WIN32
@@ -1471,24 +1475,26 @@ x_rename(const char *oldpath, const char *newpath)
 		LPVOID lp_msg_buf;
 		DWORD dw = GetLastError();
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw,
-		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lp_msg_buf,
-		  0,
-		  NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lp_msg_buf,
+			0,
+			NULL);
 
 		LPVOID lp_display_buf = (LPVOID) LocalAlloc(
-		  LMEM_ZEROINIT,
-		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 40)
-		  * sizeof(TCHAR));
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 40)
+			* sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
-				  LocalSize(lp_display_buf) / sizeof(TCHAR),
-				  TEXT("%s failed with error %d: %s"), __FILE__, dw, (char*)lp_msg_buf);
+							LocalSize(lp_display_buf) / sizeof(TCHAR),
+							TEXT(
+								"%s failed with error %d: %s"), __FILE__, dw,
+							(char *)lp_msg_buf);
 
 		cc_log("can't rename file %s to %s OS returned error: %s",
-			   oldpath, newpath, (char *) lp_display_buf);
+					 oldpath, newpath, (char *) lp_display_buf);
 
 		LocalFree(lp_msg_buf);
 		LocalFree(lp_display_buf);
@@ -1591,8 +1597,8 @@ read_file(const char *path, size_t size_hint, char **data, size_t *size)
 			*data = x_realloc(*data, allocated);
 		}
 		int block = (allocated - pos) > (1024*1024*1024)
-				? (1024*1024*1024)
-				: (int)(allocated - pos);
+								? (1024*1024*1024)
+								: (int)(allocated - pos);
 		ret = read(fd, *data + pos, block);
 		if (ret == 0 || (ret == -1 && errno != EINTR)) {
 			break;

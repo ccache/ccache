@@ -129,19 +129,19 @@ sort_and_clean(void)
 		const char *ext;
 
 		if ((cache_size_threshold == 0
-			 || cache_size <= cache_size_threshold)
-			&& (files_in_cache_threshold == 0
-				|| files_in_cache <= files_in_cache_threshold)) {
+		     || cache_size <= cache_size_threshold)
+		    && (files_in_cache_threshold == 0
+		        || files_in_cache <= files_in_cache_threshold)) {
 			break;
 		}
 
 		ext = get_extension(files[i]->fname);
 		if (str_eq(ext, ".o")
-			|| str_eq(ext, ".d")
-			|| str_eq(ext, ".gcno")
-			|| str_eq(ext, ".dia")
-			|| str_eq(ext, ".stderr")
-			|| str_eq(ext, "")) {
+		    || str_eq(ext, ".d")
+		    || str_eq(ext, ".gcno")
+		    || str_eq(ext, ".dia")
+		    || str_eq(ext, ".stderr")
+		    || str_eq(ext, "")) {
 			char *base = remove_extension(files[i]->fname);
 			if (!str_eq(base, last_base)) { // Avoid redundant unlinks.
 				// Make sure that all sibling files are deleted so that a cached result
@@ -178,7 +178,8 @@ cleanup_dir(struct conf *conf, const char *dir)
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
 	cache_size_threshold = (uint64_t)(conf->max_size * conf->limit_multiple / 16);
-	files_in_cache_threshold = (uint64_t)(conf->max_files * conf->limit_multiple / 16);
+	files_in_cache_threshold =
+		(uint64_t)(conf->max_files * conf->limit_multiple / 16);
 
 	num_files = 0;
 	cache_size = 0;
@@ -248,7 +249,8 @@ wipe_dir(struct conf *conf, const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);
 
-	files_in_cache_threshold = (size_t)(conf->max_files * conf->limit_multiple / 16);
+	files_in_cache_threshold =
+		(size_t)(conf->max_files * conf->limit_multiple / 16);
 	files_in_cache = 0;
 
 	traverse(dir, wipe_fn);

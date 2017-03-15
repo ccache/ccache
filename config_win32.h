@@ -13,7 +13,7 @@
 #define HAVE_CTYPE_H 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-   */
+ */
 #undef HAVE_DIRENT_H
 
 /* Define to 1 if your compiler supports extern inline */
@@ -104,14 +104,14 @@
 #define HAVE_STRUCT_LCONV_THOUSANDS_SEP 1
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
+ */
 #undef HAVE_SYS_DIR_H
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
+ */
 #undef HAVE_SYS_NDIR_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */

@@ -159,9 +159,9 @@ TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
 TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 {
 	struct args *orig = args_init_from_string(
-	  "cc -c -MMD -MFfoo.d -MT mt -MTmt -MQmq foo.c -o foo.o");
+		"cc -c -MMD -MFfoo.d -MT mt -MTmt -MQmq foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(
-	  "cc -MMD -MFfoo.d -MT mt -MTmt -MQmq");
+		"cc -MMD -MFfoo.d -MT mt -MTmt -MQmq");
 	struct args *exp_cc = args_init_from_string("cc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -223,9 +223,9 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
 TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
 {
 	struct args *orig = args_init_from_string(
-	  "cc -c foo.c -o foo.o -MMD -MT bar -MFfoo.d");
+		"cc -c foo.c -o foo.o -MMD -MT bar -MFfoo.d");
 	struct args *exp_cpp = args_init_from_string(
-	  "cc -MMD -MT bar -MFfoo.d");
+		"cc -MMD -MT bar -MFfoo.d");
 	struct args *exp_cc = args_init_from_string("cc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -240,9 +240,9 @@ TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
 TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
 {
 	struct args *orig = args_init_from_string(
-	  "cc -c foo.c -o foo.o -MMD -MFfoo.d -MT foo -MTbar");
+		"cc -c foo.c -o foo.o -MMD -MFfoo.d -MT foo -MTbar");
 	struct args *exp_cpp = args_init_from_string(
-	  "cc -MMD -MFfoo.d -MT foo -MTbar");
+		"cc -MMD -MFfoo.d -MT foo -MTbar");
 	struct args *exp_cc = args_init_from_string("cc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -257,9 +257,9 @@ TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
 TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
 {
 	struct args *orig = args_init_from_string(
-	  "cc -c foo.c -o foo.o -MMD -MFfoo.d -MQ foo -MQbar");
+		"cc -c foo.c -o foo.o -MMD -MFfoo.d -MQ foo -MQbar");
 	struct args *exp_cpp = args_init_from_string(
-	  "cc -MMD -MFfoo.d -MQ foo -MQbar");
+		"cc -MMD -MFfoo.d -MQ foo -MQbar");
 	struct args *exp_cc = args_init_from_string("cc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -274,9 +274,9 @@ TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
 TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
+		"gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
 	struct args *exp_cpp = args_init_from_string(
-	  "gcc -MD -MP -MFfoo.d -MQ foo.d");
+		"gcc -MD -MP -MFfoo.d -MQ foo.d");
 	struct args *exp_cc = args_init_from_string("gcc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -291,9 +291,9 @@ TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
 TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
+		"gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
 	struct args *exp_cpp = args_init_from_string(
-	  "gcc -MD -MP -MFfoo.d -MT foo.d");
+		"gcc -MD -MP -MFfoo.d -MT foo.d");
 	struct args *exp_cc = args_init_from_string("gcc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -308,9 +308,9 @@ TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
 TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
+		"gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
 	struct args *exp_cpp = args_init_from_string(
-	  "gcc -MD -MP -MFfoo.d -MQfoo.d");
+		"gcc -MD -MP -MFfoo.d -MQfoo.d");
 	struct args *exp_cc = args_init_from_string("gcc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -325,9 +325,9 @@ TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
 TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
+		"gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
 	struct args *exp_cpp = args_init_from_string(
-	  "gcc -MD -MP -MFfoo.d -MTfoo.d");
+		"gcc -MD -MP -MFfoo.d -MTfoo.d");
 	struct args *exp_cc = args_init_from_string("gcc -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 	create_file("foo.c", "");
@@ -342,7 +342,7 @@ TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
 TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -fprofile-generate=some/dir foo.c");
+		"gcc -c -fprofile-generate=some/dir foo.c");
 	struct args *exp_cpp = args_init_from_string("gcc");
 	struct args *exp_cc = args_init_from_string("gcc");
 	struct args *act_cpp = NULL, *act_cc = NULL;
@@ -369,11 +369,11 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
 TEST(fprofile_flag_with_nonexisting_dir_should_not_be_rewritten)
 {
 	struct args *orig = args_init_from_string(
-	  "gcc -c -fprofile-generate=some/dir foo.c");
+		"gcc -c -fprofile-generate=some/dir foo.c");
 	struct args *exp_cpp = args_init_from_string(
-	  "gcc -fprofile-generate=some/dir");
+		"gcc -fprofile-generate=some/dir");
 	struct args *exp_cc = args_init_from_string(
-	  "gcc -fprofile-generate=some/dir -c");
+		"gcc -fprofile-generate=some/dir -c");
 	struct args *act_cpp = NULL, *act_cc = NULL;
 
 	create_file("foo.c", "");

@@ -81,14 +81,14 @@ cct_run(suite_fn *suites, int verbose_output)
 
 	if (failed_tests == 0) {
 		printf("%sPASSED%s: %u assertion%s, %u test%s, %u suite%s\n",
-			   COLOR(tty, GREEN), COLOR(tty, END),
-			   total_asserts, plural_s(total_asserts),
-			   total_tests, plural_s(total_tests),
-			   total_suites, plural_s(total_suites));
+		       COLOR(tty, GREEN), COLOR(tty, END),
+		       total_asserts, plural_s(total_asserts),
+		       total_tests, plural_s(total_tests),
+		       total_suites, plural_s(total_suites));
 	} else {
 		printf("%sFAILED%s: %u test%s\n",
-			   COLOR(tty, RED), COLOR(tty, END),
-			   failed_tests, plural_s(failed_tests));
+		       COLOR(tty, RED), COLOR(tty, END),
+		       failed_tests, plural_s(failed_tests));
 	}
 	return failed_tests > 0 ? 1 : 0;
 }
@@ -151,7 +151,7 @@ cct_check_passed(const char *file, int line, const char *what)
 
 void
 cct_check_failed(const char *file, int line, const char *what,
-				 const char *expected, const char *actual)
+                 const char *expected, const char *actual)
 {
 	++total_asserts;
 	++failed_tests;
@@ -174,7 +174,7 @@ cct_check_failed(const char *file, int line, const char *what,
 
 bool
 cct_check_float_eq(const char *file, int line, const char *expression,
-				   double expected, double actual)
+                   double expected, double actual)
 {
 	if (fabs(expected -  actual) < DBL_EPSILON) {
 		cct_check_passed(file, line, expression);
@@ -190,7 +190,7 @@ cct_check_float_eq(const char *file, int line, const char *expression,
 }
 bool
 cct_check_int_eq(const char *file, int line, const char *expression,
-				 int64_t expected, int64_t actual)
+                 int64_t expected, int64_t actual)
 {
 	if (expected == actual) {
 		cct_check_passed(file, line, expression);
@@ -212,8 +212,8 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 
 bool
 cct_check_str_eq(const char *file, int line, const char *expression,
-				 const char *expected, const char *actual, bool free1,
-				 bool free2)
+                 const char *expected, const char *actual, bool free1,
+                 bool free2)
 {
 	bool result;
 
@@ -240,8 +240,8 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 
 bool
 cct_check_args_eq(const char *file, int line, const char *expression,
-				  struct args *expected, struct args *actual,
-				  bool free1, bool free2)
+                  struct args *expected, struct args *actual,
+                  bool free1, bool free2)
 {
 	bool result;
 

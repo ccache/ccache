@@ -7,7 +7,7 @@
 #include "counters.h"
 
 #ifdef __GNUC__
-#define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
+#define ATTR_FORMAT(x, y, z) __attribute__((format(x, y, z)))
 #define ATTR_NORETURN __attribute__((noreturn));
 #else
 #define ATTR_FORMAT(x, y, z)
@@ -244,7 +244,7 @@ extern time_t time_of_compilation;
 void block_signals(void);
 void unblock_signals(void);
 bool cc_process_args(struct args *args, struct args **preprocessor_args,
-                    struct args **compiler_args);
+                     struct args **compiler_args);
 void cc_reset(void);
 bool is_precompiled_header(const char *path);
 
@@ -278,11 +278,11 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #    endif
 #    include <windows.h>
 #    define strcasecmp   _stricmp
-#    define mkdir(a,b) mkdir(a)
-#    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
-#    define lstat(a,b) stat(a,b)
-#    define execv(a,b) win32execute(a,b,0,-1,-1)
-#    define execute(a,b,c,d) win32execute(*(a),a,1,b,c)
+#    define mkdir(a, b) mkdir(a)
+#    define link(src, dst) (CreateHardLink(dst, src, NULL) ? 0 : -1)
+#    define lstat(a, b) stat(a, b)
+#    define execv(a, b) win32execute(a, b, 0, -1, -1)
+#    define execute(a, b, c, d) win32execute(*(a), a, 1, b, c)
 #    define DIR_DELIM_CH '/'
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0

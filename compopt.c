@@ -90,7 +90,7 @@ static const struct compopt compopts_msvc[] = {
 	{"/D",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
 	{"/E",              TOO_HARD},
 	{"/EP",             TOO_HARD},
-	{"/FI",				AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"/FI",       AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"/FU",             AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"/I",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"/L",              TAKES_ARG},
@@ -120,16 +120,17 @@ find(const char *option)
 {
 	struct compopt key;
 	key.name = option;
-	if( option[0] == '-' )
-	return bsearch(
-	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-				 sizeof(compopts[0]),
-				compare_compopts);
-	else
+	if (option[0] == '-') {
 		return bsearch(
-				 &key, compopts_msvc, sizeof(compopts_msvc) / sizeof(compopts_msvc[0]),
-				 sizeof(compopts[0]),
-				compare_compopts);
+			&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
+			sizeof(compopts[0]),
+			compare_compopts);
+	} else {
+		return bsearch(
+			&key, compopts_msvc, sizeof(compopts_msvc) / sizeof(compopts_msvc[0]),
+			sizeof(compopts[0]),
+			compare_compopts);
+	}
 }
 
 static const struct compopt *
@@ -137,14 +138,15 @@ find_prefix(const char *option)
 {
 	struct compopt key;
 	key.name = option;
-	if( option[0] == '-' )
-	return bsearch(
-	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-	         sizeof(compopts[0]), compare_prefix_compopts);
-	else
+	if (option[0] == '-') {
 		return bsearch(
-				 &key, compopts_msvc, sizeof(compopts_msvc) / sizeof(compopts_msvc[0]),
-				 sizeof(compopts[0]), compare_prefix_compopts);
+			&key, compopts, sizeof(compopts) / sizeof(compopts[0]),
+			sizeof(compopts[0]), compare_prefix_compopts);
+	} else {
+		return bsearch(
+			&key, compopts_msvc, sizeof(compopts_msvc) / sizeof(compopts_msvc[0]),
+			sizeof(compopts[0]), compare_prefix_compopts);
+	}
 }
 
 // Runs fn on the first two characters of option.
