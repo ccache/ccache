@@ -48,6 +48,7 @@ install:
     - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
     - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
     - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
+    - set CC=cl.exe
 
     # Have MSYS2 in path
     - set PATH=C:\MSYS64\usr\bin;%PATH%
@@ -61,8 +62,8 @@ install:
     # Dump environment
     - set
     - where cl.exe
-    - bash printenv
-    - bash which g++
+    - printenv
+    - which g++
 
 build_script:
     - bash autogen.sh
