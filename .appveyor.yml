@@ -27,7 +27,7 @@ install:
     - MSYS pacman -S --needed --noconfirm autoconf make perl
 
 build_script:
-    - "C:\Program Files (x86)/Microsoft Visual Studio 12.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat"
+    - C:\Program Files (x86)/Microsoft Visual Studio 12.0\VC\bin\x86_amd64\vcvarsx86_amd64.bat
     - MSYS export LC_ALL=C
     - MSYS ./autogen.sh
     - MSYS ./configure
