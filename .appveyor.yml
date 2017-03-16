@@ -68,10 +68,13 @@ install:
     # Install needed packages from MSYS2
     - pacman -S --needed --noconfirm autoconf make perl
 
+    # Print environment details
+    - bash config.guess
+
 build_script:
     - bash autogen.sh
-    - bash configure --help
-    - make -f Makefine.in
+    - bash configure
+    - make
 
 test_script:
     - make test

@@ -858,7 +858,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 		fn(fname, &st);
 		free(fname);
-	} while (NEXT);
+	} while (NEXT());
 
 #ifdef _WIN32
 	FindClose(h);
