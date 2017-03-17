@@ -1,14 +1,14 @@
 # GNU make syntax reigns in this file.
 
-ifeq (0@CCACHE_MSVC@, 1)
+ifneq (x@CCACHE_MSVC@, x)
 all_cflags += /nologo /MD /We
 all_cppflags += /M
 endif
-ifeq (0@CCACHE_GCC@, 1)
+ifneq (x@CCACHE_GCC@, x)
 all_cflags += -Wall -W -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 endif
-ifeq (0@CCACHE_CLANG@, 1)
+ifneq (x@CCACHE_CLANG@, x)
 all_cflags += -O
 endif
 
