@@ -172,7 +172,10 @@ static bool generating_dependencies;
 static bool generating_coverage;
 
 // Relocating debuginfo in the format old=new.
-static char *debug_prefix_map = NULL;
+static char **debug_prefix_maps = NULL;
+
+// Size of debug_prefix_maps list.
+static size_t debug_prefix_maps_len = 0;
 
 // Is the compiler being asked to output coverage data (.gcda) at runtime?
 static bool profile_arcs;
@@ -1548,8 +1551,8 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
 		char *cwd = gnu_getcwd();
-		if (debug_prefix_map) {
-			char *map = debug_prefix_map;
+		for (size_t i = 0; i < debug_prefix_maps_len; i++) {
+			char *map = debug_prefix_maps[i];
 			char *sep = strchr(map, '=');
 			if (sep) {
 				char *old = x_strndup(map, sep - map);
@@ -2307,7 +2310,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
-			debug_prefix_map = x_strdup(argv[i] + 19);
+			debug_prefix_maps = x_realloc(debug_prefix_maps,
+				(debug_prefix_maps_len + 1) * sizeof(char *));
+			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
@@ -3062,7 +3067,12 @@ cc_reset(void)
 	free(primary_config_path); primary_config_path = NULL;
 	free(secondary_config_path); secondary_config_path = NULL;
 	free(current_working_dir); current_working_dir = NULL;
-	free(debug_prefix_map); debug_prefix_map = NULL;
+	for (size_t i = 0; i < debug_prefix_maps_len; i++) {
+		free(debug_prefix_maps[i]);
+		debug_prefix_maps[i] = NULL;
+	}
+	free(debug_prefix_maps); debug_prefix_maps = NULL;
+	debug_prefix_maps_len = 0;
 	free(profile_dir); profile_dir = NULL;
 	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
