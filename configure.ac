@@ -11,8 +11,24 @@ AC_CANONICAL_HOST
 
 case $host in
     *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
-        windows_os=yes
+        ccache_os=mingw
+        AC_DEFINE(COMPILER_MINGW, 1, Compiling with the MinGW platform)
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
+        ;;
+
+    *apple*)
+        ccache_os=mac
+        AC_DEFINE(COMPILER_CLANG, 1, Compiling with the Apple compiler)
+        ;;
+
+    *linux-gnu*)
+        ccache_os=linux
+        AC_DEFINE(COMPILER_GCC, 1, Compiling with the GNU compiler)
+        ;;
+
+    *msys*)
+        ccache_os=msys
+        AC_DEFINE(COMPILER_MSVC, 1, Compiling with the Visual compiler)
         ;;
 esac
 
@@ -23,9 +39,16 @@ AC_SUBST(test_suites)
 m4_include(m4/feature_macros.m4)
 
 dnl Checks for programs.
+if test x${ccache_os} = xmsvc; then
+AC_PROG_CC_C89
+if test "$ac_cv_prog_cc_c89" = no; then
+    AC_MSG_ERROR(cannot find a C89-compatible compiler)
+fi
+else
 AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = no; then
     AC_MSG_ERROR(cannot find a C99-compatible compiler)
+fi
 fi
 
 AC_PROG_CPP
@@ -124,7 +147,7 @@ else
 fi
 
 dnl Linking on Windows needs ws2_32
-if test x${windows_os} = xyes; then
+if test x${ccache_os} = xmingw; then
     LIBS="$LIBS -lws2_32"
     AC_CHECK_FUNCS(GetFinalPathNameByHandleW,[],[LIBS="$LIBS -lpsapi"])
 fi
