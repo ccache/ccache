@@ -62,7 +62,7 @@ install:
     - set PATH=C:\MSYS64\usr\bin;%PATH%
 
     # Misc.
-    - set CC_FOR_BUILD=cl.exe
+    - set CC=cl.exe
     - set LC_ALL=C
 
     # Install needed packages from MSYS2
