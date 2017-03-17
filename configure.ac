@@ -60,16 +60,6 @@ if test -z "$AR"; then
     AC_MSG_ERROR(cannot find ar)
 fi
 
-if test "x$GCC" = "xyes"; then
-    CFLAGS="$CFLAGS -Wall -W"
-fi
-if test "x$CLANG" = "xyes"; then
-    CFLAGS="$CFLAGS -O"
-fi
-if test "x$MSVC" = "xyes"; then
-    CFLAGS="$CFLAGS /nologo /We"
-fi
-
 AC_HEADER_DIRENT
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
