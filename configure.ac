@@ -62,9 +62,11 @@ fi
 
 if test "x$GCC" = "xyes"; then
     CFLAGS="$CFLAGS -Wall -W"
-else if test "x$CLANG" = "xyes"; then
+fi
+if test "x$CLANG" = "xyes"; then
     CFLAGS="$CFLAGS -O"
-else
+fi
+if test "x$MSVC" = "xyes"; then
     CFLAGS="$CFLAGS /nologo /We"
 fi
 
