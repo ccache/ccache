@@ -12,23 +12,24 @@ AC_CANONICAL_HOST
 case $host in
     *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
         ccache_os=mingw
-        AC_DEFINE(COMPILER_MINGW, 1, Compiling with the MinGW platform)
+        AC_DEFINE(CCACHE_MINGW, 1, Compiling with the MinGW platform)
+        AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
+        ;;
+
+    *msys*)
+        ccache_os=msys
+        AC_DEFINE(CCACHE_MSYS, 1, Compiling with the Visual compiler)
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
 
     *apple*)
         ccache_os=mac
-        AC_DEFINE(COMPILER_CLANG, 1, Compiling with the Apple compiler)
+        AC_DEFINE(CCACHE_CLANG, 1, Compiling with the Apple compiler)
         ;;
 
     *linux-gnu*)
         ccache_os=linux
-        AC_DEFINE(COMPILER_GCC, 1, Compiling with the GNU compiler)
-        ;;
-
-    *msys*)
-        ccache_os=msys
-        AC_DEFINE(COMPILER_MSVC, 1, Compiling with the Visual compiler)
+        AC_DEFINE(CCACHE_LINUX, 1, Compiling with the GNU compiler)
         ;;
 esac
 
@@ -59,11 +60,12 @@ if test -z "$AR"; then
     AC_MSG_ERROR(cannot find ar)
 fi
 
-# If GCC, turn on warnings.
 if test "x$GCC" = "xyes"; then
     CFLAGS="$CFLAGS -Wall -W"
-else
+else if test "x$CLANG" = "xyes"; then
     CFLAGS="$CFLAGS -O"
+else
+    CFLAGS="$CFLAGS /nologo /We"
 fi
 
 AC_HEADER_DIRENT

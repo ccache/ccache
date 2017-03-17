@@ -1,7 +1,12 @@
 # GNU make syntax reigns in this file.
 
+ifeq ($(COMPILER_MSVC), 1)
+all_cflags += /nologo /MD
+all_cppflags += /M
+else
 all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+endif
 
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
