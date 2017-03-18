@@ -18,16 +18,6 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
 
-ifeq (@ccache_os@, msys)
-	CFLAGS += /nologo /MD /We
-	CPPFLAGS += /M
-else ifeq (@ccachs_os@, gcc)
-	CFLAGS += -Wall -W -Werror
-	CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
-else ifeq (@ccache_os@, clang)
-	CFLAGS += -O
-endif
-
 all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 extra_libs = @extra_libs@
@@ -138,6 +128,10 @@ installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
 	CCACHE=$(bindir)/ccache CC='$(CC)' $(srcdir)/test.sh
 
 .c.o:
+ifeq ($(CC),cl.exe)
+	$(CC) $(all_cppflags) $(all_cflags) -c /Fo$@ $<
+else
 	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
+endif
 
 @include_dev_mk@

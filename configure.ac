@@ -140,6 +140,17 @@ else
     LIBS="$LIBS -lz"
 fi
 
+dnl Compiler specific options
+if test x${ccache_os} = xmsys; then
+	CFLAGS += /nologo /MD /We
+	CPPFLAGS += /M
+else if test x${ccache_os} = xgcc; then
+	CFLAGS += -Wall -W -Werror
+	CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+else if test x${ccache_os} = xclang; then
+	CFLAGS += -O
+fi
+
 dnl Linking on Windows needs ws2_32
 if test x${ccache_os} = xmingw; then
     LIBS="$LIBS -lws2_32"
