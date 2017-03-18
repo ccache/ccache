@@ -55,7 +55,7 @@ before_build:
   - if "%COMPILER%" EQU "Visual 2013" (
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\8.1\&
-      set SDK_VERSION=winv6.3&
+      set SDK_VERSION=winv6.3\&
       set CC=cl.exe&
       echo Using Visual 2013 cl.exe
     )
@@ -64,7 +64,7 @@ before_build:
   - if "%COMPILER%" EQU "Visual 2015" (
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\10\&
-      set SDK_VERSION=10.0.14393.0&
+      set SDK_VERSION=10.0.14393.0\&
       set CC=cl.exe&
       echo Using Visual 2015 cl.exe
     )
@@ -75,7 +75,7 @@ before_build:
       echo "%VCINSTALLDIR% is missing." 1>&2 &
       exit /B 1
     )
-  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
+  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" (
       dir "%SDK%Lib" &
       echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
       exit /B 2
@@ -83,16 +83,22 @@ before_build:
 
   # ==== Set needed env vars
   - set SDK_INCLUDE=%SDK%Include\
-  - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
+  - set SDK_LIB=%SDK%Lib\%SDK_VERSION%
 
-  - set PATH=%SDK%Bin\x64;%SDK%Bin;%PATH%
-  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%PATH%
+  - set PATH=%SDK%Bin;%PATH%
+  - if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH%
+  - set PATH=%VCINSTALLDIR%BIN;%PATH%
+  - if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%
 
-  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%%SDK_VERSION%\ucrt;%INCLUDE%
+  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%;%INCLUDE%
+  - set INCLUDE=%SDK_INCLUDE%%SDK_VERSION%um;%SDK_INCLUDE%%SDK_VERSION%ucrt;%SDK_INCLUDE%%SDK_VERSION%shared;%INCLUDE%
   - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%
 
-  - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
-  - set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%
+  - if %PLATFORM% EQU x64 set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
+  - if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%
+
+  - if %PLATFORM% EQU x86 set LIB=%SDK_LIB%um\x86;%SDK_LIB%ucrt\x86;%LIB%
+  - if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
 
   # Misc.
   - set LC_ALL=C
