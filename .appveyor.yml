@@ -50,8 +50,8 @@ install:
 before_build:
   # ==== Use Visual 2013 with Windows SDK 8.1
   - if "%COMPILER%" EQU "Visual 2013" (
-      set VSINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 13.0\"&
-      set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\"&
+      set VSINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\"&
+      set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\"&
       set SDK="C:\Program Files (x86)\Windows Kits\8.1\"&
       set SDK_VERSION=win6.3&
       set CC=cl.exe&
@@ -71,7 +71,7 @@ before_build:
   # ==== Check we do have evrything
   - if NOT EXIST %VCINSTALLDIR% (
       dir "C:\Program Files (x86)\Microsoft Visual Studio *"&
-      dir "C:\Program Files (x86)\Microsoft Visual Studio 13.0\"&
+      dir "C:\Program Files (x86)\Microsoft Visual Studio 12.0\"&
       echo %VCINSTALLDIR% is missing. 1>&2 &
       exit /B 1
     )
