@@ -106,8 +106,12 @@ build_script:
   - make
 
 test_script:
-  - make test
+  # - make test
 
 artifacts:
   - path: config.log
     name: logs
+
+  - path: ccache.exe
+    name: ccache
+    type: Zip
