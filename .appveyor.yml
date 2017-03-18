@@ -55,7 +55,8 @@ before_build:
       set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\"&
       set SDK="C:\Program Files (x86)\Windows Kits\8.1\"&
       set SDK_VERSION=win6.3&
-      set CC=cl.exe
+      set CC=cl.exe&
+      echo Using Visual 2013 cl.exe
     )
  
   # ==== Use Visual 2015 with Windows SDK 10
@@ -64,15 +65,16 @@ before_build:
       set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\"&
       set SDK="C:\Program Files (x86)\Windows Kits\10\"&
       set SDK_VERSION=10.0.14393.0&
-      set CC=cl.exe
+      set CC=cl.exe&
+      echo Using Visual 2015 cl.exe
     )
 
   # ==== Check we do have evrything
-  - if NOT EXIST "%VCINSTALLDIR%" (
-      echo "%VCINSTALLDIR is missing." 1>&2 &
+  - if NOT EXIST %VCINSTALLDIR% (
+      echo "%VCINSTALLDIR% is missing." 1>&2 &
       exit /B 1
     )
-  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
+  - if NOT EXIST %SDK%Lib\%SDK_VERSION%\um\x64 (
       echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
       exit /B 2
     )
