@@ -143,8 +143,7 @@ fi
 dnl Compiler specific options
 
 if test x${ccache_os} = xmsys; then
-	CFLAGS="$CFLAGS /nologo /MD /We"
-	CPPFLAGS="$CPPFLAGS /M"
+	CFLAGS="$CFLAGS -nologo -MD -We"
 fi
 if test x${ccache_os} = xgcc; then
 	CFLAGS="$CFLAGS -Wall -W -Werror"
