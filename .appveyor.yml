@@ -50,19 +50,19 @@ install:
 before_build:
   # ==== Use Visual 2013 with Windows SDK 8.1
   - if "%COMPILER%" EQU "Visual 2013" (
-      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\
-      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\
-      set SDK=C:\Program Files (x86)\Windows Kits\8.1\
-      set SDK_VERSION=win6.3
+      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\ &
+      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\ &
+      set SDK=C:\Program Files (x86)\Windows Kits\8.1\ &
+      set SDK_VERSION=win6.3 &
       set CC=cl.exe
     )
  
   # ==== Use Visual 2015 with Windows SDK 10
   - if "%COMPILER%" EQU "Visual 2015" (
-      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\
-      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\
-      set SDK=C:\Program Files (x86)\Windows Kits\10\
-      set SDK_VERSION=10.0.14393.0
+      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\ &
+      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\ &
+      set SDK=C:\Program Files (x86)\Windows Kits\10\ &
+      set SDK_VERSION=10.0.14393.0 &
       set CC=cl.exe
     )
 
