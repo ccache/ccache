@@ -13,33 +13,49 @@
 # Simple versioning scheme.
 version: '{build}'
 
+# The MSVC2015 image have many stuff we need.
+image: Visual Studio 2015
+
+# Stops on first failing matrix combination
+matrix:
+  fast_finish: true
+
 # Check compilation both on 32 and 64 bit platforms.
 platform:
     - x64
     - x86
 
-# MSVC2015 image have many stuff we need.
-image: Visual Studio 2015
+environment:
+    matrix:
+        - COMPILER: Visual 2013
+          # ===== Setting Visual 2013 env
+          VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 13.0\
+          VCINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\
+          # ==== Use Windows SDK 8.1
+          SDK:          C:\Program Files (x86)\Windows Kits\8.1\
+          SDK_VERSION:  win6.3
+
+        - COMPILER: Visual 2015
+          # ===== Setting Visual 2015 env
+          VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 14.0\
+          VCINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\
+          # ==== Use Windows SDK 10.0
+          SDK:          C:\Program Files (x86)\Windows Kits\10\
+          SDK_VERSION:  10.0.14393.0
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
     only:
         - windows
 
-# Stops on first failing matrix combination
-matrix:
-  fast_finish: true
-
 install:
-    # ===== Setting Visual 2015 env
-    - SET VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\
-    - SET VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\
+    # Install needed packages from MSYS2
+    - pacman -S --needed --noconfirm autoconf make perl
 
-    # ==== Use Windows SDK 10.0
-    - SET SDK=C:\Program Files (x86)\Windows Kits\10\
+    # Print environment details
+    - bash config.guess
 
-    # ==== Windows 10 Anniversary Release:
-    - SET SDK_VERSION=10.0.14393.0
+before_build:
     - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
         echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2
         exit /B 100
@@ -64,12 +80,6 @@ install:
     # Misc.
     - set CC=cl.exe
     - set LC_ALL=C
-
-    # Install needed packages from MSYS2
-    - pacman -S --needed --noconfirm autoconf make perl
-
-    # Print environment details
-    - bash config.guess
 
 build_script:
     - bash autogen.sh
