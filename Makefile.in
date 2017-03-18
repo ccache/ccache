@@ -18,6 +18,18 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
 
+ifneq (x@CCACHE_MSVC@, x)
+CFLAGS += /nologo /MD /We
+CPPFLAGS += /M
+endif
+ifneq (x@CCACHE_GCC@, x)
+CFLAGS += -Wall -W -Werror
+CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+endif
+ifneq (x@CCACHE_CLANG@, x)
+CFLAGS += -O
+endif
+
 all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
 extra_libs = @extra_libs@
