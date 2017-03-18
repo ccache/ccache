@@ -22,69 +22,80 @@ matrix:
 
 # Check compilation both on 32 and 64 bit platforms.
 platform:
-    - x64
-    - x86
+  - x64
+  - x86
 
 environment:
-    matrix:
-        - COMPILER: Visual 2013
-          # ===== Setting Visual 2013 env
-          VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 13.0\
-          VCINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\
-          # ==== Use Windows SDK 8.1
-          SDK:          C:\Program Files (x86)\Windows Kits\8.1\
-          SDK_VERSION:  win6.3
-
-        - COMPILER: Visual 2015
-          # ===== Setting Visual 2015 env
-          VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 14.0\
-          VCINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\
-          # ==== Use Windows SDK 10.0
-          SDK:          C:\Program Files (x86)\Windows Kits\10\
-          SDK_VERSION:  10.0.14393.0
+  matrix:
+    - COMPILER: Visual 2013
+    - COMPILER: Visual 2015
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
-    only:
-        - windows
+  only:
+    - windows
 
+# Note: this is using the cmd (default) shell, with windows style 
+#       variable definition and path (\ separator, no quotes)
 install:
-    # Install needed packages from MSYS2
-    - pacman -S --needed --noconfirm autoconf make perl
+  # Have MSYS2 in path, including pacman
+  - set PATH=C:\MSYS64\usr\bin;%PATH%
 
-    # Print environment details
-    - bash config.guess
+  # Install needed packages from MSYS2
+  - pacman -S --needed --noconfirm autoconf make perl
+
+  # Print environment details
+  - bash config.guess
 
 before_build:
-    - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
-        echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2
-        exit /B 100
-      )
+  # ==== Use Visual 2013 with Windows SDK 8.1
+  - if "%COMPILER%" EQU "Visual 2013" (
+      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\
+      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 13.0\VC\
+      set SDK=C:\Program Files (x86)\Windows Kits\8.1\
+      set SDK_VERSION=win6.3
+      set CC=cl.exe
+    )
+ 
+  # ==== Use Visual 2015 with Windows SDK 10
+  - if "%COMPILER%" EQU "Visual 2015" (
+      set VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\
+      set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\
+      set SDK=C:\Program Files (x86)\Windows Kits\10\
+      set SDK_VERSION=10.0.14393.0
+      set CC=cl.exe
+    )
 
-    # ==== Set needed env vars
-    - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
-    - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
-    - set PATH=%SDK%Bin\x64;%PATH%
-    - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
-    - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
-    - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
-    -
-    - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
-    - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
-    - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
-    - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
+  # ==== Check we do have evrything
+  - if NOT EXIST "%VCINSTALLDIR%" (
+      echo "%VCINSTALLDIR is missing." 1>&2
+      exit /B 1
+    )
+  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
+      echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2
+      exit /B 2
+    )
 
-    # Have MSYS2 in path
-    - set PATH=C:\MSYS64\usr\bin;%PATH%
+  # ==== Set needed env vars
+  - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
+  - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
+  - set PATH=%SDK%Bin\x64;%PATH%
+  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
+  - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
+  - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
 
-    # Misc.
-    - set CC=cl.exe
-    - set LC_ALL=C
+  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
+  - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
+  - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
+  - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
+
+  # Misc.
+  - set LC_ALL=C
 
 build_script:
-    - bash autogen.sh
-    - bash configure
-    - make
+  - bash autogen.sh
+  - bash configure
+  - make
 
 test_script:
-    - make test
+  - make test
