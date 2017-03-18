@@ -35,8 +35,11 @@ branches:
   only:
     - windows
 
-# Note: this is using the cmd (default) shell, with windows style 
-#       variable definition and path (\ separator, no quotes)
+# Note: this is using the cmd (default) shell, so:
+#   - with windows style variable definition and path (\ separator, no quotes)
+#   - if (...) blocks require & line separator.
+#   - nested () in if (...) block require to be quoted.
+#   - quoted var cannot be quoted again when using it.
 install:
   # Have MSYS2 in path, including pacman
   - set PATH=C:\MSYS64\usr\bin;%PATH%
@@ -53,7 +56,7 @@ before_build:
       set VSINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\"&
       set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\"&
       set SDK="C:\Program Files (x86)\Windows Kits\8.1\"&
-      set SDK_VERSION=win6.3&
+      set SDK_VERSION=winv6.3&
       set CC=cl.exe&
       echo Using Visual 2013 cl.exe
     )
@@ -75,7 +78,7 @@ before_build:
       exit /B 1
     )
   - if NOT EXIST %SDK%Lib\%SDK_VERSION%\um\x64 (
-      dir %SDK%Lib
+      dir %SDK%Lib &
       echo Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing. 1>&2 &
       exit /B 2
     )
