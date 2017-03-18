@@ -98,6 +98,7 @@ before_build:
 
   # Misc.
   - set LC_ALL=C
+  - where %CC%
 
 build_script:
   - bash autogen.sh
