@@ -53,7 +53,6 @@ install:
 before_build:
   # ==== Use Visual 2013 with Windows SDK 8.1
   - if "%COMPILER%" EQU "Visual 2013" (
-      set VSINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\&
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\8.1\&
       set SDK_VERSION=winv6.3&
@@ -63,7 +62,6 @@ before_build:
  
   # ==== Use Visual 2015 with Windows SDK 10
   - if "%COMPILER%" EQU "Visual 2015" (
-      set VSINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\&
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\10\&
       set SDK_VERSION=10.0.14393.0&
@@ -84,17 +82,17 @@ before_build:
     )
 
   # ==== Set needed env vars
+  - set SDK_INCLUDE=%SDK%Include\
   - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
-  - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
-  - set PATH=%SDK%Bin\x64;%PATH%
-  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
-  - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
-  - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
 
-  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
-  - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
-  - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
-  - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
+  - set PATH=%SDK%Bin\x64;%SDK%Bin;%PATH%
+  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%PATH%
+
+  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%%SDK_VERSION%\ucrt;%INCLUDE%
+  - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%
+
+  - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
+  - set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%
 
   # Misc.
   - set LC_ALL=C
