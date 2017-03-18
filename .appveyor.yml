@@ -110,6 +110,11 @@ build_script:
   - make PLATFORM=%PLATFORM%
 
 test_script:
+  # Run with a few basic options
+  - ccache -help
+  - ccache -p
+  - ccache.exe -Czs
+  # Launch unit and final tests
   # - make test
 
 artifacts:
