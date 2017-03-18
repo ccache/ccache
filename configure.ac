@@ -154,11 +154,11 @@ if test x${ccache_os} = xmsys; then
 else
 	AC_SUBST(LIBEXT,a)
 fi
-if test x${ccache_os} = xgcc; then
+if test x${ccache_os} = xmingw; then
 	CFLAGS="$CFLAGS -Wall -W -Werror"
 	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d"
 fi
-if test x${ccache_os} = xclang; then
+if test x${ccache_os} = xmac; then
 	CFLAGS="$CFLAGS -O"
 fi
 
