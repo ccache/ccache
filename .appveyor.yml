@@ -71,11 +71,11 @@ before_build:
   # ==== Check we do have evrything
   - if NOT EXIST %VCINSTALLDIR% (
       dir "C:\Program Files (x86)\Microsoft Visual Studio *"&
-      dir "C:\Program Files (x86)\Microsoft Visual Studio 12.0\"&
       echo %VCINSTALLDIR% is missing. 1>&2 &
       exit /B 1
     )
   - if NOT EXIST %SDK%Lib\%SDK_VERSION%\um\x64 (
+      dir %SDK%Lib
       echo Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing. 1>&2 &
       exit /B 2
     )
