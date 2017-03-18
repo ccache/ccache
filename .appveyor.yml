@@ -27,8 +27,8 @@ platform:
 
 environment:
   matrix:
-    - COMPILER: Visual 2013
     - COMPILER: Visual 2015
+    - COMPILER: Visual 2013
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
@@ -86,12 +86,12 @@ before_build:
   # ==== Set needed env vars
   - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
   - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
-  - set PATH=%SDK%Bin\x64;%SDK%Bin;%PATH%
+  - set PATH=%SDK%Bin\x64;%PATH%
   - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
   - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
   - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
 
-  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
+  - set PATH=%VCINSTALLDIR%BIN\amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
   - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
   - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
   - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
