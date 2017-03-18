@@ -20,12 +20,14 @@ image: Visual Studio 2015
 matrix:
   fast_finish: true
 
-# Check compilation both on 32 and 64 bit platforms.
 platform:
   - x64
   - x86
 
 environment:
+  # Make sure to pass 32/64 bits option to makefile (link -machine:...)
+  PLATFORM: $PLATFORM
+
   matrix:
     - COMPILER: Visual 2013
     - COMPILER: Visual 2015
