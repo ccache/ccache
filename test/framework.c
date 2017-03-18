@@ -282,7 +282,7 @@ cct_wipe(const char *path)
 #ifdef __MINGW32__
 	char *command = format("rd /s /q %s", path);
 #elif defined(_WIN32)
-	char *command = format("del /f/q/s %s", path);
+	char *command = format("del /f/q/s %s 2>NUL", path);
 #else
 	char *command = format("rm -rf %s", path);
 #endif

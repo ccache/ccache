@@ -96,6 +96,7 @@ before_build:
 
   # Misc.
   - set LC_ALL=C
+  - set RUN_FROM_BUILD_FARM=1
   - where %CC%
 
 build_script:
