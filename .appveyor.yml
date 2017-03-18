@@ -103,6 +103,7 @@ before_build:
 build_script:
   - bash autogen.sh
   - bash configure
+  - type Makefile
   - make
 
 test_script:
