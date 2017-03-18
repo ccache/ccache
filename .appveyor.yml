@@ -27,8 +27,8 @@ platform:
 
 environment:
   matrix:
-    - COMPILER: Visual 2015
     - COMPILER: Visual 2013
+    - COMPILER: Visual 2015
 
 # Run AppVeyor only on the windows branch, until we are merged to trunk
 branches:
@@ -36,9 +36,9 @@ branches:
     - windows
 
 # Note: this is using the cmd (default) shell, so:
-#   - with windows style variable definition and path (\ separator, no quotes)
+#   - use windows style variable definition and path (\ separator, no quotes)
 #   - if (...) blocks require & line separator.
-#   - nested () in if (...) block require to be quoted.
+#   - nested () in if (...) block require to be escaped with ^
 #   - quoted var cannot be quoted again when using it.
 install:
   # Have MSYS2 in path, including pacman
@@ -53,9 +53,9 @@ install:
 before_build:
   # ==== Use Visual 2013 with Windows SDK 8.1
   - if "%COMPILER%" EQU "Visual 2013" (
-      set VSINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\"&
-      set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\"&
-      set SDK="C:\Program Files (x86)\Windows Kits\8.1\"&
+      set VSINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\&
+      set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\VC\&
+      set SDK=C:\Program Files ^(x86^)\Windows Kits\8.1\&
       set SDK_VERSION=winv6.3&
       set CC=cl.exe&
       echo Using Visual 2013 cl.exe
@@ -63,23 +63,23 @@ before_build:
  
   # ==== Use Visual 2015 with Windows SDK 10
   - if "%COMPILER%" EQU "Visual 2015" (
-      set VSINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 14.0\"&
-      set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\"&
-      set SDK="C:\Program Files (x86)\Windows Kits\10\"&
+      set VSINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\&
+      set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\VC\&
+      set SDK=C:\Program Files ^(x86^)\Windows Kits\10\&
       set SDK_VERSION=10.0.14393.0&
       set CC=cl.exe&
       echo Using Visual 2015 cl.exe
     )
 
   # ==== Check we do have evrything
-  - if NOT EXIST %VCINSTALLDIR% (
-      dir "C:\Program Files (x86)\Microsoft Visual Studio *"&
-      echo %VCINSTALLDIR% is missing. 1>&2 &
+  - if NOT EXIST "%VCINSTALLDIR%" (
+      dir "C:\Program Files (x86)\Microsoft Visual Studio *" &
+      echo "%VCINSTALLDIR% is missing." 1>&2 &
       exit /B 1
     )
-  - if NOT EXIST %SDK%Lib\%SDK_VERSION%\um\x64 (
-      dir %SDK%Lib &
-      echo Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing. 1>&2 &
+  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%\um\x64" (
+      dir "%SDK%Lib" &
+      echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
       exit /B 2
     )
 
@@ -91,7 +91,7 @@ before_build:
   - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
   - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
 
-  - set PATH=%VCINSTALLDIR%BIN\amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
+  - set PATH=%VCINSTALLDIR%BIN\x86_amd64;%VCINSTALLDIR%BIN;%VCINSTALLDIR%VCPackages;%VSINSTALLDIR%Common7\IDE;%VSINSTALLDIR%Common7\Tools;%VSINSTALLDIR%Common7\Tools\bin;%PATH%
   - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%ATLMFC\INCLUDE;%INCLUDE%
   - set LIB=%VCINSTALLDIR%LIB\amd64;%VCINSTALLDIR%ATLMFC\LIB\amd64;%LIB%
   - set LIBPATH=%VCINSTALLDIR%LIB\amd64;%LIBPATH%
