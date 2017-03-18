@@ -36,6 +36,7 @@ esac
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
+AC_SUBST(LIBS)
 
 m4_include(m4/feature_macros.m4)
 
@@ -54,10 +55,12 @@ fi
 
 AC_PROG_CPP
 AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_CHECK_TOOL(AR, ar)
-if test -z "$AR"; then
-    AC_MSG_ERROR(cannot find ar)
+if test x${ccache_os} != xmsys; then
+    AC_PROG_RANLIB
+    AC_CHECK_TOOL(AR, ar)
+    if test -z "$AR"; then
+        AC_MSG_ERROR(cannot find ar)
+    fi
 fi
 
 AC_HEADER_DIRENT
@@ -134,7 +137,7 @@ fi
 
 if test x${use_bundled_zlib} = xyes; then
     CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
-    extra_libs="zlib/libz.a"
+    extra_libs="zlib/libz.\$(LIBEXT)"
     mkdir -p zlib
 else
     LIBS="$LIBS -lz"
@@ -143,7 +146,13 @@ fi
 dnl Compiler specific options
 
 if test x${ccache_os} = xmsys; then
-	CFLAGS="$CFLAGS -nologo -MD -Wall"
+	CFLAGS="-nologo -MD -W3"
+	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
+	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
+	AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
+	AC_SUBST(LIBEXT,lib)
+else
+	AC_SUBST(LIBEXT,a)
 fi
 if test x${ccache_os} = xgcc; then
 	CFLAGS="$CFLAGS -Wall -W -Werror"
@@ -155,8 +164,10 @@ fi
 
 dnl Linking on Windows needs ws2_32
 if test x${ccache_os} = xmingw; then
-    LIBS="$LIBS -lws2_32"
-    AC_CHECK_FUNCS(GetFinalPathNameByHandleW,[],[LIBS="$LIBS -lpsapi"])
+    LIBS="$LIBS -lws2_32 -lPsapi"
+fi
+if test x${ccache_os} = xmsys; then
+    LIBS="$LIBS ws2_32.lib Psapi.lib"
 fi
 
 AC_C_BIGENDIAN

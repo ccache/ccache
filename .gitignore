@@ -1,7 +1,9 @@
 *.a
 *.exe
 *.html
+*.lib
 *.o
+*.obj
 *.xml
 *~
 .deps

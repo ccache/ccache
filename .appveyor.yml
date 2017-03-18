@@ -57,7 +57,6 @@ before_build:
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 12.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\8.1\&
       set SDK_VERSION=winv6.3&
-      set CC=cl.exe&
       echo Using Visual 2013 cl.exe
     )
  
@@ -67,7 +66,6 @@ before_build:
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\VC\&
       set SDK=C:\Program Files ^(x86^)\Windows Kits\10\&
       set SDK_VERSION=10.0.14393.0&
-      set CC=cl.exe&
       echo Using Visual 2015 cl.exe
     )
 
@@ -98,7 +96,7 @@ before_build:
 
   # Misc.
   - set LC_ALL=C
-  - where %CC%
+  - where cl
 
 build_script:
   - bash autogen.sh

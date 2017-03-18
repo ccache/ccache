@@ -14,6 +14,8 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 EXEEXT = @EXEEXT@
+OBJEXT = @OBJEXT@
+LIBEXT = @LIBEXT@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
@@ -48,20 +50,20 @@ non_3pp_sources = \
 	murmurhashneutral2.c \
 	snprintf.c
 base_sources = $(non_3pp_sources) $(3pp_sources)
-base_objs = $(base_sources:.c=.o)
+base_objs = $(base_sources:.c=.$(OBJEXT))
 
 ccache_sources = main.c $(base_sources)
-ccache_objs = $(ccache_sources:.c=.o)
+ccache_objs = $(ccache_sources:.c=.$(OBJEXT))
 
 zlib_sources = \
 	zlib/adler32.c zlib/crc32.c zlib/deflate.c zlib/gzclose.c zlib/gzlib.c \
 	zlib/gzread.c zlib/gzwrite.c zlib/inffast.c zlib/inflate.c \
 	zlib/inftrees.c zlib/trees.c zlib/zutil.c
-zlib_objs = $(zlib_sources:.c=.o)
+zlib_objs = $(zlib_sources:.c=.$(OBJEXT))
 
 test_suites = @test_suites@
 test_sources = test/main.c test/framework.c test/more_util.c $(test_suites)
-test_objs = $(test_sources:.c=.o)
+test_objs = $(test_sources:.c=.$(OBJEXT))
 
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
@@ -73,7 +75,11 @@ files_to_distclean = Makefile config.h config.log config.status
 all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
+ifeq ($(CC),cl.exe)
+	link -nologo -machine:x64 -out:$@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+else
 	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+endif
 
 .PHONY: install
 install: all $(srcdir)/ccache.1
@@ -88,11 +94,19 @@ clean:
 
 conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
+ifeq ($(CC),cl.exe)
+$(zlib_objs): CPPFLAGS += -FIconfig.h
+else
 $(zlib_objs): CPPFLAGS += -include config.h
+endif
 
-zlib/libz.a: $(zlib_objs)
+zlib/libz.$(LIBEXT): $(zlib_objs)
+ifeq ($(CC),cl.exe)
+	lib -nologo -out:$@ $(zlib_objs)
+else
 	$(AR) cr $@ $(zlib_objs)
 	$(RANLIB) $@
+endif
 
 .PHONY: perf
 perf: ccache$(EXEEXT)
@@ -108,9 +122,13 @@ quicktest: test/main$(EXEEXT)
 	test/main$(EXEEXT)
 
 test/main$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
+ifeq ($(CC),cl.exe)
+	link -nologo -machine:x64 -out:$@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+else
 	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+endif
 
-test/main.o: test/suites.h
+test/main.$(OBJEXT): test/suites.h
 
 test/suites.h: $(test_suites) Makefile
 	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suites) >$@
@@ -127,11 +145,10 @@ installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
 	CCACHE=$(bindir)/ccache CC='$(CC)' $(srcdir)/test.sh
 
-.c.o:
-ifeq ($(CC),cl.exe)
+.SUFFIXES: .obj
+.c.obj:
 	$(CC) $(all_cppflags) $(all_cflags) -c -Fo$@ $<
-else
+.c.o:
 	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
-endif
 
 @include_dev_mk@
