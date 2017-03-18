@@ -129,7 +129,7 @@ installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
 
 .c.o:
 ifeq ($(CC),cl.exe)
-	$(CC) $(all_cppflags) $(all_cflags) -c /Fo$@ $<
+	$(CC) $(all_cppflags) $(all_cflags) -c -Fo$@ $<
 else
 	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
 endif

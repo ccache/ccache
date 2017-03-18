@@ -143,15 +143,15 @@ fi
 dnl Compiler specific options
 
 if test x${ccache_os} = xmsys; then
-	CFLAGS += /nologo /MD /We
-	CPPFLAGS += /M
+	CFLAGS="$CFLAGS /nologo /MD /We"
+	CPPFLAGS="$CPPFLAGS /M"
 fi
 if test x${ccache_os} = xgcc; then
-	CFLAGS += -Wall -W -Werror
-	CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+	CFLAGS="$CFLAGS -Wall -W -Werror"
+	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d"
 fi
 if test x${ccache_os} = xclang; then
-	CFLAGS += -O
+	CFLAGS="$CFLAGS -O"
 fi
 
 dnl Linking on Windows needs ws2_32
