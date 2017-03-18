@@ -70,6 +70,8 @@ before_build:
 
   # ==== Check we do have evrything
   - if NOT EXIST %VCINSTALLDIR% (
+      dir "C:\Program Files (x86)\Microsoft Visual Studio *"&
+      dir "C:\Program Files (x86)\Microsoft Visual Studio 13.0\"&
       echo %VCINSTALLDIR% is missing. 1>&2 &
       exit /B 1
     )
