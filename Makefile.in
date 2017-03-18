@@ -18,16 +18,14 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
 
-ifneq (x@CCACHE_MSVC@, x)
-CFLAGS += /nologo /MD /We
-CPPFLAGS += /M
-endif
-ifneq (x@CCACHE_GCC@, x)
-CFLAGS += -Wall -W -Werror
-CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
-endif
-ifneq (x@CCACHE_CLANG@, x)
-CFLAGS += -O
+ifeq (@ccache_os@, msys)
+	CFLAGS += /nologo /MD /We
+	CPPFLAGS += /M
+else ifeq (@ccachs_os@, gcc)
+	CFLAGS += -Wall -W -Werror
+	CPPFLAGS += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+else ifeq (@ccache_os@, clang)
+	CFLAGS += -O
 endif
 
 all_cflags = $(CFLAGS)
