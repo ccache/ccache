@@ -86,7 +86,7 @@ before_build:
   # ==== Set needed env vars
   - set SDK_LIB=%SDK%Lib\%SDK_VERSION%\
   - set SDK_INCLUDE=%SDK%Include\%SDK_VERSION%\
-  - set PATH=%SDK%Bin\x64;%PATH%
+  - set PATH=%SDK%Bin\x64;%SDK%Bin;%PATH%
   - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%ucrt;%INCLUDE%
   - set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
   - set LIBPATH=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIBPATH%
@@ -106,3 +106,7 @@ build_script:
 
 test_script:
   - make test
+
+artifacts:
+  - path: config.log
+    name: logs
