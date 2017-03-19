@@ -140,7 +140,7 @@ test_script:
   - make PLATFORM=%PLATFORM% test
 
 after_test:
-  - 7z a ccache-$(version).zip ccache.exe AUTHORS.txt LICENSE.txt MANUAL.txt GPL*.txt NEWS.txt
+  - 7z a ccache-%APPVEYOR_BUILD_VERSION%.zip ccache.exe AUTHORS.txt LICENSE.txt MANUAL.txt GPL*.txt NEWS.txt
 
 artifacts:
   - path: config.log
