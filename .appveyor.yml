@@ -42,6 +42,7 @@ branches:
 #   - if (...) blocks require & line separator.
 #   - nested () in if (...) block require to be escaped with ^
 #   - quoted var cannot be quoted again when using it.
+#   - split too long blocks in several if ... ( ... )
 install:
   # Have MSYS2 in path, including pacman
   - set PATH=C:\MSYS64\usr\bin;%PATH%
@@ -78,35 +79,44 @@ before_build:
     )
 
   # ==== Common Visual C setup
-  - set VISUAL=%COMPILER:~0:6%
-  - if "%VISUAL%" EQU "Visual" (
+  - if DEFINED VCINSTALLDIR (
       if NOT EXIST "%VCINSTALLDIR%" ( &
         dir "C:\Program Files (x86)\Microsoft Visual Studio *" &
         echo "%VCINSTALLDIR% is missing." 1>&2 &
-        exit /B 1 &
-      ) &
+        exit /B 1
+      )
+    )
+  - if DEFINED SDK (
       if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" ( &
         dir "%SDK%Lib" &
         echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
-        exit /B 2 &
-      ) &
-      set SDK_INCLUDE=%SDK%Include\ &
-      set SDK_LIB=%SDK%Lib\%SDK_VERSION% &
-      &
-      set PATH=%SDK%Bin;%PATH% &
-      if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH% &
+        exit /B 2
+      )
+    )
+
+  - if DEFINED VCINSTALLDIR (
       set PATH=%VCINSTALLDIR%BIN;%PATH% &
       if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH% &
       &
-      set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%;%INCLUDE% &
-      set INCLUDE=%SDK_INCLUDE%%SDK_VERSION%um;%SDK_INCLUDE%%SDK_VERSION%ucrt;%SDK_INCLUDE%%SDK_VERSION%shared;%INCLUDE% &
       set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE% &
       &
-      if %PLATFORM% EQU x64 set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB% &
       if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB% &
-      &
-      if %PLATFORM% EQU x86 set LIB=%SDK_LIB%um\x86;%SDK_LIB%ucrt\x86;%LIB% &
       if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
+    )
+  - if DEFINED SDK (
+      set PATH=%SDK%Bin;%PATH% &
+      if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH% &
+      &
+      set i=%SDK%Include\ &
+      set l=%SDK%Lib\%SDK_VERSION% &
+      &
+      set INCLUDE=%i%um;%i%shared;%i%;%INCLUDE% &
+      set INCLUDE=%i%%SDK_VERSION%um;%i%%SDK_VERSION%ucrt;%i%%SDK_VERSION%shared;%INCLUDE% &
+      &
+      if %PLATFORM% EQU x64 set LIB=%l%um\x64;%l%ucrt\x64;%LIB% &
+      if %PLATFORM% EQU x86 set LIB=%l%um\x86;%l%ucrt\x86;%LIB% &
+      SET i=&
+      set l=
     )
 
   # ==== MinGW gcc compiler
