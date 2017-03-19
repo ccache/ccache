@@ -94,31 +94,24 @@ before_build:
       )
     )
 
-  - if DEFINED VCINSTALLDIR (
-      set PATH=%VCINSTALLDIR%BIN;%PATH%&
-      if %PLATFORM% EQU x64 (
-        PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%&
-      )
-    )
-  - if DEFINED VCINSTALLDIR (
-      set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%&
-      if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%&
-      if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%&
-    )
-  - if DEFINED SDK (
-      set PATH=%SDK%Bin;%PATH%&
-      if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH%&
-    )
-  - if DEFINED SDK (
-      set i=%SDK%Include\&
-      set l=%SDK%Lib\%SDK_VERSION%&
-      set INCLUDE=%i%um;%i%shared;%i%;%INCLUDE%&
-      set INCLUDE=%i%%SDK_VERSION%um;%i%%SDK_VERSION%ucrt;%i%%SDK_VERSION%shared;%INCLUDE%&
-      if %PLATFORM% EQU x64 set LIB=%l%um\x64;%l%ucrt\x64;%LIB%&
-      if %PLATFORM% EQU x86 set LIB=%l%um\x86;%l%ucrt\x86;%LIB%&
-      SET i=&
-      set l=&
-    )
+  - if DEFINED VCINSTALLDIR set PATH=%VCINSTALLDIR%BIN;%PATH%
+  - if DEFINED VCINSTALLDIR set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%
+  - if DEFINED VCINSTALLDIR if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%
+  - if DEFINED VCINSTALLDIR if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%
+  - if DEFINED VCINSTALLDIR if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
+
+  - if DEFINED SDK set PATH=%SDK%Bin;%PATH%
+  - if DEFINED SDK if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH%
+
+  - set i=%SDK%Include\
+  - if DEFINED SDK set INCLUDE=%i%um;%i%shared;%i%;%INCLUDE%
+  - if DEFINED SDK set INCLUDE=%i%%SDK_VERSION%um;%i%%SDK_VERSION%ucrt;%i%%SDK_VERSION%shared;%INCLUDE%
+  - SET i=
+
+  - set l=%SDK%Lib\%SDK_VERSION%
+  - if DEFINED SDK if %PLATFORM% EQU x64 set LIB=%l%um\x64;%l%ucrt\x64;%LIB%
+  - if DEFINED SDK if %PLATFORM% EQU x86 set LIB=%l%um\x86;%l%ucrt\x86;%LIB%
+  - set l=
 
   # ==== MinGW gcc compiler
   - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" (
