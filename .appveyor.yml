@@ -115,7 +115,7 @@ test_script:
   - ccache -p
   - ccache.exe -Czs
   # Launch unit
-  - make test
+  - make PLATFORM=%PLATFORM% test
 
 artifacts:
   - path: config.log
