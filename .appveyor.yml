@@ -80,14 +80,14 @@ before_build:
 
   # ==== Common Visual C setup
   - if DEFINED VCINSTALLDIR (
-      if NOT EXIST "%VCINSTALLDIR%" ( &
+      if NOT EXIST "%VCINSTALLDIR%" (
         dir "C:\Program Files (x86)\Microsoft Visual Studio *" &
         echo "%VCINSTALLDIR% is missing." 1>&2 &
         exit /B 1
       )
     )
   - if DEFINED SDK (
-      if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" ( &
+      if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" (
         dir "%SDK%Lib" &
         echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
         exit /B 2
