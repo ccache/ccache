@@ -2807,7 +2807,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Same as above but options with concatenated argument beginning with a
 		// slash.
 		if (argv[i][0] == '-' || (compiler_is_msvc(args) && argv[i][0] == '/')) {
-			char *slash_pos = strchr(argv[i], '/');
+			char *slash_pos = strchr(argv[i]+1, '/');
 			if (slash_pos) {
 				char *option = x_strndup(argv[i], slash_pos - argv[i]);
 				if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
