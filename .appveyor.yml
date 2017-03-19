@@ -58,7 +58,7 @@ before_build:
       set CC=cl.exe&
       echo Using Visual 2013 cl.exe
     )
- 
+
   # ==== Use Visual 2015 with Windows SDK 10
   - if "%COMPILER%" EQU "Visual 2015" (
       set VCINSTALLDIR=C:\Program Files ^(x86^)\Microsoft Visual Studio 14.0\VC\&
@@ -114,8 +114,8 @@ test_script:
   - ccache -help
   - ccache -p
   - ccache.exe -Czs
-  # Launch unit and final tests
-  # - make test
+  # Launch unit
+  - make test
 
 artifacts:
   - path: config.log
