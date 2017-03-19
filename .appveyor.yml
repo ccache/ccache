@@ -6,8 +6,8 @@
 #       http://www.msys2.org/
 #       https://project-renard.github.io/doc/development/meeting-log/posts/2016/05/03/windows-build-with-msys2/
 #
-#   MSYS2 packages available, in a suitable MSYS2 shell:
-#       pacman -L
+#   MSYS2 packages available in repo, from a suitable MSYS2 shell:
+#       pacman -Sl
 #   Pre-installed packages in AppVeyor:
 #       https://www.appveyor.com/docs/build-environment/#pre-installed-software
 #-----------------------------------------------------------------------------
@@ -28,6 +28,7 @@ platform:
 
 environment:
   matrix:
+    - COMPILER: gcc
     - COMPILER: Visual 2013
     - COMPILER: Visual 2015
 
@@ -47,6 +48,12 @@ install:
 
   # Install needed packages from MSYS2
   - pacman -S --needed --noconfirm autoconf make perl
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" (
+      pacman -S --needed --noconfirm mingw-w64-x86_64-gcc
+    )
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x86" (
+      pacman -S --needed --noconfirm mingw-w64-i686-gcc
+    )
 
   # Print environment details
   - bash config.guess
@@ -70,38 +77,51 @@ before_build:
       echo Using Visual 2015 cl.exe
     )
 
-  # ==== Check we do have evrything
-  - if NOT EXIST "%VCINSTALLDIR%" (
-      dir "C:\Program Files (x86)\Microsoft Visual Studio *" &
-      echo "%VCINSTALLDIR% is missing." 1>&2 &
-      exit /B 1
+  # ==== Common Visual C setup
+  - set VISUAL=%COMPILER:~0:6%
+  - if "%VISUAL%" EQU "Visual" (
+      if NOT EXIST "%VCINSTALLDIR%" ( &
+        dir "C:\Program Files (x86)\Microsoft Visual Studio *" &
+        echo "%VCINSTALLDIR% is missing." 1>&2 &
+        exit /B 1 &
+      ) &
+      if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" ( &
+        dir "%SDK%Lib" &
+        echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
+        exit /B 2 &
+      ) &
+      set SDK_INCLUDE=%SDK%Include\ &
+      set SDK_LIB=%SDK%Lib\%SDK_VERSION% &
+      &
+      set PATH=%SDK%Bin;%PATH% &
+      if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH% &
+      set PATH=%VCINSTALLDIR%BIN;%PATH% &
+      if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH% &
+      &
+      set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%;%INCLUDE% &
+      set INCLUDE=%SDK_INCLUDE%%SDK_VERSION%um;%SDK_INCLUDE%%SDK_VERSION%ucrt;%SDK_INCLUDE%%SDK_VERSION%shared;%INCLUDE% &
+      set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE% &
+      &
+      if %PLATFORM% EQU x64 set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB% &
+      if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB% &
+      &
+      if %PLATFORM% EQU x86 set LIB=%SDK_LIB%um\x86;%SDK_LIB%ucrt\x86;%LIB% &
+      if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
     )
-  - if NOT EXIST "%SDK%Lib\%SDK_VERSION%um\x64" (
-      dir "%SDK%Lib" &
-      echo "Microsoft SDK %SDK%Lib\%SDK_VERSION% is missing." 1>&2 &
-      exit /B 2
+
+  # ==== MinGW gcc compiler
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" (
+      set PATH=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\bin;%PATH%&
+      set CC=gcc &
+      echo "Using gcc 64 bits."
+    )
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x86" (
+      set PATH=C:\MinGW\bin;%PATH%&
+      set CC=gcc&
+      echo "Using gcc 32 bits."
     )
 
-  # ==== Set needed env vars
-  - set SDK_INCLUDE=%SDK%Include\
-  - set SDK_LIB=%SDK%Lib\%SDK_VERSION%
-
-  - set PATH=%SDK%Bin;%PATH%
-  - if %PLATFORM% EQU x64 set PATH=%SDK%Bin\x64;%PATH%
-  - set PATH=%VCINSTALLDIR%BIN;%PATH%
-  - if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%
-
-  - set INCLUDE=%SDK_INCLUDE%um;%SDK_INCLUDE%shared;%SDK_INCLUDE%;%INCLUDE%
-  - set INCLUDE=%SDK_INCLUDE%%SDK_VERSION%um;%SDK_INCLUDE%%SDK_VERSION%ucrt;%SDK_INCLUDE%%SDK_VERSION%shared;%INCLUDE%
-  - set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%
-
-  - if %PLATFORM% EQU x64 set LIB=%SDK_LIB%um\x64;%SDK_LIB%ucrt\x64;%LIB%
-  - if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%
-
-  - if %PLATFORM% EQU x86 set LIB=%SDK_LIB%um\x86;%SDK_LIB%ucrt\x86;%LIB%
-  - if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
-
-  # Misc.
+  # ==== Misc.
   - set LC_ALL=C
   - set RUN_FROM_BUILD_FARM=1
   - where %CC%
