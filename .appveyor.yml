@@ -6,12 +6,14 @@
 #       http://www.msys2.org/
 #       https://project-renard.github.io/doc/development/meeting-log/posts/2016/05/03/windows-build-with-msys2/
 #
-#   MSYS2 packages available, in a suitable MSYS window.
-#       pacman -list
+#   MSYS2 packages available, in a suitable MSYS2 shell:
+#       pacman -L
+#   Pre-installed packages in AppVeyor:
+#       https://www.appveyor.com/docs/build-environment/#pre-installed-software
 #-----------------------------------------------------------------------------
 
 # Simple versioning scheme.
-version: '{build}'
+version: 3.3.4-{branch}-{build}
 
 # The MSVC2015 image have many stuff we need.
 image: Visual Studio 2015
@@ -117,10 +119,13 @@ test_script:
   # Launch unit
   - make PLATFORM=%PLATFORM% test
 
+after_test:
+  - 7z a ccache-{version}.zip ccache.exe AUTHORS.txt LICENSE.txt MANUAL.txt GPL-1.0.txt NEWS.txt
+
 artifacts:
   - path: config.log
     name: logs
 
-  - path: ccache.exe
-    name: ccache
+  - path: '*.zip'
+    name: ccache for windows
     type: Zip
