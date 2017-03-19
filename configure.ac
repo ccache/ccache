@@ -9,6 +9,7 @@ AC_CONFIG_HEADER(config.h)
 
 AC_CANONICAL_HOST
 
+AC_SUBST(ccache_os, unknown)
 case $host in
     *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
         ccache_os=mingw
@@ -41,11 +42,10 @@ AC_SUBST(LIBS)
 m4_include(m4/feature_macros.m4)
 
 dnl Checks for programs.
-if test x${ccache_os} = xmsys; then
-    # Note: autoconf crash if AC_PROG_CC_C89 and C99 are bothe *present*
-    # in this file. Even in different if branches...
-    CC="cl.exe"
-else
+# Note: autoconf crash if AC_PROG_CC_C89 and C99 are both *present*
+# in two different if branches... *BUT* not if only one is inside if
+AC_PROG_CC([cl.exe])
+if test ${ccache_os} != msys; then
     AC_PROG_CC_C99
     if test "$ac_cv_prog_cc_c99" = no; then
         AC_MSG_ERROR(cannot find a C99-compatible compiler)
@@ -54,7 +54,7 @@ fi
 
 AC_PROG_CPP
 AC_PROG_INSTALL
-if test x${ccache_os} != xmsys; then
+if test ${ccache_os} != msys; then
     AC_PROG_RANLIB
     AC_CHECK_TOOL(AR, ar)
     if test -z "$AR"; then
@@ -144,8 +144,9 @@ fi
 
 dnl Compiler specific options
 
-if test x${ccache_os} = xmsys; then
-	CFLAGS="-nologo -MD -W3"
+
+if test ${ccache_os} = msys; then
+	CFLAGS="-nologo -MD -W3 -GS -Ox"
 	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
@@ -153,19 +154,19 @@ if test x${ccache_os} = xmsys; then
 else
 	AC_SUBST(LIBEXT,a)
 fi
-if test x${ccache_os} = xmingw; then
+if test ${ccache_os} = mingw; then
 	CFLAGS="$CFLAGS -Wall -W -Werror"
 	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d"
 fi
-if test x${ccache_os} = xmac; then
+if test ${ccache_os} = mac; then
 	CFLAGS="$CFLAGS -O"
 fi
 
 dnl Linking on Windows needs ws2_32
-if test x${ccache_os} = xmingw; then
+if test ${ccache_os} = mingw; then
     LIBS="$LIBS -lws2_32 -lPsapi"
 fi
-if test x${ccache_os} = xmsys; then
+if test ${ccache_os} = msys; then
     LIBS="$LIBS ws2_32.lib Psapi.lib"
 fi
 
