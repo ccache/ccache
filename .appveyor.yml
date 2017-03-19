@@ -95,13 +95,15 @@ before_build:
     )
 
   - if DEFINED VCINSTALLDIR (
-      set PATH=%VCINSTALLDIR%BIN;%PATH% &
-      if %PLATFORM% EQU x64 set PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%&
+      set PATH=%VCINSTALLDIR%BIN;%PATH%&
+      if %PLATFORM% EQU x64 (
+        PATH=%VCINSTALLDIR%BIN\x86_amd64;%PATH%&
+      )
     )
   - if DEFINED VCINSTALLDIR (
       set INCLUDE=%VCINSTALLDIR%include;%VCINSTALLDIR%atlmfc\include;%INCLUDE%&
       if %PLATFORM% EQU x64 set LIB=%VCINSTALLDIR%lib\amd64;%VCINSTALLDIR%atlmfc\lib\amd64;%LIB%&
-      if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%
+      if %PLATFORM% EQU x86 set LIB=%VCINSTALLDIR%lib;%VCINSTALLDIR%atlmfc\lib;%LIB%&
     )
   - if DEFINED SDK (
       set PATH=%SDK%Bin;%PATH%&
@@ -115,7 +117,7 @@ before_build:
       if %PLATFORM% EQU x64 set LIB=%l%um\x64;%l%ucrt\x64;%LIB%&
       if %PLATFORM% EQU x86 set LIB=%l%um\x86;%l%ucrt\x86;%LIB%&
       SET i=&
-      set l=
+      set l=&
     )
 
   # ==== MinGW gcc compiler
