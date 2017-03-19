@@ -27,6 +27,19 @@ TEST(basename)
 	CHECK_STR_EQ_FREE2("foo.c", basename("dir1/dir2/foo.c"));
 	CHECK_STR_EQ_FREE2("foo.c", basename("/dir/foo.c"));
 	CHECK_STR_EQ_FREE2("", basename("dir1/dir2/"));
+
+#ifdef _WIN32
+	CHECK_STR_EQ_FREE2("foo.c", basename("C:/dir1/dir2/foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("D:/dir1/dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("E:/dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("F:\\dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("\\dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("/dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", basename("/dir1/dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("", basename("G:/dir1/dir2/"));
+	CHECK_STR_EQ_FREE2("", basename("H:/dir1\\dir2\\"));
+	CHECK_STR_EQ_FREE2("", basename("I:\\dir1\\dir2\\"));
+#endif
 }
 
 TEST(dirname)
@@ -38,6 +51,19 @@ TEST(dirname)
 	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/foo.c"));
 	CHECK_STR_EQ_FREE2("/dir", dirname("/dir/foo.c"));
 	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
+
+#ifdef _WIN32
+	CHECK_STR_EQ_FREE2("C:/dir1/dir2", dirname("C:/dir1/dir2/foo.c"));
+	CHECK_STR_EQ_FREE2("D:/dir1/dir2", dirname("D:/dir1/dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("E:/dir1/dir2", dirname("E:/dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("F:/dir1/dir2", dirname("F:\\dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("/dir1/dir2", dirname("\\dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("/dir1/dir2", dirname("/dir1\\dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("/dir1/dir2", dirname("/dir1/dir2\\foo.c"));
+	CHECK_STR_EQ_FREE2("G:/dir1/dir2", dirname("G:/dir1/dir2/"));
+	CHECK_STR_EQ_FREE2("H:/dir1/dir2", dirname("H:/dir1\\dir2\\"));
+	CHECK_STR_EQ_FREE2("I:/dir1/dir2", dirname("I:\\dir1\\dir2\\"));
+#endif
 }
 
 TEST(common_dir_prefix_length)
@@ -52,6 +78,19 @@ TEST(common_dir_prefix_length)
 	CHECK_INT_EQ(4, common_dir_prefix_length("/a/b", "/a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a/bc", "/a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/bc"));
+#ifdef _WIN32
+	CHECK_INT_EQ(0, common_dir_prefix_length("\\", "\\b"));
+	CHECK_INT_EQ(0, common_dir_prefix_length("\\", "/b"));
+	CHECK_INT_EQ(0, common_dir_prefix_length("/", "\\b"));
+	CHECK_INT_EQ(5, common_dir_prefix_length("/a/bc", "/a/bc"));
+	CHECK_INT_EQ(5, common_dir_prefix_length("\\a\\bc", "\\a\\bc"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a\\bc", "\\a\\b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a\\b", "\\a\\bc"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a\\bc", "\\a/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/bc", "\\a/b"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/b", "\\a\\bc"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/b", "\\a/bc"));
+#endif
 }
 
 TEST(get_relative_path)
@@ -69,6 +108,18 @@ TEST(get_relative_path)
 	CHECK_STR_EQ_FREE2("../..", get_relative_path("C:/a/b", "C:/"));
 	CHECK_STR_EQ_FREE2("../../c", get_relative_path("C:/a/b", "C:/c"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("C:/", "C:/a/b"));
+
+	CHECK_STR_EQ_FREE2("a/b/c", get_relative_path("C:\\", "C:\\a\\b\\c"));
+	CHECK_STR_EQ_FREE2("b/c", get_relative_path("C:\\a", "C:\\a\\b\\c"));
+	CHECK_STR_EQ_FREE2("c", get_relative_path("C:\\a\\b", "C:\\a\\b\\c"));
+	CHECK_STR_EQ_FREE2(".", get_relative_path("C:\\a\\b\\c", "C:\\a\\b\\c"));
+	CHECK_STR_EQ_FREE2("..", get_relative_path("C:\\a\\b\\c", "C:\\a\\b"));
+	CHECK_STR_EQ_FREE2("../..", get_relative_path("C:\\a\\b\\c", "C:\\a"));
+	CHECK_STR_EQ_FREE2("../../..", get_relative_path("C:\\a\\b\\c", "C:\\"));
+
+	CHECK_STR_EQ_FREE2("c", get_relative_path("C:/a/b", "C:\\a/b\\c"));
+	CHECK_STR_EQ_FREE2(".", get_relative_path("C:\\a\\b\\c", "C:/a/b/c"));
+	CHECK_STR_EQ_FREE2("..", get_relative_path("C:\\a\\b\\c", "C:/a/b"));
 #else
 	CHECK_STR_EQ_FREE2("a", get_relative_path("/doesn't matter", "a"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/doesn't matter", "a/b"));

@@ -891,13 +891,14 @@ char *
 dirname(const char *path)
 {
 	char *s = x_strdup(path);
-	char *p = strrchr(s, '/');
 #ifdef _WIN32
-	char *p2 = strrchr(s, '\\');
-	if (!p || (p2 && p < p2)) {
-		p = p2;
+	for (char *q = s; *q; ++q) {
+		if (q[0] == '\\') {
+			q[0] = '/';
+		}
 	}
 #endif
+	char *p = strrchr(s, '/');
 	if (!p) {
 		free(s);
 		s = x_strdup(".");
@@ -1328,11 +1329,26 @@ common_dir_prefix_length(const char *s1, const char *s2)
 	const char *p1 = s1;
 	const char *p2 = s2;
 
-	while (*p1 && *p2 && *p1 == *p2) {
-		++p1;
-		++p2;
+	for (; *p1 && *p2; ++p1, ++p2) {
+		if (*p1 == *p2) {
+			continue;
+		}
+#ifdef _WIN32
+		if (*p1 == '/' && *p2 == '\\') {
+			continue;
+		}
+		if (*p1 == '\\' && *p2 == '/') {
+			continue;
+		}
+#endif
+		break;
 	}
+#ifdef _WIN32
+	while ((*p1 && *p1 != '/' && *p1 != '\\') ||
+	       (*p2 && *p2 != '/' && *p2 != '\\')) {
+#else
 	while ((*p1 && *p1 != '/') || (*p2 && *p2 != '/')) {
+#endif
 		p1--;
 		p2--;
 	}
@@ -1375,10 +1391,18 @@ get_relative_path(const char *from, const char *to)
 
 	result = x_strdup("");
 	common_prefix_len = common_dir_prefix_length(from, to);
+#ifdef _WIN32
+	if (common_prefix_len > 0 || (!str_eq(from, "/") && !str_eq(from, "\\"))) {
+#else
 	if (common_prefix_len > 0 || !str_eq(from, "/")) {
+#endif
 		const char *p;
 		for (p = from + common_prefix_len; *p; p++) {
+#ifdef _WIN32
+			if (*p == '/' || *p == '\\') {
+#else
 			if (*p == '/') {
+#endif
 				reformat(&result, "../%s", result);
 			}
 		}
@@ -1393,6 +1417,13 @@ get_relative_path(const char *from, const char *to)
 		free(result);
 		result = x_strdup(".");
 	}
+#ifdef _WIN32
+	for (char *q = result; *q; ++q) {
+		if (q[0] == '\\') {
+			q[0] = '/';
+		}
+	}
+#endif
 	return result;
 }
 
