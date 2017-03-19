@@ -219,8 +219,9 @@ hash_command_output(struct mdfour *hash, const char *command,
 		CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
-	free(win32args);
-	if (cmd) {
+	if (!cmd) {
+		free(win32args);    // Original argument was NOT replaced above.
+	} else {
 		free((char *)command);  // Original argument was replaced above.
 	}
 	if (ret == 0) {
