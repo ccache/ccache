@@ -42,10 +42,9 @@ m4_include(m4/feature_macros.m4)
 
 dnl Checks for programs.
 if test x${ccache_os} = xmsys; then
-    AC_PROG_CC_C89
-    if test "$ac_cv_prog_cc_c89" = no; then
-        AC_MSG_ERROR(cannot find a C89-compatible compiler)
-    fi
+    # Note: autoconf crash if AC_PROG_CC_C89 and C99 are bothe *present*
+    # in this file. Even in different if branches...
+    CC="cl.exe"
 else
     AC_PROG_CC_C99
     if test "$ac_cv_prog_cc_c99" = no; then
