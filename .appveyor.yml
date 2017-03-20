@@ -114,12 +114,12 @@ before_build:
   - set l=
 
   # ==== MinGW gcc compiler
-  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" set PATH=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\bin;%PATH%
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" set PATH=C:\msys64\mingw64\bin;%PATH%
   - if "%COMPILER%-%PLATFORM%" EQU "gcc-x64" (
       set CC=gcc&
       echo "Using gcc 64 bits."
     )
-  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x86" set PATH=C:\MinGW\bin;%PATH%
+  - if "%COMPILER%-%PLATFORM%" EQU "gcc-x86" set PATH=C:\msys64\mingw32\bin;%PATH%
   - if "%COMPILER%-%PLATFORM%" EQU "gcc-x86" (
       set CC=gcc&
       echo "Using gcc 32 bits."

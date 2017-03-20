@@ -54,7 +54,7 @@ fi
 
 AC_PROG_CPP
 AC_PROG_INSTALL
-if test ${ccache_os} != msys; then
+if test x${GCC} != x; then
     AC_PROG_RANLIB
     AC_CHECK_TOOL(AR, ar)
     if test -z "$AR"; then
@@ -145,7 +145,7 @@ fi
 dnl Compiler specific options
 
 
-if test ${ccache_os} = msys; then
+if test x${CC} = xcl; then
 	CFLAGS="-nologo -MD -W3 -GS -Ox"
 	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
@@ -154,12 +154,12 @@ if test ${ccache_os} = msys; then
 else
 	AC_SUBST(LIBEXT,a)
 fi
-if test ${ccache_os} = mingw; then
+if test x${CC} = xgcc; then
 	CFLAGS="$CFLAGS -Wall -W -Werror"
 	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d"
 fi
-if test ${ccache_os} = mac; then
-	CFLAGS="$CFLAGS -O"
+if test x${CC} = xclang; then
+	CFLAGS="$CFLAGS -O2"
 fi
 
 dnl Linking on Windows needs ws2_32
