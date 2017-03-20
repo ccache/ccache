@@ -44,13 +44,17 @@ m4_include(m4/feature_macros.m4)
 dnl Checks for programs.
 # Note: autoconf crash if AC_PROG_CC_C89 and C99 are both *present*
 # in two different if branches... *BUT* not if only one is inside if
-AC_PROG_CC([cl.exe])
-if test ${ccache_os} != msys; then
-    AC_PROG_CC_C99
-    if test "$ac_cv_prog_cc_c99" = no; then
-        AC_MSG_ERROR(cannot find a C99-compatible compiler)
-    fi
-fi
+AC_PROG_CC([gcc clang cc cl.exe])
+case $CC in
+    *gcc* | *clang* | cc)
+        AC_PROG_CC_C99
+        if test "$ac_cv_prog_cc_c99" = no; then
+            AC_MSG_ERROR(cannot find a C99-compatible compiler)
+        fi
+        ;;
+    *)
+        ;;
+esac
 
 AC_PROG_CPP
 AC_PROG_INSTALL
@@ -143,35 +147,47 @@ else
 fi
 
 dnl Compiler specific options
+case x$CC in
+    x*cl | x*cl.exe)
+	    CFLAGS="-nologo -MD -W3 -GS -Ox"
+	    AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
+	    AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
+	    AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
+	    AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
+	    AC_SUBST(LIBEXT,lib)
+        ;;
 
 
-if test x${CC} = xcl -o x${CC} = xcl.exe; then
-	CFLAGS="-nologo -MD -W3 -GS -Ox"
-	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
-	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
-	AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
-	AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
-	AC_SUBST(LIBEXT,lib)
-else
-	AC_SUBST(LIBEXT,a)
-fi
-if test x${CC} = xgcc; then
-	CFLAGS="$CFLAGS -W -Werror"
-	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
-	AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
-fi
-if test x${CC} = xclang; then
-	CFLAGS="$CFLAGS -O2"
-	AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
-fi
+    x*gcc*)
+	    CFLAGS="$CFLAGS -W -Werror"
+	    CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
+	    AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
+	    AC_SUBST(LIBEXT,a)
+        ;;
+
+    x*clang*)
+	    CFLAGS="$CFLAGS -W -Werror"
+	    CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
+	    AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
+	    AC_SUBST(LIBEXT,a)
+        ;;
+
+    *)
+	    CFLAGS="$CFLAGS -O2"
+	    AC_SUBST(LIBEXT,a)
+        ;;
+esac
 
 dnl Linking on Windows needs ws2_32, and Psapi
 if test ${ccache_os} = mingw -o ${ccache_os} = msys; then
-    if test x${CC} = xcl -o x${CC} = xcl.exe; then
-        LIBS="$LIBS ws2_32.lib Psapi.lib"
-    else
-        LIBS="$LIBS -lws2_32 -lPsapi"
-    fi
+    case x$CC in
+        x*cl | x*cl.exe)
+            LIBS="$LIBS ws2_32.lib Psapi.lib"
+            ;;
+        *)
+            LIBS="$LIBS -lws2_32 -lPsapi"
+            ;;
+    esac
 fi
 
 AC_C_BIGENDIAN
