@@ -20,7 +20,7 @@ image: Visual Studio 2015
 
 # Stops on first failing matrix combination
 matrix:
-  allow_failure:
+  allow_failures:
     - COMPILER: gcc
 
 platform:
