@@ -287,8 +287,10 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #    define PATH_DELIM ";"
 #    define F_RDLCK 0
 #    define F_WRLCK 0
-#    define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
-#    define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
+#    ifdef CCACHE_CL
+#       define S_ISDIR(x) (((x) & _S_IFMT) == _S_IFDIR)
+#       define S_ISREG(x) (((x) & _S_IFMT) == _S_IFREG)
+#    endif
 #else
 #    define DIR_DELIM_CH '\\'
 #    define PATH_DELIM ":"

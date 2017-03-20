@@ -13,24 +13,24 @@ AC_SUBST(ccache_os, unknown)
 case $host in
     *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
         ccache_os=mingw
-        AC_DEFINE(CCACHE_MINGW, 1, Compiling with the MinGW platform)
+        AC_DEFINE(CCACHE_MINGW, 1, Compiling on a MinGW platform)
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
 
     *msys*)
         ccache_os=msys
-        AC_DEFINE(CCACHE_MSYS, 1, Compiling with the Visual compiler)
+        AC_DEFINE(CCACHE_MSYS, 1, Compiling on a MSYS2 platform)
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
 
     *apple*)
         ccache_os=mac
-        AC_DEFINE(CCACHE_CLANG, 1, Compiling with the Apple compiler)
+        AC_DEFINE(CCACHE_MAC, 1, Compiling on an Apple platform)
         ;;
 
     *linux-gnu*)
         ccache_os=linux
-        AC_DEFINE(CCACHE_LINUX, 1, Compiling with the GNU compiler)
+        AC_DEFINE(CCACHE_LINUX, 1, Compiling on a Linux platform)
         ;;
 esac
 
@@ -150,24 +150,28 @@ if test x${CC} = xcl; then
 	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
+	AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
 	AC_SUBST(LIBEXT,lib)
 else
 	AC_SUBST(LIBEXT,a)
 fi
 if test x${CC} = xgcc; then
-	CFLAGS="$CFLAGS -Wall -W -Werror"
-	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d"
+	CFLAGS="$CFLAGS -W -Werror"
+	CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
+	AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
 fi
 if test x${CC} = xclang; then
 	CFLAGS="$CFLAGS -O2"
+	AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
 fi
 
-dnl Linking on Windows needs ws2_32
-if test ${ccache_os} = mingw; then
-    LIBS="$LIBS -lws2_32 -lPsapi"
-fi
-if test ${ccache_os} = msys; then
-    LIBS="$LIBS ws2_32.lib Psapi.lib"
+dnl Linking on Windows needs ws2_32, and Psapi
+if test ${ccache_os} = mingw -o ${ccache_os} = msys; then
+    if test x${CC} = xcl; then
+        LIBS="$LIBS ws2_32.lib Psapi.lib"
+    else
+        LIBS="$LIBS -lws2_32 -lPsapi"
+    fi
 fi
 
 AC_C_BIGENDIAN

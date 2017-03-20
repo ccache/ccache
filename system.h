@@ -61,7 +61,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#ifdef WIN32
+#ifdef CCACHE_CL
 _CRTIMP extern char **environ;
 typedef int pid_t;
 typedef SSIZE_T ssize_t;

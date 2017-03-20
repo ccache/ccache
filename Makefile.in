@@ -75,7 +75,7 @@ files_to_distclean = Makefile config.h config.log config.status
 all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
-ifeq (@ccache_os@,msys)
+ifeq ($(CC),cl.exe)
 	link -nologo -machine:$(PLATFORM) -subsystem:console -out:$@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 else
 	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
@@ -94,14 +94,14 @@ clean:
 
 conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
-ifeq (@ccache_os@,msys)
+ifeq ($(CC),cl.exe)
 $(zlib_objs): CPPFLAGS += -FIconfig.h
 else
 $(zlib_objs): CPPFLAGS += -include config.h
 endif
 
 zlib/libz.$(LIBEXT): $(zlib_objs)
-ifeq (@ccache_os@,msys)
+ifeq ($(CC),cl.exe)
 	lib -nologo -out:$@ $(zlib_objs)
 else
 	$(AR) cr $@ $(zlib_objs)
@@ -122,7 +122,7 @@ quicktest: test/main$(EXEEXT)
 	test/main$(EXEEXT)
 
 test/main$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
-ifeq (@ccache_os@,msys)
+ifeq ($(CC),cl.exe)
 	link -nologo -machine:$(PLATFORM) -subsystem:console -out:$@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 else
 	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
