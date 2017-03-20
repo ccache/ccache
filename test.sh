@@ -1136,19 +1136,12 @@ SUITE_nocpp2() {
 
 # =============================================================================
 
-SUITE_clang_modules_PROBE() {
-    if ! $HOST_OS_APPLE; then
-        echo "Clang modules not supported on $(uname -s)"
-        return
-    fi
-}
-
 SUITE_clang_modules_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime"
 
     cat <<EOF >test1.h
-#import <Foundation/Foundation.h>
+#import <string>
 EOF
 
 cat <<EOF >module.modulemap
@@ -1158,7 +1151,7 @@ module "Test1" {
 }
 EOF
 
-   cat <<EOF >test1.m
+   cat <<EOF >test1.cpp
 #import "test1.h"
 int main() { return 0; }
 EOF
@@ -1167,18 +1160,18 @@ EOF
 SUITE_clang_modules() {
     # -------------------------------------------------------------------------
     TEST "preprocessor output"
-    $COMPILER -fmodules test1.m -E > test1.preprocessed.m
-    expect_file_contains "test1.preprocessed.m" "@import Test1;"
+    $COMPILER -fmodules -fcxx-modules test1.cpp -E > test1.preprocessed.cpp
+    expect_file_contains "test1.preprocessed.cpp" "@import Test1;"
 
     # -------------------------------------------------------------------------
     TEST "fall back to real compiler, no run_second_cpp"
 
     export CCACHE_NOCPP2=1
 
-    $CCACHE_COMPILE -fmodules -c test1.m
+    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'unsupported compiler option' 1
 
-    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.m
+    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'unsupported compiler option' 2
 
     # -------------------------------------------------------------------------
@@ -1186,11 +1179,11 @@ SUITE_clang_modules() {
 
     export CCACHE_CPP2=1
 
-    $CCACHE_COMPILE -fmodules -c test1.m
+    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -fmodules -c test1.m
+    $CCACHE_COMPILE -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
 
@@ -1199,16 +1192,16 @@ SUITE_clang_modules() {
 
     export CCACHE_CPP2=1
 
-    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
     cat <<EOF >test1.h
-#import <Foundation/Foundation.h>
+#import <string>
 // modification
 EOF
 
-    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
@@ -1217,15 +1210,15 @@ EOF
 
     export CCACHE_CPP2=1
 
-    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache miss' 1
 
     cat <<EOF >test1.h
-#import <Foundation/Foundation.h>
+#import <string>
 void f();
 EOF
 
-    $CCACHE_COMPILE -MD -fmodules -c test1.m
+    $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp
     expect_stat 'cache miss' 2
 }
 
