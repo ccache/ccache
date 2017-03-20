@@ -145,7 +145,7 @@ fi
 dnl Compiler specific options
 
 
-if test x${CC} = xcl; then
+if test x${CC} = xcl -o x${CC} = xcl.exe; then
 	CFLAGS="-nologo -MD -W3 -GS -Ox"
 	AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
 	AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
@@ -167,7 +167,7 @@ fi
 
 dnl Linking on Windows needs ws2_32, and Psapi
 if test ${ccache_os} = mingw -o ${ccache_os} = msys; then
-    if test x${CC} = xcl; then
+    if test x${CC} = xcl -o x${CC} = xcl.exe; then
         LIBS="$LIBS ws2_32.lib Psapi.lib"
     else
         LIBS="$LIBS -lws2_32 -lPsapi"
