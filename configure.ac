@@ -45,8 +45,8 @@ dnl Checks for programs.
 # Note: autoconf crash if AC_PROG_CC_C89 and C99 are both *present*
 # in two different if branches... *BUT* not if only one is inside if
 AC_PROG_CC([gcc clang cc cl.exe])
-case $CC in
-    *gcc* | *clang* | cc)
+case x$CC in
+    x*gcc* | x*clang* | xcc)
         AC_PROG_CC_C99
         if test "$ac_cv_prog_cc_c99" = no; then
             AC_MSG_ERROR(cannot find a C99-compatible compiler)
@@ -147,34 +147,36 @@ else
 fi
 
 dnl Compiler specific options
+AC_SUBST(ccache_cc, unknown)
 case x$CC in
     x*cl | x*cl.exe)
-	    CFLAGS="-nologo -MD -W3 -GS -Ox"
-	    AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
-	    AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
-	    AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
-	    AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
-	    AC_SUBST(LIBEXT,lib)
+        ccache_cc=cl
+        CFLAGS="-nologo -MD -W3 -GS -Ox"
+        AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
+        AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
+        AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
+        AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
+        AC_SUBST(LIBEXT,lib)
         ;;
 
 
     x*gcc*)
-	    CFLAGS="$CFLAGS -W -Werror"
-	    CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
-	    AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
-	    AC_SUBST(LIBEXT,a)
+        ccache_cc=gcc
+        CFLAGS="$CFLAGS -W -Werror"
+        AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
+        AC_SUBST(LIBEXT,a)
         ;;
 
     x*clang*)
-	    CFLAGS="$CFLAGS -W -Werror"
-	    CPPFLAGS="$CPPFLAGS -MD -MP -MF .deps/\$(subst .._,,\$(subst /,_,\$<)).d"
-	    AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
-	    AC_SUBST(LIBEXT,a)
+        ccache_cc=clang
+        CFLAGS="$CFLAGS -W -Werror"
+        AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
+        AC_SUBST(LIBEXT,a)
         ;;
 
     *)
-	    CFLAGS="$CFLAGS -O2"
-	    AC_SUBST(LIBEXT,a)
+        CFLAGS="$CFLAGS -O2"
+        AC_SUBST(LIBEXT,a)
         ;;
 esac
 

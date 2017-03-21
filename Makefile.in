@@ -78,7 +78,7 @@ ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 ifeq ($(CC),cl.exe)
 	link -nologo -machine:$(PLATFORM) -subsystem:console -out:$@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 else
-	$(CC) $(all_cppflags) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 endif
 
 .PHONY: install
