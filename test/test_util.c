@@ -66,6 +66,19 @@ TEST(dirname)
 #endif
 }
 
+TEST(path_eq)
+{
+	CHECK(path_eq("/abc", "/abc"));
+	CHECK(!path_eq("/abc", "/ab"));
+	CHECK(!path_eq("/ab", "/abc"));
+	CHECK(!path_eq("a", "b"));
+
+#ifdef _WIN32
+	CHECK(path_eq("c:/a/b", "C:\\A\\B"));
+	CHECK(path_eq("C:\\A\\B", "c:/a/b"));
+#endif
+}
+
 TEST(path_startswith)
 {
 	CHECK(path_startswith("/", "/"));

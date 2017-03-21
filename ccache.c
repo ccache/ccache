@@ -267,7 +267,7 @@ static bool
 compiler_is_msvc(struct args *args)
 {
 	char *name = basename(args->argv[0]);
-	bool result = str_eq(name, "cl") || str_eq(name, "cl.exe");
+	bool result = path_eq(name, "cl") || path_eq(name, "cl.exe");
 	free(name);
 	return result;
 }
@@ -555,7 +555,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto ignore;
 	}
 
-	if (str_eq(path, input_file)) {
+	if (path_eq(path, input_file)) {
 		// Don't remember the input file.
 		goto ignore;
 	}
@@ -2146,7 +2146,7 @@ find_compiler(char **argv)
 		stats_update(STATS_COMPILER);
 		fatal("Could not find compiler \"%s\" in PATH", base);
 	}
-	if (str_eq(compiler, argv[0])) {
+	if (path_eq(compiler, argv[0])) {
 		fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
 		      MYNAME);
 	}

@@ -1321,6 +1321,32 @@ same_executable_name(const char *s1, const char *s2)
 #endif
 }
 
+// Check whether two path are equals.
+bool
+path_eq(const char *s1, const char *s2)
+{
+#ifdef _WIN32
+	const char *p1 = s1;
+	const char *p2 = s2;
+
+	for (; *p1 && *p2; ++p1, ++p2) {
+		if (toupper(*p1) == toupper(*p2)) {
+			continue;
+		}
+		if (*p1 == '/' && *p2 == '\\') {
+			continue;
+		}
+		if (*p1 == '\\' && *p2 == '/') {
+			continue;
+		}
+		return false;
+	}
+	return *p1 == *p2;
+#else
+	return str_eq(s1, s2);
+#endif
+}
+
 // Check whether path s2 starts by sub-path s1.
 bool
 path_startswith(const char *s1, const char *s2)
@@ -1417,11 +1443,7 @@ get_relative_path(const char *from, const char *to)
 
 	result = x_strdup("");
 	common_prefix_len = common_dir_prefix_length(from, to);
-#ifdef _WIN32
-	if (common_prefix_len > 0 || (!str_eq(from, "/") && !str_eq(from, "\\"))) {
-#else
-	if (common_prefix_len > 0 || !str_eq(from, "/")) {
-#endif
+	if (common_prefix_len > 0 || !path_eq(from, "/")) {
 		const char *p;
 		for (p = from + common_prefix_len; *p; p++) {
 #ifdef _WIN32

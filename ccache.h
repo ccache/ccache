@@ -170,6 +170,7 @@ FILE *create_tmp_file(char **fname, const char *mode);
 const char *get_home_directory(void);
 char *get_cwd(void);
 bool same_executable_name(const char *s1, const char *s2);
+bool path_eq(const char* s1, const char* s2);
 bool path_startswith(const char* s1, const char* s2);
 size_t common_dir_prefix_length(const char *s1, const char *s2);
 char *get_relative_path(const char *from, const char *to);

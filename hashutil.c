@@ -165,8 +165,8 @@ hash_command_output(struct mdfour *hash, const char *command,
 	if (str_startswith(command, "echo")) {
 		command = format("cmd.exe /c \"%s\"", command);
 		cmd = true;
-	} else if (str_startswith(command,
-	                          "%compiler%") && str_eq(compiler, "echo")) {
+	} else if (str_startswith(command, "%compiler%")
+	           && str_eq(compiler, "echo")) {
 		command = format("cmd.exe /c \"%s%s\"", compiler, command + 10);
 		cmd = true;
 	} else {
