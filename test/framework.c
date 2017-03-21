@@ -279,10 +279,10 @@ void
 cct_wipe(const char *path)
 {
 	// TODO: rewrite using traverse().
-#ifdef __MINGW32__
+#ifdef CCACHE_MINGW
 	char *command = format("rd /s /q %s", path);
-#elif defined(_WIN32)
-	char *command = format("del /f/q/s %s 2>NUL", path);
+#elif defined(CCACHE_MSYS)
+	char *command = format("del /f/q/s %s 1>NUL 2>&1", path);
 #else
 	char *command = format("rm -rf %s", path);
 #endif
