@@ -66,6 +66,27 @@ TEST(dirname)
 #endif
 }
 
+TEST(path_startswith)
+{
+	CHECK(path_startswith("/", "/"));
+	CHECK(path_startswith("/a", "/"));
+	CHECK(path_startswith("/a", "/a"));
+	CHECK(path_startswith("/a/b", "/a"));
+	CHECK(path_startswith("/a/b", "/a/b"));
+
+	CHECK(!path_startswith("/a", "/b"));
+	CHECK(!path_startswith("/a", "/a/b"));
+
+#ifdef _WIN32
+	CHECK(path_startswith("C:/a/b", "C:/a"));
+	CHECK(path_startswith("D:/a/b", "d:/A"));
+	CHECK(path_startswith("e:\\A/B", "E:/a"));
+	CHECK(path_startswith("F:/a/b", "F:\\a"));
+	CHECK(!path_startswith("C:/a/b", "D:/a"));
+	CHECK(!path_startswith("G:/b", "G:/a"));
+#endif
+}
+
 TEST(common_dir_prefix_length)
 {
 	CHECK_INT_EQ(0, common_dir_prefix_length("", ""));

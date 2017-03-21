@@ -689,7 +689,7 @@ ignore:
 char *
 make_relative_path(char *path)
 {
-	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
+	if (str_eq(conf->base_dir, "") || !path_startswith(path, conf->base_dir)) {
 		return path;
 	}
 
@@ -877,7 +877,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 			bool should_hash_inc_path = true;
 			if (!conf->hash_dir) {
 				char *cwd = gnu_getcwd();
-				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
+				if (path_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
 					// When compiling with -g or similar, GCC adds the absolute path to
 					// CWD like this:
 					//
@@ -955,7 +955,7 @@ use_relative_paths_in_depfile(const char *depfile)
 		char *token = strtok_r(buf, " \t", &saveptr);
 		while (token) {
 			char *relpath;
-			if (is_absolute_path(token) && str_startswith(token, conf->base_dir)) {
+			if (is_absolute_path(token) && path_startswith(token, conf->base_dir)) {
 				relpath = make_relative_path(x_strdup(token));
 				result = true;
 			} else {
@@ -1691,7 +1691,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 				char *old = x_strndup(map, sep - map);
 				char *new = x_strdup(sep + 1);
 				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
-				if (str_startswith(cwd, old)) {
+				if (path_startswith(cwd, old)) {
 					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
 					cwd = dir;
@@ -2500,8 +2500,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 		}
 
-		if ((str_startswith(argv[i],
-		                    "-O") ||
+		if ((str_startswith(argv[i], "-O") ||
 		     str_startswith(argv[i], "/O")) && compiler_is_msvc(args)) {
 			debug_level = 1;
 			debug_argument = argv[i];

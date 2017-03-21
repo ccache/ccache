@@ -1321,6 +1321,32 @@ same_executable_name(const char *s1, const char *s2)
 #endif
 }
 
+// Check whether path s2 starts by sub-path s1.
+bool
+path_startswith(const char *s1, const char *s2)
+{
+#ifdef _WIN32
+	const char *p1 = s1;
+	const char *p2 = s2;
+
+	for (; *p1 && *p2; ++p1, ++p2) {
+		if (toupper(*p1) == toupper(*p2)) {
+			continue;
+		}
+		if (*p1 == '/' && *p2 == '\\') {
+			continue;
+		}
+		if (*p1 == '\\' && *p2 == '/') {
+			continue;
+		}
+		return false;
+	}
+	return *p2 == '\0';
+#else
+	return str_startswith(s1, s2);
+#endif
+}
+
 // Compute the length of the longest directory path that is common to two
 // paths. s1 is assumed to be the path to a directory.
 size_t
