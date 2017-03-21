@@ -686,7 +686,7 @@ ignore:
 
 // Make a relative path from current working directory to path if path is under
 // the base directory. Takes over ownership of path. Caller frees.
-static char *
+char *
 make_relative_path(char *path)
 {
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {

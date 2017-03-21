@@ -173,6 +173,77 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 	args_free(orig);
 }
 
+TEST(make_relative_path)
+{
+	extern char *current_working_dir;
+
+	free(conf->base_dir);
+	conf->base_dir = get_root();
+	current_working_dir = get_current_working_dir();
+
+	CHECK_STR_EQ_FREE2("./foo.c",
+	                   make_relative_path(format("%s/%s", current_working_dir,
+	                                             "foo.c")));
+
+	char *dir = format("%s/a/b/c/foo.c", current_working_dir);
+	create_parent_dirs(dir);
+	CHECK_STR_EQ_FREE2("a/foo.c",
+	                   make_relative_path(format("%s/a/foo.c",
+	                                             current_working_dir)));
+	CHECK_STR_EQ_FREE2("a/b/foo.c",
+	                   make_relative_path(format("%s/a/b/foo.c",
+	                                             current_working_dir)));
+	CHECK_STR_EQ_FREE2("a/b/c/foo.c",
+	                   make_relative_path(format("%s/a/b/c/foo.c",
+	                                             current_working_dir)));
+	CHECK_STR_EQ_FREE12(format("%s/a/b/c/d/foo.c", current_working_dir),
+	                    make_relative_path(format("%s/a/b/c/d/foo.c",
+	                                              current_working_dir)));
+
+#ifdef _WIN32
+	// Mixed / and \\ char
+	CHECK_STR_EQ_FREE2("a/foo.c",
+	                   make_relative_path(format("%s\\a\\foo.c",
+	                                             current_working_dir)));
+	CHECK_STR_EQ_FREE2("a/b/foo.c",
+	                   make_relative_path(format("%s\\a/b\\foo.c",
+	                                             current_working_dir)));
+	CHECK_STR_EQ_FREE2("a/b/c/foo.c",
+	                   make_relative_path(format("%s/a\\b\\c/foo.c",
+	                                             current_working_dir)));
+
+	// All \\ case
+	for (char *p = current_working_dir; *p; ++p) {
+		if (*p == '/') {
+			*p = '\\';
+		}
+	}
+	CHECK_STR_EQ_FREE2("a/foo.c",
+	                   make_relative_path(format("%s\\a\\foo.c",
+	                                             current_working_dir)));
+	// All / case
+	for (char *p = current_working_dir; *p; ++p) {
+		if (*p == '\\') {
+			*p = '/';
+		}
+	}
+	CHECK_STR_EQ_FREE2("a/b/foo.c",
+	                   make_relative_path(format("%s/a/b/foo.c",
+	                                             current_working_dir)));
+	// Mixed / and \\ case
+	int count = 0;
+	for (char *p = current_working_dir; *p; ++p) {
+		if (*p == '\\' || *p == '/') {
+			*p = "/\\"[count ^= 1];
+		}
+	}
+	CHECK_STR_EQ_FREE2("a/b/c/foo.c",
+	                   make_relative_path(format("%s/a\\b/c\\foo.c",
+	                                             current_working_dir)));
+#endif
+	free(dir);
+}
+
 TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
 	extern char *current_working_dir;
@@ -189,7 +260,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 	free(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo");
+	CHECK_STR_EQ("--sysroot=./foo", act_cpp->argv[1]);
 
 	args_free(orig);
 	args_free(act_cpp);
@@ -212,8 +283,9 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
 	free(arg_string);
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
-	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot");
-	CHECK_STR_EQ(act_cpp->argv[2], "./foo");
+
+	CHECK_STR_EQ("--sysroot", act_cpp->argv[1]);
+	CHECK_STR_EQ("./foo", act_cpp->argv[2]);
 
 	args_free(orig);
 	args_free(act_cpp);
