@@ -179,7 +179,7 @@ TEST(make_relative_path)
 
 	free(conf->base_dir);
 	conf->base_dir = get_root();
-	current_working_dir = get_current_working_dir();
+	current_working_dir = get_cwd();
 
 	CHECK_STR_EQ_FREE2("./foo.c",
 	                   make_relative_path(format("%s/%s", current_working_dir,
