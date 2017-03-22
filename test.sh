@@ -1136,6 +1136,13 @@ SUITE_nocpp2() {
 
 # =============================================================================
 
+SUITE_clang_modules_PROBE() {
+    if ! $COMPILER_TYPE_CLANG; then
+        echo "-fmodules/-fcxx-modules not supported by compiler"
+        return
+    fi
+ }
+
 SUITE_clang_modules_SETUP() {
     unset CCACHE_NODIRECT
     export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime"
