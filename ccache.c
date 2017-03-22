@@ -1219,41 +1219,43 @@ to_cache(struct args *args)
 
 	// MSVC compiler always print the input file name to stdout,
 	// plus parts of the warnings/error messages.
-	// So we have to fusion that into stderr...
 	if (compiler_is_msvc(args)) {
-		char *tmp_stderr2 = format("%s.2", tmp_stderr);
-		if (x_rename(tmp_stderr, tmp_stderr2)) {
-			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
-			       strerror(errno));
-			failed();
-		}
+		// Drop if we have just the filename (plus CRLF):
+		if (st.st_size > (int)strlen(input_file)+2) {
+			char *tmp_stderr2 = format("%s.2", tmp_stderr);
+			if (x_rename(tmp_stderr, tmp_stderr2)) {
+				cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
+				       strerror(errno));
+				failed();
+			}
 
-		int fd_result =
-			open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
-		if (fd_result == -1) {
-			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
-			failed();
-		}
+			int fd_result =
+				open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+			if (fd_result == -1) {
+				cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
+				failed();
+			}
 
-		int fd_stdout = open(tmp_stdout, O_RDONLY | O_BINARY);
-		if (fd_stdout == -1) {
-			cc_log("Failed opening %s: %s", tmp_stdout, strerror(errno));
-			failed();
-		}
-		copy_fd(fd_stdout, fd_result);
-		close(fd_stdout);
+			int fd_stdout = open(tmp_stdout, O_RDONLY | O_BINARY);
+			if (fd_stdout == -1) {
+				cc_log("Failed opening %s: %s", tmp_stdout, strerror(errno));
+				failed();
+			}
+			copy_fd(fd_stdout, fd_result);
+			close(fd_stdout);
 
-		int fd_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
-		if (fd_stderr == -1) {
-			cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
-			failed();
-		}
-		copy_fd(fd_stderr, fd_result);
-		close(fd_stderr);
+			int fd_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
+			if (fd_stderr == -1) {
+				cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
+				failed();
+			}
+			copy_fd(fd_stderr, fd_result);
+			close(fd_stderr);
 
-		close(fd_result);
-		tmp_unlink(tmp_stderr2);
-		free(tmp_stderr2);
+			close(fd_result);
+			tmp_unlink(tmp_stderr2);
+			free(tmp_stderr2);
+		}
 
 		st.st_size = 0;
 	}
