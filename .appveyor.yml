@@ -128,9 +128,6 @@ before_build:
 
   # ==== Misc.
   - set LC_ALL=C
-  # Disable dev mode, and enable verbose test logs:
-  - set RUN_FROM_BUILD_FARM=yes
-  - where %CC%
 
 build_script:
   - bash autogen.sh
