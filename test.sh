@@ -239,7 +239,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -265,7 +265,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c -g
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c -g
     expect_equal_object_files reference_test1.o reference_test1.o
 
     # -------------------------------------------------------------------------
@@ -275,22 +275,25 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c test1.c -o foo.o
+    $CCACHE_COMPILE -c test1.c ${OFLAGS}foo.o
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c
     expect_equal_object_files reference_test1.o foo.o
 
     # -------------------------------------------------------------------------
-    TEST "Called for link"
 
-    $CCACHE_COMPILE test1.c -o test 2>/dev/null
-    expect_stat 'called for link' 1
+    if ! $COMPILER_USES_MSVC; then
+        TEST "Called for link"
 
-    $CCACHE_COMPILE -c test1.c
-    $CCACHE_COMPILE test1.o -o test 2>/dev/null
-    expect_stat 'called for link' 2
+        $CCACHE_COMPILE test1.c -o test 2>/dev/null
+        expect_stat 'called for link' 1
+
+        $CCACHE_COMPILE -c test1.c
+        $CCACHE_COMPILE test1.o -o test 2>/dev/null
+        expect_stat 'called for link' 2
+    fi
 
     # -------------------------------------------------------------------------
     TEST "No input file"
@@ -346,7 +349,7 @@ base_tests() {
     TEST "Output to a non-regular file"
 
     mkdir testd
-    $CCACHE_COMPILE -o testd -c test1.c >/dev/null 2>&1
+    $CCACHE_COMPILE ${OFLAGS}testd -c test1.c >/dev/null 2>&1
     rmdir testd >/dev/null 2>&1
     expect_stat 'output to a non-regular file' 1
 
@@ -367,7 +370,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c
 
     mv test1.c test1-saved.c
     echo '// initial comment' >test1.c
@@ -382,7 +385,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -403,7 +406,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # CCACHE_RECACHE replaces the object file, so the statistics counter will
@@ -488,7 +491,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $UNCACHED_COMPILE -c ${OFLAGS}reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -1280,7 +1283,7 @@ EOF
 # =============================================================================
 
 SUITE_debug_prefix_map_PROBE() {
-    if ! $COMPILER_TYPE_GCC || $COMPILER_USES_MINGW; then
+    if ! $COMPILER_TYPE_GCC || $COMPILER_USES_MINGW || $COMPILER_USES_MSYS; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
 }
@@ -2793,7 +2796,7 @@ SUITE_pch_PROBE() {
     touch pch.h
     if ! $UNCACHED_COMPILE $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
-        echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
+        echo "compiler ($($COMPILER --version 2>&1 | head -1)) doesn't support precompiled headers"
     fi
 }
 
@@ -3361,13 +3364,17 @@ fi
 
 COMPILER_TYPE_CLANG=false
 COMPILER_TYPE_GCC=false
+COMPILER_TYPE_MSVC=false
 
 COMPILER_USES_LLVM=false
 COMPILER_USES_MINGW=false
+COMPILER_USES_MSYS=false
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false
 HOST_OS_WINDOWS=false
+
+OFLAGS="-o "
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
@@ -3376,6 +3383,11 @@ case $compiler_version in
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
+        ;;
+    *cl*|*Microsoft*)
+        COMPILER_USES_MSVC=true
+        COMPILER="$COMPILER -nologo"
+        OFLAGS="-Fo"
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
@@ -3390,10 +3402,13 @@ case $compiler_version in
     *MINGW*|*mingw*)
         COMPILER_USES_MINGW=true
         ;;
+    *MSYS*|*msys*)
+        COMPILER_USES_MSYS=true
+        ;;
 esac
 
 case $(uname -s) in
-    *MINGW*|*mingw*)
+    *MINGW*|*mingw*|*MSYS*|*msys*)
         HOST_OS_WINDOWS=true
         ;;
     *Darwin*)
@@ -3470,7 +3485,10 @@ if [ "$compiler_location" = "$COMPILER" ]; then
 else
     echo "Compiler:         $COMPILER ($compiler_location)"
 fi
-echo "Compiler version: $($COMPILER --version | head -n 1)"
+
+if ! $COMPILER_USE_MSVC; then
+    echo "Compiler version: $($COMPILER --version | head -n 1)"
+fi
 echo
 
 VERBOSE=false
