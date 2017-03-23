@@ -3384,11 +3384,11 @@ case $compiler_version in
     *clang*)
         COMPILER_TYPE_CLANG=true
         ;;
-    *cl*|*Microsoft*)
-        COMPILER_USES_MSVC=true
-        COMPILER="$COMPILER -nologo"
-        OFLAGS="-Fo"
-        ;;
+#   *cl*|*Microsoft*)
+#       COMPILER_USES_MSVC=true
+#       COMPILER="$COMPILER -nologo"
+#       OFLAGS="-Fo"
+#       ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
         exit 0
