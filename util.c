@@ -1382,24 +1382,28 @@ common_dir_prefix_length(const char *s1, const char *s2)
 	const char *p2 = s2;
 
 	for (; *p1 && *p2; ++p1, ++p2) {
-		if (*p1 == *p2) {
+#ifdef _WIN32
+		if (toupper(*p1) == toupper(*p2)) {
 			continue;
 		}
-#ifdef _WIN32
 		if (*p1 == '/' && *p2 == '\\') {
 			continue;
 		}
 		if (*p1 == '\\' && *p2 == '/') {
 			continue;
 		}
+#else
+		if (*p1 == *p2) {
+			continue;
+		}
 #endif
 		break;
 	}
 #ifdef _WIN32
-	while ((*p1 && *p1 != '/' && *p1 != '\\') ||
-	       (*p2 && *p2 != '/' && *p2 != '\\')) {
+	while ((p1-s1) > 0 && ((*p1 && *p1 != '/' && *p1 != '\\') ||
+	                       (*p2 && *p2 != '/' && *p2 != '\\'))) {
 #else
-	while ((*p1 && *p1 != '/') || (*p2 && *p2 != '/')) {
+	while ((p1-s1) > 0 && ((*p1 && *p1 != '/') || (*p2 && *p2 != '/'))) {
 #endif
 		p1--;
 		p2--;
@@ -1475,7 +1479,7 @@ get_relative_path(const char *from, const char *to)
 	return result;
 }
 
-// Return whether path is absolute.
+// Return whether path is absolute. We assume here the path correctly formed.
 bool
 is_absolute_path(const char *path)
 {

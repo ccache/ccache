@@ -112,6 +112,9 @@ TEST(common_dir_prefix_length)
 	CHECK_INT_EQ(4, common_dir_prefix_length("/a/b", "/a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a/bc", "/a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/bc"));
+	CHECK_INT_EQ(0, common_dir_prefix_length("foo", "bar"));
+	CHECK_INT_EQ(2, common_dir_prefix_length("/a/bbbb", "/a/b/c"));
+	CHECK_INT_EQ(5, common_dir_prefix_length("/a/b/", "/a/b/"));
 #ifdef _WIN32
 	CHECK_INT_EQ(0, common_dir_prefix_length("\\", "\\b"));
 	CHECK_INT_EQ(0, common_dir_prefix_length("\\", "/b"));
@@ -124,6 +127,8 @@ TEST(common_dir_prefix_length)
 	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/bc", "\\a/b"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/b", "\\a\\bc"));
 	CHECK_INT_EQ(2, common_dir_prefix_length("\\a/b", "\\a/bc"));
+
+	CHECK_INT_EQ(7, common_dir_prefix_length("\\A/B\\C/", "/a/b/c/"));
 #endif
 }
 
@@ -261,7 +266,7 @@ TEST(parse_size_with_suffix)
 	size_t i;
 	struct { const char *size; int64_t expected; } sizes[] = {
 		{"0", 0},
-		{"42", (int64_t)42 * 1000 * 1000 * 1000}, // Default suffix: G
+		{"42", (int64_t)42 * 1000 * 1000 * 1000},     // Default suffix: G
 
 		{"78k",       78 * 1000},
 		{"78K",       78 * 1000},
