@@ -65,7 +65,7 @@ cct_run(suite_fn *suites, int verbose_output)
 	suite_fn *suite;
 	int tty = is_tty(1);
 
-	x_unsetenv("GCC_COLORS"); // Avoid confusing argument processing tests.
+	x_unsetenv("GCC_COLORS");   // Avoid confusing argument processing tests.
 	verbose = verbose_output;
 
 	for (suite = suites; *suite; suite++) {
@@ -279,10 +279,8 @@ void
 cct_wipe(const char *path)
 {
 	// TODO: rewrite using traverse().
-#ifdef CCACHE_MINGW
-	char *command = format("rd /s /q %s", path);
-#elif defined(CCACHE_MSYS)
-	char *command = format("del /f/q/s %s 1>NUL 2>&1", path);
+#if defined(CCACHE_MINGW) || defined(CCACHE_MSYS)
+	char *command = format("rmdir /s /q %s", path);
 #else
 	char *command = format("rm -rf %s", path);
 #endif
