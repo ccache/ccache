@@ -1091,7 +1091,7 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 								           TEXT("%s%s"),
 								           drive,
 								           filename+name_len);
-								_tcsncpy(filename, temp_file, _tcslen(temp_file));
+								_tcsncpy(filename, temp_file, _tcslen(temp_file)+1);
 							}
 						}
 					}
@@ -1127,6 +1127,7 @@ x_realpath(const char *path)
 	if (path[0] == '/') {
 		path++;  // Skip leading slash.
 	}
+	memset(ret, 0, sizeof maxlen);
 	HANDLE path_handle = CreateFile(
 		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1137,7 +1138,11 @@ x_realpath(const char *path)
 		GetFileNameFromHandle(path_handle, ret, (WORD)maxlen);
 #endif
 		CloseHandle(path_handle);
-		p = ret + 4; // Strip \\?\ from the file name.
+		if (str_startswith(ret, "\\\\?\\")) {
+			p = ret + 4; // Strip \\?\ from the file name.
+		} else {
+			p = ret;
+		}
 	} else {
 		snprintf(ret, maxlen, "%s", path);
 		p = ret;

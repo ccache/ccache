@@ -85,10 +85,10 @@ char *current_working_dir = NULL;
 static struct args *orig_args;
 
 // The source file.
-static char *input_file;
+char *input_file;
 
 // The output file being compiled to.
-static char *output_obj;
+char *output_obj;
 
 // The path to the dependency file (implicit or specified with -MF).
 static char *output_dep;
@@ -2446,17 +2446,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		// Alternate form of -o/-Fo with no space.
-		if (compiler_is_msvc(args)) {
-			if (str_startswith(argv[i], "-Fo")) {
-				output_obj = make_relative_path(x_strdup(&argv[i][3]));
-				continue;
-			}
-		} else {
-			if (str_startswith(argv[i], "-o")) {
-				output_obj = make_relative_path(x_strdup(&argv[i][2]));
-				continue;
-			}
+		// Alternate form of -o with no space.
+		if (str_startswith(argv[i], "-o")) {
+			output_obj = make_relative_path(x_strdup(&argv[i][2]));
+			continue;
+		}
+
+		// CL never have space.
+		if (compiler_is_msvc(args) &&
+		    (str_startswith(argv[i], "/Fo") ||
+		     str_startswith(argv[i], "-Fo"))) {
+			output_obj = make_relative_path(x_strdup(&argv[i][3]));
+			continue;
 		}
 
 		if (str_eq(argv[i], "-gsplit-dwarf")) {
@@ -3035,8 +3036,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			p[1] = found_S_opt ? 's' : 'o';
-			p[2] = 0;
+			if (compiler_is_msvc(args)) {
+				*p = 0;
+				reformat(&output_obj, "%s.obj", output_obj);
+			} else {
+				p[1] = found_S_opt ? 's' : 'o';
+				p[2] = 0;
+			}
 		}
 	}
 
@@ -3057,12 +3063,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// Cope with -FoDebug/ directory name
 	if (input_file
 	    && compiler_is_msvc(args)
-	    && output_obj &&
-	    (str_endswith(output_obj, "/") || str_endswith(output_obj, "\\"))) {
+	    && output_obj
+	    && (str_endswith(output_obj, "/") || str_endswith(output_obj, "\\"))) {
 		char *base = basename(input_file);
 		char *next = remove_extension(base);
-		char *obj = format("%s%s.obj", output_obj, next);
-		free(output_obj); output_obj = obj;
+		reformat(&output_obj, "%s%s.obj", output_obj, next);
 		free(next);
 		free(base);
 	}

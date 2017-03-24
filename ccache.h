@@ -243,6 +243,8 @@ void lockfile_release(const char *path);
 // ccache.c
 
 extern time_t time_of_compilation;
+extern char *input_file;
+extern char *output_obj;
 void block_signals(void);
 void unblock_signals(void);
 char * make_relative_path(char *path);

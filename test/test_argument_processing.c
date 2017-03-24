@@ -244,6 +244,30 @@ TEST(make_relative_path)
 	free(dir);
 }
 
+TEST(input_relative_path)
+{
+	extern char *current_working_dir;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "//Cannot be empty");
+	current_working_dir = get_cwd();
+	free(conf->base_dir);
+	conf->base_dir = x_strdup(current_working_dir);
+	arg_string = format("gcc -c %s/foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ("foo.c", input_file);
+	CHECK_STR_EQ("foo.o", output_obj);
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
 TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
 	extern char *current_working_dir;
@@ -529,6 +553,94 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 	CHECK_STR_EQ("-I./foo", act_cpp->argv[1]);
 
 	free(cwd);
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(CL_slash_E_should_result_in_called_for_preprocessing)
+{
+	struct args *orig = args_init_from_string("cl /E");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	CHECK(!cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_INT_EQ(2, stats_get_pending(STATS_PREPROCESSING));
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(CL_at_file_expension)
+{
+	create_file("foo.c", "//Cannot be empty");
+	char *current_working_dir = get_cwd();
+	char *file_string = format("%s/foo.c", current_working_dir);
+	create_file("file.jom", file_string);
+	free(file_string);
+	free(conf->base_dir);
+	conf->base_dir = x_strdup(current_working_dir);
+	struct args *orig = args_init_from_string("cl /c @file.jom");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_INT_EQ(2, act_cc->argc);
+	CHECK_STR_EQ("cl", act_cc->argv[0]);
+	CHECK_STR_EQ("-c", act_cc->argv[1]);
+	CHECK_INT_EQ(1, act_cpp->argc);
+	CHECK_STR_EQ("cl",  act_cpp->argv[0]);
+	CHECK_INT_EQ(0, stats_get_pending(STATS_NOINPUT));
+	CHECK_STR_EQ("foo.c", input_file);
+	CHECK_STR_EQ("foo.obj", output_obj);
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(CL_dash_Fo)
+{
+	create_file("foo.c", "//Not empty file");
+	char *current_working_dir = get_cwd();
+	free(conf->base_dir);
+	conf->base_dir = get_root();
+	char *arg_string = format("cl -Fo%s/bar.obj -c %s/foo.c", current_working_dir,
+	                          current_working_dir);
+	struct args *orig = args_init_from_string(arg_string);
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_INT_EQ(2, act_cc->argc);
+	CHECK_STR_EQ("-c",  act_cc->argv[1]);
+	CHECK_INT_EQ(1, act_cpp->argc);
+	CHECK_STR_EQ("foo.c", input_file);
+	CHECK_STR_EQ("./bar.obj", output_obj);
+
+	free(arg_string);
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(CL_slash_Fo)
+{
+	create_file("foo.c", "//Not empty file");
+	char *current_working_dir = get_cwd();
+	free(conf->base_dir);
+	conf->base_dir = get_root();
+	char *arg_string = format("cl /Fo%s/bar.obj /c %s/foo.c", current_working_dir,
+	                          current_working_dir);
+	struct args *orig = args_init_from_string(arg_string);
+	free(arg_string);
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_INT_EQ(2, act_cc->argc);
+	CHECK_STR_EQ("-c",  act_cc->argv[1]);
+	CHECK_INT_EQ(1, act_cpp->argc);
+	CHECK_STR_EQ("foo.c", input_file);
+	CHECK_STR_EQ("./bar.obj", output_obj);
+
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);
