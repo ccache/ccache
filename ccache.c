@@ -459,6 +459,36 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
+// Note that these compiler checks are unreliable, so nothing should
+// hard-depend on them.
+
+static bool
+compiler_is_clang(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "clang") != NULL;
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_gcc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "gcc") || strstr(name, "g++");
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_pump(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
+	free(name);
+	return result;
+}
+
 static char *
 get_current_working_dir(void)
 {
@@ -1082,15 +1112,6 @@ void update_manifest_file(void)
 	}
 }
 
-static bool
-compiler_is_pump(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
-	free(name);
-	return result;
-}
-
 // Run the real compiler and put the result in cache.
 static void
 to_cache(struct args *args)
@@ -1568,27 +1589,6 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 			fatal("Failure running compiler check command: %s", conf->compiler_check);
 		}
 	}
-}
-
-// Note that these compiler checks are unreliable, so nothing should
-// hard-depend on them.
-
-static bool
-compiler_is_clang(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "clang") != NULL;
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_gcc(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "gcc") || strstr(name, "g++");
-	free(name);
-	return result;
 }
 
 // Update a hash sum with information common for the direct and preprocessor
