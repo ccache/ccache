@@ -289,8 +289,7 @@ add_prefix(struct args *args, char *prefix_command)
 	struct args *prefix = args_init(0, NULL);
 	char *e = x_strdup(prefix_command);
 	char *saveptr = NULL;
-	for (char *tok = strtok_r(e, " ", &saveptr);
-	     tok;
+	for (char *tok = strtok_r(e, " ", &saveptr); tok;
 	     tok = strtok_r(NULL, " ", &saveptr)) {
 		char *p;
 
@@ -538,7 +537,7 @@ get_path_in_cache(const char *name, const char *suffix)
 	}
 
 	char *result =
-	  format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
+		format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
 	free(path);
 	return result;
 }
@@ -1023,7 +1022,7 @@ put_file_in_cache(const char *source, const char *dest)
 	}
 	if (!do_link) {
 		int ret = copy_file(
-		  source, dest, conf->compression ? conf->compression_level : 0);
+			source, dest, conf->compression ? conf->compression_level : 0);
 		if (ret != 0) {
 			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
 			stats_update(STATS_ERROR);
@@ -1196,8 +1195,13 @@ to_cache(struct args *args)
 
 	cc_log("Running real compiler");
 	int status =
-	  execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
-	args_pop(args, 3);
+		execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+
+	if (compiler_is_msvc(args)) {
+		args_pop(args, 3);  // -Foooutput.obj input.c
+	} else {
+		args_pop(args, 3);  //	-o output.o input.c
+	}
 
 	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1230,7 +1234,7 @@ to_cache(struct args *args)
 			}
 
 			int fd_result =
-			  open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+				open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 			if (fd_result == -1) {
 				cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
 				failed();
@@ -1301,7 +1305,7 @@ to_cache(struct args *args)
 		}
 
 		int fd_result =
-		  open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+			open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_result == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
 			failed();
@@ -1374,8 +1378,8 @@ to_cache(struct args *args)
 	}
 	if (st.st_size > 0) {
 		if (move_uncompressed_file(
-		      tmp_stderr, cached_stderr,
-		      conf->compression ? conf->compression_level : 0) != 0) {
+					tmp_stderr, cached_stderr,
+					conf->compression ? conf->compression_level : 0) != 0) {
 			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
 			       strerror(errno));
 			stats_update(STATS_ERROR);
@@ -1639,7 +1643,7 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 		hash_file(hash, path);
 	} else { // command string
 		if (!hash_multicommand_output(
-		      hash, conf->compiler_check, orig_args->argv[0])) {
+					hash, conf->compiler_check, orig_args->argv[0])) {
 			fatal("Failure running compiler check command: %s", conf->compiler_check);
 		}
 	}
@@ -2041,7 +2045,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
-	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
 	// If the dependency file should be in the cache, check that it is.
 	if (produce_dep_file && stat(cached_dep, &st) != 0) {
@@ -2971,7 +2975,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	output_is_precompiled_header =
-	  actual_language && strstr(actual_language, "-header");
+		actual_language && strstr(actual_language, "-header");
 
 	if (output_is_precompiled_header
 	    && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
