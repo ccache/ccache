@@ -743,6 +743,10 @@ void x_unsetenv(const char *name)
 {
 #ifdef HAVE_UNSETENV
 	unsetenv(name);
+#elif defined(CCACHE_MSYS) || defined(CCACHE_MINGW)
+	char *str = format("%s=", name);
+	putenv(str);
+	free(str);
 #else
 	putenv(x_strdup(name)); // Leak to environment.
 #endif
@@ -811,13 +815,14 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 #ifdef _WIN32
 	WIN32_FIND_DATA data;
 
-	HANDLE h = FindFirstFile(dir, &data);
+	char *subdir = format("%s/*", dir); // Look for child, not itself.
+	HANDLE h = FindFirstFile(subdir, &data);
 	if (h == INVALID_HANDLE_VALUE) {
 		return;
 	}
 
 	#define FNAME   data.cFileName
-	#define NEXT()  FindNextFile(h, &data)
+	#define NEXT()  FindNextFile(h, &data) != 0
 #else
 	DIR *d = opendir(dir);
 	if (!d) {
@@ -861,7 +866,12 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 	} while (NEXT());
 
 #ifdef _WIN32
+	DWORD error = GetLastError();
+	if (error != ERROR_NO_MORE_FILES) {
+		cc_log("FindNextFile rc=%d", error);
+	}
 	FindClose(h);
+	free(subdir);
 #else
 	closedir(d);
 #endif
