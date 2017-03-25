@@ -1323,6 +1323,32 @@ SUITE_debug_prefix_map() {
     if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Multiple -fdebug-prefix-map"
+
+    cd dir1
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
+    if ! grep "foobar" test.o >/dev/null 2>&1; then
+        test_failed "Relocation (foobar) not found in test.o"
+    fi
+
+    cd ../dir2
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
 }
 
 # =============================================================================
@@ -2254,20 +2280,41 @@ EOF
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_IGNOREHEADERS"
+    TEST "CCACHE_IGNOREHEADERS with filename"
 
-    cat <<EOF >ignore.h
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
 // We don't want this header in the manifest.
 EOF
-    backdate ignore.h
+    backdate subdir/ignore.h
     cat <<EOF >ignore.c
-#include "ignore.h"
+#include "subdir/ignore.h"
 int foo;
 EOF
 
-    CCACHE_IGNOREHEADERS="ignore.h" $CCACHE_COMPILE -c ignore.c
+    CCACHE_IGNOREHEADERS="subdir/ignore.h" $CCACHE_COMPILE -c ignore.c
     manifest=`find $CCACHE_DIR -name '*.manifest'`
-    data="`$CCACHE --dump-manifest $manifest | grep ignore.h`"
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
+    if [ -n "$data" ]; then
+        test_failed "$manifest contained ignored header: $data"
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_IGNOREHEADERS with directory"
+
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
+// We don't want this header in the manifest.
+EOF
+    backdate subdir/ignore.h
+    cat <<EOF >ignore.c
+#include "subdir/ignore.h"
+int foo;
+EOF
+
+    CCACHE_IGNOREHEADERS="subdir" $CCACHE_COMPILE -c ignore.c
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi

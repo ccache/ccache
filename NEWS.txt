@@ -18,6 +18,22 @@ New features and improvements
 - ccache should now work with distcc's ``pump'' wrapper.
 
 
+ccache 3.3.5
+------------
+Not yet released
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression where the original order of debug options could be lost.
+  This reverts the ``Improved parsing of `-g*` options'' feature in ccache 3.3.
+
+- Multiple `-fdebug-prefix-map` options should now be handled correctly.
+
+- Fixed matching of directories in the `ignore_headers_in_manifest`
+  configuration option.
+
+
 ccache 3.3.4
 ------------
 Release date: 2017-02-17
