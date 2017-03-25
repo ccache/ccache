@@ -1182,7 +1182,9 @@ to_cache(struct args *args)
 		}
 		failed();
 	}
-	// distcc-pump outputs lines like "__________Using # distcc servers in pump mode"
+
+	// distcc-pump outputs lines like this:
+	// __________Using # distcc servers in pump mode
 	if (st.st_size != 0 && !compiler_is_pump(args)) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
