@@ -2110,8 +2110,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	struct args *dep_args = args_init(0, NULL);
 
 	bool found_color_diagnostics = false;
-	int debug_level = 0;
-	const char *debug_argument = NULL;
 
 	int argc = expanded_args->argc;
 	char **argv = expanded_args->argv;
@@ -2317,32 +2315,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
 		if (str_startswith(argv[i], "-g")) {
-			const char *pLevel = argv[i] + 2;
-			if (str_startswith(argv[i], "-ggdb")) {
-				pLevel = argv[i] + 5;
-			} else if (str_startswith(argv[i], "-gstabs")) {
-				pLevel = argv[i] + 7;
-			} else if (str_startswith(argv[i], "-gcoff")) {
-				pLevel = argv[i] + 6;
-			} else if (str_startswith(argv[i], "-gxcoff")) {
-				pLevel = argv[i] + 7;
-			} else if (str_startswith(argv[i], "-gvms")) {
-				pLevel = argv[i] + 5;
+			generating_debuginfo = true;
+			args_add(stripped_args, argv[i]);
+			if (conf->unify && !str_eq(argv[i], "-g0")) {
+				cc_log("%s used; disabling unify mode", argv[i]);
+				conf->unify = false;
 			}
-
-			// Deduce level from argument, default is 2.
-			int foundlevel = -1;
-			if (pLevel[0] == '\0') {
-				foundlevel = 2;
-			} else if (pLevel[0] >= '0' && pLevel[0] <= '9') {
-				foundlevel = atoi(pLevel);
+			if (str_eq(argv[i], "-g3")) {
+				cc_log("%s used; not compiling preprocessed code", argv[i]);
+				conf->run_second_cpp = true;
 			}
-
-			if (foundlevel >= 0) {
-				debug_level = foundlevel;
-				debug_argument = argv[i];
-				continue;
-			}
+			continue;
 		}
 
 		// These options require special handling, because they behave differently
@@ -2725,19 +2708,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			input_file = make_relative_path(x_strdup(argv[i]));
 		}
 	} // for
-
-	if (debug_level > 0) {
-		generating_debuginfo = true;
-		args_add(stripped_args, debug_argument);
-		if (conf->unify) {
-			cc_log("%s used; disabling unify mode", debug_argument);
-			conf->unify = false;
-		}
-		if (debug_level >= 3 && !conf->run_second_cpp) {
-			cc_log("%s used; not compiling preprocessed code", debug_argument);
-			conf->run_second_cpp = true;
-		}
-	}
 
 	if (found_S_opt) {
 		// Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
