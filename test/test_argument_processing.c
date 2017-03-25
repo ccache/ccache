@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -436,6 +436,38 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);
+}
+
+TEST(debug_flag_order_with_known_option_first)
+{
+	struct args *orig = args_init_from_string("cc -g1 -gsplit-dwarf foo.c -c");
+	struct args *exp_cpp = args_init_from_string("cc -g1 -gsplit-dwarf");
+	struct args *exp_cc = args_init_from_string("cc -g1 -gsplit-dwarf -c");
+	struct args *act_cpp = NULL;
+	struct args *act_cc = NULL;
+
+	create_file("foo.c", "");
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(debug_flag_order_with_known_option_last)
+{
+	struct args *orig = args_init_from_string("cc -gsplit-dwarf -g1 foo.c -c");
+	struct args *exp_cpp = args_init_from_string("cc -gsplit-dwarf -g1");
+	struct args *exp_cc = args_init_from_string("cc -gsplit-dwarf -g1 -c");
+	struct args *act_cpp = NULL;
+	struct args *act_cc = NULL;
+
+	create_file("foo.c", "");
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
 }
 
 TEST_SUITE_END
