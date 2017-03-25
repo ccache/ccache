@@ -2310,7 +2310,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
-			debug_prefix_maps = x_realloc(debug_prefix_maps,
+			debug_prefix_maps = x_realloc(
+				debug_prefix_maps,
 				(debug_prefix_maps_len + 1) * sizeof(char *));
 			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
