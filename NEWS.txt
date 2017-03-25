@@ -11,6 +11,8 @@ Bug fixes
 - Fixed a regression where the original order of debug options could be lost.
   This reverts the ``Improved parsing of `-g*` options'' feature in ccache 3.3.
 
+- Multiple `-fdebug-prefix-map` options should now be handled correctly.
+
 
 ccache 3.3.4
 ------------
