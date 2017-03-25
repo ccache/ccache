@@ -13,6 +13,9 @@ Bug fixes
 
 - Multiple `-fdebug-prefix-map` options should now be handled correctly.
 
+- Fixed matching of directories in the `ignore_headers_in_manifest`
+  configuration option.
+
 
 ccache 3.3.4
 ------------
