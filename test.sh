@@ -2257,20 +2257,41 @@ EOF
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_IGNOREHEADERS"
+    TEST "CCACHE_IGNOREHEADERS with filename"
 
-    cat <<EOF >ignore.h
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
 // We don't want this header in the manifest.
 EOF
-    backdate ignore.h
+    backdate subdir/ignore.h
     cat <<EOF >ignore.c
-#include "ignore.h"
+#include "subdir/ignore.h"
 int foo;
 EOF
 
-    CCACHE_IGNOREHEADERS="ignore.h" $CCACHE_COMPILE -c ignore.c
+    CCACHE_IGNOREHEADERS="subdir/ignore.h" $CCACHE_COMPILE -c ignore.c
     manifest=`find $CCACHE_DIR -name '*.manifest'`
-    data="`$CCACHE --dump-manifest $manifest | grep ignore.h`"
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
+    if [ -n "$data" ]; then
+        test_failed "$manifest contained ignored header: $data"
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_IGNOREHEADERS with directory"
+
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
+// We don't want this header in the manifest.
+EOF
+    backdate subdir/ignore.h
+    cat <<EOF >ignore.c
+#include "subdir/ignore.h"
+int foo;
+EOF
+
+    CCACHE_IGNOREHEADERS="subdir" $CCACHE_COMPILE -c ignore.c
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi
