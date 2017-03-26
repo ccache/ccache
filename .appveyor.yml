@@ -139,7 +139,9 @@ test_script:
   - ccache -help
   - ccache -p
   - ccache.exe -Czs
-  # Launch unit
+  # Allow cross-compiler final tests (compiled with visual, tested for gc)
+  - if %COMPILER% NEQ gcc et PATH=C:\msys64\mingw64\bin;%PATH%
+  # Launch internal and final tests
   - make PLATFORM=%PLATFORM% test
 
 after_test:
