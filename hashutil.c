@@ -154,33 +154,28 @@ bool
 hash_command_output(struct mdfour *hash, const char *command,
                     const char *compiler)
 {
-#ifdef _WIN32
-	// Trim leading space.
-	while (isspace(*command)) {
-		command++;
+	char *cmdline = x_strdup(command);
+	char *p = strstr(cmdline, "%compiler%");
+	if (p) {
+		*p = '\0';
+		reformat(&cmdline, "%s%s%s", cmdline, compiler, p+10);
 	}
 
-	// Add "echo" command.
-	bool cmd;
-	if (str_startswith(command, "echo")) {
-		command = format("cmd.exe /c \"%s\"", command);
-		cmd = true;
-	} else if (str_startswith(command, "%compiler%")
-	           && str_eq(compiler, "echo")) {
-		command = format("cmd.exe /c \"%s%s\"", compiler, command + 10);
-		cmd = true;
-	} else {
-		command = x_strdup(command);
-		cmd = false;
+#ifdef _WIN32
+	// Trim leading space, but keep free() at original addr.
+	char *q = cmdline;
+	while (isspace(*q)) {
+		++q;
+	}
+
+	// Manage "echo" command.
+	bool cmd = path_startswith(q, "echo ");
+	if (cmd) {
+		reformat(&cmdline, "cmd.exe /c \"%s\"", q);
 	}
 #endif
 
-	struct args *args = args_init_from_string(command);
-	for (int i = 0; i < args->argc; i++) {
-		if (str_eq(args->argv[i], "%compiler%")) {
-			args_set(args, i, compiler);
-		}
-	}
+	struct args *args = args_init_from_string(cmdline);
 	cc_log_argv("Executing compiler check command ", args->argv);
 
 #ifdef _WIN32
@@ -213,17 +208,16 @@ hash_command_output(struct mdfour *hash, const char *command,
 	if (!cmd) {
 		win32args = win32argvtos(sh, args->argv);
 	} else {
-		win32args = (char *)command;  // quoted
+		win32args = (char *)cmdline;  // quoted
 	}
 	BOOL ret =
 		CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	if (!cmd) {
-		free(win32args);    // Original argument was NOT replaced above.
-	} else {
-		free((char *)command);  // Original argument was replaced above.
+		free(win32args);      // Additional args
 	}
+	free((char *)cmdline);  // Original argument was replaced above.
 	if (ret == 0) {
 		stats_update(STATS_COMPCHECK);
 		return false;
