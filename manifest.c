@@ -165,15 +165,16 @@ free_manifest(struct manifest *mf)
 
 #define READ_INT(size, var) \
   do { \
-		(var) = 0; \
+		uint64_t u_ = 0; \
 		for (size_t i_ = 0; i_ < (size); i_++) { \
 			int ch_ = gzgetc(f); \
 			if (ch_ == EOF) { \
 				goto error; \
 			} \
-			(var) <<= 8; \
-			(var) |= ch_ & 0xFF; \
+			u_ <<= 8; \
+			u_ |= ch_ & 0xFF; \
 		} \
+		(var) = u_; \
 	} while (false)
 
 #define READ_STR(var) \
@@ -289,10 +290,11 @@ error:
 
 #define WRITE_INT(size, var) \
   do { \
+		uint64_t u_ = (var); \
 		uint8_t ch_; \
 		size_t i_; \
 		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = ((var) >> (8 * ((size) - i_ - 1))); \
+			ch_ = (u_ >> (8 * ((size) - i_ - 1))); \
 			if (gzputc(f, ch_) == EOF) { \
 				goto error; \
 			} \
@@ -375,14 +377,12 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			hashtable_insert(stated_files, x_strdup(path), st);
 		}
 
+		if (fi->size != st->size) {
+			return 0;
+		}
+
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-			// st->ctime is sometimes 0, so we can't check that both st->ctime and
-			// st->mtime are greater than time_of_compilation. But it's sufficient to
-			// check that either is.
-			if (fi->size == st->size
-			    && fi->mtime == st->mtime
-			    && fi->ctime == st->ctime
-			    && MAX(st->mtime, st->ctime) >= time_of_compilation) {
+			if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
 				cc_log("size/mtime/ctime hit for %s", path);
 				continue;
 			} else {

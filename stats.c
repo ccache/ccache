@@ -50,40 +50,198 @@ static struct {
 	void (*fn)(uint64_t);
 	unsigned flags;
 } stats_info[] = {
-	{ STATS_CACHEHIT_DIR, "cache hit (direct)             ", NULL, FLAG_ALWAYS },
-	{ STATS_CACHEHIT_CPP, "cache hit (preprocessed)       ", NULL, FLAG_ALWAYS },
-	{ STATS_TOCACHE,      "cache miss                     ", NULL, FLAG_ALWAYS },
-	{ STATS_LINK,         "called for link                ", NULL, 0 },
-	{ STATS_PREPROCESSING, "called for preprocessing       ", NULL, 0 },
-	{ STATS_MULTIPLE,     "multiple source files          ", NULL, 0 },
-	{ STATS_STDOUT,       "compiler produced stdout       ", NULL, 0 },
-	{ STATS_NOOUTPUT,     "compiler produced no output    ", NULL, 0 },
-	{ STATS_EMPTYOUTPUT,  "compiler produced empty output ", NULL, 0 },
-	{ STATS_STATUS,       "compile failed                 ", NULL, 0 },
-	{ STATS_ERROR,        "ccache internal error          ", NULL, 0 },
-	{ STATS_PREPROCESSOR, "preprocessor error             ", NULL, 0 },
-	{ STATS_CANTUSEPCH,   "can't use precompiled header   ", NULL, 0 },
-	{ STATS_COMPILER,     "couldn't find the compiler     ", NULL, 0 },
-	{ STATS_MISSING,      "cache file missing             ", NULL, 0 },
-	{ STATS_ARGS,         "bad compiler arguments         ", NULL, 0 },
-	{ STATS_SOURCELANG,   "unsupported source language    ", NULL, 0 },
-	{ STATS_COMPCHECK,    "compiler check failed          ", NULL, 0 },
-	{ STATS_CONFTEST,     "autoconf compile/link          ", NULL, 0 },
-	{ STATS_UNSUPPORTED,  "unsupported compiler option    ", NULL, 0 },
-	{ STATS_OUTSTDOUT,    "output to stdout               ", NULL, 0 },
-	{ STATS_DEVICE,       "output to a non-regular file   ", NULL, 0 },
-	{ STATS_NOINPUT,      "no input file                  ", NULL, 0 },
-	{ STATS_BADEXTRAFILE, "error hashing extra file       ", NULL, 0 },
-	{ STATS_NUMCLEANUPS,  "cleanups performed             ", NULL, FLAG_ALWAYS },
-	{ STATS_NUMFILES,     "files in cache                 ", NULL,
-		FLAG_NOZERO|FLAG_ALWAYS },
-	{ STATS_TOTALSIZE,    "cache size                     ",
-		display_size_times_1024, FLAG_NOZERO|FLAG_ALWAYS },
-	{ STATS_OBSOLETE_MAXFILES, "OBSOLETE",                   NULL,
-		FLAG_NOZERO|FLAG_NEVER},
-	{ STATS_OBSOLETE_MAXSIZE, "OBSOLETE",                    NULL,
-		FLAG_NOZERO|FLAG_NEVER},
-	{ STATS_NONE, NULL, NULL, 0 }
+	{
+		STATS_CACHEHIT_DIR,
+		"cache hit (direct)",
+		NULL,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_CACHEHIT_CPP,
+		"cache hit (preprocessed)",
+		NULL,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_TOCACHE,
+		"cache miss",
+		NULL,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_LINK,
+		"called for link",
+		NULL,
+		0
+	},
+	{
+		STATS_PREPROCESSING,
+		"called for preprocessing",
+		NULL,
+		0
+	},
+	{
+		STATS_MULTIPLE,
+		"multiple source files",
+		NULL,
+		0
+	},
+	{
+		STATS_STDOUT,
+		"compiler produced stdout",
+		NULL,
+		0
+	},
+	{
+		STATS_NOOUTPUT,
+		"compiler produced no output",
+		NULL,
+		0
+	},
+	{
+		STATS_EMPTYOUTPUT,
+		"compiler produced empty output",
+		NULL,
+		0
+	},
+	{
+		STATS_STATUS,
+		"compile failed",
+		NULL,
+		0
+	},
+	{
+		STATS_ERROR,
+		"ccache internal error",
+		NULL,
+		0
+	},
+	{
+		STATS_PREPROCESSOR,
+		"preprocessor error",
+		NULL,
+		0
+	},
+	{
+		STATS_CANTUSEPCH,
+		"can't use precompiled header",
+		NULL,
+		0
+	},
+	{
+		STATS_COMPILER,
+		"couldn't find the compiler",
+		NULL,
+		0
+	},
+	{
+		STATS_MISSING,
+		"cache file missing",
+		NULL,
+		0
+	},
+	{
+		STATS_ARGS,
+		"bad compiler arguments",
+		NULL,
+		0
+	},
+	{
+		STATS_SOURCELANG,
+		"unsupported source language",
+		NULL,
+		0
+	},
+	{
+		STATS_COMPCHECK,
+		"compiler check failed",
+		NULL,
+		0
+	},
+	{
+		STATS_CONFTEST,
+		"autoconf compile/link",
+		NULL,
+		0
+	},
+	{
+		STATS_UNSUPPORTED_OPTION,
+		"unsupported compiler option",
+		NULL,
+		0
+	},
+	{
+		STATS_UNSUPPORTED_DIRECTIVE,
+		"unsupported code directive",
+		NULL,
+		0
+	},
+	{
+		STATS_OUTSTDOUT,
+		"output to stdout",
+		NULL,
+		0
+	},
+	{
+		STATS_DEVICE,
+		"output to a non-regular file",
+		NULL,
+		0
+	},
+	{
+		STATS_NOINPUT,
+		"no input file",
+		NULL,
+		0
+	},
+	{
+		STATS_BADEXTRAFILE,
+		"error hashing extra file",
+		NULL,
+		0
+	},
+	{
+		STATS_NUMCLEANUPS,
+		"cleanups performed",
+		NULL,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_NUMFILES,
+		"files in cache",
+		NULL,
+		FLAG_NOZERO|FLAG_ALWAYS
+	},
+	{
+		STATS_TOTALSIZE,
+		"cache size",
+		display_size_times_1024,
+		FLAG_NOZERO|FLAG_ALWAYS
+	},
+	{
+		STATS_OBSOLETE_MAXFILES,
+		"OBSOLETE",
+		NULL,
+		FLAG_NOZERO|FLAG_NEVER
+	},
+	{
+		STATS_OBSOLETE_MAXSIZE,
+		"OBSOLETE",
+		NULL,
+		FLAG_NOZERO|FLAG_NEVER
+	},
+	{
+		STATS_ZEROTIMESTAMP,
+		"stats last zeroed at",
+		NULL,
+		FLAG_NEVER
+	},
+	{
+		STATS_NONE,
+		NULL,
+		NULL,
+		0
+	}
 };
 
 static void
@@ -125,6 +283,13 @@ parse_stats(struct counters *counters, const char *buf)
 void
 stats_write(const char *path, struct counters *counters)
 {
+	struct stat st;
+	if (stat(path, &st) != 0 && errno == ENOENT) {
+		// New stats, update zero timestamp.
+		time_t now;
+		time(&now);
+		stats_timestamp(now, counters);
+	}
 	char *tmp_file = format("%s.tmp", path);
 	FILE *f = create_tmp_file(&tmp_file, "wb");
 	for (size_t i = 0; i < counters->size; i++) {
@@ -164,6 +329,13 @@ stats_read(const char *sfile, struct counters *counters)
 		parse_stats(counters, data);
 	}
 	free(data);
+}
+
+// Set the timestamp when the counters were last zeroed out.
+void
+stats_timestamp(time_t time, struct counters *counters)
+{
+	counters->data[STATS_ZEROTIMESTAMP] = (unsigned) time;
 }
 
 // Write counter updates in counter_updates to disk.
@@ -263,6 +435,7 @@ void
 stats_summary(struct conf *conf)
 {
 	struct counters *counters = counters_init(STATS_END);
+	time_t oldest = 0;
 
 	assert(conf);
 
@@ -276,7 +449,12 @@ stats_summary(struct conf *conf)
 			fname = format("%s/%1x/stats", conf->cache_dir, dir);
 		}
 
+		counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
 		stats_read(fname, counters);
+		time_t current = (time_t) counters->data[STATS_ZEROTIMESTAMP];
+		if (current != 0 && (oldest == 0 || current < oldest)) {
+			oldest = current;
+		}
 		free(fname);
 	}
 
@@ -285,6 +463,10 @@ stats_summary(struct conf *conf)
 	       primary_config_path ? primary_config_path : "");
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
+	if (oldest) {
+		struct tm *tm = localtime(&oldest);
+		printf("stats zero time                     %s", asctime(tm));
+	}
 
 	// ...and display them.
 	for (int i = 0; stats_info[i].message; i++) {
@@ -297,7 +479,7 @@ stats_summary(struct conf *conf)
 			continue;
 		}
 
-		printf("%s ", stats_info[i].message);
+		printf("%-31s ", stats_info[i].message);
 		if (stats_info[i].fn) {
 			stats_info[i].fn(counters->data[stat]);
 			printf("\n");
@@ -354,6 +536,7 @@ stats_zero(void)
 					counters->data[stats_info[i].stat] = 0;
 				}
 			}
+			stats_timestamp(time(NULL), counters);
 			stats_write(fname, counters);
 			lockfile_release(fname);
 		}

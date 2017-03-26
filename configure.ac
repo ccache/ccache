@@ -20,6 +20,8 @@ AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
 
+m4_include(m4/feature_macros.m4)
+
 dnl Checks for programs.
 AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = no; then
@@ -33,8 +35,6 @@ AC_CHECK_TOOL(AR, ar)
 if test -z "$AR"; then
     AC_MSG_ERROR(cannot find ar)
 fi
-
-m4_include(m4/feature_macros.m4)
 
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"; then

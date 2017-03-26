@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2016 Joel Rosdahl
+# Copyright (C) 2009-2017 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -976,20 +976,6 @@ EOF
     expect_stat 'unsupported compiler option' 1
 
     # -------------------------------------------------------------------------
-    TEST "-MMD for different source files"
-
-    mkdir a b
-    touch a/source.c b/source.c
-    $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
-
-    $CCACHE_COMPILE -MMD -c b/source.c
-    expect_file_content source.d "source.o: b/source.c"
-
-    $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
-
-    # -------------------------------------------------------------------------
     TEST "-Wp,-P"
 
     # Check that -Wp,-P disables ccache. (-P removes preprocessor information
@@ -1101,6 +1087,18 @@ EOF
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST ".incbin"
+
+    cat <<EOF >incbin.c
+char x[] = ".incbin";
+EOF
+
+    $CCACHE_COMPILE -c incbin.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat 'unsupported code directive' 1
 }
 
 # =============================================================================
@@ -1325,6 +1323,32 @@ SUITE_debug_prefix_map() {
     if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Multiple -fdebug-prefix-map"
+
+    cd dir1
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
+    if ! grep "foobar" test.o >/dev/null 2>&1; then
+        test_failed "Relocation (foobar) not found in test.o"
+    fi
+
+    cd ../dir2
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
 }
 
 # =============================================================================
@@ -1471,7 +1495,7 @@ SUITE_direct() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_NODIRECT"
 
-    $CCACHE_COMPILE -c test.c
+    CCACHE_NODIRECT=1 $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -1540,6 +1564,37 @@ EOF
         fi
     done
     expect_stat 'files in cache' 12
+
+    # -------------------------------------------------------------------------
+    TEST "-MMD for different source files"
+
+    mkdir a b
+    touch a/source.c b/source.c
+    backdate a/source.h b/source.h
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    $CCACHE_COMPILE -MMD -c b/source.c
+    expect_file_content source.d "source.o: b/source.c"
+
+    $CCACHE_COMPILE -MMD -c a/source.c
+    expect_file_content source.d "source.o: a/source.c"
+
+    # -------------------------------------------------------------------------
+    TEST "-MMD for different include file paths"
+
+    mkdir a b
+    touch a/source.h b/source.h
+    backdate a/source.h b/source.h
+    echo '#include <source.h>' >source.c
+    $CCACHE_COMPILE -MMD -Ia -c source.c
+    expect_file_content source.d "source.o: source.c a/source.h"
+
+    $CCACHE_COMPILE -MMD -Ib -c source.c
+    expect_file_content source.d "source.o: source.c b/source.h"
+
+    $CCACHE_COMPILE -MMD -Ia -c source.c
+    expect_file_content source.d "source.o: source.c a/source.h"
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-MD"
@@ -1695,6 +1750,29 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     test -r code.gcno || test_failed "code.gcno missing"
+
+    # -------------------------------------------------------------------------
+    TEST "-fstack-usage"
+
+    cat <<EOF >code.c
+int test() { return 0; }
+EOF
+
+    if $COMPILER_TYPE_GCC; then
+        $CCACHE_COMPILE -c -fstack-usage code.c
+        expect_stat 'cache hit (direct)' 0
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        test -r code.su || test_failed "code.su missing"
+
+        rm code.su
+
+        $CCACHE_COMPILE -c -fstack-usage code.c
+        expect_stat 'cache hit (direct)' 1
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        test -r code.su || test_failed "code.su missing"
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Direct mode on cache created by ccache without direct mode support"
@@ -1875,8 +1953,8 @@ EOF
 
     $CCACHE_COMPILE -c `pwd`/file.c
     expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "__FILE__ in include file disables direct mode"
@@ -1904,8 +1982,8 @@ EOF
 
     $CCACHE_COMPILE -c `pwd`/file2_h.c
     expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "__FILE__ in source file ignored if sloppy"
@@ -2111,13 +2189,13 @@ EOF
 
     CPATH=subdir2 $CCACHE_COMPILE -c foo.c
     expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2 # subdir2 is part of the preprocessor output
 
     CPATH=subdir2 $CCACHE_COMPILE -c foo.c
     expect_stat 'cache hit (direct)' 2
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "Comment in strings"
@@ -2202,20 +2280,41 @@ EOF
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_IGNOREHEADERS"
+    TEST "CCACHE_IGNOREHEADERS with filename"
 
-    cat <<EOF >ignore.h
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
 // We don't want this header in the manifest.
 EOF
-    backdate ignore.h
+    backdate subdir/ignore.h
     cat <<EOF >ignore.c
-#include "ignore.h"
+#include "subdir/ignore.h"
 int foo;
 EOF
 
-    CCACHE_IGNOREHEADERS="ignore.h" $CCACHE_COMPILE -c ignore.c
+    CCACHE_IGNOREHEADERS="subdir/ignore.h" $CCACHE_COMPILE -c ignore.c
     manifest=`find $CCACHE_DIR -name '*.manifest'`
-    data="`$CCACHE --dump-manifest $manifest | grep ignore.h`"
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
+    if [ -n "$data" ]; then
+        test_failed "$manifest contained ignored header: $data"
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_IGNOREHEADERS with directory"
+
+    mkdir subdir
+    cat <<EOF >subdir/ignore.h
+// We don't want this header in the manifest.
+EOF
+    backdate subdir/ignore.h
+    cat <<EOF >ignore.c
+#include "subdir/ignore.h"
+int foo;
+EOF
+
+    CCACHE_IGNOREHEADERS="subdir" $CCACHE_COMPILE -c ignore.c
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi
@@ -2266,8 +2365,8 @@ SUITE_basedir() {
     # CCACHE_BASEDIR="" is the default:
     $CCACHE_COMPILE -I`pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "Path normalization"

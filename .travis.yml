@@ -3,10 +3,12 @@ language: c
 addons:
     apt:
         packages:
+            - gperf
             - elfutils
             - zlib1g-dev
             - mingw32
             - mingw32-binutils
+            - clang    # scan-build
 
 os:
     - linux
@@ -23,7 +25,13 @@ matrix:
 #          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
         - os: linux
           compiler: clang
+          env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
+        - os: linux
+          compiler: clang
           env: CFLAGS="-fsanitize=address -g" ASAN_OPTIONS="detect_leaks=0"
+        - os: linux
+          compiler: clang
+          env: PATH="/usr/bin:$PATH" TEST=analyze
 
     exclude:
         - os: osx
