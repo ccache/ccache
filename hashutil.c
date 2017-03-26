@@ -169,7 +169,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 	}
 
 	// Manage "echo" command.
-	bool cmd = path_startswith(q, "echo ");
+	bool cmd = path_startswith(q, "echo");
 	if (cmd) {
 		reformat(&cmdline, "cmd.exe /c \"%s\"", q);
 	}
