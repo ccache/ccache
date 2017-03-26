@@ -1494,8 +1494,11 @@ get_relative_path(const char *from, const char *to)
 	if (to[0] == '/') {
 		to++;
 	}
-	// Both paths are absolute, drop the drive letters.
-	assert(from[0] == to[0]); // Assume the same drive letter.
+	// Same drive ?
+	if (toupper(from[0]) != toupper(to[0])) {
+		return x_strdup(to);
+	}
+	// Both paths are absolute, on the same drive; drop the drive letters.
 	from += 2;
 	to += 2;
 #endif
@@ -1539,7 +1542,7 @@ bool
 is_absolute_path(const char *path)
 {
 #ifdef _WIN32
-	return path[0] && path[1] == ':';
+	return isalpha(path[0]) && path[1] == ':';
 #else
 	return path[0] == '/';
 #endif

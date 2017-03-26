@@ -162,6 +162,9 @@ TEST(get_relative_path)
 	CHECK_STR_EQ_FREE2("c", get_relative_path("C:/a/b", "C:\\a/b\\c"));
 	CHECK_STR_EQ_FREE2(".", get_relative_path("C:\\a\\b\\c", "C:/a/b/c"));
 	CHECK_STR_EQ_FREE2("..", get_relative_path("C:\\a\\b\\c", "C:/a/b"));
+
+	CHECK_STR_EQ_FREE2(".", get_relative_path("c:/a/b", "C:/A/B"));
+	CHECK_STR_EQ_FREE2("D:/a/b", get_relative_path("C:/a/b", "D:/a/b"));
 #else
 	CHECK_STR_EQ_FREE2("a", get_relative_path("/doesn't matter", "a"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/doesn't matter", "a/b"));
