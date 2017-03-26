@@ -63,6 +63,20 @@ TEST(hash_command_output_compiler_substitution)
 	CHECK(hash_equal(&h1, &h2));
 }
 
+TEST(hash_command_output_compiler_substitution_anywhere)
+{
+	struct mdfour h1, h2, h3;
+	hash_start(&h1);
+	hash_start(&h2);
+	hash_start(&h3);
+	CHECK(hash_command_output(&h1, "echo /foo/bar", "not used"));
+	CHECK(hash_command_output(&h2, "echo /%compiler%/bar", "foo"));
+	CHECK(hash_equal(&h1, &h2));
+	CHECK(hash_command_output(&h3, "echo /foo/%compiler%", "bar"));
+	CHECK(hash_equal(&h1, &h3));
+}
+
+
 TEST(hash_command_output_stdout_versus_stderr)
 {
 	struct mdfour h1, h2;
