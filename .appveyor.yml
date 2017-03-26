@@ -130,6 +130,7 @@ before_build:
   - set LC_ALL=C
 
 build_script:
+  # Bash will inherit all variables set at the CMD level...
   - bash autogen.sh
   - bash configure
   - make PLATFORM=%PLATFORM%

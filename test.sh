@@ -1271,14 +1271,14 @@ EOF
     unset CCACHE_NODIRECT
 
     cd dir1
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -w -MD -MF `pwd`/test.d -I`pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -w -MD -MF `pwd`/test.d -I `pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 4
 
     cd ../dir2
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -w -MD -MF `pwd`/test.d -I`pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -w -MD -MF `pwd`/test.d -I `pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -1313,7 +1313,7 @@ SUITE_debug_prefix_map() {
     TEST "Mapping of debug info CWD"
 
     cd dir1
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I `pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -1323,7 +1323,7 @@ SUITE_debug_prefix_map() {
     fi
 
     cd ../dir2
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I `pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2303,13 +2303,13 @@ SUITE_basedir() {
     TEST "Enabled CCACHE_BASEDIR"
 
     cd dir1
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
     cd ../dir2
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2318,13 +2318,13 @@ SUITE_basedir() {
     TEST "Disabled (default) CCACHE_BASEDIR"
 
     cd dir1
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
     # CCACHE_BASEDIR="" is the default:
-    $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    $CCACHE_COMPILE -I `pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
@@ -2333,14 +2333,14 @@ SUITE_basedir() {
     TEST "Path normalization"
 
     cd dir1
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
     # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
     # slashes correctly:
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`//include -c `pwd`//src/test.c
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I `pwd`//include -c `pwd`//src/test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2359,7 +2359,7 @@ EOF
 #include <stderr.h>
 EOF
 
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I `pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2367,7 +2367,7 @@ EOF
         test_failed "Base dir (`pwd`) found in stderr:\n`cat stderr.txt`"
     fi
 
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I`pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -Wall -W -I `pwd` -c `pwd`/stderr.c -o `pwd`/stderr.o 2>stderr.txt
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2381,14 +2381,14 @@ EOF
     for option in MF "MF " MQ "MQ " MT "MT "; do
         clear_cache
         cd dir1
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
@@ -2404,7 +2404,7 @@ EOF
     for option in MF "MF " MQ "MQ " MT "MT "; do
         clear_cache
         cd dir1
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
@@ -2419,7 +2419,7 @@ EOF
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I`pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
