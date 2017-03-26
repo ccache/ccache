@@ -688,17 +688,23 @@ ignore:
 char *
 make_relative_path(char *path)
 {
-	if (str_eq(conf->base_dir, "") || !path_startswith(path, conf->base_dir)) {
-		return path;
-	}
-
 #ifdef _WIN32
 	if (path[0] == '/') {
-		char *p = x_strdup(path+1); // Skip leading slash.
+		char *p = NULL;
+		if (islower(path[1]) && path[2] == '/') {
+			// Transform /d/path... to D:/path...
+			p = format("%c:/%s", toupper(path[1]), &path[3]);
+		} else {
+			p = x_strdup(path+1); // Skip leading slash.
+		}
 		free(path);
 		path = p;
 	}
 #endif
+
+	if (str_eq(conf->base_dir, "") || !path_startswith(path, conf->base_dir)) {
+		return path;
+	}
 
 	// x_realpath only works for existing paths, so if path doesn't exist, try
 	// dirname(path) and assemble the path afterwards. We only bother to try
@@ -2531,11 +2537,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(dep_args, argv[i]);
 			continue;
 		}
-		if (str_startswith(argv[i], "-MF")) {
-			dependency_filename_specified = true;
-			free(output_dep);
+		if (str_startswith(argv[i], "-MF") ||
+		    str_startswith(argv[i], "-MQ") ||
+		    str_startswith(argv[i], "-MT")) {
 
-			char *arg;
+			char *arg_opt, *relpath;
 			bool separate_argument = (strlen(argv[i]) == 3);
 			if (separate_argument) {
 				// -MF arg
@@ -2545,50 +2551,33 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 					result = false;
 					goto out;
 				}
-				arg = argv[i + 1];
+				arg_opt = x_strdup(argv[i]);
+				relpath = x_strdup(argv[i + 1]);
 				i++;
 			} else {
 				// -MFarg
-				arg = &argv[i][3];
+				arg_opt = x_strndup(argv[i], 3);
+				relpath = x_strdup(&argv[i][3]);
 			}
-			output_dep = make_relative_path(x_strdup(arg));
+			relpath = make_relative_path(relpath);
 			// Keep the format of the args the same.
 			if (separate_argument) {
-				args_add(dep_args, "-MF");
-				args_add(dep_args, output_dep);
-			} else {
-				char *option = format("-MF%s", output_dep);
-				args_add(dep_args, option);
-				free(option);
-			}
-			continue;
-		}
-		if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
-			dependency_target_specified = true;
-
-			char *relpath;
-			if (strlen(argv[i]) == 3) {
-				// -MQ arg or -MT arg
-				if (i >= argc - 1) {
-					cc_log("Missing argument to %s", argv[i]);
-					stats_update(STATS_ARGS);
-					result = false;
-					goto out;
-				}
-				args_add(dep_args, argv[i]);
-				relpath = make_relative_path(x_strdup(argv[i + 1]));
+				args_add(dep_args, arg_opt);
 				args_add(dep_args, relpath);
-				free(relpath);
-				i++;
 			} else {
-				char *arg_opt = x_strndup(argv[i], 3);
-				relpath = make_relative_path(x_strdup(argv[i] + 3));
 				char *option = format("%s%s", arg_opt, relpath);
 				args_add(dep_args, option);
-				free(arg_opt);
-				free(relpath);
 				free(option);
 			}
+			if (str_eq(arg_opt, "-MF")) {
+				dependency_filename_specified = true;
+				free(output_dep);
+				output_dep = relpath;
+			} else {
+				dependency_target_specified = true;
+				free(relpath);
+			}
+			free(arg_opt);
 			continue;
 		}
 		if (str_eq(argv[i], "-fprofile-arcs")) {
