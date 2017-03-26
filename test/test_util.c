@@ -230,6 +230,11 @@ TEST(subst_env_in_string)
 
 	CHECK(!subst_env_in_string("${FOO", &errmsg));
 	CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"FOO\"", errmsg);
+
+	x_unsetenv("FOO");
+	CHECK(!subst_env_in_string("$FOO", &errmsg));
+	CHECK_STR_EQ_FREE2("environment variable \"FOO\" not set",
+	                   errmsg);
 }
 
 TEST(format_human_readable_size)
