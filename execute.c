@@ -114,10 +114,10 @@ win32getshell(char *path)
 
 void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
                                    const char *ext, const char *path) {
-	if (!ext || (!str_eq(".exe", ext)
-	             && !str_eq(".bat", ext)
-	             && !str_eq(".EXE", ext)
-	             && !str_eq(".BAT", ext))) {
+	if (!ext || (!path_eq(".exe", ext)
+	             && !path_eq(".bat", ext)
+	             && !path_eq(".cmd", ext)
+	             && !path_eq(".sh",  ext))) {
 		snprintf(full_path_win_ext, max_size, "%s.exe", path);
 	} else {
 		snprintf(full_path_win_ext, max_size, "%s", path);
