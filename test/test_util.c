@@ -97,6 +97,9 @@ TEST(path_startswith)
 	CHECK(path_startswith("F:/a/b", "F:\\a"));
 	CHECK(!path_startswith("C:/a/b", "D:/a"));
 	CHECK(!path_startswith("G:/b", "G:/a"));
+	CHECK(path_startswith("H:\\\\a\\\\b\\\\c", "H:/a/b/c"));
+	CHECK(path_startswith("I:\\\\a/b\\\\c", "I:\\a\\\\b\\c"));
+	CHECK(!path_startswith("\\\\server\\file.c", "/server/file.c"));
 #endif
 }
 

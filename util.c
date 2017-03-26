@@ -1390,6 +1390,13 @@ path_eq(const char *s1, const char *s2)
 }
 
 // Check whether path s2 starts by sub-path s1.
+// For windows path, we do:
+// - case insensitive comparaisons,
+// - / or \ are equals too,
+// - when hashing preprocessed files on windows, compiled with
+//   gcc -g, we have path with double \\, so skip all doubled
+//   \\ in path comparisons. Except at startup, where it can
+//   ve server address...
 bool
 path_startswith(const char *s1, const char *s2)
 {
@@ -1398,6 +1405,12 @@ path_startswith(const char *s1, const char *s2)
 	const char *p2 = s2;
 
 	for (; *p1 && *p2; ++p1, ++p2) {
+		if (p1 > s1 && p1[0] == '\\' && p1[1] == '\\') {
+			++p1;
+		}
+		if (p2 > s2 && p2[0] == '\\' && p2[1] == '\\') {
+			++p2;
+		}
 		if (toupper(*p1) == toupper(*p2)) {
 			continue;
 		}
