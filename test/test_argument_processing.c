@@ -45,8 +45,8 @@ get_posix_path(char *path)
 	char *p;
 
 	// /-escape volume.
-	if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
-		posix = format("/%s", path);
+	if (isalpha(path[0]) && path[1] == ':') {
+		posix = format("/%c%s", path[0], &path[2]);
 	} else {
 		posix = x_strdup(path);
 	}
@@ -514,7 +514,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/"); // posix
+	conf->base_dir = get_root(); // posix
 	current_working_dir = get_cwd();
 	// Windows path doesn't work concatenated.
 	cwd = get_posix_path(current_working_dir);
@@ -541,7 +541,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
 	create_file("foo.c", "");
 	free(conf->base_dir);
-	conf->base_dir = x_strdup("/"); // posix
+	conf->base_dir = get_root();
 	current_working_dir = get_cwd();
 	// Windows path doesn't work concatenated.
 	cwd = get_posix_path(current_working_dir);

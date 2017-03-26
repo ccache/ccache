@@ -691,7 +691,7 @@ make_relative_path(char *path)
 #ifdef _WIN32
 	if (path[0] == '/') {
 		char *p = NULL;
-		if (islower(path[1]) && path[2] == '/') {
+		if (isalpha(path[1]) && path[2] == '/') {
 			// Transform /d/path... to D:/path...
 			p = format("%c:/%s", toupper(path[1]), &path[3]);
 		} else {
