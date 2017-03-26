@@ -1064,10 +1064,15 @@ EOF
     echo '#define A "BUG"' >h.h
     ln -s d1/d2 d3
 
-    CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
-    $UNCACHED_COMPILE c.o -o c
-    if [ "$(./c)" != OK ]; then
-        test_failed "Incorrect header file used"
+    if [ -L d3 ]; then
+        CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
+        $UNCACHED_COMPILE c.o -o c
+        if [ "$(./c*)" != OK ]; then
+            test_failed "Incorrect header file used"
+        fi
+    else
+        echo
+        echo "$(red No link support): Skipped test case $CURRENT_TEST"
     fi
 
     # -------------------------------------------------------------------------
