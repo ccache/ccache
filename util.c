@@ -1396,7 +1396,7 @@ path_eq(const char *s1, const char *s2)
 // - when hashing preprocessed files on windows, compiled with
 //   gcc -g, we have path with double \\, so skip all doubled
 //   \\ in path comparisons. Except at startup, where it can
-//   ve server address...
+//   be a server address...
 bool
 path_startswith(const char *s1, const char *s2)
 {

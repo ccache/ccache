@@ -2401,10 +2401,16 @@ EOF
     # only contains relative paths.
     TEST "-MF/-MQ/-MT with absolute paths and BASEDIR set to /"
 
+    # On Windows, BASE_DIR shall have the drive letter of the source directory...
+    case `uname` in
+        *MSYS*) root=`cmd //c "echo %CD%"|cut -b1-3` ;;
+        *) root="/" ;;
+    esac
+
     for option in MF "MF " MQ "MQ " MT "MT "; do
         clear_cache
         cd dir1
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR=$root $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
@@ -2419,7 +2425,7 @@ EOF
         cd ..
 
         cd dir2
-        CCACHE_BASEDIR="/" $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
+        CCACHE_BASEDIR=$root $CCACHE_COMPILE -I `pwd`/include -MD -${option}`pwd`/test.d -c src/test.c
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
