@@ -222,7 +222,11 @@ hash_command_output(struct mdfour *hash, const char *command,
 		stats_update(STATS_COMPCHECK);
 		return false;
 	}
+#ifdef _WIN32
+	int fd = _open_osfhandle((intptr_t) pipe_out[0], O_TEXT);
+#else
 	int fd = _open_osfhandle((intptr_t) pipe_out[0], O_BINARY);
+#endif
 	bool ok = hash_fd(hash, fd);
 	if (!ok) {
 		cc_log("Error hashing compiler check command output: %s", strerror(errno));
