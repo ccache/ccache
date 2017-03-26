@@ -782,8 +782,18 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 	char *end = data + size;
 
 	// There must be at least 7 characters (# 1 "x") left to potentially find an
-	// include file path.
-	while (q < end - 7) {
+	// include file path... But we need to process \r\n on windows.
+	while (q < end) {
+#ifdef _WIN32
+		// Depending of the way CPP is called, eol is either \n or \r\n
+		if (q[0] == '\r') {
+			if (q > p) {
+				hash_buffer(hash, p, q - p);
+			}
+			p = q = q+1;
+			continue;
+		}
+#endif
 		// Check if we look at a line containing the file name of an included file.
 		// At least the following formats exist (where N is a positive integer):
 		//
