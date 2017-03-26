@@ -2530,7 +2530,7 @@ SUITE_readonly() {
 
     # Direct mode should work:
     files_before=`find $CCACHE_DIR -type f | wc -l`
-    CCACHE_DIRECT=1 CCACHE_READONLY=1 CCACHE_TEMPDIR=/tmp $CCACHE_COMPILE -c test.c
+    CCACHE_DIRECT=1 CCACHE_READONLY=1 CCACHE_NOSTATS=1 CCACHE_TEMPDIR=/tmp $CCACHE_COMPILE -c test.c
     files_after=`find $CCACHE_DIR -type f | wc -l`
 
     # Leave test dir a nice state after test failure.
