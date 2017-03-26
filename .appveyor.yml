@@ -140,7 +140,7 @@ test_script:
   - ccache -p
   - ccache.exe -Czs
   # Allow cross-compiler final tests (compiled with visual, tested for gc)
-  - if %COMPILER% NEQ gcc set "PATH=C:\msys64\mingw64\bin;%PATH%"
+  - if "%COMPILER%" NEQ "gcc" set "PATH=C:\msys64\mingw64\bin;%PATH%"
   # Launch internal and final tests
   - make PLATFORM=%PLATFORM% test
 
