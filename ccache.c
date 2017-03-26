@@ -1662,14 +1662,14 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	hash_string(hash, conf->cpp_extension);
 
 #ifdef _WIN32
-	const char *ext = strrchr(args->argv[0], '.');
-	char full_path_win_ext[MAX_PATH + 1] = {0};
-	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext,
-	                              args->argv[0]);
-	const char *full_path = full_path_win_ext;
-#else
-	const char *full_path = args->argv[0];
+	char *sh = win32getshell(args->argv[0]);
+	if (sh) {
+		hash_delimiter(hash, "shell");
+		hash_string(hash, sh);
+		free(sh);
+	}
 #endif
+	const char *full_path = args->argv[0];
 
 	struct stat st;
 	if (x_stat(full_path, &st) != 0) {

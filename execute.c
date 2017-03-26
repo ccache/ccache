@@ -94,34 +94,75 @@ win32getshell(char *path)
 	const char *ext = get_extension(path);
 	if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
 		sh = find_executable_in_path("sh.exe", NULL, path_env);
+		if (!sh) {
+			sh = getenv("SHELL");
+			if (sh) {
+				// TODO: check bash / csh / exotic shell...
+				sh = x_strdup(sh);
+			}
+		}
 	}
-	if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
-		// Detect shebang.
+	if (!sh) {
 		FILE *fp = fopen(path, "r");
 		if (fp) {
-			char buf[10];
+			char buf[80];
 			fgets(buf, sizeof(buf), fp);
-			buf[9] = 0;
-			if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH"))) {
-				sh = find_executable_in_path("sh.exe", NULL, path_env);
+			buf[79] = 0;
+			char *p = strchr(buf, '\n');
+			if (p) {
+				*p = 0;
+			}
+			if (str_startswith(buf, "#!/")) {
+				sh = win32getexecutable(buf+2);
+				if (sh) {
+					fclose(fp);
+					return sh;
+				}
+				char *root = getenv("MSYSTEM_PREFIX");
+				if (!root) { // MSYS2 std installation
+					root = "C:/msys64/usr";
+				}
+				char *msysShell = format("%s/%s", root, &buf[3]);
+				sh = win32getexecutable(msysShell);
+				free(msysShell);
+				if (sh) {
+					fclose(fp);
+					return sh;
+				}
 			}
 			fclose(fp);
 		}
 	}
-
 	return sh;
 }
 
-void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
-                                   const char *ext, const char *path) {
-	if (!ext || (!path_eq(".exe", ext)
-	             && !path_eq(".bat", ext)
-	             && !path_eq(".cmd", ext)
-	             && !path_eq(".sh",  ext))) {
-		snprintf(full_path_win_ext, max_size, "%s.exe", path);
-	} else {
-		snprintf(full_path_win_ext, max_size, "%s", path);
+// Add optional .exe (or other valid extension) when path does not
+// exists without it.
+char *
+win32getexecutable(char *path)
+{
+	struct stat st;
+	if (stat(path, &st) == 0 && (st.st_mode & S_IEXEC)) {
+		return x_strdup(path);
 	}
+
+	char *pathext = x_strdup(getenv("PATHEXT"));
+	if (!pathext) {
+		pathext = x_strdup(".exe;.com;.cmd");
+	}
+	char *saved = NULL;
+	for (char *ext = strtok_r(pathext, PATH_DELIM, &saved);
+	     ext;
+	     ext = strtok_r(NULL, PATH_DELIM, &saved)) {
+		char *full = format("%s%s", path, ext);
+		if (stat(full, &st) == 0 && (st.st_mode & S_IEXEC)) {
+			free(pathext);
+			return full;
+		}
+		free(full);
+	}
+	free(pathext);
+	return NULL;
 }
 
 int
@@ -162,12 +203,8 @@ win32execute(char *path, char **argv, int doreturn,
 	}
 
 	char *args = win32argvtos(sh, argv);
-	const char *ext = strrchr(path, '.');
-	char full_path_win_ext[MAX_PATH] = {0};
-	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
-	BOOL ret =
-		CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-		              &si, &pi);
+	BOOL ret = CreateProcess(path, args, NULL, NULL, 1, 0, NULL, NULL,
+	                         &si, &pi);
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
@@ -194,7 +231,7 @@ win32execute(char *path, char **argv, int doreturn,
 								"%s failed with error %d: %s"), __FILE__, dw, (char *)lpMsgBuf);
 
 		cc_log("can't execute %s; OS returned error: %s",
-		       full_path_win_ext, (char *)lpDisplayBuf);
+		       path, (char *)lpDisplayBuf);
 
 		LocalFree(lpMsgBuf);
 		LocalFree(lpDisplayBuf);
@@ -283,8 +320,12 @@ find_executable(const char *name, const char *exclude_name)
 static char *
 find_executable_in_path(const char *name, const char *exclude_name, char *path)
 {
+#ifdef _WIN32
+	// Windows always look in the current dir. Do it too, as last resort.
+	path = format("%s%s%s", path, PATH_DELIM, get_cwd());
+#else
 	path = x_strdup(path);
-
+#endif
 	// Search the path looking for the first compiler of the right name that
 	// isn't us.
 	char *saveptr = NULL;
@@ -295,9 +336,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 		char namebuf[MAX_PATH];
 		int ret = SearchPath(tok, name, NULL, sizeof(namebuf), namebuf, NULL);
 		if (!ret) {
-			char *exename = format("%s.exe", name);
-			ret = SearchPath(tok, exename, NULL, sizeof(namebuf), namebuf, NULL);
-			free(exename);
+			ret = SearchPath(tok, name, ".exe", sizeof(namebuf), namebuf, NULL);
 		}
 		(void) exclude_name;
 		if (ret) {
