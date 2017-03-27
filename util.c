@@ -744,7 +744,7 @@ void x_unsetenv(const char *name)
 {
 #ifdef HAVE_UNSETENV
 	unsetenv(name);
-#elif defined(CCACHE_MSYS) || defined(CCACHE_MINGW)
+#elif defined(_WIN32)
 	char *str = format("%s=", name);
 	putenv(str);
 	free(str);
