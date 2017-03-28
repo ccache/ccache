@@ -1,8 +1,6 @@
 #ifndef CCACHE_LANGUAGE_H
 #define CCACHE_LANGUAGE_H
 
-#include <stdbool.h>
-
 const char *language_for_file(const char *fname);
 const char *p_language_for_language(const char *language);
 const char *extension_for_language(const char *language);

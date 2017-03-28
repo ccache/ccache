@@ -9,38 +9,61 @@ AC_CONFIG_HEADER(config.h)
 
 AC_CANONICAL_HOST
 
+AC_SUBST(ccache_os, unknown)
 case $host in
     *mingw32* | *mingw64* | *cygwin* | *wince* | *mingwce*)
-        windows_os=yes
+        ccache_os=mingw
+        AC_DEFINE(CCACHE_MINGW, 1, Compiling on a MinGW platform)
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
+        ;;
+
+    *msys*)
+        ccache_os=msys
+        AC_DEFINE(CCACHE_MSYS, 1, Compiling on a MSYS2 platform)
+        AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
+        ;;
+
+    *apple*)
+        ccache_os=mac
+        AC_DEFINE(CCACHE_MAC, 1, Compiling on an Apple platform)
+        ;;
+
+    *linux-gnu*)
+        ccache_os=linux
+        AC_DEFINE(CCACHE_LINUX, 1, Compiling on a Linux platform)
         ;;
 esac
 
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
+AC_SUBST(LIBS)
 
 m4_include(m4/feature_macros.m4)
 
 dnl Checks for programs.
-AC_PROG_CC_C99
-if test "$ac_cv_prog_cc_c99" = no; then
-    AC_MSG_ERROR(cannot find a C99-compatible compiler)
-fi
+# Note: autoconf crash if AC_PROG_CC_C89 and C99 are both *present*
+# in two different if branches... *BUT* not if only one is inside if
+AC_PROG_CC([gcc clang cc cl.exe])
+case x$CC in
+    x*gcc* | x*clang* | xcc)
+        AC_PROG_CC_C99
+        if test "$ac_cv_prog_cc_c99" = no; then
+            AC_MSG_ERROR(cannot find a C99-compatible compiler)
+        fi
+        ;;
+    *)
+        ;;
+esac
 
 AC_PROG_CPP
 AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_CHECK_TOOL(AR, ar)
-if test -z "$AR"; then
-    AC_MSG_ERROR(cannot find ar)
-fi
-
-# If GCC, turn on warnings.
-if test "x$GCC" = "xyes"; then
-    CFLAGS="$CFLAGS -Wall -W"
-else
-    CFLAGS="$CFLAGS -O"
+if test x${GCC} != x; then
+    AC_PROG_RANLIB
+    AC_CHECK_TOOL(AR, ar)
+    if test -z "$AR"; then
+        AC_MSG_ERROR(cannot find ar)
+    fi
 fi
 
 AC_HEADER_DIRENT
@@ -117,16 +140,56 @@ fi
 
 if test x${use_bundled_zlib} = xyes; then
     CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
-    extra_libs="zlib/libz.a"
+    extra_libs="zlib/libz.\$(LIBEXT)"
     mkdir -p zlib
 else
     LIBS="$LIBS -lz"
 fi
 
-dnl Linking on Windows needs ws2_32
-if test x${windows_os} = xyes; then
-    LIBS="$LIBS -lws2_32"
-    AC_CHECK_FUNCS(GetFinalPathNameByHandleW,[],[LIBS="$LIBS -lpsapi"])
+dnl Compiler specific options
+AC_SUBST(ccache_cc, unknown)
+case x$CC in
+    x*cl | x*cl.exe)
+        ccache_cc=cl
+        CFLAGS="-nologo -MD -W3 -GS -Ox"
+        AC_DEFINE(_CRT_SECURE_NO_WARNINGS,  1, Disable false Microsoft warnings)
+        AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS, 1, Disable false Microsoft warnings)
+        AC_DEFINE(_CRT_SECURE_NO_DEPRECATE, 1, Disable false Microsoft warnings)
+        AC_DEFINE(CCACHE_CL, 1, Visual C compiler)
+        AC_SUBST(LIBEXT,lib)
+        ;;
+
+
+    x*gcc*)
+        ccache_cc=gcc
+        CFLAGS="$CFLAGS -W -Werror"
+        AC_DEFINE(CCACHE_GCC, 1, Gnu CC compiler)
+        AC_SUBST(LIBEXT,a)
+        ;;
+
+    x*clang*)
+        ccache_cc=clang
+        CFLAGS="$CFLAGS -W -Werror"
+        AC_DEFINE(CCACHE_CLANG, 1, clang compiler)
+        AC_SUBST(LIBEXT,a)
+        ;;
+
+    *)
+        CFLAGS="$CFLAGS -O2"
+        AC_SUBST(LIBEXT,a)
+        ;;
+esac
+
+dnl Linking on Windows needs ws2_32, and Psapi
+if test ${ccache_os} = mingw -o ${ccache_os} = msys; then
+    case x$CC in
+        x*cl | x*cl.exe)
+            LIBS="$LIBS ws2_32.lib Psapi.lib"
+            ;;
+        *)
+            LIBS="$LIBS -lws2_32 -lPsapi"
+            ;;
+    esac
 fi
 
 AC_C_BIGENDIAN

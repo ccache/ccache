@@ -1,7 +1,9 @@
 # GNU make syntax reigns in this file.
 
+ifeq (@ccache_cc@,gcc)
 all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+endif
 
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck

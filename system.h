@@ -20,13 +20,22 @@
 #include "config.h"
 
 #include <sys/file.h>
-#ifdef HAVE_SYS_MMAN_H
-#include <sys/mman.h>
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef HAVE_SYS_MMAN_H
+# include <sys/mman.h>
+#endif
 #ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+# include <sys/wait.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STRING_H
+# include <string.h>
+#endif
+#ifdef HAVE_STRINGS_H
+# include <strings.h>
 #endif
 
 #include <assert.h>
@@ -34,16 +43,12 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <inttypes.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <strings.h>
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
@@ -71,4 +76,19 @@ extern char **environ;
   #define asprintf rpl_asprintf
 #endif
 
+#ifdef HAVE_STDBOOL_H
+#  include <stdbool.h>
+#else
+#  ifndef HAVE__BOOL
+#    ifdef __cplusplus
+typedef bool _Bool;
+#    else
+#      define _Bool signed char
+#    endif
+#  endif
+#  define bool _Bool
+#  define false 0
+#  define true 1
+#  define __bool_true_false_are_defined 1
+#endif
 #endif // CCACHE_SYSTEM_H

@@ -85,10 +85,10 @@ char *current_working_dir = NULL;
 static struct args *orig_args;
 
 // The source file.
-static char *input_file;
+char *input_file;
 
 // The output file being compiled to.
-static char *output_obj;
+char *output_obj;
 
 // The path to the dependency file (implicit or specified with -MF).
 static char *output_dep;
@@ -244,6 +244,45 @@ static sigset_t fatal_signal_set;
 // ongoing compilation.
 static pid_t compiler_pid = 0;
 #endif
+
+// Note that these compiler checks are unreliable, so nothing should
+// hard-depend on them.
+
+static bool
+compiler_is_clang(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "clang") != NULL;
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_gcc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "gcc") || strstr(name, "g++");
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_msvc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = str_eq(name, "cl") || str_eq(name, "cl.exe");
+	free(name);
+	return result;
+}
+
+static bool
+compiler_is_pump(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
+	free(name);
+	return result;
+}
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -462,36 +501,6 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
-// Note that these compiler checks are unreliable, so nothing should
-// hard-depend on them.
-
-static bool
-compiler_is_clang(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "clang") != NULL;
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_gcc(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "gcc") || strstr(name, "g++");
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_pump(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
-	free(name);
-	return result;
-}
-
 static char *
 get_current_working_dir(void)
 {
@@ -671,7 +680,7 @@ ignore:
 
 // Make a relative path from current working directory to path if path is under
 // the base directory. Takes over ownership of path. Caller frees.
-static char *
+char *
 make_relative_path(char *path)
 {
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
