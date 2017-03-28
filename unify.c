@@ -29,6 +29,8 @@
 
 #include "ccache.h"
 
+static bool print_unified = true;
+
 static const char *const s_tokens[] = {
 	"...", ">>=", "<<=", "+=", "-=", "*=", "/=", "%=", "&=", "^=",
 	"|=",  ">>",  "<<",  "++", "--", "->", "&&", "||", "<=", ">=",
@@ -108,6 +110,9 @@ pushchar(struct mdfour *hash, unsigned char c)
 	if (c == 0) {
 		if (len > 0) {
 			hash_buffer(hash, (char *)buf, len);
+			if (print_unified) {
+				printf("%.*s", (int) len, buf);
+			}
 			len = 0;
 		}
 		hash_buffer(hash, NULL, 0);
@@ -117,6 +122,9 @@ pushchar(struct mdfour *hash, unsigned char c)
 	buf[len++] = c;
 	if (len == 64) {
 		hash_buffer(hash, (char *)buf, len);
+		if (print_unified) {
+			printf("%.*s", (int) len, buf);
+		}
 		len = 0;
 	}
 }
@@ -238,7 +246,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 // Hash a file that consists of preprocessor output, but remove any line number
 // information from the hash.
 int
-unify_hash(struct mdfour *hash, const char *fname)
+unify_hash(struct mdfour *hash, const char *fname, bool print)
 {
 	char *data;
 	size_t size;
@@ -246,6 +254,7 @@ unify_hash(struct mdfour *hash, const char *fname)
 		stats_update(STATS_PREPROCESSOR);
 		return -1;
 	}
+	print_unified = print;
 	unify(hash, (unsigned char *)data, size);
 	free(data);
 	return 0;

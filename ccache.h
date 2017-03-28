@@ -207,7 +207,7 @@ void stats_write(const char *path, struct counters *counters);
 // ----------------------------------------------------------------------------
 // unify.c
 
-int unify_hash(struct mdfour *hash, const char *fname);
+int unify_hash(struct mdfour *hash, const char *fname, bool print);
 
 // ----------------------------------------------------------------------------
 // exitfn.c

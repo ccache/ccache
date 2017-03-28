@@ -81,6 +81,9 @@ char *secondary_config_path = NULL;
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
 char *current_working_dir = NULL;
 
+// Print the unified preprocessed source code format, to stdout
+bool unify_print = false;
+
 // The original argument list.
 static struct args *orig_args;
 
@@ -1500,13 +1503,16 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	if (conf->unify) {
+		char *print = getenv("CCACHE_UNIFY_PRINT");
+		unify_print = print != NULL ? true : false;
+
 		// When we are doing the unifying tricks we need to include the input file
 		// name in the hash to get the warnings right.
 		hash_delimiter(hash, "unifyfilename");
 		hash_string(hash, input_file);
 
 		hash_delimiter(hash, "unifycpp");
-		if (unify_hash(hash, path_stdout) != 0) {
+		if (unify_hash(hash, path_stdout, unify_print) != 0) {
 			stats_update(STATS_ERROR);
 			cc_log("Failed to unify %s", path_stdout);
 			failed();
