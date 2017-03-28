@@ -228,7 +228,7 @@ copy_fd(int fd_in, int fd_out)
 	gzclose(gz_in);
 }
 
-#ifndef HAVE_MKSTEMP
+#if defined(_WIN32) || !defined(HAVE_MKSTEMP)
 // Cheap and nasty mkstemp replacement.
 int
 mkstemp(char *template)
@@ -739,6 +739,10 @@ void x_unsetenv(const char *name)
 {
 #ifdef HAVE_UNSETENV
 	unsetenv(name);
+#elif defined(_WIN32)
+	char *str = format("%s=", name);
+	putenv(str);
+	free(str);
 #else
 	putenv(x_strdup(name)); // Leak to environment.
 #endif

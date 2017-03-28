@@ -180,14 +180,14 @@ case x$CC in
         ;;
 esac
 
-dnl Linking on Windows needs ws2_32, and Psapi
+dnl Linking on Windows needs ws2_32, and psapi
 if test ${ccache_os} = mingw -o ${ccache_os} = msys; then
     case x$CC in
         x*cl | x*cl.exe)
-            LIBS="$LIBS ws2_32.lib Psapi.lib"
+            LIBS="$LIBS ws2_32.lib psapi.lib"
             ;;
         *)
-            LIBS="$LIBS -lws2_32 -lPsapi"
+            LIBS="$LIBS -lws2_32 -lpsapi"
             ;;
     esac
 fi

@@ -1710,7 +1710,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Possibly hash GCC_COLORS (for color diagnostics).
 	if (compiler_is_gcc(args)) {
 		const char *gcc_colors = getenv("GCC_COLORS");
-		if (gcc_colors) {
+		if (gcc_colors && gcc_colors[0] != '\0') {
 			hash_delimiter(hash, "gcccolors");
 			hash_string(hash, gcc_colors);
 		}
@@ -2124,8 +2124,12 @@ is_precompiled_header(const char *path)
 static bool
 color_output_possible(void)
 {
+#ifdef _WIN32
+	return false;
+#else
 	const char *term_env = getenv("TERM");
 	return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
+#endif
 }
 
 static bool
