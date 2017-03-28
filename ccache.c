@@ -3306,11 +3306,6 @@ ccache(int argc, char *argv[])
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", get_current_working_dir());
 
-	if (conf->unify) {
-		cc_log("Direct mode disabled because unify mode is enabled");
-		conf->direct_mode = false;
-	}
-
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
 	// Arguments (except -E) to send to the preprocessor.
