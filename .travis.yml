@@ -20,9 +20,11 @@ compiler:
 
 matrix:
     include:
-#        - os: linux
-#          compiler: i586-mingw32msvc-gcc
-#          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
+#       - os: linux
+#         compiler: i686-w64-mingw32-gcc
+#         sudo: required
+#         dist: trusty
+#         env: HOST="--host=i686-w64-mingw32" TEST="test/main.exe"
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
