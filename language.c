@@ -174,5 +174,5 @@ language_is_supported(const char *language)
 bool
 language_is_preprocessed(const char *language)
 {
-	return str_eq(language, p_language_for_language(language));
+	return language && str_eq(language, p_language_for_language(language));
 }

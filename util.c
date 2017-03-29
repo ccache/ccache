@@ -400,6 +400,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		n = write(fd_out, p, left);
 		if (n == -1) {
 			saved_errno = errno;
+			free(out);
 			goto error;
 		}
 		p += n;
@@ -441,23 +442,23 @@ int
 copy_file(const char *src, const char *dest, const char *compress_type,
           int compress_level)
 {
-	int fd_out;
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
 	int level;
 
 	// Open destination file.
-	char *tmp_name = x_strdup(dest);
 	if (compress_type && str_eq(compress_type, "lz4f")) {
 		return lz4f_copy_file(src, dest, compress_level);
 	}
-	if (compress_level != 0 && !str_eq(compress_type, "gzip")) {
+	char *tmp_name = x_strdup(dest);
+	if (compress_type && compress_level != 0 && !str_eq(compress_type, "gzip")) {
 		cc_log("Unknown compression type %s", compress_type);
+		free(tmp_name);
 		return -1;
 	}
 
-	fd_out = create_tmp_fd(&tmp_name);
+	int fd_out = create_tmp_fd(&tmp_name);
 	cc_log("Copying %s to %s via %s (%scompressed)",
 	       src, dest, tmp_name, compress_level != 0 ? "" : "un");
 
