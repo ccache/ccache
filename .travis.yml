@@ -8,8 +8,6 @@ addons:
             - gperf
             - elfutils
             - zlib1g-dev
-            - mingw32
-            - mingw32-binutils
             - clang    # scan-build
 
 os:
@@ -22,9 +20,14 @@ compiler:
 
 matrix:
     include:
-#        - os: linux
-#          compiler: i586-mingw32msvc-gcc
-#          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
+        - os: linux
+          compiler: x86_64-w64-mingw32-gcc
+          dist: trusty
+          sudo: required
+          before_install:
+              - sudo apt-get -qq update
+              - sudo apt-get install -y gcc-mingw-w64-x86-64
+          env: HOST="--host=x86_64-w64-mingw32" TEST="test/main.exe"
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
