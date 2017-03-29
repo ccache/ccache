@@ -822,6 +822,28 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				}
 			}
 
+			/* Workarounds for preprocessor linemarker bugs in GCC version 6 */
+			if (q[2] == '3') {
+				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
+					/* Bogus extra line with #31, after the regular #1:
+					   Ignore the whole line, and continue parsing */
+					while (q < end && *q != '\n') {
+						q++;
+					}
+					p = q;
+					continue;
+				} else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
+					/* Bogus wrong line with #32, instead of regular #1:
+					   Replace the line number with the usual one */
+					hash_buffer(hash, p, q - p);
+					q += 1;
+					q[0] = '#';
+					q[1] = ' ';
+					q[2] = '1';
+					p = q;
+				}
+			}
+
 			while (q < end && *q != '"' && *q != '\n') {
 				q++;
 			}
