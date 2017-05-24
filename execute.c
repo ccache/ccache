@@ -190,7 +190,7 @@ win32execute(char *path, char **argv, int doreturn,
 		                      * sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
 		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
+		          TEXT("%s failed with error %ld: %s"), __FILE__, dw, (const char *)lpMsgBuf);
 
 		cc_log("can't execute %s; OS returned error: %s",
 		       full_path_win_ext, (char *)lpDisplayBuf);
