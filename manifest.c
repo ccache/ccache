@@ -383,10 +383,10 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 			if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
-				cc_log("size/mtime/ctime hit for %s", path);
+				cc_log("mtime/ctime hit for %s", path);
 				continue;
 			} else {
-				cc_log("size/mtime/ctime miss for %s", path);
+				cc_log("mtime/ctime miss for %s", path);
 			}
 		}
 
