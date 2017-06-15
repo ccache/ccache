@@ -381,6 +381,13 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			return 0;
 		}
 
+		// Clang stores the mtime of the included files in the precompiled header,
+		// and will error out if that header is later used without rebuilding.
+		if (output_is_precompiled_header && fi->mtime != st->mtime) {
+			cc_log("Precompiled header includes %s, which has a new mtime", path);
+			return 0;
+		}
+
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 			if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
 				cc_log("size/mtime/ctime hit for %s", path);
