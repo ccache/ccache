@@ -2884,13 +2884,13 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Create .gch, -c, no -o, with opt-in"
 
-    CCACHE_SLOPPINESS=pch_defines $CCACHE_COMPILE $SYSROOT -c pch.h
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -c pch.h
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     rm pch.h.gch
 
-    CCACHE_SLOPPINESS=pch_defines $CCACHE_COMPILE $SYSROOT -c pch.h
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -c pch.h
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -2901,12 +2901,12 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Create .gch, no -c, -o, with opt-in"
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -3085,13 +3085,13 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Create .gch, -c, no -o, with opt-in"
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT -c pch.h
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     rm pch.h.gch
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT -c pch.h
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -3102,12 +3102,12 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Create .gch, no -c, -o, with opt-in"
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -3211,13 +3211,13 @@ pch_suite_clang() {
     # -------------------------------------------------------------------------
     TEST "Create .pth, -c, -o"
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     rm -f pch.h.pth
 
-    CCACHE_SLOPPINESS=pch_defines,time_macros $CCACHE_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h -o pch.h.pth
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
