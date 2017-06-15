@@ -3116,6 +3116,42 @@ pch_suite_clang() {
     fi
 
     # -------------------------------------------------------------------------
+    TEST "Create .gch, include file mtime changed"
+
+    backdate test.h
+    cat <<EOF >pch2.h
+    #include <stdlib.h>
+    #include "test.h"
+EOF
+
+    # Make sure time_of_compilation is at least one second larger than the ctime
+    # of the test.h include, otherwise we might not cache its ctime/mtime.
+    sleep 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch2.h
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    touch test.h
+    sleep 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch2.h
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    $UNCACHED_COMPILE $SYSROOT -c -include pch2.h pch2.c
+    if [ ! -f pch2.o ]; then
+        test_failed "pch.o missing"
+    fi
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch2.h
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
     $UNCACHED_COMPILE $SYSROOT -c pch.h
