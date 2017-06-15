@@ -491,7 +491,7 @@ when compiling preprocessed source code.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
-    matching its cached version if the sizes, mtimes and ctimes match.
+    matching its cached version if the mtimes and ctimes match.
 *include_file_ctime*::
     By default, ccache also will not cache a file if it includes a header whose
     ctime is too new. This option disables that check.
