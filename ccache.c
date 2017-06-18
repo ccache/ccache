@@ -2118,9 +2118,8 @@ find_compiler(char **argv)
 bool
 is_precompiled_header(const char *path)
 {
-	return str_eq(get_extension(path), ".gch")
-	       || str_eq(get_extension(path), ".pch")
-	       || str_eq(get_extension(path), ".pth");
+	const char *ext = get_extension(path);
+	return str_eq(ext, ".gch") || str_eq(ext, ".pch") || str_eq(ext, ".pth");
 }
 
 static bool
