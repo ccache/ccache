@@ -16,6 +16,8 @@ Bug fixes
 - Fixed matching of directories in the `ignore_headers_in_manifest`
   configuration option.
 
+- Fixed detection of missing argument to `-opt`/`--options-file`.
+
 
 ccache 3.3.4
 ------------
