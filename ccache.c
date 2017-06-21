@@ -2259,8 +2259,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Handle cuda "-optf" and "--options-file" argument.
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
-			if (i > argc) {
-				cc_log("Expected argument after -optf/--options-file");
+			if (i == argc - 1) {
+				cc_log("Expected argument after %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
@@ -2361,7 +2361,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Special handling for -x: remember the last specified language before the
 		// input file and strip all -x options from the arguments.
 		if (str_eq(argv[i], "-x")) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2382,7 +2382,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// We need to work out where the output was meant to go.
 		if (str_eq(argv[i], "-o")) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2445,7 +2445,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			bool separate_argument = (strlen(argv[i]) == 3);
 			if (separate_argument) {
 				// -MF arg
-				if (i >= argc - 1) {
+				if (i == argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
 					stats_update(STATS_ARGS);
 					result = false;
@@ -2475,7 +2475,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			char *relpath;
 			if (strlen(argv[i]) == 3) {
 				// -MQ arg or -MT arg
-				if (i >= argc - 1) {
+				if (i == argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
 					stats_update(STATS_ARGS);
 					result = false;
@@ -2612,7 +2612,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (str_eq(argv[i], "--serialize-diagnostics")) {
-			if (i >= argc - 1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2702,7 +2702,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// to get better hit rate. A secondary effect is that paths in the standard
 		// error output produced by the compiler will be normalized.
 		if (compopt_takes_path(argv[i])) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2754,7 +2754,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Options that take an argument.
 		if (compopt_takes_arg(argv[i])) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
