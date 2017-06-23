@@ -222,11 +222,12 @@ Boolean values
 Some settings are boolean values (i.e. truth values). In a configuration file,
 such values must be set to the string *true* or *false*. For the corresponding
 environment variables, the semantics are a bit different: a set environment
-variable means ``true'' regardless of the value (even if set to the empty
-string), and an unset environment variable means ``false''. Each boolean
-environment variable also has a negated form starting with *CCACHE_NO*. For
-example, *CCACHE_COMPRESS* can be set to force compression and
-*CCACHE_NOCOMPRESS* can be set to force no compression.
+variable means ``true'' (even if set to the empty string), the following
+case-insensitive negative values are considered an error (rather than surprise
+the user): "0", "false", "disable" and "no", and an unset environment variable
+means ``false''. Each boolean environment variable also has a negated form
+starting with *CCACHE_NO*. For example, *CCACHE_COMPRESS* can be set to force
+compression and *CCACHE_NOCOMPRESS* can be set to force no compression.
 
 
 Configuration settings

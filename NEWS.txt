@@ -26,6 +26,11 @@ Bug fixes
 - File size and number counters are now updated correctly when files are
   overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
 
+- Boolean configuration settings no longer accept the following
+  (case-insensitive) values: "0", "false", "disable" and "no".  All other
+  values are accepted and taken to mean "true".  This is intended to avoid
+  users setting eg CCACHE_DISABLE=0 and expecting the cache to be used.
+
 
 ccache 3.3.5
 ------------

@@ -1084,6 +1084,20 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported code directive' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Invalid boolean environment configuration options"
+
+    for invalid_val in 0 false FALSE disable no ; do
+        CCACHE_DISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+            test_failed "'$invalid_val' should be rejected for boolean env vars"
+        fi
+        CCACHE_NODISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+            test_failed "'$invalid_val' should be rejected for boolean env vars"
+        fi
+    done
 }
 
 # =============================================================================
