@@ -909,6 +909,20 @@ EOF
     if [ "$stderr" != "2Pu1Cc" ]; then
         test_failed "Unexpected stderr: $stderr != 2Pu1Cc"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Invalid boolean environment configuration options"
+
+    for invalid_val in 0 false FALSE disable no ; do
+        CCACHE_DISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+            test_failed "'$invalid_val' should be rejected for boolean env vars"
+        fi
+        CCACHE_NODISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+            test_failed "'$invalid_val' should be rejected for boolean env vars"
+        fi
+    done
 }
 
 # =============================================================================

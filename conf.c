@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2016 Joel Rosdahl
+// Copyright (C) 2011-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -241,8 +241,19 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 	}
 
 	if (from_env_variable && item->parser == parse_bool) {
-		// Special rule for boolean settings from the environment: any value means
-		// true.
+		// Special rule for boolean settings from the environment:
+		// "0", "false", "disable" and "no" (case insensitive) are invalid,
+		// and all other values mean true.
+		//
+		// Previously any value meant true, but this was surprising to
+		// users, who might do something like CCACHE_DISABLE=0 and expect
+		// ccache to be enabled.
+
+		if (!strcmp(value, "0") || !strcasecmp(value, "false") ||
+				!strcasecmp(value, "disable") || !strcasecmp(value, "no")) {
+			fatal("invalid boolean environment variable value \"%s\"", value);
+		}
+
 		bool *value = (bool *)((char *)conf + item->offset);
 		*value = !negate_boolean;
 		goto out;
