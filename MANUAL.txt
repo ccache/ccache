@@ -476,6 +476,12 @@ of the original source code. This makes cache misses slightly faster since the
 source code only has to be preprocessed once. The downside is that some
 compilers won't produce the same result (for instance diagnostics warnings)
 when compiling preprocessed source code.
++
+An alternative to *run_second_cpp* is to use *-fdirectives-only* (for GCC) or
+*-frewrite-includes* (for Clang). This will cause the compiler to leave the
+macros and other preprocessor information, and only process the *#include*
+directives. When run in this way, the preprocessor arguments will be passed
+to the compiler since it still has to do _some_ preprocessing (like macros).
 
 *sloppiness* (*CCACHE_SLOPPINESS*)::
 
