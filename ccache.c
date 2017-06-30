@@ -1723,19 +1723,24 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_int(hash, MANIFEST_VERSION);
 	}
 
+	// clang will emit warnings for unused linker flags, so we shouldn't
+	// skip those arguments
+	int is_clang = compiler_is_clang(args);
+
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
 		// -L doesn't affect compilation.
-		if (i < args->argc-1 && str_eq(args->argv[i], "-L")) {
+		if (i < args->argc-1 && str_eq(args->argv[i], "-L") && !is_clang) {
 			i++;
 			continue;
 		}
-		if (str_startswith(args->argv[i], "-L")) {
+		if (str_startswith(args->argv[i], "-L") && !is_clang) {
 			continue;
 		}
 
 		// -Wl,... doesn't affect compilation.
-		if (str_startswith(args->argv[i], "-Wl,")) {
+		if (str_startswith(args->argv[i], "-Wl,") && !is_clang) {
+			// ...but it affects warnings with clang
 			continue;
 		}
 
