@@ -2,7 +2,9 @@
 #define MDFOUR_H
 
 #include <stddef.h>
-#include <inttypes.h>
+#ifdef HAVE_INTTYPES_H
+#   include <inttypes.h>
+#endif
 
 struct mdfour {
 	uint32_t A, B, C, D;

@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
+#include "system.h"
 
 #ifndef HAVE_GETOPT_LONG
 
@@ -40,11 +40,18 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#   include <unistd.h>
+#endif
 
 #define BADCH  '?'
 #define BADARG ':'
 #define EMSG   ""
+
+int opterr;
+int optind = 1;
+int optopt;
+char *optarg;
 
 int
 getopt_long(int argc, char *const argv[],
