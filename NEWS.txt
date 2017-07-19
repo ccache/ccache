@@ -18,6 +18,10 @@ Bug fixes
 
 - Fixed detection of missing argument to `-opt`/`--options-file`.
 
+- ccache now bails out when building a precompiled header if any of the
+  corresponding header files have an updated timestamp. This fixes complaints
+  from clang.
+
 
 ccache 3.3.4
 ------------
