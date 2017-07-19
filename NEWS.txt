@@ -17,6 +17,8 @@ New features and improvements
 
 - ccache should now work with distcc's ``pump'' wrapper.
 
+- The optional unifier is no longer disabled when the direct mode is enabled.
+
 
 ccache 3.3.5
 ------------
