@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -246,7 +246,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 // Hash a file that consists of preprocessor output, but remove any line number
 // information from the hash.
 int
-unify_hash(struct mdfour *hash, const char *fname, bool print)
+unify_hash(struct mdfour *hash, const char *fname, bool debug)
 {
 	char *data;
 	size_t size;
@@ -254,7 +254,7 @@ unify_hash(struct mdfour *hash, const char *fname, bool print)
 		stats_update(STATS_PREPROCESSOR);
 		return -1;
 	}
-	print_unified = print;
+	print_unified = debug;
 	unify(hash, (unsigned char *)data, size);
 	free(data);
 	return 0;
