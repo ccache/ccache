@@ -241,6 +241,7 @@ void lockfile_release(const char *path);
 // ccache.c
 
 extern time_t time_of_compilation;
+extern bool output_is_precompiled_header;
 void block_signals(void);
 void unblock_signals(void);
 bool cc_process_args(struct args *args, struct args **preprocessor_args,
