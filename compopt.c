@@ -30,6 +30,9 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
+	{"--compiler-bindir", AFFECTS_CPP | TAKES_ARG}, // nvcc
+	{"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
+	{"--output-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"--param",         TAKES_ARG},
 	{"--save-temps",    TOO_HARD},
 	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
@@ -56,6 +59,7 @@ static const struct compopt compopts[] = {
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
+	{"-ccbin",          AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
@@ -75,8 +79,10 @@ static const struct compopt compopts[] = {
 	{"-iwithprefix",    AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iwithprefixbefore",
 	 AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+	{"-ldir",           AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"-nostdinc",       AFFECTS_CPP},
 	{"-nostdinc++",     AFFECTS_CPP},
+	{"-odir",           AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"-remap",          AFFECTS_CPP},
 	{"-save-temps",     TOO_HARD},
 	{"-stdlib=",        AFFECTS_CPP | TAKES_CONCAT_ARG},
