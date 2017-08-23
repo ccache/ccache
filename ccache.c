@@ -488,6 +488,15 @@ compiler_is_gcc(struct args *args)
 }
 
 static bool
+compiler_is_nvcc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "nvcc") != NULL;
+	free(name);
+	return result;
+}
+
+static bool
 compiler_is_pump(struct args *args)
 {
 	char *name = basename(args->argv[0]);
@@ -2140,7 +2149,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Handle cuda "-optf" and "--options-file" argument.
-		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
+		if ((str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))
+		    && compiler_is_nvcc(args)) {
 			if (i == argc - 1) {
 				cc_log("Expected argument after %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -2275,8 +2285,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		// Alternate form of -o with no space.
-		if (str_startswith(argv[i], "-o")) {
+		// Alternate form of -o with no space. Nvcc does not support this.
+		if (str_startswith(argv[i], "-o") && !compiler_is_nvcc(args)) {
 			output_obj = make_relative_path(x_strdup(&argv[i][2]));
 			continue;
 		}
@@ -2790,6 +2800,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		stats_update(STATS_SOURCELANG);
 		result = false;
 		goto out;
+	}
+
+	if (!conf->run_second_cpp && str_eq(actual_language, "cuda")) {
+		cc_log("Call cuda compiler with original input, not preprocessed input file.");
+		conf->run_second_cpp = true;
 	}
 
 	direct_i_file = language_is_preprocessed(actual_language);
