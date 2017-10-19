@@ -42,7 +42,7 @@ enum stats {
 	STATS_NOINPUT = 17,
 	STATS_MULTIPLE = 18,
 	STATS_CONFTEST = 19,
-	STATS_UNSUPPORTED = 20,
+	STATS_UNSUPPORTED_OPTION = 20,
 	STATS_OUTSTDOUT = 21,
 	STATS_CACHEHIT_DIR = 22,
 	STATS_NOOUTPUT = 23,
@@ -52,6 +52,7 @@ enum stats {
 	STATS_CANTUSEPCH = 27,
 	STATS_PREPROCESSING = 28,
 	STATS_NUMCLEANUPS = 29,
+	STATS_UNSUPPORTED_DIRECTIVE = 30,
 
 	STATS_END
 };
@@ -74,6 +75,9 @@ enum stats {
 #define str_endswith(s, suffix) \
 	(strlen(s) >= strlen(suffix) \
 	 && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
+
+// Buffer size for I/O operations. Should be a multiple of 4 KiB.
+#define READ_BUFFER_SIZE 65536
 
 // ----------------------------------------------------------------------------
 // args.c

@@ -197,7 +197,7 @@ copy_fd(int fd_in, int fd_out)
 	}
 
 	int n;
-	char buf[10240];
+	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		ssize_t written = 0;
 		do {
@@ -297,7 +297,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	}
 
 	int n;
-	char buf[10240];
+	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		int written;
 		if (compress_level > 0) {
@@ -1059,7 +1059,9 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 }
 
 
-#if defined(_WIN32) && !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
+#if !defined(HAVE_REALPATH) && \
+    defined(_WIN32) && \
+    !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
                                   WORD cch_filename)
 {
