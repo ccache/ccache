@@ -163,10 +163,11 @@ Extra options
 When run as a compiler, ccache usually just takes the same command line options
 as the compiler you are using. The only exception to this is the option
 *--ccache-skip*. That option can be used to tell ccache to avoid interpreting
-the next option in any way and to pass it along to the compiler as-is. *Note*:
-*--ccache-skip* currently only tells ccache not to interpret the next option as
-a special compiler option -- the option will still be included in the direct
-mode hash.
+the next option in any way and to pass it along to the compiler as-is.
+
+NOTE: *--ccache-skip* currently only tells ccache not to interpret the next
+option as a special compiler option -- the option will still be included in the
+direct mode hash.
 
 The reason this can be important is that ccache does need to parse the command
 line and determine what is an input filename and what is a compiler option, as
@@ -297,8 +298,14 @@ _a command string_::
     separator. Examples:
 +
 --
-* +%compiler% -v+
-* +%compiler% -dumpmachine; %compiler% -dumpversion+
+
+----
+%compiler% -v
+----
+
+----
+%compiler% -dumpmachine; %compiler% -dumpversion
+----
 
 You should make sure that the specified command is as fast as possible since it
 will be run once for each ccache invocation.
@@ -374,15 +381,15 @@ WRAPPERS>>.
     when generating debug info (compiler option *-g* with variations).
     Exception: The CWD will not be included in the hash if *base_dir* is set
     (and matches the CWD) and the compiler option *-fdebug-prefix-map* is used.
-
-    The reason for including the CWD in the hash by default is to prevent a
-    problem with the storage of the current working directory in the debug info
-    of an object file, which can lead ccache to return a cached object file
-    that has the working directory in the debug info set incorrectly.
-
-    You can disable this setting to get cache hits when compiling the same
-    source code in different directories if you don't mind that CWD in the
-    debug info might be incorrect.
++
+The reason for including the CWD in the hash by default is to prevent a problem
+with the storage of the current working directory in the debug info of an
+object file, which can lead ccache to return a cached object file that has the
+working directory in the debug info set incorrectly.
++
+You can disable this setting to get cache hits when compiling the same source
+code in different directories if you don't mind that CWD in the debug info
+might be incorrect.
 
 *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
@@ -481,13 +488,13 @@ CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
     code (see <<_the_preprocessor_mode,THE PREPROCESSOR MODE>>) and then on a
     cache miss run the compiler on the source code to get hold of the object
     file. This is the default.
-
-    If false, ccache will first run preprocessor to preprocess the source code
-    and then on a cache miss run the compiler on the _preprocessed source code_
-    instead of the original source code. This makes cache misses slightly
-    faster since the source code only has to be preprocessed once. The downside
-    is that some compilers won't produce the same result (for instance
-    diagnostics warnings) when compiling preprocessed source code.
++
+If false, ccache will first run preprocessor to preprocess the source code and
+then on a cache miss run the compiler on the _preprocessed source code_ instead
+of the original source code. This makes cache misses slightly faster since the
+source code only has to be preprocessed once. The downside is that some
+compilers won't produce the same result (for instance diagnostics warnings)
+when compiling preprocessed source code.
 
 *sloppiness* (*CCACHE_SLOPPINESS*)::
 
@@ -577,6 +584,116 @@ compression library zlib. While this may involve a tiny performance slowdown,
 it increases the number of files that fit in the cache. You can turn on
 compression with the *compression* configuration setting and you can also tweak
 the compression level with *compression_level*.
+
+
+Cache statistics
+----------------
+
+*ccache -s/--show-stats* can show the following statistics:
+
+[options="header",cols="30%,70%"]
+|==============================================================================
+|Name | Description
+| autoconf compile/link |
+Uncachable compilation or linking by an autoconf test.
+
+| bad compiler arguments |
+Malformed compiler argument, e.g. missing a value for an option that requires
+an argument or failure to read a file specified by an option argument.
+
+| cache file missing |
+A file was unexpectedly missing from the cache. This only happens in rare
+situations, e.g. if one ccache instance is about to get a file from the cache
+while another instance removed the file as part of cache cleanup.
+
+| cache hit (direct) |
+A result was successfully found using <<_the_direct_mode,the direct mode>>.
+
+| cache hit (preprocessed) |
+A result was successfully found using <<_the_preprocessor_mode,the preprocessor
+mode>>.
+
+| cache miss |
+No result was found.
+
+| cache size |
+Current size of the cache.
+
+| called for link |
+The compiler was called for linking, not compiling.
+
+| called for preprocessing |
+The compiler was called for preprocessing, not compiling.
+
+| can't use precompiled header |
+Preconditions for using <<_precompiled_headers,precompiled headers>> were not
+fulfilled.
+
+| ccache internal error |
+Unexpected failure, e.g. due to problems reading/writing the cache.
+
+| cleanups performed |
+Number of cleanups performed, either implicitly due to the cache size limit
+being reached or due to explicit *ccache -c/--cleanup* calls.
+
+| compile failed |
+The compilation failed. No result stored in the cache.
+
+| compiler check failed |
+A compiler check program specified by *compiler_check* (*CCACHE_COMPILERCHECK*)
+failed.
+
+| compiler produced empty output |
+The compiler's output file (typically an object file) was empty after
+compilation.
+
+| compiler produced no output |
+The compiler's output file (typically an object file) was missing after
+compilation.
+
+| compiler produced stdout |
+The compiler wrote data to standard output. This is something that compilers
+normally never do, so ccache is not designed to store such output in the cache.
+
+| couldn't find the compiler |
+The compiler to execute could not be found.
+
+| error hashing extra file |
+Failure reading a file specified by *extra_files_to_hash*
+(*CCACHE_EXTRAFILES*).
+
+| files in cache |
+Current number of files in the cache.
+
+| multiple source files |
+The compiler was called to compile multiple source files in one go. This is not
+supported by ccache.
+
+| no input file |
+No input file was specified to the compiler.
+
+| output to a non-regular file |
+The output path specified with *-o* is not a file (e.g. a directory or a device
+node).
+
+| output to stdout |
+The compiler was instructed to write its output to standard output using *-o
+-*. This is not supported by ccache.
+
+| preprocessor error |
+Preprocessing the source code using the compiler's *-E* option failed.
+
+| unsupported code directive |
+Code like the assembler ``.incbin'' directive was found. This is not supported
+by ccache.
+
+| unsupported compiler option |
+A compiler option not supported by ccache was found.
+
+| unsupported source language |
+A source language e.g. specified with *-x* was unsupported by ccache.
+
+|==============================================================================
 
 
 How ccache works
@@ -760,8 +877,13 @@ conditions should to be met:
   (and that you trust all users of the shared cache).
 * Make sure that the setgid bit is set on all directories in the cache. This
   tells the filesystem to inherit group ownership for new directories. The
-  command ``find $CCACHE_DIR -type d | xargs chmod g+s'' might be useful for
-  this.
+  following command might be useful for this:
++
+--
+----
+find $CCACHE_DIR -type d | xargs chmod g+s
+----
+--
 
 The reason to avoid the hard link mode is that the hard links cause unwanted
 side effects, as all links to a cached file share the file's modification
@@ -834,20 +956,13 @@ size of the other wrapper instead of the real compiler, which means that:
   the other wrapper.
 
 Another minor thing is that if *prefix_command* is used, ccache will not invoke
-the other wrapper when running the preprocessor, which increase performance.
-You can use the *prefix_command_cpp* configuration setting, if you also want to
+the other wrapper when running the preprocessor, which increases performance.
+You can use the *prefix_command_cpp* configuration setting if you also want to
 invoke the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
 Caveats
 -------
-
-* ccache doesn't handle the GNU Assembler's *.incbin* directive correctly. This
-  directive can be embedded in the source code inside an *__asm__* statement in
-  order to include a file verbatim in the object file. If the included file is
-  modified, ccache doesn't pick up the change since the inclusion isn't done by
-  the preprocessor. A workaround of this problem is to set
-  *extra_files_to_hash* to the path of the included file.
 
 * The direct mode fails to pick up new header files in some rare scenarios. See
   <<_the_direct_mode,THE DIRECT MODE>> above.
