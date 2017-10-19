@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -43,7 +43,7 @@ static const char VERSION_TEXT[] =
 #endif
   "\n"
   "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2016 Joel Rosdahl\n"
+  "Copyright (C) 2009-2017 Joel Rosdahl\n"
   "\n"
   "This program is free software; you can redistribute it and/or modify it under\n"
   "the terms of the GNU General Public License as published by the Free Software\n"
@@ -583,7 +583,6 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		}
 	}
 
-	// Let's hash the include file.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
@@ -596,6 +595,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		goto failure;
 	}
 
+	// Let's hash the include file content.
 	struct mdfour fhash;
 	hash_start(&fhash);
 
@@ -839,8 +839,37 @@ process_preprocessed_file(struct mdfour *hash, const char *path)
 				has_absolute_include_headers = is_absolute_path(inc_path);
 			}
 			inc_path = make_relative_path(inc_path);
+
+			bool should_hash_inc_path = true;
+			if (!conf->hash_dir) {
+				char *cwd = gnu_getcwd();
+				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
+					// When compiling with -g or similar, GCC adds the absolute path to
+					// CWD like this:
+					//
+					//   # 1 "CWD//"
+					//
+					// If the user has opted out of including the CWD in the hash, don't
+					// hash it. See also how debug_prefix_map is handled.
+					should_hash_inc_path = false;
+				}
+				free(cwd);
+			}
+			if (should_hash_inc_path) {
+				hash_string(hash, inc_path);
+			}
+
 			remember_include_file(inc_path, hash, system);
-			p = r;
+			p = q; // Everything of interest between p and q has been hashed now.
+		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
+		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
+			// An assembler .incbin statement (which could be part of inline
+			// assembly) refers to an external file. If the file changes, the hash
+			// should change as well, but finding out what file to hash is too hard
+			// for ccache, so just bail out.
+			cc_log("Found unsupported .incbin directive in source code");
+			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
+			failed();
 		} else {
 			q++;
 		}
@@ -1154,7 +1183,9 @@ to_fscache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	if (st.st_size != 0) {
@@ -1165,7 +1196,9 @@ to_fscache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1226,7 +1259,9 @@ to_fscache(struct args *args)
 		if (tmp_cov) {
 			tmp_unlink(tmp_cov);
 		}
-		tmp_unlink(tmp_dwo);
+		if (tmp_dwo) {
+			tmp_unlink(tmp_dwo);
+		}
 
 		failed();
 	}
@@ -2066,6 +2101,12 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		free(gcda_name);
 	}
 
+	// Adding -arch to hash since cpp output is affected.
+	for (size_t i = 0; i < arch_args_size; ++i) {
+		hash_delimiter(hash, "-arch");
+		hash_string(hash, arch_args[i]);
+	}
+
 	struct file_hash *object_hash = NULL;
 	if (direct_mode) {
 		// Hash environment variables that affect the preprocessor output.
@@ -2604,7 +2645,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
 			if (i > argc) {
 				cc_log("Expected argument after -optf/--options-file");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}
@@ -2644,7 +2685,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// These are always too hard.
 		if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
 			cc_log("Compiler option %s is unsupported", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2658,7 +2699,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// -Xarch_* options are too hard.
 		if (str_startswith(argv[i], "-Xarch_")) {
 			cc_log("Unsupported compiler option :%s", argv[i]);
-			stats_update(STATS_UNSUPPORTED);
+			stats_update(STATS_UNSUPPORTED_OPTION);
 			result = false;
 			goto out;
 		}
@@ -2668,7 +2709,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			if (arch_args_size == MAX_ARCH_ARGS - 1) {
 				cc_log("Too many -arch compiler options; ccache supports at most %d",
 				       MAX_ARCH_ARGS);
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				result = false;
 				goto out;
 			}
@@ -2890,7 +2931,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				// file from compiling the preprocessed file will not be equal to the
 				// object file produced when compiling without ccache.
 				cc_log("Too hard option -Wp,-P detected");
-				stats_update(STATS_UNSUPPORTED);
+				stats_update(STATS_UNSUPPORTED_OPTION);
 				failed();
 			} else if (str_startswith(argv[i], "-Wp,-MD,")
 			           && !strchr(argv[i] + 8, ',')) {
@@ -2911,7 +2952,18 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			} else if (str_startswith(argv[i], "-Wp,-D")
 			           && !strchr(argv[i] + 6, ',')) {
 				// Treat it like -D.
-				args_add(dep_args, argv[i] + 4);
+				args_add(cpp_args, argv[i] + 4);
+				continue;
+			} else if (str_eq(argv[i], "-Wp,-MP")
+			           || (strlen(argv[i]) > 8
+			               && str_startswith(argv[i], "-Wp,-M")
+			               && argv[i][7] == ','
+			               && (argv[i][6] == 'F'
+			                   || argv[i][6] == 'Q'
+			                   || argv[i][6] == 'T')
+			               && !strchr(argv[i] + 8, ','))) {
+				// TODO: Make argument to MF/MQ/MT relative.
+				args_add(dep_args, argv[i]);
 				continue;
 			} else if (conf->direct_mode) {
 				// -Wp, can be used to pass too hard options to the preprocessor.
@@ -2919,6 +2971,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
 				conf->direct_mode = false;
 			}
+
+			// Any other -Wp,* arguments are only relevant for the preprocessor.
+			args_add(cpp_args, argv[i]);
+			continue;
 		}
 		if (str_eq(argv[i], "-MP")) {
 			args_add(dep_args, argv[i]);

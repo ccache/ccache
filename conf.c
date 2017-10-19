@@ -579,7 +579,8 @@ conf_print_items(struct conf *conf,
 	        conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
 	        context);
 
-	reformat(&s, "keep_comments_cpp = %s", bool_to_string(conf->keep_comments_cpp));
+	reformat(&s, "keep_comments_cpp = %s",
+	         bool_to_string(conf->keep_comments_cpp));
 	printer(s, conf->item_origins[find_conf(
 	                                "keep_comments_cpp")->number], context);
 

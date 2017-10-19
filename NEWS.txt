@@ -1,9 +1,76 @@
 ccache news
 ===========
 
+ccache 3.3.4
+------------
+Release date: 2017-02-17
 
-Unreleased 3.3
---------------
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Documented the different cache statistics counters.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.3 related to potentially bad content of
+  dependency files when compiling identical source code but with different
+  source paths. This was only partially fixed in 3.3.2 and reverts the new
+  ``Names of included files are no longer included in the hash of the
+  compiler's preprocessed output'' feature in 3.3.
+
+- Corrected statistics counter for `-optf`/`--options-file` failure.
+
+- Fixed undefined behavior warnings in ccache found by `-fsanitize=undefined`.
+
+
+ccache 3.3.3
+------------
+Release date: 2016-10-26
+
+Bug fixes
+~~~~~~~~~
+
+- ccache now detects usage of `.incbin` assembler directives in the source code
+  and avoids caching such compilations.
+
+
+ccache 3.3.2
+------------
+Release date: 2016-09-28
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in ccache 3.3 related to potentially bad content of
+  dependency files when compiling identical source code but with different
+  source paths.
+
+- Fixed a regression in ccache 3.3.1: ccache could get confused when using the
+  compiler option `-Wp,` to pass multiple options to the preprocessor,
+  resulting in missing dependency files from direct mode cache hits.
+
+
+ccache 3.3.1
+------------
+Release date: 2016-09-07
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a problem in the ``multiple `-arch` options'' support introduced in
+  3.3. When using the direct mode (the default), different combinations of
+  `-arch` options were not detected properly.
+
+- Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
+  path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
+  (`CCACHE_CPP2`) is enabled.
+
+
+ccache 3.3
+----------
+Release date: 2016-08-27
 
 Notes
 ~~~~~
@@ -21,22 +88,43 @@ New features and improvements
 
 - The configuration option `hash_dir` (`CCACHE_HASHDIR`) now defaults to true.
 
-- Added support for cuda including the -optf/--options-file option.
+- Added a new `ignore_headers_in_manifest` configuration option, which
+  specifies headers that should be ignored in the direct mode.
 
-- Added new sloppiness option `no_system_headers`, which tells ccache not to
-  include system headers in manifest files.
-
-- Multiple identical `-arch` arguments are now handled without bailing.
-
-- Added new `ignore_headers_in_manifest` configuration option, which specifies
-  headers that should be ignored in the direct mode.
-
-- Added new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
+- Added a new `prefix_command_cpp` (`CCACHE_PREFIX_CPP`) configuration option,
   which specifies one or several prefixes to add to the command line ccache
   uses when invoking the preprocessor.
 
-- Added new `limit_multiple` (`CCACHE_LIMIT_MULTIPLE`) configuration option,
+- Added a new `limit_multiple` (`CCACHE_LIMIT_MULTIPLE`) configuration option,
   which specifies how much of the cache to remove when cleaning.
+
+- Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
+  which tells ccache not to discard the comments before hashing preprocessor
+  output. This can be used to check documentation with *-Wdocumentation*.
+
+- Added a new sloppiness option `no_system_headers`, which tells ccache not to
+  include system headers in manifest files.
+
+- Added a new statistics counter that tracks the number of performed cleanups
+  due to the cache size being over the limit. The value is shown in the output
+  of ``ccache -s''.
+
+- Added support for relocating debug info directory using `-fdebug-prefix-map`.
+  This allows for cache hits even when `hash_dir` is used in combination with
+  `base_dir`.
+
+- Added a new ``cache hit rate'' field to the output of ``ccache -s''.
+
+- Added support for caching compilation of assembler code produced by e.g.
+  ``gcc -S file.c''.
+
+- Added support for cuda including the -optf/--options-file option.
+
+- Added support for Fortran 77.
+
+- Added support for multiple `-arch` options to produce "fat binaries".
+
+- Multiple identical `-arch` arguments are now handled without bailing.
 
 - The concatenated form of some long compiler options is now recognized, for
   example when using `-isystemPATH` instead of `-isystem PATH`.
@@ -46,14 +134,6 @@ New features and improvements
 
 - Made the `hash_dir` option only have effect when generating debug info.
 
-- Added support for relocating debug info directory using `-fdebug-prefix-map`.
-  This allows for cache hits even when `hash_dir` is used in combination with
-  `base_dir`.
-
-- Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
-  which tells ccache not to discard the comments before hashing preprocessor
-  output. This can be used to check documentation with *-Wdocumentation*.
-
 - ccache now knows how to convert absolute paths to relative paths inside
   dependency files when using `base_dir`.
 
@@ -61,22 +141,15 @@ New features and improvements
 
 - Made ccache understand `-Wp,-D*` options.
 
-- Added a new statistics counter that tracks the number of performed cleanups
-  due to the cache size being over the limit. The value is shown in the output
-  of ``ccache -s''.
-
-- Added a new ``cache hit rate'' field to the output of ``ccache -s''.
+- ccache now understands the undocumented `-coverage` (only one dash) GCC
+  option.
 
 - Names of included files are no longer included in the hash of the compiler's
   preprocessed output. This leads to more potential cache hits when not using
   the direct mode.
 
-- Added support for multiple `-arch` options to produce "fat binaries".
-
-- Added support for caching compilation of assembler code produced by e.g.
-  ``gcc -S file.c''.
-
-- Added support for Fortran 77.
+- Increased buffer size used when reading file data. This improves performance
+  slightly.
 
 
 Bug fixes
@@ -89,11 +162,28 @@ Bug fixes
 - Fixed build and test for MinGW32 and Windows.
 
 
-Unreleased 3.2.8
-----------------
+ccache 3.2.9
+------------
+Release date: 2016-09-28
 
 Bug fixes
 ~~~~~~~~~
+
+- Fixed a regression in ccache 3.2.8: ccache could get confused when using the
+  compiler option `-Wp,` to pass multiple options to the preprocessor,
+  resulting in missing dependency files from direct mode cache hits.
+
+
+ccache 3.2.8
+------------
+Release date: 2016-09-07
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed an issue when compiler option `-Wp,-MT,path` is used instead of `-MT
+  path` (and similar for `-MF`, `-MP` and `-MQ`) and `run_second_cpp`
+  (`CCACHE_CPP2`) is enabled.
 
 - ccache now understands the undocumented `-coverage` (only one dash) GCC
   option.
