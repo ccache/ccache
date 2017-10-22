@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 autoconf \
                 gperf \
                 zlib1g-dev \
+                libmemcached-dev \
         && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp/build
