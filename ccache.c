@@ -1966,7 +1966,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	if (generating_dependencies && mode == FROMCACHE_CPP_MODE
 	    && !conf->read_only && !conf->read_only_direct) {
-		put_file_in_cache(output_dep, cached_dep);
+		use_relative_paths_in_depfile(output_dep);
 		put_file_in_cache(output_dep, cached_dep);
 	}
 
