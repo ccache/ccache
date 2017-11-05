@@ -1,6 +1,6 @@
 # GNU make syntax reigns in this file.
 
-all_cflags += -Werror
+all_cflags += -Werror -Wno-implicit-fallthrough
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 ASCIIDOC = asciidoc
