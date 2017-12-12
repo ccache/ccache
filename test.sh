@@ -1280,7 +1280,7 @@ EOF
 # =============================================================================
 
 SUITE_debug_prefix_map_PROBE() {
-    if ! $COMPILER_TYPE_GCC || $COMPILER_USES_MINGW; then
+    if $COMPILER_USES_MINGW; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
 }
