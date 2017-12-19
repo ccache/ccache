@@ -981,14 +981,14 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 		unsigned multiplier = *(p+1) == 'i' ? 1024 : 1000;
 		switch (*p) {
 		case 'T':
-			x *= multiplier;
+			x *= multiplier; // fallthrough
 		case 'G':
-			x *= multiplier;
+			x *= multiplier; // fallthrough
 		case 'M':
-			x *= multiplier;
+			x *= multiplier; // fallthrough
 		case 'K':
 		case 'k':
-			x *= multiplier;
+			x *= multiplier; // fallthrough
 			break;
 		default:
 			return false;
