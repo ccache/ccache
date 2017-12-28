@@ -218,7 +218,7 @@ TEST() {
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
     if $VERBOSE; then
-        printf "\n  %s" $CURRENT_TEST
+        printf "\n  %s" "$CURRENT_TEST"
     else
         printf .
     fi
