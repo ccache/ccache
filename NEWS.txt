@@ -22,6 +22,9 @@ Bug fixes
   corresponding header files have an updated timestamp. This fixes complaints
   from clang.
 
+- Fixed a bug related to erroneously storing a dependency file with absolute
+  paths in the cache on a preprocessed hit.
+
 
 ccache 3.3.4
 ------------

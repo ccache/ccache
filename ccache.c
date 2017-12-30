@@ -1964,11 +1964,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_mtime(cached_dwo);
 	}
 
-	if (generating_dependencies && mode == FROMCACHE_CPP_MODE
-	    && !conf->read_only && !conf->read_only_direct) {
-		put_file_in_cache(output_dep, cached_dep);
-	}
-
 	send_cached_stderr();
 
 	if (put_object_in_manifest) {
