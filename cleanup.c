@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2006 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -194,6 +194,9 @@ cleanup_dir(struct conf *conf, const char *dir)
 		stats_add_cleanup(dir, 1);
 	}
 
+	cc_log("After cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.
