@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2017 Joel Rosdahl
+# Copyright (C) 2009-2018 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -2354,9 +2354,13 @@ SUITE_basedir() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
+    mkdir subdir
+    ln -s `pwd`/include subdir/symlink
+
     # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
-    # slashes correctly:
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`//include -c `pwd`//src/test.c
+    # slashes, redundant "/." parts and "foo/.." parts correctly. Note that the
+    # ".." part of the path is resolved after the symlink has been resolved.
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`//./subdir/symlink/../include -c `pwd`/src/test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
