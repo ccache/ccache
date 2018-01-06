@@ -217,8 +217,8 @@ void exitfn_call(void);
 // ----------------------------------------------------------------------------
 // cleanup.c
 
-void cleanup_dir(struct conf *conf, const char *dir);
-void cleanup_all(struct conf *conf);
+void clean_up_dir(struct conf *conf, const char *dir);
+void clean_up_all(struct conf *conf);
 void wipe_all(struct conf *conf);
 
 // ----------------------------------------------------------------------------

@@ -170,7 +170,7 @@ sort_and_clean(void)
 
 // Clean up one cache subdirectory.
 void
-cleanup_dir(struct conf *conf, const char *dir)
+clean_up_dir(struct conf *conf, const char *dir)
 {
 	cc_log("Cleaning up cache directory %s", dir);
 
@@ -217,11 +217,11 @@ cleanup_dir(struct conf *conf, const char *dir)
 }
 
 // Clean up all cache subdirectories.
-void cleanup_all(struct conf *conf)
+void clean_up_all(struct conf *conf)
 {
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
-		cleanup_dir(conf, dname);
+		clean_up_dir(conf, dname);
 		free(dname);
 	}
 }
@@ -274,5 +274,5 @@ void wipe_all(struct conf *conf)
 	}
 
 	// Fix the counters.
-	cleanup_all(conf);
+	clean_up_all(conf);
 }
