@@ -395,7 +395,7 @@ stats_flush(void)
 	}
 
 	if (need_cleanup) {
-		clean_up_dir(conf, subdir);
+		clean_up_dir(conf, subdir, conf->limit_multiple);
 	}
 
 	free(subdir);

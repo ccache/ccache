@@ -25,6 +25,12 @@ Bug fixes
 - Fixed a bug related to erroneously storing a dependency file with absolute
   paths in the cache on a preprocessed hit.
 
+- `ccache -c/--cleanup` now works like documented: it just recalculates size
+  counters and trims the cache to not exceed the max size and file number
+  limits. Previously, the forced cleanup took ``limit_multiple'' into account,
+  so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
+  max limit.
+
 
 ccache 3.3.4
 ------------

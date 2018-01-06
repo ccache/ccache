@@ -170,15 +170,15 @@ sort_and_clean(void)
 
 // Clean up one cache subdirectory.
 void
-clean_up_dir(struct conf *conf, const char *dir)
+clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 {
 	cc_log("Cleaning up cache directory %s", dir);
 
 	// When "max files" or "max cache size" is reached, one of the 16 cache
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
-	cache_size_threshold = conf->max_size * conf->limit_multiple / 16;
-	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
+	cache_size_threshold = conf->max_size * limit_multiple / 16;
+	files_in_cache_threshold = conf->max_files * limit_multiple / 16;
 
 	num_files = 0;
 	cache_size = 0;
@@ -221,7 +221,7 @@ void clean_up_all(struct conf *conf)
 {
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
-		clean_up_dir(conf, dname);
+		clean_up_dir(conf, dname, 1.0);
 		free(dname);
 	}
 }
