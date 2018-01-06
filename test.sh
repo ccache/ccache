@@ -37,7 +37,7 @@ test_failed() {
     echo
     echo "Test suite:     $(bold $CURRENT_SUITE)"
     echo "Test case:      $(bold $CURRENT_TEST)"
-    echo "Failure reason: $(red $1)"
+    echo "Failure reason: $(red "$1")"
     echo
     echo "ccache -s:"
     $CCACHE -s
