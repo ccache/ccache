@@ -140,28 +140,28 @@ expect_file_count() {
 }
 
 run_suite() {
-    local name=$1
+    local suite_name=$1
 
-    CURRENT_SUITE=$name
+    CURRENT_SUITE=$suite_name
     UNCACHED_COMPILE=uncached_compile
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
 
-    if type SUITE_${name}_PROBE >/dev/null 2>&1; then
+    if type SUITE_${suite_name}_PROBE >/dev/null 2>&1; then
         mkdir $ABS_TESTDIR/probe
         cd $ABS_TESTDIR/probe
-        local skip_reason="$(SUITE_${name}_PROBE)"
+        local skip_reason="$(SUITE_${suite_name}_PROBE)"
         cd $ABS_TESTDIR
         rm -rf $ABS_TESTDIR/probe
         if [ -n "$skip_reason" ]; then
-            echo "Skipped test suite $name [$skip_reason]"
+            echo "Skipped test suite $suite_name [$skip_reason]"
             return
         fi
     fi
 
-    printf "Running test suite %s" "$(bold $name)"
-    SUITE_$name
+    printf "Running test suite %s" "$(bold $suite_name)"
+    SUITE_$suite_name
     echo
 }
 
@@ -174,34 +174,11 @@ uncached_compile() {
 TEST() {
     CURRENT_TEST=$1
 
-    unset CCACHE_BASEDIR
-    unset CCACHE_CC
-    unset CCACHE_COMMENTS
-    unset CCACHE_COMPILERCHECK
-    unset CCACHE_COMPRESS
-    unset CCACHE_CPP2
-    unset CCACHE_DIR
-    unset CCACHE_DISABLE
-    unset CCACHE_EXTENSION
-    unset CCACHE_EXTRAFILES
-    unset CCACHE_HARDLINK
-    unset CCACHE_IGNOREHEADERS
-    unset CCACHE_LIMIT_MULTIPLE
-    unset CCACHE_LOGFILE
-    unset CCACHE_NLEVELS
-    unset CCACHE_NOCPP2
-    unset CCACHE_NOHASHDIR
-    unset CCACHE_NOSTATS
-    unset CCACHE_PATH
-    unset CCACHE_PREFIX
-    unset CCACHE_PREFIX_CPP
-    unset CCACHE_READONLY
-    unset CCACHE_READONLY_DIRECT
-    unset CCACHE_RECACHE
-    unset CCACHE_SLOPPINESS
-    unset CCACHE_TEMPDIR
-    unset CCACHE_UMASK
-    unset CCACHE_UNIFY
+    while read name; do
+        unset $name
+    done <<EOF
+$(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
+EOF
     unset GCC_COLORS
 
     export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
@@ -228,8 +205,8 @@ TEST() {
     rm -rf $ABS_TESTDIR/run
     mkdir $ABS_TESTDIR/run
     cd $ABS_TESTDIR/run
-    if type SUITE_${name}_SETUP >/dev/null 2>&1; then
-        SUITE_${name}_SETUP
+    if type SUITE_${suite_name}_SETUP >/dev/null 2>&1; then
+        SUITE_${suite_name}_SETUP
     fi
 }
 
@@ -1328,7 +1305,7 @@ SUITE_debug_prefix_map() {
     TEST "Multiple -fdebug-prefix-map"
 
     cd dir1
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=name -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -1336,12 +1313,12 @@ SUITE_debug_prefix_map() {
     if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
-    if ! grep "foobar" test.o >/dev/null 2>&1; then
-        test_failed "Relocation (foobar) not found in test.o"
+    if ! grep "name" test.o >/dev/null 2>&1; then
+        test_failed "Relocation (name) not found in test.o"
     fi
 
     cd ../dir2
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=foobar -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=name -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
