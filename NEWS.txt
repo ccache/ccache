@@ -5,6 +5,13 @@ ccache 3.3.5
 ------------
 Not yet released
 
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Documented how automatic cache cleanup works.
+
+
 Bug fixes
 ~~~~~~~~~
 

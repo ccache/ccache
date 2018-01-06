@@ -407,7 +407,8 @@ might be incorrect.
 *limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
 
     Sets the limit when cleaning up. Files are deleted (in LRU order) until the
-    levels are below the limit. The default is 0.8 (= 80%).
+    levels are below the limit. The default is 0.8 (= 80%). See
+    <<_automatic_cleanup,AUTOMATIC CLEANUP>> for more information.
 
 *log_file* (*CCACHE_LOGFILE*)::
 
@@ -417,13 +418,15 @@ might be incorrect.
 *max_files* (*CCACHE_MAXFILES*)::
 
     This option specifies the maximum number of files to keep in the cache. Use
-    0 for no limit (which is the default).
+    0 for no limit (which is the default). See also
+    <<_cache_size_management,CACHE SIZE MANAGEMENT>>.
 
 *max_size* (*CCACHE_MAXSIZE*)::
 
     This option specifies the maximum size of the cache. Use 0 for no limit.
     The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
-    Mi, Gi, Ti (binary). The default suffix is "G".
+    Mi, Gi, Ti (binary). The default suffix is "G". See also
+    <<_cache_size_management,CACHE SIZE MANAGEMENT>>.
 
 *path* (*CCACHE_PATH*)::
 
@@ -550,11 +553,51 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
 Cache size management
 ---------------------
 
-By default, ccache has a five gigabyte limit on the total size of files in the
-cache and no maximum number of files. You can set different limits using the
+By default, ccache has a 5 GB limit on the total size of files in the cache and
+no limit on the number of files. You can set different limits using the
 *-M*/*--max-size* and *-F*/*--max-files* options. Use *ccache -s/--show-stats*
 to see the cache size and the currently configured limits (in addition to other
 various statistics).
+
+Cleanup can be happen in two different ways: automatic and manual.
+
+
+Automatic cleanup
+~~~~~~~~~~~~~~~~~
+
+ccache maintains counters for various statistics about the cache, including the
+size and number of all cached files. In order to improve performance and reduce
+issues with concurrent ccache invocations, there is one statistics file for
+each of the sixteen subdirectories in the cache.
+
+After a new compilation result has been written to the cache, ccache will
+update the size and file number statistics for the subdirectory (one of
+sixteen) to which the result was written. Then, if the size counter for said
+subdirectory is greater than *max_size / 16* or the file number counter is
+greater than *max_files / 16*, automatic cleanup is triggered.
+
+When automatic cleanup is triggered for a subdirectory in the cache, ccache
+will:
+
+1. Scan the subdirectory and update the size and file number counters to match
+   the actually found files.
+2. Remove files in LRU (least recently used) order until the size is at most
+   *limit_multiple * max_size / 16* and the number of files is at most
+   *limit_multiple * max_files / 16*, where *limit_multiple*, *max_size* and
+   *max_files* are configuration settings.
+
+The reason for removing more files than just those needed to not exceed the max
+limits is that a cleanup is a fairly slow operation, so it would not be a good
+idea to trigger it often, like after each cache miss.
+
+
+Manual cleanup
+~~~~~~~~~~~~~~
+
+You can run *ccache -c/--cleanup* to force cleanup of the whole cache, i.e. all
+of the sixteen subdirectories. This will recalculate the statistics counters
+and make sure that the *max_size* and *max_files* settings are not exceeded.
+Note that *limit_multiple* is not taken into account for manual cleanup.
 
 
 Cache compression
