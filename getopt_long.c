@@ -72,14 +72,14 @@ getopt_long(int argc, char *const argv[],
 
 		place++;
 
-		if (place[0] && place[0] == '-' && place[1] == '\0')
+		if (place[0] == '-' && place[1] == '\0')
 		{ /* found "--" */
 			++optind;
 			place = EMSG;
 			return -1;
 		}
 
-		if (place[0] && place[0] == '-' && place[1])
+		if (place[0] == '-' && place[1])
 		{
 			/* long option */
 			size_t namelen;
