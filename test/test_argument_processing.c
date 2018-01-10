@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -81,7 +81,7 @@ TEST(dash_M_should_be_unsupported)
 
 	create_file("foo.c", "");
 	CHECK(!cc_process_args(orig, &preprocessed, &compiler));
-	CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED));
+	CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED_OPTION));
 
 	args_free(orig);
 }
@@ -90,7 +90,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
 {
 #define CMD \
 	"cc -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2" \
-	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	" -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
 	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(CMD);
 #undef CMD
@@ -112,8 +112,9 @@ TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
 	" -include test.h -include-pch test.pch -iprefix . -iquote ." \
 	" -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ." \
 	" -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory" \
-	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 " \
-	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
+	" -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2" \
+	" -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt" \
+	" -Wp,-MQ,wpmq -Wp,-MF,wpf"
 	struct args *orig = args_init_from_string(CMD " -c foo.c -o foo.o");
 	struct args *exp_cpp = args_init_from_string(CMD);
 #undef CMD
@@ -189,6 +190,30 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 
 	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
 	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo");
+
+	args_free(orig);
+	args_free(act_cpp);
+	args_free(act_cc);
+}
+
+TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
+{
+	extern char *current_working_dir;
+	char *arg_string;
+	struct args *orig;
+	struct args *act_cpp = NULL, *act_cc = NULL;
+
+	create_file("foo.c", "");
+	free(conf->base_dir);
+	conf->base_dir = get_root();
+	current_working_dir = get_cwd();
+	arg_string = format("cc --sysroot %s/foo -c foo.c", current_working_dir);
+	orig = args_init_from_string(arg_string);
+	free(arg_string);
+
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_STR_EQ(act_cpp->argv[1], "--sysroot");
+	CHECK_STR_EQ(act_cpp->argv[2], "./foo");
 
 	args_free(orig);
 	args_free(act_cpp);
@@ -435,6 +460,38 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 	args_free(orig);
 	args_free(act_cpp);
 	args_free(act_cc);
+}
+
+TEST(debug_flag_order_with_known_option_first)
+{
+	struct args *orig = args_init_from_string("cc -g1 -gsplit-dwarf foo.c -c");
+	struct args *exp_cpp = args_init_from_string("cc -g1 -gsplit-dwarf");
+	struct args *exp_cc = args_init_from_string("cc -g1 -gsplit-dwarf -c");
+	struct args *act_cpp = NULL;
+	struct args *act_cc = NULL;
+
+	create_file("foo.c", "");
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(debug_flag_order_with_known_option_last)
+{
+	struct args *orig = args_init_from_string("cc -gsplit-dwarf -g1 foo.c -c");
+	struct args *exp_cpp = args_init_from_string("cc -gsplit-dwarf -g1");
+	struct args *exp_cc = args_init_from_string("cc -gsplit-dwarf -g1 -c");
+	struct args *act_cpp = NULL;
+	struct args *act_cc = NULL;
+
+	create_file("foo.c", "");
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
 }
 
 TEST_SUITE_END

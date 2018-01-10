@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2006 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -170,15 +170,15 @@ sort_and_clean(void)
 
 // Clean up one cache subdirectory.
 void
-cleanup_dir(struct conf *conf, const char *dir)
+clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 {
 	cc_log("Cleaning up cache directory %s", dir);
 
 	// When "max files" or "max cache size" is reached, one of the 16 cache
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
-	cache_size_threshold = conf->max_size * conf->limit_multiple / 16;
-	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
+	cache_size_threshold = conf->max_size * limit_multiple / 16;
+	files_in_cache_threshold = conf->max_files * limit_multiple / 16;
 
 	num_files = 0;
 	cache_size = 0;
@@ -194,6 +194,9 @@ cleanup_dir(struct conf *conf, const char *dir)
 		stats_add_cleanup(dir, 1);
 	}
 
+	cc_log("After cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.
@@ -214,11 +217,11 @@ cleanup_dir(struct conf *conf, const char *dir)
 }
 
 // Clean up all cache subdirectories.
-void cleanup_all(struct conf *conf)
+void clean_up_all(struct conf *conf)
 {
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
-		cleanup_dir(conf, dname);
+		clean_up_dir(conf, dname, 1.0);
 		free(dname);
 	}
 }
@@ -271,5 +274,5 @@ void wipe_all(struct conf *conf)
 	}
 
 	// Fix the counters.
-	cleanup_all(conf);
+	clean_up_all(conf);
 }

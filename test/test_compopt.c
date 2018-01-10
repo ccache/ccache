@@ -70,6 +70,11 @@ TEST(dash_ftest_coverage_not_too_hard)
 	CHECK(!compopt_too_hard("-ftest-coverage"));
 }
 
+TEST(dash_fstack_usage_not_too_hard)
+{
+	CHECK(!compopt_too_hard("-fstack-usage"));
+}
+
 TEST(dash_doesnexist_not_too_hard)
 {
 	CHECK(!compopt_too_hard("-doesntexist"));

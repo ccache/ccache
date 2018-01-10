@@ -6,6 +6,8 @@ all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = cppcheck-suppressions.txt
+SCAN_BUILD = scan-build
+DOCKER = docker
 GPERF = gperf
 XSLTPROC = xsltproc
 MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
@@ -59,7 +61,6 @@ source_dist_files = \
     AUTHORS.txt \
     GPL-3.0.txt \
     HACKING.txt \
-    INSTALL.md \
     LICENSE.txt \
     MANUAL.txt \
     Makefile.in \
@@ -111,6 +112,7 @@ $(dist_archives): $(dist_files)
 	mkdir $$dir && \
 	(cd $(srcdir) && \
 	 rsync -r --relative $(source_dist_files) $$dir) && \
+	cp $(srcdir)/INSTALL-from-release-archive.md $$dir/INSTALL.md && \
 	cp $(built_dist_files) $$dir && \
 	echo "Remove this file to enable developer mode." >$$dir/dev_mode_disabled && \
 	(cd $$tmpdir && \
@@ -160,5 +162,14 @@ cppcheck:
 .PHONY: uncrustify
 uncrustify:
 	uncrustify -c uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+
+.PHONY: analyze
+analyze:
+	$(SCAN_BUILD) --use-cc=$(CC) ./configure
+	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
+
+.PHONY: docker
+docker: Dockerfile
+	$(DOCKER) build $(srcdir)
 
 -include .deps/*.d

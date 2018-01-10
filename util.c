@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2017 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -187,6 +187,19 @@ fatal(const char *format, ...)
 	x_exit(1);
 }
 
+void
+warn(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	char msg[1000];
+	vsnprintf(msg, sizeof(msg), format, ap);
+	va_end(ap);
+
+	cc_log("WARNING: %s", msg);
+	fprintf(stderr, "ccache: warning: %s\n", msg);
+}
+
 // Copy all data from fd_in to fd_out, decompressing data from fd_in if needed.
 void
 copy_fd(int fd_in, int fd_out)
@@ -197,7 +210,7 @@ copy_fd(int fd_in, int fd_out)
 	}
 
 	int n;
-	char buf[10240];
+	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		ssize_t written = 0;
 		do {
@@ -297,7 +310,7 @@ copy_file(const char *src, const char *dest, int compress_level)
 	}
 
 	int n;
-	char buf[10240];
+	char buf[READ_BUFFER_SIZE];
 	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
 		int written;
 		if (compress_level > 0) {
@@ -1059,7 +1072,9 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 }
 
 
-#if defined(_WIN32) && !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
+#if !defined(HAVE_REALPATH) && \
+  defined(_WIN32) && \
+  !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
                                   WORD cch_filename)
 {
