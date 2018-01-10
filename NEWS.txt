@@ -24,6 +24,13 @@ ccache 3.3.5
 ------------
 Not yet released
 
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Documented how automatic cache cleanup works.
+
+
 Bug fixes
 ~~~~~~~~~
 
@@ -36,6 +43,19 @@ Bug fixes
   configuration option.
 
 - Fixed detection of missing argument to `-opt`/`--options-file`.
+
+- ccache now bails out when building a precompiled header if any of the
+  corresponding header files have an updated timestamp. This fixes complaints
+  from clang.
+
+- Fixed a bug related to erroneously storing a dependency file with absolute
+  paths in the cache on a preprocessed hit.
+
+- `ccache -c/--cleanup` now works like documented: it just recalculates size
+  counters and trims the cache to not exceed the max size and file number
+  limits. Previously, the forced cleanup took ``limit_multiple'' into account,
+  so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
+  max limit.
 
 
 ccache 3.3.4

@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2017 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -207,7 +207,7 @@ static char *cpp_stderr;
 char *stats_file = NULL;
 
 // Whether the output is a precompiled header.
-static bool output_is_precompiled_header = false;
+bool output_is_precompiled_header = false;
 
 // Profile generation / usage information.
 static char *profile_dir = NULL;
@@ -1957,6 +1957,16 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
+	// We can't trust the objects based on running the preprocessor
+	// when the output is precompiled headers, as the hash does not
+	// include the mtime of each included header, breaking compilation
+	// with clang when the precompiled header is used after touching
+	// one of the included files.
+	if (output_is_precompiled_header && mode == FROMCACHE_CPP_MODE) {
+		cc_log("Not using preprocessed cached object for precompiled header");
+		return;
+	}
+
 	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
@@ -2046,11 +2056,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 	if (cached_dwo) {
 		update_mtime(cached_dwo);
-	}
-
-	if (generating_dependencies && mode == FROMCACHE_CPP_MODE
-	    && !conf->read_only && !conf->read_only_direct) {
-		put_file_in_cache(output_dep, cached_dep);
 	}
 
 	send_cached_stderr();
@@ -3458,7 +3463,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'c': // --cleanup
 			initialize();
-			cleanup_all(conf);
+			clean_up_all(conf);
 			printf("Cleaned cache\n");
 			break;
 

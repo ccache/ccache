@@ -220,8 +220,8 @@ void exitfn_call(void);
 // ----------------------------------------------------------------------------
 // cleanup.c
 
-void cleanup_dir(struct conf *conf, const char *dir);
-void cleanup_all(struct conf *conf);
+void clean_up_dir(struct conf *conf, const char *dir, float limit_multiple);
+void clean_up_all(struct conf *conf);
 void wipe_all(struct conf *conf);
 
 // ----------------------------------------------------------------------------
@@ -241,6 +241,7 @@ void lockfile_release(const char *path);
 // ccache.c
 
 extern time_t time_of_compilation;
+extern bool output_is_precompiled_header;
 void block_signals(void);
 void unblock_signals(void);
 bool cc_process_args(struct args *args, struct args **preprocessor_args,
