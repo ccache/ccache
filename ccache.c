@@ -1673,7 +1673,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		if (!direct_mode && !output_is_precompiled_header
 		    && !using_precompiled_header) {
 			if (compopt_affects_cpp(args->argv[i])) {
-				i++;
+				if (compopt_takes_arg(args->argv[i])) {
+					i++;
+				}
 				continue;
 			}
 			if (compopt_short(compopt_affects_cpp, args->argv[i])) {
