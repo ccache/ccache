@@ -548,8 +548,8 @@ get_hostname(void)
 		  * sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
 		          LocalSize(lp_display_buf) / sizeof(TCHAR),
-		          TEXT("%s failed with error %d: %s"), __FILE__, dw,
-		          lp_msg_buf);
+		          TEXT("%s failed with error %ld: %s"), __FILE__, dw,
+		          (const char *)lp_msg_buf);
 
 		cc_log("can't get hostname OS returned error: %s", (char *)lp_display_buf);
 
@@ -1458,7 +1458,7 @@ x_rename(const char *oldpath, const char *newpath)
 		  * sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
 		          LocalSize(lp_display_buf) / sizeof(TCHAR),
-		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lp_msg_buf);
+		          TEXT("%s failed with error %ld: %s"), __FILE__, dw, (const char *)lp_msg_buf);
 
 		cc_log("can't rename file %s to %s OS returned error: %s",
 		       oldpath, newpath, (char *) lp_display_buf);
