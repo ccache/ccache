@@ -1725,19 +1725,23 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_int(hash, MANIFEST_VERSION);
 	}
 
+	// clang will emit warnings for unused linker flags, so we shouldn't skip
+	// those arguments.
+	int is_clang = compiler_is_clang(args);
+
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
-		// -L doesn't affect compilation.
-		if (i < args->argc-1 && str_eq(args->argv[i], "-L")) {
+		// -L doesn't affect compilation (except for clang).
+		if (i < args->argc-1 && str_eq(args->argv[i], "-L") && !is_clang) {
 			i++;
 			continue;
 		}
-		if (str_startswith(args->argv[i], "-L")) {
+		if (str_startswith(args->argv[i], "-L") && !is_clang) {
 			continue;
 		}
 
-		// -Wl,... doesn't affect compilation.
-		if (str_startswith(args->argv[i], "-Wl,")) {
+		// -Wl,... doesn't affect compilation (except for clang).
+		if (str_startswith(args->argv[i], "-Wl,") && !is_clang) {
 			continue;
 		}
 
@@ -1755,7 +1759,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		if (!direct_mode && !output_is_precompiled_header
 		    && !using_precompiled_header) {
 			if (compopt_affects_cpp(args->argv[i])) {
-				i++;
+				if (compopt_takes_arg(args->argv[i])) {
+					i++;
+				}
 				continue;
 			}
 			if (compopt_short(compopt_affects_cpp, args->argv[i])) {
@@ -3254,6 +3260,7 @@ static void
 setup_uncached_err(void)
 {
 	int uncached_fd = dup(2);
+	set_cloexec_flag(uncached_fd);
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed: %s", strerror(errno));
 		failed();

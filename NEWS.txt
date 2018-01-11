@@ -57,6 +57,15 @@ Bug fixes
   so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
   max limit.
 
+- ccache no longer ignores linker arguments for clang since clang warns about
+  them.
+
+- Plugged a couple of file descriptor leaks.
+
+- Fixed a bug where ccache would skip hashing the compiler argument following a
+  `-fno-working-directory`, `-fworking-directory`, `-nostdinc`, `-nostdinc++`,
+  `-remap` or `-trigraphs` option in preprocessor mode.
+
 
 ccache 3.3.4
 ------------

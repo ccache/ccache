@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2017 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -50,11 +50,7 @@ init_log(void)
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
 #ifndef _WIN32
-		int fd = fileno(logfile);
-		int flags = fcntl(fd, F_GETFD, 0);
-		if (flags >= 0) {
-			fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-		}
+		set_cloexec_flag(fileno(logfile));
 #endif
 		return true;
 	} else {
@@ -982,10 +978,13 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 		switch (*p) {
 		case 'T':
 			x *= multiplier;
+			// Fallthrough.
 		case 'G':
 			x *= multiplier;
+			// Fallthrough.
 		case 'M':
 			x *= multiplier;
+			// Fallthrough.
 		case 'K':
 		case 'k':
 			x *= multiplier;
@@ -1197,6 +1196,7 @@ create_tmp_fd(char **fname)
 		fatal("Failed to create temporary file for %s: %s",
 		      *fname, strerror(errno));
 	}
+	set_cloexec_flag(fd);
 
 #ifndef _WIN32
 	fchmod(fd, 0666 & ~get_umask());
@@ -1671,4 +1671,15 @@ subst_env_in_string(const char *str, char **errmsg)
 	}
 	reformat(&result, "%s%.*s", result, (int)(q - p), p);
 	return result;
+}
+
+void
+set_cloexec_flag(int fd)
+{
+#ifndef _WIN32
+	int flags = fcntl(fd, F_GETFD, 0);
+	if (flags >= 0) {
+		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+	}
+#endif
 }

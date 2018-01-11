@@ -30,8 +30,8 @@ murmurhashneutral2(const void *key, int len, unsigned int seed)
 
 	switch (len)
 	{
-	case 3: h ^= ((unsigned int) data[2]) << 16;
-	case 2: h ^= ((unsigned int) data[1]) << 8;
+	case 3: h ^= ((unsigned int) data[2]) << 16; // Fallthrough.
+	case 2: h ^= ((unsigned int) data[1]) << 8; // Fallthrough.
 	case 1: h ^= ((unsigned int) data[0]);
 		h *= m;
 	};

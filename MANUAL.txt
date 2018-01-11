@@ -506,7 +506,7 @@ when compiling preprocessed source code.
     With this option set, ccache will only include system headers in the hash
     but not add the system header files to the list of include files.
 *pch_defines*::
-    Be sloppy about #defines when precompiling a header file. See
+    Be sloppy about **#define**s when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *time_macros*::
     Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
@@ -863,7 +863,7 @@ things to make it work properly:
 
 * You must set *sloppiness* to *pch_defines,time_macros*. The reason is that
   ccache can't tell whether *\_\_TIME\__* or *\_\_DATE__* is used when using a
-  precompiled header. Further, it can't detect changes in #defines in the
+  precompiled header. Further, it can't detect changes in **#define**s in the
   source code because of how preprocessing works in combination with
   precompiled headers.
 * You must either:
