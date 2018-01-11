@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -50,8 +50,7 @@ init_log(void)
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
 #ifndef _WIN32
-		int fd = fileno(logfile);
-                set_cloexec_flag(fd);
+		set_cloexec_flag(fileno(logfile));
 #endif
 		return true;
 	} else {
@@ -1662,7 +1661,7 @@ subst_env_in_string(const char *str, char **errmsg)
 }
 
 void
-set_cloexec_flag (int fd)
+set_cloexec_flag(int fd)
 {
 #ifndef _WIN32
 	int flags = fcntl(fd, F_GETFD, 0);
@@ -1671,4 +1670,3 @@ set_cloexec_flag (int fd)
 	}
 #endif
 }
-
