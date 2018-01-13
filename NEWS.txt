@@ -22,7 +22,7 @@ New features and improvements
 
 ccache 3.3.5
 ------------
-Not yet released
+Release date: 2018-01-13
 
 
 New features and improvements
