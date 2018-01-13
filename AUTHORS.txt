@@ -6,13 +6,15 @@ maintained by Joel Rosdahl.
 
 ccache is a collective work with contributions from many people, including:
 
+* Alexey Tourbin <alexey.tourbin@gmail.com>
 * Alfred Landrum <alfred.landrum@riverbed.com>
-* Anders Björklund <anders@psqr.se>
+* Anders F Björklund <anders.f.bjorklund@gmail.com>
 * Andrea Bittau <a.bittau@cs.ucl.ac.uk>
+* Andreas Huber <andreas.huber@deltaww.com>
+* André Klitzing <aklitzing@gmail.com>
 * Andrew P Boie <andrew.p.boie@intel.com>
 * Andrew Stubbs <ams@codesourcery.com>
 * Andrew Tridgell <tridge@samba.org>
-* André Klitzing <aklitzing@gmail.com>
 * Bernhard Bauer <bauerb@chromium.org>
 * Björn Jacke <bj@sernet.de>
 * Bo Rydberg <bolry@hotmail.com>
@@ -20,8 +22,10 @@ ccache is a collective work with contributions from many people, including:
 * Chris AtLee <chris@atlee.ca>
 * Clemens Rabe <clemens.rabe@gmail.com>
 * David Givone <david@givone.net>
+* Edward Z. Yang <ezyang@fb.com>
 * Eric Blau <Eric.Blau@tekelec.com>
 * Francois Marier <francois@debian.org>
+* Geert Bosch <geert@mongodb.com>
 * Hongli Lai <hongli@phusion.nl>
 * Ivan Vaigult <i.vaigult@gmail.com>
 * Jiang Jiang <jiangj@opera.com>
@@ -29,8 +33,8 @@ ccache is a collective work with contributions from many people, including:
 * John Basila <jbasila@checkpoint.com>
 * John Coiner <john.coiner@amd.com>
 * Jon Bernard <jbernard@tuxion.com>
-* Justin Lebar <justin.lebar@gmail.com>
 * Jørgen P. Tjernø <jorgen@valvesoftware.com>
+* Justin Lebar <justin.lebar@gmail.com>
 * Karl Chen <quarl@cs.berkeley.edu>
 * KonaBlend <kona8lend@gmail.com>
 * Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
@@ -50,6 +54,8 @@ ccache is a collective work with contributions from many people, including:
 * Neil Mushell <nmushell@bloomberg.net>
 * Nick Schultz <nick.schultz@intel.com>
 * Norbert Lange <nolange79@gmail.com>
+* Oded Shimon <oded@istraresearch.com>
+* orbitcowboy <ettl.martin78@gmail.com>
 * Orgad Shaneh <orgad.shaneh@audiocodes.com>
 * Orion Poplawski <orion@cora.nwra.com>
 * Owen Mann <owen@mann.org>
@@ -57,13 +63,14 @@ ccache is a collective work with contributions from many people, including:
 * Paul Griffith <paulg@cse.yorku.ca>
 * Pavel Boldin <pboldin@cloudlinux.com>
 * Philippe Proulx <eeppeliteloop@gmail.com>
-* RW <fbsd06@mlists.homeunix.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
 * Rolf Bjarne Kvinge <rolf@xamarin.com>
+* RW <fbsd06@mlists.homeunix.com>
 * Ryan Brown <ryb@ableton.com>
 * Tim Potter <tpot@samba.org>
-* Tor Arne Vestbø <torarnv@gmail.com>
+* Tom Hughes <tomtheengineer@gmail.com>
+* Tor Arne Vestbø <tor.arne.vestbo@qt.io>
 * Vadim Petrochenkov <vadim.petrochenkov@gmail.com>
 * Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
