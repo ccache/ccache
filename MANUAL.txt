@@ -559,7 +559,7 @@ no limit on the number of files. You can set different limits using the
 to see the cache size and the currently configured limits (in addition to other
 various statistics).
 
-Cleanup can be happen in two different ways: automatic and manual.
+Cleanup can be triggered in two different ways: automatic and manual.
 
 
 Automatic cleanup
@@ -579,12 +579,12 @@ greater than *max_files / 16*, automatic cleanup is triggered.
 When automatic cleanup is triggered for a subdirectory in the cache, ccache
 will:
 
-1. Scan the subdirectory and update the size and file number counters to match
-   the actually found files.
+1. Count all files in the subdirectory and compute their aggregated size.
 2. Remove files in LRU (least recently used) order until the size is at most
    *limit_multiple * max_size / 16* and the number of files is at most
    *limit_multiple * max_files / 16*, where *limit_multiple*, *max_size* and
    *max_files* are configuration settings.
+3. Set the size and file number counters to match the files that were kept.
 
 The reason for removing more files than just those needed to not exceed the max
 limits is that a cleanup is a fairly slow operation, so it would not be a good
