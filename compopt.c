@@ -30,6 +30,7 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
+	{"--compiler-bindir", TAKES_ARG | TAKES_PATH},
 	{"--param",         TAKES_ARG},
 	{"--save-temps",    TOO_HARD},
 	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
@@ -56,6 +57,7 @@ static const struct compopt compopts[] = {
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
+	{"-ccbin",          TAKES_ARG | TAKES_PATH},
 	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
 	{"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
