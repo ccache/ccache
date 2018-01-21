@@ -1839,11 +1839,12 @@ EOF
 
     find $CCACHE_DIR -name '*.d' -delete
 
+    # Missing file -> consider the cached result broken.
     $CCACHE_COMPILE -c -MD test.c
     expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_stat 'cache file missing' 1
 
     # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"

@@ -97,13 +97,13 @@ static char *output_dep;
 static char *output_cov;
 
 // The path to the stack usage (implicit when using -fstack-usage).
-static char *output_su = NULL;
+static char *output_su;
 
 // Diagnostic generation information (clang). Contains pathname if not NULL.
-static char *output_dia = NULL;
+static char *output_dia;
 
-// Split dwarf information (GCC 4.8 andup). Contains pathname if not NULL.
-static char *output_dwo = NULL;
+// Split dwarf information (GCC 4.8 and up). Contains pathname if not NULL.
+static char *output_dwo;
 
 // Array for storing -arch options.
 #define MAX_ARCH_ARGS 10
@@ -144,10 +144,6 @@ static char *cached_dia;
 // Contains NULL if -gsplit-dwarf is not given.
 static char *cached_dwo;
 
-// using_split_dwarf is true if "-gsplit-dwarf" is given to the compiler (GCC
-// 4.8 and up).
-bool using_split_dwarf = false;
-
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
 static char *manifest_path;
@@ -180,6 +176,14 @@ static bool generating_coverage;
 
 // Is the compiler being asked to output stack usage?
 static bool generating_stackusage;
+
+// Us the compiler being asked to generate diagnostics
+// (--serialize-diagnostics)?
+static bool generating_diagnostics;
+
+// Is the compiler being asked to separate dwarf debug info into a separate
+// file (-gsplit-dwarf)"?
+static bool using_split_dwarf;
 
 // Relocating debuginfo in the format old=new.
 static char **debug_prefix_maps = NULL;
@@ -1100,8 +1104,7 @@ get_file_from_cache(const char *source, const char *dest)
 
 	if (ret == -1) {
 		if (errno == ENOENT || errno == ESTALE) {
-			// Someone removed the file just before we began copying?
-			cc_log("Cache file %s just disappeared from cache", source);
+			cc_log("File missing in cache: %s", source);
 			stats_update(STATS_MISSING);
 		} else {
 			cc_log("Failed to %s %s to %s: %s",
@@ -1117,8 +1120,10 @@ get_file_from_cache(const char *source, const char *dest)
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
 		x_unlink(cached_dep);
+		x_unlink(cached_cov);
 		x_unlink(cached_su);
 		x_unlink(cached_dia);
+		x_unlink(cached_dwo);
 
 		failed();
 	}
@@ -1172,50 +1177,10 @@ to_cache(struct args *args)
 	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
-	char *tmp_cov;
-	if (generating_coverage) {
-		char *tmp_aux;
-		// GCC has some funny rule about max extension length.
-		if (strlen(get_extension(output_obj)) < 6) {
-			tmp_aux = remove_extension(output_obj);
-		} else {
-			tmp_aux = x_strdup(output_obj);
-		}
-		tmp_cov = format("%s.gcno", tmp_aux);
-		free(tmp_aux);
-	} else {
-		tmp_cov = NULL;
-	}
-
-	char *tmp_su;
-	if (generating_stackusage) {
-		char *tmp_aux;
-		// GCC has some funny rule about max extension length.
-		if (strlen(get_extension(output_obj)) < 6) {
-			tmp_aux = remove_extension(output_obj);
-		} else {
-			tmp_aux = x_strdup(output_obj);
-		}
-		tmp_su = format("%s.su", tmp_aux);
-		free(tmp_aux);
-	} else {
-		tmp_su = NULL;
-	}
-
-	// GCC (at least 4.8 and 4.9) forms the .dwo file name by removing everything
-	// after (and including) the last "." from the object file name and then
-	// appending ".dwo".
-	char *tmp_dwo = NULL;
-	if (using_split_dwarf) {
-		char *base_name = remove_extension(output_obj);
-		tmp_dwo = format("%s.dwo", base_name);
-		free(base_name);
-	}
-
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
-	if (output_dia) {
+	if (generating_diagnostics) {
 		args_add(args, "--serialize-diagnostics");
 		args_add(args, output_dia);
 	}
@@ -1243,15 +1208,6 @@ to_cache(struct args *args)
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
 		failed();
 	}
 
@@ -1262,15 +1218,6 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1328,16 +1275,6 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
-
 		failed();
 	}
 
@@ -1350,19 +1287,6 @@ to_cache(struct args *args)
 		cc_log("Compiler produced an empty object file");
 		stats_update(STATS_EMPTYOUTPUT);
 		failed();
-	}
-
-	if (using_split_dwarf && tmp_dwo) {
-		if (stat(tmp_dwo, &st) != 0) {
-			cc_log("Compiler didn't produce a split dwarf file");
-			stats_update(STATS_NOOUTPUT);
-			failed();
-		}
-		if (st.st_size == 0) {
-			cc_log("Compiler produced an empty split dwarf file");
-			stats_update(STATS_EMPTYOUTPUT);
-			failed();
-		}
 	}
 
 	if (x_stat(tmp_stderr, &st) != 0) {
@@ -1379,65 +1303,22 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (generating_coverage && tmp_cov) {
-		// GCC won't generate notes if there is no code.
-		if (stat(tmp_cov, &st) != 0 && errno == ENOENT) {
-			FILE *f = fopen(tmp_cov, "wb");
-			cc_log("Creating placeholder: %s", tmp_cov);
-			if (!f) {
-				cc_log("Failed to create %s: %s", tmp_cov, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			fclose(f);
-			move_file_to_cache_same_fs(tmp_cov, cached_cov);
-		} else {
-			copy_file_to_cache(tmp_cov, cached_cov);
-		}
-	}
-
-	if (generating_stackusage && tmp_su) {
-		// GCC won't generate notes if there is no code.
-		if (stat(tmp_su, &st) != 0 && errno == ENOENT) {
-			FILE *f = fopen(cached_su, "wb");
-			cc_log("Creating placeholder: %s", cached_su);
-			if (!f) {
-				cc_log("Failed to create %s: %s", cached_su, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			fclose(f);
-			stats_update_size(0, 1);
-		} else {
-			copy_file_to_cache(tmp_su, cached_su);
-		}
-	}
-
-	if (output_dia) {
-		if (x_stat(output_dia, &st) != 0) {
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		if (st.st_size > 0) {
-			copy_file_to_cache(output_dia, cached_dia);
-		}
-	}
-
 	copy_file_to_cache(output_obj, cached_obj);
-
-	if (using_split_dwarf) {
-		assert(tmp_dwo);
-		assert(cached_dwo);
-		copy_file_to_cache(tmp_dwo, cached_dwo);
-	}
-
 	if (generating_dependencies) {
 		use_relative_paths_in_depfile(output_dep);
 		copy_file_to_cache(output_dep, cached_dep);
 	}
-
-	if (output_su) {
+	if (generating_coverage) {
+		copy_file_to_cache(output_cov, cached_cov);
+	}
+	if (generating_stackusage) {
 		copy_file_to_cache(output_su, cached_su);
+	}
+	if (generating_diagnostics) {
+		copy_file_to_cache(output_dia, cached_dia);
+	}
+	if (using_split_dwarf) {
+		copy_file_to_cache(output_dwo, cached_dwo);
 	}
 
 	stats_update(STATS_TOCACHE);
@@ -1470,9 +1351,6 @@ to_cache(struct args *args)
 
 	free(tmp_stderr);
 	free(tmp_stdout);
-	free(tmp_cov);
-	free(tmp_su);
-	free(tmp_dwo);
 }
 
 // Find the object file name by running the compiler in preprocessor mode.
@@ -1594,12 +1472,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_cov = get_path_in_cache(object_name, ".gcno");
 	cached_su = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
-
-	if (using_split_dwarf) {
-		cached_dwo = get_path_in_cache(object_name, ".dwo");
-	} else {
-		cached_dwo = NULL;
-	}
+	cached_dwo = get_path_in_cache(object_name, ".dwo");
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -2004,74 +1877,40 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
+	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
+	// meta-data with no content. Catch an easy case of this.
 	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
 		return;
 	}
-
-	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
-	// meta-data with no content. Catch an easy case of this.
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
 		x_unlink(cached_obj);
 		return;
 	}
 
-	if (using_split_dwarf && !generating_dependencies) {
-		assert(output_dwo);
-	}
-	if (output_dwo) {
-		assert(cached_dwo);
-		if (stat(cached_dwo, &st) != 0) {
-			cc_log("Split dwarf file %s not in cache", cached_dwo);
-			return;
-		}
-		if (st.st_size == 0) {
-			cc_log("Invalid (empty) dwo file %s in cache", cached_dwo);
-			x_unlink(cached_dwo);
-			x_unlink(cached_obj); // To really invalidate.
-			return;
-		}
-	}
-
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
 	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
-	// If the dependency file should be in the cache, check that it is.
-	if (produce_dep_file && stat(cached_dep, &st) != 0) {
-		cc_log("Dependency file %s missing in cache", cached_dep);
-		return;
-	}
-
-	// Check if the diagnostic file is there.
-	if (output_dia && stat(cached_dia, &st) != 0) {
-		cc_log("Diagnostic file %s not in cache", cached_dia);
-		return;
-	}
-
-	// Copy object file from cache. Do so also for FissionDwarf file, cached_dwo,
-	// when -gsplit-dwarf is specified.
+	// Get result from cache.
 	if (!str_eq(output_obj, "/dev/null")) {
 		get_file_from_cache(cached_obj, output_obj);
 		if (using_split_dwarf) {
-			assert(output_dwo);
 			get_file_from_cache(cached_dwo, output_dwo);
 		}
 	}
 	if (produce_dep_file) {
 		get_file_from_cache(cached_dep, output_dep);
 	}
-	if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
-		// The compiler won't generate notes if there is no code
+	if (generating_coverage) {
 		get_file_from_cache(cached_cov, output_cov);
 	}
-	if (generating_stackusage && stat(cached_su, &st) == 0 && st.st_size > 0) {
-		// The compiler won't generate notes if there is no code
+	if (generating_stackusage) {
 		get_file_from_cache(cached_su, output_su);
 	}
-	if (output_dia) {
+	if (generating_diagnostics) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
 
@@ -2088,7 +1927,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_stackusage) {
 		update_mtime(cached_su);
 	}
-	if (output_dia) {
+	if (generating_diagnostics) {
 		update_mtime(cached_dia);
 	}
 	if (cached_dwo) {
@@ -2661,6 +2500,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
+			generating_diagnostics = true;
 			output_dia = make_relative_path(x_strdup(argv[i+1]));
 			i++;
 			continue;
@@ -3244,19 +3084,19 @@ cc_reset(void)
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
-	free(output_dwo); output_dwo = NULL;
 	free(output_dep); output_dep = NULL;
 	free(output_cov); output_cov = NULL;
 	free(output_su); output_su = NULL;
 	free(output_dia); output_dia = NULL;
+	free(output_dwo); output_dwo = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
-	free(cached_obj); cached_obj = NULL;
-	free(cached_dwo); cached_dwo = NULL;
 	free(cached_stderr); cached_stderr = NULL;
+	free(cached_obj); cached_obj = NULL;
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
 	free(cached_su); cached_su = NULL;
 	free(cached_dia); cached_dia = NULL;
+	free(cached_dwo); cached_dwo = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
@@ -3364,18 +3204,9 @@ ccache(int argc, char *argv[])
 	if (generating_stackusage) {
 		cc_log("Stack usage file: %s", output_su);
 	}
-	if (output_dia) {
-		cc_log("Diagnostic file: %s", output_dia);
+	if (generating_diagnostics) {
+		cc_log("Diagnostics file: %s", output_dia);
 	}
-
-	if (using_split_dwarf) {
-		if (!generating_dependencies) {
-			assert(output_dwo);
-		}
-	} else {
-		assert(!output_dwo);
-	}
-
 	if (output_dwo) {
 		cc_log("Split dwarf file: %s", output_dwo);
 	}
