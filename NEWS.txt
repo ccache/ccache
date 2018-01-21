@@ -20,6 +20,13 @@ New features and improvements
 - The optional unifier is no longer disabled when the direct mode is enabled.
 
 
+Bug fixes
+~~~~~~~~~
+
+- File size and number counters are now updated correctly when files are
+  overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
+
+
 ccache 3.3.5
 ------------
 Release date: 2018-01-13

@@ -1004,41 +1004,85 @@ out:
 	free(tmp_file);
 }
 
-// Copy or link a file to the cache.
+// Helper method for copy_file_to_cache and move_file_to_cache_same_fs.
 static void
-put_file_in_cache(const char *source, const char *dest)
+do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 {
 	assert(!conf->read_only);
 	assert(!conf->read_only_direct);
 
-	bool do_link = conf->hard_link && !conf->compression;
-	if (do_link) {
-		x_unlink(dest);
-		int ret = link(source, dest);
-		if (ret != 0) {
-			cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
-			cc_log("Falling back to copying");
-			do_link = false;
+	struct stat orig_dest_st;
+	bool orig_dest_existed = stat(dest, &orig_dest_st) == 0;
+	int compression_level = conf->compression ? conf->compression_level : 0;
+	bool do_move = !copy && !conf->compression;
+	bool do_link = copy && conf->hard_link && !conf->compression;
+
+	if (do_move) {
+		move_uncompressed_file(source, dest, compression_level);
+	} else {
+		if (do_link) {
+			x_unlink(dest);
+			int ret = link(source, dest);
+			if (ret == 0) {
+			} else {
+				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
+				cc_log("Falling back to copying");
+				do_link = false;
+			}
 		}
-	}
-	if (!do_link) {
-		int ret = copy_file(
-		  source, dest, conf->compression ? conf->compression_level : 0);
-		if (ret != 0) {
-			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
+		if (!do_link) {
+			int ret = copy_file(source, dest, compression_level);
+			if (ret != 0) {
+				cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
 		}
 	}
 
-	cc_log("Stored in cache: %s -> %s", source, dest);
+	if (!copy && conf->compression) {
+		// We fell back to copying since dest should be compressed, so clean up.
+		x_unlink(source);
+	}
+
+	cc_log("Stored in cache: %s -> %s (%s)",
+	       source,
+	       dest,
+	       do_move ? "moved" : (do_link ? "linked" : "copied"));
 
 	struct stat st;
 	if (x_stat(dest, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
-	stats_update_size(file_size(&st), 1);
+	stats_update_size(
+		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
+		orig_dest_existed ? 0 : 1);
+}
+
+// Copy a file into the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source does not
+// have to be on the same file system as dest.
+//
+// An attempt will be made to hard link source to dest if conf->hard_link is
+// true and conf->compression is false, otherwise copy. dest will be compressed
+// if conf->compression is true.
+static void
+copy_file_to_cache(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, true);
+}
+
+// Move a file into the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source must be on
+// the same file system as dest. dest will be compressed if conf->compression
+// is true.
+static void
+move_file_to_cache_same_fs(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, false);
 }
 
 // Copy or link a file from the cache.
@@ -1326,20 +1370,7 @@ to_cache(struct args *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		if (move_uncompressed_file(
-		      tmp_stderr, cached_stderr,
-		      conf->compression ? conf->compression_level : 0) != 0) {
-			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
-			       strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		cc_log("Stored in cache: %s", cached_stderr);
-		if (!conf->compression
-		    // If the file was compressed, obtain the size again:
-		    || x_stat(cached_stderr, &st) == 0) {
-			stats_update_size(file_size(&st), 1);
-		}
+		move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
@@ -1351,17 +1382,17 @@ to_cache(struct args *args)
 	if (generating_coverage && tmp_cov) {
 		// GCC won't generate notes if there is no code.
 		if (stat(tmp_cov, &st) != 0 && errno == ENOENT) {
-			FILE *f = fopen(cached_cov, "wb");
-			cc_log("Creating placeholder: %s", cached_cov);
+			FILE *f = fopen(tmp_cov, "wb");
+			cc_log("Creating placeholder: %s", tmp_cov);
 			if (!f) {
-				cc_log("Failed to create %s: %s", cached_cov, strerror(errno));
+				cc_log("Failed to create %s: %s", tmp_cov, strerror(errno));
 				stats_update(STATS_ERROR);
 				failed();
 			}
 			fclose(f);
-			stats_update_size(0, 1);
+			move_file_to_cache_same_fs(tmp_cov, cached_cov);
 		} else {
-			put_file_in_cache(tmp_cov, cached_cov);
+			copy_file_to_cache(tmp_cov, cached_cov);
 		}
 	}
 
@@ -1378,7 +1409,7 @@ to_cache(struct args *args)
 			fclose(f);
 			stats_update_size(0, 1);
 		} else {
-			put_file_in_cache(tmp_su, cached_su);
+			copy_file_to_cache(tmp_su, cached_su);
 		}
 	}
 
@@ -1388,25 +1419,25 @@ to_cache(struct args *args)
 			failed();
 		}
 		if (st.st_size > 0) {
-			put_file_in_cache(output_dia, cached_dia);
+			copy_file_to_cache(output_dia, cached_dia);
 		}
 	}
 
-	put_file_in_cache(output_obj, cached_obj);
+	copy_file_to_cache(output_obj, cached_obj);
 
 	if (using_split_dwarf) {
 		assert(tmp_dwo);
 		assert(cached_dwo);
-		put_file_in_cache(tmp_dwo, cached_dwo);
+		copy_file_to_cache(tmp_dwo, cached_dwo);
 	}
 
 	if (generating_dependencies) {
 		use_relative_paths_in_depfile(output_dep);
-		put_file_in_cache(output_dep, cached_dep);
+		copy_file_to_cache(output_dep, cached_dep);
 	}
 
 	if (output_su) {
-		put_file_in_cache(output_su, cached_su);
+		copy_file_to_cache(output_su, cached_su);
 	}
 
 	stats_update(STATS_TOCACHE);
