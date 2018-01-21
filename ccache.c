@@ -884,11 +884,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 			p = q; // Everything of interest between p and q has been hashed now.
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
-			// An assembler .incbin statement (which could be part of inline
-			// assembly) refers to an external file. If the file changes, the hash
-			// should change as well, but finding out what file to hash is too hard
-			// for ccache, so just bail out.
-			cc_log("Found unsupported .incbin directive in source code");
+			// An assembler .inc bin (without the space) statement, which could be
+			// part of inline assembly, refers to an external file. If the file
+			// changes, the hash should change as well, but finding out what file to
+			// hash is too hard for ccache, so just bail out.
+			cc_log("Found unsupported .inc" "bin directive in source code");
 			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
 			failed();
 		} else if (pump && strncmp(q, "_________", 9) == 0) {

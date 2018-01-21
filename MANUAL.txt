@@ -242,11 +242,13 @@ setting key.
     rewrites absolute paths into relative paths before computing the hash that
     identifies the compilation, but only for paths under the specified
     directory. If set to the empty string (which is the default), no rewriting
-    is done. See also the discussion under
-    <<_compiling_in_different_directories,COMPILING IN DIFFERENT DIRECTORIES>>.
-    If using GCC or newer versions of Clang, you might want to look into the
-    *-fdebug-prefix-map=old=new* option for relocating debug info to a common
-    prefix (mapping prefix with old=new).
+    is done. A typical path to use as the base directory is your home directory
+    or another directory that is a parent of your build directories. Don't use
+    +/+ as the base directory since that will make ccache also rewrite paths to
+    system header files, which doesn't gain anything.
++
+See also the discussion under <<_compiling_in_different_directories,COMPILING
+IN DIFFERENT DIRECTORIES>>.
 
 *cache_dir* (*CCACHE_DIR*)::
 
@@ -381,6 +383,8 @@ WRAPPERS>>.
     when generating debug info (compiler option *-g* with variations).
     Exception: The CWD will not be included in the hash if *base_dir* is set
     (and matches the CWD) and the compiler option *-fdebug-prefix-map* is used.
+    See also the discussion under
+    <<_compiling_in_different_directories,COMPILING IN DIFFERENT DIRECTORIES>>.
 +
 The reason for including the CWD in the hash by default is to prevent a problem
 with the storage of the current working directory in the debug info of an
@@ -820,14 +824,14 @@ the cache.
 Compiling in different directories
 ----------------------------------
 
-Some information included in the hash that identifies a unique compilation may
+Some information included in the hash that identifies a unique compilation can
 contain absolute paths:
 
 * The preprocessed source code may contain absolute paths to include files if
   the compiler option *-g* is used or if absolute paths are given to *-I* and
   similar compiler options.
-* Paths specified by compiler options (such as *-I*, *-MF*, etc) may be
-  absolute.
+* Paths specified by compiler options (such as *-I*, *-MF*, etc) on the command
+  line may be absolute.
 * The source code file path may be absolute, and that path may substituted for
   *\_\_FILE__* macros in the source code or included in warnings emitted to
   standard error by the preprocessor.
@@ -835,24 +839,24 @@ contain absolute paths:
 This means that if you compile the same code in different locations, you can't
 share compilation results between the different build directories since you get
 cache misses because of the absolute build directory paths that are part of the
-hash. To mitigate this problem, you can specify a ``base directory'' in the
-configuration setting *base_dir* to an absolute path to the directory. ccache
-will then rewrite absolute paths that are under the base directory (i.e., paths
-that have the base directory as a prefix) to relative paths when constructing
-the hash. A typical path to use as the base directory is your home directory or
-another directory that is a parent of your build directories. (Don't use +/+ as
-the base directory since that will make ccache also rewrite paths to system
-header files, which doesn't gain anything.)
+hash.
 
-The drawbacks of using a base directory are:
+Here's what can be done to enable cache hits between different build
+directories:
 
-* If you specify an absolute path to the source code file, *\_\_FILE__* macros
-  will be expanded to a relative path instead.
-* If you specify an absolute path to the source code file and compile with
-  *-g*, the source code path stored in the object file may point to the wrong
-  directory, which may prevent debuggers like GDB from finding the source code.
-  Sometimes, a work-around is to change the directory explicitly with the
-  ``cd'' command in GDB.
+* If you build with *-g* (or similar) to add debug information to the object
+  file, you must either:
++
+--
+** use the *-fdebug-prefix-map=_old_=_new_* option for relocating debug info to
+   a common prefix (e.g. *-fdebug-prefix-map=$PWD=.*); or
+** set *hash_dir = false*.
+--
+* If you use absolute paths anywhere on the command line (e.g. the source code
+  file path or an argument to compiler options like *-I* and *-MF*), you must
+  to set *base_dir* to an absolute path to a ``base directory''. ccache will
+  then rewrite absolute paths under that directory to relative before computing
+  the hash.
 
 
 Precompiled headers
