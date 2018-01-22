@@ -46,6 +46,25 @@ test_failed() {
     exit 1
 }
 
+find_compiler() {
+    local name=$1
+    perl -e '
+        use File::Basename;
+        my $cc = $ARGV[0];
+        $cc = basename($cc) if readlink($cc) =~ "ccache";
+        if ($cc =~ m!^/!) {
+            print $cc;
+            exit;
+        }
+        foreach my $dir (split(/:/, $ENV{PATH})) {
+            $path = "$dir/$cc";
+            if (-x $path && readlink($path) !~ "ccache") {
+                print $path;
+                exit;
+            }
+        }' $name
+}
+
 generate_code() {
     local nlines=$1
     local outfile=$2
@@ -143,7 +162,6 @@ run_suite() {
     local suite_name=$1
 
     CURRENT_SUITE=$suite_name
-    UNCACHED_COMPILE=uncached_compile
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
@@ -163,12 +181,6 @@ run_suite() {
     printf "Running test suite %s" "$(bold $suite_name)"
     SUITE_$suite_name
     echo
-}
-
-uncached_compile() {
-    # $COMPILER could be a masquerading system ccache, so make sure it's
-    # disabled:
-    CCACHE_DISABLE=1 $COMPILER "$@"
 }
 
 TEST() {
@@ -216,7 +228,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -242,7 +254,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c -g
+    $REAL_COMPILER -c -o reference_test1.o test1.c -g
     expect_equal_object_files reference_test1.o reference_test1.o
 
     # -------------------------------------------------------------------------
@@ -256,7 +268,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o foo.o
 
     # -------------------------------------------------------------------------
@@ -344,7 +356,7 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_COMMENTS"
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
 
     mv test1.c test1-saved.c
     echo '// initial comment' >test1.c
@@ -359,7 +371,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -380,7 +392,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     expect_stat 'files in cache' 1
@@ -461,7 +473,7 @@ base_tests() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
@@ -590,7 +602,7 @@ b"
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $UNCACHED_COMPILE -c test1.c -E >test1.i
+    $REAL_COMPILER -c test1.c -E >test1.i
     $CCACHE_COMPILE -c test1.i
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
@@ -1035,7 +1047,7 @@ EOF
     ln -s d1/d2 d3
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
-    $UNCACHED_COMPILE c.o -o c
+    $REAL_COMPILER c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -1056,7 +1068,7 @@ EOF
     ln -s d/c.c c.c
 
     CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/c.c
-    $UNCACHED_COMPILE c.o -o c
+    $REAL_COMPILER c.o -o c
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
@@ -1166,7 +1178,7 @@ SUITE_multi_arch() {
 
 SUITE_serialize_diagnostics_PROBE() {
     touch test.c
-    if ! $UNCACHED_COMPILE -c --serialize-diagnostics \
+    if ! $REAL_COMPILER -c --serialize-diagnostics \
          test1.dia test.c 2>/dev/null; then
         echo "--serialize-diagnostics not supported by compiler"
     fi
@@ -1180,7 +1192,7 @@ SUITE_serialize_diagnostics() {
     # -------------------------------------------------------------------------
     TEST "Compile OK"
 
-    $UNCACHED_COMPILE -c --serialize-diagnostics expected.dia test1.c
+    $REAL_COMPILER -c --serialize-diagnostics expected.dia test1.c
 
     $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1200,7 +1212,7 @@ SUITE_serialize_diagnostics() {
     TEST "Compile failed"
 
     echo "bad source" >error.c
-    if $UNCACHED_COMPILE -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
+    if $REAL_COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then
         test_failed "Expected an error compiling error.c"
     fi
 
@@ -1346,7 +1358,7 @@ SUITE_masquerading() {
     # -------------------------------------------------------------------------
     TEST "Masquerading via symlink"
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1376,7 +1388,7 @@ SUITE_hardlink() {
 
     generate_code 1 test1.c
 
-    $UNCACHED_COMPILE -c -o reference_test1.o test1.c
+    $REAL_COMPILER -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -1418,8 +1430,8 @@ int test3;
 EOF
     backdate test1.h test2.h test3.h
 
-    $UNCACHED_COMPILE -c -Wp,-MD,expected.d test.c
-    $UNCACHED_COMPILE -c -Wp,-MMD,expected_mmd.d test.c
+    $REAL_COMPILER -c -Wp,-MD,expected.d test.c
+    $REAL_COMPILER -c -Wp,-MMD,expected_mmd.d test.c
     rm test.o
 }
 
@@ -1427,7 +1439,7 @@ SUITE_direct() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $UNCACHED_COMPILE -c -o reference_test.o test.c
+    $REAL_COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 0
@@ -1581,7 +1593,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected.d
 
-    $UNCACHED_COMPILE -c -Wp,-MD,other.d test.c -o reference_test.o
+    $REAL_COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -1608,7 +1620,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected_mmd.d
 
-    $UNCACHED_COMPILE -c -Wp,-MMD,other.d test.c -o reference_test.o
+    $REAL_COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -1695,7 +1707,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
 
-    $UNCACHED_COMPILE -c -MD test.c -o reference_test.o
+    $REAL_COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -1758,7 +1770,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
-    $UNCACHED_COMPILE -c -MD test.c -o reference_test.o
+    $REAL_COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -1796,7 +1808,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_equal_files other.d expected.d
-    $UNCACHED_COMPILE -c -MD -MF other.d test.c -o reference_test.o
+    $REAL_COMPILER -c -MD -MF other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
     rm -f other.d
@@ -2844,7 +2856,7 @@ SUITE_cleanup() {
 
 SUITE_pch_PROBE() {
     touch pch.h
-    if ! $UNCACHED_COMPILE $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
+    if ! $REAL_COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
         echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
     fi
@@ -2946,7 +2958,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, #include"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2961,7 +2973,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2975,7 +2987,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -2992,7 +3004,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, no sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -3005,7 +3017,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -3022,7 +3034,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, #include, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -3052,7 +3064,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -3069,7 +3081,7 @@ pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
     rm pch.h
 
@@ -3170,7 +3182,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    $UNCACHED_COMPILE $SYSROOT -c -include pch2.h pch2.c
+    $REAL_COMPILER $SYSROOT -c -include pch2.h pch2.c
     if [ ! -f pch2.o ]; then
         test_failed "pch.o missing"
     fi
@@ -3183,7 +3195,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c 2>/dev/null
@@ -3196,7 +3208,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -3212,7 +3224,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .gch, -fpch-preprocess, -include, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3236,7 +3248,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3252,7 +3264,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .gch, preprocessor mode, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
@@ -3293,7 +3305,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pth, no -fpch-preprocess, -include, no sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -3306,7 +3318,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pth, no -fpch-preprocess, -include, sloppiness"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
@@ -3322,7 +3334,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pth, -fpch-preprocess, -include, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3346,7 +3358,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pth, preprocessor mode"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3362,7 +3374,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Use .pth, preprocessor mode, file changed"
 
-    $UNCACHED_COMPILE $SYSROOT -c pch.h -o pch.h.pth
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pth
     backdate pch.h.pth
 
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
@@ -3400,7 +3412,7 @@ SUITE_upgrade() {
 
 SUITE_input_charset_PROBE() {
     touch test.c
-    if ! $UNCACHED_COMPILE -c -finput-charset=latin1 test.c >/dev/null 2>&1; then
+    if ! $REAL_COMPILER -c -finput-charset=latin1 test.c >/dev/null 2>&1; then
         echo "compiler doesn't support -finput-charset"
     fi
 }
@@ -3553,11 +3565,11 @@ upgrade
 input_charset
 "
 
-compiler_location=$(which $(echo "$COMPILER" | awk '{print $1}'))
-if [ "$compiler_location" = "$COMPILER" ]; then
+REAL_COMPILER=$(find_compiler $COMPILER)
+if [ "$REAL_COMPILER" = "$COMPILER" ]; then
     echo "Compiler:         $COMPILER"
 else
-    echo "Compiler:         $COMPILER ($compiler_location)"
+    echo "Compiler:         $COMPILER ($REAL_COMPILER)"
 fi
 echo "Compiler version: $($COMPILER --version | head -n 1)"
 echo
