@@ -1535,6 +1535,9 @@ EOF
         if [ ! -f $dep_file ]; then
             test_failed "$dep_file missing"
         fi
+        if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
+            test_failed "$dep_file does not contain test$ext"
+        fi
     done
     expect_stat 'files in cache' 12
 
