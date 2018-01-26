@@ -36,6 +36,9 @@ if test -z "$AR"; then
     AC_MSG_ERROR(cannot find ar)
 fi
 
+# Prefer bash, needed for test.sh
+AC_PATH_TOOL(SH, bash, "/bin/sh")
+
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"; then
     CFLAGS="$CFLAGS -Wall -W"

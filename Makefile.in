@@ -10,6 +10,7 @@ sysconfdir = @sysconfdir@
 installcmd = @INSTALL@
 
 AR = @AR@
+SH = @SH@
 CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
@@ -101,7 +102,7 @@ perf: ccache$(EXEEXT)
 .PHONY: test
 test: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
-	CC='$(CC)' $(srcdir)/test.sh
+	CC='$(CC)' $(SH) $(srcdir)/test.sh
 
 .PHONY: quicktest
 quicktest: test/main$(EXEEXT)
@@ -125,7 +126,7 @@ distclean: clean
 .PHONY: installcheck
 installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
 	test/main$(EXEEXT)
-	CCACHE=$(bindir)/ccache CC='$(CC)' $(srcdir)/test.sh
+	CCACHE=$(bindir)/ccache CC='$(CC)' $(SH) $(srcdir)/test.sh
 
 .c.o:
 	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<

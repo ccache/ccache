@@ -7,6 +7,7 @@ Prerequisites
 To build ccache from the source repository, you need:
 
 - A C compiler (for instance GCC)
+- GNU Bourne Again SHell (bash) for tests.
 - [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the documentation.
 - [Autoconf](http://www.gnu.org/software/autoconf/)
 - [gperf](http://www.gnu.org/software/gperf/)
