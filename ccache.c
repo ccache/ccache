@@ -2092,6 +2092,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	bool found_color_diagnostics = false;
 
+	bool found_directives_only = false;
+	bool found_rewrite_includes = false;
+
 	int argc = expanded_args->argc;
 	char **argv = expanded_args->argv;
 	args_add(stripped_args, argv[0]);
@@ -2581,6 +2584,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
+		// GCC
+		if (str_eq(argv[i], "-fdirectives-only")) {
+			found_directives_only = true;
+			continue;
+		}
+		// Clang
+		if (str_eq(argv[i], "-frewrite-includes")) {
+			found_rewrite_includes = true;
+			continue;
+		}
+
 		// Options taking an argument that we may want to rewrite to relative paths
 		// to get better hit rate. A secondary effect is that paths in the standard
 		// error output produced by the compiler will be normalized.
@@ -2924,6 +2938,21 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	*compiler_args = args_copy(stripped_args);
 	if (conf->run_second_cpp) {
 		args_extend(*compiler_args, cpp_args);
+	} else if (found_directives_only || found_rewrite_includes) {
+		// Need to pass the macros and any other preprocessor directives again
+		args_extend(*compiler_args, cpp_args);
+		if (found_directives_only) {
+			args_add(cpp_args, "-fdirectives-only");
+			// The preprocessed source code still needs some more preprocessing
+			args_add(*compiler_args, "-fpreprocessed");
+			args_add(*compiler_args, "-fdirectives-only");
+		}
+		if (found_rewrite_includes) {
+			args_add(cpp_args, "-frewrite-includes");
+			// The preprocessed source code still needs some more preprocessing
+			args_add(*compiler_args, "-x");
+			args_add(*compiler_args, actual_language);
+		}
 	} else if (explicit_language) {
 		// Workaround for a bug in Apple's patched distcc -- it doesn't properly
 		// reset the language specified with -x, so if -x is given, we have to
