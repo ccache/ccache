@@ -3565,7 +3565,11 @@ upgrade
 input_charset
 "
 
-REAL_COMPILER=$(find_compiler $COMPILER)
+compiler_bin=$(echo $COMPILER | awk '{print $1}')
+compiler_args=$(echo $COMPILER | awk '{$1 = ""; print}')
+real_compiler_bin=$(find_compiler $compiler_bin)
+REAL_COMPILER="$real_compiler_bin$compiler_args"
+
 if [ "$REAL_COMPILER" = "$COMPILER" ]; then
     echo "Compiler:         $COMPILER"
 else
