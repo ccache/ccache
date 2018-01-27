@@ -3790,7 +3790,7 @@ SUITE_nvcc_ldir_SETUP() {
 }
 
 SUITE_nvcc_ldir() {
-    NVCC_OPTS_CUDA="-Wno-deprecated-gpu-targets -c"
+    NVCC_OPTS_CUDA="-Wno-deprecated-gpu-targets -c -ccbin $REAL_COMPILER"
     CCACHE_NVCC_CUDA="$CCACHE $REAL_NVCC $NVCC_OPTS_CUDA"
     CUOBJDUMP="$REAL_CUOBJDUMP -all -elf -symbols -ptx -sass"
     NVCC_DIR=$(dirname $REAL_NVCC)
