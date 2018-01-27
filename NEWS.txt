@@ -19,12 +19,19 @@ New features and improvements
 
 - The optional unifier is no longer disabled when the direct mode is enabled.
 
+- Added support for nvcc compiler options `--compiler-bindir/-ccbin`,
+  `--output-directory/-odir` and `--libdevice-directory/-ldir`.
+
 
 Bug fixes
 ~~~~~~~~~
 
 - File size and number counters are now updated correctly when files are
   overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
+
+- Force run_second_cpp for nvcc.
+
+- Fixed how the nvcc options `-optf` and `-odir` are handled.
 
 
 ccache 3.3.5
