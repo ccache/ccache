@@ -1,9 +1,9 @@
 #
 # Install CUDA.
 #
-# Version is given in CUDA variable. If left empty, this script does
-# nothing. As variables are exported by this script, "source" it
-# rather than executing it.
+# Version is given in the CUDA variable. If left empty, this script does
+# nothing. As variables are exported by this script, "source" it rather than
+# executing it.
 #
 
 if [ -n "$CUDA" ]; then

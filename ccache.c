@@ -2803,7 +2803,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	if (!conf->run_second_cpp && str_eq(actual_language, "cuda")) {
-		cc_log("Call cuda compiler with original input, not preprocessed input file.");
+		cc_log("Using CUDA compiler; not compiling preprocessed code");
 		conf->run_second_cpp = true;
 	}
 
