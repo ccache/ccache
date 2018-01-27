@@ -377,8 +377,8 @@ cd $TESTDIR || exit 1
 
 compiler_bin=$(echo $COMPILER | awk '{print $1}')
 compiler_args=$(echo $COMPILER | awk '{$1 = ""; print}')
-real_compiler_bin=$(find_compiler $compiler_bin)
-REAL_COMPILER="$real_compiler_bin$compiler_args"
+REAL_COMPILER_BIN=$(find_compiler $compiler_bin)
+REAL_COMPILER="$REAL_COMPILER_BIN$compiler_args"
 
 if [ "$REAL_COMPILER" = "$COMPILER" ]; then
     echo "Compiler:         $COMPILER"

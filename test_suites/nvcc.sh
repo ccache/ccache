@@ -195,17 +195,17 @@ nvcc_tests() {
     # -------------------------------------------------------------------------
     TEST "Option --compiler-bindir"
 
-    $REAL_NVCC $nvcc_opts_cpp --compiler-bindir $REAL_COMPILER \
+    $REAL_NVCC $nvcc_opts_cpp --compiler-bindir $REAL_COMPILER_BIN \
       -o reference_test1.o test_cpp.cu
 
     # First compile.
-    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER test_cpp.cu
+    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER_BIN test_cpp.cu
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     expect_equal_files reference_test1.o test_cpp.o
 
-    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER test_cpp.cu
+    $ccache_nvcc_cpp --compiler-bindir $REAL_COMPILER_BIN test_cpp.cu
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
@@ -214,17 +214,17 @@ nvcc_tests() {
     # -------------------------------------------------------------------------
     TEST "Option -ccbin"
 
-    $REAL_NVCC $nvcc_opts_cpp -ccbin $REAL_COMPILER \
+    $REAL_NVCC $nvcc_opts_cpp -ccbin $REAL_COMPILER_BIN \
       -o reference_test1.o test_cpp.cu
 
     # First compile.
-    $ccache_nvcc_cpp -ccbin $REAL_COMPILER test_cpp.cu
+    $ccache_nvcc_cpp -ccbin $REAL_COMPILER_BIN test_cpp.cu
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     expect_equal_files reference_test1.o test_cpp.o
 
-    $ccache_nvcc_cpp -ccbin $REAL_COMPILER test_cpp.cu
+    $ccache_nvcc_cpp -ccbin $REAL_COMPILER_BIN test_cpp.cu
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
