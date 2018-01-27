@@ -1,4 +1,3 @@
-
 SUITE_nvcc_direct_PROBE() {
     nvcc_PROBE
 }

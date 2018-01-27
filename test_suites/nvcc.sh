@@ -1,6 +1,3 @@
-
-
-
 nvcc_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"

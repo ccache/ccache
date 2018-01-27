@@ -1,4 +1,3 @@
-
 SUITE_nvcc_ldir_PROBE() {
     if [ -z "$REAL_NVCC" ]; then
         echo "nvcc is not available"

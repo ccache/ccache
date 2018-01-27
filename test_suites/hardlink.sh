@@ -1,4 +1,3 @@
-
 SUITE_hardlink_PROBE() {
     touch file1
     if ! ln file1 file2 >/dev/null 2>&1; then
