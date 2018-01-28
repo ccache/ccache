@@ -1069,8 +1069,8 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		failed();
 	}
 	stats_update_size(
-		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
-		orig_dest_existed ? 0 : 1);
+	  file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
+	  orig_dest_existed ? 0 : 1);
 }
 
 // Copy a file into the cache.
@@ -1433,7 +1433,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		}
 	} else {
 		hash_delimiter(hash, "cpp");
-		if (!process_preprocessed_file(hash, path_stdout, compiler_is_pump(args))) {
+		if (!process_preprocessed_file(hash, path_stdout,
+		                               compiler_is_pump(args))) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
@@ -2299,8 +2300,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
-				debug_prefix_maps,
-				(debug_prefix_maps_len + 1) * sizeof(char *));
+			  debug_prefix_maps,
+			  (debug_prefix_maps_len + 1) * sizeof(char *));
 			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -3143,14 +3144,13 @@ cc_reset(void)
 // Make a copy of stderr that will not be cached, so things like distcc can
 // send networking errors to it.
 static void
-setup_uncached_err(void)
+set_up_uncached_err(void)
 {
-	int uncached_fd = dup(2);
+	int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed: %s", strerror(errno));
 		failed();
 	}
-	// Leak the file descriptor.
 
 	// Leak a pointer to the environment.
 	char *buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
@@ -3193,7 +3193,7 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	setup_uncached_err();
+	set_up_uncached_err();
 
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
