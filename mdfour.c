@@ -1,5 +1,5 @@
 // Copyright (C) 1997-1998 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -162,7 +162,7 @@ void
 mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
 #ifdef CCACHE_DEBUG_HASH
-	if (getenv("CCACHE_DEBUG_HASH")) {
+	if (n > 0 && getenv("CCACHE_DEBUG_HASH")) {
 		FILE *f = fopen("ccache-debug-hash.bin", "a");
 		fwrite(in, 1, n, f);
 		fclose(f);
