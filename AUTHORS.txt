@@ -41,7 +41,7 @@ ccache is a collective work with contributions from many people, including:
 * Lalit Chhabra <lchhabra@linuxmail.org>
 * Lars Gustäbel <lars@gustaebel.de>
 * Leanid Chaika <leanid.chaika@gmail.com>
-* Luboš Luňák <l.lunak@suse.cz>
+* Luboš Luňák <l.lunak@centrum.cz>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Pool <mbp@sourcefrog.net>
 * Matthias Kretz <kretz@kde.org>

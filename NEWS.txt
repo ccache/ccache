@@ -36,7 +36,7 @@ Bug fixes
 
 ccache 3.3.6
 ------------
-Unreleased
+Release date: 2018-01-28
 
 New features and improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
