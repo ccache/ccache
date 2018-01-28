@@ -877,6 +877,38 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported code directive' 1
+
+    # -------------------------------------------------------------------------
+    TEST "UNCACHED_ERR_FD"
+
+    cat >compiler.sh <<'EOF'
+#!/bin/sh
+if [ "$1" = "-E" ]; then
+    echo preprocessed
+    printf ${N}Pu >&$UNCACHED_ERR_FD
+else
+    echo compiled >test1.o
+    printf ${N}Cc >&2
+    printf ${N}Cu >&$UNCACHED_ERR_FD
+fi
+EOF
+    chmod +x compiler.sh
+
+    N=1 $CCACHE ./compiler.sh -c test1.c 2>stderr.txt
+    stderr=$(cat stderr.txt)
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    if [ "$stderr" != "1Pu1Cu1Cc" ]; then
+        test_failed "Unexpected stderr: $stderr != 1Pu1Cu1Cc"
+    fi
+
+    N=2 $CCACHE ./compiler.sh -c test1.c 2>stderr.txt
+    stderr=$(cat stderr.txt)
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    if [ "$stderr" != "2Pu1Cc" ]; then
+        test_failed "Unexpected stderr: $stderr != 2Pu1Cc"
+    fi
 }
 
 # =============================================================================

@@ -34,6 +34,23 @@ Bug fixes
 - Fixed how the nvcc options `-optf` and `-odir` are handled.
 
 
+ccache 3.3.6
+------------
+Unreleased
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved instructions on how to get cache hits between different working
+  directories.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed regression in ccache 3.3.5 related to the `UNCACHED_ERR_FD` feature.
+
+
 ccache 3.3.5
 ------------
 Release date: 2018-01-13
