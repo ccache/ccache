@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # A simple test suite for ccache.
 #
@@ -364,7 +364,7 @@ nvcc_nocpp2
 "
 
 for suite in $all_suites; do
-    . test_suites/$suite.sh
+    . $(dirname $0)/suites/$suite.bash
 done
 
 # ---------------------------------------

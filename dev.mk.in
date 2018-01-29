@@ -46,12 +46,12 @@ headers = \
     mdfour.h \
     murmurhashneutral2.h \
     system.h \
-    test/framework.h \
-    test/suites.h \
-    test/util.h
+    unittest/framework.h \
+    unittest/suites.h \
+    unittest/util.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
-files_to_distclean += $(built_dist_files) version.c test/suites.h
+files_to_distclean += $(built_dist_files) version.c unittest/suites.h
 files_to_distclean += .deps version.c dev.mk
 
 source_dist_files = \
@@ -59,8 +59,8 @@ source_dist_files = \
     $(headers) \
     $(test_sources) \
     AUTHORS.txt \
+    CONTRIBUTING.md \
     GPL-3.0.txt \
-    HACKING.txt \
     LICENSE.txt \
     MANUAL.txt \
     Makefile.in \
@@ -80,7 +80,8 @@ source_dist_files = \
     install-sh \
     m4 \
     main.c \
-    test.sh \
+    test/run \
+    test/suites/* \
     zlib/*.c \
     zlib/*.h
 

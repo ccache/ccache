@@ -37,7 +37,7 @@ if test -z "$AR"; then
 fi
 
 # Prefer bash, needed for test.sh
-AC_PATH_TOOL(SH, bash, "/bin/sh")
+AC_PATH_TOOL(BASH, bash, "/bin/bash")
 
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"; then
@@ -172,7 +172,7 @@ if test ! -f $srcdir/version.c; then
 fi
 
 dnl Find test suite files.
-test_suites=`ls $srcdir/test/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=`ls $srcdir/unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -185,7 +185,7 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-mkdir -p .deps test
+mkdir -p .deps unittest
 
 
 AC_MSG_NOTICE(now build ccache by running make)

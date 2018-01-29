@@ -10,7 +10,7 @@ sysconfdir = @sysconfdir@
 installcmd = @INSTALL@
 
 AR = @AR@
-SH = @SH@
+BASH = @BASH@
 CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
@@ -61,13 +61,14 @@ zlib_sources = \
 zlib_objs = $(zlib_sources:.c=.o)
 
 test_suites = @test_suites@
-test_sources = test/main.c test/framework.c test/util.c $(test_suites)
+test_sources = unittest/main.c unittest/framework.c unittest/util.c
+test_sources += $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
 
-files_to_clean = $(all_objs) ccache$(EXEEXT) test/main$(EXEEXT) *~ testdir.*
+files_to_clean = $(all_objs) ccache$(EXEEXT) unittest/run$(EXEEXT) *~ testdir.*
 files_to_distclean = Makefile config.h config.log config.status
 
 .PHONY: all
@@ -100,20 +101,20 @@ perf: ccache$(EXEEXT)
 	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/ccache.c
 
 .PHONY: test
-test: ccache$(EXEEXT) test/main$(EXEEXT)
-	test/main$(EXEEXT)
-	CC='$(CC)' $(SH) $(srcdir)/test.sh
+test: ccache$(EXEEXT) unittest/run$(EXEEXT)
+	unittest/run$(EXEEXT)
+	CC='$(CC)' $(BASH) $(srcdir)/test/run
 
-.PHONY: quicktest
-quicktest: test/main$(EXEEXT)
-	test/main$(EXEEXT)
+.PHONY: unittest
+unittest: unittest/run$(EXEEXT)
+	unittest/run$(EXEEXT)
 
-test/main$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
+unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
-test/main.o: test/suites.h
+unittest/main.o: unittest/suites.h
 
-test/suites.h: $(test_suites) Makefile
+unittest/suites.h: $(test_suites) Makefile
 	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suites) >$@
 
 .PHONY: check
@@ -124,9 +125,9 @@ distclean: clean
 	rm -rf $(files_to_distclean)
 
 .PHONY: installcheck
-installcheck: ccache$(EXEEXT) test/main$(EXEEXT)
-	test/main$(EXEEXT)
-	CCACHE=$(bindir)/ccache CC='$(CC)' $(SH) $(srcdir)/test.sh
+installcheck: ccache$(EXEEXT) unittest/run$(EXEEXT)
+	unittest/run$(EXEEXT)
+	CCACHE=$(bindir)/ccache CC='$(CC)' $(BASH) $(srcdir)/test/run
 
 .c.o:
 	$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
