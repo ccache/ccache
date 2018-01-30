@@ -1,12 +1,12 @@
 SUITE_cpp1_PROBE() {
     touch test.c
     if $COMPILER_TYPE_GCC; then
-        if ! $UNCACHED_COMPILE -E -fdirectives-only test.c >/dev/null 2>&1; then
+        if ! $UNCACHED_COMPILE -E -fdirectives-only test.c >&/dev/null; then
             echo "-fdirectives-only not supported by compiler"
             return
         fi
     elif $COMPILER_TYPE_CLANG; then
-        if ! $UNCACHED_COMPILE -E -frewrite-includes test.c >/dev/null 2>&1; then
+        if ! $UNCACHED_COMPILE -E -frewrite-includes test.c >&/dev/null; then
             echo "-frewrite-includes not supported by compiler"
             return
         fi
@@ -20,11 +20,11 @@ SUITE_cpp1_SETUP() {
     export CCACHE_NOCPP2=1
     echo "#define FOO 1" >test1.h
     backdate test1.h
-    echo "#include \"test1.h\"" >test1.c
-    echo "#define BAR 2" >>test1.c
-    echo "int foo(int x) { return FOO; }" >>test1.c
-    echo "int bar(int x) { return BAR; }" >>test1.c
-    echo "int baz(int x) { return BAZ; }" >>test1.c
+    echo '#include "test1.h"' >test1.c
+    echo '#define BAR 2' >>test1.c
+    echo 'int foo(int x) { return FOO; }' >>test1.c
+    echo 'int bar(int x) { return BAR; }' >>test1.c
+    echo 'int baz(int x) { return BAZ; }' >>test1.c
 }
 
 SUITE_cpp1() {
@@ -33,7 +33,7 @@ SUITE_cpp1() {
     elif $COMPILER_TYPE_CLANG; then
         cpp_flag="-frewrite-includes"
     fi
-    cpp_flag="$cpp_flag -DBAZ=3"
+    cpp_flag+=" -DBAZ=3"
 
     # -------------------------------------------------------------------------
     TEST "Base case"
