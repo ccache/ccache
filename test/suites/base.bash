@@ -913,14 +913,14 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Invalid boolean environment configuration options"
 
-    for invalid_val in 0 false FALSE disable no ; do
-        CCACHE_DISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+    for invalid_val in 0 false FALSE disable DISABLE no NO; do
+        CCACHE_DISABLE=$invalid_val $CCACHE $COMPILER --version >&/dev/null
         if [ $? -eq 0 ] ; then
-            test_failed "'$invalid_val' should be rejected for boolean env vars"
+            test_failed "boolean env var '$invalid_val' should be rejected"
         fi
-        CCACHE_NODISABLE=$invalid_val $CCACHE $COMPILER --version > /dev/null 2>&1
+        CCACHE_NODISABLE=$invalid_val $CCACHE $COMPILER --version >&/dev/null
         if [ $? -eq 0 ] ; then
-            test_failed "'$invalid_val' should be rejected for boolean env vars"
+            test_failed "boolean env var '$invalid_val' should be rejected"
         fi
     done
 }

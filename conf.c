@@ -241,16 +241,15 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 	}
 
 	if (from_env_variable && item->parser == parse_bool) {
-		// Special rule for boolean settings from the environment:
-		// "0", "false", "disable" and "no" (case insensitive) are invalid,
-		// and all other values mean true.
+		// Special rule for boolean settings from the environment: "0", "false",
+		// "disable" and "no" (case insensitive) are invalid, and all other values
+		// mean true.
 		//
-		// Previously any value meant true, but this was surprising to
-		// users, who might do something like CCACHE_DISABLE=0 and expect
-		// ccache to be enabled.
-
-		if (!strcmp(value, "0") || !strcasecmp(value, "false") ||
-				!strcasecmp(value, "disable") || !strcasecmp(value, "no")) {
+		// Previously any value meant true, but this was surprising to users, who
+		// might do something like CCACHE_DISABLE=0 and expect ccache to be
+		// enabled.
+		if (str_eq(value, "0") || strcasecmp(value, "false") == 0
+		    || strcasecmp(value, "disable") == 0 || strcasecmp(value, "no") == 0) {
 			fatal("invalid boolean environment variable value \"%s\"", value);
 		}
 

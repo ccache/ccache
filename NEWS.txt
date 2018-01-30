@@ -22,10 +22,10 @@ New features and improvements
 - Added support for nvcc compiler options `--compiler-bindir/-ccbin`,
   `--output-directory/-odir` and `--libdevice-directory/-ldir`.
 
-- Boolean configuration settings no longer accept the following
-  (case-insensitive) values: "0", "false", "disable" and "no". All other values
-  are accepted and taken to mean "true". This is intended to avoid users
-  setting eg CCACHE_DISABLE=0 and expecting the cache to be used.
+- Boolean environment variable settings no longer accept the following
+  (case-insensitive) values: `0`, `false`, `disable` and `no`. All other values
+  are accepted and taken to mean "true". This is to stop users from setting
+  e.g. `CCACHE_DISABLE=0` and then expect the cache to be used.
 
 
 Bug fixes
