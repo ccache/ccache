@@ -2933,7 +2933,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			output_dep = make_relative_path(x_strdup(default_depfile_name));
 		}
 
-		if (!dependency_target_specified) {
+		if (!dependency_target_specified
+		    && !str_eq(get_extension(output_dep), ".o")) {
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}
