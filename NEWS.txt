@@ -38,7 +38,7 @@ Bug fixes
 - File size and number counters are now updated correctly when files are
   overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
 
-- Force run_second_cpp for nvcc.
+- `run_second_cpp` is now forced for nvcc.
 
 - Fixed how the nvcc options `-optf` and `-odir` are handled.
 
