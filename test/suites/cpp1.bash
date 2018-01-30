@@ -1,12 +1,12 @@
 SUITE_cpp1_PROBE() {
     touch test.c
     if $COMPILER_TYPE_GCC; then
-        if ! $UNCACHED_COMPILE -E -fdirectives-only test.c >&/dev/null; then
+        if ! $REAL_COMPILER -E -fdirectives-only test.c >&/dev/null; then
             echo "-fdirectives-only not supported by compiler"
             return
         fi
     elif $COMPILER_TYPE_CLANG; then
-        if ! $UNCACHED_COMPILE -E -frewrite-includes test.c >&/dev/null; then
+        if ! $REAL_COMPILER -E -frewrite-includes test.c >&/dev/null; then
             echo "-frewrite-includes not supported by compiler"
             return
         fi
@@ -38,7 +38,7 @@ SUITE_cpp1() {
     # -------------------------------------------------------------------------
     TEST "Base case"
 
-    $UNCACHED_COMPILE $cpp_flag -c -o reference_test1.o test1.c
+    $REAL_COMPILER $cpp_flag -c -o reference_test1.o test1.c
 
     $CCACHE_COMPILE $cpp_flag -c test1.c
     expect_stat 'cache hit (direct)' 0

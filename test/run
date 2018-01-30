@@ -343,6 +343,7 @@ fi
 all_suites="
 base
 nocpp2
+cpp1
 multi_arch
 serialize_diagnostics
 debug_prefix_map
