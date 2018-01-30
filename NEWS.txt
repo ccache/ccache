@@ -27,6 +27,10 @@ New features and improvements
   are accepted and taken to mean "true". This is to stop users from setting
   e.g. `CCACHE_DISABLE=0` and then expect the cache to be used.
 
+- Improved support for `run_second_cpp = false`: If combined with passing
+  `-fdirectives-only` (GCC) or `frewrite-includes` (Clang) to the compiler,
+  diagnostics warnings and similar will be correct.
+
 
 Bug fixes
 ~~~~~~~~~
