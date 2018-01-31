@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2016 Joel Rosdahl
+// Copyright (C) 2011-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -342,7 +342,8 @@ TEST(conf_set_new_value)
 	char *data;
 
 	create_file("ccache.conf", "path = vanilla\n");
-	CHECK(conf_set_value_in_file("ccache.conf", "stats", "chocolate", &errmsg));
+	CHECKM(conf_set_value_in_file("ccache.conf", "stats", "chocolate", &errmsg),
+	       errmsg);
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
@@ -354,7 +355,8 @@ TEST(conf_set_existing_value)
 	char *data;
 
 	create_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
-	CHECK(conf_set_value_in_file("ccache.conf", "path", "vanilla", &errmsg));
+	CHECKM(conf_set_value_in_file("ccache.conf", "path", "vanilla", &errmsg),
+	       errmsg);
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
