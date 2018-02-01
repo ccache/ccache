@@ -1583,10 +1583,6 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		char *dir = dirname(output_obj);
 		if (profile_dir) {
 			dir = x_strdup(profile_dir);
-		} else {
-			char *real_dir = x_realpath(dir);
-			free(dir);
-			dir = real_dir;
 		}
 		if (dir) {
 			char *base_name = basename(output_obj);
