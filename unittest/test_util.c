@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -193,7 +193,7 @@ TEST(parse_size_with_suffix)
 
 	};
 
-	for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+	for (i = 0; i < ARRAY_SIZE(sizes); ++i) {
 		CHECKM(parse_size_with_suffix(sizes[i].size, &size), sizes[i].size);
 		CHECK_INT_EQ(sizes[i].expected, size);
 	}

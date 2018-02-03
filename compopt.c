@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -113,8 +113,8 @@ find(const char *option)
 	struct compopt key;
 	key.name = option;
 	return bsearch(
-	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-	         sizeof(compopts[0]), compare_compopts);
+		&key, compopts, ARRAY_SIZE(compopts), sizeof(compopts[0]),
+		compare_compopts);
 }
 
 static const struct compopt *
@@ -123,8 +123,8 @@ find_prefix(const char *option)
 	struct compopt key;
 	key.name = option;
 	return bsearch(
-	         &key, compopts, sizeof(compopts) / sizeof(compopts[0]),
-	         sizeof(compopts[0]), compare_prefix_compopts);
+		&key, compopts, ARRAY_SIZE(compopts), sizeof(compopts[0]),
+		compare_prefix_compopts);
 }
 
 // Runs fn on the first two characters of option.
@@ -141,7 +141,7 @@ compopt_short(bool (*fn)(const char *), const char *option)
 bool
 compopt_verify_sortedness(void)
 {
-	for (size_t i = 1; i < sizeof(compopts)/sizeof(compopts[0]); i++) {
+	for (size_t i = 1; i < ARRAY_SIZE(compopts); i++) {
 		if (strcmp(compopts[i-1].name, compopts[i].name) >= 0) {
 			fprintf(stderr,
 			        "compopt_verify_sortedness: %s >= %s\n",
