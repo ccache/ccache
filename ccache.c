@@ -105,6 +105,9 @@ static char *output_dia;
 // Split dwarf information (GCC 4.8 and up). Contains pathname if not NULL.
 static char *output_dwo;
 
+// Language to use for the compilation target (see language.c).
+static const char *actual_language;
+
 // Array for storing -arch options.
 #define MAX_ARCH_ARGS 10
 static size_t arch_args_size = 0;
@@ -1514,6 +1517,58 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 	}
 }
 
+// Hash the host compiler(s) invoked by nvcc.
+//
+// If ccbin_st and ccbin are set, they refer to a directory or compiler set
+// with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
+// in PATH instead.
+static void
+hash_nvcc_host_compiler(struct mdfour *hash, struct stat *ccbin_st,
+                        const char *ccbin)
+{
+	// From <http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html>:
+	//
+	//   "[...] Specify the directory in which the compiler executable resides.
+	//   The host compiler executable name can be also specified to ensure that
+	//   the correct host compiler is selected."
+	//
+	// and
+	//
+	//   "On all platforms, the default host compiler executable (gcc and g++ on
+	//   Linux, clang and clang++ on Mac OS X, and cl.exe on Windows) found in
+	//   the current execution search path will be used".
+
+	if (!ccbin || S_ISDIR(ccbin_st->st_mode)) {
+#if defined(__APPLE__)
+		const char *compilers[] = {"clang", "clang++"};
+#elif defined(_WIN32)
+		const char *compilers[] = {"cl.exe"};
+#else
+		const char *compilers[] = {"gcc", "g++"};
+#endif
+		for (size_t i = 0; i < ARRAY_SIZE(compilers); i++) {
+			if (ccbin) {
+				char *path = format("%s/%s", ccbin, compilers[i]);
+				struct stat st;
+				if (stat(path, &st) == 0) {
+					hash_compiler(hash, &st, path, false);
+				}
+				free(path);
+			} else {
+				char *path = find_executable(compilers[i], MYNAME);
+				if (path) {
+					struct stat st;
+					x_stat(path, &st);
+					hash_compiler(hash, &st, ccbin, false);
+					free(path);
+				}
+			}
+		}
+	} else {
+		hash_compiler(hash, ccbin_st, ccbin, false);
+	}
+}
+
 // Update a hash sum with information common for the direct and preprocessor
 // modes.
 static void
@@ -1634,6 +1689,8 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 static struct file_hash *
 calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 {
+	bool found_ccbin = false;
+
 	if (direct_mode) {
 		hash_delimiter(hash, "manifest version");
 		hash_int(hash, MANIFEST_VERSION);
@@ -1747,8 +1804,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		     || str_eq(args->argv[i], "--compiler-bindir"))
 		     && i + 1 < args->argc
 		     && x_stat(args->argv[i+1], &st) == 0) {
+			found_ccbin = true;
 			hash_delimiter(hash, "ccbin");
-			hash_compiler(hash, &st, args->argv[i+1], false);
+			hash_nvcc_host_compiler(hash, &st, args->argv[i+1]);
 			i++;
 			continue;
 		}
@@ -1761,6 +1819,10 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			hash_delimiter(hash, "arg");
 			hash_string(hash, args->argv[i]);
 		}
+	}
+
+	if (!found_ccbin && str_eq(actual_language, "cuda")) {
+		hash_nvcc_host_compiler(hash, NULL, NULL);
 	}
 
 	// For profile generation (-fprofile-arcs, -fprofile-generate):
@@ -2087,7 +2149,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	bool found_fpch_preprocess = false;
 	const char *explicit_language = NULL; // As specified with -x.
 	const char *file_language;            // As deduced from file extension.
-	const char *actual_language;          // Language to actually use.
 	const char *input_charset = NULL;
 	// Is the dependency makefile name overridden with -MF?
 	bool dependency_filename_specified = false;
