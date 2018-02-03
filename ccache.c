@@ -2847,7 +2847,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			result = false;
 			goto out;
 		}
-		actual_language = explicit_language;
+		actual_language = x_strdup(explicit_language);
 	} else {
 		actual_language = file_language;
 	}
