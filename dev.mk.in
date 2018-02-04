@@ -157,7 +157,7 @@ check-syntax:
 .PHONY: cppcheck
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
-	  --inline-suppr -q --enable=all \
+	  --inline-suppr -q --enable=all --force \
 	  $(non_3pp_sources) main.c $(test_sources)
 
 .PHONY: uncrustify
