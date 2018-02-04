@@ -474,7 +474,9 @@ stats_summary(struct conf *conf)
 	       secondary_config_path ? secondary_config_path : "");
 	if (oldest) {
 		struct tm *tm = localtime(&oldest);
-		printf("stats zero time                     %s", asctime(tm));
+		char timestamp[100];
+		strftime(timestamp, sizeof(timestamp), "%c", tm);
+		printf("stats zero time                     %s\n", timestamp);
 	}
 
 	// ...and display them.
