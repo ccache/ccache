@@ -5,7 +5,7 @@ ccache 3.4
 ----------
 Unreleased
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The compiler option form `--sysroot arg` is now handled like the documented
@@ -51,7 +51,7 @@ ccache 3.3.6
 ------------
 Release date: 2018-01-28
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved instructions on how to get cache hits between different working
@@ -69,7 +69,7 @@ ccache 3.3.5
 Release date: 2018-01-13
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Documented how automatic cache cleanup works.
@@ -115,7 +115,7 @@ ccache 3.3.4
 ------------
 Release date: 2017-02-17
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Documented the different cache statistics counters.
@@ -187,7 +187,7 @@ Notes
 - A C99-compatible compiler is now required to build ccache.
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The configuration option `run_second_cpp` (`CCACHE_CPP2`) now defaults to
@@ -334,7 +334,7 @@ ccache 3.2.5
 Release date: 2016-04-17
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Only pass clang-specific `-stdlib=` to the preprocessor.
@@ -401,7 +401,7 @@ ccache 3.2.3
 Release date: 2015-08-16
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for compiler option `-gsplit-dwarf`.
@@ -427,7 +427,7 @@ ccache 3.2.2
 Release date: 2015-05-10
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for `CCACHE_COMPILERCHECK=string:<value>`. This is a faster
@@ -497,7 +497,7 @@ ccache 3.2
 Release date: 2014-11-17
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for configuring ccache via one or several configuration files
@@ -641,7 +641,7 @@ ccache 3.1.10
 Release date: 2014-10-19
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for the `-Xclang` compiler option.
@@ -720,7 +720,7 @@ ccache 3.1.8
 Release date: 2012-08-11
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Made paths to dependency files relative in order to increase cache hits.
@@ -799,7 +799,7 @@ ccache 3.1.6
 Release date: 2011-08-21
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Rewrite argument to `--sysroot` if `CCACHE_BASEDIR` is used.
@@ -818,7 +818,7 @@ ccache 3.1.5
 Release date: 2011-05-29
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added a new statistics counter named ``called for preprocessing''.
@@ -947,7 +947,7 @@ ccache 3.1
 Release date: 2010-09-16
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Added support for hashing the output of a custom command (e.g. `%compiler%
@@ -1058,7 +1058,7 @@ Upgrade notes
   want, unless you plan to keep using an older ccache version.
 
 
-New features and improvements
+New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - ccache now has a ``direct mode'' where it computes a hash of the source code
