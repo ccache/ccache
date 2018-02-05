@@ -43,7 +43,6 @@ Features
 * Can cache compilations that generate warnings.
 * Easy installation.
 * Low overhead.
-* Optionally uses hard links where possible to avoid copies.
 * Optionally compresses files in the cache to reduce disk space.
 
 
@@ -370,13 +369,23 @@ WRAPPERS>>.
 *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use hard links from the cache directory
-    when creating the compiler output rather than using a file copy. Using hard
-    links may be slightly faster in some situations, but can confuse programs
-    like ``make'' that rely on modification times. Another thing to keep in
-    mind is that if the resulting object file is modified in any way, this
-    corrupts the cached object file as well. Hard links are never made for
-    compressed cache files. This means that you should not enable compression
-    if you want to use hard links. The default is false.
+    when creating the compiler output rather than using a file copy. Hard links
+    are never made for compressed cache files. This means that you should not
+    enable compression if you want to use hard links. The default is false.
++
+WARNING: Do not enable this option unless you are aware of the consequences.
+Using hard links may be slightly faster in some situations, but there are
+several pitfalls since the resulting object file will share i-node with the
+cached object file:
++
+1. If the resulting object file is modified in any way, the cached object file
+   will be modified as well. For instance, if you run *strip object.o* or *echo
+   >object.o*, you will corrupt the cache.
+2. Programs that rely on modification times (like ``make'') can be confused
+   since ccache updates the cached files' modification times as part of the
+   automatic cache size management. This will affect object files in the build
+   tree as well, which can retrigger the linking step even though nothing
+   really has changed.
 
 *hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 

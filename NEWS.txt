@@ -35,6 +35,8 @@ New features and enhancements
   extension is non-standard. This should make it easier to use EDG-based
   compilers (e.g. GHS) which don't understand `-MQ`.
 
+- Documented more pitfalls with enabling `hard_links` (`CCACHE_HARDLINK`).
+
 
 Bug fixes
 ~~~~~~~~~
