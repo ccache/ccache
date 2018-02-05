@@ -987,6 +987,19 @@ Caveats
 
 * The direct mode fails to pick up new header files in some rare scenarios. See
   <<_the_direct_mode,THE DIRECT MODE>> above.
+* When run via ccache, warning messages produced by GCC 4.9 and newer will only
+  be colored when the environment variable *GCC_COLORS* is set. An alternative
+  to setting *GCC_COLORS* is to pass `-fdiagnostics-color` explicitly when
+  compiling (but then color codes will also be present when redirecting stderr
+  to a file).
+* If ccache guesses that the compiler may emit colored warnings, then a
+  compilation with stderr referring to a TTY will be considered different from
+  a compilation with a redirected stderr, thus not sharing cache entries. This
+  happens for clang by default and for GCC when *GCC_COLORS* is set as
+  mentioned above. If you want to share cache hits, you can pass
+  `-f[no-]diagnostics-color` (GCC) or `-f[no-]color-diagnostics` (clang)
+  explicitly when compiling (but then color codes will be either on or off for
+  both the TTY and the redirected case).
 
 
 Troubleshooting

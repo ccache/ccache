@@ -37,6 +37,8 @@ New features and enhancements
 
 - Documented more pitfalls with enabling `hard_links` (`CCACHE_HARDLINK`).
 
+- Documented caveats related to colored warnings from compilers.
+
 
 Bug fixes
 ~~~~~~~~~
