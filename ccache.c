@@ -3122,17 +3122,17 @@ initialize(void)
 	conf = conf_create();
 
 	char *errmsg;
-	struct stat st;
 	char *p = getenv("CCACHE_CONFIGPATH");
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
-			if (stat(secondary_config_path, &st) == 0) {
-				warn("%s", errmsg);
+			if (access(secondary_config_path, R_OK) == 0) {
+				// We could read the file but it contained errors.
+				fatal("%s", errmsg);
 			}
-			// Missing config file in SYSCONFDIR is OK.
+			// A missing config file in SYSCONFDIR is OK.
 			free(errmsg);
 		}
 
@@ -3152,14 +3152,15 @@ initialize(void)
 
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
-		if (stat(primary_config_path, &st) == 0) {
-			warn("%s", errmsg);
+		if (access(primary_config_path, R_OK) == 0) {
+			// We could read the file but it contained errors.
+			fatal("%s", errmsg);
 		}
 		should_create_initial_config = true;
 	}
 
 	if (!conf_update_from_environment(conf, &errmsg)) {
-		warn("%s", errmsg);
+		fatal("%s", errmsg);
 	}
 
 	if (conf->disable) {

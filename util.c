@@ -183,19 +183,6 @@ fatal(const char *format, ...)
 	x_exit(1);
 }
 
-void
-warn(const char *format, ...)
-{
-	va_list ap;
-	va_start(ap, format);
-	char msg[1000];
-	vsnprintf(msg, sizeof(msg), format, ap);
-	va_end(ap);
-
-	cc_log("WARNING: %s", msg);
-	fprintf(stderr, "ccache: warning: %s\n", msg);
-}
-
 // Copy all data from fd_in to fd_out, decompressing data from fd_in if needed.
 void
 copy_fd(int fd_in, int fd_out)
