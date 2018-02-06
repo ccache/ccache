@@ -3156,15 +3156,13 @@ initialize(void)
 			// We could read the file but it contained errors.
 			fatal("%s", errmsg);
 		}
-		should_create_initial_config = true;
+		if (!conf->disable) {
+			should_create_initial_config = true;
+		}
 	}
 
 	if (!conf_update_from_environment(conf, &errmsg)) {
 		fatal("%s", errmsg);
-	}
-
-	if (conf->disable) {
-		should_create_initial_config = false;
 	}
 
 	if (should_create_initial_config) {
