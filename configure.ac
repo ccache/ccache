@@ -119,7 +119,7 @@ else
 fi
 
 if test x${use_bundled_zlib} = xyes; then
-    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/zlib"
     extra_libs="zlib/libz.a"
     mkdir -p zlib
 else
@@ -166,9 +166,9 @@ else
     AC_MSG_NOTICE(Developer mode disabled)
 fi
 
-if test ! -f $srcdir/version.c; then
+if test ! -f $srcdir/src/version.c; then
     AC_MSG_WARN(unable to determine ccache version)
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
 
 dnl Find test suite files.
@@ -185,7 +185,7 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-mkdir -p .deps unittest
+mkdir -p .deps src unittest
 
 
 AC_MSG_NOTICE(now build ccache by running make)

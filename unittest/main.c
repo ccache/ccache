@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -18,7 +18,7 @@
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
-#include "../getopt_long.h"
+#include "../src/getopt_long.h"
 #endif
 
 // *INDENT-OFF* disable uncrustify

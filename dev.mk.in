@@ -5,7 +5,7 @@ all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
-CPPCHECK_SUPPRESSIONS = cppcheck-suppressions.txt
+CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
@@ -27,25 +27,25 @@ ifneq ($(shell uname), Darwin)
     dist_archives += ccache-$(version).tar.xz
 endif
 
-generated_docs = ccache.1 AUTHORS.html LICENSE.html MANUAL.html NEWS.html
+generated_docs = ccache.1 doc/AUTHORS.html LICENSE.html doc/MANUAL.html doc/NEWS.html
 built_dist_files = $(generated_docs)
 
 headers = \
-    ccache.h \
-    compopt.h \
-    conf.h \
-    counters.h \
-    getopt_long.h \
-    hashtable.h \
-    hashtable_itr.h \
-    hashtable_private.h \
-    hashutil.h \
-    language.h \
-    macroskip.h \
-    manifest.h \
-    mdfour.h \
-    murmurhashneutral2.h \
-    system.h \
+    src/ccache.h \
+    src/compopt.h \
+    src/conf.h \
+    src/counters.h \
+    src/getopt_long.h \
+    src/hashtable.h \
+    src/hashtable_itr.h \
+    src/hashtable_private.h \
+    src/hashutil.h \
+    src/language.h \
+    src/macroskip.h \
+    src/manifest.h \
+    src/mdfour.h \
+    src/murmurhashneutral2.h \
+    src/system.h \
     unittest/framework.h \
     unittest/suites.h \
     unittest/util.h
@@ -58,13 +58,10 @@ source_dist_files = \
     $(base_sources) \
     $(headers) \
     $(test_sources) \
-    AUTHORS.txt \
     CONTRIBUTING.md \
     GPL-3.0.txt \
     LICENSE.txt \
-    MANUAL.txt \
     Makefile.in \
-    NEWS.txt \
     README.md \
     autogen.sh \
     config.guess \
@@ -72,28 +69,31 @@ source_dist_files = \
     config.sub \
     configure \
     configure.ac \
-    confitems.gperf \
-    confitems_lookup.c \
     dev.mk.in \
-    envtoconfitems.gperf \
-    envtoconfitems_lookup.c \
+    doc/AUTHORS.txt \
+    doc/MANUAL.txt \
+    doc/NEWS.txt \
     install-sh \
     m4 \
-    main.c \
+    src/confitems.gperf \
+    src/confitems_lookup.c \
+    src/envtoconfitems.gperf \
+    src/envtoconfitems_lookup.c \
+    src/main.c \
+    src/zlib/*.c \
+    src/zlib/*.h \
     test/run \
-    test/suites/* \
-    zlib/*.c \
-    zlib/*.h
+    test/suites/*
 
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
 uncrustify_exclude_files = \
-    getopt_long.c \
-    hashtable.c \
-    hashtable_itr.c \
-    snprintf.c
+    src/getopt_long.c \
+    src/hashtable.c \
+    src/hashtable_itr.c \
+    src/snprintf.c
 
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
   $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)
@@ -113,7 +113,7 @@ $(dist_archives): $(dist_files)
 	mkdir $$dir && \
 	(cd $(srcdir) && \
 	 rsync -r --relative $(source_dist_files) $$dir) && \
-	cp $(srcdir)/INSTALL-from-release-archive.md $$dir/INSTALL.md && \
+	cp $(srcdir)/doc/INSTALL-from-release-archive.md $$dir/INSTALL.md && \
 	cp $(built_dist_files) $$dir && \
 	echo "Remove this file to enable developer mode." >$$dir/dev_mode_disabled && \
 	(cd $$tmpdir && \
@@ -147,7 +147,7 @@ docs: $(generated_docs)
 %.xml: %.txt
 	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook $<
 
-ccache.1: MANUAL.xml
+ccache.1: doc/MANUAL.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
 
 .PHONY: check-syntax
@@ -158,11 +158,11 @@ check-syntax:
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force \
-	  $(non_3pp_sources) main.c $(test_sources)
+	  $(non_3pp_sources) src/main.c $(test_sources)
 
 .PHONY: uncrustify
 uncrustify:
-	uncrustify -c uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
 
 .PHONY: analyze
 analyze:
@@ -170,7 +170,7 @@ analyze:
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
 .PHONY: docker
-docker: Dockerfile
+docker: misc/Dockerfile
 	$(DOCKER) build $(srcdir)
 
 -include .deps/*.d

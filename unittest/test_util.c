@@ -16,7 +16,7 @@
 
 // This file contains tests for functions in util.c.
 
-#include "../ccache.h"
+#include "../src/ccache.h"
 #include "framework.h"
 
 TEST_SUITE(util)

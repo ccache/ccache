@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -16,8 +16,8 @@
 
 // This file contains tests for statistics handling.
 
-#include "../ccache.h"
-#include "../counters.h"
+#include "../src/ccache.h"
+#include "../src/counters.h"
 #include "framework.h"
 #include "util.h"
 

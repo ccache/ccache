@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -16,7 +16,7 @@
 
 // This file contains tests for functions in hash.c.
 
-#include "../ccache.h"
+#include "../src/ccache.h"
 #include "framework.h"
 
 TEST_SUITE(hash)

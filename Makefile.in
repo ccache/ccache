@@ -20,38 +20,38 @@ LIBS = @LIBS@
 RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
-all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir) $(CPPFLAGS)
+all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 non_3pp_sources = \
-    args.c \
-    ccache.c \
-    cleanup.c \
-    compopt.c \
-    conf.c \
-    counters.c \
-    execute.c \
-    exitfn.c \
-    hash.c \
-    hashutil.c \
-    language.c \
-    lockfile.c \
-    manifest.c \
-    mdfour.c \
-    stats.c \
-    unify.c \
-    util.c \
-    version.c
+    src/args.c \
+    src/ccache.c \
+    src/cleanup.c \
+    src/compopt.c \
+    src/conf.c \
+    src/counters.c \
+    src/execute.c \
+    src/exitfn.c \
+    src/hash.c \
+    src/hashutil.c \
+    src/language.c \
+    src/lockfile.c \
+    src/manifest.c \
+    src/mdfour.c \
+    src/stats.c \
+    src/unify.c \
+    src/util.c \
+    src/version.c
 3pp_sources = \
-    getopt_long.c \
-    hashtable.c \
-    hashtable_itr.c \
-    murmurhashneutral2.c \
-    snprintf.c
+    src/getopt_long.c \
+    src/hashtable.c \
+    src/hashtable_itr.c \
+    src/murmurhashneutral2.c \
+    src/snprintf.c
 base_sources = $(non_3pp_sources) $(3pp_sources)
 base_objs = $(base_sources:.c=.o)
 
-ccache_sources = main.c $(base_sources)
+ccache_sources = src/main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
 
 zlib_sources = \
@@ -98,7 +98,7 @@ zlib/libz.a: $(zlib_objs)
 
 .PHONY: perf
 perf: ccache$(EXEEXT)
-	$(srcdir)/perf.py --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/ccache.c
+	$(srcdir)/perf/perf.py --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/src/ccache.c
 
 .PHONY: test
 test: ccache$(EXEEXT) unittest/run$(EXEEXT)
