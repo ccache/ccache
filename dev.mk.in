@@ -150,6 +150,12 @@ docs: $(generated_docs)
 ccache.1: doc/MANUAL.xml
 	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
 
+.PHONY: update-authors
+update-authors:
+	git log --pretty=format:"* %aN <%aE>" \
+	  | sort -u \
+	  | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.txt
+
 .PHONY: check-syntax
 check-syntax:
 	$(CC) $(all_cppflags) -I. $(all_cflags) -S -o /dev/null $(CHK_SOURCES)

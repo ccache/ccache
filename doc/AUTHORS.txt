@@ -17,15 +17,14 @@ ccache is a collective work with contributions from many people, including:
 * Andrew Tridgell <tridge@samba.org>
 * Bernhard Bauer <bauerb@chromium.org>
 * Björn Jacke <bj@sernet.de>
-* Bo Rydberg <bolry@hotmail.com>
 * Chiaki Ishikawa <ishikawa@yk.rim.or.jp>
-* Chris AtLee <chris@atlee.ca>
+* Chris AtLee <catlee@mozilla.com>
 * Clemens Rabe <clemens.rabe@gmail.com>
 * David Givone <david@givone.net>
 * Edward Z. Yang <ezyang@fb.com>
-* Eric Blau <Eric.Blau@tekelec.com>
 * Francois Marier <francois@debian.org>
 * Geert Bosch <geert@mongodb.com>
+* Grigory Entin <grigorye@dins.ru>
 * Hongli Lai <hongli@phusion.nl>
 * Ivan Vaigult <i.vaigult@gmail.com>
 * Jiang Jiang <jiangj@opera.com>
@@ -36,14 +35,16 @@ ccache is a collective work with contributions from many people, including:
 * Jørgen P. Tjernø <jorgen@valvesoftware.com>
 * Justin Lebar <justin.lebar@gmail.com>
 * Karl Chen <quarl@cs.berkeley.edu>
-* KonaBlend <kona8lend@gmail.com>
+* Kona Blend <kona8lend@gmail.com>
 * Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
 * Lalit Chhabra <lchhabra@linuxmail.org>
 * Lars Gustäbel <lars@gustaebel.de>
 * Leanid Chaika <leanid.chaika@gmail.com>
 * Luboš Luňák <l.lunak@centrum.cz>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
+* Martin Ettl <ettl.martin78@gmail.com>
 * Martin Pool <mbp@sourcefrog.net>
+* Mathias De Maré <mathias.de_mare@nokia.com>
 * Matthias Kretz <kretz@kde.org>
 * Melven Roehrig-Zoellner <Melven.Roehrig-Zoellner@DLR.de>
 * Michael Marineau <michael.marineau@coreos.com>
@@ -51,23 +52,26 @@ ccache is a collective work with contributions from many people, including:
 * Mihai Serban <mihai.serban@intel.com>
 * Mike Frysinger <vapier@gentoo.org>
 * Mikhail Kolomeytsev <mkolom@yandex-team.ru>
+* Mostyn Bramley-Moore <mostyn@antipode.se>
 * Neil Mushell <nmushell@bloomberg.net>
 * Nick Schultz <nick.schultz@intel.com>
 * Norbert Lange <nolange79@gmail.com>
 * Oded Shimon <oded@istraresearch.com>
-* orbitcowboy <ettl.martin78@gmail.com>
 * Orgad Shaneh <orgad.shaneh@audiocodes.com>
 * Orion Poplawski <orion@cora.nwra.com>
 * Owen Mann <owen@mann.org>
 * Patrick von Reth <vonreth@kde.org>
 * Paul Griffith <paulg@cse.yorku.ca>
 * Pavel Boldin <pboldin@cloudlinux.com>
+* Per Nordlöw <per.nordlow@autoliv.com>
 * Philippe Proulx <eeppeliteloop@gmail.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
 * Rolf Bjarne Kvinge <rolf@xamarin.com>
 * RW <fbsd06@mlists.homeunix.com>
 * Ryan Brown <ryb@ableton.com>
+* Sam Gross <sgross@fb.com>
+* Thomas Röfer <Thomas.Roefer@dfki.de>
 * Tim Potter <tpot@samba.org>
 * Tom Hughes <tomtheengineer@gmail.com>
 * Tor Arne Vestbø <tor.arne.vestbo@qt.io>
