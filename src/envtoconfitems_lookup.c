@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.0.4 */
-/* Command-line: gperf envtoconfitems.gperf  */
+/* Command-line: gperf src/envtoconfitems.gperf  */
 /* Computed positions: -k'1,5' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -29,7 +29,7 @@
 #error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gnu-gperf@gnu.org>."
 #endif
 
-#line 9 "envtoconfitems.gperf"
+#line 9 "src/envtoconfitems.gperf"
 struct env_to_conf_item;
 /* maximum key range = 42, duplicates = 0 */
 
@@ -111,77 +111,77 @@ envtoconfitems_get (register const char *str, register unsigned int len)
   static const struct env_to_conf_item wordlist[] =
     {
       {"",""}, {"",""},
-#line 12 "envtoconfitems.gperf"
+#line 12 "src/envtoconfitems.gperf"
       {"CC", "compiler"},
-#line 18 "envtoconfitems.gperf"
+#line 18 "src/envtoconfitems.gperf"
       {"DIR", "cache_dir"},
-#line 16 "envtoconfitems.gperf"
+#line 16 "src/envtoconfitems.gperf"
       {"CPP2", "run_second_cpp"},
       {"",""},
-#line 19 "envtoconfitems.gperf"
+#line 19 "src/envtoconfitems.gperf"
       {"DIRECT", "direct_mode"},
-#line 20 "envtoconfitems.gperf"
+#line 20 "src/envtoconfitems.gperf"
       {"DISABLE", "disable"},
-#line 17 "envtoconfitems.gperf"
+#line 17 "src/envtoconfitems.gperf"
       {"COMMENTS", "keep_comments_cpp"},
-#line 31 "envtoconfitems.gperf"
+#line 31 "src/envtoconfitems.gperf"
       {"PATH", "path"},
-#line 41 "envtoconfitems.gperf"
+#line 41 "src/envtoconfitems.gperf"
       {"UNIFY", "unify"},
-#line 32 "envtoconfitems.gperf"
+#line 32 "src/envtoconfitems.gperf"
       {"PREFIX", "prefix_command"},
-#line 36 "envtoconfitems.gperf"
+#line 36 "src/envtoconfitems.gperf"
       {"RECACHE", "recache"},
-#line 13 "envtoconfitems.gperf"
+#line 13 "src/envtoconfitems.gperf"
       {"COMPILERCHECK", "compiler_check"},
       {"",""},
-#line 33 "envtoconfitems.gperf"
+#line 33 "src/envtoconfitems.gperf"
       {"PREFIX_CPP", "prefix_command_cpp"},
-#line 30 "envtoconfitems.gperf"
+#line 30 "src/envtoconfitems.gperf"
       {"NLEVELS", "cache_dir_levels"},
-#line 27 "envtoconfitems.gperf"
+#line 27 "src/envtoconfitems.gperf"
       {"LOGFILE", "log_file"},
-#line 34 "envtoconfitems.gperf"
+#line 34 "src/envtoconfitems.gperf"
       {"READONLY", "read_only"},
-#line 21 "envtoconfitems.gperf"
+#line 21 "src/envtoconfitems.gperf"
       {"EXTENSION", "cpp_extension"},
-#line 40 "envtoconfitems.gperf"
+#line 40 "src/envtoconfitems.gperf"
       {"UMASK", "umask"},
       {"",""},
-#line 24 "envtoconfitems.gperf"
+#line 24 "src/envtoconfitems.gperf"
       {"HASHDIR", "hash_dir"},
-#line 14 "envtoconfitems.gperf"
+#line 14 "src/envtoconfitems.gperf"
       {"COMPRESS", "compression"},
       {"",""},
-#line 35 "envtoconfitems.gperf"
+#line 35 "src/envtoconfitems.gperf"
       {"READONLY_DIRECT", "read_only_direct"},
       {"",""},
-#line 39 "envtoconfitems.gperf"
+#line 39 "src/envtoconfitems.gperf"
       {"TEMPDIR", "temporary_dir"},
-#line 15 "envtoconfitems.gperf"
+#line 15 "src/envtoconfitems.gperf"
       {"COMPRESSLEVEL", "compression_level"},
-#line 26 "envtoconfitems.gperf"
+#line 26 "src/envtoconfitems.gperf"
       {"LIMIT_MULTIPLE", "limit_multiple"},
-#line 38 "envtoconfitems.gperf"
+#line 38 "src/envtoconfitems.gperf"
       {"STATS", "stats"},
       {"",""},
-#line 29 "envtoconfitems.gperf"
+#line 29 "src/envtoconfitems.gperf"
       {"MAXSIZE", "max_size"},
-#line 28 "envtoconfitems.gperf"
+#line 28 "src/envtoconfitems.gperf"
       {"MAXFILES", "max_files"},
       {"",""},
-#line 37 "envtoconfitems.gperf"
+#line 37 "src/envtoconfitems.gperf"
       {"SLOPPINESS", "sloppiness"},
       {"",""},
-#line 11 "envtoconfitems.gperf"
+#line 11 "src/envtoconfitems.gperf"
       {"BASEDIR", "base_dir"},
-#line 23 "envtoconfitems.gperf"
+#line 23 "src/envtoconfitems.gperf"
       {"HARDLINK", "hard_link"},
       {"",""},
-#line 22 "envtoconfitems.gperf"
+#line 22 "src/envtoconfitems.gperf"
       {"EXTRAFILES", "extra_files_to_hash"},
       {"",""}, {"",""},
-#line 25 "envtoconfitems.gperf"
+#line 25 "src/envtoconfitems.gperf"
       {"IGNOREHEADERS", "ignore_headers_in_manifest"}
     };
 
