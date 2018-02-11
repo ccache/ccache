@@ -3,7 +3,7 @@ ccache news
 
 ccache 3.4.1
 ------------
-Unreleased
+Release date: 2018-02-11
 
 Bug fixes
 ~~~~~~~~~
