@@ -51,8 +51,8 @@ headers = \
     unittest/util.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
-files_to_distclean += $(built_dist_files) version.c unittest/suites.h
-files_to_distclean += .deps version.c dev.mk
+files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
+files_to_distclean += .deps dev.mk
 
 source_dist_files = \
     $(base_sources) \
@@ -95,10 +95,10 @@ uncrustify_exclude_files = \
     src/hashtable_itr.c \
     src/snprintf.c
 
-ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' version.c 2>/dev/null),$(version))
-  $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >version.c)
+ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
+  $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >src/version.c)
 endif
-version.o: version.c
+src/version.o: src/version.c
 
 %_lookup.c: %.gperf
 	$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
