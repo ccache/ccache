@@ -21,6 +21,10 @@ Please include at least the following information in your bug report:
 5. How you would like ccache to behave instead (_expected behavior_).
 6. Steps to reproduce the problematic behavior.
 
+Also, consider reading [Effective Ways to Get Help from Maintainers](
+https://www.snoyman.com/blog/2017/10/effective-ways-help-from-maintainers).
+
+
 ## Contributing code?
 
 Great! You can create a pull request with your proposal on github, or you could

@@ -8,9 +8,9 @@
 Makefile
 autom4te.cache
 ccache
-ccache.exe
 ccache-*.tar.*
 ccache.1
+ccache.exe
 ccache.html
 ccache.xml
 config.cache
@@ -19,10 +19,10 @@ config.h.in
 config.log
 config.status
 configure
-dev_mode_disabled
 dev.mk
+dev_mode_disabled
 perfdir.*
-test/main
-test/suites.h
+src/version.c
 testdir.*
-version.c
+unittest/run
+unittest/suites.h

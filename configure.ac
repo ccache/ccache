@@ -37,6 +37,9 @@ if test -z "$AR"; then
     AC_MSG_ERROR(cannot find ar)
 fi
 
+# Prefer bash, needed for test.sh
+AC_PATH_TOOL(BASH, bash, "/bin/bash")
+
 # If GCC, turn on warnings.
 if test "x$GCC" = "xyes"; then
     CFLAGS="$CFLAGS -Wall -W"
@@ -142,7 +145,7 @@ else
 fi
 
 if test x${use_bundled_zlib} = xyes; then
-    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/zlib"
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/zlib"
     extra_libs="zlib/libz.a"
     mkdir -p zlib
 else
@@ -184,18 +187,18 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >version.c
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
 else
     AC_MSG_NOTICE(Developer mode disabled)
 fi
 
-if test ! -f $srcdir/version.c; then
+if test ! -f $srcdir/src/version.c; then
     AC_MSG_WARN(unable to determine ccache version)
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >version.c
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
 
 dnl Find test suite files.
-test_suites=`ls $srcdir/test/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=`ls $srcdir/unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -208,7 +211,7 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-mkdir -p .deps test
+mkdir -p .deps src unittest
 
 
 AC_MSG_NOTICE(now build ccache by running make)
