@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 31
+#define N_CONFIG_ITEMS 32
 static struct {
 	char *descr;
 	const char *origin;
@@ -69,6 +69,7 @@ TEST(conf_create)
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
 	CHECK_STR_EQ("", conf->path);
+	CHECK(!conf->pch_external_checksum);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK_STR_EQ("", conf->prefix_command_cpp);
 	CHECK(!conf->read_only);
@@ -120,6 +121,7 @@ TEST(conf_read_valid_config)
 	  "max_files = 17\n"
 	  "max_size = 123M\n"
 	  "path = $USER.x\n"
+	  "pch_external_checksum = true\n"
 	  "prefix_command = x$USER\n"
 	  "prefix_command_cpp = y\n"
 	  "read_only = true\n"
@@ -158,6 +160,7 @@ TEST(conf_read_valid_config)
 	CHECK_INT_EQ(17, conf->max_files);
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
+	CHECK(conf->pch_external_checksum);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK_STR_EQ("y", conf->prefix_command_cpp);
 	CHECK(conf->read_only);
@@ -386,6 +389,7 @@ TEST(conf_print_items)
 		4711,
 		98.7 * 1000 * 1000,
 		"p",
+		true,
 		"pc",
 		"pcc",
 		true,
@@ -436,6 +440,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("max_files = 4711", received_conf_items[n++].descr);
 	CHECK_STR_EQ("max_size = 98.7M", received_conf_items[n++].descr);
 	CHECK_STR_EQ("path = p", received_conf_items[n++].descr);
+	CHECK_STR_EQ("pch_external_checksum = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command_cpp = pcc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);

@@ -638,13 +638,28 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
+		bool using_pch_sum = false;
+		if (conf->pch_external_checksum) {
+			// hash pch.sum instead of pch when it exists
+			// to prevent hashing a very large .pch file every time
+			char * pch_sum_path = format("%s.sum", path);
+			if (x_stat(pch_sum_path, &st) == 0) {
+				char * old_path = path;
+				path = pch_sum_path;
+				pch_sum_path = old_path;
+				using_pch_sum = true;
+				cc_log("Using pch.sum file %s", path);
+			}
+			free(pch_sum_path);
+		}
+
 		if (!hash_file(&fhash, path)) {
 			goto failure;
 		}
 		struct file_hash pch_hash;
 		hash_result_as_bytes(&fhash, pch_hash.hash);
 		pch_hash.size = fhash.totalN;
-		hash_delimiter(cpp_hash, "pch_hash");
+		hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
 
