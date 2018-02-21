@@ -246,6 +246,50 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Create and use .gch directory"
+
+    mkdir pch.h.gch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -x c-header -c pch.h -o pch.h.gch/foo
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    rm pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -x c-header -c pch.h -o pch.h.gch/foo
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    if [ ! -f pch.h.gch/foo ]; then
+        test_failed "pch.h.gch/foo missing"
+    fi
+
+    backdate pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    echo "updated" >>pch.h.gch/foo # GCC seems to cope with this...
+    backdate pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
 }
 
 pch_suite_clang() {
