@@ -2077,7 +2077,15 @@ bool
 is_precompiled_header(const char *path)
 {
 	const char *ext = get_extension(path);
-	return str_eq(ext, ".gch") || str_eq(ext, ".pch") || str_eq(ext, ".pth");
+	char *dir = dirname(path);
+	const char *dir_ext = get_extension(dir);
+	bool result =
+		str_eq(ext, ".gch")
+		|| str_eq(ext, ".pch")
+		|| str_eq(ext, ".pth")
+		|| str_eq(dir_ext, ".gch"); // See "Precompiled Headers" in GCC docs.
+	free(dir);
+	return result;
 }
 
 static bool
