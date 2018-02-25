@@ -57,7 +57,11 @@ static const int LZ4HC_compressionLevel_default = 9;
 #  pragma clang diagnostic ignored "-Wunused-function"
 #endif
 
-#define GCC_DIAGNOSTIC_AWARE ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)) || defined(__clang__))
+#if defined (__clang__)
+#define GCC_DIAGNOSTIC_AWARE 1
+#else
+#define GCC_DIAGNOSTIC_AWARE (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
+#endif
 
 #if !(GCC_DIAGNOSTIC_AWARE)
 static unsigned short LZ4_readLE16(const void* memPtr) __attribute__ ((unused));
