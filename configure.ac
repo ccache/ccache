@@ -145,9 +145,9 @@ else
 fi
 
 if test x${use_bundled_lz4} = xyes; then
-    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/lz4"
-    extra_libs="$extra_libs lz4/liblz4.a"
-    mkdir -p lz4
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/lz4"
+    extra_libs="$extra_libs src/lz4/liblz4.a"
+    mkdir -p src/lz4
 else
     LIBS="$LIBS -llz4"
 fi

@@ -474,7 +474,7 @@ following license:
   jloup@gzip.org          madler@alumni.caltech.edu
 -------------------------------------------------------------------------------
 
-lz4/*.[hc]
+src/lz4/*.[hc]
 ~~~~~~~~~~~
 
 This is a bundled subset of LZ4 r131 from <http://lz4.org> with the
