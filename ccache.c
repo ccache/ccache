@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2017 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -37,7 +37,7 @@ static const char VERSION_TEXT[] =
   MYNAME " version %s\n"
   "\n"
   "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2017 Joel Rosdahl\n"
+  "Copyright (C) 2009-2018 Joel Rosdahl\n"
   "\n"
   "This program is free software; you can redistribute it and/or modify it under\n"
   "the terms of the GNU General Public License as published by the Free Software\n"
@@ -97,13 +97,13 @@ static char *output_dep;
 static char *output_cov;
 
 // The path to the stack usage (implicit when using -fstack-usage).
-static char *output_su = NULL;
+static char *output_su;
 
 // Diagnostic generation information (clang). Contains pathname if not NULL.
-static char *output_dia = NULL;
+static char *output_dia;
 
-// Split dwarf information (GCC 4.8 andup). Contains pathname if not NULL.
-static char *output_dwo = NULL;
+// Split dwarf information (GCC 4.8 and up). Contains pathname if not NULL.
+static char *output_dwo;
 
 // Array for storing -arch options.
 #define MAX_ARCH_ARGS 10
@@ -144,10 +144,6 @@ static char *cached_dia;
 // Contains NULL if -gsplit-dwarf is not given.
 static char *cached_dwo;
 
-// using_split_dwarf is true if "-gsplit-dwarf" is given to the compiler (GCC
-// 4.8 and up).
-bool using_split_dwarf = false;
-
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
 static char *manifest_path;
@@ -181,6 +177,14 @@ static bool generating_coverage;
 // Is the compiler being asked to output stack usage?
 static bool generating_stackusage;
 
+// Us the compiler being asked to generate diagnostics
+// (--serialize-diagnostics)?
+static bool generating_diagnostics;
+
+// Is the compiler being asked to separate dwarf debug info into a separate
+// file (-gsplit-dwarf)"?
+static bool using_split_dwarf;
+
 // Relocating debuginfo in the format old=new.
 static char **debug_prefix_maps = NULL;
 
@@ -207,7 +211,7 @@ static char *cpp_stderr;
 char *stats_file = NULL;
 
 // Whether the output is a precompiled header.
-static bool output_is_precompiled_header = false;
+bool output_is_precompiled_header = false;
 
 // Profile generation / usage information.
 static char *profile_dir = NULL;
@@ -484,6 +488,15 @@ compiler_is_gcc(struct args *args)
 }
 
 static bool
+compiler_is_nvcc(struct args *args)
+{
+	char *name = basename(args->argv[0]);
+	bool result = strstr(name, "nvcc") != NULL;
+	free(name);
+	return result;
+}
+
+static bool
 compiler_is_pump(struct args *args)
 {
 	char *name = basename(args->argv[0]);
@@ -600,12 +613,16 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		}
 	}
 
+	// The comparison using >= is intentional, due to a possible race between
+	// starting compilation and writing the include file. See also the notes
+	// under "Performance" in MANUAL.txt.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
 		goto failure;
 	}
 
+	// The same >= logic as above applies to the change time of the file.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME)
 	    && st.st_ctime >= time_of_compilation) {
 		cc_log("Include file %s ctime too new", path);
@@ -880,11 +897,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 			p = q; // Everything of interest between p and q has been hashed now.
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
-			// An assembler .incbin statement (which could be part of inline
-			// assembly) refers to an external file. If the file changes, the hash
-			// should change as well, but finding out what file to hash is too hard
-			// for ccache, so just bail out.
-			cc_log("Found unsupported .incbin directive in source code");
+			// An assembler .inc bin (without the space) statement, which could be
+			// part of inline assembly, refers to an external file. If the file
+			// changes, the hash should change as well, but finding out what file to
+			// hash is too hard for ccache, so just bail out.
+			cc_log("Found unsupported .inc" "bin directive in source code");
 			stats_update(STATS_UNSUPPORTED_DIRECTIVE);
 			failed();
 		} else if (pump && strncmp(q, "_________", 9) == 0) {
@@ -1000,42 +1017,91 @@ out:
 	free(tmp_file);
 }
 
-// Copy or link a file to the cache.
+// Helper method for copy_file_to_cache and move_file_to_cache_same_fs.
 static void
-put_file_in_cache(const char *source, const char *dest)
+do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy, bool gzip)
 {
 	assert(!conf->read_only);
 	assert(!conf->read_only_direct);
 
-	bool do_link = conf->hard_link && !conf->compression;
-	if (do_link) {
-		x_unlink(dest);
-		int ret = link(source, dest);
-		if (ret != 0) {
-			cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
-			cc_log("Falling back to copying");
-			do_link = false;
-		}
+	struct stat orig_dest_st;
+	bool orig_dest_existed = stat(dest, &orig_dest_st) == 0;
+	const char *compression_type = conf->compression ? conf->compression_type : NULL;
+	int compression_level = conf->compression ? conf->compression_level : 0;
+	bool do_move = !copy && !conf->compression;
+	bool do_link = copy && conf->hard_link && !conf->compression;
+
+	if (gzip) {
+		compression_type = "gzip";
+		compression_level = -1;
 	}
-	if (!do_link) {
-		const char *type = conf->compression_type;
-		int level = conf->compression ? conf->compression_level : 0;
-		int ret = copy_file(source, dest, type, level);
-		if (ret != 0) {
-			cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
+
+	if (do_move) {
+		move_uncompressed_file(source, dest, compression_type, compression_level);
+	} else {
+		if (do_link) {
+			x_unlink(dest);
+			int ret = link(source, dest);
+			if (ret == 0) {
+			} else {
+				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
+				cc_log("Falling back to copying");
+				do_link = false;
+			}
+		}
+		if (!do_link) {
+			int ret = copy_file(source, dest, compression_type, compression_level);
+			if (ret != 0) {
+				cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
+				stats_update(STATS_ERROR);
+				failed();
+			}
 		}
 	}
 
-	cc_log("Stored in cache: %s -> %s", source, dest);
+	if (!copy && conf->compression) {
+		// We fell back to copying since dest should be compressed, so clean up.
+		x_unlink(source);
+	}
+
+	cc_log("Stored in cache: %s -> %s (%s)",
+	       source,
+	       dest,
+	       do_move ? "moved" : (do_link ? "linked" : "copied"));
 
 	struct stat st;
 	if (x_stat(dest, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
-	stats_update_size(file_size(&st), 1);
+	stats_update_size(
+	  file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
+	  orig_dest_existed ? 0 : 1);
+}
+
+// Copy a file into the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source does not
+// have to be on the same file system as dest.
+//
+// An attempt will be made to hard link source to dest if conf->hard_link is
+// true and conf->compression is false, otherwise copy. dest will be compressed
+// if conf->compression is true.
+static void
+copy_file_to_cache(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, true, false);
+}
+
+// Move a file into the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source must be on
+// the same file system as dest. dest will be compressed if conf->compression
+// is true. Always use gzip compression.
+static void
+move_file_to_cache_same_fs(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, false, true);
 }
 
 // Copy or link a file from the cache.
@@ -1057,8 +1123,7 @@ get_file_from_cache(const char *source, const char *dest)
 
 	if (ret == -1) {
 		if (errno == ENOENT || errno == ESTALE) {
-			// Someone removed the file just before we began copying?
-			cc_log("Cache file %s just disappeared from cache", source);
+			cc_log("File missing in cache: %s", source);
 			stats_update(STATS_MISSING);
 		} else {
 			cc_log("Failed to %s %s to %s: %s",
@@ -1074,8 +1139,10 @@ get_file_from_cache(const char *source, const char *dest)
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
 		x_unlink(cached_dep);
+		x_unlink(cached_cov);
 		x_unlink(cached_su);
 		x_unlink(cached_dia);
+		x_unlink(cached_dwo);
 
 		failed();
 	}
@@ -1129,50 +1196,10 @@ to_cache(struct args *args)
 	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
-	char *tmp_cov;
-	if (generating_coverage) {
-		char *tmp_aux;
-		// GCC has some funny rule about max extension length.
-		if (strlen(get_extension(output_obj)) < 6) {
-			tmp_aux = remove_extension(output_obj);
-		} else {
-			tmp_aux = x_strdup(output_obj);
-		}
-		tmp_cov = format("%s.gcno", tmp_aux);
-		free(tmp_aux);
-	} else {
-		tmp_cov = NULL;
-	}
-
-	char *tmp_su;
-	if (generating_stackusage) {
-		char *tmp_aux;
-		// GCC has some funny rule about max extension length.
-		if (strlen(get_extension(output_obj)) < 6) {
-			tmp_aux = remove_extension(output_obj);
-		} else {
-			tmp_aux = x_strdup(output_obj);
-		}
-		tmp_su = format("%s.su", tmp_aux);
-		free(tmp_aux);
-	} else {
-		tmp_su = NULL;
-	}
-
-	// GCC (at least 4.8 and 4.9) forms the .dwo file name by removing everything
-	// after (and including) the last "." from the object file name and then
-	// appending ".dwo".
-	char *tmp_dwo = NULL;
-	if (using_split_dwarf) {
-		char *base_name = remove_extension(output_obj);
-		tmp_dwo = format("%s.dwo", base_name);
-		free(base_name);
-	}
-
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
-	if (output_dia) {
+	if (generating_diagnostics) {
 		args_add(args, "--serialize-diagnostics");
 		args_add(args, output_dia);
 	}
@@ -1200,15 +1227,6 @@ to_cache(struct args *args)
 		stats_update(STATS_MISSING);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
 		failed();
 	}
 
@@ -1219,15 +1237,6 @@ to_cache(struct args *args)
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
 		failed();
 	}
 	tmp_unlink(tmp_stdout);
@@ -1285,16 +1294,6 @@ to_cache(struct args *args)
 		}
 
 		tmp_unlink(tmp_stderr);
-		if (tmp_cov) {
-			tmp_unlink(tmp_cov);
-		}
-		if (tmp_su) {
-			tmp_unlink(tmp_su);
-		}
-		if (tmp_dwo) {
-			tmp_unlink(tmp_dwo);
-		}
-
 		failed();
 	}
 
@@ -1309,39 +1308,12 @@ to_cache(struct args *args)
 		failed();
 	}
 
-	if (using_split_dwarf && tmp_dwo) {
-		if (stat(tmp_dwo, &st) != 0) {
-			cc_log("Compiler didn't produce a split dwarf file");
-			stats_update(STATS_NOOUTPUT);
-			failed();
-		}
-		if (st.st_size == 0) {
-			cc_log("Compiler produced an empty split dwarf file");
-			stats_update(STATS_EMPTYOUTPUT);
-			failed();
-		}
-	}
-
 	if (x_stat(tmp_stderr, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
 	if (st.st_size > 0) {
-		if (move_uncompressed_file(
-		      tmp_stderr, cached_stderr,
-		      "gzip", /* always use gzip compression for stderr */
-		      conf->compression ? conf->compression_level : 0) != 0) {
-			cc_log("Failed to move %s to %s: %s", tmp_stderr, cached_stderr,
-			       strerror(errno));
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		cc_log("Stored in cache: %s", cached_stderr);
-		if (!conf->compression
-		    // If the file was compressed, obtain the size again:
-		    || x_stat(cached_stderr, &st) == 0) {
-			stats_update_size(file_size(&st), 1);
-		}
+		move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
@@ -1350,65 +1322,22 @@ to_cache(struct args *args)
 		}
 	}
 
-	if (generating_coverage && tmp_cov) {
-		// GCC won't generate notes if there is no code.
-		if (stat(tmp_cov, &st) != 0 && errno == ENOENT) {
-			FILE *f = fopen(cached_cov, "wb");
-			cc_log("Creating placeholder: %s", cached_cov);
-			if (!f) {
-				cc_log("Failed to create %s: %s", cached_cov, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			fclose(f);
-			stats_update_size(0, 1);
-		} else {
-			put_file_in_cache(tmp_cov, cached_cov);
-		}
-	}
-
-	if (generating_stackusage && tmp_su) {
-		// GCC won't generate notes if there is no code.
-		if (stat(tmp_su, &st) != 0 && errno == ENOENT) {
-			FILE *f = fopen(cached_su, "wb");
-			cc_log("Creating placeholder: %s", cached_su);
-			if (!f) {
-				cc_log("Failed to create %s: %s", cached_su, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-			fclose(f);
-			stats_update_size(0, 1);
-		} else {
-			put_file_in_cache(tmp_su, cached_su);
-		}
-	}
-
-	if (output_dia) {
-		if (x_stat(output_dia, &st) != 0) {
-			stats_update(STATS_ERROR);
-			failed();
-		}
-		if (st.st_size > 0) {
-			put_file_in_cache(output_dia, cached_dia);
-		}
-	}
-
-	put_file_in_cache(output_obj, cached_obj);
-
-	if (using_split_dwarf) {
-		assert(tmp_dwo);
-		assert(cached_dwo);
-		put_file_in_cache(tmp_dwo, cached_dwo);
-	}
-
+	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
 		use_relative_paths_in_depfile(output_dep);
-		put_file_in_cache(output_dep, cached_dep);
+		copy_file_to_cache(output_dep, cached_dep);
 	}
-
-	if (output_su) {
-		put_file_in_cache(output_su, cached_su);
+	if (generating_coverage) {
+		copy_file_to_cache(output_cov, cached_cov);
+	}
+	if (generating_stackusage) {
+		copy_file_to_cache(output_su, cached_su);
+	}
+	if (generating_diagnostics) {
+		copy_file_to_cache(output_dia, cached_dia);
+	}
+	if (using_split_dwarf) {
+		copy_file_to_cache(output_dwo, cached_dwo);
 	}
 
 	stats_update(STATS_TOCACHE);
@@ -1441,9 +1370,6 @@ to_cache(struct args *args)
 
 	free(tmp_stderr);
 	free(tmp_stdout);
-	free(tmp_cov);
-	free(tmp_su);
-	free(tmp_dwo);
 }
 
 // Find the object file name by running the compiler in preprocessor mode.
@@ -1508,14 +1434,17 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		hash_string(hash, input_file);
 
 		hash_delimiter(hash, "unifycpp");
-		if (unify_hash(hash, path_stdout) != 0) {
+
+		bool debug_unify = getenv("CCACHE_DEBUG_UNIFY");
+		if (unify_hash(hash, path_stdout, debug_unify) != 0) {
 			stats_update(STATS_ERROR);
 			cc_log("Failed to unify %s", path_stdout);
 			failed();
 		}
 	} else {
 		hash_delimiter(hash, "cpp");
-		if (!process_preprocessed_file(hash, path_stdout, compiler_is_pump(args))) {
+		if (!process_preprocessed_file(hash, path_stdout,
+		                               compiler_is_pump(args))) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
@@ -1563,12 +1492,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_cov = get_path_in_cache(object_name, ".gcno");
 	cached_su = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
-
-	if (using_split_dwarf) {
-		cached_dwo = get_path_in_cache(object_name, ".dwo");
-	} else {
-		cached_dwo = NULL;
-	}
+	cached_dwo = get_path_in_cache(object_name, ".dwo");
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1725,19 +1649,23 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		hash_int(hash, MANIFEST_VERSION);
 	}
 
+	// clang will emit warnings for unused linker flags, so we shouldn't skip
+	// those arguments.
+	int is_clang = compiler_is_clang(args);
+
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
-		// -L doesn't affect compilation.
-		if (i < args->argc-1 && str_eq(args->argv[i], "-L")) {
+		// -L doesn't affect compilation (except for clang).
+		if (i < args->argc-1 && str_eq(args->argv[i], "-L") && !is_clang) {
 			i++;
 			continue;
 		}
-		if (str_startswith(args->argv[i], "-L")) {
+		if (str_startswith(args->argv[i], "-L") && !is_clang) {
 			continue;
 		}
 
-		// -Wl,... doesn't affect compilation.
-		if (str_startswith(args->argv[i], "-Wl,")) {
+		// -Wl,... doesn't affect compilation (except for clang).
+		if (str_startswith(args->argv[i], "-Wl,") && !is_clang) {
 			continue;
 		}
 
@@ -1755,7 +1683,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		if (!direct_mode && !output_is_precompiled_header
 		    && !using_precompiled_header) {
 			if (compopt_affects_cpp(args->argv[i])) {
-				i++;
+				if (compopt_takes_arg(args->argv[i])) {
+					i++;
+				}
 				continue;
 			}
 			if (compopt_short(compopt_affects_cpp, args->argv[i])) {
@@ -1957,74 +1887,50 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	struct stat st;
-	if (stat(cached_obj, &st) != 0) {
-		cc_log("Object file %s not in cache", cached_obj);
+	// We can't trust the objects based on running the preprocessor
+	// when the output is precompiled headers, as the hash does not
+	// include the mtime of each included header, breaking compilation
+	// with clang when the precompiled header is used after touching
+	// one of the included files.
+	if (output_is_precompiled_header && mode == FROMCACHE_CPP_MODE) {
+		cc_log("Not using preprocessed cached object for precompiled header");
 		return;
 	}
 
 	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
 	// meta-data with no content. Catch an easy case of this.
+	struct stat st;
+	if (stat(cached_obj, &st) != 0) {
+		cc_log("Object file %s not in cache", cached_obj);
+		return;
+	}
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
 		x_unlink(cached_obj);
 		return;
 	}
 
-	if (using_split_dwarf && !generating_dependencies) {
-		assert(output_dwo);
-	}
-	if (output_dwo) {
-		assert(cached_dwo);
-		if (stat(cached_dwo, &st) != 0) {
-			cc_log("Split dwarf file %s not in cache", cached_dwo);
-			return;
-		}
-		if (st.st_size == 0) {
-			cc_log("Invalid (empty) dwo file %s in cache", cached_dwo);
-			x_unlink(cached_dwo);
-			x_unlink(cached_obj); // To really invalidate.
-			return;
-		}
-	}
-
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
 	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
-	// If the dependency file should be in the cache, check that it is.
-	if (produce_dep_file && stat(cached_dep, &st) != 0) {
-		cc_log("Dependency file %s missing in cache", cached_dep);
-		return;
-	}
-
-	// Check if the diagnostic file is there.
-	if (output_dia && stat(cached_dia, &st) != 0) {
-		cc_log("Diagnostic file %s not in cache", cached_dia);
-		return;
-	}
-
-	// Copy object file from cache. Do so also for FissionDwarf file, cached_dwo,
-	// when -gsplit-dwarf is specified.
+	// Get result from cache.
 	if (!str_eq(output_obj, "/dev/null")) {
 		get_file_from_cache(cached_obj, output_obj);
 		if (using_split_dwarf) {
-			assert(output_dwo);
 			get_file_from_cache(cached_dwo, output_dwo);
 		}
 	}
 	if (produce_dep_file) {
 		get_file_from_cache(cached_dep, output_dep);
 	}
-	if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
-		// The compiler won't generate notes if there is no code
+	if (generating_coverage) {
 		get_file_from_cache(cached_cov, output_cov);
 	}
-	if (generating_stackusage && stat(cached_su, &st) == 0 && st.st_size > 0) {
-		// The compiler won't generate notes if there is no code
+	if (generating_stackusage) {
 		get_file_from_cache(cached_su, output_su);
 	}
-	if (output_dia) {
+	if (generating_diagnostics) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
 
@@ -2041,16 +1947,11 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_stackusage) {
 		update_mtime(cached_su);
 	}
-	if (output_dia) {
+	if (generating_diagnostics) {
 		update_mtime(cached_dia);
 	}
 	if (cached_dwo) {
 		update_mtime(cached_dwo);
-	}
-
-	if (generating_dependencies && mode == FROMCACHE_CPP_MODE
-	    && !conf->read_only && !conf->read_only_direct) {
-		put_file_in_cache(output_dep, cached_dep);
 	}
 
 	send_cached_stderr();
@@ -2113,9 +2014,8 @@ find_compiler(char **argv)
 bool
 is_precompiled_header(const char *path)
 {
-	return str_eq(get_extension(path), ".gch")
-	       || str_eq(get_extension(path), ".pch")
-	       || str_eq(get_extension(path), ".pth");
+	const char *ext = get_extension(path);
+	return str_eq(ext, ".gch") || str_eq(ext, ".pch") || str_eq(ext, ".pth");
 }
 
 static bool
@@ -2260,9 +2160,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Handle cuda "-optf" and "--options-file" argument.
-		if (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file")) {
-			if (i > argc) {
-				cc_log("Expected argument after -optf/--options-file");
+		if ((str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))
+		    && compiler_is_nvcc(args)) {
+			if (i == argc - 1) {
+				cc_log("Expected argument after %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
@@ -2363,7 +2264,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Special handling for -x: remember the last specified language before the
 		// input file and strip all -x options from the arguments.
 		if (str_eq(argv[i], "-x")) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2384,7 +2285,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// We need to work out where the output was meant to go.
 		if (str_eq(argv[i], "-o")) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2395,8 +2296,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		// Alternate form of -o with no space.
-		if (str_startswith(argv[i], "-o")) {
+		// Alternate form of -o with no space. Nvcc does not support this.
+		if (str_startswith(argv[i], "-o") && !compiler_is_nvcc(args)) {
 			output_obj = make_relative_path(x_strdup(&argv[i][2]));
 			continue;
 		}
@@ -2409,8 +2310,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
-				debug_prefix_maps,
-				(debug_prefix_maps_len + 1) * sizeof(char *));
+			  debug_prefix_maps,
+			  (debug_prefix_maps_len + 1) * sizeof(char *));
 			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -2447,7 +2348,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			bool separate_argument = (strlen(argv[i]) == 3);
 			if (separate_argument) {
 				// -MF arg
-				if (i >= argc - 1) {
+				if (i == argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
 					stats_update(STATS_ARGS);
 					result = false;
@@ -2477,7 +2378,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			char *relpath;
 			if (strlen(argv[i]) == 3) {
 				// -MQ arg or -MT arg
-				if (i >= argc - 1) {
+				if (i == argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
 					stats_update(STATS_ARGS);
 					result = false;
@@ -2614,12 +2515,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (str_eq(argv[i], "--serialize-diagnostics")) {
-			if (i >= argc - 1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}
+			generating_diagnostics = true;
 			output_dia = make_relative_path(x_strdup(argv[i+1]));
 			i++;
 			continue;
@@ -2704,7 +2606,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// to get better hit rate. A secondary effect is that paths in the standard
 		// error output produced by the compiler will be normalized.
 		if (compopt_takes_path(argv[i])) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2756,7 +2658,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Options that take an argument.
 		if (compopt_takes_arg(argv[i])) {
-			if (i == argc-1) {
+			if (i == argc - 1) {
 				cc_log("Missing argument to %s", argv[i]);
 				stats_update(STATS_ARGS);
 				result = false;
@@ -2909,6 +2811,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		stats_update(STATS_SOURCELANG);
 		result = false;
 		goto out;
+	}
+
+	if (!conf->run_second_cpp && str_eq(actual_language, "cuda")) {
+		cc_log("Using CUDA compiler; not compiling preprocessed code");
+		conf->run_second_cpp = true;
 	}
 
 	direct_i_file = language_is_preprocessed(actual_language);
@@ -3203,19 +3110,19 @@ cc_reset(void)
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
 	free(output_obj); output_obj = NULL;
-	free(output_dwo); output_dwo = NULL;
 	free(output_dep); output_dep = NULL;
 	free(output_cov); output_cov = NULL;
 	free(output_su); output_su = NULL;
 	free(output_dia); output_dia = NULL;
+	free(output_dwo); output_dwo = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
-	free(cached_obj); cached_obj = NULL;
-	free(cached_dwo); cached_dwo = NULL;
 	free(cached_stderr); cached_stderr = NULL;
+	free(cached_obj); cached_obj = NULL;
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
 	free(cached_su); cached_su = NULL;
 	free(cached_dia); cached_dia = NULL;
+	free(cached_dwo); cached_dwo = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
@@ -3247,9 +3154,9 @@ cc_reset(void)
 // Make a copy of stderr that will not be cached, so things like distcc can
 // send networking errors to it.
 static void
-setup_uncached_err(void)
+set_up_uncached_err(void)
 {
-	int uncached_fd = dup(2);
+	int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed: %s", strerror(errno));
 		failed();
@@ -3296,16 +3203,11 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	setup_uncached_err();
+	set_up_uncached_err();
 
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", get_current_working_dir());
-
-	if (conf->unify) {
-		cc_log("Direct mode disabled because unify mode is enabled");
-		conf->direct_mode = false;
-	}
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
@@ -3327,18 +3229,9 @@ ccache(int argc, char *argv[])
 	if (generating_stackusage) {
 		cc_log("Stack usage file: %s", output_su);
 	}
-	if (output_dia) {
-		cc_log("Diagnostic file: %s", output_dia);
+	if (generating_diagnostics) {
+		cc_log("Diagnostics file: %s", output_dia);
 	}
-
-	if (using_split_dwarf) {
-		if (!generating_dependencies) {
-			assert(output_dwo);
-		}
-	} else {
-		assert(!output_dwo);
-	}
-
 	if (output_dwo) {
 		cc_log("Split dwarf file: %s", output_dwo);
 	}
@@ -3474,7 +3367,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 'c': // --cleanup
 			initialize();
-			cleanup_all(conf);
+			clean_up_all(conf);
 			printf("Cleaned cache\n");
 			break;
 

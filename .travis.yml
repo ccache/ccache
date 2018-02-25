@@ -1,5 +1,7 @@
 language: c
 
+sudo: required
+
 addons:
     apt:
         packages:
@@ -32,10 +34,16 @@ matrix:
         - os: linux
           compiler: clang
           env: PATH="/usr/bin:$PATH" TEST=analyze
+        - os: linux
+          compiler: gcc
+          env: CUDA=8.0.61-1
 
     exclude:
         - os: osx
           compiler: gcc
+
+before_install:
+    - source ./.travis/install_cuda.sh
 
 script:
     - ./autogen.sh

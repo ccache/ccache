@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2004 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -313,7 +313,7 @@ init_counter_updates(void)
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(uint64_t size, unsigned files)
+stats_update_size(int64_t size, int files)
 {
 	init_counter_updates();
 	counter_updates->data[STATS_NUMFILES] += files;
@@ -394,22 +394,31 @@ stats_flush(void)
 		}
 	}
 
+	char *subdir = dirname(stats_file);
 	bool need_cleanup = false;
+
 	if (conf->max_files != 0
 	    && counters->data[STATS_NUMFILES] > conf->max_files / 16) {
+		cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
+		       subdir,
+		       counters->data[STATS_NUMFILES],
+		       conf->max_files / 16);
 		need_cleanup = true;
 	}
 	if (conf->max_size != 0
 	    && counters->data[STATS_TOTALSIZE] > conf->max_size / 1024 / 16) {
+		cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
+		       subdir,
+		       counters->data[STATS_TOTALSIZE],
+		       (unsigned long)conf->max_size / 1024 / 16);
 		need_cleanup = true;
 	}
 
 	if (need_cleanup) {
-		char *p = dirname(stats_file);
-		cleanup_dir(conf, p);
-		free(p);
+		clean_up_dir(conf, subdir, conf->limit_multiple);
 	}
 
+	free(subdir);
 	counters_free(counters);
 }
 

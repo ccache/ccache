@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2016 Joel Rosdahl
+// Copyright (C) 2011-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -190,7 +190,8 @@ win32execute(char *path, char **argv, int doreturn,
 		                      * sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
 		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-		          TEXT("%s failed with error %d: %s"), __FILE__, dw, lpMsgBuf);
+		          TEXT("%s failed with error %lu: %s"), __FILE__, dw,
+		          (const char *)lpMsgBuf);
 
 		cc_log("can't execute %s; OS returned error: %s",
 		       full_path_win_ext, (char *)lpDisplayBuf);

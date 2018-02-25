@@ -17,10 +17,50 @@ New features and improvements
 
 - ccache should now work with distcc's ``pump'' wrapper.
 
+- The optional unifier is no longer disabled when the direct mode is enabled.
+
+- Added support for nvcc compiler options `--compiler-bindir/-ccbin`,
+  `--output-directory/-odir` and `--libdevice-directory/-ldir`.
+
+
+Bug fixes
+~~~~~~~~~
+
+- File size and number counters are now updated correctly when files are
+  overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
+
+- Force run_second_cpp for nvcc.
+
+- Fixed how the nvcc options `-optf` and `-odir` are handled.
+
+
+ccache 3.3.6
+------------
+Release date: 2018-01-28
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved instructions on how to get cache hits between different working
+  directories.
+
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed regression in ccache 3.3.5 related to the `UNCACHED_ERR_FD` feature.
+
 
 ccache 3.3.5
 ------------
-Not yet released
+Release date: 2018-01-13
+
+
+New features and improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Documented how automatic cache cleanup works.
+
 
 Bug fixes
 ~~~~~~~~~
@@ -32,6 +72,30 @@ Bug fixes
 
 - Fixed matching of directories in the `ignore_headers_in_manifest`
   configuration option.
+
+- Fixed detection of missing argument to `-opt`/`--options-file`.
+
+- ccache now bails out when building a precompiled header if any of the
+  corresponding header files have an updated timestamp. This fixes complaints
+  from clang.
+
+- Fixed a bug related to erroneously storing a dependency file with absolute
+  paths in the cache on a preprocessed hit.
+
+- `ccache -c/--cleanup` now works like documented: it just recalculates size
+  counters and trims the cache to not exceed the max size and file number
+  limits. Previously, the forced cleanup took ``limit_multiple'' into account,
+  so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
+  max limit.
+
+- ccache no longer ignores linker arguments for clang since clang warns about
+  them.
+
+- Plugged a couple of file descriptor leaks.
+
+- Fixed a bug where ccache would skip hashing the compiler argument following a
+  `-fno-working-directory`, `-fworking-directory`, `-nostdinc`, `-nostdinc++`,
+  `-remap` or `-trigraphs` option in preprocessor mode.
 
 
 ccache 3.3.4

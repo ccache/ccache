@@ -186,6 +186,7 @@ char *x_readlink(const char *path);
 bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
 char *read_text_file(const char *path, size_t size_hint);
 char *subst_env_in_string(const char *str, char **errmsg);
+void set_cloexec_flag(int fd);
 
 // ----------------------------------------------------------------------------
 // stats.c
@@ -195,7 +196,7 @@ void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(struct conf *conf);
-void stats_update_size(uint64_t size, unsigned files);
+void stats_update_size(int64_t size, int files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
 void stats_set_sizes(const char *dir, unsigned num_files, uint64_t total_size);
@@ -207,7 +208,7 @@ void stats_write(const char *path, struct counters *counters);
 // ----------------------------------------------------------------------------
 // unify.c
 
-int unify_hash(struct mdfour *hash, const char *fname);
+int unify_hash(struct mdfour *hash, const char *fname, bool print);
 
 // ----------------------------------------------------------------------------
 // exitfn.c
@@ -220,8 +221,8 @@ void exitfn_call(void);
 // ----------------------------------------------------------------------------
 // cleanup.c
 
-void cleanup_dir(struct conf *conf, const char *dir);
-void cleanup_all(struct conf *conf);
+void clean_up_dir(struct conf *conf, const char *dir, float limit_multiple);
+void clean_up_all(struct conf *conf);
 void wipe_all(struct conf *conf);
 
 // ----------------------------------------------------------------------------
@@ -241,6 +242,7 @@ void lockfile_release(const char *path);
 // ccache.c
 
 extern time_t time_of_compilation;
+extern bool output_is_precompiled_header;
 void block_signals(void);
 void unblock_signals(void);
 bool cc_process_args(struct args *args, struct args **preprocessor_args,
