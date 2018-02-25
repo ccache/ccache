@@ -1,6 +1,6 @@
 LZ4 BUNDLED WITH CCACHE
 =======================
 
-This directory contains a subset of files from LZ4 r131. The full release can
+This directory contains a subset of files from LZ4 1.7.5. The full release can
 be found at <http://lz4.org>. For conditions of distribution and use, see
 copyright notice in lz4.h.
