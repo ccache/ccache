@@ -1,66 +1,33 @@
-ccache
-======
+ccache – a fast compiler cache
+==============================
 
 [![Build Status](https://travis-ci.org/ccache/ccache.svg?branch=master)](https://travis-ci.org/ccache/ccache)
-
-About
------
 
 ccache is a compiler cache. It speeds up recompilation by caching the result of
 previous compilations and detecting when the same compilation is being done
 again. Supported languages are C, C++, Objective-C and Objective-C++.
 
 
-Documentation
--------------
+General information
+-------------------
 
-See the https://ccache.samba.org.
-
-
-Installation
-------------
-
-See [INSTALL.md](INSTALL.md).
-
-
-Web site
---------
-
-The main ccache web site is here:
-
-https://ccache.samba.org
+* [Main web site](https://ccache.samba.org)
+* [Documentation](https://ccache.samba.org/documentation.html)
+  * [Latest manual](https://ccache.samba.org/manual/latest.html)
+  * [Installation from Git source repository](https://github.com/ccache/ccache/blob/master/doc/INSTALL.md)
+  * [Installation from release archive](https://github.com/ccache/ccache/blob/master/doc/INSTALL-from-release-archive.md)
+* [Release notes](https://ccache.samba.org/releasenotes.html)
+* [Credits and history](https://ccache.samba.org/credits.html)
+* [License and copyright](https://ccache.samba.org/license.html)
 
 
-Mailing list
-------------
+Contributing to ccache
+----------------------
 
-There is a mailing list for discussing usage and development of ccache:
-
-https://lists.samba.org/mailman/listinfo/ccache/
-
-Anyone is welcome to join.
-
-
-Bug reports
------------
-
-To submit a bug report or to search for existing reports, please visit this web
-page:
-
-https://ccache.samba.org/bugs.html
-
-
-History
--------
-
-ccache was originally written by Andrew Tridgell and is currently developed and
-maintained by Joel Rosdahl. ccache started out as a reimplementation of Erik
-Thiele's "compilercache" (see http://www.erikyyy.de/compilercache/) in C.
-
-See also https://ccache.samba.org/news.html.
-
-
-License and copyright
----------------------
-
-See https://ccache.samba.org/license.html.
+* [Source repository](https://github.com/ccache/ccache)
+* [Notes on how to contribute](https://github.com/ccache/ccache/blob/master/CONTRIBUTING.md)
+* [Mailing list](https://lists.samba.org/mailman/listinfo/ccache/)
+* [Bug report info](https://ccache.samba.org/bugs.html)
+* [Issue tracker](https://github.com/ccache/ccache/issues)
+  * [Help wanted!](https://github.com/ccache/ccache/issues/help%20wanted)
+  * [Good first issues!](https://github.com/ccache/ccache/issues/good%20first%20issue)
