@@ -1,6 +1,31 @@
 ccache news
 ===========
 
+ccache 3.5
+----------
+Release date: unknown
+
+New features and enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
+  alias).
+
+
+ccache 3.4.2
+------------
+Release date: unknown
+
+Bug fixes
+~~~~~~~~~
+
+- Correctly hash preprocessed headers located in a ``.gch directory''.
+  Previously, ccache would not pick up changes to such precompiled headers,
+  risking false positive cache hits.
+
+- Fixed build failure when using the bundled zlib sources.
+
+
 ccache 3.4.1
 ------------
 Release date: 2018-02-11

@@ -10,6 +10,7 @@ struct env_to_conf_item;
 %%
 BASEDIR, "base_dir"
 CC, "compiler"
+COMPILER, "compiler"
 COMPILERCHECK, "compiler_check"
 COMPRESS, "compression"
 COMPRESSLEVEL, "compression_level"

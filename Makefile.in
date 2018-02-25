@@ -55,9 +55,19 @@ ccache_sources = src/main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
 
 zlib_sources = \
-    zlib/adler32.c zlib/crc32.c zlib/deflate.c zlib/gzclose.c zlib/gzlib.c \
-    zlib/gzread.c zlib/gzwrite.c zlib/inffast.c zlib/inflate.c \
-    zlib/inftrees.c zlib/trees.c zlib/zutil.c
+    src/zlib/adler32.c \
+    src/zlib/crc32.c \
+    src/zlib/deflate.c \
+    src/zlib/gzclose.c \
+    src/zlib/gzlib.c \
+    src/zlib/gzread.c \
+    src/zlib/gzwrite.c \
+    src/zlib/inffast.c \
+    src/zlib/inflate.c \
+    src/zlib/inftrees.c \
+    src/zlib/trees.c \
+    src/zlib/zutil.c
+
 zlib_objs = $(zlib_sources:.c=.o)
 
 lz4_sources = \
@@ -72,7 +82,15 @@ test_objs = $(test_sources:.c=.o)
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs) $(zlib_objs) $(lz4_objs)
 
-files_to_clean = $(all_objs) ccache$(EXEEXT) unittest/run$(EXEEXT) *~ testdir.*
+files_to_clean = \
+    $(all_objs) \
+    ccache$(EXEEXT) \
+    src/*~ \
+    src/zlib/libz.a \
+    testdir.* \
+    unittest/run$(EXEEXT) \
+    *~ \
+
 files_to_distclean = Makefile config.h config.log config.status
 
 .PHONY: all
@@ -96,7 +114,7 @@ conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
 $(zlib_objs): CPPFLAGS += -include config.h
 
-zlib/libz.a: $(zlib_objs)
+src/zlib/libz.a: $(zlib_objs)
 	$(AR) cr $@ $(zlib_objs)
 	$(RANLIB) $@
 
