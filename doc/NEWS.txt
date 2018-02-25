@@ -12,6 +12,8 @@ Bug fixes
   Previously, ccache would not pick up changes to such precompiled headers,
   risking false positive cache hits.
 
+- Fixed build failure when using the bundled zlib sources.
+
 
 ccache 3.4.1
 ------------

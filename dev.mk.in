@@ -130,10 +130,20 @@ $(dist_archives): $(dist_files)
 distcheck: $(firstword $(dist_archives))
 	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
 	(cd $$tmpdir && \
-	 tar xjf $(CURDIR)/$< && \
+	 tar xf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
+	 $(MAKE) install && \
+	 $(MAKE) installcheck) && \
+	rm -rf $$tmpdir
+
+	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
+	(cd $$tmpdir && \
+	 tar xf $(CURDIR)/$< && \
+	 mkdir -p $(dist_dir)/build && \
+	 cd $(dist_dir)/build && \
+	 ../configure --prefix=$$tmpdir/root --with-bundled-zlib && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
 	rm -rf $$tmpdir

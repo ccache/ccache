@@ -120,8 +120,8 @@ fi
 
 if test x${use_bundled_zlib} = xyes; then
     CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/zlib"
-    extra_libs="zlib/libz.a"
-    mkdir -p zlib
+    extra_libs="src/zlib/libz.a"
+    mkdir -p src/zlib
 else
     LIBS="$LIBS -lz"
 fi
