@@ -1,6 +1,16 @@
 ccache news
 ===========
 
+ccache 3.4.1
+------------
+Release date: 2018-02-11
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed printing of version number in `ccache --version`.
+
+
 ccache 3.4
 ----------
 Release date: 2018-02-11

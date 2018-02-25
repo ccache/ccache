@@ -22,7 +22,7 @@ configure
 dev.mk
 dev_mode_disabled
 perfdir.*
+src/version.c
 testdir.*
 unittest/run
 unittest/suites.h
-version.c
