@@ -1,0 +1,415 @@
+#!/bin/bash
+#
+# A simple test suite for ccache.
+#
+# Copyright (C) 2002-2007 Andrew Tridgell
+# Copyright (C) 2009-2018 Joel Rosdahl
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 51
+# Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+green() {
+    printf "\033[1;32m$*\033[0;0m\n"
+}
+
+red() {
+    printf "\033[1;31m$*\033[0;0m\n"
+}
+
+bold() {
+    printf "\033[1;37m$*\033[0;0m\n"
+}
+
+test_failed() {
+    echo
+    red FAILED
+    echo
+    echo "Test suite:     $(bold $CURRENT_SUITE)"
+    echo "Test case:      $(bold $CURRENT_TEST)"
+    echo "Failure reason: $(red "$1")"
+    echo
+    echo "ccache -s:"
+    $CCACHE -s
+    echo
+    echo "Test data and log file have been left in $TESTDIR"
+    exit 1
+}
+
+find_compiler() {
+    local name=$1
+    perl -e '
+        use File::Basename;
+        my $cc = $ARGV[0];
+        $cc = basename($cc) if readlink($cc) =~ "ccache";
+        if ($cc =~ m!^/!) {
+            print $cc;
+            exit;
+        }
+        foreach my $dir (split(/:/, $ENV{PATH})) {
+            $path = "$dir/$cc";
+            if (-x $path && readlink($path) !~ "ccache") {
+                print $path;
+                exit;
+            }
+        }' $name
+}
+
+generate_code() {
+    local nlines=$1
+    local outfile=$2
+
+    rm -f $outfile
+    for i in $(seq $nlines); do
+        echo "int foo_$i(int x) { return x; }" >>$outfile
+    done
+}
+
+remove_cache() {
+    if [ -d $CCACHE_DIR ]; then
+        chmod -R +w $CCACHE_DIR
+        rm -rf $CCACHE_DIR
+    fi
+}
+
+clear_cache() {
+    $CCACHE -Cz >/dev/null
+}
+
+sed_in_place() {
+    local expr=$1
+    shift
+
+    for file in $*; do
+        sed "$expr" $file >$file.sed
+        mv $file.sed $file
+    done
+}
+
+backdate() {
+    touch -t 199901010000 "$@"
+}
+
+expect_stat() {
+    local stat="$1"
+    local expected_value="$2"
+    local value="$(echo $($CCACHE -s | fgrep "$stat" | cut -c34-))"
+
+    if [ "$expected_value" != "$value" ]; then
+        test_failed "Expected \"$stat\" to be $expected_value, actual $value"
+    fi
+}
+
+expect_equal_files() {
+    if [ ! -e "$1" ]; then
+        test_failed "compare_files: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed "compare_files: $2 missing"
+    fi
+    if ! cmp -s "$1" "$2"; then
+        test_failed "compare_files: $1 and $2 differ"
+    fi
+}
+
+expect_different_files() {
+    if [ ! -e "$1" ]; then
+        test_failed "compare_files: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed "compare_files: $2 missing"
+    fi
+    if cmp -s "$1" "$2"; then
+        test_failed "compare_files: $1 and $2 are identical"
+    fi
+}
+
+expect_equal_object_files() {
+    if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
+        if ! which eu-elfcmp >/dev/null 2>&1; then
+            test_failed "Please install elfutils to get eu-elfcmp"
+        fi
+        eu-elfcmp -q "$1" "$2"
+    else
+        cmp -s "$1" "$2"
+    fi
+    if [ $? -ne 0 ]; then
+        test_failed "Objects differ: $1 != $2"
+    fi
+}
+
+expect_file_content() {
+    local file="$1"
+    local content="$2"
+
+    if [ ! -f "$file" ]; then
+        test_failed "$file not found"
+    fi
+    if [ "$(cat $file)" != "$content" ]; then
+        test_failed "Bad content of $file.\nExpected: $content\nActual: $(cat $file)"
+    fi
+}
+
+expect_file_count() {
+    local expected=$1
+    local pattern=$2
+    local dir=$3
+    local actual=`find $dir -name "$pattern" | wc -l`
+    if [ $actual -ne $expected ]; then
+        test_failed "Found $actual (expected $expected) $pattern files in $dir"
+    fi
+}
+
+run_suite() {
+    local suite_name=$1
+
+    CURRENT_SUITE=$suite_name
+
+    cd $ABS_TESTDIR
+    rm -rf $ABS_TESTDIR/fixture
+
+    if type SUITE_${suite_name}_PROBE >/dev/null 2>&1; then
+        mkdir $ABS_TESTDIR/probe
+        cd $ABS_TESTDIR/probe
+        local skip_reason="$(SUITE_${suite_name}_PROBE)"
+        cd $ABS_TESTDIR
+        rm -rf $ABS_TESTDIR/probe
+        if [ -n "$skip_reason" ]; then
+            echo "Skipped test suite $suite_name [$skip_reason]"
+            return
+        fi
+    fi
+
+    printf "Running test suite %s" "$(bold $suite_name)"
+    SUITE_$suite_name
+    echo
+}
+
+TEST() {
+    CURRENT_TEST=$1
+
+    while read name; do
+        unset $name
+    done <<EOF
+$(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
+EOF
+    unset GCC_COLORS
+
+    export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
+    export CCACHE_DETECT_SHEBANG=1
+    export CCACHE_DIR=$ABS_TESTDIR/.ccache
+    export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
+    export CCACHE_NODIRECT=1
+
+    # Many tests backdate files, which updates their ctimes. In those tests, we
+    # must ignore ctimes. Might as well do so everywhere.
+    DEFAULT_SLOPPINESS=include_file_ctime
+    export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
+
+    CCACHE_COMPILE="$CCACHE $COMPILER"
+
+    if $VERBOSE; then
+        printf "\n  %s" "$CURRENT_TEST"
+    else
+        printf .
+    fi
+
+    cd /
+    remove_cache
+    rm -rf $ABS_TESTDIR/run
+    mkdir $ABS_TESTDIR/run
+    cd $ABS_TESTDIR/run
+    if type SUITE_${suite_name}_SETUP >/dev/null 2>&1; then
+        SUITE_${suite_name}_SETUP
+    fi
+}
+
+# =============================================================================
+# main program
+
+if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
+    cat <<EOF
+Error: The test suite doesn't work in directories with whitespace or other
+funny characters in the name. Sorry.
+EOF
+    exit 1
+fi
+
+# Remove common ccache directories on host from PATH variable
+HOST_CCACHE_DIRS="/usr/lib/ccache/bin
+/usr/lib/ccache"
+for HOST_CCACHE_DIR in $HOST_CCACHE_DIRS; do
+    PATH=$(echo -n $PATH | awk -v RS=: -v ORS=: '$0 != "'$HOST_CCACHE_DIR'"' | sed 's/:$//')
+done
+export PATH
+
+if [ -n "$CC" ]; then
+    COMPILER="$CC"
+else
+    COMPILER=gcc
+fi
+if [ -z "$CCACHE" ]; then
+    CCACHE=`pwd`/ccache
+fi
+
+COMPILER_TYPE_CLANG=false
+COMPILER_TYPE_GCC=false
+
+COMPILER_USES_LLVM=false
+COMPILER_USES_MINGW=false
+
+HOST_OS_APPLE=false
+HOST_OS_LINUX=false
+HOST_OS_WINDOWS=false
+
+compiler_version="`$COMPILER --version 2>&1 | head -1`"
+case $compiler_version in
+    *gcc*|*g++*|2.95*)
+        COMPILER_TYPE_GCC=true
+        ;;
+    *clang*)
+        COMPILER_TYPE_CLANG=true
+        ;;
+    *)
+        echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
+        exit 0
+        ;;
+esac
+
+case $compiler_version in
+    *llvm*|*LLVM*)
+        COMPILER_USES_LLVM=true
+        ;;
+    *MINGW*|*mingw*)
+        COMPILER_USES_MINGW=true
+        ;;
+esac
+
+case $(uname -s) in
+    *MINGW*|*mingw*)
+        HOST_OS_WINDOWS=true
+        ;;
+    *Darwin*)
+        HOST_OS_APPLE=true
+        ;;
+    *Linux*)
+        HOST_OS_LINUX=true
+        ;;
+esac
+
+if $HOST_OS_WINDOWS; then
+    PATH_DELIM=";"
+else
+    PATH_DELIM=":"
+fi
+
+if $HOST_OS_APPLE; then
+    # Grab the developer directory from the environment or try xcode-select
+    if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
+      XCODE_DEVELOPER_DIR=`xcode-select --print-path`
+      if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
+        echo "Error: XCODE_DEVELOPER_DIR environment variable not set and xcode-select path not set"
+        exit 1
+      fi
+    fi
+
+    # Choose the latest SDK if an SDK root is not set
+    MAC_PLATFORM_DIR=$XCODE_DEVELOPER_DIR/Platforms/MacOSX.platform
+    if [ "$SDKROOT" = "" ]; then
+        SDKROOT="`eval ls -f -1 -d \"$MAC_PLATFORM_DIR/Developer/SDKs/\"*.sdk | tail -1`"
+        if [ "$SDKROOT" = "" ]; then
+            echo "Error: Cannot find a valid SDK root directory"
+            exit 1
+        fi
+    fi
+
+    SYSROOT="-isysroot `echo \"$SDKROOT\" | sed 's/ /\\ /g'`"
+else
+    SYSROOT=
+fi
+
+# ---------------------------------------
+
+all_suites="
+base
+nocpp2
+cpp1
+multi_arch
+serialize_diagnostics
+debug_prefix_map
+masquerading
+hardlink
+direct
+basedir
+compression
+readonly
+readonly_direct
+cleanup
+pch
+upgrade
+input_charset
+nvcc
+nvcc_direct
+nvcc_ldir
+nvcc_nocpp2
+"
+
+for suite in $all_suites; do
+    . $(dirname $0)/suites/$suite.bash
+done
+
+# ---------------------------------------
+
+TESTDIR=testdir.$$
+ABS_TESTDIR=$PWD/$TESTDIR
+rm -rf $TESTDIR
+mkdir $TESTDIR
+cd $TESTDIR || exit 1
+
+compiler_bin=$(echo $COMPILER | awk '{print $1}')
+compiler_args=$(echo $COMPILER | awk '{$1 = ""; print}')
+REAL_COMPILER_BIN=$(find_compiler $compiler_bin)
+REAL_COMPILER="$REAL_COMPILER_BIN$compiler_args"
+
+if [ "$REAL_COMPILER" = "$COMPILER" ]; then
+    echo "Compiler:         $COMPILER"
+else
+    echo "Compiler:         $COMPILER ($REAL_COMPILER)"
+fi
+echo "Compiler version: $($COMPILER --version | head -n 1)"
+
+REAL_NVCC=$(find_compiler nvcc)
+REAL_CUOBJDUMP=$(find_compiler cuobjdump)
+if [ -n "$REAL_NVCC" ]; then
+    echo "CUDA compiler:    $($REAL_NVCC --version | tail -n 1) ($REAL_NVCC)"
+else
+    echo "CUDA compiler:    not available"
+fi
+echo
+
+VERBOSE=false
+[ "$1" = "-v" ] && { VERBOSE=true; shift; }
+
+suites="$*"
+if [ -z "$suites" ]; then
+    suites="$all_suites"
+fi
+
+for suite in $suites; do
+    run_suite $suite
+done
+
+cd /
+rm -rf $ABS_TESTDIR
+green PASSED
+exit 0

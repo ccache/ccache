@@ -1,3 +1,0 @@
-ConfigurationNotChecked
-missingIncludeSystem
-unusedFunction:test/test_*
