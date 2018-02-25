@@ -285,6 +285,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		n = read(fd_in, p, left);
 		if (n == -1) {
 			saved_errno = errno;
+			free(in);
 			goto error;
 		}
 		p += n;
@@ -296,6 +297,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		err = LZ4F_createDecompressionContext(&context, LZ4F_VERSION);
 		if (LZ4F_isError(err)) {
 			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
 			goto error;
 		}
 
@@ -307,6 +309,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		err = LZ4F_getFrameInfo(context, &info, p, &size);
 		if (LZ4F_isError(err)) {
 			cc_log("frame error: %s", LZ4F_getErrorName(err));
+			free(in);
 			goto error;
 		}
 		q += size;
@@ -316,6 +319,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 
 		if (info.contentSize == 0) {
 			cc_log("unknown size: %ld", (long) info.contentSize);
+			free(in);
 			goto error;
 		}
 
@@ -335,6 +339,8 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 			err = LZ4F_decompress(context, p, &size, q, &left, &options);
 			if (LZ4F_isError(err)) {
 				cc_log("decompress error: %s", LZ4F_getErrorName(err));
+				free(in);
+				free(out);
 				goto error;
 			}
 			p += size;
@@ -348,6 +354,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		err = LZ4F_freeDecompressionContext(context);
 		if (LZ4F_isError(err)) {
 			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
 			goto error;
 		}
 	}
@@ -363,6 +370,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 		err = LZ4F_compressFrame(out, out_size, in, in_size, &prefs);
 		if (LZ4F_isError(err)) {
 			cc_log("context error: %s", LZ4F_getErrorName(err));
+			free(in);
 			goto error;
 		}
 		size = err;
