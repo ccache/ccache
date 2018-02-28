@@ -187,6 +187,6 @@ analyze:
 
 .PHONY: docker
 docker: misc/Dockerfile
-	$(DOCKER) build $(srcdir)
+	$(DOCKER) build -f $< $(srcdir)
 
 -include .deps/*.d
