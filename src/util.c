@@ -362,7 +362,7 @@ lz4f_copy_file(const char *src, const char *dest, int compress_level)
 	/* compress */
 	if (compress_level > 0) {
 		memset(&prefs, 0, sizeof(prefs));
-		prefs.frameInfo.contentChecksumFlag = contentChecksumEnabled;
+		prefs.frameInfo.contentChecksumFlag = LZ4F_contentChecksumEnabled;
 		prefs.frameInfo.contentSize = in_size;
 		prefs.compressionLevel = compress_level;
 		out_size = LZ4F_compressFrameBound(in_size, &prefs);
