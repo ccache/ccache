@@ -29,7 +29,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+    if objdump -g test.o | grep ": `pwd`$" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 
@@ -39,7 +39,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+    if objdump -g test.o | grep ": `pwd`$" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 
@@ -52,10 +52,10 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+    if objdump -g test.o | grep ": `pwd`$" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
-    if ! grep "name" test.o >/dev/null 2>&1; then
+    if ! objdump -g test.o | grep ": name$" >/dev/null 2>&1; then
         test_failed "Relocation (name) not found in test.o"
     fi
 
@@ -65,7 +65,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if grep -E "[^=]`pwd`[^=]" test.o >/dev/null 2>&1; then
+    if objdump -g test.o | grep ": `pwd`$" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 }
