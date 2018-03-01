@@ -642,9 +642,9 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		if (conf->pch_external_checksum) {
 			// hash pch.sum instead of pch when it exists
 			// to prevent hashing a very large .pch file every time
-			char * pch_sum_path = format("%s.sum", path);
+			char *pch_sum_path = format("%s.sum", path);
 			if (x_stat(pch_sum_path, &st) == 0) {
-				char * old_path = path;
+				char *old_path = path;
 				path = pch_sum_path;
 				pch_sum_path = old_path;
 				using_pch_sum = true;
