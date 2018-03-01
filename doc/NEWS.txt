@@ -11,6 +11,11 @@ New features and enhancements
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
 
+- It is now possible to let ccache hash a precomputed checksum file instead of
+  the full content of a precompiled header. This can save time for large
+  precompiled headers. Note that the build system needs to keep the checksum
+  file in sync with the precompiled header for this to work.
+
 
 ccache 3.4.2
 ------------
