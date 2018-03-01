@@ -618,7 +618,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 	// The comparison using >= is intentional, due to a possible race between
 	// starting compilation and writing the include file. See also the notes
-	// under "Performance" in MANUAL.txt.
+	// under "Performance" in doc/MANUAL.adoc.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
