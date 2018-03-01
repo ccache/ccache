@@ -451,13 +451,13 @@ might be incorrect.
     matching the compiler name in the normal *PATH* that isn't a symbolic link
     to ccache itself.
 
-*pch_external_checksum* (*CCACHE_PCH_EXTSUM*)::
+*pch_external_checksum* (*CCACHE_PCH_EXTSUM* or *CCACHE_NOPCH_EXTSUM*, see <<_boolean_values,Boolean values>> above)::
 
     When this option is set, and ccache finds a precompiled header file,
-    ccache will look for a file with the extension ``.sum`` added
-    (e.g. ``pre.h.gch.sum``), and if found, it will hash this file instead
-    of the precompiled header itself.  To work around the performance
-    penalty of hashing of very large files.
+    ccache will look for a file with the extension ``.sum'' added
+    (e.g. ``pre.h.gch.sum''), and if found, it will hash this file instead
+    of the precompiled header itself to work around the performance
+    penalty of hashing very large files.
 
 *prefix_command* (*CCACHE_PREFIX*)::
 
