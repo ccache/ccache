@@ -19,6 +19,22 @@ EOF
     backdate dir1/include/test.h dir2/include/test.h
 }
 
+objdump_cmd() {
+    if $HOST_OS_APPLE; then
+        xcrun dwarfdump -r0 $1
+    else
+        objdump -g $1
+    fi
+}
+
+grep_cmd() {
+    if $HOST_OS_APPLE; then
+        grep "( \"$1\" )"
+    else
+        grep ": $1[[:space:]]*$"
+    fi
+}
+
 SUITE_debug_prefix_map() {
     # -------------------------------------------------------------------------
     TEST "Mapping of debug info CWD"
@@ -29,7 +45,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump -g test.o | grep ": `pwd`[[:space:]]*$" >/dev/null 2>&1; then
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 
@@ -39,7 +55,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump -g test.o | grep ": `pwd`[[:space:]]*$" >/dev/null 2>&1; then
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 
@@ -52,10 +68,10 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump -g test.o | grep ": `pwd`[[:space:]]*$" >/dev/null 2>&1; then
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
-    if ! objdump -g test.o | grep ": name[[:space:]]*$" >/dev/null 2>&1; then
+    if ! objdump_cmd test.o | grep_cmd "name" >/dev/null 2>&1; then
         test_failed "Relocation (name) not found in test.o"
     fi
 
@@ -65,7 +81,7 @@ SUITE_debug_prefix_map() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump -g test.o | grep ": `pwd`[[:space:]]*$" >/dev/null 2>&1; then
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
 }
