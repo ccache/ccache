@@ -10,9 +10,6 @@ autom4te.cache
 ccache
 ccache-*.tar.*
 ccache.1
-ccache.exe
-ccache.html
-ccache.xml
 config.cache
 config.h
 config.h.in
