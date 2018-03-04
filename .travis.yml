@@ -27,7 +27,7 @@ matrix:
           before_install:
               - sudo apt-get -qq update
               - sudo apt-get install -y gcc-mingw-w64-x86-64
-          env: HOST="--host=x86_64-w64-mingw32" TEST="test/main.exe"
+          env: HOST="--host=x86_64-w64-mingw32" TEST="unittest/run.exe"
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
