@@ -9,7 +9,6 @@ Makefile
 autom4te.cache
 ccache
 ccache-*.tar.*
-ccache.1
 config.cache
 config.h
 config.h.in
@@ -18,6 +17,7 @@ config.status
 configure
 dev.mk
 dev_mode_disabled
+doc/ccache.1
 perfdir.*
 src/version.c
 testdir.*
