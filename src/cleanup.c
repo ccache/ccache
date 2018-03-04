@@ -194,9 +194,15 @@ clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 		stats_add_cleanup(dir, 1);
 	}
 
+#ifdef _WIN32
+	cc_log("After cleanup: %lu KiB, %I64u files",
+	       (unsigned long)cache_size / 1024,
+	       (unsigned long long)files_in_cache);
+#else
 	cc_log("After cleanup: %lu KiB, %zu files",
 	       (unsigned long)cache_size / 1024,
 	       files_in_cache);
+#endif
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.
