@@ -140,8 +140,7 @@ sort_and_clean(void)
 		    || str_eq(ext, ".d")
 		    || str_eq(ext, ".gcno")
 		    || str_eq(ext, ".dia")
-		    || str_eq(ext, ".stderr")
-		    || str_eq(ext, "")) {
+		    || str_eq(ext, ".stderr")) {
 			char *base = remove_extension(files[i]->fname);
 			if (!str_eq(base, last_base)) { // Avoid redundant unlinks.
 				// Make sure that all sibling files are deleted so that a cached result
@@ -154,7 +153,6 @@ sort_and_clean(void)
 				delete_sibling_file(base, ".gcno");
 				delete_sibling_file(base, ".dia");
 				delete_sibling_file(base, ".stderr");
-				delete_sibling_file(base, ""); // Object file from ccache 2.4.
 			}
 			free(last_base);
 			last_base = base;
