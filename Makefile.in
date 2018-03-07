@@ -96,11 +96,11 @@ ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 .PHONY: install
-install: all $(srcdir)/ccache.1
+install: all $(srcdir)/doc/ccache.1
 	$(installcmd) -d $(DESTDIR)$(bindir)
 	$(installcmd) -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
-	-$(installcmd) -m 644 $(srcdir)/ccache.1 $(DESTDIR)$(mandir)/man1/
+	-$(installcmd) -m 644 $(srcdir)/doc/ccache.1 $(DESTDIR)$(mandir)/man1/
 
 .PHONY: clean
 clean:

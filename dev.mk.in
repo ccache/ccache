@@ -3,17 +3,13 @@
 all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
+A2X = a2x
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
-XSLTPROC = xsltproc
-MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
-                then echo /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl; \
-                else echo /etc/asciidoc/docbook-xsl/manpage.xsl; fi)
-
 
 version := \
     $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
@@ -27,7 +23,12 @@ ifneq ($(shell uname), Darwin)
     dist_archives += ccache-$(version).tar.xz
 endif
 
-generated_docs = ccache.1 doc/AUTHORS.html LICENSE.html doc/MANUAL.html doc/NEWS.html
+generated_docs = \
+    LICENSE.html \
+    doc/AUTHORS.html \
+    doc/MANUAL.html \
+    doc/NEWS.html \
+    doc/ccache.1
 built_dist_files = $(generated_docs)
 
 headers = \
@@ -155,10 +156,12 @@ docs: $(generated_docs)
 	$(ASCIIDOC) -a revnumber=$(version) -a toc -b xhtml11 $<
 
 %.xml: %.adoc
-	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook $<
+# Make literals stand out as bold in the man page:
+	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
+	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-ccache.1: doc/MANUAL.xml
-	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
+doc/ccache.1: doc/MANUAL.xml
+	$(A2X) --doctype manpage --format manpage $<
 
 .PHONY: update-authors
 update-authors:
