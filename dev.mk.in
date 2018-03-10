@@ -24,11 +24,11 @@ ifneq ($(shell uname), Darwin)
 endif
 
 generated_docs = \
-    LICENSE.html \
-    doc/AUTHORS.html \
-    doc/MANUAL.html \
-    doc/NEWS.html \
-    doc/ccache.1
+    $(srcdir)/LICENSE.html \
+    $(srcdir)/doc/AUTHORS.html \
+    $(srcdir)/doc/MANUAL.html \
+    $(srcdir)/doc/NEWS.html \
+    $(srcdir)/doc/ccache.1
 built_dist_files = $(generated_docs)
 
 headers = \
@@ -160,7 +160,7 @@ docs: $(generated_docs)
 	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-doc/ccache.1: doc/MANUAL.xml
+$(srcdir)/doc/ccache.1: $(srcdir)/doc/MANUAL.xml
 	$(A2X) --doctype manpage --format manpage $<
 
 .PHONY: update-authors

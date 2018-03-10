@@ -161,7 +161,7 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
+    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >$srcdir/src/version.c
 else
     AC_MSG_NOTICE(Developer mode disabled)
 fi
