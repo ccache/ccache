@@ -29,7 +29,7 @@ generated_docs = \
     doc/MANUAL.html \
     doc/NEWS.html \
     doc/ccache.1
-built_dist_files = $(generated_docs)
+built_dist_files = $(generated_sources) $(generated_docs)
 
 headers = \
     src/ccache.h \
@@ -48,15 +48,17 @@ headers = \
     src/murmurhashneutral2.h \
     src/system.h \
     unittest/framework.h \
-    unittest/suites.h \
     unittest/util.h
+generated_headers = \
+    unittest/suites.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \
-    $(base_sources) \
+    $(non_3pp_sources) \
+    $(3pp_sources) \
     $(headers) \
     $(test_sources) \
     CONTRIBUTING.md \
@@ -115,7 +117,8 @@ $(dist_archives): $(dist_files)
 	(cd $(srcdir) && \
 	 rsync -r --relative $(source_dist_files) $$dir) && \
 	cp $(srcdir)/doc/INSTALL-from-release-archive.md $$dir/INSTALL.md && \
-	cp $(built_dist_files) $$dir && \
+	(cd $(builddir) && \
+	 rsync -r --relative $(built_dist_files) $$dir) && \
 	echo "Remove this file to enable developer mode." >$$dir/dev_mode_disabled && \
 	(cd $$tmpdir && \
 	 tarcompression= && \
@@ -133,29 +136,37 @@ distcheck: $(firstword $(dist_archives))
 	(cd $$tmpdir && \
 	 tar xf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
+	 chmod -R u+w $$tmpdir/$(dist_dir) && \
 	rm -rf $$tmpdir
 
 	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
 	(cd $$tmpdir && \
 	 tar xf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root --with-bundled-zlib && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
+	 chmod -R u+w $$tmpdir/$(dist_dir) && \
 	rm -rf $$tmpdir
 
 .PHONY: docs
 docs: $(generated_docs)
 
 %.html: %.adoc
-	$(ASCIIDOC) -a revnumber=$(version) -a toc -b xhtml11 $<
+	@mkdir -p `dirname $@`
+	$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
 
 %.xml: %.adoc
+	@mkdir -p `dirname $@`
 # Make literals stand out as bold in the man page:
 	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
