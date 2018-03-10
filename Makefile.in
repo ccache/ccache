@@ -132,7 +132,7 @@ unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 
 unittest/main.o: unittest/suites.h
 
-unittest/suites.h: $(test_suites) Makefile
+$(srcdir)/unittest/suites.h: $(test_suites) Makefile
 	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suites) >$@
 
 .PHONY: check

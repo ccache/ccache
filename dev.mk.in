@@ -52,7 +52,7 @@ headers = \
     unittest/util.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
-files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
+files_to_distclean += $(built_dist_files) src/version.c $(srcdir)/unittest/suites.h
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \
