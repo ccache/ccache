@@ -155,6 +155,8 @@ if test "$ac_cv_c_extern_inline" != no ; then
               Define to 1 if your compiler supports extern inline)
 fi
 
+mkdir -p src
+
 dnl Enable developer mode if dev.mk.in exists.
 if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; then
     AC_MSG_NOTICE(Developer mode enabled)
@@ -166,13 +168,13 @@ else
     AC_MSG_NOTICE(Developer mode disabled)
 fi
 
-if test ! -f $srcdir/src/version.c; then
+if test ! -f $srcdir/src/version.c -a ! -f src/version.c ; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
 
 dnl Find test suite files.
-test_suites=`ls $srcdir/unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=`cd $srcdir && ls unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -185,7 +187,7 @@ cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
 
-mkdir -p .deps src unittest
+mkdir -p .deps unittest
 
 
 AC_MSG_NOTICE(now build ccache by running make)
