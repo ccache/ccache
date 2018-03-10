@@ -172,7 +172,7 @@ if test ! -f $srcdir/src/version.c; then
 fi
 
 dnl Find test suite files.
-test_suites=`ls $srcdir/unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=` find ../unittest -name 'test_*.c' -printf 'unittest/%P\n' | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
