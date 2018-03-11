@@ -14,6 +14,10 @@ Bug fixes
 
 - Fixed build failure when using the bundled zlib sources.
 
+- ccache 3.3.5 added a workaround for not triggering Clang errors when a
+  precompiled header's dependency has an updated timestamp (but identical
+  content). That workaround is now only applied when the compiler is Clang.
+
 
 ccache 3.4.1
 ------------

@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -383,7 +383,9 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 
 		// Clang stores the mtime of the included files in the precompiled header,
 		// and will error out if that header is later used without rebuilding.
-		if (output_is_precompiled_header && fi->mtime != st->mtime) {
+		if (guessed_compiler == GUESSED_CLANG
+		    && output_is_precompiled_header
+		    && fi->mtime != st->mtime) {
 			cc_log("Precompiled header includes %s, which has a new mtime", path);
 			return 0;
 		}
