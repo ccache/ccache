@@ -1183,9 +1183,9 @@ create_tmp_fd(char **fname)
 		fatal("Failed to create temporary file for %s: %s",
 		      *fname, strerror(errno));
 	}
-	set_cloexec_flag(fd);
 
 #ifndef _WIN32
+	set_cloexec_flag(fd);
 	fchmod(fd, 0666 & ~get_umask());
 #endif
 
@@ -1661,13 +1661,13 @@ subst_env_in_string(const char *str, char **errmsg)
 	return result;
 }
 
+#ifndef _WIN32
 void
 set_cloexec_flag(int fd)
 {
-#ifndef _WIN32
 	int flags = fcntl(fd, F_GETFD, 0);
 	if (flags >= 0) {
 		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 	}
-#endif
 }
+#endif
