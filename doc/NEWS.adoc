@@ -18,6 +18,8 @@ Bug fixes
   precompiled header's dependency has an updated timestamp (but identical
   content). That workaround is now only applied when the compiler is Clang.
 
+- Made it possible to perform out-of-source builds in dev mode again.
+
 
 ccache 3.4.1
 ------------
