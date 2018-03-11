@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT()
 AC_PREREQ(2.52)
 
-AC_MSG_NOTICE([Configuring ccache])
+AC_MSG_NOTICE([configuring ccache])
 
 AC_CONFIG_HEADER(config.h)
 
@@ -155,24 +155,26 @@ if test "$ac_cv_c_extern_inline" != no ; then
               Define to 1 if your compiler supports extern inline)
 fi
 
+mkdir -p .deps src unittest
+
 dnl Enable developer mode if dev.mk.in exists.
 if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; then
-    AC_MSG_NOTICE(Developer mode enabled)
+    AC_MSG_NOTICE(developer mode enabled)
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
 else
-    AC_MSG_NOTICE(Developer mode disabled)
+    AC_MSG_NOTICE(developer mode disabled)
 fi
 
-if test ! -f $srcdir/src/version.c; then
+if test ! -f $srcdir/src/version.c -a ! -f src/version.c ; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
 
 dnl Find test suite files.
-test_suites=`ls $srcdir/unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=`cd $srcdir && ls unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -184,8 +186,5 @@ EOF
 cat config.h >>config.h.tmp
 echo '#endif' >>config.h.tmp
 mv config.h.tmp config.h
-
-mkdir -p .deps src unittest
-
 
 AC_MSG_NOTICE(now build ccache by running make)

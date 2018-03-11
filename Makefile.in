@@ -1,4 +1,5 @@
 srcdir = @srcdir@
+builddir = @builddir@
 VPATH = @srcdir@
 
 prefix = @prefix@
@@ -20,7 +21,7 @@ LIBS = @LIBS@
 RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
-all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src $(CPPFLAGS)
+all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 non_3pp_sources = \
@@ -40,7 +41,8 @@ non_3pp_sources = \
     src/mdfour.c \
     src/stats.c \
     src/unify.c \
-    src/util.c \
+    src/util.c
+generated_sources = \
     src/version.c
 3pp_sources = \
     src/getopt_long.c \
@@ -48,7 +50,7 @@ non_3pp_sources = \
     src/hashtable_itr.c \
     src/murmurhashneutral2.c \
     src/snprintf.c
-base_sources = $(non_3pp_sources) $(3pp_sources)
+base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources)
 base_objs = $(base_sources:.c=.o)
 
 ccache_sources = src/main.c $(base_sources)
@@ -85,7 +87,7 @@ files_to_clean = \
     src/zlib/libz.a \
     testdir.* \
     unittest/run$(EXEEXT) \
-    *~ \
+    *~
 
 files_to_distclean = Makefile config.h config.log config.status
 
@@ -95,12 +97,15 @@ all: ccache$(EXEEXT)
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 	$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
+ccache.1: doc/ccache.1
+	cp $< $@
+
 .PHONY: install
-install: all $(srcdir)/doc/ccache.1
+install: ccache$(EXEEXT) ccache.1
 	$(installcmd) -d $(DESTDIR)$(bindir)
 	$(installcmd) -m 755 ccache$(EXEEXT) $(DESTDIR)$(bindir)
 	$(installcmd) -d $(DESTDIR)$(mandir)/man1
-	-$(installcmd) -m 644 $(srcdir)/doc/ccache.1 $(DESTDIR)$(mandir)/man1/
+	-$(installcmd) -m 644 ccache.1 $(DESTDIR)$(mandir)/man1/
 
 .PHONY: clean
 clean:
@@ -133,7 +138,7 @@ unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 unittest/main.o: unittest/suites.h
 
 unittest/suites.h: $(test_suites) Makefile
-	sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' $(test_suites) >$@
+	ls $^ | grep -v Makefile | xargs sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' >$@
 
 .PHONY: check
 check: test

@@ -30,6 +30,12 @@ Bug fixes
 
 - Fixed build failure when using the bundled zlib sources.
 
+- ccache 3.3.5 added a workaround for not triggering Clang errors when a
+  precompiled header's dependency has an updated timestamp (but identical
+  content). That workaround is now only applied when the compiler is Clang.
+
+- Made it possible to perform out-of-source builds in dev mode again.
+
 
 ccache 3.4.1
 ------------
@@ -57,7 +63,7 @@ New features and enhancements
 
 - The optional unifier is no longer disabled when the direct mode is enabled.
 
-- Added support for nvcc compiler options `--compiler-bindir/-ccbin`,
+- Added support for NVCC compiler options `--compiler-bindir/-ccbin`,
   `--output-directory/-odir` and `--libdevice-directory/-ldir`.
 
 - Boolean environment variable settings no longer accept the following
@@ -87,9 +93,9 @@ Bug fixes
 - File size and number counters are now updated correctly when files are
   overwritten in the cache, e.g. when using `CCACHE_RECACHE`.
 
-- `run_second_cpp` is now forced for nvcc.
+- `run_second_cpp` is now forced for NVCC.
 
-- Fixed how the nvcc options `-optf` and `-odir` are handled.
+- Fixed how the NVCC options `-optf` and `-odir` are handled.
 
 
 ccache 3.3.6
@@ -134,8 +140,8 @@ Bug fixes
 - Fixed detection of missing argument to `-opt`/`--options-file`.
 
 - ccache now bails out when building a precompiled header if any of the
-  corresponding header files have an updated timestamp. This fixes complaints
-  from clang.
+  corresponding header files has an updated timestamp. This fixes complaints
+  from Clang.
 
 - Fixed a bug related to erroneously storing a dependency file with absolute
   paths in the cache on a preprocessed hit.
@@ -146,7 +152,7 @@ Bug fixes
   so that `ccache -c/--cleanup` by default would trim the cache to 80% of the
   max limit.
 
-- ccache no longer ignores linker arguments for clang since clang warns about
+- ccache no longer ignores linker arguments for Clang since Clang warns about
   them.
 
 - Plugged a couple of file descriptor leaks.
@@ -311,7 +317,7 @@ Bug fixes
 
 - Bail out on too hard compiler option `-P`.
 
-- Fixed clang test suite when running on Linux.
+- Fixed Clang test suite when running on Linux.
 
 - Fixed build and test for MinGW32 and Windows.
 
@@ -382,7 +388,7 @@ Release date: 2016-04-17
 New features and enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Only pass clang-specific `-stdlib=` to the preprocessor.
+- Only pass Clang-specific `-stdlib=` to the preprocessor.
 
 - Improved handling of stale NFS handles.
 
@@ -408,7 +414,7 @@ Bug fixes
 - Fixed a bug in caching of `stat` system calls in ``file_stat_matches
   sloppiness mode''.
 
-- Fixed bug in hashing of clang plugins, leading to unnecessary cache misses.
+- Fixed bug in hashing of Clang plugins, leading to unnecessary cache misses.
 
 - Fixed --print-config to show ``pch_defines sloppiness''.
 
@@ -493,7 +499,7 @@ Bug fixes
   directory'' messages in the ccache log when the cache directory doesn't
   exist.
 
-- Fixed a bug where ccache deleted clang diagnostics after compiler failures.
+- Fixed a bug where ccache deleted Clang diagnostics after compiler failures.
 
 - Avoid performing an unnecessary copy of the object file on a cache miss.
 
@@ -502,7 +508,7 @@ Bug fixes
 - Bail out on too hard compiler option `-fplugin=libcc1plugin` (interaction
   with GDB).
 
-- Fixed build error when compiling ccache with recent clang versions.
+- Fixed build error when compiling ccache with recent Clang versions.
 
 - Removed signal-unsafe code from signal handler.
 
@@ -510,7 +516,7 @@ Bug fixes
 
 - Wipe the whole cached result on failure retrieving a cached file.
 
-- Fixed build error when compiling ccache with recent clang versions.
+- Fixed build error when compiling ccache with recent Clang versions.
 
 
 ccache 3.2.1
@@ -561,24 +567,24 @@ New features and enhancements
 - Added support for several binaries (separated by space) in `CCACHE_PREFIX`.
 
 - The `-c` option is no longer passed to the preprocessor. This fixes problems
-  with clang and Solaris's C++ compiler.
+  with Clang and Solaris's C++ compiler.
 
 - ccache no longer passes preprocessor options like `-D` and `-I` to the
   compiler when compiling preprocessed output. This fixes warnings emitted by
-  clang.
+  Clang.
 
 - Compiler options `-fprofile-generate`, `-fprofile-arcs`, `-fprofile-use` and
   `-fbranch-probabilities` are now handled without bailing.
 
-- Added support for clang's `--serialize-diagnostic` option, storing the
+- Added support for Clang's `--serialize-diagnostic` option, storing the
   diagnostic file (`.dia`) in the cache.
 
-- Added support for precompiled headers when using clang.
+- Added support for precompiled headers when using Clang.
 
-- Added support for clang `.pth` (pretokenized header) files.
+- Added support for Clang `.pth` (pretokenized header) files.
 
 - Changed the `-x` language option to use the new objective C standard for GCC
-  and clang.
+  and Clang.
 
 - On a cache miss, ccache now instructs the compiler to create the object file
   at the real destination and then copies the file into the cache instead of
@@ -631,7 +637,7 @@ New features and enhancements
 
 - Improved `dev.mk` to be more platform independent.
 
-- Made the test suite work with clang and gcc-llvm on OS X.
+- Made the test suite work with Clang and gcc-llvm on OS X.
 
 - Various other improvements of the test suite.
 

@@ -58,6 +58,16 @@ enum stats {
 	STATS_END
 };
 
+enum guessed_compiler {
+	GUESSED_CLANG,
+	GUESSED_GCC,
+	GUESSED_NVCC,
+	GUESSED_PUMP,
+	GUESSED_UNKNOWN
+};
+
+extern enum guessed_compiler guessed_compiler;
+
 #define SLOPPY_INCLUDE_FILE_MTIME 1
 #define SLOPPY_INCLUDE_FILE_CTIME 2
 #define SLOPPY_FILE_MACRO 4
