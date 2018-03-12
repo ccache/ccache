@@ -112,25 +112,25 @@ expect_stat() {
 
 expect_equal_files() {
     if [ ! -e "$1" ]; then
-        test_failed "compare_files: $1 missing"
+        test_failed "expect_equal_files: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "compare_files: $2 missing"
+        test_failed "expect_equal_files: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
-        test_failed "compare_files: $1 and $2 differ"
+        test_failed "$1 and $2 differ"
     fi
 }
 
 expect_different_files() {
     if [ ! -e "$1" ]; then
-        test_failed "compare_files: $1 missing"
+        test_failed "expect_different_files: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "compare_files: $2 missing"
+        test_failed "expect_different_files: $2 missing"
     fi
     if cmp -s "$1" "$2"; then
-        test_failed "compare_files: $1 and $2 are identical"
+        test_failed "$1 and $2 are identical"
     fi
 }
 
