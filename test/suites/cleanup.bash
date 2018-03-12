@@ -5,11 +5,9 @@ prepare_cleanup_test_dir() {
     mkdir -p $dir
     for i in $(seq 0 9); do
         printf '%4017s' '' | tr ' ' 'A' >$dir/result$i-4017.o
-        touch $dir/result$i-4017.stderr
-        touch $dir/result$i-4017.d
-        if [ $i -gt 5 ]; then
-            backdate $dir/result$i-4017.stderr
-        fi
+        backdate $((3 * i + 1)) $dir/result$i-4017.o
+        backdate $((3 * i + 2)) $dir/result$i-4017.d
+        backdate $((3 * i + 3)) $dir/result$i-4017.stderr
     done
     # NUMFILES: 30, TOTALSIZE: 40 KiB, MAXFILES: 0, MAXSIZE: 0
     echo "0 0 0 0 0 0 0 0 0 0 0 30 40 0 0" >$dir/stats
@@ -59,21 +57,21 @@ SUITE_cleanup() {
 
     # Reduce file limit
     #
-    # 21 * 16 = 336
-    $CCACHE -F 336 -M 0 >/dev/null
+    # 22 * 16 = 352
+    $CCACHE -F 352 -M 0 >/dev/null
     $CCACHE -c >/dev/null
     expect_file_count 7 '*.o' $CCACHE_DIR
     expect_file_count 7 '*.d' $CCACHE_DIR
-    expect_file_count 7 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 21
+    expect_file_count 8 '*.stderr' $CCACHE_DIR
+    expect_stat 'files in cache' 22
     expect_stat 'cleanups performed' 1
-    for i in 0 1 2 3 4 5 9; do
+    for i in 0 1 2; do
+        file=$CCACHE_DIR/a/result$i-4017.o
+        expect_file_missing $CCACHE_DIR/a/result$i-4017.o
+    done
+    for i in 3 4 5 6 7 8 9; do
         file=$CCACHE_DIR/a/result$i-4017.o
         expect_file_exists $file
-    done
-    for i in 6 7 8; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_missing $file
     done
 
     # -------------------------------------------------------------------------
@@ -91,17 +89,17 @@ SUITE_cleanup() {
     $CCACHE -F 0 -M 256K >/dev/null
     CCACHE_LOGFILE=/tmp/foo $CCACHE -c >/dev/null
     expect_file_count 3 '*.o' $CCACHE_DIR
-    expect_file_count 3 '*.d' $CCACHE_DIR
-    expect_file_count 3 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 9
+    expect_file_count 4 '*.d' $CCACHE_DIR
+    expect_file_count 4 '*.stderr' $CCACHE_DIR
+    expect_stat 'files in cache' 11
     expect_stat 'cleanups performed' 1
-    for i in 3 4 5; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_exists $file
-    done
-    for i in 0 1 2 6 7 8 9; do
+    for i in 0 1 2 3 4 5 6; do
         file=$CCACHE_DIR/a/result$i-4017.o
         expect_file_missing $file
+    done
+    for i in 7 8 9; do
+        file=$CCACHE_DIR/a/result$i-4017.o
+        expect_file_exists $file
     done
 
     # -------------------------------------------------------------------------
@@ -122,9 +120,9 @@ SUITE_cleanup() {
     touch empty.c
     CCACHE_LIMIT_MULTIPLE=0.9 $CCACHE_COMPILE -c empty.c -o empty.o
     expect_file_count 159 '*.o' $CCACHE_DIR
-    expect_file_count 158 '*.d' $CCACHE_DIR
-    expect_file_count 158 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 475
+    expect_file_count 159 '*.d' $CCACHE_DIR
+    expect_file_count 159 '*.stderr' $CCACHE_DIR
+    expect_stat 'files in cache' 477
     expect_stat 'cleanups performed' 1
 
     # -------------------------------------------------------------------------
@@ -145,32 +143,38 @@ SUITE_cleanup() {
     touch empty.c
     CCACHE_LIMIT_MULTIPLE=0.7 $CCACHE_COMPILE -c empty.c -o empty.o
     expect_file_count 157 '*.o' $CCACHE_DIR
-    expect_file_count 156 '*.d' $CCACHE_DIR
-    expect_file_count 156 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 469
+    expect_file_count 157 '*.d' $CCACHE_DIR
+    expect_file_count 157 '*.stderr' $CCACHE_DIR
+    expect_stat 'files in cache' 471
     expect_stat 'cleanups performed' 1
 
     # -------------------------------------------------------------------------
-    TEST "Cleanup of sibling files"
+    TEST ".o file is removed before .stderr"
 
     prepare_cleanup_test_dir $CCACHE_DIR/a
-
-    $CCACHE -F 336 -M 0 >/dev/null
-    backdate $CCACHE_DIR/a/result2-4017.stderr
+    $CCACHE -F 474 -M 0 >/dev/null
+    backdate 0 $CCACHE_DIR/a/result9-4017.stderr
     $CCACHE -c >/dev/null
-    # floor(0.8 * 9) = 7
-    expect_file_count 7 '*.o' $CCACHE_DIR
-    expect_file_count 7 '*.d' $CCACHE_DIR
-    expect_file_count 7 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 21
-    for i in 0 1 3 4 5 8 9; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_exists $file
-    done
-    for i in 2 6 7; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_missing $file
-    done
+    expect_file_missing $CCACHE_DIR/a/result9-4017.stderr
+    expect_file_missing $CCACHE_DIR/a/result9-4017.o
+
+    # Counters expectedly doesn't match reality if x.stderr is found before
+    # x.o and the cleanup stops before x.o is found.
+    expect_stat 'files in cache' 29
+    expect_file_count 28 '*.*' $CCACHE_DIR/a
+
+    # -------------------------------------------------------------------------
+    TEST ".stderr file is not removed before .o"
+
+    prepare_cleanup_test_dir $CCACHE_DIR/a
+    $CCACHE -F 474 -M 0 >/dev/null
+    backdate 0 $CCACHE_DIR/a/result9-4017.o
+    $CCACHE -c >/dev/null
+    expect_file_exists $CCACHE_DIR/a/result9-4017.stderr
+    expect_file_missing $CCACHE_DIR/a/result9-4017.o
+
+    expect_stat 'files in cache' 29
+    expect_file_count 29 '*.*' $CCACHE_DIR/a
 
     # -------------------------------------------------------------------------
     TEST "No cleanup of new unknown file"
@@ -184,7 +188,7 @@ SUITE_cleanup() {
     $CCACHE -F 480 -M 0 >/dev/null
     $CCACHE -c >/dev/null
     expect_file_exists $CCACHE_DIR/a/abcd.unknown
-    expect_stat 'files in cache' 28
+    expect_stat 'files in cache' 30
 
     # -------------------------------------------------------------------------
     TEST "Cleanup of old unknown file"

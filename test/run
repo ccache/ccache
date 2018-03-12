@@ -97,7 +97,13 @@ sed_in_place() {
 }
 
 backdate() {
-    touch -t 199901010000 "$@"
+    if [[ $1 =~ ^[0-9]+$ ]]; then
+        m=$1
+        shift
+    else
+        m=0
+    fi
+    touch -t 1999010100$(printf "%02u" $m) "$@"
 }
 
 expect_stat() {
@@ -176,7 +182,7 @@ expect_file_count() {
     local expected=$1
     local pattern=$2
     local dir=$3
-    local actual=`find $dir -name "$pattern" | wc -l`
+    local actual=`find $dir -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $pattern files in $dir"
     fi
