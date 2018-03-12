@@ -110,6 +110,18 @@ expect_stat() {
     fi
 }
 
+expect_file_exists() {
+    if [ ! -f "$1" ]; then
+        test_failed "Expected $1 to exist, but it's missing"
+    fi
+}
+
+expect_file_missing() {
+    if [ -f "$1" ]; then
+        test_failed "Expected $1 to be missing, but it exists"
+    fi
+}
+
 expect_equal_files() {
     if [ ! -e "$1" ]; then
         test_failed "expect_equal_files: $1 missing"

@@ -69,15 +69,11 @@ SUITE_cleanup() {
     expect_stat 'cleanups performed' 1
     for i in 0 1 2 3 4 5 9; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ ! -f $file ]; then
-            test_failed "File $file removed when it shouldn't"
-        fi
+        expect_file_exists $file
     done
     for i in 6 7 8; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ -f $file ]; then
-            test_failed "File $file not removed when it should"
-        fi
+        expect_file_missing $file
     done
 
     # -------------------------------------------------------------------------
@@ -101,15 +97,11 @@ SUITE_cleanup() {
     expect_stat 'cleanups performed' 1
     for i in 3 4 5; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ ! -f $file ]; then
-            test_failed "File $file removed when it shouldn't"
-        fi
+        expect_file_exists $file
     done
     for i in 0 1 2 6 7 8 9; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ -f $file ]; then
-            test_failed "File $file not removed when it should"
-        fi
+        expect_file_missing $file
     done
 
     # -------------------------------------------------------------------------
@@ -173,15 +165,11 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 21
     for i in 0 1 3 4 5 8 9; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ ! -f $file ]; then
-            test_failed "File $file removed when it shouldn't"
-        fi
+        expect_file_exists $file
     done
     for i in 2 6 7; do
         file=$CCACHE_DIR/a/result$i-4017.o
-        if [ -f $file ]; then
-            test_failed "File $file not removed when it should"
-        fi
+        expect_file_missing $file
     done
 
     # -------------------------------------------------------------------------
@@ -195,9 +183,7 @@ SUITE_cleanup() {
 
     $CCACHE -F 480 -M 0 >/dev/null
     $CCACHE -c >/dev/null
-    if [ ! -f $CCACHE_DIR/a/abcd.unknown ]; then
-        test_failed "$CCACHE_DIR/a/abcd.unknown removed"
-    fi
+    expect_file_exists $CCACHE_DIR/a/abcd.unknown
     expect_stat 'files in cache' 28
 
     # -------------------------------------------------------------------------
@@ -211,9 +197,7 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 31
 
     $CCACHE -F 480 -M 0 -c >/dev/null
-    if [ -f $CCACHE_DIR/a/abcd.unknown ]; then
-        test_failed "$CCACHE_DIR/a/abcd.unknown not removed"
-    fi
+    expect_file_missing $CCACHE_DIR/a/abcd.unknown
     expect_stat 'files in cache' 30
 
     # -------------------------------------------------------------------------
@@ -225,9 +209,7 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 1
     backdate $CCACHE_DIR/a/abcd.tmp.efgh
     $CCACHE -c >/dev/null
-    if [ -f $CCACHE_DIR/a/abcd.tmp.efgh ]; then
-        test_failed "$CCACHE_DIR/a/abcd.tmp.unknown not removed"
-    fi
+    expect_file_missing $CCACHE_DIR/a/abcd.tmp.efgh
     expect_stat 'files in cache' 0
 
     # -------------------------------------------------------------------------
