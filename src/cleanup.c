@@ -186,15 +186,19 @@ clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 	traverse(dir, traverse_fn);
 
 	// Clean the cache.
+	cc_log("Before cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
 	bool cleaned = sort_and_clean();
+	cc_log("After cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
+
 	if (cleaned) {
 		cc_log("Cleaned up cache directory %s", dir);
 		stats_add_cleanup(dir, 1);
 	}
 
-	cc_log("After cleanup: %lu KiB, %zu files",
-	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.
