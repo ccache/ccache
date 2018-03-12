@@ -40,6 +40,7 @@ win32argvtos(char *prefix, char **argv)
 				break;
 			case '"':
 				bs = (bs << 1) + 1;
+				/*FALLTHROUGH*/
 			default:
 				k += bs + 1;
 				bs = 0;

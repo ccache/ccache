@@ -1669,5 +1669,7 @@ set_cloexec_flag(int fd)
 	if (flags >= 0) {
 		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 	}
+#else
+	(void)fd;
 #endif
 }
