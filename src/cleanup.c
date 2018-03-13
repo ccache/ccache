@@ -89,27 +89,19 @@ out:
 }
 
 static void
-delete_file(const char *path, size_t size)
+delete_file(const char *path, size_t size, bool update_counters)
 {
-	if (x_unlink(path) == 0) {
+	bool deleted = x_try_unlink(path) == 0;
+	if (!deleted && errno != ENOENT && errno != ESTALE) {
+		cc_log("Failed to unlink %s (%s)", path, strerror(errno));
+	} else if (update_counters) {
+		// The counters are intentionally subtracted even if there was no file to
+		// delete since the final cache size calculation will be incorrect if they
+		// aren't. (This can happen when there are several parallel ongoing
+		// cleanups of the same directory.)
 		cache_size -= size;
 		files_in_cache--;
-	} else if (errno != ENOENT && errno != ESTALE) {
-		cc_log("Failed to unlink %s (%s)", path, strerror(errno));
 	}
-}
-
-static void
-delete_sibling_file(const char *base, const char *extension)
-{
-	struct stat st;
-	char *path = format("%s%s", base, extension);
-	if (lstat(path, &st) == 0) {
-		delete_file(path, file_size(&st));
-	} else if (errno != ENOENT && errno != ESTALE) {
-		cc_log("Failed to stat %s: %s", path, strerror(errno));
-	}
-	free(path);
 }
 
 // Sort the files we've found and delete the oldest ones until we are below the
@@ -123,7 +115,6 @@ sort_and_clean(void)
 	}
 
 	// Delete enough files to bring us below the threshold.
-	char *last_base = x_strdup("");
 	bool cleaned = false;
 	for (unsigned i = 0; i < num_files; i++) {
 		const char *ext;
@@ -136,33 +127,29 @@ sort_and_clean(void)
 		}
 
 		ext = get_extension(files[i]->fname);
-		if (str_eq(ext, ".o")
-		    || str_eq(ext, ".d")
-		    || str_eq(ext, ".gcno")
-		    || str_eq(ext, ".dia")
-		    || str_eq(ext, ".stderr")) {
+		if (str_eq(ext, ".stderr")) {
+			// Make sure that the .o file is deleted before .stderr, because if the
+			// ccache process gets killed after deleting the .stderr but before
+			// deleting the .o, the cached result will be inconsistent. (.stderr is
+			// the only file that is optional; any other file missing from the cache
+			// will be detected by get_file_from_cache.)
 			char *base = remove_extension(files[i]->fname);
-			if (!str_eq(base, last_base)) { // Avoid redundant unlinks.
-				// Make sure that all sibling files are deleted so that a cached result
-				// is removed completely. Note the order of deletions -- the stderr
-				// file must be deleted last because if the ccache process gets killed
-				// after deleting the .stderr but before deleting the .o, the cached
-				// result would be inconsistent.
-				delete_sibling_file(base, ".o");
-				delete_sibling_file(base, ".d");
-				delete_sibling_file(base, ".gcno");
-				delete_sibling_file(base, ".dia");
-				delete_sibling_file(base, ".stderr");
-			}
-			free(last_base);
-			last_base = base;
-		} else {
-			// .manifest or unknown file.
-			delete_file(files[i]->fname, files[i]->size);
+			char *o_file = format("%s.o", base);
+
+			// Don't subtract this extra deletion from the cache size; that
+			// bookkeeping will be done when the loop reaches the .o file. If the
+			// loop doesn't reach the .o file since the target limits have been
+			// reached, the bookkeeping won't happen, but that small counter
+			// discrepancy won't do much harm and it will correct itself in the next
+			// cleanup.
+			delete_file(o_file, 0, false);
+
+			free(o_file);
+			free(base);
 		}
+		delete_file(files[i]->fname, files[i]->size, true);
 		cleaned = true;
 	}
-	free(last_base);
 	return cleaned;
 }
 
@@ -186,15 +173,19 @@ clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 	traverse(dir, traverse_fn);
 
 	// Clean the cache.
+	cc_log("Before cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
 	bool cleaned = sort_and_clean();
+	cc_log("After cleanup: %lu KiB, %zu files",
+	       (unsigned long)cache_size / 1024,
+	       files_in_cache);
+
 	if (cleaned) {
 		cc_log("Cleaned up cache directory %s", dir);
 		stats_add_cleanup(dir, 1);
 	}
 
-	cc_log("After cleanup: %lu KiB, %zu files",
-	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
 	stats_set_sizes(dir, files_in_cache, cache_size);
 
 	// Free it up.

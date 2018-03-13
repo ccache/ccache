@@ -191,6 +191,7 @@ void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char *oldpath, const char *newpath);
 int tmp_unlink(const char *path);
 int x_unlink(const char *path);
+int x_try_unlink(const char *path);
 #ifndef _WIN32
 char *x_readlink(const char *path);
 #endif

@@ -24,6 +24,12 @@ Release date: unknown
 Bug fixes
 ~~~~~~~~~
 
+- The cleanup algorithm has been fixed to not misbehave when files are removed
+  by another process while the cleanup process is running. Previously, too many
+  files could be removed from the cache if multiple cleanup processes were
+  triggered at the same time, in extreme cases trimming the cache to a much
+  smaller size than the configured limits.
+
 - Correctly hash preprocessed headers located in a ``.gch directory''.
   Previously, ccache would not pick up changes to such precompiled headers,
   risking false positive cache hits.
