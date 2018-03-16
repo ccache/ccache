@@ -1355,10 +1355,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 {
 	time_of_compilation = time(NULL);
 
-	char *path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
-	int path_stderr_fd = create_tmp_fd(&path_stderr);
-	add_pending_tmp_file(path_stderr);
-
+	char *path_stderr = NULL;
 	char *path_stdout;
 	int status;
 	if (direct_i_file) {
@@ -1383,6 +1380,10 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
 		int path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
+
+		path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+		int path_stderr_fd = create_tmp_fd(&path_stderr);
+		add_pending_tmp_file(path_stderr);
 
 		int args_added = 2;
 		args_add(args, "-E");
@@ -1427,7 +1428,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	}
 
 	hash_delimiter(hash, "cppstderr");
-	if (!hash_file(hash, path_stderr)) {
+	if (!direct_i_file && !hash_file(hash, path_stderr)) {
 		fatal("Failed to open %s: %s", path_stderr, strerror(errno));
 	}
 
