@@ -1381,6 +1381,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		// and directly form the correct i_tmpfile.
 		path_stdout = input_file;
 		status = 0;
+		// in direct .i mode close path_stderr_fd explicitely, as it is not used later
+		close(path_stderr_fd);
 	} else {
 		// Run cpp on the input file to obtain the .i.
 
