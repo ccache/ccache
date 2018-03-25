@@ -3,7 +3,7 @@ ccache news
 
 ccache 3.4.2
 ------------
-Release date: unknown
+Release date: 2018-03-25
 
 Bug fixes
 ~~~~~~~~~
