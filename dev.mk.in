@@ -197,7 +197,7 @@ uncrustify:
 
 .PHONY: analyze
 analyze:
-	$(SCAN_BUILD) --use-cc=$(CC) ./configure
+	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
 .PHONY: docker
