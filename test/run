@@ -117,6 +117,8 @@ objdump_cmd() {
         xcrun dwarfdump -r0 $1
     elif $HOST_OS_FREEBSD; then
         objdump -W $1
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        strings $1 # for some reason objdump only shows the basename of the file, so fall back to brute force and ignorance
     else
         objdump -g $1
     fi
