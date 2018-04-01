@@ -40,7 +40,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 		int fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
 		if (fd == -1) {
 			int saved_errno = errno;
