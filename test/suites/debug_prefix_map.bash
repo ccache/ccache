@@ -23,6 +23,8 @@ EOF
 objdump_cmd() {
     if $HOST_OS_APPLE; then
         xcrun dwarfdump -r0 $1
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        strings $1 # for some reason objdump only shows the basename of the file, so fall back to brute force and ignorance
     else
         objdump -g $1
     fi
@@ -31,6 +33,8 @@ objdump_cmd() {
 grep_cmd() {
     if $HOST_OS_APPLE; then
         grep "( \"$1\" )"
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        test -n "$2" && grep -E "$1|$2" || grep "$1" # accept a relative path for source code, in addition to relocation dir
     else
         grep ": $1[[:space:]]*$"
     fi
@@ -48,6 +52,9 @@ SUITE_debug_prefix_map() {
     expect_stat 'files in cache' 2
     if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
+    fi
+    if ! objdump_cmd test.o | grep_cmd "dir" src/test.c >/dev/null 2>&1; then
+        test_failed "Relocation (dir) not found in test.o"
     fi
 
     cd ../dir2
@@ -72,7 +79,7 @@ SUITE_debug_prefix_map() {
     if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
-    if ! objdump_cmd test.o | grep_cmd "name" >/dev/null 2>&1; then
+    if ! objdump_cmd test.o | grep_cmd "name" src/test.c >/dev/null 2>&1; then
         test_failed "Relocation (name) not found in test.o"
     fi
 
