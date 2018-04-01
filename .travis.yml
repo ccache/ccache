@@ -1,16 +1,11 @@
 language: c
 
-sudo: required
-
 addons:
     apt:
         packages:
             - gperf
             - elfutils
             - zlib1g-dev
-            - mingw32
-            - mingw32-binutils
-            - clang    # scan-build
 
 os:
     - linux
@@ -22,9 +17,13 @@ compiler:
 
 matrix:
     include:
-#        - os: linux
-#          compiler: i586-mingw32msvc-gcc
-#          env: HOST="--host=i586-mingw32msvc" TEST="test/main.exe"
+        - os: linux
+          compiler: i686-w64-mingw32-gcc
+          env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+          addons:
+              apt:
+                  packages:
+                      - gcc-mingw-w64-i686
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
@@ -34,16 +33,20 @@ matrix:
         - os: linux
           compiler: clang
           env: PATH="/usr/bin:$PATH" TEST=analyze
+          addons:
+              apt:
+                  packages:
+                      - clang    # scan-build
         - os: linux
           compiler: gcc
           env: CUDA=8.0.61-1
+          sudo: required
+          before_install:
+              - source ./.travis/install_cuda.sh
 
     exclude:
         - os: osx
           compiler: gcc
-
-before_install:
-    - source ./.travis/install_cuda.sh
 
 script:
     - ./autogen.sh
