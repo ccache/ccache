@@ -326,6 +326,7 @@ HOST_OS_APPLE=false
 HOST_OS_LINUX=false
 HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
+HOST_OS_CYGWIN=false
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
@@ -353,6 +354,9 @@ esac
 case $(uname -s) in
     *MINGW*|*mingw*)
         HOST_OS_WINDOWS=true
+        ;;
+    *CYGWIN*|*MSYS*)
+        HOST_OS_CYGWIN=true
         ;;
     *Darwin*)
         HOST_OS_APPLE=true
