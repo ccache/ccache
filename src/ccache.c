@@ -3376,38 +3376,40 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	// Find the hash using the preprocessed output. Also updates included_files.
-	struct mdfour cpp_hash = common_hash;
-	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
-	if (!object_hash) {
-		fatal("internal error: object hash from cpp returned NULL");
+	if (1) {
+		// Find the hash using the preprocessed output. Also updates included_files.
+		struct mdfour cpp_hash = common_hash;
+		object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
+		if (!object_hash) {
+			fatal("internal error: object hash from cpp returned NULL");
+		}
+		update_cached_result_globals(object_hash);
+
+		if (object_hash_from_manifest
+		    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
+			// The hash from manifest differs from the hash of the preprocessor output.
+			// This could be because:
+			//
+			// - The preprocessor produces different output for the same input (not
+			//   likely).
+			// - There's a bug in ccache (maybe incorrect handling of compiler
+			//   arguments).
+			// - The user has used a different CCACHE_BASEDIR (most likely).
+			//
+			// The best thing here would probably be to remove the hash entry from the
+			// manifest. For now, we use a simpler method: just remove the manifest
+			// file.
+			cc_log("Hash from manifest doesn't match preprocessor output");
+			cc_log("Likely reason: different CCACHE_BASEDIRs used");
+			cc_log("Removing manifest as a safety measure");
+			x_unlink(manifest_path);
+
+			put_object_in_manifest = true;
+		}
+
+		// If we can return from cache at this point then do.
+		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 	}
-	update_cached_result_globals(object_hash);
-
-	if (object_hash_from_manifest
-	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
-		// The hash from manifest differs from the hash of the preprocessor output.
-		// This could be because:
-		//
-		// - The preprocessor produces different output for the same input (not
-		//   likely).
-		// - There's a bug in ccache (maybe incorrect handling of compiler
-		//   arguments).
-		// - The user has used a different CCACHE_BASEDIR (most likely).
-		//
-		// The best thing here would probably be to remove the hash entry from the
-		// manifest. For now, we use a simpler method: just remove the manifest
-		// file.
-		cc_log("Hash from manifest doesn't match preprocessor output");
-		cc_log("Likely reason: different CCACHE_BASEDIRs used");
-		cc_log("Removing manifest as a safety measure");
-		x_unlink(manifest_path);
-
-		put_object_in_manifest = true;
-	}
-
-	// If we can return from cache at this point then do.
-	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
 	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
