@@ -1178,6 +1178,23 @@ void update_manifest_file(void)
 	}
 }
 
+static void
+update_cached_result_globals(struct file_hash *hash)
+{
+	char *object_name = format_hash_as_string(hash->hash, hash->size);
+	cached_obj_hash = hash;
+	cached_obj = get_path_in_cache(object_name, ".o");
+	cached_stderr = get_path_in_cache(object_name, ".stderr");
+	cached_dep = get_path_in_cache(object_name, ".d");
+	cached_cov = get_path_in_cache(object_name, ".gcno");
+	cached_su = get_path_in_cache(object_name, ".su");
+	cached_dia = get_path_in_cache(object_name, ".dia");
+	cached_dwo = get_path_in_cache(object_name, ".dwo");
+
+	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
+	free(object_name);
+}
+
 // Run the real compiler and put the result in cache.
 static void
 to_cache(struct args *args)
@@ -1472,23 +1489,6 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	hash_result_as_bytes(hash, result->hash);
 	result->size = hash->totalN;
 	return result;
-}
-
-static void
-update_cached_result_globals(struct file_hash *hash)
-{
-	char *object_name = format_hash_as_string(hash->hash, hash->size);
-	cached_obj_hash = hash;
-	cached_obj = get_path_in_cache(object_name, ".o");
-	cached_stderr = get_path_in_cache(object_name, ".stderr");
-	cached_dep = get_path_in_cache(object_name, ".d");
-	cached_cov = get_path_in_cache(object_name, ".gcno");
-	cached_su = get_path_in_cache(object_name, ".su");
-	cached_dia = get_path_in_cache(object_name, ".dia");
-	cached_dwo = get_path_in_cache(object_name, ".dwo");
-
-	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
-	free(object_name);
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
