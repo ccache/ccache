@@ -1393,6 +1393,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		}
 
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
+		free(input_base);
 		int path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
