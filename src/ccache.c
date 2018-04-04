@@ -531,7 +531,8 @@ get_path_in_cache(const char *name, const char *suffix)
 // global included_files variable. If the include file is a PCH, cpp_hash is
 // also updated. Takes over ownership of path.
 static void
-remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
+remember_include_file(char *path, struct mdfour *cpp_hash, bool system,
+                      struct mdfour *depend_mode_hash)
 {
 	size_t path_len = strlen(path);
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
@@ -671,6 +672,11 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		hash_result_as_bytes(&fhash, h->hash);
 		h->size = fhash.totalN;
 		hashtable_insert(included_files, path, h);
+
+		if (depend_mode_hash) {
+			hash_delimiter(depend_mode_hash, "include");
+			hash_buffer(depend_mode_hash, h->hash, sizeof(h->hash));
+		}
 	} else {
 		free(path);
 	}
@@ -894,7 +900,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				hash_string(hash, inc_path);
 			}
 
-			remember_include_file(inc_path, hash, system);
+			remember_include_file(inc_path, hash, system, NULL);
 			p = q; // Everything of interest between p and q has been hashed now.
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
@@ -932,7 +938,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		char *path = x_strdup(included_pch_file);
 		path = make_relative_path(path);
 		hash_string(hash, path);
-		remember_include_file(path, hash, false);
+		remember_include_file(path, hash, false, NULL);
 	}
 
 	return true;
@@ -1018,6 +1024,41 @@ out:
 	free(tmp_file);
 }
 
+// extract the used includes from the dependency file
+// note we cannot distinguish system headers from other includes here
+static struct file_hash *
+object_hash_from_depfile(const char *depfile, struct mdfour *hash) {
+	FILE *f;
+	f = fopen(depfile, "r");
+	if (!f) {
+		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+		return NULL;
+	}
+
+	if (!included_files) {
+		included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	}
+
+	char buf[10000];
+	while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
+		char *saveptr;
+		char *token;
+		for (token = strtok_r(buf, " \t\n", &saveptr);
+		     token;
+		     token = strtok_r(NULL, " \t\n", &saveptr)) {
+			if (str_endswith(token, ":") || str_eq(token, "\\")) {
+				continue;
+			}
+			remember_include_file(x_strdup(token), hash, false, hash);
+		}
+	}
+
+	struct file_hash *result = x_malloc(sizeof(*result));
+	hash_result_as_bytes(hash, result->hash);
+	result->size = hash->totalN;
+	return result;
+}
+
 // Helper method for copy_file_to_cache and move_file_to_cache_same_fs.
 static void
 do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
@@ -1086,17 +1127,6 @@ static void
 copy_file_to_cache(const char *source, const char *dest)
 {
 	do_copy_or_move_file_to_cache(source, dest, true);
-}
-
-// Move a file into the cache.
-//
-// dest must be a path in the cache (see get_path_in_cache). source must be on
-// the same file system as dest. dest will be compressed if conf->compression
-// is true.
-static void
-move_file_to_cache_same_fs(const char *source, const char *dest)
-{
-	do_copy_or_move_file_to_cache(source, dest, false);
 }
 
 // Copy or link a file from the cache.
@@ -1197,11 +1227,11 @@ update_cached_result_globals(struct file_hash *hash)
 
 // Run the real compiler and put the result in cache.
 static void
-to_cache(struct args *args)
+to_cache(struct args *args, struct mdfour *depend_mode_hash)
 {
-	char *tmp_stdout = format("%s.tmp.stdout", cached_obj);
+	char *tmp_stdout = format("%s/tmp.cc_stdout", temp_dir());
 	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
+	char *tmp_stderr = format("%s/tmp.cc_stderr", temp_dir());
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
 	args_add(args, "-o");
@@ -1225,9 +1255,22 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	int status =
-	  execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
-	args_pop(args, 3);
+	int status = 0;
+	if (!conf->depend_mode) {
+		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+		args_pop(args, 3);
+	} else {
+		// Use the original arguments (including deps) in depend mode.
+		// Similar to failed();
+		// FIXME: on error we probably do not want to fall back to failed() anymore
+		assert(orig_args);
+		struct args *depend_mode_args = args_copy(orig_args);
+		args_strip(depend_mode_args, "--ccache-");
+		add_prefix(depend_mode_args, conf->prefix_command);
+
+		time_of_compilation = time(NULL);
+		status = execute(depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+	}
 
 	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1305,6 +1348,16 @@ to_cache(struct args *args)
 		failed();
 	}
 
+	if (conf->depend_mode) {
+		struct file_hash *object_hash = object_hash_from_depfile(output_dep, depend_mode_hash);
+		if (!object_hash)
+			failed();
+		update_cached_result_globals(object_hash);
+
+		// in depend_mode it does not make sense to update an existing manifest file
+		x_unlink(manifest_path);
+	}
+
 	if (stat(output_obj, &st) != 0) {
 		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
@@ -1321,7 +1374,7 @@ to_cache(struct args *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
+		copy_file_to_cache(tmp_stderr, cached_stderr);
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
@@ -1332,6 +1385,7 @@ to_cache(struct args *args)
 
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
+		// GJK: TODO: need to execute this earlier when in depend_mode
 		use_relative_paths_in_depfile(output_dep);
 		copy_file_to_cache(output_dep, cached_dep);
 	}
@@ -3323,6 +3377,12 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
+	// FIXME?: for now fail hard when we find mismatching settings
+	if (conf->depend_mode && (!generating_dependencies || !conf->run_second_cpp)) {
+		fprintf(stderr, "ccache: ERROR: depend_mode but not generating dependencies or run_second_cpp\n");
+		x_exit(1);
+	}
+
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);
@@ -3376,7 +3436,7 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	if (1) {
+	if (!conf->depend_mode) {
 		// Find the hash using the preprocessed output. Also updates included_files.
 		struct mdfour cpp_hash = common_hash;
 		object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
@@ -3418,8 +3478,11 @@ ccache(int argc, char *argv[])
 
 	add_prefix(compiler_args, conf->prefix_command);
 
+	// in depend_mode, extend the direct hash
+	struct mdfour * depend_mode_hash = conf->depend_mode ? &direct_hash : NULL;
+
 	// Run real compiler, sending output to cache.
-	to_cache(compiler_args);
+	to_cache(compiler_args, depend_mode_hash);
 
 	x_exit(0);
 }

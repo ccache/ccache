@@ -368,6 +368,7 @@ debug_prefix_map
 masquerading
 hardlink
 direct
+depend
 basedir
 compression
 readonly
