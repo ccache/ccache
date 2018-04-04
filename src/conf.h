@@ -12,6 +12,7 @@ struct conf {
 	bool compression;
 	unsigned compression_level;
 	char *cpp_extension;
+	bool depend_mode;
 	bool direct_mode;
 	bool disable;
 	char *extra_files_to_hash;
