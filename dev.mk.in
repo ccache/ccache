@@ -207,7 +207,7 @@ docker: misc/Dockerfile
 .PHONY: travis
 travis: .travis/Dockerfile
 	$(DOCKER) inspect travis-build >/dev/null || $(DOCKER) build -t travis-build .travis
-	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec travis-build \
-	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' ASAN_OPTIONS='$(ASAN_OPTIONS)' /src/configure $(HOST) && make $(TEST)"
+	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec --env ASAN_OPTIONS='$(ASAN_OPTIONS)' travis-build \
+	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' /src/configure $(HOST) && make && make $(TEST)"
 
 -include .deps/*.d
