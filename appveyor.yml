@@ -1,0 +1,29 @@
+# Continuous Integration script for ccache
+# Author: Peter Budai <peterbudai@hotmail.com>
+# In order to enable appveyor CI in your GitHub repository, please follow the steps
+# described in Appyors's Getting Started:  https://www.appveyor.com/docs/
+#
+# After you add your project to Appveyor, it will recognize this script, and will
+# launch the first build process. Every build runs on a fresh virtual machine which is
+# not shared with other builds and the state of which is not preserved between consequent
+# builds. After the build is finished its virtual machine is decommissioned.
+#
+# You can check the whole build process in the logs, and any later commit will start
+# a new build using a fresh virtual machine.
+init:
+  - git config --global core.autocrlf input
+
+shallow_clone: true
+
+
+environment:
+  matrix:
+  - MSYSTEM: MINGW32
+    MSYS2_ARCH: i686
+
+  - MSYSTEM: MINGW64
+    MSYS2_ARCH: x86_64
+
+build_script:
+  - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --refresh --sysupgrade --sysupgrade
+  - C:\msys64\usr\bin\bash --login -c "$(cygpath ${APPVEYOR_BUILD_FOLDER})/ci-script-windows.sh"
