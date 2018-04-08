@@ -18,6 +18,9 @@ shallow_clone: true
 
 environment:
   matrix:
+  - MSYSTEM: MSYS
+    MSYS2_ARCH:
+
   - MSYSTEM: MINGW32
     MSYS2_ARCH: i686
 
@@ -25,5 +28,5 @@ environment:
     MSYS2_ARCH: x86_64
 
 build_script:
-  - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --refresh --sysupgrade --sysupgrade
+  - C:\msys64\usr\bin\pacman --noconfirm --sync --refresh --sysupgrade
   - C:\msys64\usr\bin\bash --login -c "$(cygpath ${APPVEYOR_BUILD_FOLDER})/ci-script-windows.sh"

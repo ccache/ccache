@@ -54,11 +54,7 @@ test_ccache() {
     cd build
 
     # Not working YET
-    make unittest/run.exe
-    ./unittest/run.exe -v && TRUE
-
-    ../test/run -v && TRUE
-
+    make test
 }
 # Status functions
 failure() { local status="${1}"; local items=("${@:2}"); _status failure "${status}." "${items[@]}"; exit 1; }
@@ -67,7 +63,12 @@ message() { local status="${1}"; local items=("${@:2}"); _status message "${stat
 
 # Install build environment and build
 PATH=/c/msys64/%MSYSTEM%/bin:$PATH
-execute 'Installing base-devel and toolchain'  pacman -S --needed --noconfirm mingw-w64-$MSYS2_ARCH-toolchain
-execute 'Installing dependencies' pacman -S --needed --noconfirm  mingw-w64-$MSYS2_ARCH-{zlib,gcc-libs}
+if [ "$MSYSTEM" == "MSYS" ]; then
+  execute 'Installing base-devel and toolchain'  pacman -S --needed --noconfirm msys2-devel
+  execute 'Installing dependencies' pacman -S --needed --noconfirm  zlib
+else
+  execute 'Installing base-devel and toolchain'  pacman -S --needed --noconfirm mingw-w64-$MSYS2_ARCH-toolchain
+  execute 'Installing dependencies' pacman -S --needed --noconfirm  mingw-w64-$MSYS2_ARCH-zlib
+fi
 execute 'Building ccache' build_ccache
 execute 'Testing ccache' test_ccache
