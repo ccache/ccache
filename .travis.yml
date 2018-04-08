@@ -6,17 +6,25 @@ addons:
             - gperf
             - elfutils
             - zlib1g-dev
+            - lib32z1-dev
 
 os:
     - linux
     - osx
 
 compiler:
-    - clang
     - gcc
+    - clang
 
 matrix:
     include:
+        - os: linux
+          compiler: gcc
+          env: CFLAGS="-m32 -g -O2" HOST="--host=i386-linux-gnu"
+          addons:
+              apt:
+                  packages:
+                      - gcc-multilib
         - os: linux
           compiler: i686-w64-mingw32-gcc
           env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe"
