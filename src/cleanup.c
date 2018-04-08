@@ -173,24 +173,24 @@ clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 	traverse(dir, traverse_fn);
 
 	// Clean the cache.
-#ifndef __MINGW32__
-	cc_log("Before cleanup: %lu KiB, %zu files",
+#ifdef _WIN32
+	cc_log("Before cleanup: %lu KiB, %I64u files",
 	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
+	       (unsigned long long)files_in_cache);
 #else
-	cc_log("Before cleanup: %lu KiB, %u files",
-	       (unsigned long)cache_size / 1024,
-	       (unsigned)files_in_cache);
+ 	cc_log("Before cleanup: %lu KiB, %zu files",
+ 	       (unsigned long)cache_size / 1024,
+ 	       files_in_cache);
 #endif
 	bool cleaned = sort_and_clean();
-#ifndef __MINGW32__
-	cc_log("After cleanup: %lu KiB, %zu files",
+#ifdef _WIN32
+	cc_log("After cleanup: %lu KiB, %I64u files",
 	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
+	       (unsigned long long)files_in_cache);
 #else
-	cc_log("After cleanup: %lu KiB, %u files",
-	       (unsigned long)cache_size / 1024,
-	       (unsigned)files_in_cache);
+ 	cc_log("After cleanup: %lu KiB, %zu files",
+ 	       (unsigned long)cache_size / 1024,
+ 	       files_in_cache);
 #endif
 
 	if (cleaned) {
