@@ -13,6 +13,8 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 libc6-dev \
                 gcc \
                 clang \
+                libc6-dev-i386 \
+                gcc-multilib \
                 gcc-mingw-w64 \
                 make \
                 autoconf \
@@ -31,4 +33,5 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 gperf \
                 elfutils \
                 zlib1g-dev \
+                lib32z1-dev \
         && rm -rf /var/lib/apt/lists/*
