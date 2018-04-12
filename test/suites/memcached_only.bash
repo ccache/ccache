@@ -52,4 +52,20 @@ SUITE_memcached_only() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1 # manifest file
     expect_equal_object_files reference_test1.o test1.o
+
+    # -------------------------------------------------------------------------
+    TEST "Compiler's stderr should be printed on cache miss"
+
+    cat <<EOF >test2.c
+int stderr(void)
+{
+  // Trigger warning by having no return statement.
+}
+EOF
+
+    $REAL_COMPILER -c -Wall test2.c 2>reference_test2.stderr
+
+    $CCACHE_COMPILE -c -Wall test2.c 2>test2.stderr
+
+    expect_equal_files reference_test2.stderr test2.stderr
 }
