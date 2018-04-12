@@ -1682,7 +1682,10 @@ to_memcached(struct args *args)
 	}
 
 	// Everything OK.
-	send_cached_stderr();
+	if (stderr_l) {
+		safe_write(2, stderr_d, stderr_l);
+	}
+
 	update_manifest_file();
 
 	free(tmp_stderr);
