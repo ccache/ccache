@@ -466,10 +466,8 @@ stats_summary(struct conf *conf)
 		if (current != 0 && (oldest == 0 || current < oldest)) {
 			oldest = current;
 		}
-		if (stat(fname, &st) == 0) {
-			if (st.st_mtime > updated) {
-				updated = st.st_mtime;
-			}
+		if (stat(fname, &st) == 0 && st.st_mtime > updated) {
+			updated = st.st_mtime;
 		}
 		free(fname);
 	}
