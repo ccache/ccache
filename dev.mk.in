@@ -10,6 +10,7 @@ CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
+TEST = test
 
 version := \
     $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
@@ -196,11 +197,17 @@ uncrustify:
 
 .PHONY: analyze
 analyze:
-	$(SCAN_BUILD) --use-cc=$(CC) ./configure
+	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
 .PHONY: docker
 docker: misc/Dockerfile
 	$(DOCKER) build -f $< $(srcdir)
+
+.PHONY: travis
+travis: .travis/Dockerfile
+	$(DOCKER) inspect travis-build >/dev/null || $(DOCKER) build -t travis-build .travis
+	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec --env ASAN_OPTIONS='$(ASAN_OPTIONS)' travis-build \
+	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' /src/configure $(HOST) && make && make $(TEST)"
 
 -include .deps/*.d
