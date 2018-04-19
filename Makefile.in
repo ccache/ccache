@@ -125,12 +125,12 @@ perf: ccache$(EXEEXT)
 
 .PHONY: test
 test: ccache$(EXEEXT) unittest/run$(EXEEXT)
-	unittest/run$(EXEEXT)
+	$(WINE) unittest/run$(EXEEXT)
 	CC='$(CC)' $(BASH) $(srcdir)/test/run
 
 .PHONY: unittest
 unittest: unittest/run$(EXEEXT)
-	unittest/run$(EXEEXT)
+	$(WINE) unittest/run$(EXEEXT)
 
 unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 	$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)

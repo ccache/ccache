@@ -27,11 +27,13 @@ matrix:
                       - gcc-multilib
         - os: linux
           compiler: i686-w64-mingw32-gcc
-          env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+          env: HOST="--host=i686-w64-mingw32" TEST=unittest WINE=wineconsole
+          sudo: required
           addons:
               apt:
                   packages:
                       - gcc-mingw-w64-i686
+                      - wine
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
