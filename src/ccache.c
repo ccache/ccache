@@ -225,6 +225,9 @@ static char *profile_dir = NULL;
 static bool profile_use = false;
 static bool profile_generate = false;
 
+// Sanitize blacklist
+static char *sanitize_blacklist = NULL;
+
 // Whether we are using a precompiled header (either via -include, #include or
 // clang's -include-pch or -include-pth).
 static bool using_precompiled_header = false;
@@ -1655,6 +1658,16 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 	}
 
+	// Possibly hash the sanitize blacklist file path.
+	if (sanitize_blacklist) {
+		cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
+		hash_delimiter(hash, "sanitizeblacklist");
+		if (!hash_file(hash, sanitize_blacklist)) {
+			stats_update(STATS_BADEXTRAFILE);
+			failed();
+		}
+	}
+
 	if (!str_eq(conf->extra_files_to_hash, "")) {
 		char *p = x_strdup(conf->extra_files_to_hash);
 		char *q = p;
@@ -2502,6 +2515,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
+		if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
+			sanitize_blacklist = x_strdup(argv[i] + 21);
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
 			char *option = format("--sysroot=%s", relpath);
@@ -3207,6 +3225,7 @@ cc_reset(void)
 	free(debug_prefix_maps); debug_prefix_maps = NULL;
 	debug_prefix_maps_len = 0;
 	free(profile_dir); profile_dir = NULL;
+	free(sanitize_blacklist); sanitize_blacklist = NULL;
 	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
