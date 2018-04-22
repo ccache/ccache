@@ -64,6 +64,7 @@ ccache is a collective work with contributions from many people, including:
 * Paul Griffith <paulg@cse.yorku.ca>
 * Pavel Boldin <pboldin@cloudlinux.com>
 * Per Nordlöw <per.nordlow@autoliv.com>
+* Peter Budai <peterbudai@hotmail.com>
 * Philippe Proulx <eeppeliteloop@gmail.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
@@ -72,6 +73,7 @@ ccache is a collective work with contributions from many people, including:
 * Ryan Brown <ryb@ableton.com>
 * Sam Gross <sgross@fb.com>
 * Thomas Röfer <Thomas.Roefer@dfki.de>
+* Timofei Kushnir <timophey@rdp.ru>
 * Tim Potter <tpot@samba.org>
 * Tom Hughes <tomtheengineer@gmail.com>
 * Tor Arne Vestbø <tor.arne.vestbo@qt.io>

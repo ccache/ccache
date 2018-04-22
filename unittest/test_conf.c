@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 34
+#define N_CONFIG_ITEMS 35
 static struct {
 	char *descr;
 	const char *origin;
@@ -71,6 +71,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->memcached_conf);
 	CHECK(!conf->memcached_only);
 	CHECK_STR_EQ("", conf->path);
+	CHECK(!conf->pch_external_checksum);
 	CHECK_STR_EQ("", conf->prefix_command);
 	CHECK_STR_EQ("", conf->prefix_command_cpp);
 	CHECK(!conf->read_only);
@@ -125,6 +126,7 @@ TEST(conf_read_valid_config)
 	  "memcached_conf = --SERVER=localhost\n"
 	  "memcached_only = true\n"
 	  "path = $USER.x\n"
+	  "pch_external_checksum = true\n"
 	  "prefix_command = x$USER\n"
 	  "prefix_command_cpp = y\n"
 	  "read_only = true\n"
@@ -166,6 +168,7 @@ TEST(conf_read_valid_config)
 	CHECK_STR_EQ("--SERVER=localhost", conf->memcached_conf);
 	CHECK(conf->memcached_only);
 	CHECK_STR_EQ_FREE1(format("%s.x", user), conf->path);
+	CHECK(conf->pch_external_checksum);
 	CHECK_STR_EQ_FREE1(format("x%s", user), conf->prefix_command);
 	CHECK_STR_EQ("y", conf->prefix_command_cpp);
 	CHECK(conf->read_only);
@@ -397,6 +400,7 @@ TEST(conf_print_items)
 		"mc",
 		false,
 		"p",
+		true,
 		"pc",
 		"pcc",
 		true,
@@ -450,6 +454,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("memcached_conf = mc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("memcached_only = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("path = p", received_conf_items[n++].descr);
+	CHECK_STR_EQ("pch_external_checksum = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command = pc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("prefix_command_cpp = pcc", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);

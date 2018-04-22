@@ -26,6 +26,7 @@ struct conf {
 	char *memcached_conf;
 	bool memcached_only;
 	char *path;
+	bool pch_external_checksum;
 	char *prefix_command;
 	char *prefix_command_cpp;
 	bool read_only;

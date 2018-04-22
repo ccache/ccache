@@ -87,7 +87,7 @@ confitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 34,
+      TOTAL_KEYWORDS = 35,
       MIN_WORD_LENGTH = 4,
       MAX_WORD_LENGTH = 26,
       MIN_HASH_VALUE = 5,
@@ -99,42 +99,44 @@ confitems_get (register const char *str, register unsigned int len)
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
       {"",0,NULL,0,NULL},
-#line 40 "src/confitems.gperf"
-      {"stats",               30, ITEM(stats, bool)},
+#line 41 "src/confitems.gperf"
+      {"stats",               31, ITEM(stats, bool)},
       {"",0,NULL,0,NULL},
-#line 37 "src/confitems.gperf"
-      {"recache",             27, ITEM(recache, bool)},
+#line 38 "src/confitems.gperf"
+      {"recache",             28, ITEM(recache, bool)},
 #line 28 "src/confitems.gperf"
       {"max_size",            18, ITEM(max_size, size)},
 #line 27 "src/confitems.gperf"
       {"max_files",           17, ITEM(max_files, unsigned)},
-#line 39 "src/confitems.gperf"
-      {"sloppiness",          29, ITEM(sloppiness, sloppiness)},
+#line 40 "src/confitems.gperf"
+      {"sloppiness",          30, ITEM(sloppiness, sloppiness)},
       {"",0,NULL,0,NULL},
 #line 19 "src/confitems.gperf"
       {"disable",              9, ITEM(disable, bool)},
 #line 10 "src/confitems.gperf"
       {"base_dir",             0, ITEM_V(base_dir, env_string, absolute_path)},
-#line 38 "src/confitems.gperf"
-      {"run_second_cpp",      28, ITEM(run_second_cpp, bool)},
+#line 39 "src/confitems.gperf"
+      {"run_second_cpp",      29, ITEM(run_second_cpp, bool)},
       {"",0,NULL,0,NULL},
 #line 18 "src/confitems.gperf"
       {"direct_mode",          8, ITEM(direct_mode, bool)},
       {"",0,NULL,0,NULL},
+#line 34 "src/confitems.gperf"
+      {"prefix_command_cpp",  24, ITEM(prefix_command_cpp, env_string)},
 #line 33 "src/confitems.gperf"
-      {"prefix_command_cpp",  23, ITEM(prefix_command_cpp, env_string)},
-#line 32 "src/confitems.gperf"
-      {"prefix_command",      22, ITEM(prefix_command, env_string)},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
+      {"prefix_command",      23, ITEM(prefix_command, env_string)},
       {"",0,NULL,0,NULL},
-#line 41 "src/confitems.gperf"
-      {"temporary_dir",       31, ITEM(temporary_dir, env_string)},
-#line 36 "src/confitems.gperf"
-      {"read_only_memcached", 26, ITEM(read_only_memcached, bool)},
+#line 32 "src/confitems.gperf"
+      {"pch_external_checksum", 22, ITEM(pch_external_checksum, bool)},
+      {"",0,NULL,0,NULL},
 #line 42 "src/confitems.gperf"
-      {"umask",               32, ITEM(umask, umask)},
-#line 35 "src/confitems.gperf"
-      {"read_only_direct",    25, ITEM(read_only_direct, bool)},
+      {"temporary_dir",       32, ITEM(temporary_dir, env_string)},
+#line 37 "src/confitems.gperf"
+      {"read_only_memcached", 27, ITEM(read_only_memcached, bool)},
+#line 43 "src/confitems.gperf"
+      {"umask",               33, ITEM(umask, umask)},
+#line 36 "src/confitems.gperf"
+      {"read_only_direct",    26, ITEM(read_only_direct, bool)},
       {"",0,NULL,0,NULL},
 #line 13 "src/confitems.gperf"
       {"compiler",             3, ITEM(compiler, string)},
@@ -177,14 +179,14 @@ confitems_get (register const char *str, register unsigned int len)
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
 #line 21 "src/confitems.gperf"
       {"hard_link",           11, ITEM(hard_link, bool)},
-#line 43 "src/confitems.gperf"
-      {"unify",               33, ITEM(unify, bool)},
+#line 44 "src/confitems.gperf"
+      {"unify",               34, ITEM(unify, bool)},
       {"",0,NULL,0,NULL},
 #line 16 "src/confitems.gperf"
       {"compression_level",    6, ITEM(compression_level, unsigned)},
       {"",0,NULL,0,NULL},
-#line 34 "src/confitems.gperf"
-      {"read_only",           24, ITEM(read_only, bool)},
+#line 35 "src/confitems.gperf"
+      {"read_only",           25, ITEM(read_only, bool)},
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
       {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
 #line 30 "src/confitems.gperf"
@@ -205,4 +207,4 @@ confitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t CONFITEMS_TOTAL_KEYWORDS = 34;
+static const size_t CONFITEMS_TOTAL_KEYWORDS = 35;

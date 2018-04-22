@@ -230,6 +230,10 @@ char *stats_file = NULL;
 // Whether the output is a precompiled header.
 bool output_is_precompiled_header = false;
 
+// Compiler guessing is currently only based on the compiler name, so nothing
+// should hard-depend on it if possible.
+enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
+
 // Profile generation / usage information.
 static char *profile_dir = NULL;
 static bool profile_use = false;
@@ -495,41 +499,20 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
-// Note that these compiler checks are unreliable, so nothing should
-// hard-depend on them.
-
-static bool
-compiler_is_clang(struct args *args)
+static enum guessed_compiler
+guess_compiler(const char *path)
 {
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "clang") != NULL;
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_gcc(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "gcc") || strstr(name, "g++");
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_nvcc(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = strstr(name, "nvcc") != NULL;
-	free(name);
-	return result;
-}
-
-static bool
-compiler_is_pump(struct args *args)
-{
-	char *name = basename(args->argv[0]);
-	bool result = str_eq(name, "pump") || str_eq(name, "distcc-pump");
+	char *name = basename(path);
+	enum guessed_compiler result = GUESSED_UNKNOWN;
+	if (strstr(name, "clang")) {
+		result = GUESSED_CLANG;
+	} else if (strstr(name, "gcc") || strstr(name, "g++")) {
+		result = GUESSED_GCC;
+	} else if (strstr(name, "nvcc")) {
+		result = GUESSED_NVCC;
+	} else if (str_eq(name, "pump") || str_eq(name, "distcc-pump")) {
+		result = GUESSED_PUMP;
+	}
 	free(name);
 	return result;
 }
@@ -644,7 +627,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 	// The comparison using >= is intentional, due to a possible race between
 	// starting compilation and writing the include file. See also the notes
-	// under "Performance" in MANUAL.txt.
+	// under "Performance" in doc/MANUAL.adoc.
 	if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
 	    && st.st_mtime >= time_of_compilation) {
 		cc_log("Include file %s too new", path);
@@ -664,13 +647,28 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 
 	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
+		bool using_pch_sum = false;
+		if (conf->pch_external_checksum) {
+			// hash pch.sum instead of pch when it exists
+			// to prevent hashing a very large .pch file every time
+			char *pch_sum_path = format("%s.sum", path);
+			if (x_stat(pch_sum_path, &st) == 0) {
+				char *old_path = path;
+				path = pch_sum_path;
+				pch_sum_path = old_path;
+				using_pch_sum = true;
+				cc_log("Using pch.sum file %s", path);
+			}
+			free(pch_sum_path);
+		}
+
 		if (!hash_file(&fhash, path)) {
 			goto failure;
 		}
 		struct file_hash pch_hash;
 		hash_result_as_bytes(&fhash, pch_hash.hash);
 		pch_hash.size = fhash.totalN;
-		hash_delimiter(cpp_hash, "pch_hash");
+		hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
 		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
 	}
 
@@ -1282,7 +1280,7 @@ to_fscache(struct args *args)
 
 	// distcc-pump outputs lines like this:
 	// __________Using # distcc servers in pump mode
-	if (st.st_size != 0 && !compiler_is_pump(args)) {
+	if (st.st_size != 0 && guessed_compiler != GUESSED_PUMP) {
 		cc_log("Compiler produced stdout");
 		stats_update(STATS_STDOUT);
 		tmp_unlink(tmp_stdout);
@@ -1697,10 +1695,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 {
 	time_of_compilation = time(NULL);
 
-	char *path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
-	int path_stderr_fd = create_tmp_fd(&path_stderr);
-	add_pending_tmp_file(path_stderr);
-
+	char *path_stderr = NULL;
 	char *path_stdout;
 	int status;
 	if (direct_i_file) {
@@ -1725,6 +1720,10 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
 		int path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
+
+		path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+		int path_stderr_fd = create_tmp_fd(&path_stderr);
+		add_pending_tmp_file(path_stderr);
 
 		int args_added = 2;
 		args_add(args, "-E");
@@ -1762,14 +1761,14 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 	} else {
 		hash_delimiter(hash, "cpp");
 		if (!process_preprocessed_file(hash, path_stdout,
-		                               compiler_is_pump(args))) {
+		                               guessed_compiler == GUESSED_PUMP)) {
 			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
 
 	hash_delimiter(hash, "cppstderr");
-	if (!hash_file(hash, path_stderr)) {
+	if (!direct_i_file && !hash_file(hash, path_stderr)) {
 		fatal("Failed to open %s: %s", path_stderr, strerror(errno));
 	}
 
@@ -2000,7 +1999,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	}
 
 	// Possibly hash GCC_COLORS (for color diagnostics).
-	if (compiler_is_gcc(args)) {
+	if (guessed_compiler == GUESSED_GCC) {
 		const char *gcc_colors = getenv("GCC_COLORS");
 		if (gcc_colors) {
 			hash_delimiter(hash, "gcccolors");
@@ -2024,7 +2023,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
-	int is_clang = compiler_is_clang(args);
+	int is_clang = guessed_compiler == GUESSED_CLANG;
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -2299,13 +2298,17 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	// We can't trust the objects based on running the preprocessor
-	// when the output is precompiled headers, as the hash does not
-	// include the mtime of each included header, breaking compilation
-	// with clang when the precompiled header is used after touching
-	// one of the included files.
-	if (output_is_precompiled_header && mode == FROMCACHE_CPP_MODE) {
-		cc_log("Not using preprocessed cached object for precompiled header");
+	// If we're using Clang, we can't trust a precompiled header object based on
+	// running the preprocessor since clang will produce a fatal error when the
+	// precompiled header is used and one of the included files has an updated
+	// timestamp:
+	//
+	//     file 'foo.h' has been modified since the precompiled header 'foo.pch'
+	//     was built
+	if (guessed_compiler == GUESSED_CLANG
+	    && output_is_precompiled_header
+	    && mode == FROMCACHE_CPP_MODE) {
+		cc_log("Not considering cached precompiled header in preprocessor mode");
 		return;
 	}
 
@@ -2559,7 +2562,15 @@ bool
 is_precompiled_header(const char *path)
 {
 	const char *ext = get_extension(path);
-	return str_eq(ext, ".gch") || str_eq(ext, ".pch") || str_eq(ext, ".pth");
+	char *dir = dirname(path);
+	const char *dir_ext = get_extension(dir);
+	bool result =
+		str_eq(ext, ".gch")
+		|| str_eq(ext, ".pch")
+		|| str_eq(ext, ".pth")
+		|| str_eq(dir_ext, ".gch"); // See "Precompiled Headers" in GCC docs.
+	free(dir);
+	return result;
 }
 
 static bool
@@ -2706,8 +2717,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Handle cuda "-optf" and "--options-file" argument.
-		if ((str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))
-		    && compiler_is_nvcc(args)) {
+		if (guessed_compiler == GUESSED_NVCC
+		    && (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))) {
 			if (i == argc - 1) {
 				cc_log("Expected argument after %s", argv[i]);
 				stats_update(STATS_ARGS);
@@ -2843,7 +2854,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		// Alternate form of -o with no space. Nvcc does not support this.
-		if (str_startswith(argv[i], "-o") && !compiler_is_nvcc(args)) {
+		if (str_startswith(argv[i], "-o") && guessed_compiler != GUESSED_NVCC) {
 			output_obj = make_relative_path(x_strdup(&argv[i][2]));
 			continue;
 		}
@@ -3458,12 +3469,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// Since output is redirected, compilers will not color their output by
 	// default, so force it explicitly if it would be otherwise done.
 	if (!found_color_diagnostics && color_output_possible()) {
-		if (compiler_is_clang(args)) {
+		if (guessed_compiler == GUESSED_CLANG) {
 			if (!str_eq(actual_language, "assembler")) {
 				args_add(stripped_args, "-fcolor-diagnostics");
 				cc_log("Automatically enabling colors");
 			}
-		} else if (compiler_is_gcc(args)) {
+		} else if (guessed_compiler == GUESSED_GCC) {
 			// GCC has it since 4.9, but that'd require detecting what GCC version is
 			// used for the actual compile. However it requires also GCC_COLORS to be
 			// set (and not empty), so use that for detecting if GCC would use
@@ -3800,6 +3811,8 @@ ccache(int argc, char *argv[])
 	cc_log("Working directory: %s", get_current_working_dir());
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
+
+	guessed_compiler = guess_compiler(orig_args->argv[0]);
 
 	// Arguments (except -E) to send to the preprocessor.
 	struct args *preprocessor_args;

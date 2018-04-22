@@ -133,9 +133,7 @@ EOF
         $CCACHE_COMPILE -MD -c test.c -o test.dir/test$ext
         rm -f $dep_file
         $CCACHE_COMPILE -MD -c test.c -o test.dir/test$ext
-        if [ ! -f $dep_file ]; then
-            test_failed "$dep_file missing"
-        fi
+        expect_file_exists $dep_file
         if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain test$ext"
         fi
@@ -144,9 +142,7 @@ EOF
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o test.dir/test$ext
         rm -f $dep_target
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o test.dir/test$ext
-        if [ ! -f $dep_file ]; then
-            test_failed "$dep_file missing"
-        fi
+        expect_file_exists $dep_file
         if ! grep $dep_target $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain $dep_target"
         fi
@@ -329,7 +325,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    test -r code.gcno || test_failed "code.gcno missing"
+    expect_file_exists code.gcno
 
     rm code.gcno
 
@@ -337,7 +333,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    test -r code.gcno || test_failed "code.gcno missing"
+    expect_file_exists code.gcno
 
     # -------------------------------------------------------------------------
     TEST "-fstack-usage"
@@ -351,7 +347,7 @@ EOF
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
-        test -r code.su || test_failed "code.su missing"
+        expect_file_exists code.su
 
         rm code.su
 
@@ -359,7 +355,7 @@ EOF
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
-        test -r code.su || test_failed "code.su missing"
+        expect_file_exists code.su
     fi
 
     # -------------------------------------------------------------------------

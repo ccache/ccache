@@ -1543,9 +1543,8 @@ tmp_unlink(const char *path)
 	return rc;
 }
 
-// Remove path, NFS safe.
-int
-x_unlink(const char *path)
+static int
+do_x_unlink(const char *path, bool log_failure)
 {
 	int saved_errno = 0;
 
@@ -1553,7 +1552,6 @@ x_unlink(const char *path)
 	// file. We don't care if the temp file is trashed, so it's always safe to
 	// unlink it first.
 	char *tmp_name = format("%s.rm.%s", path, tmp_string());
-	cc_log("Unlink %s via %s", path, tmp_name);
 
 	int result = 0;
 	if (x_rename(path, tmp_name) == -1) {
@@ -1570,12 +1568,29 @@ x_unlink(const char *path)
 	}
 
 out:
-	free(tmp_name);
-	if (result) {
-		cc_log("x_unlink failed: %s", strerror(saved_errno));
+	if (result == 0 || log_failure) {
+		cc_log("Unlink %s via %s", path, tmp_name);
+		if (result != 0 && log_failure) {
+			cc_log("x_unlink failed: %s", strerror(saved_errno));
+		}
 	}
+	free(tmp_name);
 	errno = saved_errno;
 	return result;
+}
+
+// Remove path, NFS safe, log both successes and failures.
+int
+x_unlink(const char *path)
+{
+	return do_x_unlink(path, true);
+}
+
+// Remove path, NFS safe, only log successes.
+int
+x_try_unlink(const char *path)
+{
+	return do_x_unlink(path, false);
 }
 
 #ifndef _WIN32
@@ -1739,5 +1754,7 @@ set_cloexec_flag(int fd)
 	if (flags >= 0) {
 		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 	}
+#else
+	(void)fd;
 #endif
 }

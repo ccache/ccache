@@ -105,7 +105,13 @@ sed_in_place() {
 }
 
 backdate() {
-    touch -t 199901010000 "$@"
+    if [[ $1 =~ ^[0-9]+$ ]]; then
+        m=$1
+        shift
+    else
+        m=0
+    fi
+    touch -t 1999010100$(printf "%02u" $m) "$@"
 }
 
 expect_stat() {
@@ -118,27 +124,39 @@ expect_stat() {
     fi
 }
 
+expect_file_exists() {
+    if [ ! -f "$1" ]; then
+        test_failed "Expected $1 to exist, but it's missing"
+    fi
+}
+
+expect_file_missing() {
+    if [ -f "$1" ]; then
+        test_failed "Expected $1 to be missing, but it exists"
+    fi
+}
+
 expect_equal_files() {
     if [ ! -e "$1" ]; then
-        test_failed "compare_files: $1 missing"
+        test_failed "expect_equal_files: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "compare_files: $2 missing"
+        test_failed "expect_equal_files: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
-        test_failed "compare_files: $1 and $2 differ"
+        test_failed "$1 and $2 differ"
     fi
 }
 
 expect_different_files() {
     if [ ! -e "$1" ]; then
-        test_failed "compare_files: $1 missing"
+        test_failed "expect_different_files: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "compare_files: $2 missing"
+        test_failed "expect_different_files: $2 missing"
     fi
     if cmp -s "$1" "$2"; then
-        test_failed "compare_files: $1 and $2 are identical"
+        test_failed "$1 and $2 are identical"
     fi
 }
 
@@ -172,7 +190,7 @@ expect_file_count() {
     local expected=$1
     local pattern=$2
     local dir=$3
-    local actual=`find $dir -name "$pattern" | wc -l`
+    local actual=`find $dir -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $pattern files in $dir"
     fi
