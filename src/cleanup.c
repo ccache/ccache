@@ -236,11 +236,10 @@ static void wipe_fn(const char *fname, struct stat *st)
 
 // Wipe one cache subdirectory.
 void
-wipe_dir(struct conf *conf, const char *dir)
+wipe_dir(const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);
 
-	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
 	files_in_cache = 0;
 
 	traverse(dir, wipe_fn);
@@ -258,7 +257,7 @@ void wipe_all(struct conf *conf)
 {
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
-		wipe_dir(conf, dname);
+		wipe_dir(dname);
 		free(dname);
 	}
 
