@@ -3,7 +3,6 @@
 
 #include "conf.h"
 #include "mdfour.h"
-#include <inttypes.h>
 
 struct file_hash
 {

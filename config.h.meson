@@ -1,0 +1,139 @@
+#ifndef CCACHE_CONFIG_H
+#define CCACHE_CONFIG_H
+
+/* Define on Linux to activate all library features */
+#mesondefine _GNU_SOURCE
+
+const static char CCACHE_VERSION[] = @CCACHE_VERSION@;
+
+/* HEADERS */
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#mesondefine HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+#mesondefine HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#mesondefine HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/file.h> header file. */
+#mesondefine HAVE_SYS_FILE_H
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#mesondefine HAVE_PWD_H
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#mesondefine HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <locale.h> header file. */
+#mesondefine HAVE_LOCALE_H
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#mesondefine HAVE_STDARG_H
+
+/* Define to 1 if you have the <termios.h> header file. */
+#mesondefine HAVE_TERMIOS_H
+
+/* Define to 1 if you have the <dirent.h> header file. */
+#mesondefine HAVE_DIRENT_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#mesondefine HAVE_UNISTD_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#mesondefine HAVE_STRINGS_H
+
+/* Define to 1 if you have the <utime.h> header file. */
+#mesondefine HAVE_UTIME_H
+
+/* Define to 1 if you have the <stddef.h> header file. */
+#mesondefine HAVE_STDDEF_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#mesondefine HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#mesondefine HAVE_STDLIB_H
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#mesondefine HAVE_INTTYPES_H
+
+
+
+/* FUNCTIONS */
+
+/* Define to 1 if you have the `strtok_r' function. */
+#mesondefine HAVE_STRTOK_R
+
+/* Define to 1 if you have a C99 compliant `vsnprintf' function. */
+#mesondefine HAVE_VSNPRINTF
+
+/* Define to 1 if you have a C99 compliant `snprintf' function. */
+#mesondefine HAVE_SNPRINTF
+
+/* Define to 1 if you have the `vasprintf' function. */
+#mesondefine HAVE_VASPRINTF
+
+/* Define to 1 if you have the `asprintf' function. */
+#mesondefine HAVE_ASPRINTF
+
+/* Define to 1 if you have the `mkstemp' function. */
+#mesondefine HAVE_MKSTEMP
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#mesondefine HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the `gethostname' function. */
+#mesondefine HAVE_GETHOSTNAME
+
+/* Define to 1 if you have the `strndup' function. */
+#mesondefine HAVE_STRNDUP
+
+/* Define to 1 if you have the `unsetenv' function. */
+#mesondefine HAVE_UNSETENV
+
+/* Define to 1 if you have the `realpath' function. */
+#mesondefine HAVE_REALPATH
+
+/* Define to 1 if you have the `GetFinalPathNameByHandleW' function. */
+#mesondefine HAVE_GETFINALPATHNAMEBYHANDLEW
+
+/* Define to 1 if you have the `getpwuid' function. */
+#mesondefine HAVE_GETPWUID
+
+/* Define to 1 if you have the `utimes' function. */
+#mesondefine HAVE_UTIMES
+
+/* Define to 1 if you have the `getopt_long' function. */
+#mesondefine HAVE_GETOPT_LONG
+
+/* Define to 1 if you have the `localeconv' function. */
+#mesondefine HAVE_LOCALECONV
+
+/* Define to 1 if you have the `va_copy' function or macro. */
+#mesondefine HAVE_VA_COPY
+
+/* Define to 1 if you have the `__va_copy' function or macro. */
+#mesondefine HAVE___VA_COPY
+
+
+/* STRUCT MEMBERS */
+
+#mesondefine HAVE_LCONV_DECIMAL_POINT
+
+#mesondefine HAVE_LCONV_THOUSANDS_SEP
+
+
+/* STILL UNIMPLEMENTED. NEEDED?
+
+HAVE_LONG_DOUBLE
+HAVE_LONG_LONG_INT
+HAVE_UNSIGNED_LONG_LONG_INT
+HAVE_INTMAX_T
+HAVE_UINTMAX_T
+HAVE_UINTPTR_T
+HAVE_PTRDIFF_T
+*/
+
+#endif /* CCACHE_CONFIG_H */

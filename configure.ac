@@ -52,7 +52,7 @@ AC_HEADER_SYS_WAIT
 
 AC_CHECK_TYPES(long long)
 
-AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
+AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h utime.h)
 AC_CHECK_HEADERS(termios.h)
 
 AC_CHECK_FUNCS(gethostname)

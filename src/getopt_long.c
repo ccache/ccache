@@ -40,11 +40,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #define BADCH  '?'
 #define BADARG ':'
 #define EMSG   ""
+
+int optind = 1;
+char *optarg = NULL;
+int opterr = 1;
+int optopt = 0;
 
 int
 getopt_long(int argc, char *const argv[],

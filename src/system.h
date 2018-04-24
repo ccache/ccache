@@ -19,36 +19,96 @@
 
 #include "config.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
+#include <windows.h>
+#include <direct.h>
+#endif
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
-#include <sys/stat.h>
-#include <sys/types.h>
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-
-#include <assert.h>
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
+#ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
-#include <limits.h>
-#include <signal.h>
+#endif
+#ifdef HAVE_STDARG_H
 #include <stdarg.h>
-#include <stdbool.h>
+#endif
+#ifdef HAVE_STDDEF_H
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#endif
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
-#include <time.h>
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_UTIME_H
 #include <utime.h>
+#endif
+#ifdef HAVE_DIRENT_H
+#include <dirent.h>
+#elif defined (_MSC_VER)
+#include "dirent/dirent.h"
+#endif
 
+#ifndef S_ISREG
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
+
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
+#ifdef _MSC_VER
+#define pid_t int
+#endif
+
+#ifndef _MSC_VER
 extern char **environ;
+#endif
 
 #ifndef ESTALE
 #define ESTALE -1
