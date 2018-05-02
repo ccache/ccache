@@ -24,6 +24,7 @@ struct conf {
 	unsigned max_files;
 	uint64_t max_size;
 	char *path;
+	bool pch_external_checksum;
 	char *prefix_command;
 	char *prefix_command_cpp;
 	bool read_only;

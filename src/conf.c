@@ -340,6 +340,7 @@ conf_create(void)
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
 	conf->path = x_strdup("");
+	conf->pch_external_checksum = false;
 	conf->prefix_command = x_strdup("");
 	conf->prefix_command_cpp = x_strdup("");
 	conf->read_only = false;
@@ -606,6 +607,11 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "path = %s", conf->path);
 	printer(s, conf->item_origins[find_conf("path")->number], context);
+
+	reformat(&s, "pch_external_checksum = %s",
+	         bool_to_string(conf->pch_external_checksum));
+	printer(s, conf->item_origins[find_conf("pch_external_checksum")->number],
+	        context);
 
 	reformat(&s, "prefix_command = %s", conf->prefix_command);
 	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);

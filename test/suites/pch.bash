@@ -284,6 +284,61 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 3
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 3
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, -fpch-preprocess, PCH_EXTSUM=1"
+
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    echo "original checksum" > pch.h.gch.sum
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo "other checksum" > pch.h.gch.sum
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    echo "original checksum" > pch.h.gch.sum
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, -fpch-preprocess, no PCH_EXTSUM"
+
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    echo "original checksum" > pch.h.gch.sum
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # external checksum not used, so no cache miss when changed
+    echo "other checksum" > pch.h.gch.sum
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
 }
 
 pch_suite_clang() {
