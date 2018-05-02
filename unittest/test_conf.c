@@ -183,6 +183,7 @@ TEST(conf_read_with_missing_equal_sign)
 	char *errmsg;
 	create_file("ccache.conf", "no equal sign");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: missing equal sign",
 	                   errmsg);
 	conf_free(conf);
@@ -194,6 +195,7 @@ TEST(conf_read_with_bad_config_key)
 	char *errmsg;
 	create_file("ccache.conf", "# Comment\nfoo = bar");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:2: unknown configuration option \"foo\"",
 	                   errmsg);
 	conf_free(conf);
@@ -206,11 +208,13 @@ TEST(conf_read_invalid_bool)
 
 	create_file("ccache.conf", "disable=");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: not a boolean value: \"\"",
 	                   errmsg);
 
 	create_file("ccache.conf", "disable=foo");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: not a boolean value: \"foo\"",
 	                   errmsg);
 	conf_free(conf);
@@ -222,6 +226,7 @@ TEST(conf_read_invalid_env_string)
 	char *errmsg;
 	create_file("ccache.conf", "base_dir = ${foo");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: syntax error: missing '}' after \"foo\"",
 	                   errmsg);
 	// Other cases tested in test_util.c.
@@ -244,6 +249,7 @@ TEST(conf_read_invalid_size)
 	char *errmsg;
 	create_file("ccache.conf", "max_size = foo");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid size: \"foo\"",
 	                   errmsg);
 	// Other cases tested in test_util.c.
@@ -256,6 +262,7 @@ TEST(conf_read_invalid_sloppiness)
 	char *errmsg;
 	create_file("ccache.conf", "sloppiness = file_macro, foo");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: unknown sloppiness: \"foo\"",
 	                   errmsg);
 	conf_free(conf);
@@ -268,6 +275,7 @@ TEST(conf_read_invalid_unsigned)
 
 	create_file("ccache.conf", "max_files =");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, 0);
 	CHECK_STR_EQ_FREE2("ccache.conf:1: invalid unsigned integer: \"\"",
 	                   errmsg);
 
@@ -282,6 +290,14 @@ TEST(conf_read_invalid_unsigned)
 	                   errmsg);
 
 	conf_free(conf);
+}
+
+TEST(conf_read_missing_config_file)
+{
+	struct conf *conf = conf_create();
+	char *errmsg;
+	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(errno, ENOENT);
 }
 
 TEST(verify_absolute_base_dir)

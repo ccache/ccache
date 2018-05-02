@@ -381,6 +381,9 @@ conf_free(struct conf *conf)
 }
 
 // Note: The path pointer is stored in conf, so path must outlive conf.
+//
+// On failure, if an I/O error occured errno is set approriately, otherwise
+// errno is set to zero indicating that config itself was invalid.
 bool
 conf_read(struct conf *conf, const char *path, char **errmsg)
 {
@@ -411,6 +414,7 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		if (!ok) {
 			*errmsg = format("%s:%u: %s", path, line_number, errmsg2);
 			free(errmsg2);
+			errno = 0;
 			result = false;
 			goto out;
 		}
