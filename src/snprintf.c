@@ -539,7 +539,7 @@ static UINTMAX_T cast(LDOUBLE);
 static UINTMAX_T myround(LDOUBLE);
 static LDOUBLE mypow10(int);
 
-#ifndef __MINGW32__
+#if !defined(__MINGW32__) && !defined(_MSC_VER)
 extern int errno;
 #endif
 
@@ -1202,7 +1202,7 @@ again:
 	 * Factor of ten with the number of digits needed for the fractional
 	 * part.  For example, if the precision is 3, the mask will be 1000.
 	 */
-	mask = mypow10(precision);
+	mask = (UINTMAX_T)mypow10(precision);
 	/*
 	 * We "cheat" by converting the fractional part to integer by
 	 * multiplying by a factor of ten.
@@ -1454,7 +1454,7 @@ cast(LDOUBLE value)
 	if (value >= UINTMAX_MAX)
 		return UINTMAX_MAX;
 
-	result = value;
+	result = (UINTMAX_T)value;
 	/*
 	 * At least on NetBSD/sparc64 3.0.2 and 4.99.30, casting long double to
 	 * an integer type converts e.g. 1.9 to 2 instead of 1 (which violates

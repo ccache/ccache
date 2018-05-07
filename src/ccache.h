@@ -287,10 +287,7 @@ int win32execute(char *path, char **argv, int doreturn,
                  int fd_stdout, int fd_stderr);
 void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
                                    const char *ext, const char *path);
-#    ifndef _WIN32_WINNT
-#    define _WIN32_WINNT 0x0501
-#    endif
-#    include <windows.h>
+
 #    define mkdir(a,b) mkdir(a)
 #    define link(src,dst) (CreateHardLink(dst,src,NULL) ? 0 : -1)
 #    define lstat(a,b) stat(a,b)

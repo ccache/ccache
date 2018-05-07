@@ -21,14 +21,6 @@
 #include "ccache.h"
 #include "hashutil.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 extern char *stats_file;
 extern struct conf *conf;
 extern unsigned lock_staleness_limit;

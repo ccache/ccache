@@ -162,7 +162,11 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		}
 		cc_log("lockfile_acquire: failed to acquire %s; sleeping %u microseconds",
 		       lockfile, to_sleep);
+#ifdef _WIN32
+    Sleep(to_sleep / 1000);
+#else
 		usleep(to_sleep);
+#endif
 		slept += to_sleep;
 		to_sleep *= 2;
 	}
