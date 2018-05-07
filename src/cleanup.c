@@ -165,7 +165,8 @@ clean_up_dir(struct conf *conf, const char *dir, double limit_multiple)
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
 	cache_size_threshold = (uint64_t)round(conf->max_size * limit_multiple / 16);
-	files_in_cache_threshold = (size_t)round(conf->max_files * limit_multiple / 16);
+	files_in_cache_threshold =
+		(size_t)round(conf->max_files * limit_multiple / 16);
 
 	num_files = 0;
 	cache_size = 0;

@@ -1814,8 +1814,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 		if ((str_eq(args->argv[i], "-ccbin")
 		     || str_eq(args->argv[i], "--compiler-bindir"))
-		     && i + 1 < args->argc
-		     && x_stat(args->argv[i+1], &st) == 0) {
+		    && i + 1 < args->argc
+		    && x_stat(args->argv[i+1], &st) == 0) {
 			found_ccbin = true;
 			hash_delimiter(hash, "ccbin");
 			hash_nvcc_host_compiler(hash, &st, args->argv[i+1]);

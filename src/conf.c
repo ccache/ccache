@@ -377,7 +377,7 @@ conf_free(struct conf *conf)
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
 	free(conf->temporary_dir);
-	free((void *)conf->item_origins); /* Workaround for MSVC warning */
+	free((void *)conf->item_origins); // Workaround for MSVC warning
 	free(conf);
 }
 
