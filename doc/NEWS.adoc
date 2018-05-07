@@ -1,6 +1,17 @@
 ccache news
 ===========
 
+ccache 3.4.3
+-----------
+Release date: unknown
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a race condition when creating the initial config file in the cache
+  directory.
+
+
 ccache 3.4.2
 ------------
 Release date: 2018-03-25
