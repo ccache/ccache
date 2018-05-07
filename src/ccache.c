@@ -3157,7 +3157,7 @@ initialize(void)
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
-			if (access(secondary_config_path, R_OK) == 0) {
+			if (errno == 0) {
 				// We could read the file but it contained errors.
 				fatal("%s", errmsg);
 			}
@@ -3181,7 +3181,7 @@ initialize(void)
 
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
-		if (access(primary_config_path, R_OK) == 0) {
+		if (errno == 0) {
 			// We could read the file but it contained errors.
 			fatal("%s", errmsg);
 		}
