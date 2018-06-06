@@ -267,7 +267,7 @@ fi
 HOST_CCACHE_DIRS="/usr/lib/ccache/bin
 /usr/lib/ccache"
 for HOST_CCACHE_DIR in $HOST_CCACHE_DIRS; do
-    PATH=$(echo -n $PATH | awk -v RS=: -v ORS=: '$0 != "'$HOST_CCACHE_DIR'"' | sed 's/:$//')
+    PATH="$(echo "$PATH:" | awk -v RS=: -v ORS=: '$0 != "'$HOST_CCACHE_DIR'"' | sed 's/:*$//')"
 done
 export PATH
 
