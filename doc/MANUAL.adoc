@@ -451,6 +451,12 @@ might be incorrect.
 -------------------------------------------------------------------------------
 CCACHE_MEMCACHED_CONF=--SERVER=localhost:11211
 -------------------------------------------------------------------------------
++
+To use SASL authentication with your memcached, set the variables:
+*CCACHE_MEMCACHED_USERNAME* and *CCACHE_MEMCACHED_PASSWORD*.
+Note that this also requires using the binary protocol of memcached.
+See: <https://blog.couchbase.com/sasl-memcached-now-available/>.
+If using Couchbase < 5, use the name of the _bucket_ as the username.
 
 *memcached_only* (*CCACHE_MEMCACHED_ONLY*)::
 
