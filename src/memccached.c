@@ -120,7 +120,11 @@ static memcached_return_t memccached_big_set(memcached_st *ptr,
 			ptr, s, strlen(s), value + x, n, expiration, flags);
 		free(s);
 		if (ret) {
+#if LIBMEMCACHED_VERSION_HEX >= 0x01000017
+			const memcached_instance_st *instance;
+#else
 			memcached_server_instance_st instance;
+#endif
 
 			instance = memcached_server_instance_by_position(memc, 0);
 			cc_log("%s %s", memcached_last_error_message(memc),
