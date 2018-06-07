@@ -1,10 +1,10 @@
-ccache installation
-===================
+ccache installation from source repository
+==========================================
 
 Prerequisites
 -------------
 
-To build ccache from the source repository, you need:
+To build ccache from a source repository, you need:
 
 - A C compiler (for instance GCC)
 - GNU Bourne Again SHell (bash) for tests.
