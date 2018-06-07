@@ -1600,7 +1600,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			if (sep) {
 				char *old = x_strndup(map, sep - map);
 				char *new = x_strdup(sep + 1);
-				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
+				cc_log("Relocating debuginfo CWD %s from %s to %s", cwd, old, new);
 				if (str_startswith(cwd, old)) {
 					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
@@ -1611,6 +1611,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			}
 		}
 		if (cwd) {
+			cc_log("Hashing CWD %s", cwd);
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
