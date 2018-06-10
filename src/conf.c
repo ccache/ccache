@@ -19,6 +19,7 @@
 
 typedef bool (*conf_item_parser)(const char *str, void *result, char **errmsg);
 typedef bool (*conf_item_verifier)(void *value, char **errmsg);
+typedef const char *(*conf_item_formatter)(void *value);
 
 struct conf_item {
 	const char *name;
@@ -26,6 +27,7 @@ struct conf_item {
 	conf_item_parser parser;
 	size_t offset;
 	conf_item_verifier verifier;
+	conf_item_formatter formatter;
 };
 
 struct env_to_conf_item {
@@ -50,6 +52,19 @@ parse_bool(const char *str, void *result, char **errmsg)
 	}
 }
 
+static const char *
+bool_to_string(bool value)
+{
+	return value ? "true" : "false";
+}
+
+static const char *
+format_bool(void *value)
+{
+	bool *b = (bool *)value;
+	return x_strdup(bool_to_string(*b));
+}
+
 static bool
 parse_env_string(const char *str, void *result, char **errmsg)
 {
@@ -57,6 +72,19 @@ parse_env_string(const char *str, void *result, char **errmsg)
 	free(*value);
 	*value = subst_env_in_string(str, errmsg);
 	return *value != NULL;
+}
+
+static const char *
+format_string(void *value)
+{
+	char **str = (char **)value;
+	return x_strdup(*str);
+}
+
+static const char *
+format_env_string(void *value)
+{
+	return format_string(value);
 }
 
 static bool
@@ -75,6 +103,13 @@ parse_float(const char *str, void *result, char **errmsg)
 	}
 }
 
+static const char *
+format_float(void *value)
+{
+	float *x = (float *)value;
+	return format("%.1f", *x);
+}
+
 static bool
 parse_size(const char *str, void *result, char **errmsg)
 {
@@ -87,6 +122,13 @@ parse_size(const char *str, void *result, char **errmsg)
 		*errmsg = format("invalid size: \"%s\"", str);
 		return false;
 	}
+}
+
+static const char *
+format_size(void *value)
+{
+	uint64_t *size = (uint64_t *)value;
+	return format_parsable_size_with_suffix(*size);
 }
 
 static bool
@@ -129,6 +171,42 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 	return true;
 }
 
+static const char *
+format_sloppiness(void *value)
+{
+	unsigned *sloppiness = (unsigned *)value;
+	char *s = x_strdup("");
+	if (*sloppiness & SLOPPY_FILE_MACRO) {
+		reformat(&s, "%sfile_macro, ", s);
+	}
+	if (*sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
+		reformat(&s, "%sinclude_file_mtime, ", s);
+	}
+	if (*sloppiness & SLOPPY_INCLUDE_FILE_CTIME) {
+		reformat(&s, "%sinclude_file_ctime, ", s);
+	}
+	if (*sloppiness & SLOPPY_TIME_MACROS) {
+		reformat(&s, "%stime_macros, ", s);
+	}
+	if (*sloppiness & SLOPPY_PCH_DEFINES) {
+		reformat(&s, "%spch_defines, ", s);
+	}
+	if (*sloppiness & SLOPPY_FILE_STAT_MATCHES) {
+		reformat(&s, "%sfile_stat_matches, ", s);
+	}
+	if (*sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME) {
+		reformat(&s, "%sfile_stat_matches_ctime, ", s);
+	}
+	if (*sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
+		reformat(&s, "%sno_system_headers, ", s);
+	}
+	if (*sloppiness) {
+		// Strip last ", ".
+		s[strlen(s) - 2] = '\0';
+	}
+	return s;
+}
+
 static bool
 parse_string(const char *str, void *result, char **errmsg)
 {
@@ -160,6 +238,17 @@ parse_umask(const char *str, void *result, char **errmsg)
 	}
 }
 
+static const char *
+format_umask(void *value)
+{
+	unsigned *umask = (unsigned *)value;
+	if (*umask == UINT_MAX) {
+		return x_strdup("");
+	} else {
+		return format("%03o", *umask);
+	}
+}
+
 static bool
 parse_unsigned(const char *str, void *result, char **errmsg)
 {
@@ -177,9 +266,10 @@ parse_unsigned(const char *str, void *result, char **errmsg)
 }
 
 static const char *
-bool_to_string(bool value)
+format_unsigned(void *value)
 {
-	return value ? "true" : "false";
+	unsigned *i = (unsigned *)value;
+	return format("%u", *i);
 }
 
 static bool
@@ -212,9 +302,10 @@ verify_dir_levels(void *value, char **errmsg)
 }
 
 #define ITEM(name, type) \
-	parse_ ## type, offsetof(struct conf, name), NULL
+	parse_ ## type, offsetof(struct conf, name), NULL, format_ ## type
 #define ITEM_V(name, type, verification) \
-	parse_ ## type, offsetof(struct conf, name), verify_ ## verification
+	parse_ ## type, offsetof(struct conf, name), \
+	verify_ ## verification, format_ ## type
 
 #include "confitems_lookup.c"
 #include "envtoconfitems_lookup.c"

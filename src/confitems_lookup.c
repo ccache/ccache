@@ -96,20 +96,20 @@ confitems_get (register const char *str, register unsigned int len)
 
   static const struct conf_item wordlist[] =
     {
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
 #line 30 "src/confitems.gperf"
       {"path",                20, ITEM(path, env_string)},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 13 "src/confitems.gperf"
       {"compiler",             3, ITEM(compiler, string)},
 #line 11 "src/confitems.gperf"
       {"cache_dir",            1, ITEM(cache_dir, env_string)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 15 "src/confitems.gperf"
       {"compression",          5, ITEM(compression, bool)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 17 "src/confitems.gperf"
       {"cpp_extension",        7, ITEM(cpp_extension, string)},
 #line 14 "src/confitems.gperf"
@@ -136,7 +136,7 @@ confitems_get (register const char *str, register unsigned int len)
       {"read_only",           24, ITEM(read_only, bool)},
 #line 38 "src/confitems.gperf"
       {"sloppiness",          28, ITEM(sloppiness, sloppiness)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 25 "src/confitems.gperf"
       {"keep_comments_cpp",   15, ITEM(keep_comments_cpp, bool)},
 #line 29 "src/confitems.gperf"
@@ -153,26 +153,26 @@ confitems_get (register const char *str, register unsigned int len)
       {"temporary_dir",       30, ITEM(temporary_dir, env_string)},
 #line 37 "src/confitems.gperf"
       {"run_second_cpp",      27, ITEM(run_second_cpp, bool)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 19 "src/confitems.gperf"
       {"direct_mode",          9, ITEM(direct_mode, bool)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 23 "src/confitems.gperf"
       {"hash_dir",            13, ITEM(hash_dir, bool)},
 #line 22 "src/confitems.gperf"
       {"hard_link",           12, ITEM(hard_link, bool)},
 #line 41 "src/confitems.gperf"
       {"umask",               31, ITEM(umask, umask)},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
 #line 10 "src/confitems.gperf"
       {"base_dir",             0, ITEM_V(base_dir, env_string, absolute_path)},
 #line 21 "src/confitems.gperf"
       {"extra_files_to_hash", 11, ITEM(extra_files_to_hash, env_string)},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
-      {"",0,NULL,0,NULL}, {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
+      {"",0,NULL,0,NULL,NULL}, {"",0,NULL,0,NULL,NULL},
 #line 26 "src/confitems.gperf"
       {"limit_multiple",      16, ITEM(limit_multiple, float)},
-      {"",0,NULL,0,NULL},
+      {"",0,NULL,0,NULL,NULL},
 #line 24 "src/confitems.gperf"
       {"ignore_headers_in_manifest", 14, ITEM(ignore_headers_in_manifest, env_string)}
     };
