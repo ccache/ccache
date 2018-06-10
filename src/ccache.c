@@ -66,6 +66,7 @@ static const char USAGE_TEXT[] =
 	"    -C, --clear           clear the cache completely (except configuration)\n"
 	"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
 	"                          no limit)\n"
+        "    -k, --get-config=K    get the value of the configuration key K\n"
 	"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
 	"                          limit); available suffixes: k, M, G, T (decimal) and\n"
 	"                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
@@ -3544,6 +3545,7 @@ ccache_main_options(int argc, char *argv[])
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
+		{"get-config",    required_argument, 0, 'k'},
 		{"hash-file",     required_argument, 0, HASH_FILE},
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
@@ -3557,7 +3559,8 @@ ccache_main_options(int argc, char *argv[])
 	};
 
 	int c;
-	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cCk:hF:M:o:psVz", options, NULL))
+               != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
@@ -3594,6 +3597,16 @@ ccache_main_options(int argc, char *argv[])
 		case 'h': // --help
 			fputs(USAGE_TEXT, stdout);
 			x_exit(0);
+
+		case 'k': // --get-config
+		{
+			initialize();
+			char *errmsg;
+			if (!conf_print_value(conf, optarg, stdout, &errmsg)) {
+				fatal("%s", errmsg);
+			}
+		}
+		break;
 
 		case 'F': // --max-files
 		{

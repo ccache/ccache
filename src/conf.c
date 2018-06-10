@@ -629,6 +629,22 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	return true;
 }
 
+bool
+conf_print_value(struct conf *conf, const char *key,
+                 FILE *file, char **errmsg)
+{
+	const struct conf_item *item = find_conf(key);
+	if (!item) {
+		*errmsg = format("unknown configuration option \"%s\"", key);
+		return false;
+	}
+	void *value = (char *)conf + item->offset;
+	char *str = (char *)item->formatter(value);
+	fprintf(file, "%s\n", str);
+	free(str);
+	return true;
+}
+
 static bool
 print_item(struct conf *conf, const char *key,
            void (*printer)(const char *descr, const char *origin,
