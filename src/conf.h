@@ -45,6 +45,8 @@ struct conf *conf_create(void);
 void conf_free(struct conf *conf);
 bool conf_read(struct conf *conf, const char *path, char **errmsg);
 bool conf_update_from_environment(struct conf *conf, char **errmsg);
+bool conf_print_value(struct conf *conf, const char *key,
+                      FILE *file, char **errmsg);
 bool conf_set_value_in_file(const char *path, const char *key,
                             const char *value, char **errmsg);
 bool conf_print_items(struct conf *conf,
