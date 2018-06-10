@@ -629,161 +629,65 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	return true;
 }
 
+static bool
+print_item(struct conf *conf, const char *key,
+           void (*printer)(const char *descr, const char *origin,
+                           void *context),
+           void *context)
+{
+	const struct conf_item *item = find_conf(key);
+	if (!item) {
+		return false;
+	}
+	void *value = (char *)conf + item->offset;
+	char *str = (char *)item->formatter(value);
+	char *buf = x_strdup("");
+	reformat(&buf, "%s = %s", key, str);
+	printer(buf, conf->item_origins[item->number], context);
+	free(buf);
+	free(str);
+	return true;
+}
+
 bool
 conf_print_items(struct conf *conf,
                  void (*printer)(const char *descr, const char *origin,
                                  void *context),
                  void *context)
 {
-	char *s = x_strdup("");
-
-	reformat(&s, "base_dir = %s", conf->base_dir);
-	printer(s, conf->item_origins[find_conf("base_dir")->number], context);
-
-	reformat(&s, "cache_dir = %s", conf->cache_dir);
-	printer(s, conf->item_origins[find_conf("cache_dir")->number], context);
-
-	reformat(&s, "cache_dir_levels = %u", conf->cache_dir_levels);
-	printer(s, conf->item_origins[find_conf("cache_dir_levels")->number],
-	        context);
-
-	reformat(&s, "compiler = %s", conf->compiler);
-	printer(s, conf->item_origins[find_conf("compiler")->number], context);
-
-	reformat(&s, "compiler_check = %s", conf->compiler_check);
-	printer(s, conf->item_origins[find_conf("compiler_check")->number], context);
-
-	reformat(&s, "compression = %s", bool_to_string(conf->compression));
-	printer(s, conf->item_origins[find_conf("compression")->number], context);
-
-	reformat(&s, "compression_level = %u", conf->compression_level);
-	printer(s, conf->item_origins[find_conf("compression_level")->number],
-	        context);
-
-	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
-	printer(s, conf->item_origins[find_conf("cpp_extension")->number], context);
-
-	reformat(&s, "debug = %s", bool_to_string(conf->debug));
-	printer(s, conf->item_origins[find_conf("debug")->number], context);
-
-	reformat(&s, "direct_mode = %s", bool_to_string(conf->direct_mode));
-	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);
-
-	reformat(&s, "disable = %s", bool_to_string(conf->disable));
-	printer(s, conf->item_origins[find_conf("disable")->number], context);
-
-	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
-	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number],
-	        context);
-
-	reformat(&s, "hard_link = %s", bool_to_string(conf->hard_link));
-	printer(s, conf->item_origins[find_conf("hard_link")->number], context);
-
-	reformat(&s, "hash_dir = %s", bool_to_string(conf->hash_dir));
-	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
-
-	reformat(&s, "ignore_headers_in_manifest = %s",
-	         conf->ignore_headers_in_manifest);
-	printer(s,
-	        conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
-	        context);
-
-	reformat(&s, "keep_comments_cpp = %s",
-	         bool_to_string(conf->keep_comments_cpp));
-	printer(s,
-	        conf->item_origins[find_conf("keep_comments_cpp")->number],
-	        context);
-
-	reformat(&s, "limit_multiple = %.1f", (double)conf->limit_multiple);
-	printer(s, conf->item_origins[find_conf("limit_multiple")->number], context);
-
-	reformat(&s, "log_file = %s", conf->log_file);
-	printer(s, conf->item_origins[find_conf("log_file")->number], context);
-
-	reformat(&s, "max_files = %u", conf->max_files);
-	printer(s, conf->item_origins[find_conf("max_files")->number], context);
-
-	char *s2 = format_parsable_size_with_suffix(conf->max_size);
-	reformat(&s, "max_size = %s", s2);
-	printer(s, conf->item_origins[find_conf("max_size")->number], context);
-	free(s2);
-
-	reformat(&s, "path = %s", conf->path);
-	printer(s, conf->item_origins[find_conf("path")->number], context);
-
-	reformat(&s, "pch_external_checksum = %s",
-	         bool_to_string(conf->pch_external_checksum));
-	printer(s, conf->item_origins[find_conf("pch_external_checksum")->number],
-	        context);
-
-	reformat(&s, "prefix_command = %s", conf->prefix_command);
-	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);
-
-	reformat(&s, "prefix_command_cpp = %s", conf->prefix_command_cpp);
-	printer(s,
-	        conf->item_origins[find_conf("prefix_command_cpp")->number],
-	        context);
-
-	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
-	printer(s, conf->item_origins[find_conf("read_only")->number], context);
-
-	reformat(&s, "read_only_direct = %s", bool_to_string(conf->read_only_direct));
-	printer(s, conf->item_origins[find_conf("read_only_direct")->number],
-	        context);
-
-	reformat(&s, "recache = %s", bool_to_string(conf->recache));
-	printer(s, conf->item_origins[find_conf("recache")->number], context);
-
-	reformat(&s, "run_second_cpp = %s", bool_to_string(conf->run_second_cpp));
-	printer(s, conf->item_origins[find_conf("run_second_cpp")->number], context);
-
-	reformat(&s, "sloppiness = ");
-	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
-		reformat(&s, "%sfile_macro, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
-		reformat(&s, "%sinclude_file_mtime, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME) {
-		reformat(&s, "%sinclude_file_ctime, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
-		reformat(&s, "%stime_macros, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_PCH_DEFINES) {
-		reformat(&s, "%spch_defines, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-		reformat(&s, "%sfile_stat_matches, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME) {
-		reformat(&s, "%sfile_stat_matches_ctime, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
-		reformat(&s, "%sno_system_headers, ", s);
-	}
-	if (conf->sloppiness) {
-		// Strip last ", ".
-		s[strlen(s) - 2] = '\0';
-	}
-	printer(s, conf->item_origins[find_conf("sloppiness")->number], context);
-
-	reformat(&s, "stats = %s", bool_to_string(conf->stats));
-	printer(s, conf->item_origins[find_conf("stats")->number], context);
-
-	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
-	printer(s, conf->item_origins[find_conf("temporary_dir")->number], context);
-
-	if (conf->umask == UINT_MAX) {
-		reformat(&s, "umask = ");
-	} else {
-		reformat(&s, "umask = %03o", conf->umask);
-	}
-	printer(s, conf->item_origins[find_conf("umask")->number], context);
-
-	reformat(&s, "unify = %s", bool_to_string(conf->unify));
-	printer(s, conf->item_origins[find_conf("unify")->number], context);
-
-	free(s);
-	return true;
+	bool ok = true;
+	ok &= print_item(conf, "base_dir", printer, context);
+	ok &= print_item(conf, "cache_dir", printer, context);
+	ok &= print_item(conf, "cache_dir_levels", printer, context);
+	ok &= print_item(conf, "compiler", printer, context);
+	ok &= print_item(conf, "compiler_check", printer, context);
+	ok &= print_item(conf, "compression", printer, context);
+	ok &= print_item(conf, "compression_level", printer, context);
+	ok &= print_item(conf, "cpp_extension", printer, context);
+	ok &= print_item(conf, "debug", printer, context);
+	ok &= print_item(conf, "direct_mode", printer, context);
+	ok &= print_item(conf, "disable", printer, context);
+	ok &= print_item(conf, "extra_files_to_hash", printer, context);
+	ok &= print_item(conf, "hard_link", printer, context);
+	ok &= print_item(conf, "hash_dir", printer, context);
+	ok &= print_item(conf, "ignore_headers_in_manifest", printer, context);
+	ok &= print_item(conf, "keep_comments_cpp", printer, context);
+	ok &= print_item(conf, "limit_multiple", printer, context);
+	ok &= print_item(conf, "log_file", printer, context);
+	ok &= print_item(conf, "max_files", printer, context);
+	ok &= print_item(conf, "max_size", printer, context);
+	ok &= print_item(conf, "path", printer, context);
+	ok &= print_item(conf, "pch_external_checksum", printer, context);
+	ok &= print_item(conf, "prefix_command", printer, context);
+	ok &= print_item(conf, "prefix_command_cpp", printer, context);
+	ok &= print_item(conf, "read_only", printer, context);
+	ok &= print_item(conf, "read_only_direct", printer, context);
+	ok &= print_item(conf, "recache", printer, context);
+	ok &= print_item(conf, "run_second_cpp", printer, context);
+	ok &= print_item(conf, "sloppiness", printer, context);
+	ok &= print_item(conf, "stats", printer, context);
+	ok &= print_item(conf, "temporary_dir", printer, context);
+	ok &= print_item(conf, "umask", printer, context);
+	ok &= print_item(conf, "unify", printer, context);
+	return ok;
 }
