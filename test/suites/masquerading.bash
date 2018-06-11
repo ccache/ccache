@@ -1,13 +1,16 @@
 SUITE_masquerading_PROBE() {
-    local compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
+    local compiler_binary
+    compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
     if [ "$(dirname $compiler_binary)" != . ]; then
         echo "compiler ($compiler_binary) not taken from PATH"
     fi
 }
 
 SUITE_masquerading_SETUP() {
-    local compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
-    local compiler_args=$(echo $COMPILER | cut -s -d' ' -f2-)
+    local compiler_binary
+    compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
+    local compiler_args
+    compiler_args=$(echo $COMPILER | cut -s -d' ' -f2-)
 
     ln -s "$CCACHE" $compiler_binary
     CCACHE_COMPILE="./$compiler_binary $compiler_args"
