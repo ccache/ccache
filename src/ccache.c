@@ -1711,7 +1711,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
-	int is_clang = guessed_compiler == GUESSED_CLANG;
+	int is_clang = (guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN);
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -1970,7 +1970,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	//
 	//     file 'foo.h' has been modified since the precompiled header 'foo.pch'
 	//     was built
-	if (guessed_compiler == GUESSED_CLANG
+	if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
 	    && output_is_precompiled_header
 	    && mode == FROMCACHE_CPP_MODE) {
 		cc_log("Not considering cached precompiled header in preprocessor mode");
