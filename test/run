@@ -158,6 +158,11 @@ expect_equal_object_files() {
             test_failed "Please install elfutils to get eu-elfcmp"
         fi
         eu-elfcmp -q "$1" "$2"
+    elif $HOST_OS_FREEBSD && $COMPILER_TYPE_CLANG; then
+        elfdump -a -w "$1".dump "$1"
+        elfdump -a -w "$2".dump "$2"
+        # these were the elfdump fields that seemed to differ (empirically)
+        diff -I e_shoff -I sh_size -I st_name "$1".dump "$2".dump > /dev/null
     else
         cmp -s "$1" "$2"
     fi
@@ -288,6 +293,7 @@ COMPILER_USES_MINGW=false
 
 HOST_OS_APPLE=false
 HOST_OS_LINUX=false
+HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
@@ -322,6 +328,9 @@ case $(uname -s) in
         ;;
     *Linux*)
         HOST_OS_LINUX=true
+        ;;
+    *FreeBSD*)
+        HOST_OS_FREEBSD=true
         ;;
 esac
 
