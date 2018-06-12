@@ -1,0 +1,12 @@
+How to use Vagrant to test ccache on FreeBSD
+============================================
+
+vagrant up
+vagrant ssh
+
+vagrant@freebsd:~ % git clone https://github.com/ccache/ccache.git
+vagrant@freebsd:~ % cd ccache
+vagrant@freebsd:~/ccache % ./autogen.sh
+vagrant@freebsd:~/ccache % ./configure
+vagrant@freebsd:~/ccache % gmake
+vagrant@freebsd:~/ccache % gmake test
