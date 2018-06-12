@@ -120,7 +120,7 @@ then
                 Define to the level of X/Open that your system supports)
       ;;
     *)
-      AC_DEFINE(_XOPEN_SOURCE, 600,
+      AC_DEFINE(_XOPEN_SOURCE, 700,
                 Define to the level of X/Open that your system supports)
       ;;
   esac
@@ -142,6 +142,6 @@ then
       ;;
   esac
 
-  AC_DEFINE(_POSIX_C_SOURCE, 200112L, Define to activate features from IEEE Stds 1003.1-2001)
+  AC_DEFINE(_POSIX_C_SOURCE, 200809L, Define to activate features from IEEE Stds 1003.1-2001)
 
 fi
