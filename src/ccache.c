@@ -61,6 +61,7 @@ static const char USAGE_TEXT[] =
   "                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
   "    -o, --set-config=K=V  set configuration key K to value V\n"
   "    -p, --print-config    print current configuration options\n"
+  "    -x, --comp-stats      show compression statistics\n"
   "    -s, --show-stats      show statistics summary\n"
   "    -z, --zero-stats      zero statistics counters\n"
   "\n"
@@ -3463,6 +3464,7 @@ ccache_main_options(int argc, char *argv[])
 		{"max-size",      required_argument, 0, 'M'},
 		{"set-config",    required_argument, 0, 'o'},
 		{"print-config",  no_argument,       0, 'p'},
+		{"comp-stats",    no_argument,       0, 'x'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
@@ -3470,7 +3472,7 @@ ccache_main_options(int argc, char *argv[])
 	};
 
 	int c;
-	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "cChF:M:o:pxsVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
@@ -3553,6 +3555,11 @@ ccache_main_options(int argc, char *argv[])
 		case 'p': // --print-config
 			initialize();
 			conf_print_items(conf, configuration_printer, stdout);
+			break;
+
+		case 'x': // --comp-stats
+			initialize();
+			compress_stats(conf);
 			break;
 
 		case 's': // --show-stats

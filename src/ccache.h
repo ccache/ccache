@@ -145,6 +145,7 @@ int move_file(const char *src, const char *dest, int compress_level);
 int move_uncompressed_file(const char *src, const char *dest,
                            int compress_level);
 bool file_is_compressed(const char *filename);
+size_t uncompressed_size(const char *filename);
 int create_dir(const char *dir);
 int create_parent_dirs(const char *path);
 const char *get_hostname(void);
@@ -236,6 +237,11 @@ void exitfn_call(void);
 void clean_up_dir(struct conf *conf, const char *dir, double limit_multiple);
 void clean_up_all(struct conf *conf);
 void wipe_all(struct conf *conf);
+
+// ----------------------------------------------------------------------------
+// compress.c
+
+void compress_stats(struct conf *conf);
 
 // ----------------------------------------------------------------------------
 // execute.c

@@ -426,6 +426,49 @@ file_is_compressed(const char *filename)
 	return true;
 }
 
+// Return the uncompressed size of a compressed file.
+size_t
+uncompressed_size(const char *filename)
+{
+	size_t size = 0;
+	gzFile gz_in = NULL;
+	int saved_errno = 0;
+
+	int fd_in = open(filename, O_RDONLY | O_BINARY);
+	if (fd_in == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	gz_in = gzdopen(fd_in, "rb");
+	if (!gz_in) {
+		saved_errno = errno;
+		cc_log("gzdopen(src) error: %s", strerror(saved_errno));
+		close(fd_in);
+		goto error;
+	}
+
+	int n;
+	char buf[READ_BUFFER_SIZE];
+	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
+		size += n;
+	}
+
+	gzclose(gz_in);
+	gz_in = NULL;
+
+	return size;
+
+error:
+	if (gz_in) {
+		gzclose(gz_in);
+	}
+	errno = saved_errno;
+	return -1;
+}
+
+
 // Make sure a directory exists.
 int
 create_dir(const char *dir)
