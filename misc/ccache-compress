@@ -22,7 +22,7 @@ if ! gzip --version >/dev/null; then echo "missing gzip"; exit 1; fi
 # use parallel gzip (pigz) program for compression, if it's available
 if pigz --version >/dev/null 2>&1; then pigz=pigz; else pigz=gzip; fi
 
-find $CCACHE_DIR -mindepth 2 -type f |
+find $CCACHE_DIR -mindepth 2 -type f | grep -v $CCACHE_DIR/tmp |
 grep -v CACHEDIR.TAG | grep -v stats | grep -v manifest |
 while read file; do
   magic=`file $file`
