@@ -69,12 +69,14 @@ void compress_stats(struct conf *conf)
 		free(dname);
 	}
 
-	printf("Compressed size: %.1f KiB, %.0f files\n",
-	       (double)cache_size / 1024,
-	       (double)comp_files);
-	printf("Uncompressed size: %.1f KiB, %.0f files\n",
-	       (double)real_size / 1024,
-	       (double)num_files);
+	char *cache_str = format_human_readable_size(cache_size);
+	printf("Compressed size: %s, %.0f files\n",
+	       cache_str, (double)comp_files);
+	free(cache_str);
+	char *real_str = format_human_readable_size(real_size);
+	printf("Uncompressed size: %s, %.0f files\n",
+	       real_str, (double)num_files);
+	free(real_str);
 
 	double percent = real_size > 0 ? (100.0f * comp_files) / num_files : 0.0f;
 	printf("Compressed files: %.2f %%\n", percent);
