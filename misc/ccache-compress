@@ -19,13 +19,16 @@ BEST=9
 if ! file --version >/dev/null; then echo "missing file"; exit 1; fi
 if ! gzip --version >/dev/null; then echo "missing gzip"; exit 1; fi
 
+# use parallel gzip (pigz) program for compression, if it's available
+if pigz --version >/dev/null 2>&1; then pigz=pigz; else pigz=gzip; fi
+
 find $CCACHE_DIR -mindepth 2 -type f |
 grep -v CACHEDIR.TAG | grep -v stats | grep -v manifest |
 while read file; do
   magic=`file $file`
   if ! $DECOMPRESS && echo "$magic" | grep -v "compressed data" >/dev/null; then
     ! $VERBOSE || echo "Compressing $file"
-    gzip -n -$BEST <$file >$file.$$ && mv $file.$$ $file
+    $pigz -n -$BEST <$file >$file.$$ && mv $file.$$ $file
   elif $DECOMPRESS && echo "$magic" | grep "compressed data" >/dev/null; then
     ! $VERBOSE || echo "Decompressing $file"
     gzip -d <$file >$file.$$ && mv $file.$$ $file
@@ -33,6 +36,6 @@ while read file; do
     continue
   elif $RECOMPRESS && echo "$magic" | grep -v "max compression" >/dev/null; then
     ! $VERBOSE || echo "Recompressing $file"
-    gzip -d <$file | gzip -n -$BEST >$file.$$ && mv $file.$$ $file
+    gzip -d <$file | $pigz -n -$BEST >$file.$$ && mv $file.$$ $file
   fi
 done
