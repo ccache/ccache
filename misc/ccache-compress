@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This will compress (or recompress) the ccache cache directory,
 # using the fast compression method (level 1) available with gzip.
@@ -22,9 +22,8 @@ if ! gzip --version >/dev/null; then echo "missing gzip"; exit 1; fi
 # use parallel gzip (pigz) program for compression, if it's available
 if pigz --version >/dev/null 2>&1; then pigz=pigz; else pigz=gzip; fi
 
-find $CCACHE_DIR -mindepth 2 -type f | grep -v $CCACHE_DIR/tmp |
-grep -v CACHEDIR.TAG | grep -v stats | grep -v manifest |
-while read file; do
+ccache_compress() {
+  file=$1
   magic=`file $file`
   if ! $DECOMPRESS && echo "$magic" | grep -v "compressed data" >/dev/null; then
     ! $VERBOSE || echo "Compressing $file"
@@ -33,9 +32,17 @@ while read file; do
     ! $VERBOSE || echo "Decompressing $file"
     gzip -d <$file >$file.$$ && mv $file.$$ $file
   elif $DECOMPRESS; then
-    continue
+    return
   elif $RECOMPRESS && echo "$magic" | grep -v "max compression" >/dev/null; then
     ! $VERBOSE || echo "Recompressing $file"
     gzip -d <$file | $pigz -n -9 >$file.$$ && mv $file.$$ $file
   fi
-done
+}
+export -f ccache_compress
+export CCACHE CCACHE_DIR RECOMPRESS DECOMPRESS VERBOSE LEVEL
+
+parallel=`which parallel`
+find $CCACHE_DIR -mindepth 2 -type f | grep -v $CCACHE_DIR/tmp |
+grep -v CACHEDIR.TAG | grep -v stats | grep -v manifest |
+if [ "$parallel" != "" ]; then pigz=gzip parallel ccache_compress
+else while read file; do ccache_compress $file; done; fi
