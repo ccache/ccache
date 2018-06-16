@@ -1,19 +1,19 @@
 #!/bin/sh
 
 # This will compress (or recompress) the ccache cache directory,
-# using the best compression method (level 9) available with gzip.
+# using the fast compression method (level 1) available with gzip.
 
 CCACHE=${CCACHE:-ccache}
 CCACHE_DIR=${CCACHE_DIR:-$HOME/.ccache}
 
-# Set RECOMPRESS=false to avoid recompressing less compressed files.
+# Set RECOMPRESS=true to do a recompress of less compressed files.
 # Set DECOMPRESS=true to reverse the process and decompress cache.
 
-RECOMPRESS=${RECOMPRESS:-true}
+RECOMPRESS=${RECOMPRESS:-false}
 DECOMPRESS=${DECOMPRESS:-false}
 
 VERBOSE=${VERBOSE:-false}
-BEST=9
+LEVEL=${LEVEL:-1}
 
 # check for required programs, they should be present in the $PATH
 if ! file --version >/dev/null; then echo "missing file"; exit 1; fi
@@ -28,7 +28,7 @@ while read file; do
   magic=`file $file`
   if ! $DECOMPRESS && echo "$magic" | grep -v "compressed data" >/dev/null; then
     ! $VERBOSE || echo "Compressing $file"
-    $pigz -n -$BEST <$file >$file.$$ && mv $file.$$ $file
+    $pigz -n -$LEVEL <$file >$file.$$ && mv $file.$$ $file
   elif $DECOMPRESS && echo "$magic" | grep "compressed data" >/dev/null; then
     ! $VERBOSE || echo "Decompressing $file"
     gzip -d <$file >$file.$$ && mv $file.$$ $file
@@ -36,6 +36,6 @@ while read file; do
     continue
   elif $RECOMPRESS && echo "$magic" | grep -v "max compression" >/dev/null; then
     ! $VERBOSE || echo "Recompressing $file"
-    gzip -d <$file | $pigz -n -$BEST >$file.$$ && mv $file.$$ $file
+    gzip -d <$file | $pigz -n -9 >$file.$$ && mv $file.$$ $file
   fi
 done
