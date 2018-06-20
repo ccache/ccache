@@ -202,7 +202,8 @@ analyze:
 
 .PHONY: docker
 docker: misc/Dockerfile
-	$(DOCKER) build -f $< $(srcdir)
+	$(DOCKER) inspect ccache-build >/dev/null || $(DOCKER) build -t ccache-build misc
+	$(DOCKER) run --rm -v $(PWD):/build -w /build ccache-build misc/build.sh $(TEST)
 
 .PHONY: travis
 travis: .travis/Dockerfile
