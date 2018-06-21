@@ -352,8 +352,10 @@ WRAPPERS>>.
 
 *debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, the debug mode will be used. The default is false. In debug mode,
-    the hash input and the log file will be stored next to the object file.
+    If true, the debug mode will be used. The default is false. In the debug mode,
+    the hash input and the debug log file will be stored next to the output files.
+    The input to the hashes is shown both in binary (hashc/hashd/hashp) as well as
+    in a text (input) format for easier reading. See <<_cache_debugging_,debugging>>.
 
 *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
@@ -752,6 +754,26 @@ A compiler option not supported by ccache was found.
 A source language e.g. specified with *-x* was unsupported by ccache.
 
 |==============================================================================
+
+
+Cache debugging
+---------------
+
+When investigating why you are not getting hits, and what information
+that ccache is actually hashing, you can enable the "debugging" mode.
+
+In this mode, ccache will add some additional output files next to the
+object files with results from the hashing and a copy of the debug log.
+
+There are several binary hash files created, for different partial input:
+
+* Common (*'c'*)
+* Direct mode (*'d'*)
+* Preprocessor mode (*'p'*)
+
+The hash is the checksum of the common + direct or common + preprocessor.
+
+There is also a human readable text file, for easier reading and diffing.
 
 
 How ccache works

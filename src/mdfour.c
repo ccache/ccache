@@ -131,6 +131,12 @@ mdfour_begin(struct mdfour *md)
 	md->totalN = 0;
 	md->tail_len = 0;
 	md->finalized = 0;
+	md->identifier = 0;
+}
+
+void mdfour_identify(struct mdfour *md, int identifier)
+{
+	md->identifier = identifier;
 }
 
 static
@@ -161,14 +167,6 @@ void mdfour_tail(const unsigned char *in, size_t n)
 void
 mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
-#ifdef CCACHE_DEBUG_HASH
-	if (n > 0 && getenv("CCACHE_DEBUG_HASH")) {
-		FILE *f = fopen("ccache-debug-hash.bin", "a");
-		fwrite(in, 1, n, f);
-		fclose(f);
-	}
-#endif
-
 	m = md;
 
 	if (!in) {

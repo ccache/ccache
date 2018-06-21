@@ -476,6 +476,25 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
+static void
+debug_start(const char *path)
+{
+	char *hash_bin = format("%s%s", path, ".ccache-hashX");
+	char *hash_txt = format("%s%s", path, ".ccache-input");
+	hash_debug(hash_bin, hash_txt);
+	free(hash_bin);
+	free(hash_txt);
+}
+
+static void
+debug_end(bool hit)
+{
+	(void) hit;
+	char *path = format("%s%s", output_obj, ".ccache-log");
+	cc_copylog(path);
+	free(path);
+}
+
 static enum guessed_compiler
 guess_compiler(const char *path)
 {
@@ -894,7 +913,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				free(cwd);
 			}
 			if (should_hash_inc_path) {
-				hash_string(hash, inc_path);
+				hash_buffer(hash, inc_path, strlen(inc_path));
 			}
 
 			remember_include_file(inc_path, hash, system);
@@ -2049,6 +2068,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		cc_log("Succeeded getting cached result");
 		stats_update(STATS_CACHEHIT_CPP);
 		break;
+	}
+
+	if (conf->debug) {
+		debug_end(true);
 	}
 
 	// And exit with the right status code.
@@ -3360,12 +3383,18 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
+	if (conf->debug) {
+		debug_start(output_obj);
+	}
+
 	struct mdfour common_hash;
 	hash_start(&common_hash);
+	mdfour_identify(&common_hash, 'c');
 	calculate_common_hash(preprocessor_args, &common_hash);
 
 	// Try to find the hash using the manifest.
 	struct mdfour direct_hash = common_hash;
+	mdfour_identify(&direct_hash, 'd');
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash = NULL;
 	struct file_hash *object_hash_from_manifest = NULL;
@@ -3396,6 +3425,7 @@ ccache(int argc, char *argv[])
 
 	// Find the hash using the preprocessed output. Also updates included_files.
 	struct mdfour cpp_hash = common_hash;
+	mdfour_identify(&cpp_hash, 'p');
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
@@ -3436,6 +3466,10 @@ ccache(int argc, char *argv[])
 
 	// Run real compiler, sending output to cache.
 	to_cache(compiler_args);
+
+	if (conf->debug) {
+		debug_end(false);
+	}
 
 	x_exit(0);
 }
