@@ -136,6 +136,7 @@ bool hash_file(struct mdfour *md, const char *fname);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
+bool cc_copylog(const char *path);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 

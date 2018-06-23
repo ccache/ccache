@@ -34,18 +34,24 @@
 #endif
 
 static FILE *logfile;
+static char *logbuffer;
+static size_t logsize;
 
 static bool
 init_log(void)
 {
 	extern struct conf *conf;
 
-	if (logfile) {
+	if (logbuffer || logfile) {
 		return true;
 	}
 	assert(conf);
+	if (conf->debug) {
+		logbuffer = x_calloc(1, 1);
+		logsize = 0;
+	}
 	if (str_eq(conf->log_file, "")) {
-		return false;
+		return conf->debug;
 	}
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
@@ -59,11 +65,21 @@ init_log(void)
 }
 
 static void
+append_log(const char *s, size_t len)
+{
+	assert(logbuffer);
+	if (logsize + len > logsize) {
+		logbuffer = x_realloc(logbuffer, logsize + len + 1);
+		logsize = logsize + len;
+	}
+	strncat(logbuffer, s, len);
+}
+
+static void
 log_prefix(bool log_updated_time)
 {
-#ifdef HAVE_GETTIMEOFDAY
 	static char prefix[200];
-
+#ifdef HAVE_GETTIMEOFDAY
 	if (log_updated_time) {
 		char timestamp[100];
 		struct tm *tm;
@@ -78,10 +94,15 @@ log_prefix(bool log_updated_time)
 		snprintf(prefix, sizeof(prefix),
 		         "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
 	}
-	fputs(prefix, logfile);
 #else
-	fprintf(logfile, "[%-5d] ", (int)getpid());
+	snprintf(prefix, sizeof(prefix), "[%-5d] ", (int)getpid());
 #endif
+	if (logfile) {
+		fputs(prefix, logfile);
+	}
+	if (logbuffer) {
+		append_log(prefix, strlen(prefix));
+	}
 }
 
 static long
@@ -118,12 +139,23 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 		return;
 	}
 
+	va_list aq;
+	va_copy(aq, ap);
 	log_prefix(log_updated_time);
-	int rc1 = vfprintf(logfile, format, ap);
-	int rc2 = fprintf(logfile, "\n");
-	if (rc1 < 0 || rc2 < 0) {
-		warn_log_fail();
+	if (logfile) {
+		int rc1 = vfprintf(logfile, format, ap);
+		int rc2 = fprintf(logfile, "\n");
+		if (rc1 < 0 || rc2 < 0) {
+			warn_log_fail();
+		}
 	}
+	if (logbuffer) {
+		char buf[1024];
+		size_t len = vsnprintf(buf, sizeof(buf), format, aq);
+		append_log(buf, len);
+		append_log("\n", 1);
+	}
+	va_end(aq);
 }
 
 // Write a message to the log file (adding a newline) and flush.
@@ -159,12 +191,29 @@ cc_log_argv(const char *prefix, char **argv)
 	}
 
 	log_prefix(true);
-	fputs(prefix, logfile);
-	print_command(logfile, argv);
-	int rc = fflush(logfile);
-	if (rc) {
-		warn_log_fail();
+	if (logfile) {
+		fputs(prefix, logfile);
+		print_command(logfile, argv);
+		int rc = fflush(logfile);
+		if (rc) {
+			warn_log_fail();
+		}
 	}
+	if (logbuffer) {
+		char *s = string_command(argv);
+		append_log(s, strlen(s));
+		free(s);
+	}
+}
+
+// Copy the current log memory buffer to an output file.
+bool
+cc_copylog(const char *path)
+{
+	FILE *file = fopen(path, "w");
+	fwrite(logbuffer, 1, logsize, file);
+	fclose(file);
+	return true;
 }
 
 // Something went badly wrong!
