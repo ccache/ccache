@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 32
+#define N_CONFIG_ITEMS 33
 static struct {
 	char *descr;
 	const char *origin;
@@ -57,6 +57,7 @@ TEST(conf_create)
 	CHECK(!conf->compression);
 	CHECK_INT_EQ(6, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
+	CHECK(!conf->debug);
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
@@ -394,6 +395,7 @@ TEST(conf_print_items)
 		8,
 		"ce",
 		false,
+		false,
 		true,
 		"efth",
 		true,
@@ -443,6 +445,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("compression = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compression_level = 8", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
+	CHECK_STR_EQ("debug = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);

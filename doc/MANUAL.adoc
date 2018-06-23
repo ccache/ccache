@@ -350,6 +350,11 @@ WRAPPERS>>.
     compiled, but that sometimes doesn't work. For example, when using the
     ``aCC'' compiler on HP-UX, set the cpp extension to *i*.
 
+*debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, the debug mode will be used. The default is false. In debug mode,
+    the hash input and the log file will be stored next to the object file.
+
 *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the direct mode will be used. The default is true. See
