@@ -1,0 +1,73 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "integer"
+        },
+        "hash_size": {
+            "type": "integer"
+        },
+        "reserved": {
+            "type": "integer"
+        },
+        "objects": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string"
+                                },
+                                "hash": {
+                                    "type": "string"
+                                },
+                                "size": {
+                                    "type": "integer"
+                                },
+                                "mtime": {
+                                    "type": "integer"
+                                },
+                                "ctime": {
+                                    "type": "integer"
+                                }
+                            },
+                            "required": [
+                                "path",
+                                "hash",
+                                "size",
+                                "mtime",
+                                "ctime"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "hash": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "files",
+                    "hash",
+                    "size"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "version",
+        "hash_size",
+        "reserved",
+        "objects"
+    ],
+    "additionalProperties": false
+}

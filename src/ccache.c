@@ -4000,6 +4000,7 @@ ccache_main_options(int argc, char *argv[])
 	enum longopts {
 		DUMP_MANIFEST,
 		HASH_FILE,
+		JSON_MANIFEST,
 		PRINT_STATS,
 	};
 	static const struct option options[] = {
@@ -4008,6 +4009,7 @@ ccache_main_options(int argc, char *argv[])
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
 		{"get-config",    required_argument, 0, 'k'},
 		{"hash-file",     required_argument, 0, HASH_FILE},
+		{"json-manifest", required_argument, 0, JSON_MANIFEST},
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
@@ -4043,6 +4045,10 @@ ccache_main_options(int argc, char *argv[])
 			hash_free(hash);
 			break;
 		}
+
+		case JSON_MANIFEST:
+			manifest_json(optarg, stdout);
+			break;
 
 		case PRINT_STATS:
 			initialize();

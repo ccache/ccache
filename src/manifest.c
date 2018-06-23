@@ -797,3 +797,71 @@ out:
 	}
 	return ret;
 }
+
+bool
+manifest_json(const char *manifest_path, FILE *stream)
+{
+	struct manifest *mf = NULL;
+	gzFile f = NULL;
+	bool ret = false;
+
+	int fd = open(manifest_path, O_RDONLY | O_BINARY);
+	if (fd == -1) {
+		fprintf(stderr, "No such manifest file: %s\n", manifest_path);
+		goto out;
+	}
+	f = gzdopen(fd, "rb");
+	if (!f) {
+		fprintf(stderr, "Failed to gzdopen manifest file\n");
+		close(fd);
+		goto out;
+	}
+	mf = read_manifest(f);
+	if (!mf) {
+		fprintf(stderr, "Error reading manifest file\n");
+		goto out;
+	}
+
+	fprintf(stream, "{\n");
+	fprintf(stream, "  \"version\": %u,\n", mf->version);
+	fprintf(stream, "  \"hash_size\": %u,\n", mf->hash_size);
+	fprintf(stream, "  \"reserved\": %u,\n", mf->reserved);
+	fprintf(stream, "  \"objects\": [\n");
+	for (unsigned i = 0; i < mf->n_objects; ++i) {
+		char *hash;
+		fprintf(stream, "    { ");
+		fprintf(stream, "\"files\": [\n");
+		for (unsigned j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
+			int32_t index = mf->objects[i].file_info_indexes[j];
+			struct file_info *fi = &mf->file_infos[index];
+			fprintf(stream, "        { ");
+			fprintf(stream, "\"path\": \"%s\", ", mf->files[fi->index]);
+			hash = format_hash_as_string(fi->hash, -1);
+			fprintf(stream, "\"hash\": \"%s\", ", hash);
+			free(hash);
+			fprintf(stream, "\"size\": %u, ", (unsigned)fi->size);
+			fprintf(stream, "\"mtime\": %u, ", (unsigned)fi->mtime);
+			fprintf(stream, "\"ctime\": %u", (unsigned)fi->ctime);
+			fprintf(stream, " }%s\n", (j != mf->objects[i].n_file_info_indexes - 1) ? ", " : "");
+		}
+		fprintf(stream, "      ],\n");
+		hash = format_hash_as_string(mf->objects[i].hash.hash, -1);
+		fprintf(stream, "      \"hash\": \"%s\",\n", hash);
+		free(hash);
+		fprintf(stream, "      \"size\": %u\n", (unsigned)mf->objects[i].hash.size);
+		fprintf(stream, "    }%s\n", (i != mf->n_objects - 1) ? ", " : "");
+	}
+	fprintf(stream, "  ]\n");
+	fprintf(stream, "}\n");
+
+	ret = true;
+
+out:
+	if (mf) {
+		free_manifest(mf);
+	}
+	if (f) {
+		gzclose(f);
+	}
+	return ret;
+}
