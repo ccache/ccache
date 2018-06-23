@@ -3486,12 +3486,14 @@ static int
 ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
-		DUMP_MANIFEST
+		DUMP_MANIFEST,
+		HASH_FILE
 	};
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
+		{"hash-file",     required_argument, 0, HASH_FILE},
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
@@ -3502,12 +3504,27 @@ ccache_main_options(int argc, char *argv[])
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
+	struct mdfour md;
+	char *s;
 
 	int c;
 	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
+			break;
+
+		case HASH_FILE:
+			initialize();
+			hash_start(&md);
+			if (str_eq(optarg, "-")) {
+				hash_fd(&md, STDIN_FILENO);
+			} else {
+				hash_file(&md, optarg);
+			}
+			s = hash_result(&md);
+			puts(s);
+			free(s);
 			break;
 
 		case 'c': // --cleanup
