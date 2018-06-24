@@ -124,8 +124,8 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 
 // Instant events. For things with no duration.
 #define MTR_INSTANT(c, n) internal_mtr_raw_event(c, n, 'I', 0)
-#define MTR_INSTANT_C(c, n, aname, astrval) internal_mtr_raw_event(c, n, 'I', 0, MTR_ARG_TYPE_STRING_CONST, aname, (void *)(astrval))
-#define MTR_INSTANT_I(c, n, aname, aintval) internal_mtr_raw_event(c, n, 'I', 0, MTR_ARG_TYPE_INT, aname, (void *)(aintval))
+#define MTR_INSTANT_C(c, n, aname, astrval) internal_mtr_raw_event_arg(c, n, 'I', 0, MTR_ARG_TYPE_STRING_CONST, aname, (void *)(astrval))
+#define MTR_INSTANT_I(c, n, aname, aintval) internal_mtr_raw_event_arg(c, n, 'I', 0, MTR_ARG_TYPE_INT, aname, (void *)(aintval))
 
 // Counters (can't do multi-value counters yet)
 #define MTR_COUNTER(c, n, val) internal_mtr_raw_event_arg(c, n, 'C', 0, MTR_ARG_TYPE_INT, n, (void *)(intptr_t)(val))
