@@ -124,6 +124,7 @@ double mtr_time_s() {
 #endif	// !BLACKBERRY
 
 static void termination_handler(int signum) {
+	(void) signum;
 	if (is_tracing) {
 		printf("Ctrl-C detected! Flushing trace and shutting down.\n\n");
 		mtr_flush();
