@@ -199,6 +199,7 @@ bool read_file(const char *path, size_t size_hint, char **data, size_t *size);
 char *read_text_file(const char *path, size_t size_hint);
 char *subst_env_in_string(const char *str, char **errmsg);
 void set_cloexec_flag(int fd);
+double time_seconds(void);
 
 // ----------------------------------------------------------------------------
 // stats.c

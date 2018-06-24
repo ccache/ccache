@@ -1688,3 +1688,14 @@ set_cloexec_flag(int fd)
 	(void)fd;
 #endif
 }
+
+double time_seconds(void)
+{
+#ifdef HAVE_GETTIMEOFDAY
+        struct timeval tv;
+	gettimeofday(&tv, NULL);
+        return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+#else
+        return (double)time(NULL);
+#endif
+}
