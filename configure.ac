@@ -16,6 +16,7 @@ case $host in
         ;;
 esac
 
+AC_SUBST(extra_sources)
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
@@ -124,6 +125,14 @@ if test x${use_bundled_zlib} = xyes; then
     mkdir -p src/zlib
 else
     LIBS="$LIBS -lz"
+fi
+
+AC_ARG_ENABLE(tracing,
+  [AS_HELP_STRING([--enable-tracing],
+    [enable possibility to use tracing])])
+if test x${enable_tracing} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DMTR_ENABLED"
+    extra_sources="src/minitrace.c"
 fi
 
 dnl Linking on Windows needs ws2_32

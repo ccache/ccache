@@ -50,7 +50,8 @@ generated_sources = \
     src/hashtable_itr.c \
     src/murmurhashneutral2.c \
     src/snprintf.c
-base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources)
+extra_sources = @extra_sources@
+base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources) $(extra_sources)
 base_objs = $(base_sources:.c=.o)
 
 ccache_sources = src/main.c $(base_sources)
