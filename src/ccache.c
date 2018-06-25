@@ -1422,8 +1422,8 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 		}
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
-		MTR_BEGIN("execute", "preprocessor");
 		cc_log("Running preprocessor");
+		MTR_BEGIN("execute", "preprocessor");
 		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
 		MTR_END("execute", "preprocessor");
 		args_pop(args, args_added);
@@ -3216,8 +3216,8 @@ initialize(void)
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
-		MTR_BEGIN("config", "conf_read_secondary");
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+		MTR_BEGIN("config", "conf_read_secondary");
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
 			if (errno == 0) {
 				// We could read the file but it contained errors.
@@ -3242,8 +3242,8 @@ initialize(void)
 		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
 	}
 
-	MTR_BEGIN("config", "conf_read_primary");
 	bool should_create_initial_config = false;
+	MTR_BEGIN("config", "conf_read_primary");
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
 		if (errno == 0) {
 			// We could read the file but it contained errors.
