@@ -3165,14 +3165,22 @@ create_initial_config_file(struct conf *conf, const char *path)
 static void *trace_id;
 #endif
 
+void trace_init(const char *json)
+{
+#ifdef MTR_ENABLED
+	mtr_init(json);
+	char *s = format("%f", time_seconds());
+	MTR_INSTANT_C("", "", "time", s);
+#else
+	(void) json;
+#endif
+}
+
 void trace_start(const char *json)
 {
 	cc_log("Starting tracing: %s", json);
 #ifdef MTR_ENABLED
-	mtr_init(json);
 	MTR_META_PROCESS_NAME(MYNAME);
-	char *s = format("%f", time_seconds());
-	MTR_INSTANT_C("", "", "time", s);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
 #endif
@@ -3193,14 +3201,22 @@ void trace_stop(void)
 static void
 initialize(void)
 {
+	char *tracefile = getenv("CCACHE_TRACEFILE");
+	if (tracefile != NULL) {
+		trace_init(tracefile);
+	}
+
 	conf_free(conf);
+	MTR_BEGIN("config", "conf_create");
 	conf = conf_create();
+	MTR_END("config", "conf_create");
 
 	char *errmsg;
 	char *p = getenv("CCACHE_CONFIGPATH");
 	if (p) {
 		primary_config_path = x_strdup(p);
 	} else {
+		MTR_BEGIN("config", "conf_read_secondary");
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
 			if (errno == 0) {
@@ -3210,6 +3226,7 @@ initialize(void)
 			// A missing config file in SYSCONFDIR is OK.
 			free(errmsg);
 		}
+		MTR_END("config", "conf_read_secondary");
 
 		if (str_eq(conf->cache_dir, "")) {
 			fatal("configuration setting \"cache_dir\" must not be the empty string");
@@ -3225,6 +3242,7 @@ initialize(void)
 		primary_config_path = format("%s/ccache.conf", conf->cache_dir);
 	}
 
+	MTR_BEGIN("config", "conf_read_primary");
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
 		if (errno == 0) {
@@ -3235,10 +3253,13 @@ initialize(void)
 			should_create_initial_config = true;
 		}
 	}
+	MTR_END("config", "conf_read_primary");
 
+	MTR_BEGIN("config", "conf_update_from_environment");
 	if (!conf_update_from_environment(conf, &errmsg)) {
 		fatal("%s", errmsg);
 	}
+	MTR_END("config", "conf_update_from_environment");
 
 	if (should_create_initial_config) {
 		create_initial_config_file(conf, primary_config_path);
@@ -3255,7 +3276,6 @@ initialize(void)
 		umask(conf->umask);
 	}
 
-	char *tracefile = getenv("CCACHE_TRACEFILE");
 	if (tracefile != NULL) {
 		trace_start(tracefile);
 		exitfn_add_nullary(trace_stop);
