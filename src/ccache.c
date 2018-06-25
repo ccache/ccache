@@ -479,6 +479,13 @@ clean_up_internal_tempdir(void)
 static enum guessed_compiler
 guess_compiler(const char *path)
 {
+	if (str_eq(path, "/usr/bin/gcc")) {
+		return GUESSED_GCC;
+	} else if (str_eq(path, "/usr/bin/g++")) {
+		return GUESSED_GCC;
+	} else if (str_eq(path, "/usr/bin/clang")) {
+		return GUESSED_CLANG;
+	}
 	char *name = basename(path);
 	enum guessed_compiler result = GUESSED_UNKNOWN;
 	if (strstr(name, "clang")) {
@@ -3357,9 +3364,11 @@ ccache(int argc, char *argv[])
 	find_compiler(argv);
 	MTR_END("main", "find_compiler");
 
+	MTR_BEGIN("main", "clean_up_internal_tempdir");
 	if (str_eq(conf->temporary_dir, "")) {
 		clean_up_internal_tempdir();
 	}
+	MTR_END("main", "clean_up_internal_tempdir");
 
 	if (!str_eq(conf->log_file, "")) {
 		conf_print_items(conf, configuration_logger, NULL);
@@ -3370,15 +3379,21 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
+	MTR_BEGIN("main", "set_up_uncached_err");
 	set_up_uncached_err();
+	MTR_END("main", "set_up_uncached_err");
 
-	cc_log_argv("Command line: ", argv);
-	cc_log("Hostname: %s", get_hostname());
-	cc_log("Working directory: %s", get_current_working_dir());
+	if (!str_eq(conf->log_file, "")) {
+		cc_log_argv("Command line: ", argv);
+		cc_log("Hostname: %s", get_hostname());
+		cc_log("Working directory: %s", get_current_working_dir());
+	}
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
+	MTR_BEGIN("main", "guess_compiler");
 	guessed_compiler = guess_compiler(orig_args->argv[0]);
+	MTR_END("main", "guess_compiler");
 
 	// Arguments (except -E) to send to the preprocessor.
 	struct args *preprocessor_args;
