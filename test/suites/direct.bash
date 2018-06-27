@@ -860,6 +860,22 @@ EOF
     fi
 
     # -------------------------------------------------------------------------
+    TEST "--json-manifest"
+
+    $CCACHE_COMPILE test.c -c -o test.o
+
+    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    $CCACHE --json-manifest $manifest >manifest.json
+
+    if grep '"hash": "d4de2f956b4a386c6660990a7a1ab13f"' manifest.json >/dev/null 2>&1 && \
+       grep '"hash": "e94ceb9f1b196c387d098a5f1f4fe862"' manifest.json >/dev/null 2>&1 && \
+       grep '"hash": "ba753bebf9b5eb99524bb7447095e2e6"' manifest.json >/dev/null 2>&1; then
+        : OK
+    else
+        test_failed "Unexpected output of --json-manifest"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Argument-less -B and -L"
 
     cat <<EOF >test.c
