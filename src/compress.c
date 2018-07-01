@@ -78,9 +78,10 @@ void compress_stats(struct conf *conf)
 	       real_str, (double)num_files);
 	free(real_str);
 
-	double percent = real_size > 0 ? (100.0f * comp_files) / num_files : 0.0f;
+	double percent = real_size > 0 ? (100.0 * comp_files) / num_files : 0.0;
 	printf("Compressed files: %.2f %%\n", percent);
-	double ratio = real_size > 0 ? (100.0f * cache_size) / real_size : 0.0f;
-	printf("Compression ratio: %.2f %%\n", ratio);
+	double ratio = cache_size > 0 ? ((double) real_size) / cache_size : 0.0;
+	double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
+	printf("Compression ratio: %.2f %% (%.1fx)\n", savings, ratio);
 }
 
