@@ -3191,6 +3191,8 @@ void trace_start(const char *json)
 	MTR_META_PROCESS_NAME(MYNAME);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
+#else
+	cc_log("Error: tracing is not enabled!");
 #endif
 }
 
@@ -3201,6 +3203,8 @@ void trace_stop(void)
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
+#else
+	cc_log("Error: tracing is not enabled!");
 #endif
 }
 
