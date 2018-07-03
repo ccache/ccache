@@ -1099,6 +1099,19 @@ problems and what may be done to increase the hit rate:
   <<_precompiled_headers,PRECOMPILED HEADERS>>.
 
 
+Tracing
+~~~~~~~
+
+In order to see what ccache is doing, it is possible to enable microsecond tracing.
+This needs to be done when compiling ccache, using the `--enable-tracing` feature.
+
+By setting *CCACHE_TRACEFILE*, one can obtain a JSON trace of an individual compile.
+This trace can then be loaded into the `chrome://tracing` page of Chromium/Chrome.
+
+The current event categories are: config, main, hash, manifest, cache, file, execute
+
+With a unique file per compile, there is a script to combine them all into one trace...
+
 Corrupt object files
 ~~~~~~~~~~~~~~~~~~~~
 
