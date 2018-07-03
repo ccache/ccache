@@ -525,6 +525,9 @@ still has to do _some_ preprocessing (like macros).
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
     matching its cached version if the mtimes and ctimes match.
+*file_stat_matches_ctime*::
+    By default, ccache will not consider a file as matching its cached
+    version if the ctimes do not match. This option disables that check.
 *include_file_ctime*::
     By default, ccache also will not cache a file if it includes a header whose
     ctime is too new. This option disables that check.
