@@ -1113,6 +1113,8 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 static void
 get_file_from_cache(const char *source, const char *dest)
 {
+	MTR_BEGIN("file", "get");
+
 	int ret;
 	bool do_link = conf->hard_link && !file_is_compressed(source);
 	if (do_link) {
@@ -1121,6 +1123,8 @@ get_file_from_cache(const char *source, const char *dest)
 	} else {
 		ret = copy_file(source, dest, 0);
 	}
+
+	MTR_END("file", "get");
 
 	if (ret == -1) {
 		if (errno == ENOENT || errno == ESTALE) {
@@ -1327,6 +1331,8 @@ to_cache(struct args *args)
 		}
 	}
 
+	MTR_BEGIN("file", "put");
+
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
 		use_relative_paths_in_depfile(output_dep);
@@ -1344,6 +1350,8 @@ to_cache(struct args *args)
 	if (using_split_dwarf) {
 		copy_file_to_cache(output_dwo, cached_dwo);
 	}
+
+	MTR_END("file", "put");
 
 	stats_update(STATS_TOCACHE);
 
