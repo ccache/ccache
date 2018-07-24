@@ -8,8 +8,13 @@
 
 if [ -n "$CUDA" ]; then
     echo "Installing CUDA support"
+    if false; then
     travis_retry wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_${CUDA}_amd64.deb
     travis_retry sudo dpkg -i cuda-repo-ubuntu1404_${CUDA}_amd64.deb
+    else
+    travis_retry wget -q -O - https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/7fa2af80.pub | sudo apt-key add -
+    travis_retry sudo apt-add-repository 'deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64 /'
+    fi
     travis_retry sudo apt-get update -qq
     export CUDA_APT=${CUDA:0:3}
     export CUDA_APT=${CUDA_APT/./-}
