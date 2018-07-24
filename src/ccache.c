@@ -781,6 +781,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		included_files = create_hashtable(1000, hash_from_string, strings_equal);
 	}
 
+	char *cwd = NULL;
+	if (!conf->hash_dir) {
+		cwd = gnu_getcwd();
+	}
+
 	// Bytes between p and q are pending to be hashed.
 	char *p = data;
 	char *q = data;
@@ -880,7 +885,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 			bool should_hash_inc_path = true;
 			if (!conf->hash_dir) {
-				char *cwd = gnu_getcwd();
 				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
 					// When compiling with -g or similar, GCC adds the absolute path to
 					// CWD like this:
@@ -891,7 +895,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 					// hash it. See also how debug_prefix_map is handled.
 					should_hash_inc_path = false;
 				}
-				free(cwd);
 			}
 			if (should_hash_inc_path) {
 				hash_string(hash, inc_path);
@@ -928,6 +931,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 	hash_buffer(hash, p, (end - p));
 	free(data);
+	free(cwd);
 
 	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
 	// mention of it in the preprocessed output.
