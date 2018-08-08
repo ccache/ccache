@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2016 Anders Björklund
-// Copyright (C) 2016 Joel Rosdahl
+// Copyright (C) 2016-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -35,8 +35,8 @@ static memcached_st *memc;
 
 int memccached_init(char *conf)
 {
-	const char *username = getenv("CCACHE_MEMCACHED_USERNAME"); /* Note: bucket */
-	const char *password = getenv("CCACHE_MEMCACHED_PASSWORD"); /* Note: unsafe */
+	const char *username = getenv("CCACHE_MEMCACHED_USERNAME"); // Note: bucket
+	const char *password = getenv("CCACHE_MEMCACHED_PASSWORD"); // Note: unsafe
 	memcached_return_t ret;
 
 	memc = memcached(conf, strlen(conf));
@@ -51,7 +51,7 @@ int memccached_init(char *conf)
 	memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_DISTRIBUTION,
 	                       MEMCACHED_DISTRIBUTION_CONSISTENT);
 	if (username && password) {
-		/* the username to use for couchbase is the name of the bucket */
+		// The username to use for couchbase is the name of the bucket.
 		ret = memcached_set_sasl_auth_data(memc, username, password);
 		if (memcached_failed(ret)) {
 			if (ret == MEMCACHED_NOT_SUPPORTED) {
@@ -61,7 +61,7 @@ int memccached_init(char *conf)
 			}
 			return -1;
 		}
-		/* SASL authentication requires the binary protocol (not ascii) */
+		// SASL authentication requires the binary protocol (not ascii).
 		memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, true);
 	}
 	return 0;
