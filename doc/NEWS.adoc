@@ -23,6 +23,13 @@ New features and enhancements
   so updates to the file will now correctly result in separate cache entries.
 
 
+Other
+~~~~~
+
+- It's now possible to opt out of building and installing man pages when
+  running `make install` in the source repository.
+
+
 ccache 3.4.3
 -----------
 Release date: unknown
