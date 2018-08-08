@@ -239,6 +239,9 @@ static char *profile_dir = NULL;
 static bool profile_use = false;
 static bool profile_generate = false;
 
+// Sanitize blacklist
+static char *sanitize_blacklist = NULL;
+
 // Whether we are using a precompiled header (either via -include, #include or
 // clang's -include-pch or -include-pth).
 static bool using_precompiled_header = false;
@@ -1944,7 +1947,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			if (sep) {
 				char *old = x_strndup(map, sep - map);
 				char *new = x_strdup(sep + 1);
-				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
+				cc_log("Relocating debuginfo CWD %s from %s to %s", cwd, old, new);
 				if (str_startswith(cwd, old)) {
 					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
@@ -1955,6 +1958,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			}
 		}
 		if (cwd) {
+			cc_log("Hashing CWD %s", cwd);
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
@@ -1981,6 +1985,16 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			hash_delimiter(hash, "gcda");
 			hash_string(hash, gcda_path);
 			free(dir);
+		}
+	}
+
+	// Possibly hash the sanitize blacklist file path.
+	if (sanitize_blacklist) {
+		cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
+		hash_delimiter(hash, "sanitizeblacklist");
+		if (!hash_file(hash, sanitize_blacklist)) {
+			stats_update(STATS_BADEXTRAFILE);
+			failed();
 		}
 	}
 
@@ -2130,8 +2144,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 		if ((str_eq(args->argv[i], "-ccbin")
 		     || str_eq(args->argv[i], "--compiler-bindir"))
-		     && i + 1 < args->argc
-		     && x_stat(args->argv[i+1], &st) == 0) {
+		    && i + 1 < args->argc
+		    && x_stat(args->argv[i+1], &st) == 0) {
 			found_ccbin = true;
 			hash_delimiter(hash, "ccbin");
 			hash_nvcc_host_compiler(hash, &st, args->argv[i+1]);
@@ -2987,6 +3001,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
+		if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
+			sanitize_blacklist = x_strdup(argv[i] + 21);
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
 			char *option = format("--sysroot=%s", relpath);
@@ -3624,7 +3643,7 @@ initialize(void)
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
-			if (access(secondary_config_path, R_OK) == 0) {
+			if (errno == 0) {
 				// We could read the file but it contained errors.
 				fatal("%s", errmsg);
 			}
@@ -3648,7 +3667,7 @@ initialize(void)
 
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
-		if (access(primary_config_path, R_OK) == 0) {
+		if (errno == 0) {
 			// We could read the file but it contained errors.
 			fatal("%s", errmsg);
 		}
@@ -3706,6 +3725,7 @@ cc_reset(void)
 	free(debug_prefix_maps); debug_prefix_maps = NULL;
 	debug_prefix_maps_len = 0;
 	free(profile_dir); profile_dir = NULL;
+	free(sanitize_blacklist); sanitize_blacklist = NULL;
 	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;

@@ -445,6 +445,8 @@ stats_summary(struct conf *conf)
 {
 	struct counters *counters = counters_init(STATS_END);
 	time_t oldest = 0;
+	time_t updated = 0;
+	struct stat st;
 
 	assert(conf);
 
@@ -464,6 +466,9 @@ stats_summary(struct conf *conf)
 		if (current != 0 && (oldest == 0 || current < oldest)) {
 			oldest = current;
 		}
+		if (stat(fname, &st) == 0 && st.st_mtime > updated) {
+			updated = st.st_mtime;
+		}
 		free(fname);
 	}
 
@@ -477,6 +482,12 @@ stats_summary(struct conf *conf)
 		char timestamp[100];
 		strftime(timestamp, sizeof(timestamp), "%c", tm);
 		printf("stats zero time                     %s\n", timestamp);
+	}
+	if (updated) {
+		struct tm *tm = localtime(&updated);
+		char timestamp[100];
+		strftime(timestamp, sizeof(timestamp), "%c", tm);
+		printf("stats updated                       %s\n", timestamp);
 	}
 
 	// ...and display them.

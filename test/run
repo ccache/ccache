@@ -410,6 +410,7 @@ nocpp2
 cpp1
 multi_arch
 serialize_diagnostics
+sanitize_blacklist
 debug_prefix_map
 masquerading
 hardlink

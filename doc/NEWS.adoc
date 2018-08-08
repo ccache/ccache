@@ -16,6 +16,23 @@ New features and enhancements
   precompiled headers. Note that the build system needs to keep the checksum
   file in sync with the precompiled header for this to work.
 
+- Added ``stats updated'' timestamp in `ccache -s` output. This can be useful
+  if you wonder whether ccache actually was used for your last build.
+
+- The content of the `-fsanitize-blacklist` file is now included in the hash,
+  so updates to the file will now correctly result in separate cache entries.
+
+
+ccache 3.4.3
+-----------
+Release date: unknown
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a race condition when creating the initial config file in the cache
+  directory.
+
 
 ccache 3.4.2
 ------------

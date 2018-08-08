@@ -40,7 +40,7 @@ win32argvtos(char *prefix, char **argv)
 				break;
 			case '"':
 				bs = (bs << 1) + 1;
-				// Fallthrough.
+			// Fallthrough.
 			default:
 				k += bs + 1;
 				bs = 0;
@@ -115,6 +115,7 @@ win32getshell(char *path)
 void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
                                    const char *ext, const char *path) {
 	if (!ext || (!str_eq(".exe", ext)
+	             && !str_eq(".sh", ext)
 	             && !str_eq(".bat", ext)
 	             && !str_eq(".EXE", ext)
 	             && !str_eq(".BAT", ext))) {

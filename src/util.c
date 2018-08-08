@@ -1053,7 +1053,7 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 		// Default suffix: G.
 		x *= 1000 * 1000 * 1000;
 	}
-	*size = x;
+	*size = (uint64_t)x;
 	return true;
 }
 

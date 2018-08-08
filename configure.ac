@@ -20,6 +20,7 @@ AC_SUBST(ccache_memcached)
 AC_SUBST(extra_libs)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
+AC_SUBST(disable_man)
 
 m4_include(m4/feature_macros.m4)
 
@@ -150,6 +151,13 @@ if test x${use_bundled_zlib} = xyes; then
     mkdir -p src/zlib
 else
     LIBS="$LIBS -lz"
+fi
+
+AC_ARG_ENABLE(man,
+  [AS_HELP_STRING([--disable-man],
+    [disable installing man pages])])
+if test x${enable_man} = xno; then
+    disable_man='#'
 fi
 
 dnl Linking on Windows needs ws2_32
