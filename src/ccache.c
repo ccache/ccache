@@ -3568,7 +3568,7 @@ ccache_main_options(int argc, char *argv[])
 		case 'z': // --zero-stats
 			initialize();
 			stats_zero();
-			printf("Statistics cleared\n");
+			printf("Statistics zeroed\n");
 			break;
 
 		default:
