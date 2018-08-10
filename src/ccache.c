@@ -1768,6 +1768,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 				}
 			} else if (str_startswith(args->argv[i], "-MF")) {
 				// In either case, hash the "-MF" part.
+				hash_delimiter(hash, "arg");
 				hash_string_length(hash, args->argv[i], 3);
 
 				bool separate_argument = (strlen(args->argv[i]) == 3);
