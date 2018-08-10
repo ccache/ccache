@@ -19,6 +19,10 @@ New features and enhancements
 - Added ``stats updated'' timestamp in `ccache -s` output. This can be useful
   if you wonder whether ccache actually was used for your last build.
 
+- Renamed ``stats zero time'' to ``stats zeroed'' and documented it. The
+  counter is also now only present in `ccache -s` output when `ccache -z`
+  actually has been called.
+
 - The content of the `-fsanitize-blacklist` file is now included in the hash,
   so updates to the file will now correctly result in separate cache entries.
 
