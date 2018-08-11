@@ -91,6 +91,8 @@ def test(tmp_dir, options, compiler_args, source_file):
         environment["CCACHE_COMPRESS"] = "1"
     if options.hardlink:
         environment["CCACHE_HARDLINK"] = "1"
+    if options.reflink:
+        environment["CCACHE_REFLINK"] = "1"
     if options.nostats:
         environment["CCACHE_NOSTATS"] = "1"
 
@@ -260,6 +262,10 @@ def main(argv):
         help="use hard links",
         action="store_true")
     op.add_option(
+        "--reflink",
+        help="use reflinks (if possible)",
+        action="store_true")
+    op.add_option(
         "--hit-factor",
         help=(
             "how many times more to compile the file for cache hits (default:"
@@ -313,6 +319,7 @@ def main(argv):
         print "Compilercheck:", options.compilercheck
         print "Compression:", on_off(options.compression)
         print "Hardlink:", on_off(options.hardlink)
+        print "Reflink:", on_off(options.reflink)
         print "Nostats:", on_off(options.nostats)
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
