@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 34
+#define N_CONFIG_ITEMS 35
 static struct {
 	char *descr;
 	char *origin;
@@ -78,6 +78,7 @@ TEST(conf_create)
 	CHECK(!conf->read_only);
 	CHECK(!conf->read_only_direct);
 	CHECK(!conf->recache);
+	CHECK(!conf->reflink);
 	CHECK(conf->run_second_cpp);
 	CHECK_INT_EQ(0, conf->sloppiness);
 	CHECK(conf->stats);
@@ -131,6 +132,7 @@ TEST(conf_read_valid_config)
 		"read_only = true\n"
 		"read_only_direct = true\n"
 		"recache = true\n"
+		"reflink = true\n"
 		"run_second_cpp = false\n"
 		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines ,  no_system_headers,system_headers,clang_index_store\n"
 		"stats = false\n"
@@ -171,6 +173,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->read_only);
 	CHECK(conf->read_only_direct);
 	CHECK(conf->recache);
+	CHECK(conf->reflink);
 	CHECK(!conf->run_second_cpp);
 	CHECK_INT_EQ(
 		SLOPPY_INCLUDE_FILE_MTIME
@@ -480,6 +483,7 @@ TEST(conf_print_items)
 		true,
 		true,
 		true,
+		true,
 		.run_second_cpp = false,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
 		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
@@ -533,6 +537,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("read_only = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("read_only_direct = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("recache = true", received_conf_items[n++].descr);
+	CHECK_STR_EQ("reflink = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("run_second_cpp = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"
 	             " include_file_ctime, time_macros, pch_defines,"

@@ -155,6 +155,7 @@ conf_create(void)
 	conf->read_only = false;
 	conf->read_only_direct = false;
 	conf->recache = false;
+	conf->reflink = false;
 	conf->run_second_cpp = true;
 	conf->sloppiness = 0;
 	conf->stats = true;
@@ -418,6 +419,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "read_only", printer, context);
 	ok &= print_item(conf, "read_only_direct", printer, context);
 	ok &= print_item(conf, "recache", printer, context);
+	ok &= print_item(conf, "reflink", printer, context);
 	ok &= print_item(conf, "run_second_cpp", printer, context);
 	ok &= print_item(conf, "sloppiness", printer, context);
 	ok &= print_item(conf, "stats", printer, context);

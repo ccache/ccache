@@ -523,6 +523,13 @@ might be incorrect.
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
+*reflink* (*CCACHE_REFLINK* or *CCACHE_NOREFLINK*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, ccache will attempt to clone (Copy-on-Write) where available
+    when creating the compiler output rather than using a file copy. Reflinks
+    are never made for compressed cache files. This means that you should not
+    enable compression if you want to use reflinks. The default is false.
+
 *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will first run the preprocessor to preprocess the source
