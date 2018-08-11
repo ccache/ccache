@@ -298,8 +298,8 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_EXTRAFILES"
 
-    echo a >a
-    echo b >b
+    echo "a" >a
+    echo "b" >b
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
