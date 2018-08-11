@@ -1182,6 +1182,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 	int compression_level = conf->compression ? conf->compression_level : 0;
 	bool do_move = !copy && !conf->compression;
 	bool do_link = copy && conf->hard_link && !conf->compression;
+	bool do_clone = copy && conf->reflink && !conf->compression;
 
 	if (do_move) {
 		move_uncompressed_file(source, dest, compression_level);
@@ -1195,7 +1196,15 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 				do_link = false;
 			}
 		}
-		if (!do_link) {
+		if (do_clone) {
+			int ret = clone_file(source, dest);
+			if (ret != 0) {
+				cc_log("Failed to clone %s to %s: %s", source, dest, strerror(errno));
+				cc_log("Falling back to copying");
+				do_clone = false;
+			}
+		}
+		if (!do_link && !do_clone) {
 			int ret = copy_file(source, dest, compression_level);
 			if (ret != 0) {
 				cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
@@ -1256,11 +1265,18 @@ do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
 	int ret;
 	bool do_link = !copy && conf->hard_link && !file_is_compressed(source);
+	bool do_clone = !copy && conf->reflink && !file_is_compressed(source);
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		ret = copy_file(source, dest, 0);
+		ret = -1;
+		if (do_clone) {
+			ret = clone_file(source, dest);
+		}
+		if (ret == -1) {
+			ret = copy_file(source, dest, 0);
+		}
 	}
 
 	if (ret == -1) {

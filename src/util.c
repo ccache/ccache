@@ -25,6 +25,23 @@
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+#ifdef __linux__
+#ifdef HAVE_LINUX_FS_H
+#include <linux/fs.h>
+#endif
+#ifndef FICLONE
+#ifndef BTRFS_IOCTL_MAGIC
+#define BTRFS_IOCTL_MAGIC 0x94
+#endif
+#ifndef BTRFS_IOC_CLONE
+#define BTRFS_IOC_CLONE _IOW(BTRFS_IOCTL_MAGIC, 9, int)
+#endif
+#define FICLONE BTRFS_IOC_CLONE
+#endif //FICLONE
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -458,6 +475,66 @@ error:
 	free(tmp_name);
 	errno = saved_errno;
 	return -1;
+}
+//
+// Clone src to dest. On failure, errno represents the error.
+int
+clone_file(const char *src, const char *dest)
+{
+#ifdef __linux__
+	int fd_out = -1;
+	int fd_in = -1;
+	int saved_errno = 0;
+
+	cc_log("Cloning %s to %s", src, dest);
+
+	// Open destination file.
+	fd_out = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+	if (fd_out == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	// Open source file.
+	fd_in = open(src, O_RDONLY | O_BINARY);
+	if (fd_in == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	int err = ioctl(fd_out, FICLONE, fd_in);
+	if (err == -1) {
+		saved_errno = errno;
+		cc_log("ioctl error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	close(fd_in);
+	if (close(fd_out) == -1) {
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	return 0;
+
+error:
+	if (fd_in != -1) {
+		close(fd_in);
+	}
+	if (fd_out != -1) {
+		close(fd_out);
+	}
+	errno = saved_errno;
+	return -1;
+#else
+	(void)src;
+	(void)dest;
+	errno = EINVAL;
+	return -1;
+#endif
 }
 
 // Run copy_file() and, if successful, delete the source file.
