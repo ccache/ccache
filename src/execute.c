@@ -358,11 +358,17 @@ format_command(char **argv)
 		len += strlen(argv[i]);
 	}
 	len += 1;
-	char *buf = x_calloc(1, len + 1);
+	char *buf = x_malloc(len + 1);
+	char *p = buf;
 	for (int i = 0; argv[i]; i++) {
-		strcat(buf, (i == 0) ? "" : " ");
-		strcat(buf, argv[i]);
+		if (i != 0) {
+			*p++ = ' ';
+		}
+		for (char *q = argv[i]; *q != '\0'; q++) {
+			*p++ = *q;
+		}
 	}
-	strcat(buf, "\n");
+	*p++ = '\n';
+	*p++ = '\0';
 	return buf;
 }

@@ -35,7 +35,10 @@
 
 static FILE *logfile;
 static char *logbuffer;
+static size_t logbufsize;
 static size_t logsize;
+
+#define LOGBUFSIZ 1024
 
 static bool
 init_log(void)
@@ -47,7 +50,8 @@ init_log(void)
 	}
 	assert(conf);
 	if (conf->debug) {
-		logbuffer = x_calloc(1, 1);
+		logbufsize = LOGBUFSIZ;
+		logbuffer = x_malloc(logbufsize);
 		logsize = 0;
 	}
 	if (str_eq(conf->log_file, "")) {
@@ -68,11 +72,12 @@ static void
 append_log(const char *s, size_t len)
 {
 	assert(logbuffer);
-	if (logsize + len > logsize) {
-		logbuffer = x_realloc(logbuffer, logsize + len + 1);
-		logsize = logsize + len;
+	if (logsize + len + 1 > logbufsize) {
+		logbufsize = logbufsize + len + 1 + LOGBUFSIZ;
+		logbuffer = x_realloc(logbuffer, logbufsize);
 	}
-	strncat(logbuffer, s, len);
+	strncpy(logbuffer + logsize, s, len);
+	logsize += len;
 }
 
 static void
