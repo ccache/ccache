@@ -26,7 +26,7 @@ char *debug_hash_bin;
 // text input, for debugging
 char *debug_hash_txt;
 
-void hash_debug(const char *bin, const char *txt)
+void hash_debug_init(const char *bin, const char *txt)
 {
 	static char *hash_types = "cdp"; // common, direct, cpp
 	if (bin) {
@@ -41,6 +41,10 @@ void hash_debug(const char *bin, const char *txt)
 		debug_hash_txt = x_strdup(txt);
 		x_try_unlink(debug_hash_txt);
 	}
+}
+
+void hash_debug_end()
+{
 }
 
 static void

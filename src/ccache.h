@@ -118,7 +118,8 @@ bool args_equal(struct args *args1, struct args *args2);
 // ----------------------------------------------------------------------------
 // hash.c
 
-void hash_debug(const char *bin, const char *txt);
+void hash_debug_init(const char *bin, const char *txt);
+void hash_debug_end(void);
 void hash_start(struct mdfour *md);
 void hash_buffer(struct mdfour *md, const void *s, size_t len);
 char *hash_result(struct mdfour *md);

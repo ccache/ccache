@@ -481,15 +481,15 @@ debug_start(const char *path)
 {
 	char *hash_bin = format("%s%s", path, ".ccache-hashX");
 	char *hash_txt = format("%s%s", path, ".ccache-input");
-	hash_debug(hash_bin, hash_txt);
+	hash_debug_init(hash_bin, hash_txt);
 	free(hash_bin);
 	free(hash_txt);
 }
 
 static void
-debug_end(bool hit)
+debug_end()
 {
-	(void) hit;
+	hash_debug_end();
 	char *path = format("%s%s", output_obj, ".ccache-log");
 	cc_copylog(path);
 	free(path);
@@ -2071,7 +2071,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	if (conf->debug) {
-		debug_end(true);
+		debug_end();
 	}
 
 	// And exit with the right status code.
@@ -3468,7 +3468,7 @@ ccache(int argc, char *argv[])
 	to_cache(compiler_args);
 
 	if (conf->debug) {
-		debug_end(false);
+		debug_end();
 	}
 
 	x_exit(0);
