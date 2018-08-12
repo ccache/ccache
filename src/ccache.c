@@ -3390,11 +3390,13 @@ ccache(int argc, char *argv[])
 	struct mdfour common_hash;
 	hash_start(&common_hash);
 	mdfour_identify(&common_hash, 'c');
+	hash_section(&common_hash, "COMMON");
 	calculate_common_hash(preprocessor_args, &common_hash);
 
 	// Try to find the hash using the manifest.
 	struct mdfour direct_hash = common_hash;
 	mdfour_identify(&direct_hash, 'd');
+	hash_section(&direct_hash, "DIRECT MODE");
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash = NULL;
 	struct file_hash *object_hash_from_manifest = NULL;
@@ -3426,6 +3428,7 @@ ccache(int argc, char *argv[])
 	// Find the hash using the preprocessed output. Also updates included_files.
 	struct mdfour cpp_hash = common_hash;
 	mdfour_identify(&cpp_hash, 'p');
+	hash_section(&cpp_hash, "PREPROCESSOR MODE");
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");

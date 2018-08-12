@@ -84,6 +84,15 @@ hash_start(struct mdfour *md)
 }
 
 void
+hash_section(struct mdfour *md, const char *name)
+{
+	hash_debug_buffer(md, "=== ", 4);
+	hash_debug_buffer(md, name, strlen(name));
+	hash_debug_buffer(md, " ===", 4);
+	hash_debug_buffer(md, "\n", 1);
+}
+
+void
 hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
 	hash_binary_buffer(md, s, len);
