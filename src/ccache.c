@@ -3337,7 +3337,7 @@ ccache(int argc, char *argv[])
 		clean_up_internal_tempdir();
 	}
 
-	if (!str_eq(conf->log_file, "")) {
+	if (!str_eq(conf->log_file, "") || conf->debug) {
 		conf_print_items(conf, configuration_logger, NULL);
 	}
 
