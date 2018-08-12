@@ -21,30 +21,40 @@
 #define HASH_DEBUG_DELIMITER "### "
 
 // binary input, for hashing
-char *debug_hash_bin;
+static char *debug_hash_bin;
 
 // text input, for debugging
-char *debug_hash_txt;
+static char *debug_hash_txt;
+
+// char mapping to open files
+static FILE **debug_hash_file;
 
 void hash_debug_init(const char *bin, const char *txt)
 {
+	debug_hash_file = x_calloc(256, sizeof(FILE*));
 	static char *hash_types = "cdp"; // common, direct, cpp
 	if (bin) {
 		debug_hash_bin = x_strdup(bin);
 		assert(debug_hash_bin[strlen(debug_hash_bin)-1] == 'X');
 		for (char *p = hash_types; *p != '\0'; p++) {
 			debug_hash_bin[strlen(debug_hash_bin)-1] = *p;
-			x_try_unlink(debug_hash_bin);
+			debug_hash_file[(int) *p] = fopen(debug_hash_bin, "wb");
 		}
+		debug_hash_bin[strlen(debug_hash_bin)-1] = 'X';
 	}
 	if (txt) {
 		debug_hash_txt = x_strdup(txt);
-		x_try_unlink(debug_hash_txt);
+		debug_hash_file[(int) 't'] = fopen(debug_hash_txt, "w");
 	}
 }
 
 void hash_debug_end()
 {
+	for (int i = 0; i < 256; i++) {
+		if (debug_hash_file[i] != NULL) {
+			fclose(debug_hash_file[i]);
+		}
+	}
 }
 
 static void
@@ -56,11 +66,7 @@ hash_binary_buffer(struct mdfour *md, const void *s, size_t len)
 	}
 	if (debug_hash_bin) {
 		// log to different files, for the different hash types
-		debug_hash_bin[strlen(debug_hash_bin)-1] = md->identifier;
-
-		FILE *f = fopen(debug_hash_bin, "a");
-		fwrite(s, 1, len, f);
-		fclose(f);
+		fwrite(s, 1, len, debug_hash_file[md->identifier]);
 	}
 }
 
@@ -71,9 +77,7 @@ hash_debug_buffer(struct mdfour *md, const void *s, size_t len)
 		return;
 	}
 	if (debug_hash_txt) {
-		FILE *f = fopen(debug_hash_txt, "a");
-		fwrite(s, 1, len, f);
-		fclose(f);
+		fwrite(s, 1, len, debug_hash_file['t']);
 	}
 }
 
