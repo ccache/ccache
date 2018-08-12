@@ -767,14 +767,17 @@ object files with results from the hashing and a copy of the debug log.
 
 There are several binary hash files created, for different partial input:
 
-* Common (*'c'*)
-* Direct mode (*'d'*)
-* Preprocessor mode (*'p'*)
+* Common (*'hashc'*) e.g. `output.o.ccache-hashc`
+* Direct mode (*'hashd'*) e.g. `output.o.ccache-hashd`
+* Preprocessor mode (*'hashp'*) e.g. `output.o.ccache-hashp`
 
 The hash is the checksum of the common + direct or common + preprocessor.
+So by combining those two files (`cat`), you _should_ get the same checksum.
 
 There is also a human readable text file, for easier reading and diffing.
+It has all the same information, but not the same checksum - due to the format.
 
+* Text (*'input'*) e.g. `output.o.ccache-input`
 
 How ccache works
 ----------------
