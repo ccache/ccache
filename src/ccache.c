@@ -491,7 +491,7 @@ debug_end()
 {
 	hash_debug_end();
 	char *path = format("%s%s", output_obj, ".ccache-log");
-	cc_copylog(path);
+	cc_dump_log_buffer(path);
 	free(path);
 }
 

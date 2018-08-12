@@ -350,7 +350,7 @@ print_command(FILE *fp, char **argv)
 }
 
 char *
-string_command(char **argv)
+format_command(char **argv)
 {
 	size_t len = 0;
 	for (int i = 0; argv[i]; i++) {

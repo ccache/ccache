@@ -139,7 +139,7 @@ bool hash_file(struct mdfour *md, const char *fname);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
-bool cc_copylog(const char *path);
+bool cc_dump_log_buffer(const char *path);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
@@ -247,7 +247,7 @@ void wipe_all(struct conf *conf);
 int execute(char **argv, int fd_out, int fd_err, pid_t *pid);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
-char *string_command(char **argv);
+char *format_command(char **argv);
 
 // ----------------------------------------------------------------------------
 // lockfile.c

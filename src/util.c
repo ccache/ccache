@@ -200,7 +200,7 @@ cc_log_argv(const char *prefix, char **argv)
 		}
 	}
 	if (logbuffer) {
-		char *s = string_command(argv);
+		char *s = format_command(argv);
 		append_log(s, strlen(s));
 		free(s);
 	}
@@ -208,7 +208,7 @@ cc_log_argv(const char *prefix, char **argv)
 
 // Copy the current log memory buffer to an output file.
 bool
-cc_copylog(const char *path)
+cc_dump_log_buffer(const char *path)
 {
 	FILE *file = fopen(path, "w");
 	fwrite(logbuffer, 1, logsize, file);
