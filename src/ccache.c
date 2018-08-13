@@ -167,9 +167,17 @@ static char *cached_dia;
 // Contains NULL if -gsplit-dwarf is not given.
 static char *cached_dwo;
 
+// Full path to the file containing the reference
+// (cachedir/a/b/cdef[...]-size.ref).
+static char *cached_ref;
+//
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
 static char *manifest_path;
+//
+// Full path to the file containing the binary hash of all output files
+// (cachedir/a/b/cdef[...]-size.binary).
+static char *binary_path;
 
 // Time of compilation. Used to see if include files have changed after
 // compilation.
@@ -1364,6 +1372,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_su = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 	cached_dwo = get_path_in_cache(object_name, ".dwo");
+	cached_ref = get_path_in_cache(object_name, ".ref");
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1543,6 +1552,85 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		use_relative_paths_in_depfile(output_dep);
 	}
 
+	if (conf->dedup_mode) {
+		cc_log("Trying binary lookup");
+
+		struct hash *binary_hash = hash_init();
+
+		if (st.st_size > 0) {
+			hash_file(binary_hash, tmp_stderr);
+		}
+		hash_file(binary_hash, output_obj);
+		if (generating_dependencies) {
+			hash_file(binary_hash, output_dep);
+		}
+		if (generating_coverage) {
+			hash_file(binary_hash, output_cov);
+		}
+		if (generating_stackusage) {
+			hash_file(binary_hash, output_su);
+		}
+		if (generating_diagnostics) {
+			hash_file(binary_hash, output_dia);
+		}
+		if (using_split_dwarf) {
+			hash_file(binary_hash, output_dwo);
+		}
+
+		char *binary_name = hash_result(binary_hash);
+		binary_path = get_path_in_cache(binary_name, ".binary");
+		hash_free(binary_hash);
+
+		cc_log("Looking for object file hash in %s", binary_path);
+
+		struct stat bin_st;
+		if (stat(binary_path, &bin_st) == 0) {
+			char *object_name = x_malloc(53);
+			FILE *bin = fopen(binary_path, "r");
+			char *s = fgets(object_name, 53, bin);
+			fclose(bin);
+
+			if (s != NULL) {
+				cc_log("Got object file hash from binary");
+
+				char *tmp_ref = format("%s.tmp.ref", cached_obj);
+				cached_obj = get_path_in_cache(object_name, ".o");
+				cached_stderr = get_path_in_cache(object_name, ".stderr");
+				cached_dep = get_path_in_cache(object_name, ".d");
+				cached_cov = get_path_in_cache(object_name, ".gcno");
+				cached_su = get_path_in_cache(object_name, ".su");
+				cached_dia = get_path_in_cache(object_name, ".dia");
+				cached_dwo = get_path_in_cache(object_name, ".dwo");
+
+				FILE *ref = fopen(tmp_ref, "w");
+				fputs(binary_name, ref);
+				fclose(ref);
+
+				copy_file_to_cache(tmp_ref, cached_ref);
+				tmp_unlink(tmp_ref);
+				free(tmp_ref);
+
+				update_mtime(binary_path);
+
+				tmp_unlink(tmp_stderr);
+				goto cache;
+			}
+			free(binary_name);
+			free(object_name);
+		} else {
+			cc_log("Did not find object file hash in binary");
+
+			char *object_name = format_hash_as_string(cached_obj_hash->hash,
+			                                          cached_obj_hash->size);
+			FILE *bin = fopen(binary_path, "w");
+			fputs(object_name, bin);
+			fclose(bin);
+			free(object_name);
+
+			cc_log("Added object file hash to %s", binary_path);
+		}
+	}
+
 	if (st.st_size > 0) {
 		if (!conf->depend_mode) {
 			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
@@ -1578,6 +1666,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 	MTR_END("file", "file_put");
 
+cache:
 	stats_update(STATS_TOCACHE);
 
 	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
@@ -2261,7 +2350,59 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
-		return;
+
+		if (!conf->dedup_mode) {
+			return;
+		} else {
+			char *name;
+
+			if (stat(cached_ref, &st) != 0) {
+				return;
+			}
+
+			// Get the binary reference
+			char *binary_name = x_malloc(53);
+			FILE *ref = fopen(cached_ref, "r");
+			name = fgets(binary_name, 53, ref);
+			fclose(ref);
+
+			if (name == NULL) {
+				cc_log("Error reading %s", cached_ref);
+				return;
+			}
+
+			binary_path = get_path_in_cache(binary_name, ".binary");
+
+			// Get the cached object hash
+			char *object_name = x_malloc(53);
+			FILE *bin = fopen(binary_path, "r");
+			name = fgets(object_name, 53, bin);
+			fclose(bin);
+
+			if (name == NULL) {
+				cc_log("Error reading %s", binary_path);
+				return;
+			}
+
+			cc_log("Got object file hash from binary");
+
+			cached_obj = get_path_in_cache(object_name, ".o");
+			cached_stderr = get_path_in_cache(object_name, ".stderr");
+			cached_dep = get_path_in_cache(object_name, ".d");
+			cached_cov = get_path_in_cache(object_name, ".gcno");
+			cached_su = get_path_in_cache(object_name, ".su");
+			cached_dia = get_path_in_cache(object_name, ".dia");
+			cached_dwo = get_path_in_cache(object_name, ".dwo");
+
+			if (stat(cached_obj, &st) != 0) {
+				cc_log("Object file %s not in cache", cached_obj);
+				x_unlink(cached_ref);
+				return;
+			}
+
+			update_mtime(cached_ref);
+			update_mtime(binary_path);
+		}
 	}
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
@@ -3734,7 +3875,9 @@ cc_reset(void)
 	free(cached_su); cached_su = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(cached_dwo); cached_dwo = NULL;
+	free(cached_ref); cached_ref = NULL;
 	free(manifest_path); manifest_path = NULL;
+	free(binary_path); binary_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
 		free(ignore_headers[i]);
