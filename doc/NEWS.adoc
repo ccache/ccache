@@ -5,8 +5,8 @@ ccache 3.5
 ----------
 Release date: unknown
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Changes
+~~~~~~~
 
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
@@ -26,12 +26,13 @@ New features and enhancements
 - The content of the `-fsanitize-blacklist` file is now included in the hash,
   so updates to the file will now correctly result in separate cache entries.
 
-
-Other
-~~~~~
-
 - It's now possible to opt out of building and installing man pages when
   running `make install` in the source repository.
+
+- If the compiler type can't be detected (e.g. if it is named *cc*), use safer
+  defaults that won't trip up clang.
+
+- Made the ccache test suite work on FreeBSD.
 
 
 ccache 3.4.3
