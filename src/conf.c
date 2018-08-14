@@ -136,6 +136,7 @@ conf_create(void)
 	conf->compression_level = 6;
 	conf->cpp_extension = x_strdup("");
 	conf->debug = false;
+	conf->dedup_mode = false;
 	conf->depend_mode = false;
 	conf->direct_mode = true;
 	conf->disable = false;
@@ -399,6 +400,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "compression_level", printer, context);
 	ok &= print_item(conf, "cpp_extension", printer, context);
 	ok &= print_item(conf, "debug", printer, context);
+	ok &= print_item(conf, "dedup_mode", printer, context);
 	ok &= print_item(conf, "depend_mode", printer, context);
 	ok &= print_item(conf, "direct_mode", printer, context);
 	ok &= print_item(conf, "disable", printer, context);

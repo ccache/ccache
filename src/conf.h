@@ -13,6 +13,7 @@ struct conf {
 	unsigned compression_level;
 	char *cpp_extension;
 	bool debug;
+	bool dedup_mode;
 	bool depend_mode;
 	bool direct_mode;
 	bool disable;

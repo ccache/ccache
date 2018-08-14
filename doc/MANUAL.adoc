@@ -384,6 +384,11 @@ WRAPPERS>>.
     If true, the depend mode will be used. The default is false. See
     <<_the_depend_mode,THE DEPEND MODE>>.
 
+*dedup_mode* (*CCACHE_DEDUP* or *CCACHE_NODEDUP*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, the dedup mode will be used. The default is false. See
+    <<_the_dedup_mode,THE DEDUP MODE>>.
+
 *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the direct mode will be used. The default is true. See
@@ -910,6 +915,13 @@ In the preprocessor mode, the hash is formed of the common information and:
 Based on the hash, the cached compilation result can be looked up directly in
 the cache.
 
+The dedup mode
+~~~~~~~~~~~~~~~
+
+In the dedup(lication) mode, a "binary" hash is formed of all output files.
+
+Based on the hash, compilations leading to the exact same result will only be
+stored once in the cache. This will save space, at the expense of extra time.
 
 The depend mode
 ~~~~~~~~~~~~~~~
