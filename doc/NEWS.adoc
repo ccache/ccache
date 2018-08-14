@@ -13,6 +13,8 @@ Bug fixes
 
 - Bail out on too hard clang option `-MJ`.
 
+- Handle separate parameter to clang option `-target` correctly.
+
 
 ccache 3.4.2
 ------------
