@@ -11,6 +11,8 @@ Bug fixes
 - Fixed a race condition when creating the initial config file in the cache
   directory.
 
+- Bail out on too hard clang option `-MJ`.
+
 
 ccache 3.4.2
 ------------
