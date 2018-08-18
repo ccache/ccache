@@ -45,6 +45,10 @@ Bug fixes
 - Fixed a race condition when creating the initial config file in the cache
   directory.
 
+- Bail out on too hard clang option `-MJ`.
+
+- Handle separate parameter to clang option `-target` correctly.
+
 
 ccache 3.4.2
 ------------

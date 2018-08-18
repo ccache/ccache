@@ -2545,6 +2545,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(relpath);
 			continue;
 		}
+		// Alternate form of specifying target without =
+		if (str_eq(argv[i], "-target")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			args_add(stripped_args, argv[i+1]);
+			i++;
+			continue;
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P")
 			    || strstr(argv[i], ",-P,")
