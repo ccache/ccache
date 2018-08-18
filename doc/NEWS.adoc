@@ -16,6 +16,9 @@ Changes
   precompiled headers. Note that the build system needs to keep the checksum
   file in sync with the precompiled header for this to work.
 
+- Improved performance substantially when using `hash_dir = false` on platforms
+  like macOS where `getcwd()` is slow.
+
 - Added ``stats updated'' timestamp in `ccache -s` output. This can be useful
   if you wonder whether ccache actually was used for your last build.
 
