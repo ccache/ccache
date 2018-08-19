@@ -856,6 +856,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
 				free(data);
+				free(cwd);
 				return false;
 			}
 			// q points to the beginning of an include file path
