@@ -479,13 +479,6 @@ clean_up_internal_tempdir(void)
 static enum guessed_compiler
 guess_compiler(const char *path)
 {
-	if (str_eq(path, "/usr/bin/gcc")) {
-		return GUESSED_GCC;
-	} else if (str_eq(path, "/usr/bin/g++")) {
-		return GUESSED_GCC;
-	} else if (str_eq(path, "/usr/bin/clang")) {
-		return GUESSED_CLANG;
-	}
 	char *name = basename(path);
 	enum guessed_compiler result = GUESSED_UNKNOWN;
 	if (strstr(name, "clang")) {
@@ -3415,11 +3408,9 @@ ccache(int argc, char *argv[])
 	set_up_uncached_err();
 	MTR_END("main", "set_up_uncached_err");
 
-	if (!str_eq(conf->log_file, "")) {
-		cc_log_argv("Command line: ", argv);
-		cc_log("Hostname: %s", get_hostname());
-		cc_log("Working directory: %s", get_current_working_dir());
-	}
+	cc_log_argv("Command line: ", argv);
+	cc_log("Hostname: %s", get_hostname());
+	cc_log("Working directory: %s", get_current_working_dir());
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
