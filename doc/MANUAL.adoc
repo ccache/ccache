@@ -1110,7 +1110,11 @@ This trace can then be loaded into the `chrome://tracing` page of Chromium/Chrom
 
 The current event categories are: config, main, hash, manifest, cache, file, execute
 
-With a unique file per compile, there is a script to combine them all into one trace...
+With a unique file per compile, there is a script to combine them all into one trace:
+
+`misc/combine_events.py file1.json file2.json file3.json | gzip > ccache.trace.gz`
+
+This will offset each invididual trace by starting time, to make one combined trace.
 
 Corrupt object files
 ~~~~~~~~~~~~~~~~~~~~
