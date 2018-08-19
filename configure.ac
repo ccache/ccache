@@ -129,7 +129,7 @@ fi
 
 AC_ARG_ENABLE(tracing,
   [AS_HELP_STRING([--enable-tracing],
-    [enable possibility to use tracing])])
+    [enable possibility to use internal ccache tracing])])
 if test x${enable_tracing} = xyes; then
     CPPFLAGS="$CPPFLAGS -DMTR_ENABLED"
     extra_sources="src/minitrace.c"
