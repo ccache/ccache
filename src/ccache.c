@@ -781,10 +781,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		included_files = create_hashtable(1000, hash_from_string, strings_equal);
 	}
 
-	char *cwd = NULL;
-	if (!conf->hash_dir) {
-		cwd = gnu_getcwd();
-	}
+	char *cwd = gnu_getcwd();
 
 	// Bytes between p and q are pending to be hashed.
 	char *p = data;
