@@ -99,6 +99,8 @@ uncrustify_exclude_files = \
     src/getopt_long.c \
     src/hashtable.c \
     src/hashtable_itr.c \
+    src/minitrace.c \
+    src/minitrace.h \
     src/snprintf.c
 
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
