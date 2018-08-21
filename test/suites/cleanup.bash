@@ -87,7 +87,7 @@ SUITE_cleanup() {
     prepare_cleanup_test_dir $CCACHE_DIR/a
 
     $CCACHE -F 0 -M 256K >/dev/null
-    CCACHE_LOGFILE=/tmp/foo $CCACHE -c >/dev/null
+    $CCACHE -c >/dev/null
     expect_file_count 3 '*.o' $CCACHE_DIR
     expect_file_count 4 '*.d' $CCACHE_DIR
     expect_file_count 4 '*.stderr' $CCACHE_DIR

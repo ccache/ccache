@@ -736,6 +736,12 @@ The compiler was instructed to write its output to standard output using *-o
 | preprocessor error |
 Preprocessing the source code using the compiler's *-E* option failed.
 
+| stats updated |
+When statistics were updated the last time.
+
+| stats zeroed |
+When *ccache -z* was called the last time.
+
 | unsupported code directive |
 Code like the assembler *.incbin* directive was found. This is not supported
 by ccache.

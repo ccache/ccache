@@ -7,6 +7,8 @@ A2X = a2x
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
+SHELLCHECK = shellcheck
+SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
@@ -194,6 +196,10 @@ cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force \
 	  $(non_3pp_sources) src/main.c $(test_sources)
+
+.PHONY: shellcheck
+shellcheck: test/suites/*.bash
+	$(SHELLCHECK) --shell=bash --exclude=$(shell sed -e 's/:.*//' <$(SHELLCHECK_EXCLUDES) | grep -v '#' | tr '\n' ',' | sed -e 's/,$$//') $^
 
 .PHONY: uncrustify
 uncrustify:

@@ -46,6 +46,7 @@ static const struct compopt compopts[] = {
 	{"-L",              TAKES_ARG},
 	{"-M",              TOO_HARD},
 	{"-MF",             TAKES_ARG},
+	{"-MJ",             TAKES_ARG | TOO_HARD},
 	{"-MM",             TOO_HARD},
 	{"-MQ",             TAKES_ARG},
 	{"-MT",             TAKES_ARG},
