@@ -50,6 +50,8 @@ Bug fixes
 
 - Bail out on too hard clang option `-MJ`.
 
+- Bail out on too hard option `-save-temps=obj`.
+
 - Handle separate parameter to clang option `-target` correctly.
 
 
