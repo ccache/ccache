@@ -1154,6 +1154,17 @@ copy_file_to_cache(const char *source, const char *dest)
 	do_copy_or_move_file_to_cache(source, dest, true);
 }
 
+// Move a file into the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source must be on
+// the same file system as dest. dest will be compressed if conf->compression
+// is true.
+static void
+move_file_to_cache_same_fs(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, false);
+}
+
 // Copy or link a file from the cache.
 static void
 get_file_from_cache(const char *source, const char *dest)
@@ -1254,11 +1265,6 @@ update_cached_result_globals(struct file_hash *hash)
 static void
 to_cache(struct args *args, struct mdfour *depend_mode_hash)
 {
-	char *tmp_stdout = format("%s/tmp.cc_stdout", temp_dir());
-	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-	char *tmp_stderr = format("%s/tmp.cc_stderr", temp_dir());
-	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
@@ -1280,11 +1286,26 @@ to_cache(struct args *args, struct mdfour *depend_mode_hash)
 	}
 
 	cc_log("Running real compiler");
-	int status = 0;
+	char *tmp_stdout;
+	int tmp_stdout_fd;
+	char *tmp_stderr;
+	int tmp_stderr_fd;
+	int status;
 	if (!conf->depend_mode) {
+		tmp_stdout = format("%s.tmp.stdout", cached_obj);
+		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		tmp_stderr = format("%s.tmp.stderr", cached_obj);
+		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
 		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_pop(args, 3);
 	} else {
+		// The cached object path is not known yet, use temporary files.
+		tmp_stdout = format("%s/tmp.stdout", temp_dir());
+		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		tmp_stderr = format("%s/tmp.stderr", temp_dir());
+		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
 		// Use the original arguments (including deps) in depend mode.
 		// Similar to failed();
 		// FIXME: on error we probably do not want to fall back to failed() anymore
@@ -1399,7 +1420,11 @@ to_cache(struct args *args, struct mdfour *depend_mode_hash)
 		failed();
 	}
 	if (st.st_size > 0) {
-		copy_file_to_cache(tmp_stderr, cached_stderr);
+		if (!conf->depend_mode) {
+			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
+		} else {
+			copy_file_to_cache(tmp_stderr, cached_stderr);
+		}
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
