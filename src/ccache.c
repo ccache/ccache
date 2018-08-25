@@ -3460,10 +3460,9 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	// FIXME?: for now fail hard when we find mismatching settings
 	if (conf->depend_mode && (!generating_dependencies || !conf->run_second_cpp)) {
-		fprintf(stderr, "ccache: ERROR: depend_mode but not generating dependencies or run_second_cpp\n");
-		x_exit(1);
+		cc_log("Disabling depend mode");
+		conf->depend_mode = false;
 	}
 
 	cc_log("Source file: %s", input_file);
