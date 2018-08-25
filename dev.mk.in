@@ -7,9 +7,12 @@ A2X = a2x
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
+SHELLCHECK = shellcheck
+SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
+TEST = test
 
 version := \
     $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
@@ -190,17 +193,27 @@ cppcheck:
 	  --inline-suppr -q --enable=all --force \
 	  $(non_3pp_sources) src/main.c $(test_sources)
 
+.PHONY: shellcheck
+shellcheck: test/suites/*.bash
+	$(SHELLCHECK) --shell=bash --exclude=$(shell sed -e 's/:.*//' <$(SHELLCHECK_EXCLUDES) | grep -v '#' | tr '\n' ',' | sed -e 's/,$$//') $^
+
 .PHONY: uncrustify
 uncrustify:
 	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
 
 .PHONY: analyze
 analyze:
-	$(SCAN_BUILD) --use-cc=$(CC) ./configure
+	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
 .PHONY: docker
 docker: misc/Dockerfile
 	$(DOCKER) build -f $< $(srcdir)
+
+.PHONY: travis
+travis: .travis/Dockerfile
+	$(DOCKER) inspect travis-build >/dev/null || $(DOCKER) build -t travis-build .travis
+	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec --env ASAN_OPTIONS='$(ASAN_OPTIONS)' travis-build \
+	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' /src/configure $(HOST) && make && make $(TEST)"
 
 -include .deps/*.d

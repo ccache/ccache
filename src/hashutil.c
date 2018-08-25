@@ -220,7 +220,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
-	if (cmd) {
+	if (!cmd) {
 		free((char *)command);  // Original argument was replaced above.
 	}
 	if (ret == 0) {

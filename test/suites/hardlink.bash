@@ -25,7 +25,8 @@ SUITE_hardlink() {
     expect_stat 'files in cache' 1
     expect_equal_object_files reference_test1.o test1.o
 
-    local obj_in_cache=$(find $CCACHE_DIR -name '*.o')
+    local obj_in_cache
+    obj_in_cache=$(find $CCACHE_DIR -name '*.o')
     if [ ! $obj_in_cache -ef test1.o ]; then
         test_failed "Object file not hard-linked to cached object file"
     fi

@@ -5,8 +5,8 @@ ccache 3.5
 ----------
 Release date: unknown
 
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Changes
+~~~~~~~
 
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
@@ -15,6 +15,44 @@ New features and enhancements
   the full content of a precompiled header. This can save time for large
   precompiled headers. Note that the build system needs to keep the checksum
   file in sync with the precompiled header for this to work.
+
+- Improved performance substantially when using `hash_dir = false` on platforms
+  like macOS where `getcwd()` is slow.
+
+- Added ``stats updated'' timestamp in `ccache -s` output. This can be useful
+  if you wonder whether ccache actually was used for your last build.
+
+- Renamed ``stats zero time'' to ``stats zeroed'' and documented it. The
+  counter is also now only present in `ccache -s` output when `ccache -z`
+  actually has been called.
+
+- The content of the `-fsanitize-blacklist` file is now included in the hash,
+  so updates to the file will now correctly result in separate cache entries.
+
+- It's now possible to opt out of building and installing man pages when
+  running `make install` in the source repository.
+
+- If the compiler type can't be detected (e.g. if it is named *cc*), use safer
+  defaults that won't trip up clang.
+
+- Made the ccache test suite work on FreeBSD.
+
+
+ccache 3.4.3
+-----------
+Release date: unknown
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a race condition when creating the initial config file in the cache
+  directory.
+
+- Bail out on too hard clang option `-MJ`.
+
+- Bail out on too hard option `-save-temps=obj`.
+
+- Handle separate parameter to clang option `-target` correctly.
 
 
 ccache 3.4.2

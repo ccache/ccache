@@ -87,7 +87,7 @@ SUITE_cleanup() {
     prepare_cleanup_test_dir $CCACHE_DIR/a
 
     $CCACHE -F 0 -M 256K >/dev/null
-    CCACHE_LOGFILE=/tmp/foo $CCACHE -c >/dev/null
+    $CCACHE -c >/dev/null
     expect_file_count 3 '*.o' $CCACHE_DIR
     expect_file_count 4 '*.d' $CCACHE_DIR
     expect_file_count 4 '*.stderr' $CCACHE_DIR
@@ -152,7 +152,7 @@ SUITE_cleanup() {
     TEST ".o file is removed before .stderr"
 
     prepare_cleanup_test_dir $CCACHE_DIR/a
-    $CCACHE -F 474 -M 0 >/dev/null
+    $CCACHE -F 464 -M 0 >/dev/null
     backdate 0 $CCACHE_DIR/a/result9-4017.stderr
     $CCACHE -c >/dev/null
     expect_file_missing $CCACHE_DIR/a/result9-4017.stderr
@@ -167,7 +167,7 @@ SUITE_cleanup() {
     TEST ".stderr file is not removed before .o"
 
     prepare_cleanup_test_dir $CCACHE_DIR/a
-    $CCACHE -F 474 -M 0 >/dev/null
+    $CCACHE -F 464 -M 0 >/dev/null
     backdate 0 $CCACHE_DIR/a/result9-4017.o
     $CCACHE -c >/dev/null
     expect_file_exists $CCACHE_DIR/a/result9-4017.stderr

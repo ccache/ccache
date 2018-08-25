@@ -225,6 +225,9 @@ static char *profile_dir = NULL;
 static bool profile_use = false;
 static bool profile_generate = false;
 
+// Sanitize blacklist
+static char *sanitize_blacklist = NULL;
+
 // Whether we are using a precompiled header (either via -include, #include or
 // clang's -include-pch or -include-pth).
 static bool using_precompiled_header = false;
@@ -784,6 +787,8 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		included_files = create_hashtable(1000, hash_from_string, strings_equal);
 	}
 
+	char *cwd = gnu_getcwd();
+
 	// Bytes between p and q are pending to be hashed.
 	char *p = data;
 	char *q = data;
@@ -857,6 +862,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
 				free(data);
+				free(cwd);
 				return false;
 			}
 			// q points to the beginning of an include file path
@@ -883,7 +889,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 			bool should_hash_inc_path = true;
 			if (!conf->hash_dir) {
-				char *cwd = gnu_getcwd();
 				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
 					// When compiling with -g or similar, GCC adds the absolute path to
 					// CWD like this:
@@ -894,7 +899,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 					// hash it. See also how debug_prefix_map is handled.
 					should_hash_inc_path = false;
 				}
-				free(cwd);
 			}
 			if (should_hash_inc_path) {
 				hash_string(hash, inc_path);
@@ -931,6 +935,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 	hash_buffer(hash, p, (end - p));
 	free(data);
+	free(cwd);
 
 	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
 	// mention of it in the preprocessed output.
@@ -1670,7 +1675,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			if (sep) {
 				char *old = x_strndup(map, sep - map);
 				char *new = x_strdup(sep + 1);
-				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
+				cc_log("Relocating debuginfo CWD %s from %s to %s", cwd, old, new);
 				if (str_startswith(cwd, old)) {
 					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
@@ -1681,6 +1686,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			}
 		}
 		if (cwd) {
+			cc_log("Hashing CWD %s", cwd);
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
@@ -1707,6 +1713,16 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			hash_delimiter(hash, "gcda");
 			hash_string(hash, gcda_path);
 			free(dir);
+		}
+	}
+
+	// Possibly hash the sanitize blacklist file path.
+	if (sanitize_blacklist) {
+		cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
+		hash_delimiter(hash, "sanitizeblacklist");
+		if (!hash_file(hash, sanitize_blacklist)) {
+			stats_update(STATS_BADEXTRAFILE);
+			failed();
 		}
 	}
 
@@ -1752,7 +1768,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
-	int is_clang = guessed_compiler == GUESSED_CLANG;
+	int is_clang = (guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN);
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -1809,6 +1825,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 				}
 			} else if (str_startswith(args->argv[i], "-MF")) {
 				// In either case, hash the "-MF" part.
+				hash_delimiter(hash, "arg");
 				hash_string_length(hash, args->argv[i], 3);
 
 				bool separate_argument = (strlen(args->argv[i]) == 3);
@@ -1856,8 +1873,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 		if ((str_eq(args->argv[i], "-ccbin")
 		     || str_eq(args->argv[i], "--compiler-bindir"))
-		     && i + 1 < args->argc
-		     && x_stat(args->argv[i+1], &st) == 0) {
+		    && i + 1 < args->argc
+		    && x_stat(args->argv[i+1], &st) == 0) {
 			found_ccbin = true;
 			hash_delimiter(hash, "ccbin");
 			hash_nvcc_host_compiler(hash, &st, args->argv[i+1]);
@@ -2010,7 +2027,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	//
 	//     file 'foo.h' has been modified since the precompiled header 'foo.pch'
 	//     was built
-	if (guessed_compiler == GUESSED_CLANG
+	if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
 	    && output_is_precompiled_header
 	    && mode == FROMCACHE_CPP_MODE) {
 		cc_log("Not considering cached precompiled header in preprocessor mode");
@@ -2557,6 +2574,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
+		if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
+			sanitize_blacklist = x_strdup(argv[i] + 21);
+			args_add(stripped_args, argv[i]);
+			continue;
+		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
 			char *option = format("--sysroot=%s", relpath);
@@ -2578,6 +2600,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, relpath);
 			i++;
 			free(relpath);
+			continue;
+		}
+		// Alternate form of specifying target without =
+		if (str_eq(argv[i], "-target")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			args_add(stripped_args, argv[i+1]);
+			i++;
 			continue;
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
@@ -3194,7 +3229,7 @@ initialize(void)
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
-			if (access(secondary_config_path, R_OK) == 0) {
+			if (errno == 0) {
 				// We could read the file but it contained errors.
 				fatal("%s", errmsg);
 			}
@@ -3218,7 +3253,7 @@ initialize(void)
 
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
-		if (access(primary_config_path, R_OK) == 0) {
+		if (errno == 0) {
 			// We could read the file but it contained errors.
 			fatal("%s", errmsg);
 		}
@@ -3262,6 +3297,7 @@ cc_reset(void)
 	free(debug_prefix_maps); debug_prefix_maps = NULL;
 	debug_prefix_maps_len = 0;
 	free(profile_dir); profile_dir = NULL;
+	free(sanitize_blacklist); sanitize_blacklist = NULL;
 	free(included_pch_file); included_pch_file = NULL;
 	args_free(orig_args); orig_args = NULL;
 	free(input_file); input_file = NULL;
@@ -3614,7 +3650,7 @@ ccache_main_options(int argc, char *argv[])
 		case 'z': // --zero-stats
 			initialize();
 			stats_zero();
-			printf("Statistics cleared\n");
+			printf("Statistics zeroed\n");
 			break;
 
 		default:

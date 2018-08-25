@@ -1,10 +1,11 @@
-ccache installation
-===================
+ccache installation from release archive
+========================================
 
 Prerequisites
 -------------
 
-To build ccache, you need:
+To build ccache from a
+[release archive](https://ccache.samba.org/download.html), you need:
 
 - A C compiler (for instance GCC)
 

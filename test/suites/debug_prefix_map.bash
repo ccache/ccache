@@ -1,5 +1,6 @@
 SUITE_debug_prefix_map_PROBE() {
-    if $COMPILER_USES_MINGW; then
+    touch test.c
+    if ! $REAL_COMPILER -c -fdebug-prefix-map=old=new test.c 2>/dev/null; then
         echo "-fdebug-prefix-map not supported by compiler"
     fi
 }
@@ -22,6 +23,8 @@ EOF
 objdump_cmd() {
     if $HOST_OS_APPLE; then
         xcrun dwarfdump -r0 $1
+    elif $HOST_OS_FREEBSD; then
+        objdump -W $1
     else
         objdump -g $1
     fi
