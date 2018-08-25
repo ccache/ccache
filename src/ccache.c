@@ -696,6 +696,16 @@ ignore:
 	free(path);
 }
 
+static void
+print_included_files(FILE *fp)
+{
+	struct hashtable_itr *iter = hashtable_iterator(included_files);
+	do {
+		char *path = hashtable_iterator_key(iter);
+		fprintf(fp, "%s\n", path);
+	} while (hashtable_iterator_advance(iter));
+}
+
 // Make a relative path from current working directory to path if path is under
 // the base directory. Takes over ownership of path. Caller frees.
 static char *
@@ -946,6 +956,11 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		remember_include_file(path, hash, false, NULL);
 	}
 
+	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+	if (debug_included) {
+		print_included_files(stdout);
+	}
+
 	return true;
 }
 
@@ -1056,6 +1071,11 @@ object_hash_from_depfile(const char *depfile, struct mdfour *hash) {
 			}
 			remember_include_file(x_strdup(token), hash, false, hash);
 		}
+	}
+
+	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+	if (debug_included) {
+		print_included_files(stdout);
 	}
 
 	struct file_hash *result = x_malloc(sizeof(*result));
