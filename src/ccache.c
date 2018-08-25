@@ -1394,6 +1394,10 @@ to_cache(struct args *args, struct mdfour *depend_mode_hash)
 		failed();
 	}
 
+	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
+	}
+
 	if (conf->depend_mode) {
 		struct file_hash *object_hash = object_hash_from_depfile(output_dep, depend_mode_hash);
 		if (!object_hash)
@@ -1435,8 +1439,6 @@ to_cache(struct args *args, struct mdfour *depend_mode_hash)
 
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
-		// GJK: TODO: need to execute this earlier when in depend_mode
-		use_relative_paths_in_depfile(output_dep);
 		copy_file_to_cache(output_dep, cached_dep);
 	}
 	if (generating_coverage) {
