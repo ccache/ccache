@@ -1,6 +1,6 @@
 ZLIB BUNDLED WITH CCACHE
 ========================
 
-This directory contains a subset of files from zlib 1.2.8. The full release can
+This directory contains a subset of files from zlib 1.2.11. The full release can
 be found at <http://zlib.net>. For conditions of distribution and use, see
 copyright notice in zlib.h.
