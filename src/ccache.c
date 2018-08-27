@@ -3182,10 +3182,12 @@ create_initial_config_file(struct conf *conf, const char *path)
 #ifdef MTR_ENABLED
 static void *trace_id;
 #endif
+const char *trace_file;
 
 void trace_init(const char *json)
 {
 #ifdef MTR_ENABLED
+	trace_file = json;
 	mtr_init(json);
 	char *s = format("%f", time_seconds());
 	MTR_INSTANT_C("", "", "time", s);
@@ -3196,6 +3198,7 @@ void trace_init(const char *json)
 
 void trace_start(const char *json)
 {
+	trace_file = json;
 	cc_log("Starting tracing: %s", json);
 #ifdef MTR_ENABLED
 	MTR_META_PROCESS_NAME(MYNAME);
@@ -3206,9 +3209,13 @@ void trace_start(const char *json)
 #endif
 }
 
-void trace_stop(void)
+void trace_stop(void *context)
 {
-	cc_log("Stopping tracing");
+	const char *json = (const char *) context;
+	if (str_eq(json, "")) {
+		json = format("%s%s", output_obj, ".ccache-trace");
+	}
+	cc_log("Stopping tracing: %s", json);
 #ifdef MTR_ENABLED
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
@@ -3216,6 +3223,9 @@ void trace_stop(void)
 #else
 	cc_log("Error: tracing is not enabled!");
 #endif
+	if (!str_eq(trace_file, json)) {
+		move_file(trace_file, json, 0);
+	}
 }
 
 static const char *
@@ -3242,7 +3252,12 @@ static void
 initialize(void)
 {
 	char *tracefile = getenv("CCACHE_TRACEFILE");
+	char *tracepath = tracefile;
 	if (tracefile != NULL) {
+		if (str_eq(tracefile, "")) {
+			// We don't have any conf yet, so we can't use temp_dir() here
+			tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
+		}
 		trace_init(tracefile);
 	}
 
@@ -3318,7 +3333,7 @@ initialize(void)
 
 	if (tracefile != NULL) {
 		trace_start(tracefile);
-		exitfn_add_nullary(trace_stop);
+		exitfn_add(trace_stop, tracepath);
 	}
 }
 
