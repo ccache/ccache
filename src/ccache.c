@@ -3218,6 +3218,24 @@ void trace_stop(void)
 #endif
 }
 
+static const char *
+tmpdir()
+{
+#ifndef _WIN32
+	const char *tmpdir = getenv("TMPDIR");
+	if (tmpdir != NULL) {
+		return tmpdir;
+	}
+#else
+	static char dirbuf[PATH_MAX];
+	DWORD retval = GetTempPath(PATH_MAX, dirbuf);
+	if (retval > 0 && retval < PATH_MAX) {
+		return dirbuf;
+	}
+#endif
+	return "/tmp";
+}
+
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
