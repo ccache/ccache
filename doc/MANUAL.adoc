@@ -1122,6 +1122,12 @@ With a unique file per compile, there is a script to combine them all into one t
 
 This will offset each invididual trace by starting time, to make one combined trace.
 
+If you set the variable to "", the trace output will be put next to the object file:
+
+e.g. `output.o.ccache-trace`
+
+This is done by first generating a temporary file, until the output name is known.
+
 Corrupt object files
 ~~~~~~~~~~~~~~~~~~~~
 
