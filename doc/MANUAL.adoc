@@ -1128,6 +1128,12 @@ e.g. `output.o.ccache-trace`
 
 This is done by first generating a temporary file, until the output name is known.
 
+There is another script, to generate a summary (per job slot) of all the ccache runs:
+
+`misc/combine_events.py *.ccache-trace | misc/summarize_events.py 1 > ccache.trace`
+
+You will need to give the number of job slots used (`make -j`), as input to the script.
+
 Corrupt object files
 ~~~~~~~~~~~~~~~~~~~~
 
