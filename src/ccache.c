@@ -2070,10 +2070,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		break;
 	}
 
-	if (conf->debug) {
-		debug_end();
-	}
-
 	// And exit with the right status code.
 	x_exit(0);
 }
@@ -3385,6 +3381,7 @@ ccache(int argc, char *argv[])
 
 	if (conf->debug) {
 		debug_start(output_obj);
+		exitfn_add_nullary(debug_end);
 	}
 
 	struct mdfour common_hash;
@@ -3469,10 +3466,6 @@ ccache(int argc, char *argv[])
 
 	// Run real compiler, sending output to cache.
 	to_cache(compiler_args);
-
-	if (conf->debug) {
-		debug_end();
-	}
 
 	x_exit(0);
 }
