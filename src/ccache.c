@@ -1108,8 +1108,6 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 static void
 get_file_from_cache(const char *source, const char *dest)
 {
-	MTR_BEGIN("file", "get");
-
 	int ret;
 	bool do_link = conf->hard_link && !file_is_compressed(source);
 	if (do_link) {
@@ -1118,8 +1116,6 @@ get_file_from_cache(const char *source, const char *dest)
 	} else {
 		ret = copy_file(source, dest, 0);
 	}
-
-	MTR_END("file", "get");
 
 	if (ret == -1) {
 		if (errno == ENOENT || errno == ESTALE) {
@@ -1176,7 +1172,7 @@ void update_manifest_file(void)
 	if (stat(manifest_path, &st) == 0) {
 		old_size = file_size(&st);
 	}
-	MTR_BEGIN("manifest", "put");
+	MTR_BEGIN("manifest", "manifest_put");
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		update_mtime(manifest_path);
@@ -1186,7 +1182,7 @@ void update_manifest_file(void)
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
 	}
-	MTR_END("manifest", "put");
+	MTR_END("manifest", "manifest_put");
 }
 
 // Run the real compiler and put the result in cache.
@@ -1326,7 +1322,7 @@ to_cache(struct args *args)
 		}
 	}
 
-	MTR_BEGIN("file", "put");
+	MTR_BEGIN("file", "file_put");
 
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
@@ -1346,7 +1342,7 @@ to_cache(struct args *args)
 		copy_file_to_cache(output_dwo, cached_dwo);
 	}
 
-	MTR_END("file", "put");
+	MTR_END("file", "file_put");
 
 	stats_update(STATS_TOCACHE);
 
@@ -1936,9 +1932,9 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 		cc_log("Looking for object file hash in %s", manifest_path);
-		MTR_BEGIN("manifest", "get");
+		MTR_BEGIN("manifest", "manifest_get");
 		object_hash = manifest_get(conf, manifest_path);
-		MTR_END("manifest", "get");
+		MTR_END("manifest", "manifest_get");
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
 		} else {
@@ -2008,11 +2004,13 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	MTR_BEGIN("cache", "from");
+	MTR_BEGIN("cache", "from_cache");
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
 	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+
+	MTR_BEGIN("file", "file_get");
 
 	// Get result from cache.
 	if (!str_eq(output_obj, "/dev/null")) {
@@ -2033,6 +2031,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_diagnostics) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
+
+	MTR_END("file", "file_get");
 
 	// Update modification timestamps to save files from LRU cleanup. Also gives
 	// files a sensible mtime when hard-linking.
@@ -2073,7 +2073,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		break;
 	}
 
-	MTR_END("cache", "from");
+	MTR_END("cache", "from_cache");
 
 	// And exit with the right status code.
 	x_exit(0);
@@ -3500,9 +3500,9 @@ ccache(int argc, char *argv[])
 
 	struct mdfour common_hash;
 	hash_start(&common_hash);
-	MTR_BEGIN("hash", "common");
+	MTR_BEGIN("hash", "common_hash");
 	calculate_common_hash(preprocessor_args, &common_hash);
-	MTR_END("hash", "common");
+	MTR_END("hash", "common_hash");
 
 	// Try to find the hash using the manifest.
 	struct mdfour direct_hash = common_hash;
@@ -3511,9 +3511,9 @@ ccache(int argc, char *argv[])
 	struct file_hash *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
-		MTR_BEGIN("hash", "direct");
+		MTR_BEGIN("hash", "direct_hash");
 		object_hash = calculate_object_hash(preprocessor_args, &direct_hash, 1);
-		MTR_END("hash", "direct");
+		MTR_END("hash", "direct_hash");
 		if (object_hash) {
 			update_cached_result_globals(object_hash);
 
@@ -3538,9 +3538,9 @@ ccache(int argc, char *argv[])
 
 	// Find the hash using the preprocessed output. Also updates included_files.
 	struct mdfour cpp_hash = common_hash;
-	MTR_BEGIN("hash", "cpp");
+	MTR_BEGIN("hash", "cpp_hash");
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
-	MTR_END("hash", "cpp");
+	MTR_END("hash", "cpp_hash");
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
 	}
@@ -3579,9 +3579,9 @@ ccache(int argc, char *argv[])
 	add_prefix(compiler_args, conf->prefix_command);
 
 	// Run real compiler, sending output to cache.
-	MTR_BEGIN("cache", "to");
+	MTR_BEGIN("cache", "to_cache");
 	to_cache(compiler_args);
-	MTR_END("cache", "to");
+	MTR_END("cache", "to_cache");
 
 	x_exit(0);
 }
