@@ -106,6 +106,8 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_FILE_MACRO;
 		} else if (str_eq(word, "file_stat_matches")) {
 			*value |= SLOPPY_FILE_STAT_MATCHES;
+		} else if (str_eq(word, "file_stat_matches_ctime")) {
+			*value |= SLOPPY_FILE_STAT_MATCHES_CTIME;
 		} else if (str_eq(word, "include_file_ctime")) {
 			*value |= SLOPPY_INCLUDE_FILE_CTIME;
 		} else if (str_eq(word, "include_file_mtime")) {
@@ -655,6 +657,9 @@ conf_print_items(struct conf *conf,
 	}
 	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
 		reformat(&s, "%sfile_stat_matches, ", s);
+	}
+	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME) {
+		reformat(&s, "%sfile_stat_matches_ctime, ", s);
 	}
 	if (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
 		reformat(&s, "%sno_system_headers, ", s);
