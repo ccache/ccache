@@ -40,7 +40,7 @@ Changes
 
 ccache 3.4.3
 -----------
-Release date: unknown
+Release date: 2018-09-02
 
 Bug fixes
 ~~~~~~~~~
@@ -53,6 +53,8 @@ Bug fixes
 - Bail out on too hard option `-save-temps=obj`.
 
 - Handle separate parameter to clang option `-target` correctly.
+
+- Upgraded bundled zlib to version 1.2.11.
 
 
 ccache 3.4.2
