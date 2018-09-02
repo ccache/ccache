@@ -4,7 +4,7 @@ SUITE_basedir_SETUP() {
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
-#include "test.h"
+#include <test.h>
 EOF
     cat <<EOF >dir1/include/test.h
 int test;
