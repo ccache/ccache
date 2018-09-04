@@ -33,7 +33,7 @@ SUITE_cpp1() {
     elif $COMPILER_TYPE_CLANG; then
         cpp_flag="-frewrite-includes"
     fi
-    cpp_flag+=" -DBAZ=3"
+    cpp_flag="$cpp_flag -DBAZ=3"
 
     # -------------------------------------------------------------------------
     TEST "Base case"

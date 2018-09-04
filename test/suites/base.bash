@@ -298,8 +298,8 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "CCACHE_EXTRAFILES"
 
-    echo a >a
-    echo b >b
+    echo "a" >a
+    echo "b" >b
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
@@ -495,7 +495,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -523,7 +524,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -546,7 +548,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -569,7 +572,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -595,7 +599,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -628,7 +633,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -787,7 +793,8 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else

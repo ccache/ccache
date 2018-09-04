@@ -1,0 +1,8 @@
+SC2148: Tips depend on target shell and yours is unknown. Add a shebang.
+#  the below excludes are (mostly) about bourne shell and style issues
+SC2001: See if you can use ${variable//search/replace} instead.
+SC2006: Use $(..) instead of legacy `..`.
+SC2046: Quote this to prevent word splitting.
+SC2086: Double quote to prevent globbing and word splitting.
+SC2103: Consider using ( subshell ), 'cd foo||exit', or pushd/popd instead.
+SC2129: Consider using { cmd1; cmd2; } >> file instead of individual redirects.

@@ -448,7 +448,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
 
-    find $CCACHE_DIR -name '*.d' -delete
+    find $CCACHE_DIR -name '*.d' -exec rm '{}' +
 
     # Missing file -> consider the cached result broken.
     $CCACHE_COMPILE -c -MD test.c
