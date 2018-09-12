@@ -115,8 +115,13 @@ if test x${with_bundled_zlib} = x; then
         use_bundled_zlib=yes
     fi
 else
-    AC_MSG_NOTICE(using bundled zlib as requested)
-    use_bundled_zlib=yes
+    if test x${with_bundled_zlib} = xno; then
+        AC_MSG_NOTICE(using system zlib as requested)
+        use_bundled_zlib=no
+    else
+        AC_MSG_NOTICE(using bundled zlib as requested)
+        use_bundled_zlib=yes
+    fi
 fi
 
 if test x${use_bundled_zlib} = xyes; then
