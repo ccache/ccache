@@ -195,9 +195,20 @@ AC_OUTPUT
 cat <<EOF >config.h.tmp
 #ifndef CCACHE_CONFIG_H
 #define CCACHE_CONFIG_H
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
+
 EOF
 cat config.h >>config.h.tmp
-echo '#endif' >>config.h.tmp
+cat <<EOF >>config.h.tmp
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#endif // ifndef CCACHE_CONFIG_H
+EOF
 mv config.h.tmp config.h
 
 AC_MSG_NOTICE(now build ccache by running make)
