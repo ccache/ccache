@@ -212,7 +212,7 @@ uncrustify:
 
 # pip install compiledb
 compile_commands.json:
-	$(COMPILEDB) $(MAKE) -B -s all unittest
+	$(COMPILEDB) -n $(MAKE) all unittest
 
 .PHONY: tidy
 tidy: compile_commands.json
