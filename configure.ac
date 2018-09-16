@@ -23,8 +23,11 @@ AC_SUBST(test_suites)
 AC_SUBST(disable_man)
 
 m4_include(m4/feature_macros.m4)
+m4_include(m4/clang.m4)
 
 dnl Checks for programs.
+AC_PROG_CC
+_AC_LANG_COMPILER_CLANG
 AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = no; then
     AC_MSG_ERROR(cannot find a C99-compatible compiler)
@@ -41,8 +44,8 @@ fi
 # Prefer bash, needed for test.sh
 AC_PATH_TOOL(BASH, bash, "/bin/bash")
 
-# If GCC, turn on warnings.
-if test "x$GCC" = "xyes"; then
+# If GCC (or clang), turn on warnings.
+if test "$ac_compiler_gnu" = yes; then
     CFLAGS="$CFLAGS -Wall -W"
 else
     CFLAGS="$CFLAGS -O"
