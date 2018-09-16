@@ -554,7 +554,7 @@ get_hostname(void)
 		return hostname;
 	}
 
-	strcpy(hostname, "unknown");
+	strncpy(hostname, "unknown", 8);
 #if HAVE_GETHOSTNAME
 	gethostname(hostname, sizeof(hostname) - 1);
 #elif defined(_WIN32)
