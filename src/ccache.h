@@ -8,7 +8,7 @@
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
-#define ATTR_NORETURN __attribute__((noreturn));
+#define ATTR_NORETURN __attribute__((noreturn))
 #else
 #define ATTR_FORMAT(x, y, z)
 #define ATTR_NORETURN

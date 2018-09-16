@@ -99,6 +99,8 @@ path_max(const char *path)
 #endif
 }
 
+static void warn_log_fail(void) ATTR_NORETURN;
+
 // Warn about failure writing to the log file and then exit.
 static void
 warn_log_fail(void)

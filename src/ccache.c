@@ -40,6 +40,9 @@ extern char *current_working_dir;
 extern char *stats_file;
 extern unsigned lock_staleness_limit;
 
+static void failed(void) ATTR_NORETURN;
+static void ccache(int argc, char *argv[]) ATTR_NORETURN;
+
 int ccache_main(int argc, char *argv[]);
 
 static const char VERSION_TEXT[] =
@@ -3624,5 +3627,4 @@ ccache_main(int argc, char *argv[])
 	free(program_name);
 
 	ccache(argc, argv);
-	return 1;
 }
