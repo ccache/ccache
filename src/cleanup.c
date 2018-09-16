@@ -238,7 +238,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 }
 
 // Wipe one cache subdirectory.
-void
+static void
 wipe_dir(const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);

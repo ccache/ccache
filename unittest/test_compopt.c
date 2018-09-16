@@ -24,7 +24,7 @@ TEST_SUITE(compopt)
 
 TEST(option_table_should_be_sorted)
 {
-	bool compopt_verify_sortedness();
+	extern bool compopt_verify_sortedness(void);
 	CHECK(compopt_verify_sortedness());
 }
 

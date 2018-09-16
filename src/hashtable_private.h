@@ -28,6 +28,7 @@ unsigned int
 hash(struct hashtable *h, void *k);
 
 /*****************************************************************************/
+#ifdef HASHTABLE_INDEXFOR
 /* indexFor */
 static inline unsigned int
 indexFor(unsigned int tablelength, unsigned int hashvalue) {
@@ -41,6 +42,7 @@ indexFor(unsigned int tablelength, unsigned int hashvalue)
     return (hashvalue & (tablelength - 1u));
 }
 */
+#endif
 
 /*****************************************************************************/
 #define freekey(X) free(X)

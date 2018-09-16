@@ -30,11 +30,15 @@
 */
 
 #include "hashtable.h"
+#define HASHTABLE_INDEXFOR
 #include "hashtable_private.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
+extern const unsigned int prime_table_length;
+extern const float max_load_factor;
 
 /*
 Credit for primes table: Aaron Krowne

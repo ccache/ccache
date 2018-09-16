@@ -16,6 +16,8 @@
 
 #include "ccache.h"
 
+#include "language.h"
+
 // Supported file extensions and corresponding languages (as in parameter to
 // the -x option).
 static const struct {

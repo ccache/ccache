@@ -33,6 +33,15 @@
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
 
+extern struct conf *conf;
+extern char *primary_config_path;
+extern char *secondary_config_path;
+extern char *current_working_dir;
+extern char *stats_file;
+extern unsigned lock_staleness_limit;
+
+int ccache_main(int argc, char *argv[]);
+
 static const char VERSION_TEXT[] =
   MYNAME " version %s\n"
   "\n"
@@ -1157,7 +1166,8 @@ send_cached_stderr(void)
 }
 
 // Create or update the manifest file.
-void update_manifest_file(void)
+static void
+update_manifest_file(void)
 {
 	if (!conf->direct_mode
 	    || !included_files

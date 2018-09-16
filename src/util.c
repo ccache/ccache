@@ -578,7 +578,7 @@ format_hash_as_string(const unsigned char *hash, int size)
 	return ret;
 }
 
-char const CACHEDIR_TAG[] =
+static char const CACHEDIR_TAG[] =
   "Signature: 8a477f597d28d172789f06886806bc55\n"
   "# This file is a cache directory tag created by ccache.\n"
   "# For information about cache directory tags, see:\n"
