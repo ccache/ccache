@@ -264,7 +264,7 @@ bool is_precompiled_header(const char *path);
 
 // ----------------------------------------------------------------------------
 
-#if HAVE_COMPAR_FN_T
+#ifdef HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
 #else
 typedef int (*COMPAR_FN_T)(const void *, const void *);
