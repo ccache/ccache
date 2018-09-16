@@ -45,7 +45,7 @@ non_3pp_sources = \
 generated_sources = \
     src/version.c
 3pp_sources = \
-    src/getopt_long.c \
+    @getopt_long_c@ \
     src/hashtable.c \
     src/hashtable_itr.c \
     src/murmurhashneutral2.c \
