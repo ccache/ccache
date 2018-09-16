@@ -253,8 +253,8 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 			fatal("invalid boolean environment variable value \"%s\"", value);
 		}
 
-		bool *value = (bool *)((char *)conf + item->offset);
-		*value = !negate_boolean;
+		bool *boolvalue = (bool *)((char *)conf + item->offset);
+		*boolvalue = !negate_boolean;
 		goto out;
 	}
 

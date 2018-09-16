@@ -1619,9 +1619,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Also hash the compiler name as some compilers use hard links and behave
 	// differently depending on the real name.
 	hash_delimiter(hash, "cc_name");
-	char *p = basename(args->argv[0]);
-	hash_string(hash, p);
-	free(p);
+	char *base = basename(args->argv[0]);
+	hash_string(hash, base);
+	free(base);
 
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
@@ -1662,7 +1662,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 		if (dir) {
 			char *base_name = basename(output_obj);
-			p = remove_extension(base_name);
+			char *p = remove_extension(base_name);
 			free(base_name);
 			char *gcda_path = format("%s/%s.gcda", dir, p);
 			cc_log("Hashing coverage path %s", gcda_path);
@@ -3586,7 +3586,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 's': // --show-stats
 			initialize();
-			stats_summary(conf);
+			stats_summary();
 			break;
 
 		case 'V': // --version

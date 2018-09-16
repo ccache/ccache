@@ -445,7 +445,7 @@ stats_get_pending(enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(struct conf *conf)
+stats_summary(void)
 {
 	struct counters *counters = counters_init(STATS_END);
 	time_t updated = 0;
