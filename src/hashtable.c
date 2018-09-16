@@ -81,7 +81,8 @@ create_hashtable(unsigned int minsize,
     h->entrycount   = 0;
     h->hashfn       = hashf;
     h->eqfn         = eqf;
-    h->loadlimit    = (unsigned int) ceilf((float) size * max_load_factor);
+    double loadlimit_float = ceil((double)size * (double)max_load_factor);
+    h->loadlimit    = (unsigned int)loadlimit_float;
     return h;
 }
 
@@ -154,7 +155,8 @@ hashtable_expand(struct hashtable *h)
         }
     }
     h->tablelength = newsize;
-    h->loadlimit   = (unsigned int) ceil(newsize * max_load_factor);
+    double loadlimit_float = ceil((double)newsize* (double)max_load_factor);
+    h->loadlimit   = (unsigned int) loadlimit_float;
     return -1;
 }
 
