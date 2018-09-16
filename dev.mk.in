@@ -9,6 +9,8 @@ CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SHELLCHECK = shellcheck
 SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
+COMPILEDB = compiledb
+CLANG_TIDY = clang-tidy
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
@@ -58,6 +60,7 @@ generated_headers = \
     unittest/suites.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
+files_to_clean += compile_commands.json
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
@@ -206,6 +209,14 @@ shellcheck: test/suites/*.bash
 .PHONY: uncrustify
 uncrustify:
 	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+
+# pip install compiledb
+compile_commands.json:
+	$(COMPILEDB) $(MAKE) -B -s all unittest
+
+.PHONY: tidy
+tidy: compile_commands.json
+	$(CLANG_TIDY) $(all_sources)
 
 .PHONY: analyze
 analyze:
