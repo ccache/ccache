@@ -51,6 +51,19 @@ else
     CFLAGS="$CFLAGS -O"
 fi
 
+AC_ARG_ENABLE(more_warnings,
+  [AS_HELP_STRING([--enable-more-warnings],
+    [enable more compiler warnings])])
+if test x${enable_more_warnings} = xyes; then
+    CFLAGS="$CFLAGS -Wextra -Wpedantic"
+    if test "$ac_compiler_clang" = yes; then
+        CFLAGS="$CFLAGS -Weverything"
+        CFLAGS="$CFLAGS -Wno-padded -Wno-disabled-macro-expansion -Wno-format-nonliteral"
+        CFLAGS="$CFLAGS -Wno-double-promotion -Wno-float-conversion"
+        CFLAGS="$CFLAGS -Wno-conversion -Wno-shorten-64-to-32 -Wno-sign-conversion"
+    fi
+fi
+
 AC_HEADER_DIRENT
 AC_HEADER_TIME
 AC_HEADER_SYS_WAIT
