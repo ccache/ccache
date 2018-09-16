@@ -28,7 +28,7 @@ hash_start(struct mdfour *md)
 void
 hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
-	mdfour_update(md, (unsigned char *)s, len);
+	mdfour_update(md, (const unsigned char *)s, len);
 }
 
 // Return the hash result as a hex string. Caller frees.

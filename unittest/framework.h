@@ -140,8 +140,8 @@ bool cct_check_float_eq(const char *file, int line, const char *expression,
 bool cct_check_int_eq(const char *file, int line, const char *expression,
                       int64_t expected, int64_t actual);
 bool cct_check_str_eq(const char *file, int line, const char *expression,
-                      const char *expected, const char *actual, bool free1,
-                      bool free2);
+                      char *expected, char *actual,
+		      bool free1, bool free2);
 bool cct_check_args_eq(const char *file, int line, const char *expression,
                        struct args *expected, struct args *actual,
                        bool free1, bool free2);

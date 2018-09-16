@@ -211,8 +211,8 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 
 bool
 cct_check_str_eq(const char *file, int line, const char *expression,
-                 const char *expected, const char *actual, bool free1,
-                 bool free2)
+                 char *expected, char *actual,
+		 bool free1, bool free2)
 {
 	bool result;
 
@@ -229,10 +229,10 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	}
 
 	if (free1) {
-		free((char *)expected);
+		free(expected);
 	}
 	if (free2) {
-		free((char *)actual);
+		free(actual);
 	}
 	return result;
 }

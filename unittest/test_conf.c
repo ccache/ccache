@@ -21,7 +21,7 @@
 #define N_CONFIG_ITEMS 32
 static struct {
 	char *descr;
-	const char *origin;
+	char *origin;
 } received_conf_items[N_CONFIG_ITEMS];
 static size_t n_received_conf_items = 0;
 
@@ -30,7 +30,7 @@ conf_item_receiver(const char *descr, const char *origin, void *context)
 {
 	(void)context;
 	received_conf_items[n_received_conf_items].descr = x_strdup(descr);
-	received_conf_items[n_received_conf_items].origin = origin;
+	received_conf_items[n_received_conf_items].origin = x_strdup(origin);
 	++n_received_conf_items;
 }
 
@@ -40,6 +40,7 @@ free_received_conf_items(void)
 	while (n_received_conf_items > 0) {
 		--n_received_conf_items;
 		free(received_conf_items[n_received_conf_items].descr);
+		free(received_conf_items[n_received_conf_items].origin);
 	}
 }
 
