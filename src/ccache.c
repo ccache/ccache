@@ -934,10 +934,10 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
 	// mention of it in the preprocessed output.
 	if (included_pch_file) {
-		char *path = x_strdup(included_pch_file);
-		path = make_relative_path(path);
-		hash_string(hash, path);
-		remember_include_file(path, hash, false);
+		char *pch_path = x_strdup(included_pch_file);
+		pch_path = make_relative_path(pch_path);
+		hash_string(hash, pch_path);
+		remember_include_file(pch_path, hash, false);
 	}
 
 	return true;
@@ -1042,8 +1042,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		if (do_link) {
 			x_unlink(dest);
 			int ret = link(source, dest);
-			if (ret == 0) {
-			} else {
+			if (ret != 0) {
 				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
 				cc_log("Falling back to copying");
 				do_link = false;
@@ -3121,7 +3120,7 @@ out:
 }
 
 static void
-create_initial_config_file(struct conf *conf, const char *path)
+create_initial_config_file(const char *path)
 {
 	if (create_parent_dirs(path) != 0) {
 		return;
@@ -3212,7 +3211,7 @@ initialize(void)
 	}
 
 	if (should_create_initial_config) {
-		create_initial_config_file(conf, primary_config_path);
+		create_initial_config_file(primary_config_path);
 	}
 
 	exitfn_init();

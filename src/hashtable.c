@@ -77,7 +77,7 @@ create_hashtable(unsigned int minsize,
     h->entrycount   = 0;
     h->hashfn       = hashf;
     h->eqfn         = eqf;
-    h->loadlimit    = (unsigned int) ceil(size * max_load_factor);
+    h->loadlimit    = (unsigned int) ceilf((float) size * max_load_factor);
     return h;
 }
 
