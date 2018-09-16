@@ -213,7 +213,9 @@ cat <<EOF >config.h.tmp
 #define CCACHE_CONFIG_H
 #ifdef __clang__
 #pragma clang diagnostic push
+#if __clang_major__ >= 4
 #pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
 #endif
 
 EOF
