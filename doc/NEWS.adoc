@@ -37,6 +37,9 @@ Changes
 
 - Made the ccache test suite work on FreeBSD.
 
+- Added `file_stat_matches_ctime`option to disable ctime check if
+  file_stat_matches is enabled.
+
 
 ccache 3.4.3
 -----------
