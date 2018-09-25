@@ -1,6 +1,6 @@
 # GNU make syntax reigns in this file.
 
-all_cflags += -Werror
+all_cflags += -Werror @extra_cflags@
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 A2X = a2x

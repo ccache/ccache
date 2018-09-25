@@ -278,11 +278,6 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #define O_BINARY 0
 #endif
 
-// mkstemp() on some versions of cygwin don't handle binary files, so override.
-#ifdef __CYGWIN__
-#undef HAVE_MKSTEMP
-#endif
-
 #ifdef _WIN32
 char *win32argvtos(char *prefix, char **argv);
 char *win32getshell(char *path);
