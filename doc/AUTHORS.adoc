@@ -75,6 +75,7 @@ ccache is a collective work with contributions from many people, including:
 * Thomas Röfer <Thomas.Roefer@dfki.de>
 * Timofei Kushnir <timophey@rdp.ru>
 * Tim Potter <tpot@samba.org>
+* Tomasz Miąsko <tomasz.miasko@gmail.com>
 * Tom Hughes <tomtheengineer@gmail.com>
 * Tor Arne Vestbø <tor.arne.vestbo@qt.io>
 * Vadim Petrochenkov <vadim.petrochenkov@gmail.com>

@@ -807,6 +807,8 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		included_files = create_hashtable(1000, hash_from_string, strings_equal);
 	}
 
+	char *cwd = gnu_getcwd();
+
 	// Bytes between p and q are pending to be hashed.
 	char *p = data;
 	char *q = data;
@@ -880,6 +882,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 			if (q >= end) {
 				cc_log("Failed to parse included file path");
 				free(data);
+				free(cwd);
 				return false;
 			}
 			// q points to the beginning of an include file path
@@ -906,7 +909,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 			bool should_hash_inc_path = true;
 			if (!conf->hash_dir) {
-				char *cwd = gnu_getcwd();
 				if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
 					// When compiling with -g or similar, GCC adds the absolute path to
 					// CWD like this:
@@ -917,7 +919,6 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 					// hash it. See also how debug_prefix_map is handled.
 					should_hash_inc_path = false;
 				}
-				free(cwd);
 			}
 			if (should_hash_inc_path) {
 				hash_string(hash, inc_path);
@@ -954,6 +955,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 
 	hash_buffer(hash, p, (end - p));
 	free(data);
+	free(cwd);
 
 	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
 	// mention of it in the preprocessed output.
@@ -2040,7 +2042,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
-	int is_clang = guessed_compiler == GUESSED_CLANG;
+	int is_clang = (guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN);
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -2097,6 +2099,7 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 				}
 			} else if (str_startswith(args->argv[i], "-MF")) {
 				// In either case, hash the "-MF" part.
+				hash_delimiter(hash, "arg");
 				hash_string_length(hash, args->argv[i], 3);
 
 				bool separate_argument = (strlen(args->argv[i]) == 3);
@@ -2322,7 +2325,7 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	//
 	//     file 'foo.h' has been modified since the precompiled header 'foo.pch'
 	//     was built
-	if (guessed_compiler == GUESSED_CLANG
+	if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
 	    && output_is_precompiled_header
 	    && mode == FROMCACHE_CPP_MODE) {
 		cc_log("Not considering cached precompiled header in preprocessor mode");
@@ -3027,6 +3030,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, relpath);
 			i++;
 			free(relpath);
+			continue;
+		}
+		// Alternate form of specifying target without =
+		if (str_eq(argv[i], "-target")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			args_add(stripped_args, argv[i+1]);
+			i++;
 			continue;
 		}
 		if (str_startswith(argv[i], "-Wp,")) {
@@ -4077,7 +4093,7 @@ ccache_main_options(int argc, char *argv[])
 		case 'z': // --zero-stats
 			initialize();
 			stats_zero();
-			printf("Statistics cleared\n");
+			printf("Statistics zeroed\n");
 			break;
 
 		default:

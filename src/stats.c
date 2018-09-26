@@ -41,15 +41,26 @@ static struct counters *counter_updates;
 #define FLAG_ALWAYS 2 // always show, even if zero
 #define FLAG_NEVER 4 // never show
 
-static void display_size_times_1024(uint64_t size);
+// Returns a formatted version of a statistics value, or NULL if the statistics
+// line shouldn't be printed. Caller frees.
+typedef char *format_fn(uint64_t value);
+
+static format_fn format_size_times_1024;
+static format_fn format_timestamp;
 
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
 	char *message;
-	void (*fn)(uint64_t);
+	format_fn *format_fn; // NULL -> use plain integer format
 	unsigned flags;
 } stats_info[] = {
+	{
+		STATS_ZEROTIMESTAMP,
+		"stats zeroed",
+		format_timestamp,
+		FLAG_ALWAYS
+	},
 	{
 		STATS_CACHEHIT_DIR,
 		"cache hit (direct)",
@@ -215,7 +226,7 @@ static struct {
 	{
 		STATS_TOTALSIZE,
 		"cache size",
-		display_size_times_1024,
+		format_size_times_1024,
 		FLAG_NOZERO|FLAG_ALWAYS
 	},
 	{
@@ -231,12 +242,6 @@ static struct {
 		FLAG_NOZERO|FLAG_NEVER
 	},
 	{
-		STATS_ZEROTIMESTAMP,
-		"stats last zeroed at",
-		NULL,
-		FLAG_NEVER
-	},
-	{
 		STATS_NONE,
 		NULL,
 		NULL,
@@ -244,18 +249,31 @@ static struct {
 	}
 };
 
-static void
-display_size(uint64_t size)
+static char *
+format_size(uint64_t size)
 {
 	char *s = format_human_readable_size(size);
-	printf("%11s", s);
-	free(s);
+	reformat(&s, "%11s", s);
+	return s;
 }
 
-static void
-display_size_times_1024(uint64_t size)
+static char *
+format_size_times_1024(uint64_t size)
 {
-	display_size(size * 1024);
+	return format_size(size * 1024);
+}
+
+static char *
+format_timestamp(uint64_t timestamp)
+{
+	if (timestamp > 0) {
+		struct tm *tm = localtime((time_t*)&timestamp);
+		char buffer[100];
+		strftime(buffer, sizeof(buffer), "%c", tm);
+		return format("    %s", buffer);
+	} else {
+		return NULL;
+	}
 }
 
 // Parse a stats file from a buffer, adding to the counters.
@@ -283,13 +301,6 @@ parse_stats(struct counters *counters, const char *buf)
 void
 stats_write(const char *path, struct counters *counters)
 {
-	struct stat st;
-	if (stat(path, &st) != 0 && errno == ENOENT) {
-		// New stats, update zero timestamp.
-		time_t now;
-		time(&now);
-		stats_timestamp(now, counters);
-	}
 	char *tmp_file = format("%s.tmp", path);
 	FILE *f = create_tmp_file(&tmp_file, "wb");
 	for (size_t i = 0; i < counters->size; i++) {
@@ -329,13 +340,6 @@ stats_read(const char *sfile, struct counters *counters)
 		parse_stats(counters, data);
 	}
 	free(data);
-}
-
-// Set the timestamp when the counters were last zeroed out.
-void
-stats_timestamp(time_t time, struct counters *counters)
-{
-	counters->data[STATS_ZEROTIMESTAMP] = (unsigned) time;
 }
 
 // Write counter updates in counter_updates to disk.
@@ -444,9 +448,9 @@ void
 stats_summary(struct conf *conf)
 {
 	struct counters *counters = counters_init(STATS_END);
-	time_t oldest = 0;
 	time_t updated = 0;
 	struct stat st;
+	unsigned zero_timestamp = 0;
 
 	assert(conf);
 
@@ -462,27 +466,20 @@ stats_summary(struct conf *conf)
 
 		counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
 		stats_read(fname, counters);
-		time_t current = (time_t) counters->data[STATS_ZEROTIMESTAMP];
-		if (current != 0 && (oldest == 0 || current < oldest)) {
-			oldest = current;
-		}
+		zero_timestamp = MAX(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
 		if (stat(fname, &st) == 0 && st.st_mtime > updated) {
 			updated = st.st_mtime;
 		}
 		free(fname);
 	}
 
+	counters->data[STATS_ZEROTIMESTAMP] = zero_timestamp;
+
 	printf("cache directory                     %s\n", conf->cache_dir);
 	printf("primary config                      %s\n",
 	       primary_config_path ? primary_config_path : "");
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
-	if (oldest) {
-		struct tm *tm = localtime(&oldest);
-		char timestamp[100];
-		strftime(timestamp, sizeof(timestamp), "%c", tm);
-		printf("stats zero time                     %s\n", timestamp);
-	}
 	if (updated) {
 		struct tm *tm = localtime(&updated);
 		char timestamp[100];
@@ -501,12 +498,15 @@ stats_summary(struct conf *conf)
 			continue;
 		}
 
-		printf("%-31s ", stats_info[i].message);
-		if (stats_info[i].fn) {
-			stats_info[i].fn(counters->data[stat]);
-			printf("\n");
+		char *value;
+		if (stats_info[i].format_fn) {
+			value = stats_info[i].format_fn(counters->data[stat]);
 		} else {
-			printf("%8u\n", counters->data[stat]);
+			value = format("%8u", counters->data[stat]);
+		}
+		if (value) {
+			printf("%-31s %s\n", stats_info[i].message, value);
+			free(value);
 		}
 
 		if (stat == STATS_TOCACHE) {
@@ -524,9 +524,9 @@ stats_summary(struct conf *conf)
 		printf("max files                       %8u\n", conf->max_files);
 	}
 	if (conf->max_size != 0) {
-		printf("max cache size                  ");
-		display_size(conf->max_size);
-		printf("\n");
+		char *value = format_size(conf->max_size);
+		printf("max cache size                  %s\n", value);
+		free(value);
 	}
 
 	counters_free(counters);
@@ -541,6 +541,8 @@ stats_zero(void)
 	char *fname = format("%s/stats", conf->cache_dir);
 	x_unlink(fname);
 	free(fname);
+
+	time_t timestamp = time(NULL);
 
 	for (int dir = 0; dir <= 0xF; dir++) {
 		struct counters *counters = counters_init(STATS_END);
@@ -558,7 +560,7 @@ stats_zero(void)
 					counters->data[stats_info[i].stat] = 0;
 				}
 			}
-			stats_timestamp(time(NULL), counters);
+			counters->data[STATS_ZEROTIMESTAMP] = timestamp;
 			stats_write(fname, counters);
 			lockfile_release(fname);
 		}

@@ -550,6 +550,9 @@ still has to do _some_ preprocessing (like macros).
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
     matching its cached version if the mtimes and ctimes match.
+*file_stat_matches_ctime*::
+    Ignore ctimes when *file_stat_matches* is enabled. This can be useful when
+    backdating files' mtimes in a controlled way.
 *include_file_ctime*::
     By default, ccache also will not cache a file if it includes a header whose
     ctime is too new. This option disables that check.
@@ -760,6 +763,12 @@ The compiler was instructed to write its output to standard output using *-o
 
 | preprocessor error |
 Preprocessing the source code using the compiler's *-E* option failed.
+
+| stats updated |
+When statistics were updated the last time.
+
+| stats zeroed |
+When *ccache -z* was called the last time.
 
 | unsupported code directive |
 Code like the assembler *.incbin* directive was found. This is not supported

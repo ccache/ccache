@@ -383,7 +383,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 
 		// Clang stores the mtime of the included files in the precompiled header,
 		// and will error out if that header is later used without rebuilding.
-		if (guessed_compiler == GUESSED_CLANG
+		if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
 		    && output_is_precompiled_header
 		    && fi->mtime != st->mtime) {
 			cc_log("Precompiled header includes %s, which has a new mtime", path);
@@ -391,11 +391,20 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 		}
 
 		if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-			if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
-				cc_log("mtime/ctime hit for %s", path);
-				continue;
+			if (!(conf->sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
+				if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
+					cc_log("mtime/ctime hit for %s", path);
+					continue;
+				} else {
+					cc_log("mtime/ctime miss for %s", path);
+				}
 			} else {
-				cc_log("mtime/ctime miss for %s", path);
+				if (fi->mtime == st->mtime) {
+					cc_log("mtime hit for %s", path);
+					continue;
+				} else {
+					cc_log("mtime miss for %s", path);
+				}
 			}
 		}
 
