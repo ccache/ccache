@@ -121,7 +121,10 @@ bool args_equal(struct args *args1, struct args *args2);
 // ----------------------------------------------------------------------------
 // hash.c
 
+void hash_debug_init(const char *bin, const char *txt);
+void hash_debug_end(void);
 void hash_start(struct mdfour *md);
+void hash_section(struct mdfour *md, const char *name);
 void hash_buffer(struct mdfour *md, const void *s, size_t len);
 char *hash_result(struct mdfour *md);
 void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
@@ -139,6 +142,7 @@ bool hash_file(struct mdfour *md, const char *fname);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
+bool cc_dump_log_buffer(const char *path);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
@@ -246,6 +250,7 @@ void wipe_all(struct conf *conf);
 int execute(char **argv, int fd_out, int fd_err, pid_t *pid);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
+char *format_command(char **argv);
 
 // ----------------------------------------------------------------------------
 // lockfile.c

@@ -199,4 +199,12 @@ TEST(parse_size_with_suffix)
 	}
 }
 
+TEST(format_command)
+{
+	char *argv[] = {"foo", "bar", NULL};
+
+	CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
+
+}
+
 TEST_SUITE_END

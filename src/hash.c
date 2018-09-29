@@ -18,6 +18,68 @@
 #include "ccache.h"
 
 #define HASH_DELIMITER "\000cCaChE"
+#define HASH_DEBUG_DELIMITER "### "
+
+// binary input, for hashing
+static char *debug_hash_bin;
+
+// text input, for debugging
+static char *debug_hash_txt;
+
+// char mapping to open files
+static FILE **debug_hash_file;
+
+void hash_debug_init(const char *bin, const char *txt)
+{
+	debug_hash_file = x_calloc(256, sizeof(FILE*));
+	static char *hash_types = "cdp"; // common, direct, cpp
+	if (bin) {
+		debug_hash_bin = x_strdup(bin);
+		assert(debug_hash_bin[strlen(debug_hash_bin)-1] == 'X');
+		for (char *p = hash_types; *p != '\0'; p++) {
+			debug_hash_bin[strlen(debug_hash_bin)-1] = *p;
+			debug_hash_file[(int) *p] = fopen(debug_hash_bin, "wb");
+		}
+		debug_hash_bin[strlen(debug_hash_bin)-1] = 'X';
+	}
+	if (txt) {
+		debug_hash_txt = x_strdup(txt);
+		debug_hash_file[(int) 't'] = fopen(debug_hash_txt, "w");
+	}
+}
+
+void hash_debug_end()
+{
+	for (int i = 0; i < 256; i++) {
+		if (debug_hash_file[i] != NULL) {
+			fclose(debug_hash_file[i]);
+		}
+	}
+}
+
+static void
+hash_binary_buffer(struct mdfour *md, const void *s, size_t len)
+{
+	mdfour_update(md, (unsigned char *)s, len);
+	if (!md->identifier || len == 0) {
+		return;
+	}
+	if (debug_hash_bin) {
+		// log to different files, for the different hash types
+		fwrite(s, 1, len, debug_hash_file[md->identifier]);
+	}
+}
+
+static void
+hash_debug_buffer(struct mdfour *md, const void *s, size_t len)
+{
+	if (!md->identifier || len == 0) {
+		return;
+	}
+	if (debug_hash_txt) {
+		fwrite(s, 1, len, debug_hash_file['t']);
+	}
+}
 
 void
 hash_start(struct mdfour *md)
@@ -26,9 +88,19 @@ hash_start(struct mdfour *md)
 }
 
 void
+hash_section(struct mdfour *md, const char *name)
+{
+	hash_debug_buffer(md, "=== ", 4);
+	hash_debug_buffer(md, name, strlen(name));
+	hash_debug_buffer(md, " ===", 4);
+	hash_debug_buffer(md, "\n", 1);
+}
+
+void
 hash_buffer(struct mdfour *md, const void *s, size_t len)
 {
-	mdfour_update(md, (unsigned char *)s, len);
+	hash_binary_buffer(md, s, len);
+	hash_debug_buffer(md, s, len);
 }
 
 // Return the hash result as a hex string. Caller frees.
@@ -45,7 +117,7 @@ hash_result(struct mdfour *md)
 void
 hash_result_as_bytes(struct mdfour *md, unsigned char *out)
 {
-	hash_buffer(md, NULL, 0);
+	mdfour_update(md, NULL, 0);
 	mdfour_result(md, out);
 }
 
@@ -70,8 +142,11 @@ hash_equal(struct mdfour *md1, struct mdfour *md2)
 void
 hash_delimiter(struct mdfour *md, const char *type)
 {
-	hash_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
-	hash_buffer(md, type, strlen(type) + 1); // Include NUL.
+	hash_binary_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
+	hash_binary_buffer(md, type, strlen(type) + 1); // Include NUL.
+	hash_debug_buffer(md, HASH_DEBUG_DELIMITER, strlen(HASH_DEBUG_DELIMITER));
+	hash_debug_buffer(md, type, strlen(type));
+	hash_debug_buffer(md, "\n", 1);
 }
 
 void
@@ -83,13 +158,19 @@ hash_string(struct mdfour *md, const char *s)
 void
 hash_string_length(struct mdfour *md, const char *s, int length)
 {
-	hash_buffer(md, s, length);
+	hash_binary_buffer(md, s, length);
+	hash_debug_buffer(md, s, length);
+	hash_debug_buffer(md, "\n", 1);
 }
 
 void
 hash_int(struct mdfour *md, int x)
 {
-	hash_buffer(md, (char *)&x, sizeof(x));
+	hash_binary_buffer(md, (char *)&x, sizeof(x));
+	char buf[16];
+	snprintf(buf, sizeof(buf), "%d", x);
+	hash_debug_buffer(md, buf, strlen(buf));
+	hash_debug_buffer(md, "\n", 1);
 }
 
 // Add contents of an open file to the hash. Returns true on success, otherwise
@@ -105,7 +186,8 @@ hash_fd(struct mdfour *md, int fd)
 			break;
 		}
 		if (n > 0) {
-			hash_buffer(md, buf, n);
+			hash_binary_buffer(md, buf, n);
+			hash_debug_buffer(md, buf, n);
 		}
 	}
 	return n == 0;

@@ -330,6 +330,7 @@ conf_create(void)
 	conf->compression = false;
 	conf->compression_level = 6;
 	conf->cpp_extension = x_strdup("");
+	conf->debug = false;
 	conf->direct_mode = true;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
@@ -569,6 +570,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
 	printer(s, conf->item_origins[find_conf("cpp_extension")->number], context);
+
+	reformat(&s, "debug = %s", bool_to_string(conf->debug));
+	printer(s, conf->item_origins[find_conf("debug")->number], context);
 
 	reformat(&s, "direct_mode = %s", bool_to_string(conf->direct_mode));
 	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);

@@ -348,3 +348,27 @@ print_command(FILE *fp, char **argv)
 	}
 	fprintf(fp, "\n");
 }
+
+char *
+format_command(char **argv)
+{
+	size_t len = 0;
+	for (int i = 0; argv[i]; i++) {
+		len += (i == 0) ? 0 : 1;
+		len += strlen(argv[i]);
+	}
+	len += 1;
+	char *buf = x_malloc(len + 1);
+	char *p = buf;
+	for (int i = 0; argv[i]; i++) {
+		if (i != 0) {
+			*p++ = ' ';
+		}
+		for (char *q = argv[i]; *q != '\0'; q++) {
+			*p++ = *q;
+		}
+	}
+	*p++ = '\n';
+	*p++ = '\0';
+	return buf;
+}

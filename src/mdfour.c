@@ -19,8 +19,6 @@
 
 // NOTE: This code makes no attempt to be fast!
 
-static struct mdfour *m;
-
 #define MASK32 (0xffffffff)
 
 #define F(X, Y, Z) ((((X)&(Y)) | ((~(X))&(Z))))
@@ -37,15 +35,15 @@ static struct mdfour *m;
 
 // This applies md4 to 64 byte chunks.
 static void
-mdfour64(uint32_t *M)
+mdfour64(struct mdfour *md, uint32_t *M)
 {
 	uint32_t AA, BB, CC, DD;
 	uint32_t A, B, C, D;
 
-	A = m->A;
-	B = m->B;
-	C = m->C;
-	D = m->D;
+	A = md->A;
+	B = md->B;
+	C = md->C;
+	D = md->D;
 	AA = A;
 	BB = B;
 	CC = C;
@@ -89,10 +87,10 @@ mdfour64(uint32_t *M)
 	C &= MASK32;
 	D &= MASK32;
 
-	m->A = A;
-	m->B = B;
-	m->C = C;
-	m->D = D;
+	md->A = A;
+	md->B = B;
+	md->C = C;
+	md->D = D;
 }
 
 static void
@@ -131,13 +129,19 @@ mdfour_begin(struct mdfour *md)
 	md->totalN = 0;
 	md->tail_len = 0;
 	md->finalized = 0;
+	md->identifier = 0;
+}
+
+void mdfour_identify(struct mdfour *md, int identifier)
+{
+	md->identifier = identifier;
 }
 
 static
-void mdfour_tail(const unsigned char *in, size_t n)
+void mdfour_tail(struct mdfour *md, const unsigned char *in, size_t n)
 {
-	m->totalN += n;
-	uint32_t b = m->totalN * 8;
+	md->totalN += n;
+	uint32_t b = md->totalN * 8;
 	unsigned char buf[128] = { 0 };
 	uint32_t M[16];
 	if (n) {
@@ -148,32 +152,22 @@ void mdfour_tail(const unsigned char *in, size_t n)
 	if (n <= 55) {
 		copy4(buf+56, b);
 		copy64(M, buf);
-		mdfour64(M);
+		mdfour64(md, M);
 	} else {
 		copy4(buf+120, b);
 		copy64(M, buf);
-		mdfour64(M);
+		mdfour64(md, M);
 		copy64(M, buf+64);
-		mdfour64(M);
+		mdfour64(md, M);
 	}
 }
 
 void
 mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
-#ifdef CCACHE_DEBUG_HASH
-	if (n > 0 && getenv("CCACHE_DEBUG_HASH")) {
-		FILE *f = fopen("ccache-debug-hash.bin", "a");
-		fwrite(in, 1, n, f);
-		fclose(f);
-	}
-#endif
-
-	m = md;
-
 	if (!in) {
 		if (!md->finalized) {
-			mdfour_tail(md->tail, md->tail_len);
+			mdfour_tail(md, md->tail, md->tail_len);
 			md->finalized = 1;
 		}
 		return;
@@ -191,18 +185,18 @@ mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 		in += len;
 		if (md->tail_len == 64) {
 			copy64(M, md->tail);
-			mdfour64(M);
-			m->totalN += 64;
+			mdfour64(md, M);
+			md->totalN += 64;
 			md->tail_len = 0;
 		}
 	}
 
 	while (n >= 64) {
 		copy64(M, in);
-		mdfour64(M);
+		mdfour64(md, M);
 		in += 64;
 		n -= 64;
-		m->totalN += 64;
+		md->totalN += 64;
 	}
 
 	if (n) {

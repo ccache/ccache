@@ -350,6 +350,13 @@ WRAPPERS>>.
     compiled, but that sometimes doesn't work. For example, when using the
     ``aCC'' compiler on HP-UX, set the cpp extension to *i*.
 
+*debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, the debug mode will be used. The default is false. In the debug mode,
+    the hash input and the debug log file will be stored next to the output files.
+    The input to the hashes is shown both in binary (hashc/hashd/hashp) as well as
+    in a text (input) format for easier reading. See <<_cache_debugging_,debugging>>.
+
 *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the direct mode will be used. The default is true. See
@@ -757,6 +764,29 @@ A source language e.g. specified with *-x* was unsupported by ccache.
 
 |==============================================================================
 
+
+Cache debugging
+---------------
+
+When investigating why you are not getting hits, and what information
+that ccache is actually hashing, you can enable the "debugging" mode.
+
+In this mode, ccache will add some additional output files next to the
+object files with results from the hashing and a copy of the debug log.
+
+There are several binary hash files created, for different partial input:
+
+* Common (*'hashc'*) e.g. `output.o.ccache-hashc`
+* Direct mode (*'hashd'*) e.g. `output.o.ccache-hashd`
+* Preprocessor mode (*'hashp'*) e.g. `output.o.ccache-hashp`
+
+The hash is the checksum of the common + direct or common + preprocessor.
+So by combining those two files (`cat`), you _should_ get the same checksum.
+
+There is also a human readable text file, for easier reading and diffing.
+It has all the same information, but not the same checksum - due to the format.
+
+* Text (*'input'*) e.g. `output.o.ccache-input`
 
 How ccache works
 ----------------

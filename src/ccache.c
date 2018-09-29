@@ -476,6 +476,25 @@ clean_up_internal_tempdir(void)
 	closedir(dir);
 }
 
+static void
+debug_start(const char *path)
+{
+	char *hash_bin = format("%s%s", path, ".ccache-hashX");
+	char *hash_txt = format("%s%s", path, ".ccache-input");
+	hash_debug_init(hash_bin, hash_txt);
+	free(hash_bin);
+	free(hash_txt);
+}
+
+static void
+debug_end()
+{
+	hash_debug_end();
+	char *path = format("%s%s", output_obj, ".ccache-log");
+	cc_dump_log_buffer(path);
+	free(path);
+}
+
 static enum guessed_compiler
 guess_compiler(const char *path)
 {
@@ -895,7 +914,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				}
 			}
 			if (should_hash_inc_path) {
-				hash_string(hash, inc_path);
+				hash_buffer(hash, inc_path, strlen(inc_path));
 			}
 
 			remember_include_file(inc_path, hash, system);
@@ -3331,7 +3350,7 @@ ccache(int argc, char *argv[])
 		clean_up_internal_tempdir();
 	}
 
-	if (!str_eq(conf->log_file, "")) {
+	if (!str_eq(conf->log_file, "") || conf->debug) {
 		conf_print_items(conf, configuration_logger, NULL);
 	}
 
@@ -3377,12 +3396,21 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
+	if (conf->debug) {
+		debug_start(output_obj);
+		exitfn_add_nullary(debug_end);
+	}
+
 	struct mdfour common_hash;
 	hash_start(&common_hash);
+	mdfour_identify(&common_hash, 'c');
+	hash_section(&common_hash, "COMMON");
 	calculate_common_hash(preprocessor_args, &common_hash);
 
 	// Try to find the hash using the manifest.
 	struct mdfour direct_hash = common_hash;
+	mdfour_identify(&direct_hash, 'd');
+	hash_section(&direct_hash, "DIRECT MODE");
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash = NULL;
 	struct file_hash *object_hash_from_manifest = NULL;
@@ -3413,6 +3441,8 @@ ccache(int argc, char *argv[])
 
 	// Find the hash using the preprocessed output. Also updates included_files.
 	struct mdfour cpp_hash = common_hash;
+	mdfour_identify(&cpp_hash, 'p');
+	hash_section(&cpp_hash, "PREPROCESSOR MODE");
 	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
@@ -3469,12 +3499,14 @@ static int
 ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
-		DUMP_MANIFEST
+		DUMP_MANIFEST,
+		HASH_FILE
 	};
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
+		{"hash-file",     required_argument, 0, HASH_FILE},
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
@@ -3485,12 +3517,27 @@ ccache_main_options(int argc, char *argv[])
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
+	struct mdfour md;
+	char *s;
 
 	int c;
 	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);
+			break;
+
+		case HASH_FILE:
+			initialize();
+			hash_start(&md);
+			if (str_eq(optarg, "-")) {
+				hash_fd(&md, STDIN_FILENO);
+			} else {
+				hash_file(&md, optarg);
+			}
+			s = hash_result(&md);
+			puts(s);
+			free(s);
 			break;
 
 		case 'c': // --cleanup
