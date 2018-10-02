@@ -29,8 +29,8 @@
   POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __HASHTABLE_CWC22_H__
-#define __HASHTABLE_CWC22_H__
+#ifndef HASHTABLE_CWC22_H
+#define HASHTABLE_CWC22_H
 
 #include "config.h"
 
@@ -194,7 +194,7 @@ hashtable_count(struct hashtable *h);
 void
 hashtable_destroy(struct hashtable *h, int free_values);
 
-#endif /* __HASHTABLE_CWC22_H__ */
+#endif /* HASHTABLE_CWC22_H */
 
 /*
  * Copyright (c) 2002, Christopher Clark

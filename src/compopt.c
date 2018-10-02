@@ -142,6 +142,8 @@ compopt_short(bool (*fn)(const char *), const char *option)
 	return retval;
 }
 
+extern bool compopt_verify_sortedness(void);
+
 // For test purposes.
 bool
 compopt_verify_sortedness(void)

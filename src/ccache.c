@@ -33,6 +33,18 @@
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
 
+extern struct conf *conf;
+extern char *primary_config_path;
+extern char *secondary_config_path;
+extern char *current_working_dir;
+extern char *stats_file;
+extern unsigned lock_staleness_limit;
+
+static void failed(void) ATTR_NORETURN;
+static void ccache(int argc, char *argv[]) ATTR_NORETURN;
+
+int ccache_main(int argc, char *argv[]);
+
 static const char VERSION_TEXT[] =
 	MYNAME " version %s\n"
 	"\n"
@@ -953,10 +965,10 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
 	// mention of it in the preprocessed output.
 	if (included_pch_file) {
-		char *path = x_strdup(included_pch_file);
-		path = make_relative_path(path);
-		hash_string(hash, path);
-		remember_include_file(path, hash, false);
+		char *pch_path = x_strdup(included_pch_file);
+		pch_path = make_relative_path(pch_path);
+		hash_string(hash, pch_path);
+		remember_include_file(pch_path, hash, false);
 	}
 
 	return true;
@@ -1061,8 +1073,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		if (do_link) {
 			x_unlink(dest);
 			int ret = link(source, dest);
-			if (ret == 0) {
-			} else {
+			if (ret != 0) {
 				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
 				cc_log("Falling back to copying");
 				do_link = false;
@@ -1177,7 +1188,8 @@ send_cached_stderr(void)
 }
 
 // Create or update the manifest file.
-void update_manifest_file(void)
+static void
+update_manifest_file(void)
 {
 	if (!conf->direct_mode
 	    || !included_files
@@ -1627,9 +1639,9 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 	// Also hash the compiler name as some compilers use hard links and behave
 	// differently depending on the real name.
 	hash_delimiter(hash, "cc_name");
-	char *p = basename(args->argv[0]);
-	hash_string(hash, p);
-	free(p);
+	char *base = basename(args->argv[0]);
+	hash_string(hash, base);
+	free(base);
 
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
@@ -1670,7 +1682,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 		}
 		if (dir) {
 			char *base_name = basename(output_obj);
-			p = remove_extension(base_name);
+			char *p = remove_extension(base_name);
 			free(base_name);
 			char *gcda_path = format("%s/%s.gcda", dir, p);
 			cc_log("Hashing coverage path %s", gcda_path);
@@ -3142,7 +3154,7 @@ out:
 }
 
 static void
-create_initial_config_file(struct conf *conf, const char *path)
+create_initial_config_file(const char *path)
 {
 	if (create_parent_dirs(path) != 0) {
 		return;
@@ -3233,7 +3245,7 @@ initialize(void)
 	}
 
 	if (should_create_initial_config) {
-		create_initial_config_file(conf, primary_config_path);
+		create_initial_config_file(primary_config_path);
 	}
 
 	exitfn_init();
@@ -3623,7 +3635,7 @@ ccache_main_options(int argc, char *argv[])
 
 		case 's': // --show-stats
 			initialize();
-			stats_summary(conf);
+			stats_summary();
 			break;
 
 		case 'V': // --version
@@ -3664,5 +3676,4 @@ ccache_main(int argc, char *argv[])
 	free(program_name);
 
 	ccache(argc, argv);
-	return 1;
 }

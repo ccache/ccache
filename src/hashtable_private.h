@@ -1,7 +1,7 @@
 /* Copyright (C) 2002, 2004 Christopher Clark <firstname.lastname@cl.cam.ac.uk> */
 
-#ifndef __HASHTABLE_PRIVATE_CWC22_H__
-#define __HASHTABLE_PRIVATE_CWC22_H__
+#ifndef HASHTABLE_PRIVATE_CWC22_H
+#define HASHTABLE_PRIVATE_CWC22_H
 
 #include "hashtable.h"
 
@@ -28,6 +28,7 @@ unsigned int
 hash(struct hashtable *h, void *k);
 
 /*****************************************************************************/
+#ifdef HASHTABLE_INDEXFOR
 /* indexFor */
 static inline unsigned int
 indexFor(unsigned int tablelength, unsigned int hashvalue) {
@@ -41,6 +42,7 @@ indexFor(unsigned int tablelength, unsigned int hashvalue)
     return (hashvalue & (tablelength - 1u));
 }
 */
+#endif
 
 /*****************************************************************************/
 #define freekey(X) free(X)
@@ -49,7 +51,7 @@ indexFor(unsigned int tablelength, unsigned int hashvalue)
 
 /*****************************************************************************/
 
-#endif /* __HASHTABLE_PRIVATE_CWC22_H__*/
+#endif /* HASHTABLE_PRIVATE_CWC22_H */
 
 /*
  * Copyright (c) 2002, Christopher Clark

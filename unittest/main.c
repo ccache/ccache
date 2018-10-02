@@ -27,7 +27,7 @@
 #undef SUITE
 // *INDENT-ON* enable uncrustify
 
-const char USAGE_TEXT[] =
+static const char USAGE_TEXT[] =
 	"Usage:\n"
 	"    test [options]\n"
 	"\n"

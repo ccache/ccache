@@ -17,13 +17,17 @@ case $host in
 esac
 
 AC_SUBST(extra_libs)
+AC_SUBST(getopt_long_c)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
 AC_SUBST(disable_man)
 
 m4_include(m4/feature_macros.m4)
+m4_include(m4/clang.m4)
 
 dnl Checks for programs.
+AC_PROG_CC
+_AC_LANG_COMPILER_CLANG
 AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = no; then
     AC_MSG_ERROR(cannot find a C99-compatible compiler)
@@ -40,11 +44,24 @@ fi
 # Prefer bash, needed for test.sh
 AC_PATH_TOOL(BASH, bash, "/bin/bash")
 
-# If GCC, turn on warnings.
-if test "x$GCC" = "xyes"; then
+# If GCC (or clang), turn on warnings.
+if test "$ac_compiler_gnu" = yes; then
     CFLAGS="$CFLAGS -Wall -W"
 else
     CFLAGS="$CFLAGS -O"
+fi
+
+AC_ARG_ENABLE(more_warnings,
+  [AS_HELP_STRING([--enable-more-warnings],
+    [enable more compiler warnings])])
+if test x${enable_more_warnings} = xyes; then
+    CFLAGS="$CFLAGS -Wextra -Wpedantic"
+    if test "$ac_compiler_clang" = yes; then
+        CFLAGS="$CFLAGS -Weverything"
+        CFLAGS="$CFLAGS -Wno-padded -Wno-disabled-macro-expansion -Wno-format-nonliteral"
+        CFLAGS="$CFLAGS -Wno-double-promotion -Wno-float-conversion"
+        CFLAGS="$CFLAGS -Wno-conversion -Wno-shorten-64-to-32 -Wno-sign-conversion"
+    fi
 fi
 
 AC_HEADER_DIRENT
@@ -66,6 +83,10 @@ AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strtok_r)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
+
+if test x"$ac_cv_func_getopt_long" != x"yes"; then
+    getopt_long_c="src/getopt_long.c"
+fi
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(
@@ -176,14 +197,14 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
+    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
 else
     AC_MSG_NOTICE(developer mode disabled)
 fi
 
 if test ! -f $srcdir/src/version.c -a ! -f src/version.c ; then
     AC_MSG_WARN(unable to determine ccache version)
-    echo "const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
+    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
 
 dnl Find test suite files.
@@ -195,9 +216,22 @@ AC_OUTPUT
 cat <<EOF >config.h.tmp
 #ifndef CCACHE_CONFIG_H
 #define CCACHE_CONFIG_H
+#ifdef __clang__
+#pragma clang diagnostic push
+#if __clang_major__ >= 4
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
+#endif
+
 EOF
 cat config.h >>config.h.tmp
-echo '#endif' >>config.h.tmp
+cat <<EOF >>config.h.tmp
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#endif // ifndef CCACHE_CONFIG_H
+EOF
 mv config.h.tmp config.h
 
 AC_MSG_NOTICE(now build ccache by running make)

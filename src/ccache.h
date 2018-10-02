@@ -8,7 +8,7 @@
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
-#define ATTR_NORETURN __attribute__((noreturn));
+#define ATTR_NORETURN __attribute__((noreturn))
 #else
 #define ATTR_FORMAT(x, y, z)
 #define ATTR_NORETURN
@@ -214,7 +214,7 @@ void stats_update(enum stats stat);
 void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
-void stats_summary(struct conf *conf);
+void stats_summary(void);
 void stats_update_size(int64_t size, int files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
@@ -272,7 +272,7 @@ bool is_precompiled_header(const char *path);
 
 // ----------------------------------------------------------------------------
 
-#if HAVE_COMPAR_FN_T
+#ifdef HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
 #else
 typedef int (*COMPAR_FN_T)(const void *, const void *);

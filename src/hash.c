@@ -60,7 +60,7 @@ void hash_debug_end()
 static void
 hash_binary_buffer(struct mdfour *md, const void *s, size_t len)
 {
-	mdfour_update(md, (unsigned char *)s, len);
+	mdfour_update(md, (const unsigned char *)s, len);
 	if (!md->identifier || len == 0) {
 		return;
 	}
