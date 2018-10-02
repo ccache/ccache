@@ -829,9 +829,6 @@ reformat(char **ptr, const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!ptr) {
-		fatal("Out of memory in reformat");
-	}
 	if (saved) {
 		free(saved);
 	}
