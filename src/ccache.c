@@ -41,9 +41,6 @@ extern char *current_working_dir;
 extern char *stats_file;
 extern unsigned lock_staleness_limit;
 
-static void failed(void) ATTR_NORETURN;
-static void ccache(int argc, char *argv[]) ATTR_NORETURN;
-
 static const char VERSION_TEXT[] =
 	MYNAME " version %s\n"
 	"\n"
@@ -308,6 +305,9 @@ add_prefix(struct args *args, char *prefix_command)
 	}
 	args_free(prefix);
 }
+
+
+static void failed(void) ATTR_NORETURN;
 
 // Something went badly wrong - just execute the real compiler.
 static void
@@ -3345,6 +3345,8 @@ configuration_logger(const char *descr, const char *origin, void *context)
 	(void)context;
 	cc_bulklog("Config: (%s) %s", origin, descr);
 }
+
+static void ccache(int argc, char *argv[]) ATTR_NORETURN;
 
 // The main ccache driver function.
 static void
