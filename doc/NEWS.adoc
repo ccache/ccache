@@ -44,6 +44,8 @@ Changes
 - Added `file_stat_matches_ctime` option to disable ctime check if
   `file_stat_matches` is enabled.
 
+- Made “./configure --without-bundled-zlib” do what’s intended.
+
 
 ccache 3.4.3
 -----------
