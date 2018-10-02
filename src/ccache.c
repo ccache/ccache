@@ -33,6 +33,7 @@
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
 
+// Global variables used by other compilation units.
 extern struct conf *conf;
 extern char *primary_config_path;
 extern char *secondary_config_path;
@@ -42,8 +43,6 @@ extern unsigned lock_staleness_limit;
 
 static void failed(void) ATTR_NORETURN;
 static void ccache(int argc, char *argv[]) ATTR_NORETURN;
-
-int ccache_main(int argc, char *argv[]);
 
 static const char VERSION_TEXT[] =
 	MYNAME " version %s\n"
@@ -3656,6 +3655,8 @@ ccache_main_options(int argc, char *argv[])
 
 	return 0;
 }
+
+int ccache_main(int argc, char *argv[]);
 
 int
 ccache_main(int argc, char *argv[])

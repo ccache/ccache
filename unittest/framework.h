@@ -22,7 +22,7 @@
 // ============================================================================
 
 #define TEST_SUITE(name) \
-	extern unsigned suite_##name(unsigned _start_point); \
+	unsigned suite_##name(unsigned _start_point); \
 	unsigned suite_##name(unsigned _start_point) \
 	{ \
 		unsigned _test_counter = 0; \
