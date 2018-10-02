@@ -17,6 +17,7 @@ case $host in
 esac
 
 AC_SUBST(extra_libs)
+AC_SUBST(extra_cflags)
 AC_SUBST(include_dev_mk)
 AC_SUBST(test_suites)
 AC_SUBST(disable_man)
@@ -177,6 +178,17 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
+
+    dnl Check for -Wimplicit-fallthrough and disable if exists
+    AC_MSG_CHECKING([whether C compiler supports -Wimplicit-fallthrough])
+    saved_cflags=$CFLAGS
+    CFLAGS=-Wimplicit-fallthrough
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+        [AC_MSG_RESULT([yes])]
+        [extra_cflags="-Wno-error=implicit-fallthrough"],
+        [AC_MSG_RESULT([no])]
+    )
+    CFLAGS=$saved_cflags
 else
     AC_MSG_NOTICE(developer mode disabled)
 fi
