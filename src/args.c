@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -168,9 +168,8 @@ args_insert(struct args *dest, int index, struct args *src, bool replace)
 	}
 
 	dest->argv = (char **)x_realloc(
-	  dest->argv,
-	  (src->argc + dest->argc + 1 - offset) *
-	  sizeof(char *));
+		dest->argv,
+		(src->argc + dest->argc + 1 - offset) * sizeof(char *));
 
 	// Shift arguments over.
 	for (int i = dest->argc; i >= index + offset; i--) {
@@ -266,7 +265,7 @@ args_add_prefix(struct args *args, const char *s)
 void
 args_strip(struct args *args, const char *prefix)
 {
-	for (int i = 0; i < args->argc; ) {
+	for (int i = 0; i < args->argc;) {
 		if (str_startswith(args->argv[i], prefix)) {
 			free(args->argv[i]);
 			memmove(&args->argv[i],

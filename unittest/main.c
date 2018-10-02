@@ -28,12 +28,12 @@
 // *INDENT-ON* enable uncrustify
 
 const char USAGE_TEXT[] =
-  "Usage:\n"
-  "    test [options]\n"
-  "\n"
-  "Options:\n"
-  "    -h, --help      print this help text\n"
-  "    -v, --verbose   enable verbose logging of tests\n";
+	"Usage:\n"
+	"    test [options]\n"
+	"\n"
+	"Options:\n"
+	"    -h, --help      print this help text\n"
+	"    -v, --verbose   enable verbose logging of tests\n";
 
 int
 main(int argc, char **argv)

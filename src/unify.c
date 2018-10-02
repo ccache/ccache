@@ -135,7 +135,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 {
 	build_table();
 
-	for (size_t ofs = 0; ofs < size; ) {
+	for (size_t ofs = 0; ofs < size;) {
 		if (p[ofs] == '#') {
 			if ((size-ofs) > 2 && p[ofs+1] == ' ' && isdigit(p[ofs+2])) {
 				do {

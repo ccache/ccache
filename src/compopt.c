@@ -35,8 +35,8 @@ static const struct compopt compopts[] = {
 	{"--output-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"--param",         TAKES_ARG},
 	{"--save-temps",    TOO_HARD},
-	{"--save-temps=cwd",TOO_HARD},
-	{"--save-temps=obj",TOO_HARD},
+	{"--save-temps=cwd", TOO_HARD},
+	{"--save-temps=obj", TOO_HARD},
 	{"--serialize-diagnostics", TAKES_ARG | TAKES_PATH},
 	{"-A",              TAKES_ARG},
 	{"-B",              TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},

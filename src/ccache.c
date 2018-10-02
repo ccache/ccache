@@ -34,40 +34,40 @@
 #define TO_STRING(x) STRINGIFY(x)
 
 static const char VERSION_TEXT[] =
-  MYNAME " version %s\n"
-  "\n"
-  "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2018 Joel Rosdahl\n"
-  "\n"
-  "This program is free software; you can redistribute it and/or modify it under\n"
-  "the terms of the GNU General Public License as published by the Free Software\n"
-  "Foundation; either version 3 of the License, or (at your option) any later\n"
-  "version.\n";
+	MYNAME " version %s\n"
+	"\n"
+	"Copyright (C) 2002-2007 Andrew Tridgell\n"
+	"Copyright (C) 2009-2018 Joel Rosdahl\n"
+	"\n"
+	"This program is free software; you can redistribute it and/or modify it under\n"
+	"the terms of the GNU General Public License as published by the Free Software\n"
+	"Foundation; either version 3 of the License, or (at your option) any later\n"
+	"version.\n";
 
 static const char USAGE_TEXT[] =
-  "Usage:\n"
-  "    " MYNAME " [options]\n"
-  "    " MYNAME " compiler [compiler options]\n"
-  "    compiler [compiler options]          (via symbolic link)\n"
-  "\n"
-  "Options:\n"
-  "    -c, --cleanup         delete old files and recalculate size counters\n"
-  "                          (normally not needed as this is done automatically)\n"
-  "    -C, --clear           clear the cache completely (except configuration)\n"
-  "    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
-  "                          no limit)\n"
-  "    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
-  "                          limit); available suffixes: k, M, G, T (decimal) and\n"
-  "                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
-  "    -o, --set-config=K=V  set configuration key K to value V\n"
-  "    -p, --print-config    print current configuration options\n"
-  "    -s, --show-stats      show statistics summary\n"
-  "    -z, --zero-stats      zero statistics counters\n"
-  "\n"
-  "    -h, --help            print this help text\n"
-  "    -V, --version         print version and copyright information\n"
-  "\n"
-  "See also <https://ccache.samba.org>.\n";
+	"Usage:\n"
+	"    " MYNAME " [options]\n"
+	"    " MYNAME " compiler [compiler options]\n"
+	"    compiler [compiler options]          (via symbolic link)\n"
+	"\n"
+	"Options:\n"
+	"    -c, --cleanup         delete old files and recalculate size counters\n"
+	"                          (normally not needed as this is done automatically)\n"
+	"    -C, --clear           clear the cache completely (except configuration)\n"
+	"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
+	"                          no limit)\n"
+	"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
+	"                          limit); available suffixes: k, M, G, T (decimal) and\n"
+	"                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
+	"    -o, --set-config=K=V  set configuration key K to value V\n"
+	"    -p, --print-config    print current configuration options\n"
+	"    -s, --show-stats      show statistics summary\n"
+	"    -z, --zero-stats      zero statistics counters\n"
+	"\n"
+	"    -h, --help            print this help text\n"
+	"    -V, --version         print version and copyright information\n"
+	"\n"
+	"See also <https://ccache.samba.org>.\n";
 
 // Global configuration data.
 struct conf *conf = NULL;
@@ -544,7 +544,7 @@ get_path_in_cache(const char *name, const char *suffix)
 	}
 
 	char *result =
-	  format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
+		format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
 	free(path);
 	return result;
 }
@@ -1094,8 +1094,8 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		failed();
 	}
 	stats_update_size(
-	  file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
-	  orig_dest_existed ? 0 : 1);
+		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
+		orig_dest_existed ? 0 : 1);
 }
 
 // Copy a file into the cache.
@@ -1233,7 +1233,7 @@ to_cache(struct args *args)
 
 	cc_log("Running real compiler");
 	int status =
-	  execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+		execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 	args_pop(args, 3);
 
 	struct stat st;
@@ -1279,7 +1279,7 @@ to_cache(struct args *args)
 		}
 
 		int fd_result =
-		  open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+			open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_result == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
 			failed();
@@ -1533,8 +1533,9 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 		hash_delimiter(hash, "cc_content");
 		hash_file(hash, path);
 	} else { // command string
-		if (!hash_multicommand_output(
-		      hash, conf->compiler_check, orig_args->argv[0])) {
+		bool ok = hash_multicommand_output(
+			hash, conf->compiler_check, orig_args->argv[0]);
+		if (!ok) {
 			fatal("Failure running compiler check command: %s", conf->compiler_check);
 		}
 	}
@@ -1732,7 +1733,8 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
-	int is_clang = (guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN);
+	int is_clang =
+		guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN;
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -2013,7 +2015,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
-	  generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
 	// Get result from cache.
 	if (!str_eq(output_obj, "/dev/null")) {
@@ -2421,8 +2423,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
-			  debug_prefix_maps,
-			  (debug_prefix_maps_len + 1) * sizeof(char *));
+				debug_prefix_maps,
+				(debug_prefix_maps_len + 1) * sizeof(char *));
 			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
 			args_add(stripped_args, argv[i]);
 			continue;
@@ -2918,7 +2920,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	output_is_precompiled_header =
-	  actual_language && strstr(actual_language, "-header");
+		actual_language && strstr(actual_language, "-header");
 
 	if (output_is_precompiled_header
 	    && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {

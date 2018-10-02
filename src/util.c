@@ -577,16 +577,16 @@ get_hostname(void)
 		DWORD dw = WSAGetLastError();
 
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		  (LPTSTR) &lp_msg_buf, 0, NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR) &lp_msg_buf, 0, NULL);
 
 		LPVOID lp_display_buf = (LPVOID) LocalAlloc(
-		  LMEM_ZEROINIT,
-		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 200)
-		  * sizeof(TCHAR));
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 200)
+			* sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
 		          LocalSize(lp_display_buf) / sizeof(TCHAR),
 		          TEXT("%s failed with error %lu: %s"), __FILE__, dw,
@@ -633,10 +633,10 @@ format_hash_as_string(const unsigned char *hash, int size)
 }
 
 char const CACHEDIR_TAG[] =
-  "Signature: 8a477f597d28d172789f06886806bc55\n"
-  "# This file is a cache directory tag created by ccache.\n"
-  "# For information about cache directory tags, see:\n"
-  "#\thttp://www.brynosaurus.com/cachedir/\n";
+	"Signature: 8a477f597d28d172789f06886806bc55\n"
+	"# This file is a cache directory tag created by ccache.\n"
+	"# For information about cache directory tags, see:\n"
+	"#\thttp://www.brynosaurus.com/cachedir/\n";
 
 int
 create_cachedirtag(const char *dir)
@@ -1057,7 +1057,7 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 
 	// Create a file mapping object.
 	HANDLE file_map =
-	  CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
+		CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
 	if (!file_map) {
 		return FALSE;
 	}
@@ -1135,8 +1135,8 @@ x_realpath(const char *path)
 		path++;  // Skip leading slash.
 	}
 	HANDLE path_handle = CreateFile(
-	  path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-	  FILE_ATTRIBUTE_NORMAL, NULL);
+		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE != path_handle) {
 #ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
 		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
@@ -1482,18 +1482,18 @@ x_rename(const char *oldpath, const char *newpath)
 		LPVOID lp_msg_buf;
 		DWORD dw = GetLastError();
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw,
-		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lp_msg_buf,
-		  0,
-		  NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lp_msg_buf,
+			0,
+			NULL);
 
 		LPVOID lp_display_buf = (LPVOID) LocalAlloc(
-		  LMEM_ZEROINIT,
-		  (lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 40)
-		  * sizeof(TCHAR));
+			LMEM_ZEROINIT,
+			(lstrlen((LPCTSTR) lp_msg_buf) + lstrlen((LPCTSTR) __FILE__) + 40)
+			* sizeof(TCHAR));
 		_snprintf((LPTSTR) lp_display_buf,
 		          LocalSize(lp_display_buf) / sizeof(TCHAR),
 		          TEXT("%s failed with error %lu: %s"), __FILE__, dw,

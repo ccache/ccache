@@ -166,8 +166,8 @@ TEST(format_parsable_size_with_suffix)
 	CHECK_STR_EQ_FREE2("1.0G",
 	                   format_parsable_size_with_suffix(1000 * 1000 * 1000));
 	CHECK_STR_EQ_FREE2(
-	  "17.1G",
-	  format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
+		"17.1G",
+		format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
 }
 
 TEST(parse_size_with_suffix)

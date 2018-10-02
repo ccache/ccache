@@ -267,7 +267,7 @@ static char *
 format_timestamp(uint64_t timestamp)
 {
 	if (timestamp > 0) {
-		struct tm *tm = localtime((time_t*)&timestamp);
+		struct tm *tm = localtime((time_t *)&timestamp);
 		char buffer[100];
 		strftime(buffer, sizeof(buffer), "%c", tm);
 		return format("    %s", buffer);

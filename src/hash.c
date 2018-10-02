@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -31,7 +31,7 @@ static FILE **debug_hash_file;
 
 void hash_debug_init(const char *bin, const char *txt)
 {
-	debug_hash_file = x_calloc(256, sizeof(FILE*));
+	debug_hash_file = x_calloc(256, sizeof(FILE *));
 	static char *hash_types = "cdp"; // common, direct, cpp
 	if (bin) {
 		debug_hash_bin = x_strdup(bin);
