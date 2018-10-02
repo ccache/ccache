@@ -352,10 +352,10 @@ WRAPPERS>>.
 
 *debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, the debug mode will be used. The default is false. In the debug mode,
-    the hash input and the debug log file will be stored next to the output files.
-    The input to the hashes is shown both in binary (hashc/hashd/hashp) as well as
-    in a text (input) format for easier reading. See <<_cache_debugging_,debugging>>.
+    If true, enable the debug mode. The debug mode creates per-object debug
+    files that are helpful when debugging unexpected cache misses. Note however
+    that ccache performance will be reduced slightly. See
+    <<_cache_debugging_,debugging>> for more information. The default is false.
 
 *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
@@ -765,29 +765,6 @@ A source language e.g. specified with *-x* was unsupported by ccache.
 |==============================================================================
 
 
-Cache debugging
----------------
-
-When investigating why you are not getting hits, and what information
-that ccache is actually hashing, you can enable the "debugging" mode.
-
-In this mode, ccache will add some additional output files next to the
-object files with results from the hashing and a copy of the debug log.
-
-There are several binary hash files created, for different partial input:
-
-* Common (*'hashc'*) e.g. `output.o.ccache-hashc`
-* Direct mode (*'hashd'*) e.g. `output.o.ccache-hashd`
-* Preprocessor mode (*'hashp'*) e.g. `output.o.ccache-hashp`
-
-The hash is the checksum of the common + direct or common + preprocessor.
-So by combining those two files (`cat`), you _should_ get the same checksum.
-
-There is also a human readable text file, for easier reading and diffing.
-It has all the same information, but not the same checksum - due to the format.
-
-* Text (*'input'*) e.g. `output.o.ccache-input`
-
 How ccache works
 ----------------
 
@@ -884,6 +861,57 @@ In the preprocessor mode, the hash is formed of the common information and:
 
 Based on the hash, the cached compilation result can be looked up directly in
 the cache.
+
+
+Cache debugging
+---------------
+
+To find out what information ccache actually is hashing, you can enable the
+debug mode via the configuration setting *debug* or by setting *CCACHE_DEBUG*
+in the environment. This can be useful if you are investigating why you don't
+get cache hits. Note that performance will be reduced slightly.
+
+When the debug mode is enabled, ccache will create five additional files next
+to the object file:
+
+[options="header",cols="30%,70%"]
+|==============================================================================
+|Filename | Description
+| *<objectfile>.ccache-input-c* |
+Binary input hashed by both the direct mode and the preprocessor mode.
+
+| *<objectfile>.ccache-input-d* |
+Binary input only hashed by the direct mode.
+
+| *<objectfile>.ccache-input-p* |
+Binary input only hashed by the preprocessor mode.
+
+| *<objectfile>.ccache-input-text* |
+Human-readable combined diffable text version of the three files above.
+
+| *<objectfile>.ccache-log* |
+Log for this object file.
+
+|==============================================================================
+
+In the direct mode, ccache uses the MD4 hash of the *ccache-input-c*
++ *ccache-input-d* data (where *+* means concatenation), while the
+*ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
+
+The *ccache-input-text* file is a combined text version of the three
+binary input files. It has three sections (“COMMON”, “DIRECT MODE” and
+“PREPROCESSOR MODE”), which is turn contain annotations that say what kind of
+data comes next.
+
+To debug why you don’t get an expected cache hit for an object file, you can do
+something like this:
+
+1. Build with debug mode enabled.
+2. Save the *<objectfile>.ccache-&#42;* files.
+3. Build again with debug mode enabled.
+4. Compare *<objectfile>.ccache-input-text* for the two builds. This together
+   with the *<objectfile>.ccache-log* files should give you some clues about
+   what is happening.
 
 
 Compiling in different directories
