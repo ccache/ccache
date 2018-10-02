@@ -479,8 +479,8 @@ clean_up_internal_tempdir(void)
 static void
 debug_start(const char *path)
 {
-	char *hash_bin = format("%s%s", path, ".ccache-hashX");
-	char *hash_txt = format("%s%s", path, ".ccache-input");
+	char *hash_bin = format("%s%s", path, ".ccache-input-X");
+	char *hash_txt = format("%s%s", path, ".ccache-input-text");
 	hash_debug_init(hash_bin, hash_txt);
 	free(hash_bin);
 	free(hash_txt);
