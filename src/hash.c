@@ -15,12 +15,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include <stdio.h>
-
 #include "ccache.h"
 #include "hash.h"
 #include "mdfour.h"
-#include "system.h"
 
 #define HASH_DELIMITER "\000cCaChE"
 
