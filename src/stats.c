@@ -389,7 +389,7 @@ stats_flush(void)
 	stats_write(stats_file, counters);
 	lockfile_release(stats_file);
 
-	if (!str_eq(conf->log_file, "")) {
+	if (!str_eq(conf->log_file, "") || conf->debug) {
 		for (int i = 0; i < STATS_END; ++i) {
 			if (counter_updates->data[stats_info[i].stat] != 0
 			    && !(stats_info[i].flags & FLAG_NOZERO)) {

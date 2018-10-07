@@ -228,6 +228,7 @@ void stats_write(const char *path, struct counters *counters);
 void exitfn_init(void);
 void exitfn_add_nullary(void (*function)(void));
 void exitfn_add(void (*function)(void *), void *context);
+void exitfn_add_last(void (*function)(void *), void *context);
 void exitfn_call(void);
 
 // ----------------------------------------------------------------------------

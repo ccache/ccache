@@ -3427,7 +3427,8 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
-	exitfn_add(dump_log_buffer_exitfn, output_obj);
+	// Need to dump log buffer as the last exit function to not lose any logs.
+	exitfn_add_last(dump_log_buffer_exitfn, output_obj);
 
 	FILE *debug_text_file = NULL;
 	if (conf->debug) {

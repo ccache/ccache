@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -56,7 +56,7 @@ exitfn_add_nullary(void (*function)(void))
 }
 
 // Add a function to be called with a context parameter when ccache exits.
-// Functions are called in reverse order.
+// Functions are called in LIFO order except when added via exitfn_add_last.
 void
 exitfn_add(void (*function)(void *), void *context)
 {
@@ -65,6 +65,24 @@ exitfn_add(void (*function)(void *), void *context)
 	p->context = context;
 	p->next = exit_functions;
 	exit_functions = p;
+}
+
+// Add a function to be called with a context parameter when ccache exits. In
+// contrast to exitfn_add, exitfn_add_last sets up the function to be called
+// last.
+void
+exitfn_add_last(void (*function)(void *), void *context)
+{
+	struct exit_function *p = x_malloc(sizeof(*p));
+	p->function = function;
+	p->context = context;
+	p->next = NULL;
+
+	struct exit_function **q = &exit_functions;
+	while (*q) {
+		q = &(*q)->next;
+	}
+	*q = p;
 }
 
 // Call added functions.
