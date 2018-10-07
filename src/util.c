@@ -207,6 +207,7 @@ cc_log_argv(const char *prefix, char **argv)
 		}
 	}
 	if (logbuffer) {
+		append_log(prefix, strlen(prefix));
 		char *s = format_command(argv);
 		append_log(s, strlen(s));
 		free(s);
