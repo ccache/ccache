@@ -871,8 +871,8 @@ debug mode via the configuration setting *debug* or by setting *CCACHE_DEBUG*
 in the environment. This can be useful if you are investigating why you don't
 get cache hits. Note that performance will be reduced slightly.
 
-When the debug mode is enabled, ccache will create five additional files next
-to the object file:
+When the debug mode is enabled, ccache will create up to five additional files
+next to the object file:
 
 [options="header",cols="30%,70%"]
 |==============================================================================

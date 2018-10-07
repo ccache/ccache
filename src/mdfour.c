@@ -16,6 +16,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+#include "mdfour.h"
 
 // NOTE: This code makes no attempt to be fast!
 
@@ -129,12 +130,6 @@ mdfour_begin(struct mdfour *md)
 	md->totalN = 0;
 	md->tail_len = 0;
 	md->finalized = 0;
-	md->identifier = 0;
-}
-
-void mdfour_identify(struct mdfour *md, int identifier)
-{
-	md->identifier = identifier;
 }
 
 static

@@ -24,11 +24,13 @@
 #else
 #include "getopt_long.h"
 #endif
+#include "hash.h"
 #include "hashtable.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
+#include "unify.h"
 
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
@@ -488,22 +490,36 @@ clean_up_internal_tempdir(void)
 }
 
 static void
-debug_start(const char *path)
+fclose_exitfn(void *context)
 {
-	char *hash_bin = format("%s%s", path, ".ccache-input-X");
-	char *hash_txt = format("%s%s", path, ".ccache-input-text");
-	hash_debug_init(hash_bin, hash_txt);
-	free(hash_bin);
-	free(hash_txt);
+	fclose((FILE *)context);
 }
 
 static void
-debug_end()
+dump_log_buffer_exitfn(void *context)
 {
-	hash_debug_end();
-	char *path = format("%s%s", output_obj, ".ccache-log");
+	if (!conf->debug) {
+		return;
+	}
+
+	char *path = format("%s.ccache-log", (const char *)context);
 	cc_dump_log_buffer(path);
 	free(path);
+}
+
+static void
+init_hash_debug(struct hash *hash, const char *obj_path, char type,
+                const char *section_name, FILE *debug_text_file)
+{
+	if (!conf->debug) {
+		return;
+	}
+
+	char *path = format("%s.ccache-input-%c", obj_path, type);
+	FILE *debug_binary_file = fopen(path, "wb");
+	hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
+	free(path);
+	exitfn_add(fclose_exitfn, debug_binary_file);
 }
 
 static enum guessed_compiler
@@ -564,27 +580,29 @@ get_path_in_cache(const char *name, const char *suffix)
 // global included_files variable. If the include file is a PCH, cpp_hash is
 // also updated. Takes over ownership of path.
 static void
-remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
+remember_include_file(char *path, struct hash *cpp_hash, bool system)
 {
+	struct hash *fhash = NULL;
+
 	size_t path_len = strlen(path);
 	if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
 		// Typically <built-in> or <command-line>.
-		goto ignore;
+		goto out;
 	}
 
 	if (str_eq(path, input_file)) {
 		// Don't remember the input file.
-		goto ignore;
+		goto out;
 	}
 
 	if (system && (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS)) {
 		// Don't remember this system header.
-		goto ignore;
+		goto out;
 	}
 
 	if (hashtable_search(included_files, path)) {
 		// Already known include file.
-		goto ignore;
+		goto out;
 	}
 
 #ifdef _WIN32
@@ -592,7 +610,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	DWORD attributes = GetFileAttributes(path);
 	if (attributes != INVALID_FILE_ATTRIBUTES &&
 	    attributes & FILE_ATTRIBUTE_DIRECTORY) {
-		goto ignore;
+		goto out;
 	}
 #endif
 
@@ -602,7 +620,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	}
 	if (S_ISDIR(st.st_mode)) {
 		// Ignore directory, typically $PWD.
-		goto ignore;
+		goto out;
 	}
 	if (!S_ISREG(st.st_mode)) {
 		// Device, pipe, socket or other strange creature.
@@ -628,7 +646,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		    && (ignore[ignore_len-1] == DIR_DELIM_CH
 		        || canonical[ignore_len] == DIR_DELIM_CH
 		        || canonical[ignore_len] == '\0')) {
-			goto ignore;
+			goto out;
 		}
 	}
 
@@ -649,8 +667,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 	}
 
 	// Let's hash the include file content.
-	struct mdfour fhash;
-	hash_start(&fhash);
+	fhash = hash_init();
 
 	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
@@ -669,14 +686,13 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 			free(pch_sum_path);
 		}
 
-		if (!hash_file(&fhash, path)) {
+		if (!hash_file(fhash, path)) {
 			goto failure;
 		}
-		struct file_hash pch_hash;
-		hash_result_as_bytes(&fhash, pch_hash.hash);
-		pch_hash.size = fhash.totalN;
 		hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
-		hash_buffer(cpp_hash, pch_hash.hash, sizeof(pch_hash.hash));
+		char *pch_hash_result = hash_result(fhash);
+		hash_string(cpp_hash, pch_hash_result);
+		free(pch_hash_result);
 	}
 
 	if (conf->direct_mode) {
@@ -692,7 +708,7 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 				size = 0;
 			}
 
-			int result = hash_source_code_string(conf, &fhash, source, size, path);
+			int result = hash_source_code_string(conf, fhash, source, size, path);
 			free(source);
 			if (result & HASH_SOURCE_CODE_ERROR
 			    || result & HASH_SOURCE_CODE_FOUND_TIME) {
@@ -701,14 +717,13 @@ remember_include_file(char *path, struct mdfour *cpp_hash, bool system)
 		}
 
 		struct file_hash *h = x_malloc(sizeof(*h));
-		hash_result_as_bytes(&fhash, h->hash);
-		h->size = fhash.totalN;
+		hash_result_as_bytes(fhash, h->hash);
+		h->size = hash_input_size(fhash);
 		hashtable_insert(included_files, path, h);
-	} else {
-		free(path);
+		path = NULL; // Ownership transferred to included_files.
 	}
 
-	return;
+	goto out;
 
 failure:
 	if (conf->direct_mode) {
@@ -716,7 +731,8 @@ failure:
 		conf->direct_mode = false;
 	}
 	// Fall through.
-ignore:
+out:
+	hash_free(fhash);
 	free(path);
 }
 
@@ -784,7 +800,7 @@ make_relative_path(char *path)
 // - Stores the paths and hashes of included files in the global variable
 //   included_files.
 static bool
-process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
+process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 {
 	char *data;
 	size_t size;
@@ -856,7 +872,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
 					// Bogus extra line with #31, after the regular #1: Ignore the whole
 					// line, and continue parsing.
-					hash_buffer(hash, p, q - p);
+					hash_string_buffer(hash, p, q - p);
 					while (q < end && *q != '\n') {
 						q++;
 					}
@@ -866,7 +882,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				} else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
 					// Bogus wrong line with #32, instead of regular #1: Replace the line
 					// number with the usual one.
-					hash_buffer(hash, p, q - p);
+					hash_string_buffer(hash, p, q - p);
 					q += 1;
 					q[0] = '#';
 					q[1] = ' ';
@@ -890,7 +906,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				return false;
 			}
 			// q points to the beginning of an include file path
-			hash_buffer(hash, p, q - p);
+			hash_string_buffer(hash, p, q - p);
 			p = q;
 			while (q < end && *q != '"') {
 				q++;
@@ -925,7 +941,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 				}
 			}
 			if (should_hash_inc_path) {
-				hash_buffer(hash, inc_path, strlen(inc_path));
+				hash_string_buffer(hash, inc_path, strlen(inc_path));
 			}
 
 			remember_include_file(inc_path, hash, system);
@@ -957,7 +973,7 @@ process_preprocessed_file(struct mdfour *hash, const char *path, bool pump)
 		}
 	}
 
-	hash_buffer(hash, p, (end - p));
+	hash_string_buffer(hash, p, (end - p));
 	free(data);
 	free(cwd);
 
@@ -1401,7 +1417,7 @@ to_cache(struct args *args)
 // Find the object file name by running the compiler in preprocessor mode.
 // Returns the hash as a heap-allocated hex string.
 static struct file_hash *
-get_object_name_from_cpp(struct args *args, struct mdfour *hash)
+get_object_name_from_cpp(struct args *args, struct hash *hash)
 {
 	time_of_compilation = time(NULL);
 
@@ -1504,7 +1520,7 @@ get_object_name_from_cpp(struct args *args, struct mdfour *hash)
 
 	struct file_hash *result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
-	result->size = hash->totalN;
+	result->size = hash_input_size(hash);
 	return result;
 }
 
@@ -1528,7 +1544,7 @@ update_cached_result_globals(struct file_hash *hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
+hash_compiler(struct hash *hash, struct stat *st, const char *path,
               bool allow_command)
 {
 	if (str_eq(conf->compiler_check, "none")) {
@@ -1558,7 +1574,7 @@ hash_compiler(struct mdfour *hash, struct stat *st, const char *path,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(struct mdfour *hash, struct stat *ccbin_st,
+hash_nvcc_host_compiler(struct hash *hash, struct stat *ccbin_st,
                         const char *ccbin)
 {
 	// From <http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html>:
@@ -1607,7 +1623,7 @@ hash_nvcc_host_compiler(struct mdfour *hash, struct stat *ccbin_st,
 // Update a hash sum with information common for the direct and preprocessor
 // modes.
 static void
-calculate_common_hash(struct args *args, struct mdfour *hash)
+calculate_common_hash(struct args *args, struct hash *hash)
 {
 	hash_string(hash, HASH_PREFIX);
 
@@ -1733,7 +1749,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 // modes and calculate the object hash. Returns the object hash on success,
 // otherwise NULL. Caller frees.
 static struct file_hash *
-calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
+calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 {
 	bool found_ccbin = false;
 
@@ -1793,17 +1809,17 @@ calculate_object_hash(struct args *args, struct mdfour *hash, int direct_mode)
 			if (str_startswith(args->argv[i], "-Wp,")) {
 				if (str_startswith(args->argv[i], "-Wp,-MD,")
 				    && !strchr(args->argv[i] + 8, ',')) {
-					hash_string_length(hash, args->argv[i], 8);
+					hash_string_buffer(hash, args->argv[i], 8);
 					continue;
 				} else if (str_startswith(args->argv[i], "-Wp,-MMD,")
 				           && !strchr(args->argv[i] + 9, ',')) {
-					hash_string_length(hash, args->argv[i], 9);
+					hash_string_buffer(hash, args->argv[i], 9);
 					continue;
 				}
 			} else if (str_startswith(args->argv[i], "-MF")) {
 				// In either case, hash the "-MF" part.
 				hash_delimiter(hash, "arg");
-				hash_string_length(hash, args->argv[i], 3);
+				hash_string_buffer(hash, args->argv[i], 3);
 
 				bool separate_argument = (strlen(args->argv[i]) == 3);
 				if (separate_argument) {
@@ -3411,27 +3427,32 @@ ccache(int argc, char *argv[])
 
 	cc_log("Object file: %s", output_obj);
 
+	exitfn_add(dump_log_buffer_exitfn, output_obj);
+
+	FILE *debug_text_file = NULL;
 	if (conf->debug) {
-		debug_start(output_obj);
-		exitfn_add_nullary(debug_end);
+		char *path = format("%s.ccache-input-text", output_obj);
+		debug_text_file = fopen(path, "w");
+		free(path);
+		exitfn_add(fclose_exitfn, debug_text_file);
 	}
 
-	struct mdfour common_hash;
-	hash_start(&common_hash);
-	mdfour_identify(&common_hash, 'c');
-	hash_section(&common_hash, "COMMON");
-	calculate_common_hash(preprocessor_args, &common_hash);
+	struct hash *common_hash = hash_init();
+	init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
+
+	calculate_common_hash(preprocessor_args, common_hash);
 
 	// Try to find the hash using the manifest.
-	struct mdfour direct_hash = common_hash;
-	mdfour_identify(&direct_hash, 'd');
-	hash_section(&direct_hash, "DIRECT MODE");
+	struct hash *direct_hash = hash_copy(common_hash);
+	init_hash_debug(
+		direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
+
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash = NULL;
 	struct file_hash *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
-		object_hash = calculate_object_hash(preprocessor_args, &direct_hash, 1);
+		object_hash = calculate_object_hash(preprocessor_args, direct_hash, 1);
 		if (object_hash) {
 			update_cached_result_globals(object_hash);
 
@@ -3455,10 +3476,11 @@ ccache(int argc, char *argv[])
 	}
 
 	// Find the hash using the preprocessed output. Also updates included_files.
-	struct mdfour cpp_hash = common_hash;
-	mdfour_identify(&cpp_hash, 'p');
-	hash_section(&cpp_hash, "PREPROCESSOR MODE");
-	object_hash = calculate_object_hash(preprocessor_args, &cpp_hash, 0);
+	struct hash *cpp_hash = hash_copy(common_hash);
+	init_hash_debug(
+		cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
+
+	object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
 	if (!object_hash) {
 		fatal("internal error: object hash from cpp returned NULL");
 	}
@@ -3532,8 +3554,6 @@ ccache_main_options(int argc, char *argv[])
 		{"zero-stats",    no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
-	struct mdfour md;
-	char *s;
 
 	int c;
 	while ((c = getopt_long(argc, argv, "cChF:M:o:psVz", options, NULL)) != -1) {
@@ -3543,17 +3563,20 @@ ccache_main_options(int argc, char *argv[])
 			break;
 
 		case HASH_FILE:
+		{
 			initialize();
-			hash_start(&md);
+			struct hash *hash = hash_init();
 			if (str_eq(optarg, "-")) {
-				hash_fd(&md, STDIN_FILENO);
+				hash_fd(hash, STDIN_FILENO);
 			} else {
-				hash_file(&md, optarg);
+				hash_file(hash, optarg);
 			}
-			s = hash_result(&md);
-			puts(s);
-			free(s);
+			char *result = hash_result(hash);
+			puts(result);
+			free(result);
+			hash_free(hash);
 			break;
+		}
 
 		case 'c': // --cleanup
 			initialize();
@@ -3602,7 +3625,7 @@ ccache_main_options(int argc, char *argv[])
 				if (size == 0) {
 					printf("Unset cache size limit\n");
 				} else {
-					s = format_human_readable_size(size);
+					char *s = format_human_readable_size(size);
 					printf("Set cache size limit to %s\n", s);
 					free(s);
 				}

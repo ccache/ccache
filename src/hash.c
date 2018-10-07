@@ -15,168 +15,150 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include <stdio.h>
+
 #include "ccache.h"
+#include "hash.h"
+#include "mdfour.h"
+#include "system.h"
 
 #define HASH_DELIMITER "\000cCaChE"
-#define HASH_DEBUG_DELIMITER "### "
 
-// binary input, for hashing
-static char *debug_hash_bin;
+struct hash {
+	struct mdfour md;
+	FILE *debug_binary;
+	FILE *debug_text;
+};
 
-// text input, for debugging
-static char *debug_hash_txt;
-
-// char mapping to open files
-static FILE **debug_hash_file;
-
-void hash_debug_init(const char *bin, const char *txt)
+static void
+do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
-	debug_hash_file = x_calloc(256, sizeof(FILE *));
-	static char *hash_types = "cdp"; // common, direct, cpp
-	if (bin) {
-		debug_hash_bin = x_strdup(bin);
-		assert(debug_hash_bin[strlen(debug_hash_bin)-1] == 'X');
-		for (char *p = hash_types; *p != '\0'; p++) {
-			debug_hash_bin[strlen(debug_hash_bin)-1] = *p;
-			debug_hash_file[(int) *p] = fopen(debug_hash_bin, "wb");
-		}
-		debug_hash_bin[strlen(debug_hash_bin)-1] = 'X';
-	}
-	if (txt) {
-		debug_hash_txt = x_strdup(txt);
-		debug_hash_file[(int) 't'] = fopen(debug_hash_txt, "w");
-	}
-}
-
-void hash_debug_end()
-{
-	for (int i = 0; i < 256; i++) {
-		if (debug_hash_file[i] != NULL) {
-			fclose(debug_hash_file[i]);
-		}
+	mdfour_update(&hash->md, (const unsigned char *)s, len);
+	if (len > 0 && hash->debug_binary) {
+		fwrite(s, 1, len, hash->debug_binary);
 	}
 }
 
 static void
-hash_binary_buffer(struct mdfour *md, const void *s, size_t len)
+do_debug_text(struct hash *hash, const void *s, size_t len)
 {
-	mdfour_update(md, (const unsigned char *)s, len);
-	if (!md->identifier || len == 0) {
-		return;
-	}
-	if (debug_hash_bin) {
-		// log to different files, for the different hash types
-		fwrite(s, 1, len, debug_hash_file[md->identifier]);
+	if (len > 0 && hash->debug_text) {
+		fwrite(s, 1, len, hash->debug_text);
 	}
 }
 
-static void
-hash_debug_buffer(struct mdfour *md, const void *s, size_t len)
+struct hash *
+hash_init(void)
 {
-	if (!md->identifier || len == 0) {
-		return;
-	}
-	if (debug_hash_txt) {
-		fwrite(s, 1, len, debug_hash_file['t']);
-	}
+	struct hash *hash = malloc(sizeof(struct hash));
+	mdfour_begin(&hash->md);
+	hash->debug_binary = NULL;
+	hash->debug_text = NULL;
+	return hash;
+}
+
+struct hash *
+hash_copy(struct hash *hash)
+{
+	struct hash *result = malloc(sizeof(struct hash));
+	result->md = hash->md;
+	result->debug_binary = NULL;
+	result->debug_text = NULL;
+	return result;
+}
+
+void hash_free(struct hash *hash)
+{
+	free(hash);
+}
+
+void hash_enable_debug(
+	struct hash *hash, const char *section_name,
+	FILE *debug_binary, FILE *debug_text)
+{
+	hash->debug_binary = debug_binary;
+	hash->debug_text = debug_text;
+
+	do_debug_text(hash, "=== ", 4);
+	do_debug_text(hash, section_name, strlen(section_name));
+	do_debug_text(hash, " ===\n", 5);
+}
+
+size_t
+hash_input_size(struct hash *hash)
+{
+	return hash->md.totalN;
 }
 
 void
-hash_start(struct mdfour *md)
+hash_buffer(struct hash *hash, const void *s, size_t len)
 {
-	mdfour_begin(md);
+	do_hash_buffer(hash, s, len);
+	do_debug_text(hash, s, len);
 }
 
-void
-hash_section(struct mdfour *md, const char *name)
-{
-	hash_debug_buffer(md, "=== ", 4);
-	hash_debug_buffer(md, name, strlen(name));
-	hash_debug_buffer(md, " ===", 4);
-	hash_debug_buffer(md, "\n", 1);
-}
-
-void
-hash_buffer(struct mdfour *md, const void *s, size_t len)
-{
-	hash_binary_buffer(md, s, len);
-	hash_debug_buffer(md, s, len);
-}
-
-// Return the hash result as a hex string. Caller frees.
 char *
-hash_result(struct mdfour *md)
+hash_result(struct hash *hash)
 {
 	unsigned char sum[16];
 
-	hash_result_as_bytes(md, sum);
-	return format_hash_as_string(sum, (unsigned) md->totalN);
+	hash_result_as_bytes(hash, sum);
+	return format_hash_as_string(sum, (unsigned) hash->md.totalN);
 }
 
-// Return the hash result as 16 binary bytes.
 void
-hash_result_as_bytes(struct mdfour *md, unsigned char *out)
+hash_result_as_bytes(struct hash *hash, unsigned char *out)
 {
-	mdfour_update(md, NULL, 0);
-	mdfour_result(md, out);
+	mdfour_update(&hash->md, NULL, 0);
+	mdfour_result(&hash->md, out);
 }
 
 bool
-hash_equal(struct mdfour *md1, struct mdfour *md2)
+hash_equal(struct hash *hash1, struct hash *hash2)
 {
 	unsigned char sum1[16];
-	hash_result_as_bytes(md1, sum1);
+	hash_result_as_bytes(hash1, sum1);
 	unsigned char sum2[16];
-	hash_result_as_bytes(md2, sum2);
+	hash_result_as_bytes(hash2, sum2);
 	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
 }
 
-// Hash some data that is unlikely to occur in the input. The idea is twofold:
-//
-// - Delimit things like arguments from each other (e.g., so that -I -O2 and
-//   -I-O2 hash differently).
-// - Tag different types of hashed information so that it's possible to do
-//   conditional hashing of information in a safe way (e.g., if we want to hash
-//   information X if CCACHE_A is set and information Y if CCACHE_B is set,
-//   there should never be a hash collision risk).
 void
-hash_delimiter(struct mdfour *md, const char *type)
+hash_delimiter(struct hash *hash, const char *type)
 {
-	hash_binary_buffer(md, HASH_DELIMITER, sizeof(HASH_DELIMITER));
-	hash_binary_buffer(md, type, strlen(type) + 1); // Include NUL.
-	hash_debug_buffer(md, HASH_DEBUG_DELIMITER, strlen(HASH_DEBUG_DELIMITER));
-	hash_debug_buffer(md, type, strlen(type));
-	hash_debug_buffer(md, "\n", 1);
+	do_hash_buffer(hash, HASH_DELIMITER, sizeof(HASH_DELIMITER));
+	do_hash_buffer(hash, type, strlen(type) + 1); // Include NUL.
+	do_debug_text(hash, "### ", 4);
+	do_debug_text(hash, type, strlen(type));
+	do_debug_text(hash, "\n", 1);
 }
 
 void
-hash_string(struct mdfour *md, const char *s)
+hash_string(struct hash *hash, const char *s)
 {
-	hash_string_length(md, s, strlen(s));
+	hash_string_buffer(hash, s, strlen(s));
 }
 
 void
-hash_string_length(struct mdfour *md, const char *s, int length)
+hash_string_buffer(struct hash *hash, const char *s, int length)
 {
-	hash_binary_buffer(md, s, length);
-	hash_debug_buffer(md, s, length);
-	hash_debug_buffer(md, "\n", 1);
+	hash_buffer(hash, s, length);
+	do_debug_text(hash, "\n", 1);
 }
 
 void
-hash_int(struct mdfour *md, int x)
+hash_int(struct hash *hash, int x)
 {
-	hash_binary_buffer(md, (char *)&x, sizeof(x));
+	do_hash_buffer(hash, (char *)&x, sizeof(x));
+
 	char buf[16];
 	snprintf(buf, sizeof(buf), "%d", x);
-	hash_debug_buffer(md, buf, strlen(buf));
-	hash_debug_buffer(md, "\n", 1);
+	do_debug_text(hash, buf, strlen(buf));
+	do_debug_text(hash, "\n", 1);
 }
 
-// Add contents of an open file to the hash. Returns true on success, otherwise
-// false.
 bool
-hash_fd(struct mdfour *md, int fd)
+hash_fd(struct hash *hash, int fd)
 {
 	char buf[READ_BUFFER_SIZE];
 	ssize_t n;
@@ -186,17 +168,15 @@ hash_fd(struct mdfour *md, int fd)
 			break;
 		}
 		if (n > 0) {
-			hash_binary_buffer(md, buf, n);
-			hash_debug_buffer(md, buf, n);
+			do_hash_buffer(hash, buf, n);
+			do_debug_text(hash, buf, n);
 		}
 	}
 	return n == 0;
 }
 
-// Add contents of a file to the hash. Returns true on success, otherwise
-// false.
 bool
-hash_file(struct mdfour *md, const char *fname)
+hash_file(struct hash *hash, const char *fname)
 {
 	int fd = open(fname, O_RDONLY|O_BINARY);
 	if (fd == -1) {
@@ -204,7 +184,7 @@ hash_file(struct mdfour *md, const char *fname)
 		return false;
 	}
 
-	bool ret = hash_fd(md, fd);
+	bool ret = hash_fd(hash, fd);
 	close(fd);
 	return ret;
 }

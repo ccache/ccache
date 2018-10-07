@@ -1,8 +1,24 @@
+// Copyright (C) 2002-2007 Andrew Tridgell
+// Copyright (C) 2009-2018 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
 #ifndef CCACHE_H
 #define CCACHE_H
 
 #include "system.h"
-#include "mdfour.h"
 #include "conf.h"
 #include "counters.h"
 
@@ -119,24 +135,6 @@ char *args_to_string(struct args *args);
 bool args_equal(struct args *args1, struct args *args2);
 
 // ----------------------------------------------------------------------------
-// hash.c
-
-void hash_debug_init(const char *bin, const char *txt);
-void hash_debug_end(void);
-void hash_start(struct mdfour *md);
-void hash_section(struct mdfour *md, const char *name);
-void hash_buffer(struct mdfour *md, const void *s, size_t len);
-char *hash_result(struct mdfour *md);
-void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-bool hash_equal(struct mdfour *md1, struct mdfour *md2);
-void hash_delimiter(struct mdfour *md, const char *type);
-void hash_string(struct mdfour *md, const char *s);
-void hash_string_length(struct mdfour *md, const char *s, int length);
-void hash_int(struct mdfour *md, int x);
-bool hash_fd(struct mdfour *md, int fd);
-bool hash_file(struct mdfour *md, const char *fname);
-
-// ----------------------------------------------------------------------------
 // util.c
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -223,11 +221,6 @@ void stats_add_cleanup(const char *dir, unsigned count);
 void stats_timestamp(time_t time, struct counters *counters);
 void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
-
-// ----------------------------------------------------------------------------
-// unify.c
-
-int unify_hash(struct mdfour *hash, const char *fname, bool print);
 
 // ----------------------------------------------------------------------------
 // exitfn.c

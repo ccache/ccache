@@ -411,20 +411,22 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 
 		struct file_hash *actual = hashtable_search(hashed_files, path);
 		if (!actual) {
-			struct mdfour hash;
-			hash_start(&hash);
-			int result = hash_source_code_file(conf, &hash, path);
+			struct hash *hash = hash_init();
+			int result = hash_source_code_file(conf, hash, path);
 			if (result & HASH_SOURCE_CODE_ERROR) {
 				cc_log("Failed hashing %s", path);
+				hash_free(hash);
 				return 0;
 			}
 			if (result & HASH_SOURCE_CODE_FOUND_TIME) {
+				hash_free(hash);
 				return 0;
 			}
 			actual = x_malloc(sizeof(*actual));
-			hash_result_as_bytes(&hash, actual->hash);
-			actual->size = hash.totalN;
+			hash_result_as_bytes(hash, actual->hash);
+			actual->size = hash_input_size(hash);
 			hashtable_insert(hashed_files, x_strdup(path), actual);
+			hash_free(hash);
 		}
 		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0
 		    || fi->size != actual->size) {

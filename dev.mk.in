@@ -40,6 +40,7 @@ headers = \
     src/conf.h \
     src/counters.h \
     src/getopt_long.h \
+    src/hash.h \
     src/hashtable.h \
     src/hashtable_itr.h \
     src/hashtable_private.h \
@@ -50,6 +51,7 @@ headers = \
     src/mdfour.h \
     src/murmurhashneutral2.h \
     src/system.h \
+    src/unify.h \
     unittest/framework.h \
     unittest/util.h
 generated_headers = \

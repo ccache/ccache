@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2017 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -28,6 +28,7 @@
 // compiler (for example, inline assembly systems).
 
 #include "ccache.h"
+#include "hash.h"
 
 static bool print_unified = true;
 
@@ -102,7 +103,7 @@ build_table(void)
 
 // Buffer up characters before hashing them.
 static void
-pushchar(struct mdfour *hash, unsigned char c)
+pushchar(struct hash *hash, unsigned char c)
 {
 	static unsigned char buf[64];
 	static size_t len;
@@ -131,7 +132,7 @@ pushchar(struct mdfour *hash, unsigned char c)
 
 // Hash some C/C++ code after unifying.
 static void
-unify(struct mdfour *hash, unsigned char *p, size_t size)
+unify(struct hash *hash, unsigned char *p, size_t size)
 {
 	build_table();
 
@@ -246,7 +247,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 // Hash a file that consists of preprocessor output, but remove any line number
 // information from the hash.
 int
-unify_hash(struct mdfour *hash, const char *fname, bool debug)
+unify_hash(struct hash *hash, const char *fname, bool debug)
 {
 	char *data;
 	size_t size;

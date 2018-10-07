@@ -25,86 +25,107 @@ TEST_SUITE(hashutil)
 
 TEST(hash_command_output_simple)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
-	CHECK(hash_command_output(&h1, "echo", "not used"));
-	CHECK(hash_command_output(&h2, "echo", "not used"));
-	CHECK(hash_equal(&h1, &h2));
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
+	CHECK(hash_command_output(h1, "echo", "not used"));
+	CHECK(hash_command_output(h2, "echo", "not used"));
+	CHECK(hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_command_output_space_removal)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
-	CHECK(hash_command_output(&h1, "echo", "not used"));
-	CHECK(hash_command_output(&h2, " echo ", "not used"));
-	CHECK(hash_equal(&h1, &h2));
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
+	CHECK(hash_command_output(h1, "echo", "not used"));
+	CHECK(hash_command_output(h2, " echo ", "not used"));
+	CHECK(hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_command_output_hash_inequality)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
-	CHECK(hash_command_output(&h1, "echo foo", "not used"));
-	CHECK(hash_command_output(&h2, "echo bar", "not used"));
-	CHECK(!hash_equal(&h1, &h2));
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
+	CHECK(hash_command_output(h1, "echo foo", "not used"));
+	CHECK(hash_command_output(h2, "echo bar", "not used"));
+	CHECK(!hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_command_output_compiler_substitution)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
-	CHECK(hash_command_output(&h1, "echo foo", "not used"));
-	CHECK(hash_command_output(&h2, "%compiler% foo", "echo"));
-	CHECK(hash_equal(&h1, &h2));
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
+	CHECK(hash_command_output(h1, "echo foo", "not used"));
+	CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
+	CHECK(hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_command_output_stdout_versus_stderr)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
 #ifndef _WIN32
 	create_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
 	chmod("stderr.sh", 0555);
-	CHECK(hash_command_output(&h1, "echo foo", "not used"));
-	CHECK(hash_command_output(&h2, "./stderr.sh", "not used"));
+	CHECK(hash_command_output(h1, "echo foo", "not used"));
+	CHECK(hash_command_output(h2, "./stderr.sh", "not used"));
 #else
 	create_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
-	CHECK(hash_command_output(&h1, "echo foo", "not used"));
-	CHECK(hash_command_output(&h2, "stderr.bat", "not used"));
+	CHECK(hash_command_output(h1, "echo foo", "not used"));
+	CHECK(hash_command_output(h2, "stderr.bat", "not used"));
 #endif
-	CHECK(hash_equal(&h1, &h2));
+	CHECK(hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_multicommand_output)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
 #ifndef _WIN32
 	create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
 	chmod("foo.sh", 0555);
-	CHECK(hash_multicommand_output(&h2, "echo foo; echo bar", "not used"));
-	CHECK(hash_multicommand_output(&h1, "./foo.sh", "not used"));
+	CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
+	CHECK(hash_multicommand_output(h1, "./foo.sh", "not used"));
 #else
 	create_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
-	CHECK(hash_multicommand_output(&h2, "echo foo; echo bar", "not used"));
-	CHECK(hash_multicommand_output(&h1, "foo.bat", "not used"));
+	CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
+	CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
 #endif
-	CHECK(hash_equal(&h1, &h2));
+	CHECK(hash_equal(h1, h2));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(hash_multicommand_output_error_handling)
 {
-	struct mdfour h1, h2;
-	hash_start(&h1);
-	hash_start(&h2);
-	CHECK(!hash_multicommand_output(&h2, "false; true", "not used"));
+	struct hash *h1 = hash_init();
+	struct hash *h2 = hash_init();
+
+	CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
+
+	hash_free(h2);
+	hash_free(h1);
 }
 
 TEST(check_for_temporal_macros)
