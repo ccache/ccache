@@ -4,7 +4,7 @@
 %readonly-tables
 %define hash-function-name confitems_hash
 %define lookup-function-name confitems_get
-%define initializer-suffix ,0,NULL,0,NULL
+%define initializer-suffix ,0,NULL,0,NULL,NULL
 struct conf_item;
 %%
 base_dir,             0, ITEM_V(base_dir, env_string, absolute_path)

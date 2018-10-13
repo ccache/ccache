@@ -383,6 +383,50 @@ TEST(conf_set_existing_value)
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
 }
 
+TEST(conf_print_existing_value)
+{
+	struct conf *conf = conf_create();
+	conf->max_files = 42;
+	char *errmsg;
+	{
+		FILE *log = fopen("log", "w");
+		CHECK(log);
+		CHECK(conf_print_value(conf, "max_files", log, &errmsg));
+		fclose(log);
+	}
+	{
+		FILE *log = fopen("log", "r");
+		CHECK(log);
+		char buf[100];
+		CHECK(fgets(buf, 100, log));
+		CHECK_STR_EQ("42\n", buf);
+		fclose(log);
+	}
+	conf_free(conf);
+}
+
+TEST(conf_print_unknown_value)
+{
+	struct conf *conf = conf_create();
+	char *errmsg;
+	{
+		FILE *log = fopen("log", "w");
+		CHECK(log);
+		CHECK(!conf_print_value(conf, "foo", log, &errmsg));
+		CHECK_STR_EQ_FREE2("unknown configuration option \"foo\"",
+				   errmsg);
+		fclose(log);
+	}
+	{
+		FILE *log = fopen("log", "r");
+		CHECK(log);
+		char buf[100];
+		CHECK(!fgets(buf, 100, log));
+		fclose(log);
+	}
+	conf_free(conf);
+}
+
 TEST(conf_print_items)
 {
 	size_t i;
