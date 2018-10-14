@@ -66,7 +66,7 @@ static const char USAGE_TEXT[] =
 	"    -C, --clear           clear the cache completely (except configuration)\n"
 	"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
 	"                          no limit)\n"
-        "    -k, --get-config=K    get the value of the configuration key K\n"
+	"    -k, --get-config=K    get the value of the configuration key K\n"
 	"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
 	"                          limit); available suffixes: k, M, G, T (decimal) and\n"
 	"                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
@@ -3560,7 +3560,7 @@ ccache_main_options(int argc, char *argv[])
 
 	int c;
 	while ((c = getopt_long(argc, argv, "cCk:hF:M:o:psVz", options, NULL))
-               != -1) {
+	       != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
 			manifest_dump(optarg, stdout);

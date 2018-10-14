@@ -414,7 +414,7 @@ TEST(conf_print_unknown_value)
 		CHECK(log);
 		CHECK(!conf_print_value(conf, "foo", log, &errmsg));
 		CHECK_STR_EQ_FREE2("unknown configuration option \"foo\"",
-				   errmsg);
+		                   errmsg);
 		fclose(log);
 	}
 	{

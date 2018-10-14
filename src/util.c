@@ -274,12 +274,12 @@ int
 mkstemp(char *template)
 {
 #ifdef __GNUC__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 	mktemp(template);
 #ifdef __GNUC__
-    #pragma GCC diagnostic pop
+	#pragma GCC diagnostic pop
 #endif
 	return open(template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
 }
