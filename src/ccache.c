@@ -3550,8 +3550,8 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
-		{"set-config",    required_argument, 0, 'o'},
 		{"print-config",  no_argument,       0, 'p'},
+		{"set-config",    required_argument, 0, 'o'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
@@ -3559,7 +3559,7 @@ ccache_main_options(int argc, char *argv[])
 	};
 
 	int c;
-	while ((c = getopt_long(argc, argv, "cCk:hF:M:o:psVz", options, NULL))
+	while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVz", options, NULL))
 	       != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
