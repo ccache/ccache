@@ -15,6 +15,9 @@ Changes
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
 
+- Added a new command-line option `-k/--get-config` that prints the value of a
+  config key.
+
 - It is now possible to let ccache hash a precomputed checksum file instead of
   the full content of a precompiled header. This can save time for large
   precompiled headers. Note that the build system needs to keep the checksum
