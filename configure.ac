@@ -16,16 +16,6 @@ case $host in
         ;;
 esac
 
-AC_ARG_ENABLE([silent-rules],
-  [AS_HELP_STRING([--enable-silent-rules],
-    [less verbose build output (undo: `make V=1')])])
-case $enable_silent_rules in
-	 yes) verbose=0;;
-	 no)  verbose=1;;
-	 *)   verbose=1;;
-esac
-
-AC_SUBST(verbose)
 AC_SUBST(extra_libs)
 AC_SUBST(no_implicit_fallthrough_warning)
 AC_SUBST(getopt_long_c)
