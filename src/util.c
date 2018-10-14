@@ -76,7 +76,7 @@ append_log(const char *s, size_t len)
 		logbufsize = logbufsize + len + 1 + LOGBUFSIZ;
 		logbuffer = x_realloc(logbuffer, logbufsize);
 	}
-	strncpy(logbuffer + logsize, s, len);
+	memcpy(logbuffer + logsize, s, len);
 	logsize += len;
 }
 
