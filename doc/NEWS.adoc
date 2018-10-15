@@ -3,14 +3,15 @@ ccache news
 
 ccache 3.5
 ----------
-Release date: unknown
+Release date: 2018-10-15
 
 Changes
 ~~~~~~~
 
 - Added a boolean `debug` (`CCACHE_DEBUG`) configuration option. When enabled,
   ccache will create per-object debug files that are helpful e.g. when
-  debugging unexpected cache misses.
+  debugging unexpected cache misses. See also the new ``Cache debugging''
+  section in the manual.
 
 - Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
   alias).
