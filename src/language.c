@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -176,5 +176,7 @@ language_is_supported(const char *language)
 bool
 language_is_preprocessed(const char *language)
 {
-	return str_eq(language, p_language_for_language(language));
+	const char *p_language = p_language_for_language(language);
+	assert(p_language);
+	return str_eq(language, p_language);
 }
