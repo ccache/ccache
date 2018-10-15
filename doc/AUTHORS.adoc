@@ -88,7 +88,7 @@ ccache is a collective work with contributions from many people, including:
 * Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
 * Wilson Snyder <wsnyder@wsnyder.org>
-* Xavier RENE-CORAIL <xavier.renecorail@gmail.com>
+* Xavier René-Corail <xavier.renecorail@gmail.com>
 * Yiding Jia <yiding@fb.com>
 
 Thanks!
