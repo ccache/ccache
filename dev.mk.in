@@ -109,8 +109,9 @@ endif
 src/version.o: src/version.c
 
 %_lookup.c: %.gperf
-	$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
-	echo "static const size_t $$(echo $(notdir $*) | tr a-z A-Z)_TOTAL_KEYWORDS = $$(sed -nr 's/.*TOTAL_KEYWORDS = ([0-9]+).*/\1/p' $@);" >>$@
+	$(if $(quiet),@echo "  GPERF    $@")
+	$(Q)$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
+	$(Q)echo "static const size_t $$(echo $(notdir $*) | tr a-z A-Z)_TOTAL_KEYWORDS = $$(sed -nr 's/.*TOTAL_KEYWORDS = ([0-9]+).*/\1/p' $@);" >>$@
 
 .PHONY: dist
 dist: $(dist_archives)
@@ -168,16 +169,19 @@ docs: $(generated_docs)
 
 %.html: %.adoc
 	@mkdir -p $(@D)
-	$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
+	$(if $(quiet),@echo "  ASCIIDOC $@")
+	$(Q)$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
 
 %.xml: %.adoc
 	@mkdir -p $(@D)
 # Make literals stand out as bold in the man page:
-	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
+	$(if $(quiet),@echo "  ASCIIDOC $@")
+	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
 doc/ccache.1: doc/MANUAL.xml
-	$(A2X) --doctype manpage --format manpage $<
+	$(if $(quiet),@echo "  A2X      $@")
+	$(Q)$(A2X) --doctype manpage --format manpage $<
 
 .PHONY: update-authors
 update-authors:
