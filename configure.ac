@@ -199,17 +199,6 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
-
-    dnl Check for -Wno-implicit-fallthrough
-    AC_MSG_CHECKING([whether C compiler supports -Wno-implicit-fallthrough])
-    saved_cflags=$CFLAGS
-    CFLAGS=-Wno-implicit-fallthrough
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-        [AC_MSG_RESULT([yes])]
-        [no_implicit_fallthrough_warning="-Wno-implicit-fallthrough"],
-        [AC_MSG_RESULT([no])]
-    )
-    CFLAGS=$saved_cflags
 else
     AC_MSG_NOTICE(developer mode disabled)
 fi
@@ -218,6 +207,17 @@ if test ! -f $srcdir/src/version.c -a ! -f src/version.c ; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
 fi
+
+dnl Check for -Wno-implicit-fallthrough
+AC_MSG_CHECKING([whether C compiler supports -Wno-implicit-fallthrough])
+saved_cflags=$CFLAGS
+CFLAGS=-Wno-implicit-fallthrough
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
+    [AC_MSG_RESULT([yes])]
+    [no_implicit_fallthrough_warning="-Wno-implicit-fallthrough"],
+    [AC_MSG_RESULT([no])]
+)
+CFLAGS=$saved_cflags
 
 dnl Find test suite files.
 test_suites=`cd $srcdir && ls unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
