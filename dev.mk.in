@@ -192,7 +192,7 @@ check-syntax:
 .PHONY: cppcheck
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
-	  --inline-suppr -q --enable=all --force \
+	  --inline-suppr -q --enable=all --force -I . \
 	  $(non_3pp_sources) src/main.c $(test_sources)
 
 .PHONY: shellcheck
