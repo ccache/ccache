@@ -219,7 +219,7 @@ void
 cc_dump_log_buffer(const char *path)
 {
 	FILE *file = fopen(path, "w");
-	fwrite(logbuffer, 1, logsize, file);
+	(void) fwrite(logbuffer, 1, logsize, file);
 	fclose(file);
 }
 

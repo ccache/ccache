@@ -32,7 +32,7 @@ do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
 	mdfour_update(&hash->md, (const unsigned char *)s, len);
 	if (len > 0 && hash->debug_binary) {
-		fwrite(s, 1, len, hash->debug_binary);
+		(void) fwrite(s, 1, len, hash->debug_binary);
 	}
 }
 
@@ -40,7 +40,7 @@ static void
 do_debug_text(struct hash *hash, const void *s, size_t len)
 {
 	if (len > 0 && hash->debug_text) {
-		fwrite(s, 1, len, hash->debug_text);
+		(void) fwrite(s, 1, len, hash->debug_text);
 	}
 }
 
