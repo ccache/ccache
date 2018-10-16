@@ -215,13 +215,12 @@ cc_log_argv(const char *prefix, char **argv)
 }
 
 // Copy the current log memory buffer to an output file.
-bool
+void
 cc_dump_log_buffer(const char *path)
 {
 	FILE *file = fopen(path, "w");
 	fwrite(logbuffer, 1, logsize, file);
 	fclose(file);
-	return true;
 }
 
 // Something went badly wrong!
