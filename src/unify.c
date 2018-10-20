@@ -29,6 +29,7 @@
 
 #include "ccache.h"
 #include "hash.h"
+#include "unify.h"
 
 static bool print_unified = true;
 
