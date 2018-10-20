@@ -20,6 +20,7 @@ AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
 AC_SUBST(getopt_long_c)
 AC_SUBST(include_dev_mk)
+AC_SUBST(more_warnings)
 AC_SUBST(no_implicit_fallthrough_warning)
 AC_SUBST(test_suites)
 
@@ -52,17 +53,24 @@ else
     CFLAGS="$CFLAGS -O"
 fi
 
+more_warnings="-Wextra -Wpedantic"
+if test "$ac_compiler_clang" = yes; then
+    more_warnings="$more_warnings -Weverything"
+    more_warnings="$more_warnings -Wno-conversion"
+    more_warnings="$more_warnings -Wno-disabled-macro-expansion"
+    more_warnings="$more_warnings -Wno-double-promotion"
+    more_warnings="$more_warnings -Wno-float-conversion"
+    more_warnings="$more_warnings -Wno-format-nonliteral"
+    more_warnings="$more_warnings -Wno-padded"
+    more_warnings="$more_warnings -Wno-shorten-64-to-32"
+    more_warnings="$more_warnings -Wno-sign-conversion"
+fi
+
 AC_ARG_ENABLE(more_warnings,
   [AS_HELP_STRING([--enable-more-warnings],
     [enable more compiler warnings])])
 if test x${enable_more_warnings} = xyes; then
-    CFLAGS="$CFLAGS -Wextra -Wpedantic"
-    if test "$ac_compiler_clang" = yes; then
-        CFLAGS="$CFLAGS -Weverything"
-        CFLAGS="$CFLAGS -Wno-padded -Wno-disabled-macro-expansion -Wno-format-nonliteral"
-        CFLAGS="$CFLAGS -Wno-double-promotion -Wno-float-conversion"
-        CFLAGS="$CFLAGS -Wno-conversion -Wno-shorten-64-to-32 -Wno-sign-conversion"
-    fi
+    CFLAGS="$CFLAGS $more_warnings"
 fi
 
 AC_HEADER_DIRENT
