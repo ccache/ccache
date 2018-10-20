@@ -136,33 +136,27 @@ $(dist_archives): $(dist_files)
 	 tar -c $$tarcompression -f $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
 
+# $(1): extra configure options
+define do_distcheck
+	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
+	(cd $$tmpdir && \
+	 tar xf $(CURDIR)/$< && \
+	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
+	 cd $(dist_dir)/build && \
+	 ../configure --enable-more-warnings --prefix=$$tmpdir/root $(1) && \
+	 $(MAKE) install CFLAGS=-Werror V=1 && \
+	 $(MAKE) installcheck) && \
+	chmod -R u+w $$tmpdir/$(dist_dir) && \
+	rm -rf $$tmpdir
+endef
+
 .PHONY: distcheck
 distcheck: $(firstword $(dist_archives))
-	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
-	(cd $$tmpdir && \
-	 tar xf $(CURDIR)/$< && \
-	 mkdir -p $(dist_dir)/build && \
-	 chmod -R a-w $(dist_dir) && \
-	 chmod u+w $(dist_dir)/build && \
-	 cd $(dist_dir)/build && \
-	 ../configure --prefix=$$tmpdir/root && \
-	 $(MAKE) install && \
-	 $(MAKE) installcheck) && \
-	chmod -R u+w $$tmpdir/$(dist_dir) && \
-	rm -rf $$tmpdir
-
-	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
-	(cd $$tmpdir && \
-	 tar xf $(CURDIR)/$< && \
-	 mkdir -p $(dist_dir)/build && \
-	 chmod -R a-w $(dist_dir) && \
-	 chmod u+w $(dist_dir)/build && \
-	 cd $(dist_dir)/build && \
-	 ../configure --prefix=$$tmpdir/root --with-bundled-zlib && \
-	 $(MAKE) install && \
-	 $(MAKE) installcheck) && \
-	chmod -R u+w $$tmpdir/$(dist_dir) && \
-	rm -rf $$tmpdir
+	$(call do_distcheck, --without-bundled-zlib)
+	$(call do_distcheck, --with-bundled-zlib)
+	$(call do_distcheck, CC=clang)
 
 .PHONY: docs
 docs: $(generated_docs)

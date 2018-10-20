@@ -122,6 +122,7 @@ clean:
 
 conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
+src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 $(zlib_objs): CPPFLAGS += -include config.h
 $(zlib_objs): CFLAGS += @no_implicit_fallthrough_warning@
 
