@@ -19,7 +19,7 @@
 
 typedef bool (*conf_item_parser)(const char *str, void *result, char **errmsg);
 typedef bool (*conf_item_verifier)(void *value, char **errmsg);
-typedef const char *(*conf_item_formatter)(void *value);
+typedef char *(*conf_item_formatter)(void *value);
 
 struct conf_item {
 	const char *name;
@@ -58,7 +58,7 @@ bool_to_string(bool value)
 	return value ? "true" : "false";
 }
 
-static const char *
+static char *
 format_bool(void *value)
 {
 	bool *b = (bool *)value;
@@ -74,14 +74,14 @@ parse_env_string(const char *str, void *result, char **errmsg)
 	return *value != NULL;
 }
 
-static const char *
+static char *
 format_string(void *value)
 {
 	char **str = (char **)value;
 	return x_strdup(*str);
 }
 
-static const char *
+static char *
 format_env_string(void *value)
 {
 	return format_string(value);
@@ -103,7 +103,7 @@ parse_float(const char *str, void *result, char **errmsg)
 	}
 }
 
-static const char *
+static char *
 format_float(void *value)
 {
 	float *x = (float *)value;
@@ -124,7 +124,7 @@ parse_size(const char *str, void *result, char **errmsg)
 	}
 }
 
-static const char *
+static char *
 format_size(void *value)
 {
 	uint64_t *size = (uint64_t *)value;
@@ -171,7 +171,7 @@ parse_sloppiness(const char *str, void *result, char **errmsg)
 	return true;
 }
 
-static const char *
+static char *
 format_sloppiness(void *value)
 {
 	unsigned *sloppiness = (unsigned *)value;
@@ -238,7 +238,7 @@ parse_umask(const char *str, void *result, char **errmsg)
 	}
 }
 
-static const char *
+static char *
 format_umask(void *value)
 {
 	unsigned *umask = (unsigned *)value;
@@ -265,7 +265,7 @@ parse_unsigned(const char *str, void *result, char **errmsg)
 	}
 }
 
-static const char *
+static char *
 format_unsigned(void *value)
 {
 	unsigned *i = (unsigned *)value;
@@ -639,7 +639,7 @@ conf_print_value(struct conf *conf, const char *key,
 		return false;
 	}
 	void *value = (char *)conf + item->offset;
-	char *str = (char *)item->formatter(value);
+	char *str = item->formatter(value);
 	fprintf(file, "%s\n", str);
 	free(str);
 	return true;
@@ -656,7 +656,7 @@ print_item(struct conf *conf, const char *key,
 		return false;
 	}
 	void *value = (char *)conf + item->offset;
-	char *str = (char *)item->formatter(value);
+	char *str = item->formatter(value);
 	char *buf = x_strdup("");
 	reformat(&buf, "%s = %s", key, str);
 	printer(buf, conf->item_origins[item->number], context);
