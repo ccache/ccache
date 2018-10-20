@@ -1,2 +1,5 @@
 ConfigurationNotChecked
 missingIncludeSystem
+
+// Not worth the effort to write leak-free code for test failure code paths.
+resourceLeak:unittest/*
