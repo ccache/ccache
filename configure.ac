@@ -16,12 +16,12 @@ case $host in
         ;;
 esac
 
+AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
-AC_SUBST(no_implicit_fallthrough_warning)
 AC_SUBST(getopt_long_c)
 AC_SUBST(include_dev_mk)
+AC_SUBST(no_implicit_fallthrough_warning)
 AC_SUBST(test_suites)
-AC_SUBST(disable_man)
 
 m4_include(m4/feature_macros.m4)
 m4_include(m4/clang.m4)
