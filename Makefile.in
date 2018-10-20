@@ -101,7 +101,7 @@ all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 	$(if $(quiet),@echo "  LD       $@")
-	$(Q)$(CC) $(all_cflags) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+	$(Q)$(CC) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 ccache.1: doc/ccache.1
 	$(if $(quiet),@echo "  CP       $@")
@@ -150,7 +150,7 @@ unittest: unittest/run$(EXEEXT)
 
 unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 	$(if $(quiet),@echo "  LD       $@")
-	$(Q)$(CC) $(all_cflags) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+	$(Q)$(CC) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 unittest/main.o: unittest/suites.h
 
