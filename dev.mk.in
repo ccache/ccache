@@ -191,6 +191,7 @@ check-syntax:
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force -I . \
+	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
 	  $(non_3pp_sources) src/main.c $(test_sources)
 
 .PHONY: shellcheck
