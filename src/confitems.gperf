@@ -4,7 +4,20 @@
 %readonly-tables
 %define hash-function-name confitems_hash
 %define lookup-function-name confitems_get
-%define initializer-suffix ,0,NULL,0,NULL,NULL
+%define initializer-suffix ,0,0,NULL,NULL,NULL
+%{
+#include "confitems.h"
+#include "conf.h"
+
+#undef bool
+#define ITEM_ENTRY(name, type, verify_fn) \
+	offsetof(struct conf, name), confitem_parse_ ## type, \
+	confitem_format_ ## type, verify_fn
+#define ITEM(name, type) \
+	ITEM_ENTRY(name, type, NULL)
+#define ITEM_V(name, type, verification) \
+	ITEM_ENTRY(name, type, confitem_verify_ ## verification)
+%}
 struct conf_item;
 %%
 base_dir,             0, ITEM_V(base_dir, env_string, absolute_path)

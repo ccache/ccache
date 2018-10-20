@@ -35,6 +35,7 @@ non_3pp_sources = \
     src/cleanup.c \
     src/compopt.c \
     src/conf.c \
+    src/confitems.c \
     src/counters.c \
     src/execute.c \
     src/exitfn.c \
@@ -51,6 +52,8 @@ generated_sources = \
     src/version.c
 3pp_sources = \
     @getopt_long_c@ \
+    src/confitems_lookup.c \
+    src/envtoconfitems_lookup.c \
     src/hashtable.c \
     src/hashtable_itr.c \
     src/murmurhashneutral2.c \
@@ -119,8 +122,6 @@ install: ccache$(EXEEXT) @disable_man@ccache.1
 .PHONY: clean
 clean:
 	rm -rf $(files_to_clean)
-
-conf.c: confitems_lookup.c envtoconfitems_lookup.c
 
 src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 $(zlib_objs): CPPFLAGS += -include config.h

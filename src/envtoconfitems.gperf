@@ -6,6 +6,9 @@
 %define lookup-function-name envtoconfitems_get
 %define slot-name env_name
 %define initializer-suffix ,""
+%{
+#include "envtoconfitems.h"
+%}
 struct env_to_conf_item;
 %%
 BASEDIR, "base_dir"

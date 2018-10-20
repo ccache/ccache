@@ -38,7 +38,9 @@ headers = \
     src/ccache.h \
     src/compopt.h \
     src/conf.h \
+    src/confitems.h \
     src/counters.h \
+    src/envtoconfitems.h \
     src/getopt_long.h \
     src/hash.h \
     src/hashtable.h \
@@ -110,8 +112,8 @@ src/version.o: src/version.c
 
 %_lookup.c: %.gperf
 	$(if $(quiet),@echo "  GPERF    $@")
-	$(Q)$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
-	$(Q)echo "static const size_t $$(echo $(notdir $*) | tr a-z A-Z)_TOTAL_KEYWORDS = $$(sed -nr 's/.*TOTAL_KEYWORDS = ([0-9]+).*/\1/p' $@);" >>$@
+	$(Q)$(GPERF) $< >$@
+	$(Q)echo "size_t $$(echo '$(notdir $*)_count(void)') { return $$(sed -nr 's/.*TOTAL_KEYWORDS = (.+),.*/\1/p' $@); }" >>$@
 
 .PHONY: dist
 dist: $(dist_archives)
