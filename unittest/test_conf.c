@@ -398,7 +398,7 @@ TEST(conf_print_existing_value)
 		FILE *log = fopen("log", "r");
 		CHECK(log);
 		char buf[100];
-		CHECK(fgets(buf, 100, log));
+		CHECK(fgets(buf, sizeof(buf), log));
 		CHECK_STR_EQ("42\n", buf);
 		fclose(log);
 	}
@@ -421,7 +421,7 @@ TEST(conf_print_unknown_value)
 		FILE *log = fopen("log", "r");
 		CHECK(log);
 		char buf[100];
-		CHECK(!fgets(buf, 100, log));
+		CHECK(!fgets(buf, sizeof(buf), log));
 		fclose(log);
 	}
 	conf_free(conf);
