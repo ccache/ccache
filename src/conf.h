@@ -3,6 +3,7 @@
 
 #include "system.h"
 
+// NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
 struct conf {
 	char *base_dir;
 	char *cache_dir;

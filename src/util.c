@@ -150,6 +150,7 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 	va_copy(aq, ap);
 	log_prefix(log_updated_time);
 	if (logfile) {
+		// NOLINTNEXTLINE(clang-analyzer-valist)
 		int rc1 = vfprintf(logfile, format, ap);
 		int rc2 = fprintf(logfile, "\n");
 		if (rc1 < 0 || rc2 < 0) {
@@ -158,6 +159,7 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 	}
 	if (logbuffer) {
 		char buf[1024];
+		// NOLINTNEXTLINE(clang-analyzer-valist)
 		size_t len = vsnprintf(buf, sizeof(buf), format, aq);
 		append_log(buf, len);
 		append_log("\n", 1);
@@ -230,6 +232,7 @@ fatal(const char *format, ...)
 	va_list ap;
 	va_start(ap, format);
 	char msg[1000];
+	// NOLINTNEXTLINE(clang-analyzer-valist)
 	vsnprintf(msg, sizeof(msg), format, ap);
 	va_end(ap);
 

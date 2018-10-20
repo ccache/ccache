@@ -49,6 +49,7 @@ static format_fn format_size_times_1024;
 static format_fn format_timestamp;
 
 // Statistics fields in display order.
+// NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
 static struct {
 	enum stats stat;
 	char *message;
