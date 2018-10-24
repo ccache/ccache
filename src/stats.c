@@ -51,7 +51,7 @@ static format_fn format_timestamp;
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
-	char *message;
+	const char *message;
 	format_fn *format_fn; // NULL -> use plain integer format
 	unsigned flags;
 } stats_info[] = {
