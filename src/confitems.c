@@ -64,12 +64,12 @@ confitem_format_env_string(void *value)
 }
 
 bool
-confitem_parse_float(const char *str, void *result, char **errmsg)
+confitem_parse_double(const char *str, void *result, char **errmsg)
 {
-	float *value = (float *)result;
+	double *value = (double *)result;
 	errno = 0;
 	char *endptr;
-	float x = strtof(str, &endptr);
+	double x = strtod(str, &endptr);
 	if (errno == 0 && *str != '\0' && *endptr == '\0') {
 		*value = x;
 		return true;
@@ -80,9 +80,9 @@ confitem_parse_float(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_float(void *value)
+confitem_format_double(void *value)
 {
-	float *x = (float *)value;
+	double *x = (double *)value;
 	return format("%.1f", *x);
 }
 

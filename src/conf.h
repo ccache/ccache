@@ -20,7 +20,7 @@ struct conf {
 	bool hash_dir;
 	char *ignore_headers_in_manifest;
 	bool keep_comments_cpp;
-	float limit_multiple;
+	double limit_multiple;
 	char *log_file;
 	unsigned max_files;
 	uint64_t max_size;

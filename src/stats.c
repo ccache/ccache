@@ -515,7 +515,7 @@ stats_summary(void)
 			unsigned hit = direct + preprocessed;
 			unsigned miss = counters->data[STATS_TOCACHE];
 			unsigned total = hit + miss;
-			double percent = total > 0 ? (100.0f * hit) / total : 0.0f;
+			double percent = total > 0 ? (100.0 * hit) / total : 0.0;
 			printf("cache hit rate                    %6.2f %%\n", percent);
 		}
 	}

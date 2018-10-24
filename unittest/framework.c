@@ -172,15 +172,15 @@ cct_check_failed(const char *file, int line, const char *what,
 }
 
 bool
-cct_check_float_eq(const char *file, int line, const char *expression,
-                   double expected, double actual)
+cct_check_double_eq(const char *file, int line, const char *expression,
+                    double expected, double actual)
 {
 	if (fabs(expected -  actual) < DBL_EPSILON) {
 		cct_check_passed(file, line, expression);
 		return true;
 	} else {
-		char *exp_str = format("%.1f", (double)expected);
-		char *act_str = format("%.1f", (double)actual);
+		char *exp_str = format("%.1f", expected);
+		char *act_str = format("%.1f", actual);
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);

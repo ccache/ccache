@@ -22,8 +22,8 @@ char *confitem_format_bool(void *value);
 bool confitem_parse_env_string(const char *str, void *result, char **errmsg);
 char *confitem_format_env_string(void *value);
 
-bool confitem_parse_float(const char *str, void *result, char **errmsg);
-char *confitem_format_float(void *value);
+bool confitem_parse_double(const char *str, void *result, char **errmsg);
+char *confitem_format_double(void *value);
 
 bool confitem_parse_size(const char *str, void *result, char **errmsg);
 char *confitem_format_size(void *value);

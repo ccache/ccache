@@ -85,10 +85,10 @@
 
 // ============================================================================
 
-#define CHECK_FLOAT_EQ(expected, actual) \
+#define CHECK_DOUBLE_EQ(expected, actual) \
 	do { \
-		if (!cct_check_float_eq(__FILE__, __LINE__, #actual, (expected), \
-		                      (actual))) { \
+		if (!cct_check_double_eq(__FILE__, __LINE__, #actual, (expected), \
+		                         (actual))) { \
 			cct_test_end(); \
 			cct_suite_end(); \
 			return _test_counter; \
@@ -135,8 +135,8 @@ void cct_test_end(void);
 void cct_check_passed(const char *file, int line, const char *assertion);
 void cct_check_failed(const char *file, int line, const char *assertion,
                       const char *expected, const char *actual);
-bool cct_check_float_eq(const char *file, int line, const char *expression,
-                        double expected, double actual);
+bool cct_check_double_eq(const char *file, int line, const char *expression,
+                         double expected, double actual);
 bool cct_check_int_eq(const char *file, int line, const char *expression,
                       int64_t expected, int64_t actual);
 bool cct_check_str_eq(const char *file, int line, const char *expression,

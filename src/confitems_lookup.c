@@ -177,7 +177,7 @@ confitems_get (register const char *str, register size_t len)
       {"",0,0,NULL,NULL,NULL}, {"",0,0,NULL,NULL,NULL},
       {"",0,0,NULL,NULL,NULL}, {"",0,0,NULL,NULL,NULL},
 #line 39 "src/confitems.gperf"
-      {"limit_multiple",      16, ITEM(limit_multiple, float)},
+      {"limit_multiple",      16, ITEM(limit_multiple, double)},
       {"",0,0,NULL,NULL,NULL},
 #line 37 "src/confitems.gperf"
       {"ignore_headers_in_manifest", 14, ITEM(ignore_headers_in_manifest, env_string)}

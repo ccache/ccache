@@ -138,7 +138,7 @@ conf_create(void)
 	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->keep_comments_cpp = false;
-	conf->limit_multiple = 0.8f;
+	conf->limit_multiple = 0.8;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
