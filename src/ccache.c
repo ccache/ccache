@@ -2455,8 +2455,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
-		if (str_startswith(argv[i], "-fdebug-prefix-map=") ||
-		    str_startswith(argv[i], "-ffile-prefix-map=")) {
+		if (str_startswith(argv[i], "-fdebug-prefix-map=")
+		    || str_startswith(argv[i], "-ffile-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
 				debug_prefix_maps,
 				(debug_prefix_maps_len + 1) * sizeof(char *));
