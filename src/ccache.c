@@ -1786,6 +1786,12 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
 			continue;
 		}
+		if (str_startswith(args->argv[i], "-ffile-prefix-map=")) {
+			continue;
+		}
+		if (str_startswith(args->argv[i], "-fmacro-prefix-map=")) {
+			continue;
+		}
 
 		// When using the preprocessor, some arguments don't contribute to the
 		// hash. The theory is that these arguments will change the output of -E if
@@ -2449,11 +2455,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
-		if (str_startswith(argv[i], "-fdebug-prefix-map=")) {
+		if (str_startswith(argv[i], "-fdebug-prefix-map=") ||
+		    str_startswith(argv[i], "-ffile-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
 				debug_prefix_maps,
 				(debug_prefix_maps_len + 1) * sizeof(char *));
-			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(argv[i] + 19);
+			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
