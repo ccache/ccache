@@ -1,6 +1,17 @@
 ccache news
 ===========
 
+ccache 3.6
+----------
+Unreleased
+
+Changes
+~~~~~~~
+
+- Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
+  option is now also skipped from the hash.
+
+
 ccache 3.5
 ----------
 Release date: 2018-10-15
