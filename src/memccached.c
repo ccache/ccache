@@ -18,6 +18,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+#include "mdfour.h"
 
 #ifdef HAVE_LIBMEMCACHED
 
@@ -161,14 +162,14 @@ static char *memccached_big_get(memcached_st *ptr,
 		}
 	}
 
-	char *p = (char *)value;
+	const char *p = value;
 	if (memcmp(p, MEMCCACHE_BIG, 4) != 0) {
 		return NULL;
 	}
 
-	int numkeys = ntohl(*(uint32_t *) (p + 4));
-	assert(ntohl(*(uint32_t *) (p + 8)) == 16);
-	assert(ntohl(*(uint32_t *) (p + 12)) == 0);
+	int numkeys = ntohl(*(const uint32_t *) (p + 4));
+	assert(ntohl(*(const uint32_t *) (p + 8)) == 16);
+	assert(ntohl(*(const uint32_t *) (p + 12)) == 0);
 	size_t totalsize = ntohl(*(uint32_t *) (p + 16));
 	p += 20;
 
@@ -223,18 +224,18 @@ static char *memccached_big_get(memcached_st *ptr,
 		}
 		k = memcached_result_key_value(result);
 		l = memcached_result_key_length(result);
-		p = NULL;
+		char *pbuf = NULL;
 		int i;
 		for (i = 0; i < numkeys; i++) {
 			if (l != key_lengths[i]) {
 				continue;
 			}
 			if (memcmp(k, keys[i], l) == 0) {
-				p = buf + value_offsets[i];
+				pbuf = buf + value_offsets[i];
 				break;
 			}
 		}
-		if (!p) {
+		if (!pbuf) {
 			cc_log("Unknown key was returned: %s", k);
 			return NULL;
 		}
@@ -249,7 +250,7 @@ static char *memccached_big_get(memcached_st *ptr,
 			cc_log("Unexpected length was returned");
 			return NULL;
 		}
-		memcpy(p, v, n);
+		memcpy(pbuf, v, n);
 	} while (ret == MEMCACHED_SUCCESS);
 
 	for (int i = 0; i < numkeys; i++) {

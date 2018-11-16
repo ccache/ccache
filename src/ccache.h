@@ -1,14 +1,30 @@
+// Copyright (C) 2002-2007 Andrew Tridgell
+// Copyright (C) 2009-2018 Joel Rosdahl
+//
+// This program is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation; either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program; if not, write to the Free Software Foundation, Inc., 51
+// Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
 #ifndef CCACHE_H
 #define CCACHE_H
 
 #include "system.h"
-#include "mdfour.h"
 #include "conf.h"
 #include "counters.h"
 
 #ifdef __GNUC__
 #define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
-#define ATTR_NORETURN __attribute__((noreturn));
+#define ATTR_NORETURN __attribute__((noreturn))
 #else
 #define ATTR_FORMAT(x, y, z)
 #define ATTR_NORETURN
@@ -119,26 +135,12 @@ char *args_to_string(struct args *args);
 bool args_equal(struct args *args1, struct args *args2);
 
 // ----------------------------------------------------------------------------
-// hash.c
-
-void hash_start(struct mdfour *md);
-void hash_buffer(struct mdfour *md, const void *s, size_t len);
-char *hash_result(struct mdfour *md);
-void hash_result_as_bytes(struct mdfour *md, unsigned char *out);
-bool hash_equal(struct mdfour *md1, struct mdfour *md2);
-void hash_delimiter(struct mdfour *md, const char *type);
-void hash_string(struct mdfour *md, const char *s);
-void hash_string_length(struct mdfour *md, const char *s, int length);
-void hash_int(struct mdfour *md, int x);
-bool hash_fd(struct mdfour *md, int fd);
-bool hash_file(struct mdfour *md, const char *fname);
-
-// ----------------------------------------------------------------------------
 // util.c
 
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
+void cc_dump_log_buffer(const char *path);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
@@ -228,7 +230,7 @@ void stats_update(enum stats stat);
 void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
-void stats_summary(struct conf *conf);
+void stats_summary(void);
 void stats_update_size(int64_t size, int files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);
@@ -239,16 +241,12 @@ void stats_read(const char *path, struct counters *counters);
 void stats_write(const char *path, struct counters *counters);
 
 // ----------------------------------------------------------------------------
-// unify.c
-
-int unify_hash(struct mdfour *hash, const char *fname, bool print);
-
-// ----------------------------------------------------------------------------
 // exitfn.c
 
 void exitfn_init(void);
 void exitfn_add_nullary(void (*function)(void));
 void exitfn_add(void (*function)(void *), void *context);
+void exitfn_add_last(void (*function)(void *), void *context);
 void exitfn_call(void);
 
 // ----------------------------------------------------------------------------
@@ -264,6 +262,7 @@ void wipe_all(struct conf *conf);
 int execute(char **argv, int fd_out, int fd_err, pid_t *pid);
 char *find_executable(const char *name, const char *exclude_name);
 void print_command(FILE *fp, char **argv);
+char *format_command(char **argv);
 
 // ----------------------------------------------------------------------------
 // lockfile.c
@@ -285,7 +284,7 @@ bool is_precompiled_header(const char *path);
 
 // ----------------------------------------------------------------------------
 
-#if HAVE_COMPAR_FN_T
+#ifdef HAVE_COMPAR_FN_T
 #define COMPAR_FN_T __compar_fn_t
 #else
 typedef int (*COMPAR_FN_T)(const void *, const void *);
@@ -294,11 +293,6 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 // Work with silly DOS binary open.
 #ifndef O_BINARY
 #define O_BINARY 0
-#endif
-
-// mkstemp() on some versions of cygwin don't handle binary files, so override.
-#ifdef __CYGWIN__
-#undef HAVE_MKSTEMP
 #endif
 
 #ifdef _WIN32

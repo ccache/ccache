@@ -164,9 +164,10 @@ clean_up_dir(struct conf *conf, const char *dir, double limit_multiple)
 	// When "max files" or "max cache size" is reached, one of the 16 cache
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
-	cache_size_threshold = (uint64_t)round(conf->max_size * limit_multiple / 16);
-	files_in_cache_threshold =
-		(size_t)round(conf->max_files * limit_multiple / 16);
+	double cache_size_float = round(conf->max_size * limit_multiple / 16);
+	cache_size_threshold = (uint64_t)cache_size_float;
+	double files_in_cache_float = round(conf->max_files * limit_multiple / 16);
+	files_in_cache_threshold = (size_t)files_in_cache_float;
 
 	num_files = 0;
 	cache_size = 0;
@@ -238,7 +239,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 }
 
 // Wipe one cache subdirectory.
-void
+static void
 wipe_dir(const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);

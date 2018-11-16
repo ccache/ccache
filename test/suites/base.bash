@@ -920,6 +920,20 @@ EOF
             test_failed "boolean env var '$invalid_val' should be rejected"
         fi
     done
+
+    # -------------------------------------------------------------------------
+    TEST "--hash-file"
+
+    >empty
+    $CCACHE --hash-file empty > hash.out
+    printf "a" | $CCACHE --hash-file - >> hash.out
+
+    if grep '31d6cfe0d16ae931b73c59d7e0c089c0-0' hash.out >/dev/null 2>&1 && \
+       grep 'bde52cb31de33e46245e05fbdbd6fb24-1' hash.out >/dev/null 2>&1; then
+        : OK
+    else
+        test_failed "Unexpected output of --hash-file"
+    fi
 }
 
 # =============================================================================

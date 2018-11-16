@@ -167,8 +167,8 @@ win32execute(char *path, char **argv, int doreturn,
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
 	BOOL ret =
-	  CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-	                &si, &pi);
+		CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+		              &si, &pi);
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
@@ -178,17 +178,17 @@ win32execute(char *path, char **argv, int doreturn,
 		LPVOID lpMsgBuf;
 		DWORD dw = GetLastError();
 		FormatMessage(
-		  FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		  FORMAT_MESSAGE_FROM_SYSTEM |
-		  FORMAT_MESSAGE_IGNORE_INSERTS,
-		  NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
-		  0, NULL);
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,
+			0, NULL);
 
 		LPVOID lpDisplayBuf =
-		  (LPVOID) LocalAlloc(LMEM_ZEROINIT,
-		                      (lstrlen((LPCTSTR) lpMsgBuf)
-		                       + lstrlen((LPCTSTR) __FILE__) + 200)
-		                      * sizeof(TCHAR));
+			(LPVOID) LocalAlloc(LMEM_ZEROINIT,
+			                    (lstrlen((LPCTSTR) lpMsgBuf)
+			                     + lstrlen((LPCTSTR) __FILE__) + 200)
+			                    * sizeof(TCHAR));
 		_snprintf((LPTSTR) lpDisplayBuf,
 		          LocalSize(lpDisplayBuf) / sizeof(TCHAR),
 		          TEXT("%s failed with error %lu: %s"), __FILE__, dw,
@@ -347,4 +347,28 @@ print_command(FILE *fp, char **argv)
 		fprintf(fp, "%s%s",  (i == 0) ? "" : " ", argv[i]);
 	}
 	fprintf(fp, "\n");
+}
+
+char *
+format_command(char **argv)
+{
+	size_t len = 0;
+	for (int i = 0; argv[i]; i++) {
+		len += (i == 0) ? 0 : 1;
+		len += strlen(argv[i]);
+	}
+	len += 1;
+	char *buf = x_malloc(len + 1);
+	char *p = buf;
+	for (int i = 0; argv[i]; i++) {
+		if (i != 0) {
+			*p++ = ' ';
+		}
+		for (char *q = argv[i]; *q != '\0'; q++) {
+			*p++ = *q;
+		}
+	}
+	*p++ = '\n';
+	*p++ = '\0';
+	return buf;
 }

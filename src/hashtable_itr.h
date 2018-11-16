@@ -1,7 +1,7 @@
 /* Copyright (C) 2002, 2004 Christopher Clark <firstname.lastname@cl.cam.ac.uk> */
 
-#ifndef __HASHTABLE_ITR_CWC22__
-#define __HASHTABLE_ITR_CWC22__
+#ifndef HASHTABLE_ITR_CWC22_H
+#define HASHTABLE_ITR_CWC22_H
 #include "hashtable.h"
 #include "hashtable_private.h" /* needed to enable inlining */
 
@@ -86,7 +86,7 @@ int fnname (struct hashtable_itr *i, struct hashtable *h, keytype *k) \
 
 
 
-#endif /* __HASHTABLE_ITR_CWC22__*/
+#endif /* HASHTABLE_ITR_CWC22_H */
 
 /*
  * Copyright (c) 2002, 2004, Christopher Clark

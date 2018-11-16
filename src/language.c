@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -15,6 +15,8 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+
+#include "language.h"
 
 // Supported file extensions and corresponding languages (as in parameter to
 // the -x option).
@@ -174,5 +176,7 @@ language_is_supported(const char *language)
 bool
 language_is_preprocessed(const char *language)
 {
-	return str_eq(language, p_language_for_language(language));
+	const char *p_language = p_language_for_language(language);
+	assert(p_language);
+	return str_eq(language, p_language);
 }
