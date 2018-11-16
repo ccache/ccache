@@ -1270,7 +1270,7 @@ update_manifest_file(void)
 		update_mtime(manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
-#if HAVE_LIBMEMCACHED
+#ifdef HAVE_LIBMEMCACHED
 			char *data;
 			size_t size;
 			if (!str_eq(conf->memcached_conf, "")
@@ -2304,7 +2304,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		if (stat(manifest_path, &st) != 0) {
 			cc_log("Manifest file %s not in cache", manifest_path);
 
-#if HAVE_LIBMEMCACHED
+#ifdef HAVE_LIBMEMCACHED
 			void *cache = NULL;
 			char *data;
 			size_t size = 0;
@@ -2390,7 +2390,7 @@ from_fscache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		object_size = st.st_size;
 	} else {
 		cc_log("Object file %s not in cache", cached_obj);
-#if HAVE_LIBMEMCACHED
+#ifdef HAVE_LIBMEMCACHED
 		char *data_obj = NULL;
 		char *data_stderr = NULL;
 		char *data_dia = NULL;
