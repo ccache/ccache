@@ -16,6 +16,13 @@
 
 #include "ccache.h"
 
+// AIX/PASE does not properly define usleep within its headers, however, the
+// function is available in libc.a. This extern define ensures it is usable 
+// within the ccache code base.
+#ifdef _AIX
+	extern int              usleep(useconds_t);
+#endif
+
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale
 // for the number of microseconds specified by staleness_limit, the function

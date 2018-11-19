@@ -14,6 +14,8 @@ case $host in
         windows_os=yes
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
+    *os400* | *aix*)
+        AR="ar -X64"
 esac
 
 AC_SUBST(disable_man)
