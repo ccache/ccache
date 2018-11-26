@@ -1242,6 +1242,9 @@ to_cache(struct args *args)
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
+	if (conf->hard_link)
+		x_unlink(output_obj);
+
 	if (generating_diagnostics) {
 		args_add(args, "--serialize-diagnostics");
 		args_add(args, output_dia);
