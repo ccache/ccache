@@ -1245,8 +1245,9 @@ to_cache(struct args *args)
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
-	if (conf->hard_link)
+	if (conf->hard_link) {
 		x_unlink(output_obj);
+	}
 
 	if (generating_diagnostics) {
 		args_add(args, "--serialize-diagnostics");
@@ -2467,7 +2468,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			debug_prefix_maps = x_realloc(
 				debug_prefix_maps,
 				(debug_prefix_maps_len + 1) * sizeof(char *));
-			debug_prefix_maps[debug_prefix_maps_len++] = x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
+			debug_prefix_maps[debug_prefix_maps_len++] =
+				x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
 			args_add(stripped_args, argv[i]);
 			continue;
 		}
@@ -2583,8 +2585,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 		if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
-			sanitize_blacklists = x_realloc(sanitize_blacklists,
-                                (sanitize_blacklists_len + 1) * sizeof(char *));
+			sanitize_blacklists = x_realloc(
+				sanitize_blacklists,
+				(sanitize_blacklists_len + 1) * sizeof(char *));
 			sanitize_blacklists[sanitize_blacklists_len++] = x_strdup(argv[i] + 21);
 			args_add(stripped_args, argv[i]);
 			continue;
