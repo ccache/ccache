@@ -11,6 +11,15 @@ Changes
 - Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
   option is now also skipped from the hash.
 
+- Added support for multiple `-fsanitize-blacklist` arguments, thus preventing
+  ccache from
+
+- Fixed a problem due to Clang overwriting the output file when compiling an
+  assembler file.
+
+- Clarified the manual to explain the reasoning behind the “file_macro”
+  sloppiness setting in a better way.
+
 
 ccache 3.5
 ----------
