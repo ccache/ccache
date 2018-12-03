@@ -527,7 +527,12 @@ still has to do _some_ preprocessing (like macros).
 +
 --
 *file_macro*::
-    Ignore `__FILE__` being present in the source.
+    ccache normally includes the input file path in the hash in order to be
+   able to produce the correct object file if the source code includes a
+   `__FILE__` macro. If you know that `__FILE__` isn't used in practise, or
+   don't care if ccache produces objects where `__FILE__` is expanded to the
+   wrong path, you can set *sloppiness* to *file_macro*. ccache will then
+   exclude the input file path from the hash.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
@@ -1140,13 +1145,12 @@ problems and what may be done to increase the hit rate:
    output. If you know that `__DATE__` isn't used in practise, or don't care if
    ccache produces objects where `__DATE__` is expanded to something in the
    past, you can set *sloppiness* to *time_macros*.
-** The `__FILE__` preprocessor macro is (potentially) being used and the file
-   path has changed. If `__FILE__` is present in the source code, ccache hashes
-   the current input file path in order to be able to produce the correct
-   object file if the `__FILE__` macro affects the output. If you know that
-   `__FILE__` isn't used in practise, or don't care if ccache produces objects
-   where `__FILE__` is expanded to the wrong path, you can set *sloppiness* to
-   *file_macro*.
+** The input file path has changed. ccache normally includes the input file
+   path in the hash in order to be able to produce the correct object file if
+   the source code includes a `__FILE__` macro. If you know that `__FILE__`
+   isn't used in practise, or don't care if ccache produces objects where
+   `__FILE__` is expanded to the wrong path, you can set *sloppiness* to
+   *file_macro*. ccache will then exclude the input file path from the hash.
 * If ``cache miss'' has been incremented even though the same code has been
   compiled and cached before, ccache has either detected that something has
   changed anyway or a cleanup has been performed (either explicitly or
