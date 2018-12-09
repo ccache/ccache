@@ -20,6 +20,9 @@ Changes
 - Clarified the manual to explain the reasoning behind the “file_macro”
   sloppiness setting in a better way.
 
+- ccache now handles several levels of nonexistent directories when rewriting
+  absolute paths to relative.
+
 
 ccache 3.5
 ----------
