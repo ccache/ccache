@@ -762,7 +762,7 @@ make_relative_path(char *path)
 		// path doesn't exist.
 		char *dir = dirname(path);
 		// find the nearest existing directory in path
-		while(stat(dir, &st) != 0) {
+		while (stat(dir, &st) != 0) {
 			char *parent_dir = dirname(dir);
 			free(dir);
 			dir = parent_dir;
@@ -771,8 +771,8 @@ make_relative_path(char *path)
 		// suffix is the remaining of the path, skip the first delimiter
 		size_t dir_len = strlen(dir);
 		if (path[dir_len] == '/' || path[dir_len] == '\\') {
-            dir_len++;
-        }
+			dir_len++;
+		}
 		path_suffix = x_strdup(&path[dir_len]);
 		char *p = path;
 		path = dir;
