@@ -100,7 +100,7 @@ extern enum guessed_compiler guessed_compiler;
 #define SLOPPY_FILE_STAT_MATCHES_CTIME 128
 // Allow us to not include -index-store-path option in the manifest,
 // so that ccache can use with Xcode build.
-#define SLOPPY_NO_CLANG_INDEX_STORE 256
+#define SLOPPY_CLANG_INDEX_STORE 256
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix) \

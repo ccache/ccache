@@ -2779,7 +2779,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		if (conf->sloppiness & SLOPPY_NO_CLANG_INDEX_STORE) {
+		if (conf->sloppiness & SLOPPY_CLANG_INDEX_STORE) {
 			// Xcode 9 or later calls clang with this option.
 			// The given path has a UUID path which might break the manifest
 			// especially when cache is shared among multple machines.

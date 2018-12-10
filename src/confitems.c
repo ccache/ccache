@@ -136,8 +136,8 @@ confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_PCH_DEFINES;
 		} else if (str_eq(word, "time_macros")) {
 			*value |= SLOPPY_TIME_MACROS;
-		} else if (str_eq(word, "no_clang_index_store")) {
-			*value |= SLOPPY_NO_CLANG_INDEX_STORE;
+		} else if (str_eq(word, "clang_index_store")) {
+			*value |= SLOPPY_CLANG_INDEX_STORE;
 		} else {
 			*errmsg = format("unknown sloppiness: \"%s\"", word);
 			free(p);
@@ -178,8 +178,8 @@ confitem_format_sloppiness(void *value)
 	if (*sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
 		reformat(&s, "%sno_system_headers, ", s);
 	}
-	if (*sloppiness & SLOPPY_NO_CLANG_INDEX_STORE) {
-		reformat(&s, "%sno_clang_index_store, ", s);
+	if (*sloppiness & SLOPPY_CLANG_INDEX_STORE) {
+		reformat(&s, "%sclang_index_store, ", s);
 	}	
 	if (*sloppiness) {
 		// Strip last ", ".
