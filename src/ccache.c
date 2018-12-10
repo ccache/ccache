@@ -2797,6 +2797,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
+		if (conf->sloppiness & SLOPPY_CLANG_INDEX_STORE) {
+			// Xcode 9 or later calls clang with this option.
+			// The given path has a UUID path which might break the manifest
+			// especially when cache is shared among multple machines.
+			if (str_eq(argv[i], "-index-store-path")) {
+				i++;
+				cc_log("Skip argument -index-store-path %s", argv[i]);
+				continue;
+			}
+		}
+
 		// Options taking an argument that we may want to rewrite to relative paths
 		// to get better hit rate. A secondary effect is that paths in the standard
 		// error output produced by the compiler will be normalized.

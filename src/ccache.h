@@ -98,6 +98,9 @@ extern enum guessed_compiler guessed_compiler;
 // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
 // if we want to (it is much harder to fake ctimes, requires changing clock)
 #define SLOPPY_FILE_STAT_MATCHES_CTIME 128
+// Allow us to not include -index-store-path option in the manifest,
+// so that ccache can use with Xcode build.
+#define SLOPPY_CLANG_INDEX_STORE 256
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix) \

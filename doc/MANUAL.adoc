@@ -555,6 +555,11 @@ still has to do _some_ preprocessing (like macros).
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *time_macros*::
     Ignore `__DATE__` and `__TIME__` being present in the source code.
+*clang_index_store*::
+    Ignore the Clang compiler option *-index-store-path* and its argument when
+    computing the manifest hash. This is useful if you use Xcode, which uses an
+    index store path derived from the local project path. Note that the index
+    store won't be updated correctly on cache hits if you enable this option.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
