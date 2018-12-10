@@ -745,6 +745,19 @@ EOF
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
+    TEST "Sloppy Clang index store"
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_index_store" $CCACHE_COMPILE -index-store-path foo -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_index_store" $CCACHE_COMPILE -index-store-path bar -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
     # Check that environment variables that affect the preprocessor are taken
     # into account.
     TEST "CPATH included in hash"
