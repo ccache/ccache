@@ -23,6 +23,12 @@ Changes
 - ccache now handles several levels of nonexistent directories when rewriting
   absolute paths to relative.
 
+- A new ``sloppiness'' setting *clang_index_store* makes ccache skip the Clang
+  compiler option *-index-store-path* and its argument when computing the
+  manifest hash. This is useful if you use Xcode, which uses an index store
+  path derived from the local project path. Note that the index store won't be
+  updated correctly on cache hits if you enable this option.
+
 
 ccache 3.5
 ----------
