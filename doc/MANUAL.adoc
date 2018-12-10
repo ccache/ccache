@@ -526,13 +526,18 @@ still has to do _some_ preprocessing (like macros).
     should be a comma-separated string with options. Available options are:
 +
 --
+*clang_index_store*::
+    Ignore the Clang compiler option *-index-store-path* and its argument when
+    computing the manifest hash. This is useful if you use Xcode, which uses an
+    index store path derived from the local project path. Note that the index
+    store won't be updated correctly on cache hits if you enable this option.
 *file_macro*::
     ccache normally includes the input file path in the hash in order to be
-   able to produce the correct object file if the source code includes a
-   `__FILE__` macro. If you know that `__FILE__` isn't used in practise, or
-   don't care if ccache produces objects where `__FILE__` is expanded to the
-   wrong path, you can set *sloppiness* to *file_macro*. ccache will then
-   exclude the input file path from the hash.
+    able to produce the correct object file if the source code includes a
+    `__FILE__` macro. If you know that `__FILE__` isn't used in practise, or
+    don't care if ccache produces objects where `__FILE__` is expanded to the
+    wrong path, you can set *sloppiness* to *file_macro*. ccache will then
+    exclude the input file path from the hash.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
@@ -555,11 +560,6 @@ still has to do _some_ preprocessing (like macros).
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *time_macros*::
     Ignore `__DATE__` and `__TIME__` being present in the source code.
-*clang_index_store*::
-    Ignore the Clang compiler option *-index-store-path* and its argument when
-    computing the manifest hash. This is useful if you use Xcode, which uses an
-    index store path derived from the local project path. Note that the index
-    store won't be updated correctly on cache hits if you enable this option.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more

@@ -180,7 +180,7 @@ confitem_format_sloppiness(void *value)
 	}
 	if (*sloppiness & SLOPPY_CLANG_INDEX_STORE) {
 		reformat(&s, "%sclang_index_store, ", s);
-	}	
+	}
 	if (*sloppiness) {
 		// Strip last ", ".
 		s[strlen(s) - 2] = '\0';
