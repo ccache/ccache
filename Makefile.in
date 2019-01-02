@@ -51,7 +51,7 @@ non_3pp_sources = \
 generated_sources = \
     src/version.c
 3pp_sources = \
-    @getopt_long_c@ \
+    src/getopt_long.c \
     src/confitems_lookup.c \
     src/envtoconfitems_lookup.c \
     src/hashtable.c \

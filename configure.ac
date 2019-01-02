@@ -18,7 +18,6 @@ esac
 
 AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
-AC_SUBST(getopt_long_c)
 AC_SUBST(include_dev_mk)
 AC_SUBST(more_warnings)
 AC_SUBST(no_implicit_fallthrough_warning)
@@ -90,10 +89,6 @@ AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strtok_r)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
-
-if test x"$ac_cv_func_getopt_long" != x"yes"; then
-    getopt_long_c="src/getopt_long.c"
-fi
 
 AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
     AC_TRY_COMPILE(
