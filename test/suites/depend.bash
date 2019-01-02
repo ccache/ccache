@@ -78,7 +78,7 @@ int stderr(void)
   // Trigger compiler warning by having no return statement.
 }
 EOF
-    $COMPILER -MD -Wall -W -c cpp-warning.c 2>stderr-baseline.txt
+    $REAL_COMPILER -MD -Wall -W -c cpp-warning.c 2>stderr-baseline.txt
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -Wall -W -c cpp-warning.c 2>stderr-orig.txt
     expect_stat 'cache hit (direct)' 0
