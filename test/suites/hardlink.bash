@@ -30,4 +30,34 @@ SUITE_hardlink() {
     if [ ! $obj_in_cache -ef test1.o ]; then
         test_failed "Object file not hard-linked to cached object file"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Overwrite assembler"
+
+    generate_code 1 test1.c
+    $REAL_COMPILER -S -o test1.s test1.c
+
+    $REAL_COMPILER -c -o reference_test1.o test1.s
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    generate_code 2 test1.c
+    $REAL_COMPILER -S -o test1.s test1.c
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    generate_code 1 test1.c
+    $REAL_COMPILER -S -o test1.s test1.c
+
+    CCACHE_HARDLINK=1 $CCACHE_COMPILE -c test1.s
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+    expect_equal_object_files reference_test1.o test1.o
 }

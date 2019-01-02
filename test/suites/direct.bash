@@ -448,7 +448,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_equal_files test.d expected.d
 
-    find $CCACHE_DIR -name '*.d' -delete
+    find $CCACHE_DIR -name '*.d' -exec rm '{}' +
 
     # Missing file -> consider the cached result broken.
     $CCACHE_COMPILE -c -MD test.c
@@ -740,6 +740,19 @@ EOF
     expect_stat 'cache miss' 1
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c new.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Sloppy Clang index store"
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_index_store" $CCACHE_COMPILE -index-store-path foo -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS clang_index_store" $CCACHE_COMPILE -index-store-path bar -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1

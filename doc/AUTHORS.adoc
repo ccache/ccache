@@ -23,8 +23,11 @@ ccache is a collective work with contributions from many people, including:
 * David Givone <david@givone.net>
 * Edward Z. Yang <ezyang@fb.com>
 * Francois Marier <francois@debian.org>
+* Gabriel Scherer <gabriel.scherer@gmail.com>
 * Geert Bosch <geert@mongodb.com>
+* Geert Kloosterman <geert.kloosterman@brightcomputing.com>
 * Grigory Entin <grigorye@dins.ru>
+* Havard Graff <havard.graff@gmail.com>
 * Hongli Lai <hongli@phusion.nl>
 * Ivan Vaigult <i.vaigult@gmail.com>
 * Jiang Jiang <jiangj@opera.com>
@@ -51,6 +54,7 @@ ccache is a collective work with contributions from many people, including:
 * Michael Meeks <michael.meeks@suse.com>
 * Mihai Serban <mihai.serban@intel.com>
 * Mike Frysinger <vapier@gentoo.org>
+* Mike Gulick <mgulick@mathworks.com>
 * Mikhail Kolomeytsev <mkolom@yandex-team.ru>
 * Mostyn Bramley-Moore <mostyn@antipode.se>
 * Neil Mushell <nmushell@bloomberg.net>
@@ -66,21 +70,25 @@ ccache is a collective work with contributions from many people, including:
 * Per Nordlöw <per.nordlow@autoliv.com>
 * Peter Budai <peterbudai@hotmail.com>
 * Philippe Proulx <eeppeliteloop@gmail.com>
+* Rafael Kitover <rkitover@gmail.com>
 * Ramiro Polla <ramiro.polla@gmail.com>
 * Robin H. Johnson <robbat2@gentoo.org>
 * Rolf Bjarne Kvinge <rolf@xamarin.com>
 * RW <fbsd06@mlists.homeunix.com>
 * Ryan Brown <ryb@ableton.com>
 * Sam Gross <sgross@fb.com>
+* Thomas Otto <thomas.otto@psd-fs.de>
 * Thomas Röfer <Thomas.Roefer@dfki.de>
 * Timofei Kushnir <timophey@rdp.ru>
 * Tim Potter <tpot@samba.org>
+* Tomasz Miąsko <tomasz.miasko@gmail.com>
 * Tom Hughes <tomtheengineer@gmail.com>
 * Tor Arne Vestbø <tor.arne.vestbo@qt.io>
 * Vadim Petrochenkov <vadim.petrochenkov@gmail.com>
 * Ville Skyttä <ville.skytta@iki.fi>
 * William S Fulton <wsf@fultondesigns.co.uk>
 * Wilson Snyder <wsnyder@wsnyder.org>
+* Xavier René-Corail <xavier.renecorail@gmail.com>
 * Yiding Jia <yiding@fb.com>
 
 Thanks!

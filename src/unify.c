@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2017 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -28,6 +28,8 @@
 // compiler (for example, inline assembly systems).
 
 #include "ccache.h"
+#include "hash.h"
+#include "unify.h"
 
 static bool print_unified = true;
 
@@ -102,7 +104,7 @@ build_table(void)
 
 // Buffer up characters before hashing them.
 static void
-pushchar(struct mdfour *hash, unsigned char c)
+pushchar(struct hash *hash, unsigned char c)
 {
 	static unsigned char buf[64];
 	static size_t len;
@@ -131,11 +133,11 @@ pushchar(struct mdfour *hash, unsigned char c)
 
 // Hash some C/C++ code after unifying.
 static void
-unify(struct mdfour *hash, unsigned char *p, size_t size)
+unify(struct hash *hash, unsigned char *p, size_t size)
 {
 	build_table();
 
-	for (size_t ofs = 0; ofs < size; ) {
+	for (size_t ofs = 0; ofs < size;) {
 		if (p[ofs] == '#') {
 			if ((size-ofs) > 2 && p[ofs+1] == ' ' && isdigit(p[ofs+2])) {
 				do {
@@ -218,8 +220,8 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 			unsigned char q = p[ofs];
 			int i;
 			for (i = 0; i < tokens[q].num_toks; i++) {
-				unsigned char *s = (unsigned char *)tokens[q].toks[i];
-				int len = strlen((char *)s);
+				const unsigned char *s = (const unsigned char *)tokens[q].toks[i];
+				int len = strlen((const char *)s);
 				if (size >= ofs+len && memcmp(&p[ofs], s, len) == 0) {
 					int j;
 					for (j = 0; s[j]; j++) {
@@ -246,7 +248,7 @@ unify(struct mdfour *hash, unsigned char *p, size_t size)
 // Hash a file that consists of preprocessor output, but remove any line number
 // information from the hash.
 int
-unify_hash(struct mdfour *hash, const char *fname, bool debug)
+unify_hash(struct hash *hash, const char *fname, bool debug)
 {
 	char *data;
 	size_t size;

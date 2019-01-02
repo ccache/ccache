@@ -495,7 +495,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 # A comment
 EOF
@@ -523,7 +524,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -546,7 +548,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -569,7 +572,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -595,7 +599,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -628,7 +633,8 @@ EOF
 
     cat >compiler.sh <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 exec $COMPILER "\$@"
 EOF
     chmod +x compiler.sh
@@ -787,7 +793,8 @@ EOF
 
     cat >buggy-cpp <<EOF
 #!/bin/sh
-export CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+CCACHE_DISABLE=1 # If $COMPILER happens to be a ccache symlink...
+export CCACHE_DISABLE
 if echo "\$*" | grep -- -D >/dev/null; then
   $COMPILER "\$@"
 else
@@ -913,6 +920,20 @@ EOF
             test_failed "boolean env var '$invalid_val' should be rejected"
         fi
     done
+
+    # -------------------------------------------------------------------------
+    TEST "--hash-file"
+
+    >empty
+    $CCACHE --hash-file empty > hash.out
+    printf "a" | $CCACHE --hash-file - >> hash.out
+
+    if grep '31d6cfe0d16ae931b73c59d7e0c089c0-0' hash.out >/dev/null 2>&1 && \
+       grep 'bde52cb31de33e46245e05fbdbd6fb24-1' hash.out >/dev/null 2>&1; then
+        : OK
+    else
+        test_failed "Unexpected output of --hash-file"
+    fi
 }
 
 # =============================================================================

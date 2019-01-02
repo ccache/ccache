@@ -1,3 +1,5 @@
 ConfigurationNotChecked
 missingIncludeSystem
-unusedFunction:unittest/test_*
+
+// Not worth the effort to write leak-free code for test failure code paths.
+resourceLeak:unittest/*

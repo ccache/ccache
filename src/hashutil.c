@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2016 Joel Rosdahl
+// Copyright (C) 2009-2018 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -89,8 +89,8 @@ check_for_temporal_macros(const char *str, size_t len)
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
 hash_source_code_string(
-  struct conf *conf, struct mdfour *hash, const char *str, size_t len,
-  const char *path)
+	struct conf *conf, struct hash *hash, const char *str, size_t len,
+	const char *path)
 {
 	int result = HASH_SOURCE_CODE_OK;
 
@@ -101,7 +101,7 @@ hash_source_code_string(
 	}
 
 	// Hash the source string.
-	hash_buffer(hash, str, len);
+	hash_string_buffer(hash, str, len);
 
 	if (result & HASH_SOURCE_CODE_FOUND_DATE) {
 		// Make sure that the hash sum changes if the (potential) expansion of
@@ -110,9 +110,9 @@ hash_source_code_string(
 		struct tm *now = localtime(&t);
 		cc_log("Found __DATE__ in %s", path);
 		hash_delimiter(hash, "date");
-		hash_buffer(hash, &now->tm_year, sizeof(now->tm_year));
-		hash_buffer(hash, &now->tm_mon, sizeof(now->tm_mon));
-		hash_buffer(hash, &now->tm_mday, sizeof(now->tm_mday));
+		hash_int(hash, now->tm_year);
+		hash_int(hash, now->tm_mon);
+		hash_int(hash, now->tm_mday);
 	}
 	if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 		// We don't know for sure that the program actually uses the __TIME__
@@ -130,7 +130,7 @@ hash_source_code_string(
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
 // results.
 int
-hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
+hash_source_code_file(struct conf *conf, struct hash *hash, const char *path)
 {
 	if (is_precompiled_header(path)) {
 		if (hash_file(hash, path)) {
@@ -151,7 +151,7 @@ hash_source_code_file(struct conf *conf, struct mdfour *hash, const char *path)
 }
 
 bool
-hash_command_output(struct mdfour *hash, const char *command,
+hash_command_output(struct hash *hash, const char *command,
                     const char *compiler)
 {
 #ifdef _WIN32
@@ -216,7 +216,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 		win32args = (char *)command;  // quoted
 	}
 	BOOL ret =
-	  CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+		CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
 	CloseHandle(pipe_out[1]);
 	args_free(args);
 	free(win32args);
@@ -270,7 +270,8 @@ hash_command_output(struct mdfour *hash, const char *command,
 		close(pipefd[1]);
 		bool ok = hash_fd(hash, pipefd[0]);
 		if (!ok) {
-			cc_log("Error hashing compiler check command output: %s", strerror(errno));
+			cc_log("Error hashing compiler check command output: %s",
+			       strerror(errno));
 			stats_update(STATS_COMPCHECK);
 		}
 		close(pipefd[0]);
@@ -291,7 +292,7 @@ hash_command_output(struct mdfour *hash, const char *command,
 }
 
 bool
-hash_multicommand_output(struct mdfour *hash, const char *commands,
+hash_multicommand_output(struct hash *hash, const char *commands,
                          const char *compiler)
 {
 	char *command_string = x_strdup(commands);

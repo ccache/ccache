@@ -1,6 +1,6 @@
 # GNU make syntax reigns in this file.
 
-all_cflags += -Werror
+all_cflags += -Werror @more_warnings@
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
 A2X = a2x
@@ -9,6 +9,8 @@ CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SHELLCHECK = shellcheck
 SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
+COMPILEDB = compiledb
+CLANG_TIDY = clang-tidy
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
@@ -38,8 +40,11 @@ headers = \
     src/ccache.h \
     src/compopt.h \
     src/conf.h \
+    src/confitems.h \
     src/counters.h \
+    src/envtoconfitems.h \
     src/getopt_long.h \
+    src/hash.h \
     src/hashtable.h \
     src/hashtable_itr.h \
     src/hashtable_private.h \
@@ -50,12 +55,14 @@ headers = \
     src/mdfour.h \
     src/murmurhashneutral2.h \
     src/system.h \
+    src/unify.h \
     unittest/framework.h \
     unittest/util.h
 generated_headers = \
     unittest/suites.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
+files_to_clean += compile_commands.json
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
@@ -102,13 +109,14 @@ uncrustify_exclude_files = \
     src/snprintf.c
 
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
-  $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >src/version.c)
+  $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.c)
 endif
 src/version.o: src/version.c
 
 %_lookup.c: %.gperf
-	$(GPERF) $< | awk '/#ifdef __GNUC__/ { ++i; if (i == 2) { print "static"; }} {print}' >$@
-	echo "static const size_t $$(echo $(notdir $*) | tr a-z A-Z)_TOTAL_KEYWORDS = $$(sed -nr 's/.*TOTAL_KEYWORDS = ([0-9]+).*/\1/p' $@);" >>$@
+	$(if $(quiet),@echo "  GPERF    $@")
+	$(Q)$(GPERF) $< >$@
+	$(Q)echo "size_t $$(echo '$(notdir $*)_count(void)') { return $$(sed -nr 's/.*TOTAL_KEYWORDS = (.+),.*/\1/p' $@); }" >>$@
 
 .PHONY: dist
 dist: $(dist_archives)
@@ -133,49 +141,46 @@ $(dist_archives): $(dist_files)
 	 tar -c $$tarcompression -f $(CURDIR)/$@ $(dist_dir)) && \
 	rm -rf $$tmpdir
 
+# $(1): extra configure options
+define do_distcheck
+	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
+	(cd $$tmpdir && \
+	 tar xf $(CURDIR)/$< && \
+	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
+	 cd $(dist_dir)/build && \
+	 ../configure --enable-more-warnings --prefix=$$tmpdir/root $(1) && \
+	 $(MAKE) install CFLAGS=-Werror V=1 && \
+	 $(MAKE) installcheck) && \
+	chmod -R u+w $$tmpdir/$(dist_dir) && \
+	rm -rf $$tmpdir
+endef
+
 .PHONY: distcheck
 distcheck: $(firstword $(dist_archives))
-	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
-	(cd $$tmpdir && \
-	 tar xf $(CURDIR)/$< && \
-	 mkdir -p $(dist_dir)/build && \
-	 chmod -R a-w $(dist_dir) && \
-	 chmod u+w $(dist_dir)/build && \
-	 cd $(dist_dir)/build && \
-	 ../configure --prefix=$$tmpdir/root && \
-	 $(MAKE) install && \
-	 $(MAKE) installcheck) && \
-	chmod -R u+w $$tmpdir/$(dist_dir) && \
-	rm -rf $$tmpdir
-
-	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
-	(cd $$tmpdir && \
-	 tar xf $(CURDIR)/$< && \
-	 mkdir -p $(dist_dir)/build && \
-	 chmod -R a-w $(dist_dir) && \
-	 chmod u+w $(dist_dir)/build && \
-	 cd $(dist_dir)/build && \
-	 ../configure --prefix=$$tmpdir/root --with-bundled-zlib && \
-	 $(MAKE) install && \
-	 $(MAKE) installcheck) && \
-	chmod -R u+w $$tmpdir/$(dist_dir) && \
-	rm -rf $$tmpdir
+	$(call do_distcheck, --without-bundled-zlib)
+	$(call do_distcheck, --with-bundled-zlib)
+	$(call do_distcheck, CC=clang)
 
 .PHONY: docs
 docs: $(generated_docs)
 
 %.html: %.adoc
 	@mkdir -p $(@D)
-	$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
+	$(if $(quiet),@echo "  ASCIIDOC $@")
+	$(Q)$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
 
 %.xml: %.adoc
 	@mkdir -p $(@D)
 # Make literals stand out as bold in the man page:
-	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
+	$(if $(quiet),@echo "  ASCIIDOC $@")
+	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
 doc/ccache.1: doc/MANUAL.xml
-	$(A2X) --doctype manpage --format manpage $<
+	$(if $(quiet),@echo "  A2X      $@")
+	$(Q)$(A2X) --doctype manpage --format manpage $<
 
 .PHONY: update-authors
 update-authors:
@@ -190,7 +195,8 @@ check-syntax:
 .PHONY: cppcheck
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
-	  --inline-suppr -q --enable=all --force \
+	  --inline-suppr -q --enable=all --force -I . \
+	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
 	  $(non_3pp_sources) src/main.c $(test_sources)
 
 .PHONY: shellcheck
@@ -200,6 +206,14 @@ shellcheck: test/suites/*.bash
 .PHONY: uncrustify
 uncrustify:
 	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+
+# pip install compiledb
+compile_commands.json:
+	$(COMPILEDB) -n $(MAKE) all unittest
+
+.PHONY: tidy
+tidy: compile_commands.json
+	$(CLANG_TIDY) $(all_sources)
 
 .PHONY: analyze
 analyze:

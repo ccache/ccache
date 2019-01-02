@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2018 Joel Rosdahl
+// Copyright (C) 2011-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -18,10 +18,10 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 33
+#define N_CONFIG_ITEMS 34
 static struct {
 	char *descr;
-	const char *origin;
+	char *origin;
 } received_conf_items[N_CONFIG_ITEMS];
 static size_t n_received_conf_items = 0;
 
@@ -30,7 +30,7 @@ conf_item_receiver(const char *descr, const char *origin, void *context)
 {
 	(void)context;
 	received_conf_items[n_received_conf_items].descr = x_strdup(descr);
-	received_conf_items[n_received_conf_items].origin = origin;
+	received_conf_items[n_received_conf_items].origin = x_strdup(origin);
 	++n_received_conf_items;
 }
 
@@ -40,6 +40,7 @@ free_received_conf_items(void)
 	while (n_received_conf_items > 0) {
 		--n_received_conf_items;
 		free(received_conf_items[n_received_conf_items].descr);
+		free(received_conf_items[n_received_conf_items].origin);
 	}
 }
 
@@ -57,6 +58,7 @@ TEST(conf_create)
 	CHECK(!conf->compression);
 	CHECK_INT_EQ(6, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
+	CHECK(!conf->debug);
 	CHECK(!conf->depend_mode);
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
@@ -65,7 +67,7 @@ TEST(conf_create)
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK(!conf->keep_comments_cpp);
-	CHECK_FLOAT_EQ(0.8f, conf->limit_multiple);
+	CHECK_DOUBLE_EQ(0.8, conf->limit_multiple);
 	CHECK_STR_EQ("", conf->log_file);
 	CHECK_INT_EQ(0, conf->max_files);
 	CHECK_INT_EQ((uint64_t)5 * 1000 * 1000 * 1000, conf->max_size);
@@ -93,48 +95,48 @@ TEST(conf_read_valid_config)
 	user = getenv("USER");
 	CHECK_STR_EQ("rabbit", user);
 	create_file(
-	  "ccache.conf",
+		"ccache.conf",
 #ifndef _WIN32
-	  "base_dir =  /$USER/foo/${USER} \n"
+		"base_dir =  /$USER/foo/${USER} \n"
 #else
-	  "base_dir = C:/$USER/foo/${USER}\n"
+		"base_dir = C:/$USER/foo/${USER}\n"
 #endif
-	  "cache_dir=\n"
-	  "cache_dir = $USER$/${USER}/.ccache\n"
-	  "\n"
-	  "\n"
-	  "  #A comment\n"
-	  " cache_dir_levels = 4\n"
-	  "\t compiler = foo\n"
-	  "compiler_check = none\n"
-	  "compression=true\n"
-	  "compression_level= 2\n"
-	  "cpp_extension = .foo\n"
+		"cache_dir=\n"
+		"cache_dir = $USER$/${USER}/.ccache\n"
+		"\n"
+		"\n"
+		"  #A comment\n"
+		" cache_dir_levels = 4\n"
+		"\t compiler = foo\n"
+		"compiler_check = none\n"
+		"compression=true\n"
+		"compression_level= 2\n"
+		"cpp_extension = .foo\n"
 	  "depend_mode = true\n"
-	  "direct_mode = false\n"
-	  "disable = true\n"
-	  "extra_files_to_hash = a:b c:$USER\n"
-	  "hard_link = true\n"
-	  "hash_dir = false\n"
-	  "ignore_headers_in_manifest = a:b/c\n"
-	  "keep_comments_cpp = true\n"
-	  "limit_multiple = 1.0\n"
-	  "log_file = $USER${USER} \n"
-	  "max_files = 17\n"
-	  "max_size = 123M\n"
-	  "path = $USER.x\n"
-	  "pch_external_checksum = true\n"
-	  "prefix_command = x$USER\n"
-	  "prefix_command_cpp = y\n"
-	  "read_only = true\n"
-	  "read_only_direct = true\n"
-	  "recache = true\n"
-	  "run_second_cpp = false\n"
-	  "sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,pch_defines ,  no_system_headers  \n"
-	  "stats = false\n"
-	  "temporary_dir = ${USER}_foo\n"
-	  "umask = 777\n"
-	  "unify = true"); // Note: no newline.
+		"direct_mode = false\n"
+		"disable = true\n"
+		"extra_files_to_hash = a:b c:$USER\n"
+		"hard_link = true\n"
+		"hash_dir = false\n"
+		"ignore_headers_in_manifest = a:b/c\n"
+		"keep_comments_cpp = true\n"
+		"limit_multiple = 1.0\n"
+		"log_file = $USER${USER} \n"
+		"max_files = 17\n"
+		"max_size = 123M\n"
+		"path = $USER.x\n"
+		"pch_external_checksum = true\n"
+		"prefix_command = x$USER\n"
+		"prefix_command_cpp = y\n"
+		"read_only = true\n"
+		"read_only_direct = true\n"
+		"recache = true\n"
+		"run_second_cpp = false\n"
+		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines ,  no_system_headers,clang_index_store\n"
+		"stats = false\n"
+		"temporary_dir = ${USER}_foo\n"
+		"umask = 777\n"
+		"unify = true"); // Note: no newline.
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	CHECK(!errmsg);
 
@@ -158,7 +160,7 @@ TEST(conf_read_valid_config)
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
 	CHECK(conf->keep_comments_cpp);
-	CHECK_FLOAT_EQ(1.0, conf->limit_multiple);
+	CHECK_DOUBLE_EQ(1.0, conf->limit_multiple);
 	CHECK_STR_EQ_FREE1(format("%s%s", user, user), conf->log_file);
 	CHECK_INT_EQ(17, conf->max_files);
 	CHECK_INT_EQ(123 * 1000 * 1000, conf->max_size);
@@ -172,8 +174,8 @@ TEST(conf_read_valid_config)
 	CHECK(!conf->run_second_cpp);
 	CHECK_INT_EQ(SLOPPY_INCLUDE_FILE_MTIME|SLOPPY_INCLUDE_FILE_CTIME|
 	             SLOPPY_FILE_MACRO|SLOPPY_TIME_MACROS|
-	             SLOPPY_FILE_STAT_MATCHES|SLOPPY_NO_SYSTEM_HEADERS|
-	             SLOPPY_PCH_DEFINES,
+	             SLOPPY_FILE_STAT_MATCHES|SLOPPY_FILE_STAT_MATCHES_CTIME|
+	             SLOPPY_NO_SYSTEM_HEADERS|SLOPPY_PCH_DEFINES|SLOPPY_CLANG_INDEX_STORE,
 	             conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);
@@ -330,13 +332,13 @@ TEST(verify_dir_levels)
 	create_file("ccache.conf", "cache_dir_levels = 0");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2(
-	  "ccache.conf:1: cache directory levels must be between 1 and 8",
-	  errmsg);
+		"ccache.conf:1: cache directory levels must be between 1 and 8",
+		errmsg);
 	create_file("ccache.conf", "cache_dir_levels = 9");
 	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
 	CHECK_STR_EQ_FREE2(
-	  "ccache.conf:1: cache directory levels must be between 1 and 8",
-	  errmsg);
+		"ccache.conf:1: cache directory levels must be between 1 and 8",
+		errmsg);
 
 	conf_free(conf);
 }
@@ -384,6 +386,50 @@ TEST(conf_set_existing_value)
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
 }
 
+TEST(conf_print_existing_value)
+{
+	struct conf *conf = conf_create();
+	conf->max_files = 42;
+	char *errmsg;
+	{
+		FILE *log = fopen("log", "w");
+		CHECK(log);
+		CHECK(conf_print_value(conf, "max_files", log, &errmsg));
+		fclose(log);
+	}
+	{
+		FILE *log = fopen("log", "r");
+		CHECK(log);
+		char buf[100];
+		CHECK(fgets(buf, sizeof(buf), log));
+		CHECK_STR_EQ("42\n", buf);
+		fclose(log);
+	}
+	conf_free(conf);
+}
+
+TEST(conf_print_unknown_value)
+{
+	struct conf *conf = conf_create();
+	char *errmsg;
+	{
+		FILE *log = fopen("log", "w");
+		CHECK(log);
+		CHECK(!conf_print_value(conf, "foo", log, &errmsg));
+		CHECK_STR_EQ_FREE2("unknown configuration option \"foo\"",
+		                   errmsg);
+		fclose(log);
+	}
+	{
+		FILE *log = fopen("log", "r");
+		CHECK(log);
+		char buf[100];
+		CHECK(!fgets(buf, sizeof(buf), log));
+		fclose(log);
+	}
+	conf_free(conf);
+}
+
 TEST(conf_print_items)
 {
 	size_t i;
@@ -396,6 +442,7 @@ TEST(conf_print_items)
 		true,
 		8,
 		"ce",
+		false,
 		true,
 		false,
 		true,
@@ -418,8 +465,8 @@ TEST(conf_print_items)
 		.run_second_cpp = false,
 		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
 		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
-		SLOPPY_FILE_STAT_MATCHES|SLOPPY_PCH_DEFINES|
-		SLOPPY_NO_SYSTEM_HEADERS,
+		SLOPPY_FILE_STAT_MATCHES|SLOPPY_FILE_STAT_MATCHES_CTIME|
+		SLOPPY_PCH_DEFINES|SLOPPY_NO_SYSTEM_HEADERS|SLOPPY_CLANG_INDEX_STORE,
 		false,
 		"td",
 		022,
@@ -447,6 +494,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("compression = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compression_level = 8", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
+	CHECK_STR_EQ("debug = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("depend_mode = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
@@ -470,7 +518,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("run_second_cpp = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"
 	             " include_file_ctime, time_macros, pch_defines,"
-	             " file_stat_matches, no_system_headers",
+	             " file_stat_matches, file_stat_matches_ctime, no_system_headers, clang_index_store",
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("stats = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++].descr);

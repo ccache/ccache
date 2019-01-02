@@ -30,11 +30,15 @@
 */
 
 #include "hashtable.h"
+#define HASHTABLE_INDEXFOR
 #include "hashtable_private.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
+extern const unsigned int prime_table_length;
+extern const float max_load_factor;
 
 /*
 Credit for primes table: Aaron Krowne
@@ -77,7 +81,8 @@ create_hashtable(unsigned int minsize,
     h->entrycount   = 0;
     h->hashfn       = hashf;
     h->eqfn         = eqf;
-    h->loadlimit    = (unsigned int) ceil(size * max_load_factor);
+    double loadlimit_float = ceil((double)size * (double)max_load_factor);
+    h->loadlimit    = (unsigned int)loadlimit_float;
     return h;
 }
 
@@ -150,7 +155,8 @@ hashtable_expand(struct hashtable *h)
         }
     }
     h->tablelength = newsize;
-    h->loadlimit   = (unsigned int) ceil(newsize * max_load_factor);
+    double loadlimit_float = ceil((double)newsize* (double)max_load_factor);
+    h->loadlimit   = (unsigned int) loadlimit_float;
     return -1;
 }
 

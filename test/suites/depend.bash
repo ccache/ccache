@@ -92,7 +92,5 @@ EOF
     expect_stat 'cache miss' 1
     expect_file_content stderr-mf.txt "`cat stderr-baseline.txt`"
 
-
     # FIXME: add more test cases (see direct.bash for inspiration)
-
 }

@@ -34,7 +34,11 @@
 
 #include "config.h"
 
-#ifndef HAVE_GETOPT_LONG
+#ifdef HAVE_GETOPT_LONG
+
+typedef int do_not_warn_about_empty_compilation_unit;
+
+#else
 
 #include "getopt_long.h"
 

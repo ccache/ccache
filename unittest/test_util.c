@@ -166,8 +166,8 @@ TEST(format_parsable_size_with_suffix)
 	CHECK_STR_EQ_FREE2("1.0G",
 	                   format_parsable_size_with_suffix(1000 * 1000 * 1000));
 	CHECK_STR_EQ_FREE2(
-	  "17.1G",
-	  format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
+		"17.1G",
+		format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
 }
 
 TEST(parse_size_with_suffix)
@@ -197,6 +197,14 @@ TEST(parse_size_with_suffix)
 		CHECKM(parse_size_with_suffix(sizes[i].size, &size), sizes[i].size);
 		CHECK_INT_EQ(sizes[i].expected, size);
 	}
+}
+
+TEST(format_command)
+{
+	char *argv[] = {"foo", "bar", NULL};
+
+	CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
+
 }
 
 TEST_SUITE_END

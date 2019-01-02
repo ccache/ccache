@@ -51,7 +51,7 @@ static format_fn format_timestamp;
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
-	char *message;
+	const char *message;
 	format_fn *format_fn; // NULL -> use plain integer format
 	unsigned flags;
 } stats_info[] = {
@@ -267,7 +267,7 @@ static char *
 format_timestamp(uint64_t timestamp)
 {
 	if (timestamp > 0) {
-		struct tm *tm = localtime((time_t*)&timestamp);
+		struct tm *tm = localtime((time_t *)&timestamp);
 		char buffer[100];
 		strftime(buffer, sizeof(buffer), "%c", tm);
 		return format("    %s", buffer);
@@ -389,7 +389,7 @@ stats_flush(void)
 	stats_write(stats_file, counters);
 	lockfile_release(stats_file);
 
-	if (!str_eq(conf->log_file, "")) {
+	if (!str_eq(conf->log_file, "") || conf->debug) {
 		for (int i = 0; i < STATS_END; ++i) {
 			if (counter_updates->data[stats_info[i].stat] != 0
 			    && !(stats_info[i].flags & FLAG_NOZERO)) {
@@ -445,7 +445,7 @@ stats_get_pending(enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(struct conf *conf)
+stats_summary(void)
 {
 	struct counters *counters = counters_init(STATS_END);
 	time_t updated = 0;
@@ -515,7 +515,7 @@ stats_summary(struct conf *conf)
 			unsigned hit = direct + preprocessed;
 			unsigned miss = counters->data[STATS_TOCACHE];
 			unsigned total = hit + miss;
-			double percent = total > 0 ? (100.0f * hit) / total : 0.0f;
+			double percent = total > 0 ? (100.0 * hit) / total : 0.0;
 			printf("cache hit rate                    %6.2f %%\n", percent);
 		}
 	}
