@@ -1104,8 +1104,7 @@ out:
 // note we cannot distinguish system headers from other includes here
 static struct file_hash *
 object_hash_from_depfile(const char *depfile, struct hash *hash) {
-	FILE *f;
-	f = fopen(depfile, "r");
+	FILE *f = fopen(depfile, "r");
 	if (!f) {
 		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
 		return NULL;
@@ -1128,6 +1127,8 @@ object_hash_from_depfile(const char *depfile, struct hash *hash) {
 			remember_include_file(x_strdup(token), hash, false, hash);
 		}
 	}
+
+	fclose(f);
 
 	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
 	if (debug_included) {
@@ -1377,6 +1378,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		time_of_compilation = time(NULL);
 		status = execute(
 			depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+		args_free(depend_mode_args);
 	}
 
 	struct stat st;
