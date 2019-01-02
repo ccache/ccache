@@ -30,6 +30,22 @@ Changes
   updated correctly on cache hits if you enable this option.
 
 
+ccache 3.5.1
+------------
+Release date: 2019-01-02
+
+Changes
+~~~~~~~
+
+- Added missing getopt_long.c source file to release archive.
+
+- Fixed (harmless) compiler warnings when building ccache object files.
+
+- CFLAGS is no longer passed to the linker when linking ccache.
+
+- Improved development mode build flags.
+
+
 ccache 3.5
 ----------
 Release date: 2018-10-15

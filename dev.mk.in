@@ -92,6 +92,7 @@ source_dist_files = \
     src/confitems_lookup.c \
     src/envtoconfitems.gperf \
     src/envtoconfitems_lookup.c \
+    src/getopt_long.c \
     src/main.c \
     src/zlib/*.c \
     src/zlib/*.h \
