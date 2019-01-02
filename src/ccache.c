@@ -1100,13 +1100,14 @@ out:
 	free(tmp_file);
 }
 
-// extract the used includes from the dependency file
-// note we cannot distinguish system headers from other includes here
+// Extract the used includes from the dependency file. Note that we cannot
+// distinguish system headers from other includes here.
 static struct file_hash *
-object_hash_from_depfile(const char *depfile, struct hash *hash) {
+object_hash_from_depfile(const char *depfile, struct hash *hash)
+{
 	FILE *f = fopen(depfile, "r");
 	if (!f) {
-		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+		cc_log("Cannot open dependency file %s: %s", depfile, strerror(errno));
 		return NULL;
 	}
 
@@ -1367,9 +1368,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		tmp_stderr = format("%s/tmp.stderr", temp_dir());
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
-		// Use the original arguments (including deps) in depend mode.
-		// Similar to failed();
-		// FIXME: on error we probably do not want to fall back to failed() anymore
+		// Use the original arguments (including dependency options) in depend
+		// mode.
 		assert(orig_args);
 		struct args *depend_mode_args = args_copy(orig_args);
 		args_strip(depend_mode_args, "--ccache-");
@@ -1462,12 +1462,15 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	if (conf->depend_mode) {
-		struct file_hash *object_hash = object_hash_from_depfile(output_dep, depend_mode_hash);
-		if (!object_hash)
+		struct file_hash *object_hash =
+			object_hash_from_depfile(output_dep, depend_mode_hash);
+		if (!object_hash) {
 			failed();
+		}
 		update_cached_result_globals(object_hash);
 
-		// in depend_mode it does not make sense to update an existing manifest file
+		// It does not make sense to update an existing manifest file in the depend
+		// mode.
 		x_unlink(manifest_path);
 	}
 
@@ -3556,7 +3559,8 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	if (conf->depend_mode && (!generating_dependencies || !conf->run_second_cpp)) {
+	if (conf->depend_mode
+	    && (!generating_dependencies || !conf->run_second_cpp)) {
 		cc_log("Disabling depend mode");
 		conf->depend_mode = false;
 	}
@@ -3630,12 +3634,13 @@ ccache(int argc, char *argv[])
 	}
 
 	if (!conf->depend_mode) {
-		// Find the hash using the preprocessed output. Also updates included_files.
+		// Find the hash using the preprocessed output. Also updates
+		// included_files.
 		struct hash *cpp_hash = hash_copy(common_hash);
 		init_hash_debug(
-		cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
+			cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
-	object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
+		object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
 		if (!object_hash) {
 			fatal("internal error: object hash from cpp returned NULL");
 		}
@@ -3643,8 +3648,8 @@ ccache(int argc, char *argv[])
 
 		if (object_hash_from_manifest
 		    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
-			// The hash from manifest differs from the hash of the preprocessor output.
-			// This could be because:
+			// The hash from manifest differs from the hash of the preprocessor
+			// output. This could be because:
 			//
 			// - The preprocessor produces different output for the same input (not
 			//   likely).
@@ -3652,9 +3657,9 @@ ccache(int argc, char *argv[])
 			//   arguments).
 			// - The user has used a different CCACHE_BASEDIR (most likely).
 			//
-			// The best thing here would probably be to remove the hash entry from the
-			// manifest. For now, we use a simpler method: just remove the manifest
-			// file.
+			// The best thing here would probably be to remove the hash entry from
+			// the manifest. For now, we use a simpler method: just remove the
+			// manifest file.
 			cc_log("Hash from manifest doesn't match preprocessor output");
 			cc_log("Likely reason: different CCACHE_BASEDIRs used");
 			cc_log("Removing manifest as a safety measure");

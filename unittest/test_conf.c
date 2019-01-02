@@ -112,7 +112,7 @@ TEST(conf_read_valid_config)
 		"compression=true\n"
 		"compression_level= 2\n"
 		"cpp_extension = .foo\n"
-	  "depend_mode = true\n"
+		"depend_mode = true\n"
 		"direct_mode = false\n"
 		"disable = true\n"
 		"extra_files_to_hash = a:b c:$USER\n"
