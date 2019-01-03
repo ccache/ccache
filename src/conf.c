@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2018 Joel Rosdahl
+// Copyright (C) 2011-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -131,6 +131,7 @@ conf_create(void)
 	conf->compression_level = 6;
 	conf->cpp_extension = x_strdup("");
 	conf->debug = false;
+	conf->depend_mode = false;
 	conf->direct_mode = true;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
@@ -390,6 +391,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "compression_level", printer, context);
 	ok &= print_item(conf, "cpp_extension", printer, context);
 	ok &= print_item(conf, "debug", printer, context);
+	ok &= print_item(conf, "depend_mode", printer, context);
 	ok &= print_item(conf, "direct_mode", printer, context);
 	ok &= print_item(conf, "disable", printer, context);
 	ok &= print_item(conf, "extra_files_to_hash", printer, context);

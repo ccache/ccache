@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2018 Joel Rosdahl
+// Copyright (C) 2011-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 33
+#define N_CONFIG_ITEMS 34
 static struct {
 	char *descr;
 	char *origin;
@@ -59,6 +59,7 @@ TEST(conf_create)
 	CHECK_INT_EQ(6, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(!conf->debug);
+	CHECK(!conf->depend_mode);
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
@@ -111,6 +112,7 @@ TEST(conf_read_valid_config)
 		"compression=true\n"
 		"compression_level= 2\n"
 		"cpp_extension = .foo\n"
+	  "depend_mode = true\n"
 		"direct_mode = false\n"
 		"disable = true\n"
 		"extra_files_to_hash = a:b c:$USER\n"
@@ -150,6 +152,7 @@ TEST(conf_read_valid_config)
 	CHECK(conf->compression);
 	CHECK_INT_EQ(2, conf->compression_level);
 	CHECK_STR_EQ(".foo", conf->cpp_extension);
+	CHECK(conf->depend_mode);
 	CHECK(!conf->direct_mode);
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
@@ -440,6 +443,7 @@ TEST(conf_print_items)
 		8,
 		"ce",
 		false,
+		true,
 		false,
 		true,
 		"efth",
@@ -491,6 +495,7 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("compression_level = 8", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cpp_extension = ce", received_conf_items[n++].descr);
 	CHECK_STR_EQ("debug = false", received_conf_items[n++].descr);
+	CHECK_STR_EQ("depend_mode = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);

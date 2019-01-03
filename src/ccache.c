@@ -584,7 +584,8 @@ get_path_in_cache(const char *name, const char *suffix)
 // global included_files variable. If the include file is a PCH, cpp_hash is
 // also updated. Takes over ownership of path.
 static void
-remember_include_file(char *path, struct hash *cpp_hash, bool system)
+remember_include_file(char *path, struct hash *cpp_hash, bool system,
+                      struct hash *depend_mode_hash)
 {
 	struct hash *fhash = NULL;
 
@@ -725,6 +726,11 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system)
 		h->size = hash_input_size(fhash);
 		hashtable_insert(included_files, path, h);
 		path = NULL; // Ownership transferred to included_files.
+
+		if (depend_mode_hash) {
+			hash_delimiter(depend_mode_hash, "include");
+			hash_buffer(depend_mode_hash, h->hash, sizeof(h->hash));
+		}
 	}
 
 	goto out;
@@ -738,6 +744,16 @@ failure:
 out:
 	hash_free(fhash);
 	free(path);
+}
+
+static void
+print_included_files(FILE *fp)
+{
+	struct hashtable_itr *iter = hashtable_iterator(included_files);
+	do {
+		char *path = hashtable_iterator_key(iter);
+		fprintf(fp, "%s\n", path);
+	} while (hashtable_iterator_advance(iter));
 }
 
 // Make a relative path from current working directory to path if path is under
@@ -954,7 +970,7 @@ process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 				hash_string_buffer(hash, inc_path, strlen(inc_path));
 			}
 
-			remember_include_file(inc_path, hash, system);
+			remember_include_file(inc_path, hash, system, NULL);
 			p = q; // Everything of interest between p and q has been hashed now.
 		} else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
 		           && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
@@ -993,7 +1009,12 @@ process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 		char *pch_path = x_strdup(included_pch_file);
 		pch_path = make_relative_path(pch_path);
 		hash_string(hash, pch_path);
-		remember_include_file(pch_path, hash, false);
+		remember_include_file(pch_path, hash, false, NULL);
+	}
+
+	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+	if (debug_included) {
+		print_included_files(stdout);
 	}
 
 	return true;
@@ -1077,6 +1098,46 @@ out:
 		x_unlink(tmp_file);
 	}
 	free(tmp_file);
+}
+
+// extract the used includes from the dependency file
+// note we cannot distinguish system headers from other includes here
+static struct file_hash *
+object_hash_from_depfile(const char *depfile, struct hash *hash) {
+	FILE *f;
+	f = fopen(depfile, "r");
+	if (!f) {
+		cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+		return NULL;
+	}
+
+	if (!included_files) {
+		included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	}
+
+	char buf[10000];
+	while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
+		char *saveptr;
+		char *token;
+		for (token = strtok_r(buf, " \t\n", &saveptr);
+		     token;
+		     token = strtok_r(NULL, " \t\n", &saveptr)) {
+			if (str_endswith(token, ":") || str_eq(token, "\\")) {
+				continue;
+			}
+			remember_include_file(x_strdup(token), hash, false, hash);
+		}
+	}
+
+	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+	if (debug_included) {
+		print_included_files(stdout);
+	}
+
+	struct file_hash *result = x_malloc(sizeof(*result));
+	hash_result_as_bytes(hash, result->hash);
+	result->size = hash_input_size(hash);
+	return result;
 }
 
 // Helper method for copy_file_to_cache and move_file_to_cache_same_fs.
@@ -1239,15 +1300,27 @@ update_manifest_file(void)
 	}
 }
 
+static void
+update_cached_result_globals(struct file_hash *hash)
+{
+	char *object_name = format_hash_as_string(hash->hash, hash->size);
+	cached_obj_hash = hash;
+	cached_obj = get_path_in_cache(object_name, ".o");
+	cached_stderr = get_path_in_cache(object_name, ".stderr");
+	cached_dep = get_path_in_cache(object_name, ".d");
+	cached_cov = get_path_in_cache(object_name, ".gcno");
+	cached_su = get_path_in_cache(object_name, ".su");
+	cached_dia = get_path_in_cache(object_name, ".dia");
+	cached_dwo = get_path_in_cache(object_name, ".dwo");
+
+	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
+	free(object_name);
+}
+
 // Run the real compiler and put the result in cache.
 static void
-to_cache(struct args *args)
+to_cache(struct args *args, struct hash *depend_mode_hash)
 {
-	char *tmp_stdout = format("%s.tmp.stdout", cached_obj);
-	int tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-	char *tmp_stderr = format("%s.tmp.stderr", cached_obj);
-	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
@@ -1273,9 +1346,38 @@ to_cache(struct args *args)
 	}
 
 	cc_log("Running real compiler");
-	int status =
-		execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
-	args_pop(args, 3);
+	char *tmp_stdout;
+	int tmp_stdout_fd;
+	char *tmp_stderr;
+	int tmp_stderr_fd;
+	int status;
+	if (!conf->depend_mode) {
+		tmp_stdout = format("%s.tmp.stdout", cached_obj);
+		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		tmp_stderr = format("%s.tmp.stderr", cached_obj);
+		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
+		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+		args_pop(args, 3);
+	} else {
+		// The cached object path is not known yet, use temporary files.
+		tmp_stdout = format("%s/tmp.stdout", temp_dir());
+		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		tmp_stderr = format("%s/tmp.stderr", temp_dir());
+		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+
+		// Use the original arguments (including deps) in depend mode.
+		// Similar to failed();
+		// FIXME: on error we probably do not want to fall back to failed() anymore
+		assert(orig_args);
+		struct args *depend_mode_args = args_copy(orig_args);
+		args_strip(depend_mode_args, "--ccache-");
+		add_prefix(depend_mode_args, conf->prefix_command);
+
+		time_of_compilation = time(NULL);
+		status = execute(
+			depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+	}
 
 	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1353,6 +1455,20 @@ to_cache(struct args *args)
 		failed();
 	}
 
+	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
+	}
+
+	if (conf->depend_mode) {
+		struct file_hash *object_hash = object_hash_from_depfile(output_dep, depend_mode_hash);
+		if (!object_hash)
+			failed();
+		update_cached_result_globals(object_hash);
+
+		// in depend_mode it does not make sense to update an existing manifest file
+		x_unlink(manifest_path);
+	}
+
 	if (stat(output_obj, &st) != 0) {
 		cc_log("Compiler didn't produce an object file");
 		stats_update(STATS_NOOUTPUT);
@@ -1369,7 +1485,11 @@ to_cache(struct args *args)
 		failed();
 	}
 	if (st.st_size > 0) {
-		move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
+		if (!conf->depend_mode) {
+			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
+		} else {
+			copy_file_to_cache(tmp_stderr, cached_stderr);
+		}
 	} else {
 		tmp_unlink(tmp_stderr);
 		if (conf->recache) {
@@ -1380,7 +1500,6 @@ to_cache(struct args *args)
 
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
-		use_relative_paths_in_depfile(output_dep);
 		copy_file_to_cache(output_dep, cached_dep);
 	}
 	if (generating_coverage) {
@@ -1458,6 +1577,7 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		}
 
 		path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
+		free(input_base);
 		int path_stdout_fd = create_tmp_fd(&path_stdout);
 		add_pending_tmp_file(path_stdout);
 
@@ -1536,23 +1656,6 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 	hash_result_as_bytes(hash, result->hash);
 	result->size = hash_input_size(hash);
 	return result;
-}
-
-static void
-update_cached_result_globals(struct file_hash *hash)
-{
-	char *object_name = format_hash_as_string(hash->hash, hash->size);
-	cached_obj_hash = hash;
-	cached_obj = get_path_in_cache(object_name, ".o");
-	cached_stderr = get_path_in_cache(object_name, ".stderr");
-	cached_dep = get_path_in_cache(object_name, ".d");
-	cached_cov = get_path_in_cache(object_name, ".gcno");
-	cached_su = get_path_in_cache(object_name, ".su");
-	cached_dia = get_path_in_cache(object_name, ".dia");
-	cached_dwo = get_path_in_cache(object_name, ".dwo");
-
-	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
-	free(object_name);
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
@@ -3451,6 +3554,11 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
+	if (conf->depend_mode && (!generating_dependencies || !conf->run_second_cpp)) {
+		cc_log("Disabling depend mode");
+		conf->depend_mode = false;
+	}
+
 	cc_log("Source file: %s", input_file);
 	if (generating_dependencies) {
 		cc_log("Dependency file: %s", output_dep);
@@ -3519,41 +3627,43 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
-	// Find the hash using the preprocessed output. Also updates included_files.
-	struct hash *cpp_hash = hash_copy(common_hash);
-	init_hash_debug(
+	if (!conf->depend_mode) {
+		// Find the hash using the preprocessed output. Also updates included_files.
+		struct hash *cpp_hash = hash_copy(common_hash);
+		init_hash_debug(
 		cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
 	object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
-	if (!object_hash) {
-		fatal("internal error: object hash from cpp returned NULL");
+		if (!object_hash) {
+			fatal("internal error: object hash from cpp returned NULL");
+		}
+		update_cached_result_globals(object_hash);
+
+		if (object_hash_from_manifest
+		    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
+			// The hash from manifest differs from the hash of the preprocessor output.
+			// This could be because:
+			//
+			// - The preprocessor produces different output for the same input (not
+			//   likely).
+			// - There's a bug in ccache (maybe incorrect handling of compiler
+			//   arguments).
+			// - The user has used a different CCACHE_BASEDIR (most likely).
+			//
+			// The best thing here would probably be to remove the hash entry from the
+			// manifest. For now, we use a simpler method: just remove the manifest
+			// file.
+			cc_log("Hash from manifest doesn't match preprocessor output");
+			cc_log("Likely reason: different CCACHE_BASEDIRs used");
+			cc_log("Removing manifest as a safety measure");
+			x_unlink(manifest_path);
+
+			put_object_in_manifest = true;
+		}
+
+		// If we can return from cache at this point then do.
+		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 	}
-	update_cached_result_globals(object_hash);
-
-	if (object_hash_from_manifest
-	    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
-		// The hash from manifest differs from the hash of the preprocessor output.
-		// This could be because:
-		//
-		// - The preprocessor produces different output for the same input (not
-		//   likely).
-		// - There's a bug in ccache (maybe incorrect handling of compiler
-		//   arguments).
-		// - The user has used a different CCACHE_BASEDIR (most likely).
-		//
-		// The best thing here would probably be to remove the hash entry from the
-		// manifest. For now, we use a simpler method: just remove the manifest
-		// file.
-		cc_log("Hash from manifest doesn't match preprocessor output");
-		cc_log("Likely reason: different CCACHE_BASEDIRs used");
-		cc_log("Removing manifest as a safety measure");
-		x_unlink(manifest_path);
-
-		put_object_in_manifest = true;
-	}
-
-	// If we can return from cache at this point then do.
-	from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
 
 	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
@@ -3562,8 +3672,11 @@ ccache(int argc, char *argv[])
 
 	add_prefix(compiler_args, conf->prefix_command);
 
+	// In depend_mode, extend the direct hash.
+	struct hash *depend_mode_hash = conf->depend_mode ? direct_hash : NULL;
+
 	// Run real compiler, sending output to cache.
-	to_cache(compiler_args);
+	to_cache(compiler_args, depend_mode_hash);
 
 	x_exit(0);
 }
