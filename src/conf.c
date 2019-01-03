@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2018 Joel Rosdahl
+// Copyright (C) 2011-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -15,207 +15,9 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "conf.h"
+#include "confitems.h"
+#include "envtoconfitems.h"
 #include "ccache.h"
-
-typedef bool (*conf_item_parser)(const char *str, void *result, char **errmsg);
-typedef bool (*conf_item_verifier)(void *value, char **errmsg);
-
-struct conf_item {
-	const char *name;
-	size_t number;
-	conf_item_parser parser;
-	size_t offset;
-	conf_item_verifier verifier;
-};
-
-struct env_to_conf_item {
-	const char *env_name;
-	const char *conf_name;
-};
-
-static bool
-parse_bool(const char *str, void *result, char **errmsg)
-{
-	bool *value = (bool *)result;
-
-	if (str_eq(str, "true")) {
-		*value = true;
-		return true;
-	} else if (str_eq(str, "false")) {
-		*value = false;
-		return true;
-	} else {
-		*errmsg = format("not a boolean value: \"%s\"", str);
-		return false;
-	}
-}
-
-static bool
-parse_env_string(const char *str, void *result, char **errmsg)
-{
-	char **value = (char **)result;
-	free(*value);
-	*value = subst_env_in_string(str, errmsg);
-	return *value != NULL;
-}
-
-static bool
-parse_float(const char *str, void *result, char **errmsg)
-{
-	float *value = (float *)result;
-	errno = 0;
-	char *endptr;
-	float x = strtof(str, &endptr);
-	if (errno == 0 && *str != '\0' && *endptr == '\0') {
-		*value = x;
-		return true;
-	} else {
-		*errmsg = format("invalid floating point: \"%s\"", str);
-		return false;
-	}
-}
-
-static bool
-parse_size(const char *str, void *result, char **errmsg)
-{
-	uint64_t *value = (uint64_t *)result;
-	uint64_t size;
-	if (parse_size_with_suffix(str, &size)) {
-		*value = size;
-		return true;
-	} else {
-		*errmsg = format("invalid size: \"%s\"", str);
-		return false;
-	}
-}
-
-static bool
-parse_sloppiness(const char *str, void *result, char **errmsg)
-{
-	unsigned *value = (unsigned *)result;
-	if (!str) {
-		return *value;
-	}
-
-	char *p = x_strdup(str);
-	char *q = p;
-	char *word;
-	char *saveptr = NULL;
-	while ((word = strtok_r(q, ", ", &saveptr))) {
-		if (str_eq(word, "file_macro")) {
-			*value |= SLOPPY_FILE_MACRO;
-		} else if (str_eq(word, "file_stat_matches")) {
-			*value |= SLOPPY_FILE_STAT_MATCHES;
-		} else if (str_eq(word, "include_file_ctime")) {
-			*value |= SLOPPY_INCLUDE_FILE_CTIME;
-		} else if (str_eq(word, "include_file_mtime")) {
-			*value |= SLOPPY_INCLUDE_FILE_MTIME;
-		} else if (str_eq(word, "no_system_headers")) {
-			*value |= SLOPPY_NO_SYSTEM_HEADERS;
-		} else if (str_eq(word, "pch_defines")) {
-			*value |= SLOPPY_PCH_DEFINES;
-		} else if (str_eq(word, "time_macros")) {
-			*value |= SLOPPY_TIME_MACROS;
-		} else {
-			*errmsg = format("unknown sloppiness: \"%s\"", word);
-			free(p);
-			return false;
-		}
-		q = NULL;
-	}
-	free(p);
-	return true;
-}
-
-static bool
-parse_string(const char *str, void *result, char **errmsg)
-{
-	(void)errmsg;
-
-	char **value = (char **)result;
-	free(*value);
-	*value = x_strdup(str);
-	return true;
-}
-
-static bool
-parse_umask(const char *str, void *result, char **errmsg)
-{
-	unsigned *value = (unsigned *)result;
-	if (str_eq(str, "")) {
-		*value = UINT_MAX;
-		return true;
-	}
-
-	errno = 0;
-	char *endptr;
-	*value = strtoul(str, &endptr, 8);
-	if (errno == 0 && *str != '\0' && *endptr == '\0') {
-		return true;
-	} else {
-		*errmsg = format("not an octal integer: \"%s\"", str);
-		return false;
-	}
-}
-
-static bool
-parse_unsigned(const char *str, void *result, char **errmsg)
-{
-	unsigned *value = (unsigned *)result;
-	errno = 0;
-	char *endptr;
-	long x = strtol(str, &endptr, 10);
-	if (errno == 0 && x >= 0 && *str != '\0' && *endptr == '\0') {
-		*value = x;
-		return true;
-	} else {
-		*errmsg = format("invalid unsigned integer: \"%s\"", str);
-		return false;
-	}
-}
-
-static const char *
-bool_to_string(bool value)
-{
-	return value ? "true" : "false";
-}
-
-static bool
-verify_absolute_path(void *value, char **errmsg)
-{
-	char **path = (char **)value;
-	assert(*path);
-	if (str_eq(*path, "")) {
-		// The empty string means "disable" in this case.
-		return true;
-	} else if (is_absolute_path(*path)) {
-		return true;
-	} else {
-		*errmsg = format("not an absolute path: \"%s\"", *path);
-		return false;
-	}
-}
-
-static bool
-verify_dir_levels(void *value, char **errmsg)
-{
-	unsigned *levels = (unsigned *)value;
-	assert(levels);
-	if (*levels >= 1 && *levels <= 8) {
-		return true;
-	} else {
-		*errmsg = format("cache directory levels must be between 1 and 8");
-		return false;
-	}
-}
-
-#define ITEM(name, type) \
-  parse_ ## type, offsetof(struct conf, name), NULL
-#define ITEM_V(name, type, verification) \
-  parse_ ## type, offsetof(struct conf, name), verify_ ## verification
-
-#include "confitems_lookup.c"
-#include "envtoconfitems_lookup.c"
 
 static const struct conf_item *
 find_conf(const char *name)
@@ -240,7 +42,7 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		return false;
 	}
 
-	if (from_env_variable && item->parser == parse_bool) {
+	if (from_env_variable && item->parser == confitem_parse_bool) {
 		// Special rule for boolean settings from the environment: "0", "false",
 		// "disable" and "no" (case insensitive) are invalid, and all other values
 		// mean true.
@@ -253,8 +55,8 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 			fatal("invalid boolean environment variable value \"%s\"", value);
 		}
 
-		bool *value = (bool *)((char *)conf + item->offset);
-		*value = !negate_boolean;
+		bool *boolvalue = (bool *)((char *)conf + item->offset);
+		*boolvalue = !negate_boolean;
 		goto out;
 	}
 
@@ -328,6 +130,8 @@ conf_create(void)
 	conf->compression = false;
 	conf->compression_level = 6;
 	conf->cpp_extension = x_strdup("");
+	conf->debug = false;
+	conf->depend_mode = false;
 	conf->direct_mode = true;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
@@ -335,7 +139,7 @@ conf_create(void)
 	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->keep_comments_cpp = false;
-	conf->limit_multiple = 0.8f;
+	conf->limit_multiple = 0.8;
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
@@ -352,8 +156,8 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; // Default: don't set umask.
 	conf->unify = false;
-	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
-	for (size_t i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
+	conf->item_origins = x_malloc(confitems_count() * sizeof(char *));
+	for (size_t i = 0; i < confitems_count(); ++i) {
 		conf->item_origins[i] = "default";
 	}
 	return conf;
@@ -462,9 +266,10 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 
 		char *errmsg2;
-		if (!handle_conf_setting(
-		      conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
-		      "environment")) {
+		bool ok = handle_conf_setting(
+			conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
+			"environment");
+		if (!ok) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);
@@ -535,152 +340,81 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 }
 
 bool
+conf_print_value(struct conf *conf, const char *key,
+                 FILE *file, char **errmsg)
+{
+	const struct conf_item *item = find_conf(key);
+	if (!item) {
+		*errmsg = format("unknown configuration option \"%s\"", key);
+		return false;
+	}
+	void *value = (char *)conf + item->offset;
+	char *str = item->formatter(value);
+	fprintf(file, "%s\n", str);
+	free(str);
+	return true;
+}
+
+static bool
+print_item(struct conf *conf, const char *key,
+           void (*printer)(const char *descr, const char *origin,
+                           void *context),
+           void *context)
+{
+	const struct conf_item *item = find_conf(key);
+	if (!item) {
+		return false;
+	}
+	void *value = (char *)conf + item->offset;
+	char *str = item->formatter(value);
+	char *buf = x_strdup("");
+	reformat(&buf, "%s = %s", key, str);
+	printer(buf, conf->item_origins[item->number], context);
+	free(buf);
+	free(str);
+	return true;
+}
+
+bool
 conf_print_items(struct conf *conf,
                  void (*printer)(const char *descr, const char *origin,
                                  void *context),
                  void *context)
 {
-	char *s = x_strdup("");
-
-	reformat(&s, "base_dir = %s", conf->base_dir);
-	printer(s, conf->item_origins[find_conf("base_dir")->number], context);
-
-	reformat(&s, "cache_dir = %s", conf->cache_dir);
-	printer(s, conf->item_origins[find_conf("cache_dir")->number], context);
-
-	reformat(&s, "cache_dir_levels = %u", conf->cache_dir_levels);
-	printer(s, conf->item_origins[find_conf("cache_dir_levels")->number],
-	        context);
-
-	reformat(&s, "compiler = %s", conf->compiler);
-	printer(s, conf->item_origins[find_conf("compiler")->number], context);
-
-	reformat(&s, "compiler_check = %s", conf->compiler_check);
-	printer(s, conf->item_origins[find_conf("compiler_check")->number], context);
-
-	reformat(&s, "compression = %s", bool_to_string(conf->compression));
-	printer(s, conf->item_origins[find_conf("compression")->number], context);
-
-	reformat(&s, "compression_level = %u", conf->compression_level);
-	printer(s, conf->item_origins[find_conf("compression_level")->number],
-	        context);
-
-	reformat(&s, "cpp_extension = %s", conf->cpp_extension);
-	printer(s, conf->item_origins[find_conf("cpp_extension")->number], context);
-
-	reformat(&s, "direct_mode = %s", bool_to_string(conf->direct_mode));
-	printer(s, conf->item_origins[find_conf("direct_mode")->number], context);
-
-	reformat(&s, "disable = %s", bool_to_string(conf->disable));
-	printer(s, conf->item_origins[find_conf("disable")->number], context);
-
-	reformat(&s, "extra_files_to_hash = %s", conf->extra_files_to_hash);
-	printer(s, conf->item_origins[find_conf("extra_files_to_hash")->number],
-	        context);
-
-	reformat(&s, "hard_link = %s", bool_to_string(conf->hard_link));
-	printer(s, conf->item_origins[find_conf("hard_link")->number], context);
-
-	reformat(&s, "hash_dir = %s", bool_to_string(conf->hash_dir));
-	printer(s, conf->item_origins[find_conf("hash_dir")->number], context);
-
-	reformat(&s, "ignore_headers_in_manifest = %s",
-	         conf->ignore_headers_in_manifest);
-	printer(s,
-	        conf->item_origins[find_conf("ignore_headers_in_manifest")->number],
-	        context);
-
-	reformat(&s, "keep_comments_cpp = %s",
-	         bool_to_string(conf->keep_comments_cpp));
-	printer(s, conf->item_origins[find_conf(
-	                                "keep_comments_cpp")->number], context);
-
-	reformat(&s, "limit_multiple = %.1f", (double)conf->limit_multiple);
-	printer(s, conf->item_origins[find_conf("limit_multiple")->number], context);
-
-	reformat(&s, "log_file = %s", conf->log_file);
-	printer(s, conf->item_origins[find_conf("log_file")->number], context);
-
-	reformat(&s, "max_files = %u", conf->max_files);
-	printer(s, conf->item_origins[find_conf("max_files")->number], context);
-
-	char *s2 = format_parsable_size_with_suffix(conf->max_size);
-	reformat(&s, "max_size = %s", s2);
-	printer(s, conf->item_origins[find_conf("max_size")->number], context);
-	free(s2);
-
-	reformat(&s, "path = %s", conf->path);
-	printer(s, conf->item_origins[find_conf("path")->number], context);
-
-	reformat(&s, "pch_external_checksum = %s",
-	         bool_to_string(conf->pch_external_checksum));
-	printer(s, conf->item_origins[find_conf("pch_external_checksum")->number],
-	        context);
-
-	reformat(&s, "prefix_command = %s", conf->prefix_command);
-	printer(s, conf->item_origins[find_conf("prefix_command")->number], context);
-
-	reformat(&s, "prefix_command_cpp = %s", conf->prefix_command_cpp);
-	printer(s, conf->item_origins[find_conf(
-	                                "prefix_command_cpp")->number], context);
-
-	reformat(&s, "read_only = %s", bool_to_string(conf->read_only));
-	printer(s, conf->item_origins[find_conf("read_only")->number], context);
-
-	reformat(&s, "read_only_direct = %s", bool_to_string(conf->read_only_direct));
-	printer(s, conf->item_origins[find_conf("read_only_direct")->number],
-	        context);
-
-	reformat(&s, "recache = %s", bool_to_string(conf->recache));
-	printer(s, conf->item_origins[find_conf("recache")->number], context);
-
-	reformat(&s, "run_second_cpp = %s", bool_to_string(conf->run_second_cpp));
-	printer(s, conf->item_origins[find_conf("run_second_cpp")->number], context);
-
-	reformat(&s, "sloppiness = ");
-	if (conf->sloppiness & SLOPPY_FILE_MACRO) {
-		reformat(&s, "%sfile_macro, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
-		reformat(&s, "%sinclude_file_mtime, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME) {
-		reformat(&s, "%sinclude_file_ctime, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_TIME_MACROS) {
-		reformat(&s, "%stime_macros, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_PCH_DEFINES) {
-		reformat(&s, "%spch_defines, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-		reformat(&s, "%sfile_stat_matches, ", s);
-	}
-	if (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
-		reformat(&s, "%sno_system_headers, ", s);
-	}
-	if (conf->sloppiness) {
-		// Strip last ", ".
-		s[strlen(s) - 2] = '\0';
-	}
-	printer(s, conf->item_origins[find_conf("sloppiness")->number], context);
-
-	reformat(&s, "stats = %s", bool_to_string(conf->stats));
-	printer(s, conf->item_origins[find_conf("stats")->number], context);
-
-	reformat(&s, "temporary_dir = %s", conf->temporary_dir);
-	printer(s, conf->item_origins[find_conf("temporary_dir")->number], context);
-
-	if (conf->umask == UINT_MAX) {
-		reformat(&s, "umask = ");
-	} else {
-		reformat(&s, "umask = %03o", conf->umask);
-	}
-	printer(s, conf->item_origins[find_conf("umask")->number], context);
-
-	reformat(&s, "unify = %s", bool_to_string(conf->unify));
-	printer(s, conf->item_origins[find_conf("unify")->number], context);
-
-	free(s);
-	return true;
+	bool ok = true;
+	ok &= print_item(conf, "base_dir", printer, context);
+	ok &= print_item(conf, "cache_dir", printer, context);
+	ok &= print_item(conf, "cache_dir_levels", printer, context);
+	ok &= print_item(conf, "compiler", printer, context);
+	ok &= print_item(conf, "compiler_check", printer, context);
+	ok &= print_item(conf, "compression", printer, context);
+	ok &= print_item(conf, "compression_level", printer, context);
+	ok &= print_item(conf, "cpp_extension", printer, context);
+	ok &= print_item(conf, "debug", printer, context);
+	ok &= print_item(conf, "depend_mode", printer, context);
+	ok &= print_item(conf, "direct_mode", printer, context);
+	ok &= print_item(conf, "disable", printer, context);
+	ok &= print_item(conf, "extra_files_to_hash", printer, context);
+	ok &= print_item(conf, "hard_link", printer, context);
+	ok &= print_item(conf, "hash_dir", printer, context);
+	ok &= print_item(conf, "ignore_headers_in_manifest", printer, context);
+	ok &= print_item(conf, "keep_comments_cpp", printer, context);
+	ok &= print_item(conf, "limit_multiple", printer, context);
+	ok &= print_item(conf, "log_file", printer, context);
+	ok &= print_item(conf, "max_files", printer, context);
+	ok &= print_item(conf, "max_size", printer, context);
+	ok &= print_item(conf, "path", printer, context);
+	ok &= print_item(conf, "pch_external_checksum", printer, context);
+	ok &= print_item(conf, "prefix_command", printer, context);
+	ok &= print_item(conf, "prefix_command_cpp", printer, context);
+	ok &= print_item(conf, "read_only", printer, context);
+	ok &= print_item(conf, "read_only_direct", printer, context);
+	ok &= print_item(conf, "recache", printer, context);
+	ok &= print_item(conf, "run_second_cpp", printer, context);
+	ok &= print_item(conf, "sloppiness", printer, context);
+	ok &= print_item(conf, "stats", printer, context);
+	ok &= print_item(conf, "temporary_dir", printer, context);
+	ok &= print_item(conf, "umask", printer, context);
+	ok &= print_item(conf, "unify", printer, context);
+	return ok;
 }

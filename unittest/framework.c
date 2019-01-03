@@ -172,15 +172,15 @@ cct_check_failed(const char *file, int line, const char *what,
 }
 
 bool
-cct_check_float_eq(const char *file, int line, const char *expression,
-                   double expected, double actual)
+cct_check_double_eq(const char *file, int line, const char *expression,
+                    double expected, double actual)
 {
 	if (fabs(expected -  actual) < DBL_EPSILON) {
 		cct_check_passed(file, line, expression);
 		return true;
 	} else {
-		char *exp_str = format("%.1f", (double)expected);
-		char *act_str = format("%.1f", (double)actual);
+		char *exp_str = format("%.1f", expected);
+		char *act_str = format("%.1f", actual);
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
@@ -211,8 +211,8 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 
 bool
 cct_check_str_eq(const char *file, int line, const char *expression,
-                 const char *expected, const char *actual, bool free1,
-                 bool free2)
+                 char *expected, char *actual,
+                 bool free1, bool free2)
 {
 	bool result;
 
@@ -229,10 +229,10 @@ cct_check_str_eq(const char *file, int line, const char *expression,
 	}
 
 	if (free1) {
-		free((char *)expected);
+		free(expected);
 	}
 	if (free2) {
-		free((char *)actual);
+		free(actual);
 	}
 	return result;
 }

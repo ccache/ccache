@@ -24,7 +24,7 @@ TEST_SUITE(compopt)
 
 TEST(option_table_should_be_sorted)
 {
-	bool compopt_verify_sortedness();
+	bool compopt_verify_sortedness(void);
 	CHECK(compopt_verify_sortedness());
 }
 
@@ -53,6 +53,21 @@ TEST(dash_doesnexist_doesnt_affect_cpp)
 TEST(dash_MM_too_hard)
 {
 	CHECK(compopt_too_hard("-MM"));
+}
+
+TEST(dash_save_temps_too_hard)
+{
+	CHECK(compopt_too_hard("-save-temps"));
+}
+
+TEST(dash_save_temps_cwd_too_hard)
+{
+	CHECK(compopt_too_hard("-save-temps=cwd"));
+}
+
+TEST(dash_save_temps_obj_too_hard)
+{
+	CHECK(compopt_too_hard("-save-temps=obj"));
 }
 
 TEST(dash_MD_not_too_hard)

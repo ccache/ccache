@@ -38,7 +38,7 @@ The copyright for ccache as a whole is as follows:
 
 -------------------------------------------------------------------------------
   Copyright (C) 2002-2007 Andrew Tridgell
-  Copyright (C) 2009-2018 Joel Rosdahl
+  Copyright (C) 2009-2019 Joel Rosdahl
 -------------------------------------------------------------------------------
 
 
@@ -477,11 +477,11 @@ SOFTWARE.
 src/zlib/*.[hc]
 ~~~~~~~~~~~~~~~
 
-This is a bundled subset of zlib 1.2.8 from <http://zlib.net> with the
+This is a bundled subset of zlib 1.2.11 from <http://zlib.net> with the
 following license:
 
 -------------------------------------------------------------------------------
-  Copyright (C) 1995-2013 Jean-loup Gailly and Mark Adler
+  Copyright (C) 1995-2017 Jean-loup Gailly and Mark Adler
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages

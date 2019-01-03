@@ -4,7 +4,20 @@
 %readonly-tables
 %define hash-function-name confitems_hash
 %define lookup-function-name confitems_get
-%define initializer-suffix ,0,NULL,0,NULL
+%define initializer-suffix ,0,0,NULL,NULL,NULL
+%{
+#include "confitems.h"
+#include "conf.h"
+
+#undef bool
+#define ITEM_ENTRY(name, type, verify_fn) \
+	offsetof(struct conf, name), confitem_parse_ ## type, \
+	confitem_format_ ## type, verify_fn
+#define ITEM(name, type) \
+	ITEM_ENTRY(name, type, NULL)
+#define ITEM_V(name, type, verification) \
+	ITEM_ENTRY(name, type, confitem_verify_ ## verification)
+%}
 struct conf_item;
 %%
 base_dir,             0, ITEM_V(base_dir, env_string, absolute_path)
@@ -15,27 +28,29 @@ compiler_check,       4, ITEM(compiler_check, string)
 compression,          5, ITEM(compression, bool)
 compression_level,    6, ITEM(compression_level, unsigned)
 cpp_extension,        7, ITEM(cpp_extension, string)
-direct_mode,          8, ITEM(direct_mode, bool)
-disable,              9, ITEM(disable, bool)
-extra_files_to_hash, 10, ITEM(extra_files_to_hash, env_string)
-hard_link,           11, ITEM(hard_link, bool)
-hash_dir,            12, ITEM(hash_dir, bool)
-ignore_headers_in_manifest, 13, ITEM(ignore_headers_in_manifest, env_string)
-keep_comments_cpp,   14, ITEM(keep_comments_cpp, bool)
-limit_multiple,      15, ITEM(limit_multiple, float)
-log_file,            16, ITEM(log_file, env_string)
-max_files,           17, ITEM(max_files, unsigned)
-max_size,            18, ITEM(max_size, size)
-path,                19, ITEM(path, env_string)
-pch_external_checksum, 20, ITEM(pch_external_checksum, bool)
-prefix_command,      21, ITEM(prefix_command, env_string)
-prefix_command_cpp,  22, ITEM(prefix_command_cpp, env_string)
-read_only,           23, ITEM(read_only, bool)
-read_only_direct,    24, ITEM(read_only_direct, bool)
-recache,             25, ITEM(recache, bool)
-run_second_cpp,      26, ITEM(run_second_cpp, bool)
-sloppiness,          27, ITEM(sloppiness, sloppiness)
-stats,               28, ITEM(stats, bool)
-temporary_dir,       29, ITEM(temporary_dir, env_string)
-umask,               30, ITEM(umask, umask)
-unify,               31, ITEM(unify, bool)
+debug,                8, ITEM(debug, bool)
+depend_mode,          9, ITEM(depend_mode, bool)
+direct_mode,         10, ITEM(direct_mode, bool)
+disable,             11, ITEM(disable, bool)
+extra_files_to_hash, 12, ITEM(extra_files_to_hash, env_string)
+hard_link,           13, ITEM(hard_link, bool)
+hash_dir,            14, ITEM(hash_dir, bool)
+ignore_headers_in_manifest, 15, ITEM(ignore_headers_in_manifest, env_string)
+keep_comments_cpp,   16, ITEM(keep_comments_cpp, bool)
+limit_multiple,      17, ITEM(limit_multiple, double)
+log_file,            18, ITEM(log_file, env_string)
+max_files,           19, ITEM(max_files, unsigned)
+max_size,            20, ITEM(max_size, size)
+path,                21, ITEM(path, env_string)
+pch_external_checksum, 22, ITEM(pch_external_checksum, bool)
+prefix_command,      23, ITEM(prefix_command, env_string)
+prefix_command_cpp,  24, ITEM(prefix_command_cpp, env_string)
+read_only,           25, ITEM(read_only, bool)
+read_only_direct,    26, ITEM(read_only_direct, bool)
+recache,             27, ITEM(recache, bool)
+run_second_cpp,      28, ITEM(run_second_cpp, bool)
+sloppiness,          29, ITEM(sloppiness, sloppiness)
+stats,               30, ITEM(stats, bool)
+temporary_dir,       31, ITEM(temporary_dir, env_string)
+umask,               32, ITEM(umask, umask)
+unify,               33, ITEM(unify, bool)
