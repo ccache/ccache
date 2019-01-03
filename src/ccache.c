@@ -818,6 +818,16 @@ make_relative_path(char *path)
 	}
 }
 
+static void
+init_included_files_table(void)
+{
+	// (This function may be called multiple times if several -arch options are
+	// used.)
+	if (!included_files) {
+		included_files = create_hashtable(1000, hash_from_string, strings_equal);
+	}
+}
+
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -849,9 +859,7 @@ process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 		free(p);
 	}
 
-	if (!included_files) {
-		included_files = create_hashtable(1000, hash_from_string, strings_equal);
-	}
+	init_included_files_table();
 
 	char *cwd = gnu_getcwd();
 
@@ -1111,9 +1119,7 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 		return NULL;
 	}
 
-	if (!included_files) {
-		included_files = create_hashtable(1000, hash_from_string, strings_equal);
-	}
+	init_included_files_table();
 
 	char buf[10000];
 	while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
