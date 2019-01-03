@@ -8,6 +8,11 @@ Unreleased
 Changes
 ~~~~~~~
 
+- ccache now has an opt-in ``depend mode''. When enabled, ccache never executes
+  the preprocessor, which results in much lower cache miss overhead at the
+  expense of a lower potential cache hit rate. The depend mode is only possible
+  to use when the compiler option *-MD* or *-MMD* is used.
+
 - Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
   option is now also skipped from the hash.
 
