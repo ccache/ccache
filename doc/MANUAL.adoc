@@ -913,6 +913,7 @@ The depend mode will be disabled if any of the following holds:
 
 * the configuration setting *depend_mode* is false
 * the configuration setting *run_second_cpp* is false
+* the configuration setting *unify* is true
 * the compiler is not generating dependencies using *-MD* or *-MMD*
 
 

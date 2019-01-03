@@ -3560,7 +3560,7 @@ ccache(int argc, char *argv[])
 	}
 
 	if (conf->depend_mode
-	    && (!generating_dependencies || !conf->run_second_cpp)) {
+	    && (!generating_dependencies || !conf->run_second_cpp || conf->unify)) {
 		cc_log("Disabling depend mode");
 		conf->depend_mode = false;
 	}
