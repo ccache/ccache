@@ -20,6 +20,7 @@ dev.mk
 dev_mode_disabled
 doc/ccache.1
 perfdir.*
+src/*_lookup.c
 src/version.c
 testdir.*
 unittest/run

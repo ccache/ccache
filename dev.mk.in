@@ -63,6 +63,8 @@ generated_headers = \
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
 files_to_clean += compile_commands.json
+files_to_clean += src/confitems_lookup.c
+files_to_clean += src/envtoconfitems_lookup.c
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
@@ -113,10 +115,18 @@ ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
 endif
 src/version.o: src/version.c
 
-%_lookup.c: %.gperf
-	$(if $(quiet),@echo "  GPERF    $@")
-	$(Q)$(GPERF) $< >$@
-	$(Q)echo "size_t $$(echo '$(notdir $*)_count(void)') { return $$(sed -nr 's/.*TOTAL_KEYWORDS = (.+),.*/\1/p' $@); }" >>$@
+define generate_gperf_lookup
+src/$(1)_lookup.c: src/$(1).gperf
+	$$(if $$(quiet),@echo "  GEN      $$@")
+	$$(Q)$$(GPERF) $$< >$$@.tmp
+# Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
+	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
+	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
+	$$(Q)mv $$@.tmp $$@
+endef
+
+$(eval $(call generate_lookup_table,confitems))
+$(eval $(call generate_lookup_table,envtoconfitems))
 
 .PHONY: dist
 dist: $(dist_archives)

@@ -49,11 +49,11 @@ non_3pp_sources = \
     src/unify.c \
     src/util.c
 generated_sources = \
+    src/confitems_lookup.c \
+    src/envtoconfitems_lookup.c \
     src/version.c
 3pp_sources = \
     src/getopt_long.c \
-    src/confitems_lookup.c \
-    src/envtoconfitems_lookup.c \
     src/hashtable.c \
     src/hashtable_itr.c \
     src/murmurhashneutral2.c \

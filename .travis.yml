@@ -24,6 +24,7 @@ matrix:
               apt:
                   packages:
                       - gcc-multilib
+                      - gperf
                       - lib32z1-dev
         - os: linux
           compiler: i686-w64-mingw32-gcc
@@ -32,6 +33,7 @@ matrix:
               apt:
                   packages:
                       - gcc-mingw-w64-i686
+                      - gperf
         - os: linux
           compiler: clang
           env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
