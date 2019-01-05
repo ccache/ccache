@@ -1,18 +1,11 @@
-FROM ubuntu:16.04
+FROM ubuntu:latest
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
                 gcc \
                 make \
+                bash \
+                asciidoc xsltproc docbook-xml docbook-xsl \
                 autoconf \
                 gperf \
                 zlib1g-dev \
         && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /tmp/build
-
-COPY . .
-
-RUN ./autogen.sh \
-        && ./configure \
-        && make \
-        && make test

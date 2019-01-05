@@ -235,9 +235,13 @@ analyze:
 	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
+BASE=ubuntu
+TAG=ccache/build:$(BASE)
+
 .PHONY: docker
-docker: misc/Dockerfile
-	$(DOCKER) build -f $< $(srcdir)
+docker: base/$(BASE)/Dockerfile
+	$(DOCKER) inspect $(TAG) >/dev/null || $(DOCKER) build -t $(TAG) base/$(BASE)
+	$(DOCKER) run --rm -v $(PWD):/build -w /build $(TAG) misc/build.sh $(TEST)
 
 .PHONY: travis
 travis: .travis/Dockerfile
