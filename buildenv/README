@@ -1,0 +1,7 @@
+This directory contains base images, for building and testing.
+
+They have all the requirements needed, as per: doc/INSTALL.md
+
+Build them with "make docker BUILDENV=ubuntu" after doing configure.
+
+You can also download them with "docker pull ccache/build:$BUILDENV"

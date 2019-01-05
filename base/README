@@ -1,7 +1,0 @@
-This directory contains base images, for building and testing.
-
-They have all the requirements needed, as per: doc/INSTALL.md
-
-Build them with "make docker BASE=ubuntu" after doing configure.
-
-You can also download them with "docker pull ccache/build:$BASE"

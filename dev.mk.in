@@ -235,13 +235,13 @@ analyze:
 	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
-BASE=ubuntu
-TAG=ccache/build:$(BASE)
+BUILDENV = ubuntu
+DOCKER_IMAGE_TAG = ccache/build:$(BUILDENV)
 
 .PHONY: docker
-docker: base/$(BASE)/Dockerfile
-	$(DOCKER) inspect $(TAG) >/dev/null || $(DOCKER) build -t $(TAG) base/$(BASE)
-	$(DOCKER) run --rm -v $(PWD):/build -w /build $(TAG) misc/build.sh $(TEST)
+docker: buildenv/$(BUILDENV)/Dockerfile
+	$(DOCKER) inspect $(DOCKER_IMAGE_TAG) >/dev/null || $(DOCKER) build -t $(DOCKER_IMAGE_TAG) buildenv/$(BUILDENV)
+	$(DOCKER) run --rm -v $(PWD):/build -w /build $(DOCKER_IMAGE_TAG) misc/build.sh $(TEST)
 
 .PHONY: travis
 travis: .travis/Dockerfile
