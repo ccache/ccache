@@ -1,7 +1,15 @@
-This directory contains base images, for building and testing.
+This directory contains Dockerfiles for building and testing ccache in
+different build environments. They have all the requirements needed as per
+doc/INSTALL.md.
 
-They have all the requirements needed, as per: doc/INSTALL.md
+For instance, run something like this to build ccache in Ubuntu:
 
-Build them with "make docker BUILDENV=ubuntu" after doing configure.
+    make docker BUILDENV=ubuntu
 
-You can also download them with "docker pull ccache/build:$BUILDENV"
+The above command will first build the Ubuntu Docker image if needed and
+finally build ccache and run the ccache test suite.
+
+You can also download prebuilt Docker images like this:
+
+    docker pull ccache/build:$BUILDENV
+
