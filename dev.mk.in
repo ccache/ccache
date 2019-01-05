@@ -115,18 +115,23 @@ ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
 endif
 src/version.o: src/version.c
 
+# $(1): Name.
+# $(2): Command for fixing up source file before the gperf call.
 define generate_gperf_lookup
 src/$(1)_lookup.c: src/$(1).gperf
 	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$$(GPERF) $$< >$$@.tmp
+	$$(Q)$(2) $$< | $$(GPERF) >$$@.tmp
 # Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
 	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
 	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
 	$$(Q)mv $$@.tmp $$@
 endef
 
-$(eval $(call generate_lookup_table,confitems))
-$(eval $(call generate_lookup_table,envtoconfitems))
+add_confitems_numbers = \
+    perl -pae '$$$$s = 1 if /^%%/; s/ITEM/$$$$n++ . ", ITEM"/e if $$$$s == 1'
+
+$(eval $(call generate_gperf_lookup,confitems,$(add_confitems_numbers)))
+$(eval $(call generate_gperf_lookup,envtoconfitems,cat))
 
 .PHONY: dist
 dist: $(dist_archives)
