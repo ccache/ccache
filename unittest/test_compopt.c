@@ -45,7 +45,7 @@ TEST(dash_V_doesnt_affect_cpp)
 	CHECK(!compopt_affects_cpp("-V"));
 }
 
-TEST(dash_doesnexist_doesnt_affect_cpp)
+TEST(dash_doesntexist_doesnt_affect_cpp)
 {
 	CHECK(!compopt_affects_cpp("-doesntexist"));
 }
@@ -90,7 +90,7 @@ TEST(dash_fstack_usage_not_too_hard)
 	CHECK(!compopt_too_hard("-fstack-usage"));
 }
 
-TEST(dash_doesnexist_not_too_hard)
+TEST(dash_doesntexist_not_too_hard)
 {
 	CHECK(!compopt_too_hard("-doesntexist"));
 }

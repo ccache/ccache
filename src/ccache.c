@@ -2915,7 +2915,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		    && str_eq(argv[i], "-index-store-path")) {
 			// Xcode 9 or later calls Clang with this option. The given path includes
 			// a UUID that might lead to cache misses, especially when cache is
-			// shared among multple users.
+			// shared among multiple users.
 			i++;
 			if (i <= argc - 1) {
 				cc_log("Skipping argument -index-store-path %s", argv[i]);
@@ -3304,7 +3304,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		args_add(*compiler_args, arch_args[i]);
 	}
 
-	// Only pass dependency arguments to the preprocesor since Intel's C++
+	// Only pass dependency arguments to the preprocessor since Intel's C++
 	// compiler doesn't produce a correct .d file when compiling preprocessed
 	// source.
 	args_extend(cpp_args, dep_args);
