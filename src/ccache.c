@@ -2915,7 +2915,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		    && str_eq(argv[i], "-index-store-path")) {
 			// Xcode 9 or later calls Clang with this option. The given path includes
 			// a UUID that might lead to cache misses, especially when cache is
-			// shared among multple users.
+			// shared among multiple users.
 			i++;
 			if (i <= argc - 1) {
 				cc_log("Skipping argument -index-store-path %s", argv[i]);
