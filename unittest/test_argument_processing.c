@@ -366,7 +366,7 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
 	args_free(orig);
 }
 
-TEST(fprofile_flag_with_nonexisting_dir_should_not_be_rewritten)
+TEST(fprofile_flag_with_nonexistent_dir_should_not_be_rewritten)
 {
 	struct args *orig = args_init_from_string(
 		"gcc -c -fprofile-generate=some/dir foo.c");
