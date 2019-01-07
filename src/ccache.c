@@ -3304,7 +3304,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		args_add(*compiler_args, arch_args[i]);
 	}
 
-	// Only pass dependency arguments to the preprocesor since Intel's C++
+	// Only pass dependency arguments to the preprocessor since Intel's C++
 	// compiler doesn't produce a correct .d file when compiling preprocessed
 	// source.
 	args_extend(cpp_args, dep_args);
