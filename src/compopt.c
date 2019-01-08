@@ -208,7 +208,7 @@ compopt_takes_concat_arg(const char *option)
 bool
 compopt_prefix_affects_cpp(const char *option)
 {
-	// Prefix options have to take concatentated args.
+	// Prefix options have to take concatenated args.
 	const struct compopt *co = find_prefix(option);
 	return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_CPP);
 }

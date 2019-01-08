@@ -64,6 +64,8 @@ generated_headers = \
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
 files_to_clean += compile_commands.json
+files_to_clean += src/confitems_lookup.c
+files_to_clean += src/envtoconfitems_lookup.c
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
@@ -117,10 +119,23 @@ ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
 endif
 src/version.o: src/version.c
 
-%_lookup.c: %.gperf
-	$(if $(quiet),@echo "  GPERF    $@")
-	$(Q)$(GPERF) $< >$@
-	$(Q)echo "size_t $$(echo '$(notdir $*)_count(void)') { return $$(sed -nr 's/.*TOTAL_KEYWORDS = (.+),.*/\1/p' $@); }" >>$@
+# $(1): Name.
+# $(2): Command for fixing up source file before the gperf call.
+define generate_gperf_lookup
+src/$(1)_lookup.c: src/$(1).gperf
+	$$(if $$(quiet),@echo "  GEN      $$@")
+	$$(Q)$(2) $$< | $$(GPERF) >$$@.tmp
+# Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
+	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
+	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
+	$$(Q)mv $$@.tmp $$@
+endef
+
+add_confitems_numbers = \
+    perl -pae '$$$$s = 1 if /^%%/; s/ITEM/$$$$n++ . ", ITEM"/e if $$$$s == 1'
+
+$(eval $(call generate_gperf_lookup,confitems,$(add_confitems_numbers)))
+$(eval $(call generate_gperf_lookup,envtoconfitems,cat))
 
 .PHONY: dist
 dist: $(dist_archives)
@@ -224,9 +239,13 @@ analyze:
 	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
 	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
 
+BUILDENV = ubuntu
+DOCKER_IMAGE_TAG = ccache/build:$(BUILDENV)
+
 .PHONY: docker
-docker: misc/Dockerfile
-	$(DOCKER) build -f $< $(srcdir)
+docker: buildenv/$(BUILDENV)/Dockerfile
+	$(DOCKER) inspect $(DOCKER_IMAGE_TAG) >/dev/null || $(DOCKER) build -t $(DOCKER_IMAGE_TAG) buildenv/$(BUILDENV)
+	$(DOCKER) run --rm -v $(PWD):/build -w /build $(DOCKER_IMAGE_TAG) misc/build.sh $(TEST)
 
 .PHONY: travis
 travis: .travis/Dockerfile

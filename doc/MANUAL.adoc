@@ -355,7 +355,7 @@ WRAPPERS>>.
     If true, enable the debug mode. The debug mode creates per-object debug
     files that are helpful when debugging unexpected cache misses. Note however
     that ccache performance will be reduced slightly. See
-    <<_cache_debugging_,debugging>> for more information. The default is false.
+    <<_cache_debugging,debugging>> for more information. The default is false.
 
 *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see <<_boolean_values,Boolean values>> above)::
 
