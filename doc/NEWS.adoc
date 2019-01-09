@@ -11,7 +11,7 @@ Changes
 - ccache now has an opt-in ``depend mode''. When enabled, ccache never executes
   the preprocessor, which results in much lower cache miss overhead at the
   expense of a lower potential cache hit rate. The depend mode is only possible
-  to use when the compiler option *-MD* or *-MMD* is used.
+  to use when the compiler option `-MD` or `-MMD` is used.
 
 - Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
   option is now also skipped from the hash.
@@ -19,9 +19,9 @@ Changes
 - Added support for multiple `-fsanitize-blacklist` arguments, thus preventing
   ccache from
 
-- ccache now includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE*
-  and *LC_MESSAGES* in the hash since they may affect localization of compiler
-  warning messages. Set sloppiness to ``locale'' to opt out of this.
+- ccache now includes the environment variables `LANG`, `LC_ALL`, `LC_CTYPE`
+  and `LC_MESSAGES` in the hash since they may affect localization of compiler
+  warning messages. Set sloppiness to `locale` to opt out of this.
 
 - Fixed a problem due to Clang overwriting the output file when compiling an
   assembler file.
@@ -32,8 +32,8 @@ Changes
 - ccache now handles several levels of nonexistent directories when rewriting
   absolute paths to relative.
 
-- A new ``sloppiness'' setting *clang_index_store* makes ccache skip the Clang
-  compiler option *-index-store-path* and its argument when computing the
+- A new sloppiness setting `clang_index_store` makes ccache skip the Clang
+  compiler option `-index-store-path` and its argument when computing the
   manifest hash. This is useful if you use Xcode, which uses an index store
   path derived from the local project path. Note that the index store won't be
   updated correctly on cache hits if you enable this option.
@@ -94,7 +94,7 @@ Changes
 - It's now possible to opt out of building and installing man pages when
   running `make install` in the source repository.
 
-- If the compiler type can't be detected (e.g. if it is named *cc*), use safer
+- If the compiler type can't be detected (e.g. if it is named `cc`), use safer
   defaults that won't trip up Clang.
 
 - Made the ccache test suite work on FreeBSD.
@@ -373,7 +373,7 @@ New features and enhancements
 
 - Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
   which tells ccache not to discard the comments before hashing preprocessor
-  output. This can be used to check documentation with *-Wdocumentation*.
+  output. This can be used to check documentation with `-Wdocumentation`.
 
 - Added a new sloppiness option `no_system_headers`, which tells ccache not to
   include system headers in manifest files.
