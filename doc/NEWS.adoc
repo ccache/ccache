@@ -38,6 +38,10 @@ Changes
   path derived from the local project path. Note that the index store won't be
   updated correctly on cache hits if you enable this option.
 
+- Rename sloppiness `no_system_headers` to `system_headers` for consistency
+  with other options. `no_system_headers` can still be used as an
+  (undocumented) alias.
+
 
 ccache 3.5.1
 ------------

@@ -600,7 +600,7 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 		goto out;
 	}
 
-	if (system && (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS)) {
+	if (system && (conf->sloppiness & SLOPPY_SYSTEM_HEADERS)) {
 		// Don't remember this system header.
 		goto out;
 	}

@@ -560,13 +560,13 @@ still has to do _some_ preprocessing (like macros).
     ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
     *LC_MESSAGES* in the hash by default since they may affect localization of
     compiler warning messages. Set this option to tell ccache not to do that.
-*no_system_headers*::
-    By default, ccache will also include all system headers in the manifest.
-    With this option set, ccache will only include system headers in the hash
-    but not add the system header files to the list of include files.
 *pch_defines*::
     Be sloppy about **#define**s when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
+*system_headers*::
+    By default, ccache will also include all system headers in the manifest.
+    With this option set, ccache will only include system headers in the hash
+    but not add the system header files to the list of include files.
 *time_macros*::
     Ignore `__DATE__` and `__TIME__` being present in the source code.
 --

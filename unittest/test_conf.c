@@ -132,7 +132,7 @@ TEST(conf_read_valid_config)
 		"read_only_direct = true\n"
 		"recache = true\n"
 		"run_second_cpp = false\n"
-		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines ,  no_system_headers,clang_index_store,locale\n"
+		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines ,  no_system_headers,system_headers,clang_index_store\n"
 		"stats = false\n"
 		"temporary_dir = ${USER}_foo\n"
 		"umask = 777\n"
@@ -179,10 +179,9 @@ TEST(conf_read_valid_config)
 		|SLOPPY_TIME_MACROS
 		|SLOPPY_FILE_STAT_MATCHES
 		|SLOPPY_FILE_STAT_MATCHES_CTIME
-		|SLOPPY_NO_SYSTEM_HEADERS
+		|SLOPPY_SYSTEM_HEADERS
 		|SLOPPY_PCH_DEFINES
-		|SLOPPY_CLANG_INDEX_STORE
-		|SLOPPY_LOCALE,
+		|SLOPPY_CLANG_INDEX_STORE,
 		conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);
@@ -470,16 +469,10 @@ TEST(conf_print_items)
 		true,
 		true,
 		.run_second_cpp = false,
-		SLOPPY_FILE_MACRO
-		|SLOPPY_INCLUDE_FILE_MTIME
-		|SLOPPY_INCLUDE_FILE_CTIME
-		|SLOPPY_TIME_MACROS
-		|SLOPPY_FILE_STAT_MATCHES
-		|SLOPPY_FILE_STAT_MATCHES_CTIME
-		|SLOPPY_PCH_DEFINES
-		|SLOPPY_NO_SYSTEM_HEADERS
-		|SLOPPY_CLANG_INDEX_STORE
-		|SLOPPY_LOCALE,
+		SLOPPY_FILE_MACRO|SLOPPY_INCLUDE_FILE_MTIME|
+		SLOPPY_INCLUDE_FILE_CTIME|SLOPPY_TIME_MACROS|
+		SLOPPY_FILE_STAT_MATCHES|SLOPPY_FILE_STAT_MATCHES_CTIME|
+		SLOPPY_PCH_DEFINES|SLOPPY_SYSTEM_HEADERS|SLOPPY_CLANG_INDEX_STORE,
 		false,
 		"td",
 		022,
@@ -531,7 +524,8 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("run_second_cpp = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("sloppiness = file_macro, include_file_mtime,"
 	             " include_file_ctime, time_macros, pch_defines,"
-	             " file_stat_matches, file_stat_matches_ctime, no_system_headers, clang_index_store, locale",
+	             " file_stat_matches, file_stat_matches_ctime, system_headers,"
+	             " clang_index_store",
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("stats = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++].descr);

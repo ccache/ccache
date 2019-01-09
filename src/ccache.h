@@ -94,7 +94,7 @@ extern enum guessed_compiler guessed_compiler;
 #define SLOPPY_FILE_STAT_MATCHES (1U << 5)
 // Allow us to not include any system headers in the manifest include files,
 // similar to -MM versus -M for dependencies.
-#define SLOPPY_NO_SYSTEM_HEADERS (1U << 6)
+#define SLOPPY_SYSTEM_HEADERS (1U << 6)
 // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
 // if we want to (it is much harder to fake ctimes, requires changing clock)
 #define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 7)

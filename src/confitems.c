@@ -130,8 +130,9 @@ confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_INCLUDE_FILE_CTIME;
 		} else if (str_eq(word, "include_file_mtime")) {
 			*value |= SLOPPY_INCLUDE_FILE_MTIME;
-		} else if (str_eq(word, "no_system_headers")) {
-			*value |= SLOPPY_NO_SYSTEM_HEADERS;
+		} else if (str_eq(word, "system_headers")
+		           || str_eq(word, "no_system_headers")) {
+			*value |= SLOPPY_SYSTEM_HEADERS;
 		} else if (str_eq(word, "pch_defines")) {
 			*value |= SLOPPY_PCH_DEFINES;
 		} else if (str_eq(word, "time_macros")) {
@@ -177,8 +178,8 @@ confitem_format_sloppiness(void *value)
 	if (*sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME) {
 		reformat(&s, "%sfile_stat_matches_ctime, ", s);
 	}
-	if (*sloppiness & SLOPPY_NO_SYSTEM_HEADERS) {
-		reformat(&s, "%sno_system_headers, ", s);
+	if (*sloppiness & SLOPPY_SYSTEM_HEADERS) {
+		reformat(&s, "%ssystem_headers, ", s);
 	}
 	if (*sloppiness & SLOPPY_CLANG_INDEX_STORE) {
 		reformat(&s, "%sclang_index_store, ", s);
