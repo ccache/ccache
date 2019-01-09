@@ -556,6 +556,10 @@ still has to do _some_ preprocessing (like macros).
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
     mtime is too new. This option disables that check.
+*locale*::
+    ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
+    *LC_MESSAGES* in the hash by default since they may affect localization of
+    compiler warning messages. Set this option to tell ccache not to do that.
 *no_system_headers*::
     By default, ccache will also include all system headers in the manifest.
     With this option set, ccache will only include system headers in the hash

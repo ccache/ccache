@@ -19,6 +19,10 @@ Changes
 - Added support for multiple `-fsanitize-blacklist` arguments, thus preventing
   ccache from
 
+- ccache now includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE*
+  and *LC_MESSAGES* in the hash since they may affect localization of compiler
+  warning messages. Set sloppiness to ``locale'' to opt out of this.
+
 - Fixed a problem due to Clang overwriting the output file when compiling an
   assembler file.
 

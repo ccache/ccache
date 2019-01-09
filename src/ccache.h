@@ -100,6 +100,8 @@ extern enum guessed_compiler guessed_compiler;
 #define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 7)
 // Allow us to not include the -index-store-path option in the manifest hash.
 #define SLOPPY_CLANG_INDEX_STORE (1U << 8)
+// Ignore locale settings.
+#define SLOPPY_LOCALE (1U << 9)
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix) \

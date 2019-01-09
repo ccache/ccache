@@ -1786,6 +1786,25 @@ calculate_common_hash(struct args *args, struct hash *hash)
 	hash_string(hash, base);
 	free(base);
 
+	if (!(conf->sloppiness & SLOPPY_LOCALE)) {
+		// Hash environment variables that may affect localization of compiler
+		// warning messages.
+		const char *envvars[] = {
+			"LANG",
+			"LC_ALL",
+			"LC_CTYPE",
+			"LC_MESSAGES",
+			NULL
+		};
+		for (const char **p = envvars; *p; ++p) {
+			char *v = getenv(*p);
+			if (v) {
+				hash_delimiter(hash, *p);
+				hash_string(hash, v);
+			}
+		}
+	}
+
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
 		char *cwd = gnu_getcwd();

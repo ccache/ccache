@@ -139,6 +139,47 @@ base_tests() {
     expect_stat 'no input file' 1
 
     # -------------------------------------------------------------------------
+    TEST "LANG"
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    LANG=foo $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    LANG=foo $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
+    TEST "LANG with sloppiness"
+
+    CCACHE_SLOPPINESS=locale LANG=foo $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    CCACHE_SLOPPINESS=locale LANG=foo $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    CCACHE_SLOPPINESS=locale LANG=bar $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null

@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Joel Rosdahl
+// Copyright (C) 2018-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -138,6 +138,8 @@ confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_TIME_MACROS;
 		} else if (str_eq(word, "clang_index_store")) {
 			*value |= SLOPPY_CLANG_INDEX_STORE;
+		} else if (str_eq(word, "locale")) {
+			*value |= SLOPPY_LOCALE;
 		} else {
 			*errmsg = format("unknown sloppiness: \"%s\"", word);
 			free(p);
@@ -180,6 +182,9 @@ confitem_format_sloppiness(void *value)
 	}
 	if (*sloppiness & SLOPPY_CLANG_INDEX_STORE) {
 		reformat(&s, "%sclang_index_store, ", s);
+	}
+	if (*sloppiness & SLOPPY_LOCALE) {
+		reformat(&s, "%slocale, ", s);
 	}
 	if (*sloppiness) {
 		// Strip last ", ".
