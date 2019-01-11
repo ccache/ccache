@@ -1346,6 +1346,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	//
 	//   tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
 	x_unsetenv("DEPENDENCIES_OUTPUT");
+	x_unsetenv("SUNPRO_DEPENDENCIES");
 
 	if (conf->run_second_cpp) {
 		args_add(args, input_file);
@@ -2384,6 +2385,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	bool dependency_filename_specified = false;
 	// Is the dependency makefile target name specified with -MT or -MQ?
 	bool dependency_target_specified = false;
+	// Is the dependency target name implicitly specified using
+	// DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
+	bool dependency_implicit_target_specified = false;
 	// expanded_args is a copy of the original arguments given to the compiler
 	// but with arguments from @file and similar constructs expanded. It's only
 	// used as a temporary data structure to loop over.
@@ -3075,6 +3079,50 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	} // for
 
+	// See http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html
+	// Contrary to what the documentation seems to imply the compiler still
+	// creates object files with these defined (confirmed with GCC 8.2.1)
+	// These environment variables do nothing on CLANG
+	char *dependencies_env = getenv("DEPENDENCIES_OUTPUT");
+	bool using_sunpro_dependencies = false;
+	if (!dependencies_env) {
+		dependencies_env = getenv("SUNPRO_DEPENDENCIES");
+		using_sunpro_dependencies = true;
+	}
+	if (dependencies_env) {
+		generating_dependencies = true;
+		dependency_filename_specified = true;
+		char *saveptr = NULL;
+		char *abspath_file = strtok_r(dependencies_env, " ", &saveptr);
+
+		free(output_dep);
+		output_dep = make_relative_path(x_strdup(abspath_file));
+
+		// Specifying target object is optional
+		char *abspath_obj = strtok_r(NULL, " ", &saveptr);
+		if (abspath_obj) {
+			dependency_target_specified = true;
+			char *relpath_obj = make_relative_path(x_strdup(abspath_obj));
+			// ensure compiler gets relative path
+			char *relpath_both = format("%s %s", output_dep, relpath_obj);
+			if (using_sunpro_dependencies) {
+				x_setenv("SUNPRO_DEPENDENCIES", relpath_both);
+			} else {
+				x_setenv("DEPENDENCIES_OUTPUT", relpath_both);
+			}
+			free(relpath_obj);
+			free(relpath_both);
+		} else {
+			dependency_implicit_target_specified = true;
+			// ensure compiler gets relative path
+			if (using_sunpro_dependencies) {
+				x_setenv("SUNPRO_DEPENDENCIES", output_dep);
+			} else {
+				x_setenv("DEPENDENCIES_OUTPUT", output_dep);
+			}
+		}
+	}
+
 	if (found_S_opt) {
 		// Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
 		// is also given.
@@ -3270,6 +3318,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (!dependency_target_specified
+		    && !dependency_implicit_target_specified
 		    && !str_eq(get_extension(output_dep), ".o")) {
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);

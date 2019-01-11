@@ -167,6 +167,7 @@ char *x_strndup(const char *s, size_t n);
 void *x_malloc(size_t size);
 void *x_calloc(size_t nmemb, size_t size);
 void *x_realloc(void *ptr, size_t size);
+void x_setenv(const char *name, const char *value);
 void x_unsetenv(const char *name);
 int x_fstat(int fd, struct stat *buf);
 int x_lstat(const char *pathname, struct stat *buf);
