@@ -42,6 +42,9 @@ Changes
   with other options. `no_system_headers` can still be used as an
   (undocumented) alias.
 
+- The GCC variables “DEPENDENCIES_OUTPUT” and “SUNPRO_DEPENDENCIES” are now
+  supported correctly.
+
 
 ccache 3.5.1
 ------------
