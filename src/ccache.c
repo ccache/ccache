@@ -3079,10 +3079,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	} // for
 
-	// See http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html
+	// See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
 	// Contrary to what the documentation seems to imply the compiler still
-	// creates object files with these defined (confirmed with GCC 8.2.1)
-	// These environment variables do nothing on CLANG
+	// creates object files with these defined (confirmed with GCC 8.2.1), i.e.
+	// they work as -MMD/-MD, not -MM/-M. These environment variables do nothing
+	// on Clang.
 	char *dependencies_env = getenv("DEPENDENCIES_OUTPUT");
 	bool using_sunpro_dependencies = false;
 	if (!dependencies_env) {
@@ -3098,12 +3099,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		free(output_dep);
 		output_dep = make_relative_path(x_strdup(abspath_file));
 
-		// Specifying target object is optional
+		// Specifying target object is optional.
 		char *abspath_obj = strtok_r(NULL, " ", &saveptr);
 		if (abspath_obj) {
+			// It's the "file target" form.
+
 			dependency_target_specified = true;
 			char *relpath_obj = make_relative_path(x_strdup(abspath_obj));
-			// ensure compiler gets relative path
+			// Ensure compiler gets relative path.
 			char *relpath_both = format("%s %s", output_dep, relpath_obj);
 			if (using_sunpro_dependencies) {
 				x_setenv("SUNPRO_DEPENDENCIES", relpath_both);
@@ -3113,8 +3116,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(relpath_obj);
 			free(relpath_both);
 		} else {
+			// It's the "file" form.
+
 			dependency_implicit_target_specified = true;
-			// ensure compiler gets relative path
+			// Ensure compiler gets relative path.
 			if (using_sunpro_dependencies) {
 				x_setenv("SUNPRO_DEPENDENCIES", output_dep);
 			} else {
