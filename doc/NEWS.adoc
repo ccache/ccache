@@ -45,6 +45,10 @@ Changes
 - The GCC variables “DEPENDENCIES_OUTPUT” and “SUNPRO_DEPENDENCIES” are now
   supported correctly.
 
+- The algorithm that scans for `__DATE_` and `__TIME__` tokens in the hashed
+  source code now doesn't produce false positives for tokens where `__DATE__`
+  or `__TIME__` is a substring.
+
 
 ccache 3.5.1
 ------------

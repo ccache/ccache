@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -149,6 +149,13 @@ TEST(check_for_temporal_macros)
 		"#define ab __DATE__";
 
 	const char no_temporal[] =
+		"#define ab a__DATE__\n"
+		"#define ab  __DATE__a\n"
+		"#define ab A__DATE__\n"
+		"#define ab  __DATE__A\n"
+		"#define ab 0__DATE__\n"
+		"#define ab  __DATE__0\n"
+		"#define ab _ _DATE__\n"
 		"#define ab _ _DATE__\n"
 		"#define ab __ DATE__\n"
 		"#define ab __D ATE__\n"
