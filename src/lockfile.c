@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -15,13 +15,6 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
-
-// AIX/PASE does not properly define usleep within its headers, however, the
-// function is available in libc.a. This extern define ensures it is usable 
-// within the ccache code base.
-#ifdef _AIX
-	extern int              usleep(useconds_t);
-#endif
 
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale

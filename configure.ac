@@ -16,6 +16,7 @@ case $host in
         ;;
     *os400* | *aix*)
         AR="ar -X64"
+        ;;
 esac
 
 AC_SUBST(disable_man)
