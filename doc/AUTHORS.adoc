@@ -31,11 +31,14 @@ ccache is a collective work with contributions from many people, including:
 * Hongli Lai <hongli@phusion.nl>
 * Ivan Vaigult <i.vaigult@gmail.com>
 * Jiang Jiang <jiangj@opera.com>
+* Joel Galenson <jgalenson@gmail.com>
 * Joel Rosdahl <joel@rosdahl.net>
 * John Basila <jbasila@checkpoint.com>
 * John Coiner <john.coiner@amd.com>
 * Jon Bernard <jbernard@tuxion.com>
+* Jonny Yu <yingshen.yu@gmail.com>
 * Jørgen P. Tjernø <jorgen@valvesoftware.com>
+* Josh Soref <jsoref@users.noreply.github.com>
 * Justin Lebar <justin.lebar@gmail.com>
 * Karl Chen <quarl@cs.berkeley.edu>
 * Kona Blend <kona8lend@gmail.com>
@@ -44,6 +47,7 @@ ccache is a collective work with contributions from many people, including:
 * Lars Gustäbel <lars@gustaebel.de>
 * Leanid Chaika <leanid.chaika@gmail.com>
 * Luboš Luňák <l.lunak@centrum.cz>
+* Maarten Maathuis <madman2003@shikahr.net>
 * Mark Starovoytov <starovoytov.mark@googlemail.com>
 * Martin Ettl <ettl.martin78@gmail.com>
 * Martin Pool <mbp@sourcefrog.net>
@@ -52,6 +56,7 @@ ccache is a collective work with contributions from many people, including:
 * Melven Roehrig-Zoellner <Melven.Roehrig-Zoellner@DLR.de>
 * Michael Marineau <michael.marineau@coreos.com>
 * Michael Meeks <michael.meeks@suse.com>
+* Michał Mirosław <mirq-linux@rere.qmqm.pl>
 * Mihai Serban <mihai.serban@intel.com>
 * Mike Frysinger <vapier@gentoo.org>
 * Mike Gulick <mgulick@mathworks.com>
@@ -90,5 +95,6 @@ ccache is a collective work with contributions from many people, including:
 * Wilson Snyder <wsnyder@wsnyder.org>
 * Xavier René-Corail <xavier.renecorail@gmail.com>
 * Yiding Jia <yiding@fb.com>
+* Yvan Janssens <friedkiwi@yvanj.me>
 
 Thanks!
