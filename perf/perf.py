@@ -47,7 +47,9 @@ PHASES = [
     "with ccache, preprocessor mode, cache miss",
     "with ccache, preprocessor mode, cache hit",
     "with ccache, direct mode, cache miss",
-    "with ccache, direct mode, cache hit"]
+    "with ccache, direct mode, cache hit",
+    "with ccache, depend mode, cache miss",
+    "with ccache, depend mode, cache hit"]
 
 verbose = False
 
@@ -94,7 +96,7 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     result = [None] * len(PHASES)
 
-    def run(i, use_ccache, use_direct):
+    def run(i, use_ccache, use_direct, use_depend):
         obj = "%s/%d.o" % (obj_dir, i)
         src = "%s/%d%s" % (src_dir, i, extension)
         if use_ccache:
@@ -105,6 +107,8 @@ def test(tmp_dir, options, compiler_args, source_file):
         env = environment.copy()
         if not use_direct:
             env["CCACHE_NODIRECT"] = "1"
+        if use_depend:
+            env["CCACHE_DEPEND"] = "1"
         if call(args, env=env) != 0:
             sys.stderr.write(
                 'Error running "%s"; please correct\n' % " ".join(args))
@@ -113,7 +117,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     # Warm up the disk cache.
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
-    run(0, True, True)
+    run(0, True, True, False)
 
     ###########################################################################
     # Without ccache
@@ -122,7 +126,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[0])
     t0 = time()
     for i in range(times):
-        run(i, False, False)
+        run(i, False, False, False)
         progress(".")
     result[0] = time() - t0
     progress("\n")
@@ -134,7 +138,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[1])
     t0 = time()
     for i in range(times):
-        run(i, True, False)
+        run(i, True, False, False)
         progress(".")
     result[1] = time() - t0
     progress("\n")
@@ -144,7 +148,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     t0 = time()
     for j in range(hit_factor):
         for i in range(times):
-            run(i, True, False)
+            run(i, True, False, False)
             progress(".")
     result[2] = (time() - t0) / hit_factor
     progress("\n")
@@ -156,7 +160,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[3])
     t0 = time()
     for i in range(times):
-        run(i, True, True)
+        run(i, True, True, False)
         progress(".")
     result[3] = time() - t0
     progress("\n")
@@ -166,9 +170,31 @@ def test(tmp_dir, options, compiler_args, source_file):
     t0 = time()
     for j in range(hit_factor):
         for i in range(times):
-            run(i, True, True)
+            run(i, True, True, False)
             progress(".")
     result[4] = (time() - t0) / hit_factor
+    progress("\n")
+
+    ###########################################################################
+    # Direct+depend mode
+    recreate_dir(ccache_dir)
+    recreate_dir(obj_dir)
+    progress("Compiling %s\n" % PHASES[5])
+    t0 = time()
+    for i in range(times):
+        run(i, True, True, True)
+        progress(".")
+    result[5] = time() - t0
+    progress("\n")
+
+    recreate_dir(obj_dir)
+    progress("Compiling %s\n" % PHASES[6])
+    t0 = time()
+    for j in range(hit_factor):
+        for i in range(times):
+            run(i, True, True, True)
+            progress(".")
+    result[6] = (time() - t0) / hit_factor
     progress("\n")
 
     return result
