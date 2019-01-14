@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2010 Joel Rosdahl
+# Copyright (C) 2010-2019 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -51,15 +51,18 @@ PHASES = [
 
 verbose = False
 
+
 def progress(msg):
     if verbose:
         sys.stderr.write(msg)
         sys.stderr.flush()
 
+
 def recreate_dir(x):
     if exists(x):
         rmtree(x)
     mkdir(x)
+
 
 def test(tmp_dir, options, compiler_args, source_file):
     src_dir = "%s/src" % tmp_dir
@@ -170,6 +173,7 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     return result
 
+
 def print_result_as_text(result):
     for (i, x) in enumerate(PHASES):
         print "%-43s %6.2f s (%6.2f %%) (%5.2f x)" % (
@@ -177,6 +181,7 @@ def print_result_as_text(result):
             result[i],
             100 * (result[i] / result[0]),
             result[0] / result[i])
+
 
 def print_result_as_xml(result):
     print '<?xml version="1.0" encoding="UTF-8"?>'
@@ -190,8 +195,10 @@ def print_result_as_xml(result):
         print "</measurement>"
     print "</ccache-perf>"
 
+
 def on_off(x):
     return "on" if x else "off"
+
 
 def find_in_path(cmd):
     if isabs(cmd):
@@ -202,6 +209,7 @@ def find_in_path(cmd):
             if isfile(p) and access(p, X_OK):
                 return p
         return None
+
 
 def main(argv):
     op = OptionParser(usage=USAGE, description=DESCRIPTION)
@@ -218,17 +226,18 @@ def main(argv):
         action="store_true")
     op.add_option(
         "-d", "--directory",
-        help="where to create the temporary directory with the cache and" \
-             " other files (default: %s)" \
-            % DEFAULT_DIRECTORY)
+        help=(
+            "where to create the temporary directory with the cache and other"
+            " files (default: %s)" % DEFAULT_DIRECTORY))
     op.add_option(
         "--hardlink",
         help="use hard links",
         action="store_true")
     op.add_option(
         "--hit-factor",
-        help="how many times more to compile the file for cache hits (default: %d)" \
-            % DEFAULT_HIT_FACTOR,
+        help=(
+            "how many times more to compile the file for cache hits (default:"
+            " %d)" % DEFAULT_HIT_FACTOR),
         type="int")
     op.add_option(
         "--nostats",
@@ -236,8 +245,9 @@ def main(argv):
         action="store_true")
     op.add_option(
         "-n", "--times",
-        help="number of times to compile the file (default: %d)" \
-            % DEFAULT_TIMES,
+        help=(
+            "number of times to compile the file (default: %d)"
+            % DEFAULT_TIMES),
         type="int")
     op.add_option(
         "-v", "--verbose",
@@ -287,5 +297,6 @@ def main(argv):
         print_result_as_xml(result)
     else:
         print_result_as_text(result)
+
 
 main(sys.argv)
