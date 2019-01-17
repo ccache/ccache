@@ -98,7 +98,7 @@ source_dist_files = \
     src/zlib/*.c \
     src/zlib/*.h \
     test/run \
-    test/suites/*
+    test/suites/*.bash
 
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
