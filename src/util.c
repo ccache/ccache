@@ -219,8 +219,12 @@ void
 cc_dump_log_buffer(const char *path)
 {
 	FILE *file = fopen(path, "w");
-	(void) fwrite(logbuffer, 1, logsize, file);
-	fclose(file);
+	if (file) {
+		(void) fwrite(logbuffer, 1, logsize, file);
+		fclose(file);
+	} else {
+		cc_log("Failed to open %s: %s", path, strerror(errno));
+	}
 }
 
 // Something went badly wrong!

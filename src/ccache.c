@@ -521,9 +521,13 @@ init_hash_debug(struct hash *hash, const char *obj_path, char type,
 
 	char *path = format("%s.ccache-input-%c", obj_path, type);
 	FILE *debug_binary_file = fopen(path, "wb");
-	hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
+	if (debug_binary_file) {
+		hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
+		exitfn_add(fclose_exitfn, debug_binary_file);
+	} else {
+		cc_log("Failed to open %s: %s", path, strerror(errno));
+	}
 	free(path);
-	exitfn_add(fclose_exitfn, debug_binary_file);
 }
 
 static enum guessed_compiler
@@ -3670,8 +3674,13 @@ ccache(int argc, char *argv[])
 	if (conf->debug) {
 		char *path = format("%s.ccache-input-text", output_obj);
 		debug_text_file = fopen(path, "w");
+		if (debug_text_file) {
+			exitfn_add(fclose_exitfn, debug_text_file);
+		}
+		else {
+			cc_log("Failed to open %s: %s", path, strerror(errno));
+		}
 		free(path);
-		exitfn_add(fclose_exitfn, debug_text_file);
 	}
 
 	struct hash *common_hash = hash_init();
