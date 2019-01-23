@@ -24,12 +24,15 @@ Please include at least the following information in your bug report:
 Also, consider reading [Effective Ways to Get Help from Maintainers](
 https://www.snoyman.com/blog/2017/10/effective-ways-help-from-maintainers).
 
-
 ## Contributing code?
 
-Great! You can create a pull request with your proposal on github, or you could
-post one or several patches to the
-[mailing list](https://lists.samba.org/mailman/listinfo/ccache/).
+The preferred way is to create one or several pull request with your
+proposal(s) on [GitHub](https://github.com/ccache/ccache).
+
+If you plan to implement major changes it is wise to open an issue on GitHub
+(or send a mail to the mailing list) asking for comments on your plans before
+doing the bulk of the work. That way you can avoid potentially wasting time on
+doing something that might not end up being accepted.
 
 ### How to write commit messages
 
