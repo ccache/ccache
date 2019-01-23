@@ -1,6 +1,17 @@
 ccache news
 ===========
 
+ccache 3.7
+----------
+unreleased
+
+Changes
+~~~~~~~
+
+* Fixed crash when the debug mode is enabled and the output file is in a
+  non-writable directory, e.g. when the output file is `/dev/null`.
+
+
 ccache 3.6
 ----------
 Release date: 2019-01-14
