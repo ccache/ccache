@@ -157,7 +157,7 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 		}
 	}
 	if (logbuffer) {
-		char buf[1024];
+		char buf[8192];
 		int len = vsnprintf(buf, sizeof(buf), format, aq);
 		if (len >= 0) {
 			append_log(buf, MIN((size_t)len, sizeof(buf) - 1));
@@ -235,7 +235,7 @@ fatal(const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
-	char msg[1000];
+	char msg[8192];
 	vsnprintf(msg, sizeof(msg), format, ap);
 	va_end(ap);
 
