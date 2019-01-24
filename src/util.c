@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -158,9 +158,11 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 	}
 	if (logbuffer) {
 		char buf[1024];
-		size_t len = vsnprintf(buf, sizeof(buf), format, aq);
-		append_log(buf, len);
-		append_log("\n", 1);
+		int len = vsnprintf(buf, sizeof(buf), format, aq);
+		if (len >= 0) {
+			append_log(buf, MIN((size_t)len, sizeof(buf) - 1));
+			append_log("\n", 1);
+		}
 	}
 	va_end(aq);
 }

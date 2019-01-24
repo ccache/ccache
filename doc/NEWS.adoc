@@ -11,6 +11,8 @@ Changes
 * Fixed crash when the debug mode is enabled and the output file is in a
   non-writable directory, e.g. when the output file is `/dev/null`.
 
+* Fixed an issue when printing very large log messages to the debug log.
+
 
 ccache 3.6
 ----------
