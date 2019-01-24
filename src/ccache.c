@@ -500,14 +500,14 @@ fclose_exitfn(void *context)
 }
 
 static void
-dump_log_buffer_exitfn(void *context)
+dump_debug_log_buffer_exitfn(void *context)
 {
 	if (!conf->debug) {
 		return;
 	}
 
 	char *path = format("%s.ccache-log", (const char *)context);
-	cc_dump_log_buffer(path);
+	cc_dump_debug_log_buffer(path);
 	free(path);
 }
 
@@ -3668,7 +3668,7 @@ ccache(int argc, char *argv[])
 	cc_log("Object file: %s", output_obj);
 
 	// Need to dump log buffer as the last exit function to not lose any logs.
-	exitfn_add_last(dump_log_buffer_exitfn, output_obj);
+	exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
 
 	FILE *debug_text_file = NULL;
 	if (conf->debug) {
