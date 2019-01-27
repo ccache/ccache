@@ -1,9 +1,22 @@
 ccache news
 ===========
 
+ccache 3.7
+----------
+unreleased
+
+Changes
+~~~~~~~
+
+* Fixed crash when the debug mode is enabled and the output file is in a
+  non-writable directory, e.g. when the output file is `/dev/null`.
+
+* Fixed an issue when printing very large log messages to the debug log.
+
+
 ccache 3.6
 ----------
-Unreleased
+Release date: 2019-01-14
 
 Changes
 ~~~~~~~
@@ -11,13 +24,16 @@ Changes
 - ccache now has an opt-in ``depend mode''. When enabled, ccache never executes
   the preprocessor, which results in much lower cache miss overhead at the
   expense of a lower potential cache hit rate. The depend mode is only possible
-  to use when the compiler option *-MD* or *-MMD* is used.
+  to use when the compiler option `-MD` or `-MMD` is used.
 
 - Added support for GCC's `-ffile-prefix-map` option. The `-fmacro-prefix-map`
   option is now also skipped from the hash.
 
-- Added support for multiple `-fsanitize-blacklist` arguments, thus preventing
-  ccache from
+- Added support for multiple `-fsanitize-blacklist` arguments.
+
+- ccache now includes the environment variables `LANG`, `LC_ALL`, `LC_CTYPE`
+  and `LC_MESSAGES` in the hash since they may affect localization of compiler
+  warning messages. Set sloppiness to `locale` to opt out of this.
 
 - Fixed a problem due to Clang overwriting the output file when compiling an
   assembler file.
@@ -28,11 +44,22 @@ Changes
 - ccache now handles several levels of nonexistent directories when rewriting
   absolute paths to relative.
 
-- A new ``sloppiness'' setting *clang_index_store* makes ccache skip the Clang
-  compiler option *-index-store-path* and its argument when computing the
+- A new sloppiness setting `clang_index_store` makes ccache skip the Clang
+  compiler option `-index-store-path` and its argument when computing the
   manifest hash. This is useful if you use Xcode, which uses an index store
   path derived from the local project path. Note that the index store won't be
   updated correctly on cache hits if you enable this option.
+
+- Rename sloppiness `no_system_headers` to `system_headers` for consistency
+  with other options. `no_system_headers` can still be used as an
+  (undocumented) alias.
+
+- The GCC variables “DEPENDENCIES_OUTPUT” and “SUNPRO_DEPENDENCIES” are now
+  supported correctly.
+
+- The algorithm that scans for `__DATE_` and `__TIME__` tokens in the hashed
+  source code now doesn't produce false positives for tokens where `__DATE__`
+  or `__TIME__` is a substring.
 
 
 ccache 3.5.1
@@ -90,7 +117,7 @@ Changes
 - It's now possible to opt out of building and installing man pages when
   running `make install` in the source repository.
 
-- If the compiler type can't be detected (e.g. if it is named *cc*), use safer
+- If the compiler type can't be detected (e.g. if it is named `cc`), use safer
   defaults that won't trip up Clang.
 
 - Made the ccache test suite work on FreeBSD.
@@ -369,7 +396,7 @@ New features and enhancements
 
 - Added a new `keep_comments_cpp` (`CCACHE_COMMENTS`) configuration option,
   which tells ccache not to discard the comments before hashing preprocessor
-  output. This can be used to check documentation with *-Wdocumentation*.
+  output. This can be used to check documentation with `-Wdocumentation`.
 
 - Added a new sloppiness option `no_system_headers`, which tells ccache not to
   include system headers in manifest files.
@@ -604,7 +631,7 @@ Bug fixes
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
-- Don't try to reset a non-existing stats file. This avoids ``No such file or
+- Don't try to reset a nonexistent stats file. This avoids ``No such file or
   directory'' messages in the ccache log when the cache directory doesn't
   exist.
 
@@ -791,7 +818,7 @@ Bug fixes
   This makes it possible to rebuild with `CCACHE_CPP2` set without having to
   clear the cache to get new results.
 
-- Don't try to reset a non-existing stats file. This avoids ``No such file or
+- Don't try to reset a nonexistent stats file. This avoids ``No such file or
   directory'' messages in the ccache log when the cache directory doesn't
   exist.
 

@@ -48,6 +48,13 @@
 #include <unistd.h>
 #include <utime.h>
 
+// AIX/PASE does not properly define usleep within its headers. However, the
+// function is available in libc.a. This extern define ensures that it is
+// usable within the ccache code base.
+#ifdef _AIX
+extern int usleep(useconds_t);
+#endif
+
 extern char **environ;
 
 #ifndef ESTALE

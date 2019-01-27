@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2010 Joel Rosdahl
+# Copyright (C) 2010-2019 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -47,19 +47,24 @@ PHASES = [
     "with ccache, preprocessor mode, cache miss",
     "with ccache, preprocessor mode, cache hit",
     "with ccache, direct mode, cache miss",
-    "with ccache, direct mode, cache hit"]
+    "with ccache, direct mode, cache hit",
+    "with ccache, depend mode, cache miss",
+    "with ccache, depend mode, cache hit"]
 
 verbose = False
+
 
 def progress(msg):
     if verbose:
         sys.stderr.write(msg)
         sys.stderr.flush()
 
+
 def recreate_dir(x):
     if exists(x):
         rmtree(x)
     mkdir(x)
+
 
 def test(tmp_dir, options, compiler_args, source_file):
     src_dir = "%s/src" % tmp_dir
@@ -91,7 +96,7 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     result = [None] * len(PHASES)
 
-    def run(i, use_ccache, use_direct):
+    def run(i, use_ccache, use_direct, use_depend):
         obj = "%s/%d.o" % (obj_dir, i)
         src = "%s/%d%s" % (src_dir, i, extension)
         if use_ccache:
@@ -102,6 +107,8 @@ def test(tmp_dir, options, compiler_args, source_file):
         env = environment.copy()
         if not use_direct:
             env["CCACHE_NODIRECT"] = "1"
+        if use_depend:
+            env["CCACHE_DEPEND"] = "1"
         if call(args, env=env) != 0:
             sys.stderr.write(
                 'Error running "%s"; please correct\n' % " ".join(args))
@@ -110,7 +117,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     # Warm up the disk cache.
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
-    run(0, True, True)
+    run(0, True, True, False)
 
     ###########################################################################
     # Without ccache
@@ -119,7 +126,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[0])
     t0 = time()
     for i in range(times):
-        run(i, False, False)
+        run(i, False, False, False)
         progress(".")
     result[0] = time() - t0
     progress("\n")
@@ -131,7 +138,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[1])
     t0 = time()
     for i in range(times):
-        run(i, True, False)
+        run(i, True, False, False)
         progress(".")
     result[1] = time() - t0
     progress("\n")
@@ -141,7 +148,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     t0 = time()
     for j in range(hit_factor):
         for i in range(times):
-            run(i, True, False)
+            run(i, True, False, False)
             progress(".")
     result[2] = (time() - t0) / hit_factor
     progress("\n")
@@ -153,7 +160,7 @@ def test(tmp_dir, options, compiler_args, source_file):
     progress("Compiling %s\n" % PHASES[3])
     t0 = time()
     for i in range(times):
-        run(i, True, True)
+        run(i, True, True, False)
         progress(".")
     result[3] = time() - t0
     progress("\n")
@@ -163,12 +170,35 @@ def test(tmp_dir, options, compiler_args, source_file):
     t0 = time()
     for j in range(hit_factor):
         for i in range(times):
-            run(i, True, True)
+            run(i, True, True, False)
             progress(".")
     result[4] = (time() - t0) / hit_factor
     progress("\n")
 
+    ###########################################################################
+    # Direct+depend mode
+    recreate_dir(ccache_dir)
+    recreate_dir(obj_dir)
+    progress("Compiling %s\n" % PHASES[5])
+    t0 = time()
+    for i in range(times):
+        run(i, True, True, True)
+        progress(".")
+    result[5] = time() - t0
+    progress("\n")
+
+    recreate_dir(obj_dir)
+    progress("Compiling %s\n" % PHASES[6])
+    t0 = time()
+    for j in range(hit_factor):
+        for i in range(times):
+            run(i, True, True, True)
+            progress(".")
+    result[6] = (time() - t0) / hit_factor
+    progress("\n")
+
     return result
+
 
 def print_result_as_text(result):
     for (i, x) in enumerate(PHASES):
@@ -177,6 +207,7 @@ def print_result_as_text(result):
             result[i],
             100 * (result[i] / result[0]),
             result[0] / result[i])
+
 
 def print_result_as_xml(result):
     print '<?xml version="1.0" encoding="UTF-8"?>'
@@ -190,8 +221,10 @@ def print_result_as_xml(result):
         print "</measurement>"
     print "</ccache-perf>"
 
+
 def on_off(x):
     return "on" if x else "off"
+
 
 def find_in_path(cmd):
     if isabs(cmd):
@@ -202,6 +235,7 @@ def find_in_path(cmd):
             if isfile(p) and access(p, X_OK):
                 return p
         return None
+
 
 def main(argv):
     op = OptionParser(usage=USAGE, description=DESCRIPTION)
@@ -218,17 +252,18 @@ def main(argv):
         action="store_true")
     op.add_option(
         "-d", "--directory",
-        help="where to create the temporary directory with the cache and" \
-             " other files (default: %s)" \
-            % DEFAULT_DIRECTORY)
+        help=(
+            "where to create the temporary directory with the cache and other"
+            " files (default: %s)" % DEFAULT_DIRECTORY))
     op.add_option(
         "--hardlink",
         help="use hard links",
         action="store_true")
     op.add_option(
         "--hit-factor",
-        help="how many times more to compile the file for cache hits (default: %d)" \
-            % DEFAULT_HIT_FACTOR,
+        help=(
+            "how many times more to compile the file for cache hits (default:"
+            " %d)" % DEFAULT_HIT_FACTOR),
         type="int")
     op.add_option(
         "--nostats",
@@ -236,8 +271,9 @@ def main(argv):
         action="store_true")
     op.add_option(
         "-n", "--times",
-        help="number of times to compile the file (default: %d)" \
-            % DEFAULT_TIMES,
+        help=(
+            "number of times to compile the file (default: %d)"
+            % DEFAULT_TIMES),
         type="int")
     op.add_option(
         "-v", "--verbose",
@@ -287,5 +323,6 @@ def main(argv):
         print_result_as_xml(result)
     else:
         print_result_as_text(result)
+
 
 main(sys.argv)

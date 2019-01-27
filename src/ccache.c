@@ -500,14 +500,14 @@ fclose_exitfn(void *context)
 }
 
 static void
-dump_log_buffer_exitfn(void *context)
+dump_debug_log_buffer_exitfn(void *context)
 {
 	if (!conf->debug) {
 		return;
 	}
 
 	char *path = format("%s.ccache-log", (const char *)context);
-	cc_dump_log_buffer(path);
+	cc_dump_debug_log_buffer(path);
 	free(path);
 }
 
@@ -521,9 +521,13 @@ init_hash_debug(struct hash *hash, const char *obj_path, char type,
 
 	char *path = format("%s.ccache-input-%c", obj_path, type);
 	FILE *debug_binary_file = fopen(path, "wb");
-	hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
+	if (debug_binary_file) {
+		hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
+		exitfn_add(fclose_exitfn, debug_binary_file);
+	} else {
+		cc_log("Failed to open %s: %s", path, strerror(errno));
+	}
 	free(path);
-	exitfn_add(fclose_exitfn, debug_binary_file);
 }
 
 static enum guessed_compiler
@@ -600,7 +604,7 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 		goto out;
 	}
 
-	if (system && (conf->sloppiness & SLOPPY_NO_SYSTEM_HEADERS)) {
+	if (system && (conf->sloppiness & SLOPPY_SYSTEM_HEADERS)) {
 		// Don't remember this system header.
 		goto out;
 	}
@@ -1348,6 +1352,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	//
 	//   tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
 	x_unsetenv("DEPENDENCIES_OUTPUT");
+	x_unsetenv("SUNPRO_DEPENDENCIES");
 
 	if (conf->run_second_cpp) {
 		args_add(args, input_file);
@@ -1795,6 +1800,25 @@ calculate_common_hash(struct args *args, struct hash *hash)
 	char *base = basename(args->argv[0]);
 	hash_string(hash, base);
 	free(base);
+
+	if (!(conf->sloppiness & SLOPPY_LOCALE)) {
+		// Hash environment variables that may affect localization of compiler
+		// warning messages.
+		const char *envvars[] = {
+			"LANG",
+			"LC_ALL",
+			"LC_CTYPE",
+			"LC_MESSAGES",
+			NULL
+		};
+		for (const char **p = envvars; *p; ++p) {
+			char *v = getenv(*p);
+			if (v) {
+				hash_delimiter(hash, *p);
+				hash_string(hash, v);
+			}
+		}
+	}
 
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
@@ -2385,6 +2409,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	bool dependency_filename_specified = false;
 	// Is the dependency makefile target name specified with -MT or -MQ?
 	bool dependency_target_specified = false;
+	// Is the dependency target name implicitly specified using
+	// DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
+	bool dependency_implicit_target_specified = false;
 	// expanded_args is a copy of the original arguments given to the compiler
 	// but with arguments from @file and similar constructs expanded. It's only
 	// used as a temporary data structure to loop over.
@@ -3076,6 +3103,55 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	} // for
 
+	// See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
+	// Contrary to what the documentation seems to imply the compiler still
+	// creates object files with these defined (confirmed with GCC 8.2.1), i.e.
+	// they work as -MMD/-MD, not -MM/-M. These environment variables do nothing
+	// on Clang.
+	char *dependencies_env = getenv("DEPENDENCIES_OUTPUT");
+	bool using_sunpro_dependencies = false;
+	if (!dependencies_env) {
+		dependencies_env = getenv("SUNPRO_DEPENDENCIES");
+		using_sunpro_dependencies = true;
+	}
+	if (dependencies_env) {
+		generating_dependencies = true;
+		dependency_filename_specified = true;
+		char *saveptr = NULL;
+		char *abspath_file = strtok_r(dependencies_env, " ", &saveptr);
+
+		free(output_dep);
+		output_dep = make_relative_path(x_strdup(abspath_file));
+
+		// Specifying target object is optional.
+		char *abspath_obj = strtok_r(NULL, " ", &saveptr);
+		if (abspath_obj) {
+			// It's the "file target" form.
+
+			dependency_target_specified = true;
+			char *relpath_obj = make_relative_path(x_strdup(abspath_obj));
+			// Ensure compiler gets relative path.
+			char *relpath_both = format("%s %s", output_dep, relpath_obj);
+			if (using_sunpro_dependencies) {
+				x_setenv("SUNPRO_DEPENDENCIES", relpath_both);
+			} else {
+				x_setenv("DEPENDENCIES_OUTPUT", relpath_both);
+			}
+			free(relpath_obj);
+			free(relpath_both);
+		} else {
+			// It's the "file" form.
+
+			dependency_implicit_target_specified = true;
+			// Ensure compiler gets relative path.
+			if (using_sunpro_dependencies) {
+				x_setenv("SUNPRO_DEPENDENCIES", output_dep);
+			} else {
+				x_setenv("DEPENDENCIES_OUTPUT", output_dep);
+			}
+		}
+	}
+
 	if (found_S_opt) {
 		// Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
 		// is also given.
@@ -3271,6 +3347,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 
 		if (!dependency_target_specified
+		    && !dependency_implicit_target_specified
 		    && !str_eq(get_extension(output_dep), ".o")) {
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
@@ -3712,14 +3789,19 @@ ccache(int argc, char *argv[])
 	MTR_META_THREAD_NAME(output_obj);
 
 	// Need to dump log buffer as the last exit function to not lose any logs.
-	exitfn_add_last(dump_log_buffer_exitfn, output_obj);
+	exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
 
 	FILE *debug_text_file = NULL;
 	if (conf->debug) {
 		char *path = format("%s.ccache-input-text", output_obj);
 		debug_text_file = fopen(path, "w");
+		if (debug_text_file) {
+			exitfn_add(fclose_exitfn, debug_text_file);
+		}
+		else {
+			cc_log("Failed to open %s: %s", path, strerror(errno));
+		}
 		free(path);
-		exitfn_add(fclose_exitfn, debug_text_file);
 	}
 
 	struct hash *common_hash = hash_init();

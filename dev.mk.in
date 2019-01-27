@@ -1,7 +1,7 @@
 # GNU make syntax reigns in this file.
 
 all_cflags += -Werror @more_warnings@
-all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
+all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$(subst $(srcdir)/,,$<))).d
 
 A2X = a2x
 ASCIIDOC = asciidoc
@@ -100,7 +100,7 @@ source_dist_files = \
     src/zlib/*.c \
     src/zlib/*.h \
     test/run \
-    test/suites/*
+    test/suites/*.bash
 
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
@@ -124,7 +124,7 @@ src/version.o: src/version.c
 define generate_gperf_lookup
 src/$(1)_lookup.c: src/$(1).gperf
 	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$(2) $$< | $$(GPERF) >$$@.tmp
+	$$(Q)$(2) $$< | $$(GPERF) | sed 's/#error/#warning/' >$$@.tmp
 # Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
 	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
 	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
@@ -216,7 +216,7 @@ cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force -I . \
 	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
-	  $(non_3pp_sources) src/main.c $(test_sources)
+	  $(non_3pp_sources) src/confitems_lookup.c src/main.c $(test_sources)
 
 .PHONY: shellcheck
 shellcheck: test/suites/*.bash

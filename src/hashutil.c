@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -62,18 +62,18 @@ check_for_temporal_macros(const char *str, size_t len)
 		// Check whether the substring ending at str[i] has the form "__...E__". On
 		// the assumption that 'E' is less common in source than '_', we check
 		// str[i-2] first.
-		if (str[i - 2] == 'E' &&
-		    str[i - 0] == '_' &&
-		    str[i - 7] == '_' &&
-		    str[i - 1] == '_' &&
-		    str[i - 6] == '_') {
+		if (str[i - 2] == 'E'
+		    && str[i - 0] == '_'
+		    && str[i - 7] == '_'
+		    && str[i - 1] == '_'
+		    && str[i - 6] == '_'
+		    && (i < 8 || (str[i - 8] != '_' && !isalnum(str[i - 8])))
+		    && (i + 1 >= len || (str[i + 1] != '_' && !isalnum(str[i + 1])))) {
 			// Check the remaining characters to see if the substring is "__DATE__"
 			// or "__TIME__".
-			if (str[i - 5] == 'D' && str[i - 4] == 'A' &&
-			    str[i - 3] == 'T') {
+			if (str[i - 5] == 'D' && str[i - 4] == 'A' && str[i - 3] == 'T') {
 				result |= HASH_SOURCE_CODE_FOUND_DATE;
-			} else if (str[i - 5] == 'T' && str[i - 4] == 'I' &&
-			           str[i - 3] == 'M') {
+			} else if (str[i - 5] == 'T' && str[i - 4] == 'I' && str[i - 3] == 'M') {
 				result |= HASH_SOURCE_CODE_FOUND_TIME;
 			}
 		}

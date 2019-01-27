@@ -14,6 +14,9 @@ case $host in
         windows_os=yes
         AC_DEFINE(_WIN32_WINNT,0x0600, Windows Vista or newer is required)
         ;;
+    *os400* | *aix*)
+        AR="ar -X64"
+        ;;
 esac
 
 AC_SUBST(disable_man)
@@ -86,6 +89,7 @@ AC_CHECK_FUNCS(getpwuid)
 AC_CHECK_FUNCS(gettimeofday)
 AC_CHECK_FUNCS(mkstemp)
 AC_CHECK_FUNCS(realpath)
+AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strtok_r)
 AC_CHECK_FUNCS(unsetenv)

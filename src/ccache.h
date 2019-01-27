@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -85,22 +85,24 @@ enum guessed_compiler {
 
 extern enum guessed_compiler guessed_compiler;
 
-#define SLOPPY_INCLUDE_FILE_MTIME 1
-#define SLOPPY_INCLUDE_FILE_CTIME 2
-#define SLOPPY_FILE_MACRO 4
-#define SLOPPY_TIME_MACROS 8
-#define SLOPPY_PCH_DEFINES 16
+#define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
+#define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
+#define SLOPPY_FILE_MACRO (1U << 2)
+#define SLOPPY_TIME_MACROS (1U << 3)
+#define SLOPPY_PCH_DEFINES (1U << 4)
 // Allow us to match files based on their stats (size, mtime, ctime), without
 // looking at their contents.
-#define SLOPPY_FILE_STAT_MATCHES 32
+#define SLOPPY_FILE_STAT_MATCHES (1U << 5)
 // Allow us to not include any system headers in the manifest include files,
 // similar to -MM versus -M for dependencies.
-#define SLOPPY_NO_SYSTEM_HEADERS 64
+#define SLOPPY_SYSTEM_HEADERS (1U << 6)
 // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
 // if we want to (it is much harder to fake ctimes, requires changing clock)
-#define SLOPPY_FILE_STAT_MATCHES_CTIME 128
+#define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 7)
 // Allow us to not include the -index-store-path option in the manifest hash.
-#define SLOPPY_CLANG_INDEX_STORE 256
+#define SLOPPY_CLANG_INDEX_STORE (1U << 8)
+// Ignore locale settings.
+#define SLOPPY_LOCALE (1U << 9)
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix) \
@@ -143,7 +145,7 @@ bool args_equal(struct args *args1, struct args *args2);
 void cc_log(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char *prefix, char **argv);
-void cc_dump_log_buffer(const char *path);
+void cc_dump_debug_log_buffer(const char *path);
 void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
@@ -166,6 +168,7 @@ char *x_strndup(const char *s, size_t n);
 void *x_malloc(size_t size);
 void *x_calloc(size_t nmemb, size_t size);
 void *x_realloc(void *ptr, size_t size);
+void x_setenv(const char *name, const char *value);
 void x_unsetenv(const char *name);
 int x_fstat(int fd, struct stat *buf);
 int x_lstat(const char *pathname, struct stat *buf);
