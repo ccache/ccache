@@ -38,23 +38,23 @@ extern "C" {
 void mtr_init(const char *json_file);
 
 // Shuts down minitrace cleanly, flushing the trace buffer.
-void mtr_shutdown();
+void mtr_shutdown(void);
 
 // Lets you enable and disable Minitrace at runtime.
 // May cause strange discontinuities in the output.
 // Minitrace is enabled on startup by default.
-void mtr_start();
-void mtr_stop();
+void mtr_start(void);
+void mtr_stop(void);
 
 // Flushes the collected data to disk, clearing the buffer for new data.
-void mtr_flush();
+void mtr_flush(void);
 
 // Returns the current time in seconds. Used internally by Minitrace. No caching.
-double mtr_time_s();
+double mtr_time_s(void);
 
 // Registers a handler that will flush the trace on Ctrl+C.
 // Works on Linux and MacOSX, and in Win32 console applications.
-void mtr_register_sigint_handler();
+void mtr_register_sigint_handler(void);
 
 // Utility function that should rarely be used.
 // If str is semi dynamic, store it permanently in a small pool so we don't need to malloc it.
