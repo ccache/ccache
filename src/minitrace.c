@@ -259,7 +259,6 @@ void mtr_flush() {
 			}
 			break;
 		case MTR_ARG_TYPE_NONE:
-		default:
 			arg_buf[0] = '\0';
 			break;
 		}
@@ -382,8 +381,7 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 	case MTR_ARG_TYPE_INT: ev->a_int = (int)(uintptr_t)arg_value; break;
 	case MTR_ARG_TYPE_STRING_CONST:	ev->a_str = (const char*)arg_value; break;
 	case MTR_ARG_TYPE_STRING_COPY: ev->a_str = strdup((const char*)arg_value); break;
-	default:
-		break;
+	case MTR_ARG_TYPE_NONE: break;
 	}
 }
 
