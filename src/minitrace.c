@@ -253,9 +253,10 @@ void mtr_flush() {
 			break;
 		case MTR_ARG_TYPE_STRING_COPY:
 			if (strlen(raw->a_str) > 700) {
-				((char*)raw->a_str)[700] = 0;
+				snprintf(arg_buf, ARRAY_SIZE(arg_buf), "\"%s\":\"%.*s\"", raw->arg_name, 700, raw->a_str);
+			} else {
+				snprintf(arg_buf, ARRAY_SIZE(arg_buf), "\"%s\":\"%s\"", raw->arg_name, raw->a_str);
 			}
-			snprintf(arg_buf, ARRAY_SIZE(arg_buf), "\"%s\":\"%s\"", raw->arg_name, raw->a_str);
 			break;
 		case MTR_ARG_TYPE_NONE:
 		default:
