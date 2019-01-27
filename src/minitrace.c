@@ -28,6 +28,12 @@
 
 #include "minitrace.h"
 
+#ifdef __GNUC__
+#define ATTR_NORETURN __attribute__((noreturn))
+#else
+#define ATTR_NORETURN
+#endif
+
 #define ARRAY_SIZE(x) sizeof(x)/sizeof(x[0])
 
 // Ugh, this struct is already pretty heavy.
@@ -131,6 +137,7 @@ double mtr_time_s() {
 }
 #endif	// !BLACKBERRY
 
+static void termination_handler(int signum) ATTR_NORETURN;
 static void termination_handler(int signum) {
 	(void) signum;
 	if (is_tracing) {
