@@ -3459,9 +3459,9 @@ create_initial_config_file(const char *path)
 #ifdef MTR_ENABLED
 static void *trace_id;
 #endif
-const char *trace_file;
+static const char *trace_file;
 
-void trace_init(const char *json)
+static void trace_init(const char *json)
 {
 #ifdef MTR_ENABLED
 	trace_file = json;
@@ -3473,7 +3473,7 @@ void trace_init(const char *json)
 #endif
 }
 
-void trace_start(const char *json)
+static void trace_start(const char *json)
 {
 	trace_file = json;
 	cc_log("Starting tracing: %s", json);
@@ -3486,7 +3486,7 @@ void trace_start(const char *json)
 #endif
 }
 
-void trace_stop(void *context)
+static void trace_stop(void *context)
 {
 	const char *json = (const char *) context;
 	if (str_eq(json, "")) {
