@@ -104,12 +104,6 @@ dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
-uncrustify_exclude_files = \
-    src/getopt_long.c \
-    src/hashtable.c \
-    src/hashtable_itr.c \
-    src/snprintf.c
-
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
   $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.c)
 endif
@@ -222,7 +216,7 @@ shellcheck: test/suites/*.bash
 
 .PHONY: uncrustify
 uncrustify:
-	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(filter-out $(uncrustify_exclude_files), $(base_sources)) $(test_sources)
+	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(non_3pp_sources) $(test_sources)
 
 # pip install compiledb
 compile_commands.json:
