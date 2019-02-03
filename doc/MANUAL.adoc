@@ -262,7 +262,7 @@ IN DIFFERENT DIRECTORIES>>.
     This setting allows you to choose the number of directory levels in the
     cache directory. The default is 2. The minimum is 1 and the maximum is 8.
 
-*compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
+*compiler* (*CCACHE_CC*)::
 
     This setting can be used to force the name of the compiler to use. If set
     to the empty string (which is the default), ccache works it out from the

@@ -1,16 +1,6 @@
 ccache news
 ===========
 
-ccache 3.5
-----------
-Release date: unknown
-
-New features and enhancements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- Renamed `CCACHE_CC` to `CCACHE_COMPILER` (keeping the former as a deprecated
-  alias).
-
 ccache 3.4.3
 -----------
 Release date: 2018-09-02

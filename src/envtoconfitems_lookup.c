@@ -31,7 +31,7 @@
 
 #line 9 "src/envtoconfitems.gperf"
 struct env_to_conf_item;
-/* maximum key range = 54, duplicates = 0 */
+/* maximum key range = 46, duplicates = 0 */
 
 #ifdef __GNUC__
 __inline
@@ -45,32 +45,32 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
 {
   static const unsigned char asso_values[] =
     {
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 15,  0,  0, 30,
-      20, 56, 10, 20,  0, 56,  5, 30,  5,  0,
-       5,  5, 20, 10,  5,  0, 56, 56, 56, 56,
-       0, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56, 56, 56, 56,
-      56, 56, 56, 56, 56, 56, 56
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48,  5,  0,  0, 25,
+      30, 48, 10, 30,  5, 48, 10, 15, 10,  0,
+       5, 15, 10,  0,  0,  0, 48, 48, 48, 48,
+       5, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      48, 48, 48, 48, 48, 48, 48
     };
   register int hval = len;
 
@@ -101,11 +101,11 @@ envtoconfitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 33,
+      TOTAL_KEYWORDS = 32,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 15,
       MIN_HASH_VALUE = 2,
-      MAX_HASH_VALUE = 55
+      MAX_HASH_VALUE = 47
     };
 
   static const struct env_to_conf_item wordlist[] =
@@ -113,81 +113,79 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"",""}, {"",""},
 #line 12 "src/envtoconfitems.gperf"
       {"CC", "compiler"},
-#line 20 "src/envtoconfitems.gperf"
+#line 19 "src/envtoconfitems.gperf"
       {"DIR", "cache_dir"},
-#line 18 "src/envtoconfitems.gperf"
+#line 17 "src/envtoconfitems.gperf"
       {"CPP2", "run_second_cpp"},
-#line 43 "src/envtoconfitems.gperf"
-      {"UNIFY", "unify"},
-#line 21 "src/envtoconfitems.gperf"
+#line 39 "src/envtoconfitems.gperf"
+      {"STATS", "stats"},
+#line 20 "src/envtoconfitems.gperf"
       {"DIRECT", "direct_mode"},
-#line 22 "src/envtoconfitems.gperf"
+#line 21 "src/envtoconfitems.gperf"
       {"DISABLE", "disable"},
-#line 13 "src/envtoconfitems.gperf"
-      {"COMPILER", "compiler"},
-#line 33 "src/envtoconfitems.gperf"
+#line 14 "src/envtoconfitems.gperf"
+      {"COMPRESS", "compression"},
+#line 32 "src/envtoconfitems.gperf"
       {"PATH", "path"},
 #line 42 "src/envtoconfitems.gperf"
-      {"UMASK", "umask"},
-#line 34 "src/envtoconfitems.gperf"
-      {"PREFIX", "prefix_command"},
-#line 29 "src/envtoconfitems.gperf"
-      {"LOGFILE", "log_file"},
-#line 14 "src/envtoconfitems.gperf"
-      {"COMPILERCHECK", "compiler_check"},
+      {"UNIFY", "unify"},
       {"",""},
-#line 35 "src/envtoconfitems.gperf"
-      {"PREFIX_CPP", "prefix_command_cpp"},
-      {"",""}, {"",""},
-#line 15 "src/envtoconfitems.gperf"
-      {"COMPRESS", "compression"},
-#line 28 "src/envtoconfitems.gperf"
-      {"LIMIT_MULTIPLE", "limit_multiple"},
-#line 40 "src/envtoconfitems.gperf"
-      {"STATS", "stats"},
-      {"",""},
-#line 17 "src/envtoconfitems.gperf"
-      {"COMPRESSTYPE", "compression_type"},
 #line 16 "src/envtoconfitems.gperf"
+      {"COMPRESSTYPE", "compression_type"},
+#line 15 "src/envtoconfitems.gperf"
       {"COMPRESSLEVEL", "compression_level"},
       {"",""},
-#line 39 "src/envtoconfitems.gperf"
+#line 41 "src/envtoconfitems.gperf"
+      {"UMASK", "umask"},
+#line 33 "src/envtoconfitems.gperf"
+      {"PREFIX", "prefix_command"},
+#line 37 "src/envtoconfitems.gperf"
+      {"RECACHE", "recache"},
+#line 13 "src/envtoconfitems.gperf"
+      {"COMPILERCHECK", "compiler_check"},
+      {"",""},
+#line 34 "src/envtoconfitems.gperf"
+      {"PREFIX_CPP", "prefix_command_cpp"},
+      {"",""},
+#line 28 "src/envtoconfitems.gperf"
+      {"LOGFILE", "log_file"},
+#line 35 "src/envtoconfitems.gperf"
+      {"READONLY", "read_only"},
+#line 27 "src/envtoconfitems.gperf"
+      {"LIMIT_MULTIPLE", "limit_multiple"},
+#line 38 "src/envtoconfitems.gperf"
       {"SLOPPINESS", "sloppiness"},
       {"",""},
-#line 38 "src/envtoconfitems.gperf"
-      {"RECACHE", "recache"},
-#line 19 "src/envtoconfitems.gperf"
-      {"COMMENTS", "keep_comments_cpp"},
-      {"",""}, {"",""}, {"",""},
-#line 32 "src/envtoconfitems.gperf"
-      {"NLEVELS", "cache_dir_levels"},
-#line 36 "src/envtoconfitems.gperf"
-      {"READONLY", "read_only"},
-      {"",""}, {"",""}, {"",""},
-#line 31 "src/envtoconfitems.gperf"
-      {"MAXSIZE", "max_size"},
 #line 30 "src/envtoconfitems.gperf"
+      {"MAXSIZE", "max_size"},
+#line 29 "src/envtoconfitems.gperf"
       {"MAXFILES", "max_files"},
-#line 23 "src/envtoconfitems.gperf"
-      {"EXTENSION", "cpp_extension"},
-#line 37 "src/envtoconfitems.gperf"
+      {"",""},
+#line 36 "src/envtoconfitems.gperf"
       {"READONLY_DIRECT", "read_only_direct"},
       {"",""},
-#line 41 "src/envtoconfitems.gperf"
+#line 40 "src/envtoconfitems.gperf"
       {"TEMPDIR", "temporary_dir"},
-#line 27 "src/envtoconfitems.gperf"
-      {"IGNOREHEADERS", "ignore_headers_in_manifest"},
-      {"",""}, {"",""}, {"",""},
-#line 26 "src/envtoconfitems.gperf"
-      {"HASHDIR", "hash_dir"},
-#line 25 "src/envtoconfitems.gperf"
+#line 24 "src/envtoconfitems.gperf"
       {"HARDLINK", "hard_link"},
-      {"",""}, {"",""}, {"",""},
+#line 22 "src/envtoconfitems.gperf"
+      {"EXTENSION", "cpp_extension"},
+      {"",""}, {"",""},
 #line 11 "src/envtoconfitems.gperf"
       {"BASEDIR", "base_dir"},
-      {"",""}, {"",""},
-#line 24 "src/envtoconfitems.gperf"
-      {"EXTRAFILES", "extra_files_to_hash"}
+#line 18 "src/envtoconfitems.gperf"
+      {"COMMENTS", "keep_comments_cpp"},
+      {"",""},
+#line 23 "src/envtoconfitems.gperf"
+      {"EXTRAFILES", "extra_files_to_hash"},
+      {"",""},
+#line 25 "src/envtoconfitems.gperf"
+      {"HASHDIR", "hash_dir"},
+#line 26 "src/envtoconfitems.gperf"
+      {"IGNOREHEADERS", "ignore_headers_in_manifest"},
+      {"",""}, {"",""}, {"",""},
+#line 31 "src/envtoconfitems.gperf"
+      {"NLEVELS", "cache_dir_levels"}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
@@ -204,4 +202,4 @@ envtoconfitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 33;
+static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 32;
