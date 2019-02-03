@@ -11,7 +11,6 @@ To build ccache from the source repository, you need:
 - [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the documentation.
 - [Autoconf](http://www.gnu.org/software/autoconf/)
 - [gperf](http://www.gnu.org/software/gperf/)
-- [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html)
 
 It is also recommended that you have:
 

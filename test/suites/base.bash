@@ -645,20 +645,13 @@ EOF
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-
-    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
-    if [ $num -ne 0 ]; then
-        test_failed "$num stderr files found, expected 0 (#1)"
-    fi
+    expect_file_count 0 '*.stderr' $CCACHE_DIR
 
     obj_file=`find $CCACHE_DIR -name '*.o'`
     stderr_file=`echo $obj_file | sed 's/..$/.stderr/'`
     echo "Warning: foo" >$stderr_file
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
-    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
-    if [ $num -ne 0 ]; then
-        test_failed "$num stderr files found, expected 0 (#2)"
-    fi
+    expect_file_count 0 '*.stderr' $CCACHE_DIR
 
     # -------------------------------------------------------------------------
     TEST "No object file"
@@ -706,10 +699,7 @@ int stderr(void)
 }
 EOF
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
-    num=`find $CCACHE_DIR -name '*.stderr' | wc -l`
-    if [ $num -ne 1 ]; then
-        test_failed "$num stderr files found, expected 1"
-    fi
+    expect_file_count 1 '*.stderr' $CCACHE_DIR
     expect_stat 'files in cache' 2
 
     # -------------------------------------------------------------------------

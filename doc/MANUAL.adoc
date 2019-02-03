@@ -15,9 +15,9 @@ Synopsis
 --------
 
 [verse]
-*ccache* ['options']
-*ccache* 'compiler' ['compiler options']
-'compiler' ['compiler options']                   (via symbolic link)
+*ccache* [_options_]
+*ccache* _compiler_ [_compiler options_]
+_compiler_ [_compiler options_]                   (via symbolic link)
 
 
 Description
@@ -81,7 +81,7 @@ ln -s ccache /usr/local/bin/c++
 -------------------------------------------------------------------------------
 
 And so forth. This will work as long as the directory with symlinks comes
-before the path to the compiler (which is usually in +/usr/bin+). After
+before the path to the compiler (which is usually in `/usr/bin`). After
 installing you may wish to run ``which gcc'' to make sure that the correct link
 is being used.
 
@@ -100,7 +100,7 @@ These options only apply when you invoke ccache as ``ccache''. When invoked as
 a compiler (via a symlink as described in the previous section), the normal
 compiler options apply and you should refer to the compiler's documentation.
 
-*-c, --cleanup*::
+*`-c, --cleanup`*::
 
     Clean up the cache by removing old cached files until the specified file
     number and cache size limits are not exceeded. This also recalculates the
@@ -110,48 +110,48 @@ compiler options apply and you should refer to the compiler's documentation.
     cleanup is mostly useful if you manually modify the cache contents or
     believe that the cache size statistics may be inaccurate.
 
-*-C, --clear*::
+*`-C, --clear`*::
 
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
-*-F, --max-files*='N'::
+*`-F, --max-files`*=_N_::
 
     Set the maximum number of files allowed in the cache. Use 0 for no limit.
     The value is stored in a configuration file in the cache directory and
     applies to all future compilations.
 
-*-h, --help*::
+*`-h, --help`*::
 
     Print an options summary page.
 
-*-M, --max-size*='SIZE'::
+*`-M, --max-size`*=_SIZE_::
 
-    Set the maximum size of the files stored in the cache. 'SIZE' should be a
+    Set the maximum size of the files stored in the cache. _SIZE_ should be a
     number followed by an optional suffix: k, M, G, T (decimal), Ki, Mi, Gi or
     Ti (binary). The default suffix is G. Use 0 for no limit. The value is
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
-*-o, --set-config*='KEY=VALUE'::
+*`-o, --set-config`*=_KEY=VALUE_::
 
-    Set configuration 'KEY' to 'VALUE'. See <<_configuration,CONFIGURATION>>
+    Set configuration _KEY_ to _VALUE_. See <<_configuration,CONFIGURATION>>
     for more information.
 
-*-p, --print-config*::
+*`-p, --print-config`*::
 
     Print current configuration options and from where they originate
     (environment variable, configuration file or compile-time default).
 
-*-s, --show-stats*::
+*`-s, --show-stats`*::
 
     Print the current statistics summary for the cache.
 
-*-V, --version*::
+*`-V, --version`*::
 
     Print version and copyright information.
 
-*-z, --zero-stats*::
+*`-z, --zero-stats`*::
 
     Zero the cache statistics (but not the configuration options).
 
@@ -192,9 +192,9 @@ file. The priority of configuration settings is as follows (where 1 is
 highest):
 
 1. Environment variables.
-2. The cache-specific configuration file *<ccachedir>/ccache.conf* (typically
+2. The cache-specific configuration file *_<ccachedir>_/ccache.conf* (typically
    *$HOME/.ccache/ccache.conf*).
-3. The system-wide configuration file *<sysconfdir>/ccache.conf* (typically
+3. The system-wide configuration file *_<sysconfdir>_/ccache.conf* (typically
    */etc/ccache.conf* or */usr/local/etc/ccache.conf*).
 4. Compile-time defaults.
 
@@ -245,7 +245,7 @@ setting key.
     directory. If set to the empty string (which is the default), no rewriting
     is done. A typical path to use as the base directory is your home directory
     or another directory that is a parent of your build directories. Don't use
-    +/+ as the base directory since that will make ccache also rewrite paths to
+    `/` as the base directory since that will make ccache also rewrite paths to
     system header files, which doesn't gain anything.
 +
 See also the discussion under <<_compiling_in_different_directories,COMPILING
@@ -379,8 +379,8 @@ several pitfalls since the resulting object file will share i-node with the
 cached object file:
 +
 1. If the resulting object file is modified in any way, the cached object file
-   will be modified as well. For instance, if you run *strip object.o* or *echo
-   >object.o*, you will corrupt the cache.
+   will be modified as well. For instance, if you run `strip object.o` or `echo
+   >object.o`, you will corrupt the cache.
 2. Programs that rely on modification times (like ``make'') can be confused
    since ccache updates the cached files' modification times as part of the
    automatic cache size management. This will affect object files in the build
@@ -440,7 +440,7 @@ might be incorrect.
 
     This option specifies the maximum size of the cache. Use 0 for no limit.
     The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
-    Mi, Gi, Ti (binary). The default suffix is "G". See also
+    Mi, Gi, Ti (binary). The default suffix is G. See also
     <<_cache_size_management,CACHE SIZE MANAGEMENT>>.
 
 *memcached_conf* (*CCACHE_MEMCACHED_CONF*)::
@@ -531,7 +531,7 @@ still has to do _some_ preprocessing (like macros).
 +
 --
 *file_macro*::
-    Ignore *\_\_FILE__* being present in the source.
+    Ignore `__FILE__` being present in the source.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
     the cached version. With this option set, ccache will consider a file as
@@ -550,7 +550,7 @@ still has to do _some_ preprocessing (like macros).
     Be sloppy about **#define**s when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *time_macros*::
-    Ignore *\_\_DATE\__* and *\_\_TIME__* being present in the source code.
+    Ignore `__DATE__` and `__TIME__` being present in the source code.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
@@ -587,7 +587,7 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     unifier changes the hash, so cached compilations produced when the unifier
     is enabled cannot be reused when the unifier is disabled, and vice versa.
     Enabling the unifier may result in incorrect line number information in
-    compiler warning messages and expansions of the *\_\_LINE__* macro.
+    compiler warning messages and expansions of the `__LINE__` macro.
 
 
 Cache size management
@@ -748,7 +748,7 @@ The compiler was instructed to write its output to standard output using *-o
 Preprocessing the source code using the compiler's *-E* option failed.
 
 | unsupported code directive |
-Code like the assembler ``.incbin'' directive was found. This is not supported
+Code like the assembler *.incbin* directive was found. This is not supported
 by ccache.
 
 | unsupported compiler option |
@@ -840,7 +840,7 @@ The direct mode will be disabled if any of the following holds:
 ** a *-Wp,_X_* compiler option other than *-Wp,-MD,_path_*,
    *-Wp,-MMD,_path_* and *-Wp,-D_define_*
 ** *-Xpreprocessor*
-* the string ``\_\_TIME__'' is present in the source code
+* the string `__TIME__` is present in the source code
 
 
 The preprocessor mode
@@ -870,7 +870,7 @@ contain absolute paths:
 * Paths specified by compiler options (such as *-I*, *-MF*, etc) on the command
   line may be absolute.
 * The source code file path may be absolute, and that path may substituted for
-  *\_\_FILE__* macros in the source code or included in warnings emitted to
+  `__FILE__` macros in the source code or included in warnings emitted to
   standard error by the preprocessor.
 
 This means that if you compile the same code in different locations, you can't
@@ -903,7 +903,7 @@ ccache has support for GCC's precompiled headers. However, you have to do some
 things to make it work properly:
 
 * You must set *sloppiness* to *pch_defines,time_macros*. The reason is that
-  ccache can't tell whether *\_\_TIME\__* or *\_\_DATE__* is used when using a
+  ccache can't tell whether `__TIME__` or `__DATE__` is used when using a
   precompiled header. Further, it can't detect changes in **#define**s in the
   source code because of how preprocessing works in combination with
   precompiled headers.
@@ -1092,35 +1092,34 @@ problems and what may be done to increase the hit rate:
    file is hashed by ccache; the real compiler is run on the preprocessor's
    output, which contains data from the old header file; the wrong object file
    is stored in the cache.)
-** The *\_\_TIME\__* preprocessor macro is (potentially) being used. ccache
-   turns off direct mode if ``\_\_TIME\__'' is present in the source code. This
-   is done as a safety measure since the string indicates that a *\_\_TIME\__*
-   macro _may_ affect the output. (To be sure, ccache would have to run the
-   preprocessor, but the sole point of the direct mode is to avoid that.) If
-   you know that *\_\_TIME\__* isn't used in practise, or don't care if ccache
-   produces objects where *\_\_TIME__* is expanded to something in the past,
-   you can set *sloppiness* to *time_macros*.
-** The *\_\_DATE\__* preprocessor macro is (potentially) being used and the
-   date has changed. This is similar to how *\_\_TIME\__* is handled. If
-   ``\_\_DATE\__'' is present in the source code, ccache hashes the current
-   date in order to be able to produce the correct object file if the
-   *\_\_DATE\__* macro affects the output. If you know that *\_\_DATE\__* isn't
-   used in practise, or don't care if ccache produces objects where
-   *\_\_DATE__* is expanded to something in the past, you can set *sloppiness*
-   to *time_macros*.
-** The *\_\_FILE\__* preprocessor macro is (potentially) being used and the
-   file path has changed. If ``\_\_FILE\__'' is present in the source code,
-   ccache hashes the current input file path in order to be able to produce the
-   correct object file if the *\_\_FILE\__* macro affects the output. If you
-   know that *\_\_FILE\__* isn't used in practise, or don't care if ccache
-   produces objects where *\_\_FILE__* is expanded to the wrong path, you can
-   set *sloppiness* to *file_macro*.
+** The `__TIME__` preprocessor macro is (potentially) being used. ccache turns
+   off direct mode if `__TIME__` is present in the source code. This is done as
+   a safety measure since the string indicates that a `__TIME__` macro _may_
+   affect the output. (To be sure, ccache would have to run the preprocessor,
+   but the sole point of the direct mode is to avoid that.) If you know that
+   `__TIME__` isn't used in practise, or don't care if ccache produces objects
+   where `__TIME__` is expanded to something in the past, you can set
+   *sloppiness* to *time_macros*.
+** The `__DATE__` preprocessor macro is (potentially) being used and the date
+   has changed. This is similar to how `__TIME__` is handled. If `__DATE__` is
+   present in the source code, ccache hashes the current date in order to be
+   able to produce the correct object file if the `__DATE__` macro affects the
+   output. If you know that `__DATE__` isn't used in practise, or don't care if
+   ccache produces objects where `__DATE__` is expanded to something in the
+   past, you can set *sloppiness* to *time_macros*.
+** The `__FILE__` preprocessor macro is (potentially) being used and the file
+   path has changed. If `__FILE__` is present in the source code, ccache hashes
+   the current input file path in order to be able to produce the correct
+   object file if the `__FILE__` macro affects the output. If you know that
+   `__FILE__` isn't used in practise, or don't care if ccache produces objects
+   where `__FILE__` is expanded to the wrong path, you can set *sloppiness* to
+   *file_macro*.
 * If ``cache miss'' has been incremented even though the same code has been
   compiled and cached before, ccache has either detected that something has
   changed anyway or a cleanup has been performed (either explicitly or
   implicitly when a cache limit has been reached). Some perhaps unobvious
-  things that may result in a cache miss are usage of *\_\_TIME\__* or
-  *\_\_DATE__* macros, or use of automatically generated code that contains a
+  things that may result in a cache miss are usage of `__TIME__` or
+  `__DATE__` macros, or use of automatically generated code that contains a
   timestamp, build counter or other volatile information.
 * If ``multiple source files'' has been incremented, it's an indication that
   the compiler has been invoked on several source code files at once. ccache

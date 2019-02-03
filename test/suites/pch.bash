@@ -79,9 +79,7 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if [ ! -f pch.h.gch ]; then
-        test_failed "pch.h.gch missing"
-    fi
+    expect_file_exists pch.h.gch
 
     # -------------------------------------------------------------------------
     TEST "Create .gch, no -c, -o, with opt-in"
@@ -95,9 +93,7 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if [ ! -f pch.gch ]; then
-        test_failed "pch.gch missing"
-    fi
+    expect_file_exists pch.gch
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, #include"
@@ -246,6 +242,48 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Create and use .gch directory"
+
+    mkdir pch.h.gch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -x c-header -c pch.h -o pch.h.gch/foo
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    rm pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -x c-header -c pch.h -o pch.h.gch/foo
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists pch.h.gch/foo
+
+    backdate pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    echo "updated" >>pch.h.gch/foo # GCC seems to cope with this...
+    backdate pch.h.gch/foo
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
 }
 
 pch_suite_clang() {
@@ -280,9 +318,7 @@ pch_suite_clang() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if [ ! -f pch.h.gch ]; then
-        test_failed "pch.h.gch missing"
-    fi
+    expect_file_exists pch.h.gch
 
     # -------------------------------------------------------------------------
     TEST "Create .gch, no -c, -o, with opt-in"
@@ -296,9 +332,7 @@ pch_suite_clang() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if [ ! -f pch.gch ]; then
-        test_failed "pch.gch missing"
-    fi
+    expect_file_exists pch.gch
 
     # -------------------------------------------------------------------------
     TEST "Create .gch, include file mtime changed"
@@ -327,9 +361,7 @@ EOF
     expect_stat 'cache miss' 2
 
     $REAL_COMPILER $SYSROOT -c -include pch2.h pch2.c
-    if [ ! -f pch2.o ]; then
-        test_failed "pch.o missing"
-    fi
+    expect_file_exists pch2.o
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch2.h
     expect_stat 'cache hit (direct)' 1
@@ -442,9 +474,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if [ ! -f pch.h.pth ]; then
-        test_failed "pch.h.pth missing"
-    fi
+    expect_file_exists pch.h.pth
 
     # -------------------------------------------------------------------------
     TEST "Use .pth, no -fpch-preprocess, -include, no sloppiness"
