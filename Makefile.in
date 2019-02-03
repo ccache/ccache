@@ -62,6 +62,8 @@ extra_sources = @extra_sources@
 base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources) $(extra_sources)
 base_objs = $(base_sources:.c=.o)
 
+non_3pp_objs = $(non_3pp_sources:.c=.o)
+
 ccache_sources = src/main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
 
