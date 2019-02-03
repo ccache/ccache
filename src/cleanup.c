@@ -17,6 +17,8 @@
 
 #include "ccache.h"
 
+#include <math.h>
+
 static struct files {
 	char *fname;
 	time_t mtime;
@@ -155,15 +157,15 @@ sort_and_clean(void)
 
 // Clean up one cache subdirectory.
 void
-clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
+clean_up_dir(struct conf *conf, const char *dir, double limit_multiple)
 {
 	cc_log("Cleaning up cache directory %s", dir);
 
 	// When "max files" or "max cache size" is reached, one of the 16 cache
 	// subdirectories is cleaned up. When doing so, files are deleted (in LRU
 	// order) until the levels are below limit_multiple.
-	cache_size_threshold = conf->max_size * limit_multiple / 16;
-	files_in_cache_threshold = conf->max_files * limit_multiple / 16;
+	cache_size_threshold = round(conf->max_size * limit_multiple / 16);
+	files_in_cache_threshold = round(conf->max_files * limit_multiple / 16);
 
 	num_files = 0;
 	cache_size = 0;
@@ -173,13 +175,13 @@ clean_up_dir(struct conf *conf, const char *dir, float limit_multiple)
 	traverse(dir, traverse_fn);
 
 	// Clean the cache.
-	cc_log("Before cleanup: %lu KiB, %zu files",
-	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
+	cc_log("Before cleanup: %.0f KiB, %.0f files",
+	       (double)cache_size / 1024,
+	       (double)files_in_cache);
 	bool cleaned = sort_and_clean();
-	cc_log("After cleanup: %lu KiB, %zu files",
-	       (unsigned long)cache_size / 1024,
-	       files_in_cache);
+	cc_log("After cleanup: %.0f KiB, %.0f files",
+	       (double)cache_size / 1024,
+	       (double)files_in_cache);
 
 	if (cleaned) {
 		cc_log("Cleaned up cache directory %s", dir);
@@ -236,11 +238,10 @@ static void wipe_fn(const char *fname, struct stat *st)
 
 // Wipe one cache subdirectory.
 void
-wipe_dir(struct conf *conf, const char *dir)
+wipe_dir(const char *dir)
 {
 	cc_log("Clearing out cache directory %s", dir);
 
-	files_in_cache_threshold = conf->max_files * conf->limit_multiple / 16;
 	files_in_cache = 0;
 
 	traverse(dir, wipe_fn);
@@ -258,7 +259,7 @@ void wipe_all(struct conf *conf)
 {
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
-		wipe_dir(conf, dname);
+		wipe_dir(dname);
 		free(dname);
 	}
 
