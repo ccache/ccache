@@ -1,6 +1,6 @@
 # GNU make syntax reigns in this file.
 
-all_cflags += -Werror @more_warnings@
+all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$(subst $(srcdir)/,,$<))).d
 
 A2X = a2x
@@ -192,6 +192,8 @@ docs: $(generated_docs)
 	$(if $(quiet),@echo "  ASCIIDOC $@")
 	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
+
+$(non_3pp_objs) $(test_objs): CFLAGS += @more_warnings@
 
 doc/ccache.1: doc/MANUAL.xml
 	$(if $(quiet),@echo "  A2X      $@")
