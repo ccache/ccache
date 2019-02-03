@@ -58,6 +58,16 @@ enum stats {
 	STATS_END
 };
 
+enum guessed_compiler {
+	GUESSED_CLANG,
+	GUESSED_GCC,
+	GUESSED_NVCC,
+	GUESSED_PUMP,
+	GUESSED_UNKNOWN
+};
+
+extern enum guessed_compiler guessed_compiler;
+
 #define SLOPPY_INCLUDE_FILE_MTIME 1
 #define SLOPPY_INCLUDE_FILE_CTIME 2
 #define SLOPPY_FILE_MACRO 4
@@ -181,6 +191,7 @@ void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char *oldpath, const char *newpath);
 int tmp_unlink(const char *path);
 int x_unlink(const char *path);
+int x_try_unlink(const char *path);
 #ifndef _WIN32
 char *x_readlink(const char *path);
 #endif

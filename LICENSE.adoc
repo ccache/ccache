@@ -29,7 +29,7 @@ Copyright and authors
 ---------------------
 
 ccache is a collective work with contributions from many people, listed in
-AUTHORS.txt and at https://ccache.samba.org/authors.html. Subsequent additions
+AUTHORS.adoc and at https://ccache.samba.org/authors.html. Subsequent additions
 by contributing authors are implicitly licensed to the public under the same
 terms (GNU GPL version 3 or later), but the contributing authors retain
 copyrights on their portions of the work.

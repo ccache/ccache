@@ -3,17 +3,13 @@
 all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$<)).d
 
+A2X = a2x
 ASCIIDOC = asciidoc
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = gperf
-XSLTPROC = xsltproc
-MANPAGE_XSL = $(shell if [ -e /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl ]; \
-                then echo /usr/local/etc/asciidoc/docbook-xsl/manpage.xsl; \
-                else echo /etc/asciidoc/docbook-xsl/manpage.xsl; fi)
-
 
 version := \
     $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
@@ -27,8 +23,13 @@ ifneq ($(shell uname), Darwin)
     dist_archives += ccache-$(version).tar.xz
 endif
 
-generated_docs = ccache.1 doc/AUTHORS.html LICENSE.html doc/MANUAL.html doc/NEWS.html
-built_dist_files = $(generated_docs)
+generated_docs = \
+    LICENSE.html \
+    doc/AUTHORS.html \
+    doc/MANUAL.html \
+    doc/NEWS.html \
+    doc/ccache.1
+built_dist_files = $(generated_sources) $(generated_docs)
 
 headers = \
     src/ccache.h \
@@ -47,20 +48,22 @@ headers = \
     src/murmurhashneutral2.h \
     src/system.h \
     unittest/framework.h \
-    unittest/suites.h \
     unittest/util.h
+generated_headers = \
+    unittest/suites.h
 
 files_to_clean += *.tar.bz2 *.tar.gz *.tar.xz *.xml .deps/* perfdir.*
 files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \
-    $(base_sources) \
+    $(non_3pp_sources) \
+    $(3pp_sources) \
     $(headers) \
     $(test_sources) \
     CONTRIBUTING.md \
     GPL-3.0.txt \
-    LICENSE.txt \
+    LICENSE.adoc \
     Makefile.in \
     README.md \
     autogen.sh \
@@ -70,9 +73,9 @@ source_dist_files = \
     configure \
     configure.ac \
     dev.mk.in \
-    doc/AUTHORS.txt \
-    doc/MANUAL.txt \
-    doc/NEWS.txt \
+    doc/AUTHORS.adoc \
+    doc/MANUAL.adoc \
+    doc/NEWS.adoc \
     install-sh \
     m4 \
     src/confitems.gperf \
@@ -114,7 +117,8 @@ $(dist_archives): $(dist_files)
 	(cd $(srcdir) && \
 	 rsync -r --relative $(source_dist_files) $$dir) && \
 	cp $(srcdir)/doc/INSTALL-from-release-archive.md $$dir/INSTALL.md && \
-	cp $(built_dist_files) $$dir && \
+	(cd $(builddir) && \
+	 rsync -r --relative $(built_dist_files) $$dir) && \
 	echo "Remove this file to enable developer mode." >$$dir/dev_mode_disabled && \
 	(cd $$tmpdir && \
 	 tarcompression= && \
@@ -132,39 +136,49 @@ distcheck: $(firstword $(dist_archives))
 	(cd $$tmpdir && \
 	 tar xf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
+	chmod -R u+w $$tmpdir/$(dist_dir) && \
 	rm -rf $$tmpdir
 
 	tmpdir=$$(mktemp -d /tmp/tmp-ccache-distcheck.XXXXXX) && \
 	(cd $$tmpdir && \
 	 tar xf $(CURDIR)/$< && \
 	 mkdir -p $(dist_dir)/build && \
+	 chmod -R a-w $(dist_dir) && \
+	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --prefix=$$tmpdir/root --with-bundled-zlib && \
 	 $(MAKE) install && \
 	 $(MAKE) installcheck) && \
+	chmod -R u+w $$tmpdir/$(dist_dir) && \
 	rm -rf $$tmpdir
 
 .PHONY: docs
 docs: $(generated_docs)
 
-%.html: %.txt
-	$(ASCIIDOC) -a revnumber=$(version) -a toc -b xhtml11 $<
+%.html: %.adoc
+	@mkdir -p $(@D)
+	$(ASCIIDOC) -o $@ -a revnumber=$(version) -a toc -b xhtml11 $<
 
-%.xml: %.txt
-	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook $<
+%.xml: %.adoc
+	@mkdir -p $(@D)
+# Make literals stand out as bold in the man page:
+	$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
+	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-ccache.1: doc/MANUAL.xml
-	$(XSLTPROC) --nonet $(MANPAGE_XSL) $<
+doc/ccache.1: doc/MANUAL.xml
+	$(A2X) --doctype manpage --format manpage $<
 
 .PHONY: update-authors
 update-authors:
 	git log --pretty=format:"* %aN <%aE>" \
 	  | sort -u \
-	  | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.txt
+	  | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.adoc
 
 .PHONY: check-syntax
 check-syntax:
@@ -187,6 +201,6 @@ analyze:
 
 .PHONY: docker
 docker: misc/Dockerfile
-	$(DOCKER) build $(srcdir)
+	$(DOCKER) build -f $< $(srcdir)
 
 -include .deps/*.d
