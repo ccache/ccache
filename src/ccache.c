@@ -1912,7 +1912,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			if (sep) {
 				char *old = x_strndup(map, sep - map);
 				char *new = x_strdup(sep + 1);
-				cc_log("Relocating debuginfo cwd %s, from %s to %s", cwd, old, new);
+				cc_log("Relocating debuginfo CWD %s from %s to %s", cwd, old, new);
 				if (str_startswith(cwd, old)) {
 					char *dir = format("%s%s", new, cwd + strlen(old));
 					free(cwd);
@@ -1923,6 +1923,7 @@ calculate_common_hash(struct args *args, struct mdfour *hash)
 			}
 		}
 		if (cwd) {
+			cc_log("Hashing CWD %s", cwd);
 			hash_delimiter(hash, "cwd");
 			hash_string(hash, cwd);
 			free(cwd);
@@ -2972,6 +2973,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(relpath);
 			continue;
 		}
+		// Alternate form of specifying target without =
+		if (str_eq(argv[i], "-target")) {
+			if (i == argc-1) {
+				cc_log("Missing argument to %s", argv[i]);
+				stats_update(STATS_ARGS);
+				result = false;
+				goto out;
+			}
+			args_add(stripped_args, argv[i]);
+			args_add(stripped_args, argv[i+1]);
+			i++;
+			continue;
+		}
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P")
 			    || strstr(argv[i], ",-P,")
@@ -3586,7 +3600,7 @@ initialize(void)
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
-			if (access(secondary_config_path, R_OK) == 0) {
+			if (errno == 0) {
 				// We could read the file but it contained errors.
 				fatal("%s", errmsg);
 			}
@@ -3610,7 +3624,7 @@ initialize(void)
 
 	bool should_create_initial_config = false;
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
-		if (access(primary_config_path, R_OK) == 0) {
+		if (errno == 0) {
 			// We could read the file but it contained errors.
 			fatal("%s", errmsg);
 		}
