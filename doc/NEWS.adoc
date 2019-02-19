@@ -13,6 +13,10 @@ Changes
 
 * Fixed an issue when printing very large log messages to the debug log.
 
+* Fixed a bug where ccache did not turn on `hash_dir` correctly when using
+  `-gsplit-dwarf`, leading to potentially incorrect file links in debug
+  information when compiling in different directories.
+
 
 ccache 3.6
 ----------

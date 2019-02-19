@@ -2604,12 +2604,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		if (str_eq(argv[i], "-gsplit-dwarf")) {
-			cc_log("Enabling caching of dwarf files since -gsplit-dwarf is used");
-			using_split_dwarf = true;
-			args_add(stripped_args, argv[i]);
-			continue;
-		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")
 		    || str_startswith(argv[i], "-ffile-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
@@ -2626,6 +2620,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_startswith(argv[i], "-g")) {
 			generating_debuginfo = true;
 			args_add(stripped_args, argv[i]);
+			if (str_eq(argv[i], "-gsplit-dwarf")) {
+				using_split_dwarf = true;
+			}
 			if (conf->unify && !str_eq(argv[i], "-g0")) {
 				cc_log("%s used; disabling unify mode", argv[i]);
 				conf->unify = false;

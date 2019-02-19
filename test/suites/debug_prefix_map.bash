@@ -87,4 +87,27 @@ SUITE_debug_prefix_map() {
     if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
         test_failed "Source dir (`pwd`) found in test.o"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "-fdebug-prefix-map and -gsplit-dwarf"
+
+    cd dir1
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -gsplit-dwarf -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 3
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
+
+    cd ../dir2
+    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -gsplit-dwarf -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 3
+    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
+        test_failed "Source dir (`pwd`) found in test.o"
+    fi
 }
