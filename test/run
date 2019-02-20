@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2018 Joel Rosdahl
+# Copyright (C) 2009-2019 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -375,6 +375,7 @@ multi_arch
 serialize_diagnostics
 sanitize_blacklist
 debug_prefix_map
+split_dwarf
 masquerading
 hardlink
 direct
