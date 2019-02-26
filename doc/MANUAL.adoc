@@ -1142,9 +1142,10 @@ General
 ~~~~~~~
 
 A general tip for getting information about what ccache is doing is to enable
-debug logging by setting *log_file*. The log contains executed commands,
-important decisions that ccache makes, read and written files, etc. Another way
-of keeping track of what is happening is to check the output of *ccache -s*.
+debug logging by setting the configuration option *debug* (or the environment
+variable *CCACHE_DEBUG*); see <<_cache_debugging,debugging>> for more
+information. Another way of keeping track of what is happening is to check the
+output of *ccache -s*.
 
 
 Performance
