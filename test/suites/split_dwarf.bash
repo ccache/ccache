@@ -42,6 +42,60 @@ SUITE_split_dwarf() {
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
+    TEST "Output filename is hashed if using -gsplit-dwarf"
+
+    cd dir1
+
+    $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+    mv test.o reference.o
+    mv test.dwo reference.dwo
+
+    $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+    mv test.o reference2.o
+    mv test.dwo reference2.dwo
+
+    if is_equal_object_files reference.o reference2.o; then
+        $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+        expect_equal_object_files reference.o test.o
+        expect_equal_object_files reference.dwo test.dwo
+        expect_stat 'cache hit (direct)' 0
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        expect_stat 'files in cache' 3
+
+        $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
+        expect_equal_object_files reference.o test.o
+        expect_equal_object_files reference.dwo test.dwo
+        expect_stat 'cache hit (direct)' 1
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        expect_stat 'files in cache' 3
+
+        $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
+        mv test2.o reference2.o
+        mv test2.dwo reference2.dwo
+
+        $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
+        expect_equal_object_files reference2.o test2.o
+        expect_equal_object_files reference2.dwo test2.dwo
+        expect_stat 'cache hit (direct)' 1
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 2
+        expect_stat 'files in cache' 6
+
+        $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
+        expect_equal_object_files reference2.o test2.o
+        expect_equal_object_files reference2.dwo test2.dwo
+        expect_stat 'cache hit (direct)' 2
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 2
+        expect_stat 'files in cache' 6
+    fi
+    # Else: Compiler does not produce stable object file output when compiling
+    # the same source to the same output filename twice (DW_AT_GNU_dwo_id
+    # differs), so we can't verify filename hashing.
+
+    # -------------------------------------------------------------------------
     TEST "-fdebug-prefix-map and -gsplit-dwarf"
 
     cd dir1

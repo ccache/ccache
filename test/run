@@ -152,7 +152,7 @@ expect_different_files() {
     fi
 }
 
-expect_equal_object_files() {
+is_equal_object_files() {
     if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
         if ! which eu-elfcmp >/dev/null 2>&1; then
             test_failed "Please install elfutils to get eu-elfcmp"
@@ -166,6 +166,10 @@ expect_equal_object_files() {
     else
         cmp -s "$1" "$2"
     fi
+}
+
+expect_equal_object_files() {
+    is_equal_object_files "$1" "$2"
     if [ $? -ne 0 ]; then
         test_failed "Objects differ: $1 != $2"
     fi

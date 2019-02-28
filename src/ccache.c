@@ -1837,6 +1837,15 @@ calculate_common_hash(struct args *args, struct hash *hash)
 		}
 	}
 
+	if (using_split_dwarf) {
+		// When using -gsplit-dwarf, object files include a link to the
+		// corresponding .dwo file based on the target object filename, so we need
+		// to include the target filename in the hash to avoid handing out an
+		// object file with an incorrect .dwo link.
+		hash_delimiter(hash, "filename");
+		hash_string(hash, basename(output_obj));
+	}
+
 	// Possibly hash the coverage data file path.
 	if (generating_coverage && profile_arcs) {
 		char *dir = dirname(output_obj);

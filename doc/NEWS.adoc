@@ -13,9 +13,8 @@ Changes
 
 * Fixed an issue when printing very large log messages to the debug log.
 
-* Fixed a bug where ccache did not turn on `hash_dir` correctly when using
-  `-gsplit-dwarf`, leading to potentially incorrect file links in debug
-  information when compiling in different directories.
+* Fixed bugs related to support for `-gsplit-dwarf`. Previously ccache could
+  produce an incorrect link to the `.dwo` file in the `.o` file.
 
 
 ccache 3.6
