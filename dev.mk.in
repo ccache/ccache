@@ -13,7 +13,7 @@ COMPILEDB = compiledb
 CLANG_TIDY = clang-tidy
 SCAN_BUILD = scan-build
 DOCKER = docker
-GPERF = gperf
+GPERF = @GPERF@
 TEST = test
 
 version := \
