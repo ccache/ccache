@@ -1040,7 +1040,7 @@ use_relative_paths_in_depfile(const char *depfile)
 		cc_log("Base dir not set, skip using relative paths");
 		return; // nothing to do
 	}
-	if (!has_absolute_include_headers) {
+	if (!has_absolute_include_headers  && !conf->depend_mode) {
 		cc_log("No absolute path for included files found, skip using relative"
 		       " paths");
 		return; // nothing to do
@@ -1479,10 +1479,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			failed();
 		}
 		update_cached_result_globals(object_hash);
-
-		// It does not make sense to update an existing manifest file in the depend
-		// mode.
-		x_unlink(manifest_path);
 	}
 
 	if (stat(output_obj, &st) != 0) {
