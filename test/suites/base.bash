@@ -487,6 +487,17 @@ b"
     expect_stat 'unsupported source language' 1
 
     # -------------------------------------------------------------------------
+    TEST "-x c -c /dev/null"
+
+    $CCACHE_COMPILE -x c -c /dev/null -o null.o 2>/dev/null
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -x c -c /dev/null -o null.o 2>/dev/null
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
     TEST "-D not hashed"
 
     $CCACHE_COMPILE -c test1.c
