@@ -1506,12 +1506,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		} else {
 			copy_file_to_cache(tmp_stderr, cached_stderr);
 		}
-	} else {
+	} else if (conf->recache) {
+		// If recaching, we need to remove any previous .stderr.
+		x_unlink(cached_stderr);
+	}
+	if (st.st_size == 0 || conf->depend_mode) {
 		tmp_unlink(tmp_stderr);
-		if (conf->recache) {
-			// If recaching, we need to remove any previous .stderr.
-			x_unlink(cached_stderr);
-		}
 	}
 
 	copy_file_to_cache(output_obj, cached_obj);
