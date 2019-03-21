@@ -16,6 +16,8 @@ Changes
 * Fixed bugs related to support for `-gsplit-dwarf`. Previously ccache could
   produce an incorrect link to the `.dwo` file in the `.o` file.
 
+* Compilations with /dev/null as the input file are now cached.
+
 
 ccache 3.6
 ----------
