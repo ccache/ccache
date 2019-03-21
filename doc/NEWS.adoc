@@ -18,6 +18,9 @@ Changes
 
 * Compilations with /dev/null as the input file are now cached.
 
+* Fixed a temporary file leak when depend mode is enabled and the compiler
+  produces standard error text.
+
 
 ccache 3.6
 ----------
