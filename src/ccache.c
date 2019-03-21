@@ -3045,11 +3045,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// If an argument isn't a plain file then assume its an option, not an
 		// input file. This allows us to cope better with unusual compiler options.
 		//
-		// NOTE that "/dev/null" is an exception that is sometimes used as an input
+		// Note that "/dev/null" is an exception that is sometimes used as an input
 		// file when code is testing compiler flags.
 		struct stat st;
-		if (!str_eq(argv[i], "/dev/null") &&
-+		    (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode))) {
+		if (!str_eq(argv[i], "/dev/null")
+		    && (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode))) {
 			cc_log("%s is not a regular file, not considering as input file",
 			       argv[i]);
 			args_add(stripped_args, argv[i]);
