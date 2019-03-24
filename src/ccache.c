@@ -1479,10 +1479,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			failed();
 		}
 		update_cached_result_globals(object_hash);
-
-		// It does not make sense to update an existing manifest file in the depend
-		// mode.
-		x_unlink(manifest_path);
 	}
 
 	if (stat(output_obj, &st) != 0) {
