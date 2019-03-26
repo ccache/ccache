@@ -19,7 +19,10 @@ Changes
 * Compilations with /dev/null as the input file are now cached.
 
 * Fixed a temporary file leak when depend mode is enabled and the compiler
-  produces standard error text.
+  produces standard error output.
+
+* Fixed a bug in the “depend mode” where a manifest hash only could be
+  associated with one set of header dependencies.
 
 
 ccache 3.6
