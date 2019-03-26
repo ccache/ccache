@@ -25,6 +25,7 @@ struct conf {
 	char *log_file;
 	unsigned max_files;
 	uint64_t max_size;
+	char *memcached_conf;
 	char *path;
 	bool pch_external_checksum;
 	char *prefix_command;

@@ -143,6 +143,7 @@ conf_create(void)
 	conf->log_file = x_strdup("");
 	conf->max_files = 0;
 	conf->max_size = (uint64_t)5 * 1000 * 1000 * 1000;
+	conf->memcached_conf = x_strdup("");
 	conf->path = x_strdup("");
 	conf->pch_external_checksum = false;
 	conf->prefix_command = x_strdup("");
@@ -177,6 +178,7 @@ conf_free(struct conf *conf)
 	free(conf->extra_files_to_hash);
 	free(conf->ignore_headers_in_manifest);
 	free(conf->log_file);
+	free(conf->memcached_conf);
 	free(conf->path);
 	free(conf->prefix_command);
 	free(conf->prefix_command_cpp);
@@ -403,6 +405,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "log_file", printer, context);
 	ok &= print_item(conf, "max_files", printer, context);
 	ok &= print_item(conf, "max_size", printer, context);
+	ok &= print_item(conf, "memcached_conf", printer, context);
 	ok &= print_item(conf, "path", printer, context);
 	ok &= print_item(conf, "pch_external_checksum", printer, context);
 	ok &= print_item(conf, "prefix_command", printer, context);

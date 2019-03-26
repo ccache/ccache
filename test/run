@@ -43,6 +43,12 @@ test_failed() {
     $CCACHE -s
     echo
     echo "Test data and log file have been left in $TESTDIR"
+    if [ -n "$MEMCACHED_PID" ]; then
+        local memstat=$(get_memstat_name)
+        $memstat --servers=localhost:22122 >$ABS_TESTDIR/memcached.memstat
+        echo "memcached memstat: $TESTDIR/memcached.memstat"
+    fi
+
     exit 1
 }
 
@@ -80,10 +86,12 @@ remove_cache() {
         chmod -R +w $CCACHE_DIR
         rm -rf $CCACHE_DIR
     fi
+    stop_memcached
 }
 
 clear_cache() {
     $CCACHE -Cz >/dev/null
+    restart_memcached
 }
 
 sed_in_place() {
@@ -166,13 +174,16 @@ is_equal_object_files() {
     else
         cmp -s "$1" "$2"
     fi
-}
-
-expect_equal_object_files() {
-    is_equal_object_files "$1" "$2"
     if [ $? -ne 0 ]; then
         test_failed "Objects differ: $1 != $2"
     fi
+}
+
+expect_equal_object_files() {
+  is_equal_object_files "$1" "$2"
+  if [ $? -ne 0 ]; then
+    test_failed "Objects differ: $1 != $2"
+  fi
 }
 
 expect_file_content() {
@@ -194,6 +205,44 @@ expect_file_count() {
     local actual=`find $dir -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $pattern files in $dir"
+    fi
+}
+
+get_memstat_name() {
+    if type memcstat >/dev/null 2>&1; then
+        echo memcstat
+    elif type memstat >/dev/null 2>&1; then
+        echo memstat
+    fi
+}
+
+probe_memcached() {
+    if ! $CCACHE -V | grep -q 'memcached support: yes'; then
+        echo "ccache not built with memcached support"
+    elif ! type memcached >/dev/null 2>&1; then
+        echo "memcached not available"
+    elif [ -z "$(get_memstat_name)" ]; then
+        echo "memstat/memcstat not available"
+    fi
+}
+
+start_memcached() {
+    memcached "$@" >/dev/null &
+    MEMCACHED_PID=$!
+}
+
+stop_memcached() {
+    if [ -n "$MEMCACHED_PID" ]; then
+        kill $MEMCACHED_PID
+        wait $MEMCACHED_PID
+        unset MEMCACHED_PID
+    fi
+}
+
+restart_memcached() {
+    if [ -n "$MEMCACHED_PID" ]; then
+        stop_memcached
+        start_memcached
     fi
 }
 
@@ -394,6 +443,9 @@ cleanup
 pch
 upgrade
 input_charset
+memcached
+memcached_socket
+memcached_only
 nvcc
 nvcc_direct
 nvcc_ldir
@@ -411,6 +463,8 @@ ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
 mkdir $TESTDIR
 cd $TESTDIR || exit 1
+
+trap '[ -n "$MEMCACHED_PID" ] && kill $MEMCACHED_PID' EXIT
 
 compiler_bin=$(echo $COMPILER | awk '{print $1}')
 compiler_args=$(echo $COMPILER | awk '{$1 = ""; print}')
