@@ -385,7 +385,6 @@ hardlink
 direct
 direct_gcc
 depend
-depend_different_headers
 basedir
 compression
 readonly
