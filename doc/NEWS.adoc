@@ -27,6 +27,10 @@ Changes
 * Fixed a bug in the “depend mode” where a manifest hash only could be
   associated with one set of header dependencies.
 
+* Manifest files did not get marked as used on direct cache hits, so the LRU
+  cache cleanup would incorrectly remove them eventually. This has now been
+  fixed.
+
 
 ccache 3.6
 ----------

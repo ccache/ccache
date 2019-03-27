@@ -197,6 +197,15 @@ expect_file_count() {
     fi
 }
 
+# Verify that $1 is newer than (or same age as) $2.
+expect_file_newer_than() {
+    local newer_file=$1
+    local older_file=$2
+    if [ "$newer_file" -ot "$older_file" ]; then
+        test_failed "$newer_file is older than $older_file"
+    fi
+}
+
 run_suite() {
     local suite_name=$1
 
