@@ -3247,16 +3247,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (output_is_precompiled_header) {
 			output_obj = format("%s.gch", input_file);
 		} else {
+			char extension = found_S_opt ? 's' : 'o';
 			output_obj = basename(input_file);
 			char *p = strrchr(output_obj, '.');
-			if (!p || !p[1]) {
-				cc_log("Badly formed object filename");
-				stats_update(STATS_ARGS);
-				result = false;
-				goto out;
+			if (!p) {
+				reformat(&output_obj, "%s.%c", output_obj, extension);
+			} else if (!p[1]) {
+				reformat(&output_obj, "%s%c", output_obj, extension);
+			} else {
+				p[1] = extension;
+				p[2] = 0;
 			}
-			p[1] = found_S_opt ? 's' : 'o';
-			p[2] = 0;
 		}
 	}
 

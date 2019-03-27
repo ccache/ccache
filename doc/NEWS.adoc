@@ -18,6 +18,9 @@ Changes
 
 * Compilations with /dev/null as the input file are now cached.
 
+* ccache now knows how to contruct the object filename if no “-o” option is
+  given and the source filename does not include a `.` or ends with a `.`.
+
 * Fixed a temporary file leak when depend mode is enabled and the compiler
   produces standard error output.
 
