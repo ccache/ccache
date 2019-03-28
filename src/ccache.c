@@ -1310,7 +1310,6 @@ update_manifest_file(void)
 	}
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
-		update_mtime(manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 			char *data;
@@ -2197,6 +2196,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
+			update_mtime(manifest_path);
 		} else {
 			cc_log("Did not find object file hash in manifest");
 		}
@@ -3307,16 +3307,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (output_is_precompiled_header) {
 			output_obj = format("%s.gch", input_file);
 		} else {
+			char extension = found_S_opt ? 's' : 'o';
 			output_obj = basename(input_file);
 			char *p = strrchr(output_obj, '.');
-			if (!p || !p[1]) {
-				cc_log("Badly formed object filename");
-				stats_update(STATS_ARGS);
-				result = false;
-				goto out;
+			if (!p) {
+				reformat(&output_obj, "%s.%c", output_obj, extension);
+			} else if (!p[1]) {
+				reformat(&output_obj, "%s%c", output_obj, extension);
+			} else {
+				p[1] = extension;
+				p[2] = 0;
 			}
-			p[1] = found_S_opt ? 's' : 'o';
-			p[2] = 0;
 		}
 	}
 

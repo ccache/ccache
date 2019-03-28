@@ -139,6 +139,66 @@ base_tests() {
     expect_stat 'no input file' 1
 
     # -------------------------------------------------------------------------
+    TEST "No file extension"
+
+    mkdir src
+    touch src/foo
+
+    $CCACHE_COMPILE -x c -c src/foo
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    $CCACHE_COMPILE -x c -c src/foo
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    rm -rf src
+
+    # -------------------------------------------------------------------------
+    TEST "Source file ending with dot"
+
+    mkdir src
+    touch src/foo.
+
+    $CCACHE_COMPILE -x c -c src/foo.
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    $CCACHE_COMPILE -x c -c src/foo.
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    rm -rf src
+
+    # -------------------------------------------------------------------------
+    TEST "Multiple file extensions"
+
+    mkdir src
+    touch src/foo.c.c
+
+    $CCACHE_COMPILE -c src/foo.c.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.c.o
+    rm foo.c.o
+
+    $CCACHE_COMPILE -c src/foo.c.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.c.o
+    rm foo.c.o
+
+    rm -rf src
+
+    # -------------------------------------------------------------------------
     TEST "LANG"
 
     $CCACHE_COMPILE -c test1.c

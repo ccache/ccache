@@ -36,12 +36,16 @@ SUITE_direct() {
     expect_stat 'files in cache' 2 # .o + .manifest
     expect_equal_object_files reference_test.o test.o
 
+    manifest_file=$(find $CCACHE_DIR -name '*.manifest')
+    backdate $manifest_file
+
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_equal_object_files reference_test.o test.o
+    expect_file_newer_than $manifest_file test.c
 
     # -------------------------------------------------------------------------
     TEST "Corrupt manifest file"
