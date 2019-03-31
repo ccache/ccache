@@ -36,6 +36,19 @@ Changes
 
 * ccache now ignores unknown keys in configuration files.
 
+* Rearranged command-line options into sections in the help text.
+
+* Documented the previously undocumented `--dump-manifest` option (only useful
+  for debugging ccache itself).
+
+* Added missing documentation for the command-line option `-k/--get-config`
+  added in ccache 3.5.
+
+* Renamed the `--print-config` command to `--show-config`.
+
+* Added a new `--print-stats` command that prints statistics counters in
+  machine-parsable (tab-separated) format.
+
 
 ccache 3.6
 ----------
