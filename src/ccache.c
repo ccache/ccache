@@ -1040,7 +1040,7 @@ use_relative_paths_in_depfile(const char *depfile)
 		cc_log("Base dir not set, skip using relative paths");
 		return; // nothing to do
 	}
-	if (!has_absolute_include_headers && !conf->depend_mode) {
+	if (!has_absolute_include_headers) {
 		cc_log("No absolute path for included files found, skip using relative"
 		       " paths");
 		return; // nothing to do
@@ -1135,7 +1135,11 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 			if (str_endswith(token, ":") || str_eq(token, "\\")) {
 				continue;
 			}
-			remember_include_file(x_strdup(token), hash, false, hash);
+			if (!has_absolute_include_headers) {
+				has_absolute_include_headers = is_absolute_path(token);
+			}
+			char *path = make_relative_path(x_strdup(token));
+			remember_include_file(path, hash, false, hash);
 		}
 	}
 
@@ -1467,10 +1471,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		failed();
 	}
 
-	if (generating_dependencies) {
-		use_relative_paths_in_depfile(output_dep);
-	}
-
 	if (conf->depend_mode) {
 		struct file_hash *object_hash =
 			object_hash_from_depfile(output_dep, depend_mode_hash);
@@ -1478,6 +1478,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			failed();
 		}
 		update_cached_result_globals(object_hash);
+	}
+
+	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
 	}
 
 	if (stat(output_obj, &st) != 0) {

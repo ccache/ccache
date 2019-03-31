@@ -31,6 +31,9 @@ Changes
   cache cleanup would incorrectly remove them eventually. This has now been
   fixed.
 
+* The rewriting of absolute paths into relative paths in the dependency file is
+  now enabled in the depend mode as well.
+
 
 ccache 3.6
 ----------
