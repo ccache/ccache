@@ -143,6 +143,11 @@ compiler options apply and you should refer to the compiler's documentation.
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
+*`--print-stats`*::
+
+    Print statistics counter IDs and corresponding values machine-parsable
+    (tab-separated) format.
+
 *`-o, --set-config`*=_KEY=VALUE_::
 
     Set configuration option _KEY_ to _VALUE_. See

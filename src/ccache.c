@@ -82,6 +82,8 @@ static const char USAGE_TEXT[] =
 	"Options for scripting or debugging:\n"
 	"        --dump-manifest=PATH  dump manifest file at PATH in text format\n"
 	"    -k, --get-config=K        get the value of configuration key K\n"
+	"        --print-stats         print statistics counter IDs and corresponding\n"
+	"                              values in machine-parsable format\n"
 	"    -o, --set-config=K=V      set configuration item K to value V\n"
 	"\n"
 	"See also <https://ccache.samba.org>.\n";
@@ -3806,7 +3808,8 @@ ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
 		DUMP_MANIFEST,
-		HASH_FILE
+		HASH_FILE,
+		PRINT_STATS,
 	};
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
@@ -3817,6 +3820,7 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
+		{"print-stats",   no_argument,       0, PRINT_STATS},
 		{"set-config",    required_argument, 0, 'o'},
 		{"show-config",   no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
@@ -3848,6 +3852,11 @@ ccache_main_options(int argc, char *argv[])
 			hash_free(hash);
 			break;
 		}
+
+		case PRINT_STATS:
+			initialize();
+			stats_print();
+			break;
 
 		case 'c': // --cleanup
 			initialize();

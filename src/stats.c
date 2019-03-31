@@ -51,180 +51,210 @@ static format_fn format_timestamp;
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
-	const char *message;
+	const char *id; // for --print-stats
+	const char *message; // for --show-stats
 	format_fn *format_fn; // NULL -> use plain integer format
 	unsigned flags;
 } stats_info[] = {
 	{
 		STATS_ZEROTIMESTAMP,
+		"stats_zeroed_timestamp",
 		"stats zeroed",
 		format_timestamp,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_CACHEHIT_DIR,
+		"direct_cache_hit",
 		"cache hit (direct)",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_CACHEHIT_CPP,
+		"preprocessed_cache_hit",
 		"cache hit (preprocessed)",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TOCACHE,
+		"cache_miss",
 		"cache miss",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_LINK,
+		"called_for_link",
 		"called for link",
 		NULL,
 		0
 	},
 	{
 		STATS_PREPROCESSING,
+		"called_for_preprocessing",
 		"called for preprocessing",
 		NULL,
 		0
 	},
 	{
 		STATS_MULTIPLE,
+		"multiple_source_files",
 		"multiple source files",
 		NULL,
 		0
 	},
 	{
 		STATS_STDOUT,
+		"compiler_produced_stdout",
 		"compiler produced stdout",
 		NULL,
 		0
 	},
 	{
 		STATS_NOOUTPUT,
+		"compiler_produced_no_output",
 		"compiler produced no output",
 		NULL,
 		0
 	},
 	{
 		STATS_EMPTYOUTPUT,
+		"compiler_produced_empty_output",
 		"compiler produced empty output",
 		NULL,
 		0
 	},
 	{
 		STATS_STATUS,
+		"compile_failed",
 		"compile failed",
 		NULL,
 		0
 	},
 	{
 		STATS_ERROR,
+		"internal_error",
 		"ccache internal error",
 		NULL,
 		0
 	},
 	{
 		STATS_PREPROCESSOR,
+		"preprocessor_error",
 		"preprocessor error",
 		NULL,
 		0
 	},
 	{
 		STATS_CANTUSEPCH,
+		"could_not_use_precompiled_header",
 		"can't use precompiled header",
 		NULL,
 		0
 	},
 	{
 		STATS_COMPILER,
+		"could_not_find_compiler",
 		"couldn't find the compiler",
 		NULL,
 		0
 	},
 	{
 		STATS_MISSING,
+		"missing_cache_file",
 		"cache file missing",
 		NULL,
 		0
 	},
 	{
 		STATS_ARGS,
+		"bad_compiler_arguments",
 		"bad compiler arguments",
 		NULL,
 		0
 	},
 	{
 		STATS_SOURCELANG,
+		"unsupported_source_language",
 		"unsupported source language",
 		NULL,
 		0
 	},
 	{
 		STATS_COMPCHECK,
+		"compiler_check_failed",
 		"compiler check failed",
 		NULL,
 		0
 	},
 	{
 		STATS_CONFTEST,
+		"autoconf_test",
 		"autoconf compile/link",
 		NULL,
 		0
 	},
 	{
 		STATS_UNSUPPORTED_OPTION,
+		"unsupported_compiler_option",
 		"unsupported compiler option",
 		NULL,
 		0
 	},
 	{
 		STATS_UNSUPPORTED_DIRECTIVE,
+		"unsupported_code_directive",
 		"unsupported code directive",
 		NULL,
 		0
 	},
 	{
 		STATS_OUTSTDOUT,
+		"output_to_stdout",
 		"output to stdout",
 		NULL,
 		0
 	},
 	{
 		STATS_DEVICE,
+		"output_to_a_non_file",
 		"output to a non-regular file",
 		NULL,
 		0
 	},
 	{
 		STATS_NOINPUT,
+		"no_input_file",
 		"no input file",
 		NULL,
 		0
 	},
 	{
 		STATS_BADEXTRAFILE,
+		"error_hashing_extra_file",
 		"error hashing extra file",
 		NULL,
 		0
 	},
 	{
 		STATS_NUMCLEANUPS,
+		"cleanups_performed",
 		"cleanups performed",
 		NULL,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_NUMFILES,
+		"files_in_cache",
 		"files in cache",
 		NULL,
 		FLAG_NOZERO|FLAG_ALWAYS
 	},
 	{
 		STATS_TOTALSIZE,
+		"cache_size_kibibyte",
 		"cache size",
 		format_size_times_1024,
 		FLAG_NOZERO|FLAG_ALWAYS
@@ -232,17 +262,20 @@ static struct {
 	{
 		STATS_OBSOLETE_MAXFILES,
 		"OBSOLETE",
+		"OBSOLETE",
 		NULL,
 		FLAG_NOZERO|FLAG_NEVER
 	},
 	{
 		STATS_OBSOLETE_MAXSIZE,
 		"OBSOLETE",
+		"OBSOLETE",
 		NULL,
 		FLAG_NOZERO|FLAG_NEVER
 	},
 	{
 		STATS_NONE,
+		NULL,
 		NULL,
 		NULL,
 		0
@@ -541,6 +574,27 @@ stats_summary(void)
 		char *value = format_size(conf->max_size);
 		printf("max cache size                  %s\n", value);
 		free(value);
+	}
+
+	counters_free(counters);
+}
+
+// Print machine-parsable (tab-separated) statistics counters.
+void
+stats_print(void)
+{
+	assert(conf);
+
+	struct counters *counters = counters_init(STATS_END);
+	time_t last_updated;
+	stats_collect(counters, &last_updated);
+
+	printf("stats_updated_timestamp\t%llu\n", (unsigned long long)last_updated);
+
+	for (int i = 0; stats_info[i].message; i++) {
+		if (!(stats_info[i].flags & FLAG_NEVER)) {
+			printf("%s\t%u\n", stats_info[i].id, counters->data[stats_info[i].stat]);
+		}
 	}
 
 	counters_free(counters);
