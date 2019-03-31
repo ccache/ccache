@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2004 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -321,6 +321,47 @@ init_counter_updates(void)
 	}
 }
 
+static double
+stats_hit_rate(struct counters *counters)
+{
+	unsigned direct = counters->data[STATS_CACHEHIT_DIR];
+	unsigned preprocessed = counters->data[STATS_CACHEHIT_CPP];
+	unsigned hit = direct + preprocessed;
+	unsigned miss = counters->data[STATS_TOCACHE];
+	unsigned total = hit + miss;
+	return total > 0 ? (100.0 * hit) / total : 0.0;
+}
+
+static void
+stats_collect(struct counters *counters, time_t *last_updated)
+{
+	struct stat st;
+	unsigned zero_timestamp = 0;
+
+	*last_updated = 0;
+
+	// Add up the stats in each directory.
+	for (int dir = -1; dir <= 0xF; dir++) {
+		char *fname;
+
+		if (dir == -1) {
+			fname = format("%s/stats", conf->cache_dir);
+		} else {
+			fname = format("%s/%1x/stats", conf->cache_dir, dir);
+		}
+
+		counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
+		stats_read(fname, counters);
+		zero_timestamp = MAX(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
+		if (stat(fname, &st) == 0 && st.st_mtime > *last_updated) {
+			*last_updated = st.st_mtime;
+		}
+		free(fname);
+	}
+
+	counters->data[STATS_ZEROTIMESTAMP] = zero_timestamp;
+}
+
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
@@ -447,41 +488,19 @@ stats_get_pending(enum stats stat)
 void
 stats_summary(void)
 {
-	struct counters *counters = counters_init(STATS_END);
-	time_t updated = 0;
-	struct stat st;
-	unsigned zero_timestamp = 0;
-
 	assert(conf);
 
-	// Add up the stats in each directory.
-	for (int dir = -1; dir <= 0xF; dir++) {
-		char *fname;
-
-		if (dir == -1) {
-			fname = format("%s/stats", conf->cache_dir);
-		} else {
-			fname = format("%s/%1x/stats", conf->cache_dir, dir);
-		}
-
-		counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
-		stats_read(fname, counters);
-		zero_timestamp = MAX(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
-		if (stat(fname, &st) == 0 && st.st_mtime > updated) {
-			updated = st.st_mtime;
-		}
-		free(fname);
-	}
-
-	counters->data[STATS_ZEROTIMESTAMP] = zero_timestamp;
+	struct counters *counters = counters_init(STATS_END);
+	time_t last_updated;
+	stats_collect(counters, &last_updated);
 
 	printf("cache directory                     %s\n", conf->cache_dir);
 	printf("primary config                      %s\n",
 	       primary_config_path ? primary_config_path : "");
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
-	if (updated) {
-		struct tm *tm = localtime(&updated);
+	if (last_updated > 0) {
+		struct tm *tm = localtime(&last_updated);
 		char timestamp[100];
 		strftime(timestamp, sizeof(timestamp), "%c", tm);
 		printf("stats updated                       %s\n", timestamp);
@@ -510,12 +529,7 @@ stats_summary(void)
 		}
 
 		if (stat == STATS_TOCACHE) {
-			unsigned direct = counters->data[STATS_CACHEHIT_DIR];
-			unsigned preprocessed = counters->data[STATS_CACHEHIT_CPP];
-			unsigned hit = direct + preprocessed;
-			unsigned miss = counters->data[STATS_TOCACHE];
-			unsigned total = hit + miss;
-			double percent = total > 0 ? (100.0 * hit) / total : 0.0;
+			double percent = stats_hit_rate(counters);
 			printf("cache hit rate                    %6.2f %%\n", percent);
 		}
 	}
