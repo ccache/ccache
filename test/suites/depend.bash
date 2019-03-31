@@ -128,6 +128,14 @@ SUITE_depend() {
     expect_stat 'files in cache' 3
 
     # -------------------------------------------------------------------------
+    TEST "Dependency file paths converted to relative if CCACHE_BASEDIR specified"
+        
+    CCACHE_DEPEND=1 CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE $DEPSFLAGS_CCACHE -c "`pwd`/test.c"
+    if grep -q "[^.]/test.c" "test.d"; then
+        test_failed "Dependency file does not contain relative path to test.c"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"
 
     cat <<EOF >cpp-warning.c

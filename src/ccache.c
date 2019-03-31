@@ -1040,7 +1040,7 @@ use_relative_paths_in_depfile(const char *depfile)
 		cc_log("Base dir not set, skip using relative paths");
 		return; // nothing to do
 	}
-	if (!has_absolute_include_headers) {
+	if (!has_absolute_include_headers && !conf->depend_mode) {
 		cc_log("No absolute path for included files found, skip using relative"
 		       " paths");
 		return; // nothing to do
