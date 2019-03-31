@@ -34,6 +34,8 @@ Changes
 * The rewriting of absolute paths into relative paths in the dependency file is
   now enabled in the depend mode as well.
 
+* ccache now ignores unknown keys in configuration files.
+
 
 ccache 3.6
 ----------
