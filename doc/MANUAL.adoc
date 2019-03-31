@@ -115,6 +115,11 @@ compiler options apply and you should refer to the compiler's documentation.
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`--dump-manifest`*=_PATH_::
+
+    Dump manifest file at PATH in text format. This is only useful when
+    debugging ccache and its behavior.
+
 *`-h, --help`*::
 
     Print an options summary page.

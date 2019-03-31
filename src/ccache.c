@@ -78,6 +78,7 @@ static const char USAGE_TEXT[] =
 	"    -V, --version             print version and copyright information\n"
 	"\n"
 	"Options for scripting or debugging:\n"
+	"        --dump-manifest=PATH  dump manifest file at PATH in text format\n"
 	"    -k, --get-config=K        get the value of configuration key K\n"
 	"    -p, --print-config        print current configuration options\n"
 	"    -o, --set-config=K=V      set configuration item K to value V\n"
