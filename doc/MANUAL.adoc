@@ -120,6 +120,11 @@ compiler options apply and you should refer to the compiler's documentation.
     Dump manifest file at PATH in text format. This is only useful when
     debugging ccache and its behavior.
 
+*`-k, --get-config`*=_KEY_::
+
+    Get the value of configuration option _KEY_. See
+    <<_configuration,CONFIGURATION>> for more information.
+
 *`-h, --help`*::
 
     Print an options summary page.
@@ -145,8 +150,8 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`-o, --set-config`*=_KEY=VALUE_::
 
-    Set configuration _KEY_ to _VALUE_. See <<_configuration,CONFIGURATION>>
-    for more information.
+    Set configuration option _KEY_ to _VALUE_. See
+    <<_configuration,CONFIGURATION>> for more information.
 
 *`-s, --show-stats`*::
 
