@@ -70,6 +70,8 @@ static const char USAGE_TEXT[] =
 	"    -M, --max-size=SIZE       set maximum size of cache to SIZE (use 0 for no\n"
 	"                              limit); available suffixes: k, M, G, T (decimal)\n"
 	"                              and Ki, Mi, Gi, Ti (binary); default suffix: G\n"
+	"    -p, --show-config         show current configuration options in\n"
+	"                              human-readable format\n"
 	"    -s, --show-stats          show summary of configuration and statistics\n"
 	"                              counters in human-readable format\n"
 	"    -z, --zero-stats          zero statistics counters\n"
@@ -80,7 +82,6 @@ static const char USAGE_TEXT[] =
 	"Options for scripting or debugging:\n"
 	"        --dump-manifest=PATH  dump manifest file at PATH in text format\n"
 	"    -k, --get-config=K        get the value of configuration key K\n"
-	"    -p, --print-config        print current configuration options\n"
 	"    -o, --set-config=K=V      set configuration item K to value V\n"
 	"\n"
 	"See also <https://ccache.samba.org>.\n";
@@ -3816,8 +3817,8 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
-		{"print-config",  no_argument,       0, 'p'},
 		{"set-config",    required_argument, 0, 'o'},
+		{"show-config",   no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
@@ -3932,7 +3933,7 @@ ccache_main_options(int argc, char *argv[])
 		}
 		break;
 
-		case 'p': // --print-config
+		case 'p': // --show-config
 			initialize();
 			conf_print_items(conf, configuration_printer, stdout);
 			break;

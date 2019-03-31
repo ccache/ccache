@@ -143,19 +143,21 @@ compiler options apply and you should refer to the compiler's documentation.
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
-*`-p, --print-config`*::
-
-    Print current configuration options and from where they originate
-    (environment variable, configuration file or compile-time default).
-
 *`-o, --set-config`*=_KEY=VALUE_::
 
     Set configuration option _KEY_ to _VALUE_. See
     <<_configuration,CONFIGURATION>> for more information.
 
+*`-p, --show-config`*::
+
+    Print current configuration options and from where they originate
+    (environment variable, configuration file or compile-time default) in
+    human-readable format.
+
 *`-s, --show-stats`*::
 
-    Print the current statistics summary for the cache.
+    Print a summary of configuration and statistics counters in human-readable
+    format.
 
 *`-V, --version`*::
 
