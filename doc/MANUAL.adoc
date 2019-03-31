@@ -115,15 +115,15 @@ compiler options apply and you should refer to the compiler's documentation.
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`-h, --help`*::
+
+    Print an options summary page.
+
 *`-F, --max-files`*=_N_::
 
     Set the maximum number of files allowed in the cache. Use 0 for no limit.
     The value is stored in a configuration file in the cache directory and
     applies to all future compilations.
-
-*`-h, --help`*::
-
-    Print an options summary page.
 
 *`-M, --max-size`*=_SIZE_::
 
@@ -133,15 +133,15 @@ compiler options apply and you should refer to the compiler's documentation.
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
-*`-o, --set-config`*=_KEY=VALUE_::
-
-    Set configuration _KEY_ to _VALUE_. See <<_configuration,CONFIGURATION>>
-    for more information.
-
 *`-p, --print-config`*::
 
     Print current configuration options and from where they originate
     (environment variable, configuration file or compile-time default).
+
+*`-o, --set-config`*=_KEY=VALUE_::
+
+    Set configuration _KEY_ to _VALUE_. See <<_configuration,CONFIGURATION>>
+    for more information.
 
 *`-s, --show-stats`*::
 
