@@ -18,7 +18,7 @@ Changes
 
 * Compilations with /dev/null as the input file are now cached.
 
-* ccache now knows how to contruct the object filename if no “-o” option is
+* ccache now knows how to contruct the object filename if no `-o` option is
   given and the source filename does not include a `.` or ends with a `.`.
 
 * Fixed a temporary file leak when depend mode is enabled and the compiler
@@ -48,6 +48,9 @@ Changes
 
 * Added a new `--print-stats` command that prints statistics counters in
   machine-parsable (tab-separated) format.
+
+* ccache no longer creates a missing output directory, thus mimicking the
+  compiler behavior for `-o out/obj.o` when “out” doesn’t exist.
 
 
 ccache 3.6

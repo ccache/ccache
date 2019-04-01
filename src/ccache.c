@@ -3294,10 +3294,20 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
-		stats_update(STATS_DEVICE);
+		stats_update(STATS_BADOUTPUTFILE);
 		result = false;
 		goto out;
 	}
+
+	char *output_dir = dirname(output_obj);
+	if (stat(output_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+		cc_log("Directory does not exist: %s", output_dir);
+		stats_update(STATS_BADOUTPUTFILE);
+		result = false;
+		free(output_dir);
+		goto out;
+	}
+	free(output_dir);
 
 	// Some options shouldn't be passed to the real compiler when it compiles
 	// preprocessed code:

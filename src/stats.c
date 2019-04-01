@@ -218,9 +218,9 @@ static struct {
 		0
 	},
 	{
-		STATS_DEVICE,
-		"output_to_a_non_file",
-		"output to a non-regular file",
+		STATS_BADOUTPUTFILE,
+		"bad_output_file",
+		"could not write to output file",
 		NULL,
 		0
 	},
