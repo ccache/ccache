@@ -38,8 +38,8 @@ Changes
 
 * Rearranged command-line options into sections in the help text.
 
-* Documented the previously undocumented `--dump-manifest` option (only useful
-  for debugging ccache itself).
+* Documented the previously undocumented `--dump-manifest` and `--hash-file`
+  options (only useful for debugging ccache itself).
 
 * Added missing documentation for the command-line option `-k/--get-config`
   added in ccache 3.5.

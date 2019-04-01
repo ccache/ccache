@@ -122,8 +122,13 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`-k, --get-config`*=_KEY_::
 
-    Get the value of configuration option _KEY_. See
+    Print the value of configuration option _KEY_. See
     <<_configuration,CONFIGURATION>> for more information.
+
+*`--hash-file`*=_PATH_::
+
+    Print the hash (in format `<MD4>-<size>`) of the file at PATH. This is only
+    useful when debugging ccache and its behavior.
 
 *`-h, --help`*::
 
