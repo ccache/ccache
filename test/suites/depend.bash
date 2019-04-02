@@ -78,7 +78,7 @@ EOF
     backdate "$BASEDIR3/header.h" "$BASEDIR3/test.c"
     backdate "$BASEDIR4/header.h" "$BASEDIR4/test.c" "$BASEDIR4/header2.h"
 
-    DEPFLAGS="-g1 -g0 -MD -MF test.d"
+    DEPFLAGS="-MD -MF test.d"
 }
 
 generate_reference_compiler_output() {
