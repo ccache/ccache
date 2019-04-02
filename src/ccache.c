@@ -1950,15 +1950,22 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		}
 
 		// The -fdebug-prefix-map option may be used in combination with
-		// CCACHE_BASEDIR to reuse results across different directories. Skip it
-		// from hashing.
+		// CCACHE_BASEDIR to reuse results across different directories. Skip using
+		// the value of the option from hashing but still hash the existence of the
+		// option.
 		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-fdebug-prefix-map=");
 			continue;
 		}
 		if (str_startswith(args->argv[i], "-ffile-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-ffile-prefix-map=");
 			continue;
 		}
 		if (str_startswith(args->argv[i], "-fmacro-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-fmacro-prefix-map=");
 			continue;
 		}
 
