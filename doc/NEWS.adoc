@@ -52,6 +52,11 @@ Changes
 * ccache no longer creates a missing output directory, thus mimicking the
   compiler behavior for `-o out/obj.o` when “out” doesn’t exist.
 
+* `-fdebug-prefix-map=ARG`, `-ffile-prefix-map=ARG` and
+  `-fmacro-prefix-map=ARG` are now included in the hash, but only the part
+  before “ARG”. This fixes a bug where compiler feature detection of said flags
+  would not work correctly with ccache.
+
 
 ccache 3.6
 ----------
