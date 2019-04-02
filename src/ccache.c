@@ -2635,6 +2635,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
+		if (str_eq(argv[i], "-g0")) {
+		    generating_debuginfo = false;
+		    continue;
+		}
+
 		if (str_startswith(argv[i], "-g")) {
 			generating_debuginfo = true;
 			args_add(stripped_args, argv[i]);
