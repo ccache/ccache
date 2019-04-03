@@ -460,6 +460,71 @@ error:
 	return -1;
 }
 
+// Write data to a file.
+int write_file(const char *data, const char *dest, size_t length)
+{
+	int saved_errno = 0;
+
+	char *tmp_name = x_strdup(dest);
+	int fd_out = create_tmp_fd(&tmp_name);
+	if (fd_out < 0) {
+		tmp_unlink(tmp_name);
+		free(tmp_name);
+		return -1;
+	}
+
+	int ret = safe_write(fd_out, data, length);
+	if (ret < 0) {
+		saved_errno = errno;
+		cc_log("write error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+#ifndef _WIN32
+	fchmod(fd_out, 0666 & ~get_umask());
+#endif
+
+	// The close can fail on NFS if out of space.
+	if (close(fd_out) == -1) {
+		saved_errno = errno;
+		cc_log("close error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	if (x_rename(tmp_name, dest) == -1) {
+		saved_errno = errno;
+		cc_log("rename error: %s", strerror(saved_errno));
+		goto error;
+	}
+
+	free(tmp_name);
+	return 0;
+
+error:
+	close(fd_out);
+	tmp_unlink(tmp_name);
+	free(tmp_name);
+	errno = saved_errno;
+	return -1;
+}
+
+// Write data to a file descriptor.
+int safe_write(int fd_out, const char *data, size_t length)
+{
+	size_t written = 0;
+	do {
+		int ret = write(fd_out, data + written, length - written);
+		if (ret < 0) {
+			if (errno != EAGAIN && errno != EINTR) {
+				return ret;
+			}
+		} else {
+			written += ret;
+		}
+	} while (written < length);
+	return 0;
+}
+
 // Run copy_file() and, if successful, delete the source file.
 int
 move_file(const char *src, const char *dest, int compress_level)

@@ -49,6 +49,8 @@ static const char VERSION_TEXT[] =
 	"Copyright (C) 2002-2007 Andrew Tridgell\n"
 	"Copyright (C) 2009-2019 Joel Rosdahl\n"
 	"\n"
+	"memcached support: yes\n"
+	"\n"
 	"This program is free software; you can redistribute it and/or modify it under\n"
 	"the terms of the GNU General Public License as published by the Free Software\n"
 	"Foundation; either version 3 of the License, or (at your option) any later\n"
@@ -162,6 +164,8 @@ static char *cached_dwo;
 // (cachedir/a/b/cdef[...]-size.manifest).
 static char *manifest_path;
 
+static char *manifest_name;
+
 // Time of compilation. Used to see if include files have changed after
 // compilation.
 time_t time_of_compilation;
@@ -251,6 +255,9 @@ static char *included_pch_file = NULL;
 
 // How long (in microseconds) to wait before breaking a stale lock.
 unsigned lock_staleness_limit = 2000000;
+
+// cache backend
+backend *cache_backend = NULL;
 
 enum fromcache_call_mode {
 	FROMCACHE_DIRECT_MODE,
@@ -1305,6 +1312,13 @@ update_manifest_file(void)
 		cc_log("Added object file hash to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+			char *data;
+			size_t size;
+			if (cache_backend != NULL && read_file(manifest_path, st.st_size, &data, &size)) {
+				cc_log("Storing %s in backend cache", manifest_name);
+				cache_backend->to_cache_string(manifest_name, data, size);
+				free(data);
+			}
 		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
@@ -1548,6 +1562,36 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			x_unlink(path);
 			free(path);
 		}
+	}
+
+	if (cache_backend != NULL) {
+		backend_load *load = malloc(sizeof(backend_load));
+
+		if (!read_file(cached_obj, 0, &load->data_obj, &load->size_obj)) {
+			load->data_obj = NULL;
+			load->size_obj = 0; 
+		}
+		if (!read_file(cached_stderr, 0, &load->data_stderr, &load->size_stderr)) {
+			load->data_stderr = NULL;
+			load->size_stderr = 0; 
+		}
+		if (!read_file(cached_dia, 0, &load->data_dia, &load->size_dia)) {
+			load->data_dia = NULL;
+			load->size_dia = 0; 
+		}
+		if (!read_file(cached_dep, 0, &load->data_dep, &load->size_dep)) {
+			load->data_dep = NULL;
+			load->size_dep = 0; 
+		}
+
+		if (load->data_obj) {
+			cache_backend->to_cache(strdup(format_hash_as_string(cached_obj_hash->hash, cached_obj_hash->size)), load);
+		}
+		free(load->data_obj);
+		free(load->data_stderr);
+		free(load->data_dia);
+		free(load->data_dep);
+		free(load);
 	}
 
 	// Everything OK.
@@ -2129,9 +2173,25 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
-		char *manifest_name = hash_result(hash);
+		manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
-		free(manifest_name);
+
+		struct stat st;
+		if (stat(manifest_path, &st) != 0) {
+			if (cache_backend != NULL) {
+				char *data;
+				size_t size;
+				if (cache_backend->from_cache_string(manifest_name, &data, &size) != 0) {
+					return NULL;
+				}
+				cc_log("Added object file hash to %s", manifest_path);
+				write_file(data, manifest_path, size);
+				stats_update_size(size, 1);
+			} else {
+				return NULL;
+			}
+		}
+
 		cc_log("Looking for object file hash in %s", manifest_path);
 		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {
@@ -3443,6 +3503,14 @@ create_initial_config_file(const char *path)
 	fclose(f);
 }
 
+static void clean_backend(void)
+{
+	if (cache_backend != NULL) {
+		cache_backend->done();
+		free(cache_backend);
+	}
+}
+
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
@@ -3499,9 +3567,17 @@ initialize(void)
 		create_initial_config_file(primary_config_path);
 	}
 
+	// Initialize backend if provided
+	if (!str_eq(conf->memcached_conf, "")) {
+		cache_backend = malloc(sizeof(backend));
+		create_backend("MEMCACHED", cache_backend);
+		cache_backend->init(conf->memcached_conf);
+	}
+
 	exitfn_init();
 	exitfn_add_nullary(stats_flush);
 	exitfn_add_nullary(clean_up_pending_tmp_files);
+	exitfn_add_nullary(clean_backend);
 
 	cc_log("=== CCACHE %s STARTED =========================================",
 	       CCACHE_VERSION);

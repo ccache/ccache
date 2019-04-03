@@ -115,6 +115,17 @@ HW_FUNC_ASPRINTF
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
+dnl memcached: add -lmemcached
+if test x${enable_static} != x; then
+    AC_CHECK_LIB(stdc++, __gxx_personality_v0,[])
+fi
+AC_CHECK_LIB(pthread, pthread_once)
+AC_CHECK_LIB(memcached, memcached,[],[
+echo '  WARNING: recent version libmemcached not found'
+echo '  please install libmemcached > 1.0 with development files'
+exit 1
+])
+ccache_memcached='CCACHE_MEMCACHED=1 '
 
 dnl Check for zlib
 AC_ARG_WITH(bundled-zlib,

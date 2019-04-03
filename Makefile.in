@@ -47,7 +47,9 @@ non_3pp_sources = \
     src/mdfour.c \
     src/stats.c \
     src/unify.c \
-    src/util.c
+    src/util.c \
+		src/backend.c \
+		src/backend_memcached.c
 generated_sources = \
     src/confitems_lookup.c \
     src/envtoconfitems_lookup.c \
