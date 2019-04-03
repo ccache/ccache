@@ -5,7 +5,7 @@ Prerequisites
 -------------
 
 To build ccache from a
-[release archive](https://ccache.samba.org/download.html), you need:
+[release archive](https://ccache.dev/download.html), you need:
 
 - A C compiler (for instance GCC)
 

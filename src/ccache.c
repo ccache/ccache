@@ -87,7 +87,7 @@ static const char USAGE_TEXT[] =
 	"                              values in machine-parsable format\n"
 	"    -o, --set-config=K=V      set configuration item K to value V\n"
 	"\n"
-	"See also <https://ccache.samba.org>.\n";
+	"See also <https://ccache.dev>.\n";
 
 // Global configuration data.
 struct conf *conf = NULL;

@@ -1272,7 +1272,7 @@ More information
 ----------------
 
 Credits, mailing list information, bug reporting instructions, source code,
-etc, can be found on ccache's web site: <https://ccache.samba.org>.
+etc, can be found on ccache's web site: <https://ccache.dev>.
 
 
 Author
@@ -1280,4 +1280,4 @@ Author
 
 ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl. See AUTHORS.txt or AUTHORS.html and
-<https://ccache.samba.org/credits.html> for a list of contributors.
+<https://ccache.dev/credits.html> for a list of contributors.
