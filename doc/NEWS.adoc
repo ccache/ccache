@@ -57,6 +57,8 @@ Changes
   before “ARG”. This fixes a bug where compiler feature detection of said flags
   would not work correctly with ccache.
 
+* Bail out on too hard compiler option `-gtoggle`.
+
 
 ccache 3.6
 ----------

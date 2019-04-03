@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -68,6 +68,7 @@ static const struct compopt compopts[] = {
 	{"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
 	{"-frepo",          TOO_HARD},
 	{"-fworking-directory", AFFECTS_CPP},
+	{"-gtoggle",        TOO_HARD},
 	{"-idirafter",      AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-iframework",     AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-imacros",        AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
