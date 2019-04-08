@@ -742,7 +742,9 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 
 		if (depend_mode_hash) {
 			hash_delimiter(depend_mode_hash, "include");
-			hash_buffer(depend_mode_hash, h->hash, sizeof(h->hash));
+			char *result = hash_result(fhash);
+			hash_string(depend_mode_hash, result);
+			free(result);
 		}
 	}
 

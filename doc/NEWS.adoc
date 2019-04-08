@@ -59,6 +59,8 @@ Changes
 
 * Bail out on too hard compiler option `-gtoggle`.
 
+* Improved debug logging of file hashes in depend mode.
+
 
 ccache 3.6
 ----------
