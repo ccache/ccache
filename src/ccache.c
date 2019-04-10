@@ -2151,9 +2151,15 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
-		char *manifest_name = hash_result(hash);
+
+		// We can't finalize hash here since its current state may be used by the
+		// depend mode code later, so make a copy.
+		struct hash *hash2 = hash_copy(hash);
+		char *manifest_name = hash_result(hash2);
+		hash_free(hash2);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
+
 		cc_log("Looking for object file hash in %s", manifest_path);
 		object_hash = manifest_get(conf, manifest_path);
 		if (object_hash) {

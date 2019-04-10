@@ -21,11 +21,14 @@ Changes
 * ccache now knows how to contruct the object filename if no `-o` option is
   given and the source filename does not include a `.` or ends with a `.`.
 
-* Fixed a temporary file leak when depend mode is enabled and the compiler
+* Fixed a bug in the depend mode where the last couple of include files in the
+  `.d` file was not taken into account.
+
+* Fixed a temporary file leak when the depend mode is enabled and the compiler
   produces standard error output.
 
-* Fixed a bug in the “depend mode” where a manifest hash only could be
-  associated with one set of header dependencies.
+* Fixed a bug in the depend mode where a manifest hash only could be associated
+  with one set of header dependencies.
 
 * Manifest files did not get marked as used on direct cache hits, so the LRU
   cache cleanup would incorrectly remove them eventually. This has now been
