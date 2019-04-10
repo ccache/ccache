@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -30,6 +30,12 @@ struct hash {
 static void
 do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
+	assert(s);
+
+	// The hash state cannot be updated after the result has been fetched via
+	// hash_result/hash_result_as_bytes.
+	assert(!hash->md.finalized);
+
 	mdfour_update(&hash->md, (const unsigned char *)s, len);
 	if (len > 0 && hash->debug_binary) {
 		(void) fwrite(s, 1, len, hash->debug_binary);
