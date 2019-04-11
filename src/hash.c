@@ -32,10 +32,6 @@ do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
 	assert(s);
 
-	// The hash state cannot be updated after the result has been fetched via
-	// hash_result/hash_result_as_bytes.
-	assert(!hash->md.finalized);
-
 	mdfour_update(&hash->md, (const unsigned char *)s, len);
 	if (len > 0 && hash->debug_binary) {
 		(void) fwrite(s, 1, len, hash->debug_binary);
@@ -90,7 +86,7 @@ void hash_enable_debug(
 size_t
 hash_input_size(struct hash *hash)
 {
-	return hash->md.totalN;
+	return hash->md.totalN + hash->md.tail_len;
 }
 
 void
@@ -106,13 +102,12 @@ hash_result(struct hash *hash)
 	unsigned char sum[16];
 
 	hash_result_as_bytes(hash, sum);
-	return format_hash_as_string(sum, (unsigned) hash->md.totalN);
+	return format_hash_as_string(sum, hash_input_size(hash));
 }
 
 void
 hash_result_as_bytes(struct hash *hash, unsigned char *out)
 {
-	mdfour_update(&hash->md, NULL, 0);
 	mdfour_result(&hash->md, out);
 }
 
