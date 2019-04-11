@@ -2152,11 +2152,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			return NULL;
 		}
 
-		// We can't finalize hash here since its current state may be used by the
-		// depend mode code later, so make a copy.
-		struct hash *hash2 = hash_copy(hash);
-		char *manifest_name = hash_result(hash2);
-		hash_free(hash2);
+		char *manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
 
