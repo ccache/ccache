@@ -191,6 +191,9 @@ static size_t ignore_headers_len;
 // Is the compiler being asked to output debug info?
 static bool generating_debuginfo;
 
+// Is the compiler being asked to output debug info on level 3?
+static bool generating_debuginfo_level_3;
+
 // Is the compiler being asked to output dependencies?
 static bool generating_dependencies;
 
@@ -2647,18 +2650,22 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
 		if (str_startswith(argv[i], "-g")) {
-			generating_debuginfo = true;
 			args_add(stripped_args, argv[i]);
-			if (str_eq(argv[i], "-gsplit-dwarf")) {
-				using_split_dwarf = true;
-			}
-			if (conf->unify && !str_eq(argv[i], "-g0")) {
-				cc_log("%s used; disabling unify mode", argv[i]);
-				conf->unify = false;
-			}
-			if (str_eq(argv[i], "-g3")) {
-				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				conf->run_second_cpp = true;
+
+			char last_char = argv[i][strlen(argv[i]) - 1];
+			if (last_char == '0') {
+				// "-g0", "-ggdb0" or similar: All debug information disabled.
+				// "-gsplit-dwarf" is still in effect if given previously, though.
+				generating_debuginfo = false;
+				generating_debuginfo_level_3 = false;
+			} else {
+				generating_debuginfo = true;
+				if (last_char == '3') {
+					generating_debuginfo_level_3 = true;
+				}
+				if (str_eq(argv[i], "-gsplit-dwarf")) {
+					using_split_dwarf = true;
+				}
 			}
 			continue;
 		}
@@ -3112,6 +3119,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			input_file = make_relative_path(x_strdup(argv[i]));
 		}
 	} // for
+
+	if (generating_debuginfo && conf->unify) {
+		cc_log("Generating debug info; disabling unify mode");
+		conf->unify = false;
+	}
+
+	if (generating_debuginfo_level_3 && !conf->run_second_cpp) {
+		cc_log("Generating debug info level 3; not compiling preprocessed code");
+		conf->run_second_cpp = true;
+	}
 
 	// See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
 	// Contrary to what the documentation seems to imply the compiler still
@@ -3596,6 +3613,7 @@ cc_reset(void)
 	}
 	has_absolute_include_headers = false;
 	generating_debuginfo = false;
+	generating_debuginfo_level_3 = false;
 	generating_dependencies = false;
 	generating_coverage = false;
 	generating_stackusage = false;

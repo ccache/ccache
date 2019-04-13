@@ -351,6 +351,26 @@ base_tests() {
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
+    TEST "Directory is not hashed if using -g -g0"
+
+    mkdir dir1 dir2
+    cp test1.c dir1
+    cp test1.c dir2
+
+    cd dir1
+    $CCACHE_COMPILE -c test1.c -g -g0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    $CCACHE_COMPILE -c test1.c -g -g0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    cd ../dir2
+    $CCACHE_COMPILE -c test1.c -g -g0
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_NOHASHDIR"
 
     mkdir dir1 dir2
