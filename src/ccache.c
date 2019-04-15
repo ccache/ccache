@@ -1250,12 +1250,12 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 	do_copy_or_move_file_to_cache(source, dest, false);
 }
 
-// Copy or link a file from the cache.
+// Helper method for get_file_from_cache and copy_file_from_cache.
 static void
-get_file_from_cache(const char *source, const char *dest)
+do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
 	int ret;
-	bool do_link = conf->hard_link && !file_is_compressed(source);
+	bool do_link = !copy && conf->hard_link && !file_is_compressed(source);
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
@@ -1290,6 +1290,27 @@ get_file_from_cache(const char *source, const char *dest)
 	}
 
 	cc_log("Created from cache: %s -> %s", source, dest);
+}
+
+// Copy or link a file from the cache.
+//
+// source must be a path in the cache (see get_path_in_cache). dest does not
+// have to be on the same file system as source.
+//
+// An attempt will be made to hard link source to dest if conf->hard_link is
+// true and conf->compression is false, otherwise copy. dest will be compressed
+// if conf->compression is true.
+static void
+get_file_from_cache(const char *source, const char *dest)
+{
+	do_copy_or_link_file_from_cache(source, dest, false);
+}
+
+// Copy a file from the cache.
+static void
+copy_file_from_cache(const char *source, const char *dest)
+{
+	do_copy_or_link_file_from_cache(source, dest, true);
 }
 
 // Send cached stderr, if any, to stderr.
@@ -2243,7 +2264,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		}
 	}
 	if (produce_dep_file) {
-		get_file_from_cache(cached_dep, output_dep);
+		// Make a copy rather than a link, for move
+		copy_file_from_cache(cached_dep, output_dep);
 	}
 	if (generating_coverage) {
 		get_file_from_cache(cached_cov, output_cov);
