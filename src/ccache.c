@@ -1170,7 +1170,7 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 	return result;
 }
 
-// Helper method for copy_file_to_cache and move_file_to_cache_same_fs.
+// Helper function for copy_file_to_cache and move_file_to_cache_same_fs.
 static void
 do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 {
@@ -1250,7 +1250,7 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 	do_copy_or_move_file_to_cache(source, dest, false);
 }
 
-// Helper method for get_file_from_cache and copy_file_from_cache.
+// Helper function for get_file_from_cache and copy_file_from_cache.
 static void
 do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
@@ -2264,7 +2264,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		}
 	}
 	if (produce_dep_file) {
-		// Make a copy rather than a link, for move
+		// Never hardlink the .d file since automake fails to move a foo.d.tmp file
+		// to foo.d if they have the same i-node.
 		copy_file_from_cache(cached_dep, output_dep);
 	}
 	if (generating_coverage) {
