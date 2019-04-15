@@ -60,4 +60,20 @@ SUITE_hardlink() {
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 2
     expect_equal_object_files reference_test1.o test1.o
+
+    # -------------------------------------------------------------------------
+    TEST "Automake depend move"
+
+    unset CCACHE_NODIRECT
+
+    generate_code 1 test1.c
+
+    CCACHE_HARDLINK=1 CCACHE_DEPEND=1 $CCACHE_COMPILE -c -MMD -MF test1.d.tmp test1.c
+    expect_stat 'cache hit (direct)' 0
+    mv test1.d.tmp test1.d || test_failed "first mv failed"
+
+    CCACHE_HARDLINK=1 CCACHE_DEPEND=1 $CCACHE_COMPILE -c -MMD -MF test1.d.tmp test1.c
+    expect_stat 'cache hit (direct)' 1
+    mv test1.d.tmp test1.d || test_failed "second mv failed"
+
 }
