@@ -67,6 +67,9 @@ Changes
 - Improved handling of various `-g*` options. In particular, ccache now
   understands that `-g0` cancels out previous `-g* options`.
 
+- Work around a problem with Automake related to `.d` files when using the hard
+  link mode.
+
 
 ccache 3.6
 ----------
