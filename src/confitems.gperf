@@ -22,6 +22,7 @@ struct conf_item;
 %%
 base_dir,                   ITEM_V(base_dir, env_string, absolute_path)
 cache_dir,                  ITEM(cache_dir, env_string)
+cache_dir_l0,               ITEM(cache_dir_l0, env_string)
 cache_dir_levels,           ITEM_V(cache_dir_levels, unsigned, dir_levels)
 compiler,                   ITEM(compiler, string)
 compiler_check,             ITEM(compiler_check, string)

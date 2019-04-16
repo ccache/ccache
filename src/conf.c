@@ -129,6 +129,7 @@ conf_create(void)
 	struct conf *conf = x_malloc(sizeof(*conf));
 	conf->base_dir = x_strdup("");
 	conf->cache_dir = format("%s/.ccache", get_home_directory());
+	conf->cache_dir_l0 = x_strdup("");
 	conf->cache_dir_levels = 2;
 	conf->compiler = x_strdup("");
 	conf->compiler_check = x_strdup("mtime");
@@ -176,6 +177,7 @@ conf_free(struct conf *conf)
 	}
 	free(conf->base_dir);
 	free(conf->cache_dir);
+    	free(conf->cache_dir_l0);
 	free(conf->compiler);
 	free(conf->compiler_check);
 	free(conf->cpp_extension);
@@ -392,6 +394,7 @@ conf_print_items(struct conf *conf,
 	bool ok = true;
 	ok &= print_item(conf, "base_dir", printer, context);
 	ok &= print_item(conf, "cache_dir", printer, context);
+	ok &= print_item(conf, "cache_dir_l0", printer, context);
 	ok &= print_item(conf, "cache_dir_levels", printer, context);
 	ok &= print_item(conf, "compiler", printer, context);
 	ok &= print_item(conf, "compiler_check", printer, context);

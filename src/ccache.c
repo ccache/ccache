@@ -170,6 +170,10 @@ static char *cached_dwo;
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
 static char *manifest_path;
+static char *manifest_pathL0 = NULL;
+
+// If object is found in the cache_dir_l0, it is set to true
+static bool retrieving_from_cache_dir_l0 = false;
 
 // Time of compilation. Used to see if include files have changed after
 // compilation.
@@ -581,9 +585,9 @@ get_current_working_dir(void)
 // Transform a name to a full path into the cache directory, creating needed
 // sublevels if needed. Caller frees.
 static char *
-get_path_in_cache(const char *name, const char *suffix)
+get_path_in_cache(const char *name, const char *suffix, const char * cache_dir)
 {
-	char *path = x_strdup(conf->cache_dir);
+	char *path = x_strdup(cache_dir);
 	for (unsigned i = 0; i < conf->cache_dir_levels; ++i) {
 		char *p = format("%s/%c", path, name[i]);
 		free(path);
@@ -1353,17 +1357,20 @@ update_manifest_file(void)
 static void
 update_cached_result_globals(struct file_hash *hash)
 {
+    	const char *cache_path = retrieving_from_cache_dir_l0 ? conf->cache_dir_l0 : conf->cache_dir;
+    	assert(!str_eq(cache_path, ""));
+
 	char *object_name = format_hash_as_string(hash->hash, hash->size);
 	cached_obj_hash = hash;
-	cached_obj = get_path_in_cache(object_name, ".o");
-	cached_stderr = get_path_in_cache(object_name, ".stderr");
-	cached_dep = get_path_in_cache(object_name, ".d");
-	cached_cov = get_path_in_cache(object_name, ".gcno");
-	cached_su = get_path_in_cache(object_name, ".su");
-	cached_dia = get_path_in_cache(object_name, ".dia");
-	cached_dwo = get_path_in_cache(object_name, ".dwo");
+	cached_obj = get_path_in_cache(object_name, ".o", cache_path);
+	cached_stderr = get_path_in_cache(object_name, ".stderr", cache_path);
+	cached_dep = get_path_in_cache(object_name, ".d", cache_path);
+	cached_cov = get_path_in_cache(object_name, ".gcno", cache_path);
+	cached_su = get_path_in_cache(object_name, ".su", cache_path);
+	cached_dia = get_path_in_cache(object_name, ".dia", cache_path);
+	cached_dwo = get_path_in_cache(object_name, ".dwo", cache_path);
 
-	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
+	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]); // never update stats of L0 cache
 	free(object_name);
 }
 
@@ -2177,17 +2184,34 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		}
 
 		char *manifest_name = hash_result(hash);
-		manifest_path = get_path_in_cache(manifest_name, ".manifest");
-		free(manifest_name);
 
-		cc_log("Looking for object file hash in %s", manifest_path);
-		object_hash = manifest_get(conf, manifest_path);
-		if (object_hash) {
-			cc_log("Got object file hash from manifest");
-			update_mtime(manifest_path);
-		} else {
-			cc_log("Did not find object file hash in manifest");
+		// Try to do the lookup in L0 cache first in depend mode
+		if (!str_eq(conf->cache_dir_l0, "") && conf->depend_mode) {
+		    manifest_pathL0 = get_path_in_cache(manifest_name, ".manifest", conf->cache_dir_l0);
+		    cc_log("Looking for object file hash in L0 %s", manifest_pathL0);
+		    object_hash = manifest_get(conf, manifest_pathL0);
+		    if (object_hash) {
+		        cc_log("Got object file hash from manifest from L0");
+		        retrieving_from_cache_dir_l0 = true;
+		    } else {
+		        cc_log("Did not find object file hash in manifest in L0");
+		    }
 		}
+
+		// Set up manifest path for cache_dir in case retrieving fails from cache_dir_l0
+		manifest_path = get_path_in_cache(manifest_name, ".manifest", conf->cache_dir);
+		if (!retrieving_from_cache_dir_l0) {
+		    cc_log("Looking for object file hash in L1 %s", manifest_path);
+		    object_hash = manifest_get(conf, manifest_path);
+		    if (object_hash) {
+		        cc_log("Got object file hash from manifest from L1");
+		        update_mtime(manifest_path);
+		    } else {
+		        cc_log("Did not find object file hash in manifest in L1");
+		    }
+		}
+
+		free(manifest_name);
 	} else {
 		if (arch_args_size == 0) {
 			object_hash = get_object_name_from_cpp(args, hash);
@@ -2248,7 +2272,9 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
-		x_unlink(cached_obj);
+		if (!retrieving_from_cache_dir_l0) {
+		    x_unlink(cached_obj);
+		}
 		return;
 	}
 
@@ -2279,24 +2305,25 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// Update modification timestamps to save files from LRU cleanup. Also gives
 	// files a sensible mtime when hard-linking.
-	update_mtime(cached_obj);
-	update_mtime(cached_stderr);
-	if (produce_dep_file) {
-		update_mtime(cached_dep);
+	if (!retrieving_from_cache_dir_l0) {
+        update_mtime(cached_obj);
+        update_mtime(cached_stderr);
+        if (produce_dep_file) {
+            update_mtime(cached_dep);
+        }
+        if (generating_coverage) {
+            update_mtime(cached_cov);
+        }
+        if (generating_stackusage) {
+            update_mtime(cached_su);
+        }
+        if (generating_diagnostics) {
+            update_mtime(cached_dia);
+        }
+        if (cached_dwo) {
+            update_mtime(cached_dwo);
+        }
 	}
-	if (generating_coverage) {
-		update_mtime(cached_cov);
-	}
-	if (generating_stackusage) {
-		update_mtime(cached_su);
-	}
-	if (generating_diagnostics) {
-		update_mtime(cached_dia);
-	}
-	if (cached_dwo) {
-		update_mtime(cached_dwo);
-	}
-
 	send_cached_stderr();
 
 	if (put_object_in_manifest) {
@@ -3623,6 +3650,8 @@ cc_reset(void)
 	free(cached_dia); cached_dia = NULL;
 	free(cached_dwo); cached_dwo = NULL;
 	free(manifest_path); manifest_path = NULL;
+	free(manifest_pathL0); manifest_pathL0 = NULL;
+	retrieving_from_cache_dir_l0 = false;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
 		free(ignore_headers[i]);
@@ -3786,8 +3815,15 @@ ccache(int argc, char *argv[])
 			// If we can return from cache at this point then do so.
 			from_cache(FROMCACHE_DIRECT_MODE, 0);
 
+			// Did not retrieve from cache_dir_l0, so set paths back to cache_dir so 
+			// that results are saved there
+			if (retrieving_from_cache_dir_l0) {
+			    retrieving_from_cache_dir_l0 = false;
+			    update_cached_result_globals(object_hash);
+			}
+
 			// Wasn't able to return from cache at this point. However, the object
-			// was already found in manifest, so don't readd it later.
+			// was already found in manifest, so don't read it later.
 			put_object_in_manifest = false;
 
 			object_hash_from_manifest = object_hash;

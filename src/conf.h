@@ -6,6 +6,7 @@
 struct conf {
 	char *base_dir;
 	char *cache_dir;
+	char *cache_dir_l0;
 	unsigned cache_dir_levels;
 	char *compiler;
 	char *compiler_check;

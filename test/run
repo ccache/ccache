@@ -394,6 +394,7 @@ hardlink
 direct
 direct_gcc
 depend
+l0_cache
 basedir
 compression
 readonly

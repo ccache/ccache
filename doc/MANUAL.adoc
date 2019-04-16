@@ -279,6 +279,20 @@ IN DIFFERENT DIRECTORIES>>.
     It will only take effect if set in the system-wide configuration file or as
     an environment variable. The default is *$HOME/.ccache*.
 
+*cache_dir_l0* (*CCACHE_DIR_L0*)::
+
+    Level 0 cache directory is only used in the depend mode. If set, ccache 
+    performs its first lookup from this directory. If it fails, it does a second 
+    lookup in *cache_dir* and continues as usual. 
+
+    Useful for two having level cache. Example use: 
+
+    L0 is filled from some central compile server having only compiled code that 
+    resides in the main repository, while *cache_dir* is used to cache local changes
+    made by individual developer or those not in the main repository.
+    It is treated as read only - nothing is ever written by ccache to this 
+    directory, not even statistics, which are instead updated in the *cache_dir*.
+
 *cache_dir_levels* (*CCACHE_NLEVELS*)::
 
     This setting allows you to choose the number of directory levels in the

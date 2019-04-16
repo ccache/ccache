@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 34
+#define N_CONFIG_ITEMS 35
 static struct {
 	char *descr;
 	char *origin;
@@ -52,6 +52,7 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->base_dir);
 	CHECK_STR_EQ_FREE1(format("%s/.ccache", get_home_directory()),
 	                   conf->cache_dir);
+	CHECK_STR_EQ("", conf->cache_dir_l0);
 	CHECK_INT_EQ(2, conf->cache_dir_levels);
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
@@ -454,6 +455,7 @@ TEST(conf_print_items)
 	struct conf conf = {
 		"bd",
 		"cd",
+		"cdl0",
 		7,
 		"c",
 		"cc",
@@ -506,6 +508,7 @@ TEST(conf_print_items)
 	CHECK_INT_EQ(N_CONFIG_ITEMS, n_received_conf_items);
 	CHECK_STR_EQ("base_dir = bd", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir = cd", received_conf_items[n++].descr);
+	CHECK_STR_EQ("cache_dir_l0 = cdl0", received_conf_items[n++].descr);
 	CHECK_STR_EQ("cache_dir_levels = 7", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compiler = c", received_conf_items[n++].descr);
 	CHECK_STR_EQ("compiler_check = cc", received_conf_items[n++].descr);
