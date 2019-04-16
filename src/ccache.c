@@ -2543,6 +2543,7 @@ cc_process_args(struct args *args,
                 struct args **compiler_args)
 {
 	bool found_c_opt = false;
+	bool found_dc_opt = false;
 	bool found_S_opt = false;
 	bool found_pch = false;
 	bool found_fpch_preprocess = false;
@@ -2751,6 +2752,12 @@ cc_process_args(struct args *args,
 		// We must have -c.
 		if (str_eq(argv[i], "-c")) {
 			found_c_opt = true;
+			continue;
+		}
+
+		// when using nvcc with separable compilation, -dc implies -c
+		if ((str_eq(argv[i], "-dc") || str_eq(argv[i], "--device-c")) && guessed_compiler == GUESSED_NVCC) {
+			found_dc_opt = true;
 			continue;
 		}
 
@@ -3270,7 +3277,7 @@ cc_process_args(struct args *args,
 			if (language_for_file(argv[i])) {
 				cc_log("Multiple input files: %s and %s", input_file, argv[i]);
 				stats_update(STATS_MULTIPLE);
-			} else if (!found_c_opt) {
+			} else if (!found_c_opt && !found_dc_opt) {
 				cc_log("Called for link with %s", argv[i]);
 				if (strstr(argv[i], "conftest.")) {
 					stats_update(STATS_CONFTEST);
@@ -3411,7 +3418,7 @@ cc_process_args(struct args *args,
 		goto out;
 	}
 
-	if (!found_c_opt && !found_S_opt) {
+	if (!found_c_opt && !found_dc_opt && !found_S_opt) {
 		if (output_is_precompiled_header) {
 			args_add(common_args, "-c");
 		} else {
@@ -3613,6 +3620,10 @@ cc_process_args(struct args *args,
 
 	if (found_c_opt) {
 		args_add(*compiler_args, "-c");
+	}
+
+	if (found_dc_opt) {
+		args_add(*compiler_args, "-dc");
 	}
 
 	for (size_t i = 0; i < arch_args_size; ++i) {
