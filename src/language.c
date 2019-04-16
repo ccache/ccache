@@ -86,6 +86,7 @@ static const struct {
 	{"objc++-cpp-output",        "objective-c++-cpp-output"},
 	{"objective-c++-header",     "objective-c++-cpp-output"},
 	{"objective-c++-cpp-output", "objective-c++-cpp-output"},
+	{"cu"  ,                     "cuda-output"},
 	{"cuda",                     "cuda-output"},
 	{"assembler-with-cpp",       "assembler"},
 	{"assembler",                "assembler"},
