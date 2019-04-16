@@ -21,9 +21,6 @@ Changes
 - ccache now knows how to contruct the object filename if no `-o` option is
   given and the source filename does not include a `.` or ends with a `.`.
 
-- Fixed a bug in the depend mode where the last couple of include files in the
-  `.d` file was not taken into account.
-
 - Fixed a temporary file leak when the depend mode is enabled and the compiler
   produces standard error output.
 
