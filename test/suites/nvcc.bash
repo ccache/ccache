@@ -53,7 +53,7 @@ nvcc_tests() {
     # instead of comparing the binary object files, we compare the dumps of
     # "cuobjdump -all -elf -symbols -ptx -sass test1.o".
     nvcc_opts_cpp="-Wno-deprecated-gpu-targets -c --x c++"
-    nvcc_opts_cuda="-Wno-deprecated-gpu-targets -c"
+    nvcc_opts_cuda="-Wno-deprecated-gpu-targets -c -x cu"
     nvcc_opts_gpu1="--generate-code arch=compute_50,code=compute_50"
     nvcc_opts_gpu2="--generate-code arch=compute_52,code=sm_52"
     ccache_nvcc_cpp="$CCACHE $REAL_NVCC $nvcc_opts_cpp"
@@ -127,6 +127,26 @@ nvcc_tests() {
     expect_stat 'files in cache' 3
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_files reference_test3.dump test1.dump
+    
+    # -------------------------------------------------------------------------
+    TEST "Option -dc"
+    
+    $REAL_NVCC $nvcc_opts_cuda -dc -o reference_test4.o test_cuda.cu
+    $cuobjdump reference_test4.o > reference_test4.dump
+
+    $ccache_nvcc_cuda -dc -o test_cuda.o test_cuda.cu
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    $cuobjdump test_cuda.o > test4.dump
+    expect_equal_files test4.dump reference_test4.dump
+
+    $ccache_nvcc_cuda -dc -o test_cuda.o test_cuda.cu
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    $cuobjdump test_cuda.o > test4.dump
+    expect_equal_files test4.dump reference_test4.dump
 
     # -------------------------------------------------------------------------
     TEST "Different defines"
