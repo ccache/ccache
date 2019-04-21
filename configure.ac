@@ -21,6 +21,7 @@ esac
 
 AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
+AC_SUBST(extra_sources)
 AC_SUBST(include_dev_mk)
 AC_SUBST(more_warnings)
 AC_SUBST(no_implicit_fallthrough_warning)
@@ -165,6 +166,14 @@ AC_ARG_ENABLE(man,
     [disable installing man pages])])
 if test x${enable_man} = xno; then
     disable_man='#'
+fi
+
+AC_ARG_ENABLE(tracing,
+  [AS_HELP_STRING([--enable-tracing],
+    [enable possibility to use internal ccache tracing])])
+if test x${enable_tracing} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DMTR_ENABLED"
+    extra_sources="src/minitrace.c"
 fi
 
 dnl Linking on Windows needs ws2_32

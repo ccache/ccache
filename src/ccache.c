@@ -1340,6 +1340,7 @@ update_manifest_file(void)
 	if (stat(manifest_path, &st) == 0) {
 		old_size = file_size(&st);
 	}
+	MTR_BEGIN("manifest", "manifest_put");
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
@@ -1348,6 +1349,7 @@ update_manifest_file(void)
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
 	}
+	MTR_END("manifest", "manifest_put");
 }
 
 static void
@@ -1397,6 +1399,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	cc_log("Running real compiler");
+	MTR_BEGIN("execute", "compiler");
 	char *tmp_stdout;
 	int tmp_stdout_fd;
 	char *tmp_stderr;
@@ -1429,6 +1432,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_free(depend_mode_args);
 	}
+	MTR_END("execute", "compiler");
 
 	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
@@ -1548,6 +1552,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		tmp_unlink(tmp_stderr);
 	}
 
+	MTR_BEGIN("file", "file_put");
+
 	copy_file_to_cache(output_obj, cached_obj);
 	if (generating_dependencies) {
 		copy_file_to_cache(output_dep, cached_dep);
@@ -1564,6 +1570,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	if (using_split_dwarf) {
 		copy_file_to_cache(output_dwo, cached_dwo);
 	}
+
+	MTR_END("file", "file_put");
 
 	stats_update(STATS_TOCACHE);
 
@@ -1644,7 +1652,9 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		args_add(args, input_file);
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
+		MTR_BEGIN("execute", "preprocessor");
 		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
+		MTR_END("execute", "preprocessor");
 		args_pop(args, args_added);
 	}
 
@@ -2181,7 +2191,9 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		free(manifest_name);
 
 		cc_log("Looking for object file hash in %s", manifest_path);
+		MTR_BEGIN("manifest", "manifest_get");
 		object_hash = manifest_get(conf, manifest_path);
+		MTR_END("manifest", "manifest_get");
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
 			update_mtime(manifest_path);
@@ -2252,9 +2264,13 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
+	MTR_BEGIN("cache", "from_cache");
+
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
 		generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
+
+	MTR_BEGIN("file", "file_get");
 
 	// Get result from cache.
 	if (!str_eq(output_obj, "/dev/null")) {
@@ -2277,6 +2293,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_diagnostics) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
+
+	MTR_END("file", "file_get");
 
 	// Update modification timestamps to save files from LRU cleanup. Also gives
 	// files a sensible mtime when hard-linking.
@@ -2316,6 +2334,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		stats_update(STATS_CACHEHIT_CPP);
 		break;
 	}
+
+	MTR_END("cache", "from_cache");
 
 	// And exit with the right status code.
 	x_exit(0);
@@ -3517,13 +3537,84 @@ create_initial_config_file(const char *path)
 	fclose(f);
 }
 
+#ifdef MTR_ENABLED
+static void *trace_id;
+static const char *trace_file;
+#endif
+
+#ifdef MTR_ENABLED
+static void trace_init(const char *json)
+{
+	trace_file = json;
+	mtr_init(json);
+	char *s = format("%f", time_seconds());
+	MTR_INSTANT_C("", "", "time", s);
+}
+
+static void trace_start(const char *json)
+{
+	trace_file = json;
+	cc_log("Starting tracing: %s", json);
+	MTR_META_PROCESS_NAME(MYNAME);
+	trace_id = (void *) ((long) getpid());
+	MTR_START("program", "ccache", trace_id);
+}
+
+static void trace_stop(void *context)
+{
+	const char *json = (const char *) context;
+	if (str_eq(json, "")) {
+		json = format("%s%s", output_obj, ".ccache-trace");
+	}
+	cc_log("Stopping tracing: %s", json);
+	MTR_FINISH("program", "ccache", trace_id);
+	mtr_flush();
+	mtr_shutdown();
+	if (!str_eq(trace_file, json)) {
+		move_file(trace_file, json, 0);
+	}
+}
+
+static const char *
+tmpdir()
+{
+#ifndef _WIN32
+	const char *tmpdir = getenv("TMPDIR");
+	if (tmpdir != NULL) {
+		return tmpdir;
+	}
+#else
+	static char dirbuf[PATH_MAX];
+	DWORD retval = GetTempPath(PATH_MAX, dirbuf);
+	if (retval > 0 && retval < PATH_MAX) {
+		return dirbuf;
+	}
+#endif
+	return "/tmp";
+}
+#endif
+
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
 initialize(void)
 {
+	char *tracefile = getenv("CCACHE_INTERNAL_TRACE");
+	if (tracefile != NULL) {
+#ifdef MTR_ENABLED
+		// We don't have any conf yet, so we can't use temp_dir() here
+		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
+
+		trace_init(tracefile);
+#else
+		cc_log("Error: tracing is not enabled!");
+#endif
+	}
+
 	conf_free(conf);
+	MTR_BEGIN("config", "conf_create");
 	conf = conf_create();
+	MTR_END("config", "conf_create");
 
 	char *errmsg;
 	char *p = getenv("CCACHE_CONFIGPATH");
@@ -3531,6 +3622,7 @@ initialize(void)
 		primary_config_path = x_strdup(p);
 	} else {
 		secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+		MTR_BEGIN("config", "conf_read_secondary");
 		if (!conf_read(conf, secondary_config_path, &errmsg)) {
 			if (errno == 0) {
 				// We could read the file but it contained errors.
@@ -3539,6 +3631,7 @@ initialize(void)
 			// A missing config file in SYSCONFDIR is OK.
 			free(errmsg);
 		}
+		MTR_END("config", "conf_read_secondary");
 
 		if (str_eq(conf->cache_dir, "")) {
 			fatal("configuration setting \"cache_dir\" must not be the empty string");
@@ -3555,6 +3648,7 @@ initialize(void)
 	}
 
 	bool should_create_initial_config = false;
+	MTR_BEGIN("config", "conf_read_primary");
 	if (!conf_read(conf, primary_config_path, &errmsg)) {
 		if (errno == 0) {
 			// We could read the file but it contained errors.
@@ -3564,10 +3658,13 @@ initialize(void)
 			should_create_initial_config = true;
 		}
 	}
+	MTR_END("config", "conf_read_primary");
 
+	MTR_BEGIN("config", "conf_update_from_environment");
 	if (!conf_update_from_environment(conf, &errmsg)) {
 		fatal("%s", errmsg);
 	}
+	MTR_END("config", "conf_update_from_environment");
 
 	if (should_create_initial_config) {
 		create_initial_config_file(primary_config_path);
@@ -3583,6 +3680,13 @@ initialize(void)
 	if (conf->umask != UINT_MAX) {
 		umask(conf->umask);
 	}
+
+#ifdef MTR_ENABLED
+	if (tracefile != NULL) {
+		trace_start(tracefile);
+		exitfn_add(trace_stop, tracefile);
+	}
+#endif
 }
 
 // Reset the global state. Used by the test suite.
@@ -3694,11 +3798,15 @@ ccache(int argc, char *argv[])
 	orig_args = args_init(argc, argv);
 
 	initialize();
+	MTR_BEGIN("main", "find_compiler");
 	find_compiler(argv);
+	MTR_END("main", "find_compiler");
 
+	MTR_BEGIN("main", "clean_up_internal_tempdir");
 	if (str_eq(conf->temporary_dir, "")) {
 		clean_up_internal_tempdir();
 	}
+	MTR_END("main", "clean_up_internal_tempdir");
 
 	if (!str_eq(conf->log_file, "") || conf->debug) {
 		conf_print_items(conf, configuration_logger, NULL);
@@ -3709,7 +3817,9 @@ ccache(int argc, char *argv[])
 		failed();
 	}
 
+	MTR_BEGIN("main", "set_up_uncached_err");
 	set_up_uncached_err();
+	MTR_END("main", "set_up_uncached_err");
 
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
@@ -3717,15 +3827,19 @@ ccache(int argc, char *argv[])
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
+	MTR_BEGIN("main", "guess_compiler");
 	guessed_compiler = guess_compiler(orig_args->argv[0]);
+	MTR_END("main", "guess_compiler");
 
 	// Arguments (except -E) to send to the preprocessor.
 	struct args *preprocessor_args;
 	// Arguments to send to the real compiler.
 	struct args *compiler_args;
+	MTR_BEGIN("main", "process_args");
 	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
 		failed();
 	}
+	MTR_END("main", "process_args");
 
 	if (conf->depend_mode
 	    && (!generating_dependencies || !conf->run_second_cpp || conf->unify)) {
@@ -3751,6 +3865,7 @@ ccache(int argc, char *argv[])
 	}
 
 	cc_log("Object file: %s", output_obj);
+	MTR_META_THREAD_NAME(output_obj);
 
 	// Need to dump log buffer as the last exit function to not lose any logs.
 	exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
@@ -3771,7 +3886,9 @@ ccache(int argc, char *argv[])
 	struct hash *common_hash = hash_init();
 	init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
 
+	MTR_BEGIN("hash", "common_hash");
 	calculate_common_hash(preprocessor_args, common_hash);
+	MTR_END("hash", "common_hash");
 
 	// Try to find the hash using the manifest.
 	struct hash *direct_hash = hash_copy(common_hash);
@@ -3783,7 +3900,9 @@ ccache(int argc, char *argv[])
 	struct file_hash *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
+		MTR_BEGIN("hash", "direct_hash");
 		object_hash = calculate_object_hash(preprocessor_args, direct_hash, 1);
+		MTR_END("hash", "direct_hash");
 		if (object_hash) {
 			update_cached_result_globals(object_hash);
 
@@ -3813,7 +3932,9 @@ ccache(int argc, char *argv[])
 		init_hash_debug(
 			cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
+		MTR_BEGIN("hash", "cpp_hash");
 		object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
+		MTR_END("hash", "cpp_hash");
 		if (!object_hash) {
 			fatal("internal error: object hash from cpp returned NULL");
 		}
@@ -3856,7 +3977,9 @@ ccache(int argc, char *argv[])
 	struct hash *depend_mode_hash = conf->depend_mode ? direct_hash : NULL;
 
 	// Run real compiler, sending output to cache.
+	MTR_BEGIN("cache", "to_cache");
 	to_cache(compiler_args, depend_mode_hash);
+	MTR_END("cache", "to_cache");
 
 	x_exit(0);
 }
