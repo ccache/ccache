@@ -67,6 +67,10 @@ Changes
 - Work around a problem with Automake related to `.d` files when using the hard
   link mode.
 
+- Added opt-in (at configure time) support for enabling trace logs for
+  profiling ccache itself. See `doc/DEVELOPER.md` in the code tree for more
+  information
+
 
 ccache 3.6
 ----------
