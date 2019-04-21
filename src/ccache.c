@@ -3538,32 +3538,25 @@ create_initial_config_file(const char *path)
 
 #ifdef MTR_ENABLED
 static void *trace_id;
-#endif
 static const char *trace_file;
+#endif
 
+#ifdef MTR_ENABLED
 static void trace_init(const char *json)
 {
-#ifdef MTR_ENABLED
 	trace_file = json;
 	mtr_init(json);
 	char *s = format("%f", time_seconds());
 	MTR_INSTANT_C("", "", "time", s);
-#else
-	(void) json;
-#endif
 }
 
 static void trace_start(const char *json)
 {
 	trace_file = json;
 	cc_log("Starting tracing: %s", json);
-#ifdef MTR_ENABLED
 	MTR_META_PROCESS_NAME(MYNAME);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
-#else
-	cc_log("Error: tracing is not enabled!");
-#endif
 }
 
 static void trace_stop(void *context)
@@ -3573,13 +3566,9 @@ static void trace_stop(void *context)
 		json = format("%s%s", output_obj, ".ccache-trace");
 	}
 	cc_log("Stopping tracing: %s", json);
-#ifdef MTR_ENABLED
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
-#else
-	cc_log("Error: tracing is not enabled!");
-#endif
 	if (!str_eq(trace_file, json)) {
 		move_file(trace_file, json, 0);
 	}
@@ -3602,6 +3591,7 @@ tmpdir()
 #endif
 	return "/tmp";
 }
+#endif
 
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
@@ -3610,9 +3600,14 @@ initialize(void)
 {
 	char *tracefile = getenv("CCACHE_INTERNAL_TRACE");
 	if (tracefile != NULL) {
+#ifdef MTR_ENABLED
 		// We don't have any conf yet, so we can't use temp_dir() here
 		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
+
 		trace_init(tracefile);
+#else
+		cc_log("Error: tracing is not enabled!");
+#endif
 	}
 
 	conf_free(conf);
@@ -3685,10 +3680,12 @@ initialize(void)
 		umask(conf->umask);
 	}
 
+#ifdef MTR_ENABLED
 	if (tracefile != NULL) {
 		trace_start(tracefile);
 		exitfn_add(trace_stop, tracefile);
 	}
+#endif
 }
 
 // Reset the global state. Used by the test suite.
