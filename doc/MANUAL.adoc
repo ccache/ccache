@@ -1252,7 +1252,7 @@ Tracing
 In order to see what ccache is doing, it is possible to enable microsecond tracing.
 This needs to be done when compiling ccache, using the `--enable-tracing` feature.
 
-By setting *CCACHE_TRACEFILE*, one can obtain a JSON trace of an individual compile.
+By setting *CCACHE_INTERNAL_TRACE*, one can obtain a trace of an individual compile.
 This trace can then be loaded into the `chrome://tracing` page of Chromium/Chrome.
 
 The current event categories are: config, main, hash, manifest, cache, file, execute
@@ -1263,7 +1263,7 @@ With a unique file per compile, there is a script to combine them all into one t
 
 This will offset each invididual trace by starting time, to make one combined trace.
 
-If you set the variable to "", the trace output will be put next to the object file:
+If you set the variable, the trace JSON output will be put next to the object file:
 
 e.g. `output.o.ccache-trace`
 

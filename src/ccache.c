@@ -3608,13 +3608,10 @@ tmpdir()
 static void
 initialize(void)
 {
-	char *tracefile = getenv("CCACHE_TRACEFILE");
-	char *tracepath = tracefile;
+	char *tracefile = getenv("CCACHE_INTERNAL_TRACE");
 	if (tracefile != NULL) {
-		if (str_eq(tracefile, "")) {
-			// We don't have any conf yet, so we can't use temp_dir() here
-			tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
-		}
+		// We don't have any conf yet, so we can't use temp_dir() here
+		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
 		trace_init(tracefile);
 	}
 
@@ -3690,7 +3687,7 @@ initialize(void)
 
 	if (tracefile != NULL) {
 		trace_start(tracefile);
-		exitfn_add(trace_stop, tracepath);
+		exitfn_add(trace_stop, tracefile);
 	}
 }
 
