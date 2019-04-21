@@ -448,7 +448,7 @@ src/minitrace.[hc]
 ~~~~~~~~~~~~~~~~~~
 
 A library for producing JSON traces suitable for Chrome's built-in trace viewer
-(chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>
+(chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>.
 
 -------------------------------------------------------------------------------
 The MIT License (MIT)

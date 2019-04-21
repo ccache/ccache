@@ -3540,10 +3540,9 @@ create_initial_config_file(const char *path)
 #ifdef MTR_ENABLED
 static void *trace_id;
 static const char *trace_file;
-#endif
 
-#ifdef MTR_ENABLED
-static void trace_init(const char *json)
+static void
+trace_init(const char *json)
 {
 	trace_file = json;
 	mtr_init(json);
@@ -3551,7 +3550,8 @@ static void trace_init(const char *json)
 	MTR_INSTANT_C("", "", "time", s);
 }
 
-static void trace_start(const char *json)
+static void
+trace_start(const char *json)
 {
 	trace_file = json;
 	cc_log("Starting tracing: %s", json);
@@ -3560,7 +3560,8 @@ static void trace_start(const char *json)
 	MTR_START("program", "ccache", trace_id);
 }
 
-static void trace_stop(void *context)
+static void
+trace_stop(void *context)
 {
 	const char *json = (const char *) context;
 	if (str_eq(json, "")) {
@@ -3592,7 +3593,8 @@ tmpdir()
 #endif
 	return "/tmp";
 }
-#endif
+
+#endif // MTR_ENABLED
 
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
@@ -3602,7 +3604,7 @@ initialize(void)
 	char *tracefile = getenv("CCACHE_INTERNAL_TRACE");
 	if (tracefile != NULL) {
 #ifdef MTR_ENABLED
-		// We don't have any conf yet, so we can't use temp_dir() here
+		// We don't have any conf yet, so we can't use temp_dir() here.
 		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
 
 		trace_init(tracefile);
