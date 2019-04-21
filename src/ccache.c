@@ -60,25 +60,34 @@ static const char USAGE_TEXT[] =
 	"    " MYNAME " compiler [compiler options]\n"
 	"    compiler [compiler options]          (via symbolic link)\n"
 	"\n"
-	"Options:\n"
-	"    -c, --cleanup         delete old files and recalculate size counters\n"
-	"                          (normally not needed as this is done automatically)\n"
-	"    -C, --clear           clear the cache completely (except configuration)\n"
-	"    -F, --max-files=N     set maximum number of files in cache to N (use 0 for\n"
-	"                          no limit)\n"
-	"    -k, --get-config=K    get the value of the configuration key K\n"
-	"    -M, --max-size=SIZE   set maximum size of cache to SIZE (use 0 for no\n"
-	"                          limit); available suffixes: k, M, G, T (decimal) and\n"
-	"                          Ki, Mi, Gi, Ti (binary); default suffix: G\n"
-	"    -o, --set-config=K=V  set configuration key K to value V\n"
-	"    -p, --print-config    print current configuration options\n"
-	"    -s, --show-stats      show statistics summary\n"
-	"    -z, --zero-stats      zero statistics counters\n"
+	"Common options:\n"
+	"    -c, --cleanup             delete old files and recalculate size counters\n"
+	"                              (normally not needed as this is done\n"
+	"                              automatically)\n"
+	"    -C, --clear               clear the cache completely (except configuration)\n"
+	"    -F, --max-files=N         set maximum number of files in cache to N (use 0\n"
+	"                              for no limit)\n"
+	"    -M, --max-size=SIZE       set maximum size of cache to SIZE (use 0 for no\n"
+	"                              limit); available suffixes: k, M, G, T (decimal)\n"
+	"                              and Ki, Mi, Gi, Ti (binary); default suffix: G\n"
+	"    -p, --show-config         show current configuration options in\n"
+	"                              human-readable format\n"
+	"    -s, --show-stats          show summary of configuration and statistics\n"
+	"                              counters in human-readable format\n"
+	"    -z, --zero-stats          zero statistics counters\n"
 	"\n"
-	"    -h, --help            print this help text\n"
-	"    -V, --version         print version and copyright information\n"
+	"    -h, --help                print this help text\n"
+	"    -V, --version             print version and copyright information\n"
 	"\n"
-	"See also <https://ccache.samba.org>.\n";
+	"Options for scripting or debugging:\n"
+	"        --dump-manifest=PATH  dump manifest file at PATH in text format\n"
+	"    -k, --get-config=K        print the value of configuration key K\n"
+	"        --hash-file=PATH      print the hash (<MD4>-<size>) of the file at PATH\n"
+	"        --print-stats         print statistics counter IDs and corresponding\n"
+	"                              values in machine-parsable format\n"
+	"    -o, --set-config=K=V      set configuration item K to value V\n"
+	"\n"
+	"See also <https://ccache.dev>.\n";
 
 // Global configuration data.
 struct conf *conf = NULL;
@@ -181,6 +190,9 @@ static size_t ignore_headers_len;
 
 // Is the compiler being asked to output debug info?
 static bool generating_debuginfo;
+
+// Is the compiler being asked to output debug info on level 3?
+static bool generating_debuginfo_level_3;
 
 // Is the compiler being asked to output dependencies?
 static bool generating_dependencies;
@@ -733,7 +745,9 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 
 		if (depend_mode_hash) {
 			hash_delimiter(depend_mode_hash, "include");
-			hash_buffer(depend_mode_hash, h->hash, sizeof(h->hash));
+			char *result = format_hash_as_string(h->hash, h->size);
+			hash_string(depend_mode_hash, result);
+			free(result);
 		}
 	}
 
@@ -1135,7 +1149,11 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 			if (str_endswith(token, ":") || str_eq(token, "\\")) {
 				continue;
 			}
-			remember_include_file(x_strdup(token), hash, false, hash);
+			if (!has_absolute_include_headers) {
+				has_absolute_include_headers = is_absolute_path(token);
+			}
+			char *path = make_relative_path(x_strdup(token));
+			remember_include_file(path, hash, false, hash);
 		}
 	}
 
@@ -1232,12 +1250,12 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 	do_copy_or_move_file_to_cache(source, dest, false);
 }
 
-// Copy or link a file from the cache.
+// Helper method for get_file_from_cache and copy_file_from_cache.
 static void
-get_file_from_cache(const char *source, const char *dest)
+do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
 	int ret;
-	bool do_link = conf->hard_link && !file_is_compressed(source);
+	bool do_link = !copy && conf->hard_link && !file_is_compressed(source);
 	if (do_link) {
 		x_unlink(dest);
 		ret = link(source, dest);
@@ -1274,6 +1292,27 @@ get_file_from_cache(const char *source, const char *dest)
 	cc_log("Created from cache: %s -> %s", source, dest);
 }
 
+// Copy or link a file from the cache.
+//
+// source must be a path in the cache (see get_path_in_cache). dest does not
+// have to be on the same file system as source.
+//
+// An attempt will be made to hard link source to dest if conf->hard_link is
+// true and conf->compression is false, otherwise copy. dest will be compressed
+// if conf->compression is true.
+static void
+get_file_from_cache(const char *source, const char *dest)
+{
+	do_copy_or_link_file_from_cache(source, dest, false);
+}
+
+// Copy a file from the cache.
+static void
+copy_file_from_cache(const char *source, const char *dest)
+{
+	do_copy_or_link_file_from_cache(source, dest, true);
+}
+
 // Send cached stderr, if any, to stderr.
 static void
 send_cached_stderr(void)
@@ -1304,7 +1343,6 @@ update_manifest_file(void)
 	MTR_BEGIN("manifest", "manifest_put");
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
-		update_mtime(manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
 		}
@@ -1472,10 +1510,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		failed();
 	}
 
-	if (generating_dependencies) {
-		use_relative_paths_in_depfile(output_dep);
-	}
-
 	if (conf->depend_mode) {
 		struct file_hash *object_hash =
 			object_hash_from_depfile(output_dep, depend_mode_hash);
@@ -1483,10 +1517,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			failed();
 		}
 		update_cached_result_globals(object_hash);
+	}
 
-		// It does not make sense to update an existing manifest file in the depend
-		// mode.
-		x_unlink(manifest_path);
+	if (generating_dependencies) {
+		use_relative_paths_in_depfile(output_dep);
 	}
 
 	if (stat(output_obj, &st) != 0) {
@@ -1510,12 +1544,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		} else {
 			copy_file_to_cache(tmp_stderr, cached_stderr);
 		}
-	} else {
+	} else if (conf->recache) {
+		// If recaching, we need to remove any previous .stderr.
+		x_unlink(cached_stderr);
+	}
+	if (st.st_size == 0 || conf->depend_mode) {
 		tmp_unlink(tmp_stderr);
-		if (conf->recache) {
-			// If recaching, we need to remove any previous .stderr.
-			x_unlink(cached_stderr);
-		}
 	}
 
 	MTR_BEGIN("file", "file_put");
@@ -1847,6 +1881,15 @@ calculate_common_hash(struct args *args, struct hash *hash)
 		}
 	}
 
+	if (using_split_dwarf) {
+		// When using -gsplit-dwarf, object files include a link to the
+		// corresponding .dwo file based on the target object filename, so we need
+		// to include the target filename in the hash to avoid handing out an
+		// object file with an incorrect .dwo link.
+		hash_delimiter(hash, "filename");
+		hash_string(hash, basename(output_obj));
+	}
+
 	// Possibly hash the coverage data file path.
 	if (generating_coverage && profile_arcs) {
 		char *dir = dirname(output_obj);
@@ -1943,15 +1986,22 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		}
 
 		// The -fdebug-prefix-map option may be used in combination with
-		// CCACHE_BASEDIR to reuse results across different directories. Skip it
-		// from hashing.
+		// CCACHE_BASEDIR to reuse results across different directories. Skip using
+		// the value of the option from hashing but still hash the existence of the
+		// option.
 		if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-fdebug-prefix-map=");
 			continue;
 		}
 		if (str_startswith(args->argv[i], "-ffile-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-ffile-prefix-map=");
 			continue;
 		}
 		if (str_startswith(args->argv[i], "-fmacro-prefix-map=")) {
+			hash_delimiter(hash, "arg");
+			hash_string(hash, "-fmacro-prefix-map=");
 			continue;
 		}
 
@@ -2135,15 +2185,18 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			conf->direct_mode = false;
 			return NULL;
 		}
+
 		char *manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		free(manifest_name);
+
 		cc_log("Looking for object file hash in %s", manifest_path);
 		MTR_BEGIN("manifest", "manifest_get");
 		object_hash = manifest_get(conf, manifest_path);
 		MTR_END("manifest", "manifest_get");
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
+			update_mtime(manifest_path);
 		} else {
 			cc_log("Did not find object file hash in manifest");
 		}
@@ -2227,7 +2280,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		}
 	}
 	if (produce_dep_file) {
-		get_file_from_cache(cached_dep, output_dep);
+		// Make a copy rather than a link, for move
+		copy_file_from_cache(cached_dep, output_dep);
 	}
 	if (generating_coverage) {
 		get_file_from_cache(cached_cov, output_cov);
@@ -2624,12 +2678,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			continue;
 		}
 
-		if (str_eq(argv[i], "-gsplit-dwarf")) {
-			cc_log("Enabling caching of dwarf files since -gsplit-dwarf is used");
-			using_split_dwarf = true;
-			args_add(stripped_args, argv[i]);
-			continue;
-		}
 		if (str_startswith(argv[i], "-fdebug-prefix-map=")
 		    || str_startswith(argv[i], "-ffile-prefix-map=")) {
 			debug_prefix_maps = x_realloc(
@@ -2644,15 +2692,22 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
 		if (str_startswith(argv[i], "-g")) {
-			generating_debuginfo = true;
 			args_add(stripped_args, argv[i]);
-			if (conf->unify && !str_eq(argv[i], "-g0")) {
-				cc_log("%s used; disabling unify mode", argv[i]);
-				conf->unify = false;
-			}
-			if (str_eq(argv[i], "-g3")) {
-				cc_log("%s used; not compiling preprocessed code", argv[i]);
-				conf->run_second_cpp = true;
+
+			char last_char = argv[i][strlen(argv[i]) - 1];
+			if (last_char == '0') {
+				// "-g0", "-ggdb0" or similar: All debug information disabled.
+				// "-gsplit-dwarf" is still in effect if given previously, though.
+				generating_debuginfo = false;
+				generating_debuginfo_level_3 = false;
+			} else {
+				generating_debuginfo = true;
+				if (last_char == '3') {
+					generating_debuginfo_level_3 = true;
+				}
+				if (str_eq(argv[i], "-gsplit-dwarf")) {
+					using_split_dwarf = true;
+				}
 			}
 			continue;
 		}
@@ -3058,8 +3113,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// If an argument isn't a plain file then assume its an option, not an
 		// input file. This allows us to cope better with unusual compiler options.
+		//
+		// Note that "/dev/null" is an exception that is sometimes used as an input
+		// file when code is testing compiler flags.
 		struct stat st;
-		if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
+		if (!str_eq(argv[i], "/dev/null")
+		    && (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode))) {
 			cc_log("%s is not a regular file, not considering as input file",
 			       argv[i]);
 			args_add(stripped_args, argv[i]);
@@ -3102,6 +3161,16 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			input_file = make_relative_path(x_strdup(argv[i]));
 		}
 	} // for
+
+	if (generating_debuginfo && conf->unify) {
+		cc_log("Generating debug info; disabling unify mode");
+		conf->unify = false;
+	}
+
+	if (generating_debuginfo_level_3 && !conf->run_second_cpp) {
+		cc_log("Generating debug info level 3; not compiling preprocessed code");
+		conf->run_second_cpp = true;
+	}
 
 	// See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
 	// Contrary to what the documentation seems to imply the compiler still
@@ -3261,16 +3330,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (output_is_precompiled_header) {
 			output_obj = format("%s.gch", input_file);
 		} else {
+			char extension = found_S_opt ? 's' : 'o';
 			output_obj = basename(input_file);
 			char *p = strrchr(output_obj, '.');
-			if (!p || !p[1]) {
-				cc_log("Badly formed object filename");
-				stats_update(STATS_ARGS);
-				result = false;
-				goto out;
+			if (!p) {
+				reformat(&output_obj, "%s.%c", output_obj, extension);
+			} else if (!p[1]) {
+				reformat(&output_obj, "%s%c", output_obj, extension);
+			} else {
+				p[1] = extension;
+				p[2] = 0;
 			}
-			p[1] = found_S_opt ? 's' : 'o';
-			p[2] = 0;
 		}
 	}
 
@@ -3294,10 +3364,20 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	    && stat(output_obj, &st) == 0
 	    && !S_ISREG(st.st_mode)) {
 		cc_log("Not a regular file: %s", output_obj);
-		stats_update(STATS_DEVICE);
+		stats_update(STATS_BADOUTPUTFILE);
 		result = false;
 		goto out;
 	}
+
+	char *output_dir = dirname(output_obj);
+	if (stat(output_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+		cc_log("Directory does not exist: %s", output_dir);
+		stats_update(STATS_BADOUTPUTFILE);
+		result = false;
+		free(output_dir);
+		goto out;
+	}
+	free(output_dir);
 
 	// Some options shouldn't be passed to the real compiler when it compiles
 	// preprocessed code:
@@ -3665,6 +3745,7 @@ cc_reset(void)
 	}
 	has_absolute_include_headers = false;
 	generating_debuginfo = false;
+	generating_debuginfo_level_3 = false;
 	generating_dependencies = false;
 	generating_coverage = false;
 	generating_stackusage = false;
@@ -3918,7 +3999,8 @@ ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
 		DUMP_MANIFEST,
-		HASH_FILE
+		HASH_FILE,
+		PRINT_STATS,
 	};
 	static const struct option options[] = {
 		{"cleanup",       no_argument,       0, 'c'},
@@ -3929,8 +4011,9 @@ ccache_main_options(int argc, char *argv[])
 		{"help",          no_argument,       0, 'h'},
 		{"max-files",     required_argument, 0, 'F'},
 		{"max-size",      required_argument, 0, 'M'},
-		{"print-config",  no_argument,       0, 'p'},
+		{"print-stats",   no_argument,       0, PRINT_STATS},
 		{"set-config",    required_argument, 0, 'o'},
+		{"show-config",   no_argument,       0, 'p'},
 		{"show-stats",    no_argument,       0, 's'},
 		{"version",       no_argument,       0, 'V'},
 		{"zero-stats",    no_argument,       0, 'z'},
@@ -3960,6 +4043,11 @@ ccache_main_options(int argc, char *argv[])
 			hash_free(hash);
 			break;
 		}
+
+		case PRINT_STATS:
+			initialize();
+			stats_print();
+			break;
 
 		case 'c': // --cleanup
 			initialize();
@@ -4045,7 +4133,7 @@ ccache_main_options(int argc, char *argv[])
 		}
 		break;
 
-		case 'p': // --print-config
+		case 'p': // --show-config
 			initialize();
 			conf_print_items(conf, configuration_printer, stdout);
 			break;

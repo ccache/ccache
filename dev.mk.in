@@ -13,7 +13,7 @@ COMPILEDB = compiledb
 CLANG_TIDY = clang-tidy
 SCAN_BUILD = scan-build
 DOCKER = docker
-GPERF = gperf
+GPERF = @GPERF@
 TEST = test
 
 version := \
@@ -245,6 +245,6 @@ docker: buildenv/$(BUILDENV)/Dockerfile
 travis: .travis/Dockerfile
 	$(DOCKER) inspect travis-build >/dev/null || $(DOCKER) build -t travis-build .travis
 	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec --env ASAN_OPTIONS='$(ASAN_OPTIONS)' travis-build \
-	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' /src/configure $(HOST) && make && make $(TEST)"
+	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' /src/configure $(HOST) && make V=$(V) && make V=$(V) $(TEST)"
 
 -include .deps/*.d

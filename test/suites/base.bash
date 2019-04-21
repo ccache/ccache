@@ -125,18 +125,94 @@ base_tests() {
     expect_stat 'compiler produced stdout' 1
 
     # -------------------------------------------------------------------------
-    TEST "Output to a non-regular file"
+    TEST "Output to directory"
 
     mkdir testd
     $CCACHE_COMPILE -o testd -c test1.c >/dev/null 2>&1
     rmdir testd >/dev/null 2>&1
-    expect_stat 'output to a non-regular file' 1
+    expect_stat 'could not write to output file' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Output to file in nonexistent directory"
+
+    mkdir out
+
+    $CCACHE_COMPILE -c test1.c -o out/foo.o
+    expect_stat 'could not write to output file' ""
+    expect_stat 'cache miss' 1
+
+    rm -rf out
+
+    $CCACHE_COMPILE -c test1.c -o out/foo.o 2>/dev/null
+    expect_stat 'could not write to output file' 1
+    expect_stat 'cache miss' 1
+    expect_file_missing out/foo.o
 
     # -------------------------------------------------------------------------
     TEST "No input file"
 
     $CCACHE_COMPILE -c -O2 2>/dev/null
     expect_stat 'no input file' 1
+
+    # -------------------------------------------------------------------------
+    TEST "No file extension"
+
+    mkdir src
+    touch src/foo
+
+    $CCACHE_COMPILE -x c -c src/foo
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    $CCACHE_COMPILE -x c -c src/foo
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    rm -rf src
+
+    # -------------------------------------------------------------------------
+    TEST "Source file ending with dot"
+
+    mkdir src
+    touch src/foo.
+
+    $CCACHE_COMPILE -x c -c src/foo.
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    $CCACHE_COMPILE -x c -c src/foo.
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.o
+    rm foo.o
+
+    rm -rf src
+
+    # -------------------------------------------------------------------------
+    TEST "Multiple file extensions"
+
+    mkdir src
+    touch src/foo.c.c
+
+    $CCACHE_COMPILE -c src/foo.c.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.c.o
+    rm foo.c.o
+
+    $CCACHE_COMPILE -c src/foo.c.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_file_exists foo.c.o
+    rm foo.c.o
+
+    rm -rf src
 
     # -------------------------------------------------------------------------
     TEST "LANG"
@@ -271,6 +347,26 @@ base_tests() {
 
     cd ../dir2
     $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Directory is not hashed if using -g -g0"
+
+    mkdir dir1 dir2
+    cp test1.c dir1
+    cp test1.c dir2
+
+    cd dir1
+    $CCACHE_COMPILE -c test1.c -g -g0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    $CCACHE_COMPILE -c test1.c -g -g0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    cd ../dir2
+    $CCACHE_COMPILE -c test1.c -g -g0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
 
@@ -485,6 +581,17 @@ b"
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported source language' 1
+
+    # -------------------------------------------------------------------------
+    TEST "-x c -c /dev/null"
+
+    $CCACHE_COMPILE -x c -c /dev/null -o null.o 2>/dev/null
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -x c -c /dev/null -o null.o 2>/dev/null
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
     TEST "-D not hashed"

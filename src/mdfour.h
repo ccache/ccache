@@ -7,9 +7,8 @@
 struct mdfour {
 	uint32_t A, B, C, D;
 	size_t totalN;
-	unsigned char tail[64];
 	size_t tail_len;
-	int finalized;
+	unsigned char tail[64];
 };
 
 void mdfour_begin(struct mdfour *md);

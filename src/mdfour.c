@@ -1,5 +1,5 @@
 // Copyright (C) 1997-1998 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -129,7 +129,6 @@ mdfour_begin(struct mdfour *md)
 	md->D = 0x10325476;
 	md->totalN = 0;
 	md->tail_len = 0;
-	md->finalized = 0;
 }
 
 static
@@ -160,13 +159,7 @@ void mdfour_tail(struct mdfour *md, const unsigned char *in, size_t n)
 void
 mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 {
-	if (!in) {
-		if (!md->finalized) {
-			mdfour_tail(md, md->tail, md->tail_len);
-			md->finalized = 1;
-		}
-		return;
-	}
+	assert(in);
 
 	uint32_t M[16];
 	if (md->tail_len) {
@@ -203,8 +196,18 @@ mdfour_update(struct mdfour *md, const unsigned char *in, size_t n)
 void
 mdfour_result(struct mdfour *md, unsigned char *out)
 {
-	copy4(out, md->A);
-	copy4(out+4, md->B);
-	copy4(out+8, md->C);
-	copy4(out+12, md->D);
+	struct mdfour result;
+	result.A = md->A;
+	result.B = md->B;
+	result.C = md->C;
+	result.D = md->D;
+	result.totalN = md->totalN;
+	result.tail_len = md->tail_len;
+	memcpy(result.tail, md->tail, result.tail_len);
+
+	mdfour_tail(&result, result.tail, result.tail_len);
+	copy4(out, result.A);
+	copy4(out+4, result.B);
+	copy4(out+8, result.C);
+	copy4(out+12, result.D);
 }

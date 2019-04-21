@@ -213,6 +213,10 @@ if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; th
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
+    AC_CHECK_TOOL(GPERF, gperf)
+    if test -z "$GPERF"; then
+        AC_MSG_ERROR(please install gperf)
+    fi
 else
     AC_MSG_NOTICE(developer mode disabled)
 fi

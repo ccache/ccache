@@ -19,6 +19,12 @@
 #include "envtoconfitems.h"
 #include "ccache.h"
 
+enum handle_conf_result {
+	HANDLE_CONF_OK,
+	HANDLE_CONF_UNKNOWN,
+	HANDLE_CONF_FAIL
+};
+
 static const struct conf_item *
 find_conf(const char *name)
 {
@@ -31,15 +37,14 @@ find_env_to_conf(const char *name)
 	return envtoconfitems_get(name, strlen(name));
 }
 
-static bool
+static enum handle_conf_result
 handle_conf_setting(struct conf *conf, const char *key, const char *value,
                     char **errmsg, bool from_env_variable, bool negate_boolean,
                     const char *origin)
 {
 	const struct conf_item *item = find_conf(key);
 	if (!item) {
-		*errmsg = format("unknown configuration option \"%s\"", key);
-		return false;
+		return HANDLE_CONF_UNKNOWN;
 	}
 
 	if (from_env_variable && item->parser == confitem_parse_bool) {
@@ -61,15 +66,15 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 	}
 
 	if (!item->parser(value, (char *)conf + item->offset, errmsg)) {
-		return false;
+		return HANDLE_CONF_FAIL;
 	}
 	if (item->verifier && !item->verifier((char *)conf + item->offset, errmsg)) {
-		return false;
+		return HANDLE_CONF_FAIL;
 	}
 
 out:
 	conf->item_origins[item->number] = origin;
-	return true;
+	return HANDLE_CONF_OK;
 }
 
 static bool
@@ -210,9 +215,12 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		char *key;
 		char *value;
 		char *errmsg2;
+		enum handle_conf_result hcr = HANDLE_CONF_OK;
 		bool ok = parse_line(buf, &key, &value, &errmsg2);
 		if (ok && key) { // key == NULL if comment or blank line.
-			ok = handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
+			hcr =
+				handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
+			ok = hcr != HANDLE_CONF_FAIL; // unknown is OK
 		}
 		free(key);
 		free(value);
@@ -266,10 +274,10 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 		}
 
 		char *errmsg2;
-		bool ok = handle_conf_setting(
+		enum handle_conf_result hcr = handle_conf_setting(
 			conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
 			"environment");
-		if (!ok) {
+		if (hcr != HANDLE_CONF_OK) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
 			free(key);

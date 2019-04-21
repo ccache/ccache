@@ -55,7 +55,7 @@ enum stats {
 	STATS_OBSOLETE_MAXFILES = 13,
 	STATS_OBSOLETE_MAXSIZE = 14,
 	STATS_SOURCELANG = 15,
-	STATS_DEVICE = 16,
+	STATS_BADOUTPUTFILE = 16,
 	STATS_NOINPUT = 17,
 	STATS_MULTIPLE = 18,
 	STATS_CONFTEST = 19,
@@ -220,6 +220,7 @@ void stats_flush(void);
 unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(void);
+void stats_print(void);
 void stats_update_size(int64_t size, int files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);

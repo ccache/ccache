@@ -115,15 +115,30 @@ compiler options apply and you should refer to the compiler's documentation.
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`--dump-manifest`*=_PATH_::
+
+    Dump manifest file at PATH in text format. This is only useful when
+    debugging ccache and its behavior.
+
+*`-k, --get-config`*=_KEY_::
+
+    Print the value of configuration option _KEY_. See
+    <<_configuration,CONFIGURATION>> for more information.
+
+*`--hash-file`*=_PATH_::
+
+    Print the hash (in format `<MD4>-<size>`) of the file at PATH. This is only
+    useful when debugging ccache and its behavior.
+
+*`-h, --help`*::
+
+    Print an options summary page.
+
 *`-F, --max-files`*=_N_::
 
     Set the maximum number of files allowed in the cache. Use 0 for no limit.
     The value is stored in a configuration file in the cache directory and
     applies to all future compilations.
-
-*`-h, --help`*::
-
-    Print an options summary page.
 
 *`-M, --max-size`*=_SIZE_::
 
@@ -133,19 +148,26 @@ compiler options apply and you should refer to the compiler's documentation.
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
+*`--print-stats`*::
+
+    Print statistics counter IDs and corresponding values machine-parsable
+    (tab-separated) format.
+
 *`-o, --set-config`*=_KEY=VALUE_::
 
-    Set configuration _KEY_ to _VALUE_. See <<_configuration,CONFIGURATION>>
-    for more information.
+    Set configuration option _KEY_ to _VALUE_. See
+    <<_configuration,CONFIGURATION>> for more information.
 
-*`-p, --print-config`*::
+*`-p, --show-config`*::
 
     Print current configuration options and from where they originate
-    (environment variable, configuration file or compile-time default).
+    (environment variable, configuration file or compile-time default) in
+    human-readable format.
 
 *`-s, --show-stats`*::
 
-    Print the current statistics summary for the cache.
+    Print a summary of configuration and statistics counters in human-readable
+    format.
 
 *`-V, --version`*::
 
@@ -1142,9 +1164,10 @@ General
 ~~~~~~~
 
 A general tip for getting information about what ccache is doing is to enable
-debug logging by setting *log_file*. The log contains executed commands,
-important decisions that ccache makes, read and written files, etc. Another way
-of keeping track of what is happening is to check the output of *ccache -s*.
+debug logging by setting the configuration option *debug* (or the environment
+variable *CCACHE_DEBUG*); see <<_cache_debugging,debugging>> for more
+information. Another way of keeping track of what is happening is to check the
+output of *ccache -s*.
 
 
 Performance
@@ -1278,7 +1301,7 @@ More information
 ----------------
 
 Credits, mailing list information, bug reporting instructions, source code,
-etc, can be found on ccache's web site: <https://ccache.samba.org>.
+etc, can be found on ccache's web site: <https://ccache.dev>.
 
 
 Author
@@ -1286,4 +1309,4 @@ Author
 
 ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl. See AUTHORS.txt or AUTHORS.html and
-<https://ccache.samba.org/credits.html> for a list of contributors.
+<https://ccache.dev/credits.html> for a list of contributors.

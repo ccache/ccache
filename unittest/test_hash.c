@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -54,6 +54,16 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 		CHECK_STR_EQ_FREE2("e33b4ddc9c38f2199c3e7b164fcc0536-80", hash_result(h));
 		hash_free(h);
 	}
+}
+
+TEST(hash_result_should_not_alter_state)
+{
+	struct hash *h = hash_init();
+	hash_string(h, "message");
+	free(hash_result(h));
+	hash_string(h, " digest");
+	CHECK_STR_EQ_FREE2("d9130a8164549fe818874806e1c7014b-14", hash_result(h));
+	hash_free(h);
 }
 
 TEST(hash_result_should_be_idempotent)

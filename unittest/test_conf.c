@@ -203,15 +203,12 @@ TEST(conf_read_with_missing_equal_sign)
 	conf_free(conf);
 }
 
-TEST(conf_read_with_bad_config_key)
+TEST(conf_read_with_unknown_config_key)
 {
 	struct conf *conf = conf_create();
 	char *errmsg;
 	create_file("ccache.conf", "# Comment\nfoo = bar");
-	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_INT_EQ(errno, 0);
-	CHECK_STR_EQ_FREE2("ccache.conf:2: unknown configuration option \"foo\"",
-	                   errmsg);
+	CHECK(conf_read(conf, "ccache.conf", &errmsg));
 	conf_free(conf);
 }
 
@@ -390,6 +387,21 @@ TEST(conf_set_existing_value)
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
 	CHECK_STR_EQ_FREE2("path = vanilla\nstats = chocolate\n", data);
+}
+
+TEST(conf_set_unknown_option)
+{
+	char *errmsg;
+	char *data;
+
+	create_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+	CHECKM(!conf_set_value_in_file("ccache.conf", "foo", "bar", &errmsg),
+	       errmsg);
+	CHECK_STR_EQ_FREE2("unknown configuration option \"foo\"", errmsg);
+
+	data = read_text_file("ccache.conf", 0);
+	CHECK(data);
+	CHECK_STR_EQ_FREE2("path = chocolate\nstats = chocolate\n", data);
 }
 
 TEST(conf_print_existing_value)

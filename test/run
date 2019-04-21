@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2018 Joel Rosdahl
+# Copyright (C) 2009-2019 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -152,7 +152,7 @@ expect_different_files() {
     fi
 }
 
-expect_equal_object_files() {
+is_equal_object_files() {
     if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
         if ! which eu-elfcmp >/dev/null 2>&1; then
             test_failed "Please install elfutils to get eu-elfcmp"
@@ -166,6 +166,10 @@ expect_equal_object_files() {
     else
         cmp -s "$1" "$2"
     fi
+}
+
+expect_equal_object_files() {
+    is_equal_object_files "$1" "$2"
     if [ $? -ne 0 ]; then
         test_failed "Objects differ: $1 != $2"
     fi
@@ -190,6 +194,15 @@ expect_file_count() {
     local actual=`find $dir -type f -name "$pattern" | wc -l`
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $pattern files in $dir"
+    fi
+}
+
+# Verify that $1 is newer than (or same age as) $2.
+expect_file_newer_than() {
+    local newer_file=$1
+    local older_file=$2
+    if [ "$newer_file" -ot "$older_file" ]; then
+        test_failed "$newer_file is older than $older_file"
     fi
 }
 
@@ -375,6 +388,7 @@ multi_arch
 serialize_diagnostics
 sanitize_blacklist
 debug_prefix_map
+split_dwarf
 masquerading
 hardlink
 direct

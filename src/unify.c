@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -117,7 +117,6 @@ pushchar(struct hash *hash, unsigned char c)
 			}
 			len = 0;
 		}
-		hash_buffer(hash, NULL, 0);
 		return;
 	}
 
