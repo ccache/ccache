@@ -3688,6 +3688,9 @@ ccache(int argc, char *argv[])
 	set_up_signal_handlers();
 #endif
 
+	// Needed for portability when using localtime_r.
+	tzset();
+
 	orig_args = args_init(argc, argv);
 
 	initialize();

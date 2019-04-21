@@ -94,15 +94,15 @@ log_prefix(bool log_updated_time)
 #ifdef HAVE_GETTIMEOFDAY
 	if (log_updated_time) {
 		char timestamp[100];
-		struct tm *tm;
+		struct tm tm;
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 #ifdef __MINGW64_VERSION_MAJOR
-		tm = localtime((time_t *)&tv.tv_sec);
+		localtime_r((time_t *)&tv.tv_sec, &tm);
 #else
-		tm = localtime(&tv.tv_sec);
+		localtime_r(&tv.tv_sec, &tm);
 #endif
-		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", tm);
+		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
 		snprintf(prefix, sizeof(prefix),
 		         "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
 	}
@@ -1222,6 +1222,17 @@ gnu_getcwd(void)
 		size *= 2;
 	}
 }
+
+#ifndef HAVE_LOCALTIME_R
+// localtime_r replacement.
+struct tm *
+localtime_r(const time_t *timep, struct tm *result)
+{
+	struct tm *tm = localtime(timep);
+	*result = *tm;
+	return result;
+}
+#endif
 
 #ifndef HAVE_STRTOK_R
 // strtok_r replacement.

@@ -107,12 +107,13 @@ hash_source_code_string(
 		// Make sure that the hash sum changes if the (potential) expansion of
 		// __DATE__ changes.
 		time_t t = time(NULL);
-		struct tm *now = localtime(&t);
+		struct tm now;
+		localtime_r(&t, &now);
 		cc_log("Found __DATE__ in %s", path);
 		hash_delimiter(hash, "date");
-		hash_int(hash, now->tm_year);
-		hash_int(hash, now->tm_mon);
-		hash_int(hash, now->tm_mday);
+		hash_int(hash, now.tm_year);
+		hash_int(hash, now.tm_mon);
+		hash_int(hash, now.tm_mday);
 	}
 	if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 		// We don't know for sure that the program actually uses the __TIME__

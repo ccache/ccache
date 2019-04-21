@@ -300,9 +300,10 @@ static char *
 format_timestamp(uint64_t timestamp)
 {
 	if (timestamp > 0) {
-		struct tm *tm = localtime((time_t *)&timestamp);
+		struct tm tm;
+		localtime_r((time_t *)&timestamp, &tm);
 		char buffer[100];
-		strftime(buffer, sizeof(buffer), "%c", tm);
+		strftime(buffer, sizeof(buffer), "%c", &tm);
 		return format("    %s", buffer);
 	} else {
 		return NULL;
@@ -533,9 +534,10 @@ stats_summary(void)
 	printf("secondary config      (readonly)    %s\n",
 	       secondary_config_path ? secondary_config_path : "");
 	if (last_updated > 0) {
-		struct tm *tm = localtime(&last_updated);
+		struct tm tm;
+		localtime_r(&last_updated, &tm);
 		char timestamp[100];
-		strftime(timestamp, sizeof(timestamp), "%c", tm);
+		strftime(timestamp, sizeof(timestamp), "%c", &tm);
 		printf("stats updated                       %s\n", timestamp);
 	}
 
