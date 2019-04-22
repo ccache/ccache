@@ -41,7 +41,7 @@ some idea of ccache speedup and overhead in the preprocessor and direct modes.
 The arguments to the program should be the compiler, optionally followed by
 compiler options, and finally the source file to compile. The compiler options
 must not contain -c or -o as these options will be added later. Example:
-./perf.py gcc -g -O2 -Idir file.c
+misc/performance gcc -g -O2 -Idir file.c
 """
 
 DEFAULT_CCACHE = "./ccache"

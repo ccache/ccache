@@ -136,9 +136,9 @@ src/zlib/libz.a: $(zlib_objs)
 	$(if $(quiet),@echo "  RANLIB   $@")
 	$(Q)$(RANLIB) $@
 
-.PHONY: perf
-perf: ccache$(EXEEXT)
-	$(srcdir)/perf/perf.py --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/src/ccache.c
+.PHONY: performance
+performance: ccache$(EXEEXT)
+	$(srcdir)/misc/performance --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/src/ccache.c
 
 .PHONY: test
 test: ccache$(EXEEXT) unittest/run$(EXEEXT)
