@@ -3554,7 +3554,6 @@ static void
 trace_start(const char *json)
 {
 	trace_file = json;
-	cc_log("Starting tracing: %s", json);
 	MTR_META_PROCESS_NAME(MYNAME);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
@@ -3565,7 +3564,6 @@ trace_stop(void *context)
 {
 	(void) context;
 	const char *json = format("%s%s", output_obj, ".ccache-trace");
-	cc_log("Stopping tracing: %s", json);
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
@@ -3604,8 +3602,6 @@ initialize(void)
 		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
 
 		trace_init(tracefile);
-#else
-		cc_log("Error: tracing is not enabled!");
 #endif
 	}
 
@@ -3679,12 +3675,14 @@ initialize(void)
 		umask(conf->umask);
 	}
 
-#ifdef MTR_ENABLED
 	if (tracefile != NULL) {
+#ifdef MTR_ENABLED
 		trace_start(tracefile);
 		exitfn_add(trace_stop, NULL);
-	}
+#else
+		cc_log("Error: tracing is not enabled!");
 #endif
+	}
 }
 
 // Reset the global state. Used by the test suite.
