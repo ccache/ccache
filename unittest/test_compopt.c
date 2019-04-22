@@ -125,4 +125,14 @@ TEST(dash_iframework_prefix_affects_cpp)
 	CHECK(compopt_prefix_affects_cpp("-iframework"));
 }
 
+TEST(dash_analyze_too_hard)
+{
+	CHECK(compopt_too_hard("-analyze"));
+}
+
+TEST(dash_dash_analyze_too_hard)
+{
+	CHECK(compopt_too_hard("--analyze"));
+}
+
 TEST_SUITE_END

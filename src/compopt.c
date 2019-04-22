@@ -30,6 +30,7 @@ struct compopt {
 };
 
 static const struct compopt compopts[] = {
+	{"--analyze",       TOO_HARD}, // clang
 	{"--compiler-bindir", AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"--output-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
@@ -59,6 +60,7 @@ static const struct compopt compopts[] = {
 	{"-Xclang",         TAKES_ARG},
 	{"-Xlinker",        TAKES_ARG},
 	{"-Xpreprocessor",  AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
+	{"-analyze",        TOO_HARD}, // clang
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
