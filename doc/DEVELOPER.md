@@ -5,31 +5,29 @@ Tracing
 -------
 
 In order to see what ccache is doing, it is possible to enable microsecond
-tracing. This needs to be done when compiling ccache using the
-`--enable-tracing` configure option.
+tracing:
 
-By setting `CCACHE_INTERNAL_TRACE` one can obtain a trace of an individual
-compile. This trace can then be loaded into the `chrome://tracing` page of
-Chromium/Chrome.
+* Build ccache with the `--enable-tracing` configure option.
+* Set the environment variable `CCACHE_INTERNAL_TRACE` to instruct ccache to
+  create trace files at runtime.
 
-The current event categories are config, main, hash, manifest, cache, file,
-execute.
+There will be one trace file per ccache invocation, named as the object file
+with a `.ccache-trace` suffix, e.g. `file.o.ccache-trace`. The trace file can
+then be loaded into the `chrome://tracing` page of Chromium/Chrome.
 
-There is a script to combine trace logs from multiple compilations into one:
+You can combine several trace files into by using the `misc/combine-trace-files`
+script:
 
-    misc/combine_events.py file_1.json ... file_n.json | gzip > ccache.trace.gz
+    misc/combine-trace-files *.o.ccache-trace | gzip > ccache.trace.gz
 
-This will offset each invididual trace by starting time to make one combined
-trace.
+(The gzip step is optional; Chrome supports both plain trace files and gzipped
+trace files.) The script will offset each invididual trace by its start time in
+the combined file.
 
-When you set the `CCACHE_INTERNAL_TRACE` variable, the trace JSON output will
-be put next to the object file, e.g. as `output.o.ccache-trace`. This is done
-by first generating a temporary file until the output name is known.
+There is also a script called `summarize-trace-files` that generates a summary
+(per job slot) of all the ccache runs:
 
-There is also another script to generate a summary (per job slot) of all the
-ccache runs:
+    misc/combine-trace-files *.o.ccache-trace | misc/summarize-trace-files 4 > ccache.trace
 
-    misc/combine_events.py *.ccache-trace | misc/summarize_events.py 1 > ccache.trace
-
-You will need to give the number of job slots used (`make -j`) as input to the
-script.
+The script takes the number of job slots you used when building (e.g. `4` for
+`make -j4`) as the first argument.
