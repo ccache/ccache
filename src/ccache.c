@@ -3563,17 +3563,13 @@ trace_start(const char *json)
 static void
 trace_stop(void *context)
 {
-	const char *json = (const char *) context;
-	if (str_eq(json, "")) {
-		json = format("%s%s", output_obj, ".ccache-trace");
-	}
+	(void) context;
+	const char *json = format("%s%s", output_obj, ".ccache-trace");
 	cc_log("Stopping tracing: %s", json);
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
-	if (!str_eq(trace_file, json)) {
-		move_file(trace_file, json, 0);
-	}
+	move_file(trace_file, json, 0);
 }
 
 static const char *
@@ -3686,7 +3682,7 @@ initialize(void)
 #ifdef MTR_ENABLED
 	if (tracefile != NULL) {
 		trace_start(tracefile);
-		exitfn_add(trace_stop, tracefile);
+		exitfn_add(trace_stop, NULL);
 	}
 #endif
 }
