@@ -3551,18 +3551,17 @@ trace_init(const char *json)
 }
 
 static void
-trace_start(const char *json)
+trace_start(const char *tracefile)
 {
-	trace_file = json;
+	trace_file = tracefile;
 	MTR_META_PROCESS_NAME(MYNAME);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
 }
 
 static void
-trace_stop(void *context)
+trace_stop(void)
 {
-	(void) context;
 	const char *json = format("%s%s", output_obj, ".ccache-trace");
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
@@ -3678,7 +3677,7 @@ initialize(void)
 	if (tracefile != NULL) {
 #ifdef MTR_ENABLED
 		trace_start(tracefile);
-		exitfn_add(trace_stop, NULL);
+		exitfn_add_nullary(trace_stop);
 #else
 		cc_log("Error: tracing is not enabled!");
 #endif
