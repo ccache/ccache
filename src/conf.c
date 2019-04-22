@@ -273,7 +273,7 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 			continue;
 		}
 
-		char *errmsg2;
+		char *errmsg2 = NULL;
 		enum handle_conf_result hcr = handle_conf_setting(
 			conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
 			"environment");

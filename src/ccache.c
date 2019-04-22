@@ -3871,8 +3871,7 @@ ccache(int argc, char *argv[])
 		debug_text_file = fopen(path, "w");
 		if (debug_text_file) {
 			exitfn_add(fclose_exitfn, debug_text_file);
-		}
-		else {
+		} else {
 			cc_log("Failed to open %s: %s", path, strerror(errno));
 		}
 		free(path);
