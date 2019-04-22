@@ -45,6 +45,7 @@ non_3pp_sources = \
     src/lockfile.c \
     src/manifest.c \
     src/mdfour.c \
+    src/result.c \
     src/stats.c \
     src/unify.c \
     src/util.c
