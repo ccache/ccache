@@ -71,6 +71,10 @@ Changes
   profiling ccache itself. See `doc/DEVELOPER.md` in the code tree for more
   information
 
+- Removed support for Fortran 77 again. Some Fortran support was added in
+  ccache 3.3, but the implementation did not work when Fortran modules are
+  involved.
+
 
 ccache 3.6
 ----------
