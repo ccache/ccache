@@ -232,7 +232,7 @@ void mtr_flush() {
 #endif
 	int i = 0;
 	char linebuf[1024];
-	char arg_buf[256];
+	char arg_buf[1024];
 	char id_buf[256];
 	// We have to lock while flushing. So we really should avoid flushing as much as possible.
 
