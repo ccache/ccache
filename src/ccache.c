@@ -1562,9 +1562,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		// If recaching, we need to remove any previous .stderr.
 		x_unlink(cached_stderr);
 	}
-	if (st.st_size == 0 || conf->depend_mode) {
-		tmp_unlink(tmp_stderr);
-	}
 
 	MTR_BEGIN("file", "file_put");
 
@@ -1588,6 +1585,9 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	MTR_END("file", "file_put");
 
 	stats_update(STATS_TOCACHE);
+	if (st.st_size == 0 || conf->depend_mode) {
+		tmp_unlink(tmp_stderr);
+	}
 
 	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
 	// be done almost anywhere, but we might as well do it near the end as we
