@@ -197,7 +197,7 @@ doc/ccache.1: doc/MANUAL.xml
 
 .PHONY: update-authors
 update-authors:
-	git log --pretty=format:"* %aN <%aE>" \
+	git log --pretty=format:"* %aN" \
 	  | sort -u \
 	  | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.adoc
 

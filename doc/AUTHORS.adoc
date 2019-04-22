@@ -6,95 +6,95 @@ maintained by Joel Rosdahl.
 
 ccache is a collective work with contributions from many people, including:
 
-* Alexey Tourbin <alexey.tourbin@gmail.com>
-* Alfred Landrum <alfred.landrum@riverbed.com>
-* Anders F Björklund <anders.f.bjorklund@gmail.com>
-* Andrea Bittau <a.bittau@cs.ucl.ac.uk>
-* Andreas Huber <andreas.huber@deltaww.com>
-* André Klitzing <aklitzing@gmail.com>
-* Andrew P Boie <andrew.p.boie@intel.com>
-* Andrew Stubbs <ams@codesourcery.com>
-* Andrew Tridgell <tridge@samba.org>
-* Bernhard Bauer <bauerb@chromium.org>
-* Björn Jacke <bj@sernet.de>
-* Chiaki Ishikawa <ishikawa@yk.rim.or.jp>
-* Chris AtLee <catlee@mozilla.com>
-* Clemens Rabe <clemens.rabe@gmail.com>
-* David Givone <david@givone.net>
-* Edward Z. Yang <ezyang@fb.com>
-* Francois Marier <francois@debian.org>
-* Gabriel Scherer <gabriel.scherer@gmail.com>
-* Geert Bosch <geert@mongodb.com>
-* Geert Kloosterman <geert.kloosterman@brightcomputing.com>
-* Grigory Entin <grigorye@dins.ru>
-* Havard Graff <havard.graff@gmail.com>
-* Hongli Lai <hongli@phusion.nl>
-* Ivan Vaigult <i.vaigult@gmail.com>
-* Jiang Jiang <jiangj@opera.com>
-* Joel Galenson <jgalenson@gmail.com>
-* Joel Rosdahl <joel@rosdahl.net>
-* John Basila <jbasila@checkpoint.com>
-* John Coiner <john.coiner@amd.com>
-* Jon Bernard <jbernard@tuxion.com>
-* Jonny Yu <yingshen.yu@gmail.com>
-* Jørgen P. Tjernø <jorgen@valvesoftware.com>
-* Josh Soref <jsoref@users.noreply.github.com>
-* Justin Lebar <justin.lebar@gmail.com>
-* Karl Chen <quarl@cs.berkeley.edu>
-* Kona Blend <kona8lend@gmail.com>
-* Kovarththanan Rajaratnam <kovarththanan.rajaratnam@gmail.com>
-* Lalit Chhabra <lchhabra@linuxmail.org>
-* Lars Gustäbel <lars@gustaebel.de>
-* Leanid Chaika <leanid.chaika@gmail.com>
-* Luboš Luňák <l.lunak@centrum.cz>
-* Maarten Maathuis <madman2003@shikahr.net>
-* Mark Starovoytov <starovoytov.mark@googlemail.com>
-* Martin Ettl <ettl.martin78@gmail.com>
-* Martin Pool <mbp@sourcefrog.net>
-* Mathias De Maré <mathias.de_mare@nokia.com>
-* Matthias Kretz <kretz@kde.org>
-* Melven Roehrig-Zoellner <Melven.Roehrig-Zoellner@DLR.de>
-* Michael Marineau <michael.marineau@coreos.com>
-* Michael Meeks <michael.meeks@suse.com>
-* Michał Mirosław <mirq-linux@rere.qmqm.pl>
-* Mihai Serban <mihai.serban@intel.com>
-* Mike Frysinger <vapier@gentoo.org>
-* Mike Gulick <mgulick@mathworks.com>
-* Mikhail Kolomeytsev <mkolom@yandex-team.ru>
-* Mostyn Bramley-Moore <mostyn@antipode.se>
-* Neil Mushell <nmushell@bloomberg.net>
-* Nick Schultz <nick.schultz@intel.com>
-* Norbert Lange <nolange79@gmail.com>
-* Oded Shimon <oded@istraresearch.com>
-* Orgad Shaneh <orgad.shaneh@audiocodes.com>
-* Orion Poplawski <orion@cora.nwra.com>
-* Owen Mann <owen@mann.org>
-* Patrick von Reth <vonreth@kde.org>
-* Paul Griffith <paulg@cse.yorku.ca>
-* Pavel Boldin <pboldin@cloudlinux.com>
-* Per Nordlöw <per.nordlow@autoliv.com>
-* Peter Budai <peterbudai@hotmail.com>
-* Philippe Proulx <eeppeliteloop@gmail.com>
-* Rafael Kitover <rkitover@gmail.com>
-* Ramiro Polla <ramiro.polla@gmail.com>
-* Robin H. Johnson <robbat2@gentoo.org>
-* Rolf Bjarne Kvinge <rolf@xamarin.com>
-* RW <fbsd06@mlists.homeunix.com>
-* Ryan Brown <ryb@ableton.com>
-* Sam Gross <sgross@fb.com>
-* Thomas Otto <thomas.otto@psd-fs.de>
-* Thomas Röfer <Thomas.Roefer@dfki.de>
-* Timofei Kushnir <timophey@rdp.ru>
-* Tim Potter <tpot@samba.org>
-* Tomasz Miąsko <tomasz.miasko@gmail.com>
-* Tom Hughes <tomtheengineer@gmail.com>
-* Tor Arne Vestbø <tor.arne.vestbo@qt.io>
-* Vadim Petrochenkov <vadim.petrochenkov@gmail.com>
-* Ville Skyttä <ville.skytta@iki.fi>
-* William S Fulton <wsf@fultondesigns.co.uk>
-* Wilson Snyder <wsnyder@wsnyder.org>
-* Xavier René-Corail <xavier.renecorail@gmail.com>
-* Yiding Jia <yiding@fb.com>
-* Yvan Janssens <friedkiwi@yvanj.me>
+* Alexey Tourbin
+* Alfred Landrum
+* Anders F Björklund
+* Andrea Bittau
+* Andreas Huber
+* André Klitzing
+* Andrew P Boie
+* Andrew Stubbs
+* Andrew Tridgell
+* Bernhard Bauer
+* Björn Jacke
+* Chiaki Ishikawa
+* Chris AtLee
+* Clemens Rabe
+* David Givone
+* Edward Z. Yang
+* Francois Marier
+* Gabriel Scherer
+* Geert Bosch
+* Geert Kloosterman
+* Grigory Entin
+* Havard Graff
+* Hongli Lai
+* Ivan Vaigult
+* Jiang Jiang
+* Joel Galenson
+* Joel Rosdahl
+* John Basila
+* John Coiner
+* Jon Bernard
+* Jonny Yu
+* Jørgen P. Tjernø
+* Josh Soref
+* Justin Lebar
+* Karl Chen
+* Kona Blend
+* Kovarththanan Rajaratnam
+* Lalit Chhabra
+* Lars Gustäbel
+* Leanid Chaika
+* Luboš Luňák
+* Maarten Maathuis
+* Mark Starovoytov
+* Martin Ettl
+* Martin Pool
+* Mathias De Maré
+* Matthias Kretz
+* Melven Roehrig-Zoellner
+* Michael Marineau
+* Michael Meeks
+* Michał Mirosław
+* Mihai Serban
+* Mike Frysinger
+* Mike Gulick
+* Mikhail Kolomeytsev
+* Mostyn Bramley-Moore
+* Neil Mushell
+* Nick Schultz
+* Norbert Lange
+* Oded Shimon
+* Orgad Shaneh
+* Orion Poplawski
+* Owen Mann
+* Patrick von Reth
+* Paul Griffith
+* Pavel Boldin
+* Per Nordlöw
+* Peter Budai
+* Philippe Proulx
+* Rafael Kitover
+* Ramiro Polla
+* Robin H. Johnson
+* Rolf Bjarne Kvinge
+* RW
+* Ryan Brown
+* Sam Gross
+* Thomas Otto
+* Thomas Röfer
+* Timofei Kushnir
+* Tim Potter
+* Tomasz Miąsko
+* Tom Hughes
+* Tor Arne Vestbø
+* Vadim Petrochenkov
+* Ville Skyttä
+* William S Fulton
+* Wilson Snyder
+* Xavier René-Corail
+* Yiding Jia
+* Yvan Janssens
 
 Thanks!
