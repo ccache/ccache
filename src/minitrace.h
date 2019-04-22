@@ -18,6 +18,9 @@
 // More:
 // http://www.altdevblogaday.com/2012/08/21/using-chrometracing-to-view-your-inline-profiling-data/
 
+#ifndef MINITRACE_H
+#define MINITRACE_H
+
 #include <inttypes.h>
 
 // If MTR_ENABLED is not defined, Minitrace does nothing and has near zero overhead.
@@ -34,8 +37,12 @@ extern "C" {
 #endif
 
 // Initializes Minitrace. Must be called very early during startup of your executable,
-// before any MTR_ statements..
+// before any MTR_ statements.
 void mtr_init(const char *json_file);
+// Same as above, but allows passing in a custom stream (FILE *), as returned by
+// fopen(). It should be opened for writing, preferably in binary mode to avoid
+// processing of line endings (i.e. the "wb" mode).
+void mtr_init_from_stream(void *stream);
 
 // Shuts down minitrace cleanly, flushing the trace buffer.
 void mtr_shutdown(void);
@@ -256,6 +263,8 @@ private:
 	const char *category_;
 	const char *name_;
 };
+#endif
+
 #endif
 
 #endif
