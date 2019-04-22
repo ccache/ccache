@@ -64,30 +64,6 @@ static const struct {
 	{".TCC", "c++-header"},
 	{".cu",  "cuda"},
 	{".ic",  "cuda-output"},
-	// Fixed form Fortran without preprocessing:
-	{".f",   "f77"},
-	{".for", "f77"},
-	{".ftn", "f77"},
-	// Fixed form Fortran with traditional preprocessing:
-	{".F",   "f77-cpp-input"},
-	{".FOR", "f77-cpp-input"},
-	{".fpp", "f77-cpp-input"},
-	{".FPP", "f77-cpp-input"},
-	{".FTN", "f77-cpp-input"},
-	// Free form Fortran without preprocessing:
-#if 0 // Could generate modules, ignore for now!
-	{".f90", "f95"},
-	{".f95", "f95"},
-	{".f03", "f95"},
-	{".f08", "f95"},
-#endif
-	// Free form Fortran with traditional preprocessing:
-#if 0 // Could generate modules, ignore for now!
-	{".F90", "f95-cpp-input"},
-	{".F95", "f95-cpp-input"},
-	{".F03", "f95-cpp-input"},
-	{".F08", "f95-cpp-input"},
-#endif
 	{NULL,  NULL}
 };
 
@@ -113,12 +89,6 @@ static const struct {
 	{"cuda",                     "cuda-output"},
 	{"assembler-with-cpp",       "assembler"},
 	{"assembler",                "assembler"},
-	{"f77-cpp-input",            "f77"},
-	{"f77",                      "f77"},
-#if 0 // Could generate module files, ignore for now!
-	{"f95-cpp-input",            "f95"},
-	{"f95",                      "f95"},
-#endif
 	{NULL,  NULL}
 };
 
