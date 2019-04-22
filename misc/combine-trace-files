@@ -1,28 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import sys
 import json
+import sys
 
 traces = {}
 for arg in sys.argv[1:]:
-    object = json.load(open(arg))
-    for event in object["traceEvents"]:
+    events = json.load(open(arg))["traceEvents"]
+    for event in events:
         if event["name"] == "" and event["ph"] == "I":
             time = float(event["args"]["time"])
             # print "%.6f" % time
-            traces[time] = object
+            traces[time] = events
             break
 
-times = traces.keys()
-mintime = min(times)
-times.sort()
+times = sorted(traces)
+min_time = min(times)
 
-events = []
+combined_events = []
 for time in times:
-    offset = (time - mintime) * 1000000.0
-    object = traces[time]
-    for event in object["traceEvents"]:
+    offset = (time - min_time) * 1000000.0
+    events = traces[time]
+    for event in events:
         event["ts"] = int(event["ts"] + offset)
-        events.append(event)
+        combined_events.append(event)
 
-print json.dumps({"traceEvents": events})
+print(json.dumps({"traceEvents": combined_events}))

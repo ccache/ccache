@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # Copyright (C) 2010-2019 Joel Rosdahl
 #
@@ -19,8 +19,15 @@
 from optparse import OptionParser
 from os import access, environ, mkdir, getpid, X_OK
 from os.path import (
-    abspath, basename, exists, isabs, isfile, join as joinpath, realpath,
-    splitext)
+    abspath,
+    basename,
+    exists,
+    isabs,
+    isfile,
+    join as joinpath,
+    realpath,
+    splitext,
+)
 from shutil import rmtree
 from subprocess import call
 from time import time
@@ -49,7 +56,8 @@ PHASES = [
     "with ccache, direct mode, cache miss",
     "with ccache, direct mode, cache hit",
     "with ccache, depend mode, cache miss",
-    "with ccache, depend mode, cache hit"]
+    "with ccache, depend mode, cache hit",
+]
 
 verbose = False
 
@@ -80,10 +88,11 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     progress("Creating source code\n")
     for i in range(times):
-        fp = open("%s/%d%s" % (src_dir, i, extension), "w")
-        fp.write(open(source_file).read())
-        fp.write("\nint ccache_perf_test_%d;\n" % i)
-        fp.close()
+        with open("%s/%d%s" % (src_dir, i, extension), "w") as fp:
+            with open(source_file) as fp2:
+                content = fp2.read()
+            fp.write(content)
+            fp.write("\nint ccache_perf_test_%d;\n" % i)
 
     environment = {"CCACHE_DIR": ccache_dir, "PATH": environ["PATH"]}
     environment["CCACHE_COMPILERCHECK"] = options.compilercheck
@@ -111,7 +120,8 @@ def test(tmp_dir, options, compiler_args, source_file):
             env["CCACHE_DEPEND"] = "1"
         if call(args, env=env) != 0:
             sys.stderr.write(
-                'Error running "%s"; please correct\n' % " ".join(args))
+                'Error running "%s"; please correct\n' % " ".join(args)
+            )
             sys.exit(1)
 
     # Warm up the disk cache.
@@ -201,25 +211,29 @@ def test(tmp_dir, options, compiler_args, source_file):
 
 
 def print_result_as_text(result):
-    for (i, x) in enumerate(PHASES):
-        print "%-43s %6.2f s (%6.2f %%) (%5.2f x)" % (
-            x.capitalize() + ":",
-            result[i],
-            100 * (result[i] / result[0]),
-            result[0] / result[i])
+    for i, x in enumerate(PHASES):
+        print(
+            "%-43s %6.2f s (%6.2f %%) (%5.2f x)"
+            % (
+                x.capitalize() + ":",
+                result[i],
+                100 * (result[i] / result[0]),
+                result[0] / result[i],
+            )
+        )
 
 
 def print_result_as_xml(result):
-    print '<?xml version="1.0" encoding="UTF-8"?>'
-    print "<ccache-perf>"
-    for (i, x) in enumerate(PHASES):
-        print "<measurement>"
-        print "<name>%s</name>" % x.capitalize()
-        print "<seconds>%.2f</seconds>" % result[i]
-        print "<percent>%.2f</percent>" % (100 * (result[i] / result[0]))
-        print "<times>%.2f</times>" % (result[0] / result[i])
-        print "</measurement>"
-    print "</ccache-perf>"
+    print('<?xml version="1.0" encoding="UTF-8"?>')
+    print("<ccache-perf>")
+    for i, x in enumerate(PHASES):
+        print("<measurement>")
+        print("<name>%s</name>" % x.capitalize())
+        print("<seconds>%.2f</seconds>" % result[i])
+        print("<percent>%.2f</percent>" % (100 * (result[i] / result[0])))
+        print("<times>%.2f</times>" % (result[0] / result[i]))
+        print("</measurement>")
+    print("</ccache-perf>")
 
 
 def on_off(x):
@@ -241,55 +255,52 @@ def main(argv):
     op = OptionParser(usage=USAGE, description=DESCRIPTION)
     op.disable_interspersed_args()
     op.add_option(
-        "--ccache",
-        help="location of ccache (default: %s)" % DEFAULT_CCACHE)
+        "--ccache", help="location of ccache (default: %s)" % DEFAULT_CCACHE
+    )
     op.add_option(
-        "--compilercheck",
-        help="specify compilercheck (default: mtime)")
+        "--compilercheck", help="specify compilercheck (default: mtime)"
+    )
+    op.add_option("--compression", help="use compression", action="store_true")
     op.add_option(
-        "--compression",
-        help="use compression",
-        action="store_true")
-    op.add_option(
-        "-d", "--directory",
+        "-d",
+        "--directory",
         help=(
             "where to create the temporary directory with the cache and other"
-            " files (default: %s)" % DEFAULT_DIRECTORY))
-    op.add_option(
-        "--hardlink",
-        help="use hard links",
-        action="store_true")
+            " files (default: %s)" % DEFAULT_DIRECTORY
+        ),
+    )
+    op.add_option("--hardlink", help="use hard links", action="store_true")
     op.add_option(
         "--hit-factor",
         help=(
             "how many times more to compile the file for cache hits (default:"
-            " %d)" % DEFAULT_HIT_FACTOR),
-        type="int")
+            " %d)" % DEFAULT_HIT_FACTOR
+        ),
+        type="int",
+    )
     op.add_option(
-        "--nostats",
-        help="don't write statistics",
-        action="store_true")
+        "--nostats", help="don't write statistics", action="store_true"
+    )
     op.add_option(
-        "-n", "--times",
+        "-n",
+        "--times",
         help=(
-            "number of times to compile the file (default: %d)"
-            % DEFAULT_TIMES),
-        type="int")
+            "number of times to compile the file (default: %d)" % DEFAULT_TIMES
+        ),
+        type="int",
+    )
     op.add_option(
-        "-v", "--verbose",
-        help="print progress messages",
-        action="store_true")
-    op.add_option(
-        "--xml",
-        help="print result as XML",
-        action="store_true")
+        "-v", "--verbose", help="print progress messages", action="store_true"
+    )
+    op.add_option("--xml", help="print result as XML", action="store_true")
     op.set_defaults(
         ccache=DEFAULT_CCACHE,
         compilercheck="mtime",
         directory=DEFAULT_DIRECTORY,
         hit_factor=DEFAULT_HIT_FACTOR,
-        times=DEFAULT_TIMES)
-    (options, args) = op.parse_args(argv[1:])
+        times=DEFAULT_TIMES,
+    )
+    options, args = op.parse_args(argv[1:])
     if len(args) < 2:
         op.error("Missing arguments; pass -h/--help for help")
 
@@ -304,16 +315,18 @@ def main(argv):
     if "ccache" in basename(realpath(compiler)):
         op.error(
             "%s seems to be a symlink to ccache; please specify the path to"
-            " the real compiler instead" % compiler)
+            " the real compiler instead" % compiler
+        )
 
     if not options.xml:
-        print "Compilation command: %s -c -o %s.o" % (
-            " ".join(args),
-            splitext(argv[-1])[0])
-        print "Compilercheck:", options.compilercheck
-        print "Compression:", on_off(options.compression)
-        print "Hardlink:", on_off(options.hardlink)
-        print "Nostats:", on_off(options.nostats)
+        print(
+            "Compilation command: %s -c -o %s.o"
+            % (" ".join(args), splitext(argv[-1])[0])
+        )
+        print("Compilercheck:", options.compilercheck)
+        print("Compression:", on_off(options.compression))
+        print("Hardlink:", on_off(options.hardlink))
+        print("Nostats:", on_off(options.nostats))
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
     recreate_dir(tmp_dir)
