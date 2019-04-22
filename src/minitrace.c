@@ -160,19 +160,26 @@ void mtr_register_sigint_handler() {
 
 #endif
 
-void mtr_init(const char *json_file) {
+void mtr_init_from_stream(void *stream) {
 #ifndef MTR_ENABLED
 	return;
 #endif
 	buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
 	is_tracing = 1;
 	count = 0;
-	f = fopen(json_file, "wb");
+	f = (FILE *)stream;
 	const char *header = "{\"traceEvents\":[\n";
 	fwrite(header, 1, strlen(header), f);
 	time_offset = (uint64_t)(mtr_time_s() * 1000000);
 	first_line = 1;
 	pthread_mutex_init(&mutex, 0);
+}
+
+void mtr_init(const char *json_file) {
+#ifndef MTR_ENABLED
+	return;
+#endif
+	mtr_init_from_stream(fopen(json_file, "wb"));
 }
 
 void mtr_shutdown() {
@@ -280,8 +287,8 @@ void mtr_flush() {
 		const char *cat = raw->cat;
 #ifdef _WIN32
 		// On Windows, we often end up with backslashes in category.
+		char temp[256];
 		{
-			char temp[256];
 			int len = (int)strlen(cat);
 			int i;
 			if (len > 255) len = 255;
@@ -318,9 +325,9 @@ void internal_mtr_raw_event(const char *category, const char *name, char ph, voi
 		cur_process_id = get_cur_process_id();
 	}
 
-#if 0 && _WIN32	// TODO: This needs testing
-	int bufPos = InterlockedIncrement(&count);
-	raw_event_t *ev = &buffer[count - 1];
+#if 0 && _WIN32	// This should work, feel free to enable if you're adventurous and need performance.
+	int bufPos = InterlockedExchangeAdd((LONG volatile *)&count, 1);
+	raw_event_t *ev = &buffer[bufPos];
 #else
 	pthread_mutex_lock(&mutex);
 	raw_event_t *ev = &buffer[count];
@@ -342,6 +349,7 @@ void internal_mtr_raw_event(const char *category, const char *name, char ph, voi
 	}
 	ev->tid = cur_thread_id;
 	ev->pid = cur_process_id;
+	ev->arg_type = MTR_ARG_TYPE_NONE;
 }
 
 void internal_mtr_raw_event_arg(const char *category, const char *name, char ph, void *id, mtr_arg_type arg_type, const char *arg_name, void *arg_value) {
@@ -358,9 +366,9 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 	}
 	double ts = mtr_time_s();
 
-#if 0 && _WIN32	// TODO: This needs testing
-	int bufPos = InterlockedIncrement(&count);
-	raw_event_t *ev = &buffer[count - 1];
+#if 0 && _WIN32	// This should work, feel free to enable if you're adventurous and need performance.
+	int bufPos = InterlockedExchangeAdd((LONG volatile *)&count, 1);
+	raw_event_t *ev = &buffer[bufPos];
 #else
 	pthread_mutex_lock(&mutex);
 	raw_event_t *ev = &buffer[count];
