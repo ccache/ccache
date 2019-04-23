@@ -104,6 +104,9 @@ char *current_working_dir = NULL;
 // The original argument list.
 static struct args *orig_args;
 
+// Whether to use @file on Windows
+static bool use_atfile;
+
 // The source file.
 static char *input_file;
 
@@ -1411,7 +1414,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		tmp_stderr = format("%s.tmp.stderr", cached_obj);
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
-		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid, use_atfile);
 		args_pop(args, 3);
 	} else {
 		// The cached object path is not known yet, use temporary files.
@@ -1429,7 +1432,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 		time_of_compilation = time(NULL);
 		status = execute(
-			depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+			depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid, use_atfile);
 		args_free(depend_mode_args);
 	}
 	MTR_END("execute", "compiler");
@@ -1653,7 +1656,7 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		add_prefix(args, conf->prefix_command_cpp);
 		cc_log("Running preprocessor");
 		MTR_BEGIN("execute", "preprocessor");
-		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
+		status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid, false);
 		MTR_END("execute", "preprocessor");
 		args_pop(args, args_added);
 	}
@@ -2533,6 +2536,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			argc = expanded_args->argc;
 			argv = expanded_args->argv;
 			i--;
+#ifdef _WIN32
+                        use_atfile = true;
+#endif
 			continue;
 		}
 

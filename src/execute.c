@@ -26,10 +26,11 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path);
 // Re-create a win32 command line string based on **argv.
 // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
 char *
-win32argvtos(char *prefix, char **argv)
+win32argvtos(char *prefix, char **argv, int *length)
 {
 	int i = 0;
 	int k = 0;
+        *length = 0;
 	char *arg = prefix ? prefix : argv[i++];
 	do {
 		int bs = 0;
@@ -54,6 +55,7 @@ win32argvtos(char *prefix, char **argv)
 	if (!str) {
 		return NULL;
 	}
+        *length = k;
 
 	i = 0;
 	arg = prefix ? prefix : argv[i++];
@@ -127,7 +129,7 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 
 int
 win32execute(char *path, char **argv, int doreturn,
-             int fd_stdout, int fd_stderr)
+             int fd_stdout, int fd_stderr, bool use_atfile)
 {
 	PROCESS_INFORMATION pi;
 	memset(&pi, 0x00, sizeof(pi));
@@ -162,13 +164,36 @@ win32execute(char *path, char **argv, int doreturn,
 		}
 	}
 
-	char *args = win32argvtos(sh, argv);
+	int length;
+	char *args = win32argvtos(sh, argv, &length);
+	char *atfile_args = args;
+	int atfile_length = length;
+	// avoid passing compiler to itself as input file
+	if (use_atfile && !sh) {
+		char **atfile_argv = argv + 1;
+		atfile_args = win32argvtos(sh, atfile_argv, &atfile_length);
+	}
 	const char *ext = strrchr(path, '.');
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
-	BOOL ret =
-		CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-		              &si, &pi);
+	BOOL ret = FALSE;
+        if (use_atfile) {
+                char *tmp_file = format("%s.tmp", path);
+                FILE *fp = create_tmp_file(&tmp_file, "w");
+                char atfile[MAX_PATH + 1];
+                fwrite(atfile_args, 1, atfile_length, fp);
+                fclose(fp);
+                if (ferror(fp)) {
+                        cc_log("Error writing @file; this command will probably fail:\n%s", args);
+                }
+                snprintf(atfile, sizeof(atfile), "@%s", tmp_file);
+                ret = CreateProcess(full_path_win_ext, atfile, NULL, NULL, 1, 0, NULL, NULL,
+                                    &si, &pi);
+        }
+        if (!ret) {
+                ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+                                    &si, &pi);
+        }
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
@@ -219,7 +244,7 @@ win32execute(char *path, char **argv, int doreturn,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(char **argv, int fd_out, int fd_err, pid_t *pid)
+realexecute(char **argv, int fd_out, int fd_err, pid_t *pid)
 {
 	cc_log_argv("Executing ", argv);
 
