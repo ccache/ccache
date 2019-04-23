@@ -21,6 +21,7 @@ ccache is a collective work with contributions from many people, including:
 * Chris AtLee
 * Clemens Rabe
 * David Givone
+* Doug Anderson
 * Edward Z. Yang
 * Francois Marier
 * Gabriel Scherer
@@ -72,11 +73,13 @@ ccache is a collective work with contributions from many people, including:
 * Patrick von Reth
 * Paul Griffith
 * Pavel Boldin
+* Pavol Sakac
 * Per Nordlöw
 * Peter Budai
 * Philippe Proulx
 * Rafael Kitover
 * Ramiro Polla
+* Robert Yang
 * Robin H. Johnson
 * Rolf Bjarne Kvinge
 * RW

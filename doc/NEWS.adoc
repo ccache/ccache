@@ -3,7 +3,7 @@ ccache news
 
 ccache 3.7
 ----------
-unreleased
+Release date: 2019-04-23
 
 Changes
 ~~~~~~~
