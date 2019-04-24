@@ -212,7 +212,8 @@ hash_command_output(struct hash *hash, const char *command,
 
 	char *win32args;
 	if (!cmd) {
-		win32args = win32argvtos(sh, args->argv);
+		int length;
+		win32args = win32argvtos(sh, args->argv, &length);
 	} else {
 		win32args = (char *)command;  // quoted
 	}

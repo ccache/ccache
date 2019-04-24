@@ -26,10 +26,11 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path);
 // Re-create a win32 command line string based on **argv.
 // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
 char *
-win32argvtos(char *prefix, char **argv)
+win32argvtos(char *prefix, char **argv, int *length)
 {
 	int i = 0;
 	int k = 0;
+        *length = 0;
 	char *arg = prefix ? prefix : argv[i++];
 	do {
 		int bs = 0;
@@ -54,6 +55,7 @@ win32argvtos(char *prefix, char **argv)
 	if (!str) {
 		return NULL;
 	}
+        *length = k;
 
 	i = 0;
 	arg = prefix ? prefix : argv[i++];
@@ -162,7 +164,8 @@ win32execute(char *path, char **argv, int doreturn,
 		}
 	}
 
-	char *args = win32argvtos(sh, argv);
+	int length;
+	char *args = win32argvtos(sh, argv, &length);
 	const char *ext = strrchr(path, '.');
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
