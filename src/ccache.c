@@ -2972,7 +2972,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 					result = false;
 					goto out;
 				} else if (arg_profile_dir) {
-					cc_log("Setting profile directory to %s", profile_dir);
+					cc_log("Setting profile directory to %s", arg_profile_dir);
 					profile_dir = x_strdup(arg_profile_dir);
 				}
 				continue;
