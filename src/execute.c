@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2018 Joel Rosdahl
+// Copyright (C) 2011-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -30,7 +30,7 @@ win32argvtos(char *prefix, char **argv, int *length)
 {
 	int i = 0;
 	int k = 0;
-        *length = 0;
+	*length = 0;
 	char *arg = prefix ? prefix : argv[i++];
 	do {
 		int bs = 0;
@@ -55,7 +55,7 @@ win32argvtos(char *prefix, char **argv, int *length)
 	if (!str) {
 		return NULL;
 	}
-        *length = k;
+	*length = k;
 
 	i = 0;
 	arg = prefix ? prefix : argv[i++];
@@ -170,23 +170,23 @@ win32execute(char *path, char **argv, int doreturn,
 	char full_path_win_ext[MAX_PATH] = {0};
 	add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
 	BOOL ret = FALSE;
-        if (length > 8192) {
-                char *tmp_file = format("%s.tmp", path);
-                FILE *fp = create_tmp_file(&tmp_file, "w");
-                char atfile[MAX_PATH + 3];
-                fwrite(args, 1, length - 1, fp);
-                fclose(fp);
-                if (ferror(fp)) {
-                        cc_log("Error writing @file; this command will probably fail:\n%s", args);
-                }
-                snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
-                ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL,
-                                    &si, &pi);
-        }
-        if (!ret) {
-                ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
-                                    &si, &pi);
-        }
+	if (length > 8192) {
+		char *tmp_file = format("%s.tmp", path);
+		FILE *fp = create_tmp_file(&tmp_file, "w");
+		char atfile[MAX_PATH + 3];
+		fwrite(args, 1, length - 1, fp);
+		fclose(fp);
+		if (ferror(fp)) {
+			cc_log("Error writing @file; this command will probably fail: %s", args);
+		}
+		snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
+		ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL,
+		                    &si, &pi);
+	}
+	if (!ret) {
+		ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
+		                    &si, &pi);
+	}
 	if (fd_stdout != -1) {
 		close(fd_stdout);
 		close(fd_stderr);
