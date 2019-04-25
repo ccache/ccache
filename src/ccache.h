@@ -289,7 +289,7 @@ typedef int (*COMPAR_FN_T)(const void *, const void *);
 #endif
 
 #ifdef _WIN32
-char *win32argvtos(char *prefix, char **argv);
+char *win32argvtos(char *prefix, char **argv, int *length);
 char *win32getshell(char *path);
 int win32execute(char *path, char **argv, int doreturn,
                  int fd_stdout, int fd_stderr);
