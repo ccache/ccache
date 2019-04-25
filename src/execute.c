@@ -182,6 +182,8 @@ win32execute(char *path, char **argv, int doreturn,
 		snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
 		ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL,
 		                    &si, &pi);
+		tmp_unlink(tmp_file);
+		free(tmp_file);
 	}
 	if (!ret) {
 		ret = CreateProcess(full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL,
