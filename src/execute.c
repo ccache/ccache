@@ -30,7 +30,6 @@ win32argvtos(char *prefix, char **argv, int *length)
 {
 	int i = 0;
 	int k = 0;
-	*length = 0;
 	char *arg = prefix ? prefix : argv[i++];
 	do {
 		int bs = 0;
@@ -53,9 +52,9 @@ win32argvtos(char *prefix, char **argv, int *length)
 	char *ptr = malloc(k + 1);
 	char *str = ptr;
 	if (!str) {
+		*length = 0;
 		return NULL;
 	}
-	*length = k;
 
 	i = 0;
 	arg = prefix ? prefix : argv[i++];
@@ -85,6 +84,7 @@ win32argvtos(char *prefix, char **argv, int *length)
 	} while ((arg = argv[i++]));
 	ptr[-1] = '\0';
 
+	*length = ptr - str - 1;
 	return str;
 }
 
@@ -174,7 +174,7 @@ win32execute(char *path, char **argv, int doreturn,
 		char *tmp_file = format("%s.tmp", path);
 		FILE *fp = create_tmp_file(&tmp_file, "w");
 		char atfile[MAX_PATH + 3];
-		fwrite(args, 1, length - 1, fp);
+		fwrite(args, 1, length, fp);
 		fclose(fp);
 		if (ferror(fp)) {
 			cc_log("Error writing @file; this command will probably fail: %s", args);
