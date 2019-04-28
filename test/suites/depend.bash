@@ -109,6 +109,21 @@ SUITE_depend() {
     expect_stat 'files in cache' 3
 
     # -------------------------------------------------------------------------
+    TEST "No dependency file"
+
+    CCACHE_DEPEND=1 $CCACHE_COMPILE -MP -MMD -MF /dev/null -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # .o + .manifest
+
+    CCACHE_DEPEND=1 $CCACHE_COMPILE -MP -MMD -MF /dev/null -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
     TEST "No explicit dependency file"
 
     $REAL_COMPILER $DEPSFLAGS_REAL -c -o reference_test.o test.c
