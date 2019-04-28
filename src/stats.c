@@ -43,17 +43,17 @@ static struct counters *counter_updates;
 
 // Returns a formatted version of a statistics value, or NULL if the statistics
 // line shouldn't be printed. Caller frees.
-typedef char *format_fn(uint64_t value);
+typedef char *(*format_fn)(uint64_t value);
 
-static format_fn format_size_times_1024;
-static format_fn format_timestamp;
+static char *format_size_times_1024(uint64_t size);
+static char *format_timestamp(uint64_t timestamp);
 
 // Statistics fields in display order.
 static struct {
 	enum stats stat;
 	const char *id; // for --print-stats
 	const char *message; // for --show-stats
-	format_fn *format_fn; // NULL -> use plain integer format
+	format_fn format; // NULL -> use plain integer format
 	unsigned flags;
 } stats_info[] = {
 	{
@@ -553,8 +553,8 @@ stats_summary(void)
 		}
 
 		char *value;
-		if (stats_info[i].format_fn) {
-			value = stats_info[i].format_fn(counters->data[stat]);
+		if (stats_info[i].format) {
+			value = stats_info[i].format(counters->data[stat]);
 		} else {
 			value = format("%8u", counters->data[stat]);
 		}
