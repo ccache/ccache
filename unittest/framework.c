@@ -209,6 +209,36 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 	}
 }
 
+static char *hexformat(unsigned char *data, size_t size)
+{
+	size_t i;
+	char *ret = x_malloc(2 * size + 1);
+	for (i = 0; i < size; i++) {
+		sprintf(&ret[i*2], "%02x", (unsigned) data[i]);
+	}
+	return ret;
+}
+
+bool cct_check_data_eq(const char *file, int line, const char *expression,
+                      void *expected, void *actual, size_t size)
+{
+	bool result;
+
+	if (expected && actual && memcmp(actual, expected, size) == 0) {
+		cct_check_passed(file, line, expression);
+		result = true;
+	} else {
+		char *exp_str = expected ? hexformat((unsigned char *) expected, size) : x_strdup("(null)");
+		char *act_str = actual ? hexformat((unsigned char *) actual, size) : x_strdup("(null)");
+		cct_check_failed(file, line, expression, exp_str, act_str);
+		free(exp_str);
+		free(act_str);
+		result = false;
+	}
+
+	return result;
+}
+
 bool
 cct_check_str_eq(const char *file, int line, const char *expression,
                  char *expected, char *actual,

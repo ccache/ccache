@@ -29,6 +29,10 @@
 #include <sys/time.h>
 #endif
 
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
@@ -682,6 +686,21 @@ format_hash_as_string(const unsigned char *hash, int size)
 		sprintf(&ret[i*2], "-%d", size);
 	}
 	return ret;
+}
+
+// Return the hash result in binary.
+void format_hash_as_binary(binary result, const unsigned char *hash, int size)
+{
+	memcpy(result, hash, 16);
+#ifdef HAVE_HTONL
+	result[4] = htonl(size); // network byte order
+#else
+	uint32_t i = size;
+	unsigned char *bytes = (unsigned char *) result;
+	for (int j = 0; j < 4; j++) {
+		bytes[16 + j] = (i >> ((3 - j) * 8)) & 0xff; // (big endian)
+	}
+#endif
 }
 
 static char const CACHEDIR_TAG[] =

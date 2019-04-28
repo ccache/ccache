@@ -101,6 +101,34 @@ TEST(format_hash_as_string)
 	                   format_hash_as_string(hash, 12345));
 }
 
+TEST(format_hash_as_binary)
+{
+	unsigned char hash[16] = {
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	};
+
+	unsigned char data[20] = {
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+		"\x00\x00\x00\x00"
+	};
+
+	binary buf;
+	CHECK_INT_EQ(sizeof(buf), 20);
+
+	format_hash_as_binary(buf, hash, 0);
+	CHECK_DATA_EQ(data, buf, 20);
+	hash[0] = 17;
+	hash[15] = 42;
+	format_hash_as_binary(buf, hash, 12345);
+	// data[0:16] = hash
+	data[0] = 0x11;
+	data[15] = 0x2a;
+	// 12345 = 0x3039 BE
+	data[18] = 0x30;
+	data[19] = 0x39;
+	CHECK_DATA_EQ(data, buf, 20);
+}
+
 TEST(subst_env_in_string)
 {
 	char *errmsg;
