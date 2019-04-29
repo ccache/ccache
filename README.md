@@ -31,5 +31,5 @@ Contributing to ccache
 * [Mailing list](https://lists.samba.org/mailman/listinfo/ccache/)
 * [Bug report info](https://ccache.dev/bugs.html)
 * [Issue tracker](https://github.com/ccache/ccache/issues)
-  * [Help wanted!](https://github.com/ccache/ccache/issues/help%20wanted)
-  * [Good first issues!](https://github.com/ccache/ccache/issues/good%20first%20issue)
+  * [Help wanted!](https://github.com/ccache/ccache/labels/help%20wanted)
+  * [Good first issues!](https://github.com/ccache/ccache/labels/good%20first%20issue)
