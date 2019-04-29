@@ -2043,10 +2043,15 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 				hash_delimiter(hash, "arg");
 				hash_string_buffer(hash, args->argv[i], 3);
 
-				bool separate_argument = (strlen(args->argv[i]) == 3);
-				if (separate_argument) {
-					// Next argument is dependency name, so skip it.
-					i++;
+				if (!str_eq(output_dep, "/dev/null")) {
+					bool separate_argument = (strlen(args->argv[i]) == 3);
+					if (separate_argument) {
+						// Next argument is dependency name, so skip it.
+						i++;
+					}
+				} else {
+					// Hash that we don't have a .d file.
+					hash_string(hash, output_dep);
 				}
 				continue;
 			}
