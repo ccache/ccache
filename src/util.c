@@ -759,6 +759,18 @@ format(const char *format, ...)
 	return ptr;
 }
 
+// Construct a string representing data. Caller frees
+char *
+format_hex(unsigned char *data, size_t size)
+{
+	size_t i;
+	char *ret = x_malloc(2 * size + 1);
+	for (i = 0; i < size; i++) {
+		sprintf(&ret[i*2], "%02x", (unsigned) data[i]);
+	}
+	return ret;
+}
+
 // This is like strdup() but dies if the malloc fails.
 char *
 x_strdup(const char *s)
