@@ -175,10 +175,10 @@ win32execute(char *path, char **argv, int doreturn,
 		FILE *fp = create_tmp_file(&tmp_file, "w");
 		char atfile[MAX_PATH + 3];
 		fwrite(args, 1, length, fp);
-		fclose(fp);
 		if (ferror(fp)) {
 			cc_log("Error writing @file; this command will probably fail: %s", args);
 		}
+		fclose(fp);
 		snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
 		ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL,
 		                    &si, &pi);
