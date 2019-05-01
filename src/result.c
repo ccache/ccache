@@ -31,6 +31,7 @@ struct file {
 struct cache {
 	uint32_t n_files;
 	struct file *files;
+	uint64_t *sizes;
 };
 
 int
@@ -38,6 +39,7 @@ add_cache_file(struct cache *c, const char *path, const char *suffix)
 {
 	uint32_t n = c->n_files;
 	c->files = x_realloc(c->files, (n + 1) * sizeof(*c->files));
+	c->sizes = x_realloc(c->sizes, (n + 1) * sizeof(*c->sizes));
 	struct file *f = &c->files[c->n_files];
 	c->n_files++;
 
@@ -58,6 +60,8 @@ free_cache(struct cache *c)
 	}
 	free(c->files);
 	c->files = NULL;
+	free(c->sizes);
+	c->sizes = NULL;
 
 	free(c);
 }
@@ -139,12 +143,13 @@ create_empty_cache(void)
 	struct cache *c = x_malloc(sizeof(*c));
 	c->n_files = 0;
 	c->files = NULL;
+	c->sizes = NULL;
 
 	return c;
 }
 
 static struct cache *
-read_cache(gzFile f, struct cache *c)
+read_cache(gzFile f, struct cache *c, bool copy)
 {
 	uint32_t magic;
 	READ_INT(4, magic);
@@ -168,15 +173,20 @@ read_cache(gzFile f, struct cache *c)
 		cc_log("Reading file #%d: %s (%u)", i, suffix, filelen);
 
 		bool found = false;
-		for (uint32_t j = 0; j < c->n_files; j++) {
-			if (sufflen == c->files[j].suffix_len &&
-			str_eq(suffix, c->files[j].suffix)) {
-				found = true;
+		if (copy) {
+			for (uint32_t j = 0; j < c->n_files; j++) {
+				if (sufflen == c->files[j].suffix_len &&
+				str_eq(suffix, c->files[j].suffix)) {
+					found = true;
 
-				cc_log("Copying %s from cache", c->files[i].path);
+					cc_log("Copying %s from cache", c->files[i].path);
 
-				READ_FILE(filelen, c->files[j].path);
+					READ_FILE(filelen, c->files[j].path);
+				}
 			}
+		} else {
+			add_cache_file(c, "", suffix);
+			c->sizes[c->n_files-1] = filelen;
 		}
 		if (!found) {
 			// Skip the data, if no match
@@ -285,7 +295,7 @@ bool cache_get(const char *cache_path, struct cache *c)
 		cc_log("Failed to gzdopen cache file");
 		goto out;
 	}
-	c = read_cache(f, c);
+	c = read_cache(f, c, true);
 	if (!c) {
 		cc_log("Error reading cache file");
 		goto out;
@@ -332,6 +342,53 @@ out:
 	}
 	if (f2) {
 		gzclose(f2);
+	}
+	return ret;
+}
+
+bool
+cache_dump(const char *cache_path, FILE *stream)
+{
+	struct cache *c = create_empty_cache();
+	gzFile f = NULL;
+	bool ret = false;
+
+	int fd = open(cache_path, O_RDONLY | O_BINARY);
+	if (fd == -1) {
+		fprintf(stderr, "No such cache file: %s\n", cache_path);
+		goto out;
+	}
+	f = gzdopen(fd, "rb");
+	if (!f) {
+		fprintf(stderr, "Failed to gzdopen cache file\n");
+		close(fd);
+		goto out;
+	}
+	c = read_cache(f, c, false);
+	if (!c) {
+		fprintf(stderr, "Error reading cache file\n");
+		goto out;
+	}
+
+	fprintf(stream, "Magic: %c%c%c%c\n",
+	        (MAGIC >> 24) & 0xFF,
+	        (MAGIC >> 16) & 0xFF,
+	        (MAGIC >> 8) & 0xFF,
+	        MAGIC & 0xFF);
+	fprintf(stream, "File paths (%u):\n", (unsigned)c->n_files);
+	for (unsigned i = 0; i < c->n_files; ++i) {
+		fprintf(stream, "  %u: %s (%s)\n", i, c->files[i].suffix,
+		                format_human_readable_size(c->sizes[i]));
+	}
+
+	ret = true;
+
+out:
+	if (c) {
+		free_cache(c);
+	}
+	if (f) {
+		gzclose(f);
 	}
 	return ret;
 }

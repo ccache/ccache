@@ -15,5 +15,6 @@ void free_cache(struct cache *c);
 
 bool cache_get(const char *cache_path, struct cache *c);
 bool cache_put(const char *cache_path, struct cache *c);
+bool cache_dump(const char *cache_path, FILE *stream);
 
 #endif
