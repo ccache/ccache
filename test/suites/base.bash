@@ -803,7 +803,7 @@ EOF
 
     obj_file=`find $CCACHE_DIR -name '*.o'`
     stderr_file=`echo $obj_file | sed 's/..$/.stderr/'`
-    echo "Warning: foo" >$stderr_file
+    test -n "$stderr_file" && echo "Warning: foo" >$stderr_file
     CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
     expect_file_count 0 '*.stderr' $CCACHE_DIR
 
@@ -852,9 +852,9 @@ int stderr(void)
   // Trigger warning by having no return statement.
 }
 EOF
-    $CCACHE_COMPILE -Wall -W -c stderr.c 2>/dev/null
-    expect_file_count 1 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 2
+    $REAL_COMPILER -c -Wall -W -c stderr.c 2>reference_stderr.txt
+    $CCACHE_COMPILE -Wall -W -c stderr.c 2>stderr.txt
+    expect_equal_files reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
     TEST "--zero-stats"
