@@ -47,6 +47,7 @@ ccache is a collective work with contributions from many people, including:
 * Lalit Chhabra
 * Lars Gustäbel
 * Leanid Chaika
+* Loïc Yhuel
 * Luboš Luňák
 * Maarten Maathuis
 * Mark Starovoytov
@@ -59,6 +60,7 @@ ccache is a collective work with contributions from many people, including:
 * Michael Meeks
 * Michał Mirosław
 * Mihai Serban
+* Mike Blumenkrantz
 * Mike Frysinger
 * Mike Gulick
 * Mikhail Kolomeytsev
