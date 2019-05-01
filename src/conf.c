@@ -80,7 +80,7 @@ out:
 static bool
 parse_line(const char *line, char **key, char **value, char **errmsg)
 {
-#define SKIP_WS(x) while (isspace(*x)) { ++x; }
+#define SKIP_WS(x) do { while (isspace(*x)) { ++x; } } while (false)
 
 	*key = NULL;
 	*value = NULL;

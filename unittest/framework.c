@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -294,7 +294,7 @@ cct_create_fresh_dir(const char *path)
 {
 	cct_wipe(path);
 	if (mkdir(path, 0777) != 0) {
-		fprintf(stderr, "mkdir: %s: %s", path, strerror(errno));;
+		fprintf(stderr, "mkdir: %s: %s", path, strerror(errno));
 		abort();
 	}
 }
