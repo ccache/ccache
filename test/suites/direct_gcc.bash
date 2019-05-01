@@ -139,4 +139,17 @@ SUITE_direct_gcc() {
     expect_stat 'cache miss' 1
     expect_equal_files different_name.d expected_sunpro_dependencies_target.d
     expect_equal_object_files reference_test.o test.o
+
+    # -------------------------------------------------------------------------
+    TEST "DEPENDENCIES_OUTPUT environment variable set to /dev/null"
+
+    DEPENDENCIES_OUTPUT="/dev/null" $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    DEPENDENCIES_OUTPUT="other.d" $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 }

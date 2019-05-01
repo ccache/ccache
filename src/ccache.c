@@ -2049,9 +2049,6 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 						// Next argument is dependency name, so skip it.
 						i++;
 					}
-				} else {
-					// Hash that we don't have a .d file.
-					hash_string(hash, output_dep);
 				}
 				continue;
 			}
@@ -2110,6 +2107,12 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			hash_delimiter(hash, "arg");
 			hash_string(hash, args->argv[i]);
 		}
+	}
+
+	// Make results with dependency file /dev/null different from those without
+	// it.
+	if (generating_dependencies && str_eq(output_dep, "/dev/null")) {
+		hash_delimiter(hash, "/dev/null dependency file");
 	}
 
 	if (!found_ccbin && str_eq(actual_language, "cuda")) {
