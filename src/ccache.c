@@ -1519,8 +1519,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		update_cached_result_globals(object_hash);
 	}
 
-	bool produce_dep_file = generating_dependencies &&
-	                        !str_eq(output_dep, "/dev/null");
+	bool produce_dep_file =
+		generating_dependencies && !str_eq(output_dep, "/dev/null");
 
 	if (produce_dep_file) {
 		use_relative_paths_in_depfile(output_dep);
@@ -2279,8 +2279,8 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
 	bool produce_dep_file =
-		generating_dependencies && mode == FROMCACHE_DIRECT_MODE &&
-		!str_eq(output_dep, "/dev/null");
+		generating_dependencies && mode == FROMCACHE_DIRECT_MODE
+		&& !str_eq(output_dep, "/dev/null");
 
 	MTR_BEGIN("file", "file_get");
 
@@ -3849,8 +3849,8 @@ ccache(int argc, char *argv[])
 	MTR_END("main", "process_args");
 
 	if (conf->depend_mode
-	    && (!generating_dependencies || str_eq(output_dep, "/dev/null") ||
-	        !conf->run_second_cpp || conf->unify)) {
+	    && (!generating_dependencies || str_eq(output_dep, "/dev/null")
+	        || !conf->run_second_cpp || conf->unify)) {
 		cc_log("Disabling depend mode");
 		conf->depend_mode = false;
 	}
