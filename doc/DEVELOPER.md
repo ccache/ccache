@@ -21,7 +21,7 @@ script:
     misc/combine-trace-files *.o.ccache-trace | gzip > ccache.trace.gz
 
 (The gzip step is optional; Chrome supports both plain trace files and gzipped
-trace files.) The script will offset each invididual trace by its start time in
+trace files.) The script will offset each individual trace by its start time in
 the combined file.
 
 There is also a script called `summarize-trace-files` that generates a summary

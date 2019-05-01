@@ -192,7 +192,7 @@ conf_free(struct conf *conf)
 
 // Note: The path pointer is stored in conf, so path must outlive conf.
 //
-// On failure, if an I/O error occured errno is set appropriately, otherwise
+// On failure, if an I/O error occurred errno is set appropriately, otherwise
 // errno is set to zero indicating that config itself was invalid.
 bool
 conf_read(struct conf *conf, const char *path, char **errmsg)
