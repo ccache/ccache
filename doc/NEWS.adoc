@@ -1,6 +1,22 @@
 ccache news
 ===========
 
+ccache 3.7.1
+------------
+Release date: unknown
+
+Changes
+~~~~~~~
+
+- Fixed a problem when using the compiler option `-MF /dev/null`.
+
+- Long commandlines are now handled gracefully on Windows by using the `@file`
+  syntax to avoid hitting the commandline size limit.
+
+- Fixed complaint from GCC 9’s `-Werror=format-overflow` when compiling ccache
+  itself.
+
+
 ccache 3.7
 ----------
 Release date: 2019-04-23
