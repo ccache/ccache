@@ -439,13 +439,19 @@ EOF
     rm -f third_name.d
 
     # -------------------------------------------------------------------------
-    TEST "-MF /dev/null"
+    TEST "MF /dev/null"
 
     $CCACHE_COMPILE -c -MD -MF /dev/null test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 0
-    expect_stat 'unsupported compiler option' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # .o + .manifest
+
+    $CCACHE_COMPILE -c -MD -MF /dev/null test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
 
     # -------------------------------------------------------------------------
     TEST "Missing .d file"
