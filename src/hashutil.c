@@ -41,7 +41,7 @@ int
 file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
 {
 	return memcmp(fh1->hash, fh2->hash, 16) == 0
-	       && fh1->size == fh2->size;
+	       && fh1->hashed_content_size == fh2->hashed_content_size;
 }
 
 // Search for the strings "__DATE__" and "__TIME__" in str.
