@@ -1061,8 +1061,18 @@ EOF
     $CCACHE --hash-file /dev/null > hash.out
     printf "a" | $CCACHE --hash-file - >> hash.out
 
-    if grep '31d6cfe0d16ae931b73c59d7e0c089c000000000' hash.out >/dev/null && \
-       grep 'bde52cb31de33e46245e05fbdbd6fb2400000001' hash.out >/dev/null; then
+    if [ "$CCACHE_CHECKSUM" = "blake2b" ]; then
+        hash_0='3345524abf6bbe1809449224b5972c41790b6cf2'
+        hash_1='948caa2db61bc4cdb4faf7740cd491f195043914'
+    elif [ "$CCACHE_CHECKSUM" = "md4" ]; then
+        hash_0='31d6cfe0d16ae931b73c59d7e0c089c000000000'
+        hash_1='bde52cb31de33e46245e05fbdbd6fb2400000001'
+    else
+        test_failed "unknown checksum: $CCACHE_CHECKSUM"
+    fi
+
+    if grep "$hash_0" hash.out >/dev/null 2>&1 && \
+       grep "$hash_1" hash.out >/dev/null 2>&1; then
         : OK
     else
         test_failed "Unexpected output of --hash-file"

@@ -178,6 +178,19 @@ if test x${enable_tracing} = xyes; then
     extra_sources="src/minitrace.c"
 fi
 
+
+ccache_checksum='CCACHE_CHECKSUM=md4 '
+AC_ARG_ENABLE(blake2,
+  [AS_HELP_STRING([--enable-blake2],
+    [use blake2b checksum instead of md4])])
+if test x${enable_blake2} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DUSE_BLAKE2"
+    ccache_checksum='CCACHE_CHECKSUM=blake2b '
+    AC_CHECK_HEADERS(blake2.h)
+    AC_CHECK_LIB([b2],[blake2b])
+fi
+AC_SUBST(ccache_checksum)
+
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
     LIBS="$LIBS -lws2_32"
