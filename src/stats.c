@@ -499,6 +499,9 @@ stats_flush(void)
 
 	free(subdir);
 	counters_free(counters);
+
+	free(counter_updates);
+	counter_updates = NULL;
 }
 
 // Update a normal stat.
