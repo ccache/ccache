@@ -3932,7 +3932,7 @@ ccache(int argc, char *argv[])
 			from_cache(FROMCACHE_DIRECT_MODE, 0);
 
 			// Wasn't able to return from cache at this point. However, the object
-			// was already found in manifest, so don't readd it later.
+			// was already found in manifest, so don't re-add it later.
 			put_object_in_manifest = false;
 
 			object_hash_from_manifest = object_hash;
