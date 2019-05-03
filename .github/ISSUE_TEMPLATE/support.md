@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Ask for support
+about: Ask for support or make an enquiry
 title: ''
 labels: support
 assignees: ''
