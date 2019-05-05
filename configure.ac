@@ -176,6 +176,14 @@ if test x${enable_tracing} = xyes; then
     extra_sources="src/minitrace.c"
 fi
 
+AC_ARG_ENABLE(statsd,
+  [AS_HELP_STRING([--enable-statsd],
+    [enable sending ccache stats to statsd server])])
+if test x${enable_statsd} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DHAVE_STATSD_CLIENT_H=1 -DHAVE_STATSD"
+    extra_sources="$extra_sources src/statsd-client.c"
+fi
+
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
     LIBS="$LIBS -lws2_32"

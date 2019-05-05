@@ -21,6 +21,10 @@
 #include "ccache.h"
 #include "hashutil.h"
 
+#ifdef HAVE_STATSD_CLIENT_H
+#include <statsd-client.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -36,6 +40,9 @@ extern char *primary_config_path;
 extern char *secondary_config_path;
 
 static struct counters *counter_updates;
+#ifdef HAVE_STATSD
+static statsd_link *stats_statsd;
+#endif
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
@@ -502,6 +509,11 @@ stats_flush(void)
 
 	free(counter_updates);
 	counter_updates = NULL;
+
+#ifdef HAVE_STATSD
+	statsd_finalize(stats_statsd);
+	stats_statsd = NULL;
+#endif
 }
 
 // Update a normal stat.
@@ -510,7 +522,24 @@ stats_update(enum stats stat)
 {
 	assert(stat > STATS_NONE && stat < STATS_END);
 	init_counter_updates();
+#ifdef HAVE_STATSD
+	if (!stats_statsd) {
+		// this should probably be made configurable
+		stats_statsd = statsd_init("127.0.0.1", 8125);
+	}
+#endif
 	counter_updates->data[stat]++;
+#ifdef HAVE_STATSD
+	const char *prefix = "ccache.stats";
+	for (int i = 0; stats_info[i].message; i++) {
+		if (stat == stats_info[i].stat) {
+			char *counter = format("%s.%s", prefix, stats_info[i].id);
+			statsd_inc(stats_statsd, counter, 1);
+			free(counter);
+			break;
+		}
+	}
+#endif
 }
 
 // Get the pending update of a counter value.
