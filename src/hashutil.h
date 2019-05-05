@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -24,7 +24,7 @@
 struct file_hash
 {
 	uint8_t hash[16];
-	uint32_t hashed_content_size;
+	uint32_t hsize;
 };
 
 unsigned hash_from_string(void *str);

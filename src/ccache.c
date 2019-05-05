@@ -742,13 +742,13 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 
 		struct file_hash *h = x_malloc(sizeof(*h));
 		hash_result_as_bytes(fhash, h->hash);
-		h->hashed_content_size = hash_input_size(fhash);
+		h->hsize = hash_input_size(fhash);
 		hashtable_insert(included_files, path, h);
 		path = NULL; // Ownership transferred to included_files.
 
 		if (depend_mode_hash) {
 			hash_delimiter(depend_mode_hash, "include");
-			char *result = format_hash_as_string(h->hash, h->hashed_content_size);
+			char *result = format_hash_as_string(h->hash, h->hsize);
 			hash_string(depend_mode_hash, result);
 			free(result);
 		}
@@ -1169,7 +1169,7 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 
 	struct file_hash *result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
-	result->hashed_content_size = hash_input_size(hash);
+	result->hsize = hash_input_size(hash);
 	return result;
 }
 
@@ -1366,7 +1366,7 @@ update_manifest_file(void)
 static void
 update_cached_result_globals(struct file_hash *hash)
 {
-	char *object_name = format_hash_as_string(hash->hash, hash->hashed_content_size);
+	char *object_name = format_hash_as_string(hash->hash, hash->hsize);
 	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
@@ -1728,7 +1728,7 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 
 	struct file_hash *result = x_malloc(sizeof(*result));
 	hash_result_as_bytes(hash, result->hash);
-	result->hashed_content_size = hash_input_size(hash);
+	result->hsize = hash_input_size(hash);
 	return result;
 }
 
