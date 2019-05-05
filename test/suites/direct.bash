@@ -759,6 +759,30 @@ EOF
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
+    TEST "__DATE__ in header file results in direct cache hit as the date remains the same"
+
+    cat <<EOF >test_date2.c
+// test_date2.c
+#include "test_date2.h"
+char date_str[] = MACRO_STRING;
+EOF
+    cat <<EOF >test_date2.h
+#define MACRO_STRING __DATE__
+EOF
+
+    backdate test_date2.c test_date2.h
+
+    $CCACHE_COMPILE -MP -MMD -MF test_date2.d -c test_date2.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -MP -MMD -MF test_date2.d -c test_date2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
     TEST "New include file ignored if sloppy"
 
     cat <<EOF >new.c

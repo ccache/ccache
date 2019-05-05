@@ -24,22 +24,23 @@
 
 // Sketchy specification of the manifest disk format:
 //
-// <magic>         magic number                        (4 bytes)
-// <version>       file format version                 (1 byte unsigned int)
-// <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
-// <reserved>      reserved for future use             (2 bytes)
+// <magic>                     magic number                        (4 bytes)
+// <version>                   file format version                 (1 byte unsigned int)
+// <hash_size>                 size of the hash fields (in bytes)  (1 byte unsigned int)
+// <reserved>                  reserved for future use             (2 bytes)
 // ----------------------------------------------------------------------------
-// <n>             number of include file paths        (4 bytes unsigned int)
-// <path_0>        path to include file                (NUL-terminated string,
+// <n>                         number of include file paths        (4 bytes unsigned int)
+// <path_0>                    path to include file                (NUL-terminated string,
 // ...                                                  at most 1024 bytes)
 // <path_n-1>
 // ----------------------------------------------------------------------------
-// <n>             number of include file hash entries (4 bytes unsigned int)
-// <index[0]>      index of include file path          (4 bytes unsigned int)
-// <hash[0]>       hash of include file                (<hash_size> bytes)
-// <size[0]>       size of include file                (4 bytes unsigned int)
-// <mtime[0]>      mtime of include file               (8 bytes signed int)
-// <ctime[0]>      ctime of include file               (8 bytes signed int)
+// <n>                         number of include file hash entries (4 bytes unsigned int)
+// <index[0]>                  index of include file path          (4 bytes unsigned int)
+// <hash[0]>                   hash of include file                (<hash_size> bytes)
+// <size[0]>                   size of include file                (8 bytes unsigned int)
+// <hashed_content_size[0]>    bytes passed through hash function  (4 bytes unsigned int)
+// <mtime[0]>                  mtime of include file               (8 bytes signed int)
+// <ctime[0]>                  ctime of include file               (8 bytes signed int)
 // ...
 // <index[n-1]>
 // <hash[n-1]>
@@ -47,16 +48,16 @@
 // <mtime[n-1]>
 // <ctime[n-1]>
 // ----------------------------------------------------------------------------
-// <n>             number of object name entries       (4 bytes unsigned int)
-// <m[0]>          number of include file hash indexes (4 bytes unsigned int)
-// <index[0][0]>   include file hash index             (4 bytes unsigned int)
+// <n>                         number of object name entries       (4 bytes unsigned int)
+// <m[0]>                      number of include file hash indexes (4 bytes unsigned int)
+// <index[0][0]>               include file hash index             (4 bytes unsigned int)
 // ...
 // <index[0][m[0]-1]>
-// <hash[0]>       hash part of object name            (<hash_size> bytes)
-// <size[0]>       size part of object name            (4 bytes unsigned int)
+// <hash[0]>                   hash part of object name            (<hash_size> bytes)
+// <size[0]>                   size part of object name            (4 bytes unsigned int)
 // ...
-// <m[n-1]>        number of include file hash indexes
-// <index[n-1][0]> include file hash index
+// <m[n-1]>                    number of include file hash indexes
+// <index[n-1][0]>             include file hash index
 // ...
 // <index[n-1][m[n-1]]>
 // <hash[n-1]>
@@ -780,8 +781,8 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		hash = format_hash_as_string(mf->file_infos[i].hash, -1);
 		fprintf(stream, "    Hash: %s\n", hash);
 		free(hash);
-		fprintf(stream, "    File size: %lu\n", mf->file_infos[i].size);
-        fprintf(stream, "    Hashed bytes: %u\n", mf->file_infos[i].hashed_content_size);
+		fprintf(stream, "    File size: %"PRIu64"\n", mf->file_infos[i].size);
+		fprintf(stream, "    Hashed bytes: %u\n", mf->file_infos[i].hashed_content_size);
 		fprintf(stream, "    Mtime: %lld\n", (long long)mf->file_infos[i].mtime);
 		fprintf(stream, "    Ctime: %lld\n", (long long)mf->file_infos[i].ctime);
 	}
