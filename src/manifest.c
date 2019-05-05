@@ -224,27 +224,32 @@ create_empty_manifest(void)
 }
 
 static struct manifest *
-read_manifest(gzFile f)
+read_manifest(gzFile f, char **errmsg)
 {
+	*errmsg = NULL;
 	struct manifest *mf = create_empty_manifest();
 
 	uint32_t magic;
 	READ_INT(4, magic);
 	if (magic != MAGIC) {
-		cc_log("Manifest file has bad magic number %u", magic);
+		*errmsg = format("Manifest file has bad magic number %u", magic);
 		goto error;
 	}
 
 	READ_BYTE(mf->version);
 	if (mf->version != MANIFEST_VERSION) {
-		cc_log("Manifest file has unknown version %u", mf->version);
+		*errmsg = format(
+			"Unknown manifest version (actual %u, expected %u)",
+			mf->version,
+			MANIFEST_VERSION);
 		goto error;
 	}
 
 	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
 		// Temporary measure until we support different hash algorithms.
-		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
+		*errmsg =
+			format("Manifest file has unsupported hash size %u", mf->hash_size);
 		goto error;
 	}
 
@@ -283,7 +288,9 @@ read_manifest(gzFile f)
 	return mf;
 
 error:
-	cc_log("Corrupt manifest file");
+	if (!errmsg) {
+		*errmsg = x_strdup("Corrupt manifest file");
+	}
 	free_manifest(mf);
 	return NULL;
 }
@@ -592,9 +599,11 @@ manifest_get(struct conf *conf, const char *manifest_path)
 		cc_log("Failed to gzdopen manifest file");
 		goto out;
 	}
-	mf = read_manifest(f);
+
+	char *errmsg;
+	mf = read_manifest(f, &errmsg);
 	if (!mf) {
-		cc_log("Error reading manifest file");
+		cc_log("%s", errmsg);
 		goto out;
 	}
 
@@ -653,9 +662,12 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 			close(fd1);
 			goto out;
 		}
-		mf = read_manifest(f1);
+		char *errmsg;
+		mf = read_manifest(f1, &errmsg);
 		gzclose(f1);
 		if (!mf) {
+			cc_log("%s", errmsg);
+			free(errmsg);
 			cc_log("Failed to read manifest file; deleting it");
 			x_unlink(manifest_path);
 			mf = create_empty_manifest();
@@ -741,9 +753,11 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		close(fd);
 		goto out;
 	}
-	mf = read_manifest(f);
+	char *errmsg;
+	mf = read_manifest(f, &errmsg);
 	if (!mf) {
-		fprintf(stderr, "Error reading manifest file\n");
+		fprintf(stderr, "%s\n", errmsg);
+		free(errmsg);
 		goto out;
 	}
 
