@@ -1,5 +1,5 @@
-#ifndef _H_STATSD_CLIENT
-#define _H_STATSD_CLIENT
+#ifndef STATSD_CLIENT_H
+#define STATSD_CLIENT_H
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
