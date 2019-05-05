@@ -24,7 +24,7 @@
 struct file_hash
 {
 	uint8_t hash[16];
-	uint32_t size;
+	uint32_t hashed_content_size;
 };
 
 unsigned hash_from_string(void *str);

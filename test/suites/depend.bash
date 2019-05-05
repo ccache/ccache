@@ -294,6 +294,5 @@ EOF
     expect_stat 'files in cache' 9
 
     # -------------------------------------------------------------------------
-
     # TODO: Add more test cases (see direct.bash for inspiration)
 }
