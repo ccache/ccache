@@ -4045,6 +4045,7 @@ ccache_main_options(int argc, char *argv[])
 	       != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
+			initialize();
 			manifest_dump(optarg, stdout);
 			break;
 
