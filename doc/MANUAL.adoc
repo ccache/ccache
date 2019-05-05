@@ -465,6 +465,14 @@ might be incorrect.
     the specified file. This is useful for tracking down problems.
 +
 If set to "syslog", then ccache will log using syslog() instead of a file.
+Then you can use syslogd configuration to filter into a file, example:
++
+-------------------------------------------------------------------------------
+# log ccache to file
+:programname, isequal, "ccache"         /var/log/ccache
+# remove from syslog
+& ~
+-------------------------------------------------------------------------------
 
 *max_files* (*CCACHE_MAXFILES*)::
 
