@@ -22,6 +22,9 @@
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
+#ifdef HAVE_SYSLOG_H
+#include <syslog.h>
+#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -35,6 +38,9 @@
 
 // Destination for conf->log_file.
 static FILE *logfile;
+
+// Whether to use syslog() instead.
+static bool use_syslog;
 
 // Buffer used for logs in conf->debug mode.
 static char *debug_log_buffer;
@@ -52,7 +58,7 @@ init_log(void)
 {
 	extern struct conf *conf;
 
-	if (debug_log_buffer || logfile) {
+	if (debug_log_buffer || logfile || use_syslog) {
 		return true;
 	}
 	assert(conf);
@@ -64,6 +70,13 @@ init_log(void)
 	if (str_eq(conf->log_file, "")) {
 		return conf->debug;
 	}
+#ifdef HAVE_SYSLOG
+	if (str_eq(conf->log_file, "syslog")) {
+		use_syslog = true;
+		openlog("ccache", LOG_PID, LOG_USER);
+		return true;
+	}
+#endif
 	logfile = fopen(conf->log_file, "a");
 	if (logfile) {
 #ifndef _WIN32
@@ -112,6 +125,11 @@ log_prefix(bool log_updated_time)
 	if (logfile) {
 		fputs(prefix, logfile);
 	}
+#ifdef HAVE_SYSLOG
+	if (use_syslog) {
+		// prefix information will be added by syslog
+	}
+#endif
 	if (debug_log_buffer) {
 		append_to_debug_log(prefix, strlen(prefix));
 	}
@@ -163,6 +181,11 @@ vlog(const char *format, va_list ap, bool log_updated_time)
 			warn_log_fail();
 		}
 	}
+#ifdef HAVE_SYSLOG
+	if (use_syslog) {
+		vsyslog(LOG_DEBUG, format, ap);
+	}
+#endif
 	if (debug_log_buffer) {
 		char buf[8192];
 		int len = vsnprintf(buf, sizeof(buf), format, aq);
@@ -215,6 +238,13 @@ cc_log_argv(const char *prefix, char **argv)
 			warn_log_fail();
 		}
 	}
+#ifdef HAVE_SYSLOG
+	if (use_syslog) {
+		char *s = format_command(argv);
+		syslog(LOG_DEBUG, "%s", s);
+		free(s);
+	}
+#endif
 	if (debug_log_buffer) {
 		append_to_debug_log(prefix, strlen(prefix));
 		char *s = format_command(argv);

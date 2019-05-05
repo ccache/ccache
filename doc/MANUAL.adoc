@@ -463,6 +463,8 @@ might be incorrect.
 
     If set to a file path, ccache will write information on what it is doing to
     the specified file. This is useful for tracking down problems.
++
+If set to "syslog", then ccache will log using syslog() instead of a file.
 
 *max_files* (*CCACHE_MAXFILES*)::
 
