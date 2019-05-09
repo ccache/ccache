@@ -273,6 +273,8 @@ EOF
 # =============================================================================
 # main program
 
+export LC_ALL=C
+
 if pwd | grep '[^A-Za-z0-9/.,=_%+-]' >/dev/null 2>&1; then
     cat <<EOF
 Error: The test suite doesn't work in directories with whitespace or other
