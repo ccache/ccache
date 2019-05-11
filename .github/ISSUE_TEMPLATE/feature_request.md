@@ -6,9 +6,8 @@ labels: feature
 assignees: ''
 
 ---
-
 ### Description ###
 <!-- How do you want ccache to work or behave? -->
 
-...
+
 
