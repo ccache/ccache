@@ -29,39 +29,22 @@ https://www.snoyman.com/blog/2017/10/effective-ways-help-from-maintainers).
 The preferred way is to create one or several pull request with your
 proposal(s) on [GitHub](https://github.com/ccache/ccache).
 
-If you plan to implement major changes it is wise to open an issue on GitHub
-(or send a mail to the mailing list) asking for comments on your plans before
-doing the bulk of the work. That way you can avoid potentially wasting time on
-doing something that might not end up being accepted.
+Here are some hints to make the process smoother:
 
-### How to write commit messages
-
-* Write a summary (short description) on the first line.
-* Start the summary with a capital letter. Optional: prefix the short
-  description with a context followed by a colon.
-* The summary should be in imperative mood (see examples below).
-* The summary should not end with a period. It's a title and titles don't end
-  with a period.
-* If a longer description is wanted, add a second line empty and write the
-  longer description on line three and below.
-* Keep lines in the message at most 72 characters wide.
-
-Example 1:
-
-    Hash a delimiter string between parts to separate them
-
-    Previously, "gcc -I-O2 -c file.c" and "gcc -I -O2 -c file.c" would hash
-    to the same sum.
-
-Example 2:
-
-    win32: Add a space between filename and error string in x_fmmap()
-
-See also:
-
-* http://stopwritingramblingcommitmessages.com
-* http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
-* https://github.com/erlang/otp/wiki/Writing-good-commit-messages
+* If you plan to implement major changes it is wise to open an issue on GitHub
+  (or send a mail to the mailing list) asking for comments on your plans before
+  doing the bulk of the work. That way you can avoid potentially wasting time
+  on doing something that may need major rework to be accepted, or maybe
+  doesn'tend up being accepted at all.
+* Is your pull request "work in progress", i.e. you don't think that it's ready
+  for merging yet but you want early comments? Then create a draft pull request
+  as described in [this Github blog
+  post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
+* If you have [Uncrustify](http://uncrustify.sourceforge.net) installed, you
+  can run `make uncrustify` to adapt your modifications to ccache's code style.
+* Consider [A Note About Git Commit
+  Messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+  when writing commit messages.
 
 ### Code style
 
@@ -82,8 +65,8 @@ See also:
 * Don't use typedefs for structs and enums.
 * Use //-style comments.
 
-Tip: Install the tool uncrustify <http://uncrustify.sourceforge.net> and then
-run "make uncrustify" to fix up source code formatting.
+Tip: Install the tool [Uncrustify(http://uncrustify.sourceforge.net) and then
+run `make uncrustify` to fix up source code formatting.
 
 #### Idioms
 
