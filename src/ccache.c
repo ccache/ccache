@@ -2306,26 +2306,32 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	const char *explicit_language = NULL; // As specified with -x.
 	const char *file_language;            // As deduced from file extension.
 	const char *input_charset = NULL;
+
 	// Is the dependency makefile name overridden with -MF?
 	bool dependency_filename_specified = false;
+
 	// Is the dependency makefile target name specified with -MT or -MQ?
 	bool dependency_target_specified = false;
+
 	// Is the dependency target name implicitly specified using
 	// DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
 	bool dependency_implicit_target_specified = false;
+
 	// expanded_args is a copy of the original arguments given to the compiler
 	// but with arguments from @file and similar constructs expanded. It's only
 	// used as a temporary data structure to loop over.
 	struct args *expanded_args = args_copy(args);
-	// stripped_args essentially contains all original arguments except those
-	// that only should be passed to the preprocessor (if run_second_cpp is
-	// false) and except dependency options (like -MD and friends).
-	struct args *stripped_args = args_init(0, NULL);
-	// cpp_args contains arguments that were not added to stripped_args, i.e.
-	// those that should only be passed to the preprocessor if run_second_cpp is
-	// false. If run_second_cpp is true, they will be passed to the compiler as
-	// well.
+
+	// common_args essentially contains all original arguments except those that
+	// only should be passed to the preprocessor (if run_second_cpp is false) and
+	// except dependency options (like -MD and friends).
+	struct args *common_args = args_init(0, NULL);
+
+	// cpp_args contains arguments that were not added to common_args, i.e. those
+	// that should only be passed to the preprocessor if run_second_cpp is false.
+	// If run_second_cpp is true, they will be passed to the compiler as well.
 	struct args *cpp_args = args_init(0, NULL);
+
 	// dep_args contains dependency options like -MD. They only passed to the
 	// preprocessor, never to the compiler.
 	struct args *dep_args = args_init(0, NULL);
@@ -2337,7 +2343,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	int argc = expanded_args->argc;
 	char **argv = expanded_args->argv;
-	args_add(stripped_args, argv[0]);
+	args_add(common_args, argv[0]);
 
 	bool result = true;
 	for (int i = 1; i < argc; i++) {
@@ -2349,7 +2355,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 
@@ -2479,7 +2485,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 		// -S changes the default extension.
 		if (str_eq(argv[i], "-S")) {
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			found_S_opt = true;
 			continue;
 		}
@@ -2532,14 +2538,14 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				(debug_prefix_maps_len + 1) * sizeof(char *));
 			debug_prefix_maps[debug_prefix_maps_len++] =
 				x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 
 		// Debugging is handled specially, so that we know if we can strip line
 		// number info.
 		if (str_startswith(argv[i], "-g")) {
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 
 			if (str_startswith(argv[i], "-gdwarf")) {
 				// Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
@@ -2634,29 +2640,29 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 		if (str_eq(argv[i], "-fprofile-arcs")) {
 			profile_arcs = true;
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_eq(argv[i], "-ftest-coverage")) {
 			generating_coverage = true;
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_eq(argv[i], "-fstack-usage")) {
 			generating_stackusage = true;
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_eq(argv[i], "--coverage") // = -fprofile-arcs -ftest-coverage
 		    || str_eq(argv[i], "-coverage")) { // Undocumented but still works.
 			profile_arcs = true;
 			generating_coverage = true;
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_startswith(argv[i], "-fprofile-dir=")) {
 			profile_dir = x_strdup(argv[i] + 14);
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
@@ -2664,13 +2670,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				sanitize_blacklists,
 				(sanitize_blacklists_len + 1) * sizeof(char *));
 			sanitize_blacklists[sanitize_blacklists_len++] = x_strdup(argv[i] + 21);
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 		if (str_startswith(argv[i], "--sysroot=")) {
 			char *relpath = make_relative_path(x_strdup(argv[i] + 10));
 			char *option = format("--sysroot=%s", relpath);
-			args_add(stripped_args, option);
+			args_add(common_args, option);
 			free(relpath);
 			free(option);
 			continue;
@@ -2683,9 +2689,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			char *relpath = make_relative_path(x_strdup(argv[i+1]));
-			args_add(stripped_args, relpath);
+			args_add(common_args, relpath);
 			i++;
 			free(relpath);
 			continue;
@@ -2698,8 +2704,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				result = false;
 				goto out;
 			}
-			args_add(stripped_args, argv[i]);
-			args_add(stripped_args, argv[i+1]);
+			args_add(common_args, argv[i]);
+			args_add(common_args, argv[i+1]);
 			i++;
 			continue;
 		}
@@ -2814,7 +2820,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			}
 
 			if (supported_profile_option) {
-				args_add(stripped_args, arg);
+				args_add(common_args, arg);
 				free(arg);
 
 				// If the profile directory has already been set, give up... Hard to
@@ -2839,17 +2845,17 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		    || str_eq(argv[i], "-fdiagnostics-color=always")
 		    || str_eq(argv[i], "-fno-diagnostics-color")
 		    || str_eq(argv[i], "-fdiagnostics-color=never")) {
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			found_color_diagnostics = true;
 			continue;
 		}
 		if (str_eq(argv[i], "-fdiagnostics-color=auto")) {
 			if (color_output_possible()) {
 				// Output is redirected, so color output must be forced.
-				args_add(stripped_args, "-fdiagnostics-color=always");
+				args_add(common_args, "-fdiagnostics-color=always");
 				cc_log("Automatically forcing colors");
 			} else {
-				args_add(stripped_args, argv[i]);
+				args_add(common_args, argv[i]);
 			}
 			found_color_diagnostics = true;
 			continue;
@@ -2899,8 +2905,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				args_add(cpp_args, argv[i]);
 				args_add(cpp_args, relpath);
 			} else {
-				args_add(stripped_args, argv[i]);
-				args_add(stripped_args, relpath);
+				args_add(common_args, argv[i]);
+				args_add(common_args, relpath);
 			}
 			free(relpath);
 
@@ -2920,7 +2926,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 					if (compopt_affects_cpp(option)) {
 						args_add(cpp_args, new_option);
 					} else {
-						args_add(stripped_args, new_option);
+						args_add(common_args, new_option);
 					}
 					free(new_option);
 					free(relpath);
@@ -2945,8 +2951,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				args_add(cpp_args, argv[i]);
 				args_add(cpp_args, argv[i+1]);
 			} else {
-				args_add(stripped_args, argv[i]);
-				args_add(stripped_args, argv[i+1]);
+				args_add(common_args, argv[i]);
+				args_add(common_args, argv[i+1]);
 			}
 
 			i++;
@@ -2959,7 +2965,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			    || compopt_prefix_affects_cpp(argv[i])) {
 				args_add(cpp_args, argv[i]);
 			} else {
-				args_add(stripped_args, argv[i]);
+				args_add(common_args, argv[i]);
 			}
 			continue;
 		}
@@ -2974,7 +2980,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		    && (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode))) {
 			cc_log("%s is not a regular file, not considering as input file",
 			       argv[i]);
-			args_add(stripped_args, argv[i]);
+			args_add(common_args, argv[i]);
 			continue;
 		}
 
@@ -3123,7 +3129,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 
 	if (!found_c_opt && !found_S_opt) {
 		if (output_is_precompiled_header) {
-			args_add(stripped_args, "-c");
+			args_add(common_args, "-c");
 		} else {
 			cc_log("No -c option found");
 			// I find that having a separate statistic for autoconf tests is useful,
@@ -3246,7 +3252,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	if (!found_color_diagnostics && color_output_possible()) {
 		if (guessed_compiler == GUESSED_CLANG) {
 			if (!str_eq(actual_language, "assembler")) {
-				args_add(stripped_args, "-fcolor-diagnostics");
+				args_add(common_args, "-fcolor-diagnostics");
 				cc_log("Automatically enabling colors");
 			}
 		} else if (guessed_compiler == GUESSED_GCC) {
@@ -3255,7 +3261,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			// set (and not empty), so use that for detecting if GCC would use
 			// colors.
 			if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
-				args_add(stripped_args, "-fdiagnostics-color");
+				args_add(common_args, "-fdiagnostics-color");
 				cc_log("Automatically enabling colors");
 			}
 		}
@@ -3292,7 +3298,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		output_su = make_relative_path(default_sufile_name);
 	}
 
-	*compiler_args = args_copy(stripped_args);
+	*compiler_args = args_copy(common_args);
 	if (conf->run_second_cpp) {
 		args_extend(*compiler_args, cpp_args);
 	} else if (found_directives_only || found_rewrite_includes) {
@@ -3332,12 +3338,12 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// source.
 	args_extend(cpp_args, dep_args);
 
-	*preprocessor_args = args_copy(stripped_args);
+	*preprocessor_args = args_copy(common_args);
 	args_extend(*preprocessor_args, cpp_args);
 
 out:
 	args_free(expanded_args);
-	args_free(stripped_args);
+	args_free(common_args);
 	args_free(dep_args);
 	args_free(cpp_args);
 	return result;
