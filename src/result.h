@@ -6,6 +6,8 @@
 #define USE_SINGLE 0
 #define USE_AGGREGATED 1
 
+#define RESULT_VERSION 1
+
 struct filelist *create_empty_filelist(void);
 int add_file_to_filelist(struct filelist *c, const char *path, const char *suffix);
 void free_filelist(struct filelist *c);

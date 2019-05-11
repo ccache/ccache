@@ -158,6 +158,18 @@ read_cache(gzFile f, struct filelist *l, bool copy)
 		goto error;
 	}
 
+	uint8_t version;
+	READ_BYTE(version);
+	(void)version;
+
+	uint8_t hash_size;
+	READ_BYTE(hash_size);
+	(void)hash_size;
+
+	uint16_t reserved;
+	READ_INT(2, reserved);
+	(void)reserved;
+
 	uint32_t n_files;
 	READ_INT(4, n_files);
 
@@ -202,6 +214,13 @@ error:
 	free_filelist(l);
 	return NULL;
 }
+
+#define WRITE_BYTE(var) \
+	do { \
+		if (gzputc(f, var) == EOF) { \
+			goto error; \
+		} \
+	} while (false)
 
 #define WRITE_INT(size, var) \
 	do { \
@@ -251,6 +270,10 @@ static int
 write_cache(gzFile f, const struct filelist *l)
 {
 	WRITE_INT(4, MAGIC);
+
+	WRITE_BYTE(RESULT_VERSION);
+	WRITE_BYTE(16);
+	WRITE_INT(2, 0);
 
 	WRITE_INT(4, l->n_files);
 	for (uint32_t i = 0; i < l->n_files; i++) {
