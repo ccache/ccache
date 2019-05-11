@@ -210,7 +210,7 @@ fi
 mkdir -p .deps src unittest
 
 dnl Enable developer mode if dev.mk.in exists.
-if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; then
+if test ! -f $srcdir/dev_mode_disabled; then
     AC_MSG_NOTICE(developer mode enabled)
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
