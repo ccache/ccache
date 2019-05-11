@@ -1335,10 +1335,10 @@ send_cached_stderr(void)
 	char *tmp_stderr = format("%s/tmp.stderr", temp_dir());
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 	close(tmp_stderr_fd);
-	struct cache *cache = create_empty_cache();
-	cache_get(cached_result, cache);
-	add_cache_file(cache, tmp_stderr, ".stderr");
-	if (cache_get(cached_result, cache)) {
+	struct filelist *filelist = create_empty_filelist();
+	cache_get(cached_result, filelist);
+	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
+	if (cache_get(cached_result, filelist)) {
 		cc_log("Sending stderr from %s", tmp_stderr);
 		int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
 		if (fd != -1) {
@@ -1346,7 +1346,7 @@ send_cached_stderr(void)
 			close(fd);
 		}
 	}
-	free_cache(cache);
+	free_filelist(filelist);
 	tmp_unlink(tmp_stderr);
 #endif
 #if USE_SINGLE
@@ -1626,30 +1626,30 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 #endif
 #if USE_AGGREGATED
-	struct cache *cache = create_empty_cache();
+	struct filelist *filelist = create_empty_filelist();
 	if (st.st_size > 0) {
-		add_cache_file(cache, tmp_stderr, ".stderr");
+		add_file_to_filelist(filelist, tmp_stderr, ".stderr");
 	}
-	add_cache_file(cache, output_obj, ".o");
+	add_file_to_filelist(filelist, output_obj, ".o");
 	if (generating_dependencies) {
-		add_cache_file(cache, output_dep, ".d");
+		add_file_to_filelist(filelist, output_dep, ".d");
 	}
 	if (generating_coverage) {
-		add_cache_file(cache, output_cov, ".gcno");
+		add_file_to_filelist(filelist, output_cov, ".gcno");
 	}
 	if (generating_stackusage) {
-		add_cache_file(cache, output_su, ".su");
+		add_file_to_filelist(filelist, output_su, ".su");
 	}
 	if (generating_diagnostics) {
-		add_cache_file(cache, output_dia, ".dia");
+		add_file_to_filelist(filelist, output_dia, ".dia");
 	}
 	if (using_split_dwarf) {
-		add_cache_file(cache, output_dwo, ".dwo");
+		add_file_to_filelist(filelist, output_dwo, ".dwo");
 	}
 	struct stat orig_dest_st;
 	bool orig_dest_existed = stat(cached_result, &orig_dest_st) == 0;
-	cache_put(cached_result, cache);
-	free_cache(cache);
+	cache_put(cached_result, filelist);
+	free_filelist(filelist);
 
 	cc_log("Stored in cache: %s", cached_result);
 
@@ -2417,27 +2417,27 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 #endif
 #if USE_AGGREGATED
-	struct cache *cache = create_empty_cache();
+	struct filelist *filelist = create_empty_filelist();
 	if (!str_eq(output_obj, "/dev/null")) {
-		add_cache_file(cache, output_obj, ".o");
+		add_file_to_filelist(filelist, output_obj, ".o");
 		if (using_split_dwarf) {
-			add_cache_file(cache, output_dwo, ".dwo");
+			add_file_to_filelist(filelist, output_dwo, ".dwo");
 		}
 	}
 	if (produce_dep_file) {
-		add_cache_file(cache, output_dep, ".dep");
+		add_file_to_filelist(filelist, output_dep, ".dep");
 	}
 	if (generating_coverage) {
-		add_cache_file(cache, output_cov, ".gcno");
+		add_file_to_filelist(filelist, output_cov, ".gcno");
 	}
 	if (generating_stackusage) {
-		add_cache_file(cache, output_su, ".su");
+		add_file_to_filelist(filelist, output_su, ".su");
 	}
 	if (generating_diagnostics) {
-		add_cache_file(cache, output_dia, ".dia");
+		add_file_to_filelist(filelist, output_dia, ".dia");
 	}
-	cache_get(cached_result, cache);
-	free_cache(cache);
+	cache_get(cached_result, filelist);
+	free_filelist(filelist);
 
 	cc_log("Read from cache: %s", cached_result);
 #endif

@@ -28,20 +28,31 @@ struct file {
 	char *path;
 };
 
-struct cache {
+struct filelist {
 	uint32_t n_files;
 	struct file *files;
 	uint64_t *sizes;
 };
 
-int
-add_cache_file(struct cache *c, const char *path, const char *suffix)
+struct filelist *
+create_empty_filelist(void)
 {
-	uint32_t n = c->n_files;
-	c->files = x_realloc(c->files, (n + 1) * sizeof(*c->files));
-	c->sizes = x_realloc(c->sizes, (n + 1) * sizeof(*c->sizes));
-	struct file *f = &c->files[c->n_files];
-	c->n_files++;
+	struct filelist *l = x_malloc(sizeof(*l));
+	l->n_files = 0;
+	l->files = NULL;
+	l->sizes = NULL;
+
+	return l;
+}
+
+int
+add_file_to_filelist(struct filelist *l, const char *path, const char *suffix)
+{
+	uint32_t n = l->n_files;
+	l->files = x_realloc(l->files, (n + 1) * sizeof(*l->files));
+	l->sizes = x_realloc(l->sizes, (n + 1) * sizeof(*l->sizes));
+	struct file *f = &l->files[l->n_files];
+	l->n_files++;
 
 	f->suffix_len = strlen(suffix);
 	f->suffix = x_strdup(suffix);
@@ -52,18 +63,18 @@ add_cache_file(struct cache *c, const char *path, const char *suffix)
 }
 
 void
-free_cache(struct cache *c)
+free_filelist(struct filelist *l)
 {
-	for (uint32_t i = 0; i < c->n_files; i++) {
-		free(c->files[i].suffix);
-		free(c->files[i].path);
+	for (uint32_t i = 0; i < l->n_files; i++) {
+		free(l->files[i].suffix);
+		free(l->files[i].path);
 	}
-	free(c->files);
-	c->files = NULL;
-	free(c->sizes);
-	c->sizes = NULL;
+	free(l->files);
+	l->files = NULL;
+	free(l->sizes);
+	l->sizes = NULL;
 
-	free(c);
+	free(l);
 }
 
 #define READ_BYTE(var) \
@@ -137,19 +148,8 @@ free_cache(struct cache *c)
 	} while (false)
 
 
-struct cache *
-create_empty_cache(void)
-{
-	struct cache *c = x_malloc(sizeof(*c));
-	c->n_files = 0;
-	c->files = NULL;
-	c->sizes = NULL;
-
-	return c;
-}
-
-static struct cache *
-read_cache(gzFile f, struct cache *c, bool copy)
+static struct filelist *
+read_cache(gzFile f, struct filelist *l, bool copy)
 {
 	uint32_t magic;
 	READ_INT(4, magic);
@@ -174,19 +174,19 @@ read_cache(gzFile f, struct cache *c, bool copy)
 
 		bool found = false;
 		if (copy) {
-			for (uint32_t j = 0; j < c->n_files; j++) {
-				if (sufflen == c->files[j].suffix_len &&
-				str_eq(suffix, c->files[j].suffix)) {
+			for (uint32_t j = 0; j < l->n_files; j++) {
+				if (sufflen == l->files[j].suffix_len &&
+				str_eq(suffix, l->files[j].suffix)) {
 					found = true;
 
-					cc_log("Copying %s from cache", c->files[i].path);
+					cc_log("Copying %s from cache", l->files[i].path);
 
-					READ_FILE(filelen, c->files[j].path);
+					READ_FILE(filelen, l->files[j].path);
 				}
 			}
 		} else {
-			add_cache_file(c, "", suffix);
-			c->sizes[c->n_files-1] = filelen;
+			add_file_to_filelist(l, "", suffix);
+			l->sizes[l->n_files-1] = filelen;
 		}
 		if (!found) {
 			// Skip the data, if no match
@@ -195,11 +195,11 @@ read_cache(gzFile f, struct cache *c, bool copy)
 
 		free(suffix);
 	}
-	return c;
+	return l;
 
 error:
 	cc_log("Corrupt cache file");
-	free_cache(c);
+	free_filelist(l);
 	return NULL;
 }
 
@@ -248,27 +248,27 @@ error:
 	} while (false)
 
 static int
-write_cache(gzFile f, const struct cache *c)
+write_cache(gzFile f, const struct filelist *l)
 {
 	WRITE_INT(4, MAGIC);
 
-	WRITE_INT(4, c->n_files);
-	for (uint32_t i = 0; i < c->n_files; i++) {
+	WRITE_INT(4, l->n_files);
+	for (uint32_t i = 0; i < l->n_files; i++) {
 		struct stat st;
-		if (x_stat(c->files[i].path, &st) != 0) {
+		if (x_stat(l->files[i].path, &st) != 0) {
 			return -1;
 		}
 
-		cc_log("Writing file #%d: %s (%ld)", i, c->files[i].suffix,
+		cc_log("Writing file #%d: %s (%ld)", i, l->files[i].suffix,
 		       (long)st.st_size);
 
-		WRITE_INT(4, c->files[i].suffix_len);
-		WRITE_STR(c->files[i].suffix);
+		WRITE_INT(4, l->files[i].suffix_len);
+		WRITE_STR(l->files[i].suffix);
 
-		cc_log("Copying %s to cache", c->files[i].path);
+		cc_log("Copying %s to cache", l->files[i].path);
 
 		WRITE_INT(4, st.st_size);
-		WRITE_FILE(st.st_size, c->files[i].path);
+		WRITE_FILE(st.st_size, l->files[i].path);
 	}
 
 	return 1;
@@ -278,7 +278,7 @@ error:
 	return 0;
 }
 
-bool cache_get(const char *cache_path, struct cache *c)
+bool cache_get(const char *cache_path, struct filelist *l)
 {
 	int ret = 0;
 	gzFile f = NULL;
@@ -295,8 +295,8 @@ bool cache_get(const char *cache_path, struct cache *c)
 		cc_log("Failed to gzdopen cache file");
 		goto out;
 	}
-	c = read_cache(f, c, true);
-	if (!c) {
+	l = read_cache(f, l, true);
+	if (!l) {
 		cc_log("Error reading cache file");
 		goto out;
 	}
@@ -308,7 +308,7 @@ out:
 	return ret;
 }
 
-bool cache_put(const char *cache_path, struct cache *c)
+bool cache_put(const char *cache_path, struct filelist *l)
 {
 	int ret = 0;
 	gzFile f2 = NULL;
@@ -323,7 +323,7 @@ bool cache_put(const char *cache_path, struct cache *c)
 		goto out;
 	}
 
-	if (write_cache(f2, c)) {
+	if (write_cache(f2, l)) {
 		gzclose(f2);
 		f2 = NULL;
 		if (x_rename(tmp_file, cache_path) == 0) {
@@ -349,7 +349,7 @@ out:
 bool
 cache_dump(const char *cache_path, FILE *stream)
 {
-	struct cache *c = create_empty_cache();
+	struct filelist *l = create_empty_filelist();
 	gzFile f = NULL;
 	bool ret = false;
 
@@ -364,8 +364,8 @@ cache_dump(const char *cache_path, FILE *stream)
 		close(fd);
 		goto out;
 	}
-	c = read_cache(f, c, false);
-	if (!c) {
+	l = read_cache(f, l, false);
+	if (!l) {
 		fprintf(stderr, "Error reading cache file\n");
 		goto out;
 	}
@@ -375,17 +375,17 @@ cache_dump(const char *cache_path, FILE *stream)
 	        (MAGIC >> 16) & 0xFF,
 	        (MAGIC >> 8) & 0xFF,
 	        MAGIC & 0xFF);
-	fprintf(stream, "File paths (%u):\n", (unsigned)c->n_files);
-	for (unsigned i = 0; i < c->n_files; ++i) {
-		fprintf(stream, "  %u: %s (%s)\n", i, c->files[i].suffix,
-		                format_human_readable_size(c->sizes[i]));
+	fprintf(stream, "File paths (%u):\n", (unsigned)l->n_files);
+	for (unsigned i = 0; i < l->n_files; ++i) {
+		fprintf(stream, "  %u: %s (%s)\n", i, l->files[i].suffix,
+		                format_human_readable_size(l->sizes[i]));
 	}
 
 	ret = true;
 
 out:
-	if (c) {
-		free_cache(c);
+	if (l) {
+		free_filelist(l);
 	}
 	if (f) {
 		gzclose(f);
