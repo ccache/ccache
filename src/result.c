@@ -134,13 +134,10 @@ free_filelist(struct filelist *l)
 #define READ_FILE(size, path) \
 	do { \
 		FILE *f_ = fopen(path, "wb"); \
-		long i_; \
-		for (i_ = 0; i_ < (size); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
-			if (fputc(ch_, f_) == EOF) { \
+		char buf_[READ_BUFFER_SIZE]; \
+		long n_; \
+		while ((n_ = gzread(f, buf_, sizeof(buf_))) > 0) { \
+			if ((long)fwrite(buf_, 1, n_, f_) != n_) { \
 				goto error; \
 			} \
 		} \
@@ -255,11 +252,10 @@ error:
 #define WRITE_FILE(size, path) \
 	do { \
 		FILE *f_ = fopen(path, "rb"); \
-		uint8_t ch_; \
-		long i_; \
-		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = fgetc(f_); \
-			if (gzputc(f, ch_) == EOF) { \
+		char buf_[READ_BUFFER_SIZE]; \
+		long n_; \
+		while ((n_ = (long)fread(buf_, 1, sizeof(buf_), f_)) > 0) { \
+			if (gzwrite(f, buf_, n_) != n_) { \
 				goto error; \
 			} \
 		} \
@@ -271,8 +267,8 @@ write_cache(gzFile f, const struct filelist *l)
 {
 	WRITE_INT(4, MAGIC);
 
-	WRITE_BYTE(RESULT_VERSION);
-	WRITE_BYTE(16);
+	WRITE_INT(1, RESULT_VERSION);
+	WRITE_INT(1, 16);
 	WRITE_INT(2, 0);
 
 	WRITE_INT(4, l->n_files);
