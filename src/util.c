@@ -768,6 +768,7 @@ format_hex(unsigned char *data, size_t size)
 	for (i = 0; i < size; i++) {
 		sprintf(&ret[i*2], "%02x", (unsigned) data[i]);
 	}
+	ret[2 * size] = '\0';
 	return ret;
 }
 

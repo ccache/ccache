@@ -235,4 +235,15 @@ TEST(format_command)
 
 }
 
+TEST(format_hex)
+{
+	unsigned char none[] = "";
+	unsigned char text[4] = "foo"; // incl. NUL
+	unsigned char data[4] = "\x00\x01\x02\x03";
+
+	CHECK_STR_EQ_FREE2("", format_hex(none, 0));
+	CHECK_STR_EQ_FREE2("666f6f00", format_hex(text, sizeof(text)));
+	CHECK_STR_EQ_FREE2("00010203", format_hex(data, sizeof(data)));
+}
+
 TEST_SUITE_END
