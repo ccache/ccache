@@ -181,7 +181,7 @@ fi
 AC_ARG_ENABLE(aggregated,
   [AS_HELP_STRING([--enable-aggregated],
     [enable aggregated result files rather than single])])
-if test x${enable_aggregated,} = xyes; then
+if test x${enable_aggregated} = xyes; then
     CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=0 -DUSE_AGGREGATED=1"
 else
     CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=1 -DUSE_AGGREGATED=0"
