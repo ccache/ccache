@@ -3,9 +3,6 @@
 
 #include "conf.h"
 
-#define USE_SINGLE 0
-#define USE_AGGREGATED 1
-
 #define RESULT_VERSION 1
 
 struct filelist *create_empty_filelist(void);

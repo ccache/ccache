@@ -176,6 +176,15 @@ if test x${enable_tracing} = xyes; then
     extra_sources="src/minitrace.c"
 fi
 
+AC_ARG_ENABLE(aggregated,
+  [AS_HELP_STRING([--enable-aggregated],
+    [enable aggregated result files rather than single])])
+if test x${enable_aggregated,} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=0 -DUSE_AGGREGATED=1"
+else
+    CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=1 -DUSE_AGGREGATED=0"
+fi
+
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
     LIBS="$LIBS -lws2_32"
