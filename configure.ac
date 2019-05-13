@@ -81,6 +81,7 @@ AC_HEADER_SYS_WAIT
 AC_CHECK_TYPES(long long)
 
 AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
+AC_CHECK_HEADERS(syslog.h)
 AC_CHECK_HEADERS(termios.h)
 
 AC_CHECK_FUNCS(gethostname)
@@ -93,6 +94,7 @@ AC_CHECK_FUNCS(realpath)
 AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strtok_r)
+AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
 
@@ -217,7 +219,7 @@ fi
 mkdir -p .deps src unittest
 
 dnl Enable developer mode if dev.mk.in exists.
-if test ! -f $srcdir/dev_mode_disabled && test "$RUN_FROM_BUILD_FARM" != yes; then
+if test ! -f $srcdir/dev_mode_disabled; then
     AC_MSG_NOTICE(developer mode enabled)
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'

@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -37,13 +37,15 @@
 // <n>             number of include file hash entries (4 bytes unsigned int)
 // <index[0]>      index of include file path          (4 bytes unsigned int)
 // <hash[0]>       hash of include file                (<hash_size> bytes)
-// <size[0]>       size of include file                (4 bytes unsigned int)
+// <hsize[0]>      hashed bytes                        (4 bytes unsigned int)
+// <fsize[0]>      size of include file                (8 bytes unsigned int)
 // <mtime[0]>      mtime of include file               (8 bytes signed int)
-// <ctime[0]>      ctime of include file               (8 bytes signed int)
+// <ctime[0]>      mtime of include file               (8 bytes signed int)
 // ...
 // <index[n-1]>
 // <hash[n-1]>
-// <size[n-1]>
+// <hsize[n-1]>
+// <fsize[n-1]>
 // <mtime[n-1]>
 // <ctime[n-1]>
 // ----------------------------------------------------------------------------
@@ -74,8 +76,10 @@ struct file_info {
 	uint32_t index;
 	// Hash of referenced file.
 	uint8_t hash[16];
+	// Hashed content byte count.
+	uint32_t hsize;
 	// Size of referenced file.
-	uint32_t size;
+	uint64_t fsize;
 	// mtime of referenced file.
 	int64_t mtime;
 	// ctime of referenced file.
@@ -115,7 +119,7 @@ struct manifest {
 };
 
 struct file_stats {
-	uint32_t size;
+	uint64_t size;
 	int64_t mtime;
 	int64_t ctime;
 };
@@ -123,7 +127,7 @@ struct file_stats {
 static unsigned int
 hash_from_file_info(void *key)
 {
-	ccache_static_assert(sizeof(struct file_info) == 40); // No padding.
+	ccache_static_assert(sizeof(struct file_info) == 48); // No padding.
 	return murmurhashneutral2(key, sizeof(struct file_info), 0);
 }
 
@@ -134,7 +138,8 @@ file_infos_equal(void *key1, void *key2)
 	struct file_info *fi2 = (struct file_info *)key2;
 	return fi1->index == fi2->index
 	       && memcmp(fi1->hash, fi2->hash, 16) == 0
-	       && fi1->size == fi2->size
+	       && fi1->hsize == fi2->hsize
+	       && fi1->fsize == fi2->fsize
 	       && fi1->mtime == fi2->mtime
 	       && fi1->ctime == fi2->ctime;
 }
@@ -224,27 +229,32 @@ create_empty_manifest(void)
 }
 
 static struct manifest *
-read_manifest(gzFile f)
+read_manifest(gzFile f, char **errmsg)
 {
+	*errmsg = NULL;
 	struct manifest *mf = create_empty_manifest();
 
 	uint32_t magic;
 	READ_INT(4, magic);
 	if (magic != MAGIC) {
-		cc_log("Manifest file has bad magic number %u", magic);
+		*errmsg = format("Manifest file has bad magic number %u", magic);
 		goto error;
 	}
 
 	READ_BYTE(mf->version);
 	if (mf->version != MANIFEST_VERSION) {
-		cc_log("Manifest file has unknown version %u", mf->version);
+		*errmsg = format(
+			"Unknown manifest version (actual %u, expected %u)",
+			mf->version,
+			MANIFEST_VERSION);
 		goto error;
 	}
 
 	READ_BYTE(mf->hash_size);
 	if (mf->hash_size != 16) {
 		// Temporary measure until we support different hash algorithms.
-		cc_log("Manifest file has unsupported hash size %u", mf->hash_size);
+		*errmsg =
+			format("Manifest file has unsupported hash size %u", mf->hash_size);
 		goto error;
 	}
 
@@ -261,7 +271,8 @@ read_manifest(gzFile f)
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		READ_INT(4, mf->file_infos[i].index);
 		READ_BYTES(mf->hash_size, mf->file_infos[i].hash);
-		READ_INT(4, mf->file_infos[i].size);
+		READ_INT(4, mf->file_infos[i].hsize);
+		READ_INT(8, mf->file_infos[i].fsize);
 		READ_INT(8, mf->file_infos[i].mtime);
 		READ_INT(8, mf->file_infos[i].ctime);
 	}
@@ -277,13 +288,15 @@ read_manifest(gzFile f)
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		READ_BYTES(mf->hash_size, mf->objects[i].hash.hash);
-		READ_INT(4, mf->objects[i].hash.size);
+		READ_INT(4, mf->objects[i].hash.hsize);
 	}
 
 	return mf;
 
 error:
-	cc_log("Corrupt manifest file");
+	if (!errmsg) {
+		*errmsg = x_strdup("Corrupt manifest file");
+	}
 	free_manifest(mf);
 	return NULL;
 }
@@ -335,7 +348,8 @@ write_manifest(gzFile f, const struct manifest *mf)
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		WRITE_INT(4, mf->file_infos[i].index);
 		WRITE_BYTES(mf->hash_size, mf->file_infos[i].hash);
-		WRITE_INT(4, mf->file_infos[i].size);
+		WRITE_INT(4, mf->file_infos[i].hsize);
+		WRITE_INT(8, mf->file_infos[i].fsize);
 		WRITE_INT(8, mf->file_infos[i].mtime);
 		WRITE_INT(8, mf->file_infos[i].ctime);
 	}
@@ -347,7 +361,7 @@ write_manifest(gzFile f, const struct manifest *mf)
 			WRITE_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
 		WRITE_BYTES(mf->hash_size, mf->objects[i].hash.hash);
-		WRITE_INT(4, mf->objects[i].hash.size);
+		WRITE_INT(4, mf->objects[i].hash.hsize);
 	}
 
 	return 1;
@@ -377,7 +391,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			hashtable_insert(stated_files, x_strdup(path), st);
 		}
 
-		if (fi->size != st->size) {
+		if (fi->fsize != st->size) {
 			return 0;
 		}
 
@@ -424,12 +438,12 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			}
 			actual = x_malloc(sizeof(*actual));
 			hash_result_as_bytes(hash, actual->hash);
-			actual->size = hash_input_size(hash);
+			actual->hsize = hash_input_size(hash);
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 			hash_free(hash);
 		}
 		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0
-		    || fi->size != actual->size) {
+		    || fi->hsize != actual->hsize) {
 			return 0;
 		}
 	}
@@ -491,7 +505,7 @@ get_file_hash_index(struct manifest *mf,
 	struct file_info fi;
 	fi.index = get_include_file_index(mf, path, mf_files);
 	memcpy(fi.hash, file_hash->hash, sizeof(fi.hash));
-	fi.size = file_hash->size;
+	fi.hsize = file_hash->hsize;
 
 	// file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
 	// file's mtime and ctime only if they're at least one second older than
@@ -501,13 +515,19 @@ get_file_hash_index(struct manifest *mf,
 	// MAX(mtime, ctime).
 
 	struct stat file_stat;
-	if (stat(path, &file_stat) != -1
-	    && time_of_compilation > MAX(file_stat.st_mtime, file_stat.st_ctime)) {
-		fi.mtime = file_stat.st_mtime;
-		fi.ctime = file_stat.st_ctime;
+	if (stat(path, &file_stat) != -1) {
+		if (time_of_compilation > MAX(file_stat.st_mtime, file_stat.st_ctime)) {
+			fi.mtime = file_stat.st_mtime;
+			fi.ctime = file_stat.st_ctime;
+		} else {
+			fi.mtime = -1;
+			fi.ctime = -1;
+		}
+		fi.fsize = file_stat.st_size;
 	} else {
 		fi.mtime = -1;
 		fi.ctime = -1;
+		fi.fsize = file_hash->hsize;
 	}
 
 	uint32_t *fi_index = hashtable_search(mf_file_infos, &fi);
@@ -566,7 +586,7 @@ add_object_entry(struct manifest *mf,
 	obj->file_info_indexes = x_malloc(n_fii * sizeof(*obj->file_info_indexes));
 	add_file_info_indexes(obj->file_info_indexes, n_fii, mf, included_files);
 	memcpy(obj->hash.hash, object_hash->hash, mf->hash_size);
-	obj->hash.size = object_hash->size;
+	obj->hash.hsize = object_hash->hsize;
 }
 
 // Try to get the object hash from a manifest file. Caller frees. Returns NULL
@@ -592,9 +612,11 @@ manifest_get(struct conf *conf, const char *manifest_path)
 		cc_log("Failed to gzdopen manifest file");
 		goto out;
 	}
-	mf = read_manifest(f);
+
+	char *errmsg;
+	mf = read_manifest(f, &errmsg);
 	if (!mf) {
-		cc_log("Error reading manifest file");
+		cc_log("%s", errmsg);
 		goto out;
 	}
 
@@ -653,9 +675,12 @@ manifest_put(const char *manifest_path, struct file_hash *object_hash,
 			close(fd1);
 			goto out;
 		}
-		mf = read_manifest(f1);
+		char *errmsg;
+		mf = read_manifest(f1, &errmsg);
 		gzclose(f1);
 		if (!mf) {
+			cc_log("%s", errmsg);
+			free(errmsg);
 			cc_log("Failed to read manifest file; deleting it");
 			x_unlink(manifest_path);
 			mf = create_empty_manifest();
@@ -741,9 +766,11 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		close(fd);
 		goto out;
 	}
-	mf = read_manifest(f);
+	char *errmsg;
+	mf = read_manifest(f, &errmsg);
 	if (!mf) {
-		fprintf(stderr, "Error reading manifest file\n");
+		fprintf(stderr, "%s\n", errmsg);
+		free(errmsg);
 		goto out;
 	}
 
@@ -767,7 +794,8 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		hash = format_hash_as_string(mf->file_infos[i].hash, -1);
 		fprintf(stream, "    Hash: %s\n", hash);
 		free(hash);
-		fprintf(stream, "    Size: %u\n", mf->file_infos[i].size);
+		fprintf(stream, "    Hashed bytes: %u\n", mf->file_infos[i].hsize);
+		fprintf(stream, "    File size: %" PRIu64 "\n", mf->file_infos[i].fsize);
 		fprintf(stream, "    Mtime: %lld\n", (long long)mf->file_infos[i].mtime);
 		fprintf(stream, "    Ctime: %lld\n", (long long)mf->file_infos[i].ctime);
 	}
@@ -783,7 +811,7 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		hash = format_hash_as_string(mf->objects[i].hash.hash, -1);
 		fprintf(stream, "    Hash: %s\n", hash);
 		free(hash);
-		fprintf(stream, "    Size: %u\n", (unsigned)mf->objects[i].hash.size);
+		fprintf(stream, "    Size: %u\n", (unsigned)mf->objects[i].hash.hsize);
 	}
 
 	ret = true;

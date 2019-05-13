@@ -30,6 +30,7 @@ from os.path import (
 )
 from shutil import rmtree
 from subprocess import call
+from statistics import median
 from time import time
 import sys
 
@@ -103,42 +104,49 @@ def test(tmp_dir, options, compiler_args, source_file):
     if options.nostats:
         environment["CCACHE_NOSTATS"] = "1"
 
-    result = [None] * len(PHASES)
+    results = []
 
-    def run(i, use_ccache, use_direct, use_depend):
-        obj = "%s/%d.o" % (obj_dir, i)
-        src = "%s/%d%s" % (src_dir, i, extension)
-        if use_ccache:
-            args = [options.ccache]
-        else:
-            args = []
-        args += compiler_args + [obj, src]
-        env = environment.copy()
-        if not use_direct:
-            env["CCACHE_NODIRECT"] = "1"
-        if use_depend:
-            env["CCACHE_DEPEND"] = "1"
-        if call(args, env=env) != 0:
-            sys.stderr.write(
-                'Error running "%s"; please correct\n' % " ".join(args)
-            )
-            sys.exit(1)
+    def run(
+        times, *, use_direct, use_depend, use_ccache=True, print_progress=True
+    ):
+        timings = []
+        for i in range(times):
+            obj = "%s/%d.o" % (obj_dir, i)
+            src = "%s/%d%s" % (src_dir, i, extension)
+            if use_ccache:
+                args = [options.ccache]
+            else:
+                args = []
+            args += compiler_args + [obj, src]
+            env = environment.copy()
+            if not use_direct:
+                env["CCACHE_NODIRECT"] = "1"
+            if use_depend:
+                env["CCACHE_DEPEND"] = "1"
+            if print_progress:
+                progress(".")
+            t0 = time()
+            if call(args, env=env) != 0:
+                sys.stderr.write(
+                    'Error running "%s"; please correct\n' % " ".join(args)
+                )
+                sys.exit(1)
+            timings.append(time() - t0)
+        return timings
 
     # Warm up the disk cache.
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
-    run(0, True, True, False)
+    run(1, use_direct=True, use_depend=False, print_progress=False)
 
     ###########################################################################
     # Without ccache
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[0])
-    t0 = time()
-    for i in range(times):
-        run(i, False, False, False)
-        progress(".")
-    result[0] = time() - t0
+    results.append(
+        run(times, use_direct=False, use_depend=False, use_ccache=False)
+    )
     progress("\n")
 
     ###########################################################################
@@ -146,21 +154,15 @@ def test(tmp_dir, options, compiler_args, source_file):
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[1])
-    t0 = time()
-    for i in range(times):
-        run(i, True, False, False)
-        progress(".")
-    result[1] = time() - t0
+    results.append(run(times, use_direct=False, use_depend=False))
     progress("\n")
 
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[2])
-    t0 = time()
+    res = []
     for j in range(hit_factor):
-        for i in range(times):
-            run(i, True, False, False)
-            progress(".")
-    result[2] = (time() - t0) / hit_factor
+        res += run(times, use_direct=False, use_depend=False)
+    results.append(res)
     progress("\n")
 
     ###########################################################################
@@ -168,21 +170,15 @@ def test(tmp_dir, options, compiler_args, source_file):
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[3])
-    t0 = time()
-    for i in range(times):
-        run(i, True, True, False)
-        progress(".")
-    result[3] = time() - t0
+    results.append(run(times, use_direct=True, use_depend=False))
     progress("\n")
 
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[4])
-    t0 = time()
+    res = []
     for j in range(hit_factor):
-        for i in range(times):
-            run(i, True, True, False)
-            progress(".")
-    result[4] = (time() - t0) / hit_factor
+        res += run(times, use_direct=True, use_depend=False)
+    results.append(res)
     progress("\n")
 
     ###########################################################################
@@ -190,48 +186,44 @@ def test(tmp_dir, options, compiler_args, source_file):
     recreate_dir(ccache_dir)
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[5])
-    t0 = time()
-    for i in range(times):
-        run(i, True, True, True)
-        progress(".")
-    result[5] = time() - t0
+    results.append(run(times, use_direct=True, use_depend=True))
     progress("\n")
 
     recreate_dir(obj_dir)
     progress("Compiling %s\n" % PHASES[6])
-    t0 = time()
+    res = []
     for j in range(hit_factor):
-        for i in range(times):
-            run(i, True, True, True)
-            progress(".")
-    result[6] = (time() - t0) / hit_factor
+        res += run(times, use_direct=True, use_depend=True)
+    results.append(res)
     progress("\n")
 
-    return result
+    for i, x in enumerate(results):
+        results[i] = median(x)
+    return results
 
 
-def print_result_as_text(result):
+def print_result_as_text(results):
     for i, x in enumerate(PHASES):
         print(
-            "%-43s %6.2f s (%6.2f %%) (%5.2f x)"
+            "%-43s %6.4f s (%8.4f %%) (%8.4f x)"
             % (
                 x.capitalize() + ":",
-                result[i],
-                100 * (result[i] / result[0]),
-                result[0] / result[i],
+                results[i],
+                100 * (results[i] / results[0]),
+                results[0] / results[i],
             )
         )
 
 
-def print_result_as_xml(result):
+def print_result_as_xml(results):
     print('<?xml version="1.0" encoding="UTF-8"?>')
     print("<ccache-perf>")
     for i, x in enumerate(PHASES):
         print("<measurement>")
         print("<name>%s</name>" % x.capitalize())
-        print("<seconds>%.2f</seconds>" % result[i])
-        print("<percent>%.2f</percent>" % (100 * (result[i] / result[0])))
-        print("<times>%.2f</times>" % (result[0] / result[i]))
+        print("<seconds>%.4f</seconds>" % results[i])
+        print("<percent>%.4f</percent>" % (100 * (results[i] / results[0])))
+        print("<times>%.4f</times>" % (results[0] / results[i]))
         print("</measurement>")
     print("</ccache-perf>")
 
@@ -292,7 +284,7 @@ def main(argv):
     op.add_option(
         "-v", "--verbose", help="print progress messages", action="store_true"
     )
-    op.add_option("--xml", help="print result as XML", action="store_true")
+    op.add_option("--xml", help="print results as XML", action="store_true")
     op.set_defaults(
         ccache=DEFAULT_CCACHE,
         compilercheck="mtime",
@@ -330,12 +322,12 @@ def main(argv):
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
     recreate_dir(tmp_dir)
-    result = test(tmp_dir, options, args[:-1], args[-1])
+    results = test(tmp_dir, options, args[:-1], args[-1])
     rmtree(tmp_dir)
     if options.xml:
-        print_result_as_xml(result)
+        print_result_as_xml(results)
     else:
-        print_result_as_text(result)
+        print_result_as_text(results)
 
 
 main(sys.argv)

@@ -6,7 +6,6 @@ labels: bug
 assignees: ''
 
 ---
-
 ### How to reproduce ###
 <!-- Steps to reproduce the behavior: -->
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -74,7 +74,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (getenv("RUN_FROM_BUILD_FARM")) {
+	if (getenv("TRAVIS")) {
 		verbose = 1;
 	}
 
