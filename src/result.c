@@ -120,17 +120,6 @@ free_filelist(struct filelist *l)
 		(var) = x_strdup(buf_); \
 	} while (false)
 
-#define READ_BYTES(n, var) \
-	do { \
-		for (size_t i_ = 0; i_ < (n); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
-			(var)[i_] = ch_; \
-		} \
-	} while (false)
-
 #define READ_FILE(size, path) \
 	do { \
 		FILE *f_ = fopen(path, "wb"); \
@@ -160,7 +149,7 @@ read_cache(gzFile f, struct filelist *l, bool copy)
 	(void)version;
 
 	uint8_t hash_size;
-	READ_BYTE(hash_size);
+	READ_INT(1, hash_size);
 	(void)hash_size;
 
 	uint16_t reserved;
@@ -239,16 +228,6 @@ error:
 		} \
 	} while (false)
 
-#define WRITE_BYTES(n, var) \
-	do { \
-		size_t i_; \
-		for (i_ = 0; i_ < (n); i_++) { \
-			if (gzputc(f, (var)[i_]) == EOF) { \
-				goto error; \
-			} \
-		} \
-	} while (false)
-
 #define WRITE_FILE(size, path) \
 	do { \
 		FILE *f_ = fopen(path, "rb"); \
@@ -267,7 +246,7 @@ write_cache(gzFile f, const struct filelist *l)
 {
 	WRITE_INT(4, MAGIC);
 
-	WRITE_INT(1, RESULT_VERSION);
+	WRITE_BYTE(RESULT_VERSION);
 	WRITE_INT(1, 16);
 	WRITE_INT(2, 0);
 
