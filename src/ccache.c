@@ -695,6 +695,9 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 
 	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
+		if (!included_pch_file) {
+			cc_log("Detected use of precompiled header: %s", path);
+		}
 		bool using_pch_sum = false;
 		if (conf->pch_external_checksum) {
 			// hash pch.sum instead of pch when it exists
