@@ -31,14 +31,19 @@ EOF
 }
 
 SUITE_pch() {
-    # Clang and GCC handle precompiled headers similarly, but GCC is much more
-    # forgiving with precompiled headers. Both GCC and Clang keep an absolute
-    # path reference to the original file except that Clang uses that reference
-    # to validate the pch and GCC ignores the reference. For these reasons, Clang
-    # should be tested differently from GCC. Clang can only use pch
-    # headers on the command line and not as an #include statement inside a
-    # source file.
+    # Clang should generally be compatible with GCC and so most of the tests
+    # can be shared. There are some differences though:
+    # - Both GCC and Clang keep an absolute path reference to the original
+    # file except that Clang uses that reference to validate the pch and GCC
+    # ignores the reference (i.e. the original file can be removed).
+    # - Clang can only use pch headers on the command line and not as an #include
+    # statement inside a source file.
+    # - Clang has -include-pch to directly include a PCH file without any magic
+    # of searching for a .gch file.
+    #
+    # Therefore have common tests and do dedicated tests only for differences.
 
+    pch_suite_common
     if $COMPILER_TYPE_CLANG; then
         pch_suite_clang
     else
@@ -46,7 +51,7 @@ SUITE_pch() {
     fi
 }
 
-pch_suite_gcc() {
+pch_suite_common() {
     # -------------------------------------------------------------------------
     TEST "Create .gch, -c, no -o, without opt-in"
 
@@ -101,14 +106,16 @@ pch_suite_gcc() {
     backdate pch.h.gch
     rm pch.h
 
-    $CCACHE_COMPILE $SYSROOT -c pch.c
+    $CCACHE_COMPILE $SYSROOT -c pch.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     # Preprocessor error because GCC can't find the real include file when
     # trying to preprocess:
     expect_stat 'preprocessor error' 1
+}
 
+pch_suite_gcc() {
     # -------------------------------------------------------------------------
     TEST "Use .gch, no -fpch-preprocess, -include, no sloppiness"
 
@@ -341,53 +348,6 @@ pch_suite_gcc() {
 }
 
 pch_suite_clang() {
-    # -------------------------------------------------------------------------
-    TEST "Create .gch, -c, no -o, without opt-in"
-
-    $CCACHE_COMPILE $SYSROOT -c pch.h
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 0
-    expect_stat "can't use precompiled header" 1
-
-    # -------------------------------------------------------------------------
-    TEST "Create .gch, no -c, -o, without opt-in"
-
-    $CCACHE_COMPILE pch.h -o pch.gch
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 0
-    expect_stat "can't use precompiled header" 1
-
-    # -------------------------------------------------------------------------
-    TEST "Create .gch, -c, no -o, with opt-in"
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    rm pch.h.gch
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT -c pch.h
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_file_exists pch.h.gch
-
-    # -------------------------------------------------------------------------
-    TEST "Create .gch, no -c, -o, with opt-in"
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines time_macros" $CCACHE_COMPILE $SYSROOT pch.h -o pch.gch
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_file_exists pch.gch
-
     # -------------------------------------------------------------------------
     TEST "Create .gch, include file mtime changed"
 
