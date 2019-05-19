@@ -1165,6 +1165,15 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 
 	fclose(f);
 
+	// Explicitly check the .gch/.pch/.pth file, it may not be mentioned
+	// in the dependencies output.
+	if (included_pch_file) {
+		char *pch_path = x_strdup(included_pch_file);
+		pch_path = make_relative_path(pch_path);
+		hash_string(hash, pch_path);
+		remember_include_file(pch_path, hash, false, NULL);
+	}
+
 	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
 	if (debug_included) {
 		print_included_files(stdout);

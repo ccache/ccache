@@ -360,6 +360,37 @@ pch_suite_common() {
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
     rm -rf dir
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, depend mode, -include"
+
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_DEPEND=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c -MD -MF pch.d
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 }
 
 pch_suite_gcc() {
