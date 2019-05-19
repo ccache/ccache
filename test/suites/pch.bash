@@ -223,6 +223,75 @@ pch_suite_common() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
     expect_file_exists pch.h.gch
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, -include, PCH_EXTSUM=1"
+
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    echo "original checksum" > pch.h.gch.sum
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo "other checksum" > pch.h.gch.sum
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    echo "original checksum" > pch.h.gch.sum
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # With GCC, a newly generated PCH is always different, even if the contents should be exactly the same.
+    # And Clang stores file timestamps, so in this case the PCH is different too.
+    # So without .sum a "changed" PCH would mean a miss, but if the .sum doesn't change, it should be a hit.
+
+    sleep 1
+    touch pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch2.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, -include, no PCH_EXTSUM"
+
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    echo "original checksum" > pch.h.gch.sum
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    # external checksum not used, so no cache miss when changed
+    echo "other checksum" > pch.h.gch.sum
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
 }
 
 pch_suite_gcc() {
@@ -389,6 +458,20 @@ pch_suite_gcc() {
     echo "original checksum" > pch.h.gch.sum
     CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
     expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # With GCC, a newly generated PCH is always different, even if the contents should be exactly the same.
+    # And Clang stores file timestamps, so in this case the PCH is different too.
+    # So without .sum a "changed" PCH would mean a miss, but if the .sum doesn't change, it should be a hit.
+
+    sleep 1
+    touch pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h
+    backdate pch.h.gch
+
+    CCACHE_PCH_EXTSUM=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -fpch-preprocess pch.c
+    expect_stat 'cache hit (direct)' 3
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
