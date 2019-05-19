@@ -138,7 +138,7 @@ pch_suite_common() {
     expect_stat "can't use precompiled header" 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -include, sloppiness"
+    TEST "Use .gch, -include"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -227,7 +227,7 @@ pch_suite_common() {
 
 pch_suite_gcc() {
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -include, sloppiness, remove pch.h"
+    TEST "Use .gch, -include, remove pch.h"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -257,7 +257,7 @@ pch_suite_gcc() {
     expect_stat "can't use precompiled header" 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, #include, sloppiness"
+    TEST "Use .gch, #include"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -467,7 +467,7 @@ EOF
     expect_stat "can't use precompiled header" 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .pch, -include, sloppiness"
+    TEST "Use .pch, -include"
 
     $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
