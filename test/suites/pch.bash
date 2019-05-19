@@ -292,6 +292,74 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, -include, other dir for .gch"
+
+    mkdir -p dir
+    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    backdate dir/pch.h.gch
+    rm -f pch.h.gch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    backdate dir/pch.h.gch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch2.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+    rm -rf dir
+
+    # -------------------------------------------------------------------------
+    TEST "Use .gch, preprocessor mode, -include, other dir for .gch"
+
+    mkdir -p dir
+    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    backdate dir/pch.h.gch
+    rm -f pch.h.gch
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch
+    backdate dir/pch.h.gch
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include dir/pch.h pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 2
+    rm -rf dir
 }
 
 pch_suite_gcc() {
