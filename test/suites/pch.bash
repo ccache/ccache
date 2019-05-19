@@ -522,4 +522,61 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Use .pch, -include-pch"
+
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    backdate pch.h.pch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch2.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    backdate pch.h.pch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Use .pch, preprocessor mode, -include-pch"
+
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    backdate pch.h.pch
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
+    backdate pch.h.pch
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 2
 }
