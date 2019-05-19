@@ -174,12 +174,12 @@ pch_suite_common() {
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
@@ -189,12 +189,12 @@ pch_suite_common() {
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
@@ -227,7 +227,7 @@ pch_suite_common() {
 
 pch_suite_gcc() {
     # -------------------------------------------------------------------------
-    TEST "Use .gch, no -fpch-preprocess, -include, sloppiness, remove pch.h"
+    TEST "Use .gch, -include, sloppiness, remove pch.h"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -244,7 +244,7 @@ pch_suite_gcc() {
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -fpch-preprocess, #include, no sloppiness"
+    TEST "Use .gch, #include, no sloppiness"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -257,7 +257,7 @@ pch_suite_gcc() {
     expect_stat "can't use precompiled header" 1
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -fpch-preprocess, #include, sloppiness"
+    TEST "Use .gch, #include, sloppiness"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -289,7 +289,7 @@ pch_suite_gcc() {
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, preprocessor mode"
+    TEST "Use .gch, preprocessor mode, #include"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -363,7 +363,7 @@ pch_suite_gcc() {
     expect_stat 'cache miss' 3
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -fpch-preprocess, PCH_EXTSUM=1"
+    TEST "Use .gch, #include, PCH_EXTSUM=1"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -393,7 +393,7 @@ pch_suite_gcc() {
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
-    TEST "Use .gch, -fpch-preprocess, no PCH_EXTSUM"
+    TEST "Use .gch, #include, no PCH_EXTSUM"
 
     $REAL_COMPILER $SYSROOT -c pch.h
     backdate pch.h.gch
@@ -498,12 +498,12 @@ EOF
     $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
@@ -513,12 +513,12 @@ EOF
     $REAL_COMPILER $SYSROOT -c pch.h -o pch.h.pch
     backdate pch.h.pch
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
 
-    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h -fpch-preprocess pch.c
+    CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include pch.h pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 2
