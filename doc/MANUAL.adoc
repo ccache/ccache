@@ -943,9 +943,10 @@ Disadvantages:
   or source code will make the hash different. Compare this with the default
   setup where ccache will fall back to the preprocessor mode, which is tolerant
   to some types of changes of compiler options and source code changes.
-* (If -MD is used) The manifest entries will include system header files as well,
-  thus slowing down cache hits slightly, just as using -MD slows down make.
-* (If -MMD is used) The manifest entries will not include system header files,
+* If -MD is used, the manifest entries will include system header files as
+  well, thus slowing down cache hits slightly, just as using -MD slows down
+  make.
+* If -MMD is used, the manifest entries will not include system header files,
   which means ccache will ignore changes in them.
 
 The depend mode will be disabled if any of the following holds:
@@ -1059,13 +1060,14 @@ things to make it work properly:
 * You must either:
 +
 --
-** use the *-include* compiler option to include the precompiled header
-   (i.e., don't use *#include* in the source code to include the header),
-   the filename itself must be sufficient to find the header (i.e. -I paths
-   are not searched); or
+** use the *-include* compiler option to include the precompiled header (i.e.,
+   don't use *#include* in the source code to include the header; the filename
+   itself must be sufficient to find the header, i.e. *-I* paths are not
+   searched); or
 ** (for the Clang compiler) use the *-include-pch* compiler option to include
    the PCH file generated from the precompiled header; or
-** (for the GCC compiler) add the *-fpch-preprocess* compiler option when compiling.
+** (for the GCC compiler) add the *-fpch-preprocess* compiler option when
+   compiling.
 
 If you don't do this, either the non-precompiled version of the header file
 will be used (if available) or ccache will fall back to running the real

@@ -33,16 +33,18 @@ EOF
 SUITE_pch() {
     # Clang should generally be compatible with GCC and so most of the tests
     # can be shared. There are some differences though:
-    # - Both GCC and Clang keep an absolute path reference to the original
-    # file except that Clang uses that reference to validate the pch and GCC
-    # ignores the reference (i.e. the original file can be removed).
-    # - Clang can only use pch headers on the command line and not as an #include
-    # statement inside a source file, because it silently ignores -fpch-preprocess
-    # and does not output pragma GCC pch_preprocess.
-    # - Clang has -include-pch to directly include a PCH file without any magic
-    # of searching for a .gch file.
     #
-    # Therefore have common tests and do dedicated tests only for differences.
+    # - Both GCC and Clang keep an absolute path reference to the original file
+    #   except that Clang uses that reference to validate the pch and GCC
+    #   ignores the reference (i.e. the original file can be removed).
+    # - Clang can only use pch headers on the command line and not as an
+    #   #include statement inside a source file, because it silently ignores
+    #   -fpch-preprocess and does not output pragma GCC pch_preprocess.
+    # - Clang has -include-pch to directly include a PCH file without any magic
+    #   of searching for a .gch file.
+    #
+    # Put tests that work with both compilers in pch_suite_common and put
+    # compiler-specific tests in pch_suite_clang/pch_suite_gcc.
 
     pch_suite_common
     if $COMPILER_TYPE_CLANG; then
@@ -254,9 +256,10 @@ pch_suite_common() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    # With GCC, a newly generated PCH is always different, even if the contents should be exactly the same.
-    # And Clang stores file timestamps, so in this case the PCH is different too.
-    # So without .sum a "changed" PCH would mean a miss, but if the .sum doesn't change, it should be a hit.
+    # With GCC, a newly generated PCH is always different, even if the contents
+    # should be exactly the same. And Clang stores file timestamps, so in this
+    # case the PCH is different too. So without .sum a "changed" PCH would mean
+    # a miss, but if the .sum doesn't change, it should be a hit.
 
     sleep 1
     touch pch.h
@@ -560,9 +563,10 @@ pch_suite_gcc() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    # With GCC, a newly generated PCH is always different, even if the contents should be exactly the same.
-    # And Clang stores file timestamps, so in this case the PCH is different too.
-    # So without .sum a "changed" PCH would mean a miss, but if the .sum doesn't change, it should be a hit.
+    # With GCC, a newly generated PCH is always different, even if the contents
+    # should be exactly the same. And Clang stores file timestamps, so in this
+    # case the PCH is different too. So without .sum a "changed" PCH would mean
+    # a miss, but if the .sum doesn't change, it should be a hit.
 
     sleep 1
     touch pch.h
