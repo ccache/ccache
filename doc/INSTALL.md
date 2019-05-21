@@ -8,9 +8,12 @@ To build ccache from a source repository, you need:
 
 - A C compiler (for instance GCC)
 - GNU Bourne Again SHell (bash) for tests.
-- [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the documentation.
-- [Autoconf](http://www.gnu.org/software/autoconf/)
-- [gperf](http://www.gnu.org/software/gperf/)
+- [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the HTML
+  documentation.
+- [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html) to build the man page.
+- [Autoconf](http://www.gnu.org/software/autoconf/) to generate the configure
+  script and related files.
+- [gperf](http://www.gnu.org/software/gperf/) to create lookup tables.
 
 It is also recommended that you have:
 
