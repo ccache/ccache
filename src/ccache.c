@@ -704,6 +704,9 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 
 	bool is_pch = is_precompiled_header(path);
 	if (is_pch) {
+		if (!included_pch_file) {
+			cc_log("Detected use of precompiled header: %s", path);
+		}
 		bool using_pch_sum = false;
 		if (conf->pch_external_checksum) {
 			// hash pch.sum instead of pch when it exists
@@ -1041,7 +1044,7 @@ process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 	free(data);
 	free(cwd);
 
-	// Explicitly check the .gch/.pch/.pth file, Clang does not include any
+	// Explicitly check the .gch/.pch/.pth file as Clang does not include any
 	// mention of it in the preprocessed output.
 	if (included_pch_file) {
 		char *pch_path = x_strdup(included_pch_file);
@@ -1170,6 +1173,15 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 	}
 
 	fclose(f);
+
+	// Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
+	// dependencies output.
+	if (included_pch_file) {
+		char *pch_path = x_strdup(included_pch_file);
+		pch_path = make_relative_path(pch_path);
+		hash_string(hash, pch_path);
+		remember_include_file(pch_path, hash, false, NULL);
+	}
 
 	bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
 	if (debug_included) {
