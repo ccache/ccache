@@ -1348,7 +1348,6 @@ send_cached_stderr(void)
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 	close(tmp_stderr_fd);
 	struct filelist *filelist = create_empty_filelist();
-	cache_get(cached_result, filelist);
 	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
 	if (cache_get(cached_result, filelist)) {
 		cc_log("Sending stderr from %s", tmp_stderr);
