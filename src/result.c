@@ -125,10 +125,12 @@ free_filelist(struct filelist *l)
 		FILE *f_ = fopen(path, "wb"); \
 		char buf_[READ_BUFFER_SIZE]; \
 		long n_; \
-		while ((n_ = gzread(f, buf_, sizeof(buf_))) > 0) { \
+		size_t remain_ = size; \
+		while ((n_ = gzread(f, buf_, remain_ > sizeof(buf_) ? sizeof(buf_) : remain_)) > 0) { \
 			if ((long)fwrite(buf_, 1, n_, f_) != n_) { \
 				goto error; \
 			} \
+			remain_ -= n_; \
 		} \
 		fclose(f_); \
 	} while (false)
@@ -232,10 +234,12 @@ error:
 		FILE *f_ = fopen(path, "rb"); \
 		char buf_[READ_BUFFER_SIZE]; \
 		long n_; \
-		while ((n_ = (long)fread(buf_, 1, sizeof(buf_), f_)) > 0) { \
+		size_t remain_ = size; \
+		while ((n_ = (long)fread(buf_, 1, remain_ > sizeof(buf_) ? sizeof(buf_) : remain_, f_)) > 0) { \
 			if (gzwrite(f, buf_, n_) != n_) { \
 				goto error; \
 			} \
+			remain_ -= n_; \
 		} \
 		fclose(f_); \
 	} while (false)
