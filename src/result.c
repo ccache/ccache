@@ -197,7 +197,6 @@ read_cache(gzFile f, struct filelist *l, bool copy)
 
 error:
 	cc_log("Corrupt cache file");
-	free_filelist(l);
 	return NULL;
 }
 
