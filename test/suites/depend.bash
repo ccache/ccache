@@ -99,14 +99,22 @@ SUITE_depend() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2 # .result + .manifest
+    else
     expect_stat 'files in cache' 3 # .o + .manifest + .d
+    fi
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE $DEPSFLAGS_CCACHE -c test.c
     expect_equal_object_files reference_test.o test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2
+    else
     expect_stat 'files in cache' 3
+    fi
 
     # -------------------------------------------------------------------------
     TEST "No dependency file"
@@ -133,14 +141,22 @@ SUITE_depend() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2 # .result + .manifest
+    else
     expect_stat 'files in cache' 3 # .o + .manifest + .d
+    fi
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -c test.c
     expect_equal_object_files reference_test.o test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2
+    else
     expect_stat 'files in cache' 3
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Dependency file paths converted to relative if CCACHE_BASEDIR specified"
@@ -200,7 +216,11 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2      # .result + .manifest
+    else
     expect_stat 'files in cache' 3      # .o + .manifest + .d
+    fi
 
     # Recompile dir1 first time.
     generate_reference_compiler_output
@@ -210,7 +230,11 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 2
+    else
     expect_stat 'files in cache' 3
+    fi
 
     # Compile dir2. dir2 header changes the object file compared to dir1.
     cd $BASEDIR2
@@ -221,7 +245,11 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 3      # 2x .result, 1x manifest
+    else
     expect_stat 'files in cache' 5      # 2x .o, 2x .d, 1x manifest
+    fi
 
     # Compile dir3. dir3 header change does not change object file compared to
     # dir1, but ccache still adds an additional .o/.d file in the cache due to
@@ -234,7 +262,11 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 3
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 4      # 3x .result, 1x manifest
+    else
     expect_stat 'files in cache' 7      # 3x .o, 3x .d, 1x manifest
+    fi
 
     # Compile dir4. dir4 header adds a new dependency.
     cd $BASEDIR4
@@ -246,7 +278,11 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 5      # 4x .result, 1x manifest
+    else
     expect_stat 'files in cache' 9      # 4x .o, 4x .d, 1x manifest
+    fi
 
     # Recompile dir1 second time.
     cd $BASEDIR1
@@ -257,7 +293,11 @@ EOF
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 5
+    else
     expect_stat 'files in cache' 9
+    fi
 
     # Recompile dir2.
     cd $BASEDIR2
@@ -268,7 +308,11 @@ EOF
     expect_stat 'cache hit (direct)' 3
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 5
+    else
     expect_stat 'files in cache' 9
+    fi
 
     # Recompile dir3.
     cd $BASEDIR3
@@ -279,7 +323,11 @@ EOF
     expect_stat 'cache hit (direct)' 4
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 5
+    else
     expect_stat 'files in cache' 9
+    fi
 
     # Recompile dir4.
     cd $BASEDIR4
@@ -291,7 +339,11 @@ EOF
     expect_stat 'cache hit (direct)' 5
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 5
+    else
     expect_stat 'files in cache' 9
+    fi
 
     # -------------------------------------------------------------------------
 

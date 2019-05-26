@@ -19,6 +19,7 @@ case $host in
         ;;
 esac
 
+AC_SUBST(aggregated)
 AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
 AC_SUBST(extra_sources)
@@ -183,8 +184,10 @@ AC_ARG_ENABLE(aggregated,
     [enable aggregated result files rather than single])])
 if test x${enable_aggregated} = xyes; then
     CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=0 -DUSE_AGGREGATED=1"
+    aggregated=true
 else
     CPPFLAGS="$CPPFLAGS -DUSE_SINGLE=1 -DUSE_AGGREGATED=0"
+    aggregated=false
 fi
 
 dnl Linking on Windows needs ws2_32
