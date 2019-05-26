@@ -1341,32 +1341,13 @@ copy_file_from_cache(const char *source, const char *dest)
 
 // Send cached stderr, if any, to stderr.
 static void
-send_cached_stderr(void)
+send_cached_stderr(const char *path_stderr)
 {
-#if USE_AGGREGATED
-	char *tmp_stderr = format("%s/tmp.stderr", temp_dir());
-	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-	close(tmp_stderr_fd);
-	struct filelist *filelist = create_empty_filelist();
-	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
-	if (cache_get(cached_result, filelist)) {
-		cc_log("Sending stderr from %s", tmp_stderr);
-		int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
-		if (fd != -1) {
-			copy_fd(fd, 2);
-			close(fd);
-		}
-	}
-	free_filelist(filelist);
-	tmp_unlink(tmp_stderr);
-#endif
-#if USE_SINGLE
-	int fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
+	int fd_stderr = open(path_stderr, O_RDONLY | O_BINARY);
 	if (fd_stderr != -1) {
 		copy_fd(fd_stderr, 2);
 		close(fd_stderr);
 	}
-#endif
 }
 
 // Create or update the manifest file.
@@ -1676,9 +1657,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	MTR_END("file", "file_put");
 
 	stats_update(STATS_TOCACHE);
-	if (st.st_size == 0 || conf->depend_mode) {
-		tmp_unlink(tmp_stderr);
-	}
 
 	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
 	// be done almost anywhere, but we might as well do it near the end as we
@@ -1703,9 +1681,17 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	// Everything OK.
-	send_cached_stderr();
+#if USE_AGGREGATED
+	send_cached_stderr(tmp_stderr);
+#endif
+#if USE_SINGLE
+	send_cached_stderr(cached_stderr);
+#endif
 	update_manifest_file();
 
+	if (st.st_size == 0 || conf->depend_mode) {
+		tmp_unlink(tmp_stderr);
+	}
 	free(tmp_stderr);
 	free(tmp_stdout);
 }
@@ -2428,6 +2414,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 #endif
 #if USE_AGGREGATED
+	char *tmp_stderr = format("%s/tmp.stderr", temp_dir());
+	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+	close(tmp_stderr_fd);
+
 	struct filelist *filelist = create_empty_filelist();
 	if (!str_eq(output_obj, "/dev/null")) {
 		add_file_to_filelist(filelist, output_obj, ".o");
@@ -2435,6 +2425,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			add_file_to_filelist(filelist, output_dwo, ".dwo");
 		}
 	}
+	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
 	if (produce_dep_file) {
 		add_file_to_filelist(filelist, output_dep, ".d");
 	}
@@ -2480,11 +2471,21 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	update_mtime(cached_result);
 #endif
 
-	send_cached_stderr();
+#if USE_SINGLE
+	send_cached_stderr(cached_stderr);
+#endif
+#if USE_AGGREGATED
+	send_cached_stderr(tmp_stderr);
+#endif
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
 	}
+
+#if USE_AGGREGATED
+	tmp_unlink(tmp_stderr);
+	free(tmp_stderr);
+#endif
 
 	// Log the cache hit.
 	switch (mode) {
