@@ -309,20 +309,26 @@ out:
 	return ret;
 }
 
-bool cache_put(const char *cache_path, struct filelist *l)
+bool cache_put(const char *cache_path, struct filelist *l, int compression_level)
 {
 	int ret = 0;
 	gzFile f2 = NULL;
 	char *tmp_file = NULL;
-	bool compress = true;
+	char *mode;
 
 	tmp_file = format("%s.tmp", cache_path);
 	int fd = create_tmp_fd(&tmp_file);
-	f2 = gzdopen(fd, compress ? "wb" : "wbT");
+	if (compression_level > 0) {
+		mode = format("wb%d", compression_level);
+	} else {
+		mode = x_strdup("wbT");
+	}
+	f2 = gzdopen(fd, mode);
 	if (!f2) {
 		cc_log("Failed to gzdopen %s", tmp_file);
 		goto out;
 	}
+	free(mode);
 
 	if (write_cache(f2, l)) {
 		gzclose(f2);

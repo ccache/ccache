@@ -1640,7 +1640,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 	struct stat orig_dest_st;
 	bool orig_dest_existed = stat(cached_result, &orig_dest_st) == 0;
-	cache_put(cached_result, filelist);
+	int compression_level = conf->compression ? conf->compression_level : 0;
+	cache_put(cached_result, filelist, compression_level);
 	free_filelist(filelist);
 
 	cc_log("Stored in cache: %s", cached_result);
