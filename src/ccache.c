@@ -2436,7 +2436,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		}
 	}
 	if (produce_dep_file) {
-		add_file_to_filelist(filelist, output_dep, ".dep");
+		add_file_to_filelist(filelist, output_dep, ".d");
 	}
 	if (generating_coverage) {
 		add_file_to_filelist(filelist, output_cov, ".gcno");
