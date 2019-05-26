@@ -236,8 +236,8 @@ static char *cpp_stderr;
 // belongs (<cache_dir>/<x>/stats).
 char *stats_file = NULL;
 
-// The stats_file to use for manifest
-static char *manifest_stats;
+// The stats file to use for the manifest.
+static char *manifest_stats_file;
 
 // Whether the output is a precompiled header.
 bool output_is_precompiled_header = false;
@@ -1236,6 +1236,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		failed();
 	}
 	stats_update_size(
+		stats_file,
 		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
 		orig_dest_existed ? 0 : 1);
 }
@@ -1356,23 +1357,19 @@ update_manifest_file(void)
 		old_size = file_size(&st);
 	}
 
-	char *old_stats_file = stats_file;
-	stats_flush();
-	stats_file = manifest_stats;
-
 	MTR_BEGIN("manifest", "manifest_put");
 	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
-			stats_update_size(file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+			stats_update_size(
+				manifest_stats_file,
+				file_size(&st) - old_size,
+				old_size == 0 ? 1 : 0);
 		}
 	} else {
 		cc_log("Failed to add object file hash to %s", manifest_path);
 	}
 	MTR_END("manifest", "manifest_put");
-
-	stats_flush();
-	stats_file = old_stats_file;
 }
 
 static void
@@ -2222,7 +2219,8 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 
 		char *manifest_name = hash_result(hash);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
-		manifest_stats = format("%s/%c/stats", conf->cache_dir, manifest_name[0]);
+		manifest_stats_file =
+			format("%s/%c/stats", conf->cache_dir, manifest_name[0]);
 		free(manifest_name);
 
 		cc_log("Looking for object file hash in %s", manifest_path);

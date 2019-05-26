@@ -47,6 +47,7 @@ typedef char *(*format_fn)(uint64_t value);
 
 static char *format_size_times_1024(uint64_t size);
 static char *format_timestamp(uint64_t timestamp);
+static void stats_flush_to_file(const char *sfile, struct counters *updates);
 
 // Statistics fields in display order.
 static struct {
@@ -399,11 +400,21 @@ stats_collect(struct counters *counters, time_t *last_updated)
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(int64_t size, int files)
+stats_update_size(const char *sfile, int64_t size, int files)
 {
-	init_counter_updates();
-	counter_updates->data[STATS_NUMFILES] += files;
-	counter_updates->data[STATS_TOTALSIZE] += size / 1024;
+	struct counters *updates;
+	if (sfile == stats_file) {
+		init_counter_updates();
+		updates = counter_updates;
+	} else {
+		updates = counters_init(STATS_END);
+	}
+	updates->data[STATS_NUMFILES] += files;
+	updates->data[STATS_TOTALSIZE] += size / 1024;
+	if (sfile != stats_file) {
+		stats_flush_to_file(sfile, updates);
+		counters_free(updates);
+	}
 }
 
 // Read in the stats from one directory and add to the counters.
@@ -417,9 +428,9 @@ stats_read(const char *sfile, struct counters *counters)
 	free(data);
 }
 
-// Write counter updates in counter_updates to disk.
-void
-stats_flush(void)
+// Write counter updates in updates to sfile.
+static void
+stats_flush_to_file(const char *sfile, struct counters *updates)
 {
 	assert(conf);
 
@@ -427,13 +438,13 @@ stats_flush(void)
 		return;
 	}
 
-	if (!counter_updates) {
+	if (!updates) {
 		return;
 	}
 
 	bool should_flush = false;
 	for (int i = 0; i < STATS_END; ++i) {
-		if (counter_updates->data[i] > 0) {
+		if (updates->data[i] > 0) {
 			should_flush = true;
 			break;
 		}
@@ -442,38 +453,38 @@ stats_flush(void)
 		return;
 	}
 
-	if (!stats_file) {
+	if (!sfile) {
 		char *stats_dir;
 
-		// A NULL stats_file means that we didn't get past calculate_object_hash(),
-		// so we just choose one of stats files in the 16 subdirectories.
+		// A NULL sfile means that we didn't get past calculate_object_hash(), so
+		// we just choose one of stats files in the 16 subdirectories.
 		stats_dir = format("%s/%x", conf->cache_dir, hash_from_int(getpid()) % 16);
-		stats_file = format("%s/stats", stats_dir);
+		sfile = format("%s/stats", stats_dir);
 		free(stats_dir);
 	}
 
-	if (!lockfile_acquire(stats_file, lock_staleness_limit)) {
+	if (!lockfile_acquire(sfile, lock_staleness_limit)) {
 		return;
 	}
 
 	struct counters *counters = counters_init(STATS_END);
-	stats_read(stats_file, counters);
+	stats_read(sfile, counters);
 	for (int i = 0; i < STATS_END; ++i) {
-		counters->data[i] += counter_updates->data[i];
+		counters->data[i] += updates->data[i];
 	}
-	stats_write(stats_file, counters);
-	lockfile_release(stats_file);
+	stats_write(sfile, counters);
+	lockfile_release(sfile);
 
 	if (!str_eq(conf->log_file, "") || conf->debug) {
 		for (int i = 0; i < STATS_END; ++i) {
-			if (counter_updates->data[stats_info[i].stat] != 0
+			if (updates->data[stats_info[i].stat] != 0
 			    && !(stats_info[i].flags & FLAG_NOZERO)) {
 				cc_log("Result: %s", stats_info[i].message);
 			}
 		}
 	}
 
-	char *subdir = dirname(stats_file);
+	char *subdir = dirname(sfile);
 	bool need_cleanup = false;
 
 	if (conf->max_files != 0
@@ -499,8 +510,14 @@ stats_flush(void)
 
 	free(subdir);
 	counters_free(counters);
+}
 
-	free(counter_updates);
+// Write counter updates in counter_updates to disk.
+void
+stats_flush(void)
+{
+	stats_flush_to_file(stats_file, counter_updates);
+	counters_free(counter_updates);
 	counter_updates = NULL;
 }
 

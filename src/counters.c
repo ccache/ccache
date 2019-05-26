@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -35,8 +35,10 @@ counters_init(size_t initial_size)
 void
 counters_free(struct counters *c)
 {
-	free(c->data);
-	free(c);
+	if (c) {
+		free(c->data);
+		free(c);
+	}
 }
 
 // Set a new size. New data entries are set to 0.
