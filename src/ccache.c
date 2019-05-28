@@ -30,6 +30,7 @@
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
+#include "result.h"
 #include "unify.h"
 
 #define STRINGIFY(x) #x
@@ -137,6 +138,13 @@ static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 // object code.
 static struct file_hash *cached_obj_hash;
 
+#if USE_AGGREGATED
+// Full path to the file containing everything
+// (cachedir/a/b/cdef[...]-size.result).
+static char *cached_result;
+#endif
+
+#if USE_SINGLE
 // Full path to the file containing the cached object code
 // (cachedir/a/b/cdef[...]-size.o).
 static char *cached_obj;
@@ -166,6 +174,7 @@ static char *cached_dia;
 //
 // Contains NULL if -gsplit-dwarf is not given.
 static char *cached_dwo;
+#endif
 
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
@@ -1185,6 +1194,7 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 	return result;
 }
 
+#if USE_SINGLE
 // Helper function for copy_file_to_cache and move_file_to_cache_same_fs.
 static void
 do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
@@ -1328,6 +1338,7 @@ copy_file_from_cache(const char *source, const char *dest)
 {
 	do_copy_or_link_file_from_cache(source, dest, true);
 }
+#endif
 
 // Send cached stderr, if any, to stderr.
 static void
@@ -1377,6 +1388,10 @@ update_cached_result_globals(struct file_hash *hash)
 {
 	char *object_name = format_hash_as_string(hash->hash, hash->hsize);
 	cached_obj_hash = hash;
+#if USE_AGGREGATED
+	cached_result = get_path_in_cache(object_name, ".result");
+#endif
+#if USE_SINGLE
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
 	cached_dep = get_path_in_cache(object_name, ".d");
@@ -1384,6 +1399,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_su = get_path_in_cache(object_name, ".su");
 	cached_dia = get_path_in_cache(object_name, ".dia");
 	cached_dwo = get_path_in_cache(object_name, ".dwo");
+#endif
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1426,11 +1442,17 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	int tmp_stderr_fd;
 	int status;
 	if (!conf->depend_mode) {
+#if USE_AGGREGATED
+		tmp_stdout = format("%s/tmp.stdout", temp_dir());
+		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		tmp_stderr = format("%s/tmp.stderr", temp_dir());
+		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+#else
 		tmp_stdout = format("%s.tmp.stdout", cached_obj);
 		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 		tmp_stderr = format("%s.tmp.stderr", cached_obj);
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
+#endif
 		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_pop(args, 3);
 	} else {
@@ -1561,6 +1583,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		stats_update(STATS_ERROR);
 		failed();
 	}
+#if USE_SINGLE
 	if (st.st_size > 0) {
 		if (!conf->depend_mode) {
 			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
@@ -1590,6 +1613,44 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	if (using_split_dwarf) {
 		copy_file_to_cache(output_dwo, cached_dwo);
 	}
+#endif
+#if USE_AGGREGATED
+	struct filelist *filelist = create_empty_filelist();
+	if (st.st_size > 0) {
+		add_file_to_filelist(filelist, tmp_stderr, ".stderr");
+	}
+	add_file_to_filelist(filelist, output_obj, ".o");
+	if (generating_dependencies) {
+		add_file_to_filelist(filelist, output_dep, ".d");
+	}
+	if (generating_coverage) {
+		add_file_to_filelist(filelist, output_cov, ".gcno");
+	}
+	if (generating_stackusage) {
+		add_file_to_filelist(filelist, output_su, ".su");
+	}
+	if (generating_diagnostics) {
+		add_file_to_filelist(filelist, output_dia, ".dia");
+	}
+	if (using_split_dwarf) {
+		add_file_to_filelist(filelist, output_dwo, ".dwo");
+	}
+	struct stat orig_dest_st;
+	bool orig_dest_existed = stat(cached_result, &orig_dest_st) == 0;
+	int compression_level = conf->compression ? conf->compression_level : 0;
+	cache_put(cached_result, filelist, compression_level);
+	free_filelist(filelist);
+
+	cc_log("Stored in cache: %s", cached_result);
+
+	if (x_stat(cached_result, &st) != 0) {
+		stats_update(STATS_ERROR);
+		failed();
+	}
+	stats_update_size(
+		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
+		orig_dest_existed ? 0 : 1);
+#endif
 
 	MTR_END("file", "file_put");
 
@@ -1618,13 +1679,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	// Everything OK.
-	if (st.st_size > 0) {
-		if (!conf->depend_mode) {
-			send_cached_stderr(cached_stderr);
-		} else {
-			send_cached_stderr(tmp_stderr);
-		}
-	}
+#if USE_AGGREGATED
+	send_cached_stderr(tmp_stderr);
+#endif
+#if USE_SINGLE
+	send_cached_stderr(cached_stderr);
+#endif
 	update_manifest_file();
 
 	if (st.st_size == 0 || conf->depend_mode) {
@@ -2295,6 +2355,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
 	// meta-data with no content. Catch an easy case of this.
+#if USE_SINGLE
 	struct stat st;
 	if (stat(cached_obj, &st) != 0) {
 		cc_log("Object file %s not in cache", cached_obj);
@@ -2305,6 +2366,19 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		x_unlink(cached_obj);
 		return;
 	}
+#endif
+#if USE_AGGREGATED
+	struct stat st;
+	if (stat(cached_result, &st) != 0) {
+		cc_log("Cache file %s not in cache", cached_result);
+		return;
+	}
+	if (st.st_size == 0) {
+		cc_log("Invalid (empty) cache file %s in cache", cached_result);
+		x_unlink(cached_result);
+		return;
+	}
+#endif
 
 	MTR_BEGIN("cache", "from_cache");
 
@@ -2316,6 +2390,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	MTR_BEGIN("file", "file_get");
 
 	// Get result from cache.
+#if USE_SINGLE
 	if (!str_eq(output_obj, "/dev/null")) {
 		get_file_from_cache(cached_obj, output_obj);
 		if (using_split_dwarf) {
@@ -2336,11 +2411,43 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_diagnostics) {
 		get_file_from_cache(cached_dia, output_dia);
 	}
+#endif
+#if USE_AGGREGATED
+	char *tmp_stderr = format("%s/tmp.stderr", temp_dir());
+	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+	close(tmp_stderr_fd);
+
+	struct filelist *filelist = create_empty_filelist();
+	if (!str_eq(output_obj, "/dev/null")) {
+		add_file_to_filelist(filelist, output_obj, ".o");
+		if (using_split_dwarf) {
+			add_file_to_filelist(filelist, output_dwo, ".dwo");
+		}
+	}
+	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
+	if (produce_dep_file) {
+		add_file_to_filelist(filelist, output_dep, ".d");
+	}
+	if (generating_coverage) {
+		add_file_to_filelist(filelist, output_cov, ".gcno");
+	}
+	if (generating_stackusage) {
+		add_file_to_filelist(filelist, output_su, ".su");
+	}
+	if (generating_diagnostics) {
+		add_file_to_filelist(filelist, output_dia, ".dia");
+	}
+	cache_get(cached_result, filelist);
+	free_filelist(filelist);
+
+	cc_log("Read from cache: %s", cached_result);
+#endif
 
 	MTR_END("file", "file_get");
 
 	// Update modification timestamps to save files from LRU cleanup. Also gives
 	// files a sensible mtime when hard-linking.
+#if USE_SINGLE
 	update_mtime(cached_obj);
 	update_mtime(cached_stderr);
 	if (produce_dep_file) {
@@ -2358,12 +2465,26 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (cached_dwo) {
 		update_mtime(cached_dwo);
 	}
+#endif
+#if USE_AGGREGATED
+	update_mtime(cached_result);
+#endif
 
+#if USE_SINGLE
 	send_cached_stderr(cached_stderr);
+#endif
+#if USE_AGGREGATED
+	send_cached_stderr(tmp_stderr);
+#endif
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
 	}
+
+#if USE_AGGREGATED
+	tmp_unlink(tmp_stderr);
+	free(tmp_stderr);
+#endif
 
 	// Log the cache hit.
 	switch (mode) {
@@ -3758,6 +3879,10 @@ cc_reset(void)
 	free(output_dia); output_dia = NULL;
 	free(output_dwo); output_dwo = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
+#if USE_AGGREGATED
+	free(cached_result); cached_result = NULL;
+#endif
+#if USE_SINGLE
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_obj); cached_obj = NULL;
 	free(cached_dep); cached_dep = NULL;
@@ -3765,6 +3890,7 @@ cc_reset(void)
 	free(cached_su); cached_su = NULL;
 	free(cached_dia); cached_dia = NULL;
 	free(cached_dwo); cached_dwo = NULL;
+#endif
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {
@@ -4035,6 +4161,7 @@ ccache_main_options(int argc, char *argv[])
 {
 	enum longopts {
 		DUMP_MANIFEST,
+		DUMP_RESULT,
 		HASH_FILE,
 		PRINT_STATS,
 	};
@@ -4042,6 +4169,7 @@ ccache_main_options(int argc, char *argv[])
 		{"cleanup",       no_argument,       0, 'c'},
 		{"clear",         no_argument,       0, 'C'},
 		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
+		{"dump-result",   required_argument, 0, DUMP_RESULT},
 		{"get-config",    required_argument, 0, 'k'},
 		{"hash-file",     required_argument, 0, HASH_FILE},
 		{"help",          no_argument,       0, 'h'},
@@ -4063,6 +4191,11 @@ ccache_main_options(int argc, char *argv[])
 		case DUMP_MANIFEST:
 			initialize();
 			manifest_dump(optarg, stdout);
+			break;
+
+		case DUMP_RESULT:
+			initialize();
+			cache_dump(optarg, stdout);
 			break;
 
 		case HASH_FILE:

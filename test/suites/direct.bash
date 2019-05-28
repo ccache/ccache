@@ -151,7 +151,11 @@ EOF
             test_failed "$dep_file does not contain $dep_target"
         fi
     done
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 12
+    else
     expect_stat 'files in cache' 18
+    fi
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -457,7 +461,11 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 4
+    else
     expect_stat 'files in cache' 5
+    fi
     expect_equal_files test.d expected.d
 
     rm -f test.d
@@ -466,10 +474,15 @@ EOF
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
+    if $AGGREGATED; then
+    expect_stat 'files in cache' 4
+    else
     expect_stat 'files in cache' 5
+    fi
     expect_equal_files test.d expected.d
 
     # -------------------------------------------------------------------------
+    if ! $AGGREGATED; then
     TEST "Missing .d file"
 
     $CCACHE_COMPILE -c -MD test.c
@@ -491,6 +504,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'cache file missing' 1
+    fi
 
     # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"
