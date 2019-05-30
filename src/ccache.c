@@ -1331,9 +1331,9 @@ copy_file_from_cache(const char *source, const char *dest)
 
 // Send cached stderr, if any, to stderr.
 static void
-send_cached_stderr(void)
+send_cached_stderr(const char *path_stderr)
 {
-	int fd_stderr = open(cached_stderr, O_RDONLY | O_BINARY);
+	int fd_stderr = open(path_stderr, O_RDONLY | O_BINARY);
 	if (fd_stderr != -1) {
 		copy_fd(fd_stderr, 2);
 		close(fd_stderr);
@@ -1571,9 +1571,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		// If recaching, we need to remove any previous .stderr.
 		x_unlink(cached_stderr);
 	}
-	if (st.st_size == 0 || conf->depend_mode) {
-		tmp_unlink(tmp_stderr);
-	}
 
 	MTR_BEGIN("file", "file_put");
 
@@ -1621,9 +1618,18 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	// Everything OK.
-	send_cached_stderr();
+	if (st.st_size > 0) {
+		if (!conf->depend_mode) {
+			send_cached_stderr(cached_stderr);
+		} else {
+			send_cached_stderr(tmp_stderr);
+		}
+	}
 	update_manifest_file();
 
+	if (st.st_size == 0 || conf->depend_mode) {
+		tmp_unlink(tmp_stderr);
+	}
 	free(tmp_stderr);
 	free(tmp_stdout);
 }
@@ -2353,7 +2359,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_mtime(cached_dwo);
 	}
 
-	send_cached_stderr();
+	send_cached_stderr(cached_stderr);
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
