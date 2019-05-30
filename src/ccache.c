@@ -138,43 +138,9 @@ static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 // object code.
 static struct file_hash *cached_obj_hash;
 
-#if USE_AGGREGATED
 // Full path to the file containing everything
 // (cachedir/a/b/cdef[...]-size.result).
 static char *cached_result;
-#endif
-
-#if USE_SINGLE
-// Full path to the file containing the cached object code
-// (cachedir/a/b/cdef[...]-size.o).
-static char *cached_obj;
-
-// Full path to the file containing the standard error output
-// (cachedir/a/b/cdef[...]-size.stderr).
-static char *cached_stderr;
-
-// Full path to the file containing the dependency information
-// (cachedir/a/b/cdef[...]-size.d).
-static char *cached_dep;
-
-// Full path to the file containing the coverage information
-// (cachedir/a/b/cdef[...]-size.gcno).
-static char *cached_cov;
-
-// Full path to the file containing the stack usage
-// (cachedir/a/b/cdef[...]-size.su).
-static char *cached_su;
-
-// Full path to the file containing the diagnostic information (for clang)
-// (cachedir/a/b/cdef[...]-size.dia).
-static char *cached_dia;
-
-// Full path to the file containing the split dwarf (for GCC 4.8 and above)
-// (cachedir/a/b/cdef[...]-size.dwo).
-//
-// Contains NULL if -gsplit-dwarf is not given.
-static char *cached_dwo;
-#endif
 
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
@@ -1194,152 +1160,6 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 	return result;
 }
 
-#if USE_SINGLE
-// Helper function for copy_file_to_cache and move_file_to_cache_same_fs.
-static void
-do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
-{
-	assert(!conf->read_only);
-	assert(!conf->read_only_direct);
-
-	struct stat orig_dest_st;
-	bool orig_dest_existed = stat(dest, &orig_dest_st) == 0;
-	int compression_level = conf->compression ? conf->compression_level : 0;
-	bool do_move = !copy && !conf->compression;
-	bool do_link = copy && conf->hard_link && !conf->compression;
-
-	if (do_move) {
-		move_uncompressed_file(source, dest, compression_level);
-	} else {
-		if (do_link) {
-			x_unlink(dest);
-			int ret = link(source, dest);
-			if (ret != 0) {
-				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
-				cc_log("Falling back to copying");
-				do_link = false;
-			}
-		}
-		if (!do_link) {
-			int ret = copy_file(source, dest, compression_level);
-			if (ret != 0) {
-				cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
-				stats_update(STATS_ERROR);
-				failed();
-			}
-		}
-	}
-
-	if (!copy && conf->compression) {
-		// We fell back to copying since dest should be compressed, so clean up.
-		x_unlink(source);
-	}
-
-	cc_log("Stored in cache: %s -> %s (%s)",
-	       source,
-	       dest,
-	       do_move ? "moved" : (do_link ? "linked" : "copied"));
-
-	struct stat st;
-	if (x_stat(dest, &st) != 0) {
-		stats_update(STATS_ERROR);
-		failed();
-	}
-	stats_update_size(
-		stats_file,
-		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
-		orig_dest_existed ? 0 : 1);
-}
-
-// Copy a file into the cache.
-//
-// dest must be a path in the cache (see get_path_in_cache). source does not
-// have to be on the same file system as dest.
-//
-// An attempt will be made to hard link source to dest if conf->hard_link is
-// true and conf->compression is false, otherwise copy. dest will be compressed
-// if conf->compression is true.
-static void
-copy_file_to_cache(const char *source, const char *dest)
-{
-	do_copy_or_move_file_to_cache(source, dest, true);
-}
-
-// Move a file into the cache.
-//
-// dest must be a path in the cache (see get_path_in_cache). source must be on
-// the same file system as dest. dest will be compressed if conf->compression
-// is true.
-static void
-move_file_to_cache_same_fs(const char *source, const char *dest)
-{
-	do_copy_or_move_file_to_cache(source, dest, false);
-}
-
-// Helper function for get_file_from_cache and copy_file_from_cache.
-static void
-do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
-{
-	int ret;
-	bool do_link = !copy && conf->hard_link && !file_is_compressed(source);
-	if (do_link) {
-		x_unlink(dest);
-		ret = link(source, dest);
-	} else {
-		ret = copy_file(source, dest, 0);
-	}
-
-	if (ret == -1) {
-		if (errno == ENOENT || errno == ESTALE) {
-			cc_log("File missing in cache: %s", source);
-			stats_update(STATS_MISSING);
-		} else {
-			cc_log("Failed to %s %s to %s: %s",
-			       do_link ? "link" : "copy",
-			       source,
-			       dest,
-			       strerror(errno));
-			stats_update(STATS_ERROR);
-		}
-
-		// If there was trouble getting a file from the cached result, wipe the
-		// whole cached result for consistency.
-		x_unlink(cached_stderr);
-		x_unlink(cached_obj);
-		x_unlink(cached_dep);
-		x_unlink(cached_cov);
-		x_unlink(cached_su);
-		x_unlink(cached_dia);
-		x_unlink(cached_dwo);
-
-		failed();
-	}
-
-	cc_log("Created from cache: %s -> %s", source, dest);
-}
-
-// Copy or link a file from the cache.
-//
-// source must be a path in the cache (see get_path_in_cache). dest does not
-// have to be on the same file system as source.
-//
-// An attempt will be made to hard link source to dest if conf->hard_link is
-// true and conf->compression is false, otherwise copy. dest will be compressed
-// if conf->compression is true.
-static void
-get_file_from_cache(const char *source, const char *dest)
-{
-	do_copy_or_link_file_from_cache(source, dest, false);
-}
-
-// Copy a file from the cache.
-static void
-copy_file_from_cache(const char *source, const char *dest)
-{
-	do_copy_or_link_file_from_cache(source, dest, true);
-}
-#endif
-
 // Send cached stderr, if any, to stderr.
 static void
 send_cached_stderr(const char *path_stderr)
@@ -1388,18 +1208,7 @@ update_cached_result_globals(struct file_hash *hash)
 {
 	char *object_name = format_hash_as_string(hash->hash, hash->hsize);
 	cached_obj_hash = hash;
-#if USE_AGGREGATED
 	cached_result = get_path_in_cache(object_name, ".result");
-#endif
-#if USE_SINGLE
-	cached_obj = get_path_in_cache(object_name, ".o");
-	cached_stderr = get_path_in_cache(object_name, ".stderr");
-	cached_dep = get_path_in_cache(object_name, ".d");
-	cached_cov = get_path_in_cache(object_name, ".gcno");
-	cached_su = get_path_in_cache(object_name, ".su");
-	cached_dia = get_path_in_cache(object_name, ".dia");
-	cached_dwo = get_path_in_cache(object_name, ".dwo");
-#endif
 
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
 	free(object_name);
@@ -1442,17 +1251,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	int tmp_stderr_fd;
 	int status;
 	if (!conf->depend_mode) {
-#if USE_AGGREGATED
 		tmp_stdout = format("%s/tmp.stdout", temp_dir());
 		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 		tmp_stderr = format("%s/tmp.stderr", temp_dir());
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-#else
-		tmp_stdout = format("%s.tmp.stdout", cached_obj);
-		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-		tmp_stderr = format("%s.tmp.stderr", cached_obj);
-		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-#endif
 		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_pop(args, 3);
 	} else {
@@ -1583,38 +1385,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		stats_update(STATS_ERROR);
 		failed();
 	}
-#if USE_SINGLE
-	if (st.st_size > 0) {
-		if (!conf->depend_mode) {
-			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
-		} else {
-			copy_file_to_cache(tmp_stderr, cached_stderr);
-		}
-	} else if (conf->recache) {
-		// If recaching, we need to remove any previous .stderr.
-		x_unlink(cached_stderr);
-	}
-
-	MTR_BEGIN("file", "file_put");
-
-	copy_file_to_cache(output_obj, cached_obj);
-	if (produce_dep_file) {
-		copy_file_to_cache(output_dep, cached_dep);
-	}
-	if (generating_coverage) {
-		copy_file_to_cache(output_cov, cached_cov);
-	}
-	if (generating_stackusage) {
-		copy_file_to_cache(output_su, cached_su);
-	}
-	if (generating_diagnostics) {
-		copy_file_to_cache(output_dia, cached_dia);
-	}
-	if (using_split_dwarf) {
-		copy_file_to_cache(output_dwo, cached_dwo);
-	}
-#endif
-#if USE_AGGREGATED
 	struct filelist *filelist = create_empty_filelist();
 	if (st.st_size > 0) {
 		add_file_to_filelist(filelist, tmp_stderr, ".stderr");
@@ -1651,7 +1421,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		stats_file,
 		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
 		orig_dest_existed ? 0 : 1);
-#endif
 
 	MTR_END("file", "file_put");
 
@@ -1680,16 +1449,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	// Everything OK.
-#if USE_AGGREGATED
 	send_cached_stderr(tmp_stderr);
 	tmp_unlink(tmp_stderr);
-#endif
-#if USE_SINGLE
-	send_cached_stderr(cached_stderr);
-	if (st.st_size == 0 || conf->depend_mode) {
-		tmp_unlink(tmp_stderr);
-	}
-#endif
 
 	update_manifest_file();
 
@@ -2358,19 +2119,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
 	// meta-data with no content. Catch an easy case of this.
-#if USE_SINGLE
-	struct stat st;
-	if (stat(cached_obj, &st) != 0) {
-		cc_log("Object file %s not in cache", cached_obj);
-		return;
-	}
-	if (st.st_size == 0) {
-		cc_log("Invalid (empty) object file %s in cache", cached_obj);
-		x_unlink(cached_obj);
-		return;
-	}
-#endif
-#if USE_AGGREGATED
 	struct stat st;
 	if (stat(cached_result, &st) != 0) {
 		cc_log("Cache file %s not in cache", cached_result);
@@ -2381,7 +2129,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		x_unlink(cached_result);
 		return;
 	}
-#endif
 
 	MTR_BEGIN("cache", "from_cache");
 
@@ -2393,29 +2140,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	MTR_BEGIN("file", "file_get");
 
 	// Get result from cache.
-#if USE_SINGLE
-	if (!str_eq(output_obj, "/dev/null")) {
-		get_file_from_cache(cached_obj, output_obj);
-		if (using_split_dwarf) {
-			get_file_from_cache(cached_dwo, output_dwo);
-		}
-	}
-	if (produce_dep_file) {
-		// Never hardlink the .d file since automake fails to move a foo.d.tmp file
-		// to foo.d if they have the same i-node.
-		copy_file_from_cache(cached_dep, output_dep);
-	}
-	if (generating_coverage) {
-		get_file_from_cache(cached_cov, output_cov);
-	}
-	if (generating_stackusage) {
-		get_file_from_cache(cached_su, output_su);
-	}
-	if (generating_diagnostics) {
-		get_file_from_cache(cached_dia, output_dia);
-	}
-#endif
-#if USE_AGGREGATED
 	char *tmp_stderr = format("%s/tmp.stderr", temp_dir());
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 	close(tmp_stderr_fd);
@@ -2451,50 +2175,21 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	cc_log("Read from cache: %s", cached_result);
-#endif
 
 	MTR_END("file", "file_get");
 
-	// Update modification timestamps to save files from LRU cleanup. Also gives
+	// Update modification timestamp to save files from LRU cleanup. Also gives
 	// files a sensible mtime when hard-linking.
-#if USE_SINGLE
-	update_mtime(cached_obj);
-	update_mtime(cached_stderr);
-	if (produce_dep_file) {
-		update_mtime(cached_dep);
-	}
-	if (generating_coverage) {
-		update_mtime(cached_cov);
-	}
-	if (generating_stackusage) {
-		update_mtime(cached_su);
-	}
-	if (generating_diagnostics) {
-		update_mtime(cached_dia);
-	}
-	if (cached_dwo) {
-		update_mtime(cached_dwo);
-	}
-#endif
-#if USE_AGGREGATED
 	update_mtime(cached_result);
-#endif
 
-#if USE_SINGLE
-	send_cached_stderr(cached_stderr);
-#endif
-#if USE_AGGREGATED
 	send_cached_stderr(tmp_stderr);
-#endif
 
 	if (put_object_in_manifest) {
 		update_manifest_file();
 	}
 
-#if USE_AGGREGATED
 	tmp_unlink(tmp_stderr);
 	free(tmp_stderr);
-#endif
 
 	// Log the cache hit.
 	switch (mode) {
@@ -3889,18 +3584,7 @@ cc_reset(void)
 	free(output_dia); output_dia = NULL;
 	free(output_dwo); output_dwo = NULL;
 	free(cached_obj_hash); cached_obj_hash = NULL;
-#if USE_AGGREGATED
 	free(cached_result); cached_result = NULL;
-#endif
-#if USE_SINGLE
-	free(cached_stderr); cached_stderr = NULL;
-	free(cached_obj); cached_obj = NULL;
-	free(cached_dep); cached_dep = NULL;
-	free(cached_cov); cached_cov = NULL;
-	free(cached_su); cached_su = NULL;
-	free(cached_dia); cached_dia = NULL;
-	free(cached_dwo); cached_dwo = NULL;
-#endif
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {

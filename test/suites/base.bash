@@ -794,20 +794,6 @@ EOF
     expect_stat 'compiler check failed' 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_RECACHE should remove previous .stderr"
-
-    $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_file_count 0 '*.stderr' $CCACHE_DIR
-
-    obj_file=`find $CCACHE_DIR -name '*.o'`
-    stderr_file=`echo $obj_file | sed 's/..$/.stderr/'`
-    test -n "$stderr_file" && echo "Warning: foo" >$stderr_file
-    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test1.c
-    expect_file_count 0 '*.stderr' $CCACHE_DIR
-
-    # -------------------------------------------------------------------------
     TEST "No object file"
 
     cat <<'EOF' >test_no_obj.c

@@ -19,11 +19,7 @@ SUITE_serialize_diagnostics() {
     $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 1
-    else
-    expect_stat 'files in cache' 2
-    fi
     expect_equal_files expected.dia test.dia
 
     rm test.dia
@@ -31,11 +27,7 @@ SUITE_serialize_diagnostics() {
     $CCACHE_COMPILE -c --serialize-diagnostics test.dia test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 1
-    else
-    expect_stat 'files in cache' 2
-    fi
     expect_equal_files expected.dia test.dia
 
     # -------------------------------------------------------------------------
@@ -82,20 +74,12 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 2
-    else
-    expect_stat 'files in cache' 4
-    fi
 
     cd ../dir2
     CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -w -MD -MF `pwd`/test.d -I`pwd`/include --serialize-diagnostics `pwd`/test.dia -c src/test.c -o `pwd`/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 2
-    else
-    expect_stat 'files in cache' 4
-    fi
 }

@@ -146,7 +146,7 @@ test: ccache$(EXEEXT) unittest/run$(EXEEXT)
 	$(if $(quiet),@echo "  TEST     unittest/run$(EXEEXT)")
 	$(Q)unittest/run$(EXEEXT)
 	$(if $(quiet),@echo "  TEST     $(srcdir)/test/run")
-	$(Q)AGGREGATED=@aggregated@ CC='$(CC)' $(BASH) $(srcdir)/test/run
+	$(Q)CC='$(CC)' $(BASH) $(srcdir)/test/run
 
 .PHONY: unittest
 unittest: unittest/run$(EXEEXT)
