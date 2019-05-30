@@ -1387,7 +1387,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 	struct filelist *filelist = create_empty_filelist();
 	if (st.st_size > 0) {
-		add_file_to_filelist(filelist, tmp_stderr, ".stderr");
+		add_file_to_filelist(filelist, tmp_stderr, "stderr");
 	}
 	add_file_to_filelist(filelist, output_obj, ".o");
 	if (generating_dependencies) {
@@ -1812,6 +1812,9 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 {
 	bool found_ccbin = false;
 
+	hash_delimiter(hash, "result version");
+	hash_int(hash, RESULT_VERSION);
+
 	if (direct_mode) {
 		hash_delimiter(hash, "manifest version");
 		hash_int(hash, MANIFEST_VERSION);
@@ -2151,7 +2154,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			add_file_to_filelist(filelist, output_dwo, ".dwo");
 		}
 	}
-	add_file_to_filelist(filelist, tmp_stderr, ".stderr");
+	add_file_to_filelist(filelist, tmp_stderr, "stderr");
 	if (produce_dep_file) {
 		add_file_to_filelist(filelist, output_dep, ".d");
 	}

@@ -22,9 +22,9 @@
 
 #include <zlib.h>
 
-// Sketchy specification of the manifest disk format:
+// Sketchy specification of the manifest data format:
 //
-// <magic>         magic number                        (4 bytes)
+// <magic>         magic number                        (4 bytes: cCmF)
 // <version>       file format version                 (1 byte unsigned int)
 // <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
 // <reserved>      reserved for future use             (2 bytes)
@@ -64,7 +64,7 @@
 // <hash[n-1]>
 // <size[n-1]>
 
-static const uint32_t MAGIC = 0x63436d46U;
+static const uint32_t MAGIC = 0x63436d46U; // cCmF
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
