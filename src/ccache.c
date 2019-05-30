@@ -1648,6 +1648,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		failed();
 	}
 	stats_update_size(
+		stats_file,
 		file_size(&st) - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
 		orig_dest_existed ? 0 : 1);
 #endif
