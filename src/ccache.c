@@ -1682,15 +1682,17 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	// Everything OK.
 #if USE_AGGREGATED
 	send_cached_stderr(tmp_stderr);
+	tmp_unlink(tmp_stderr);
 #endif
 #if USE_SINGLE
 	send_cached_stderr(cached_stderr);
-#endif
-	update_manifest_file();
-
 	if (st.st_size == 0 || conf->depend_mode) {
 		tmp_unlink(tmp_stderr);
 	}
+#endif
+
+	update_manifest_file();
+
 	free(tmp_stderr);
 	free(tmp_stdout);
 }
