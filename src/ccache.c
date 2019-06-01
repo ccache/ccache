@@ -2438,8 +2438,15 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (generating_diagnostics) {
 		add_file_to_filelist(filelist, output_dia, ".dia");
 	}
-	cache_get(cached_result, filelist);
+	bool ok = cache_get(cached_result, filelist);
 	free_filelist(filelist);
+	if (!ok) {
+		cc_log("Failed to get result from cache");
+		// TODO: Add new STATS_CORRUPT statistics value and increment here?
+		tmp_unlink(tmp_stderr);
+		free(tmp_stderr);
+		return;
+	}
 
 	cc_log("Read from cache: %s", cached_result);
 #endif
