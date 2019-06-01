@@ -290,7 +290,7 @@ bool cache_get(const char *cache_path, struct filelist *l)
 		cc_log("No such cache file");
 		goto out;
 	}
-	f = gzdopen(dup(fd), "rb");
+	f = gzdopen(fd, "rb");
 	if (!f) {
 		close(fd);
 		cc_log("Failed to gzdopen cache file");
