@@ -39,6 +39,7 @@ built_dist_files = $(generated_sources) $(generated_docs)
 headers = \
     src/ccache.h \
     src/compopt.h \
+    src/compression.h \
     src/conf.h \
     src/confitems.h \
     src/counters.h \

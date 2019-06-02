@@ -21,7 +21,7 @@ LIBS = @LIBS@
 RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
-all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
+all_cppflags = @DEFS@ -DZLIB_CONST -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 v_at_0 = yes
@@ -34,9 +34,13 @@ non_3pp_sources = \
     src/ccache.c \
     src/cleanup.c \
     src/compopt.c \
+    src/compr_none.c \
+    src/compr_zlib.c \
     src/conf.c \
     src/confitems.c \
     src/counters.c \
+    src/decompr_none.c \
+    src/decompr_zlib.c \
     src/execute.c \
     src/exitfn.c \
     src/hash.c \
