@@ -45,7 +45,7 @@ compr_zlib_init(FILE *output, int level)
 static bool
 compr_zlib_write(struct compr_state *handle, const void *data, size_t size)
 {
-	struct state *state = (struct state*)handle;
+	struct state *state = (struct state *)handle;
 
 	state->stream.next_in = (const Bytef *)data;
 	state->stream.avail_in = size;
@@ -74,7 +74,7 @@ compr_zlib_write(struct compr_state *handle, const void *data, size_t size)
 static void
 compr_zlib_free(struct compr_state *handle)
 {
-	struct state *state = (struct state*)handle;
+	struct state *state = (struct state *)handle;
 
 	compr_zlib_write(handle, NULL, 0);
 	deflateEnd(&state->stream);

@@ -53,7 +53,7 @@ decompr_zlib_init(FILE *input)
 static bool
 decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 {
-	struct state *state = (struct state*)handle;
+	struct state *state = (struct state *)handle;
 
 	size_t bytes_read = 0;
 	while (bytes_read < size) {
@@ -71,7 +71,7 @@ decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 			(Bytef *)(state->input_buffer + state->input_consumed);
 		state->stream.avail_in = state->input_size - state->input_consumed;
 
-		state->stream.next_out = (Bytef *)((char*)data + bytes_read);
+		state->stream.next_out = (Bytef *)((char *)data + bytes_read);
 		state->stream.avail_out = size - bytes_read;
 		int ret = inflate(&state->stream, Z_NO_FLUSH);
 		assert(ret != Z_STREAM_ERROR);
@@ -90,7 +90,7 @@ decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 
 static void decompr_zlib_free(struct decompr_state *handle)
 {
-	struct state *state = (struct state*)handle;
+	struct state *state = (struct state *)handle;
 	inflateEnd(&state->stream);
 	free(handle);
 }

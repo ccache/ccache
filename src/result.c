@@ -208,7 +208,7 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 	}
 
 	uint8_t marker;
-	for (uint32_t i = 0; ; i++) {
+	for (uint32_t i = 0;; i++) {
 		READ_BYTE(marker);
 		switch (marker) {
 		case EOF_MARKER:
@@ -372,7 +372,8 @@ bool cache_get(const char *path, struct filelist *l)
 	return read_cache(path, l, NULL);
 }
 
-bool cache_put(const char *cache_path, struct filelist *l, int compression_level)
+bool cache_put(const char *cache_path, struct filelist *l,
+               int compression_level)
 {
 	bool ret = false;
 	char *tmp_file = format("%s.tmp", cache_path);

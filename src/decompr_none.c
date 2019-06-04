@@ -25,7 +25,7 @@ decompr_none_init(FILE *input)
 static bool
 decompr_none_read(struct decompr_state *handle, void *data, size_t size)
 {
-	FILE *input = (FILE*)handle;
+	FILE *input = (FILE *)handle;
 	return fread(data, 1, size, input) == size;
 }
 

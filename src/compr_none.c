@@ -26,7 +26,7 @@ compr_none_init(FILE *output, int level)
 static bool
 compr_none_write(struct compr_state *handle, const void *data, size_t size)
 {
-	FILE *output = (FILE*)handle;
+	FILE *output = (FILE *)handle;
 	return fwrite(data, 1, size, output) == size;
 }
 
