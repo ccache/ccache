@@ -15,9 +15,8 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+#include "compression.h"
 #include "result.h"
-
-#include <zlib.h>
 
 // Result data format:
 //
@@ -27,9 +26,9 @@
 // <eof_marker>  ::= 0 (uint8_t)
 // <magic>       ::= uint32_t ; "cCrS"
 // <version>     ::= uint8_t
-// <compr_type>  ::= <compr_none> | <compr_gzip>
+// <compr_type>  ::= <compr_none> | <compr_zlib>
 // <compr_none>  ::= 0
-// <compr_gzip>  ::= 1
+// <compr_zlib>  ::= 1
 // <compr_level> ::= uint8_t
 // <entry>       ::= <file_entry> | <ref_entry>
 // <file_entry>  ::= <file_marker> <suffix_len> <suffix> <data_len> <data>
@@ -72,7 +71,7 @@ enum {
 
 enum {
 	COMPR_TYPE_NONE = 0,
-	COMPR_TYPE_GZIP = 1
+	COMPR_TYPE_ZLIB = 1
 };
 
 struct file {
@@ -128,88 +127,75 @@ free_filelist(struct filelist *l)
 
 	free(l);
 }
+#define READ_BYTES(buf, length) \
+	do { \
+		if (!decompressor->read(decompr_state, buf, length)) { \
+			goto out; \
+		} \
+	} while (false)
 
 #define READ_BYTE(var) \
-	do { \
-		int ch_ = gzgetc(f); \
-		if (ch_ == EOF) { \
-			goto error; \
-		} \
-		(var) = ch_ & 0xFF; \
-	} while (false)
+	READ_BYTES(&var, 1)
 
 #define READ_INT(size, var) \
 	do { \
+		uint8_t buf_[size]; \
+		READ_BYTES(buf_, size); \
 		uint64_t u_ = 0; \
 		for (size_t i_ = 0; i_ < (size); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
 			u_ <<= 8; \
-			u_ |= ch_ & 0xFF; \
+			u_ |= buf_[i_]; \
 		} \
 		(var) = u_; \
-	} while (false)
-
-#define READ_BYTES(length, buf) \
-	do { \
-		if (gzread(f, buf, length) != length) { \
-			goto error; \
-		} \
-	} while (false)
-
-#define READ_FILE(size, path) \
-	do { \
-		FILE *f_ = fopen(path, "wb"); \
-		char buf_[READ_BUFFER_SIZE]; \
-		long n_; \
-		size_t remain_ = size; \
-		while ((n_ = gzread(f, buf_, remain_ > sizeof(buf_) ? sizeof(buf_) : remain_)) > 0) { \
-			if ((long)fwrite(buf_, 1, n_, f_) != n_) { \
-				goto error; \
-			} \
-			remain_ -= n_; \
-		} \
-		fclose(f_); \
 	} while (false)
 
 static bool
 read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 {
-	int fd = open(path, O_RDONLY | O_BINARY);
-	if (fd == -1) {
+	bool success = false;
+	struct decompressor *decompressor = NULL;
+	struct decompr_state *decompr_state = NULL;
+	FILE *subfile = NULL;
+
+	FILE *f = fopen(path, "rb");
+	if (!f) {
 		// Cache miss.
 		cc_log("No such cache file");
-		return false;
+		goto out;
 	}
 
 	char header[7];
-	if (read(fd, header, sizeof(header)) != (ssize_t)sizeof(header)) {
-		close(fd);
+	if (fread(header, 1, sizeof(header), f) != sizeof(header)) {
 		cc_log("Failed to read result file header");
-		return false;
+		goto out;
 	}
 
 	if (memcmp(header, MAGIC, sizeof(MAGIC)) != 0) {
 		cc_log("Cache file has bad magic value 0x%x%x%x%x",
 		       header[0], header[1], header[2], header[3]);
 		// TODO: Return error message like read_manifest does.
-		return false;
+		goto out;
 	}
 
 	// TODO: Verify version like read_manifest does.
 	const uint8_t version = header[4];
 	const uint8_t compr_type = header[5];
+
 	switch (compr_type) {
 	case COMPR_TYPE_NONE:
-	case COMPR_TYPE_GZIP:
+		decompressor = &decompr_none;
+		break;
+
+	case COMPR_TYPE_ZLIB:
+		decompressor = &decompr_zlib;
 		break;
 
 	default:
 		cc_log("Unknown compression type: %u", compr_type);
-		return false;
+		goto out;
 	}
+
+	decompr_state = decompressor->init(f);
 
 	if (dump_stream) {
 		const uint8_t compr_level = header[6];
@@ -217,15 +203,8 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
 		fprintf(dump_stream, "Version: %u\n", version);
 		fprintf(dump_stream, "Compression type: %s\n",
-		        compr_type == COMPR_TYPE_NONE ? "none" : "gzip");
+		        compr_type == COMPR_TYPE_NONE ? "none" : "zlib");
 		fprintf(dump_stream, "Compression level: %u\n", compr_level);
-	}
-
-	gzFile f = gzdopen(fd, "rb");
-	if (!f) {
-		close(fd);
-		cc_log("Failed to gzdopen result file");
-		return false;
 	}
 
 	uint8_t marker;
@@ -233,8 +212,8 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 		READ_BYTE(marker);
 		switch (marker) {
 		case EOF_MARKER:
-			gzclose(f);
-			return true;
+			success = true;
+			goto out;
 
 		case FILE_MARKER:
 			break;
@@ -245,14 +224,14 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 
 		default:
 			cc_log("Unknown entry type: %u", marker);
-			goto error;
+			goto out;
 		}
 
 		uint8_t suffix_len;
 		READ_BYTE(suffix_len);
 
 		char suffix[256 + 1];
-		READ_BYTES(suffix_len, suffix);
+		READ_BYTES(suffix, suffix_len);
 		suffix[suffix_len] = '\0';
 
 		uint64_t filelen;
@@ -274,73 +253,85 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 				if (str_eq(suffix, l->files[j].suffix)) {
 					found = true;
 
-					cc_log("Copying file to %s", l->files[i].path);
+					cc_log("Copying to %s", l->files[j].path);
 
-					READ_FILE(filelen, l->files[j].path);
+					subfile = fopen(l->files[j].path, "wb");
+					char buf[READ_BUFFER_SIZE];
+					size_t remain = filelen;
+					while (remain > 0) {
+						size_t n = MIN(remain, sizeof(buf));
+						READ_BYTES(buf, n);
+						if (fwrite(buf, 1, n, subfile) != n) {
+							goto out;
+						}
+						remain -= n;
+					}
+					fclose(subfile);
+					subfile = NULL;
 				}
 			}
 		}
 		if (!found) {
-			// Skip the data, if no match
-			gzseek(f, filelen, SEEK_CUR);
+			// Discard the file data.
+			char buf[READ_BUFFER_SIZE];
+			size_t remain = filelen;
+			while (remain > 0) {
+				size_t n = MIN(remain, sizeof(buf));
+				READ_BYTES(buf, n);
+				remain -= n;
+			}
 		}
 	}
 
-error:
-	gzclose(f);
-	cc_log("Corrupt cache file");
-	return false;
+out:
+	if (subfile) {
+		fclose(subfile);
+	}
+	if (decompressor) {
+		decompressor->free(decompr_state);
+	}
+	if (f) {
+		fclose(f);
+	}
+	if (!success) {
+		cc_log("Corrupt cache file");
+	}
+	return success;
 }
+
+#define WRITE_BYTES(buf, length) \
+	do { \
+		if (!compressor->write(compr_state, buf, length)) { \
+			goto error; \
+		} \
+	} while (false)
 
 #define WRITE_BYTE(var) \
 	do { \
-		if (gzputc(f, var) == EOF) { \
-			goto error; \
-		} \
+		char ch_ = var; \
+		WRITE_BYTES(&ch_, 1); \
 	} while (false)
 
 #define WRITE_INT(size, var) \
 	do { \
 		uint64_t u_ = (var); \
-		uint8_t ch_; \
-		size_t i_; \
-		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = (u_ >> (8 * ((size) - i_ - 1))); \
-			if (gzputc(f, ch_) == EOF) { \
-				goto error; \
-			} \
+		uint8_t buf_[size]; \
+		for (size_t i_ = 0; i_ < (size); i_++) { \
+			buf_[i_] = (u_ >> (8 * ((size) - i_ - 1))); \
 		} \
+		WRITE_BYTES(buf_, size); \
 	} while (false)
 
-#define WRITE_BYTES(length, buf) \
-	do { \
-		if (gzwrite(f, buf, length) != (long)length) { \
-			goto error; \
-		} \
-	} while (false)
-
-#define WRITE_FILE(size, path) \
-	do { \
-		FILE *f_ = fopen(path, "rb"); \
-		char buf_[READ_BUFFER_SIZE]; \
-		long n_; \
-		size_t remain_ = size; \
-		while ((n_ = (long)fread(buf_, 1, remain_ > sizeof(buf_) ? sizeof(buf_) : remain_, f_)) > 0) { \
-			if (gzwrite(f, buf_, n_) != n_) { \
-				goto error; \
-			} \
-			remain_ -= n_; \
-		} \
-		fclose(f_); \
-	} while (false)
-
-static int
-write_cache(gzFile f, const struct filelist *l)
+static bool
+write_cache(
+	const struct filelist *l,
+	struct compressor *compressor,
+	struct compr_state *compr_state)
 {
 	for (uint32_t i = 0; i < l->n_files; i++) {
 		struct stat st;
 		if (x_stat(l->files[i].path, &st) != 0) {
-			return -1;
+			return false;
 		}
 
 		cc_log("Writing file #%u: %s (%lu)", i, l->files[i].suffix,
@@ -349,18 +340,30 @@ write_cache(gzFile f, const struct filelist *l)
 		WRITE_BYTE(FILE_MARKER);
 		size_t suffix_len = strlen(l->files[i].suffix);
 		WRITE_BYTE(suffix_len);
-		WRITE_BYTES(suffix_len, l->files[i].suffix);
+		WRITE_BYTES(l->files[i].suffix, suffix_len);
 		WRITE_INT(8, st.st_size);
-		WRITE_FILE(st.st_size, l->files[i].path);
+
+		FILE *f = fopen(l->files[i].path, "rb");
+		char buf[READ_BUFFER_SIZE];
+		size_t remain = st.st_size;
+		while (remain > 0) {
+			size_t n = MIN(remain, sizeof(buf));
+			if (fread(buf, 1, n, f) != n) {
+				goto error;
+			}
+			WRITE_BYTES(buf, n);
+			remain -= n;
+		}
+		fclose(f);
 	}
 
 	WRITE_BYTE(EOF_MARKER);
 
-	return 1;
+	return true;
 
 error:
 	cc_log("Error writing to cache file");
-	return 0;
+	return false;
 }
 
 bool cache_get(const char *path, struct filelist *l)
@@ -371,55 +374,53 @@ bool cache_get(const char *path, struct filelist *l)
 
 bool cache_put(const char *cache_path, struct filelist *l, int compression_level)
 {
-	int ret = 0;
-	gzFile f2 = NULL;
-	char *tmp_file = NULL;
-
-	tmp_file = format("%s.tmp", cache_path);
+	bool ret = false;
+	char *tmp_file = format("%s.tmp", cache_path);
 	int fd = create_tmp_fd(&tmp_file);
+	FILE *f = fdopen(fd, "wb");
+	if (!f) {
+		cc_log("Failed to fdopen %s", tmp_file);
+		goto out;
+	}
 
 	char header[7];
 	memcpy(header, MAGIC, sizeof(MAGIC));
 	header[4] = RESULT_VERSION;
-	header[5] = compression_level == 0 ? COMPR_TYPE_NONE : COMPR_TYPE_GZIP;
+	header[5] = compression_level == 0 ? COMPR_TYPE_NONE : COMPR_TYPE_ZLIB;
 	header[6] = compression_level;
-	if (write(fd, header, sizeof(header)) != (ssize_t)sizeof(header)) {
+	if (fwrite(header, 1, sizeof(header), f) != sizeof(header)) {
 		cc_log("Failed to write to %s", tmp_file);
-		close(fd);
-	}
-
-	char *mode;
-	if (compression_level > 0) {
-		mode = format("wb%d", compression_level);
-	} else {
-		mode = x_strdup("wbT");
-	}
-	f2 = gzdopen(fd, mode);
-	free(mode);
-	if (!f2) {
-		cc_log("Failed to gzdopen %s", tmp_file);
 		goto out;
 	}
 
-	if (write_cache(f2, l)) {
-		gzclose(f2);
-		f2 = NULL;
-		if (x_rename(tmp_file, cache_path) == 0) {
-			ret = 1;
-		} else {
-			cc_log("Failed to rename %s to %s", tmp_file, cache_path);
-			goto out;
-		}
+	struct compressor *compressor;
+	if (compression_level == 0) {
+		compressor = &compr_none;
 	} else {
+		compressor = &compr_zlib;
+	}
+
+	struct compr_state *compr_state =
+		compressor->init(f, compression_level);
+	bool ok = write_cache(l, compressor, compr_state);
+	compressor->free(compr_state);
+	if (!ok) {
 		cc_log("Failed to write cache file");
 		goto out;
 	}
-out:
-	if (tmp_file) {
-		free(tmp_file);
+
+	fclose(f);
+	f = NULL;
+	if (x_rename(tmp_file, cache_path) == 0) {
+		ret = true;
+	} else {
+		cc_log("Failed to rename %s to %s", tmp_file, cache_path);
 	}
-	if (f2) {
-		gzclose(f2);
+
+out:
+	free(tmp_file);
+	if (f) {
+		fclose(f);
 	}
 	return ret;
 }
