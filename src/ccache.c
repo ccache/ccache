@@ -3411,21 +3411,20 @@ create_initial_config_file(const char *path)
 
 #ifdef MTR_ENABLED
 static void *trace_id;
-static const char *trace_file;
+static char *tmp_trace_file;
 
 static void
-trace_init(const char *json)
+trace_init(char *path)
 {
-	trace_file = json;
-	mtr_init(json);
+	tmp_trace_file = path;
+	mtr_init(tmp_trace_file);
 	char *s = format("%f", time_seconds());
 	MTR_INSTANT_C("", "", "time", s);
 }
 
 static void
-trace_start(const char *tracefile)
+trace_start(void)
 {
-	trace_file = tracefile;
 	MTR_META_PROCESS_NAME(MYNAME);
 	trace_id = (void *) ((long) getpid());
 	MTR_START("program", "ccache", trace_id);
@@ -3434,11 +3433,13 @@ trace_start(const char *tracefile)
 static void
 trace_stop(void)
 {
-	const char *json = format("%s%s", output_obj, ".ccache-trace");
+	char *trace_file = format("%s.ccache-trace", output_obj);
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
-	move_file(trace_file, json);
+	move_file(tmp_trace_file, trace_file);
+	free(trace_file);
+	free(tmp_trace_file);
 }
 
 static const char *
@@ -3466,13 +3467,11 @@ tmpdir()
 static void
 initialize(void)
 {
-	char *tracefile = getenv("CCACHE_INTERNAL_TRACE");
-	if (tracefile != NULL) {
+	bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
+	if (enable_internal_trace) {
 #ifdef MTR_ENABLED
 		// We don't have any conf yet, so we can't use temp_dir() here.
-		tracefile = format("%s/trace.%d.json", tmpdir(), (int)getpid());
-
-		trace_init(tracefile);
+		trace_init(format("%s/tmp.ccache-trace.%d", tmpdir(), (int)getpid()));
 #endif
 	}
 
@@ -3546,9 +3545,9 @@ initialize(void)
 		umask(conf->umask);
 	}
 
-	if (tracefile != NULL) {
+	if (enable_internal_trace) {
 #ifdef MTR_ENABLED
-		trace_start(tracefile);
+		trace_start();
 		exitfn_add_nullary(trace_stop);
 #else
 		cc_log("Error: tracing is not enabled!");
