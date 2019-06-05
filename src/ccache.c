@@ -3438,7 +3438,7 @@ trace_stop(void)
 	MTR_FINISH("program", "ccache", trace_id);
 	mtr_flush();
 	mtr_shutdown();
-	move_file(trace_file, json, 0);
+	move_file(trace_file, json);
 }
 
 static const char *

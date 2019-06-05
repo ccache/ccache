@@ -17,8 +17,6 @@
 
 #include "ccache.h"
 
-#include <zlib.h>
-
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -282,24 +280,19 @@ fatal(const char *format, ...)
 	x_exit(1);
 }
 
-// Copy all data from fd_in to fd_out, decompressing data from fd_in if needed.
-void
+// Copy all data from fd_in to fd_out.
+bool
 copy_fd(int fd_in, int fd_out)
 {
-	gzFile gz_in = gzdopen(dup(fd_in), "rb");
-	if (!gz_in) {
-		fatal("Failed to copy fd");
-	}
-
 	int n;
 	char buf[READ_BUFFER_SIZE];
-	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
+	while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
 		ssize_t written = 0;
 		do {
 			ssize_t count = write(fd_out, buf + written, n - written);
 			if (count == -1) {
 				if (errno != EAGAIN && errno != EINTR) {
-					fatal("Failed to copy fd");
+					return false;
 				}
 			} else {
 				written += count;
@@ -307,7 +300,7 @@ copy_fd(int fd_in, int fd_out)
 		} while (written < n);
 	}
 
-	gzclose(gz_in);
+	return true;
 }
 
 #ifndef HAVE_MKSTEMP
@@ -342,175 +335,41 @@ get_umask(void)
 }
 #endif
 
-// Copy src to dest, decompressing src if needed. compress_level > 0 decides
-// whether dest will be compressed, and with which compression level. Returns 0
-// on success and -1 on failure. On failure, errno represents the error.
-int
-copy_file(const char *src, const char *dest, int compress_level)
+// Copy a file from src to dest.
+bool
+copy_file(const char *src, const char *dest)
 {
-	int fd_out;
-	gzFile gz_in = NULL;
-	gzFile gz_out = NULL;
-	int saved_errno = 0;
+	bool result = false;
 
-	// Open destination file.
-	char *tmp_name = x_strdup(dest);
-	fd_out = create_tmp_fd(&tmp_name);
-	cc_log("Copying %s to %s via %s (%scompressed)",
-	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
-
-	// Open source file.
-	int fd_in = open(src, O_RDONLY | O_BINARY);
-	if (fd_in == -1) {
-		saved_errno = errno;
-		cc_log("open error: %s", strerror(saved_errno));
-		goto error;
+	int src_fd = open(src, O_RDONLY);
+	if (src_fd == -1) {
+		return false;
 	}
 
-	gz_in = gzdopen(fd_in, "rb");
-	if (!gz_in) {
-		saved_errno = errno;
-		cc_log("gzdopen(src) error: %s", strerror(saved_errno));
-		close(fd_in);
-		goto error;
+	int dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+	if (src_fd == -1) {
+		close(src_fd);
+		return false;
 	}
 
-	if (compress_level > 0) {
-		// A gzip file occupies at least 20 bytes, so it will always occupy an
-		// entire filesystem block, even for empty files. Turn off compression for
-		// empty files to save some space.
-		struct stat st;
-		if (x_fstat(fd_in, &st) != 0) {
-			goto error;
-		}
-		if (file_size(&st) == 0) {
-			compress_level = 0;
-		}
+	if (copy_fd(src_fd, dest_fd)) {
+		result = true;
 	}
 
-	if (compress_level > 0) {
-		gz_out = gzdopen(dup(fd_out), "wb");
-		if (!gz_out) {
-			saved_errno = errno;
-			cc_log("gzdopen(dest) error: %s", strerror(saved_errno));
-			goto error;
-		}
-		gzsetparams(gz_out, compress_level, Z_DEFAULT_STRATEGY);
-	}
-
-	int n;
-	char buf[READ_BUFFER_SIZE];
-	while ((n = gzread(gz_in, buf, sizeof(buf))) > 0) {
-		int written;
-		if (compress_level > 0) {
-			written = gzwrite(gz_out, buf, n);
-		} else {
-			written = 0;
-			do {
-				ssize_t count = write(fd_out, buf + written, n - written);
-				if (count == -1 && errno != EINTR) {
-					saved_errno = errno;
-					break;
-				}
-				written += count;
-			} while (written < n);
-		}
-		if (written != n) {
-			if (compress_level > 0) {
-				int errnum;
-				cc_log("gzwrite error: %s (errno: %s)",
-				       gzerror(gz_in, &errnum),
-				       strerror(saved_errno));
-			} else {
-				cc_log("write error: %s", strerror(saved_errno));
-			}
-			goto error;
-		}
-	}
-
-	// gzeof won't tell if there's an error in the trailing CRC, so we must check
-	// gzerror before considering everything OK.
-	int errnum;
-	gzerror(gz_in, &errnum);
-	if (!gzeof(gz_in) || (errnum != Z_OK && errnum != Z_STREAM_END)) {
-		saved_errno = errno;
-		cc_log("gzread error: %s (errno: %s)",
-		       gzerror(gz_in, &errnum), strerror(saved_errno));
-		gzclose(gz_in);
-		if (gz_out) {
-			gzclose(gz_out);
-		}
-		close(fd_out);
-		tmp_unlink(tmp_name);
-		free(tmp_name);
-		return -1;
-	}
-
-	gzclose(gz_in);
-	gz_in = NULL;
-	if (gz_out) {
-		gzclose(gz_out);
-		gz_out = NULL;
-	}
-
-#ifndef _WIN32
-	fchmod(fd_out, 0666 & ~get_umask());
-#endif
-
-	// The close can fail on NFS if out of space.
-	if (close(fd_out) == -1) {
-		saved_errno = errno;
-		cc_log("close error: %s", strerror(saved_errno));
-		goto error;
-	}
-
-	if (x_rename(tmp_name, dest) == -1) {
-		saved_errno = errno;
-		cc_log("rename error: %s", strerror(saved_errno));
-		goto error;
-	}
-
-	free(tmp_name);
-
-	return 0;
-
-error:
-	if (gz_in) {
-		gzclose(gz_in);
-	}
-	if (gz_out) {
-		gzclose(gz_out);
-	}
-	if (fd_out != -1) {
-		close(fd_out);
-	}
-	tmp_unlink(tmp_name);
-	free(tmp_name);
-	errno = saved_errno;
-	return -1;
+	close(dest_fd);
+	close(src_fd);
+	return result;
 }
 
 // Run copy_file() and, if successful, delete the source file.
-int
-move_file(const char *src, const char *dest, int compress_level)
+bool
+move_file(const char *src, const char *dest)
 {
-	int ret = copy_file(src, dest, compress_level);
-	if (ret != -1) {
+	bool ok = copy_file(src, dest);
+	if (ok) {
 		x_unlink(src);
 	}
-	return ret;
-}
-
-// Like move_file(), but assumes that src is uncompressed and that src and dest
-// are on the same file system.
-int
-move_uncompressed_file(const char *src, const char *dest, int compress_level)
-{
-	if (compress_level > 0) {
-		return move_file(src, dest, compress_level);
-	} else {
-		return x_rename(src, dest);
-	}
+	return ok;
 }
 
 // Make sure a directory exists.
