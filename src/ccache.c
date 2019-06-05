@@ -2177,8 +2177,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		return;
 	}
 
-	cc_log("Read from cache: %s", cached_result);
-
 	MTR_END("file", "file_get");
 
 	// Update modification timestamp to save files from LRU cleanup. Also gives
