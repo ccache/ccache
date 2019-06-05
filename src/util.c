@@ -513,25 +513,6 @@ move_uncompressed_file(const char *src, const char *dest, int compress_level)
 	}
 }
 
-// Test if a file is zlib compressed.
-bool
-file_is_compressed(const char *filename)
-{
-	FILE *f = fopen(filename, "rb");
-	if (!f) {
-		return false;
-	}
-
-	// Test if file starts with 1F8B, which is zlib's magic number.
-	if ((fgetc(f) != 0x1f) || (fgetc(f) != 0x8b)) {
-		fclose(f);
-		return false;
-	}
-
-	fclose(f);
-	return true;
-}
-
 // Make sure a directory exists.
 int
 create_dir(const char *dir)
