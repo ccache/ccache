@@ -28,7 +28,7 @@ TEST(zlib_small_roundtrip)
 
 	CHECK(compr_zlib.write(c_state, "foobar", 6));
 
-	compr_zlib.free(c_state);
+	CHECK(compr_zlib.free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
@@ -44,7 +44,8 @@ TEST(zlib_small_roundtrip)
 	// Nothing left to read.
 	CHECK(!decompr_zlib.read(d_state, buffer, 1));
 
-	decompr_zlib.free(d_state);
+	// Error state is remembered.
+	CHECK(!decompr_zlib.free(d_state));
 	fclose(f);
 }
 
@@ -60,7 +61,7 @@ TEST(zlib_large_compressible_roundtrip)
 		CHECK(compr_zlib.write(c_state, data, sizeof(data)));
 	}
 
-	compr_zlib.free(c_state);
+	CHECK(compr_zlib.free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
@@ -76,7 +77,8 @@ TEST(zlib_large_compressible_roundtrip)
 	// Nothing left to read.
 	CHECK(!decompr_zlib.read(d_state, buffer, 1));
 
-	decompr_zlib.free(d_state);
+	// Error state is remembered.
+	CHECK(!decompr_zlib.free(d_state));
 	fclose(f);
 }
 
@@ -93,7 +95,7 @@ TEST(zlib_large_uncompressible_roundtrip)
 
 	CHECK(compr_zlib.write(c_state, data, sizeof(data)));
 
-	compr_zlib.free(c_state);
+	CHECK(compr_zlib.free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
@@ -104,10 +106,7 @@ TEST(zlib_large_uncompressible_roundtrip)
 	CHECK(decompr_zlib.read(d_state, buffer, sizeof(buffer)));
 	CHECK(memcmp(buffer, data, sizeof(data)) == 0);
 
-	// Nothing left to read.
-	CHECK(!decompr_zlib.read(d_state, buffer, 1));
-
-	decompr_zlib.free(d_state);
+	CHECK(decompr_zlib.free(d_state));
 	fclose(f);
 }
 

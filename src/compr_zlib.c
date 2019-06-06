@@ -23,6 +23,7 @@ struct state
 {
 	FILE *output;
 	z_stream stream;
+	bool failed;
 };
 
 static struct compr_state *
@@ -33,6 +34,7 @@ compr_zlib_init(FILE *output, int level)
 	state->stream.zalloc = Z_NULL;
 	state->stream.zfree = Z_NULL;
 	state->stream.opaque = Z_NULL;
+	state->failed = false;
 
 	int ret = deflateInit(&state->stream, level);
 	if (ret != Z_OK) {
@@ -45,6 +47,9 @@ compr_zlib_init(FILE *output, int level)
 static bool
 compr_zlib_write(struct compr_state *handle, const void *data, size_t size)
 {
+	if (!handle) {
+		return false;
+	}
 	struct state *state = (struct state *)handle;
 
 	state->stream.next_in = (const Bytef *)data;
@@ -62,6 +67,7 @@ compr_zlib_write(struct compr_state *handle, const void *data, size_t size)
 		unsigned int compressed_bytes = sizeof(buffer) - state->stream.avail_out;
 		if (fwrite(buffer, 1, compressed_bytes, state->output) != compressed_bytes
 		    || ferror(state->output)) {
+			state->failed = true;
 			return false;
 		}
 	} while (state->stream.avail_out == 0);
@@ -71,14 +77,19 @@ compr_zlib_write(struct compr_state *handle, const void *data, size_t size)
 	return true;
 }
 
-static void
+static bool
 compr_zlib_free(struct compr_state *handle)
 {
+	if (!handle) {
+		return false;
+	}
 	struct state *state = (struct state *)handle;
 
 	compr_zlib_write(handle, NULL, 0);
 	deflateEnd(&state->stream);
+	bool success = !state->failed;
 	free(state);
+	return success;
 }
 
 struct compressor compr_zlib = {

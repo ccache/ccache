@@ -30,10 +30,11 @@ compr_none_write(struct compr_state *handle, const void *data, size_t size)
 	return fwrite(data, 1, size, output) == size;
 }
 
-static void
+static bool
 compr_none_free(struct compr_state *handle)
 {
-	(void)handle;
+	FILE *output = (FILE *)handle;
+	return ferror(output) == 0;
 }
 
 struct compressor compr_none = {

@@ -8,7 +8,7 @@ struct compr_state;
 struct compressor {
 	struct compr_state *(*init)(FILE *output, int compression_level);
 	bool (*write)(struct compr_state *state, const void *data, size_t size);
-	void (*free)(struct compr_state *state);
+	bool (*free)(struct compr_state *state);
 };
 
 struct decompr_state;
@@ -16,7 +16,7 @@ struct decompr_state;
 struct decompressor {
 	struct decompr_state *(*init)(FILE *input);
 	bool (*read)(struct decompr_state *state, void *data, size_t size);
-	void (*free)(struct decompr_state *state);
+	bool (*free)(struct decompr_state *state);
 };
 
 extern struct compressor compr_none;

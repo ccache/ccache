@@ -3889,7 +3889,10 @@ ccache_main_options(int argc, char *argv[])
 
 		case DUMP_RESULT:
 			initialize();
-			cache_dump(optarg, stdout);
+			if (!cache_dump(optarg, stdout)) {
+				fprintf(stderr, "Error: Corrupt result file\n");
+				return 1;
+			}
 			break;
 
 		case HASH_FILE:

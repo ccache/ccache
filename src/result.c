@@ -196,6 +196,10 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 	}
 
 	decompr_state = decompressor->init(f);
+	if (!decompr_state) {
+		cc_log("Failed to initialize decompressor");
+		goto out;
+	}
 
 	if (dump_stream) {
 		const uint8_t compr_level = header[6];
@@ -287,8 +291,8 @@ out:
 	if (subfile) {
 		fclose(subfile);
 	}
-	if (decompressor) {
-		decompressor->free(decompr_state);
+	if (decompressor && !decompressor->free(decompr_state)) {
+		success = false;
 	}
 	if (f) {
 		fclose(f);
@@ -401,10 +405,13 @@ bool cache_put(const char *cache_path, struct filelist *l,
 		compressor = &compr_zlib;
 	}
 
-	struct compr_state *compr_state =
-		compressor->init(f, compression_level);
-	bool ok = write_cache(l, compressor, compr_state);
-	compressor->free(compr_state);
+	struct compr_state *compr_state = compressor->init(f, compression_level);
+	if (!compr_state) {
+		cc_log("Failed to initialize compressor");
+		goto out;
+	}
+	bool ok = write_cache(l, compressor, compr_state)
+		&& compressor->free(compr_state);
 	if (!ok) {
 		cc_log("Failed to write cache file");
 		goto out;

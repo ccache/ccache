@@ -19,6 +19,12 @@
 
 #include <zlib.h>
 
+enum stream_state {
+	STREAM_STATE_READING,
+	STREAM_STATE_FAILED,
+	STREAM_STATE_END
+};
+
 struct state
 {
 	FILE *input;
@@ -26,6 +32,7 @@ struct state
 	size_t input_size;
 	size_t input_consumed;
 	z_stream stream;
+	enum stream_state stream_state;
 };
 
 static struct decompr_state *
@@ -41,6 +48,7 @@ decompr_zlib_init(FILE *input)
 	state->stream.opaque = Z_NULL;
 	state->stream.avail_in = 0;
 	state->stream.next_in = Z_NULL;
+	state->stream_state = STREAM_STATE_READING;
 
 	int ret = inflateInit(&state->stream);
 	if (ret != Z_OK) {
@@ -53,6 +61,9 @@ decompr_zlib_init(FILE *input)
 static bool
 decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 {
+	if (!handle) {
+		return false;
+	}
 	struct state *state = (struct state *)handle;
 
 	size_t bytes_read = 0;
@@ -62,6 +73,7 @@ decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 			state->input_size = fread(
 				state->input_buffer, 1, sizeof(state->input_buffer), state->input);
 			if (state->input_size == 0) {
+				state->stream_state = STREAM_STATE_FAILED;
 				return false;
 			}
 			state->input_consumed = 0;
@@ -79,7 +91,11 @@ decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 		case Z_NEED_DICT:
 		case Z_DATA_ERROR:
 		case Z_MEM_ERROR:
+			state->stream_state = STREAM_STATE_FAILED;
 			return false;
+		case Z_STREAM_END:
+			state->stream_state = STREAM_STATE_END;
+			break;
 		}
 		bytes_read = size - state->stream.avail_out;
 		state->input_consumed = state->input_size - state->stream.avail_in;
@@ -88,11 +104,16 @@ decompr_zlib_read(struct decompr_state *handle, void *data, size_t size)
 	return true;
 }
 
-static void decompr_zlib_free(struct decompr_state *handle)
+static bool decompr_zlib_free(struct decompr_state *handle)
 {
+	if (!handle) {
+		return false;
+	}
 	struct state *state = (struct state *)handle;
 	inflateEnd(&state->stream);
+	bool success = state->stream_state == STREAM_STATE_END;
 	free(handle);
+	return success;
 }
 
 struct decompressor decompr_zlib = {

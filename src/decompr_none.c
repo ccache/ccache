@@ -29,9 +29,11 @@ decompr_none_read(struct decompr_state *handle, void *data, size_t size)
 	return fread(data, 1, size, input) == size;
 }
 
-static void decompr_none_free(struct decompr_state *handle)
+static bool
+decompr_none_free(struct decompr_state *handle)
 {
-	(void)handle;
+	FILE *input = (FILE *)handle;
+	return ferror(input) == 0;
 }
 
 struct decompressor decompr_none = {
