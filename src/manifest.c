@@ -646,6 +646,10 @@ out:
 	if (mf) {
 		free_manifest(mf);
 	}
+	if (fh) {
+		// Update modification timestamp to save files from LRU cleanup.
+		update_mtime(manifest_path);
+	}
 	return fh;
 }
 

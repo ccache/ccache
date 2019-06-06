@@ -389,6 +389,10 @@ bool result_get(const char *path, struct filelist *list)
 		cc_log("Error: %s", errmsg);
 		free(errmsg);
 	}
+	if (success) {
+		// Update modification timestamp to save files from LRU cleanup.
+		update_mtime(path);
+	}
 	return success;
 }
 

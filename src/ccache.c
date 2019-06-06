@@ -2062,7 +2062,6 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		MTR_END("manifest", "manifest_get");
 		if (object_hash) {
 			cc_log("Got object file hash from manifest");
-			update_mtime(manifest_path);
 		} else {
 			cc_log("Did not find object file hash in manifest");
 		}
@@ -2173,10 +2172,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	MTR_END("file", "file_get");
-
-	// Update modification timestamp to save files from LRU cleanup. Also gives
-	// files a sensible mtime when hard-linking.
-	update_mtime(cached_result);
 
 	send_cached_stderr(tmp_stderr);
 
