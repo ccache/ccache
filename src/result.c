@@ -150,8 +150,10 @@ filelist_free(struct filelist *list)
 	} while (false)
 
 static bool
-read_result(const char *path, struct filelist *list, FILE *dump_stream)
+read_result(
+	const char *path, struct filelist *list, FILE *dump_stream, char **errmsg)
 {
+	*errmsg = NULL;
 	bool success = false;
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
@@ -160,25 +162,32 @@ read_result(const char *path, struct filelist *list, FILE *dump_stream)
 	FILE *f = fopen(path, "rb");
 	if (!f) {
 		// Cache miss.
-		cc_log("No such result file");
+		*errmsg = x_strdup("No such result file");
 		goto out;
 	}
 
 	char header[7];
 	if (fread(header, 1, sizeof(header), f) != sizeof(header)) {
-		cc_log("Failed to read result file header");
+		*errmsg = x_strdup("Failed to read result file header");
 		goto out;
 	}
 
 	if (memcmp(header, MAGIC, sizeof(MAGIC)) != 0) {
-		cc_log("Result file has bad magic value 0x%x%x%x%x",
-		       header[0], header[1], header[2], header[3]);
-		// TODO: Return error message like read_manifest does.
+		*errmsg = format(
+			"Result file has bad magic value 0x%x%x%x%x",
+			header[0], header[1], header[2], header[3]);
 		goto out;
 	}
 
-	// TODO: Verify version like read_manifest does.
 	const uint8_t version = header[4];
+	if (version != RESULT_VERSION) {
+		*errmsg = format(
+			"Unknown result version (actual %u, expected %u)",
+			version,
+			RESULT_VERSION);
+		goto out;
+	}
+
 	const uint8_t compr_type = header[5];
 
 	switch (compr_type) {
@@ -191,13 +200,13 @@ read_result(const char *path, struct filelist *list, FILE *dump_stream)
 		break;
 
 	default:
-		cc_log("Unknown compression type: %u", compr_type);
+		*errmsg = format("Unknown compression type: %u", compr_type);
 		goto out;
 	}
 
 	decompr_state = decompressor->init(f);
 	if (!decompr_state) {
-		cc_log("Failed to initialize decompressor");
+		*errmsg = x_strdup("Failed to initialize decompressor");
 		goto out;
 	}
 
@@ -227,7 +236,7 @@ read_result(const char *path, struct filelist *list, FILE *dump_stream)
 			continue;
 
 		default:
-			cc_log("Unknown entry type: %u", marker);
+			*errmsg = format("Unknown entry type: %u", marker);
 			goto out;
 		}
 
@@ -297,8 +306,8 @@ out:
 	if (f) {
 		fclose(f);
 	}
-	if (!success) {
-		cc_log("Corrupt result file");
+	if (!success && !*errmsg) {
+		*errmsg = x_strdup("Corrupt result file");
 	}
 	return success;
 }
@@ -373,7 +382,14 @@ error:
 bool result_get(const char *path, struct filelist *list)
 {
 	cc_log("Getting result %s", path);
-	return read_result(path, list, NULL);
+
+	char *errmsg;
+	bool success = read_result(path, list, NULL, &errmsg);
+	if (errmsg) {
+		cc_log("Error: %s", errmsg);
+		free(errmsg);
+	}
+	return success;
 }
 
 bool result_put(const char *path, struct filelist *list, int compression_level)
@@ -435,5 +451,11 @@ out:
 bool
 result_dump(const char *path, FILE *stream)
 {
-	return read_result(path, NULL, stream);
+	char *errmsg;
+	bool success = read_result(path, NULL, stream, &errmsg);
+	if (errmsg) {
+		fprintf(stderr, "Error: %s\n", errmsg);
+		free(errmsg);
+	}
+	return success;
 }

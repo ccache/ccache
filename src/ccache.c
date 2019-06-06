@@ -3890,7 +3890,6 @@ ccache_main_options(int argc, char *argv[])
 		case DUMP_RESULT:
 			initialize();
 			if (!result_dump(optarg, stdout)) {
-				fprintf(stderr, "Error: Corrupt result file\n");
 				return 1;
 			}
 			break;
