@@ -400,27 +400,6 @@ WRAPPERS>>.
     the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
-*hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
-
-    If true, ccache will attempt to use hard links from the cache directory
-    when creating the compiler output rather than using a file copy. Hard links
-    are never made for compressed cache files. This means that you should not
-    enable compression if you want to use hard links. The default is false.
-+
-WARNING: Do not enable this option unless you are aware of the consequences.
-Using hard links may be slightly faster in some situations, but there are
-several pitfalls since the resulting object file will share i-node with the
-cached object file:
-+
-1. If the resulting object file is modified in any way, the cached object file
-   will be modified as well. For instance, if you run `strip object.o` or `echo
-   >object.o`, you will corrupt the cache.
-2. Programs that rely on modification times (like ``make'') can be confused
-   since ccache updates the cached files' modification times as part of the
-   automatic cache size management. This will affect object files in the build
-   tree as well, which can retrigger the linking step even though nothing
-   really has changed.
-
 *hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 
     If true (which is the default), ccache will include the current working
@@ -1084,8 +1063,6 @@ directory. To share a cache without unpleasant side effects, the following
 conditions should to be met:
 
 * Use the same cache directory.
-* Make sure that the configuration setting *hard_link* is false (which is the
-  default).
 * Make sure that all users are in the same group.
 * Set the configuration setting *umask* to 002. This ensures that cached files
   are accessible to everyone in the group.
@@ -1100,13 +1077,6 @@ conditions should to be met:
 find $CCACHE_DIR -type d | xargs chmod g+s
 ----
 --
-
-The reason to avoid the hard link mode is that the hard links cause unwanted
-side effects, as all links to a cached file share the file's modification
-timestamp. This results in false dependencies to be triggered by
-timestamp-based build systems whenever another user links to an existing file.
-Typically, users will see that their libraries and binaries are relinked
-without reason.
 
 You may also want to make sure that a base directory is set appropriately, as
 discussed in a previous section.

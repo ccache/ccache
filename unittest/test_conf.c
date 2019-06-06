@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 34
+#define N_CONFIG_ITEMS 33
 static struct {
 	char *descr;
 	char *origin;
@@ -63,7 +63,6 @@ TEST(conf_create)
 	CHECK(conf->direct_mode);
 	CHECK(!conf->disable);
 	CHECK_STR_EQ("", conf->extra_files_to_hash);
-	CHECK(!conf->hard_link);
 	CHECK(conf->hash_dir);
 	CHECK_STR_EQ("", conf->ignore_headers_in_manifest);
 	CHECK(!conf->keep_comments_cpp);
@@ -116,7 +115,6 @@ TEST(conf_read_valid_config)
 		"direct_mode = false\n"
 		"disable = true\n"
 		"extra_files_to_hash = a:b c:$USER\n"
-		"hard_link = true\n"
 		"hash_dir = false\n"
 		"ignore_headers_in_manifest = a:b/c\n"
 		"keep_comments_cpp = true\n"
@@ -156,7 +154,6 @@ TEST(conf_read_valid_config)
 	CHECK(!conf->direct_mode);
 	CHECK(conf->disable);
 	CHECK_STR_EQ_FREE1(format("a:b c:%s", user), conf->extra_files_to_hash);
-	CHECK(conf->hard_link);
 	CHECK(!conf->hash_dir);
 	CHECK_STR_EQ("a:b/c", conf->ignore_headers_in_manifest);
 	CHECK(conf->keep_comments_cpp);
@@ -465,7 +462,6 @@ TEST(conf_print_items)
 		false,
 		true,
 		"efth",
-		true,
 		.hash_dir = false,
 		"ihim",
 		true,
@@ -517,7 +513,6 @@ TEST(conf_print_items)
 	CHECK_STR_EQ("direct_mode = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("disable = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("extra_files_to_hash = efth", received_conf_items[n++].descr);
-	CHECK_STR_EQ("hard_link = true", received_conf_items[n++].descr);
 	CHECK_STR_EQ("hash_dir = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("ignore_headers_in_manifest = ihim",
 	             received_conf_items[n++].descr);
