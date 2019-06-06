@@ -87,24 +87,24 @@ struct filelist {
 };
 
 struct filelist *
-create_empty_filelist(void)
+filelist_init(void)
 {
-	struct filelist *l = x_malloc(sizeof(*l));
-	l->n_files = 0;
-	l->files = NULL;
-	l->sizes = NULL;
+	struct filelist *list = x_malloc(sizeof(*list));
+	list->n_files = 0;
+	list->files = NULL;
+	list->sizes = NULL;
 
-	return l;
+	return list;
 }
 
 int
-add_file_to_filelist(struct filelist *l, const char *path, const char *suffix)
+filelist_add(struct filelist *list, const char *path, const char *suffix)
 {
-	uint32_t n = l->n_files;
-	l->files = x_realloc(l->files, (n + 1) * sizeof(*l->files));
-	l->sizes = x_realloc(l->sizes, (n + 1) * sizeof(*l->sizes));
-	struct file *f = &l->files[l->n_files];
-	l->n_files++;
+	uint32_t n = list->n_files;
+	list->files = x_realloc(list->files, (n + 1) * sizeof(*list->files));
+	list->sizes = x_realloc(list->sizes, (n + 1) * sizeof(*list->sizes));
+	struct file *f = &list->files[list->n_files];
+	list->n_files++;
 
 	f->suffix = x_strdup(suffix);
 	f->path_len = strlen(path);
@@ -114,18 +114,18 @@ add_file_to_filelist(struct filelist *l, const char *path, const char *suffix)
 }
 
 void
-free_filelist(struct filelist *l)
+filelist_free(struct filelist *list)
 {
-	for (uint32_t i = 0; i < l->n_files; i++) {
-		free(l->files[i].suffix);
-		free(l->files[i].path);
+	for (uint32_t i = 0; i < list->n_files; i++) {
+		free(list->files[i].suffix);
+		free(list->files[i].path);
 	}
-	free(l->files);
-	l->files = NULL;
-	free(l->sizes);
-	l->sizes = NULL;
+	free(list->files);
+	list->files = NULL;
+	free(list->sizes);
+	list->sizes = NULL;
 
-	free(l);
+	free(list);
 }
 #define READ_BYTES(buf, length) \
 	do { \
@@ -150,7 +150,7 @@ free_filelist(struct filelist *l)
 	} while (false)
 
 static bool
-read_cache(const char *path, struct filelist *l, FILE *dump_stream)
+read_result(const char *path, struct filelist *list, FILE *dump_stream)
 {
 	bool success = false;
 	struct decompressor *decompressor = NULL;
@@ -160,7 +160,7 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 	FILE *f = fopen(path, "rb");
 	if (!f) {
 		// Cache miss.
-		cc_log("No such cache file");
+		cc_log("No such result file");
 		goto out;
 	}
 
@@ -171,7 +171,7 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 	}
 
 	if (memcmp(header, MAGIC, sizeof(MAGIC)) != 0) {
-		cc_log("Cache file has bad magic value 0x%x%x%x%x",
+		cc_log("Result file has bad magic value 0x%x%x%x%x",
 		       header[0], header[1], header[2], header[3]);
 		// TODO: Return error message like read_manifest does.
 		goto out;
@@ -253,13 +253,13 @@ read_cache(const char *path, struct filelist *l, FILE *dump_stream)
 			        str_eq(suffix, "stderr") ? "<stderr>" : suffix,
 			        filelen);
 		} else {
-			for (uint32_t j = 0; j < l->n_files; j++) {
-				if (str_eq(suffix, l->files[j].suffix)) {
+			for (uint32_t j = 0; j < list->n_files; j++) {
+				if (str_eq(suffix, list->files[j].suffix)) {
 					found = true;
 
-					cc_log("Copying to %s", l->files[j].path);
+					cc_log("Copying to %s", list->files[j].path);
 
-					subfile = fopen(l->files[j].path, "wb");
+					subfile = fopen(list->files[j].path, "wb");
 					char buf[READ_BUFFER_SIZE];
 					size_t remain = filelen;
 					while (remain > 0) {
@@ -298,7 +298,7 @@ out:
 		fclose(f);
 	}
 	if (!success) {
-		cc_log("Corrupt cache file");
+		cc_log("Corrupt result file");
 	}
 	return success;
 }
@@ -327,27 +327,27 @@ out:
 	} while (false)
 
 static bool
-write_cache(
-	const struct filelist *l,
+write_result(
+	const struct filelist *list,
 	struct compressor *compressor,
 	struct compr_state *compr_state)
 {
-	for (uint32_t i = 0; i < l->n_files; i++) {
+	for (uint32_t i = 0; i < list->n_files; i++) {
 		struct stat st;
-		if (x_stat(l->files[i].path, &st) != 0) {
+		if (x_stat(list->files[i].path, &st) != 0) {
 			return false;
 		}
 
-		cc_log("Writing file #%u: %s (%lu)", i, l->files[i].suffix,
+		cc_log("Writing file #%u: %s (%lu)", i, list->files[i].suffix,
 		       (unsigned long)st.st_size);
 
 		WRITE_BYTE(FILE_MARKER);
-		size_t suffix_len = strlen(l->files[i].suffix);
+		size_t suffix_len = strlen(list->files[i].suffix);
 		WRITE_BYTE(suffix_len);
-		WRITE_BYTES(l->files[i].suffix, suffix_len);
+		WRITE_BYTES(list->files[i].suffix, suffix_len);
 		WRITE_INT(8, st.st_size);
 
-		FILE *f = fopen(l->files[i].path, "rb");
+		FILE *f = fopen(list->files[i].path, "rb");
 		char buf[READ_BUFFER_SIZE];
 		size_t remain = st.st_size;
 		while (remain > 0) {
@@ -366,21 +366,20 @@ write_cache(
 	return true;
 
 error:
-	cc_log("Error writing to cache file");
+	cc_log("Error writing to result file");
 	return false;
 }
 
-bool cache_get(const char *path, struct filelist *l)
+bool result_get(const char *path, struct filelist *list)
 {
-	cc_log("Getting result %s from cache", path);
-	return read_cache(path, l, NULL);
+	cc_log("Getting result %s", path);
+	return read_result(path, list, NULL);
 }
 
-bool cache_put(const char *cache_path, struct filelist *l,
-               int compression_level)
+bool result_put(const char *path, struct filelist *list, int compression_level)
 {
 	bool ret = false;
-	char *tmp_file = format("%s.tmp", cache_path);
+	char *tmp_file = format("%s.tmp", path);
 	int fd = create_tmp_fd(&tmp_file);
 	FILE *f = fdopen(fd, "wb");
 	if (!f) {
@@ -410,19 +409,19 @@ bool cache_put(const char *cache_path, struct filelist *l,
 		cc_log("Failed to initialize compressor");
 		goto out;
 	}
-	bool ok = write_cache(l, compressor, compr_state)
+	bool ok = write_result(list, compressor, compr_state)
 		&& compressor->free(compr_state);
 	if (!ok) {
-		cc_log("Failed to write cache file");
+		cc_log("Failed to write result file");
 		goto out;
 	}
 
 	fclose(f);
 	f = NULL;
-	if (x_rename(tmp_file, cache_path) == 0) {
+	if (x_rename(tmp_file, path) == 0) {
 		ret = true;
 	} else {
-		cc_log("Failed to rename %s to %s", tmp_file, cache_path);
+		cc_log("Failed to rename %s to %s", tmp_file, path);
 	}
 
 out:
@@ -434,7 +433,7 @@ out:
 }
 
 bool
-cache_dump(const char *cache_path, FILE *stream)
+result_dump(const char *path, FILE *stream)
 {
-	return read_cache(cache_path, NULL, stream);
+	return read_result(path, NULL, stream);
 }
