@@ -138,7 +138,7 @@ static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 // object code.
 static struct file_hash *cached_obj_hash;
 
-// Full path to the file containing everything
+// Full path to the file containing the result
 // (cachedir/a/b/cdef[...]-size.result).
 static char *cached_result;
 
@@ -2125,11 +2125,6 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	struct stat st;
 	if (stat(cached_result, &st) != 0) {
 		cc_log("Cache file %s not in cache", cached_result);
-		return;
-	}
-	if (st.st_size == 0) {
-		cc_log("Invalid (empty) cache file %s in cache", cached_result);
-		x_unlink(cached_result);
 		return;
 	}
 
