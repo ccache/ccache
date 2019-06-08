@@ -156,12 +156,9 @@ int create_dir(const char *dir);
 int create_parent_dirs(const char *path);
 const char *get_hostname(void);
 const char *tmp_string(void);
-char *format_hash_as_string(const unsigned char *hash, int size);
-typedef uint32_t binary[5]; // 20 bytes: 16 for hash + 4 for size
-void format_hash_as_binary(binary result, const unsigned char *hash, int size);
 int create_cachedirtag(const char *dir);
 char *format(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-char *format_hex(unsigned char *data, size_t size);
+void format_hex(const uint8_t *data, size_t size, char *buffer);
 void reformat(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);
 char *x_strndup(const char *s, size_t n);

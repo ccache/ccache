@@ -1058,12 +1058,11 @@ EOF
     # -------------------------------------------------------------------------
     TEST "--hash-file"
 
-    >empty
-    $CCACHE --hash-file empty > hash.out
+    $CCACHE --hash-file /dev/null > hash.out
     printf "a" | $CCACHE --hash-file - >> hash.out
 
-    if grep '31d6cfe0d16ae931b73c59d7e0c089c0-0' hash.out >/dev/null 2>&1 && \
-       grep 'bde52cb31de33e46245e05fbdbd6fb24-1' hash.out >/dev/null 2>&1; then
+    if grep '31d6cfe0d16ae931b73c59d7e0c089c000000000' hash.out >/dev/null && \
+       grep 'bde52cb31de33e46245e05fbdbd6fb2400000001' hash.out >/dev/null; then
         : OK
     else
         test_failed "Unexpected output of --hash-file"

@@ -27,6 +27,18 @@ struct hash {
 	FILE *debug_text;
 };
 
+void
+digest_as_string(const struct digest *d, char *buffer)
+{
+	format_hex(d->bytes, DIGEST_SIZE, buffer);
+}
+
+bool
+digests_equal(const struct digest *d1, const struct digest *d2)
+{
+	return memcmp(d1->bytes, d2->bytes, DIGEST_SIZE) == 0;
+}
+
 static void
 do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
@@ -83,12 +95,6 @@ void hash_enable_debug(
 	do_debug_text(hash, " ===\n", 5);
 }
 
-size_t
-hash_input_size(struct hash *hash)
-{
-	return hash->md.totalN + hash->md.tail_len;
-}
-
 void
 hash_buffer(struct hash *hash, const void *s, size_t len)
 {
@@ -96,29 +102,22 @@ hash_buffer(struct hash *hash, const void *s, size_t len)
 	do_debug_text(hash, s, len);
 }
 
-char *
-hash_result(struct hash *hash)
+void
+hash_result_as_bytes(struct hash *hash, struct digest *digest)
 {
-	unsigned char sum[16];
-
-	hash_result_as_bytes(hash, sum);
-	return format_hash_as_string(sum, hash_input_size(hash));
+	mdfour_result(&hash->md, digest->bytes);
+	size_t input_size = hash->md.totalN + hash->md.tail_len;
+	for (size_t i = 0; i < 4; i++) {
+		digest->bytes[16 + i] = (input_size >> ((3 - i) * 8)) & 0xFF;
+	}
 }
 
 void
-hash_result_as_bytes(struct hash *hash, unsigned char *out)
+hash_result_as_string(struct hash *hash, char *buffer)
 {
-	mdfour_result(&hash->md, out);
-}
-
-bool
-hash_equal(struct hash *hash1, struct hash *hash2)
-{
-	unsigned char sum1[16];
-	hash_result_as_bytes(hash1, sum1);
-	unsigned char sum2[16];
-	hash_result_as_bytes(hash2, sum2);
-	return memcmp(sum1, sum2, sizeof(sum1)) == 0;
+	struct digest d;
+	hash_result_as_bytes(hash, &d);
+	digest_as_string(&d, buffer);
 }
 
 void

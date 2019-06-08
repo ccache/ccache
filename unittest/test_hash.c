@@ -24,24 +24,29 @@ TEST_SUITE(mdfour)
 
 TEST(test_vectors_from_rfc_1320_should_be_correct)
 {
+	char d[DIGEST_STRING_BUFFER_SIZE];
+
 	{
 		struct hash *h = hash_init();
 		hash_string(h, "");
-		CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(h));
+		hash_result_as_string(h, d);
+		CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
 		hash_free(h);
 	}
 
 	{
 		struct hash *h = hash_init();
 		hash_string(h, "a");
-		CHECK_STR_EQ_FREE2("bde52cb31de33e46245e05fbdbd6fb24-1", hash_result(h));
+		hash_result_as_string(h, d);
+		CHECK_STR_EQ("bde52cb31de33e46245e05fbdbd6fb2400000001", d);
 		hash_free(h);
 	}
 
 	{
 		struct hash *h = hash_init();
 		hash_string(h, "message digest");
-		CHECK_STR_EQ_FREE2("d9130a8164549fe818874806e1c7014b-14", hash_result(h));
+		hash_result_as_string(h, d);
+		CHECK_STR_EQ("d9130a8164549fe818874806e1c7014b0000000e", d);
 		hash_free(h);
 	}
 
@@ -51,29 +56,48 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 			h,
 			"12345678901234567890123456789012345678901234567890123456789012345678901"
 			"234567890");
-		CHECK_STR_EQ_FREE2("e33b4ddc9c38f2199c3e7b164fcc0536-80", hash_result(h));
+		hash_result_as_string(h, d);
+		CHECK_STR_EQ("e33b4ddc9c38f2199c3e7b164fcc053600000050", d);
 		hash_free(h);
 	}
 }
 
 TEST(hash_result_should_not_alter_state)
 {
+	char d[DIGEST_STRING_BUFFER_SIZE];
 	struct hash *h = hash_init();
 	hash_string(h, "message");
-	free(hash_result(h));
+	hash_result_as_string(h, d);
 	hash_string(h, " digest");
-	CHECK_STR_EQ_FREE2("d9130a8164549fe818874806e1c7014b-14", hash_result(h));
+	hash_result_as_string(h, d);
+	CHECK_STR_EQ("d9130a8164549fe818874806e1c7014b0000000e", d);
 	hash_free(h);
 }
 
 TEST(hash_result_should_be_idempotent)
 {
+	char d[DIGEST_STRING_BUFFER_SIZE];
 	struct hash *h = hash_init();
-
 	hash_string(h, "");
-	CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(h));
-	CHECK_STR_EQ_FREE2("31d6cfe0d16ae931b73c59d7e0c089c0-0", hash_result(h));
+	hash_result_as_string(h, d);
+	CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
+	hash_result_as_string(h, d);
+	CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
 
+	hash_free(h);
+}
+
+TEST(hash_result_as_bytes)
+{
+	struct hash *h = hash_init();
+	hash_string(h, "message digest");
+	struct digest d;
+	hash_result_as_bytes(h, &d);
+	uint8_t expected[sizeof(d.bytes)] = {
+		0xd9, 0x13, 0x0a, 0x81, 0x64, 0x54, 0x9f, 0xe8, 0x18, 0x87, 0x48, 0x06,
+		0xe1, 0xc7, 0x01, 0x4b, 0x00, 0x00, 0x00, 0x0e
+	};
+	CHECK_DATA_EQ(d.bytes, expected, sizeof(d.bytes));
 	hash_free(h);
 }
 

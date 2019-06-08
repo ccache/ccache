@@ -25,12 +25,17 @@ TEST_SUITE(hashutil)
 
 TEST(hash_command_output_simple)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
 	CHECK(hash_command_output(h1, "echo", "not used"));
 	CHECK(hash_command_output(h2, "echo", "not used"));
-	CHECK(hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK_STR_EQ(d1, d2);
 
 	hash_free(h2);
 	hash_free(h1);
@@ -38,12 +43,17 @@ TEST(hash_command_output_simple)
 
 TEST(hash_command_output_space_removal)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
 	CHECK(hash_command_output(h1, "echo", "not used"));
 	CHECK(hash_command_output(h2, " echo ", "not used"));
-	CHECK(hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK_STR_EQ(d1, d2);
 
 	hash_free(h2);
 	hash_free(h1);
@@ -51,12 +61,17 @@ TEST(hash_command_output_space_removal)
 
 TEST(hash_command_output_hash_inequality)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
 	CHECK(hash_command_output(h1, "echo foo", "not used"));
 	CHECK(hash_command_output(h2, "echo bar", "not used"));
-	CHECK(!hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK(!str_eq(d1, d2));
 
 	hash_free(h2);
 	hash_free(h1);
@@ -64,12 +79,17 @@ TEST(hash_command_output_hash_inequality)
 
 TEST(hash_command_output_compiler_substitution)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
 	CHECK(hash_command_output(h1, "echo foo", "not used"));
 	CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
-	CHECK(hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK_STR_EQ(d1, d2);
 
 	hash_free(h2);
 	hash_free(h1);
@@ -77,6 +97,9 @@ TEST(hash_command_output_compiler_substitution)
 
 TEST(hash_command_output_stdout_versus_stderr)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
@@ -90,7 +113,9 @@ TEST(hash_command_output_stdout_versus_stderr)
 	CHECK(hash_command_output(h1, "echo foo", "not used"));
 	CHECK(hash_command_output(h2, "stderr.bat", "not used"));
 #endif
-	CHECK(hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK_STR_EQ(d1, d2);
 
 	hash_free(h2);
 	hash_free(h1);
@@ -98,6 +123,9 @@ TEST(hash_command_output_stdout_versus_stderr)
 
 TEST(hash_multicommand_output)
 {
+	char d1[DIGEST_STRING_BUFFER_SIZE];
+	char d2[DIGEST_STRING_BUFFER_SIZE];
+
 	struct hash *h1 = hash_init();
 	struct hash *h2 = hash_init();
 
@@ -111,7 +139,9 @@ TEST(hash_multicommand_output)
 	CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
 	CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
 #endif
-	CHECK(hash_equal(h1, h2));
+	hash_result_as_string(h1, d1);
+	hash_result_as_string(h2, d2);
+	CHECK_STR_EQ(d1, d2);
 
 	hash_free(h2);
 	hash_free(h1);

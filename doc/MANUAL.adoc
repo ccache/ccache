@@ -127,8 +127,10 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`--hash-file`*=_PATH_::
 
-    Print the hash (in format `<MD4>-<size>`) of the file at PATH. This is only
-    useful when debugging ccache and its behavior.
+    Print the hash of the file at PATH in the format `<MD4><size>`, where
+    `<MD4>` is 32 hex digits and `<size>` is 8 hex digits (representing the
+    size of the file modulo 2^32). This is only useful when debugging ccache
+    and its behavior.
 
 *`-h, --help`*::
 

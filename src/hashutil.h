@@ -21,16 +21,9 @@
 #include "hash.h"
 #include <inttypes.h>
 
-struct file_hash
-{
-	uint8_t hash[16];
-	uint32_t hsize;
-};
-
 unsigned hash_from_string(void *str);
 unsigned hash_from_int(int i);
 int strings_equal(void *str1, void *str2);
-int file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2);
 
 #define HASH_SOURCE_CODE_OK 0
 #define HASH_SOURCE_CODE_ERROR 1

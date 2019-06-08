@@ -210,23 +210,21 @@ cct_check_int_eq(const char *file, int line, const char *expression,
 }
 
 bool cct_check_data_eq(const char *file, int line, const char *expression,
-                      void *expected, void *actual, size_t size)
+                       void *expected, void *actual, size_t size)
 {
-	bool result;
-
-	if (expected && actual && memcmp(actual, expected, size) == 0) {
+	if (memcmp(actual, expected, size) == 0) {
 		cct_check_passed(file, line, expression);
-		result = true;
+		return true;
 	} else {
-		char *exp_str = expected ? format_hex((unsigned char *) expected, size) : x_strdup("(null)");
-		char *act_str = actual ? format_hex((unsigned char *) actual, size) : x_strdup("(null)");
+		char *exp_str = x_malloc(2 * size + 1);
+		char *act_str = x_malloc(2 * size + 1);
+		format_hex(expected, size, exp_str);
+		format_hex(actual, size, act_str);
 		cct_check_failed(file, line, expression, exp_str, act_str);
 		free(exp_str);
 		free(act_str);
-		result = false;
+		return false;
 	}
-
-	return result;
 }
 
 bool

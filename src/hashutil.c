@@ -37,12 +37,6 @@ strings_equal(void *str1, void *str2)
 	return str_eq((const char *)str1, (const char *)str2);
 }
 
-int
-file_hashes_equal(struct file_hash *fh1, struct file_hash *fh2)
-{
-	return memcmp(fh1->hash, fh2->hash, 16) == 0 && fh1->hsize == fh2->hsize;
-}
-
 // Search for the strings "__DATE__" and "__TIME__" in str.
 //
 // Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE and

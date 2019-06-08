@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -83,50 +83,6 @@ TEST(get_relative_path)
 	CHECK_STR_EQ_FREE2("../../c", get_relative_path("/a/b", "/c"));
 	CHECK_STR_EQ_FREE2("a/b", get_relative_path("/", "/a/b"));
 #endif
-}
-
-TEST(format_hash_as_string)
-{
-	unsigned char hash[16] = {
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-	};
-
-	CHECK_STR_EQ_FREE2("00000000000000000000000000000000",
-	                   format_hash_as_string(hash, -1));
-	CHECK_STR_EQ_FREE2("00000000000000000000000000000000-0",
-	                   format_hash_as_string(hash, 0));
-	hash[0] = 17;
-	hash[15] = 42;
-	CHECK_STR_EQ_FREE2("1100000000000000000000000000002a-12345",
-	                   format_hash_as_string(hash, 12345));
-}
-
-TEST(format_hash_as_binary)
-{
-	unsigned char hash[16] = {
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-	};
-
-	unsigned char data[20] = {
-		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-		"\x00\x00\x00\x00"
-	};
-
-	binary buf;
-	CHECK_INT_EQ(sizeof(buf), 20);
-
-	format_hash_as_binary(buf, hash, 0);
-	CHECK_DATA_EQ(data, buf, 20);
-	hash[0] = 17;
-	hash[15] = 42;
-	format_hash_as_binary(buf, hash, 12345);
-	// data[0:16] = hash
-	data[0] = 0x11;
-	data[15] = 0x2a;
-	// 12345 = 0x3039 BE
-	data[18] = 0x30;
-	data[19] = 0x39;
-	CHECK_DATA_EQ(data, buf, 20);
 }
 
 TEST(subst_env_in_string)
@@ -237,13 +193,19 @@ TEST(format_command)
 
 TEST(format_hex)
 {
-	unsigned char none[] = "";
-	unsigned char text[4] = "foo"; // incl. NUL
-	unsigned char data[4] = "\x00\x01\x02\x03";
+	uint8_t none[] = "";
+	uint8_t text[4] = "foo"; // incl. NUL
+	uint8_t data[4] = "\x00\x01\x02\x03";
+	char result[2 * sizeof(data) + 1] = ".";
 
-	CHECK_STR_EQ_FREE2("", format_hex(none, 0));
-	CHECK_STR_EQ_FREE2("666f6f00", format_hex(text, sizeof(text)));
-	CHECK_STR_EQ_FREE2("00010203", format_hex(data, sizeof(data)));
+	format_hex(none, 0, result);
+	CHECK_STR_EQ("", result);
+
+	format_hex(text, sizeof(text), result);
+	CHECK_STR_EQ("666f6f00", result);
+
+	format_hex(data, sizeof(data), result);
+	CHECK_STR_EQ("00010203", result);
 }
 
 TEST_SUITE_END

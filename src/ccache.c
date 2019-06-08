@@ -83,7 +83,8 @@ static const char USAGE_TEXT[] =
 	"Options for scripting or debugging:\n"
 	"        --dump-manifest=PATH  dump manifest file at PATH in text format\n"
 	"    -k, --get-config=K        print the value of configuration key K\n"
-	"        --hash-file=PATH      print the hash (<MD4>-<size>) of the file at PATH\n"
+	"        --hash-file=PATH      print the hash (<MD4><file_size_in_hex>) of the\n"
+	"                              file at PATH\n"
 	"        --print-stats         print statistics counter IDs and corresponding\n"
 	"                              values in machine-parsable format\n"
 	"    -o, --set-config=K=V      set configuration item K to value V\n"
@@ -134,9 +135,9 @@ static const char *actual_language;
 static size_t arch_args_size = 0;
 static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 
-// Name (represented as a struct file_hash) of the file containing the cached
+// Name (represented as a struct digest) of the file containing the cached
 // object code.
-static struct file_hash *cached_obj_hash;
+static struct digest *cached_obj_hash;
 
 // Full path to the file containing the result
 // (cachedir/a/b/cdef[...]-size.result).
@@ -150,8 +151,8 @@ static char *manifest_path;
 // compilation.
 time_t time_of_compilation;
 
-// Files included by the preprocessor and their hashes/sizes. Key: file path.
-// Value: struct file_hash.
+// Files included by the preprocessor and their hashes. Key: file path. Value:
+// struct digest.
 static struct hashtable *included_files = NULL;
 
 // Uses absolute path for some include files.
@@ -692,9 +693,9 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 			goto failure;
 		}
 		hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
-		char *pch_hash_result = hash_result(fhash);
-		hash_string(cpp_hash, pch_hash_result);
-		free(pch_hash_result);
+		char pch_digest[DIGEST_STRING_BUFFER_SIZE];
+		hash_result_as_string(fhash, pch_digest);
+		hash_string(cpp_hash, pch_digest);
 	}
 
 	if (conf->direct_mode) {
@@ -718,17 +719,16 @@ remember_include_file(char *path, struct hash *cpp_hash, bool system,
 			}
 		}
 
-		struct file_hash *h = x_malloc(sizeof(*h));
-		hash_result_as_bytes(fhash, h->hash);
-		h->hsize = hash_input_size(fhash);
-		hashtable_insert(included_files, path, h);
+		struct digest *d = x_malloc(sizeof(*d));
+		hash_result_as_bytes(fhash, d);
+		hashtable_insert(included_files, path, d);
 		path = NULL; // Ownership transferred to included_files.
 
 		if (depend_mode_hash) {
 			hash_delimiter(depend_mode_hash, "include");
-			char *result = format_hash_as_string(h->hash, h->hsize);
-			hash_string(depend_mode_hash, result);
-			free(result);
+			char digest[DIGEST_STRING_BUFFER_SIZE];
+			digest_as_string(d, digest);
+			hash_string(depend_mode_hash, digest);
 		}
 	}
 
@@ -1109,7 +1109,7 @@ out:
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static struct file_hash *
+static struct digest *
 object_hash_from_depfile(const char *depfile, struct hash *hash)
 {
 	FILE *f = fopen(depfile, "r");
@@ -1154,10 +1154,9 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 		print_included_files(stdout);
 	}
 
-	struct file_hash *result = x_malloc(sizeof(*result));
-	hash_result_as_bytes(hash, result->hash);
-	result->hsize = hash_input_size(hash);
-	return result;
+	struct digest *digest = x_malloc(sizeof(*digest));
+	hash_result_as_bytes(hash, digest);
+	return digest;
 }
 
 // Send cached stderr, if any, to stderr.
@@ -1204,14 +1203,13 @@ update_manifest_file(void)
 }
 
 static void
-update_cached_result_globals(struct file_hash *hash)
+update_cached_result_globals(struct digest *hash)
 {
-	char *object_name = format_hash_as_string(hash->hash, hash->hsize);
+	char object_name[DIGEST_STRING_BUFFER_SIZE];
+	digest_as_string(hash, object_name);
 	cached_obj_hash = hash;
 	cached_result = get_path_in_cache(object_name, ".result");
-
 	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
-	free(object_name);
 }
 
 // Run the real compiler and put the result in cache.
@@ -1351,7 +1349,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	if (conf->depend_mode) {
-		struct file_hash *object_hash =
+		struct digest *object_hash =
 			object_hash_from_depfile(output_dep, depend_mode_hash);
 		if (!object_hash) {
 			failed();
@@ -1456,7 +1454,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 // Find the object file name by running the compiler in preprocessor mode.
 // Returns the hash as a heap-allocated hex string.
-static struct file_hash *
+static struct digest *
 get_object_name_from_cpp(struct args *args, struct hash *hash)
 {
 	time_of_compilation = time(NULL);
@@ -1561,10 +1559,9 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		hash_string(hash, "false");
 	}
 
-	struct file_hash *result = x_malloc(sizeof(*result));
-	hash_result_as_bytes(hash, result->hash);
-	result->hsize = hash_input_size(hash);
-	return result;
+	struct digest *name = x_malloc(sizeof(*name));
+	hash_result_as_bytes(hash, name);
+	return name;
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
@@ -1803,7 +1800,7 @@ calculate_common_hash(struct args *args, struct hash *hash)
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the object hash. Returns the object hash on success,
 // otherwise NULL. Caller frees.
-static struct file_hash *
+static struct digest *
 calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 {
 	bool found_ccbin = false;
@@ -2009,7 +2006,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		hash_string(hash, arch_args[i]);
 	}
 
-	struct file_hash *object_hash = NULL;
+	struct digest *object_hash = NULL;
 	if (direct_mode) {
 		// Hash environment variables that affect the preprocessor output.
 		const char *envvars[] = {
@@ -2046,11 +2043,11 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			return NULL;
 		}
 
-		char *manifest_name = hash_result(hash);
+		char manifest_name[DIGEST_STRING_BUFFER_SIZE];
+		hash_result_as_string(hash, manifest_name);
 		manifest_path = get_path_in_cache(manifest_name, ".manifest");
 		manifest_stats_file =
 			format("%s/%c/stats", conf->cache_dir, manifest_name[0]);
-		free(manifest_name);
 
 		cc_log("Looking for object file hash in %s", manifest_path);
 		MTR_BEGIN("manifest", "manifest_get");
@@ -3740,8 +3737,8 @@ ccache(int argc, char *argv[])
 		direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
 
 	bool put_object_in_manifest = false;
-	struct file_hash *object_hash = NULL;
-	struct file_hash *object_hash_from_manifest = NULL;
+	struct digest *object_hash = NULL;
+	struct digest *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		MTR_BEGIN("hash", "direct_hash");
@@ -3785,7 +3782,7 @@ ccache(int argc, char *argv[])
 		update_cached_result_globals(object_hash);
 
 		if (object_hash_from_manifest
-		    && !file_hashes_equal(object_hash_from_manifest, object_hash)) {
+		    && !digests_equal(object_hash_from_manifest, object_hash)) {
 			// The hash from manifest differs from the hash of the preprocessor
 			// output. This could be because:
 			//
@@ -3889,9 +3886,9 @@ ccache_main_options(int argc, char *argv[])
 			} else {
 				hash_file(hash, optarg);
 			}
-			char *result = hash_result(hash);
-			puts(result);
-			free(result);
+			char digest[DIGEST_STRING_BUFFER_SIZE];
+			hash_result_as_string(hash, digest);
+			puts(digest);
 			hash_free(hash);
 			break;
 		}

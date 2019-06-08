@@ -27,10 +27,6 @@
 #include <sys/time.h>
 #endif
 
-#ifdef HAVE_ARPA_INET_H
-#include <arpa/inet.h>
-#endif
-
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
@@ -512,37 +508,6 @@ tmp_string(void)
 	return ret;
 }
 
-// Return the hash result as a hex string. Size -1 means don't include size
-// suffix. Caller frees.
-char *
-format_hash_as_string(const unsigned char *hash, int size)
-{
-	int i;
-	char *ret = x_malloc(53);
-	for (i = 0; i < 16; i++) {
-		sprintf(&ret[i*2], "%02x", (unsigned) hash[i]);
-	}
-	if (size >= 0) {
-		sprintf(&ret[i*2], "-%d", size);
-	}
-	return ret;
-}
-
-// Return the hash result in binary.
-void format_hash_as_binary(binary result, const unsigned char *hash, int size)
-{
-	memcpy(result, hash, 16);
-#ifdef HAVE_HTONL
-	result[4] = htonl(size); // network byte order
-#else
-	uint32_t i = size;
-	unsigned char *bytes = (unsigned char *) result;
-	for (int j = 0; j < 4; j++) {
-		bytes[16 + j] = (i >> ((3 - j) * 8)) & 0xff; // (big endian)
-	}
-#endif
-}
-
 static char const CACHEDIR_TAG[] =
 	"Signature: 8a477f597d28d172789f06886806bc55\n"
 	"# This file is a cache directory tag created by ccache.\n"
@@ -599,17 +564,15 @@ format(const char *format, ...)
 	return ptr;
 }
 
-// Construct a string representing data. Caller frees
-char *
-format_hex(unsigned char *data, size_t size)
+// Construct a hexadecimal string representing binary data. The buffer must
+// hold at least 2 * size + 1 bytes.
+void
+format_hex(const uint8_t *data, size_t size, char *buffer)
 {
-	size_t i;
-	char *ret = x_malloc(2 * size + 1);
-	for (i = 0; i < size; i++) {
-		sprintf(&ret[i*2], "%02x", (unsigned) data[i]);
+	for (size_t i = 0; i < size; i++) {
+		sprintf(&buffer[i*2], "%02x", (unsigned)data[i]);
 	}
-	ret[2 * size] = '\0';
-	return ret;
+	buffer[2 * size] = '\0';
 }
 
 // This is like strdup() but dies if the malloc fails.

@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Joel Rosdahl
+// Copyright (C) 2018-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -19,15 +19,33 @@
 
 #include "system.h"
 
+#define DIGEST_SIZE 20
+#define DIGEST_STRING_BUFFER_SIZE (2 * DIGEST_SIZE + 1)
+
+// struct digest represents the binary form of the final digest (AKA hash or
+// checksum) produced by the hash algorithm.
+struct digest
+{
+	uint8_t bytes[DIGEST_SIZE];
+};
+
+// Format the digest as a NUL-terminated hex string. The string buffer must
+// contain at least DIGEST_STRING_BUFFER_SIZE bytes.
+void digest_as_string(const struct digest *d, char *buffer);
+
+// Return true if d1 and d2 are equal, else false.
+bool digests_equal(const struct digest *d1, const struct digest *d2);
+
+// struct hash represents the hash algorithm's inner state.
 struct hash;
 
-// Create a new hash.
+// Create a new hash state.
 struct hash *hash_init(void);
 
-// Create a new hash from an existing hash state.
+// Create a new hash state from an existing hash state.
 struct hash *hash_copy(struct hash *hash);
 
-// Free a hash created by hash_init or hash_copy.
+// Free a hash state created by hash_init or hash_copy.
 void hash_free(struct hash *hash);
 
 // Enable debug logging of hashed input to a binary and a text file.
@@ -35,17 +53,12 @@ void hash_enable_debug(
 	struct hash *hash, const char *section_name, FILE *debug_binary,
 	FILE *debug_text);
 
-// Return how many bytes have been hashed.
-size_t hash_input_size(struct hash *hash);
+// Retrieve the digest as bytes.
+void hash_result_as_bytes(struct hash *hash, struct digest *digest);
 
-// Return the hash result as a hex string. Caller frees.
-char *hash_result(struct hash *hash);
-
-// Return the hash result as 16 binary bytes.
-void hash_result_as_bytes(struct hash *hash, unsigned char *out);
-
-// Return whether hash1 and hash2 are equal.
-bool hash_equal(struct hash *hash1, struct hash *hash2);
+// Retrieve the digest as a NUL-terminated hex string. The string buffer must
+// contain at least DIGEST_STRING_BUFFER_SIZE bytes.
+void hash_result_as_string(struct hash *hash, char *buffer);
 
 // Hash some data that is unlikely to occur in the input. The idea is twofold:
 //

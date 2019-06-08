@@ -24,45 +24,35 @@
 
 // Sketchy specification of the manifest data format:
 //
-// <magic>         magic number                        (4 bytes: cCmF)
-// <version>       file format version                 (1 byte unsigned int)
-// <hash_size>     size of the hash fields (in bytes)  (1 byte unsigned int)
-// <reserved>      reserved for future use             (2 bytes)
+// <magic>         magic number                          (4 bytes: cCmF)
+// <version>       file format version                   (1 byte unsigned int)
+// <not_used>      not used                              (3 bytes)
 // ----------------------------------------------------------------------------
-// <n>             number of include file paths        (4 bytes unsigned int)
-// <path_0>        path to include file                (NUL-terminated string,
-// ...                                                  at most 1024 bytes)
+// <n>             number of include file paths          (4 bytes unsigned int)
+// <path_0>        include file path                     (NUL-terminated string,
+// ...                                                    at most 1024 bytes)
 // <path_n-1>
 // ----------------------------------------------------------------------------
-// <n>             number of include file hash entries (4 bytes unsigned int)
-// <index[0]>      index of include file path          (4 bytes unsigned int)
-// <hash[0]>       hash of include file                (<hash_size> bytes)
-// <hsize[0]>      hashed bytes                        (4 bytes unsigned int)
-// <fsize[0]>      size of include file                (8 bytes unsigned int)
-// <mtime[0]>      mtime of include file               (8 bytes signed int)
-// <ctime[0]>      mtime of include file               (8 bytes signed int)
+// <n>             number of include file entries        (4 bytes unsigned int)
+// <index[0]>      include file path index               (4 bytes unsigned int)
+// <digest[0]>     include file digest                   (DIGEST_SIZE bytes)
+// <fsize[0]>      include file size                     (8 bytes unsigned int)
+// <mtime[0]>      include file mtime                    (8 bytes signed int)
+// <ctime[0]>      include file ctime                    (8 bytes signed int)
 // ...
 // <index[n-1]>
-// <hash[n-1]>
-// <hsize[n-1]>
+// <digest[n-1]>
 // <fsize[n-1]>
 // <mtime[n-1]>
 // <ctime[n-1]>
 // ----------------------------------------------------------------------------
-// <n>             number of object name entries       (4 bytes unsigned int)
-// <m[0]>          number of include file hash indexes (4 bytes unsigned int)
-// <index[0][0]>   include file hash index             (4 bytes unsigned int)
+// <n>             number of result entries              (4 bytes unsigned int)
+// <m[0]>          number of include file entry indexes  (4 bytes unsigned int)
+// <index[0][0]>   include file entry index              (4 bytes unsigned int)
 // ...
 // <index[0][m[0]-1]>
-// <hash[0]>       hash part of object name            (<hash_size> bytes)
-// <size[0]>       size part of object name            (4 bytes unsigned int)
+// <name[0]>       result name                           (DIGEST_SIZE bytes)
 // ...
-// <m[n-1]>        number of include file hash indexes
-// <index[n-1][0]> include file hash index
-// ...
-// <index[n-1][m[n-1]]>
-// <hash[n-1]>
-// <size[n-1]>
 
 static const uint32_t MAGIC = 0x63436d46U; // cCmF
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
@@ -74,10 +64,8 @@ static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 struct file_info {
 	// Index to n_files.
 	uint32_t index;
-	// Hash of referenced file.
-	uint8_t hash[16];
-	// Hashed content byte count.
-	uint32_t hsize;
+	// Digest of referenced file.
+	struct digest digest;
 	// Size of referenced file.
 	uint64_t fsize;
 	// mtime of referenced file.
@@ -91,19 +79,13 @@ struct object {
 	uint32_t n_file_info_indexes;
 	// Indexes to file_infos.
 	uint32_t *file_info_indexes;
-	// Hash of the object itself.
-	struct file_hash hash;
+	// Name of the object itself.
+	struct digest name;
 };
 
 struct manifest {
 	// Version of decoded file.
 	uint8_t version;
-
-	// Reserved for future use.
-	uint16_t reserved;
-
-	// Size of hash fields (in bytes).
-	uint8_t hash_size;
 
 	// Referenced include files.
 	uint32_t n_files;
@@ -137,8 +119,7 @@ file_infos_equal(void *key1, void *key2)
 	struct file_info *fi1 = (struct file_info *)key1;
 	struct file_info *fi2 = (struct file_info *)key2;
 	return fi1->index == fi2->index
-	       && memcmp(fi1->hash, fi2->hash, 16) == 0
-	       && fi1->hsize == fi2->hsize
+	       && digests_equal(&fi1->digest, &fi2->digest)
 	       && fi1->fsize == fi2->fsize
 	       && fi1->mtime == fi2->mtime
 	       && fi1->ctime == fi2->ctime;
@@ -217,7 +198,6 @@ static struct manifest *
 create_empty_manifest(void)
 {
 	struct manifest *mf = x_malloc(sizeof(*mf));
-	mf->hash_size = 16;
 	mf->n_files = 0;
 	mf->files = NULL;
 	mf->n_file_infos = 0;
@@ -250,15 +230,9 @@ read_manifest(gzFile f, char **errmsg)
 		goto error;
 	}
 
-	READ_BYTE(mf->hash_size);
-	if (mf->hash_size != 16) {
-		// Temporary measure until we support different hash algorithms.
-		*errmsg =
-			format("Manifest file has unsupported hash size %u", mf->hash_size);
-		goto error;
-	}
-
-	READ_INT(2, mf->reserved);
+	char dummy[3]; // Legacy "hash size" + "reserved". TODO: Remove.
+	READ_BYTES(3, dummy);
+	(void)dummy;
 
 	READ_INT(4, mf->n_files);
 	mf->files = x_calloc(mf->n_files, sizeof(*mf->files));
@@ -270,8 +244,7 @@ read_manifest(gzFile f, char **errmsg)
 	mf->file_infos = x_calloc(mf->n_file_infos, sizeof(*mf->file_infos));
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		READ_INT(4, mf->file_infos[i].index);
-		READ_BYTES(mf->hash_size, mf->file_infos[i].hash);
-		READ_INT(4, mf->file_infos[i].hsize);
+		READ_BYTES(DIGEST_SIZE, mf->file_infos[i].digest.bytes);
 		READ_INT(8, mf->file_infos[i].fsize);
 		READ_INT(8, mf->file_infos[i].mtime);
 		READ_INT(8, mf->file_infos[i].ctime);
@@ -287,8 +260,7 @@ read_manifest(gzFile f, char **errmsg)
 		for (uint32_t j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			READ_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
-		READ_BYTES(mf->hash_size, mf->objects[i].hash.hash);
-		READ_INT(4, mf->objects[i].hash.hsize);
+		READ_BYTES(DIGEST_SIZE, mf->objects[i].name.bytes);
 	}
 
 	return mf;
@@ -336,8 +308,8 @@ write_manifest(gzFile f, const struct manifest *mf)
 {
 	WRITE_INT(4, MAGIC);
 	WRITE_INT(1, MANIFEST_VERSION);
-	WRITE_INT(1, 16);
-	WRITE_INT(2, 0);
+	WRITE_INT(1, 16); // Legacy hash size field. TODO: Remove.
+	WRITE_INT(2, 0); // Legacy "reserved" field. TODO: Remove.
 
 	WRITE_INT(4, mf->n_files);
 	for (uint32_t i = 0; i < mf->n_files; i++) {
@@ -347,8 +319,7 @@ write_manifest(gzFile f, const struct manifest *mf)
 	WRITE_INT(4, mf->n_file_infos);
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
 		WRITE_INT(4, mf->file_infos[i].index);
-		WRITE_BYTES(mf->hash_size, mf->file_infos[i].hash);
-		WRITE_INT(4, mf->file_infos[i].hsize);
+		WRITE_BYTES(DIGEST_SIZE, mf->file_infos[i].digest.bytes);
 		WRITE_INT(8, mf->file_infos[i].fsize);
 		WRITE_INT(8, mf->file_infos[i].mtime);
 		WRITE_INT(8, mf->file_infos[i].ctime);
@@ -360,8 +331,7 @@ write_manifest(gzFile f, const struct manifest *mf)
 		for (uint32_t j = 0; j < mf->objects[i].n_file_info_indexes; j++) {
 			WRITE_INT(4, mf->objects[i].file_info_indexes[j]);
 		}
-		WRITE_BYTES(mf->hash_size, mf->objects[i].hash.hash);
-		WRITE_INT(4, mf->objects[i].hash.hsize);
+		WRITE_BYTES(DIGEST_SIZE, mf->objects[i].name.bytes);
 	}
 
 	return 1;
@@ -423,7 +393,7 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			}
 		}
 
-		struct file_hash *actual = hashtable_search(hashed_files, path);
+		struct digest *actual = hashtable_search(hashed_files, path);
 		if (!actual) {
 			struct hash *hash = hash_init();
 			int result = hash_source_code_file(conf, hash, path);
@@ -436,15 +406,14 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 				hash_free(hash);
 				return 0;
 			}
-			actual = x_malloc(sizeof(*actual));
-			hash_result_as_bytes(hash, actual->hash);
-			actual->hsize = hash_input_size(hash);
+			actual = malloc(sizeof(*actual));
+			hash_result_as_bytes(hash, actual);
+
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 			hash_free(hash);
 		}
-		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0
-		    || fi->hsize != actual->hsize) {
-			return 0;
+		if (!digests_equal(&fi->digest, actual)) {
+			return false;
 		}
 	}
 
@@ -498,14 +467,13 @@ get_include_file_index(struct manifest *mf, char *path,
 static uint32_t
 get_file_hash_index(struct manifest *mf,
                     char *path,
-                    struct file_hash *file_hash,
+                    struct digest *digest,
                     struct hashtable *mf_files,
                     struct hashtable *mf_file_infos)
 {
 	struct file_info fi;
 	fi.index = get_include_file_index(mf, path, mf_files);
-	memcpy(fi.hash, file_hash->hash, sizeof(fi.hash));
-	fi.hsize = file_hash->hsize;
+	fi.digest = *digest;
 
 	// file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
 	// file's mtime and ctime only if they're at least one second older than
@@ -527,7 +495,7 @@ get_file_hash_index(struct manifest *mf,
 	} else {
 		fi.mtime = -1;
 		fi.ctime = -1;
-		fi.fsize = file_hash->hsize;
+		fi.fsize = 0;
 	}
 
 	uint32_t *fi_index = hashtable_search(mf_file_infos, &fi);
@@ -560,8 +528,8 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 	uint32_t i = 0;
 	do {
 		char *path = hashtable_iterator_key(iter);
-		struct file_hash *file_hash = hashtable_iterator_value(iter);
-		indexes[i] = get_file_hash_index(mf, path, file_hash, mf_files,
+		struct digest *digest = hashtable_iterator_value(iter);
+		indexes[i] = get_file_hash_index(mf, path, digest, mf_files,
 		                                 mf_file_infos);
 		i++;
 	} while (hashtable_iterator_advance(iter));
@@ -573,7 +541,7 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 
 static void
 add_object_entry(struct manifest *mf,
-                 struct file_hash *object_hash,
+                 struct digest *object_hash,
                  struct hashtable *included_files)
 {
 	uint32_t n_objs = mf->n_objects;
@@ -585,20 +553,19 @@ add_object_entry(struct manifest *mf,
 	obj->n_file_info_indexes = n_fii;
 	obj->file_info_indexes = x_malloc(n_fii * sizeof(*obj->file_info_indexes));
 	add_file_info_indexes(obj->file_info_indexes, n_fii, mf, included_files);
-	memcpy(obj->hash.hash, object_hash->hash, mf->hash_size);
-	obj->hash.hsize = object_hash->hsize;
+	obj->name = *object_hash;
 }
 
 // Try to get the object hash from a manifest file. Caller frees. Returns NULL
 // on failure.
-struct file_hash *
+struct digest *
 manifest_get(struct conf *conf, const char *manifest_path)
 {
 	gzFile f = NULL;
 	struct manifest *mf = NULL;
-	struct hashtable *hashed_files = NULL; // path --> struct file_hash
+	struct hashtable *hashed_files = NULL; // path --> struct digest
 	struct hashtable *stated_files = NULL; // path --> struct file_stats
-	struct file_hash *fh = NULL;
+	struct digest *name = NULL;
 
 	int fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
@@ -627,8 +594,8 @@ manifest_get(struct conf *conf, const char *manifest_path)
 	for (uint32_t i = mf->n_objects; i > 0; i--) {
 		if (verify_object(conf, mf, &mf->objects[i - 1],
 		                  stated_files, hashed_files)) {
-			fh = x_malloc(sizeof(*fh));
-			*fh = mf->objects[i - 1].hash;
+			name = x_malloc(sizeof(*name));
+			*name = mf->objects[i - 1].name;
 			goto out;
 		}
 	}
@@ -646,17 +613,17 @@ out:
 	if (mf) {
 		free_manifest(mf);
 	}
-	if (fh) {
+	if (name) {
 		// Update modification timestamp to save files from LRU cleanup.
 		update_mtime(manifest_path);
 	}
-	return fh;
+	return name;
 }
 
 // Put the object name into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
-manifest_put(const char *manifest_path, struct file_hash *object_hash,
+manifest_put(const char *manifest_path, struct digest *object_hash,
              struct hashtable *included_files)
 {
 	int ret = 0;
@@ -784,38 +751,32 @@ manifest_dump(const char *manifest_path, FILE *stream)
 	        (MAGIC >> 8) & 0xFF,
 	        MAGIC & 0xFF);
 	fprintf(stream, "Version: %u\n", mf->version);
-	fprintf(stream, "Hash size: %u\n", (unsigned)mf->hash_size);
-	fprintf(stream, "Reserved field: %u\n", (unsigned)mf->reserved);
 	fprintf(stream, "File paths (%u):\n", (unsigned)mf->n_files);
 	for (unsigned i = 0; i < mf->n_files; ++i) {
 		fprintf(stream, "  %u: %s\n", i, mf->files[i]);
 	}
 	fprintf(stream, "File infos (%u):\n", (unsigned)mf->n_file_infos);
 	for (unsigned i = 0; i < mf->n_file_infos; ++i) {
-		char *hash;
+		char digest[DIGEST_STRING_BUFFER_SIZE];
 		fprintf(stream, "  %u:\n", i);
 		fprintf(stream, "    Path index: %u\n", mf->file_infos[i].index);
-		hash = format_hash_as_string(mf->file_infos[i].hash, -1);
-		fprintf(stream, "    Hash: %s\n", hash);
-		free(hash);
-		fprintf(stream, "    Hashed bytes: %u\n", mf->file_infos[i].hsize);
+		digest_as_string(&mf->file_infos[i].digest, digest);
+		fprintf(stream, "    Hash: %s\n", digest);
 		fprintf(stream, "    File size: %" PRIu64 "\n", mf->file_infos[i].fsize);
 		fprintf(stream, "    Mtime: %lld\n", (long long)mf->file_infos[i].mtime);
 		fprintf(stream, "    Ctime: %lld\n", (long long)mf->file_infos[i].ctime);
 	}
 	fprintf(stream, "Results (%u):\n", (unsigned)mf->n_objects);
 	for (unsigned i = 0; i < mf->n_objects; ++i) {
-		char *hash;
+		char name[DIGEST_STRING_BUFFER_SIZE];
 		fprintf(stream, "  %u:\n", i);
 		fprintf(stream, "    File info indexes:");
 		for (unsigned j = 0; j < mf->objects[i].n_file_info_indexes; ++j) {
 			fprintf(stream, " %u", mf->objects[i].file_info_indexes[j]);
 		}
 		fprintf(stream, "\n");
-		hash = format_hash_as_string(mf->objects[i].hash.hash, -1);
-		fprintf(stream, "    Hash: %s\n", hash);
-		free(hash);
-		fprintf(stream, "    Size: %u\n", (unsigned)mf->objects[i].hash.hsize);
+		digest_as_string(&mf->objects[i].name, name);
+		fprintf(stream, "    Hash: %s\n", name);
 	}
 
 	ret = true;
