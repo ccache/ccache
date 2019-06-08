@@ -136,8 +136,8 @@ static size_t arch_args_size = 0;
 static char *arch_args[MAX_ARCH_ARGS] = {NULL};
 
 // Name (represented as a struct digest) of the file containing the cached
-// object code.
-static struct digest *cached_obj_hash;
+// result.
+static struct digest *cached_result_name;
 
 // Full path to the file containing the result
 // (cachedir/a/b/cdef[...]-size.result).
@@ -1110,7 +1110,7 @@ out:
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static struct digest *
-object_hash_from_depfile(const char *depfile, struct hash *hash)
+result_name_from_depfile(const char *depfile, struct hash *hash)
 {
 	FILE *f = fopen(depfile, "r");
 	if (!f) {
@@ -1188,8 +1188,8 @@ update_manifest_file(void)
 	}
 
 	MTR_BEGIN("manifest", "manifest_put");
-	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
-		cc_log("Added object file hash to %s", manifest_path);
+	if (manifest_put(manifest_path, cached_result_name, included_files)) {
+		cc_log("Added result name to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(
 				manifest_stats_file,
@@ -1197,19 +1197,19 @@ update_manifest_file(void)
 				old_size == 0 ? 1 : 0);
 		}
 	} else {
-		cc_log("Failed to add object file hash to %s", manifest_path);
+		cc_log("Failed to add result name to %s", manifest_path);
 	}
 	MTR_END("manifest", "manifest_put");
 }
 
 static void
-update_cached_result_globals(struct digest *hash)
+update_cached_result_globals(struct digest *result_name)
 {
-	char object_name[DIGEST_STRING_BUFFER_SIZE];
-	digest_as_string(hash, object_name);
-	cached_obj_hash = hash;
-	cached_result = get_path_in_cache(object_name, ".result");
-	stats_file = format("%s/%c/stats", conf->cache_dir, object_name[0]);
+	char result_name_string[DIGEST_STRING_BUFFER_SIZE];
+	digest_as_string(result_name, result_name_string);
+	cached_result_name = result_name;
+	cached_result = get_path_in_cache(result_name_string, ".result");
+	stats_file = format("%s/%c/stats", conf->cache_dir, result_name_string[0]);
 }
 
 // Run the real compiler and put the result in cache.
@@ -1252,7 +1252,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_pop(args, 3);
 	} else {
-		// The cached object path is not known yet, use temporary files.
+		// The cached result path is not known yet, use temporary files.
 		tmp_stdout = format("%s/tmp.stdout", temp_dir());
 		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
 		tmp_stderr = format("%s/tmp.stderr", temp_dir());
@@ -1349,12 +1349,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	if (conf->depend_mode) {
-		struct digest *object_hash =
-			object_hash_from_depfile(output_dep, depend_mode_hash);
-		if (!object_hash) {
+		struct digest *result_name =
+			result_name_from_depfile(output_dep, depend_mode_hash);
+		if (!result_name) {
 			failed();
 		}
-		update_cached_result_globals(object_hash);
+		update_cached_result_globals(result_name);
 	}
 
 	bool produce_dep_file =
@@ -1452,10 +1452,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	free(tmp_stdout);
 }
 
-// Find the object file name by running the compiler in preprocessor mode.
-// Returns the hash as a heap-allocated hex string.
+// Find the result name by running the compiler in preprocessor mode and
+// hashing the result.
 static struct digest *
-get_object_name_from_cpp(struct args *args, struct hash *hash)
+get_result_name_from_cpp(struct args *args, struct hash *hash)
 {
 	time_of_compilation = time(NULL);
 
@@ -1643,10 +1643,9 @@ hash_nvcc_host_compiler(struct hash *hash, struct stat *ccbin_st,
 	}
 }
 
-// Update a hash sum with information common for the direct and preprocessor
-// modes.
+// Update a hash with information common for the direct and preprocessor modes.
 static void
-calculate_common_hash(struct args *args, struct hash *hash)
+hash_common_info(struct args *args, struct hash *hash)
 {
 	hash_string(hash, HASH_PREFIX);
 
@@ -1798,10 +1797,10 @@ calculate_common_hash(struct args *args, struct hash *hash)
 }
 
 // Update a hash sum with information specific to the direct and preprocessor
-// modes and calculate the object hash. Returns the object hash on success,
+// modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
 static struct digest *
-calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
+calculate_result_name(struct args *args, struct hash *hash, int direct_mode)
 {
 	bool found_ccbin = false;
 
@@ -2006,7 +2005,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		hash_string(hash, arch_args[i]);
 	}
 
-	struct digest *object_hash = NULL;
+	struct digest *result_name = NULL;
 	if (direct_mode) {
 		// Hash environment variables that affect the preprocessor output.
 		const char *envvars[] = {
@@ -2049,29 +2048,29 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		manifest_stats_file =
 			format("%s/%c/stats", conf->cache_dir, manifest_name[0]);
 
-		cc_log("Looking for object file hash in %s", manifest_path);
+		cc_log("Looking for result name in %s", manifest_path);
 		MTR_BEGIN("manifest", "manifest_get");
-		object_hash = manifest_get(conf, manifest_path);
+		result_name = manifest_get(conf, manifest_path);
 		MTR_END("manifest", "manifest_get");
-		if (object_hash) {
-			cc_log("Got object file hash from manifest");
+		if (result_name) {
+			cc_log("Got result name from manifest");
 		} else {
-			cc_log("Did not find object file hash in manifest");
+			cc_log("Did not find result name in manifest");
 		}
 	} else {
 		if (arch_args_size == 0) {
-			object_hash = get_object_name_from_cpp(args, hash);
-			cc_log("Got object file hash from preprocessor");
+			result_name = get_result_name_from_cpp(args, hash);
+			cc_log("Got result name from preprocessor");
 		} else {
 			args_add(args, "-arch");
 			for (size_t i = 0; i < arch_args_size; ++i) {
 				args_add(args, arch_args[i]);
-				object_hash = get_object_name_from_cpp(args, hash);
-				cc_log("Got object file hash from preprocessor with -arch %s",
+				result_name = get_result_name_from_cpp(args, hash);
+				cc_log("Got result name from preprocessor with -arch %s",
 				       arch_args[i]);
 				if (i != arch_args_size - 1) {
-					free(object_hash);
-					object_hash = NULL;
+					free(result_name);
+					result_name = NULL;
 				}
 				args_pop(args, 1);
 			}
@@ -2085,13 +2084,13 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		}
 	}
 
-	return object_hash;
+	return result_name;
 }
 
 // Try to return the compile result from cache. If we can return from cache
 // then this function exits with the correct status code, otherwise it returns.
 static void
-from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
+from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 {
 	// The user might be disabling cache hits.
 	if (conf->recache) {
@@ -2168,7 +2167,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 
 	send_cached_stderr(tmp_stderr);
 
-	if (put_object_in_manifest) {
+	if (put_result_in_manifest) {
 		update_manifest_file();
 	}
 
@@ -3566,7 +3565,7 @@ cc_reset(void)
 	free(output_su); output_su = NULL;
 	free(output_dia); output_dia = NULL;
 	free(output_dwo); output_dwo = NULL;
-	free(cached_obj_hash); cached_obj_hash = NULL;
+	free(cached_result_name); cached_result_name = NULL;
 	free(cached_result); cached_result = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
@@ -3728,7 +3727,7 @@ ccache(int argc, char *argv[])
 	init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
 
 	MTR_BEGIN("hash", "common_hash");
-	calculate_common_hash(preprocessor_args, common_hash);
+	hash_common_info(preprocessor_args, common_hash);
 	MTR_END("hash", "common_hash");
 
 	// Try to find the hash using the manifest.
@@ -3736,28 +3735,28 @@ ccache(int argc, char *argv[])
 	init_hash_debug(
 		direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
 
-	bool put_object_in_manifest = false;
-	struct digest *object_hash = NULL;
-	struct digest *object_hash_from_manifest = NULL;
+	bool put_result_in_manifest = false;
+	struct digest *result_name = NULL;
+	struct digest *result_name_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		MTR_BEGIN("hash", "direct_hash");
-		object_hash = calculate_object_hash(preprocessor_args, direct_hash, 1);
+		result_name = calculate_result_name(preprocessor_args, direct_hash, 1);
 		MTR_END("hash", "direct_hash");
-		if (object_hash) {
-			update_cached_result_globals(object_hash);
+		if (result_name) {
+			update_cached_result_globals(result_name);
 
 			// If we can return from cache at this point then do so.
 			from_cache(FROMCACHE_DIRECT_MODE, 0);
 
-			// Wasn't able to return from cache at this point. However, the object
+			// Wasn't able to return from cache at this point. However, the result
 			// was already found in manifest, so don't re-add it later.
-			put_object_in_manifest = false;
+			put_result_in_manifest = false;
 
-			object_hash_from_manifest = object_hash;
+			result_name_from_manifest = result_name;
 		} else {
-			// Add object to manifest later.
-			put_object_in_manifest = true;
+			// Add result to manifest later.
+			put_result_in_manifest = true;
 		}
 	}
 
@@ -3774,15 +3773,15 @@ ccache(int argc, char *argv[])
 			cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
 		MTR_BEGIN("hash", "cpp_hash");
-		object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
+		result_name = calculate_result_name(preprocessor_args, cpp_hash, 0);
 		MTR_END("hash", "cpp_hash");
-		if (!object_hash) {
-			fatal("internal error: object hash from cpp returned NULL");
+		if (!result_name) {
+			fatal("internal error: calculate_result_name returned NULL for cpp");
 		}
-		update_cached_result_globals(object_hash);
+		update_cached_result_globals(result_name);
 
-		if (object_hash_from_manifest
-		    && !digests_equal(object_hash_from_manifest, object_hash)) {
+		if (result_name_from_manifest
+		    && !digests_equal(result_name_from_manifest, result_name)) {
 			// The hash from manifest differs from the hash of the preprocessor
 			// output. This could be because:
 			//
@@ -3800,11 +3799,11 @@ ccache(int argc, char *argv[])
 			cc_log("Removing manifest as a safety measure");
 			x_unlink(manifest_path);
 
-			put_object_in_manifest = true;
+			put_result_in_manifest = true;
 		}
 
 		// If we can return from cache at this point then do.
-		from_cache(FROMCACHE_CPP_MODE, put_object_in_manifest);
+		from_cache(FROMCACHE_CPP_MODE, put_result_in_manifest);
 	}
 
 	if (conf->read_only) {

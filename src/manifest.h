@@ -8,7 +8,7 @@
 #define MANIFEST_VERSION 2
 
 struct digest *manifest_get(struct conf *conf, const char *manifest_path);
-bool manifest_put(const char *manifest_path, struct digest *object_hash,
+bool manifest_put(const char *manifest_path, struct digest *result_digest,
                   struct hashtable *included_files);
 bool manifest_dump(const char *manifest_path, FILE *stream);
 
