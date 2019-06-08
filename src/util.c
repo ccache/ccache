@@ -27,6 +27,10 @@
 #include <sys/time.h>
 #endif
 
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
@@ -524,6 +528,21 @@ format_hash_as_string(const unsigned char *hash, int size)
 	return ret;
 }
 
+// Return the hash result in binary.
+void format_hash_as_binary(binary result, const unsigned char *hash, int size)
+{
+	memcpy(result, hash, 16);
+#ifdef HAVE_HTONL
+	result[4] = htonl(size); // network byte order
+#else
+	uint32_t i = size;
+	unsigned char *bytes = (unsigned char *) result;
+	for (int j = 0; j < 4; j++) {
+		bytes[16 + j] = (i >> ((3 - j) * 8)) & 0xff; // (big endian)
+	}
+#endif
+}
+
 static char const CACHEDIR_TAG[] =
 	"Signature: 8a477f597d28d172789f06886806bc55\n"
 	"# This file is a cache directory tag created by ccache.\n"
@@ -578,6 +597,19 @@ format(const char *format, ...)
 		fatal("Internal error in format");
 	}
 	return ptr;
+}
+
+// Construct a string representing data. Caller frees
+char *
+format_hex(unsigned char *data, size_t size)
+{
+	size_t i;
+	char *ret = x_malloc(2 * size + 1);
+	for (i = 0; i < size; i++) {
+		sprintf(&ret[i*2], "%02x", (unsigned) data[i]);
+	}
+	ret[2 * size] = '\0';
+	return ret;
 }
 
 // This is like strdup() but dies if the malloc fails.

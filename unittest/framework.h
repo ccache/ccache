@@ -97,6 +97,18 @@
 
 // ============================================================================
 
+#define CHECK_DATA_EQ(expected, actual, size) \
+	do { \
+		if (!cct_check_data_eq(__FILE__, __LINE__, #actual, (expected), \
+		                      (actual), size)) { \
+			cct_test_end(); \
+			cct_suite_end(); \
+			return _test_counter; \
+		} \
+	} while (false)
+
+// ============================================================================
+
 #define CHECK_STR_EQ(expected, actual) \
 	CHECK_POINTER_EQ_BASE(str, expected, actual, false, false)
 
@@ -139,6 +151,8 @@ bool cct_check_double_eq(const char *file, int line, const char *expression,
                          double expected, double actual);
 bool cct_check_int_eq(const char *file, int line, const char *expression,
                       int64_t expected, int64_t actual);
+bool cct_check_data_eq(const char *file, int line, const char *expression,
+                      void *expected, void *actual, size_t size);
 bool cct_check_str_eq(const char *file, int line, const char *expression,
                       char *expected, char *actual,
 		      bool free1, bool free2);
