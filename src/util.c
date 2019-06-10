@@ -347,8 +347,8 @@ copy_file(const char *src, const char *dest)
 	}
 
 	int dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
-	if (src_fd == -1) {
-		close(src_fd);
+	if (dest_fd == -1) {
+		close(dest_fd);
 		return false;
 	}
 
