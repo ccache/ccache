@@ -288,7 +288,7 @@ read_manifest(gzFile f, char **errmsg)
 	return mf;
 
 error:
-	if (!errmsg) {
+	if (!*errmsg) {
 		*errmsg = x_strdup("Corrupt manifest file");
 	}
 	free_manifest(mf);
