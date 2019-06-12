@@ -233,7 +233,7 @@ read_result(
 
 		case REF_MARKER:
 			// TODO: Implement.
-			continue;
+			// Fall through.
 
 		default:
 			*errmsg = format("Unknown entry type: %u", marker);
