@@ -133,7 +133,11 @@ conf_create(void)
 	conf->compiler = x_strdup("");
 	conf->compiler_check = x_strdup("mtime");
 	conf->compression = false;
+#ifdef USE_ZSTD
+	conf->compression_level = 3;
+#else
 	conf->compression_level = 6;
+#endif
 	conf->cpp_extension = x_strdup("");
 	conf->debug = false;
 	conf->depend_mode = false;

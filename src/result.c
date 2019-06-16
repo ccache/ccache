@@ -25,9 +25,10 @@
 // <body>        ::= <n_entries> <entry>* ; body is potentially compressed
 // <magic>       ::= 4 bytes ("cCrS")
 // <version>     ::= uint8_t
-// <compr_type>  ::= <compr_none> | <compr_zlib>
+// <compr_type>  ::= <compr_none> | <compr_zlib> | <compr_zstd>
 // <compr_none>  ::= 0 (uint8_t)
 // <compr_zlib>  ::= 1 (uint8_t)
+// <compr_zstd>  ::= 2 (uint8_t)
 // <compr_level> ::= int8_t
 // <content_len> ::= uint64_t ; size of file if stored uncompressed
 // <n_entries>   ::= uint8_t

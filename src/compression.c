@@ -21,12 +21,24 @@ extern struct conf *conf;
 
 int8_t compression_level_from_config(void)
 {
-	return conf->compression ? conf->compression_level : 0;
+	unsigned conf_compression_level;
+#ifdef USE_ZSTD
+	conf_compression_level = conf->compression_level;
+#else
+	conf_compression_level = conf->compression_level;
+#endif
+	return conf->compression ? conf_compression_level : 0;
 }
 
 enum compression_type compression_type_from_config(void)
 {
-	return conf->compression ? COMPR_TYPE_ZLIB : COMPR_TYPE_NONE;
+	enum compression_type conf_compression_type;
+#ifdef USE_ZSTD
+	conf_compression_type = COMPR_TYPE_ZSTD;
+#else
+	conf_compression_type = COMPR_TYPE_ZLIB;
+#endif
+	return conf->compression ? conf_compression_type : COMPR_TYPE_NONE;
 }
 
 const char *compression_type_to_string(uint8_t type)
@@ -37,6 +49,9 @@ const char *compression_type_to_string(uint8_t type)
 
 	case COMPR_TYPE_ZLIB:
 		return "zlib";
+
+	case COMPR_TYPE_ZSTD:
+		return "zstd";
 	}
 
 	return "unknown";
@@ -50,6 +65,13 @@ struct compressor *compressor_from_type(uint8_t type)
 
 	case COMPR_TYPE_ZLIB:
 		return &compressor_zlib_impl;
+
+	case COMPR_TYPE_ZSTD:
+#ifdef HAVE_LIBZSTD
+		return &compressor_zstd_impl;
+#else
+		return NULL;
+#endif
 	}
 
 	return NULL;
@@ -64,6 +86,12 @@ struct decompressor *decompressor_from_type(uint8_t type)
 	case COMPR_TYPE_ZLIB:
 		return &decompressor_zlib_impl;
 
+	case COMPR_TYPE_ZSTD:
+#ifdef HAVE_LIBZSTD
+		return &decompressor_zstd_impl;
+#else
+		return NULL;
+#endif
 	}
 
 	return NULL;
