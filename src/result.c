@@ -15,6 +15,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+#include "common_header.h"
 #include "compression.h"
 #include "result.h"
 
@@ -130,16 +131,6 @@ result_files_free(struct result_files *list)
 	free(list);
 }
 
-#define UINT64_FROM_BYTES(bytes) \
-	((uint64_t)(uint8_t)(bytes)[0] << 56 | \
-	 (uint64_t)(uint8_t)(bytes)[1] << 48 | \
-	 (uint64_t)(uint8_t)(bytes)[2] << 40 | \
-	 (uint64_t)(uint8_t)(bytes)[3] << 32 | \
-	 (uint64_t)(uint8_t)(bytes)[4] << 24 | \
-	 (uint64_t)(uint8_t)(bytes)[5] << 16 | \
-	 (uint64_t)(uint8_t)(bytes)[6] <<  8 | \
-	 (uint64_t)(uint8_t)(bytes)[7] <<  0)
-
 #define READ_BYTES(buf, length) \
 	do { \
 		if (!decompressor->read(decompr_state, buf, length)) { \
@@ -170,59 +161,55 @@ read_result(
 		goto out;
 	}
 
-	char header[15];
-	if (fread(header, 1, sizeof(header), f) != sizeof(header)) {
-		*errmsg = x_strdup("Failed to read result file header");
+	struct common_header header;
+	if (!common_header_from_file(f, &header)) {
+		*errmsg = format("Failed to read result file header from %s", path);
 		goto out;
 	}
 
-	if (memcmp(header, MAGIC, sizeof(MAGIC)) != 0) {
+	if (memcmp(header.magic, MAGIC, sizeof(MAGIC)) != 0) {
 		*errmsg = format(
 			"Result file has bad magic value 0x%x%x%x%x",
-			header[0], header[1], header[2], header[3]);
+			header.magic[0], header.magic[1], header.magic[2], header.magic[3]);
 		goto out;
 	}
-
-	const uint8_t version = header[4];
-	const uint8_t compr_type = header[5];
-	const int8_t compr_level = header[6];
-	const uint64_t content_len = UINT64_FROM_BYTES(header + 7);
 
 	if (dump_stream) {
 		fprintf(dump_stream, "Magic: %c%c%c%c\n",
 		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
-		fprintf(dump_stream, "Version: %u\n", version);
+		fprintf(dump_stream, "Version: %u\n", header.version);
 		fprintf(dump_stream, "Compression type: %s\n",
-		        compression_type_to_string(compr_type));
-		fprintf(dump_stream, "Compression level: %d\n", compr_level);
-		fprintf(dump_stream, "Content size: %" PRIu64 "\n", content_len);
+		        compression_type_to_string(header.compression_type));
+		fprintf(dump_stream, "Compression level: %d\n", header.compression_level);
+		fprintf(dump_stream, "Content size: %" PRIu64 "\n", header.content_size);
 	}
 
-	if (version != RESULT_VERSION) {
+	if (header.version != RESULT_VERSION) {
 		*errmsg = format(
 			"Unknown result version (actual %u, expected %u)",
-			version,
+			header.version,
 			RESULT_VERSION);
 		goto out;
 	}
 
-	if (compr_type == COMPR_TYPE_NONE) {
+	if (header.compression_type == COMPR_TYPE_NONE) {
 		// Since we have the size available, let's use it as a super primitive
 		// consistency check for the non-compressed case. (A real checksum is used
 		// for compressed data.)
 		struct stat st;
-		if (x_fstat(fileno(f), &st) != 0 || (uint64_t)st.st_size != content_len) {
+		if (x_fstat(fileno(f), &st) != 0
+		    || (uint64_t)st.st_size != header.content_size) {
 			*errmsg = format(
 				"Corrupt result file (actual %lu bytes, expected %lu bytes)",
 				(unsigned long)st.st_size,
-				(unsigned long)content_len);
+				(unsigned long)header.content_size);
 			goto out;
 		}
 	}
 
-	decompressor = decompressor_from_type(compr_type);
+	decompressor = decompressor_from_type(header.compression_type);
 	if (!decompressor) {
-		*errmsg = format("Unknown compression type: %u", compr_type);
+		*errmsg = format("Unknown compression type: %u", header.compression_type);
 		goto out;
 	}
 
@@ -331,18 +318,6 @@ out:
 	return success;
 }
 
-#define BYTES_FROM_UINT64(bytes, uint64) \
-	do { \
-		(bytes)[0] = uint64 >> 56 & 0xFF; \
-		(bytes)[1] = uint64 >> 48 & 0xFF; \
-		(bytes)[2] = uint64 >> 40 & 0xFF; \
-		(bytes)[3] = uint64 >> 32 & 0xFF; \
-		(bytes)[4] = uint64 >> 24 & 0xFF; \
-		(bytes)[5] = uint64 >> 16 & 0xFF; \
-		(bytes)[6] = uint64 >>  8 & 0xFF; \
-		(bytes)[7] = uint64 >>  0 & 0xFF; \
-	} while (false)
-
 #define WRITE_BYTES(buf, length) \
 	do { \
 		if (!compressor->write(compr_state, buf, length)) { \
@@ -436,12 +411,12 @@ bool result_put(const char *path, struct result_files *list)
 	int8_t compr_level = compression_level_from_config();
 	enum compression_type compr_type = compression_type_from_config();
 
-	char header[15];
-	memcpy(header, MAGIC, sizeof(MAGIC));
-	header[4] = RESULT_VERSION;
-	header[5] = compr_type;
-	header[6] = compr_level;
-	uint64_t content_size = sizeof(header);
+	struct common_header header;
+	memcpy(header.magic, MAGIC, sizeof(MAGIC));
+	header.version = RESULT_VERSION;
+	header.compression_type = compr_type;
+	header.compression_level = compr_level;
+	uint64_t content_size = COMMON_HEADER_SIZE;
 	content_size += 1; // n_entries
 	for (uint32_t i = 0; i < list->n_files; i++) {
 		content_size += 1; // file_marker
@@ -450,10 +425,10 @@ bool result_put(const char *path, struct result_files *list)
 		content_size += 8; // data_len
 		content_size += list->files[i].size; // data
 	}
-	BYTES_FROM_UINT64(header + 7, content_size);
+	header.content_size = content_size;
 
-	if (fwrite(header, 1, sizeof(header), f) != sizeof(header)) {
-		cc_log("Failed to write to %s", tmp_file);
+	if (!common_header_to_file(f, &header)) {
+		cc_log("Failed to write result file header to %s", tmp_file);
 		goto out;
 	}
 

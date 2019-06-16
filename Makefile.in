@@ -33,6 +33,7 @@ non_3pp_sources = \
     src/args.c \
     src/ccache.c \
     src/cleanup.c \
+    src/common_header.c \
     src/compopt.c \
     src/compr_none.c \
     src/compr_zlib.c \
