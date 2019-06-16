@@ -18,27 +18,28 @@
 #include "compression.h"
 #include "result.h"
 
-// Result data format:
+// Result data format (big-endian integers):
 //
-// <result>      ::= <header> <body> ; <body> is potentially compressed
-// <header>      ::= <magic> <version> <compr_type> <compr_level>
-// <body>        ::= <entry>* <eof_marker>
-// <eof_marker>  ::= 0 (uint8_t)
-// <magic>       ::= uint32_t ; "cCrS"
+// <result>      ::= <header> <body>
+// <header>      ::= <magic> <version> <compr_type> <compr_level> <content_len>
+// <body>        ::= <n_entries> <entry>* ; body is potentially compressed
+// <magic>       ::= 4 bytes ("cCrS")
 // <version>     ::= uint8_t
 // <compr_type>  ::= <compr_none> | <compr_zlib>
-// <compr_none>  ::= 0
-// <compr_zlib>  ::= 1
-// <compr_level> ::= uint8_t
+// <compr_none>  ::= 0 (uint8_t)
+// <compr_zlib>  ::= 1 (uint8_t)
+// <compr_level> ::= int8_t
+// <content_len> ::= uint64_t ; size of file if stored uncompressed
+// <n_entries>   ::= uint8_t
 // <entry>       ::= <file_entry> | <ref_entry>
 // <file_entry>  ::= <file_marker> <suffix_len> <suffix> <data_len> <data>
-// <file_marker> ::= 1 (uint8_t)
+// <file_marker> ::= 0 (uint8_t)
 // <suffix_len>  ::= uint8_t
 // <suffix>      ::= suffix_len bytes
 // <data_len>    ::= uint64_t
 // <data>        ::= data_len bytes
 // <ref_entry>   ::= <ref_marker> <key_len> <key>
-// <ref_marker>  ::= 2 (uint8_t)
+// <ref_marker>  ::= 1 (uint8_t)
 // <key_len>     ::= uint8_t
 // <key>         ::= key_len bytes
 //
@@ -48,7 +49,9 @@
 // <version>       1 byte
 // <compr_type>    1 byte
 // <compr_level>   1 byte
-// --- [potentially compressed from here ] -----------------------------------
+// <content_len>   8 bytes
+// --- [potentially compressed from here] -------------------------------------
+// <n_entries>     1 byte
 // <file_marker>   1 byte
 // <suffix_len>    1 byte
 // <suffix>        suffix_len bytes
@@ -59,14 +62,16 @@
 // <key_len>       1 byte
 // <key>           key_len bytes
 // ...
-// <eof_marker>    1 byte
+//
+// Version history:
+//
+// 1: Introduced in ccache 3.8.
 
 static const char MAGIC[4] = "cCrS";
 
 enum {
-	EOF_MARKER = 0,
-	FILE_MARKER = 1,
-	REF_MARKER = 2
+	FILE_MARKER = 0,
+	REF_MARKER = 1
 };
 
 enum {
@@ -76,8 +81,8 @@ enum {
 
 struct file {
 	char *suffix;
-	uint32_t path_len;
 	char *path;
+	uint64_t size;
 };
 
 struct filelist {
@@ -97,7 +102,7 @@ filelist_init(void)
 	return list;
 }
 
-int
+void
 filelist_add(struct filelist *list, const char *path, const char *suffix)
 {
 	uint32_t n = list->n_files;
@@ -106,11 +111,12 @@ filelist_add(struct filelist *list, const char *path, const char *suffix)
 	struct file *f = &list->files[list->n_files];
 	list->n_files++;
 
-	f->suffix = x_strdup(suffix);
-	f->path_len = strlen(path);
-	f->path = x_strdup(path);
+	struct stat st;
+	x_stat(path, &st);
 
-	return n;
+	f->suffix = x_strdup(suffix);
+	f->path = x_strdup(path);
+	f->size = st.st_size;
 }
 
 void
@@ -127,6 +133,17 @@ filelist_free(struct filelist *list)
 
 	free(list);
 }
+
+#define UINT64_FROM_BYTES(bytes) \
+	((uint64_t)(uint8_t)(bytes)[0] << 56 | \
+	 (uint64_t)(uint8_t)(bytes)[1] << 48 | \
+	 (uint64_t)(uint8_t)(bytes)[2] << 40 | \
+	 (uint64_t)(uint8_t)(bytes)[3] << 32 | \
+	 (uint64_t)(uint8_t)(bytes)[4] << 24 | \
+	 (uint64_t)(uint8_t)(bytes)[5] << 16 | \
+	 (uint64_t)(uint8_t)(bytes)[6] <<  8 | \
+	 (uint64_t)(uint8_t)(bytes)[7] <<  0)
+
 #define READ_BYTES(buf, length) \
 	do { \
 		if (!decompressor->read(decompr_state, buf, length)) { \
@@ -136,18 +153,6 @@ filelist_free(struct filelist *list)
 
 #define READ_BYTE(var) \
 	READ_BYTES(&var, 1)
-
-#define READ_INT(size, var) \
-	do { \
-		uint8_t buf_[size]; \
-		READ_BYTES(buf_, size); \
-		uint64_t u_ = 0; \
-		for (size_t i_ = 0; i_ < (size); i_++) { \
-			u_ <<= 8; \
-			u_ |= buf_[i_]; \
-		} \
-		(var) = u_; \
-	} while (false)
 
 static bool
 read_result(
@@ -166,7 +171,7 @@ read_result(
 		goto out;
 	}
 
-	char header[7];
+	char header[15];
 	if (fread(header, 1, sizeof(header), f) != sizeof(header)) {
 		*errmsg = x_strdup("Failed to read result file header");
 		goto out;
@@ -180,6 +185,20 @@ read_result(
 	}
 
 	const uint8_t version = header[4];
+	const uint8_t compr_type = header[5];
+	const int8_t compr_level = header[6];
+	const uint64_t content_len = UINT64_FROM_BYTES(header + 7);
+
+	if (dump_stream) {
+		fprintf(dump_stream, "Magic: %c%c%c%c\n",
+		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
+		fprintf(dump_stream, "Version: %u\n", version);
+		fprintf(dump_stream, "Compression type: %s\n",
+		        compr_type == COMPR_TYPE_NONE ? "none" : "zlib");
+		fprintf(dump_stream, "Compression level: %d\n", compr_level);
+		fprintf(dump_stream, "Content size: %" PRIu64 "\n", content_len);
+	}
+
 	if (version != RESULT_VERSION) {
 		*errmsg = format(
 			"Unknown result version (actual %u, expected %u)",
@@ -188,7 +207,19 @@ read_result(
 		goto out;
 	}
 
-	const uint8_t compr_type = header[5];
+	if (compr_type == COMPR_TYPE_NONE) {
+		// Since we have the size available, let's use it as a super primitive
+		// consistency check for the non-compressed case. (A real checksum is used
+		// for compressed data.)
+		struct stat st;
+		if (x_fstat(fileno(f), &st) != 0 || (uint64_t)st.st_size != content_len) {
+			*errmsg = format(
+				"Corrupt result file (actual %lu bytes, expected %lu bytes)",
+				(unsigned long)st.st_size,
+				(unsigned long)content_len);
+			goto out;
+		}
+	}
 
 	switch (compr_type) {
 	case COMPR_TYPE_NONE:
@@ -210,24 +241,14 @@ read_result(
 		goto out;
 	}
 
-	if (dump_stream) {
-		const uint8_t compr_level = header[6];
-		fprintf(dump_stream, "Magic: %c%c%c%c\n",
-		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
-		fprintf(dump_stream, "Version: %u\n", version);
-		fprintf(dump_stream, "Compression type: %s\n",
-		        compr_type == COMPR_TYPE_NONE ? "none" : "zlib");
-		fprintf(dump_stream, "Compression level: %u\n", compr_level);
-	}
+	uint8_t n_entries;
+	READ_BYTE(n_entries);
 
-	uint8_t marker;
-	for (uint32_t i = 0;; i++) {
+	uint32_t i;
+	for (i = 0; i < n_entries; i++) {
+		uint8_t marker;
 		READ_BYTE(marker);
 		switch (marker) {
-		case EOF_MARKER:
-			success = true;
-			goto out;
-
 		case FILE_MARKER:
 			break;
 
@@ -247,8 +268,9 @@ read_result(
 		READ_BYTES(suffix, suffix_len);
 		suffix[suffix_len] = '\0';
 
-		uint64_t filelen;
-		READ_INT(8, filelen);
+		char filelen_buffer[8];
+		READ_BYTES(filelen_buffer, sizeof(filelen_buffer));
+		uint64_t filelen = UINT64_FROM_BYTES(filelen_buffer);
 
 		cc_log("Reading entry #%u: %s (%lu)",
 		       i,
@@ -296,6 +318,12 @@ read_result(
 		}
 	}
 
+	if (i == n_entries) {
+		success = true;
+	} else {
+		*errmsg = format("Too few entries (read %u, expected %u)", i, n_entries);
+	}
+
 out:
 	if (subfile) {
 		fclose(subfile);
@@ -311,6 +339,18 @@ out:
 	}
 	return success;
 }
+
+#define BYTES_FROM_UINT64(bytes, uint64) \
+	do { \
+		(bytes)[0] = uint64 >> 56 & 0xFF; \
+		(bytes)[1] = uint64 >> 48 & 0xFF; \
+		(bytes)[2] = uint64 >> 40 & 0xFF; \
+		(bytes)[3] = uint64 >> 32 & 0xFF; \
+		(bytes)[4] = uint64 >> 24 & 0xFF; \
+		(bytes)[5] = uint64 >> 16 & 0xFF; \
+		(bytes)[6] = uint64 >>  8 & 0xFF; \
+		(bytes)[7] = uint64 >>  0 & 0xFF; \
+	} while (false)
 
 #define WRITE_BYTES(buf, length) \
 	do { \
@@ -341,24 +381,21 @@ write_result(
 	struct compressor *compressor,
 	struct compr_state *compr_state)
 {
-	for (uint32_t i = 0; i < list->n_files; i++) {
-		struct stat st;
-		if (x_stat(list->files[i].path, &st) != 0) {
-			return false;
-		}
+	WRITE_BYTE(list->n_files);
 
+	for (uint32_t i = 0; i < list->n_files; i++) {
 		cc_log("Writing file #%u: %s (%lu)", i, list->files[i].suffix,
-		       (unsigned long)st.st_size);
+		       (unsigned long)list->files[i].size);
 
 		WRITE_BYTE(FILE_MARKER);
 		size_t suffix_len = strlen(list->files[i].suffix);
 		WRITE_BYTE(suffix_len);
 		WRITE_BYTES(list->files[i].suffix, suffix_len);
-		WRITE_INT(8, st.st_size);
+		WRITE_INT(8, list->files[i].size);
 
 		FILE *f = fopen(list->files[i].path, "rb");
 		char buf[READ_BUFFER_SIZE];
-		size_t remain = st.st_size;
+		size_t remain = list->files[i].size;
 		while (remain > 0) {
 			size_t n = MIN(remain, sizeof(buf));
 			if (fread(buf, 1, n, f) != n) {
@@ -369,8 +406,6 @@ write_result(
 		}
 		fclose(f);
 	}
-
-	WRITE_BYTE(EOF_MARKER);
 
 	return true;
 
@@ -407,11 +442,22 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		goto out;
 	}
 
-	char header[7];
+	char header[15];
 	memcpy(header, MAGIC, sizeof(MAGIC));
 	header[4] = RESULT_VERSION;
 	header[5] = compression_level == 0 ? COMPR_TYPE_NONE : COMPR_TYPE_ZLIB;
 	header[6] = compression_level;
+	uint64_t content_size = sizeof(header);
+	content_size += 1; // n_entries
+	for (uint32_t i = 0; i < list->n_files; i++) {
+		content_size += 1; // file_marker
+		content_size += 1; // suffix_len
+		content_size += strlen(list->files[i].suffix); // suffix
+		content_size += 8; // data_len
+		content_size += list->files[i].size; // data
+	}
+	BYTES_FROM_UINT64(header + 7, content_size);
+
 	if (fwrite(header, 1, sizeof(header), f) != sizeof(header)) {
 		cc_log("Failed to write to %s", tmp_file);
 		goto out;
@@ -430,7 +476,7 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		goto out;
 	}
 	bool ok = write_result(list, compressor, compr_state)
-		&& compressor->free(compr_state);
+	          && compressor->free(compr_state);
 	if (!ok) {
 		cc_log("Failed to write result file");
 		goto out;

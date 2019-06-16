@@ -678,6 +678,17 @@ void x_unsetenv(const char *name)
 #endif
 }
 
+// Like fstat() but also call cc_log on failure.
+int
+x_fstat(int fd, struct stat *buf)
+{
+	int result = fstat(fd, buf);
+	if (result != 0) {
+		cc_log("Failed to fstat fd %d: %s", fd, strerror(errno));
+	}
+	return result;
+}
+
 // Like lstat() but also call cc_log on failure.
 int
 x_lstat(const char *pathname, struct stat *buf)

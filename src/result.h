@@ -6,7 +6,7 @@
 #define RESULT_VERSION 1
 
 struct filelist *filelist_init(void);
-int filelist_add(struct filelist *c, const char *path, const char *suffix);
+void filelist_add(struct filelist *c, const char *path, const char *suffix);
 void filelist_free(struct filelist *c);
 
 bool result_get(const char *path, struct filelist *list);
