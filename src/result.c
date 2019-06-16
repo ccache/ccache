@@ -460,6 +460,10 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		compressor = &compr_zlib;
 		break;
 #endif
+
+	default:
+		cc_log("Unknown compression type: %u", compr_type);
+		goto out;
 	}
 
 	struct compr_state *compr_state = compressor->init(f, compression_level);
