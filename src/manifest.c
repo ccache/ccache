@@ -20,7 +20,11 @@
 #include "manifest.h"
 #include "murmurhashneutral2.h"
 
+#ifdef HAVE_LIBZSTD
+#include "zstd_zlibwrapper.h"
+#else
 #include <zlib.h>
+#endif
 
 // Sketchy specification of the manifest data format:
 //

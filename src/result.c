@@ -18,6 +18,10 @@
 #include "compression.h"
 #include "result.h"
 
+#ifdef HAVE_LIBZSTD
+#include "zstd_zlibwrapper.h"
+#endif
+
 // Result data format:
 //
 // <result>      ::= <header> <body> ; <body> is potentially compressed
@@ -26,9 +30,10 @@
 // <eof_marker>  ::= 0 (uint8_t)
 // <magic>       ::= uint32_t ; "cCrS"
 // <version>     ::= uint8_t
-// <compr_type>  ::= <compr_none> | <compr_zlib>
+// <compr_type>  ::= <compr_none> | <compr_zlib> | <compr_zstd>
 // <compr_none>  ::= 0
 // <compr_zlib>  ::= 1
+// <compr_zstd>  ::= 2
 // <compr_level> ::= uint8_t
 // <entry>       ::= <file_entry> | <ref_entry>
 // <file_entry>  ::= <file_marker> <suffix_len> <suffix> <data_len> <data>
@@ -71,7 +76,8 @@ enum {
 
 enum {
 	COMPR_TYPE_NONE = 0,
-	COMPR_TYPE_ZLIB = 1
+	COMPR_TYPE_ZLIB = 1,
+	COMPR_TYPE_ZSTD = 2
 };
 
 struct file {
@@ -201,6 +207,14 @@ read_result(
 		compr_type_name = "zlib";
 		decompressor = &decompr_zlib;
 		break;
+
+#ifdef HAVE_LIBZSTD
+	case COMPR_TYPE_ZSTD:
+		compr_type_name = "zstd";
+		ZWRAP_setDecompressionType(ZWRAP_AUTO);
+		decompressor = &decompr_zlib;
+		break;
+#endif
 
 	default:
 		*errmsg = format("Unknown compression type: %u", compr_type);
@@ -413,7 +427,11 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 	if (compression_level == 0) {
 		compr_type = COMPR_TYPE_NONE;
 	} else {
+#ifdef HAVE_LIBZSTD
+		compr_type = COMPR_TYPE_ZSTD;
+#else
 		compr_type = COMPR_TYPE_ZLIB;
+#endif
 	}
 
 	char header[7];
@@ -435,6 +453,13 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 	case COMPR_TYPE_ZLIB:
 		compressor = &compr_zlib;
 		break;
+
+#ifdef HAVE_LIBZSTD
+	case COMPR_TYPE_ZSTD:
+		ZWRAP_useZSTDcompression(1);
+		compressor = &compr_zlib;
+		break;
+#endif
 	}
 
 	struct compr_state *compr_state = compressor->init(f, compression_level);

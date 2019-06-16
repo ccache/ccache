@@ -17,7 +17,11 @@
 #include "ccache.h"
 #include "compression.h"
 
+#ifdef HAVE_LIBZSTD
+#include "zstd_zlibwrapper.h"
+#else
 #include <zlib.h>
+#endif
 
 enum stream_state {
 	STREAM_STATE_READING,

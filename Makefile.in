@@ -88,13 +88,22 @@ zlib_sources = \
 
 zlib_objs = $(zlib_sources:.c=.o)
 
+zstd_sources = \
+    src/zstd/zstd_zlibwrapper.o \
+    src/zstd/gzclose.c \
+    src/zstd/gzlib.c \
+    src/zstd/gzread.c \
+    src/zstd/gzwrite.c
+
+zstd_objs = $(zstd_sources:.c=.o)
+
 test_suites = @test_suites@
 test_sources = unittest/main.c unittest/framework.c unittest/util.c
 test_sources += $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
-all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
+all_objs = $(ccache_objs) $(test_objs) $(zlib_objs) $(zstd_objs)
 
 files_to_clean = \
     $(all_objs) \
@@ -138,6 +147,12 @@ $(zlib_objs): CFLAGS += @no_implicit_fallthrough_warning@
 src/zlib/libz.a: $(zlib_objs)
 	$(if $(quiet),@echo "  AR       $@")
 	$(Q)$(AR) cr $@ $(zlib_objs)
+	$(if $(quiet),@echo "  RANLIB   $@")
+	$(Q)$(RANLIB) $@
+
+src/zstd/libzstd_zlibwrapper.a: $(zstd_objs)
+	$(if $(quiet),@echo "  AR       $@")
+	$(Q)$(AR) cr $@ $(zstd_objs)
 	$(if $(quiet),@echo "  RANLIB   $@")
 	$(Q)$(RANLIB) $@
 

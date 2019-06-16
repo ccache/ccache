@@ -163,6 +163,23 @@ else
     LIBS="$LIBS -lz"
 fi
 
+AC_ARG_WITH(zstd,
+  [AS_HELP_STRING([--without-zstd],
+    [use zlib instead of zstd, disables zstd functionality])],
+  [],
+  [with_zstd=yes])
+
+AS_IF([test "x$with_zstd" != xno],
+  [AC_CHECK_HEADERS(zstd.h)
+  AC_CHECK_LIB(zstd, ZSTD_versionString)])
+
+if test "x$ac_cv_header_zstd_h" = xyes && test "x$ac_cv_lib_zstd_ZSTD_versionString" = xyes; then
+    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/zstd"
+    extra_libs="$extra_libs src/zstd/libzstd_zlibwrapper.a"
+else
+    AC_MSG_WARN(disabling zstd functionality)
+fi
+
 AC_ARG_ENABLE(man,
   [AS_HELP_STRING([--disable-man],
     [disable installing man pages])])
