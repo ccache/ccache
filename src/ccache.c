@@ -1379,30 +1379,30 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		stats_update(STATS_ERROR);
 		failed();
 	}
-	struct filelist *filelist = filelist_init();
+	struct result_files *result_files = result_files_init();
 	if (st.st_size > 0) {
-		filelist_add(filelist, tmp_stderr, "stderr");
+		result_files_add(result_files, tmp_stderr, "stderr");
 	}
-	filelist_add(filelist, output_obj, ".o");
+	result_files_add(result_files, output_obj, ".o");
 	if (generating_dependencies) {
-		filelist_add(filelist, output_dep, ".d");
+		result_files_add(result_files, output_dep, ".d");
 	}
 	if (generating_coverage) {
-		filelist_add(filelist, output_cov, ".gcno");
+		result_files_add(result_files, output_cov, ".gcno");
 	}
 	if (generating_stackusage) {
-		filelist_add(filelist, output_su, ".su");
+		result_files_add(result_files, output_su, ".su");
 	}
 	if (generating_diagnostics) {
-		filelist_add(filelist, output_dia, ".dia");
+		result_files_add(result_files, output_dia, ".dia");
 	}
 	if (using_split_dwarf) {
-		filelist_add(filelist, output_dwo, ".dwo");
+		result_files_add(result_files, output_dwo, ".dwo");
 	}
 	struct stat orig_dest_st;
 	bool orig_dest_existed = stat(cached_result, &orig_dest_st) == 0;
-	result_put(cached_result, filelist);
-	filelist_free(filelist);
+	result_put(cached_result, result_files);
+	result_files_free(result_files);
 
 	cc_log("Stored in cache: %s", cached_result);
 
@@ -2132,28 +2132,28 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 	int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 	close(tmp_stderr_fd);
 
-	struct filelist *filelist = filelist_init();
+	struct result_files *result_files = result_files_init();
 	if (!str_eq(output_obj, "/dev/null")) {
-		filelist_add(filelist, output_obj, ".o");
+		result_files_add(result_files, output_obj, ".o");
 		if (using_split_dwarf) {
-			filelist_add(filelist, output_dwo, ".dwo");
+			result_files_add(result_files, output_dwo, ".dwo");
 		}
 	}
-	filelist_add(filelist, tmp_stderr, "stderr");
+	result_files_add(result_files, tmp_stderr, "stderr");
 	if (produce_dep_file) {
-		filelist_add(filelist, output_dep, ".d");
+		result_files_add(result_files, output_dep, ".d");
 	}
 	if (generating_coverage) {
-		filelist_add(filelist, output_cov, ".gcno");
+		result_files_add(result_files, output_cov, ".gcno");
 	}
 	if (generating_stackusage) {
-		filelist_add(filelist, output_su, ".su");
+		result_files_add(result_files, output_su, ".su");
 	}
 	if (generating_diagnostics) {
-		filelist_add(filelist, output_dia, ".dia");
+		result_files_add(result_files, output_dia, ".dia");
 	}
-	bool ok = result_get(cached_result, filelist);
-	filelist_free(filelist);
+	bool ok = result_get(cached_result, result_files);
+	result_files_free(result_files);
 	if (!ok) {
 		cc_log("Failed to get result from cache");
 		// TODO: Add new STATS_CORRUPT statistics value and increment here?

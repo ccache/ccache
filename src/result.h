@@ -5,12 +5,15 @@
 
 #define RESULT_VERSION 1
 
-struct filelist *filelist_init(void);
-void filelist_add(struct filelist *c, const char *path, const char *suffix);
-void filelist_free(struct filelist *c);
+struct result_files;
 
-bool result_get(const char *path, struct filelist *list);
-bool result_put(const char *path, struct filelist *list);
+struct result_files *result_files_init(void);
+void result_files_add(
+	struct result_files *c, const char *path, const char *suffix);
+void result_files_free(struct result_files *c);
+
+bool result_get(const char *path, struct result_files *list);
+bool result_put(const char *path, struct result_files *list);
 bool result_dump(const char *path, FILE *stream);
 
 #endif

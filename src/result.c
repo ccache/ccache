@@ -74,22 +74,22 @@ enum {
 	REF_MARKER = 1
 };
 
-struct file {
+struct result_file {
 	char *suffix;
 	char *path;
 	uint64_t size;
 };
 
-struct filelist {
+struct result_files {
 	uint32_t n_files;
-	struct file *files;
+	struct result_file *files;
 	uint64_t *sizes;
 };
 
-struct filelist *
-filelist_init(void)
+struct result_files *
+result_files_init(void)
 {
-	struct filelist *list = x_malloc(sizeof(*list));
+	struct result_files *list = x_malloc(sizeof(*list));
 	list->n_files = 0;
 	list->files = NULL;
 	list->sizes = NULL;
@@ -98,12 +98,12 @@ filelist_init(void)
 }
 
 void
-filelist_add(struct filelist *list, const char *path, const char *suffix)
+result_files_add(struct result_files *list, const char *path, const char *suffix)
 {
 	uint32_t n = list->n_files;
 	list->files = x_realloc(list->files, (n + 1) * sizeof(*list->files));
 	list->sizes = x_realloc(list->sizes, (n + 1) * sizeof(*list->sizes));
-	struct file *f = &list->files[list->n_files];
+	struct result_file *f = &list->files[list->n_files];
 	list->n_files++;
 
 	struct stat st;
@@ -115,7 +115,7 @@ filelist_add(struct filelist *list, const char *path, const char *suffix)
 }
 
 void
-filelist_free(struct filelist *list)
+result_files_free(struct result_files *list)
 {
 	for (uint32_t i = 0; i < list->n_files; i++) {
 		free(list->files[i].suffix);
@@ -151,7 +151,10 @@ filelist_free(struct filelist *list)
 
 static bool
 read_result(
-	const char *path, struct filelist *list, FILE *dump_stream, char **errmsg)
+	const char *path,
+	struct result_files *list,
+	FILE *dump_stream,
+	char **errmsg)
 {
 	*errmsg = NULL;
 	bool success = false;
@@ -364,7 +367,7 @@ out:
 
 static bool
 write_result(
-	const struct filelist *list,
+	const struct result_files *list,
 	struct compressor *compressor,
 	struct compr_state *compr_state)
 {
@@ -401,7 +404,7 @@ error:
 	return false;
 }
 
-bool result_get(const char *path, struct filelist *list)
+bool result_get(const char *path, struct result_files *list)
 {
 	cc_log("Getting result %s", path);
 
@@ -418,7 +421,7 @@ bool result_get(const char *path, struct filelist *list)
 	return success;
 }
 
-bool result_put(const char *path, struct filelist *list)
+bool result_put(const char *path, struct result_files *list)
 {
 	bool ret = false;
 	char *tmp_file = format("%s.tmp", path);
