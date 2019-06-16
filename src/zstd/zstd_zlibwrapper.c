@@ -20,12 +20,24 @@
 #include <stdio.h>                 /* vsprintf */
 #include <stdarg.h>                /* va_list, for z_gzprintf */
 #define NO_DUMMY_DECL
-#define ZLIB_CONST
+//#define ZLIB_CONST
 #include <zlib.h>                  /* without #define Z_PREFIX */
 #include "zstd_zlibwrapper.h"
 #define ZSTD_STATIC_LINKING_ONLY   /* ZSTD_isFrame, ZSTD_MAGICNUMBER */
 #include "zstd.h"
+#if 0
 #include "zstd_internal.h"         /* ZSTD_malloc, ZSTD_free */
+#else
+#include <string.h>
+#define ZSTD_malloc(size, customMem) malloc(size)
+#define ZSTD_free(ptr, customMem) free(ptr)
+#include "mem.h"
+
+#undef MIN
+#undef MAX
+#define MIN(a,b) ((a)<(b) ? (a) : (b))
+#define MAX(a,b) ((a)>(b) ? (a) : (b))
+#endif
 
 
 /* ===   Constants   === */
