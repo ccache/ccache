@@ -36,7 +36,7 @@ decompr_none_free(struct decompr_state *handle)
 	return ferror(input) == 0;
 }
 
-struct decompressor decompr_none = {
+struct decompressor decompressor_none_impl = {
 	decompr_none_init,
 	decompr_none_read,
 	decompr_none_free

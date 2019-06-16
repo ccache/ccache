@@ -92,7 +92,7 @@ compr_zlib_free(struct compr_state *handle)
 	return success;
 }
 
-struct compressor compr_zlib = {
+struct compressor compressor_zlib_impl = {
 	compr_zlib_init,
 	compr_zlib_write,
 	compr_zlib_free

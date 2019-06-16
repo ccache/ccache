@@ -19,10 +19,21 @@ struct decompressor {
 	bool (*free)(struct decompr_state *state);
 };
 
-extern struct compressor compr_none;
-extern struct decompressor decompr_none;
+enum compression_type {
+	COMPR_TYPE_NONE = 0,
+	COMPR_TYPE_ZLIB = 1
+};
 
-extern struct compressor compr_zlib;
-extern struct decompressor decompr_zlib;
+extern struct compressor compressor_none_impl;
+extern struct decompressor decompressor_none_impl;
+
+extern struct compressor compressor_zlib_impl;
+extern struct decompressor decompressor_zlib_impl;
+
+int8_t compression_level_from_config(void);
+enum compression_type compression_type_from_config(void);
+const char *compression_type_to_string(enum compression_type type);
+struct compressor *compressor_from_type(enum compression_type type);
+struct decompressor *decompressor_from_type(enum compression_type type);
 
 #endif

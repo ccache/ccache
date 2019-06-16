@@ -116,7 +116,7 @@ static bool decompr_zlib_free(struct decompr_state *handle)
 	return success;
 }
 
-struct decompressor decompr_zlib = {
+struct decompressor decompressor_zlib_impl = {
 	decompr_zlib_init,
 	decompr_zlib_read,
 	decompr_zlib_free

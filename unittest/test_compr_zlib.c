@@ -23,29 +23,31 @@ TEST_SUITE(compr_zlib)
 TEST(zlib_small_roundtrip)
 {
 	FILE *f = fopen("data.zlib", "w");
-	struct compr_state *c_state = compr_zlib.init(f, -1);
+	struct compressor *compr_zlib = compressor_from_type(COMPR_TYPE_ZLIB);
+	struct compr_state *c_state = compr_zlib->init(f, -1);
 	CHECK(c_state);
 
-	CHECK(compr_zlib.write(c_state, "foobar", 6));
+	CHECK(compr_zlib->write(c_state, "foobar", 6));
 
-	CHECK(compr_zlib.free(c_state));
+	CHECK(compr_zlib->free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
-	struct decompr_state *d_state = decompr_zlib.init(f);
+	struct decompressor *decompr_zlib = decompressor_from_type(COMPR_TYPE_ZLIB);
+	struct decompr_state *d_state = decompr_zlib->init(f);
 	CHECK(d_state);
 
 	char buffer[4];
-	CHECK(decompr_zlib.read(d_state, buffer, 4));
+	CHECK(decompr_zlib->read(d_state, buffer, 4));
 	CHECK(memcmp(buffer, "foob", 4) == 0);
-	CHECK(decompr_zlib.read(d_state, buffer, 2));
+	CHECK(decompr_zlib->read(d_state, buffer, 2));
 	CHECK(memcmp(buffer, "ar", 2) == 0);
 
 	// Nothing left to read.
-	CHECK(!decompr_zlib.read(d_state, buffer, 1));
+	CHECK(!decompr_zlib->read(d_state, buffer, 1));
 
 	// Error state is remembered.
-	CHECK(!decompr_zlib.free(d_state));
+	CHECK(!decompr_zlib->free(d_state));
 	fclose(f);
 }
 
@@ -54,31 +56,33 @@ TEST(zlib_large_compressible_roundtrip)
 	char data[] = "The quick brown fox jumps over the lazy dog";
 
 	FILE *f = fopen("data.zlib", "w");
-	struct compr_state *c_state = compr_zlib.init(f, 1);
+	struct compressor *compr_zlib = compressor_from_type(COMPR_TYPE_ZLIB);
+	struct compr_state *c_state = compr_zlib->init(f, 1);
 	CHECK(c_state);
 
 	for (size_t i = 0; i < 1000; i++) {
-		CHECK(compr_zlib.write(c_state, data, sizeof(data)));
+		CHECK(compr_zlib->write(c_state, data, sizeof(data)));
 	}
 
-	CHECK(compr_zlib.free(c_state));
+	CHECK(compr_zlib->free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
-	struct decompr_state *d_state = decompr_zlib.init(f);
+	struct decompressor *decompr_zlib = decompressor_from_type(COMPR_TYPE_ZLIB);
+	struct decompr_state *d_state = decompr_zlib->init(f);
 	CHECK(d_state);
 
 	char buffer[sizeof(data)];
 	for (size_t i = 0; i < 1000; i++) {
-		CHECK(decompr_zlib.read(d_state, buffer, sizeof(buffer)));
+		CHECK(decompr_zlib->read(d_state, buffer, sizeof(buffer)));
 		CHECK(memcmp(buffer, data, sizeof(data)) == 0);
 	}
 
 	// Nothing left to read.
-	CHECK(!decompr_zlib.read(d_state, buffer, 1));
+	CHECK(!decompr_zlib->read(d_state, buffer, 1));
 
 	// Error state is remembered.
-	CHECK(!decompr_zlib.free(d_state));
+	CHECK(!decompr_zlib->free(d_state));
 	fclose(f);
 }
 
@@ -90,23 +94,25 @@ TEST(zlib_large_uncompressible_roundtrip)
 	}
 
 	FILE *f = fopen("data.zlib", "w");
-	struct compr_state *c_state = compr_zlib.init(f, 1);
+	struct compressor *compr_zlib = compressor_from_type(COMPR_TYPE_ZLIB);
+	struct compr_state *c_state = compr_zlib->init(f, 1);
 	CHECK(c_state);
 
-	CHECK(compr_zlib.write(c_state, data, sizeof(data)));
+	CHECK(compr_zlib->write(c_state, data, sizeof(data)));
 
-	CHECK(compr_zlib.free(c_state));
+	CHECK(compr_zlib->free(c_state));
 	fclose(f);
 
 	f = fopen("data.zlib", "r");
-	struct decompr_state *d_state = decompr_zlib.init(f);
+	struct decompressor *decompr_zlib = decompressor_from_type(COMPR_TYPE_ZLIB);
+	struct decompr_state *d_state = decompr_zlib->init(f);
 	CHECK(d_state);
 
 	char buffer[sizeof(data)];
-	CHECK(decompr_zlib.read(d_state, buffer, sizeof(buffer)));
+	CHECK(decompr_zlib->read(d_state, buffer, sizeof(buffer)));
 	CHECK(memcmp(buffer, data, sizeof(data)) == 0);
 
-	CHECK(decompr_zlib.free(d_state));
+	CHECK(decompr_zlib->free(d_state));
 	fclose(f);
 }
 

@@ -74,11 +74,6 @@ enum {
 	REF_MARKER = 1
 };
 
-enum {
-	COMPR_TYPE_NONE = 0,
-	COMPR_TYPE_ZLIB = 1
-};
-
 struct file {
 	char *suffix;
 	char *path;
@@ -194,7 +189,7 @@ read_result(
 		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
 		fprintf(dump_stream, "Version: %u\n", version);
 		fprintf(dump_stream, "Compression type: %s\n",
-		        compr_type == COMPR_TYPE_NONE ? "none" : "zlib");
+		        compression_type_to_string(compr_type));
 		fprintf(dump_stream, "Compression level: %d\n", compr_level);
 		fprintf(dump_stream, "Content size: %" PRIu64 "\n", content_len);
 	}
@@ -221,16 +216,8 @@ read_result(
 		}
 	}
 
-	switch (compr_type) {
-	case COMPR_TYPE_NONE:
-		decompressor = &decompr_none;
-		break;
-
-	case COMPR_TYPE_ZLIB:
-		decompressor = &decompr_zlib;
-		break;
-
-	default:
+	decompressor = decompressor_from_type(compr_type);
+	if (!decompressor) {
 		*errmsg = format("Unknown compression type: %u", compr_type);
 		goto out;
 	}
@@ -431,7 +418,7 @@ bool result_get(const char *path, struct filelist *list)
 	return success;
 }
 
-bool result_put(const char *path, struct filelist *list, int compression_level)
+bool result_put(const char *path, struct filelist *list)
 {
 	bool ret = false;
 	char *tmp_file = format("%s.tmp", path);
@@ -442,11 +429,14 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		goto out;
 	}
 
+	int8_t compr_level = compression_level_from_config();
+	enum compression_type compr_type = compression_type_from_config();
+
 	char header[15];
 	memcpy(header, MAGIC, sizeof(MAGIC));
 	header[4] = RESULT_VERSION;
-	header[5] = compression_level == 0 ? COMPR_TYPE_NONE : COMPR_TYPE_ZLIB;
-	header[6] = compression_level;
+	header[5] = compr_type;
+	header[6] = compr_level;
 	uint64_t content_size = sizeof(header);
 	content_size += 1; // n_entries
 	for (uint32_t i = 0; i < list->n_files; i++) {
@@ -463,14 +453,9 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		goto out;
 	}
 
-	struct compressor *compressor;
-	if (compression_level == 0) {
-		compressor = &compr_none;
-	} else {
-		compressor = &compr_zlib;
-	}
-
-	struct compr_state *compr_state = compressor->init(f, compression_level);
+	struct compressor *compressor = compressor_from_type(compr_type);
+	assert(compressor);
+	struct compr_state *compr_state = compressor->init(f, compr_level);
 	if (!compr_state) {
 		cc_log("Failed to initialize compressor");
 		goto out;

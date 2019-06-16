@@ -37,7 +37,7 @@ compr_none_free(struct compr_state *handle)
 	return ferror(output) == 0;
 }
 
-struct compressor compr_none = {
+struct compressor compressor_none_impl = {
 	compr_none_init,
 	compr_none_write,
 	compr_none_free
