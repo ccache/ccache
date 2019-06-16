@@ -1,0 +1,6 @@
+ZSTD BUNDLED WITH CCACHE
+========================
+
+This directory contains a subset of files (zlibWrapper) from zstd 1.4.0. The full release can
+be found at <https://github.com/facebook/zstd>. For conditions of distribution and use, see
+copyright notice in zstd_zlibwrapper.h.
