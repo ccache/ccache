@@ -189,13 +189,16 @@ read_result(
 	}
 
 	const uint8_t compr_type = header[5];
+	const char* compr_type_name;
 
 	switch (compr_type) {
 	case COMPR_TYPE_NONE:
+		compr_type_name = "none";
 		decompressor = &decompr_none;
 		break;
 
 	case COMPR_TYPE_ZLIB:
+		compr_type_name = "zlib";
 		decompressor = &decompr_zlib;
 		break;
 
@@ -215,8 +218,7 @@ read_result(
 		fprintf(dump_stream, "Magic: %c%c%c%c\n",
 		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
 		fprintf(dump_stream, "Version: %u\n", version);
-		fprintf(dump_stream, "Compression type: %s\n",
-		        compr_type == COMPR_TYPE_NONE ? "none" : "zlib");
+		fprintf(dump_stream, "Compression type: %s\n", compr_type_name);
 		fprintf(dump_stream, "Compression level: %u\n", compr_level);
 	}
 
@@ -407,10 +409,17 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 		goto out;
 	}
 
+	uint8_t compr_type;
+	if (compression_level == 0) {
+		compr_type = COMPR_TYPE_NONE;
+	} else {
+		compr_type = COMPR_TYPE_ZLIB;
+	}
+
 	char header[7];
 	memcpy(header, MAGIC, sizeof(MAGIC));
 	header[4] = RESULT_VERSION;
-	header[5] = compression_level == 0 ? COMPR_TYPE_NONE : COMPR_TYPE_ZLIB;
+	header[5] = compr_type;
 	header[6] = compression_level;
 	if (fwrite(header, 1, sizeof(header), f) != sizeof(header)) {
 		cc_log("Failed to write to %s", tmp_file);
@@ -418,10 +427,14 @@ bool result_put(const char *path, struct filelist *list, int compression_level)
 	}
 
 	struct compressor *compressor;
-	if (compression_level == 0) {
+	switch (compr_type) {
+	case COMPR_TYPE_NONE:
 		compressor = &compr_none;
-	} else {
+		break;
+
+	case COMPR_TYPE_ZLIB:
 		compressor = &compr_zlib;
+		break;
 	}
 
 	struct compr_state *compr_state = compressor->init(f, compression_level);
