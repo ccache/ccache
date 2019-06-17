@@ -29,7 +29,7 @@ enum compression_type compression_type_from_config(void)
 	return conf->compression ? COMPR_TYPE_ZLIB : COMPR_TYPE_NONE;
 }
 
-const char *compression_type_to_string(enum compression_type type)
+const char *compression_type_to_string(uint8_t type)
 {
 	switch (type) {
 	case COMPR_TYPE_NONE:
@@ -42,7 +42,7 @@ const char *compression_type_to_string(enum compression_type type)
 	return "unknown";
 }
 
-struct compressor *compressor_from_type(enum compression_type type)
+struct compressor *compressor_from_type(uint8_t type)
 {
 	switch (type) {
 	case COMPR_TYPE_NONE:
@@ -55,7 +55,7 @@ struct compressor *compressor_from_type(enum compression_type type)
 	return NULL;
 }
 
-struct decompressor *decompressor_from_type(enum compression_type type)
+struct decompressor *decompressor_from_type(uint8_t type)
 {
 	switch (type) {
 	case COMPR_TYPE_NONE:

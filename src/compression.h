@@ -32,8 +32,8 @@ extern struct decompressor decompressor_zlib_impl;
 
 int8_t compression_level_from_config(void);
 enum compression_type compression_type_from_config(void);
-const char *compression_type_to_string(enum compression_type type);
-struct compressor *compressor_from_type(enum compression_type type);
-struct decompressor *decompressor_from_type(enum compression_type type);
+const char *compression_type_to_string(uint8_t type);
+struct compressor *compressor_from_type(uint8_t type);
+struct decompressor *decompressor_from_type(uint8_t type);
 
 #endif
