@@ -18,9 +18,9 @@
 #include "ccache.h"
 
 static char *
-format_string(void *value)
+format_string(const void *value)
 {
-	char **str = (char **)value;
+	const char * const *str = (const char * const*)value;
 	return x_strdup(*str);
 }
 
@@ -42,9 +42,9 @@ confitem_parse_bool(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_bool(void *value)
+confitem_format_bool(const void *value)
 {
-	bool *b = (bool *)value;
+	const bool *b = (const bool *)value;
 	return x_strdup(*b ? "true" : "false");
 }
 
@@ -58,7 +58,7 @@ confitem_parse_env_string(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_env_string(void *value)
+confitem_format_env_string(const void *value)
 {
 	return format_string(value);
 }
@@ -80,9 +80,9 @@ confitem_parse_double(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_double(void *value)
+confitem_format_double(const void *value)
 {
-	double *x = (double *)value;
+	const double *x = (const double *)value;
 	return format("%.1f", *x);
 }
 
@@ -101,9 +101,9 @@ confitem_parse_size(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_size(void *value)
+confitem_format_size(const void *value)
 {
-	uint64_t *size = (uint64_t *)value;
+	const uint64_t *size = (const uint64_t *)value;
 	return format_parsable_size_with_suffix(*size);
 }
 
@@ -153,9 +153,9 @@ confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_sloppiness(void *value)
+confitem_format_sloppiness(const void *value)
 {
-	unsigned *sloppiness = (unsigned *)value;
+	const unsigned *sloppiness = (const unsigned *)value;
 	char *s = x_strdup("");
 	if (*sloppiness & SLOPPY_FILE_MACRO) {
 		reformat(&s, "%sfile_macro, ", s);
@@ -206,7 +206,7 @@ confitem_parse_string(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_string(void *value)
+confitem_format_string(const void *value)
 {
 	return format_string(value);
 }
@@ -232,9 +232,9 @@ confitem_parse_umask(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_umask(void *value)
+confitem_format_umask(const void *value)
 {
-	unsigned *umask = (unsigned *)value;
+	const unsigned *umask = (const unsigned *)value;
 	if (*umask == UINT_MAX) {
 		return x_strdup("");
 	} else {
@@ -259,16 +259,16 @@ confitem_parse_unsigned(const char *str, void *result, char **errmsg)
 }
 
 char *
-confitem_format_unsigned(void *value)
+confitem_format_unsigned(const void *value)
 {
-	unsigned *i = (unsigned *)value;
+	const unsigned *i = (const unsigned *)value;
 	return format("%u", *i);
 }
 
 bool
-confitem_verify_absolute_path(void *value, char **errmsg)
+confitem_verify_absolute_path(const void *value, char **errmsg)
 {
-	char **path = (char **)value;
+	const char * const *path = (const char * const *)value;
 	assert(*path);
 	if (str_eq(*path, "")) {
 		// The empty string means "disable" in this case.
@@ -282,9 +282,9 @@ confitem_verify_absolute_path(void *value, char **errmsg)
 }
 
 bool
-confitem_verify_dir_levels(void *value, char **errmsg)
+confitem_verify_dir_levels(const void *value, char **errmsg)
 {
-	unsigned *levels = (unsigned *)value;
+	const unsigned *levels = (const unsigned *)value;
 	assert(levels);
 	if (*levels >= 1 && *levels <= 8) {
 		return true;
