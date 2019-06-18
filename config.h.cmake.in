@@ -1,0 +1,144 @@
+/* config.h. Originally generated from configure.ac by autoheader.  */
+
+#pragma once
+
+/* Define to 1 if your compiler supports extern inline */
+#cmakedefine HAVE_EXTERN_INLINE
+
+/* Define to 1 if you have the `GetFinalPathNameByHandleW' function. */
+#cmakedefine01 HAVE_GETFINALPATHNAMEBYHANDLEW
+
+/* Define to 1 if you have the `gethostname' function. */
+#cmakedefine01 HAVE_GETHOSTNAME
+
+/* Define to 1 if you have the `getopt_long' function. */
+#cmakedefine01 HAVE_GETOPT_LONG
+
+/* Define to 1 if you have the `getpwuid' function. */
+#cmakedefine HAVE_GETPWUID
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#cmakedefine HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the `localtime_r' function. */
+#cmakedefine HAVE_LOCALTIME_R
+
+/* Define to 1 if the system has the type `long long'. */
+#cmakedefine01 HAVE_LONG_LONG
+
+/* Define to 1 if you have the `mkstemp' function. */
+#cmakedefine01 HAVE_MKSTEMP
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#cmakedefine HAVE_PWD_H
+
+/* Define to 1 if you have the `realpath' function. */
+#cmakedefine01 HAVE_REALPATH
+
+/* Define to 1 if you have the `setenv' function. */
+#cmakedefine HAVE_SETENV
+
+/* Define to 1 if you have the `strndup' function. */
+#cmakedefine HAVE_STRNDUP
+
+/* Define to 1 if you have the `strtok_r' function. */
+#cmakedefine01 HAVE_STRTOK_R
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#cmakedefine HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#cmakedefine HAVE_SYS_TIME_H
+
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+#cmakedefine HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <termios.h> header file. */
+#cmakedefine HAVE_TERMIOS_H
+
+/* Define to 1 if you have the `unsetenv' function. */
+#cmakedefine HAVE_UNSETENV
+
+/* Define to 1 if you have the `utimes' function. */
+#cmakedefine HAVE_UTIMES
+
+/* Define to the address where bug reports for this package should be sent. */
+#cmakedefine01 PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#cmakedefine01 PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#cmakedefine01 PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#cmakedefine01 PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#cmakedefine01 PACKAGE_URL
+
+/* Define to the version of this package. */
+#cmakedefine01 PACKAGE_VERSION
+
+/* Define to 1 if you have the ANSI C header files. */
+#cmakedefine01 STDC_HEADERS
+
+/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
+#cmakedefine01 TIME_WITH_SYS_TIME
+
+/* Define on OpenBSD to activate all library features */
+#cmakedefine _BSD_SOURCE
+
+/* Define on Irix to enable u_int */
+#cmakedefine _BSD_TYPES
+
+/* Define on Darwin to activate all library features */
+#cmakedefine _DARWIN_C_SOURCE
+
+/* Define on Linux to activate all library features */
+#cmakedefine01 _GNU_SOURCE
+
+/* Define on NetBSD to activate all library features */
+#cmakedefine _NETBSD_SOURCE
+
+/* Define to activate features from IEEE Stds 1003.1-2001 */
+#cmakedefine01 _POSIX_C_SOURCE
+
+/* Windows Vista or newer is required */
+#define _WIN32_WINNT @_WIN32_WINNT@
+
+/* Define to the level of X/Open that your system supports */
+#cmakedefine _XOPEN_SOURCE
+
+/* Define to activate Unix95-and-earlier features */
+#cmakedefine _XOPEN_SOURCE_EXTENDED
+
+/* Define on FreeBSD to activate all library features */
+#cmakedefine __BSD_VISIBLE
+
+/* Define to activate Unix95-and-earlier features */
+#cmakedefine __EXTENSIONS__
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#cmakedefine const
+
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
+#cmakedefine inline
+#endif
+
+/* Define to the widest signed integer type if <stdint.h> and <inttypes.h> do
+   not define. */
+#cmakedefine intmax_t
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#cmakedefine size_t
+
+/* Define to the widest unsigned integer type if <stdint.h> and <inttypes.h>
+   do not define. */
+#cmakedefine uintmax_t
+
+/* Define to the type of an unsigned integer type wide enough to hold a
+   pointer, if such a type exists, and if the system does not define it. */
+#cmakedefine uintptr_t
