@@ -9,6 +9,6 @@ struct common_header
 	uint64_t content_size;
 };
 
-bool common_header_from_file(FILE *f, struct common_header *header);
-bool common_header_to_file(FILE *f, const struct common_header *header);
 
+bool common_header_from_file(struct common_header *header, FILE *f);
+bool common_header_to_file(const struct common_header *header, FILE *f);

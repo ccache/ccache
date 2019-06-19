@@ -17,7 +17,7 @@
 #include "ccache.h"
 #include "common_header.h"
 
-bool common_header_from_file(FILE *f, struct common_header *header)
+bool common_header_from_file(struct common_header *header, FILE *f)
 {
 	char buffer[COMMON_HEADER_SIZE];
 	if (fread(buffer, 1, sizeof(buffer), f) != sizeof(buffer)) {
@@ -31,7 +31,7 @@ bool common_header_from_file(FILE *f, struct common_header *header)
 	return true;
 }
 
-bool common_header_to_file(FILE *f, const struct common_header *header)
+bool common_header_to_file(const struct common_header *header, FILE *f)
 {
 	char buffer[COMMON_HEADER_SIZE];
 	memcpy(buffer, header->magic, 4);

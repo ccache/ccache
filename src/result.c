@@ -162,8 +162,8 @@ read_result(
 	}
 
 	struct common_header header;
-	if (!common_header_from_file(f, &header)) {
-		*errmsg = format("Failed to read result file header from %s", path);
+	if (!common_header_from_file(&header, f)) {
+		*errmsg = format("Failed to read header from %s", path);
 		goto out;
 	}
 
@@ -427,7 +427,7 @@ bool result_put(const char *path, struct result_files *list)
 	}
 	header.content_size = content_size;
 
-	if (!common_header_to_file(f, &header)) {
+	if (!common_header_to_file(&header, f)) {
 		cc_log("Failed to write result file header to %s", tmp_file);
 		goto out;
 	}
