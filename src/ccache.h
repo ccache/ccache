@@ -280,28 +280,6 @@ bool is_precompiled_header(const char *path);
 typedef int (*COMPAR_FN_T)(const void *, const void *);
 #endif
 
-#define BYTES_FROM_UINT64(bytes_, uint64_) \
-	do { \
-		(bytes_)[0] = uint64_ >> 56 & 0xFF; \
-		(bytes_)[1] = uint64_ >> 48 & 0xFF; \
-		(bytes_)[2] = uint64_ >> 40 & 0xFF; \
-		(bytes_)[3] = uint64_ >> 32 & 0xFF; \
-		(bytes_)[4] = uint64_ >> 24 & 0xFF; \
-		(bytes_)[5] = uint64_ >> 16 & 0xFF; \
-		(bytes_)[6] = uint64_ >>  8 & 0xFF; \
-		(bytes_)[7] = uint64_ >>  0 & 0xFF; \
-	} while (false)
-
-#define UINT64_FROM_BYTES(bytes_) \
-	((uint64_t)(uint8_t)(bytes_)[0] << 56 | \
-	 (uint64_t)(uint8_t)(bytes_)[1] << 48 | \
-	 (uint64_t)(uint8_t)(bytes_)[2] << 40 | \
-	 (uint64_t)(uint8_t)(bytes_)[3] << 32 | \
-	 (uint64_t)(uint8_t)(bytes_)[4] << 24 | \
-	 (uint64_t)(uint8_t)(bytes_)[5] << 16 | \
-	 (uint64_t)(uint8_t)(bytes_)[6] <<  8 | \
-	 (uint64_t)(uint8_t)(bytes_)[7] <<  0)
-
 // Work with silly DOS binary open.
 #ifndef O_BINARY
 #define O_BINARY 0

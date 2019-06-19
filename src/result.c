@@ -16,6 +16,7 @@
 
 #include "ccache.h"
 #include "common_header.h"
+#include "int_bytes_conversion.h"
 #include "compression.h"
 #include "result.h"
 

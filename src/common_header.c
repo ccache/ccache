@@ -15,6 +15,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
+#include "int_bytes_conversion.h"
 #include "common_header.h"
 
 bool common_header_from_file(struct common_header *header, FILE *f)
