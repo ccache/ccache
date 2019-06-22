@@ -24,7 +24,6 @@
 //
 // <result>      ::= <header> <body>
 // <header>      ::= <magic> <version> <compr_type> <compr_level> <content_len>
-// <body>        ::= <n_entries> <entry>* ; body is potentially compressed
 // <magic>       ::= 4 bytes ("cCrS")
 // <version>     ::= uint8_t
 // <compr_type>  ::= <compr_none> | <compr_zlib> | <compr_zstd>
@@ -33,6 +32,7 @@
 // <compr_zstd>  ::= 2 (uint8_t)
 // <compr_level> ::= int8_t
 // <content_len> ::= uint64_t ; size of file if stored uncompressed
+// <body>        ::= <n_entries> <entry>* ; body is potentially compressed
 // <n_entries>   ::= uint8_t
 // <entry>       ::= <file_entry> | <ref_entry>
 // <file_entry>  ::= <file_marker> <suffix_len> <suffix> <data_len> <data>
@@ -164,7 +164,7 @@ read_result(
 	}
 
 	struct common_header header;
-	if (!common_header_from_file(&header, f)) {
+	if (!common_header_init_from_file(&header, f)) {
 		*errmsg = format("Failed to read header from %s", path);
 		goto out;
 	}
@@ -177,13 +177,7 @@ read_result(
 	}
 
 	if (dump_stream) {
-		fprintf(dump_stream, "Magic: %c%c%c%c\n",
-		        MAGIC[0], MAGIC[1], MAGIC[2], MAGIC[3]);
-		fprintf(dump_stream, "Version: %u\n", header.version);
-		fprintf(dump_stream, "Compression type: %s\n",
-		        compression_type_to_string(header.compression_type));
-		fprintf(dump_stream, "Compression level: %d\n", header.compression_level);
-		fprintf(dump_stream, "Content size: %" PRIu64 "\n", header.content_size);
+		common_header_dump(&header, dump_stream);
 	}
 
 	if (header.version != RESULT_VERSION) {
@@ -194,19 +188,8 @@ read_result(
 		goto out;
 	}
 
-	if (header.compression_type == COMPR_TYPE_NONE) {
-		// Since we have the size available, let's use it as a super primitive
-		// consistency check for the non-compressed case. (A real checksum is used
-		// for compressed data.)
-		struct stat st;
-		if (x_fstat(fileno(f), &st) != 0
-		    || (uint64_t)st.st_size != header.content_size) {
-			*errmsg = format(
-				"Corrupt result file (actual %lu bytes, expected %lu bytes)",
-				(unsigned long)st.st_size,
-				(unsigned long)header.content_size);
-			goto out;
-		}
+	if (!common_header_verify(&header, fileno(f), "result", errmsg)) {
+		goto out;
 	}
 
 	decompressor = decompressor_from_type(header.compression_type);
@@ -410,14 +393,6 @@ bool result_put(const char *path, struct result_files *list)
 		goto out;
 	}
 
-	int8_t compr_level = compression_level_from_config();
-	enum compression_type compr_type = compression_type_from_config();
-
-	struct common_header header;
-	memcpy(header.magic, MAGIC, sizeof(MAGIC));
-	header.version = RESULT_VERSION;
-	header.compression_type = compr_type;
-	header.compression_level = compr_level;
 	uint64_t content_size = COMMON_HEADER_SIZE;
 	content_size += 1; // n_entries
 	for (uint32_t i = 0; i < list->n_files; i++) {
@@ -427,16 +402,19 @@ bool result_put(const char *path, struct result_files *list)
 		content_size += 8; // data_len
 		content_size += list->files[i].size; // data
 	}
-	header.content_size = content_size;
 
-	if (!common_header_to_file(&header, f)) {
+	struct common_header header;
+	common_header_init_from_config(&header, MAGIC, RESULT_VERSION, content_size);
+	if (!common_header_write_to_file(&header, f)) {
 		cc_log("Failed to write result file header to %s", tmp_file);
 		goto out;
 	}
 
-	struct compressor *compressor = compressor_from_type(compr_type);
+	struct compressor *compressor =
+		compressor_from_type(header.compression_type);
 	assert(compressor);
-	struct compr_state *compr_state = compressor->init(f, compr_level);
+	struct compr_state *compr_state =
+		compressor->init(f, header.compression_level);
 	if (!compr_state) {
 		cc_log("Failed to initialize compressor");
 		goto out;
@@ -470,7 +448,7 @@ result_dump(const char *path, FILE *stream)
 	char *errmsg;
 	bool success = read_result(path, NULL, stream, &errmsg);
 	if (errmsg) {
-		fprintf(stderr, "Error: %s\n", errmsg);
+		fprintf(stream, "Error: %s\n", errmsg);
 		free(errmsg);
 	}
 	return success;

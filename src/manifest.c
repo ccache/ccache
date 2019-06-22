@@ -17,49 +17,90 @@
 #include "ccache.h"
 #include "hashtable_itr.h"
 #include "hashutil.h"
+#include "common_header.h"
+#include "compression.h"
+#include "int_bytes_conversion.h"
 #include "manifest.h"
 #include "murmurhashneutral2.h"
 
-#include <zlib.h>
-
-// Sketchy specification of the manifest data format:
+// Manifest data format (big-endian integers):
 //
-// <magic>         magic number                          (4 bytes: cCmF)
-// <version>       file format version                   (1 byte unsigned int)
-// <not_used>      not used                              (3 bytes)
-// ----------------------------------------------------------------------------
-// <n>             number of include file paths          (4 bytes unsigned int)
-// <path_0>        include file path                     (NUL-terminated string,
-// ...                                                    at most 1024 bytes)
-// <path_n-1>
-// ----------------------------------------------------------------------------
-// <n>             number of include file entries        (4 bytes unsigned int)
-// <index[0]>      include file path index               (4 bytes unsigned int)
-// <digest[0]>     include file digest                   (DIGEST_SIZE bytes)
-// <fsize[0]>      include file size                     (8 bytes unsigned int)
-// <mtime[0]>      include file mtime                    (8 bytes signed int)
-// <ctime[0]>      include file ctime                    (8 bytes signed int)
-// ...
-// <index[n-1]>
-// <digest[n-1]>
-// <fsize[n-1]>
-// <mtime[n-1]>
-// <ctime[n-1]>
-// ----------------------------------------------------------------------------
-// <n>             number of result entries              (4 bytes unsigned int)
-// <m[0]>          number of include file entry indexes  (4 bytes unsigned int)
-// <index[0][0]>   include file entry index              (4 bytes unsigned int)
-// ...
-// <index[0][m[0]-1]>
-// <name[0]>       result name                           (DIGEST_SIZE bytes)
-// ...
+// <manifest>      ::= <header> <body>
+// <header>        ::= <magic> <version> <compr_type> <compr_level>
+//                     <content_len>
+// <magic>         ::= 4 bytes ("cCrS")
+// <version>       ::= uint8_t
+// <compr_type>    ::= <compr_none> | <compr_zlib>
+// <compr_none>    ::= 0 (uint8_t)
+// <compr_zlib>    ::= 1 (uint8_t)
+// <compr_level>   ::= int8_t
+// <content_len>   ::= uint64_t ; size of file if stored uncompressed
+// <body>          ::= <paths> <includes> <results> ; body is potentially
+//                                                  ; compressed
+// <paths>         ::= <n_paths> <path_entry>*
+// <n_paths>       ::= uint32_t
+// <path_entry>    ::= <path_len> <path>
+// <path_len>      ::= uint16_t
+// <path>          ::= path_len bytes
+// <includes>      ::= <n_includes> <include_entry>*
+// <n_includes>    ::= uint32_t
+// <include_entry> ::= <path_index> <digest> <fsize> <mtime> <ctime>
+// <path_index>    ::= uint32_t
+// <digest>        ::= DIGEST_SIZE bytes
+// <fsize>         ::= uint64_t ; file size
+// <mtime>         ::= int64_t ; modification time
+// <ctime>         ::= int64_t ; status change time
+// <results>       ::= <n_results> <result>*
+// <n_results>     ::= uint32_t
+// <result>        ::= <n_indexes> <include_index>* <name>
+// <n_indexes>     ::= uint32_t
+// <include_index> ::= uint32_t
+// <name>          ::= DIGEST_SIZE bytes
+//
+// Sketch of concrete layout:
 
-static const uint32_t MAGIC = 0x63436d46U; // cCmF
+// <magic>         4 bytes
+// <version>       1 byte
+// <compr_type>    1 byte
+// <compr_level>   1 byte
+// <content_len>   8 bytes
+// --- [potentially compressed from here] -------------------------------------
+// <n_paths>       4 bytes
+// <path_len>      2 bytes
+// <path>          path_len bytes
+// ...
+// ----------------------------------------------------------------------------
+// <n_includes>    4 bytes
+// <path_index>    4 bytes
+// <digest>        DIGEST_SIZE bytes
+// <fsize>         8 bytes
+// <mtime>         8 bytes
+// <ctime>         8 bytes
+// ...
+// ----------------------------------------------------------------------------
+// <n_results>     4 bytes
+// <n_indexes>     4 bytes
+// <include_index> 4 bytes
+// ...
+// <name>          DIGEST_SIZE bytes
+// ...
+//
+// Version history:
+//
+// 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
+// 2: Introduced in ccache 3.8.
+
+static const char MAGIC[4] = "cCmF";
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
 #define ccache_static_assert(e) \
 	do { enum { ccache_static_assert__ = 1/(e) }; } while (false)
+
+struct file {
+	uint16_t path_len; // strlen(path)
+	char *path; // NUL-terminated
+};
 
 struct file_info {
 	// Index to n_files.
@@ -84,12 +125,11 @@ struct result {
 };
 
 struct manifest {
-	// Version of decoded file.
-	uint8_t version;
+	struct common_header header;
 
 	// Referenced include files.
 	uint32_t n_files;
-	char **files;
+	struct file *files;
 
 	// Information about referenced include files.
 	uint32_t n_file_infos;
@@ -129,7 +169,7 @@ static void
 free_manifest(struct manifest *mf)
 {
 	for (uint32_t i = 0; i < mf->n_files; i++) {
-		free(mf->files[i]);
+		free(mf->files[i].path);
 	}
 	free(mf->files);
 	free(mf->file_infos);
@@ -140,58 +180,47 @@ free_manifest(struct manifest *mf)
 	free(mf);
 }
 
-#define READ_BYTE(var) \
+#define READ_BYTES(buf, length) \
 	do { \
-		int ch_ = gzgetc(f); \
-		if (ch_ == EOF) { \
-			goto error; \
+		if (!decompressor->read(decompr_state, buf, length)) { \
+			goto out; \
 		} \
-		(var) = ch_ & 0xFF; \
 	} while (false)
 
-#define READ_INT(size, var) \
+#define READ_UINT16(var) \
 	do { \
-		uint64_t u_ = 0; \
-		for (size_t i_ = 0; i_ < (size); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
-			u_ <<= 8; \
-			u_ |= ch_ & 0xFF; \
-		} \
-		(var) = u_; \
+		char buf_[2]; \
+		READ_BYTES(buf_, sizeof(buf_)); \
+		(var) = UINT16_FROM_BYTES(buf_); \
 	} while (false)
 
-#define READ_STR(var) \
+#define READ_UINT32(var) \
 	do { \
-		char buf_[1024]; \
-		size_t i_; \
-		for (i_ = 0; i_ < sizeof(buf_); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
-			buf_[i_] = ch_; \
-			if (ch_ == '\0') { \
-				break; \
-			} \
-		} \
-		if (i_ == sizeof(buf_)) { \
-			goto error; \
-		} \
-		(var) = x_strdup(buf_); \
+		char buf_[4]; \
+		READ_BYTES(buf_, sizeof(buf_)); \
+		(var) = UINT32_FROM_BYTES(buf_); \
 	} while (false)
 
-#define READ_BYTES(n, var) \
+#define READ_INT64(var) \
 	do { \
-		for (size_t i_ = 0; i_ < (n); i_++) { \
-			int ch_ = gzgetc(f); \
-			if (ch_ == EOF) { \
-				goto error; \
-			} \
-			(var)[i_] = ch_; \
-		} \
+		char buf_[8]; \
+		READ_BYTES(buf_, sizeof(buf_)); \
+		(var) = INT64_FROM_BYTES(buf_); \
+	} while (false)
+
+#define READ_UINT64(var) \
+	do { \
+		char buf_[8]; \
+		READ_BYTES(buf_, sizeof(buf_)); \
+		(var) = UINT64_FROM_BYTES(buf_); \
+	} while (false)
+
+#define READ_STR(str_var, len_var) \
+	do { \
+		READ_UINT16(len_var); \
+		(str_var) = x_malloc(len_var + 1); \
+		READ_BYTES(str_var, len_var); \
+		str_var[len_var] = '\0'; \
 	} while (false)
 
 static struct manifest *
@@ -209,136 +238,206 @@ create_empty_manifest(void)
 }
 
 static struct manifest *
-read_manifest(gzFile f, char **errmsg)
+read_manifest(const char *path, char **errmsg)
 {
-	*errmsg = NULL;
+	bool success = false;
 	struct manifest *mf = create_empty_manifest();
+	struct decompressor *decompressor = NULL;
+	struct decompr_state *decompr_state = NULL;
+	*errmsg = NULL;
 
-	uint32_t magic;
-	READ_INT(4, magic);
-	if (magic != MAGIC) {
-		*errmsg = format("Manifest file has bad magic number %u", magic);
-		goto error;
+	FILE *f = fopen(path, "rb");
+	if (!f) {
+		*errmsg = x_strdup("No such manifest file");
+		goto out;
 	}
 
-	READ_BYTE(mf->version);
-	if (mf->version != MANIFEST_VERSION) {
+	if (!common_header_init_from_file(&mf->header, f)) {
+		*errmsg = format("Failed to read header from %s", path);
+		goto out;
+	}
+
+	if (memcmp(mf->header.magic, MAGIC, sizeof(MAGIC)) != 0) {
+		*errmsg = format(
+			"Result file has bad magic value 0x%x%x%x%x",
+			mf->header.magic[0],
+			mf->header.magic[1],
+			mf->header.magic[2],
+			mf->header.magic[3]);
+		goto out;
+	}
+
+	if (mf->header.version != MANIFEST_VERSION) {
 		*errmsg = format(
 			"Unknown manifest version (actual %u, expected %u)",
-			mf->version,
+			mf->header.version,
 			MANIFEST_VERSION);
-		goto error;
+		goto out;
 	}
 
-	char dummy[3]; // Legacy "hash size" + "reserved". TODO: Remove.
-	READ_BYTES(3, dummy);
-	(void)dummy;
+	if (!common_header_verify(&mf->header, fileno(f), "manifest", errmsg)) {
+		goto out;
+	}
 
-	READ_INT(4, mf->n_files);
+	decompressor = decompressor_from_type(mf->header.compression_type);
+	if (!decompressor) {
+		*errmsg = format(
+			"Unknown compression type: %u", mf->header.compression_type);
+		goto out;
+	}
+
+	decompr_state = decompressor->init(f);
+	if (!decompr_state) {
+		*errmsg = x_strdup("Failed to initialize decompressor");
+		goto out;
+	}
+
+	READ_UINT32(mf->n_files);
 	mf->files = x_calloc(mf->n_files, sizeof(*mf->files));
 	for (uint32_t i = 0; i < mf->n_files; i++) {
-		READ_STR(mf->files[i]);
+		READ_STR(mf->files[i].path, mf->files[i].path_len);
 	}
 
-	READ_INT(4, mf->n_file_infos);
+	READ_UINT32(mf->n_file_infos);
 	mf->file_infos = x_calloc(mf->n_file_infos, sizeof(*mf->file_infos));
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
-		READ_INT(4, mf->file_infos[i].index);
-		READ_BYTES(DIGEST_SIZE, mf->file_infos[i].digest.bytes);
-		READ_INT(8, mf->file_infos[i].fsize);
-		READ_INT(8, mf->file_infos[i].mtime);
-		READ_INT(8, mf->file_infos[i].ctime);
+		READ_UINT32(mf->file_infos[i].index);
+		READ_BYTES(mf->file_infos[i].digest.bytes, DIGEST_SIZE);
+		READ_UINT64(mf->file_infos[i].fsize);
+		READ_INT64(mf->file_infos[i].mtime);
+		READ_INT64(mf->file_infos[i].ctime);
 	}
 
-	READ_INT(4, mf->n_results);
+	READ_UINT32(mf->n_results);
 	mf->results = x_calloc(mf->n_results, sizeof(*mf->results));
 	for (uint32_t i = 0; i < mf->n_results; i++) {
-		READ_INT(4, mf->results[i].n_file_info_indexes);
+		READ_UINT32(mf->results[i].n_file_info_indexes);
 		mf->results[i].file_info_indexes =
 			x_calloc(mf->results[i].n_file_info_indexes,
 			         sizeof(*mf->results[i].file_info_indexes));
 		for (uint32_t j = 0; j < mf->results[i].n_file_info_indexes; j++) {
-			READ_INT(4, mf->results[i].file_info_indexes[j]);
+			READ_UINT32(mf->results[i].file_info_indexes[j]);
 		}
-		READ_BYTES(DIGEST_SIZE, mf->results[i].name.bytes);
+		READ_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
 	}
 
+	success = true;
+
+out:
+	if (decompressor && !decompressor->free(decompr_state)) {
+		success = false;
+	}
+	if (f) {
+		fclose(f);
+	}
+	if (!success) {
+		if (!*errmsg) {
+			*errmsg = x_strdup("Corrupt manifest file");
+		}
+		free_manifest(mf);
+		mf = NULL;
+	}
 	return mf;
-
-error:
-	if (!*errmsg) {
-		*errmsg = x_strdup("Corrupt manifest file");
-	}
-	free_manifest(mf);
-	return NULL;
 }
 
-#define WRITE_INT(size, var) \
+#define WRITE_BYTES(buf, length) \
 	do { \
-		uint64_t u_ = (var); \
-		uint8_t ch_; \
-		size_t i_; \
-		for (i_ = 0; i_ < (size); i_++) { \
-			ch_ = (u_ >> (8 * ((size) - i_ - 1))); \
-			if (gzputc(f, ch_) == EOF) { \
-				goto error; \
-			} \
-		} \
-	} while (false)
-
-#define WRITE_STR(var) \
-	do { \
-		if (gzputs(f, var) == EOF || gzputc(f, '\0') == EOF) { \
+		if (!compressor->write(compr_state, buf, length)) { \
 			goto error; \
 		} \
 	} while (false)
 
-#define WRITE_BYTES(n, var) \
+#define WRITE_UINT16(var) \
 	do { \
-		size_t i_; \
-		for (i_ = 0; i_ < (n); i_++) { \
-			if (gzputc(f, (var)[i_]) == EOF) { \
-				goto error; \
-			} \
-		} \
+		char buf_[2]; \
+		BYTES_FROM_UINT16(buf_, (var)); \
+		WRITE_BYTES(buf_, sizeof(buf_)); \
 	} while (false)
 
-static int
-write_manifest(gzFile f, const struct manifest *mf)
+#define WRITE_UINT32(var) \
+	do { \
+		char buf_[4]; \
+		BYTES_FROM_UINT32(buf_, (var)); \
+		WRITE_BYTES(buf_, sizeof(buf_)); \
+	} while (false)
+
+#define WRITE_INT64(var) \
+	do { \
+		char buf_[8]; \
+		BYTES_FROM_INT64(buf_, (var)); \
+		WRITE_BYTES(buf_, sizeof(buf_)); \
+	} while (false)
+
+#define WRITE_UINT64(var) \
+	do { \
+		char buf_[8]; \
+		BYTES_FROM_UINT64(buf_, (var)); \
+		WRITE_BYTES(buf_, sizeof(buf_)); \
+	} while (false)
+
+static bool
+write_manifest(FILE *f, const struct manifest *mf)
 {
-	WRITE_INT(4, MAGIC);
-	WRITE_INT(1, MANIFEST_VERSION);
-	WRITE_INT(1, 16); // Legacy hash size field. TODO: Remove.
-	WRITE_INT(2, 0); // Legacy "reserved" field. TODO: Remove.
+	uint64_t content_size = COMMON_HEADER_SIZE;
+	content_size += 4; // n_files
+	for (size_t i = 0; i < mf->n_files; i++) {
+		content_size += 2 + mf->files[i].path_len;
+	}
+	content_size += 4; // n_file_infos
+	content_size += mf->n_file_infos * (4 + DIGEST_SIZE + 8 + 8 + 8);
+	content_size += 4; // n_results
+	for (size_t i = 0; i < mf->n_results; i++) {
+		content_size += 4; // n_file_info_indexes
+		content_size += mf->results[i].n_file_info_indexes * 4;
+		content_size += DIGEST_SIZE;
+	}
 
-	WRITE_INT(4, mf->n_files);
+	struct common_header header;
+	common_header_init_from_config(
+		&header, MAGIC, MANIFEST_VERSION, content_size);
+	if (!common_header_write_to_file(&header, f)) {
+		goto error;
+	}
+
+	struct compressor *compressor =
+		compressor_from_type(header.compression_type);
+	assert(compressor);
+	struct compr_state *compr_state =
+		compressor->init(f, header.compression_level);
+	if (!compr_state) {
+		cc_log("Failed to initialize compressor");
+		goto error;
+	}
+
+	WRITE_UINT32(mf->n_files);
 	for (uint32_t i = 0; i < mf->n_files; i++) {
-		WRITE_STR(mf->files[i]);
+		WRITE_UINT16(mf->files[i].path_len);
+		WRITE_BYTES(mf->files[i].path, mf->files[i].path_len);
 	}
 
-	WRITE_INT(4, mf->n_file_infos);
+	WRITE_UINT32(mf->n_file_infos);
 	for (uint32_t i = 0; i < mf->n_file_infos; i++) {
-		WRITE_INT(4, mf->file_infos[i].index);
-		WRITE_BYTES(DIGEST_SIZE, mf->file_infos[i].digest.bytes);
-		WRITE_INT(8, mf->file_infos[i].fsize);
-		WRITE_INT(8, mf->file_infos[i].mtime);
-		WRITE_INT(8, mf->file_infos[i].ctime);
+		WRITE_UINT32(mf->file_infos[i].index);
+		WRITE_BYTES(mf->file_infos[i].digest.bytes, DIGEST_SIZE);
+		WRITE_UINT64(mf->file_infos[i].fsize);
+		WRITE_INT64(mf->file_infos[i].mtime);
+		WRITE_INT64(mf->file_infos[i].ctime);
 	}
 
-	WRITE_INT(4, mf->n_results);
+	WRITE_UINT32(mf->n_results);
 	for (uint32_t i = 0; i < mf->n_results; i++) {
-		WRITE_INT(4, mf->results[i].n_file_info_indexes);
+		WRITE_UINT32(mf->results[i].n_file_info_indexes);
 		for (uint32_t j = 0; j < mf->results[i].n_file_info_indexes; j++) {
-			WRITE_INT(4, mf->results[i].file_info_indexes[j]);
+			WRITE_UINT32(mf->results[i].file_info_indexes[j]);
 		}
-		WRITE_BYTES(DIGEST_SIZE, mf->results[i].name.bytes);
+		WRITE_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
 	}
 
-	return 1;
+	return compressor->free(compr_state);
 
 error:
 	cc_log("Error writing to manifest file");
-	return 0;
+	return false;
 }
 
 static bool
@@ -347,7 +446,7 @@ verify_result(struct conf *conf, struct manifest *mf, struct result *result,
 {
 	for (uint32_t i = 0; i < result->n_file_info_indexes; i++) {
 		struct file_info *fi = &mf->file_infos[result->file_info_indexes[i]];
-		char *path = mf->files[fi->index];
+		char *path = mf->files[fi->index].path;
 		struct file_stats *st = hashtable_search(stated_files, path);
 		if (!st) {
 			struct stat file_stat;
@@ -421,14 +520,14 @@ verify_result(struct conf *conf, struct manifest *mf, struct result *result,
 }
 
 static struct hashtable *
-create_string_index_map(char **strings, uint32_t len)
+create_file_index_map(struct file *files, uint32_t len)
 {
 	struct hashtable *h =
 		create_hashtable(1000, hash_from_string, strings_equal);
 	for (uint32_t i = 0; i < len; i++) {
 		uint32_t *index = x_malloc(sizeof(*index));
 		*index = i;
-		hashtable_insert(h, x_strdup(strings[i]), index);
+		hashtable_insert(h, x_strdup(files[i].path), index);
 	}
 	return h;
 }
@@ -460,7 +559,8 @@ get_include_file_index(struct manifest *mf, char *path,
 	uint32_t n = mf->n_files;
 	mf->files = x_realloc(mf->files, (n + 1) * sizeof(*mf->files));
 	mf->n_files++;
-	mf->files[n] = x_strdup(path);
+	mf->files[n].path_len = strlen(path);
+	mf->files[n].path = x_strdup(path);
 	return n;
 }
 
@@ -519,8 +619,7 @@ add_file_info_indexes(uint32_t *indexes, uint32_t size,
 	}
 
 	// path --> index
-	struct hashtable *mf_files =
-		create_string_index_map(mf->files, mf->n_files);
+	struct hashtable *mf_files = create_file_index_map(mf->files, mf->n_files);
 	// struct file_info --> index
 	struct hashtable *mf_file_infos =
 		create_file_info_index_map(mf->file_infos, mf->n_file_infos);
@@ -562,36 +661,22 @@ add_result_entry(struct manifest *mf,
 struct digest *
 manifest_get(struct conf *conf, const char *manifest_path)
 {
-	gzFile f = NULL;
-	struct manifest *mf = NULL;
-	struct hashtable *hashed_files = NULL; // path --> struct digest
-	struct hashtable *stated_files = NULL; // path --> struct file_stats
-	struct digest *name = NULL;
-
-	int fd = open(manifest_path, O_RDONLY | O_BINARY);
-	if (fd == -1) {
-		// Cache miss.
-		cc_log("No such manifest file");
-		goto out;
-	}
-	f = gzdopen(fd, "rb");
-	if (!f) {
-		close(fd);
-		cc_log("Failed to gzdopen manifest file");
-		goto out;
-	}
-
 	char *errmsg;
-	mf = read_manifest(f, &errmsg);
+	struct manifest *mf = read_manifest(manifest_path, &errmsg);
 	if (!mf) {
 		cc_log("%s", errmsg);
-		goto out;
+		return NULL;
 	}
 
-	hashed_files = create_hashtable(1000, hash_from_string, strings_equal);
-	stated_files = create_hashtable(1000, hash_from_string, strings_equal);
+	// path --> struct digest
+	struct hashtable *hashed_files =
+		create_hashtable(1000, hash_from_string, strings_equal);
+	// path --> struct file_stats
+	struct hashtable *stated_files =
+		create_hashtable(1000, hash_from_string, strings_equal);
 
 	// Check newest result first since it's a bit more likely to match.
+	struct digest *name = NULL;
 	for (uint32_t i = mf->n_results; i > 0; i--) {
 		if (verify_result(conf, mf, &mf->results[i - 1],
 		                  stated_files, hashed_files)) {
@@ -608,12 +693,7 @@ out:
 	if (stated_files) {
 		hashtable_destroy(stated_files, 1);
 	}
-	if (f) {
-		gzclose(f);
-	}
-	if (mf) {
-		free_manifest(mf);
-	}
+	free_manifest(mf);
 	if (name) {
 		// Update modification timestamp to save files from LRU cleanup.
 		update_mtime(manifest_path);
@@ -627,36 +707,16 @@ bool
 manifest_put(const char *manifest_path, struct digest *result_name,
              struct hashtable *included_files)
 {
-	int ret = 0;
-	gzFile f2 = NULL;
-	struct manifest *mf = NULL;
-	char *tmp_file = NULL;
-
 	// We don't bother to acquire a lock when writing the manifest to disk. A
 	// race between two processes will only result in one lost entry, which is
 	// not a big deal, and it's also very unlikely.
 
-	int fd1 = open(manifest_path, O_RDONLY | O_BINARY);
-	if (fd1 == -1) {
-		// New file.
+	char *errmsg;
+	struct manifest *mf = read_manifest(manifest_path, &errmsg);
+	if (!mf) {
+		// New or corrupt file.
 		mf = create_empty_manifest();
-	} else {
-		gzFile f1 = gzdopen(fd1, "rb");
-		if (!f1) {
-			cc_log("Failed to gzdopen manifest file");
-			close(fd1);
-			goto out;
-		}
-		char *errmsg;
-		mf = read_manifest(f1, &errmsg);
-		gzclose(f1);
-		if (!mf) {
-			cc_log("%s", errmsg);
-			free(errmsg);
-			cc_log("Failed to read manifest file; deleting it");
-			x_unlink(manifest_path);
-			mf = create_empty_manifest();
-		}
+		free(errmsg); // Ignore.
 	}
 
 	if (mf->n_results > MAX_MANIFEST_ENTRIES) {
@@ -684,38 +744,37 @@ manifest_put(const char *manifest_path, struct digest *result_name,
 		mf = create_empty_manifest();
 	}
 
-	tmp_file = format("%s.tmp", manifest_path);
-	int fd2 = create_tmp_fd(&tmp_file);
-	f2 = gzdopen(fd2, "wb");
-	if (!f2) {
-		cc_log("Failed to gzdopen %s", tmp_file);
+	add_result_entry(mf, result_name, included_files);
+
+	int ret = false;
+	char *tmp_file = format("%s.tmp", manifest_path);
+	int fd = create_tmp_fd(&tmp_file);
+	FILE *f = fdopen(fd, "wb");
+	if (!f) {
+		cc_log("Failed to fdopen %s", tmp_file);
 		goto out;
 	}
-
-	add_result_entry(mf, result_name, included_files);
-	if (write_manifest(f2, mf)) {
-		gzclose(f2);
-		f2 = NULL;
+	if (write_manifest(f, mf)) {
+		fclose(f);
+		f = NULL;
 		if (x_rename(tmp_file, manifest_path) == 0) {
-			ret = 1;
+			ret = true;
 		} else {
 			cc_log("Failed to rename %s to %s", tmp_file, manifest_path);
-			goto out;
 		}
 	} else {
-		cc_log("Failed to write manifest file");
-		goto out;
+		cc_log("Failed to write manifest file %s", tmp_file);
 	}
 
 out:
+	if (f) {
+		fclose(f);
+	}
 	if (mf) {
 		free_manifest(mf);
 	}
 	if (tmp_file) {
 		free(tmp_file);
-	}
-	if (f2) {
-		gzclose(f2);
 	}
 	return ret;
 }
@@ -723,38 +782,20 @@ out:
 bool
 manifest_dump(const char *manifest_path, FILE *stream)
 {
-	struct manifest *mf = NULL;
-	gzFile f = NULL;
-	bool ret = false;
-
-	int fd = open(manifest_path, O_RDONLY | O_BINARY);
-	if (fd == -1) {
-		fprintf(stderr, "No such manifest file: %s\n", manifest_path);
-		goto out;
-	}
-	f = gzdopen(fd, "rb");
-	if (!f) {
-		fprintf(stderr, "Failed to dzopen manifest file\n");
-		close(fd);
-		goto out;
-	}
 	char *errmsg;
-	mf = read_manifest(f, &errmsg);
+	struct manifest *mf = read_manifest(manifest_path, &errmsg);
 	if (!mf) {
-		fprintf(stderr, "%s\n", errmsg);
+		assert(errmsg);
+		fprintf(stream, "Error: %s\n", errmsg);
 		free(errmsg);
-		goto out;
+		return false;
 	}
 
-	fprintf(stream, "Magic: %c%c%c%c\n",
-	        (MAGIC >> 24) & 0xFF,
-	        (MAGIC >> 16) & 0xFF,
-	        (MAGIC >> 8) & 0xFF,
-	        MAGIC & 0xFF);
-	fprintf(stream, "Version: %u\n", mf->version);
+	common_header_dump(&mf->header, stream);
+
 	fprintf(stream, "File paths (%u):\n", (unsigned)mf->n_files);
 	for (unsigned i = 0; i < mf->n_files; ++i) {
-		fprintf(stream, "  %u: %s\n", i, mf->files[i]);
+		fprintf(stream, "  %u: %s\n", i, mf->files[i].path);
 	}
 	fprintf(stream, "File infos (%u):\n", (unsigned)mf->n_file_infos);
 	for (unsigned i = 0; i < mf->n_file_infos; ++i) {
@@ -780,14 +821,6 @@ manifest_dump(const char *manifest_path, FILE *stream)
 		fprintf(stream, "    Name: %s\n", name);
 	}
 
-	ret = true;
-
-out:
-	if (mf) {
-		free_manifest(mf);
-	}
-	if (f) {
-		gzclose(f);
-	}
-	return ret;
+	free_manifest(mf);
+	return true;
 }
