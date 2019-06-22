@@ -22,14 +22,14 @@
 #endif
 
 #ifdef HAVE_LIBZSTD
+
 enum stream_state {
 	STREAM_STATE_READING,
 	STREAM_STATE_FAILED,
 	STREAM_STATE_END
 };
 
-struct state
-{
+struct state {
 	FILE *input;
 	char input_buffer[READ_BUFFER_SIZE];
 	size_t input_size;
@@ -120,4 +120,5 @@ struct decompressor decompressor_zstd_impl = {
 	decompr_zstd_read,
 	decompr_zstd_free
 };
-#endif //HAVE_LIBZSTD
+
+#endif // HAVE_LIBZSTD

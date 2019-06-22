@@ -19,8 +19,7 @@
 
 #include <zlib.h>
 
-struct state
-{
+struct state {
 	FILE *output;
 	z_stream stream;
 	bool failed;

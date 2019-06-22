@@ -25,8 +25,7 @@ enum stream_state {
 	STREAM_STATE_END
 };
 
-struct state
-{
+struct state {
 	FILE *input;
 	char input_buffer[READ_BUFFER_SIZE];
 	size_t input_size;

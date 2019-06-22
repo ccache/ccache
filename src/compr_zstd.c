@@ -22,8 +22,8 @@
 #endif
 
 #ifdef HAVE_LIBZSTD
-struct state
-{
+
+struct state {
 	FILE *output;
 	ZSTD_CStream *stream;
 	ZSTD_inBuffer in;
@@ -78,7 +78,7 @@ compr_zstd_write(struct compr_state *handle, const void *data, size_t size)
 		}
 	}
 	ret = flush;
-	while (ret) {
+	while (ret > 0) {
 		unsigned char buffer[READ_BUFFER_SIZE];
 		state->out.dst = buffer;
 		state->out.size = sizeof(buffer);
@@ -115,4 +115,5 @@ struct compressor compressor_zstd_impl = {
 	compr_zstd_write,
 	compr_zstd_free
 };
-#endif //HAVE_LIBZSTD
+
+#endif // HAVE_LIBZSTD

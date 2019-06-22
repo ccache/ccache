@@ -101,7 +101,8 @@ result_files_init(void)
 }
 
 void
-result_files_add(struct result_files *list, const char *path, const char *suffix)
+result_files_add(struct result_files *list, const char *path,
+                 const char *suffix)
 {
 	uint32_t n = list->n_files;
 	list->files = x_realloc(list->files, (n + 1) * sizeof(*list->files));
@@ -232,8 +233,8 @@ read_result(
 			break;
 
 		case REF_MARKER:
-			// TODO: Implement.
-			// Fall through.
+		// TODO: Implement.
+		// Fall through.
 
 		default:
 			*errmsg = format("Unknown entry type: %u", marker);

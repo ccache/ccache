@@ -1,7 +1,6 @@
 #define COMMON_HEADER_SIZE 15
 
-struct common_header
-{
+struct common_header {
 	char magic[4];
 	uint8_t version;
 	uint8_t compression_type;

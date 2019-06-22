@@ -21,6 +21,7 @@
 TEST_SUITE(compr_zstd)
 
 #ifdef HAVE_LIBZSTD
+
 TEST(zstd_small_roundtrip)
 {
 	FILE *f = fopen("data.zstd", "w");
@@ -116,11 +117,14 @@ TEST(zstd_large_uncompressible_roundtrip)
 	CHECK(decompr_zstd->free(d_state));
 	fclose(f);
 }
-#else
+
+#else // HAVE_LIBZSTD
+
 TEST(zstd_skip)
 {
 	// disabled
 }
+
 #endif // HAVE_LIBZSTD
 
 TEST_SUITE_END
