@@ -163,6 +163,15 @@ else
     LIBS="$LIBS -lz"
 fi
 
+AC_ARG_ENABLE(zstd,
+  [AS_HELP_STRING([--enable-zstd],
+    [use zstd compression instead of zlib])])
+if test x${enable_zstd} = xyes; then
+    CPPFLAGS="$CPPFLAGS -DUSE_ZSTD"
+    AC_CHECK_HEADERS(zstd.h)
+    AC_CHECK_LIB(zstd, ZSTD_versionString)
+fi
+
 AC_ARG_ENABLE(man,
   [AS_HELP_STRING([--disable-man],
     [disable installing man pages])])

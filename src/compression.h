@@ -21,7 +21,8 @@ struct decompressor {
 
 enum compression_type {
 	COMPR_TYPE_NONE = 0,
-	COMPR_TYPE_ZLIB = 1
+	COMPR_TYPE_ZLIB = 1,
+	COMPR_TYPE_ZSTD = 2
 };
 
 extern struct compressor compressor_none_impl;
@@ -29,6 +30,11 @@ extern struct decompressor decompressor_none_impl;
 
 extern struct compressor compressor_zlib_impl;
 extern struct decompressor decompressor_zlib_impl;
+
+#ifdef HAVE_LIBZSTD
+extern struct compressor compressor_zstd_impl;
+extern struct decompressor decompressor_zstd_impl;
+#endif //HAVE_LIBZSTD
 
 int8_t compression_level_from_config(void);
 enum compression_type compression_type_from_config(void);

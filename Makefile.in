@@ -37,11 +37,13 @@ non_3pp_sources = \
     src/compr_none.c \
     src/compr_zlib.c \
     src/compression.c \
+    src/compr_zstd.c \
     src/conf.c \
     src/confitems.c \
     src/counters.c \
     src/decompr_none.c \
     src/decompr_zlib.c \
+    src/decompr_zstd.c \
     src/execute.c \
     src/exitfn.c \
     src/hash.c \

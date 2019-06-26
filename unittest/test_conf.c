@@ -56,7 +56,11 @@ TEST(conf_create)
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
 	CHECK(!conf->compression);
+#ifdef USE_ZSTD
+	CHECK_INT_EQ(3, conf->compression_level);
+#else
 	CHECK_INT_EQ(6, conf->compression_level);
+#endif
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(!conf->debug);
 	CHECK(!conf->depend_mode);
