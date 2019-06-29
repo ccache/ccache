@@ -74,10 +74,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (getenv("TRAVIS")) {
-		verbose = 1;
-	}
-
 	testdir = format("testdir.%d", (int)getpid());
 	cct_create_fresh_dir(testdir);
 	dir_before = gnu_getcwd();
