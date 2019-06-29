@@ -12,6 +12,7 @@ matrix:
   # Job 1:
   - os: linux
     compiler: gcc
+    env: V=1
     addons:
       apt:
         packages:
@@ -22,6 +23,7 @@ matrix:
   # Job 2:
   - os: linux
     compiler: clang
+    env: V=1
     addons:
       apt:
         packages:
@@ -32,11 +34,12 @@ matrix:
   # Job 3:
   - os: osx
     compiler: clang
+    env: V=1
 
   # Job 4:
   - os: linux
     compiler: gcc
-    env: CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu"
+    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu"
     addons:
       apt:
         packages:
@@ -47,7 +50,7 @@ matrix:
   # Job 5:
   - os: linux
     compiler: i686-w64-mingw32-gcc
-    env: CONFIGURE="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+    env: V=1 CONFIGURE="--host=i686-w64-mingw32" TEST="unittest/run.exe"
     addons:
       apt:
         packages:
@@ -58,7 +61,7 @@ matrix:
   # Job 6:
   - os: linux
     compiler: clang
-    env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
+    env: V=1 CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
     addons:
       apt:
         packages:
@@ -69,7 +72,7 @@ matrix:
   # Job 7:
   - os: linux
     compiler: clang
-    env: CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
+    env: V=1 CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
     addons:
       apt:
         packages:
@@ -80,7 +83,7 @@ matrix:
   # Job 8:
   - os: linux
     compiler: clang
-    env: PATH="/usr/bin:$PATH" TEST=analyze
+    env: V=1 PATH="/usr/bin:$PATH" TEST=analyze
     addons:
       apt:
         packages:
@@ -91,7 +94,7 @@ matrix:
   # Job 9:
   - os: linux
     compiler: gcc
-    env: CUDA=8.0.61-1
+    env: V=1 CUDA=8.0.61-1
     sudo: required
     addons:
       apt:
