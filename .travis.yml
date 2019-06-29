@@ -1,66 +1,103 @@
 language: c
 
-addons:
-    apt:
-        packages:
-            - gperf
-            - elfutils
-            - zlib1g-dev
-
-os:
-    - linux
-    - osx
-
-compiler:
-    - gcc
-    - clang
+script:
+  - ./autogen.sh
+  - ./configure $CONFIGURE
+  - make
+  - make ${TEST:-test}
 
 matrix:
-    include:
-        - os: linux
-          compiler: gcc
-          env: CFLAGS="-m32 -g -O2" LDFLAGS="-m32" HOST="--host=i386-linux-gnu"
-          addons:
-              apt:
-                  packages:
-                      - gcc-multilib
-                      - gperf
-                      - lib32z1-dev
-        - os: linux
-          compiler: i686-w64-mingw32-gcc
-          env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe"
-          addons:
-              apt:
-                  packages:
-                      - gcc-mingw-w64-i686
-                      - gperf
-        - os: linux
-          compiler: clang
-          env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
-        - os: linux
-          compiler: clang
-          env: CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
-        - os: linux
-          compiler: clang
-          env: PATH="/usr/bin:$PATH" TEST=analyze
-          addons:
-              apt:
-                  packages:
-                      - clang    # scan-build
-                      - gperf
-        - os: linux
-          compiler: gcc
-          env: CUDA=8.0.61-1
-          sudo: required
-          before_install:
-              - source ./.travis/install_cuda.sh
+  include:
 
-    exclude:
-        - os: osx
-          compiler: gcc
+  # Job 1:
+  - os: linux
+    compiler: gcc
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
 
-script:
-    - ./autogen.sh
-    - ./configure $HOST
-    - make
-    - make ${TEST:-test}
+  # Job 2:
+  - os: linux
+    compiler: clang
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
+
+  # Job 3:
+  - os: osx
+    compiler: clang
+
+  # Job 4:
+  - os: linux
+    compiler: gcc
+    env: CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu"
+    addons:
+      apt:
+        packages:
+        - gcc-multilib
+        - gperf
+        - lib32z1-dev
+
+  # Job 5:
+  - os: linux
+    compiler: i686-w64-mingw32-gcc
+    env: CONFIGURE="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
+
+  # Job 6:
+  - os: linux
+    compiler: clang
+    env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
+
+  # Job 7:
+  - os: linux
+    compiler: clang
+    env: CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
+
+  # Job 8:
+  - os: linux
+    compiler: clang
+    env: PATH="/usr/bin:$PATH" TEST=analyze
+    addons:
+      apt:
+        packages:
+        - clang  # for scan-build
+        - gperf
+        - zlib1g-dev
+
+  # Job 9:
+  - os: linux
+    compiler: gcc
+    env: CUDA=8.0.61-1
+    sudo: required
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+        - zlib1g-dev
+    before_install:
+    - source ./.travis/install_cuda.sh
