@@ -6,7 +6,7 @@
 struct compr_state;
 
 struct compressor {
-	struct compr_state *(*init)(FILE *output, int compression_level);
+	struct compr_state *(*init)(FILE *output, int8_t compression_level);
 	bool (*write)(struct compr_state *state, const void *data, size_t size);
 	bool (*free)(struct compr_state *state);
 };

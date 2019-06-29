@@ -37,10 +37,14 @@ char *confitem_format_string(const void *value);
 bool confitem_parse_umask(const char *str, void *result, char **errmsg);
 char *confitem_format_umask(const void *value);
 
+bool confitem_parse_int(const char *str, void *result, char **errmsg);
+char *confitem_format_int(const void *value);
+
 bool confitem_parse_unsigned(const char *str, void *result, char **errmsg);
 char *confitem_format_unsigned(const void *value);
 
 bool confitem_verify_absolute_path(const void *value, char **errmsg);
+bool confitem_verify_compression_level(const void *value, char **errmsg);
 bool confitem_verify_dir_levels(const void *value, char **errmsg);
 
 const struct conf_item *confitems_get(const char *str, size_t len);

@@ -26,7 +26,7 @@ struct state {
 };
 
 static struct compr_state *
-compr_zlib_init(FILE *output, int level)
+compr_zlib_init(FILE *output, int8_t level)
 {
 	struct state *state = malloc(sizeof(struct state));
 	state->output = output;

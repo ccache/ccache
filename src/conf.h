@@ -10,7 +10,7 @@ struct conf {
 	char *compiler;
 	char *compiler_check;
 	bool compression;
-	unsigned compression_level;
+	int compression_level;
 	char *cpp_extension;
 	bool debug;
 	bool depend_mode;

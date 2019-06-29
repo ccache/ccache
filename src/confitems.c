@@ -243,6 +243,29 @@ confitem_format_umask(const void *value)
 }
 
 bool
+confitem_parse_int(const char *str, void *result, char **errmsg)
+{
+	int *value = (int *)result;
+	errno = 0;
+	char *endptr;
+	long x = strtol(str, &endptr, 10);
+	if (errno == 0 && *str != '\0' && *endptr == '\0') {
+		*value = x;
+		return true;
+	} else {
+		*errmsg = format("invalid integer: \"%s\"", str);
+		return false;
+	}
+}
+
+char *
+confitem_format_int(const void *value)
+{
+	const int *i = (const int *)value;
+	return format("%d", *i);
+}
+
+bool
 confitem_parse_unsigned(const char *str, void *result, char **errmsg)
 {
 	unsigned *value = (unsigned *)result;
@@ -277,6 +300,19 @@ confitem_verify_absolute_path(const void *value, char **errmsg)
 		return true;
 	} else {
 		*errmsg = format("not an absolute path: \"%s\"", *path);
+		return false;
+	}
+}
+
+bool
+confitem_verify_compression_level(const void *value, char **errmsg)
+{
+	const int *level = (const int *)value;
+	assert(level);
+	if (*level >= -128 && *level <= 127) {
+		return true;
+	} else {
+		*errmsg = format("compression level must be between -128 and 127");
 		return false;
 	}
 }

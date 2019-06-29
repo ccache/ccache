@@ -17,7 +17,7 @@
 #include "compression.h"
 
 static struct compr_state *
-compr_none_init(FILE *output, int level)
+compr_none_init(FILE *output, int8_t level)
 {
 	(void)level;
 	return (struct compr_state *)output;

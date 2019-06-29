@@ -25,8 +25,8 @@ void common_header_init_from_config(
 	uint8_t RESULT_VERSION,
 	uint64_t content_size)
 {
-	int8_t compr_level = compression_level_from_config();
 	enum compression_type compr_type = compression_type_from_config();
+	int8_t compr_level = compression_level_from_config();
 
 	memcpy(header->magic, magic, 4);
 	header->version = RESULT_VERSION;

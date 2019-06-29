@@ -21,13 +21,7 @@ extern struct conf *conf;
 
 int8_t compression_level_from_config(void)
 {
-	unsigned conf_compression_level;
-#ifdef USE_ZSTD
-	conf_compression_level = conf->compression_level;
-#else
-	conf_compression_level = conf->compression_level;
-#endif
-	return conf->compression ? conf_compression_level : 0;
+	return conf->compression ? conf->compression_level : 0;
 }
 
 enum compression_type compression_type_from_config(void)
