@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -16,6 +16,13 @@
 
 #ifndef CCACHE_SYSTEM_H
 #define CCACHE_SYSTEM_H
+
+#ifdef __MINGW32__
+#  define __USE_MINGW_ANSI_STDIO 1
+#  define ATTRIBUTE_FORMAT_PRINTF __MINGW_PRINTF_FORMAT
+#else
+#  define ATTRIBUTE_FORMAT_PRINTF printf
+#endif
 
 #include "config.h"
 

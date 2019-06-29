@@ -106,6 +106,10 @@ backdate() {
     touch -t 1999010100$(printf "%02u" $m) "$@"
 }
 
+file_size() {
+    wc -c $1 | awk '{print $1}'
+}
+
 expect_stat() {
     local stat="$1"
     local expected_value="$2"
@@ -396,7 +400,7 @@ direct
 direct_gcc
 depend
 basedir
-compression
+no_compression
 readonly
 readonly_direct
 cleanup

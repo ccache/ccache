@@ -7,12 +7,12 @@ Prerequisites
 To build ccache from a
 [release archive](https://ccache.dev/download.html), you need:
 
-- A C compiler (for instance GCC)
-
-It is also recommended that you have:
-
-- [zlib](http://www.zlib.net) (if you don't have zlib installed, ccache will
-  use a bundled copy)
+- A C compiler (for instance GCC).
+- [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
+  or don't want to install it on your system, you can pass
+  `--with-libzstd-from-internet` to the configure script, which will make the
+  script download libzstd from the Internet and unpack it in the local source
+  tree. ccache will then be linked statically to the locally built libzstd.
 
 
 Installation

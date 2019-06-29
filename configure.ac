@@ -119,57 +119,41 @@ HW_FUNC_ASPRINTF
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
+dnl Check for libzstd
+zstd_version=1.4.0
+zstd_url=https://github.com/facebook/zstd/releases/download/v${zstd_version}/zstd-${zstd_version}.tar.gz
 
-dnl Check for zlib
-AC_ARG_WITH(bundled-zlib,
-  [AS_HELP_STRING([--with-bundled-zlib],
-    [use bundled zlib instead of the system's default zlib])])
-if test x${with_bundled_zlib} = x; then
-    AC_CACHE_CHECK(
-        [for zlib >= 1.2.3],
-        [ccache_cv_zlib_1_2_3],
-        AC_TRY_COMPILE(
-            [#include <zlib.h>],
-            [
-            #if (ZLIB_VERNUM >= 0x1230)
-            #else
-            #error "ZLIB_VERNUM < 0x1230"
-            #endif
-            ],
-            [ccache_cv_zlib_1_2_3=yes],
-            [ccache_cv_zlib_1_2_3=no]))
-    AC_CHECK_LIB(z, gzdopen, true)
-    if test $ccache_cv_zlib_1_2_3 = yes && test $ac_cv_lib_z_gzdopen = yes; then
-        use_bundled_zlib=no
-    else
-        AC_MSG_WARN(using bundled zlib)
-        use_bundled_zlib=yes
+AC_ARG_WITH(libzstd-from-internet,
+  [AS_HELP_STRING([--with-libzstd-from-internet],
+    [download and use libzstd from the Internet instead of using the system's default libzstd])])
+if test x${with_libzstd_from_internet} = x; then
+    AC_CHECK_LIB(zstd, ZSTD_versionNumber, [found_libzstd=yes])
+    if test x${found_libzstd} = x; then
+        AC_MSG_ERROR(please install libzstd or use --with-libzstd-from-internet)
     fi
+    LIBS="$LIBS -lzstd"
 else
-    if test x${with_bundled_zlib} = xno; then
-        AC_MSG_NOTICE(using system zlib as requested)
-        use_bundled_zlib=no
-    else
-        AC_MSG_NOTICE(using bundled zlib as requested)
-        use_bundled_zlib=yes
+    zstd_archive=`basename ${zstd_url}`
+    if ! test -f ${zstd_archive}; then
+        AC_CHECK_TOOL(WGET, wget)
+        if test -n "$WGET"; then
+            AC_MSG_NOTICE(downloading libzstd from $zstd_url)
+            wget -q ${zstd_url}
+        else
+            AC_CHECK_TOOL(CURL, curl)
+            if test -n "$CURL"; then
+                AC_MSG_NOTICE(downloading libzstd from $zstd_url)
+                curl -sLOJ ${zstd_url}
+            else
+                AC_MSG_ERROR(please install wget or curl)
+            fi
+        fi
     fi
-fi
-
-if test x${use_bundled_zlib} = xyes; then
-    CPPFLAGS="$CPPFLAGS -I\$(srcdir)/src/zlib"
-    extra_libs="src/zlib/libz.a"
-    mkdir -p src/zlib
-else
-    LIBS="$LIBS -lz"
-fi
-
-AC_ARG_ENABLE(zstd,
-  [AS_HELP_STRING([--enable-zstd],
-    [use zstd compression instead of zlib])])
-if test x${enable_zstd} = xyes; then
-    CPPFLAGS="$CPPFLAGS -DUSE_ZSTD"
-    AC_CHECK_HEADERS(zstd.h)
-    AC_CHECK_LIB(zstd, ZSTD_versionString)
+    (cd src && tar -xzf ../${zstd_archive})
+    rm -rf src/zstd
+    mv src/zstd-${zstd_version} src/zstd
+    CPPFLAGS="$CPPFLAGS -I$srcdir/src/zstd/lib"
+    extra_libs="src/zstd/lib/libzstd.a"
 fi
 
 AC_ARG_ENABLE(man,

@@ -7,5 +7,5 @@ RUN apk add --no-cache \
                 asciidoc \
                 autoconf \
                 gperf \
-                zlib-dev \
+                zstd-dev \
         ##

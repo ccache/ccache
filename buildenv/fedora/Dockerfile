@@ -8,7 +8,7 @@ RUN dnf install -y \
                 asciidoc \
                 autoconf \
                 gperf \
-                zlib-devel \
+                libzstd-devel \
         && rpm -e --nodeps graphviz \
         && dnf autoremove -y \
         && dnf clean all

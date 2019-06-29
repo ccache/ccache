@@ -17,11 +17,9 @@
 #include "ccache.h"
 #include "compression.h"
 
-#ifdef HAVE_ZSTD_H
 #include <zstd.h>
-#endif
 
-#ifdef HAVE_LIBZSTD
+#define DEFAULT_ZSTD_COMPRESSION_LEVEL -1
 
 struct state {
 	FILE *output;
@@ -29,6 +27,7 @@ struct state {
 	ZSTD_inBuffer in;
 	ZSTD_outBuffer out;
 	bool failed;
+	int8_t compression_level;
 };
 
 static struct compr_state *
@@ -39,21 +38,44 @@ compr_zstd_init(FILE *output, int8_t level)
 	state->stream = ZSTD_createCStream();
 	state->failed = false;
 
-	int8_t actual_level = MIN(level, ZSTD_maxCLevel());
-	if (actual_level != level) {
+	if (level == 0) {
+		level = DEFAULT_ZSTD_COMPRESSION_LEVEL;
+		cc_log("Using default compression level %d", level);
+	}
+
+	// libzstd 1.3.4 and newer support negative levels. However, the query
+	// function ZSTD_minCLevel did not appear until 1.3.6, so perform detection
+	// based on version instead.
+	if (ZSTD_versionNumber() < 10304 && level < 1) {
+		cc_log(
+			"Using compression level 1 (minimum level supported by libzstd) instead"
+			" of %d",
+			level);
+		level = 1;
+	}
+
+	state->compression_level = MIN(level, ZSTD_maxCLevel());
+	if (state->compression_level != level) {
 		cc_log(
 			"Using compression level %d (max libzstd level) instead of %d",
-			actual_level,
+			state->compression_level,
 			level);
 	}
 
-	size_t ret = ZSTD_initCStream(state->stream, actual_level);
+	size_t ret = ZSTD_initCStream(state->stream, state->compression_level);
 	if (ZSTD_isError(ret)) {
 		ZSTD_freeCStream(state->stream);
 		free(state);
 		return NULL;
 	}
 	return (struct compr_state *)state;
+}
+
+static int8_t
+compr_zstd_get_actual_compression_level(struct compr_state *handle)
+{
+	struct state *state = (struct state *)handle;
+	return state->compression_level;
 }
 
 static bool
@@ -120,8 +142,7 @@ compr_zstd_free(struct compr_state *handle)
 
 struct compressor compressor_zstd_impl = {
 	compr_zstd_init,
+	compr_zstd_get_actual_compression_level,
 	compr_zstd_write,
 	compr_zstd_free
 };
-
-#endif // HAVE_LIBZSTD

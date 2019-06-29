@@ -32,6 +32,5 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
 RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 gperf \
                 elfutils \
-                zlib1g-dev \
-                lib32z1-dev \
+                libzstd1-dev \
         && rm -rf /var/lib/apt/lists/*

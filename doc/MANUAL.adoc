@@ -43,7 +43,7 @@ Features
 * Can cache compilations that generate warnings.
 * Easy installation.
 * Low overhead.
-* Optionally compresses files in the cache to reduce disk space.
+* Compresses data in the cache to save disk space.
 
 
 Limitations
@@ -354,17 +354,42 @@ WRAPPERS>>.
 
 *compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, ccache will compress object files and other compiler output it
-    puts in the cache. However, this setting has no effect on how files are
-    retrieved from the cache; compressed and uncompressed results will still be
-    usable regardless of this setting. The default is false.
+    If true, ccache will compress data it puts in the cache. However, this
+    setting has no effect on how files are retrieved from the cache; compressed
+    and uncompressed results will still be usable regardless of this setting.
+    The default is true.
++
+Compression is done using the Zstandard algorithm. The algorithm is fast enough
+that there should be little reason to turn off compression to gain performance.
+One exception is if the cache is located on a compressed file system, in which
+case the compression performed by ccache of course is redundant.
 
 *compression_level* (*CCACHE_COMPRESSLEVEL*)::
 
     This setting determines the level at which ccache will compress object
-    files. It only has effect if *compression* is enabled. The value defaults
-    to 6, and must be no lower than 1 (fastest, worst compression) and no
-    higher than 9 (slowest, best compression).
+    files using the real-time compression algorithm Zstandard. The setting only
+    has effect if *compression* is enabled (which it is by default). Zstandard
+    is extremely fast for decompression and very fast for compression for lower
+    compression levels. The default is 0.
++
+Semantics of *compression_level*:
++
+--
+*> 0*::
+    A positive value corresponds to normal Zstandard compression levels. Lower
+    levels (e.g. *1*) mean faster compression but worse compression ratio.
+    Higher levels (e.g. *19*) mean slower compression but better compression
+    ratio. The maximum possible value depends on the libzstd version.
+    Decompression speed is essentially the same for all levels.
+*< 0*::
+    A negative value corresponds to Zstandard's “ultra-fast” compression
+    levels, which are even faster than level 1 but less good compression
+    ratios. For instance, level *-3* corresponds to the “--fast=3” option for
+    the *zstd* command line tool.
+*0* (default)::
+    The value *0* means that ccache will choose a suitable level, currently
+    *-1*.
+--
 
 *cpp_extension* (*CCACHE_EXTENSION*)::
 
@@ -675,11 +700,13 @@ Note that *limit_multiple* is not taken into account for manual cleanup.
 Cache compression
 -----------------
 
-ccache can optionally compress all files it puts into the cache using the
-compression library zlib. While this may involve a tiny performance slowdown,
-it increases the number of files that fit in the cache. You can turn on
-compression with the *compression* configuration setting and you can also tweak
-the compression level with *compression_level*.
+ccache will by default compress all data it puts into the cache using the
+compression algorithm Zstandard (zstd) using compression level 1. The algorithm
+is fast enough that there should be little reason to turn off compression to
+gain performance. One exception is if the cache is located on a compressed file
+system, in which case the compression performed by ccache of course is
+redundant. See the documentation for the *compression* and *compression_level*
+settings for more information.
 
 
 Cache statistics

@@ -21,7 +21,7 @@ LIBS = @LIBS@
 RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
-all_cppflags = @DEFS@ -DZLIB_CONST -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
+all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 v_at_0 = yes
@@ -36,14 +36,12 @@ non_3pp_sources = \
     src/common_header.c \
     src/compopt.c \
     src/compr_none.c \
-    src/compr_zlib.c \
     src/compr_zstd.c \
     src/compression.c \
     src/conf.c \
     src/confitems.c \
     src/counters.c \
     src/decompr_none.c \
-    src/decompr_zlib.c \
     src/decompr_zstd.c \
     src/execute.c \
     src/exitfn.c \
@@ -76,35 +74,18 @@ non_3pp_objs = $(non_3pp_sources:.c=.o)
 ccache_sources = src/main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
 
-zlib_sources = \
-    src/zlib/adler32.c \
-    src/zlib/crc32.c \
-    src/zlib/deflate.c \
-    src/zlib/gzclose.c \
-    src/zlib/gzlib.c \
-    src/zlib/gzread.c \
-    src/zlib/gzwrite.c \
-    src/zlib/inffast.c \
-    src/zlib/inflate.c \
-    src/zlib/inftrees.c \
-    src/zlib/trees.c \
-    src/zlib/zutil.c
-
-zlib_objs = $(zlib_sources:.c=.o)
-
 test_suites = @test_suites@
 test_sources = unittest/main.c unittest/framework.c unittest/util.c
 test_sources += $(test_suites)
 test_objs = $(test_sources:.c=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
-all_objs = $(ccache_objs) $(test_objs) $(zlib_objs)
+all_objs = $(ccache_objs) $(test_objs)
 
 files_to_clean = \
     $(all_objs) \
     ccache$(EXEEXT) \
     src/*~ \
-    src/zlib/libz.a \
     testdir.* \
     unittest/run$(EXEEXT) \
     *~
@@ -134,16 +115,17 @@ install: ccache$(EXEEXT) @disable_man@ccache.1
 .PHONY: clean
 clean:
 	rm -rf $(files_to_clean)
+	[ ! -d src/zstd ] || $(MAKE) -C src/zstd/lib clean
 
 src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
-$(zlib_objs): CPPFLAGS += -include config.h
-$(zlib_objs): CFLAGS += @no_implicit_fallthrough_warning@
 
-src/zlib/libz.a: $(zlib_objs)
-	$(if $(quiet),@echo "  AR       $@")
-	$(Q)$(AR) cr $@ $(zlib_objs)
-	$(if $(quiet),@echo "  RANLIB   $@")
-	$(Q)$(RANLIB) $@
+libzstd_options = \
+    ZSTD_LEGACY_SUPPORT=0 \
+    ZSTD_LIB_DEPRECATED=0 \
+    ZSTD_LIB_DICTBUILDER=0
+
+src/zstd/lib/libzstd.a:
+	$(MAKE) -C src/zstd/lib libzstd.a $(libzstd_options) CC=$(CC)
 
 .PHONY: performance
 performance: ccache$(EXEEXT)

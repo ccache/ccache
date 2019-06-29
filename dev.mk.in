@@ -99,8 +99,6 @@ source_dist_files = \
     src/envtoconfitems_lookup.c \
     src/main.c \
     src/minitrace.c \
-    src/zlib/*.c \
-    src/zlib/*.h \
     test/run \
     test/suites/*.bash
 
@@ -172,8 +170,8 @@ endef
 
 .PHONY: distcheck
 distcheck: $(firstword $(dist_archives))
-	$(call do_distcheck, --without-bundled-zlib)
-	$(call do_distcheck, --with-bundled-zlib)
+	$(call do_distcheck)
+	$(call do_distcheck, --with-libzstd-from-internet)
 	$(call do_distcheck, CC=clang)
 
 .PHONY: docs

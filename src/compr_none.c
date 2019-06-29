@@ -23,6 +23,13 @@ compr_none_init(FILE *output, int8_t level)
 	return (struct compr_state *)output;
 }
 
+static int8_t
+compr_none_get_actual_compression_level(struct compr_state *handle)
+{
+	(void)handle;
+	return 0;
+}
+
 static bool
 compr_none_write(struct compr_state *handle, const void *data, size_t size)
 {
@@ -39,6 +46,7 @@ compr_none_free(struct compr_state *handle)
 
 struct compressor compressor_none_impl = {
 	compr_none_init,
+	compr_none_get_actual_compression_level,
 	compr_none_write,
 	compr_none_free
 };

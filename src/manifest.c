@@ -30,9 +30,9 @@
 //                     <content_len>
 // <magic>         ::= 4 bytes ("cCrS")
 // <version>       ::= uint8_t
-// <compr_type>    ::= <compr_none> | <compr_zlib>
+// <compr_type>    ::= <compr_none> | <compr_zstd>
 // <compr_none>    ::= 0 (uint8_t)
-// <compr_zlib>    ::= 1 (uint8_t)
+// <compr_zstd>    ::= 1 (uint8_t)
 // <compr_level>   ::= int8_t
 // <content_len>   ::= uint64_t ; size of file if stored uncompressed
 // <body>          ::= <paths> <includes> <results> ; body is potentially
@@ -397,11 +397,6 @@ write_manifest(FILE *f, const struct manifest *mf)
 
 	struct common_header header;
 	common_header_from_config(&header, MAGIC, MANIFEST_VERSION, content_size);
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	common_header_to_bytes(&header, header_bytes);
-	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		goto error;
-	}
 
 	struct compressor *compressor =
 		compressor_from_type(header.compression_type);
@@ -410,6 +405,14 @@ write_manifest(FILE *f, const struct manifest *mf)
 		compressor->init(f, header.compression_level);
 	if (!compr_state) {
 		cc_log("Failed to initialize compressor");
+		goto error;
+	}
+	header.compression_level =
+		compressor->get_actual_compression_level(compr_state);
+
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	common_header_to_bytes(&header, header_bytes);
+	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
 		goto error;
 	}
 

@@ -17,11 +17,7 @@
 #include "ccache.h"
 #include "compression.h"
 
-#ifdef HAVE_ZSTD_H
 #include <zstd.h>
-#endif
-
-#ifdef HAVE_LIBZSTD
 
 enum stream_state {
 	STREAM_STATE_READING,
@@ -120,5 +116,3 @@ struct decompressor decompressor_zstd_impl = {
 	decompr_zstd_read,
 	decompr_zstd_free
 };
-
-#endif // HAVE_LIBZSTD

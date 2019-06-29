@@ -26,10 +26,9 @@
 // <header>      ::= <magic> <version> <compr_type> <compr_level> <content_len>
 // <magic>       ::= 4 bytes ("cCrS")
 // <version>     ::= uint8_t
-// <compr_type>  ::= <compr_none> | <compr_zlib> | <compr_zstd>
+// <compr_type>  ::= <compr_none> | <compr_zstd>
 // <compr_none>  ::= 0 (uint8_t)
-// <compr_zlib>  ::= 1 (uint8_t)
-// <compr_zstd>  ::= 2 (uint8_t)
+// <compr_zstd>  ::= 1 (uint8_t)
 // <compr_level> ::= int8_t
 // <content_len> ::= uint64_t ; size of file if stored uncompressed
 // <body>        ::= <n_entries> <entry>* ; body is potentially compressed
@@ -409,13 +408,6 @@ bool result_put(const char *path, struct result_files *list)
 	struct common_header header;
 	common_header_from_config(&header, MAGIC, RESULT_VERSION, content_size);
 
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	common_header_to_bytes(&header, header_bytes);
-	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		cc_log("Failed to write result file header to %s", tmp_file);
-		goto out;
-	}
-
 	struct compressor *compressor =
 		compressor_from_type(header.compression_type);
 	assert(compressor);
@@ -425,6 +417,16 @@ bool result_put(const char *path, struct result_files *list)
 		cc_log("Failed to initialize compressor");
 		goto out;
 	}
+	header.compression_level =
+		compressor->get_actual_compression_level(compr_state);
+
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	common_header_to_bytes(&header, header_bytes);
+	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
+		cc_log("Failed to write result file header to %s", tmp_file);
+		goto out;
+	}
+
 	bool ok = write_result(list, compressor, compr_state)
 	          && compressor->free(compr_state);
 	if (!ok) {

@@ -55,12 +55,8 @@ TEST(conf_create)
 	CHECK_INT_EQ(2, conf->cache_dir_levels);
 	CHECK_STR_EQ("", conf->compiler);
 	CHECK_STR_EQ("mtime", conf->compiler_check);
-	CHECK(!conf->compression);
-#ifdef USE_ZSTD
-	CHECK_INT_EQ(3, conf->compression_level);
-#else
-	CHECK_INT_EQ(6, conf->compression_level);
-#endif
+	CHECK(conf->compression);
+	CHECK_INT_EQ(0, conf->compression_level);
 	CHECK_STR_EQ("", conf->cpp_extension);
 	CHECK(!conf->debug);
 	CHECK(!conf->depend_mode);
@@ -112,7 +108,7 @@ TEST(conf_read_valid_config)
 		" cache_dir_levels = 4\n"
 		"\t compiler = foo\n"
 		"compiler_check = none\n"
-		"compression=true\n"
+		"compression=false\n"
 		"compression_level= 2\n"
 		"cpp_extension = .foo\n"
 		"depend_mode = true\n"
@@ -151,7 +147,7 @@ TEST(conf_read_valid_config)
 	CHECK_INT_EQ(4, conf->cache_dir_levels);
 	CHECK_STR_EQ("foo", conf->compiler);
 	CHECK_STR_EQ("none", conf->compiler_check);
-	CHECK(conf->compression);
+	CHECK(!conf->compression);
 	CHECK_INT_EQ(2, conf->compression_level);
 	CHECK_STR_EQ(".foo", conf->cpp_extension);
 	CHECK(conf->depend_mode);

@@ -18,7 +18,7 @@ matrix:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
 
   # Job 2:
   - os: linux
@@ -29,34 +29,32 @@ matrix:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
 
   # Job 3:
   - os: osx
     compiler: clang
-    env: V=1
+    env: V=1 CONFIGURE="--with-libzstd-from-internet"
 
   # Job 4:
   - os: linux
     compiler: gcc
-    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu"
+    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet"
     addons:
       apt:
         packages:
         - gcc-multilib
         - gperf
-        - lib32z1-dev
 
   # Job 5:
   - os: linux
     compiler: i686-w64-mingw32-gcc
-    env: V=1 CONFIGURE="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+    env: V=1 CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet" TEST="unittest/run.exe"
     addons:
       apt:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
 
   # Job 6:
   - os: linux
@@ -67,7 +65,7 @@ matrix:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
 
   # Job 7:
   - os: linux
@@ -78,7 +76,7 @@ matrix:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
 
   # Job 8:
   - os: linux
@@ -89,7 +87,7 @@ matrix:
         packages:
         - clang  # for scan-build
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
 
   # Job 9:
   - os: linux
@@ -101,6 +99,6 @@ matrix:
         packages:
         - elfutils
         - gperf
-        - zlib1g-dev
+        - libzstd1-dev
     before_install:
     - source ./.travis/install_cuda.sh

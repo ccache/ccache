@@ -24,7 +24,7 @@
 #include "minitrace.h"
 
 #ifdef __GNUC__
-#define ATTR_FORMAT(x, y, z) __attribute__((format (x, y, z)))
+#define ATTR_FORMAT(x, y, z) __attribute__((format (ATTRIBUTE_FORMAT_PRINTF, y, z)))
 #define ATTR_NORETURN __attribute__((noreturn))
 #else
 #define ATTR_FORMAT(x, y, z)
