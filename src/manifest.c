@@ -21,7 +21,7 @@
 #include "compression.h"
 #include "int_bytes_conversion.h"
 #include "manifest.h"
-#include "murmurhashneutral2.h"
+#include "xxhash.h"
 
 // Manifest data format (big-endian integers):
 //
@@ -150,7 +150,7 @@ static unsigned int
 hash_from_file_info(void *key)
 {
 	ccache_static_assert(sizeof(struct file_info) == 48); // No padding.
-	return murmurhashneutral2(key, sizeof(struct file_info), 0);
+	return XXH64(key, sizeof(struct file_info), 0);
 }
 
 static int

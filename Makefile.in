@@ -65,8 +65,8 @@ generated_sources = \
     src/getopt_long.c \
     src/hashtable.c \
     src/hashtable_itr.c \
-    src/murmurhashneutral2.c \
-    src/snprintf.c
+    src/snprintf.c \
+    src/xxhash.c
 extra_sources = @extra_sources@
 base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources) $(extra_sources)
 base_objs = $(base_sources:.c=.o)

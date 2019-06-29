@@ -17,18 +17,18 @@
 #include "ccache.h"
 #include "hashutil.h"
 #include "macroskip.h"
-#include "murmurhashneutral2.h"
+#include "xxhash.h"
 
 unsigned
 hash_from_string(void *str)
 {
-	return murmurhashneutral2(str, strlen((const char *)str), 0);
+	return XXH64(str, strlen((const char *)str), 0);
 }
 
 unsigned
 hash_from_int(int i)
 {
-	return murmurhashneutral2(&i, sizeof(int), 0);
+	return XXH64(&i, sizeof(int), 0);
 }
 
 int

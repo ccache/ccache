@@ -56,9 +56,9 @@ headers = \
     src/manifest.h \
     src/mdfour.h \
     src/minitrace.h \
-    src/murmurhashneutral2.h \
     src/system.h \
     src/unify.h \
+    src/xxhash.h \
     unittest/framework.h \
     unittest/util.h
 generated_headers = \
