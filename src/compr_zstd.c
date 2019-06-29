@@ -39,7 +39,15 @@ compr_zstd_init(FILE *output, int8_t level)
 	state->stream = ZSTD_createCStream();
 	state->failed = false;
 
-	size_t ret = ZSTD_initCStream(state->stream, level);
+	int8_t actual_level = MIN(level, ZSTD_maxCLevel());
+	if (actual_level != level) {
+		cc_log(
+			"Using compression level %d (max libzstd level) instead of %d",
+			actual_level,
+			level);
+	}
+
+	size_t ret = ZSTD_initCStream(state->stream, actual_level);
 	if (ZSTD_isError(ret)) {
 		ZSTD_freeCStream(state->stream);
 		free(state);
