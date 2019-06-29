@@ -19,7 +19,7 @@
 #include "compression.h"
 #include "common_header.h"
 
-void common_header_init_from_config(
+void common_header_from_config(
 	struct common_header *header,
 	const char magic[4],
 	uint8_t RESULT_VERSION,
@@ -35,29 +35,24 @@ void common_header_init_from_config(
 	header->content_size = content_size;
 }
 
-bool common_header_init_from_file(struct common_header *header, FILE *f)
+void
+common_header_from_bytes(struct common_header *header, uint8_t *buffer)
 {
-	char buffer[COMMON_HEADER_SIZE];
-	if (fread(buffer, 1, sizeof(buffer), f) != sizeof(buffer)) {
-		return false;
-	}
 	memcpy(header->magic, buffer, 4);
 	header->version = buffer[4];
 	header->compression_type = buffer[5];
 	header->compression_level = buffer[6];
 	header->content_size = UINT64_FROM_BYTES(buffer + 7);
-	return true;
 }
 
-bool common_header_write_to_file(const struct common_header *header, FILE *f)
+void
+common_header_to_bytes(const struct common_header *header, uint8_t *buffer)
 {
-	char buffer[COMMON_HEADER_SIZE];
 	memcpy(buffer, header->magic, 4);
 	buffer[4] = header->version;
 	buffer[5] = header->compression_type;
 	buffer[6] = header->compression_level;
 	BYTES_FROM_UINT64(buffer + 7, header->content_size);
-	return fwrite(buffer, 1, sizeof(buffer), f) == sizeof(buffer);
 }
 
 bool common_header_verify(

@@ -252,10 +252,13 @@ read_manifest(const char *path, char **errmsg)
 		goto out;
 	}
 
-	if (!common_header_init_from_file(&mf->header, f)) {
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	if (fread(header_bytes, sizeof(header_bytes), 1, f) != 1) {
 		*errmsg = format("Failed to read header from %s", path);
 		goto out;
 	}
+
+	common_header_from_bytes(&mf->header, header_bytes);
 
 	if (memcmp(mf->header.magic, MAGIC, sizeof(MAGIC)) != 0) {
 		*errmsg = format(
@@ -393,9 +396,10 @@ write_manifest(FILE *f, const struct manifest *mf)
 	}
 
 	struct common_header header;
-	common_header_init_from_config(
-		&header, MAGIC, MANIFEST_VERSION, content_size);
-	if (!common_header_write_to_file(&header, f)) {
+	common_header_from_config(&header, MAGIC, MANIFEST_VERSION, content_size);
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	common_header_to_bytes(&header, header_bytes);
+	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
 		goto error;
 	}
 
