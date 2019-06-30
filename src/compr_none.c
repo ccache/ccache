@@ -16,11 +16,19 @@
 
 #include "compression.h"
 
+struct state {
+	FILE *output;
+	XXH64_state_t *checksum;
+};
+
 static struct compr_state *
-compr_none_init(FILE *output, int8_t level)
+compr_none_init(FILE *output, int8_t level, XXH64_state_t *checksum)
 {
+	struct state *state = malloc(sizeof(struct state));
+	state->output = output;
+	state->checksum = checksum;
 	(void)level;
-	return (struct compr_state *)output;
+	return (struct compr_state *)state;
 }
 
 static int8_t
@@ -33,15 +41,21 @@ compr_none_get_actual_compression_level(struct compr_state *handle)
 static bool
 compr_none_write(struct compr_state *handle, const void *data, size_t size)
 {
-	FILE *output = (FILE *)handle;
-	return fwrite(data, 1, size, output) == size;
+	struct state *state = (struct state *)handle;
+	size_t ret = fwrite(data, size, 1, state->output);
+	if (state->checksum) {
+		XXH64_update(state->checksum, data, size);
+	}
+	return ret == 1;
 }
 
 static bool
 compr_none_free(struct compr_state *handle)
 {
-	FILE *output = (FILE *)handle;
-	return ferror(output) == 0;
+	struct state *state = (struct state *)handle;
+	bool result = ferror(state->output) == 0;
+	free(state);
+	return result;
 }
 
 struct compressor compressor_none_impl = {

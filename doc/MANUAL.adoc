@@ -44,6 +44,7 @@ Features
 * Easy installation.
 * Low overhead.
 * Compresses data in the cache to save disk space.
+* Checksums data in the cache to detect corruption.
 
 
 Limitations

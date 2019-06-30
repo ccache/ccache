@@ -23,9 +23,12 @@
 #include "manifest.h"
 #include "xxhash.h"
 
-// Manifest data format (big-endian integers):
+// Manifest data format
+// ====================
 //
-// <manifest>      ::= <header> <body>
+// Integers are big-endian.
+//
+// <manifest>      ::= <header> <body> <epilogue
 // <header>        ::= <magic> <version> <compr_type> <compr_level>
 //                     <content_len>
 // <magic>         ::= 4 bytes ("cCrS")
@@ -56,6 +59,8 @@
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
 // <name>          ::= DIGEST_SIZE bytes
+// <epilogue>      ::= <checksum>
+// <checksum>      ::= uint64_t ; XXH64 of content bytes
 //
 // Sketch of concrete layout:
 
@@ -84,8 +89,11 @@
 // ...
 // <name>          DIGEST_SIZE bytes
 // ...
+// checksum        8 bytes
 //
-// Version history:
+//
+// Version history
+// ===============
 //
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 3.8.
@@ -245,6 +253,7 @@ read_manifest(const char *path, char **errmsg)
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
 	*errmsg = NULL;
+	XXH64_state_t *checksum = NULL;
 
 	FILE *f = fopen(path, "rb");
 	if (!f) {
@@ -289,7 +298,11 @@ read_manifest(const char *path, char **errmsg)
 		goto out;
 	}
 
-	decompr_state = decompressor->init(f);
+	checksum = XXH64_createState();
+	XXH64_reset(checksum, 0);
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+
+	decompr_state = decompressor->init(f, checksum);
 	if (!decompr_state) {
 		*errmsg = x_strdup("Failed to initialize decompressor");
 		goto out;
@@ -324,7 +337,17 @@ read_manifest(const char *path, char **errmsg)
 		READ_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
 	}
 
-	success = true;
+	uint64_t actual_checksum = XXH64_digest(checksum);
+	uint64_t expected_checksum;
+	READ_UINT64(expected_checksum);
+	if (actual_checksum == expected_checksum) {
+		success = true;
+	} else {
+		*errmsg = format(
+			"Incorrect checksum (actual %016llx, expected %016llx)",
+			(unsigned long long)actual_checksum,
+			(unsigned long long)expected_checksum);
+	}
 
 out:
 	if (decompressor && !decompressor->free(decompr_state)) {
@@ -332,6 +355,9 @@ out:
 	}
 	if (f) {
 		fclose(f);
+	}
+	if (checksum) {
+		XXH64_freeState(checksum);
 	}
 	if (!success) {
 		if (!*errmsg) {
@@ -346,7 +372,7 @@ out:
 #define WRITE_BYTES(buf, length) \
 	do { \
 		if (!compressor->write(compr_state, buf, length)) { \
-			goto error; \
+			goto out; \
 		} \
 	} while (false)
 
@@ -381,6 +407,9 @@ out:
 static bool
 write_manifest(FILE *f, const struct manifest *mf)
 {
+	int ret = false;
+	XXH64_state_t *checksum = NULL;
+
 	uint64_t content_size = COMMON_HEADER_SIZE;
 	content_size += 4; // n_files
 	for (size_t i = 0; i < mf->n_files; i++) {
@@ -394,18 +423,22 @@ write_manifest(FILE *f, const struct manifest *mf)
 		content_size += mf->results[i].n_file_info_indexes * 4;
 		content_size += DIGEST_SIZE;
 	}
+	content_size += 8; // checksum
 
 	struct common_header header;
 	common_header_from_config(&header, MAGIC, MANIFEST_VERSION, content_size);
+
+	checksum = XXH64_createState();
+	XXH64_reset(checksum, 0);
 
 	struct compressor *compressor =
 		compressor_from_type(header.compression_type);
 	assert(compressor);
 	struct compr_state *compr_state =
-		compressor->init(f, header.compression_level);
+		compressor->init(f, header.compression_level, checksum);
 	if (!compr_state) {
 		cc_log("Failed to initialize compressor");
-		goto error;
+		goto out;
 	}
 	header.compression_level =
 		compressor->get_actual_compression_level(compr_state);
@@ -413,8 +446,9 @@ write_manifest(FILE *f, const struct manifest *mf)
 	uint8_t header_bytes[COMMON_HEADER_SIZE];
 	common_header_to_bytes(&header, header_bytes);
 	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		goto error;
+		goto out;
 	}
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
 
 	WRITE_UINT32(mf->n_files);
 	for (uint32_t i = 0; i < mf->n_files; i++) {
@@ -440,11 +474,16 @@ write_manifest(FILE *f, const struct manifest *mf)
 		WRITE_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
 	}
 
-	return compressor->free(compr_state);
+	WRITE_UINT64(XXH64_digest(checksum));
 
-error:
-	cc_log("Error writing to manifest file");
-	return false;
+	ret = compressor->free(compr_state);
+
+out:
+	XXH64_freeState(checksum);
+	if (!ret) {
+		cc_log("Error writing to manifest file");
+	}
+	return ret;
 }
 
 static bool

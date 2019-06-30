@@ -23,6 +23,7 @@
 
 struct state {
 	FILE *output;
+	XXH64_state_t *checksum;
 	ZSTD_CStream *stream;
 	ZSTD_inBuffer in;
 	ZSTD_outBuffer out;
@@ -31,10 +32,11 @@ struct state {
 };
 
 static struct compr_state *
-compr_zstd_init(FILE *output, int8_t level)
+compr_zstd_init(FILE *output, int8_t level, XXH64_state_t *checksum)
 {
 	struct state *state = malloc(sizeof(struct state));
 	state->output = output;
+	state->checksum = checksum;
 	state->stream = ZSTD_createCStream();
 	state->failed = false;
 
@@ -86,6 +88,10 @@ compr_zstd_write(struct compr_state *handle, const void *data, size_t size)
 	}
 	struct state *state = (struct state *)handle;
 
+	if (state->checksum) {
+		XXH64_update(state->checksum, data, size);
+	}
+
 	state->in.src = data;
 	state->in.size = size;
 	state->in.pos = 0;
@@ -131,6 +137,7 @@ compr_zstd_free(struct compr_state *handle)
 	if (!handle) {
 		return false;
 	}
+
 	struct state *state = (struct state *)handle;
 
 	compr_zstd_write(handle, NULL, 0);

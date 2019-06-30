@@ -2,6 +2,7 @@
 #define COMPRESSION_H
 
 #include "system.h"
+#include "xxhash.h"
 
 struct compr_state;
 
@@ -10,7 +11,11 @@ struct compressor {
 	//
 	// output: The file to write compressed data to.
 	// compression_level: Desired compression level.
-	struct compr_state *(*init)(FILE *output, int8_t compression_level);
+	// checksum: Checksum state to update (NULL for no checksum).
+	struct compr_state *(*init)(
+		FILE *output,
+		int8_t compression_level,
+		XXH64_state_t *checksum);
 
 	// Get the actual compression level that will be used.
 	int8_t (*get_actual_compression_level)(struct compr_state *state);
@@ -36,7 +41,8 @@ struct decompressor {
 	// Create and initialize a decompressor.
 	//
 	// input: The file to read compressed data from.
-	struct decompr_state *(*init)(FILE *input);
+	// checksum: Checksum state to update (NULL for no checksum).
+	struct decompr_state *(*init)(FILE *input, XXH64_state_t *checksum);
 
 	// Decompress data.
 	//

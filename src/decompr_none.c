@@ -16,24 +16,44 @@
 
 #include "compression.h"
 
+struct state {
+	FILE *input;
+	XXH64_state_t *checksum;
+	bool failed;
+};
+
 static struct decompr_state *
-decompr_none_init(FILE *input)
+decompr_none_init(FILE *input, XXH64_state_t *checksum)
 {
-	return (struct decompr_state *)input;
+	struct state *state = malloc(sizeof(struct state));
+	state->input = input;
+	state->checksum = checksum;
+	state->failed = false;
+	return (struct decompr_state *)state;
 }
 
 static bool
 decompr_none_read(struct decompr_state *handle, void *data, size_t size)
 {
-	FILE *input = (FILE *)handle;
-	return fread(data, 1, size, input) == size;
+	struct state *state = (struct state *)handle;
+
+	bool result = fread(data, 1, size, state->input) == size;
+	if (result && state->checksum) {
+		XXH64_update(state->checksum, data, size);
+	}
+	if (!result) {
+		state->failed = true;
+	}
+	return result;
 }
 
 static bool
 decompr_none_free(struct decompr_state *handle)
 {
-	FILE *input = (FILE *)handle;
-	return ferror(input) == 0;
+	struct state *state = (struct state *)handle;
+	bool result = !state->failed;
+	free(state);
+	return result;
 }
 
 struct decompressor decompressor_none_impl = {

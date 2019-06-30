@@ -18,11 +18,15 @@
 #include "common_header.h"
 #include "int_bytes_conversion.h"
 #include "compression.h"
+#include "xxhash.h"
 #include "result.h"
 
-// Result data format (big-endian integers):
+// Result data format
+// ==================
 //
-// <result>      ::= <header> <body>
+// Integers are big-endian.
+//
+// <result>      ::= <header> <body> <epilogue>
 // <header>      ::= <magic> <version> <compr_type> <compr_level> <content_len>
 // <magic>       ::= 4 bytes ("cCrS")
 // <version>     ::= uint8_t
@@ -44,6 +48,8 @@
 // <ref_marker>  ::= 1 (uint8_t)
 // <key_len>     ::= uint8_t
 // <key>         ::= key_len bytes
+// <epilogue>    ::= <checksum>
+// <checksum>    ::= uint64_t ; XXH64 of content bytes
 //
 // Sketch of concrete layout:
 //
@@ -64,8 +70,11 @@
 // <key_len>       1 byte
 // <key>           key_len bytes
 // ...
+// checksum        8 bytes
 //
-// Version history:
+//
+// Version history
+// ===============
 //
 // 1: Introduced in ccache 3.8.
 
@@ -154,6 +163,7 @@ read_result(
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
 	FILE *subfile = NULL;
+	XXH64_state_t *checksum = NULL;
 
 	FILE *f = fopen(path, "rb");
 	if (!f) {
@@ -167,6 +177,10 @@ read_result(
 		*errmsg = format("Failed to read header from %s", path);
 		goto out;
 	}
+
+	checksum = XXH64_createState();
+	XXH64_reset(checksum, 0);
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
 
 	struct common_header header;
 	common_header_from_bytes(&header, header_bytes);
@@ -200,7 +214,7 @@ read_result(
 		goto out;
 	}
 
-	decompr_state = decompressor->init(f);
+	decompr_state = decompressor->init(f, checksum);
 	if (!decompr_state) {
 		*errmsg = x_strdup("Failed to initialize decompressor");
 		goto out;
@@ -283,10 +297,22 @@ read_result(
 		}
 	}
 
-	if (i == n_entries) {
+	if (i != n_entries) {
+		*errmsg = format("Too few entries (read %u, expected %u)", i, n_entries);
+		goto out;
+	}
+
+	uint64_t actual_checksum = XXH64_digest(checksum);
+	uint8_t expected_checksum_bytes[8];
+	READ_BYTES(expected_checksum_bytes, sizeof(expected_checksum_bytes));
+	uint64_t expected_checksum = UINT64_FROM_BYTES(expected_checksum_bytes);
+	if (actual_checksum == expected_checksum) {
 		success = true;
 	} else {
-		*errmsg = format("Too few entries (read %u, expected %u)", i, n_entries);
+		*errmsg = format(
+			"Incorrect checksum (actual %016llx, expected %016llx)",
+			(unsigned long long)actual_checksum,
+			(unsigned long long)expected_checksum);
 	}
 
 out:
@@ -298,6 +324,9 @@ out:
 	}
 	if (f) {
 		fclose(f);
+	}
+	if (checksum) {
+		XXH64_freeState(checksum);
 	}
 	if (!success && !*errmsg) {
 		*errmsg = x_strdup("Corrupt result file");
@@ -332,7 +361,8 @@ static bool
 write_result(
 	const struct result_files *list,
 	struct compressor *compressor,
-	struct compr_state *compr_state)
+	struct compr_state *compr_state,
+	XXH64_state_t *checksum)
 {
 	WRITE_BYTE(list->n_files);
 
@@ -359,6 +389,8 @@ write_result(
 		}
 		fclose(f);
 	}
+
+	WRITE_INT(8, XXH64_digest(checksum));
 
 	return true;
 
@@ -387,6 +419,8 @@ bool result_get(const char *path, struct result_files *list)
 bool result_put(const char *path, struct result_files *list)
 {
 	bool ret = false;
+	XXH64_state_t *checksum = NULL;
+
 	char *tmp_file = format("%s.tmp", path);
 	int fd = create_tmp_fd(&tmp_file);
 	FILE *f = fdopen(fd, "wb");
@@ -404,15 +438,19 @@ bool result_put(const char *path, struct result_files *list)
 		content_size += 8; // data_len
 		content_size += list->files[i].size; // data
 	}
+	content_size += 8; // checksum
 
 	struct common_header header;
 	common_header_from_config(&header, MAGIC, RESULT_VERSION, content_size);
+
+	checksum = XXH64_createState();
+	XXH64_reset(checksum, 0);
 
 	struct compressor *compressor =
 		compressor_from_type(header.compression_type);
 	assert(compressor);
 	struct compr_state *compr_state =
-		compressor->init(f, header.compression_level);
+		compressor->init(f, header.compression_level, checksum);
 	if (!compr_state) {
 		cc_log("Failed to initialize compressor");
 		goto out;
@@ -426,8 +464,9 @@ bool result_put(const char *path, struct result_files *list)
 		cc_log("Failed to write result file header to %s", tmp_file);
 		goto out;
 	}
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
 
-	bool ok = write_result(list, compressor, compr_state)
+	bool ok = write_result(list, compressor, compr_state, checksum)
 	          && compressor->free(compr_state);
 	if (!ok) {
 		cc_log("Failed to write result file");
@@ -446,6 +485,9 @@ out:
 	free(tmp_file);
 	if (f) {
 		fclose(f);
+	}
+	if (checksum) {
+		XXH64_freeState(checksum);
 	}
 	return ret;
 }

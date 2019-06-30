@@ -27,6 +27,7 @@ enum stream_state {
 
 struct state {
 	FILE *input;
+	XXH64_state_t *checksum;
 	char input_buffer[READ_BUFFER_SIZE];
 	size_t input_size;
 	size_t input_consumed;
@@ -37,11 +38,12 @@ struct state {
 };
 
 static struct decompr_state *
-decompr_zstd_init(FILE *input)
+decompr_zstd_init(FILE *input, XXH64_state_t *checksum)
 {
 	struct state *state = malloc(sizeof(struct state));
 
 	state->input = input;
+	state->checksum = checksum;
 	state->input_size = 0;
 	state->input_consumed = 0;
 	state->stream = ZSTD_createDStream();
@@ -88,7 +90,11 @@ decompr_zstd_read(struct decompr_state *handle, void *data, size_t size)
 		if (ZSTD_isError(ret)) {
 			state->stream_state = STREAM_STATE_FAILED;
 			return false;
-		} else if (ret == 0) {
+		}
+		if (state->checksum) {
+			XXH64_update(state->checksum, state->out.dst, state->out.pos);
+		}
+		if (ret == 0) {
 			state->stream_state = STREAM_STATE_END;
 			break;
 		}
