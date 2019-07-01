@@ -150,6 +150,13 @@ result_files_free(struct result_files *list)
 #define READ_BYTE(var) \
 	READ_BYTES(&var, 1)
 
+#define READ_UINT64(var) \
+	do { \
+		char buf_[8]; \
+		READ_BYTES(buf_, sizeof(buf_)); \
+		(var) = UINT64_FROM_BYTES(buf_); \
+	} while (false)
+
 static bool
 read_result(
 	const char *path,
@@ -215,9 +222,8 @@ read_result(
 		READ_BYTES(suffix, suffix_len);
 		suffix[suffix_len] = '\0';
 
-		char filelen_buffer[8];
-		READ_BYTES(filelen_buffer, sizeof(filelen_buffer));
-		uint64_t filelen = UINT64_FROM_BYTES(filelen_buffer);
+		uint64_t filelen;
+		READ_UINT64(filelen);
 
 		cc_log("Reading entry #%u: %s (%lu)",
 		       i,
@@ -271,9 +277,9 @@ read_result(
 	}
 
 	uint64_t actual_checksum = XXH64_digest(checksum);
-	uint8_t expected_checksum_bytes[8];
-	READ_BYTES(expected_checksum_bytes, sizeof(expected_checksum_bytes));
-	uint64_t expected_checksum = UINT64_FROM_BYTES(expected_checksum_bytes);
+	uint64_t expected_checksum;
+	READ_UINT64(expected_checksum);
+
 	if (actual_checksum == expected_checksum) {
 		success = true;
 	} else {
@@ -315,14 +321,11 @@ out:
 		WRITE_BYTES(&ch_, 1); \
 	} while (false)
 
-#define WRITE_INT(size, var) \
+#define WRITE_UINT64(var) \
 	do { \
-		uint64_t u_ = (var); \
-		uint8_t buf_[size]; \
-		for (size_t i_ = 0; i_ < (size); i_++) { \
-			buf_[i_] = (u_ >> (8 * ((size) - i_ - 1))); \
-		} \
-		WRITE_BYTES(buf_, size); \
+		char buf_[8]; \
+		BYTES_FROM_UINT64(buf_, (var)); \
+		WRITE_BYTES(buf_, sizeof(buf_)); \
 	} while (false)
 
 static bool
@@ -342,7 +345,7 @@ write_result(
 		size_t suffix_len = strlen(list->files[i].suffix);
 		WRITE_BYTE(suffix_len);
 		WRITE_BYTES(list->files[i].suffix, suffix_len);
-		WRITE_INT(8, list->files[i].size);
+		WRITE_UINT64(list->files[i].size);
 
 		FILE *f = fopen(list->files[i].path, "rb");
 		char buf[READ_BUFFER_SIZE];
@@ -358,7 +361,7 @@ write_result(
 		fclose(f);
 	}
 
-	WRITE_INT(8, XXH64_digest(checksum));
+	WRITE_UINT64(XXH64_digest(checksum));
 
 	return true;
 
