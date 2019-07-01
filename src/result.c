@@ -18,7 +18,6 @@
 #include "common_header.h"
 #include "int_bytes_conversion.h"
 #include "compression.h"
-#include "xxhash.h"
 #include "result.h"
 
 // Result data format
@@ -78,7 +77,7 @@
 //
 // 1: Introduced in ccache 3.8.
 
-static const char MAGIC[4] = "cCrS";
+static const char RESULT_MAGIC[4] = "cCrS";
 
 enum {
 	FILE_MARKER = 0,
@@ -163,7 +162,7 @@ read_result(
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
 	FILE *subfile = NULL;
-	XXH64_state_t *checksum = NULL;
+	XXH64_state_t *checksum = XXH64_createState();
 
 	FILE *f = fopen(path, "rb");
 	if (!f) {
@@ -172,52 +171,21 @@ read_result(
 		goto out;
 	}
 
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	if (fread(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		*errmsg = format("Failed to read header from %s", path);
-		goto out;
-	}
-
-	checksum = XXH64_createState();
-	XXH64_reset(checksum, 0);
-	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
-
 	struct common_header header;
-	common_header_from_bytes(&header, header_bytes);
-
-	if (memcmp(header.magic, MAGIC, sizeof(MAGIC)) != 0) {
-		*errmsg = format(
-			"Result file has bad magic value 0x%x%x%x%x",
-			header.magic[0], header.magic[1], header.magic[2], header.magic[3]);
+	if (!common_header_initialize_for_reading(
+		    &header,
+		    f,
+		    RESULT_MAGIC,
+		    RESULT_VERSION,
+		    &decompressor,
+		    &decompr_state,
+		    checksum,
+		    errmsg)) {
 		goto out;
 	}
 
 	if (dump_stream) {
 		common_header_dump(&header, dump_stream);
-	}
-
-	if (header.version != RESULT_VERSION) {
-		*errmsg = format(
-			"Unknown result version (actual %u, expected %u)",
-			header.version,
-			RESULT_VERSION);
-		goto out;
-	}
-
-	if (!common_header_verify(&header, fileno(f), "result", errmsg)) {
-		goto out;
-	}
-
-	decompressor = decompressor_from_type(header.compression_type);
-	if (!decompressor) {
-		*errmsg = format("Unknown compression type: %u", header.compression_type);
-		goto out;
-	}
-
-	decompr_state = decompressor->init(f, checksum);
-	if (!decompr_state) {
-		*errmsg = x_strdup("Failed to initialize decompressor");
-		goto out;
 	}
 
 	uint8_t n_entries;
@@ -419,7 +387,7 @@ bool result_get(const char *path, struct result_files *list)
 bool result_put(const char *path, struct result_files *list)
 {
 	bool ret = false;
-	XXH64_state_t *checksum = NULL;
+	XXH64_state_t *checksum = XXH64_createState();
 
 	char *tmp_file = format("%s.tmp", path);
 	int fd = create_tmp_fd(&tmp_file);
@@ -441,30 +409,19 @@ bool result_put(const char *path, struct result_files *list)
 	content_size += 8; // checksum
 
 	struct common_header header;
-	common_header_from_config(&header, MAGIC, RESULT_VERSION, content_size);
-
-	checksum = XXH64_createState();
-	XXH64_reset(checksum, 0);
-
-	struct compressor *compressor =
-		compressor_from_type(header.compression_type);
-	assert(compressor);
-	struct compr_state *compr_state =
-		compressor->init(f, header.compression_level, checksum);
-	if (!compr_state) {
-		cc_log("Failed to initialize compressor");
+	struct compressor *compressor;
+	struct compr_state *compr_state;
+	if (!common_header_initialize_for_writing(
+		    &header,
+		    RESULT_MAGIC,
+		    RESULT_VERSION,
+		    content_size,
+		    checksum,
+		    &compressor,
+		    &compr_state,
+		    f)) {
 		goto out;
 	}
-	header.compression_level =
-		compressor->get_actual_compression_level(compr_state);
-
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	common_header_to_bytes(&header, header_bytes);
-	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		cc_log("Failed to write result file header to %s", tmp_file);
-		goto out;
-	}
-	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
 
 	bool ok = write_result(list, compressor, compr_state, checksum)
 	          && compressor->free(compr_state);

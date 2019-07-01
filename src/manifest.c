@@ -98,7 +98,7 @@
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 3.8.
 
-static const char MAGIC[4] = "cCmF";
+static const char MANIFEST_MAGIC[4] = "cCmF";
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
@@ -253,7 +253,7 @@ read_manifest(const char *path, char **errmsg)
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
 	*errmsg = NULL;
-	XXH64_state_t *checksum = NULL;
+	XXH64_state_t *checksum = XXH64_createState();
 
 	FILE *f = fopen(path, "rb");
 	if (!f) {
@@ -261,50 +261,15 @@ read_manifest(const char *path, char **errmsg)
 		goto out;
 	}
 
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	if (fread(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		*errmsg = format("Failed to read header from %s", path);
-		goto out;
-	}
-
-	common_header_from_bytes(&mf->header, header_bytes);
-
-	if (memcmp(mf->header.magic, MAGIC, sizeof(MAGIC)) != 0) {
-		*errmsg = format(
-			"Result file has bad magic value 0x%x%x%x%x",
-			mf->header.magic[0],
-			mf->header.magic[1],
-			mf->header.magic[2],
-			mf->header.magic[3]);
-		goto out;
-	}
-
-	if (mf->header.version != MANIFEST_VERSION) {
-		*errmsg = format(
-			"Unknown manifest version (actual %u, expected %u)",
-			mf->header.version,
-			MANIFEST_VERSION);
-		goto out;
-	}
-
-	if (!common_header_verify(&mf->header, fileno(f), "manifest", errmsg)) {
-		goto out;
-	}
-
-	decompressor = decompressor_from_type(mf->header.compression_type);
-	if (!decompressor) {
-		*errmsg = format(
-			"Unknown compression type: %u", mf->header.compression_type);
-		goto out;
-	}
-
-	checksum = XXH64_createState();
-	XXH64_reset(checksum, 0);
-	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
-
-	decompr_state = decompressor->init(f, checksum);
-	if (!decompr_state) {
-		*errmsg = x_strdup("Failed to initialize decompressor");
+	if (!common_header_initialize_for_reading(
+		    &mf->header,
+		    f,
+		    MANIFEST_MAGIC,
+		    MANIFEST_VERSION,
+		    &decompressor,
+		    &decompr_state,
+		    checksum,
+		    errmsg)) {
 		goto out;
 	}
 
@@ -408,7 +373,7 @@ static bool
 write_manifest(FILE *f, const struct manifest *mf)
 {
 	int ret = false;
-	XXH64_state_t *checksum = NULL;
+	XXH64_state_t *checksum = XXH64_createState();
 
 	uint64_t content_size = COMMON_HEADER_SIZE;
 	content_size += 4; // n_files
@@ -426,29 +391,19 @@ write_manifest(FILE *f, const struct manifest *mf)
 	content_size += 8; // checksum
 
 	struct common_header header;
-	common_header_from_config(&header, MAGIC, MANIFEST_VERSION, content_size);
-
-	checksum = XXH64_createState();
-	XXH64_reset(checksum, 0);
-
-	struct compressor *compressor =
-		compressor_from_type(header.compression_type);
-	assert(compressor);
-	struct compr_state *compr_state =
-		compressor->init(f, header.compression_level, checksum);
-	if (!compr_state) {
-		cc_log("Failed to initialize compressor");
+	struct compressor *compressor;
+	struct compr_state *compr_state;
+	if (!common_header_initialize_for_writing(
+		    &header,
+		    MANIFEST_MAGIC,
+		    MANIFEST_VERSION,
+		    content_size,
+		    checksum,
+		    &compressor,
+		    &compr_state,
+		    f)) {
 		goto out;
 	}
-	header.compression_level =
-		compressor->get_actual_compression_level(compr_state);
-
-	uint8_t header_bytes[COMMON_HEADER_SIZE];
-	common_header_to_bytes(&header, header_bytes);
-	if (fwrite(header_bytes, sizeof(header_bytes), 1, f) != 1) {
-		goto out;
-	}
-	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
 
 	WRITE_UINT32(mf->n_files);
 	for (uint32_t i = 0; i < mf->n_files; i++) {

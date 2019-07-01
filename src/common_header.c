@@ -16,62 +16,124 @@
 
 #include "ccache.h"
 #include "int_bytes_conversion.h"
-#include "compression.h"
 #include "common_header.h"
 
-void common_header_from_config(
+bool
+common_header_initialize_for_writing(
 	struct common_header *header,
 	const char magic[4],
-	uint8_t RESULT_VERSION,
-	uint64_t content_size)
+	uint8_t version,
+	uint64_t content_size,
+	XXH64_state_t *checksum,
+	struct compressor **compressor,
+	struct compr_state **compr_state,
+	FILE *output)
 {
 	enum compression_type compr_type = compression_type_from_config();
 	int8_t compr_level = compression_level_from_config();
 
 	memcpy(header->magic, magic, 4);
-	header->version = RESULT_VERSION;
+	header->version = version;
 	header->compression_type = compr_type;
 	header->compression_level = compr_level;
 	header->content_size = content_size;
+
+	XXH64_reset(checksum, 0);
+
+	*compressor = compressor_from_type(header->compression_type);
+	assert(*compressor);
+	*compr_state =
+		(*compressor)->init(output, header->compression_level, checksum);
+	if (!*compr_state) {
+		cc_log("Failed to initialize compressor");
+		return false;
+	}
+	header->compression_level =
+		(*compressor)->get_actual_compression_level(*compr_state);
+
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	memcpy(header_bytes, header->magic, 4);
+	header_bytes[4] = header->version;
+	header_bytes[5] = header->compression_type;
+	header_bytes[6] = header->compression_level;
+	BYTES_FROM_UINT64(header_bytes + 7, header->content_size);
+	if (fwrite(header_bytes, sizeof(header_bytes), 1, output) != 1) {
+		cc_log("Failed to write common file header");
+		return false;
+	}
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+	return true;
 }
 
-void
-common_header_from_bytes(struct common_header *header, uint8_t *buffer)
+bool common_header_initialize_for_reading(
+	struct common_header *header,
+	FILE *input,
+	const char magic[4],
+	uint8_t accepted_version,
+	struct decompressor **decompressor,
+	struct decompr_state **decompr_state,
+	XXH64_state_t *checksum,
+	char **errmsg)
 {
-	memcpy(header->magic, buffer, 4);
-	header->version = buffer[4];
-	header->compression_type = buffer[5];
-	header->compression_level = buffer[6];
-	header->content_size = UINT64_FROM_BYTES(buffer + 7);
-}
+	uint8_t header_bytes[COMMON_HEADER_SIZE];
+	if (fread(header_bytes, sizeof(header_bytes), 1, input) != 1) {
+		*errmsg = format("Failed to read common header");
+		return false;
+	}
 
-void
-common_header_to_bytes(const struct common_header *header, uint8_t *buffer)
-{
-	memcpy(buffer, header->magic, 4);
-	buffer[4] = header->version;
-	buffer[5] = header->compression_type;
-	buffer[6] = header->compression_level;
-	BYTES_FROM_UINT64(buffer + 7, header->content_size);
-}
+	memcpy(header->magic, header_bytes, 4);
+	header->version = header_bytes[4];
+	header->compression_type = header_bytes[5];
+	header->compression_level = header_bytes[6];
+	header->content_size = UINT64_FROM_BYTES(header_bytes + 7);
 
-bool common_header_verify(
-	const struct common_header *header, int fd, const char *name, char **errmsg)
-{
+	if (memcmp(header->magic, magic, sizeof(header->magic)) != 0) {
+		*errmsg = format(
+			"Bad magic value 0x%x%x%x%x",
+			header->magic[0],
+			header->magic[1],
+			header->magic[2],
+			header->magic[3]);
+		return false;
+	}
+
+	if (header->version != accepted_version) {
+		*errmsg = format(
+			"Unknown version (actual %u, expected %u)",
+			header->version,
+			accepted_version);
+		return false;
+	}
+
 	if (header->compression_type == COMPR_TYPE_NONE) {
 		// Since we have the size available, let's use it as a super primitive
 		// consistency check for the non-compressed case. (A real checksum is used
 		// for compressed data.)
 		struct stat st;
-		if (x_fstat(fd, &st) != 0
+		if (x_fstat(fileno(input), &st) != 0
 		    || (uint64_t)st.st_size != header->content_size) {
 			*errmsg = format(
-				"Corrupt %s file (actual %lu bytes, expected %lu bytes)",
-				name,
+				"Bad uncompressed file size (actual %lu bytes, expected %lu bytes)",
 				(unsigned long)st.st_size,
 				(unsigned long)header->content_size);
 			return false;
 		}
+	}
+
+	*decompressor = decompressor_from_type(header->compression_type);
+	if (!*decompressor) {
+		*errmsg = format(
+			"Unknown compression type: %u", header->compression_type);
+		return false;
+	}
+
+	XXH64_reset(checksum, 0);
+	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+
+  *decompr_state = (*decompressor)->init(input, checksum);
+	if (!*decompr_state) {
+		*errmsg = x_strdup("Failed to initialize decompressor");
+		return false;
 	}
 
 	return true;
