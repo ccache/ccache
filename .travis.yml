@@ -1,4 +1,5 @@
 language: c
+dist: xenial
 
 script:
   - ./autogen.sh
