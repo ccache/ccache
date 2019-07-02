@@ -225,10 +225,10 @@ read_result(
 		uint64_t filelen;
 		READ_UINT64(filelen);
 
-		cc_log("Reading entry #%u: %s (%lu)",
+		cc_log("Reading entry #%u: %s (%llu)",
 		       i,
 		       str_eq(suffix, "stderr") ? "<stderr>" : suffix,
-		       (unsigned long)filelen);
+		       (unsigned long long)filelen);
 
 		bool found = false;
 		if (dump_stream) {
@@ -244,6 +244,10 @@ read_result(
 					cc_log("Copying to %s", list->files[j].path);
 
 					subfile = fopen(list->files[j].path, "wb");
+					if (!subfile) {
+						cc_log("Failed to open %s for writing", list->files[j].path);
+						goto out;
+					}
 					char buf[READ_BUFFER_SIZE];
 					size_t remain = filelen;
 					while (remain > 0) {
@@ -338,8 +342,10 @@ write_result(
 	WRITE_BYTE(list->n_files);
 
 	for (uint32_t i = 0; i < list->n_files; i++) {
-		cc_log("Writing file #%u: %s (%lu)", i, list->files[i].suffix,
-		       (unsigned long)list->files[i].size);
+		cc_log("Writing %s (%llu bytes) to %s",
+		       list->files[i].suffix,
+		       (unsigned long long)list->files[i].size,
+		       list->files[i].path);
 
 		WRITE_BYTE(FILE_MARKER);
 		size_t suffix_len = strlen(list->files[i].suffix);
@@ -348,6 +354,10 @@ write_result(
 		WRITE_UINT64(list->files[i].size);
 
 		FILE *f = fopen(list->files[i].path, "rb");
+		if (!f) {
+			cc_log("Failed to open %s for reading", list->files[i].path);
+			goto error;
+		}
 		char buf[READ_BUFFER_SIZE];
 		size_t remain = list->files[i].size;
 		while (remain > 0) {
