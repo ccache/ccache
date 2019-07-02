@@ -61,11 +61,7 @@ SUITE_split_dwarf() {
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
-        if $AGGREGATED; then
         expect_stat 'files in cache' 2
-        else
-        expect_stat 'files in cache' 3
-        fi
 
         $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test.o -gsplit-dwarf
         expect_equal_object_files reference.o test.o
@@ -73,11 +69,7 @@ SUITE_split_dwarf() {
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 1
-        if $AGGREGATED; then
         expect_stat 'files in cache' 2
-        else
-        expect_stat 'files in cache' 3
-        fi
 
         $REAL_COMPILER -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
         mv test2.o reference2.o
@@ -89,11 +81,7 @@ SUITE_split_dwarf() {
         expect_stat 'cache hit (direct)' 1
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 2
-        if $AGGREGATED; then
         expect_stat 'files in cache' 4
-        else
-        expect_stat 'files in cache' 6
-        fi
 
         $CCACHE_COMPILE -I$(pwd)/include -c src/test.c -o test2.o -gsplit-dwarf
         expect_equal_object_files reference2.o test2.o
@@ -101,11 +89,7 @@ SUITE_split_dwarf() {
         expect_stat 'cache hit (direct)' 2
         expect_stat 'cache hit (preprocessed)' 0
         expect_stat 'cache miss' 2
-        if $AGGREGATED; then
         expect_stat 'files in cache' 4
-        else
-        expect_stat 'files in cache' 6
-        fi
     fi
     # Else: Compiler does not produce stable object file output when compiling
     # the same source to the same output filename twice (DW_AT_GNU_dwo_id
@@ -119,11 +103,7 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 2
-    else
-    expect_stat 'files in cache' 3
-    fi
     if objdump_cmd test.o | grep_cmd "$(pwd)" >/dev/null 2>&1; then
         test_failed "Source dir ($(pwd)) found in test.o"
     fi
@@ -133,11 +113,7 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    if $AGGREGATED; then
     expect_stat 'files in cache' 2
-    else
-    expect_stat 'files in cache' 3
-    fi
     if objdump_cmd test.o | grep_cmd "$(pwd)" >/dev/null 2>&1; then
         test_failed "Source dir ($(pwd)) found in test.o"
     fi
