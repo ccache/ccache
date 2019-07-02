@@ -125,7 +125,7 @@ libzstd_options = \
     ZSTD_LIB_DICTBUILDER=0
 
 src/zstd/lib/libzstd.a:
-	$(MAKE) -C src/zstd/lib libzstd.a $(libzstd_options) CC=$(CC)
+	$(MAKE) -C src/zstd/lib libzstd.a $(libzstd_options) CC="$(CC)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)
