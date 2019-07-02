@@ -20,16 +20,6 @@ EOF
     backdate dir1/include/test.h dir2/include/test.h
 }
 
-objdump_cmd() {
-    if $HOST_OS_APPLE; then
-        xcrun dwarfdump -r0 $1
-    elif $HOST_OS_FREEBSD; then
-        objdump -W $1
-    else
-        objdump -g $1
-    fi
-}
-
 grep_cmd() {
     if $HOST_OS_APPLE; then
         grep "( \"$1\" )"
