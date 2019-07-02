@@ -2552,6 +2552,13 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (str_startswith(argv[i], "-g")) {
 			args_add(stripped_args, argv[i]);
 
+			if (str_startswith(argv[i], "-gdwarf")) {
+				// Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
+				// debug info on level 2.
+				generating_debuginfo = true;
+				continue;
+			}
+
 			char last_char = argv[i][strlen(argv[i]) - 1];
 			if (last_char == '0') {
 				// "-g0", "-ggdb0" or similar: All debug information disabled.
