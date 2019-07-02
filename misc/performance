@@ -97,8 +97,10 @@ def test(tmp_dir, options, compiler_args, source_file):
 
     environment = {"CCACHE_DIR": ccache_dir, "PATH": environ["PATH"]}
     environment["CCACHE_COMPILERCHECK"] = options.compilercheck
-    if options.compression:
-        environment["CCACHE_COMPRESS"] = "1"
+    if options.no_compression:
+        environment["CCACHE_NOCOMPRESS"] = "1"
+    if options.compression_level:
+        environment["CCACHE_COMPRESSLEVEL"] = str(options.compression_level)
     if options.nostats:
         environment["CCACHE_NOSTATS"] = "1"
 
@@ -250,7 +252,12 @@ def main(argv):
     op.add_option(
         "--compilercheck", help="specify compilercheck (default: mtime)"
     )
-    op.add_option("--compression", help="use compression", action="store_true")
+    op.add_option(
+        "--no-compression", help="disable compression", action="store_true"
+    )
+    op.add_option(
+        "--compression-level", help="set compression level", type=int
+    )
     op.add_option(
         "-d",
         "--directory",
@@ -313,7 +320,8 @@ def main(argv):
             % (" ".join(args), splitext(argv[-1])[0])
         )
         print("Compilercheck:", options.compilercheck)
-        print("Compression:", on_off(options.compression))
+        print("Compression:", on_off(not options.no_compression))
+        print("Compression level:", options.compression_level or "default")
         print("Nostats:", on_off(options.nostats))
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
