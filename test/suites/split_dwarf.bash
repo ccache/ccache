@@ -9,6 +9,8 @@ SUITE_split_dwarf_PROBE() {
 SUITE_split_dwarf_SETUP() {
     unset CCACHE_NODIRECT
 
+    touch test.c
+
     mkdir -p dir1/src dir1/include
     cat <<EOF >dir1/src/test.c
 #include <stdarg.h>
@@ -104,7 +106,7 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "$(pwd)" >/dev/null 2>&1; then
+    if objdump_cmd test.o 2>/dev/null | grep_cmd "$(pwd)" >/dev/null 2>&1; then
         test_failed "Source dir ($(pwd)) found in test.o"
     fi
 
@@ -114,7 +116,32 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "$(pwd)" >/dev/null 2>&1; then
+    if objdump_cmd test.o 2>/dev/null | grep_cmd "$(pwd)" >/dev/null 2>&1; then
         test_failed "Source dir ($(pwd)) found in test.o"
+    fi
+
+    # -------------------------------------------------------------------------
+    TEST "-gsplit-dwarf -g1"
+
+    # "gcc -gsplit-dwarf -g1" produces a .dwo file, but "clang -gsplit-dwarf
+    # -g1" doesn't, so test that ccache handles it gracefully either way.
+
+    $REAL_COMPILER -gsplit-dwarf -g1 -c test.c -o reference.o
+
+    $CCACHE_COMPILE -gsplit-dwarf -g1 -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    rm -f test.dwo
+
+    $CCACHE_COMPILE -gsplit-dwarf -g1 -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    if [ -f reference.dwo ] && [ ! -f test.dwo ]; then
+        test_failed ".dwo missing"
+    elif [ ! -f reference.dwo ] && [ -f test.dwo ]; then
+        test_failed ".dwo not missing"
     fi
 }

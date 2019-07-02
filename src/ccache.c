@@ -183,9 +183,8 @@ static bool generating_stackusage;
 // (--serialize-diagnostics)?
 static bool generating_diagnostics;
 
-// Is the compiler being asked to separate dwarf debug info into a separate
-// file (-gsplit-dwarf)"?
-static bool using_split_dwarf;
+// Have we seen -gsplit-dwarf?
+static bool seen_split_dwarf;
 
 // Relocating debuginfo in the format old=new.
 static char **debug_prefix_maps = NULL;
@@ -1237,6 +1236,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		args_add(args, i_tmpfile);
 	}
 
+	if (seen_split_dwarf) {
+		// Remove any preexisting .dwo since we want to check if the compiler
+		// produced one.
+		x_unlink(output_dwo);
+	}
+
 	cc_log("Running real compiler");
 	MTR_BEGIN("execute", "compiler");
 	char *tmp_stdout;
@@ -1396,7 +1401,9 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	if (generating_diagnostics) {
 		result_files_add(result_files, output_dia, ".dia");
 	}
-	if (using_split_dwarf) {
+	if (seen_split_dwarf && stat(output_dwo, &st) == 0) {
+		// Only copy .dwo file if it was created by the compiler (GCC and Clang
+		// behave differently e.g. for "-gsplit-dwarf -g1").
 		result_files_add(result_files, output_dwo, ".dwo");
 	}
 	struct stat orig_dest_st;
@@ -1725,7 +1732,7 @@ hash_common_info(struct args *args, struct hash *hash)
 		}
 	}
 
-	if (using_split_dwarf) {
+	if (seen_split_dwarf) {
 		// When using -gsplit-dwarf, object files include a link to the
 		// corresponding .dwo file based on the target object filename, so we need
 		// to include the target filename in the hash to avoid handing out an
@@ -2135,7 +2142,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 	struct result_files *result_files = result_files_init();
 	if (!str_eq(output_obj, "/dev/null")) {
 		result_files_add(result_files, output_obj, ".o");
-		if (using_split_dwarf) {
+		if (seen_split_dwarf) {
 			result_files_add(result_files, output_dwo, ".dwo");
 		}
 	}
@@ -2156,7 +2163,6 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 	result_files_free(result_files);
 	if (!ok) {
 		cc_log("Failed to get result from cache");
-		// TODO: Add new STATS_CORRUPT statistics value and increment here?
 		tmp_unlink(tmp_stderr);
 		free(tmp_stderr);
 		return;
@@ -2549,7 +2555,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			char last_char = argv[i][strlen(argv[i]) - 1];
 			if (last_char == '0') {
 				// "-g0", "-ggdb0" or similar: All debug information disabled.
-				// "-gsplit-dwarf" is still in effect if given previously, though.
 				generating_debuginfo = false;
 				generating_debuginfo_level_3 = false;
 			} else {
@@ -2558,7 +2563,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 					generating_debuginfo_level_3 = true;
 				}
 				if (str_eq(argv[i], "-gsplit-dwarf")) {
-					using_split_dwarf = true;
+					seen_split_dwarf = true;
 				}
 			}
 			continue;
@@ -3073,13 +3078,6 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	}
 
-	if (found_S_opt) {
-		// Even if -gsplit-dwarf is given, the .dwo file is not generated when -S
-		// is also given.
-		using_split_dwarf = false;
-		cc_log("Disabling caching of dwarf files since -S is used");
-	}
-
 	if (!input_file) {
 		cc_log("No input file found");
 		stats_update(STATS_NOINPUT);
@@ -3196,7 +3194,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		}
 	}
 
-	if (using_split_dwarf) {
+	if (seen_split_dwarf) {
 		char *p = strrchr(output_obj, '.');
 		if (!p || !p[1]) {
 			cc_log("Badly formed object filename");
@@ -3592,7 +3590,7 @@ cc_reset(void)
 	output_is_precompiled_header = false;
 
 	conf = conf_create();
-	using_split_dwarf = false;
+	seen_split_dwarf = false;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
