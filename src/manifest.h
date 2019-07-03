@@ -5,6 +5,7 @@
 #include "hashutil.h"
 #include "hashtable.h"
 
+extern const char MANIFEST_MAGIC[4];
 #define MANIFEST_VERSION 2
 
 struct digest *manifest_get(struct conf *conf, const char *manifest_path);

@@ -98,7 +98,7 @@
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 3.8.
 
-static const char MANIFEST_MAGIC[4] = "cCmF";
+const char MANIFEST_MAGIC[4] = "cCmF";
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
@@ -395,13 +395,15 @@ write_manifest(FILE *f, const struct manifest *mf)
 	struct compr_state *compr_state;
 	if (!common_header_initialize_for_writing(
 		    &header,
+		    f,
 		    MANIFEST_MAGIC,
 		    MANIFEST_VERSION,
+		    compression_type_from_config(),
+		    compression_level_from_config(),
 		    content_size,
 		    checksum,
 		    &compressor,
-		    &compr_state,
-		    f)) {
+		    &compr_state)) {
 		goto out;
 	}
 

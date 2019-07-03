@@ -77,7 +77,7 @@
 //
 // 1: Introduced in ccache 3.8.
 
-static const char RESULT_MAGIC[4] = "cCrS";
+const char RESULT_MAGIC[4] = "cCrS";
 
 enum {
 	FILE_MARKER = 0,
@@ -426,13 +426,15 @@ bool result_put(const char *path, struct result_files *list)
 	struct compr_state *compr_state;
 	if (!common_header_initialize_for_writing(
 		    &header,
+		    f,
 		    RESULT_MAGIC,
 		    RESULT_VERSION,
+		    compression_type_from_config(),
+		    compression_level_from_config(),
 		    content_size,
 		    checksum,
 		    &compressor,
-		    &compr_state,
-		    f)) {
+		    &compr_state)) {
 		goto out;
 	}
 

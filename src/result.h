@@ -3,6 +3,7 @@
 
 #include "conf.h"
 
+extern const char RESULT_MAGIC[4];
 #define RESULT_VERSION 1
 
 struct result_files;

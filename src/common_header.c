@@ -21,21 +21,20 @@
 bool
 common_header_initialize_for_writing(
 	struct common_header *header,
+	FILE *output,
 	const char magic[4],
 	uint8_t version,
+	uint8_t compression_type,
+	int8_t compression_level,
 	uint64_t content_size,
 	XXH64_state_t *checksum,
 	struct compressor **compressor,
-	struct compr_state **compr_state,
-	FILE *output)
+	struct compr_state **compr_state)
 {
-	enum compression_type compr_type = compression_type_from_config();
-	int8_t compr_level = compression_level_from_config();
-
 	memcpy(header->magic, magic, 4);
 	header->version = version;
-	header->compression_type = compr_type;
-	header->compression_level = compr_level;
+	header->compression_type = compression_type;
+	header->compression_level = compression_level;
 	header->content_size = content_size;
 
 	XXH64_reset(checksum, 0);
@@ -68,8 +67,8 @@ common_header_initialize_for_writing(
 bool common_header_initialize_for_reading(
 	struct common_header *header,
 	FILE *input,
-	const char magic[4],
-	uint8_t accepted_version,
+	const char expected_magic[4],
+	uint8_t expected_version,
 	struct decompressor **decompressor,
 	struct decompr_state **decompr_state,
 	XXH64_state_t *checksum,
@@ -87,7 +86,7 @@ bool common_header_initialize_for_reading(
 	header->compression_level = header_bytes[6];
 	header->content_size = UINT64_FROM_BYTES(header_bytes + 7);
 
-	if (memcmp(header->magic, magic, sizeof(header->magic)) != 0) {
+	if (memcmp(header->magic, expected_magic, sizeof(header->magic)) != 0) {
 		*errmsg = format(
 			"Bad magic value 0x%x%x%x%x",
 			header->magic[0],
@@ -97,11 +96,11 @@ bool common_header_initialize_for_reading(
 		return false;
 	}
 
-	if (header->version != accepted_version) {
+	if (header->version != expected_version) {
 		*errmsg = format(
 			"Unknown version (actual %u, expected %u)",
 			header->version,
-			accepted_version);
+			expected_version);
 		return false;
 	}
 
@@ -118,6 +117,10 @@ bool common_header_initialize_for_reading(
 				(unsigned long)header->content_size);
 			return false;
 		}
+	}
+
+	if (!decompressor) {
+		return true;
 	}
 
 	*decompressor = decompressor_from_type(header->compression_type);
