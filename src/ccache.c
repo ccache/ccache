@@ -1237,9 +1237,14 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	if (seen_split_dwarf) {
-		// Remove any preexisting .dwo since we want to check if the compiler
-		// produced one.
-		x_unlink(output_dwo);
+		// Remove any pre-existing .dwo file since we want to check if the compiler
+		// produced one, intentionally not using x_unlink or tmp_unlink since we're
+		// not interested in logging successful deletions or failures due to
+		// non-existent .dwo files.
+		if (unlink(output_dwo) == -1 && errno != ENOENT) {
+			cc_log("Failed to unlink %s: %s", output_dwo, strerror(errno));
+			stats_update(STATS_BADOUTPUTFILE);
+		}
 	}
 
 	cc_log("Running real compiler");
