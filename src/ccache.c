@@ -2122,14 +2122,6 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 		return;
 	}
 
-	// Occasionally, e.g. on hard reset, our cache ends up as just filesystem
-	// meta-data with no content. Catch an easy case of this.
-	struct stat st;
-	if (stat(cached_result, &st) != 0) {
-		cc_log("Cache file %s not in cache", cached_result);
-		return;
-	}
-
 	MTR_BEGIN("cache", "from_cache");
 
 	// (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
