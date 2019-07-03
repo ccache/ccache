@@ -26,9 +26,7 @@ int8_t compression_level_from_config(void)
 
 enum compression_type compression_type_from_config(void)
 {
-	enum compression_type conf_compression_type;
-	conf_compression_type = COMPR_TYPE_ZSTD;
-	return conf->compression ? conf_compression_type : COMPR_TYPE_NONE;
+	return conf->compression ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
 }
 
 const char *compression_type_to_string(uint8_t type)
