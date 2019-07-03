@@ -25,51 +25,53 @@
 //
 // Integers are big-endian.
 //
-// <result>      ::= <header> <body> <epilogue>
-// <header>      ::= <magic> <version> <compr_type> <compr_level> <content_len>
-// <magic>       ::= 4 bytes ("cCrS")
-// <version>     ::= uint8_t
-// <compr_type>  ::= <compr_none> | <compr_zstd>
-// <compr_none>  ::= 0 (uint8_t)
-// <compr_zstd>  ::= 1 (uint8_t)
-// <compr_level> ::= int8_t
-// <content_len> ::= uint64_t ; size of file if stored uncompressed
-// <body>        ::= <n_entries> <entry>* ; body is potentially compressed
-// <n_entries>   ::= uint8_t
-// <entry>       ::= <file_entry> | <ref_entry>
-// <file_entry>  ::= <file_marker> <suffix_len> <suffix> <data_len> <data>
-// <file_marker> ::= 0 (uint8_t)
-// <suffix_len>  ::= uint8_t
-// <suffix>      ::= suffix_len bytes
-// <data_len>    ::= uint64_t
-// <data>        ::= data_len bytes
-// <ref_entry>   ::= <ref_marker> <key_len> <key>
-// <ref_marker>  ::= 1 (uint8_t)
-// <key_len>     ::= uint8_t
-// <key>         ::= key_len bytes
-// <epilogue>    ::= <checksum>
-// <checksum>    ::= uint64_t ; XXH64 of content bytes
+// <result>               ::= <header> <body> <epilogue>
+// <header>               ::= <magic> <version> <compr_type> <compr_level>
+//                            <content_len>
+// <magic>                ::= 4 bytes ("cCrS")
+// <version>              ::= uint8_t
+// <compr_type>           ::= <compr_none> | <compr_zstd>
+// <compr_none>           ::= 0 (uint8_t)
+// <compr_zstd>           ::= 1 (uint8_t)
+// <compr_level>          ::= int8_t
+// <content_len>          ::= uint64_t ; size of file if stored uncompressed
+// <body>                 ::= <n_entries> <entry>* ; potentially compressed
+// <n_entries>            ::= uint8_t
+// <entry>                ::= <embedded_file_entry> | <raw_file_entry>
+// <embedded_file_entry>  ::= <embedded_file_marker> <suffix_len> <suffix>
+//                            <data_len> <data>
+// <embedded_file_marker> ::= 0 (uint8_t)
+// <suffix_len>           ::= uint8_t
+// <suffix>               ::= suffix_len bytes
+// <data_len>             ::= uint64_t
+// <data>                 ::= data_len bytes
+// <raw_file_entry>       ::= <raw_file_marker> <key_len> <key>
+// <raw_file_marker>      ::= 1 (uint8_t)
+// <key_len>              ::= uint8_t
+// <key>                  ::= key_len bytes
+// <epilogue>             ::= <checksum>
+// <checksum>             ::= uint64_t ; XXH64 of content bytes
 //
 // Sketch of concrete layout:
 //
-// <magic>         4 bytes
-// <version>       1 byte
-// <compr_type>    1 byte
-// <compr_level>   1 byte
-// <content_len>   8 bytes
+// <magic>                4 bytes
+// <version>              1 byte
+// <compr_type>           1 byte
+// <compr_level>          1 byte
+// <content_len>          8 bytes
 // --- [potentially compressed from here] -------------------------------------
-// <n_entries>     1 byte
-// <file_marker>   1 byte
-// <suffix_len>    1 byte
-// <suffix>        suffix_len bytes
-// <data_len>      8 bytes
-// <data>          data_len bytes
+// <n_entries>            1 byte
+// <embedded_file_marker> 1 byte
+// <suffix_len>           1 byte
+// <suffix>               suffix_len bytes
+// <data_len>             8 bytes
+// <data>                 data_len bytes
 // ...
-// <ref_marker>    1 byte
-// <key_len>       1 byte
-// <key>           key_len bytes
+// <ref_marker>           1 byte
+// <key_len>              1 byte
+// <key>                  key_len bytes
 // ...
-// checksum        8 bytes
+// checksum               8 bytes
 //
 //
 // Version history
@@ -80,8 +82,11 @@
 const char RESULT_MAGIC[4] = "cCrS";
 
 enum {
-	FILE_MARKER = 0,
-	REF_MARKER = 1
+	// File data stored inside the result file.
+	EMBEDDED_FILE_MARKER = 0,
+
+	// File stored as-is in the file system.
+	RAW_FILE_MARKER = 1
 };
 
 struct result_file {
@@ -158,6 +163,88 @@ result_files_free(struct result_files *list)
 	} while (false)
 
 static bool
+read_embedded_file_entry(
+	struct decompressor *decompressor,
+	struct decompr_state *decompr_state,
+	uint32_t entry_number,
+	struct result_files *list,
+	FILE *dump_stream)
+{
+	bool success = false;
+	FILE *subfile = NULL;
+
+	uint8_t suffix_len;
+	READ_BYTE(suffix_len);
+
+	char suffix[256 + 1];
+	READ_BYTES(suffix, suffix_len);
+	suffix[suffix_len] = '\0';
+
+	uint64_t filelen;
+	READ_UINT64(filelen);
+
+	cc_log("Reading embedded file #%u: %s (%llu)",
+	       entry_number,
+	       str_eq(suffix, "stderr") ? "<stderr>" : suffix,
+	       (unsigned long long)filelen);
+
+	bool found = false;
+	if (dump_stream) {
+		fprintf(dump_stream,
+		        "Entry: %s (size: %" PRIu64 " bytes)\n",
+		        str_eq(suffix, "stderr") ? "<stderr>" : suffix,
+		        filelen);
+	} else {
+		for (uint32_t i = 0; i < list->n_files; i++) {
+			if (str_eq(suffix, list->files[i].suffix)) {
+				found = true;
+
+				cc_log("Copying to %s", list->files[i].path);
+
+				subfile = fopen(list->files[i].path, "wb");
+				if (!subfile) {
+					cc_log("Failed to open %s for writing", list->files[i].path);
+					goto out;
+				}
+				char buf[READ_BUFFER_SIZE];
+				size_t remain = filelen;
+				while (remain > 0) {
+					size_t n = MIN(remain, sizeof(buf));
+					READ_BYTES(buf, n);
+					if (fwrite(buf, 1, n, subfile) != n) {
+						goto out;
+					}
+					remain -= n;
+				}
+				fclose(subfile);
+				subfile = NULL;
+
+				break;
+			}
+		}
+	}
+	if (!found) {
+		// Discard the file data.
+		char buf[READ_BUFFER_SIZE];
+		size_t remain = filelen;
+		while (remain > 0) {
+			size_t n = MIN(remain, sizeof(buf));
+			READ_BYTES(buf, n);
+			remain -= n;
+		}
+	}
+
+	success = true;
+
+out:
+	if (subfile) {
+		fclose(subfile);
+	}
+
+	return success;
+}
+
+static bool
 read_result(
 	const char *path,
 	struct result_files *list,
@@ -168,7 +255,6 @@ read_result(
 	bool success = false;
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
-	FILE *subfile = NULL;
 	XXH64_state_t *checksum = XXH64_createState();
 
 	FILE *f = fopen(path, "rb");
@@ -202,76 +288,22 @@ read_result(
 	for (i = 0; i < n_entries; i++) {
 		uint8_t marker;
 		READ_BYTE(marker);
+
 		switch (marker) {
-		case FILE_MARKER:
+		case EMBEDDED_FILE_MARKER:
+			if (!read_embedded_file_entry(
+				    decompressor, decompr_state, i, list, dump_stream)) {
+				goto out;
+			}
 			break;
 
-		case REF_MARKER:
+		case RAW_FILE_MARKER:
 		// TODO: Implement.
 		// Fall through.
 
 		default:
 			*errmsg = format("Unknown entry type: %u", marker);
 			goto out;
-		}
-
-		uint8_t suffix_len;
-		READ_BYTE(suffix_len);
-
-		char suffix[256 + 1];
-		READ_BYTES(suffix, suffix_len);
-		suffix[suffix_len] = '\0';
-
-		uint64_t filelen;
-		READ_UINT64(filelen);
-
-		cc_log("Reading entry #%u: %s (%llu)",
-		       i,
-		       str_eq(suffix, "stderr") ? "<stderr>" : suffix,
-		       (unsigned long long)filelen);
-
-		bool found = false;
-		if (dump_stream) {
-			fprintf(dump_stream,
-			        "Entry: %s (size: %" PRIu64 " bytes)\n",
-			        str_eq(suffix, "stderr") ? "<stderr>" : suffix,
-			        filelen);
-		} else {
-			for (uint32_t j = 0; j < list->n_files; j++) {
-				if (str_eq(suffix, list->files[j].suffix)) {
-					found = true;
-
-					cc_log("Copying to %s", list->files[j].path);
-
-					subfile = fopen(list->files[j].path, "wb");
-					if (!subfile) {
-						cc_log("Failed to open %s for writing", list->files[j].path);
-						goto out;
-					}
-					char buf[READ_BUFFER_SIZE];
-					size_t remain = filelen;
-					while (remain > 0) {
-						size_t n = MIN(remain, sizeof(buf));
-						READ_BYTES(buf, n);
-						if (fwrite(buf, 1, n, subfile) != n) {
-							goto out;
-						}
-						remain -= n;
-					}
-					fclose(subfile);
-					subfile = NULL;
-				}
-			}
-		}
-		if (!found) {
-			// Discard the file data.
-			char buf[READ_BUFFER_SIZE];
-			size_t remain = filelen;
-			while (remain > 0) {
-				size_t n = MIN(remain, sizeof(buf));
-				READ_BYTES(buf, n);
-				remain -= n;
-			}
 		}
 	}
 
@@ -294,9 +326,6 @@ read_result(
 	}
 
 out:
-	if (subfile) {
-		fclose(subfile);
-	}
 	if (decompressor && !decompressor->free(decompr_state)) {
 		success = false;
 	}
@@ -347,7 +376,7 @@ write_result(
 		       (unsigned long long)list->files[i].size,
 		       list->files[i].path);
 
-		WRITE_BYTE(FILE_MARKER);
+		WRITE_BYTE(EMBEDDED_FILE_MARKER);
 		size_t suffix_len = strlen(list->files[i].suffix);
 		WRITE_BYTE(suffix_len);
 		WRITE_BYTES(list->files[i].suffix, suffix_len);
@@ -413,7 +442,7 @@ bool result_put(const char *path, struct result_files *list)
 	uint64_t content_size = COMMON_HEADER_SIZE;
 	content_size += 1; // n_entries
 	for (uint32_t i = 0; i < list->n_files; i++) {
-		content_size += 1; // file_marker
+		content_size += 1; // embedded_file_marker
 		content_size += 1; // suffix_len
 		content_size += strlen(list->files[i].suffix); // suffix
 		content_size += 8; // data_len
