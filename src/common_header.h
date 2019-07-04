@@ -50,7 +50,7 @@ bool common_header_initialize_for_writing(
 // decompressor_state: State for the decompressor. Should be NULL if
 //                     decompressor is NULL.
 // checksum:           Checksum state that will be updated with the read bytes.
-//                     Pass NULL if decompressor is NULL.
+//                     May be NULL for no checksumming.
 bool common_header_initialize_for_reading(
 	struct common_header *header,
 	FILE *input,

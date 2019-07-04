@@ -130,8 +130,10 @@ bool common_header_initialize_for_reading(
 		return false;
 	}
 
-	XXH64_reset(checksum, 0);
-	XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+	if (checksum) {
+		XXH64_reset(checksum, 0);
+		XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+	}
 
   *decompr_state = (*decompressor)->init(input, checksum);
 	if (!*decompr_state) {
