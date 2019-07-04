@@ -710,6 +710,38 @@ out:
 	return ret;
 }
 
+
+size_t
+result_size(const char *path, bool *is_compressed)
+{
+	size_t size = 0;
+	char *errmsg;
+	FILE *f = fopen(path, "rb");
+	if (!f) {
+		cc_log("Failed to open %s for reading: %s", path, strerror(errno));
+		goto error;
+	}
+	struct common_header header;
+	if (!common_header_initialize_for_reading(
+		&header,
+		f,
+		RESULT_MAGIC,
+		RESULT_VERSION,
+		NULL,
+		NULL,
+		NULL,
+		&errmsg)) {
+		cc_log("Error: %s", errmsg);
+		goto error;
+	}
+	size = common_header_size(&header, is_compressed);
+error:
+	if (f) {
+		fclose(f);
+	}
+	return size;
+}
+
 bool
 result_dump(const char *path, FILE *stream)
 {

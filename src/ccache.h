@@ -248,6 +248,11 @@ void clean_up_all(struct conf *conf);
 void wipe_all(struct conf *conf);
 
 // ----------------------------------------------------------------------------
+// compress.c
+
+void compress_stats(struct conf *conf);
+
+// ----------------------------------------------------------------------------
 // execute.c
 
 int execute(char **argv, int fd_out, int fd_err, pid_t *pid);
