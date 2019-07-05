@@ -141,7 +141,7 @@ static struct digest *cached_result_name;
 
 // Full path to the file containing the result
 // (cachedir/a/b/cdef[...]-size.result).
-static char *cached_result;
+static char *cached_result_path;
 
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
@@ -554,24 +554,6 @@ get_current_working_dir(void)
 		}
 	}
 	return current_working_dir;
-}
-
-// Transform a name to a full path into the cache directory, creating needed
-// sublevels if needed. Caller frees.
-static char *
-get_path_in_cache(const char *name, const char *suffix)
-{
-	char *path = x_strdup(conf->cache_dir);
-	for (unsigned i = 0; i < conf->cache_dir_levels; ++i) {
-		char *p = format("%s/%c", path, name[i]);
-		free(path);
-		path = p;
-	}
-
-	char *result =
-		format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
-	free(path);
-	return result;
 }
 
 // This function hashes an include file and stores the path and hash in the
@@ -1187,8 +1169,8 @@ update_manifest_file(void)
 	}
 
 	MTR_BEGIN("manifest", "manifest_put");
+	cc_log("Adding result name to %s", manifest_path);
 	if (manifest_put(manifest_path, cached_result_name, included_files)) {
-		cc_log("Added result name to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(
 				manifest_stats_file,
@@ -1207,7 +1189,7 @@ update_cached_result_globals(struct digest *result_name)
 	char result_name_string[DIGEST_STRING_BUFFER_SIZE];
 	digest_as_string(result_name, result_name_string);
 	cached_result_name = result_name;
-	cached_result = get_path_in_cache(result_name_string, ".result");
+	cached_result_path = get_path_in_cache(result_name_string, ".result");
 	stats_file = format("%s/%c/stats", conf->cache_dir, result_name_string[0]);
 }
 
@@ -1217,6 +1199,13 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 {
 	args_add(args, "-o");
 	args_add(args, output_obj);
+
+	if (conf->hard_link) {
+		// Workaround for Clang bug where it overwrites an existing object file
+		// when it's compiling an assembler file, see
+		// <https://bugs.llvm.org/show_bug.cgi?id=39782>.
+		x_unlink(output_obj);
+	}
 
 	if (generating_diagnostics) {
 		args_add(args, "--serialize-diagnostics");
@@ -1412,13 +1401,13 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		result_files_add(result_files, output_dwo, ".dwo");
 	}
 	struct stat orig_dest_st;
-	bool orig_dest_existed = stat(cached_result, &orig_dest_st) == 0;
-	result_put(cached_result, result_files);
+	bool orig_dest_existed = stat(cached_result_path, &orig_dest_st) == 0;
+	result_put(cached_result_path, result_files);
 	result_files_free(result_files);
 
-	cc_log("Stored in cache: %s", cached_result);
+	cc_log("Stored in cache: %s", cached_result_path);
 
-	if (x_stat(cached_result, &st) != 0) {
+	if (x_stat(cached_result_path, &st) != 0) {
 		stats_update(STATS_ERROR);
 		failed();
 	}
@@ -2053,11 +2042,11 @@ calculate_result_name(struct args *args, struct hash *hash, int direct_mode)
 			return NULL;
 		}
 
-		char manifest_name[DIGEST_STRING_BUFFER_SIZE];
-		hash_result_as_string(hash, manifest_name);
-		manifest_path = get_path_in_cache(manifest_name, ".manifest");
+		char manifest_name_string[DIGEST_STRING_BUFFER_SIZE];
+		hash_result_as_string(hash, manifest_name_string);
+		manifest_path = get_path_in_cache(manifest_name_string, ".manifest");
 		manifest_stats_file =
-			format("%s/%c/stats", conf->cache_dir, manifest_name[0]);
+			format("%s/%c/stats", conf->cache_dir, manifest_name_string[0]);
 
 		cc_log("Looking for result name in %s", manifest_path);
 		MTR_BEGIN("manifest", "manifest_get");
@@ -2156,7 +2145,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 	if (generating_diagnostics) {
 		result_files_add(result_files, output_dia, ".dia");
 	}
-	bool ok = result_get(cached_result, result_files);
+	bool ok = result_get(cached_result_path, result_files);
 	result_files_free(result_files);
 	if (!ok) {
 		cc_log("Failed to get result from cache");
@@ -3567,7 +3556,7 @@ cc_reset(void)
 	free(output_dia); output_dia = NULL;
 	free(output_dwo); output_dwo = NULL;
 	free(cached_result_name); cached_result_name = NULL;
-	free(cached_result); cached_result = NULL;
+	free(cached_result_path); cached_result_path = NULL;
 	free(manifest_path); manifest_path = NULL;
 	time_of_compilation = 0;
 	for (size_t i = 0; i < ignore_headers_len; i++) {

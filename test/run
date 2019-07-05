@@ -406,6 +406,7 @@ sanitize_blacklist
 debug_prefix_map
 split_dwarf
 masquerading
+hardlink
 direct
 direct_gcc
 depend

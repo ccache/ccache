@@ -109,12 +109,14 @@ bool common_header_initialize_for_reading(
 		// consistency check for the non-compressed case. (A real checksum is used
 		// for compressed data.)
 		struct stat st;
-		if (x_fstat(fileno(input), &st) != 0
-		    || (uint64_t)st.st_size != header->content_size) {
+		if (x_fstat(fileno(input), &st) != 0) {
+			return false;
+		}
+		if ((uint64_t)st.st_size != header->content_size) {
 			*errmsg = format(
-				"Bad uncompressed file size (actual %lu bytes, expected %lu bytes)",
-				(unsigned long)st.st_size,
-				(unsigned long)header->content_size);
+				"Bad uncompressed file size (actual %llu bytes, expected %llu bytes)",
+				(unsigned long long)st.st_size,
+				(unsigned long long)header->content_size);
 			return false;
 		}
 	}

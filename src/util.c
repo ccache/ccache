@@ -34,6 +34,8 @@
 #include <tchar.h>
 #endif
 
+extern const struct conf *conf;
+
 // Destination for conf->log_file.
 static FILE *logfile;
 
@@ -54,8 +56,6 @@ static size_t debug_log_size;
 static bool
 init_log(void)
 {
-	extern struct conf *conf;
-
 	if (debug_log_buffer || logfile || use_syslog) {
 		return true;
 	}
@@ -154,8 +154,6 @@ static void warn_log_fail(void) ATTR_NORETURN;
 static void
 warn_log_fail(void)
 {
-	extern struct conf *conf;
-
 	// Note: Can't call fatal() since that would lead to recursion.
 	fprintf(stderr, "ccache: error: Failed to write to %s: %s\n",
 	        conf->log_file, strerror(errno));
@@ -280,6 +278,24 @@ fatal(const char *format, ...)
 	x_exit(1);
 }
 
+// Transform a name to a full path into the cache directory, creating needed
+// sublevels if needed. Caller frees.
+char *
+get_path_in_cache(const char *name, const char *suffix)
+{
+	char *path = x_strdup(conf->cache_dir);
+	for (unsigned i = 0; i < conf->cache_dir_levels; ++i) {
+		char *p = format("%s/%c", path, name[i]);
+		free(path);
+		path = p;
+	}
+
+	char *result =
+		format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
+	free(path);
+	return result;
+}
+
 // Copy all data from fd_in to fd_out.
 bool
 copy_fd(int fd_in, int fd_out)
@@ -335,9 +351,10 @@ get_umask(void)
 }
 #endif
 
-// Copy a file from src to dest.
+// Copy a file from src to dest. If via_tmp_file is true, the file is copied to
+// a temporary file and then renamed to dest.
 bool
-copy_file(const char *src, const char *dest)
+copy_file(const char *src, const char *dest, bool via_tmp_file)
 {
 	bool result = false;
 
@@ -346,10 +363,18 @@ copy_file(const char *src, const char *dest)
 		return false;
 	}
 
-	int dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
-	if (dest_fd == -1) {
-		close(dest_fd);
-		return false;
+	int dest_fd;
+	char *tmp_file = NULL;
+	if (via_tmp_file) {
+		tmp_file = x_strdup(dest);
+		dest_fd = create_tmp_fd(&tmp_file);
+	} else {
+		dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+		if (dest_fd == -1) {
+			close(dest_fd);
+			close(src_fd);
+			return false;
+		}
 	}
 
 	if (copy_fd(src_fd, dest_fd)) {
@@ -358,6 +383,15 @@ copy_file(const char *src, const char *dest)
 
 	close(dest_fd);
 	close(src_fd);
+
+	if (via_tmp_file) {
+		x_try_unlink(dest);
+		if (x_rename(tmp_file, dest) != 0) {
+			result = false;
+		}
+		free(tmp_file);
+	}
+
 	return result;
 }
 
@@ -365,7 +399,7 @@ copy_file(const char *src, const char *dest)
 bool
 move_file(const char *src, const char *dest)
 {
-	bool ok = copy_file(src, dest);
+	bool ok = copy_file(src, dest, false);
 	if (ok) {
 		x_unlink(src);
 	}

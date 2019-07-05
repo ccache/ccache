@@ -18,6 +18,7 @@
 #include "common_header.h"
 #include "int_bytes_conversion.h"
 #include "compression.h"
+#include "hash.h"
 #include "result.h"
 
 // Result data format
@@ -45,10 +46,9 @@
 // <suffix>               ::= suffix_len bytes
 // <data_len>             ::= uint64_t
 // <data>                 ::= data_len bytes
-// <raw_file_entry>       ::= <raw_file_marker> <key_len> <key>
+// <raw_file_entry>       ::= <raw_file_marker> <suffix_len> <suffix> <file_len>
 // <raw_file_marker>      ::= 1 (uint8_t)
-// <key_len>              ::= uint8_t
-// <key>                  ::= key_len bytes
+// <file_len>             ::= uint64_t
 // <epilogue>             ::= <checksum>
 // <checksum>             ::= uint64_t ; XXH64 of content bytes
 //
@@ -79,6 +79,9 @@
 //
 // 1: Introduced in ccache 3.8.
 
+extern const struct conf *conf;
+extern char *stats_file;
+
 const char RESULT_MAGIC[4] = "cCrS";
 
 enum {
@@ -100,6 +103,21 @@ struct result_files {
 	struct result_file *files;
 	uint64_t *sizes;
 };
+
+typedef bool (*read_entry_fn)(
+	struct decompressor *decompressor,
+	struct decompr_state *decompr_state,
+	const char *result_path_in_cache,
+	uint32_t entry_number,
+	const struct result_files *list,
+	FILE *dump_stream);
+
+typedef bool (*write_entry_fn)(
+	struct compressor *compressor,
+	struct compr_state *compr_state,
+	const char *result_path_in_cache,
+	uint32_t entry_number,
+	const struct result_file *file);
 
 struct result_files *
 result_files_init(void)
@@ -166,10 +184,13 @@ static bool
 read_embedded_file_entry(
 	struct decompressor *decompressor,
 	struct decompr_state *decompr_state,
+	const char *result_path_in_cache,
 	uint32_t entry_number,
-	struct result_files *list,
+	const struct result_files *list,
 	FILE *dump_stream)
 {
+	(void)result_path_in_cache;
+
 	bool success = false;
 	FILE *subfile = NULL;
 
@@ -180,21 +201,24 @@ read_embedded_file_entry(
 	READ_BYTES(suffix, suffix_len);
 	suffix[suffix_len] = '\0';
 
-	uint64_t filelen;
-	READ_UINT64(filelen);
-
-	cc_log("Reading embedded file #%u: %s (%llu)",
-	       entry_number,
-	       suffix,
-	       (unsigned long long)filelen);
+	uint64_t file_len;
+	READ_UINT64(file_len);
 
 	bool found = false;
 	if (dump_stream) {
-		fprintf(dump_stream,
-		        "Entry: %s (size: %" PRIu64 " bytes)\n",
-		        suffix,
-		        filelen);
+		fprintf(
+			dump_stream,
+			"Embedded file #%u: %s (%" PRIu64 " bytes)\n",
+			entry_number,
+			suffix,
+			file_len);
 	} else {
+		cc_log(
+			"Retrieving embedded file #%u %s (%llu bytes)",
+			entry_number,
+			suffix,
+			(unsigned long long)file_len);
+
 		for (uint32_t i = 0; i < list->n_files; i++) {
 			if (str_eq(suffix, list->files[i].suffix)) {
 				found = true;
@@ -207,7 +231,7 @@ read_embedded_file_entry(
 					goto out;
 				}
 				char buf[READ_BUFFER_SIZE];
-				size_t remain = filelen;
+				size_t remain = file_len;
 				while (remain > 0) {
 					size_t n = MIN(remain, sizeof(buf));
 					READ_BYTES(buf, n);
@@ -223,10 +247,11 @@ read_embedded_file_entry(
 			}
 		}
 	}
+
 	if (!found) {
 		// Discard the file data.
 		char buf[READ_BUFFER_SIZE];
-		size_t remain = filelen;
+		size_t remain = file_len;
 		while (remain > 0) {
 			size_t n = MIN(remain, sizeof(buf));
 			READ_BYTES(buf, n);
@@ -244,6 +269,103 @@ out:
 	return success;
 }
 
+static char *
+get_raw_file_path(const char *result_path_in_cache, uint32_t entry_number)
+{
+	return format(
+		"%.*s_%u.raw",
+		(int)strlen(result_path_in_cache) - 7, // .result
+		result_path_in_cache,
+		entry_number);
+}
+
+static bool
+copy_raw_file(const char *source, const char *dest, bool to_cache)
+{
+	if (conf->hard_link) {
+		x_try_unlink(dest);
+		cc_log("Hard linking %s to %s", source, dest);
+		int ret = link(source, dest);
+		if (ret == 0) {
+			return true;
+		}
+		cc_log("Failed to hard link %s to %s: %s", source, dest, strerror(errno));
+	}
+
+	cc_log("Copying %s to %s", source, dest);
+	return copy_file(source, dest, to_cache);
+}
+
+static bool
+read_raw_file_entry(
+	struct decompressor *decompressor,
+	struct decompr_state *decompr_state,
+	const char *result_path_in_cache,
+	uint32_t entry_number,
+	const struct result_files *list,
+	FILE *dump_stream)
+{
+	bool success = false;
+	char *raw_path = get_raw_file_path(result_path_in_cache, entry_number);
+
+	uint8_t suffix_len;
+	READ_BYTE(suffix_len);
+
+	char suffix[256 + 1];
+	READ_BYTES(suffix, suffix_len);
+	suffix[suffix_len] = '\0';
+
+	uint64_t file_len;
+	READ_UINT64(file_len);
+
+	if (dump_stream) {
+		fprintf(
+			dump_stream,
+			"Raw file #%u: %s (%" PRIu64 " bytes)\n",
+			entry_number,
+			suffix,
+			file_len);
+	} else {
+		cc_log(
+			"Retrieving raw file #%u %s (%llu bytes)",
+			entry_number,
+			suffix,
+			(unsigned long long)file_len);
+
+		struct stat st;
+		if (x_stat(raw_path, &st) != 0) {
+			goto out;
+		}
+		if ((uint64_t)st.st_size != file_len) {
+			cc_log(
+				"Bad file size of %s (actual %llu bytes, expected %llu bytes)",
+				raw_path,
+				(unsigned long long)st.st_size,
+				(unsigned long long)file_len);
+			goto out;
+		}
+
+		for (uint32_t i = 0; i < list->n_files; i++) {
+			if (str_eq(suffix, list->files[i].suffix)) {
+				if (!copy_raw_file(raw_path, list->files[i].path, false)) {
+					goto out;
+				}
+				// Update modification timestamp to save the file from LRU cleanup
+				// (and, if hard-linked, to make the object file newer than the source
+				// file).
+				update_mtime(raw_path);
+				break;
+			}
+		}
+	}
+
+	success = true;
+
+out:
+	free(raw_path);
+	return success;
+}
+
 static bool
 read_result(
 	const char *path,
@@ -252,6 +374,7 @@ read_result(
 	char **errmsg)
 {
 	*errmsg = NULL;
+	bool cache_miss = false;
 	bool success = false;
 	struct decompressor *decompressor = NULL;
 	struct decompr_state *decompr_state = NULL;
@@ -259,8 +382,7 @@ read_result(
 
 	FILE *f = fopen(path, "rb");
 	if (!f) {
-		// Cache miss.
-		*errmsg = x_strdup("No such result file");
+		cache_miss = true;
 		goto out;
 	}
 
@@ -289,20 +411,23 @@ read_result(
 		uint8_t marker;
 		READ_BYTE(marker);
 
+		read_entry_fn read_entry;
+
 		switch (marker) {
 		case EMBEDDED_FILE_MARKER:
-			if (!read_embedded_file_entry(
-				    decompressor, decompr_state, i, list, dump_stream)) {
-				goto out;
-			}
+			read_entry = read_embedded_file_entry;
 			break;
 
 		case RAW_FILE_MARKER:
-		// TODO: Implement.
-		// Fall through.
+			read_entry = read_raw_file_entry;
+			break;
 
 		default:
 			*errmsg = format("Unknown entry type: %u", marker);
+			goto out;
+		}
+
+		if (!read_entry(decompressor, decompr_state, path, i, list, dump_stream)) {
 			goto out;
 		}
 	}
@@ -335,8 +460,8 @@ out:
 	if (checksum) {
 		XXH64_freeState(checksum);
 	}
-	if (!success && !*errmsg) {
-		*errmsg = x_strdup("Corrupt result file");
+	if (!success && !cache_miss && !*errmsg) {
+		*errmsg = x_strdup("Corrupt result");
 	}
 	return success;
 }
@@ -362,42 +487,133 @@ out:
 	} while (false)
 
 static bool
+write_embedded_file_entry(
+	struct compressor *compressor,
+	struct compr_state *compr_state,
+	const char *result_path_in_cache,
+	uint32_t entry_number,
+	const struct result_file *file)
+{
+	(void)result_path_in_cache;
+
+	bool success = false;
+
+	cc_log(
+		"Storing embedded file #%u %s (%llu bytes) from %s",
+		entry_number,
+		file->suffix,
+		(unsigned long long)file->size,
+		file->path);
+
+	WRITE_BYTE(EMBEDDED_FILE_MARKER);
+	size_t suffix_len = strlen(file->suffix);
+	WRITE_BYTE(suffix_len);
+	WRITE_BYTES(file->suffix, suffix_len);
+	WRITE_UINT64(file->size);
+
+	FILE *f = fopen(file->path, "rb");
+	if (!f) {
+		cc_log("Failed to open %s for reading", file->path);
+		goto error;
+	}
+	char buf[READ_BUFFER_SIZE];
+	size_t remain = file->size;
+	while (remain > 0) {
+		size_t n = MIN(remain, sizeof(buf));
+		if (fread(buf, 1, n, f) != n) {
+			goto error;
+		}
+		WRITE_BYTES(buf, n);
+		remain -= n;
+	}
+	fclose(f);
+
+	success = true;
+
+error:
+	return success;
+}
+
+static bool
+write_raw_file_entry(
+	struct compressor *compressor,
+	struct compr_state *compr_state,
+	const char *result_path_in_cache,
+	uint32_t entry_number,
+	const struct result_file *file)
+{
+	bool success = false;
+
+	cc_log(
+		"Storing raw file #%u %s (%llu bytes) from %s",
+		entry_number,
+		file->suffix,
+		(unsigned long long)file->size,
+		file->path);
+
+	WRITE_BYTE(RAW_FILE_MARKER);
+	size_t suffix_len = strlen(file->suffix);
+	WRITE_BYTE(suffix_len);
+	WRITE_BYTES(file->suffix, suffix_len);
+	WRITE_UINT64(file->size);
+
+	char *raw_file = get_raw_file_path(result_path_in_cache, entry_number);
+	struct stat old_stat;
+	bool old_existed = stat(raw_file, &old_stat) == 0;
+
+	success = copy_raw_file(file->path, raw_file, true);
+
+	struct stat new_stat;
+	bool new_exists = stat(raw_file, &new_stat) == 0;
+	free(raw_file);
+
+	size_t old_size = old_existed ? file_size(&old_stat) : 0;
+	size_t new_size = new_exists ? file_size(&new_stat) : 0;
+	stats_update_size(
+		stats_file,
+		new_size - old_size,
+		(new_exists ? 1 : 0) - (old_existed ? 1 : 0));
+
+error:
+	return success;
+}
+
+static bool
+should_hard_link_suffix(const char *suffix)
+{
+	// - Don't hard link stderr outputs since they:
+	//   1. Never are large.
+	//   2. Will end up in a temporary file anyway.
+	//
+	// - Don't hard link .d files since they:
+	//   1. Never are large.
+	//   2. Compress well.
+	//   3. Cause trouble for automake if hard-linked (see ccache issue 378).
+	return !str_eq(suffix, RESULT_STDERR_NAME) && !str_eq(suffix, ".d");
+}
+
+static bool
 write_result(
 	const struct result_files *list,
 	struct compressor *compressor,
 	struct compr_state *compr_state,
-	XXH64_state_t *checksum)
+	XXH64_state_t *checksum,
+	const char *result_path_in_cache)
 {
 	WRITE_BYTE(list->n_files);
 
 	for (uint32_t i = 0; i < list->n_files; i++) {
-		cc_log("Writing %s (%llu bytes) to %s",
-		       list->files[i].suffix,
-		       (unsigned long long)list->files[i].size,
-		       list->files[i].path);
+		write_entry_fn write_entry;
+		if (conf->hard_link && should_hard_link_suffix(list->files[i].suffix)) {
+			write_entry = write_raw_file_entry;
+		} else {
+			write_entry = write_embedded_file_entry;
+		}
 
-		WRITE_BYTE(EMBEDDED_FILE_MARKER);
-		size_t suffix_len = strlen(list->files[i].suffix);
-		WRITE_BYTE(suffix_len);
-		WRITE_BYTES(list->files[i].suffix, suffix_len);
-		WRITE_UINT64(list->files[i].size);
-
-		FILE *f = fopen(list->files[i].path, "rb");
-		if (!f) {
-			cc_log("Failed to open %s for reading", list->files[i].path);
+		if (!write_entry(
+			    compressor, compr_state, result_path_in_cache, i, &list->files[i])) {
 			goto error;
 		}
-		char buf[READ_BUFFER_SIZE];
-		size_t remain = list->files[i].size;
-		while (remain > 0) {
-			size_t n = MIN(remain, sizeof(buf));
-			if (fread(buf, 1, n, f) != n) {
-				goto error;
-			}
-			WRITE_BYTES(buf, n);
-			remain -= n;
-		}
-		fclose(f);
 	}
 
 	WRITE_UINT64(XXH64_digest(checksum));
@@ -415,13 +631,14 @@ bool result_get(const char *path, struct result_files *list)
 
 	char *errmsg;
 	bool success = read_result(path, list, NULL, &errmsg);
-	if (errmsg) {
-		cc_log("Error: %s", errmsg);
-		free(errmsg);
-	}
 	if (success) {
 		// Update modification timestamp to save files from LRU cleanup.
 		update_mtime(path);
+	} else if (errmsg) {
+		cc_log("Error: %s", errmsg);
+		free(errmsg);
+	} else {
+		cc_log("No such result file");
 	}
 	return success;
 }
@@ -467,7 +684,7 @@ bool result_put(const char *path, struct result_files *list)
 		goto out;
 	}
 
-	bool ok = write_result(list, compressor, compr_state, checksum)
+	bool ok = write_result(list, compressor, compr_state, checksum, path)
 	          && compressor->free(compr_state);
 	if (!ok) {
 		cc_log("Failed to write result file");

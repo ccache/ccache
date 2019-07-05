@@ -45,6 +45,7 @@ Features
 * Low overhead.
 * Compresses data in the cache to save disk space.
 * Checksums data in the cache to detect corruption.
+* Optionally uses hard links avoid copies (there are caveats, though).
 
 
 Limitations
@@ -91,8 +92,7 @@ but currently doesn't interact well with other tools that do the same thing.
 See <<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER
 COMPILER WRAPPERS>>.
 
-WARNING: Do not use a hard link, use a symbolic link. A hard link will cause
-``interesting'' problems.
+WARNING: Use a symbolic links for masquerading, not hard links.
 
 Options
 -------
@@ -364,6 +364,9 @@ Compression is done using the Zstandard algorithm. The algorithm is fast enough
 that there should be little reason to turn off compression to gain performance.
 One exception is if the cache is located on a compressed file system, in which
 case the compression performed by ccache of course is redundant.
++
+Compression will be disabled if hard linking (the *hard_link* setting) is
+enabled.
 
 *compression_level* (*CCACHE_COMPRESSLEVEL*)::
 
@@ -427,6 +430,37 @@ Semantics of *compression_level*:
     This setting is a list of paths to files that ccache will include in the
     the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
+
+*hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, ccache will attempt to use hard links to store compiler output
+    files in the cache, and similarly use hard links when retrieving files from
+    the cache. The default is false.
++
+An exception is dependency files (`.d`) which are never stored as hard links.
++
+Files stored via hard links cannot be compressed, so the cache size will likely
+be significantly larger if this option is enabled. However, performance may be
+improved depending on the use case.
++
+WARNING: Do not enable this option unless you are aware of these caveats:
++
+* If the resulting file is modified, the file in the cache will also be
+  modified since they share content, which corrupts the cache entry. As of
+  version 3.8, ccache performs a simple integrity check for cached files by
+  verifying that their sizes are correct. This means that mistakes like `strip
+  file.o` or `echo >file.o` will be detected, but a modification that doesn't
+  change the file size will not.
+* Programs that don't expect that files from two different identical
+  compilations are hard links to each other can fail.
+* Programs that rely on modification times (like ``make'') can be confused if
+  several users (or one user with several build trees) use the same cache
+  directory. The reason for this is that the object files share i-nodes and
+  therefore modification times. If *file.o* is in build tree A (hard-linked
+  from the cache) and *file.o* then is produced by ccache in build tree B by
+  hard-linking from the cache, the modification timestamp will be updated for
+  *file.o* in build tree A as well. This can retrigger relinking in build tree
+  A even though nothing really has changed.
 
 *hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 
@@ -1093,6 +1127,8 @@ directory. To share a cache without unpleasant side effects, the following
 conditions should to be met:
 
 * Use the same cache directory.
+* Make sure that the configuration setting *hard_link* is false (which is the
+  default).
 * Make sure that all users are in the same group.
 * Set the configuration setting *umask* to 002. This ensures that cached files
   are accessible to everyone in the group.
@@ -1107,6 +1143,13 @@ conditions should to be met:
 find $CCACHE_DIR -type d | xargs chmod g+s
 ----
 --
+
+The reason to avoid the hard link mode is that the hard links cause unwanted
+side effects, as all links to a cached file share the file's modification
+timestamp. This results in false dependencies to be triggered by
+timestamp-based build systems whenever another user links to an existing file.
+Typically, users will see that their libraries and binaries are relinked
+without reason.
 
 You may also want to make sure that a base directory is set appropriately, as
 discussed in a previous section.

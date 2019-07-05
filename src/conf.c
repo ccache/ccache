@@ -140,6 +140,7 @@ conf_create(void)
 	conf->direct_mode = true;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
+	conf->hard_link = false;
 	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
 	conf->keep_comments_cpp = false;
@@ -408,6 +409,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "direct_mode", printer, context);
 	ok &= print_item(conf, "disable", printer, context);
 	ok &= print_item(conf, "extra_files_to_hash", printer, context);
+	ok &= print_item(conf, "hard_link", printer, context);
 	ok &= print_item(conf, "hash_dir", printer, context);
 	ok &= print_item(conf, "ignore_headers_in_manifest", printer, context);
 	ok &= print_item(conf, "keep_comments_cpp", printer, context);

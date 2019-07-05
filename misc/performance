@@ -101,6 +101,8 @@ def test(tmp_dir, options, compiler_args, source_file):
         environment["CCACHE_NOCOMPRESS"] = "1"
     if options.compression_level:
         environment["CCACHE_COMPRESSLEVEL"] = str(options.compression_level)
+    if options.hardlink:
+        environment["CCACHE_HARDLINK"] = "1"
     if options.nostats:
         environment["CCACHE_NOSTATS"] = "1"
 
@@ -266,6 +268,7 @@ def main(argv):
             " files (default: %s)" % DEFAULT_DIRECTORY
         ),
     )
+    op.add_option("--hardlink", help="use hard links", action="store_true")
     op.add_option(
         "--hit-factor",
         help=(
@@ -322,6 +325,7 @@ def main(argv):
         print("Compilercheck:", options.compilercheck)
         print("Compression:", on_off(not options.no_compression))
         print("Compression level:", options.compression_level or "default")
+        print("Hardlink:", on_off(options.hardlink))
         print("Nostats:", on_off(options.nostats))
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
