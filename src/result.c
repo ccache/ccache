@@ -185,14 +185,14 @@ read_embedded_file_entry(
 
 	cc_log("Reading embedded file #%u: %s (%llu)",
 	       entry_number,
-	       str_eq(suffix, "stderr") ? "<stderr>" : suffix,
+	       suffix,
 	       (unsigned long long)filelen);
 
 	bool found = false;
 	if (dump_stream) {
 		fprintf(dump_stream,
 		        "Entry: %s (size: %" PRIu64 " bytes)\n",
-		        str_eq(suffix, "stderr") ? "<stderr>" : suffix,
+		        suffix,
 		        filelen);
 	} else {
 		for (uint32_t i = 0; i < list->n_files; i++) {

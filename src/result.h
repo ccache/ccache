@@ -5,6 +5,7 @@
 
 extern const char RESULT_MAGIC[4];
 #define RESULT_VERSION 1
+#define RESULT_STDERR_NAME "<stderr>"
 
 struct result_files;
 

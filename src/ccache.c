@@ -1391,7 +1391,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 	struct result_files *result_files = result_files_init();
 	if (st.st_size > 0) {
-		result_files_add(result_files, tmp_stderr, "stderr");
+		result_files_add(result_files, tmp_stderr, RESULT_STDERR_NAME);
 	}
 	result_files_add(result_files, output_obj, ".o");
 	if (generating_dependencies) {
@@ -2143,7 +2143,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 			result_files_add(result_files, output_dwo, ".dwo");
 		}
 	}
-	result_files_add(result_files, tmp_stderr, "stderr");
+	result_files_add(result_files, tmp_stderr, RESULT_STDERR_NAME);
 	if (produce_dep_file) {
 		result_files_add(result_files, output_dep, ".d");
 	}
