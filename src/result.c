@@ -586,16 +586,26 @@ error:
 }
 
 static bool
-should_hard_link_suffix(const char *suffix)
+should_store_raw_file(const char *suffix)
 {
-	// - Don't hard link stderr outputs since they:
+	if (!conf->file_clone && !conf->hard_link) {
+		return false;
+	}
+
+	// - Don't store stderr outputs as raw files since they:
 	//   1. Never are large.
 	//   2. Will end up in a temporary file anyway.
 	//
-	// - Don't hard link .d files since they:
+	// - Don't store .d files since they:
 	//   1. Never are large.
 	//   2. Compress well.
 	//   3. Cause trouble for automake if hard-linked (see ccache issue 378).
+	//
+	// Note that .d files can't be stored as raw files for the file_clone case
+	// since the hard link mode happily will try to use them if they exist. This
+	// could be fixed by letting read_raw_file_entry refuse to hard link .d
+	// files, but it's easier to simply always store them embedded. This will
+	// also save i-nodes in the cache.
 	return !str_eq(suffix, RESULT_STDERR_NAME) && !str_eq(suffix, ".d");
 }
 
@@ -610,11 +620,10 @@ write_result(
 	WRITE_BYTE(list->n_files);
 
 	for (uint32_t i = 0; i < list->n_files; i++) {
-		bool store_raw =
-			conf->file_clone
-			|| (conf->hard_link && should_hard_link_suffix(list->files[i].suffix));
 		write_entry_fn write_entry =
-			store_raw ? write_raw_file_entry : write_embedded_file_entry;
+			should_store_raw_file(list->files[i].suffix)
+			? write_raw_file_entry
+			: write_embedded_file_entry;
 		if (!write_entry(
 			    compressor, compr_state, result_path_in_cache, i, &list->files[i])) {
 			goto error;
