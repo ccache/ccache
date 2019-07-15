@@ -1,5 +1,4 @@
-// Copyright (C) 2002-2006 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -17,8 +16,42 @@
 
 #include "ccache.h"
 
+#include "common_header.h"
 #include "manifest.h"
 #include "result.h"
+
+static size_t
+content_size(
+	const char *path, const char *magic, uint8_t version, bool *is_compressed)
+{
+	char *errmsg;
+	size_t size = 0;
+	FILE *f = fopen(path, "rb");
+	if (!f) {
+		cc_log("Failed to open %s for reading: %s", path, strerror(errno));
+		goto error;
+	}
+	struct common_header header;
+	if (!common_header_initialize_for_reading(
+		    &header,
+		    f,
+		    magic,
+		    version,
+		    NULL,
+		    NULL,
+		    NULL,
+		    &errmsg)) {
+		cc_log("Error: %s", errmsg);
+		goto error;
+	}
+	size = common_header_content_size(&header, is_compressed);
+
+error:
+	if (f) {
+		fclose(f);
+	}
+	return size;
+}
 
 static unsigned num_files;
 static unsigned comp_files;
@@ -50,16 +83,20 @@ measure_fn(const char *fname, struct stat *st)
 
 	size_t uncompressed_size;
 	bool is_compressed;
-	if (str_endswith(p, ".manifest")) {
-		uncompressed_size = manifest_size(fname, &is_compressed);
-	} else if (str_endswith(p, ".result")) {
-		uncompressed_size = result_size(fname, &is_compressed);
+	const char *file_ext = get_extension(p);
+	if (str_eq(file_ext, ".manifest")) {
+		uncompressed_size =
+			content_size(fname, MANIFEST_MAGIC, MANIFEST_VERSION, &is_compressed);
+	} else if (str_eq(file_ext, ".result")) {
+		uncompressed_size =
+			content_size(fname, RESULT_MAGIC, RESULT_VERSION, &is_compressed);
 	} else {
 		uncompressed_size = 0;
 		is_compressed = false;
 	}
 
-	// Ignore unknown files in the cache, including any files from older versions.
+	// Ignore unknown files in the cache, including any files from older
+	// versions.
 	if (uncompressed_size > 0) {
 		cache_size += st->st_size;
 		num_files++;

@@ -11,7 +11,6 @@ extern const char MANIFEST_MAGIC[4];
 struct digest *manifest_get(struct conf *conf, const char *manifest_path);
 bool manifest_put(const char *manifest_path, struct digest *result_digest,
                   struct hashtable *included_files);
-size_t manifest_size(const char *manifest_path, bool *is_compressed);
 bool manifest_dump(const char *manifest_path, FILE *stream);
 
 #endif

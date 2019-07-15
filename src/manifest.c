@@ -782,37 +782,6 @@ out:
 	return ret;
 }
 
-size_t
-manifest_size(const char *path, bool *is_compressed)
-{
-	char *errmsg;
-	size_t size = 0;
-	FILE *f = fopen(path, "rb");
-	if (!f) {
-		cc_log("Failed to open %s for reading: %s", path, strerror(errno));
-		goto error;
-	}
-	struct common_header header;
-	if (!common_header_initialize_for_reading(
-		&header,
-		f,
-		MANIFEST_MAGIC,
-		MANIFEST_VERSION,
-		NULL,
-		NULL,
-		NULL,
-		&errmsg)) {
-		cc_log("Error: %s", errmsg);
-		goto error;
-	}
-	size = common_header_size(&header, is_compressed);
-error:
-	if (f) {
-		fclose(f);
-	}
-	return size;
-}
-
 bool
 manifest_dump(const char *manifest_path, FILE *stream)
 {

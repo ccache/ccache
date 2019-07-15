@@ -16,7 +16,6 @@ void result_files_free(struct result_files *c);
 
 bool result_get(const char *path, struct result_files *list);
 bool result_put(const char *path, struct result_files *list);
-size_t result_size(const char *path, bool *is_compressed);
 bool result_dump(const char *path, FILE *stream);
 
 #endif
