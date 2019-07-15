@@ -4,11 +4,13 @@ Want to contribute to ccache? Awesome!
 
 ## Asking a question?
 
-It's OK to ask questions in the issue tracker for now.
+There are several options:
 
-However, please consider posting your question to the
-[mailing list](https://lists.samba.org/mailman/listinfo/ccache/) instead, since
-you are more likely to get an answer there.
+1. Ask a question in the [issue
+   tracker](https://github.com/ccache/ccache/issues/new/choose).
+2. Post your question to the [mailing
+   list](https://lists.samba.org/mailman/listinfo/ccache/).
+3. Chat in the [Gitter room](https://gitter.im/ccache/ccache).
 
 ## Reporting an issue?
 
