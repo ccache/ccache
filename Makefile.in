@@ -37,6 +37,7 @@ non_3pp_sources = \
     src/compopt.c \
     src/compr_none.c \
     src/compr_zstd.c \
+    src/compress.c \
     src/compression.c \
     src/conf.c \
     src/confitems.c \

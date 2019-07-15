@@ -75,6 +75,7 @@ static const char USAGE_TEXT[] =
 	"                              human-readable format\n"
 	"    -s, --show-stats          show summary of configuration and statistics\n"
 	"                              counters in human-readable format\n"
+	"    -x, --show-compression    show compression statistics\n"
 	"    -z, --zero-stats          zero statistics counters\n"
 	"\n"
 	"    -h, --help                print this help text\n"
@@ -3832,26 +3833,27 @@ ccache_main_options(int argc, char *argv[])
 		PRINT_STATS,
 	};
 	static const struct option options[] = {
-		{"cleanup",       no_argument,       0, 'c'},
-		{"clear",         no_argument,       0, 'C'},
-		{"dump-manifest", required_argument, 0, DUMP_MANIFEST},
-		{"dump-result",   required_argument, 0, DUMP_RESULT},
-		{"get-config",    required_argument, 0, 'k'},
-		{"hash-file",     required_argument, 0, HASH_FILE},
-		{"help",          no_argument,       0, 'h'},
-		{"max-files",     required_argument, 0, 'F'},
-		{"max-size",      required_argument, 0, 'M'},
-		{"print-stats",   no_argument,       0, PRINT_STATS},
-		{"set-config",    required_argument, 0, 'o'},
-		{"show-config",   no_argument,       0, 'p'},
-		{"show-stats",    no_argument,       0, 's'},
-		{"version",       no_argument,       0, 'V'},
-		{"zero-stats",    no_argument,       0, 'z'},
+		{"cleanup",             no_argument,       0, 'c'},
+		{"clear",               no_argument,       0, 'C'},
+		{"dump-manifest",       required_argument, 0, DUMP_MANIFEST},
+		{"dump-result",         required_argument, 0, DUMP_RESULT},
+		{"get-config",          required_argument, 0, 'k'},
+		{"hash-file",           required_argument, 0, HASH_FILE},
+		{"help",                no_argument,       0, 'h'},
+		{"max-files",           required_argument, 0, 'F'},
+		{"max-size",            required_argument, 0, 'M'},
+		{"print-stats",         no_argument,       0, PRINT_STATS},
+		{"set-config",          required_argument, 0, 'o'},
+		{"show-config",         no_argument,       0, 'p'},
+		{"show-compression",    no_argument,0, 'x'},
+		{"show-stats",          no_argument,       0, 's'},
+		{"version",             no_argument,       0, 'V'},
+		{"zero-stats",          no_argument,       0, 'z'},
 		{0, 0, 0, 0}
 	};
 
 	int c;
-	while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVz", options, NULL))
+	while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxz", options, NULL))
 	       != -1) {
 		switch (c) {
 		case DUMP_MANIFEST:
@@ -3984,6 +3986,11 @@ ccache_main_options(int argc, char *argv[])
 		case 'V': // --version
 			fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
 			x_exit(0);
+
+		case 'x': // --show-compression
+			initialize();
+			compress_stats(conf);
+			break;
 
 		case 'z': // --zero-stats
 			initialize();
