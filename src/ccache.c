@@ -71,11 +71,11 @@ static const char USAGE_TEXT[] =
 	"    -M, --max-size=SIZE       set maximum size of cache to SIZE (use 0 for no\n"
 	"                              limit); available suffixes: k, M, G, T (decimal)\n"
 	"                              and Ki, Mi, Gi, Ti (binary); default suffix: G\n"
+	"    -x, --show-compression    show compression statistics\n"
 	"    -p, --show-config         show current configuration options in\n"
 	"                              human-readable format\n"
 	"    -s, --show-stats          show summary of configuration and statistics\n"
 	"                              counters in human-readable format\n"
-	"    -x, --show-compression    show compression statistics\n"
 	"    -z, --zero-stats          zero statistics counters\n"
 	"\n"
 	"    -h, --help                print this help text\n"
@@ -3844,8 +3844,8 @@ ccache_main_options(int argc, char *argv[])
 		{"max-size",            required_argument, 0, 'M'},
 		{"print-stats",         no_argument,       0, PRINT_STATS},
 		{"set-config",          required_argument, 0, 'o'},
+		{"show-compression",    no_argument,       0, 'x'},
 		{"show-config",         no_argument,       0, 'p'},
-		{"show-compression",    no_argument,0, 'x'},
 		{"show-stats",          no_argument,       0, 's'},
 		{"version",             no_argument,       0, 'V'},
 		{"zero-stats",          no_argument,       0, 'z'},

@@ -169,6 +169,10 @@ compiler options apply and you should refer to the compiler's documentation.
     (environment variable, configuration file or compile-time default) in
     human-readable format.
 
+*`-x, --show-compression`*::
+
+    Print cache compression statistics.
+
 *`-s, --show-stats`*::
 
     Print a summary of configuration and statistics counters in human-readable
@@ -757,6 +761,9 @@ gain performance. One exception is if the cache is located on a compressed file
 system, in which case the compression performed by ccache of course is
 redundant. See the documentation for the *compression* and *compression_level*
 settings for more information.
+
+You can use *ccache -x/--show-compression* to print some statistics for cache
+compression ratio, number of compressed and uncompressed files, etc.
 
 
 Cache statistics
