@@ -127,6 +127,7 @@ struct conf *
 conf_create(void)
 {
 	struct conf *conf = x_malloc(sizeof(*conf));
+
 	conf->base_dir = x_strdup("");
 	conf->cache_dir = format("%s/.ccache", get_home_directory());
 	conf->cache_dir_levels = 2;
@@ -140,6 +141,7 @@ conf_create(void)
 	conf->direct_mode = true;
 	conf->disable = false;
 	conf->extra_files_to_hash = x_strdup("");
+	conf->file_clone = false;
 	conf->hard_link = false;
 	conf->hash_dir = true;
 	conf->ignore_headers_in_manifest = x_strdup("");
@@ -161,6 +163,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; // Default: don't set umask.
 	conf->unify = false;
+
 	conf->item_origins = x_malloc(confitems_count() * sizeof(char *));
 	for (size_t i = 0; i < confitems_count(); ++i) {
 		conf->item_origins[i] = "default";
@@ -409,6 +412,7 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "direct_mode", printer, context);
 	ok &= print_item(conf, "disable", printer, context);
 	ok &= print_item(conf, "extra_files_to_hash", printer, context);
+	ok &= print_item(conf, "file_clone", printer, context);
 	ok &= print_item(conf, "hard_link", printer, context);
 	ok &= print_item(conf, "hash_dir", printer, context);
 	ok &= print_item(conf, "ignore_headers_in_manifest", printer, context);

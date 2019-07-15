@@ -27,6 +27,19 @@
 #include <sys/time.h>
 #endif
 
+#ifdef __linux__
+#  ifdef HAVE_SYS_IOCTL_H
+#  include <sys/ioctl.h>
+#  endif
+#  ifdef HAVE_LINUX_FS_H
+#    include <linux/fs.h>
+#    ifndef FICLONE
+#      define FICLONE _IOW(0x94, 9, int)
+#    endif
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
@@ -350,6 +363,70 @@ get_umask(void)
 	return mask;
 }
 #endif
+
+// Clone a file from src to dest. If via_tmp_file is true, the file is cloned
+// to a temporary file and then renamed to dest.
+bool
+clone_file(const char *src, const char *dest, bool via_tmp_file)
+{
+	bool result;
+
+#ifdef FILE_CLONING_SUPPORTED
+
+#if defined(__linux__)
+	int src_fd = open(src, O_RDONLY);
+	if (src_fd == -1) {
+		return false;
+	}
+
+	int dest_fd;
+	char *tmp_file = NULL;
+	if (via_tmp_file) {
+		tmp_file = x_strdup(dest);
+		dest_fd = create_tmp_fd(&tmp_file);
+	} else {
+		dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+		if (dest_fd == -1) {
+			close(dest_fd);
+			close(src_fd);
+			return false;
+		}
+	}
+
+	int saved_errno = 0;
+	if (ioctl(dest_fd, FICLONE, src_fd) == 0) {
+		result = true;
+	} else {
+		result = false;
+		saved_errno = errno;
+	}
+
+	close(dest_fd);
+	close(src_fd);
+
+	if (via_tmp_file) {
+		x_try_unlink(dest);
+		if (x_rename(tmp_file, dest) != 0) {
+			result = false;
+		}
+		free(tmp_file);
+	}
+
+	errno = saved_errno;
+#endif
+
+#else // FILE_CLONING_SUPPORTED
+
+	(void)src;
+	(void)dest;
+	(void)via_tmp_file;
+	errno = EOPNOTSUPP;
+	result = false;
+
+#endif // FILE_CLONING_SUPPORTED
+
+	return result;
+}
 
 // Copy a file from src to dest. If via_tmp_file is true, the file is copied to
 // a temporary file and then renamed to dest.

@@ -45,6 +45,8 @@ Features
 * Low overhead.
 * Compresses data in the cache to save disk space.
 * Checksums data in the cache to detect corruption.
+* Optionally uses file cloning (AKA “copy on write” or reflinks) to avoid
+  copies (not supported by all file systems).
 * Optionally uses hard links avoid copies (there are caveats, though).
 
 
@@ -365,8 +367,8 @@ that there should be little reason to turn off compression to gain performance.
 One exception is if the cache is located on a compressed file system, in which
 case the compression performed by ccache of course is redundant.
 +
-Compression will be disabled if hard linking (the *hard_link* setting) is
-enabled.
+Compression will be disabled if file cloning (the *file_clone* setting) or hard
+linking (the *hard_link* setting) is enabled.
 
 *compression_level* (*CCACHE_COMPRESSLEVEL*)::
 
@@ -431,11 +433,24 @@ Semantics of *compression_level*:
     the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
+*file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, ccache will attempt to use file cloning (also known as “copy on
+    write”, “CoW” or “reflinks”) to store and fetch cached compiler results.
+    *file_clone* has priority over *hard_link*. The default is false.
++
+Files stored by cloning cannot be compressed, so the cache size will likely be
+significantly larger if this option is enabled. However, performance may be
+improved depending on the use case.
++
+Unlike the *hard_link* setting, *file_clone* is completely safe to use, but not
+all file systems support the feature. For such file systems, ccache will fall
+back to use plain copying (or hard links if *hard_link* is enabled).
+
 *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, ccache will attempt to use hard links to store compiler output
-    files in the cache, and similarly use hard links when retrieving files from
-    the cache. The default is false.
+    If true, ccache will attempt to use hard links to store and fetch cached
+    compiler results. The default is false.
 +
 An exception is dependency files (`.d`) which are never stored as hard links.
 +

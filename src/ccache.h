@@ -151,6 +151,7 @@ void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 char *get_path_in_cache(const char *name, const char *suffix);
 bool copy_fd(int fd_in, int fd_out);
+bool clone_file(const char *src, const char *dest, bool via_tmp_file);
 bool copy_file(const char *src, const char *dest, bool via_tmp_file);
 bool move_file(const char *src, const char *dest);
 int create_dir(const char *dir);

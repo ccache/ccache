@@ -282,6 +282,13 @@ get_raw_file_path(const char *result_path_in_cache, uint32_t entry_number)
 static bool
 copy_raw_file(const char *source, const char *dest, bool to_cache)
 {
+	if (conf->file_clone) {
+		cc_log("Cloning %s to %s", source, dest);
+		if (clone_file(source, dest, to_cache)) {
+			return true;
+		}
+		cc_log("Failed to clone: %s", strerror(errno));
+	}
 	if (conf->hard_link) {
 		x_try_unlink(dest);
 		cc_log("Hard linking %s to %s", source, dest);
@@ -289,7 +296,7 @@ copy_raw_file(const char *source, const char *dest, bool to_cache)
 		if (ret == 0) {
 			return true;
 		}
-		cc_log("Failed to hard link %s to %s: %s", source, dest, strerror(errno));
+		cc_log("Failed to hard link: %s", strerror(errno));
 	}
 
 	cc_log("Copying %s to %s", source, dest);
@@ -603,13 +610,11 @@ write_result(
 	WRITE_BYTE(list->n_files);
 
 	for (uint32_t i = 0; i < list->n_files; i++) {
-		write_entry_fn write_entry;
-		if (conf->hard_link && should_hard_link_suffix(list->files[i].suffix)) {
-			write_entry = write_raw_file_entry;
-		} else {
-			write_entry = write_embedded_file_entry;
-		}
-
+		bool store_raw =
+			conf->file_clone
+			|| (conf->hard_link && should_hard_link_suffix(list->files[i].suffix));
+		write_entry_fn write_entry =
+			store_raw ? write_raw_file_entry : write_embedded_file_entry;
 		if (!write_entry(
 			    compressor, compr_state, result_path_in_cache, i, &list->files[i])) {
 			goto error;

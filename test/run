@@ -407,6 +407,7 @@ debug_prefix_map
 split_dwarf
 masquerading
 hardlink
+fileclone
 direct
 direct_gcc
 depend
