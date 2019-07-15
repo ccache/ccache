@@ -40,6 +40,13 @@
 #  endif
 #endif
 
+#ifdef __APPLE__
+#  ifdef HAVE_SYS_CLONEFILE_H
+#    include <sys/clonefile.h>
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <sys/locking.h>
@@ -413,6 +420,9 @@ clone_file(const char *src, const char *dest, bool via_tmp_file)
 	}
 
 	errno = saved_errno;
+#elif defined(__APPLE__)
+	(void)via_tmp_file;
+	result = clonefile(src, dest, CLONE_NOOWNERCOPY) == 0;
 #endif
 
 #else // FILE_CLONING_SUPPORTED
