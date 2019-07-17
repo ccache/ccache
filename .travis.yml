@@ -10,7 +10,7 @@ script:
 matrix:
   include:
 
-  # Job 1:
+  # Job 1: Linux native GCC
   - os: linux
     compiler: gcc
     env: V=1
@@ -21,7 +21,7 @@ matrix:
         - gperf
         - libzstd1-dev
 
-  # Job 2:
+  # Job 2: Linux native Clang
   - os: linux
     compiler: clang
     env: V=1
@@ -32,12 +32,12 @@ matrix:
         - gperf
         - libzstd1-dev
 
-  # Job 3:
+  # Job 3: Mac OS X native Clang
   - os: osx
     compiler: clang
     env: V=1 CONFIGURE="--with-libzstd-from-internet"
 
-  # Job 4:
+  # Job 4: Linux 32-bit native
   - os: linux
     compiler: gcc
     env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet"
@@ -47,7 +47,7 @@ matrix:
         - gcc-multilib
         - gperf
 
-  # Job 5:
+  # Job 5: Linux cross-compiled 32-bit MinGW
   - os: linux
     compiler: i686-w64-mingw32-gcc
     env: V=1 CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet" TEST="unittest/run.exe"
@@ -57,7 +57,17 @@ matrix:
         - elfutils
         - gperf
 
-  # Job 6:
+  # Job 6: Linux cross-compiled 64-bit MinGW
+  - os: linux
+    compiler: x86_64-w64-mingw32-gcc
+    env: V=1 CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet" TEST="unittest/run.exe"
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - gperf
+
+  # Job 7: Clang's undefined behavior sanitizer (UBSan)
   - os: linux
     compiler: clang
     env: V=1 CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
@@ -68,7 +78,7 @@ matrix:
         - gperf
         - libzstd1-dev
 
-  # Job 7:
+  # Job 8: Clang's address sanitizer
   - os: linux
     compiler: clang
     env: V=1 CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
@@ -79,7 +89,7 @@ matrix:
         - gperf
         - libzstd1-dev
 
-  # Job 8:
+  # Job 9: Clang static analyzer
   - os: linux
     compiler: clang
     env: V=1 PATH="/usr/bin:$PATH" TEST=analyze
@@ -90,7 +100,7 @@ matrix:
         - gperf
         - libzstd1-dev
 
-  # Job 9:
+  # Job 10: Linux GCC with CUDA compiler
   - os: linux
     compiler: gcc
     env: V=1 CUDA=8.0.61-1
