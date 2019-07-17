@@ -30,6 +30,8 @@ AC_SUBST(test_suites)
 m4_include(m4/feature_macros.m4)
 m4_include(m4/clang.m4)
 
+mkdir -p .deps src unittest
+
 dnl Checks for programs.
 AC_PROG_CC
 _AC_LANG_COMPILER_CLANG
@@ -202,8 +204,6 @@ if test "$ac_cv_c_extern_inline" != no ; then
     AC_DEFINE(HAVE_EXTERN_INLINE, 1,
               Define to 1 if your compiler supports extern inline)
 fi
-
-mkdir -p .deps src unittest
 
 dnl Enable developer mode if dev.mk.in exists.
 if test ! -f $srcdir/dev_mode_disabled; then
