@@ -48,11 +48,13 @@ headers = \
     src/hashtable_itr.h \
     src/hashtable_private.h \
     src/hashutil.h \
+    src/int_bytes_conversion.h \
     src/language.h \
     src/macroskip.h \
     src/manifest.h \
     src/mdfour.h \
     src/minitrace.h \
+    src/result.h \
     src/system.h \
     src/unify.h \
     src/xxhash.h \
