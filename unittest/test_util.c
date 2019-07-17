@@ -125,10 +125,9 @@ TEST(subst_env_in_string)
 
 TEST(format_human_readable_size)
 {
-	CHECK_STR_EQ_FREE2("0.0 kB", format_human_readable_size(0));
-	CHECK_STR_EQ_FREE2("0.0 kB", format_human_readable_size(49));
-	CHECK_STR_EQ_FREE2("0.1 kB", format_human_readable_size(50));
-	CHECK_STR_EQ_FREE2("42.0 kB", format_human_readable_size(42 * 1000));
+	CHECK_STR_EQ_FREE2("0.0 MB", format_human_readable_size(0));
+	CHECK_STR_EQ_FREE2("0.0 MB", format_human_readable_size(49));
+	CHECK_STR_EQ_FREE2("0.4 MB", format_human_readable_size(420 * 1000));
 	CHECK_STR_EQ_FREE2("1.0 MB", format_human_readable_size(1000 * 1000));
 	CHECK_STR_EQ_FREE2("1.2 MB", format_human_readable_size(1234 * 1000));
 	CHECK_STR_EQ_FREE2("438.5 MB",
@@ -142,7 +141,7 @@ TEST(format_human_readable_size)
 TEST(format_parsable_size_with_suffix)
 {
 	CHECK_STR_EQ_FREE2("0", format_parsable_size_with_suffix(0));
-	CHECK_STR_EQ_FREE2("42.0k", format_parsable_size_with_suffix(42 * 1000));
+	CHECK_STR_EQ_FREE2("42000", format_parsable_size_with_suffix(42 * 1000));
 	CHECK_STR_EQ_FREE2("1.0M", format_parsable_size_with_suffix(1000 * 1000));
 	CHECK_STR_EQ_FREE2("1.2M", format_parsable_size_with_suffix(1234 * 1000));
 	CHECK_STR_EQ_FREE2("438.5M",

@@ -986,10 +986,8 @@ format_human_readable_size(uint64_t v)
 	char *s;
 	if (v >= 1000*1000*1000) {
 		s = format("%.1f GB", v/((double)(1000*1000*1000)));
-	} else if (v >= 1000*1000) {
-		s = format("%.1f MB", v/((double)(1000*1000)));
 	} else {
-		s = format("%.1f kB", v/((double)(1000)));
+		s = format("%.1f MB", v/((double)(1000*1000)));
 	}
 	return s;
 }
@@ -1003,8 +1001,6 @@ format_parsable_size_with_suffix(uint64_t size)
 		s = format("%.1fG", size / ((double)(1000*1000*1000)));
 	} else if (size >= 1000*1000) {
 		s = format("%.1fM", size / ((double)(1000*1000)));
-	} else if (size >= 1000) {
-		s = format("%.1fk", size / ((double)(1000)));
 	} else {
 		s = format("%u", (unsigned)size);
 	}
