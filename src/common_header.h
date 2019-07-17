@@ -61,9 +61,6 @@ bool common_header_initialize_for_reading(
 	XXH64_state_t *checksum,
 	char **errmsg);
 
-size_t common_header_content_size(
-	const struct common_header *header, bool *is_compressed);
-
 void common_header_dump(const struct common_header *header, FILE *f);
 
 #endif

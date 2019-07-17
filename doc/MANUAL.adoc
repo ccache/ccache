@@ -171,7 +171,9 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`-x, --show-compression`*::
 
-    Print cache compression statistics.
+    Print cache compression statistics. See <<_cache_compression,CACHE
+    COMPRESSION>> for more information. This can potentionally take a long time
+    since all files in the cache need to be visited.
 
 *`-s, --show-stats`*::
 
@@ -762,9 +764,27 @@ system, in which case the compression performed by ccache of course is
 redundant. See the documentation for the *compression* and *compression_level*
 settings for more information.
 
-You can use *ccache -x/--show-compression* to print some statistics for cache
-compression ratio, number of compressed and uncompressed files, etc.
+You can use *ccache -x/--show-compression* to print information related to
+compression. Example:
 
+-------------------------------------------------------------------------------
+Total data:              14.8 GB (16.0 GB disk blocks)
+Compressible data:       11.3 GB (30.6% of original size)
+  - Original size:       36.9 GB
+  - Compression ratio:  3.267  x (69.4% space savings)
+Incompressible data:      3.5 GB
+-------------------------------------------------------------------------------
+
+Notes:
+
+* The “disk blocks” size is the cache size when taking disk block size into
+  account. This value should match the “cache size” value from “ccache
+  --show-stats”. The other size numbers refer to actual content sizes.
+* “Compressible data” refers to result and manifest files stored in the cache.
+* “Incompressible data” refers to files that are always stored uncompressed
+  (triggered by enabling the *file_clone* or *hard_link* settings) or unknown
+  files (for instance files created by older ccache versions).
+* The compression ratio is affected by the *compression_level* setting.
 
 Cache statistics
 ----------------

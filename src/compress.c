@@ -20,44 +20,38 @@
 #include "manifest.h"
 #include "result.h"
 
-static size_t
-content_size(
-	const char *path, const char *magic, uint8_t version, bool *is_compressed)
+static bool
+get_content_size(
+	const char *path, const char *magic, uint8_t version, size_t *size)
 {
 	char *errmsg;
-	size_t size = 0;
 	FILE *f = fopen(path, "rb");
 	if (!f) {
 		cc_log("Failed to open %s for reading: %s", path, strerror(errno));
-		goto error;
+		return false;
 	}
 	struct common_header header;
-	if (!common_header_initialize_for_reading(
-		    &header,
-		    f,
-		    magic,
-		    version,
-		    NULL,
-		    NULL,
-		    NULL,
-		    &errmsg)) {
-		cc_log("Error: %s", errmsg);
-		goto error;
+	bool success = common_header_initialize_for_reading(
+		&header,
+		f,
+		magic,
+		version,
+		NULL,
+		NULL,
+		NULL,
+		&errmsg);
+	fclose(f);
+	if (success) {
+		*size = header.content_size;
 	}
-	size = common_header_content_size(&header, is_compressed);
 
-error:
-	if (f) {
-		fclose(f);
-	}
-	return size;
+	return success;
 }
 
-static unsigned num_files;
-static unsigned comp_files;
-
-static uint64_t cache_size;
-static uint64_t real_size;
+static uint64_t on_disk_size;
+static uint64_t compr_size;
+static uint64_t compr_orig_size;
+static uint64_t incompr_size;
 
 // This measures the size of files in the cache.
 static void
@@ -77,35 +71,31 @@ measure_fn(const char *fname, struct stat *st)
 		goto out;
 	}
 
+	if (strstr(p, ".tmp.")) {
+		// Ignore tmp files since they are transient.
+		goto out;
+	}
+
 	if (strstr(p, "CACHEDIR.TAG")) {
 		goto out;
 	}
 
-	size_t uncompressed_size;
-	bool is_compressed;
+	on_disk_size += file_size(st);
+
+	size_t content_size = 0;
 	const char *file_ext = get_extension(p);
+	bool is_compressible = false;
 	if (str_eq(file_ext, ".manifest")) {
-		uncompressed_size =
-			content_size(fname, MANIFEST_MAGIC, MANIFEST_VERSION, &is_compressed);
+		is_compressible = get_content_size(fname, MANIFEST_MAGIC, MANIFEST_VERSION, &content_size);
 	} else if (str_eq(file_ext, ".result")) {
-		uncompressed_size =
-			content_size(fname, RESULT_MAGIC, RESULT_VERSION, &is_compressed);
-	} else {
-		uncompressed_size = 0;
-		is_compressed = false;
+		is_compressible = get_content_size(fname, RESULT_MAGIC, RESULT_VERSION, &content_size);
 	}
 
-	// Ignore unknown files in the cache, including any files from older
-	// versions.
-	if (uncompressed_size > 0) {
-		cache_size += st->st_size;
-		num_files++;
-		if (is_compressed) {
-			real_size += uncompressed_size;
-			comp_files++;
-		} else {
-			real_size += st->st_size;
-		}
+	if (is_compressible) {
+		compr_size += st->st_size;
+		compr_orig_size += content_size;
+	} else {
+		incompr_size += st->st_size;
 	}
 
 out:
@@ -115,10 +105,10 @@ out:
 // Process up all cache subdirectories.
 void compress_stats(struct conf *conf)
 {
-	num_files = 0;
-	comp_files = 0;
-	cache_size = 0;
-	real_size = 0;
+	on_disk_size = 0;
+	compr_size = 0;
+	compr_orig_size = 0;
+	incompr_size = 0;
 
 	for (int i = 0; i <= 0xF; i++) {
 		char *dname = format("%s/%1x", conf->cache_dir, i);
@@ -126,19 +116,27 @@ void compress_stats(struct conf *conf)
 		free(dname);
 	}
 
-	char *cache_str = format_human_readable_size(cache_size);
-	printf("Compressed size: %s, %.0f files\n",
-	       cache_str, (double)comp_files);
-	free(cache_str);
-	char *real_str = format_human_readable_size(real_size);
-	printf("Uncompressed size: %s, %.0f files\n",
-	       real_str, (double)num_files);
-	free(real_str);
-
-	double percent = real_size > 0 ? (100.0 * comp_files) / num_files : 0.0;
-	printf("Compressed files: %.2f %%\n", percent);
-	double ratio = cache_size > 0 ? ((double) real_size) / cache_size : 0.0;
+	double ratio = compr_size > 0 ? ((double) compr_orig_size) / compr_size : 0.0;
 	double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
-	printf("Compression ratio: %.2f %% (%.1fx)\n", savings, ratio);
-}
 
+	char *on_disk_size_str = format_human_readable_size(on_disk_size);
+	char *cache_size_str = format_human_readable_size(compr_size + incompr_size);
+	char *compr_size_str = format_human_readable_size(compr_size);
+	char *compr_orig_size_str = format_human_readable_size(compr_orig_size);
+	char *incompr_size_str = format_human_readable_size(incompr_size);
+
+	printf("Total data:            %8s (%s disk blocks)\n",
+	       cache_size_str, on_disk_size_str);
+	printf("Compressible data:     %8s (%.1f%% of original size)\n",
+	       compr_size_str, 100.0 - savings);
+	printf("  - Original size:     %8s\n", compr_orig_size_str);
+	printf("  - Compression ratio: %5.3f x  (%.1f%% space savings)\n",
+	       ratio, savings);
+	printf("Incompressible data:   %8s\n", incompr_size_str);
+
+	free(incompr_size_str);
+	free(compr_orig_size_str);
+	free(compr_size_str);
+	free(cache_size_str);
+	free(on_disk_size_str);
+}

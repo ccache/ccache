@@ -146,14 +146,6 @@ bool common_header_initialize_for_reading(
 	return true;
 }
 
-size_t
-common_header_content_size(
-	const struct common_header *header, bool *is_compressed)
-{
-	*is_compressed = header->compression_type != COMPR_TYPE_NONE;
-	return header->content_size;
-}
-
 void common_header_dump(const struct common_header *header, FILE *f)
 {
 	fprintf(
