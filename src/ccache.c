@@ -1,7 +1,7 @@
-// ccache -- a fast C/C++ compiler cache
-//
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+//
+// See doc/AUTHORS.adoc for a complete list of contributors.
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -48,7 +48,9 @@ static const char VERSION_TEXT[] =
 	MYNAME " version %s\n"
 	"\n"
 	"Copyright (C) 2002-2007 Andrew Tridgell\n"
-	"Copyright (C) 2009-2019 Joel Rosdahl\n"
+	"Copyright (C) 2009-2019 Joel Rosdahl and other contributors\n"
+	"\n"
+	"See <https://ccache.dev/credits.html> for a complete list of contributors.\n"
 	"\n"
 	"This program is free software; you can redistribute it and/or modify it under\n"
 	"the terms of the GNU General Public License as published by the Free Software\n"

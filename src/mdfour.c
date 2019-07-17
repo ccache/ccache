@@ -1,5 +1,7 @@
 // Copyright (C) 1997-1998 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+//
+// See doc/AUTHORS.adoc for a complete list of contributors.
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free

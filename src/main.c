@@ -1,6 +1,6 @@
-// ccache -- a fast C/C++ compiler cache
+// Copyright (C) 2010-2016 Joel Rosdahl and other contributors
 //
-// Copyright (C) 2010-2016 Joel Rosdahl
+// See doc/AUTHORS.adoc for a complete list of contributors.
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
