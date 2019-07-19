@@ -49,6 +49,7 @@ ccache is a collective work with contributions from many people, including:
 * Leanid Chaika
 * Loïc Yhuel
 * Luboš Luňák
+* luzpaz
 * Maarten Maathuis
 * Mark Starovoytov
 * Martin Ettl
