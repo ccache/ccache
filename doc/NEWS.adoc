@@ -1,6 +1,42 @@
 ccache news
 ===========
 
+ccache 3.7.2
+------------
+Release date: 2019-07-19
+
+Bug fixes
+~~~~~~~~~
+
+- The compiler option `-gdwarf*` no longer forces “run_second_cpp = true”.
+
+- Added verification that the value passed to the `-o/--set-config` option is
+  valid.
+
+- Fixed detection of precompiled headers in the depend mode.
+
+- Bail out on too hard Clang option `-ftime-trace`.
+
+- ccache now updates the correct stats file when adding/updating manifest
+  files. This bug previously made the file and size statistics counters
+  incorrect over time.
+
+- Fixed warnings from Clang about unused arguments during preprocessing.
+
+- Unknown manifest versions are now handled gracefully in `--dump-manifest`.
+
+- Fixed `make check` with “funny” locales.
+
+
+Documentation
+~~~~~~~~~~~~~
+
+- Added a hint about not running `autogen.sh` when building from a release
+  archive.
+
+- Mention that `xsltproc` is needed when building from the source repository.
+
+
 ccache 3.7.1
 ------------
 Release date: 2019-05-01
