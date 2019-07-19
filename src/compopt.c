@@ -17,12 +17,28 @@
 #include "ccache.h"
 #include "compopt.h"
 
+// The option it too hard to handle at all.
 #define TOO_HARD         (1 << 0)
+
+// The option it too hard for the direct mode.
 #define TOO_HARD_DIRECT  (1 << 1)
+
+// The option takes a separate argument, e.g. "-D FOO=1".
 #define TAKES_ARG        (1 << 2)
+
+// The option takes a concatenated argument, e.g. "-DFOO=1".
 #define TAKES_CONCAT_ARG (1 << 3)
+
+// The argument to the option is a path that may be rewritten if base_dir is
+// used.
 #define TAKES_PATH       (1 << 4)
+
+// The option only affects preprocessing; not passed to the compiler if
+// run_second_cpp is false.
 #define AFFECTS_CPP      (1 << 5)
+
+// The option only affects compilation; not passed to the preprocesor.
+#define AFFECTS_COMP (1 << 6)
 
 struct compopt {
 	const char *name;
@@ -56,14 +72,20 @@ static const struct compopt compopts[] = {
 	{"-P",              TOO_HARD},
 	{"-U",              AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG},
 	{"-V",              TAKES_ARG},
-	{"-Xassembler",     TAKES_ARG},
+	{"-Wa,",            TAKES_CONCAT_ARG | AFFECTS_COMP},
+	{"-Werror",         AFFECTS_COMP}, // don't exit with error when preprocessing
+	{"-Wl,",            TAKES_CONCAT_ARG | AFFECTS_COMP},
+	{"-Xassembler",     TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
 	{"-Xclang",         TAKES_ARG},
-	{"-Xlinker",        TAKES_ARG},
+	{"-Xlinker",        TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
 	{"-Xpreprocessor",  AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
+	{"-all_load",       AFFECTS_COMP},
 	{"-analyze",        TOO_HARD}, // clang
 	{"-arch",           TAKES_ARG},
 	{"-aux-info",       TAKES_ARG},
 	{"-b",              TAKES_ARG},
+	{"-bind_at_load",   AFFECTS_COMP},
+	{"-bundle",         AFFECTS_COMP},
 	{"-ccbin",          AFFECTS_CPP | TAKES_ARG}, // nvcc
 	{"-fmodules",       TOO_HARD},
 	{"-fno-working-directory", AFFECTS_CPP},
@@ -87,9 +109,14 @@ static const struct compopt compopts[] = {
 	{"-iwithprefixbefore",
 	 AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
 	{"-ldir",           AFFECTS_CPP | TAKES_ARG}, // nvcc
+	{"-nolibc",         AFFECTS_COMP},
 	{"-nostdinc",       AFFECTS_CPP},
 	{"-nostdinc++",     AFFECTS_CPP},
 	{"-odir",           AFFECTS_CPP | TAKES_ARG}, // nvcc
+	{"-pie",            AFFECTS_COMP},
+	{"-prebind",        AFFECTS_COMP},
+	{"-preload",        AFFECTS_COMP},
+	{"-rdynamic",       AFFECTS_COMP},
 	{"-remap",          AFFECTS_CPP},
 	{"-save-temps",     TOO_HARD},
 	{"-save-temps=cwd", TOO_HARD},
@@ -173,6 +200,13 @@ compopt_affects_cpp(const char *option)
 }
 
 bool
+compopt_affects_comp(const char *option)
+{
+	const struct compopt *co = find(option);
+	return co && (co->type & AFFECTS_COMP);
+}
+
+bool
 compopt_too_hard(const char *option)
 {
 	const struct compopt *co = find(option);
@@ -215,4 +249,14 @@ compopt_prefix_affects_cpp(const char *option)
 	// Prefix options have to take concatenated args.
 	const struct compopt *co = find_prefix(option);
 	return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_CPP);
+}
+
+// Determines if the prefix of the option matches any option and affects the
+// preprocessor.
+bool
+compopt_prefix_affects_comp(const char *option)
+{
+	// Prefix options have to take concatenated args.
+	const struct compopt *co = find_prefix(option);
+	return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_COMP);
 }
