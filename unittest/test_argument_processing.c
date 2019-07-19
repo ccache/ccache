@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -485,6 +485,24 @@ TEST(debug_flag_order_with_known_option_last)
 	struct args *orig = args_init_from_string("cc -gsplit-dwarf -g1 foo.c -c");
 	struct args *exp_cpp = args_init_from_string("cc -gsplit-dwarf -g1");
 	struct args *exp_cc = args_init_from_string("cc -gsplit-dwarf -g1 -c");
+	struct args *act_cpp = NULL;
+	struct args *act_cc = NULL;
+
+	create_file("foo.c", "");
+	CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
+TEST(options_not_to_be_passed_to_the_preprocesor)
+{
+	struct args *orig = args_init_from_string(
+		"cc -Wa,foo foo.c -g -Xlinker fie -Xlinker,fum -c -Werror");
+	struct args *exp_cpp = args_init_from_string("cc -g");
+	struct args *exp_cc = args_init_from_string(
+		"cc -g -Wa,foo -Xlinker fie -Xlinker,fum -Werror -c");
 	struct args *act_cpp = NULL;
 	struct args *act_cc = NULL;
 

@@ -2322,9 +2322,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// used as a temporary data structure to loop over.
 	struct args *expanded_args = args_copy(args);
 
-	// common_args essentially contains all original arguments except those that
-	// only should be passed to the preprocessor (if run_second_cpp is false) and
-	// except dependency options (like -MD and friends).
+	// common_args contains all original arguments except:
+	// * those that never should be passed to the preprocessor,
+	// * those that only should be passed to the preprocessor (if run_second_cpp
+	//   is false), and
+	// * dependency options (like -MD and friends).
 	struct args *common_args = args_init(0, NULL);
 
 	// cpp_args contains arguments that were not added to common_args, i.e. those
@@ -2332,12 +2334,15 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// If run_second_cpp is true, they will be passed to the compiler as well.
 	struct args *cpp_args = args_init(0, NULL);
 
-	// dep_args contains dependency options like -MD. They only passed to the
+	// dep_args contains dependency options like -MD. They are only passed to the
 	// preprocessor, never to the compiler.
 	struct args *dep_args = args_init(0, NULL);
 
-	bool found_color_diagnostics = false;
+	// compiler_only_args contains arguments that should only be passed to the
+	// compiler, not the preprocessor.
+	struct args *compiler_only_args = args_init(0, NULL);
 
+	bool found_color_diagnostics = false;
 	bool found_directives_only = false;
 	bool found_rewrite_includes = false;
 
@@ -2468,6 +2473,26 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			if (arch_args_size == 2) {
 				conf->run_second_cpp = true;
 			}
+			continue;
+		}
+
+		// Handle options that should not be passed to the preprocessor.
+		if (compopt_affects_comp(argv[i])) {
+			args_add(compiler_only_args, argv[i]);
+			if (compopt_takes_arg(argv[i])) {
+				if (i == argc - 1) {
+					cc_log("Missing argument to %s", argv[i]);
+					stats_update(STATS_ARGS);
+					result = false;
+					goto out;
+				}
+				args_add(compiler_only_args, argv[i + 1]);
+				++i;
+			}
+			continue;
+		}
+		if (compopt_prefix_affects_comp(argv[i])) {
+			args_add(compiler_only_args, argv[i]);
 			continue;
 		}
 
@@ -3299,6 +3324,8 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	}
 
 	*compiler_args = args_copy(common_args);
+	args_extend(*compiler_args, compiler_only_args);
+
 	if (conf->run_second_cpp) {
 		args_extend(*compiler_args, cpp_args);
 	} else if (found_directives_only || found_rewrite_includes) {
