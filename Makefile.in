@@ -29,7 +29,7 @@ v_at_ = $(v_at_0)
 quiet := $(v_at_$(V))
 Q=$(if $(quiet),@)
 
-non_3pp_sources = \
+non_third_party_sources = \
     src/args.c \
     src/ccache.c \
     src/cleanup.c \
@@ -60,17 +60,17 @@ generated_sources = \
     src/confitems_lookup.c \
     src/envtoconfitems_lookup.c \
     src/version.c
-3pp_sources = \
-    src/getopt_long.c \
-    src/hashtable.c \
-    src/hashtable_itr.c \
-    src/snprintf.c \
-    src/xxhash.c
+third_party_sources = \
+    src/third_party/getopt_long.c \
+    src/third_party/hashtable.c \
+    src/third_party/hashtable_itr.c \
+    src/third_party/snprintf.c \
+    src/third_party/xxhash.c
 extra_sources = @extra_sources@
-base_sources = $(non_3pp_sources) $(generated_sources) $(3pp_sources) $(extra_sources)
+base_sources = $(non_third_party_sources) $(generated_sources) $(third_party_sources) $(extra_sources)
 base_objs = $(base_sources:.c=.o)
 
-non_3pp_objs = $(non_3pp_sources:.c=.o)
+non_third_party_objs = $(non_third_party_sources:.c=.o)
 
 ccache_sources = src/main.c $(base_sources)
 ccache_objs = $(ccache_sources:.c=.o)
@@ -116,7 +116,7 @@ install: ccache$(EXEEXT) @disable_man@ccache.1
 .PHONY: clean
 clean:
 	rm -rf $(files_to_clean)
-	[ ! -d src/zstd ] || $(MAKE) -C src/zstd/lib clean
+	[ ! -d src/third_party/zstd ] || $(MAKE) -C src/third_party/zstd/lib clean
 
 src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 
@@ -125,8 +125,8 @@ libzstd_options = \
     ZSTD_LIB_DEPRECATED=0 \
     ZSTD_LIB_DICTBUILDER=0
 
-src/zstd/lib/libzstd.a:
-	$(MAKE) -C src/zstd/lib libzstd.a $(libzstd_options) CC="$(CC)"
+src/third_party/zstd/lib/libzstd.a:
+	$(MAKE) -C src/third_party/zstd/lib libzstd.a $(libzstd_options) CC="$(CC)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)

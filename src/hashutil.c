@@ -19,7 +19,7 @@
 #include "ccache.h"
 #include "hashutil.h"
 #include "macroskip.h"
-#include "xxhash.h"
+#include "third_party/xxhash.h"
 
 unsigned
 hash_from_string(void *str)

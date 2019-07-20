@@ -20,7 +20,7 @@
 #define COMMON_HEADER_H
 
 #include "compression.h"
-#include "xxhash.h"
+#include "third_party/xxhash.h"
 
 #define COMMON_HEADER_SIZE 15
 

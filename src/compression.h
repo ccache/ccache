@@ -20,7 +20,7 @@
 #define COMPRESSION_H
 
 #include "system.h"
-#include "xxhash.h"
+#include "third_party/xxhash.h"
 
 struct compr_state;
 

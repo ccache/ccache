@@ -17,13 +17,13 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.h"
-#include "hashtable_itr.h"
+#include "third_party/hashtable_itr.h"
 #include "hashutil.h"
 #include "common_header.h"
 #include "compression.h"
 #include "int_bytes_conversion.h"
 #include "manifest.h"
-#include "xxhash.h"
+#include "third_party/xxhash.h"
 
 // Manifest data format
 // ====================

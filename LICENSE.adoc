@@ -52,8 +52,8 @@ the GPL: that is, if separated from the ccache sources, they may be usable
 under less restrictive terms.
 
 
-src/getopt_long.[hc]
-~~~~~~~~~~~~~~~~~~~~
+src/third_party/getopt_long.[hc]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This implementation of `getopt_long()` was copied from
 http://www.postgresql.org[PostgreSQL] and has the following license text:
@@ -91,8 +91,8 @@ http://www.postgresql.org[PostgreSQL] and has the following license text:
 -------------------------------------------------------------------------------
 
 
-src/hashtable*.[hc]
-~~~~~~~~~~~~~~~~~~~
+src/third_party/hashtable*.[hc]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This code comes from http://www.cl.cam.ac.uk/~cwc22/hashtable/ with the
 following license:
@@ -413,8 +413,8 @@ This Autoconf M4 snippet comes from http://www.python.org[Python] 2.6's
 -------------------------------------------------------------------------------
 
 
-src/minitrace.[hc]
-~~~~~~~~~~~~~~~~~~
+src/third_party/minitrace.[hc]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A library for producing JSON traces suitable for Chrome's built-in trace viewer
 (chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>.
@@ -443,8 +443,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 -------------------------------------------------------------------------------
 
-src/snprintf.c and m4/snprintf.m4
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/snprintf.c and m4/snprintf.m4
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This implementation of `snprintf()` and similar functions was downloaded from
 http://www.jhweiss.de/software/snprintf.html and has the following license:
@@ -467,8 +467,8 @@ http://www.jhweiss.de/software/snprintf.html and has the following license:
   modified) versions of this file, nor is leaving this notice intact mandatory.
 -------------------------------------------------------------------------------
 
-src/xxhash.[hc]
-~~~~~~~~~~~~~~~
+src/third_party/xxhash.[hc]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.6.5 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.

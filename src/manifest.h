@@ -21,7 +21,7 @@
 
 #include "conf.h"
 #include "hashutil.h"
-#include "hashtable.h"
+#include "third_party/hashtable.h"
 
 extern const char MANIFEST_MAGIC[4];
 #define MANIFEST_VERSION 2

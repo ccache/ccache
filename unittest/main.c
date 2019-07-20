@@ -20,7 +20,7 @@
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
-#include "../src/getopt_long.h"
+#include "../src/third_party/getopt_long.h"
 #endif
 
 // *INDENT-OFF* disable uncrustify

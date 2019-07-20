@@ -30,7 +30,7 @@ AC_SUBST(test_suites)
 m4_include(m4/feature_macros.m4)
 m4_include(m4/clang.m4)
 
-mkdir -p .deps src unittest
+mkdir -p .deps src/third_party unittest
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -154,11 +154,11 @@ else
             fi
         fi
     fi
-    (cd src && tar -xzf ../${zstd_archive})
-    rm -rf src/zstd
-    mv src/zstd-${zstd_version} src/zstd
-    CPPFLAGS="$CPPFLAGS -I$srcdir/src/zstd/lib"
-    extra_libs="src/zstd/lib/libzstd.a"
+    (cd src/third_party && tar -xzf ../../${zstd_archive})
+    rm -rf src/third_party/zstd
+    mv src/third_party/zstd-${zstd_version} src/third_party/zstd
+    CPPFLAGS="$CPPFLAGS -I$srcdir/src/third_party/zstd/lib"
+    extra_libs="src/third_party/zstd/lib/libzstd.a"
 fi
 
 AC_ARG_ENABLE(man,
@@ -173,7 +173,7 @@ AC_ARG_ENABLE(tracing,
     [enable possibility to use internal ccache tracing])])
 if test x${enable_tracing} = xyes; then
     CPPFLAGS="$CPPFLAGS -DMTR_ENABLED"
-    extra_sources="src/minitrace.c"
+    extra_sources="src/third_party/minitrace.c"
 fi
 
 dnl Linking on Windows needs ws2_32

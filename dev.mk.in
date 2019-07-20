@@ -42,22 +42,22 @@ headers = \
     src/confitems.h \
     src/counters.h \
     src/envtoconfitems.h \
-    src/getopt_long.h \
     src/hash.h \
-    src/hashtable.h \
-    src/hashtable_itr.h \
-    src/hashtable_private.h \
     src/hashutil.h \
     src/int_bytes_conversion.h \
     src/language.h \
     src/macroskip.h \
     src/manifest.h \
     src/mdfour.h \
-    src/minitrace.h \
     src/result.h \
     src/system.h \
+    src/third_party/getopt_long.h \
+    src/third_party/hashtable.h \
+    src/third_party/hashtable_itr.h \
+    src/third_party/hashtable_private.h \
+    src/third_party/minitrace.h \
+    src/third_party/xxhash.h \
     src/unify.h \
-    src/xxhash.h \
     unittest/framework.h \
     unittest/util.h
 generated_headers = \
@@ -71,8 +71,8 @@ files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \
-    $(non_3pp_sources) \
-    $(3pp_sources) \
+    $(non_third_party_sources) \
+    $(third_party_sources) \
     $(headers) \
     $(test_sources) \
     CONTRIBUTING.md \
@@ -97,7 +97,7 @@ source_dist_files = \
     src/envtoconfitems.gperf \
     src/envtoconfitems_lookup.c \
     src/main.c \
-    src/minitrace.c \
+    src/third_party/minitrace.c \
     test/run \
     test/suites/*.bash
 
@@ -187,7 +187,7 @@ docs: $(generated_docs)
 	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-$(non_3pp_objs) $(test_objs): CFLAGS += @more_warnings@
+$(non_third_party_objs) $(test_objs): CFLAGS += @more_warnings@
 
 doc/ccache.1: doc/MANUAL.xml
 	$(if $(quiet),@echo "  A2X      $@")
@@ -208,7 +208,7 @@ cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force -I . \
 	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
-	  $(non_3pp_sources) src/confitems_lookup.c src/main.c $(test_sources)
+	  $(non_third_party_sources) src/confitems_lookup.c src/main.c $(test_sources)
 
 .PHONY: shellcheck
 shellcheck: test/suites/*.bash
@@ -216,7 +216,7 @@ shellcheck: test/suites/*.bash
 
 .PHONY: uncrustify
 uncrustify:
-	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(non_3pp_sources) $(test_sources)
+	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(non_third_party_sources) $(test_sources)
 
 # pip install compiledb
 compile_commands.json:

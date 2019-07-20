@@ -22,11 +22,11 @@
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #else
-#include "getopt_long.h"
+#include "third_party/getopt_long.h"
 #endif
 #include "hash.h"
-#include "hashtable.h"
-#include "hashtable_itr.h"
+#include "third_party/hashtable.h"
+#include "third_party/hashtable_itr.h"
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
