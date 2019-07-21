@@ -133,9 +133,17 @@ libb2_options = \
     --disable-shared \
     --enable-static
 
+# cross compilation
+libb2_options += \
+    --build=@build_alias@ \
+    --host=@host_alias@ \
+    --target=@target_alias@ \
+    --disable-fat \
+    --disable-native
+
 src/libb2/src/.libs/libb2.a:
-	cd src/libb2 && ./configure --build=@build_alias@ --host=@host_alias@ --target=@target_alias@ ${libb2_options}
-	$(MAKE) -C src/libb2 CC="$(CC)"
+	cd src/libb2 && ./configure ${libb2_options} CC="$(CC)"
+	$(MAKE) -C src/libb2 CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)
