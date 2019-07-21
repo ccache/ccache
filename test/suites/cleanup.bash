@@ -75,32 +75,34 @@ SUITE_cleanup() {
     done
 
     # -------------------------------------------------------------------------
-    TEST "Forced cache cleanup, size limit"
+    if [ -n "$ENABLE_CACHE_CLEANUP_TESTS" ]; then
+        TEST "Forced cache cleanup, size limit"
 
-    # NOTE: This test is known to fail on filesystems that have unusual block
-    # sizes, including ecryptfs. The workaround is to place the test directory
-    # elsewhere:
-    #
-    #     cd /tmp
-    #     CCACHE=$DIR/ccache $DIR/test.sh
+        # NOTE: This test is known to fail on filesystems that have unusual block
+        # sizes, including ecryptfs. The workaround is to place the test directory
+        # elsewhere:
+        #
+        #     cd /tmp
+        #     CCACHE=$DIR/ccache $DIR/test.sh
 
-    prepare_cleanup_test_dir $CCACHE_DIR/a
+        prepare_cleanup_test_dir $CCACHE_DIR/a
 
-    $CCACHE -F 0 -M 256K >/dev/null
-    $CCACHE -c >/dev/null
-    expect_file_count 3 '*.o' $CCACHE_DIR
-    expect_file_count 4 '*.d' $CCACHE_DIR
-    expect_file_count 4 '*.stderr' $CCACHE_DIR
-    expect_stat 'files in cache' 11
-    expect_stat 'cleanups performed' 1
-    for i in 0 1 2 3 4 5 6; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_missing $file
-    done
-    for i in 7 8 9; do
-        file=$CCACHE_DIR/a/result$i-4017.o
-        expect_file_exists $file
-    done
+        $CCACHE -F 0 -M 256K >/dev/null
+        $CCACHE -c >/dev/null
+        expect_file_count 3 '*.o' $CCACHE_DIR
+        expect_file_count 4 '*.d' $CCACHE_DIR
+        expect_file_count 4 '*.stderr' $CCACHE_DIR
+        expect_stat 'files in cache' 11
+        expect_stat 'cleanups performed' 1
+        for i in 0 1 2 3 4 5 6; do
+            file=$CCACHE_DIR/a/result$i-4017.o
+            expect_file_missing $file
+        done
+        for i in 7 8 9; do
+            file=$CCACHE_DIR/a/result$i-4017.o
+            expect_file_exists $file
+        done
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Automatic cache cleanup, limit_multiple 0.9"

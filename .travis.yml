@@ -19,7 +19,7 @@ matrix:
     include:
         - os: linux
           compiler: gcc
-          env: CFLAGS="-m32 -g -O2" LDFLAGS="-m32" HOST="--host=i386-linux-gnu"
+          env: CFLAGS="-m32 -g -O2" LDFLAGS="-m32" HOST="--host=i386-linux-gnu" ENABLE_CACHE_CLEANUP_TESTS=1
           addons:
               apt:
                   packages:
@@ -28,7 +28,7 @@ matrix:
                       - lib32z1-dev
         - os: linux
           compiler: i686-w64-mingw32-gcc
-          env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe"
+          env: HOST="--host=i686-w64-mingw32" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
           addons:
               apt:
                   packages:
@@ -36,13 +36,13 @@ matrix:
                       - gperf
         - os: linux
           compiler: clang
-          env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
+          env: CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
         - os: linux
           compiler: clang
-          env: CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
+          env: CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
         - os: linux
           compiler: clang
-          env: PATH="/usr/bin:$PATH" TEST=analyze
+          env: PATH="/usr/bin:$PATH" TEST=analyze ENABLE_CACHE_CLEANUP_TESTS=1
           addons:
               apt:
                   packages:
@@ -50,7 +50,7 @@ matrix:
                       - gperf
         - os: linux
           compiler: gcc
-          env: CUDA=8.0.61-1
+          env: CUDA=8.0.61-1 ENABLE_CACHE_CLEANUP_TESTS=1
           sudo: required
           before_install:
               - source ./.travis/install_cuda.sh

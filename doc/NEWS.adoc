@@ -1,6 +1,19 @@
 ccache news
 ===========
 
+ccache 3.7.3
+------------
+Unreleased
+
+Bug fixes
+~~~~~~~~~
+
+- The cache size (which is counted in "used disk blocks") is now correct on
+  filesystems that use more or less disk blocks than conventional filesystems,
+  e.g. ecryptfs or btrfs/zfs with transparent compression. This also fixes a
+  related problem with ccache's own test suite.
+
+
 ccache 3.7.2
 ------------
 Release date: 2019-07-19
