@@ -2,6 +2,7 @@
 %enum
 %struct-type
 %readonly-tables
+%global-table
 %define hash-function-name envtoconfitems_hash
 %define lookup-function-name envtoconfitems_get
 %define slot-name env_name
@@ -47,3 +48,8 @@ STATS, "stats"
 TEMPDIR, "temporary_dir"
 UMASK, "umask"
 UNIFY, "unify"
+%%
+size_t envtoconfitems_count(void)
+{
+    return TOTAL_KEYWORDS;
+}
