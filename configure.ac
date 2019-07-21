@@ -194,6 +194,8 @@ else
     (cd src && tar -xzf ../${libb2_archive})
     rm -rf src/libb2
     mv src/libb2-${libb2_version} src/libb2
+    # try to make clang happy by changing the header guard macros
+    sed -i -e 's/__BLAKE2_H__/BLAKE2_H/' src/libb2/src/blake2.h
     CPPFLAGS="$CPPFLAGS -I$srcdir/src/libb2/src"
     extra_libs="$extra_libs src/libb2/src/.libs/libb2.a"
 fi
