@@ -20,6 +20,7 @@ matrix:
         - elfutils
         - gperf
         - libzstd1-dev
+        - libb2-dev
 
   # Job 2: Linux native Clang
   - os: linux
@@ -31,6 +32,7 @@ matrix:
         - elfutils
         - gperf
         - libzstd1-dev
+        - libb2-dev
 
   # Job 3: Mac OS X native Clang
   - os: osx
@@ -77,6 +79,7 @@ matrix:
         - elfutils
         - gperf
         - libzstd1-dev
+        - libb2-dev
 
   # Job 8: Clang's address sanitizer
   - os: linux
@@ -88,6 +91,7 @@ matrix:
         - elfutils
         - gperf
         - libzstd1-dev
+        - libb2-dev
 
   # Job 9: Clang static analyzer
   - os: linux
@@ -99,6 +103,7 @@ matrix:
         - clang  # for scan-build
         - gperf
         - libzstd1-dev
+        - libb2-dev
 
   # Job 10: Linux GCC with CUDA compiler
   - os: linux
@@ -111,5 +116,6 @@ matrix:
         - elfutils
         - gperf
         - libzstd1-dev
+        - libb2-dev
     before_install:
     - source ./.travis/install_cuda.sh
