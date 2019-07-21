@@ -115,7 +115,7 @@ src/version.o: src/version.c
 define generate_gperf_lookup
 src/$(1)_lookup.c: src/$(1).gperf
 	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$(2) $$< | $$(GPERF) --size-type=size_t >$$@.tmp
+	$$(Q)$(2) $$< | $$(GPERF) | sed 's/unsigned int len/size_t len/' >$$@.tmp
 	$$(Q)mv $$@.tmp $$@
 endef
 
