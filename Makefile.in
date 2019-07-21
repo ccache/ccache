@@ -117,6 +117,7 @@ install: ccache$(EXEEXT) @disable_man@ccache.1
 clean:
 	rm -rf $(files_to_clean)
 	[ ! -d src/third_party/zstd ] || $(MAKE) -C src/third_party/zstd/lib clean
+	[ ! -d src/libb2 ] || $(MAKE) -C src/libb2 clean
 
 src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 
@@ -127,6 +128,14 @@ libzstd_options = \
 
 src/third_party/zstd/lib/libzstd.a:
 	$(MAKE) -C src/third_party/zstd/lib libzstd.a $(libzstd_options) CC="$(CC)"
+
+libb2_options = \
+    --disable-shared \
+    --enable-static
+
+src/libb2/src/.libs/libb2.a:
+	cd src/libb2 && ./configure --build=@build_alias@ --host=@host_alias@ --target=@target_alias@ ${libb2_options}
+	$(MAKE) -C src/libb2 CC="$(CC)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)

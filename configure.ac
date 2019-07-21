@@ -161,6 +161,43 @@ else
     extra_libs="src/third_party/zstd/lib/libzstd.a"
 fi
 
+dnl Check for libb2
+libb2_version=0.98.1
+libb2_url=https://github.com/BLAKE2/libb2/releases/download/v${libb2_version}/libb2-${libb2_version}.tar.gz
+
+AC_ARG_WITH(libb2-from-internet,
+  [AS_HELP_STRING([--with-libb2-from-internet],
+    [download and use libb2 from the Internet instead of using the system's default libb2])])
+if test x${with_libb2_from_internet} = x; then
+    AC_CHECK_LIB([b2],[blake2b], [found_libb2=yes])
+    if test x${found_libb2} = x; then
+        AC_MSG_ERROR(please install libb2 or use --with-libb2-from-internet)
+    fi
+    LIBS="$LIBS -lb2"
+else
+    libb2_archive=`basename ${libb2_url}`
+    if ! test -f ${libb2_archive}; then
+        AC_CHECK_TOOL(WGET, wget)
+        if test -n "$WGET"; then
+            AC_MSG_NOTICE(downloading libb2 from $libb2_url)
+            wget -q ${libb2_url}
+        else
+            AC_CHECK_TOOL(CURL, curl)
+            if test -n "$CURL"; then
+                AC_MSG_NOTICE(downloading libb2 from $libb2_url)
+                curl -sLOJ ${libb2_url}
+            else
+                AC_MSG_ERROR(please install wget or curl)
+            fi
+        fi
+    fi
+    (cd src && tar -xzf ../${libb2_archive})
+    rm -rf src/libb2
+    mv src/libb2-${libb2_version} src/libb2
+    CPPFLAGS="$CPPFLAGS -I$srcdir/src/libb2/src"
+    extra_libs="$extra_libs src/libb2/src/.libs/libb2.a"
+fi
+
 AC_ARG_ENABLE(man,
   [AS_HELP_STRING([--disable-man],
     [disable installing man pages])])
@@ -175,9 +212,6 @@ if test x${enable_tracing} = xyes; then
     CPPFLAGS="$CPPFLAGS -DMTR_ENABLED"
     extra_sources="src/third_party/minitrace.c"
 fi
-
-AC_CHECK_HEADERS(blake2.h)
-AC_CHECK_LIB([b2],[blake2b])
 
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then

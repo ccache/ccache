@@ -37,12 +37,12 @@ matrix:
   # Job 3: Mac OS X native Clang
   - os: osx
     compiler: clang
-    env: V=1 CONFIGURE="--with-libzstd-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CONFIGURE="--with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
 
   # Job 4: Linux 32-bit native
   - os: linux
     compiler: gcc
-    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -52,7 +52,7 @@ matrix:
   # Job 5: Linux cross-compiled 32-bit MinGW
   - os: linux
     compiler: i686-w64-mingw32-gcc
-    env: V=1 CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -62,7 +62,7 @@ matrix:
   # Job 6: Linux cross-compiled 64-bit MinGW
   - os: linux
     compiler: x86_64-w64-mingw32-gcc
-    env: V=1 CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
