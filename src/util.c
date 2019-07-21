@@ -972,12 +972,7 @@ file_size(struct stat *st)
 #ifdef _WIN32
 	return (st->st_size + 1023) & ~1023;
 #else
-	size_t size = st->st_blocks * 512;
-	if ((size_t)st->st_size > size) {
-		// Probably a broken stat() call...
-		size = (st->st_size + 1023) & ~1023;
-	}
-	return size;
+	return st->st_blocks * 512;
 #endif
 }
 
