@@ -176,6 +176,9 @@ if test x${enable_tracing} = xyes; then
     extra_sources="src/third_party/minitrace.c"
 fi
 
+AC_CHECK_HEADERS(blake2.h)
+AC_CHECK_LIB([b2],[blake2b])
+
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
     LIBS="$LIBS -lws2_32"

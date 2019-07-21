@@ -32,7 +32,7 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 		struct hash *h = hash_init();
 		hash_string(h, "");
 		hash_result_as_string(h, d);
-		CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
+		CHECK_STR_EQ("3345524abf6bbe1809449224b5972c41790b6cf2", d);
 		hash_free(h);
 	}
 
@@ -40,7 +40,7 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 		struct hash *h = hash_init();
 		hash_string(h, "a");
 		hash_result_as_string(h, d);
-		CHECK_STR_EQ("bde52cb31de33e46245e05fbdbd6fb2400000001", d);
+		CHECK_STR_EQ("948caa2db61bc4cdb4faf7740cd491f195043914", d);
 		hash_free(h);
 	}
 
@@ -48,7 +48,7 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 		struct hash *h = hash_init();
 		hash_string(h, "message digest");
 		hash_result_as_string(h, d);
-		CHECK_STR_EQ("d9130a8164549fe818874806e1c7014b0000000e", d);
+		CHECK_STR_EQ("6bfec6f65e52962be863d6ea1005fc5e4cc8478c", d);
 		hash_free(h);
 	}
 
@@ -59,7 +59,7 @@ TEST(test_vectors_from_rfc_1320_should_be_correct)
 			"12345678901234567890123456789012345678901234567890123456789012345678901"
 			"234567890");
 		hash_result_as_string(h, d);
-		CHECK_STR_EQ("e33b4ddc9c38f2199c3e7b164fcc053600000050", d);
+		CHECK_STR_EQ("c2be0e534a67d25947f0c7e78527b2f82abd260f", d);
 		hash_free(h);
 	}
 }
@@ -72,7 +72,7 @@ TEST(hash_result_should_not_alter_state)
 	hash_result_as_string(h, d);
 	hash_string(h, " digest");
 	hash_result_as_string(h, d);
-	CHECK_STR_EQ("d9130a8164549fe818874806e1c7014b0000000e", d);
+	CHECK_STR_EQ("6bfec6f65e52962be863d6ea1005fc5e4cc8478c", d);
 	hash_free(h);
 }
 
@@ -82,9 +82,9 @@ TEST(hash_result_should_be_idempotent)
 	struct hash *h = hash_init();
 	hash_string(h, "");
 	hash_result_as_string(h, d);
-	CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
+	CHECK_STR_EQ("3345524abf6bbe1809449224b5972c41790b6cf2", d);
 	hash_result_as_string(h, d);
-	CHECK_STR_EQ("31d6cfe0d16ae931b73c59d7e0c089c000000000", d);
+	CHECK_STR_EQ("3345524abf6bbe1809449224b5972c41790b6cf2", d);
 
 	hash_free(h);
 }
@@ -96,8 +96,8 @@ TEST(hash_result_as_bytes)
 	struct digest d;
 	hash_result_as_bytes(h, &d);
 	uint8_t expected[sizeof(d.bytes)] = {
-		0xd9, 0x13, 0x0a, 0x81, 0x64, 0x54, 0x9f, 0xe8, 0x18, 0x87, 0x48, 0x06,
-		0xe1, 0xc7, 0x01, 0x4b, 0x00, 0x00, 0x00, 0x0e
+		0x6b, 0xfe, 0xc6, 0xf6, 0x5e, 0x52, 0x96, 0x2b, 0xe8, 0x63, 0xd6, 0xea,
+		0x10, 0x05, 0xfc, 0x5e, 0x4c, 0xc8, 0x47, 0x8c
 	};
 	CHECK_DATA_EQ(d.bytes, expected, sizeof(d.bytes));
 	hash_free(h);
