@@ -19,12 +19,12 @@
 
 #include "ccache.h"
 #include "hash.h"
-#include "mdfour.h"
+#include <blake2.h>
 
 #define HASH_DELIMITER "\000cCaChE"
 
 struct hash {
-	struct mdfour md;
+	blake2b_state state;
 	FILE *debug_binary;
 	FILE *debug_text;
 };
@@ -46,7 +46,7 @@ do_hash_buffer(struct hash *hash, const void *s, size_t len)
 {
 	assert(s);
 
-	mdfour_update(&hash->md, (const unsigned char *)s, len);
+	blake2b_update(&hash->state, (const uint8_t *)s, len);
 	if (len > 0 && hash->debug_binary) {
 		(void) fwrite(s, 1, len, hash->debug_binary);
 	}
@@ -64,7 +64,7 @@ struct hash *
 hash_init(void)
 {
 	struct hash *hash = malloc(sizeof(struct hash));
-	mdfour_begin(&hash->md);
+	blake2b_init(&hash->state, DIGEST_SIZE);
 	hash->debug_binary = NULL;
 	hash->debug_text = NULL;
 	return hash;
@@ -74,7 +74,7 @@ struct hash *
 hash_copy(struct hash *hash)
 {
 	struct hash *result = malloc(sizeof(struct hash));
-	result->md = hash->md;
+	result->state = hash->state;
 	result->debug_binary = NULL;
 	result->debug_text = NULL;
 	return result;
@@ -107,11 +107,10 @@ hash_buffer(struct hash *hash, const void *s, size_t len)
 void
 hash_result_as_bytes(struct hash *hash, struct digest *digest)
 {
-	mdfour_result(&hash->md, digest->bytes);
-	size_t input_size = hash->md.totalN + hash->md.tail_len;
-	for (size_t i = 0; i < 4; i++) {
-		digest->bytes[16 + i] = (input_size >> ((3 - i) * 8)) & 0xFF;
-	}
+	// make a copy before altering state
+	struct hash *copy = hash_copy(hash);
+	blake2b_final(&copy->state, digest->bytes, DIGEST_SIZE);
+	hash_free(copy);
 }
 
 void

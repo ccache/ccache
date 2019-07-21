@@ -883,9 +883,13 @@ EOF
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest >manifest.dump
 
-    if grep 'Hash: d4de2f956b4a386c6660990a7a1ab13f0000001e' manifest.dump >/dev/null && \
-       grep 'Hash: e94ceb9f1b196c387d098a5f1f4fe8620000000b' manifest.dump >/dev/null && \
-       grep 'Hash: ba753bebf9b5eb99524bb7447095e2e60000000b' manifest.dump >/dev/null; then
+    checksum_test1_h='7706603374730d6e19c22f607768040f13be686d'
+    checksum_test2_h='0f1d0cf7d790a6a31248d8a52e826dad433d191c'
+    checksum_test3_h='d07f2a91a649bc56a1b008279b326201077d341b'
+
+    if grep "Hash: $checksum_test1_h" manifest.dump >/dev/null 2>&1 && \
+       grep "Hash: $checksum_test2_h" manifest.dump >/dev/null 2>&1 && \
+       grep "Hash: $checksum_test3_h" manifest.dump >/dev/null 2>&1; then
         : OK
     else
         test_failed "Unexpected output of --dump-manifest"
