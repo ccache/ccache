@@ -48,7 +48,6 @@ headers = \
     src/language.h \
     src/macroskip.h \
     src/manifest.h \
-    src/mdfour.h \
     src/result.h \
     src/system.h \
     src/third_party/getopt_long.h \

@@ -22,9 +22,9 @@
 #include "../src/hash.h"
 #include "framework.h"
 
-TEST_SUITE(mdfour)
+TEST_SUITE(hash)
 
-TEST(test_vectors_from_rfc_1320_should_be_correct)
+TEST(test_known_strings)
 {
 	char d[DIGEST_STRING_BUFFER_SIZE];
 

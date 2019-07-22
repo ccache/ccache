@@ -51,7 +51,6 @@ non_third_party_sources = \
     src/language.c \
     src/lockfile.c \
     src/manifest.c \
-    src/mdfour.c \
     src/result.c \
     src/stats.c \
     src/unify.c \

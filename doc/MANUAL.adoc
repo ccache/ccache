@@ -130,10 +130,8 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`--hash-file`*=_PATH_::
 
-    Print the hash of the file at PATH in the format `<MD4><size>`, where
-    `<MD4>` is 32 hex digits and `<size>` is 8 hex digits (representing the
-    size of the file modulo 2^32). This is only useful when debugging ccache
-    and its behavior.
+    Print the hash (160 bit BLAKE2b) of the file at PATH. This is only useful
+    when debugging ccache and its behavior.
 
 *`-h, --help`*::
 
@@ -909,11 +907,9 @@ The basic idea is to detect when you are compiling exactly the same code a
 second time and reuse the previously produced output. The detection is done by
 hashing different kinds of information that should be unique for the
 compilation and then using the hash sum to identify the cached output. ccache
-uses MD4, a very fast cryptographic hash algorithm, for the hashing. (MD4 is
-nowadays too weak to be useful in cryptographic contexts, but it should be safe
-enough to be used to identify recompilations.) On a cache hit, ccache is able
-to supply all of the correct compiler outputs (including all warnings,
-dependency file, etc) from the cache.
+uses BLAKE2b, a very fast cryptographic hash algorithm, for the hashing. On a
+cache hit, ccache is able to supply all of the correct compiler outputs
+(including all warnings, dependency file, etc) from the cache.
 
 ccache has two ways of gathering information used to look up results in the
 cache:
@@ -1073,9 +1069,9 @@ Log for this object file.
 
 |==============================================================================
 
-In the direct mode, ccache uses the MD4 hash of the *ccache-input-c*
-+ *ccache-input-d* data (where *+* means concatenation), while the
-*ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
+In the direct mode, ccache uses the 160 bit BLAKE2b hash of the
+*ccache-input-c* + *ccache-input-d* data (where *+* means concatenation), while
+the *ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
 
 The *ccache-input-text* file is a combined text version of the three
 binary input files. It has three sections (“COMMON”, “DIRECT MODE” and
