@@ -117,7 +117,7 @@ install: ccache$(EXEEXT) @disable_man@ccache.1
 clean:
 	rm -rf $(files_to_clean)
 	[ ! -d src/third_party/zstd ] || $(MAKE) -C src/third_party/zstd/lib clean
-	[ ! -d src/libb2 ] || $(MAKE) -C src/libb2 clean
+	[ ! -d src/third_party/libb2 ] || $(MAKE) -C src/third_party/libb2 clean
 
 src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 
@@ -142,9 +142,9 @@ libb2_options = \
 @disable_cross@    --disable-fat \
 @disable_cross@    --disable-native
 
-src/libb2/src/.libs/libb2.a:
-	cd src/libb2 && ./configure ${libb2_options} CC="$(CC)"
-	$(MAKE) -C src/libb2 CC="$(CC)" CFLAGS="$(CFLAGS)"
+src/third_party/libb2/src/.libs/libb2.a:
+	cd src/third_party/libb2 && ./configure ${libb2_options} CC="$(CC)"
+	$(MAKE) -C src/third_party/libb2 CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)
