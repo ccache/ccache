@@ -192,13 +192,13 @@ else
             fi
         fi
     fi
-    (cd src && tar -xzf ../${libb2_archive})
-    rm -rf src/libb2
-    mv src/libb2-${libb2_version} src/libb2
+    (cd src/third_party && tar -xzf ../../${libb2_archive})
+    rm -rf src/third_party/libb2
+    mv src/third_party/libb2-${libb2_version} src/third_party/libb2
     # try to make clang happy by changing the header guard macros
-    sed -i -e 's/__BLAKE2_H__/BLAKE2_H/' src/libb2/src/blake2.h
-    CPPFLAGS="$CPPFLAGS -I$srcdir/src/libb2/src"
-    extra_libs="$extra_libs src/libb2/src/.libs/libb2.a"
+    sed -i -e 's/__BLAKE2_H__/BLAKE2_H/' src/third_party/libb2/src/blake2.h
+    CPPFLAGS="$CPPFLAGS -I$srcdir/src/third_party/libb2/src"
+    extra_libs="$extra_libs src/third_party/libb2/src/.libs/libb2.a"
 fi
 
 if test "$cross_compiling" != no -o "$host_cpu" != 'x86_64'; then
