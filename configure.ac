@@ -19,6 +19,7 @@ case $host in
         ;;
 esac
 
+AC_SUBST(disable_cross)
 AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
 AC_SUBST(extra_sources)
@@ -198,6 +199,12 @@ else
     sed -i -e 's/__BLAKE2_H__/BLAKE2_H/' src/libb2/src/blake2.h
     CPPFLAGS="$CPPFLAGS -I$srcdir/src/libb2/src"
     extra_libs="$extra_libs src/libb2/src/.libs/libb2.a"
+fi
+
+if test "$cross_compiling" != no -o "$host_cpu" != 'x86_64'; then
+    disable_cross=''
+else
+    disable_cross='#'
 fi
 
 AC_ARG_ENABLE(man,

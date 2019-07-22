@@ -133,13 +133,14 @@ libb2_options = \
     --disable-shared \
     --enable-static
 
-# cross compilation
-libb2_options += \
-    --build=@build_alias@ \
-    --host=@host_alias@ \
-    --target=@target_alias@ \
-    --disable-fat \
-    --disable-native
+@disable_cross@# cross compilation
+@disable_cross@libb2_options += \
+@disable_cross@    --build=@build_alias@ \
+@disable_cross@    --host=@host_alias@ \
+@disable_cross@    --target=@target_alias@ \
+@disable_cross@    --disable-openmp \
+@disable_cross@    --disable-fat \
+@disable_cross@    --disable-native
 
 src/libb2/src/.libs/libb2.a:
 	cd src/libb2 && ./configure ${libb2_options} CC="$(CC)"
