@@ -144,7 +144,8 @@ libb2_options = \
 
 src/third_party/libb2/src/.libs/libb2.a:
 	cd src/third_party/libb2 && ./configure ${libb2_options} CC="$(CC)"
-	$(MAKE) -C src/third_party/libb2 CC="$(CC)" CFLAGS="$(CFLAGS)"
+	$(MAKE) -C src/third_party/libb2 CC="$(CC)" \
+@disable_cross@	CFLAGS="$(CFLAGS)" CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(LDFLAGS)"
 
 .PHONY: performance
 performance: ccache$(EXEEXT)
