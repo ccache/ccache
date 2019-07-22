@@ -158,7 +158,7 @@ else
     (cd src/third_party && tar -xzf ../../${zstd_archive})
     rm -rf src/third_party/zstd
     mv src/third_party/zstd-${zstd_version} src/third_party/zstd
-    CPPFLAGS="$CPPFLAGS -I$srcdir/src/third_party/zstd/lib"
+    CPPFLAGS="$CPPFLAGS -I$PWD/src/third_party/zstd/lib"
     extra_libs="src/third_party/zstd/lib/libzstd.a"
 fi
 
@@ -197,7 +197,7 @@ else
     mv src/third_party/libb2-${libb2_version} src/third_party/libb2
     # try to make clang happy by changing the header guard macros
     sed -i -e 's/__BLAKE2_H__/BLAKE2_H/' src/third_party/libb2/src/blake2.h
-    CPPFLAGS="$CPPFLAGS -I$srcdir/src/third_party/libb2/src"
+    CPPFLAGS="$CPPFLAGS -I$PWD/src/third_party/libb2/src"
     extra_libs="$extra_libs src/third_party/libb2/src/.libs/libb2.a"
 fi
 
