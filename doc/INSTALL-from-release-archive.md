@@ -8,6 +8,11 @@ To build ccache from a
 [release archive](https://ccache.dev/download.html), you need:
 
 - A C compiler (for instance GCC).
+- [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
+  and can't or don't want to install it on your system, you can pass
+  `--with-libb2-from-internet` to the configure script, which will make the
+  script download libb2 from the Internet and unpack it in the local source
+  tree. ccache will then be linked statically to the locally built libb2.
 - [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
   or don't want to install it on your system, you can pass
   `--with-libzstd-from-internet` to the configure script, which will make the

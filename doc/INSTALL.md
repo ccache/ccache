@@ -14,6 +14,11 @@ To build ccache from a source repository, you need:
 - [Autoconf](http://www.gnu.org/software/autoconf/) to generate the configure
   script and related files.
 - [gperf](http://www.gnu.org/software/gperf/) to create lookup tables.
+- [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
+  and can't or don't want to install it on your system, you can pass
+  `--with-libb2-from-internet` to the configure script, which will make the
+  script download libb2 from the Internet and unpack it in the local source
+  tree. ccache will then be linked statically to the locally built libb2.
 - [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
   or don't want to install it on your system, you can pass
   `--with-libzstd-from-internet` to the configure script, which will make the
