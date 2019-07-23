@@ -21,7 +21,7 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/*
 
 # Travis has upgraded clang, from clang-3.8 to clang-7.0
-RUN printf "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main\ndeb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main\n" > /etc/apt/sources.list.d/llvm-toolchain.list && apt-key adv --fetch-keys http://apt.llvm.org/llvm-snapshot.gpg.key && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
+RUN printf "deb https://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main\ndeb-src https://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main\n" > /etc/apt/sources.list.d/llvm-toolchain.list && apt-key adv --fetch-keys https://apt.llvm.org/llvm-snapshot.gpg.key && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
 
 RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 clang-7 \

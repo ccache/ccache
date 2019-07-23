@@ -8,26 +8,26 @@ To build ccache from a source repository, you need:
 
 - A C compiler (for instance GCC)
 - GNU Bourne Again SHell (bash) for tests.
-- [AsciiDoc](http://www.methods.co.nz/asciidoc/) to build the HTML
+- [AsciiDoc](https://www.methods.co.nz/asciidoc/) to build the HTML
   documentation.
 - [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html) to build the man page.
-- [Autoconf](http://www.gnu.org/software/autoconf/) to generate the configure
+- [Autoconf](https://www.gnu.org/software/autoconf/) to generate the configure
   script and related files.
-- [gperf](http://www.gnu.org/software/gperf/) to create lookup tables.
+- [gperf](https://www.gnu.org/software/gperf/) to create lookup tables.
 - [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
   and can't or don't want to install it on your system, you can pass
   `--with-libb2-from-internet` to the configure script, which will make the
   script download libb2 from the Internet and unpack it in the local source
   tree. ccache will then be linked statically to the locally built libb2.
-- [libzstd](http://www.zstd.net). If you don't have libzstd installed and can't
-  or don't want to install it on your system, you can pass
+- [libzstd](https://www.zstd.net). If you don't have libzstd installed and
+  can't or don't want to install it on your system, you can pass
   `--with-libzstd-from-internet` to the configure script, which will make the
   script download libzstd from the Internet and unpack it in the local source
   tree. ccache will then be linked statically to the locally built libzstd.
 
 To debug and run the performance test suite you'll also need:
 
-- [Python](http://www.python.org)
+- [Python](https://www.python.org)
 
 
 Installation

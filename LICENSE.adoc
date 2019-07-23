@@ -22,7 +22,7 @@ The license for ccache as a whole is as follows:
 -------------------------------------------------------------------------------
 
 The full license text can be found in GPL-3.0.txt and at
-http://www.gnu.org/licenses/gpl-3.0.html.
+https://www.gnu.org/licenses/gpl-3.0.html.
 
 
 Copyright and authors
@@ -56,7 +56,7 @@ src/third_party/getopt_long.[hc]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This implementation of `getopt_long()` was copied from
-http://www.postgresql.org[PostgreSQL] and has the following license text:
+https://www.postgresql.org[PostgreSQL] and has the following license text:
 
 -------------------------------------------------------------------------------
   Portions Copyright (c) 1987, 1993, 1994
@@ -132,7 +132,7 @@ following license:
 m4/feature_macros.m4
 ~~~~~~~~~~~~~~~~~~~~
 
-This Autoconf M4 snippet comes from http://www.python.org[Python] 2.6's
+This Autoconf M4 snippet comes from https://www.python.org[Python] 2.6's
 `configure.in` with the following license:
 
 -------------------------------------------------------------------------------
