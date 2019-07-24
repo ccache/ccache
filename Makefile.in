@@ -14,11 +14,14 @@ BASH = @BASH@
 CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
+CXX = @CXX@
+CXXFLAGS = @CXXFLAGS@
 EXEEXT = @EXEEXT@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 
 all_cflags = $(CFLAGS)
+all_cxxflags = $(CXXFLAGS)
 all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
 extra_libs = @extra_libs@
 
@@ -28,35 +31,35 @@ quiet := $(v_at_$(V))
 Q=$(if $(quiet),@)
 
 non_third_party_sources = \
-    src/args.c \
-    src/ccache.c \
-    src/cleanup.c \
-    src/common_header.c \
-    src/compopt.c \
-    src/compr_none.c \
-    src/compr_zstd.c \
-    src/compress.c \
-    src/compression.c \
-    src/conf.c \
-    src/confitems.c \
-    src/counters.c \
-    src/decompr_none.c \
-    src/decompr_zstd.c \
-    src/execute.c \
-    src/exitfn.c \
-    src/hash.c \
-    src/hashutil.c \
-    src/language.c \
-    src/lockfile.c \
-    src/manifest.c \
-    src/result.c \
-    src/stats.c \
-    src/unify.c \
-    src/util.c
+    src/args.cpp \
+    src/ccache.cpp \
+    src/cleanup.cpp \
+    src/common_header.cpp \
+    src/compopt.cpp \
+    src/compr_none.cpp \
+    src/compr_zstd.cpp \
+    src/compress.cpp \
+    src/compression.cpp \
+    src/conf.cpp \
+    src/confitems.cpp \
+    src/counters.cpp \
+    src/decompr_none.cpp \
+    src/decompr_zstd.cpp \
+    src/execute.cpp \
+    src/exitfn.cpp \
+    src/hash.cpp \
+    src/hashutil.cpp \
+    src/language.cpp \
+    src/lockfile.cpp \
+    src/manifest.cpp \
+    src/result.cpp \
+    src/stats.cpp \
+    src/unify.cpp \
+    src/util.cpp
 generated_sources = \
-    src/confitems_lookup.c \
-    src/envtoconfitems_lookup.c \
-    src/version.c
+    src/confitems_lookup.cpp \
+    src/envtoconfitems_lookup.cpp \
+    src/version.cpp
 third_party_sources = \
     src/third_party/getopt_long.c \
     src/third_party/hashtable.c \
@@ -65,17 +68,17 @@ third_party_sources = \
     src/third_party/xxhash.c
 extra_sources = @extra_sources@
 base_sources = $(non_third_party_sources) $(generated_sources) $(third_party_sources) $(extra_sources)
-base_objs = $(base_sources:.c=.o)
+base_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(base_sources)))
 
-non_third_party_objs = $(non_third_party_sources:.c=.o)
+non_third_party_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(non_third_party_sources)))
 
-ccache_sources = src/main.c $(base_sources)
-ccache_objs = $(ccache_sources:.c=.o)
+ccache_sources = src/main.cpp $(base_sources)
+ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
 test_suites = @test_suites@
-test_sources = unittest/main.c unittest/framework.c unittest/util.c
+test_sources = unittest/main.cpp unittest/framework.cpp unittest/util.cpp
 test_sources += $(test_suites)
-test_objs = $(test_sources:.c=.o)
+test_objs = $(test_sources:.cpp=.o)
 
 all_sources = $(ccache_sources) $(test_sources)
 all_objs = $(ccache_objs) $(test_objs)
@@ -95,7 +98,7 @@ all: ccache$(EXEEXT)
 
 ccache$(EXEEXT): $(ccache_objs) $(extra_libs)
 	$(if $(quiet),@echo "  LD       $@")
-	$(Q)$(CC) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+	$(Q)$(CXX) -o $@ $(ccache_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
 ccache.1: doc/ccache.1
 	$(if $(quiet),@echo "  CP       $@")
@@ -116,7 +119,7 @@ clean:
 	[ ! -d src/third_party/zstd ] || $(MAKE) -C src/third_party/zstd/lib clean
 	[ ! -d src/third_party/libb2 ] || $(MAKE) -C src/third_party/libb2 clean
 
-src/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
+src/third_party/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 
 libzstd_options = \
     ZSTD_LEGACY_SUPPORT=0 \
@@ -146,7 +149,7 @@ src/third_party/libb2/src/.libs/libb2.a:
 
 .PHONY: performance
 performance: ccache$(EXEEXT)
-	$(srcdir)/misc/performance --ccache ccache$(EXEEXT) $(CC) $(all_cppflags) $(all_cflags) $(srcdir)/src/ccache.c
+	$(srcdir)/misc/performance --ccache ccache$(EXEEXT) $(CXX) $(all_cppflags) $(all_cxxflags) $(srcdir)/src/ccache.cpp
 
 .PHONY: test
 test: ccache$(EXEEXT) unittest/run$(EXEEXT)
@@ -162,11 +165,11 @@ unittest: unittest/run$(EXEEXT)
 
 unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 	$(if $(quiet),@echo "  LD       $@")
-	$(Q)$(CC) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
+	$(Q)$(CXX) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
 
-unittest/main.o: unittest/suites.h
+unittest/main.o: unittest/suites.hpp
 
-unittest/suites.h: $(test_suites) Makefile
+unittest/suites.hpp: $(test_suites) Makefile
 	$(if $(quiet),@echo "  GEN      $@")
 	$(Q)ls $^ | grep -v Makefile | xargs sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' >$@
 
@@ -185,5 +188,9 @@ installcheck: ccache$(EXEEXT) unittest/run$(EXEEXT)
 .c.o:
 	$(if $(quiet),@echo "  CC       $@")
 	$(Q)$(CC) $(all_cppflags) $(all_cflags) -c -o $@ $<
+
+.cpp.o:
+	$(if $(quiet),@echo "  CXX      $@")
+	$(Q)$(CXX) $(all_cppflags) $(all_cxxflags) -c -o $@ $<
 
 @include_dev_mk@

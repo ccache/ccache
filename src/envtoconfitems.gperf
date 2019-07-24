@@ -7,7 +7,7 @@
 %define slot-name env_name
 %define initializer-suffix ,""
 %{
-#include "envtoconfitems.h"
+#include "envtoconfitems.hpp"
 %}
 struct env_to_conf_item;
 %%

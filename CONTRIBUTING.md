@@ -34,10 +34,10 @@ proposal(s) on [GitHub](https://github.com/ccache/ccache).
 Here are some hints to make the process smoother:
 
 * If you plan to implement major changes it is wise to open an issue on GitHub
-  (or send a mail to the mailing list) asking for comments on your plans before
-  doing the bulk of the work. That way you can avoid potentially wasting time
-  on doing something that may need major rework to be accepted, or maybe
-  doesn'tend up being accepted at all.
+  (or ask in the Gitter room, or send a mail to the mailing list) asking for
+  comments on your plans before doing the bulk of the work. That way you can
+  avoid potentially wasting time on doing something that may need major rework
+  to be accepted, or maybe doesn't end up being accepted at all.
 * Is your pull request "work in progress", i.e. you don't think that it's ready
   for merging yet but you want early comments? Then create a draft pull request
   as described in [this Github blog
@@ -48,41 +48,35 @@ Here are some hints to make the process smoother:
   Messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
   when writing commit messages.
 
-### Code style
+## Code style
 
-#### Formatting
-
-* Use tabs for indenting and spaces for aligning C code.
-* Use 4 spaces for indenting other code (and spaces for aligning).
-* Put the opening curly brace on a new line when defining a function, otherwise
-  at the end of the same line.
-* Put no space between function name and the following parenthesis.
-* Put one space between if/switch/for/while/do and opening curly brace.
-* Always use curly braces around if/for/while/do bodies, even if they only
-  contain one statement.
-* If possible, keep lines at most 80 character wide for a 2 character tab
-  width.
-* Use only lowercase names for functions and variables.
-* Use only uppercase names for enum items and (with some exceptions) macros.
-* Don't use typedefs for structs and enums.
-* Use //-style comments.
+ccache was written in C99 until 2019 when it started being converted to C++11.
+The conversion is a slow work in progress, which is why there are lots of
+C-style code left. Please refrain from doing large C to C++ conversions at
+once; do it little by little.
 
 Tip: Install the tool [Uncrustify(http://uncrustify.sourceforge.net) and then
 run `make uncrustify` to fix up source code formatting.
 
-#### Idioms
+### New code
 
-* Declare variables as late as convenient, not necessarily at the beginning of
-  the scope.
-* Use NULL to initialize null pointers.
-* Don't use NULL when comparing pointers.
-* Use format(), x_malloc() and friends instead of checking for memory
-  allocation failure explicitly.
-* Use str_eq() instead of strcmp() when testing for string (in)equality.
-* Consider using str_startswith() instead of strncmp().
-* Use bool, true and false for boolean values.
-* Use tmp_unlink() or x_unlink() instead of unlink().
-* Use x_rename() instead of rename().
+* Use tabs for indenting and spaces for aligning.
+* If possible, keep lines at most 80 character wide for a 2 character tab
+  width.
+* Put the opening curly brace on a new line when defining a class, struct or
+  function, otherwise at the end of the same line.
+* Use UpperCamelCase for classes, structs, functions, methods, members and
+  global variables.
+* Use lowerCamelCase for parameters, arguments and local variables.
+* Use UPPER_CASE names for macros.
+
+### Legacy C-style code style
+
+* Put the opening curly brace on a new line when defining a function, otherwise
+  at the end of the same line.
+* Put no space between function name and the following parenthesis.
+* Use UPPER_CASE names for enum values and macros.
+* Use snake_case for everything else.
 
 #### Other
 

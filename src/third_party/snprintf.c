@@ -528,6 +528,10 @@ do {                                                                         \
 	(len)++;                                                             \
 } while (/* CONSTCOND */ 0)
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 static void fmtstr(char *, size_t *, size_t, const char *, int, int, int);
 static void fmtint(char *, size_t *, size_t, INTMAX_T, int, int, int, int);
 static void fmtflt(char *, size_t *, size_t, LDOUBLE, int, int, int, int *);
@@ -2111,6 +2115,11 @@ do {                                                                           \
 	}
 	return (failed == 0) ? 0 : 1;
 }
+
+#if defined (__cplusplus)
+}
+#endif
+
 #endif	/* TEST_SNPRINTF */
 
 /* vim: set joinspaces textwidth=80: */

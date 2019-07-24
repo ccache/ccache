@@ -2,6 +2,7 @@
 
 all_cflags += -Werror
 all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$(subst $(srcdir)/,,$<))).d
+all_cxxflags += -Werror
 
 A2X = a2x
 ASCIIDOC = asciidoc
@@ -34,39 +35,39 @@ generated_docs = \
 built_dist_files = $(generated_sources) $(generated_docs)
 
 headers = \
-    src/ccache.h \
-    src/common_header.h \
-    src/compopt.h \
-    src/compression.h \
-    src/conf.h \
-    src/confitems.h \
-    src/counters.h \
-    src/envtoconfitems.h \
-    src/hash.h \
-    src/hashutil.h \
-    src/int_bytes_conversion.h \
-    src/language.h \
-    src/macroskip.h \
-    src/manifest.h \
-    src/result.h \
-    src/system.h \
+    src/ccache.hpp \
+    src/common_header.hpp \
+    src/compopt.hpp \
+    src/compression.hpp \
+    src/conf.hpp \
+    src/confitems.hpp \
+    src/counters.hpp \
+    src/envtoconfitems.hpp \
+    src/hash.hpp \
+    src/hashutil.hpp \
+    src/int_bytes_conversion.hpp \
+    src/language.hpp \
+    src/macroskip.hpp \
+    src/manifest.hpp \
+    src/result.hpp \
+    src/system.hpp \
     src/third_party/getopt_long.h \
     src/third_party/hashtable.h \
     src/third_party/hashtable_itr.h \
     src/third_party/hashtable_private.h \
     src/third_party/minitrace.h \
     src/third_party/xxhash.h \
-    src/unify.h \
-    unittest/framework.h \
-    unittest/util.h
+    src/unify.hpp \
+    unittest/framework.hpp \
+    unittest/util.hpp
 generated_headers = \
-    unittest/suites.h
+    unittest/suites.hpp
 
 files_to_clean += *.tar.gz *.tar.xz *.xml doc/*.xml .deps/* perfdir.*
 files_to_clean += compile_commands.json
-files_to_clean += src/confitems_lookup.c
-files_to_clean += src/envtoconfitems_lookup.c
-files_to_distclean += $(built_dist_files) src/version.c unittest/suites.h
+files_to_clean += src/confitems_lookup.cpp
+files_to_clean += src/envtoconfitems_lookup.cpp
+files_to_distclean += $(built_dist_files) src/version.cpp unittest/suites.hpp
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \
@@ -92,10 +93,10 @@ source_dist_files = \
     install-sh \
     m4 \
     src/confitems.gperf \
-    src/confitems_lookup.c \
+    src/confitems_lookup.cpp \
     src/envtoconfitems.gperf \
-    src/envtoconfitems_lookup.c \
-    src/main.c \
+    src/envtoconfitems_lookup.cpp \
+    src/main.cpp \
     src/third_party/minitrace.c \
     test/run \
     test/suites/*.bash
@@ -104,17 +105,17 @@ dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
-ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.c 2>/dev/null),$(version))
-  $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.c)
+ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.cpp 2>/dev/null),$(version))
+  $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.cpp)
 endif
-src/version.o: src/version.c
+src/version.o: src/version.cpp
 
 # $(1): Name.
 # $(2): Command for fixing up source file before the gperf call.
 define generate_gperf_lookup
-src/$(1)_lookup.c: src/$(1).gperf
+src/$(1)_lookup.cpp: src/$(1).gperf
 	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$(2) $$< | tr -d '\r' | $$(GPERF) | sed 's/#error/#warning/' >$$@.tmp
+	$$(Q)$(2) $$< | tr -d '\r' | $$(GPERF) | sed -e 's/#error/#warning/' -e 's/register//g' >$$@.tmp
 # Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
 	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
 	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
@@ -159,8 +160,8 @@ define do_distcheck
 	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
 	 ../configure --enable-more-warnings --prefix=$$tmpdir/root $(1) && \
-	 $(MAKE) install CFLAGS=-Werror V=1 && \
-	 $(MAKE) installcheck) && \
+	 $(MAKE) install CFLAGS=-Werror CXXFLAGS=-Werror V=1 && \
+	 $(MAKE) installcheck V=1) && \
 	chmod -R u+w $$tmpdir/$(dist_dir) && \
 	rm -rf $$tmpdir
 endef
@@ -170,7 +171,7 @@ distcheck: $(firstword $(dist_archives))
 	$(call do_distcheck)
 	$(call do_distcheck, --with-libzstd-from-internet)
 	$(call do_distcheck, --with-libb2-from-internet)
-	$(call do_distcheck, CC=clang)
+	$(call do_distcheck, CC=clang CXX=clang++)
 
 .PHONY: docs
 docs: $(generated_docs)
@@ -187,7 +188,7 @@ docs: $(generated_docs)
 	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-$(non_third_party_objs) $(test_objs): CFLAGS += @more_warnings@
+$(non_third_party_objs) $(test_objs): CXXFLAGS += @more_warnings@
 
 doc/ccache.1: doc/MANUAL.xml
 	$(if $(quiet),@echo "  A2X      $@")
@@ -201,14 +202,14 @@ update-authors:
 
 .PHONY: check-syntax
 check-syntax:
-	$(CC) $(all_cppflags) -I. $(all_cflags) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) $(all_cppflags) -I. $(all_cxxflags) -S -o /dev/null $(CHK_SOURCES)
 
 .PHONY: cppcheck
 cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force -I . \
 	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
-	  $(non_third_party_sources) src/confitems_lookup.c src/main.c $(test_sources)
+	  $(non_third_party_sources) src/confitems_lookup.cpp src/main.cpp $(test_sources)
 
 .PHONY: shellcheck
 shellcheck: test/suites/*.bash
@@ -228,8 +229,8 @@ tidy: compile_commands.json
 
 .PHONY: analyze
 analyze:
-	$(SCAN_BUILD) --use-cc=$(CC) $(srcdir)/configure
-	$(SCAN_BUILD) --use-cc=$(CC) --status-bugs $(MAKE) -B
+	$(SCAN_BUILD) --use-cc="$(CC)" --use-c++="$(CXX)" $(srcdir)/configure
+	$(SCAN_BUILD) --use-cc="$(CC)" --use-c++="$(CXX)" --status-bugs $(MAKE) -B
 
 BUILDENV = ubuntu
 DOCKER_IMAGE_TAG = ccache/build:$(BUILDENV)
@@ -243,6 +244,6 @@ docker: buildenv/$(BUILDENV)/Dockerfile
 travis: .travis/Dockerfile
 	$(DOCKER) inspect travis-build >/dev/null || $(DOCKER) build -t travis-build .travis
 	$(DOCKER) run --rm --volume $(PWD):/src --tmpfs /dst:rw,exec --env ASAN_OPTIONS='$(ASAN_OPTIONS)' travis-build \
-	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' /src/configure $(CONFIGURE) && CC=$(CC) CFLAGS='$(CFLAGS)' make V=$(V) && CC=$(CC) make V=$(V) $(TEST)"
+	sh -c "cd /src && ./autogen.sh && cd /dst && CC=$(CC) CFLAGS='$(CFLAGS)' CXX=$(CXX) CXXFLAGS='$(CXXFLAGS)' LDFLAGS='$(LDFLAGS)' /src/configure $(CONFIGURE) && CC=$(CC) CFLAGS='$(CFLAGS)' make V=$(V) && CC=$(CC) make V=$(V) $(TEST)"
 
 -include .deps/*.d

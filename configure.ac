@@ -29,18 +29,15 @@ AC_SUBST(no_implicit_fallthrough_warning)
 AC_SUBST(test_suites)
 
 m4_include(m4/feature_macros.m4)
+m4_include(m4/ax_cxx_compile_stdcxx.m4)
 m4_include(m4/clang.m4)
 
 mkdir -p .deps src/third_party unittest
 
 dnl Checks for programs.
 AC_PROG_CC
+AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 _AC_LANG_COMPILER_CLANG
-AC_PROG_CC_C99
-if test "$ac_cv_prog_cc_c99" = no; then
-    AC_MSG_ERROR(cannot find a C99-compatible compiler)
-fi
-
 AC_PROG_INSTALL
 
 # Prefer bash, needed for test.sh
@@ -49,19 +46,28 @@ AC_PATH_TOOL(BASH, bash, "/bin/bash")
 # If GCC (or clang), turn on warnings.
 if test "$ac_compiler_gnu" = yes; then
     CFLAGS="$CFLAGS -Wall -W"
+    CXXFLAGS="$CXXFLAGS -Wall -W"
 else
-    CFLAGS="$CFLAGS -O"
+    CFLAGS="$CXXFLAGS -O"
+    CXXFLAGS="$CXXFLAGS -O"
 fi
 
 more_warnings="-Wextra -Wpedantic"
 if test "$ac_compiler_clang" = yes; then
     more_warnings="$more_warnings -Weverything"
+    more_warnings="$more_warnings -Wno-c++98-compat"
+    more_warnings="$more_warnings -Wno-c++98-compat-pedantic"
     more_warnings="$more_warnings -Wno-conversion"
     more_warnings="$more_warnings -Wno-disabled-macro-expansion"
     more_warnings="$more_warnings -Wno-format-nonliteral"
+    more_warnings="$more_warnings -Wno-implicit-fallthrough"
     more_warnings="$more_warnings -Wno-padded"
     more_warnings="$more_warnings -Wno-shorten-64-to-32"
     more_warnings="$more_warnings -Wno-sign-conversion"
+
+# TODO: Enable these in the future:
+    more_warnings="$more_warnings -Wno-old-style-cast"
+    more_warnings="$more_warnings -Wno-zero-as-null-pointer-constant"
 fi
 
 AC_ARG_ENABLE(more_warnings,
@@ -69,6 +75,7 @@ AC_ARG_ENABLE(more_warnings,
     [enable more compiler warnings])])
 if test x${enable_more_warnings} = xyes; then
     CFLAGS="$CFLAGS $more_warnings"
+    CXXFLAGS="$CXXFLAGS $more_warnings"
 fi
 
 AC_HEADER_DIRENT
@@ -251,7 +258,7 @@ if test ! -f $srcdir/dev_mode_disabled; then
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.c
+    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.cpp
     AC_CHECK_TOOL(GPERF, gperf)
     if test -z "$GPERF"; then
         AC_MSG_ERROR(please install gperf)
@@ -260,9 +267,9 @@ else
     AC_MSG_NOTICE(developer mode disabled)
 fi
 
-if test ! -f $srcdir/src/version.c -a ! -f src/version.c ; then
+if test ! -f $srcdir/src/version.cpp -a ! -f src/version.cpp ; then
     AC_MSG_WARN(unable to determine ccache version)
-    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.c
+    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.cpp
 fi
 
 dnl Check for -Wno-implicit-fallthrough
@@ -277,7 +284,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
 CFLAGS=$saved_cflags
 
 dnl Find test suite files.
-test_suites=`cd $srcdir && ls unittest/test_*.c | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo`
+test_suites=$(cd $srcdir && ls unittest/test_*.cpp | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo)
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

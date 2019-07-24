@@ -34,6 +34,10 @@
 
 #include "config.h"
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 struct hashtable;
 
 /* Example of use:
@@ -193,6 +197,10 @@ hashtable_count(struct hashtable *h);
 
 void
 hashtable_destroy(struct hashtable *h, int free_values);
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif /* HASHTABLE_CWC22_H */
 

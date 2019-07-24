@@ -6,8 +6,8 @@
 %define lookup-function-name confitems_get
 %define initializer-suffix ,0,0,NULL,NULL,NULL
 %{
-#include "confitems.h"
-#include "conf.h"
+#include "confitems.hpp"
+#include "conf.hpp"
 
 #undef bool
 #define ITEM_ENTRY(name, type, verify_fn) \

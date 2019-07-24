@@ -5,6 +5,10 @@
 #include "hashtable.h"
 #include "hashtable_private.h" /* needed to enable inlining */
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 /*****************************************************************************/
 /* This struct is only concrete here to allow the inlining of two of the
  * accessor functions. */
@@ -84,7 +88,9 @@ int fnname (struct hashtable_itr *i, struct hashtable *h, keytype *k) \
     return (hashtable_iterator_search(i,h,k)); \
 }
 
-
+#if defined (__cplusplus)
+}
+#endif
 
 #endif /* HASHTABLE_ITR_CWC22_H */
 

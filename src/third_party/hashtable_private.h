@@ -5,6 +5,10 @@
 
 #include "hashtable.h"
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 /*****************************************************************************/
 struct entry
 {
@@ -50,6 +54,10 @@ indexFor(unsigned int tablelength, unsigned int hashvalue)
 
 
 /*****************************************************************************/
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif /* HASHTABLE_PRIVATE_CWC22_H */
 

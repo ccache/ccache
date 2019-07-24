@@ -7,7 +7,8 @@ Prerequisites
 To build ccache from a
 [release archive](https://ccache.dev/download.html), you need:
 
-- A C compiler (for instance GCC).
+- A C++11 compiler.
+- A C89 compiler.
 - [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
   and can't or don't want to install it on your system, you can pass
   `--with-libb2-from-internet` to the configure script, which will make the

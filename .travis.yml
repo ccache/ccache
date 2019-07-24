@@ -1,4 +1,4 @@
-language: c
+language: cpp
 dist: xenial
 
 script:
@@ -42,17 +42,18 @@ matrix:
   # Job 4: Linux 32-bit native
   - os: linux
     compiler: gcc
-    env: V=1 CFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
         - gcc-multilib
         - gperf
+        - lib32stdc++-5-dev
 
   # Job 5: Linux cross-compiled 32-bit MinGW
   - os: linux
-    compiler: i686-w64-mingw32-gcc
-    env: V=1 CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    compiler: i686-w64-mingw32-g++
+    env: V=1 CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -61,8 +62,8 @@ matrix:
 
   # Job 6: Linux cross-compiled 64-bit MinGW
   - os: linux
-    compiler: x86_64-w64-mingw32-gcc
-    env: V=1 CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    compiler: x86_64-w64-mingw32-g++
+    env: V=1 CC=i686-w64-mingw32-gcc CXX=i686-w64-mingw32-g++ CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -72,7 +73,7 @@ matrix:
   # Job 7: Clang's undefined behavior sanitizer (UBSan)
   - os: linux
     compiler: clang
-    env: V=1 CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CFLAGS="-fsanitize=undefined" CXXFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -84,7 +85,7 @@ matrix:
   # Job 8: Clang's address sanitizer
   - os: linux
     compiler: clang
-    env: V=1 CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CFLAGS="-fsanitize=address -g" CXXFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:

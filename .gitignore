@@ -21,8 +21,8 @@ dev.mk
 dev_mode_disabled
 doc/ccache.1
 perfdir.*
-src/*_lookup.c
-src/version.c
+src/*_lookup.cpp
+src/version.cpp
 testdir.*
 unittest/run
-unittest/suites.h
+unittest/suites.hpp
