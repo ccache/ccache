@@ -486,7 +486,7 @@ stats_flush_to_file(const char *sfile, struct counters *updates)
 		}
 	}
 
-	char *subdir = dirname(sfile);
+	char *subdir = x_dirname(sfile);
 	bool need_cleanup = false;
 
 	if (conf->max_files != 0

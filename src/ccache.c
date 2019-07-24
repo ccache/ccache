@@ -526,7 +526,7 @@ init_hash_debug(struct hash *hash, const char *obj_path, char type,
 static enum guessed_compiler
 guess_compiler(const char *path)
 {
-	char *name = basename(path);
+	char *name = x_basename(path);
 	enum guessed_compiler result = GUESSED_UNKNOWN;
 	if (strstr(name, "clang")) {
 		result = GUESSED_CLANG;
@@ -755,17 +755,17 @@ make_relative_path(char *path)
 #endif
 
 	// x_realpath only works for existing paths, so if path doesn't exist, try
-	// dirname(path) and assemble the path afterwards. We only bother to try
+	// x_dirname(path) and assemble the path afterwards. We only bother to try
 	// canonicalizing one of these two paths since a compiler path argument
-	// typically only makes sense if path or dirname(path) exists.
+	// typically only makes sense if path or x_dirname(path) exists.
 	char *path_suffix = NULL;
 	struct stat st;
 	if (stat(path, &st) != 0) {
 		// path doesn't exist.
-		char *dir = dirname(path);
+		char *dir = x_dirname(path);
 		// find the nearest existing directory in path
 		while (stat(dir, &st) != 0) {
-			char *parent_dir = dirname(dir);
+			char *parent_dir = x_dirname(dir);
 			free(dir);
 			dir = parent_dir;
 		}
@@ -1427,7 +1427,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	// be done almost anywhere, but we might as well do it near the end as we
 	// save the stat call if we exit early.
 	{
-		char *first_level_dir = dirname(stats_file);
+		char *first_level_dir = x_dirname(stats_file);
 		if (create_cachedirtag(first_level_dir) != 0) {
 			cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
 			       first_level_dir, strerror(errno));
@@ -1475,7 +1475,7 @@ get_result_name_from_cpp(struct args *args, struct hash *hash)
 
 		// Limit the basename to 10 characters in order to cope with filesystem with
 		// small maximum filename length limits.
-		char *input_base = basename(input_file);
+		char *input_base = x_basename(input_file);
 		char *tmp = strchr(input_base, '.');
 		if (tmp) {
 			*tmp = 0;
@@ -1679,7 +1679,7 @@ hash_common_info(struct args *args, struct hash *hash)
 	// Also hash the compiler name as some compilers use hard links and behave
 	// differently depending on the real name.
 	hash_delimiter(hash, "cc_name");
-	char *base = basename(args->argv[0]);
+	char *base = x_basename(args->argv[0]);
 	hash_string(hash, base);
 	free(base);
 
@@ -1735,12 +1735,12 @@ hash_common_info(struct args *args, struct hash *hash)
 		// to include the target filename in the hash to avoid handing out an
 		// object file with an incorrect .dwo link.
 		hash_delimiter(hash, "filename");
-		hash_string(hash, basename(output_obj));
+		hash_string(hash, x_basename(output_obj));
 	}
 
 	// Possibly hash the coverage data file path.
 	if (generating_coverage && profile_arcs) {
-		char *dir = dirname(output_obj);
+		char *dir = x_dirname(output_obj);
 		if (profile_dir) {
 			dir = x_strdup(profile_dir);
 		} else {
@@ -1749,7 +1749,7 @@ hash_common_info(struct args *args, struct hash *hash)
 			dir = real_dir;
 		}
 		if (dir) {
-			char *base_name = basename(output_obj);
+			char *base_name = x_basename(output_obj);
 			char *p = remove_extension(base_name);
 			free(base_name);
 			char *gcda_path = format("%s/%s.gcda", dir, p);
@@ -2193,7 +2193,7 @@ static void
 find_compiler(char **argv)
 {
 	// We might be being invoked like "ccache gcc -c foo.c".
-	char *base = basename(argv[0]);
+	char *base = x_basename(argv[0]);
 	if (same_executable_name(base, MYNAME)) {
 		args_remove_first(orig_args);
 		free(base);
@@ -2201,7 +2201,7 @@ find_compiler(char **argv)
 			// A full path was given.
 			return;
 		}
-		base = basename(orig_args->argv[0]);
+		base = x_basename(orig_args->argv[0]);
 	}
 
 	// Support user override of the compiler.
@@ -2225,7 +2225,7 @@ bool
 is_precompiled_header(const char *path)
 {
 	const char *ext = get_extension(path);
-	char *dir = dirname(path);
+	char *dir = x_dirname(path);
 	const char *dir_ext = get_extension(dir);
 	bool result =
 		str_eq(ext, ".gch")
@@ -3215,7 +3215,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			output_obj = format("%s.gch", input_file);
 		} else {
 			char extension = found_S_opt ? 's' : 'o';
-			output_obj = basename(input_file);
+			output_obj = x_basename(input_file);
 			char *p = strrchr(output_obj, '.');
 			if (!p) {
 				reformat(&output_obj, "%s.%c", output_obj, extension);
@@ -3253,7 +3253,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	char *output_dir = dirname(output_obj);
+	char *output_dir = x_dirname(output_obj);
 	if (stat(output_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
 		cc_log("Directory does not exist: %s", output_dir);
 		stats_update(STATS_BADOUTPUTFILE);
@@ -4059,7 +4059,7 @@ int
 ccache_main(int argc, char *argv[])
 {
 	// Check if we are being invoked as "ccache".
-	char *program_name = basename(argv[0]);
+	char *program_name = x_basename(argv[0]);
 	if (same_executable_name(program_name, MYNAME)) {
 		if (argc < 2) {
 			fputs(USAGE_TEXT, stderr);

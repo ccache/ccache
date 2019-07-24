@@ -23,23 +23,23 @@
 
 TEST_SUITE(util)
 
-TEST(basename)
+TEST(x_basename)
 {
-	CHECK_STR_EQ_FREE2("foo.c", basename("foo.c"));
-	CHECK_STR_EQ_FREE2("foo.c", basename("dir1/dir2/foo.c"));
-	CHECK_STR_EQ_FREE2("foo.c", basename("/dir/foo.c"));
-	CHECK_STR_EQ_FREE2("", basename("dir1/dir2/"));
+	CHECK_STR_EQ_FREE2("foo.c", x_basename("foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", x_basename("dir1/dir2/foo.c"));
+	CHECK_STR_EQ_FREE2("foo.c", x_basename("/dir/foo.c"));
+	CHECK_STR_EQ_FREE2("", x_basename("dir1/dir2/"));
 }
 
-TEST(dirname)
+TEST(x_dirname)
 {
-	CHECK_STR_EQ_FREE2(".", dirname("foo.c"));
-	CHECK_STR_EQ_FREE2(".", dirname(""));
-	CHECK_STR_EQ_FREE2("/", dirname("/"));
-	CHECK_STR_EQ_FREE2("/", dirname("/foo.c"));
-	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/foo.c"));
-	CHECK_STR_EQ_FREE2("/dir", dirname("/dir/foo.c"));
-	CHECK_STR_EQ_FREE2("dir1/dir2", dirname("dir1/dir2/"));
+	CHECK_STR_EQ_FREE2(".", x_dirname("foo.c"));
+	CHECK_STR_EQ_FREE2(".", x_dirname(""));
+	CHECK_STR_EQ_FREE2("/", x_dirname("/"));
+	CHECK_STR_EQ_FREE2("/", x_dirname("/foo.c"));
+	CHECK_STR_EQ_FREE2("dir1/dir2", x_dirname("dir1/dir2/foo.c"));
+	CHECK_STR_EQ_FREE2("/dir", x_dirname("/dir/foo.c"));
+	CHECK_STR_EQ_FREE2("dir1/dir2", x_dirname("dir1/dir2/"));
 }
 
 TEST(common_dir_prefix_length)

@@ -338,7 +338,7 @@ find_executable_in_path(const char *name, const char *exclude_name, char *path)
 			if (S_ISLNK(st1.st_mode)) {
 				char *buf = x_realpath(fname);
 				if (buf) {
-					char *p = basename(buf);
+					char *p = x_basename(buf);
 					if (str_eq(p, exclude_name)) {
 						// It's a link to "ccache"!
 						free(p);

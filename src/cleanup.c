@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2006 Andrew Tridgell
-// Copyright (C) 2009-2018 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -55,7 +55,7 @@ traverse_fn(const char *fname, struct stat *st)
 		return;
 	}
 
-	char *p = basename(fname);
+	char *p = x_basename(fname);
 	if (str_eq(p, "stats")) {
 		goto out;
 	}
@@ -228,7 +228,7 @@ static void wipe_fn(const char *fname, struct stat *st)
 		return;
 	}
 
-	char *p = basename(fname);
+	char *p = x_basename(fname);
 	if (str_eq(p, "stats")) {
 		free(p);
 		return;

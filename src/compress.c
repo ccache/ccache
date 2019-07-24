@@ -63,7 +63,7 @@ measure_fn(const char *fname, struct stat *st)
 		return;
 	}
 
-	char *p = basename(fname);
+	char *p = x_basename(fname);
 	if (str_eq(p, "stats")) {
 		goto out;
 	}

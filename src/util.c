@@ -518,7 +518,7 @@ int
 create_parent_dirs(const char *path)
 {
 	int res;
-	char *parent = dirname(path);
+	char *parent = x_dirname(path);
 	struct stat st;
 	if (stat(parent, &st) == 0) {
 		if (S_ISDIR(st.st_mode)) {
@@ -900,7 +900,7 @@ traverse(const char *dir, void (*fn)(const char *, struct stat *))
 
 // Return the base name of a file - caller frees.
 char *
-basename(const char *path)
+x_basename(const char *path)
 {
 	char *p = strrchr(path, '/');
 	if (p) {
@@ -918,7 +918,7 @@ basename(const char *path)
 
 // Return the dir name of a file - caller frees.
 char *
-dirname(const char *path)
+x_dirname(const char *path)
 {
 	char *s = x_strdup(path);
 	char *p = strrchr(s, '/');
@@ -1247,7 +1247,7 @@ create_tmp_fd(char **fname)
 	if (fd == -1 && errno == ENOENT) {
 		if (create_parent_dirs(*fname) != 0) {
 			fatal("Failed to create directory %s: %s",
-			      dirname(*fname), strerror(errno));
+			      x_dirname(*fname), strerror(errno));
 		}
 		reformat(&template, "%s.%s", *fname, tmp_string());
 		fd = mkstemp(template);
