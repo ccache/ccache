@@ -729,6 +729,8 @@ out:
 bool
 result_dump(const char *path, FILE *stream)
 {
+	assert(stream);
+
 	char *errmsg;
 	bool success = read_result(path, NULL, stream, &errmsg);
 	if (errmsg) {

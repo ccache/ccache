@@ -96,11 +96,10 @@ matrix:
   # Job 9: Clang static analyzer
   - os: linux
     compiler: clang
-    env: V=1 PATH="/usr/bin:$PATH" TEST=analyze ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 PATH="/usr/bin:$PATH" SCAN_BUILD=scan-build-7 TEST=analyze ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
-        - clang  # for scan-build
         - gperf
         - libzstd1-dev
         - libb2-dev
