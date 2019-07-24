@@ -10,7 +10,6 @@ datarootdir = @datarootdir@
 sysconfdir = @sysconfdir@
 installcmd = @INSTALL@
 
-AR = @AR@
 BASH = @BASH@
 CC = @CC@
 CFLAGS = @CFLAGS@
@@ -18,7 +17,6 @@ CPPFLAGS = @CPPFLAGS@
 EXEEXT = @EXEEXT@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-RANLIB = @RANLIB@
 
 all_cflags = $(CFLAGS)
 all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)

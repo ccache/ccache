@@ -41,13 +41,7 @@ if test "$ac_cv_prog_cc_c99" = no; then
     AC_MSG_ERROR(cannot find a C99-compatible compiler)
 fi
 
-AC_PROG_CPP
 AC_PROG_INSTALL
-AC_PROG_RANLIB
-AC_CHECK_TOOL(AR, ar)
-if test -z "$AR"; then
-    AC_MSG_ERROR(cannot find ar)
-fi
 
 # Prefer bash, needed for test.sh
 AC_PATH_TOOL(BASH, bash, "/bin/bash")
