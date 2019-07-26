@@ -22,7 +22,7 @@ LIBS = @LIBS@
 
 all_cflags = $(CFLAGS)
 all_cxxflags = $(CXXFLAGS)
-all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(builddir)/unittest $(CPPFLAGS)
+all_cppflags = @DEFS@ -DSYSCONFDIR=$(sysconfdir) -I. -I$(srcdir)/src -I$(srcdir)/src/third_party -I$(builddir)/unittest $(CPPFLAGS)
 extra_libs = @extra_libs@
 
 v_at_0 = yes
@@ -61,6 +61,7 @@ generated_sources = \
     src/envtoconfitems_lookup.cpp \
     src/version.cpp
 third_party_sources = \
+    src/third_party/format.cpp \
     src/third_party/getopt_long.c \
     src/third_party/hashtable.c \
     src/third_party/hashtable_itr.c \

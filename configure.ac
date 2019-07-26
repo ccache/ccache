@@ -59,11 +59,14 @@ if test "$ac_compiler_clang" = yes; then
     more_warnings="$more_warnings -Wno-c++98-compat-pedantic"
     more_warnings="$more_warnings -Wno-conversion"
     more_warnings="$more_warnings -Wno-disabled-macro-expansion"
+    more_warnings="$more_warnings -Wno-documentation-unknown-command"
+    more_warnings="$more_warnings -Wno-exit-time-destructors"
     more_warnings="$more_warnings -Wno-format-nonliteral"
     more_warnings="$more_warnings -Wno-implicit-fallthrough"
     more_warnings="$more_warnings -Wno-padded"
     more_warnings="$more_warnings -Wno-shorten-64-to-32"
     more_warnings="$more_warnings -Wno-sign-conversion"
+    more_warnings="$more_warnings -Wno-undefined-func-template"
 
 # TODO: Enable these in the future:
     more_warnings="$more_warnings -Wno-old-style-cast"
