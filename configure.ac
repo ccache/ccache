@@ -130,7 +130,7 @@ dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
 dnl Check for libzstd
-zstd_version=1.4.1
+zstd_version=1.4.2
 zstd_url=https://github.com/facebook/zstd/releases/download/v${zstd_version}/zstd-${zstd_version}.tar.gz
 
 AC_ARG_WITH(libzstd-from-internet,
