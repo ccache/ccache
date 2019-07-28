@@ -4,6 +4,10 @@ SUITE_masquerading_PROBE() {
     if [ "$(dirname $compiler_binary)" != . ]; then
         echo "compiler ($compiler_binary) not taken from PATH"
     fi
+    if $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        echo "symlinks not supported on $(uname -s)"
+        return
+    fi
 }
 
 SUITE_masquerading_SETUP() {

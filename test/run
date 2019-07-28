@@ -117,6 +117,8 @@ objdump_cmd() {
         xcrun dwarfdump -r0 $1
     elif $HOST_OS_FREEBSD; then
         objdump -W $1
+    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
+        strings $1 # for some reason objdump only shows the basename of the file, so fall back to brute force and ignorance
     else
         objdump -g $1
     fi
@@ -326,6 +328,7 @@ HOST_OS_APPLE=false
 HOST_OS_LINUX=false
 HOST_OS_FREEBSD=false
 HOST_OS_WINDOWS=false
+HOST_OS_CYGWIN=false
 
 compiler_version="`$COMPILER --version 2>&1 | head -1`"
 case $compiler_version in
@@ -353,6 +356,9 @@ esac
 case $(uname -s) in
     *MINGW*|*mingw*)
         HOST_OS_WINDOWS=true
+        ;;
+    *CYGWIN*|*MSYS*)
+        HOST_OS_CYGWIN=true
         ;;
     *Darwin*)
         HOST_OS_APPLE=true

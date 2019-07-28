@@ -45,6 +45,7 @@ SUITE_basedir() {
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
+ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     TEST "Path normalization"
 
     cd dir1
@@ -64,6 +65,7 @@ SUITE_basedir() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
+ fi
     # -------------------------------------------------------------------------
     TEST "Rewriting in stderr"
 

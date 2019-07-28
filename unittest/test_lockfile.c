@@ -28,7 +28,7 @@ TEST(acquire_should_create_symlink)
 {
 	lockfile_acquire("test", 1000);
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 	CHECK(path_exists("test.lock"));
 #else
 	CHECK(is_symlink("test.lock"));
@@ -47,7 +47,7 @@ TEST(lock_breaking)
 {
 	char *p;
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 	create_file("test.lock", "foo");
 	create_file("test.lock.lock", "foo");
 #else
@@ -56,7 +56,7 @@ TEST(lock_breaking)
 #endif
 	CHECK(lockfile_acquire("test", 1000));
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 	p = read_text_file("test.lock", 0);
 #else
 	p = x_readlink("test.lock");
@@ -68,7 +68,7 @@ TEST(lock_breaking)
 	free(p);
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__CYGWIN__)
 TEST(failed_lock_breaking)
 {
 	create_file("test.lock", "");
