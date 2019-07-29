@@ -114,7 +114,7 @@ src/version.o: src/version.c
 define generate_gperf_lookup
 src/$(1)_lookup.c: src/$(1).gperf
 	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$(2) $$< | $$(GPERF) | sed 's/#error/#warning/' >$$@.tmp
+	$$(Q)$(2) $$< | tr -d '\r' | $$(GPERF) | sed 's/#error/#warning/' >$$@.tmp
 # Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
 	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
 	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
