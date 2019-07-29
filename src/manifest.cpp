@@ -100,7 +100,7 @@
 // ===============
 //
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
-// 2: Introduced in ccache 3.8.
+// 2: Introduced in ccache 4.0.
 
 const char MANIFEST_MAGIC[4] = {'c', 'C', 'm', 'F'};
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;

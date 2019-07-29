@@ -466,7 +466,7 @@ WARNING: Do not enable this option unless you are aware of these caveats:
 +
 * If the resulting file is modified, the file in the cache will also be
   modified since they share content, which corrupts the cache entry. As of
-  version 3.8, ccache performs a simple integrity check for cached files by
+  version 4.0, ccache performs a simple integrity check for cached files by
   verifying that their sizes are correct. This means that mistakes like `strip
   file.o` or `echo >file.o` will be detected, but a modification that doesn't
   change the file size will not.

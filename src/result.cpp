@@ -80,7 +80,7 @@
 // Version history
 // ===============
 //
-// 1: Introduced in ccache 3.8.
+// 1: Introduced in ccache 4.0.
 
 extern const struct conf* conf;
 extern char* stats_file;
