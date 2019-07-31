@@ -6,15 +6,15 @@ all_cxxflags += -Werror
 
 A2X = a2x
 ASCIIDOC = asciidoc
+CLANG_TIDY = clang-tidy
+COMPILEDB = compiledb
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
-SHELLCHECK = shellcheck
-SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
-COMPILEDB = compiledb
-CLANG_TIDY = clang-tidy
-SCAN_BUILD = scan-build
 DOCKER = docker
 GPERF = @GPERF@
+SCAN_BUILD = scan-build
+SHELLCHECK = shellcheck
+SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
 TEST = test
 
 version := \
