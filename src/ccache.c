@@ -3183,7 +3183,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		goto out;
 	}
 
-	if (!conf->run_second_cpp && str_eq(actual_language, "cuda")) {
+	if (!conf->run_second_cpp && str_eq(actual_language, "cu")) {
 		cc_log("Using CUDA compiler; not compiling preprocessed code");
 		conf->run_second_cpp = true;
 	}
