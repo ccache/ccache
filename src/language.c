@@ -1,4 +1,6 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+//
+// See doc/AUTHORS.adoc for a complete list of contributors.
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -62,8 +64,7 @@ static const struct {
 	{".HXX", "c++-header"},
 	{".tcc", "c++-header"},
 	{".TCC", "c++-header"},
-	{".cu",  "cuda"},
-	{".ic",  "cuda-output"},
+	{".cu",  "cu"},
 	{NULL,  NULL}
 };
 
@@ -78,6 +79,7 @@ static const struct {
 	{"c++",                      "c++-cpp-output"},
 	{"c++-cpp-output",           "c++-cpp-output"},
 	{"c++-header",               "c++-cpp-output"},
+	{"cu",                       "cpp-output"},
 	{"objective-c",              "objective-c-cpp-output"},
 	{"objective-c-header",       "objective-c-cpp-output"},
 	{"objc-cpp-output",          "objective-c-cpp-output"},
@@ -86,8 +88,6 @@ static const struct {
 	{"objc++-cpp-output",        "objective-c++-cpp-output"},
 	{"objective-c++-header",     "objective-c++-cpp-output"},
 	{"objective-c++-cpp-output", "objective-c++-cpp-output"},
-	{"cu"  ,                     "cuda-output"},
-	{"cuda",                     "cuda-output"},
 	{"assembler-with-cpp",       "assembler"},
 	{"assembler",                "assembler"},
 	{NULL,  NULL}
