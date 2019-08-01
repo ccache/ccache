@@ -22,45 +22,45 @@
 
 // Allocate and initialize a struct counters. Data entries up to the size are
 // set to 0.
-struct counters *
+struct counters*
 counters_init(size_t initial_size)
 {
-	auto c = static_cast<counters*>(x_malloc(sizeof(counters)));
-	c->data = NULL;
-	c->size = 0;
-	c->allocated = 0;
-	counters_resize(c, initial_size);
-	return c;
+  auto c = static_cast<counters*>(x_malloc(sizeof(counters)));
+  c->data = NULL;
+  c->size = 0;
+  c->allocated = 0;
+  counters_resize(c, initial_size);
+  return c;
 }
 
 // Free a counters struct.
 void
-counters_free(struct counters *c)
+counters_free(struct counters* c)
 {
-	if (c) {
-		free(c->data);
-		free(c);
-	}
+  if (c) {
+    free(c->data);
+    free(c);
+  }
 }
 
 // Set a new size. New data entries are set to 0.
 void
-counters_resize(struct counters *c, size_t new_size)
+counters_resize(struct counters* c, size_t new_size)
 {
-	if (new_size > c->size) {
-		bool realloc = false;
-		while (c->allocated < new_size) {
-			c->allocated += 32 + c->allocated;
-			realloc = true;
-		}
-		if (realloc) {
-			c->data = static_cast<unsigned*>(
-				x_realloc(c->data, c->allocated * sizeof(c->data[0])));
-		}
-		for (size_t i = c->size; i < new_size; i++) {
-			c->data[i] = 0;
-		}
-	}
+  if (new_size > c->size) {
+    bool realloc = false;
+    while (c->allocated < new_size) {
+      c->allocated += 32 + c->allocated;
+      realloc = true;
+    }
+    if (realloc) {
+      c->data = static_cast<unsigned*>(
+        x_realloc(c->data, c->allocated * sizeof(c->data[0])));
+    }
+    for (size_t i = c->size; i < new_size; i++) {
+      c->data[i] = 0;
+    }
+  }
 
-	c->size = new_size;
+  c->size = new_size;
 }

@@ -6,7 +6,7 @@ insert_final_newline = true
 charset = utf-8
 
 [*.{c,cpp,h,hpp}]
-indent_style = tab
+indent_style = space
 indent_size = 2
 
 [*.{bash,py}]

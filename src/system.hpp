@@ -30,12 +30,12 @@
 
 #include <sys/file.h>
 #ifdef HAVE_SYS_MMAN_H
-#include <sys/mman.h>
+#  include <sys/mman.h>
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
+#  include <sys/wait.h>
 #endif
 
 #include <assert.h>
@@ -64,29 +64,29 @@
 extern int usleep(useconds_t);
 #endif
 
-extern char **environ;
+extern char** environ;
 
 #ifndef ESTALE
-#define ESTALE -1
+#  define ESTALE -1
 #endif
 
 extern "C" {
 
 #if !HAVE_VSNPRINTF
-  int rpl_vsnprintf(char *, size_t, const char *, va_list);
-  #define vsnprintf rpl_vsnprintf
+int rpl_vsnprintf(char*, size_t, const char*, va_list);
+#  define vsnprintf rpl_vsnprintf
 #endif
 #if !HAVE_SNPRINTF
-  int rpl_snprintf(char *, size_t, const char *, ...);
-  #define snprintf rpl_snprintf
+int rpl_snprintf(char*, size_t, const char*, ...);
+#  define snprintf rpl_snprintf
 #endif
 #if !HAVE_VASPRINTF
-  int rpl_vasprintf(char **, const char *, va_list);
-  #define vasprintf rpl_vasprintf
+int rpl_vasprintf(char**, const char*, va_list);
+#  define vasprintf rpl_vasprintf
 #endif
 #if !HAVE_ASPRINTF
-  int rpl_asprintf(char **, const char *, ...);
-  #define asprintf rpl_asprintf
+int rpl_asprintf(char**, const char*, ...);
+#  define asprintf rpl_asprintf
 #endif
 
 } // extern "C"

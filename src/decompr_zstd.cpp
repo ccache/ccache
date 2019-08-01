@@ -22,105 +22,104 @@
 #include <zstd.h>
 
 enum stream_state {
-	STREAM_STATE_READING,
-	STREAM_STATE_FAILED,
-	STREAM_STATE_END
+  STREAM_STATE_READING,
+  STREAM_STATE_FAILED,
+  STREAM_STATE_END
 };
 
-struct state {
-	FILE *input;
-	XXH64_state_t *checksum;
-	char input_buffer[READ_BUFFER_SIZE];
-	size_t input_size;
-	size_t input_consumed;
-	ZSTD_DStream *stream;
-	ZSTD_inBuffer in;
-	ZSTD_outBuffer out;
-	enum stream_state stream_state;
-};
-
-static struct decompr_state *
-decompr_zstd_init(FILE *input, XXH64_state_t *checksum)
+struct state
 {
-	auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
+  FILE* input;
+  XXH64_state_t* checksum;
+  char input_buffer[READ_BUFFER_SIZE];
+  size_t input_size;
+  size_t input_consumed;
+  ZSTD_DStream* stream;
+  ZSTD_inBuffer in;
+  ZSTD_outBuffer out;
+  enum stream_state stream_state;
+};
 
-	state->input = input;
-	state->checksum = checksum;
-	state->input_size = 0;
-	state->input_consumed = 0;
-	state->stream = ZSTD_createDStream();
-	state->stream_state = STREAM_STATE_READING;
+static struct decompr_state*
+decompr_zstd_init(FILE* input, XXH64_state_t* checksum)
+{
+  auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
 
-	size_t ret = ZSTD_initDStream(state->stream);
-	if (ZSTD_isError(ret)) {
-		ZSTD_freeDStream(state->stream);
-		free(state);
-		return NULL;
-	}
-	return (struct decompr_state *)state;
+  state->input = input;
+  state->checksum = checksum;
+  state->input_size = 0;
+  state->input_consumed = 0;
+  state->stream = ZSTD_createDStream();
+  state->stream_state = STREAM_STATE_READING;
+
+  size_t ret = ZSTD_initDStream(state->stream);
+  if (ZSTD_isError(ret)) {
+    ZSTD_freeDStream(state->stream);
+    free(state);
+    return NULL;
+  }
+  return (struct decompr_state*)state;
 }
 
 static bool
-decompr_zstd_read(struct decompr_state *handle, void *data, size_t size)
+decompr_zstd_read(struct decompr_state* handle, void* data, size_t size)
 {
-	if (!handle) {
-		return false;
-	}
-	struct state *state = (struct state *)handle;
+  if (!handle) {
+    return false;
+  }
+  struct state* state = (struct state*)handle;
 
-	size_t bytes_read = 0;
-	while (bytes_read < size) {
-		assert(state->input_size >= state->input_consumed);
-		if (state->input_size == state->input_consumed) {
-			state->input_size = fread(
-				state->input_buffer, 1, sizeof(state->input_buffer), state->input);
-			if (state->input_size == 0) {
-				state->stream_state = STREAM_STATE_FAILED;
-				return false;
-			}
-			state->input_consumed = 0;
-		}
+  size_t bytes_read = 0;
+  while (bytes_read < size) {
+    assert(state->input_size >= state->input_consumed);
+    if (state->input_size == state->input_consumed) {
+      state->input_size = fread(
+        state->input_buffer, 1, sizeof(state->input_buffer), state->input);
+      if (state->input_size == 0) {
+        state->stream_state = STREAM_STATE_FAILED;
+        return false;
+      }
+      state->input_consumed = 0;
+    }
 
-		state->in.src = (state->input_buffer + state->input_consumed);
-		state->in.size = state->input_size - state->input_consumed;
-		state->in.pos = 0;
+    state->in.src = (state->input_buffer + state->input_consumed);
+    state->in.size = state->input_size - state->input_consumed;
+    state->in.pos = 0;
 
-		state->out.dst = ((char *)data + bytes_read);
-		state->out.size = size - bytes_read;
-		state->out.pos = 0;
-		size_t ret = ZSTD_decompressStream(state->stream, &state->out, &state->in);
-		if (ZSTD_isError(ret)) {
-			state->stream_state = STREAM_STATE_FAILED;
-			return false;
-		}
-		if (state->checksum) {
-			XXH64_update(state->checksum, state->out.dst, state->out.pos);
-		}
-		if (ret == 0) {
-			state->stream_state = STREAM_STATE_END;
-			break;
-		}
-		bytes_read += state->out.pos;
-		state->input_consumed += state->in.pos;
-	}
+    state->out.dst = ((char*)data + bytes_read);
+    state->out.size = size - bytes_read;
+    state->out.pos = 0;
+    size_t ret = ZSTD_decompressStream(state->stream, &state->out, &state->in);
+    if (ZSTD_isError(ret)) {
+      state->stream_state = STREAM_STATE_FAILED;
+      return false;
+    }
+    if (state->checksum) {
+      XXH64_update(state->checksum, state->out.dst, state->out.pos);
+    }
+    if (ret == 0) {
+      state->stream_state = STREAM_STATE_END;
+      break;
+    }
+    bytes_read += state->out.pos;
+    state->input_consumed += state->in.pos;
+  }
 
-	return true;
+  return true;
 }
 
-static bool decompr_zstd_free(struct decompr_state *handle)
+static bool
+decompr_zstd_free(struct decompr_state* handle)
 {
-	if (!handle) {
-		return false;
-	}
-	struct state *state = (struct state *)handle;
-	ZSTD_freeDStream(state->stream);
-	bool success = state->stream_state == STREAM_STATE_END;
-	free(handle);
-	return success;
+  if (!handle) {
+    return false;
+  }
+  struct state* state = (struct state*)handle;
+  ZSTD_freeDStream(state->stream);
+  bool success = state->stream_state == STREAM_STATE_END;
+  free(handle);
+  return success;
 }
 
 struct decompressor decompressor_zstd_impl = {
-	decompr_zstd_init,
-	decompr_zstd_read,
-	decompr_zstd_free
-};
+  decompr_zstd_init, decompr_zstd_read, decompr_zstd_free};

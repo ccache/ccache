@@ -25,38 +25,38 @@ TEST_SUITE(counters)
 
 TEST(counters_init_0_should_allocate_0)
 {
-	struct counters *counters = counters_init(0);
+  struct counters* counters = counters_init(0);
 
-	CHECK_INT_EQ(0, counters->allocated);
-	CHECK_INT_EQ(0, counters->size);
+  CHECK_INT_EQ(0, counters->allocated);
+  CHECK_INT_EQ(0, counters->size);
 
-	counters_free(counters);
+  counters_free(counters);
 }
 
 TEST(counters_init_7_should_allocate_32)
 {
-	int i;
-	struct counters *counters = counters_init(7);
+  int i;
+  struct counters* counters = counters_init(7);
 
-	CHECK_INT_EQ(32, counters->allocated);
-	CHECK_INT_EQ(7, counters->size);
-	for (i = 0; i < 7; i++) {
-		CHECK_INT_EQ(0, counters->data[i]);
-	}
+  CHECK_INT_EQ(32, counters->allocated);
+  CHECK_INT_EQ(7, counters->size);
+  for (i = 0; i < 7; i++) {
+    CHECK_INT_EQ(0, counters->data[i]);
+  }
 
-	counters_free(counters);
+  counters_free(counters);
 }
 
 TEST(counters_resize_50_should_allocate_96)
 {
-	struct counters *counters = counters_init(0);
+  struct counters* counters = counters_init(0);
 
-	CHECK_INT_EQ(0, counters->allocated);
-	counters_resize(counters, 50);
-	CHECK_INT_EQ(50, counters->size);
-	CHECK_INT_EQ(96, counters->allocated);
+  CHECK_INT_EQ(0, counters->allocated);
+  counters_resize(counters, 50);
+  CHECK_INT_EQ(50, counters->size);
+  CHECK_INT_EQ(96, counters->allocated);
 
-	counters_free(counters);
+  counters_free(counters);
 }
 
 TEST_SUITE_END

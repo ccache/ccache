@@ -26,53 +26,53 @@ TEST_SUITE(lockfile)
 
 TEST(acquire_should_create_symlink)
 {
-	lockfile_acquire("test", 1000);
+  lockfile_acquire("test", 1000);
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-	CHECK(path_exists("test.lock"));
+  CHECK(path_exists("test.lock"));
 #else
-	CHECK(is_symlink("test.lock"));
+  CHECK(is_symlink("test.lock"));
 #endif
 }
 
 TEST(release_should_delete_file)
 {
-	create_file("test.lock", "");
-	lockfile_release("test");
+  create_file("test.lock", "");
+  lockfile_release("test");
 
-	CHECK(!path_exists("test.lock"));
+  CHECK(!path_exists("test.lock"));
 }
 
 TEST(lock_breaking)
 {
-	char *p;
+  char* p;
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-	create_file("test.lock", "foo");
-	create_file("test.lock.lock", "foo");
+  create_file("test.lock", "foo");
+  create_file("test.lock.lock", "foo");
 #else
-	CHECK_INT_EQ(0, symlink("foo", "test.lock"));
-	CHECK_INT_EQ(0, symlink("foo", "test.lock.lock"));
+  CHECK_INT_EQ(0, symlink("foo", "test.lock"));
+  CHECK_INT_EQ(0, symlink("foo", "test.lock.lock"));
 #endif
-	CHECK(lockfile_acquire("test", 1000));
+  CHECK(lockfile_acquire("test", 1000));
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-	p = read_text_file("test.lock", 0);
+  p = read_text_file("test.lock", 0);
 #else
-	p = x_readlink("test.lock");
+  p = x_readlink("test.lock");
 #endif
-	CHECK(p);
-	CHECK(!str_eq(p, "foo"));
-	CHECK(!path_exists("test.lock.lock"));
+  CHECK(p);
+  CHECK(!str_eq(p, "foo"));
+  CHECK(!path_exists("test.lock.lock"));
 
-	free(p);
+  free(p);
 }
 
 #if !defined(_WIN32) && !defined(__CYGWIN__)
 TEST(failed_lock_breaking)
 {
-	create_file("test.lock", "");
-	CHECK(!lockfile_acquire("test", 1000));
+  create_file("test.lock", "");
+  CHECK(!lockfile_acquire("test", 1000));
 }
 #endif
 

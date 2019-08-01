@@ -24,45 +24,45 @@ TEST_SUITE(compr_type_none)
 
 TEST(small_roundtrip)
 {
-	const uint64_t expected_foobar_checksum = 0xa2aa05ed9085aaf9ULL;
+  const uint64_t expected_foobar_checksum = 0xa2aa05ed9085aaf9ULL;
 
-	XXH64_state_t *checksum = XXH64_createState();
-	XXH64_reset(checksum, 0);
+  XXH64_state_t* checksum = XXH64_createState();
+  XXH64_reset(checksum, 0);
 
-	FILE *f = fopen("data.uncompressed", "w");
-	struct compressor *compr_none = compressor_from_type(COMPR_TYPE_NONE);
-	struct compr_state *c_state = compr_none->init(f, -1, checksum);
-	CHECK(c_state);
+  FILE* f = fopen("data.uncompressed", "w");
+  struct compressor* compr_none = compressor_from_type(COMPR_TYPE_NONE);
+  struct compr_state* c_state = compr_none->init(f, -1, checksum);
+  CHECK(c_state);
 
-	CHECK(compr_none->write(c_state, "foobar", 6));
+  CHECK(compr_none->write(c_state, "foobar", 6));
 
-	CHECK(compr_none->free(c_state));
-	fclose(f);
+  CHECK(compr_none->free(c_state));
+  fclose(f);
 
-	CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
+  CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
 
-	XXH64_reset(checksum, 0);
-	f = fopen("data.uncompressed", "r");
-	struct decompressor *decompr_none = decompressor_from_type(COMPR_TYPE_NONE);
-	struct decompr_state *d_state = decompr_none->init(f, checksum);
-	CHECK(d_state);
+  XXH64_reset(checksum, 0);
+  f = fopen("data.uncompressed", "r");
+  struct decompressor* decompr_none = decompressor_from_type(COMPR_TYPE_NONE);
+  struct decompr_state* d_state = decompr_none->init(f, checksum);
+  CHECK(d_state);
 
-	char buffer[4];
-	CHECK(decompr_none->read(d_state, buffer, 4));
-	CHECK(memcmp(buffer, "foob", 4) == 0);
-	CHECK(decompr_none->read(d_state, buffer, 2));
-	CHECK(memcmp(buffer, "ar", 2) == 0);
+  char buffer[4];
+  CHECK(decompr_none->read(d_state, buffer, 4));
+  CHECK(memcmp(buffer, "foob", 4) == 0);
+  CHECK(decompr_none->read(d_state, buffer, 2));
+  CHECK(memcmp(buffer, "ar", 2) == 0);
 
-	// Nothing left to read.
-	CHECK(!decompr_none->read(d_state, buffer, 1));
+  // Nothing left to read.
+  CHECK(!decompr_none->read(d_state, buffer, 1));
 
-	// Error state is remembered.
-	CHECK(!decompr_none->free(d_state));
-	fclose(f);
+  // Error state is remembered.
+  CHECK(!decompr_none->free(d_state));
+  fclose(f);
 
-	CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
+  CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
 
-	XXH64_freeState(checksum);
+  XXH64_freeState(checksum);
 }
 
 TEST_SUITE_END

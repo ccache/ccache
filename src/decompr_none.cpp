@@ -18,48 +18,46 @@
 
 #include "compression.hpp"
 
-struct state {
-	FILE *input;
-	XXH64_state_t *checksum;
-	bool failed;
+struct state
+{
+  FILE* input;
+  XXH64_state_t* checksum;
+  bool failed;
 };
 
-static struct decompr_state *
-decompr_none_init(FILE *input, XXH64_state_t *checksum)
+static struct decompr_state*
+decompr_none_init(FILE* input, XXH64_state_t* checksum)
 {
-	auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
-	state->input = input;
-	state->checksum = checksum;
-	state->failed = false;
-	return (struct decompr_state *)state;
+  auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
+  state->input = input;
+  state->checksum = checksum;
+  state->failed = false;
+  return (struct decompr_state*)state;
 }
 
 static bool
-decompr_none_read(struct decompr_state *handle, void *data, size_t size)
+decompr_none_read(struct decompr_state* handle, void* data, size_t size)
 {
-	struct state *state = (struct state *)handle;
+  struct state* state = (struct state*)handle;
 
-	bool result = fread(data, 1, size, state->input) == size;
-	if (result && state->checksum) {
-		XXH64_update(state->checksum, data, size);
-	}
-	if (!result) {
-		state->failed = true;
-	}
-	return result;
+  bool result = fread(data, 1, size, state->input) == size;
+  if (result && state->checksum) {
+    XXH64_update(state->checksum, data, size);
+  }
+  if (!result) {
+    state->failed = true;
+  }
+  return result;
 }
 
 static bool
-decompr_none_free(struct decompr_state *handle)
+decompr_none_free(struct decompr_state* handle)
 {
-	struct state *state = (struct state *)handle;
-	bool result = !state->failed;
-	free(state);
-	return result;
+  struct state* state = (struct state*)handle;
+  bool result = !state->failed;
+  free(state);
+  return result;
 }
 
 struct decompressor decompressor_none_impl = {
-	decompr_none_init,
-	decompr_none_read,
-	decompr_none_free
-};
+  decompr_none_init, decompr_none_read, decompr_none_free};

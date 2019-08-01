@@ -17,55 +17,61 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "compression.hpp"
+
 #include "conf.hpp"
 
-extern struct conf *conf;
+extern struct conf* conf;
 
-int8_t compression_level_from_config(void)
+int8_t
+compression_level_from_config(void)
 {
-	return conf->compression ? conf->compression_level : 0;
+  return conf->compression ? conf->compression_level : 0;
 }
 
-enum compression_type compression_type_from_config(void)
+enum compression_type
+compression_type_from_config(void)
 {
-	return conf->compression ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
+  return conf->compression ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
 }
 
-const char *compression_type_to_string(uint8_t type)
+const char*
+compression_type_to_string(uint8_t type)
 {
-	switch (type) {
-	case COMPR_TYPE_NONE:
-		return "none";
+  switch (type) {
+  case COMPR_TYPE_NONE:
+    return "none";
 
-	case COMPR_TYPE_ZSTD:
-		return "zstd";
-	}
+  case COMPR_TYPE_ZSTD:
+    return "zstd";
+  }
 
-	return "unknown";
+  return "unknown";
 }
 
-struct compressor *compressor_from_type(uint8_t type)
+struct compressor*
+compressor_from_type(uint8_t type)
 {
-	switch (type) {
-	case COMPR_TYPE_NONE:
-		return &compressor_none_impl;
+  switch (type) {
+  case COMPR_TYPE_NONE:
+    return &compressor_none_impl;
 
-	case COMPR_TYPE_ZSTD:
-		return &compressor_zstd_impl;
-	}
+  case COMPR_TYPE_ZSTD:
+    return &compressor_zstd_impl;
+  }
 
-	return NULL;
+  return NULL;
 }
 
-struct decompressor *decompressor_from_type(uint8_t type)
+struct decompressor*
+decompressor_from_type(uint8_t type)
 {
-	switch (type) {
-	case COMPR_TYPE_NONE:
-		return &decompressor_none_impl;
+  switch (type) {
+  case COMPR_TYPE_NONE:
+    return &decompressor_none_impl;
 
-	case COMPR_TYPE_ZSTD:
-		return &decompressor_zstd_impl;
-	}
+  case COMPR_TYPE_ZSTD:
+    return &decompressor_zstd_impl;
+  }
 
-	return NULL;
+  return NULL;
 }

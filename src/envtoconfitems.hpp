@@ -20,11 +20,12 @@
 
 #include "system.hpp"
 
-struct env_to_conf_item {
-	const char *env_name;
-	const char *conf_name;
+struct env_to_conf_item
+{
+  const char* env_name;
+  const char* conf_name;
 };
 
-const struct env_to_conf_item *envtoconfitems_get(const char *str, size_t len);
+const struct env_to_conf_item* envtoconfitems_get(const char* str, size_t len);
 
 size_t envtoconfitems_count(void);

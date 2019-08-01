@@ -16,28 +16,29 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/system.hpp"
 #include "util.hpp"
 
+#include "../src/system.hpp"
+
 #ifdef _WIN32
-#    define lstat(a, b) stat(a, b)
+#  define lstat(a, b) stat(a, b)
 #endif
 
 bool
-path_exists(const char *path)
+path_exists(const char* path)
 {
-	struct stat st;
-	return lstat(path, &st) == 0;
+  struct stat st;
+  return lstat(path, &st) == 0;
 }
 
 void
-create_file(const char *path, const char *content)
+create_file(const char* path, const char* content)
 {
-	FILE *f = fopen(path, "w");
-	if (!f || fputs(content, f) < 0) {
-		fprintf(stderr, "create_file: %s: %s\n", path, strerror(errno));
-	}
-	if (f) {
-		fclose(f);
-	}
+  FILE* f = fopen(path, "w");
+  if (!f || fputs(content, f) < 0) {
+    fprintf(stderr, "create_file: %s: %s\n", path, strerror(errno));
+  }
+  if (f) {
+    fclose(f);
+  }
 }

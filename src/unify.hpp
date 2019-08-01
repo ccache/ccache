@@ -20,4 +20,4 @@
 
 #include "hash.hpp"
 
-int unify_hash(struct hash *hash, const char *fname, bool print);
+int unify_hash(struct hash* hash, const char* fname, bool print);

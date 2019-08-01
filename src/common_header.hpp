@@ -19,16 +19,18 @@
 #pragma once
 
 #include "compression.hpp"
+
 #include "third_party/xxhash.h"
 
 #define COMMON_HEADER_SIZE 15
 
-struct common_header {
-	char magic[4];
-	uint8_t version;
-	uint8_t compression_type;
-	int8_t compression_level;
-	uint64_t content_size;
+struct common_header
+{
+  char magic[4];
+  uint8_t version;
+  uint8_t compression_type;
+  int8_t compression_level;
+  uint64_t content_size;
 };
 
 // Initialize a common_header and write the header data to a file.
@@ -44,17 +46,16 @@ struct common_header {
 // compressor_state:  State for the compressor.
 // checksum:          Checksum state that will be updated with the written
 //                    bytes.
-bool common_header_initialize_for_writing(
-	struct common_header *header,
-	FILE *output,
-	const char magic[4],
-	uint8_t version,
-	uint8_t compression_type,
-	int8_t compression_level,
-	uint64_t content_size,
-	XXH64_state_t *checksum,
-	struct compressor **compressor,
-	struct compr_state **compr_state);
+bool common_header_initialize_for_writing(struct common_header* header,
+                                          FILE* output,
+                                          const char magic[4],
+                                          uint8_t version,
+                                          uint8_t compression_type,
+                                          int8_t compression_level,
+                                          uint64_t content_size,
+                                          XXH64_state_t* checksum,
+                                          struct compressor** compressor,
+                                          struct compr_state** compr_state);
 
 // Initialize a common_header by reading header data from a file.
 //
@@ -68,14 +69,13 @@ bool common_header_initialize_for_writing(
 //                     decompressor is NULL.
 // checksum:           Checksum state that will be updated with the read bytes.
 //                     May be NULL for no checksumming.
-bool common_header_initialize_for_reading(
-	struct common_header *header,
-	FILE *input,
-	const char expected_magic[4],
-	uint8_t expected_version,
-	struct decompressor **decompressor,
-	struct decompr_state **decompr_state,
-	XXH64_state_t *checksum,
-	char **errmsg);
+bool common_header_initialize_for_reading(struct common_header* header,
+                                          FILE* input,
+                                          const char expected_magic[4],
+                                          uint8_t expected_version,
+                                          struct decompressor** decompressor,
+                                          struct decompr_state** decompr_state,
+                                          XXH64_state_t* checksum,
+                                          char** errmsg);
 
-void common_header_dump(const struct common_header *header, FILE *f);
+void common_header_dump(const struct common_header* header, FILE* f);

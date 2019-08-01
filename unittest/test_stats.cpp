@@ -27,25 +27,25 @@ TEST_SUITE(stats)
 
 TEST(forward_compatibility)
 {
-	unsigned i;
-	FILE *f;
-	struct counters *counters = counters_init(0);
+  unsigned i;
+  FILE* f;
+  struct counters* counters = counters_init(0);
 
-	f = fopen("stats", "w");
-	for (i = 0; i < 100; i++) {
-		fprintf(f, "%u\n", i);
-	}
-	fclose(f);
+  f = fopen("stats", "w");
+  for (i = 0; i < 100; i++) {
+    fprintf(f, "%u\n", i);
+  }
+  fclose(f);
 
-	stats_read("stats", counters);
-	CHECK_INT_EQ(100, counters->size);
-	CHECK_INT_EQ(73, counters->data[73]);
+  stats_read("stats", counters);
+  CHECK_INT_EQ(100, counters->size);
+  CHECK_INT_EQ(73, counters->data[73]);
 
-	stats_write("stats", counters);
-	CHECK_INT_EQ(100, counters->size);
-	CHECK_INT_EQ(99, counters->data[99]);
+  stats_write("stats", counters);
+  CHECK_INT_EQ(100, counters->size);
+  CHECK_INT_EQ(99, counters->data[99]);
 
-	counters_free(counters);
+  counters_free(counters);
 }
 
 TEST_SUITE_END

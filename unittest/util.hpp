@@ -20,6 +20,6 @@
 
 #include <stdbool.h>
 
-bool path_exists(const char *path);
-bool is_symlink(const char *path);
-void create_file(const char *path, const char *content);
+bool path_exists(const char* path);
+bool is_symlink(const char* path);
+void create_file(const char* path, const char* content);

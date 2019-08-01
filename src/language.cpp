@@ -16,138 +16,144 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ccache.hpp"
-
 #include "language.hpp"
+
+#include "ccache.hpp"
 
 // Supported file extensions and corresponding languages (as in parameter to
 // the -x option).
-static const struct {
-	const char *extension;
-	const char *language;
+//
+// clang-format off
+static const struct
+{
+  const char* extension;
+  const char* language;
 } extensions[] = {
-	{".c",   "c"},
-	{".C",   "c++"},
-	{".cc",  "c++"},
-	{".CC",  "c++"},
-	{".cp",  "c++"},
-	{".CP",  "c++"},
-	{".cpp", "c++"},
-	{".CPP", "c++"},
-	{".cxx", "c++"},
-	{".CXX", "c++"},
-	{".c++", "c++"},
-	{".C++", "c++"},
-	{".m",   "objective-c"},
-	{".M",   "objective-c++"},
-	{".mm",  "objective-c++"},
-	{".sx",  "assembler-with-cpp"},
-	{".S",   "assembler-with-cpp"},
-	// Preprocessed:
-	{".i",   "cpp-output"},
-	{".ii",  "c++-cpp-output"},
-	{".mi",  "objective-c-cpp-output"},
-	{".mii", "objective-c++-cpp-output"},
-	{".s",   "assembler"},
-	// Header file (for precompilation):
-	{".h",   "c-header"},
-	{".H",   "c++-header"},
-	{".h++", "c++-header"},
-	{".H++", "c++-header"},
-	{".hh",  "c++-header"},
-	{".HH",  "c++-header"},
-	{".hp",  "c++-header"},
-	{".HP",  "c++-header"},
-	{".hpp", "c++-header"},
-	{".HPP", "c++-header"},
-	{".hxx", "c++-header"},
-	{".HXX", "c++-header"},
-	{".tcc", "c++-header"},
-	{".TCC", "c++-header"},
-	{".cu",  "cu"},
-	{NULL,  NULL}
-};
+    {".c", "c"},
+    {".C", "c++"},
+    {".cc", "c++"},
+    {".CC", "c++"},
+    {".cp", "c++"},
+    {".CP", "c++"},
+    {".cpp", "c++"},
+    {".CPP", "c++"},
+    {".cxx", "c++"},
+    {".CXX", "c++"},
+    {".c++", "c++"},
+    {".C++", "c++"},
+    {".m", "objective-c"},
+    {".M", "objective-c++"},
+    {".mm", "objective-c++"},
+    {".sx", "assembler-with-cpp"},
+    {".S", "assembler-with-cpp"},
+    // Preprocessed:
+    {".i", "cpp-output"},
+    {".ii", "c++-cpp-output"},
+    {".mi", "objective-c-cpp-output"},
+    {".mii", "objective-c++-cpp-output"},
+    {".s", "assembler"},
+    // Header file (for precompilation):
+    {".h", "c-header"},
+    {".H", "c++-header"},
+    {".h++", "c++-header"},
+    {".H++", "c++-header"},
+    {".hh", "c++-header"},
+    {".HH", "c++-header"},
+    {".hp", "c++-header"},
+    {".HP", "c++-header"},
+    {".hpp", "c++-header"},
+    {".HPP", "c++-header"},
+    {".hxx", "c++-header"},
+    {".HXX", "c++-header"},
+    {".tcc", "c++-header"},
+    {".TCC", "c++-header"},
+    {".cu", "cu"},
+    {NULL, NULL}};
+// clang-format on
 
 // Supported languages and corresponding preprocessed languages.
-static const struct {
-	const char *language;
-	const char *p_language;
+//
+// clang-format off
+static const struct
+{
+  const char* language;
+  const char* p_language;
 } languages[] = {
-	{"c",                        "cpp-output"},
-	{"cpp-output",               "cpp-output"},
-	{"c-header",                 "cpp-output"},
-	{"c++",                      "c++-cpp-output"},
-	{"c++-cpp-output",           "c++-cpp-output"},
-	{"c++-header",               "c++-cpp-output"},
-	{"cu",                       "cpp-output"},
-	{"objective-c",              "objective-c-cpp-output"},
-	{"objective-c-header",       "objective-c-cpp-output"},
-	{"objc-cpp-output",          "objective-c-cpp-output"},
-	{"objective-c-cpp-output",   "objective-c-cpp-output"},
-	{"objective-c++",            "objective-c++-cpp-output"},
-	{"objc++-cpp-output",        "objective-c++-cpp-output"},
-	{"objective-c++-header",     "objective-c++-cpp-output"},
-	{"objective-c++-cpp-output", "objective-c++-cpp-output"},
-	{"assembler-with-cpp",       "assembler"},
-	{"assembler",                "assembler"},
-	{NULL,  NULL}
-};
+    {"c", "cpp-output"},
+    {"cpp-output", "cpp-output"},
+    {"c-header", "cpp-output"},
+    {"c++", "c++-cpp-output"},
+    {"c++-cpp-output", "c++-cpp-output"},
+    {"c++-header", "c++-cpp-output"},
+    {"cu", "cpp-output"},
+    {"objective-c", "objective-c-cpp-output"},
+    {"objective-c-header", "objective-c-cpp-output"},
+    {"objc-cpp-output", "objective-c-cpp-output"},
+    {"objective-c-cpp-output", "objective-c-cpp-output"},
+    {"objective-c++", "objective-c++-cpp-output"},
+    {"objc++-cpp-output", "objective-c++-cpp-output"},
+    {"objective-c++-header", "objective-c++-cpp-output"},
+    {"objective-c++-cpp-output", "objective-c++-cpp-output"},
+    {"assembler-with-cpp", "assembler"},
+    {"assembler", "assembler"},
+    {NULL, NULL}};
+// clang-format on
 
 // Guess the language of a file based on its extension. Returns NULL if the
 // extension is unknown.
-const char *
-language_for_file(const char *fname)
+const char*
+language_for_file(const char* fname)
 {
-	const char *p = get_extension(fname);
-	for (int i = 0; extensions[i].extension; i++) {
-		if (str_eq(p, extensions[i].extension)) {
-			return extensions[i].language;
-		}
-	}
-	return NULL;
+  const char* p = get_extension(fname);
+  for (int i = 0; extensions[i].extension; i++) {
+    if (str_eq(p, extensions[i].extension)) {
+      return extensions[i].language;
+    }
+  }
+  return NULL;
 }
 
 // Return the preprocessed language for a given language, or NULL if unknown.
-const char *
-p_language_for_language(const char *language)
+const char*
+p_language_for_language(const char* language)
 {
-	if (!language) {
-		return NULL;
-	}
-	for (int i = 0; languages[i].language; ++i) {
-		if (str_eq(language, languages[i].language)) {
-			return languages[i].p_language;
-		}
-	}
-	return NULL;
+  if (!language) {
+    return NULL;
+  }
+  for (int i = 0; languages[i].language; ++i) {
+    if (str_eq(language, languages[i].language)) {
+      return languages[i].p_language;
+    }
+  }
+  return NULL;
 }
 
 // Return the default file extension (including dot) for a language, or NULL if
 // unknown.
-const char *
-extension_for_language(const char *language)
+const char*
+extension_for_language(const char* language)
 {
-	if (!language) {
-		return NULL;
-	}
-	for (int i = 0; extensions[i].extension; i++) {
-		if (str_eq(language, extensions[i].language)) {
-			return extensions[i].extension;
-		}
-	}
-	return NULL;
+  if (!language) {
+    return NULL;
+  }
+  for (int i = 0; extensions[i].extension; i++) {
+    if (str_eq(language, extensions[i].language)) {
+      return extensions[i].extension;
+    }
+  }
+  return NULL;
 }
 
 bool
-language_is_supported(const char *language)
+language_is_supported(const char* language)
 {
-	return p_language_for_language(language) != NULL;
+  return p_language_for_language(language) != NULL;
 }
 
 bool
-language_is_preprocessed(const char *language)
+language_is_preprocessed(const char* language)
 {
-	const char *p_language = p_language_for_language(language);
-	assert(p_language);
-	return str_eq(language, p_language);
+  const char* p_language = p_language_for_language(language);
+  assert(p_language);
+  return str_eq(language, p_language);
 }

@@ -18,72 +18,69 @@
 
 #include "framework.hpp"
 #ifdef HAVE_GETOPT_LONG
-#include <getopt.h>
+#  include <getopt.h>
 #else
-#include "../src/third_party/getopt_long.h"
+#  include "../src/third_party/getopt_long.h"
 #endif
 
-#define SUITE(name) unsigned suite_ ## name(unsigned);
+#define SUITE(name) unsigned suite_##name(unsigned);
 #include "suites.hpp"
 #undef SUITE
 
 static const char USAGE_TEXT[] =
-	"Usage:\n"
-	"    test [options]\n"
-	"\n"
-	"Options:\n"
-	"    -h, --help      print this help text\n"
-	"    -v, --verbose   enable verbose logging of tests\n";
+  "Usage:\n"
+  "    test [options]\n"
+  "\n"
+  "Options:\n"
+  "    -h, --help      print this help text\n"
+  "    -v, --verbose   enable verbose logging of tests\n";
 
 int
-main(int argc, char **argv)
+main(int argc, char** argv)
 {
-	suite_fn suites[] = {
-#define SUITE(name) &suite_ ## name,
+  suite_fn suites[] = {
+#define SUITE(name) &suite_##name,
 #include "suites.hpp"
 #undef SUITE
-		NULL
-	};
-	static const struct option options[] = {
-		{"help", no_argument, NULL, 'h'},
-		{"verbose", no_argument, NULL, 'v'},
-		{NULL, 0, NULL, 0}
-	};
-	int verbose = 0;
-	int c;
-	char *testdir, *dir_before;
-	int result;
+    NULL};
+  static const struct option options[] = {{"help", no_argument, NULL, 'h'},
+                                          {"verbose", no_argument, NULL, 'v'},
+                                          {NULL, 0, NULL, 0}};
+  int verbose = 0;
+  int c;
+  char *testdir, *dir_before;
+  int result;
 
 #ifdef _WIN32
-	putenv("CCACHE_DETECT_SHEBANG=1");
+  putenv("CCACHE_DETECT_SHEBANG=1");
 #endif
 
-	while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
-		switch (c) {
-		case 'h':
-			fprintf(stdout, USAGE_TEXT);
-			return 0;
+  while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
+    switch (c) {
+    case 'h':
+      fprintf(stdout, USAGE_TEXT);
+      return 0;
 
-		case 'v':
-			verbose = 1;
-			break;
+    case 'v':
+      verbose = 1;
+      break;
 
-		default:
-			fprintf(stderr, USAGE_TEXT);
-			return 1;
-		}
-	}
+    default:
+      fprintf(stderr, USAGE_TEXT);
+      return 1;
+    }
+  }
 
-	testdir = format("testdir.%d", (int)getpid());
-	cct_create_fresh_dir(testdir);
-	dir_before = gnu_getcwd();
-	cct_chdir(testdir);
-	result = cct_run(suites, verbose);
-	if (result == 0) {
-		cct_chdir(dir_before);
-		cct_wipe(testdir);
-	}
-	free(testdir);
-	free(dir_before);
-	return result;
+  testdir = format("testdir.%d", (int)getpid());
+  cct_create_fresh_dir(testdir);
+  dir_before = gnu_getcwd();
+  cct_chdir(testdir);
+  result = cct_run(suites, verbose);
+  if (result == 0) {
+    cct_chdir(dir_before);
+    cct_wipe(testdir);
+  }
+  free(testdir);
+  free(dir_before);
+  return result;
 }
