@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef CONFITEMS_H
-#define CONFITEMS_H
+#pragma once
 
 #include "system.hpp"
 
@@ -67,5 +66,3 @@ bool confitem_verify_dir_levels(const void *value, char **errmsg);
 
 const struct conf_item *confitems_get(const char *str, size_t len);
 size_t confitems_count(void);
-
-#endif

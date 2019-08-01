@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef TEST_FRAMEWORK_H
-#define TEST_FRAMEWORK_H
+#pragma once
 
 #include "../src/ccache.hpp"
 
@@ -164,5 +163,3 @@ bool cct_check_args_eq(const char *file, int line, const char *expression,
 void cct_chdir(const char *path);
 void cct_wipe(const char *path);
 void cct_create_fresh_dir(const char *path);
-
-#endif

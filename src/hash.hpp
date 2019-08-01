@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef HASH_H
-#define HASH_H
+#pragma once
 
 #include "system.hpp"
 
@@ -111,5 +110,3 @@ bool hash_fd(struct hash *hash, int fd);
 //
 // Returns true on success, otherwise false.
 bool hash_file(struct hash *hash, const char *fname);
-
-#endif

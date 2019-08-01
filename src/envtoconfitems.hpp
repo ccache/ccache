@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef ENVTOCONFITEMS_H
-#define ENVTOCONFITEMS_H
+#pragma once
 
 #include "system.hpp"
 
@@ -29,5 +28,3 @@ struct env_to_conf_item {
 const struct env_to_conf_item *envtoconfitems_get(const char *str, size_t len);
 
 size_t envtoconfitems_count(void);
-
-#endif

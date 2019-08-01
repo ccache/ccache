@@ -290,13 +290,12 @@ AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
 cat <<EOF >config.h.tmp
-#ifndef CCACHE_CONFIG_H
-#define CCACHE_CONFIG_H
+#pragma once
 #ifdef __clang__
-#pragma clang diagnostic push
-#if __has_warning("-Wreserved-id-macro")
-#pragma clang diagnostic ignored "-Wreserved-id-macro"
-#endif
+#  pragma clang diagnostic push
+#  if __has_warning("-Wreserved-id-macro")
+#    pragma clang diagnostic ignored "-Wreserved-id-macro"
+#  endif
 #endif
 
 EOF
@@ -304,9 +303,8 @@ cat config.h >>config.h.tmp
 cat <<EOF >>config.h.tmp
 
 #ifdef __clang__
-#pragma clang diagnostic pop
+#  pragma clang diagnostic pop
 #endif
-#endif // ifndef CCACHE_CONFIG_H
 EOF
 mv config.h.tmp config.h
 

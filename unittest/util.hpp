@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,13 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef TEST_UTIL_H
-#define TEST_UTIL_H
+#pragma once
 
 #include <stdbool.h>
 
 bool path_exists(const char *path);
 bool is_symlink(const char *path);
 void create_file(const char *path, const char *content);
-
-#endif

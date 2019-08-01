@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef CONF_H
-#define CONF_H
+#pragma once
 
 #include "system.hpp"
 
@@ -73,5 +72,3 @@ bool conf_print_items(struct conf *conf,
                       void (*printer)(const char *descr, const char *origin,
                                       void *context),
                       void *context);
-
-#endif

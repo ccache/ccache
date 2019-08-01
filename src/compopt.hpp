@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef CCACHE_COMPOPT_H
-#define CCACHE_COMPOPT_H
+#pragma once
 
 #include "system.hpp"
 
@@ -31,5 +30,3 @@ bool compopt_takes_arg(const char *option);
 bool compopt_takes_concat_arg(const char *option);
 bool compopt_prefix_affects_cpp(const char *option);
 bool compopt_prefix_affects_comp(const char *option);
-
-#endif // CCACHE_COMPOPT_H

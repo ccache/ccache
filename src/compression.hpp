@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef COMPRESSION_H
-#define COMPRESSION_H
+#pragma once
 
 #include "system.hpp"
 #include "third_party/xxhash.h"
@@ -93,5 +92,3 @@ enum compression_type compression_type_from_config(void);
 const char *compression_type_to_string(uint8_t type);
 struct compressor *compressor_from_type(uint8_t type);
 struct decompressor *decompressor_from_type(uint8_t type);
-
-#endif

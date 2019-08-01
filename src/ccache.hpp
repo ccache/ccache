@@ -17,8 +17,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef CCACHE_H
-#define CCACHE_H
+#pragma once
 
 #include "system.hpp"
 #include "conf.hpp"
@@ -325,5 +324,3 @@ void add_exe_ext_if_no_to_fullpath(char *full_path_win_ext, size_t max_size,
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
-
-#endif // ifndef CCACHE_H

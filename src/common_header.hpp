@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef COMMON_HEADER_H
-#define COMMON_HEADER_H
+#pragma once
 
 #include "compression.hpp"
 #include "third_party/xxhash.h"
@@ -80,5 +79,3 @@ bool common_header_initialize_for_reading(
 	char **errmsg);
 
 void common_header_dump(const struct common_header *header, FILE *f);
-
-#endif

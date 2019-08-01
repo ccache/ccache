@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef MANIFEST_H
-#define MANIFEST_H
+#pragma once
 
 #include "conf.hpp"
 #include "hashutil.hpp"
@@ -30,5 +29,3 @@ struct digest *manifest_get(struct conf *conf, const char *manifest_path);
 bool manifest_put(const char *manifest_path, struct digest *result_digest,
                   struct hashtable *included_files);
 bool manifest_dump(const char *manifest_path, FILE *stream);
-
-#endif

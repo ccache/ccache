@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef CCACHE_SYSTEM_H
-#define CCACHE_SYSTEM_H
+#pragma once
 
 #ifdef __MINGW32__
 #  define __USE_MINGW_ANSI_STDIO 1
@@ -91,5 +90,3 @@ extern "C" {
 #endif
 
 } // extern "C"
-
-#endif // CCACHE_SYSTEM_H

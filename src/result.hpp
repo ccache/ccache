@@ -16,8 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#ifndef RESULT_H
-#define RESULT_H
+#pragma once
 
 #include "conf.hpp"
 
@@ -35,5 +34,3 @@ void result_files_free(struct result_files *c);
 bool result_get(const char *path, struct result_files *list);
 bool result_put(const char *path, struct result_files *list);
 bool result_dump(const char *path, FILE *stream);
-
-#endif
