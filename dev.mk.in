@@ -6,6 +6,7 @@ all_cxxflags += -Werror
 
 A2X = a2x
 ASCIIDOC = asciidoc
+CLANG_FORMAT = clang-format
 CLANG_TIDY = clang-tidy
 COMPILEDB = compiledb
 CPPCHECK = cppcheck
@@ -34,7 +35,7 @@ generated_docs = \
     doc/ccache.1
 built_dist_files = $(generated_sources) $(generated_docs)
 
-headers = \
+non_third_party_headers = \
     src/ccache.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
@@ -51,15 +52,17 @@ headers = \
     src/manifest.hpp \
     src/result.hpp \
     src/system.hpp \
+    src/unify.hpp \
+    unittest/framework.hpp \
+    unittest/util.hpp
+third_party_headers = \
     src/third_party/getopt_long.h \
     src/third_party/hashtable.h \
     src/third_party/hashtable_itr.h \
     src/third_party/hashtable_private.h \
     src/third_party/minitrace.h \
-    src/third_party/xxhash.h \
-    src/unify.hpp \
-    unittest/framework.hpp \
-    unittest/util.hpp
+    src/third_party/xxhash.h
+headers = $(non_third_party_headers) $(third_party_headers)
 generated_headers = \
     unittest/suites.hpp
 
@@ -215,9 +218,9 @@ cppcheck:
 shellcheck: test/suites/*.bash
 	$(SHELLCHECK) --shell=bash --exclude=$(shell sed -e 's/:.*//' <$(SHELLCHECK_EXCLUDES) | grep -v '#' | tr '\n' ',' | sed -e 's/,$$//') $^
 
-.PHONY: uncrustify
-uncrustify:
-	uncrustify -c misc/uncrustify.cfg --no-backup --replace $(non_third_party_sources) $(test_sources)
+.PHONY: format
+format:
+	$(CLANG_FORMAT) -i $(non_third_party_headers) $(non_third_party_sources) $(test_sources)
 
 # pip install compiledb
 compile_commands.json:

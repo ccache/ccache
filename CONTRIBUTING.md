@@ -42,8 +42,9 @@ Here are some hints to make the process smoother:
   for merging yet but you want early comments? Then create a draft pull request
   as described in [this Github blog
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
-* If you have [Uncrustify](http://uncrustify.sourceforge.net) installed, you
-  can run `make uncrustify` to adapt your modifications to ccache's code style.
+* If you have [clang-format](https://clang.llvm.org/docs/ClangFormat.html) 6.0
+  or newer, you can run `make format` to adapt your modifications to ccache's
+  code style.
 * Consider [A Note About Git Commit
   Messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
   when writing commit messages.
@@ -55,30 +56,17 @@ The conversion is a slow work in progress, which is why there are lots of
 C-style code left. Please refrain from doing large C to C++ conversions at
 once; do it little by little.
 
-Tip: Install the tool [Uncrustify(http://uncrustify.sourceforge.net) and then
-run `make uncrustify` to fix up source code formatting.
+Source code formatting is defined by `.clang-format` in the root directory.
+It's based on [LLVM's code formatting
+style](https://llvm.org/docs/CodingStandards.html) with some deviations. You
+can install the [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
+6.0 or newer and run `make format` to fix up the source code formatting.
 
-### New code
+Regarding naming:
 
-* Use tabs for indenting and spaces for aligning.
-* If possible, keep lines at most 80 character wide for a 2 character tab
-  width.
-* Put the opening curly brace on a new line when defining a class, struct or
-  function, otherwise at the end of the same line.
-* Use UpperCamelCase for classes, structs, functions, methods, members and
-  global variables.
-* Use lowerCamelCase for parameters, arguments and local variables.
+* Use UpperCamelCase for types (e.g. classes and structs).
+* Use snake_case for namespaces, functions and variables.
+* Use an "m_" prefix for non-public member variables.
+* Use a "g_" prefix for global mutable variables.
+* Use a "k_" prefix for global constants.
 * Use UPPER_CASE names for macros.
-
-### Legacy C-style code style
-
-* Put the opening curly brace on a new line when defining a function, otherwise
-  at the end of the same line.
-* Put no space between function name and the following parenthesis.
-* Use UPPER_CASE names for enum values and macros.
-* Use snake_case for everything else.
-
-#### Other
-
-* Strive to minimize use of global variables.
-* Write test cases for new code.
