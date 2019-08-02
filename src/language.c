@@ -80,6 +80,7 @@ static const struct {
 	{"c++-cpp-output",           "c++-cpp-output"},
 	{"c++-header",               "c++-cpp-output"},
 	{"cu",                       "cpp-output"},
+	{"cuda",                     "cpp-output"},
 	{"objective-c",              "objective-c-cpp-output"},
 	{"objective-c-header",       "objective-c-cpp-output"},
 	{"objc-cpp-output",          "objective-c-cpp-output"},
