@@ -77,7 +77,19 @@ non_third_party_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(non_third_p
 ccache_sources = src/main.cpp $(base_sources)
 ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
-test_suites = @test_suites@
+test_suites += unittest/test_args.cpp
+test_suites += unittest/test_argument_processing.cpp
+test_suites += unittest/test_compopt.cpp
+test_suites += unittest/test_compr_none.cpp
+test_suites += unittest/test_compr_zstd.cpp
+test_suites += unittest/test_conf.cpp
+test_suites += unittest/test_counters.cpp
+test_suites += unittest/test_hash.cpp
+test_suites += unittest/test_hashutil.cpp
+test_suites += unittest/test_lockfile.cpp
+test_suites += unittest/test_stats.cpp
+test_suites += unittest/test_util.cpp
+
 test_sources = unittest/main.cpp unittest/framework.cpp unittest/util.cpp
 test_sources += $(test_suites)
 test_objs = $(test_sources:.cpp=.o)
@@ -168,12 +180,6 @@ unittest: unittest/run$(EXEEXT)
 unittest/run$(EXEEXT): $(base_objs) $(test_objs) $(extra_libs)
 	$(if $(quiet),@echo "  LD       $@")
 	$(Q)$(CXX) -o $@ $(base_objs) $(test_objs) $(LDFLAGS) $(extra_libs) $(LIBS)
-
-unittest/main.o: unittest/suites.hpp
-
-unittest/suites.hpp: $(test_suites) Makefile
-	$(if $(quiet),@echo "  GEN      $@")
-	$(Q)ls $^ | grep -v Makefile | xargs sed -n 's/TEST_SUITE(\(.*\))/SUITE(\1)/p' >$@
 
 .PHONY: check
 check: test

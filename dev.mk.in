@@ -66,14 +66,10 @@ third_party_headers = \
     src/third_party/minitrace.h \
     src/third_party/xxhash.h
 headers = $(non_third_party_headers) $(third_party_headers)
-generated_headers = \
-    unittest/suites.hpp
 
 files_to_clean += *.tar.gz *.tar.xz *.xml doc/*.xml .deps/* perfdir.*
 files_to_clean += compile_commands.json
-files_to_clean += src/confitems_lookup.cpp
-files_to_clean += src/envtoconfitems_lookup.cpp
-files_to_distclean += $(built_dist_files) src/version.cpp unittest/suites.hpp
+files_to_distclean += $(built_dist_files) src/version.cpp
 files_to_distclean += .deps dev.mk
 
 source_dist_files = \

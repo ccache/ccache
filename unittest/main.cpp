@@ -21,18 +21,35 @@
 #define CATCH_CONFIG_RUNNER
 #include "third_party/catch.hpp"
 
-#define SUITE(name) unsigned suite_##name(unsigned);
-#include "suites.hpp"
-#undef SUITE
+unsigned suite_args(unsigned);
+unsigned suite_argument_processing(unsigned);
+unsigned suite_compopt(unsigned);
+unsigned suite_compr_type_none(unsigned);
+unsigned suite_compr_type_zstd(unsigned);
+unsigned suite_conf(unsigned);
+unsigned suite_counters(unsigned);
+unsigned suite_hash(unsigned);
+unsigned suite_hashutil(unsigned);
+unsigned suite_lockfile(unsigned);
+unsigned suite_stats(unsigned);
+unsigned suite_util(unsigned);
 
 int
 main(int argc, char** argv)
 {
-  suite_fn suites[] = {
-#define SUITE(name) &suite_##name,
-#include "suites.hpp"
-#undef SUITE
-    NULL};
+  suite_fn suites[] = {&suite_args,
+                       &suite_argument_processing,
+                       &suite_compopt,
+                       &suite_compr_type_none,
+                       &suite_compr_type_zstd,
+                       &suite_conf,
+                       &suite_counters,
+                       &suite_hash,
+                       &suite_hashutil,
+                       &suite_lockfile,
+                       &suite_stats,
+                       &suite_util,
+                       NULL};
 
 #ifdef _WIN32
   putenv("CCACHE_DETECT_SHEBANG=1");

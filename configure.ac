@@ -26,7 +26,6 @@ AC_SUBST(extra_sources)
 AC_SUBST(include_dev_mk)
 AC_SUBST(more_warnings)
 AC_SUBST(no_implicit_fallthrough_warning)
-AC_SUBST(test_suites)
 
 m4_include(m4/feature_macros.m4)
 m4_include(m4/ax_cxx_compile_stdcxx.m4)
@@ -286,9 +285,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
     [AC_MSG_RESULT([no])]
 )
 CFLAGS=$saved_cflags
-
-dnl Find test suite files.
-test_suites=$(cd $srcdir && ls unittest/test_*.cpp | egrep -v 'BASE|BACKUP|LOCAL|REMOTE' | xargs echo)
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
