@@ -17,7 +17,15 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "util.hpp"
+
+#include "Error.hpp"
 #include "ccache.hpp"
+
+#include <algorithm>
+#include <fmt/core.h>
+#include <fstream>
+#include <string>
 
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
@@ -1793,3 +1801,54 @@ time_seconds(void)
   return (double)time(NULL);
 #endif
 }
+
+namespace util {
+
+std::string
+read_file(const std::string& path)
+{
+  std::ifstream file(path);
+  if (!file) {
+    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+  }
+  return std::string(std::istreambuf_iterator<char>(file),
+                     std::istreambuf_iterator<char>());
+}
+
+bool
+starts_with(const std::string& string, const std::string& prefix)
+{
+  return prefix.length() <= string.length()
+         && string.compare(0, prefix.length(), prefix) == 0;
+}
+
+std::string
+strip_whitespace(const std::string& string)
+{
+  auto is_space = [](int ch) { return std::isspace(ch); };
+  auto start = std::find_if_not(string.begin(), string.end(), is_space);
+  auto end = std::find_if_not(string.rbegin(), string.rend(), is_space).base();
+  return start < end ? std::string(start, end) : std::string();
+}
+
+std::string
+to_lowercase(const std::string& string)
+{
+  std::string result = string;
+  std::transform(result.begin(), result.end(), result.begin(), tolower);
+  return result;
+}
+
+// Write file data from a string.
+void
+write_file(const std::string& path, const std::string& data, bool binary)
+{
+  std::ofstream file(path,
+                     binary ? std::ios::out | std::ios::binary : std::ios::out);
+  if (!file) {
+    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+  }
+  file << data;
+}
+
+} // namespace util

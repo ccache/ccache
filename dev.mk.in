@@ -55,6 +55,7 @@ non_third_party_headers = \
     src/result.hpp \
     src/system.hpp \
     src/unify.hpp \
+    src/util.hpp \
     unittest/framework.hpp \
     unittest/util.hpp
 third_party_headers = \
