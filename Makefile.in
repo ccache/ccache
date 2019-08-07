@@ -31,6 +31,7 @@ quiet := $(v_at_$(V))
 Q=$(if $(quiet),@)
 
 non_third_party_sources = \
+    src/AtomicFile.cpp \
     src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \

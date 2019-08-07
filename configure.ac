@@ -67,6 +67,7 @@ if test "$ac_compiler_clang" = yes; then
     more_warnings="$more_warnings -Wno-shorten-64-to-32"
     more_warnings="$more_warnings -Wno-sign-conversion"
     more_warnings="$more_warnings -Wno-undefined-func-template"
+    more_warnings="$more_warnings -Wno-weak-vtables"
 
 # TODO: Enable these in the future:
     more_warnings="$more_warnings -Wno-old-style-cast"

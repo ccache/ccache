@@ -36,6 +36,8 @@ generated_docs = \
 built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers = \
+    src/AtomicFile.hpp \
+    src/Error.hpp \
     src/ccache.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
