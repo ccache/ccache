@@ -23,7 +23,7 @@
 
 static char FOO_ENV[] = "FOO=bar";
 
-TEST_SUITE(util)
+TEST_SUITE(legacy_util)
 
 TEST(x_basename)
 {

@@ -86,9 +86,9 @@ test_suites += unittest/test_conf.cpp
 test_suites += unittest/test_counters.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
+test_suites += unittest/test_legacy_util.cpp
 test_suites += unittest/test_lockfile.cpp
 test_suites += unittest/test_stats.cpp
-test_suites += unittest/test_util.cpp
 
 test_sources = unittest/main.cpp unittest/framework.cpp unittest/util.cpp
 test_sources += $(test_suites)
