@@ -17,23 +17,13 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "framework.hpp"
-#ifdef HAVE_GETOPT_LONG
-#  include <getopt.h>
-#else
-#  include "../src/third_party/getopt_long.h"
-#endif
+
+#define CATCH_CONFIG_RUNNER
+#include "third_party/catch.hpp"
 
 #define SUITE(name) unsigned suite_##name(unsigned);
 #include "suites.hpp"
 #undef SUITE
-
-static const char USAGE_TEXT[] =
-  "Usage:\n"
-  "    test [options]\n"
-  "\n"
-  "Options:\n"
-  "    -h, --help      print this help text\n"
-  "    -v, --verbose   enable verbose logging of tests\n";
 
 int
 main(int argc, char** argv)
@@ -43,39 +33,26 @@ main(int argc, char** argv)
 #include "suites.hpp"
 #undef SUITE
     NULL};
-  static const struct option options[] = {{"help", no_argument, NULL, 'h'},
-                                          {"verbose", no_argument, NULL, 'v'},
-                                          {NULL, 0, NULL, 0}};
-  int verbose = 0;
-  int c;
-  char *testdir, *dir_before;
-  int result;
 
 #ifdef _WIN32
   putenv("CCACHE_DETECT_SHEBANG=1");
 #endif
 
-  while ((c = getopt_long(argc, argv, "hv", options, NULL)) != -1) {
-    switch (c) {
-    case 'h':
-      fprintf(stdout, USAGE_TEXT);
-      return 0;
+  char* testdir = format("testdir.%d", (int)getpid());
+  cct_create_fresh_dir(testdir);
+  char* dir_before = gnu_getcwd();
+  cct_chdir(testdir);
 
-    case 'v':
-      verbose = 1;
-      break;
+  // Run Catch2 tests.
+  Catch::Session session;
+  int result = session.run(argc, argv);
 
-    default:
-      fprintf(stderr, USAGE_TEXT);
-      return 1;
-    }
+  // Run legacy tests.
+  if (result == 0) {
+    bool verbose = false;
+    result = cct_run(suites, verbose);
   }
 
-  testdir = format("testdir.%d", (int)getpid());
-  cct_create_fresh_dir(testdir);
-  dir_before = gnu_getcwd();
-  cct_chdir(testdir);
-  result = cct_run(suites, verbose);
   if (result == 0) {
     cct_chdir(dir_before);
     cct_wipe(testdir);
