@@ -119,13 +119,6 @@ if test x"$ccache_cv_COMPAR_FN_T" = x"yes"; then
              Define to 1 if you have the `__compar_fn_t' typedef.)
 fi
 
-dnl Replacements of snprintf and friends.
-m4_include(m4/snprintf.m4)
-HW_FUNC_VSNPRINTF
-HW_FUNC_SNPRINTF
-HW_FUNC_VASPRINTF
-HW_FUNC_ASPRINTF
-
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
