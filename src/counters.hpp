@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include <stddef.h>
+#include "system.hpp"
+
+#include <cstddef>
 
 struct counters
 {

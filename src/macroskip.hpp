@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "system.hpp"
+
+#include <cstdint>
 
 // A Boyer-Moore-Horspool skip table used for searching for the strings
 // "__TIME__" and "__DATE__".

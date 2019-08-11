@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include <stdexcept>
 
 class Error : public std::runtime_error

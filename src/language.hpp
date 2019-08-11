@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <stdbool.h>
+#include "system.hpp"
 
 const char* language_for_file(const char* fname);
 const char* p_language_for_language(const char* language);

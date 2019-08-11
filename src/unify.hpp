@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "hash.hpp"
 
 int unify_hash(struct hash* hash, const char* fname, bool print);

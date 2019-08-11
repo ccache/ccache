@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "compression.hpp"
 
 #include "third_party/xxhash.h"

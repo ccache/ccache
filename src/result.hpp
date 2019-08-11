@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "conf.hpp"
 
 extern const char RESULT_MAGIC[4];
