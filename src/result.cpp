@@ -18,6 +18,7 @@
 
 #include "result.hpp"
 
+#include "Config.hpp"
 #include "ccache.hpp"
 #include "common_header.hpp"
 #include "compression.hpp"
@@ -82,7 +83,6 @@
 //
 // 1: Introduced in ccache 4.0.
 
-extern const struct conf* conf;
 extern char* stats_file;
 
 const char RESULT_MAGIC[4] = {'c', 'C', 'r', 'S'};
@@ -282,14 +282,14 @@ get_raw_file_path(const char* result_path_in_cache, uint32_t entry_number)
 static bool
 copy_raw_file(const char* source, const char* dest, bool to_cache)
 {
-  if (conf->file_clone) {
+  if (g_config.file_clone()) {
     cc_log("Cloning %s to %s", source, dest);
     if (clone_file(source, dest, to_cache)) {
       return true;
     }
     cc_log("Failed to clone: %s", strerror(errno));
   }
-  if (conf->hard_link) {
+  if (g_config.hard_link()) {
     x_try_unlink(dest);
     cc_log("Hard linking %s to %s", source, dest);
     int ret = link(source, dest);
@@ -584,7 +584,7 @@ error:
 static bool
 should_store_raw_file(const char* suffix)
 {
-  if (!conf->file_clone && !conf->hard_link) {
+  if (!g_config.file_clone() && !g_config.hard_link()) {
     return false;
   }
 

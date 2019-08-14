@@ -21,8 +21,6 @@
 #include "../src/ccache.hpp"
 #include "framework.hpp"
 
-static char FOO_ENV[] = "FOO=bar";
-
 TEST_SUITE(legacy_util)
 
 TEST(x_basename)
@@ -93,7 +91,7 @@ TEST(subst_env_in_string)
 {
   char* errmsg;
 
-  putenv(FOO_ENV);
+  x_setenv("FOO", "bar");
 
   CHECK_STR_EQ_FREE2("bar", subst_env_in_string("$FOO", &errmsg));
   CHECK(!errmsg);

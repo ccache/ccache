@@ -40,7 +40,6 @@ static int verbose;
 static const char COLOR_END[] = "\x1b[m";
 static const char COLOR_GREEN[] = "\x1b[1;32m";
 static const char COLOR_RED[] = "\x1b[1;31m";
-static char CONFIG_PATH_ENV[] = "CCACHE_CONFIG_PATH=/dev/null";
 
 #define COLOR(tty, color) ((tty) ? COLOR_##color : "")
 
@@ -135,7 +134,7 @@ cct_test_begin(const char* name)
   cct_chdir(name);
   current_test = name;
 
-  putenv(CONFIG_PATH_ENV);
+  x_setenv("CCACHE_CONFIG_PATH", "/dev/null");
   cc_reset();
 }
 

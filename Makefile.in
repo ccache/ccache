@@ -32,6 +32,7 @@ Q=$(if $(quiet),@)
 
 non_third_party_sources = \
     src/AtomicFile.cpp \
+    src/Config.cpp \
     src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \
@@ -41,8 +42,6 @@ non_third_party_sources = \
     src/compr_zstd.cpp \
     src/compress.cpp \
     src/compression.cpp \
-    src/conf.cpp \
-    src/confitems.cpp \
     src/counters.cpp \
     src/decompr_none.cpp \
     src/decompr_zstd.cpp \
@@ -58,8 +57,6 @@ non_third_party_sources = \
     src/unify.cpp \
     src/util.cpp
 generated_sources = \
-    src/confitems_lookup.cpp \
-    src/envtoconfitems_lookup.cpp \
     src/version.cpp
 third_party_sources = \
     src/third_party/format.cpp \
@@ -76,12 +73,12 @@ non_third_party_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(non_third_p
 ccache_sources = src/main.cpp $(base_sources)
 ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
+test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_args.cpp
 test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
 test_suites += unittest/test_compr_none.cpp
 test_suites += unittest/test_compr_zstd.cpp
-test_suites += unittest/test_conf.cpp
 test_suites += unittest/test_counters.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp

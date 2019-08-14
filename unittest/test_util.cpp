@@ -18,7 +18,7 @@
 
 #include "../src/util.hpp"
 
-#include "third_party/catch.hpp"
+#include <catch.hpp>
 
 TEST_CASE("util::read_file and util::write_file")
 {

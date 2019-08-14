@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "conf.hpp"
+#include "Config.hpp"
 #include "hash.hpp"
 
 #include <inttypes.h>
@@ -35,13 +35,14 @@ int strings_equal(void* str1, void* str2);
 #define HASH_SOURCE_CODE_FOUND_TIME 4
 
 int check_for_temporal_macros(const char* str, size_t len);
-int hash_source_code_string(struct conf* conf,
+int hash_source_code_string(const Config& config,
                             struct hash* hash,
                             const char* str,
                             size_t len,
                             const char* path);
-int
-hash_source_code_file(struct conf* conf, struct hash* hash, const char* path);
+int hash_source_code_file(const Config& config,
+                          struct hash* hash,
+                          const char* path);
 bool hash_command_output(struct hash* hash,
                          const char* command,
                          const char* compiler);

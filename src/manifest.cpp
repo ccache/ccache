@@ -451,7 +451,7 @@ out:
 }
 
 static bool
-verify_result(struct conf* conf,
+verify_result(const Config& config,
               struct manifest* mf,
               struct result* result,
               struct hashtable* stated_files,
@@ -486,8 +486,8 @@ verify_result(struct conf* conf,
       return false;
     }
 
-    if (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) {
-      if (!(conf->sloppiness & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
+    if (config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
+      if (!(config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
         if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
           cc_log("mtime/ctime hit for %s", path);
           continue;
@@ -507,7 +507,7 @@ verify_result(struct conf* conf,
     auto actual = static_cast<digest*>(hashtable_search(hashed_files, path));
     if (!actual) {
       struct hash* hash = hash_init();
-      int ret = hash_source_code_file(conf, hash, path);
+      int ret = hash_source_code_file(config, hash, path);
       if (ret & HASH_SOURCE_CODE_ERROR) {
         cc_log("Failed hashing %s", path);
         hash_free(hash);
@@ -674,7 +674,7 @@ add_result_entry(struct manifest* mf,
 // Try to get the result name from a manifest file. Caller frees. Returns NULL
 // on failure.
 struct digest*
-manifest_get(struct conf* conf, const char* manifest_path)
+manifest_get(const Config& config, const char* manifest_path)
 {
   char* errmsg;
   struct manifest* mf = read_manifest(manifest_path, &errmsg);
@@ -694,7 +694,7 @@ manifest_get(struct conf* conf, const char* manifest_path)
   struct digest* name = NULL;
   for (uint32_t i = mf->n_results; i > 0; i--) {
     if (verify_result(
-          conf, mf, &mf->results[i - 1], stated_files, hashed_files)) {
+          config, mf, &mf->results[i - 1], stated_files, hashed_files)) {
       name = static_cast<digest*>(x_malloc(sizeof(digest)));
       *name = mf->results[i - 1].name;
       goto out;

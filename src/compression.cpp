@@ -18,20 +18,18 @@
 
 #include "compression.hpp"
 
-#include "conf.hpp"
-
-extern struct conf* conf;
+#include "Config.hpp"
 
 int8_t
 compression_level_from_config(void)
 {
-  return conf->compression ? conf->compression_level : 0;
+  return g_config.compression() ? g_config.compression_level() : 0;
 }
 
 enum compression_type
 compression_type_from_config(void)
 {
-  return conf->compression ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
+  return g_config.compression() ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
 }
 
 const char*

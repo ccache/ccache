@@ -30,7 +30,6 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
 
 # ccache specific
 RUN apt-get -qq update && apt-get install -y --no-install-recommends \
-                gperf \
                 elfutils \
                 libzstd1-dev \
                 libb2-dev \

@@ -19,6 +19,7 @@
 
 #include "util.hpp"
 
+#include "Config.hpp"
 #include "Error.hpp"
 #include "ccache.hpp"
 
@@ -64,15 +65,13 @@
 #  include <windows.h>
 #endif
 
-extern const struct conf* conf;
-
-// Destination for conf->log_file.
+// Destination for g_config.log_file.
 static FILE* logfile;
 
 // Whether to use syslog() instead.
 static bool use_syslog;
 
-// Buffer used for logs in conf->debug mode.
+// Buffer used for logs in debug mode.
 static char* debug_log_buffer;
 
 // Allocated debug_log_buffer size.
@@ -89,23 +88,22 @@ init_log(void)
   if (debug_log_buffer || logfile || use_syslog) {
     return true;
   }
-  assert(conf);
-  if (conf->debug) {
+  if (g_config.debug()) {
     debug_log_buffer_capacity = DEBUG_LOG_BUFFER_MARGIN;
     debug_log_buffer = static_cast<char*>(x_malloc(debug_log_buffer_capacity));
     debug_log_size = 0;
   }
-  if (str_eq(conf->log_file, "")) {
-    return conf->debug;
+  if (g_config.log_file().empty()) {
+    return g_config.debug();
   }
 #ifdef HAVE_SYSLOG
-  if (str_eq(conf->log_file, "syslog")) {
+  if (g_config.log_file() == "syslog") {
     use_syslog = true;
     openlog("ccache", LOG_PID, LOG_USER);
     return true;
   }
 #endif
-  logfile = fopen(conf->log_file, "a");
+  logfile = fopen(g_config.log_file().c_str(), "a");
   if (logfile) {
 #ifndef _WIN32
     set_cloexec_flag(fileno(logfile));
@@ -192,7 +190,7 @@ warn_log_fail(void)
   // Note: Can't call fatal() since that would lead to recursion.
   fprintf(stderr,
           "ccache: error: Failed to write to %s: %s\n",
-          conf->log_file,
+          g_config.log_file().c_str(),
           strerror(errno));
   x_exit(EXIT_FAILURE);
 }
@@ -320,14 +318,15 @@ fatal(const char* format, ...)
 char*
 get_path_in_cache(const char* name, const char* suffix)
 {
-  char* path = x_strdup(conf->cache_dir);
-  for (unsigned i = 0; i < conf->cache_dir_levels; ++i) {
+  char* path = x_strdup(g_config.cache_dir().c_str());
+  for (unsigned i = 0; i < g_config.cache_dir_levels(); ++i) {
     char* p = format("%s/%c", path, name[i]);
     free(path);
     path = p;
   }
 
-  char* result = format("%s/%s%s", path, name + conf->cache_dir_levels, suffix);
+  char* result =
+    format("%s/%s%s", path, name + g_config.cache_dir_levels(), suffix);
   free(path);
   return result;
 }

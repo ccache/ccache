@@ -19,7 +19,7 @@
 #include "framework.hpp"
 
 #define CATCH_CONFIG_RUNNER
-#include "third_party/catch.hpp"
+#include <catch.hpp>
 
 unsigned suite_args(unsigned);
 unsigned suite_argument_processing(unsigned);
@@ -42,7 +42,6 @@ main(int argc, char** argv)
                               &suite_compopt,
                               &suite_compr_type_none,
                               &suite_compr_type_zstd,
-                              &suite_conf,
                               &suite_counters,
                               &suite_hash,
                               &suite_hashutil,
@@ -52,7 +51,7 @@ main(int argc, char** argv)
                               NULL};
 
 #ifdef _WIN32
-  putenv("CCACHE_DETECT_SHEBANG=1");
+  x_setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
 
   char* testdir = format("testdir.%d", (int)getpid());

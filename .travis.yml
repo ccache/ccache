@@ -18,7 +18,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
         - libzstd1-dev
         - libb2-dev
 
@@ -30,7 +29,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
         - libzstd1-dev
         - libb2-dev
 
@@ -47,7 +45,6 @@ matrix:
       apt:
         packages:
         - gcc-multilib
-        - gperf
         - lib32stdc++-5-dev
 
   # Job 5: Linux cross-compiled 32-bit MinGW
@@ -58,7 +55,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
 
   # Job 6: Linux cross-compiled 64-bit MinGW
   - os: linux
@@ -68,7 +64,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
 
   # Job 7: Clang's undefined behavior sanitizer (UBSan)
   - os: linux
@@ -78,7 +73,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
         - libzstd1-dev
         - libb2-dev
 
@@ -90,7 +84,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
         - libzstd1-dev
         - libb2-dev
 
@@ -101,7 +94,6 @@ matrix:
     addons:
       apt:
         packages:
-        - gperf
         - libzstd1-dev
         - libb2-dev
 
@@ -114,7 +106,6 @@ matrix:
       apt:
         packages:
         - elfutils
-        - gperf
         - libzstd1-dev
         - libb2-dev
     before_install:

@@ -17,6 +17,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "Config.hpp"
 #include "ccache.hpp"
 
 #include <math.h>
@@ -161,16 +162,16 @@ sort_and_clean(void)
 
 // Clean up one cache subdirectory.
 void
-clean_up_dir(struct conf* conf, const char* dir, double limit_multiple)
+clean_up_dir(const Config& config, const char* dir, double limit_multiple)
 {
   cc_log("Cleaning up cache directory %s", dir);
 
   // When "max files" or "max cache size" is reached, one of the 16 cache
   // subdirectories is cleaned up. When doing so, files are deleted (in LRU
   // order) until the levels are below limit_multiple.
-  double cache_size_float = round(conf->max_size * limit_multiple / 16);
+  double cache_size_float = round(config.max_size() * limit_multiple / 16);
   cache_size_threshold = (uint64_t)cache_size_float;
-  double files_in_cache_float = round(conf->max_files * limit_multiple / 16);
+  double files_in_cache_float = round(config.max_files() * limit_multiple / 16);
   files_in_cache_threshold = (size_t)files_in_cache_float;
 
   num_files = 0;
@@ -215,11 +216,11 @@ clean_up_dir(struct conf* conf, const char* dir, double limit_multiple)
 
 // Clean up all cache subdirectories.
 void
-clean_up_all(struct conf* conf)
+clean_up_all(const Config& config)
 {
   for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", conf->cache_dir, i);
-    clean_up_dir(conf, dname, 1.0);
+    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
+    clean_up_dir(config, dname, 1.0);
     free(dname);
   }
 }
@@ -264,14 +265,14 @@ wipe_dir(const char* dir)
 
 // Wipe all cached files in all subdirectories.
 void
-wipe_all(struct conf* conf)
+wipe_all(const Config& config)
 {
   for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", conf->cache_dir, i);
+    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
     wipe_dir(dname);
     free(dname);
   }
 
   // Fix the counters.
-  clean_up_all(conf);
+  clean_up_all(config);
 }

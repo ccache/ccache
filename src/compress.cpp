@@ -105,7 +105,7 @@ measure_fn(const char* fname, struct stat* st)
 
 // Process up all cache subdirectories.
 void
-compress_stats(struct conf* conf)
+compress_stats(const Config& config)
 {
   on_disk_size = 0;
   compr_size = 0;
@@ -113,7 +113,7 @@ compress_stats(struct conf* conf)
   incompr_size = 0;
 
   for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", conf->cache_dir, i);
+    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
     traverse(dname, measure_fn);
     free(dname);
   }

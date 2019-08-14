@@ -82,7 +82,7 @@ check_for_temporal_macros(const char* str, size_t len)
 
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
-hash_source_code_string(struct conf* conf,
+hash_source_code_string(const Config& config,
                         struct hash* hash,
                         const char* str,
                         size_t len,
@@ -92,7 +92,7 @@ hash_source_code_string(struct conf* conf,
 
   // Check for __DATE__ and __TIME__ if the sloppiness configuration tells us
   // we should.
-  if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
+  if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
     result |= check_for_temporal_macros(str, len);
   }
 
@@ -127,7 +127,7 @@ hash_source_code_string(struct conf* conf,
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
 // results.
 int
-hash_source_code_file(struct conf* conf, struct hash* hash, const char* path)
+hash_source_code_file(const Config& config, struct hash* hash, const char* path)
 {
   if (is_precompiled_header(path)) {
     if (hash_file(hash, path)) {
@@ -141,7 +141,7 @@ hash_source_code_file(struct conf* conf, struct hash* hash, const char* path)
     if (!read_file(path, 0, &data, &size)) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(conf, hash, data, size, path);
+    int result = hash_source_code_string(config, hash, data, size, path);
     free(data);
     return result;
   }

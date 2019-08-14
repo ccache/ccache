@@ -6,6 +6,5 @@ RUN apk add --no-cache \
                 bash \
                 asciidoc \
                 autoconf \
-                gperf \
                 zstd-dev \
         ##

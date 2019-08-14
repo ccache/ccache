@@ -61,6 +61,7 @@ if test "$ac_compiler_clang" = yes; then
     more_warnings="$more_warnings -Wno-documentation-unknown-command"
     more_warnings="$more_warnings -Wno-exit-time-destructors"
     more_warnings="$more_warnings -Wno-format-nonliteral"
+    more_warnings="$more_warnings -Wno-global-constructors"
     more_warnings="$more_warnings -Wno-implicit-fallthrough"
     more_warnings="$more_warnings -Wno-padded"
     more_warnings="$more_warnings -Wno-shorten-64-to-32"
@@ -255,10 +256,6 @@ if test ! -f $srcdir/dev_mode_disabled; then
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.cpp
-    AC_CHECK_TOOL(GPERF, gperf)
-    if test -z "$GPERF"; then
-        AC_MSG_ERROR(please install gperf)
-    fi
 else
     AC_MSG_NOTICE(developer mode disabled)
 fi

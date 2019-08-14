@@ -19,7 +19,13 @@
 
 #include "ccache.hpp"
 
+#include "Error.hpp"
 #include "compopt.hpp"
+#include "util.hpp"
+
+#include <fmt/core.h>
+#include <limits>
+
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #else
@@ -35,11 +41,7 @@
 #include "third_party/hashtable.h"
 #include "third_party/hashtable_itr.h"
 
-#define STRINGIFY(x) #x
-#define TO_STRING(x) STRINGIFY(x)
-
 // Global variables used by other compilation units.
-extern struct conf* conf;
 extern char* primary_config_path;
 extern char* secondary_config_path;
 extern char* current_working_dir;
@@ -110,9 +112,6 @@ static const char USAGE_TEXT[] =
   "    -o, --set-config=K=V      set configuration item K to value V\n"
   "\n"
   "See also <https://ccache.dev>.\n";
-
-// Global configuration data.
-struct conf* conf = NULL;
 
 // Where to write configuration changes.
 char* primary_config_path = NULL;
@@ -288,7 +287,7 @@ static pid_t compiler_pid = 0;
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(struct args* args, char* prefix_command)
+add_prefix(struct args* args, const char* prefix_command)
 {
   if (str_eq(prefix_command, "")) {
     return;
@@ -327,7 +326,7 @@ failed(void)
   assert(orig_args);
 
   args_strip(orig_args, "--ccache-");
-  add_prefix(orig_args, conf->prefix_command);
+  add_prefix(orig_args, g_config.prefix_command().c_str());
 
   cc_log("Failed; falling back to running the real compiler");
   cc_log_argv("Executing ", orig_args->argv);
@@ -339,13 +338,13 @@ failed(void)
 static const char*
 temp_dir()
 {
-  static char* path = NULL;
+  static const char* path = NULL;
   if (path) {
     return path; // Memoize
   }
-  path = conf->temporary_dir;
+  path = g_config.temporary_dir().c_str();
   if (str_eq(path, "")) {
-    path = format("%s/tmp", conf->cache_dir);
+    path = format("%s/tmp", g_config.cache_dir().c_str());
   }
   return path;
 }
@@ -469,12 +468,13 @@ clean_up_internal_tempdir(void)
 {
   time_t now = time(NULL);
   struct stat st;
-  if (x_stat(conf->cache_dir, &st) != 0 || st.st_mtime + 3600 >= now) {
+  if (x_stat(g_config.cache_dir().c_str(), &st) != 0
+      || st.st_mtime + 3600 >= now) {
     // No cleanup needed.
     return;
   }
 
-  update_mtime(conf->cache_dir);
+  update_mtime(g_config.cache_dir().c_str());
 
   DIR* dir = opendir(temp_dir());
   if (!dir) {
@@ -506,7 +506,7 @@ fclose_exitfn(void* context)
 static void
 dump_debug_log_buffer_exitfn(void* context)
 {
-  if (!conf->debug) {
+  if (!g_config.debug()) {
     return;
   }
 
@@ -522,7 +522,7 @@ init_hash_debug(struct hash* hash,
                 const char* section_name,
                 FILE* debug_text_file)
 {
-  if (!conf->debug) {
+  if (!g_config.debug()) {
     return;
   }
 
@@ -596,7 +596,7 @@ remember_include_file(char* path,
     goto out;
   }
 
-  if (system && (conf->sloppiness & SLOPPY_SYSTEM_HEADERS)) {
+  if (system && (g_config.sloppiness() & SLOPPY_SYSTEM_HEADERS)) {
     // Don't remember this system header.
     goto out;
   }
@@ -658,14 +658,14 @@ remember_include_file(char* path,
   // The comparison using >= is intentional, due to a possible race between
   // starting compilation and writing the include file. See also the notes
   // under "Performance" in doc/MANUAL.adoc.
-  if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_MTIME)
+  if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
       && st.st_mtime >= time_of_compilation) {
     cc_log("Include file %s too new", path);
     goto failure;
   }
 
   // The same >= logic as above applies to the change time of the file.
-  if (!(conf->sloppiness & SLOPPY_INCLUDE_FILE_CTIME)
+  if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
       && st.st_ctime >= time_of_compilation) {
     cc_log("Include file %s ctime too new", path);
     goto failure;
@@ -680,7 +680,7 @@ remember_include_file(char* path,
       cc_log("Detected use of precompiled header: %s", path);
     }
     bool using_pch_sum = false;
-    if (conf->pch_external_checksum) {
+    if (g_config.pch_external_checksum()) {
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
       char* pch_sum_path = format("%s.sum", path);
@@ -703,7 +703,7 @@ remember_include_file(char* path,
     hash_string(cpp_hash, pch_digest);
   }
 
-  if (conf->direct_mode) {
+  if (g_config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
       char* source = NULL;
       size_t size;
@@ -716,7 +716,7 @@ remember_include_file(char* path,
         size = 0;
       }
 
-      int result = hash_source_code_string(conf, fhash, source, size, path);
+      int result = hash_source_code_string(g_config, fhash, source, size, path);
       free(source);
       if (result & HASH_SOURCE_CODE_ERROR
           || result & HASH_SOURCE_CODE_FOUND_TIME) {
@@ -740,9 +740,9 @@ remember_include_file(char* path,
   goto out;
 
 failure:
-  if (conf->direct_mode) {
+  if (g_config.direct_mode()) {
     cc_log("Disabling direct mode");
-    conf->direct_mode = false;
+    g_config.set_direct_mode(false);
   }
   // Fall through.
 out:
@@ -765,7 +765,8 @@ print_included_files(FILE* fp)
 static char*
 make_relative_path(char* path)
 {
-  if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
+  if (g_config.base_dir().empty()
+      || !str_startswith(path, g_config.base_dir().c_str())) {
     return path;
   }
 
@@ -850,9 +851,9 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
 
   ignore_headers = NULL;
   ignore_headers_len = 0;
-  if (!str_eq(conf->ignore_headers_in_manifest, "")) {
+  if (!g_config.ignore_headers_in_manifest().empty()) {
     char *header, *p, *q, *saveptr = NULL;
-    p = x_strdup(conf->ignore_headers_in_manifest);
+    p = x_strdup(g_config.ignore_headers_in_manifest().c_str());
     q = p;
     while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
       ignore_headers = static_cast<char**>(
@@ -966,7 +967,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       inc_path = make_relative_path(inc_path);
 
       bool should_hash_inc_path = true;
-      if (!conf->hash_dir) {
+      if (!g_config.hash_dir()) {
         if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
           // When compiling with -g or similar, GCC adds the absolute path to
           // CWD like this:
@@ -1038,7 +1039,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
 static void
 use_relative_paths_in_depfile(const char* depfile)
 {
-  if (str_eq(conf->base_dir, "")) {
+  if (g_config.base_dir().empty()) {
     cc_log("Base dir not set, skip using relative paths");
     return; // nothing to do
   }
@@ -1066,7 +1067,8 @@ use_relative_paths_in_depfile(const char* depfile)
     char* token = strtok_r(buf, " \t", &saveptr);
     while (token) {
       char* relpath;
-      if (is_absolute_path(token) && str_startswith(token, conf->base_dir)) {
+      if (is_absolute_path(token)
+          && str_startswith(token, g_config.base_dir().c_str())) {
         relpath = make_relative_path(x_strdup(token));
         result = true;
       } else {
@@ -1187,8 +1189,8 @@ send_cached_stderr(const char* path_stderr)
 static void
 update_manifest_file(void)
 {
-  if (!conf->direct_mode || !included_files || conf->read_only
-      || conf->read_only_direct) {
+  if (!g_config.direct_mode() || !included_files || g_config.read_only()
+      || g_config.read_only_direct()) {
     return;
   }
 
@@ -1218,7 +1220,8 @@ update_cached_result_globals(struct digest* result_name)
   digest_as_string(result_name, result_name_string);
   cached_result_name = result_name;
   cached_result_path = get_path_in_cache(result_name_string, ".result");
-  stats_file = format("%s/%c/stats", conf->cache_dir, result_name_string[0]);
+  stats_file =
+    format("%s/%c/stats", g_config.cache_dir().c_str(), result_name_string[0]);
 }
 
 // Run the real compiler and put the result in cache.
@@ -1228,7 +1231,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   args_add(args, "-o");
   args_add(args, output_obj);
 
-  if (conf->hard_link) {
+  if (g_config.hard_link()) {
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
@@ -1247,7 +1250,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   x_unsetenv("DEPENDENCIES_OUTPUT");
   x_unsetenv("SUNPRO_DEPENDENCIES");
 
-  if (conf->run_second_cpp) {
+  if (g_config.run_second_cpp()) {
     args_add(args, input_file);
   } else {
     args_add(args, i_tmpfile);
@@ -1271,7 +1274,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   char* tmp_stderr;
   int tmp_stderr_fd;
   int status;
-  if (!conf->depend_mode) {
+  if (!g_config.depend_mode()) {
     tmp_stdout = format("%s/tmp.stdout", temp_dir());
     tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
     tmp_stderr = format("%s/tmp.stderr", temp_dir());
@@ -1290,7 +1293,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     assert(orig_args);
     struct args* depend_mode_args = args_copy(orig_args);
     args_strip(depend_mode_args, "--ccache-");
-    add_prefix(depend_mode_args, conf->prefix_command);
+    add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
     time_of_compilation = time(NULL);
     status = execute(
@@ -1377,7 +1380,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     failed();
   }
 
-  if (conf->depend_mode) {
+  if (g_config.depend_mode()) {
     struct digest* result_name =
       result_name_from_depfile(output_dep, depend_mode_hash);
     if (!result_name) {
@@ -1467,7 +1470,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     // Remove any CACHEDIR.TAG on the cache_dir level where it was located in
     // previous ccache versions.
     if (getpid() % 1000 == 0) {
-      char* path = format("%s/CACHEDIR.TAG", conf->cache_dir);
+      char* path = format("%s/CACHEDIR.TAG", g_config.cache_dir().c_str());
       x_unlink(path);
       free(path);
     }
@@ -1523,12 +1526,12 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 
     int args_added = 2;
     args_add(args, "-E");
-    if (conf->keep_comments_cpp) {
+    if (g_config.keep_comments_cpp()) {
       args_add(args, "-C");
       args_added = 3;
     }
     args_add(args, input_file);
-    add_prefix(args, conf->prefix_command_cpp);
+    add_prefix(args, g_config.prefix_command_cpp().c_str());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     status = execute(args->argv, path_stdout_fd, path_stderr_fd, &compiler_pid);
@@ -1542,7 +1545,7 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
     failed();
   }
 
-  if (conf->unify) {
+  if (g_config.unify()) {
     // When we are doing the unifying tricks we need to include the input file
     // name in the hash to get the warnings right.
     hash_delimiter(hash, "unifyfilename");
@@ -1575,12 +1578,12 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
     // thing correctly
-    i_tmpfile = format("%s.%s", path_stdout, conf->cpp_extension);
+    i_tmpfile = format("%s.%s", path_stdout, g_config.cpp_extension().c_str());
     x_rename(path_stdout, i_tmpfile);
     add_pending_tmp_file(i_tmpfile);
   }
 
-  if (conf->run_second_cpp) {
+  if (g_config.run_second_cpp()) {
     free(path_stderr);
   } else {
     // If we are using the CPP trick, we need to remember this stderr data and
@@ -1603,23 +1606,24 @@ hash_compiler(struct hash* hash,
               const char* path,
               bool allow_command)
 {
-  if (str_eq(conf->compiler_check, "none")) {
+  if (g_config.compiler_check() == "none") {
     // Do nothing.
-  } else if (str_eq(conf->compiler_check, "mtime")) {
+  } else if (g_config.compiler_check() == "mtime") {
     hash_delimiter(hash, "cc_mtime");
     hash_int(hash, st->st_size);
     hash_int(hash, st->st_mtime);
-  } else if (str_startswith(conf->compiler_check, "string:")) {
+  } else if (util::starts_with(g_config.compiler_check(), "string:")) {
     hash_delimiter(hash, "cc_hash");
-    hash_string(hash, conf->compiler_check + strlen("string:"));
-  } else if (str_eq(conf->compiler_check, "content") || !allow_command) {
+    hash_string(hash, g_config.compiler_check().c_str() + strlen("string:"));
+  } else if (g_config.compiler_check() == "content" || !allow_command) {
     hash_delimiter(hash, "cc_content");
     hash_file(hash, path);
   } else { // command string
-    bool ok =
-      hash_multicommand_output(hash, conf->compiler_check, orig_args->argv[0]);
+    bool ok = hash_multicommand_output(
+      hash, g_config.compiler_check().c_str(), orig_args->argv[0]);
     if (!ok) {
-      fatal("Failure running compiler check command: %s", conf->compiler_check);
+      fatal("Failure running compiler check command: %s",
+            g_config.compiler_check().c_str());
     }
   }
 }
@@ -1686,7 +1690,7 @@ hash_common_info(struct args* args, struct hash* hash)
   // We have to hash the extension, as a .i file isn't treated the same by the
   // compiler as a .ii file.
   hash_delimiter(hash, "ext");
-  hash_string(hash, conf->cpp_extension);
+  hash_string(hash, g_config.cpp_extension().c_str());
 
 #ifdef _WIN32
   const char* ext = strrchr(args->argv[0], '.');
@@ -1714,7 +1718,7 @@ hash_common_info(struct args* args, struct hash* hash)
   hash_string(hash, base);
   free(base);
 
-  if (!(conf->sloppiness & SLOPPY_LOCALE)) {
+  if (!(g_config.sloppiness() & SLOPPY_LOCALE)) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
     const char* envvars[] = {"LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", NULL};
@@ -1728,7 +1732,7 @@ hash_common_info(struct args* args, struct hash* hash)
   }
 
   // Possibly hash the current working directory.
-  if (generating_debuginfo && conf->hash_dir) {
+  if (generating_debuginfo && g_config.hash_dir()) {
     char* cwd = gnu_getcwd();
     for (size_t i = 0; i < debug_prefix_maps_len; i++) {
       char* map = debug_prefix_maps[i];
@@ -1798,8 +1802,8 @@ hash_common_info(struct args* args, struct hash* hash)
     }
   }
 
-  if (!str_eq(conf->extra_files_to_hash, "")) {
-    char* p = x_strdup(conf->extra_files_to_hash);
+  if (!g_config.extra_files_to_hash().empty()) {
+    char* p = x_strdup(g_config.extra_files_to_hash().c_str());
     char* q = p;
     char* path;
     char* saveptr = NULL;
@@ -2049,7 +2053,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
       }
     }
 
-    if (!(conf->sloppiness & SLOPPY_FILE_MACRO)) {
+    if (!(g_config.sloppiness() & SLOPPY_FILE_MACRO)) {
       // The source code file or an include file may contain __FILE__, so make
       // sure that the hash is unique for the file name.
       hash_delimiter(hash, "inputfile");
@@ -2057,25 +2061,25 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
     }
 
     hash_delimiter(hash, "sourcecode");
-    int result = hash_source_code_file(conf, hash, input_file);
+    int result = hash_source_code_file(g_config, hash, input_file);
     if (result & HASH_SOURCE_CODE_ERROR) {
       failed();
     }
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       cc_log("Disabling direct mode");
-      conf->direct_mode = false;
+      g_config.set_direct_mode(false);
       return NULL;
     }
 
     char manifest_name_string[DIGEST_STRING_BUFFER_SIZE];
     hash_result_as_string(hash, manifest_name_string);
     manifest_path = get_path_in_cache(manifest_name_string, ".manifest");
-    manifest_stats_file =
-      format("%s/%c/stats", conf->cache_dir, manifest_name_string[0]);
+    manifest_stats_file = format(
+      "%s/%c/stats", g_config.cache_dir().c_str(), manifest_name_string[0]);
 
     cc_log("Looking for result name in %s", manifest_path);
     MTR_BEGIN("manifest", "manifest_get");
-    result_name = manifest_get(conf, manifest_path);
+    result_name = manifest_get(g_config, manifest_path);
     MTR_END("manifest", "manifest_get");
     if (result_name) {
       cc_log("Got result name from manifest");
@@ -2117,7 +2121,7 @@ static void
 from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 {
   // The user might be disabling cache hits.
-  if (conf->recache) {
+  if (g_config.recache()) {
     return;
   }
 
@@ -2225,8 +2229,8 @@ find_compiler(char** argv)
   }
 
   // Support user override of the compiler.
-  if (!str_eq(conf->compiler, "")) {
-    base = conf->compiler;
+  if (!g_config.compiler().empty()) {
+    base = x_strdup(g_config.compiler().c_str());
   }
 
   char* compiler = find_executable(base, MYNAME);
@@ -2465,9 +2469,9 @@ cc_process_args(struct args* args,
     }
 
     // These are too hard in direct mode.
-    if (conf->direct_mode && compopt_too_hard_for_direct_mode(argv[i])) {
+    if (g_config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
       cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-      conf->direct_mode = false;
+      g_config.set_direct_mode(false);
     }
 
     // -Xarch_* options are too hard.
@@ -2492,7 +2496,7 @@ cc_process_args(struct args* args,
       arch_args[arch_args_size] = x_strdup(argv[i]); // It will leak.
       ++arch_args_size;
       if (arch_args_size == 2) {
-        conf->run_second_cpp = true;
+        g_config.set_run_second_cpp(true);
       }
       continue;
     }
@@ -2798,11 +2802,11 @@ cc_process_args(struct args* args,
         // TODO: Make argument to MF/MQ/MT relative.
         args_add(dep_args, argv[i]);
         continue;
-      } else if (conf->direct_mode) {
+      } else if (g_config.direct_mode()) {
         // -Wp, can be used to pass too hard options to the preprocessor.
         // Hence, disable direct mode.
         cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-        conf->direct_mode = false;
+        g_config.set_direct_mode(false);
       }
 
       // Any other -Wp,* arguments are only relevant for the preprocessor.
@@ -2919,7 +2923,7 @@ cc_process_args(struct args* args,
       continue;
     }
 
-    if (conf->sloppiness & SLOPPY_CLANG_INDEX_STORE
+    if (g_config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
         && str_eq(argv[i], "-index-store-path")) {
       // Xcode 9 or later calls Clang with this option. The given path includes
       // a UUID that might lead to cache misses, especially when cache is
@@ -3067,14 +3071,14 @@ cc_process_args(struct args* args,
     }
   } // for
 
-  if (generating_debuginfo && conf->unify) {
+  if (generating_debuginfo && g_config.unify()) {
     cc_log("Generating debug info; disabling unify mode");
-    conf->unify = false;
+    g_config.set_unify(false);
   }
 
-  if (generating_debuginfo_level_3 && !conf->run_second_cpp) {
+  if (generating_debuginfo_level_3 && !g_config.run_second_cpp()) {
     cc_log("Generating debug info level 3; not compiling preprocessed code");
-    conf->run_second_cpp = true;
+    g_config.set_run_second_cpp(true);
   }
 
   // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
@@ -3137,7 +3141,7 @@ cc_process_args(struct args* args,
 
   if (found_pch || found_fpch_preprocess) {
     using_precompiled_header = true;
-    if (!(conf->sloppiness & SLOPPY_TIME_MACROS)) {
+    if (!(g_config.sloppiness() & SLOPPY_TIME_MACROS)) {
       cc_log(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
@@ -3168,7 +3172,7 @@ cc_process_args(struct args* args,
     actual_language && strstr(actual_language, "-header");
 
   if (output_is_precompiled_header
-      && !(conf->sloppiness & SLOPPY_PCH_DEFINES)) {
+      && !(g_config.sloppiness() & SLOPPY_PCH_DEFINES)) {
     cc_log(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
@@ -3201,23 +3205,22 @@ cc_process_args(struct args* args,
     goto out;
   }
 
-  if (!conf->run_second_cpp && str_eq(actual_language, "cu")) {
+  if (!g_config.run_second_cpp() && str_eq(actual_language, "cu")) {
     cc_log("Using CUDA compiler; not compiling preprocessed code");
-    conf->run_second_cpp = true;
+    g_config.set_run_second_cpp(true);
   }
 
   direct_i_file = language_is_preprocessed(actual_language);
 
-  if (output_is_precompiled_header && !conf->run_second_cpp) {
+  if (output_is_precompiled_header && !g_config.run_second_cpp()) {
     // It doesn't work to create the .gch from preprocessed source.
     cc_log("Creating precompiled header; not compiling preprocessed code");
-    conf->run_second_cpp = true;
+    g_config.set_run_second_cpp(true);
   }
 
-  if (str_eq(conf->cpp_extension, "")) {
+  if (g_config.cpp_extension().empty()) {
     const char* p_language = p_language_for_language(actual_language);
-    free(conf->cpp_extension);
-    conf->cpp_extension = x_strdup(extension_for_language(p_language) + 1);
+    g_config.set_cpp_extension(extension_for_language(p_language) + 1);
   }
 
   // Don't try to second guess the compilers heuristics for stdout handling.
@@ -3351,7 +3354,7 @@ cc_process_args(struct args* args,
   *compiler_args = args_copy(common_args);
   args_extend(*compiler_args, compiler_only_args);
 
-  if (conf->run_second_cpp) {
+  if (g_config.run_second_cpp()) {
     args_extend(*compiler_args, cpp_args);
   } else if (found_directives_only || found_rewrite_includes) {
     // Need to pass the macros and any other preprocessor directives again.
@@ -3414,7 +3417,7 @@ create_initial_config_file(const char* path)
 
   unsigned max_files;
   uint64_t max_size;
-  char* stats_dir = format("%s/0", conf->cache_dir);
+  char* stats_dir = format("%s/0", g_config.cache_dir().c_str());
   struct stat st;
   if (stat(stats_dir, &st) == 0) {
     stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
@@ -3423,7 +3426,7 @@ create_initial_config_file(const char* path)
     max_size *= 16;
   } else {
     max_files = 0;
-    max_size = conf->max_size;
+    max_size = g_config.max_size();
   }
   free(stats_dir);
 
@@ -3433,13 +3436,13 @@ create_initial_config_file(const char* path)
   }
   if (max_files != 0) {
     fprintf(f, "max_files = %u\n", max_files);
-    conf->max_files = max_files;
+    g_config.set_max_files(max_files);
   }
   if (max_size != 0) {
     char* size = format_parsable_size_with_suffix(max_size);
     fprintf(f, "max_size = %s\n", size);
     free(size);
-    conf->max_size = max_size;
+    g_config.set_max_size(max_size);
   }
   fclose(f);
 }
@@ -3510,59 +3513,39 @@ initialize(void)
 #endif
   }
 
-  conf_free(conf);
-  MTR_BEGIN("config", "conf_create");
-  conf = conf_create();
-  MTR_END("config", "conf_create");
-
-  char* errmsg;
   char* p = getenv("CCACHE_CONFIGPATH");
   if (p) {
     primary_config_path = x_strdup(p);
   } else {
     secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
     MTR_BEGIN("config", "conf_read_secondary");
-    if (!conf_read(conf, secondary_config_path, &errmsg)) {
-      if (errno == 0) {
-        // We could read the file but it contained errors.
-        fatal("%s", errmsg);
-      }
-      // A missing config file in SYSCONFDIR is OK.
-      free(errmsg);
-    }
+    // A missing config file in SYSCONFDIR is OK so don't check return value.
+    g_config.update_from_file(secondary_config_path);
     MTR_END("config", "conf_read_secondary");
 
-    if (str_eq(conf->cache_dir, "")) {
+    if (g_config.cache_dir().empty()) {
       fatal("configuration setting \"cache_dir\" must not be the empty string");
     }
     if ((p = getenv("CCACHE_DIR"))) {
-      free(conf->cache_dir);
-      conf->cache_dir = strdup(p);
+      g_config.set_cache_dir(p);
     }
-    if (str_eq(conf->cache_dir, "")) {
+    if (g_config.cache_dir().empty()) {
       fatal("CCACHE_DIR must not be the empty string");
     }
 
-    primary_config_path = format("%s/ccache.conf", conf->cache_dir);
+    primary_config_path =
+      format("%s/ccache.conf", g_config.cache_dir().c_str());
   }
 
   bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");
-  if (!conf_read(conf, primary_config_path, &errmsg)) {
-    if (errno == 0) {
-      // We could read the file but it contained errors.
-      fatal("%s", errmsg);
-    }
-    if (!conf->disable) {
-      should_create_initial_config = true;
-    }
+  if (!g_config.update_from_file(primary_config_path) && !g_config.disable()) {
+    should_create_initial_config = true;
   }
   MTR_END("config", "conf_read_primary");
 
   MTR_BEGIN("config", "conf_update_from_environment");
-  if (!conf_update_from_environment(conf, &errmsg)) {
-    fatal("%s", errmsg);
-  }
+  g_config.update_from_environment();
   MTR_END("config", "conf_update_from_environment");
 
   if (should_create_initial_config) {
@@ -3576,8 +3559,8 @@ initialize(void)
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
 
-  if (conf->umask != UINT_MAX) {
-    umask(conf->umask);
+  if (g_config.umask() != std::numeric_limits<uint32_t>::max()) {
+    umask(g_config.umask());
   }
 
   if (enable_internal_trace) {
@@ -3594,8 +3577,9 @@ initialize(void)
 void
 cc_reset(void)
 {
-  conf_free(conf);
-  conf = NULL;
+  Config new_config;
+  std::swap(g_config, new_config);
+
   free(primary_config_path);
   primary_config_path = NULL;
   free(secondary_config_path);
@@ -3671,7 +3655,6 @@ cc_reset(void)
   stats_file = NULL;
   output_is_precompiled_header = false;
 
-  conf = conf_create();
   seen_split_dwarf = false;
 }
 
@@ -3695,10 +3678,20 @@ set_up_uncached_err(void)
 }
 
 static void
-configuration_logger(const char* descr, const char* origin, void* context)
+configuration_logger(const std::string& key,
+                     const std::string& value,
+                     const std::string& origin)
 {
-  (void)context;
-  cc_bulklog("Config: (%s) %s", origin, descr);
+  cc_bulklog(
+    "Config: (%s) %s = %s", origin.c_str(), key.c_str(), value.c_str());
+}
+
+static void
+configuration_printer(const std::string& key,
+                      const std::string& value,
+                      const std::string& origin)
+{
+  fmt::print("({}) {} = {}\n", origin, key, value);
 }
 
 static void ccache(int argc, char* argv[]) ATTR_NORETURN;
@@ -3722,16 +3715,16 @@ ccache(int argc, char* argv[])
   MTR_END("main", "find_compiler");
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
-  if (str_eq(conf->temporary_dir, "")) {
+  if (g_config.temporary_dir().empty()) {
     clean_up_internal_tempdir();
   }
   MTR_END("main", "clean_up_internal_tempdir");
 
-  if (!str_eq(conf->log_file, "") || conf->debug) {
-    conf_print_items(conf, configuration_logger, NULL);
+  if (!g_config.log_file().empty() || g_config.debug()) {
+    g_config.visit_items(configuration_logger);
   }
 
-  if (conf->disable) {
+  if (g_config.disable()) {
     cc_log("ccache is disabled");
     failed();
   }
@@ -3744,7 +3737,7 @@ ccache(int argc, char* argv[])
   cc_log("Hostname: %s", get_hostname());
   cc_log("Working directory: %s", get_current_working_dir());
 
-  conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
+  g_config.set_limit_multiple(MIN(MAX(g_config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
   guessed_compiler = guess_compiler(orig_args->argv[0]);
@@ -3760,11 +3753,11 @@ ccache(int argc, char* argv[])
   }
   MTR_END("main", "process_args");
 
-  if (conf->depend_mode
+  if (g_config.depend_mode()
       && (!generating_dependencies || str_eq(output_dep, "/dev/null")
-          || !conf->run_second_cpp || conf->unify)) {
+          || !g_config.run_second_cpp() || g_config.unify())) {
     cc_log("Disabling depend mode");
-    conf->depend_mode = false;
+    g_config.set_depend_mode(false);
   }
 
   cc_log("Source file: %s", input_file);
@@ -3791,7 +3784,7 @@ ccache(int argc, char* argv[])
   exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
 
   FILE* debug_text_file = NULL;
-  if (conf->debug) {
+  if (g_config.debug()) {
     char* path = format("%s.ccache-input-text", output_obj);
     debug_text_file = fopen(path, "w");
     if (debug_text_file) {
@@ -3816,7 +3809,7 @@ ccache(int argc, char* argv[])
   bool put_result_in_manifest = false;
   struct digest* result_name = NULL;
   struct digest* result_name_from_manifest = NULL;
-  if (conf->direct_mode) {
+  if (g_config.direct_mode()) {
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
     result_name = calculate_result_name(preprocessor_args, direct_hash, 1);
@@ -3838,12 +3831,12 @@ ccache(int argc, char* argv[])
     }
   }
 
-  if (conf->read_only_direct) {
+  if (g_config.read_only_direct()) {
     cc_log("Read-only direct mode; running real compiler");
     failed();
   }
 
-  if (!conf->depend_mode) {
+  if (!g_config.depend_mode()) {
     // Find the hash using the preprocessed output. Also updates
     // included_files.
     struct hash* cpp_hash = hash_copy(common_hash);
@@ -3884,15 +3877,15 @@ ccache(int argc, char* argv[])
     from_cache(FROMCACHE_CPP_MODE, put_result_in_manifest);
   }
 
-  if (conf->read_only) {
+  if (g_config.read_only()) {
     cc_log("Read-only mode; running real compiler");
     failed();
   }
 
-  add_prefix(compiler_args, conf->prefix_command);
+  add_prefix(compiler_args, g_config.prefix_command().c_str());
 
   // In depend_mode, extend the direct hash.
-  struct hash* depend_mode_hash = conf->depend_mode ? direct_hash : NULL;
+  struct hash* depend_mode_hash = g_config.depend_mode() ? direct_hash : NULL;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
@@ -3900,14 +3893,6 @@ ccache(int argc, char* argv[])
   MTR_END("cache", "to_cache");
 
   x_exit(0);
-}
-
-static void
-configuration_printer(const char* descr, const char* origin, void* context)
-{
-  assert(context);
-  auto f = static_cast<FILE*>(context);
-  fprintf(f, "(%s) %s\n", origin, descr);
 }
 
 // The main program when not doing a compile.
@@ -3977,13 +3962,13 @@ ccache_main_options(int argc, char* argv[])
 
     case 'c': // --cleanup
       initialize();
-      clean_up_all(conf);
+      clean_up_all(g_config);
       printf("Cleaned cache\n");
       break;
 
     case 'C': // --clear
       initialize();
-      wipe_all(conf);
+      wipe_all(g_config);
       printf("Cleared cache\n");
       break;
 
@@ -3992,55 +3977,40 @@ ccache_main_options(int argc, char* argv[])
       x_exit(0);
 
     case 'k': // --get-config
-    {
       initialize();
-      char* errmsg;
-      if (!conf_print_value(conf, optarg, stdout, &errmsg)) {
-        fatal("%s", errmsg);
-      }
-    } break;
+      fmt::print("{}\n", g_config.get_string_value(optarg));
+      break;
 
-    case 'F': // --max-files
-    {
+    case 'F': { // --max-files
       initialize();
-      char* errmsg;
-      if (conf_set_value_in_file(
-            primary_config_path, "max_files", optarg, &errmsg)) {
-        unsigned files = atoi(optarg);
-        if (files == 0) {
-          printf("Unset cache file limit\n");
-        } else {
-          printf("Set cache file limit to %u\n", files);
-        }
+      g_config.set_value_in_file(primary_config_path, "max_files", optarg);
+      unsigned files = atoi(optarg);
+      if (files == 0) {
+        printf("Unset cache file limit\n");
       } else {
-        fatal("could not set cache file limit: %s", errmsg);
+        printf("Set cache file limit to %u\n", files);
       }
-    } break;
+      break;
+    }
 
-    case 'M': // --max-size
-    {
+    case 'M': { // --max-size
       initialize();
       uint64_t size;
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
       }
-      char* errmsg;
-      if (conf_set_value_in_file(
-            primary_config_path, "max_size", optarg, &errmsg)) {
-        if (size == 0) {
-          printf("Unset cache size limit\n");
-        } else {
-          char* s = format_human_readable_size(size);
-          printf("Set cache size limit to %s\n", s);
-          free(s);
-        }
+      g_config.set_value_in_file(primary_config_path, "max_size", optarg);
+      if (size == 0) {
+        printf("Unset cache size limit\n");
       } else {
-        fatal("could not set cache size limit: %s", errmsg);
+        char* s = format_human_readable_size(size);
+        printf("Set cache size limit to %s\n", s);
+        free(s);
       }
-    } break;
+      break;
+    }
 
-    case 'o': // --set-config
-    {
+    case 'o': { // --set-config
       initialize();
       char* p = strchr(optarg, '=');
       if (!p) {
@@ -4048,16 +4018,14 @@ ccache_main_options(int argc, char* argv[])
       }
       char* key = x_strndup(optarg, p - optarg);
       char* value = p + 1;
-      char* errmsg;
-      if (!conf_set_value_in_file(primary_config_path, key, value, &errmsg)) {
-        fatal("%s", errmsg);
-      }
+      g_config.set_value_in_file(primary_config_path, key, value);
       free(key);
-    } break;
+      break;
+    }
 
     case 'p': // --show-config
       initialize();
-      conf_print_items(conf, configuration_printer, stdout);
+      g_config.visit_items(configuration_printer);
       break;
 
     case 's': // --show-stats
@@ -4071,7 +4039,7 @@ ccache_main_options(int argc, char* argv[])
 
     case 'x': // --show-compression
       initialize();
-      compress_stats(conf);
+      compress_stats(g_config);
       break;
 
     case 'z': // --zero-stats
@@ -4094,20 +4062,25 @@ int ccache_main(int argc, char* argv[]);
 int
 ccache_main(int argc, char* argv[])
 {
-  // Check if we are being invoked as "ccache".
-  char* program_name = x_basename(argv[0]);
-  if (same_executable_name(program_name, MYNAME)) {
-    if (argc < 2) {
-      fputs(USAGE_TEXT, stderr);
-      x_exit(1);
+  try {
+    // Check if we are being invoked as "ccache".
+    char* program_name = x_basename(argv[0]);
+    if (same_executable_name(program_name, MYNAME)) {
+      if (argc < 2) {
+        fputs(USAGE_TEXT, stderr);
+        x_exit(1);
+      }
+      // If the first argument isn't an option, then assume we are being passed
+      // a compiler name and options.
+      if (argv[1][0] == '-') {
+        return ccache_main_options(argc, argv);
+      }
     }
-    // If the first argument isn't an option, then assume we are being passed a
-    // compiler name and options.
-    if (argv[1][0] == '-') {
-      return ccache_main_options(argc, argv);
-    }
-  }
-  free(program_name);
+    free(program_name);
 
-  ccache(argc, argv);
+    ccache(argc, argv);
+  } catch (const Error& e) {
+    fmt::print("ccache: error: {}\n", e.what());
+    return 1;
+  }
 }

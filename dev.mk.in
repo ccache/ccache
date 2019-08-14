@@ -12,7 +12,6 @@ COMPILEDB = compiledb
 CPPCHECK = cppcheck
 CPPCHECK_SUPPRESSIONS = misc/cppcheck-suppressions.txt
 DOCKER = docker
-GPERF = @GPERF@
 SCAN_BUILD = scan-build
 SHELLCHECK = shellcheck
 SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
@@ -37,15 +36,13 @@ built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers = \
     src/AtomicFile.hpp \
+    src/Config.hpp \
     src/Error.hpp \
     src/ccache.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
     src/compression.hpp \
-    src/conf.hpp \
-    src/confitems.hpp \
     src/counters.hpp \
-    src/envtoconfitems.hpp \
     src/hash.hpp \
     src/hashutil.hpp \
     src/int_bytes_conversion.hpp \
@@ -95,10 +92,6 @@ source_dist_files = \
     doc/NEWS.adoc \
     install-sh \
     m4 \
-    src/confitems.gperf \
-    src/confitems_lookup.cpp \
-    src/envtoconfitems.gperf \
-    src/envtoconfitems_lookup.cpp \
     src/main.cpp \
     src/third_party/minitrace.c \
     test/run \
@@ -112,24 +105,6 @@ ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.cpp 2>/dev/null),$(version))
   $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.cpp)
 endif
 src/version.o: src/version.cpp
-
-# $(1): Name.
-# $(2): Command for fixing up source file before the gperf call.
-define generate_gperf_lookup
-src/$(1)_lookup.cpp: src/$(1).gperf
-	$$(if $$(quiet),@echo "  GEN      $$@")
-	$$(Q)$(2) $$< | tr -d '\r' | $$(GPERF) | sed -e 's/#error/#warning/' -e 's/register//g' >$$@.tmp
-# Fix for gperf < 3.1 (fix parameter type and remove inlining of the get function):
-	$$(Q)perl -00 -pi -e 's/unsigned int len/size_t len/; s/#ifdef __GNUC__.*?gnu_inline.*?#endif\n#endif\n//sg' $$@.tmp
-	$$(Q)echo "size_t $(1)_count(void) { return $$$$(perl -ne '/TOTAL_KEYWORDS = (.+?),/ && print $$$$1' $$@.tmp); }" >>$$@.tmp
-	$$(Q)mv $$@.tmp $$@
-endef
-
-add_confitems_numbers = \
-    perl -pae '$$$$s = 1 if /^%%/; s/ITEM/$$$$n++ . ", ITEM"/e if $$$$s == 1'
-
-$(eval $(call generate_gperf_lookup,confitems,$(add_confitems_numbers)))
-$(eval $(call generate_gperf_lookup,envtoconfitems,cat))
 
 .PHONY: dist
 dist: $(dist_archives)
@@ -212,7 +187,7 @@ cppcheck:
 	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
 	  --inline-suppr -q --enable=all --force -I . \
 	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
-	  $(non_third_party_sources) src/confitems_lookup.cpp src/main.cpp $(test_sources)
+	  $(non_third_party_sources) src/main.cpp $(test_sources)
 
 .PHONY: shellcheck
 shellcheck: test/suites/*.bash

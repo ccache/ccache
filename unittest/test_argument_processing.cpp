@@ -18,22 +18,20 @@
 
 // This file contains tests for the processing of compiler arguments.
 
+#include "../src/Config.hpp"
 #include "../src/ccache.hpp"
-#include "../src/conf.hpp"
 #include "framework.hpp"
 #include "util.hpp"
 
-extern struct conf* conf;
-
-static char*
-get_root(void)
+static std::string
+get_root()
 {
 #ifndef _WIN32
-  return x_strdup("/");
+  return "/";
 #else
   char volume[4]; // "C:\"
   GetVolumePathName(get_cwd(), volume, sizeof(volume));
-  return x_strdup(volume);
+  return volume;
 #endif
 }
 
@@ -124,7 +122,7 @@ TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  conf->run_second_cpp = false;
+  g_config.set_run_second_cpp(false);
   CHECK(cc_process_args(orig, &act_cpp, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
@@ -150,7 +148,7 @@ TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  conf->run_second_cpp = true;
+  g_config.set_run_second_cpp(true);
   CHECK(cc_process_args(orig, &act_cpp, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
@@ -183,8 +181,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
   struct args *act_cpp = NULL, *act_cc = NULL;
 
   create_file("foo.c", "");
-  free(conf->base_dir);
-  conf->base_dir = get_root();
+  g_config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc --sysroot=%s/foo/bar -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -206,8 +203,7 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
   struct args *act_cpp = NULL, *act_cc = NULL;
 
   create_file("foo.c", "");
-  free(conf->base_dir);
-  conf->base_dir = get_root();
+  g_config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc --sysroot %s/foo -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -392,8 +388,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
   struct args *act_cpp = NULL, *act_cc = NULL;
 
   create_file("foo.c", "");
-  free(conf->base_dir);
-  conf->base_dir = get_root();
+  g_config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc -isystem %s/foo -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -416,8 +411,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   struct args *act_cpp = NULL, *act_cc = NULL;
 
   create_file("foo.c", "");
-  free(conf->base_dir);
-  conf->base_dir = x_strdup("/"); // posix
+  g_config.set_base_dir("/"); // posix
   current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
   cwd = get_posix_path(current_working_dir);
@@ -443,8 +437,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   struct args *act_cpp = NULL, *act_cc = NULL;
 
   create_file("foo.c", "");
-  free(conf->base_dir);
-  conf->base_dir = x_strdup("/"); // posix
+  g_config.set_base_dir(x_strdup("/")); // posix
   current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
   cwd = get_posix_path(current_working_dir);

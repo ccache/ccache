@@ -21,7 +21,6 @@
 
 #include "system.hpp"
 
-#include "conf.hpp"
 #include "counters.hpp"
 
 #include "third_party/minitrace.h"
@@ -38,6 +37,9 @@
 #ifndef MYNAME
 #  define MYNAME "ccache"
 #endif
+
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)
 
 extern const char CCACHE_VERSION[];
 
@@ -118,6 +120,8 @@ extern enum guessed_compiler guessed_compiler;
 
 // Buffer size for I/O operations. Should be a multiple of 4 KiB.
 #define READ_BUFFER_SIZE 65536
+
+class Config;
 
 // ----------------------------------------------------------------------------
 // args.c
@@ -250,14 +254,14 @@ void exitfn_call(void);
 // ----------------------------------------------------------------------------
 // cleanup.c
 
-void clean_up_dir(struct conf* conf, const char* dir, double limit_multiple);
-void clean_up_all(struct conf* conf);
-void wipe_all(struct conf* conf);
+void clean_up_dir(const Config& config, const char* dir, double limit_multiple);
+void clean_up_all(const Config& config);
+void wipe_all(const Config& config);
 
 // ----------------------------------------------------------------------------
 // compress.c
 
-void compress_stats(struct conf* conf);
+void compress_stats(const Config& config);
 
 // ----------------------------------------------------------------------------
 // execute.c

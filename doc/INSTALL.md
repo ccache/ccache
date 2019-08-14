@@ -14,7 +14,6 @@ To build ccache from a source repository, you need:
 - [xsltproc](http://xmlsoft.org/XSLT/xsltproc2.html) to build the man page.
 - [Autoconf](https://www.gnu.org/software/autoconf/) to generate the configure
   script and related files.
-- [gperf](https://www.gnu.org/software/gperf/) to create lookup tables.
 - [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
   and can't or don't want to install it on your system, you can pass
   `--with-libb2-from-internet` to the configure script, which will make the

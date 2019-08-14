@@ -7,7 +7,6 @@ RUN dnf install -y \
                 bash \
                 asciidoc \
                 autoconf \
-                gperf \
                 libzstd-devel \
         && rpm -e --nodeps graphviz \
         && dnf autoremove -y \

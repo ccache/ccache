@@ -32,7 +32,6 @@
 #include <unistd.h>
 
 extern char* stats_file;
-extern struct conf* conf;
 extern unsigned lock_staleness_limit;
 extern char* primary_config_path;
 extern char* secondary_config_path;
@@ -266,9 +265,9 @@ stats_collect(struct counters* counters, time_t* last_updated)
     char* fname;
 
     if (dir == -1) {
-      fname = format("%s/stats", conf->cache_dir);
+      fname = format("%s/stats", g_config.cache_dir().c_str());
     } else {
-      fname = format("%s/%1x/stats", conf->cache_dir, dir);
+      fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
     }
 
     counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
@@ -318,9 +317,7 @@ stats_read(const char* sfile, struct counters* counters)
 static void
 stats_flush_to_file(const char* sfile, struct counters* updates)
 {
-  assert(conf);
-
-  if (!conf->stats) {
+  if (!g_config.stats()) {
     return;
   }
 
@@ -344,7 +341,8 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
 
     // A NULL sfile means that we didn't get past calculate_object_hash(), so
     // we just choose one of stats files in the 16 subdirectories.
-    stats_dir = format("%s/%x", conf->cache_dir, hash_from_int(getpid()) % 16);
+    stats_dir = format(
+      "%s/%x", g_config.cache_dir().c_str(), hash_from_int(getpid()) % 16);
     sfile = format("%s/stats", stats_dir);
     free(stats_dir);
   }
@@ -361,7 +359,7 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
   stats_write(sfile, counters);
   lockfile_release(sfile);
 
-  if (!str_eq(conf->log_file, "") || conf->debug) {
+  if (!g_config.log_file().empty() || g_config.debug()) {
     for (int i = 0; i < STATS_END; ++i) {
       if (updates->data[stats_info[i].stat] != 0
           && !(stats_info[i].flags & FLAG_NOZERO)) {
@@ -373,25 +371,25 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
   char* subdir = x_dirname(sfile);
   bool need_cleanup = false;
 
-  if (conf->max_files != 0
-      && counters->data[STATS_NUMFILES] > conf->max_files / 16) {
+  if (g_config.max_files() != 0
+      && counters->data[STATS_NUMFILES] > g_config.max_files() / 16) {
     cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
            subdir,
            counters->data[STATS_NUMFILES],
-           conf->max_files / 16);
+           g_config.max_files() / 16);
     need_cleanup = true;
   }
-  if (conf->max_size != 0
-      && counters->data[STATS_TOTALSIZE] > conf->max_size / 1024 / 16) {
+  if (g_config.max_size() != 0
+      && counters->data[STATS_TOTALSIZE] > g_config.max_size() / 1024 / 16) {
     cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
            subdir,
            counters->data[STATS_TOTALSIZE],
-           (unsigned long)conf->max_size / 1024 / 16);
+           (unsigned long)g_config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
 
   if (need_cleanup) {
-    clean_up_dir(conf, subdir, conf->limit_multiple);
+    clean_up_dir(g_config, subdir, g_config.limit_multiple());
   }
 
   free(subdir);
@@ -428,13 +426,12 @@ stats_get_pending(enum stats stat)
 void
 stats_summary(void)
 {
-  assert(conf);
-
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
   stats_collect(counters, &last_updated);
 
-  printf("cache directory                     %s\n", conf->cache_dir);
+  printf("cache directory                     %s\n",
+         g_config.cache_dir().c_str());
   printf("primary config                      %s\n",
          primary_config_path ? primary_config_path : "");
   printf("secondary config      (readonly)    %s\n",
@@ -475,11 +472,11 @@ stats_summary(void)
     }
   }
 
-  if (conf->max_files != 0) {
-    printf("max files                       %8u\n", conf->max_files);
+  if (g_config.max_files() != 0) {
+    printf("max files                       %8u\n", g_config.max_files());
   }
-  if (conf->max_size != 0) {
-    char* value = format_size(conf->max_size);
+  if (g_config.max_size() != 0) {
+    char* value = format_size(g_config.max_size());
     printf("max cache size                  %s\n", value);
     free(value);
   }
@@ -491,8 +488,6 @@ stats_summary(void)
 void
 stats_print(void)
 {
-  assert(conf);
-
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
   stats_collect(counters, &last_updated);
@@ -512,9 +507,7 @@ stats_print(void)
 void
 stats_zero(void)
 {
-  assert(conf);
-
-  char* fname = format("%s/stats", conf->cache_dir);
+  char* fname = format("%s/stats", g_config.cache_dir().c_str());
   x_unlink(fname);
   free(fname);
 
@@ -523,7 +516,7 @@ stats_zero(void)
   for (int dir = 0; dir <= 0xF; dir++) {
     struct counters* counters = counters_init(STATS_END);
     struct stat st;
-    fname = format("%s/%1x/stats", conf->cache_dir, dir);
+    fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
     if (stat(fname, &st) != 0) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);

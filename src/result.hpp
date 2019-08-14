@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "conf.hpp"
+#include <cstdio>
 
 extern const char RESULT_MAGIC[4];
 #define RESULT_VERSION 1

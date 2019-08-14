@@ -17,12 +17,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "Config.hpp"
 #include "ccache.hpp"
 
-extern struct conf* conf;
-
-static char*
-find_executable_in_path(const char* name, const char* exclude_name, char* path);
+static char* find_executable_in_path(const char* name,
+                                     const char* exclude_name,
+                                     const char* path);
 
 #ifdef _WIN32
 // Re-create a win32 command line string based on **argv.
@@ -298,7 +298,7 @@ find_executable(const char* name, const char* exclude_name)
     return x_strdup(name);
   }
 
-  char* path = conf->path;
+  const char* path = g_config.path().c_str();
   if (str_eq(path, "")) {
     path = getenv("PATH");
   }
@@ -311,14 +311,16 @@ find_executable(const char* name, const char* exclude_name)
 }
 
 static char*
-find_executable_in_path(const char* name, const char* exclude_name, char* path)
+find_executable_in_path(const char* name,
+                        const char* exclude_name,
+                        const char* path)
 {
-  path = x_strdup(path);
+  char* path_buf = x_strdup(path);
 
   // Search the path looking for the first compiler of the right name that
   // isn't us.
   char* saveptr = NULL;
-  for (char* tok = strtok_r(path, PATH_DELIM, &saveptr); tok;
+  for (char* tok = strtok_r(path_buf, PATH_DELIM, &saveptr); tok;
        tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
@@ -330,7 +332,7 @@ find_executable_in_path(const char* name, const char* exclude_name, char* path)
     }
     (void)exclude_name;
     if (ret) {
-      free(path);
+      free(path_buf);
       return x_strdup(namebuf);
     }
 #else
@@ -355,14 +357,14 @@ find_executable_in_path(const char* name, const char* exclude_name, char* path)
       }
 
       // Found it!
-      free(path);
+      free(path_buf);
       return fname;
     }
     free(fname);
 #endif
   }
 
-  free(path);
+  free(path_buf);
   return NULL;
 }
 
