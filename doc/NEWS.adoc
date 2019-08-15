@@ -1,6 +1,33 @@
 ccache news
 ===========
 
+ccache 4.0
+----------
+Unreleased
+
+High-level summary of changes (work in progress)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Compilation results are now stored in single aggregated files; before up to
+  seven files per cached result were used.
+
+- Result files are now compressed by the real-time compression algorithm
+  Zstandard by default.
+
+- BLAKE2b is now used instead of MD4 for hashing input.
+
+- Added checksumming of result files using XXH64 to detect data corruption.
+
+- Made the hard link mode less error prone.
+
+- Added opt-in support for using file cloning (on Btrfs/XFS/APFS) to copy data
+  to and from the cache.
+
+- A C++11 compiler is now required to build ccache.
+
+- (More to be written.)
+
+
 ccache 3.7.2
 ------------
 Release date: 2019-07-19
