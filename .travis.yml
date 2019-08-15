@@ -100,7 +100,7 @@ matrix:
   # Job 10: Linux GCC with CUDA compiler
   - os: linux
     compiler: gcc
-    env: V=1 CUDA=8.0.61-1 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CUDA=10.1.243-1 ENABLE_CACHE_CLEANUP_TESTS=1
     sudo: required
     addons:
       apt:
