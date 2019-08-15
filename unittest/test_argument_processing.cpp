@@ -489,10 +489,10 @@ TEST(debug_flag_order_with_known_option_last)
 TEST(options_not_to_be_passed_to_the_preprocesor)
 {
   struct args* orig = args_init_from_string(
-    "cc -Wa,foo foo.c -g -Xlinker fie -Xlinker,fum -c -Werror");
-  struct args* exp_cpp = args_init_from_string("cc -g");
-  struct args* exp_cc =
-    args_init_from_string("cc -g -Wa,foo -Xlinker fie -Xlinker,fum -Werror -c");
+    "cc -Wa,foo foo.c -g -c -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error");
+  struct args* exp_cpp = args_init_from_string("cc -g -DX");
+  struct args* exp_cc = args_init_from_string(
+    "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c");
   struct args* act_cpp = NULL;
   struct args* act_cc = NULL;
 
