@@ -13,8 +13,11 @@ Bug fixes
   e.g. ecryptfs or btrfs/zfs with transparent compression. This also fixes a
   related problem with ccache's own test suite.
 
+- Fixed a regression in 3.7.2 when using the compiler option “-Werror” and then
+  “-Wno-error” later on the command line.
 
-ccache 3.7.2
+
+ccache 4.7.2
 ------------
 Release date: 2019-07-19
 
