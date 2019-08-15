@@ -434,7 +434,7 @@ stats_summary(void)
          g_config.cache_dir().c_str());
   printf("primary config                      %s\n",
          primary_config_path ? primary_config_path : "");
-  printf("secondary config      (readonly)    %s\n",
+  printf("secondary config (readonly)         %s\n",
          secondary_config_path ? secondary_config_path : "");
   if (last_updated > 0) {
     struct tm tm;
