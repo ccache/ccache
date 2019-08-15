@@ -234,7 +234,7 @@ read_embedded_file_entry(struct decompressor* decompressor,
         char buf[READ_BUFFER_SIZE];
         size_t remain = file_len;
         while (remain > 0) {
-          size_t n = MIN(remain, sizeof(buf));
+          size_t n = std::min(remain, sizeof(buf));
           READ_BYTES(buf, n);
           if (fwrite(buf, 1, n, subfile) != n) {
             goto out;
@@ -254,7 +254,7 @@ read_embedded_file_entry(struct decompressor* decompressor,
     char buf[READ_BUFFER_SIZE];
     size_t remain = file_len;
     while (remain > 0) {
-      size_t n = MIN(remain, sizeof(buf));
+      size_t n = std::min(remain, sizeof(buf));
       READ_BYTES(buf, n);
       remain -= n;
     }
@@ -521,7 +521,7 @@ write_embedded_file_entry(struct compressor* compressor,
   }
   remain = file->size;
   while (remain > 0) {
-    size_t n = MIN(remain, sizeof(buf));
+    size_t n = std::min(remain, sizeof(buf));
     if (fread(buf, 1, n, f) != n) {
       goto error;
     }

@@ -3737,7 +3737,8 @@ ccache(int argc, char* argv[])
   cc_log("Hostname: %s", get_hostname());
   cc_log("Working directory: %s", get_current_working_dir());
 
-  g_config.set_limit_multiple(MIN(MAX(g_config.limit_multiple(), 0.0), 1.0));
+  g_config.set_limit_multiple(
+    std::min(std::max(g_config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
   guessed_compiler = guess_compiler(orig_args->argv[0]);

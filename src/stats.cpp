@@ -272,7 +272,8 @@ stats_collect(struct counters* counters, time_t* last_updated)
 
     counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
     stats_read(fname, counters);
-    zero_timestamp = MAX(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
+    zero_timestamp =
+      std::max(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
     if (stat(fname, &st) == 0 && st.st_mtime > *last_updated) {
       *last_updated = st.st_mtime;
     }

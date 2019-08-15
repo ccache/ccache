@@ -596,7 +596,8 @@ get_file_info_index(struct manifest* mf,
 
   struct stat file_stat;
   if (stat(path, &file_stat) != -1) {
-    if (time_of_compilation > MAX(file_stat.st_mtime, file_stat.st_ctime)) {
+    if (time_of_compilation
+        > std::max(file_stat.st_mtime, file_stat.st_ctime)) {
       fi.mtime = file_stat.st_mtime;
       fi.ctime = file_stat.st_ctime;
     } else {

@@ -19,6 +19,7 @@
 #include "ccache.hpp"
 #include "compression.hpp"
 
+#include <algorithm>
 #include <zstd.h>
 
 #define DEFAULT_ZSTD_COMPRESSION_LEVEL -1
@@ -59,7 +60,7 @@ compr_zstd_init(FILE* output, int8_t level, XXH64_state_t* checksum)
     level = 1;
   }
 
-  state->compression_level = MIN(level, ZSTD_maxCLevel());
+  state->compression_level = std::min<int>(level, ZSTD_maxCLevel());
   if (state->compression_level != level) {
     cc_log("Using compression level %d (max libzstd level) instead of %d",
            state->compression_level,

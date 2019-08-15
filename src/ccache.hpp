@@ -329,10 +329,3 @@ void add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
 #  define DIR_DELIM_CH '/'
 #  define PATH_DELIM ":"
 #endif
-
-#ifndef MAX
-#  define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-#ifndef MIN
-#  define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif

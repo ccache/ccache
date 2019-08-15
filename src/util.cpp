@@ -221,7 +221,7 @@ vlog(const char* format, va_list ap, bool log_updated_time)
     char buf[8192];
     int len = vsnprintf(buf, sizeof(buf), format, aq);
     if (len >= 0) {
-      append_to_debug_log(buf, MIN((size_t)len, sizeof(buf) - 1));
+      append_to_debug_log(buf, std::min((size_t)len, sizeof(buf) - 1));
       append_to_debug_log("\n", 1);
     }
   }
