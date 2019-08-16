@@ -17,7 +17,7 @@ Bug fixes
   “-Wno-error” later on the command line.
 
 
-ccache 4.7.2
+ccache 3.7.2
 ------------
 Release date: 2019-07-19
 
