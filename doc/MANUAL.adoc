@@ -47,7 +47,7 @@ Features
 * Checksums data in the cache to detect corruption.
 * Optionally uses file cloning (AKA “copy on write” or reflinks) to avoid
   copies (not supported by all file systems).
-* Optionally uses hard links avoid copies (there are caveats, though).
+* Optionally uses hard links avoid copies.
 
 
 Limitations
