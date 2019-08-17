@@ -31,6 +31,7 @@ ccache is a collective work with contributions from many people, including:
 * Havard Graff
 * Hongli Lai
 * Ivan Vaigult
+* Ivan Volnov
 * Jiang Jiang
 * Joel Galenson
 * Joel Rosdahl
