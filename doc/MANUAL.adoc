@@ -268,7 +268,7 @@ Below is a list of available configuration settings. The corresponding
 environment variable name is indicated in parentheses after each configuration
 setting key.
 
-*base_dir* (*CCACHE_BASEDIR*)::
+[[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
     This setting should be an absolute path to a directory. ccache then
     rewrites absolute paths into relative paths before computing the hash that
@@ -282,24 +282,24 @@ setting key.
 See also the discussion under <<_compiling_in_different_directories,COMPILING
 IN DIFFERENT DIRECTORIES>>.
 
-*cache_dir* (*CCACHE_DIR*)::
+[[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 
     This setting specifies where ccache will keep its cached compiler outputs.
     It will only take effect if set in the system-wide configuration file or as
     an environment variable. The default is *$HOME/.ccache*.
 
-*cache_dir_levels* (*CCACHE_NLEVELS*)::
+[[config_cache_dir_levels]] *cache_dir_levels* (*CCACHE_NLEVELS*)::
 
     This setting allows you to choose the number of directory levels in the
     cache directory. The default is 2. The minimum is 1 and the maximum is 8.
 
-*compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
+[[config_compiler]] *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
 
     This setting can be used to force the name of the compiler to use. If set
     to the empty string (which is the default), ccache works it out from the
     command line.
 
-*compiler_check* (*CCACHE_COMPILERCHECK*)::
+[[config_compiler_check]] *compiler_check* (*CCACHE_COMPILERCHECK*)::
 
     By default, ccache includes the modification time (``mtime'') and size of
     the compiler in the hash to ensure that results retrieved from the cache
@@ -359,7 +359,7 @@ WRAPPERS>>.
 --
 --
 
-*compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
+[[config_compression]] *compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will compress data it puts in the cache. However, this
     setting has no effect on how files are retrieved from the cache; compressed
@@ -374,7 +374,7 @@ case the compression performed by ccache of course is redundant.
 Compression will be disabled if file cloning (the *file_clone* setting) or hard
 linking (the *hard_link* setting) is enabled.
 
-*compression_level* (*CCACHE_COMPRESSLEVEL*)::
+[[config_compression_level]] *compression_level* (*CCACHE_COMPRESSLEVEL*)::
 
     This setting determines the level at which ccache will compress object
     files using the real-time compression algorithm Zstandard. The setting only
@@ -401,7 +401,7 @@ Semantics of *compression_level*:
     *-1*.
 --
 
-*cpp_extension* (*CCACHE_EXTENSION*)::
+[[config_cpp_extension]] *cpp_extension* (*CCACHE_EXTENSION*)::
 
     This setting can be used to force a certain extension for the intermediate
     preprocessed file. The default is to automatically determine the extension
@@ -409,35 +409,35 @@ Semantics of *compression_level*:
     compiled, but that sometimes doesn't work. For example, when using the
     ``aCC'' compiler on HP-UX, set the cpp extension to *i*.
 
-*debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
+[[config_debug]] *debug* (*CCACHE_DEBUG* or *CCACHE_NODEBUG*, see <<_boolean_values,Boolean values>> above)::
 
     If true, enable the debug mode. The debug mode creates per-object debug
     files that are helpful when debugging unexpected cache misses. Note however
     that ccache performance will be reduced slightly. See
     <<_cache_debugging,debugging>> for more information. The default is false.
 
-*depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see <<_boolean_values,Boolean values>> above)::
+[[config_depend_mode]] *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the depend mode will be used. The default is false. See
     <<_the_depend_mode,THE DEPEND MODE>>.
 
-*direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
+[[config_direct_mode]] *direct_mode* (*CCACHE_DIRECT* or *CCACHE_NODIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     If true, the direct mode will be used. The default is true. See
     <<_the_direct_mode,THE DIRECT MODE>>.
 
-*disable* (*CCACHE_DISABLE* or *CCACHE_NODISABLE*, see <<_boolean_values,Boolean values>> above)::
+[[config_disable]] *disable* (*CCACHE_DISABLE* or *CCACHE_NODISABLE*, see <<_boolean_values,Boolean values>> above)::
 
     When true, ccache will just call the real compiler, bypassing the cache
     completely. The default is false.
 
-*extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
+[[config_extra_files_to_hash]] *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
     This setting is a list of paths to files that ccache will include in the
     the hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
-*file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see <<_boolean_values,Boolean values>> above)::
+[[config_file_clone]] *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use file cloning (also known as “copy on
     write”, “CoW” or “reflinks”) to store and fetch cached compiler results.
@@ -451,7 +451,7 @@ Unlike the *hard_link* setting, *file_clone* is completely safe to use, but not
 all file systems support the feature. For such file systems, ccache will fall
 back to use plain copying (or hard links if *hard_link* is enabled).
 
-*hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
+[[config_hard_link]] *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use hard links to store and fetch cached
     compiler results. The default is false.
@@ -481,7 +481,7 @@ WARNING: Do not enable this option unless you are aware of these caveats:
   *file.o* in build tree A as well. This can retrigger relinking in build tree
   A even though nothing really has changed.
 
-*hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
+[[config_hash_dir]] *hash_dir* (*CCACHE_HASHDIR* or *CCACHE_NOHASHDIR*, see <<_boolean_values,Boolean values>> above)::
 
     If true (which is the default), ccache will include the current working
     directory (CWD) in the hash that is used to distinguish two compilations
@@ -500,7 +500,7 @@ You can disable this setting to get cache hits when compiling the same source
 code in different directories if you don't mind that CWD in the debug info
 might be incorrect.
 
-*ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
+[[config_ignore_headers_in_manifest]] *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
     This setting is a list of paths to files (or directories with headers) that
     ccache will *not* include in the manifest list that makes up the direct
@@ -508,18 +508,18 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
-*keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
+[[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not discard the comments before hashing preprocessor
     output. This can be used to check documentation with *-Wdocumentation*.
 
-*limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
+[[config_limit_multiple]] *limit_multiple* (*CCACHE_LIMIT_MULTIPLE*)::
 
     Sets the limit when cleaning up. Files are deleted (in LRU order) until the
     levels are below the limit. The default is 0.8 (= 80%). See
     <<_automatic_cleanup,AUTOMATIC CLEANUP>> for more information.
 
-*log_file* (*CCACHE_LOGFILE*)::
+[[config_log_file]] *log_file* (*CCACHE_LOGFILE*)::
 
     If set to a file path, ccache will write information on what it is doing to
     the specified file. This is useful for tracking down problems.
@@ -535,20 +535,20 @@ file in `/etc/rsyslog.d`:
 & ~
 -------------------------------------------------------------------------------
 
-*max_files* (*CCACHE_MAXFILES*)::
+[[config_max_files]] *max_files* (*CCACHE_MAXFILES*)::
 
     This option specifies the maximum number of files to keep in the cache. Use
     0 for no limit (which is the default). See also
     <<_cache_size_management,CACHE SIZE MANAGEMENT>>.
 
-*max_size* (*CCACHE_MAXSIZE*)::
+[[config_max_size]] *max_size* (*CCACHE_MAXSIZE*)::
 
     This option specifies the maximum size of the cache. Use 0 for no limit.
     The default value is 5G. Available suffixes: k, M, G, T (decimal) and Ki,
     Mi, Gi, Ti (binary). The default suffix is G. See also
     <<_cache_size_management,CACHE SIZE MANAGEMENT>>.
 
-*path* (*CCACHE_PATH*)::
+[[config_path]] *path* (*CCACHE_PATH*)::
 
     If set, ccache will search directories in this list when looking for the
     real compiler. The list separator is semicolon on Windows systems and colon
@@ -556,7 +556,7 @@ file in `/etc/rsyslog.d`:
     matching the compiler name in the normal *PATH* that isn't a symbolic link
     to ccache itself.
 
-*pch_external_checksum* (*CCACHE_PCH_EXTSUM* or *CCACHE_NOPCH_EXTSUM*, see <<_boolean_values,Boolean values>> above)::
+[[config_pch_external_checksum]] *pch_external_checksum* (*CCACHE_PCH_EXTSUM* or *CCACHE_NOPCH_EXTSUM*, see <<_boolean_values,Boolean values>> above)::
 
     When this option is set, and ccache finds a precompiled header file,
     ccache will look for a file with the extension ``.sum'' added
@@ -564,37 +564,37 @@ file in `/etc/rsyslog.d`:
     of the precompiled header itself to work around the performance
     penalty of hashing very large files.
 
-*prefix_command* (*CCACHE_PREFIX*)::
+[[config_prefix_command]] *prefix_command* (*CCACHE_PREFIX*)::
 
     This option adds a list of prefixes (separated by space) to the command
     line that ccache uses when invoking the compiler. See also
     <<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER
     COMPILER WRAPPERS>>.
 
-*prefix_command_cpp* (*CCACHE_PREFIX_CPP*)::
+[[config_prefix_command_cpp]] *prefix_command_cpp* (*CCACHE_PREFIX_CPP*)::
 
     This option adds a list of prefixes (separated by space) to the command
     line that ccache uses when invoking the preprocessor.
 
-*read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see <<_boolean_values,Boolean values>> above)::
+[[config_read_only]] *read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use existing cached object files, but it
     will not to try to add anything new to the cache. If you are using this
     because your ccache directory is read-only, then you need to set
     *temporary_dir* as otherwise ccache will fail to create temporary files.
 
-*read_only_direct* (*CCACHE_READONLY_DIRECT* or *CCACHE_NOREADONLY_DIRECT*, see <<_boolean_values,Boolean values>> above)::
+[[config_read_only_direct]] *read_only_direct* (*CCACHE_READONLY_DIRECT* or *CCACHE_NOREADONLY_DIRECT*, see <<_boolean_values,Boolean values>> above)::
 
     Just like *read_only* except that ccache will only try to retrieve results
     from the cache using the direct mode, not the preprocessor mode. See
     documentation for *read_only* regarding using a read-only ccache directory.
 
-*recache* (*CCACHE_RECACHE* or *CCACHE_NORECACHE*, see <<_boolean_values,Boolean values>> above)::
+[[config_recache]] *recache* (*CCACHE_RECACHE* or *CCACHE_NORECACHE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not use any previously stored result. New results will
     still be cached, possibly overwriting any pre-existing results.
 
-*run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see <<_boolean_values,Boolean values>> above)::
+[[config_run_second_cpp]] *run_second_cpp* (*CCACHE_CPP2* or *CCACHE_NOCPP2*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will first run the preprocessor to preprocess the source
     code (see <<_the_preprocessor_mode,THE PREPROCESSOR MODE>>) and then on a
@@ -615,7 +615,7 @@ preprocessor information, and only process the *#include* directives. When run
 in this way, the preprocessor arguments will be passed to the compiler since it
 still has to do _some_ preprocessing (like macros).
 
-*sloppiness* (*CCACHE_SLOPPINESS*)::
+[[config_sloppiness]] *sloppiness* (*CCACHE_SLOPPINESS*)::
 
     By default, ccache tries to give as few false cache hits as possible.
     However, in certain situations it's possible that you know things that
@@ -667,12 +667,12 @@ still has to do _some_ preprocessing (like macros).
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
 information.
 
-*stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see <<_boolean_values,Boolean values>> above)::
+[[config_stats]] *stats* (*CCACHE_STATS* or *CCACHE_NOSTATS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will update the statistics counters on each compilation.
     The default is true.
 
-*temporary_dir* (*CCACHE_TEMPDIR*)::
+[[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This setting specifies where ccache will put temporary files. The default
     is *<cache_dir>/tmp*.
@@ -681,14 +681,14 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     filesystem as the *CCACHE_DIR* path, but this requirement has been
     relaxed.)
 
-*umask* (*CCACHE_UMASK*)::
+[[config_umask]] *umask* (*CCACHE_UMASK*)::
 
     This setting specifies the umask for ccache and all child processes (such
     as the compiler). This is mostly useful when you wish to share your cache
     with other users. Note that this also affects the file permissions set on
     the object files created from your compilations.
 
-*unify* (*CCACHE_UNIFY* or *CCACHE_NOUNIFY*, see <<_boolean_values,Boolean values>> above)::
+[[config_unify]] *unify* (*CCACHE_UNIFY* or *CCACHE_NOUNIFY*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will use a C/C++ unifier when hashing the preprocessor
     output if the *-g* option is not used. The unifier is slower than a normal
