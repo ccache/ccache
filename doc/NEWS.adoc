@@ -30,7 +30,7 @@ High-level summary of changes (work in progress)
 
 ccache 3.7.3
 ------------
-Unreleased
+Release date: 2019-08-17
 
 Bug fixes
 ~~~~~~~~~
