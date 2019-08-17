@@ -11,8 +11,8 @@ High-level summary of changes (work in progress)
 - Compilation results are now stored in single aggregated files; before up to
   seven files per cached result were used.
 
-- Result files are now compressed by the real-time compression algorithm
-  Zstandard by default.
+- Result and manifest files are now compressed by the real-time compression
+  algorithm Zstandard by default.
 
 - BLAKE2b is now used instead of MD4 for hashing input.
 
@@ -26,6 +26,19 @@ High-level summary of changes (work in progress)
 - A C++11 compiler is now required to build ccache.
 
 - (More to be written.)
+
+
+ccache 3.7.3
+------------
+Unreleased
+
+Bug fixes
+~~~~~~~~~
+
+- The cache size (which is counted in “used disk blocks”) is now correct on
+  filesystems that use more or less disk blocks than conventional filesystems,
+  e.g. ecryptfs or btrfs/zfs with transparent compression. This also fixes a
+  related problem with ccache's own test suite when run on such file systems.
 
 - Fixed a regression in 3.7.2 when using the compiler option “-Werror” and then
   “-Wno-error” later on the command line.
