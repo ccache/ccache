@@ -24,7 +24,6 @@
 #include "hashutil.hpp"
 #include "int_bytes_conversion.hpp"
 
-#include "third_party/hashtable_itr.h"
 #include "third_party/xxhash.h"
 
 // Manifest data format
@@ -106,10 +105,7 @@ const char MANIFEST_MAGIC[4] = {'c', 'C', 'm', 'F'};
 static const uint32_t MAX_MANIFEST_ENTRIES = 100;
 static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
 
-#define ccache_static_assert(e)                                                \
-  do {                                                                         \
-    enum { ccache_static_assert__ = 1 / (e) };                                 \
-  } while (false)
+namespace {
 
 struct file
 {
@@ -117,7 +113,7 @@ struct file
   char* path;        // NUL-terminated
 };
 
-struct file_info
+struct FileInfo
 {
   // Index to n_files.
   uint32_t index;
@@ -130,6 +126,30 @@ struct file_info
   // ctime of referenced file.
   int64_t ctime;
 };
+
+bool
+operator==(const FileInfo& lhs, const FileInfo& rhs)
+{
+  return lhs.index == rhs.index && digests_equal(&lhs.digest, &rhs.digest)
+         && lhs.fsize == rhs.fsize && lhs.mtime == rhs.mtime
+         && lhs.ctime == rhs.ctime;
+}
+
+} // namespace
+
+namespace std {
+
+template<> struct hash<FileInfo>
+{
+  size_t
+  operator()(const FileInfo& file_info) const
+  {
+    static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
+    return XXH64(&file_info, sizeof(file_info), 0);
+  }
+};
+
+} // namespace std
 
 struct result
 {
@@ -151,7 +171,7 @@ struct manifest
 
   // Information about referenced include files.
   uint32_t n_file_infos;
-  struct file_info* file_infos;
+  struct FileInfo* file_infos;
 
   // Result names plus references to include file infos.
   uint32_t n_results;
@@ -164,23 +184,6 @@ struct file_stats
   int64_t mtime;
   int64_t ctime;
 };
-
-static unsigned int
-hash_from_file_info(void* key)
-{
-  ccache_static_assert(sizeof(struct file_info) == 48); // No padding.
-  return XXH64(key, sizeof(struct file_info), 0);
-}
-
-static int
-file_infos_equal(void* key1, void* key2)
-{
-  struct file_info* fi1 = (struct file_info*)key1;
-  struct file_info* fi2 = (struct file_info*)key2;
-  return fi1->index == fi2->index && digests_equal(&fi1->digest, &fi2->digest)
-         && fi1->fsize == fi2->fsize && fi1->mtime == fi2->mtime
-         && fi1->ctime == fi2->ctime;
-}
 
 static void
 free_manifest(struct manifest* mf)
@@ -291,7 +294,7 @@ read_manifest(const char* path, char** errmsg)
 
   READ_UINT32(mf->n_file_infos);
   mf->file_infos =
-    static_cast<file_info*>(x_calloc(mf->n_file_infos, sizeof(file_info)));
+    static_cast<FileInfo*>(x_calloc(mf->n_file_infos, sizeof(FileInfo)));
   for (uint32_t i = 0; i < mf->n_file_infos; i++) {
     READ_UINT32(mf->file_infos[i].index);
     READ_BYTES(mf->file_infos[i].digest.bytes, DIGEST_SIZE);
@@ -454,26 +457,27 @@ static bool
 verify_result(const Config& config,
               struct manifest* mf,
               struct result* result,
-              struct hashtable* stated_files,
-              struct hashtable* hashed_files)
+              std::unordered_map<std::string, file_stats>* stated_files,
+              std::unordered_map<std::string, digest>* hashed_files)
 {
   for (uint32_t i = 0; i < result->n_file_info_indexes; i++) {
-    struct file_info* fi = &mf->file_infos[result->file_info_indexes[i]];
+    struct FileInfo* fi = &mf->file_infos[result->file_info_indexes[i]];
     char* path = mf->files[fi->index].path;
-    auto st = static_cast<file_stats*>(hashtable_search(stated_files, path));
-    if (!st) {
+    auto stated_files_iter = stated_files->find(path);
+    if (stated_files_iter == stated_files->end()) {
       struct stat file_stat;
       if (x_stat(path, &file_stat) != 0) {
         return false;
       }
-      st = static_cast<file_stats*>(x_malloc(sizeof(file_stats)));
-      st->size = file_stat.st_size;
-      st->mtime = file_stat.st_mtime;
-      st->ctime = file_stat.st_ctime;
-      hashtable_insert(stated_files, x_strdup(path), st);
+      file_stats st;
+      st.size = file_stat.st_size;
+      st.mtime = file_stat.st_mtime;
+      st.ctime = file_stat.st_ctime;
+      stated_files_iter = stated_files->emplace(path, st).first;
     }
+    const file_stats& fs = stated_files_iter->second;
 
-    if (fi->fsize != st->size) {
+    if (fi->fsize != fs.size) {
       return false;
     }
 
@@ -481,21 +485,21 @@ verify_result(const Config& config,
     // and will error out if that header is later used without rebuilding.
     if ((guessed_compiler == GUESSED_CLANG
          || guessed_compiler == GUESSED_UNKNOWN)
-        && output_is_precompiled_header && fi->mtime != st->mtime) {
+        && output_is_precompiled_header && fi->mtime != fs.mtime) {
       cc_log("Precompiled header includes %s, which has a new mtime", path);
       return false;
     }
 
     if (config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
       if (!(config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
-        if (fi->mtime == st->mtime && fi->ctime == st->ctime) {
+        if (fi->mtime == fs.mtime && fi->ctime == fs.ctime) {
           cc_log("mtime/ctime hit for %s", path);
           continue;
         } else {
           cc_log("mtime/ctime miss for %s", path);
         }
       } else {
-        if (fi->mtime == st->mtime) {
+        if (fi->mtime == fs.mtime) {
           cc_log("mtime hit for %s", path);
           continue;
         } else {
@@ -504,8 +508,8 @@ verify_result(const Config& config,
       }
     }
 
-    auto actual = static_cast<digest*>(hashtable_search(hashed_files, path));
-    if (!actual) {
+    auto hashed_files_iter = hashed_files->find(path);
+    if (hashed_files_iter == hashed_files->end()) {
       struct hash* hash = hash_init();
       int ret = hash_source_code_file(config, hash, path);
       if (ret & HASH_SOURCE_CODE_ERROR) {
@@ -518,12 +522,13 @@ verify_result(const Config& config,
         return false;
       }
 
-      actual = static_cast<digest*>(malloc(sizeof(digest)));
-      hash_result_as_bytes(hash, actual);
-      hashtable_insert(hashed_files, x_strdup(path), actual);
+      digest actual;
+      hash_result_as_bytes(hash, &actual);
       hash_free(hash);
+      hashed_files_iter = hashed_files->emplace(path, actual).first;
     }
-    if (!digests_equal(&fi->digest, actual)) {
+
+    if (!digests_equal(&fi->digest, &hashed_files_iter->second)) {
       return false;
     }
   }
@@ -531,61 +536,57 @@ verify_result(const Config& config,
   return true;
 }
 
-static struct hashtable*
-create_file_index_map(struct file* files, uint32_t len)
+static void
+create_file_index_map(
+  struct file* files,
+  uint32_t len,
+  std::unordered_map<std::string, uint32_t /*index*/>* mf_files)
 {
-  struct hashtable* h = create_hashtable(1000, hash_from_string, strings_equal);
   for (uint32_t i = 0; i < len; i++) {
-    auto index = static_cast<uint32_t*>(x_malloc(sizeof(uint32_t)));
-    *index = i;
-    hashtable_insert(h, x_strdup(files[i].path), index);
+    mf_files->emplace(files[i].path, i);
   }
-  return h;
 }
 
-static struct hashtable*
-create_file_info_index_map(struct file_info* infos, uint32_t len)
+static void
+create_file_info_index_map(
+  struct FileInfo* infos,
+  uint32_t len,
+  std::unordered_map<FileInfo, uint32_t /*index*/>* mf_file_infos)
 {
-  struct hashtable* h =
-    create_hashtable(1000, hash_from_file_info, file_infos_equal);
   for (uint32_t i = 0; i < len; i++) {
-    auto fi = static_cast<file_info*>(x_malloc(sizeof(file_info)));
-    *fi = infos[i];
-    uint32_t* index = static_cast<uint32_t*>(x_malloc(sizeof(uint32_t)));
-    *index = i;
-    hashtable_insert(h, fi, index);
+    mf_file_infos->emplace(infos[i], i);
   }
-  return h;
 }
 
 static uint32_t
-get_include_file_index(struct manifest* mf,
-                       char* path,
-                       struct hashtable* mf_files)
+get_include_file_index(
+  struct manifest* mf,
+  const std::string& path,
+  const std::unordered_map<std::string, uint32_t>& mf_files)
 {
-  uint32_t* index = static_cast<uint32_t*>(hashtable_search(mf_files, path));
-  if (index) {
-    return *index;
+  auto it = mf_files.find(path);
+  if (it != mf_files.end()) {
+    return it->second;
   }
 
   uint32_t n = mf->n_files;
   mf->files = static_cast<file*>(x_realloc(mf->files, (n + 1) * sizeof(file)));
   mf->n_files++;
-  mf->files[n].path_len = strlen(path);
-  mf->files[n].path = x_strdup(path);
+  mf->files[n].path_len = path.size();
+  mf->files[n].path = x_strdup(path.c_str());
   return n;
 }
 
 static uint32_t
 get_file_info_index(struct manifest* mf,
-                    char* path,
-                    struct digest* digest,
-                    struct hashtable* mf_files,
-                    struct hashtable* mf_file_infos)
+                    const std::string& path,
+                    const digest& digest,
+                    const std::unordered_map<std::string, uint32_t>& mf_files,
+                    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos)
 {
-  struct file_info fi;
+  struct FileInfo fi;
   fi.index = get_include_file_index(mf, path, mf_files);
-  fi.digest = *digest;
+  fi.digest = digest;
 
   // file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
   // file's mtime and ctime only if they're at least one second older than
@@ -595,7 +596,7 @@ get_file_info_index(struct manifest* mf,
   // MAX(mtime, ctime).
 
   struct stat file_stat;
-  if (stat(path, &file_stat) != -1) {
+  if (stat(path.c_str(), &file_stat) != -1) {
     if (time_of_compilation
         > std::max(file_stat.st_mtime, file_stat.st_ctime)) {
       fi.mtime = file_stat.st_mtime;
@@ -611,52 +612,50 @@ get_file_info_index(struct manifest* mf,
     fi.fsize = 0;
   }
 
-  auto fi_index = static_cast<uint32_t*>(hashtable_search(mf_file_infos, &fi));
-  if (fi_index) {
-    return *fi_index;
+  auto it = mf_file_infos.find(fi);
+  if (it != mf_file_infos.end()) {
+    return it->second;
   }
 
   uint32_t n = mf->n_file_infos;
-  mf->file_infos = static_cast<file_info*>(
-    x_realloc(mf->file_infos, (n + 1) * sizeof(file_info)));
+  mf->file_infos = static_cast<FileInfo*>(
+    x_realloc(mf->file_infos, (n + 1) * sizeof(FileInfo)));
   mf->n_file_infos++;
   mf->file_infos[n] = fi;
   return n;
 }
 
 static void
-add_file_info_indexes(uint32_t* indexes,
-                      uint32_t size,
-                      struct manifest* mf,
-                      struct hashtable* included_files)
+add_file_info_indexes(
+  uint32_t* indexes,
+  uint32_t size,
+  struct manifest* mf,
+  const std::unordered_map<std::string, digest>& included_files)
 {
   if (size == 0) {
     return;
   }
 
-  // path --> index
-  struct hashtable* mf_files = create_file_index_map(mf->files, mf->n_files);
-  // struct file_info --> index
-  struct hashtable* mf_file_infos =
-    create_file_info_index_map(mf->file_infos, mf->n_file_infos);
-  struct hashtable_itr* iter = hashtable_iterator(included_files);
+  std::unordered_map<std::string, uint32_t /*index*/> mf_files;
+  create_file_index_map(mf->files, mf->n_files, &mf_files);
+
+  std::unordered_map<FileInfo, uint32_t /*index*/> mf_file_infos;
+  create_file_info_index_map(mf->file_infos, mf->n_file_infos, &mf_file_infos);
+
   uint32_t i = 0;
-  do {
-    auto path = static_cast<char*>(hashtable_iterator_key(iter));
-    auto digest = static_cast<struct digest*>(hashtable_iterator_value(iter));
+  for (const auto& item : included_files) {
+    const auto& path = item.first;
+    const auto& digest = item.second;
     indexes[i] = get_file_info_index(mf, path, digest, mf_files, mf_file_infos);
     i++;
-  } while (hashtable_iterator_advance(iter));
+  }
   assert(i == size);
-
-  hashtable_destroy(mf_file_infos, 1);
-  hashtable_destroy(mf_files, 1);
 }
 
 static void
 add_result_entry(struct manifest* mf,
                  struct digest* result_digest,
-                 struct hashtable* included_files)
+                 const std::unordered_map<std::string, digest>& included_files)
 {
   uint32_t n_results = mf->n_results;
   mf->results = static_cast<result*>(
@@ -664,7 +663,7 @@ add_result_entry(struct manifest* mf,
   mf->n_results++;
   struct result* result = &mf->results[n_results];
 
-  uint32_t n_fii = hashtable_count(included_files);
+  uint32_t n_fii = included_files.size();
   result->n_file_info_indexes = n_fii;
   result->file_info_indexes =
     static_cast<uint32_t*>(x_malloc(n_fii * sizeof(uint32_t)));
@@ -684,18 +683,14 @@ manifest_get(const Config& config, const char* manifest_path)
     return NULL;
   }
 
-  // path --> struct digest
-  struct hashtable* hashed_files =
-    create_hashtable(1000, hash_from_string, strings_equal);
-  // path --> struct file_stats
-  struct hashtable* stated_files =
-    create_hashtable(1000, hash_from_string, strings_equal);
+  std::unordered_map<std::string, file_stats> stated_files;
+  std::unordered_map<std::string, digest> hashed_files;
 
   // Check newest result first since it's a bit more likely to match.
   struct digest* name = NULL;
   for (uint32_t i = mf->n_results; i > 0; i--) {
     if (verify_result(
-          config, mf, &mf->results[i - 1], stated_files, hashed_files)) {
+          config, mf, &mf->results[i - 1], &stated_files, &hashed_files)) {
       name = static_cast<digest*>(x_malloc(sizeof(digest)));
       *name = mf->results[i - 1].name;
       goto out;
@@ -703,12 +698,6 @@ manifest_get(const Config& config, const char* manifest_path)
   }
 
 out:
-  if (hashed_files) {
-    hashtable_destroy(hashed_files, 1);
-  }
-  if (stated_files) {
-    hashtable_destroy(stated_files, 1);
-  }
   free_manifest(mf);
   if (name) {
     // Update modification timestamp to save files from LRU cleanup.
@@ -722,7 +711,7 @@ out:
 bool
 manifest_put(const char* manifest_path,
              struct digest* result_name,
-             struct hashtable* included_files)
+             const std::unordered_map<std::string, digest>& included_files)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
   // race between two processes will only result in one lost entry, which is
@@ -752,10 +741,10 @@ manifest_put(const char* manifest_path,
     free_manifest(mf);
     mf = create_empty_manifest();
   } else if (mf->n_file_infos > MAX_MANIFEST_FILE_INFO_ENTRIES) {
-    // Rarely, file_info entries can grow large in pathological cases where
+    // Rarely, FileInfo entries can grow large in pathological cases where
     // many included files change, but the main file does not. This also puts
-    // an upper bound on the number of file_info entries.
-    cc_log("More than %u file_info entries in manifest file; discarding",
+    // an upper bound on the number of FileInfo entries.
+    cc_log("More than %u FileInfo entries in manifest file; discarding",
            MAX_MANIFEST_FILE_INFO_ENTRIES);
     free_manifest(mf);
     mf = create_empty_manifest();

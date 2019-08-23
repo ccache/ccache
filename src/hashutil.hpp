@@ -25,9 +25,7 @@
 
 #include <inttypes.h>
 
-unsigned hash_from_string(void* str);
 unsigned hash_from_int(int i);
-int strings_equal(void* str1, void* str2);
 
 #define HASH_SOURCE_CODE_OK 0
 #define HASH_SOURCE_CODE_ERROR 1

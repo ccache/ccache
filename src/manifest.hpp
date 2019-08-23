@@ -23,13 +23,12 @@
 #include "Config.hpp"
 #include "hashutil.hpp"
 
-#include "third_party/hashtable.h"
-
 extern const char MANIFEST_MAGIC[4];
 #define MANIFEST_VERSION 2
 
 struct digest* manifest_get(const Config& config, const char* manifest_path);
-bool manifest_put(const char* manifest_path,
-                  struct digest* result_digest,
-                  struct hashtable* included_files);
+bool
+manifest_put(const char* manifest_path,
+             struct digest* result_digest,
+             const std::unordered_map<std::string, digest>& included_files);
 bool manifest_dump(const char* manifest_path, FILE* stream);

@@ -38,9 +38,6 @@
 #include "result.hpp"
 #include "unify.hpp"
 
-#include "third_party/hashtable.h"
-#include "third_party/hashtable_itr.h"
-
 // Global variables used by other compilation units.
 extern char* primary_config_path;
 extern char* secondary_config_path;
@@ -172,7 +169,7 @@ time_t time_of_compilation;
 
 // Files included by the preprocessor and their hashes. Key: file path. Value:
 // struct digest.
-static struct hashtable* included_files = NULL;
+static std::unordered_map<std::string, digest> g_included_files;
 
 // Uses absolute path for some include files.
 static bool has_absolute_include_headers = false;
@@ -574,7 +571,7 @@ get_current_working_dir(void)
 }
 
 // This function hashes an include file and stores the path and hash in the
-// global included_files variable. If the include file is a PCH, cpp_hash is
+// global g_included_files variable. If the include file is a PCH, cpp_hash is
 // also updated. Takes over ownership of path.
 static void
 remember_include_file(char* path,
@@ -601,7 +598,7 @@ remember_include_file(char* path,
     goto out;
   }
 
-  if (hashtable_search(included_files, path)) {
+  if (g_included_files.find(path) != g_included_files.end()) {
     // Already known include file.
     goto out;
   }
@@ -724,15 +721,15 @@ remember_include_file(char* path,
       }
     }
 
-    auto d = static_cast<digest*>(x_malloc(sizeof(digest)));
-    hash_result_as_bytes(fhash, d);
-    hashtable_insert(included_files, path, d);
-    path = NULL; // Ownership transferred to included_files.
+    digest d;
+    hash_result_as_bytes(fhash, &d);
+    g_included_files.emplace(path, d);
+    path = NULL;
 
     if (depend_mode_hash) {
       hash_delimiter(depend_mode_hash, "include");
       char digest[DIGEST_STRING_BUFFER_SIZE];
-      digest_as_string(d, digest);
+      digest_as_string(&d, digest);
       hash_string(depend_mode_hash, digest);
     }
   }
@@ -753,11 +750,9 @@ out:
 static void
 print_included_files(FILE* fp)
 {
-  struct hashtable_itr* iter = hashtable_iterator(included_files);
-  do {
-    char* path = static_cast<char*>(hashtable_iterator_key(iter));
-    fprintf(fp, "%s\n", path);
-  } while (hashtable_iterator_advance(iter));
+  for (const auto& item : g_included_files) {
+    fprintf(fp, "%s\n", item.first.c_str());
+  }
 }
 
 // Make a relative path from current working directory to path if path is under
@@ -831,23 +826,13 @@ make_relative_path(char* path)
   }
 }
 
-static void
-init_included_files_table(void)
-{
-  // (This function may be called multiple times if several -arch options are
-  // used.)
-  if (!included_files) {
-    included_files = create_hashtable(1000, hash_from_string, strings_equal);
-  }
-}
-
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
 // - Makes include file paths for which the base directory is a prefix relative
 //   when computing the hash sum.
 // - Stores the paths and hashes of included files in the global variable
-//   included_files.
+//   g_included_files.
 static bool
 process_preprocessed_file(struct hash* hash, const char* path, bool pump)
 {
@@ -871,8 +856,6 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
     }
     free(p);
   }
-
-  init_included_files_table();
 
   char* cwd = gnu_getcwd();
 
@@ -1142,8 +1125,6 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
     return NULL;
   }
 
-  init_included_files_table();
-
   char buf[10000];
   while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
     char* saveptr;
@@ -1197,7 +1178,7 @@ send_cached_stderr(const char* path_stderr)
 static void
 update_manifest_file(void)
 {
-  if (!g_config.direct_mode() || !included_files || g_config.read_only()
+  if (!g_config.direct_mode() || g_config.read_only()
       || g_config.read_only_direct()) {
     return;
   }
@@ -1210,7 +1191,7 @@ update_manifest_file(void)
 
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
-  if (manifest_put(manifest_path, cached_result_name, included_files)) {
+  if (manifest_put(manifest_path, cached_result_name, g_included_files)) {
     if (x_stat(manifest_path, &st) == 0) {
       stats_update_size(
         manifest_stats_file, file_size(&st) - old_size, old_size == 0 ? 1 : 0);
@@ -3642,10 +3623,7 @@ cc_reset(void)
   free(ignore_headers);
   ignore_headers = NULL;
   ignore_headers_len = 0;
-  if (included_files) {
-    hashtable_destroy(included_files, 1);
-    included_files = NULL;
-  }
+  g_included_files.clear();
   has_absolute_include_headers = false;
   generating_debuginfo = false;
   generating_debuginfo_level_3 = false;
@@ -3847,7 +3825,7 @@ ccache(int argc, char* argv[])
 
   if (!g_config.depend_mode()) {
     // Find the hash using the preprocessed output. Also updates
-    // included_files.
+    // g_included_files.
     struct hash* cpp_hash = hash_copy(common_hash);
     init_hash_debug(
       cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);

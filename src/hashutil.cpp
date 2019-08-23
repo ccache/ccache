@@ -24,21 +24,9 @@
 #include "third_party/xxhash.h"
 
 unsigned
-hash_from_string(void* str)
-{
-  return XXH64(str, strlen((const char*)str), 0);
-}
-
-unsigned
 hash_from_int(int i)
 {
   return XXH64(&i, sizeof(int), 0);
-}
-
-int
-strings_equal(void* str1, void* str2)
-{
-  return str_eq((const char*)str1, (const char*)str2);
 }
 
 // Search for the strings "__DATE__" and "__TIME__" in str.

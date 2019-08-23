@@ -61,8 +61,6 @@ generated_sources = \
 third_party_sources = \
     src/third_party/format.cpp \
     src/third_party/getopt_long.c \
-    src/third_party/hashtable.c \
-    src/third_party/hashtable_itr.c \
     src/third_party/xxhash.c
 extra_sources = @extra_sources@
 base_sources = $(non_third_party_sources) $(generated_sources) $(third_party_sources) $(extra_sources)

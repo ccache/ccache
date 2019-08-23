@@ -58,9 +58,6 @@ non_third_party_headers = \
 third_party_headers = \
     src/third_party/catch.hpp \
     src/third_party/getopt_long.h \
-    src/third_party/hashtable.h \
-    src/third_party/hashtable_itr.h \
-    src/third_party/hashtable_private.h \
     src/third_party/minitrace.h \
     src/third_party/xxhash.h
 headers = $(non_third_party_headers) $(third_party_headers)
