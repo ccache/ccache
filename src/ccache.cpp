@@ -1451,8 +1451,6 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
       cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
              first_level_dir,
              strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
     }
     free(first_level_dir);
 
