@@ -1777,6 +1777,22 @@ base_name(const std::string& path)
 }
 
 std::string
+dir_name(const std::string& path)
+{
+  size_t n = path.rfind('/');
+#ifdef _WIN32
+  size_t n2 = path.rfind('\\');
+  if (n2 != std::string::npos && n2 > n) {
+    n = n2;
+  }
+#endif
+  if (n == std::string::npos) {
+    return ".";
+  }
+  return n == 0 ? "/" : path.substr(0, n);
+}
+
+std::string
 read_file(const std::string& path)
 {
   std::ifstream file(path);

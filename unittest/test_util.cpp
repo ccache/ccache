@@ -30,6 +30,16 @@ TEST_CASE("util::base_name")
   CHECK(util::base_name("/foo/bar/f.txt") == "f.txt");
 }
 
+TEST_CASE("util::dir_name")
+{
+  CHECK(util::dir_name("") == ".");
+  CHECK(util::dir_name(".") == ".");
+  CHECK(util::dir_name("foo") == ".");
+  CHECK(util::dir_name("/") == "/");
+  CHECK(util::dir_name("/foo") == "/");
+  CHECK(util::dir_name("/foo/bar/f.txt") == "/foo/bar");
+}
+
 TEST_CASE("util::read_file and util::write_file")
 {
   util::write_file("test", "foo\nbar\n");
