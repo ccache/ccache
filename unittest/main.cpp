@@ -16,10 +16,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "catch2_tests.hpp"
 #include "framework.hpp"
-
-#define CATCH_CONFIG_RUNNER
-#include <catch.hpp>
 
 unsigned suite_args(unsigned);
 unsigned suite_argument_processing(unsigned);
@@ -60,8 +58,7 @@ main(int argc, char** argv)
   cct_chdir(testdir);
 
   // Run Catch2 tests.
-  Catch::Session session;
-  int result = session.run(argc, argv);
+  int result = run_catch2_tests(argc, argv);
 
   // Run legacy tests.
   if (result == 0) {

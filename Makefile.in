@@ -85,7 +85,10 @@ test_suites += unittest/test_lockfile.cpp
 test_suites += unittest/test_stats.cpp
 test_suites += unittest/test_util.cpp
 
-test_sources = unittest/main.cpp unittest/framework.cpp unittest/util.cpp
+test_sources += unittest/catch2_tests.cpp
+test_sources += unittest/framework.cpp
+test_sources += unittest/main.cpp
+test_sources += unittest/util.cpp
 test_sources += $(test_suites)
 test_objs = $(test_sources:.cpp=.o)
 

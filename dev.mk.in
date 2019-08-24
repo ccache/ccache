@@ -92,7 +92,9 @@ source_dist_files = \
     src/main.cpp \
     src/third_party/minitrace.c \
     test/run \
-    test/suites/*.bash
+    test/suites/*.bash \
+    unittest/catch2_tests.cpp \
+    unittest/catch2_tests.hpp
 
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
