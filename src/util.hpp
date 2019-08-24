@@ -24,6 +24,9 @@
 
 namespace util {
 
+// Get base name of path.
+std::string base_name(const std::string& path);
+
 // Read file data as a string.
 std::string read_file(const std::string& path);
 

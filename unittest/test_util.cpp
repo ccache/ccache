@@ -20,6 +20,16 @@
 
 #include <catch.hpp>
 
+TEST_CASE("util::base_name")
+{
+  CHECK(util::base_name("") == "");
+  CHECK(util::base_name(".") == ".");
+  CHECK(util::base_name("foo") == "foo");
+  CHECK(util::base_name("/") == "");
+  CHECK(util::base_name("/foo") == "foo");
+  CHECK(util::base_name("/foo/bar/f.txt") == "f.txt");
+}
+
 TEST_CASE("util::read_file and util::write_file")
 {
   util::write_file("test", "foo\nbar\n");

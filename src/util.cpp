@@ -1764,6 +1764,19 @@ time_seconds(void)
 namespace util {
 
 std::string
+base_name(const std::string& path)
+{
+  size_t n = path.rfind('/');
+#ifdef _WIN32
+  size_t n2 = path.rfind('\\');
+  if (n2 != std::string::npos && n2 > n) {
+    n = n2;
+  }
+#endif
+  return n == std::string::npos ? path : path.substr(n + 1);
+}
+
+std::string
 read_file(const std::string& path)
 {
   std::ifstream file(path);
