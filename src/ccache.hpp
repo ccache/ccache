@@ -167,7 +167,6 @@ int create_dir(const char* dir);
 int create_parent_dirs(const char* path);
 const char* get_hostname(void);
 const char* tmp_string(void);
-int create_cachedirtag(const char* dir);
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void format_hex(const uint8_t* data, size_t size, char* buffer);
 void reformat(char** ptr, const char* format, ...) ATTR_FORMAT(printf, 2, 3);

@@ -38,6 +38,8 @@
 #include "result.hpp"
 #include "unify.hpp"
 
+#include <fstream>
+
 // Global variables used by other compilation units.
 extern char* primary_config_path;
 extern char* secondary_config_path;
@@ -1213,6 +1215,38 @@ update_cached_result_globals(struct digest* result_name)
     format("%s/%c/stats", g_config.cache_dir().c_str(), result_name_string[0]);
 }
 
+static bool
+create_cachedir_tag(const std::string& dir)
+{
+  static char const cachedir_tag[] =
+    "Signature: 8a477f597d28d172789f06886806bc55\n"
+    "# This file is a cache directory tag created by ccache.\n"
+    "# For information about cache directory tags, see:\n"
+    "#\thttp://www.brynosaurus.com/cachedir/\n";
+
+  std::string filename = fmt::format("{}/CACHEDIR.TAG", dir);
+  struct stat st;
+
+  if (stat(filename.c_str(), &st) == 0) {
+    if (S_ISREG(st.st_mode)) {
+      return true;
+    }
+    errno = EEXIST;
+    return false;
+  }
+
+  std::ofstream f(filename);
+  if (!f) {
+    return false;
+  }
+  f << cachedir_tag;
+  if (!f) {
+    return false;
+  }
+
+  return true;
+}
+
 // Run the real compiler and put the result in cache.
 static void
 to_cache(struct args* args, struct hash* depend_mode_hash)
@@ -1447,8 +1481,8 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   // save the stat call if we exit early.
   {
     char* first_level_dir = x_dirname(stats_file);
-    if (create_cachedirtag(first_level_dir) != 0) {
-      cc_log("Failed to create %s/CACHEDIR.TAG (%s)\n",
+    if (!create_cachedir_tag(first_level_dir) != 0) {
+      cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
              first_level_dir,
              strerror(errno));
     }

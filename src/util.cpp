@@ -648,46 +648,6 @@ tmp_string(void)
   return ret;
 }
 
-static char const CACHEDIR_TAG[] =
-  "Signature: 8a477f597d28d172789f06886806bc55\n"
-  "# This file is a cache directory tag created by ccache.\n"
-  "# For information about cache directory tags, see:\n"
-  "#\thttp://www.brynosaurus.com/cachedir/\n";
-
-int
-create_cachedirtag(const char* dir)
-{
-  char* filename = format("%s/CACHEDIR.TAG", dir);
-  FILE* f;
-  struct stat st;
-
-  if (stat(filename, &st) == 0) {
-    if (S_ISREG(st.st_mode)) {
-      goto success;
-    }
-    errno = EEXIST;
-    goto error;
-  }
-
-  f = fopen(filename, "w");
-  if (!f) {
-    goto error;
-  }
-  if (fwrite(CACHEDIR_TAG, sizeof(CACHEDIR_TAG) - 1, 1, f) != 1) {
-    fclose(f);
-    goto error;
-  }
-  if (fclose(f)) {
-    goto error;
-  }
-success:
-  free(filename);
-  return 0;
-error:
-  free(filename);
-  return 1;
-}
-
 // Construct a string according to a format. Caller frees.
 char*
 format(const char* format, ...)
