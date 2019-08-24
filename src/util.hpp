@@ -31,6 +31,8 @@ std::string base_name(const std::string& path);
 std::string dir_name(const std::string& path);
 
 // Read file data as a string.
+//
+// Throws Error on error.
 std::string read_file(const std::string& path);
 
 // Return true if prefix is a prefix of string.
@@ -44,6 +46,8 @@ strip_whitespace(const std::string& string);
 [[gnu::warn_unused_result]] std::string to_lowercase(const std::string& string);
 
 // Write file data from a string.
+//
+// Throws Error on error.
 void write_file(const std::string& path,
                 const std::string& data,
                 bool binary = false);
