@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "../src/system.hpp"
 
 bool path_exists(const char* path);
 bool is_symlink(const char* path);
