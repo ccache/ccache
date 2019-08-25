@@ -141,7 +141,7 @@
 // ============================================================================
 
 typedef unsigned (*suite_fn)(unsigned);
-int cct_run(suite_fn* suites, int verbose);
+int cct_run(const suite_fn* suites, int verbose);
 
 void cct_suite_begin(const char* name);
 void cct_suite_end(void);

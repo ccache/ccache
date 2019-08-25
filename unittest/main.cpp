@@ -32,22 +32,24 @@ unsigned suite_legacy_util(unsigned);
 unsigned suite_lockfile(unsigned);
 unsigned suite_stats(unsigned);
 
+const suite_fn k_legacy_suites[] = {
+  &suite_args,
+  &suite_argument_processing,
+  &suite_compopt,
+  &suite_compr_type_none,
+  &suite_compr_type_zstd,
+  &suite_counters,
+  &suite_hash,
+  &suite_hashutil,
+  &suite_legacy_util,
+  &suite_lockfile,
+  &suite_stats,
+  NULL,
+};
+
 int
 main(int argc, char** argv)
 {
-  suite_fn legacy_suites[] = {&suite_args,
-                              &suite_argument_processing,
-                              &suite_compopt,
-                              &suite_compr_type_none,
-                              &suite_compr_type_zstd,
-                              &suite_counters,
-                              &suite_hash,
-                              &suite_hashutil,
-                              &suite_legacy_util,
-                              &suite_lockfile,
-                              &suite_stats,
-                              NULL};
-
 #ifdef _WIN32
   x_setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
@@ -63,7 +65,7 @@ main(int argc, char** argv)
   // Run legacy tests.
   if (result == 0) {
     bool verbose = false;
-    result = cct_run(legacy_suites, verbose);
+    result = cct_run(k_legacy_suites, verbose);
   }
 
   if (result == 0) {

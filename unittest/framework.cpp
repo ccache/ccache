@@ -63,9 +63,9 @@ plural_s(unsigned n)
 }
 
 int
-cct_run(suite_fn* suites, int verbose_output)
+cct_run(const suite_fn* suites, int verbose_output)
 {
-  suite_fn* suite;
+  const suite_fn* suite;
   int tty = is_tty(1);
 
   x_unsetenv("GCC_COLORS"); // Avoid confusing argument processing tests.
