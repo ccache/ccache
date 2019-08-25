@@ -391,9 +391,9 @@ get_umask(void)
 bool
 clone_file(const char* src, const char* dest, bool via_tmp_file)
 {
-  bool result;
-
 #ifdef FILE_CLONING_SUPPORTED
+
+  bool result;
 
 #  if defined(__linux__)
   int src_fd = open(src, O_RDONLY);
@@ -440,17 +440,17 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   result = clonefile(src, dest, CLONE_NOOWNERCOPY) == 0;
 #  endif
 
+  return result;
+
 #else // FILE_CLONING_SUPPORTED
 
   (void)src;
   (void)dest;
   (void)via_tmp_file;
   errno = EOPNOTSUPP;
-  result = false;
+  return false;
 
 #endif // FILE_CLONING_SUPPORTED
-
-  return result;
 }
 
 // Copy a file from src to dest. If via_tmp_file is true, the file is copied to
