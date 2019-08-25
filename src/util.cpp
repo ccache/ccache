@@ -508,61 +508,6 @@ move_file(const char* src, const char* dest)
   return ok;
 }
 
-// Make sure a directory exists.
-int
-create_dir(const char* dir)
-{
-  struct stat st;
-  if (stat(dir, &st) == 0) {
-    if (S_ISDIR(st.st_mode)) {
-      return 0;
-    }
-    errno = ENOTDIR;
-    return 1;
-  }
-  if (mkdir(dir, 0777) != 0 && errno != EEXIST) {
-    return 1;
-  }
-  return 0;
-}
-
-// Create directories leading to path. Returns 0 on success, otherwise -1.
-int
-create_parent_dirs(const char* path)
-{
-  int res;
-  char* parent = x_dirname(path);
-  struct stat st;
-  if (stat(parent, &st) == 0) {
-    if (S_ISDIR(st.st_mode)) {
-      res = 0;
-    } else {
-      res = -1;
-      errno = ENOTDIR;
-    }
-  } else {
-    res = create_parent_dirs(parent);
-    if (res == 0) {
-      res = mkdir(parent, 0777);
-      // Have to handle the condition of the directory already existing because
-      // the file system could have changed in between calling stat and
-      // actually creating the directory. This can happen when there are
-      // multiple instances of ccache running and trying to create the same
-      // directory chain, which usually is the case when the cache root does
-      // not initially exist. As long as one of the processes creates the
-      // directories then our condition is satisfied and we avoid a race
-      // condition.
-      if (res != 0 && errno == EEXIST) {
-        res = 0;
-      }
-    } else {
-      res = -1;
-    }
-  }
-  free(parent);
-  return res;
-}
-
 // Return a static string with the current hostname.
 const char*
 get_hostname(void)
@@ -1226,7 +1171,7 @@ create_tmp_fd(char** fname)
   char* tmpl = format("%s.%s", *fname, tmp_string());
   int fd = mkstemp(tmpl);
   if (fd == -1 && errno == ENOENT) {
-    if (create_parent_dirs(*fname) != 0) {
+    if (!util::create_dir(util::dir_name(*fname))) {
       fatal("Failed to create directory %s: %s",
             x_dirname(*fname),
             strerror(errno));
@@ -1774,6 +1719,33 @@ base_name(const std::string& path)
   }
 #endif
   return n == std::string::npos ? path : path.substr(n + 1);
+}
+
+bool
+create_dir(const std::string& dir)
+{
+  struct stat st;
+  if (stat(dir.c_str(), &st) == 0) {
+    if (S_ISDIR(st.st_mode)) {
+      return true;
+    } else {
+      errno = ENOTDIR;
+      return false;
+    }
+  } else {
+    if (!create_dir(util::dir_name(dir))) {
+      return false;
+    }
+    int result = mkdir(dir.c_str(), 0777);
+    // Treat an already existing directory as OK since the file system could
+    // have changed in between calling stat and actually creating the
+    // directory. This can happen when there are multiple instances of ccache
+    // running and trying to create the same directory chain, which usually is
+    // the case when the cache root does not initially exist. As long as one of
+    // the processes creates the directories then our condition is satisfied
+    // and we avoid a race condition.
+    return result == 0 || errno == EEXIST;
+  }
 }
 
 std::string

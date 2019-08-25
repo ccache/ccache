@@ -27,6 +27,11 @@ namespace util {
 // Get base name of path.
 std::string base_name(const std::string& path);
 
+// Create a directory if needed, including its parents if needed.
+//
+// Returns true if the directory exists or could be created, otherwise false.
+bool create_dir(const std::string& dir);
+
 // Get directory name of path.
 std::string dir_name(const std::string& path);
 

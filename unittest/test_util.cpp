@@ -30,6 +30,19 @@ TEST_CASE("util::base_name")
   CHECK(util::base_name("/foo/bar/f.txt") == "f.txt");
 }
 
+TEST_CASE("util::create_dir")
+{
+  CHECK(util::create_dir("/"));
+
+  CHECK(util::create_dir("create/dir"));
+  struct stat st;
+  CHECK(stat("create/dir", &st) == 0);
+  CHECK(S_ISDIR(st.st_mode));
+
+  util::write_file("create/dir/file", "");
+  CHECK(!util::create_dir("create/dir/file"));
+}
+
 TEST_CASE("util::dir_name")
 {
   CHECK(util::dir_name("") == ".");

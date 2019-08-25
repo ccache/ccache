@@ -163,8 +163,6 @@ bool copy_fd(int fd_in, int fd_out);
 bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);
 bool move_file(const char* src, const char* dest);
-int create_dir(const char* dir);
-int create_parent_dirs(const char* path);
 const char* get_hostname(void);
 const char* tmp_string(void);
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);

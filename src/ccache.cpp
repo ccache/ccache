@@ -3432,7 +3432,7 @@ out:
 static void
 create_initial_config_file(const char* path)
 {
-  if (create_parent_dirs(path) != 0) {
+  if (!util::create_dir(util::dir_name(path))) {
     return;
   }
 

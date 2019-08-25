@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "ccache.hpp"
+#include "util.hpp"
 
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale
@@ -49,7 +50,7 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
       cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
       if (saved_errno == ENOENT) {
         // Directory doesn't exist?
-        if (create_parent_dirs(lockfile) == 0) {
+        if (util::create_dir(util::dir_name(lockfile))) {
           // OK. Retry.
           continue;
         }
@@ -104,7 +105,7 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
     cc_log("lockfile_acquire: symlink %s: %s", lockfile, strerror(saved_errno));
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
-      if (create_parent_dirs(lockfile) == 0) {
+      if (util::create_dir(util::dir_name(lockfile))) {
         // OK. Retry.
         continue;
       }
