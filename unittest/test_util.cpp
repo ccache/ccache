@@ -53,6 +53,24 @@ TEST_CASE("util::dir_name")
   CHECK(util::dir_name("/foo/bar/f.txt") == "/foo/bar");
 }
 
+TEST_CASE("util::ends_with")
+{
+  CHECK(util::ends_with("", ""));
+  CHECK(util::ends_with("x", ""));
+  CHECK(util::ends_with("x", "x"));
+  CHECK(util::ends_with("xy", ""));
+  CHECK(util::ends_with("xy", "y"));
+  CHECK(util::ends_with("xy", "xy"));
+  CHECK(util::ends_with("xyz", ""));
+  CHECK(util::ends_with("xyz", "z"));
+  CHECK(util::ends_with("xyz", "yz"));
+  CHECK(util::ends_with("xyz", "xyz"));
+
+  CHECK_FALSE(util::ends_with("", "x"));
+  CHECK_FALSE(util::ends_with("x", "y"));
+  CHECK_FALSE(util::ends_with("x", "xy"));
+}
+
 TEST_CASE("util::read_file and util::write_file")
 {
   util::write_file("test", "foo\nbar\n");

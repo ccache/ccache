@@ -35,6 +35,9 @@ bool create_dir(const std::string& dir);
 // Get directory name of path.
 std::string dir_name(const std::string& path);
 
+// Return true if suffix is a suffix of string.
+bool ends_with(const std::string& string, const std::string& suffix);
+
 // Read file data as a string.
 //
 // Throws Error on error.

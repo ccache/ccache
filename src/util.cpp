@@ -1764,6 +1764,15 @@ dir_name(const std::string& path)
   return n == 0 ? "/" : path.substr(0, n);
 }
 
+bool
+ends_with(const std::string& string, const std::string& suffix)
+{
+  return suffix.length() <= string.length()
+         && string.compare(
+              string.length() - suffix.length(), suffix.length(), suffix)
+              == 0;
+}
+
 std::string
 read_file(const std::string& path)
 {
