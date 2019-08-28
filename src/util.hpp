@@ -31,6 +31,10 @@ namespace util {
 
 typedef std::function<void(double)> ProgressReceiver;
 typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
+typedef std::function<void(const std::string& /*dir_path*/,
+                           const ProgressReceiver& /*progress_receiver*/)>
+  SubdirVisitor;
+
 // Get base name of path.
 std::string base_name(const std::string& path);
 
@@ -44,6 +48,17 @@ std::string dir_name(const std::string& path);
 
 // Return true if suffix is a suffix of string.
 bool ends_with(const std::string& string, const std::string& suffix);
+
+// Call a function for each subdir (0-9a-f) in the cache.
+//
+// Parameters:
+// - cache_dir: Path to the cache directory.
+// - visitor: Function to call with directory path and progress_receiver as
+//   arguments.
+// - progress_receiver: Function that will be called for progress updates.
+void for_each_level_1_subdir(const std::string& cache_dir,
+                             const SubdirVisitor& visitor,
+                             const ProgressReceiver& progress_receiver);
 
 // Get a list of files in a level 1 subdirectory of the cache.
 //

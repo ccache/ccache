@@ -1827,6 +1827,22 @@ get_level_1_files(const std::string& dir,
   get_cache_files_internal(dir, 1, progress_receiver, files);
 }
 
+void
+for_each_level_1_subdir(const std::string& cache_dir,
+                        const SubdirVisitor& subdir_visitor,
+                        const ProgressReceiver& progress_receiver)
+{
+  for (int i = 0; i <= 0xF; i++) {
+    double progress = 1.0 * i / 16;
+    progress_receiver(progress);
+    std::string subdir_path = fmt::format("{}/{:x}", cache_dir, i);
+    subdir_visitor(subdir_path, [&](double inner_progress) {
+      progress_receiver(progress + inner_progress / 16);
+    });
+  }
+  progress_receiver(1.0);
+}
+
 std::string
 read_file(const std::string& path)
 {

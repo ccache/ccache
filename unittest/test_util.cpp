@@ -71,6 +71,37 @@ TEST_CASE("util::ends_with")
   CHECK_FALSE(util::ends_with("x", "xy"));
 }
 
+TEST_CASE("util::for_each_level_1_subdir")
+{
+  std::vector<std::string> actual;
+  util::for_each_level_1_subdir(
+    "cache_dir",
+    [&](const std::string& subdir, const util::ProgressReceiver&) {
+      actual.push_back(subdir);
+    },
+    [](double) {});
+
+  std::vector<std::string> expected = {
+    "cache_dir/0",
+    "cache_dir/1",
+    "cache_dir/2",
+    "cache_dir/3",
+    "cache_dir/4",
+    "cache_dir/5",
+    "cache_dir/6",
+    "cache_dir/7",
+    "cache_dir/8",
+    "cache_dir/9",
+    "cache_dir/a",
+    "cache_dir/b",
+    "cache_dir/c",
+    "cache_dir/d",
+    "cache_dir/e",
+    "cache_dir/f",
+  };
+  CHECK(actual == expected);
+}
+
 TEST_CASE("util::get_level_1_files")
 {
   util::create_dir("e/m/p/t/y");
