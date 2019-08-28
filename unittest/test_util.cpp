@@ -71,6 +71,57 @@ TEST_CASE("util::ends_with")
   CHECK_FALSE(util::ends_with("x", "xy"));
 }
 
+TEST_CASE("util::get_level_1_files")
+{
+  util::create_dir("e/m/p/t/y");
+
+  util::create_dir("0/1");
+  util::create_dir("0/f/c");
+  util::write_file("0/file_a", "");
+  util::write_file("0/1/file_b", "1");
+  util::write_file("0/1/file_c", "12");
+  util::write_file("0/f/c/file_d", "123");
+
+  std::vector<std::shared_ptr<CacheFile>> files;
+  auto null_receiver = [](double) {};
+
+  SECTION("nonexistent subdirectory")
+  {
+    util::get_level_1_files("2", null_receiver, files);
+    CHECK(files.empty());
+  }
+
+  SECTION("empty subdirectory")
+  {
+    util::get_level_1_files("e", null_receiver, files);
+    CHECK(files.empty());
+  }
+
+  SECTION("simple case")
+  {
+    util::get_level_1_files("0", null_receiver, files);
+    REQUIRE(files.size() == 4);
+
+    // Files within a level are in arbitrary order, sort them to be able to
+    // verify them.
+    std::sort(files.begin(),
+              files.end(),
+              [](const std::shared_ptr<CacheFile>& f1,
+                 const std::shared_ptr<CacheFile>& f2) {
+                return f1->path() < f2->path();
+              });
+
+    CHECK(files[0]->path() == "0/1/file_b");
+    CHECK(files[0]->stat().st_size == 1);
+    CHECK(files[1]->path() == "0/1/file_c");
+    CHECK(files[1]->stat().st_size == 2);
+    CHECK(files[2]->path() == "0/f/c/file_d");
+    CHECK(files[2]->stat().st_size == 3);
+    CHECK(files[3]->path() == "0/file_a");
+    CHECK(files[3]->stat().st_size == 0);
+  }
+}
+
 TEST_CASE("util::read_file and util::write_file")
 {
   util::write_file("test", "foo\nbar\n");

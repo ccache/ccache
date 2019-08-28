@@ -20,10 +20,17 @@
 
 #include "system.hpp"
 
+#include "CacheFile.hpp"
+
+#include <functional>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace util {
 
+typedef std::function<void(double)> ProgressReceiver;
+typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
 // Get base name of path.
 std::string base_name(const std::string& path);
 
@@ -37,6 +44,25 @@ std::string dir_name(const std::string& path);
 
 // Return true if suffix is a suffix of string.
 bool ends_with(const std::string& string, const std::string& suffix);
+
+// Get a list of files in a level 1 subdirectory of the cache.
+//
+// The function works under the assumption that directory entries with one
+// character names (except ".") are subdirectories and that there are no other
+// subdirectories.
+//
+// Files ignored:
+// - CACHEDIR.TAG
+// - stats
+// - .nfs* (temporary NFS files that may be left for open but deleted files).
+//
+// Parameters:
+// - dir: The directory to traverse recursively.
+// - progress_receiver: Function that will be called for progress updates.
+// - files: Found files.
+void get_level_1_files(const std::string& dir,
+                       const ProgressReceiver& progress_receiver,
+                       std::vector<std::shared_ptr<CacheFile>>& files);
 
 // Read file data as a string.
 //

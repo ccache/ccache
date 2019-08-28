@@ -1706,6 +1706,52 @@ time_seconds(void)
 #endif
 }
 
+namespace {
+
+void
+get_cache_files_internal(const std::string& dir,
+                         uint8_t level,
+                         const util::ProgressReceiver& progress_receiver,
+                         std::vector<std::shared_ptr<CacheFile>>& files)
+{
+  DIR* d = opendir(dir.c_str());
+  if (!d) {
+    return;
+  }
+
+  std::vector<std::string> directories;
+  dirent* de;
+  while ((de = readdir(d))) {
+    std::string name = de->d_name;
+    if (name == "" || name == "." || name == ".." || name == "CACHEDIR.TAG"
+        || name == "stats" || util::starts_with(name, ".nfs")) {
+      continue;
+    }
+
+    if (name.length() == 1) {
+      directories.push_back(name);
+    } else {
+      files.push_back(
+        std::make_shared<CacheFile>(fmt::format("{}/{}", dir, name)));
+    }
+  }
+  closedir(d);
+
+  if (level == 1) {
+    progress_receiver(1.0 / (directories.size() + 1));
+  }
+
+  for (size_t i = 0; i < directories.size(); ++i) {
+    get_cache_files_internal(
+      dir + "/" + directories[i], level + 1, progress_receiver, files);
+    if (level == 1) {
+      progress_receiver(1.0 * (i + 1) / (directories.size() + 1));
+    }
+  }
+}
+
+} // namespace
+
 namespace util {
 
 std::string
@@ -1771,6 +1817,14 @@ ends_with(const std::string& string, const std::string& suffix)
          && string.compare(
               string.length() - suffix.length(), suffix.length(), suffix)
               == 0;
+}
+
+void
+get_level_1_files(const std::string& dir,
+                  const ProgressReceiver& progress_receiver,
+                  std::vector<std::shared_ptr<CacheFile>>& files)
+{
+  get_cache_files_internal(dir, 1, progress_receiver, files);
 }
 
 std::string
