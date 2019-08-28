@@ -33,6 +33,7 @@ Q=$(if $(quiet),@)
 non_third_party_sources = \
     src/AtomicFile.cpp \
     src/Config.cpp \
+    src/ProgressBar.cpp \
     src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \

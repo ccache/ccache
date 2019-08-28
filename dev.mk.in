@@ -38,6 +38,7 @@ non_third_party_headers = \
     src/AtomicFile.hpp \
     src/Config.hpp \
     src/Error.hpp \
+    src/ProgressBar.hpp \
     src/ccache.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
