@@ -772,7 +772,15 @@ make_relative_path(char* path)
 
 #ifdef _WIN32
   if (path[0] == '/') {
-    path++; // Skip leading slash.
+    char *p = NULL;
+    if (isalpha(path[1]) && path[2] == '/') {
+      // Transform /c/path... to c:/path...
+      p = format("%c:/%s", path[1], &path[3]);
+    } else {
+      p = x_strdup(path+1); // Skip leading slash.
+    }
+    free(path);
+    path = p;
   }
 #endif
 
