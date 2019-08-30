@@ -785,6 +785,10 @@ print_included_files(FILE *fp)
 static char *
 make_relative_path(char *path)
 {
+    if(path[0] == '=') { // Remove first char if string starts with "="
+        path++;
+    }
+
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
 	}
