@@ -1540,6 +1540,13 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	double user_compile = time_diff(&before.ru_utime, &after.ru_utime);
 	double sys_compile = time_diff(&before.ru_stime, &after.ru_stime);
 	write_cached_time(real_compile, user_compile, sys_compile);
+	double real_cache = time_sec(&start) - start_time;
+	double user_cache = time_sec(&before.ru_utime);
+	double sys_cache = time_sec(&before.ru_stime);
+		fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
+			real_cache, user_cache, sys_cache);
+		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
+			real_compile, user_compile, sys_compile);
 #endif
 
 	struct stat st;
