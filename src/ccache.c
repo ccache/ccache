@@ -1363,6 +1363,54 @@ send_cached_stderr(void)
 	}
 }
 
+#ifdef HAVE_SYS_TIME_H
+static double time_sec(struct timeval *t)
+{
+	return t->tv_sec + t->tv_usec*1e-6;
+}
+
+static double time_diff(struct timeval *a, struct timeval *b)
+{
+	return time_sec(b) - time_sec(a);
+}
+#endif
+
+// Read cached time
+static bool write_cached_time(float real, float user, float sys)
+{
+	FILE *f = fopen(cached_time, "w");
+	if (f) {
+		int w;
+		w = fprintf(f, "real %.2f\n", real);
+		if (w < 0) return false;
+		w = fprintf(f, "user %.2f\n", user);
+		if (w < 0) return false;
+		w = fprintf(f, "sys %.2f\n", sys);
+		if (w < 0) return false;
+		fclose(f);
+		return true;
+	}
+	return false;
+}
+
+// Read cached time
+static bool read_cached_time(double *real, double *user, double *sys)
+{
+	FILE *f = fopen(cached_time, "r");
+	if (f) {
+		int r;
+		r = fscanf(f, "real %lf\n", real);
+		if (r != 1) return false;
+		r = fscanf(f, "user %lf\n", user);
+		if (r != 1) return false;
+		r = fscanf(f, "sys %lf\n", sys);
+		if (r != 1) return false;
+		fclose(f);
+		return true;
+	}
+	return false;
+}
+
 // Create or update the manifest file.
 static void
 update_manifest_file(void)
@@ -1488,18 +1536,9 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 	gettimeofday(&stop, NULL);
 	getrusage(RUSAGE_CHILDREN, &after);
-	FILE *f = fopen(cached_time, "w");
-	if (!f) {
-		cc_log("Failed opening %s: %s", cached_time, strerror(errno));
-		failed();
-	}
-	fprintf(f, "real %.2f\n", (stop.tv_sec + stop.tv_usec*1e-6) -
-	                          (start.tv_sec + start.tv_usec*1e-6));
-	fprintf(f, "user %.2f\n", (after.ru_utime.tv_sec + after.ru_utime.tv_usec*1e-6) -
-	                          (before.ru_utime.tv_sec + before.ru_utime.tv_usec*1e-6));
-	fprintf(f, "sys %.2f\n", (after.ru_stime.tv_sec + after.ru_stime.tv_usec*1e-6) -
-	                         (before.ru_stime.tv_sec + before.ru_stime.tv_usec*1e-6));
-	fclose(f);
+	write_cached_time(time_diff(&start, &stop),
+	                  time_diff(&before.ru_utime, &after.ru_utime),
+			  time_diff(&before.ru_stime, &after.ru_stime));
 #endif
 
 	struct stat st;
@@ -2407,6 +2446,26 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (put_object_in_manifest) {
 		update_manifest_file();
 	}
+
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+	double real;
+	double user;
+	double sys;
+	if (read_cached_time(&real, &user, &sys)) {
+		struct timeval now;
+		struct rusage usage;
+		gettimeofday(&now, NULL);
+		getrusage(RUSAGE_SELF, &usage);
+		fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
+			time_sec(&now) - start_time,
+			time_sec(&usage.ru_utime),
+			time_sec(&usage.ru_stime));
+		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
+			real,
+			user,
+			sys);
+	}
+#endif
 
 	// Log the cache hit.
 	switch (mode) {
