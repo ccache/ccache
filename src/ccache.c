@@ -1381,11 +1381,11 @@ static bool write_cached_time(float real, float user, float sys)
 	FILE *f = fopen(cached_time, "w");
 	if (f) {
 		int w;
-		w = fprintf(f, "real %.2f\n", real);
+		w = fprintf(f, "real %.6f\n", real);
 		if (w < 0) return false;
-		w = fprintf(f, "user %.2f\n", user);
+		w = fprintf(f, "user %.6f\n", user);
 		if (w < 0) return false;
-		w = fprintf(f, "sys %.2f\n", sys);
+		w = fprintf(f, "sys %.6f\n", sys);
 		if (w < 0) return false;
 		fclose(f);
 		return true;
