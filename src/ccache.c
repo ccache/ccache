@@ -1547,6 +1547,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			real_cache, user_cache, sys_cache);
 		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
 			real_compile, user_compile, sys_compile);
+		fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
+			100 * (user_cache + sys_cache + user_compile + sys_compile) / (user_compile + sys_compile),
+			(user_compile + sys_compile) / (user_cache + sys_cache + user_compile + sys_compile),
+			user_cache + sys_cache);
 #endif
 
 	struct stat st;
@@ -2471,6 +2475,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			real_cache, user_cache, sys_cache);
 		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
 			real_compile, user_compile, sys_compile);
+		fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
+			100 * (user_cache + sys_cache) / (user_compile + sys_compile),
+			(user_compile + sys_compile) / (user_cache + sys_cache),
+			(user_cache + sys_cache) - (user_compile + sys_compile));
 	}
 #endif
 
