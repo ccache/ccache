@@ -111,6 +111,9 @@ char *current_working_dir = NULL;
 // The original argument list.
 static struct args *orig_args;
 
+// The program start time (sec).
+static double start_time;
+
 // The source file.
 static char *input_file;
 
@@ -3915,6 +3918,7 @@ ccache(int argc, char *argv[])
 	tzset();
 
 	orig_args = args_init(argc, argv);
+	start_time = time_seconds();
 
 	initialize();
 	MTR_BEGIN("main", "find_compiler");
