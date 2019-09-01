@@ -1536,9 +1536,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 	gettimeofday(&stop, NULL);
 	getrusage(RUSAGE_CHILDREN, &after);
-	write_cached_time(time_diff(&start, &stop),
-	                  time_diff(&before.ru_utime, &after.ru_utime),
-			  time_diff(&before.ru_stime, &after.ru_stime));
+	double real_compile = time_diff(&start, &stop);
+	double user_compile = time_diff(&before.ru_utime, &after.ru_utime);
+	double sys_compile = time_diff(&before.ru_stime, &after.ru_stime);
+	write_cached_time(real_compile, user_compile, sys_compile);
 #endif
 
 	struct stat st;
