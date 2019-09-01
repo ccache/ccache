@@ -667,11 +667,11 @@ stats_summary(void)
 		}
 		if (stat == STATS_TIME_SYS) {
 			double percent = stats_time_cpu(counters);
-			printf("procent cpu                       %6.2f %%\n", percent);
+			printf("cpu utilization                   %6.2f %%\n", percent);
 		}
 		if (stat == STATS_TIME_SAVED) {
 			double percent = stats_time_efficiency(counters);
-			printf("efficiency                        %6.2f %%\n", percent);
+			printf("cache efficiency                  %6.2f %%\n", percent);
 		}
 	}
 
