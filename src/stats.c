@@ -47,7 +47,7 @@ typedef char *(*format_fn)(uint64_t value);
 
 static char *format_size_times_1024(uint64_t size);
 static char *format_timestamp(uint64_t timestamp);
-static char *format_microseconds(uint64_t microseconds);
+static char *format_milliseconds(uint64_t milliseconds);
 static void stats_flush_to_file(const char *sfile, struct counters *updates);
 
 // Statistics fields in display order.
@@ -90,42 +90,42 @@ static struct {
 		STATS_TIME_REAL,
 		"time_real",
 		"time (real)",
-		format_microseconds,
+		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_USER,
 		"time_user",
 		"time (user)",
-		format_microseconds,
+		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_SYS,
 		"time_sys",
 		"time (sys)",
-		format_microseconds,
+		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_CACHE,
 		"time_cache",
 		"time (cache)",
-		format_microseconds,
+		format_milliseconds,
 		0
 	},
 	{
 		STATS_TIME_COMPILE,
 		"time_compile",
 		"time (compile)",
-		format_microseconds,
+		format_milliseconds,
 		0
 	},
 	{
 		STATS_TIME_SAVED,
 		"time_saved",
 		"time (saved)",
-		format_microseconds,
+		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
@@ -335,9 +335,9 @@ format_size(uint64_t size)
 }
 
 static char *
-format_microseconds(uint64_t microseconds)
+format_milliseconds(uint64_t milliseconds)
 {
-	return format("  %6.2f s", microseconds*1e-6);
+	return format("  %6.2f s", milliseconds*1e-3);
 }
 
 static char *
@@ -605,7 +605,7 @@ stats_update_time(enum stats stat, double seconds)
 {
 	assert(stat > STATS_NONE && stat < STATS_END);
 	init_counter_updates();
-	counter_updates->data[stat]+=seconds*1e6;
+	counter_updates->data[stat]+=seconds*1e3; // ms
 }
 
 // Get the pending update of a counter value.
