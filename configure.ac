@@ -80,12 +80,13 @@ AC_HEADER_SYS_WAIT
 
 AC_CHECK_TYPES(long long)
 
-AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/time.h sys/mman.h)
+AC_CHECK_HEADERS(ctype.h pwd.h stdlib.h string.h strings.h sys/resource.h sys/time.h sys/mman.h)
 AC_CHECK_HEADERS(termios.h)
 
 AC_CHECK_FUNCS(gethostname)
 AC_CHECK_FUNCS(getopt_long)
 AC_CHECK_FUNCS(getpwuid)
+AC_CHECK_FUNCS(getrusage)
 AC_CHECK_FUNCS(gettimeofday)
 AC_CHECK_FUNCS(localtime_r)
 AC_CHECK_FUNCS(mkstemp)

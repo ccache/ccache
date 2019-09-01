@@ -32,6 +32,13 @@
 #include "manifest.h"
 #include "unify.h"
 
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
 
@@ -1427,6 +1434,14 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	cc_log("Running real compiler");
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+	struct timeval start;
+	struct rusage before;
+	struct timeval stop;
+	struct rusage after;
+	getrusage(RUSAGE_CHILDREN, &before);
+	gettimeofday(&start, NULL);
+#endif
 	MTR_BEGIN("execute", "compiler");
 	char *tmp_stdout;
 	int tmp_stdout_fd;
@@ -1461,6 +1476,16 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		args_free(depend_mode_args);
 	}
 	MTR_END("execute", "compiler");
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+	gettimeofday(&stop, NULL);
+	getrusage(RUSAGE_CHILDREN, &after);
+	fprintf(stderr, "real %.2f\n", (stop.tv_sec + stop.tv_usec*1e-6) -
+	                               (start.tv_sec + start.tv_usec*1e-6));
+	fprintf(stderr, "user %.2f\n", (after.ru_utime.tv_sec + after.ru_utime.tv_usec*1e-6) -
+	                               (before.ru_utime.tv_sec + before.ru_utime.tv_usec*1e-6));
+	fprintf(stderr, "sys %.2f\n", (after.ru_stime.tv_sec + after.ru_stime.tv_usec*1e-6) -
+	                              (before.ru_stime.tv_sec + before.ru_stime.tv_usec*1e-6));
+#endif
 
 	struct stat st;
 	if (x_stat(tmp_stdout, &st) != 0) {
