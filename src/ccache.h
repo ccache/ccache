@@ -71,6 +71,12 @@ enum stats {
 	STATS_NUMCLEANUPS = 29,
 	STATS_UNSUPPORTED_DIRECTIVE = 30,
 	STATS_ZEROTIMESTAMP = 31,
+	STATS_TIME_REAL = 32,
+	STATS_TIME_USER = 33,
+	STATS_TIME_SYS = 34,
+	STATS_TIME_CACHE = 35,
+	STATS_TIME_COMPILE = 36,
+	STATS_TIME_SAVED = 37,
 
 	STATS_END
 };
@@ -224,6 +230,7 @@ unsigned stats_get_pending(enum stats stat);
 void stats_zero(void);
 void stats_summary(void);
 void stats_print(void);
+void stats_update_time(enum stats stat, double seconds);
 void stats_update_size(const char *sfile, int64_t size, int files);
 void stats_get_obsolete_limits(const char *dir, unsigned *maxfiles,
                                uint64_t *maxsize);

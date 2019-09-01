@@ -47,6 +47,7 @@ typedef char *(*format_fn)(uint64_t value);
 
 static char *format_size_times_1024(uint64_t size);
 static char *format_timestamp(uint64_t timestamp);
+static char *format_microseconds(uint64_t microseconds);
 static void stats_flush_to_file(const char *sfile, struct counters *updates);
 
 // Statistics fields in display order.
@@ -83,6 +84,48 @@ static struct {
 		"cache_miss",
 		"cache miss",
 		NULL,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_TIME_REAL,
+		"time_real",
+		"time (real)",
+		format_microseconds,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_TIME_USER,
+		"time_user",
+		"time (user)",
+		format_microseconds,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_TIME_SYS,
+		"time_sys",
+		"time (sys)",
+		format_microseconds,
+		FLAG_ALWAYS
+	},
+	{
+		STATS_TIME_CACHE,
+		"time_cache",
+		"time (cache)",
+		format_microseconds,
+		0
+	},
+	{
+		STATS_TIME_COMPILE,
+		"time_compile",
+		"time (compile)",
+		format_microseconds,
+		0
+	},
+	{
+		STATS_TIME_SAVED,
+		"time_saved",
+		"time (saved)",
+		format_microseconds,
 		FLAG_ALWAYS
 	},
 	{
@@ -292,6 +335,12 @@ format_size(uint64_t size)
 }
 
 static char *
+format_microseconds(uint64_t microseconds)
+{
+	return format("  %6.2f s", microseconds*1e-6);
+}
+
+static char *
 format_size_times_1024(uint64_t size)
 {
 	return format_size(size * 1024);
@@ -365,6 +414,26 @@ stats_hit_rate(struct counters *counters)
 	unsigned miss = counters->data[STATS_TOCACHE];
 	unsigned total = hit + miss;
 	return total > 0 ? (100.0 * hit) / total : 0.0;
+}
+
+static double
+stats_time_cpu(struct counters *counters)
+{
+	unsigned real = counters->data[STATS_TIME_REAL];
+	unsigned user = counters->data[STATS_TIME_USER];
+	unsigned sys = counters->data[STATS_TIME_SYS];
+	unsigned time = user + sys;
+	return real > 0 ? (100.0 * time) / real : 0.0;
+}
+
+static double
+stats_time_efficiency(struct counters *counters)
+{
+	unsigned cache = counters->data[STATS_TIME_CACHE];
+	unsigned compile = counters->data[STATS_TIME_COMPILE];
+	unsigned saved = counters->data[STATS_TIME_SAVED];
+	unsigned total = cache + compile + saved;
+	return total > 0 ? (100.0 * saved) / total : 0.0;
 }
 
 static void
@@ -530,6 +599,15 @@ stats_update(enum stats stat)
 	counter_updates->data[stat]++;
 }
 
+// Update a time stat.
+void
+stats_update_time(enum stats stat, double seconds)
+{
+	assert(stat > STATS_NONE && stat < STATS_END);
+	init_counter_updates();
+	counter_updates->data[stat]+=seconds*1e6;
+}
+
 // Get the pending update of a counter value.
 unsigned
 stats_get_pending(enum stats stat)
@@ -586,6 +664,14 @@ stats_summary(void)
 		if (stat == STATS_TOCACHE) {
 			double percent = stats_hit_rate(counters);
 			printf("cache hit rate                    %6.2f %%\n", percent);
+		}
+		if (stat == STATS_TIME_SYS) {
+			double percent = stats_time_cpu(counters);
+			printf("procent cpu                       %6.2f %%\n", percent);
+		}
+		if (stat == STATS_TIME_SAVED) {
+			double percent = stats_time_efficiency(counters);
+			printf("efficiency                        %6.2f %%\n", percent);
 		}
 	}
 

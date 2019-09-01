@@ -1551,6 +1551,11 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			100 * (user_cache + sys_cache + user_compile + sys_compile) / (user_compile + sys_compile),
 			(user_compile + sys_compile) / (user_cache + sys_cache + user_compile + sys_compile),
 			user_cache + sys_cache);
+	stats_update_time(STATS_TIME_REAL, real_compile + real_cache);
+	stats_update_time(STATS_TIME_USER, user_compile + user_cache);
+	stats_update_time(STATS_TIME_SYS, sys_compile + sys_cache);
+	stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
+	stats_update_time(STATS_TIME_COMPILE, user_compile + sys_compile);
 #endif
 
 	struct stat st;
@@ -2479,6 +2484,11 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 			100 * (user_cache + sys_cache) / (user_compile + sys_compile),
 			(user_compile + sys_compile) / (user_cache + sys_cache),
 			(user_cache + sys_cache) - (user_compile + sys_compile));
+		stats_update_time(STATS_TIME_REAL, real_cache);
+		stats_update_time(STATS_TIME_USER, user_cache);
+		stats_update_time(STATS_TIME_SYS, sys_cache);
+		stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
+		stats_update_time(STATS_TIME_SAVED, user_compile + sys_compile);
 	}
 #endif
 
