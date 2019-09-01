@@ -152,6 +152,10 @@ static char *cached_obj;
 // (cachedir/a/b/cdef[...]-size.stderr).
 static char *cached_stderr;
 
+// Full path to the file containing the timing information
+// (cachedir/a/b/cdef[...]-size.time).
+static char *cached_time;
+
 // Full path to the file containing the dependency information
 // (cachedir/a/b/cdef[...]-size.d).
 static char *cached_dep;
@@ -1311,6 +1315,7 @@ do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 		// whole cached result for consistency.
 		x_unlink(cached_stderr);
 		x_unlink(cached_obj);
+		x_unlink(cached_time);
 		x_unlink(cached_dep);
 		x_unlink(cached_cov);
 		x_unlink(cached_su);
@@ -1394,6 +1399,7 @@ update_cached_result_globals(struct file_hash *hash)
 	cached_obj_hash = hash;
 	cached_obj = get_path_in_cache(object_name, ".o");
 	cached_stderr = get_path_in_cache(object_name, ".stderr");
+	cached_time = get_path_in_cache(object_name, ".time");
 	cached_dep = get_path_in_cache(object_name, ".d");
 	cached_cov = get_path_in_cache(object_name, ".gcno");
 	cached_su = get_path_in_cache(object_name, ".su");
@@ -1479,12 +1485,18 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 	gettimeofday(&stop, NULL);
 	getrusage(RUSAGE_CHILDREN, &after);
-	fprintf(stderr, "real %.2f\n", (stop.tv_sec + stop.tv_usec*1e-6) -
-	                               (start.tv_sec + start.tv_usec*1e-6));
-	fprintf(stderr, "user %.2f\n", (after.ru_utime.tv_sec + after.ru_utime.tv_usec*1e-6) -
-	                               (before.ru_utime.tv_sec + before.ru_utime.tv_usec*1e-6));
-	fprintf(stderr, "sys %.2f\n", (after.ru_stime.tv_sec + after.ru_stime.tv_usec*1e-6) -
-	                              (before.ru_stime.tv_sec + before.ru_stime.tv_usec*1e-6));
+	FILE *f = fopen(cached_time, "w");
+	if (!f) {
+		cc_log("Failed opening %s: %s", cached_time, strerror(errno));
+		failed();
+	}
+	fprintf(f, "real %.2f\n", (stop.tv_sec + stop.tv_usec*1e-6) -
+	                          (start.tv_sec + start.tv_usec*1e-6));
+	fprintf(f, "user %.2f\n", (after.ru_utime.tv_sec + after.ru_utime.tv_usec*1e-6) -
+	                          (before.ru_utime.tv_sec + before.ru_utime.tv_usec*1e-6));
+	fprintf(f, "sys %.2f\n", (after.ru_stime.tv_sec + after.ru_stime.tv_usec*1e-6) -
+	                         (before.ru_stime.tv_sec + before.ru_stime.tv_usec*1e-6));
+	fclose(f);
 #endif
 
 	struct stat st;
@@ -2370,6 +2382,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	// files a sensible mtime when hard-linking.
 	update_mtime(cached_obj);
 	update_mtime(cached_stderr);
+	update_mtime(cached_time);
 	if (produce_dep_file) {
 		update_mtime(cached_dep);
 	}
@@ -3827,6 +3840,7 @@ cc_reset(void)
 	free(cached_obj_hash); cached_obj_hash = NULL;
 	free(cached_stderr); cached_stderr = NULL;
 	free(cached_obj); cached_obj = NULL;
+	free(cached_time); cached_time = NULL;
 	free(cached_dep); cached_dep = NULL;
 	free(cached_cov); cached_cov = NULL;
 	free(cached_su); cached_su = NULL;
