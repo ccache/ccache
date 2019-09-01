@@ -2448,22 +2448,21 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
-	double real;
-	double user;
-	double sys;
-	if (read_cached_time(&real, &user, &sys)) {
+	double real_compile;
+	double user_compile;
+	double sys_compile;
+	if (read_cached_time(&real_compile, &user_compile, &sys_compile)) {
 		struct timeval now;
 		struct rusage usage;
 		gettimeofday(&now, NULL);
 		getrusage(RUSAGE_SELF, &usage);
+		double real_cache = time_sec(&now) - start_time;
+		double user_cache = time_sec(&usage.ru_utime);
+		double sys_cache = time_sec(&usage.ru_stime);
 		fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
-			time_sec(&now) - start_time,
-			time_sec(&usage.ru_utime),
-			time_sec(&usage.ru_stime));
+			real_cache, user_cache, sys_cache);
 		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
-			real,
-			user,
-			sys);
+			real_compile, user_compile, sys_compile);
 	}
 #endif
 
