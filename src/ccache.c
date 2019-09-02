@@ -1376,7 +1376,7 @@ static double time_diff(struct timeval *a, struct timeval *b)
 #endif
 
 // Read cached time
-static bool write_cached_time(float real, float user, float sys)
+static bool write_cached_time(double real, double user, double sys)
 {
 	FILE *f = fopen(cached_time, "w");
 	if (f) {
