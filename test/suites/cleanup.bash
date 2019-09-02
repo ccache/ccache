@@ -120,7 +120,7 @@ SUITE_cleanup() {
     expect_stat 'cleanups performed' 0
 
     touch empty.c
-    CCACHE_LIMIT_MULTIPLE=0.9 $CCACHE_COMPILE -c empty.c -o empty.o
+    CCACHE_LIMIT_MULTIPLE=0.9 CCACHE_NOTIME=1 $CCACHE_COMPILE -c empty.c -o empty.o
     expect_file_count 159 '*.o' $CCACHE_DIR
     expect_file_count 159 '*.d' $CCACHE_DIR
     expect_file_count 159 '*.stderr' $CCACHE_DIR
@@ -143,7 +143,7 @@ SUITE_cleanup() {
     expect_stat 'cleanups performed' 0
 
     touch empty.c
-    CCACHE_LIMIT_MULTIPLE=0.7 $CCACHE_COMPILE -c empty.c -o empty.o
+    CCACHE_LIMIT_MULTIPLE=0.7 CCACHE_NOTIME=1 $CCACHE_COMPILE -c empty.c -o empty.o
     expect_file_count 157 '*.o' $CCACHE_DIR
     expect_file_count 157 '*.d' $CCACHE_DIR
     expect_file_count 157 '*.stderr' $CCACHE_DIR
