@@ -113,14 +113,14 @@ static struct {
 		"time_cache_ms",
 		"time (cache)",
 		format_milliseconds,
-		FLAG_NORESULT
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_TIME_COMPILE,
 		"time_compile_ms",
 		"time (compile)",
 		format_milliseconds,
-		FLAG_NORESULT
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_TIME_SAVED,
