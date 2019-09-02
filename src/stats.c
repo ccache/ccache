@@ -337,7 +337,7 @@ format_size(uint64_t size)
 static char *
 format_milliseconds(uint64_t milliseconds)
 {
-	return format("  %6.2f s", milliseconds*1e-3);
+	return format("%8.2f s", milliseconds*1e-3);
 }
 
 static char *
