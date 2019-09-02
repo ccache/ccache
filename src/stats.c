@@ -40,6 +40,7 @@ static struct counters *counter_updates;
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
 #define FLAG_NEVER 4 // never show
+#define FLAG_NORESULT 8 // not a result
 
 // Returns a formatted version of a statistics value, or NULL if the statistics
 // line shouldn't be printed. Caller frees.
@@ -91,42 +92,42 @@ static struct {
 		"time_real_ms",
 		"time (real)",
 		format_milliseconds,
-		FLAG_ALWAYS
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_TIME_USER,
 		"time_user_ms",
 		"time (user)",
 		format_milliseconds,
-		FLAG_ALWAYS
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_TIME_SYS,
 		"time_sys_ms",
 		"time (sys)",
 		format_milliseconds,
-		FLAG_ALWAYS
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_TIME_CACHE,
 		"time_cache_ms",
 		"time (cache)",
 		format_milliseconds,
-		0
+		FLAG_NORESULT
 	},
 	{
 		STATS_TIME_COMPILE,
 		"time_compile_ms",
 		"time (compile)",
 		format_milliseconds,
-		0
+		FLAG_NORESULT
 	},
 	{
 		STATS_TIME_SAVED,
 		"time_saved_ms",
 		"time (saved)",
 		format_milliseconds,
-		FLAG_ALWAYS
+		FLAG_ALWAYS|FLAG_NORESULT
 	},
 	{
 		STATS_LINK,
@@ -557,7 +558,8 @@ stats_flush_to_file(const char *sfile, struct counters *updates)
 	if (!str_eq(conf->log_file, "") || conf->debug) {
 		for (int i = 0; i < STATS_END; ++i) {
 			if (updates->data[stats_info[i].stat] != 0
-			    && !(stats_info[i].flags & FLAG_NOZERO)) {
+			    && !(stats_info[i].flags & FLAG_NOZERO)
+			    && !(stats_info[i].flags & FLAG_NORESULT)) {
 				cc_log("Result: %s", stats_info[i].message);
 			}
 		}
