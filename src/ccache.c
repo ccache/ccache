@@ -2472,7 +2472,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		struct timeval now;
 		struct rusage usage;
 		gettimeofday(&now, NULL);
-		getrusage(RUSAGE_SELF, &usage);
+		getrusage(RUSAGE_CHILDREN, &usage);
 		double real_cache = time_sec(&now) - start_time;
 		double user_cache = time_sec(&usage.ru_utime);
 		double sys_cache = time_sec(&usage.ru_stime);
