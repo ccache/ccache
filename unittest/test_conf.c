@@ -18,7 +18,7 @@
 #include "framework.h"
 #include "util.h"
 
-#define N_CONFIG_ITEMS 34
+#define N_CONFIG_ITEMS 35
 static struct {
 	char *descr;
 	char *origin;
@@ -82,6 +82,7 @@ TEST(conf_create)
 	CHECK_INT_EQ(0, conf->sloppiness);
 	CHECK(conf->stats);
 	CHECK_STR_EQ("", conf->temporary_dir);
+	CHECK(conf->time);
 	CHECK_INT_EQ(UINT_MAX, conf->umask);
 	CHECK(!conf->unify);
 	conf_free(conf);
@@ -135,6 +136,7 @@ TEST(conf_read_valid_config)
 		"sloppiness =     file_macro   ,time_macros,  include_file_mtime,include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines ,  no_system_headers,system_headers,clang_index_store\n"
 		"stats = false\n"
 		"temporary_dir = ${USER}_foo\n"
+		"time = false\n"
 		"umask = 777\n"
 		"unify = true"); // Note: no newline.
 	CHECK(conf_read(conf, "ccache.conf", &errmsg));
@@ -185,6 +187,7 @@ TEST(conf_read_valid_config)
 		conf->sloppiness);
 	CHECK(!conf->stats);
 	CHECK_STR_EQ_FREE1(format("%s_foo", user), conf->temporary_dir);
+	CHECK(!conf->time);
 	CHECK_INT_EQ(0777, conf->umask);
 	CHECK(conf->unify);
 
@@ -487,6 +490,7 @@ TEST(conf_print_items)
 		SLOPPY_PCH_DEFINES|SLOPPY_SYSTEM_HEADERS|SLOPPY_CLANG_INDEX_STORE,
 		false,
 		"td",
+		false,
 		022,
 		true,
 		NULL
@@ -541,6 +545,7 @@ TEST(conf_print_items)
 	             received_conf_items[n++].descr);
 	CHECK_STR_EQ("stats = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("temporary_dir = td", received_conf_items[n++].descr);
+	CHECK_STR_EQ("time = false", received_conf_items[n++].descr);
 	CHECK_STR_EQ("umask = 022", received_conf_items[n++].descr);
 	CHECK_STR_EQ("unify = true", received_conf_items[n++].descr);
 

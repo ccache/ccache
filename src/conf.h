@@ -36,6 +36,7 @@ struct conf {
 	unsigned sloppiness;
 	bool stats;
 	char *temporary_dir;
+	bool time;
 	unsigned umask;
 	bool unify;
 
