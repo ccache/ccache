@@ -2485,7 +2485,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		double sys_cache = time_sec(&usage.ru_stime);
 		cc_log("Cache time: real %0.3fs user %0.3fs sys %0.3fs",
 			real_cache, user_cache, sys_cache);
-		cc_log("Compile time: real %0.3fs user %0.2fs sys %0.3fs",
+		cc_log("Saved time: real %0.3fs user %0.2fs sys %0.3fs",
 			real_compile, user_compile, sys_compile);
 		stats_update_time(STATS_TIME_REAL, real_cache);
 		stats_update_time(STATS_TIME_USER, user_cache);
