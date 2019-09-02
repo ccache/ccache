@@ -1494,8 +1494,6 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 	struct timeval start;
 	struct rusage before;
-	struct timeval stop;
-	struct rusage after;
 	getrusage(RUSAGE_CHILDREN, &before);
 	gettimeofday(&start, NULL);
 #endif
@@ -1534,28 +1532,15 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 	MTR_END("execute", "compiler");
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+	struct timeval stop;
+	struct rusage after;
 	gettimeofday(&stop, NULL);
 	getrusage(RUSAGE_CHILDREN, &after);
+
 	double real_compile = time_diff(&start, &stop);
 	double user_compile = time_diff(&before.ru_utime, &after.ru_utime);
 	double sys_compile = time_diff(&before.ru_stime, &after.ru_stime);
 	write_cached_time(real_compile, user_compile, sys_compile);
-	double real_cache = time_sec(&start) - start_time;
-	double user_cache = time_sec(&before.ru_utime);
-	double sys_cache = time_sec(&before.ru_stime);
-		fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
-			real_cache, user_cache, sys_cache);
-		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
-			real_compile, user_compile, sys_compile);
-		fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
-			100 * (user_cache + sys_cache + user_compile + sys_compile) / (user_compile + sys_compile),
-			(user_compile + sys_compile) / (user_cache + sys_cache + user_compile + sys_compile),
-			user_cache + sys_cache);
-	stats_update_time(STATS_TIME_REAL, real_compile + real_cache);
-	stats_update_time(STATS_TIME_USER, user_compile + user_cache);
-	stats_update_time(STATS_TIME_SYS, sys_compile + sys_cache);
-	stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
-	stats_update_time(STATS_TIME_COMPILE, user_compile + sys_compile);
 #endif
 
 	struct stat st;
@@ -1699,6 +1684,32 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	MTR_END("file", "file_put");
+
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+	struct timeval now;
+	struct rusage usage;
+	gettimeofday(&now, NULL);
+	getrusage(RUSAGE_CHILDREN, &usage);
+	double real_cache = time_sec(&start) - start_time;
+	double user_cache = time_sec(&before.ru_utime);
+	double sys_cache = time_sec(&before.ru_stime);
+	real_cache += time_sec(&now) - time_sec(&stop);
+	user_cache += time_diff(&after.ru_utime, &usage.ru_utime);
+	sys_cache += time_diff(&after.ru_stime, &usage.ru_stime);
+	fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
+		real_cache, user_cache, sys_cache);
+	fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
+		real_compile, user_compile, sys_compile);
+	fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
+		100 * (user_cache + sys_cache + user_compile + sys_compile) / (user_compile + sys_compile),
+		(user_compile + sys_compile) / (user_cache + sys_cache + user_compile + sys_compile),
+		user_cache + sys_cache);
+	stats_update_time(STATS_TIME_REAL, real_compile + real_cache);
+	stats_update_time(STATS_TIME_USER, user_compile + user_cache);
+	stats_update_time(STATS_TIME_SYS, sys_compile + sys_cache);
+	stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
+	stats_update_time(STATS_TIME_COMPILE, user_compile + sys_compile);
+#endif
 
 	stats_update(STATS_TOCACHE);
 
