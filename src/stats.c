@@ -88,42 +88,42 @@ static struct {
 	},
 	{
 		STATS_TIME_REAL,
-		"time_real",
+		"time_real_ms",
 		"time (real)",
 		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_USER,
-		"time_user",
+		"time_user_ms",
 		"time (user)",
 		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_SYS,
-		"time_sys",
+		"time_sys_ms",
 		"time (sys)",
 		format_milliseconds,
 		FLAG_ALWAYS
 	},
 	{
 		STATS_TIME_CACHE,
-		"time_cache",
+		"time_cache_ms",
 		"time (cache)",
 		format_milliseconds,
 		0
 	},
 	{
 		STATS_TIME_COMPILE,
-		"time_compile",
+		"time_compile_ms",
 		"time (compile)",
 		format_milliseconds,
 		0
 	},
 	{
 		STATS_TIME_SAVED,
-		"time_saved",
+		"time_saved_ms",
 		"time (saved)",
 		format_milliseconds,
 		FLAG_ALWAYS
