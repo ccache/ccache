@@ -436,6 +436,16 @@ stats_time_efficiency(struct counters *counters)
 	return total > 0 ? (100.0 * saved) / total : 0.0;
 }
 
+static double
+stats_time_performance(struct counters *counters)
+{
+	unsigned cache = counters->data[STATS_TIME_CACHE];
+	unsigned compile = counters->data[STATS_TIME_COMPILE];
+	unsigned saved = counters->data[STATS_TIME_SAVED];
+	unsigned work = compile + saved - cache;
+	return compile > 0 ? (1.0 * work) / compile : 0.0;
+}
+
 static void
 stats_collect(struct counters *counters, time_t *last_updated)
 {
@@ -672,6 +682,8 @@ stats_summary(void)
 		if (stat == STATS_TIME_SAVED) {
 			double percent = stats_time_efficiency(counters);
 			printf("cache efficiency                  %6.2f %%\n", percent);
+			double speedup = stats_time_performance(counters);
+			printf("performance                       %6.2f x\n", speedup);
 		}
 	}
 
