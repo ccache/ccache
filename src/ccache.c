@@ -1696,14 +1696,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	real_cache += time_sec(&now) - time_sec(&stop);
 	user_cache += time_diff(&after.ru_utime, &usage.ru_utime);
 	sys_cache += time_diff(&after.ru_stime, &usage.ru_stime);
-	fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
+	cc_log("Cache time: real %0.3fs user %0.3fs sys %0.3fs",
 		real_cache, user_cache, sys_cache);
-	fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
+	cc_log("Compile time: real %0.3fs user %0.2fs sys %0.3fs",
 		real_compile, user_compile, sys_compile);
-	fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
-		100 * (user_cache + sys_cache + user_compile + sys_compile) / (user_compile + sys_compile),
-		(user_compile + sys_compile) / (user_cache + sys_cache + user_compile + sys_compile),
-		user_cache + sys_cache);
 	stats_update_time(STATS_TIME_REAL, real_compile + real_cache);
 	stats_update_time(STATS_TIME_USER, user_compile + user_cache);
 	stats_update_time(STATS_TIME_SYS, sys_compile + sys_cache);
@@ -2487,14 +2483,10 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		double real_cache = time_sec(&now) - start_time;
 		double user_cache = time_sec(&usage.ru_utime);
 		double sys_cache = time_sec(&usage.ru_stime);
-		fprintf(stderr, "Cache: %.3fs %.3fs %.3fs\n",
+		cc_log("Cache time: real %0.3fs user %0.3fs sys %0.3fs",
 			real_cache, user_cache, sys_cache);
-		fprintf(stderr, "Compile: %.3fs %.3fs %.3fs\n",
+		cc_log("Compile time: real %0.3fs user %0.2fs sys %0.3fs",
 			real_compile, user_compile, sys_compile);
-		fprintf(stderr, "Timing: %.2f%% %.2fx %+.3fs\n",
-			100 * (user_cache + sys_cache) / (user_compile + sys_compile),
-			(user_compile + sys_compile) / (user_cache + sys_cache),
-			(user_cache + sys_cache) - (user_compile + sys_compile));
 		stats_update_time(STATS_TIME_REAL, real_cache);
 		stats_update_time(STATS_TIME_USER, user_cache);
 		stats_update_time(STATS_TIME_SYS, sys_cache);
