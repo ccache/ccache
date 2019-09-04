@@ -16,21 +16,25 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "compress.hpp"
+
 #include "ccache.hpp"
 #include "common_header.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 
+#include <string>
+
 static bool
-get_content_size(const char* path,
+get_content_size(const std::string& path,
                  const char* magic,
                  uint8_t version,
                  size_t* size)
 {
   char* errmsg;
-  FILE* f = fopen(path, "rb");
+  FILE* f = fopen(path.c_str(), "rb");
   if (!f) {
-    cc_log("Failed to open %s for reading: %s", path, strerror(errno));
+    cc_log("Failed to open %s for reading: %s", path.c_str(), strerror(errno));
     return false;
   }
   struct common_header header;
@@ -44,78 +48,54 @@ get_content_size(const char* path,
   return success;
 }
 
-static uint64_t on_disk_size;
-static uint64_t compr_size;
-static uint64_t compr_orig_size;
-static uint64_t incompr_size;
-
-// This measures the size of files in the cache.
-static void
-measure_fn(const char* fname, struct stat* st)
-{
-  if (!S_ISREG(st->st_mode)) {
-    return;
-  }
-
-  char* p = x_basename(fname);
-  if (str_eq(p, "stats")) {
-    free(p);
-    return;
-  }
-
-  if (str_startswith(p, ".nfs")) {
-    // Ignore temporary NFS files that may be left for open but deleted files.
-    free(p);
-    return;
-  }
-
-  if (strstr(p, ".tmp.")) {
-    // Ignore tmp files since they are transient.
-    free(p);
-    return;
-  }
-
-  if (strstr(p, "CACHEDIR.TAG")) {
-    free(p);
-    return;
-  }
-
-  free(p);
-
-  on_disk_size += file_size(st);
-
-  size_t content_size = 0;
-  const char* file_ext = get_extension(p);
-  bool is_compressible = false;
-  if (str_eq(file_ext, ".manifest")) {
-    is_compressible =
-      get_content_size(fname, MANIFEST_MAGIC, MANIFEST_VERSION, &content_size);
-  } else if (str_eq(file_ext, ".result")) {
-    is_compressible =
-      get_content_size(fname, RESULT_MAGIC, RESULT_VERSION, &content_size);
-  }
-
-  if (is_compressible) {
-    compr_size += st->st_size;
-    compr_orig_size += content_size;
-  } else {
-    incompr_size += st->st_size;
-  }
-}
-
-// Process up all cache subdirectories.
 void
-compress_stats(const Config& config)
+compress_stats(const Config& config,
+               const util::ProgressReceiver& progress_receiver)
 {
-  on_disk_size = 0;
-  compr_size = 0;
-  compr_orig_size = 0;
-  incompr_size = 0;
+  uint64_t on_disk_size = 0;
+  uint64_t compr_size = 0;
+  uint64_t compr_orig_size = 0;
+  uint64_t incompr_size = 0;
 
-  for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
-    traverse(dname, measure_fn);
-    free(dname);
+  util::for_each_level_1_subdir(
+    config.cache_dir(),
+    [&](const std::string& subdir,
+        const util::ProgressReceiver& sub_progress_receiver) {
+      std::vector<std::shared_ptr<CacheFile>> files;
+      util::get_level_1_files(
+        subdir,
+        [&](double progress) { sub_progress_receiver(progress / 2); },
+        files);
+
+      for (size_t i = 0; i < files.size(); ++i) {
+        const auto& file = files[i];
+
+        on_disk_size += file_size(&file->stat());
+
+        size_t content_size = 0;
+        bool is_compressible = false;
+        if (util::ends_with(file->path(), ".manifest")) {
+          is_compressible = get_content_size(
+            file->path(), MANIFEST_MAGIC, MANIFEST_VERSION, &content_size);
+        } else if (util::ends_with(file->path(), ".result")) {
+          is_compressible = get_content_size(
+            file->path(), RESULT_MAGIC, RESULT_VERSION, &content_size);
+        }
+
+        if (is_compressible) {
+          compr_size += file->stat().st_size;
+          compr_orig_size += content_size;
+        } else {
+          incompr_size += file->stat().st_size;
+        }
+
+        sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
+      }
+    },
+    progress_receiver);
+
+  if (isatty(STDOUT_FILENO)) {
+    printf("\n\n");
   }
 
   double ratio = compr_size > 0 ? ((double)compr_orig_size) / compr_size : 0.0;

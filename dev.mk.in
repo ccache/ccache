@@ -44,6 +44,7 @@ non_third_party_headers = \
     src/cleanup.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
+    src/compress.hpp \
     src/compression.hpp \
     src/counters.hpp \
     src/hash.hpp \

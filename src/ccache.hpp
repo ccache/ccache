@@ -250,11 +250,6 @@ void exitfn_add_last(void (*function)(void*), void* context);
 void exitfn_call(void);
 
 // ----------------------------------------------------------------------------
-// compress.c
-
-void compress_stats(const Config& config);
-
-// ----------------------------------------------------------------------------
 // execute.c
 
 int execute(char** argv, int fd_out, int fd_err, pid_t* pid);

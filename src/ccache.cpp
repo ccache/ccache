@@ -33,6 +33,7 @@
 #else
 #  include "third_party/getopt_long.h"
 #endif
+#include "compress.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
@@ -4071,9 +4072,13 @@ ccache_main_options(int argc, char* argv[])
       x_exit(0);
 
     case 'x': // --show-compression
+    {
       initialize();
-      compress_stats(g_config);
+      ProgressBar progress_bar("Scanning...");
+      compress_stats(g_config,
+                     [&](double progress) { progress_bar.update(progress); });
       break;
+    }
 
     case 'z': // --zero-stats
       initialize();
