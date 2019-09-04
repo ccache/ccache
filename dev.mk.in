@@ -41,6 +41,7 @@ non_third_party_headers = \
     src/Error.hpp \
     src/ProgressBar.hpp \
     src/ccache.hpp \
+    src/cleanup.hpp \
     src/common_header.hpp \
     src/compopt.hpp \
     src/compression.hpp \

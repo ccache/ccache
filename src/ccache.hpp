@@ -22,6 +22,7 @@
 #include "system.hpp"
 
 #include "counters.hpp"
+#include "util.hpp"
 
 #include "third_party/minitrace.h"
 
@@ -247,13 +248,6 @@ void exitfn_add_nullary(void (*function)(void));
 void exitfn_add(void (*function)(void*), void* context);
 void exitfn_add_last(void (*function)(void*), void* context);
 void exitfn_call(void);
-
-// ----------------------------------------------------------------------------
-// cleanup.c
-
-void clean_up_dir(const Config& config, const char* dir, double limit_multiple);
-void clean_up_all(const Config& config);
-void wipe_all(const Config& config);
 
 // ----------------------------------------------------------------------------
 // compress.c

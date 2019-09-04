@@ -17,131 +17,107 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "cleanup.hpp"
+
+#include "CacheFile.hpp"
 #include "Config.hpp"
 #include "ccache.hpp"
 
+#include <algorithm>
 #include <math.h>
 
-struct files
-{
-  char* fname;
-  time_t mtime;
-  uint64_t size;
-};
-
-static struct files** files;
-static unsigned allocated; // Size of the files array.
-static unsigned num_files; // Number of used entries in the files array.
-
-static uint64_t cache_size;
-static size_t files_in_cache;
-static uint64_t cache_size_threshold;
-static size_t files_in_cache_threshold;
-
-// File comparison function that orders files in mtime order, oldest first.
-static int
-files_compare(struct files** f1, struct files** f2)
-{
-  if ((*f2)->mtime == (*f1)->mtime) {
-    return strcmp((*f1)->fname, (*f2)->fname);
-  }
-  if ((*f2)->mtime > (*f1)->mtime) {
-    return -1;
-  }
-  return 1;
-}
-
-// This builds the list of files in the cache.
 static void
-traverse_fn(const char* fname, struct stat* st)
+delete_file(const std::string& path,
+            size_t size,
+            uint64_t* cache_size,
+            uint32_t* files_in_cache)
 {
-  if (!S_ISREG(st->st_mode)) {
-    return;
-  }
-
-  char* p = x_basename(fname);
-  if (str_eq(p, "stats")) {
-    goto out;
-  }
-
-  if (str_startswith(p, ".nfs")) {
-    // Ignore temporary NFS files that may be left for open but deleted files.
-    goto out;
-  }
-
-  // Delete any tmp files older than 1 hour.
-  if (strstr(p, ".tmp.") && st->st_mtime + 3600 < time(NULL)) {
-    x_unlink(fname);
-    goto out;
-  }
-
-  if (strstr(p, "CACHEDIR.TAG")) {
-    goto out;
-  }
-
-  if (num_files == allocated) {
-    allocated = 10000 + num_files * 2;
-    files = (struct files**)x_realloc(files, sizeof(struct files*) * allocated);
-  }
-
-  files[num_files] = (struct files*)x_malloc(sizeof(struct files));
-  files[num_files]->fname = x_strdup(fname);
-  files[num_files]->mtime = st->st_mtime;
-  files[num_files]->size = file_size(st);
-  cache_size += files[num_files]->size;
-  files_in_cache++;
-  num_files++;
-
-out:
-  free(p);
-}
-
-static void
-delete_file(const char* path, size_t size, bool update_counters)
-{
-  bool deleted = x_try_unlink(path) == 0;
+  bool deleted = x_try_unlink(path.c_str()) == 0;
   if (!deleted && errno != ENOENT && errno != ESTALE) {
-    cc_log("Failed to unlink %s (%s)", path, strerror(errno));
-  } else if (update_counters) {
+    cc_log("Failed to unlink %s (%s)", path.c_str(), strerror(errno));
+  } else if (cache_size && files_in_cache) {
     // The counters are intentionally subtracted even if there was no file to
     // delete since the final cache size calculation will be incorrect if they
     // aren't. (This can happen when there are several parallel ongoing
     // cleanups of the same directory.)
-    cache_size -= size;
-    files_in_cache--;
+    *cache_size -= size;
+    --*files_in_cache;
   }
 }
 
-// Sort the files we've found and delete the oldest ones until we are below the
-// thresholds.
-static bool
-sort_and_clean(void)
+// Clean up one cache subdirectory.
+void
+clean_up_dir(const std::string& subdir,
+             uint64_t max_size,
+             uint32_t max_files,
+             const util::ProgressReceiver& progress_receiver)
 {
-  if (num_files > 1) {
-    // Sort in ascending mtime order.
-    qsort(files, num_files, sizeof(struct files*), (COMPAR_FN_T)files_compare);
+  cc_log("Cleaning up cache directory %s", subdir.c_str());
+
+  std::vector<std::shared_ptr<CacheFile>> files;
+  util::get_level_1_files(
+    subdir, [&](double progress) { progress_receiver(progress / 3); }, files);
+
+  uint64_t cache_size = 0;
+  uint32_t files_in_cache = 0;
+  time_t current_time = time(NULL);
+
+  for (size_t i = 0; i < files.size();
+       ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
+    const auto& file = files[i];
+
+    if (!S_ISREG(file->stat().st_mode)) {
+      // Not a file or missing file.
+      continue;
+    }
+
+    // Delete any tmp files older than 1 hour right away.
+    if (file->stat().st_mtime + 3600 < current_time
+        && util::base_name(file->path()).find(".tmp.") != std::string::npos) {
+      x_unlink(file->path().c_str());
+      continue;
+    }
+
+    cache_size += file_size(&file->stat());
+    files_in_cache += 1;
   }
 
-  // Delete enough files to bring us below the threshold.
-  bool cleaned = false;
-  for (unsigned i = 0; i < num_files; i++) {
-    const char* ext;
+  // Sort according to modification time, oldest first.
+  std::sort(files.begin(),
+            files.end(),
+            [](const std::shared_ptr<CacheFile>& f1,
+               const std::shared_ptr<CacheFile>& f2) {
+              return f1->stat().st_mtime < f2->stat().st_mtime;
+            });
 
-    if ((cache_size_threshold == 0 || cache_size <= cache_size_threshold)
-        && (files_in_cache_threshold == 0
-            || files_in_cache <= files_in_cache_threshold)) {
+  cc_log("Before cleanup: %.0f KiB, %.0f files",
+         static_cast<double>(cache_size) / 1024,
+         static_cast<double>(files_in_cache));
+
+  bool cleaned = false;
+  for (size_t i = 0; i < files.size();
+       ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
+    const auto& file = files[i];
+
+    if (!S_ISREG(file->stat().st_mode)) {
+      // Not a file or missing file.
+      continue;
+    }
+
+    if ((max_size == 0 || cache_size <= max_size)
+        && (max_files == 0 || files_in_cache <= max_files)) {
       break;
     }
 
-    ext = get_extension(files[i]->fname);
-    if (str_eq(ext, ".stderr")) {
-      // Make sure that the .o file is deleted before .stderr, because if the
-      // ccache process gets killed after deleting the .stderr but before
-      // deleting the .o, the cached result will be inconsistent. (.stderr is
-      // the only file that is optional; any other file missing from the cache
-      // will be detected by get_file_from_cache.)
-      char* base = remove_extension(files[i]->fname);
-      char* o_file = format("%s.o", base);
+    if (util::ends_with(file->path(), ".stderr")) {
+      // In order to be nice to legacy ccache versions, make sure that the .o
+      // file is deleted before .stderr, because if the ccache process gets
+      // killed after deleting the .stderr but before deleting the .o, the
+      // cached result will be inconsistent. (.stderr is the only file that is
+      // optional for legacy ccache versions; any other file missing from the
+      // cache will be detected.)
+      std::string o_file =
+        file->path().substr(0, file->path().size() - 6) + "o";
 
       // Don't subtract this extra deletion from the cache size; that
       // bookkeeping will be done when the loop reaches the .o file. If the
@@ -149,130 +125,71 @@ sort_and_clean(void)
       // reached, the bookkeeping won't happen, but that small counter
       // discrepancy won't do much harm and it will correct itself in the next
       // cleanup.
-      delete_file(o_file, 0, false);
-
-      free(o_file);
-      free(base);
+      delete_file(o_file, 0, nullptr, nullptr);
     }
-    delete_file(files[i]->fname, files[i]->size, true);
+
+    delete_file(
+      file->path(), file_size(&file->stat()), &cache_size, &files_in_cache);
     cleaned = true;
   }
-  return cleaned;
-}
 
-// Clean up one cache subdirectory.
-void
-clean_up_dir(const Config& config, const char* dir, double limit_multiple)
-{
-  cc_log("Cleaning up cache directory %s", dir);
-
-  // When "max files" or "max cache size" is reached, one of the 16 cache
-  // subdirectories is cleaned up. When doing so, files are deleted (in LRU
-  // order) until the levels are below limit_multiple.
-  double cache_size_float = round(config.max_size() * limit_multiple / 16);
-  cache_size_threshold = (uint64_t)cache_size_float;
-  double files_in_cache_float = round(config.max_files() * limit_multiple / 16);
-  files_in_cache_threshold = (size_t)files_in_cache_float;
-
-  num_files = 0;
-  cache_size = 0;
-  files_in_cache = 0;
-
-  // Build a list of files.
-  traverse(dir, traverse_fn);
-
-  // Clean the cache.
-  cc_log("Before cleanup: %.0f KiB, %.0f files",
-         (double)cache_size / 1024,
-         (double)files_in_cache);
-  bool cleaned = sort_and_clean();
   cc_log("After cleanup: %.0f KiB, %.0f files",
-         (double)cache_size / 1024,
-         (double)files_in_cache);
+         static_cast<double>(cache_size) / 1024,
+         static_cast<double>(files_in_cache));
 
   if (cleaned) {
-    cc_log("Cleaned up cache directory %s", dir);
-    stats_add_cleanup(dir, 1);
+    cc_log("Cleaned up cache directory %s", subdir.c_str());
+    stats_add_cleanup(subdir.c_str(), 1);
   }
 
-  stats_set_sizes(dir, files_in_cache, cache_size);
-
-  // Free it up.
-  for (unsigned i = 0; i < num_files; i++) {
-    free(files[i]->fname);
-    free(files[i]);
-    files[i] = NULL;
-  }
-  if (files) {
-    free(files);
-  }
-  allocated = 0;
-  files = NULL;
-
-  num_files = 0;
-  cache_size = 0;
-  files_in_cache = 0;
+  stats_set_sizes(subdir.c_str(), files_in_cache, cache_size);
 }
 
 // Clean up all cache subdirectories.
 void
-clean_up_all(const Config& config)
+clean_up_all(const Config& config,
+             const util::ProgressReceiver& progress_receiver)
 {
-  for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
-    clean_up_dir(config, dname, 1.0);
-    free(dname);
-  }
-}
-
-// Traverse function for wiping files.
-static void
-wipe_fn(const char* fname, struct stat* st)
-{
-  if (!S_ISREG(st->st_mode)) {
-    return;
-  }
-
-  char* p = x_basename(fname);
-  if (str_eq(p, "stats")) {
-    free(p);
-    return;
-  }
-  free(p);
-
-  files_in_cache++;
-
-  x_unlink(fname);
+  util::for_each_level_1_subdir(
+    config.cache_dir(),
+    [&](const std::string& subdir,
+        const util::ProgressReceiver& sub_progress_receiver) {
+      clean_up_dir(subdir,
+                   config.max_size() / 16,
+                   config.max_files() / 16,
+                   sub_progress_receiver);
+    },
+    progress_receiver);
 }
 
 // Wipe one cache subdirectory.
 static void
-wipe_dir(const char* dir)
+wipe_dir(const std::string& subdir,
+         const util::ProgressReceiver& progress_receiver)
 {
-  cc_log("Clearing out cache directory %s", dir);
+  cc_log("Clearing out cache directory %s", subdir.c_str());
 
-  files_in_cache = 0;
+  std::vector<std::shared_ptr<CacheFile>> files;
+  util::get_level_1_files(
+    subdir, [&](double progress) { progress_receiver(progress / 2); }, files);
 
-  traverse(dir, wipe_fn);
-
-  if (files_in_cache > 0) {
-    cc_log("Cleared out cache directory %s", dir);
-    stats_add_cleanup(dir, 1);
+  for (size_t i = 0; i < files.size(); ++i) {
+    x_unlink(files[i]->path().c_str());
+    progress_receiver(0.5 + 0.5 * i / files.size());
   }
 
-  files_in_cache = 0;
+  if (!files.empty()) {
+    cc_log("Cleared out cache directory %s", subdir.c_str());
+    stats_add_cleanup(subdir.c_str(), 1);
+  }
+
+  stats_set_sizes(subdir.c_str(), 0, 0);
 }
 
 // Wipe all cached files in all subdirectories.
 void
-wipe_all(const Config& config)
+wipe_all(const Config& config, const util::ProgressReceiver& progress_receiver)
 {
-  for (int i = 0; i <= 0xF; i++) {
-    char* dname = format("%s/%1x", config.cache_dir().c_str(), i);
-    wipe_dir(dname);
-    free(dname);
-  }
-
-  // Fix the counters.
-  clean_up_all(config);
+  util::for_each_level_1_subdir(
+    config.cache_dir(), wipe_dir, progress_receiver);
 }

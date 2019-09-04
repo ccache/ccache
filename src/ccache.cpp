@@ -20,6 +20,8 @@
 #include "ccache.hpp"
 
 #include "Error.hpp"
+#include "ProgressBar.hpp"
+#include "cleanup.hpp"
 #include "compopt.hpp"
 #include "util.hpp"
 
@@ -3980,16 +3982,28 @@ ccache_main_options(int argc, char* argv[])
       break;
 
     case 'c': // --cleanup
+    {
       initialize();
-      clean_up_all(g_config);
-      printf("Cleaned cache\n");
+      ProgressBar progress_bar("Cleaning...");
+      clean_up_all(g_config,
+                   [&](double progress) { progress_bar.update(progress); });
+      if (isatty(STDOUT_FILENO)) {
+        printf("\n");
+      }
       break;
+    }
 
     case 'C': // --clear
+    {
       initialize();
-      wipe_all(g_config);
-      printf("Cleared cache\n");
+      ProgressBar progress_bar("Clearing...");
+      wipe_all(g_config,
+               [&](double progress) { progress_bar.update(progress); });
+      if (isatty(STDOUT_FILENO)) {
+        printf("\n");
+      }
       break;
+    }
 
     case 'h': // --help
       fputs(USAGE_TEXT, stdout);

@@ -21,8 +21,10 @@
 // subdirectory to make this more scalable.
 
 #include "ccache.hpp"
+#include "cleanup.hpp"
 #include "hashutil.hpp"
 
+#include <cmath>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -390,7 +392,10 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
   }
 
   if (need_cleanup) {
-    clean_up_dir(g_config, subdir, g_config.limit_multiple());
+    double factor = g_config.limit_multiple() / 16;
+    uint64_t max_size = round(g_config.max_size() * factor);
+    uint32_t max_files = round(g_config.max_files() * factor);
+    clean_up_dir(subdir, max_size, max_files, [](double) {});
   }
 
   free(subdir);
