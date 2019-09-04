@@ -1363,7 +1363,7 @@ send_cached_stderr(void)
 	}
 }
 
-#ifdef HAVE_SYS_TIME_H
+#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 static double time_sec(struct timeval *t)
 {
 	return t->tv_sec + t->tv_usec*1e-6;
@@ -1373,7 +1373,6 @@ static double time_diff(struct timeval *a, struct timeval *b)
 {
 	return time_sec(b) - time_sec(a);
 }
-#endif
 
 // Read cached time
 static bool write_cached_time(double real, double user, double sys)
@@ -1410,6 +1409,7 @@ static bool read_cached_time(double *real, double *user, double *sys)
 	}
 	return false;
 }
+#endif
 
 // Create or update the manifest file.
 static void
