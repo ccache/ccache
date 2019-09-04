@@ -1493,7 +1493,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	cc_log("Running real compiler");
 #if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
 	struct timeval start;
+	timerclear(&start);
 	struct rusage before;
+	timerclear(&before.ru_utime);
+	timerclear(&before.ru_stime);
 	if (conf->time) {
 		getrusage(RUSAGE_CHILDREN, &before);
 		gettimeofday(&start, NULL);
@@ -1538,7 +1541,10 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	double user_compile = 0.0;
 	double sys_compile = 0.0;
 	struct timeval stop;
+	timerclear(&stop);
 	struct rusage after;
+	timerclear(&after.ru_utime);
+	timerclear(&after.ru_stime);
 	if (conf->time) {
 		gettimeofday(&stop, NULL);
 		getrusage(RUSAGE_CHILDREN, &after);
