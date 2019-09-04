@@ -893,7 +893,7 @@ remove_extension(const char* path)
 
 // Return size on disk of a file.
 size_t
-file_size(struct stat* st)
+file_size(const struct stat* st)
 {
 #ifdef _WIN32
   return (st->st_size + 1023) & ~1023;
