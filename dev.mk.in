@@ -152,9 +152,8 @@ endef
 
 .PHONY: distcheck
 distcheck: $(firstword $(dist_archives))
-	$(call do_distcheck)
-	$(call do_distcheck, --with-libzstd-from-internet)
-	$(call do_distcheck, --with-libb2-from-internet)
+	$(call do_distcheck, CFLAGS=-Werror CXXFLAGS=-Werror)
+	$(call do_distcheck, --with-libzstd-from-internet --with-libb2-from-internet)
 	$(call do_distcheck, CC=clang CXX=clang++)
 
 .PHONY: docs
