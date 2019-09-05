@@ -143,7 +143,7 @@ define do_distcheck
 	 chmod -R a-w $(dist_dir) && \
 	 chmod u+w $(dist_dir)/build && \
 	 cd $(dist_dir)/build && \
-	 ../configure --enable-more-warnings --prefix=$$tmpdir/root $(1) && \
+	 ../configure --enable-more-warnings --prefix=$$tmpdir/root --sysconfdir=/etc $(1) && \
 	 $(MAKE) install V=1 && \
 	 $(MAKE) installcheck V=1) && \
 	chmod -R u+w $$tmpdir/$(dist_dir) && \
