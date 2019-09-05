@@ -20,11 +20,11 @@ configure
 dev.mk
 dev_mode_disabled
 doc/ccache.1
+libb2-*.tar.gz
 perfdir.*
+src/third_party/libb2
+src/third_party/zstd
 src/version.cpp
 testdir.*
 unittest/run
-src/third_party/libb2
-src/third_party/zstd
-libb2-*.tar.gz
 zstd-*.tar.gz
