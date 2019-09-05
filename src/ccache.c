@@ -785,9 +785,9 @@ print_included_files(FILE *fp)
 static char *
 make_relative_path(char *path)
 {
-    if(path[0] == '=') { // Remove first char if string starts with "="
-        path++;
-    }
+    // if(path[0] == '=') { // Remove first char if string starts with "="
+    //     path++;
+    // }
 
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
@@ -795,7 +795,15 @@ make_relative_path(char *path)
 
 #ifdef _WIN32
 	if (path[0] == '/') {
-		path++;  // Skip leading slash.
+		char *p = NULL;
+		if (isalpha(path[1]) && path[2] == '/') {
+			// Transform /c/path... to c:/path...
+			p = format("%c:/%s", path[1], &path[3]);
+		} else {
+			p = x_strdup(path+1); // Skip leading slash.
+		}
+		free(path);
+		path = p;
 	}
 #endif
 

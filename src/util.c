@@ -340,7 +340,6 @@ copy_file(const char *src, const char *dest, int compress_level)
 	gz_in = gzdopen(fd_in, "rb");
 	if (!gz_in) {
 		saved_errno = errno;
-		cc_log("gzdopen(src) error: %s", strerror(saved_errno));
 		close(fd_in);
 		goto error;
 	}
@@ -464,6 +463,7 @@ error:
 int
 move_file(const char *src, const char *dest, int compress_level)
 {
+    cc_log("move_file() -> copy_file()");
 	int ret = copy_file(src, dest, compress_level);
 	if (ret != -1) {
 		x_unlink(src);
@@ -477,6 +477,7 @@ int
 move_uncompressed_file(const char *src, const char *dest, int compress_level)
 {
 	if (compress_level > 0) {
+        cc_log("move_uncompressed_file() -> move_file()");
 		return move_file(src, dest, compress_level);
 	} else {
 		return x_rename(src, dest);
@@ -1159,7 +1160,15 @@ x_realpath(const char *path)
 	p = realpath(path, ret);
 #elif defined(_WIN32)
 	if (path[0] == '/') {
-		path++;  // Skip leading slash.
+		char *p = NULL;
+		if (isalpha(path[1]) && path[2] == '/') {
+			// Transform /c/path... to c:/path...
+			p = format("%c:/%s", path[1], &path[3]);
+		} else {
+			p = x_strdup(path+1); // Skip leading slash.
+		}
+		free(path);
+		path = p;
 	}
 	HANDLE path_handle = CreateFile(
 		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
