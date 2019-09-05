@@ -61,6 +61,9 @@ non_third_party_headers = \
     unittest/util.hpp
 third_party_headers = \
     src/third_party/catch.hpp \
+    src/third_party/fmt/core.h \
+    src/third_party/fmt/format-inl.h \
+    src/third_party/fmt/format.h \
     src/third_party/getopt_long.h \
     src/third_party/minitrace.h \
     src/third_party/xxhash.h
