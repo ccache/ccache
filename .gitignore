@@ -24,3 +24,7 @@ perfdir.*
 src/version.cpp
 testdir.*
 unittest/run
+src/third_party/libb2
+src/third_party/zstd
+libb2-*.tar.gz
+zstd-*.tar.gz
