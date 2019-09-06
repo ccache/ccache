@@ -1820,14 +1820,6 @@ ends_with(const std::string& string, const std::string& suffix)
 }
 
 void
-get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver,
-                  std::vector<std::shared_ptr<CacheFile>>& files)
-{
-  get_cache_files_internal(dir, 1, progress_receiver, files);
-}
-
-void
 for_each_level_1_subdir(const std::string& cache_dir,
                         const SubdirVisitor& subdir_visitor,
                         const ProgressReceiver& progress_receiver)
@@ -1841,6 +1833,14 @@ for_each_level_1_subdir(const std::string& cache_dir,
     });
   }
   progress_receiver(1.0);
+}
+
+void
+get_level_1_files(const std::string& dir,
+                  const ProgressReceiver& progress_receiver,
+                  std::vector<std::shared_ptr<CacheFile>>& files)
+{
+  get_cache_files_internal(dir, 1, progress_receiver, files);
 }
 
 std::string
