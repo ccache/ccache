@@ -1848,6 +1848,24 @@ get_level_1_files(const std::string& dir,
   get_cache_files_internal(dir, 1, progress_receiver, files);
 }
 
+int
+parse_int(const std::string& value)
+{
+  size_t end;
+  long result;
+  bool failed = false;
+  try {
+    result = std::stol(value, &end, 10);
+  } catch (std::exception&) {
+    failed = true;
+  }
+  if (failed || end != value.size() || result < std::numeric_limits<int>::min()
+      || result > std::numeric_limits<int>::max()) {
+    throw Error(fmt::format("invalid integer: \"{}\"", value));
+  }
+  return result;
+}
+
 std::string
 read_file(const std::string& path)
 {

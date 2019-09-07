@@ -340,24 +340,6 @@ format_umask(uint32_t umask)
   }
 }
 
-int
-parse_int(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-  if (failed || end != value.size() || result < std::numeric_limits<int>::min()
-      || result > std::numeric_limits<int>::max()) {
-    throw Error(fmt::format("invalid integer: \"{}\"", value));
-  }
-  return result;
-}
-
 unsigned
 parse_unsigned(const std::string& value)
 {
@@ -703,7 +685,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level: {
-    auto level = parse_int(value);
+    auto level = util::parse_int(value);
     if (level < -128 || level > 127) {
       throw Error("compression level must be between -128 and 127");
     }

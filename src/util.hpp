@@ -79,6 +79,11 @@ void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
 
+// Parse a string into an integer.
+//
+// Throws Error on error.
+int parse_int(const std::string& value);
+
 // Read file data as a string.
 //
 // Throws Error on error.

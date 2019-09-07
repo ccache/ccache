@@ -20,6 +20,8 @@
 
 #include <catch.hpp>
 
+using Catch::Equals;
+
 TEST_CASE("util::base_name")
 {
   CHECK(util::base_name("") == "");
@@ -151,6 +153,22 @@ TEST_CASE("util::get_level_1_files")
     CHECK(files[3]->path() == "0/file_a");
     CHECK(files[3]->stat().st_size == 0);
   }
+}
+
+TEST_CASE("util::parse_int")
+{
+  CHECK(util::parse_int("0") == 0);
+  CHECK(util::parse_int("2") == 2);
+  CHECK(util::parse_int("-17") == -17);
+  CHECK(util::parse_int("42") == 42);
+  CHECK(util::parse_int("0666") == 666);
+  CHECK(util::parse_int(" 777") == 777);
+
+  CHECK_THROWS_WITH(util::parse_int(""), Equals("invalid integer: \"\""));
+  CHECK_THROWS_WITH(util::parse_int("x"), Equals("invalid integer: \"x\""));
+  CHECK_THROWS_WITH(util::parse_int("0x"), Equals("invalid integer: \"0x\""));
+  CHECK_THROWS_WITH(util::parse_int("0x4"), Equals("invalid integer: \"0x4\""));
+  CHECK_THROWS_WITH(util::parse_int("0 "), Equals("invalid integer: \"0 \""));
 }
 
 TEST_CASE("util::read_file and util::write_file")
