@@ -25,6 +25,12 @@ High-level summary of changes (work in progress)
 
 - A C++11 compiler is now required to build ccache.
 
+- There is a new -x/--show-compression option which shows some statistics about
+  cache compression.
+
+- A progress bar has been added to show the progress of time-consuming
+  options like -c/--cleanup, -C/--clear and -x/--show-compression.
+
 - (More to be written.)
 
 
