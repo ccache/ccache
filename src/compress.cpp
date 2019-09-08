@@ -73,13 +73,15 @@ compress_stats(const Config& config,
         on_disk_size += file_size(&file->stat());
 
         size_t content_size = 0;
-        bool is_compressible = false;
-        if (util::ends_with(file->path(), ".manifest")) {
+        bool is_compressible;
+        if (file->type() == CacheFile::Type::manifest) {
           is_compressible = get_content_size(
             file->path(), MANIFEST_MAGIC, MANIFEST_VERSION, &content_size);
-        } else if (util::ends_with(file->path(), ".result")) {
+        } else if (file->type() == CacheFile::Type::result) {
           is_compressible = get_content_size(
             file->path(), RESULT_MAGIC, RESULT_VERSION, &content_size);
+        } else {
+          is_compressible = false;
         }
 
         if (is_compressible) {

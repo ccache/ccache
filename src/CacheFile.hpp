@@ -31,6 +31,8 @@
 class CacheFile
 {
 public:
+  enum class Type { result, manifest, unknown };
+
   explicit CacheFile(const std::string& path);
 
   CacheFile(const CacheFile&) = delete;
@@ -38,6 +40,7 @@ public:
 
   const std::string& path() const;
   const struct stat& stat() const;
+  Type type() const;
 
 private:
   const std::string m_path;
@@ -53,31 +56,4 @@ inline const std::string&
 CacheFile::path() const
 {
   return m_path;
-}
-
-inline const struct stat&
-CacheFile::stat() const
-{
-  if (!m_stated) {
-#ifdef _WIN32
-    int result = ::stat(m_path.c_str(), &m_stat);
-#else
-    int result = lstat(m_path.c_str(), &m_stat);
-#endif
-    if (result != 0) {
-      if (errno != ENOENT && errno != ESTALE) {
-        throw Error(
-          fmt::format("lstat {} failed: {}", m_path, strerror(errno)));
-      }
-
-      // The file is missing, so just zero fill the stat structure. This will
-      // make e.g. S_ISREG(stat().st_mode) return false and stat().st_mtime
-      // will be, etc.
-      memset(&m_stat, '\0', sizeof(m_stat));
-    }
-
-    m_stated = true;
-  }
-
-  return m_stat;
 }
