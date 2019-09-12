@@ -2633,6 +2633,11 @@ cc_process_args(struct args* args,
         continue;
       }
 
+      if (str_startswith(argv[i], "-gz")) {
+        // -gz[=type] neither disables nor enables debug info.
+        continue;
+      }
+
       char last_char = argv[i][strlen(argv[i]) - 1];
       if (last_char == '0') {
         // "-g0", "-ggdb0" or similar: All debug information disabled.
