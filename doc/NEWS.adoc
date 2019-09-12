@@ -34,6 +34,21 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.4
+------------
+Release date: 2019-09-12
+
+Improvements
+~~~~~~~~~~~~
+
+- Added support for GCC 9’s `-gz[=type]` option (previously ccache would think
+  that “-gz” alone would enable debug information, thus potentially including
+  the current directory in the hash).
+
+- Added support for converting paths like “/c/users” into relative paths on
+  Windows.
+
+
 ccache 3.7.3
 ------------
 Release date: 2019-08-17
