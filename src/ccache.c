@@ -549,6 +549,7 @@ static enum guessed_compiler
 guess_compiler(const char *path)
 {
 	char *name = basename(path);
+    name = remove_extension(name);
 	enum guessed_compiler result = GUESSED_UNKNOWN;
 	if (strstr(name, "clang")) {
 		result = GUESSED_CLANG;
@@ -558,6 +559,8 @@ guess_compiler(const char *path)
 		result = GUESSED_NVCC;
 	} else if (str_eq(name, "pump") || str_eq(name, "distcc-pump")) {
 		result = GUESSED_PUMP;
+	} else if (str_eq(name, "cxrh850") || str_eq(name, "ccrh850") || str_eq(name, "cctri") || str_eq(name, "cxtri")) {
+		result = GUESSED_GHS;
 	}
 	free(name);
 	return result;
@@ -786,8 +789,9 @@ static char *
 make_relative_path(char *path)
 {
     // if(path[0] == '=') { // Remove first char if string starts with "="
-    //     path++;
-    // }
+    if(path[0] == '=') { // Remove first char if string starts with "="
+        path++;
+    }
 
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
@@ -1679,7 +1683,11 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		add_pending_tmp_file(path_stderr);
 
 		int args_added = 2;
-		args_add(args, "-E");
+        if (guessed_compiler == GUESSED_GHS)
+		    args_add(args, "-c"); // Temporary fix for GHS
+        else
+            args_add(args, "-E"); 
+        
 		if (conf->keep_comments_cpp) {
 			args_add(args, "-C");
 			args_added = 3;
@@ -2002,7 +2010,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 	// clang will emit warnings for unused linker flags, so we shouldn't skip
 	// those arguments.
 	int is_clang =
-		guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN;
+		guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN || guessed_compiler == GUESSED_GHS;
 
 	// First the arguments.
 	for (int i = 1; i < args->argc; i++) {
@@ -2292,7 +2300,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	//
 	//     file 'foo.h' has been modified since the precompiled header 'foo.pch'
 	//     was built
-	if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
+	if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN || guessed_compiler == GUESSED_GHS)
 	    && output_is_precompiled_header
 	    && mode == FROMCACHE_CPP_MODE) {
 		cc_log("Not considering cached precompiled header in preprocessor mode");
@@ -3517,7 +3525,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		if (!dependency_target_specified
 		    && !dependency_implicit_target_specified
 		    && !str_eq(get_extension(output_dep), ".o")) {
-			args_add(dep_args, "-MQ");
+			if (guessed_compiler == GUESSED_GHS)
+                args_add(dep_args, "-o"); // Temporary fix for GHS
+            else
+                args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}
 	}
