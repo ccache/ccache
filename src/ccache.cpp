@@ -3610,6 +3610,14 @@ initialize(void)
   }
 }
 
+template<class T>
+static void
+free_and_nullify(T*& ptr)
+{
+  free(ptr);
+  ptr = NULL;
+}
+
 // Reset the global state. Used by the test suite.
 void
 cc_reset(void)
@@ -3617,59 +3625,38 @@ cc_reset(void)
   Config new_config;
   std::swap(g_config, new_config);
 
-  free(primary_config_path);
-  primary_config_path = NULL;
-  free(secondary_config_path);
-  secondary_config_path = NULL;
-  free(current_working_dir);
-  current_working_dir = NULL;
+  free_and_nullify(primary_config_path);
+  free_and_nullify(secondary_config_path);
+  free_and_nullify(current_working_dir);
   for (size_t i = 0; i < debug_prefix_maps_len; i++) {
-    free(debug_prefix_maps[i]);
-    debug_prefix_maps[i] = NULL;
+    free_and_nullify(debug_prefix_maps[i]);
   }
-  free(debug_prefix_maps);
-  debug_prefix_maps = NULL;
+  free_and_nullify(debug_prefix_maps);
   debug_prefix_maps_len = 0;
-  free(profile_dir);
-  profile_dir = NULL;
+  free_and_nullify(profile_dir);
   for (size_t i = 0; i < sanitize_blacklists_len; i++) {
-    free(sanitize_blacklists[i]);
-    sanitize_blacklists[i] = NULL;
+    free_and_nullify(sanitize_blacklists[i]);
   }
-  free(sanitize_blacklists);
-  sanitize_blacklists = NULL;
+  free_and_nullify(sanitize_blacklists);
   sanitize_blacklists_len = 0;
-  free(included_pch_file);
-  included_pch_file = NULL;
+  free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free(input_file);
-  input_file = NULL;
-  free(output_obj);
-  output_obj = NULL;
-  free(output_dep);
-  output_dep = NULL;
-  free(output_cov);
-  output_cov = NULL;
-  free(output_su);
-  output_su = NULL;
-  free(output_dia);
-  output_dia = NULL;
-  free(output_dwo);
-  output_dwo = NULL;
-  free(cached_result_name);
-  cached_result_name = NULL;
-  free(cached_result_path);
-  cached_result_path = NULL;
-  free(manifest_path);
-  manifest_path = NULL;
+  free_and_nullify(input_file);
+  free_and_nullify(output_obj);
+  free_and_nullify(output_dep);
+  free_and_nullify(output_cov);
+  free_and_nullify(output_su);
+  free_and_nullify(output_dia);
+  free_and_nullify(output_dwo);
+  free_and_nullify(cached_result_name);
+  free_and_nullify(cached_result_path);
+  free_and_nullify(manifest_path);
   time_of_compilation = 0;
   for (size_t i = 0; i < ignore_headers_len; i++) {
-    free(ignore_headers[i]);
-    ignore_headers[i] = NULL;
+    free_and_nullify(ignore_headers[i]);
   }
-  free(ignore_headers);
-  ignore_headers = NULL;
+  free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
@@ -3681,10 +3668,8 @@ cc_reset(void)
   profile_arcs = false;
   i_tmpfile = NULL;
   direct_i_file = false;
-  free(cpp_stderr);
-  cpp_stderr = NULL;
-  free(stats_file);
-  stats_file = NULL;
+  free_and_nullify(cpp_stderr);
+  free_and_nullify(stats_file);
   output_is_precompiled_header = false;
 
   seen_split_dwarf = false;
