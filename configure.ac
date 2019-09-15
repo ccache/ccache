@@ -5,6 +5,19 @@ AC_PREREQ(2.52)
 
 AC_MSG_NOTICE([configuring ccache])
 
+dnl Enable developer mode if dev.mk.in exists.
+if test ! -f $srcdir/dev_mode_disabled; then
+    dev_mode=yes
+    AC_MSG_NOTICE(developer mode enabled)
+    AC_CONFIG_FILES([dev.mk])
+    include_dev_mk='include dev.mk'
+    version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
+    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.cpp
+else
+    dev_mode=no
+    AC_MSG_NOTICE(developer mode disabled)
+fi
+
 AC_CONFIG_HEADER(config.h)
 
 AC_CANONICAL_HOST
@@ -247,17 +260,6 @@ AC_CACHE_CHECK(
 if test "$ac_cv_c_extern_inline" != no ; then
     AC_DEFINE(HAVE_EXTERN_INLINE, 1,
               Define to 1 if your compiler supports extern inline)
-fi
-
-dnl Enable developer mode if dev.mk.in exists.
-if test ! -f $srcdir/dev_mode_disabled; then
-    AC_MSG_NOTICE(developer mode enabled)
-    AC_CONFIG_FILES([dev.mk])
-    include_dev_mk='include dev.mk'
-    version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
-    echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.cpp
-else
-    AC_MSG_NOTICE(developer mode disabled)
 fi
 
 if test ! -f $srcdir/src/version.cpp -a ! -f src/version.cpp ; then
