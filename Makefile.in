@@ -132,7 +132,6 @@ clean:
 	[ ! -f src/third_party/zstd/Makefile ] || $(MAKE) -C src/third_party/zstd/lib clean
 	[ ! -f src/third_party/libb2/Makefile ] || $(MAKE) -C src/third_party/libb2 clean
 
-src/third_party/snprintf.o: CFLAGS += @no_implicit_fallthrough_warning@
 
 libzstd_options = \
     ZSTD_LEGACY_SUPPORT=0 \

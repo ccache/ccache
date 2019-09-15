@@ -25,7 +25,6 @@ AC_SUBST(extra_libs)
 AC_SUBST(extra_sources)
 AC_SUBST(include_dev_mk)
 AC_SUBST(more_warnings)
-AC_SUBST(no_implicit_fallthrough_warning)
 
 m4_include(m4/feature_macros.m4)
 m4_include(m4/ax_cxx_compile_stdcxx.m4)
@@ -264,17 +263,6 @@ if test ! -f $srcdir/src/version.cpp -a ! -f src/version.cpp ; then
     AC_MSG_WARN(unable to determine ccache version)
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"unknown\";" >src/version.cpp
 fi
-
-dnl Check for -Wno-implicit-fallthrough
-AC_MSG_CHECKING([whether C compiler supports -Wno-implicit-fallthrough])
-saved_cflags=$CFLAGS
-CFLAGS=-Wno-implicit-fallthrough
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])],
-    [AC_MSG_RESULT([yes])]
-    [no_implicit_fallthrough_warning="-Wno-implicit-fallthrough"],
-    [AC_MSG_RESULT([no])]
-)
-CFLAGS=$saved_cflags
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
