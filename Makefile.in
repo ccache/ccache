@@ -132,6 +132,8 @@ clean:
 	[ ! -f src/third_party/zstd/Makefile ] || $(MAKE) -C src/third_party/zstd/lib clean
 	[ ! -f src/third_party/libb2/Makefile ] || $(MAKE) -C src/third_party/libb2 clean
 
+$(non_third_party_objs) $(test_objs): CFLAGS += @extra_warnings@
+$(non_third_party_objs) $(test_objs): CXXFLAGS += @extra_warnings@
 
 libzstd_options = \
     ZSTD_LEGACY_SUPPORT=0 \

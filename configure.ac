@@ -36,8 +36,8 @@ AC_SUBST(disable_cross)
 AC_SUBST(disable_man)
 AC_SUBST(extra_libs)
 AC_SUBST(extra_sources)
+AC_SUBST(extra_warnings)
 AC_SUBST(include_dev_mk)
-AC_SUBST(more_warnings)
 
 m4_include(m4/feature_macros.m4)
 m4_include(m4/ax_cxx_compile_stdcxx.m4)
@@ -64,35 +64,32 @@ else
     CXXFLAGS="$CXXFLAGS -O"
 fi
 
-more_warnings="-Wextra -Wpedantic"
-if test "$ac_compiler_clang" = yes; then
-    more_warnings="$more_warnings -Weverything"
-    more_warnings="$more_warnings -Wno-c++98-compat"
-    more_warnings="$more_warnings -Wno-c++98-compat-pedantic"
-    more_warnings="$more_warnings -Wno-conversion"
-    more_warnings="$more_warnings -Wno-disabled-macro-expansion"
-    more_warnings="$more_warnings -Wno-documentation-unknown-command"
-    more_warnings="$more_warnings -Wno-exit-time-destructors"
-    more_warnings="$more_warnings -Wno-format-nonliteral"
-    more_warnings="$more_warnings -Wno-global-constructors"
-    more_warnings="$more_warnings -Wno-implicit-fallthrough"
-    more_warnings="$more_warnings -Wno-padded"
-    more_warnings="$more_warnings -Wno-shorten-64-to-32"
-    more_warnings="$more_warnings -Wno-sign-conversion"
-    more_warnings="$more_warnings -Wno-undefined-func-template"
-    more_warnings="$more_warnings -Wno-weak-vtables"
-
-# TODO: Enable these in the future:
-    more_warnings="$more_warnings -Wno-old-style-cast"
-    more_warnings="$more_warnings -Wno-zero-as-null-pointer-constant"
-fi
-
 AC_ARG_ENABLE(more_warnings,
   [AS_HELP_STRING([--enable-more-warnings],
     [enable more compiler warnings])])
-if test x${enable_more_warnings} = xyes; then
-    CFLAGS="$CFLAGS $more_warnings"
-    CXXFLAGS="$CXXFLAGS $more_warnings"
+if test "$dev_mode" = yes -o "$enable_more_warnings" = yes; then
+    extra_warnings="-Wextra -Wpedantic"
+    if test "$ac_compiler_clang" = yes; then
+        extra_warnings="$extra_warnings -Weverything"
+        AX_CHECK_COMPILE_FLAG(-Wno-c++98-compat, extra_warnings="$extra_warnings -Wno-c++98-compat")
+        AX_CHECK_COMPILE_FLAG(-Wno-c++98-compat-pedantic, extra_warnings="$extra_warnings -Wno-c++98-compat-pedantic")
+        AX_CHECK_COMPILE_FLAG(-Wno-conversion, extra_warnings="$extra_warnings -Wno-conversion")
+        AX_CHECK_COMPILE_FLAG(-Wno-disabled-macro-expansion, extra_warnings="$extra_warnings -Wno-disabled-macro-expansion")
+        AX_CHECK_COMPILE_FLAG(-Wno-documentation-unknown-command, extra_warnings="$extra_warnings -Wno-documentation-unknown-command")
+        AX_CHECK_COMPILE_FLAG(-Wno-exit-time-destructors, extra_warnings="$extra_warnings -Wno-exit-time-destructors")
+        AX_CHECK_COMPILE_FLAG(-Wno-format-nonliteral, extra_warnings="$extra_warnings -Wno-format-nonliteral")
+        AX_CHECK_COMPILE_FLAG(-Wno-global-constructors, extra_warnings="$extra_warnings -Wno-global-constructors")
+        AX_CHECK_COMPILE_FLAG(-Wno-implicit-fallthrough, extra_warnings="$extra_warnings -Wno-implicit-fallthrough")
+        AX_CHECK_COMPILE_FLAG(-Wno-padded, extra_warnings="$extra_warnings -Wno-padded")
+        AX_CHECK_COMPILE_FLAG(-Wno-shorten-64-to-32, extra_warnings="$extra_warnings -Wno-shorten-64-to-32")
+        AX_CHECK_COMPILE_FLAG(-Wno-sign-conversion, extra_warnings="$extra_warnings -Wno-sign-conversion")
+        AX_CHECK_COMPILE_FLAG(-Wno-undefined-func-template, extra_warnings="$extra_warnings -Wno-undefined-func-template")
+        AX_CHECK_COMPILE_FLAG(-Wno-weak-vtables, extra_warnings="$extra_warnings -Wno-weak-vtables")
+
+        # TODO: Enable these in the future:
+        AX_CHECK_COMPILE_FLAG(-Wno-old-style-cast, extra_warnings="$extra_warnings -Wno-old-style-cast")
+        AX_CHECK_COMPILE_FLAG(-Wno-zero-as-null-pointer-constant, extra_warnings="$extra_warnings -Wno-zero-as-null-pointer-constant")
+    fi
 fi
 
 AC_HEADER_DIRENT

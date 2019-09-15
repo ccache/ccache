@@ -171,8 +171,6 @@ docs: $(generated_docs)
 	$(Q)$(ASCIIDOC) -a revnumber=$(version) -d manpage -b docbook -o - $< | \
 	  perl -pe 's!<literal>(.*?)</literal>!<emphasis role="strong">\1</emphasis>!g' >$@
 
-$(non_third_party_objs) $(test_objs): CXXFLAGS += @more_warnings@
-
 doc/ccache.1: doc/MANUAL.xml
 	$(if $(quiet),@echo "  A2X      $@")
 	$(Q)$(A2X) --doctype manpage --format manpage $<
