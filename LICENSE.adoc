@@ -124,6 +124,24 @@ https://www.postgresql.org[PostgreSQL] and has the following license text:
 -------------------------------------------------------------------------------
 
 
+m4/ax_check_compile_flag.m4
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Downloaded from the
+https://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html[GNU
+Autoconf Archive]. It has the following license:
+
+-------------------------------------------------------------------------------
+  Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
+  Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
+
+  Copying and distribution of this file, with or without modification, are
+  permitted in any medium without royalty provided the copyright notice
+  and this notice are preserved.  This file is offered as-is, without any
+  warranty.
+-------------------------------------------------------------------------------
+
+
 m4/ax_cxx_compile_stdcxx.m4
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

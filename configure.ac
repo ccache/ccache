@@ -28,6 +28,7 @@ AC_SUBST(more_warnings)
 
 m4_include(m4/feature_macros.m4)
 m4_include(m4/ax_cxx_compile_stdcxx.m4)
+m4_include(m4/ax_check_compile_flag.m4)
 m4_include(m4/clang.m4)
 
 mkdir -p .deps src/third_party unittest
