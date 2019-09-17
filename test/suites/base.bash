@@ -979,6 +979,26 @@ EOF
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
+    TEST "Handling of compiler-only arguments"
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    # Even though -Werror is not passed to the preprocessor, it should be part
+    # of the hash, so we expect a cache miss:
+    $CCACHE_COMPILE -c -Werror test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
     TEST "Buggy GCC 6 cpp"
 
     cat >buggy-cpp <<EOF

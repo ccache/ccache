@@ -68,7 +68,7 @@ TEST(dash_E_should_result_in_called_for_preprocessing)
   struct args *preprocessed, *compiler;
 
   create_file("foo.c", "");
-  CHECK(!cc_process_args(orig, &preprocessed, &compiler));
+  CHECK(!cc_process_args(orig, &preprocessed, NULL, &compiler));
   CHECK_INT_EQ(1, stats_get_pending(STATS_PREPROCESSING));
 
   args_free(orig);
@@ -80,7 +80,7 @@ TEST(dash_M_should_be_unsupported)
   struct args *preprocessed, *compiler;
 
   create_file("foo.c", "");
-  CHECK(!cc_process_args(orig, &preprocessed, &compiler));
+  CHECK(!cc_process_args(orig, &preprocessed, NULL, &compiler));
   CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED_OPTION));
 
   args_free(orig);
@@ -98,7 +98,7 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -123,7 +123,7 @@ TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
   create_file("foo.c", "");
 
   g_config.set_run_second_cpp(false);
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -149,7 +149,7 @@ TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
   create_file("foo.c", "");
 
   g_config.set_run_second_cpp(true);
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -166,7 +166,7 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -187,7 +187,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo/bar");
 
   args_free(orig);
@@ -209,7 +209,7 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_STR_EQ(act_cpp->argv[1], "--sysroot");
   CHECK_STR_EQ(act_cpp->argv[2], "./foo");
 
@@ -227,7 +227,7 @@ TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -244,7 +244,7 @@ TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -261,7 +261,7 @@ TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -278,7 +278,7 @@ TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -295,7 +295,7 @@ TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -311,7 +311,7 @@ TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -327,7 +327,7 @@ TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -354,7 +354,7 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
   args_add(exp_cc, "-c");
   free(s);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -373,7 +373,7 @@ TEST(fprofile_flag_with_nonexistent_dir_should_not_be_rewritten)
 
   create_file("foo.c", "");
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -394,7 +394,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_STR_EQ("./foo", act_cpp->argv[2]);
 
   args_free(orig);
@@ -419,7 +419,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_STR_EQ("-isystem./foo", act_cpp->argv[1]);
 
   free(cwd);
@@ -445,7 +445,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_STR_EQ("-I./foo", act_cpp->argv[1]);
 
   free(cwd);
@@ -463,7 +463,7 @@ TEST(debug_flag_order_with_known_option_first)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -479,7 +479,7 @@ TEST(debug_flag_order_with_known_option_last)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
@@ -491,14 +491,18 @@ TEST(options_not_to_be_passed_to_the_preprocesor)
   struct args* orig = args_init_from_string(
     "cc -Wa,foo foo.c -g -c -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error");
   struct args* exp_cpp = args_init_from_string("cc -g -DX");
+  struct args* exp_extra = args_init_from_string(
+    " -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error");
   struct args* exp_cc = args_init_from_string(
     "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c");
   struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  CHECK(cc_process_args(orig, &act_cpp, &act_cc));
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 
   args_free(orig);
