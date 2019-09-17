@@ -20,6 +20,7 @@ ccache is a collective work with contributions from many people, including:
 * Chiaki Ishikawa
 * Chris AtLee
 * Clemens Rabe
+* Cristian Adam
 * David Givone
 * Doug Anderson
 * Edward Z. Yang

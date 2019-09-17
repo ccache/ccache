@@ -61,6 +61,6 @@ matrix:
 
 script:
     - ./autogen.sh
-    - ./configure $HOST
+    - ./configure --enable-more-warnings $HOST
     - make
     - make ${TEST:-test}
