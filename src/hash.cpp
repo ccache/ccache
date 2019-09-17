@@ -17,6 +17,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#ifdef __clang__
+#  if __has_warning("-Wreserved-id-macro")
+#    pragma clang diagnostic ignored "-Wreserved-id-macro"
+#  endif
+#endif
+
 #include "hash.hpp"
 
 #include "ccache.hpp"
