@@ -270,8 +270,10 @@ extern time_t time_of_compilation;
 extern bool output_is_precompiled_header;
 void block_signals(void);
 void unblock_signals(void);
-bool cc_process_args(struct args *args, struct args **preprocessor_args,
-                    struct args **compiler_args);
+bool cc_process_args(struct args *args,
+                     struct args **preprocessor_args,
+                     struct args **extra_args_to_hash,
+                     struct args **compiler_args);
 void cc_reset(void);
 bool is_precompiled_header(const char *path);
 
