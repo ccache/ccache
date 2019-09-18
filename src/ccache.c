@@ -788,7 +788,6 @@ print_included_files(FILE *fp)
 static char *
 make_relative_path(char *path)
 {
-    // if(path[0] == '=') { // Remove first char if string starts with "="
     if(path[0] == '=') { // Remove first char if string starts with "="
         path++;
     }
@@ -799,15 +798,7 @@ make_relative_path(char *path)
 
 #ifdef _WIN32
 	if (path[0] == '/') {
-		char *p = NULL;
-		if (isalpha(path[1]) && path[2] == '/') {
-			// Transform /c/path... to c:/path...
-			p = format("%c:/%s", path[1], &path[3]);
-		} else {
-			p = x_strdup(path+1); // Skip leading slash.
-		}
-		free(path);
-		path = p;
+		path++;  // Skip leading slash.
 	}
 #endif
 
@@ -3499,7 +3490,7 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	// Since output is redirected, compilers will not color their output by
 	// default, so force it explicitly if it would be otherwise done.
 	if (!found_color_diagnostics && color_output_possible()) {
-		if (guessed_compiler == GUESSED_CLANG) {
+		if (guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_GHS) {
 			if (!str_eq(actual_language, "assembler")) {
 				args_add(common_args, "-fcolor-diagnostics");
 				cc_log("Automatically enabling colors");

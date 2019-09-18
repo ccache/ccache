@@ -26,16 +26,7 @@ args_init(int init_argc, char **init_args)
 	args->argv[0] = NULL;
 
     for (int i = 0; i < init_argc; i++) {
-        if(strstr(init_args[i], "-MF") == NULL) {
-            args_add(args, init_args[i]);
-        } else {
-            char *token;
-            token = strtok(init_args[i], "=");
-            while( token != NULL ) {
-                args_add(args, token);
-                token = strtok(NULL, "=");
-            }
-        }
+        args_add(args, init_args[i]);
     }
 
 	return args;
