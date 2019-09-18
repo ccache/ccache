@@ -26,12 +26,11 @@ TEST(small_roundtrip)
 {
   const uint64_t expected_foobar_checksum = 0xa2aa05ed9085aaf9ULL;
 
-  XXH64_state_t* checksum = XXH64_createState();
-  XXH64_reset(checksum, 0);
+  Checksum checksum;
 
   FILE* f = fopen("data.uncompressed", "w");
   struct compressor* compr_none = compressor_from_type(COMPR_TYPE_NONE);
-  struct compr_state* c_state = compr_none->init(f, -1, checksum);
+  struct compr_state* c_state = compr_none->init(f, -1, &checksum);
   CHECK(c_state);
 
   CHECK(compr_none->write(c_state, "foobar", 6));
@@ -39,12 +38,12 @@ TEST(small_roundtrip)
   CHECK(compr_none->free(c_state));
   fclose(f);
 
-  CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
+  CHECK_INT_EQ(checksum.digest(), expected_foobar_checksum);
 
-  XXH64_reset(checksum, 0);
+  checksum.reset();
   f = fopen("data.uncompressed", "r");
   struct decompressor* decompr_none = decompressor_from_type(COMPR_TYPE_NONE);
-  struct decompr_state* d_state = decompr_none->init(f, checksum);
+  struct decompr_state* d_state = decompr_none->init(f, &checksum);
   CHECK(d_state);
 
   char buffer[4];
@@ -60,9 +59,7 @@ TEST(small_roundtrip)
   CHECK(!decompr_none->free(d_state));
   fclose(f);
 
-  CHECK_INT_EQ(XXH64_digest(checksum), expected_foobar_checksum);
-
-  XXH64_freeState(checksum);
+  CHECK_INT_EQ(checksum.digest(), expected_foobar_checksum);
 }
 
 TEST_SUITE_END

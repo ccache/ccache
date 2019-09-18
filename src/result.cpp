@@ -380,7 +380,7 @@ read_result(const char* path,
   bool success = false;
   struct decompressor* decompressor = NULL;
   struct decompr_state* decompr_state = NULL;
-  XXH64_state_t* checksum = XXH64_createState();
+  Checksum checksum;
 
   FILE* f = fopen(path, "rb");
   if (!f) {
@@ -395,7 +395,7 @@ read_result(const char* path,
                                             RESULT_VERSION,
                                             &decompressor,
                                             &decompr_state,
-                                            checksum,
+                                            &checksum,
                                             errmsg)) {
     goto out;
   }
@@ -439,7 +439,7 @@ read_result(const char* path,
   }
 
   {
-    uint64_t actual_checksum = XXH64_digest(checksum);
+    uint64_t actual_checksum = checksum.digest();
     uint64_t expected_checksum;
     READ_UINT64(expected_checksum);
 
@@ -458,9 +458,6 @@ out:
   }
   if (f) {
     fclose(f);
-  }
-  if (checksum) {
-    XXH64_freeState(checksum);
   }
   if (!success && !cache_miss && !*errmsg) {
     *errmsg = x_strdup("Corrupt result");
@@ -609,7 +606,7 @@ static bool
 write_result(const struct result_files* list,
              struct compressor* compressor,
              struct compr_state* compr_state,
-             XXH64_state_t* checksum,
+             Checksum& checksum,
              const char* result_path_in_cache)
 {
   WRITE_BYTE(list->n_files);
@@ -624,7 +621,7 @@ write_result(const struct result_files* list,
     }
   }
 
-  WRITE_UINT64(XXH64_digest(checksum));
+  WRITE_UINT64(checksum.digest());
 
   return true;
 
@@ -656,7 +653,7 @@ bool
 result_put(const char* path, struct result_files* list)
 {
   bool ret = false;
-  XXH64_state_t* checksum = XXH64_createState();
+  Checksum checksum;
   bool ok;
   uint64_t content_size;
 
@@ -714,9 +711,6 @@ out:
   free(tmp_file);
   if (f) {
     fclose(f);
-  }
-  if (checksum) {
-    XXH64_freeState(checksum);
   }
   return ret;
 }

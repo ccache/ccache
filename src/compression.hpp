@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "third_party/xxhash.h"
+#include "Checksum.hpp"
 
 struct compr_state;
 
@@ -33,7 +33,7 @@ struct compressor
   // checksum: Checksum state to update (NULL for no checksum).
   struct compr_state* (*init)(FILE* output,
                               int8_t compression_level,
-                              XXH64_state_t* checksum);
+                              Checksum* checksum);
 
   // Get the actual compression level that will be used.
   int8_t (*get_actual_compression_level)(struct compr_state* state);
@@ -61,7 +61,7 @@ struct decompressor
   //
   // input: The file to read compressed data from.
   // checksum: Checksum state to update (NULL for no checksum).
-  struct decompr_state* (*init)(FILE* input, XXH64_state_t* checksum);
+  struct decompr_state* (*init)(FILE* input, Checksum* checksum);
 
   // Decompress data.
   //

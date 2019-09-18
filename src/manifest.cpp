@@ -18,13 +18,12 @@
 
 #include "manifest.hpp"
 
+#include "Checksum.hpp"
 #include "ccache.hpp"
 #include "common_header.hpp"
 #include "compression.hpp"
 #include "hashutil.hpp"
 #include "int_bytes_conversion.hpp"
-
-#include "third_party/xxhash.h"
 
 // Manifest data format
 // ====================
@@ -145,7 +144,9 @@ template<> struct hash<FileInfo>
   operator()(const FileInfo& file_info) const
   {
     static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
-    return XXH64(&file_info, sizeof(file_info), 0);
+    Checksum checksum;
+    checksum.update(&file_info, sizeof(file_info));
+    return checksum.digest();
   }
 };
 
@@ -265,7 +266,7 @@ read_manifest(const char* path, char** errmsg)
   struct decompressor* decompressor = NULL;
   struct decompr_state* decompr_state = NULL;
   *errmsg = NULL;
-  XXH64_state_t* checksum = XXH64_createState();
+  Checksum checksum;
   uint64_t actual_checksum;
   uint64_t expected_checksum;
 
@@ -281,7 +282,7 @@ read_manifest(const char* path, char** errmsg)
                                             MANIFEST_VERSION,
                                             &decompressor,
                                             &decompr_state,
-                                            checksum,
+                                            &checksum,
                                             errmsg)) {
     goto out;
   }
@@ -315,7 +316,7 @@ read_manifest(const char* path, char** errmsg)
     READ_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
   }
 
-  actual_checksum = XXH64_digest(checksum);
+  actual_checksum = checksum.digest();
   READ_UINT64(expected_checksum);
   if (actual_checksum == expected_checksum) {
     success = true;
@@ -331,9 +332,6 @@ out:
   }
   if (f) {
     fclose(f);
-  }
-  if (checksum) {
-    XXH64_freeState(checksum);
   }
   if (!success) {
     if (!*errmsg) {
@@ -384,7 +382,6 @@ static bool
 write_manifest(FILE* f, const struct manifest* mf)
 {
   int ret = false;
-  XXH64_state_t* checksum = XXH64_createState();
 
   uint64_t content_size = COMMON_HEADER_SIZE;
   content_size += 4; // n_files
@@ -401,6 +398,7 @@ write_manifest(FILE* f, const struct manifest* mf)
   }
   content_size += 8; // checksum
 
+  Checksum checksum;
   struct common_header header;
   struct compressor* compressor;
   struct compr_state* compr_state;
@@ -441,12 +439,11 @@ write_manifest(FILE* f, const struct manifest* mf)
     WRITE_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
   }
 
-  WRITE_UINT64(XXH64_digest(checksum));
+  WRITE_UINT64(checksum.digest());
 
   ret = compressor->free(compr_state);
 
 out:
-  XXH64_freeState(checksum);
   if (!ret) {
     cc_log("Error writing to manifest file");
   }

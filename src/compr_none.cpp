@@ -21,11 +21,11 @@
 struct state
 {
   FILE* output;
-  XXH64_state_t* checksum;
+  Checksum* checksum;
 };
 
 static struct compr_state*
-compr_none_init(FILE* output, int8_t level, XXH64_state_t* checksum)
+compr_none_init(FILE* output, int8_t level, Checksum* checksum)
 {
   auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
   state->output = output;
@@ -47,7 +47,7 @@ compr_none_write(struct compr_state* handle, const void* data, size_t size)
   struct state* state = (struct state*)handle;
   size_t ret = fwrite(data, size, 1, state->output);
   if (state->checksum) {
-    XXH64_update(state->checksum, data, size);
+    state->checksum->update(data, size);
   }
   return ret == 1;
 }

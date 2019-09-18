@@ -27,7 +27,7 @@
 struct state
 {
   FILE* output;
-  XXH64_state_t* checksum;
+  Checksum* checksum;
   ZSTD_CStream* stream;
   ZSTD_inBuffer in;
   ZSTD_outBuffer out;
@@ -36,7 +36,7 @@ struct state
 };
 
 static struct compr_state*
-compr_zstd_init(FILE* output, int8_t level, XXH64_state_t* checksum)
+compr_zstd_init(FILE* output, int8_t level, Checksum* checksum)
 {
   auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
   state->output = output;
@@ -92,7 +92,7 @@ compr_zstd_write(struct compr_state* handle, const void* data, size_t size)
   struct state* state = (struct state*)handle;
 
   if (state->checksum) {
-    XXH64_update(state->checksum, data, size);
+    state->checksum->update(data, size);
   }
 
   state->in.src = data;

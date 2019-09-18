@@ -21,12 +21,12 @@
 struct state
 {
   FILE* input;
-  XXH64_state_t* checksum;
+  Checksum* checksum;
   bool failed;
 };
 
 static struct decompr_state*
-decompr_none_init(FILE* input, XXH64_state_t* checksum)
+decompr_none_init(FILE* input, Checksum* checksum)
 {
   auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
   state->input = input;
@@ -42,7 +42,7 @@ decompr_none_read(struct decompr_state* handle, void* data, size_t size)
 
   bool result = fread(data, 1, size, state->input) == size;
   if (result && state->checksum) {
-    XXH64_update(state->checksum, data, size);
+    state->checksum->update(data, size);
   }
   if (!result) {
     state->failed = true;

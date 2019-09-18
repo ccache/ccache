@@ -20,9 +20,8 @@
 
 #include "system.hpp"
 
+#include "Checksum.hpp"
 #include "compression.hpp"
-
-#include "third_party/xxhash.h"
 
 #define COMMON_HEADER_SIZE 15
 
@@ -55,7 +54,7 @@ bool common_header_initialize_for_writing(struct common_header* header,
                                           uint8_t compression_type,
                                           int8_t compression_level,
                                           uint64_t content_size,
-                                          XXH64_state_t* checksum,
+                                          Checksum& checksum,
                                           struct compressor** compressor,
                                           struct compr_state** compr_state);
 
@@ -77,7 +76,7 @@ bool common_header_initialize_for_reading(struct common_header* header,
                                           uint8_t expected_version,
                                           struct decompressor** decompressor,
                                           struct decompr_state** decompr_state,
-                                          XXH64_state_t* checksum,
+                                          Checksum* checksum,
                                           char** errmsg);
 
 void common_header_dump(const struct common_header* header, FILE* f);

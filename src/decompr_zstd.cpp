@@ -30,7 +30,7 @@ enum stream_state {
 struct state
 {
   FILE* input;
-  XXH64_state_t* checksum;
+  Checksum* checksum;
   char input_buffer[READ_BUFFER_SIZE];
   size_t input_size;
   size_t input_consumed;
@@ -41,7 +41,7 @@ struct state
 };
 
 static struct decompr_state*
-decompr_zstd_init(FILE* input, XXH64_state_t* checksum)
+decompr_zstd_init(FILE* input, Checksum* checksum)
 {
   auto state = static_cast<struct state*>(malloc(sizeof(struct state)));
 
@@ -95,7 +95,7 @@ decompr_zstd_read(struct decompr_state* handle, void* data, size_t size)
       return false;
     }
     if (state->checksum) {
-      XXH64_update(state->checksum, state->out.dst, state->out.pos);
+      state->checksum->update(state->out.dst, state->out.pos);
     }
     if (ret == 0) {
       state->stream_state = STREAM_STATE_END;

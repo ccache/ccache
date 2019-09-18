@@ -29,7 +29,7 @@ common_header_initialize_for_writing(struct common_header* header,
                                      uint8_t compression_type,
                                      int8_t compression_level,
                                      uint64_t content_size,
-                                     XXH64_state_t* checksum,
+                                     Checksum& checksum,
                                      struct compressor** compressor,
                                      struct compr_state** compr_state)
 {
@@ -39,12 +39,10 @@ common_header_initialize_for_writing(struct common_header* header,
   header->compression_level = compression_level;
   header->content_size = content_size;
 
-  XXH64_reset(checksum, 0);
-
   *compressor = compressor_from_type(header->compression_type);
   assert(*compressor);
   *compr_state =
-    (*compressor)->init(output, header->compression_level, checksum);
+    (*compressor)->init(output, header->compression_level, &checksum);
   if (!*compr_state) {
     cc_log("Failed to initialize compressor");
     return false;
@@ -62,7 +60,7 @@ common_header_initialize_for_writing(struct common_header* header,
     cc_log("Failed to write common file header");
     return false;
   }
-  XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+  checksum.update(header_bytes, sizeof(header_bytes));
   return true;
 }
 
@@ -73,7 +71,7 @@ common_header_initialize_for_reading(struct common_header* header,
                                      uint8_t expected_version,
                                      struct decompressor** decompressor,
                                      struct decompr_state** decompr_state,
-                                     XXH64_state_t* checksum,
+                                     Checksum* checksum,
                                      char** errmsg)
 {
   uint8_t header_bytes[COMMON_HEADER_SIZE];
@@ -132,8 +130,7 @@ common_header_initialize_for_reading(struct common_header* header,
   }
 
   if (checksum) {
-    XXH64_reset(checksum, 0);
-    XXH64_update(checksum, header_bytes, sizeof(header_bytes));
+    checksum->update(header_bytes, sizeof(header_bytes));
   }
 
   *decompr_state = (*decompressor)->init(input, checksum);

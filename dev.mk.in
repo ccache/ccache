@@ -37,6 +37,7 @@ built_dist_files = $(generated_sources) $(generated_docs)
 non_third_party_headers = \
     src/AtomicFile.hpp \
     src/CacheFile.hpp \
+    src/Checksum.hpp \
     src/Config.hpp \
     src/Error.hpp \
     src/ProgressBar.hpp \
