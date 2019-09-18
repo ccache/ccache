@@ -549,7 +549,7 @@ static enum guessed_compiler
 guess_compiler(const char *path)
 {
 	char *name = basename(path);
-    name = remove_extension(name);
+	name = remove_extension(name);
 	enum guessed_compiler result = GUESSED_UNKNOWN;
 	if (strstr(name, "clang")) {
 		result = GUESSED_CLANG;
@@ -788,9 +788,9 @@ print_included_files(FILE *fp)
 static char *
 make_relative_path(char *path)
 {
-    if(path[0] == '=') { // Remove first char if string starts with "="
-        path++;
-    }
+	if(path[0] == '=') { // Remove first char if string starts with "="
+		path++;
+	}
 
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
@@ -1674,11 +1674,11 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		add_pending_tmp_file(path_stderr);
 
 		int args_added = 2;
-        if (guessed_compiler == GUESSED_GHS)
-		    args_add(args, "-c"); // Temporary fix for GHS
-        else
-            args_add(args, "-E"); 
-        
+		if (guessed_compiler == GUESSED_GHS)
+			args_add(args, "-c"); // Temporary fix for GHS
+		else
+			args_add(args, "-E"); 
+		
 		if (conf->keep_comments_cpp) {
 			args_add(args, "-C");
 			args_added = 3;
@@ -3522,9 +3522,9 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 		    && !dependency_implicit_target_specified
 		    && !str_eq(get_extension(output_dep), ".o")) {
 			if (guessed_compiler == GUESSED_GHS)
-                args_add(dep_args, "-o"); // Temporary fix for GHS
-            else
-                args_add(dep_args, "-MQ");
+				args_add(dep_args, "-o"); // Temporary fix for GHS
+			else
+				args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}
 	}

@@ -24,11 +24,9 @@ args_init(int init_argc, char **init_args)
 	args->argc = 0;
 	args->argv = (char **)x_malloc(sizeof(char *));
 	args->argv[0] = NULL;
-
-    for (int i = 0; i < init_argc; i++) {
-        args_add(args, init_args[i]);
-    }
-
+	for (int i = 0; i < init_argc; i++) {
+		args_add(args, init_args[i]);
+	}
 	return args;
 }
 
