@@ -80,6 +80,7 @@ enum guessed_compiler {
 	GUESSED_GCC,
 	GUESSED_NVCC,
 	GUESSED_PUMP,
+	GUESSED_GHS,
 	GUESSED_UNKNOWN
 };
 
