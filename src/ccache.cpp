@@ -3622,8 +3622,7 @@ free_and_nullify(T*& ptr)
 void
 cc_reset(void)
 {
-  Config new_config;
-  std::swap(g_config, new_config);
+  g_config = Config();
 
   free_and_nullify(primary_config_path);
   free_and_nullify(secondary_config_path);
