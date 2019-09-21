@@ -3679,8 +3679,6 @@ cc_reset(void)
   generating_coverage = false;
   generating_stackusage = false;
   profile_arcs = false;
-  free(profile_dir);
-  profile_dir = NULL;
   i_tmpfile = NULL;
   direct_i_file = false;
   free(cpp_stderr);
