@@ -1134,8 +1134,13 @@ struct tm*
 localtime_r(const time_t* timep, struct tm* result)
 {
   struct tm* tm = localtime(timep);
-  *result = *tm;
-  return result;
+  if (tm) {
+    *result = *tm;
+    return result;
+  } else {
+    memset(result, 0, sizeof(*result));
+    return NULL;
+  }
 }
 #endif
 
