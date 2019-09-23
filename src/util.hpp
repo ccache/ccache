@@ -25,6 +25,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace util {
@@ -42,6 +43,16 @@ std::string base_name(const std::string& path);
 //
 // Returns true if the directory exists or could be created, otherwise false.
 bool create_dir(const std::string& dir);
+
+// Create a unique temporary file.
+//
+// Parameters:
+// - path_prefix: Base path. The resulting filename will be this path plus a
+//   unique suffix.
+//
+// Returns the open file descriptor (in read/write mode) and the actual
+// filename.
+std::pair<int, std::string> create_temp_fd(const std::string& path_prefix);
 
 // Get directory name of path.
 std::string dir_name(const std::string& path);

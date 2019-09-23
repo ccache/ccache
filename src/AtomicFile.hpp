@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include <fstream>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -45,5 +45,5 @@ public:
 private:
   const std::string m_path;
   std::string m_tmp_path;
-  std::ofstream m_stream;
+  FILE* m_stream;
 };

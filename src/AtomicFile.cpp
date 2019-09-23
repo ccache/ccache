@@ -21,31 +21,23 @@
 #include "Error.hpp"
 #include "ccache.hpp"
 
+#include <cassert>
 #include <cerrno>
 #include <fmt/core.h>
 #include <unistd.h>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  char* tmp_path = x_strdup(path.c_str());
-  int fd = create_tmp_fd(&tmp_path);
-  m_tmp_path = tmp_path;
-  m_stream.open(tmp_path,
-                mode == Mode::Binary ? std::ios::out | std::ios::binary
-                                     : std::ios::out);
-  free(tmp_path);
-  ::close(fd);
-
-  if (!m_stream) {
-    throw Error(fmt::format("failed to create {}: {}", path, strerror(errno)));
-  }
+  auto fd_and_path = util::create_temp_fd(path);
+  m_stream = fdopen(fd_and_path.first, mode == Mode::Binary ? "w+b" : "w+");
+  m_tmp_path = std::move(fd_and_path.second);
 }
 
 AtomicFile::~AtomicFile()
 {
-  if (m_stream.is_open()) {
+  if (m_stream) {
     // close() was not called so remove the lingering temporary file.
-    m_stream.close();
+    fclose(m_stream);
     tmp_unlink(m_tmp_path.c_str());
   }
 }
@@ -53,8 +45,7 @@ AtomicFile::~AtomicFile()
 void
 AtomicFile::write(const std::string& data)
 {
-  m_stream.write(data.data(), data.size());
-  if (!m_stream) {
+  if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw Error(
       fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
   }
@@ -63,8 +54,7 @@ AtomicFile::write(const std::string& data)
 void
 AtomicFile::write(const std::vector<uint8_t>& data)
 {
-  m_stream.write(reinterpret_cast<const char*>(data.data()), data.size());
-  if (!m_stream) {
+  if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
     throw Error(
       fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
   }
@@ -73,7 +63,9 @@ AtomicFile::write(const std::vector<uint8_t>& data)
 void
 AtomicFile::close()
 {
-  m_stream.close();
+  assert(m_stream);
+  fclose(m_stream);
+  m_stream = nullptr;
   if (x_rename(m_tmp_path.c_str(), m_path.c_str()) != 0) {
     throw Error(fmt::format("failed to rename {} to {}", m_tmp_path, m_path));
   }

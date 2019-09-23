@@ -1799,6 +1799,16 @@ create_dir(const std::string& dir)
   }
 }
 
+std::pair<int, std::string>
+create_temp_fd(const std::string& path_prefix)
+{
+  char* tmp_path = x_strdup(path_prefix.c_str());
+  int fd = create_tmp_fd(&tmp_path);
+  std::string actual_path = tmp_path;
+  free(tmp_path);
+  return {fd, actual_path};
+}
+
 std::string
 dir_name(const std::string& path)
 {
