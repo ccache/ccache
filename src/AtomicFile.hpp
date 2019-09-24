@@ -29,7 +29,7 @@
 class AtomicFile
 {
 public:
-  enum class Mode { Binary, Text };
+  enum class Mode { binary, text };
 
   AtomicFile(const std::string& destination_path, Mode mode);
   ~AtomicFile();

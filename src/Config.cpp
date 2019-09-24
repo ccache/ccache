@@ -601,7 +601,7 @@ Config::set_value_in_file(const std::string& path,
   Config dummy_config;
   dummy_config.set_item(key, value, false, false, "");
 
-  AtomicFile output(path, AtomicFile::Mode::Text);
+  AtomicFile output(path, AtomicFile::Mode::text);
   bool found = false;
 
   if (!parse_config_file(path,
