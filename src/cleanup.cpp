@@ -50,12 +50,12 @@ void
 clean_up_dir(const std::string& subdir,
              uint64_t max_size,
              uint32_t max_files,
-             const util::ProgressReceiver& progress_receiver)
+             const Util::ProgressReceiver& progress_receiver)
 {
   cc_log("Cleaning up cache directory %s", subdir.c_str());
 
   std::vector<std::shared_ptr<CacheFile>> files;
-  util::get_level_1_files(
+  Util::get_level_1_files(
     subdir, [&](double progress) { progress_receiver(progress / 3); }, files);
 
   uint64_t cache_size = 0;
@@ -73,7 +73,7 @@ clean_up_dir(const std::string& subdir,
 
     // Delete any tmp files older than 1 hour right away.
     if (file->stat().st_mtime + 3600 < current_time
-        && util::base_name(file->path()).find(".tmp.") != std::string::npos) {
+        && Util::base_name(file->path()).find(".tmp.") != std::string::npos) {
       x_unlink(file->path().c_str());
       continue;
     }
@@ -109,7 +109,7 @@ clean_up_dir(const std::string& subdir,
       break;
     }
 
-    if (util::ends_with(file->path(), ".stderr")) {
+    if (Util::ends_with(file->path(), ".stderr")) {
       // In order to be nice to legacy ccache versions, make sure that the .o
       // file is deleted before .stderr, because if the ccache process gets
       // killed after deleting the .stderr but before deleting the .o, the
@@ -148,12 +148,12 @@ clean_up_dir(const std::string& subdir,
 // Clean up all cache subdirectories.
 void
 clean_up_all(const Config& config,
-             const util::ProgressReceiver& progress_receiver)
+             const Util::ProgressReceiver& progress_receiver)
 {
-  util::for_each_level_1_subdir(
+  Util::for_each_level_1_subdir(
     config.cache_dir(),
     [&](const std::string& subdir,
-        const util::ProgressReceiver& sub_progress_receiver) {
+        const Util::ProgressReceiver& sub_progress_receiver) {
       clean_up_dir(subdir,
                    config.max_size() / 16,
                    config.max_files() / 16,
@@ -165,12 +165,12 @@ clean_up_all(const Config& config,
 // Wipe one cache subdirectory.
 static void
 wipe_dir(const std::string& subdir,
-         const util::ProgressReceiver& progress_receiver)
+         const Util::ProgressReceiver& progress_receiver)
 {
   cc_log("Clearing out cache directory %s", subdir.c_str());
 
   std::vector<std::shared_ptr<CacheFile>> files;
-  util::get_level_1_files(
+  Util::get_level_1_files(
     subdir, [&](double progress) { progress_receiver(progress / 2); }, files);
 
   for (size_t i = 0; i < files.size(); ++i) {
@@ -188,8 +188,8 @@ wipe_dir(const std::string& subdir,
 
 // Wipe all cached files in all subdirectories.
 void
-wipe_all(const Config& config, const util::ProgressReceiver& progress_receiver)
+wipe_all(const Config& config, const Util::ProgressReceiver& progress_receiver)
 {
-  util::for_each_level_1_subdir(
+  Util::for_each_level_1_subdir(
     config.cache_dir(), wipe_dir, progress_receiver);
 }

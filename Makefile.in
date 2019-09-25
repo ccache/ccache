@@ -35,6 +35,7 @@ non_third_party_sources = \
     src/CacheFile.cpp \
     src/Config.cpp \
     src/ProgressBar.cpp \
+    src/Util.cpp \
     src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \
@@ -52,12 +53,12 @@ non_third_party_sources = \
     src/hash.cpp \
     src/hashutil.cpp \
     src/language.cpp \
+    src/legacy_util.cpp \
     src/lockfile.cpp \
     src/manifest.cpp \
     src/result.cpp \
     src/stats.cpp \
-    src/unify.cpp \
-    src/util.cpp
+    src/unify.cpp
 generated_sources = \
     src/version.cpp
 third_party_sources = \
@@ -75,6 +76,7 @@ ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
 test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Config.cpp
+test_suites += unittest/test_Util.cpp
 test_suites += unittest/test_args.cpp
 test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
@@ -86,7 +88,6 @@ test_suites += unittest/test_hashutil.cpp
 test_suites += unittest/test_legacy_util.cpp
 test_suites += unittest/test_lockfile.cpp
 test_suites += unittest/test_stats.cpp
-test_suites += unittest/test_util.cpp
 
 test_sources += unittest/catch2_tests.cpp
 test_sources += unittest/framework.cpp

@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Config.hpp"
-#include "util.hpp"
+#include "Util.hpp"
 
 void compress_stats(const Config& config,
-                    const util::ProgressReceiver& progress_receiver);
+                    const Util::ProgressReceiver& progress_receiver);

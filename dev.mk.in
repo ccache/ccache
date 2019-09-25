@@ -41,6 +41,7 @@ non_third_party_headers = \
     src/Config.hpp \
     src/Error.hpp \
     src/ProgressBar.hpp \
+    src/Util.hpp \
     src/ccache.hpp \
     src/cleanup.hpp \
     src/common_header.hpp \
@@ -57,7 +58,6 @@ non_third_party_headers = \
     src/result.hpp \
     src/system.hpp \
     src/unify.hpp \
-    src/util.hpp \
     unittest/framework.hpp \
     unittest/util.hpp
 third_party_headers = \

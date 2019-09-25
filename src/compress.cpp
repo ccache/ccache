@@ -50,19 +50,19 @@ get_content_size(const std::string& path,
 
 void
 compress_stats(const Config& config,
-               const util::ProgressReceiver& progress_receiver)
+               const Util::ProgressReceiver& progress_receiver)
 {
   uint64_t on_disk_size = 0;
   uint64_t compr_size = 0;
   uint64_t compr_orig_size = 0;
   uint64_t incompr_size = 0;
 
-  util::for_each_level_1_subdir(
+  Util::for_each_level_1_subdir(
     config.cache_dir(),
     [&](const std::string& subdir,
-        const util::ProgressReceiver& sub_progress_receiver) {
+        const Util::ProgressReceiver& sub_progress_receiver) {
       std::vector<std::shared_ptr<CacheFile>> files;
-      util::get_level_1_files(
+      Util::get_level_1_files(
         subdir,
         [&](double progress) { sub_progress_receiver(progress / 2); },
         files);

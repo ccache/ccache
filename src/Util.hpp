@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-namespace util {
+namespace Util {
 
 typedef std::function<void(double)> ProgressReceiver;
 typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
@@ -117,4 +117,4 @@ void write_file(const std::string& path,
                 const std::string& data,
                 bool binary = false);
 
-} // namespace util
+} // namespace Util

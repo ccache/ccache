@@ -18,7 +18,7 @@
 
 #include "CacheFile.hpp"
 
-#include "util.hpp"
+#include "Util.hpp"
 
 const struct stat&
 CacheFile::stat() const
@@ -50,9 +50,9 @@ CacheFile::stat() const
 CacheFile::Type
 CacheFile::type() const
 {
-  if (util::ends_with(m_path, ".manifest")) {
+  if (Util::ends_with(m_path, ".manifest")) {
     return Type::manifest;
-  } else if (util::ends_with(m_path, ".result")) {
+  } else if (Util::ends_with(m_path, ".result")) {
     return Type::result;
   } else {
     return Type::unknown;

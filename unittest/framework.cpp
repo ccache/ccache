@@ -18,7 +18,7 @@
 
 #include "framework.hpp"
 
-#include "../src/util.hpp"
+#include "../src/Util.hpp"
 #include "util.hpp"
 
 #include <float.h>
@@ -110,7 +110,7 @@ cct_suite_begin(const char* name)
     printf("=== SUITE: %s ===\n", name);
   }
   dir_before_suite = gnu_getcwd();
-  util::create_dir(name);
+  Util::create_dir(name);
   cct_chdir(name);
   current_suite = name;
 }
@@ -131,7 +131,7 @@ cct_test_begin(const char* name)
     printf("--- TEST: %s ---\n", name);
   }
   dir_before_test = gnu_getcwd();
-  util::create_dir(name);
+  Util::create_dir(name);
   cct_chdir(name);
   current_test = name;
 

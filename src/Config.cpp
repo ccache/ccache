@@ -20,7 +20,7 @@
 
 #include "AtomicFile.hpp"
 #include "Error.hpp"
-#include "util.hpp"
+#include "Util.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -164,7 +164,7 @@ parse_bool(const std::string& value, bool from_env_variable, bool negate)
     // Previously any value meant true, but this was surprising to users, who
     // might do something like CCACHE_DISABLE=0 and expect ccache to be
     // enabled.
-    std::string lower_value = util::to_lowercase(value);
+    std::string lower_value = Util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw Error(fmt::format(
@@ -245,7 +245,7 @@ parse_sloppiness(const std::string& value)
   while (end != std::string::npos) {
     end = value.find_first_of(", ", start);
     std::string token =
-      util::strip_whitespace(value.substr(start, end - start));
+      Util::strip_whitespace(value.substr(start, end - start));
     if (token == "file_macro") {
       result |= SLOPPY_FILE_MACRO;
     } else if (token == "file_stat_matches") {
@@ -371,7 +371,7 @@ parse_line(const std::string& line,
            std::string* value,
            std::string* error_message)
 {
-  std::string stripped_line = util::strip_whitespace(line);
+  std::string stripped_line = Util::strip_whitespace(line);
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
@@ -382,8 +382,8 @@ parse_line(const std::string& line,
   }
   *key = stripped_line.substr(0, equal_pos);
   *value = stripped_line.substr(equal_pos + 1);
-  *key = util::strip_whitespace(*key);
-  *value = util::strip_whitespace(*value);
+  *key = Util::strip_whitespace(*key);
+  *value = Util::strip_whitespace(*value);
   return true;
 }
 
@@ -439,7 +439,7 @@ Config::update_from_environment()
   for (char** env = environ; *env; ++env) {
     std::string setting = *env;
     const std::string prefix = "CCACHE_";
-    if (!util::starts_with(setting, prefix)) {
+    if (!Util::starts_with(setting, prefix)) {
       continue;
     }
     size_t equal_pos = setting.find('=');
@@ -449,7 +449,7 @@ Config::update_from_environment()
 
     std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
     std::string value = setting.substr(equal_pos + 1);
-    bool negate = util::starts_with(key, "NO");
+    bool negate = Util::starts_with(key, "NO");
     if (negate) {
       key = key.substr(2);
     }
@@ -685,7 +685,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level: {
-    auto level = util::parse_int(value);
+    auto level = Util::parse_int(value);
     if (level < -128 || level > 127) {
       throw Error("compression level must be between -128 and 127");
     }

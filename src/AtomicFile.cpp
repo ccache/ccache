@@ -19,6 +19,7 @@
 #include "AtomicFile.hpp"
 
 #include "Error.hpp"
+#include "Util.hpp"
 #include "ccache.hpp"
 
 #include <cassert>
@@ -28,7 +29,7 @@
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  auto fd_and_path = util::create_temp_fd(path);
+  auto fd_and_path = Util::create_temp_fd(path);
   m_stream = fdopen(fd_and_path.first, mode == Mode::binary ? "w+b" : "w+");
   m_tmp_path = std::move(fd_and_path.second);
 }

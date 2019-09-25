@@ -21,9 +21,9 @@
 
 #include "Error.hpp"
 #include "ProgressBar.hpp"
+#include "Util.hpp"
 #include "cleanup.hpp"
 #include "compopt.hpp"
-#include "util.hpp"
 
 #include <fmt/core.h>
 #include <limits>
@@ -1636,7 +1636,7 @@ hash_compiler(struct hash* hash,
     hash_delimiter(hash, "cc_mtime");
     hash_int(hash, st->st_size);
     hash_int(hash, st->st_mtime);
-  } else if (util::starts_with(g_config.compiler_check(), "string:")) {
+  } else if (Util::starts_with(g_config.compiler_check(), "string:")) {
     hash_delimiter(hash, "cc_hash");
     hash_string(hash, g_config.compiler_check().c_str() + strlen("string:"));
   } else if (g_config.compiler_check() == "content" || !allow_command) {
@@ -3451,7 +3451,7 @@ out:
 static void
 create_initial_config_file(const char* path)
 {
-  if (!util::create_dir(util::dir_name(path))) {
+  if (!Util::create_dir(Util::dir_name(path))) {
     return;
   }
 

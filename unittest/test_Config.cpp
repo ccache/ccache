@@ -18,8 +18,8 @@
 
 #include "../src/Config.hpp"
 #include "../src/Error.hpp"
+#include "../src/Util.hpp"
 #include "../src/ccache.hpp"
-#include "../src/util.hpp"
 
 #include <catch.hpp>
 #include <fmt/core.h>
@@ -80,7 +80,7 @@ TEST_CASE("Config::update_from_file")
   std::string base_dir = fmt::format("C:/{0}/foo/{0}", user);
 #endif
 
-  util::write_file(
+  Util::write_file(
     "ccache.conf",
     "base_dir = " + base_dir + "\n"
     "cache_dir=\n"
@@ -173,72 +173,72 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SECTION("missing equal sign")
   {
-    util::write_file("ccache.conf", "no equal sign");
+    Util::write_file("ccache.conf", "no equal sign");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         Equals("ccache.conf:1: missing equal sign"));
   }
 
   SECTION("unknown key")
   {
-    util::write_file("ccache.conf", "# Comment\nfoo = bar");
+    Util::write_file("ccache.conf", "# Comment\nfoo = bar");
     CHECK(config.update_from_file("ccache.conf"));
   }
 
   SECTION("invalid bool")
   {
-    util::write_file("ccache.conf", "disable=");
+    Util::write_file("ccache.conf", "disable=");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         Equals("ccache.conf:1: not a boolean value: \"\""));
 
-    util::write_file("ccache.conf", "disable=foo");
+    Util::write_file("ccache.conf", "disable=foo");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         Equals("ccache.conf:1: not a boolean value: \"foo\""));
   }
 
   SECTION("invalid variable reference")
   {
-    util::write_file("ccache.conf", "base_dir = ${foo");
+    Util::write_file("ccache.conf", "base_dir = ${foo");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       Equals("ccache.conf:1: syntax error: missing '}' after \"foo\""));
-    // Other cases tested in test_util.c.
+    // Other cases tested in test_Util.c.
   }
 
   SECTION("empty umask")
   {
-    util::write_file("ccache.conf", "umask = ");
+    Util::write_file("ccache.conf", "umask = ");
     CHECK(config.update_from_file("ccache.conf"));
     CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
   }
 
   SECTION("invalid size")
   {
-    util::write_file("ccache.conf", "max_size = foo");
+    Util::write_file("ccache.conf", "max_size = foo");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         Equals("ccache.conf:1: invalid size: \"foo\""));
-    // Other cases tested in test_util.c.
+    // Other cases tested in test_Util.c.
   }
 
   SECTION("invalid sloppiness")
   {
-    util::write_file("ccache.conf", "sloppiness = file_macro, foo");
+    Util::write_file("ccache.conf", "sloppiness = file_macro, foo");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
                         Equals("ccache.conf:1: unknown sloppiness: \"foo\""));
   }
 
   SECTION("invalid unsigned")
   {
-    util::write_file("ccache.conf", "max_files =");
+    Util::write_file("ccache.conf", "max_files =");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       Equals("ccache.conf:1: invalid unsigned integer: \"\""));
 
-    util::write_file("ccache.conf", "max_files = -42");
+    Util::write_file("ccache.conf", "max_files = -42");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       Equals("ccache.conf:1: invalid unsigned integer: \"-42\""));
 
-    util::write_file("ccache.conf", "max_files = foo");
+    Util::write_file("ccache.conf", "max_files = foo");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       Equals("ccache.conf:1: invalid unsigned integer: \"foo\""));
@@ -251,18 +251,18 @@ TEST_CASE("Config::update_from_file, error handling")
 
   SECTION("relative base dir")
   {
-    util::write_file("ccache.conf", "base_dir = relative/path");
+    Util::write_file("ccache.conf", "base_dir = relative/path");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
       Equals("ccache.conf:1: not an absolute path: \"relative/path\""));
 
-    util::write_file("ccache.conf", "base_dir =");
+    Util::write_file("ccache.conf", "base_dir =");
     CHECK(config.update_from_file("ccache.conf"));
   }
 
   SECTION("bad dir levels")
   {
-    util::write_file("ccache.conf", "cache_dir_levels = 0");
+    Util::write_file("ccache.conf", "cache_dir_levels = 0");
     try {
       config.update_from_file("ccache.conf");
       CHECK(false);
@@ -271,7 +271,7 @@ TEST_CASE("Config::update_from_file, error handling")
             == "ccache.conf:1: cache directory levels must be between 1 and 8");
     }
 
-    util::write_file("ccache.conf", "cache_dir_levels = 9");
+    Util::write_file("ccache.conf", "cache_dir_levels = 9");
     try {
       config.update_from_file("ccache.conf");
       CHECK(false);
@@ -301,23 +301,23 @@ TEST_CASE("Config::set_value_in_file")
 {
   SECTION("set new value")
   {
-    util::write_file("ccache.conf", "path = vanilla\n");
+    Util::write_file("ccache.conf", "path = vanilla\n");
     Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
-    std::string content = util::read_file("ccache.conf");
+    std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
   }
 
   SECTION("existing value")
   {
-    util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+    Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     Config::set_value_in_file("ccache.conf", "path", "vanilla");
-    std::string content = util::read_file("ccache.conf");
+    std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nstats = chocolate\n");
   }
 
   SECTION("unknown option")
   {
-    util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
+    Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     try {
       Config::set_value_in_file("ccache.conf", "foo", "bar");
       CHECK(false);
@@ -325,7 +325,7 @@ TEST_CASE("Config::set_value_in_file")
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
 
-    std::string content = util::read_file("ccache.conf");
+    std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = chocolate\nstats = chocolate\n");
   }
 }
@@ -353,7 +353,7 @@ TEST_CASE("Config::get_string_value")
 
 TEST_CASE("Config::visit_items")
 {
-  util::write_file(
+  Util::write_file(
     "test.conf",
     "base_dir = /bd\n"
     "cache_dir = cd\n"
