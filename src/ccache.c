@@ -2637,10 +2637,15 @@ detect_pch(const char *option, const char *arg, bool *found_pch)
 }
 
 // Process the compiler options into options suitable for passing to the
-// preprocessor and the real compiler. The preprocessor options don't include
-// -E; this is added later. Returns true on success, otherwise false.
+// preprocessor and the real compiler. preprocessor_args does't include -E;
+// this is added later. extra_args_to_hash are the arguments that are not
+// included in preprocessor_args but that should be included in the hash.
+//
+// Returns true on success, otherwise false.
 bool
-cc_process_args(struct args *args, struct args **preprocessor_args,
+cc_process_args(struct args *args,
+                struct args **preprocessor_args,
+                struct args **extra_args_to_hash,
                 struct args **compiler_args)
 {
 	bool found_c_opt = false;
@@ -2920,6 +2925,11 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 				// Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
 				// debug info on level 2.
 				generating_debuginfo = true;
+				continue;
+			}
+
+			if (str_startswith(argv[i], "-gz")) {
+				// -gz[=type] neither disables nor enables debug info.
 				continue;
 			}
 
@@ -3720,6 +3730,10 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 	*preprocessor_args = args_copy(common_args);
 	args_extend(*preprocessor_args, cpp_args);
 
+	if (extra_args_to_hash) {
+		*extra_args_to_hash = compiler_only_args;
+	}
+
 out:
 	args_free(expanded_args);
 	args_free(common_args);
@@ -4060,10 +4074,14 @@ ccache(int argc, char *argv[])
 
 	// Arguments (except -E) to send to the preprocessor.
 	struct args *preprocessor_args;
+	// Arguments not sent to the preprocessor but that should be part of the
+	// hash.
+	struct args *extra_args_to_hash;
 	// Arguments to send to the real compiler.
 	struct args *compiler_args;
 	MTR_BEGIN("main", "process_args");
-	if (!cc_process_args(orig_args, &preprocessor_args, &compiler_args)) {
+	if (!cc_process_args(
+	      orig_args, &preprocessor_args, &extra_args_to_hash, &compiler_args)) {
 		failed();
 	}
 	MTR_END("main", "process_args");
@@ -4122,13 +4140,16 @@ ccache(int argc, char *argv[])
 	init_hash_debug(
 		direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
 
+	struct args *args_to_hash = args_copy(preprocessor_args);
+	args_extend(args_to_hash, extra_args_to_hash);
+
 	bool put_object_in_manifest = false;
 	struct file_hash *object_hash = NULL;
 	struct file_hash *object_hash_from_manifest = NULL;
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		MTR_BEGIN("hash", "direct_hash");
-		object_hash = calculate_object_hash(preprocessor_args, direct_hash, 1);
+		object_hash = calculate_object_hash(args_to_hash, direct_hash, 1);
 		MTR_END("hash", "direct_hash");
 		if (object_hash) {
 			update_cached_result_globals(object_hash);
@@ -4160,7 +4181,7 @@ ccache(int argc, char *argv[])
 			cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
 		MTR_BEGIN("hash", "cpp_hash");
-		object_hash = calculate_object_hash(preprocessor_args, cpp_hash, 0);
+		object_hash = calculate_object_hash(args_to_hash, cpp_hash, 0);
 		MTR_END("hash", "cpp_hash");
 		if (!object_hash) {
 			fatal("internal error: object hash from cpp returned NULL");

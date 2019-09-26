@@ -56,22 +56,20 @@ else
     CFLAGS="$CFLAGS -O"
 fi
 
-more_warnings="-Wextra -Wpedantic"
-if test "$ac_compiler_clang" = yes; then
-    more_warnings="$more_warnings -Weverything"
-    more_warnings="$more_warnings -Wno-conversion"
-    more_warnings="$more_warnings -Wno-disabled-macro-expansion"
-    more_warnings="$more_warnings -Wno-format-nonliteral"
-    more_warnings="$more_warnings -Wno-padded"
-    more_warnings="$more_warnings -Wno-shorten-64-to-32"
-    more_warnings="$more_warnings -Wno-sign-conversion"
-fi
-
 AC_ARG_ENABLE(more_warnings,
   [AS_HELP_STRING([--enable-more-warnings],
     [enable more compiler warnings])])
 if test x${enable_more_warnings} = xyes; then
-    CFLAGS="$CFLAGS $more_warnings"
+    more_warnings="-Wextra -Wpedantic"
+    if test "$ac_compiler_clang" = yes; then
+        more_warnings="$more_warnings -Weverything"
+        more_warnings="$more_warnings -Wno-conversion"
+        more_warnings="$more_warnings -Wno-disabled-macro-expansion"
+        more_warnings="$more_warnings -Wno-format-nonliteral"
+        more_warnings="$more_warnings -Wno-padded"
+        more_warnings="$more_warnings -Wno-shorten-64-to-32"
+        more_warnings="$more_warnings -Wno-sign-conversion"
+    fi
 fi
 
 AC_HEADER_DIRENT
