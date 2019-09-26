@@ -88,27 +88,6 @@ static struct {
 		FLAG_ALWAYS
 	},
 	{
-		STATS_TIME_REAL,
-		"time_real_ms",
-		"time (real)",
-		format_milliseconds,
-		FLAG_ALWAYS|FLAG_NORESULT
-	},
-	{
-		STATS_TIME_USER,
-		"time_user_ms",
-		"time (user)",
-		format_milliseconds,
-		FLAG_ALWAYS|FLAG_NORESULT
-	},
-	{
-		STATS_TIME_SYS,
-		"time_sys_ms",
-		"time (sys)",
-		format_milliseconds,
-		FLAG_ALWAYS|FLAG_NORESULT
-	},
-	{
 		STATS_TIME_CACHE,
 		"time_cache_ms",
 		"time (cache)",
@@ -418,16 +397,6 @@ stats_hit_rate(struct counters *counters)
 }
 
 static double
-stats_time_cpu(struct counters *counters)
-{
-	unsigned real = counters->data[STATS_TIME_REAL];
-	unsigned user = counters->data[STATS_TIME_USER];
-	unsigned sys = counters->data[STATS_TIME_SYS];
-	unsigned time = user + sys;
-	return real > 0 ? (100.0 * time) / real : 0.0;
-}
-
-static double
 stats_time_efficiency(struct counters *counters)
 {
 	unsigned cache = counters->data[STATS_TIME_CACHE];
@@ -676,10 +645,6 @@ stats_summary(void)
 		if (stat == STATS_TOCACHE) {
 			double percent = stats_hit_rate(counters);
 			printf("cache hit rate                    %6.2f %%\n", percent);
-		}
-		if (stat == STATS_TIME_SYS) {
-			double percent = stats_time_cpu(counters);
-			printf("cpu utilization                   %6.2f %%\n", percent);
 		}
 		if (stat == STATS_TIME_SAVED) {
 			double percent = stats_time_efficiency(counters);

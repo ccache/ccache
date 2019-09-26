@@ -111,9 +111,6 @@ char *current_working_dir = NULL;
 // The original argument list.
 static struct args *orig_args;
 
-// The program start time (sec).
-static double start_time;
-
 // The source file.
 static char *input_file;
 
@@ -1363,7 +1360,7 @@ send_cached_stderr(void)
 	}
 }
 
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+#ifdef HAVE_GETRUSAGE
 static double time_sec(struct timeval *t)
 {
 	return t->tv_sec + t->tv_usec*1e-6;
@@ -1375,13 +1372,11 @@ static double time_diff(struct timeval *a, struct timeval *b)
 }
 
 // Read cached time
-static bool write_cached_time(double real, double user, double sys)
+static bool write_cached_time(double user, double sys)
 {
 	FILE *f = fopen(cached_time, "w");
 	if (f) {
 		int w;
-		w = fprintf(f, "real %.6f\n", real);
-		if (w < 0) return false;
 		w = fprintf(f, "user %.6f\n", user);
 		if (w < 0) return false;
 		w = fprintf(f, "sys %.6f\n", sys);
@@ -1393,13 +1388,11 @@ static bool write_cached_time(double real, double user, double sys)
 }
 
 // Read cached time
-static bool read_cached_time(double *real, double *user, double *sys)
+static bool read_cached_time(double *user, double *sys)
 {
 	FILE *f = fopen(cached_time, "r");
 	if (f) {
 		int r;
-		r = fscanf(f, "real %lf\n", real);
-		if (r != 1) return false;
 		r = fscanf(f, "user %lf\n", user);
 		if (r != 1) return false;
 		r = fscanf(f, "sys %lf\n", sys);
@@ -1491,15 +1484,12 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	}
 
 	cc_log("Running real compiler");
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
-	struct timeval start;
-	timerclear(&start);
+#ifdef HAVE_GETRUSAGE
 	struct rusage before;
 	timerclear(&before.ru_utime);
 	timerclear(&before.ru_stime);
 	if (conf->time) {
 		getrusage(RUSAGE_CHILDREN, &before);
-		gettimeofday(&start, NULL);
 	}
 #endif
 	MTR_BEGIN("execute", "compiler");
@@ -1536,23 +1526,17 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		args_free(depend_mode_args);
 	}
 	MTR_END("execute", "compiler");
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
-	double real_compile = 0.0;
+#ifdef HAVE_GETRUSAGE
 	double user_compile = 0.0;
 	double sys_compile = 0.0;
-	struct timeval stop;
-	timerclear(&stop);
 	struct rusage after;
 	timerclear(&after.ru_utime);
 	timerclear(&after.ru_stime);
 	if (conf->time) {
-		gettimeofday(&stop, NULL);
 		getrusage(RUSAGE_CHILDREN, &after);
-
-		real_compile = time_diff(&start, &stop);
 		user_compile = time_diff(&before.ru_utime, &after.ru_utime);
 		sys_compile = time_diff(&before.ru_stime, &after.ru_stime);
-		write_cached_time(real_compile, user_compile, sys_compile);
+		write_cached_time(user_compile, sys_compile);
 	}
 #endif
 
@@ -1698,25 +1682,18 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 	MTR_END("file", "file_put");
 
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
+#ifdef HAVE_GETRUSAGE
 	if (conf->time) {
-		struct timeval now;
 		struct rusage usage;
-		gettimeofday(&now, NULL);
 		getrusage(RUSAGE_CHILDREN, &usage);
-		double real_cache = time_sec(&start) - start_time;
 		double user_cache = time_sec(&before.ru_utime);
 		double sys_cache = time_sec(&before.ru_stime);
-		real_cache += time_sec(&now) - time_sec(&stop);
 		user_cache += time_diff(&after.ru_utime, &usage.ru_utime);
 		sys_cache += time_diff(&after.ru_stime, &usage.ru_stime);
-		cc_log("Cache time: real %0.3fs user %0.3fs sys %0.3fs",
-			real_cache, user_cache, sys_cache);
-		cc_log("Compile time: real %0.3fs user %0.2fs sys %0.3fs",
-			real_compile, user_compile, sys_compile);
-		stats_update_time(STATS_TIME_REAL, real_compile + real_cache);
-		stats_update_time(STATS_TIME_USER, user_compile + user_cache);
-		stats_update_time(STATS_TIME_SYS, sys_compile + sys_cache);
+		cc_log("Cache time: user %0.3fs sys %0.3fs",
+			user_cache, sys_cache);
+		cc_log("Compile time: user %0.2fs sys %0.3fs",
+			user_compile, sys_compile);
 		stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
 		stats_update_time(STATS_TIME_COMPILE, user_compile + sys_compile);
 	}
@@ -2488,25 +2465,18 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		update_manifest_file();
 	}
 
-#if defined(HAVE_GETTIMEOFDAY) && defined(HAVE_GETRUSAGE)
-	double real_compile = 0.0;
+#ifdef HAVE_GETRUSAGE
 	double user_compile = 0.0;
 	double sys_compile = 0.0;
-	if (conf->time && read_cached_time(&real_compile, &user_compile, &sys_compile)) {
-		struct timeval now;
+	if (conf->time && read_cached_time(&user_compile, &sys_compile)) {
 		struct rusage usage;
-		gettimeofday(&now, NULL);
 		getrusage(RUSAGE_CHILDREN, &usage);
-		double real_cache = time_sec(&now) - start_time;
 		double user_cache = time_sec(&usage.ru_utime);
 		double sys_cache = time_sec(&usage.ru_stime);
-		cc_log("Cache time: real %0.3fs user %0.3fs sys %0.3fs",
-			real_cache, user_cache, sys_cache);
-		cc_log("Saved time: real %0.3fs user %0.2fs sys %0.3fs",
-			real_compile, user_compile, sys_compile);
-		stats_update_time(STATS_TIME_REAL, real_cache);
-		stats_update_time(STATS_TIME_USER, user_cache);
-		stats_update_time(STATS_TIME_SYS, sys_cache);
+		cc_log("Cache time: user %0.3fs sys %0.3fs",
+			user_cache, sys_cache);
+		cc_log("Saved time: user %0.2fs sys %0.3fs",
+			user_compile, sys_compile);
 		stats_update_time(STATS_TIME_CACHE, user_cache + sys_cache);
 		stats_update_time(STATS_TIME_SAVED, user_compile + sys_compile);
 	}
@@ -4036,7 +4006,6 @@ ccache(int argc, char *argv[])
 	tzset();
 
 	orig_args = args_init(argc, argv);
-	start_time = time_seconds();
 
 	initialize();
 	MTR_BEGIN("main", "find_compiler");
