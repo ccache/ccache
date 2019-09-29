@@ -32,6 +32,43 @@ TEST_CASE("Util::base_name")
   CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
 }
 
+TEST_CASE("Util::big_endian_to_int")
+{
+  uint8_t bytes[8] = {0x70, 0x9e, 0x9a, 0xbc, 0xd6, 0x54, 0x4b, 0xca};
+
+  uint8_t uint8;
+  Util::big_endian_to_int(bytes, uint8);
+  CHECK(uint8 == 0x70);
+
+  int8_t int8;
+  Util::big_endian_to_int(bytes, int8);
+  CHECK(int8 == 0x70);
+
+  uint16_t uint16;
+  Util::big_endian_to_int(bytes, uint16);
+  CHECK(uint16 == 0x709e);
+
+  int16_t int16;
+  Util::big_endian_to_int(bytes, int16);
+  CHECK(int16 == 0x709e);
+
+  uint32_t uint32;
+  Util::big_endian_to_int(bytes, uint32);
+  CHECK(uint32 == 0x709e9abc);
+
+  int32_t int32;
+  Util::big_endian_to_int(bytes, int32);
+  CHECK(int32 == 0x709e9abc);
+
+  uint64_t uint64;
+  Util::big_endian_to_int(bytes, uint64);
+  CHECK(uint64 == 0x709e9abcd6544bca);
+
+  int64_t int64;
+  Util::big_endian_to_int(bytes, int64);
+  CHECK(int64 == 0x709e9abcd6544bca);
+}
+
 TEST_CASE("Util::create_dir")
 {
   CHECK(Util::create_dir("/"));
@@ -163,6 +200,65 @@ TEST_CASE("Util::get_level_1_files")
     CHECK(files[3]->path() == "0/file_a");
     CHECK(files[3]->stat().st_size == 0);
   }
+}
+
+TEST_CASE("Util::int_to_big_endian")
+{
+  uint8_t bytes[8];
+
+  uint8_t uint8 = 0x70;
+  Util::int_to_big_endian(uint8, bytes);
+  CHECK(bytes[0] == 0x70);
+
+  int8_t int8 = 0x70;
+  Util::int_to_big_endian(int8, bytes);
+  CHECK(bytes[0] == 0x70);
+
+  uint16_t uint16 = 0x709e;
+  Util::int_to_big_endian(uint16, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+
+  int16_t int16 = 0x709e;
+  Util::int_to_big_endian(int16, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+
+  uint32_t uint32 = 0x709e9abc;
+  Util::int_to_big_endian(uint32, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+  CHECK(bytes[2] == 0x9a);
+  CHECK(bytes[3] == 0xbc);
+
+  int32_t int32 = 0x709e9abc;
+  Util::int_to_big_endian(int32, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+  CHECK(bytes[2] == 0x9a);
+  CHECK(bytes[3] == 0xbc);
+
+  uint64_t uint64 = 0x709e9abcd6544bca;
+  Util::int_to_big_endian(uint64, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+  CHECK(bytes[2] == 0x9a);
+  CHECK(bytes[3] == 0xbc);
+  CHECK(bytes[4] == 0xd6);
+  CHECK(bytes[5] == 0x54);
+  CHECK(bytes[6] == 0x4b);
+  CHECK(bytes[7] == 0xca);
+
+  int64_t int64 = 0x709e9abcd6544bca;
+  Util::int_to_big_endian(int64, bytes);
+  CHECK(bytes[0] == 0x70);
+  CHECK(bytes[1] == 0x9e);
+  CHECK(bytes[2] == 0x9a);
+  CHECK(bytes[3] == 0xbc);
+  CHECK(bytes[4] == 0xd6);
+  CHECK(bytes[5] == 0x54);
+  CHECK(bytes[6] == 0x4b);
+  CHECK(bytes[7] == 0xca);
 }
 
 TEST_CASE("Util::parse_int")

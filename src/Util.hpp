@@ -39,6 +39,36 @@ typedef std::function<void(const std::string& /*dir_path*/,
 // Get base name of path.
 std::string base_name(const std::string& path);
 
+// Get an integer value from bytes in big endian order.
+//
+// Parameters:
+// - buffer: Bytes to read.
+// - count: Number of bytes to read.
+template<typename T>
+void
+big_endian_to_int(const uint8_t* buffer, T& value)
+{
+  value = 0;
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    value <<= 8;
+    value |= buffer[i];
+  }
+}
+
+template<>
+inline void
+big_endian_to_int(const uint8_t* buffer, int8_t& value)
+{
+  value = buffer[0];
+}
+
+template<>
+inline void
+big_endian_to_int(const uint8_t* buffer, uint8_t& value)
+{
+  value = buffer[0];
+}
+
 // Create a directory if needed, including its parents if needed.
 //
 // Returns true if the directory exists or could be created, otherwise false.
@@ -92,6 +122,35 @@ bool get_file_size(const std::string& path, uint64_t& size);
 void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
+
+// Write bytes in big endian order from an integer value.
+//
+// Parameters:
+// - value: Integer value to read.
+// - buffer: Buffer to write bytes to.
+template<typename T>
+void
+int_to_big_endian(T value, uint8_t* buffer)
+{
+  for (size_t i = 0; i < sizeof(T); ++i) {
+    buffer[sizeof(T) - i - 1] = value & 0xFF;
+    value >>= 8;
+  }
+}
+
+template<>
+inline void
+int_to_big_endian(uint8_t value, uint8_t* buffer)
+{
+  buffer[0] = value;
+}
+
+template<>
+inline void
+int_to_big_endian(int8_t value, uint8_t* buffer)
+{
+  buffer[0] = value;
+}
 
 // Parse a string into an integer.
 //
