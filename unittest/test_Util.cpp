@@ -104,6 +104,16 @@ TEST_CASE("Util::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
+TEST_CASE("Util::get_file_size")
+{
+  uint64_t size;
+  CHECK(!Util::get_file_size("does not exist", size));
+
+  Util::write_file("foo", "foo");
+  CHECK(Util::get_file_size("foo", size));
+  CHECK(size == 3);
+}
+
 TEST_CASE("Util::get_level_1_files")
 {
   Util::create_dir("e/m/p/t/y");

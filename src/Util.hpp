@@ -71,6 +71,9 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Get file size. Returns true if file exists, otherwise false.
+bool get_file_size(const std::string& path, uint64_t& size);
+
 // Get a list of files in a level 1 subdirectory of the cache.
 //
 // The function works under the assumption that directory entries with one

@@ -163,6 +163,18 @@ for_each_level_1_subdir(const std::string& cache_dir,
   progress_receiver(1.0);
 }
 
+bool
+get_file_size(const std::string& path, uint64_t& size)
+{
+  struct stat st;
+  if (stat(path.c_str(), &st) == 0) {
+    size = st.st_size;
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void
 get_level_1_files(const std::string& dir,
                   const ProgressReceiver& progress_receiver,
