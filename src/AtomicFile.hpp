@@ -40,7 +40,7 @@ public:
   // Close the temporary file and rename it to the destination file. Note: The
   // destructor will not do this automatically to avoid half-written data in the
   // file.
-  void close();
+  void commit();
 
 private:
   const std::string m_path;

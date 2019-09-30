@@ -622,7 +622,7 @@ Config::set_value_in_file(const std::string& path,
     output.write(fmt::format("{} = {}\n", key, value));
   }
 
-  output.close();
+  output.commit();
 }
 
 void

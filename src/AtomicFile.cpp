@@ -37,7 +37,7 @@ AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 AtomicFile::~AtomicFile()
 {
   if (m_stream) {
-    // close() was not called so remove the lingering temporary file.
+    // commit() was not called so remove the lingering temporary file.
     fclose(m_stream);
     tmp_unlink(m_tmp_path.c_str());
   }
@@ -62,7 +62,7 @@ AtomicFile::write(const std::vector<uint8_t>& data)
 }
 
 void
-AtomicFile::close()
+AtomicFile::commit()
 {
   assert(m_stream);
   fclose(m_stream);
