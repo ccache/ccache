@@ -74,6 +74,7 @@ non_third_party_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(non_third_p
 ccache_sources = src/main.cpp $(base_sources)
 ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
+test_suites += unittest/test_AtomicFile.cpp
 test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_Util.cpp
