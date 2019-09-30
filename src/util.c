@@ -322,9 +322,6 @@ copy_file(const char *src, const char *dest, int compress_level)
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
-	if(src[0] == '=') { // Remove first char if string starts with "="
-		src++;
-	}
 
 	// Open destination file.
 	char *tmp_name = x_strdup(dest);
