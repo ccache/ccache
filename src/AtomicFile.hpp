@@ -34,6 +34,8 @@ public:
   AtomicFile(const std::string& destination_path, Mode mode);
   ~AtomicFile();
 
+  FILE* stream();
+
   void write(const std::string& data);
   void write(const std::vector<uint8_t>& data);
 
@@ -47,3 +49,9 @@ private:
   std::string m_tmp_path;
   FILE* m_stream;
 };
+
+inline FILE*
+AtomicFile::stream()
+{
+  return m_stream;
+}
