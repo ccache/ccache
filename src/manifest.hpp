@@ -20,15 +20,18 @@
 
 #include "system.hpp"
 
-#include "Config.hpp"
-#include "hashutil.hpp"
+#include <string>
+#include <unordered_map>
 
-extern const char MANIFEST_MAGIC[4];
-#define MANIFEST_VERSION 2
+class Config;
+struct digest;
 
-struct digest* manifest_get(const Config& config, const char* manifest_path);
+extern const uint8_t k_manifest_magic[4];
+extern const uint8_t k_manifest_version;
+
+struct digest* manifest_get(const Config& config, const std::string& path);
 bool
-manifest_put(const char* manifest_path,
-             struct digest* result_digest,
+manifest_put(const std::string& path,
+             const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files);
-bool manifest_dump(const char* manifest_path, FILE* stream);
+bool manifest_dump(const std::string& path, FILE* stream);

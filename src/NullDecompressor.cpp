@@ -16,19 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "NullDecompressor.hpp"
 
-#include "system.hpp"
+#include "Error.hpp"
 
-#include <map>
-#include <string>
+NullDecompressor::NullDecompressor(FILE* stream) : m_stream(stream)
+{
+}
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+void
+NullDecompressor::read(void* data, size_t count)
+{
+  if (fread(data, count, 1, m_stream) != 1) {
+    throw Error("failed to read from uncompressed stream");
+  }
+}
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+void
+NullDecompressor::finalize()
+{
+  if (fgetc(m_stream) != EOF) {
+    throw Error("garbage data at end of uncompressed stream");
+  }
+}

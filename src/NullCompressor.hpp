@@ -18,17 +18,21 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Compressor.hpp"
+#include "NonCopyable.hpp"
 
-#include <map>
-#include <string>
+// A compressor of an uncompressed stream.
+class NullCompressor : public Compressor, NonCopyable
+{
+public:
+  // Parameters:
+  // - stream: The file to write data to.
+  explicit NullCompressor(FILE* stream);
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+  int8_t actual_compression_level() const override;
+  void write(const void* data, size_t count) override;
+  void finalize() override;
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+private:
+  FILE* m_stream;
+};

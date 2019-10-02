@@ -18,17 +18,12 @@
 
 #pragma once
 
-#include "system.hpp"
+class NonCopyable
+{
+protected:
+  NonCopyable() = default;
 
-#include <map>
-#include <string>
-
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
-
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+private:
+  NonCopyable(const NonCopyable&) = delete;
+  NonCopyable& operator=(const NonCopyable&) = delete;
+};

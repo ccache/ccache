@@ -32,22 +32,25 @@ Q=$(if $(quiet),@)
 
 non_third_party_sources = \
     src/AtomicFile.cpp \
+    src/CacheEntryReader.cpp \
+    src/CacheEntryWriter.cpp \
     src/CacheFile.cpp \
+    src/Compression.cpp \
+    src/Compressor.cpp \
     src/Config.cpp \
+    src/Decompressor.cpp \
+    src/NullCompressor.cpp \
+    src/NullDecompressor.cpp \
     src/ProgressBar.cpp \
     src/Util.cpp \
+    src/ZstdCompressor.cpp \
+    src/ZstdDecompressor.cpp \
     src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \
-    src/common_header.cpp \
     src/compopt.cpp \
-    src/compr_none.cpp \
-    src/compr_zstd.cpp \
     src/compress.cpp \
-    src/compression.cpp \
     src/counters.cpp \
-    src/decompr_none.cpp \
-    src/decompr_zstd.cpp \
     src/execute.cpp \
     src/exitfn.cpp \
     src/hash.cpp \
@@ -76,13 +79,14 @@ ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
 test_suites += unittest/test_AtomicFile.cpp
 test_suites += unittest/test_Checksum.cpp
+test_suites += unittest/test_Compression.cpp
 test_suites += unittest/test_Config.cpp
+test_suites += unittest/test_NullCompression.cpp
 test_suites += unittest/test_Util.cpp
+test_suites += unittest/test_ZstdCompression.cpp
 test_suites += unittest/test_args.cpp
 test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
-test_suites += unittest/test_compr_none.cpp
-test_suites += unittest/test_compr_zstd.cpp
 test_suites += unittest/test_counters.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp

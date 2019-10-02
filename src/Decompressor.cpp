@@ -16,19 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "Decompressor.hpp"
 
-#include "system.hpp"
+#include "NullDecompressor.hpp"
+#include "StdMakeUnique.hpp"
+#include "ZstdDecompressor.hpp"
 
-#include <map>
-#include <string>
+std::unique_ptr<Decompressor>
+Decompressor::create_from_type(Compression::Type type, FILE* stream)
+{
+  switch (type) {
+  case Compression::Type::none:
+    return std::make_unique<NullDecompressor>(stream);
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+  case Compression::Type::zstd:
+    return std::make_unique<ZstdDecompressor>(stream);
+  }
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  assert(false);
+  return {};
+}

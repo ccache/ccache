@@ -16,60 +16,52 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "compression.hpp"
+#include "Compression.hpp"
 
 #include "Config.hpp"
+#include "Error.hpp"
+
+namespace Compression {
 
 int8_t
-compression_level_from_config(void)
+level_from_config()
 {
   return g_config.compression() ? g_config.compression_level() : 0;
 }
 
-enum compression_type
-compression_type_from_config(void)
+Type
+type_from_config()
 {
-  return g_config.compression() ? COMPR_TYPE_ZSTD : COMPR_TYPE_NONE;
+  return g_config.compression() ? Type::zstd : Type::none;
 }
 
-const char*
-compression_type_to_string(uint8_t type)
+Type
+type_from_int(uint8_t type)
 {
   switch (type) {
-  case COMPR_TYPE_NONE:
+  case static_cast<uint8_t>(Type::none):
+    return Type::none;
+
+  case static_cast<uint8_t>(Type::zstd):
+    return Type::zstd;
+  }
+
+  throw Error(fmt::format("Unknown type: {}", type));
+}
+
+std::string
+type_to_string(Type type)
+{
+  switch (type) {
+  case Type::none:
     return "none";
 
-  case COMPR_TYPE_ZSTD:
+  case Type::zstd:
     return "zstd";
   }
 
-  return "unknown";
+  assert(false);
+  return {};
 }
 
-struct compressor*
-compressor_from_type(uint8_t type)
-{
-  switch (type) {
-  case COMPR_TYPE_NONE:
-    return &compressor_none_impl;
-
-  case COMPR_TYPE_ZSTD:
-    return &compressor_zstd_impl;
-  }
-
-  return NULL;
-}
-
-struct decompressor*
-decompressor_from_type(uint8_t type)
-{
-  switch (type) {
-  case COMPR_TYPE_NONE:
-    return &decompressor_none_impl;
-
-  case COMPR_TYPE_ZSTD:
-    return &decompressor_zstd_impl;
-  }
-
-  return NULL;
-}
+} // namespace Compression

@@ -16,19 +16,49 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
-
-#include "system.hpp"
-
-#include <map>
+#include <cstdio>
 #include <string>
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+class File
+{
+public:
+  File(const std::string& path, const char* mode)
+  {
+    open(path, mode);
+  }
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+  void
+  open(const std::string& path, const char* mode)
+  {
+    close();
+    m_file = fopen(path.c_str(), mode);
+  }
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  void
+  close()
+  {
+    if (m_file) {
+      fclose(m_file);
+      m_file = nullptr;
+    }
+  }
+
+  ~File()
+  {
+    close();
+  }
+
+  operator bool() const
+  {
+    return m_file;
+  }
+
+  FILE*
+  get()
+  {
+    return m_file;
+  }
+
+private:
+  FILE* m_file = nullptr;
+};

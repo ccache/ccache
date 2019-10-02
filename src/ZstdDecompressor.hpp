@@ -18,17 +18,32 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Decompressor.hpp"
+#include "ccache.hpp"
 
-#include <map>
-#include <string>
+#include <fstream>
+#include <zstd.h>
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+// A decompressor of a Zstandard stream.
+class ZstdDecompressor : public Decompressor
+{
+public:
+  // Parameters:
+  // - stream: The file to read data from.
+  explicit ZstdDecompressor(FILE* stream);
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+  ~ZstdDecompressor() override;
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  void read(void* data, size_t count) override;
+  void finalize() override;
+
+private:
+  FILE* m_stream;
+  char m_input_buffer[READ_BUFFER_SIZE];
+  size_t m_input_size;
+  size_t m_input_consumed;
+  ZSTD_DStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  bool m_reached_stream_end;
+};

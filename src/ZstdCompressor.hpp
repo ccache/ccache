@@ -18,17 +18,30 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Compressor.hpp"
+#include "NonCopyable.hpp"
 
-#include <map>
-#include <string>
+#include <zstd.h>
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+// A compressor of a Zstandard stream.
+class ZstdCompressor : public Compressor, NonCopyable
+{
+public:
+  // Parameters:
+  // - stream: The file to write data to.
+  // - compression_level: Desired compression level.
+  ZstdCompressor(FILE* stream, int8_t compression_level);
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+  ~ZstdCompressor() override;
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  int8_t actual_compression_level() const override;
+  void write(const void* data, size_t count) override;
+  void finalize() override;
+
+private:
+  FILE* m_stream;
+  ZSTD_CStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  int8_t m_compression_level;
+};

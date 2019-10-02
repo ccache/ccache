@@ -19,7 +19,6 @@
 #include "Util.hpp"
 
 #include "ccache.hpp"
-#include "util.hpp"
 
 #include <algorithm>
 #include <fstream>

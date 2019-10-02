@@ -18,12 +18,16 @@
 
 #include "manifest.hpp"
 
+#include "AtomicFile.hpp"
+#include "CacheEntryReader.hpp"
+#include "CacheEntryWriter.hpp"
 #include "Checksum.hpp"
+#include "Config.hpp"
+#include "File.hpp"
+#include "StdMakeUnique.hpp"
 #include "ccache.hpp"
-#include "common_header.hpp"
-#include "compression.hpp"
+#include "hash.hpp"
 #include "hashutil.hpp"
-#include "int_bytes_conversion.hpp"
 
 // Manifest data format
 // ====================
@@ -100,17 +104,12 @@
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 4.0.
 
-const char MANIFEST_MAGIC[4] = {'c', 'C', 'm', 'F'};
-static const uint32_t MAX_MANIFEST_ENTRIES = 100;
-static const uint32_t MAX_MANIFEST_FILE_INFO_ENTRIES = 10000;
+const uint8_t k_manifest_magic[4] = {'c', 'C', 'm', 'F'};
+const uint8_t k_manifest_version = 2;
+const uint32_t k_max_manifest_entries = 100;
+const uint32_t k_max_manifest_file_info_entries = 10000;
 
 namespace {
-
-struct file
-{
-  uint16_t path_len; // strlen(path)
-  char* path;        // NUL-terminated
-};
 
 struct FileInfo
 {
@@ -152,329 +151,265 @@ template<> struct hash<FileInfo>
 
 } // namespace std
 
-struct result
+struct ResultEntry
 {
-  // Number of entries in file_info_indexes.
-  uint32_t n_file_info_indexes;
   // Indexes to file_infos.
-  uint32_t* file_info_indexes;
+  std::vector<uint32_t> file_info_indexes;
+
   // Name of the result.
   struct digest name;
 };
 
-struct manifest
+struct ManifestData
 {
-  struct common_header header;
-
   // Referenced include files.
-  uint32_t n_files;
-  struct file* files;
+  std::vector<std::string> files;
 
   // Information about referenced include files.
-  uint32_t n_file_infos;
-  struct FileInfo* file_infos;
+  std::vector<FileInfo> file_infos;
 
   // Result names plus references to include file infos.
-  uint32_t n_results;
-  struct result* results;
+  std::vector<ResultEntry> results;
+
+  void
+  add_result_entry(
+    const struct digest& result_digest,
+    const std::unordered_map<std::string, digest>& included_files)
+  {
+    std::unordered_map<std::string, uint32_t /*index*/> mf_files;
+    for (uint32_t i = 0; i < files.size(); ++i) {
+      mf_files.emplace(files[i], i);
+    }
+
+    std::unordered_map<FileInfo, uint32_t /*index*/> mf_file_infos;
+    for (uint32_t i = 0; i < file_infos.size(); ++i) {
+      mf_file_infos.emplace(file_infos[i], i);
+    }
+
+    std::vector<uint32_t> file_info_indexes;
+    for (const auto& item : included_files) {
+      file_info_indexes.push_back(
+        get_file_info_index(item.first, item.second, mf_files, mf_file_infos));
+    }
+
+    results.push_back(ResultEntry{std::move(file_info_indexes), result_digest});
+  }
+
+private:
+  uint32_t
+  get_file_info_index(
+    const std::string& path,
+    const digest& digest,
+    const std::unordered_map<std::string, uint32_t>& mf_files,
+    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos)
+  {
+    struct FileInfo fi;
+
+    auto f_it = mf_files.find(path);
+    if (f_it != mf_files.end()) {
+      fi.index = f_it->second;
+    } else {
+      files.push_back(path);
+      fi.index = files.size() - 1;
+    }
+
+    fi.digest = digest;
+
+    // file_stat.st_{m,c}time have a resolution of 1 second, so we can cache
+    // the file's mtime and ctime only if they're at least one second older
+    // than time_of_compilation.
+    //
+    // st->ctime may be 0, so we have to check time_of_compilation against
+    // MAX(mtime, ctime).
+
+    struct stat file_stat;
+    if (stat(path.c_str(), &file_stat) != -1) {
+      if (time_of_compilation
+          > std::max(file_stat.st_mtime, file_stat.st_ctime)) {
+        fi.mtime = file_stat.st_mtime;
+        fi.ctime = file_stat.st_ctime;
+      } else {
+        fi.mtime = -1;
+        fi.ctime = -1;
+      }
+      fi.fsize = file_stat.st_size;
+    } else {
+      fi.mtime = -1;
+      fi.ctime = -1;
+      fi.fsize = 0;
+    }
+
+    auto fi_it = mf_file_infos.find(fi);
+    if (fi_it != mf_file_infos.end()) {
+      return fi_it->second;
+    } else {
+      file_infos.push_back(fi);
+      return file_infos.size() - 1;
+    }
+  }
 };
 
-struct file_stats
+struct FileStats
 {
   uint64_t size;
   int64_t mtime;
   int64_t ctime;
 };
 
-static void
-free_manifest(struct manifest* mf)
+static std::unique_ptr<ManifestData>
+read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 {
-  for (uint32_t i = 0; i < mf->n_files; i++) {
-    free(mf->files[i].path);
+  File file(path, "rb");
+  if (!file) {
+    return {};
   }
-  free(mf->files);
-  free(mf->file_infos);
-  for (uint32_t i = 0; i < mf->n_results; i++) {
-    free(mf->results[i].file_info_indexes);
-  }
-  free(mf->results);
-  free(mf);
-}
 
-#define READ_BYTES(buf, length)                                                \
-  do {                                                                         \
-    if (!decompressor->read(decompr_state, buf, length)) {                     \
-      goto out;                                                                \
-    }                                                                          \
-  } while (false)
-
-#define READ_UINT16(var)                                                       \
-  do {                                                                         \
-    char buf_[2];                                                              \
-    READ_BYTES(buf_, sizeof(buf_));                                            \
-    (var) = UINT16_FROM_BYTES(buf_);                                           \
-  } while (false)
-
-#define READ_UINT32(var)                                                       \
-  do {                                                                         \
-    char buf_[4];                                                              \
-    READ_BYTES(buf_, sizeof(buf_));                                            \
-    (var) = UINT32_FROM_BYTES(buf_);                                           \
-  } while (false)
-
-#define READ_INT64(var)                                                        \
-  do {                                                                         \
-    char buf_[8];                                                              \
-    READ_BYTES(buf_, sizeof(buf_));                                            \
-    (var) = INT64_FROM_BYTES(buf_);                                            \
-  } while (false)
-
-#define READ_UINT64(var)                                                       \
-  do {                                                                         \
-    char buf_[8];                                                              \
-    READ_BYTES(buf_, sizeof(buf_));                                            \
-    (var) = UINT64_FROM_BYTES(buf_);                                           \
-  } while (false)
-
-#define READ_STR(str_var, len_var)                                             \
-  do {                                                                         \
-    READ_UINT16(len_var);                                                      \
-    (str_var) = static_cast<char*>(x_malloc(len_var + 1));                     \
-    READ_BYTES(str_var, len_var);                                              \
-    str_var[len_var] = '\0';                                                   \
-  } while (false)
-
-static struct manifest*
-create_empty_manifest(void)
-{
-  auto mf = static_cast<manifest*>(x_malloc(sizeof(manifest)));
-  mf->n_files = 0;
-  mf->files = NULL;
-  mf->n_file_infos = 0;
-  mf->file_infos = NULL;
-  mf->n_results = 0;
-  mf->results = NULL;
-
-  return mf;
-}
-
-static struct manifest*
-read_manifest(const char* path, char** errmsg)
-{
-  bool success = false;
-  struct manifest* mf = create_empty_manifest();
-  struct decompressor* decompressor = NULL;
-  struct decompr_state* decompr_state = NULL;
-  *errmsg = NULL;
   Checksum checksum;
-  uint64_t actual_checksum;
+  CacheEntryReader reader(
+    file.get(), k_manifest_magic, k_manifest_version, &checksum);
+
+  if (dump_stream) {
+    reader.dump_header(dump_stream);
+  }
+
+  auto mf = std::make_unique<ManifestData>();
+
+  uint32_t entry_count;
+  reader.read(entry_count);
+  for (uint32_t i = 0; i < entry_count; ++i) {
+    mf->files.emplace_back();
+    auto& entry = mf->files.back();
+
+    uint16_t length;
+    reader.read(length);
+    entry.assign(length, 0);
+    reader.read(&entry[0], length);
+  }
+
+  reader.read(entry_count);
+  for (uint32_t i = 0; i < entry_count; ++i) {
+    mf->file_infos.emplace_back();
+    auto& entry = mf->file_infos.back();
+
+    reader.read(entry.index);
+    reader.read(entry.digest.bytes, DIGEST_SIZE);
+    reader.read(entry.fsize);
+    reader.read(entry.mtime);
+    reader.read(entry.ctime);
+  }
+
+  reader.read(entry_count);
+  for (uint32_t i = 0; i < entry_count; ++i) {
+    mf->results.emplace_back();
+    auto& entry = mf->results.back();
+
+    uint32_t file_info_count;
+    reader.read(file_info_count);
+    for (uint32_t j = 0; j < file_info_count; ++j) {
+      uint32_t file_info_index;
+      reader.read(file_info_index);
+      entry.file_info_indexes.push_back(file_info_index);
+    }
+    reader.read(entry.name.bytes, DIGEST_SIZE);
+  }
+
+  uint64_t actual_checksum = checksum.digest();
   uint64_t expected_checksum;
-
-  FILE* f = fopen(path, "rb");
-  if (!f) {
-    *errmsg = x_strdup("No such manifest file");
-    goto out;
+  reader.read(expected_checksum);
+  if (actual_checksum != expected_checksum) {
+    throw Error(
+      fmt::format("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
+                  actual_checksum,
+                  expected_checksum));
   }
 
-  if (!common_header_initialize_for_reading(&mf->header,
-                                            f,
-                                            MANIFEST_MAGIC,
-                                            MANIFEST_VERSION,
-                                            &decompressor,
-                                            &decompr_state,
-                                            &checksum,
-                                            errmsg)) {
-    goto out;
-  }
-
-  READ_UINT32(mf->n_files);
-  mf->files = static_cast<file*>(x_calloc(mf->n_files, sizeof(file)));
-  for (uint32_t i = 0; i < mf->n_files; i++) {
-    READ_STR(mf->files[i].path, mf->files[i].path_len);
-  }
-
-  READ_UINT32(mf->n_file_infos);
-  mf->file_infos =
-    static_cast<FileInfo*>(x_calloc(mf->n_file_infos, sizeof(FileInfo)));
-  for (uint32_t i = 0; i < mf->n_file_infos; i++) {
-    READ_UINT32(mf->file_infos[i].index);
-    READ_BYTES(mf->file_infos[i].digest.bytes, DIGEST_SIZE);
-    READ_UINT64(mf->file_infos[i].fsize);
-    READ_INT64(mf->file_infos[i].mtime);
-    READ_INT64(mf->file_infos[i].ctime);
-  }
-
-  READ_UINT32(mf->n_results);
-  mf->results = static_cast<result*>(x_calloc(mf->n_results, sizeof(result)));
-  for (uint32_t i = 0; i < mf->n_results; i++) {
-    READ_UINT32(mf->results[i].n_file_info_indexes);
-    mf->results[i].file_info_indexes = static_cast<uint32_t*>(
-      x_calloc(mf->results[i].n_file_info_indexes, sizeof(uint32_t)));
-    for (uint32_t j = 0; j < mf->results[i].n_file_info_indexes; j++) {
-      READ_UINT32(mf->results[i].file_info_indexes[j]);
-    }
-    READ_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
-  }
-
-  actual_checksum = checksum.digest();
-  READ_UINT64(expected_checksum);
-  if (actual_checksum == expected_checksum) {
-    success = true;
-  } else {
-    *errmsg = format("Incorrect checksum (actual %016llx, expected %016llx)",
-                     (unsigned long long)actual_checksum,
-                     (unsigned long long)expected_checksum);
-  }
-
-out:
-  if (decompressor && !decompressor->free(decompr_state)) {
-    success = false;
-  }
-  if (f) {
-    fclose(f);
-  }
-  if (!success) {
-    if (!*errmsg) {
-      *errmsg = x_strdup("Corrupt manifest file");
-    }
-    free_manifest(mf);
-    mf = NULL;
-  }
+  reader.finalize();
   return mf;
 }
-
-#define WRITE_BYTES(buf, length)                                               \
-  do {                                                                         \
-    if (!compressor->write(compr_state, buf, length)) {                        \
-      goto out;                                                                \
-    }                                                                          \
-  } while (false)
-
-#define WRITE_UINT16(var)                                                      \
-  do {                                                                         \
-    char buf_[2];                                                              \
-    BYTES_FROM_UINT16(buf_, (var));                                            \
-    WRITE_BYTES(buf_, sizeof(buf_));                                           \
-  } while (false)
-
-#define WRITE_UINT32(var)                                                      \
-  do {                                                                         \
-    char buf_[4];                                                              \
-    BYTES_FROM_UINT32(buf_, (var));                                            \
-    WRITE_BYTES(buf_, sizeof(buf_));                                           \
-  } while (false)
-
-#define WRITE_INT64(var)                                                       \
-  do {                                                                         \
-    char buf_[8];                                                              \
-    BYTES_FROM_INT64(buf_, (var));                                             \
-    WRITE_BYTES(buf_, sizeof(buf_));                                           \
-  } while (false)
-
-#define WRITE_UINT64(var)                                                      \
-  do {                                                                         \
-    char buf_[8];                                                              \
-    BYTES_FROM_UINT64(buf_, (var));                                            \
-    WRITE_BYTES(buf_, sizeof(buf_));                                           \
-  } while (false)
 
 static bool
-write_manifest(FILE* f, const struct manifest* mf)
+write_manifest(const std::string& path, const ManifestData& mf)
 {
-  int ret = false;
-
-  uint64_t content_size = COMMON_HEADER_SIZE;
+  uint64_t content_size = 15;
   content_size += 4; // n_files
-  for (size_t i = 0; i < mf->n_files; i++) {
-    content_size += 2 + mf->files[i].path_len;
+  for (size_t i = 0; i < mf.files.size(); ++i) {
+    content_size += 2 + mf.files[i].length();
   }
   content_size += 4; // n_file_infos
-  content_size += mf->n_file_infos * (4 + DIGEST_SIZE + 8 + 8 + 8);
+  content_size += mf.file_infos.size() * (4 + DIGEST_SIZE + 8 + 8 + 8);
   content_size += 4; // n_results
-  for (size_t i = 0; i < mf->n_results; i++) {
+  for (size_t i = 0; i < mf.results.size(); ++i) {
     content_size += 4; // n_file_info_indexes
-    content_size += mf->results[i].n_file_info_indexes * 4;
+    content_size += mf.results[i].file_info_indexes.size() * 4;
     content_size += DIGEST_SIZE;
   }
   content_size += 8; // checksum
 
   Checksum checksum;
-  struct common_header header;
-  struct compressor* compressor;
-  struct compr_state* compr_state;
-  if (!common_header_initialize_for_writing(&header,
-                                            f,
-                                            MANIFEST_MAGIC,
-                                            MANIFEST_VERSION,
-                                            compression_type_from_config(),
-                                            compression_level_from_config(),
-                                            content_size,
-                                            checksum,
-                                            &compressor,
-                                            &compr_state)) {
-    goto out;
+  AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
+  CacheEntryWriter writer(atomic_manifest_file.stream(),
+                          k_manifest_magic,
+                          k_manifest_version,
+                          Compression::type_from_config(),
+                          Compression::level_from_config(),
+                          content_size,
+                          checksum);
+  writer.write<uint32_t>(mf.files.size());
+  for (uint32_t i = 0; i < mf.files.size(); ++i) {
+    writer.write<uint16_t>(mf.files[i].length());
+    writer.write(mf.files[i].data(), mf.files[i].length());
   }
 
-  WRITE_UINT32(mf->n_files);
-  for (uint32_t i = 0; i < mf->n_files; i++) {
-    WRITE_UINT16(mf->files[i].path_len);
-    WRITE_BYTES(mf->files[i].path, mf->files[i].path_len);
+  writer.write<uint32_t>(mf.file_infos.size());
+  for (uint32_t i = 0; i < mf.file_infos.size(); ++i) {
+    writer.write<uint32_t>(mf.file_infos[i].index);
+    writer.write(mf.file_infos[i].digest.bytes, DIGEST_SIZE);
+    writer.write(mf.file_infos[i].fsize);
+    writer.write(mf.file_infos[i].mtime);
+    writer.write(mf.file_infos[i].ctime);
   }
 
-  WRITE_UINT32(mf->n_file_infos);
-  for (uint32_t i = 0; i < mf->n_file_infos; i++) {
-    WRITE_UINT32(mf->file_infos[i].index);
-    WRITE_BYTES(mf->file_infos[i].digest.bytes, DIGEST_SIZE);
-    WRITE_UINT64(mf->file_infos[i].fsize);
-    WRITE_INT64(mf->file_infos[i].mtime);
-    WRITE_INT64(mf->file_infos[i].ctime);
-  }
-
-  WRITE_UINT32(mf->n_results);
-  for (uint32_t i = 0; i < mf->n_results; i++) {
-    WRITE_UINT32(mf->results[i].n_file_info_indexes);
-    for (uint32_t j = 0; j < mf->results[i].n_file_info_indexes; j++) {
-      WRITE_UINT32(mf->results[i].file_info_indexes[j]);
+  writer.write<uint32_t>(mf.results.size());
+  for (uint32_t i = 0; i < mf.results.size(); ++i) {
+    writer.write<uint32_t>(mf.results[i].file_info_indexes.size());
+    for (uint32_t j = 0; j < mf.results[i].file_info_indexes.size(); ++j) {
+      writer.write(mf.results[i].file_info_indexes[j]);
     }
-    WRITE_BYTES(mf->results[i].name.bytes, DIGEST_SIZE);
+    writer.write(mf.results[i].name.bytes, DIGEST_SIZE);
   }
 
-  WRITE_UINT64(checksum.digest());
-
-  ret = compressor->free(compr_state);
-
-out:
-  if (!ret) {
-    cc_log("Error writing to manifest file");
-  }
-  return ret;
+  writer.write(checksum.digest());
+  writer.finalize();
+  atomic_manifest_file.commit();
+  return true;
 }
 
 static bool
 verify_result(const Config& config,
-              struct manifest* mf,
-              struct result* result,
-              std::unordered_map<std::string, file_stats>* stated_files,
-              std::unordered_map<std::string, digest>* hashed_files)
+              const ManifestData& mf,
+              const ResultEntry& result,
+              std::unordered_map<std::string, FileStats>& stated_files,
+              std::unordered_map<std::string, digest>& hashed_files)
 {
-  for (uint32_t i = 0; i < result->n_file_info_indexes; i++) {
-    struct FileInfo* fi = &mf->file_infos[result->file_info_indexes[i]];
-    char* path = mf->files[fi->index].path;
-    auto stated_files_iter = stated_files->find(path);
-    if (stated_files_iter == stated_files->end()) {
+  for (uint32_t i = 0; i < result.file_info_indexes.size(); ++i) {
+    const auto& fi = mf.file_infos[result.file_info_indexes[i]];
+    const auto& path = mf.files[fi.index];
+
+    auto stated_files_iter = stated_files.find(path);
+    if (stated_files_iter == stated_files.end()) {
       struct stat file_stat;
-      if (x_stat(path, &file_stat) != 0) {
+      if (x_stat(path.c_str(), &file_stat) != 0) {
         return false;
       }
-      file_stats st;
+      FileStats st;
       st.size = file_stat.st_size;
       st.mtime = file_stat.st_mtime;
       st.ctime = file_stat.st_ctime;
-      stated_files_iter = stated_files->emplace(path, st).first;
+      stated_files_iter = stated_files.emplace(path, st).first;
     }
-    const file_stats& fs = stated_files_iter->second;
+    const FileStats& fs = stated_files_iter->second;
 
-    if (fi->fsize != fs.size) {
+    if (fi.fsize != fs.size) {
       return false;
     }
 
@@ -482,35 +417,36 @@ verify_result(const Config& config,
     // and will error out if that header is later used without rebuilding.
     if ((guessed_compiler == GUESSED_CLANG
          || guessed_compiler == GUESSED_UNKNOWN)
-        && output_is_precompiled_header && fi->mtime != fs.mtime) {
-      cc_log("Precompiled header includes %s, which has a new mtime", path);
+        && output_is_precompiled_header && fi.mtime != fs.mtime) {
+      cc_log("Precompiled header includes %s, which has a new mtime",
+             path.c_str());
       return false;
     }
 
     if (config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
       if (!(config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
-        if (fi->mtime == fs.mtime && fi->ctime == fs.ctime) {
-          cc_log("mtime/ctime hit for %s", path);
+        if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
+          cc_log("mtime/ctime hit for %s", path.c_str());
           continue;
         } else {
-          cc_log("mtime/ctime miss for %s", path);
+          cc_log("mtime/ctime miss for %s", path.c_str());
         }
       } else {
-        if (fi->mtime == fs.mtime) {
-          cc_log("mtime hit for %s", path);
+        if (fi.mtime == fs.mtime) {
+          cc_log("mtime hit for %s", path.c_str());
           continue;
         } else {
-          cc_log("mtime miss for %s", path);
+          cc_log("mtime miss for %s", path.c_str());
         }
       }
     }
 
-    auto hashed_files_iter = hashed_files->find(path);
-    if (hashed_files_iter == hashed_files->end()) {
+    auto hashed_files_iter = hashed_files.find(path);
+    if (hashed_files_iter == hashed_files.end()) {
       struct hash* hash = hash_init();
-      int ret = hash_source_code_file(config, hash, path);
+      int ret = hash_source_code_file(config, hash, path.c_str());
       if (ret & HASH_SOURCE_CODE_ERROR) {
-        cc_log("Failed hashing %s", path);
+        cc_log("Failed hashing %s", path.c_str());
         hash_free(hash);
         return false;
       }
@@ -522,10 +458,10 @@ verify_result(const Config& config,
       digest actual;
       hash_result_as_bytes(hash, &actual);
       hash_free(hash);
-      hashed_files_iter = hashed_files->emplace(path, actual).first;
+      hashed_files_iter = hashed_files.emplace(path, actual).first;
     }
 
-    if (!digests_equal(&fi->digest, &hashed_files_iter->second)) {
+    if (!digests_equal(&fi.digest, &hashed_files_iter->second)) {
       return false;
     }
   }
@@ -533,196 +469,68 @@ verify_result(const Config& config,
   return true;
 }
 
-static void
-create_file_index_map(
-  struct file* files,
-  uint32_t len,
-  std::unordered_map<std::string, uint32_t /*index*/>* mf_files)
-{
-  for (uint32_t i = 0; i < len; i++) {
-    mf_files->emplace(files[i].path, i);
-  }
-}
-
-static void
-create_file_info_index_map(
-  struct FileInfo* infos,
-  uint32_t len,
-  std::unordered_map<FileInfo, uint32_t /*index*/>* mf_file_infos)
-{
-  for (uint32_t i = 0; i < len; i++) {
-    mf_file_infos->emplace(infos[i], i);
-  }
-}
-
-static uint32_t
-get_include_file_index(
-  struct manifest* mf,
-  const std::string& path,
-  const std::unordered_map<std::string, uint32_t>& mf_files)
-{
-  auto it = mf_files.find(path);
-  if (it != mf_files.end()) {
-    return it->second;
-  }
-
-  uint32_t n = mf->n_files;
-  mf->files = static_cast<file*>(x_realloc(mf->files, (n + 1) * sizeof(file)));
-  mf->n_files++;
-  mf->files[n].path_len = path.size();
-  mf->files[n].path = x_strdup(path.c_str());
-  return n;
-}
-
-static uint32_t
-get_file_info_index(struct manifest* mf,
-                    const std::string& path,
-                    const digest& digest,
-                    const std::unordered_map<std::string, uint32_t>& mf_files,
-                    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos)
-{
-  struct FileInfo fi;
-  fi.index = get_include_file_index(mf, path, mf_files);
-  fi.digest = digest;
-
-  // file_stat.st_{m,c}time has a resolution of 1 second, so we can cache the
-  // file's mtime and ctime only if they're at least one second older than
-  // time_of_compilation.
-  //
-  // st->ctime may be 0, so we have to check time_of_compilation against
-  // MAX(mtime, ctime).
-
-  struct stat file_stat;
-  if (stat(path.c_str(), &file_stat) != -1) {
-    if (time_of_compilation
-        > std::max(file_stat.st_mtime, file_stat.st_ctime)) {
-      fi.mtime = file_stat.st_mtime;
-      fi.ctime = file_stat.st_ctime;
-    } else {
-      fi.mtime = -1;
-      fi.ctime = -1;
-    }
-    fi.fsize = file_stat.st_size;
-  } else {
-    fi.mtime = -1;
-    fi.ctime = -1;
-    fi.fsize = 0;
-  }
-
-  auto it = mf_file_infos.find(fi);
-  if (it != mf_file_infos.end()) {
-    return it->second;
-  }
-
-  uint32_t n = mf->n_file_infos;
-  mf->file_infos = static_cast<FileInfo*>(
-    x_realloc(mf->file_infos, (n + 1) * sizeof(FileInfo)));
-  mf->n_file_infos++;
-  mf->file_infos[n] = fi;
-  return n;
-}
-
-static void
-add_file_info_indexes(
-  uint32_t* indexes,
-  uint32_t size,
-  struct manifest* mf,
-  const std::unordered_map<std::string, digest>& included_files)
-{
-  if (size == 0) {
-    return;
-  }
-
-  std::unordered_map<std::string, uint32_t /*index*/> mf_files;
-  create_file_index_map(mf->files, mf->n_files, &mf_files);
-
-  std::unordered_map<FileInfo, uint32_t /*index*/> mf_file_infos;
-  create_file_info_index_map(mf->file_infos, mf->n_file_infos, &mf_file_infos);
-
-  uint32_t i = 0;
-  for (const auto& item : included_files) {
-    const auto& path = item.first;
-    const auto& digest = item.second;
-    indexes[i] = get_file_info_index(mf, path, digest, mf_files, mf_file_infos);
-    i++;
-  }
-  assert(i == size);
-}
-
-static void
-add_result_entry(struct manifest* mf,
-                 struct digest* result_digest,
-                 const std::unordered_map<std::string, digest>& included_files)
-{
-  uint32_t n_results = mf->n_results;
-  mf->results = static_cast<result*>(
-    x_realloc(mf->results, (n_results + 1) * sizeof(result)));
-  mf->n_results++;
-  struct result* result = &mf->results[n_results];
-
-  uint32_t n_fii = included_files.size();
-  result->n_file_info_indexes = n_fii;
-  result->file_info_indexes =
-    static_cast<uint32_t*>(x_malloc(n_fii * sizeof(uint32_t)));
-  add_file_info_indexes(result->file_info_indexes, n_fii, mf, included_files);
-  result->name = *result_digest;
-}
-
 // Try to get the result name from a manifest file. Caller frees. Returns NULL
 // on failure.
 struct digest*
-manifest_get(const Config& config, const char* manifest_path)
+manifest_get(const Config& config, const std::string& path)
 {
-  char* errmsg;
-  struct manifest* mf = read_manifest(manifest_path, &errmsg);
-  if (!mf) {
-    cc_log("%s", errmsg);
-    return NULL;
+  std::unique_ptr<ManifestData> mf;
+  try {
+    mf = read_manifest(path);
+    if (mf) {
+      // Update modification timestamp to save files from LRU cleanup.
+      update_mtime(path.c_str());
+    } else {
+      cc_log("No such result file");
+      return nullptr;
+    }
+  } catch (const Error& e) {
+    cc_log("Error: %s", e.what());
+    return nullptr;
   }
 
-  std::unordered_map<std::string, file_stats> stated_files;
+  std::unordered_map<std::string, FileStats> stated_files;
   std::unordered_map<std::string, digest> hashed_files;
 
   // Check newest result first since it's a bit more likely to match.
   struct digest* name = NULL;
-  for (uint32_t i = mf->n_results; i > 0; i--) {
+  for (uint32_t i = mf->results.size(); i > 0; i--) {
     if (verify_result(
-          config, mf, &mf->results[i - 1], &stated_files, &hashed_files)) {
+          config, *mf, mf->results[i - 1], stated_files, hashed_files)) {
       name = static_cast<digest*>(x_malloc(sizeof(digest)));
       *name = mf->results[i - 1].name;
-      goto out;
+      break;
     }
   }
 
-out:
-  free_manifest(mf);
-  if (name) {
-    // Update modification timestamp to save files from LRU cleanup.
-    update_mtime(manifest_path);
-  }
   return name;
 }
 
 // Put the result name into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
-manifest_put(const char* manifest_path,
-             struct digest* result_name,
+manifest_put(const std::string& path,
+             const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
   // race between two processes will only result in one lost entry, which is
   // not a big deal, and it's also very unlikely.
 
-  char* errmsg;
-  struct manifest* mf = read_manifest(manifest_path, &errmsg);
-  if (!mf) {
-    // New or corrupt file.
-    mf = create_empty_manifest();
-    free(errmsg); // Ignore.
+  std::unique_ptr<ManifestData> mf;
+  try {
+    mf = read_manifest(path);
+    if (!mf) {
+      // Manifest file didn't exist.
+      mf = std::make_unique<ManifestData>();
+    }
+  } catch (const Error& e) {
+    cc_log("Error: %s", e.what());
+    // Manifest file was corrupt, ignore.
+    mf = std::make_unique<ManifestData>();
   }
 
-  if (mf->n_results > MAX_MANIFEST_ENTRIES) {
+  if (mf->results.size() > k_max_manifest_entries) {
     // Normally, there shouldn't be many result entries in the manifest since
     // new entries are added only if an include file has changed but not the
     // source file, and you typically change source files more often than
@@ -734,96 +542,71 @@ manifest_put(const char* manifest_path,
     // LRU order and discarding the old ones. An easy way is to throw away all
     // entries when there are too many. Let's do that for now.
     cc_log("More than %u entries in manifest file; discarding",
-           MAX_MANIFEST_ENTRIES);
-    free_manifest(mf);
-    mf = create_empty_manifest();
-  } else if (mf->n_file_infos > MAX_MANIFEST_FILE_INFO_ENTRIES) {
+           k_max_manifest_entries);
+    mf = std::make_unique<ManifestData>();
+  } else if (mf->file_infos.size() > k_max_manifest_file_info_entries) {
     // Rarely, FileInfo entries can grow large in pathological cases where
     // many included files change, but the main file does not. This also puts
     // an upper bound on the number of FileInfo entries.
     cc_log("More than %u FileInfo entries in manifest file; discarding",
-           MAX_MANIFEST_FILE_INFO_ENTRIES);
-    free_manifest(mf);
-    mf = create_empty_manifest();
+           k_max_manifest_file_info_entries);
+    mf = std::make_unique<ManifestData>();
   }
 
-  add_result_entry(mf, result_name, included_files);
+  mf->add_result_entry(result_name, included_files);
 
-  int ret = false;
-  char* tmp_file = format("%s.tmp", manifest_path);
-  int fd = create_tmp_fd(&tmp_file);
-  FILE* f = fdopen(fd, "wb");
-  if (!f) {
-    cc_log("Failed to fdopen %s", tmp_file);
-    goto out;
+  try {
+    write_manifest(path, *mf);
+    return true;
+  } catch (const Error& e) {
+    cc_log("Error: %s", e.what());
+    return false;
   }
-  if (write_manifest(f, mf)) {
-    fclose(f);
-    f = NULL;
-    if (x_rename(tmp_file, manifest_path) == 0) {
-      ret = true;
-    } else {
-      cc_log("Failed to rename %s to %s", tmp_file, manifest_path);
-    }
-  } else {
-    cc_log("Failed to write manifest file %s", tmp_file);
-  }
-
-out:
-  if (f) {
-    fclose(f);
-  }
-  if (mf) {
-    free_manifest(mf);
-  }
-  if (tmp_file) {
-    free(tmp_file);
-  }
-  return ret;
 }
 
 bool
-manifest_dump(const char* manifest_path, FILE* stream)
+manifest_dump(const std::string& path, FILE* stream)
 {
-  char* errmsg;
-  struct manifest* mf = read_manifest(manifest_path, &errmsg);
-  if (!mf) {
-    assert(errmsg);
-    fprintf(stream, "Error: %s\n", errmsg);
-    free(errmsg);
+  std::unique_ptr<ManifestData> mf;
+  try {
+    mf = read_manifest(path, stream);
+  } catch (const Error& e) {
+    fmt::print(stream, "Error: {}\n", e.what());
     return false;
   }
 
-  common_header_dump(&mf->header, stream);
-
-  fprintf(stream, "File paths (%u):\n", (unsigned)mf->n_files);
-  for (unsigned i = 0; i < mf->n_files; ++i) {
-    fprintf(stream, "  %u: %s\n", i, mf->files[i].path);
+  if (!mf) {
+    fmt::print(stream, "Error: No such file: {}\n", path);
+    return false;
   }
-  fprintf(stream, "File infos (%u):\n", (unsigned)mf->n_file_infos);
-  for (unsigned i = 0; i < mf->n_file_infos; ++i) {
+
+  fmt::print(stream, "File paths ({}):\n", mf->files.size());
+  for (unsigned i = 0; i < mf->files.size(); ++i) {
+    fmt::print(stream, "  {}: {}\n", i, mf->files[i]);
+  }
+  fmt::print(stream, "File infos ({}):\n", mf->file_infos.size());
+  for (unsigned i = 0; i < mf->file_infos.size(); ++i) {
     char digest[DIGEST_STRING_BUFFER_SIZE];
-    fprintf(stream, "  %u:\n", i);
-    fprintf(stream, "    Path index: %u\n", mf->file_infos[i].index);
+    fmt::print(stream, "  {}:\n", i);
+    fmt::print(stream, "    Path index: {}\n", mf->file_infos[i].index);
     digest_as_string(&mf->file_infos[i].digest, digest);
-    fprintf(stream, "    Hash: %s\n", digest);
-    fprintf(stream, "    File size: %" PRIu64 "\n", mf->file_infos[i].fsize);
-    fprintf(stream, "    Mtime: %lld\n", (long long)mf->file_infos[i].mtime);
-    fprintf(stream, "    Ctime: %lld\n", (long long)mf->file_infos[i].ctime);
+    fmt::print(stream, "    Hash: {}\n", digest);
+    fmt::print(stream, "    File size: {}\n", mf->file_infos[i].fsize);
+    fmt::print(stream, "    Mtime: {}\n", mf->file_infos[i].mtime);
+    fmt::print(stream, "    Ctime: {}\n", mf->file_infos[i].ctime);
   }
-  fprintf(stream, "Results (%u):\n", (unsigned)mf->n_results);
-  for (unsigned i = 0; i < mf->n_results; ++i) {
+  fmt::print(stream, "Results ({}):\n", mf->results.size());
+  for (unsigned i = 0; i < mf->results.size(); ++i) {
     char name[DIGEST_STRING_BUFFER_SIZE];
-    fprintf(stream, "  %u:\n", i);
-    fprintf(stream, "    File info indexes:");
-    for (unsigned j = 0; j < mf->results[i].n_file_info_indexes; ++j) {
-      fprintf(stream, " %u", mf->results[i].file_info_indexes[j]);
+    fmt::print(stream, "  {}:\n", i);
+    fmt::print(stream, "    File info indexes:");
+    for (unsigned j = 0; j < mf->results[i].file_info_indexes.size(); ++j) {
+      fmt::print(stream, " {}", mf->results[i].file_info_indexes[j]);
     }
-    fprintf(stream, "\n");
+    fmt::print(stream, "\n");
     digest_as_string(&mf->results[i].name, name);
-    fprintf(stream, "    Name: %s\n", name);
+    fmt::print(stream, "    Name: {}\n", name);
   }
 
-  free_manifest(mf);
   return true;
 }

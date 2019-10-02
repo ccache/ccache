@@ -16,19 +16,31 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "../src/Compression.hpp"
 
-#include "system.hpp"
+#include <catch.hpp>
 
-#include <map>
-#include <string>
+using Catch::Equals;
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+TEST_CASE("Compression::level_from_config")
+{
+  CHECK(Compression::level_from_config() == 0);
+}
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+TEST_CASE("Compression::type_from_config")
+{
+  CHECK(Compression::type_from_config() == Compression::Type::zstd);
+}
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+TEST_CASE("Compression::type_from_int")
+{
+  CHECK(Compression::type_from_int(0) == Compression::Type::none);
+  CHECK(Compression::type_from_int(1) == Compression::Type::zstd);
+  CHECK_THROWS_WITH(Compression::type_from_int(2), Equals("Unknown type: 2"));
+}
+
+TEST_CASE("Compression::type_to_string")
+{
+  CHECK(Compression::type_to_string(Compression::Type::none) == "none");
+  CHECK(Compression::type_to_string(Compression::Type::zstd) == "zstd");
+}

@@ -22,7 +22,6 @@
 #include "system.hpp"
 
 #include "counters.hpp"
-#include "util.hpp"
 
 #include "third_party/minitrace.h"
 

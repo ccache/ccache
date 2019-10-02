@@ -20,15 +20,21 @@
 
 #include "system.hpp"
 
-#include <map>
 #include <string>
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+namespace Compression {
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+enum class Type : uint8_t {
+  none = 0,
+  zstd = 1,
+};
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+int8_t level_from_config();
+
+Type type_from_config();
+
+Type type_from_int(uint8_t type);
+
+std::string type_to_string(Compression::Type type);
+
+} // namespace Compression

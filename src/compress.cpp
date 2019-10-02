@@ -18,8 +18,9 @@
 
 #include "compress.hpp"
 
+#include "CacheEntryReader.hpp"
+#include "File.hpp"
 #include "ccache.hpp"
-#include "common_header.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 
@@ -27,25 +28,22 @@
 
 static bool
 get_content_size(const std::string& path,
-                 const char* magic,
+                 const uint8_t magic[4],
                  uint8_t version,
-                 size_t* size)
+                 uint64_t& size)
 {
-  char* errmsg;
-  FILE* f = fopen(path.c_str(), "rb");
+  File f(path, "rb");
   if (!f) {
     cc_log("Failed to open %s for reading: %s", path.c_str(), strerror(errno));
     return false;
   }
-  struct common_header header;
-  bool success = common_header_initialize_for_reading(
-    &header, f, magic, version, NULL, NULL, NULL, &errmsg);
-  fclose(f);
-  if (success) {
-    *size = header.content_size;
-  }
 
-  return success;
+  try {
+    size = CacheEntryReader(f.get(), magic, version).content_size();
+    return true;
+  } catch (const Error&) {
+    return false;
+  }
 }
 
 void
@@ -72,14 +70,14 @@ compress_stats(const Config& config,
 
         on_disk_size += file_size(&file->stat());
 
-        size_t content_size = 0;
+        uint64_t content_size = 0;
         bool is_compressible;
         if (file->type() == CacheFile::Type::manifest) {
           is_compressible = get_content_size(
-            file->path(), MANIFEST_MAGIC, MANIFEST_VERSION, &content_size);
+            file->path(), k_manifest_magic, k_manifest_version, content_size);
         } else if (file->type() == CacheFile::Type::result) {
           is_compressible = get_content_size(
-            file->path(), RESULT_MAGIC, RESULT_VERSION, &content_size);
+            file->path(), k_result_magic, k_result_version, content_size);
         } else {
           is_compressible = false;
         }

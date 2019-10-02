@@ -16,19 +16,32 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "NullCompressor.hpp"
 
-#include "system.hpp"
+#include "Error.hpp"
 
-#include <map>
-#include <string>
+NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
+{
+}
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+int8_t
+NullCompressor::actual_compression_level() const
+{
+  return 0;
+}
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+void
+NullCompressor::write(const void* data, size_t count)
+{
+  if (fwrite(data, 1, count, m_stream) != count) {
+    throw Error("failed to write to uncompressed stream");
+  }
+}
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+void
+NullCompressor::finalize()
+{
+  if (fflush(m_stream) != 0) {
+    throw Error("failed to finalize uncompressed stream");
+  }
+}

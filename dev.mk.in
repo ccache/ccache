@@ -36,22 +36,30 @@ built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers = \
     src/AtomicFile.hpp \
+    src/CacheEntryReader.hpp \
+    src/CacheEntryWriter.hpp \
     src/CacheFile.hpp \
     src/Checksum.hpp \
+    src/Compression.hpp \
+    src/Compressor.hpp \
+    src/Decompressor.hpp \
     src/Config.hpp \
     src/Error.hpp \
+    src/File.hpp \
+    src/NonCopyable.hpp \
+    src/NullCompressor.hpp \
+    src/NullDecompressor.hpp \
     src/ProgressBar.hpp \
     src/Util.hpp \
+    src/ZstdCompressor.hpp \
+    src/ZstdDecompressor.hpp \
     src/ccache.hpp \
     src/cleanup.hpp \
-    src/common_header.hpp \
     src/compopt.hpp \
     src/compress.hpp \
-    src/compression.hpp \
     src/counters.hpp \
     src/hash.hpp \
     src/hashutil.hpp \
-    src/int_bytes_conversion.hpp \
     src/language.hpp \
     src/macroskip.hpp \
     src/manifest.hpp \

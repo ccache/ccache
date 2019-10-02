@@ -16,19 +16,25 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "Compressor.hpp"
 
-#include "system.hpp"
+#include "NullCompressor.hpp"
+#include "StdMakeUnique.hpp"
+#include "ZstdCompressor.hpp"
 
-#include <map>
-#include <string>
+std::unique_ptr<Compressor>
+Compressor::create_from_type(Compression::Type type,
+                             FILE* stream,
+                             int8_t compression_level)
+{
+  switch (type) {
+  case Compression::Type::none:
+    return std::make_unique<NullCompressor>(stream);
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+  case Compression::Type::zstd:
+    return std::make_unique<ZstdCompressor>(stream, compression_level);
+  }
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  assert(false);
+  return {};
+}

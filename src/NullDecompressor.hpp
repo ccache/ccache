@@ -18,17 +18,20 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Decompressor.hpp"
+#include "NonCopyable.hpp"
 
-#include <map>
-#include <string>
+// A decompressor of an uncompressed stream.
+class NullDecompressor : public Decompressor, NonCopyable
+{
+public:
+  // Parameters:
+  // - stream: The file to read data from.
+  explicit NullDecompressor(FILE* stream);
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+  void read(void* data, size_t count) override;
+  void finalize() override;
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
-
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+private:
+  FILE* m_stream;
+};

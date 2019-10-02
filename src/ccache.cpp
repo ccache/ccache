@@ -1196,13 +1196,11 @@ update_manifest_file(void)
 
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
-  if (manifest_put(manifest_path, cached_result_name, g_included_files)) {
-    if (x_stat(manifest_path, &st) == 0) {
-      stats_update_size(
-        manifest_stats_file, file_size(&st) - old_size, old_size == 0 ? 1 : 0);
-    }
-  } else {
+  if (!manifest_put(manifest_path, *cached_result_name, g_included_files)) {
     cc_log("Failed to add result name to %s", manifest_path);
+  } else if (x_stat(manifest_path, &st) == 0) {
+    stats_update_size(
+      manifest_stats_file, file_size(&st) - old_size, old_size == 0 ? 1 : 0);
   }
   MTR_END("manifest", "manifest_put");
 }
@@ -1437,32 +1435,31 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     stats_update(STATS_ERROR);
     failed();
   }
-  struct result_files* result_files = result_files_init();
+  ResultFileMap result_file_map;
   if (st.st_size > 0) {
-    result_files_add(result_files, tmp_stderr, RESULT_STDERR_NAME);
+    result_file_map.emplace(k_result_stderr_name, tmp_stderr);
   }
-  result_files_add(result_files, output_obj, ".o");
+  result_file_map.emplace(".o", output_obj);
   if (generating_dependencies) {
-    result_files_add(result_files, output_dep, ".d");
+    result_file_map.emplace(".d", output_dep);
   }
   if (generating_coverage) {
-    result_files_add(result_files, output_cov, ".gcno");
+    result_file_map.emplace(".gcno", output_cov);
   }
   if (generating_stackusage) {
-    result_files_add(result_files, output_su, ".su");
+    result_file_map.emplace(".su", output_su);
   }
   if (generating_diagnostics) {
-    result_files_add(result_files, output_dia, ".dia");
+    result_file_map.emplace(".dia", output_dia);
   }
   if (seen_split_dwarf && stat(output_dwo, &st) == 0) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_files_add(result_files, output_dwo, ".dwo");
+    result_file_map.emplace(".dwo", output_dwo);
   }
   struct stat orig_dest_st;
   bool orig_dest_existed = stat(cached_result_path, &orig_dest_st) == 0;
-  result_put(cached_result_path, result_files);
-  result_files_free(result_files);
+  result_put(cached_result_path, result_file_map);
 
   cc_log("Stored in cache: %s", cached_result_path);
 
@@ -1862,11 +1859,11 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
   bool found_ccbin = false;
 
   hash_delimiter(hash, "result version");
-  hash_int(hash, RESULT_VERSION);
+  hash_int(hash, k_result_version);
 
   if (direct_mode) {
     hash_delimiter(hash, "manifest version");
-    hash_int(hash, MANIFEST_VERSION);
+    hash_int(hash, k_manifest_version);
   }
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
@@ -2176,28 +2173,27 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
   int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
   close(tmp_stderr_fd);
 
-  struct result_files* result_files = result_files_init();
+  ResultFileMap result_file_map;
   if (!str_eq(output_obj, "/dev/null")) {
-    result_files_add(result_files, output_obj, ".o");
+    result_file_map.emplace(".o", output_obj);
     if (seen_split_dwarf) {
-      result_files_add(result_files, output_dwo, ".dwo");
+      result_file_map.emplace(".dwo", output_dwo);
     }
   }
-  result_files_add(result_files, tmp_stderr, RESULT_STDERR_NAME);
+  result_file_map.emplace(k_result_stderr_name, tmp_stderr);
   if (produce_dep_file) {
-    result_files_add(result_files, output_dep, ".d");
+    result_file_map.emplace(".d", output_dep);
   }
   if (generating_coverage) {
-    result_files_add(result_files, output_cov, ".gcno");
+    result_file_map.emplace(".gcno", output_cov);
   }
   if (generating_stackusage) {
-    result_files_add(result_files, output_su, ".su");
+    result_file_map.emplace(".su", output_su);
   }
   if (generating_diagnostics) {
-    result_files_add(result_files, output_dia, ".dia");
+    result_file_map.emplace(".dia", output_dia);
   }
-  bool ok = result_get(cached_result_path, result_files);
-  result_files_free(result_files);
+  bool ok = result_get(cached_result_path, result_file_map);
   if (!ok) {
     cc_log("Failed to get result from cache");
     tmp_unlink(tmp_stderr);
@@ -3957,15 +3953,11 @@ ccache_main_options(int argc, char* argv[])
     switch (c) {
     case DUMP_MANIFEST:
       initialize();
-      manifest_dump(optarg, stdout);
-      break;
+      return manifest_dump(optarg, stdout) ? 0 : 1;
 
     case DUMP_RESULT:
       initialize();
-      if (!result_dump(optarg, stdout)) {
-        return 1;
-      }
-      break;
+      return result_dump(optarg, stdout) ? 0 : 1;
 
     case HASH_FILE: {
       initialize();

@@ -18,17 +18,36 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Compression.hpp"
 
-#include <map>
-#include <string>
+#include <cstdio>
+#include <memory>
 
-extern const uint8_t k_result_magic[4];
-extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
+class Decompressor
+{
+public:
+  virtual ~Decompressor() = default;
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+  // Create a decompressor for the specified type.
+  //
+  // Parameters:
+  // - type: The type.
+  // - stream: The stream to read from.
+  static std::unique_ptr<Decompressor> create_from_type(Compression::Type type,
+                                                        FILE* stream);
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+  // Read data into a buffer from the compressed stream.
+  //
+  // Parameters:
+  // - data: Buffer to write decompressed data to.
+  // - count: How many bytes to write.
+  //
+  // Throws Error on failure.
+  virtual void read(void* data, size_t count) = 0;
+
+  // Finalize decompression.
+  //
+  // This method checks that the end state of the compressed stream is correct
+  // and throws Error if not.
+  virtual void finalize() = 0;
+};

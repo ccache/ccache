@@ -22,8 +22,6 @@
 unsigned suite_args(unsigned);
 unsigned suite_argument_processing(unsigned);
 unsigned suite_compopt(unsigned);
-unsigned suite_compr_type_none(unsigned);
-unsigned suite_compr_type_zstd(unsigned);
 unsigned suite_conf(unsigned);
 unsigned suite_counters(unsigned);
 unsigned suite_hash(unsigned);
@@ -36,8 +34,6 @@ const suite_fn k_legacy_suites[] = {
   &suite_args,
   &suite_argument_processing,
   &suite_compopt,
-  &suite_compr_type_none,
-  &suite_compr_type_zstd,
   &suite_counters,
   &suite_hash,
   &suite_hashutil,

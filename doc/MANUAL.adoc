@@ -381,8 +381,7 @@ Compression will be disabled if file cloning (the
     files using the real-time compression algorithm Zstandard. The setting only
     has effect if <<config_compression,*compression*>> is enabled (which it is
     by default). Zstandard is extremely fast for decompression and very fast
-    for compression for lower
-    compression levels. The default is 0.
+    for compression for lower compression levels. The default is 0.
 +
 Semantics of *compression_level*:
 +
