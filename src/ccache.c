@@ -2830,8 +2830,11 @@ cc_process_args(struct args *args,
 				arg = argv[i + 1];
 				i++;
 			} else {
-				// -MFarg
+				// -MFarg or -MF=arg (EDG-based compilers)
 				arg = &argv[i][3];
+				if (arg[0] == '=') {
+					++arg;
+				}
 			}
 			output_dep = make_relative_path(x_strdup(arg));
 			// Keep the format of the args the same.

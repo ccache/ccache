@@ -5,6 +5,13 @@ ccache 3.7.5
 ------------
 Release date: TBD
 
+New features
+~~~~~~~~~~~~
+
+- Added support for `-MF=arg` (with an extra equal sign) as understood by
+  EDG-based compilers.
+
+
 Bug fixes
 ~~~~~~~~~
 

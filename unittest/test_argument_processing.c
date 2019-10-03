@@ -188,6 +188,21 @@ TEST(MQ_flag_should_not_be_added_for_standard_obj_extension)
 	args_free(orig);
 }
 
+TEST(equal_sign_after_MF_should_be_removed)
+{
+	struct args *orig = args_init_from_string("cc -c -MF=path foo.c -o foo.o");
+	struct args *exp_cpp = args_init_from_string("cc -MFpath");
+	struct args *exp_cc = args_init_from_string("cc -c");
+	struct args *act_cpp = NULL, *act_cc = NULL;
+	create_file("foo.c", "");
+
+	CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
+	CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+	CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+	args_free(orig);
+}
+
 TEST(MQ_flag_should_be_added_for_non_standard_obj_extension)
 {
 	struct args *orig = args_init_from_string("cc -c -MD foo.c -o foo.obj");
