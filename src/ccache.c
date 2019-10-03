@@ -3522,7 +3522,7 @@ cc_process_args(struct args *args,
 
 		if (!dependency_target_specified
 		    && !dependency_implicit_target_specified
-		    && !str_eq(get_extension(output_dep), ".o")) {
+		    && !str_eq(get_extension(output_obj), ".o")) {
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}

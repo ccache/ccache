@@ -11,6 +11,11 @@ Bug fixes
 - Fixed a regression in 3.7.2 that could result in a warning message instead of
   an error in an edge case related to usage of “-Werror”.
 
+- An implicit `-MQ` is now passed to the preprocessor only if the object file
+  extension is non-standard. This should make it easier to use EDG-based
+  compilers (e.g. GHS) which don’t understand `-MQ`. (This is a bug fix of the
+  corresponding improvement implemented in ccache 3.4.)
+
 
 ccache 3.7.4
 ------------
