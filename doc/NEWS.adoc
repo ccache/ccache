@@ -34,6 +34,17 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.5
+------------
+Release date: TBD
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a regression in 3.7.2 that could result in a warning message instead of
+  an error in an edge case related to usage of “-Werror”.
+
+
 ccache 3.7.4
 ------------
 Release date: 2019-09-12
