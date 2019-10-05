@@ -15,6 +15,6 @@ EOF
     exit 1
 fi
 
-autoheader
-autoconf
+autoheader -f
+autoconf -f
 echo "Now run ./configure and make"
