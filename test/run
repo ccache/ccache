@@ -114,7 +114,7 @@ file_size() {
 
 objdump_cmd() {
     if $HOST_OS_APPLE; then
-        xcrun dwarfdump -r0 $1
+        xcrun dwarfdump -r 0 $1
     elif $HOST_OS_FREEBSD; then
         objdump -W $1
     elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
@@ -378,23 +378,10 @@ else
 fi
 
 if $HOST_OS_APPLE; then
-    # Grab the developer directory from the environment or try xcode-select
-    if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
-      XCODE_DEVELOPER_DIR=`xcode-select --print-path`
-      if [ "$XCODE_DEVELOPER_DIR" = "" ]; then
-        echo "Error: XCODE_DEVELOPER_DIR environment variable not set and xcode-select path not set"
-        exit 1
-      fi
-    fi
-
-    # Choose the latest SDK if an SDK root is not set
-    MAC_PLATFORM_DIR=$XCODE_DEVELOPER_DIR/Platforms/MacOSX.platform
+    SDKROOT=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)
     if [ "$SDKROOT" = "" ]; then
-        SDKROOT="`eval ls -f -1 -d \"$MAC_PLATFORM_DIR/Developer/SDKs/\"*.sdk | tail -1`"
-        if [ "$SDKROOT" = "" ]; then
-            echo "Error: Cannot find a valid SDK root directory"
-            exit 1
-        fi
+        echo "Error: xcrun --show-sdk-path failure"
+        exit 1
     fi
 
     SYSROOT="-isysroot `echo \"$SDKROOT\" | sed 's/ /\\ /g'`"

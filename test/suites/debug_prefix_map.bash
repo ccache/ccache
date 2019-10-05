@@ -22,7 +22,7 @@ EOF
 
 grep_cmd() {
     if $HOST_OS_APPLE; then
-        grep "( \"$1\" )"
+        grep \"$1\"
     elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
         test -n "$2" && grep -E "$1|$2" || grep "$1" # accept a relative path for source code, in addition to relocation dir
     else
