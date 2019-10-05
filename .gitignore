@@ -5,6 +5,7 @@
 *.o
 *.xml
 *~
+.DS_Store
 .deps
 Makefile
 autom4te.cache
