@@ -28,7 +28,7 @@
 
 static void
 delete_file(const std::string& path,
-            size_t size,
+            uint64_t size,
             uint64_t* cache_size,
             uint32_t* files_in_cache)
 {
@@ -78,7 +78,7 @@ clean_up_dir(const std::string& subdir,
       continue;
     }
 
-    cache_size += file_size(&file->stat());
+    cache_size += file_size_on_disk(&file->stat());
     files_in_cache += 1;
   }
 
@@ -128,8 +128,10 @@ clean_up_dir(const std::string& subdir,
       delete_file(o_file, 0, nullptr, nullptr);
     }
 
-    delete_file(
-      file->path(), file_size(&file->stat()), &cache_size, &files_in_cache);
+    delete_file(file->path(),
+                file_size_on_disk(&file->stat()),
+                &cache_size,
+                &files_in_cache);
     cleaned = true;
   }
 

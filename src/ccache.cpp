@@ -1189,9 +1189,9 @@ update_manifest_file(void)
   }
 
   struct stat st;
-  size_t old_size = 0; // in bytes
+  uint64_t old_size = 0; // in bytes
   if (stat(manifest_path, &st) == 0) {
-    old_size = file_size(&st);
+    old_size = file_size_on_disk(&st);
   }
 
   MTR_BEGIN("manifest", "manifest_put");
@@ -1199,8 +1199,9 @@ update_manifest_file(void)
   if (!manifest_put(manifest_path, *cached_result_name, g_included_files)) {
     cc_log("Failed to add result name to %s", manifest_path);
   } else if (x_stat(manifest_path, &st) == 0) {
-    stats_update_size(
-      manifest_stats_file, file_size(&st) - old_size, old_size == 0 ? 1 : 0);
+    stats_update_size(manifest_stats_file,
+                      file_size_on_disk(&st) - old_size,
+                      old_size == 0 ? 1 : 0);
   }
   MTR_END("manifest", "manifest_put");
 }
@@ -1467,10 +1468,11 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     stats_update(STATS_ERROR);
     failed();
   }
-  stats_update_size(stats_file,
-                    file_size(&st)
-                      - (orig_dest_existed ? file_size(&orig_dest_st) : 0),
-                    orig_dest_existed ? 0 : 1);
+  stats_update_size(
+    stats_file,
+    file_size_on_disk(&st)
+      - (orig_dest_existed ? file_size_on_disk(&orig_dest_st) : 0),
+    orig_dest_existed ? 0 : 1);
 
   MTR_END("file", "file_put");
 

@@ -68,7 +68,7 @@ compress_stats(const Config& config,
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& file = files[i];
 
-        on_disk_size += file_size(&file->stat());
+        on_disk_size += file_size_on_disk(&file->stat());
 
         uint64_t content_size = 0;
         bool is_compressible;

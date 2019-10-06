@@ -183,7 +183,7 @@ char* x_basename(const char* path);
 char* x_dirname(const char* path);
 const char* get_extension(const char* path);
 char* remove_extension(const char* path);
-size_t file_size(const struct stat* st);
+uint64_t file_size_on_disk(const struct stat* st);
 char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);

@@ -364,10 +364,10 @@ write_embedded_file_entry(CacheEntryWriter& writer,
     throw Error(fmt::format("Failed to open {} for reading", source_path));
   }
 
-  size_t remain = source_file_size;
+  uint64_t remain = source_file_size;
   while (remain > 0) {
     uint8_t buf[READ_BUFFER_SIZE];
-    size_t n = std::min(remain, sizeof(buf));
+    size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
     if (fread(buf, n, 1, file.get()) != 1) {
       throw Error(fmt::format("Error reading from {}", source_path));
     }
@@ -391,8 +391,8 @@ write_raw_file_entry(CacheEntryWriter& writer,
       fmt::format("Failed to stat {}: {}", source_path, strerror(errno)));
   }
 
-  size_t old_size;
-  size_t new_size;
+  uint64_t old_size;
+  uint64_t new_size;
 
   cc_log("Storing raw file #%u %s (%llu bytes) from %s",
          entry_number,
@@ -415,8 +415,8 @@ write_raw_file_entry(CacheEntryWriter& writer,
   struct stat new_stat;
   bool new_exists = stat(raw_file.c_str(), &new_stat) == 0;
 
-  old_size = old_existed ? file_size(&old_stat) : 0;
-  new_size = new_exists ? file_size(&new_stat) : 0;
+  old_size = old_existed ? file_size_on_disk(&old_stat) : 0;
+  new_size = new_exists ? file_size_on_disk(&new_stat) : 0;
   stats_update_size(stats_file,
                     new_size - old_size,
                     (new_exists ? 1 : 0) - (old_existed ? 1 : 0));
