@@ -18,32 +18,111 @@
 
 #include "compress.hpp"
 
+#include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
+#include "CacheEntryWriter.hpp"
 #include "File.hpp"
+#include "StdMakeUnique.hpp"
 #include "ccache.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 
+#include <fmt/core.h>
 #include <string>
 
-static bool
-get_content_size(const std::string& path,
-                 const uint8_t magic[4],
-                 uint8_t version,
-                 uint64_t& size)
+static File
+open_file(const std::string& path, const char* mode)
 {
-  File f(path, "rb");
+  File f(path, mode);
   if (!f) {
-    cc_log("Failed to open %s for reading: %s", path.c_str(), strerror(errno));
-    return false;
+    throw Error(
+      fmt::format("failed to open {} for reading: {}", path, strerror(errno)));
+  }
+  return f;
+}
+
+static std::unique_ptr<CacheEntryReader>
+create_reader(const CacheFile& cache_file, FILE* stream)
+{
+  if (cache_file.type() == CacheFile::Type::unknown) {
+    throw Error(fmt::format("unknown file type for {}", cache_file.path()));
   }
 
-  try {
-    size = CacheEntryReader(f.get(), magic, version).content_size();
-    return true;
-  } catch (const Error&) {
-    return false;
+  switch (cache_file.type()) {
+  case CacheFile::Type::result:
+    return std::make_unique<CacheEntryReader>(
+      stream, k_result_magic, k_result_version);
+
+  case CacheFile::Type::manifest:
+    return std::make_unique<CacheEntryReader>(
+      stream, k_manifest_magic, k_manifest_version);
+
+  case CacheFile::Type::unknown:
+    assert(false); // Handled at function entry.
+    return {};
   }
+
+  assert(false);
+  return {};
+}
+
+static std::unique_ptr<CacheEntryWriter>
+create_writer(FILE* stream,
+              const CacheEntryReader& reader,
+              Compression::Type compression_type,
+              int8_t compression_level)
+{
+  return std::make_unique<CacheEntryWriter>(stream,
+                                            reader.magic(),
+                                            reader.version(),
+                                            compression_type,
+                                            compression_level,
+                                            reader.payload_size());
+}
+
+static void
+recompress_file(const std::string& stats_file,
+                const CacheFile& cache_file,
+                int8_t level)
+{
+  auto file = open_file(cache_file.path(), "rb");
+  auto reader = create_reader(cache_file, file.get());
+
+  int8_t current_level = reader->compression_type() == Compression::Type::none
+                           ? 0
+                           : reader->compression_level();
+  if (current_level == level) {
+    return;
+  }
+
+  AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
+  auto writer = create_writer(atomic_new_file.stream(),
+                              *reader,
+                              level == 0 ? Compression::Type::none
+                                         : Compression::Type::zstd,
+                              level);
+
+  char buffer[READ_BUFFER_SIZE];
+  size_t bytes_left = reader->payload_size();
+  while (bytes_left > 0) {
+    size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));
+    reader->read(buffer, bytes_to_read);
+    writer->write(buffer, bytes_to_read);
+    bytes_left -= bytes_to_read;
+  }
+  reader->finalize();
+  writer->finalize();
+
+  struct stat st;
+  x_stat(cache_file.path().c_str(), &st);
+  uint64_t old_size = file_size_on_disk(&st);
+
+  atomic_new_file.commit();
+
+  x_stat(cache_file.path().c_str(), &st);
+  uint64_t new_size = file_size_on_disk(&st);
+
+  stats_update_size(stats_file.c_str(), new_size - old_size, 0);
 }
 
 void
@@ -66,27 +145,16 @@ compress_stats(const Config& config,
         files);
 
       for (size_t i = 0; i < files.size(); ++i) {
-        const auto& file = files[i];
+        const auto& cache_file = files[i];
+        on_disk_size += file_size_on_disk(&cache_file->stat());
 
-        on_disk_size += file_size_on_disk(&file->stat());
-
-        uint64_t content_size = 0;
-        bool is_compressible;
-        if (file->type() == CacheFile::Type::manifest) {
-          is_compressible = get_content_size(
-            file->path(), k_manifest_magic, k_manifest_version, content_size);
-        } else if (file->type() == CacheFile::Type::result) {
-          is_compressible = get_content_size(
-            file->path(), k_result_magic, k_result_version, content_size);
-        } else {
-          is_compressible = false;
-        }
-
-        if (is_compressible) {
-          compr_size += file->stat().st_size;
-          compr_orig_size += content_size;
-        } else {
-          incompr_size += file->stat().st_size;
+        try {
+          auto file = open_file(cache_file->path(), "rb");
+          auto reader = create_reader(*cache_file, file.get());
+          compr_size += cache_file->stat().st_size;
+          compr_orig_size += reader->content_size();
+        } catch (Error&) {
+          incompr_size += cache_file->stat().st_size;
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
@@ -123,4 +191,42 @@ compress_stats(const Config& config,
   free(compr_size_str);
   free(cache_size_str);
   free(on_disk_size_str);
+}
+
+void
+compress_recompress(const Config& config,
+                    int8_t level,
+                    const Util::ProgressReceiver& progress_receiver)
+{
+  Util::for_each_level_1_subdir(
+    config.cache_dir(),
+    [&](const std::string& subdir,
+        const Util::ProgressReceiver& sub_progress_receiver) {
+      std::vector<std::shared_ptr<CacheFile>> files;
+      Util::get_level_1_files(
+        subdir,
+        [&](double progress) { sub_progress_receiver(progress / 2); },
+        files);
+
+      auto stats_file = subdir + "/stats";
+
+      for (size_t i = 0; i < files.size(); ++i) {
+        const auto& file = files[i];
+
+        if (file->type() != CacheFile::Type::unknown) {
+          try {
+            recompress_file(stats_file, *file, level);
+          } catch (Error&) {
+            // Ignore for now.
+          }
+        }
+
+        sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
+      }
+    },
+    progress_receiver);
+
+  if (isatty(STDOUT_FILENO)) {
+    printf("\n");
+  }
 }

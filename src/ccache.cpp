@@ -91,6 +91,8 @@ static const char USAGE_TEXT[] =
   "(decimal)\n"
   "                              and Ki, Mi, Gi, Ti (binary); default "
   "suffix: G\n"
+  "    -X, --recompress LEVEL    recompress the cache (integer level or"
+  " \"uncompressed\")\n"
   "    -x, --show-compression    show compression statistics\n"
   "    -p, --show-config         show current configuration options in\n"
   "                              human-readable format\n"
@@ -3941,6 +3943,7 @@ ccache_main_options(int argc, char* argv[])
     {"max-files", required_argument, 0, 'F'},
     {"max-size", required_argument, 0, 'M'},
     {"print-stats", no_argument, 0, PRINT_STATS},
+    {"recompress", required_argument, 0, 'X'},
     {"set-config", required_argument, 0, 'o'},
     {"show-compression", no_argument, 0, 'x'},
     {"show-config", no_argument, 0, 'p'},
@@ -3950,7 +3953,7 @@ ccache_main_options(int argc, char* argv[])
     {0, 0, 0, 0}};
 
   int c;
-  while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxz", options, NULL))
+  while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, NULL))
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:
@@ -4076,6 +4079,29 @@ ccache_main_options(int argc, char* argv[])
       ProgressBar progress_bar("Scanning...");
       compress_stats(g_config,
                      [&](double progress) { progress_bar.update(progress); });
+      break;
+    }
+
+    case 'X': // --recompress
+    {
+      initialize();
+      int level;
+      if (std::string(optarg) == "uncompressed") {
+        level = 0;
+      } else {
+        level = Util::parse_int(optarg);
+        if (level < -128 || level > 127) {
+          throw Error("compression level must be between -128 and 127");
+        }
+        if (level == 0) {
+          level = g_config.compression_level();
+        }
+      }
+
+      ProgressBar progress_bar("Recompressing...");
+      compress_recompress(g_config, level, [&](double progress) {
+        progress_bar.update(progress);
+      });
       break;
     }
 

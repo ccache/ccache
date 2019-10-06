@@ -290,6 +290,10 @@ stats_collect(struct counters* counters, time_t* last_updated)
 void
 stats_update_size(const char* sfile, int64_t size, int files)
 {
+  if (size == 0 && files == 0) {
+    return;
+  }
+
   struct counters* updates;
   if (sfile == stats_file) {
     init_counter_updates();

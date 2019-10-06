@@ -18,7 +18,8 @@
 
 #pragma once
 
-#include <cstdint>
+#include "system.hpp"
+
 #include <third_party/xxhash.h>
 
 class Checksum

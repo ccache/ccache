@@ -23,3 +23,14 @@
 
 void compress_stats(const Config& config,
                     const Util::ProgressReceiver& progress_receiver);
+
+// Recompress the cache.
+//
+// Arguments:
+// - config: The config.
+// - level: Target compression level (positive or negative value), or 0 for no
+//   compression.
+// - progress_receiver: Function that will be called for progress updates.
+void compress_recompress(const Config& config,
+                         int8_t level,
+                         const Util::ProgressReceiver& progress_receiver);

@@ -25,11 +25,19 @@ High-level summary of changes (work in progress)
 
 - A C++11 compiler is now required to build ccache.
 
-- There is a new -x/--show-compression option which shows some statistics about
+- Added a `-x/--show-compression` option which shows some statistics about
   cache compression.
 
-- A progress bar has been added to show the progress of time-consuming
-  options like -c/--cleanup, -C/--clear and -x/--show-compression.
+- Added a `-X/--recompress` option which can be used to recompress the cache
+  data with another compression level (or make it uncompressed). If you choose
+  to disable compression by default or to use a level with a low compression
+  ratio, you can recompress the cache with a higher compression level after the
+  build or at another time when there are more CPU cycles available, for
+  instance every night.
+
+- A progress bar has been added to show the progress of time-consuming options
+  like `-c/--cleanup`, `-C/--clear`, `-x/--show-compression` and
+  `-X/--recompress`.
 
 - (More to be written.)
 

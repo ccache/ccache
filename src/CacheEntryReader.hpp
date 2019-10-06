@@ -74,13 +74,25 @@ public:
   // Get size of the payload,
   uint64_t payload_size() const;
 
+  // Get content magic.
+  const uint8_t* magic() const;
+
+  // Get content version.
+  uint8_t version() const;
+
+  // Get compression type.
+  Compression::Type compression_type() const;
+
+  // Get compression level.
+  uint64_t compression_level() const;
+
   // Get size of the content (header + payload + checksum).
   uint64_t content_size() const;
 
 private:
   std::unique_ptr<Decompressor> m_decompressor;
   Checksum m_checksum;
-  char m_magic[4];
+  uint8_t m_magic[4];
   uint8_t m_version;
   Compression::Type m_compression_type;
   int8_t m_compression_level;
@@ -94,6 +106,30 @@ CacheEntryReader::read(T& value)
   uint8_t buffer[sizeof(T)];
   read(buffer, sizeof(T));
   Util::big_endian_to_int(buffer, value);
+}
+
+inline const uint8_t*
+CacheEntryReader::magic() const
+{
+  return m_magic;
+}
+
+inline uint8_t
+CacheEntryReader::version() const
+{
+  return m_version;
+}
+
+inline Compression::Type
+CacheEntryReader::compression_type() const
+{
+  return m_compression_type;
+}
+
+inline uint64_t
+CacheEntryReader::compression_level() const
+{
+  return m_compression_level;
 }
 
 inline uint64_t
