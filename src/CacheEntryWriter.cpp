@@ -18,29 +18,26 @@
 
 #include "CacheEntryWriter.hpp"
 
-#include "Checksum.hpp"
-
 CacheEntryWriter::CacheEntryWriter(FILE* stream,
                                    const uint8_t magic[4],
                                    uint8_t version,
                                    Compression::Type compression_type,
                                    int8_t compression_level,
-                                   uint64_t content_size,
-                                   Checksum& checksum)
+                                   uint64_t payload_size)
   : m_compressor(
-    Compressor::create_from_type(compression_type, stream, compression_level)),
-    m_checksum(checksum)
+    Compressor::create_from_type(compression_type, stream, compression_level))
 {
   uint8_t header_bytes[15];
   memcpy(header_bytes, magic, 4);
   header_bytes[4] = version;
   header_bytes[5] = static_cast<uint8_t>(compression_type);
   header_bytes[6] = m_compressor->actual_compression_level();
+  uint64_t content_size = 15 + payload_size + 8;
   Util::int_to_big_endian(content_size, header_bytes + 7);
   if (fwrite(header_bytes, sizeof(header_bytes), 1, stream) != 1) {
     throw Error("Failed to write cache entry header");
   }
-  checksum.update(header_bytes, sizeof(header_bytes));
+  m_checksum.update(header_bytes, sizeof(header_bytes));
 }
 
 void
@@ -53,5 +50,8 @@ CacheEntryWriter::write(const void* data, size_t count)
 void
 CacheEntryWriter::finalize()
 {
+  uint8_t buffer[8];
+  Util::int_to_big_endian(m_checksum.digest(), buffer);
+  m_compressor->write(buffer, sizeof(buffer));
   m_compressor->finalize();
 }

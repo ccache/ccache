@@ -18,7 +18,6 @@
 
 #include "CacheEntryReader.hpp"
 
-#include "Checksum.hpp"
 #include "Compressor.hpp"
 #include "Error.hpp"
 #include "ccache.hpp"
@@ -27,9 +26,7 @@
 
 CacheEntryReader::CacheEntryReader(FILE* stream,
                                    const uint8_t expected_magic[4],
-                                   uint8_t expected_version,
-                                   Checksum* checksum)
-  : m_checksum(checksum)
+                                   uint8_t expected_version)
 {
   uint8_t header_bytes[15];
   if (fread(header_bytes, sizeof(header_bytes), 1, stream) != 1) {
@@ -69,10 +66,7 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
     }
   }
 
-  if (m_checksum) {
-    m_checksum->update(header_bytes, sizeof(header_bytes));
-  }
-
+  m_checksum.update(header_bytes, sizeof(header_bytes));
   m_decompressor = Decompressor::create_from_type(m_compression_type, stream);
 }
 
@@ -92,11 +86,25 @@ void
 CacheEntryReader::read(void* data, size_t count)
 {
   m_decompressor->read(data, count);
-  m_checksum->update(data, count);
+  m_checksum.update(data, count);
 }
 
 void
 CacheEntryReader::finalize()
 {
+  uint64_t actual_digest = m_checksum.digest();
+
+  uint8_t buffer[8];
+  read(buffer, sizeof(buffer));
+  uint64_t expected_digest;
+  Util::big_endian_to_int(buffer, expected_digest);
+
+  if (actual_digest != expected_digest) {
+    throw Error(
+      fmt::format("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
+                  actual_digest,
+                  expected_digest));
+  }
+
   m_decompressor->finalize();
 }

@@ -21,7 +21,6 @@
 #include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
-#include "Checksum.hpp"
 #include "Config.hpp"
 #include "Error.hpp"
 #include "File.hpp"
@@ -280,9 +279,7 @@ read_result(const std::string& path,
     return false;
   }
 
-  Checksum checksum;
-  CacheEntryReader reader(
-    file.get(), k_result_magic, k_result_version, &checksum);
+  CacheEntryReader reader(file.get(), k_result_magic, k_result_version);
 
   if (dump_stream) {
     reader.dump_header(dump_stream);
@@ -317,16 +314,6 @@ read_result(const std::string& path,
   if (i != n_entries) {
     throw Error(
       fmt::format("Too few entries (read {}, expected {})", i, n_entries));
-  }
-
-  uint64_t actual_checksum = checksum.digest();
-  uint64_t expected_checksum;
-  reader.read(expected_checksum);
-  if (actual_checksum != expected_checksum) {
-    throw Error(
-      fmt::format("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
-                  actual_checksum,
-                  expected_checksum));
   }
 
   reader.finalize();
@@ -449,8 +436,8 @@ should_store_raw_file(const std::string& suffix)
 static void
 write_result(const std::string& path, const ResultFileMap& result_file_map)
 {
-  uint64_t content_size = 15;
-  content_size += 1; // n_entries
+  uint64_t payload_size = 0;
+  payload_size += 1; // n_entries
   for (const auto& pair : result_file_map) {
     const auto& suffix = pair.first;
     const auto& result_file = pair.second;
@@ -459,23 +446,20 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
       throw Error(
         fmt::format("Failed to stat {}: {}", result_file, strerror(errno)));
     }
-    content_size += 1;                // embedded_file_marker
-    content_size += 1;                // suffix_len
-    content_size += suffix.length();  // suffix
-    content_size += 8;                // data_len
-    content_size += source_file_size; // data
+    payload_size += 1;                // embedded_file_marker
+    payload_size += 1;                // suffix_len
+    payload_size += suffix.length();  // suffix
+    payload_size += 8;                // data_len
+    payload_size += source_file_size; // data
   }
-  content_size += 8; // checksum
 
-  Checksum checksum;
   AtomicFile atomic_result_file(path, AtomicFile::Mode::binary);
   CacheEntryWriter writer(atomic_result_file.stream(),
                           k_result_magic,
                           k_result_version,
                           Compression::type_from_config(),
                           Compression::level_from_config(),
-                          content_size,
-                          checksum);
+                          payload_size);
 
   writer.write<uint8_t>(result_file_map.size());
 
@@ -489,7 +473,6 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
     ++entry_number;
   }
 
-  writer.write(checksum.digest());
   writer.finalize();
   atomic_result_file.commit();
 }

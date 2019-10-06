@@ -18,13 +18,12 @@
 
 #pragma once
 
+#include "Checksum.hpp"
 #include "Compressor.hpp"
 #include "Util.hpp"
 
 #include <cstdio>
 #include <memory>
-
-class Checksum;
 
 // This class knows how to write a cache entry with a common header and a
 // payload part that is different depending on the cache entry type (result or
@@ -40,15 +39,13 @@ public:
   // - version: File format version.
   // - compression_type: Compression type to use.
   // - compression_level: Compression level to use.
-  // - content_size: Content size.
-  // - checksum: Checksum state that will be updated with the written bytes.
+  // - payload_size: Payload size.
   CacheEntryWriter(FILE* stream,
                    const uint8_t magic[4],
                    uint8_t version,
                    Compression::Type compression_type,
                    int8_t compression_level,
-                   uint64_t content_size,
-                   Checksum& checksum);
+                   uint64_t payload_size);
 
   // Write data to the payload from a buffer.
   //
@@ -75,7 +72,7 @@ public:
 
 private:
   std::unique_ptr<Compressor> m_compressor;
-  Checksum& m_checksum;
+  Checksum m_checksum;
 };
 
 template<typename T>

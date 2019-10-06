@@ -264,9 +264,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
     return {};
   }
 
-  Checksum checksum;
-  CacheEntryReader reader(
-    file.get(), k_manifest_magic, k_manifest_version, &checksum);
+  CacheEntryReader reader(file.get(), k_manifest_magic, k_manifest_version);
 
   if (dump_stream) {
     reader.dump_header(dump_stream);
@@ -313,16 +311,6 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
     reader.read(entry.name.bytes, DIGEST_SIZE);
   }
 
-  uint64_t actual_checksum = checksum.digest();
-  uint64_t expected_checksum;
-  reader.read(expected_checksum);
-  if (actual_checksum != expected_checksum) {
-    throw Error(
-      fmt::format("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
-                  actual_checksum,
-                  expected_checksum));
-  }
-
   reader.finalize();
   return mf;
 }
@@ -330,30 +318,27 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 static bool
 write_manifest(const std::string& path, const ManifestData& mf)
 {
-  uint64_t content_size = 15;
-  content_size += 4; // n_files
+  uint64_t payload_size = 0;
+  payload_size += 4; // n_files
   for (size_t i = 0; i < mf.files.size(); ++i) {
-    content_size += 2 + mf.files[i].length();
+    payload_size += 2 + mf.files[i].length();
   }
-  content_size += 4; // n_file_infos
-  content_size += mf.file_infos.size() * (4 + DIGEST_SIZE + 8 + 8 + 8);
-  content_size += 4; // n_results
+  payload_size += 4; // n_file_infos
+  payload_size += mf.file_infos.size() * (4 + DIGEST_SIZE + 8 + 8 + 8);
+  payload_size += 4; // n_results
   for (size_t i = 0; i < mf.results.size(); ++i) {
-    content_size += 4; // n_file_info_indexes
-    content_size += mf.results[i].file_info_indexes.size() * 4;
-    content_size += DIGEST_SIZE;
+    payload_size += 4; // n_file_info_indexes
+    payload_size += mf.results[i].file_info_indexes.size() * 4;
+    payload_size += DIGEST_SIZE;
   }
-  content_size += 8; // checksum
 
-  Checksum checksum;
   AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
   CacheEntryWriter writer(atomic_manifest_file.stream(),
                           k_manifest_magic,
                           k_manifest_version,
                           Compression::type_from_config(),
                           Compression::level_from_config(),
-                          content_size,
-                          checksum);
+                          payload_size);
   writer.write<uint32_t>(mf.files.size());
   for (uint32_t i = 0; i < mf.files.size(); ++i) {
     writer.write<uint16_t>(mf.files[i].length());
@@ -378,7 +363,6 @@ write_manifest(const std::string& path, const ManifestData& mf)
     writer.write(mf.results[i].name.bytes, DIGEST_SIZE);
   }
 
-  writer.write(checksum.digest());
   writer.finalize();
   atomic_manifest_file.commit();
   return true;

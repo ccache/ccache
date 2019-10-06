@@ -18,13 +18,12 @@
 
 #pragma once
 
+#include "Checksum.hpp"
 #include "Decompressor.hpp"
 #include "Util.hpp"
 
 #include <cstdio>
 #include <memory>
-
-class Checksum;
 
 // This class knows how to read a cache entry with a common header and a
 // payload part that is different depending on the cache entry type (result or
@@ -38,12 +37,10 @@ public:
   // - stream: Stream to read header and payload from.
   // - expected_magic: Expected magic bytes (first four bytes of the file).
   // - expected_version: Expected file format version.
-  // - checksum: Checksum state that will be updated with the read bytes, or
   //   nullptr for no checksumming.
   CacheEntryReader(FILE* stream,
                    const uint8_t expected_magic[4],
-                   uint8_t expected_version,
-                   Checksum* checksum = nullptr);
+                   uint8_t expected_version);
 
   // Dump header information in text format.
   //
@@ -74,12 +71,15 @@ public:
   // entry and throws Error if any integrity issues are found.
   void finalize();
 
-  // Get size of the content (header + payload).
+  // Get size of the payload,
+  uint64_t payload_size() const;
+
+  // Get size of the content (header + payload + checksum).
   uint64_t content_size() const;
 
 private:
   std::unique_ptr<Decompressor> m_decompressor;
-  Checksum* m_checksum;
+  Checksum m_checksum;
   char m_magic[4];
   uint8_t m_version;
   Compression::Type m_compression_type;
@@ -94,6 +94,12 @@ CacheEntryReader::read(T& value)
   uint8_t buffer[sizeof(T)];
   read(buffer, sizeof(T));
   Util::big_endian_to_int(buffer, value);
+}
+
+inline uint64_t
+CacheEntryReader::payload_size() const
+{
+  return m_content_size - 15 - 8;
 }
 
 inline uint64_t
