@@ -16,15 +16,30 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "NonCopyable.hpp"
+
 #include <cstdio>
 #include <string>
 
-class File
+class File : public NonCopyable
 {
 public:
   File(const std::string& path, const char* mode)
   {
     open(path, mode);
+  }
+
+  File(File&& other) : m_file(other.m_file)
+  {
+    other.m_file = nullptr;
+  }
+
+  File&
+  operator=(File&& other)
+  {
+    m_file = other.m_file;
+    other.m_file = nullptr;
+    return *this;
   }
 
   void
