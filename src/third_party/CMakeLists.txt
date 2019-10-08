@@ -1,4 +1,4 @@
-add_library(third_party STATIC format.cpp httplib.cpp url.cpp xxhash.c)
+add_library(third_party STATIC format.cpp httplib.cpp llvm_yaml_escape.cpp url.cpp xxhash.c)
 if(NOT MSVC)
   target_sources(third_party PRIVATE getopt_long.c)
 else()

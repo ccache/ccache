@@ -18,6 +18,7 @@ set(
   test_core_StatisticsCounters.cpp
   test_core_StatsLog.cpp
   test_hashutil.cpp
+  test_llvmEscape.cpp
   test_storage_local_StatsFile.cpp
   test_storage_local_util.cpp
   test_util_BitSet.cpp
