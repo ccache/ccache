@@ -42,6 +42,7 @@ AC_SUBST(include_dev_mk)
 m4_include(m4/feature_macros.m4)
 m4_include(m4/ax_cxx_compile_stdcxx.m4)
 m4_include(m4/ax_check_compile_flag.m4)
+m4_include(m4/ax_pthread.m4)
 m4_include(m4/clang.m4)
 
 mkdir -p .deps src/third_party unittest
@@ -51,6 +52,12 @@ AC_PROG_CC
 AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
 _AC_LANG_COMPILER_CLANG
 AC_PROG_INSTALL
+
+AX_PTHREAD
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+LDFLAGS="$LDFLAGS $PTHREAD_CFLAGS"
 
 # Prefer bash, needed for test.sh
 AC_PATH_TOOL(BASH, bash, "/bin/bash")

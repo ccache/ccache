@@ -23,12 +23,14 @@
 #include "CacheEntryWriter.hpp"
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
+#include "ThreadPool.hpp"
 #include "ccache.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 
 #include <fmt/core.h>
 #include <string>
+#include <thread>
 
 static File
 open_file(const std::string& path, const char* mode)
@@ -198,6 +200,10 @@ compress_recompress(const Config& config,
                     int8_t level,
                     const Util::ProgressReceiver& progress_receiver)
 {
+  const size_t threads = std::thread::hardware_concurrency();
+  const size_t read_ahead = 2 * threads;
+  ThreadPool thread_pool(threads, read_ahead);
+
   Util::for_each_level_1_subdir(
     config.cache_dir(),
     [&](const std::string& subdir,
@@ -205,7 +211,7 @@ compress_recompress(const Config& config,
       std::vector<std::shared_ptr<CacheFile>> files;
       Util::get_level_1_files(
         subdir,
-        [&](double progress) { sub_progress_receiver(progress / 2); },
+        [&](double progress) { sub_progress_receiver(0.1 * progress); },
         files);
 
       auto stats_file = subdir + "/stats";
@@ -214,14 +220,22 @@ compress_recompress(const Config& config,
         const auto& file = files[i];
 
         if (file->type() != CacheFile::Type::unknown) {
-          try {
-            recompress_file(stats_file, *file, level);
-          } catch (Error&) {
-            // Ignore for now.
-          }
+          thread_pool.enqueue([=] {
+            try {
+              recompress_file(stats_file, *file, level);
+            } catch (Error&) {
+              // Ignore for now.
+            }
+          });
         }
 
-        sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
+        sub_progress_receiver(0.1 + 0.9 * i / files.size());
+      }
+
+      if (Util::ends_with(subdir, "f")) {
+        // Wait here instead of after Util::for_each_level_1_subdir to avoid
+        // updating the progress bar to 100% before all work is done.
+        thread_pool.shut_down();
       }
     },
     progress_receiver);

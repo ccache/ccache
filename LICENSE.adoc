@@ -166,6 +166,29 @@ Autoconf Archive]. It has the following license:
 -------------------------------------------------------------------------------
 
 
+m4/ax_pthread.m4
+~~~~~~~~~~~~~~~~
+
+Downloaded from the
+https://www.gnu.org/software/autoconf-archive/ax_pthread.html[GNU Autoconf
+Archive]. It has the following license:
+
+-------------------------------------------------------------------------------
+  Copyright (c) 2008 Steven G. Johnson <stevenj@alum.mit.edu>
+  Copyright (c) 2011 Daniel Richard G. <skunk@iSKUNK.ORG>
+
+  This program is free software: you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation, either version 3 of the License, or (at your
+  option) any later version.
+
+  This program is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+  Public License for more details.
+-------------------------------------------------------------------------------
+
+
 m4/feature_macros.m4
 ~~~~~~~~~~~~~~~~~~~~
 
