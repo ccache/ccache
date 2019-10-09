@@ -121,6 +121,8 @@ extern enum guessed_compiler guessed_compiler;
 // Buffer size for I/O operations. Should be a multiple of 4 KiB.
 #define READ_BUFFER_SIZE 65536
 
+#define MAX_SUFFIX_SIZE 15
+
 class Config;
 
 // ----------------------------------------------------------------------------

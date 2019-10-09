@@ -1440,25 +1440,25 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   }
   ResultFileMap result_file_map;
   if (st.st_size > 0) {
-    result_file_map.emplace(k_result_stderr_name, tmp_stderr);
+    result_file_map.register_suffix(k_result_stderr_name, tmp_stderr);
   }
-  result_file_map.emplace(".o", output_obj);
+  result_file_map.register_suffix(".o", output_obj);
   if (generating_dependencies) {
-    result_file_map.emplace(".d", output_dep);
+    result_file_map.register_suffix(".d", output_dep);
   }
   if (generating_coverage) {
-    result_file_map.emplace(".gcno", output_cov);
+    result_file_map.register_suffix(".gcno", output_cov);
   }
   if (generating_stackusage) {
-    result_file_map.emplace(".su", output_su);
+    result_file_map.register_suffix(".su", output_su);
   }
   if (generating_diagnostics) {
-    result_file_map.emplace(".dia", output_dia);
+    result_file_map.register_suffix(".dia", output_dia);
   }
   if (seen_split_dwarf && stat(output_dwo, &st) == 0) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_file_map.emplace(".dwo", output_dwo);
+    result_file_map.register_suffix(".dwo", output_dwo);
   }
   struct stat orig_dest_st;
   bool orig_dest_existed = stat(cached_result_path, &orig_dest_st) == 0;
@@ -2179,23 +2179,23 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 
   ResultFileMap result_file_map;
   if (!str_eq(output_obj, "/dev/null")) {
-    result_file_map.emplace(".o", output_obj);
+    result_file_map.register_suffix(".o", output_obj);
     if (seen_split_dwarf) {
-      result_file_map.emplace(".dwo", output_dwo);
+      result_file_map.register_suffix(".dwo", output_dwo);
     }
   }
-  result_file_map.emplace(k_result_stderr_name, tmp_stderr);
+  result_file_map.register_suffix(k_result_stderr_name, tmp_stderr);
   if (produce_dep_file) {
-    result_file_map.emplace(".d", output_dep);
+    result_file_map.register_suffix(".d", output_dep);
   }
   if (generating_coverage) {
-    result_file_map.emplace(".gcno", output_cov);
+    result_file_map.register_suffix(".gcno", output_cov);
   }
   if (generating_stackusage) {
-    result_file_map.emplace(".su", output_su);
+    result_file_map.register_suffix(".su", output_su);
   }
   if (generating_diagnostics) {
-    result_file_map.emplace(".dia", output_dia);
+    result_file_map.register_suffix(".dia", output_dia);
   }
   bool ok = result_get(cached_result_path, result_file_map);
   if (!ok) {

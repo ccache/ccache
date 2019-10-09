@@ -97,6 +97,14 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
+void ResultFileMap::register_suffix(std::string suffix, const char* path)
+{
+  if (suffix.size() >= MAX_SUFFIX_SIZE) {
+    throw Error("internal error: suffix too large");
+  }
+  this->emplace(suffix, path);
+}
+
 using ReadEntryFunction = void (*)(CacheEntryReader& reader,
                                    const std::string& result_path_in_cache,
                                    uint32_t entry_number,
@@ -119,8 +127,9 @@ read_embedded_file_entry(CacheEntryReader& reader,
   uint8_t suffix_len;
   reader.read(suffix_len);
 
-  char suffix[256];
+  char suffix[MAX_SUFFIX_SIZE + 1];
   reader.read(suffix, suffix_len);
+  suffix[suffix_len] = '\0';
 
   uint64_t file_len;
   reader.read(file_len);
@@ -220,8 +229,9 @@ read_raw_file_entry(CacheEntryReader& reader,
   uint8_t suffix_len;
   reader.read(suffix_len);
 
-  char suffix[256];
+  char suffix[MAX_SUFFIX_SIZE + 1];
   reader.read(suffix, suffix_len);
+  suffix[suffix_len] = '\0';
 
   uint64_t file_len;
   reader.read(file_len);

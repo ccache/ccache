@@ -27,7 +27,16 @@ extern const uint8_t k_result_magic[4];
 extern const uint8_t k_result_version;
 extern const std::string k_result_stderr_name;
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+struct ResultFileMap : private std::map<std::string, std::string> {
+  using map = std::map<std::string /*suffix*/, std::string /*path*/>;
+  using map::at;
+  using map::begin;
+  using map::end;
+  using map::find;
+  using map::size;
+  using map::value_type;
+  void register_suffix(std::string suffix, const char* path);
+};
 
 bool result_get(const std::string& path, const ResultFileMap& result_file_map);
 bool result_put(const std::string& path, const ResultFileMap& result_file_map);
