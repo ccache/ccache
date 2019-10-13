@@ -37,7 +37,6 @@ public:
   // - stream: Stream to read header and payload from.
   // - expected_magic: Expected magic bytes (first four bytes of the file).
   // - expected_version: Expected file format version.
-  //   nullptr for no checksumming.
   CacheEntryReader(FILE* stream,
                    const uint8_t expected_magic[4],
                    uint8_t expected_version);
