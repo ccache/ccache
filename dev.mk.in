@@ -42,10 +42,11 @@ non_third_party_headers = \
     src/Checksum.hpp \
     src/Compression.hpp \
     src/Compressor.hpp \
-    src/Decompressor.hpp \
     src/Config.hpp \
+    src/Decompressor.hpp \
     src/Error.hpp \
     src/File.hpp \
+    src/FormatNonStdStringView.hpp \
     src/NonCopyable.hpp \
     src/NullCompressor.hpp \
     src/NullDecompressor.hpp \

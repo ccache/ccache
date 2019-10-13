@@ -18,6 +18,7 @@
 
 #include "Util.hpp"
 
+#include "FormatNonstdStringView.hpp"
 #include "ccache.hpp"
 
 #include <algorithm>
@@ -39,14 +40,14 @@ get_cache_files_internal(const std::string& dir,
   std::vector<std::string> directories;
   dirent* de;
   while ((de = readdir(d))) {
-    std::string name = de->d_name;
+    nonstd::string_view name(de->d_name);
     if (name == "" || name == "." || name == ".." || name == "CACHEDIR.TAG"
-        || name == "stats" || Util::starts_with(name, ".nfs")) {
+        || name == "stats" || name.starts_with(".nfs")) {
       continue;
     }
 
     if (name.length() == 1) {
-      directories.push_back(name);
+      directories.emplace_back(name);
     } else {
       files.push_back(
         std::make_shared<CacheFile>(fmt::format("{}/{}", dir, name)));
@@ -71,8 +72,8 @@ get_cache_files_internal(const std::string& dir,
 
 namespace Util {
 
-std::string
-base_name(const std::string& path)
+nonstd::string_view
+base_name(nonstd::string_view path)
 {
   size_t n = path.rfind('/');
 #ifdef _WIN32
@@ -85,10 +86,11 @@ base_name(const std::string& path)
 }
 
 bool
-create_dir(const std::string& dir)
+create_dir(nonstd::string_view dir)
 {
+  std::string dir_str(dir);
   struct stat st;
-  if (stat(dir.c_str(), &st) == 0) {
+  if (stat(dir_str.c_str(), &st) == 0) {
     if (S_ISDIR(st.st_mode)) {
       return true;
     } else {
@@ -99,7 +101,7 @@ create_dir(const std::string& dir)
     if (!create_dir(Util::dir_name(dir))) {
       return false;
     }
-    int result = mkdir(dir.c_str(), 0777);
+    int result = mkdir(dir_str.c_str(), 0777);
     // Treat an already existing directory as OK since the file system could
     // have changed in between calling stat and actually creating the
     // directory. This can happen when there are multiple instances of ccache
@@ -112,17 +114,17 @@ create_dir(const std::string& dir)
 }
 
 std::pair<int, std::string>
-create_temp_fd(const std::string& path_prefix)
+create_temp_fd(nonstd::string_view path_prefix)
 {
-  char* tmp_path = x_strdup(path_prefix.c_str());
+  char* tmp_path = x_strndup(path_prefix.data(), path_prefix.length());
   int fd = create_tmp_fd(&tmp_path);
   std::string actual_path = tmp_path;
   free(tmp_path);
   return {fd, actual_path};
 }
 
-std::string
-dir_name(const std::string& path)
+nonstd::string_view
+dir_name(nonstd::string_view path)
 {
   size_t n = path.rfind('/');
 #ifdef _WIN32
@@ -138,12 +140,9 @@ dir_name(const std::string& path)
 }
 
 bool
-ends_with(const std::string& string, const std::string& suffix)
+ends_with(nonstd::string_view string, nonstd::string_view suffix)
 {
-  return suffix.length() <= string.length()
-         && string.compare(
-              string.length() - suffix.length(), suffix.length(), suffix)
-              == 0;
+  return string.ends_with(suffix);
 }
 
 void
@@ -212,10 +211,9 @@ read_file(const std::string& path)
 }
 
 bool
-starts_with(const std::string& string, const std::string& prefix)
+starts_with(nonstd::string_view string, nonstd::string_view prefix)
 {
-  return prefix.length() <= string.length()
-         && string.compare(0, prefix.length(), prefix) == 0;
+  return string.starts_with(prefix);
 }
 
 std::string

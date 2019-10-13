@@ -22,6 +22,8 @@
 
 #include "CacheFile.hpp"
 
+#include "third_party/nonstd/string_view.hpp"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -37,7 +39,7 @@ typedef std::function<void(const std::string& /*dir_path*/,
   SubdirVisitor;
 
 // Get base name of path.
-std::string base_name(const std::string& path);
+nonstd::string_view base_name(nonstd::string_view path);
 
 // Get an integer value from bytes in big endian order.
 //
@@ -72,7 +74,7 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 // Create a directory if needed, including its parents if needed.
 //
 // Returns true if the directory exists or could be created, otherwise false.
-bool create_dir(const std::string& dir);
+bool create_dir(nonstd::string_view dir);
 
 // Create a unique temporary file.
 //
@@ -82,13 +84,13 @@ bool create_dir(const std::string& dir);
 //
 // Returns the open file descriptor (in read/write mode) and the actual
 // filename.
-std::pair<int, std::string> create_temp_fd(const std::string& path_prefix);
+std::pair<int, std::string> create_temp_fd(nonstd::string_view path_prefix);
 
 // Get directory name of path.
-std::string dir_name(const std::string& path);
+nonstd::string_view dir_name(nonstd::string_view path);
 
 // Return true if suffix is a suffix of string.
-bool ends_with(const std::string& string, const std::string& suffix);
+bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
 // Call a function for each subdir (0-9a-f) in the cache.
 //
@@ -163,7 +165,7 @@ int parse_int(const std::string& value);
 std::string read_file(const std::string& path);
 
 // Return true if prefix is a prefix of string.
-bool starts_with(const std::string& string, const std::string& prefix);
+bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 
 // Strip whitespace from left and right side of a string.
 [[gnu::warn_unused_result]] std::string
