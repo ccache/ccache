@@ -175,7 +175,6 @@ void* x_calloc(size_t nmemb, size_t size);
 void* x_realloc(void* ptr, size_t size);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
-int x_fstat(int fd, struct stat* buf);
 int x_lstat(const char* pathname, struct stat* buf);
 int x_stat(const char* pathname, struct stat* buf);
 void traverse(const char* dir, void (*fn)(const char*, struct stat*));

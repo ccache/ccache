@@ -12,7 +12,7 @@ SUITE_no_compression() {
     $REAL_COMPILER -c -o reference_test.o test.c
 
     $CCACHE_COMPILE -c test.c
-    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_equal_object_files reference_test.o test.o
@@ -51,4 +51,30 @@ SUITE_no_compression() {
     $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "Corrupt result file"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+
+    result_file=$(find $CCACHE_DIR -name '*.result')
+    printf foo | dd of=$result_file bs=3 count=1 seek=20 conv=notrunc >&/dev/null
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
 }

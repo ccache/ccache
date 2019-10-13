@@ -50,21 +50,6 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
     throw Error(fmt::format(
       "Unknown version (actual {}, expected {})", m_version, expected_version));
   }
-  if (m_compression_type == Compression::Type::none) {
-    // Since we have the size available, let's use it as a super primitive
-    // consistency check for the non-compressed case. (A real checksum is used
-    // for compressed data.)
-    struct stat st;
-    if (x_fstat(fileno(stream), &st) != 0) {
-      throw Error(fmt::format("Failed to fstat: {}", strerror(errno)));
-    }
-    if (static_cast<uint64_t>(st.st_size) != m_content_size) {
-      throw Error(fmt::format(
-        "Bad uncompressed file size (actual {} bytes, expected {} bytes)",
-        st.st_size,
-        m_content_size));
-    }
-  }
 
   m_checksum.update(header_bytes, sizeof(header_bytes));
   m_decompressor = Decompressor::create_from_type(m_compression_type, stream);
