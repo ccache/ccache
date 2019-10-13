@@ -18,7 +18,7 @@
 
 #include "../src/Compression.hpp"
 
-#include <catch.hpp>
+#include "third_party/catch.hpp"
 
 using Catch::Equals;
 

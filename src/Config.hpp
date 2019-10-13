@@ -22,7 +22,8 @@
 
 #include "ccache.hpp"
 
-#include <fmt/core.h>
+#include "third_party/fmt/core.h"
+
 #include <functional>
 #include <limits>
 #include <string>

@@ -24,15 +24,6 @@
 #include "Util.hpp"
 #include "cleanup.hpp"
 #include "compopt.hpp"
-
-#include <fmt/core.h>
-#include <limits>
-
-#ifdef HAVE_GETOPT_LONG
-#  include <getopt.h>
-#else
-#  include "third_party/getopt_long.h"
-#endif
 #include "compress.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
@@ -41,7 +32,16 @@
 #include "result.hpp"
 #include "unify.hpp"
 
+#include "third_party/fmt/core.h"
+
+#ifdef HAVE_GETOPT_LONG
+#  include <getopt.h>
+#else
+#  include "third_party/getopt_long.h"
+#endif
+
 #include <fstream>
+#include <limits>
 
 // Global variables used by other compilation units.
 extern char* primary_config_path;

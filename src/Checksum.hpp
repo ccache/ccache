@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include <third_party/xxhash.h>
+#include "third_party/xxhash.h"
 
 class Checksum
 {

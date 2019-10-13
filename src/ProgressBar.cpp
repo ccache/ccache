@@ -18,8 +18,9 @@
 
 #include "ProgressBar.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <cstdio>
-#include <fmt/core.h>
 #include <unistd.h>
 
 #ifdef _WIN32

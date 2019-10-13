@@ -19,7 +19,7 @@
 #include "catch2_tests.hpp"
 
 #define CATCH_CONFIG_RUNNER
-#include <catch.hpp>
+#include "third_party/catch.hpp"
 
 int
 run_catch2_tests(int argc, char** argv)

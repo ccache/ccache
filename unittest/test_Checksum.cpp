@@ -18,7 +18,7 @@
 
 #include "../src/Checksum.hpp"
 
-#include <catch.hpp>
+#include "third_party/catch.hpp"
 
 TEST_CASE("Checksums")
 {

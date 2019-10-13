@@ -28,7 +28,8 @@
 #include "manifest.hpp"
 #include "result.hpp"
 
-#include <fmt/core.h>
+#include "third_party/fmt/core.h"
+
 #include <string>
 #include <thread>
 

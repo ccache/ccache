@@ -20,9 +20,10 @@
 
 #include "Error.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <cerrno>
 #include <cstring>
-#include <fmt/core.h>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>

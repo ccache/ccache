@@ -22,7 +22,7 @@
 #include "Error.hpp"
 #include "ccache.hpp"
 
-#include <fmt/core.h>
+#include "third_party/fmt/core.h"
 
 CacheEntryReader::CacheEntryReader(FILE* stream,
                                    const uint8_t expected_magic[4],

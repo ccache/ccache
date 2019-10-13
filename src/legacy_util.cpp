@@ -22,7 +22,8 @@
 #include "Util.hpp"
 #include "ccache.hpp"
 
-#include <fmt/core.h>
+#include "third_party/fmt/core.h"
+
 #include <string>
 
 #ifdef HAVE_PWD_H

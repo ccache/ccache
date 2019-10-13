@@ -19,7 +19,7 @@
 #include "../src/AtomicFile.hpp"
 #include "../src/Util.hpp"
 
-#include <catch.hpp>
+#include "third_party/catch.hpp"
 
 using Catch::Equals;
 

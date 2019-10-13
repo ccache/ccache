@@ -21,8 +21,9 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 
-#include <catch.hpp>
-#include <fmt/core.h>
+#include "third_party/catch.hpp"
+#include "third_party/fmt/core.h"
+
 #include <limits>
 #include <string>
 #include <vector>

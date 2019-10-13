@@ -22,9 +22,10 @@
 #include "Util.hpp"
 #include "ccache.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <cassert>
 #include <cerrno>
-#include <fmt/core.h>
 #include <unistd.h>
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)

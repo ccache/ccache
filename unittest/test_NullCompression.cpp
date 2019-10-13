@@ -21,7 +21,7 @@
 #include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
 
-#include <catch.hpp>
+#include "third_party/catch.hpp"
 
 using Catch::Equals;
 
