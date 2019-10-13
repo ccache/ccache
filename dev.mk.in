@@ -1,7 +1,7 @@
 # GNU make syntax reigns in this file.
 
 all_cflags += -Werror
-all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$(subst $(srcdir)/,,$<))).d
+all_cppflags += -MD -MP -MF .deps/$(subst .._,,$(subst /,_,$(subst $(srcdir)/,,$<))).d -MQ $@
 
 A2X = a2x
 ASCIIDOC = asciidoc
