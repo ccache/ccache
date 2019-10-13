@@ -149,7 +149,7 @@ char* args_to_string(const struct args* args);
 bool args_equal(const struct args* args1, const struct args* args2);
 
 // ----------------------------------------------------------------------------
-// util.c
+// legacy_util.c
 
 void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
