@@ -77,6 +77,7 @@ third_party_headers = \
     src/third_party/getopt_long.h \
     src/third_party/minitrace.h \
     src/third_party/nonstd/optional.hpp \
+    src/third_party/nonstd/string_view.hpp \
     src/third_party/xxhash.h
 headers = $(non_third_party_headers) $(third_party_headers)
 

@@ -79,8 +79,9 @@ if test "$dev_mode" = yes -o "$enable_more_warnings" = yes; then
     extra_warnings="-Wextra -Wpedantic"
     if test "$ac_compiler_clang" = yes; then
         extra_warnings="$extra_warnings -Weverything"
-        AX_CHECK_COMPILE_FLAG([-Wno-c++98-compat], [extra_warnings="$extra_warnings -Wno-c++98-compat"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-c++98-compat-pedantic], [extra_warnings="$extra_warnings -Wno-c++98-compat-pedantic"],, [-Werror])
+        AX_CHECK_COMPILE_FLAG([-Wno-c++98-compat], [extra_warnings="$extra_warnings -Wno-c++98-compat"],, [-Werror])
+        AX_CHECK_COMPILE_FLAG([-Wno-constexpr-not-const], [extra_warnings="$extra_warnings -Wno-constexpr-not-const"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-conversion], [extra_warnings="$extra_warnings -Wno-conversion"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-disabled-macro-expansion], [extra_warnings="$extra_warnings -Wno-disabled-macro-expansion"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-documentation-unknown-command], [extra_warnings="$extra_warnings -Wno-documentation-unknown-command"],, [-Werror])
@@ -89,6 +90,7 @@ if test "$dev_mode" = yes -o "$enable_more_warnings" = yes; then
         AX_CHECK_COMPILE_FLAG([-Wno-global-constructors], [extra_warnings="$extra_warnings -Wno-global-constructors"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-implicit-fallthrough], [extra_warnings="$extra_warnings -Wno-implicit-fallthrough"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-padded], [extra_warnings="$extra_warnings -Wno-padded"],, [-Werror])
+        AX_CHECK_COMPILE_FLAG([-Wno-shadow-field-in-constructor], [extra_warnings="$extra_warnings -Wno-shadow-field-in-constructor"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-shorten-64-to-32], [extra_warnings="$extra_warnings -Wno-shorten-64-to-32"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-sign-conversion], [extra_warnings="$extra_warnings -Wno-sign-conversion"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-undefined-func-template], [extra_warnings="$extra_warnings -Wno-undefined-func-template"],, [-Werror])
