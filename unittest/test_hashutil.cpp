@@ -201,6 +201,10 @@ TEST(check_for_temporal_macros)
     "#define ab __TIME __\n"
     "#define ab __TIME_ _\n";
 
+  const char temporal_at_avx_boundary[] =
+    "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
+    "__DATE__";
+
   CHECK(check_for_temporal_macros(time_start + 0, sizeof(time_start) - 0));
   CHECK(!check_for_temporal_macros(time_start + 1, sizeof(time_start) - 1));
 
@@ -241,6 +245,12 @@ TEST(check_for_temporal_macros)
   CHECK(!check_for_temporal_macros(no_temporal + 5, sizeof(no_temporal) - 5));
   CHECK(!check_for_temporal_macros(no_temporal + 6, sizeof(no_temporal) - 6));
   CHECK(!check_for_temporal_macros(no_temporal + 7, sizeof(no_temporal) - 7));
+
+  for (size_t i = 0; i < sizeof(temporal_at_avx_boundary) - 8; ++i) {
+    CHECKM(check_for_temporal_macros(temporal_at_avx_boundary + i,
+                                     sizeof(temporal_at_avx_boundary) - i),
+           temporal_at_avx_boundary + i);
+  }
 }
 
 TEST_SUITE_END
