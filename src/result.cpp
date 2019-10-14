@@ -126,19 +126,19 @@ read_embedded_file_entry(CacheEntryReader& reader,
   reader.read(file_len);
 
   bool content_read = false;
+  std::string suffix_str(suffix, suffix_len);
   if (dump_stream) {
     fmt::print(dump_stream,
                "Embedded file #{}: {} ({} bytes)\n",
                entry_number,
-               suffix,
+               suffix_str,
                file_len);
   } else {
     cc_log("Retrieving embedded file #%u %s (%llu bytes)",
            entry_number,
-           suffix,
+           suffix_str.c_str(),
            (unsigned long long)file_len);
 
-    std::string suffix_str(suffix, suffix_len);
     const auto it = result_file_map->find(suffix_str);
     if (it != result_file_map->end()) {
       content_read = true;
@@ -226,16 +226,17 @@ read_raw_file_entry(CacheEntryReader& reader,
   uint64_t file_len;
   reader.read(file_len);
 
+  std::string suffix_str(suffix, suffix_len);
   if (dump_stream) {
     fmt::print(dump_stream,
                "Raw file #{}: {} ({} bytes)\n",
                entry_number,
-               suffix,
+               suffix_str,
                file_len);
   } else {
     cc_log("Retrieving raw file #%u %s (%llu bytes)",
            entry_number,
-           suffix,
+           suffix_str.c_str(),
            (unsigned long long)file_len);
 
     auto raw_path = get_raw_file_path(result_path_in_cache, entry_number);
@@ -252,7 +253,6 @@ read_raw_file_entry(CacheEntryReader& reader,
                     file_len));
     }
 
-    std::string suffix_str(suffix, suffix_len);
     const auto it = result_file_map->find(suffix_str);
     if (it != result_file_map->end()) {
       const auto& dest_path = it->second;
