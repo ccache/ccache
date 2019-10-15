@@ -39,8 +39,8 @@ Here are some hints to make the process smoother:
   avoid potentially wasting time on doing something that may need major rework
   to be accepted, or maybe doesn't end up being accepted at all.
 * Is your pull request "work in progress", i.e. you don't think that it's ready
-  for merging yet but you want early comments? Then create a draft pull request
-  as described in [this Github blog
+  for merging yet but you want early comments and CI test results? Then create
+  a draft pull request as described in [this Github blog
   post](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
 * If you have [clang-format](https://clang.llvm.org/docs/ClangFormat.html) 6.0
   or newer, you can run `make format` to adapt your modifications to ccache's
@@ -52,9 +52,9 @@ Here are some hints to make the process smoother:
 ## Code style
 
 ccache was written in C99 until 2019 when it started being converted to C++11.
-The conversion is a slow work in progress, which is why there are lots of
-C-style code left. Please refrain from doing large C to C++ conversions at
-once; do it little by little.
+The conversion is a slow work in progress, which is why there is a lot of
+C-style code left. Please refrain from doing large C to C++ conversions; do it
+little by little.
 
 Source code formatting is defined by `.clang-format` in the root directory.
 It's based on [LLVM's code formatting
@@ -64,9 +64,9 @@ can install the [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 
 Regarding naming:
 
-* Use UpperCamelCase for types (e.g. classes and structs) and namespaces.
-* Use UPPER_CASE names for macros.
-* Use snake_case for other names (functions, variables, enum values, etc.).
-* Use an "m_" prefix for non-public member variables.
-* Use a "g_" prefix for global mutable variables.
-* Use a "k_" prefix for global constants.
+* Use `UpperCamelCase` for types (e.g. classes and structs) and namespaces.
+* Use `UPPER_CASE` names for macros.
+* Use `snake_case` for other names (functions, variables, enum values, etc.).
+* Use an `m_` prefix for non-public member variables.
+* Use a `g_` prefix for global mutable variables.
+* Use a `k_` prefix for global constants.
