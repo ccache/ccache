@@ -23,7 +23,7 @@
 
 #include "third_party/xxhash.h"
 
-#ifdef __AVX2__
+#ifdef HAVE_AVX2
 #  include <immintrin.h>
 #endif
 
@@ -68,7 +68,10 @@ check_for_temporal_macros_bmh(const char* str, size_t len)
   return result;
 }
 
-#ifdef __AVX2__
+#ifdef HAVE_AVX2
+static int check_for_temporal_macros_avx2(const char* str, size_t len)
+  __attribute__((target("avx2")));
+
 // The following algorithm, which uses AVX2 instructions to find __DATE__ and
 // __TIME__, is heavily inspired by http://0x80.pl/articles/simd-strfind.html
 static int
@@ -142,7 +145,7 @@ check_for_temporal_macros_avx2(const char* str, size_t len)
 int
 check_for_temporal_macros(const char* str, size_t len)
 {
-#ifdef __AVX2__
+#ifdef HAVE_AVX2
   // TODO: use runtime detection with cpuid instead
   if (getenv("USE_AVX")) {
     return check_for_temporal_macros_avx2(str, len);
