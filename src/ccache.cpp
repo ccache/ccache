@@ -577,68 +577,64 @@ get_current_working_dir(void)
   return current_working_dir;
 }
 
-// This function hashes an include file and stores the path and hash in the
-// global g_included_files variable. If the include file is a PCH, cpp_hash is
-// also updated. Takes over ownership of path.
-static void
-remember_include_file(char* path,
-                      struct hash* cpp_hash,
-                      bool system,
-                      struct hash* depend_mode_hash)
+static bool
+do_remember_include_file(std::string path,
+                         struct hash* cpp_hash,
+                         bool system,
+                         struct hash* depend_mode_hash)
 {
-  struct hash* fhash = NULL;
+  struct hash* fhash = nullptr;
   bool is_pch = false;
 
-  size_t path_len = strlen(path);
-  if (path_len >= 2 && (path[0] == '<' && path[path_len - 1] == '>')) {
+  if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
     // Typically <built-in> or <command-line>.
-    goto out;
+    return true;
   }
 
-  if (str_eq(path, input_file)) {
+  if (path == input_file) {
     // Don't remember the input file.
-    goto out;
+    return true;
   }
 
   if (system && (g_config.sloppiness() & SLOPPY_SYSTEM_HEADERS)) {
     // Don't remember this system header.
-    goto out;
+    return true;
   }
 
   if (g_included_files.find(path) != g_included_files.end()) {
     // Already known include file.
-    goto out;
+    return true;
   }
 
 #ifdef _WIN32
   {
     // stat fails on directories on win32.
-    DWORD attributes = GetFileAttributes(path);
+    DWORD attributes = GetFileAttributes(path.c_str());
     if (attributes != INVALID_FILE_ATTRIBUTES
         && attributes & FILE_ATTRIBUTE_DIRECTORY) {
-      goto out;
+      return true;
     }
   }
 #endif
 
   struct stat st;
-  if (x_stat(path, &st) != 0) {
-    goto failure;
+  if (x_stat(path.c_str(), &st) != 0) {
+    return false;
   }
   if (S_ISDIR(st.st_mode)) {
     // Ignore directory, typically $PWD.
-    goto out;
+    return true;
   }
   if (!S_ISREG(st.st_mode)) {
     // Device, pipe, socket or other strange creature.
-    cc_log("Non-regular include file %s", path);
-    goto failure;
+    cc_log("Non-regular include file %s", path.c_str());
+    return false;
   }
 
   // Canonicalize path for comparison; clang uses ./header.h.
   {
-    char* canonical = path;
-    size_t canonical_len = path_len;
+    const char* canonical = path.c_str();
+    size_t canonical_len = path.length();
     if (canonical[0] == '.' && canonical[1] == '/') {
       canonical += 2;
       canonical_len -= 2;
@@ -654,7 +650,7 @@ remember_include_file(char* path,
           && (ignore[ignore_len - 1] == DIR_DELIM_CH
               || canonical[ignore_len] == DIR_DELIM_CH
               || canonical[ignore_len] == '\0')) {
-        goto out;
+        return true;
       }
     }
   }
@@ -664,42 +660,41 @@ remember_include_file(char* path,
   // under "Performance" in doc/MANUAL.adoc.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
       && st.st_mtime >= time_of_compilation) {
-    cc_log("Include file %s too new", path);
-    goto failure;
+    cc_log("Include file %s too new", path.c_str());
+    return false;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
       && st.st_ctime >= time_of_compilation) {
-    cc_log("Include file %s ctime too new", path);
-    goto failure;
+    cc_log("Include file %s ctime too new", path.c_str());
+    return false;
   }
 
   // Let's hash the include file content.
-  fhash = hash_init();
+  std::unique_ptr<struct hash, decltype(&hash_free)> fhash_holder(hash_init(),
+                                                                  &hash_free);
+  fhash = fhash_holder.get();
 
-  is_pch = is_precompiled_header(path);
+  is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
     if (!included_pch_file) {
-      cc_log("Detected use of precompiled header: %s", path);
+      cc_log("Detected use of precompiled header: %s", path.c_str());
     }
     bool using_pch_sum = false;
     if (g_config.pch_external_checksum()) {
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
-      char* pch_sum_path = format("%s.sum", path);
-      if (x_stat(pch_sum_path, &st) == 0) {
-        char* old_path = path;
-        path = pch_sum_path;
-        pch_sum_path = old_path;
+      std::string pch_sum_path = fmt::format("{}.sum", path);
+      if (x_stat(pch_sum_path.c_str(), &st) == 0) {
+        path = std::move(pch_sum_path);
         using_pch_sum = true;
-        cc_log("Using pch.sum file %s", path);
+        cc_log("Using pch.sum file %s", path.c_str());
       }
-      free(pch_sum_path);
     }
 
-    if (!hash_file(fhash, path)) {
-      goto failure;
+    if (!hash_file(fhash, path.c_str())) {
+      return false;
     }
     hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
     char pch_digest[DIGEST_STRING_BUFFER_SIZE];
@@ -712,26 +707,26 @@ remember_include_file(char* path,
       char* source = NULL;
       size_t size;
       if (st.st_size > 0) {
-        if (!read_file(path, st.st_size, &source, &size)) {
-          goto failure;
+        if (!read_file(path.c_str(), st.st_size, &source, &size)) {
+          return false;
         }
       } else {
         source = x_strdup("");
         size = 0;
       }
 
-      int result = hash_source_code_string(g_config, fhash, source, size, path);
+      int result =
+        hash_source_code_string(g_config, fhash, source, size, path.c_str());
       free(source);
       if (result & HASH_SOURCE_CODE_ERROR
           || result & HASH_SOURCE_CODE_FOUND_TIME) {
-        goto failure;
+        return false;
       }
     }
 
     digest d;
     hash_result_as_bytes(fhash, &d);
     g_included_files.emplace(path, d);
-    path = NULL;
 
     if (depend_mode_hash) {
       hash_delimiter(depend_mode_hash, "include");
@@ -741,17 +736,23 @@ remember_include_file(char* path,
     }
   }
 
-  goto out;
+  return true;
+}
 
-failure:
-  if (g_config.direct_mode()) {
+// This function hashes an include file and stores the path and hash in the
+// global g_included_files variable. If the include file is a PCH, cpp_hash is
+// also updated.
+static void
+remember_include_file(const std::string& path,
+                      struct hash* cpp_hash,
+                      bool system,
+                      struct hash* depend_mode_hash)
+{
+  if (!do_remember_include_file(path, cpp_hash, system, depend_mode_hash)
+      && g_config.direct_mode()) {
     cc_log("Disabling direct mode");
     g_config.set_direct_mode(false);
   }
-  // Fall through.
-out:
-  hash_free(fhash);
-  free(path);
 }
 
 static void
@@ -982,6 +983,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       }
 
       remember_include_file(inc_path, hash, system, NULL);
+      free(inc_path);
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
                && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {
@@ -1023,6 +1025,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
     pch_path = make_relative_path(pch_path);
     hash_string(hash, pch_path);
     remember_include_file(pch_path, hash, false, NULL);
+    free(pch_path);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -1146,6 +1149,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
       }
       char* path = make_relative_path(x_strdup(token));
       remember_include_file(path, hash, false, hash);
+      free(path);
     }
   }
 
@@ -1158,6 +1162,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
     pch_path = make_relative_path(pch_path);
     hash_string(hash, pch_path);
     remember_include_file(pch_path, hash, false, NULL);
+    free(pch_path);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
