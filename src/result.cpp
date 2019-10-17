@@ -48,8 +48,7 @@
 // <embedded_file_entry>  ::= <embedded_file_marker> <suffix_len> <suffix>
 //                            <data_len> <data>
 // <embedded_file_marker> ::= 0 (uint8_t)
-// <suffix_len>           ::= uint8_t
-// <suffix>               ::= suffix_len bytes
+// <embedded_file_type>   ::= uint8_t
 // <data_len>             ::= uint64_t
 // <data>                 ::= data_len bytes
 // <raw_file_entry>       ::= <raw_file_marker> <suffix_len> <suffix> <file_len>
@@ -68,8 +67,7 @@
 // --- [potentially compressed from here] -------------------------------------
 // <n_entries>            1 byte
 // <embedded_file_marker> 1 byte
-// <suffix_len>           1 byte
-// <suffix>               suffix_len bytes
+// <embedded_file_type>   1 byte
 // <data_len>             8 bytes
 // <data>                 data_len bytes
 // ...
@@ -89,7 +87,6 @@ extern char* stats_file;
 
 const uint8_t k_result_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_result_version = 1;
-const std::string k_result_stderr_name = "<stderr>";
 
 // File data stored inside the result file.
 const uint8_t k_embedded_file_marker = 0;
@@ -116,30 +113,26 @@ read_embedded_file_entry(CacheEntryReader& reader,
                          const ResultFileMap* result_file_map,
                          FILE* dump_stream)
 {
-  uint8_t suffix_len;
-  reader.read(suffix_len);
-
-  char suffix[256];
-  reader.read(suffix, suffix_len);
+  FileType type;
+  reader.read(*reinterpret_cast<UnderlyingFileTypeInt*>(&type));
 
   uint64_t file_len;
   reader.read(file_len);
 
   bool content_read = false;
-  std::string suffix_str(suffix, suffix_len);
   if (dump_stream) {
     fmt::print(dump_stream,
-               "Embedded file #{}: {} ({} bytes)\n",
+               "Embedded file #{}: type {} ({} bytes)\n",
                entry_number,
-               suffix_str,
+               +static_cast<UnderlyingFileTypeInt>(type),
                file_len);
   } else {
-    cc_log("Retrieving embedded file #%u %s (%llu bytes)",
+    cc_log("Retrieving embedded file #%u type %u (%llu bytes)",
            entry_number,
-           suffix_str.c_str(),
+           +static_cast<UnderlyingFileTypeInt>(type),
            (unsigned long long)file_len);
 
-    const auto it = result_file_map->find(suffix_str);
+    const auto it = result_file_map->find(type);
     if (it != result_file_map->end()) {
       content_read = true;
 
@@ -217,26 +210,22 @@ read_raw_file_entry(CacheEntryReader& reader,
                     const ResultFileMap* result_file_map,
                     std::FILE* dump_stream)
 {
-  uint8_t suffix_len;
-  reader.read(suffix_len);
-
-  char suffix[256];
-  reader.read(suffix, suffix_len);
+  FileType type;
+  reader.read(*reinterpret_cast<UnderlyingFileTypeInt*>(&type));
 
   uint64_t file_len;
   reader.read(file_len);
 
-  std::string suffix_str(suffix, suffix_len);
   if (dump_stream) {
     fmt::print(dump_stream,
-               "Raw file #{}: {} ({} bytes)\n",
+               "Raw file #{}: type {} ({} bytes)\n",
                entry_number,
-               suffix_str,
+               +static_cast<UnderlyingFileTypeInt>(type),
                file_len);
   } else {
-    cc_log("Retrieving raw file #%u %s (%llu bytes)",
+    cc_log("Retrieving raw file #%u type %u (%llu bytes)",
            entry_number,
-           suffix_str.c_str(),
+           +static_cast<UnderlyingFileTypeInt>(type),
            (unsigned long long)file_len);
 
     auto raw_path = get_raw_file_path(result_path_in_cache, entry_number);
@@ -253,7 +242,7 @@ read_raw_file_entry(CacheEntryReader& reader,
                     file_len));
     }
 
-    const auto it = result_file_map->find(suffix_str);
+    const auto it = result_file_map->find(type);
     if (it != result_file_map->end()) {
       const auto& dest_path = it->second;
       if (!copy_raw_file(raw_path, dest_path, false)) {
@@ -326,7 +315,7 @@ write_embedded_file_entry(CacheEntryWriter& writer,
                           uint32_t entry_number,
                           const ResultFileMap::value_type& suffix_and_path)
 {
-  const auto& suffix = suffix_and_path.first;
+  FileType type = suffix_and_path.first;
   const auto& source_path = suffix_and_path.second;
 
   uint64_t source_file_size;
@@ -335,15 +324,14 @@ write_embedded_file_entry(CacheEntryWriter& writer,
       fmt::format("Failed to stat {}: {}", source_path, strerror(errno)));
   }
 
-  cc_log("Storing embedded file #%u %s (%llu bytes) from %s",
+  cc_log("Storing embedded file #%u type %u (%llu bytes) from %s",
          entry_number,
-         suffix.c_str(),
+         +static_cast<UnderlyingFileTypeInt>(type),
          (unsigned long long)source_file_size,
          source_path.c_str());
 
   writer.write<uint8_t>(k_embedded_file_marker);
-  writer.write<uint8_t>(suffix.length());
-  writer.write(suffix.data(), suffix.length());
+  writer.write(static_cast<UnderlyingFileTypeInt>(type));
   writer.write(source_file_size);
 
   File file(source_path, "rb");
@@ -369,7 +357,7 @@ write_raw_file_entry(CacheEntryWriter& writer,
                      uint32_t entry_number,
                      const ResultFileMap::value_type& suffix_and_path)
 {
-  const auto& suffix = suffix_and_path.first;
+  FileType type = suffix_and_path.first;
   const auto& source_path = suffix_and_path.second;
 
   uint64_t source_file_size;
@@ -381,15 +369,14 @@ write_raw_file_entry(CacheEntryWriter& writer,
   uint64_t old_size;
   uint64_t new_size;
 
-  cc_log("Storing raw file #%u %s (%llu bytes) from %s",
+  cc_log("Storing raw file #%u %u (%llu bytes) from %s",
          entry_number,
-         suffix.c_str(),
+         +static_cast<UnderlyingFileTypeInt>(type),
          (unsigned long long)source_file_size,
          source_path.c_str());
 
   writer.write<uint8_t>(k_raw_file_marker);
-  writer.write<uint8_t>(suffix.length());
-  writer.write(suffix.data(), suffix.length());
+  writer.write(static_cast<UnderlyingFileTypeInt>(type));
   writer.write(source_file_size);
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
@@ -410,7 +397,7 @@ write_raw_file_entry(CacheEntryWriter& writer,
 }
 
 static bool
-should_store_raw_file(const std::string& suffix)
+should_store_raw_file(FileType type)
 {
   if (!g_config.file_clone() && !g_config.hard_link()) {
     return false;
@@ -420,7 +407,7 @@ should_store_raw_file(const std::string& suffix)
   //   1. Never are large.
   //   2. Will end up in a temporary file anyway.
   //
-  // - Don't store .d files since they:
+  // - Don't store .d/dependency files since they:
   //   1. Never are large.
   //   2. Compress well.
   //   3. Cause trouble for automake if hard-linked (see ccache issue 378).
@@ -430,7 +417,7 @@ should_store_raw_file(const std::string& suffix)
   // could be fixed by letting read_raw_file_entry refuse to hard link .d
   // files, but it's easier to simply always store them embedded. This will
   // also save i-nodes in the cache.
-  return suffix != k_result_stderr_name && suffix != ".d";
+  return type != FileType::stderr_output && type != FileType::dependency;
 }
 
 static void
@@ -439,7 +426,6 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
   uint64_t payload_size = 0;
   payload_size += 1; // n_entries
   for (const auto& pair : result_file_map) {
-    const auto& suffix = pair.first;
     const auto& result_file = pair.second;
     uint64_t source_file_size;
     if (!Util::get_file_size(result_file, source_file_size)) {
@@ -447,8 +433,7 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
         fmt::format("Failed to stat {}: {}", result_file, strerror(errno)));
     }
     payload_size += 1;                // embedded_file_marker
-    payload_size += 1;                // suffix_len
-    payload_size += suffix.length();  // suffix
+    payload_size += 1;                // embedded_file_type
     payload_size += 8;                // data_len
     payload_size += source_file_size; // data
   }
