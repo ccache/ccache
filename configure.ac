@@ -12,6 +12,7 @@ if test ! -f $srcdir/dev_mode_disabled; then
     AC_CONFIG_FILES([dev.mk])
     include_dev_mk='include dev.mk'
     version=`(git --git-dir=$srcdir/.git describe --dirty 2>/dev/null || echo vunknown) | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g'`
+    mkdir -p src
     echo "extern const char CCACHE_VERSION@<:@@:>@; const char CCACHE_VERSION@<:@@:>@ = \"$version\";" >src/version.cpp
 else
     dev_mode=no
