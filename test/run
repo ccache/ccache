@@ -21,16 +21,25 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+
+# only use ansi color codes if output is to a terminal
+if [[ -t 1 ]]; then
+    ansi_boldgreen='\033[1;32m'
+    ansi_boldred='\033[1;31m'
+    ansi_bold='\033[1m'
+    ansi_reset='\033[1;0m'
+fi
+
 green() {
-    printf "\033[1;32m$*\033[0;0m\n"
+    printf "$ansi_boldgreen$*$ansi_reset\n"
 }
 
 red() {
-    printf "\033[1;31m$*\033[0;0m\n"
+    printf "$ansi_boldred$*$ansi_reset\n"
 }
 
 bold() {
-    printf "\033[1m$*\033[0m\n"
+    printf "$ansi_bold$*$ansi_reset\n"
 }
 
 test_failed() {
