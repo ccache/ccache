@@ -79,6 +79,7 @@ if test "$dev_mode" = yes -o "$enable_more_warnings" = yes; then
     extra_warnings="-Wextra -Wpedantic"
     if test "$ac_compiler_clang" = yes; then
         extra_warnings="$extra_warnings -Weverything"
+        AX_CHECK_COMPILE_FLAG([-Wno-c++2a-compat], [extra_warnings="$extra_warnings -Wno-c++2a-compat"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-c++98-compat-pedantic], [extra_warnings="$extra_warnings -Wno-c++98-compat-pedantic"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-c++98-compat], [extra_warnings="$extra_warnings -Wno-c++98-compat"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-constexpr-not-const], [extra_warnings="$extra_warnings -Wno-constexpr-not-const"],, [-Werror])
