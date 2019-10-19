@@ -25,9 +25,24 @@
 
 extern const uint8_t k_result_magic[4];
 extern const uint8_t k_result_version;
-extern const std::string k_result_stderr_name;
 
-typedef std::map<std::string /*suffix*/, std::string /*path*/> ResultFileMap;
+using UnderlyingFileTypeInt = uint8_t;
+enum class FileType : UnderlyingFileTypeInt {
+  // These values are written into the cache result file.
+  // This means they must never be changed or removed unless the
+  // result file version is incremented. Adding new values is Ok.
+  object = 0,
+  dependency = 1,
+  stderr_output = 2,
+  coverage = 3,
+  stackusage = 4,
+  diagnostic = 5,
+  dwarf_object = 6,
+
+  Max = 255,
+};
+
+using ResultFileMap = std::map<FileType, std::string /*path*/>;
 
 bool result_get(const std::string& path, const ResultFileMap& result_file_map);
 bool result_put(const std::string& path, const ResultFileMap& result_file_map);
