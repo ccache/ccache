@@ -674,22 +674,6 @@ x_malloc(size_t size)
   return ret;
 }
 
-// This is like calloc() but dies if the allocation fails.
-void*
-x_calloc(size_t nmemb, size_t size)
-{
-  if (nmemb * size == 0) {
-    // calloc() may return NULL if nmemb or size is 0, so always do this to
-    // make sure that the code handles it regardless of platform.
-    return NULL;
-  }
-  void* ret = calloc(nmemb, size);
-  if (!ret) {
-    fatal("x_calloc: Could not allocate %lu bytes", (unsigned long)size);
-  }
-  return ret;
-}
-
 // This is like realloc() but dies if the malloc fails.
 void*
 x_realloc(void* ptr, size_t size)
