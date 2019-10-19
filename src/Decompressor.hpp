@@ -18,9 +18,10 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Compression.hpp"
 
-#include <cstdio>
 #include <memory>
 
 class Decompressor

@@ -20,7 +20,6 @@
 
 #include "Compressor.hpp"
 #include "Error.hpp"
-#include "ccache.hpp"
 
 #include "third_party/fmt/core.h"
 

@@ -24,7 +24,6 @@
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
-#include "ccache.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 
@@ -116,14 +115,11 @@ recompress_file(const std::string& stats_file,
   reader->finalize();
   writer->finalize();
 
-  struct stat st;
-  x_stat(cache_file.path().c_str(), &st);
-  uint64_t old_size = file_size_on_disk(&st);
-
+  uint64_t old_size =
+    Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
   atomic_new_file.commit();
-
-  x_stat(cache_file.path().c_str(), &st);
-  uint64_t new_size = file_size_on_disk(&st);
+  uint64_t new_size =
+    Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
 
   stats_update_size(stats_file.c_str(), new_size - old_size, 0);
 }
@@ -149,15 +145,15 @@ compress_stats(const Config& config,
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& cache_file = files[i];
-        on_disk_size += file_size_on_disk(&cache_file->stat());
+        on_disk_size += cache_file->lstat().size_on_disk();
 
         try {
           auto file = open_file(cache_file->path(), "rb");
           auto reader = create_reader(*cache_file, file.get());
-          compr_size += cache_file->stat().st_size;
+          compr_size += cache_file->lstat().size();
           compr_orig_size += reader->content_size();
         } catch (Error&) {
-          incompr_size += cache_file->stat().st_size;
+          incompr_size += cache_file->lstat().size();
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);

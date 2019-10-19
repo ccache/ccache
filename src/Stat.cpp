@@ -16,34 +16,30 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "Stat.hpp"
 
-#include "system.hpp"
+#include "ccache.hpp"
 
-#include "Compressor.hpp"
-#include "NonCopyable.hpp"
+#include "third_party/fmt/core.h"
 
-#include <zstd.h>
-
-// A compressor of a Zstandard stream.
-class ZstdCompressor : public Compressor, NonCopyable
+Stat::Stat(StatFunction stat_function,
+           const std::string& path,
+           Stat::OnError on_error)
 {
-public:
-  // Parameters:
-  // - stream: The file to write data to.
-  // - compression_level: Desired compression level.
-  ZstdCompressor(FILE* stream, int8_t compression_level);
+  int result = stat_function(path.c_str(), &m_stat);
+  if (result == 0) {
+    m_errno = 0;
+  } else {
+    m_errno = errno;
+    if (on_error == OnError::throw_error) {
+      throw Error(fmt::format("failed to stat {}: {}", path, strerror(errno)));
+    }
+    if (on_error == OnError::log) {
+      cc_log("Failed to stat %s: %s", path.c_str(), strerror(errno));
+    }
 
-  ~ZstdCompressor() override;
-
-  int8_t actual_compression_level() const override;
-  void write(const void* data, size_t count) override;
-  void finalize() override;
-
-private:
-  FILE* m_stream;
-  ZSTD_CStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  int8_t m_compression_level;
-};
+    // The file is missing, so just zero fill the stat structure. This will
+    // make e.g. the is_*() methods return false and mtime() will be 0, etc.
+    memset(&m_stat, '\0', sizeof(m_stat));
+  }
+}

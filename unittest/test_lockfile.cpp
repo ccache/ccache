@@ -18,6 +18,7 @@
 
 // This file contains tests for functions in lockfile.c.
 
+#include "../src/Stat.hpp"
 #include "../src/ccache.hpp"
 #include "framework.hpp"
 #include "util.hpp"
@@ -31,7 +32,7 @@ TEST(acquire_should_create_symlink)
 #if defined(_WIN32) || defined(__CYGWIN__)
   CHECK(path_exists("test.lock"));
 #else
-  CHECK(is_symlink("test.lock"));
+  CHECK(Stat::lstat("test.lock").is_symlink());
 #endif
 }
 

@@ -68,3 +68,20 @@ extern char** environ;
 #ifndef ESTALE
 #  define ESTALE -1
 #endif
+
+#ifdef _WIN32
+#  ifndef _WIN32_WINNT
+#    define _WIN32_WINNT 0x0501
+#  endif
+#  include <windows.h>
+#  define mkdir(a, b) mkdir(a)
+#  define link(src, dst) (CreateHardLink(dst, src, NULL) ? 0 : -1)
+#  define execv(a, b) win32execute(a, b, 0, -1, -1)
+#  define DIR_DELIM_CH '\\'
+#  define PATH_DELIM ";"
+#  define F_RDLCK 0
+#  define F_WRLCK 0
+#else
+#  define DIR_DELIM_CH '/'
+#  define PATH_DELIM ":"
+#endif

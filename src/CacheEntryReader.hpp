@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Checksum.hpp"
 #include "Decompressor.hpp"
 #include "Util.hpp"

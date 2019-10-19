@@ -710,28 +710,6 @@ x_unsetenv(const char* name)
 #endif
 }
 
-// Like lstat() but also call cc_log on failure.
-int
-x_lstat(const char* pathname, struct stat* buf)
-{
-  int result = lstat(pathname, buf);
-  if (result != 0) {
-    cc_log("Failed to lstat %s: %s", pathname, strerror(errno));
-  }
-  return result;
-}
-
-// Like stat() but also call cc_log on failure.
-int
-x_stat(const char* pathname, struct stat* buf)
-{
-  int result = stat(pathname, buf);
-  if (result != 0) {
-    cc_log("Failed to stat %s: %s", pathname, strerror(errno));
-  }
-  return result;
-}
-
 // Construct a string according to the format and store it in *ptr. The
 // original *ptr is then freed.
 void
@@ -817,17 +795,6 @@ char*
 remove_extension(const char* path)
 {
   return x_strndup(path, strlen(path) - strlen(get_extension(path)));
-}
-
-// Return size on disk of a file.
-uint64_t
-file_size_on_disk(const struct stat* st)
-{
-#ifdef _WIN32
-  return (st->st_size + 1023) & ~1023;
-#else
-  return st->st_blocks * 512;
-#endif
 }
 
 // Format a size as a human-readable string. Caller frees.
@@ -1169,24 +1136,22 @@ get_home_directory(void)
 char*
 get_cwd(void)
 {
-  struct stat st_pwd;
-  struct stat st_cwd;
-
   char* cwd = gnu_getcwd();
   if (!cwd) {
     return NULL;
   }
+
   char* pwd = getenv("PWD");
   if (!pwd) {
     return cwd;
   }
-  if (stat(pwd, &st_pwd) != 0) {
+
+  auto st_pwd = Stat::stat(pwd);
+  auto st_cwd = Stat::stat(cwd);
+  if (!st_pwd || !st_cwd) {
     return cwd;
   }
-  if (stat(cwd, &st_cwd) != 0) {
-    return cwd;
-  }
-  if (st_pwd.st_dev == st_cwd.st_dev && st_pwd.st_ino == st_cwd.st_ino) {
+  if (st_pwd.device() == st_cwd.device() && st_pwd.inode() == st_cwd.inode()) {
     free(cwd);
     return x_strdup(pwd);
   } else {
@@ -1311,18 +1276,6 @@ is_full_path(const char* path)
   }
 #endif
   return false;
-}
-
-bool
-is_symlink(const char* path)
-{
-#ifdef _WIN32
-  (void)path;
-  return false;
-#else
-  struct stat st;
-  return x_lstat(path, &st) == 0 && ((st.st_mode & S_IFMT) == S_IFLNK);
-#endif
 }
 
 // Update the modification time of a file in the cache to save it from LRU
@@ -1484,10 +1437,7 @@ bool
 read_file(const char* path, size_t size_hint, char** data, size_t* size)
 {
   if (size_hint == 0) {
-    struct stat st;
-    if (x_stat(path, &st) == 0) {
-      size_hint = st.st_size;
-    }
+    size_hint = Stat::stat(path, Stat::OnError::log).size();
   }
   size_hint = (size_hint < 1024) ? 1024 : size_hint;
 

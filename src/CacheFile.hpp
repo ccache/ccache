@@ -19,8 +19,10 @@
 #pragma once
 
 #include "Error.hpp"
+#include "Stat.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/nonstd/optional.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -39,14 +41,13 @@ public:
   CacheFile(const CacheFile&) = delete;
   CacheFile& operator=(const CacheFile&) = delete;
 
+  const Stat& lstat() const;
   const std::string& path() const;
-  const struct stat& stat() const;
   Type type() const;
 
 private:
   const std::string m_path;
-  mutable struct stat m_stat;
-  mutable bool m_stated = false;
+  mutable nonstd::optional<Stat> m_stat;
 };
 
 inline CacheFile::CacheFile(const std::string& path) : m_path(path)

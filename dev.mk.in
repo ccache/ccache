@@ -51,6 +51,7 @@ non_third_party_headers = \
     src/NullCompressor.hpp \
     src/NullDecompressor.hpp \
     src/ProgressBar.hpp \
+    src/Stat.hpp \
     src/ThreadPool.hpp \
     src/Util.hpp \
     src/ZstdCompressor.hpp \

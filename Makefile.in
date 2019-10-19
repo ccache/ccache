@@ -42,6 +42,7 @@ non_third_party_sources = \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
     src/ProgressBar.cpp \
+    src/Stat.cpp \
     src/Util.cpp \
     src/ZstdCompressor.cpp \
     src/ZstdDecompressor.cpp \
@@ -82,6 +83,7 @@ test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Compression.cpp
 test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_NullCompression.cpp
+test_suites += unittest/test_Stat.cpp
 test_suites += unittest/test_Util.cpp
 test_suites += unittest/test_ZstdCompression.cpp
 test_suites += unittest/test_args.cpp

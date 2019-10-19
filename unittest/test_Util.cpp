@@ -74,9 +74,7 @@ TEST_CASE("Util::create_dir")
   CHECK(Util::create_dir("/"));
 
   CHECK(Util::create_dir("create/dir"));
-  struct stat st;
-  CHECK(stat("create/dir", &st) == 0);
-  CHECK(S_ISDIR(st.st_mode));
+  CHECK(Stat::stat("create/dir").is_directory());
 
   Util::write_file("create/dir/file", "");
   CHECK(!Util::create_dir("create/dir/file"));
@@ -141,16 +139,6 @@ TEST_CASE("Util::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
-TEST_CASE("Util::get_file_size")
-{
-  uint64_t size;
-  CHECK(!Util::get_file_size("does not exist", size));
-
-  Util::write_file("foo", "foo");
-  CHECK(Util::get_file_size("foo", size));
-  CHECK(size == 3);
-}
-
 TEST_CASE("Util::get_level_1_files")
 {
   Util::create_dir("e/m/p/t/y");
@@ -192,13 +180,13 @@ TEST_CASE("Util::get_level_1_files")
               });
 
     CHECK(files[0]->path() == "0/1/file_b");
-    CHECK(files[0]->stat().st_size == 1);
+    CHECK(files[0]->lstat().size() == 1);
     CHECK(files[1]->path() == "0/1/file_c");
-    CHECK(files[1]->stat().st_size == 2);
+    CHECK(files[1]->lstat().size() == 2);
     CHECK(files[2]->path() == "0/f/c/file_d");
-    CHECK(files[2]->stat().st_size == 3);
+    CHECK(files[2]->lstat().size() == 3);
     CHECK(files[3]->path() == "0/file_a");
-    CHECK(files[3]->stat().st_size == 0);
+    CHECK(files[3]->lstat().size() == 0);
   }
 }
 

@@ -66,19 +66,19 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!S_ISREG(file->stat().st_mode)) {
+    if (!file->lstat().is_regular()) {
       // Not a file or missing file.
       continue;
     }
 
     // Delete any tmp files older than 1 hour right away.
-    if (file->stat().st_mtime + 3600 < current_time
+    if (file->lstat().mtime() + 3600 < current_time
         && Util::base_name(file->path()).find(".tmp.") != std::string::npos) {
       x_unlink(file->path().c_str());
       continue;
     }
 
-    cache_size += file_size_on_disk(&file->stat());
+    cache_size += file->lstat().size_on_disk();
     files_in_cache += 1;
   }
 
@@ -87,7 +87,7 @@ clean_up_dir(const std::string& subdir,
             files.end(),
             [](const std::shared_ptr<CacheFile>& f1,
                const std::shared_ptr<CacheFile>& f2) {
-              return f1->stat().st_mtime < f2->stat().st_mtime;
+              return f1->lstat().mtime() < f2->lstat().mtime();
             });
 
   cc_log("Before cleanup: %.0f KiB, %.0f files",
@@ -99,8 +99,7 @@ clean_up_dir(const std::string& subdir,
        ++i, progress_receiver(2.0 / 3 + 1.0 * i / files.size() / 3)) {
     const auto& file = files[i];
 
-    if (!S_ISREG(file->stat().st_mode)) {
-      // Not a file or missing file.
+    if (!file->lstat() || file->lstat().is_directory()) {
       continue;
     }
 
@@ -128,10 +127,8 @@ clean_up_dir(const std::string& subdir,
       delete_file(o_file, 0, nullptr, nullptr);
     }
 
-    delete_file(file->path(),
-                file_size_on_disk(&file->stat()),
-                &cache_size,
-                &files_in_cache);
+    delete_file(
+      file->path(), file->lstat().size_on_disk(), &cache_size, &files_in_cache);
     cleaned = true;
   }
 

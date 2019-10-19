@@ -18,6 +18,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "Config.hpp"
+#include "Stat.hpp"
 #include "ccache.hpp"
 
 static char* find_executable_in_path(const char* name,
@@ -336,12 +337,12 @@ find_executable_in_path(const char* name,
       return x_strdup(namebuf);
     }
 #else
-    struct stat st1, st2;
     char* fname = format("%s/%s", tok, name);
+    auto st1 = Stat::lstat(fname);
+    auto st2 = Stat::stat(fname);
     // Look for a normal executable file.
-    if (access(fname, X_OK) == 0 && lstat(fname, &st1) == 0
-        && stat(fname, &st2) == 0 && S_ISREG(st2.st_mode)) {
-      if (S_ISLNK(st1.st_mode)) {
+    if (st1 && st2 && st2.is_regular() && access(fname, X_OK) == 0) {
+      if (st1.is_symlink()) {
         char* buf = x_realpath(fname);
         if (buf) {
           char* p = x_basename(buf);

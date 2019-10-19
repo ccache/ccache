@@ -471,9 +471,8 @@ static void
 clean_up_internal_tempdir(void)
 {
   time_t now = time(NULL);
-  struct stat st;
-  if (x_stat(g_config.cache_dir().c_str(), &st) != 0
-      || st.st_mtime + 3600 >= now) {
+  auto st = Stat::stat(g_config.cache_dir(), Stat::OnError::log);
+  if (!st || st.mtime() + 3600 >= now) {
     // No cleanup needed.
     return;
   }
@@ -492,7 +491,8 @@ clean_up_internal_tempdir(void)
     }
 
     char* path = format("%s/%s", temp_dir(), entry->d_name);
-    if (x_lstat(path, &st) == 0 && st.st_mtime + 3600 < now) {
+    st = Stat::lstat(path, Stat::OnError::log);
+    if (st && st.mtime() + 3600 < now) {
       tmp_unlink(path);
     }
     free(path);
@@ -617,15 +617,15 @@ do_remember_include_file(std::string path,
   }
 #endif
 
-  struct stat st;
-  if (x_stat(path.c_str(), &st) != 0) {
+  auto st = Stat::stat(path, Stat::OnError::log);
+  if (!st) {
     return false;
   }
-  if (S_ISDIR(st.st_mode)) {
+  if (st.is_directory()) {
     // Ignore directory, typically $PWD.
     return true;
   }
-  if (!S_ISREG(st.st_mode)) {
+  if (!st.is_regular()) {
     // Device, pipe, socket or other strange creature.
     cc_log("Non-regular include file %s", path.c_str());
     return false;
@@ -659,14 +659,14 @@ do_remember_include_file(std::string path,
   // starting compilation and writing the include file. See also the notes
   // under "Performance" in doc/MANUAL.adoc.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
-      && st.st_mtime >= time_of_compilation) {
+      && st.mtime() >= time_of_compilation) {
     cc_log("Include file %s too new", path.c_str());
     return false;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
-      && st.st_ctime >= time_of_compilation) {
+      && st.ctime() >= time_of_compilation) {
     cc_log("Include file %s ctime too new", path.c_str());
     return false;
   }
@@ -686,7 +686,7 @@ do_remember_include_file(std::string path,
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
       std::string pch_sum_path = fmt::format("{}.sum", path);
-      if (x_stat(pch_sum_path.c_str(), &st) == 0) {
+      if (Stat::stat(pch_sum_path, Stat::OnError::log)) {
         path = std::move(pch_sum_path);
         using_pch_sum = true;
         cc_log("Using pch.sum file %s", path.c_str());
@@ -706,8 +706,8 @@ do_remember_include_file(std::string path,
     if (!is_pch) { // else: the file has already been hashed.
       char* source = NULL;
       size_t size;
-      if (st.st_size > 0) {
-        if (!read_file(path.c_str(), st.st_size, &source, &size)) {
+      if (st.size() > 0) {
+        if (!read_file(path.c_str(), st.size(), &source, &size)) {
           return false;
         }
       } else {
@@ -792,12 +792,11 @@ make_relative_path(char* path)
   // canonicalizing one of these two paths since a compiler path argument
   // typically only makes sense if path or x_dirname(path) exists.
   char* path_suffix = NULL;
-  struct stat st;
-  if (stat(path, &st) != 0) {
+  if (!Stat::stat(path)) {
     // path doesn't exist.
     char* dir = x_dirname(path);
     // find the nearest existing directory in path
-    while (stat(dir, &st) != 0) {
+    while (!Stat::stat(dir)) {
       char* parent_dir = x_dirname(dir);
       free(dir);
       dir = parent_dir;
@@ -1195,20 +1194,17 @@ update_manifest_file(void)
     return;
   }
 
-  struct stat st;
-  uint64_t old_size = 0; // in bytes
-  if (stat(manifest_path, &st) == 0) {
-    old_size = file_size_on_disk(&st);
-  }
+  auto old_st = Stat::stat(manifest_path);
 
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
   if (!manifest_put(manifest_path, *cached_result_name, g_included_files)) {
     cc_log("Failed to add result name to %s", manifest_path);
-  } else if (x_stat(manifest_path, &st) == 0) {
+  } else {
+    auto st = Stat::stat(manifest_path, Stat::OnError::log);
     stats_update_size(manifest_stats_file,
-                      file_size_on_disk(&st) - old_size,
-                      old_size == 0 ? 1 : 0);
+                      st.size_on_disk() - old_st.size_on_disk(),
+                      !old_st && st ? 1 : 0);
   }
   MTR_END("manifest", "manifest_put");
 }
@@ -1234,10 +1230,10 @@ create_cachedir_tag(const std::string& dir)
     "#\thttp://www.brynosaurus.com/cachedir/\n";
 
   std::string filename = fmt::format("{}/CACHEDIR.TAG", dir);
-  struct stat st;
+  auto st = Stat::stat(filename);
 
-  if (stat(filename.c_str(), &st) == 0) {
-    if (S_ISREG(st.st_mode)) {
+  if (st) {
+    if (st.is_regular()) {
       return true;
     }
     errno = EEXIST;
@@ -1334,8 +1330,8 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   }
   MTR_END("execute", "compiler");
 
-  struct stat st;
-  if (x_stat(tmp_stdout, &st) != 0) {
+  auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
+  if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
     stats_update(STATS_MISSING);
     tmp_unlink(tmp_stdout);
@@ -1345,7 +1341,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.st_size != 0 && guessed_compiler != GUESSED_PUMP) {
+  if (st.size() != 0 && guessed_compiler != GUESSED_PUMP) {
     cc_log("Compiler produced stdout");
     stats_update(STATS_STDOUT);
     tmp_unlink(tmp_stdout);
@@ -1428,23 +1424,25 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     use_relative_paths_in_depfile(output_dep);
   }
 
-  if (stat(output_obj, &st) != 0) {
+  st = Stat::stat(output_obj);
+  if (!st) {
     cc_log("Compiler didn't produce an object file");
     stats_update(STATS_NOOUTPUT);
     failed();
   }
-  if (st.st_size == 0) {
+  if (st.size() == 0) {
     cc_log("Compiler produced an empty object file");
     stats_update(STATS_EMPTYOUTPUT);
     failed();
   }
 
-  if (x_stat(tmp_stderr, &st) != 0) {
+  st = Stat::stat(tmp_stderr, Stat::OnError::log);
+  if (!st) {
     stats_update(STATS_ERROR);
     failed();
   }
   ResultFileMap result_file_map;
-  if (st.st_size > 0) {
+  if (st.size() > 0) {
     result_file_map.emplace(FileType::stderr_output, tmp_stderr);
   }
   result_file_map.emplace(FileType::object, output_obj);
@@ -1460,26 +1458,26 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
   if (generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, output_dia);
   }
-  if (seen_split_dwarf && stat(output_dwo, &st) == 0) {
+  if (seen_split_dwarf && Stat::stat(output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
     result_file_map.emplace(FileType::dwarf_object, output_dwo);
   }
-  struct stat orig_dest_st;
-  bool orig_dest_existed = stat(cached_result_path, &orig_dest_st) == 0;
+
+  auto orig_dest_stat = Stat::stat(cached_result_path);
   result_put(cached_result_path, result_file_map);
 
   cc_log("Stored in cache: %s", cached_result_path);
 
-  if (x_stat(cached_result_path, &st) != 0) {
+  auto new_dest_stat = Stat::stat(cached_result_path, Stat::OnError::log);
+  if (!new_dest_stat) {
     stats_update(STATS_ERROR);
     failed();
   }
-  stats_update_size(
-    stats_file,
-    file_size_on_disk(&st)
-      - (orig_dest_existed ? file_size_on_disk(&orig_dest_st) : 0),
-    orig_dest_existed ? 0 : 1);
+  stats_update_size(stats_file,
+                    new_dest_stat.size_on_disk()
+                      - orig_dest_stat.size_on_disk(),
+                    orig_dest_stat ? 0 : 1);
 
   MTR_END("file", "file_put");
 
@@ -1632,7 +1630,7 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 // the CCACHE_COMPILERCHECK setting.
 static void
 hash_compiler(struct hash* hash,
-              struct stat* st,
+              const Stat& st,
               const char* path,
               bool allow_command)
 {
@@ -1640,8 +1638,8 @@ hash_compiler(struct hash* hash,
     // Do nothing.
   } else if (g_config.compiler_check() == "mtime") {
     hash_delimiter(hash, "cc_mtime");
-    hash_int(hash, st->st_size);
-    hash_int(hash, st->st_mtime);
+    hash_int(hash, st.size());
+    hash_int(hash, st.mtime());
   } else if (Util::starts_with(g_config.compiler_check(), "string:")) {
     hash_delimiter(hash, "cc_hash");
     hash_string(hash, g_config.compiler_check().c_str() + strlen("string:"));
@@ -1665,7 +1663,7 @@ hash_compiler(struct hash* hash,
 // in PATH instead.
 static void
 hash_nvcc_host_compiler(struct hash* hash,
-                        struct stat* ccbin_st,
+                        const Stat* ccbin_st,
                         const char* ccbin)
 {
   // From <http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html>:
@@ -1680,7 +1678,7 @@ hash_nvcc_host_compiler(struct hash* hash,
   //   Linux, clang and clang++ on Mac OS X, and cl.exe on Windows) found in
   //   the current execution search path will be used".
 
-  if (!ccbin || S_ISDIR(ccbin_st->st_mode)) {
+  if (!ccbin || ccbin_st->is_directory()) {
 #if defined(__APPLE__)
     const char* compilers[] = {"clang", "clang++"};
 #elif defined(_WIN32)
@@ -1691,23 +1689,22 @@ hash_nvcc_host_compiler(struct hash* hash,
     for (size_t i = 0; i < ARRAY_SIZE(compilers); i++) {
       if (ccbin) {
         char* path = format("%s/%s", ccbin, compilers[i]);
-        struct stat st;
-        if (stat(path, &st) == 0) {
-          hash_compiler(hash, &st, path, false);
+        auto st = Stat::stat(path);
+        if (st) {
+          hash_compiler(hash, st, path, false);
         }
         free(path);
       } else {
         char* path = find_executable(compilers[i], MYNAME);
         if (path) {
-          struct stat st;
-          x_stat(path, &st);
-          hash_compiler(hash, &st, ccbin, false);
+          auto st = Stat::stat(path, Stat::OnError::log);
+          hash_compiler(hash, st, ccbin, false);
           free(path);
         }
       }
     }
   } else {
-    hash_compiler(hash, ccbin_st, ccbin, false);
+    hash_compiler(hash, *ccbin_st, ccbin, false);
   }
 }
 
@@ -1732,14 +1729,14 @@ hash_common_info(struct args* args, struct hash* hash)
   const char* full_path = args->argv[0];
 #endif
 
-  struct stat st;
-  if (x_stat(full_path, &st) != 0) {
+  auto st = Stat::stat(full_path, Stat::OnError::log);
+  if (!st) {
     stats_update(STATS_COMPILER);
     failed();
   }
 
   // Hash information about the compiler.
-  hash_compiler(hash, &st, args->argv[0], true);
+  hash_compiler(hash, st, args->argv[0], true);
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1969,40 +1966,49 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
       p = args->argv[i] + 8;
     }
 
-    struct stat st;
-    if (p && x_stat(p, &st) == 0) {
-      // If given an explicit specs file, then hash that file, but don't
-      // include the path to it in the hash.
-      hash_delimiter(hash, "specs");
-      hash_compiler(hash, &st, p, false);
-      continue;
+    if (p) {
+      auto st = Stat::stat(p, Stat::OnError::log);
+      if (st) {
+        // If given an explicit specs file, then hash that file, but don't
+        // include the path to it in the hash.
+        hash_delimiter(hash, "specs");
+        hash_compiler(hash, st, p, false);
+        continue;
+      }
     }
 
-    if (str_startswith(args->argv[i], "-fplugin=")
-        && x_stat(args->argv[i] + 9, &st) == 0) {
-      hash_delimiter(hash, "plugin");
-      hash_compiler(hash, &st, args->argv[i] + 9, false);
-      continue;
+    if (str_startswith(args->argv[i], "-fplugin=")) {
+      auto st = Stat::stat(args->argv[i] + 9, Stat::OnError::log);
+      if (st) {
+        hash_delimiter(hash, "plugin");
+        hash_compiler(hash, st, args->argv[i] + 9, false);
+        continue;
+      }
     }
 
     if (str_eq(args->argv[i], "-Xclang") && i + 3 < args->argc
         && str_eq(args->argv[i + 1], "-load")
-        && str_eq(args->argv[i + 2], "-Xclang")
-        && x_stat(args->argv[i + 3], &st) == 0) {
-      hash_delimiter(hash, "plugin");
-      hash_compiler(hash, &st, args->argv[i + 3], false);
-      i += 3;
-      continue;
+        && str_eq(args->argv[i + 2], "-Xclang")) {
+      auto st = Stat::stat(args->argv[i + 3], Stat::OnError::log);
+      if (st) {
+        hash_delimiter(hash, "plugin");
+        hash_compiler(hash, st, args->argv[i + 3], false);
+        i += 3;
+        continue;
+      }
     }
 
     if ((str_eq(args->argv[i], "-ccbin")
          || str_eq(args->argv[i], "--compiler-bindir"))
-        && i + 1 < args->argc && x_stat(args->argv[i + 1], &st) == 0) {
-      found_ccbin = true;
-      hash_delimiter(hash, "ccbin");
-      hash_nvcc_host_compiler(hash, &st, args->argv[i + 1]);
-      i++;
-      continue;
+        && i + 1 < args->argc) {
+      auto st = Stat::stat(args->argv[i + 1], Stat::OnError::log);
+      if (st) {
+        found_ccbin = true;
+        hash_delimiter(hash, "ccbin");
+        hash_nvcc_host_compiler(hash, &st, args->argv[i + 1]);
+        i++;
+        continue;
+      }
     }
 
     // All other arguments are included in the hash.
@@ -2297,29 +2303,27 @@ color_output_possible(void)
 static bool
 detect_pch(const char* option, const char* arg, bool* found_pch)
 {
-  struct stat st;
-
   // Try to be smart about detecting precompiled headers.
   char* pch_file = NULL;
   if (str_eq(option, "-include-pch") || str_eq(option, "-include-pth")) {
-    if (stat(arg, &st) == 0) {
+    if (Stat::stat(arg)) {
       cc_log("Detected use of precompiled header: %s", arg);
       pch_file = x_strdup(arg);
     }
   } else {
     char* gchpath = format("%s.gch", arg);
-    if (stat(gchpath, &st) == 0) {
+    if (Stat::stat(gchpath)) {
       cc_log("Detected use of precompiled header: %s", gchpath);
       pch_file = x_strdup(gchpath);
     } else {
       char* pchpath = format("%s.pch", arg);
-      if (stat(pchpath, &st) == 0) {
+      if (Stat::stat(pchpath)) {
         cc_log("Detected use of precompiled header: %s", pchpath);
         pch_file = x_strdup(pchpath);
       } else {
         // clang may use pretokenized headers.
         char* pthpath = format("%s.pth", arg);
-        if (stat(pthpath, &st) == 0) {
+        if (Stat::stat(pthpath)) {
           cc_log("Detected use of pretokenized header: %s", pthpath);
           pch_file = x_strdup(pthpath);
         }
@@ -3066,13 +3070,14 @@ cc_process_args(struct args* args,
     //
     // Note that "/dev/null" is an exception that is sometimes used as an input
     // file when code is testing compiler flags.
-    struct stat st;
-    if (!str_eq(argv[i], "/dev/null")
-        && (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode))) {
-      cc_log("%s is not a regular file, not considering as input file",
-             argv[i]);
-      args_add(common_args, argv[i]);
-      continue;
+    if (!str_eq(argv[i], "/dev/null")) {
+      auto st = Stat::stat(argv[i]);
+      if (!st || !st.is_regular()) {
+        cc_log("%s is not a regular file, not considering as input file",
+               argv[i]);
+        args_add(common_args, argv[i]);
+        continue;
+      }
     }
 
     if (input_file) {
@@ -3100,7 +3105,7 @@ cc_process_args(struct args* args,
       continue;
     }
 
-    if (is_symlink(argv[i])) {
+    if (Stat::lstat(argv[i], Stat::OnError::log).is_symlink()) {
       // Don't rewrite source file path if it's a symlink since
       // make_relative_path resolves symlinks using realpath(3) and this leads
       // to potentially choosing incorrect relative header files. See the
@@ -3305,18 +3310,20 @@ cc_process_args(struct args* args,
   }
 
   // Cope with -o /dev/null.
-  struct stat st;
-  if (!str_eq(output_obj, "/dev/null") && stat(output_obj, &st) == 0
-      && !S_ISREG(st.st_mode)) {
-    cc_log("Not a regular file: %s", output_obj);
-    stats_update(STATS_BADOUTPUTFILE);
-    result = false;
-    goto out;
+  if (!str_eq(output_obj, "/dev/null")) {
+    auto st = Stat::stat(output_obj);
+    if (st && !st.is_regular()) {
+      cc_log("Not a regular file: %s", output_obj);
+      stats_update(STATS_BADOUTPUTFILE);
+      result = false;
+      goto out;
+    }
   }
 
   {
     char* output_dir = x_dirname(output_obj);
-    if (stat(output_dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
+    auto st = Stat::stat(output_dir);
+    if (!st || !st.is_directory()) {
       cc_log("Directory does not exist: %s", output_dir);
       stats_update(STATS_BADOUTPUTFILE);
       result = false;
@@ -3463,8 +3470,7 @@ create_initial_config_file(const char* path)
   unsigned max_files;
   uint64_t max_size;
   char* stats_dir = format("%s/0", g_config.cache_dir().c_str());
-  struct stat st;
-  if (stat(stats_dir, &st) == 0) {
+  if (Stat::stat(stats_dir)) {
     stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
     // STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory.
     max_files *= 16;

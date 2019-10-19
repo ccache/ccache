@@ -24,8 +24,8 @@
 #include "Config.hpp"
 #include "Error.hpp"
 #include "File.hpp"
+#include "Stat.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
 
 // Result data format
 // ==================
@@ -258,16 +258,12 @@ read_raw_file_entry(CacheEntryReader& reader,
            (unsigned long long)file_len);
 
     auto raw_path = get_raw_file_path(result_path_in_cache, entry_number);
-    struct stat st;
-    if (x_stat(raw_path.c_str(), &st) != 0) {
-      throw Error(
-        fmt::format("Failed to stat {}: {}", raw_path, strerror(errno)));
-    }
-    if ((uint64_t)st.st_size != file_len) {
+    auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
+    if (st.size() != file_len) {
       throw Error(
         fmt::format("Bad file size of {} (actual {} bytes, expected {} bytes)",
                     raw_path,
-                    st.st_size,
+                    st.size(),
                     file_len));
     }
 
@@ -347,11 +343,8 @@ write_embedded_file_entry(CacheEntryWriter& writer,
   auto type = UnderlyingFileTypeInt(suffix_and_path.first);
   const auto& source_path = suffix_and_path.second;
 
-  uint64_t source_file_size;
-  if (!Util::get_file_size(source_path, source_file_size)) {
-    throw Error(
-      fmt::format("Failed to stat {}: {}", source_path, strerror(errno)));
-  }
+  uint64_t source_file_size =
+    Stat::stat(source_path, Stat::OnError::throw_error).size();
 
   cc_log("Storing embedded file #%u %s (%llu bytes) from %s",
          entry_number,
@@ -389,14 +382,8 @@ write_raw_file_entry(CacheEntryWriter& writer,
   auto type = UnderlyingFileTypeInt(suffix_and_path.first);
   const auto& source_path = suffix_and_path.second;
 
-  uint64_t source_file_size;
-  if (!Util::get_file_size(source_path, source_file_size)) {
-    throw Error(
-      fmt::format("Failed to stat {}: {}", source_path, strerror(errno)));
-  }
-
-  uint64_t old_size;
-  uint64_t new_size;
+  uint64_t source_file_size =
+    Stat::stat(source_path, Stat::OnError::throw_error).size();
 
   cc_log("Storing raw file #%u %s (%llu bytes) from %s",
          entry_number,
@@ -409,20 +396,16 @@ write_raw_file_entry(CacheEntryWriter& writer,
   writer.write(source_file_size);
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
-  struct stat old_stat;
-  bool old_existed = stat(raw_file.c_str(), &old_stat) == 0;
+  auto old_stat = Stat::stat(raw_file);
   if (!copy_raw_file(source_path, raw_file, true)) {
     throw Error(
       fmt::format("Failed to store {} as raw file {}", source_path, raw_file));
   }
-  struct stat new_stat;
-  bool new_exists = stat(raw_file.c_str(), &new_stat) == 0;
+  auto new_stat = Stat::stat(raw_file);
 
-  old_size = old_existed ? file_size_on_disk(&old_stat) : 0;
-  new_size = new_exists ? file_size_on_disk(&new_stat) : 0;
   stats_update_size(stats_file,
-                    new_size - old_size,
-                    (new_exists ? 1 : 0) - (old_existed ? 1 : 0));
+                    new_stat.size_on_disk() - old_stat.size_on_disk(),
+                    (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
 }
 
 static bool
@@ -456,15 +439,11 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
   payload_size += 1; // n_entries
   for (const auto& pair : result_file_map) {
     const auto& result_file = pair.second;
-    uint64_t source_file_size;
-    if (!Util::get_file_size(result_file, source_file_size)) {
-      throw Error(
-        fmt::format("Failed to stat {}: {}", result_file, strerror(errno)));
-    }
-    payload_size += 1;                // embedded_file_marker
-    payload_size += 1;                // embedded_file_type
-    payload_size += 8;                // data_len
-    payload_size += source_file_size; // data
+    auto st = Stat::stat(result_file, Stat::OnError::throw_error);
+    payload_size += 1;         // embedded_file_marker
+    payload_size += 1;         // embedded_file_type
+    payload_size += 8;         // data_len
+    payload_size += st.size(); // data
   }
 
   AtomicFile atomic_result_file(path, AtomicFile::Mode::binary);

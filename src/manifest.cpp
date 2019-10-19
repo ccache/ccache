@@ -25,7 +25,6 @@
 #include "Config.hpp"
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
-#include "ccache.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
 
@@ -215,24 +214,24 @@ private:
 
     fi.digest = digest;
 
-    // file_stat.st_{m,c}time have a resolution of 1 second, so we can cache
-    // the file's mtime and ctime only if they're at least one second older
-    // than time_of_compilation.
+    // file_stat.{m,c}time() have a resolution of 1 second, so we can cache the
+    // file's mtime and ctime only if they're at least one second older than
+    // time_of_compilation.
     //
-    // st->ctime may be 0, so we have to check time_of_compilation against
-    // MAX(mtime, ctime).
+    // file_stat.ctime() may be 0, so we have to check time_of_compilation
+    // against MAX(mtime, ctime).
 
-    struct stat file_stat;
-    if (stat(path.c_str(), &file_stat) != -1) {
+    auto file_stat = Stat::stat(path, Stat::OnError::log);
+    if (file_stat) {
       if (time_of_compilation
-          > std::max(file_stat.st_mtime, file_stat.st_ctime)) {
-        fi.mtime = file_stat.st_mtime;
-        fi.ctime = file_stat.st_ctime;
+          > std::max(file_stat.mtime(), file_stat.ctime())) {
+        fi.mtime = file_stat.mtime();
+        fi.ctime = file_stat.ctime();
       } else {
         fi.mtime = -1;
         fi.ctime = -1;
       }
-      fi.fsize = file_stat.st_size;
+      fi.fsize = file_stat.size();
     } else {
       fi.mtime = -1;
       fi.ctime = -1;
@@ -381,14 +380,14 @@ verify_result(const Config& config,
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
-      struct stat file_stat;
-      if (x_stat(path.c_str(), &file_stat) != 0) {
+      auto file_stat = Stat::stat(path, Stat::OnError::log);
+      if (!file_stat) {
         return false;
       }
       FileStats st;
-      st.size = file_stat.st_size;
-      st.mtime = file_stat.st_mtime;
-      st.ctime = file_stat.st_ctime;
+      st.size = file_stat.size();
+      st.mtime = file_stat.mtime();
+      st.ctime = file_stat.ctime();
       stated_files_iter = stated_files.emplace(path, st).first;
     }
     const FileStats& fs = stated_files_iter->second;

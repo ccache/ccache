@@ -89,9 +89,9 @@ bool
 create_dir(nonstd::string_view dir)
 {
   std::string dir_str(dir);
-  struct stat st;
-  if (stat(dir_str.c_str(), &st) == 0) {
-    if (S_ISDIR(st.st_mode)) {
+  auto st = Stat::stat(dir_str);
+  if (st) {
+    if (st.is_directory()) {
       return true;
     } else {
       errno = ENOTDIR;
@@ -159,18 +159,6 @@ for_each_level_1_subdir(const std::string& cache_dir,
     });
   }
   progress_receiver(1.0);
-}
-
-bool
-get_file_size(const std::string& path, uint64_t& size)
-{
-  struct stat st;
-  if (stat(path.c_str(), &st) == 0) {
-    size = st.st_size;
-    return true;
-  } else {
-    return false;
-  }
 }
 
 void

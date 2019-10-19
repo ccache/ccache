@@ -257,7 +257,6 @@ stats_hit_rate(struct counters* counters)
 static void
 stats_collect(struct counters* counters, time_t* last_updated)
 {
-  struct stat st;
   unsigned zero_timestamp = 0;
 
   *last_updated = 0;
@@ -276,8 +275,9 @@ stats_collect(struct counters* counters, time_t* last_updated)
     stats_read(fname, counters);
     zero_timestamp =
       std::max(counters->data[STATS_ZEROTIMESTAMP], zero_timestamp);
-    if (stat(fname, &st) == 0 && st.st_mtime > *last_updated) {
-      *last_updated = st.st_mtime;
+    auto st = Stat::stat(fname);
+    if (st && st.mtime() > *last_updated) {
+      *last_updated = st.mtime();
     }
     free(fname);
   }
@@ -525,9 +525,8 @@ stats_zero(void)
 
   for (int dir = 0; dir <= 0xF; dir++) {
     struct counters* counters = counters_init(STATS_END);
-    struct stat st;
     fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
-    if (stat(fname, &st) != 0) {
+    if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);
       continue;

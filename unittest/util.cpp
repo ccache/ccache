@@ -18,17 +18,13 @@
 
 #include "util.hpp"
 
+#include "../src/Stat.hpp"
 #include "../src/system.hpp"
-
-#ifdef _WIN32
-#  define lstat(a, b) stat(a, b)
-#endif
 
 bool
 path_exists(const char* path)
 {
-  struct stat st;
-  return lstat(path, &st) == 0;
+  return Stat::lstat(path);
 }
 
 void

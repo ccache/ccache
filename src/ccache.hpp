@@ -174,13 +174,10 @@ void* x_malloc(size_t size);
 void* x_realloc(void* ptr, size_t size);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
-int x_lstat(const char* pathname, struct stat* buf);
-int x_stat(const char* pathname, struct stat* buf);
 char* x_basename(const char* path);
 char* x_dirname(const char* path);
 const char* get_extension(const char* path);
 char* remove_extension(const char* path);
-uint64_t file_size_on_disk(const struct stat* st);
 char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);
@@ -201,7 +198,6 @@ size_t common_dir_prefix_length(const char* s1, const char* s2);
 char* get_relative_path(const char* from, const char* to);
 bool is_absolute_path(const char* path);
 bool is_full_path(const char* path);
-bool is_symlink(const char* path);
 void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char* oldpath, const char* newpath);
@@ -295,20 +291,6 @@ void add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
                                    size_t max_size,
                                    const char* ext,
                                    const char* path);
-#  ifndef _WIN32_WINNT
-#    define _WIN32_WINNT 0x0501
-#  endif
-#  include <windows.h>
-#  define mkdir(a, b) mkdir(a)
-#  define link(src, dst) (CreateHardLink(dst, src, NULL) ? 0 : -1)
-#  define lstat(a, b) stat(a, b)
-#  define execv(a, b) win32execute(a, b, 0, -1, -1)
+
 #  define execute(a, b, c, d) win32execute(*(a), a, 1, b, c)
-#  define DIR_DELIM_CH '\\'
-#  define PATH_DELIM ";"
-#  define F_RDLCK 0
-#  define F_WRLCK 0
-#else
-#  define DIR_DELIM_CH '/'
-#  define PATH_DELIM ":"
 #endif
