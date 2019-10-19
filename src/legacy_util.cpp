@@ -752,49 +752,6 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Recursive directory traversal. fn() is called on all entries in the tree.
-void
-traverse(const char* dir, void (*fn)(const char*, struct stat*))
-{
-  DIR* d = opendir(dir);
-  if (!d) {
-    return;
-  }
-
-  struct dirent* de;
-  while ((de = readdir(d))) {
-    if (str_eq(de->d_name, ".")) {
-      continue;
-    }
-    if (str_eq(de->d_name, "..")) {
-      continue;
-    }
-
-    if (strlen(de->d_name) == 0) {
-      continue;
-    }
-
-    char* fname = format("%s/%s", dir, de->d_name);
-    struct stat st;
-    if (lstat(fname, &st)) {
-      if (errno != ENOENT && errno != ESTALE) {
-        fatal("lstat %s failed: %s", fname, strerror(errno));
-      }
-      free(fname);
-      continue;
-    }
-
-    if (S_ISDIR(st.st_mode)) {
-      traverse(fname, fn);
-    }
-
-    fn(fname, &st);
-    free(fname);
-  }
-
-  closedir(d);
-}
-
 // Return the base name of a file - caller frees.
 char*
 x_basename(const char* path)

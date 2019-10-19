@@ -176,7 +176,6 @@ void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
 int x_lstat(const char* pathname, struct stat* buf);
 int x_stat(const char* pathname, struct stat* buf);
-void traverse(const char* dir, void (*fn)(const char*, struct stat*));
 char* x_basename(const char* path);
 char* x_dirname(const char* path);
 const char* get_extension(const char* path);
