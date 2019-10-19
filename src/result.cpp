@@ -113,8 +113,8 @@ read_embedded_file_entry(CacheEntryReader& reader,
                          const ResultFileMap* result_file_map,
                          FILE* dump_stream)
 {
-  FileType type;
-  reader.read(*reinterpret_cast<UnderlyingFileTypeInt*>(&type));
+  UnderlyingFileTypeInt type;
+  reader.read(type);
 
   uint64_t file_len;
   reader.read(file_len);
@@ -124,15 +124,15 @@ read_embedded_file_entry(CacheEntryReader& reader,
     fmt::print(dump_stream,
                "Embedded file #{}: type {} ({} bytes)\n",
                entry_number,
-               +static_cast<UnderlyingFileTypeInt>(type),
+               type,
                file_len);
   } else {
     cc_log("Retrieving embedded file #%u type %u (%llu bytes)",
            entry_number,
-           +static_cast<UnderlyingFileTypeInt>(type),
+           type,
            (unsigned long long)file_len);
 
-    const auto it = result_file_map->find(type);
+    const auto it = result_file_map->find(FileType(type));
     if (it != result_file_map->end()) {
       content_read = true;
 
@@ -210,8 +210,8 @@ read_raw_file_entry(CacheEntryReader& reader,
                     const ResultFileMap* result_file_map,
                     std::FILE* dump_stream)
 {
-  FileType type;
-  reader.read(*reinterpret_cast<UnderlyingFileTypeInt*>(&type));
+  UnderlyingFileTypeInt type;
+  reader.read(type);
 
   uint64_t file_len;
   reader.read(file_len);
@@ -220,12 +220,12 @@ read_raw_file_entry(CacheEntryReader& reader,
     fmt::print(dump_stream,
                "Raw file #{}: type {} ({} bytes)\n",
                entry_number,
-               +static_cast<UnderlyingFileTypeInt>(type),
+               type,
                file_len);
   } else {
     cc_log("Retrieving raw file #%u type %u (%llu bytes)",
            entry_number,
-           +static_cast<UnderlyingFileTypeInt>(type),
+           type,
            (unsigned long long)file_len);
 
     auto raw_path = get_raw_file_path(result_path_in_cache, entry_number);
@@ -242,7 +242,7 @@ read_raw_file_entry(CacheEntryReader& reader,
                     file_len));
     }
 
-    const auto it = result_file_map->find(type);
+    const auto it = result_file_map->find(FileType(type));
     if (it != result_file_map->end()) {
       const auto& dest_path = it->second;
       if (!copy_raw_file(raw_path, dest_path, false)) {
@@ -315,7 +315,7 @@ write_embedded_file_entry(CacheEntryWriter& writer,
                           uint32_t entry_number,
                           const ResultFileMap::value_type& suffix_and_path)
 {
-  FileType type = suffix_and_path.first;
+  auto type = UnderlyingFileTypeInt(suffix_and_path.first);
   const auto& source_path = suffix_and_path.second;
 
   uint64_t source_file_size;
@@ -326,12 +326,12 @@ write_embedded_file_entry(CacheEntryWriter& writer,
 
   cc_log("Storing embedded file #%u type %u (%llu bytes) from %s",
          entry_number,
-         +static_cast<UnderlyingFileTypeInt>(type),
+         type,
          (unsigned long long)source_file_size,
          source_path.c_str());
 
   writer.write<uint8_t>(k_embedded_file_marker);
-  writer.write(static_cast<UnderlyingFileTypeInt>(type));
+  writer.write(type);
   writer.write(source_file_size);
 
   File file(source_path, "rb");
@@ -357,7 +357,7 @@ write_raw_file_entry(CacheEntryWriter& writer,
                      uint32_t entry_number,
                      const ResultFileMap::value_type& suffix_and_path)
 {
-  FileType type = suffix_and_path.first;
+  auto type = UnderlyingFileTypeInt(suffix_and_path.first);
   const auto& source_path = suffix_and_path.second;
 
   uint64_t source_file_size;
@@ -371,12 +371,12 @@ write_raw_file_entry(CacheEntryWriter& writer,
 
   cc_log("Storing raw file #%u %u (%llu bytes) from %s",
          entry_number,
-         +static_cast<UnderlyingFileTypeInt>(type),
+         type,
          (unsigned long long)source_file_size,
          source_path.c_str());
 
   writer.write<uint8_t>(k_raw_file_marker);
-  writer.write(static_cast<UnderlyingFileTypeInt>(type));
+  writer.write(type);
   writer.write(source_file_size);
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
