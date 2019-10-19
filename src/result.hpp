@@ -28,9 +28,9 @@ extern const uint8_t k_result_version;
 
 using UnderlyingFileTypeInt = uint8_t;
 enum class FileType : UnderlyingFileTypeInt {
-  // These values are written into the cache result file.
-  // This means they must never be changed or removed unless the
-  // result file version is incremented. Adding new values is Ok.
+  // These values are written into the cache result file. This means they must
+  // never be changed or removed unless the result file version is incremented.
+  // Adding new values is OK.
   object = 0,
   dependency = 1,
   stderr_output = 2,
@@ -38,8 +38,6 @@ enum class FileType : UnderlyingFileTypeInt {
   stackusage = 4,
   diagnostic = 5,
   dwarf_object = 6,
-
-  Max = 255,
 };
 
 using ResultFileMap = std::map<FileType, std::string /*path*/>;

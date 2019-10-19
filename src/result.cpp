@@ -106,6 +106,35 @@ using WriteEntryFunction =
            uint32_t entry_number,
            const ResultFileMap::value_type& suffix_and_path);
 
+static const char*
+UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
+{
+  switch (FileType(underlying_type)) {
+  case FileType::object:
+    return ".o";
+
+  case FileType::dependency:
+    return ".d";
+
+  case FileType::stderr_output:
+    return "<stderr>";
+
+  case FileType::coverage:
+    return ".cov";
+
+  case FileType::stackusage:
+    return ".su";
+
+  case FileType::diagnostic:
+    return ".dia";
+
+  case FileType::dwarf_object:
+    return ".dwo";
+  }
+
+  return "<unknown type>";
+}
+
 static void
 read_embedded_file_entry(CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
@@ -122,14 +151,14 @@ read_embedded_file_entry(CacheEntryReader& reader,
   bool content_read = false;
   if (dump_stream) {
     fmt::print(dump_stream,
-               "Embedded file #{}: type {} ({} bytes)\n",
+               "Embedded file #{}: {} ({} bytes)\n",
                entry_number,
-               type,
+               UnderlyingFileTypeIntToString(type),
                file_len);
   } else {
-    cc_log("Retrieving embedded file #%u type %u (%llu bytes)",
+    cc_log("Retrieving embedded file #%u %s (%llu bytes)",
            entry_number,
-           type,
+           UnderlyingFileTypeIntToString(type),
            (unsigned long long)file_len);
 
     const auto it = result_file_map->find(FileType(type));
@@ -218,14 +247,14 @@ read_raw_file_entry(CacheEntryReader& reader,
 
   if (dump_stream) {
     fmt::print(dump_stream,
-               "Raw file #{}: type {} ({} bytes)\n",
+               "Raw file #{}: {} ({} bytes)\n",
                entry_number,
-               type,
+               UnderlyingFileTypeIntToString(type),
                file_len);
   } else {
-    cc_log("Retrieving raw file #%u type %u (%llu bytes)",
+    cc_log("Retrieving raw file #%u %s (%llu bytes)",
            entry_number,
-           type,
+           UnderlyingFileTypeIntToString(type),
            (unsigned long long)file_len);
 
     auto raw_path = get_raw_file_path(result_path_in_cache, entry_number);
@@ -324,9 +353,9 @@ write_embedded_file_entry(CacheEntryWriter& writer,
       fmt::format("Failed to stat {}: {}", source_path, strerror(errno)));
   }
 
-  cc_log("Storing embedded file #%u type %u (%llu bytes) from %s",
+  cc_log("Storing embedded file #%u %s (%llu bytes) from %s",
          entry_number,
-         type,
+         UnderlyingFileTypeIntToString(type),
          (unsigned long long)source_file_size,
          source_path.c_str());
 
@@ -369,9 +398,9 @@ write_raw_file_entry(CacheEntryWriter& writer,
   uint64_t old_size;
   uint64_t new_size;
 
-  cc_log("Storing raw file #%u %u (%llu bytes) from %s",
+  cc_log("Storing raw file #%u %s (%llu bytes) from %s",
          entry_number,
-         type,
+         UnderlyingFileTypeIntToString(type),
          (unsigned long long)source_file_size,
          source_path.c_str());
 
