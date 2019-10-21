@@ -1598,7 +1598,10 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 
   hash_delimiter(hash, "cppstderr");
   if (!direct_i_file && !hash_file(hash, path_stderr)) {
-    fatal("Failed to open %s: %s", path_stderr, strerror(errno));
+    // Somebody removed the temporary file?
+    stats_update(STATS_ERROR);
+    cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
+    failed();
   }
 
   if (direct_i_file) {
