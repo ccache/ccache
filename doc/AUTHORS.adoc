@@ -24,6 +24,7 @@ ccache is a collective work with contributions from many people, including:
 * David Givone
 * Doug Anderson
 * Edward Z. Yang
+* Erik Johansson
 * Francois Marier
 * Gabriel Scherer
 * Geert Bosch
