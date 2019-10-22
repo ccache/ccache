@@ -275,6 +275,10 @@ struct pending_tmp_file
 // Temporary files to remove at program exit.
 static struct pending_tmp_file* pending_tmp_files = NULL;
 
+// How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
+// files.
+const int k_internal_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
+
 #ifndef _WIN32
 static sigset_t fatal_signal_set;
 
@@ -472,7 +476,7 @@ clean_up_internal_tempdir(void)
 {
   time_t now = time(NULL);
   auto st = Stat::stat(g_config.cache_dir(), Stat::OnError::log);
-  if (!st || st.mtime() + 3600 >= now) {
+  if (!st || st.mtime() + k_internal_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
@@ -492,7 +496,7 @@ clean_up_internal_tempdir(void)
 
     char* path = format("%s/%s", temp_dir(), entry->d_name);
     st = Stat::lstat(path, Stat::OnError::log);
-    if (st && st.mtime() + 3600 < now) {
+    if (st && st.mtime() + k_internal_tempdir_cleanup_interval < now) {
       tmp_unlink(path);
     }
     free(path);
