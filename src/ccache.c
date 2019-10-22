@@ -2501,7 +2501,7 @@ detect_pch(const char *option, const char *arg, bool *found_pch)
 }
 
 // Process the compiler options into options suitable for passing to the
-// preprocessor and the real compiler. preprocessor_args does't include -E;
+// preprocessor and the real compiler. preprocessor_args doesn't include -E;
 // this is added later. extra_args_to_hash are the arguments that are not
 // included in preprocessor_args but that should be included in the hash.
 //
