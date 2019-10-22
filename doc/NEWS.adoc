@@ -44,7 +44,7 @@ High-level summary of changes (work in progress)
 
 ccache 3.7.5
 ------------
-Release date: TBD
+Release date: 2019-10-22
 
 New features
 ~~~~~~~~~~~~
@@ -60,9 +60,18 @@ Bug fixes
   an error in an edge case related to usage of “-Werror”.
 
 - An implicit `-MQ` is now passed to the preprocessor only if the object file
-  extension is non-standard. This should make it easier to use EDG-based
+  extension is non-standard. This will make it easier to use EDG-based
   compilers (e.g. GHS) which don’t understand `-MQ`. (This is a bug fix of the
   corresponding improvement implemented in ccache 3.4.)
+
+- ccache now falls back to running the real compiler instead of failing fataly
+  if an internal temporary file is missing after compilation.
+
+- Fixed a crash if localtime returns null pointer in localtime_r replacement.
+
+- Fixed header file dependency tracking when building ccache itself.
+
+- Fixed warning during configure in out-of-tree build in developer mode.
 
 
 ccache 3.7.4
