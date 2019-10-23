@@ -46,7 +46,7 @@ non_third_party_headers = \
     src/Decompressor.hpp \
     src/Error.hpp \
     src/File.hpp \
-    src/FormatNonStdStringView.hpp \
+    src/FormatNonstdStringView.hpp \
     src/NonCopyable.hpp \
     src/NullCompressor.hpp \
     src/NullDecompressor.hpp \
