@@ -39,6 +39,11 @@ High-level summary of changes (work in progress)
   like `-c/--cleanup`, `-C/--clear`, `-x/--show-compression` and
   `-X/--recompress`.
 
+- When supported by the CPU, a SIMD-friendly (using AVX2) algorithm is now used
+  to scan input source code for `__DATE__` and `__TIME__` macros. This can
+  decrease the number of CPU cycles for a direct cache hit with up to 15% in
+  some cases.
+
 - (More to be written.)
 
 
