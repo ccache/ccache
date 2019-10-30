@@ -729,24 +729,6 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Return the base name of a file - caller frees.
-char*
-x_basename(const char* path)
-{
-  const char* p = strrchr(path, '/');
-  if (p) {
-    path = p + 1;
-  }
-#ifdef _WIN32
-  p = strrchr(path, '\\');
-  if (p) {
-    path = p + 1;
-  }
-#endif
-
-  return x_strdup(path);
-}
-
 // Return the dir name of a file - caller frees.
 char*
 x_dirname(const char* path)
