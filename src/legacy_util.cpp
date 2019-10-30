@@ -770,14 +770,6 @@ get_extension(const char* path)
   return &path[len];
 }
 
-// Return a string containing the given path without the filename extension.
-// Caller frees.
-char*
-remove_extension(const char* path)
-{
-  return x_strndup(path, strlen(path) - strlen(get_extension(path)));
-}
-
 // Format a size as a human-readable string. Caller frees.
 char*
 format_human_readable_size(uint64_t v)

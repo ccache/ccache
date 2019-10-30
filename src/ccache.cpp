@@ -1825,11 +1825,10 @@ hash_common_info(struct args* args, struct hash* hash)
       dir = real_dir;
     }
     if (dir) {
-      std::string base_name(Util::base_name(output_obj));
-      char* p = remove_extension(base_name.c_str());
-      char* gcda_path = format("%s/%s.gcda", dir, p);
-      cc_log("Hashing coverage path %s", gcda_path);
-      free(p);
+      string_view base_name = Util::base_name(output_obj);
+      string_view p = Util::remove_extension(base_name);
+      std::string gcda_path = fmt::format("{}/{}.gcda", dir, p);
+      cc_log("Hashing coverage path %s", gcda_path.c_str());
       hash_delimiter(hash, "gcda");
       hash_string(hash, gcda_path);
       free(dir);
@@ -2074,14 +2073,12 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
     if (!profile_dir) {
       profile_dir = get_cwd();
     }
-    char* base_name = remove_extension(output_obj);
-    char* gcda_name = format("%s/%s.gcda", profile_dir, base_name);
-    cc_log("Adding profile data %s to our hash", gcda_name);
+    string_view base_name = Util::remove_extension(output_obj);
+    std::string gcda_name = fmt::format("{}/{}.gcda", profile_dir, base_name);
+    cc_log("Adding profile data %s to our hash", gcda_name.c_str());
     // Add the gcda to our hash.
     hash_delimiter(hash, "-fprofile-use");
-    hash_file(hash, gcda_name);
-    free(base_name);
-    free(gcda_name);
+    hash_file(hash, gcda_name.c_str());
   }
 
   // Adding -arch to hash since cpp output is affected.
@@ -3355,9 +3352,7 @@ cc_process_args(struct args* args,
       goto out;
     }
 
-    char* base_name = remove_extension(output_obj);
-    output_dwo = format("%s.dwo", base_name);
-    free(base_name);
+    output_dwo = x_strdup(Util::change_extension(output_obj, ".dwo").c_str());
   }
 
   // Cope with -o /dev/null.
@@ -3425,12 +3420,11 @@ cc_process_args(struct args* args,
   // Add flags for dependency generation only to the preprocessor command line.
   if (generating_dependencies) {
     if (!dependency_filename_specified) {
-      char* base_name = remove_extension(output_obj);
-      char* default_depfile_name = format("%s.d", base_name);
-      free(base_name);
+      std::string default_depfile_name =
+        Util::change_extension(output_obj, ".d");
       args_add(dep_args, "-MF");
-      args_add(dep_args, default_depfile_name);
-      output_dep = make_relative_path(x_strdup(default_depfile_name));
+      args_add(dep_args, default_depfile_name.c_str());
+      output_dep = make_relative_path(x_strdup(default_depfile_name.c_str()));
     }
 
     if (!dependency_target_specified && !dependency_implicit_target_specified
@@ -3440,16 +3434,12 @@ cc_process_args(struct args* args,
     }
   }
   if (generating_coverage) {
-    char* base_name = remove_extension(output_obj);
-    char* default_covfile_name = format("%s.gcno", base_name);
-    free(base_name);
-    output_cov = make_relative_path(default_covfile_name);
+    std::string gcda_path = Util::change_extension(output_obj, ".gcno");
+    output_cov = make_relative_path(x_strdup(gcda_path.c_str()));
   }
   if (generating_stackusage) {
-    char* base_name = remove_extension(output_obj);
-    char* default_sufile_name = format("%s.su", base_name);
-    free(base_name);
-    output_su = make_relative_path(default_sufile_name);
+    std::string default_sufile_name = Util::change_extension(output_obj, ".su");
+    output_su = make_relative_path(x_strdup(default_sufile_name.c_str()));
   }
 
   *compiler_args = args_copy(common_args);
