@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <fstream>
 
+using nonstd::string_view;
+
 namespace {
 
 void
@@ -40,7 +42,7 @@ get_cache_files_internal(const std::string& dir,
   std::vector<std::string> directories;
   dirent* de;
   while ((de = readdir(d))) {
-    nonstd::string_view name(de->d_name);
+    string_view name(de->d_name);
     if (name == "" || name == "." || name == ".." || name == "CACHEDIR.TAG"
         || name == "stats" || name.starts_with(".nfs")) {
       continue;
@@ -137,6 +139,26 @@ dir_name(nonstd::string_view path)
     return ".";
   }
   return n == 0 ? "/" : path.substr(0, n);
+}
+
+nonstd::string_view
+get_extension(nonstd::string_view path)
+{
+#ifndef _WIN32
+  const char stop_at_chars[] = "./";
+#else
+  const char stop_at_chars[] = "./\\";
+#endif
+  size_t pos = path.find_last_of(stop_at_chars);
+  if (pos == string_view::npos || path.at(pos) == '/') {
+    return string_view();
+#ifdef _WIN32
+  } else if (path.at(pos) == '\\') {
+    return string_view();
+#endif
+  } else {
+    return path.substr(pos);
+  }
 }
 
 nonstd::string_view
