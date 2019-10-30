@@ -20,6 +20,7 @@
 #include "ccache.hpp"
 
 #include "Error.hpp"
+#include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
 #include "Util.hpp"
 #include "cleanup.hpp"
@@ -42,6 +43,8 @@
 
 #include <fstream>
 #include <limits>
+
+using nonstd::string_view;
 
 // Global variables used by other compilation units.
 extern char* primary_config_path;
@@ -564,18 +567,17 @@ init_hash_debug(struct hash* hash,
 static enum guessed_compiler
 guess_compiler(const char* path)
 {
-  char* name = x_basename(path);
+  string_view name = Util::base_name(path);
   enum guessed_compiler result = GUESSED_UNKNOWN;
-  if (strstr(name, "clang")) {
+  if (name == "clang") {
     result = GUESSED_CLANG;
-  } else if (strstr(name, "gcc") || strstr(name, "g++")) {
+  } else if (name == "gcc" || name == "g++") {
     result = GUESSED_GCC;
-  } else if (strstr(name, "nvcc")) {
+  } else if (name == "nvcc") {
     result = GUESSED_NVCC;
-  } else if (str_eq(name, "pump") || str_eq(name, "distcc-pump")) {
+  } else if (name == "pump" || name == "distcc-pump") {
     result = GUESSED_PUMP;
   }
-  free(name);
   return result;
 }
 
@@ -1557,17 +1559,15 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 
     // Limit the basename to 10 characters in order to cope with filesystem with
     // small maximum filename length limits.
-    char* input_base = x_basename(input_file);
-    char* tmp = strchr(input_base, '.');
-    if (tmp) {
-      *tmp = 0;
-    }
-    if (strlen(input_base) > 10) {
-      input_base[10] = 0;
-    }
+    string_view input_base = Util::base_name(input_file);
+    size_t dot_pos = input_base.find('.');
+    size_t truncate_pos =
+      std::min(size_t(10), std::min(input_base.size(), dot_pos));
+    input_base = input_base.substr(0, truncate_pos);
 
-    path_stdout = format("%s/%s.stdout", temp_dir(), input_base);
-    free(input_base);
+    path_stdout =
+      x_strdup(fmt::format("{}/{}.stdout", temp_dir(), input_base).c_str());
+
     int path_stdout_fd = create_tmp_fd(&path_stdout);
     add_pending_tmp_file(path_stdout);
 
@@ -1767,9 +1767,8 @@ hash_common_info(struct args* args, struct hash* hash)
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
   hash_delimiter(hash, "cc_name");
-  char* base = x_basename(args->argv[0]);
-  hash_string(hash, base);
-  free(base);
+  string_view base = Util::base_name(args->argv[0]);
+  hash_string_view(hash, base);
 
   if (!(g_config.sloppiness() & SLOPPY_LOCALE)) {
     // Hash environment variables that may affect localization of compiler
@@ -1818,7 +1817,7 @@ hash_common_info(struct args* args, struct hash* hash)
     // to include the target filename in the hash to avoid handing out an
     // object file with an incorrect .dwo link.
     hash_delimiter(hash, "filename");
-    hash_string(hash, x_basename(output_obj));
+    hash_string_view(hash, Util::base_name(output_obj));
   }
 
   // Possibly hash the coverage data file path.
@@ -1832,9 +1831,8 @@ hash_common_info(struct args* args, struct hash* hash)
       dir = real_dir;
     }
     if (dir) {
-      char* base_name = x_basename(output_obj);
-      char* p = remove_extension(base_name);
-      free(base_name);
+      std::string base_name(Util::base_name(output_obj));
+      char* p = remove_extension(base_name.c_str());
       char* gcda_path = format("%s/%s.gcda", dir, p);
       cc_log("Hashing coverage path %s", gcda_path);
       free(p);
@@ -2285,26 +2283,25 @@ static void
 find_compiler(char** argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
-  char* base = x_basename(argv[0]);
-  if (same_executable_name(base, MYNAME)) {
+  std::string base(Util::base_name(argv[0]));
+  if (same_executable_name(base.c_str(), MYNAME)) {
     args_remove_first(orig_args);
-    free(base);
     if (is_full_path(orig_args->argv[0])) {
       // A full path was given.
       return;
     }
-    base = x_basename(orig_args->argv[0]);
+    base = std::string(Util::base_name(orig_args->argv[0]));
   }
 
   // Support user override of the compiler.
   if (!g_config.compiler().empty()) {
-    base = x_strdup(g_config.compiler().c_str());
+    base = g_config.compiler();
   }
 
-  char* compiler = find_executable(base, MYNAME);
+  char* compiler = find_executable(base.c_str(), MYNAME);
   if (!compiler) {
     stats_update(STATS_COMPILER);
-    fatal("Could not find compiler \"%s\" in PATH", base);
+    fatal("Could not find compiler \"%s\" in PATH", base.c_str());
   }
   if (str_eq(compiler, argv[0])) {
     fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
@@ -3342,7 +3339,7 @@ cc_process_args(struct args* args,
       output_obj = format("%s.gch", input_file);
     } else {
       char extension = found_S_opt ? 's' : 'o';
-      output_obj = x_basename(input_file);
+      output_obj = x_strdup(std::string(Util::base_name(input_file)).c_str());
       char* p = strrchr(output_obj, '.');
       if (!p) {
         reformat(&output_obj, "%s.%c", output_obj, extension);
@@ -4202,8 +4199,8 @@ ccache_main(int argc, char* argv[])
 {
   try {
     // Check if we are being invoked as "ccache".
-    char* program_name = x_basename(argv[0]);
-    if (same_executable_name(program_name, MYNAME)) {
+    std::string program_name(Util::base_name(argv[0]));
+    if (same_executable_name(program_name.c_str(), MYNAME)) {
       if (argc < 2) {
         fputs(USAGE_TEXT, stderr);
         x_exit(1);
@@ -4214,7 +4211,6 @@ ccache_main(int argc, char* argv[])
         return ccache_main_options(argc, argv);
       }
     }
-    free(program_name);
 
     ccache(argc, argv);
   } catch (const Error& e) {

@@ -19,7 +19,10 @@
 
 #include "Config.hpp"
 #include "Stat.hpp"
+#include "Util.hpp"
 #include "ccache.hpp"
+
+using nonstd::string_view;
 
 static char* find_executable_in_path(const char* name,
                                      const char* exclude_name,
@@ -345,15 +348,13 @@ find_executable_in_path(const char* name,
       if (st1.is_symlink()) {
         char* buf = x_realpath(fname);
         if (buf) {
-          char* p = x_basename(buf);
-          if (str_eq(p, exclude_name)) {
+          string_view p = Util::base_name(buf);
+          if (p == exclude_name) {
             // It's a link to "ccache"!
-            free(p);
             free(buf);
             continue;
           }
           free(buf);
-          free(p);
         }
       }
 
