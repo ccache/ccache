@@ -49,6 +49,11 @@ nonstd::string_view get_extension(nonstd::string_view path);
 // filename extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Remove the extension via `remove_extension()`, then add `new_ext`.
+// `new_ext` should start with a dot, no extra dot is inserted.
+std::string change_extension(nonstd::string_view path,
+                             nonstd::string_view new_ext);
+
 // Return a shortened view into the base name of `path``. This view starts at
 // the beginning of the base name and ends at either the position the first dot,
 // or `max_length`, or the length of the base name, whichever is the shortest.
