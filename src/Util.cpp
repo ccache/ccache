@@ -162,6 +162,12 @@ get_extension(nonstd::string_view path)
 }
 
 nonstd::string_view
+remove_extension(nonstd::string_view path)
+{
+  return path.substr(0, path.length() - get_extension(path).length());
+}
+
+nonstd::string_view
 get_truncated_base_name(nonstd::string_view path, size_t max_length)
 {
   string_view input_base = Util::base_name(path);

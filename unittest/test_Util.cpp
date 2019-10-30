@@ -47,6 +47,21 @@ TEST_CASE("Util::get_extension")
   CHECK(Util::get_extension("/foo/bar/f.abc.txt") == ".txt");
 }
 
+TEST_CASE("Util::remove_extension")
+{
+  CHECK(Util::remove_extension("") == "");
+  CHECK(Util::remove_extension(".") == "");
+  CHECK(Util::remove_extension("...") == "..");
+  CHECK(Util::remove_extension("foo") == "foo");
+  CHECK(Util::remove_extension("/") == "/");
+  CHECK(Util::remove_extension("/foo") == "/foo");
+  CHECK(Util::remove_extension("/foo/bar/f") == "/foo/bar/f");
+  CHECK(Util::remove_extension("f.txt") == "f");
+  CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
+  CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
+  CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
+}
+
 TEST_CASE("Util:get_truncated_base_name")
 {
   CHECK(Util::get_truncated_base_name("", 5) == "");

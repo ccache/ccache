@@ -45,6 +45,10 @@ nonstd::string_view base_name(nonstd::string_view path);
 // If `path` has no file extension, an empty string_view is returned.
 nonstd::string_view get_extension(nonstd::string_view path);
 
+// Return a view into `path` containing the given path without the
+// filename extension as determined by `get_extension()`.
+nonstd::string_view remove_extension(nonstd::string_view path);
+
 // Return a shortened view into the base name of `path``. This view starts at
 // the beginning of the base name and ends at either the position the first dot,
 // or `max_length`, or the length of the base name, whichever is the shortest.
