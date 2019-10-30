@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include "third_party/nonstd/string_view.hpp"
+
+
 // Specialization of fmt::formatter for nonstd::string_view.
 namespace fmt {
 
@@ -35,7 +38,7 @@ template<> struct formatter<nonstd::string_view>
   format(const nonstd::string_view& sv, FormatContext& ctx)
     -> decltype(ctx.out())
   {
-    return format_to(ctx.out(), "{:{}}", sv.data(), sv.length());
+    return format_to(ctx.out(), "{}", fmt::string_view(sv.data(), sv.size()));
   }
 };
 
