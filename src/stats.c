@@ -340,12 +340,20 @@ stats_write(const char *path, struct counters *counters)
 	FILE *f = create_tmp_file(&tmp_file, "wb");
 	for (size_t i = 0; i < counters->size; i++) {
 		if (fprintf(f, "%u\n", counters->data[i]) < 0) {
-			fatal("Failed to write to %s", tmp_file);
+			fclose(f);
+			goto error;
 		}
 	}
-	fclose(f);
+	if (fclose(f) == EOF) {
+		goto error;
+	}
 	x_rename(tmp_file, path);
 	free(tmp_file);
+	return;
+
+error:
+	tmp_unlink(tmp_file);
+	fatal("Failed to write to %s", tmp_file);
 }
 
 static void
