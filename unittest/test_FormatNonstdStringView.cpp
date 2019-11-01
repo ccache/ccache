@@ -16,30 +16,29 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "FormatNonstdStringView.hpp"
 
-#include "third_party/fmt/core.h"
-#include "third_party/nonstd/string_view.hpp"
+#include "third_party/catch.hpp"
 
-// Specialization of fmt::formatter for nonstd::string_view.
-namespace fmt {
-
-template<> struct formatter<nonstd::string_view>
+TEST_CASE("fmt::format and nonstd::string_view")
 {
-  template<typename ParseContext>
-  constexpr auto
-  parse(ParseContext& ctx) -> decltype(ctx.begin())
-  {
-    return ctx.begin();
-  }
+  nonstd::string_view null;
+  CHECK(fmt::format("{}", null) == "");
 
-  template<typename FormatContext>
-  auto
-  format(const nonstd::string_view& sv, FormatContext& ctx)
-    -> decltype(ctx.out())
-  {
-    return format_to(ctx.out(), "{}", fmt::string_view(sv.data(), sv.size()));
-  }
-};
+  const std::string s = "0123456789";
 
-} // namespace fmt
+  nonstd::string_view empty(s.data(), 0);
+  CHECK(fmt::format("{}", empty) == "");
+
+  nonstd::string_view empty_end(s.data() + s.length(), 0);
+  CHECK(fmt::format("{}", empty_end) == "");
+
+  nonstd::string_view start(s.data(), 2);
+  CHECK(fmt::format("{}", start) == "01");
+
+  nonstd::string_view middle(s.data() + 3, 4);
+  CHECK(fmt::format("{}", middle) == "3456");
+
+  nonstd::string_view end(s.data() + s.length() - 2, 2);
+  CHECK(fmt::format("{}", end) == "89");
+}

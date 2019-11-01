@@ -17,34 +17,10 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Util.hpp"
-#include "FormatNonstdStringView.hpp"
 
 #include "third_party/catch.hpp"
 
 using Catch::Equals;
-
-TEST_CASE("fmt::format and nonstd::string_view")
-{
-  nonstd::string_view null;
-  CHECK(fmt::format("{}", null) == "");
-
-  const std::string s = "0123456789";
-
-  nonstd::string_view empty(s.data(), 0);
-  CHECK(fmt::format("{}", empty) == "");
-
-  nonstd::string_view empty_end(s.data() + s.length(), 0);
-  CHECK(fmt::format("{}", empty_end) == "");
-
-  nonstd::string_view start(s.data(), 2);
-  CHECK(fmt::format("{}", start) == "01");
-
-  nonstd::string_view middle(s.data() + 3, 4);
-  CHECK(fmt::format("{}", middle) == "3456");
-
-  nonstd::string_view end(s.data() + s.length() - 2, 2);
-  CHECK(fmt::format("{}", end) == "89");
-}
 
 TEST_CASE("Util::base_name")
 {
