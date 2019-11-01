@@ -20,6 +20,7 @@
 // Routines to handle the stats files. The stats file is stored one per cache
 // subdirectory to make this more scalable.
 
+#include "AtomicFile.hpp"
 #include "ccache.hpp"
 #include "cleanup.hpp"
 #include "hashutil.hpp"
@@ -223,16 +224,11 @@ parse_stats(struct counters* counters, const char* buf)
 void
 stats_write(const char* path, struct counters* counters)
 {
-  char* tmp_file = format("%s.tmp", path);
-  FILE* f = create_tmp_file(&tmp_file, "wb");
-  for (size_t i = 0; i < counters->size; i++) {
-    if (fprintf(f, "%u\n", counters->data[i]) < 0) {
-      fatal("Failed to write to %s", tmp_file);
-    }
+  AtomicFile file(path, AtomicFile::Mode::text);
+  for (size_t i = 0; i < counters->size; ++i) {
+    file.write(fmt::format("{}\n", counters->data[i]));
   }
-  fclose(f);
-  x_rename(tmp_file, path);
-  free(tmp_file);
+  file.commit();
 }
 
 static void
