@@ -66,8 +66,13 @@ void
 AtomicFile::commit()
 {
   assert(m_stream);
-  fclose(m_stream);
+  int result = fclose(m_stream);
   m_stream = nullptr;
+  if (result == EOF) {
+    tmp_unlink(m_tmp_path.c_str());
+    throw Error(
+      fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
+  }
   if (x_rename(m_tmp_path.c_str(), m_path.c_str()) != 0) {
     throw Error(fmt::format("failed to rename {} to {}", m_tmp_path, m_path));
   }
