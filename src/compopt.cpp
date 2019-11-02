@@ -92,7 +92,6 @@ static const struct compopt compopts[] = {
   {"-bind_at_load", AFFECTS_COMP},
   {"-bundle", AFFECTS_COMP},
   {"-ccbin", AFFECTS_CPP | TAKES_ARG}, // nvcc
-  {"-fmodules", TOO_HARD},
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},

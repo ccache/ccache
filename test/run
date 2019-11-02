@@ -214,6 +214,18 @@ expect_file_content() {
     fi
 }
 
+expect_file_contains() {
+    local file="$1"
+    local string="$2"
+
+    if [ ! -f "$file" ]; then
+        test_failed "$file not found"
+    fi
+    if ! grep -q "$string" "$file"; then
+        test_failed "File $file does not contain: $string. Actual content: $(cat $file)"
+    fi
+}
+
 expect_file_count() {
     local expected=$1
     local pattern=$2
@@ -421,6 +433,7 @@ readonly
 readonly_direct
 cleanup
 pch
+modules
 upgrade
 input_charset
 nvcc

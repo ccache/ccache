@@ -108,6 +108,7 @@ static struct
    "can't use precompiled header",
    NULL,
    0},
+  {STATS_CANTUSEMODULES, "could_not_use_modules", "can't use modules", NULL, 0},
   {STATS_COMPILER,
    "could_not_find_compiler",
    "couldn't find the compiler",
