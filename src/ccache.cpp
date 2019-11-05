@@ -129,6 +129,9 @@ char* current_working_dir = NULL;
 // The original argument list.
 static struct args* orig_args;
 
+// Argument list to add to compiler invocation in depend mode.
+static struct args* depend_extra_args;
+
 // The source file.
 static char* input_file;
 
@@ -323,6 +326,19 @@ add_prefix(struct args* args, const char* prefix_command)
     args_add_prefix(args, prefix->argv[i - 1]);
   }
   args_free(prefix);
+}
+
+// Compiler in depend mode is invoked with the original arguments.
+// Collect extra arguments that should be added.
+static void
+add_extra_arg(const char* arg)
+{
+  if (g_config.depend_mode()) {
+    if (depend_extra_args == NULL) {
+      depend_extra_args = args_init(0, NULL);
+    }
+    args_add(depend_extra_args, arg);
+  }
 }
 
 static void failed(void) ATTR_NORETURN;
@@ -1325,6 +1341,9 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     assert(orig_args);
     struct args* depend_mode_args = args_copy(orig_args);
     args_strip(depend_mode_args, "--ccache-");
+    if (depend_extra_args) {
+      args_extend(depend_mode_args, depend_extra_args);
+    }
     add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
     time_of_compilation = time(NULL);
@@ -2956,6 +2975,7 @@ cc_process_args(struct args* args,
       if (color_output_possible()) {
         // Output is redirected, so color output must be forced.
         args_add(common_args, "-fdiagnostics-color=always");
+        add_extra_arg("-fdiagnostics-color=always");
         cc_log("Automatically forcing colors");
       } else {
         args_add(common_args, argv[i]);
@@ -3362,6 +3382,7 @@ cc_process_args(struct args* args,
     if (guessed_compiler == GUESSED_CLANG) {
       if (!str_eq(actual_language, "assembler")) {
         args_add(common_args, "-fcolor-diagnostics");
+        add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
       }
     } else if (guessed_compiler == GUESSED_GCC) {
@@ -3371,6 +3392,7 @@ cc_process_args(struct args* args,
       // colors.
       if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
         args_add(common_args, "-fdiagnostics-color");
+        add_extra_arg("-fdiagnostics-color");
         cc_log("Automatically enabling colors");
       }
     }
@@ -3662,6 +3684,8 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
+  args_free(depend_extra_args);
+  depend_extra_args = NULL;
   free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);
