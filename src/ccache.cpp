@@ -2505,7 +2505,9 @@ cc_process_args(struct args* args,
     }
 
     // These are always too hard.
-    if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
+    if (compopt_too_hard(argv[i])
+        || str_startswith(argv[i], "-fdump-")
+        || str_startswith(argv[i], "-MJ")) {
       cc_log("Compiler option %s is unsupported", argv[i]);
       stats_update(STATS_UNSUPPORTED_OPTION);
       result = false;
