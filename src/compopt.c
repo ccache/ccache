@@ -65,7 +65,6 @@ static const struct compopt compopts[] = {
 	{"-L",              TAKES_ARG},
 	{"-M",              TOO_HARD},
 	{"-MF",             TAKES_ARG},
-	{"-MJ",             TAKES_ARG | TOO_HARD},
 	{"-MM",             TOO_HARD},
 	{"-MQ",             TAKES_ARG},
 	{"-MT",             TAKES_ARG},
@@ -175,16 +174,27 @@ compopt_short(bool (*fn)(const char *), const char *option)
 }
 
 // Used by unittest/test_compopt.c.
-bool compopt_verify_sortedness(void);
+bool compopt_verify_sortedness_and_flags(void);
 
 // For test purposes.
 bool
-compopt_verify_sortedness(void)
+compopt_verify_sortedness_and_flags(void)
 {
-	for (size_t i = 1; i < ARRAY_SIZE(compopts); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
+		if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
+			fprintf(stderr,
+			        "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by %s\n",
+			        compopts[i].name);
+			return false;
+		}
+
+		if (i == 0) {
+			continue;
+		}
+
 		if (strcmp(compopts[i-1].name, compopts[i].name) >= 0) {
 			fprintf(stderr,
-			        "compopt_verify_sortedness: %s >= %s\n",
+			        "compopt_verify_sortedness_and_flags: %s >= %s\n",
 			        compopts[i-1].name,
 			        compopts[i].name);
 			return false;
