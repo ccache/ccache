@@ -184,13 +184,24 @@ compopt_short(bool (*fn)(const char*), const char* option)
 }
 
 // Used by unittest/test_compopt.c.
-bool compopt_verify_sortedness(void);
+bool compopt_verify_sortedness_and_flags(void);
 
 // For test purposes.
 bool
-compopt_verify_sortedness(void)
+compopt_verify_sortedness_and_flags(void)
 {
-  for (size_t i = 1; i < ARRAY_SIZE(compopts); i++) {
+  for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
+    if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
+      fprintf(stderr,
+              "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by %s\n",
+              compopts[i].name);
+      return false;
+    }
+
+    if (i == 0) {
+      continue;
+    }
+
     if (strcmp(compopts[i - 1].name, compopts[i].name) >= 0) {
       fprintf(stderr,
               "compopt_verify_sortedness: %s >= %s\n",

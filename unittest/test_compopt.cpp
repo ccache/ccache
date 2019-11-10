@@ -26,8 +26,8 @@ TEST_SUITE(compopt)
 
 TEST(option_table_should_be_sorted)
 {
-  bool compopt_verify_sortedness(void);
-  CHECK(compopt_verify_sortedness());
+  bool compopt_verify_sortedness_and_flags(void);
+  CHECK(compopt_verify_sortedness_and_flags());
 }
 
 TEST(dash_I_affects_cpp)
