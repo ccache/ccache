@@ -485,7 +485,7 @@ clean_up_internal_tempdir(void)
 	time_t now = time(NULL);
 	struct stat st;
 	if (x_stat(conf->cache_dir, &st) != 0
-			|| st.st_mtime + k_tempdir_cleanup_interval >= now) {
+	    || st.st_mtime + k_tempdir_cleanup_interval >= now) {
 		// No cleanup needed.
 		return;
 	}
@@ -505,7 +505,7 @@ clean_up_internal_tempdir(void)
 
 		char *path = format("%s/%s", temp_dir(), entry->d_name);
 		if (x_lstat(path, &st) == 0
-				&& st.st_mtime + k_tempdir_cleanup_interval < now) {
+		    && st.st_mtime + k_tempdir_cleanup_interval < now) {
 			tmp_unlink(path);
 		}
 		free(path);

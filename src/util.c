@@ -1227,8 +1227,7 @@ localtime_r(const time_t *timep, struct tm *result)
 	if (tm) {
 		*result = *tm;
 		return result;
-	}
-	else {
+	} else {
 		memset(result, 0, sizeof(*result));
 		return NULL;
 	}

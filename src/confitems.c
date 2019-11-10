@@ -20,7 +20,7 @@
 static char *
 format_string(const void *value)
 {
-	const char * const *str = (const char * const*)value;
+	const char *const *str = (const char *const *)value;
 	return x_strdup(*str);
 }
 
@@ -268,7 +268,7 @@ confitem_format_unsigned(const void *value)
 bool
 confitem_verify_absolute_path(const void *value, char **errmsg)
 {
-	const char * const *path = (const char * const *)value;
+	const char *const *path = (const char *const *)value;
 	assert(*path);
 	if (str_eq(*path, "")) {
 		// The empty string means "disable" in this case.

@@ -369,7 +369,8 @@ TEST(conf_set_new_value)
 	char *data;
 
 	create_file("ccache.conf", "path = vanilla\n");
-	CHECKM(conf_set_value_in_file("ccache.conf", "compiler", "chocolate", &errmsg),
+	CHECKM(conf_set_value_in_file("ccache.conf", "compiler", "chocolate",
+	                              &errmsg),
 	       errmsg);
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
