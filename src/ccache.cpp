@@ -2571,6 +2571,31 @@ cc_process_args(struct args* args,
       found_fpch_preprocess = true;
     }
 
+    // Modules are handled on demand as necessary in the background,
+    // so there is no need to cache them, they can be in practice ignored.
+    // All that is needed is to correctly depend also on module.modulemap files,
+    // and those are included only in depend mode (preprocessed output does not
+    // list them). Still, not including the modules themselves in the hash
+    // could possibly result in an object file that would be different
+    // from the actual compilation (even though it should be compatible),
+    // so require a sloppiness flag.
+    if (str_eq(argv[i], "-fmodules")) {
+      if (!g_config.depend_mode() || !g_config.direct_mode()) {
+        cc_log("Compiler option %s is unsupported without direct depend mode",
+               argv[i]);
+        stats_update(STATS_CANTUSEMODULES);
+        result = false;
+        goto out;
+      } else if (!(g_config.sloppiness() & SLOPPY_MODULES)) {
+        cc_log(
+          "You have to specify \"modules\" sloppiness when using"
+          " -fmodules to get hits");
+        stats_update(STATS_CANTUSEMODULES);
+        result = false;
+        goto out;
+      }
+    }
+
     // We must have -c.
     if (str_eq(argv[i], "-c")) {
       found_c_opt = true;

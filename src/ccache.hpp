@@ -77,6 +77,7 @@ enum stats {
   STATS_NUMCLEANUPS = 29,
   STATS_UNSUPPORTED_DIRECTIVE = 30,
   STATS_ZEROTIMESTAMP = 31,
+  STATS_CANTUSEMODULES = 32,
 
   STATS_END
 };
@@ -109,6 +110,8 @@ extern enum guessed_compiler guessed_compiler;
 #define SLOPPY_CLANG_INDEX_STORE (1U << 8)
 // Ignore locale settings.
 #define SLOPPY_LOCALE (1U << 9)
+// Allow caching even if -fmodules is used.
+#define SLOPPY_MODULES (1U << 10)
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix)                                              \

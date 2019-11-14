@@ -673,6 +673,11 @@ still has to do _some_ preprocessing (like macros).
 *pch_defines*::
     Be sloppy about **#define**s when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
+*modules*::
+    By default, ccache will not cache compilation if -fmodules is used, because
+    it cannot hash the state of compiler's internal representation of relevant
+    modules. This option allow caching in such case.
+    See <<_c_modules,C++ MODULES>> for more information.
 *system_headers*::
     By default, ccache will also include all system headers in the manifest.
     With this option set, ccache will only include system headers in the hash
@@ -858,6 +863,9 @@ The compiler was called for preprocessing, not compiling.
 | can't use precompiled header |
 Preconditions for using <<_precompiled_headers,precompiled headers>> were not
 fulfilled.
+
+| can't use modules |
+Preconditions for using <<_c_modules,C++ modules>> were not fulfilled.
 
 | ccache internal error |
 Unexpected failure, e.g. due to problems reading/writing the cache.
@@ -1194,6 +1202,23 @@ non-precompiled header file is not available).
 --
 
 
+C++ modules
+-----------
+
+ccache has support for Clang's -fmodules option. In practice ccache only
+additionally hashes module.modulemap files, it does not know how
+Clang handles its cached binary form of modules, and so those are ignored.
+This should not matter in practice, as long as everything else including
+module.modulemap files is the same the cached result should work. Still,
+you must set <<config_sloppiness,*sloppiness*>> to *modules* to allow
+caching.
+
+You must use both <<_the_direct_mode,direct mode>> and
+<<_the_depend_mode,depend mode>>. When using
+<<_the_preprocessor_mode,the preprocessor mode>> Clang does not provide
+enough information to allow hashing of module.modulemap files.
+
+
 Sharing a cache
 ---------------
 
@@ -1385,6 +1410,8 @@ problems and what may be done to increase the hit rate:
   HEADERS>> for how to remedy this.
 * If ``can't use precompiled header'' has been incremented, see
   <<_precompiled_headers,PRECOMPILED HEADERS>>.
+* If ``can't use modules'' has been incremented, see
+  <<_c_modules,C++ MODULES>>.
 
 
 Corrupt object files

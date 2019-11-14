@@ -266,6 +266,8 @@ parse_sloppiness(const std::string& value)
       result |= SLOPPY_CLANG_INDEX_STORE;
     } else if (token == "locale") {
       result |= SLOPPY_LOCALE;
+    } else if (token == "modules") {
+      result |= SLOPPY_MODULES;
     } else if (token != "") {
       throw Error(fmt::format("unknown sloppiness: \"{}\"", token));
     }
@@ -307,6 +309,9 @@ format_sloppiness(uint32_t sloppiness)
   }
   if (sloppiness & SLOPPY_LOCALE) {
     result += "locale, ";
+  }
+  if (sloppiness & SLOPPY_MODULES) {
+    result += "modules, ";
   }
   if (!result.empty()) {
     // Strip last ", ".
