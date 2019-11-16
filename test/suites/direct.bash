@@ -554,12 +554,13 @@ EOF
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
-    TEST "__FILE__ in source file disables direct mode"
+    TEST "The source file path is included in the hash"
 
     cat <<EOF >file.c
 #define file __FILE__
 int test;
 EOF
+    cp file.c file2.c
 
     $CCACHE_COMPILE -c file.c
     expect_stat 'cache hit (direct)' 0
@@ -571,47 +572,34 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    $CCACHE_COMPILE -c `pwd`/file.c
+    $CCACHE_COMPILE -c file2.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
-    # -------------------------------------------------------------------------
-    TEST "__FILE__ in include file disables direct mode"
-
-    cat <<EOF >file.h
-#define file __FILE__
-int test;
-EOF
-    backdate file.h
-    cat <<EOF >file_h.c
-#include "file.h"
-EOF
-
-    $CCACHE_COMPILE -c file_h.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    $CCACHE_COMPILE -c file_h.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    mv file_h.c file2_h.c
-
-    $CCACHE_COMPILE -c `pwd`/file2_h.c
-    expect_stat 'cache hit (direct)' 1
+    $CCACHE_COMPILE -c file2.c
+    expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 
+    $CCACHE_COMPILE -c $(pwd)/file.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
+
+    $CCACHE_COMPILE -c $(pwd)/file.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
+
     # -------------------------------------------------------------------------
-    TEST "__FILE__ in source file ignored if sloppy"
+    TEST "The source file path is included even if sloppiness = file_macro"
 
     cat <<EOF >file.c
 #define file __FILE__
 int test;
 EOF
+    cp file.c file2.c
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c file.c
     expect_stat 'cache hit (direct)' 0
@@ -623,39 +611,66 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c `pwd`/file.c
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c file2.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c file2.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c $(pwd)/file.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c $(pwd)/file.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 3
 
     # -------------------------------------------------------------------------
-    TEST "__FILE__ in include file ignored if sloppy"
+    TEST "Relative includes for identical source code in different directories"
 
-    cat <<EOF >file.h
-#define file __FILE__
-int test;
-EOF
-    backdate file.h
-    cat <<EOF >file_h.c
+    mkdir a
+    cat <<EOF >a/file.c
 #include "file.h"
 EOF
+    cat <<EOF >a/file.h
+int x = 1;
+EOF
+    backdate a/file.h
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c file_h.c
+    mkdir b
+    cat <<EOF >b/file.c
+#include "file.h"
+EOF
+    cat <<EOF >b/file.h
+int x = 2;
+EOF
+    backdate b/file.h
+
+    $CCACHE_COMPILE -c a/file.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c file_h.c
+    $CCACHE_COMPILE -c a/file.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    mv file_h.c file2_h.c
+    $CCACHE_COMPILE -c b/file.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
 
-    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS file_macro" $CCACHE_COMPILE -c `pwd`/file2_h.c
+    $CCACHE_COMPILE -c b/file.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
+    expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
     TEST "__TIME__ in source file disables direct mode"

@@ -2234,12 +2234,19 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			}
 		}
 
-		if (!(conf->sloppiness & SLOPPY_FILE_MACRO)) {
-			// The source code file or an include file may contain __FILE__, so make
-			// sure that the hash is unique for the file name.
-			hash_delimiter(hash, "inputfile");
-			hash_string(hash, input_file);
-		}
+		// Make sure that the direct mode hash is unique for the input file path.
+		// If this would not be the case:
+		//
+		// * An false cache hit may be produced. Scenario:
+		//   - a/r.h exists.
+		//   - a/x.c has #include "r.h".
+		//   - b/x.c is identical to a/x.c.
+		//   - Compiling a/x.c records a/r.h in the manifest.
+		//   - Compiling b/x.c results in a false cache hit since a/x.c and b/x.c
+		//     share manifests and a/r.h exists.
+		// * The expansion of __FILE__ may be incorrect.
+		hash_delimiter(hash, "inputfile");
+		hash_string(hash, input_file);
 
 		hash_delimiter(hash, "sourcecode");
 		int result = hash_source_code_file(conf, hash, input_file);
