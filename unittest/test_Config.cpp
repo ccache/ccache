@@ -220,11 +220,11 @@ TEST_CASE("Config::update_from_file, error handling")
     // Other cases tested in test_Util.c.
   }
 
-  SECTION("invalid sloppiness")
+  SECTION("unknown sloppiness")
   {
-    Util::write_file("ccache.conf", "sloppiness = file_macro, foo");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: unknown sloppiness: \"foo\""));
+    Util::write_file("ccache.conf", "sloppiness = time_macros, foo");
+    CHECK(config.update_from_file("ccache.conf"));
+    CHECK(config.sloppiness() == SLOPPY_TIME_MACROS);
   }
 
   SECTION("invalid unsigned")
@@ -328,6 +328,14 @@ TEST_CASE("Config::set_value_in_file")
 
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = chocolate\nstats = chocolate\n");
+  }
+
+  SECTION("unknown sloppiness")
+  {
+    Util::write_file("ccache.conf", "path = vanilla\n");
+    Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
+    std::string content = Util::read_file("ccache.conf");
+    CHECK(content == "path = vanilla\nsloppiness = foo\n");
   }
 }
 
