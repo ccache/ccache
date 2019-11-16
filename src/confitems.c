@@ -110,6 +110,8 @@ confitem_format_size(const void *value)
 bool
 confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 {
+	(void)errmsg;
+
 	unsigned *value = (unsigned *)result;
 	if (!str) {
 		return *value;
@@ -141,11 +143,8 @@ confitem_parse_sloppiness(const char *str, void *result, char **errmsg)
 			*value |= SLOPPY_CLANG_INDEX_STORE;
 		} else if (str_eq(word, "locale")) {
 			*value |= SLOPPY_LOCALE;
-		} else {
-			*errmsg = format("unknown sloppiness: \"%s\"", word);
-			free(p);
-			return false;
 		}
+		// else: ignore unknown value for forward compatibility
 		q = NULL;
 	}
 	free(p);

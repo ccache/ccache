@@ -267,15 +267,13 @@ TEST(conf_read_invalid_size)
 	conf_free(conf);
 }
 
-TEST(conf_read_invalid_sloppiness)
+TEST(conf_read_unknown_sloppiness)
 {
 	struct conf *conf = conf_create();
 	char *errmsg;
-	create_file("ccache.conf", "sloppiness = file_macro, foo");
-	CHECK(!conf_read(conf, "ccache.conf", &errmsg));
-	CHECK_INT_EQ(errno, 0);
-	CHECK_STR_EQ_FREE2("ccache.conf:1: unknown sloppiness: \"foo\"",
-	                   errmsg);
+	create_file("ccache.conf", "sloppiness = time_macros, foo");
+	CHECK(conf_read(conf, "ccache.conf", &errmsg));
+	CHECK_INT_EQ(conf->sloppiness, SLOPPY_TIME_MACROS);
 	conf_free(conf);
 }
 
@@ -403,6 +401,19 @@ TEST(conf_set_unknown_option)
 	data = read_text_file("ccache.conf", 0);
 	CHECK(data);
 	CHECK_STR_EQ_FREE2("path = chocolate\nstats = chocolate\n", data);
+}
+
+TEST(conf_set_unknown_sloppiness)
+{
+	char *errmsg;
+	char *data;
+
+	create_file("ccache.conf", "path = vanilla\n");
+	CHECK(conf_set_value_in_file("ccache.conf", "sloppiness", "foo", &errmsg));
+
+	data = read_text_file("ccache.conf", 0);
+	CHECK(data);
+	CHECK_STR_EQ_FREE2("path = vanilla\nsloppiness = foo\n", data);
 }
 
 TEST(conf_print_existing_value)
