@@ -246,9 +246,7 @@ parse_sloppiness(const std::string& value)
     end = value.find_first_of(", ", start);
     std::string token =
       Util::strip_whitespace(value.substr(start, end - start));
-    if (token == "file_macro") {
-      result |= SLOPPY_FILE_MACRO;
-    } else if (token == "file_stat_matches") {
+    if (token == "file_stat_matches") {
       result |= SLOPPY_FILE_STAT_MATCHES;
     } else if (token == "file_stat_matches_ctime") {
       result |= SLOPPY_FILE_STAT_MATCHES_CTIME;
@@ -278,9 +276,6 @@ std::string
 format_sloppiness(uint32_t sloppiness)
 {
   std::string result;
-  if (sloppiness & SLOPPY_FILE_MACRO) {
-    result += "file_macro, ";
-  }
   if (sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
     result += "include_file_mtime, ";
   }

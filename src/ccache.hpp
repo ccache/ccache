@@ -94,24 +94,23 @@ extern enum guessed_compiler guessed_compiler;
 
 #define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
 #define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
-#define SLOPPY_FILE_MACRO (1U << 2)
-#define SLOPPY_TIME_MACROS (1U << 3)
-#define SLOPPY_PCH_DEFINES (1U << 4)
+#define SLOPPY_TIME_MACROS (1U << 2)
+#define SLOPPY_PCH_DEFINES (1U << 3)
 // Allow us to match files based on their stats (size, mtime, ctime), without
 // looking at their contents.
-#define SLOPPY_FILE_STAT_MATCHES (1U << 5)
+#define SLOPPY_FILE_STAT_MATCHES (1U << 4)
 // Allow us to not include any system headers in the manifest include files,
 // similar to -MM versus -M for dependencies.
-#define SLOPPY_SYSTEM_HEADERS (1U << 6)
+#define SLOPPY_SYSTEM_HEADERS (1U << 5)
 // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
 // if we want to (it is much harder to fake ctimes, requires changing clock)
-#define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 7)
+#define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 6)
 // Allow us to not include the -index-store-path option in the manifest hash.
-#define SLOPPY_CLANG_INDEX_STORE (1U << 8)
+#define SLOPPY_CLANG_INDEX_STORE (1U << 7)
 // Ignore locale settings.
-#define SLOPPY_LOCALE (1U << 9)
+#define SLOPPY_LOCALE (1U << 8)
 // Allow caching even if -fmodules is used.
-#define SLOPPY_MODULES (1U << 10)
+#define SLOPPY_MODULES (1U << 9)
 
 #define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
 #define str_startswith(s, prefix)                                              \
