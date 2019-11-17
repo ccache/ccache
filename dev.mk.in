@@ -191,7 +191,9 @@ doc/ccache.1: doc/MANUAL.xml
 
 .PHONY: update-authors
 update-authors:
-	git log --pretty=format:"* %aN" \
+	git log --pretty=format:"%H %aN" \
+	  | grep -Ev 'd7c5056beda5483fcd5c098165fffd9be86fe98d' \
+	  | sed -r 's/[^ ]+/*/' \
 	  | sort -u \
 	  | perl -00 -p -i -e 's/^\*.*/<STDIN> . "\n"/es' doc/AUTHORS.adoc
 

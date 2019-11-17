@@ -3,7 +3,7 @@ ccache news
 
 ccache 3.7.6
 ------------
-Release date: not yet released
+Release date: 2019-11-17
 
 Bug fixes
 ~~~~~~~~~
