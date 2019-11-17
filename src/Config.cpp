@@ -246,9 +246,7 @@ parse_sloppiness(const std::string& value)
     end = value.find_first_of(", ", start);
     std::string token =
       Util::strip_whitespace(value.substr(start, end - start));
-    if (token == "file_macro") {
-      result |= SLOPPY_FILE_MACRO;
-    } else if (token == "file_stat_matches") {
+    if (token == "file_stat_matches") {
       result |= SLOPPY_FILE_STAT_MATCHES;
     } else if (token == "file_stat_matches_ctime") {
       result |= SLOPPY_FILE_STAT_MATCHES_CTIME;
@@ -266,9 +264,9 @@ parse_sloppiness(const std::string& value)
       result |= SLOPPY_CLANG_INDEX_STORE;
     } else if (token == "locale") {
       result |= SLOPPY_LOCALE;
-    } else if (token != "") {
-      throw Error(fmt::format("unknown sloppiness: \"{}\"", token));
-    }
+    } else if (token == "modules") {
+      result |= SLOPPY_MODULES;
+    } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }
   return result;
@@ -278,9 +276,6 @@ std::string
 format_sloppiness(uint32_t sloppiness)
 {
   std::string result;
-  if (sloppiness & SLOPPY_FILE_MACRO) {
-    result += "file_macro, ";
-  }
   if (sloppiness & SLOPPY_INCLUDE_FILE_MTIME) {
     result += "include_file_mtime, ";
   }
@@ -307,6 +302,9 @@ format_sloppiness(uint32_t sloppiness)
   }
   if (sloppiness & SLOPPY_LOCALE) {
     result += "locale, ";
+  }
+  if (sloppiness & SLOPPY_MODULES) {
+    result += "modules, ";
   }
   if (!result.empty()) {
     // Strip last ", ".

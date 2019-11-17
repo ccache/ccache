@@ -129,6 +129,9 @@ char* current_working_dir = NULL;
 // The original argument list.
 static struct args* orig_args;
 
+// Argument list to add to compiler invocation in depend mode.
+static struct args* depend_extra_args;
+
 // The source file.
 static char* input_file;
 
@@ -323,6 +326,19 @@ add_prefix(struct args* args, const char* prefix_command)
     args_add_prefix(args, prefix->argv[i - 1]);
   }
   args_free(prefix);
+}
+
+// Compiler in depend mode is invoked with the original arguments.
+// Collect extra arguments that should be added.
+static void
+add_extra_arg(const char* arg)
+{
+  if (g_config.depend_mode()) {
+    if (depend_extra_args == NULL) {
+      depend_extra_args = args_init(0, NULL);
+    }
+    args_add(depend_extra_args, arg);
+  }
 }
 
 static void failed(void) ATTR_NORETURN;
@@ -1325,6 +1341,9 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     assert(orig_args);
     struct args* depend_mode_args = args_copy(orig_args);
     args_strip(depend_mode_args, "--ccache-");
+    if (depend_extra_args) {
+      args_extend(depend_mode_args, depend_extra_args);
+    }
     add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
     time_of_compilation = time(NULL);
@@ -2096,12 +2115,19 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
       }
     }
 
-    if (!(g_config.sloppiness() & SLOPPY_FILE_MACRO)) {
-      // The source code file or an include file may contain __FILE__, so make
-      // sure that the hash is unique for the file name.
-      hash_delimiter(hash, "inputfile");
-      hash_string(hash, input_file);
-    }
+    // Make sure that the direct mode hash is unique for the input file path.
+    // If this would not be the case:
+    //
+    // * An false cache hit may be produced. Scenario:
+    //   - a/r.h exists.
+    //   - a/x.c has #include "r.h".
+    //   - b/x.c is identical to a/x.c.
+    //   - Compiling a/x.c records a/r.h in the manifest.
+    //   - Compiling b/x.c results in a false cache hit since a/x.c and b/x.c
+    //     share manifests and a/r.h exists.
+    // * The expansion of __FILE__ may be incorrect.
+    hash_delimiter(hash, "inputfile");
+    hash_string(hash, input_file);
 
     hash_delimiter(hash, "sourcecode");
     int result = hash_source_code_file(g_config, hash, input_file);
@@ -2505,7 +2531,8 @@ cc_process_args(struct args* args,
     }
 
     // These are always too hard.
-    if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")) {
+    if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")
+        || str_startswith(argv[i], "-MJ")) {
       cc_log("Compiler option %s is unsupported", argv[i]);
       stats_update(STATS_UNSUPPORTED_OPTION);
       result = false;
@@ -2568,6 +2595,31 @@ cc_process_args(struct args* args,
     if (str_eq(argv[i], "-fpch-preprocess") || str_eq(argv[i], "-emit-pch")
         || str_eq(argv[i], "-emit-pth")) {
       found_fpch_preprocess = true;
+    }
+
+    // Modules are handled on demand as necessary in the background,
+    // so there is no need to cache them, they can be in practice ignored.
+    // All that is needed is to correctly depend also on module.modulemap files,
+    // and those are included only in depend mode (preprocessed output does not
+    // list them). Still, not including the modules themselves in the hash
+    // could possibly result in an object file that would be different
+    // from the actual compilation (even though it should be compatible),
+    // so require a sloppiness flag.
+    if (str_eq(argv[i], "-fmodules")) {
+      if (!g_config.depend_mode() || !g_config.direct_mode()) {
+        cc_log("Compiler option %s is unsupported without direct depend mode",
+               argv[i]);
+        stats_update(STATS_CANTUSEMODULES);
+        result = false;
+        goto out;
+      } else if (!(g_config.sloppiness() & SLOPPY_MODULES)) {
+        cc_log(
+          "You have to specify \"modules\" sloppiness when using"
+          " -fmodules to get hits");
+        stats_update(STATS_CANTUSEMODULES);
+        result = false;
+        goto out;
+      }
     }
 
     // We must have -c.
@@ -2956,6 +3008,7 @@ cc_process_args(struct args* args,
       if (color_output_possible()) {
         // Output is redirected, so color output must be forced.
         args_add(common_args, "-fdiagnostics-color=always");
+        add_extra_arg("-fdiagnostics-color=always");
         cc_log("Automatically forcing colors");
       } else {
         args_add(common_args, argv[i]);
@@ -3362,6 +3415,7 @@ cc_process_args(struct args* args,
     if (guessed_compiler == GUESSED_CLANG) {
       if (!str_eq(actual_language, "assembler")) {
         args_add(common_args, "-fcolor-diagnostics");
+        add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
       }
     } else if (guessed_compiler == GUESSED_GCC) {
@@ -3371,6 +3425,7 @@ cc_process_args(struct args* args,
       // colors.
       if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
         args_add(common_args, "-fdiagnostics-color");
+        add_extra_arg("-fdiagnostics-color");
         cc_log("Automatically enabling colors");
       }
     }
@@ -3662,6 +3717,8 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
+  args_free(depend_extra_args);
+  depend_extra_args = NULL;
   free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);

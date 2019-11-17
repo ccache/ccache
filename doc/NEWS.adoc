@@ -47,6 +47,27 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.6
+------------
+Release date: 2019-11-17
+
+Bug fixes
+~~~~~~~~~
+
+- The opt-in “file_macro sloppiness” mode has been removed so that the input
+  file path now is always included in the direct mode hash. This fixes a bug
+  that could result in false cache hits in an edge case when “file_macro
+  sloppiness” is enabled and several identical source files include a relative
+  header file with the same name but in different directories.
+
+- Statistics files are no longer lost when the filesystem of the cache is full.
+
+- Bail out on too hard Clang option `-MJarg` (in addition to the previous
+  bailout of `-MJ arg`).
+
+- Properly handle color diagnostics in the depend mode as well.
+
+
 ccache 3.7.5
 ------------
 Release date: 2019-10-22

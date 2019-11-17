@@ -116,10 +116,9 @@ TEST_CASE("Config::update_from_file")
     "read_only_direct = true\n"
     "recache = true\n"
     "run_second_cpp = false\n"
-    "sloppiness =     file_macro   ,time_macros,  "
-    "include_file_mtime,include_file_ctime,file_stat_matches,file_stat_"
-    "matches_ctime,pch_defines ,  "
-    "no_system_headers,system_headers,clang_index_store\n"
+    "sloppiness =     time_macros   ,include_file_mtime"
+    "  include_file_ctime,file_stat_matches,file_stat_matches_ctime,pch_defines"
+    " ,  no_system_headers,system_headers,clang_index_store\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
     "umask = 777\n"
@@ -158,7 +157,7 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.run_second_cpp());
   CHECK(config.sloppiness()
         == (SLOPPY_INCLUDE_FILE_MTIME | SLOPPY_INCLUDE_FILE_CTIME
-            | SLOPPY_FILE_MACRO | SLOPPY_TIME_MACROS | SLOPPY_FILE_STAT_MATCHES
+            | SLOPPY_TIME_MACROS | SLOPPY_FILE_STAT_MATCHES
             | SLOPPY_FILE_STAT_MATCHES_CTIME | SLOPPY_SYSTEM_HEADERS
             | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE));
   CHECK_FALSE(config.stats());
@@ -220,11 +219,11 @@ TEST_CASE("Config::update_from_file, error handling")
     // Other cases tested in test_Util.c.
   }
 
-  SECTION("invalid sloppiness")
+  SECTION("unknown sloppiness")
   {
-    Util::write_file("ccache.conf", "sloppiness = file_macro, foo");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: unknown sloppiness: \"foo\""));
+    Util::write_file("ccache.conf", "sloppiness = time_macros, foo");
+    CHECK(config.update_from_file("ccache.conf"));
+    CHECK(config.sloppiness() == SLOPPY_TIME_MACROS);
   }
 
   SECTION("invalid unsigned")
@@ -329,6 +328,14 @@ TEST_CASE("Config::set_value_in_file")
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = chocolate\nstats = chocolate\n");
   }
+
+  SECTION("unknown sloppiness")
+  {
+    Util::write_file("ccache.conf", "path = vanilla\n");
+    Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
+    std::string content = Util::read_file("ccache.conf");
+    CHECK(content == "path = vanilla\nsloppiness = foo\n");
+  }
 }
 
 TEST_CASE("Config::get_string_value")
@@ -386,9 +393,9 @@ TEST_CASE("Config::visit_items")
     "read_only_direct = true\n"
     "recache = true\n"
     "run_second_cpp = false\n"
-    "sloppiness = file_macro, include_file_mtime, include_file_ctime,"
-    " time_macros, file_stat_matches, file_stat_matches_ctime, pch_defines,"
-    " system_headers, clang_index_store\n"
+    "sloppiness = include_file_mtime, include_file_ctime, time_macros,"
+    " file_stat_matches, file_stat_matches_ctime, pch_defines, system_headers,"
+    " clang_index_store\n"
     "stats = false\n"
     "temporary_dir = td\n"
     "umask = 022\n"
@@ -436,9 +443,9 @@ TEST_CASE("Config::visit_items")
     "(test.conf) read_only_direct = true",
     "(test.conf) recache = true",
     "(test.conf) run_second_cpp = false",
-    "(test.conf) sloppiness = file_macro, include_file_mtime,"
-    " include_file_ctime, time_macros, pch_defines, file_stat_matches,"
-    " file_stat_matches_ctime, system_headers, clang_index_store",
+    "(test.conf) sloppiness = include_file_mtime, include_file_ctime,"
+    " time_macros, pch_defines, file_stat_matches, file_stat_matches_ctime,"
+    " system_headers, clang_index_store",
     "(test.conf) stats = false",
     "(test.conf) temporary_dir = td",
     "(test.conf) umask = 022",
