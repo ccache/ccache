@@ -88,6 +88,7 @@ ccache is a collective work with contributions from many people, including:
 * Robert Yang
 * Robin H. Johnson
 * Rolf Bjarne Kvinge
+* Russell King
 * RW
 * Ryan Brown
 * Sam Gross
