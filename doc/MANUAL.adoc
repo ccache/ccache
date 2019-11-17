@@ -676,7 +676,8 @@ still has to do _some_ preprocessing (like macros).
     With this option set, ccache will only include system headers in the hash
     but not add the system header files to the list of include files.
 *time_macros*::
-    Ignore `__DATE__` and `__TIME__` being present in the source code.
+    Ignore `__DATE__`, `__TIME__` and `__TIMESTAMP__` being present in the
+    source code.
 --
 +
 See the discussion under <<_troubleshooting,TROUBLESHOOTING>> for more
@@ -1172,10 +1173,10 @@ ccache has support for GCC's precompiled headers. However, you have to do some
 things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
-  The reason is that ccache can't tell whether `__TIME__` or `__DATE__` is used
-  when using a precompiled header. Further, it can't detect changes in
-  **#define**s in the source code because of how preprocessing works in
-  combination with precompiled headers.
+  The reason is that ccache can't tell whether `__TIME__`, `__DATE__` or
+  `__TIMESTAMP__` is used when using a precompiled header. Further, it can't
+  detect changes in **#define**s in the source code because of how
+  preprocessing works in combination with precompiled headers.
 * You must either:
 +
 --
@@ -1379,6 +1380,15 @@ problems and what may be done to increase the hit rate:
    output. If you know that `__DATE__` isn't used in practise, or don't care if
    ccache produces objects where `__DATE__` is expanded to something in the
    past, you can set <<config_sloppiness,*sloppiness*>> to *time_macros*.
+** The `__TIMESTAMP__` preprocessor macro is (potentially) being used and the
+   source file's modification time has changed. This is similar to how
+   `__TIME__` is handled. If `__TIMESTAMP__` is present in the source code,
+   ccache hashes the string representation of the source file's modification
+   time in order to be able to produce the correct object file if the
+   `__TIMESTAMP__` macro affects the output. If you know that `__TIMESTAMP__`
+   isn't used in practise, or don't care if ccache produces objects where
+   `__TIMESTAMP__` is expanded to something in the past, you can set
+   <<config_sloppiness,*sloppiness*>> to *time_macros*.
 ** The input file path has changed. ccache includes the input file path in the
    direct mode hash to be able to take relative include files into account and
    to produce a correct object file if the source code includes a `__FILE__`
@@ -1387,9 +1397,9 @@ problems and what may be done to increase the hit rate:
   compiled and cached before, ccache has either detected that something has
   changed anyway or a cleanup has been performed (either explicitly or
   implicitly when a cache limit has been reached). Some perhaps unobvious
-  things that may result in a cache miss are usage of `__TIME__` or
-  `__DATE__` macros, or use of automatically generated code that contains a
-  timestamp, build counter or other volatile information.
+  things that may result in a cache miss are usage of `__TIME__`, `__DATE__` or
+  `__TIMESTAMP__` macros, or use of automatically generated code that contains
+  a timestamp, build counter or other volatile information.
 * If ``multiple source files'' has been incremented, it's an indication that
   the compiler has been invoked on several source code files at once. ccache
   doesn't support that. Compile the source code files separately if possible.

@@ -178,6 +178,14 @@ TEST(check_for_temporal_macros)
     "int ab;\n";
   const char date_end[] = "#define ab __DATE__";
 
+  const char timestamp_start[] =
+    "__TIMESTAMP__\n"
+    "int c;\n";
+  const char timestamp_middle[] =
+    "#define c __TIMESTAMP__\n"
+    "int c;\n";
+  const char timestamp_end[] = "#define c __TIMESTAMP__";
+
   const char no_temporal[] =
     "#define ab a__DATE__\n"
     "#define ab  __DATE__a\n"
@@ -236,6 +244,35 @@ TEST(check_for_temporal_macros)
   CHECK(check_for_temporal_macros(date_end + 0, sizeof(date_end) - 0));
   CHECK(check_for_temporal_macros(date_end + sizeof(date_end) - 9, 9));
   CHECK(!check_for_temporal_macros(date_end + sizeof(date_end) - 8, 8));
+
+  CHECK(check_for_temporal_macros(timestamp_start + 0,
+                                  sizeof(timestamp_start) - 0));
+  CHECK(!check_for_temporal_macros(timestamp_start + 1,
+                                   sizeof(timestamp_start) - 1));
+
+  CHECK(check_for_temporal_macros(timestamp_middle + 0,
+                                  sizeof(timestamp_middle) - 0));
+  CHECK(check_for_temporal_macros(timestamp_middle + 1,
+                                  sizeof(timestamp_middle) - 1));
+  CHECK(check_for_temporal_macros(timestamp_middle + 2,
+                                  sizeof(timestamp_middle) - 2));
+  CHECK(check_for_temporal_macros(timestamp_middle + 3,
+                                  sizeof(timestamp_middle) - 3));
+  CHECK(check_for_temporal_macros(timestamp_middle + 4,
+                                  sizeof(timestamp_middle) - 4));
+  CHECK(check_for_temporal_macros(timestamp_middle + 5,
+                                  sizeof(timestamp_middle) - 5));
+  CHECK(check_for_temporal_macros(timestamp_middle + 6,
+                                  sizeof(timestamp_middle) - 6));
+  CHECK(check_for_temporal_macros(timestamp_middle + 7,
+                                  sizeof(timestamp_middle) - 7));
+
+  CHECK(
+    check_for_temporal_macros(timestamp_end + 0, sizeof(timestamp_end) - 0));
+  CHECK(
+    check_for_temporal_macros(timestamp_end + sizeof(timestamp_end) - 14, 14));
+  CHECK(
+    !check_for_temporal_macros(timestamp_end + sizeof(timestamp_end) - 13, 13));
 
   CHECK(!check_for_temporal_macros(no_temporal + 0, sizeof(no_temporal) - 0));
   CHECK(!check_for_temporal_macros(no_temporal + 1, sizeof(no_temporal) - 1));
