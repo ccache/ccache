@@ -833,7 +833,7 @@ make_relative_path(char* path)
     free(p);
   }
 
-  char* canon_path = x_realpath(path);
+  char* canon_path = x_strdup(path);
   if (canon_path) {
     free(path);
     char* relpath = get_relative_path(get_current_working_dir(), canon_path);

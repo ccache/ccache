@@ -45,28 +45,6 @@ SUITE_basedir() {
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
- if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
-    TEST "Path normalization"
-
-    cd dir1
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
-    expect_stat 'cache hit (direct)' 0
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    mkdir subdir
-    ln -s `pwd`/include subdir/symlink
-
-    # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
-    # slashes, redundant "/." parts and "foo/.." parts correctly. Note that the
-    # ".." part of the path is resolved after the symlink has been resolved.
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`//./subdir/symlink/../include -c `pwd`/src/test.c
-    expect_stat 'cache hit (direct)' 1
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
- fi
-    # -------------------------------------------------------------------------
     TEST "Rewriting in stderr"
 
     cat <<EOF >stderr.h
