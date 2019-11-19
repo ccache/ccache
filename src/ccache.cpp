@@ -1559,15 +1559,9 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 
     // Limit the basename to 10 characters in order to cope with filesystem with
     // small maximum filename length limits.
-    string_view input_base = Util::base_name(input_file);
-    size_t dot_pos = input_base.find('.');
-    size_t truncate_pos =
-      std::min(size_t(10), std::min(input_base.size(), dot_pos));
-    input_base = input_base.substr(0, truncate_pos);
-
+    string_view input_base = Util::get_truncated_base_name(input_file, 10);
     path_stdout =
       x_strdup(fmt::format("{}/{}.stdout", temp_dir(), input_base).c_str());
-
     int path_stdout_fd = create_tmp_fd(&path_stdout);
     add_pending_tmp_file(path_stdout);
 

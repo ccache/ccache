@@ -32,6 +32,18 @@ TEST_CASE("Util::base_name")
   CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
 }
 
+TEST_CASE("Util:get_truncated_base_name")
+{
+  CHECK(Util::get_truncated_base_name("", 5) == "");
+  CHECK(Util::get_truncated_base_name("a", 5) == "a");
+  CHECK(Util::get_truncated_base_name("abcdefg", 5) == "abcde");
+  CHECK(Util::get_truncated_base_name("abc.foo", 5) == "abc");
+  CHECK(Util::get_truncated_base_name("/path/to/abc.foo", 5) == "abc");
+  CHECK(Util::get_truncated_base_name("/path/to/abcdefg.foo", 5) == "abcde");
+  CHECK(Util::get_truncated_base_name("/path/to/.hidden", 5) == "");
+  CHECK(Util::get_truncated_base_name("/path/to/", 5) == "");
+}
+
 TEST_CASE("Util::big_endian_to_int")
 {
   uint8_t bytes[8] = {0x70, 0x9e, 0x9a, 0xbc, 0xd6, 0x54, 0x4b, 0xca};

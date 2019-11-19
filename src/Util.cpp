@@ -139,6 +139,16 @@ dir_name(nonstd::string_view path)
   return n == 0 ? "/" : path.substr(0, n);
 }
 
+nonstd::string_view
+get_truncated_base_name(nonstd::string_view path, size_t max_length)
+{
+  string_view input_base = Util::base_name(path);
+  size_t dot_pos = input_base.find('.');
+  size_t truncate_pos =
+    std::min(max_length, std::min(input_base.size(), dot_pos));
+  return input_base.substr(0, truncate_pos);
+}
+
 bool
 ends_with(nonstd::string_view string, nonstd::string_view suffix)
 {

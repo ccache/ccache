@@ -41,6 +41,12 @@ typedef std::function<void(const std::string& /*dir_path*/,
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
 
+// Return a shortened view into the base name of `path``. This view starts at
+// the beginning of the base name and ends at either the position the first dot,
+// or `max_length`, or the length of the base name, whichever is the shortest.
+nonstd::string_view get_truncated_base_name(nonstd::string_view path,
+                                            size_t max_length);
+
 // Get an integer value from bytes in big endian order.
 //
 // Parameters:
