@@ -71,7 +71,8 @@ extern char** environ;
 
 #ifdef _WIN32
 #  ifndef _WIN32_WINNT
-#    define _WIN32_WINNT 0x0501
+// _WIN32_WINNT is set in the generated header config.h
+#    error _WIN32_WINNT is undefined
 #  endif
 #  include <windows.h>
 #  define mkdir(a, b) mkdir(a)

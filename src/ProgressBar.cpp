@@ -23,9 +23,7 @@
 #include <cstdio>
 #include <unistd.h>
 
-#ifdef _WIN32
-#  include <windows.h>
-#else
+#ifndef _WIN32
 #  include <sys/ioctl.h>
 #endif
 
