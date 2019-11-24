@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Error.hpp"
 #include "Stat.hpp"
 

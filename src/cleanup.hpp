@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Util.hpp"
 
 #include <string>

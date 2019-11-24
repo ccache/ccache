@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Decompressor.hpp"
 #include "NonCopyable.hpp"
 

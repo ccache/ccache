@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "system.hpp"
+
 #include "Config.hpp"
 #include "Util.hpp"
 

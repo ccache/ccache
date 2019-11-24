@@ -60,7 +60,6 @@
 #  include <psapi.h>
 #  include <sys/locking.h>
 #  include <tchar.h>
-#  include <windows.h>
 #endif
 
 // Destination for g_config.log_file.
