@@ -16,6 +16,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "test_Config.hpp"
+
 #include "../src/Config.hpp"
 #include "../src/Error.hpp"
 #include "../src/Util.hpp"

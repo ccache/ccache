@@ -310,24 +310,6 @@ fatal(const char* format, ...)
   x_exit(1);
 }
 
-// Transform a name to a full path into the cache directory, creating needed
-// sublevels if needed. Caller frees.
-char*
-get_path_in_cache(const char* name, const char* suffix)
-{
-  char* path = x_strdup(g_config.cache_dir().c_str());
-  for (unsigned i = 0; i < g_config.cache_dir_levels(); ++i) {
-    char* p = format("%s/%c", path, name[i]);
-    free(path);
-    path = p;
-  }
-
-  char* result =
-    format("%s/%s%s", path, name + g_config.cache_dir_levels(), suffix);
-  free(path);
-  return result;
-}
-
 // Copy all data from fd_in to fd_out.
 bool
 copy_fd(int fd_in, int fd_out)

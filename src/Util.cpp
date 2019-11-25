@@ -18,6 +18,7 @@
 
 #include "Util.hpp"
 
+#include "Config.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ccache.hpp"
 
@@ -212,6 +213,29 @@ get_level_1_files(const std::string& dir,
                   std::vector<std::shared_ptr<CacheFile>>& files)
 {
   get_cache_files_internal(dir, 1, progress_receiver, files);
+}
+
+std::string
+get_path_in_cache(nonstd::string_view name, nonstd::string_view suffix)
+{
+  std::string path = g_config.cache_dir();
+
+  auto cache_dir_levels = g_config.cache_dir_levels();
+  path.reserve(path.size() + cache_dir_levels * 2 + 1 + name.length()
+               - cache_dir_levels + suffix.length());
+
+  unsigned level = 0;
+  for (; level < cache_dir_levels; ++level) {
+    path.push_back('/');
+    path.push_back(name.at(level));
+  }
+
+  path.push_back('/');
+  string_view name_remaining = name.substr(level);
+  path.append(name_remaining.data(), name_remaining.length());
+  path.append(suffix.data(), suffix.length());
+
+  return path;
 }
 
 int

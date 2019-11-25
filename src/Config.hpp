@@ -151,6 +151,8 @@ private:
                 bool from_env_variable,
                 bool negate,
                 const std::string& origin);
+
+  friend struct ConfigTester;
 };
 
 inline const std::string&
