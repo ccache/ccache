@@ -368,13 +368,23 @@ static int
 verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
               struct hashtable *stated_files, struct hashtable *hashed_files)
 {
+	bool verify_debug = getenv("CCACHE_DEBUG_VERIFY_OBJECT");
+	if (verify_debug) {
+		cc_log("Start verify object");
+	}
 	for (uint32_t i = 0; i < obj->n_file_info_indexes; i++) {
 		struct file_info *fi = &mf->file_infos[obj->file_info_indexes[i]];
 		char *path = mf->files[fi->index];
+		if (verify_debug) {
+			cc_log("Verify no. %d/%d, path %s", i+1, obj->n_file_info_indexes, path);
+		}
 		struct file_stats *st = hashtable_search(stated_files, path);
 		if (!st) {
 			struct stat file_stat;
 			if (x_stat(path, &file_stat) != 0) {
+				if (verify_debug) {
+					cc_log("Stat local file failed.");
+				}
 				return 0;
 			}
 			st = x_malloc(sizeof(*st));
@@ -385,6 +395,9 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 		}
 
 		if (fi->size != st->size) {
+			if (verify_debug) {
+				cc_log("File size miss match, manifest=%d, stat=%d", fi->size, st->size);
+			}
 			return 0;
 		}
 
@@ -427,6 +440,9 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			}
 			if (result & HASH_SOURCE_CODE_FOUND_TIME) {
 				hash_free(hash);
+				if (verify_debug) {
+					cc_log("Find __TIME__ in source code");
+				}
 				return 0;
 			}
 			actual = x_malloc(sizeof(*actual));
@@ -435,8 +451,16 @@ verify_object(struct conf *conf, struct manifest *mf, struct object *obj,
 			hashtable_insert(hashed_files, x_strdup(path), actual);
 			hash_free(hash);
 		}
-		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0
-		    || fi->size != actual->size) {
+		if (memcmp(fi->hash, actual->hash, mf->hash_size) != 0) {
+			if (verify_debug) {
+				cc_log("File hash miss match, manifest=%s, actual=%s", fi->hash, actual->hash);
+			}
+			return 0;
+		}
+		if (fi->size != actual->size) {
+			if (verify_debug) {
+				cc_log("File size miss match, manifest=%d, actual=%d", fi->size, actual->size);
+			}
 			return 0;
 		}
 	}
