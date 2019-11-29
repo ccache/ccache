@@ -1386,7 +1386,7 @@ update_manifest_file(void)
 		old_size = file_size(&st);
 	}
 
-	bool save_timestamp = (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES);
+	bool save_timestamp = (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES) || output_is_precompiled_header;
 
 	MTR_BEGIN("manifest", "manifest_put");
 	if (manifest_put(manifest_path, cached_obj_hash, included_files, save_timestamp)) {
