@@ -1386,8 +1386,10 @@ update_manifest_file(void)
 		old_size = file_size(&st);
 	}
 
+	bool save_timestamp = (conf->sloppiness & SLOPPY_FILE_STAT_MATCHES);
+
 	MTR_BEGIN("manifest", "manifest_put");
-	if (manifest_put(manifest_path, cached_obj_hash, included_files)) {
+	if (manifest_put(manifest_path, cached_obj_hash, included_files, save_timestamp)) {
 		cc_log("Added object file hash to %s", manifest_path);
 		if (x_stat(manifest_path, &st) == 0) {
 			stats_update_size(
