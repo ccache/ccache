@@ -310,24 +310,6 @@ fatal(const char* format, ...)
   x_exit(1);
 }
 
-// Transform a name to a full path into the cache directory, creating needed
-// sublevels if needed. Caller frees.
-char*
-get_path_in_cache(const char* name, const char* suffix)
-{
-  char* path = x_strdup(g_config.cache_dir().c_str());
-  for (unsigned i = 0; i < g_config.cache_dir_levels(); ++i) {
-    char* p = format("%s/%c", path, name[i]);
-    free(path);
-    path = p;
-  }
-
-  char* result =
-    format("%s/%s%s", path, name + g_config.cache_dir_levels(), suffix);
-  free(path);
-  return result;
-}
-
 // Copy all data from fd_in to fd_out.
 bool
 copy_fd(int fd_in, int fd_out)
@@ -729,24 +711,6 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Return the base name of a file - caller frees.
-char*
-x_basename(const char* path)
-{
-  const char* p = strrchr(path, '/');
-  if (p) {
-    path = p + 1;
-  }
-#ifdef _WIN32
-  p = strrchr(path, '\\');
-  if (p) {
-    path = p + 1;
-  }
-#endif
-
-  return x_strdup(path);
-}
-
 // Return the dir name of a file - caller frees.
 char*
 x_dirname(const char* path)
@@ -786,14 +750,6 @@ get_extension(const char* path)
     }
   }
   return &path[len];
-}
-
-// Return a string containing the given path without the filename extension.
-// Caller frees.
-char*
-remove_extension(const char* path)
-{
-  return x_strndup(path, strlen(path) - strlen(get_extension(path)));
 }
 
 // Format a size as a human-readable string. Caller frees.

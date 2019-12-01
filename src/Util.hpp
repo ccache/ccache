@@ -41,6 +41,25 @@ typedef std::function<void(const std::string& /*dir_path*/,
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
 
+// Return the file extension (including the dot) as a view into `path`.
+// If `path` has no file extension, an empty string_view is returned.
+nonstd::string_view get_extension(nonstd::string_view path);
+
+// Return a view into `path` containing the given path without the
+// filename extension as determined by `get_extension()`.
+nonstd::string_view remove_extension(nonstd::string_view path);
+
+// Remove the extension via `remove_extension()`, then add `new_ext`.
+// `new_ext` should start with a dot, no extra dot is inserted.
+std::string change_extension(nonstd::string_view path,
+                             nonstd::string_view new_ext);
+
+// Return a shortened view into the base name of `path``. This view starts at
+// the beginning of the base name and ends at either the position the first dot,
+// or `max_length`, or the length of the base name, whichever is the shortest.
+nonstd::string_view get_truncated_base_name(nonstd::string_view path,
+                                            size_t max_length);
+
 // Get an integer value from bytes in big endian order.
 //
 // Parameters:
@@ -121,6 +140,18 @@ void for_each_level_1_subdir(const std::string& cache_dir,
 void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
+
+// Join the global cache directory, a '/', `name`, and `suffix` into a single
+// path and return it. Additionally N single-character, '/'-separated subpaths
+// are split from the beginning of `name` before joining them all, where N is
+// the number of globally configured cache dir levels.
+//
+// Throws if cache dir levels is greater than the length of `name`.
+//
+// E.g. "ABCDEF" and ".foo" will become "/ccache/A/B/CDEF.foo" when
+// the cache directory is "/ccache" and cache dir levels is 2.
+std::string get_path_in_cache(nonstd::string_view name,
+                              nonstd::string_view suffix);
 
 // Write bytes in big endian order from an integer value.
 //

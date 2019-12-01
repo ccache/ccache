@@ -23,14 +23,6 @@
 
 TEST_SUITE(legacy_util)
 
-TEST(x_basename)
-{
-  CHECK_STR_EQ_FREE2("foo.c", x_basename("foo.c"));
-  CHECK_STR_EQ_FREE2("foo.c", x_basename("dir1/dir2/foo.c"));
-  CHECK_STR_EQ_FREE2("foo.c", x_basename("/dir/foo.c"));
-  CHECK_STR_EQ_FREE2("", x_basename("dir1/dir2/"));
-}
-
 TEST(x_dirname)
 {
   CHECK_STR_EQ_FREE2(".", x_dirname("foo.c"));

@@ -160,7 +160,6 @@ void cc_dump_debug_log_buffer(const char* path);
 void fatal(const char* format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 
-char* get_path_in_cache(const char* name, const char* suffix);
 bool copy_fd(int fd_in, int fd_out);
 bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);
@@ -176,10 +175,8 @@ void* x_malloc(size_t size);
 void* x_realloc(void* ptr, size_t size);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
-char* x_basename(const char* path);
 char* x_dirname(const char* path);
 const char* get_extension(const char* path);
-char* remove_extension(const char* path);
 char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);

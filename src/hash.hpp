@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include "third_party/nonstd/string_view.hpp"
+
 #define DIGEST_SIZE 20
 #define DIGEST_STRING_BUFFER_SIZE (2 * DIGEST_SIZE + 1)
 
@@ -78,7 +80,7 @@ void hash_delimiter(struct hash* hash, const char* type);
 // input file.
 void hash_buffer(struct hash* hash, const void* s, size_t len);
 
-// Hash a string.
+// Hash a NUL terminated string.
 //
 // If hash debugging is enabled, the string is written to the text input file
 // followed by a newline.
@@ -88,7 +90,9 @@ void hash_string(struct hash* hash, const char* s);
 //
 // If hash debugging is enabled, the string is written to the text input file
 // followed by a newline.
-void hash_string_buffer(struct hash* hash, const char* s, int length);
+void hash_string_buffer(struct hash* hash, const char* s, size_t length);
+void hash_string(struct hash* hash, const std::string& s);
+void hash_string_view(struct hash* hash, nonstd::string_view sv);
 
 // Hash an integer.
 //

@@ -144,7 +144,19 @@ hash_string(struct hash* hash, const char* s)
 }
 
 void
-hash_string_buffer(struct hash* hash, const char* s, int length)
+hash_string(struct hash* hash, const std::string& s)
+{
+  hash_string_buffer(hash, s.data(), s.length());
+}
+
+void
+hash_string_view(struct hash* hash, nonstd::string_view sv)
+{
+  hash_string_buffer(hash, sv.data(), sv.length());
+}
+
+void
+hash_string_buffer(struct hash* hash, const char* s, size_t length)
 {
   hash_buffer(hash, s, length);
   do_debug_text(hash, "\n", 1);

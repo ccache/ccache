@@ -16,10 +16,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "../src/Config.hpp"
 #include "../src/Util.hpp"
+#include "test_Config.hpp"
 
 #include "third_party/catch.hpp"
 
+using Catch::EndsWith;
 using Catch::Equals;
 
 TEST_CASE("Util::base_name")
@@ -30,6 +33,62 @@ TEST_CASE("Util::base_name")
   CHECK(Util::base_name("/") == "");
   CHECK(Util::base_name("/foo") == "foo");
   CHECK(Util::base_name("/foo/bar/f.txt") == "f.txt");
+}
+
+TEST_CASE("Util::get_extension")
+{
+  CHECK(Util::get_extension("") == "");
+  CHECK(Util::get_extension(".") == ".");
+  CHECK(Util::get_extension("...") == ".");
+  CHECK(Util::get_extension("foo") == "");
+  CHECK(Util::get_extension("/") == "");
+  CHECK(Util::get_extension("/foo") == "");
+  CHECK(Util::get_extension("/foo/bar/f") == "");
+  CHECK(Util::get_extension("f.txt") == ".txt");
+  CHECK(Util::get_extension("f.abc.txt") == ".txt");
+  CHECK(Util::get_extension("/foo/bar/f.txt") == ".txt");
+  CHECK(Util::get_extension("/foo/bar/f.abc.txt") == ".txt");
+}
+
+TEST_CASE("Util::remove_extension")
+{
+  CHECK(Util::remove_extension("") == "");
+  CHECK(Util::remove_extension(".") == "");
+  CHECK(Util::remove_extension("...") == "..");
+  CHECK(Util::remove_extension("foo") == "foo");
+  CHECK(Util::remove_extension("/") == "/");
+  CHECK(Util::remove_extension("/foo") == "/foo");
+  CHECK(Util::remove_extension("/foo/bar/f") == "/foo/bar/f");
+  CHECK(Util::remove_extension("f.txt") == "f");
+  CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
+  CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
+  CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
+}
+
+TEST_CASE("Util::change_extension")
+{
+  CHECK(Util::change_extension("", "") == "");
+  CHECK(Util::change_extension("x", "") == "x");
+  CHECK(Util::change_extension("", "x") == "x");
+  CHECK(Util::change_extension("", ".") == ".");
+  CHECK(Util::change_extension(".", "") == "");
+  CHECK(Util::change_extension("...", "x") == "..x");
+  CHECK(Util::change_extension("abc", "def") == "abcdef");
+  CHECK(Util::change_extension("foo.ext", "e2") == "fooe2");
+  CHECK(Util::change_extension("bar.txt", ".o") == "bar.o");
+  CHECK(Util::change_extension("foo.bar.txt", ".o") == "foo.bar.o");
+}
+
+TEST_CASE("Util:get_truncated_base_name")
+{
+  CHECK(Util::get_truncated_base_name("", 5) == "");
+  CHECK(Util::get_truncated_base_name("a", 5) == "a");
+  CHECK(Util::get_truncated_base_name("abcdefg", 5) == "abcde");
+  CHECK(Util::get_truncated_base_name("abc.foo", 5) == "abc");
+  CHECK(Util::get_truncated_base_name("/path/to/abc.foo", 5) == "abc");
+  CHECK(Util::get_truncated_base_name("/path/to/abcdefg.foo", 5) == "abcde");
+  CHECK(Util::get_truncated_base_name("/path/to/.hidden", 5) == "");
+  CHECK(Util::get_truncated_base_name("/path/to/", 5) == "");
 }
 
 TEST_CASE("Util::big_endian_to_int")
@@ -188,6 +247,58 @@ TEST_CASE("Util::get_level_1_files")
     CHECK(files[3]->path() == "0/file_a");
     CHECK(files[3]->lstat().size() == 0);
   }
+}
+
+TEST_CASE("Util::get_path_in_cache")
+{
+  Config saved = g_config;
+
+  ConfigTester testconfig;
+  testconfig.set_cache_dir("/zz/ccache");
+
+  {
+    testconfig.m_cache_dir_levels = 0;
+    g_config = testconfig;
+    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    CHECK(path == "/zz/ccache/ABCDEF.suffix");
+  }
+
+  {
+    testconfig.m_cache_dir_levels = 1;
+    g_config = testconfig;
+    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    CHECK(path == "/zz/ccache/A/BCDEF.suffix");
+  }
+
+  {
+    testconfig.m_cache_dir_levels = 4;
+    g_config = testconfig;
+    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    CHECK(path == "/zz/ccache/A/B/C/D/EF.suffix");
+  }
+
+  {
+    testconfig.m_cache_dir_levels = 0;
+    g_config = testconfig;
+    std::string path = Util::get_path_in_cache("", ".suffix");
+    CHECK(path == "/zz/ccache/.suffix");
+  }
+
+  {
+    testconfig.m_cache_dir_levels = 2;
+    g_config = testconfig;
+    std::string path = Util::get_path_in_cache("AB", ".suffix");
+    CHECK(path == "/zz/ccache/A/B/.suffix");
+  }
+
+  {
+    testconfig.m_cache_dir_levels = 3;
+    g_config = testconfig;
+    REQUIRE_THROWS_WITH(Util::get_path_in_cache("AB", ".suffix"),
+                        EndsWith("string_view::at()"));
+  }
+
+  g_config = saved;
 }
 
 TEST_CASE("Util::int_to_big_endian")

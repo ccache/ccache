@@ -18,11 +18,14 @@
 
 #include "Util.hpp"
 
+#include "Config.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ccache.hpp"
 
 #include <algorithm>
 #include <fstream>
+
+using nonstd::string_view;
 
 namespace {
 
@@ -40,7 +43,7 @@ get_cache_files_internal(const std::string& dir,
   std::vector<std::string> directories;
   dirent* de;
   while ((de = readdir(d))) {
-    nonstd::string_view name(de->d_name);
+    string_view name(de->d_name);
     if (name == "" || name == "." || name == ".." || name == "CACHEDIR.TAG"
         || name == "stats" || name.starts_with(".nfs")) {
       continue;
@@ -139,6 +142,49 @@ dir_name(nonstd::string_view path)
   return n == 0 ? "/" : path.substr(0, n);
 }
 
+nonstd::string_view
+get_extension(nonstd::string_view path)
+{
+#ifndef _WIN32
+  const char stop_at_chars[] = "./";
+#else
+  const char stop_at_chars[] = "./\\";
+#endif
+  size_t pos = path.find_last_of(stop_at_chars);
+  if (pos == string_view::npos || path.at(pos) == '/') {
+    return string_view();
+#ifdef _WIN32
+  } else if (path.at(pos) == '\\') {
+    return string_view();
+#endif
+  } else {
+    return path.substr(pos);
+  }
+}
+
+nonstd::string_view
+remove_extension(nonstd::string_view path)
+{
+  return path.substr(0, path.length() - get_extension(path).length());
+}
+
+std::string
+change_extension(nonstd::string_view path, nonstd::string_view new_ext)
+{
+  string_view without_ext = Util::remove_extension(path);
+  return std::string(without_ext).append(new_ext.data(), new_ext.length());
+}
+
+nonstd::string_view
+get_truncated_base_name(nonstd::string_view path, size_t max_length)
+{
+  string_view input_base = Util::base_name(path);
+  size_t dot_pos = input_base.find('.');
+  size_t truncate_pos =
+    std::min(max_length, std::min(input_base.size(), dot_pos));
+  return input_base.substr(0, truncate_pos);
+}
+
 bool
 ends_with(nonstd::string_view string, nonstd::string_view suffix)
 {
@@ -167,6 +213,29 @@ get_level_1_files(const std::string& dir,
                   std::vector<std::shared_ptr<CacheFile>>& files)
 {
   get_cache_files_internal(dir, 1, progress_receiver, files);
+}
+
+std::string
+get_path_in_cache(nonstd::string_view name, nonstd::string_view suffix)
+{
+  std::string path = g_config.cache_dir();
+
+  auto cache_dir_levels = g_config.cache_dir_levels();
+  path.reserve(path.size() + cache_dir_levels * 2 + 1 + name.length()
+               - cache_dir_levels + suffix.length());
+
+  unsigned level = 0;
+  for (; level < cache_dir_levels; ++level) {
+    path.push_back('/');
+    path.push_back(name.at(level));
+  }
+
+  path.push_back('/');
+  string_view name_remaining = name.substr(level);
+  path.append(name_remaining.data(), name_remaining.length());
+  path.append(suffix.data(), suffix.length());
+
+  return path;
 }
 
 int
