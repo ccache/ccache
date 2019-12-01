@@ -250,37 +250,10 @@ TEST_CASE("Util::get_level_1_files")
 
 TEST_CASE("Util::get_path_in_cache")
 {
-  {
-    std::string path =
-      Util::get_path_in_cache("/zz/ccache", 0, "ABCDEF", ".suffix");
-    CHECK(path == "/zz/ccache/ABCDEF.suffix");
-  }
-
-  {
-    std::string path =
-      Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF", ".suffix");
-    CHECK(path == "/zz/ccache/A/BCDEF.suffix");
-  }
-
-  {
-    std::string path =
-      Util::get_path_in_cache("/zz/ccache", 4, "ABCDEF", ".suffix");
-    CHECK(path == "/zz/ccache/A/B/C/D/EF.suffix");
-  }
-
-  {
-    std::string path = Util::get_path_in_cache("/zz/ccache", 0, "", ".suffix");
-    CHECK(path == "/zz/ccache/.suffix");
-  }
-
-  {
-    std::string path =
-      Util::get_path_in_cache("/zz/ccache", 2, "AB", ".suffix");
-    CHECK(path == "/zz/ccache/A/B/.suffix");
-  }
-
-  REQUIRE_THROWS_WITH(Util::get_path_in_cache("/zz/ccache", 3, "AB", ".suffix"),
-                      EndsWith("string_view::at()"));
+  CHECK(Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF", ".suffix")
+        == "/zz/ccache/A/BCDEF.suffix");
+  CHECK(Util::get_path_in_cache("/zz/ccache", 4, "ABCDEF", ".suffix")
+        == "/zz/ccache/A/B/C/D/EF.suffix");
 }
 
 TEST_CASE("Util::int_to_big_endian")

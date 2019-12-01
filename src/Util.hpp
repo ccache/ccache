@@ -146,7 +146,7 @@ void get_level_1_files(const std::string& dir,
 // it. Additionally `levels` single-character, '/'-separated subpaths are split
 // from the beginning of `name` before joining them all.
 //
-// Throws if cache dir levels is greater than the length of `name`.
+// `levels` must be less than the length of `name` and in the interval [1,8].
 //
 // E.g. "ABCDEF" and ".foo" will become "/ccache/A/B/CDEF.foo" when the cache
 // directory is "/ccache" and cache dir levels is 2.

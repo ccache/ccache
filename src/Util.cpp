@@ -221,6 +221,9 @@ get_path_in_cache(string_view cache_dir,
                   string_view name,
                   string_view suffix)
 {
+  assert(levels >= 1 && levels <= 8);
+  assert(levels < name.length());
+
   std::string path(cache_dir);
   path.reserve(path.size() + levels * 2 + 1 + name.length() - levels
                + suffix.length());
