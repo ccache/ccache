@@ -75,8 +75,8 @@ get_cache_files_internal(const std::string& dir,
 
 namespace Util {
 
-nonstd::string_view
-base_name(nonstd::string_view path)
+string_view
+base_name(string_view path)
 {
   size_t n = path.rfind('/');
 #ifdef _WIN32
@@ -89,7 +89,7 @@ base_name(nonstd::string_view path)
 }
 
 bool
-create_dir(nonstd::string_view dir)
+create_dir(string_view dir)
 {
   std::string dir_str(dir);
   auto st = Stat::stat(dir_str);
@@ -117,7 +117,7 @@ create_dir(nonstd::string_view dir)
 }
 
 std::pair<int, std::string>
-create_temp_fd(nonstd::string_view path_prefix)
+create_temp_fd(string_view path_prefix)
 {
   char* tmp_path = x_strndup(path_prefix.data(), path_prefix.length());
   int fd = create_tmp_fd(&tmp_path);
@@ -126,8 +126,8 @@ create_temp_fd(nonstd::string_view path_prefix)
   return {fd, actual_path};
 }
 
-nonstd::string_view
-dir_name(nonstd::string_view path)
+string_view
+dir_name(string_view path)
 {
   size_t n = path.rfind('/');
 #ifdef _WIN32
@@ -142,8 +142,8 @@ dir_name(nonstd::string_view path)
   return n == 0 ? "/" : path.substr(0, n);
 }
 
-nonstd::string_view
-get_extension(nonstd::string_view path)
+string_view
+get_extension(string_view path)
 {
 #ifndef _WIN32
   const char stop_at_chars[] = "./";
@@ -162,21 +162,21 @@ get_extension(nonstd::string_view path)
   }
 }
 
-nonstd::string_view
-remove_extension(nonstd::string_view path)
+string_view
+remove_extension(string_view path)
 {
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
 std::string
-change_extension(nonstd::string_view path, nonstd::string_view new_ext)
+change_extension(string_view path, string_view new_ext)
 {
   string_view without_ext = Util::remove_extension(path);
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
-nonstd::string_view
-get_truncated_base_name(nonstd::string_view path, size_t max_length)
+string_view
+get_truncated_base_name(string_view path, size_t max_length)
 {
   string_view input_base = Util::base_name(path);
   size_t dot_pos = input_base.find('.');
@@ -186,7 +186,7 @@ get_truncated_base_name(nonstd::string_view path, size_t max_length)
 }
 
 bool
-ends_with(nonstd::string_view string, nonstd::string_view suffix)
+ends_with(string_view string, string_view suffix)
 {
   return string.ends_with(suffix);
 }
@@ -216,7 +216,7 @@ get_level_1_files(const std::string& dir,
 }
 
 std::string
-get_path_in_cache(nonstd::string_view name, nonstd::string_view suffix)
+get_path_in_cache(string_view name, string_view suffix)
 {
   std::string path = g_config.cache_dir();
 
@@ -268,7 +268,7 @@ read_file(const std::string& path)
 }
 
 bool
-starts_with(nonstd::string_view string, nonstd::string_view prefix)
+starts_with(string_view string, string_view prefix)
 {
   return string.starts_with(prefix);
 }
