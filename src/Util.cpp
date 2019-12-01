@@ -152,10 +152,10 @@ get_extension(string_view path)
 #endif
   size_t pos = path.find_last_of(stop_at_chars);
   if (pos == string_view::npos || path.at(pos) == '/') {
-    return string_view();
+    return {};
 #ifdef _WIN32
   } else if (path.at(pos) == '\\') {
-    return string_view();
+    return {};
 #endif
   } else {
     return path.substr(pos);
