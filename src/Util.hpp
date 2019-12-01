@@ -54,7 +54,7 @@ nonstd::string_view remove_extension(nonstd::string_view path);
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
 
-// Return a shortened view into the base name of `path``. This view starts at
+// Return a shortened view into the base name of `path`. This view starts at
 // the beginning of the base name and ends at either the position the first dot,
 // or `max_length`, or the length of the base name, whichever is the shortest.
 nonstd::string_view get_truncated_base_name(nonstd::string_view path,
