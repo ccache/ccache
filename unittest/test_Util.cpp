@@ -18,7 +18,6 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "test_Config.hpp"
 
 #include "third_party/catch.hpp"
 
@@ -251,54 +250,37 @@ TEST_CASE("Util::get_level_1_files")
 
 TEST_CASE("Util::get_path_in_cache")
 {
-  Config saved = g_config;
-
-  ConfigTester testconfig;
-  testconfig.set_cache_dir("/zz/ccache");
-
   {
-    testconfig.m_cache_dir_levels = 0;
-    g_config = testconfig;
-    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    std::string path =
+      Util::get_path_in_cache("/zz/ccache", 0, "ABCDEF", ".suffix");
     CHECK(path == "/zz/ccache/ABCDEF.suffix");
   }
 
   {
-    testconfig.m_cache_dir_levels = 1;
-    g_config = testconfig;
-    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    std::string path =
+      Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF", ".suffix");
     CHECK(path == "/zz/ccache/A/BCDEF.suffix");
   }
 
   {
-    testconfig.m_cache_dir_levels = 4;
-    g_config = testconfig;
-    std::string path = Util::get_path_in_cache("ABCDEF", ".suffix");
+    std::string path =
+      Util::get_path_in_cache("/zz/ccache", 4, "ABCDEF", ".suffix");
     CHECK(path == "/zz/ccache/A/B/C/D/EF.suffix");
   }
 
   {
-    testconfig.m_cache_dir_levels = 0;
-    g_config = testconfig;
-    std::string path = Util::get_path_in_cache("", ".suffix");
+    std::string path = Util::get_path_in_cache("/zz/ccache", 0, "", ".suffix");
     CHECK(path == "/zz/ccache/.suffix");
   }
 
   {
-    testconfig.m_cache_dir_levels = 2;
-    g_config = testconfig;
-    std::string path = Util::get_path_in_cache("AB", ".suffix");
+    std::string path =
+      Util::get_path_in_cache("/zz/ccache", 2, "AB", ".suffix");
     CHECK(path == "/zz/ccache/A/B/.suffix");
   }
 
-  {
-    testconfig.m_cache_dir_levels = 3;
-    g_config = testconfig;
-    REQUIRE_THROWS_WITH(Util::get_path_in_cache("AB", ".suffix"),
-                        EndsWith("string_view::at()"));
-  }
-
-  g_config = saved;
+  REQUIRE_THROWS_WITH(Util::get_path_in_cache("/zz/ccache", 3, "AB", ".suffix"),
+                      EndsWith("string_view::at()"));
 }
 
 TEST_CASE("Util::int_to_big_endian")

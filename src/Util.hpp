@@ -21,6 +21,7 @@
 #include "system.hpp"
 
 #include "CacheFile.hpp"
+#include "Config.hpp"
 
 #include "third_party/nonstd/string_view.hpp"
 
@@ -141,16 +142,17 @@ void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
 
-// Join the global cache directory, a '/', `name`, and `suffix` into a single
-// path and return it. Additionally N single-character, '/'-separated subpaths
-// are split from the beginning of `name` before joining them all, where N is
-// the number of globally configured cache dir levels.
+// Join `cache_dir`, a '/', `name`, and `suffix` into a single path and return
+// it. Additionally `levels` single-character, '/'-separated subpaths are split
+// from the beginning of `name` before joining them all.
 //
 // Throws if cache dir levels is greater than the length of `name`.
 //
 // E.g. "ABCDEF" and ".foo" will become "/ccache/A/B/CDEF.foo" when the cache
 // directory is "/ccache" and cache dir levels is 2.
-std::string get_path_in_cache(nonstd::string_view name,
+std::string get_path_in_cache(nonstd::string_view cache_dir,
+                              uint32_t levels,
+                              nonstd::string_view name,
                               nonstd::string_view suffix);
 
 // Write bytes in big endian order from an integer value.

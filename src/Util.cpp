@@ -216,16 +216,17 @@ get_level_1_files(const std::string& dir,
 }
 
 std::string
-get_path_in_cache(string_view name, string_view suffix)
+get_path_in_cache(string_view cache_dir,
+                  uint32_t levels,
+                  string_view name,
+                  string_view suffix)
 {
-  std::string path = g_config.cache_dir();
-
-  auto cache_dir_levels = g_config.cache_dir_levels();
-  path.reserve(path.size() + cache_dir_levels * 2 + 1 + name.length()
-               - cache_dir_levels + suffix.length());
+  std::string path(cache_dir);
+  path.reserve(path.size() + levels * 2 + 1 + name.length() - levels
+               + suffix.length());
 
   unsigned level = 0;
-  for (; level < cache_dir_levels; ++level) {
+  for (; level < levels; ++level) {
     path.push_back('/');
     path.push_back(name.at(level));
   }

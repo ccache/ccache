@@ -1238,7 +1238,11 @@ update_cached_result_globals(struct digest* result_name)
   digest_as_string(result_name, result_name_string);
   cached_result_name = result_name;
   cached_result_path =
-    x_strdup(Util::get_path_in_cache(result_name_string, ".result").c_str());
+    x_strdup(Util::get_path_in_cache(g_config.cache_dir(),
+                                     g_config.cache_dir_levels(),
+                                     result_name_string,
+                                     ".result")
+               .c_str());
   stats_file =
     format("%s/%c/stats", g_config.cache_dir().c_str(), result_name_string[0]);
 }
@@ -2132,8 +2136,12 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
 
     char manifest_name_string[DIGEST_STRING_BUFFER_SIZE];
     hash_result_as_string(hash, manifest_name_string);
-    manifest_path = x_strdup(
-      Util::get_path_in_cache(manifest_name_string, ".manifest").c_str());
+    manifest_path =
+      x_strdup(Util::get_path_in_cache(g_config.cache_dir(),
+                                       g_config.cache_dir_levels(),
+                                       manifest_name_string,
+                                       ".manifest")
+                 .c_str());
     manifest_stats_file = format(
       "%s/%c/stats", g_config.cache_dir().c_str(), manifest_name_string[0]);
 
