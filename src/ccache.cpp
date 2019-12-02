@@ -1218,6 +1218,8 @@ update_manifest_file(void)
 
   auto old_st = Stat::stat(manifest_path);
 
+  // See comment in get_file_hash_index for why saving of timestamps is forced
+  // for precompiled headers.
   bool save_timestamp = (g_config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
                         || output_is_precompiled_header;
 

@@ -223,10 +223,9 @@ private:
     // file_stat.ctime() may be 0, so we have to check time_of_compilation
     // against MAX(mtime, ctime).
     //
-    // ccache only reads mtime/ctime if sloppy_file_stat_match is setted,
-    // so mtimes/ctimes could store as a dummy value (-1) in other scenarios.
-    // This will effectively control the total number of file infos in
-    // certain scenarios, such as CI.
+    // ccache only reads mtime/ctime if file_stat_match sloppiness is enabled,
+    // so mtimes/ctimes are stored as a dummy value (-1) if not enabled. This
+    // reduces the number of file_info entries for the common case.
 
     auto file_stat = Stat::stat(path, Stat::OnError::log);
     if (file_stat) {
