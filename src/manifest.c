@@ -510,7 +510,7 @@ get_file_hash_index(struct manifest *mf,
 
 	// ccache only reads mtime/ctime if sloppy_file_stat_match is setted,
 	// so mtimes/ctimes could store as a dummy value (-1) in other scenarios.
-	// This will effectively control the total number of file infos in 
+	// This will effectively control the total number of file infos in
 	// certain scenarios, such as CI.
 
 	struct stat file_stat;
@@ -569,7 +569,7 @@ static void
 add_object_entry(struct manifest *mf,
                  struct file_hash *object_hash,
                  struct hashtable *included_files,
-				 bool save_timestamp)
+                 bool save_timestamp)
 {
 	uint32_t n_objs = mf->n_objects;
 	mf->objects = x_realloc(mf->objects, (n_objs + 1) * sizeof(*mf->objects));
@@ -579,7 +579,8 @@ add_object_entry(struct manifest *mf,
 	uint32_t n_fii = hashtable_count(included_files);
 	obj->n_file_info_indexes = n_fii;
 	obj->file_info_indexes = x_malloc(n_fii * sizeof(*obj->file_info_indexes));
-	add_file_info_indexes(obj->file_info_indexes, n_fii, mf, included_files, save_timestamp);
+	add_file_info_indexes(obj->file_info_indexes, n_fii, mf, included_files,
+	                      save_timestamp);
 	memcpy(obj->hash.hash, object_hash->hash, mf->hash_size);
 	obj->hash.size = object_hash->size;
 }
