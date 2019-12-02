@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2018 Joel Rosdahl
+// Copyright (C) 2009-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -507,11 +507,10 @@ get_file_hash_index(struct manifest *mf,
 	//
 	// st->ctime may be 0, so we have to check time_of_compilation against
 	// MAX(mtime, ctime).
-
-	// ccache only reads mtime/ctime if sloppy_file_stat_match is setted,
-	// so mtimes/ctimes could store as a dummy value (-1) in other scenarios.
-	// This will effectively control the total number of file infos in
-	// certain scenarios, such as CI.
+	//
+	// ccache only reads mtime/ctime if file_stat_match sloppiness is enabled, so
+	// mtimes/ctimes are stored as a dummy value (-1) if not enabled. This reduces
+	// the number of file_info entries for the common case.
 
 	struct stat file_stat;
 	if (save_timestamp && stat(path, &file_stat) != -1

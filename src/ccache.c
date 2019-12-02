@@ -1386,6 +1386,8 @@ update_manifest_file(void)
 		old_size = file_size(&st);
 	}
 
+	// See comment in get_file_hash_index for why saving of timestamps is forced
+	// for precompiled headers.
 	bool save_timestamp =
 		(conf->sloppiness & SLOPPY_FILE_STAT_MATCHES)
 		|| output_is_precompiled_header;
