@@ -1218,9 +1218,13 @@ update_manifest_file(void)
 
   auto old_st = Stat::stat(manifest_path);
 
+  bool save_timestamp = (g_config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
+                        || output_is_precompiled_header;
+
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
-  if (!manifest_put(manifest_path, *cached_result_name, g_included_files)) {
+  if (!manifest_put(
+        manifest_path, *cached_result_name, g_included_files, save_timestamp)) {
     cc_log("Failed to add result name to %s", manifest_path);
   } else {
     auto st = Stat::stat(manifest_path, Stat::OnError::log);

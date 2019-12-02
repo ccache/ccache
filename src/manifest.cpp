@@ -173,7 +173,8 @@ struct ManifestData
   void
   add_result_entry(
     const struct digest& result_digest,
-    const std::unordered_map<std::string, digest>& included_files)
+    const std::unordered_map<std::string, digest>& included_files,
+    bool save_timestamp)
   {
     std::unordered_map<std::string, uint32_t /*index*/> mf_files;
     for (uint32_t i = 0; i < files.size(); ++i) {
@@ -187,8 +188,8 @@ struct ManifestData
 
     std::vector<uint32_t> file_info_indexes;
     for (const auto& item : included_files) {
-      file_info_indexes.push_back(
-        get_file_info_index(item.first, item.second, mf_files, mf_file_infos));
+      file_info_indexes.push_back(get_file_info_index(
+        item.first, item.second, mf_files, mf_file_infos, save_timestamp));
     }
 
     results.push_back(ResultEntry{std::move(file_info_indexes), result_digest});
@@ -200,7 +201,8 @@ private:
     const std::string& path,
     const digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
-    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos)
+    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
+    bool save_timestamp)
   {
     struct FileInfo fi;
 
@@ -220,11 +222,17 @@ private:
     //
     // file_stat.ctime() may be 0, so we have to check time_of_compilation
     // against MAX(mtime, ctime).
+    //
+    // ccache only reads mtime/ctime if sloppy_file_stat_match is setted,
+    // so mtimes/ctimes could store as a dummy value (-1) in other scenarios.
+    // This will effectively control the total number of file infos in
+    // certain scenarios, such as CI.
 
     auto file_stat = Stat::stat(path, Stat::OnError::log);
     if (file_stat) {
-      if (time_of_compilation
-          > std::max(file_stat.mtime(), file_stat.ctime())) {
+      if (save_timestamp
+          && time_of_compilation
+               > std::max(file_stat.mtime(), file_stat.ctime())) {
         fi.mtime = file_stat.mtime();
         fi.ctime = file_stat.ctime();
       } else {
@@ -494,7 +502,8 @@ manifest_get(const Config& config, const std::string& path)
 bool
 manifest_put(const std::string& path,
              const struct digest& result_name,
-             const std::unordered_map<std::string, digest>& included_files)
+             const std::unordered_map<std::string, digest>& included_files,
+             bool save_timestamp)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
   // race between two processes will only result in one lost entry, which is
@@ -536,7 +545,7 @@ manifest_put(const std::string& path,
     mf = std::make_unique<ManifestData>();
   }
 
-  mf->add_result_entry(result_name, included_files);
+  mf->add_result_entry(result_name, included_files, save_timestamp);
 
   try {
     write_manifest(path, *mf);
