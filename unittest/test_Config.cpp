@@ -363,7 +363,11 @@ TEST_CASE("Config::visit_items")
 {
   Util::write_file(
     "test.conf",
+#ifndef _WIN32
     "base_dir = /bd\n"
+#else
+    "base_dir = C:/bd\n"
+#endif
     "cache_dir = cd\n"
     "cache_dir_levels = 7\n"
     "compiler = c\n"
@@ -413,7 +417,11 @@ TEST_CASE("Config::visit_items")
   });
 
   std::vector<std::string> expected = {
+#ifndef _WIN32
     "(test.conf) base_dir = /bd",
+#else
+    "(test.conf) base_dir = C:/bd",
+#endif
     "(test.conf) cache_dir = cd",
     "(test.conf) cache_dir_levels = 7",
     "(test.conf) compiler = c",
