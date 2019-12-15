@@ -27,14 +27,14 @@ using Catch::Equals;
 
 TEST_CASE("Small Compression::Type::zstd roundtrip")
 {
-  File f("data.zstd", "w");
+  File f("data.zstd", "wb");
   auto compressor =
     Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
   CHECK(compressor->actual_compression_level() == 1);
   compressor->write("foobar", 6);
   compressor->finalize();
 
-  f.open("data.zstd", "r");
+  f.open("data.zstd", "rb");
   auto decompressor =
     Decompressor::create_from_type(Compression::Type::zstd, f.get());
 
@@ -61,7 +61,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 {
   char data[] = "The quick brown fox jumps over the lazy dog";
 
-  File f("data.zstd", "w");
+  File f("data.zstd", "wb");
   auto compressor =
     Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
   for (size_t i = 0; i < 1000; i++) {
@@ -69,7 +69,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
   }
   compressor->finalize();
 
-  f.open("data.zstd", "r");
+  f.open("data.zstd", "rb");
   auto decompressor =
     Decompressor::create_from_type(Compression::Type::zstd, f.get());
 
@@ -94,13 +94,13 @@ TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
     data[i] = rand() % 256;
   }
 
-  File f("data.zstd", "w");
+  File f("data.zstd", "wb");
   auto compressor =
     Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
   compressor->write(data, sizeof(data));
   compressor->finalize();
 
-  f.open("data.zstd", "r");
+  f.open("data.zstd", "rb");
   auto decompressor =
     Decompressor::create_from_type(Compression::Type::zstd, f.get());
 
