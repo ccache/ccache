@@ -46,7 +46,6 @@ non_3pp_sources = \
     src/manifest.c \
     src/mdfour.c \
     src/stats.c \
-    src/unify.c \
     src/util.c
 generated_sources = \
     src/confitems_lookup.c \

@@ -30,7 +30,6 @@
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
-#include "unify.h"
 
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
@@ -1726,27 +1725,11 @@ get_object_name_from_cpp(struct args *args, struct hash *hash)
 		failed();
 	}
 
-	if (conf->unify) {
-		// When we are doing the unifying tricks we need to include the input file
-		// name in the hash to get the warnings right.
-		hash_delimiter(hash, "unifyfilename");
-		hash_string(hash, input_file);
-
-		hash_delimiter(hash, "unifycpp");
-
-		bool debug_unify = getenv("CCACHE_DEBUG_UNIFY");
-		if (unify_hash(hash, path_stdout, debug_unify) != 0) {
-			stats_update(STATS_ERROR);
-			cc_log("Failed to unify %s", path_stdout);
-			failed();
-		}
-	} else {
-		hash_delimiter(hash, "cpp");
-		if (!process_preprocessed_file(hash, path_stdout,
-		                               guessed_compiler == GUESSED_PUMP)) {
-			stats_update(STATS_ERROR);
-			failed();
-		}
+	hash_delimiter(hash, "cpp");
+	if (!process_preprocessed_file(hash, path_stdout,
+	                               guessed_compiler == GUESSED_PUMP)) {
+		stats_update(STATS_ERROR);
+		failed();
 	}
 
 	hash_delimiter(hash, "cppstderr");
@@ -3303,11 +3286,6 @@ cc_process_args(struct args *args,
 		}
 	} // for
 
-	if (generating_debuginfo && conf->unify) {
-		cc_log("Generating debug info; disabling unify mode");
-		conf->unify = false;
-	}
-
 	if (generating_debuginfo_level_3 && !conf->run_second_cpp) {
 		cc_log("Generating debug info level 3; not compiling preprocessed code");
 		conf->run_second_cpp = true;
@@ -3991,7 +3969,7 @@ ccache(int argc, char *argv[])
 
 	if (conf->depend_mode
 	    && (!generating_dependencies || str_eq(output_dep, "/dev/null")
-	        || !conf->run_second_cpp || conf->unify)) {
+	        || !conf->run_second_cpp)) {
 		cc_log("Disabling depend mode");
 		conf->depend_mode = false;
 	}

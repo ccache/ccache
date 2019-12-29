@@ -160,7 +160,6 @@ conf_create(void)
 	conf->stats = true;
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; // Default: don't set umask.
-	conf->unify = false;
 	conf->item_origins = x_malloc(confitems_count() * sizeof(char *));
 	for (size_t i = 0; i < confitems_count(); ++i) {
 		conf->item_origins[i] = "default";
@@ -429,6 +428,5 @@ conf_print_items(struct conf *conf,
 	ok &= print_item(conf, "stats", printer, context);
 	ok &= print_item(conf, "temporary_dir", printer, context);
 	ok &= print_item(conf, "umask", printer, context);
-	ok &= print_item(conf, "unify", printer, context);
 	return ok;
 }
