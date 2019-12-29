@@ -1088,16 +1088,27 @@ EOF
 
 fi
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST ".incbin"
 
     cat <<EOF >incbin.c
-char x[] = ".incbin";
+__asm__(".incbin \"/dev/null\"");
 EOF
 
     $CCACHE_COMPILE -c incbin.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'unsupported code directive' 1
+
+    cat <<EOF >incbin.s
+.incbin "/dev/null";
+EOF
+
+    $CCACHE_COMPILE -c incbin.s
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat 'unsupported code directive' 2
+fi
 
     # -------------------------------------------------------------------------
     TEST "UNCACHED_ERR_FD"
