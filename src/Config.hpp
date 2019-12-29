@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -69,7 +69,6 @@ public:
   bool stats() const;
   const std::string& temporary_dir() const;
   uint32_t umask() const;
-  bool unify() const;
 
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
@@ -80,7 +79,6 @@ public:
   void set_max_files(uint32_t value);
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
-  void set_unify(bool value);
 
   typedef std::function<void(const std::string& key,
                              const std::string& value,
@@ -142,7 +140,6 @@ private:
   bool m_stats = true;
   std::string m_temporary_dir = "";
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
-  bool m_unify = false;
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
@@ -357,12 +354,6 @@ Config::umask() const
   return m_umask;
 }
 
-inline bool
-Config::unify() const
-{
-  return m_unify;
-}
-
 inline void
 Config::set_base_dir(const std::string& value)
 {
@@ -415,10 +406,4 @@ inline void
 Config::set_run_second_cpp(bool value)
 {
   m_run_second_cpp = value;
-}
-
-inline void
-Config::set_unify(bool value)
-{
-  m_unify = value;
 }

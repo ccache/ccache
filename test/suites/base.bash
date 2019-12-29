@@ -473,22 +473,6 @@ base_tests() {
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_UNIFY"
-
-    echo '// a silly comment' >>test1.c
-    CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-
-    echo '// another silly comment' >>test1.c
-    CCACHE_UNIFY=1 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-
-    $REAL_COMPILER -c -o reference_test1.o test1.c
-    expect_equal_object_files reference_test1.o test1.o
-
-    # -------------------------------------------------------------------------
     TEST "CCACHE_NLEVELS"
 
     CCACHE_NLEVELS=4 $CCACHE_COMPILE -c test1.c

@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -67,7 +67,6 @@ TEST_CASE("Config: default values")
   CHECK(config.stats());
   CHECK(config.temporary_dir().empty());
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
-  CHECK_FALSE(config.unify());
 }
 
 TEST_CASE("Config::update_from_file")
@@ -121,8 +120,7 @@ TEST_CASE("Config::update_from_file")
     " ,  no_system_headers,system_headers,clang_index_store\n"
     "stats = false\n"
     "temporary_dir = ${USER}_foo\n"
-    "umask = 777\n"
-    "unify = true"); // Note: no newline.
+    "umask = 777"); // Note: no newline.
 
   Config config;
   REQUIRE(config.update_from_file("ccache.conf"));
@@ -163,7 +161,6 @@ TEST_CASE("Config::update_from_file")
   CHECK_FALSE(config.stats());
   CHECK(config.temporary_dir() == fmt::format("{}_foo", user));
   CHECK(config.umask() == 0777);
-  CHECK(config.unify());
 }
 
 TEST_CASE("Config::update_from_file, error handling")
@@ -402,8 +399,7 @@ TEST_CASE("Config::visit_items")
     " clang_index_store\n"
     "stats = false\n"
     "temporary_dir = td\n"
-    "umask = 022\n"
-    "unify = true\n");
+    "umask = 022\n");
 
   Config config;
   config.update_from_file("test.conf");
@@ -457,7 +453,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) stats = false",
     "(test.conf) temporary_dir = td",
     "(test.conf) umask = 022",
-    "(test.conf) unify = true",
   };
 
   REQUIRE(received_items.size() == expected.size());

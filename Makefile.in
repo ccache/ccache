@@ -61,8 +61,7 @@ non_third_party_sources = \
     src/lockfile.cpp \
     src/manifest.cpp \
     src/result.cpp \
-    src/stats.cpp \
-    src/unify.cpp
+    src/stats.cpp
 generated_sources = \
     src/version.cpp
 third_party_sources = \

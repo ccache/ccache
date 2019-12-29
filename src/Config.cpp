@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -69,7 +69,6 @@ enum class ConfigItem {
   stats,
   temporary_dir,
   umask,
-  unify,
 };
 
 const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
@@ -107,7 +106,6 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"stats", ConfigItem::stats},
   {"temporary_dir", ConfigItem::temporary_dir},
   {"umask", ConfigItem::umask},
-  {"unify", ConfigItem::unify},
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
@@ -146,7 +144,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"STATS", "stats"},
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
-  {"UNIFY", "unify"},
 };
 
 typedef std::function<void(
@@ -577,9 +574,6 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::umask:
     return format_umask(m_umask);
-
-  case ConfigItem::unify:
-    return format_bool(m_unify);
   }
 
   assert(false);
@@ -797,10 +791,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::umask:
     m_umask = parse_umask(value);
-    break;
-
-  case ConfigItem::unify:
-    m_unify = parse_bool(value, from_env_variable, negate);
     break;
   }
 
