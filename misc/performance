@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #
-# Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+# Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 #
 # See doc/AUTHORS.adoc for a complete list of contributors.
 #
@@ -107,7 +107,9 @@ def test(tmp_dir, options, compiler_args, source_file):
         environment["CCACHE_HARDLINK"] = "1"
     if options.no_compression:
         environment["CCACHE_NOCOMPRESS"] = "1"
-    if options.nostats:
+    if options.no_cpp2:
+        environment["CCACHE_NOCPP2"] = "1"
+    if options.no_stats:
         environment["CCACHE_NOSTATS"] = "1"
 
     results = []
@@ -283,6 +285,9 @@ def main(argv):
         type="int",
     )
     op.add_option(
+        "--nocpp2", help="compile preprocessed output", action="store_true"
+    )
+    op.add_option(
         "--nostats", help="don't write statistics", action="store_true"
     )
     op.add_option(
@@ -332,7 +337,8 @@ def main(argv):
         print("Compression level:", options.compression_level or "default")
         print("File cloning:", on_off(options.file_clone))
         print("Hard linking:", on_off(options.hardlink))
-        print("Nostats:", on_off(options.nostats))
+        print("No cpp2:", on_off(options.no_cpp2))
+        print("No stats:", on_off(options.no_stats))
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
     recreate_dir(tmp_dir)
