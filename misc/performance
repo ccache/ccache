@@ -98,6 +98,8 @@ def test(tmp_dir, options, compiler_args, source_file):
     environment["CCACHE_COMPILERCHECK"] = options.compilercheck
     if options.compression:
         environment["CCACHE_COMPRESS"] = "1"
+    if options.nocpp2:
+        environment["CCACHE_NOCPP2"] = "1"
     if options.hardlink:
         environment["CCACHE_HARDLINK"] = "1"
     if options.nostats:
@@ -279,6 +281,9 @@ def main(argv):
         type="int",
     )
     op.add_option(
+        "--nocpp2", help="compile preprocessed output", action="store_true"
+    )
+    op.add_option(
         "--nostats", help="don't write statistics", action="store_true"
     )
     op.add_option(
@@ -326,6 +331,7 @@ def main(argv):
         print("Compilercheck:", options.compilercheck)
         print("Compression:", on_off(options.compression))
         print("Hardlink:", on_off(options.hardlink))
+        print("Nocpp2:", on_off(options.nocpp2))
         print("Nostats:", on_off(options.nostats))
 
     tmp_dir = "%s/perfdir.%d" % (abspath(options.directory), getpid())
