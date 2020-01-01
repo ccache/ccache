@@ -1,7 +1,7 @@
 // ccache -- a fast C/C++ compiler cache
 //
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl
+// Copyright (C) 2009-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -3548,8 +3548,7 @@ cc_process_args(struct args *args,
 		}
 
 		if (!dependency_target_specified
-		    && !dependency_implicit_target_specified
-		    && !str_eq(get_extension(output_obj), ".o")) {
+		    && !dependency_implicit_target_specified) {
 			args_add(dep_args, "-MQ");
 			args_add(dep_args, output_obj);
 		}
