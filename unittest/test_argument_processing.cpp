@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -162,36 +162,6 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
     "cc -c -MMD -MFfoo.d -MT mt -MTmt -MQmq foo.c -o foo.o");
   struct args* exp_cpp =
     args_init_from_string("cc -MMD -MFfoo.d -MT mt -MTmt -MQmq");
-  struct args* exp_cc = args_init_from_string("cc -c");
-  struct args *act_cpp = NULL, *act_cc = NULL;
-  create_file("foo.c", "");
-
-  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
-
-  args_free(orig);
-}
-
-TEST(MQ_flag_should_not_be_added_for_standard_obj_extension)
-{
-  struct args* orig = args_init_from_string("cc -c -MD foo.c -o foo.o");
-  struct args* exp_cpp = args_init_from_string("cc -MD -MF foo.d");
-  struct args* exp_cc = args_init_from_string("cc -c");
-  struct args *act_cpp = NULL, *act_cc = NULL;
-  create_file("foo.c", "");
-
-  CHECK(cc_process_args(orig, &act_cpp, NULL, &act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
-
-  args_free(orig);
-}
-
-TEST(MQ_flag_should_be_added_for_non_standard_obj_extension)
-{
-  struct args* orig = args_init_from_string("cc -c -MD foo.c -o foo.obj");
-  struct args* exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.obj");
   struct args* exp_cc = args_init_from_string("cc -c");
   struct args *act_cpp = NULL, *act_cc = NULL;
   create_file("foo.c", "");

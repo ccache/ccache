@@ -3421,8 +3421,7 @@ cc_process_args(struct args* args,
       output_dep = make_relative_path(x_strdup(default_depfile_name.c_str()));
     }
 
-    if (!dependency_target_specified && !dependency_implicit_target_specified
-        && !str_eq(get_extension(output_obj), ".o")) {
+    if (!dependency_target_specified && !dependency_implicit_target_specified) {
       args_add(dep_args, "-MQ");
       args_add(dep_args, output_obj);
     }
