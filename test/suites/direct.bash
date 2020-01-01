@@ -159,14 +159,29 @@ EOF
     mkdir a b
     touch a/source.c b/source.c
     backdate a/source.h b/source.h
-    $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
+    $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
+    expect_file_content a/source.d "a/source.o: a/source.c"
 
-    $CCACHE_COMPILE -MMD -c b/source.c
-    expect_file_content source.d "source.o: b/source.c"
+    $CCACHE_COMPILE -MMD -c b/source.c -o b/source.o
+    expect_file_content b/source.d "b/source.o: b/source.c"
 
-    $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
+    $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
+    expect_file_content a/source.d "a/source.o: a/source.c"
+
+    # -------------------------------------------------------------------------
+    TEST "Dependency file content"
+
+    mkdir build
+    touch test1.c
+    cp test1.c build
+
+    for src in test1.c build/test1.c; do
+        for obj in test1.o build/test1.o; do
+            $CCACHE_COMPILE -c -MMD $src -o $obj
+            dep=$(echo $obj | sed 's/\.o$/.d/')
+            expect_file_content $dep "$obj: $src"
+        done
+    done
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different include file paths"

@@ -1009,6 +1009,20 @@ EOF
     expect_stat 'files in cache' 2
 
     # -------------------------------------------------------------------------
+    TEST "Dependency file content"
+
+    mkdir build
+    cp test1.c build
+
+    for src in test1.c build/test1.c; do
+        for obj in test1.o build/test1.o; do
+            $CCACHE_COMPILE -c -MMD $src -o $obj
+            dep=$(echo $obj | sed 's/\.o$/.d/')
+            expect_file_content $dep "$obj: $src"
+        done
+    done
+
+    # -------------------------------------------------------------------------
     TEST "Buggy GCC 6 cpp"
 
     cat >buggy-cpp <<EOF
