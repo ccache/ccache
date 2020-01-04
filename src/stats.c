@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2004 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl
+// Copyright (C) 2009-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -79,7 +79,7 @@ static struct {
 		FLAG_ALWAYS
 	},
 	{
-		STATS_TOCACHE,
+		STATS_CACHEMISS,
 		"cache_miss",
 		"cache miss",
 		NULL,
@@ -370,7 +370,7 @@ stats_hit_rate(struct counters *counters)
 	unsigned direct = counters->data[STATS_CACHEHIT_DIR];
 	unsigned preprocessed = counters->data[STATS_CACHEHIT_CPP];
 	unsigned hit = direct + preprocessed;
-	unsigned miss = counters->data[STATS_TOCACHE];
+	unsigned miss = counters->data[STATS_CACHEMISS];
 	unsigned total = hit + miss;
 	return total > 0 ? (100.0 * hit) / total : 0.0;
 }
@@ -442,11 +442,26 @@ stats_flush_to_file(const char *sfile, struct counters *updates)
 {
 	assert(conf);
 
-	if (!conf->stats) {
+	if (!updates) {
 		return;
 	}
 
-	if (!updates) {
+	if (conf->disable) {
+		// Just log result, don't update statistics.
+		cc_log("Result: disabled");
+		return;
+	}
+
+	if (!str_eq(conf->log_file, "") || conf->debug) {
+		for (int i = 0; i < STATS_END; ++i) {
+			if (updates->data[stats_info[i].stat] != 0
+			    && !(stats_info[i].flags & FLAG_NOZERO)) {
+				cc_log("Result: %s", stats_info[i].message);
+			}
+		}
+	}
+
+	if (!conf->stats) {
 		return;
 	}
 
@@ -482,15 +497,6 @@ stats_flush_to_file(const char *sfile, struct counters *updates)
 	}
 	stats_write(sfile, counters);
 	lockfile_release(sfile);
-
-	if (!str_eq(conf->log_file, "") || conf->debug) {
-		for (int i = 0; i < STATS_END; ++i) {
-			if (updates->data[stats_info[i].stat] != 0
-			    && !(stats_info[i].flags & FLAG_NOZERO)) {
-				cc_log("Result: %s", stats_info[i].message);
-			}
-		}
-	}
 
 	char *subdir = dirname(sfile);
 	bool need_cleanup = false;
@@ -591,7 +597,7 @@ stats_summary(void)
 			free(value);
 		}
 
-		if (stat == STATS_TOCACHE) {
+		if (stat == STATS_CACHEMISS) {
 			double percent = stats_hit_rate(counters);
 			printf("cache hit rate                    %6.2f %%\n", percent);
 		}

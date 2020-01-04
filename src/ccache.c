@@ -595,6 +595,7 @@ get_current_working_dir(void)
 		if (!current_working_dir) {
 			cc_log("Unable to determine current working directory: %s",
 			       strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 	}
@@ -1519,18 +1520,21 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		if (x_rename(tmp_stderr, tmp_stderr2)) {
 			cc_log("Failed to rename %s to %s: %s", tmp_stderr, tmp_stderr2,
 			       strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 
 		int fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
 		if (fd_cpp_stderr == -1) {
 			cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 
 		int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
 		if (fd_real_stderr == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 
@@ -1538,6 +1542,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 			open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_result == -1) {
 			cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
+			stats_update(STATS_ERROR);
 			failed();
 		}
 
@@ -1572,6 +1577,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		struct file_hash *object_hash =
 			object_hash_from_depfile(output_dep, depend_mode_hash);
 		if (!object_hash) {
+			stats_update(STATS_ERROR);
 			failed();
 		}
 		update_cached_result_globals(object_hash);
@@ -1634,7 +1640,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 	MTR_END("file", "file_put");
 
-	stats_update(STATS_TOCACHE);
+	stats_update(STATS_CACHEMISS);
 
 	// Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
 	// be done almost anywhere, but we might as well do it near the end as we
@@ -2241,6 +2247,7 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 		hash_delimiter(hash, "sourcecode");
 		int result = hash_source_code_file(conf, hash, input_file);
 		if (result & HASH_SOURCE_CODE_ERROR) {
+			stats_update(STATS_ERROR);
 			failed();
 		}
 		if (result & HASH_SOURCE_CODE_FOUND_TIME) {
@@ -2585,6 +2592,7 @@ cc_process_args(struct args *args,
 			i++;
 			if (i == argc) {
 				cc_log("--ccache-skip lacks an argument");
+				stats_update(STATS_ARGS);
 				result = false;
 				goto out;
 			}
@@ -3091,6 +3099,7 @@ cc_process_args(struct args *args,
 				// know what the user means, and what the compiler will do.
 				if (arg_profile_dir && profile_dir) {
 					cc_log("Profile directory already set; giving up");
+					stats_update(STATS_UNSUPPORTED_OPTION);
 					result = false;
 					goto out;
 				} else if (arg_profile_dir) {
@@ -3885,6 +3894,7 @@ set_up_uncached_err(void)
 	int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
 	if (uncached_fd == -1) {
 		cc_log("dup(2) failed: %s", strerror(errno));
+		stats_update(STATS_ERROR);
 		failed();
 	}
 
@@ -3892,6 +3902,7 @@ set_up_uncached_err(void)
 	char *buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
 	if (putenv(buf) == -1) {
 		cc_log("putenv failed: %s", strerror(errno));
+		stats_update(STATS_ERROR);
 		failed();
 	}
 }
@@ -3935,6 +3946,7 @@ ccache(int argc, char *argv[])
 
 	if (conf->disable) {
 		cc_log("ccache is disabled");
+		stats_update(STATS_CACHEMISS); // Dummy to trigger stats_flush.
 		failed();
 	}
 
@@ -3962,7 +3974,7 @@ ccache(int argc, char *argv[])
 	MTR_BEGIN("main", "process_args");
 	if (!cc_process_args(
 	      orig_args, &preprocessor_args, &extra_args_to_hash, &compiler_args)) {
-		failed();
+		failed(); // stats_update is called in cc_process_args.
 	}
 	MTR_END("main", "process_args");
 
@@ -4050,6 +4062,7 @@ ccache(int argc, char *argv[])
 
 	if (conf->read_only_direct) {
 		cc_log("Read-only direct mode; running real compiler");
+		stats_update(STATS_CACHEMISS);
 		failed();
 	}
 
@@ -4096,6 +4109,7 @@ ccache(int argc, char *argv[])
 
 	if (conf->read_only) {
 		cc_log("Read-only mode; running real compiler");
+		stats_update(STATS_CACHEMISS);
 		failed();
 	}
 

@@ -508,9 +508,13 @@ might be incorrect.
 *read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use existing cached object files, but it
-    will not to try to add anything new to the cache. If you are using this
-    because your ccache directory is read-only, then you need to set
-    *temporary_dir* as otherwise ccache will fail to create temporary files.
+    will not add new results to the cache. Statistics counters will still be
+    updated, though, unless the *stats* option is set to *false*.
++
+If you are using this because your ccache directory is read-only, you need to
+set *temporary_dir* since ccache will fail to create temporary files otherwise.
+You may also want to set *stats = false* to make ccache not even try to update
+stats files.
 
 *read_only_direct* (*CCACHE_READONLY_DIRECT* or *CCACHE_NOREADONLY_DIRECT*, see <<_boolean_values,Boolean values>> above)::
 

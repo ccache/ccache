@@ -44,9 +44,9 @@ SUITE_readonly() {
     if [ $? -ne 0 ]; then
         test_failed "Failure when compiling test2.c read-only"
     fi
-    if [ -d $CCACHE_DIR ]; then
-        test_failed "ccache dir was created"
-    fi
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 0
 
     # -------------------------------------------------------------------------
     # Check that read-only mode and direct mode work together.
