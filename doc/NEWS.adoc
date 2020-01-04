@@ -1,6 +1,36 @@
 ccache news
 ===========
 
+ccache 3.7.7
+------------
+Release date: 2020-01-05
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed a bug related to object file location in the dependency file (if using
+  `-MD` or `-MMD` but not `-MF` and the build directory is not the same as the
+  source directory then the object file location in the `.d` file would become
+  incorrect). This fixes regression in ccache 3.7.5 introduced by the bug fix
+  related to EDG-based compilers. Note that this removes support for EDG-based
+  compilers again. (A better fix for this is planned for ccache 4.0.)
+
+- Removed the unify mode since it has bugs and shortcomings that are non-trivial
+  or impossible to fix: it doesn’t work with the direct mode, it doesn’t handle
+  C++ raw strings correctly, it can give false cache hits for `.incbin`
+  directives, it’s turned off when using `-g` and it can make line numbers in
+  warning messages and `__LINE__` macros incorrect.
+
+- mtime and ctime values are now stored in the manifest files only when
+  sloppy_file_stat is set. This avoids adding superfluous manifest file entries
+  on direct mode cache misses.
+
+- A “Result:” line is now always printed to the log.
+
+- The “cache miss” statistics counter will now be updated for read-only cache
+  misses, making it consistent with the cache hit case.
+
+
 ccache 3.7.6
 ------------
 Release date: 2019-11-17
