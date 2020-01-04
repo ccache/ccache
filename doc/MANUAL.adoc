@@ -593,11 +593,14 @@ file in `/etc/rsyslog.d`:
 
 [[config_read_only]] *read_only* (*CCACHE_READONLY* or *CCACHE_NOREADONLY*, see <<_boolean_values,Boolean values>> above)::
 
-    If true, ccache will attempt to use existing cached object files, but it
-    will not to try to add anything new to the cache. If you are using this
-    because your ccache directory is read-only, then you need to set
-    <<config_temporary_dir,*temporary_dir*>> as otherwise ccache will fail to
-    create temporary files.
+    If true, ccache will attempt to use existing cached results, but it will not
+    add new results to the cache. Statistics counters will still be updated,
+    though, unless the <<config_stats,*stats*>> option is set to *false*.
++
+If you are using this because your ccache directory is read-only, you need to
+set <<config_temporary_dir,*temporary_dir*>> since ccache will fail to create
+temporary files otherwise. You may also want to set <<config_stats,*stats*>> to
+*false* make ccache not even try to update stats files.
 
 [[config_read_only_direct]] *read_only_direct* (*CCACHE_READONLY_DIRECT* or *CCACHE_NOREADONLY_DIRECT*, see <<_boolean_values,Boolean values>> above)::
 

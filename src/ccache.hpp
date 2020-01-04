@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2007 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -49,7 +49,7 @@ enum stats {
   STATS_STDOUT = 1,
   STATS_STATUS = 2,
   STATS_ERROR = 3,
-  STATS_TOCACHE = 4,
+  STATS_CACHEMISS = 4,
   STATS_PREPROCESSOR = 5,
   STATS_COMPILER = 6,
   STATS_MISSING = 7,

@@ -1,5 +1,5 @@
 // Copyright (C) 2002-2004 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -77,7 +77,7 @@ static struct
    "cache hit (preprocessed)",
    NULL,
    FLAG_ALWAYS},
-  {STATS_TOCACHE, "cache_miss", "cache miss", NULL, FLAG_ALWAYS},
+  {STATS_CACHEMISS, "cache_miss", "cache miss", NULL, FLAG_ALWAYS},
   {STATS_LINK, "called_for_link", "called for link", NULL, 0},
   {STATS_PREPROCESSING,
    "called_for_preprocessing",
@@ -246,7 +246,7 @@ stats_hit_rate(struct counters* counters)
   unsigned direct = counters->data[STATS_CACHEHIT_DIR];
   unsigned preprocessed = counters->data[STATS_CACHEHIT_CPP];
   unsigned hit = direct + preprocessed;
-  unsigned miss = counters->data[STATS_TOCACHE];
+  unsigned miss = counters->data[STATS_CACHEMISS];
   unsigned total = hit + miss;
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
@@ -321,11 +321,26 @@ stats_read(const char* sfile, struct counters* counters)
 static void
 stats_flush_to_file(const char* sfile, struct counters* updates)
 {
-  if (!g_config.stats()) {
+  if (!updates) {
     return;
   }
 
-  if (!updates) {
+  if (g_config.disable()) {
+    // Just log result, don't update statistics.
+    cc_log("Result: disabled");
+    return;
+  }
+
+  if (!g_config.log_file().empty() || g_config.debug()) {
+    for (int i = 0; i < STATS_END; ++i) {
+      if (updates->data[stats_info[i].stat] != 0
+          && !(stats_info[i].flags & FLAG_NOZERO)) {
+        cc_log("Result: %s", stats_info[i].message);
+      }
+    }
+  }
+
+  if (!g_config.stats()) {
     return;
   }
 
@@ -362,15 +377,6 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
   }
   stats_write(sfile, counters);
   lockfile_release(sfile);
-
-  if (!g_config.log_file().empty() || g_config.debug()) {
-    for (int i = 0; i < STATS_END; ++i) {
-      if (updates->data[stats_info[i].stat] != 0
-          && !(stats_info[i].flags & FLAG_NOZERO)) {
-        cc_log("Result: %s", stats_info[i].message);
-      }
-    }
-  }
 
   char* subdir = x_dirname(sfile);
   bool need_cleanup = false;
@@ -473,7 +479,7 @@ stats_summary(void)
       free(value);
     }
 
-    if (stat == STATS_TOCACHE) {
+    if (stat == STATS_CACHEMISS) {
       double percent = stats_hit_rate(counters);
       printf("cache hit rate                    %6.2f %%\n", percent);
     }
