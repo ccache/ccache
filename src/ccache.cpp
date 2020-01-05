@@ -56,7 +56,7 @@ static const char VERSION_TEXT[] = MYNAME
   " version %s\n"
   "\n"
   "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2019 Joel Rosdahl and other contributors\n"
+  "Copyright (C) 2009-2020 Joel Rosdahl and other contributors\n"
   "\n"
   "See <https://ccache.dev/credits.html> for a complete list of "
   "contributors.\n"
