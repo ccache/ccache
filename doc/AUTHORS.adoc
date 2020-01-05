@@ -68,6 +68,7 @@ ccache is a collective work with contributions from many people, including:
 * Mike Frysinger
 * Mike Gulick
 * Mikhail Kolomeytsev
+* Mizuha Himuraki
 * Mostyn Bramley-Moore
 * Neil Mushell
 * Nick Schultz
