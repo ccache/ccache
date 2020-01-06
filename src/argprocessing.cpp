@@ -388,9 +388,35 @@ process_option_arg(const Context& ctx,
 
   // These are always too hard.
   if (compopt_too_hard(arg) || util::starts_with(arg, "-fdump-")
-      || util::starts_with(arg, "-MJ") || util::starts_with(arg, "-Yc")) {
+      || util::starts_with(arg, "-Yc")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
+  }
+
+  if (util::starts_with(args[i], "-MJ")) {
+    if (!config.sloppiness().contains(core::Sloppy::compilation_database)
+        && !config.generate_compilation_database()) {
+      LOG_RAW(
+        "Compiler option -MJ only supported with with sloppiness "
+        "\"compilation_database\" or \"CCACHE_GENERATE_COMPILATION_DATABASE\"");
+      return Statistic::unsupported_compiler_option;
+    }
+
+    std::string_view MJ_arg;
+    // ["-MJfile"] or ["-MJ", "file"], note: "-MJ=file" writes to "=file"
+    if (args[i].size() > 3) {
+      MJ_arg = std::string_view(args[i].data() + 3, args[i].size() - 3);
+    } else if (i != args.size() - 1) {
+      MJ_arg = args[i + 1];
+      ++i;
+    } else {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
+
+    args_info.output_cdb_json = std::string(MJ_arg);
+
+    return Statistic::none;
   }
 
   // These are too hard in direct mode.

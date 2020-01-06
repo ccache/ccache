@@ -138,6 +138,9 @@ struct ArgsInfo
   // Relocating debuginfo in the format old=new.
   std::vector<std::string> debug_prefix_maps;
 
+  // Generate a compilation database (cdb) json fragment (-MJ)
+  std::optional<std::string> output_cdb_json;
+
   // Argument list to add to compiler invocation in depend mode.
   Args depend_extra_args;
 };

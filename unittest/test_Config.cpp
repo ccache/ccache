@@ -401,6 +401,7 @@ TEST_CASE("Config::visit_items")
     "disable = true\n"
     "extra_files_to_hash = efth\n"
     "file_clone = true\n"
+    "generate_compilation_database = false\n"
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
@@ -462,6 +463,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) disable = true",
     "(test.conf) extra_files_to_hash = efth",
     "(test.conf) file_clone = true",
+    "(test.conf) generate_compilation_database = false",
     "(test.conf) hard_link = true",
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",

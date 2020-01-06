@@ -35,6 +35,7 @@
 #include "Util.hpp"
 #include "Win32Util.hpp"
 #include "argprocessing.hpp"
+#include "compilation_database.hpp"
 #include "compopt.hpp"
 #include "execute.hpp"
 #include "fmtmacros.hpp"
@@ -2288,6 +2289,12 @@ finalize_at_exit(Context& ctx)
       return;
     }
 
+    if (compilation_database_enabled(ctx)) {
+      std::string cdb_json = ctx.args_info.output_cdb_json.value_or(
+        Util::change_extension(ctx.args_info.output_obj, CDB_JSON));
+      write_cdb_json(ctx, cdb_json);
+    }
+
     log_result_to_debug_log(ctx);
     log_result_to_stats_log(ctx);
 
@@ -2379,12 +2386,20 @@ cache_compilation(int argc, const char* const* argv)
       ASSERT(!ctx.orig_args.empty());
 
       ctx.orig_args.erase_with_prefix("--ccache-");
+
       add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
       LOG_RAW("Failed; falling back to running the real compiler");
 
       saved_temp_dir = ctx.config.temporary_dir();
-      saved_orig_args = std::move(ctx.orig_args);
+
+      if (compilation_database_enabled(ctx)) {
+        // copy to leave ctx.orig_args intact, used when writing compile
+        // commands
+        saved_orig_args = ctx.orig_args;
+      } else {
+        saved_orig_args = std::move(ctx.orig_args);
+      }
       auto execv_argv = saved_orig_args.to_argv();
       LOG("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
       // Execute the original command below after ctx and finalizer have been

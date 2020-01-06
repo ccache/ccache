@@ -69,6 +69,7 @@ public:
   bool disable() const;
   const std::string& extra_files_to_hash() const;
   bool file_clone() const;
+  bool generate_compilation_database() const;
   bool hard_link() const;
   bool hash_dir() const;
   const std::string& ignore_headers_in_manifest() const;
@@ -183,6 +184,7 @@ private:
   bool m_disable = false;
   std::string m_extra_files_to_hash;
   bool m_file_clone = false;
+  bool m_generate_compilation_database = false;
   bool m_hard_link = false;
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest;
@@ -333,6 +335,12 @@ inline bool
 Config::file_clone() const
 {
   return m_file_clone;
+}
+
+inline bool
+Config::generate_compilation_database() const
+{
+  return m_generate_compilation_database;
 }
 
 inline bool

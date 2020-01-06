@@ -1,5 +1,17 @@
 = Ccache news
 
+- The sloppiness `compilation_database` adds support for the clang option
+  `-MJ cmd.cdb.json`, which generates a compilation database fragment
+  json file describing how the compiler was called. These files are usually
+  joined into a `compile_commands.json` file.
++
+Setting `CCACHE_GENERATE_COMPILATION_DATABASE` will write this file even
+without the `-MJ` option.
++
+Because `ccache` generates this information these two `ccache` options work
+even if non-`clang` compilers are wrapped. Note that the `ccache` generated
+files are not perfectly identical to the ones `clang` would generate.
+
 == Ccache 4.8.2
 
 Release date: 2023-06-12

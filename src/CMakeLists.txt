@@ -16,6 +16,7 @@ set(
   argprocessing.cpp
   assertions.cpp
   ccache.cpp
+  compilation_database.cpp
   compopt.cpp
   execute.cpp
   hashutil.cpp

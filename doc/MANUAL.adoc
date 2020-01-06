@@ -726,6 +726,14 @@ safe to use, but not all file systems support the feature. For such file
 systems, ccache will fall back to use plain copying (or hard links if
 <<config_hard_link,*hard_link*>> is enabled).
 
+[#config_generate_compilation_database]
+*generate_compilation_database* (*CCACHE_GENERATE_COMPILATION_DATABASE* or *CCACHE_NOGENERATE_COMPILATION_DATABASE*, see _<<Boolean values>>_ above)::
+
+    If true, `ccache` writes a compilation database fragment for any compiler.
+    The output will be written next to the object file with a `.cdb.json`
+    extension or to the path specified by `-MJ` if present.
+    See _<<Compilation database generation>>_.
+
 [#config_hard_link]
 *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see _<<Boolean values>>_ above)::
 
@@ -1003,6 +1011,11 @@ preprocessing first.
     index store path derived from the local project path. Note that the index
     store won't be updated correctly on cache hits if you enable this
     sloppiness.
+*compilation_database*::
+    Do not fall back to running the real compiler when `-MJ` is encountered but
+    let `ccache` generate the compilation database fragment file and hide the
+    argument from the compiler.
+    See _<<Compilation database generation>>_.
 *file_stat_matches*::
     Ccache normally examines a file's contents to determine whether it matches
     the cached version. With this sloppiness set, ccache will consider a file
@@ -1870,6 +1883,27 @@ which increases performance. You can use
 <<config_prefix_command_cpp,*prefix_command_cpp*>> if you also want to invoke
 the other wrapper when doing preprocessing (normally by adding `-E`).
 
+
+== Compilation database generation
+
+The `clang` option `-MJ` writes the compiler call into a compilation database
+json fragment file (cdb-json file). These files can then be joined into a
+`compile_commands.json` file which is used by various tools and IDEs.
+
+By default `ccache` does no caching if `-MJ` is encountered and instead
+falls back to running the real compiler. With the
+<<#config_sloppiness,compilation_database sloppiness>> set, `ccache` will
+generate the cdb-json file itself and hide the `-MJ` option from the compiler.
+If <<#config_generate_compilation_database,CCACHE_GENERATE_COMPILE_COMMANDS>>
+is set then `ccache` will always generate this file, even if `-MJ` is not
+present.
+
+The `ccache`-generated file is not identical to the one `clang` generates, but
+contains the same information.
+
+Because `ccache` hides `-MJ` from the compiler, now any wrapped compiler can
+generate these cdb-json files - but care must be taken to not pass this flag to
+non-`clang` compilers if `ccache` is disabled.
 
 == Caveats
 
