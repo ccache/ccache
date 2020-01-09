@@ -37,7 +37,7 @@ class Config;
 
 extern const char CCACHE_VERSION[];
 
-enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
+enum class GuessedCompiler { clang, gcc, nvcc, pump, msvc, unknown };
 
 #define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
 #define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)

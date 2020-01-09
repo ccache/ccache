@@ -52,6 +52,7 @@
 #  include "third_party/getopt_long.h"
 #endif
 
+#include <fstream>
 #include <limits>
 
 #define STRINGIFY(x) #x
@@ -225,7 +226,9 @@ guess_compiler(const char* path)
 {
   string_view name = Util::base_name(path);
   GuessedCompiler result = GuessedCompiler::unknown;
-  if (name.find("clang") != std::string::npos) {
+  if (name.find("clang-cl") != std::string::npos) {
+    result = GuessedCompiler::msvc;
+  } else if (name.find("clang") != std::string::npos) {
     result = GuessedCompiler::clang;
   } else if (name.find("gcc") != std::string::npos
              || name.find("g++") != std::string::npos) {
@@ -234,6 +237,8 @@ guess_compiler(const char* path)
     result = GuessedCompiler::nvcc;
   } else if (name == "pump" || name == "distcc-pump") {
     result = GuessedCompiler::pump;
+  } else if (name.find("cl") != std::string::npos) {
+    result = GuessedCompiler::msvc;
   }
   return result;
 }
@@ -808,8 +813,14 @@ to_cache(Context& ctx,
          Args& depend_extra_args,
          struct hash* depend_mode_hash)
 {
-  args.push_back("-o");
-  args.push_back(ctx.args_info.output_obj);
+  if (ctx.guessed_compiler == GuessedCompiler::msvc) {
+    char* fo = format("-Fo%s", ctx.args_info.output_obj.c_str());
+    args.push_back(fo);
+    free(fo);
+  } else {
+    args.push_back("-o");
+    args.push_back(ctx.args_info.output_obj);
+  }
 
   if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
     // Workaround for Clang bug where it overwrites an existing object file
@@ -892,9 +903,70 @@ to_cache(Context& ctx,
     failed(STATS_MISSING);
   }
 
+  // MSVC compiler always print the input file name to stdout,
+  // plus parts of the warnings/error messages.
+  // So we have to fusion that into stderr...
+  // Transform \r\n into \n. This way ninja won't produce empty newlines
+  // for the /showIncludes argument.
+  if (ctx.guessed_compiler == GuessedCompiler::msvc) {
+    char* tmp_stderr2 = format("%s.2", tmp_stderr);
+    if (x_rename(tmp_stderr, tmp_stderr2)) {
+      cc_log("Failed to rename %s to %s: %s",
+             tmp_stderr,
+             tmp_stderr2,
+             strerror(errno));
+      failed(STATS_ERROR);
+    }
+
+    std::ofstream result_stream;
+
+    std::vector<char> output_buffer(READ_BUFFER_SIZE);
+    result_stream.rdbuf()->pubsetbuf(output_buffer.data(),
+                                     output_buffer.size());
+
+    result_stream.open(tmp_stderr, std::ios_base::binary);
+    if (!result_stream.is_open()) {
+      cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
+      failed(STATS_ERROR);
+    }
+
+    std::ostreambuf_iterator<char> to(result_stream);
+    for (char* file : {tmp_stdout, tmp_stderr2}) {
+      std::ifstream file_stream;
+
+      std::vector<char> read_buffer(READ_BUFFER_SIZE);
+      file_stream.rdbuf()->pubsetbuf(read_buffer.data(), read_buffer.size());
+
+      file_stream.open(file, std::ios_base::binary);
+      if (!file_stream.is_open()) {
+        cc_log("Failed opening %s: %s", file, strerror(errno));
+        failed(STATS_ERROR);
+      }
+
+      std::istreambuf_iterator<char> from(file_stream);
+      for (; from != std::istreambuf_iterator<char>(); ++from, ++to) {
+        if (*from != '\r') {
+          *to = *from;
+        } else if (++from != std::istreambuf_iterator<char>()) {
+          *to = (*from == '\n') ? '\n' : '\r';
+        }
+      }
+    }
+
+    result_stream.close();
+    if (!result_stream.good()) {
+      cc_log("Failed at writing data into %s: %s", tmp_stderr, strerror(errno));
+      failed(STATS_ERROR);
+    }
+
+    tmp_unlink(tmp_stderr2);
+    free(tmp_stderr2);
+  }
+
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
+  if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump
+      && ctx.guessed_compiler != GuessedCompiler::msvc) {
     cc_log("Compiler produced stdout");
     failed(STATS_STDOUT);
   }
