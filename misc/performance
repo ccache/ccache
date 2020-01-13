@@ -285,10 +285,10 @@ def main(argv):
         type="int",
     )
     op.add_option(
-        "--nocpp2", help="compile preprocessed output", action="store_true"
+        "--no-cpp2", help="compile preprocessed output", action="store_true"
     )
     op.add_option(
-        "--nostats", help="don't write statistics", action="store_true"
+        "--no-stats", help="don't write statistics", action="store_true"
     )
     op.add_option(
         "-n",
