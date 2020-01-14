@@ -1877,7 +1877,10 @@ hash_common_info(struct args* args, struct hash* hash)
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
 static struct digest*
-calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
+calculate_result_name(struct args* args,
+                      struct args* preprocessor_args,
+                      struct hash* hash,
+                      bool direct_mode)
 {
   bool found_ccbin = false;
 
@@ -2151,22 +2154,23 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
       cc_log("Did not find result name in manifest");
     }
   } else {
+    assert(preprocessor_args);
     if (arch_args_size == 0) {
-      result_name = get_result_name_from_cpp(args, hash);
+      result_name = get_result_name_from_cpp(preprocessor_args, hash);
       cc_log("Got result name from preprocessor");
     } else {
-      args_add(args, "-arch");
+      args_add(preprocessor_args, "-arch");
       for (size_t i = 0; i < arch_args_size; ++i) {
-        args_add(args, arch_args[i]);
-        result_name = get_result_name_from_cpp(args, hash);
+        args_add(preprocessor_args, arch_args[i]);
+        result_name = get_result_name_from_cpp(preprocessor_args, hash);
         cc_log("Got result name from preprocessor with -arch %s", arch_args[i]);
         if (i != arch_args_size - 1) {
           free(result_name);
           result_name = NULL;
         }
-        args_pop(args, 1);
+        args_pop(preprocessor_args, 1);
       }
-      args_pop(args, 1);
+      args_pop(preprocessor_args, 1);
     }
     if (generating_dependencies) {
       // Nothing is actually created with -MF /dev/null
@@ -3900,7 +3904,8 @@ ccache(int argc, char* argv[])
   if (g_config.direct_mode()) {
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
-    result_name = calculate_result_name(args_to_hash, direct_hash, 1);
+    result_name =
+      calculate_result_name(args_to_hash, nullptr, direct_hash, true);
     MTR_END("hash", "direct_hash");
     if (result_name) {
       update_cached_result_globals(result_name);
@@ -3933,7 +3938,8 @@ ccache(int argc, char* argv[])
       cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
     MTR_BEGIN("hash", "cpp_hash");
-    result_name = calculate_result_name(args_to_hash, cpp_hash, 0);
+    result_name =
+      calculate_result_name(args_to_hash, preprocessor_args, cpp_hash, false);
     MTR_END("hash", "cpp_hash");
     if (!result_name) {
       fatal("internal error: calculate_result_name returned NULL for cpp");
