@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2019 Joel Rosdahl
+// Copyright (C) 2011-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -39,15 +39,15 @@ find_env_to_conf(const char *name)
 
 static enum handle_conf_result
 handle_conf_setting(struct conf *conf, const char *key, const char *value,
-                    char **errmsg, bool from_env_variable, bool negate_boolean,
-                    const char *origin)
+                    char **errmsg, const char *env_var_name,
+                    bool negate_boolean, const char *origin)
 {
 	const struct conf_item *item = find_conf(key);
 	if (!item) {
 		return HANDLE_CONF_UNKNOWN;
 	}
 
-	if (from_env_variable && item->parser == confitem_parse_bool) {
+	if (env_var_name && item->parser == confitem_parse_bool) {
 		// Special rule for boolean settings from the environment: "0", "false",
 		// "disable" and "no" (case insensitive) are invalid, and all other values
 		// mean true.
@@ -57,7 +57,13 @@ handle_conf_setting(struct conf *conf, const char *key, const char *value,
 		// enabled.
 		if (str_eq(value, "0") || strcasecmp(value, "false") == 0
 		    || strcasecmp(value, "disable") == 0 || strcasecmp(value, "no") == 0) {
-			fatal("invalid boolean environment variable value \"%s\"", value);
+			fatal(
+				"invalid boolean environment variable value \"%s\" for CCACHE_%s%s"
+				" (did you mean to set \"CCACHE_%s%s=true\"?)",
+				value,
+				negate_boolean ? "NO" : "",
+				env_var_name, negate_boolean ? "" : "NO",
+				env_var_name);
 		}
 
 		bool *boolvalue = (bool *)((char *)conf + item->offset);
@@ -218,7 +224,7 @@ conf_read(struct conf *conf, const char *path, char **errmsg)
 		bool ok = parse_line(buf, &key, &value, &errmsg2);
 		if (ok && key) { // key == NULL if comment or blank line.
 			hcr =
-				handle_conf_setting(conf, key, value, &errmsg2, false, false, path);
+				handle_conf_setting(conf, key, value, &errmsg2, NULL, false, path);
 			ok = hcr != HANDLE_CONF_FAIL; // unknown is OK
 		}
 		free(key);
@@ -274,8 +280,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 
 		char *errmsg2 = NULL;
 		enum handle_conf_result hcr = handle_conf_setting(
-			conf, env_to_conf_item->conf_name, q, &errmsg2, true, negate,
-			"environment");
+			conf, env_to_conf_item->conf_name, q, &errmsg2,
+			env_to_conf_item->env_name, negate, "environment");
 		if (hcr != HANDLE_CONF_OK) {
 			*errmsg = format("%s: %s", key, errmsg2);
 			free(errmsg2);
