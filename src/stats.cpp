@@ -47,7 +47,7 @@ static struct counters* counter_updates;
 
 // Returns a formatted version of a statistics value, or NULL if the statistics
 // line shouldn't be printed. Caller frees.
-typedef char* (*format_fn)(uint64_t value);
+using format_fn = char* (*)(uint64_t);
 
 static char* format_size_times_1024(uint64_t size);
 static char* format_timestamp(uint64_t timestamp);

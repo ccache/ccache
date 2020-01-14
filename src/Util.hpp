@@ -33,11 +33,10 @@
 
 namespace Util {
 
-typedef std::function<void(double)> ProgressReceiver;
-typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
-typedef std::function<void(const std::string& /*dir_path*/,
-                           const ProgressReceiver& /*progress_receiver*/)>
-  SubdirVisitor;
+using ProgressReceiver = std::function<void(double)>;
+using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
+using SubdirVisitor =
+  std::function<void(const std::string&, const ProgressReceiver&)>;
 
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);

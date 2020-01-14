@@ -80,10 +80,8 @@ public:
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
 
-  typedef std::function<void(const std::string& key,
-                             const std::string& value,
-                             const std::string& origin)>
-    ItemVisitor;
+  using ItemVisitor = std::function<void(
+    const std::string&, const std::string&, const std::string&)>;
 
   // Set config values from a configuration file.
   //
