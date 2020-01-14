@@ -967,22 +967,40 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Handling of compiler-only arguments"
 
-    $CCACHE_COMPILE -c test1.c
+    cat >compiler.sh <<EOF
+#!/bin/sh
+printf "[%s]" "\$*" >>compiler.args
+[ \$1 = -E ] && echo test || echo test >test1.o
+EOF
+    chmod +x compiler.sh
+    backdate compiler.sh
+
+    $CCACHE ./compiler.sh -c test1.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
+    if [ -z "$CCACHE_NOCPP2" ]; then
+        expect_file_content compiler.args "[-E test1.c][-c -o test1.o test1.c]"
+    fi
+    rm compiler.args
 
-    $CCACHE_COMPILE -c test1.c
+    $CCACHE ./compiler.sh -c test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
+    expect_file_content compiler.args "[-E test1.c]"
+    rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
     # of the hash, so we expect a cache miss:
-    $CCACHE_COMPILE -c -Werror test1.c
+    $CCACHE ./compiler.sh -c -Werror -rdynamic test1.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 2
+    if [ -z "$CCACHE_NOCPP2" ]; then
+        expect_file_content compiler.args "[-E test1.c][-Werror -rdynamic -c -o test1.o test1.c]"
+    fi
+    rm compiler.args
 
     # -------------------------------------------------------------------------
     TEST "Dependency file content"

@@ -2009,7 +2009,8 @@ calculate_common_hash(struct args *args, struct hash *hash)
 // modes and calculate the object hash. Returns the object hash on success,
 // otherwise NULL. Caller frees.
 static struct file_hash *
-calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
+calculate_object_hash(struct args *args, struct args *preprocessor_args,
+                      struct hash *hash, int direct_mode)
 {
 	bool found_ccbin = false;
 
@@ -2273,23 +2274,24 @@ calculate_object_hash(struct args *args, struct hash *hash, int direct_mode)
 			cc_log("Did not find object file hash in manifest");
 		}
 	} else {
+		assert(preprocessor_args);
 		if (arch_args_size == 0) {
-			object_hash = get_object_name_from_cpp(args, hash);
+			object_hash = get_object_name_from_cpp(preprocessor_args, hash);
 			cc_log("Got object file hash from preprocessor");
 		} else {
-			args_add(args, "-arch");
+			args_add(preprocessor_args, "-arch");
 			for (size_t i = 0; i < arch_args_size; ++i) {
-				args_add(args, arch_args[i]);
-				object_hash = get_object_name_from_cpp(args, hash);
+				args_add(preprocessor_args, arch_args[i]);
+				object_hash = get_object_name_from_cpp(preprocessor_args, hash);
 				cc_log("Got object file hash from preprocessor with -arch %s",
 				       arch_args[i]);
 				if (i != arch_args_size - 1) {
 					free(object_hash);
 					object_hash = NULL;
 				}
-				args_pop(args, 1);
+				args_pop(preprocessor_args, 1);
 			}
-			args_pop(args, 1);
+			args_pop(preprocessor_args, 1);
 		}
 		if (generating_dependencies) {
 			// Nothing is actually created with -MF /dev/null
@@ -4041,7 +4043,7 @@ ccache(int argc, char *argv[])
 	if (conf->direct_mode) {
 		cc_log("Trying direct lookup");
 		MTR_BEGIN("hash", "direct_hash");
-		object_hash = calculate_object_hash(args_to_hash, direct_hash, 1);
+		object_hash = calculate_object_hash(args_to_hash, NULL, direct_hash, 1);
 		MTR_END("hash", "direct_hash");
 		if (object_hash) {
 			update_cached_result_globals(object_hash);
@@ -4074,7 +4076,8 @@ ccache(int argc, char *argv[])
 			cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
 		MTR_BEGIN("hash", "cpp_hash");
-		object_hash = calculate_object_hash(args_to_hash, cpp_hash, 0);
+		object_hash = calculate_object_hash(
+			args_to_hash, preprocessor_args, cpp_hash, 0);
 		MTR_END("hash", "cpp_hash");
 		if (!object_hash) {
 			fatal("internal error: object hash from cpp returned NULL");
