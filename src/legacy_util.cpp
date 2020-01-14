@@ -80,7 +80,7 @@ static size_t debug_log_size;
 #define DEBUG_LOG_BUFFER_MARGIN 1024
 
 static bool
-init_log(void)
+init_log()
 {
   if (debug_log_buffer || logfile || use_syslog) {
     return true;
@@ -178,11 +178,11 @@ path_max(const char* path)
 #endif
 }
 
-static void warn_log_fail(void) ATTR_NORETURN;
+static void warn_log_fail() ATTR_NORETURN;
 
 // Warn about failure writing to the log file and then exit.
 static void
-warn_log_fail(void)
+warn_log_fail()
 {
   // Note: Can't call fatal() since that would lead to recursion.
   fprintf(stderr,
@@ -352,7 +352,7 @@ mkstemp(char* name_template)
 
 #ifndef _WIN32
 static mode_t
-get_umask(void)
+get_umask()
 {
   static bool mask_retrieved = false;
   static mode_t mask;
@@ -489,7 +489,7 @@ move_file(const char* src, const char* dest)
 
 // Return a static string with the current hostname.
 const char*
-get_hostname(void)
+get_hostname()
 {
   static char hostname[260] = "";
 
@@ -563,7 +563,7 @@ get_hostname(void)
 // Return a string to be passed to mkstemp to create a temporary file. Also
 // tries to cope with NFS by adding the local hostname.
 const char*
-tmp_string(void)
+tmp_string()
 {
   static char* ret;
   if (!ret) {
@@ -959,7 +959,7 @@ x_realpath(const char* path)
 
 // A getcwd that will returns an allocated buffer.
 char*
-gnu_getcwd(void)
+gnu_getcwd()
 {
   unsigned size = 128;
 
@@ -1063,7 +1063,7 @@ create_tmp_file(char** fname, const char* mode)
 
 // Return current user's home directory, or NULL if it can't be determined.
 const char*
-get_home_directory(void)
+get_home_directory()
 {
   const char* p = getenv("HOME");
   if (p) {
@@ -1089,7 +1089,7 @@ get_home_directory(void)
 // Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
 // is used. Caller frees.
 char*
-get_cwd(void)
+get_cwd()
 {
   char* cwd = gnu_getcwd();
   if (!cwd) {
@@ -1533,7 +1533,7 @@ set_cloexec_flag(int fd)
 }
 
 double
-time_seconds(void)
+time_seconds()
 {
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;

@@ -64,7 +64,7 @@ do_debug_text(struct hash* hash, const void* s, size_t len)
 }
 
 struct hash*
-hash_init(void)
+hash_init()
 {
   auto hash = static_cast<struct hash*>(malloc(sizeof(struct hash)));
   blake2b_init(&hash->state, DIGEST_SIZE);

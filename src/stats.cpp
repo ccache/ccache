@@ -233,7 +233,7 @@ stats_write(const char* path, struct counters* counters)
 }
 
 static void
-init_counter_updates(void)
+init_counter_updates()
 {
   if (!counter_updates) {
     counter_updates = counters_init(STATS_END);
@@ -411,7 +411,7 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
 
 // Write counter updates in counter_updates to disk.
 void
-stats_flush(void)
+stats_flush()
 {
   stats_flush_to_file(stats_file, counter_updates);
   counters_free(counter_updates);
@@ -437,7 +437,7 @@ stats_get_pending(enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(void)
+stats_summary()
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
@@ -499,7 +499,7 @@ stats_summary(void)
 
 // Print machine-parsable (tab-separated) statistics counters.
 void
-stats_print(void)
+stats_print()
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
@@ -518,7 +518,7 @@ stats_print(void)
 
 // Zero all the stats structures.
 void
-stats_zero(void)
+stats_zero()
 {
   char* fname = format("%s/stats", g_config.cache_dir().c_str());
   x_unlink(fname);

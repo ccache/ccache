@@ -343,11 +343,11 @@ add_extra_arg(const char* arg)
   }
 }
 
-static void failed(void) ATTR_NORETURN;
+static void failed() ATTR_NORETURN;
 
 // Something went badly wrong - just execute the real compiler.
 static void
-failed(void)
+failed()
 {
   assert(orig_args);
 
@@ -376,7 +376,7 @@ temp_dir()
 }
 
 void
-block_signals(void)
+block_signals()
 {
 #ifndef _WIN32
   sigprocmask(SIG_BLOCK, &fatal_signal_set, NULL);
@@ -384,7 +384,7 @@ block_signals(void)
 }
 
 void
-unblock_signals(void)
+unblock_signals()
 {
 #ifndef _WIN32
   sigset_t empty;
@@ -405,7 +405,7 @@ add_pending_tmp_file(const char* path)
 }
 
 static void
-do_clean_up_pending_tmp_files(void)
+do_clean_up_pending_tmp_files()
 {
   struct pending_tmp_file* p = pending_tmp_files;
   while (p) {
@@ -418,7 +418,7 @@ do_clean_up_pending_tmp_files(void)
 }
 
 static void
-clean_up_pending_tmp_files(void)
+clean_up_pending_tmp_files()
 {
   block_signals();
   do_clean_up_pending_tmp_files();
@@ -466,7 +466,7 @@ register_signal_handler(int signum)
 }
 
 static void
-set_up_signal_handlers(void)
+set_up_signal_handlers()
 {
   sigemptyset(&fatal_signal_set);
   sigaddset(&fatal_signal_set, SIGINT);
@@ -490,7 +490,7 @@ set_up_signal_handlers(void)
 #endif // _WIN32
 
 static void
-clean_up_internal_tempdir(void)
+clean_up_internal_tempdir()
 {
   time_t now = time(NULL);
   auto st = Stat::stat(g_config.cache_dir(), Stat::OnError::log);
@@ -581,7 +581,7 @@ guess_compiler(const char* path)
 }
 
 static char*
-get_current_working_dir(void)
+get_current_working_dir()
 {
   if (!current_working_dir) {
     char* cwd = get_cwd();
@@ -1209,7 +1209,7 @@ send_cached_stderr(const char* path_stderr)
 
 // Create or update the manifest file.
 static void
-update_manifest_file(void)
+update_manifest_file()
 {
   if (!g_config.direct_mode() || g_config.read_only()
       || g_config.read_only_direct()) {
@@ -2321,7 +2321,7 @@ is_precompiled_header(const char* path)
 }
 
 static bool
-color_output_possible(void)
+color_output_possible()
 {
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
@@ -3599,7 +3599,7 @@ tmpdir()
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
-initialize(void)
+initialize()
 {
   bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
   if (enable_internal_trace) {
@@ -3679,7 +3679,7 @@ free_and_nullify(T*& ptr)
 
 // Reset the global state. Used by the test suite.
 void
-cc_reset(void)
+cc_reset()
 {
   g_config = Config();
 
@@ -3738,7 +3738,7 @@ cc_reset(void)
 // Make a copy of stderr that will not be cached, so things like distcc can
 // send networking errors to it.
 static void
-set_up_uncached_err(void)
+set_up_uncached_err()
 {
   int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
   if (uncached_fd == -1) {

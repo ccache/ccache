@@ -164,8 +164,8 @@ bool copy_fd(int fd_in, int fd_out);
 bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);
 bool move_file(const char* src, const char* dest);
-const char* get_hostname(void);
-const char* tmp_string(void);
+const char* get_hostname();
+const char* tmp_string();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void format_hex(const uint8_t* data, size_t size, char* buffer);
 void reformat(char** ptr, const char* format, ...) ATTR_FORMAT(printf, 2, 3);
@@ -181,7 +181,7 @@ char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);
 char* x_realpath(const char* path);
-char* gnu_getcwd(void);
+char* gnu_getcwd();
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
@@ -190,8 +190,8 @@ char* strtok_r(char* str, const char* delim, char** saveptr);
 #endif
 int create_tmp_fd(char** fname);
 FILE* create_tmp_file(char** fname, const char* mode);
-const char* get_home_directory(void);
-char* get_cwd(void);
+const char* get_home_directory();
+char* get_cwd();
 bool same_executable_name(const char* s1, const char* s2);
 size_t common_dir_prefix_length(const char* s1, const char* s2);
 char* get_relative_path(const char* from, const char* to);
@@ -210,17 +210,17 @@ bool read_file(const char* path, size_t size_hint, char** data, size_t* size);
 char* read_text_file(const char* path, size_t size_hint);
 char* subst_env_in_string(const char* str, char** errmsg);
 void set_cloexec_flag(int fd);
-double time_seconds(void);
+double time_seconds();
 
 // ----------------------------------------------------------------------------
 // stats.c
 
 void stats_update(enum stats stat);
-void stats_flush(void);
+void stats_flush();
 unsigned stats_get_pending(enum stats stat);
-void stats_zero(void);
-void stats_summary(void);
-void stats_print(void);
+void stats_zero();
+void stats_summary();
+void stats_print();
 void stats_update_size(const char* sfile, int64_t size, int files);
 void stats_get_obsolete_limits(const char* dir,
                                unsigned* maxfiles,
@@ -234,11 +234,11 @@ void stats_write(const char* path, struct counters* counters);
 // ----------------------------------------------------------------------------
 // exitfn.c
 
-void exitfn_init(void);
-void exitfn_add_nullary(void (*function)(void));
+void exitfn_init();
+void exitfn_add_nullary(void (*function)());
 void exitfn_add(void (*function)(void*), void* context);
 void exitfn_add_last(void (*function)(void*), void* context);
-void exitfn_call(void);
+void exitfn_call();
 
 // ----------------------------------------------------------------------------
 // execute.c
@@ -259,13 +259,13 @@ void lockfile_release(const char* path);
 
 extern time_t time_of_compilation;
 extern bool output_is_precompiled_header;
-void block_signals(void);
-void unblock_signals(void);
+void block_signals();
+void unblock_signals();
 bool cc_process_args(struct args* args,
                      struct args** preprocessor_args,
                      struct args** extra_args_to_hash,
                      struct args** compiler_args);
-void cc_reset(void);
+void cc_reset();
 bool is_precompiled_header(const char* path);
 
 // ----------------------------------------------------------------------------

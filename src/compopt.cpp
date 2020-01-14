@@ -183,11 +183,11 @@ compopt_short(bool (*fn)(const char*), const char* option)
 }
 
 // Used by unittest/test_compopt.c.
-bool compopt_verify_sortedness_and_flags(void);
+bool compopt_verify_sortedness_and_flags();
 
 // For test purposes.
 bool
-compopt_verify_sortedness_and_flags(void)
+compopt_verify_sortedness_and_flags()
 {
   for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
     if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
