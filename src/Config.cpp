@@ -30,6 +30,9 @@
 #include <unordered_map>
 #include <vector>
 
+using nonstd::nullopt;
+using nonstd::optional;
+
 Config g_config;
 
 namespace {
@@ -151,9 +154,11 @@ typedef std::function<void(
   ConfigLineHandler;
 
 bool
-parse_bool(const std::string& value, bool from_env_variable, bool negate)
+parse_bool(const std::string& value,
+           const optional<std::string> env_var_key,
+           bool negate)
 {
-  if (from_env_variable) {
+  if (env_var_key) {
     // Special rule for boolean settings from the environment: "0", "false",
     // "disable" and "no" (case insensitive) are invalid, and all other values
     // mean true.
@@ -164,8 +169,14 @@ parse_bool(const std::string& value, bool from_env_variable, bool negate)
     std::string lower_value = Util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
-      throw Error(fmt::format(
-        "invalid boolean environment variable value \"{}\"", value));
+      throw Error(
+        fmt::format("invalid boolean environment variable value \"{}\" for"
+                    " CCACHE_{}{} (did you mean to set \"CCACHE_{}{}=true\"?)",
+                    value,
+                    negate ? "NO" : "",
+                    *env_var_key,
+                    negate ? "" : "NO",
+                    *env_var_key));
     }
     return !negate;
   } else if (value == "true") {
@@ -424,7 +435,7 @@ Config::update_from_file(const std::string& file_path)
                            [&](const std::string& /*line*/,
                                const std::string& key,
                                const std::string& value) {
-                             set_item(key, value, false, false, file_path);
+                             set_item(key, value, nullopt, false, file_path);
                            });
 }
 
@@ -457,7 +468,7 @@ Config::update_from_environment()
     const auto& config_key = it->second;
 
     try {
-      set_item(config_key, value, true, negate, "environment");
+      set_item(config_key, value, key, negate, "environment");
     } catch (const Error& e) {
       throw Error(fmt::format("CCACHE_{}: {}", key, e.what()));
     }
@@ -591,7 +602,7 @@ Config::set_value_in_file(const std::string& path,
 
   // Verify that the value is valid; set_item will throw if not.
   Config dummy_config;
-  dummy_config.set_item(key, value, false, false, "");
+  dummy_config.set_item(key, value, nullopt, false, "");
 
   AtomicFile output(path, AtomicFile::Mode::text);
   bool found = false;
@@ -635,7 +646,7 @@ Config::visit_items(const ItemVisitor& item_visitor) const
 void
 Config::set_item(const std::string& key,
                  const std::string& value,
-                 bool from_env_variable,
+                 const optional<std::string>& env_var_key,
                  bool negate,
                  const std::string& origin)
 {
@@ -673,7 +684,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression:
-    m_compression = parse_bool(value, from_env_variable, negate);
+    m_compression = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::compression_level: {
@@ -690,19 +701,19 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::debug:
-    m_debug = parse_bool(value, from_env_variable, negate);
+    m_debug = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::depend_mode:
-    m_depend_mode = parse_bool(value, from_env_variable, negate);
+    m_depend_mode = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::direct_mode:
-    m_direct_mode = parse_bool(value, from_env_variable, negate);
+    m_direct_mode = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::disable:
-    m_disable = parse_bool(value, from_env_variable, negate);
+    m_disable = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::extra_files_to_hash:
@@ -710,15 +721,15 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::file_clone:
-    m_file_clone = parse_bool(value, from_env_variable, negate);
+    m_file_clone = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::hard_link:
-    m_hard_link = parse_bool(value, from_env_variable, negate);
+    m_hard_link = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::hash_dir:
-    m_hash_dir = parse_bool(value, from_env_variable, negate);
+    m_hash_dir = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::ignore_headers_in_manifest:
@@ -726,7 +737,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::keep_comments_cpp:
-    m_keep_comments_cpp = parse_bool(value, from_env_variable, negate);
+    m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::limit_multiple:
@@ -750,7 +761,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::pch_external_checksum:
-    m_pch_external_checksum = parse_bool(value, from_env_variable, negate);
+    m_pch_external_checksum = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::prefix_command:
@@ -762,19 +773,19 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::read_only:
-    m_read_only = parse_bool(value, from_env_variable, negate);
+    m_read_only = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::read_only_direct:
-    m_read_only_direct = parse_bool(value, from_env_variable, negate);
+    m_read_only_direct = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::recache:
-    m_recache = parse_bool(value, from_env_variable, negate);
+    m_recache = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::run_second_cpp:
-    m_run_second_cpp = parse_bool(value, from_env_variable, negate);
+    m_run_second_cpp = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::sloppiness:
@@ -782,7 +793,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::stats:
-    m_stats = parse_bool(value, from_env_variable, negate);
+    m_stats = parse_bool(value, env_var_key, negate);
     break;
 
   case ConfigItem::temporary_dir:

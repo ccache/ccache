@@ -23,6 +23,7 @@
 #include "ccache.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/nonstd/optional.hpp"
 
 #include <functional>
 #include <limits>
@@ -145,7 +146,7 @@ private:
 
   void set_item(const std::string& key,
                 const std::string& value,
-                bool from_env_variable,
+                const nonstd::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
 };
