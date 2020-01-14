@@ -308,7 +308,7 @@ find_executable(const char* name, const char* exclude_name)
   }
   if (!path) {
     cc_log("No PATH variable");
-    return NULL;
+    return nullptr;
   }
 
   return find_executable_in_path(name, exclude_name, path);
@@ -323,9 +323,9 @@ find_executable_in_path(const char* name,
 
   // Search the path looking for the first compiler of the right name that
   // isn't us.
-  char* saveptr = NULL;
+  char* saveptr = nullptr;
   for (char* tok = strtok_r(path_buf, PATH_DELIM, &saveptr); tok;
-       tok = strtok_r(NULL, PATH_DELIM, &saveptr)) {
+       tok = strtok_r(nullptr, PATH_DELIM, &saveptr)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
     int ret = SearchPath(tok, name, NULL, sizeof(namebuf), namebuf, NULL);
@@ -367,7 +367,7 @@ find_executable_in_path(const char* name,
   }
 
   free(path_buf);
-  return NULL;
+  return nullptr;
 }
 
 void

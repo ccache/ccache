@@ -66,7 +66,7 @@ static const struct
   {".tcc", "c++-header"},
   {".TCC", "c++-header"},
   {".cu", "cu"},
-  {NULL, NULL},
+  {nullptr, nullptr},
 };
 
 // Supported languages and corresponding preprocessed languages.
@@ -92,7 +92,7 @@ static const struct
   {"objective-c++-cpp-output", "objective-c++-cpp-output"},
   {"assembler-with-cpp", "assembler"},
   {"assembler", "assembler"},
-  {NULL, NULL},
+  {nullptr, nullptr},
 };
 
 // Guess the language of a file based on its extension. Returns NULL if the
@@ -106,7 +106,7 @@ language_for_file(const char* fname)
       return extensions[i].language;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 // Return the preprocessed language for a given language, or NULL if unknown.
@@ -114,14 +114,14 @@ const char*
 p_language_for_language(const char* language)
 {
   if (!language) {
-    return NULL;
+    return nullptr;
   }
   for (int i = 0; languages[i].language; ++i) {
     if (str_eq(language, languages[i].language)) {
       return languages[i].p_language;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 // Return the default file extension (including dot) for a language, or NULL if
@@ -130,20 +130,20 @@ const char*
 extension_for_language(const char* language)
 {
   if (!language) {
-    return NULL;
+    return nullptr;
   }
   for (int i = 0; extensions[i].extension; i++) {
     if (str_eq(language, extensions[i].language)) {
       return extensions[i].extension;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 bool
 language_is_supported(const char* language)
 {
-  return p_language_for_language(language) != NULL;
+  return p_language_for_language(language) != nullptr;
 }
 
 bool

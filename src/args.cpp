@@ -25,7 +25,7 @@ args_init(int init_argc, const char* const* init_args)
   struct args* args = (struct args*)x_malloc(sizeof(struct args));
   args->argc = 0;
   args->argv = (char**)x_malloc(sizeof(char*));
-  args->argv[0] = NULL;
+  args->argv[0] = nullptr;
   for (int i = 0; i < init_argc; i++) {
     args_add(args, init_args[i]);
   }
@@ -38,10 +38,10 @@ args_init_from_string(const char* command)
   char* p = x_strdup(command);
   char* q = p;
   char *word, *saveptr = NULL;
-  struct args* args = args_init(0, NULL);
+  struct args* args = args_init(0, nullptr);
   while ((word = strtok_r(q, " \t\r\n", &saveptr))) {
     args_add(args, word);
-    q = NULL;
+    q = nullptr;
   }
 
   free(p);
@@ -53,10 +53,10 @@ args_init_from_gcc_atfile(const char* filename)
 {
   char* argtext;
   if (!(argtext = read_text_file(filename, 0))) {
-    return NULL;
+    return nullptr;
   }
 
-  struct args* args = args_init(0, NULL);
+  struct args* args = args_init(0, nullptr);
   char* pos = argtext;
   char* argbuf = static_cast<char*>(x_malloc(strlen(argtext) + 1));
   char* argpos = argbuf;
@@ -208,7 +208,7 @@ args_add(struct args* args, const char* s)
   args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char*));
   args->argv[args->argc] = x_strdup(s);
   args->argc++;
-  args->argv[args->argc] = NULL;
+  args->argv[args->argc] = nullptr;
 }
 
 // Add all arguments in to_append to args.
@@ -227,7 +227,7 @@ args_pop(struct args* args, int n)
   while (n--) {
     args->argc--;
     free(args->argv[args->argc]);
-    args->argv[args->argc] = NULL;
+    args->argv[args->argc] = nullptr;
   }
 }
 

@@ -483,7 +483,7 @@ manifest_get(const Config& config, const std::string& path)
   std::unordered_map<std::string, digest> hashed_files;
 
   // Check newest result first since it's a bit more likely to match.
-  struct digest* name = NULL;
+  struct digest* name = nullptr;
   for (uint32_t i = mf->results.size(); i > 0; i--) {
     if (verify_result(
           config, *mf, mf->results[i - 1], stated_files, hashed_files)) {

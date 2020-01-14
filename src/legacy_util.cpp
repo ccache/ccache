@@ -133,7 +133,7 @@ log_prefix(bool log_updated_time)
     char timestamp[100];
     struct tm tm;
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
 #  ifdef __MINGW64_VERSION_MAJOR
     localtime_r((time_t*)&tv.tv_sec, &tm);
 #  else
@@ -381,7 +381,7 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   }
 
   int dest_fd;
-  char* tmp_file = NULL;
+  char* tmp_file = nullptr;
   if (via_tmp_file) {
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
@@ -445,7 +445,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
   }
 
   int dest_fd;
-  char* tmp_file = NULL;
+  char* tmp_file = nullptr;
   if (via_tmp_file) {
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
@@ -579,7 +579,7 @@ format(const char* format, ...)
   va_list ap;
   va_start(ap, format);
 
-  char* ptr = NULL;
+  char* ptr = nullptr;
   if (vasprintf(&ptr, format, ap) == -1) {
     fatal("Out of memory in format");
   }
@@ -646,7 +646,7 @@ x_malloc(size_t size)
   if (size == 0) {
     // malloc() may return NULL if size is zero, so always do this to make sure
     // that the code handles it regardless of platform.
-    return NULL;
+    return nullptr;
   }
   void* ret = malloc(size);
   if (!ret) {
@@ -697,7 +697,7 @@ void
 reformat(char** ptr, const char* format, ...)
 {
   char* saved = *ptr;
-  *ptr = NULL;
+  *ptr = nullptr;
 
   va_list ap;
   va_start(ap, format);
@@ -954,7 +954,7 @@ x_realpath(const char* path)
     return p;
   }
   free(ret);
-  return NULL;
+  return nullptr;
 }
 
 // A getcwd that will returns an allocated buffer.
@@ -971,7 +971,7 @@ gnu_getcwd()
     free(buffer);
     if (errno != ERANGE) {
       cc_log("getcwd error: %d (%s)", errno, strerror(errno));
-      return NULL;
+      return nullptr;
     }
     size *= 2;
   }
@@ -1083,7 +1083,7 @@ get_home_directory()
     }
   }
 #endif
-  return NULL;
+  return nullptr;
 }
 
 // Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
@@ -1093,7 +1093,7 @@ get_cwd()
 {
   char* cwd = gnu_getcwd();
   if (!cwd) {
-    return NULL;
+    return nullptr;
   }
 
   char* pwd = getenv("PWD");
@@ -1239,7 +1239,7 @@ void
 update_mtime(const char* path)
 {
 #ifdef HAVE_UTIMES
-  utimes(path, NULL);
+  utimes(path, nullptr);
 #else
   utime(path, NULL);
 #endif
@@ -1379,7 +1379,7 @@ x_readlink(const char* path)
   ssize_t len = readlink(path, buf, maxlen - 1);
   if (len == -1) {
     free(buf);
-    return NULL;
+    return nullptr;
   }
   buf[len] = 0;
   return buf;
@@ -1421,7 +1421,7 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   if (ret == -1) {
     cc_log("Failed reading %s", path);
     free(*data);
-    *data = NULL;
+    *data = nullptr;
     return false;
   }
 
@@ -1441,7 +1441,7 @@ read_text_file(const char* path, size_t size_hint)
     data[size] = '\0';
     return data;
   } else {
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -1500,7 +1500,7 @@ char*
 subst_env_in_string(const char* str, char** errmsg)
 {
   assert(errmsg);
-  *errmsg = NULL;
+  *errmsg = nullptr;
 
   char* result = x_strdup("");
   const char* p = str; // Interval start.
@@ -1510,7 +1510,7 @@ subst_env_in_string(const char* str, char** errmsg)
       reformat(&result, "%s%.*s", result, (int)(q - p), p);
       if (!expand_variable(&q, &result, errmsg)) {
         free(result);
-        return NULL;
+        return nullptr;
       }
       p = q + 1;
     }
@@ -1537,7 +1537,7 @@ time_seconds()
 {
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 #else
   return (double)time(NULL);

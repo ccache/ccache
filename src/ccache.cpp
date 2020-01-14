@@ -120,13 +120,13 @@ static const char USAGE_TEXT[] =
   "See also <https://ccache.dev>.\n";
 
 // Where to write configuration changes.
-char* primary_config_path = NULL;
+char* primary_config_path = nullptr;
 
 // Secondary, read-only configuration file (if any).
-char* secondary_config_path = NULL;
+char* secondary_config_path = nullptr;
 
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
-char* current_working_dir = NULL;
+char* current_working_dir = nullptr;
 
 // The original argument list.
 static struct args* orig_args;
@@ -161,7 +161,7 @@ static const char* actual_language;
 // Array for storing -arch options.
 #define MAX_ARCH_ARGS 10
 static size_t arch_args_size = 0;
-static char* arch_args[MAX_ARCH_ARGS] = {NULL};
+static char* arch_args[MAX_ARCH_ARGS] = {nullptr};
 
 // Name (represented as a struct digest) of the file containing the cached
 // result.
@@ -215,7 +215,7 @@ static bool generating_diagnostics;
 static bool seen_split_dwarf;
 
 // Relocating debuginfo in the format old=new.
-static char** debug_prefix_maps = NULL;
+static char** debug_prefix_maps = nullptr;
 
 // Size of debug_prefix_maps list.
 static size_t debug_prefix_maps_len = 0;
@@ -237,7 +237,7 @@ static char* cpp_stderr;
 
 // Full path to the statistics file in the subdirectory where the cached result
 // belongs (<cache_dir>/<x>/stats).
-char* stats_file = NULL;
+char* stats_file = nullptr;
 
 // The stats file to use for the manifest.
 static char* manifest_stats_file;
@@ -254,7 +254,7 @@ static bool profile_use = false;
 static bool profile_generate = false;
 
 // Sanitize blacklist
-static char** sanitize_blacklists = NULL;
+static char** sanitize_blacklists = nullptr;
 
 // Size of sanitize_blacklists
 static size_t sanitize_blacklists_len = 0;
@@ -264,7 +264,7 @@ static size_t sanitize_blacklists_len = 0;
 static bool using_precompiled_header = false;
 
 // The .gch/.pch/.pth file used for compilation.
-static char* included_pch_file = NULL;
+static char* included_pch_file = nullptr;
 
 // How long (in microseconds) to wait before breaking a stale lock.
 unsigned lock_staleness_limit = 2000000;
@@ -278,7 +278,7 @@ struct pending_tmp_file
 };
 
 // Temporary files to remove at program exit.
-static struct pending_tmp_file* pending_tmp_files = NULL;
+static struct pending_tmp_file* pending_tmp_files = nullptr;
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
@@ -306,11 +306,11 @@ add_prefix(struct args* args, const char* prefix_command)
     return;
   }
 
-  struct args* prefix = args_init(0, NULL);
+  struct args* prefix = args_init(0, nullptr);
   char* e = x_strdup(prefix_command);
-  char* saveptr = NULL;
+  char* saveptr = nullptr;
   for (char* tok = strtok_r(e, " ", &saveptr); tok;
-       tok = strtok_r(NULL, " ", &saveptr)) {
+       tok = strtok_r(nullptr, " ", &saveptr)) {
     char* p;
 
     p = find_executable(tok, MYNAME);
@@ -336,8 +336,8 @@ static void
 add_extra_arg(const char* arg)
 {
   if (g_config.depend_mode()) {
-    if (depend_extra_args == NULL) {
-      depend_extra_args = args_init(0, NULL);
+    if (depend_extra_args == nullptr) {
+      depend_extra_args = args_init(0, nullptr);
     }
     args_add(depend_extra_args, arg);
   }
@@ -364,7 +364,7 @@ failed()
 static const char*
 temp_dir()
 {
-  static const char* path = NULL;
+  static const char* path = nullptr;
   if (path) {
     return path; // Memoize
   }
@@ -379,7 +379,7 @@ void
 block_signals()
 {
 #ifndef _WIN32
-  sigprocmask(SIG_BLOCK, &fatal_signal_set, NULL);
+  sigprocmask(SIG_BLOCK, &fatal_signal_set, nullptr);
 #endif
 }
 
@@ -389,7 +389,7 @@ unblock_signals()
 #ifndef _WIN32
   sigset_t empty;
   sigemptyset(&empty);
-  sigprocmask(SIG_SETMASK, &empty, NULL);
+  sigprocmask(SIG_SETMASK, &empty, nullptr);
 #endif
 }
 
@@ -436,7 +436,7 @@ signal_handler(int signum)
   // If ccache was killed explicitly, then bring the compiler subprocess (if
   // any) with us as well.
   if (signum == SIGTERM && compiler_pid != 0
-      && waitpid(compiler_pid, NULL, WNOHANG) == 0) {
+      && waitpid(compiler_pid, nullptr, WNOHANG) == 0) {
     kill(compiler_pid, signum);
   }
 
@@ -444,7 +444,7 @@ signal_handler(int signum)
 
   if (compiler_pid != 0) {
     // Wait for compiler subprocess to exit before we snuff it.
-    waitpid(compiler_pid, NULL, 0);
+    waitpid(compiler_pid, nullptr, 0);
   }
 
   // Resend signal to ourselves to exit properly after returning from the
@@ -462,7 +462,7 @@ register_signal_handler(int signum)
 #  ifdef SA_RESTART
   act.sa_flags = SA_RESTART;
 #  endif
-  sigaction(signum, &act, NULL);
+  sigaction(signum, &act, nullptr);
 }
 
 static void
@@ -492,7 +492,7 @@ set_up_signal_handlers()
 static void
 clean_up_internal_tempdir()
 {
-  time_t now = time(NULL);
+  time_t now = time(nullptr);
   auto st = Stat::stat(g_config.cache_dir(), Stat::OnError::log);
   if (!st || st.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
@@ -726,7 +726,7 @@ do_remember_include_file(std::string path,
 
   if (g_config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      char* source = NULL;
+      char* source = nullptr;
       size_t size;
       if (st.size() > 0) {
         if (!read_file(path.c_str(), st.size(), &source, &size)) {
@@ -813,7 +813,7 @@ make_relative_path(char* path)
   // x_dirname(path) and assemble the path afterwards. We only bother to try
   // canonicalizing one of these two paths since a compiler path argument
   // typically only makes sense if path or x_dirname(path) exists.
-  char* path_suffix = NULL;
+  char* path_suffix = nullptr;
   if (!Stat::stat(path)) {
     // path doesn't exist.
     char* dir = x_dirname(path);
@@ -871,7 +871,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
     return false;
   }
 
-  ignore_headers = NULL;
+  ignore_headers = nullptr;
   ignore_headers_len = 0;
   if (!g_config.ignore_headers_in_manifest().empty()) {
     char *header, *p, *q, *saveptr = NULL;
@@ -881,7 +881,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       ignore_headers = static_cast<char**>(
         x_realloc(ignore_headers, (ignore_headers_len + 1) * sizeof(char*)));
       ignore_headers[ignore_headers_len++] = x_strdup(header);
-      q = NULL;
+      q = nullptr;
     }
     free(p);
   }
@@ -1003,7 +1003,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
         hash_string_buffer(hash, inc_path, strlen(inc_path));
       }
 
-      remember_include_file(inc_path, hash, system, NULL);
+      remember_include_file(inc_path, hash, system, nullptr);
       free(inc_path);
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
@@ -1045,7 +1045,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
     char* pch_path = x_strdup(included_pch_file);
     pch_path = make_relative_path(pch_path);
     hash_string(hash, pch_path);
-    remember_include_file(pch_path, hash, false, NULL);
+    remember_include_file(pch_path, hash, false, nullptr);
     free(pch_path);
   }
 
@@ -1103,7 +1103,7 @@ use_relative_paths_in_depfile(const char* depfile)
       if (relpath != token) {
         free(relpath);
       }
-      token = strtok_r(NULL, " \t", &saveptr);
+      token = strtok_r(nullptr, " \t", &saveptr);
     }
   }
 
@@ -1153,7 +1153,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
   FILE* f = fopen(depfile, "r");
   if (!f) {
     cc_log("Cannot open dependency file %s: %s", depfile, strerror(errno));
-    return NULL;
+    return nullptr;
   }
 
   char buf[10000];
@@ -1161,7 +1161,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
     char* saveptr;
     char* token;
     for (token = strtok_r(buf, " \t\n", &saveptr); token;
-         token = strtok_r(NULL, " \t\n", &saveptr)) {
+         token = strtok_r(nullptr, " \t\n", &saveptr)) {
       if (str_endswith(token, ":") || str_eq(token, "\\")) {
         continue;
       }
@@ -1182,7 +1182,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
     char* pch_path = x_strdup(included_pch_file);
     pch_path = make_relative_path(pch_path);
     hash_string(hash, pch_path);
-    remember_include_file(pch_path, hash, false, NULL);
+    remember_include_file(pch_path, hash, false, nullptr);
     free(pch_path);
   }
 
@@ -1359,7 +1359,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
     }
     add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
-    time_of_compilation = time(NULL);
+    time_of_compilation = time(nullptr);
     status = execute(
       depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
     args_free(depend_mode_args);
@@ -1560,9 +1560,9 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
 static struct digest*
 get_result_name_from_cpp(struct args* args, struct hash* hash)
 {
-  time_of_compilation = time(NULL);
+  time_of_compilation = time(nullptr);
 
-  char* path_stderr = NULL;
+  char* path_stderr = nullptr;
   char* path_stdout;
   int status;
   if (direct_i_file) {
@@ -1767,7 +1767,8 @@ hash_common_info(struct args* args, struct hash* hash)
   if (!(g_config.sloppiness() & SLOPPY_LOCALE)) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
-    const char* envvars[] = {"LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", NULL};
+    const char* envvars[] = {
+      "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", nullptr};
     for (const char** p = envvars; *p; ++p) {
       char* v = getenv(*p);
       if (v) {
@@ -1850,7 +1851,7 @@ hash_common_info(struct args* args, struct hash* hash)
     char* p = x_strdup(g_config.extra_files_to_hash().c_str());
     char* q = p;
     char* path;
-    char* saveptr = NULL;
+    char* saveptr = nullptr;
     while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
       cc_log("Hashing extra file %s", path);
       hash_delimiter(hash, "extrafile");
@@ -1858,7 +1859,7 @@ hash_common_info(struct args* args, struct hash* hash)
         stats_update(STATS_BADEXTRAFILE);
         failed();
       }
-      q = NULL;
+      q = nullptr;
     }
     free(p);
   }
@@ -1976,7 +1977,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
       }
     }
 
-    char* p = NULL;
+    char* p = nullptr;
     if (str_startswith(args->argv[i], "-specs=")) {
       p = args->argv[i] + 7;
     } else if (str_startswith(args->argv[i], "--specs=")) {
@@ -2045,7 +2046,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
   }
 
   if (!found_ccbin && str_eq(actual_language, "cu")) {
-    hash_nvcc_host_compiler(hash, NULL, NULL);
+    hash_nvcc_host_compiler(hash, nullptr, nullptr);
   }
 
   // For profile generation (-fprofile-arcs, -fprofile-generate):
@@ -2087,7 +2088,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
     hash_string(hash, arch_args[i]);
   }
 
-  struct digest* result_name = NULL;
+  struct digest* result_name = nullptr;
   if (direct_mode) {
     // Hash environment variables that affect the preprocessor output.
     const char* envvars[] = {"CPATH",
@@ -2095,7 +2096,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
                              "CPLUS_INCLUDE_PATH",
                              "OBJC_INCLUDE_PATH",
                              "OBJCPLUS_INCLUDE_PATH", // clang
-                             NULL};
+                             nullptr};
     for (const char** p = envvars; *p; ++p) {
       char* v = getenv(*p);
       if (v) {
@@ -2127,7 +2128,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       cc_log("Disabling direct mode");
       g_config.set_direct_mode(false);
-      return NULL;
+      return nullptr;
     }
 
     char manifest_name_string[DIGEST_STRING_BUFFER_SIZE];
@@ -2162,7 +2163,7 @@ calculate_result_name(struct args* args, struct hash* hash, int direct_mode)
         cc_log("Got result name from preprocessor with -arch %s", arch_args[i]);
         if (i != arch_args_size - 1) {
           free(result_name);
-          result_name = NULL;
+          result_name = nullptr;
         }
         args_pop(args, 1);
       }
@@ -2331,7 +2332,7 @@ static bool
 detect_pch(const char* option, const char* arg, bool* found_pch)
 {
   // Try to be smart about detecting precompiled headers.
-  char* pch_file = NULL;
+  char* pch_file = nullptr;
   if (str_eq(option, "-include-pch") || str_eq(option, "-include-pth")) {
     if (Stat::stat(arg)) {
       cc_log("Detected use of precompiled header: %s", arg);
@@ -2392,9 +2393,9 @@ cc_process_args(struct args* args,
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
-  const char* explicit_language = NULL; // As specified with -x.
+  const char* explicit_language = nullptr; // As specified with -x.
   const char* file_language;            // As deduced from file extension.
-  const char* input_charset = NULL;
+  const char* input_charset = nullptr;
 
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
@@ -2416,20 +2417,20 @@ cc_process_args(struct args* args,
   // * those that only should be passed to the preprocessor (if run_second_cpp
   //   is false), and
   // * dependency options (like -MD and friends).
-  struct args* common_args = args_init(0, NULL);
+  struct args* common_args = args_init(0, nullptr);
 
   // cpp_args contains arguments that were not added to common_args, i.e. those
   // that should only be passed to the preprocessor if run_second_cpp is false.
   // If run_second_cpp is true, they will be passed to the compiler as well.
-  struct args* cpp_args = args_init(0, NULL);
+  struct args* cpp_args = args_init(0, nullptr);
 
   // dep_args contains dependency options like -MD. They are only passed to the
   // preprocessor, never to the compiler.
-  struct args* dep_args = args_init(0, NULL);
+  struct args* dep_args = args_init(0, nullptr);
 
   // compiler_only_args contains arguments that should only be passed to the
   // compiler, not the preprocessor.
-  struct args* compiler_only_args = args_init(0, NULL);
+  struct args* compiler_only_args = args_init(0, nullptr);
 
   bool found_color_diagnostics = false;
   bool found_directives_only = false;
@@ -3250,7 +3251,7 @@ cc_process_args(struct args* args,
   }
 
   if (explicit_language && str_eq(explicit_language, "none")) {
-    explicit_language = NULL;
+    explicit_language = nullptr;
   }
   file_language = language_for_file(input_file);
   if (explicit_language) {
@@ -3674,7 +3675,7 @@ static void
 free_and_nullify(T*& ptr)
 {
   free(ptr);
-  ptr = NULL;
+  ptr = nullptr;
 }
 
 // Reset the global state. Used by the test suite.
@@ -3699,9 +3700,9 @@ cc_reset()
   sanitize_blacklists_len = 0;
   free_and_nullify(included_pch_file);
   args_free(orig_args);
-  orig_args = NULL;
+  orig_args = nullptr;
   args_free(depend_extra_args);
-  depend_extra_args = NULL;
+  depend_extra_args = nullptr;
   free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);
@@ -3726,7 +3727,7 @@ cc_reset()
   generating_coverage = false;
   generating_stackusage = false;
   profile_arcs = false;
-  i_tmpfile = NULL;
+  i_tmpfile = nullptr;
   direct_i_file = false;
   free_and_nullify(cpp_stderr);
   free_and_nullify(stats_file);
@@ -3868,7 +3869,7 @@ ccache(int argc, char* argv[])
   // Need to dump log buffer as the last exit function to not lose any logs.
   exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
 
-  FILE* debug_text_file = NULL;
+  FILE* debug_text_file = nullptr;
   if (g_config.debug()) {
     char* path = format("%s.ccache-input-text", output_obj);
     debug_text_file = fopen(path, "w");
@@ -3895,8 +3896,8 @@ ccache(int argc, char* argv[])
   args_extend(args_to_hash, extra_args_to_hash);
 
   bool put_result_in_manifest = false;
-  struct digest* result_name = NULL;
-  struct digest* result_name_from_manifest = NULL;
+  struct digest* result_name = nullptr;
+  struct digest* result_name_from_manifest = nullptr;
   if (g_config.direct_mode()) {
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
@@ -3975,7 +3976,8 @@ ccache(int argc, char* argv[])
   add_prefix(compiler_args, g_config.prefix_command().c_str());
 
   // In depend_mode, extend the direct hash.
-  struct hash* depend_mode_hash = g_config.depend_mode() ? direct_hash : NULL;
+  struct hash* depend_mode_hash =
+    g_config.depend_mode() ? direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
@@ -4016,7 +4018,7 @@ ccache_main_options(int argc, char* argv[])
     {0, 0, 0, 0}};
 
   int c;
-  while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, NULL))
+  while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, nullptr))
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:

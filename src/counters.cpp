@@ -26,7 +26,7 @@ struct counters*
 counters_init(size_t initial_size)
 {
   auto c = static_cast<counters*>(x_malloc(sizeof(counters)));
-  c->data = NULL;
+  c->data = nullptr;
   c->size = 0;
   c->allocated = 0;
   counters_resize(c, initial_size);
