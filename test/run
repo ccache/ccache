@@ -53,7 +53,8 @@ test_failed() {
     echo "ccache -s:"
     $CCACHE -s
     echo
-    echo "Test data and log file have been left in $TESTDIR"
+    echo "Test data and log file have been left in $TESTDIR / $TEST_FAILED_SYMLINK"
+    symlink_testdir_on_failure
     exit 1
 }
 
@@ -449,9 +450,18 @@ done
 # ---------------------------------------
 
 TESTDIR=testdir.$$
+TEST_FAILED_SYMLINK=testdir.failed
 ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
 mkdir $TESTDIR
+
+START_PWD="$PWD"
+symlink_testdir_on_failure() {
+    cd "$START_PWD"
+    rm -f "$TEST_FAILED_SYMLINK"
+    ln -s "$TESTDIR" "$TEST_FAILED_SYMLINK"
+}
+
 cd $TESTDIR || exit 1
 
 compiler_bin=$(echo $COMPILER | awk '{print $1}')
