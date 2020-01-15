@@ -170,11 +170,9 @@ parse_bool(const std::string& value,
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw Error(
-        fmt::format("invalid boolean environment variable value \"{}\" for"
-                    " CCACHE_{}{} (did you mean to set \"CCACHE_{}{}=true\"?)",
+        fmt::format("invalid boolean environment variable value \"{}\" (did"
+                    " you mean to set \"CCACHE_{}{}=true\"?)",
                     value,
-                    negate ? "NO" : "",
-                    *env_var_key,
                     negate ? "" : "NO",
                     *env_var_key));
     }
@@ -470,7 +468,8 @@ Config::update_from_environment()
     try {
       set_item(config_key, value, key, negate, "environment");
     } catch (const Error& e) {
-      throw Error(fmt::format("CCACHE_{}: {}", key, e.what()));
+      throw Error(
+        fmt::format("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what()));
     }
   }
 }
