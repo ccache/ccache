@@ -29,3 +29,9 @@ src/version.cpp
 testdir.*
 unittest/run
 zstd-*.tar.gz
+
+# Visual Studio
+.vs/
+
+# Visual Studio Code
+.vscode/
