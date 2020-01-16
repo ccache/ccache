@@ -130,28 +130,43 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Calculation of dependency file names"
 
-    mkdir test.dir
+    i=0
     for ext in .o .obj "" . .foo.bar; do
-        dep_file=test.dir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
+        rm -rf testdir
+        mkdir testdir
 
-        $CCACHE_COMPILE -MD -c test.c -o test.dir/test$ext
+        dep_file=testdir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
+
+        $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
+        expect_stat 'cache hit (direct)' $((2 * i))
+        expect_stat 'cache miss' $((2 * i + 1))
         rm -f $dep_file
-        $CCACHE_COMPILE -MD -c test.c -o test.dir/test$ext
+
+        $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
+        expect_stat 'cache hit (direct)' $((2 * i + 1))
+        expect_stat 'cache miss' $((2 * i + 1))
         expect_file_exists $dep_file
         if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
-            test_failed "$dep_file does not contain test$ext"
+            test_failed "$dep_file does not contain \"test$ext:\""
         fi
 
         dep_target=foo.bar
-        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o test.dir/test$ext
+        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
+        expect_stat 'cache hit (direct)' $((2 * i + 1))
+        expect_stat 'cache miss' $((2 * i + 2))
         rm -f $dep_target
-        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o test.dir/test$ext
+
+        $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
+        expect_stat 'cache hit (direct)' $((2 * i + 2))
+        expect_stat 'cache miss' $((2 * i + 2))
         expect_file_exists $dep_file
         if ! grep $dep_target $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain $dep_target"
         fi
+
+        i=$((i + 1))
     done
-    expect_stat 'files in cache' 12
+    expect_stat 'files in cache' $((4 * i))
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"

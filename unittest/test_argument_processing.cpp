@@ -86,16 +86,42 @@ TEST(dash_M_should_be_unsupported)
   args_free(orig);
 }
 
-TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
+TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
 {
-#define CMD                                                                    \
-  "cc -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2"                  \
-  " -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
-  struct args* orig = args_init_from_string(CMD " -c foo.c -o foo.o");
-  struct args* exp_cpp = args_init_from_string(CMD);
+#define DEP_ARGS                                                               \
+  "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"        \
+  " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
+  struct args* orig =
+    args_init_from_string("cc " DEP_ARGS " -c foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc " DEP_ARGS);
   struct args* exp_extra = args_init(0, NULL);
-#undef CMD
   struct args* exp_cc = args_init_from_string("cc -c");
+#undef DEP_ARGS
+  struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
+  struct args* act_cc = NULL;
+  create_file("foo.c", "");
+
+  g_config.set_run_second_cpp(false);
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+  args_free(orig);
+}
+
+TEST(dependency_args_to_compiler_if_run_second_cpp_is_true)
+{
+#define DEP_ARGS                                                               \
+  "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"        \
+  " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
+  struct args* orig =
+    args_init_from_string("cc " DEP_ARGS " -c foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string(DEP_ARGS);
+  struct args* exp_cc = args_init_from_string("cc -c " DEP_ARGS);
+#undef DEP_ARGS
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -109,20 +135,115 @@ TEST(dependency_flags_should_only_be_sent_to_the_preprocessor)
   args_free(orig);
 }
 
-TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
+TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
 {
-#define CMD                                                                    \
-  "cc -I. -idirafter . -iframework. -imacros . -imultilib ."                   \
-  " -include test.h -include-pch test.pch -iprefix . -iquote ."                \
-  " -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ."                \
-  " -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory"           \
-  " -fno-working-directory -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2"             \
-  " -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt"          \
-  " -Wp,-MQ,wpmq -Wp,-MF,wpf"
-  struct args* orig = args_init_from_string(CMD " -c foo.c -o foo.o");
-  struct args* exp_cpp = args_init_from_string(CMD);
+#define CPP_ARGS                                                               \
+  "-I. -idirafter . -iframework. -imacros . -imultilib . -include test.h"      \
+  " -include-pch test.pch -iprefix . -iquote . -isysroot . -isystem ."         \
+  " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."      \
+  " -trigraphs -fworking-directory -fno-working-directory"
+#define DEP_ARGS                                                               \
+  "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"        \
+  " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
+  struct args* orig =
+    args_init_from_string("cc " CPP_ARGS " " DEP_ARGS " -c foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc " CPP_ARGS " " DEP_ARGS);
   struct args* exp_extra = args_init(0, NULL);
-#undef CMD
+  struct args* exp_cc = args_init_from_string("cc -c");
+#undef DEP_ARGS
+#undef CPP_ARGS
+  struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
+  struct args* act_cc = NULL;
+  create_file("foo.c", "");
+
+  g_config.set_run_second_cpp(false);
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+  args_free(orig);
+}
+
+TEST(cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
+{
+#define CPP_ARGS                                                               \
+  "-I. -idirafter . -iframework. -imacros . -imultilib . -include test.h"      \
+  " -include-pch test.pch -iprefix . -iquote . -isysroot . -isystem ."         \
+  " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."      \
+  " -trigraphs -fworking-directory -fno-working-directory"
+#define DEP_ARGS                                                               \
+  " -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"       \
+  " -Wp,-MMD,wpmmd"
+  struct args* orig =
+    args_init_from_string("cc " CPP_ARGS " " DEP_ARGS " -c foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc " CPP_ARGS);
+  struct args* exp_extra = args_init_from_string(DEP_ARGS);
+  struct args* exp_cc = args_init_from_string("cc " CPP_ARGS " -c " DEP_ARGS);
+#undef DEP_ARGS
+#undef CPP_ARGS
+  struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
+  struct args* act_cc = NULL;
+  create_file("foo.c", "");
+
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+  args_free(orig);
+}
+
+TEST(dependency_args_that_take_an_argument_should_not_require_space_delimiter)
+{
+#define DEP_ARGS "-MMD -MFfoo.d -MT mt -MTmt -MQmq"
+  struct args* orig =
+    args_init_from_string("cc -c " DEP_ARGS " foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string(DEP_ARGS);
+  struct args* exp_cc = args_init_from_string("cc -c " DEP_ARGS);
+#undef DEP_ARGS
+  struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
+  struct args* act_cc = NULL;
+  create_file("foo.c", "");
+
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+  args_free(orig);
+}
+
+TEST(MQ_flag_should_not_be_added_if_run_second_cpp_is_true)
+{
+  struct args* orig =
+    args_init_from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string("-MD -MF foo.d");
+  struct args* exp_cc = args_init_from_string("cc -c -MD -MF foo.d");
+  struct args* act_cpp = NULL;
+  struct args* act_extra = NULL;
+  struct args* act_cc = NULL;
+  create_file("foo.c", "");
+
+  CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+
+  args_free(orig);
+}
+
+TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
+{
+  struct args* orig =
+    args_init_from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
+  struct args* exp_extra = args_init(0, NULL);
   struct args* exp_cc = args_init_from_string("cc -c");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
@@ -138,28 +259,19 @@ TEST(cpp_only_flags_to_preprocessor_if_run_second_cpp_is_false)
   args_free(orig);
 }
 
-TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
+TEST(MF_should_be_added_if_run_second_cpp_is_false)
 {
-#define CMD                                                                    \
-  "cc -I. -idirafter . -iframework. -imacros . -imultilib ."                   \
-  " -include test.h -include-pch test.pch -iprefix . -iquote ."                \
-  " -isysroot . -isystem . -iwithprefix . -iwithprefixbefore ."                \
-  " -DTEST_MACRO -DTEST_MACRO2=1 -F. -trigraphs -fworking-directory"           \
-  " -fno-working-directory"
-#define DEP_OPTS                                                               \
-  " -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 "                                   \
-  " -MQ mq1 -MQ mq2 -Wp,-MD,wpmd -Wp,-MMD,wpmmd"
-  struct args* orig = args_init_from_string(CMD DEP_OPTS " -c foo.c -o foo.o");
-  struct args* exp_cpp = args_init_from_string(CMD DEP_OPTS);
+  struct args* orig = args_init_from_string("cc -c -MD foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
   struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string(CMD " -c");
-#undef CMD
+  struct args* exp_cc = args_init_from_string("cc -c");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
+
   create_file("foo.c", "");
 
-  g_config.set_run_second_cpp(true);
+  g_config.set_run_second_cpp(false);
   CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
@@ -168,17 +280,16 @@ TEST(cpp_only_flags_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
   args_free(orig);
 }
 
-TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
+TEST(MF_should_not_be_added_if_run_second_cpp_is_true)
 {
-  struct args* orig = args_init_from_string(
-    "cc -c -MMD -MFfoo.d -MT mt -MTmt -MQmq foo.c -o foo.o");
-  struct args* exp_cpp =
-    args_init_from_string("cc -MMD -MFfoo.d -MT mt -MTmt -MQmq");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("cc -c");
+  struct args* orig = args_init_from_string("cc -c -MD foo.c -o foo.o");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string("-MD");
+  struct args* exp_cc = args_init_from_string("cc -c -MD");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
+
   create_file("foo.c", "");
 
   CHECK(cc_process_args(orig, &act_cpp, &act_extra, &act_cc));
@@ -192,9 +303,9 @@ TEST(dependency_flags_that_take_an_argument_should_not_require_space_delimiter)
 TEST(equal_sign_after_MF_should_be_removed)
 {
   struct args* orig = args_init_from_string("cc -c -MF=path foo.c -o foo.o");
-  struct args* exp_cpp = args_init_from_string("cc -MFpath");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("cc -c");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string("-MFpath");
+  struct args* exp_cc = args_init_from_string("cc -c -MFpath");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -262,9 +373,9 @@ TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
 {
   struct args* orig =
     args_init_from_string("cc -c foo.c -o foo.o -MMD -MT bar -MFfoo.d");
-  struct args* exp_cpp = args_init_from_string("cc -MMD -MT bar -MFfoo.d");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("cc -c");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra = args_init_from_string("-MMD -MT bar -MFfoo.d");
+  struct args* exp_cc = args_init_from_string("cc -c -MMD -MT bar -MFfoo.d");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -283,10 +394,11 @@ TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
 {
   struct args* orig =
     args_init_from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MT foo -MTbar");
-  struct args* exp_cpp =
-    args_init_from_string("cc -MMD -MFfoo.d -MT foo -MTbar");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("cc -c");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra =
+    args_init_from_string("-MMD -MFfoo.d -MT foo -MTbar");
+  struct args* exp_cc =
+    args_init_from_string("cc -c -MMD -MFfoo.d -MT foo -MTbar");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -305,10 +417,11 @@ TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
 {
   struct args* orig =
     args_init_from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MQ foo -MQbar");
-  struct args* exp_cpp =
-    args_init_from_string("cc -MMD -MFfoo.d -MQ foo -MQbar");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("cc -c");
+  struct args* exp_cpp = args_init_from_string("cc");
+  struct args* exp_extra =
+    args_init_from_string("-MMD -MFfoo.d -MQ foo -MQbar");
+  struct args* exp_cc =
+    args_init_from_string("cc -c -MMD -MFfoo.d -MQ foo -MQbar");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -327,10 +440,10 @@ TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
 {
   struct args* orig =
     args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
-  struct args* exp_cpp =
-    args_init_from_string("gcc -MD -MP -MFfoo.d -MQ foo.d");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("gcc -c");
+  struct args* exp_cpp = args_init_from_string("gcc");
+  struct args* exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MQ foo.d");
+  struct args* exp_cc =
+    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -349,10 +462,10 @@ TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
 {
   struct args* orig =
     args_init_from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
-  struct args* exp_cpp =
-    args_init_from_string("gcc -MD -MP -MFfoo.d -MT foo.d");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("gcc -c");
+  struct args* exp_cpp = args_init_from_string("gcc");
+  struct args* exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MT foo.d");
+  struct args* exp_cc =
+    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -371,9 +484,10 @@ TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
 {
   struct args* orig =
     args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
-  struct args* exp_cpp = args_init_from_string("gcc -MD -MP -MFfoo.d -MQfoo.d");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("gcc -c");
+  struct args* exp_cpp = args_init_from_string("gcc");
+  struct args* exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MQfoo.d");
+  struct args* exp_cc =
+    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
@@ -392,9 +506,10 @@ TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
 {
   struct args* orig =
     args_init_from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
-  struct args* exp_cpp = args_init_from_string("gcc -MD -MP -MFfoo.d -MTfoo.d");
-  struct args* exp_extra = args_init(0, NULL);
-  struct args* exp_cc = args_init_from_string("gcc -c");
+  struct args* exp_cpp = args_init_from_string("gcc");
+  struct args* exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MTfoo.d");
+  struct args* exp_cc =
+    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d");
   struct args* act_cpp = NULL;
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;

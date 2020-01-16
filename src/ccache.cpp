@@ -1805,13 +1805,16 @@ hash_common_info(struct args* args, struct hash* hash)
     }
   }
 
-  if (seen_split_dwarf) {
-    // When using -gsplit-dwarf, object files include a link to the
-    // corresponding .dwo file based on the target object filename, so we need
-    // to include the target filename in the hash to avoid handing out an
-    // object file with an incorrect .dwo link.
-    hash_delimiter(hash, "filename");
-    hash_string_view(hash, Util::base_name(output_obj));
+  if (generating_dependencies || seen_split_dwarf) {
+    // The output object file name is part of the .d file, so include the path
+    // in the hash if generating dependencies.
+    //
+    // Object files include a link to the corresponding .dwo file based on the
+    // target object filename when using -gsplit-dwarf, so hashing the object
+    // file path will do it, although just hashing the object file base name
+    // would be enough.
+    hash_delimiter(hash, "object file");
+    hash_string_view(hash, output_obj);
   }
 
   // Possibly hash the coverage data file path.
@@ -2172,12 +2175,6 @@ calculate_result_name(struct args* args,
       }
       args_pop(preprocessor_args, 1);
     }
-    if (generating_dependencies) {
-      // Nothing is actually created with -MF /dev/null
-      if (!str_eq(output_dep, "/dev/null")) {
-        cc_log("Preprocessor created %s", output_dep);
-      }
-    }
   }
 
   return result_name;
@@ -2208,10 +2205,8 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 
   MTR_BEGIN("cache", "from_cache");
 
-  // (If mode != FROMCACHE_DIRECT_MODE, the dependency file is created by gcc.)
-  bool produce_dep_file = generating_dependencies
-                          && mode == FROMCACHE_DIRECT_MODE
-                          && !str_eq(output_dep, "/dev/null");
+  bool produce_dep_file =
+    generating_dependencies && !str_eq(output_dep, "/dev/null");
 
   MTR_BEGIN("file", "file_get");
 
@@ -3424,17 +3419,25 @@ cc_process_args(struct args* args,
     }
   }
 
-  // Add flags for dependency generation only to the preprocessor command line.
   if (generating_dependencies) {
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
         Util::change_extension(output_obj, ".d");
-      args_add(dep_args, "-MF");
-      args_add(dep_args, default_depfile_name.c_str());
       output_dep = make_relative_path(x_strdup(default_depfile_name.c_str()));
+      if (!g_config.run_second_cpp()) {
+        // If we're compiling preprocessed code we're sending dep_args to the
+        // preprocessor so we need to use -MF to write to the correct .d file
+        // location since the preprocessor doesn't know the final object path.
+        args_add(dep_args, "-MF");
+        args_add(dep_args, default_depfile_name.c_str());
+      }
     }
 
-    if (!dependency_target_specified && !dependency_implicit_target_specified) {
+    if (!dependency_target_specified && !dependency_implicit_target_specified
+        && !g_config.run_second_cpp()) {
+      // If we're compiling preprocessed code we're sending dep_args to the
+      // preprocessor so we need to use -MQ to get the correct target object
+      // file in the .d file.
       args_add(dep_args, "-MQ");
       args_add(dep_args, output_obj);
     }
@@ -3489,15 +3492,25 @@ cc_process_args(struct args* args,
     args_add(*compiler_args, arch_args[i]);
   }
 
-  // Only pass dependency arguments to the preprocessor since Intel's C++
-  // compiler doesn't produce a correct .d file when compiling preprocessed
-  // source.
-  args_extend(cpp_args, dep_args);
-
   *preprocessor_args = args_copy(common_args);
   args_extend(*preprocessor_args, cpp_args);
 
+  if (g_config.run_second_cpp()) {
+    // When not compiling the preprocessed source code, only pass dependency
+    // arguments to the compiler to avoid having to add -MQ, supporting e.g.
+    // EDG-based compilers which don't support -MQ.
+    args_extend(*compiler_args, dep_args);
+  } else {
+    // When compiling the preprocessed source code, pass dependency arguments to
+    // the preprocessor since the compiler doesn't produce a .d file when
+    // compiling preprocessed source code.
+    args_extend(*preprocessor_args, dep_args);
+  }
+
   *extra_args_to_hash = compiler_only_args;
+  if (g_config.run_second_cpp()) {
+    args_extend(*extra_args_to_hash, dep_args);
+  }
 
 out:
   args_free(expanded_args);
