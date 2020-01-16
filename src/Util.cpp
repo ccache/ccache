@@ -249,12 +249,11 @@ parse_int(const std::string& value)
   long result;
   bool failed = false;
   try {
-    result = std::stol(value, &end, 10);
+    result = std::stoi(value, &end, 10);
   } catch (std::exception&) {
     failed = true;
   }
-  if (failed || end != value.size() || result < std::numeric_limits<int>::min()
-      || result > std::numeric_limits<int>::max()) {
+  if (failed || end != value.size()) {
     throw Error(fmt::format("invalid integer: \"{}\"", value));
   }
   return result;

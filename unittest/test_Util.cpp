@@ -329,6 +329,24 @@ TEST_CASE("Util::parse_int")
   CHECK_THROWS_WITH(Util::parse_int("0x"), Equals("invalid integer: \"0x\""));
   CHECK_THROWS_WITH(Util::parse_int("0x4"), Equals("invalid integer: \"0x4\""));
   CHECK_THROWS_WITH(Util::parse_int("0 "), Equals("invalid integer: \"0 \""));
+
+  // check boundary values
+  if (sizeof(int) == 2) {
+    CHECK(Util::parse_int("-32768") == -32768);
+    CHECK(Util::parse_int("32767") == 32767);
+    CHECK_THROWS_WITH(Util::parse_int("-32768"),
+                      Equals("invalid integer: \"-32768\""));
+    CHECK_THROWS_WITH(Util::parse_int("32768"),
+                      Equals("invalid integer: \"32768\""));
+  }
+  if (sizeof(int) == 4) {
+    CHECK(Util::parse_int("-2147483648") == -2147483648);
+    CHECK(Util::parse_int("2147483647") == 2147483647);
+    CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
+                      Equals("invalid integer: \"-2147483649\""));
+    CHECK_THROWS_WITH(Util::parse_int("2147483648"),
+                      Equals("invalid integer: \"2147483648\""));
+  }
 }
 
 TEST_CASE("Util::read_file and Util::write_file")
