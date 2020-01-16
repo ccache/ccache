@@ -3497,9 +3497,7 @@ cc_process_args(struct args* args,
   *preprocessor_args = args_copy(common_args);
   args_extend(*preprocessor_args, cpp_args);
 
-  if (extra_args_to_hash) {
-    *extra_args_to_hash = compiler_only_args;
-  }
+  *extra_args_to_hash = compiler_only_args;
 
 out:
   args_free(expanded_args);
