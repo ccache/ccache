@@ -36,8 +36,6 @@
 
 extern char* stats_file;
 extern unsigned lock_staleness_limit;
-extern char* primary_config_path;
-extern char* secondary_config_path;
 
 static struct counters* counter_updates;
 
@@ -443,12 +441,11 @@ stats_summary(void)
   time_t last_updated;
   stats_collect(counters, &last_updated);
 
-  printf("cache directory                     %s\n",
-         g_config.cache_dir().c_str());
-  printf("primary config                      %s\n",
-         primary_config_path ? primary_config_path : "");
-  printf("secondary config (readonly)         %s\n",
-         secondary_config_path ? secondary_config_path : "");
+  fmt::print("cache directory                     {}\n", g_config.cache_dir());
+  fmt::print("primary config                      {}\n",
+             g_config.primary_config_path());
+  fmt::print("secondary config (readonly)         {}\n",
+             g_config.secondary_config_path());
   if (last_updated > 0) {
     struct tm tm;
     localtime_r(&last_updated, &tm);
