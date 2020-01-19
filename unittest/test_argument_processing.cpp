@@ -18,9 +18,11 @@
 
 // This file contains tests for the processing of compiler arguments.
 
+#include "../src/ArgsInfo.hpp"
 #include "../src/Config.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
+#include "../src/legacy_globals.hpp"
 #include "../src/stats.hpp"
 #include "framework.hpp"
 #include "util.hpp"
@@ -60,6 +62,54 @@ get_posix_path(char* path)
   }
   return posix;
 #endif
+}
+
+bool cc_process_args(struct args* args,
+                     struct args** preprocessor_args,
+                     struct args** extra_args_to_hash,
+                     struct args** compiler_args);
+
+bool
+cc_process_args(struct args* args,
+                struct args** preprocessor_args,
+                struct args** extra_args_to_hash,
+                struct args** compiler_args)
+{
+  ArgsInfo argsinfo;
+
+  bool success = cc_process_args(argsinfo,
+                                 g_config,
+                                 args,
+                                 preprocessor_args,
+                                 extra_args_to_hash,
+                                 compiler_args);
+
+  input_file = x_strdup(argsinfo.input_file.c_str());
+
+  output_obj = x_strdup(argsinfo.output_obj.c_str());
+  output_dep = x_strdup(argsinfo.output_dep.c_str());
+  output_cov = x_strdup(argsinfo.output_cov.c_str());
+  output_su = x_strdup(argsinfo.output_su.c_str());
+  output_dia = x_strdup(argsinfo.output_dia.c_str());
+  output_dwo = x_strdup(argsinfo.output_dwo.c_str());
+
+  actual_language = x_strdup(argsinfo.actual_language.c_str());
+
+  generating_dependencies = argsinfo.generating_dependencies;
+  generating_coverage = argsinfo.generating_coverage;
+  generating_stackusage = argsinfo.generating_stackusage;
+  generating_diagnostics = argsinfo.generating_diagnostics;
+  seen_split_dwarf = argsinfo.seen_split_dwarf;
+  profile_arcs = argsinfo.profile_arcs;
+  profile_dir = x_strdup(argsinfo.profile_dir.c_str());
+
+  direct_i_file = argsinfo.direct_i_file;
+  output_is_precompiled_header = argsinfo.output_is_precompiled_header;
+  profile_use = argsinfo.profile_use;
+  profile_generate = argsinfo.profile_generate;
+  using_precompiled_header = argsinfo.using_precompiled_header;
+
+  return success;
 }
 
 TEST_SUITE(argument_processing)

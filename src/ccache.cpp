@@ -19,6 +19,7 @@
 
 #include "ccache.hpp"
 
+#include "ArgsInfo.hpp"
 #include "Error.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
@@ -33,6 +34,7 @@
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
+#include "legacy_globals.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 #include "stats.hpp"
@@ -53,11 +55,6 @@
 #define TO_STRING(x) STRINGIFY(x)
 
 using nonstd::string_view;
-
-// Global variables used by other compilation units.
-extern char* current_working_dir;
-extern char* stats_file;
-extern unsigned lock_staleness_limit;
 
 static const char VERSION_TEXT[] = MYNAME
   " version %s\n"
@@ -126,150 +123,6 @@ static const char USAGE_TEXT[] =
   "\n"
   "See also <https://ccache.dev>.\n";
 
-// Current working directory taken from $PWD, or getcwd() if $PWD is bad.
-char* current_working_dir = NULL;
-
-// The original argument list.
-static struct args* orig_args;
-
-// Argument list to add to compiler invocation in depend mode.
-static struct args* depend_extra_args;
-
-// The source file.
-static char* input_file;
-
-// The output file being compiled to.
-static char* output_obj;
-
-// The path to the dependency file (implicit or specified with -MF).
-static char* output_dep;
-
-// The path to the coverage file (implicit when using -ftest-coverage).
-static char* output_cov;
-
-// The path to the stack usage (implicit when using -fstack-usage).
-static char* output_su;
-
-// Diagnostic generation information (clang). Contains pathname if not NULL.
-static char* output_dia;
-
-// Split dwarf information (GCC 4.8 and up). Contains pathname if not NULL.
-static char* output_dwo;
-
-// Language to use for the compilation target (see language.c).
-static const char* actual_language;
-
-// Array for storing -arch options.
-#define MAX_ARCH_ARGS 10
-static size_t arch_args_size = 0;
-static char* arch_args[MAX_ARCH_ARGS] = {NULL};
-
-// Name (represented as a struct digest) of the file containing the cached
-// result.
-static struct digest* cached_result_name;
-
-// Full path to the file containing the result
-// (cachedir/a/b/cdef[...]-size.result).
-static char* cached_result_path;
-
-// Full path to the file containing the manifest
-// (cachedir/a/b/cdef[...]-size.manifest).
-static char* manifest_path;
-
-// Time of compilation. Used to see if include files have changed after
-// compilation.
-time_t time_of_compilation;
-
-// Files included by the preprocessor and their hashes. Key: file path. Value:
-// struct digest.
-static std::unordered_map<std::string, digest> g_included_files;
-
-// Uses absolute path for some include files.
-static bool has_absolute_include_headers = false;
-
-// List of headers to ignore.
-static char** ignore_headers;
-
-// Size of headers to ignore list.
-static size_t ignore_headers_len;
-
-// Is the compiler being asked to output debug info?
-static bool generating_debuginfo;
-
-// Is the compiler being asked to output debug info on level 3?
-static bool generating_debuginfo_level_3;
-
-// Is the compiler being asked to output dependencies?
-static bool generating_dependencies;
-
-// Is the compiler being asked to output coverage?
-static bool generating_coverage;
-
-// Is the compiler being asked to output stack usage?
-static bool generating_stackusage;
-
-// Us the compiler being asked to generate diagnostics
-// (--serialize-diagnostics)?
-static bool generating_diagnostics;
-
-// Have we seen -gsplit-dwarf?
-static bool seen_split_dwarf;
-
-// Relocating debuginfo in the format old=new.
-static char** debug_prefix_maps = NULL;
-
-// Size of debug_prefix_maps list.
-static size_t debug_prefix_maps_len = 0;
-
-// Is the compiler being asked to output coverage data (.gcda) at runtime?
-static bool profile_arcs;
-
-// Name of the custom profile directory (default: object dirname).
-static char* profile_dir;
-
-// The name of the temporary preprocessed file.
-static char* i_tmpfile;
-
-// Are we compiling a .i or .ii file directly?
-static bool direct_i_file;
-
-// The name of the cpp stderr file.
-static char* cpp_stderr;
-
-// Full path to the statistics file in the subdirectory where the cached result
-// belongs (<cache_dir>/<x>/stats).
-char* stats_file = NULL;
-
-// The stats file to use for the manifest.
-static char* manifest_stats_file;
-
-// Whether the output is a precompiled header.
-bool output_is_precompiled_header = false;
-
-// Compiler guessing is currently only based on the compiler name, so nothing
-// should hard-depend on it if possible.
-enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
-
-// Profile generation / usage information.
-static bool profile_use = false;
-static bool profile_generate = false;
-
-// Sanitize blacklist
-static char** sanitize_blacklists = NULL;
-
-// Size of sanitize_blacklists
-static size_t sanitize_blacklists_len = 0;
-
-// Whether we are using a precompiled header (either via -include, #include or
-// clang's -include-pch or -include-pth).
-static bool using_precompiled_header = false;
-
-// The .gch/.pch/.pth file used for compilation.
-static char* included_pch_file = NULL;
-
-// How long (in microseconds) to wait before breaking a stale lock.
-unsigned lock_staleness_limit = 2000000;
-
 enum fromcache_call_mode { FROMCACHE_DIRECT_MODE, FROMCACHE_CPP_MODE };
 
 struct pending_tmp_file
@@ -329,19 +182,6 @@ add_prefix(struct args* args, const char* prefix_command)
     args_add_prefix(args, prefix->argv[i - 1]);
   }
   args_free(prefix);
-}
-
-// Compiler in depend mode is invoked with the original arguments.
-// Collect extra arguments that should be added.
-static void
-add_extra_arg(const char* arg)
-{
-  if (g_config.depend_mode()) {
-    if (depend_extra_args == NULL) {
-      depend_extra_args = args_init(0, NULL);
-    }
-    args_add(depend_extra_args, arg);
-  }
 }
 
 static void failed(void) ATTR_NORETURN;
@@ -1288,7 +1128,9 @@ create_cachedir_tag(const std::string& dir)
 
 // Run the real compiler and put the result in cache.
 static void
-to_cache(struct args* args, struct hash* depend_mode_hash)
+to_cache(struct args* args,
+         struct args* depend_extra_args,
+         struct hash* depend_mode_hash)
 {
   args_add(args, "-o");
   args_add(args, output_obj);
@@ -1731,7 +1573,9 @@ hash_nvcc_host_compiler(struct hash* hash,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(struct args* args, struct hash* hash)
+hash_common_info(struct args* args,
+                 struct hash* hash,
+                 const ArgsInfo& args_info)
 {
   hash_string(hash, HASH_PREFIX);
 
@@ -1779,10 +1623,10 @@ hash_common_info(struct args* args, struct hash* hash)
   }
 
   // Possibly hash the current working directory.
-  if (generating_debuginfo && g_config.hash_dir()) {
+  if (args_info.generating_debuginfo && g_config.hash_dir()) {
     char* cwd = gnu_getcwd();
-    for (size_t i = 0; i < debug_prefix_maps_len; i++) {
-      char* map = debug_prefix_maps[i];
+    for (size_t i = 0; i < args_info.debug_prefix_maps_len; i++) {
+      char* map = args_info.debug_prefix_maps[i];
       char* sep = strchr(map, '=');
       if (sep) {
         char* old_path = x_strndup(map, sep - map);
@@ -1840,8 +1684,8 @@ hash_common_info(struct args* args, struct hash* hash)
   }
 
   // Possibly hash the sanitize blacklist file path.
-  for (size_t i = 0; i < sanitize_blacklists_len; i++) {
-    char* sanitize_blacklist = sanitize_blacklists[i];
+  for (size_t i = 0; i < args_info.sanitize_blacklists_len; i++) {
+    char* sanitize_blacklist = args_info.sanitize_blacklists[i];
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
     hash_delimiter(hash, "sanitizeblacklist");
     if (!hash_file(hash, sanitize_blacklist)) {
@@ -2382,7 +2226,9 @@ detect_pch(const char* option, const char* arg, bool* found_pch)
 //
 // Returns true on success, otherwise false.
 bool
-cc_process_args(struct args* args,
+cc_process_args(ArgsInfo& args_info,
+                Config& config,
+                struct args* args,
                 struct args** preprocessor_args,
                 struct args** extra_args_to_hash,
                 struct args** compiler_args)
@@ -2392,9 +2238,9 @@ cc_process_args(struct args* args,
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
-  const char* explicit_language = NULL; // As specified with -x.
-  const char* file_language;            // As deduced from file extension.
-  const char* input_charset = NULL;
+  const char* explicit_language = nullptr; // As specified with -x.
+  const char* file_language = nullptr;     // As deduced from file extension.
+  const char* input_charset = nullptr;
 
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
@@ -2405,6 +2251,9 @@ cc_process_args(struct args* args,
   // Is the dependency target name implicitly specified using
   // DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
   bool dependency_implicit_target_specified = false;
+
+  // Is the compiler being asked to output debug info on level 3?
+  bool generating_debuginfo_level_3 = false;
 
   // expanded_args is a copy of the original arguments given to the compiler
   // but with arguments from @file and similar constructs expanded. It's only
@@ -2438,6 +2287,17 @@ cc_process_args(struct args* args,
   bool found_color_diagnostics = false;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
+
+  // Compiler in depend mode is invoked with the original arguments.
+  // Collect extra arguments that should be added.
+  auto add_extra_arg = [&args_info, &config](const char* arg) {
+    if (config.depend_mode()) {
+      if (args_info.depend_extra_args == nullptr) {
+        args_info.depend_extra_args = args_init(0, nullptr);
+      }
+      args_add(args_info.depend_extra_args, arg);
+    }
+  };
 
   int argc = expanded_args->argc;
   char** argv = expanded_args->argv;
@@ -2532,9 +2392,9 @@ cc_process_args(struct args* args,
     }
 
     // These are too hard in direct mode.
-    if (g_config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
+    if (config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
       cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-      g_config.set_direct_mode(false);
+      config.set_direct_mode(false);
     }
 
     // -Xarch_* options are too hard.
@@ -2546,18 +2406,19 @@ cc_process_args(struct args* args,
 
     // Handle -arch options.
     if (str_eq(argv[i], "-arch")) {
-      if (arch_args_size == MAX_ARCH_ARGS - 1) {
+      if (args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
         cc_log("Too many -arch compiler options; ccache supports at most %d",
-               MAX_ARCH_ARGS);
+               ArgsInfo::max_arch_args);
         stats_update(STATS_UNSUPPORTED_OPTION);
         return false;
       }
 
       ++i;
-      arch_args[arch_args_size] = x_strdup(argv[i]); // It will leak.
-      ++arch_args_size;
-      if (arch_args_size == 2) {
-        g_config.set_run_second_cpp(true);
+      args_info.arch_args[args_info.arch_args_size] =
+        x_strdup(argv[i]); // It will leak.
+      ++args_info.arch_args_size;
+      if (args_info.arch_args_size == 2) {
+        config.set_run_second_cpp(true);
       }
       continue;
     }
@@ -2595,7 +2456,7 @@ cc_process_args(struct args* args,
     // from the actual compilation (even though it should be compatible),
     // so require a sloppiness flag.
     if (str_eq(argv[i], "-fmodules")) {
-      if (!g_config.depend_mode() || !g_config.direct_mode()) {
+      if (!config.depend_mode() || !config.direct_mode()) {
         cc_log("Compiler option %s is unsupported without direct depend mode",
                argv[i]);
         stats_update(STATS_CANTUSEMODULES);
@@ -2637,14 +2498,14 @@ cc_process_args(struct args* args,
         stats_update(STATS_ARGS);
         return false;
       }
-      if (!input_file) {
+      if (args_info.input_file.empty()) {
         explicit_language = argv[i + 1];
       }
       i++;
       continue;
     }
     if (str_startswith(argv[i], "-x")) {
-      if (!input_file) {
+      if (args_info.input_file.empty()) {
         explicit_language = &argv[i][2];
       }
       continue;
@@ -2657,22 +2518,25 @@ cc_process_args(struct args* args,
         stats_update(STATS_ARGS);
         return false;
       }
-      output_obj = make_relative_path(x_strdup(argv[i + 1]));
+      args_info.output_obj =
+        from_owned_cstr(make_relative_path(x_strdup(argv[i + 1])));
       i++;
       continue;
     }
 
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o") && guessed_compiler != GUESSED_NVCC) {
-      output_obj = make_relative_path(x_strdup(&argv[i][2]));
+      args_info.output_obj =
+        from_owned_cstr(make_relative_path(x_strdup(&argv[i][2])));
       continue;
     }
 
     if (str_startswith(argv[i], "-fdebug-prefix-map=")
         || str_startswith(argv[i], "-ffile-prefix-map=")) {
-      debug_prefix_maps = static_cast<char**>(x_realloc(
-        debug_prefix_maps, (debug_prefix_maps_len + 1) * sizeof(char*)));
-      debug_prefix_maps[debug_prefix_maps_len++] =
+      args_info.debug_prefix_maps = static_cast<char**>(
+        x_realloc(args_info.debug_prefix_maps,
+                  (args_info.debug_prefix_maps_len + 1) * sizeof(char*)));
+      args_info.debug_prefix_maps[args_info.debug_prefix_maps_len++] =
         x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
       args_add(common_args, argv[i]);
       continue;
@@ -2686,7 +2550,7 @@ cc_process_args(struct args* args,
       if (str_startswith(argv[i], "-gdwarf")) {
         // Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
         // debug info on level 2.
-        generating_debuginfo = true;
+        args_info.generating_debuginfo = true;
         continue;
       }
 
@@ -2698,15 +2562,15 @@ cc_process_args(struct args* args,
       char last_char = argv[i][strlen(argv[i]) - 1];
       if (last_char == '0') {
         // "-g0", "-ggdb0" or similar: All debug information disabled.
-        generating_debuginfo = false;
+        args_info.generating_debuginfo = false;
         generating_debuginfo_level_3 = false;
       } else {
-        generating_debuginfo = true;
+        args_info.generating_debuginfo = true;
         if (last_char == '3') {
           generating_debuginfo_level_3 = true;
         }
         if (str_eq(argv[i], "-gsplit-dwarf")) {
-          seen_split_dwarf = true;
+          args_info.seen_split_dwarf = true;
         }
       }
       continue;
@@ -2715,13 +2579,12 @@ cc_process_args(struct args* args,
     // These options require special handling, because they behave differently
     // with gcc -E, when the output file is not specified.
     if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
-      generating_dependencies = true;
+      args_info.generating_dependencies = true;
       args_add(dep_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "-MF")) {
       dependency_filename_specified = true;
-      free(output_dep);
 
       char* arg;
       bool separate_argument = (strlen(argv[i]) == 3);
@@ -2741,13 +2604,13 @@ cc_process_args(struct args* args,
           ++arg;
         }
       }
-      output_dep = make_relative_path(x_strdup(arg));
+      args_info.output_dep = from_owned_cstr(make_relative_path(x_strdup(arg)));
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
-        args_add(dep_args, output_dep);
+        args_add(dep_args, args_info.output_dep.c_str());
       } else {
-        char* option = format("-MF%s", output_dep);
+        char* option = format("-MF%s", args_info.output_dep.c_str());
         args_add(dep_args, option);
         free(option);
       }
@@ -2781,36 +2644,38 @@ cc_process_args(struct args* args,
       continue;
     }
     if (str_eq(argv[i], "-fprofile-arcs")) {
-      profile_arcs = true;
+      args_info.profile_arcs = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "-ftest-coverage")) {
-      generating_coverage = true;
+      args_info.generating_coverage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "-fstack-usage")) {
-      generating_stackusage = true;
+      args_info.generating_stackusage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "--coverage")      // = -fprofile-arcs -ftest-coverage
         || str_eq(argv[i], "-coverage")) { // Undocumented but still works.
-      profile_arcs = true;
-      generating_coverage = true;
+      args_info.profile_arcs = true;
+      args_info.generating_coverage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "-fprofile-dir=")) {
-      profile_dir = x_strdup(argv[i] + 14);
+      args_info.profile_dir = from_owned_cstr(x_strdup(argv[i] + 14));
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
-      sanitize_blacklists = static_cast<char**>(x_realloc(
-        sanitize_blacklists, (sanitize_blacklists_len + 1) * sizeof(char*)));
-      sanitize_blacklists[sanitize_blacklists_len++] = x_strdup(argv[i] + 21);
+      args_info.sanitize_blacklists = static_cast<char**>(
+        x_realloc(args_info.sanitize_blacklists,
+                  (args_info.sanitize_blacklists_len + 1) * sizeof(char*)));
+      args_info.sanitize_blacklists[args_info.sanitize_blacklists_len++] =
+        x_strdup(argv[i] + 21);
       args_add(common_args, argv[i]);
       continue;
     }
@@ -2859,18 +2724,18 @@ cc_process_args(struct args* args,
         failed();
       } else if (str_startswith(argv[i], "-Wp,-MD,")
                  && !strchr(argv[i] + 8, ',')) {
-        generating_dependencies = true;
+        args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        free(output_dep);
-        output_dep = make_relative_path(x_strdup(argv[i] + 8));
+        args_info.output_dep =
+          from_owned_cstr(make_relative_path(x_strdup(argv[i] + 8)));
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-MMD,")
                  && !strchr(argv[i] + 9, ',')) {
-        generating_dependencies = true;
+        args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        free(output_dep);
-        output_dep = make_relative_path(x_strdup(argv[i] + 9));
+        args_info.output_dep =
+          from_owned_cstr(make_relative_path(x_strdup(argv[i] + 9)));
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-D")
@@ -2887,11 +2752,11 @@ cc_process_args(struct args* args,
         // TODO: Make argument to MF/MQ/MT relative.
         args_add(dep_args, argv[i]);
         continue;
-      } else if (g_config.direct_mode()) {
+      } else if (config.direct_mode()) {
         // -Wp, can be used to pass too hard options to the preprocessor.
         // Hence, disable direct mode.
         cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-        g_config.set_direct_mode(false);
+        config.set_direct_mode(false);
       }
 
       // Any other -Wp,* arguments are only relevant for the preprocessor.
@@ -2915,8 +2780,9 @@ cc_process_args(struct args* args,
         stats_update(STATS_ARGS);
         return false;
       }
-      generating_diagnostics = true;
-      output_dia = make_relative_path(x_strdup(argv[i + 1]));
+      args_info.generating_diagnostics = true;
+      args_info.output_dia =
+        from_owned_cstr(make_relative_path(x_strdup(argv[i + 1])));
       i++;
       continue;
     }
@@ -2944,11 +2810,11 @@ cc_process_args(struct args* args,
       bool supported_profile_option = false;
       if (str_startswith(argv[i], "-fprofile-generate")
           || str_eq(argv[i], "-fprofile-arcs")) {
-        profile_generate = true;
+        args_info.profile_generate = true;
         supported_profile_option = true;
       } else if (str_startswith(argv[i], "-fprofile-use")
                  || str_eq(argv[i], "-fbranch-probabilities")) {
-        profile_use = true;
+        args_info.profile_use = true;
         supported_profile_option = true;
       } else if (str_eq(argv[i], "-fprofile-dir")) {
         supported_profile_option = true;
@@ -2960,13 +2826,13 @@ cc_process_args(struct args* args,
 
         // If the profile directory has already been set, give up... Hard to
         // know what the user means, and what the compiler will do.
-        if (arg_profile_dir && profile_dir) {
+        if (arg_profile_dir && !args_info.profile_dir.empty()) {
           cc_log("Profile directory already set; giving up");
           stats_update(STATS_UNSUPPORTED_OPTION);
           return false;
         } else if (arg_profile_dir) {
           cc_log("Setting profile directory to %s", arg_profile_dir);
-          profile_dir = x_strdup(arg_profile_dir);
+          args_info.profile_dir = from_cstr(arg_profile_dir);
         }
         continue;
       }
@@ -3008,7 +2874,7 @@ cc_process_args(struct args* args,
       continue;
     }
 
-    if (g_config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
+    if (config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
         && str_eq(argv[i], "-index-store-path")) {
       // Xcode 9 or later calls Clang with this option. The given path includes
       // a UUID that might lead to cache misses, especially when cache is
@@ -3117,9 +2983,11 @@ cc_process_args(struct args* args,
       }
     }
 
-    if (input_file) {
+    if (!args_info.input_file.empty()) {
       if (language_for_file(argv[i])) {
-        cc_log("Multiple input files: %s and %s", input_file, argv[i]);
+        cc_log("Multiple input files: %s and %s",
+               args_info.input_file.c_str(),
+               argv[i]);
         stats_update(STATS_MULTIPLE);
       } else if (!found_c_opt && !found_dc_opt) {
         cc_log("Called for link with %s", argv[i]);
@@ -3136,8 +3004,8 @@ cc_process_args(struct args* args,
     }
 
     // The source code file path gets put into the notes.
-    if (generating_coverage) {
-      input_file = x_strdup(argv[i]);
+    if (args_info.generating_coverage) {
+      args_info.input_file = from_cstr(argv[i]);
       continue;
     }
 
@@ -3146,16 +3014,17 @@ cc_process_args(struct args* args,
       // make_relative_path resolves symlinks using realpath(3) and this leads
       // to potentially choosing incorrect relative header files. See the
       // "symlink to source file" test.
-      input_file = x_strdup(argv[i]);
+      args_info.input_file = from_cstr(argv[i]);
     } else {
       // Rewrite to relative to increase hit rate.
-      input_file = make_relative_path(x_strdup(argv[i]));
+      args_info.input_file =
+        from_owned_cstr(make_relative_path(x_strdup(argv[i])));
     }
   } // for
 
-  if (generating_debuginfo_level_3 && !g_config.run_second_cpp()) {
+  if (generating_debuginfo_level_3 && !config.run_second_cpp()) {
     cc_log("Generating debug info level 3; not compiling preprocessed code");
-    g_config.set_run_second_cpp(true);
+    config.set_run_second_cpp(true);
   }
 
   // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
@@ -3171,13 +3040,13 @@ cc_process_args(struct args* args,
       using_sunpro_dependencies = true;
     }
     if (dependencies_env) {
-      generating_dependencies = true;
+      args_info.generating_dependencies = true;
       dependency_filename_specified = true;
       char* saveptr = nullptr;
       char* abspath_file = strtok_r(dependencies_env, " ", &saveptr);
 
-      free(output_dep);
-      output_dep = make_relative_path(x_strdup(abspath_file));
+      args_info.output_dep =
+        from_owned_cstr(make_relative_path(x_strdup(abspath_file)));
 
       // specifying target object is optional.
       char* abspath_obj = strtok_r(nullptr, " ", &saveptr);
@@ -3187,7 +3056,8 @@ cc_process_args(struct args* args,
         dependency_target_specified = true;
         char* relpath_obj = make_relative_path(x_strdup(abspath_obj));
         // ensure compiler gets relative path.
-        char* relpath_both = format("%s %s", output_dep, relpath_obj);
+        char* relpath_both =
+          format("%s %s", args_info.output_dep.c_str(), relpath_obj);
         if (using_sunpro_dependencies) {
           x_setenv("SUNPRO_DEPENDENCIES", relpath_both);
         } else {
@@ -3201,23 +3071,23 @@ cc_process_args(struct args* args,
         dependency_implicit_target_specified = true;
         // ensure compiler gets relative path.
         if (using_sunpro_dependencies) {
-          x_setenv("SUNPRO_DEPENDENCIES", output_dep);
+          x_setenv("SUNPRO_DEPENDENCIES", args_info.output_dep.c_str());
         } else {
-          x_setenv("DEPENDENCIES_OUTPUT", output_dep);
+          x_setenv("DEPENDENCIES_OUTPUT", args_info.output_dep.c_str());
         }
       }
     }
   }
 
-  if (!input_file) {
+  if (args_info.input_file.empty()) {
     cc_log("No input file found");
     stats_update(STATS_NOINPUT);
     return false;
   }
 
   if (found_pch || found_fpch_preprocess) {
-    using_precompiled_header = true;
-    if (!(g_config.sloppiness() & SLOPPY_TIME_MACROS)) {
+    args_info.using_precompiled_header = true;
+    if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
       cc_log(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
@@ -3228,25 +3098,25 @@ cc_process_args(struct args* args,
   }
 
   if (explicit_language && str_eq(explicit_language, "none")) {
-    explicit_language = NULL;
+    explicit_language = nullptr;
   }
-  file_language = language_for_file(input_file);
+  file_language = language_for_file(args_info.input_file.c_str());
   if (explicit_language) {
     if (!language_is_supported(explicit_language)) {
       cc_log("Unsupported language: %s", explicit_language);
       stats_update(STATS_SOURCELANG);
       return false;
     }
-    actual_language = x_strdup(explicit_language);
+    args_info.actual_language = from_cstr(explicit_language);
   } else {
-    actual_language = file_language;
+    args_info.actual_language = from_cstr(file_language);
   }
 
-  output_is_precompiled_header =
-    actual_language && strstr(actual_language, "-header");
+  args_info.output_is_precompiled_header =
+    args_info.actual_language.find("-header") != std::string::npos;
 
-  if (output_is_precompiled_header
-      && !(g_config.sloppiness() & SLOPPY_PCH_DEFINES)) {
+  if (args_info.output_is_precompiled_header
+      && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
     cc_log(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
@@ -3255,13 +3125,13 @@ cc_process_args(struct args* args,
   }
 
   if (!found_c_opt && !found_dc_opt && !found_S_opt) {
-    if (output_is_precompiled_header) {
+    if (args_info.output_is_precompiled_header) {
       args_add(common_args, "-c");
     } else {
       cc_log("No -c option found");
       // I find that having a separate statistic for autoconf tests is useful,
       // as they are the dominant form of "called for link" in many cases.
-      if (strstr(input_file, "conftest.")) {
+      if (args_info.input_file.find("conftest.") != std::string::npos) {
         stats_update(STATS_CONFTEST);
       } else {
         stats_update(STATS_LINK);
@@ -3270,78 +3140,74 @@ cc_process_args(struct args* args,
     }
   }
 
-  if (!actual_language) {
-    cc_log("Unsupported source extension: %s", input_file);
+  if (args_info.actual_language.empty()) {
+    cc_log("Unsupported source extension: %s", args_info.input_file.c_str());
     stats_update(STATS_SOURCELANG);
     return false;
   }
 
-  if (!g_config.run_second_cpp() && str_eq(actual_language, "cu")) {
+  if (!config.run_second_cpp() && args_info.actual_language == "cu") {
     cc_log("Using CUDA compiler; not compiling preprocessed code");
-    g_config.set_run_second_cpp(true);
+    config.set_run_second_cpp(true);
   }
 
-  direct_i_file = language_is_preprocessed(actual_language);
+  args_info.direct_i_file =
+    language_is_preprocessed(args_info.actual_language.c_str());
 
-  if (output_is_precompiled_header && !g_config.run_second_cpp()) {
+  if (args_info.output_is_precompiled_header && !config.run_second_cpp()) {
     // It doesn't work to create the .gch from preprocessed source.
     cc_log("Creating precompiled header; not compiling preprocessed code");
-    g_config.set_run_second_cpp(true);
+    config.set_run_second_cpp(true);
   }
 
-  if (g_config.cpp_extension().empty()) {
-    const char* p_language = p_language_for_language(actual_language);
-    g_config.set_cpp_extension(extension_for_language(p_language) + 1);
+  if (config.cpp_extension().empty()) {
+    const char* p_language =
+      p_language_for_language(args_info.actual_language.c_str());
+    config.set_cpp_extension(extension_for_language(p_language) + 1);
   }
 
   // Don't try to second guess the compilers heuristics for stdout handling.
-  if (output_obj && str_eq(output_obj, "-")) {
+  if (args_info.output_obj == "-") {
     stats_update(STATS_OUTSTDOUT);
     cc_log("Output file is -");
     return false;
   }
 
-  if (!output_obj) {
-    if (output_is_precompiled_header) {
-      output_obj = format("%s.gch", input_file);
+  if (args_info.output_obj.empty()) {
+    if (args_info.output_is_precompiled_header) {
+      args_info.output_obj = args_info.input_file + ".gch";
     } else {
-      char extension = found_S_opt ? 's' : 'o';
-      output_obj = x_strdup(std::string(Util::base_name(input_file)).c_str());
-      char* p = strrchr(output_obj, '.');
-      if (!p) {
-        reformat(&output_obj, "%s.%c", output_obj, extension);
-      } else if (!p[1]) {
-        reformat(&output_obj, "%s%c", output_obj, extension);
-      } else {
-        p[1] = extension;
-        p[2] = 0;
-      }
+      string_view extension = found_S_opt ? ".s" : ".o";
+      args_info.output_obj = std::string(Util::base_name(args_info.input_file));
+
+      args_info.output_obj =
+        Util::change_extension(args_info.output_obj, extension);
     }
   }
 
-  if (seen_split_dwarf) {
-    char* p = strrchr(output_obj, '.');
-    if (!p || !p[1]) {
+  if (args_info.seen_split_dwarf) {
+    size_t pos = args_info.output_obj.rfind('.');
+    if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
       cc_log("Badly formed object filename");
       stats_update(STATS_ARGS);
       return false;
     }
 
-    output_dwo = x_strdup(Util::change_extension(output_obj, ".dwo").c_str());
+    args_info.output_dwo = Util::change_extension(args_info.output_obj, ".dwo");
   }
 
   // Cope with -o /dev/null.
-  if (!str_eq(output_obj, "/dev/null")) {
-    auto st = Stat::stat(output_obj);
+  if (args_info.output_obj != "/dev/null") {
+    auto st = Stat::stat(args_info.output_obj);
     if (st && !st.is_regular()) {
-      cc_log("Not a regular file: %s", output_obj);
+      cc_log("Not a regular file: %s", args_info.output_obj.c_str());
       stats_update(STATS_BADOUTPUTFILE);
       return false;
     }
   }
 
   {
-    char* output_dir = x_dirname(output_obj);
+    char* output_dir = x_dirname(args_info.output_obj.c_str());
     auto st = Stat::stat(output_dir);
     if (!st || !st.is_directory()) {
       cc_log("Directory does not exist: %s", output_dir);
@@ -3372,7 +3238,7 @@ cc_process_args(struct args* args,
   // default, so force it explicitly if it would be otherwise done.
   if (!found_color_diagnostics && color_output_possible()) {
     if (guessed_compiler == GUESSED_CLANG) {
-      if (!str_eq(actual_language, "assembler")) {
+      if (args_info.actual_language != "assembler") {
         args_add(common_args, "-fcolor-diagnostics");
         add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
@@ -3390,11 +3256,12 @@ cc_process_args(struct args* args,
     }
   }
 
-  if (generating_dependencies) {
+  if (args_info.generating_dependencies) {
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
-        Util::change_extension(output_obj, ".d");
-      output_dep = make_relative_path(x_strdup(default_depfile_name.c_str()));
+        Util::change_extension(args_info.output_obj, ".d");
+      args_info.output_dep = from_owned_cstr(
+        make_relative_path(x_strdup(default_depfile_name.c_str())));
       if (!g_config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -3410,22 +3277,26 @@ cc_process_args(struct args* args,
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
       args_add(dep_args, "-MQ");
-      args_add(dep_args, output_obj);
+      args_add(dep_args, args_info.output_obj.c_str());
     }
   }
-  if (generating_coverage) {
-    std::string gcda_path = Util::change_extension(output_obj, ".gcno");
-    output_cov = make_relative_path(x_strdup(gcda_path.c_str()));
+  if (args_info.generating_coverage) {
+    std::string gcda_path =
+      Util::change_extension(args_info.output_obj, ".gcno");
+    args_info.output_cov =
+      from_owned_cstr(make_relative_path(x_strdup(gcda_path.c_str())));
   }
-  if (generating_stackusage) {
-    std::string default_sufile_name = Util::change_extension(output_obj, ".su");
-    output_su = make_relative_path(x_strdup(default_sufile_name.c_str()));
+  if (args_info.generating_stackusage) {
+    std::string default_sufile_name =
+      Util::change_extension(args_info.output_obj, ".su");
+    args_info.output_su = from_owned_cstr(
+      make_relative_path(x_strdup(default_sufile_name.c_str())));
   }
 
   *compiler_args = args_copy(common_args);
   args_extend(*compiler_args, compiler_only_args);
 
-  if (g_config.run_second_cpp()) {
+  if (config.run_second_cpp()) {
     args_extend(*compiler_args, cpp_args);
   } else if (found_directives_only || found_rewrite_includes) {
     // Need to pass the macros and any other preprocessor directives again.
@@ -3440,7 +3311,7 @@ cc_process_args(struct args* args,
       args_add(cpp_args, "-frewrite-includes");
       // The preprocessed source code still needs some more preprocessing.
       args_add(*compiler_args, "-x");
-      args_add(*compiler_args, actual_language);
+      args_add(*compiler_args, args_info.actual_language.c_str());
     }
   } else if (explicit_language) {
     // Workaround for a bug in Apple's patched distcc -- it doesn't properly
@@ -3458,9 +3329,9 @@ cc_process_args(struct args* args,
     args_add(*compiler_args, "-dc");
   }
 
-  for (size_t i = 0; i < arch_args_size; ++i) {
+  for (size_t i = 0; i < args_info.arch_args_size; ++i) {
     args_add(*compiler_args, "-arch");
-    args_add(*compiler_args, arch_args[i]);
+    args_add(*compiler_args, args_info.arch_args[i]);
   }
 
   *preprocessor_args = args_copy(common_args);
@@ -3667,22 +3538,10 @@ cc_reset(void)
   g_config.clear_and_reset();
 
   free_and_nullify(current_working_dir);
-  for (size_t i = 0; i < debug_prefix_maps_len; i++) {
-    free_and_nullify(debug_prefix_maps[i]);
-  }
-  free_and_nullify(debug_prefix_maps);
-  debug_prefix_maps_len = 0;
   free_and_nullify(profile_dir);
-  for (size_t i = 0; i < sanitize_blacklists_len; i++) {
-    free_and_nullify(sanitize_blacklists[i]);
-  }
-  free_and_nullify(sanitize_blacklists);
-  sanitize_blacklists_len = 0;
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  args_free(depend_extra_args);
-  depend_extra_args = NULL;
   free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);
@@ -3701,8 +3560,6 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  generating_debuginfo = false;
-  generating_debuginfo_level_3 = false;
   generating_dependencies = false;
   generating_coverage = false;
   generating_stackusage = false;
@@ -3813,10 +3670,47 @@ ccache(int argc, char* argv[])
   // Arguments to send to the real compiler.
   struct args* compiler_args;
   MTR_BEGIN("main", "process_args");
-  if (!cc_process_args(
-        orig_args, &preprocessor_args, &extra_args_to_hash, &compiler_args)) {
+
+  ArgsInfo args_info;
+  if (!cc_process_args(args_info,
+                       g_config,
+                       orig_args,
+                       &preprocessor_args,
+                       &extra_args_to_hash,
+                       &compiler_args)) {
     failed(); // stats_update is called in cc_process_args.
   }
+
+  input_file = x_strdup(args_info.input_file.c_str());
+
+  output_obj = x_strdup(args_info.output_obj.c_str());
+  output_dep = x_strdup(args_info.output_dep.c_str());
+  output_cov = x_strdup(args_info.output_cov.c_str());
+  output_su = x_strdup(args_info.output_su.c_str());
+  output_dia = x_strdup(args_info.output_dia.c_str());
+  output_dwo = x_strdup(args_info.output_dwo.c_str());
+
+  actual_language = x_strdup(args_info.actual_language.c_str());
+
+  generating_dependencies = args_info.generating_dependencies;
+  generating_coverage = args_info.generating_coverage;
+  generating_stackusage = args_info.generating_stackusage;
+  generating_diagnostics = args_info.generating_diagnostics;
+  seen_split_dwarf = args_info.seen_split_dwarf;
+  profile_arcs = args_info.profile_arcs;
+  profile_dir = x_strdup(args_info.profile_dir.c_str());
+
+  direct_i_file = args_info.direct_i_file;
+  output_is_precompiled_header = args_info.output_is_precompiled_header;
+  profile_use = args_info.profile_use;
+  profile_generate = args_info.profile_generate;
+  using_precompiled_header = args_info.using_precompiled_header;
+
+  arch_args_size = args_info.arch_args_size;
+  for (size_t i = 0; i < args_info.arch_args_size; ++i) {
+    arch_args[i] = x_strdup(args_info.arch_args[i]);
+  }
+
   MTR_END("main", "process_args");
 
   if (g_config.depend_mode()
@@ -3865,7 +3759,7 @@ ccache(int argc, char* argv[])
   init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
-  hash_common_info(preprocessor_args, common_hash);
+  hash_common_info(preprocessor_args, common_hash, args_info);
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
@@ -3962,7 +3856,7 @@ ccache(int argc, char* argv[])
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
-  to_cache(compiler_args, depend_mode_hash);
+  to_cache(compiler_args, args_info.depend_extra_args, depend_mode_hash);
   MTR_END("cache", "to_cache");
 
   x_exit(0);

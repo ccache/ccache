@@ -31,6 +31,7 @@ quiet := $(v_at_$(V))
 Q=$(if $(quiet),@)
 
 non_third_party_sources = \
+    src/ArgsInfo.cpp \
     src/AtomicFile.cpp \
     src/CacheEntryReader.cpp \
     src/CacheEntryWriter.cpp \
@@ -57,6 +58,7 @@ non_third_party_sources = \
     src/hash.cpp \
     src/hashutil.cpp \
     src/language.cpp \
+    src/legacy_globals.cpp \
     src/legacy_util.cpp \
     src/lockfile.cpp \
     src/manifest.cpp \
