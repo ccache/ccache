@@ -1543,3 +1543,20 @@ time_seconds(void)
   return (double)time(NULL);
 #endif
 }
+
+std::string
+from_owned_cstr(char* str)
+{
+  std::string result;
+  if (str) {
+    result = str;
+    free(str);
+  }
+  return result;
+}
+
+std::string
+from_cstr(const char* str)
+{
+  return str ? str : std::string{};
+}
