@@ -23,6 +23,7 @@
 #include "stats.hpp"
 
 #include "AtomicFile.hpp"
+#include "Context.hpp"
 #include "cleanup.hpp"
 #include "counters.hpp"
 #include "hashutil.hpp"
@@ -52,7 +53,9 @@ typedef char* (*format_fn)(uint64_t value);
 
 static char* format_size_times_1024(uint64_t size);
 static char* format_timestamp(uint64_t timestamp);
-static void stats_flush_to_file(const char* sfile, struct counters* updates);
+static void stats_flush_to_file(const Context& ctx,
+                                const char* sfile,
+                                struct counters* updates);
 
 // Statistics fields in display order.
 static struct
@@ -240,7 +243,7 @@ stats_write(const char* path, struct counters* counters)
 }
 
 static void
-init_counter_updates(void)
+init_counter_updates(const Context& ctx)
 {
   if (!counter_updates) {
     counter_updates = counters_init(STATS_END);
@@ -259,7 +262,9 @@ stats_hit_rate(struct counters* counters)
 }
 
 static void
-stats_collect(struct counters* counters, time_t* last_updated)
+stats_collect(const Config& config,
+              struct counters* counters,
+              time_t* last_updated)
 {
   unsigned zero_timestamp = 0;
 
@@ -292,7 +297,10 @@ stats_collect(struct counters* counters, time_t* last_updated)
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(const char* sfile, int64_t size, int files)
+stats_update_size(const Context& ctx,
+                  const char* sfile,
+                  int64_t size,
+                  int files)
 {
   if (size == 0 && files == 0) {
     return;
@@ -300,7 +308,7 @@ stats_update_size(const char* sfile, int64_t size, int files)
 
   struct counters* updates;
   if (sfile == stats_file) {
-    init_counter_updates();
+    init_counter_updates(ctx);
     updates = counter_updates;
   } else {
     updates = counters_init(STATS_END);
@@ -308,7 +316,7 @@ stats_update_size(const char* sfile, int64_t size, int files)
   updates->data[STATS_NUMFILES] += files;
   updates->data[STATS_TOTALSIZE] += size / 1024;
   if (sfile != stats_file) {
-    stats_flush_to_file(sfile, updates);
+    stats_flush_to_file(ctx, sfile, updates);
     counters_free(updates);
   }
 }
@@ -326,7 +334,9 @@ stats_read(const char* sfile, struct counters* counters)
 
 // Write counter updates in updates to sfile.
 static void
-stats_flush_to_file(const char* sfile, struct counters* updates)
+stats_flush_to_file(const Context& ctx,
+                    const char* sfile,
+                    struct counters* updates)
 {
   if (!updates) {
     return;
@@ -418,37 +428,37 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
 
 // Write counter updates in counter_updates to disk.
 void
-stats_flush(void)
+stats_flush(const Context& ctx)
 {
-  stats_flush_to_file(stats_file, counter_updates);
+  stats_flush_to_file(ctx, stats_file, counter_updates);
   counters_free(counter_updates);
   counter_updates = NULL;
 }
 
 // Update a normal stat.
 void
-stats_update(enum stats stat)
+stats_update(const Context& ctx, enum stats stat)
 {
   assert(stat > STATS_NONE && stat < STATS_END);
-  init_counter_updates();
+  init_counter_updates(ctx);
   counter_updates->data[stat]++;
 }
 
 // Get the pending update of a counter value.
 unsigned
-stats_get_pending(enum stats stat)
+stats_get_pending(const Context& ctx, enum stats stat)
 {
-  init_counter_updates();
+  init_counter_updates(ctx);
   return counter_updates->data[stat];
 }
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(void)
+stats_summary(const Context& ctx)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
-  stats_collect(counters, &last_updated);
+  stats_collect(ctx.config, counters, &last_updated);
 
   fmt::print("cache directory                     {}\n", g_config.cache_dir());
   fmt::print("primary config                      {}\n",
@@ -505,11 +515,11 @@ stats_summary(void)
 
 // Print machine-parsable (tab-separated) statistics counters.
 void
-stats_print(void)
+stats_print(const Context& ctx)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
-  stats_collect(counters, &last_updated);
+  stats_collect(ctx.config, counters, &last_updated);
 
   printf("stats_updated_timestamp\t%llu\n", (unsigned long long)last_updated);
 
@@ -524,7 +534,7 @@ stats_print(void)
 
 // Zero all the stats structures.
 void
-stats_zero(void)
+stats_zero(const Context& ctx)
 {
   char* fname = format("%s/stats", g_config.cache_dir().c_str());
   x_unlink(fname);

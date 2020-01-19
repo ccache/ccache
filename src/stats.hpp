@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+struct Context;
+
 // Statistics fields in storage order.
 enum stats {
   STATS_NONE = 0,
@@ -59,13 +61,16 @@ enum stats {
   STATS_END
 };
 
-void stats_update(enum stats stat);
-void stats_flush();
-unsigned stats_get_pending(enum stats stat);
-void stats_zero();
-void stats_summary();
-void stats_print();
-void stats_update_size(const char* sfile, int64_t size, int files);
+void stats_update(const Context& ctx, enum stats stat);
+void stats_flush(const Context& ctx);
+unsigned stats_get_pending(const Context& ctx, enum stats stat);
+void stats_zero(const Context& ctx);
+void stats_summary(const Context& ctx);
+void stats_print(const Context& ctx);
+void stats_update_size(const Context& ctx,
+                       const char* sfile,
+                       int64_t size,
+                       int files);
 void stats_get_obsolete_limits(const char* dir,
                                unsigned* maxfiles,
                                uint64_t* maxsize);

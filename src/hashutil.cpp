@@ -18,6 +18,7 @@
 
 #include "hashutil.hpp"
 
+#include "Config.hpp"
 #include "Stat.hpp"
 #include "args.hpp"
 #include "ccache.hpp"
@@ -282,7 +283,8 @@ hash_source_code_file(const Config& config, struct hash* hash, const char* path)
 }
 
 bool
-hash_command_output(struct hash* hash,
+hash_command_output(const Context& ctx,
+                    struct hash* hash,
                     const char* command,
                     const char* compiler)
 {
@@ -357,14 +359,14 @@ hash_command_output(struct hash* hash,
     free((char*)command); // Original argument was replaced above.
   }
   if (ret == 0) {
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
     return false;
   }
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
   bool ok = hash_fd(hash, fd);
   if (!ok) {
     cc_log("Error hashing compiler check command output: %s", strerror(errno));
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
   DWORD exitcode;
@@ -374,7 +376,7 @@ hash_command_output(struct hash* hash,
   CloseHandle(pi.hThread);
   if (exitcode != 0) {
     cc_log("Compiler check command returned %d", (int)exitcode);
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
     return false;
   }
   return ok;
@@ -405,7 +407,7 @@ hash_command_output(struct hash* hash,
     if (!ok) {
       cc_log("Error hashing compiler check command output: %s",
              strerror(errno));
-      stats_update(STATS_COMPCHECK);
+      stats_update(ctx, STATS_COMPCHECK);
     }
     close(pipefd[0]);
 
@@ -416,7 +418,7 @@ hash_command_output(struct hash* hash,
     }
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
       cc_log("Compiler check command returned %d", WEXITSTATUS(status));
-      stats_update(STATS_COMPCHECK);
+      stats_update(ctx, STATS_COMPCHECK);
       return false;
     }
     return ok;
@@ -425,7 +427,8 @@ hash_command_output(struct hash* hash,
 }
 
 bool
-hash_multicommand_output(struct hash* hash,
+hash_multicommand_output(const Context& ctx,
+                         struct hash* hash,
                          const char* commands,
                          const char* compiler)
 {
@@ -435,7 +438,7 @@ hash_multicommand_output(struct hash* hash,
   char* saveptr = NULL;
   bool ok = true;
   while ((command = strtok_r(p, ";", &saveptr))) {
-    if (!hash_command_output(hash, command, compiler)) {
+    if (!hash_command_output(ctx, hash, command, compiler)) {
       ok = false;
     }
     p = NULL;

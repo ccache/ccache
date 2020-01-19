@@ -24,12 +24,13 @@
 #include <unordered_map>
 
 class Config;
+struct Context;
 struct digest;
 
 extern const uint8_t k_manifest_magic[4];
 extern const uint8_t k_manifest_version;
 
-struct digest* manifest_get(const Config& config, const std::string& path);
+struct digest* manifest_get(const Context& ctx, const std::string& path);
 bool manifest_put(const std::string& path,
                   const struct digest& result_name,
                   const std::unordered_map<std::string, digest>& included_files,

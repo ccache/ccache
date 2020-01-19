@@ -21,6 +21,8 @@
 #include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
+#include "Config.hpp"
+#include "Context.hpp"
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
@@ -84,7 +86,8 @@ create_writer(FILE* stream,
 }
 
 static void
-recompress_file(const std::string& stats_file,
+recompress_file(Context& ctx,
+                const std::string& stats_file,
                 const CacheFile& cache_file,
                 int8_t level)
 {
@@ -122,7 +125,7 @@ recompress_file(const std::string& stats_file,
   uint64_t new_size =
     Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
 
-  stats_update_size(stats_file.c_str(), new_size - old_size, 0);
+  stats_update_size(ctx, stats_file.c_str(), new_size - old_size, 0);
 }
 
 void
@@ -194,7 +197,7 @@ compress_stats(const Config& config,
 }
 
 void
-compress_recompress(const Config& config,
+compress_recompress(Context& ctx,
                     int8_t level,
                     const Util::ProgressReceiver& progress_receiver)
 {
@@ -203,7 +206,7 @@ compress_recompress(const Config& config,
   ThreadPool thread_pool(threads, read_ahead);
 
   Util::for_each_level_1_subdir(
-    config.cache_dir(),
+    ctx.config.cache_dir(),
     [&](const std::string& subdir,
         const Util::ProgressReceiver& sub_progress_receiver) {
       std::vector<std::shared_ptr<CacheFile>> files;
@@ -218,9 +221,9 @@ compress_recompress(const Config& config,
         const auto& file = files[i];
 
         if (file->type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([=] {
+          thread_pool.enqueue([&ctx, stats_file, file, level] {
             try {
-              recompress_file(stats_file, *file, level);
+              recompress_file(ctx, stats_file, *file, level);
             } catch (Error&) {
               // Ignore for now.
             }

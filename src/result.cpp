@@ -102,7 +102,8 @@ using ReadEntryFunction = void (*)(CacheEntryReader& reader,
                                    FILE* dump_stream);
 
 using WriteEntryFunction =
-  void (*)(CacheEntryWriter& writer,
+  void (*)(const Context& ctx,
+           CacheEntryWriter& writer,
            const std::string& result_path_in_cache,
            uint32_t entry_number,
            const ResultFileMap::value_type& suffix_and_path);
@@ -336,7 +337,8 @@ read_result(const std::string& path,
 }
 
 static void
-write_embedded_file_entry(CacheEntryWriter& writer,
+write_embedded_file_entry(const Context& ctx,
+                          CacheEntryWriter& writer,
                           const std::string& /*result_path_in_cache*/,
                           uint32_t entry_number,
                           const ResultFileMap::value_type& suffix_and_path)
@@ -375,7 +377,8 @@ write_embedded_file_entry(CacheEntryWriter& writer,
 }
 
 static void
-write_raw_file_entry(CacheEntryWriter& writer,
+write_raw_file_entry(const Context& ctx,
+                     CacheEntryWriter& writer,
                      const std::string& result_path_in_cache,
                      uint32_t entry_number,
                      const ResultFileMap::value_type& suffix_and_path)
@@ -404,7 +407,8 @@ write_raw_file_entry(CacheEntryWriter& writer,
   }
   auto new_stat = Stat::stat(raw_file);
 
-  stats_update_size(stats_file,
+  stats_update_size(ctx,
+                    stats_file,
                     new_stat.size_on_disk() - old_stat.size_on_disk(),
                     (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
 }
@@ -434,7 +438,9 @@ should_store_raw_file(FileType type)
 }
 
 static void
-write_result(const std::string& path, const ResultFileMap& result_file_map)
+write_result(const Context& ctx,
+             const std::string& path,
+             const ResultFileMap& result_file_map)
 {
   uint64_t payload_size = 0;
   payload_size += 1; // n_entries
@@ -463,7 +469,7 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
     WriteEntryFunction write_entry = should_store_raw_file(suffix)
                                        ? write_raw_file_entry
                                        : write_embedded_file_entry;
-    write_entry(writer, path, entry_number, pair);
+    write_entry(ctx, writer, path, entry_number, pair);
     ++entry_number;
   }
 
@@ -492,12 +498,14 @@ result_get(const std::string& path, const ResultFileMap& result_file_map)
 }
 
 bool
-result_put(const std::string& path, const ResultFileMap& result_file_map)
+result_put(const Context& ctx,
+           const std::string& path,
+           const ResultFileMap& result_file_map)
 {
   cc_log("Storing result %s", path.c_str());
 
   try {
-    write_result(path, result_file_map);
+    write_result(ctx, path, result_file_map);
     return true;
   } catch (const Error& e) {
     cc_log("Error: %s", e.what());

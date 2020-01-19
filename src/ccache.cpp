@@ -20,6 +20,7 @@
 #include "ccache.hpp"
 
 #include "ArgsInfo.hpp"
+#include "Context.hpp"
 #include "Error.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
@@ -132,10 +133,12 @@ struct pending_tmp_file
 };
 
 // Temporary files to remove at program exit.
+// STAYS A GLOBAL
 static struct pending_tmp_file* pending_tmp_files = NULL;
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
+// CONSTEXPR
 static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
 
 #ifndef _WIN32
@@ -184,11 +187,11 @@ add_prefix(struct args* args, const char* prefix_command)
   args_free(prefix);
 }
 
-static void failed(void) ATTR_NORETURN;
+static void failed(const Context& ctx) ATTR_NORETURN;
 
 // Something went badly wrong - just execute the real compiler.
 static void
-failed(void)
+failed(const Context& ctx)
 {
   assert(orig_args);
 
@@ -203,7 +206,7 @@ failed(void)
 }
 
 static const char*
-temp_dir()
+temp_dir(const Config& cfg)
 {
   static const char* path = NULL;
   if (path) {
@@ -246,7 +249,7 @@ add_pending_tmp_file(const char* path)
 }
 
 static void
-do_clean_up_pending_tmp_files(void)
+do_clean_up_pending_tmp_files()
 {
   struct pending_tmp_file* p = pending_tmp_files;
   while (p) {
@@ -331,7 +334,7 @@ set_up_signal_handlers(void)
 #endif // _WIN32
 
 static void
-clean_up_internal_tempdir(void)
+clean_up_internal_tempdir(const Config& cfg)
 {
   time_t now = time(NULL);
   auto st = Stat::stat(g_config.cache_dir(), Stat::OnError::log);
@@ -342,7 +345,7 @@ clean_up_internal_tempdir(void)
 
   update_mtime(g_config.cache_dir().c_str());
 
-  DIR* dir = opendir(temp_dir());
+  DIR* dir = opendir(temp_dir(cfg));
   if (!dir) {
     return;
   }
@@ -353,7 +356,7 @@ clean_up_internal_tempdir(void)
       continue;
     }
 
-    char* path = format("%s/%s", temp_dir(), entry->d_name);
+    char* path = format("%s/%s", temp_dir(cfg), entry->d_name);
     st = Stat::lstat(path, Stat::OnError::log);
     if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
       tmp_unlink(path);
@@ -422,7 +425,7 @@ guess_compiler(const char* path)
 }
 
 static char*
-get_current_working_dir(void)
+get_current_working_dir(Context& ctx)
 {
   if (!current_working_dir) {
     char* cwd = get_cwd();
@@ -433,15 +436,16 @@ get_current_working_dir(void)
     if (!current_working_dir) {
       cc_log("Unable to determine current working directory: %s",
              strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
   }
   return current_working_dir;
 }
 
 static bool
-do_remember_include_file(std::string path,
+do_remember_include_file(Context& ctx,
+                         std::string path,
                          struct hash* cpp_hash,
                          bool system,
                          struct hash* depend_mode_hash)
@@ -606,12 +610,13 @@ do_remember_include_file(std::string path,
 // global g_included_files variable. If the include file is a PCH, cpp_hash is
 // also updated.
 static void
-remember_include_file(const std::string& path,
+remember_include_file(Context& ctx,
+                      const std::string& path,
                       struct hash* cpp_hash,
                       bool system,
                       struct hash* depend_mode_hash)
 {
-  if (!do_remember_include_file(path, cpp_hash, system, depend_mode_hash)
+  if (!do_remember_include_file(ctx, path, cpp_hash, system, depend_mode_hash)
       && g_config.direct_mode()) {
     cc_log("Disabling direct mode");
     g_config.set_direct_mode(false);
@@ -619,7 +624,7 @@ remember_include_file(const std::string& path,
 }
 
 static void
-print_included_files(FILE* fp)
+print_included_files(Context& ctx, FILE* fp)
 {
   for (const auto& item : g_included_files) {
     fprintf(fp, "%s\n", item.first.c_str());
@@ -629,10 +634,10 @@ print_included_files(FILE* fp)
 // Make a relative path from current working directory to path if path is under
 // the base directory.
 static std::string
-make_relative_path(const char* path)
+make_relative_path(Context& ctx, const char* path)
 {
-  if (g_config.base_dir().empty()
-      || !str_startswith(path, g_config.base_dir().c_str())) {
+  if (ctx.config.base_dir().empty()
+      || !str_startswith(path, ctx.config.base_dir().c_str())) {
     return path;
   }
 
@@ -682,7 +687,7 @@ make_relative_path(const char* path)
 
   canon_path = x_realpath(path);
   if (canon_path) {
-    relpath = get_relative_path(get_current_working_dir(), canon_path);
+    relpath = get_relative_path(get_current_working_dir(ctx), canon_path);
     if (path_suffix) {
       result = fmt::format("{}/{}", relpath, path_suffix);
     } else {
@@ -712,7 +717,10 @@ make_relative_path(const char* path)
 // - Stores the paths and hashes of included files in the global variable
 //   g_included_files.
 static bool
-process_preprocessed_file(struct hash* hash, const char* path, bool pump)
+process_preprocessed_file(Context& ctx,
+                          struct hash* hash,
+                          const char* path,
+                          bool pump)
 {
   char* data;
   size_t size;
@@ -834,7 +842,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
         has_absolute_include_headers = is_absolute_path(inc_path);
       }
       char* saved_inc_path = inc_path;
-      inc_path = x_strdup(make_relative_path(inc_path).c_str());
+      inc_path = x_strdup(make_relative_path(ctx, inc_path).c_str());
       free(saved_inc_path);
 
       bool should_hash_inc_path = true;
@@ -854,7 +862,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
         hash_string_buffer(hash, inc_path, strlen(inc_path));
       }
 
-      remember_include_file(inc_path, hash, system, NULL);
+      remember_include_file(ctx, inc_path, hash, system, NULL);
       free(inc_path);
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
@@ -866,8 +874,8 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       cc_log(
         "Found unsupported .inc"
         "bin directive in source code");
-      stats_update(STATS_UNSUPPORTED_DIRECTIVE);
-      failed();
+      stats_update(ctx, STATS_UNSUPPORTED_DIRECTIVE);
+      failed(ctx);
     } else if (pump && strncmp(q, "_________", 9) == 0) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
@@ -893,14 +901,14 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
   if (included_pch_file) {
-    std::string pch_path = make_relative_path(included_pch_file);
+    std::string pch_path = make_relative_path(ctx, included_pch_file);
     hash_string(hash, pch_path);
-    remember_include_file(pch_path, hash, false, NULL);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
-    print_included_files(stdout);
+    print_included_files(ctx, stdout);
   }
 
   return true;
@@ -908,7 +916,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
 
 // Replace absolute paths with relative paths in the provided dependency file.
 static void
-use_relative_paths_in_depfile(const char* depfile)
+use_relative_paths_in_depfile(Context& ctx, const char* depfile)
 {
   if (g_config.base_dir().empty()) {
     cc_log("Base dir not set, skip using relative paths");
@@ -940,7 +948,7 @@ use_relative_paths_in_depfile(const char* depfile)
       char* relpath = nullptr;
       if (is_absolute_path(token)
           && str_startswith(token, g_config.base_dir().c_str())) {
-        relpath = x_strdup(make_relative_path(token).c_str());
+        relpath = x_strdup(make_relative_path(ctx, token).c_str());
         result = true;
       } else {
         relpath = token;
@@ -997,7 +1005,7 @@ out:
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static struct digest*
-result_name_from_depfile(const char* depfile, struct hash* hash)
+result_name_from_depfile(Context& ctx, const char* depfile, struct hash* hash)
 {
   FILE* f = fopen(depfile, "r");
   if (!f) {
@@ -1017,8 +1025,8 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
       if (!has_absolute_include_headers) {
         has_absolute_include_headers = is_absolute_path(token);
       }
-      std::string path = make_relative_path(token);
-      remember_include_file(path, hash, false, hash);
+      std::string path = make_relative_path(ctx, token);
+      remember_include_file(ctx, path, hash, false, hash);
     }
   }
 
@@ -1027,14 +1035,14 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
   if (included_pch_file) {
-    std::string pch_path = make_relative_path(included_pch_file);
+    std::string pch_path = make_relative_path(ctx, included_pch_file);
     hash_string(hash, pch_path);
-    remember_include_file(pch_path, hash, false, NULL);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
-    print_included_files(stdout);
+    print_included_files(ctx, stdout);
   }
 
   auto d = static_cast<digest*>(x_malloc(sizeof(digest)));
@@ -1055,7 +1063,7 @@ send_cached_stderr(const char* path_stderr)
 
 // Create or update the manifest file.
 static void
-update_manifest_file(void)
+update_manifest_file(Context& ctx)
 {
   if (!g_config.direct_mode() || g_config.read_only()
       || g_config.read_only_direct()) {
@@ -1076,7 +1084,8 @@ update_manifest_file(void)
     cc_log("Failed to add result name to %s", manifest_path);
   } else {
     auto st = Stat::stat(manifest_path, Stat::OnError::log);
-    stats_update_size(manifest_stats_file,
+    stats_update_size(ctx,
+                      manifest_stats_file,
                       st.size_on_disk() - old_st.size_on_disk(),
                       !old_st && st ? 1 : 0);
   }
@@ -1084,7 +1093,7 @@ update_manifest_file(void)
 }
 
 static void
-update_cached_result_globals(struct digest* result_name)
+update_cached_result_globals(Context& ctx, struct digest* result_name)
 {
   char result_name_string[DIGEST_STRING_BUFFER_SIZE];
   digest_as_string(result_name, result_name_string);
@@ -1133,7 +1142,8 @@ create_cachedir_tag(const std::string& dir)
 
 // Run the real compiler and put the result in cache.
 static void
-to_cache(struct args* args,
+to_cache(Context& ctx,
+         struct args* args,
          struct args* depend_extra_args,
          struct hash* depend_mode_hash)
 {
@@ -1172,7 +1182,7 @@ to_cache(struct args* args,
     // non-existent .dwo files.
     if (unlink(output_dwo) == -1 && errno != ENOENT) {
       cc_log("Failed to unlink %s: %s", output_dwo, strerror(errno));
-      stats_update(STATS_BADOUTPUTFILE);
+      stats_update(ctx, STATS_BADOUTPUTFILE);
     }
   }
 
@@ -1184,17 +1194,17 @@ to_cache(struct args* args,
   int tmp_stderr_fd;
   int status;
   if (!g_config.depend_mode()) {
-    tmp_stdout = format("%s/tmp.stdout", temp_dir());
+    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx.config));
     tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir());
+    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx.config));
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
     args_pop(args, 3);
   } else {
     // The cached result path is not known yet, use temporary files.
-    tmp_stdout = format("%s/tmp.stdout", temp_dir());
+    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx.config));
     tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir());
+    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx.config));
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
     // Use the original arguments (including dependency options) in depend
@@ -1217,20 +1227,20 @@ to_cache(struct args* args,
   auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
-    stats_update(STATS_MISSING);
+    stats_update(ctx, STATS_MISSING);
     tmp_unlink(tmp_stdout);
     tmp_unlink(tmp_stderr);
-    failed();
+    failed(ctx);
   }
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && guessed_compiler != GUESSED_PUMP) {
     cc_log("Compiler produced stdout");
-    stats_update(STATS_STDOUT);
+    stats_update(ctx, STATS_STDOUT);
     tmp_unlink(tmp_stdout);
     tmp_unlink(tmp_stderr);
-    failed();
+    failed(ctx);
   }
   tmp_unlink(tmp_stdout);
 
@@ -1243,30 +1253,30 @@ to_cache(struct args* args,
              tmp_stderr,
              tmp_stderr2,
              strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
 
     int fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
     if (fd_cpp_stderr == -1) {
       cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
 
     int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
     if (fd_real_stderr == -1) {
       cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
 
     int fd_result =
       open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
     if (fd_result == -1) {
       cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
 
     copy_fd(fd_cpp_stderr, fd_result);
@@ -1280,7 +1290,7 @@ to_cache(struct args* args,
 
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
-    stats_update(STATS_STATUS);
+    stats_update(ctx, STATS_STATUS);
 
     int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
     if (fd != -1) {
@@ -1293,42 +1303,42 @@ to_cache(struct args* args,
     }
 
     tmp_unlink(tmp_stderr);
-    failed();
+    failed(ctx);
   }
 
   if (g_config.depend_mode()) {
     struct digest* result_name =
-      result_name_from_depfile(output_dep, depend_mode_hash);
+      result_name_from_depfile(ctx, output_dep, depend_mode_hash);
     if (!result_name) {
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
-    update_cached_result_globals(result_name);
+    update_cached_result_globals(ctx, result_name);
   }
 
   bool produce_dep_file =
     generating_dependencies && !str_eq(output_dep, "/dev/null");
 
   if (produce_dep_file) {
-    use_relative_paths_in_depfile(output_dep);
+    use_relative_paths_in_depfile(ctx, output_dep);
   }
 
   st = Stat::stat(output_obj);
   if (!st) {
     cc_log("Compiler didn't produce an object file");
-    stats_update(STATS_NOOUTPUT);
-    failed();
+    stats_update(ctx, STATS_NOOUTPUT);
+    failed(ctx);
   }
   if (st.size() == 0) {
     cc_log("Compiler produced an empty object file");
-    stats_update(STATS_EMPTYOUTPUT);
-    failed();
+    stats_update(ctx, STATS_EMPTYOUTPUT);
+    failed(ctx);
   }
 
   st = Stat::stat(tmp_stderr, Stat::OnError::log);
   if (!st) {
-    stats_update(STATS_ERROR);
-    failed();
+    stats_update(ctx, STATS_ERROR);
+    failed(ctx);
   }
   ResultFileMap result_file_map;
   if (st.size() > 0) {
@@ -1354,23 +1364,24 @@ to_cache(struct args* args,
   }
 
   auto orig_dest_stat = Stat::stat(cached_result_path);
-  result_put(cached_result_path, result_file_map);
+  result_put(ctx, cached_result_path, result_file_map);
 
   cc_log("Stored in cache: %s", cached_result_path);
 
   auto new_dest_stat = Stat::stat(cached_result_path, Stat::OnError::log);
   if (!new_dest_stat) {
-    stats_update(STATS_ERROR);
-    failed();
+    stats_update(ctx, STATS_ERROR);
+    failed(ctx);
   }
-  stats_update_size(stats_file,
+  stats_update_size(ctx,
+                    stats_file,
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);
 
   MTR_END("file", "file_put");
 
-  stats_update(STATS_CACHEMISS);
+  stats_update(ctx, STATS_CACHEMISS);
 
   // Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
   // be done almost anywhere, but we might as well do it near the end as we
@@ -1397,7 +1408,7 @@ to_cache(struct args* args,
   send_cached_stderr(tmp_stderr);
   tmp_unlink(tmp_stderr);
 
-  update_manifest_file();
+  update_manifest_file(ctx);
 
   free(tmp_stderr);
   free(tmp_stdout);
@@ -1406,7 +1417,7 @@ to_cache(struct args* args,
 // Find the result name by running the compiler in preprocessor mode and
 // hashing the result.
 static struct digest*
-get_result_name_from_cpp(struct args* args, struct hash* hash)
+get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 {
   time_of_compilation = time(NULL);
 
@@ -1424,12 +1435,12 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
     // Limit the basename to 10 characters in order to cope with filesystem with
     // small maximum filename length limits.
     string_view input_base = Util::get_truncated_base_name(input_file, 10);
-    path_stdout =
-      x_strdup(fmt::format("{}/{}.stdout", temp_dir(), input_base).c_str());
+    path_stdout = x_strdup(
+      fmt::format("{}/{}.stdout", temp_dir(ctx.config), input_base).c_str());
     int path_stdout_fd = create_tmp_fd(&path_stdout);
     add_pending_tmp_file(path_stdout);
 
-    path_stderr = format("%s/tmp.cpp_stderr", temp_dir());
+    path_stderr = format("%s/tmp.cpp_stderr", temp_dir(ctx.config));
     int path_stderr_fd = create_tmp_fd(&path_stderr);
     add_pending_tmp_file(path_stderr);
 
@@ -1450,23 +1461,23 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 
   if (status != 0) {
     cc_log("Preprocessor gave exit status %d", status);
-    stats_update(STATS_PREPROCESSOR);
-    failed();
+    stats_update(ctx, STATS_PREPROCESSOR);
+    failed(ctx);
   }
 
   hash_delimiter(hash, "cpp");
   if (!process_preprocessed_file(
-        hash, path_stdout, guessed_compiler == GUESSED_PUMP)) {
-    stats_update(STATS_ERROR);
-    failed();
+        ctx, hash, path_stdout, guessed_compiler == GUESSED_PUMP)) {
+    stats_update(ctx, STATS_ERROR);
+    failed(ctx);
   }
 
   hash_delimiter(hash, "cppstderr");
   if (!direct_i_file && !hash_file(hash, path_stderr)) {
     // Somebody removed the temporary file?
-    stats_update(STATS_ERROR);
+    stats_update(ctx, STATS_ERROR);
     cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
-    failed();
+    failed(ctx);
   }
 
   if (direct_i_file) {
@@ -1497,7 +1508,8 @@ get_result_name_from_cpp(struct args* args, struct hash* hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(struct hash* hash,
+hash_compiler(const Context& ctx,
+              struct hash* hash,
               const Stat& st,
               const char* path,
               bool allow_command)
@@ -1516,7 +1528,7 @@ hash_compiler(struct hash* hash,
     hash_file(hash, path);
   } else { // command string
     bool ok = hash_multicommand_output(
-      hash, g_config.compiler_check().c_str(), orig_args->argv[0]);
+      ctx, hash, g_config.compiler_check().c_str(), orig_args->argv[0]);
     if (!ok) {
       fatal("Failure running compiler check command: %s",
             g_config.compiler_check().c_str());
@@ -1530,7 +1542,8 @@ hash_compiler(struct hash* hash,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(struct hash* hash,
+hash_nvcc_host_compiler(const Context& ctx,
+                        struct hash* hash,
                         const Stat* ccbin_st,
                         const char* ccbin)
 {
@@ -1559,28 +1572,26 @@ hash_nvcc_host_compiler(struct hash* hash,
         char* path = format("%s/%s", ccbin, compilers[i]);
         auto st = Stat::stat(path);
         if (st) {
-          hash_compiler(hash, st, path, false);
+          hash_compiler(ctx, hash, st, path, false);
         }
         free(path);
       } else {
         char* path = find_executable(compilers[i], MYNAME);
         if (path) {
           auto st = Stat::stat(path, Stat::OnError::log);
-          hash_compiler(hash, st, ccbin, false);
+          hash_compiler(ctx, hash, st, ccbin, false);
           free(path);
         }
       }
     }
   } else {
-    hash_compiler(hash, *ccbin_st, ccbin, false);
+    hash_compiler(ctx, hash, *ccbin_st, ccbin, false);
   }
 }
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(struct args* args,
-                 struct hash* hash,
-                 const ArgsInfo& args_info)
+hash_common_info(Context& ctx, struct args* args, struct hash* hash)
 {
   hash_string(hash, HASH_PREFIX);
 
@@ -1601,12 +1612,12 @@ hash_common_info(struct args* args,
 
   auto st = Stat::stat(full_path, Stat::OnError::log);
   if (!st) {
-    stats_update(STATS_COMPILER);
-    failed();
+    stats_update(ctx, STATS_COMPILER);
+    failed(ctx);
   }
 
   // Hash information about the compiler.
-  hash_compiler(hash, st, args->argv[0], true);
+  hash_compiler(ctx, hash, st, args->argv[0], true);
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1628,10 +1639,10 @@ hash_common_info(struct args* args,
   }
 
   // Possibly hash the current working directory.
-  if (args_info.generating_debuginfo && g_config.hash_dir()) {
+  if (ctx.args_info.generating_debuginfo && g_config.hash_dir()) {
     char* cwd = gnu_getcwd();
-    for (size_t i = 0; i < args_info.debug_prefix_maps_len; i++) {
-      char* map = args_info.debug_prefix_maps[i];
+    for (size_t i = 0; i < ctx.args_info.debug_prefix_maps_len; i++) {
+      char* map = ctx.args_info.debug_prefix_maps[i];
       char* sep = strchr(map, '=');
       if (sep) {
         char* old_path = x_strndup(map, sep - map);
@@ -1689,13 +1700,13 @@ hash_common_info(struct args* args,
   }
 
   // Possibly hash the sanitize blacklist file path.
-  for (size_t i = 0; i < args_info.sanitize_blacklists_len; i++) {
-    char* sanitize_blacklist = args_info.sanitize_blacklists[i];
+  for (size_t i = 0; i < ctx.args_info.sanitize_blacklists_len; i++) {
+    char* sanitize_blacklist = ctx.args_info.sanitize_blacklists[i];
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
     hash_delimiter(hash, "sanitizeblacklist");
     if (!hash_file(hash, sanitize_blacklist)) {
-      stats_update(STATS_BADEXTRAFILE);
-      failed();
+      stats_update(ctx, STATS_BADEXTRAFILE);
+      failed(ctx);
     }
   }
 
@@ -1708,8 +1719,8 @@ hash_common_info(struct args* args,
       cc_log("Hashing extra file %s", path);
       hash_delimiter(hash, "extrafile");
       if (!hash_file(hash, path)) {
-        stats_update(STATS_BADEXTRAFILE);
-        failed();
+        stats_update(ctx, STATS_BADEXTRAFILE);
+        failed(ctx);
       }
       q = NULL;
     }
@@ -1730,7 +1741,8 @@ hash_common_info(struct args* args,
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
 static struct digest*
-calculate_result_name(struct args* args,
+calculate_result_name(Context& ctx,
+                      struct args* args,
                       struct args* preprocessor_args,
                       struct hash* hash,
                       bool direct_mode)
@@ -1845,7 +1857,7 @@ calculate_result_name(struct args* args,
         // If given an explicit specs file, then hash that file, but don't
         // include the path to it in the hash.
         hash_delimiter(hash, "specs");
-        hash_compiler(hash, st, p, false);
+        hash_compiler(ctx, hash, st, p, false);
         continue;
       }
     }
@@ -1854,7 +1866,7 @@ calculate_result_name(struct args* args,
       auto st = Stat::stat(args->argv[i] + 9, Stat::OnError::log);
       if (st) {
         hash_delimiter(hash, "plugin");
-        hash_compiler(hash, st, args->argv[i] + 9, false);
+        hash_compiler(ctx, hash, st, args->argv[i] + 9, false);
         continue;
       }
     }
@@ -1865,7 +1877,7 @@ calculate_result_name(struct args* args,
       auto st = Stat::stat(args->argv[i + 3], Stat::OnError::log);
       if (st) {
         hash_delimiter(hash, "plugin");
-        hash_compiler(hash, st, args->argv[i + 3], false);
+        hash_compiler(ctx, hash, st, args->argv[i + 3], false);
         i += 3;
         continue;
       }
@@ -1878,7 +1890,7 @@ calculate_result_name(struct args* args,
       if (st) {
         found_ccbin = true;
         hash_delimiter(hash, "ccbin");
-        hash_nvcc_host_compiler(hash, &st, args->argv[i + 1]);
+        hash_nvcc_host_compiler(ctx, hash, &st, args->argv[i + 1]);
         i++;
         continue;
       }
@@ -1901,7 +1913,7 @@ calculate_result_name(struct args* args,
   }
 
   if (!found_ccbin && str_eq(actual_language, "cu")) {
-    hash_nvcc_host_compiler(hash, NULL, NULL);
+    hash_nvcc_host_compiler(ctx, hash, NULL, NULL);
   }
 
   // For profile generation (-fprofile-arcs, -fprofile-generate):
@@ -1977,8 +1989,8 @@ calculate_result_name(struct args* args,
     hash_delimiter(hash, "sourcecode");
     int result = hash_source_code_file(g_config, hash, input_file);
     if (result & HASH_SOURCE_CODE_ERROR) {
-      stats_update(STATS_ERROR);
-      failed();
+      stats_update(ctx, STATS_ERROR);
+      failed(ctx);
     }
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       cc_log("Disabling direct mode");
@@ -1999,7 +2011,7 @@ calculate_result_name(struct args* args,
 
     cc_log("Looking for result name in %s", manifest_path);
     MTR_BEGIN("manifest", "manifest_get");
-    result_name = manifest_get(g_config, manifest_path);
+    result_name = manifest_get(ctx, manifest_path);
     MTR_END("manifest", "manifest_get");
     if (result_name) {
       cc_log("Got result name from manifest");
@@ -2009,13 +2021,13 @@ calculate_result_name(struct args* args,
   } else {
     assert(preprocessor_args);
     if (arch_args_size == 0) {
-      result_name = get_result_name_from_cpp(preprocessor_args, hash);
+      result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
       cc_log("Got result name from preprocessor");
     } else {
       args_add(preprocessor_args, "-arch");
       for (size_t i = 0; i < arch_args_size; ++i) {
         args_add(preprocessor_args, arch_args[i]);
-        result_name = get_result_name_from_cpp(preprocessor_args, hash);
+        result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
         cc_log("Got result name from preprocessor with -arch %s", arch_args[i]);
         if (i != arch_args_size - 1) {
           free(result_name);
@@ -2033,7 +2045,9 @@ calculate_result_name(struct args* args,
 // Try to return the compile result from cache. If we can return from cache
 // then this function exits with the correct status code, otherwise it returns.
 static void
-from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
+from_cache(Context& ctx,
+           enum fromcache_call_mode mode,
+           bool put_result_in_manifest)
 {
   // The user might be disabling cache hits.
   if (g_config.recache()) {
@@ -2061,7 +2075,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
   MTR_BEGIN("file", "file_get");
 
   // Get result from cache.
-  char* tmp_stderr = format("%s/tmp.stderr", temp_dir());
+  char* tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx.config));
   int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
   close(tmp_stderr_fd);
 
@@ -2098,7 +2112,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
   send_cached_stderr(tmp_stderr);
 
   if (put_result_in_manifest) {
-    update_manifest_file();
+    update_manifest_file(ctx);
   }
 
   tmp_unlink(tmp_stderr);
@@ -2108,12 +2122,12 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
   switch (mode) {
   case FROMCACHE_DIRECT_MODE:
     cc_log("Succeeded getting cached result");
-    stats_update(STATS_CACHEHIT_DIR);
+    stats_update(ctx, STATS_CACHEHIT_DIR);
     break;
 
   case FROMCACHE_CPP_MODE:
     cc_log("Succeeded getting cached result");
-    stats_update(STATS_CACHEHIT_CPP);
+    stats_update(ctx, STATS_CACHEHIT_CPP);
     break;
   }
 
@@ -2126,7 +2140,7 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
 // Find the real compiler. We just search the PATH to find an executable of the
 // same name that isn't a link to ourselves.
 static void
-find_compiler(char** argv)
+find_compiler(Context& ctx, char** argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
@@ -2146,7 +2160,7 @@ find_compiler(char** argv)
 
   char* compiler = find_executable(base.c_str(), MYNAME);
   if (!compiler) {
-    stats_update(STATS_COMPILER);
+    stats_update(ctx, STATS_COMPILER);
     fatal("Could not find compiler \"%s\" in PATH", base.c_str());
   }
   if (str_eq(compiler, argv[0])) {
@@ -2170,14 +2184,14 @@ is_precompiled_header(const char* path)
 }
 
 static bool
-color_output_possible(void)
+color_output_possible()
 {
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;
 }
 
 static bool
-detect_pch(const char* option, const char* arg, bool* found_pch)
+detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
 {
   // Try to be smart about detecting precompiled headers.
   char* pch_file = NULL;
@@ -2215,7 +2229,7 @@ detect_pch(const char* option, const char* arg, bool* found_pch)
       cc_log("Multiple precompiled headers used: %s and %s\n",
              included_pch_file,
              pch_file);
-      stats_update(STATS_ARGS);
+      stats_update(ctx, STATS_ARGS);
       return false;
     }
     included_pch_file = pch_file;
@@ -2231,8 +2245,7 @@ detect_pch(const char* option, const char* arg, bool* found_pch)
 //
 // Returns true on success, otherwise false.
 bool
-cc_process_args(ArgsInfo& args_info,
-                Config& config,
+cc_process_args(Context& ctx,
                 struct args* args,
                 struct args** preprocessor_args,
                 struct args** extra_args_to_hash,
@@ -2295,12 +2308,12 @@ cc_process_args(ArgsInfo& args_info,
 
   // Compiler in depend mode is invoked with the original arguments.
   // Collect extra arguments that should be added.
-  auto add_extra_arg = [&args_info, &config](const char* arg) {
-    if (config.depend_mode()) {
-      if (args_info.depend_extra_args == nullptr) {
-        args_info.depend_extra_args = args_init(0, nullptr);
+  auto add_extra_arg = [&ctx](const char* arg) {
+    if (ctx.config.depend_mode()) {
+      if (ctx.args_info.depend_extra_args == nullptr) {
+        ctx.args_info.depend_extra_args = args_init(0, nullptr);
       }
-      args_add(args_info.depend_extra_args, arg);
+      args_add(ctx.args_info.depend_extra_args, arg);
     }
   };
 
@@ -2314,7 +2327,7 @@ cc_process_args(ArgsInfo& args_info,
       i++;
       if (i == argc) {
         cc_log("--ccache-skip lacks an argument");
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
       args_add(common_args, argv[i]);
@@ -2323,7 +2336,7 @@ cc_process_args(ArgsInfo& args_info,
 
     // Special case for -E.
     if (str_eq(argv[i], "-E")) {
-      stats_update(STATS_PREPROCESSING);
+      stats_update(ctx, STATS_PREPROCESSING);
       return false;
     }
 
@@ -2337,7 +2350,7 @@ cc_process_args(ArgsInfo& args_info,
       struct args* file_args = args_init_from_gcc_atfile(argpath);
       if (!file_args) {
         cc_log("Couldn't read arg file %s", argpath);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
 
@@ -2353,7 +2366,7 @@ cc_process_args(ArgsInfo& args_info,
         && (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))) {
       if (i == argc - 1) {
         cc_log("Expected argument after %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
       ++i;
@@ -2372,7 +2385,7 @@ cc_process_args(ArgsInfo& args_info,
         struct args* file_args = args_init_from_gcc_atfile(str_start);
         if (!file_args) {
           cc_log("Couldn't read cuda options file %s", str_start);
-          stats_update(STATS_ARGS);
+          stats_update(ctx, STATS_ARGS);
           return false;
         }
 
@@ -2392,38 +2405,38 @@ cc_process_args(ArgsInfo& args_info,
     if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")
         || str_startswith(argv[i], "-MJ")) {
       cc_log("Compiler option %s is unsupported", argv[i]);
-      stats_update(STATS_UNSUPPORTED_OPTION);
+      stats_update(ctx, STATS_UNSUPPORTED_OPTION);
       return false;
     }
 
     // These are too hard in direct mode.
-    if (config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
+    if (ctx.config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
       cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-      config.set_direct_mode(false);
+      ctx.config.set_direct_mode(false);
     }
 
     // -Xarch_* options are too hard.
     if (str_startswith(argv[i], "-Xarch_")) {
       cc_log("Unsupported compiler option :%s", argv[i]);
-      stats_update(STATS_UNSUPPORTED_OPTION);
+      stats_update(ctx, STATS_UNSUPPORTED_OPTION);
       return false;
     }
 
     // Handle -arch options.
     if (str_eq(argv[i], "-arch")) {
-      if (args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
+      if (ctx.args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
         cc_log("Too many -arch compiler options; ccache supports at most %d",
                ArgsInfo::max_arch_args);
-        stats_update(STATS_UNSUPPORTED_OPTION);
+        stats_update(ctx, STATS_UNSUPPORTED_OPTION);
         return false;
       }
 
       ++i;
-      args_info.arch_args[args_info.arch_args_size] =
+      ctx.args_info.arch_args[ctx.args_info.arch_args_size] =
         x_strdup(argv[i]); // It will leak.
-      ++args_info.arch_args_size;
-      if (args_info.arch_args_size == 2) {
-        config.set_run_second_cpp(true);
+      ++ctx.args_info.arch_args_size;
+      if (ctx.args_info.arch_args_size == 2) {
+        ctx.config.set_run_second_cpp(true);
       }
       continue;
     }
@@ -2434,7 +2447,7 @@ cc_process_args(ArgsInfo& args_info,
       if (compopt_takes_arg(argv[i])) {
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(STATS_ARGS);
+          stats_update(ctx, STATS_ARGS);
           return false;
         }
         args_add(compiler_only_args, argv[i + 1]);
@@ -2461,16 +2474,16 @@ cc_process_args(ArgsInfo& args_info,
     // from the actual compilation (even though it should be compatible),
     // so require a sloppiness flag.
     if (str_eq(argv[i], "-fmodules")) {
-      if (!config.depend_mode() || !config.direct_mode()) {
+      if (!ctx.config.depend_mode() || !ctx.config.direct_mode()) {
         cc_log("Compiler option %s is unsupported without direct depend mode",
                argv[i]);
-        stats_update(STATS_CANTUSEMODULES);
+        stats_update(ctx, STATS_CANTUSEMODULES);
         return false;
-      } else if (!(g_config.sloppiness() & SLOPPY_MODULES)) {
+      } else if (!(ctx.config.sloppiness() & SLOPPY_MODULES)) {
         cc_log(
           "You have to specify \"modules\" sloppiness when using"
           " -fmodules to get hits");
-        stats_update(STATS_CANTUSEMODULES);
+        stats_update(ctx, STATS_CANTUSEMODULES);
         return false;
       }
     }
@@ -2500,17 +2513,17 @@ cc_process_args(ArgsInfo& args_info,
     if (str_eq(argv[i], "-x")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
-      if (args_info.input_file.empty()) {
+      if (ctx.args_info.input_file.empty()) {
         explicit_language = argv[i + 1];
       }
       i++;
       continue;
     }
     if (str_startswith(argv[i], "-x")) {
-      if (args_info.input_file.empty()) {
+      if (ctx.args_info.input_file.empty()) {
         explicit_language = &argv[i][2];
       }
       continue;
@@ -2520,26 +2533,26 @@ cc_process_args(ArgsInfo& args_info,
     if (str_eq(argv[i], "-o")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
-      args_info.output_obj = make_relative_path(argv[i + 1]);
+      ctx.args_info.output_obj = make_relative_path(ctx, argv[i + 1]);
       i++;
       continue;
     }
 
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o") && guessed_compiler != GUESSED_NVCC) {
-      args_info.output_obj = make_relative_path(&argv[i][2]);
+      ctx.args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
       continue;
     }
 
     if (str_startswith(argv[i], "-fdebug-prefix-map=")
         || str_startswith(argv[i], "-ffile-prefix-map=")) {
-      args_info.debug_prefix_maps = static_cast<char**>(
-        x_realloc(args_info.debug_prefix_maps,
-                  (args_info.debug_prefix_maps_len + 1) * sizeof(char*)));
-      args_info.debug_prefix_maps[args_info.debug_prefix_maps_len++] =
+      ctx.args_info.debug_prefix_maps = static_cast<char**>(
+        x_realloc(ctx.args_info.debug_prefix_maps,
+                  (ctx.args_info.debug_prefix_maps_len + 1) * sizeof(char*)));
+      ctx.args_info.debug_prefix_maps[ctx.args_info.debug_prefix_maps_len++] =
         x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
       args_add(common_args, argv[i]);
       continue;
@@ -2553,7 +2566,7 @@ cc_process_args(ArgsInfo& args_info,
       if (str_startswith(argv[i], "-gdwarf")) {
         // Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
         // debug info on level 2.
-        args_info.generating_debuginfo = true;
+        ctx.args_info.generating_debuginfo = true;
         continue;
       }
 
@@ -2565,15 +2578,15 @@ cc_process_args(ArgsInfo& args_info,
       char last_char = argv[i][strlen(argv[i]) - 1];
       if (last_char == '0') {
         // "-g0", "-ggdb0" or similar: All debug information disabled.
-        args_info.generating_debuginfo = false;
+        ctx.args_info.generating_debuginfo = false;
         generating_debuginfo_level_3 = false;
       } else {
-        args_info.generating_debuginfo = true;
+        ctx.args_info.generating_debuginfo = true;
         if (last_char == '3') {
           generating_debuginfo_level_3 = true;
         }
         if (str_eq(argv[i], "-gsplit-dwarf")) {
-          args_info.seen_split_dwarf = true;
+          ctx.args_info.seen_split_dwarf = true;
         }
       }
       continue;
@@ -2582,7 +2595,7 @@ cc_process_args(ArgsInfo& args_info,
     // These options require special handling, because they behave differently
     // with gcc -E, when the output file is not specified.
     if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
-      args_info.generating_dependencies = true;
+      ctx.args_info.generating_dependencies = true;
       args_add(dep_args, argv[i]);
       continue;
     }
@@ -2595,7 +2608,7 @@ cc_process_args(ArgsInfo& args_info,
         // -MF arg
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(STATS_ARGS);
+          stats_update(ctx, STATS_ARGS);
           return false;
         }
         arg = argv[i + 1];
@@ -2607,13 +2620,13 @@ cc_process_args(ArgsInfo& args_info,
           ++arg;
         }
       }
-      args_info.output_dep = make_relative_path(arg);
+      ctx.args_info.output_dep = make_relative_path(ctx, arg);
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
-        args_add(dep_args, args_info.output_dep.c_str());
+        args_add(dep_args, ctx.args_info.output_dep.c_str());
       } else {
-        char* option = format("-MF%s", args_info.output_dep.c_str());
+        char* option = format("-MF%s", ctx.args_info.output_dep.c_str());
         args_add(dep_args, option);
         free(option);
       }
@@ -2626,16 +2639,16 @@ cc_process_args(ArgsInfo& args_info,
         // -MQ arg or -MT arg
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(STATS_ARGS);
+          stats_update(ctx, STATS_ARGS);
           return false;
         }
         args_add(dep_args, argv[i]);
-        std::string relpath = make_relative_path(argv[i + 1]);
+        std::string relpath = make_relative_path(ctx, argv[i + 1]);
         args_add(dep_args, relpath.c_str());
         i++;
       } else {
         char* arg_opt = x_strndup(argv[i], 3);
-        std::string relpath = make_relative_path(argv[i] + 3);
+        std::string relpath = make_relative_path(ctx, argv[i] + 3);
         char* option = format("%s%s", arg_opt, relpath.c_str());
         args_add(dep_args, option);
         free(arg_opt);
@@ -2644,43 +2657,44 @@ cc_process_args(ArgsInfo& args_info,
       continue;
     }
     if (str_eq(argv[i], "-fprofile-arcs")) {
-      args_info.profile_arcs = true;
+      ctx.args_info.profile_arcs = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "-ftest-coverage")) {
-      args_info.generating_coverage = true;
+      ctx.args_info.generating_coverage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "-fstack-usage")) {
-      args_info.generating_stackusage = true;
+      ctx.args_info.generating_stackusage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_eq(argv[i], "--coverage")      // = -fprofile-arcs -ftest-coverage
         || str_eq(argv[i], "-coverage")) { // Undocumented but still works.
-      args_info.profile_arcs = true;
-      args_info.generating_coverage = true;
+      ctx.args_info.profile_arcs = true;
+      ctx.args_info.generating_coverage = true;
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "-fprofile-dir=")) {
-      args_info.profile_dir.assign(argv[i] + 14);
+      ctx.args_info.profile_dir.assign(argv[i] + 14);
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
-      args_info.sanitize_blacklists = static_cast<char**>(
-        x_realloc(args_info.sanitize_blacklists,
-                  (args_info.sanitize_blacklists_len + 1) * sizeof(char*)));
-      args_info.sanitize_blacklists[args_info.sanitize_blacklists_len++] =
+      ctx.args_info.sanitize_blacklists = static_cast<char**>(
+        x_realloc(ctx.args_info.sanitize_blacklists,
+                  (ctx.args_info.sanitize_blacklists_len + 1) * sizeof(char*)));
+      ctx.args_info
+        .sanitize_blacklists[ctx.args_info.sanitize_blacklists_len++] =
         x_strdup(argv[i] + 21);
       args_add(common_args, argv[i]);
       continue;
     }
     if (str_startswith(argv[i], "--sysroot=")) {
-      std::string relpath = make_relative_path(argv[i] + 10);
+      std::string relpath = make_relative_path(ctx, argv[i] + 10);
       std::string option = fmt::format("--sysroot={}", relpath);
       args_add(common_args, option.c_str());
       continue;
@@ -2689,11 +2703,11 @@ cc_process_args(ArgsInfo& args_info,
     if (str_eq(argv[i], "--sysroot")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
       args_add(common_args, argv[i]);
-      std::string relpath = make_relative_path(argv[i + 1]);
+      std::string relpath = make_relative_path(ctx, argv[i + 1]);
       args_add(common_args, relpath.c_str());
       i++;
       continue;
@@ -2702,7 +2716,7 @@ cc_process_args(ArgsInfo& args_info,
     if (str_eq(argv[i], "-target")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
       args_add(common_args, argv[i]);
@@ -2717,20 +2731,20 @@ cc_process_args(ArgsInfo& args_info,
         // file from compiling the preprocessed file will not be equal to the
         // object file produced when compiling without ccache.
         cc_log("Too hard option -Wp,-P detected");
-        stats_update(STATS_UNSUPPORTED_OPTION);
-        failed();
+        stats_update(ctx, STATS_UNSUPPORTED_OPTION);
+        failed(ctx);
       } else if (str_startswith(argv[i], "-Wp,-MD,")
                  && !strchr(argv[i] + 8, ',')) {
-        args_info.generating_dependencies = true;
+        ctx.args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep = make_relative_path(argv[i] + 8);
+        ctx.args_info.output_dep = make_relative_path(ctx, argv[i] + 8);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-MMD,")
                  && !strchr(argv[i] + 9, ',')) {
-        args_info.generating_dependencies = true;
+        ctx.args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep = make_relative_path(argv[i] + 9);
+        ctx.args_info.output_dep = make_relative_path(ctx, argv[i] + 9);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-D")
@@ -2747,11 +2761,11 @@ cc_process_args(ArgsInfo& args_info,
         // TODO: Make argument to MF/MQ/MT relative.
         args_add(dep_args, argv[i]);
         continue;
-      } else if (config.direct_mode()) {
+      } else if (ctx.config.direct_mode()) {
         // -Wp, can be used to pass too hard options to the preprocessor.
         // Hence, disable direct mode.
         cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
-        config.set_direct_mode(false);
+        ctx.config.set_direct_mode(false);
       }
 
       // Any other -Wp,* arguments are only relevant for the preprocessor.
@@ -2772,11 +2786,11 @@ cc_process_args(ArgsInfo& args_info,
     if (str_eq(argv[i], "--serialize-diagnostics")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
-      args_info.generating_diagnostics = true;
-      args_info.output_dia = make_relative_path(argv[i + 1]);
+      ctx.args_info.generating_diagnostics = true;
+      ctx.args_info.output_dia = make_relative_path(ctx, argv[i + 1]);
       i++;
       continue;
     }
@@ -2804,11 +2818,11 @@ cc_process_args(ArgsInfo& args_info,
       bool supported_profile_option = false;
       if (str_startswith(argv[i], "-fprofile-generate")
           || str_eq(argv[i], "-fprofile-arcs")) {
-        args_info.profile_generate = true;
+        ctx.args_info.profile_generate = true;
         supported_profile_option = true;
       } else if (str_startswith(argv[i], "-fprofile-use")
                  || str_eq(argv[i], "-fbranch-probabilities")) {
-        args_info.profile_use = true;
+        ctx.args_info.profile_use = true;
         supported_profile_option = true;
       } else if (str_eq(argv[i], "-fprofile-dir")) {
         supported_profile_option = true;
@@ -2820,13 +2834,13 @@ cc_process_args(ArgsInfo& args_info,
 
         // If the profile directory has already been set, give up... Hard to
         // know what the user means, and what the compiler will do.
-        if (arg_profile_dir && !args_info.profile_dir.empty()) {
+        if (arg_profile_dir && !ctx.args_info.profile_dir.empty()) {
           cc_log("Profile directory already set; giving up");
-          stats_update(STATS_UNSUPPORTED_OPTION);
+          stats_update(ctx, STATS_UNSUPPORTED_OPTION);
           return false;
         } else if (arg_profile_dir) {
           cc_log("Setting profile directory to %s", arg_profile_dir);
-          args_info.profile_dir = from_cstr(arg_profile_dir);
+          ctx.args_info.profile_dir = from_cstr(arg_profile_dir);
         }
         continue;
       }
@@ -2868,7 +2882,7 @@ cc_process_args(ArgsInfo& args_info,
       continue;
     }
 
-    if (config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
+    if (ctx.config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
         && str_eq(argv[i], "-index-store-path")) {
       // Xcode 9 or later calls Clang with this option. The given path includes
       // a UUID that might lead to cache misses, especially when cache is
@@ -2886,15 +2900,14 @@ cc_process_args(ArgsInfo& args_info,
     if (compopt_takes_path(argv[i])) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
+        return false;
+      }
+      if (!detect_pch(ctx, argv[i], argv[i + 1], &found_pch)) {
         return false;
       }
 
-      if (!detect_pch(argv[i], argv[i + 1], &found_pch)) {
-        return false;
-      }
-
-      std::string relpath = make_relative_path(argv[i + 1]);
+      std::string relpath = make_relative_path(ctx, argv[i + 1]);
       if (compopt_affects_cpp(argv[i])) {
         args_add(cpp_args, argv[i]);
         args_add(cpp_args, relpath.c_str());
@@ -2914,7 +2927,7 @@ cc_process_args(ArgsInfo& args_info,
       if (slash_pos) {
         char* option = x_strndup(argv[i], slash_pos - argv[i]);
         if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-          std::string relpath = make_relative_path(slash_pos);
+          std::string relpath = make_relative_path(ctx, slash_pos);
           char* new_option = format("%s%s", option, relpath.c_str());
           if (compopt_affects_cpp(option)) {
             args_add(cpp_args, new_option);
@@ -2934,7 +2947,7 @@ cc_process_args(ArgsInfo& args_info,
     if (compopt_takes_arg(argv[i])) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(STATS_ARGS);
+        stats_update(ctx, STATS_ARGS);
         return false;
       }
 
@@ -2975,29 +2988,29 @@ cc_process_args(ArgsInfo& args_info,
       }
     }
 
-    if (!args_info.input_file.empty()) {
+    if (!ctx.args_info.input_file.empty()) {
       if (language_for_file(argv[i])) {
         cc_log("Multiple input files: %s and %s",
-               args_info.input_file.c_str(),
+               ctx.args_info.input_file.c_str(),
                argv[i]);
-        stats_update(STATS_MULTIPLE);
+        stats_update(ctx, STATS_MULTIPLE);
       } else if (!found_c_opt && !found_dc_opt) {
         cc_log("Called for link with %s", argv[i]);
         if (strstr(argv[i], "conftest.")) {
-          stats_update(STATS_CONFTEST);
+          stats_update(ctx, STATS_CONFTEST);
         } else {
-          stats_update(STATS_LINK);
+          stats_update(ctx, STATS_LINK);
         }
       } else {
         cc_log("Unsupported source extension: %s", argv[i]);
-        stats_update(STATS_SOURCELANG);
+        stats_update(ctx, STATS_SOURCELANG);
       }
       return false;
     }
 
     // The source code file path gets put into the notes.
-    if (args_info.generating_coverage) {
-      args_info.input_file = from_cstr(argv[i]);
+    if (ctx.args_info.generating_coverage) {
+      ctx.args_info.input_file = from_cstr(argv[i]);
       continue;
     }
 
@@ -3006,16 +3019,16 @@ cc_process_args(ArgsInfo& args_info,
       // make_relative_path resolves symlinks using realpath(3) and this leads
       // to potentially choosing incorrect relative header files. See the
       // "symlink to source file" test.
-      args_info.input_file = from_cstr(argv[i]);
+      ctx.args_info.input_file = from_cstr(argv[i]);
     } else {
       // Rewrite to relative to increase hit rate.
-      args_info.input_file = make_relative_path(argv[i]);
+      ctx.args_info.input_file = make_relative_path(ctx, argv[i]);
     }
   } // for
 
-  if (generating_debuginfo_level_3 && !config.run_second_cpp()) {
+  if (generating_debuginfo_level_3 && !ctx.config.run_second_cpp()) {
     cc_log("Generating debug info level 3; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
+    ctx.config.set_run_second_cpp(true);
   }
 
   // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
@@ -3031,12 +3044,12 @@ cc_process_args(ArgsInfo& args_info,
       using_sunpro_dependencies = true;
     }
     if (dependencies_env) {
-      args_info.generating_dependencies = true;
+      ctx.args_info.generating_dependencies = true;
       dependency_filename_specified = true;
       char* saveptr = nullptr;
       char* abspath_file = strtok_r(dependencies_env, " ", &saveptr);
 
-      args_info.output_dep = make_relative_path(abspath_file);
+      ctx.args_info.output_dep = make_relative_path(ctx, abspath_file);
 
       // specifying target object is optional.
       char* abspath_obj = strtok_r(nullptr, " ", &saveptr);
@@ -3044,10 +3057,10 @@ cc_process_args(ArgsInfo& args_info,
         // it's the "file target" form.
 
         dependency_target_specified = true;
-        std::string relpath_obj = make_relative_path(abspath_obj);
+        std::string relpath_obj = make_relative_path(ctx, abspath_obj);
         // ensure compiler gets relative path.
         std::string relpath_both =
-          fmt::format("{} {}", args_info.output_dep, relpath_obj);
+          fmt::format("{} {}", ctx.args_info.output_dep, relpath_obj);
         if (using_sunpro_dependencies) {
           x_setenv("SUNPRO_DEPENDENCIES", relpath_both.c_str());
         } else {
@@ -3059,28 +3072,28 @@ cc_process_args(ArgsInfo& args_info,
         dependency_implicit_target_specified = true;
         // ensure compiler gets relative path.
         if (using_sunpro_dependencies) {
-          x_setenv("SUNPRO_DEPENDENCIES", args_info.output_dep.c_str());
+          x_setenv("SUNPRO_DEPENDENCIES", ctx.args_info.output_dep.c_str());
         } else {
-          x_setenv("DEPENDENCIES_OUTPUT", args_info.output_dep.c_str());
+          x_setenv("DEPENDENCIES_OUTPUT", ctx.args_info.output_dep.c_str());
         }
       }
     }
   }
 
-  if (args_info.input_file.empty()) {
+  if (ctx.args_info.input_file.empty()) {
     cc_log("No input file found");
-    stats_update(STATS_NOINPUT);
+    stats_update(ctx, STATS_NOINPUT);
     return false;
   }
 
   if (found_pch || found_fpch_preprocess) {
-    args_info.using_precompiled_header = true;
-    if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
+    ctx.args_info.using_precompiled_header = true;
+    if (!(ctx.config.sloppiness() & SLOPPY_TIME_MACROS)) {
       cc_log(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
       cc_log("Disabling direct mode");
-      stats_update(STATS_CANTUSEPCH);
+      stats_update(ctx, STATS_CANTUSEPCH);
       return false;
     }
   }
@@ -3088,116 +3101,120 @@ cc_process_args(ArgsInfo& args_info,
   if (explicit_language && str_eq(explicit_language, "none")) {
     explicit_language = nullptr;
   }
-  file_language = language_for_file(args_info.input_file.c_str());
+  file_language = language_for_file(ctx.args_info.input_file.c_str());
   if (explicit_language) {
     if (!language_is_supported(explicit_language)) {
       cc_log("Unsupported language: %s", explicit_language);
-      stats_update(STATS_SOURCELANG);
+      stats_update(ctx, STATS_SOURCELANG);
       return false;
     }
-    args_info.actual_language = from_cstr(explicit_language);
+    ctx.args_info.actual_language = from_cstr(explicit_language);
   } else {
-    args_info.actual_language = from_cstr(file_language);
+    ctx.args_info.actual_language = from_cstr(file_language);
   }
 
-  args_info.output_is_precompiled_header =
-    args_info.actual_language.find("-header") != std::string::npos;
+  ctx.args_info.output_is_precompiled_header =
+    ctx.args_info.actual_language.find("-header") != std::string::npos;
 
-  if (args_info.output_is_precompiled_header
-      && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
+  if (ctx.args_info.output_is_precompiled_header
+      && !(ctx.config.sloppiness() & SLOPPY_PCH_DEFINES)) {
     cc_log(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
-    stats_update(STATS_CANTUSEPCH);
+    stats_update(ctx, STATS_CANTUSEPCH);
     return false;
   }
 
   if (!found_c_opt && !found_dc_opt && !found_S_opt) {
-    if (args_info.output_is_precompiled_header) {
+    if (ctx.args_info.output_is_precompiled_header) {
       args_add(common_args, "-c");
     } else {
       cc_log("No -c option found");
       // I find that having a separate statistic for autoconf tests is useful,
       // as they are the dominant form of "called for link" in many cases.
-      if (args_info.input_file.find("conftest.") != std::string::npos) {
-        stats_update(STATS_CONFTEST);
+      if (ctx.args_info.input_file.find("conftest.") != std::string::npos) {
+        stats_update(ctx, STATS_CONFTEST);
       } else {
-        stats_update(STATS_LINK);
+        stats_update(ctx, STATS_LINK);
       }
       return false;
     }
   }
 
-  if (args_info.actual_language.empty()) {
-    cc_log("Unsupported source extension: %s", args_info.input_file.c_str());
-    stats_update(STATS_SOURCELANG);
+  if (ctx.args_info.actual_language.empty()) {
+    cc_log("Unsupported source extension: %s",
+           ctx.args_info.input_file.c_str());
+    stats_update(ctx, STATS_SOURCELANG);
     return false;
   }
 
-  if (!config.run_second_cpp() && args_info.actual_language == "cu") {
+  if (!ctx.config.run_second_cpp() && ctx.args_info.actual_language == "cu") {
     cc_log("Using CUDA compiler; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
+    ctx.config.set_run_second_cpp(true);
   }
 
-  args_info.direct_i_file =
-    language_is_preprocessed(args_info.actual_language.c_str());
+  ctx.args_info.direct_i_file =
+    language_is_preprocessed(ctx.args_info.actual_language.c_str());
 
-  if (args_info.output_is_precompiled_header && !config.run_second_cpp()) {
+  if (ctx.args_info.output_is_precompiled_header
+      && !ctx.config.run_second_cpp()) {
     // It doesn't work to create the .gch from preprocessed source.
     cc_log("Creating precompiled header; not compiling preprocessed code");
-    config.set_run_second_cpp(true);
+    ctx.config.set_run_second_cpp(true);
   }
 
-  if (config.cpp_extension().empty()) {
+  if (ctx.config.cpp_extension().empty()) {
     const char* p_language =
-      p_language_for_language(args_info.actual_language.c_str());
-    config.set_cpp_extension(extension_for_language(p_language) + 1);
+      p_language_for_language(ctx.args_info.actual_language.c_str());
+    ctx.config.set_cpp_extension(extension_for_language(p_language) + 1);
   }
 
   // Don't try to second guess the compilers heuristics for stdout handling.
-  if (args_info.output_obj == "-") {
-    stats_update(STATS_OUTSTDOUT);
+  if (ctx.args_info.output_obj == "-") {
+    stats_update(ctx, STATS_OUTSTDOUT);
     cc_log("Output file is -");
     return false;
   }
 
-  if (args_info.output_obj.empty()) {
-    if (args_info.output_is_precompiled_header) {
-      args_info.output_obj = args_info.input_file + ".gch";
+  if (ctx.args_info.output_obj.empty()) {
+    if (ctx.args_info.output_is_precompiled_header) {
+      ctx.args_info.output_obj = ctx.args_info.input_file + ".gch";
     } else {
       string_view extension = found_S_opt ? ".s" : ".o";
-      args_info.output_obj = Util::change_extension(
-        Util::base_name(args_info.input_file), extension);
+      ctx.args_info.output_obj = Util::change_extension(
+        Util::base_name(ctx.args_info.input_file), extension);
     }
   }
 
-  if (args_info.seen_split_dwarf) {
-    size_t pos = args_info.output_obj.rfind('.');
-    if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
+  if (ctx.args_info.seen_split_dwarf) {
+    size_t pos = ctx.args_info.output_obj.rfind('.');
+    if (pos == std::string::npos
+        || pos == ctx.args_info.output_obj.size() - 1) {
       cc_log("Badly formed object filename");
-      stats_update(STATS_ARGS);
+      stats_update(ctx, STATS_ARGS);
       return false;
     }
 
-    args_info.output_dwo = Util::change_extension(args_info.output_obj, ".dwo");
+    ctx.args_info.output_dwo =
+      Util::change_extension(ctx.args_info.output_obj, ".dwo");
   }
 
   // Cope with -o /dev/null.
-  if (args_info.output_obj != "/dev/null") {
-    auto st = Stat::stat(args_info.output_obj);
+  if (ctx.args_info.output_obj != "/dev/null") {
+    auto st = Stat::stat(ctx.args_info.output_obj);
     if (st && !st.is_regular()) {
-      cc_log("Not a regular file: %s", args_info.output_obj.c_str());
-      stats_update(STATS_BADOUTPUTFILE);
+      cc_log("Not a regular file: %s", ctx.args_info.output_obj.c_str());
+      stats_update(ctx, STATS_BADOUTPUTFILE);
       return false;
     }
   }
 
   {
-    char* output_dir = x_dirname(args_info.output_obj.c_str());
+    char* output_dir = x_dirname(ctx.args_info.output_obj.c_str());
     auto st = Stat::stat(output_dir);
     if (!st || !st.is_directory()) {
       cc_log("Directory does not exist: %s", output_dir);
-      stats_update(STATS_BADOUTPUTFILE);
+      stats_update(ctx, STATS_BADOUTPUTFILE);
       free(output_dir);
       return false;
     }
@@ -3224,7 +3241,7 @@ cc_process_args(ArgsInfo& args_info,
   // default, so force it explicitly if it would be otherwise done.
   if (!found_color_diagnostics && color_output_possible()) {
     if (guessed_compiler == GUESSED_CLANG) {
-      if (args_info.actual_language != "assembler") {
+      if (ctx.args_info.actual_language != "assembler") {
         args_add(common_args, "-fcolor-diagnostics");
         add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
@@ -3242,11 +3259,12 @@ cc_process_args(ArgsInfo& args_info,
     }
   }
 
-  if (args_info.generating_dependencies) {
+  if (ctx.args_info.generating_dependencies) {
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
-        Util::change_extension(args_info.output_obj, ".d");
-      args_info.output_dep = make_relative_path(default_depfile_name.c_str());
+        Util::change_extension(ctx.args_info.output_obj, ".d");
+      ctx.args_info.output_dep =
+        make_relative_path(ctx, default_depfile_name.c_str());
       if (!g_config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -3262,24 +3280,25 @@ cc_process_args(ArgsInfo& args_info,
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
       args_add(dep_args, "-MQ");
-      args_add(dep_args, args_info.output_obj.c_str());
+      args_add(dep_args, ctx.args_info.output_obj.c_str());
     }
   }
-  if (args_info.generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     std::string gcda_path =
-      Util::change_extension(args_info.output_obj, ".gcno");
-    args_info.output_cov = make_relative_path(gcda_path.c_str());
+      Util::change_extension(ctx.args_info.output_obj, ".gcno");
+    ctx.args_info.output_cov = make_relative_path(ctx, gcda_path.c_str());
   }
-  if (args_info.generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     std::string default_sufile_name =
-      Util::change_extension(args_info.output_obj, ".su");
-    args_info.output_su = make_relative_path(default_sufile_name.c_str());
+      Util::change_extension(ctx.args_info.output_obj, ".su");
+    ctx.args_info.output_su =
+      make_relative_path(ctx, default_sufile_name.c_str());
   }
 
   *compiler_args = args_copy(common_args);
   args_extend(*compiler_args, compiler_only_args);
 
-  if (config.run_second_cpp()) {
+  if (ctx.config.run_second_cpp()) {
     args_extend(*compiler_args, cpp_args);
   } else if (found_directives_only || found_rewrite_includes) {
     // Need to pass the macros and any other preprocessor directives again.
@@ -3294,7 +3313,7 @@ cc_process_args(ArgsInfo& args_info,
       args_add(cpp_args, "-frewrite-includes");
       // The preprocessed source code still needs some more preprocessing.
       args_add(*compiler_args, "-x");
-      args_add(*compiler_args, args_info.actual_language.c_str());
+      args_add(*compiler_args, ctx.args_info.actual_language.c_str());
     }
   } else if (explicit_language) {
     // Workaround for a bug in Apple's patched distcc -- it doesn't properly
@@ -3312,9 +3331,9 @@ cc_process_args(ArgsInfo& args_info,
     args_add(*compiler_args, "-dc");
   }
 
-  for (size_t i = 0; i < args_info.arch_args_size; ++i) {
+  for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
     args_add(*compiler_args, "-arch");
-    args_add(*compiler_args, args_info.arch_args[i]);
+    args_add(*compiler_args, ctx.args_info.arch_args[i]);
   }
 
   *preprocessor_args = args_copy(common_args);
@@ -3341,7 +3360,8 @@ cc_process_args(ArgsInfo& args_info,
 }
 
 static void
-create_initial_config_file(const std::string& path)
+create_initial_config_file(Config& cfg,
+                           const std::string& path) // TODO, remove 2nd arg
 {
   if (!Util::create_dir(Util::dir_name(path))) {
     return;
@@ -3434,7 +3454,7 @@ tmpdir()
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
-initialize(void)
+initialize(Config& cfg)
 {
   bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
   if (enable_internal_trace) {
@@ -3482,11 +3502,12 @@ initialize(void)
   MTR_END("config", "conf_update_from_environment");
 
   if (should_create_initial_config) {
-    create_initial_config_file(g_config.primary_config_path());
+    create_initial_config_file(cfg, g_config.primary_config_path());
   }
 
   exitfn_init();
-  exitfn_add_nullary(stats_flush);
+  // TODO, context
+  // exitfn_add_nullary(stats_flush);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
   cc_log("=== CCACHE %s STARTED =========================================",
@@ -3559,21 +3580,21 @@ cc_reset(void)
 // Make a copy of stderr that will not be cached, so things like distcc can
 // send networking errors to it.
 static void
-set_up_uncached_err(void)
+set_up_uncached_err(Context& ctx)
 {
   int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
   if (uncached_fd == -1) {
     cc_log("dup(2) failed: %s", strerror(errno));
-    stats_update(STATS_ERROR);
-    failed();
+    stats_update(ctx, STATS_ERROR);
+    failed(ctx);
   }
 
   // Leak a pointer to the environment.
   char* buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
   if (putenv(buf) == -1) {
     cc_log("putenv failed: %s", strerror(errno));
-    stats_update(STATS_ERROR);
-    failed();
+    stats_update(ctx, STATS_ERROR);
+    failed(ctx);
   }
 }
 
@@ -3594,11 +3615,11 @@ configuration_printer(const std::string& key,
   fmt::print("({}) {} = {}\n", origin, key, value);
 }
 
-static void ccache(int argc, char* argv[]) ATTR_NORETURN;
+static void ccache(Context& ctx, int argc, char* argv[]) ATTR_NORETURN;
 
 // The main ccache driver function.
 static void
-ccache(int argc, char* argv[])
+ccache(Context& ctx, int argc, char* argv[])
 {
 #ifndef _WIN32
   set_up_signal_handlers();
@@ -3609,14 +3630,14 @@ ccache(int argc, char* argv[])
 
   orig_args = args_init(argc, argv);
 
-  initialize();
+  initialize(ctx.config);
   MTR_BEGIN("main", "find_compiler");
-  find_compiler(argv);
+  find_compiler(ctx, argv);
   MTR_END("main", "find_compiler");
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
   if (g_config.temporary_dir().empty()) {
-    clean_up_internal_tempdir();
+    clean_up_internal_tempdir(ctx.config);
   }
   MTR_END("main", "clean_up_internal_tempdir");
 
@@ -3626,17 +3647,17 @@ ccache(int argc, char* argv[])
 
   if (g_config.disable()) {
     cc_log("ccache is disabled");
-    stats_update(STATS_CACHEMISS); // Dummy to trigger stats_flush.
-    failed();
+    stats_update(ctx, STATS_CACHEMISS); // Dummy to trigger stats_flush.
+    failed(ctx);
   }
 
   MTR_BEGIN("main", "set_up_uncached_err");
-  set_up_uncached_err();
+  set_up_uncached_err(ctx);
   MTR_END("main", "set_up_uncached_err");
 
   cc_log_argv("Command line: ", argv);
   cc_log("Hostname: %s", get_hostname());
-  cc_log("Working directory: %s", get_current_working_dir());
+  cc_log("Working directory: %s", get_current_working_dir(ctx));
 
   g_config.set_limit_multiple(
     std::min(std::max(g_config.limit_multiple(), 0.0), 1.0));
@@ -3654,44 +3675,42 @@ ccache(int argc, char* argv[])
   struct args* compiler_args;
   MTR_BEGIN("main", "process_args");
 
-  ArgsInfo args_info;
-  if (!cc_process_args(args_info,
-                       g_config,
+  if (!cc_process_args(ctx,
                        orig_args,
                        &preprocessor_args,
                        &extra_args_to_hash,
                        &compiler_args)) {
-    failed(); // stats_update is called in cc_process_args.
+    failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  input_file = x_strdup(args_info.input_file.c_str());
+  input_file = x_strdup(ctx.args_info.input_file.c_str());
 
-  output_obj = x_strdup(args_info.output_obj.c_str());
-  output_dep = x_strdup(args_info.output_dep.c_str());
-  output_cov = x_strdup(args_info.output_cov.c_str());
-  output_su = x_strdup(args_info.output_su.c_str());
-  output_dia = x_strdup(args_info.output_dia.c_str());
-  output_dwo = x_strdup(args_info.output_dwo.c_str());
+  output_obj = x_strdup(ctx.args_info.output_obj.c_str());
+  output_dep = x_strdup(ctx.args_info.output_dep.c_str());
+  output_cov = x_strdup(ctx.args_info.output_cov.c_str());
+  output_su = x_strdup(ctx.args_info.output_su.c_str());
+  output_dia = x_strdup(ctx.args_info.output_dia.c_str());
+  output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
 
-  actual_language = x_strdup(args_info.actual_language.c_str());
+  actual_language = x_strdup(ctx.args_info.actual_language.c_str());
 
-  generating_dependencies = args_info.generating_dependencies;
-  generating_coverage = args_info.generating_coverage;
-  generating_stackusage = args_info.generating_stackusage;
-  generating_diagnostics = args_info.generating_diagnostics;
-  seen_split_dwarf = args_info.seen_split_dwarf;
-  profile_arcs = args_info.profile_arcs;
-  profile_dir = x_strdup(args_info.profile_dir.c_str());
+  generating_dependencies = ctx.args_info.generating_dependencies;
+  generating_coverage = ctx.args_info.generating_coverage;
+  generating_stackusage = ctx.args_info.generating_stackusage;
+  generating_diagnostics = ctx.args_info.generating_diagnostics;
+  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
+  profile_arcs = ctx.args_info.profile_arcs;
+  profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 
-  direct_i_file = args_info.direct_i_file;
-  output_is_precompiled_header = args_info.output_is_precompiled_header;
-  profile_use = args_info.profile_use;
-  profile_generate = args_info.profile_generate;
-  using_precompiled_header = args_info.using_precompiled_header;
+  direct_i_file = ctx.args_info.direct_i_file;
+  output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
+  profile_use = ctx.args_info.profile_use;
+  profile_generate = ctx.args_info.profile_generate;
+  using_precompiled_header = ctx.args_info.using_precompiled_header;
 
-  arch_args_size = args_info.arch_args_size;
-  for (size_t i = 0; i < args_info.arch_args_size; ++i) {
-    arch_args[i] = x_strdup(args_info.arch_args[i]);
+  arch_args_size = ctx.args_info.arch_args_size;
+  for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
+    arch_args[i] = x_strdup(ctx.args_info.arch_args[i]);
   }
 
   MTR_END("main", "process_args");
@@ -3742,7 +3761,7 @@ ccache(int argc, char* argv[])
   init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
-  hash_common_info(preprocessor_args, common_hash, args_info);
+  hash_common_info(ctx, preprocessor_args, common_hash);
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
@@ -3759,13 +3778,13 @@ ccache(int argc, char* argv[])
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
     result_name =
-      calculate_result_name(args_to_hash, nullptr, direct_hash, true);
+      calculate_result_name(ctx, args_to_hash, nullptr, direct_hash, true);
     MTR_END("hash", "direct_hash");
     if (result_name) {
-      update_cached_result_globals(result_name);
+      update_cached_result_globals(ctx, result_name);
 
       // If we can return from cache at this point then do so.
-      from_cache(FROMCACHE_DIRECT_MODE, 0);
+      from_cache(ctx, FROMCACHE_DIRECT_MODE, 0);
 
       // Wasn't able to return from cache at this point. However, the result
       // was already found in manifest, so don't re-add it later.
@@ -3780,8 +3799,8 @@ ccache(int argc, char* argv[])
 
   if (g_config.read_only_direct()) {
     cc_log("Read-only direct mode; running real compiler");
-    stats_update(STATS_CACHEMISS);
-    failed();
+    stats_update(ctx, STATS_CACHEMISS);
+    failed(ctx);
   }
 
   if (!g_config.depend_mode()) {
@@ -3792,13 +3811,13 @@ ccache(int argc, char* argv[])
       cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
     MTR_BEGIN("hash", "cpp_hash");
-    result_name =
-      calculate_result_name(args_to_hash, preprocessor_args, cpp_hash, false);
+    result_name = calculate_result_name(
+      ctx, args_to_hash, preprocessor_args, cpp_hash, false);
     MTR_END("hash", "cpp_hash");
     if (!result_name) {
       fatal("internal error: calculate_result_name returned NULL for cpp");
     }
-    update_cached_result_globals(result_name);
+    update_cached_result_globals(ctx, result_name);
 
     if (result_name_from_manifest
         && !digests_equal(result_name_from_manifest, result_name)) {
@@ -3823,13 +3842,13 @@ ccache(int argc, char* argv[])
     }
 
     // If we can return from cache at this point then do.
-    from_cache(FROMCACHE_CPP_MODE, put_result_in_manifest);
+    from_cache(ctx, FROMCACHE_CPP_MODE, put_result_in_manifest);
   }
 
   if (g_config.read_only()) {
     cc_log("Read-only mode; running real compiler");
-    stats_update(STATS_CACHEMISS);
-    failed();
+    stats_update(ctx, STATS_CACHEMISS);
+    failed(ctx);
   }
 
   add_prefix(compiler_args, g_config.prefix_command().c_str());
@@ -3839,7 +3858,8 @@ ccache(int argc, char* argv[])
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
-  to_cache(compiler_args, args_info.depend_extra_args, depend_mode_hash);
+  to_cache(
+    ctx, compiler_args, ctx.args_info.depend_extra_args, depend_mode_hash);
   MTR_END("cache", "to_cache");
 
   x_exit(0);
@@ -3847,7 +3867,7 @@ ccache(int argc, char* argv[])
 
 // The main program when not doing a compile.
 static int
-ccache_main_options(int argc, char* argv[])
+ccache_main_options(Context& ctx, int argc, char* argv[])
 {
   enum longopts {
     DUMP_MANIFEST,
@@ -3880,15 +3900,15 @@ ccache_main_options(int argc, char* argv[])
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:
-      initialize();
+      initialize(ctx.config);
       return manifest_dump(optarg, stdout) ? 0 : 1;
 
     case DUMP_RESULT:
-      initialize();
+      initialize(ctx.config);
       return result_dump(optarg, stdout) ? 0 : 1;
 
     case HASH_FILE: {
-      initialize();
+      initialize(ctx.config);
       struct hash* hash = hash_init();
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
@@ -3903,13 +3923,13 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case PRINT_STATS:
-      initialize();
-      stats_print();
+      initialize(ctx.config);
+      stats_print(ctx);
       break;
 
     case 'c': // --cleanup
     {
-      initialize();
+      initialize(ctx.config);
       ProgressBar progress_bar("Cleaning...");
       clean_up_all(g_config,
                    [&](double progress) { progress_bar.update(progress); });
@@ -3921,7 +3941,7 @@ ccache_main_options(int argc, char* argv[])
 
     case 'C': // --clear
     {
-      initialize();
+      initialize(ctx.config);
       ProgressBar progress_bar("Clearing...");
       wipe_all(g_config,
                [&](double progress) { progress_bar.update(progress); });
@@ -3936,12 +3956,12 @@ ccache_main_options(int argc, char* argv[])
       x_exit(0);
 
     case 'k': // --get-config
-      initialize();
+      initialize(ctx.config);
       fmt::print("{}\n", g_config.get_string_value(optarg));
       break;
 
     case 'F': { // --max-files
-      initialize();
+      initialize(ctx.config);
       g_config.set_value_in_file(
         g_config.primary_config_path(), "max_files", optarg);
       unsigned files = atoi(optarg);
@@ -3954,7 +3974,7 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'M': { // --max-size
-      initialize();
+      initialize(ctx.config);
       uint64_t size;
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
@@ -3972,7 +3992,7 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'o': { // --set-config
-      initialize();
+      initialize(ctx.config);
       char* p = strchr(optarg, '=');
       if (!p) {
         fatal("missing equal sign in \"%s\"", optarg);
@@ -3985,13 +4005,13 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'p': // --show-config
-      initialize();
+      initialize(ctx.config);
       g_config.visit_items(configuration_printer);
       break;
 
     case 's': // --show-stats
-      initialize();
-      stats_summary();
+      initialize(ctx.config);
+      stats_summary(ctx);
       break;
 
     case 'V': // --version
@@ -4000,7 +4020,7 @@ ccache_main_options(int argc, char* argv[])
 
     case 'x': // --show-compression
     {
-      initialize();
+      initialize(ctx.config);
       ProgressBar progress_bar("Scanning...");
       compress_stats(g_config,
                      [&](double progress) { progress_bar.update(progress); });
@@ -4009,7 +4029,7 @@ ccache_main_options(int argc, char* argv[])
 
     case 'X': // --recompress
     {
-      initialize();
+      initialize(ctx.config);
       int level;
       if (std::string(optarg) == "uncompressed") {
         level = 0;
@@ -4024,15 +4044,14 @@ ccache_main_options(int argc, char* argv[])
       }
 
       ProgressBar progress_bar("Recompressing...");
-      compress_recompress(g_config, level, [&](double progress) {
-        progress_bar.update(progress);
-      });
+      compress_recompress(
+        ctx, level, [&](double progress) { progress_bar.update(progress); });
       break;
     }
 
     case 'z': // --zero-stats
-      initialize();
-      stats_zero();
+      initialize(ctx.config);
+      stats_zero(ctx);
       printf("Statistics zeroed\n");
       break;
 
@@ -4051,6 +4070,9 @@ int
 ccache_main(int argc, char* argv[])
 {
   try {
+    // TODO ptr, and LEAK to be available in atexit()
+    Context* ctx = new Context{};
+
     // Check if we are being invoked as "ccache".
     std::string program_name(Util::base_name(argv[0]));
     if (same_executable_name(program_name.c_str(), MYNAME)) {
@@ -4061,11 +4083,11 @@ ccache_main(int argc, char* argv[])
       // If the first argument isn't an option, then assume we are being passed
       // a compiler name and options.
       if (argv[1][0] == '-') {
-        return ccache_main_options(argc, argv);
+        return ccache_main_options(*ctx, argc, argv);
       }
     }
 
-    ccache(argc, argv);
+    ccache(*ctx, argc, argv);
   } catch (const Error& e) {
     fmt::print("ccache: error: {}\n", e.what());
     return 1;

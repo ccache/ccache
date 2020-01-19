@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,21 +20,14 @@
 
 #include "system.hpp"
 
-#include "Util.hpp"
+#include "ArgsInfo.hpp"
+#include "Config.hpp"
+#include "NonCopyable.hpp"
 
-struct Context;
-class Config;
+struct Context : NonCopyable
+{
+  Context() = default;
 
-void compress_stats(const Config& config,
-                    const Util::ProgressReceiver& progress_receiver);
-
-// Recompress the cache.
-//
-// Arguments:
-// - ctx: The context object.
-// - level: Target compression level (positive or negative value), or 0 for no
-//   compression.
-// - progress_receiver: Function that will be called for progress updates.
-void compress_recompress(Context& ctx,
-                         int8_t level,
-                         const Util::ProgressReceiver& progress_receiver);
+  Config config;
+  ArgsInfo args_info;
+};

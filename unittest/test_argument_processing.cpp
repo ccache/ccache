@@ -18,8 +18,8 @@
 
 // This file contains tests for the processing of compiler arguments.
 
-#include "../src/ArgsInfo.hpp"
 #include "../src/Config.hpp"
+#include "../src/Context.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
 #include "../src/legacy_globals.hpp"
@@ -75,39 +75,35 @@ cc_process_args(struct args* args,
                 struct args** extra_args_to_hash,
                 struct args** compiler_args)
 {
-  ArgsInfo argsinfo;
+  Context ctx;
 
-  bool success = cc_process_args(argsinfo,
-                                 g_config,
-                                 args,
-                                 preprocessor_args,
-                                 extra_args_to_hash,
-                                 compiler_args);
+  bool success = cc_process_args(
+    ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  input_file = x_strdup(argsinfo.input_file.c_str());
+  input_file = x_strdup(ctx.args_info.input_file.c_str());
 
-  output_obj = x_strdup(argsinfo.output_obj.c_str());
-  output_dep = x_strdup(argsinfo.output_dep.c_str());
-  output_cov = x_strdup(argsinfo.output_cov.c_str());
-  output_su = x_strdup(argsinfo.output_su.c_str());
-  output_dia = x_strdup(argsinfo.output_dia.c_str());
-  output_dwo = x_strdup(argsinfo.output_dwo.c_str());
+  output_obj = x_strdup(ctx.args_info.output_obj.c_str());
+  output_dep = x_strdup(ctx.args_info.output_dep.c_str());
+  output_cov = x_strdup(ctx.args_info.output_cov.c_str());
+  output_su = x_strdup(ctx.args_info.output_su.c_str());
+  output_dia = x_strdup(ctx.args_info.output_dia.c_str());
+  output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
 
-  actual_language = x_strdup(argsinfo.actual_language.c_str());
+  actual_language = x_strdup(ctx.args_info.actual_language.c_str());
 
-  generating_dependencies = argsinfo.generating_dependencies;
-  generating_coverage = argsinfo.generating_coverage;
-  generating_stackusage = argsinfo.generating_stackusage;
-  generating_diagnostics = argsinfo.generating_diagnostics;
-  seen_split_dwarf = argsinfo.seen_split_dwarf;
-  profile_arcs = argsinfo.profile_arcs;
-  profile_dir = x_strdup(argsinfo.profile_dir.c_str());
+  generating_dependencies = ctx.args_info.generating_dependencies;
+  generating_coverage = ctx.args_info.generating_coverage;
+  generating_stackusage = ctx.args_info.generating_stackusage;
+  generating_diagnostics = ctx.args_info.generating_diagnostics;
+  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
+  profile_arcs = ctx.args_info.profile_arcs;
+  profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 
-  direct_i_file = argsinfo.direct_i_file;
-  output_is_precompiled_header = argsinfo.output_is_precompiled_header;
-  profile_use = argsinfo.profile_use;
-  profile_generate = argsinfo.profile_generate;
-  using_precompiled_header = argsinfo.using_precompiled_header;
+  direct_i_file = ctx.args_info.direct_i_file;
+  output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
+  profile_use = ctx.args_info.profile_use;
+  profile_generate = ctx.args_info.profile_generate;
+  using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   return success;
 }
@@ -116,24 +112,28 @@ TEST_SUITE(argument_processing)
 
 TEST(dash_E_should_result_in_called_for_preprocessing)
 {
+  Context ctx;
+
   struct args* orig = args_init_from_string("cc -c foo.c -E");
   struct args *preprocessed, *compiler;
 
   create_file("foo.c", "");
-  CHECK(!cc_process_args(orig, &preprocessed, NULL, &compiler));
-  CHECK_INT_EQ(1, stats_get_pending(STATS_PREPROCESSING));
+  CHECK(!cc_process_args(ctx, orig, &preprocessed, NULL, &compiler));
+  CHECK_INT_EQ(1, stats_get_pending(ctx, STATS_PREPROCESSING));
 
   args_free(orig);
 }
 
 TEST(dash_M_should_be_unsupported)
 {
+  Context ctx;
+
   struct args* orig = args_init_from_string("cc -c foo.c -M");
   struct args *preprocessed, *compiler;
 
   create_file("foo.c", "");
-  CHECK(!cc_process_args(orig, &preprocessed, NULL, &compiler));
-  CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED_OPTION));
+  CHECK(!cc_process_args(ctx, orig, &preprocessed, NULL, &compiler));
+  CHECK_INT_EQ(1, stats_get_pending(ctx, STATS_UNSUPPORTED_OPTION));
 
   args_free(orig);
 }

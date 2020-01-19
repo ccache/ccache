@@ -15,7 +15,7 @@ CC = @CC@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
-CXXFLAGS = @CXXFLAGS@
+CXXFLAGS = @CXXFLAGS@ -Wno-error=unused-parameter
 EXEEXT = @EXEEXT@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
@@ -39,6 +39,7 @@ non_third_party_sources = \
     src/Compression.cpp \
     src/Compressor.cpp \
     src/Config.cpp \
+    src/Context.cpp \
     src/Decompressor.cpp \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
