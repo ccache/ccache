@@ -20,6 +20,7 @@
 #include "ccache.hpp"
 
 #include "ArgsInfo.hpp"
+#include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
 #include "ScopeGuard.hpp"
@@ -3476,9 +3477,22 @@ set_up_config(Config& config)
 }
 
 // Initialize ccache, must be called once before anything else is run.
-static void
+static Context&
 initialize()
 {
+  // This object is placed onto the heap so it is available in exit functions
+  // which run after main(). It is cleaned up by the last exit function.
+  Context* ctx = new Context{};
+
+  set_up_config(g_config);
+
+  init_log(g_config);
+
+  exitfn_init();
+  exitfn_delete_context(ctx);
+  exitfn_add_nullary(stats_flush);
+  exitfn_add_nullary(clean_up_pending_tmp_files);
+
   bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
   if (enable_internal_trace) {
 #ifdef MTR_ENABLED
@@ -3486,15 +3500,6 @@ initialize()
     trace_init(format("%s/tmp.ccache-trace.%d", tmpdir(), (int)getpid()));
 #endif
   }
-
-  set_up_config(g_config);
-
-  init_log(g_config);
-
-  exitfn_init();
-  exitfn_add_nullary(stats_flush);
-  exitfn_add_nullary(clean_up_pending_tmp_files);
-
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
@@ -3507,6 +3512,8 @@ initialize()
     cc_log("Error: tracing is not enabled!");
 #endif
   }
+
+  return *ctx;
 }
 
 template<class T>
@@ -3613,7 +3620,8 @@ cache_compilation(int argc, char* argv[])
 
   orig_args = args_init(argc, argv);
 
-  initialize();
+  Context& ctx = initialize();
+  (void)ctx;
 
   MTR_BEGIN("main", "find_compiler");
   find_compiler(argv);
@@ -3903,7 +3911,8 @@ handle_main_options(int argc, char* argv[])
     {"zero-stats", no_argument, 0, 'z'},
     {0, 0, 0, 0}};
 
-  initialize();
+  Context& ctx = initialize();
+  (void)ctx;
 
   int c;
   while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, NULL))
