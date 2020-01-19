@@ -18,6 +18,7 @@
 
 #include "exitfn.hpp"
 
+#include "Context.hpp"
 #include "legacy_util.hpp"
 #include "logging.hpp"
 
@@ -34,6 +35,7 @@ struct nullary_exit_function
 };
 
 static struct exit_function* exit_functions;
+static struct Context* context_to_clean_up;
 
 static void
 call_nullary_exit_function(void* context)
@@ -92,6 +94,15 @@ exitfn_add_last(void (*function)(void*), void* context)
   *q = p;
 }
 
+// Remember a Context pointer to delete after all exit functions have run.
+// This function can only be called once.
+void
+exitfn_delete_context(Context* ctx)
+{
+  assert(context_to_clean_up == nullptr);
+  context_to_clean_up = ctx;
+}
+
 // Call added functions.
 void
 exitfn_call(void)
@@ -103,5 +114,8 @@ exitfn_call(void)
     struct exit_function* q = p;
     p = p->next;
     free(q);
+  }
+  if (context_to_clean_up) {
+    delete context_to_clean_up;
   }
 }
