@@ -627,37 +627,44 @@ print_included_files(FILE* fp)
 }
 
 // Make a relative path from current working directory to path if path is under
-// the base directory. Takes over ownership of path. Caller frees.
-static char*
-make_relative_path(char* path)
+// the base directory.
+static std::string
+make_relative_path(const char* path)
 {
+  std::string result;
+
   if (g_config.base_dir().empty()
       || !str_startswith(path, g_config.base_dir().c_str())) {
-    return path;
+    result = path;
+    return result;
   }
 
 #ifdef _WIN32
+  char* winpath = nullptr;
   if (path[0] == '/') {
-    char* p = NULL;
     if (isalpha(path[1]) && path[2] == '/') {
       // Transform /c/path... to c:/path...
-      p = format("%c:/%s", path[1], &path[3]);
+      winpath = format("%c:/%s", path[1], &path[3]);
     } else {
-      p = x_strdup(path + 1); // Skip leading slash.
+      winpath = x_strdup(path + 1); // Skip leading slash.
     }
-    free(path);
-    path = p;
+    path = winpath;
   }
 #endif
+
+  char* dir = nullptr;
+  char* path_suffix = nullptr;
+  char* canon_path = nullptr;
+  char* relpath = nullptr;
 
   // x_realpath only works for existing paths, so if path doesn't exist, try
   // x_dirname(path) and assemble the path afterwards. We only bother to try
   // canonicalizing one of these two paths since a compiler path argument
   // typically only makes sense if path or x_dirname(path) exists.
-  char* path_suffix = NULL;
+
   if (!Stat::stat(path)) {
     // path doesn't exist.
-    char* dir = x_dirname(path);
+    dir = x_dirname(path);
     // find the nearest existing directory in path
     while (!Stat::stat(dir)) {
       char* parent_dir = x_dirname(dir);
@@ -671,29 +678,31 @@ make_relative_path(char* path)
       dir_len++;
     }
     path_suffix = x_strdup(&path[dir_len]);
-    char* p = path;
     path = dir;
-    free(p);
   }
 
-  char* canon_path = x_realpath(path);
+  canon_path = x_realpath(path);
   if (canon_path) {
-    free(path);
-    char* relpath = get_relative_path(get_current_working_dir(), canon_path);
-    free(canon_path);
+    relpath = get_relative_path(get_current_working_dir(), canon_path);
     if (path_suffix) {
-      path = format("%s/%s", relpath, path_suffix);
-      free(relpath);
-      free(path_suffix);
-      return path;
+      result = fmt::format("{}/{}", relpath, path_suffix);
     } else {
-      return relpath;
+      result = relpath;
     }
   } else {
     // path doesn't exist, so leave it as it is.
-    free(path_suffix);
-    return path;
+    result = path;
   }
+
+#ifdef _WIN32
+  free(winpath);
+#endif
+  free(dir);
+  free(path_suffix);
+  free(canon_path);
+  free(relpath);
+
+  return result;
 }
 
 // This function reads and hashes a file. While doing this, it also does these
@@ -825,7 +834,7 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       if (!has_absolute_include_headers) {
         has_absolute_include_headers = is_absolute_path(inc_path);
       }
-      inc_path = make_relative_path(inc_path);
+      inc_path = x_strdup(make_relative_path(inc_path).c_str());
 
       bool should_hash_inc_path = true;
       if (!g_config.hash_dir()) {
@@ -883,11 +892,9 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
   if (included_pch_file) {
-    char* pch_path = x_strdup(included_pch_file);
-    pch_path = make_relative_path(pch_path);
+    std::string pch_path = make_relative_path(included_pch_file);
     hash_string(hash, pch_path);
     remember_include_file(pch_path, hash, false, NULL);
-    free(pch_path);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -929,10 +936,10 @@ use_relative_paths_in_depfile(const char* depfile)
     char* saveptr;
     char* token = strtok_r(buf, " \t", &saveptr);
     while (token) {
-      char* relpath;
+      char* relpath = nullptr;
       if (is_absolute_path(token)
           && str_startswith(token, g_config.base_dir().c_str())) {
-        relpath = make_relative_path(x_strdup(token));
+        relpath = x_strdup(make_relative_path(token).c_str());
         result = true;
       } else {
         relpath = token;
@@ -1009,9 +1016,8 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
       if (!has_absolute_include_headers) {
         has_absolute_include_headers = is_absolute_path(token);
       }
-      char* path = make_relative_path(x_strdup(token));
+      std::string path = make_relative_path(token).c_str();
       remember_include_file(path, hash, false, hash);
-      free(path);
     }
   }
 
@@ -1020,11 +1026,9 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
   if (included_pch_file) {
-    char* pch_path = x_strdup(included_pch_file);
-    pch_path = make_relative_path(pch_path);
+    std::string pch_path = make_relative_path(included_pch_file);
     hash_string(hash, pch_path);
     remember_include_file(pch_path, hash, false, NULL);
-    free(pch_path);
   }
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
@@ -2518,16 +2522,14 @@ cc_process_args(ArgsInfo& args_info,
         stats_update(STATS_ARGS);
         return false;
       }
-      args_info.output_obj =
-        from_owned_cstr(make_relative_path(x_strdup(argv[i + 1])));
+      args_info.output_obj = make_relative_path(argv[i + 1]);
       i++;
       continue;
     }
 
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o") && guessed_compiler != GUESSED_NVCC) {
-      args_info.output_obj =
-        from_owned_cstr(make_relative_path(x_strdup(&argv[i][2])));
+      args_info.output_obj = make_relative_path(&argv[i][2]);
       continue;
     }
 
@@ -2604,7 +2606,7 @@ cc_process_args(ArgsInfo& args_info,
           ++arg;
         }
       }
-      args_info.output_dep = from_owned_cstr(make_relative_path(x_strdup(arg)));
+      args_info.output_dep = make_relative_path(arg);
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
@@ -2619,7 +2621,6 @@ cc_process_args(ArgsInfo& args_info,
     if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
       dependency_target_specified = true;
 
-      char* relpath;
       if (strlen(argv[i]) == 3) {
         // -MQ arg or -MT arg
         if (i == argc - 1) {
@@ -2628,17 +2629,15 @@ cc_process_args(ArgsInfo& args_info,
           return false;
         }
         args_add(dep_args, argv[i]);
-        relpath = make_relative_path(x_strdup(argv[i + 1]));
-        args_add(dep_args, relpath);
-        free(relpath);
+        std::string relpath = make_relative_path(argv[i + 1]);
+        args_add(dep_args, relpath.c_str());
         i++;
       } else {
         char* arg_opt = x_strndup(argv[i], 3);
-        relpath = make_relative_path(x_strdup(argv[i] + 3));
-        char* option = format("%s%s", arg_opt, relpath);
+        std::string relpath = make_relative_path(argv[i] + 3);
+        char* option = format("%s%s", arg_opt, relpath.c_str());
         args_add(dep_args, option);
         free(arg_opt);
-        free(relpath);
         free(option);
       }
       continue;
@@ -2680,11 +2679,9 @@ cc_process_args(ArgsInfo& args_info,
       continue;
     }
     if (str_startswith(argv[i], "--sysroot=")) {
-      char* relpath = make_relative_path(x_strdup(argv[i] + 10));
-      char* option = format("--sysroot=%s", relpath);
-      args_add(common_args, option);
-      free(relpath);
-      free(option);
+      std::string relpath = make_relative_path(argv[i] + 10);
+      std::string option = fmt::format("--sysroot={}", relpath);
+      args_add(common_args, option.c_str());
       continue;
     }
     // Alternate form of specifying sysroot without =
@@ -2695,10 +2692,9 @@ cc_process_args(ArgsInfo& args_info,
         return false;
       }
       args_add(common_args, argv[i]);
-      char* relpath = make_relative_path(x_strdup(argv[i + 1]));
-      args_add(common_args, relpath);
+      std::string relpath = make_relative_path(argv[i + 1]);
+      args_add(common_args, relpath.c_str());
       i++;
-      free(relpath);
       continue;
     }
     // Alternate form of specifying target without =
@@ -2726,16 +2722,14 @@ cc_process_args(ArgsInfo& args_info,
                  && !strchr(argv[i] + 8, ',')) {
         args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep =
-          from_owned_cstr(make_relative_path(x_strdup(argv[i] + 8)));
+        args_info.output_dep = make_relative_path(argv[i] + 8);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-MMD,")
                  && !strchr(argv[i] + 9, ',')) {
         args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep =
-          from_owned_cstr(make_relative_path(x_strdup(argv[i] + 9)));
+        args_info.output_dep = make_relative_path(argv[i] + 9);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-D")
@@ -2781,8 +2775,7 @@ cc_process_args(ArgsInfo& args_info,
         return false;
       }
       args_info.generating_diagnostics = true;
-      args_info.output_dia =
-        from_owned_cstr(make_relative_path(x_strdup(argv[i + 1])));
+      args_info.output_dia = make_relative_path(argv[i + 1]);
       i++;
       continue;
     }
@@ -2900,15 +2893,14 @@ cc_process_args(ArgsInfo& args_info,
         return false;
       }
 
-      char* relpath = make_relative_path(x_strdup(argv[i + 1]));
+      std::string relpath = make_relative_path(argv[i + 1]);
       if (compopt_affects_cpp(argv[i])) {
         args_add(cpp_args, argv[i]);
-        args_add(cpp_args, relpath);
+        args_add(cpp_args, relpath.c_str());
       } else {
         args_add(common_args, argv[i]);
-        args_add(common_args, relpath);
+        args_add(common_args, relpath.c_str());
       }
-      free(relpath);
 
       i++;
       continue;
@@ -2921,15 +2913,14 @@ cc_process_args(ArgsInfo& args_info,
       if (slash_pos) {
         char* option = x_strndup(argv[i], slash_pos - argv[i]);
         if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-          char* relpath = make_relative_path(x_strdup(slash_pos));
-          char* new_option = format("%s%s", option, relpath);
+          std::string relpath = make_relative_path(slash_pos);
+          char* new_option = format("%s%s", option, relpath.c_str());
           if (compopt_affects_cpp(option)) {
             args_add(cpp_args, new_option);
           } else {
             args_add(common_args, new_option);
           }
           free(new_option);
-          free(relpath);
           free(option);
           continue;
         } else {
@@ -3017,8 +3008,7 @@ cc_process_args(ArgsInfo& args_info,
       args_info.input_file = from_cstr(argv[i]);
     } else {
       // Rewrite to relative to increase hit rate.
-      args_info.input_file =
-        from_owned_cstr(make_relative_path(x_strdup(argv[i])));
+      args_info.input_file = make_relative_path(argv[i]);
     }
   } // for
 
@@ -3045,8 +3035,7 @@ cc_process_args(ArgsInfo& args_info,
       char* saveptr = nullptr;
       char* abspath_file = strtok_r(dependencies_env, " ", &saveptr);
 
-      args_info.output_dep =
-        from_owned_cstr(make_relative_path(x_strdup(abspath_file)));
+      args_info.output_dep = make_relative_path(abspath_file);
 
       // specifying target object is optional.
       char* abspath_obj = strtok_r(nullptr, " ", &saveptr);
@@ -3054,17 +3043,15 @@ cc_process_args(ArgsInfo& args_info,
         // it's the "file target" form.
 
         dependency_target_specified = true;
-        char* relpath_obj = make_relative_path(x_strdup(abspath_obj));
+        std::string relpath_obj = make_relative_path(abspath_obj);
         // ensure compiler gets relative path.
-        char* relpath_both =
-          format("%s %s", args_info.output_dep.c_str(), relpath_obj);
+        std::string relpath_both =
+          fmt::format("{} {}", args_info.output_dep, relpath_obj);
         if (using_sunpro_dependencies) {
-          x_setenv("SUNPRO_DEPENDENCIES", relpath_both);
+          x_setenv("SUNPRO_DEPENDENCIES", relpath_both.c_str());
         } else {
-          x_setenv("DEPENDENCIES_OUTPUT", relpath_both);
+          x_setenv("DEPENDENCIES_OUTPUT", relpath_both.c_str());
         }
-        free(relpath_obj);
-        free(relpath_both);
       } else {
         // it's the "file" form.
 
@@ -3260,8 +3247,7 @@ cc_process_args(ArgsInfo& args_info,
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
         Util::change_extension(args_info.output_obj, ".d");
-      args_info.output_dep = from_owned_cstr(
-        make_relative_path(x_strdup(default_depfile_name.c_str())));
+      args_info.output_dep = make_relative_path(default_depfile_name.c_str());
       if (!g_config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -3283,14 +3269,12 @@ cc_process_args(ArgsInfo& args_info,
   if (args_info.generating_coverage) {
     std::string gcda_path =
       Util::change_extension(args_info.output_obj, ".gcno");
-    args_info.output_cov =
-      from_owned_cstr(make_relative_path(x_strdup(gcda_path.c_str())));
+    args_info.output_cov = make_relative_path(gcda_path.c_str());
   }
   if (args_info.generating_stackusage) {
     std::string default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
-    args_info.output_su = from_owned_cstr(
-      make_relative_path(x_strdup(default_sufile_name.c_str())));
+    args_info.output_su = make_relative_path(default_sufile_name.c_str());
   }
 
   *compiler_args = args_copy(common_args);
