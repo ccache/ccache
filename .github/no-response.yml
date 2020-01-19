@@ -1,0 +1,12 @@
+# Configuration for probot-no-response - https://github.com/probot/no-response
+
+# Number of days of inactivity before an issue is closed for lack of response.
+daysUntilClose: 30
+# Label requiring a response.
+responseRequiredLabel: awaiting feedback
+# Comment to post when closing an issue for lack of response. Set to `false` to
+# disable.
+closeComment: >
+  This issue has been automatically closed due to no response to our request for
+  more information from the original author. Please feel free to reopen the
+  issue or leave a comment if you have more information.
