@@ -81,6 +81,11 @@ public:
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
 
+  const std::string& primary_config_path() const;
+  const std::string& secondary_config_path() const;
+  void set_primary_config_path(std::string path);
+  void set_secondary_config_path(std::string path);
+
   typedef std::function<void(const std::string& key,
                              const std::string& value,
                              const std::string& origin)>
@@ -107,6 +112,9 @@ public:
                                 const std::string& value);
 
 private:
+  std::string m_primary_config_path;
+  std::string m_secondary_config_path;
+
   std::string m_base_dir = "";
   std::string m_cache_dir = fmt::format("{}/.ccache", get_home_directory());
   uint32_t m_cache_dir_levels = 2;

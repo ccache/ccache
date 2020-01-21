@@ -426,6 +426,30 @@ parse_config_file(const std::string& path,
 
 } // namespace
 
+const std::string&
+Config::primary_config_path() const
+{
+  return m_primary_config_path;
+}
+
+const std::string&
+Config::secondary_config_path() const
+{
+  return m_secondary_config_path;
+}
+
+void
+Config::set_primary_config_path(std::string path)
+{
+  m_primary_config_path = std::move(path);
+}
+
+void
+Config::set_secondary_config_path(std::string path)
+{
+  m_secondary_config_path = std::move(path);
+}
+
 bool
 Config::update_from_file(const std::string& file_path)
 {

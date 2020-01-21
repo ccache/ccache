@@ -46,8 +46,6 @@
 using nonstd::string_view;
 
 // Global variables used by other compilation units.
-extern char* primary_config_path;
-extern char* secondary_config_path;
 extern char* current_working_dir;
 extern char* stats_file;
 extern unsigned lock_staleness_limit;
@@ -118,12 +116,6 @@ static const char USAGE_TEXT[] =
   "    -o, --set-config=K=V      set configuration item K to value V\n"
   "\n"
   "See also <https://ccache.dev>.\n";
-
-// Where to write configuration changes.
-char* primary_config_path = NULL;
-
-// Secondary, read-only configuration file (if any).
-char* secondary_config_path = NULL;
 
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
 char* current_working_dir = NULL;
@@ -3521,7 +3513,7 @@ out:
 }
 
 static void
-create_initial_config_file(const char* path)
+create_initial_config_file(const std::string& path)
 {
   if (!Util::create_dir(Util::dir_name(path))) {
     return;
@@ -3541,7 +3533,7 @@ create_initial_config_file(const char* path)
   }
   free(stats_dir);
 
-  FILE* f = fopen(path, "w");
+  FILE* f = fopen(path.c_str(), "w");
   if (!f) {
     return;
   }
@@ -3626,12 +3618,13 @@ initialize(void)
 
   char* p = getenv("CCACHE_CONFIGPATH");
   if (p) {
-    primary_config_path = x_strdup(p);
+    g_config.set_primary_config_path(p);
   } else {
-    secondary_config_path = format("%s/ccache.conf", TO_STRING(SYSCONFDIR));
+    g_config.set_secondary_config_path(
+      fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
-    g_config.update_from_file(secondary_config_path);
+    g_config.update_from_file(g_config.secondary_config_path());
     MTR_END("config", "conf_read_secondary");
 
     if (g_config.cache_dir().empty()) {
@@ -3644,13 +3637,14 @@ initialize(void)
       fatal("CCACHE_DIR must not be the empty string");
     }
 
-    primary_config_path =
-      format("%s/ccache.conf", g_config.cache_dir().c_str());
+    g_config.set_primary_config_path(
+      fmt::format("{}/ccache.conf", g_config.cache_dir()));
   }
 
   bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");
-  if (!g_config.update_from_file(primary_config_path) && !g_config.disable()) {
+  if (!g_config.update_from_file(g_config.primary_config_path())
+      && !g_config.disable()) {
     should_create_initial_config = true;
   }
   MTR_END("config", "conf_read_primary");
@@ -3660,7 +3654,7 @@ initialize(void)
   MTR_END("config", "conf_update_from_environment");
 
   if (should_create_initial_config) {
-    create_initial_config_file(primary_config_path);
+    create_initial_config_file(g_config.primary_config_path());
   }
 
   exitfn_init();
@@ -3698,8 +3692,6 @@ cc_reset(void)
 {
   g_config = Config();
 
-  free_and_nullify(primary_config_path);
-  free_and_nullify(secondary_config_path);
   free_and_nullify(current_working_dir);
   for (size_t i = 0; i < debug_prefix_maps_len; i++) {
     free_and_nullify(debug_prefix_maps[i]);
@@ -4099,7 +4091,8 @@ ccache_main_options(int argc, char* argv[])
 
     case 'F': { // --max-files
       initialize();
-      g_config.set_value_in_file(primary_config_path, "max_files", optarg);
+      g_config.set_value_in_file(
+        g_config.primary_config_path(), "max_files", optarg);
       unsigned files = atoi(optarg);
       if (files == 0) {
         printf("Unset cache file limit\n");
@@ -4115,7 +4108,8 @@ ccache_main_options(int argc, char* argv[])
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
       }
-      g_config.set_value_in_file(primary_config_path, "max_size", optarg);
+      g_config.set_value_in_file(
+        g_config.primary_config_path(), "max_size", optarg);
       if (size == 0) {
         printf("Unset cache size limit\n");
       } else {
@@ -4134,7 +4128,7 @@ ccache_main_options(int argc, char* argv[])
       }
       char* key = x_strndup(optarg, p - optarg);
       char* value = p + 1;
-      g_config.set_value_in_file(primary_config_path, key, value);
+      g_config.set_value_in_file(g_config.primary_config_path(), key, value);
       free(key);
       break;
     }
