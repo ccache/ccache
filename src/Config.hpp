@@ -20,6 +20,7 @@
 
 #include "system.hpp"
 
+#include "Forward.hpp"
 #include "legacy_util.hpp"
 
 #include "third_party/fmt/core.h"
@@ -30,7 +31,6 @@
 #include <string>
 #include <unordered_map>
 
-class Config;
 extern Config g_config;
 
 class Config

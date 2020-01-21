@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2018-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include "Forward.hpp"
+
 #include "third_party/nonstd/string_view.hpp"
 
 #define DIGEST_SIZE 20
@@ -38,9 +40,6 @@ void digest_as_string(const struct digest* d, char* buffer);
 
 // Return true if d1 and d2 are equal, else false.
 bool digests_equal(const struct digest* d1, const struct digest* d2);
-
-// struct hash represents the hash algorithm's inner state.
-struct hash;
 
 // Create a new hash state.
 struct hash* hash_init(void);

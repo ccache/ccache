@@ -25,6 +25,7 @@
 
 #define HASH_DELIMITER "\000cCaChE"
 
+// struct hash represents the hash algorithm's inner state.
 struct hash
 {
   blake2b_state state;

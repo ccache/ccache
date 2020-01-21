@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,11 +20,10 @@
 
 #include "system.hpp"
 
+#include "Forward.hpp"
+
 #include <string>
 #include <unordered_map>
-
-class Config;
-struct digest;
 
 extern const uint8_t k_manifest_magic[4];
 extern const uint8_t k_manifest_version;

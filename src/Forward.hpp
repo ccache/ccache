@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,20 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+class Config;
 
-#include "Forward.hpp"
-#include "Util.hpp"
-
-#include <string>
-
-void clean_up_dir(const std::string& subdir,
-                  uint64_t max_size,
-                  uint32_t max_files,
-                  const Util::ProgressReceiver& progress_receiver);
-
-void clean_up_all(const Config& config,
-                  const Util::ProgressReceiver& progress_receiver);
-
-void wipe_all(const Config& config,
-              const Util::ProgressReceiver& progress_receiver);
+struct digest;
+struct hash;
