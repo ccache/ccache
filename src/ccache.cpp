@@ -3698,7 +3698,7 @@ free_and_nullify(T*& ptr)
 void
 cc_reset(void)
 {
-  g_config = Config();
+  g_config.clear_and_reset();
 
   free_and_nullify(current_working_dir);
   for (size_t i = 0; i < debug_prefix_maps_len; i++) {
