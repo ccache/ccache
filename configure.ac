@@ -133,17 +133,6 @@ AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
 
-AC_CACHE_CHECK([for compar_fn_t in stdlib.h],ccache_cv_COMPAR_FN_T, [
-    AC_TRY_COMPILE(
-        [#include <stdlib.h>],
-        [void test_fn(void) { qsort(NULL, 0, 0, (__compar_fn_t)NULL); }],
-        ccache_cv_COMPAR_FN_T=yes,
-        ccache_cv_COMPAR_FN_T=no)])
-if test x"$ccache_cv_COMPAR_FN_T" = x"yes"; then
-   AC_DEFINE(HAVE_COMPAR_FN_T, 1,
-             Define to 1 if you have the `__compar_fn_t' typedef.)
-fi
-
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 

@@ -270,12 +270,6 @@ bool is_precompiled_header(const char* path);
 
 // ----------------------------------------------------------------------------
 
-#ifdef HAVE_COMPAR_FN_T
-#  define COMPAR_FN_T __compar_fn_t
-#else
-typedef int (*COMPAR_FN_T)(const void*, const void*);
-#endif
-
 // Work with silly DOS binary open.
 #ifndef O_BINARY
 #  define O_BINARY 0
