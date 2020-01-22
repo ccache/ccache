@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,6 +26,7 @@
 #include "File.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
+#include "stats.hpp"
 
 // Result data format
 // ==================

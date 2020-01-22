@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2011-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,6 +17,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "execute.hpp"
+
 #include "Config.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
@@ -29,6 +31,12 @@ static char* find_executable_in_path(const char* name,
                                      const char* path);
 
 #ifdef _WIN32
+int
+execute(char** argv, int fd_out, int fd_err, pid_t* /*pid*/)
+{
+  return win32execute(argv[0], argv, 1, fd_out, fd_err);
+}
+
 // Re-create a win32 command line string based on **argv.
 // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
 char*

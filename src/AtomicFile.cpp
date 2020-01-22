@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,6 @@
 
 #include "Error.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
 
 #include "third_party/fmt/core.h"
 

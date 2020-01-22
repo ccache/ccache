@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,7 @@
 
 #include "hash.hpp"
 
-#include "ccache.hpp"
+#include "legacy_util.hpp"
 
 #include <blake2.h>
 

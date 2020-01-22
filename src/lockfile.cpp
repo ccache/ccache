@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,8 +16,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "lockfile.hpp"
+
 #include "Util.hpp"
-#include "ccache.hpp"
 
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale

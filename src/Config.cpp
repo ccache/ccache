@@ -21,6 +21,7 @@
 #include "AtomicFile.hpp"
 #include "Error.hpp"
 #include "Util.hpp"
+#include "ccache.hpp"
 
 #include <algorithm>
 #include <cassert>

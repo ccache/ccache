@@ -19,7 +19,9 @@
 // This file contains tests for the processing of compiler arguments.
 
 #include "../src/Config.hpp"
+#include "../src/args.hpp"
 #include "../src/ccache.hpp"
+#include "../src/stats.hpp"
 #include "framework.hpp"
 #include "util.hpp"
 

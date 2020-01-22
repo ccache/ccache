@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -17,7 +17,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ccache.hpp"
+#include "args.hpp"
+
+#include "legacy_util.hpp"
 
 struct args*
 args_init(int init_argc, const char* const* init_args)
