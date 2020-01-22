@@ -34,7 +34,6 @@ RUN apt-get -qq update && apt-get install -y --no-install-recommends \
 RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 elfutils \
                 libzstd1-dev \
-                libb2-dev \
                 wget \
                 ca-certificates \
         && rm -rf /var/lib/apt/lists/*

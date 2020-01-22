@@ -90,7 +90,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       -Wno-conversion
       -Wno-disabled-macro-expansion
       -Wno-documentation-unknown-command
-      -Wno-error=reserved-id-macro # libb2 blake2.h
       -Wno-exit-time-destructors
       -Wno-format-nonliteral
       -Wno-global-constructors
