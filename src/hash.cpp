@@ -18,7 +18,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "hash.hpp"
-
+#include "StdMakeUnique.hpp"
 #include "ccache.hpp"
 
 #include <blake2.h>
@@ -63,31 +63,36 @@ do_debug_text(struct hash* hash, const void* s, size_t len)
   }
 }
 
-struct hash*
-hash_init(void)
+
+Hash::Hash()
+: pimpl(std::make_unique<hash>())
 {
-  auto hash = static_cast<struct hash*>(malloc(sizeof(struct hash)));
-  blake2b_init(&hash->state, DIGEST_SIZE);
-  hash->debug_binary = NULL;
-  hash->debug_text = NULL;
-  return hash;
+  pimpl->debug_binary = nullptr;
+  pimpl->debug_text = nullptr;
+
+  blake2b_init(&pimpl->state, DIGEST_SIZE);
 }
 
-struct hash*
-hash_copy(struct hash* hash)
+Hash::Hash(const Hash& other)
+: pimpl(std::make_unique<hash>())
 {
-  auto result = static_cast<struct hash*>(malloc(sizeof(struct hash)));
-  result->state = hash->state;
-  result->debug_binary = NULL;
-  result->debug_text = NULL;
-  return result;
+  pimpl->state = other.pimpl->state;
+  pimpl->debug_binary = NULL;
+  pimpl->debug_text = NULL;
 }
 
-void
-hash_free(struct hash* hash)
+Hash::Hash(const struct hash& other)
+: pimpl(std::make_unique<hash>())
 {
-  free(hash);
+  pimpl->state = other.state;
+  pimpl->debug_binary = NULL;
+  pimpl->debug_text = NULL;
 }
+
+
+// Force destructor to cpp file.
+// Required so unique_ptr can call delete on a known object.
+Hash::~Hash() {}
 
 void
 hash_enable_debug(struct hash* hash,
@@ -114,9 +119,11 @@ void
 hash_result_as_bytes(struct hash* hash, struct digest* digest)
 {
   // make a copy before altering state
-  struct hash* copy = hash_copy(hash);
-  blake2b_final(&copy->state, digest->bytes, DIGEST_SIZE);
-  hash_free(copy);
+  Hash copy(*hash);
+
+  // the strange cast is required here because parameter has not yet been
+  // converted to Hash
+  blake2b_final(&((struct hash*)copy)->state, digest->bytes, DIGEST_SIZE);
 }
 
 void

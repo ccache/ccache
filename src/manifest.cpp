@@ -433,21 +433,18 @@ verify_result(const Config& config,
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      struct hash* hash = hash_init();
+      Hash hash;
       int ret = hash_source_code_file(config, hash, path.c_str());
       if (ret & HASH_SOURCE_CODE_ERROR) {
         cc_log("Failed hashing %s", path.c_str());
-        hash_free(hash);
         return false;
       }
       if (ret & HASH_SOURCE_CODE_FOUND_TIME) {
-        hash_free(hash);
         return false;
       }
 
       digest actual;
       hash_result_as_bytes(hash, &actual);
-      hash_free(hash);
       hashed_files_iter = hashed_files.emplace(path, actual).first;
     }
 

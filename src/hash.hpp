@@ -22,6 +22,8 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
+#include <memory>
+
 #define DIGEST_SIZE 20
 #define DIGEST_STRING_BUFFER_SIZE (2 * DIGEST_SIZE + 1)
 
@@ -42,14 +44,25 @@ bool digests_equal(const struct digest* d1, const struct digest* d2);
 // struct hash represents the hash algorithm's inner state.
 struct hash;
 
-// Create a new hash state.
-struct hash* hash_init(void);
+// value semantic hash to replace 'struct hash' in the future
+class Hash {
+public:
+  Hash();
+  Hash(const Hash& other);
+  ~Hash();
 
-// Create a new hash state from an existing hash state.
-struct hash* hash_copy(struct hash* hash);
+  // temp during refactoring from 'struct hash'
+  explicit Hash(const struct hash& other);
 
-// Free a hash state created by hash_init or hash_copy.
-void hash_free(struct hash* hash);
+  // temp during refactoring from 'struct hash'
+  operator hash*() {
+    return pimpl.get();
+  }
+
+private:
+  // using pimpl pattern here so blake is not exposed to the rest of the code.
+  std::unique_ptr<struct hash> pimpl;
+};
 
 // Enable debug logging of hashed input to a binary and a text file.
 void hash_enable_debug(struct hash* hash,

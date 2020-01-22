@@ -597,9 +597,6 @@ do_remember_include_file(std::string path,
                          bool system,
                          struct hash* depend_mode_hash)
 {
-  struct hash* fhash = nullptr;
-  bool is_pch = false;
-
   if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
     // Typically <built-in> or <command-line>.
     return true;
@@ -686,11 +683,9 @@ do_remember_include_file(std::string path,
   }
 
   // Let's hash the include file content.
-  std::unique_ptr<struct hash, decltype(&hash_free)> fhash_holder(hash_init(),
-                                                                  &hash_free);
-  fhash = fhash_holder.get();
+  Hash fhash;
 
-  is_pch = is_precompiled_header(path.c_str());
+  const bool is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
     if (!included_pch_file) {
       cc_log("Detected use of precompiled header: %s", path.c_str());
@@ -3887,7 +3882,7 @@ ccache(int argc, char* argv[])
     free(path);
   }
 
-  struct hash* common_hash = hash_init();
+  Hash common_hash;
   init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
@@ -3895,7 +3890,7 @@ ccache(int argc, char* argv[])
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
-  struct hash* direct_hash = hash_copy(common_hash);
+  Hash direct_hash = common_hash;
   init_hash_debug(direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
 
   struct args* args_to_hash = args_copy(preprocessor_args);
@@ -3936,7 +3931,7 @@ ccache(int argc, char* argv[])
   if (!g_config.depend_mode()) {
     // Find the hash using the preprocessed output. Also updates
     // g_included_files.
-    struct hash* cpp_hash = hash_copy(common_hash);
+    Hash cpp_hash = common_hash;
     init_hash_debug(
       cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
 
@@ -3984,7 +3979,7 @@ ccache(int argc, char* argv[])
   add_prefix(compiler_args, g_config.prefix_command().c_str());
 
   // In depend_mode, extend the direct hash.
-  struct hash* depend_mode_hash = g_config.depend_mode() ? direct_hash : NULL;
+  struct hash* depend_mode_hash = g_config.depend_mode() ? direct_hash : (struct hash*)nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
@@ -4038,7 +4033,7 @@ ccache_main_options(int argc, char* argv[])
 
     case HASH_FILE: {
       initialize();
-      struct hash* hash = hash_init();
+      Hash hash;
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
       } else {
@@ -4047,7 +4042,6 @@ ccache_main_options(int argc, char* argv[])
       char digest[DIGEST_STRING_BUFFER_SIZE];
       hash_result_as_string(hash, digest);
       puts(digest);
-      hash_free(hash);
       break;
     }
 
