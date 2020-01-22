@@ -148,7 +148,7 @@ template<> struct hash<FileInfo>
   size_t
   operator()(const FileInfo& file_info) const
   {
-    static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
+    static_assert(sizeof(FileInfo) == 56, "unexpected size"); // No padding.
     Checksum checksum;
     checksum.update(&file_info, sizeof(file_info));
     return checksum.digest();

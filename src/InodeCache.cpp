@@ -62,7 +62,7 @@ const uint32_t k_version = 1;
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
-static_assert(Digest::size() == 20,
+static_assert(Digest::size() == 28,
               "Increment version number if size of digest is changed.");
 static_assert(std::is_trivially_copyable<Digest>::value,
               "Digest is expected to be trivially copyable.");
