@@ -22,6 +22,7 @@
 #include "Error.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
+#include "ScopeGuard.hpp"
 #include "Util.hpp"
 #include "args.hpp"
 #include "cleanup.hpp"
@@ -2409,6 +2410,7 @@ cc_process_args(struct args* args,
   // but with arguments from @file and similar constructs expanded. It's only
   // used as a temporary data structure to loop over.
   struct args* expanded_args = args_copy(args);
+  ArgsScopeGuard expanded_args_guard(expanded_args);
 
   // common_args contains all original arguments except:
   // * those that never should be passed to the preprocessor,
@@ -2416,19 +2418,22 @@ cc_process_args(struct args* args,
   //   is false), and
   // * dependency options (like -MD and friends).
   struct args* common_args = args_init(0, NULL);
+  ArgsScopeGuard common_args_guard(common_args);
 
   // cpp_args contains arguments that were not added to common_args, i.e. those
   // that should only be passed to the preprocessor if run_second_cpp is false.
   // If run_second_cpp is true, they will be passed to the compiler as well.
   struct args* cpp_args = args_init(0, NULL);
+  ArgsScopeGuard cpp_args_guard(cpp_args);
 
   // dep_args contains dependency options like -MD. They are only passed to the
   // preprocessor, never to the compiler.
   struct args* dep_args = args_init(0, NULL);
+  ArgsScopeGuard dep_args_guard(dep_args);
 
   // compiler_only_args contains arguments that should only be passed to the
   // compiler, not the preprocessor.
-  struct args* compiler_only_args = args_init(0, NULL);
+  struct args* compiler_only_args = args_init(0, NULL); // will leak on failure
 
   bool found_color_diagnostics = false;
   bool found_directives_only = false;
@@ -2438,7 +2443,6 @@ cc_process_args(struct args* args,
   char** argv = expanded_args->argv;
   args_add(common_args, argv[0]);
 
-  bool result = true;
   for (int i = 1; i < argc; i++) {
     // The user knows best: just swallow the next arg.
     if (str_eq(argv[i], "--ccache-skip")) {
@@ -2446,8 +2450,7 @@ cc_process_args(struct args* args,
       if (i == argc) {
         cc_log("--ccache-skip lacks an argument");
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       args_add(common_args, argv[i]);
       continue;
@@ -2456,8 +2459,7 @@ cc_process_args(struct args* args,
     // Special case for -E.
     if (str_eq(argv[i], "-E")) {
       stats_update(STATS_PREPROCESSING);
-      result = false;
-      goto out;
+      return false;
     }
 
     // Handle "@file" argument.
@@ -2471,8 +2473,7 @@ cc_process_args(struct args* args,
       if (!file_args) {
         cc_log("Couldn't read arg file %s", argpath);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
 
       args_insert(expanded_args, i, file_args, true);
@@ -2488,8 +2489,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Expected argument after %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       ++i;
 
@@ -2508,8 +2508,7 @@ cc_process_args(struct args* args,
         if (!file_args) {
           cc_log("Couldn't read cuda options file %s", str_start);
           stats_update(STATS_ARGS);
-          result = false;
-          goto out;
+          return false;
         }
 
         int new_index = file_args->argc + index;
@@ -2529,8 +2528,7 @@ cc_process_args(struct args* args,
         || str_startswith(argv[i], "-MJ")) {
       cc_log("Compiler option %s is unsupported", argv[i]);
       stats_update(STATS_UNSUPPORTED_OPTION);
-      result = false;
-      goto out;
+      return false;
     }
 
     // These are too hard in direct mode.
@@ -2543,8 +2541,7 @@ cc_process_args(struct args* args,
     if (str_startswith(argv[i], "-Xarch_")) {
       cc_log("Unsupported compiler option :%s", argv[i]);
       stats_update(STATS_UNSUPPORTED_OPTION);
-      result = false;
-      goto out;
+      return false;
     }
 
     // Handle -arch options.
@@ -2553,8 +2550,7 @@ cc_process_args(struct args* args,
         cc_log("Too many -arch compiler options; ccache supports at most %d",
                MAX_ARCH_ARGS);
         stats_update(STATS_UNSUPPORTED_OPTION);
-        result = false;
-        goto out;
+        return false;
       }
 
       ++i;
@@ -2573,8 +2569,7 @@ cc_process_args(struct args* args,
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
           stats_update(STATS_ARGS);
-          result = false;
-          goto out;
+          return false;
         }
         args_add(compiler_only_args, argv[i + 1]);
         ++i;
@@ -2604,15 +2599,13 @@ cc_process_args(struct args* args,
         cc_log("Compiler option %s is unsupported without direct depend mode",
                argv[i]);
         stats_update(STATS_CANTUSEMODULES);
-        result = false;
-        goto out;
+        return false;
       } else if (!(g_config.sloppiness() & SLOPPY_MODULES)) {
         cc_log(
           "You have to specify \"modules\" sloppiness when using"
           " -fmodules to get hits");
         stats_update(STATS_CANTUSEMODULES);
-        result = false;
-        goto out;
+        return false;
       }
     }
 
@@ -2642,8 +2635,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       if (!input_file) {
         explicit_language = argv[i + 1];
@@ -2663,8 +2655,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       output_obj = make_relative_path(x_strdup(argv[i + 1]));
       i++;
@@ -2739,8 +2730,7 @@ cc_process_args(struct args* args,
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
           stats_update(STATS_ARGS);
-          result = false;
-          goto out;
+          return false;
         }
         arg = argv[i + 1];
         i++;
@@ -2772,8 +2762,7 @@ cc_process_args(struct args* args,
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
           stats_update(STATS_ARGS);
-          result = false;
-          goto out;
+          return false;
         }
         args_add(dep_args, argv[i]);
         relpath = make_relative_path(x_strdup(argv[i + 1]));
@@ -2838,8 +2827,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       args_add(common_args, argv[i]);
       char* relpath = make_relative_path(x_strdup(argv[i + 1]));
@@ -2853,8 +2841,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       args_add(common_args, argv[i]);
       args_add(common_args, argv[i + 1]);
@@ -2926,8 +2913,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
       generating_diagnostics = true;
       output_dia = make_relative_path(x_strdup(argv[i + 1]));
@@ -2977,8 +2963,7 @@ cc_process_args(struct args* args,
         if (arg_profile_dir && profile_dir) {
           cc_log("Profile directory already set; giving up");
           stats_update(STATS_UNSUPPORTED_OPTION);
-          result = false;
-          goto out;
+          return false;
         } else if (arg_profile_dir) {
           cc_log("Setting profile directory to %s", arg_profile_dir);
           profile_dir = x_strdup(arg_profile_dir);
@@ -3042,13 +3027,11 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
 
       if (!detect_pch(argv[i], argv[i + 1], &found_pch)) {
-        result = false;
-        goto out;
+        return false;
       }
 
       char* relpath = make_relative_path(x_strdup(argv[i + 1]));
@@ -3094,8 +3077,7 @@ cc_process_args(struct args* args,
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
         stats_update(STATS_ARGS);
-        result = false;
-        goto out;
+        return false;
       }
 
       if (compopt_affects_cpp(argv[i])) {
@@ -3150,8 +3132,7 @@ cc_process_args(struct args* args,
         cc_log("Unsupported source extension: %s", argv[i]);
         stats_update(STATS_SOURCELANG);
       }
-      result = false;
-      goto out;
+      return false;
     }
 
     // The source code file path gets put into the notes.
@@ -3231,8 +3212,7 @@ cc_process_args(struct args* args,
   if (!input_file) {
     cc_log("No input file found");
     stats_update(STATS_NOINPUT);
-    result = false;
-    goto out;
+    return false;
   }
 
   if (found_pch || found_fpch_preprocess) {
@@ -3243,8 +3223,7 @@ cc_process_args(struct args* args,
         " precompiled headers to get direct hits");
       cc_log("Disabling direct mode");
       stats_update(STATS_CANTUSEPCH);
-      result = false;
-      goto out;
+      return false;
     }
   }
 
@@ -3256,8 +3235,7 @@ cc_process_args(struct args* args,
     if (!language_is_supported(explicit_language)) {
       cc_log("Unsupported language: %s", explicit_language);
       stats_update(STATS_SOURCELANG);
-      result = false;
-      goto out;
+      return false;
     }
     actual_language = x_strdup(explicit_language);
   } else {
@@ -3273,8 +3251,7 @@ cc_process_args(struct args* args,
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
     stats_update(STATS_CANTUSEPCH);
-    result = false;
-    goto out;
+    return false;
   }
 
   if (!found_c_opt && !found_dc_opt && !found_S_opt) {
@@ -3289,16 +3266,14 @@ cc_process_args(struct args* args,
       } else {
         stats_update(STATS_LINK);
       }
-      result = false;
-      goto out;
+      return false;
     }
   }
 
   if (!actual_language) {
     cc_log("Unsupported source extension: %s", input_file);
     stats_update(STATS_SOURCELANG);
-    result = false;
-    goto out;
+    return false;
   }
 
   if (!g_config.run_second_cpp() && str_eq(actual_language, "cu")) {
@@ -3323,8 +3298,7 @@ cc_process_args(struct args* args,
   if (output_obj && str_eq(output_obj, "-")) {
     stats_update(STATS_OUTSTDOUT);
     cc_log("Output file is -");
-    result = false;
-    goto out;
+    return false;
   }
 
   if (!output_obj) {
@@ -3350,8 +3324,7 @@ cc_process_args(struct args* args,
     if (!p || !p[1]) {
       cc_log("Badly formed object filename");
       stats_update(STATS_ARGS);
-      result = false;
-      goto out;
+      return false;
     }
 
     output_dwo = x_strdup(Util::change_extension(output_obj, ".dwo").c_str());
@@ -3363,8 +3336,7 @@ cc_process_args(struct args* args,
     if (st && !st.is_regular()) {
       cc_log("Not a regular file: %s", output_obj);
       stats_update(STATS_BADOUTPUTFILE);
-      result = false;
-      goto out;
+      return false;
     }
   }
 
@@ -3374,9 +3346,8 @@ cc_process_args(struct args* args,
     if (!st || !st.is_directory()) {
       cc_log("Directory does not exist: %s", output_dir);
       stats_update(STATS_BADOUTPUTFILE);
-      result = false;
       free(output_dir);
-      goto out;
+      return false;
     }
     free(output_dir);
   }
@@ -3512,12 +3483,7 @@ cc_process_args(struct args* args,
     args_extend(*extra_args_to_hash, dep_args);
   }
 
-out:
-  args_free(expanded_args);
-  args_free(common_args);
-  args_free(dep_args);
-  args_free(cpp_args);
-  return result;
+  return true;
 }
 
 static void
