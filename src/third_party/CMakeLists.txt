@@ -9,6 +9,7 @@ target_include_directories(
   PRIVATE ${CMAKE_BINARY_DIR} . SYSTEM INTERFACE .)
 
 target_link_libraries(third_party_lib PRIVATE standard_settings)
+target_link_libraries(third_party_lib INTERFACE blake3)
 
 # These warnings are enabled by default even without e.g. -Wall, but we don't
 # want them in third_party.
@@ -28,3 +29,5 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(third_party_lib INTERFACE -Wno-shadow)
 endif()
+
+add_subdirectory(blake3)
