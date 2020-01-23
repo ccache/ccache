@@ -20,7 +20,7 @@
 #pragma once
 
 #include "system.hpp"
-
+#include "Args.hpp"
 #include "counters.hpp"
 
 #ifndef MYNAME
@@ -63,9 +63,9 @@ extern time_t time_of_compilation;
 extern bool output_is_precompiled_header;
 void block_signals();
 void unblock_signals();
-bool cc_process_args(struct args* args,
-                     struct args** preprocessor_args,
-                     struct args** extra_args_to_hash,
-                     struct args** compiler_args);
+bool cc_process_args(const Args& args,
+                     Args& preprocessor_args,
+                     Args& extra_args_to_hash,
+                     Args& compiler_args);
 void cc_reset();
 bool is_precompiled_header(const char* path);

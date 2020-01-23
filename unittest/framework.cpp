@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -289,19 +289,19 @@ bool
 cct_check_args_eq(const char* file,
                   int line,
                   const char* expression,
-                  const struct args* expected,
-                  const struct args* actual,
+                  const Args& expected,
+                  const Args& actual,
                   bool free1,
                   bool free2)
 {
   bool result;
 
-  if (expected && actual && args_equal(actual, expected)) {
+  if (args_equal(actual, expected)) {
     cct_check_passed(file, line, expression);
     result = true;
   } else {
-    char* exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
-    char* act_str = actual ? args_to_string(actual) : x_strdup("(null)");
+    char* exp_str = args_to_string(expected);
+    char* act_str = args_to_string(actual);
     cct_check_failed(file, line, expression, exp_str, act_str);
     free(exp_str);
     free(act_str);
@@ -309,10 +309,10 @@ cct_check_args_eq(const char* file,
   }
 
   if (free1) {
-    args_free(const_cast<struct args*>(expected));
+    args_free(const_cast<Args&>(expected));
   }
   if (free2) {
-    args_free(const_cast<struct args*>(actual));
+    args_free(const_cast<Args&>(actual));
   }
   return result;
 }

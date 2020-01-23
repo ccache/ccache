@@ -129,10 +129,10 @@ static const char USAGE_TEXT[] =
 char* current_working_dir = NULL;
 
 // The original argument list.
-static struct args* orig_args;
+static Args orig_args;
 
 // Argument list to add to compiler invocation in depend mode.
-static struct args* depend_extra_args;
+static Args depend_extra_args;
 
 // The source file.
 static char* input_file;
@@ -300,13 +300,13 @@ static pid_t compiler_pid = 0;
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(struct args* args, const char* prefix_command)
+add_prefix(Args& args, const char* prefix_command)
 {
   if (str_eq(prefix_command, "")) {
     return;
   }
 
-  struct args* prefix = args_init(0, NULL);
+  Args prefix;
   char* e = x_strdup(prefix_command);
   char* saveptr = NULL;
   for (char* tok = strtok_r(e, " ", &saveptr); tok;
@@ -336,9 +336,6 @@ static void
 add_extra_arg(const char* arg)
 {
   if (g_config.depend_mode()) {
-    if (depend_extra_args == NULL) {
-      depend_extra_args = args_init(0, NULL);
-    }
     args_add(depend_extra_args, arg);
   }
 }
@@ -349,8 +346,6 @@ static void failed(void) ATTR_NORETURN;
 static void
 failed(void)
 {
-  assert(orig_args);
-
   args_strip(orig_args, "--ccache-");
   add_prefix(orig_args, g_config.prefix_command().c_str());
 
@@ -1287,7 +1282,7 @@ create_cachedir_tag(const std::string& dir)
 
 // Run the real compiler and put the result in cache.
 static void
-to_cache(struct args* args, struct hash* depend_mode_hash)
+to_cache(Args& args, struct hash* depend_mode_hash)
 {
   args_add(args, "-o");
   args_add(args, output_obj);
@@ -1351,12 +1346,9 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
 
     // Use the original arguments (including dependency options) in depend
     // mode.
-    assert(orig_args);
-    struct args* depend_mode_args = args_copy(orig_args);
+    Args depend_mode_args = orig_args;
     args_strip(depend_mode_args, "--ccache-");
-    if (depend_extra_args) {
       args_extend(depend_mode_args, depend_extra_args);
-    }
     add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
     time_of_compilation = time(NULL);
@@ -1558,7 +1550,7 @@ to_cache(struct args* args, struct hash* depend_mode_hash)
 // Find the result name by running the compiler in preprocessor mode and
 // hashing the result.
 static struct digest*
-get_result_name_from_cpp(struct args* args, struct hash* hash)
+get_result_name_from_cpp(Args& args, struct hash* hash)
 {
   time_of_compilation = time(NULL);
 
@@ -1730,7 +1722,7 @@ hash_nvcc_host_compiler(struct hash* hash,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(struct args* args, struct hash* hash)
+hash_common_info(Args& args, struct hash* hash)
 {
   hash_string(hash, HASH_PREFIX);
 
@@ -1880,8 +1872,8 @@ hash_common_info(struct args* args, struct hash* hash)
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
 static struct digest*
-calculate_result_name(struct args* args,
-                      struct args* preprocessor_args,
+calculate_result_name(const Args& args,
+                      Args& preprocessor_args,
                       struct hash* hash,
                       bool direct_mode)
 {
@@ -2157,7 +2149,6 @@ calculate_result_name(struct args* args,
       cc_log("Did not find result name in manifest");
     }
   } else {
-    assert(preprocessor_args);
     if (arch_args_size == 0) {
       result_name = get_result_name_from_cpp(preprocessor_args, hash);
       cc_log("Got result name from preprocessor");
@@ -2381,10 +2372,10 @@ detect_pch(const char* option, const char* arg, bool* found_pch)
 //
 // Returns true on success, otherwise false.
 bool
-cc_process_args(struct args* args,
-                struct args** preprocessor_args,
-                struct args** extra_args_to_hash,
-                struct args** compiler_args)
+cc_process_args(const Args& args,
+                Args& preprocessor_args,
+                Args& extra_args_to_hash,
+                Args& compiler_args)
 {
   bool found_c_opt = false;
   bool found_dc_opt = false;
@@ -2408,27 +2399,27 @@ cc_process_args(struct args* args,
   // expanded_args is a copy of the original arguments given to the compiler
   // but with arguments from @file and similar constructs expanded. It's only
   // used as a temporary data structure to loop over.
-  struct args* expanded_args = args_copy(args);
+  Args expanded_args = args;
 
   // common_args contains all original arguments except:
   // * those that never should be passed to the preprocessor,
   // * those that only should be passed to the preprocessor (if run_second_cpp
   //   is false), and
   // * dependency options (like -MD and friends).
-  struct args* common_args = args_init(0, NULL);
+  Args common_args;
 
   // cpp_args contains arguments that were not added to common_args, i.e. those
   // that should only be passed to the preprocessor if run_second_cpp is false.
   // If run_second_cpp is true, they will be passed to the compiler as well.
-  struct args* cpp_args = args_init(0, NULL);
+  Args cpp_args;
 
   // dep_args contains dependency options like -MD. They are only passed to the
   // preprocessor, never to the compiler.
-  struct args* dep_args = args_init(0, NULL);
+  Args dep_args;
 
   // compiler_only_args contains arguments that should only be passed to the
   // compiler, not the preprocessor.
-  struct args* compiler_only_args = args_init(0, NULL);
+  Args compiler_only_args;
 
   bool found_color_diagnostics = false;
   bool found_directives_only = false;
@@ -2467,7 +2458,7 @@ cc_process_args(struct args* args,
       if (argpath[-1] == '-') {
         ++argpath;
       }
-      struct args* file_args = args_init_from_gcc_atfile(argpath);
+      auto file_args = args_init_from_gcc_atfile(argpath);
       if (!file_args) {
         cc_log("Couldn't read arg file %s", argpath);
         stats_update(STATS_ARGS);
@@ -2475,7 +2466,7 @@ cc_process_args(struct args* args,
         goto out;
       }
 
-      args_insert(expanded_args, i, file_args, true);
+      args_insert(expanded_args, i, *file_args, true);
       argc = expanded_args->argc;
       argv = expanded_args->argv;
       i--;
@@ -2504,7 +2495,7 @@ cc_process_args(struct args* args,
 
       while (str_end) {
         *str_end = '\0';
-        struct args* file_args = args_init_from_gcc_atfile(str_start);
+        auto file_args = args_init_from_gcc_atfile(str_start);
         if (!file_args) {
           cc_log("Couldn't read cuda options file %s", str_start);
           stats_update(STATS_ARGS);
@@ -2513,7 +2504,7 @@ cc_process_args(struct args* args,
         }
 
         int new_index = file_args->argc + index;
-        args_insert(expanded_args, index, file_args, false);
+        args_insert(expanded_args, index, *file_args, false);
         index = new_index;
         str_start = str_end;
         str_end = strchr(str_start, ',');
@@ -3451,7 +3442,7 @@ cc_process_args(struct args* args,
     output_su = make_relative_path(x_strdup(default_sufile_name.c_str()));
   }
 
-  *compiler_args = args_copy(common_args);
+  compiler_args = common_args;
   args_extend(*compiler_args, compiler_only_args);
 
   if (g_config.run_second_cpp()) {
@@ -3492,24 +3483,24 @@ cc_process_args(struct args* args,
     args_add(*compiler_args, arch_args[i]);
   }
 
-  *preprocessor_args = args_copy(common_args);
-  args_extend(*preprocessor_args, cpp_args);
+  preprocessor_args = common_args;
+  args_extend(preprocessor_args, cpp_args);
 
   if (g_config.run_second_cpp()) {
     // When not compiling the preprocessed source code, only pass dependency
     // arguments to the compiler to avoid having to add -MQ, supporting e.g.
     // EDG-based compilers which don't support -MQ.
-    args_extend(*compiler_args, dep_args);
+    args_extend(compiler_args, dep_args);
   } else {
     // When compiling the preprocessed source code, pass dependency arguments to
     // the preprocessor since the compiler doesn't produce a .d file when
     // compiling preprocessed source code.
-    args_extend(*preprocessor_args, dep_args);
+    args_extend(preprocessor_args, dep_args);
   }
 
-  *extra_args_to_hash = compiler_only_args;
+  extra_args_to_hash = compiler_only_args;
   if (g_config.run_second_cpp()) {
-    args_extend(*extra_args_to_hash, dep_args);
+    args_extend(extra_args_to_hash, dep_args);
   }
 
 out:
@@ -3714,9 +3705,7 @@ cc_reset(void)
   sanitize_blacklists_len = 0;
   free_and_nullify(included_pch_file);
   args_free(orig_args);
-  orig_args = NULL;
   args_free(depend_extra_args);
-  depend_extra_args = NULL;
   free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);
@@ -3840,15 +3829,15 @@ ccache(int argc, char* argv[])
   MTR_END("main", "guess_compiler");
 
   // Arguments (except -E) to send to the preprocessor.
-  struct args* preprocessor_args;
+  Args preprocessor_args;
   // Arguments not sent to the preprocessor but that should be part of the
   // hash.
-  struct args* extra_args_to_hash;
+  Args extra_args_to_hash;
   // Arguments to send to the real compiler.
-  struct args* compiler_args;
+  Args compiler_args;
   MTR_BEGIN("main", "process_args");
   if (!cc_process_args(
-        orig_args, &preprocessor_args, &extra_args_to_hash, &compiler_args)) {
+        orig_args, preprocessor_args, extra_args_to_hash, compiler_args)) {
     failed(); // stats_update is called in cc_process_args.
   }
   MTR_END("main", "process_args");
@@ -3906,7 +3895,7 @@ ccache(int argc, char* argv[])
   struct hash* direct_hash = hash_copy(common_hash);
   init_hash_debug(direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
 
-  struct args* args_to_hash = args_copy(preprocessor_args);
+  Args args_to_hash = preprocessor_args;
   args_extend(args_to_hash, extra_args_to_hash);
 
   bool put_result_in_manifest = false;
@@ -3915,8 +3904,9 @@ ccache(int argc, char* argv[])
   if (g_config.direct_mode()) {
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
+    Args dummy_args;
     result_name =
-      calculate_result_name(args_to_hash, nullptr, direct_hash, true);
+      calculate_result_name(args_to_hash, dummy_args, direct_hash, true);
     MTR_END("hash", "direct_hash");
     if (result_name) {
       update_cached_result_globals(result_name);

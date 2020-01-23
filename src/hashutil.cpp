@@ -307,7 +307,7 @@ hash_command_output(struct hash* hash,
   }
 #endif
 
-  struct args* args = args_init_from_string(command);
+  Args args = args_init_from_string(command);
   for (int i = 0; i < args->argc; i++) {
     if (str_eq(args->argv[i], "%compiler%")) {
       args_set(args, i, compiler);

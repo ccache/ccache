@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,10 +21,10 @@
 
 #include "legacy_util.hpp"
 
-struct args*
+Args
 args_init(int init_argc, const char* const* init_args)
 {
-  struct args* args = (struct args*)x_malloc(sizeof(struct args));
+  Args args;
   args->argc = 0;
   args->argv = (char**)x_malloc(sizeof(char*));
   args->argv[0] = NULL;
@@ -34,13 +34,13 @@ args_init(int init_argc, const char* const* init_args)
   return args;
 }
 
-struct args*
+Args
 args_init_from_string(const char* command)
 {
   char* p = x_strdup(command);
   char* q = p;
   char *word, *saveptr = NULL;
-  struct args* args = args_init(0, NULL);
+  Args args;
   while ((word = strtok_r(q, " \t\r\n", &saveptr))) {
     args_add(args, word);
     q = NULL;
@@ -50,15 +50,16 @@ args_init_from_string(const char* command)
   return args;
 }
 
-struct args*
+nonstd::optional<Args>
 args_init_from_gcc_atfile(const char* filename)
 {
   char* argtext;
   if (!(argtext = read_text_file(filename, 0))) {
-    return NULL;
+    return {};
   }
 
-  struct args* args = args_init(0, NULL);
+  Args args;
+
   char* pos = argtext;
   char* argbuf = static_cast<char*>(x_malloc(strlen(argtext) + 1));
   char* argpos = argbuf;
@@ -127,8 +128,8 @@ out:
   return args;
 }
 
-struct args*
-args_copy(struct args* args)
+Args
+args_copy(const Args& args)
 {
   return args_init(args->argc, args->argv);
 }
@@ -140,7 +141,7 @@ args_copy(struct args* args)
 // src is consumed by this operation and should not be freed or used again by
 // the caller.
 void
-args_insert(struct args* dest, int index, struct args* src, bool replace)
+args_insert(Args& dest, const int index, Args& src, const bool replace)
 {
   // Adjustments made if we are replacing or shifting the element currently at
   // dest->argv[index].
@@ -190,22 +191,18 @@ args_insert(struct args* dest, int index, struct args* src, bool replace)
 }
 
 void
-args_free(struct args* args)
+args_free(Args& args)
 {
-  if (!args) {
-    return;
-  }
   for (int i = 0; i < args->argc; ++i) {
     if (args->argv[i]) {
       free(args->argv[i]);
     }
   }
   free(args->argv);
-  free(args);
 }
 
 void
-args_add(struct args* args, const char* s)
+args_add(Args& args, const char* s)
 {
   args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char*));
   args->argv[args->argc] = x_strdup(s);
@@ -215,7 +212,7 @@ args_add(struct args* args, const char* s)
 
 // Add all arguments in to_append to args.
 void
-args_extend(struct args* args, struct args* to_append)
+args_extend(Args& args, const Args& to_append)
 {
   for (int i = 0; i < to_append->argc; i++) {
     args_add(args, to_append->argv[i]);
@@ -224,7 +221,7 @@ args_extend(struct args* args, struct args* to_append)
 
 // Pop the last element off the args list.
 void
-args_pop(struct args* args, int n)
+args_pop(Args& args, int n)
 {
   while (n--) {
     args->argc--;
@@ -235,7 +232,7 @@ args_pop(struct args* args, int n)
 
 // Set argument at given index.
 void
-args_set(struct args* args, int index, const char* value)
+args_set(Args& args, const int index, const char* const value)
 {
   assert(index < args->argc);
   free(args->argv[index]);
@@ -244,7 +241,7 @@ args_set(struct args* args, int index, const char* value)
 
 // Remove the first element of the argument list.
 void
-args_remove_first(struct args* args)
+args_remove_first(Args& args)
 {
   free(args->argv[0]);
   memmove(&args->argv[0], &args->argv[1], args->argc * sizeof(args->argv[0]));
@@ -253,7 +250,7 @@ args_remove_first(struct args* args)
 
 // Add an argument into the front of the argument list.
 void
-args_add_prefix(struct args* args, const char* s)
+args_add_prefix(Args& args, const char* s)
 {
   args->argv = (char**)x_realloc(args->argv, (args->argc + 2) * sizeof(char*));
   memmove(
@@ -264,7 +261,7 @@ args_add_prefix(struct args* args, const char* s)
 
 // Strip any arguments beginning with the specified prefix.
 void
-args_strip(struct args* args, const char* prefix)
+args_strip(Args& args, const char* prefix)
 {
   for (int i = 0; i < args->argc;) {
     if (str_startswith(args->argv[i], prefix)) {
@@ -282,7 +279,7 @@ args_strip(struct args* args, const char* prefix)
 // Format args to a space-separated string. Does not quote spaces. Caller
 // frees.
 char*
-args_to_string(const struct args* args)
+args_to_string(const Args& args)
 {
   unsigned size = 0;
   for (char** p = args->argv; *p; p++) {
@@ -300,7 +297,7 @@ args_to_string(const struct args* args)
 
 // Returns true if args1 equals args2, else false.
 bool
-args_equal(const struct args* args1, const struct args* args2)
+args_equal(const Args& args1, const Args& args2)
 {
   if (args1->argc != args2->argc) {
     return false;
@@ -311,4 +308,8 @@ args_equal(const struct args* args1, const struct args* args2)
     }
   }
   return true;
+}
+
+Args::Args(const Args& other) {
+  *this = args_copy(other);
 }

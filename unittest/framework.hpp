@@ -19,6 +19,7 @@
 #pragma once
 
 #include "../src/system.hpp"
+class Args;
 
 // ============================================================================
 
@@ -179,8 +180,8 @@ bool cct_check_str_eq(const char* file,
 bool cct_check_args_eq(const char* file,
                        int line,
                        const char* expression,
-                       const struct args* expected,
-                       const struct args* actual,
+                       const Args& expected,
+                       const Args& actual,
                        bool free1,
                        bool free2);
 void cct_chdir(const char* path);

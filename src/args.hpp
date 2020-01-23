@@ -18,24 +18,36 @@
 
 #pragma once
 
-struct args
+#include "third_party/nonstd/optional.hpp"
+
+class Args
 {
-  char** argv;
-  int argc;
+public:
+  Args() = default;
+  Args(const Args& other);
+
+  // operators for backwards compatibility
+  Args& operator*() { return *this; }
+  Args* operator->() { return this; }
+  const Args* operator->() const { return this; }
+
+  char** argv = nullptr;
+  int argc = 0;
 };
 
-struct args* args_init(int, const char* const*);
-struct args* args_init_from_string(const char*);
-struct args* args_init_from_gcc_atfile(const char* filename);
-struct args* args_copy(struct args* args);
-void args_free(struct args* args);
-void args_add(struct args* args, const char* s);
-void args_add_prefix(struct args* args, const char* s);
-void args_extend(struct args* args, struct args* to_append);
-void args_insert(struct args* dest, int index, struct args* src, bool replace);
-void args_pop(struct args* args, int n);
-void args_set(struct args* args, int index, const char* value);
-void args_strip(struct args* args, const char* prefix);
-void args_remove_first(struct args* args);
-char* args_to_string(const struct args* args);
-bool args_equal(const struct args* args1, const struct args* args2);
+Args args_init(int, const char* const*);
+Args args_init_from_string(const char*);
+nonstd::optional<Args> args_init_from_gcc_atfile(const char* filename);
+Args args_copy(const Args& args);
+
+void args_free(Args& args);
+void args_add(Args& args, const char* s);
+void args_add_prefix(Args& args, const char* s);
+void args_extend(Args& args, const Args& to_append);
+void args_insert(Args& dest, int index, Args& src, bool replace);
+void args_pop(Args& args, int n);
+void args_set(Args& args, int index, const char* value);
+void args_strip(Args& args, const char* prefix);
+void args_remove_first(Args& args);
+char* args_to_string(const Args& args);
+bool args_equal(const Args& args1, const Args& args2);

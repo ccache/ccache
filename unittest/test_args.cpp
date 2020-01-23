@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -26,8 +26,7 @@ TEST_SUITE(args)
 
 TEST(args_init_empty)
 {
-  struct args* args = args_init(0, NULL);
-  CHECK(args);
+  Args args;
   CHECK_INT_EQ(0, args->argc);
   CHECK(!args->argv[0]);
   args_free(args);
@@ -36,38 +35,33 @@ TEST(args_init_empty)
 TEST(args_init_populated)
 {
   const char* argv[] = {"first", "second"};
-  struct args* args = args_init(2, argv);
-  CHECK(args);
+  Args args = args_init(2, argv);
   CHECK_INT_EQ(2, args->argc);
   CHECK_STR_EQ("first", args->argv[0]);
   CHECK_STR_EQ("second", args->argv[1]);
-  CHECK(!args->argv[2]);
   args_free(args);
 }
 
 TEST(args_init_from_string)
 {
-  struct args* args = args_init_from_string("first second\tthird\nfourth");
-  CHECK(args);
+  Args args = args_init_from_string("first second\tthird\nfourth");
   CHECK_INT_EQ(4, args->argc);
   CHECK_STR_EQ("first", args->argv[0]);
   CHECK_STR_EQ("second", args->argv[1]);
   CHECK_STR_EQ("third", args->argv[2]);
   CHECK_STR_EQ("fourth", args->argv[3]);
-  CHECK(!args->argv[4]);
   args_free(args);
 }
 
 TEST(args_init_from_gcc_atfile)
 {
-  struct args* args;
   const char* argtext =
     "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
     " 'seve\nth'\\";
 
   create_file("gcc_atfile", argtext);
 
-  args = args_init_from_gcc_atfile("gcc_atfile");
+  auto args = args_init_from_gcc_atfile("gcc_atfile");
   CHECK(args);
   CHECK_INT_EQ(7, args->argc);
   CHECK_STR_EQ("first", args->argv[0]);
@@ -82,19 +76,19 @@ TEST(args_init_from_gcc_atfile)
   CHECK_STR_EQ("seve\r\nth", args->argv[6]);
 #endif
   CHECK(!args->argv[7]);
-  args_free(args);
+  args_free(*args);
 }
 
 TEST(args_copy)
 {
-  struct args* args1 = args_init_from_string("foo");
-  struct args* args2 = args_copy(args1);
+  Args args1 = args_init_from_string("foo");
+  Args args2 = args_copy(args1);
   CHECK_ARGS_EQ_FREE12(args1, args2);
 }
 
 TEST(args_add)
 {
-  struct args* args = args_init_from_string("first");
+  Args args = args_init_from_string("first");
   CHECK_INT_EQ(1, args->argc);
   args_add(args, "second");
   CHECK_INT_EQ(2, args->argc);
@@ -105,8 +99,8 @@ TEST(args_add)
 
 TEST(args_extend)
 {
-  struct args* args1 = args_init_from_string("first");
-  struct args* args2 = args_init_from_string("second third");
+  Args args1 = args_init_from_string("first");
+  Args args2 = args_init_from_string("second third");
   CHECK_INT_EQ(1, args1->argc);
   args_extend(args1, args2);
   CHECK_INT_EQ(3, args1->argc);
@@ -119,7 +113,7 @@ TEST(args_extend)
 
 TEST(args_pop)
 {
-  struct args* args = args_init_from_string("first second third");
+  Args args = args_init_from_string("first second third");
   args_pop(args, 2);
   CHECK_INT_EQ(1, args->argc);
   CHECK_STR_EQ("first", args->argv[0]);
@@ -129,7 +123,7 @@ TEST(args_pop)
 
 TEST(args_set)
 {
-  struct args* args = args_init_from_string("first second third");
+  Args args = args_init_from_string("first second third");
   args_set(args, 1, "2nd");
   CHECK_INT_EQ(3, args->argc);
   CHECK_STR_EQ("first", args->argv[0]);
@@ -141,45 +135,45 @@ TEST(args_set)
 
 TEST(args_remove_first)
 {
-  struct args* args1 = args_init_from_string("first second third");
-  struct args* args2 = args_init_from_string("second third");
+  Args args1 = args_init_from_string("first second third");
+  Args args2 = args_init_from_string("second third");
   args_remove_first(args1);
   CHECK_ARGS_EQ_FREE12(args1, args2);
 }
 
 TEST(args_add_prefix)
 {
-  struct args* args1 = args_init_from_string("second third");
-  struct args* args2 = args_init_from_string("first second third");
+  Args args1 = args_init_from_string("second third");
+  Args args2 = args_init_from_string("first second third");
   args_add_prefix(args1, "first");
   CHECK_ARGS_EQ_FREE12(args1, args2);
 }
 
 TEST(args_strip)
 {
-  struct args* args1 = args_init_from_string("first xsecond third xfourth");
-  struct args* args2 = args_init_from_string("first third");
+  Args args1 = args_init_from_string("first xsecond third xfourth");
+  Args args2 = args_init_from_string("first third");
   args_strip(args1, "x");
   CHECK_ARGS_EQ_FREE12(args1, args2);
 }
 
 TEST(args_to_string)
 {
-  struct args* args = args_init_from_string("first second");
+  Args args = args_init_from_string("first second");
   CHECK_STR_EQ_FREE2("first second", args_to_string(args));
   args_free(args);
 }
 
 TEST(args_insert)
 {
-  struct args* args = args_init_from_string("first second third fourth fifth");
+  Args args = args_init_from_string("first second third fourth fifth");
 
-  struct args* src1 = args_init_from_string("alpha beta gamma");
-  struct args* src2 = args_init_from_string("one");
-  struct args* src3 = args_init_from_string("");
-  struct args* src4 = args_init_from_string("alpha beta gamma");
-  struct args* src5 = args_init_from_string("one");
-  struct args* src6 = args_init_from_string("");
+  Args src1 = args_init_from_string("alpha beta gamma");
+  Args src2 = args_init_from_string("one");
+  Args src3 = args_init_from_string("");
+  Args src4 = args_init_from_string("alpha beta gamma");
+  Args src5 = args_init_from_string("one");
+  Args src6 = args_init_from_string("");
 
   args_insert(args, 2, src1, true);
   CHECK_STR_EQ_FREE2("first second alpha beta gamma fourth fifth",
