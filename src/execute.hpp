@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,36 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for statistics handling.
+#pragma once
 
-#include "../src/counters.hpp"
-#include "../src/stats.hpp"
-#include "framework.hpp"
-#include "util.hpp"
+#include "system.hpp"
 
-TEST_SUITE(stats)
-
-TEST(forward_compatibility)
-{
-  unsigned i;
-  FILE* f;
-  struct counters* counters = counters_init(0);
-
-  f = fopen("stats", "w");
-  for (i = 0; i < 100; i++) {
-    fprintf(f, "%u\n", i);
-  }
-  fclose(f);
-
-  stats_read("stats", counters);
-  CHECK_INT_EQ(100, counters->size);
-  CHECK_INT_EQ(73, counters->data[73]);
-
-  stats_write("stats", counters);
-  CHECK_INT_EQ(100, counters->size);
-  CHECK_INT_EQ(99, counters->data[99]);
-
-  counters_free(counters);
-}
-
-TEST_SUITE_END
+int execute(char** argv, int fd_out, int fd_err, pid_t* pid);
+char* find_executable(const char* name, const char* exclude_name);
+void print_command(FILE* fp, char** argv);
+char* format_command(const char* const* argv);

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,6 @@
 
 // This file contains tests for functions in hash.c.
 
-#include "../src/ccache.hpp"
 #include "../src/hash.hpp"
 #include "framework.hpp"
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,7 @@
 #include "ZstdCompressor.hpp"
 
 #include "Error.hpp"
-#include "ccache.hpp"
+#include "legacy_util.hpp"
 
 const uint8_t k_default_zstd_compression_level = -1;
 

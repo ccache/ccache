@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,6 @@
 
 #include "Config.hpp"
 #include "FormatNonstdStringView.hpp"
-#include "ccache.hpp"
 
 #include <algorithm>
 #include <fstream>

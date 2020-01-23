@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "ccache.hpp"
+#include "legacy_util.hpp"
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"

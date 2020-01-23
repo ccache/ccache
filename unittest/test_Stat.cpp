@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,6 @@
 
 #include "../src/Stat.hpp"
 #include "../src/Util.hpp"
-#include "../src/ccache.hpp"
 
 #include "third_party/catch.hpp"
 

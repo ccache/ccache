@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,7 +19,8 @@
 // This file contains tests for functions in lockfile.c.
 
 #include "../src/Stat.hpp"
-#include "../src/ccache.hpp"
+#include "../src/legacy_util.hpp"
+#include "../src/lockfile.hpp"
 #include "framework.hpp"
 #include "util.hpp"
 

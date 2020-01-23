@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,7 @@
 
 #include "language.hpp"
 
-#include "ccache.hpp"
+#include "legacy_util.hpp"
 
 // Supported file extensions and corresponding languages (as in parameter to
 // the -x option).

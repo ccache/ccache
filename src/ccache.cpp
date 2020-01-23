@@ -23,16 +23,21 @@
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
 #include "Util.hpp"
+#include "args.hpp"
 #include "cleanup.hpp"
 #include "compopt.hpp"
 #include "compress.hpp"
+#include "execute.hpp"
+#include "exitfn.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
+#include "stats.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/minitrace.h"
 
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
@@ -42,6 +47,9 @@
 
 #include <fstream>
 #include <limits>
+
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)
 
 using nonstd::string_view;
 
@@ -278,11 +286,11 @@ static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
 
 #ifndef _WIN32
 static sigset_t fatal_signal_set;
+#endif
 
 // PID of currently executing compiler that we have started, if any. 0 means no
-// ongoing compilation.
+// ongoing compilation. Not used in the _WIN32 case.
 static pid_t compiler_pid = 0;
-#endif
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 // A simple array of unsigned integers used for the statistics counters.
 
-#include "ccache.hpp"
+#include "counters.hpp"
+
+#include "legacy_util.hpp"
 
 // Allocate and initialize a struct counters. Data entries up to the size are
 // set to 0.

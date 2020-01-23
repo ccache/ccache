@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -65,6 +65,26 @@ extern int usleep(useconds_t);
 
 extern char** environ;
 
+#ifdef __GNUC__
+#  define ATTR_FORMAT(x, y, z)                                                 \
+    __attribute__((format(ATTRIBUTE_FORMAT_PRINTF, y, z)))
+#  define ATTR_NORETURN __attribute__((noreturn))
+#else
+#  define ATTR_FORMAT(x, y, z)
+#  define ATTR_NORETURN
+#endif
+
+#define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
+#define str_startswith(s, prefix)                                              \
+  (strncmp((s), (prefix), strlen((prefix))) == 0)
+#define str_endswith(s, suffix)                                                \
+  (strlen(s) >= strlen(suffix)                                                 \
+   && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+
+// Buffer size for I/O operations. Should be a multiple of 4 KiB.
+#define READ_BUFFER_SIZE 65536
+
 #ifndef ESTALE
 #  define ESTALE -1
 #endif
@@ -85,4 +105,20 @@ extern char** environ;
 #else
 #  define DIR_DELIM_CH '/'
 #  define PATH_DELIM ":"
+#endif
+
+// Work with silly DOS binary open.
+#ifndef O_BINARY
+#  define O_BINARY 0
+#endif
+
+#ifdef _WIN32
+char* win32argvtos(char* prefix, char** argv, int* length);
+char* win32getshell(char* path);
+int win32execute(
+  char* path, char** argv, int doreturn, int fd_stdout, int fd_stderr);
+void add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
+                                   size_t max_size,
+                                   const char* ext,
+                                   const char* path);
 #endif

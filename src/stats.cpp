@@ -20,10 +20,13 @@
 // Routines to handle the stats files. The stats file is stored one per cache
 // subdirectory to make this more scalable.
 
+#include "stats.hpp"
+
 #include "AtomicFile.hpp"
-#include "ccache.hpp"
 #include "cleanup.hpp"
+#include "counters.hpp"
 #include "hashutil.hpp"
+#include "lockfile.hpp"
 
 #include <cmath>
 #include <fcntl.h>

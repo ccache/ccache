@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,8 @@
 #include "framework.hpp"
 
 #include "../src/Util.hpp"
+#include "../src/args.hpp"
+#include "../src/ccache.hpp"
 #include "util.hpp"
 
 #include <float.h>

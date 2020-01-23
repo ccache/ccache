@@ -56,17 +56,23 @@ non_third_party_headers = \
     src/Util.hpp \
     src/ZstdCompressor.hpp \
     src/ZstdDecompressor.hpp \
+    src/args.hpp \
     src/ccache.hpp \
     src/cleanup.hpp \
     src/compopt.hpp \
     src/compress.hpp \
     src/counters.hpp \
+    src/execute.hpp \
+    src/exitfn.hpp \
     src/hash.hpp \
     src/hashutil.hpp \
     src/language.hpp \
+    src/legacy_util.hpp \
+    src/lockfile.hpp \
     src/macroskip.hpp \
     src/manifest.hpp \
     src/result.hpp \
+    src/stats.hpp \
     src/system.hpp \
     unittest/framework.hpp \
     unittest/util.hpp
