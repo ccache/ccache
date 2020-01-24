@@ -1151,7 +1151,7 @@ to_cache(Context& ctx,
     x_unlink(ctx.args_info.output_obj.c_str());
   }
 
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     args_add(args, "--serialize-diagnostics");
     args_add(args, ctx.args_info.output_dia.c_str());
   }
@@ -1350,7 +1350,7 @@ to_cache(Context& ctx,
   if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
   if (seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
@@ -2095,7 +2095,7 @@ from_cache(Context& ctx,
   if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
   bool ok = result_get(cached_result_path, result_file_map);
@@ -3707,7 +3707,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;
   profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
@@ -3743,7 +3742,7 @@ do_cache_compilation(Context& ctx, char* argv[])
   if (ctx.args_info.generating_stackusage) {
     cc_log("Stack usage file: %s", ctx.args_info.output_su.c_str());
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     cc_log("Diagnostics file: %s", ctx.args_info.output_dia.c_str());
   }
   if (!ctx.args_info.output_dwo.empty()) {
