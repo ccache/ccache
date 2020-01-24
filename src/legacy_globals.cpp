@@ -25,9 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// The path to the coverage file (implicit when using -ftest-coverage).
-char* output_cov;
-
 // The path to the stack usage (implicit when using -fstack-usage).
 char* output_su;
 
