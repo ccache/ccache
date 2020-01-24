@@ -64,9 +64,6 @@ char* cpp_stderr;
 // The stats file to use for the manifest.
 char* manifest_stats_file;
 
-// Whether the output is a precompiled header.
-bool output_is_precompiled_header = false;
-
 // Compiler guessing is currently only based on the compiler name, so nothing
 // should hard-depend on it if possible.
 enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;

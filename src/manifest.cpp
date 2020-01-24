@@ -413,7 +413,7 @@ verify_result(const Context& ctx,
     // and will error out if that header is later used without rebuilding.
     if ((guessed_compiler == GUESSED_CLANG
          || guessed_compiler == GUESSED_UNKNOWN)
-        && output_is_precompiled_header && fi.mtime != fs.mtime) {
+        && ctx.args_info.output_is_precompiled_header && fi.mtime != fs.mtime) {
       cc_log("Precompiled header includes %s, which has a new mtime",
              path.c_str());
       return false;

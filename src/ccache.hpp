@@ -62,7 +62,7 @@ enum guessed_compiler {
 #define SLOPPY_MODULES (1U << 9)
 
 extern time_t time_of_compilation;
-extern bool output_is_precompiled_header;
+
 void block_signals();
 void unblock_signals();
 bool cc_process_args(Context& ctx,
