@@ -25,9 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// Language to use for the compilation target (see language.c).
-const char* actual_language;
-
 // Array for storing -arch options.
 size_t arch_args_size = 0;
 char* arch_args[MAX_ARCH_ARGS] = {nullptr};

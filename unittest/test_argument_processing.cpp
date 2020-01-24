@@ -80,8 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  actual_language = x_strdup(ctx.args_info.actual_language.c_str());
-
   generating_dependencies = ctx.args_info.generating_dependencies;
   generating_coverage = ctx.args_info.generating_coverage;
   generating_stackusage = ctx.args_info.generating_stackusage;
