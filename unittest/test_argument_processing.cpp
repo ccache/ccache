@@ -84,7 +84,6 @@ cc_process_args(Context& ctx,
                                  extra_args_to_hash,
                                  compiler_args);
 
-  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;
   profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 

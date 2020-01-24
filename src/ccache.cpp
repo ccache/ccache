@@ -1169,7 +1169,7 @@ to_cache(Context& ctx,
     args_add(args, i_tmpfile);
   }
 
-  if (seen_split_dwarf) {
+  if (ctx.args_info.seen_split_dwarf) {
     // Remove any pre-existing .dwo file since we want to check if the compiler
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
@@ -1353,7 +1353,7 @@ to_cache(Context& ctx,
   if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
-  if (seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
+  if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
     result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
@@ -1663,7 +1663,7 @@ hash_common_info(Context& ctx,
     }
   }
 
-  if (ctx.args_info.generating_dependencies || seen_split_dwarf) {
+  if (ctx.args_info.generating_dependencies || ctx.args_info.seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
     //
@@ -2081,7 +2081,7 @@ from_cache(Context& ctx,
   ResultFileMap result_file_map;
   if (ctx.args_info.output_obj != "/dev/null") {
     result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
-    if (seen_split_dwarf) {
+    if (ctx.args_info.seen_split_dwarf) {
       result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
     }
   }
@@ -3571,8 +3571,6 @@ cc_reset(void)
   free_and_nullify(cpp_stderr);
   free_and_nullify(stats_file);
   output_is_precompiled_header = false;
-
-  seen_split_dwarf = false;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -3707,7 +3705,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;
   profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 
