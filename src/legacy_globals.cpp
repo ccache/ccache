@@ -58,9 +58,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Name of the custom profile directory (default: object dirname).
-char* profile_dir;
-
 // The name of the temporary preprocessed file.
 char* i_tmpfile;
 
