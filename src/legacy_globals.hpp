@@ -54,8 +54,6 @@ extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
 
-extern bool generating_diagnostics;
-
 extern bool seen_split_dwarf;
 
 extern bool profile_arcs;

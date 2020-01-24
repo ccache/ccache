@@ -58,10 +58,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Us the compiler being asked to generate diagnostics
-// (--serialize-diagnostics)?
-bool generating_diagnostics;
-
 // Have we seen -gsplit-dwarf?
 bool seen_split_dwarf;
 

@@ -80,7 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;
   profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
