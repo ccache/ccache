@@ -1682,7 +1682,7 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
   }
 
   // Possibly hash the coverage data file path.
-  if (ctx.args_info.generating_coverage && profile_arcs) {
+  if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
     char* dir = x_dirname(ctx.args_info.output_obj.c_str());
     if (profile_dir) {
       dir = x_strdup(profile_dir);
@@ -3562,7 +3562,6 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  profile_arcs = false;
   i_tmpfile = NULL;
   direct_i_file = false;
   free_and_nullify(cpp_stderr);
@@ -3676,7 +3675,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  profile_arcs = ctx.args_info.profile_arcs;
   profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 
   direct_i_file = ctx.args_info.direct_i_file;

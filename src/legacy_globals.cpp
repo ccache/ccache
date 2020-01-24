@@ -58,9 +58,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Is the compiler being asked to output coverage data (.gcda) at runtime?
-bool profile_arcs;
-
 // Name of the custom profile directory (default: object dirname).
 char* profile_dir;
 
