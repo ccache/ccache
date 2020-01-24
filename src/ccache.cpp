@@ -1180,8 +1180,10 @@ to_cache(Context& ctx,
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
     // non-existent .dwo files.
-    if (unlink(output_dwo) == -1 && errno != ENOENT) {
-      cc_log("Failed to unlink %s: %s", output_dwo, strerror(errno));
+    if (unlink(ctx.args_info.output_dwo.c_str()) == -1 && errno != ENOENT) {
+      cc_log("Failed to unlink %s: %s",
+             ctx.args_info.output_dwo.c_str(),
+             strerror(errno));
       stats_update(ctx, STATS_BADOUTPUTFILE);
     }
   }
@@ -1357,10 +1359,10 @@ to_cache(Context& ctx,
   if (generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
-  if (seen_split_dwarf && Stat::stat(output_dwo)) {
+  if (seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_file_map.emplace(FileType::dwarf_object, output_dwo);
+    result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
   }
 
   auto orig_dest_stat = Stat::stat(cached_result_path);
@@ -2085,7 +2087,7 @@ from_cache(Context& ctx,
   if (ctx.args_info.output_obj != "/dev/null") {
     result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
     if (seen_split_dwarf) {
-      result_file_map.emplace(FileType::dwarf_object, output_dwo);
+      result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
     }
   }
   result_file_map.emplace(FileType::stderr_output, tmp_stderr);
@@ -3548,7 +3550,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_dwo);
   free_and_nullify(cached_result_name);
   free_and_nullify(cached_result_path);
   free_and_nullify(manifest_path);
@@ -3679,8 +3680,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
-
   actual_language = x_strdup(ctx.args_info.actual_language.c_str());
 
   generating_dependencies = ctx.args_info.generating_dependencies;
@@ -3724,8 +3723,8 @@ ccache(Context& ctx, int argc, char* argv[])
   if (generating_diagnostics) {
     cc_log("Diagnostics file: %s", ctx.args_info.output_dia.c_str());
   }
-  if (output_dwo) {
-    cc_log("Split dwarf file: %s", output_dwo);
+  if (!ctx.args_info.output_dwo.empty()) {
+    cc_log("Split dwarf file: %s", ctx.args_info.output_dwo.c_str());
   }
 
   cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
