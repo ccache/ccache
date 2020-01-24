@@ -85,8 +85,6 @@ cc_process_args(Context& ctx,
                                  compiler_args);
 
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-  profile_use = ctx.args_info.profile_use;
-  profile_generate = ctx.args_info.profile_generate;
   using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   return success;

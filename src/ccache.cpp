@@ -1925,7 +1925,7 @@ calculate_result_name(Context& ctx,
   //
   // The profile directory can be specified as an argument to
   // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
-  if (profile_generate) {
+  if (ctx.args_info.profile_generate) {
     if (ctx.args_info.profile_dir.empty()) {
       ctx.args_info.profile_dir = from_cstr(get_cwd());
     }
@@ -1935,7 +1935,7 @@ calculate_result_name(Context& ctx,
     hash_string(hash, ctx.args_info.profile_dir);
   }
 
-  if (profile_use) {
+  if (ctx.args_info.profile_use) {
     // Calculate gcda name.
     if (ctx.args_info.profile_dir.empty()) {
       ctx.args_info.profile_dir = from_cstr(get_cwd());
@@ -3705,8 +3705,6 @@ do_cache_compilation(Context& ctx, char* argv[])
   }
 
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-  profile_use = ctx.args_info.profile_use;
-  profile_generate = ctx.args_info.profile_generate;
   using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   arch_args_size = ctx.args_info.arch_args_size;
