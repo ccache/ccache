@@ -907,8 +907,10 @@ process_preprocessed_file(Context& ctx,
 
 // Replace absolute paths with relative paths in the provided dependency file.
 static void
-use_relative_paths_in_depfile(const char* depfile)
+use_relative_paths_in_depfile(Context& ctx)
 {
+  const char* depfile = ctx.args_info.output_dep.c_str();
+
   if (g_config.base_dir().empty()) {
     cc_log("Base dir not set, skip using relative paths");
     return; // nothing to do
@@ -1297,8 +1299,8 @@ to_cache(Context& ctx,
   }
 
   if (g_config.depend_mode()) {
-    struct digest* result_name =
-      result_name_from_depfile(ctx, output_dep, depend_mode_hash);
+    struct digest* result_name = result_name_from_depfile(
+      ctx, ctx.args_info.output_dep.c_str(), depend_mode_hash);
     if (!result_name) {
       stats_update(STATS_ERROR);
       failed();
@@ -1307,10 +1309,10 @@ to_cache(Context& ctx,
   }
 
   bool produce_dep_file =
-    generating_dependencies && !str_eq(output_dep, "/dev/null");
+    generating_dependencies && ctx.args_info.output_dep != "/dev/null";
 
   if (produce_dep_file) {
-    use_relative_paths_in_depfile(output_dep);
+    use_relative_paths_in_depfile(ctx);
   }
 
   st = Stat::stat(ctx.args_info.output_obj);
@@ -1336,7 +1338,7 @@ to_cache(Context& ctx,
   }
   result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
   if (generating_dependencies) {
-    result_file_map.emplace(FileType::dependency, output_dep);
+    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
   if (generating_coverage) {
     result_file_map.emplace(FileType::coverage, output_cov);
@@ -1824,7 +1826,7 @@ calculate_result_name(Context& ctx,
         hash_delimiter(hash, "arg");
         hash_string_buffer(hash, args->argv[i], 3);
 
-        if (!str_eq(output_dep, "/dev/null")) {
+        if (ctx.args_info.output_dep != "/dev/null") {
           bool separate_argument = (strlen(args->argv[i]) == 3);
           if (separate_argument) {
             // Next argument is dependency name, so skip it.
@@ -1899,7 +1901,7 @@ calculate_result_name(Context& ctx,
 
   // Make results with dependency file /dev/null different from those without
   // it.
-  if (generating_dependencies && str_eq(output_dep, "/dev/null")) {
+  if (generating_dependencies && ctx.args_info.output_dep == "/dev/null") {
     hash_delimiter(hash, "/dev/null dependency file");
   }
 
@@ -2062,7 +2064,7 @@ from_cache(Context& ctx,
   MTR_BEGIN("cache", "from_cache");
 
   bool produce_dep_file =
-    generating_dependencies && !str_eq(output_dep, "/dev/null");
+    generating_dependencies && ctx.args_info.output_dep != "/dev/null";
 
   MTR_BEGIN("file", "file_get");
 
@@ -2080,7 +2082,7 @@ from_cache(Context& ctx,
   }
   result_file_map.emplace(FileType::stderr_output, tmp_stderr);
   if (produce_dep_file) {
-    result_file_map.emplace(FileType::dependency, output_dep);
+    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
   if (generating_coverage) {
     result_file_map.emplace(FileType::coverage, output_cov);
@@ -3547,7 +3549,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_dep);
   free_and_nullify(output_cov);
   free_and_nullify(output_su);
   free_and_nullify(output_dia);
@@ -3708,7 +3709,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());
   output_su = x_strdup(ctx.args_info.output_su.c_str());
   output_dia = x_strdup(ctx.args_info.output_dia.c_str());
@@ -3738,7 +3738,7 @@ do_cache_compilation(Context& ctx, char* argv[])
   MTR_END("main", "process_args");
 
   if (g_config.depend_mode()
-      && (!generating_dependencies || str_eq(output_dep, "/dev/null")
+      && (!generating_dependencies || ctx.args_info.output_dep == "/dev/null"
           || !g_config.run_second_cpp())) {
     cc_log("Disabling depend mode");
     g_config.set_depend_mode(false);
@@ -3746,7 +3746,7 @@ do_cache_compilation(Context& ctx, char* argv[])
 
   cc_log("Source file: %s", ctx.args_info.input_file.c_str());
   if (generating_dependencies) {
-    cc_log("Dependency file: %s", output_dep);
+    cc_log("Dependency file: %s", ctx.args_info.output_dep.c_str());
   }
   if (generating_coverage) {
     cc_log("Coverage file: %s", output_cov);

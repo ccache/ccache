@@ -84,7 +84,6 @@ cc_process_args(Context& ctx,
                                  extra_args_to_hash,
                                  compiler_args);
 
-  output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());
   output_su = x_strdup(ctx.args_info.output_su.c_str());
   output_dia = x_strdup(ctx.args_info.output_dia.c_str());
