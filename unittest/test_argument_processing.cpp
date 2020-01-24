@@ -84,7 +84,6 @@ cc_process_args(Context& ctx,
                                  extra_args_to_hash,
                                  compiler_args);
 
-  output_dia = x_strdup(ctx.args_info.output_dia.c_str());
   output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
 
   actual_language = x_strdup(ctx.args_info.actual_language.c_str());

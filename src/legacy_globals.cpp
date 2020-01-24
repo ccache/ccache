@@ -25,9 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// Diagnostic generation information (clang). Contains pathname if not nullptr.
-char* output_dia;
-
 // Split dwarf information (GCC 4.8 and up). Contains pathname if not nullptr.
 char* output_dwo;
 

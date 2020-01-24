@@ -1151,7 +1151,7 @@ to_cache(Context& ctx,
 
   if (generating_diagnostics) {
     args_add(args, "--serialize-diagnostics");
-    args_add(args, output_dia);
+    args_add(args, ctx.args_info.output_dia.c_str());
   }
 
   // Turn off DEPENDENCIES_OUTPUT when running cc1, because otherwise it will
@@ -1347,7 +1347,7 @@ to_cache(Context& ctx,
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, output_dia);
+    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
   if (seen_split_dwarf && Stat::stat(output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
@@ -2091,7 +2091,7 @@ from_cache(Context& ctx,
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, output_dia);
+    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
   bool ok = result_get(cached_result_path, result_file_map);
   if (!ok) {
@@ -3549,7 +3549,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_dia);
   free_and_nullify(output_dwo);
   free_and_nullify(cached_result_name);
   free_and_nullify(cached_result_path);
@@ -3707,7 +3706,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  output_dia = x_strdup(ctx.args_info.output_dia.c_str());
   output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
 
   actual_language = x_strdup(ctx.args_info.actual_language.c_str());
@@ -3751,7 +3749,7 @@ do_cache_compilation(Context& ctx, char* argv[])
     cc_log("Stack usage file: %s", ctx.args_info.output_su.c_str());
   }
   if (generating_diagnostics) {
-    cc_log("Diagnostics file: %s", output_dia);
+    cc_log("Diagnostics file: %s", ctx.args_info.output_dia.c_str());
   }
   if (output_dwo) {
     cc_log("Split dwarf file: %s", output_dwo);
