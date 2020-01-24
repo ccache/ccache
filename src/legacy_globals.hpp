@@ -56,8 +56,6 @@ extern size_t ignore_headers_len;
 
 extern char* i_tmpfile;
 
-extern bool direct_i_file;
-
 extern char* cpp_stderr;
 
 extern char* manifest_stats_file;

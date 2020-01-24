@@ -1419,7 +1419,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   char* path_stderr = NULL;
   char* path_stdout = nullptr;
   int status;
-  if (direct_i_file) {
+  if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
     path_stdout = x_strdup(ctx.args_info.input_file.c_str());
@@ -1469,14 +1469,14 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cppstderr");
-  if (!direct_i_file && !hash_file(hash, path_stderr)) {
+  if (!ctx.args_info.direct_i_file && !hash_file(hash, path_stderr)) {
     // Somebody removed the temporary file?
     stats_update(STATS_ERROR);
     cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
     failed();
   }
 
-  if (direct_i_file) {
+  if (ctx.args_info.direct_i_file) {
     i_tmpfile = x_strdup(ctx.args_info.input_file.c_str());
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
@@ -3567,7 +3567,6 @@ cc_reset(void)
   g_included_files.clear();
   has_absolute_include_headers = false;
   i_tmpfile = NULL;
-  direct_i_file = false;
   free_and_nullify(cpp_stderr);
   free_and_nullify(stats_file);
   output_is_precompiled_header = false;
@@ -3705,7 +3704,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  direct_i_file = ctx.args_info.direct_i_file;
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
   profile_use = ctx.args_info.profile_use;
   profile_generate = ctx.args_info.profile_generate;
