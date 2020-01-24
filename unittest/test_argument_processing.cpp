@@ -80,7 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  generating_coverage = ctx.args_info.generating_coverage;
   generating_stackusage = ctx.args_info.generating_stackusage;
   generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;

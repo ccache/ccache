@@ -1350,7 +1350,7 @@ to_cache(Context& ctx,
   if (ctx.args_info.generating_dependencies) {
     result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
   if (generating_stackusage) {
@@ -1682,7 +1682,7 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
   }
 
   // Possibly hash the coverage data file path.
-  if (generating_coverage && profile_arcs) {
+  if (ctx.args_info.generating_coverage && profile_arcs) {
     char* dir = x_dirname(ctx.args_info.output_obj.c_str());
     if (profile_dir) {
       dir = x_strdup(profile_dir);
@@ -2095,7 +2095,7 @@ from_cache(Context& ctx,
   if (produce_dep_file) {
     result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
   if (generating_stackusage) {
@@ -3562,7 +3562,6 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  generating_coverage = false;
   generating_stackusage = false;
   profile_arcs = false;
   i_tmpfile = NULL;
@@ -3680,7 +3679,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  generating_coverage = ctx.args_info.generating_coverage;
   generating_stackusage = ctx.args_info.generating_stackusage;
   generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;
@@ -3712,7 +3710,7 @@ ccache(Context& ctx, int argc, char* argv[])
   if (ctx.args_info.generating_dependencies) {
     cc_log("Dependency file: %s", ctx.args_info.output_dep.c_str());
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     cc_log("Coverage file: %s", ctx.args_info.output_cov.c_str());
   }
   if (generating_stackusage) {

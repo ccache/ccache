@@ -54,8 +54,6 @@ extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
 
-extern bool generating_coverage;
-
 extern bool generating_stackusage;
 
 extern bool generating_diagnostics;
