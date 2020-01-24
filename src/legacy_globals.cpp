@@ -25,9 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// The source file.
-char* input_file;
-
 // The output file being compiled to.
 char* output_obj;
 

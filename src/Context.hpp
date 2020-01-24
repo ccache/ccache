@@ -27,4 +27,6 @@ struct Context : NonCopyable
 {
   Context() = default;
   ~Context();
+
+  ArgsInfo args_info;
 };
