@@ -80,8 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  using_precompiled_header = ctx.args_info.using_precompiled_header;
-
   return success;
 }
 
