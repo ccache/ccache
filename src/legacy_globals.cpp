@@ -58,9 +58,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Is the compiler being asked to output dependencies?
-bool generating_dependencies;
-
 // Is the compiler being asked to output coverage?
 bool generating_coverage;
 
