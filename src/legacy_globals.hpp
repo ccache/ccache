@@ -64,6 +64,4 @@ extern bool output_is_precompiled_header;
 
 extern enum guessed_compiler guessed_compiler;
 
-extern bool using_precompiled_header;
-
 extern char* included_pch_file;

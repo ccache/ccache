@@ -78,10 +78,6 @@ bool output_is_precompiled_header = false;
 // should hard-depend on it if possible.
 enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
 
-// Whether we are using a precompiled header (either via -include, #include or
-// clang's -include-pch or -include-pth).
-bool using_precompiled_header = false;
-
 // The .gch/.pch/.pth file used for compilation.
 char* included_pch_file = nullptr;
 

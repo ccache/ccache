@@ -1800,7 +1800,7 @@ calculate_result_name(Context& ctx,
     // they are going to have any effect at all. For precompiled headers this
     // might not be the case.
     if (!direct_mode && !output_is_precompiled_header
-        && !using_precompiled_header) {
+        && !ctx.args_info.using_precompiled_header) {
       if (compopt_affects_cpp(args->argv[i])) {
         if (compopt_takes_arg(args->argv[i])) {
           i++;
@@ -3705,7 +3705,6 @@ do_cache_compilation(Context& ctx, char* argv[])
   }
 
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-  using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   arch_args_size = ctx.args_info.arch_args_size;
   for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
