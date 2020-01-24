@@ -1907,7 +1907,7 @@ calculate_result_name(Context& ctx,
     hash_delimiter(hash, "/dev/null dependency file");
   }
 
-  if (!found_ccbin && str_eq(actual_language, "cu")) {
+  if (!found_ccbin && ctx.args_info.actual_language == "cu") {
     hash_nvcc_host_compiler(hash, NULL, NULL);
   }
 
@@ -3706,8 +3706,6 @@ do_cache_compilation(Context& ctx, char* argv[])
                        &compiler_args)) {
     failed(); // stats_update is called in cc_process_args.
   }
-
-  actual_language = x_strdup(ctx.args_info.actual_language.c_str());
 
   generating_dependencies = ctx.args_info.generating_dependencies;
   generating_coverage = ctx.args_info.generating_coverage;
