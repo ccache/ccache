@@ -62,9 +62,6 @@ extern char* manifest_stats_file;
 
 extern enum guessed_compiler guessed_compiler;
 
-extern bool profile_use;
-extern bool profile_generate;
-
 extern bool using_precompiled_header;
 
 extern char* included_pch_file;

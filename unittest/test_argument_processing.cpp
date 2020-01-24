@@ -80,8 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  profile_use = ctx.args_info.profile_use;
-  profile_generate = ctx.args_info.profile_generate;
   using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   return success;

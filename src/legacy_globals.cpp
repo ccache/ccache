@@ -75,10 +75,6 @@ char* manifest_stats_file;
 // should hard-depend on it if possible.
 enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
 
-// Profile generation / usage information.
-bool profile_use = false;
-bool profile_generate = false;
-
 // Whether we are using a precompiled header (either via -include, #include or
 // clang's -include-pch or -include-pth).
 bool using_precompiled_header = false;
