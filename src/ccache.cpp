@@ -367,13 +367,14 @@ fclose_exitfn(void* context)
 static void
 dump_debug_log_buffer_exitfn(void* context)
 {
+  Context& ctx = *static_cast<Context*>(context);
   if (!g_config.debug()) {
     return;
   }
 
-  char* path = format("%s.ccache-log", (const char*)context);
-  cc_dump_debug_log_buffer(path);
-  free(path);
+  std::string path =
+    fmt::format("{}.ccache-log", ctx.args_info.output_obj.c_str());
+  cc_dump_debug_log_buffer(path.c_str());
 }
 
 static void
@@ -1138,13 +1139,13 @@ to_cache(Context& ctx,
          struct hash* depend_mode_hash)
 {
   args_add(args, "-o");
-  args_add(args, output_obj);
+  args_add(args, ctx.args_info.output_obj.c_str());
 
   if (g_config.hard_link()) {
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    x_unlink(output_obj);
+    x_unlink(ctx.args_info.output_obj.c_str());
   }
 
   if (generating_diagnostics) {
@@ -1313,7 +1314,7 @@ to_cache(Context& ctx,
     use_relative_paths_in_depfile(output_dep);
   }
 
-  st = Stat::stat(output_obj);
+  st = Stat::stat(ctx.args_info.output_obj);
   if (!st) {
     cc_log("Compiler didn't produce an object file");
     stats_update(STATS_NOOUTPUT);
@@ -1334,7 +1335,7 @@ to_cache(Context& ctx,
   if (st.size() > 0) {
     result_file_map.emplace(FileType::stderr_output, tmp_stderr);
   }
-  result_file_map.emplace(FileType::object, output_obj);
+  result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
   if (generating_dependencies) {
     result_file_map.emplace(FileType::dependency, output_dep);
   }
@@ -1579,7 +1580,8 @@ hash_nvcc_host_compiler(struct hash* hash,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(struct args* args,
+hash_common_info(Context& ctx,
+                 struct args* args,
                  struct hash* hash,
                  const ArgsInfo& args_info)
 {
@@ -1665,12 +1667,12 @@ hash_common_info(struct args* args,
     // file path will do it, although just hashing the object file base name
     // would be enough.
     hash_delimiter(hash, "object file");
-    hash_string_view(hash, output_obj);
+    hash_string_view(hash, ctx.args_info.output_obj);
   }
 
   // Possibly hash the coverage data file path.
   if (generating_coverage && profile_arcs) {
-    char* dir = x_dirname(output_obj);
+    char* dir = x_dirname(ctx.args_info.output_obj.c_str());
     if (profile_dir) {
       dir = x_strdup(profile_dir);
     } else {
@@ -1679,7 +1681,7 @@ hash_common_info(struct args* args,
       dir = real_dir;
     }
     if (dir) {
-      string_view base_name = Util::base_name(output_obj);
+      string_view base_name = Util::base_name(ctx.args_info.output_obj);
       string_view p = Util::remove_extension(base_name);
       std::string gcda_path = fmt::format("{}/{}.gcda", dir, p);
       cc_log("Hashing coverage path %s", gcda_path.c_str());
@@ -1931,7 +1933,7 @@ calculate_result_name(Context& ctx,
     if (!profile_dir) {
       profile_dir = get_cwd();
     }
-    string_view base_name = Util::remove_extension(output_obj);
+    string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
     std::string gcda_name = fmt::format("{}/{}.gcda", profile_dir, base_name);
     cc_log("Adding profile data %s to our hash", gcda_name.c_str());
     // Add the gcda to our hash.
@@ -2036,7 +2038,9 @@ calculate_result_name(Context& ctx,
 // Try to return the compile result from cache. If we can return from cache
 // then this function exits with the correct status code, otherwise it returns.
 static void
-from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
+from_cache(Context& ctx,
+           enum fromcache_call_mode mode,
+           bool put_result_in_manifest)
 {
   // The user might be disabling cache hits.
   if (g_config.recache()) {
@@ -2069,8 +2073,8 @@ from_cache(enum fromcache_call_mode mode, bool put_result_in_manifest)
   close(tmp_stderr_fd);
 
   ResultFileMap result_file_map;
-  if (!str_eq(output_obj, "/dev/null")) {
-    result_file_map.emplace(FileType::object, output_obj);
+  if (ctx.args_info.output_obj != "/dev/null") {
+    result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
     if (seen_split_dwarf) {
       result_file_map.emplace(FileType::dwarf_object, output_dwo);
     }
@@ -3544,7 +3548,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_obj);
   free_and_nullify(output_dep);
   free_and_nullify(output_cov);
   free_and_nullify(output_su);
@@ -3706,7 +3709,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  output_obj = x_strdup(ctx.args_info.output_obj.c_str());
   output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());
   output_su = x_strdup(ctx.args_info.output_su.c_str());
@@ -3760,34 +3762,42 @@ do_cache_compilation(Context& ctx, char* argv[])
     cc_log("Split dwarf file: %s", output_dwo);
   }
 
-  cc_log("Object file: %s", output_obj);
-  MTR_META_THREAD_NAME(output_obj);
+  cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
+  MTR_META_THREAD_NAME(ctx.args_info.output_obj);
 
   // Need to dump log buffer as the last exit function to not lose any logs.
-  exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
+  exitfn_add_last(dump_debug_log_buffer_exitfn, &ctx);
 
   FILE* debug_text_file = NULL;
   if (g_config.debug()) {
-    char* path = format("%s.ccache-input-text", output_obj);
-    debug_text_file = fopen(path, "w");
+    std::string path =
+      fmt::format("{}.ccache-input-text", ctx.args_info.output_obj.c_str());
+    debug_text_file = fopen(path.c_str(), "w");
     if (debug_text_file) {
       exitfn_add(fclose_exitfn, debug_text_file);
     } else {
-      cc_log("Failed to open %s: %s", path, strerror(errno));
+      cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
     }
-    free(path);
   }
 
   struct hash* common_hash = hash_init();
-  init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
+  init_hash_debug(common_hash,
+                  ctx.args_info.output_obj.c_str(),
+                  'c',
+                  "COMMON",
+                  debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
-  hash_common_info(preprocessor_args, common_hash, ctx.args_info);
+  hash_common_info(ctx, preprocessor_args, common_hash, ctx.args_info);
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
   struct hash* direct_hash = hash_copy(common_hash);
-  init_hash_debug(direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
+  init_hash_debug(direct_hash,
+                  ctx.args_info.output_obj.c_str(),
+                  'd',
+                  "DIRECT MODE",
+                  debug_text_file);
 
   struct args* args_to_hash = args_copy(preprocessor_args);
   args_extend(args_to_hash, extra_args_to_hash);
@@ -3805,7 +3815,7 @@ do_cache_compilation(Context& ctx, char* argv[])
       update_cached_result_globals(result_name);
 
       // If we can return from cache at this point then do so.
-      from_cache(FROMCACHE_DIRECT_MODE, 0);
+      from_cache(ctx, FROMCACHE_DIRECT_MODE, 0);
 
       // Wasn't able to return from cache at this point. However, the result
       // was already found in manifest, so don't re-add it later.
@@ -3828,8 +3838,11 @@ do_cache_compilation(Context& ctx, char* argv[])
     // Find the hash using the preprocessed output. Also updates
     // g_included_files.
     struct hash* cpp_hash = hash_copy(common_hash);
-    init_hash_debug(
-      cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
+    init_hash_debug(cpp_hash,
+                    ctx.args_info.output_obj.c_str(),
+                    'p',
+                    "PREPROCESSOR MODE",
+                    debug_text_file);
 
     MTR_BEGIN("hash", "cpp_hash");
     result_name = calculate_result_name(
@@ -3863,7 +3876,7 @@ do_cache_compilation(Context& ctx, char* argv[])
     }
 
     // If we can return from cache at this point then do.
-    from_cache(FROMCACHE_CPP_MODE, put_result_in_manifest);
+    from_cache(ctx, FROMCACHE_CPP_MODE, put_result_in_manifest);
   }
 
   if (g_config.read_only()) {
