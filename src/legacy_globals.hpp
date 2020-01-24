@@ -34,8 +34,6 @@ extern unsigned lock_staleness_limit;
 
 extern struct args* orig_args;
 
-extern char* output_su;
-
 extern char* output_dia;
 
 extern char* output_dwo;

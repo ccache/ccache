@@ -1352,7 +1352,7 @@ to_cache(Context& ctx,
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
   if (generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, output_su);
+    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, output_dia);
@@ -2096,7 +2096,7 @@ from_cache(Context& ctx,
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
   if (generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, output_su);
+    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, output_dia);
@@ -3548,7 +3548,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_su);
   free_and_nullify(output_dia);
   free_and_nullify(output_dwo);
   free_and_nullify(cached_result_name);
@@ -3681,7 +3680,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  output_su = x_strdup(ctx.args_info.output_su.c_str());
   output_dia = x_strdup(ctx.args_info.output_dia.c_str());
   output_dwo = x_strdup(ctx.args_info.output_dwo.c_str());
 
@@ -3723,7 +3721,7 @@ ccache(Context& ctx, int argc, char* argv[])
     cc_log("Coverage file: %s", ctx.args_info.output_cov.c_str());
   }
   if (generating_stackusage) {
-    cc_log("Stack usage file: %s", output_su);
+    cc_log("Stack usage file: %s", ctx.args_info.output_su.c_str());
   }
   if (generating_diagnostics) {
     cc_log("Diagnostics file: %s", output_dia);
