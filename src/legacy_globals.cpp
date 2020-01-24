@@ -25,9 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// The path to the stack usage (implicit when using -fstack-usage).
-char* output_su;
-
 // Diagnostic generation information (clang). Contains pathname if not nullptr.
 char* output_dia;
 
