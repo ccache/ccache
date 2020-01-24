@@ -80,8 +80,6 @@ cc_process_args(struct args* args,
   bool success = cc_process_args(
     ctx, args, preprocessor_args, extra_args_to_hash, compiler_args);
 
-  input_file = x_strdup(ctx.args_info.input_file.c_str());
-
   output_obj = x_strdup(ctx.args_info.output_obj.c_str());
   output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());

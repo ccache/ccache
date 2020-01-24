@@ -458,7 +458,7 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (path == input_file) {
+  if (path == ctx.args_info.input_file) {
     // Don't remember the input file.
     return true;
   }
@@ -1170,7 +1170,7 @@ to_cache(Context& ctx,
   x_unsetenv("SUNPRO_DEPENDENCIES");
 
   if (g_config.run_second_cpp()) {
-    args_add(args, input_file);
+    args_add(args, ctx.args_info.input_file.c_str());
   } else {
     args_add(args, i_tmpfile);
   }
@@ -1422,19 +1422,20 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   time_of_compilation = time(NULL);
 
   char* path_stderr = NULL;
-  char* path_stdout;
+  char* path_stdout = nullptr;
   int status;
   if (direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
-    path_stdout = input_file;
+    path_stdout = x_strdup(ctx.args_info.input_file.c_str());
     status = 0;
   } else {
     // Run cpp on the input file to obtain the .i.
 
     // Limit the basename to 10 characters in order to cope with filesystem with
     // small maximum filename length limits.
-    string_view input_base = Util::get_truncated_base_name(input_file, 10);
+    string_view input_base =
+      Util::get_truncated_base_name(ctx.args_info.input_file, 10);
     path_stdout = x_strdup(
       fmt::format("{}/{}.stdout", temp_dir(ctx.config), input_base).c_str());
     int path_stdout_fd = create_tmp_fd(&path_stdout);
@@ -1450,7 +1451,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
       args_add(args, "-C");
       args_added = 3;
     }
-    args_add(args, input_file);
+    args_add(args, ctx.args_info.input_file.c_str());
     add_prefix(args, g_config.prefix_command_cpp().c_str());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
@@ -1481,7 +1482,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   }
 
   if (direct_i_file) {
-    i_tmpfile = input_file;
+    i_tmpfile = x_strdup(ctx.args_info.input_file.c_str());
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
     // thing correctly
@@ -1984,10 +1985,11 @@ calculate_result_name(Context& ctx,
     //     share manifests and a/r.h exists.
     // * The expansion of __FILE__ may be incorrect.
     hash_delimiter(hash, "inputfile");
-    hash_string(hash, input_file);
+    hash_string(hash, ctx.args_info.input_file);
 
     hash_delimiter(hash, "sourcecode");
-    int result = hash_source_code_file(g_config, hash, input_file);
+    int result =
+      hash_source_code_file(g_config, hash, ctx.args_info.input_file.c_str());
     if (result & HASH_SOURCE_CODE_ERROR) {
       stats_update(ctx, STATS_ERROR);
       failed(ctx);
@@ -3546,7 +3548,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(input_file);
   free_and_nullify(output_obj);
   free_and_nullify(output_dep);
   free_and_nullify(output_cov);
@@ -3683,8 +3684,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  input_file = x_strdup(ctx.args_info.input_file.c_str());
-
   output_obj = x_strdup(ctx.args_info.output_obj.c_str());
   output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());
@@ -3722,7 +3721,7 @@ ccache(Context& ctx, int argc, char* argv[])
     g_config.set_depend_mode(false);
   }
 
-  cc_log("Source file: %s", input_file);
+  cc_log("Source file: %s", ctx.args_info.input_file.c_str());
   if (generating_dependencies) {
     cc_log("Dependency file: %s", output_dep);
   }

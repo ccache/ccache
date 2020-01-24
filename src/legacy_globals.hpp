@@ -34,8 +34,6 @@ extern unsigned lock_staleness_limit;
 
 extern struct args* orig_args;
 
-extern char* input_file;
-
 extern char* output_obj;
 
 extern char* output_dep;
