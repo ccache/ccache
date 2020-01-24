@@ -1318,8 +1318,8 @@ to_cache(Context& ctx,
     update_cached_result_globals(ctx, result_name);
   }
 
-  bool produce_dep_file =
-    generating_dependencies && ctx.args_info.output_dep != "/dev/null";
+  bool produce_dep_file = ctx.args_info.generating_dependencies
+                          && ctx.args_info.output_dep != "/dev/null";
 
   if (produce_dep_file) {
     use_relative_paths_in_depfile(ctx, ctx.args_info.output_dep.c_str());
@@ -1347,7 +1347,7 @@ to_cache(Context& ctx,
     result_file_map.emplace(FileType::stderr_output, tmp_stderr);
   }
   result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
-  if (generating_dependencies) {
+  if (ctx.args_info.generating_dependencies) {
     result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
   if (generating_coverage) {
@@ -1669,7 +1669,7 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
     }
   }
 
-  if (generating_dependencies || seen_split_dwarf) {
+  if (ctx.args_info.generating_dependencies || seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
     //
@@ -1820,7 +1820,7 @@ calculate_result_name(Context& ctx,
 
     // If we're generating dependencies, we make sure to skip the filename of
     // the dependency file, since it doesn't impact the output.
-    if (generating_dependencies) {
+    if (ctx.args_info.generating_dependencies) {
       if (str_startswith(args->argv[i], "-Wp,")) {
         if (str_startswith(args->argv[i], "-Wp,-MD,")
             && !strchr(args->argv[i] + 8, ',')) {
@@ -1911,7 +1911,8 @@ calculate_result_name(Context& ctx,
 
   // Make results with dependency file /dev/null different from those without
   // it.
-  if (generating_dependencies && ctx.args_info.output_dep == "/dev/null") {
+  if (ctx.args_info.generating_dependencies
+      && ctx.args_info.output_dep == "/dev/null") {
     hash_delimiter(hash, "/dev/null dependency file");
   }
 
@@ -2073,8 +2074,8 @@ from_cache(Context& ctx,
 
   MTR_BEGIN("cache", "from_cache");
 
-  bool produce_dep_file =
-    generating_dependencies && ctx.args_info.output_dep != "/dev/null";
+  bool produce_dep_file = ctx.args_info.generating_dependencies
+                          && ctx.args_info.output_dep != "/dev/null";
 
   MTR_BEGIN("file", "file_get");
 
@@ -3561,7 +3562,6 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  generating_dependencies = false;
   generating_coverage = false;
   generating_stackusage = false;
   profile_arcs = false;
@@ -3680,7 +3680,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  generating_dependencies = ctx.args_info.generating_dependencies;
   generating_coverage = ctx.args_info.generating_coverage;
   generating_stackusage = ctx.args_info.generating_stackusage;
   generating_diagnostics = ctx.args_info.generating_diagnostics;
@@ -3702,14 +3701,15 @@ ccache(Context& ctx, int argc, char* argv[])
   MTR_END("main", "process_args");
 
   if (g_config.depend_mode()
-      && (!generating_dependencies || ctx.args_info.output_dep == "/dev/null"
+      && (!ctx.args_info.generating_dependencies
+          || ctx.args_info.output_dep == "/dev/null"
           || !g_config.run_second_cpp())) {
     cc_log("Disabling depend mode");
     g_config.set_depend_mode(false);
   }
 
   cc_log("Source file: %s", ctx.args_info.input_file.c_str());
-  if (generating_dependencies) {
+  if (ctx.args_info.generating_dependencies) {
     cc_log("Dependency file: %s", ctx.args_info.output_dep.c_str());
   }
   if (generating_coverage) {
