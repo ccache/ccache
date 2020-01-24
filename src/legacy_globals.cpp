@@ -61,9 +61,6 @@ size_t ignore_headers_len;
 // The name of the temporary preprocessed file.
 char* i_tmpfile;
 
-// Are we compiling a .i or .ii file directly?
-bool direct_i_file;
-
 // The name of the cpp stderr file.
 char* cpp_stderr;
 
