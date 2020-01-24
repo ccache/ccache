@@ -54,8 +54,6 @@ extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
 
-extern bool profile_arcs;
-
 extern char* profile_dir;
 
 extern char* i_tmpfile;
