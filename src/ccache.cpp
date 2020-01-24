@@ -1684,8 +1684,8 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
   // Possibly hash the coverage data file path.
   if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
     char* dir = x_dirname(ctx.args_info.output_obj.c_str());
-    if (profile_dir) {
-      dir = x_strdup(profile_dir);
+    if (!ctx.args_info.profile_dir.empty()) {
+      dir = x_strdup(ctx.args_info.profile_dir.c_str());
     } else {
       char* real_dir = x_realpath(dir);
       free(dir);
@@ -1932,21 +1932,23 @@ calculate_result_name(Context& ctx,
   // The profile directory can be specified as an argument to
   // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
   if (profile_generate) {
-    if (!profile_dir) {
-      profile_dir = get_cwd();
+    if (ctx.args_info.profile_dir.empty()) {
+      ctx.args_info.profile_dir = from_cstr(get_cwd());
     }
-    cc_log("Adding profile directory %s to our hash", profile_dir);
+    cc_log("Adding profile directory %s to our hash",
+           ctx.args_info.profile_dir.c_str());
     hash_delimiter(hash, "-fprofile-dir");
-    hash_string(hash, profile_dir);
+    hash_string(hash, ctx.args_info.profile_dir);
   }
 
   if (profile_use) {
     // Calculate gcda name.
-    if (!profile_dir) {
-      profile_dir = get_cwd();
+    if (ctx.args_info.profile_dir.empty()) {
+      ctx.args_info.profile_dir = from_cstr(get_cwd());
     }
     string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
-    std::string gcda_name = fmt::format("{}/{}.gcda", profile_dir, base_name);
+    std::string gcda_name =
+      fmt::format("{}/{}.gcda", ctx.args_info.profile_dir, base_name);
     cc_log("Adding profile data %s to our hash", gcda_name.c_str());
     // Add the gcda to our hash.
     hash_delimiter(hash, "-fprofile-use");
@@ -3547,7 +3549,6 @@ cc_reset(void)
   g_config.clear_and_reset();
 
   free_and_nullify(current_working_dir);
-  free_and_nullify(profile_dir);
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
@@ -3674,8 +3675,6 @@ ccache(Context& ctx, int argc, char* argv[])
                        &compiler_args)) {
     failed(ctx); // stats_update is called in cc_process_ar
   }
-
-  profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
 
   direct_i_file = ctx.args_info.direct_i_file;
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
