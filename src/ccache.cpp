@@ -1075,7 +1075,7 @@ update_manifest_file(Context& ctx)
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
   bool save_timestamp = (g_config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
-                        || output_is_precompiled_header;
+                        || ctx.args_info.output_is_precompiled_header;
 
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
@@ -1805,7 +1805,7 @@ calculate_result_name(Context& ctx,
     // hash. The theory is that these arguments will change the output of -E if
     // they are going to have any effect at all. For precompiled headers this
     // might not be the case.
-    if (!direct_mode && !output_is_precompiled_header
+    if (!direct_mode && !ctx.args_info.output_is_precompiled_header
         && !using_precompiled_header) {
       if (compopt_affects_cpp(args->argv[i])) {
         if (compopt_takes_arg(args->argv[i])) {
@@ -2069,7 +2069,8 @@ from_cache(Context& ctx,
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
   if ((guessed_compiler == GUESSED_CLANG || guessed_compiler == GUESSED_UNKNOWN)
-      && output_is_precompiled_header && mode == FROMCACHE_CPP_MODE) {
+      && ctx.args_info.output_is_precompiled_header
+      && mode == FROMCACHE_CPP_MODE) {
     cc_log("Not considering cached precompiled header in preprocessor mode");
     return;
   }
@@ -3566,7 +3567,6 @@ cc_reset(void)
   i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);
   free_and_nullify(stats_file);
-  output_is_precompiled_header = false;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -3675,7 +3675,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
   profile_use = ctx.args_info.profile_use;
   profile_generate = ctx.args_info.profile_generate;
   using_precompiled_header = ctx.args_info.using_precompiled_header;
