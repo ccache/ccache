@@ -1347,7 +1347,7 @@ to_cache(Context& ctx,
   if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
@@ -2092,7 +2092,7 @@ from_cache(Context& ctx,
   if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
   if (generating_diagnostics) {
@@ -3565,7 +3565,6 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  generating_stackusage = false;
   profile_arcs = false;
   i_tmpfile = NULL;
   direct_i_file = false;
@@ -3708,7 +3707,6 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  generating_stackusage = ctx.args_info.generating_stackusage;
   generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;
@@ -3742,7 +3740,7 @@ do_cache_compilation(Context& ctx, char* argv[])
   if (ctx.args_info.generating_coverage) {
     cc_log("Coverage file: %s", ctx.args_info.output_cov.c_str());
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     cc_log("Stack usage file: %s", ctx.args_info.output_su.c_str());
   }
   if (generating_diagnostics) {

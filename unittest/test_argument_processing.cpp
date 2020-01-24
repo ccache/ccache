@@ -84,7 +84,6 @@ cc_process_args(Context& ctx,
                                  extra_args_to_hash,
                                  compiler_args);
 
-  generating_stackusage = ctx.args_info.generating_stackusage;
   generating_diagnostics = ctx.args_info.generating_diagnostics;
   seen_split_dwarf = ctx.args_info.seen_split_dwarf;
   profile_arcs = ctx.args_info.profile_arcs;

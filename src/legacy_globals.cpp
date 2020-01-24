@@ -58,9 +58,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Is the compiler being asked to output stack usage?
-bool generating_stackusage;
-
 // Us the compiler being asked to generate diagnostics
 // (--serialize-diagnostics)?
 bool generating_diagnostics;
