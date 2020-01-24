@@ -34,8 +34,6 @@ extern unsigned lock_staleness_limit;
 
 extern struct args* orig_args;
 
-extern char* output_dwo;
-
 extern const char* actual_language;
 
 #define MAX_ARCH_ARGS 10
