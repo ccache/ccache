@@ -1148,13 +1148,13 @@ to_cache(Context& ctx,
          struct hash* depend_mode_hash)
 {
   args_add(args, "-o");
-  args_add(args, output_obj);
+  args_add(args, ctx.args_info.output_obj.c_str());
 
   if (g_config.hard_link()) {
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    x_unlink(output_obj);
+    x_unlink(ctx.args_info.output_obj.c_str());
   }
 
   if (generating_diagnostics) {
@@ -1323,7 +1323,7 @@ to_cache(Context& ctx,
     use_relative_paths_in_depfile(ctx, output_dep);
   }
 
-  st = Stat::stat(output_obj);
+  st = Stat::stat(ctx.args_info.output_obj);
   if (!st) {
     cc_log("Compiler didn't produce an object file");
     stats_update(ctx, STATS_NOOUTPUT);
@@ -1344,7 +1344,7 @@ to_cache(Context& ctx,
   if (st.size() > 0) {
     result_file_map.emplace(FileType::stderr_output, tmp_stderr);
   }
-  result_file_map.emplace(FileType::object, output_obj);
+  result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
   if (generating_dependencies) {
     result_file_map.emplace(FileType::dependency, output_dep);
   }
@@ -1676,12 +1676,12 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
     // file path will do it, although just hashing the object file base name
     // would be enough.
     hash_delimiter(hash, "object file");
-    hash_string_view(hash, output_obj);
+    hash_string_view(hash, ctx.args_info.output_obj);
   }
 
   // Possibly hash the coverage data file path.
   if (generating_coverage && profile_arcs) {
-    char* dir = x_dirname(output_obj);
+    char* dir = x_dirname(ctx.args_info.output_obj.c_str());
     if (profile_dir) {
       dir = x_strdup(profile_dir);
     } else {
@@ -1690,7 +1690,7 @@ hash_common_info(Context& ctx, struct args* args, struct hash* hash)
       dir = real_dir;
     }
     if (dir) {
-      string_view base_name = Util::base_name(output_obj);
+      string_view base_name = Util::base_name(ctx.args_info.output_obj);
       string_view p = Util::remove_extension(base_name);
       std::string gcda_path = fmt::format("{}/{}.gcda", dir, p);
       cc_log("Hashing coverage path %s", gcda_path.c_str());
@@ -1942,7 +1942,7 @@ calculate_result_name(Context& ctx,
     if (!profile_dir) {
       profile_dir = get_cwd();
     }
-    string_view base_name = Util::remove_extension(output_obj);
+    string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
     std::string gcda_name = fmt::format("{}/{}.gcda", profile_dir, base_name);
     cc_log("Adding profile data %s to our hash", gcda_name.c_str());
     // Add the gcda to our hash.
@@ -2082,8 +2082,8 @@ from_cache(Context& ctx,
   close(tmp_stderr_fd);
 
   ResultFileMap result_file_map;
-  if (!str_eq(output_obj, "/dev/null")) {
-    result_file_map.emplace(FileType::object, output_obj);
+  if (ctx.args_info.output_obj != "/dev/null") {
+    result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
     if (seen_split_dwarf) {
       result_file_map.emplace(FileType::dwarf_object, output_dwo);
     }
@@ -3548,7 +3548,6 @@ cc_reset(void)
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
-  free_and_nullify(output_obj);
   free_and_nullify(output_dep);
   free_and_nullify(output_cov);
   free_and_nullify(output_su);
@@ -3684,7 +3683,6 @@ ccache(Context& ctx, int argc, char* argv[])
     failed(ctx); // stats_update is called in cc_process_ar
   }
 
-  output_obj = x_strdup(ctx.args_info.output_obj.c_str());
   output_dep = x_strdup(ctx.args_info.output_dep.c_str());
   output_cov = x_strdup(ctx.args_info.output_cov.c_str());
   output_su = x_strdup(ctx.args_info.output_su.c_str());
@@ -3738,15 +3736,18 @@ ccache(Context& ctx, int argc, char* argv[])
     cc_log("Split dwarf file: %s", output_dwo);
   }
 
-  cc_log("Object file: %s", output_obj);
-  MTR_META_THREAD_NAME(output_obj);
+  cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
+  MTR_META_THREAD_NAME(ctx.args_info.output_obj);
 
   // Need to dump log buffer as the last exit function to not lose any logs.
-  exitfn_add_last(dump_debug_log_buffer_exitfn, output_obj);
+  char* non_const_output_obj =
+    const_cast<char*>(ctx.args_info.output_obj.c_str());
+  exitfn_add_last(dump_debug_log_buffer_exitfn, non_const_output_obj);
 
   FILE* debug_text_file = NULL;
   if (g_config.debug()) {
-    char* path = format("%s.ccache-input-text", output_obj);
+    char* path =
+      format("%s.ccache-input-text", ctx.args_info.output_obj.c_str());
     debug_text_file = fopen(path, "w");
     if (debug_text_file) {
       exitfn_add(fclose_exitfn, debug_text_file);
@@ -3757,7 +3758,11 @@ ccache(Context& ctx, int argc, char* argv[])
   }
 
   struct hash* common_hash = hash_init();
-  init_hash_debug(common_hash, output_obj, 'c', "COMMON", debug_text_file);
+  init_hash_debug(common_hash,
+                  ctx.args_info.output_obj.c_str(),
+                  'c',
+                  "COMMON",
+                  debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
   hash_common_info(ctx, preprocessor_args, common_hash);
@@ -3765,7 +3770,11 @@ ccache(Context& ctx, int argc, char* argv[])
 
   // Try to find the hash using the manifest.
   struct hash* direct_hash = hash_copy(common_hash);
-  init_hash_debug(direct_hash, output_obj, 'd', "DIRECT MODE", debug_text_file);
+  init_hash_debug(direct_hash,
+                  ctx.args_info.output_obj.c_str(),
+                  'd',
+                  "DIRECT MODE",
+                  debug_text_file);
 
   struct args* args_to_hash = args_copy(preprocessor_args);
   args_extend(args_to_hash, extra_args_to_hash);
@@ -3806,8 +3815,11 @@ ccache(Context& ctx, int argc, char* argv[])
     // Find the hash using the preprocessed output. Also updates
     // g_included_files.
     struct hash* cpp_hash = hash_copy(common_hash);
-    init_hash_debug(
-      cpp_hash, output_obj, 'p', "PREPROCESSOR MODE", debug_text_file);
+    init_hash_debug(cpp_hash,
+                    ctx.args_info.output_obj.c_str(),
+                    'p',
+                    "PREPROCESSOR MODE",
+                    debug_text_file);
 
     MTR_BEGIN("hash", "cpp_hash");
     result_name = calculate_result_name(
