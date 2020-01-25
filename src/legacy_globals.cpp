@@ -18,14 +18,6 @@
 
 #include "legacy_globals.hpp"
 
-// The original argument list.
-extern struct args* orig_args;
-struct args* orig_args = nullptr;
-
-// Array for storing -arch options.
-size_t arch_args_size = 0;
-char* arch_args[MAX_ARCH_ARGS] = {nullptr};
-
 // Name (represented as a struct digest) of the file containing the cached
 // result.
 struct digest* cached_result_name;

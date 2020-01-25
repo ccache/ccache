@@ -30,10 +30,6 @@
 
 extern unsigned lock_staleness_limit;
 
-#define MAX_ARCH_ARGS 10
-extern size_t arch_args_size;
-extern char* arch_args[MAX_ARCH_ARGS];
-
 extern struct digest* cached_result_name;
 
 extern char* cached_result_path;
