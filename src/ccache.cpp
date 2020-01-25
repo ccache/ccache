@@ -1080,7 +1080,7 @@ update_manifest_file(Context& ctx)
   MTR_BEGIN("manifest", "manifest_put");
   cc_log("Adding result name to %s", manifest_path);
   if (!manifest_put(
-        manifest_path, *cached_result_name, g_included_files, save_timestamp)) {
+        manifest_path, *ctx.result_name, g_included_files, save_timestamp)) {
     cc_log("Failed to add result name to %s", manifest_path);
   } else {
     auto st = Stat::stat(manifest_path, Stat::OnError::log);
@@ -1097,8 +1097,8 @@ update_cached_result_globals(Context& ctx, struct digest* result_name)
 {
   char result_name_string[DIGEST_STRING_BUFFER_SIZE];
   digest_as_string(result_name, result_name_string);
-  cached_result_name = result_name;
-  cached_result_path =
+  ctx.result_name = result_name;
+  ctx.result_path =
     x_strdup(Util::get_path_in_cache(g_config.cache_dir(),
                                      g_config.cache_dir_levels(),
                                      result_name_string,
@@ -1365,12 +1365,12 @@ to_cache(Context& ctx,
     result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
   }
 
-  auto orig_dest_stat = Stat::stat(cached_result_path);
-  result_put(ctx, cached_result_path, result_file_map);
+  auto orig_dest_stat = Stat::stat(ctx.result_path);
+  result_put(ctx, ctx.result_path, result_file_map);
 
-  cc_log("Stored in cache: %s", cached_result_path);
+  cc_log("Stored in cache: %s", ctx.result_path);
 
-  auto new_dest_stat = Stat::stat(cached_result_path, Stat::OnError::log);
+  auto new_dest_stat = Stat::stat(ctx.result_path, Stat::OnError::log);
   if (!new_dest_stat) {
     stats_update(ctx, STATS_ERROR);
     failed(ctx);
@@ -2108,7 +2108,7 @@ from_cache(Context& ctx,
   if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
-  bool ok = result_get(cached_result_path, result_file_map);
+  bool ok = result_get(ctx.result_path, result_file_map);
   if (!ok) {
     cc_log("Failed to get result from cache");
     tmp_unlink(tmp_stderr);
@@ -3552,8 +3552,6 @@ cc_reset(void)
 
   free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
-  free_and_nullify(cached_result_name);
-  free_and_nullify(cached_result_path);
   free_and_nullify(manifest_path);
   time_of_compilation = 0;
   for (size_t i = 0; i < ignore_headers_len; i++) {
