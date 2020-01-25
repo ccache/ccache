@@ -30,6 +30,8 @@
 #include "lockfile.hpp"
 #include "logging.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <cmath>
 #include <fcntl.h>
 #include <stdio.h>
@@ -54,7 +56,7 @@ typedef char* (*format_fn)(uint64_t value);
 static char* format_size_times_1024(uint64_t size);
 static char* format_timestamp(uint64_t timestamp);
 static void stats_flush_to_file(const Config& config,
-                                const char* sfile,
+                                std::string sfile,
                                 struct counters* updates);
 
 // Statistics fields in display order.
@@ -227,7 +229,7 @@ parse_stats(struct counters* counters, const char* buf)
 
 // Write out a stats file.
 void
-stats_write(const char* path, struct counters* counters)
+stats_write(const std::string& path, struct counters* counters)
 {
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters->size; ++i) {
@@ -297,7 +299,10 @@ stats_collect(const Config& config,
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(Context& ctx, const char* sfile, int64_t size, int files)
+stats_update_size(Context& ctx,
+                  const std::string& sfile,
+                  int64_t size,
+                  int files)
 {
   if (size == 0 && files == 0) {
     return;
@@ -320,9 +325,9 @@ stats_update_size(Context& ctx, const char* sfile, int64_t size, int files)
 
 // Read in the stats from one directory and add to the counters.
 void
-stats_read(const char* sfile, struct counters* counters)
+stats_read(const std::string& sfile, struct counters* counters)
 {
-  char* data = read_text_file(sfile, 1024);
+  char* data = read_text_file(sfile.c_str(), 1024);
   if (data) {
     parse_stats(counters, data);
   }
@@ -332,7 +337,7 @@ stats_read(const char* sfile, struct counters* counters)
 // Write counter updates in updates to sfile.
 static void
 stats_flush_to_file(const Config& config,
-                    const char* sfile,
+                    std::string sfile,
                     struct counters* updates)
 {
   if (!updates) {
@@ -369,18 +374,14 @@ stats_flush_to_file(const Config& config,
     return;
   }
 
-  if (!sfile) {
-    char* stats_dir;
-
-    // A NULL sfile means that we didn't get past calculate_object_hash(), so
+  if (sfile.empty()) {
+    // An empty sfile means that we didn't get past calculate_object_hash(), so
     // we just choose one of stats files in the 16 subdirectories.
-    stats_dir =
-      format("%s/%x", config.cache_dir().c_str(), hash_from_int(getpid()) % 16);
-    sfile = format("%s/stats", stats_dir);
-    free(stats_dir);
+    sfile = fmt::format(
+      "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
   }
 
-  if (!lockfile_acquire(sfile, lock_staleness_limit)) {
+  if (!lockfile_acquire(sfile.c_str(), lock_staleness_limit)) {
     return;
   }
 
@@ -390,15 +391,15 @@ stats_flush_to_file(const Config& config,
     counters->data[i] += updates->data[i];
   }
   stats_write(sfile, counters);
-  lockfile_release(sfile);
+  lockfile_release(sfile.c_str());
 
-  char* subdir = x_dirname(sfile);
+  std::string subdir = std::string(Util::dir_name(sfile));
   bool need_cleanup = false;
 
   if (config.max_files() != 0
       && counters->data[STATS_NUMFILES] > config.max_files() / 16) {
     cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
-           subdir,
+           subdir.c_str(),
            counters->data[STATS_NUMFILES],
            config.max_files() / 16);
     need_cleanup = true;
@@ -406,7 +407,7 @@ stats_flush_to_file(const Config& config,
   if (config.max_size() != 0
       && counters->data[STATS_TOTALSIZE] > config.max_size() / 1024 / 16) {
     cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
-           subdir,
+           subdir.c_str(),
            counters->data[STATS_TOTALSIZE],
            (unsigned long)config.max_size() / 1024 / 16);
     need_cleanup = true;
@@ -419,7 +420,6 @@ stats_flush_to_file(const Config& config,
     clean_up_dir(subdir, max_size, max_files, [](double) {});
   }
 
-  free(subdir);
   counters_free(counters);
 }
 

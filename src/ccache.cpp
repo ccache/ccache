@@ -1082,7 +1082,7 @@ update_manifest_file(Context& ctx)
   } else {
     auto st = Stat::stat(manifest_path, Stat::OnError::log);
     stats_update_size(ctx,
-                      manifest_stats_file,
+                      from_cstr(manifest_stats_file),
                       st.size_on_disk() - old_st.size_on_disk(),
                       !old_st && st ? 1 : 0);
   }
@@ -1101,12 +1101,12 @@ update_cached_result_globals(Context& ctx, struct digest* result_name)
                                      result_name_string,
                                      ".result")
                .c_str());
-  ctx.stats_file = format(
-    "%s/%c/stats", ctx.config.cache_dir().c_str(), result_name_string[0]);
+  ctx.stats_file =
+    fmt::format("{}/{}/stats", ctx.config.cache_dir(), result_name_string[0]);
 }
 
 static bool
-create_cachedir_tag(const std::string& dir)
+create_cachedir_tag(nonstd::string_view dir)
 {
   static char const cachedir_tag[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"
@@ -1373,7 +1373,7 @@ to_cache(Context& ctx,
     failed();
   }
   stats_update_size(ctx,
-                    ctx.stats_file,
+                    ctx.stats_file.c_str(),
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);
@@ -1386,13 +1386,12 @@ to_cache(Context& ctx,
   // be done almost anywhere, but we might as well do it near the end as we
   // save the stat call if we exit early.
   {
-    char* first_level_dir = x_dirname(ctx.stats_file);
+    std::string first_level_dir = std::string(Util::dir_name(ctx.stats_file));
     if (!create_cachedir_tag(first_level_dir) != 0) {
       cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
-             first_level_dir,
+             first_level_dir.c_str(),
              strerror(errno));
     }
-    free(first_level_dir);
 
     // Remove any CACHEDIR.TAG on the cache_dir level where it was located in
     // previous ccache versions.
