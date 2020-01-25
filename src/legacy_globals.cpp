@@ -27,9 +27,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// The name of the temporary preprocessed file.
-char* i_tmpfile;
-
 // The name of the cpp stderr file.
 char* cpp_stderr;
 

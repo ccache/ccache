@@ -11,4 +11,6 @@ Context::~Context()
   free(result_path);
 
   free(manifest_path);
+
+  free(i_tmpfile);
 }
