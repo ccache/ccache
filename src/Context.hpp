@@ -70,4 +70,7 @@ struct Context : NonCopyable
 
   // The name of the temporary preprocessed file.
   char* i_tmpfile = nullptr;
+
+  // The name of the cpp stderr file.
+  char* cpp_stderr = nullptr;
 };
