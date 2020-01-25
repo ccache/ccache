@@ -36,6 +36,8 @@ extern Config g_config;
 class Config
 {
 public:
+  Config() = default;
+
   const std::string& base_dir() const;
   const std::string& cache_dir() const;
   uint32_t cache_dir_levels() const;
@@ -81,8 +83,11 @@ public:
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
 
+  // Where to write configuration changes.
   const std::string& primary_config_path() const;
+  // Secondary, read-only configuration file (if any).
   const std::string& secondary_config_path() const;
+
   void set_primary_config_path(std::string path);
   void set_secondary_config_path(std::string path);
 
@@ -110,6 +115,9 @@ public:
   static void set_value_in_file(const std::string& path,
                                 const std::string& key,
                                 const std::string& value);
+
+  // Clear the Config object and reset all values to defaults.
+  void clear_and_reset();
 
 private:
   std::string m_primary_config_path;
@@ -157,6 +165,10 @@ private:
                 const nonstd::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
+
+  // These exist, but are private to be used in clear_and_reset()
+  Config(const Config&) = default;
+  Config& operator=(const Config&) = default;
 };
 
 inline const std::string&
