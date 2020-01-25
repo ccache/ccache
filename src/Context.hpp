@@ -72,4 +72,7 @@ struct Context : NonCopyable
 
   // Uses absolute path for some include files.
   bool has_absolute_include_headers = false;
+
+  // The name of the temporary preprocessed file.
+  std::string i_tmpfile;
 };

@@ -1146,7 +1146,7 @@ to_cache(Context& ctx,
   if (ctx.config.run_second_cpp()) {
     args_add(args, ctx.args_info.input_file.c_str());
   } else {
-    args_add(args, i_tmpfile);
+    args_add(args, ctx.i_tmpfile.c_str());
   }
 
   if (ctx.args_info.seen_split_dwarf) {
@@ -1457,14 +1457,14 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   }
 
   if (ctx.args_info.direct_i_file) {
-    i_tmpfile = x_strdup(ctx.args_info.input_file.c_str());
+    ctx.i_tmpfile = ctx.args_info.input_file;
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
     // thing correctly
-    i_tmpfile =
-      format("%s.%s", path_stdout, ctx.config.cpp_extension().c_str());
-    x_rename(path_stdout, i_tmpfile);
-    add_pending_tmp_file(i_tmpfile);
+    ctx.i_tmpfile =
+      fmt::format("{}.{}", path_stdout, ctx.config.cpp_extension());
+    x_rename(path_stdout, ctx.i_tmpfile.c_str());
+    add_pending_tmp_file(ctx.i_tmpfile.c_str());
   }
 
   if (ctx.config.run_second_cpp()) {
@@ -3531,7 +3531,6 @@ cc_reset()
   }
   free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
-  i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);
 }
 
