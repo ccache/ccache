@@ -18,6 +18,11 @@
 
 #include "Context.hpp"
 
+#include "args.hpp"
+
 Context::~Context()
 {
+  if (free_orig_args) {
+    args_free(orig_args);
+  }
 }
