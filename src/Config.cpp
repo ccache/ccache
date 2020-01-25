@@ -652,7 +652,8 @@ Config::set_value_in_file(const std::string& path,
   output.commit();
 }
 
-void Config::clear_and_reset()
+void
+Config::clear_and_reset()
 {
   *this = Config();
 }
