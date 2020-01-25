@@ -18,9 +18,6 @@
 
 #include "legacy_globals.hpp"
 
-// Uses absolute path for some include files.
-bool has_absolute_include_headers = false;
-
 // List of headers to ignore.
 char** ignore_headers;
 
