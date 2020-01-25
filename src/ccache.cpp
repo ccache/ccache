@@ -468,7 +468,7 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (g_included_files.find(path) != g_included_files.end()) {
+  if (ctx.included_files.find(path) != ctx.included_files.end()) {
     // Already known include file.
     return true;
   }
@@ -593,7 +593,7 @@ do_remember_include_file(Context& ctx,
 
     digest d;
     hash_result_as_bytes(fhash, &d);
-    g_included_files.emplace(path, d);
+    ctx.included_files.emplace(path, d);
 
     if (depend_mode_hash) {
       hash_delimiter(depend_mode_hash, "include");
@@ -626,7 +626,7 @@ remember_include_file(Context& ctx,
 static void
 print_included_files(Context& ctx, FILE* fp)
 {
-  for (const auto& item : g_included_files) {
+  for (const auto& item : ctx.included_files) {
     fprintf(fp, "%s\n", item.first.c_str());
   }
 }
@@ -1081,7 +1081,7 @@ update_manifest_file(Context& ctx)
   cc_log("Adding result name to %s", ctx.manifest_path);
   if (!manifest_put(ctx.manifest_path,
                     *ctx.result_name,
-                    g_included_files,
+                    ctx.included_files,
                     save_timestamp,
                     ctx.time_of_compilation)) {
     cc_log("Failed to add result name to %s", ctx.manifest_path);
@@ -3560,7 +3560,6 @@ cc_reset(void)
   }
   free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
-  g_included_files.clear();
   has_absolute_include_headers = false;
   i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);

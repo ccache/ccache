@@ -24,8 +24,11 @@
 #include "Config.hpp"
 #include "NonCopyable.hpp"
 
+#include "hash.hpp"
+
+#include <unordered_map>
+
 struct args;
-struct digest;
 
 struct Context : NonCopyable
 {
@@ -57,4 +60,8 @@ struct Context : NonCopyable
   // Time of compilation. Used to see if include files have changed after
   // compilation.
   time_t time_of_compilation = 0;
+
+  // Files included by the preprocessor and their hashes. Key: file path. Value:
+  // struct digest.
+  std::unordered_map<std::string, digest> included_files;
 };

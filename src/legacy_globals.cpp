@@ -21,10 +21,6 @@
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
 char* current_working_dir = nullptr;
 
-// Files included by the preprocessor and their hashes. Key: file path. Value:
-// struct digest.
-std::unordered_map<std::string, digest> g_included_files;
-
 // Uses absolute path for some include files.
 bool has_absolute_include_headers = false;
 
