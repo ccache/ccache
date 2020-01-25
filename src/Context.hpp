@@ -59,4 +59,8 @@ struct Context : NonCopyable
   // Full path to the file containing the manifest
   // (cachedir/a/b/cdef[...]-size.manifest).
   std::string manifest_path;
+
+  // Time of compilation. Used to see if include files have changed after
+  // compilation.
+  time_t time_of_compilation = 0;
 };

@@ -18,10 +18,6 @@
 
 #include "legacy_globals.hpp"
 
-// Time of compilation. Used to see if include files have changed after
-// compilation.
-time_t time_of_compilation;
-
 // Files included by the preprocessor and their hashes. Key: file path. Value:
 // struct digest.
 std::unordered_map<std::string, digest> g_included_files;

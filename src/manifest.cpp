@@ -178,6 +178,7 @@ struct ManifestData
   add_result_entry(
     const struct digest& result_digest,
     const std::unordered_map<std::string, digest>& included_files,
+    time_t time_of_compilation,
     bool save_timestamp)
   {
     std::unordered_map<std::string, uint32_t /*index*/> mf_files;
@@ -192,8 +193,12 @@ struct ManifestData
 
     std::vector<uint32_t> file_info_indexes;
     for (const auto& item : included_files) {
-      file_info_indexes.push_back(get_file_info_index(
-        item.first, item.second, mf_files, mf_file_infos, save_timestamp));
+      file_info_indexes.push_back(get_file_info_index(item.first,
+                                                      item.second,
+                                                      mf_files,
+                                                      mf_file_infos,
+                                                      time_of_compilation,
+                                                      save_timestamp));
     }
 
     results.push_back(ResultEntry{std::move(file_info_indexes), result_digest});
@@ -206,6 +211,7 @@ private:
     const digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
+    time_t time_of_compilation,
     bool save_timestamp)
   {
     struct FileInfo fi;
@@ -509,6 +515,8 @@ manifest_put(const Config& config,
              const std::string& path,
              const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files,
+
+             time_t time_of_compilation,
              bool save_timestamp)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
@@ -551,7 +559,8 @@ manifest_put(const Config& config,
     mf = std::make_unique<ManifestData>();
   }
 
-  mf->add_result_entry(result_name, included_files, save_timestamp);
+  mf->add_result_entry(
+    result_name, included_files, time_of_compilation, save_timestamp);
 
   try {
     write_manifest(config, path, *mf);
