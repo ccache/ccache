@@ -1222,7 +1222,7 @@ to_cache(Context& ctx,
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler into tmp_stderr.
-  if (cpp_stderr) {
+  if (!ctx.cpp_stderr.empty()) {
     char* tmp_stderr2 = format("%s.2", tmp_stderr);
     if (x_rename(tmp_stderr, tmp_stderr2)) {
       cc_log("Failed to rename %s to %s: %s",
@@ -1233,9 +1233,9 @@ to_cache(Context& ctx,
       failed();
     }
 
-    int fd_cpp_stderr = open(cpp_stderr, O_RDONLY | O_BINARY);
+    int fd_cpp_stderr = open(ctx.cpp_stderr.c_str(), O_RDONLY | O_BINARY);
     if (fd_cpp_stderr == -1) {
-      cc_log("Failed opening %s: %s", cpp_stderr, strerror(errno));
+      cc_log("Failed opening %s: %s", ctx.cpp_stderr.c_str(), strerror(errno));
       stats_update(STATS_ERROR);
       failed();
     }
@@ -1472,7 +1472,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   } else {
     // If we are using the CPP trick, we need to remember this stderr data and
     // output it just before the main stderr from the compiler pass.
-    cpp_stderr = path_stderr;
+    ctx.cpp_stderr = from_cstr(path_stderr);
     hash_delimiter(hash, "runsecondcpp");
     hash_string(hash, "false");
   }
@@ -3531,7 +3531,6 @@ cc_reset()
   }
   free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
-  free_and_nullify(cpp_stderr);
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can

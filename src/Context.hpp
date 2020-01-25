@@ -75,4 +75,7 @@ struct Context : NonCopyable
 
   // The name of the temporary preprocessed file.
   std::string i_tmpfile;
+
+  // The name of the cpp stderr file.
+  std::string cpp_stderr;
 };
