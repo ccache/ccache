@@ -1,3 +1,12 @@
+SUITE_readonly_direct_PROBE() {
+    mkdir dir
+    chmod a-w dir
+    if [ -w dir ]; then
+        echo "File system doesn't support read-only mode"
+    fi
+    rmdir dir
+}
+
 SUITE_readonly_direct_SETUP() {
     unset CCACHE_NODIRECT
 

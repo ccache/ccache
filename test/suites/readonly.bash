@@ -1,3 +1,12 @@
+SUITE_readonly_PROBE() {
+    mkdir dir
+    chmod a-w dir
+    if [ -w dir ]; then
+        echo "File system doesn't support read-only mode"
+    fi
+    rmdir dir
+}
+
 SUITE_readonly_SETUP() {
     generate_code 1 test.c
     generate_code 2 test2.c
