@@ -1101,7 +1101,7 @@ update_cached_result_globals(Context& ctx, struct digest* result_name)
                                      result_name_string,
                                      ".result")
                .c_str());
-  stats_file = format(
+  ctx.stats_file = format(
     "%s/%c/stats", ctx.config.cache_dir().c_str(), result_name_string[0]);
 }
 
@@ -1373,7 +1373,7 @@ to_cache(Context& ctx,
     failed();
   }
   stats_update_size(ctx,
-                    stats_file,
+                    ctx.stats_file,
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);
@@ -1386,7 +1386,7 @@ to_cache(Context& ctx,
   // be done almost anywhere, but we might as well do it near the end as we
   // save the stat call if we exit early.
   {
-    char* first_level_dir = x_dirname(stats_file);
+    char* first_level_dir = x_dirname(ctx.stats_file);
     if (!create_cachedir_tag(first_level_dir) != 0) {
       cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
              first_level_dir,
@@ -3569,7 +3569,6 @@ cc_reset(Config& config)
   has_absolute_include_headers = false;
   i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);
-  free_and_nullify(stats_file);
   output_is_precompiled_header = false;
 }
 

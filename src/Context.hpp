@@ -31,4 +31,8 @@ struct Context : NonCopyable
 
   ArgsInfo args_info;
   Config config;
+
+  // Full path to the statistics file in the subdirectory where the cached
+  // result belongs (<cache_dir>/<x>/stats).
+  char* stats_file = nullptr;
 };

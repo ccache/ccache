@@ -20,4 +20,5 @@
 
 Context::~Context()
 {
+  free(stats_file);
 }

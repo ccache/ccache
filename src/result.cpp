@@ -85,8 +85,6 @@
 //
 // 1: Introduced in ccache 4.0.
 
-extern char* stats_file;
-
 const uint8_t k_result_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_result_version = 1;
 
@@ -416,7 +414,7 @@ write_raw_file_entry(Context& ctx,
   auto new_stat = Stat::stat(raw_file);
 
   stats_update_size(ctx,
-                    stats_file,
+                    ctx.stats_file,
                     new_stat.size_on_disk() - old_stat.size_on_disk(),
                     (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
 }
