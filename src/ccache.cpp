@@ -441,7 +441,7 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
-  if (g_included_files.find(path) != g_included_files.end()) {
+  if (ctx.included_files.find(path) != ctx.included_files.end()) {
     // Already known include file.
     return true;
   }
@@ -566,7 +566,7 @@ do_remember_include_file(Context& ctx,
 
     digest d;
     hash_result_as_bytes(fhash, &d);
-    g_included_files.emplace(path, d);
+    ctx.included_files.emplace(path, d);
 
     if (depend_mode_hash) {
       hash_delimiter(depend_mode_hash, "include");
@@ -597,9 +597,9 @@ remember_include_file(Context& ctx,
 }
 
 static void
-print_included_files(FILE* fp)
+print_included_files(Context& ctx, FILE* fp)
 {
-  for (const auto& item : g_included_files) {
+  for (const auto& item : ctx.included_files) {
     fprintf(fp, "%s\n", item.first.c_str());
   }
 }
@@ -876,7 +876,7 @@ process_preprocessed_file(Context& ctx,
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
-    print_included_files(stdout);
+    print_included_files(ctx, stdout);
   }
 
   return true;
@@ -1014,7 +1014,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
 
   bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
   if (debug_included) {
-    print_included_files(stdout);
+    print_included_files(ctx, stdout);
   }
 
   auto d = static_cast<digest*>(x_malloc(sizeof(digest)));
@@ -1054,7 +1054,7 @@ update_manifest_file(Context& ctx)
   if (!manifest_put(ctx.config,
                     ctx.manifest_path,
                     *ctx.result_name,
-                    g_included_files,
+                    ctx.included_files,
                     ctx.time_of_compilation,
                     save_timestamp)) {
     cc_log("Failed to add result name to %s", ctx.manifest_path.c_str());
@@ -3531,7 +3531,6 @@ cc_reset()
   }
   free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
-  g_included_files.clear();
   has_absolute_include_headers = false;
   i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);

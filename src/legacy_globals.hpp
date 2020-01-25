@@ -30,8 +30,6 @@
 
 extern unsigned lock_staleness_limit;
 
-extern std::unordered_map<std::string, digest> g_included_files;
-
 extern bool has_absolute_include_headers;
 
 extern char** ignore_headers;
