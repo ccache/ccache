@@ -32,8 +32,6 @@ extern char* current_working_dir;
 
 extern unsigned lock_staleness_limit;
 
-extern bool has_absolute_include_headers;
-
 extern char** ignore_headers;
 
 extern size_t ignore_headers_len;

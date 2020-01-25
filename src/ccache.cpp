@@ -838,8 +838,8 @@ process_preprocessed_file(Context& ctx,
       }
       // p and q span the include file path.
       char* inc_path = x_strndup(p, q - p);
-      if (!has_absolute_include_headers) {
-        has_absolute_include_headers = is_absolute_path(inc_path);
+      if (!ctx.has_absolute_include_headers) {
+        ctx.has_absolute_include_headers = is_absolute_path(inc_path);
       }
       char* saved_inc_path = inc_path;
       inc_path = x_strdup(make_relative_path(ctx, inc_path).c_str());
@@ -922,7 +922,7 @@ use_relative_paths_in_depfile(Context& ctx, const char* depfile)
     cc_log("Base dir not set, skip using relative paths");
     return; // nothing to do
   }
-  if (!has_absolute_include_headers) {
+  if (!ctx.has_absolute_include_headers) {
     cc_log(
       "No absolute path for included files found, skip using relative"
       " paths");
@@ -1022,8 +1022,8 @@ result_name_from_depfile(Context& ctx, const char* depfile, struct hash* hash)
       if (str_endswith(token, ":") || str_eq(token, "\\")) {
         continue;
       }
-      if (!has_absolute_include_headers) {
-        has_absolute_include_headers = is_absolute_path(token);
+      if (!ctx.has_absolute_include_headers) {
+        ctx.has_absolute_include_headers = is_absolute_path(token);
       }
       std::string path = make_relative_path(ctx, token);
       remember_include_file(ctx, path, hash, false, hash);
@@ -3560,7 +3560,6 @@ cc_reset(void)
   }
   free_and_nullify(ignore_headers);
   ignore_headers_len = 0;
-  has_absolute_include_headers = false;
   i_tmpfile = NULL;
   free_and_nullify(cpp_stderr);
 }

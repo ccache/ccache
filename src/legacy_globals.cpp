@@ -21,9 +21,6 @@
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
 char* current_working_dir = nullptr;
 
-// Uses absolute path for some include files.
-bool has_absolute_include_headers = false;
-
 // List of headers to ignore.
 char** ignore_headers;
 
