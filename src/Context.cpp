@@ -30,4 +30,6 @@ Context::Context()
 Context::~Context()
 {
   args_free(orig_args);
+
+  free(result_name);
 }

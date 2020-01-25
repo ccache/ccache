@@ -18,14 +18,6 @@
 
 #include "legacy_globals.hpp"
 
-// Name (represented as a struct digest) of the file containing the cached
-// result.
-struct digest* cached_result_name;
-
-// Full path to the file containing the result
-// (cachedir/a/b/cdef[...]-size.result).
-char* cached_result_path;
-
 // Full path to the file containing the manifest
 // (cachedir/a/b/cdef[...]-size.manifest).
 char* manifest_path;

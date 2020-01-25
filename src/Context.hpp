@@ -25,6 +25,7 @@
 #include "NonCopyable.hpp"
 
 struct args;
+struct digest;
 
 struct Context : NonCopyable
 {
@@ -46,4 +47,12 @@ struct Context : NonCopyable
 
   // The original argument list.
   struct args* orig_args = nullptr;
+
+  // Name (represented as a struct digest) of the file containing the cached
+  // result.
+  struct digest* result_name = nullptr;
+
+  // Full path to the file containing the result
+  // (cachedir/a/b/cdef[...]-size.result).
+  std::string result_path;
 };

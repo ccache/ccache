@@ -30,10 +30,6 @@
 
 extern unsigned lock_staleness_limit;
 
-extern struct digest* cached_result_name;
-
-extern char* cached_result_path;
-
 extern char* manifest_path;
 
 extern time_t time_of_compilation;
