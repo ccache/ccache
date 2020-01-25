@@ -230,7 +230,13 @@ stats_write(const char* path, struct counters* counters)
   for (size_t i = 0; i < counters->size; ++i) {
     file.write(fmt::format("{}\n", counters->data[i]));
   }
-  file.commit();
+  try {
+    file.commit();
+  } catch (const Error& e) {
+    // Make failure to write a stats file a soft error since it's not important
+    // enough to fail whole the process.
+    cc_log("Error: %s", e.what());
+  }
 }
 
 static void
