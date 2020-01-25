@@ -29,7 +29,7 @@
 // variable descriptions are in the .cpp file
 
 extern char* current_working_dir;
-extern char* stats_file;
+
 extern unsigned lock_staleness_limit;
 
 extern struct args* orig_args;

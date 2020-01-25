@@ -38,7 +38,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern char* stats_file;
 extern unsigned lock_staleness_limit;
 
 static struct counters* counter_updates;
@@ -307,7 +306,7 @@ stats_update_size(const Context& ctx,
   }
 
   struct counters* updates;
-  if (sfile == stats_file) {
+  if (sfile == ctx.stats_file) {
     init_counter_updates(ctx);
     updates = counter_updates;
   } else {
@@ -315,7 +314,7 @@ stats_update_size(const Context& ctx,
   }
   updates->data[STATS_NUMFILES] += files;
   updates->data[STATS_TOTALSIZE] += size / 1024;
-  if (sfile != stats_file) {
+  if (sfile != ctx.stats_file) {
     stats_flush_to_file(ctx, sfile, updates);
     counters_free(updates);
   }
@@ -430,7 +429,7 @@ stats_flush_to_file(const Context& ctx,
 void
 stats_flush(const Context& ctx)
 {
-  stats_flush_to_file(ctx, stats_file, counter_updates);
+  stats_flush_to_file(ctx, ctx.stats_file, counter_updates);
   counters_free(counter_updates);
   counter_updates = NULL;
 }
