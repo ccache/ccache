@@ -24,6 +24,8 @@
 #include "Config.hpp"
 #include "NonCopyable.hpp"
 
+struct args;
+
 struct Context : NonCopyable
 {
   Context() = default;
@@ -35,4 +37,7 @@ struct Context : NonCopyable
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).
   char* stats_file = nullptr;
+
+  // The original argument list.
+  struct args* orig_args = nullptr;
 };

@@ -32,8 +32,6 @@ extern char* current_working_dir;
 
 extern unsigned lock_staleness_limit;
 
-extern struct args* orig_args;
-
 #define MAX_ARCH_ARGS 10
 extern size_t arch_args_size;
 extern char* arch_args[MAX_ARCH_ARGS];

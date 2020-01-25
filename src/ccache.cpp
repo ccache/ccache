@@ -193,16 +193,16 @@ static void failed(const Context& ctx) ATTR_NORETURN;
 static void
 failed(const Context& ctx)
 {
-  assert(orig_args);
+  assert(ctx.orig_args);
 
-  args_strip(orig_args, "--ccache-");
-  add_prefix(orig_args, g_config.prefix_command().c_str());
+  args_strip(ctx.orig_args, "--ccache-");
+  add_prefix(ctx.orig_args, g_config.prefix_command().c_str());
 
   cc_log("Failed; falling back to running the real compiler");
-  cc_log_argv("Executing ", orig_args->argv);
+  cc_log_argv("Executing ", ctx.orig_args->argv);
   exitfn_call();
-  execv(orig_args->argv[0], orig_args->argv);
-  fatal("execv of %s failed: %s", orig_args->argv[0], strerror(errno));
+  execv(ctx.orig_args->argv[0], ctx.orig_args->argv);
+  fatal("execv of %s failed: %s", ctx.orig_args->argv[0], strerror(errno));
 }
 
 static const char*
@@ -1211,8 +1211,8 @@ to_cache(Context& ctx,
 
     // Use the original arguments (including dependency options) in depend
     // mode.
-    assert(orig_args);
-    struct args* depend_mode_args = args_copy(orig_args);
+    assert(ctx.orig_args);
+    struct args* depend_mode_args = args_copy(ctx.orig_args);
     args_strip(depend_mode_args, "--ccache-");
     if (depend_extra_args) {
       args_extend(depend_mode_args, depend_extra_args);
@@ -1531,7 +1531,7 @@ hash_compiler(const Context& ctx,
     hash_file(hash, path);
   } else { // command string
     bool ok = hash_multicommand_output(
-      ctx, hash, g_config.compiler_check().c_str(), orig_args->argv[0]);
+      ctx, hash, g_config.compiler_check().c_str(), ctx.orig_args->argv[0]);
     if (!ok) {
       fatal("Failure running compiler check command: %s",
             g_config.compiler_check().c_str());
@@ -2153,12 +2153,12 @@ find_compiler(Context& ctx, char** argv)
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
   if (same_executable_name(base.c_str(), MYNAME)) {
-    args_remove_first(orig_args);
-    if (is_full_path(orig_args->argv[0])) {
+    args_remove_first(ctx.orig_args);
+    if (is_full_path(ctx.orig_args->argv[0])) {
       // A full path was given.
       return;
     }
-    base = std::string(Util::base_name(orig_args->argv[0]));
+    base = std::string(Util::base_name(ctx.orig_args->argv[0]));
   }
 
   // Support user override of the compiler.
@@ -2175,7 +2175,7 @@ find_compiler(Context& ctx, char** argv)
     fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
           MYNAME);
   }
-  orig_args->argv[0] = compiler;
+  ctx.orig_args->argv[0] = compiler;
 }
 
 bool
@@ -3551,8 +3551,6 @@ cc_reset(void)
 
   free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
-  args_free(orig_args);
-  orig_args = NULL;
   free_and_nullify(cached_result_name);
   free_and_nullify(cached_result_path);
   free_and_nullify(manifest_path);
@@ -3619,7 +3617,7 @@ ccache(Context& ctx, int argc, char* argv[])
   // Needed for portability when using localtime_r.
   tzset();
 
-  orig_args = args_init(argc, argv);
+  ctx.orig_args = args_init(argc, argv);
 
   initialize(ctx.config);
   MTR_BEGIN("main", "find_compiler");
@@ -3654,7 +3652,7 @@ ccache(Context& ctx, int argc, char* argv[])
     std::min(std::max(g_config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
-  guessed_compiler = guess_compiler(orig_args->argv[0]);
+  guessed_compiler = guess_compiler(ctx.orig_args->argv[0]);
   MTR_END("main", "guess_compiler");
 
   // Arguments (except -E) to send to the preprocessor.
@@ -3667,7 +3665,7 @@ ccache(Context& ctx, int argc, char* argv[])
   MTR_BEGIN("main", "process_args");
 
   if (!cc_process_args(ctx,
-                       orig_args,
+                       ctx.orig_args,
                        &preprocessor_args,
                        &extra_args_to_hash,
                        &compiler_args)) {
