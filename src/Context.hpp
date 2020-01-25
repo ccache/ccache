@@ -50,4 +50,7 @@ struct Context : NonCopyable
   // (cachedir/a/b/cdef[...]-size.result).
   char* result_path = nullptr;
 
+  // Full path to the file containing the manifest
+  // (cachedir/a/b/cdef[...]-size.manifest).
+  char* manifest_path = nullptr;
 };

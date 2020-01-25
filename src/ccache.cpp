@@ -1070,7 +1070,7 @@ update_manifest_file(Context& ctx)
     return;
   }
 
-  auto old_st = Stat::stat(manifest_path);
+  auto old_st = Stat::stat(ctx.manifest_path);
 
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
@@ -1078,12 +1078,14 @@ update_manifest_file(Context& ctx)
                         || ctx.args_info.output_is_precompiled_header;
 
   MTR_BEGIN("manifest", "manifest_put");
-  cc_log("Adding result name to %s", manifest_path);
-  if (!manifest_put(
-        manifest_path, *ctx.result_name, g_included_files, save_timestamp)) {
-    cc_log("Failed to add result name to %s", manifest_path);
+  cc_log("Adding result name to %s", ctx.manifest_path);
+  if (!manifest_put(ctx.manifest_path,
+                    *ctx.result_name,
+                    g_included_files,
+                    save_timestamp)) {
+    cc_log("Failed to add result name to %s", ctx.manifest_path);
   } else {
-    auto st = Stat::stat(manifest_path, Stat::OnError::log);
+    auto st = Stat::stat(ctx.manifest_path, Stat::OnError::log);
     stats_update_size(ctx,
                       manifest_stats_file,
                       st.size_on_disk() - old_st.size_on_disk(),
@@ -2007,7 +2009,7 @@ calculate_result_name(Context& ctx,
 
     char manifest_name_string[DIGEST_STRING_BUFFER_SIZE];
     hash_result_as_string(hash, manifest_name_string);
-    manifest_path =
+    ctx.manifest_path =
       x_strdup(Util::get_path_in_cache(g_config.cache_dir(),
                                        g_config.cache_dir_levels(),
                                        manifest_name_string,
@@ -2016,9 +2018,9 @@ calculate_result_name(Context& ctx,
     manifest_stats_file = format(
       "%s/%c/stats", g_config.cache_dir().c_str(), manifest_name_string[0]);
 
-    cc_log("Looking for result name in %s", manifest_path);
+    cc_log("Looking for result name in %s", ctx.manifest_path);
     MTR_BEGIN("manifest", "manifest_get");
-    result_name = manifest_get(ctx, manifest_path);
+    result_name = manifest_get(ctx, ctx.manifest_path);
     MTR_END("manifest", "manifest_get");
     if (result_name) {
       cc_log("Got result name from manifest");
@@ -3552,7 +3554,6 @@ cc_reset(void)
 
   free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
-  free_and_nullify(manifest_path);
   time_of_compilation = 0;
   for (size_t i = 0; i < ignore_headers_len; i++) {
     free_and_nullify(ignore_headers[i]);
@@ -3809,7 +3810,7 @@ ccache(Context& ctx, int argc, char* argv[])
       cc_log("Hash from manifest doesn't match preprocessor output");
       cc_log("Likely reason: different CCACHE_BASEDIRs used");
       cc_log("Removing manifest as a safety measure");
-      x_unlink(manifest_path);
+      x_unlink(ctx.manifest_path);
 
       put_result_in_manifest = true;
     }
