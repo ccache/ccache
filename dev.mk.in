@@ -34,16 +34,8 @@ generated_docs = \
     doc/ccache.1
 built_dist_files = $(generated_sources) $(generated_docs)
 
-non_third_party_headers = \
-    src/AtomicFile.hpp \
-    src/CacheEntryReader.hpp \
-    src/CacheEntryWriter.hpp \
-    src/CacheFile.hpp \
+non_third_party_headers_without_cpp = \
     src/Checksum.hpp \
-    src/Compression.hpp \
-    src/Compressor.hpp \
-    src/Config.hpp \
-    src/Decompressor.hpp \
     src/Error.hpp \
     src/File.hpp \
     src/FormatNonstdStringView.hpp \
@@ -52,30 +44,16 @@ non_third_party_headers = \
     src/NullDecompressor.hpp \
     src/ProgressBar.hpp \
     src/Stat.hpp \
+    src/StdMakeUnique.hpp \
     src/ThreadPool.hpp \
-    src/Util.hpp \
-    src/ZstdCompressor.hpp \
-    src/ZstdDecompressor.hpp \
-    src/args.hpp \
-    src/ccache.hpp \
-    src/cleanup.hpp \
-    src/compopt.hpp \
-    src/compress.hpp \
-    src/counters.hpp \
-    src/execute.hpp \
-    src/exitfn.hpp \
-    src/hash.hpp \
-    src/hashutil.hpp \
-    src/language.hpp \
-    src/legacy_util.hpp \
-    src/lockfile.hpp \
     src/macroskip.hpp \
-    src/manifest.hpp \
-    src/result.hpp \
-    src/stats.hpp \
     src/system.hpp \
     unittest/framework.hpp \
     unittest/util.hpp
+
+non_third_party_headers = $(subst .cpp,.hpp,$(non_third_party_sources)) \
+    $(non_third_party_headers_without_cpp)
+
 third_party_headers = \
     src/third_party/catch.hpp \
     src/third_party/fmt/core.h \
