@@ -177,7 +177,8 @@ struct ManifestData
   add_result_entry(
     const struct digest& result_digest,
     const std::unordered_map<std::string, digest>& included_files,
-    bool save_timestamp)
+    bool save_timestamp,
+    time_t time_of_compilation)
   {
     std::unordered_map<std::string, uint32_t /*index*/> mf_files;
     for (uint32_t i = 0; i < files.size(); ++i) {
@@ -191,8 +192,12 @@ struct ManifestData
 
     std::vector<uint32_t> file_info_indexes;
     for (const auto& item : included_files) {
-      file_info_indexes.push_back(get_file_info_index(
-        item.first, item.second, mf_files, mf_file_infos, save_timestamp));
+      file_info_indexes.push_back(get_file_info_index(item.first,
+                                                      item.second,
+                                                      mf_files,
+                                                      mf_file_infos,
+                                                      save_timestamp,
+                                                      time_of_compilation));
     }
 
     results.push_back(ResultEntry{std::move(file_info_indexes), result_digest});
@@ -205,7 +210,8 @@ private:
     const digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
-    bool save_timestamp)
+    bool save_timestamp,
+    time_t time_of_compilation)
   {
     struct FileInfo fi;
 
@@ -505,7 +511,8 @@ bool
 manifest_put(const std::string& path,
              const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files,
-             bool save_timestamp)
+             bool save_timestamp,
+             time_t time_of_compilation)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
   // race between two processes will only result in one lost entry, which is
@@ -547,7 +554,8 @@ manifest_put(const std::string& path,
     mf = std::make_unique<ManifestData>();
   }
 
-  mf->add_result_entry(result_name, included_files, save_timestamp);
+  mf->add_result_entry(
+    result_name, included_files, save_timestamp, time_of_compilation);
 
   try {
     write_manifest(path, *mf);

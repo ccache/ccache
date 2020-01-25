@@ -526,14 +526,14 @@ do_remember_include_file(Context& ctx,
   // starting compilation and writing the include file. See also the notes
   // under "Performance" in doc/MANUAL.adoc.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_MTIME)
-      && st.mtime() >= time_of_compilation) {
+      && st.mtime() >= ctx.time_of_compilation) {
     cc_log("Include file %s too new", path.c_str());
     return false;
   }
 
   // The same >= logic as above applies to the change time of the file.
   if (!(g_config.sloppiness() & SLOPPY_INCLUDE_FILE_CTIME)
-      && st.ctime() >= time_of_compilation) {
+      && st.ctime() >= ctx.time_of_compilation) {
     cc_log("Include file %s ctime too new", path.c_str());
     return false;
   }
@@ -1082,7 +1082,8 @@ update_manifest_file(Context& ctx)
   if (!manifest_put(ctx.manifest_path,
                     *ctx.result_name,
                     g_included_files,
-                    save_timestamp)) {
+                    save_timestamp,
+                    ctx.time_of_compilation)) {
     cc_log("Failed to add result name to %s", ctx.manifest_path);
   } else {
     auto st = Stat::stat(ctx.manifest_path, Stat::OnError::log);
@@ -1221,7 +1222,7 @@ to_cache(Context& ctx,
     }
     add_prefix(depend_mode_args, g_config.prefix_command().c_str());
 
-    time_of_compilation = time(NULL);
+    ctx.time_of_compilation = time(NULL);
     status = execute(
       depend_mode_args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
     args_free(depend_mode_args);
@@ -1423,7 +1424,7 @@ to_cache(Context& ctx,
 static struct digest*
 get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 {
-  time_of_compilation = time(NULL);
+  ctx.time_of_compilation = time(NULL);
 
   char* path_stderr = NULL;
   char* path_stdout = nullptr;
@@ -3554,7 +3555,6 @@ cc_reset(void)
 
   free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
-  time_of_compilation = 0;
   for (size_t i = 0; i < ignore_headers_len; i++) {
     free_and_nullify(ignore_headers[i]);
   }

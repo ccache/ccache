@@ -21,10 +21,6 @@
 // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
 char* current_working_dir = nullptr;
 
-// Time of compilation. Used to see if include files have changed after
-// compilation.
-time_t time_of_compilation;
-
 // Files included by the preprocessor and their hashes. Key: file path. Value:
 // struct digest.
 std::unordered_map<std::string, digest> g_included_files;

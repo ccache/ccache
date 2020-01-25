@@ -59,8 +59,6 @@ enum guessed_compiler {
 // Allow caching even if -fmodules is used.
 #define SLOPPY_MODULES (1U << 9)
 
-extern time_t time_of_compilation;
-
 void block_signals();
 void unblock_signals();
 bool cc_process_args(Context& ctx,

@@ -34,5 +34,6 @@ struct digest* manifest_get(const Context& ctx, const std::string& path);
 bool manifest_put(const std::string& path,
                   const struct digest& result_name,
                   const std::unordered_map<std::string, digest>& included_files,
-                  bool save_timestamp);
+                  bool save_timestamp,
+                  time_t time_of_compilation);
 bool manifest_dump(const std::string& path, FILE* stream);

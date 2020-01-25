@@ -32,8 +32,6 @@ extern char* current_working_dir;
 
 extern unsigned lock_staleness_limit;
 
-extern time_t time_of_compilation;
-
 extern std::unordered_map<std::string, digest> g_included_files;
 
 extern bool has_absolute_include_headers;
