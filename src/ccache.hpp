@@ -31,13 +31,7 @@ struct Context;
 
 extern const char CCACHE_VERSION[];
 
-enum guessed_compiler {
-  GUESSED_CLANG,
-  GUESSED_GCC,
-  GUESSED_NVCC,
-  GUESSED_PUMP,
-  GUESSED_UNKNOWN
-};
+enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 
 #define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
 #define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
