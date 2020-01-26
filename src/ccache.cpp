@@ -427,20 +427,20 @@ guess_compiler(const char* path)
 static char*
 get_current_working_dir(Context& ctx)
 {
-  if (!current_working_dir) {
+  if (!ctx.current_working_dir) {
     char* cwd = get_cwd();
     if (cwd) {
-      current_working_dir = x_realpath(cwd);
+      ctx.current_working_dir = x_realpath(cwd);
       free(cwd);
     }
-    if (!current_working_dir) {
+    if (!ctx.current_working_dir) {
       cc_log("Unable to determine current working directory: %s",
              strerror(errno));
       stats_update(ctx, STATS_ERROR);
       failed(ctx);
     }
   }
-  return current_working_dir;
+  return ctx.current_working_dir;
 }
 
 static bool
@@ -3559,7 +3559,6 @@ cc_reset(void)
 {
   g_config.clear_and_reset();
 
-  free_and_nullify(current_working_dir);
   for (size_t i = 0; i < ignore_headers_len; i++) {
     free_and_nullify(ignore_headers[i]);
   }

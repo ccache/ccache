@@ -4,6 +4,7 @@
 
 Context::~Context()
 {
+  free(current_working_dir);
   free(stats_file);
   args_free(orig_args);
 

@@ -39,6 +39,9 @@ struct Context : NonCopyable
   Config config;
   ArgsInfo args_info;
 
+  // Current working directory taken from $PWD, or getcwd() if $PWD is bad.
+  char* current_working_dir = nullptr;
+
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).
   char* stats_file = nullptr;
@@ -84,4 +87,5 @@ struct Context : NonCopyable
 
   // The .gch/.pch/.pth file used for compilation.
   char* included_pch_file = nullptr;
+
 };

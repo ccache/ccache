@@ -28,8 +28,6 @@
 
 // variable descriptions are in the .cpp file
 
-extern char* current_working_dir;
-
 extern unsigned lock_staleness_limit;
 
 extern char** ignore_headers;
