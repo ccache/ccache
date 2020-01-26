@@ -61,6 +61,30 @@ enum stats {
   STATS_END
 };
 
+// Returns a formatted version of a statistics value, or NULL if the statistics
+// line shouldn't be printed. Caller frees.
+typedef char* (*format_fn)(uint64_t value);
+
+char* format_size_times_1024(uint64_t size);
+char* format_timestamp(uint64_t timestamp);
+void stats_flush_to_file(const Context& ctx,
+                         const char* sfile,
+                         struct counters* updates);
+
+#define FLAG_NOZERO 1 // don't zero with the -z option
+#define FLAG_ALWAYS 2 // always show, even if zero
+#define FLAG_NEVER 4  // never show
+
+// Statistics fields in display order.
+struct StatsInfo
+{
+  enum stats stat;
+  const char* id;      // for --print-stats
+  const char* message; // for --show-stats
+  format_fn format;    // NULL -> use plain integer format
+  unsigned flags;
+};
+
 void stats_update(const Context& ctx, enum stats stat);
 void stats_flush(const Context& ctx);
 unsigned stats_get_pending(const Context& ctx, enum stats stat);

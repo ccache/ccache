@@ -43,139 +43,6 @@ constexpr unsigned k_lock_staleness_limit = 2000000;
 
 static struct counters* counter_updates;
 
-#define FLAG_NOZERO 1 // don't zero with the -z option
-#define FLAG_ALWAYS 2 // always show, even if zero
-#define FLAG_NEVER 4  // never show
-
-// Returns a formatted version of a statistics value, or NULL if the statistics
-// line shouldn't be printed. Caller frees.
-typedef char* (*format_fn)(uint64_t value);
-
-static char* format_size_times_1024(uint64_t size);
-static char* format_timestamp(uint64_t timestamp);
-static void stats_flush_to_file(const Context& ctx,
-                                const char* sfile,
-                                struct counters* updates);
-
-// Statistics fields in display order.
-static struct
-{
-  enum stats stat;
-  const char* id;      // for --print-stats
-  const char* message; // for --show-stats
-  format_fn format;    // NULL -> use plain integer format
-  unsigned flags;
-} stats_info[] = {
-  {STATS_ZEROTIMESTAMP,
-   "stats_zeroed_timestamp",
-   "stats zeroed",
-   format_timestamp,
-   FLAG_ALWAYS},
-  {STATS_CACHEHIT_DIR,
-   "direct_cache_hit",
-   "cache hit (direct)",
-   NULL,
-   FLAG_ALWAYS},
-  {STATS_CACHEHIT_CPP,
-   "preprocessed_cache_hit",
-   "cache hit (preprocessed)",
-   NULL,
-   FLAG_ALWAYS},
-  {STATS_CACHEMISS, "cache_miss", "cache miss", NULL, FLAG_ALWAYS},
-  {STATS_LINK, "called_for_link", "called for link", NULL, 0},
-  {STATS_PREPROCESSING,
-   "called_for_preprocessing",
-   "called for preprocessing",
-   NULL,
-   0},
-  {STATS_MULTIPLE, "multiple_source_files", "multiple source files", NULL, 0},
-  {STATS_STDOUT,
-   "compiler_produced_stdout",
-   "compiler produced stdout",
-   NULL,
-   0},
-  {STATS_NOOUTPUT,
-   "compiler_produced_no_output",
-   "compiler produced no output",
-   NULL,
-   0},
-  {STATS_EMPTYOUTPUT,
-   "compiler_produced_empty_output",
-   "compiler produced empty output",
-   NULL,
-   0},
-  {STATS_STATUS, "compile_failed", "compile failed", NULL, 0},
-  {STATS_ERROR, "internal_error", "ccache internal error", NULL, 0},
-  {STATS_PREPROCESSOR, "preprocessor_error", "preprocessor error", NULL, 0},
-  {STATS_CANTUSEPCH,
-   "could_not_use_precompiled_header",
-   "can't use precompiled header",
-   NULL,
-   0},
-  {STATS_CANTUSEMODULES, "could_not_use_modules", "can't use modules", NULL, 0},
-  {STATS_COMPILER,
-   "could_not_find_compiler",
-   "couldn't find the compiler",
-   NULL,
-   0},
-  {STATS_MISSING, "missing_cache_file", "cache file missing", NULL, 0},
-  {STATS_ARGS, "bad_compiler_arguments", "bad compiler arguments", NULL, 0},
-  {STATS_SOURCELANG,
-   "unsupported_source_language",
-   "unsupported source language",
-   NULL,
-   0},
-  {STATS_COMPCHECK, "compiler_check_failed", "compiler check failed", NULL, 0},
-  {STATS_CONFTEST, "autoconf_test", "autoconf compile/link", NULL, 0},
-  {STATS_UNSUPPORTED_OPTION,
-   "unsupported_compiler_option",
-   "unsupported compiler option",
-   NULL,
-   0},
-  {STATS_UNSUPPORTED_DIRECTIVE,
-   "unsupported_code_directive",
-   "unsupported code directive",
-   NULL,
-   0},
-  {STATS_OUTSTDOUT, "output_to_stdout", "output to stdout", NULL, 0},
-  {STATS_BADOUTPUTFILE,
-   "bad_output_file",
-   "could not write to output file",
-   NULL,
-   0},
-  {STATS_NOINPUT, "no_input_file", "no input file", NULL, 0},
-  {STATS_BADEXTRAFILE,
-   "error_hashing_extra_file",
-   "error hashing extra file",
-   NULL,
-   0},
-  {STATS_NUMCLEANUPS,
-   "cleanups_performed",
-   "cleanups performed",
-   NULL,
-   FLAG_ALWAYS},
-  {STATS_NUMFILES,
-   "files_in_cache",
-   "files in cache",
-   NULL,
-   FLAG_NOZERO | FLAG_ALWAYS},
-  {STATS_TOTALSIZE,
-   "cache_size_kibibyte",
-   "cache size",
-   format_size_times_1024,
-   FLAG_NOZERO | FLAG_ALWAYS},
-  {STATS_OBSOLETE_MAXFILES,
-   "OBSOLETE",
-   "OBSOLETE",
-   NULL,
-   FLAG_NOZERO | FLAG_NEVER},
-  {STATS_OBSOLETE_MAXSIZE,
-   "OBSOLETE",
-   "OBSOLETE",
-   NULL,
-   FLAG_NOZERO | FLAG_NEVER},
-  {STATS_NONE, NULL, NULL, NULL, 0}};
-
 static char*
 format_size(uint64_t size)
 {
@@ -184,13 +51,13 @@ format_size(uint64_t size)
   return s;
 }
 
-static char*
+char*
 format_size_times_1024(uint64_t size)
 {
   return format_size(size * 1024);
 }
 
-static char*
+char*
 format_timestamp(uint64_t timestamp)
 {
   if (timestamp > 0) {
@@ -333,7 +200,7 @@ stats_read(const char* sfile, struct counters* counters)
 }
 
 // Write counter updates in updates to sfile.
-static void
+void
 stats_flush_to_file(const Context& ctx,
                     const char* sfile,
                     struct counters* updates)
@@ -350,9 +217,9 @@ stats_flush_to_file(const Context& ctx,
 
   if (!ctx.config.log_file().empty() || ctx.config.debug()) {
     for (int i = 0; i < STATS_END; ++i) {
-      if (updates->data[stats_info[i].stat] != 0
-          && !(stats_info[i].flags & FLAG_NOZERO)) {
-        cc_log("Result: %s", stats_info[i].message);
+      if (updates->data[ctx.stats_info[i].stat] != 0
+          && !(ctx.stats_info[i].flags & FLAG_NOZERO)) {
+        cc_log("Result: %s", ctx.stats_info[i].message);
       }
     }
   }
@@ -475,24 +342,24 @@ stats_summary(const Context& ctx)
   }
 
   // ...and display them.
-  for (int i = 0; stats_info[i].message; i++) {
-    enum stats stat = stats_info[i].stat;
+  for (int i = 0; ctx.stats_info[i].message; i++) {
+    enum stats stat = ctx.stats_info[i].stat;
 
-    if (stats_info[i].flags & FLAG_NEVER) {
+    if (ctx.stats_info[i].flags & FLAG_NEVER) {
       continue;
     }
-    if (counters->data[stat] == 0 && !(stats_info[i].flags & FLAG_ALWAYS)) {
+    if (counters->data[stat] == 0 && !(ctx.stats_info[i].flags & FLAG_ALWAYS)) {
       continue;
     }
 
     char* value;
-    if (stats_info[i].format) {
-      value = stats_info[i].format(counters->data[stat]);
+    if (ctx.stats_info[i].format) {
+      value = ctx.stats_info[i].format(counters->data[stat]);
     } else {
       value = format("%8u", counters->data[stat]);
     }
     if (value) {
-      printf("%-31s %s\n", stats_info[i].message, value);
+      printf("%-31s %s\n", ctx.stats_info[i].message, value);
       free(value);
     }
 
@@ -524,9 +391,11 @@ stats_print(const Context& ctx)
 
   printf("stats_updated_timestamp\t%llu\n", (unsigned long long)last_updated);
 
-  for (int i = 0; stats_info[i].message; i++) {
-    if (!(stats_info[i].flags & FLAG_NEVER)) {
-      printf("%s\t%u\n", stats_info[i].id, counters->data[stats_info[i].stat]);
+  for (int i = 0; ctx.stats_info[i].message; i++) {
+    if (!(ctx.stats_info[i].flags & FLAG_NEVER)) {
+      printf("%s\t%u\n",
+             ctx.stats_info[i].id,
+             counters->data[ctx.stats_info[i].stat]);
     }
   }
 
@@ -553,9 +422,9 @@ stats_zero(const Context& ctx)
     }
     if (lockfile_acquire(fname, k_lock_staleness_limit)) {
       stats_read(fname, counters);
-      for (unsigned i = 0; stats_info[i].message; i++) {
-        if (!(stats_info[i].flags & FLAG_NOZERO)) {
-          counters->data[stats_info[i].stat] = 0;
+      for (unsigned i = 0; ctx.stats_info[i].message; i++) {
+        if (!(ctx.stats_info[i].flags & FLAG_NOZERO)) {
+          counters->data[ctx.stats_info[i].stat] = 0;
         }
       }
       counters->data[STATS_ZEROTIMESTAMP] = timestamp;
