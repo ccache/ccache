@@ -545,7 +545,7 @@ do_remember_include_file(Context& ctx,
 
   is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
-    if (!included_pch_file) {
+    if (!ctx.included_pch_file) {
       cc_log("Detected use of precompiled header: %s", path.c_str());
     }
     bool using_pch_sum = false;
@@ -900,8 +900,8 @@ process_preprocessed_file(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (included_pch_file) {
-    std::string pch_path = make_relative_path(ctx, included_pch_file);
+  if (ctx.included_pch_file) {
+    std::string pch_path = make_relative_path(ctx, ctx.included_pch_file);
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -1034,8 +1034,8 @@ result_name_from_depfile(Context& ctx, const char* depfile, struct hash* hash)
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (included_pch_file) {
-    std::string pch_path = make_relative_path(ctx, included_pch_file);
+  if (ctx.included_pch_file) {
+    std::string pch_path = make_relative_path(ctx, ctx.included_pch_file);
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -2242,14 +2242,14 @@ detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
   }
 
   if (pch_file) {
-    if (included_pch_file) {
+    if (ctx.included_pch_file) {
       cc_log("Multiple precompiled headers used: %s and %s\n",
-             included_pch_file,
+             ctx.included_pch_file,
              pch_file);
       stats_update(ctx, STATS_ARGS);
       return false;
     }
-    included_pch_file = pch_file;
+    ctx.included_pch_file = pch_file;
     *found_pch = true;
   }
   return true;
@@ -3560,7 +3560,6 @@ cc_reset(void)
   g_config.clear_and_reset();
 
   free_and_nullify(current_working_dir);
-  free_and_nullify(included_pch_file);
   for (size_t i = 0; i < ignore_headers_len; i++) {
     free_and_nullify(ignore_headers[i]);
   }

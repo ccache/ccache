@@ -35,5 +35,3 @@ extern unsigned lock_staleness_limit;
 extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
-
-extern char* included_pch_file;
