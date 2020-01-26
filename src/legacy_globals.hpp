@@ -34,6 +34,6 @@ extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
 
-extern enum guessed_compiler guessed_compiler;
+extern GuessedCompiler guessed_compiler;
 
 extern char* included_pch_file;
