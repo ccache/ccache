@@ -18,6 +18,7 @@
 
 // This file contains tests for functions in hashutil.c.
 
+#include "../src/Context.hpp"
 #include "../src/hashutil.hpp"
 #include "framework.hpp"
 #include "util.hpp"
@@ -26,14 +27,16 @@ TEST_SUITE(hashutil)
 
 TEST(hash_command_output_simple)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
   struct hash* h1 = hash_init();
   struct hash* h2 = hash_init();
 
-  CHECK(hash_command_output(h1, "echo", "not used"));
-  CHECK(hash_command_output(h2, "echo", "not used"));
+  CHECK(hash_command_output(ctx, h1, "echo", "not used"));
+  CHECK(hash_command_output(ctx, h2, "echo", "not used"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
   CHECK_STR_EQ(d1, d2);
@@ -44,14 +47,16 @@ TEST(hash_command_output_simple)
 
 TEST(hash_command_output_space_removal)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
   struct hash* h1 = hash_init();
   struct hash* h2 = hash_init();
 
-  CHECK(hash_command_output(h1, "echo", "not used"));
-  CHECK(hash_command_output(h2, " echo ", "not used"));
+  CHECK(hash_command_output(ctx, h1, "echo", "not used"));
+  CHECK(hash_command_output(ctx, h2, " echo ", "not used"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
   CHECK_STR_EQ(d1, d2);
@@ -62,14 +67,16 @@ TEST(hash_command_output_space_removal)
 
 TEST(hash_command_output_hash_inequality)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
   struct hash* h1 = hash_init();
   struct hash* h2 = hash_init();
 
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "echo bar", "not used"));
+  CHECK(hash_command_output(ctx, h1, "echo foo", "not used"));
+  CHECK(hash_command_output(ctx, h2, "echo bar", "not used"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
   CHECK(!str_eq(d1, d2));
@@ -80,14 +87,16 @@ TEST(hash_command_output_hash_inequality)
 
 TEST(hash_command_output_compiler_substitution)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
   struct hash* h1 = hash_init();
   struct hash* h2 = hash_init();
 
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
+  CHECK(hash_command_output(ctx, h1, "echo foo", "not used"));
+  CHECK(hash_command_output(ctx, h2, "%compiler% foo", "echo"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
   CHECK_STR_EQ(d1, d2);
@@ -98,6 +107,8 @@ TEST(hash_command_output_compiler_substitution)
 
 TEST(hash_command_output_stdout_versus_stderr)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
@@ -107,12 +118,12 @@ TEST(hash_command_output_stdout_versus_stderr)
 #ifndef _WIN32
   create_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
   chmod("stderr.sh", 0555);
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "./stderr.sh", "not used"));
+  CHECK(hash_command_output(ctx, h1, "echo foo", "not used"));
+  CHECK(hash_command_output(ctx, h2, "./stderr.sh", "not used"));
 #else
   create_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
-  CHECK(hash_command_output(h1, "echo foo", "not used"));
-  CHECK(hash_command_output(h2, "stderr.bat", "not used"));
+  CHECK(hash_command_output(ctx, h1, "echo foo", "not used"));
+  CHECK(hash_command_output(ctx, h2, "stderr.bat", "not used"));
 #endif
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
@@ -124,6 +135,8 @@ TEST(hash_command_output_stdout_versus_stderr)
 
 TEST(hash_multicommand_output)
 {
+  Context ctx;
+
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
 
@@ -133,12 +146,12 @@ TEST(hash_multicommand_output)
 #ifndef _WIN32
   create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
   chmod("foo.sh", 0555);
-  CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
-  CHECK(hash_multicommand_output(h1, "./foo.sh", "not used"));
+  CHECK(hash_multicommand_output(ctx, h2, "echo foo; echo bar", "not used"));
+  CHECK(hash_multicommand_output(ctx, h1, "./foo.sh", "not used"));
 #else
   create_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
-  CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
-  CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
+  CHECK(hash_multicommand_output(ctx, h2, "echo foo; echo bar", "not used"));
+  CHECK(hash_multicommand_output(ctx, h1, "foo.bat", "not used"));
 #endif
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
@@ -150,10 +163,12 @@ TEST(hash_multicommand_output)
 
 TEST(hash_multicommand_output_error_handling)
 {
+  Context ctx;
+
   struct hash* h1 = hash_init();
   struct hash* h2 = hash_init();
 
-  CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
+  CHECK(!hash_multicommand_output(ctx, h2, "false; true", "not used"));
 
   hash_free(h2);
   hash_free(h1);

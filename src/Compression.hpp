@@ -22,6 +22,8 @@
 
 #include <string>
 
+class Config;
+
 namespace Compression {
 
 enum class Type : uint8_t {
@@ -29,9 +31,9 @@ enum class Type : uint8_t {
   zstd = 1,
 };
 
-int8_t level_from_config();
+int8_t level_from_config(const Config& config);
 
-Type type_from_config();
+Type type_from_config(const Config& config);
 
 Type type_from_int(uint8_t type);
 

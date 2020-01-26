@@ -18,6 +18,7 @@
 
 #include "framework.hpp"
 
+#include "../src/Config.hpp"
 #include "../src/Util.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
@@ -128,6 +129,7 @@ cct_suite_end()
 void
 cct_test_begin(const char* name)
 {
+  Config config;
   ++total_tests;
   if (verbose) {
     printf("--- TEST: %s ---\n", name);
@@ -138,7 +140,7 @@ cct_test_begin(const char* name)
   current_test = name;
 
   x_setenv("CCACHE_CONFIG_PATH", "/dev/null");
-  cc_reset();
+  cc_reset(config);
 }
 
 void

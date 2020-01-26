@@ -21,6 +21,7 @@
 #include "system.hpp"
 
 #include "ArgsInfo.hpp"
+#include "Config.hpp"
 #include "NonCopyable.hpp"
 
 struct Context : NonCopyable
@@ -29,4 +30,5 @@ struct Context : NonCopyable
   ~Context();
 
   ArgsInfo args_info;
+  Config config;
 };

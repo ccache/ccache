@@ -18,6 +18,8 @@
 
 #include "hashutil.hpp"
 
+#include "Config.hpp"
+#include "Context.hpp"
 #include "Stat.hpp"
 #include "args.hpp"
 #include "ccache.hpp"
@@ -283,7 +285,8 @@ hash_source_code_file(const Config& config, struct hash* hash, const char* path)
 }
 
 bool
-hash_command_output(struct hash* hash,
+hash_command_output(Context& ctx,
+                    struct hash* hash,
                     const char* command,
                     const char* compiler)
 {
@@ -322,7 +325,7 @@ hash_command_output(struct hash* hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* path = find_executable(args->argv[0], NULL);
+  char* path = find_executable(ctx, args->argv[0], nullptr);
   if (!path) {
     path = args->argv[0];
   }
@@ -380,6 +383,8 @@ hash_command_output(struct hash* hash,
   }
   return ok;
 #else
+  (void)ctx;
+
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     fatal("pipe failed");
@@ -426,7 +431,8 @@ hash_command_output(struct hash* hash,
 }
 
 bool
-hash_multicommand_output(struct hash* hash,
+hash_multicommand_output(Context& ctx,
+                         struct hash* hash,
                          const char* commands,
                          const char* compiler)
 {
@@ -436,7 +442,7 @@ hash_multicommand_output(struct hash* hash,
   char* saveptr = NULL;
   bool ok = true;
   while ((command = strtok_r(p, ";", &saveptr))) {
-    if (!hash_command_output(hash, command, compiler)) {
+    if (!hash_command_output(ctx, hash, command, compiler)) {
       ok = false;
     }
     p = NULL;
