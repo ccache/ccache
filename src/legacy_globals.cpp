@@ -27,10 +27,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Compiler guessing is currently only based on the compiler name, so nothing
-// should hard-depend on it if possible.
-GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
-
 // The .gch/.pch/.pth file used for compilation.
 char* included_pch_file = nullptr;
 

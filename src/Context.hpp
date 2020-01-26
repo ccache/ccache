@@ -24,6 +24,7 @@
 #include "Config.hpp"
 #include "NonCopyable.hpp"
 
+#include "ccache.hpp"
 #include "hash.hpp"
 
 #include <unordered_map>
@@ -76,4 +77,8 @@ struct Context : NonCopyable
 
   // The stats file to use for the manifest.
   char* manifest_stats_file = nullptr;
+
+  // Compiler guessing is currently only based on the compiler name, so nothing
+  // should hard-depend on it if possible.
+  GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
 };
