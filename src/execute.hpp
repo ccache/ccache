@@ -21,6 +21,7 @@
 #include "system.hpp"
 
 int execute(char** argv, int fd_out, int fd_err, pid_t* pid);
-char* find_executable(const char* name, const char* exclude_name);
+char*
+find_executable(const char* name, const char* exclude_name, const char* path);
 void print_command(FILE* fp, char** argv);
 char* format_command(const char* const* argv);

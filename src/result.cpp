@@ -94,7 +94,8 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
-using ReadEntryFunction = void (*)(CacheEntryReader& reader,
+using ReadEntryFunction = void (*)(const Context& ctx,
+                                   CacheEntryReader& reader,
                                    const std::string& result_path_in_cache,
                                    uint32_t entry_number,
                                    const ResultFileMap* result_file_map,
@@ -137,7 +138,8 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(CacheEntryReader& reader,
+read_embedded_file_entry(const Context&,
+                         CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
                          const ResultFileMap* result_file_map,
@@ -210,16 +212,19 @@ get_raw_file_path(const std::string& result_path_in_cache,
 }
 
 static bool
-copy_raw_file(const std::string& source, const std::string& dest, bool to_cache)
+copy_raw_file(const Config& cfg,
+              const std::string& source,
+              const std::string& dest,
+              bool to_cache)
 {
-  if (g_config.file_clone()) {
+  if (cfg.file_clone()) {
     cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
     if (clone_file(source.c_str(), dest.c_str(), to_cache)) {
       return true;
     }
     cc_log("Failed to clone: %s", strerror(errno));
   }
-  if (g_config.hard_link()) {
+  if (cfg.hard_link()) {
     x_try_unlink(dest.c_str());
     cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
     int ret = link(source.c_str(), dest.c_str());
@@ -234,7 +239,8 @@ copy_raw_file(const std::string& source, const std::string& dest, bool to_cache)
 }
 
 static void
-read_raw_file_entry(CacheEntryReader& reader,
+read_raw_file_entry(const Context& ctx,
+                    CacheEntryReader& reader,
                     const std::string& result_path_in_cache,
                     uint32_t entry_number,
                     const ResultFileMap* result_file_map,
@@ -271,7 +277,7 @@ read_raw_file_entry(CacheEntryReader& reader,
     const auto it = result_file_map->find(FileType(type));
     if (it != result_file_map->end()) {
       const auto& dest_path = it->second;
-      if (!copy_raw_file(raw_path, dest_path, false)) {
+      if (!copy_raw_file(ctx.config, raw_path, dest_path, false)) {
         throw Error(
           fmt::format("Failed to copy raw file {} to {}", raw_path, dest_path));
       }
@@ -284,7 +290,8 @@ read_raw_file_entry(CacheEntryReader& reader,
 }
 
 static bool
-read_result(const std::string& path,
+read_result(const Context& ctx,
+            const std::string& path,
             const ResultFileMap* result_file_map,
             FILE* dump_stream)
 {
@@ -323,7 +330,7 @@ read_result(const std::string& path,
       throw Error(fmt::format("Unknown entry type: {}", marker));
     }
 
-    read_entry(reader, path, i, result_file_map, dump_stream);
+    read_entry(ctx, reader, path, i, result_file_map, dump_stream);
   }
 
   if (i != n_entries) {
@@ -400,7 +407,7 @@ write_raw_file_entry(const Context& ctx,
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
   auto old_stat = Stat::stat(raw_file);
-  if (!copy_raw_file(source_path, raw_file, true)) {
+  if (!copy_raw_file(ctx.config, source_path, raw_file, true)) {
     throw Error(
       fmt::format("Failed to store {} as raw file {}", source_path, raw_file));
   }
@@ -413,9 +420,9 @@ write_raw_file_entry(const Context& ctx,
 }
 
 static bool
-should_store_raw_file(FileType type)
+should_store_raw_file(const Config& cfg, FileType type)
 {
-  if (!g_config.file_clone() && !g_config.hard_link()) {
+  if (!cfg.file_clone() && !cfg.hard_link()) {
     return false;
   }
 
@@ -456,8 +463,8 @@ write_result(const Context& ctx,
   CacheEntryWriter writer(atomic_result_file.stream(),
                           k_result_magic,
                           k_result_version,
-                          Compression::type_from_config(),
-                          Compression::level_from_config(),
+                          Compression::type_from_config(ctx.config),
+                          Compression::level_from_config(ctx.config),
                           payload_size);
 
   writer.write<uint8_t>(result_file_map.size());
@@ -465,7 +472,7 @@ write_result(const Context& ctx,
   size_t entry_number = 0;
   for (const auto& pair : result_file_map) {
     const auto& suffix = pair.first;
-    WriteEntryFunction write_entry = should_store_raw_file(suffix)
+    WriteEntryFunction write_entry = should_store_raw_file(ctx.config, suffix)
                                        ? write_raw_file_entry
                                        : write_embedded_file_entry;
     write_entry(ctx, writer, path, entry_number, pair);
@@ -477,12 +484,14 @@ write_result(const Context& ctx,
 }
 
 bool
-result_get(const std::string& path, const ResultFileMap& result_file_map)
+result_get(const Context& ctx,
+           const std::string& path,
+           const ResultFileMap& result_file_map)
 {
   cc_log("Getting result %s", path.c_str());
 
   try {
-    bool cache_hit = read_result(path, &result_file_map, nullptr);
+    bool cache_hit = read_result(ctx, path, &result_file_map, nullptr);
     if (cache_hit) {
       // Update modification timestamp to save files from LRU cleanup.
       update_mtime(path.c_str());
@@ -513,12 +522,12 @@ result_put(const Context& ctx,
 }
 
 bool
-result_dump(const std::string& path, FILE* stream)
+result_dump(const Context& ctx, const std::string& path, FILE* stream)
 {
   assert(stream);
 
   try {
-    if (read_result(path, nullptr, stream)) {
+    if (read_result(ctx, path, nullptr, stream)) {
       return true;
     } else {
       fmt::print(stream, "Error: No such file: {}\n", path);

@@ -275,9 +275,9 @@ stats_collect(const Config& config,
     char* fname;
 
     if (dir == -1) {
-      fname = format("%s/stats", g_config.cache_dir().c_str());
+      fname = format("%s/stats", config.cache_dir().c_str());
     } else {
-      fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
+      fname = format("%s/%1x/stats", config.cache_dir().c_str(), dir);
     }
 
     counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
@@ -342,13 +342,13 @@ stats_flush_to_file(const Context& ctx,
     return;
   }
 
-  if (g_config.disable()) {
+  if (ctx.config.disable()) {
     // Just log result, don't update statistics.
     cc_log("Result: disabled");
     return;
   }
 
-  if (!g_config.log_file().empty() || g_config.debug()) {
+  if (!ctx.config.log_file().empty() || ctx.config.debug()) {
     for (int i = 0; i < STATS_END; ++i) {
       if (updates->data[stats_info[i].stat] != 0
           && !(stats_info[i].flags & FLAG_NOZERO)) {
@@ -357,7 +357,7 @@ stats_flush_to_file(const Context& ctx,
     }
   }
 
-  if (!g_config.stats()) {
+  if (!ctx.config.stats()) {
     return;
   }
 
@@ -378,7 +378,7 @@ stats_flush_to_file(const Context& ctx,
     // A NULL sfile means that we didn't get past calculate_object_hash(), so
     // we just choose one of stats files in the 16 subdirectories.
     stats_dir = format(
-      "%s/%x", g_config.cache_dir().c_str(), hash_from_int(getpid()) % 16);
+      "%s/%x", ctx.config.cache_dir().c_str(), hash_from_int(getpid()) % 16);
     sfile = format("%s/stats", stats_dir);
     free(stats_dir);
   }
@@ -398,27 +398,27 @@ stats_flush_to_file(const Context& ctx,
   char* subdir = x_dirname(sfile);
   bool need_cleanup = false;
 
-  if (g_config.max_files() != 0
-      && counters->data[STATS_NUMFILES] > g_config.max_files() / 16) {
+  if (ctx.config.max_files() != 0
+      && counters->data[STATS_NUMFILES] > ctx.config.max_files() / 16) {
     cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
            subdir,
            counters->data[STATS_NUMFILES],
-           g_config.max_files() / 16);
+           ctx.config.max_files() / 16);
     need_cleanup = true;
   }
-  if (g_config.max_size() != 0
-      && counters->data[STATS_TOTALSIZE] > g_config.max_size() / 1024 / 16) {
+  if (ctx.config.max_size() != 0
+      && counters->data[STATS_TOTALSIZE] > ctx.config.max_size() / 1024 / 16) {
     cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
            subdir,
            counters->data[STATS_TOTALSIZE],
-           (unsigned long)g_config.max_size() / 1024 / 16);
+           (unsigned long)ctx.config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
 
   if (need_cleanup) {
-    double factor = g_config.limit_multiple() / 16;
-    uint64_t max_size = round(g_config.max_size() * factor);
-    uint32_t max_files = round(g_config.max_files() * factor);
+    double factor = ctx.config.limit_multiple() / 16;
+    uint64_t max_size = round(ctx.config.max_size() * factor);
+    uint32_t max_files = round(ctx.config.max_files() * factor);
     clean_up_dir(subdir, max_size, max_files, [](double) {});
   }
 
@@ -460,11 +460,12 @@ stats_summary(const Context& ctx)
   time_t last_updated;
   stats_collect(ctx.config, counters, &last_updated);
 
-  fmt::print("cache directory                     {}\n", g_config.cache_dir());
+  fmt::print("cache directory                     {}\n",
+             ctx.config.cache_dir());
   fmt::print("primary config                      {}\n",
-             g_config.primary_config_path());
+             ctx.config.primary_config_path());
   fmt::print("secondary config (readonly)         {}\n",
-             g_config.secondary_config_path());
+             ctx.config.secondary_config_path());
   if (last_updated > 0) {
     struct tm tm;
     localtime_r(&last_updated, &tm);
@@ -501,11 +502,11 @@ stats_summary(const Context& ctx)
     }
   }
 
-  if (g_config.max_files() != 0) {
-    printf("max files                       %8u\n", g_config.max_files());
+  if (ctx.config.max_files() != 0) {
+    printf("max files                       %8u\n", ctx.config.max_files());
   }
-  if (g_config.max_size() != 0) {
-    char* value = format_size(g_config.max_size());
+  if (ctx.config.max_size() != 0) {
+    char* value = format_size(ctx.config.max_size());
     printf("max cache size                  %s\n", value);
     free(value);
   }
@@ -536,7 +537,7 @@ stats_print(const Context& ctx)
 void
 stats_zero(const Context& ctx)
 {
-  char* fname = format("%s/stats", g_config.cache_dir().c_str());
+  char* fname = format("%s/stats", ctx.config.cache_dir().c_str());
   x_unlink(fname);
   free(fname);
 
@@ -544,7 +545,7 @@ stats_zero(const Context& ctx)
 
   for (int dir = 0; dir <= 0xF; dir++) {
     struct counters* counters = counters_init(STATS_END);
-    fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
+    fname = format("%s/%1x/stats", ctx.config.cache_dir().c_str(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);

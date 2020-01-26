@@ -31,7 +31,6 @@
 #include <unordered_map>
 
 class Config;
-extern Config g_config;
 
 class Config
 {

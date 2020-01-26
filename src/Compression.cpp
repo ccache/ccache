@@ -24,15 +24,15 @@
 namespace Compression {
 
 int8_t
-level_from_config()
+level_from_config(const Config& cfg)
 {
-  return g_config.compression() ? g_config.compression_level() : 0;
+  return cfg.compression() ? cfg.compression_level() : 0;
 }
 
 Type
-type_from_config()
+type_from_config(const Config& cfg)
 {
-  return g_config.compression() ? Type::zstd : Type::none;
+  return cfg.compression() ? Type::zstd : Type::none;
 }
 
 Type

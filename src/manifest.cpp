@@ -331,7 +331,9 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 }
 
 static bool
-write_manifest(const std::string& path, const ManifestData& mf)
+write_manifest(const Config& cfg,
+               const std::string& path,
+               const ManifestData& mf)
 {
   uint64_t payload_size = 0;
   payload_size += 4; // n_files
@@ -351,8 +353,8 @@ write_manifest(const std::string& path, const ManifestData& mf)
   CacheEntryWriter writer(atomic_manifest_file.stream(),
                           k_manifest_magic,
                           k_manifest_version,
-                          Compression::type_from_config(),
-                          Compression::level_from_config(),
+                          Compression::type_from_config(cfg),
+                          Compression::level_from_config(cfg),
                           payload_size);
   writer.write<uint32_t>(mf.files.size());
   for (uint32_t i = 0; i < mf.files.size(); ++i) {
@@ -508,7 +510,8 @@ manifest_get(const Context& ctx, const std::string& path)
 // Put the result name into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
-manifest_put(const std::string& path,
+manifest_put(const Config& cfg,
+             const std::string& path,
              const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files,
              bool save_timestamp,
@@ -558,7 +561,7 @@ manifest_put(const std::string& path,
     result_name, included_files, save_timestamp, time_of_compilation);
 
   try {
-    write_manifest(path, *mf);
+    write_manifest(cfg, path, *mf);
     return true;
   } catch (const Error& e) {
     cc_log("Error: %s", e.what());

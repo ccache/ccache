@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Compression.hpp"
+#include "../src/Config.hpp"
 
 #include "third_party/catch.hpp"
 
@@ -24,12 +25,14 @@ using Catch::Equals;
 
 TEST_CASE("Compression::level_from_config")
 {
-  CHECK(Compression::level_from_config() == 0);
+  Config cfg;
+  CHECK(Compression::level_from_config(cfg) == 0);
 }
 
 TEST_CASE("Compression::type_from_config")
 {
-  CHECK(Compression::type_from_config() == Compression::Type::zstd);
+  Config cfg;
+  CHECK(Compression::type_from_config(cfg) == Compression::Type::zstd);
 }
 
 TEST_CASE("Compression::type_from_int")

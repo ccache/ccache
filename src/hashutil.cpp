@@ -19,6 +19,7 @@
 #include "hashutil.hpp"
 
 #include "Config.hpp"
+#include "Context.hpp"
 #include "Stat.hpp"
 #include "args.hpp"
 #include "ccache.hpp"
@@ -323,7 +324,7 @@ hash_command_output(const Context& ctx,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* path = find_executable(args->argv[0], NULL);
+  char* path = find_executable(args->argv[0], nullptr, ctx.config.path().c_str());
   if (!path) {
     path = args->argv[0];
   }

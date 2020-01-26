@@ -82,25 +82,28 @@ static size_t debug_log_size;
 static bool
 init_log(void)
 {
+  // TODO -- fake, legacy debug globals
+  Config cfg;
+
   if (debug_log_buffer || logfile || use_syslog) {
     return true;
   }
-  if (g_config.debug()) {
+  if (cfg.debug()) {
     debug_log_buffer_capacity = DEBUG_LOG_BUFFER_MARGIN;
     debug_log_buffer = static_cast<char*>(x_malloc(debug_log_buffer_capacity));
     debug_log_size = 0;
   }
-  if (g_config.log_file().empty()) {
-    return g_config.debug();
+  if (cfg.log_file().empty()) {
+    return cfg.debug();
   }
 #ifdef HAVE_SYSLOG
-  if (g_config.log_file() == "syslog") {
+  if (cfg.log_file() == "syslog") {
     use_syslog = true;
     openlog("ccache", LOG_PID, LOG_USER);
     return true;
   }
 #endif
-  logfile = fopen(g_config.log_file().c_str(), "a");
+  logfile = fopen(cfg.log_file().c_str(), "a");
   if (logfile) {
 #ifndef _WIN32
     set_cloexec_flag(fileno(logfile));
@@ -184,10 +187,13 @@ static void warn_log_fail(void) ATTR_NORETURN;
 static void
 warn_log_fail(void)
 {
+  // TODO -- fake, legacy debug globals
+  Config cfg;
+
   // Note: Can't call fatal() since that would lead to recursion.
   fprintf(stderr,
           "ccache: error: Failed to write to %s: %s\n",
-          g_config.log_file().c_str(),
+          cfg.log_file().c_str(),
           strerror(errno));
   x_exit(EXIT_FAILURE);
 }
