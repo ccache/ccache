@@ -38,7 +38,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern unsigned lock_staleness_limit;
+// How long (in microseconds) to wait before breaking a stale lock.
+constexpr unsigned k_lock_staleness_limit = 2000000;
 
 static struct counters* counter_updates;
 
@@ -382,7 +383,7 @@ stats_flush_to_file(const Context& ctx,
     free(stats_dir);
   }
 
-  if (!lockfile_acquire(sfile, lock_staleness_limit)) {
+  if (!lockfile_acquire(sfile, k_lock_staleness_limit)) {
     return;
   }
 
@@ -549,7 +550,7 @@ stats_zero(const Context& ctx)
       free(fname);
       continue;
     }
-    if (lockfile_acquire(fname, lock_staleness_limit)) {
+    if (lockfile_acquire(fname, k_lock_staleness_limit)) {
       stats_read(fname, counters);
       for (unsigned i = 0; stats_info[i].message; i++) {
         if (!(stats_info[i].flags & FLAG_NOZERO)) {
@@ -586,7 +587,7 @@ stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size)
 {
   struct counters* counters = counters_init(STATS_END);
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, lock_staleness_limit)) {
+  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
     stats_read(statsfile, counters);
     counters->data[STATS_NUMFILES] = num_files;
     counters->data[STATS_TOTALSIZE] = total_size / 1024;
@@ -603,7 +604,7 @@ stats_add_cleanup(const char* dir, unsigned count)
 {
   struct counters* counters = counters_init(STATS_END);
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, lock_staleness_limit)) {
+  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
     stats_read(statsfile, counters);
     counters->data[STATS_NUMCLEANUPS] += count;
     stats_write(statsfile, counters);

@@ -28,8 +28,6 @@
 
 // variable descriptions are in the .cpp file
 
-extern unsigned lock_staleness_limit;
-
 extern char** ignore_headers;
 
 extern size_t ignore_headers_len;

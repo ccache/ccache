@@ -23,6 +23,3 @@ char** ignore_headers;
 
 // Size of headers to ignore list.
 size_t ignore_headers_len;
-
-// How long (in microseconds) to wait before breaking a stale lock.
-unsigned lock_staleness_limit = 2000000;
