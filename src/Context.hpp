@@ -86,4 +86,7 @@ struct Context : NonCopyable
   // Compiler guessing is currently only based on the compiler name, so nothing
   // should hard-depend on it if possible.
   GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
+
+  // The .gch/.pch/.pth file used for compilation.
+  std::string included_pch_file;
 };

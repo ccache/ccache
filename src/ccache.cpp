@@ -518,7 +518,7 @@ do_remember_include_file(Context& ctx,
 
   is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
-    if (!included_pch_file) {
+    if (ctx.included_pch_file.empty()) {
       cc_log("Detected use of precompiled header: %s", path.c_str());
     }
     bool using_pch_sum = false;
@@ -868,8 +868,9 @@ process_preprocessed_file(Context& ctx,
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
-  if (included_pch_file) {
-    std::string pch_path = make_relative_path(ctx, included_pch_file);
+  if (!ctx.included_pch_file.empty()) {
+    std::string pch_path =
+      make_relative_path(ctx, ctx.included_pch_file.c_str());
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, NULL);
   }
@@ -1006,8 +1007,9 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
-  if (included_pch_file) {
-    std::string pch_path = make_relative_path(ctx, included_pch_file);
+  if (!ctx.included_pch_file.empty()) {
+    std::string pch_path =
+      make_relative_path(ctx, ctx.included_pch_file.c_str());
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, NULL);
   }
@@ -2172,7 +2174,7 @@ color_output_possible(void)
 }
 
 static bool
-detect_pch(const char* option, const char* arg, bool* found_pch)
+detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
 {
   // Try to be smart about detecting precompiled headers.
   char* pch_file = NULL;
@@ -2206,14 +2208,14 @@ detect_pch(const char* option, const char* arg, bool* found_pch)
   }
 
   if (pch_file) {
-    if (included_pch_file) {
+    if (!ctx.included_pch_file.empty()) {
       cc_log("Multiple precompiled headers used: %s and %s\n",
-             included_pch_file,
+             ctx.included_pch_file.c_str(),
              pch_file);
       stats_update(STATS_ARGS);
       return false;
     }
-    included_pch_file = pch_file;
+    ctx.included_pch_file = pch_file;
     *found_pch = true;
   }
   return true;
@@ -2883,7 +2885,7 @@ cc_process_args(Context& ctx,
         return false;
       }
 
-      if (!detect_pch(argv[i], argv[i + 1], &found_pch)) {
+      if (!detect_pch(ctx, argv[i], argv[i + 1], &found_pch)) {
         return false;
       }
 
@@ -3530,7 +3532,6 @@ free_and_nullify(T*& ptr)
 void
 cc_reset()
 {
-  free_and_nullify(included_pch_file);
   for (size_t i = 0; i < ignore_headers_len; i++) {
     free_and_nullify(ignore_headers[i]);
   }
