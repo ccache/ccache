@@ -78,4 +78,7 @@ struct Context : NonCopyable
 
   // The name of the cpp stderr file.
   std::string cpp_stderr;
+
+  // The stats file to use for the manifest.
+  std::string manifest_stats_file;
 };

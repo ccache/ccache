@@ -1061,7 +1061,7 @@ update_manifest_file(Context& ctx)
   } else {
     auto st = Stat::stat(ctx.manifest_path, Stat::OnError::log);
     stats_update_size(ctx,
-                      from_cstr(manifest_stats_file),
+                      ctx.manifest_stats_file,
                       st.size_on_disk() - old_st.size_on_disk(),
                       !old_st && st ? 1 : 0);
   }
@@ -1981,8 +1981,8 @@ calculate_result_name(Context& ctx,
                                                 ctx.config.cache_dir_levels(),
                                                 manifest_name_string,
                                                 ".manifest");
-    manifest_stats_file = format(
-      "%s/%c/stats", ctx.config.cache_dir().c_str(), manifest_name_string[0]);
+    ctx.manifest_stats_file = fmt::format(
+      "{}/{}/stats", ctx.config.cache_dir(), manifest_name_string[0]);
 
     cc_log("Looking for result name in %s", ctx.manifest_path.c_str());
     MTR_BEGIN("manifest", "manifest_get");

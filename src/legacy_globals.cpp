@@ -24,9 +24,6 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// The stats file to use for the manifest.
-char* manifest_stats_file;
-
 // Compiler guessing is currently only based on the compiler name, so nothing
 // should hard-depend on it if possible.
 enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
