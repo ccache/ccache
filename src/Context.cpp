@@ -14,4 +14,5 @@ Context::~Context()
 
   free(i_tmpfile);
   free(cpp_stderr);
+  free(manifest_stats_file);
 }

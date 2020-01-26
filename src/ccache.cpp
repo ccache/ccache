@@ -1088,7 +1088,7 @@ update_manifest_file(Context& ctx)
   } else {
     auto st = Stat::stat(ctx.manifest_path, Stat::OnError::log);
     stats_update_size(ctx,
-                      manifest_stats_file,
+                      ctx.manifest_stats_file,
                       st.size_on_disk() - old_st.size_on_disk(),
                       !old_st && st ? 1 : 0);
   }
@@ -2017,7 +2017,7 @@ calculate_result_name(Context& ctx,
                                        manifest_name_string,
                                        ".manifest")
                  .c_str());
-    manifest_stats_file = format(
+    ctx.manifest_stats_file = format(
       "%s/%c/stats", g_config.cache_dir().c_str(), manifest_name_string[0]);
 
     cc_log("Looking for result name in %s", ctx.manifest_path);

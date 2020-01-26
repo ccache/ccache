@@ -73,4 +73,7 @@ struct Context : NonCopyable
 
   // The name of the cpp stderr file.
   char* cpp_stderr = nullptr;
+
+  // The stats file to use for the manifest.
+  char* manifest_stats_file = nullptr;
 };
