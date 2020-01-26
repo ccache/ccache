@@ -1211,7 +1211,7 @@ to_cache(Context& ctx,
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && guessed_compiler != GuessedCompiler::pump) {
+  if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
     cc_log("Compiler produced stdout");
     stats_update(STATS_STDOUT);
     tmp_unlink(tmp_stdout);
@@ -1442,8 +1442,11 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cpp");
-  if (!process_preprocessed_file(
-        ctx, hash, path_stdout, guessed_compiler == GuessedCompiler::pump)) {
+  if (!process_preprocessed_file(ctx,
+                                 hash,
+                                 path_stdout,
+                                 ctx.guessed_compiler
+                                   == GuessedCompiler::pump)) {
     stats_update(STATS_ERROR);
     failed();
   }
@@ -1701,7 +1704,7 @@ hash_common_info(Context& ctx,
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (guessed_compiler == GuessedCompiler::gcc) {
+  if (ctx.guessed_compiler == GuessedCompiler::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash_delimiter(hash, "gcccolors");
@@ -1732,8 +1735,8 @@ calculate_result_name(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = guessed_compiler == GuessedCompiler::clang
-                 || guessed_compiler == GuessedCompiler::unknown;
+  int is_clang = ctx.guessed_compiler == GuessedCompiler::clang
+                 || ctx.guessed_compiler == GuessedCompiler::unknown;
 
   // First the arguments.
   for (int i = 1; i < args->argc; i++) {
@@ -2037,8 +2040,8 @@ from_cache(Context& ctx,
   //
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
-  if ((guessed_compiler == GuessedCompiler::clang
-       || guessed_compiler == GuessedCompiler::unknown)
+  if ((ctx.guessed_compiler == GuessedCompiler::clang
+       || ctx.guessed_compiler == GuessedCompiler::unknown)
       && ctx.args_info.output_is_precompiled_header
       && mode == FROMCACHE_CPP_MODE) {
     cc_log("Not considering cached precompiled header in preprocessor mode");
@@ -2343,7 +2346,7 @@ cc_process_args(Context& ctx,
     }
 
     // Handle cuda "-optf" and "--options-file" argument.
-    if (guessed_compiler == GuessedCompiler::nvcc
+    if (ctx.guessed_compiler == GuessedCompiler::nvcc
         && (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))) {
       if (i == argc - 1) {
         cc_log("Expected argument after %s", argv[i]);
@@ -2477,7 +2480,7 @@ cc_process_args(Context& ctx,
 
     // when using nvcc with separable compilation, -dc implies -c
     if ((str_eq(argv[i], "-dc") || str_eq(argv[i], "--device-c"))
-        && guessed_compiler == GuessedCompiler::nvcc) {
+        && ctx.guessed_compiler == GuessedCompiler::nvcc) {
       found_dc_opt = true;
       continue;
     }
@@ -2524,8 +2527,8 @@ cc_process_args(Context& ctx,
 
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o")
-        && guessed_compiler != GuessedCompiler::nvcc) {
-      args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
+        && ctx.guessed_compiler != GuessedCompiler::nvcc) {
+      ctx.args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
       continue;
     }
 
@@ -3213,13 +3216,13 @@ cc_process_args(Context& ctx,
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly if it would be otherwise done.
   if (!found_color_diagnostics && color_output_possible()) {
-    if (guessed_compiler == GuessedCompiler::clang) {
-      if (args_info.actual_language != "assembler") {
+    if (ctx.guessed_compiler == GuessedCompiler::clang) {
+      if (ctx.args_info.actual_language != "assembler") {
         args_add(common_args, "-fcolor-diagnostics");
         add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
       }
-    } else if (guessed_compiler == GuessedCompiler::gcc) {
+    } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
       // GCC has it since 4.9, but that'd require detecting what GCC version is
       // used for the actual compile. However it requires also GCC_COLORS to be
       // set (and not empty), so use that for detecting if GCC would use
@@ -3656,7 +3659,7 @@ do_cache_compilation(Context& ctx, char* argv[])
     std::min(std::max(ctx.config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
-  guessed_compiler = guess_compiler(ctx.orig_args->argv[0]);
+  ctx.guessed_compiler = guess_compiler(ctx.orig_args->argv[0]);
   MTR_END("main", "guess_compiler");
 
   // Arguments (except -E) to send to the preprocessor.
