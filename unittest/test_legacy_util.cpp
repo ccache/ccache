@@ -214,22 +214,4 @@ TEST(from_cstr)
   free(cstr1);
 }
 
-TEST(from_owned_cstr)
-{
-  char* cstr1 = x_strdup("foo");
-  char* cstr2 = x_strdup("bar");
-  char* cstr3 = nullptr;
-  char* cstr4 = x_strdup("");
-
-  std::string str1 = from_owned_cstr(cstr1);
-  std::string str2 = from_owned_cstr(cstr2);
-  std::string str3 = from_owned_cstr(cstr3);
-  std::string str4 = from_owned_cstr(cstr4);
-
-  CHECK(str1 == "foo");
-  CHECK(str2 == "bar");
-  CHECK(str3 == "");
-  CHECK(str4 == "");
-}
-
 TEST_SUITE_END

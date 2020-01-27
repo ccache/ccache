@@ -2665,7 +2665,7 @@ cc_process_args(ArgsInfo& args_info,
       continue;
     }
     if (str_startswith(argv[i], "-fprofile-dir=")) {
-      args_info.profile_dir = from_owned_cstr(x_strdup(argv[i] + 14));
+      args_info.profile_dir.assign(argv[i] + 14);
       args_add(common_args, argv[i]);
       continue;
     }
