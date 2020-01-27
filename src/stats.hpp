@@ -67,9 +67,8 @@ typedef char* (*format_fn)(uint64_t value);
 
 char* format_size_times_1024(uint64_t size);
 char* format_timestamp(uint64_t timestamp);
-void stats_flush_to_file(const Context& ctx,
-                         const char* sfile,
-                         struct counters* updates);
+void
+stats_flush_to_file(Context& ctx, const char* sfile, struct counters* updates);
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
@@ -85,16 +84,14 @@ struct StatsInfo
   unsigned flags;
 };
 
-void stats_update(const Context& ctx, enum stats stat);
-void stats_flush(const Context& ctx);
-unsigned stats_get_pending(const Context& ctx, enum stats stat);
-void stats_zero(const Context& ctx);
-void stats_summary(const Context& ctx);
-void stats_print(const Context& ctx);
-void stats_update_size(const Context& ctx,
-                       const char* sfile,
-                       int64_t size,
-                       int files);
+void stats_update(Context& ctx, enum stats stat);
+void stats_flush(Context& ctx);
+unsigned stats_get_pending(Context& ctx, enum stats stat);
+void stats_zero(Context& ctx);
+void stats_summary(Context& ctx);
+void stats_print(Context& ctx);
+void
+stats_update_size(Context& ctx, const char* sfile, int64_t size, int files);
 void stats_get_obsolete_limits(const char* dir,
                                unsigned* maxfiles,
                                uint64_t* maxsize);

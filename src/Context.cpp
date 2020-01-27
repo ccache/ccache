@@ -1,6 +1,7 @@
 #include "Context.hpp"
 
 #include "args.hpp"
+#include "counters.hpp"
 
 Context::~Context()
 {
@@ -22,4 +23,6 @@ Context::~Context()
     free(ignore_headers[i]);
   }
   free(ignore_headers);
+
+  counters_free(counter_updates);
 }

@@ -188,11 +188,11 @@ add_prefix(const Context& ctx,
   args_free(prefix);
 }
 
-static void failed(const Context& ctx) ATTR_NORETURN;
+static void failed(Context& ctx) ATTR_NORETURN;
 
 // Something went badly wrong - just execute the real compiler.
 static void
-failed(const Context& ctx)
+failed(Context& ctx)
 {
   assert(ctx.orig_args);
 
@@ -1522,7 +1522,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(const Context& ctx,
+hash_compiler(Context& ctx,
               struct hash* hash,
               const Stat& st,
               const char* path,
@@ -1556,7 +1556,7 @@ hash_compiler(const Context& ctx,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(const Context& ctx,
+hash_nvcc_host_compiler(Context& ctx,
                         struct hash* hash,
                         const Stat* ccbin_st,
                         const char* ccbin)

@@ -41,8 +41,6 @@
 // How long (in microseconds) to wait before breaking a stale lock.
 constexpr unsigned k_lock_staleness_limit = 2000000;
 
-static struct counters* counter_updates;
-
 static char*
 format_size(uint64_t size)
 {
@@ -110,10 +108,10 @@ stats_write(const char* path, struct counters* counters)
 }
 
 static void
-init_counter_updates(const Context& ctx)
+init_counter_updates(Context& ctx)
 {
-  if (!counter_updates) {
-    counter_updates = counters_init(STATS_END);
+  if (!ctx.counter_updates) {
+    ctx.counter_updates = counters_init(STATS_END);
   }
 }
 
@@ -164,10 +162,7 @@ stats_collect(const Config& config,
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(const Context& ctx,
-                  const char* sfile,
-                  int64_t size,
-                  int files)
+stats_update_size(Context& ctx, const char* sfile, int64_t size, int files)
 {
   if (size == 0 && files == 0) {
     return;
@@ -176,7 +171,7 @@ stats_update_size(const Context& ctx,
   struct counters* updates;
   if (sfile == ctx.stats_file) {
     init_counter_updates(ctx);
-    updates = counter_updates;
+    updates = ctx.counter_updates;
   } else {
     updates = counters_init(STATS_END);
   }
@@ -201,9 +196,7 @@ stats_read(const char* sfile, struct counters* counters)
 
 // Write counter updates in updates to sfile.
 void
-stats_flush_to_file(const Context& ctx,
-                    const char* sfile,
-                    struct counters* updates)
+stats_flush_to_file(Context& ctx, const char* sfile, struct counters* updates)
 {
   if (!updates) {
     return;
@@ -295,33 +288,35 @@ stats_flush_to_file(const Context& ctx,
 
 // Write counter updates in counter_updates to disk.
 void
-stats_flush(const Context& ctx)
+stats_flush(Context& ctx)
 {
-  stats_flush_to_file(ctx, ctx.stats_file, counter_updates);
-  counters_free(counter_updates);
-  counter_updates = NULL;
+  stats_flush_to_file(ctx, ctx.stats_file, ctx.counter_updates);
+
+  // TODO: is cleanup in Context OK?
+  //  counters_free(ctx.counter_updates);
+  //  ctx.counter_updates = NULL;
 }
 
 // Update a normal stat.
 void
-stats_update(const Context& ctx, enum stats stat)
+stats_update(Context& ctx, enum stats stat)
 {
   assert(stat > STATS_NONE && stat < STATS_END);
   init_counter_updates(ctx);
-  counter_updates->data[stat]++;
+  ctx.counter_updates->data[stat]++;
 }
 
 // Get the pending update of a counter value.
 unsigned
-stats_get_pending(const Context& ctx, enum stats stat)
+stats_get_pending(Context& ctx, enum stats stat)
 {
   init_counter_updates(ctx);
-  return counter_updates->data[stat];
+  return ctx.counter_updates->data[stat];
 }
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(const Context& ctx)
+stats_summary(Context& ctx)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
@@ -383,7 +378,7 @@ stats_summary(const Context& ctx)
 
 // Print machine-parsable (tab-separated) statistics counters.
 void
-stats_print(const Context& ctx)
+stats_print(Context& ctx)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
@@ -404,7 +399,7 @@ stats_print(const Context& ctx)
 
 // Zero all the stats structures.
 void
-stats_zero(const Context& ctx)
+stats_zero(Context& ctx)
 {
   char* fname = format("%s/stats", ctx.config.cache_dir().c_str());
   x_unlink(fname);

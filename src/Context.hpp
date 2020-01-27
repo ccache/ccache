@@ -211,4 +211,6 @@ struct Context : NonCopyable
   // List of headers to ignore.
   char** ignore_headers = nullptr;
   size_t ignore_headers_len = 0;
+
+  struct counters* counter_updates = nullptr;
 };
