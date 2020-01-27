@@ -18,6 +18,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "hash.hpp"
+
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
 #include "legacy_util.hpp"
@@ -64,9 +65,7 @@ do_debug_text(struct hash* hash, const void* s, size_t len)
   }
 }
 
-
-Hash::Hash()
-: pimpl(std::make_unique<hash>())
+Hash::Hash() : pimpl(std::make_unique<hash>())
 {
   pimpl->debug_binary = nullptr;
   pimpl->debug_text = nullptr;
@@ -74,26 +73,25 @@ Hash::Hash()
   blake2b_init(&pimpl->state, DIGEST_SIZE);
 }
 
-Hash::Hash(const Hash& other)
-: pimpl(std::make_unique<hash>())
+Hash::Hash(const Hash& other) : pimpl(std::make_unique<hash>())
 {
   pimpl->state = other.pimpl->state;
   pimpl->debug_binary = NULL;
   pimpl->debug_text = NULL;
 }
 
-Hash::Hash(const struct hash& other)
-: pimpl(std::make_unique<hash>())
+Hash::Hash(const struct hash& other) : pimpl(std::make_unique<hash>())
 {
   pimpl->state = other.state;
   pimpl->debug_binary = NULL;
   pimpl->debug_text = NULL;
 }
 
-
 // Force destructor to cpp file.
 // Required so unique_ptr can call delete on a known object.
-Hash::~Hash() {}
+Hash::~Hash()
+{
+}
 
 void
 hash_enable_debug(struct hash* hash,

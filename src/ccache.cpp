@@ -3987,7 +3987,8 @@ ccache(int argc, char* argv[])
   add_prefix(compiler_args, g_config.prefix_command().c_str());
 
   // In depend_mode, extend the direct hash.
-  struct hash* depend_mode_hash = g_config.depend_mode() ? direct_hash : (struct hash*)nullptr;
+  struct hash* depend_mode_hash =
+    g_config.depend_mode() ? direct_hash : (struct hash*)nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");

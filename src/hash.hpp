@@ -45,7 +45,8 @@ bool digests_equal(const struct digest* d1, const struct digest* d2);
 struct hash;
 
 // value semantic hash to replace 'struct hash' in the future
-class Hash {
+class Hash
+{
 public:
   Hash();
   Hash(const Hash& other);
@@ -55,7 +56,8 @@ public:
   explicit Hash(const struct hash& other);
 
   // temp during refactoring from 'struct hash'
-  operator hash*() {
+  operator hash*()
+  {
     return pimpl.get();
   }
 
