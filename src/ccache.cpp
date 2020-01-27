@@ -834,7 +834,9 @@ process_preprocessed_file(struct hash* hash, const char* path, bool pump)
       if (!has_absolute_include_headers) {
         has_absolute_include_headers = is_absolute_path(inc_path);
       }
+      char* saved_inc_path = inc_path;
       inc_path = x_strdup(make_relative_path(inc_path).c_str());
+      free(saved_inc_path);
 
       bool should_hash_inc_path = true;
       if (!g_config.hash_dir()) {
