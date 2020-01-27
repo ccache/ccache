@@ -85,7 +85,7 @@ struct StatsInfo
 };
 
 void stats_update(Context& ctx, enum stats stat);
-void stats_flush(Context& ctx);
+void stats_flush(void* context);
 unsigned stats_get_pending(Context& ctx, enum stats stat);
 void stats_zero(Context& ctx);
 void stats_summary(Context& ctx);

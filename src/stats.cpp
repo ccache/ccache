@@ -288,8 +288,9 @@ stats_flush_to_file(Context& ctx, const char* sfile, struct counters* updates)
 
 // Write counter updates in counter_updates to disk.
 void
-stats_flush(Context& ctx)
+stats_flush(void* context)
 {
+  Context& ctx = *static_cast<Context*>(context);
   stats_flush_to_file(ctx, ctx.stats_file, ctx.counter_updates);
 
   // TODO: is cleanup in Context OK?
