@@ -3475,10 +3475,12 @@ tmpdir()
 
 #endif // MTR_ENABLED
 
+void initialize(Context& ctx);
+
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
-static void
-initialize(Config& cfg)
+void
+initialize(Context& ctx)
 {
   bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
   if (enable_internal_trace) {
@@ -3490,53 +3492,55 @@ initialize(Config& cfg)
 
   char* p = getenv("CCACHE_CONFIGPATH");
   if (p) {
-    cfg.set_primary_config_path(p);
+    ctx.config.set_primary_config_path(p);
   } else {
-    cfg.set_secondary_config_path(
+    ctx.config.set_secondary_config_path(
       fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
-    cfg.update_from_file(cfg.secondary_config_path());
+    ctx.config.update_from_file(ctx.config.secondary_config_path());
     MTR_END("config", "conf_read_secondary");
 
-    if (cfg.cache_dir().empty()) {
+    if (ctx.config.cache_dir().empty()) {
       fatal("configuration setting \"cache_dir\" must not be the empty string");
     }
     if ((p = getenv("CCACHE_DIR"))) {
-      cfg.set_cache_dir(p);
+      ctx.config.set_cache_dir(p);
     }
-    if (cfg.cache_dir().empty()) {
+    if (ctx.config.cache_dir().empty()) {
       fatal("CCACHE_DIR must not be the empty string");
     }
 
-    cfg.set_primary_config_path(fmt::format("{}/ccache.conf", cfg.cache_dir()));
+    ctx.config.set_primary_config_path(
+      fmt::format("{}/ccache.conf", ctx.config.cache_dir()));
   }
 
   bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");
-  if (!cfg.update_from_file(cfg.primary_config_path()) && !cfg.disable()) {
+  if (!ctx.config.update_from_file(ctx.config.primary_config_path())
+      && !ctx.config.disable()) {
     should_create_initial_config = true;
   }
   MTR_END("config", "conf_read_primary");
 
   MTR_BEGIN("config", "conf_update_from_environment");
-  cfg.update_from_environment();
+  ctx.config.update_from_environment();
   MTR_END("config", "conf_update_from_environment");
 
   if (should_create_initial_config) {
-    create_initial_config_file(cfg, cfg.primary_config_path());
+    create_initial_config_file(ctx.config, ctx.config.primary_config_path());
   }
 
   exitfn_init();
-  // TODO, context
-  // exitfn_add_nullary(stats_flush);
+  // TODO, Context to void pointer
+  exitfn_add(stats_flush, &ctx);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
 
-  if (cfg.umask() != std::numeric_limits<uint32_t>::max()) {
-    umask(cfg.umask());
+  if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
+    umask(ctx.config.umask());
   }
 
   if (enable_internal_trace) {
@@ -3610,7 +3614,7 @@ ccache(Context& ctx, int argc, char* argv[])
 
   ctx.orig_args = args_init(argc, argv);
 
-  initialize(ctx.config);
+  initialize(ctx);
 
   // TODO, now calling init log HERE, not in vlog cc_log_argv
   // i.e. these functions MUST NOT be called until this line runs.
@@ -3873,15 +3877,15 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:
-      initialize(ctx.config);
+      initialize(ctx);
       return manifest_dump(optarg, stdout) ? 0 : 1;
 
     case DUMP_RESULT:
-      initialize(ctx.config);
+      initialize(ctx);
       return result_dump(ctx, optarg, stdout) ? 0 : 1;
 
     case HASH_FILE: {
-      initialize(ctx.config);
+      initialize(ctx);
       struct hash* hash = hash_init();
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
@@ -3896,13 +3900,13 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
     }
 
     case PRINT_STATS:
-      initialize(ctx.config);
+      initialize(ctx);
       stats_print(ctx);
       break;
 
     case 'c': // --cleanup
     {
-      initialize(ctx.config);
+      initialize(ctx);
       ProgressBar progress_bar("Cleaning...");
       clean_up_all(ctx.config,
                    [&](double progress) { progress_bar.update(progress); });
@@ -3914,7 +3918,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
 
     case 'C': // --clear
     {
-      initialize(ctx.config);
+      initialize(ctx);
       ProgressBar progress_bar("Clearing...");
       wipe_all(ctx.config,
                [&](double progress) { progress_bar.update(progress); });
@@ -3929,12 +3933,12 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
       x_exit(0);
 
     case 'k': // --get-config
-      initialize(ctx.config);
+      initialize(ctx);
       fmt::print("{}\n", ctx.config.get_string_value(optarg));
       break;
 
     case 'F': { // --max-files
-      initialize(ctx.config);
+      initialize(ctx);
       ctx.config.set_value_in_file(
         ctx.config.primary_config_path(), "max_files", optarg);
       unsigned files = atoi(optarg);
@@ -3947,7 +3951,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
     }
 
     case 'M': { // --max-size
-      initialize(ctx.config);
+      initialize(ctx);
       uint64_t size;
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
@@ -3965,7 +3969,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
     }
 
     case 'o': { // --set-config
-      initialize(ctx.config);
+      initialize(ctx);
       char* p = strchr(optarg, '=');
       if (!p) {
         fatal("missing equal sign in \"%s\"", optarg);
@@ -3979,12 +3983,12 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
     }
 
     case 'p': // --show-config
-      initialize(ctx.config);
+      initialize(ctx);
       ctx.config.visit_items(configuration_printer);
       break;
 
     case 's': // --show-stats
-      initialize(ctx.config);
+      initialize(ctx);
       stats_summary(ctx);
       break;
 
@@ -3994,7 +3998,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
 
     case 'x': // --show-compression
     {
-      initialize(ctx.config);
+      initialize(ctx);
       ProgressBar progress_bar("Scanning...");
       compress_stats(ctx.config,
                      [&](double progress) { progress_bar.update(progress); });
@@ -4003,7 +4007,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
 
     case 'X': // --recompress
     {
-      initialize(ctx.config);
+      initialize(ctx);
       int level;
       if (std::string(optarg) == "uncompressed") {
         level = 0;
@@ -4024,7 +4028,7 @@ ccache_main_options(Context& ctx, int argc, char* argv[])
     }
 
     case 'z': // --zero-stats
-      initialize(ctx.config);
+      initialize(ctx);
       stats_zero(ctx);
       printf("Statistics zeroed\n");
       break;
