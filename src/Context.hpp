@@ -207,4 +207,8 @@ struct Context : NonCopyable
      NULL,
      FLAG_NOZERO | FLAG_NEVER},
     {STATS_NONE, NULL, NULL, NULL, 0}};
+
+  // List of headers to ignore.
+  char** ignore_headers = nullptr;
+  size_t ignore_headers_len = 0;
 };

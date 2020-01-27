@@ -17,4 +17,9 @@ Context::~Context()
   free(cpp_stderr);
   free(manifest_stats_file);
   free(included_pch_file);
+
+  for (size_t i = 0; i < ignore_headers_len; i++) {
+    free(ignore_headers[i]);
+  }
+  free(ignore_headers);
 }

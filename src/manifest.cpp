@@ -29,7 +29,6 @@
 #include "ccache.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
-#include "legacy_globals.hpp"
 
 // Manifest data format
 // ====================
