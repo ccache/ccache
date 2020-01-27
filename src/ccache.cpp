@@ -3611,6 +3611,11 @@ ccache(Context& ctx, int argc, char* argv[])
   ctx.orig_args = args_init(argc, argv);
 
   initialize(ctx.config);
+
+  // TODO, now calling init log HERE, not in vlog cc_log_argv
+  // i.e. these functions MUST NOT be called until this line runs.
+  init_log(ctx.config);
+
   MTR_BEGIN("main", "find_compiler");
   find_compiler(ctx, argv);
   MTR_END("main", "find_compiler");

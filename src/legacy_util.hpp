@@ -22,6 +22,10 @@
 
 #include <string>
 
+class Config;
+
+bool init_log(const Config& cfg);
+
 void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char* prefix, char** argv);

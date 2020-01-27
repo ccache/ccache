@@ -79,12 +79,11 @@ static size_t debug_log_size;
 
 #define DEBUG_LOG_BUFFER_MARGIN 1024
 
-static bool
-init_log(void)
+// TODO
+// MUST be called before any cc_log()
+bool
+init_log(const Config& cfg)
 {
-  // TODO -- fake, legacy debug globals
-  Config cfg;
-
   if (debug_log_buffer || logfile || use_syslog) {
     return true;
   }
@@ -201,9 +200,10 @@ warn_log_fail(void)
 static void
 vlog(const char* format, va_list ap, bool log_updated_time)
 {
-  if (!init_log()) {
-    return;
-  }
+  // TODO, Danger?
+  //  if (!init_log()) {
+  //    return;
+  //  }
 
   va_list aq;
   va_copy(aq, ap);
@@ -259,9 +259,10 @@ cc_bulklog(const char* format, ...)
 void
 cc_log_argv(const char* prefix, char** argv)
 {
-  if (!init_log()) {
-    return;
-  }
+  // TODO, Danger?
+  //  if (!init_log()) {
+  //    return;
+  //  }
 
   log_prefix(true);
   if (logfile) {
