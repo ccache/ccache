@@ -58,12 +58,12 @@ public:
   // temp during refactoring from 'struct hash'
   operator hash*()
   {
-    return pimpl.get();
+    return m_pimpl.get();
   }
 
 private:
   // using pimpl pattern here so blake is not exposed to the rest of the code.
-  std::unique_ptr<struct hash> pimpl;
+  std::unique_ptr<struct hash> m_pimpl;
 };
 
 // Enable debug logging of hashed input to a binary and a text file.

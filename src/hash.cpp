@@ -65,30 +65,30 @@ do_debug_text(struct hash* hash, const void* s, size_t len)
   }
 }
 
-Hash::Hash() : pimpl(std::make_unique<hash>())
+Hash::Hash() : m_pimpl(std::make_unique<hash>())
 {
-  pimpl->debug_binary = nullptr;
-  pimpl->debug_text = nullptr;
+  m_pimpl->debug_binary = nullptr;
+  m_pimpl->debug_text = nullptr;
 
-  blake2b_init(&pimpl->state, DIGEST_SIZE);
+  blake2b_init(&m_pimpl->state, DIGEST_SIZE);
 }
 
-Hash::Hash(const Hash& other) : pimpl(std::make_unique<hash>())
+Hash::Hash(const Hash& other) : m_pimpl(std::make_unique<hash>())
 {
-  pimpl->state = other.pimpl->state;
-  pimpl->debug_binary = NULL;
-  pimpl->debug_text = NULL;
+  m_pimpl->state = other.m_pimpl->state;
+  m_pimpl->debug_binary = NULL;
+  m_pimpl->debug_text = NULL;
 }
 
-Hash::Hash(const struct hash& other) : pimpl(std::make_unique<hash>())
+Hash::Hash(const struct hash& other) : m_pimpl(std::make_unique<hash>())
 {
-  pimpl->state = other.state;
-  pimpl->debug_binary = NULL;
-  pimpl->debug_text = NULL;
+  m_pimpl->state = other.state;
+  m_pimpl->debug_binary = NULL;
+  m_pimpl->debug_text = NULL;
 }
 
-// Force destructor to cpp file.
-// Required so unique_ptr can call delete on a known object.
+// The destructor needs to be in the cpp file for std::unique_ptr to see the
+// complete class definition.
 Hash::~Hash()
 {
 }
