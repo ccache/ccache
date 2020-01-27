@@ -361,14 +361,14 @@ hash_command_output(Context& ctx,
     free((char*)command); // Original argument was replaced above.
   }
   if (ret == 0) {
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
     return false;
   }
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
   bool ok = hash_fd(hash, fd);
   if (!ok) {
     cc_log("Error hashing compiler check command output: %s", strerror(errno));
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
   DWORD exitcode;
@@ -378,13 +378,11 @@ hash_command_output(Context& ctx,
   CloseHandle(pi.hThread);
   if (exitcode != 0) {
     cc_log("Compiler check command returned %d", (int)exitcode);
-    stats_update(STATS_COMPCHECK);
+    stats_update(ctx, STATS_COMPCHECK);
     return false;
   }
   return ok;
 #else
-  (void)ctx;
-
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     fatal("pipe failed");
@@ -411,7 +409,7 @@ hash_command_output(Context& ctx,
     if (!ok) {
       cc_log("Error hashing compiler check command output: %s",
              strerror(errno));
-      stats_update(STATS_COMPCHECK);
+      stats_update(ctx, STATS_COMPCHECK);
     }
     close(pipefd[0]);
 
@@ -422,7 +420,7 @@ hash_command_output(Context& ctx,
     }
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
       cc_log("Compiler check command returned %d", WEXITSTATUS(status));
-      stats_update(STATS_COMPCHECK);
+      stats_update(ctx, STATS_COMPCHECK);
       return false;
     }
     return ok;

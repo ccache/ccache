@@ -20,6 +20,7 @@
 
 #include "Util.hpp"
 #include "args.hpp"
+#include "counters.hpp"
 
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),
@@ -37,4 +38,6 @@ Context::~Context()
     free(ignore_headers[i]);
   }
   free(ignore_headers);
+
+  counters_free(counter_updates);
 }

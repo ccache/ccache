@@ -43,8 +43,6 @@
 
 extern unsigned lock_staleness_limit;
 
-static struct counters* counter_updates;
-
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
 #define FLAG_NEVER 4  // never show
@@ -245,10 +243,10 @@ stats_write(const std::string& path, struct counters* counters)
 }
 
 static void
-init_counter_updates(void)
+init_counter_updates(Context& ctx)
 {
-  if (!counter_updates) {
-    counter_updates = counters_init(STATS_END);
+  if (!ctx.counter_updates) {
+    ctx.counter_updates = counters_init(STATS_END);
   }
 }
 
@@ -310,8 +308,8 @@ stats_update_size(Context& ctx,
 
   struct counters* updates;
   if (sfile == ctx.stats_file) {
-    init_counter_updates();
-    updates = counter_updates;
+    init_counter_updates(ctx);
+    updates = ctx.counter_updates;
   } else {
     updates = counters_init(STATS_END);
   }
@@ -428,26 +426,24 @@ void
 stats_flush(void* context)
 {
   Context& ctx = *static_cast<Context*>(context);
-  stats_flush_to_file(ctx.config, ctx.stats_file, counter_updates);
-  counters_free(counter_updates);
-  counter_updates = NULL;
+  stats_flush_to_file(ctx.config, ctx.stats_file, ctx.counter_updates);
 }
 
 // Update a normal stat.
 void
-stats_update(enum stats stat)
+stats_update(Context& ctx, enum stats stat)
 {
   assert(stat > STATS_NONE && stat < STATS_END);
-  init_counter_updates();
-  counter_updates->data[stat]++;
+  init_counter_updates(ctx);
+  ctx.counter_updates->data[stat]++;
 }
 
 // Get the pending update of a counter value.
 unsigned
-stats_get_pending(enum stats stat)
+stats_get_pending(Context& ctx, enum stats stat)
 {
-  init_counter_updates();
-  return counter_updates->data[stat];
+  init_counter_updates(ctx);
+  return ctx.counter_updates->data[stat];
 }
 
 // Sum and display the total stats for all cache dirs.
