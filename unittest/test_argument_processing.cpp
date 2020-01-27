@@ -23,7 +23,6 @@
 #include "../src/Util.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
-#include "../src/legacy_globals.hpp"
 #include "../src/stats.hpp"
 #include "framework.hpp"
 #include "util.hpp"

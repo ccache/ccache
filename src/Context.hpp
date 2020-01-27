@@ -89,4 +89,8 @@ struct Context : NonCopyable
 
   // The .gch/.pch/.pth file used for compilation.
   std::string included_pch_file;
+
+  // List of headers to ignore.
+  char** ignore_headers = nullptr;
+  size_t ignore_headers_len = 0;
 };

@@ -35,7 +35,6 @@
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
-#include "legacy_globals.hpp"
 #include "logging.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
@@ -480,8 +479,8 @@ do_remember_include_file(Context& ctx,
       canonical_len -= 2;
     }
 
-    for (size_t i = 0; i < ignore_headers_len; i++) {
-      char* ignore = ignore_headers[i];
+    for (size_t i = 0; i < ctx.ignore_headers_len; i++) {
+      char* ignore = ctx.ignore_headers[i];
       size_t ignore_len = strlen(ignore);
       if (ignore_len > canonical_len) {
         continue;
@@ -699,16 +698,16 @@ process_preprocessed_file(Context& ctx,
     return false;
   }
 
-  ignore_headers = NULL;
-  ignore_headers_len = 0;
+  ctx.ignore_headers = nullptr;
+  ctx.ignore_headers_len = 0;
   if (!ctx.config.ignore_headers_in_manifest().empty()) {
     char *header, *p, *q, *saveptr = NULL;
     p = x_strdup(ctx.config.ignore_headers_in_manifest().c_str());
     q = p;
     while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
-      ignore_headers = static_cast<char**>(
-        x_realloc(ignore_headers, (ignore_headers_len + 1) * sizeof(char*)));
-      ignore_headers[ignore_headers_len++] = x_strdup(header);
+      ctx.ignore_headers = static_cast<char**>(x_realloc(
+        ctx.ignore_headers, (ctx.ignore_headers_len + 1) * sizeof(char*)));
+      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header);
       q = NULL;
     }
     free(p);
@@ -3518,25 +3517,6 @@ initialize(int argc, char* argv[])
   }
 
   return *ctx;
-}
-
-template<class T>
-static void
-free_and_nullify(T*& ptr)
-{
-  free(ptr);
-  ptr = NULL;
-}
-
-// Reset the global state. Used by the test suite.
-void
-cc_reset()
-{
-  for (size_t i = 0; i < ignore_headers_len; i++) {
-    free_and_nullify(ignore_headers[i]);
-  }
-  free_and_nullify(ignore_headers);
-  ignore_headers_len = 0;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
