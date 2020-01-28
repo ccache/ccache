@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -25,7 +25,10 @@ CacheEntryWriter::CacheEntryWriter(FILE* stream,
                                    int8_t compression_level,
                                    uint64_t payload_size)
   : m_compressor(
-    Compressor::create_from_type(compression_type, stream, compression_level))
+    // clang-format off
+      Compressor::create_from_type(compression_type, stream, compression_level)
+    // clang-format on
+  )
 {
   uint8_t header_bytes[15];
   memcpy(header_bytes, magic, 4);
