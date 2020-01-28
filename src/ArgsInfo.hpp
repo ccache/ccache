@@ -22,6 +22,7 @@
 
 #include <string>
 
+// This class holds meta-information derived from the compiler arguments.
 struct ArgsInfo
 {
   // The source file.
