@@ -3618,7 +3618,7 @@ ccache(Context& ctx, int argc, char* argv[])
 
   initialize(ctx);
 
-  // TODO, now calling init log HERE, not in vlog cc_log_argv
+  // TODO!, now calling init log HERE, not in vlog cc_log_argv
   // i.e. these functions MUST NOT be called until this line runs.
   init_log(ctx.config);
 
@@ -4048,7 +4048,7 @@ int
 ccache_main(int argc, char* argv[])
 {
   try {
-    // TODO ptr, and LEAK to be available in atexit()
+    // TODO! ptr, and LEAK to be available in atexit()
     Context* ctx = new Context{};
 
     // Check if we are being invoked as "ccache".

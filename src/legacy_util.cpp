@@ -62,18 +62,24 @@
 #  include <tchar.h>
 #endif
 
+// TODO: remaining non-const globals
+// move Config::log_file() into a global?
+// would enable init_log() without args again
+
 // Destination for g_config.log_file.
 static FILE* logfile;
 
 // Whether to use syslog() instead.
 static bool use_syslog;
 
+//
 // Buffer used for logs in debug mode.
 static char* debug_log_buffer;
 
 // Allocated debug_log_buffer size.
 static size_t debug_log_buffer_capacity;
 
+//
 // The amount of log data stored in debug_log_buffer.
 static size_t debug_log_size;
 
@@ -186,7 +192,7 @@ static void warn_log_fail(void) ATTR_NORETURN;
 static void
 warn_log_fail(void)
 {
-  // TODO -- fake, legacy debug globals
+  // TODO! -- fake, legacy debug globals
   Config cfg;
 
   // Note: Can't call fatal() since that would lead to recursion.

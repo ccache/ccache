@@ -293,7 +293,7 @@ stats_flush(void* context)
   Context& ctx = *static_cast<Context*>(context);
   stats_flush_to_file(ctx, ctx.stats_file, ctx.counter_updates);
 
-  // TODO: is cleanup in Context OK?
+  // TODO!: is cleanup in Context OK?
   //  counters_free(ctx.counter_updates);
   //  ctx.counter_updates = NULL;
 }
