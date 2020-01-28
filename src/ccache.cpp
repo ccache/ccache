@@ -377,12 +377,14 @@ fclose_exitfn(void* context)
 static void
 dump_debug_log_buffer_exitfn(void* context)
 {
-  // TODO, place config.debug in context object as well
-  //  if (!config.debug()) {
-  //    return;
-  //  }
+  // TODO, now via context ptr
 
-  char* path = format("%s.ccache-log", (const char*)context);
+  Context& ctx = *static_cast<Context*>(context);
+  if (!ctx.config.debug()) {
+    return;
+  }
+
+  char* path = format("%s.ccache-log", ctx.args_info.output_obj.c_str());
   cc_dump_debug_log_buffer(path);
   free(path);
 }
@@ -3703,9 +3705,7 @@ ccache(Context& ctx, int argc, char* argv[])
   MTR_META_THREAD_NAME(ctx.args_info.output_obj);
 
   // Need to dump log buffer as the last exit function to not lose any logs.
-  char* non_const_output_obj =
-    const_cast<char*>(ctx.args_info.output_obj.c_str());
-  exitfn_add_last(dump_debug_log_buffer_exitfn, non_const_output_obj);
+  exitfn_add_last(dump_debug_log_buffer_exitfn, &ctx);
 
   FILE* debug_text_file = NULL;
   if (ctx.config.debug()) {
