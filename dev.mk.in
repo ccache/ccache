@@ -43,6 +43,7 @@ non_third_party_headers_without_cpp = \
     src/NullCompressor.hpp \
     src/NullDecompressor.hpp \
     src/ProgressBar.hpp \
+    src/ScopeGuard.hpp \
     src/Stat.hpp \
     src/StdMakeUnique.hpp \
     src/ThreadPool.hpp \

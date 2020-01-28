@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "src/ScopeGuard.hpp"
+
 struct args
 {
   char** argv;
@@ -39,3 +41,9 @@ void args_strip(struct args* args, const char* prefix);
 void args_remove_first(struct args* args);
 char* args_to_string(const struct args* args);
 bool args_equal(const struct args* args1, const struct args* args2);
+
+struct args_deleter
+{
+  void operator()(struct args*& arg);
+};
+using ArgsScopeGuard = ScopeGuard<args_deleter, struct args*>;

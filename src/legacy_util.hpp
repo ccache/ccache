@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include <string>
+
 void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char* prefix, char** argv);
@@ -78,3 +80,9 @@ char* read_text_file(const char* path, size_t size_hint);
 char* subst_env_in_string(const char* str, char** errmsg);
 void set_cloexec_flag(int fd);
 double time_seconds();
+
+// Convert an owned char* string `str` to an std::string and free `str`.
+std::string from_owned_cstr(char* str);
+
+// Convert a char* string `str` to an std::string, if `str` is NULL return "".
+std::string from_cstr(const char* str);

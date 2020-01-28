@@ -312,3 +312,10 @@ args_equal(const struct args* args1, const struct args* args2)
   }
   return true;
 }
+
+void
+args_deleter::operator()(struct args*& arg)
+{
+  args_free(arg);
+  arg = nullptr;
+}

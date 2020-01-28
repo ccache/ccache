@@ -23,6 +23,9 @@
 
 #include "counters.hpp"
 
+struct ArgsInfo;
+class Config;
+
 #ifndef MYNAME
 #  define MYNAME "ccache"
 #endif
@@ -36,8 +39,6 @@ enum guessed_compiler {
   GUESSED_PUMP,
   GUESSED_UNKNOWN
 };
-
-extern enum guessed_compiler guessed_compiler;
 
 #define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
 #define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
@@ -63,7 +64,9 @@ extern time_t time_of_compilation;
 extern bool output_is_precompiled_header;
 void block_signals();
 void unblock_signals();
-bool cc_process_args(struct args* args,
+bool cc_process_args(ArgsInfo& args_info,
+                     Config& config,
+                     struct args* args,
                      struct args** preprocessor_args,
                      struct args** extra_args_to_hash,
                      struct args** compiler_args);
