@@ -631,12 +631,9 @@ print_included_files(FILE* fp)
 static std::string
 make_relative_path(const char* path)
 {
-  std::string result;
-
   if (g_config.base_dir().empty()
       || !str_startswith(path, g_config.base_dir().c_str())) {
-    result = path;
-    return result;
+    return path;
   }
 
 #ifdef _WIN32
@@ -680,6 +677,8 @@ make_relative_path(const char* path)
     path_suffix = x_strdup(&path[dir_len]);
     path = dir;
   }
+
+  std::string result;
 
   canon_path = x_realpath(path);
   if (canon_path) {
@@ -1018,7 +1017,7 @@ result_name_from_depfile(const char* depfile, struct hash* hash)
       if (!has_absolute_include_headers) {
         has_absolute_include_headers = is_absolute_path(token);
       }
-      std::string path = make_relative_path(token).c_str();
+      std::string path = make_relative_path(token);
       remember_include_file(path, hash, false, hash);
     }
   }
@@ -3167,10 +3166,8 @@ cc_process_args(ArgsInfo& args_info,
       args_info.output_obj = args_info.input_file + ".gch";
     } else {
       string_view extension = found_S_opt ? ".s" : ".o";
-      args_info.output_obj = std::string(Util::base_name(args_info.input_file));
-
-      args_info.output_obj =
-        Util::change_extension(args_info.output_obj, extension);
+      args_info.output_obj = Util::change_extension(
+        Util::base_name(args_info.input_file), extension);
     }
   }
 
