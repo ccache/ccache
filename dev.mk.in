@@ -201,9 +201,11 @@ shellcheck: test/suites/*.bash
 format:
 	$(CLANG_FORMAT) -i $(non_third_party_headers) $(non_third_party_sources) $(test_sources)
 
-# pip install compiledb
 compile_commands.json:
 	$(COMPILEDB) -n $(MAKE) all unittest
+	# Remove redundant './' in front of include paths as this causes clang-tidy
+	# to believe it's a different path (fixes are applied twice).
+	sed -i 's/\-I.\//-I/' compile_commands.json
 
 .PHONY: tidy
 tidy: compile_commands.json
