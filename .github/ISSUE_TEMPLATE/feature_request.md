@@ -1,13 +1,11 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a new feature for this project
 title: ''
 labels: feature
 assignees: ''
 
 ---
 ### Description ###
-<!-- How do you want ccache to work or behave? -->
-
-
+<!-- Describe below how you want ccache to work or behave: -->
 

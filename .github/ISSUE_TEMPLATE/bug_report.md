@@ -24,8 +24,9 @@ assignees: ''
 
 
 ### Environment ###
-<!-- Which ccache version and (if applicable) compiler, OS, file system, -->
-<!-- etc., did you use? -->
+<!-- Which ccache version did you use? -->
 
-ccache version X.Y
-...
+ccache version X.Y.Z
+
+<!-- If applicable, add more info such as compiler, OS and file system below: -->
+
