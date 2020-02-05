@@ -25,41 +25,13 @@ Description
 
 ccache is a compiler cache. It speeds up recompilation by caching the result of
 previous compilations and detecting when the same compilation is being done
-again. Supported languages are C, C\+\+, Objective-C and Objective-C++.
+again.
 
 ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
 tell that you are using ccache is the speed. Currently known exceptions to this
-goal are listed under <<_caveats,CAVEATS>>. If you ever discover an
-undocumented case where ccache changes the output of your compiler, please let
-us know.
-
-
-Features
-~~~~~~~~
-
-* Keeps statistics on hits/misses.
-* Automatic cache size management.
-* Can cache compilations that generate warnings.
-* Easy installation.
-* Low overhead.
-* Compresses data in the cache to save disk space.
-* Checksums data in the cache to detect corruption.
-* Optionally uses file cloning (AKA “copy on write” or reflinks) to avoid
-  copies (not supported by all file systems).
-* Optionally uses hard links avoid copies.
-
-
-Limitations
-~~~~~~~~~~~
-
-* Only knows how to cache the compilation of a single
-  C/C\+\+/Objective-C/Objective-C++ file. Other types of compilations
-  (multi-file compilation, linking, etc) will silently fall back to running the
-  real compiler.
-* Only works with GCC and compilers that behave similar enough.
-* Some compiler flags are not supported. If such a flag is detected, ccache
-  will silently fall back to running the real compiler.
+goal are listed under <<_caveats,CAVEATS>>. If you discover an undocumented case
+where ccache changes the output of your compiler, please let us know.
 
 
 Run modes
