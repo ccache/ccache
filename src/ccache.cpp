@@ -3487,11 +3487,14 @@ initialize()
 #endif
   }
 
+  set_up_config(g_config);
+
+  init_log(g_config);
+
   exitfn_init();
   exitfn_add_nullary(stats_flush);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
-  set_up_config(g_config);
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
