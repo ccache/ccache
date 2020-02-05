@@ -98,6 +98,7 @@ recompress_file(const std::string& stats_file,
     return;
   }
 
+  cc_log("Recompressing %s to level %d", cache_file.path().c_str(), level);
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
   auto writer = create_writer(atomic_new_file.stream(),
                               *reader,
@@ -123,6 +124,7 @@ recompress_file(const std::string& stats_file,
     Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
 
   stats_update_size(stats_file.c_str(), new_size - old_size, 0);
+  cc_log("Recompression of %s done", cache_file.path().c_str());
 }
 
 void
