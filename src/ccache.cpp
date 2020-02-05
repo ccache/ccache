@@ -120,7 +120,7 @@ static const char USAGE_TEXT[] =
   "        --print-stats         print statistics counter IDs and "
   "corresponding\n"
   "                              values in machine-parsable format\n"
-  "    -o, --set-config=KEY=VAL  set configuration item KEY to value VAL\n"
+  "    -o, --set-config KEY=VAL  set configuration item KEY to value VAL\n"
   "\n"
   "See also <https://ccache.dev>.\n";
 
