@@ -19,7 +19,7 @@
 #include "ZstdCompressor.hpp"
 
 #include "Error.hpp"
-#include "legacy_util.hpp"
+#include "logging.hpp"
 
 const uint8_t k_default_zstd_compression_level = -1;
 

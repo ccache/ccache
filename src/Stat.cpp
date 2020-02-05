@@ -18,7 +18,7 @@
 
 #include "Stat.hpp"
 
-#include "legacy_util.hpp"
+#include "logging.hpp"
 
 #include "third_party/fmt/core.h"
 

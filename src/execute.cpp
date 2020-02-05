@@ -23,6 +23,7 @@
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
+#include "logging.hpp"
 
 using nonstd::string_view;
 

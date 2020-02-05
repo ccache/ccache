@@ -35,6 +35,7 @@
 #include "hashutil.hpp"
 #include "language.hpp"
 #include "legacy_globals.hpp"
+#include "logging.hpp"
 #include "manifest.hpp"
 #include "result.hpp"
 #include "stats.hpp"

@@ -19,6 +19,7 @@
 #include "exitfn.hpp"
 
 #include "legacy_util.hpp"
+#include "logging.hpp"
 
 struct exit_function
 {

@@ -61,6 +61,7 @@ non_third_party_sources = \
     src/legacy_globals.cpp \
     src/legacy_util.cpp \
     src/lockfile.cpp \
+    src/logging.cpp \
     src/manifest.cpp \
     src/result.cpp \
     src/stats.cpp

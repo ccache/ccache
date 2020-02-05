@@ -21,6 +21,7 @@
 
 #include "CacheFile.hpp"
 #include "Config.hpp"
+#include "logging.hpp"
 #include "stats.hpp"
 
 #include <algorithm>

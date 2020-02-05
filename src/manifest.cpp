@@ -29,6 +29,7 @@
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "legacy_globals.hpp"
+#include "logging.hpp"
 
 // Manifest data format
 // ====================

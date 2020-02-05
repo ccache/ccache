@@ -22,6 +22,7 @@
 #include "args.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
+#include "logging.hpp"
 #include "macroskip.hpp"
 #include "stats.hpp"
 
