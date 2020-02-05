@@ -3973,7 +3973,7 @@ ccache_main_options(int argc, char* argv[])
 
     case 'o': { // --set-config
       initialize();
-      char* p = strchr(optarg, '=');
+      char* p = strchr(optarg + 1, '='); // Improve error message for -o=K=V
       if (!p) {
         fatal("missing equal sign in \"%s\"", optarg);
       }
