@@ -45,6 +45,9 @@
 // Destination for g_config.log_file.
 static FILE* logfile;
 
+// Path to the logfile.
+static std::string logfile_path;
+
 // Whether to use syslog() instead.
 static bool use_syslog;
 
@@ -59,28 +62,32 @@ static size_t debug_log_size;
 
 #define DEBUG_LOG_BUFFER_MARGIN 1024
 
-static bool
-init_log(void)
+// Initialize logging. Call only once.
+bool
+init_log(const Config& config)
 {
-  if (debug_log_buffer || logfile || use_syslog) {
-    return true;
+  logfile_path = config.log_file();
+
+  if (logfile_path.empty()) {
+    return false;
   }
-  if (g_config.debug()) {
+
+  if (config.debug()) {
     debug_log_buffer_capacity = DEBUG_LOG_BUFFER_MARGIN;
     debug_log_buffer = static_cast<char*>(x_malloc(debug_log_buffer_capacity));
     debug_log_size = 0;
   }
-  if (g_config.log_file().empty()) {
-    return g_config.debug();
+  if (config.log_file().empty()) {
+    return config.debug();
   }
 #ifdef HAVE_SYSLOG
-  if (g_config.log_file() == "syslog") {
+  if (config.log_file() == "syslog") {
     use_syslog = true;
     openlog("ccache", LOG_PID, LOG_USER);
     return true;
   }
 #endif
-  logfile = fopen(g_config.log_file().c_str(), "a");
+  logfile = fopen(logfile_path.c_str(), "a");
   if (logfile) {
 #ifndef _WIN32
     set_cloexec_flag(fileno(logfile));
@@ -152,7 +159,7 @@ warn_log_fail(void)
   // Note: Can't call fatal() since that would lead to recursion.
   fprintf(stderr,
           "ccache: error: Failed to write to %s: %s\n",
-          g_config.log_file().c_str(),
+          logfile_path.c_str(),
           strerror(errno));
   x_exit(EXIT_FAILURE);
 }
@@ -160,7 +167,7 @@ warn_log_fail(void)
 static void
 vlog(const char* format, va_list ap, bool log_updated_time)
 {
-  if (!init_log()) {
+  if (!(debug_log_buffer || logfile || use_syslog)) {
     return;
   }
 
@@ -218,7 +225,7 @@ cc_bulklog(const char* format, ...)
 void
 cc_log_argv(const char* prefix, char** argv)
 {
-  if (!init_log()) {
+  if (!(debug_log_buffer || logfile || use_syslog)) {
     return;
   }
 
