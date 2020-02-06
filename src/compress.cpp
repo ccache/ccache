@@ -117,6 +117,8 @@ recompress_file(const std::string& stats_file,
   reader->finalize();
   writer->finalize();
 
+  file.close();
+
   uint64_t old_size =
     Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
   atomic_new_file.commit();

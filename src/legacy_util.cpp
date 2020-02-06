@@ -1267,9 +1267,8 @@ x_rename(const char* oldpath, const char* newpath)
   return rename(oldpath, newpath);
 #else
   // Windows' rename() refuses to overwrite an existing file.
-  unlink(newpath); // Not x_unlink, as x_unlink calls x_rename.
   // If the function succeeds, the return value is nonzero.
-  if (MoveFileA(oldpath, newpath) == 0) {
+  if (MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING) == 0) {
     LPVOID lp_msg_buf;
     DWORD dw = GetLastError();
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
