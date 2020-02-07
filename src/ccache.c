@@ -914,7 +914,7 @@ process_preprocessed_file(struct hash *hash, const char *path, bool pump)
 
 	init_included_files_table();
 
-	char *cwd = gnu_getcwd();
+	char *cwd = get_cwd();
 
 	// Bytes between p and q are pending to be hashed.
 	char *p = data;
@@ -1910,7 +1910,7 @@ calculate_common_hash(struct args *args, struct hash *hash)
 
 	// Possibly hash the current working directory.
 	if (generating_debuginfo && conf->hash_dir) {
-		char *cwd = gnu_getcwd();
+		char *cwd = get_cwd();
 		for (size_t i = 0; i < debug_prefix_maps_len; i++) {
 			char *map = debug_prefix_maps[i];
 			char *sep = strchr(map, '=');

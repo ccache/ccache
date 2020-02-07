@@ -3,7 +3,7 @@
 # A simple test suite for ccache.
 #
 # Copyright (C) 2002-2007 Andrew Tridgell
-# Copyright (C) 2009-2019 Joel Rosdahl
+# Copyright (C) 2009-2020 Joel Rosdahl
 #
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -262,8 +262,12 @@ EOF
 
     cd /
     remove_cache
-    rm -rf $ABS_TESTDIR/run
-    mkdir $ABS_TESTDIR/run
+    rm -rf $ABS_TESTDIR/run $ABS_TESTDIR/run.real
+
+    # Verify that tests behave well when apparent CWD != actual CWD.
+    mkdir $ABS_TESTDIR/run.real
+    ln -s run.real $ABS_TESTDIR/run
+
     cd $ABS_TESTDIR/run
     if type SUITE_${suite_name}_SETUP >/dev/null 2>&1; then
         SUITE_${suite_name}_SETUP
