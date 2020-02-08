@@ -87,6 +87,13 @@ base_name(string_view path)
   return n == std::string::npos ? path : path.substr(n + 1);
 }
 
+std::string
+change_extension(string_view path, string_view new_ext)
+{
+  string_view without_ext = Util::remove_extension(path);
+  return std::string(without_ext).append(new_ext.data(), new_ext.length());
+}
+
 bool
 create_dir(string_view dir)
 {
@@ -141,49 +148,6 @@ dir_name(string_view path)
   return n == 0 ? "/" : path.substr(0, n);
 }
 
-string_view
-get_extension(string_view path)
-{
-#ifndef _WIN32
-  const char stop_at_chars[] = "./";
-#else
-  const char stop_at_chars[] = "./\\";
-#endif
-  size_t pos = path.find_last_of(stop_at_chars);
-  if (pos == string_view::npos || path.at(pos) == '/') {
-    return {};
-#ifdef _WIN32
-  } else if (path.at(pos) == '\\') {
-    return {};
-#endif
-  } else {
-    return path.substr(pos);
-  }
-}
-
-string_view
-remove_extension(string_view path)
-{
-  return path.substr(0, path.length() - get_extension(path).length());
-}
-
-std::string
-change_extension(string_view path, string_view new_ext)
-{
-  string_view without_ext = Util::remove_extension(path);
-  return std::string(without_ext).append(new_ext.data(), new_ext.length());
-}
-
-string_view
-get_truncated_base_name(string_view path, size_t max_length)
-{
-  string_view input_base = Util::base_name(path);
-  size_t dot_pos = input_base.find('.');
-  size_t truncate_pos =
-    std::min(max_length, std::min(input_base.size(), dot_pos));
-  return input_base.substr(0, truncate_pos);
-}
-
 bool
 ends_with(string_view string, string_view suffix)
 {
@@ -204,6 +168,26 @@ for_each_level_1_subdir(const std::string& cache_dir,
     });
   }
   progress_receiver(1.0);
+}
+
+string_view
+get_extension(string_view path)
+{
+#ifndef _WIN32
+  const char stop_at_chars[] = "./";
+#else
+  const char stop_at_chars[] = "./\\";
+#endif
+  size_t pos = path.find_last_of(stop_at_chars);
+  if (pos == string_view::npos || path.at(pos) == '/') {
+    return {};
+#ifdef _WIN32
+  } else if (path.at(pos) == '\\') {
+    return {};
+#endif
+  } else {
+    return path.substr(pos);
+  }
 }
 
 void
@@ -241,6 +225,16 @@ get_path_in_cache(string_view cache_dir,
   return path;
 }
 
+string_view
+get_truncated_base_name(string_view path, size_t max_length)
+{
+  string_view input_base = Util::base_name(path);
+  size_t dot_pos = input_base.find('.');
+  size_t truncate_pos =
+    std::min(max_length, std::min(input_base.size(), dot_pos));
+  return input_base.substr(0, truncate_pos);
+}
+
 int
 parse_int(const std::string& value)
 {
@@ -267,6 +261,12 @@ read_file(const std::string& path)
   }
   return std::string(std::istreambuf_iterator<char>(file),
                      std::istreambuf_iterator<char>());
+}
+
+string_view
+remove_extension(string_view path)
+{
+  return path.substr(0, path.length() - get_extension(path).length());
 }
 
 bool

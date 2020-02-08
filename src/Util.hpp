@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -42,25 +42,6 @@ typedef std::function<void(const std::string& /*dir_path*/,
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
 
-// Return the file extension (including the dot) as a view into `path`. If
-// `path` has no file extension, an empty string_view is returned.
-nonstd::string_view get_extension(nonstd::string_view path);
-
-// Return a view into `path` containing the given path without the filename
-// extension as determined by `get_extension()`.
-nonstd::string_view remove_extension(nonstd::string_view path);
-
-// Remove the extension via `remove_extension()`, then add `new_ext`. `new_ext`
-// should start with a dot, no extra dot is inserted.
-std::string change_extension(nonstd::string_view path,
-                             nonstd::string_view new_ext);
-
-// Return a shortened view into the base name of `path`. This view starts at the
-// beginning of the base name and ends at either the position the first dot, or
-// `max_length`, or the length of the base name, whichever is the shortest.
-nonstd::string_view get_truncated_base_name(nonstd::string_view path,
-                                            size_t max_length);
-
 // Get an integer value from bytes in big endian order.
 //
 // Parameters:
@@ -90,6 +71,11 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 {
   value = buffer[0];
 }
+
+// Remove the extension via `remove_extension()`, then add `new_ext`. `new_ext`
+// should start with a dot, no extra dot is inserted.
+std::string change_extension(nonstd::string_view path,
+                             nonstd::string_view new_ext);
 
 // Create a directory if needed, including its parents if needed.
 //
@@ -123,6 +109,10 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Return the file extension (including the dot) as a view into `path`. If
+// `path` has no file extension, an empty string_view is returned.
+nonstd::string_view get_extension(nonstd::string_view path);
+
 // Get a list of files in a level 1 subdirectory of the cache.
 //
 // The function works under the assumption that directory entries with one
@@ -154,6 +144,11 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint32_t levels,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
+// Return a shortened view into the base name of `path`. This view starts at the
+// beginning of the base name and ends at either the position the first dot, or
+// `max_length`, or the length of the base name, whichever is the shortest.
+nonstd::string_view get_truncated_base_name(nonstd::string_view path,
+                                            size_t max_length);
 
 // Write bytes in big endian order from an integer value.
 //
@@ -193,6 +188,10 @@ int parse_int(const std::string& value);
 //
 // Throws Error on error.
 std::string read_file(const std::string& path);
+
+// Return a view into `path` containing the given path without the filename
+// extension as determined by `get_extension()`.
+nonstd::string_view remove_extension(nonstd::string_view path);
 
 // Return true if prefix is a prefix of string.
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
