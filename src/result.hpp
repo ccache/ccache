@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include "logging.hpp"
+
 #include <map>
 #include <string>
 

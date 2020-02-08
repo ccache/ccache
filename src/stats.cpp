@@ -27,6 +27,7 @@
 #include "counters.hpp"
 #include "hashutil.hpp"
 #include "lockfile.hpp"
+#include "logging.hpp"
 
 #include <cmath>
 #include <fcntl.h>

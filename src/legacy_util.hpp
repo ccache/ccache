@@ -22,13 +22,6 @@
 
 #include <string>
 
-void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_argv(const char* prefix, char** argv);
-void cc_dump_debug_log_buffer(const char* path);
-void fatal(const char* format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
-void warn(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-
 bool copy_fd(int fd_in, int fd_out);
 bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);

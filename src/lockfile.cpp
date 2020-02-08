@@ -19,6 +19,7 @@
 #include "lockfile.hpp"
 
 #include "Util.hpp"
+#include "logging.hpp"
 
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale
