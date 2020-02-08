@@ -3436,7 +3436,7 @@ tmpdir()
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
-setup_config(Config& config)
+set_up_config(Config& config)
 {
   char* p = getenv("CCACHE_CONFIGPATH");
   if (p) {
@@ -3500,7 +3500,7 @@ initialize()
   exitfn_add_nullary(stats_flush);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
-  setup_config(g_config);
+  set_up_config(g_config);
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
@@ -4037,9 +4037,9 @@ ccache_main_options(int argc, char* argv[])
       x_exit(1);
     }
 
-    // Some of the above switches might have changed config settings, so
-    // run the setup again.
-    setup_config(g_config);
+    // Some of the above switches might have changed config settings, so run the
+    // setup again.
+    set_up_config(g_config);
   }
 
   return 0;
