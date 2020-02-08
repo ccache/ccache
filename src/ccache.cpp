@@ -3436,7 +3436,57 @@ tmpdir()
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
-initialize(void)
+setup_config(Config& config)
+{
+  char* p = getenv("CCACHE_CONFIGPATH");
+  if (p) {
+    config.set_primary_config_path(p);
+  } else {
+    config.set_secondary_config_path(
+      fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
+    MTR_BEGIN("config", "conf_read_secondary");
+    // A missing config file in SYSCONFDIR is OK so don't check return value.
+    config.update_from_file(config.secondary_config_path());
+    MTR_END("config", "conf_read_secondary");
+
+    if (config.cache_dir().empty()) {
+      fatal("configuration setting \"cache_dir\" must not be the empty string");
+    }
+    if ((p = getenv("CCACHE_DIR"))) {
+      config.set_cache_dir(p);
+    }
+    if (config.cache_dir().empty()) {
+      fatal("CCACHE_DIR must not be the empty string");
+    }
+
+    config.set_primary_config_path(
+      fmt::format("{}/ccache.conf", config.cache_dir()));
+  }
+
+  bool should_create_initial_config = false;
+  MTR_BEGIN("config", "conf_read_primary");
+  if (!config.update_from_file(config.primary_config_path())
+      && !config.disable()) {
+    should_create_initial_config = true;
+  }
+  MTR_END("config", "conf_read_primary");
+
+  MTR_BEGIN("config", "conf_update_from_environment");
+  config.update_from_environment();
+  MTR_END("config", "conf_update_from_environment");
+
+  if (should_create_initial_config) {
+    create_initial_config_file(config.primary_config_path());
+  }
+
+  if (g_config.umask() != std::numeric_limits<uint32_t>::max()) {
+    umask(g_config.umask());
+  }
+}
+
+// Initialize ccache, must be called once before anything else is run.
+static void
+initialize()
 {
   bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
   if (enable_internal_trace) {
@@ -3446,57 +3496,14 @@ initialize(void)
 #endif
   }
 
-  char* p = getenv("CCACHE_CONFIGPATH");
-  if (p) {
-    g_config.set_primary_config_path(p);
-  } else {
-    g_config.set_secondary_config_path(
-      fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
-    MTR_BEGIN("config", "conf_read_secondary");
-    // A missing config file in SYSCONFDIR is OK so don't check return value.
-    g_config.update_from_file(g_config.secondary_config_path());
-    MTR_END("config", "conf_read_secondary");
-
-    if (g_config.cache_dir().empty()) {
-      fatal("configuration setting \"cache_dir\" must not be the empty string");
-    }
-    if ((p = getenv("CCACHE_DIR"))) {
-      g_config.set_cache_dir(p);
-    }
-    if (g_config.cache_dir().empty()) {
-      fatal("CCACHE_DIR must not be the empty string");
-    }
-
-    g_config.set_primary_config_path(
-      fmt::format("{}/ccache.conf", g_config.cache_dir()));
-  }
-
-  bool should_create_initial_config = false;
-  MTR_BEGIN("config", "conf_read_primary");
-  if (!g_config.update_from_file(g_config.primary_config_path())
-      && !g_config.disable()) {
-    should_create_initial_config = true;
-  }
-  MTR_END("config", "conf_read_primary");
-
-  MTR_BEGIN("config", "conf_update_from_environment");
-  g_config.update_from_environment();
-  MTR_END("config", "conf_update_from_environment");
-
-  if (should_create_initial_config) {
-    create_initial_config_file(g_config.primary_config_path());
-  }
-
   exitfn_init();
   exitfn_add_nullary(stats_flush);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
+  setup_config(g_config);
+
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
-
-  if (g_config.umask() != std::numeric_limits<uint32_t>::max()) {
-    umask(g_config.umask());
-  }
 
   if (enable_internal_trace) {
 #ifdef MTR_ENABLED
@@ -3877,20 +3884,19 @@ ccache_main_options(int argc, char* argv[])
     {"zero-stats", no_argument, 0, 'z'},
     {0, 0, 0, 0}};
 
+  initialize();
+
   int c;
   while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, NULL))
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:
-      initialize();
       return manifest_dump(optarg, stdout) ? 0 : 1;
 
     case DUMP_RESULT:
-      initialize();
       return result_dump(optarg, stdout) ? 0 : 1;
 
     case HASH_FILE: {
-      initialize();
       struct hash* hash = hash_init();
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
@@ -3905,13 +3911,11 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case PRINT_STATS:
-      initialize();
       stats_print();
       break;
 
     case 'c': // --cleanup
     {
-      initialize();
       ProgressBar progress_bar("Cleaning...");
       clean_up_all(g_config,
                    [&](double progress) { progress_bar.update(progress); });
@@ -3923,7 +3927,6 @@ ccache_main_options(int argc, char* argv[])
 
     case 'C': // --clear
     {
-      initialize();
       ProgressBar progress_bar("Clearing...");
       wipe_all(g_config,
                [&](double progress) { progress_bar.update(progress); });
@@ -3938,12 +3941,10 @@ ccache_main_options(int argc, char* argv[])
       x_exit(0);
 
     case 'k': // --get-config
-      initialize();
       fmt::print("{}\n", g_config.get_string_value(optarg));
       break;
 
     case 'F': { // --max-files
-      initialize();
       g_config.set_value_in_file(
         g_config.primary_config_path(), "max_files", optarg);
       unsigned files = atoi(optarg);
@@ -3956,7 +3957,6 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'M': { // --max-size
-      initialize();
       uint64_t size;
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
@@ -3973,8 +3973,7 @@ ccache_main_options(int argc, char* argv[])
       break;
     }
 
-    case 'o': { // --set-config
-      initialize();
+    case 'o': {                          // --set-config
       char* p = strchr(optarg + 1, '='); // Improve error message for -o=K=V
       if (!p) {
         fatal("missing equal sign in \"%s\"", optarg);
@@ -3987,12 +3986,10 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'p': // --show-config
-      initialize();
       g_config.visit_items(configuration_printer);
       break;
 
     case 's': // --show-stats
-      initialize();
       stats_summary();
       break;
 
@@ -4002,7 +3999,6 @@ ccache_main_options(int argc, char* argv[])
 
     case 'x': // --show-compression
     {
-      initialize();
       ProgressBar progress_bar("Scanning...");
       compress_stats(g_config,
                      [&](double progress) { progress_bar.update(progress); });
@@ -4011,7 +4007,6 @@ ccache_main_options(int argc, char* argv[])
 
     case 'X': // --recompress
     {
-      initialize();
       int level;
       if (std::string(optarg) == "uncompressed") {
         level = 0;
@@ -4033,7 +4028,6 @@ ccache_main_options(int argc, char* argv[])
     }
 
     case 'z': // --zero-stats
-      initialize();
       stats_zero();
       printf("Statistics zeroed\n");
       break;
@@ -4042,6 +4036,10 @@ ccache_main_options(int argc, char* argv[])
       fputs(USAGE_TEXT, stderr);
       x_exit(1);
     }
+
+    // Some of the above switches might have changed config settings, so
+    // run the setup again.
+    setup_config(g_config);
   }
 
   return 0;
