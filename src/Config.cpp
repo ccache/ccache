@@ -19,7 +19,7 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
-#include "Error.hpp"
+#include "exceptions.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
 

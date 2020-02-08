@@ -19,7 +19,7 @@
 #include "Compression.hpp"
 
 #include "Config.hpp"
-#include "Error.hpp"
+#include "exceptions.hpp"
 
 namespace Compression {
 

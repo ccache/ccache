@@ -20,7 +20,6 @@
 #include "ccache.hpp"
 
 #include "ArgsInfo.hpp"
-#include "Error.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
 #include "ScopeGuard.hpp"
@@ -29,6 +28,7 @@
 #include "cleanup.hpp"
 #include "compopt.hpp"
 #include "compress.hpp"
+#include "exceptions.hpp"
 #include "execute.hpp"
 #include "exitfn.hpp"
 #include "hash.hpp"
@@ -186,22 +186,13 @@ add_prefix(struct args* args, const char* prefix_command)
   args_free(prefix);
 }
 
-static void failed(void) ATTR_NORETURN;
+static void failed(enum stats stat = STATS_NONE) ATTR_NORETURN;
 
 // Something went badly wrong - just execute the real compiler.
 static void
-failed(void)
+failed(enum stats stat)
 {
-  assert(orig_args);
-
-  args_strip(orig_args, "--ccache-");
-  add_prefix(orig_args, g_config.prefix_command().c_str());
-
-  cc_log("Failed; falling back to running the real compiler");
-  cc_log_argv("Executing ", orig_args->argv);
-  exitfn_call();
-  execv(orig_args->argv[0], orig_args->argv);
-  fatal("execv of %s failed: %s", orig_args->argv[0], strerror(errno));
+  throw Failure(stat);
 }
 
 static const char*
@@ -3603,11 +3594,12 @@ configuration_printer(const std::string& key,
   fmt::print("({}) {} = {}\n", origin, key, value);
 }
 
-static void ccache(int argc, char* argv[]) ATTR_NORETURN;
+static void cache_compilation(int argc, char* argv[]) ATTR_NORETURN;
+static void do_cache_compilation(char* argv[]) ATTR_NORETURN;
 
-// The main ccache driver function.
+// The entry point when invoked to cache a compilation.
 static void
-ccache(int argc, char* argv[])
+cache_compilation(int argc, char* argv[])
 {
 #ifndef _WIN32
   set_up_signal_handlers();
@@ -3619,10 +3611,34 @@ ccache(int argc, char* argv[])
   orig_args = args_init(argc, argv);
 
   initialize();
+
   MTR_BEGIN("main", "find_compiler");
   find_compiler(argv);
   MTR_END("main", "find_compiler");
 
+  try {
+    do_cache_compilation(argv);
+  } catch (const Failure& e) {
+    if (e.stat() != STATS_NONE) {
+      stats_update(e.stat());
+    }
+
+    assert(orig_args);
+
+    args_strip(orig_args, "--ccache-");
+    add_prefix(orig_args, g_config.prefix_command().c_str());
+
+    cc_log("Failed; falling back to running the real compiler");
+    cc_log_argv("Executing ", orig_args->argv);
+    exitfn_call();
+    execv(orig_args->argv[0], orig_args->argv);
+    fatal("execv of %s failed: %s", orig_args->argv[0], strerror(errno));
+  }
+}
+
+static void
+do_cache_compilation(char* argv[])
+{
   MTR_BEGIN("main", "clean_up_internal_tempdir");
   if (g_config.temporary_dir().empty()) {
     clean_up_internal_tempdir();
@@ -3856,7 +3872,7 @@ ccache(int argc, char* argv[])
 
 // The main program when not doing a compile.
 static int
-ccache_main_options(int argc, char* argv[])
+handle_main_options(int argc, char* argv[])
 {
   enum longopts {
     DUMP_MANIFEST,
@@ -4061,13 +4077,13 @@ ccache_main(int argc, char* argv[])
       // If the first argument isn't an option, then assume we are being passed
       // a compiler name and options.
       if (argv[1][0] == '-') {
-        return ccache_main_options(argc, argv);
+        return handle_main_options(argc, argv);
       }
     }
 
-    ccache(argc, argv);
-  } catch (const Error& e) {
-    fmt::print("ccache: error: {}\n", e.what());
-    return 1;
+    cache_compilation(argc, argv);
+  } catch (const ErrorBase& e) {
+    fmt::print(stderr, "ccache: error: {}\n", e.what());
+    return EXIT_FAILURE;
   }
 }

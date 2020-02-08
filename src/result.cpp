@@ -22,7 +22,7 @@
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
 #include "Config.hpp"
-#include "Error.hpp"
+#include "exceptions.hpp"
 #include "File.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"

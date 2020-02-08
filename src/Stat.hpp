@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "Error.hpp"
+#include "exceptions.hpp"
 
 #include <string>
 

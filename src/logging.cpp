@@ -20,6 +20,7 @@
 #include "logging.hpp"
 
 #include "Config.hpp"
+#include "exceptions.hpp"
 #include "execute.hpp"
 
 #ifdef HAVE_SYSLOG_H

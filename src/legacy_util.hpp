@@ -22,6 +22,8 @@
 
 #include <string>
 
+void fatal(const char* format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
+
 bool copy_fd(int fd_in, int fd_out);
 bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);

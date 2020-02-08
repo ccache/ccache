@@ -18,7 +18,7 @@
 
 #include "NullCompressor.hpp"
 
-#include "Error.hpp"
+#include "exceptions.hpp"
 
 NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
 {

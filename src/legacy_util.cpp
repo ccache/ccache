@@ -19,8 +19,8 @@
 
 #include "legacy_util.hpp"
 
-#include "Error.hpp"
 #include "Util.hpp"
+#include "exceptions.hpp"
 #include "logging.hpp"
 
 #include "third_party/fmt/core.h"
@@ -85,10 +85,7 @@ fatal(const char* format, ...)
   vsnprintf(msg, sizeof(msg), format, ap);
   va_end(ap);
 
-  cc_log("FATAL: %s", msg);
-  fprintf(stderr, "ccache: error: %s\n", msg);
-
-  x_exit(1);
+  throw FatalError(msg);
 }
 
 // Copy all data from fd_in to fd_out.

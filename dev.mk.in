@@ -36,7 +36,6 @@ built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers_without_cpp = \
     src/Checksum.hpp \
-    src/Error.hpp \
     src/File.hpp \
     src/FormatNonstdStringView.hpp \
     src/NonCopyable.hpp \
@@ -47,6 +46,7 @@ non_third_party_headers_without_cpp = \
     src/Stat.hpp \
     src/StdMakeUnique.hpp \
     src/ThreadPool.hpp \
+    src/exceptions.hpp \
     src/macroskip.hpp \
     src/system.hpp \
     unittest/framework.hpp \

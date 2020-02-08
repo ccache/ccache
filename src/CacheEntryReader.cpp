@@ -19,7 +19,7 @@
 #include "CacheEntryReader.hpp"
 
 #include "Compressor.hpp"
-#include "Error.hpp"
+#include "exceptions.hpp"
 
 #include "third_party/fmt/core.h"
 

@@ -20,7 +20,7 @@
 
 #include "system.hpp"
 
-#include "Error.hpp"
+#include "exceptions.hpp"
 #include "Stat.hpp"
 
 #include "third_party/fmt/core.h"
