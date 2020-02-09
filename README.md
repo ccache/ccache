@@ -6,15 +6,16 @@ ccache – a fast compiler cache
 [![Total Alerts](https://img.shields.io/lgtm/alerts/g/ccache/ccache.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ccache/ccache/alerts)
 [![Gitter](https://img.shields.io/gitter/room/ccache/ccache.svg)](https://gitter.im/ccache/ccache)
 
-ccache is a compiler cache. It speeds up recompilation by caching the result of
-previous compilations and detecting when the same compilation is being done
-again. Supported languages are C, C++, Objective-C and Objective-C++.
+Ccache (or “ccache”) is a compiler cache. It [speeds up
+recompilation](https://ccache.dev/performance.html)> by caching previous
+compilations and detecting when the same compilation is being done again.
 
 
 General information
 -------------------
 
 * [Main web site](https://ccache.dev)
+* [Supported platforms, compilers and languages](https://ccache.dev/platform-compiler-language-support.html)
 * [Documentation](https://ccache.dev/documentation.html)
   * [Latest manual](https://ccache.dev/manual/latest.html)
   * [Installation from Git source repository](https://github.com/ccache/ccache/blob/master/doc/INSTALL.md)
