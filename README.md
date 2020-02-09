@@ -7,7 +7,7 @@ ccache – a fast compiler cache
 [![Gitter](https://img.shields.io/gitter/room/ccache/ccache.svg)](https://gitter.im/ccache/ccache)
 
 Ccache (or “ccache”) is a compiler cache. It [speeds up
-recompilation](https://ccache.dev/performance.html)> by caching previous
+recompilation](https://ccache.dev/performance.html) by caching previous
 compilations and detecting when the same compilation is being done again.
 
 
