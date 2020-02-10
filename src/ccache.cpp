@@ -372,8 +372,7 @@ dump_debug_log_buffer_exitfn(void* context)
     return;
   }
 
-  std::string path =
-    fmt::format("{}.ccache-log", ctx.args_info.output_obj.c_str());
+  std::string path = fmt::format("{}.ccache-log", ctx.args_info.output_obj);
   cc_dump_debug_log_buffer(path.c_str());
 }
 
@@ -3771,7 +3770,7 @@ do_cache_compilation(Context& ctx, char* argv[])
   FILE* debug_text_file = NULL;
   if (g_config.debug()) {
     std::string path =
-      fmt::format("{}.ccache-input-text", ctx.args_info.output_obj.c_str());
+      fmt::format("{}.ccache-input-text", ctx.args_info.output_obj);
     debug_text_file = fopen(path.c_str(), "w");
     if (debug_text_file) {
       exitfn_add(fclose_exitfn, debug_text_file);
