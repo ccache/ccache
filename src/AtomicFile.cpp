@@ -18,8 +18,8 @@
 
 #include "AtomicFile.hpp"
 
-#include "exceptions.hpp"
 #include "Util.hpp"
+#include "exceptions.hpp"
 
 #include "third_party/fmt/core.h"
 

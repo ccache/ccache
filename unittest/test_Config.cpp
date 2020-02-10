@@ -17,9 +17,9 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Config.hpp"
-#include "../src/exceptions.hpp"
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
+#include "../src/exceptions.hpp"
 
 #include "third_party/catch.hpp"
 #include "third_party/fmt/core.h"

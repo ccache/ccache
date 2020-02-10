@@ -19,9 +19,9 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
-#include "exceptions.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
+#include "exceptions.hpp"
 
 #include <algorithm>
 #include <cassert>
