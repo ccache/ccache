@@ -54,21 +54,6 @@
 #  endif
 #endif
 
-static long
-path_max(const char* path)
-{
-#ifdef PATH_MAX
-  (void)path;
-  return PATH_MAX;
-#elif defined(MAXPATHLEN)
-  (void)path;
-  return MAXPATHLEN;
-#elif defined(_PC_PATH_MAX)
-  long maxlen = pathconf(path, _PC_PATH_MAX);
-  return maxlen >= 4096 ? maxlen : 4096;
-#endif
-}
-
 // Something went badly wrong!
 void
 fatal(const char* format, ...)
@@ -1007,23 +992,6 @@ x_try_unlink(const char* path)
 {
   return do_x_unlink(path, false);
 }
-
-#ifndef _WIN32
-// Like readlink() but returns the string or NULL on failure. Caller frees.
-char*
-x_readlink(const char* path)
-{
-  long maxlen = path_max(path);
-  char* buf = static_cast<char*>(x_malloc(maxlen));
-  ssize_t len = readlink(path, buf, maxlen - 1);
-  if (len == -1) {
-    free(buf);
-    return NULL;
-  }
-  buf[len] = 0;
-  return buf;
-}
-#endif
 
 // Reads the content of a file. Size hint 0 means no hint. Returns true on
 // success, otherwise false.

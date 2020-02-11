@@ -189,6 +189,11 @@ int parse_int(const std::string& value);
 // Throws Error on error.
 std::string read_file(const std::string& path);
 
+#ifndef _WIN32
+// Like readlink(2) but returns the string (or the empty string on failure).
+std::string read_link(const std::string& path);
+#endif
+
 // Return a canonicalized absolute path of `path`. On error (e.g. if the `path`
 // doesn't exist) the empty string is returned if return_empty_on_error is true,
 // otherwise `path` unmodified.

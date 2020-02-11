@@ -281,6 +281,21 @@ read_file(const std::string& path)
                      std::istreambuf_iterator<char>());
 }
 
+#ifndef _WIN32
+std::string
+read_link(const std::string& path)
+{
+  size_t buffer_size = path_max(path.c_str());
+  std::unique_ptr<char[]> buffer(new char[buffer_size]);
+  ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
+  if (len == -1) {
+    return "";
+  }
+  buffer[len] = 0;
+  return buffer.get();
+}
+#endif
+
 std::string
 real_path(const std::string& path, bool return_empty_on_error)
 {

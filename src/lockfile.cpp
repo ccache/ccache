@@ -123,8 +123,8 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
       goto out;
     }
     free(content);
-    content = x_readlink(lockfile);
-    if (!content) {
+    content = x_strdup(Util::read_link(lockfile).c_str());
+    if (str_eq(content, "")) {
       if (errno == ENOENT) {
         // The symlink was removed after the symlink() call above, so retry
         // acquiring it.

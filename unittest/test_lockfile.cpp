@@ -19,6 +19,7 @@
 // This file contains tests for functions in lockfile.c.
 
 #include "../src/Stat.hpp"
+#include "../src/Util.hpp"
 #include "../src/legacy_util.hpp"
 #include "../src/lockfile.hpp"
 #include "framework.hpp"
@@ -61,7 +62,7 @@ TEST(lock_breaking)
 #if defined(_WIN32) || defined(__CYGWIN__)
   p = read_text_file("test.lock", 0);
 #else
-  p = x_readlink("test.lock");
+  p = x_strdup(Util::read_link("test.lock").c_str());
 #endif
   CHECK(p);
   CHECK(!str_eq(p, "foo"));
