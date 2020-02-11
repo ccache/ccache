@@ -349,21 +349,17 @@ find_executable_in_path(const char* name,
       return x_strdup(namebuf);
     }
 #else
+    assert(exclude_name);
     char* fname = format("%s/%s", tok, name);
     auto st1 = Stat::lstat(fname);
     auto st2 = Stat::stat(fname);
     // Look for a normal executable file.
     if (st1 && st2 && st2.is_regular() && access(fname, X_OK) == 0) {
       if (st1.is_symlink()) {
-        char* buf = x_realpath(fname);
-        if (buf) {
-          string_view p = Util::base_name(buf);
-          if (p == exclude_name) {
-            // It's a link to "ccache"!
-            free(buf);
-            continue;
-          }
-          free(buf);
+        std::string real_path = Util::real_path(fname, true);
+        if (Util::base_name(real_path) == exclude_name) {
+          // It's a link to "ccache"!
+          continue;
         }
       }
 

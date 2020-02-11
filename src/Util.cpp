@@ -24,6 +24,10 @@
 #include <algorithm>
 #include <fstream>
 
+#ifdef _WIN32
+#  include "win32compat.hpp"
+#endif
+
 using nonstd::string_view;
 
 namespace {
@@ -68,6 +72,21 @@ get_cache_files_internal(const std::string& dir,
       progress_receiver(1.0 * (i + 1) / (directories.size() + 1));
     }
   }
+}
+
+size_t
+path_max(const char* path)
+{
+#ifdef PATH_MAX
+  (void)path;
+  return PATH_MAX;
+#elif defined(MAXPATHLEN)
+  (void)path;
+  return MAXPATHLEN;
+#elif defined(_PC_PATH_MAX)
+  long maxlen = pathconf(path, _PC_PATH_MAX);
+  return maxlen >= 4096 ? maxlen : 4096;
+#endif
 }
 
 } // namespace
@@ -260,6 +279,56 @@ read_file(const std::string& path)
   }
   return std::string(std::istreambuf_iterator<char>(file),
                      std::istreambuf_iterator<char>());
+}
+
+std::string
+real_path(const std::string& path, bool return_empty_on_error)
+{
+  const char* c_path = path.c_str();
+  size_t buffer_size = path_max(c_path);
+  std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
+  char* buffer = managed_buffer.get();
+  char* resolved = nullptr;
+
+#if HAVE_REALPATH
+  resolved = realpath(c_path, buffer);
+#elif defined(_WIN32)
+  if (c_path[0] == '/') {
+    c_path++; // Skip leading slash.
+  }
+  HANDLE path_handle = CreateFile(c_path,
+                                  GENERIC_READ,
+                                  FILE_SHARE_READ,
+                                  NULL,
+                                  OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL,
+                                  NULL);
+  if (INVALID_HANDLE_VALUE != path_handle) {
+#  ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
+    GetFinalPathNameByHandle(
+      path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
+#  else
+    GetFileNameFromHandle(path_handle, buffer, buffer_size);
+#  endif
+    CloseHandle(path_handle);
+    resolved = buffer + 4; // Strip \\?\ from the file name.
+  } else {
+    snprintf(buffer, buffer_size, "%s", c_path);
+    resolved = buffer;
+  }
+#else
+  // Yes, there are such systems. This replacement relies on the fact that when
+  // we call x_realpath we only care about symlinks.
+  {
+    ssize_t len = readlink(c_path, buffer, buffer_size - 1);
+    if (len != -1) {
+      buffer[len] = 0;
+      resolved = buffer;
+    }
+  }
+#endif
+
+  return resolved ? resolved : (return_empty_on_error ? "" : path);
 }
 
 string_view

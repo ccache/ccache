@@ -65,7 +65,8 @@ non_third_party_sources = \
     src/logging.cpp \
     src/manifest.cpp \
     src/result.cpp \
-    src/stats.cpp
+    src/stats.cpp \
+    src/win32compat.cpp
 generated_sources = \
     src/version.cpp
 third_party_sources = \

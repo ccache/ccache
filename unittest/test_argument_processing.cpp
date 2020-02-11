@@ -20,6 +20,7 @@
 
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
+#include "../src/Util.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
 #include "../src/legacy_globals.hpp"
@@ -608,14 +609,13 @@ TEST(fprofile_flag_with_existing_dir_should_be_rewritten_to_real_path)
   struct args* act_extra = NULL;
   struct args* act_cc = NULL;
 
-  char *s, *path;
+  char* s;
 
   create_file("foo.c", "");
   mkdir("some", 0777);
   mkdir("some/dir", 0777);
-  path = x_realpath("some/dir");
-  s = format("-fprofile-generate=%s", path);
-  free(path);
+  std::string path = Util::real_path("some/dir");
+  s = format("-fprofile-generate=%s", path.c_str());
   args_add(exp_cpp, s);
   args_add(exp_cc, s);
   args_add(exp_cc, "-c");

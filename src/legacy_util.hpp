@@ -44,7 +44,6 @@ const char* get_extension(const char* path);
 char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);
-char* x_realpath(const char* path);
 char* gnu_getcwd();
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);

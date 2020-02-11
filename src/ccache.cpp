@@ -421,7 +421,7 @@ get_current_working_dir(void)
   if (!current_working_dir) {
     char* cwd = get_cwd();
     if (cwd) {
-      current_working_dir = x_realpath(cwd);
+      current_working_dir = x_strdup(Util::real_path(cwd).c_str());
       free(cwd);
     }
     if (!current_working_dir) {
@@ -647,11 +647,10 @@ make_relative_path(const char* path)
 
   char* dir = nullptr;
   char* path_suffix = nullptr;
-  char* canon_path = nullptr;
   char* relpath = nullptr;
 
-  // x_realpath only works for existing paths, so if path doesn't exist, try
-  // x_dirname(path) and assemble the path afterwards. We only bother to try
+  // Util::real_path only works for existing paths, so if path doesn't exist,
+  // try x_dirname(path) and assemble the path afterwards. We only bother to try
   // canonicalizing one of these two paths since a compiler path argument
   // typically only makes sense if path or x_dirname(path) exists.
 
@@ -676,9 +675,9 @@ make_relative_path(const char* path)
 
   std::string result;
 
-  canon_path = x_realpath(path);
-  if (canon_path) {
-    relpath = get_relative_path(get_current_working_dir(), canon_path);
+  std::string canon_path = Util::real_path(path, true);
+  if (!canon_path.empty()) {
+    relpath = get_relative_path(get_current_working_dir(), canon_path.c_str());
     if (path_suffix) {
       result = fmt::format("{}/{}", relpath, path_suffix);
     } else {
@@ -694,7 +693,6 @@ make_relative_path(const char* path)
 #endif
   free(dir);
   free(path_suffix);
-  free(canon_path);
   free(relpath);
 
   return result;
@@ -1677,23 +1675,19 @@ hash_common_info(Context& ctx,
 
   // Possibly hash the coverage data file path.
   if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
-    char* dir = x_dirname(ctx.args_info.output_obj.c_str());
+    std::string dir;
     if (!ctx.args_info.profile_dir.empty()) {
-      dir = x_strdup(ctx.args_info.profile_dir.c_str());
+      dir = ctx.args_info.profile_dir;
     } else {
-      char* real_dir = x_realpath(dir);
-      free(dir);
-      dir = real_dir;
+      dir =
+        Util::real_path(std::string(Util::dir_name(ctx.args_info.output_obj)));
     }
-    if (dir) {
-      string_view base_name = Util::base_name(ctx.args_info.output_obj);
-      string_view p = Util::remove_extension(base_name);
-      std::string gcda_path = fmt::format("{}/{}.gcda", dir, p);
-      cc_log("Hashing coverage path %s", gcda_path.c_str());
-      hash_delimiter(hash, "gcda");
-      hash_string(hash, gcda_path);
-      free(dir);
-    }
+    string_view stem =
+      Util::remove_extension(Util::base_name(ctx.args_info.output_obj));
+    std::string gcda_path = fmt::format("{}/{}.gcda", dir, stem);
+    cc_log("Hashing coverage path %s", gcda_path.c_str());
+    hash_delimiter(hash, "gcda");
+    hash_string(hash, gcda_path);
   }
 
   // Possibly hash the sanitize blacklist file path.
@@ -2801,19 +2795,14 @@ cc_process_args(ArgsInfo& args_info,
       const char* arg_profile_dir = strchr(argv[i], '=');
       if (arg_profile_dir) {
         // Convert to absolute path.
-        char* dir = x_realpath(arg_profile_dir + 1);
-        if (!dir) {
-          // Directory doesn't exist.
-          dir = x_strdup(arg_profile_dir + 1);
-        }
+        std::string dir = Util::real_path(arg_profile_dir + 1);
 
         // We can get a better hit rate by using the real path here.
         free(arg);
         char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
-        arg = format("%s=%s", option, dir);
+        arg = format("%s=%s", option, dir.c_str());
         cc_log("Rewriting %s to %s", argv[i], arg);
         free(option);
-        free(dir);
       }
 
       bool supported_profile_option = false;
