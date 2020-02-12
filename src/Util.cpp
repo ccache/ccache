@@ -77,13 +77,12 @@ namespace Util {
 string_view
 base_name(string_view path)
 {
-  size_t n = path.rfind('/');
 #ifdef _WIN32
-  size_t n2 = path.rfind('\\');
-  if (n2 != std::string::npos && n2 > n) {
-    n = n2;
-  }
+  const char delim[] = "/\\";
+#else
+  const char delim[] = "/";
 #endif
+  size_t n = path.find_last_of(delim);
   return n == std::string::npos ? path : path.substr(n + 1);
 }
 
@@ -135,17 +134,17 @@ create_temp_fd(string_view path_prefix)
 string_view
 dir_name(string_view path)
 {
-  size_t n = path.rfind('/');
 #ifdef _WIN32
-  size_t n2 = path.rfind('\\');
-  if (n2 != std::string::npos && n2 > n) {
-    n = n2;
-  }
+  const char delim[] = "/\\";
+#else
+  const char delim[] = "/";
 #endif
+  size_t n = path.find_last_of(delim);
   if (n == std::string::npos) {
     return ".";
+  } else {
+    return n == 0 ? "/" : path.substr(0, n);
   }
-  return n == 0 ? "/" : path.substr(0, n);
 }
 
 bool
