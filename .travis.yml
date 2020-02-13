@@ -3,7 +3,8 @@ dist: xenial
 
 script:
   - ./autogen.sh
-  - ./configure $CONFIGURE
+  - test -z $BUILD_DIR || { mkdir -p $BUILD_DIR; cd $BUILD_DIR; }
+  - ${SRC_DIR:-.}/configure $CONFIGURE
   - make
   - make ${TEST:-test}
 
@@ -13,7 +14,7 @@ matrix:
   # Job 1: Linux native GCC
   - os: linux
     compiler: gcc
-    env: V=1 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILD_DIR=build SRC_DIR=..
     addons:
       apt:
         packages:
