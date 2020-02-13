@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "src/ScopeGuard.hpp"
+#include "ScopeGuard.hpp"
 
 struct args
 {
