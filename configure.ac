@@ -235,6 +235,7 @@ fi
 
 dnl Linking on Windows needs ws2_32
 if test x${windows_os} = xyes; then
+    LDFLAGS="$LDFLAGS -static"
     LIBS="$LIBS -lws2_32"
     AC_CHECK_FUNCS(GetFinalPathNameByHandleW,[],[LIBS="$LIBS -lpsapi"])
 fi
