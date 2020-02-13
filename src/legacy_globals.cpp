@@ -25,24 +25,6 @@ char* current_working_dir = nullptr;
 extern struct args* orig_args;
 struct args* orig_args = nullptr;
 
-// The path to the dependency file (implicit or specified with -MF).
-char* output_dep;
-
-// The path to the coverage file (implicit when using -ftest-coverage).
-char* output_cov;
-
-// The path to the stack usage (implicit when using -fstack-usage).
-char* output_su;
-
-// Diagnostic generation information (clang). Contains pathname if not nullptr.
-char* output_dia;
-
-// Split dwarf information (GCC 4.8 and up). Contains pathname if not nullptr.
-char* output_dwo;
-
-// Language to use for the compilation target (see language.c).
-const char* actual_language;
-
 // Array for storing -arch options.
 size_t arch_args_size = 0;
 char* arch_args[MAX_ARCH_ARGS] = {nullptr};
@@ -75,9 +57,6 @@ char** ignore_headers;
 
 // Size of headers to ignore list.
 size_t ignore_headers_len;
-
-// Is the compiler being asked to output dependencies?
-bool generating_dependencies;
 
 // Is the compiler being asked to output coverage?
 bool generating_coverage;

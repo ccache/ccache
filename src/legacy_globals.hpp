@@ -34,18 +34,6 @@ extern unsigned lock_staleness_limit;
 
 extern struct args* orig_args;
 
-extern char* output_dep;
-
-extern char* output_cov;
-
-extern char* output_su;
-
-extern char* output_dia;
-
-extern char* output_dwo;
-
-extern const char* actual_language;
-
 #define MAX_ARCH_ARGS 10
 extern size_t arch_args_size;
 extern char* arch_args[MAX_ARCH_ARGS];
@@ -65,8 +53,6 @@ extern bool has_absolute_include_headers;
 extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
-
-extern bool generating_dependencies;
 
 extern bool generating_coverage;
 
