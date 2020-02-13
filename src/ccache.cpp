@@ -998,11 +998,13 @@ out:
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static struct digest*
-result_name_from_depfile(Context& ctx, const char* depfile, struct hash* hash)
+result_name_from_depfile(Context& ctx, struct hash* hash)
 {
-  FILE* f = fopen(depfile, "r");
+  FILE* f = fopen(ctx.args_info.output_dep.c_str(), "r");
   if (!f) {
-    cc_log("Cannot open dependency file %s: %s", depfile, strerror(errno));
+    cc_log("Cannot open dependency file %s: %s",
+           ctx.args_info.output_dep.c_str(),
+           strerror(errno));
     return NULL;
   }
 
@@ -1301,8 +1303,8 @@ to_cache(Context& ctx,
   }
 
   if (g_config.depend_mode()) {
-    struct digest* result_name = result_name_from_depfile(
-      ctx, ctx.args_info.output_dep.c_str(), depend_mode_hash);
+    struct digest* result_name =
+      result_name_from_depfile(ctx, depend_mode_hash);
     if (!result_name) {
       stats_update(STATS_ERROR);
       failed();
