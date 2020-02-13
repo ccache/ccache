@@ -47,7 +47,7 @@ public:
   bool operator!=(const Digest& other) const;
 
 private:
-  constexpr static size_t k_digest_size = 28;
+  constexpr static size_t k_digest_size = 20;
   uint8_t m_bytes[k_digest_size];
 };
 

@@ -102,7 +102,7 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`--hash-file`* _PATH_::
 
-    Print the hash (224 bit BLAKE3) of the file at _PATH_. This is only useful
+    Print the hash (160 bit BLAKE3) of the file at _PATH_. This is only useful
     when debugging ccache and its behavior.
 
 *`-h`*, *`--help`*::
@@ -1082,7 +1082,7 @@ Log for this object file.
 
 |==============================================================================
 
-In the direct mode, ccache uses the 224 bit BLAKE3 hash of the
+In the direct mode, ccache uses the 160 bit BLAKE3 hash of the
 *ccache-input-c* + *ccache-input-d* data (where *+* means concatenation), while
 the *ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
 

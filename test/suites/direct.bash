@@ -969,9 +969,9 @@ EOF
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest >manifest.dump
 
-    checksum_test1_h='b7271c414e35d190304ccbb02cdce8aaa391497e6cdb003e98f03a81'
-    checksum_test2_h='24f1184b3644bd65db35d8de74fbe468757a4200db480dcb4b39b6fa'
-    checksum_test3_h='56a66d1ef7bfe44154ecd084e395a1c8d55bb3a1789df1ec8a02ad88'
+    checksum_test1_h='b7271c414e35d190304ccbb02cdce8aaa391497e'
+    checksum_test2_h='24f1184b3644bd65db35d8de74fbe468757a4200'
+    checksum_test3_h='56a66d1ef7bfe44154ecd084e395a1c8d55bb3a1'
 
     if grep "Hash: $checksum_test1_h" manifest.dump >/dev/null 2>&1 && \
        grep "Hash: $checksum_test2_h" manifest.dump >/dev/null 2>&1 && \
