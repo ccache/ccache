@@ -1151,7 +1151,7 @@ to_cache(Context& ctx,
     x_unlink(ctx.args_info.output_obj.c_str());
   }
 
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     args_add(args, "--serialize-diagnostics");
     args_add(args, ctx.args_info.output_dia.c_str());
   }
@@ -1169,7 +1169,7 @@ to_cache(Context& ctx,
     args_add(args, i_tmpfile);
   }
 
-  if (seen_split_dwarf) {
+  if (ctx.args_info.seen_split_dwarf) {
     // Remove any pre-existing .dwo file since we want to check if the compiler
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
@@ -1344,16 +1344,16 @@ to_cache(Context& ctx,
   if (ctx.args_info.generating_dependencies) {
     result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
-  if (seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
+  if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
     result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
@@ -1419,7 +1419,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   char* path_stderr = NULL;
   char* path_stdout = nullptr;
   int status;
-  if (direct_i_file) {
+  if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
     path_stdout = x_strdup(ctx.args_info.input_file.c_str());
@@ -1469,14 +1469,14 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cppstderr");
-  if (!direct_i_file && !hash_file(hash, path_stderr)) {
+  if (!ctx.args_info.direct_i_file && !hash_file(hash, path_stderr)) {
     // Somebody removed the temporary file?
     stats_update(STATS_ERROR);
     cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
     failed();
   }
 
-  if (direct_i_file) {
+  if (ctx.args_info.direct_i_file) {
     i_tmpfile = x_strdup(ctx.args_info.input_file.c_str());
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
@@ -1663,7 +1663,7 @@ hash_common_info(Context& ctx,
     }
   }
 
-  if (ctx.args_info.generating_dependencies || seen_split_dwarf) {
+  if (ctx.args_info.generating_dependencies || ctx.args_info.seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
     //
@@ -1676,10 +1676,10 @@ hash_common_info(Context& ctx,
   }
 
   // Possibly hash the coverage data file path.
-  if (generating_coverage && profile_arcs) {
+  if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
     char* dir = x_dirname(ctx.args_info.output_obj.c_str());
-    if (profile_dir) {
-      dir = x_strdup(profile_dir);
+    if (!ctx.args_info.profile_dir.empty()) {
+      dir = x_strdup(ctx.args_info.profile_dir.c_str());
     } else {
       char* real_dir = x_realpath(dir);
       free(dir);
@@ -1800,7 +1800,7 @@ calculate_result_name(Context& ctx,
     // they are going to have any effect at all. For precompiled headers this
     // might not be the case.
     if (!direct_mode && !output_is_precompiled_header
-        && !using_precompiled_header) {
+        && !ctx.args_info.using_precompiled_header) {
       if (compopt_affects_cpp(args->argv[i])) {
         if (compopt_takes_arg(args->argv[i])) {
           i++;
@@ -1925,22 +1925,24 @@ calculate_result_name(Context& ctx,
   //
   // The profile directory can be specified as an argument to
   // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
-  if (profile_generate) {
-    if (!profile_dir) {
-      profile_dir = get_cwd();
+  if (ctx.args_info.profile_generate) {
+    if (ctx.args_info.profile_dir.empty()) {
+      ctx.args_info.profile_dir = from_cstr(get_cwd());
     }
-    cc_log("Adding profile directory %s to our hash", profile_dir);
+    cc_log("Adding profile directory %s to our hash",
+           ctx.args_info.profile_dir.c_str());
     hash_delimiter(hash, "-fprofile-dir");
-    hash_string(hash, profile_dir);
+    hash_string(hash, ctx.args_info.profile_dir);
   }
 
-  if (profile_use) {
+  if (ctx.args_info.profile_use) {
     // Calculate gcda name.
-    if (!profile_dir) {
-      profile_dir = get_cwd();
+    if (ctx.args_info.profile_dir.empty()) {
+      ctx.args_info.profile_dir = from_cstr(get_cwd());
     }
     string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
-    std::string gcda_name = fmt::format("{}/{}.gcda", profile_dir, base_name);
+    std::string gcda_name =
+      fmt::format("{}/{}.gcda", ctx.args_info.profile_dir, base_name);
     cc_log("Adding profile data %s to our hash", gcda_name.c_str());
     // Add the gcda to our hash.
     hash_delimiter(hash, "-fprofile-use");
@@ -2081,7 +2083,7 @@ from_cache(Context& ctx,
   ResultFileMap result_file_map;
   if (ctx.args_info.output_obj != "/dev/null") {
     result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
-    if (seen_split_dwarf) {
+    if (ctx.args_info.seen_split_dwarf) {
       result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
     }
   }
@@ -2089,13 +2091,13 @@ from_cache(Context& ctx,
   if (produce_dep_file) {
     result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
   }
   bool ok = result_get(cached_result_path, result_file_map);
@@ -3550,7 +3552,6 @@ cc_reset(void)
   g_config.clear_and_reset();
 
   free_and_nullify(current_working_dir);
-  free_and_nullify(profile_dir);
   free_and_nullify(included_pch_file);
   args_free(orig_args);
   orig_args = NULL;
@@ -3565,16 +3566,10 @@ cc_reset(void)
   ignore_headers_len = 0;
   g_included_files.clear();
   has_absolute_include_headers = false;
-  generating_coverage = false;
-  generating_stackusage = false;
-  profile_arcs = false;
   i_tmpfile = NULL;
-  direct_i_file = false;
   free_and_nullify(cpp_stderr);
   free_and_nullify(stats_file);
   output_is_precompiled_header = false;
-
-  seen_split_dwarf = false;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -3709,18 +3704,7 @@ do_cache_compilation(Context& ctx, char* argv[])
     failed(); // stats_update is called in cc_process_args.
   }
 
-  generating_coverage = ctx.args_info.generating_coverage;
-  generating_stackusage = ctx.args_info.generating_stackusage;
-  generating_diagnostics = ctx.args_info.generating_diagnostics;
-  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
-  profile_arcs = ctx.args_info.profile_arcs;
-  profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
-
-  direct_i_file = ctx.args_info.direct_i_file;
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-  profile_use = ctx.args_info.profile_use;
-  profile_generate = ctx.args_info.profile_generate;
-  using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   arch_args_size = ctx.args_info.arch_args_size;
   for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
@@ -3741,13 +3725,13 @@ do_cache_compilation(Context& ctx, char* argv[])
   if (ctx.args_info.generating_dependencies) {
     cc_log("Dependency file: %s", ctx.args_info.output_dep.c_str());
   }
-  if (generating_coverage) {
+  if (ctx.args_info.generating_coverage) {
     cc_log("Coverage file: %s", ctx.args_info.output_cov.c_str());
   }
-  if (generating_stackusage) {
+  if (ctx.args_info.generating_stackusage) {
     cc_log("Stack usage file: %s", ctx.args_info.output_su.c_str());
   }
-  if (generating_diagnostics) {
+  if (ctx.args_info.generating_diagnostics) {
     cc_log("Diagnostics file: %s", ctx.args_info.output_dia.c_str());
   }
   if (!ctx.args_info.output_dwo.empty()) {

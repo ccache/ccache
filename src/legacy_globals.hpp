@@ -54,21 +54,7 @@ extern char** ignore_headers;
 
 extern size_t ignore_headers_len;
 
-extern bool generating_coverage;
-
-extern bool generating_stackusage;
-
-extern bool generating_diagnostics;
-
-extern bool seen_split_dwarf;
-
-extern bool profile_arcs;
-
-extern char* profile_dir;
-
 extern char* i_tmpfile;
-
-extern bool direct_i_file;
 
 extern char* cpp_stderr;
 
@@ -77,10 +63,5 @@ extern char* manifest_stats_file;
 extern bool output_is_precompiled_header;
 
 extern enum guessed_compiler guessed_compiler;
-
-extern bool profile_use;
-extern bool profile_generate;
-
-extern bool using_precompiled_header;
 
 extern char* included_pch_file;

@@ -84,18 +84,7 @@ cc_process_args(Context& ctx,
                                  extra_args_to_hash,
                                  compiler_args);
 
-  generating_coverage = ctx.args_info.generating_coverage;
-  generating_stackusage = ctx.args_info.generating_stackusage;
-  generating_diagnostics = ctx.args_info.generating_diagnostics;
-  seen_split_dwarf = ctx.args_info.seen_split_dwarf;
-  profile_arcs = ctx.args_info.profile_arcs;
-  profile_dir = x_strdup(ctx.args_info.profile_dir.c_str());
-
-  direct_i_file = ctx.args_info.direct_i_file;
   output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-  profile_use = ctx.args_info.profile_use;
-  profile_generate = ctx.args_info.profile_generate;
-  using_precompiled_header = ctx.args_info.using_precompiled_header;
 
   return success;
 }

@@ -58,30 +58,8 @@ char** ignore_headers;
 // Size of headers to ignore list.
 size_t ignore_headers_len;
 
-// Is the compiler being asked to output coverage?
-bool generating_coverage;
-
-// Is the compiler being asked to output stack usage?
-bool generating_stackusage;
-
-// Us the compiler being asked to generate diagnostics
-// (--serialize-diagnostics)?
-bool generating_diagnostics;
-
-// Have we seen -gsplit-dwarf?
-bool seen_split_dwarf;
-
-// Is the compiler being asked to output coverage data (.gcda) at runtime?
-bool profile_arcs;
-
-// Name of the custom profile directory (default: object dirname).
-char* profile_dir;
-
 // The name of the temporary preprocessed file.
 char* i_tmpfile;
-
-// Are we compiling a .i or .ii file directly?
-bool direct_i_file;
 
 // The name of the cpp stderr file.
 char* cpp_stderr;
@@ -99,14 +77,6 @@ bool output_is_precompiled_header = false;
 // Compiler guessing is currently only based on the compiler name, so nothing
 // should hard-depend on it if possible.
 enum guessed_compiler guessed_compiler = GUESSED_UNKNOWN;
-
-// Profile generation / usage information.
-bool profile_use = false;
-bool profile_generate = false;
-
-// Whether we are using a precompiled header (either via -include, #include or
-// clang's -include-pch or -include-pth).
-bool using_precompiled_header = false;
 
 // The .gch/.pch/.pth file used for compilation.
 char* included_pch_file = nullptr;
