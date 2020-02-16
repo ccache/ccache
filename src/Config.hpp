@@ -20,6 +20,7 @@
 
 #include "system.hpp"
 
+#include "NonCopyable.hpp"
 #include "legacy_util.hpp"
 
 #include "third_party/fmt/core.h"
@@ -32,7 +33,7 @@
 
 class Config;
 
-class Config
+class Config : NonCopyable
 {
 public:
   Config() = default;
@@ -115,9 +116,6 @@ public:
                                 const std::string& key,
                                 const std::string& value);
 
-  // Clear the Config object and reset all values to defaults.
-  void clear_and_reset();
-
 private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;
@@ -164,10 +162,6 @@ private:
                 const nonstd::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
-
-  // These exist, but are private to be used in clear_and_reset()
-  Config(const Config&) = default;
-  Config& operator=(const Config&) = default;
 };
 
 inline const std::string&

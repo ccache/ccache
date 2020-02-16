@@ -3549,10 +3549,8 @@ free_and_nullify(T*& ptr)
 
 // Reset the global state. Used by the test suite.
 void
-cc_reset(Config& config)
+cc_reset()
 {
-  config.clear_and_reset();
-
   free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
   free_and_nullify(cached_result_name);
