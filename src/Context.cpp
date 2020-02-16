@@ -22,7 +22,5 @@
 
 Context::~Context()
 {
-  if (free_orig_args) {
-    args_free(orig_args);
-  }
+  args_free(orig_args);
 }

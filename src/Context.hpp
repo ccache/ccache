@@ -40,7 +40,4 @@ struct Context : NonCopyable
 
   // The original argument list.
   struct args* orig_args = nullptr;
-
-  // Whether to free orig_args in the destructor.
-  bool free_orig_args = true;
 };

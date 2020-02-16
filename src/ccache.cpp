@@ -3641,8 +3641,8 @@ cache_compilation(int argc, char* argv[])
 
     cc_log("Failed; falling back to running the real compiler");
     cc_log_argv("Executing ", ctx.orig_args->argv);
-    ctx.free_orig_args = false;
     struct args* orig_args_for_execv = ctx.orig_args;
+    ctx.orig_args = nullptr; // Take over ownership.
     exitfn_call();
     execv(orig_args_for_execv->argv[0], orig_args_for_execv->argv);
     fatal(
