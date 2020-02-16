@@ -35,13 +35,13 @@ get_root()
   return "/";
 #else
   char volume[4]; // "C:\"
-  GetVolumePathName(get_cwd(), volume, sizeof(volume));
+  GetVolumePathName(Util::get_actual_cwd().c_str(), volume, sizeof(volume));
   return volume;
 #endif
 }
 
 static char*
-get_posix_path(char* path)
+get_posix_path(const char* path)
 {
 #ifndef _WIN32
   return x_strdup(path);
@@ -353,7 +353,6 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 {
   Context ctx;
 
-  extern char* current_working_dir;
   char* arg_string;
   struct args* orig;
   struct args* act_cpp = NULL;
@@ -362,8 +361,8 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  current_working_dir = get_cwd();
-  arg_string = format("cc --sysroot=%s/foo/bar -c foo.c", current_working_dir);
+  arg_string =
+    format("cc --sysroot=%s/foo/bar -c foo.c", ctx.actual_cwd.c_str());
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
@@ -379,7 +378,6 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
 {
   Context ctx;
 
-  extern char* current_working_dir;
   char* arg_string;
   struct args* orig;
   struct args* act_cpp = NULL;
@@ -388,8 +386,7 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  current_working_dir = get_cwd();
-  arg_string = format("cc --sysroot %s/foo -c foo.c", current_working_dir);
+  arg_string = format("cc --sysroot %s/foo -c foo.c", ctx.actual_cwd.c_str());
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
@@ -633,7 +630,6 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
 {
   Context ctx;
 
-  extern char* current_working_dir;
   char* arg_string;
   struct args* orig;
   struct args* act_cpp = NULL;
@@ -642,8 +638,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  current_working_dir = get_cwd();
-  arg_string = format("cc -isystem %s/foo -c foo.c", current_working_dir);
+  arg_string = format("cc -isystem %s/foo -c foo.c", ctx.actual_cwd.c_str());
   orig = args_init_from_string(arg_string);
   free(arg_string);
 
@@ -659,7 +654,6 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 {
   Context ctx;
 
-  extern char* current_working_dir;
   char* cwd;
   char* arg_string;
   struct args* orig;
@@ -669,9 +663,8 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
   create_file("foo.c", "");
   ctx.config.set_base_dir("/"); // posix
-  current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
-  cwd = get_posix_path(current_working_dir);
+  cwd = get_posix_path(ctx.actual_cwd.c_str());
   arg_string = format("cc -isystem%s/foo -c foo.c", cwd);
   orig = args_init_from_string(arg_string);
   free(arg_string);
@@ -689,7 +682,6 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 {
   Context ctx;
 
-  extern char* current_working_dir;
   char* cwd;
   char* arg_string;
   struct args* orig;
@@ -699,9 +691,8 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(x_strdup("/")); // posix
-  current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
-  cwd = get_posix_path(current_working_dir);
+  cwd = get_posix_path(ctx.actual_cwd.c_str());
   arg_string = format("cc -I%s/foo -c foo.c", cwd);
   orig = args_init_from_string(arg_string);
   free(arg_string);

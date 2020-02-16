@@ -18,7 +18,14 @@
 
 #include "Context.hpp"
 
+#include "Util.hpp"
 #include "args.hpp"
+
+Context::Context()
+  : actual_cwd(Util::get_actual_cwd()),
+    apparent_cwd(Util::get_apparent_cwd(actual_cwd))
+{
+}
 
 Context::~Context()
 {

@@ -582,26 +582,6 @@ parse_size_with_suffix(const char* str, uint64_t* size)
   return true;
 }
 
-// A getcwd that will returns an allocated buffer.
-char*
-gnu_getcwd(void)
-{
-  unsigned size = 128;
-
-  while (true) {
-    char* buffer = (char*)x_malloc(size);
-    if (getcwd(buffer, size) == buffer) {
-      return buffer;
-    }
-    free(buffer);
-    if (errno != ERANGE) {
-      cc_log("getcwd error: %d (%s)", errno, strerror(errno));
-      return NULL;
-    }
-    size *= 2;
-  }
-}
-
 #if !defined(_WIN32) && !defined(HAVE_LOCALTIME_R)
 // localtime_r replacement. (Mingw-w64 has an inline localtime_r which is not
 // detected by AC_CHECK_FUNCS.)
@@ -709,34 +689,6 @@ get_home_directory(void)
   }
 #endif
   return NULL;
-}
-
-// Get the current directory by reading $PWD. If $PWD isn't sane, gnu_getcwd()
-// is used. Caller frees.
-char*
-get_cwd(void)
-{
-  char* cwd = gnu_getcwd();
-  if (!cwd) {
-    return NULL;
-  }
-
-  char* pwd = getenv("PWD");
-  if (!pwd) {
-    return cwd;
-  }
-
-  auto st_pwd = Stat::stat(pwd);
-  auto st_cwd = Stat::stat(cwd);
-  if (!st_pwd || !st_cwd) {
-    return cwd;
-  }
-  if (st_pwd.device() == st_cwd.device() && st_pwd.inode() == st_cwd.inode()) {
-    free(cwd);
-    return x_strdup(pwd);
-  } else {
-    return cwd;
-  }
 }
 
 // Check whether s1 and s2 have the same executable name.

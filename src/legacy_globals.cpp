@@ -18,9 +18,6 @@
 
 #include "legacy_globals.hpp"
 
-// Current working directory taken from $PWD, or getcwd() if $PWD is bad.
-char* current_working_dir = nullptr;
-
 // The original argument list.
 extern struct args* orig_args;
 struct args* orig_args = nullptr;

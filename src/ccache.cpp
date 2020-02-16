@@ -416,25 +416,6 @@ guess_compiler(const char* path)
   return result;
 }
 
-static char*
-get_current_working_dir(void)
-{
-  if (!current_working_dir) {
-    char* cwd = get_cwd();
-    if (cwd) {
-      current_working_dir = x_strdup(Util::real_path(cwd).c_str());
-      free(cwd);
-    }
-    if (!current_working_dir) {
-      cc_log("Unable to determine current working directory: %s",
-             strerror(errno));
-      stats_update(STATS_ERROR);
-      failed();
-    }
-  }
-  return current_working_dir;
-}
-
 static bool
 do_remember_include_file(const Context& ctx,
                          std::string path,
@@ -623,8 +604,8 @@ print_included_files(FILE* fp)
   }
 }
 
-// Make a relative path from current working directory to path if path is under
-// the base directory.
+// Make a relative path from current working directory `cwd` to `path` if `path`
+// is under the base directory.
 static std::string
 make_relative_path(const Context& ctx, const char* path)
 {
@@ -648,7 +629,6 @@ make_relative_path(const Context& ctx, const char* path)
 
   char* dir = nullptr;
   char* path_suffix = nullptr;
-  char* relpath = nullptr;
 
   // Util::real_path only works for existing paths, so if path doesn't exist,
   // try x_dirname(path) and assemble the path afterwards. We only bother to try
@@ -678,12 +658,14 @@ make_relative_path(const Context& ctx, const char* path)
 
   std::string canon_path = Util::real_path(path, true);
   if (!canon_path.empty()) {
-    relpath = get_relative_path(get_current_working_dir(), canon_path.c_str());
+    char* relpath =
+      get_relative_path(ctx.actual_cwd.c_str(), canon_path.c_str());
     if (path_suffix) {
       result = fmt::format("{}/{}", relpath, path_suffix);
     } else {
       result = relpath;
     }
+    free(relpath);
   } else {
     // path doesn't exist, so leave it as it is.
     result = path;
@@ -694,7 +676,6 @@ make_relative_path(const Context& ctx, const char* path)
 #endif
   free(dir);
   free(path_suffix);
-  free(relpath);
 
   return result;
 }
@@ -732,8 +713,6 @@ process_preprocessed_file(Context& ctx,
     }
     free(p);
   }
-
-  char* cwd = get_cwd();
 
   // Bytes between p and q are pending to be hashed.
   char* p = data;
@@ -808,7 +787,6 @@ process_preprocessed_file(Context& ctx,
       if (q >= end) {
         cc_log("Failed to parse included file path");
         free(data);
-        free(cwd);
         return false;
       }
       // q points to the beginning of an include file path
@@ -837,7 +815,8 @@ process_preprocessed_file(Context& ctx,
 
       bool should_hash_inc_path = true;
       if (!ctx.config.hash_dir()) {
-        if (str_startswith(inc_path, cwd) && str_endswith(inc_path, "//")) {
+        if (Util::starts_with(inc_path, ctx.apparent_cwd)
+            && str_endswith(inc_path, "//")) {
           // When compiling with -g or similar, GCC adds the absolute path to
           // CWD like this:
           //
@@ -886,7 +865,6 @@ process_preprocessed_file(Context& ctx,
 
   hash_string_buffer(hash, p, (end - p));
   free(data);
-  free(cwd);
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
@@ -1643,30 +1621,27 @@ hash_common_info(const Context& ctx,
 
   // Possibly hash the current working directory.
   if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
-    char* cwd = get_cwd();
+    std::string dir_to_hash = ctx.apparent_cwd;
     for (size_t i = 0; i < args_info.debug_prefix_maps_len; i++) {
       char* map = args_info.debug_prefix_maps[i];
       char* sep = strchr(map, '=');
       if (sep) {
         char* old_path = x_strndup(map, sep - map);
         char* new_path = static_cast<char*>(x_strdup(sep + 1));
-        cc_log(
-          "Relocating debuginfo CWD %s from %s to %s", cwd, old_path, new_path);
-        if (str_startswith(cwd, old_path)) {
-          char* dir = format("%s%s", new_path, cwd + strlen(old_path));
-          free(cwd);
-          cwd = dir;
+        cc_log("Relocating debuginfo from %s to %s (CWD: %s)",
+               old_path,
+               new_path,
+               ctx.apparent_cwd.c_str());
+        if (Util::starts_with(ctx.apparent_cwd, old_path)) {
+          dir_to_hash = new_path + ctx.apparent_cwd.substr(strlen(old_path));
         }
         free(old_path);
         free(new_path);
       }
     }
-    if (cwd) {
-      cc_log("Hashing CWD %s", cwd);
-      hash_delimiter(hash, "cwd");
-      hash_string(hash, cwd);
-      free(cwd);
-    }
+    cc_log("Hashing CWD %s", dir_to_hash.c_str());
+    hash_delimiter(hash, "cwd");
+    hash_string(hash, dir_to_hash);
   }
 
   if (ctx.args_info.generating_dependencies || ctx.args_info.seen_split_dwarf) {
@@ -1929,7 +1904,7 @@ calculate_result_name(Context& ctx,
   // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
   if (ctx.args_info.profile_generate) {
     if (ctx.args_info.profile_dir.empty()) {
-      ctx.args_info.profile_dir = from_cstr(get_cwd());
+      ctx.args_info.profile_dir = ctx.apparent_cwd;
     }
     cc_log("Adding profile directory %s to our hash",
            ctx.args_info.profile_dir.c_str());
@@ -1940,7 +1915,7 @@ calculate_result_name(Context& ctx,
   if (ctx.args_info.profile_use) {
     // Calculate gcda name.
     if (ctx.args_info.profile_dir.empty()) {
-      ctx.args_info.profile_dir = from_cstr(get_cwd());
+      ctx.args_info.profile_dir = ctx.apparent_cwd;
     }
     string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
     std::string gcda_name =
@@ -3551,7 +3526,6 @@ free_and_nullify(T*& ptr)
 void
 cc_reset()
 {
-  free_and_nullify(current_working_dir);
   free_and_nullify(included_pch_file);
   free_and_nullify(cached_result_name);
   free_and_nullify(cached_result_path);
@@ -3653,6 +3627,12 @@ cache_compilation(int argc, char* argv[])
 static void
 do_cache_compilation(Context& ctx, char* argv[])
 {
+  if (ctx.actual_cwd.empty()) {
+    cc_log("Unable to determine current working directory: %s",
+           strerror(errno));
+    throw Failure(STATS_ERROR);
+  }
+
   MTR_BEGIN("main", "clean_up_internal_tempdir");
   if (ctx.config.temporary_dir().empty()) {
     clean_up_internal_tempdir(ctx);
@@ -3675,7 +3655,10 @@ do_cache_compilation(Context& ctx, char* argv[])
 
   cc_log_argv("Command line: ", argv);
   cc_log("Hostname: %s", get_hostname());
-  cc_log("Working directory: %s", get_current_working_dir());
+  cc_log("Working directory: %s", ctx.actual_cwd.c_str());
+  if (ctx.apparent_cwd != ctx.actual_cwd) {
+    cc_log("Apparent working directory: %s", ctx.apparent_cwd.c_str());
+  }
 
   ctx.config.set_limit_multiple(
     std::min(std::max(ctx.config.limit_multiple(), 0.0), 1.0));

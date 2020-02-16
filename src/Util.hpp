@@ -109,6 +109,16 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Return current working directory (CWD) as returned from getcwd(3) (i.e.,
+// canonical path without symlink parts). Returns the empty string on error.
+std::string get_actual_cwd();
+
+// Return current working directory (CWD) by reading the environment variable
+// PWD (thus keeping any symlink parts in the path and potentially ".." or "//"
+// parts). If PWD does not resolve to the same i-node as `actual_cwd` then
+// `actual_cwd` is returned instead.
+std::string get_apparent_cwd(const std::string& actual_cwd);
+
 // Return the file extension (including the dot) as a view into `path`. If
 // `path` has no file extension, an empty string_view is returned.
 nonstd::string_view get_extension(nonstd::string_view path);

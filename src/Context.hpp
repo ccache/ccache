@@ -28,11 +28,17 @@ struct args;
 
 struct Context : NonCopyable
 {
-  Context() = default;
+  Context();
   ~Context();
 
   ArgsInfo args_info;
   Config config;
+
+  // Current working directory as returned by getcwd(3).
+  std::string actual_cwd;
+
+  // Current working directory according to $PWD (falling back to getcwd(3)).
+  std::string apparent_cwd;
 
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).

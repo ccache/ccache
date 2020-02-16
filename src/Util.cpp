@@ -188,6 +188,41 @@ for_each_level_1_subdir(const std::string& cache_dir,
   progress_receiver(1.0);
 }
 
+std::string
+get_actual_cwd()
+{
+  char buffer[PATH_MAX];
+  if (getcwd(buffer, sizeof(buffer))) {
+    return buffer;
+  } else {
+    return {};
+  }
+}
+
+std::string
+get_apparent_cwd(const std::string& actual_cwd)
+{
+#ifdef _WIN32
+  return actual_cwd;
+#else
+  auto pwd = getenv("PWD");
+  if (!pwd) {
+    return actual_cwd;
+  }
+
+  auto st_pwd = Stat::stat(pwd);
+  auto st_cwd = Stat::stat(actual_cwd);
+  if (!st_pwd || !st_cwd) {
+    return actual_cwd;
+  }
+  if (st_pwd.device() == st_cwd.device() && st_pwd.inode() == st_cwd.inode()) {
+    return pwd;
+  } else {
+    return actual_cwd;
+  }
+#endif
+}
+
 string_view
 get_extension(string_view path)
 {

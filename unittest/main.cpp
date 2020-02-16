@@ -16,6 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "../src/Util.hpp"
 #include "../src/legacy_util.hpp"
 #include "catch2_tests.hpp"
 #include "framework.hpp"
@@ -51,9 +52,9 @@ main(int argc, char** argv)
   x_setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
 
+  std::string dir_before = Util::get_actual_cwd();
   char* testdir = format("testdir.%d", (int)getpid());
   cct_create_fresh_dir(testdir);
-  char* dir_before = gnu_getcwd();
   cct_chdir(testdir);
 
   // Run Catch2 tests.
@@ -66,10 +67,9 @@ main(int argc, char** argv)
   }
 
   if (result == 0) {
-    cct_chdir(dir_before);
+    cct_chdir(dir_before.c_str());
     cct_wipe(testdir);
   }
   free(testdir);
-  free(dir_before);
   return result;
 }

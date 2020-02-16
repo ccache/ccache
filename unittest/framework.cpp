@@ -37,8 +37,8 @@ static unsigned total_suites;
 static unsigned failed_tests;
 static const char* current_suite;
 static const char* current_test;
-static char* dir_before_suite;
-static char* dir_before_test;
+static std::string dir_before_suite;
+static std::string dir_before_test;
 static int verbose;
 
 static const char COLOR_END[] = "\x1b[m";
@@ -112,7 +112,7 @@ cct_suite_begin(const char* name)
   if (verbose) {
     printf("=== SUITE: %s ===\n", name);
   }
-  dir_before_suite = gnu_getcwd();
+  dir_before_suite = Util::get_actual_cwd();
   Util::create_dir(name);
   cct_chdir(name);
   current_suite = name;
@@ -121,9 +121,8 @@ cct_suite_begin(const char* name)
 void
 cct_suite_end()
 {
-  cct_chdir(dir_before_suite);
-  free(dir_before_suite);
-  dir_before_suite = NULL;
+  cct_chdir(dir_before_suite.c_str());
+  dir_before_suite.clear();
 }
 
 void
@@ -133,7 +132,7 @@ cct_test_begin(const char* name)
   if (verbose) {
     printf("--- TEST: %s ---\n", name);
   }
-  dir_before_test = gnu_getcwd();
+  dir_before_test = Util::get_actual_cwd();
   Util::create_dir(name);
   cct_chdir(name);
   current_test = name;
@@ -144,10 +143,9 @@ cct_test_begin(const char* name)
 void
 cct_test_end()
 {
-  if (dir_before_test) {
-    cct_chdir(dir_before_test);
-    free(dir_before_test);
-    dir_before_test = NULL;
+  if (!dir_before_test.empty()) {
+    cct_chdir(dir_before_test.c_str());
+    dir_before_test.clear();
   }
 }
 

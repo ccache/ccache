@@ -44,7 +44,6 @@ const char* get_extension(const char* path);
 char* format_human_readable_size(uint64_t size);
 char* format_parsable_size_with_suffix(uint64_t size);
 bool parse_size_with_suffix(const char* str, uint64_t* size);
-char* gnu_getcwd();
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
@@ -54,7 +53,6 @@ char* strtok_r(char* str, const char* delim, char** saveptr);
 int create_tmp_fd(char** fname);
 FILE* create_tmp_file(char** fname, const char* mode);
 const char* get_home_directory();
-char* get_cwd();
 bool same_executable_name(const char* s1, const char* s2);
 size_t common_dir_prefix_length(const char* s1, const char* s2);
 char* get_relative_path(const char* from, const char* to);
