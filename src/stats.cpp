@@ -393,7 +393,7 @@ stats_flush_to_file(const Config& config,
   stats_write(sfile, counters);
   lockfile_release(sfile.c_str());
 
-  std::string subdir = std::string(Util::dir_name(sfile));
+  std::string subdir(Util::dir_name(sfile));
   bool need_cleanup = false;
 
   if (config.max_files() != 0

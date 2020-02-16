@@ -1386,7 +1386,7 @@ to_cache(Context& ctx,
   // be done almost anywhere, but we might as well do it near the end as we
   // save the stat call if we exit early.
   {
-    std::string first_level_dir = std::string(Util::dir_name(ctx.stats_file));
+    std::string first_level_dir(Util::dir_name(ctx.stats_file));
     if (!create_cachedir_tag(first_level_dir) != 0) {
       cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
              first_level_dir.c_str(),
