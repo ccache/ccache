@@ -20,10 +20,12 @@
 
 #include "system.hpp"
 
-#include "Config.hpp"
 #include "hash.hpp"
 
 #include <inttypes.h>
+
+class Config;
+struct Context;
 
 unsigned hash_from_int(int i);
 
@@ -42,9 +44,11 @@ int hash_source_code_string(const Config& config,
 int hash_source_code_file(const Config& config,
                           struct hash* hash,
                           const char* path);
-bool hash_command_output(struct hash* hash,
+bool hash_command_output(Context& ctx,
+                         struct hash* hash,
                          const char* command,
                          const char* compiler);
-bool hash_multicommand_output(struct hash* hash,
+bool hash_multicommand_output(Context& ctx,
+                              struct hash* hash,
                               const char* command,
                               const char* compiler);

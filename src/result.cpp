@@ -22,6 +22,7 @@
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
 #include "Config.hpp"
+#include "Context.hpp"
 #include "File.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
@@ -84,8 +85,6 @@
 //
 // 1: Introduced in ccache 4.0.
 
-extern char* stats_file;
-
 const uint8_t k_result_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_result_version = 1;
 
@@ -95,14 +94,16 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
-using ReadEntryFunction = void (*)(CacheEntryReader& reader,
+using ReadEntryFunction = void (*)(Context& ctx,
+                                   CacheEntryReader& reader,
                                    const std::string& result_path_in_cache,
                                    uint32_t entry_number,
                                    const ResultFileMap* result_file_map,
                                    FILE* dump_stream);
 
 using WriteEntryFunction =
-  void (*)(CacheEntryWriter& writer,
+  void (*)(Context& ctx,
+           CacheEntryWriter& writer,
            const std::string& result_path_in_cache,
            uint32_t entry_number,
            const ResultFileMap::value_type& suffix_and_path);
@@ -137,7 +138,8 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(CacheEntryReader& reader,
+read_embedded_file_entry(Context&,
+                         CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
                          const ResultFileMap* result_file_map,
@@ -210,16 +212,19 @@ get_raw_file_path(const std::string& result_path_in_cache,
 }
 
 static bool
-copy_raw_file(const std::string& source, const std::string& dest, bool to_cache)
+copy_raw_file(Context& ctx,
+              const std::string& source,
+              const std::string& dest,
+              bool to_cache)
 {
-  if (g_config.file_clone()) {
+  if (ctx.config.file_clone()) {
     cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
     if (clone_file(source.c_str(), dest.c_str(), to_cache)) {
       return true;
     }
     cc_log("Failed to clone: %s", strerror(errno));
   }
-  if (g_config.hard_link()) {
+  if (ctx.config.hard_link()) {
     x_try_unlink(dest.c_str());
     cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
     int ret = link(source.c_str(), dest.c_str());
@@ -234,7 +239,8 @@ copy_raw_file(const std::string& source, const std::string& dest, bool to_cache)
 }
 
 static void
-read_raw_file_entry(CacheEntryReader& reader,
+read_raw_file_entry(Context& ctx,
+                    CacheEntryReader& reader,
                     const std::string& result_path_in_cache,
                     uint32_t entry_number,
                     const ResultFileMap* result_file_map,
@@ -271,7 +277,7 @@ read_raw_file_entry(CacheEntryReader& reader,
     const auto it = result_file_map->find(FileType(type));
     if (it != result_file_map->end()) {
       const auto& dest_path = it->second;
-      if (!copy_raw_file(raw_path, dest_path, false)) {
+      if (!copy_raw_file(ctx, raw_path, dest_path, false)) {
         throw Error(
           fmt::format("Failed to copy raw file {} to {}", raw_path, dest_path));
       }
@@ -284,7 +290,8 @@ read_raw_file_entry(CacheEntryReader& reader,
 }
 
 static bool
-read_result(const std::string& path,
+read_result(Context& ctx,
+            const std::string& path,
             const ResultFileMap* result_file_map,
             FILE* dump_stream)
 {
@@ -323,7 +330,7 @@ read_result(const std::string& path,
       throw Error(fmt::format("Unknown entry type: {}", marker));
     }
 
-    read_entry(reader, path, i, result_file_map, dump_stream);
+    read_entry(ctx, reader, path, i, result_file_map, dump_stream);
   }
 
   if (i != n_entries) {
@@ -336,7 +343,8 @@ read_result(const std::string& path,
 }
 
 static void
-write_embedded_file_entry(CacheEntryWriter& writer,
+write_embedded_file_entry(Context&,
+                          CacheEntryWriter& writer,
                           const std::string& /*result_path_in_cache*/,
                           uint32_t entry_number,
                           const ResultFileMap::value_type& suffix_and_path)
@@ -375,7 +383,8 @@ write_embedded_file_entry(CacheEntryWriter& writer,
 }
 
 static void
-write_raw_file_entry(CacheEntryWriter& writer,
+write_raw_file_entry(Context& ctx,
+                     CacheEntryWriter& writer,
                      const std::string& result_path_in_cache,
                      uint32_t entry_number,
                      const ResultFileMap::value_type& suffix_and_path)
@@ -398,21 +407,22 @@ write_raw_file_entry(CacheEntryWriter& writer,
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
   auto old_stat = Stat::stat(raw_file);
-  if (!copy_raw_file(source_path, raw_file, true)) {
+  if (!copy_raw_file(ctx, source_path, raw_file, true)) {
     throw Error(
       fmt::format("Failed to store {} as raw file {}", source_path, raw_file));
   }
   auto new_stat = Stat::stat(raw_file);
 
-  stats_update_size(stats_file,
+  stats_update_size(ctx,
+                    ctx.stats_file.c_str(),
                     new_stat.size_on_disk() - old_stat.size_on_disk(),
                     (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
 }
 
 static bool
-should_store_raw_file(FileType type)
+should_store_raw_file(const Config& config, FileType type)
 {
-  if (!g_config.file_clone() && !g_config.hard_link()) {
+  if (!config.file_clone() && !config.hard_link()) {
     return false;
   }
 
@@ -434,7 +444,9 @@ should_store_raw_file(FileType type)
 }
 
 static void
-write_result(const std::string& path, const ResultFileMap& result_file_map)
+write_result(Context& ctx,
+             const std::string& path,
+             const ResultFileMap& result_file_map)
 {
   uint64_t payload_size = 0;
   payload_size += 1; // n_entries
@@ -451,8 +463,8 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
   CacheEntryWriter writer(atomic_result_file.stream(),
                           k_result_magic,
                           k_result_version,
-                          Compression::type_from_config(),
-                          Compression::level_from_config(),
+                          Compression::type_from_config(ctx.config),
+                          Compression::level_from_config(ctx.config),
                           payload_size);
 
   writer.write<uint8_t>(result_file_map.size());
@@ -460,10 +472,10 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
   size_t entry_number = 0;
   for (const auto& pair : result_file_map) {
     const auto& suffix = pair.first;
-    WriteEntryFunction write_entry = should_store_raw_file(suffix)
+    WriteEntryFunction write_entry = should_store_raw_file(ctx.config, suffix)
                                        ? write_raw_file_entry
                                        : write_embedded_file_entry;
-    write_entry(writer, path, entry_number, pair);
+    write_entry(ctx, writer, path, entry_number, pair);
     ++entry_number;
   }
 
@@ -472,12 +484,14 @@ write_result(const std::string& path, const ResultFileMap& result_file_map)
 }
 
 bool
-result_get(const std::string& path, const ResultFileMap& result_file_map)
+result_get(Context& ctx,
+           const std::string& path,
+           const ResultFileMap& result_file_map)
 {
   cc_log("Getting result %s", path.c_str());
 
   try {
-    bool cache_hit = read_result(path, &result_file_map, nullptr);
+    bool cache_hit = read_result(ctx, path, &result_file_map, nullptr);
     if (cache_hit) {
       // Update modification timestamp to save files from LRU cleanup.
       update_mtime(path.c_str());
@@ -492,12 +506,14 @@ result_get(const std::string& path, const ResultFileMap& result_file_map)
 }
 
 bool
-result_put(const std::string& path, const ResultFileMap& result_file_map)
+result_put(Context& ctx,
+           const std::string& path,
+           const ResultFileMap& result_file_map)
 {
   cc_log("Storing result %s", path.c_str());
 
   try {
-    write_result(path, result_file_map);
+    write_result(ctx, path, result_file_map);
     return true;
   } catch (const Error& e) {
     cc_log("Error: %s", e.what());
@@ -506,12 +522,12 @@ result_put(const std::string& path, const ResultFileMap& result_file_map)
 }
 
 bool
-result_dump(const std::string& path, FILE* stream)
+result_dump(Context& ctx, const std::string& path, FILE* stream)
 {
   assert(stream);
 
   try {
-    if (read_result(path, nullptr, stream)) {
+    if (read_result(ctx, path, nullptr, stream)) {
       return true;
     } else {
       fmt::print(stream, "Error: No such file: {}\n", path);

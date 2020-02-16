@@ -19,20 +19,21 @@
 #include "Compression.hpp"
 
 #include "Config.hpp"
+#include "Context.hpp"
 #include "exceptions.hpp"
 
 namespace Compression {
 
 int8_t
-level_from_config()
+level_from_config(const Config& config)
 {
-  return g_config.compression() ? g_config.compression_level() : 0;
+  return config.compression() ? config.compression_level() : 0;
 }
 
 Type
-type_from_config()
+type_from_config(const Config& config)
 {
-  return g_config.compression() ? Type::zstd : Type::none;
+  return config.compression() ? Type::zstd : Type::none;
 }
 
 Type

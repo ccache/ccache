@@ -20,6 +20,7 @@
 #include "execute.hpp"
 
 #include "Config.hpp"
+#include "Context.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
@@ -305,13 +306,13 @@ execute(char** argv, int fd_out, int fd_err, pid_t* pid)
 // Find an executable by name in $PATH. Exclude any that are links to
 // exclude_name.
 char*
-find_executable(const char* name, const char* exclude_name)
+find_executable(Context& ctx, const char* name, const char* exclude_name)
 {
   if (is_absolute_path(name)) {
     return x_strdup(name);
   }
 
-  const char* path = g_config.path().c_str();
+  const char* path = ctx.config.path().c_str();
   if (str_eq(path, "")) {
     path = getenv("PATH");
   }

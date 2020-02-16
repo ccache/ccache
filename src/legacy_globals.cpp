@@ -64,10 +64,6 @@ char* i_tmpfile;
 // The name of the cpp stderr file.
 char* cpp_stderr;
 
-// Full path to the statistics file in the subdirectory where the cached result
-// belongs (<cache_dir>/<x>/stats).
-char* stats_file = nullptr;
-
 // The stats file to use for the manifest.
 char* manifest_stats_file;
 

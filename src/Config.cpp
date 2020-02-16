@@ -34,8 +34,6 @@
 using nonstd::nullopt;
 using nonstd::optional;
 
-Config g_config;
-
 namespace {
 
 enum class ConfigItem {

@@ -23,11 +23,14 @@
 #include "stats.hpp"
 
 #include "AtomicFile.hpp"
+#include "Context.hpp"
 #include "cleanup.hpp"
 #include "counters.hpp"
 #include "hashutil.hpp"
 #include "lockfile.hpp"
 #include "logging.hpp"
+
+#include "third_party/fmt/core.h"
 
 #include <cmath>
 #include <fcntl.h>
@@ -38,7 +41,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern char* stats_file;
 extern unsigned lock_staleness_limit;
 
 static struct counters* counter_updates;
@@ -53,7 +55,9 @@ typedef char* (*format_fn)(uint64_t value);
 
 static char* format_size_times_1024(uint64_t size);
 static char* format_timestamp(uint64_t timestamp);
-static void stats_flush_to_file(const char* sfile, struct counters* updates);
+static void stats_flush_to_file(const Config& config,
+                                std::string sfile,
+                                struct counters* updates);
 
 // Statistics fields in display order.
 static struct
@@ -225,7 +229,7 @@ parse_stats(struct counters* counters, const char* buf)
 
 // Write out a stats file.
 void
-stats_write(const char* path, struct counters* counters)
+stats_write(const std::string& path, struct counters* counters)
 {
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters->size; ++i) {
@@ -260,7 +264,9 @@ stats_hit_rate(struct counters* counters)
 }
 
 static void
-stats_collect(struct counters* counters, time_t* last_updated)
+stats_collect(const Config& config,
+              struct counters* counters,
+              time_t* last_updated)
 {
   unsigned zero_timestamp = 0;
 
@@ -271,9 +277,9 @@ stats_collect(struct counters* counters, time_t* last_updated)
     char* fname;
 
     if (dir == -1) {
-      fname = format("%s/stats", g_config.cache_dir().c_str());
+      fname = format("%s/stats", config.cache_dir().c_str());
     } else {
-      fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
+      fname = format("%s/%1x/stats", config.cache_dir().c_str(), dir);
     }
 
     counters->data[STATS_ZEROTIMESTAMP] = 0; // Don't add
@@ -293,14 +299,17 @@ stats_collect(struct counters* counters, time_t* last_updated)
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(const char* sfile, int64_t size, int files)
+stats_update_size(Context& ctx,
+                  const std::string& sfile,
+                  int64_t size,
+                  int files)
 {
   if (size == 0 && files == 0) {
     return;
   }
 
   struct counters* updates;
-  if (sfile == stats_file) {
+  if (sfile == ctx.stats_file) {
     init_counter_updates();
     updates = counter_updates;
   } else {
@@ -308,17 +317,17 @@ stats_update_size(const char* sfile, int64_t size, int files)
   }
   updates->data[STATS_NUMFILES] += files;
   updates->data[STATS_TOTALSIZE] += size / 1024;
-  if (sfile != stats_file) {
-    stats_flush_to_file(sfile, updates);
+  if (sfile != ctx.stats_file) {
+    stats_flush_to_file(ctx.config, sfile, updates);
     counters_free(updates);
   }
 }
 
 // Read in the stats from one directory and add to the counters.
 void
-stats_read(const char* sfile, struct counters* counters)
+stats_read(const std::string& sfile, struct counters* counters)
 {
-  char* data = read_text_file(sfile, 1024);
+  char* data = read_text_file(sfile.c_str(), 1024);
   if (data) {
     parse_stats(counters, data);
   }
@@ -327,19 +336,21 @@ stats_read(const char* sfile, struct counters* counters)
 
 // Write counter updates in updates to sfile.
 static void
-stats_flush_to_file(const char* sfile, struct counters* updates)
+stats_flush_to_file(const Config& config,
+                    std::string sfile,
+                    struct counters* updates)
 {
   if (!updates) {
     return;
   }
 
-  if (g_config.disable()) {
+  if (config.disable()) {
     // Just log result, don't update statistics.
     cc_log("Result: disabled");
     return;
   }
 
-  if (!g_config.log_file().empty() || g_config.debug()) {
+  if (!config.log_file().empty() || config.debug()) {
     for (int i = 0; i < STATS_END; ++i) {
       if (updates->data[stats_info[i].stat] != 0
           && !(stats_info[i].flags & FLAG_NOZERO)) {
@@ -348,7 +359,7 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
     }
   }
 
-  if (!g_config.stats()) {
+  if (!config.stats()) {
     return;
   }
 
@@ -363,18 +374,14 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
     return;
   }
 
-  if (!sfile) {
-    char* stats_dir;
-
-    // A NULL sfile means that we didn't get past calculate_object_hash(), so
+  if (sfile.empty()) {
+    // An empty sfile means that we didn't get past calculate_object_hash(), so
     // we just choose one of stats files in the 16 subdirectories.
-    stats_dir = format(
-      "%s/%x", g_config.cache_dir().c_str(), hash_from_int(getpid()) % 16);
-    sfile = format("%s/stats", stats_dir);
-    free(stats_dir);
+    sfile = fmt::format(
+      "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
   }
 
-  if (!lockfile_acquire(sfile, lock_staleness_limit)) {
+  if (!lockfile_acquire(sfile.c_str(), lock_staleness_limit)) {
     return;
   }
 
@@ -384,44 +391,44 @@ stats_flush_to_file(const char* sfile, struct counters* updates)
     counters->data[i] += updates->data[i];
   }
   stats_write(sfile, counters);
-  lockfile_release(sfile);
+  lockfile_release(sfile.c_str());
 
-  char* subdir = x_dirname(sfile);
+  std::string subdir = std::string(Util::dir_name(sfile));
   bool need_cleanup = false;
 
-  if (g_config.max_files() != 0
-      && counters->data[STATS_NUMFILES] > g_config.max_files() / 16) {
+  if (config.max_files() != 0
+      && counters->data[STATS_NUMFILES] > config.max_files() / 16) {
     cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
-           subdir,
+           subdir.c_str(),
            counters->data[STATS_NUMFILES],
-           g_config.max_files() / 16);
+           config.max_files() / 16);
     need_cleanup = true;
   }
-  if (g_config.max_size() != 0
-      && counters->data[STATS_TOTALSIZE] > g_config.max_size() / 1024 / 16) {
+  if (config.max_size() != 0
+      && counters->data[STATS_TOTALSIZE] > config.max_size() / 1024 / 16) {
     cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
-           subdir,
+           subdir.c_str(),
            counters->data[STATS_TOTALSIZE],
-           (unsigned long)g_config.max_size() / 1024 / 16);
+           (unsigned long)config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
 
   if (need_cleanup) {
-    double factor = g_config.limit_multiple() / 16;
-    uint64_t max_size = round(g_config.max_size() * factor);
-    uint32_t max_files = round(g_config.max_files() * factor);
+    double factor = config.limit_multiple() / 16;
+    uint64_t max_size = round(config.max_size() * factor);
+    uint32_t max_files = round(config.max_files() * factor);
     clean_up_dir(subdir, max_size, max_files, [](double) {});
   }
 
-  free(subdir);
   counters_free(counters);
 }
 
 // Write counter updates in counter_updates to disk.
 void
-stats_flush(void)
+stats_flush(void* context)
 {
-  stats_flush_to_file(stats_file, counter_updates);
+  Context& ctx = *static_cast<Context*>(context);
+  stats_flush_to_file(ctx.config, ctx.stats_file, counter_updates);
   counters_free(counter_updates);
   counter_updates = NULL;
 }
@@ -445,17 +452,17 @@ stats_get_pending(enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(void)
+stats_summary(const Config& config)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
-  stats_collect(counters, &last_updated);
+  stats_collect(config, counters, &last_updated);
 
-  fmt::print("cache directory                     {}\n", g_config.cache_dir());
+  fmt::print("cache directory                     {}\n", config.cache_dir());
   fmt::print("primary config                      {}\n",
-             g_config.primary_config_path());
+             config.primary_config_path());
   fmt::print("secondary config (readonly)         {}\n",
-             g_config.secondary_config_path());
+             config.secondary_config_path());
   if (last_updated > 0) {
     struct tm tm;
     localtime_r(&last_updated, &tm);
@@ -492,11 +499,11 @@ stats_summary(void)
     }
   }
 
-  if (g_config.max_files() != 0) {
-    printf("max files                       %8u\n", g_config.max_files());
+  if (config.max_files() != 0) {
+    printf("max files                       %8u\n", config.max_files());
   }
-  if (g_config.max_size() != 0) {
-    char* value = format_size(g_config.max_size());
+  if (config.max_size() != 0) {
+    char* value = format_size(config.max_size());
     printf("max cache size                  %s\n", value);
     free(value);
   }
@@ -506,11 +513,11 @@ stats_summary(void)
 
 // Print machine-parsable (tab-separated) statistics counters.
 void
-stats_print(void)
+stats_print(const Config& config)
 {
   struct counters* counters = counters_init(STATS_END);
   time_t last_updated;
-  stats_collect(counters, &last_updated);
+  stats_collect(config, counters, &last_updated);
 
   printf("stats_updated_timestamp\t%llu\n", (unsigned long long)last_updated);
 
@@ -525,9 +532,9 @@ stats_print(void)
 
 // Zero all the stats structures.
 void
-stats_zero(void)
+stats_zero(const Config& config)
 {
-  char* fname = format("%s/stats", g_config.cache_dir().c_str());
+  char* fname = format("%s/stats", config.cache_dir().c_str());
   x_unlink(fname);
   free(fname);
 
@@ -535,7 +542,7 @@ stats_zero(void)
 
   for (int dir = 0; dir <= 0xF; dir++) {
     struct counters* counters = counters_init(STATS_END);
-    fname = format("%s/%1x/stats", g_config.cache_dir().c_str(), dir);
+    fname = format("%s/%1x/stats", config.cache_dir().c_str(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);

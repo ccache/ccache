@@ -23,6 +23,7 @@
 #include "CacheEntryWriter.hpp"
 #include "Checksum.hpp"
 #include "Config.hpp"
+#include "Context.hpp"
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
@@ -325,7 +326,9 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 }
 
 static bool
-write_manifest(const std::string& path, const ManifestData& mf)
+write_manifest(const Config& config,
+               const std::string& path,
+               const ManifestData& mf)
 {
   uint64_t payload_size = 0;
   payload_size += 4; // n_files
@@ -345,8 +348,8 @@ write_manifest(const std::string& path, const ManifestData& mf)
   CacheEntryWriter writer(atomic_manifest_file.stream(),
                           k_manifest_magic,
                           k_manifest_version,
-                          Compression::type_from_config(),
-                          Compression::level_from_config(),
+                          Compression::type_from_config(config),
+                          Compression::level_from_config(config),
                           payload_size);
   writer.write<uint32_t>(mf.files.size());
   for (uint32_t i = 0; i < mf.files.size(); ++i) {
@@ -378,7 +381,7 @@ write_manifest(const std::string& path, const ManifestData& mf)
 }
 
 static bool
-verify_result(const Config& config,
+verify_result(const Context& ctx,
               const ManifestData& mf,
               const ResultEntry& result,
               std::unordered_map<std::string, FileStats>& stated_files,
@@ -416,8 +419,8 @@ verify_result(const Config& config,
       return false;
     }
 
-    if (config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
-      if (!(config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
+    if (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
+      if (!(ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
           cc_log("mtime/ctime hit for %s", path.c_str());
           continue;
@@ -437,7 +440,7 @@ verify_result(const Config& config,
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
       struct hash* hash = hash_init();
-      int ret = hash_source_code_file(config, hash, path.c_str());
+      int ret = hash_source_code_file(ctx.config, hash, path.c_str());
       if (ret & HASH_SOURCE_CODE_ERROR) {
         cc_log("Failed hashing %s", path.c_str());
         hash_free(hash);
@@ -465,7 +468,7 @@ verify_result(const Config& config,
 // Try to get the result name from a manifest file. Caller frees. Returns NULL
 // on failure.
 struct digest*
-manifest_get(const Config& config, const std::string& path)
+manifest_get(const Context& ctx, const std::string& path)
 {
   std::unique_ptr<ManifestData> mf;
   try {
@@ -489,7 +492,7 @@ manifest_get(const Config& config, const std::string& path)
   struct digest* name = NULL;
   for (uint32_t i = mf->results.size(); i > 0; i--) {
     if (verify_result(
-          config, *mf, mf->results[i - 1], stated_files, hashed_files)) {
+          ctx, *mf, mf->results[i - 1], stated_files, hashed_files)) {
       name = static_cast<digest*>(x_malloc(sizeof(digest)));
       *name = mf->results[i - 1].name;
       break;
@@ -502,7 +505,8 @@ manifest_get(const Config& config, const std::string& path)
 // Put the result name into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
-manifest_put(const std::string& path,
+manifest_put(const Config& config,
+             const std::string& path,
              const struct digest& result_name,
              const std::unordered_map<std::string, digest>& included_files,
              bool save_timestamp)
@@ -550,7 +554,7 @@ manifest_put(const std::string& path,
   mf->add_result_entry(result_name, included_files, save_timestamp);
 
   try {
-    write_manifest(path, *mf);
+    write_manifest(config, path, *mf);
     return true;
   } catch (const Error& e) {
     cc_log("Error: %s", e.what());

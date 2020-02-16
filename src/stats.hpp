@@ -20,6 +20,11 @@
 
 #include "system.hpp"
 
+#include <string>
+
+class Config;
+struct Context;
+
 // Statistics fields in storage order.
 enum stats {
   STATS_NONE = 0,
@@ -60,17 +65,20 @@ enum stats {
 };
 
 void stats_update(enum stats stat);
-void stats_flush();
+void stats_flush(void* context);
 unsigned stats_get_pending(enum stats stat);
-void stats_zero();
-void stats_summary();
-void stats_print();
-void stats_update_size(const char* sfile, int64_t size, int files);
+void stats_zero(const Config& config);
+void stats_summary(const Config& config);
+void stats_print(const Config& config);
+void stats_update_size(Context& ctx,
+                       const std::string& sfile,
+                       int64_t size,
+                       int files);
 void stats_get_obsolete_limits(const char* dir,
                                unsigned* maxfiles,
                                uint64_t* maxsize);
 void stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size);
 void stats_add_cleanup(const char* dir, unsigned count);
 void stats_timestamp(time_t time, struct counters* counters);
-void stats_read(const char* path, struct counters* counters);
-void stats_write(const char* path, struct counters* counters);
+void stats_read(const std::string& path, struct counters* counters);
+void stats_write(const std::string& path, struct counters* counters);

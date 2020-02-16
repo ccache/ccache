@@ -65,31 +65,6 @@ get_posix_path(char* path)
 #endif
 }
 
-bool cc_process_args(Context& ctx,
-                     struct args* args,
-                     struct args** preprocessor_args,
-                     struct args** extra_args_to_hash,
-                     struct args** compiler_args);
-
-bool
-cc_process_args(Context& ctx,
-                struct args* args,
-                struct args** preprocessor_args,
-                struct args** extra_args_to_hash,
-                struct args** compiler_args)
-{
-  bool success = cc_process_args(ctx.args_info,
-                                 g_config,
-                                 args,
-                                 preprocessor_args,
-                                 extra_args_to_hash,
-                                 compiler_args);
-
-  output_is_precompiled_header = ctx.args_info.output_is_precompiled_header;
-
-  return success;
-}
-
 TEST_SUITE(argument_processing)
 
 TEST(dash_E_should_result_in_called_for_preprocessing)
@@ -138,7 +113,7 @@ TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
   struct args* act_cc = NULL;
   create_file("foo.c", "");
 
-  g_config.set_run_second_cpp(false);
+  ctx.config.set_run_second_cpp(false);
   CHECK(cc_process_args(ctx, orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
@@ -197,7 +172,7 @@ TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
   struct args* act_cc = NULL;
   create_file("foo.c", "");
 
-  g_config.set_run_second_cpp(false);
+  ctx.config.set_run_second_cpp(false);
   CHECK(cc_process_args(ctx, orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
@@ -298,7 +273,7 @@ TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
   struct args* act_cc = NULL;
   create_file("foo.c", "");
 
-  g_config.set_run_second_cpp(false);
+  ctx.config.set_run_second_cpp(false);
   CHECK(cc_process_args(ctx, orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
@@ -321,7 +296,7 @@ TEST(MF_should_be_added_if_run_second_cpp_is_false)
 
   create_file("foo.c", "");
 
-  g_config.set_run_second_cpp(false);
+  ctx.config.set_run_second_cpp(false);
   CHECK(cc_process_args(ctx, orig, &act_cpp, &act_extra, &act_cc));
   CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
   CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
@@ -386,7 +361,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  g_config.set_base_dir(get_root());
+  ctx.config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc --sysroot=%s/foo/bar -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -412,7 +387,7 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  g_config.set_base_dir(get_root());
+  ctx.config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc --sysroot %s/foo -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -666,7 +641,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  g_config.set_base_dir(get_root());
+  ctx.config.set_base_dir(get_root());
   current_working_dir = get_cwd();
   arg_string = format("cc -isystem %s/foo -c foo.c", current_working_dir);
   orig = args_init_from_string(arg_string);
@@ -693,7 +668,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  g_config.set_base_dir("/"); // posix
+  ctx.config.set_base_dir("/"); // posix
   current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
   cwd = get_posix_path(current_working_dir);
@@ -723,7 +698,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   struct args* act_cc = NULL;
 
   create_file("foo.c", "");
-  g_config.set_base_dir(x_strdup("/")); // posix
+  ctx.config.set_base_dir(x_strdup("/")); // posix
   current_working_dir = get_cwd();
   // Windows path doesn't work concatenated.
   cwd = get_posix_path(current_working_dir);

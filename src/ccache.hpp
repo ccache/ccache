@@ -24,6 +24,7 @@
 #include "counters.hpp"
 
 struct ArgsInfo;
+struct Context;
 class Config;
 
 #ifndef MYNAME
@@ -64,11 +65,10 @@ extern time_t time_of_compilation;
 extern bool output_is_precompiled_header;
 void block_signals();
 void unblock_signals();
-bool cc_process_args(ArgsInfo& args_info,
-                     Config& config,
+bool cc_process_args(Context& ctx,
                      struct args* args,
                      struct args** preprocessor_args,
                      struct args** extra_args_to_hash,
                      struct args** compiler_args);
-void cc_reset();
+void cc_reset(Config& config);
 bool is_precompiled_header(const char* path);

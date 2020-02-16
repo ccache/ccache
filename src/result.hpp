@@ -25,6 +25,8 @@
 #include <map>
 #include <string>
 
+struct Context;
+
 extern const uint8_t k_result_magic[4];
 extern const uint8_t k_result_version;
 
@@ -44,6 +46,10 @@ enum class FileType : UnderlyingFileTypeInt {
 
 using ResultFileMap = std::map<FileType, std::string /*path*/>;
 
-bool result_get(const std::string& path, const ResultFileMap& result_file_map);
-bool result_put(const std::string& path, const ResultFileMap& result_file_map);
-bool result_dump(const std::string& path, FILE* stream);
+bool result_get(Context& ctx,
+                const std::string& path,
+                const ResultFileMap& result_file_map);
+bool result_put(Context& ctx,
+                const std::string& path,
+                const ResultFileMap& result_file_map);
+bool result_dump(Context& ctx, const std::string& path, FILE* stream);
