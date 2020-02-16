@@ -94,7 +94,7 @@ const uint8_t k_embedded_file_marker = 0;
 // File stored as-is in the file system.
 const uint8_t k_raw_file_marker = 1;
 
-using ReadEntryFunction = void (*)(Context& ctx,
+using ReadEntryFunction = void (*)(const Context& ctx,
                                    CacheEntryReader& reader,
                                    const std::string& result_path_in_cache,
                                    uint32_t entry_number,
@@ -102,7 +102,7 @@ using ReadEntryFunction = void (*)(Context& ctx,
                                    FILE* dump_stream);
 
 using WriteEntryFunction =
-  void (*)(Context& ctx,
+  void (*)(const Context& ctx,
            CacheEntryWriter& writer,
            const std::string& result_path_in_cache,
            uint32_t entry_number,
@@ -138,7 +138,7 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(Context&,
+read_embedded_file_entry(const Context&,
                          CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
@@ -212,7 +212,7 @@ get_raw_file_path(const std::string& result_path_in_cache,
 }
 
 static bool
-copy_raw_file(Context& ctx,
+copy_raw_file(const Context& ctx,
               const std::string& source,
               const std::string& dest,
               bool to_cache)
@@ -239,7 +239,7 @@ copy_raw_file(Context& ctx,
 }
 
 static void
-read_raw_file_entry(Context& ctx,
+read_raw_file_entry(const Context& ctx,
                     CacheEntryReader& reader,
                     const std::string& result_path_in_cache,
                     uint32_t entry_number,
@@ -290,7 +290,7 @@ read_raw_file_entry(Context& ctx,
 }
 
 static bool
-read_result(Context& ctx,
+read_result(const Context& ctx,
             const std::string& path,
             const ResultFileMap* result_file_map,
             FILE* dump_stream)
@@ -343,7 +343,7 @@ read_result(Context& ctx,
 }
 
 static void
-write_embedded_file_entry(Context&,
+write_embedded_file_entry(const Context&,
                           CacheEntryWriter& writer,
                           const std::string& /*result_path_in_cache*/,
                           uint32_t entry_number,
@@ -383,7 +383,7 @@ write_embedded_file_entry(Context&,
 }
 
 static void
-write_raw_file_entry(Context& ctx,
+write_raw_file_entry(const Context& ctx,
                      CacheEntryWriter& writer,
                      const std::string& result_path_in_cache,
                      uint32_t entry_number,
@@ -444,7 +444,7 @@ should_store_raw_file(const Config& config, FileType type)
 }
 
 static void
-write_result(Context& ctx,
+write_result(const Context& ctx,
              const std::string& path,
              const ResultFileMap& result_file_map)
 {
@@ -484,7 +484,7 @@ write_result(Context& ctx,
 }
 
 bool
-result_get(Context& ctx,
+result_get(const Context& ctx,
            const std::string& path,
            const ResultFileMap& result_file_map)
 {
@@ -506,7 +506,7 @@ result_get(Context& ctx,
 }
 
 bool
-result_put(Context& ctx,
+result_put(const Context& ctx,
            const std::string& path,
            const ResultFileMap& result_file_map)
 {
@@ -522,7 +522,7 @@ result_put(Context& ctx,
 }
 
 bool
-result_dump(Context& ctx, const std::string& path, FILE* stream)
+result_dump(const Context& ctx, const std::string& path, FILE* stream)
 {
   assert(stream);
 

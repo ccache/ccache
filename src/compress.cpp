@@ -85,7 +85,7 @@ create_writer(FILE* stream,
 }
 
 static void
-recompress_file(Context& ctx,
+recompress_file(const Context& ctx,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
                 int8_t level)
@@ -200,7 +200,7 @@ compress_stats(const Config& config,
 }
 
 void
-compress_recompress(Context& ctx,
+compress_recompress(const Context& ctx,
                     int8_t level,
                     const Util::ProgressReceiver& progress_receiver)
 {

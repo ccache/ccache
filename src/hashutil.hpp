@@ -44,11 +44,11 @@ int hash_source_code_string(const Config& config,
 int hash_source_code_file(const Config& config,
                           struct hash* hash,
                           const char* path);
-bool hash_command_output(Context& ctx,
+bool hash_command_output(const Context& ctx,
                          struct hash* hash,
                          const char* command,
                          const char* compiler);
-bool hash_multicommand_output(Context& ctx,
+bool hash_multicommand_output(const Context& ctx,
                               struct hash* hash,
                               const char* command,
                               const char* compiler);

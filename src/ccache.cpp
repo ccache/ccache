@@ -157,7 +157,7 @@ static pid_t compiler_pid = 0;
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(Context& ctx, struct args* args, const char* prefix_command)
+add_prefix(const Context& ctx, struct args* args, const char* prefix_command)
 {
   if (str_eq(prefix_command, "")) {
     return;
@@ -197,7 +197,7 @@ failed(enum stats stat)
 }
 
 static const char*
-temp_dir(Context& ctx)
+temp_dir(const Context& ctx)
 {
   static const char* path = NULL;
   if (path) {
@@ -325,7 +325,7 @@ set_up_signal_handlers(void)
 #endif // _WIN32
 
 static void
-clean_up_internal_tempdir(Context& ctx)
+clean_up_internal_tempdir(const Context& ctx)
 {
   time_t now = time(NULL);
   auto st = Stat::stat(ctx.config.cache_dir(), Stat::OnError::log);
@@ -377,7 +377,7 @@ dump_debug_log_buffer_exitfn(void* context)
 }
 
 static void
-init_hash_debug(Context& ctx,
+init_hash_debug(const Context& ctx,
                 struct hash* hash,
                 const char* obj_path,
                 char type,
@@ -436,7 +436,7 @@ get_current_working_dir(void)
 }
 
 static bool
-do_remember_include_file(Context& ctx,
+do_remember_include_file(const Context& ctx,
                          std::string path,
                          struct hash* cpp_hash,
                          bool system,
@@ -626,7 +626,7 @@ print_included_files(FILE* fp)
 // Make a relative path from current working directory to path if path is under
 // the base directory.
 static std::string
-make_relative_path(Context& ctx, const char* path)
+make_relative_path(const Context& ctx, const char* path)
 {
   if (ctx.config.base_dir().empty()
       || !str_startswith(path, ctx.config.base_dir().c_str())) {
@@ -906,7 +906,7 @@ process_preprocessed_file(Context& ctx,
 
 // Replace absolute paths with relative paths in the provided dependency file.
 static void
-use_relative_paths_in_depfile(Context& ctx)
+use_relative_paths_in_depfile(const Context& ctx)
 {
   const char* depfile = ctx.args_info.output_dep.c_str();
 
@@ -1057,7 +1057,7 @@ send_cached_stderr(const char* path_stderr)
 
 // Create or update the manifest file.
 static void
-update_manifest_file(Context& ctx)
+update_manifest_file(const Context& ctx)
 {
   if (!ctx.config.direct_mode() || ctx.config.read_only()
       || ctx.config.read_only_direct()) {
@@ -1508,7 +1508,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(Context& ctx,
+hash_compiler(const Context& ctx,
               struct hash* hash,
               const Stat& st,
               const char* path,
@@ -1542,7 +1542,7 @@ hash_compiler(Context& ctx,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(Context& ctx,
+hash_nvcc_host_compiler(const Context& ctx,
                         struct hash* hash,
                         const Stat* ccbin_st,
                         const char* ccbin)
@@ -1591,7 +1591,7 @@ hash_nvcc_host_compiler(Context& ctx,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(Context& ctx,
+hash_common_info(const Context& ctx,
                  struct args* args,
                  struct hash* hash,
                  const ArgsInfo& args_info)
@@ -2048,7 +2048,7 @@ calculate_result_name(Context& ctx,
 // Try to return the compile result from cache. If we can return from cache
 // then this function exits with the correct status code, otherwise it returns.
 static void
-from_cache(Context& ctx,
+from_cache(const Context& ctx,
            enum fromcache_call_mode mode,
            bool put_result_in_manifest)
 {
@@ -2143,7 +2143,7 @@ from_cache(Context& ctx,
 // Find the real compiler. We just search the PATH to find an executable of the
 // same name that isn't a link to ourselves.
 static void
-find_compiler(Context& ctx, char** argv)
+find_compiler(const Context& ctx, char** argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
@@ -3647,7 +3647,8 @@ cache_compilation(int argc, char* argv[])
     struct args* orig_args_for_execv = ctx.orig_args;
     exitfn_call();
     execv(orig_args_for_execv->argv[0], orig_args_for_execv->argv);
-    fatal("execv of %s failed: %s", orig_args_for_execv->argv[0], strerror(errno));
+    fatal(
+      "execv of %s failed: %s", orig_args_for_execv->argv[0], strerror(errno));
   }
 }
 
