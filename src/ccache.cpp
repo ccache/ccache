@@ -417,7 +417,7 @@ guess_compiler(const char* path)
 }
 
 static bool
-do_remember_include_file(const Context& ctx,
+do_remember_include_file(Context& ctx,
                          std::string path,
                          struct hash* cpp_hash,
                          bool system,
@@ -1035,7 +1035,7 @@ send_cached_stderr(const char* path_stderr)
 
 // Create or update the manifest file.
 static void
-update_manifest_file(const Context& ctx)
+update_manifest_file(Context& ctx)
 {
   if (!ctx.config.direct_mode() || ctx.config.read_only()
       || ctx.config.read_only_direct()) {
@@ -1486,7 +1486,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(const Context& ctx,
+hash_compiler(Context& ctx,
               struct hash* hash,
               const Stat& st,
               const char* path,
@@ -1520,7 +1520,7 @@ hash_compiler(const Context& ctx,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(const Context& ctx,
+hash_nvcc_host_compiler(Context& ctx,
                         struct hash* hash,
                         const Stat* ccbin_st,
                         const char* ccbin)
@@ -1569,7 +1569,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(const Context& ctx,
+hash_common_info(Context& ctx,
                  struct args* args,
                  struct hash* hash,
                  const ArgsInfo& args_info)
@@ -2023,7 +2023,7 @@ calculate_result_name(Context& ctx,
 // Try to return the compile result from cache. If we can return from cache
 // then this function exits with the correct status code, otherwise it returns.
 static void
-from_cache(const Context& ctx,
+from_cache(Context& ctx,
            enum fromcache_call_mode mode,
            bool put_result_in_manifest)
 {
@@ -2118,7 +2118,7 @@ from_cache(const Context& ctx,
 // Find the real compiler. We just search the PATH to find an executable of the
 // same name that isn't a link to ourselves.
 static void
-find_compiler(const Context& ctx, char** argv)
+find_compiler(Context& ctx, char** argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));

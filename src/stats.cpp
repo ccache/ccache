@@ -299,7 +299,7 @@ stats_collect(const Config& config,
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(const Context& ctx,
+stats_update_size(Context& ctx,
                   const std::string& sfile,
                   int64_t size,
                   int files)

@@ -285,7 +285,7 @@ hash_source_code_file(const Config& config, struct hash* hash, const char* path)
 }
 
 bool
-hash_command_output(const Context& ctx,
+hash_command_output(Context& ctx,
                     struct hash* hash,
                     const char* command,
                     const char* compiler)
@@ -431,7 +431,7 @@ hash_command_output(const Context& ctx,
 }
 
 bool
-hash_multicommand_output(const Context& ctx,
+hash_multicommand_output(Context& ctx,
                          struct hash* hash,
                          const char* commands,
                          const char* compiler)

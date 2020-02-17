@@ -102,7 +102,7 @@ using ReadEntryFunction = void (*)(const Context& ctx,
                                    FILE* dump_stream);
 
 using WriteEntryFunction =
-  void (*)(const Context& ctx,
+  void (*)(Context& ctx,
            CacheEntryWriter& writer,
            const std::string& result_path_in_cache,
            uint32_t entry_number,
@@ -343,7 +343,7 @@ read_result(const Context& ctx,
 }
 
 static void
-write_embedded_file_entry(const Context&,
+write_embedded_file_entry(Context&,
                           CacheEntryWriter& writer,
                           const std::string& /*result_path_in_cache*/,
                           uint32_t entry_number,
@@ -383,7 +383,7 @@ write_embedded_file_entry(const Context&,
 }
 
 static void
-write_raw_file_entry(const Context& ctx,
+write_raw_file_entry(Context& ctx,
                      CacheEntryWriter& writer,
                      const std::string& result_path_in_cache,
                      uint32_t entry_number,
@@ -444,7 +444,7 @@ should_store_raw_file(const Config& config, FileType type)
 }
 
 static void
-write_result(const Context& ctx,
+write_result(Context& ctx,
              const std::string& path,
              const ResultFileMap& result_file_map)
 {
@@ -506,7 +506,7 @@ result_get(const Context& ctx,
 }
 
 bool
-result_put(const Context& ctx,
+result_put(Context& ctx,
            const std::string& path,
            const ResultFileMap& result_file_map)
 {
