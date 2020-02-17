@@ -1077,52 +1077,6 @@ EOF
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
-if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
-    TEST "Symlink to source directory"
-
-    mkdir dir
-    cd dir
-    mkdir -p d1/d2
-    echo '#define A "OK"' >d1/h.h
-    cat <<EOF >d1/d2/c.c
-#include <stdio.h>
-#include "../h.h"
-int main() { printf("%s\n", A); }
-EOF
-    echo '#define A "BUG"' >h.h
-    ln -s d1/d2 d3
-
-    CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/d3/c.c
-    $REAL_COMPILER c.o -o c
-    if [ "$(./c)" != OK ]; then
-        test_failed "Incorrect header file used"
-    fi
-
-fi
-    # -------------------------------------------------------------------------
-if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
-    TEST "Symlink to source file"
-
-    mkdir dir
-    cd dir
-    mkdir d
-    echo '#define A "BUG"' >d/h.h
-    cat <<EOF >d/c.c
-#include <stdio.h>
-#include "h.h"
-int main() { printf("%s\n", A); }
-EOF
-    echo '#define A "OK"' >h.h
-    ln -s d/c.c c.c
-
-    CCACHE_BASEDIR=/ $CCACHE_COMPILE -c $PWD/c.c
-    $REAL_COMPILER c.o -o c
-    if [ "$(./c)" != OK ]; then
-        test_failed "Incorrect header file used"
-    fi
-
-fi
-    # -------------------------------------------------------------------------
 if ! $HOST_OS_WINDOWS; then
     TEST ".incbin"
 
