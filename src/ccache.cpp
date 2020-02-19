@@ -609,78 +609,57 @@ print_included_files(const Context& ctx, FILE* fp)
   }
 }
 
-// Make a relative path from current working directory `cwd` to `path` if `path`
-// is under the base directory.
+// Make a relative path from current working directory to `path` if `path` is
+// under the base directory.
 static std::string
-make_relative_path(const Context& ctx, const char* path)
+make_relative_path(const Context& ctx, string_view path)
 {
   if (ctx.config.base_dir().empty()
-      || !str_startswith(path, ctx.config.base_dir().c_str())) {
-    return path;
+      || !Util::starts_with(path, ctx.config.base_dir())) {
+    return std::string(path);
   }
 
 #ifdef _WIN32
-  char* winpath = nullptr;
-  if (path[0] == '/') {
+  std::string winpath;
+  if (path.length() >= 3 && path[0] == '/') {
     if (isalpha(path[1]) && path[2] == '/') {
       // Transform /c/path... to c:/path...
-      winpath = format("%c:/%s", path[1], &path[3]);
-    } else {
-      winpath = x_strdup(path + 1); // Skip leading slash.
+      winpath = fmt::format("{}:/{}", path[1], path.substr(3));
+      path = winpath;
+    } else if (path[2] == ':') {
+      // Transform /c:/path to c:/path
+      winpath = std::string(path.substr(1));
+      path = winpath;
     }
-    path = winpath;
   }
 #endif
-
-  char* dir = nullptr;
-  char* path_suffix = nullptr;
 
   // Util::real_path only works for existing paths, so if path doesn't exist,
   // try x_dirname(path) and assemble the path afterwards. We only bother to try
   // canonicalizing one of these two paths since a compiler path argument
   // typically only makes sense if path or x_dirname(path) exists.
 
-  if (!Stat::stat(path)) {
-    // path doesn't exist.
-    dir = x_dirname(path);
-    // find the nearest existing directory in path
-    while (!Stat::stat(dir)) {
-      char* parent_dir = x_dirname(dir);
-      free(dir);
-      dir = parent_dir;
-    }
+  std::string path_suffix;
 
-    // suffix is the remaining of the path, skip the first delimiter
-    size_t dir_len = strlen(dir);
-    if (path[dir_len] == '/' || path[dir_len] == '\\') {
-      dir_len++;
+  if (!Stat::stat(std::string(path))) {
+    // path doesn't exist.
+    string_view dir = Util::dir_name(path);
+    // Find the nearest existing directory in path.
+    while (!Stat::stat(std::string(dir))) {
+      dir = Util::dir_name(dir);
     }
-    path_suffix = x_strdup(&path[dir_len]);
+    path_suffix = std::string(path.substr(dir.length()));
     path = dir;
   }
 
-  std::string result;
-
-  std::string canon_path = Util::real_path(path, true);
+  std::string canon_path = Util::real_path(std::string(path), true);
   if (!canon_path.empty()) {
     std::string relpath = Util::get_relative_path(ctx.actual_cwd, canon_path);
-    if (path_suffix) {
-      result = fmt::format("{}/{}", relpath, path_suffix);
-    } else {
-      result = relpath;
-    }
+    return relpath + path_suffix;
   } else {
     // path doesn't exist, so leave it as it is.
-    result = path;
+    return std::string(path);
   }
-
-#ifdef _WIN32
-  free(winpath);
-#endif
-  free(dir);
-  free(path_suffix);
-
-  return result;
 }
 
 // This function reads and hashes a file. While doing this, it also does these
@@ -3174,8 +3153,7 @@ process_args(Context& ctx,
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
         Util::change_extension(args_info.output_obj, ".d");
-      args_info.output_dep =
-        make_relative_path(ctx, default_depfile_name.c_str());
+      args_info.output_dep = make_relative_path(ctx, default_depfile_name);
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -3197,12 +3175,12 @@ process_args(Context& ctx,
   if (args_info.generating_coverage) {
     std::string gcda_path =
       Util::change_extension(args_info.output_obj, ".gcno");
-    args_info.output_cov = make_relative_path(ctx, gcda_path.c_str());
+    args_info.output_cov = make_relative_path(ctx, gcda_path);
   }
   if (args_info.generating_stackusage) {
     std::string default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
-    args_info.output_su = make_relative_path(ctx, default_sufile_name.c_str());
+    args_info.output_su = make_relative_path(ctx, default_sufile_name);
   }
 
   *compiler_args = args_copy(common_args);
