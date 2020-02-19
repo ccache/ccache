@@ -112,6 +112,33 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
+size_t
+common_dir_prefix_length(string_view dir, string_view path)
+{
+  if (dir.empty() || path.empty() || dir == "/" || path == "/") {
+    return 0;
+  }
+
+  const size_t limit = std::min(dir.length(), path.length());
+  size_t i = 0;
+
+  while (i < limit && dir[i] == path[i]) {
+    ++i;
+  }
+
+  if ((i == dir.length() && i == path.length())
+      || (i == dir.length() && path[i] == '/')
+      || (i == path.length() && dir[i] == '/')) {
+    return i;
+  }
+
+  do {
+    --i;
+  } while (i > 0 && i != string_view::npos && dir[i] != '/' && path[i] != '/');
+
+  return i;
+}
+
 bool
 create_dir(string_view dir)
 {

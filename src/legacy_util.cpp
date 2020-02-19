@@ -708,29 +708,6 @@ same_executable_name(const char* s1, const char* s2)
 #endif
 }
 
-// Compute the length of the longest directory path that is common to two
-// paths. s1 is assumed to be the path to a directory.
-size_t
-common_dir_prefix_length(const char* s1, const char* s2)
-{
-  const char* p1 = s1;
-  const char* p2 = s2;
-
-  while (*p1 && *p2 && *p1 == *p2) {
-    ++p1;
-    ++p2;
-  }
-  while ((*p1 && *p1 != '/') || (*p2 && *p2 != '/')) {
-    p1--;
-    p2--;
-  }
-  if (!*p1 && !*p2 && p2 == s2 + 1) {
-    // Special case for s1 and s2 both being "/".
-    return 0;
-  }
-  return p1 - s1;
-}
-
 // Compute a relative path from from (an absolute path to a directory) to to (a
 // path). Assumes that both from and to are well-formed and canonical. Caller
 // frees.
@@ -762,7 +739,7 @@ get_relative_path(const char* from, const char* to)
 #endif
 
   result = x_strdup("");
-  common_prefix_len = common_dir_prefix_length(from, to);
+  common_prefix_len = Util::common_dir_prefix_length(from, to);
   if (common_prefix_len > 0 || !str_eq(from, "/")) {
     const char* p;
     for (p = from + common_prefix_len; *p; p++) {

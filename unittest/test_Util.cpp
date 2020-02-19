@@ -86,6 +86,24 @@ TEST_CASE("Util::change_extension")
   CHECK(Util::change_extension("foo.bar.txt", ".o") == "foo.bar.o");
 }
 
+TEST_CASE("Util::common_dir_prefix_length")
+{
+  CHECK(Util::common_dir_prefix_length("", "") == 0);
+  CHECK(Util::common_dir_prefix_length("/", "") == 0);
+  CHECK(Util::common_dir_prefix_length("", "/") == 0);
+  CHECK(Util::common_dir_prefix_length("/", "/") == 0);
+  CHECK(Util::common_dir_prefix_length("/", "/b") == 0);
+  CHECK(Util::common_dir_prefix_length("/a", "/") == 0);
+  CHECK(Util::common_dir_prefix_length("/a", "/b") == 0);
+  CHECK(Util::common_dir_prefix_length("/a", "/a") == 2);
+  CHECK(Util::common_dir_prefix_length("/a", "/a/b") == 2);
+  CHECK(Util::common_dir_prefix_length("/a/b", "/a") == 2);
+  CHECK(Util::common_dir_prefix_length("/a/b", "/a/c") == 2);
+  CHECK(Util::common_dir_prefix_length("/a/b", "/a/b") == 4);
+  CHECK(Util::common_dir_prefix_length("/a/bc", "/a/b") == 2);
+  CHECK(Util::common_dir_prefix_length("/a/b", "/a/bc") == 2);
+}
+
 TEST_CASE("Util::create_dir")
 {
   CHECK(Util::create_dir("/"));

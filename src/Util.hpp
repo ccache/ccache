@@ -77,6 +77,11 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
 
+// Compute the length of the longest directory path that is common to paths
+// `dir` (a directory) and `path` (any path).
+size_t common_dir_prefix_length(nonstd::string_view dir,
+                                nonstd::string_view path);
+
 // Create a directory if needed, including its parents if needed.
 //
 // Returns true if the directory exists or could be created, otherwise false.

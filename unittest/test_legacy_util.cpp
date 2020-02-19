@@ -35,20 +35,6 @@ TEST(x_dirname)
   CHECK_STR_EQ_FREE2("dir1/dir2", x_dirname("dir1/dir2/"));
 }
 
-TEST(common_dir_prefix_length)
-{
-  CHECK_INT_EQ(0, common_dir_prefix_length("", ""));
-  CHECK_INT_EQ(0, common_dir_prefix_length("/", "/"));
-  CHECK_INT_EQ(0, common_dir_prefix_length("/", "/b"));
-  CHECK_INT_EQ(0, common_dir_prefix_length("/a", "/b"));
-  CHECK_INT_EQ(2, common_dir_prefix_length("/a", "/a"));
-  CHECK_INT_EQ(2, common_dir_prefix_length("/a", "/a/b"));
-  CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/c"));
-  CHECK_INT_EQ(4, common_dir_prefix_length("/a/b", "/a/b"));
-  CHECK_INT_EQ(2, common_dir_prefix_length("/a/bc", "/a/b"));
-  CHECK_INT_EQ(2, common_dir_prefix_length("/a/b", "/a/bc"));
-}
-
 TEST(get_relative_path)
 {
 #ifdef _WIN32
