@@ -240,6 +240,35 @@ TEST_CASE("Util::get_level_1_files")
   }
 }
 
+TEST_CASE("Util::get_relative_path")
+{
+#ifdef _WIN32
+  CHECK(Util::get_relative_path("C:/a", "C:/a") == ".");
+  CHECK(Util::get_relative_path("C:/a", "Z:/a") == "Z:/a");
+  CHECK(Util::get_relative_path("C:/a/b", "C:/a") == "..");
+  CHECK(Util::get_relative_path("C:/a", "C:/a/b") == "b");
+  CHECK(Util::get_relative_path("C:/a", "C:/a/b/c") == "b/c");
+  CHECK(Util::get_relative_path("C:/a/b", "C:/a/c") == "../c");
+  CHECK(Util::get_relative_path("C:/a/b", "C:/a/c/d") == "../c/d");
+  CHECK(Util::get_relative_path("C:/a/b/c", "C:/a/c/d") == "../../c/d");
+  CHECK(Util::get_relative_path("C:/a/b", "C:/") == "../..");
+  CHECK(Util::get_relative_path("C:/a/b", "C:/c") == "../../c");
+  CHECK(Util::get_relative_path("C:/", "C:/a/b") == "a/b");
+  CHECK(Util::get_relative_path("C:/a", "D:/a/b") == "D:/a/b");
+#else
+  CHECK(Util::get_relative_path("/a", "/a") == ".");
+  CHECK(Util::get_relative_path("/a/b", "/a") == "..");
+  CHECK(Util::get_relative_path("/a", "/a/b") == "b");
+  CHECK(Util::get_relative_path("/a", "/a/b/c") == "b/c");
+  CHECK(Util::get_relative_path("/a/b", "/a/c") == "../c");
+  CHECK(Util::get_relative_path("/a/b", "/a/c/d") == "../c/d");
+  CHECK(Util::get_relative_path("/a/b/c", "/a/c/d") == "../../c/d");
+  CHECK(Util::get_relative_path("/a/b", "/") == "../..");
+  CHECK(Util::get_relative_path("/a/b", "/c") == "../../c");
+  CHECK(Util::get_relative_path("/", "/a/b") == "a/b");
+#endif
+}
+
 TEST_CASE("Util::get_path_in_cache")
 {
   CHECK(Util::get_path_in_cache("/zz/ccache", 1, "ABCDEF", ".suffix")

@@ -279,6 +279,50 @@ get_level_1_files(const std::string& dir,
 }
 
 std::string
+get_relative_path(string_view dir, string_view path)
+{
+  assert(Util::is_absolute_path(dir));
+  assert(Util::is_absolute_path(path));
+
+#ifdef _WIN32
+  // Paths can be escaped by a slash for use with e.g. -isystem.
+  if (dir.length() >= 3 && dir[0] == '/' && dir[2] == ':') {
+    dir = dir.substr(1);
+  }
+  if (path.length() >= 3 && path[0] == '/' && path[2] == ':') {
+    path = path.substr(1);
+  }
+  if (dir[0] != path[0]) {
+    // Drive letters differ.
+    return std::string(path);
+  }
+  dir = dir.substr(2);
+  path = path.substr(2);
+#endif
+
+  std::string result;
+  size_t common_prefix_len = Util::common_dir_prefix_length(dir, path);
+  if (common_prefix_len > 0 || dir != "/") {
+    for (size_t i = common_prefix_len; i < dir.length(); ++i) {
+      if (dir[i] == '/') {
+        if (!result.empty()) {
+          result += '/';
+        }
+        result += "..";
+      }
+    }
+  }
+  if (path.length() > common_prefix_len) {
+    if (!result.empty()) {
+      result += '/';
+    }
+    result += std::string(path.substr(common_prefix_len + 1));
+  }
+  result.erase(result.find_last_not_of('/') + 1);
+  return result.empty() ? "." : result;
+}
+
+std::string
 get_path_in_cache(string_view cache_dir,
                   uint32_t levels,
                   string_view name,

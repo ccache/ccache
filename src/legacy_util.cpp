@@ -708,59 +708,6 @@ same_executable_name(const char* s1, const char* s2)
 #endif
 }
 
-// Compute a relative path from from (an absolute path to a directory) to to (a
-// path). Assumes that both from and to are well-formed and canonical. Caller
-// frees.
-char*
-get_relative_path(const char* from, const char* to)
-{
-  size_t common_prefix_len;
-  char* result;
-
-  assert(from && Util::is_absolute_path(from));
-  assert(to);
-
-  if (!*to || !Util::is_absolute_path(to)) {
-    return x_strdup(to);
-  }
-
-#ifdef _WIN32
-  // Paths can be escaped by a slash for use with -isystem.
-  if (from[0] == '/') {
-    from++;
-  }
-  if (to[0] == '/') {
-    to++;
-  }
-  // Both paths are absolute, drop the drive letters.
-  assert(from[0] == to[0]); // Assume the same drive letter.
-  from += 2;
-  to += 2;
-#endif
-
-  result = x_strdup("");
-  common_prefix_len = Util::common_dir_prefix_length(from, to);
-  if (common_prefix_len > 0 || !str_eq(from, "/")) {
-    const char* p;
-    for (p = from + common_prefix_len; *p; p++) {
-      if (*p == '/') {
-        reformat(&result, "../%s", result);
-      }
-    }
-  }
-  if (strlen(to) > common_prefix_len) {
-    reformat(&result, "%s%s", result, to + common_prefix_len + 1);
-  }
-  for (int i = strlen(result) - 1; i >= 0 && result[i] == '/'; i--) {
-    result[i] = '\0';
-  }
-  if (str_eq(result, "")) {
-    free(result);
-    result = x_strdup(".");
-  }
-  return result;
-}
-
 // Return whether the argument is a full path.
 bool
 is_full_path(const char* path)

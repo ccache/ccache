@@ -35,37 +35,6 @@ TEST(x_dirname)
   CHECK_STR_EQ_FREE2("dir1/dir2", x_dirname("dir1/dir2/"));
 }
 
-TEST(get_relative_path)
-{
-#ifdef _WIN32
-  CHECK_STR_EQ_FREE2("a", get_relative_path("C:/doesn't matter", "a"));
-  CHECK_STR_EQ_FREE2("a/b", get_relative_path("C:/doesn't matter", "a/b"));
-  CHECK_STR_EQ_FREE2(".", get_relative_path("C:/a", "C:/a"));
-  CHECK_STR_EQ_FREE2("..", get_relative_path("C:/a/b", "C:/a"));
-  CHECK_STR_EQ_FREE2("b", get_relative_path("C:/a", "C:/a/b"));
-  CHECK_STR_EQ_FREE2("b/c", get_relative_path("C:/a", "C:/a/b/c"));
-  CHECK_STR_EQ_FREE2("../c", get_relative_path("C:/a/b", "C:/a/c"));
-  CHECK_STR_EQ_FREE2("../c/d", get_relative_path("C:/a/b", "C:/a/c/d"));
-  CHECK_STR_EQ_FREE2("../../c/d", get_relative_path("C:/a/b/c", "C:/a/c/d"));
-  CHECK_STR_EQ_FREE2("../..", get_relative_path("C:/a/b", "C:/"));
-  CHECK_STR_EQ_FREE2("../../c", get_relative_path("C:/a/b", "C:/c"));
-  CHECK_STR_EQ_FREE2("a/b", get_relative_path("C:/", "C:/a/b"));
-#else
-  CHECK_STR_EQ_FREE2("a", get_relative_path("/doesn't matter", "a"));
-  CHECK_STR_EQ_FREE2("a/b", get_relative_path("/doesn't matter", "a/b"));
-  CHECK_STR_EQ_FREE2(".", get_relative_path("/a", "/a"));
-  CHECK_STR_EQ_FREE2("..", get_relative_path("/a/b", "/a"));
-  CHECK_STR_EQ_FREE2("b", get_relative_path("/a", "/a/b"));
-  CHECK_STR_EQ_FREE2("b/c", get_relative_path("/a", "/a/b/c"));
-  CHECK_STR_EQ_FREE2("../c", get_relative_path("/a/b", "/a/c"));
-  CHECK_STR_EQ_FREE2("../c/d", get_relative_path("/a/b", "/a/c/d"));
-  CHECK_STR_EQ_FREE2("../../c/d", get_relative_path("/a/b/c", "/a/c/d"));
-  CHECK_STR_EQ_FREE2("../..", get_relative_path("/a/b", "/"));
-  CHECK_STR_EQ_FREE2("../../c", get_relative_path("/a/b", "/c"));
-  CHECK_STR_EQ_FREE2("a/b", get_relative_path("/", "/a/b"));
-#endif
-}
-
 TEST(subst_env_in_string)
 {
   char* errmsg;

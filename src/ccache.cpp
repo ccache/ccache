@@ -663,14 +663,12 @@ make_relative_path(const Context& ctx, const char* path)
 
   std::string canon_path = Util::real_path(path, true);
   if (!canon_path.empty()) {
-    char* relpath =
-      get_relative_path(ctx.actual_cwd.c_str(), canon_path.c_str());
+    std::string relpath = Util::get_relative_path(ctx.actual_cwd, canon_path);
     if (path_suffix) {
       result = fmt::format("{}/{}", relpath, path_suffix);
     } else {
       result = relpath;
     }
-    free(relpath);
   } else {
     // path doesn't exist, so leave it as it is.
     result = path;

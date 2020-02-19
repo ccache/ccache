@@ -147,6 +147,13 @@ void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
 
+// Compute a relative path from `dir` (an absolute path to a directory) to
+// `path` (an absolute path). Assumes that both `dir` and `path` are normalized.
+// The algorithm does *not* follow symlinks, so the result may not actually
+// resolve to the same file as `path`.
+std::string get_relative_path(nonstd::string_view dir,
+                              nonstd::string_view path);
+
 // Join `cache_dir`, a '/', `name`, and `suffix` into a single path and return
 // it. Additionally `levels` single-character, '/'-separated subpaths are split
 // from the beginning of `name` before joining them all.
