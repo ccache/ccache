@@ -300,6 +300,66 @@ is_absolute_path(string_view path)
   return !path.empty() && path[0] == '/';
 }
 
+std::string
+normalize_absolute_path(string_view path)
+{
+  if (!is_absolute_path(path)) {
+    return std::string(path);
+  }
+
+#ifdef _WIN32
+  if (path.find("\\") != string_view::npos) {
+    std::string new_path(path);
+    std::replace(new_path.begin(), new_path.end(), '\\', '/');
+    return normalize_absolute_path(new_path);
+  }
+
+  std::string drive(path.substr(0, 2));
+  path = path.substr(2);
+#endif
+
+  std::string result = "/";
+  const size_t npos = string_view::npos;
+  size_t left = 1;
+  size_t right = 1;
+
+  while (true) {
+    if (left >= path.length()) {
+      break;
+    }
+    right = path.find('/', left);
+    string_view part = path.substr(left, right == npos ? npos : right - left);
+    if (part == "..") {
+      if (result.length() > 1) {
+        // "/x/../part" -> "/part"
+        result.erase(result.rfind('/', result.length() - 2) + 1);
+      } else {
+        // "/../part" -> "/part"
+      }
+    } else if (part == ".") {
+      // "/x/." -> "/x"
+    } else {
+      result.append(part.begin(), part.end());
+      if (result[result.length() - 1] != '/') {
+        result += '/';
+      }
+    }
+    if (right == npos) {
+      break;
+    }
+    left = right + 1;
+  }
+  if (result.length() > 1) {
+    result.erase(result.find_last_not_of('/') + 1);
+  }
+
+#ifdef _WIN32
+  return drive + result;
+#else
+  return result;
+#endif
+}
+
 int
 parse_int(const std::string& value)
 {

@@ -317,6 +317,36 @@ TEST_CASE("Util::is_absolute_path")
   CHECK(!Util::is_absolute_path("foo/fie"));
 }
 
+TEST_CASE("Util::normalize_absolute_path")
+{
+  CHECK(Util::normalize_absolute_path("") == "");
+  CHECK(Util::normalize_absolute_path(".") == ".");
+  CHECK(Util::normalize_absolute_path("..") == "..");
+  CHECK(Util::normalize_absolute_path("...") == "...");
+  CHECK(Util::normalize_absolute_path("x/./") == "x/./");
+
+#ifdef _WIN32
+  CHECK(Util::normalize_absolute_path("c:/") == "c:/");
+  CHECK(Util::normalize_absolute_path("c:\\") == "c:/");
+  CHECK(Util::normalize_absolute_path("c:/.") == "c:/");
+  CHECK(Util::normalize_absolute_path("c:\\..") == "c:/");
+  CHECK(Util::normalize_absolute_path("c:\\x/..") == "c:/");
+  CHECK(Util::normalize_absolute_path("c:\\x/./y\\..\\\\z") == "c:/x/z");
+#else
+  CHECK(Util::normalize_absolute_path("/") == "/");
+  CHECK(Util::normalize_absolute_path("/.") == "/");
+  CHECK(Util::normalize_absolute_path("/..") == "/");
+  CHECK(Util::normalize_absolute_path("/./") == "/");
+  CHECK(Util::normalize_absolute_path("//") == "/");
+  CHECK(Util::normalize_absolute_path("/../x") == "/x");
+  CHECK(Util::normalize_absolute_path("/x/./y/z") == "/x/y/z");
+  CHECK(Util::normalize_absolute_path("/x/../y/z/") == "/y/z");
+  CHECK(Util::normalize_absolute_path("/x/.../y/z") == "/x/.../y/z");
+  CHECK(Util::normalize_absolute_path("/x/yyy/../zz") == "/x/zz");
+  CHECK(Util::normalize_absolute_path("//x/yyy///.././zz") == "/x/zz");
+#endif
+}
+
 TEST_CASE("Util::parse_int")
 {
   CHECK(Util::parse_int("0") == 0);
