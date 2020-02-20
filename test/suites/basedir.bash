@@ -49,18 +49,17 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     TEST "Path normalization"
 
     cd dir1
-    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I`pwd`/include -c src/test.c
+    CCACHE_DEBUG=1 CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
+    mv test.o*text first.text
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
     mkdir subdir
-    ln -s `pwd`/include subdir/symlink
 
     # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
-    # slashes, redundant "/." parts and "foo/.." parts correctly. Note that the
-    # ".." part of the path is resolved after the symlink has been resolved.
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`//./subdir/symlink/../include -c `pwd`/src/test.c
+    # slashes, redundant "/." parts and "foo/.." parts correctly.
+    CCACHE_DEBUG=1 CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)//./subdir/../include -c $(pwd)/src/test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -110,6 +109,84 @@ EOF
     if [ "$(./c)" != OK ]; then
         test_failed "Incorrect header file used"
     fi
+fi
+
+    # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
+    TEST "Symlinked build dir inside source dir"
+
+    mkdir build1
+    ln -s $(pwd)/build1 dir1/src/build
+
+    mkdir build2
+    ln -s $(pwd)/build2 dir2/src/build
+
+    # The file structure now looks like this:
+    #
+    # build1
+    # dir1/include/test.h
+    # dir1/src/test.c
+    # dir1/src/build -> /absolute/path/to/build1
+    #
+    # build2
+    # dir2/include/test.h
+    # dir2/src/test.c
+    # dir2/src/build -> /absolute/path/to/build2
+
+    cd dir1/src
+    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    cd ../../dir2/src
+    # Apparent CWD:
+    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+
+    # Actual CWD (e.g. from $(CURDIR) in a Makefile):
+    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/../include -c $(pwd -P)/test.c -o $(pwd -P)/build/test.o
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
+fi
+
+    # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
+    TEST "Symlinked source dir inside build dir"
+
+    mkdir build1
+    ln -s $(pwd)/dir1 build1/src
+
+    mkdir build2
+    ln -s $(pwd)/dir2 build2/src
+
+    # The file structure now looks like this:
+    #
+    # build1
+    # build1/src -> /absolute/path/to/dir1
+    # dir1/include/test.h
+    # dir1/src/test.c
+    #
+    # build2
+    # build2/src -> /absolute/path/to/dir2
+    # dir2/include/test.h
+    # dir2/src/test.c
+
+    cd build1
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/src/include -c $(pwd)/src/src/test.c -o $(pwd)/test.o
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    cd ../build2
+    # Apparent CWD:
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/src/include -c $(pwd)/src/src/test.c -o $(pwd)/test.o
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+
+    # Actual CWD:
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/src/include -c $(pwd -P)/src/src/test.c -o $(pwd -P)/test.o
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 1
 fi
 
     # -------------------------------------------------------------------------

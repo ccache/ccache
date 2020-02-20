@@ -115,7 +115,7 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const ProgressReceiver& progress_receiver);
 
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
-// canonical path without symlink parts). Returns the empty string on error.
+// normalized path without symlink parts). Returns the empty string on error.
 std::string get_actual_cwd();
 
 // Return current working directory (CWD) by reading the environment variable
@@ -228,7 +228,7 @@ std::string read_file(const std::string& path);
 std::string read_link(const std::string& path);
 #endif
 
-// Return a canonicalized absolute path of `path`. On error (e.g. if the `path`
+// Return a normalized absolute path of `path`. On error (e.g. if the `path`
 // doesn't exist) the empty string is returned if return_empty_on_error is true,
 // otherwise `path` unmodified.
 std::string real_path(const std::string& path,

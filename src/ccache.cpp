@@ -634,32 +634,36 @@ make_relative_path(const Context& ctx, string_view path)
   }
 #endif
 
-  // Util::real_path only works for existing paths, so if path doesn't exist,
-  // try x_dirname(path) and assemble the path afterwards. We only bother to try
-  // canonicalizing one of these two paths since a compiler path argument
-  // typically only makes sense if path or x_dirname(path) exists.
-
+  // The algorithm for computing relative paths below only works for existing
+  // paths. If the path doesn't exist, find the first ancestor directory that
+  // does exist and assemble the path again afterwards.
+  string_view original_path = path;
   std::string path_suffix;
+  Stat path_stat;
+  while (!(path_stat = Stat::stat(std::string(path)))) {
+    path = Util::dir_name(path);
+  }
+  path_suffix = std::string(original_path.substr(path.length()));
 
-  if (!Stat::stat(std::string(path))) {
-    // path doesn't exist.
-    string_view dir = Util::dir_name(path);
-    // Find the nearest existing directory in path.
-    while (!Stat::stat(std::string(dir))) {
-      dir = Util::dir_name(dir);
+  std::string path_str(path);
+  std::string normalized_path = Util::normalize_absolute_path(path_str);
+  std::vector<std::string> relpath_candidates = {
+    Util::get_relative_path(ctx.actual_cwd, normalized_path),
+    Util::get_relative_path(ctx.apparent_cwd, normalized_path),
+  };
+  // Move best (= shortest) match first:
+  if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
+    std::swap(relpath_candidates[0], relpath_candidates[1]);
+  }
+
+  for (const auto& relpath : relpath_candidates) {
+    if (Stat::stat(relpath).same_inode_as(path_stat)) {
+      return relpath + path_suffix;
     }
-    path_suffix = std::string(path.substr(dir.length()));
-    path = dir;
   }
 
-  std::string canon_path = Util::real_path(std::string(path), true);
-  if (!canon_path.empty()) {
-    std::string relpath = Util::get_relative_path(ctx.actual_cwd, canon_path);
-    return relpath + path_suffix;
-  } else {
-    // path doesn't exist, so leave it as it is.
-    return std::string(path);
-  }
+  // No match so nothing else to do than to return the unmodified path.
+  return std::string(original_path);
 }
 
 // This function reads and hashes a file. While doing this, it also does these
