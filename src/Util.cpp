@@ -237,16 +237,16 @@ get_apparent_cwd(const std::string& actual_cwd)
     return actual_cwd;
   }
 
-  auto st_pwd = Stat::stat(pwd);
-  auto st_cwd = Stat::stat(actual_cwd);
-  if (!st_pwd || !st_cwd) {
+  auto pwd_stat = Stat::stat(pwd);
+  auto cwd_stat = Stat::stat(actual_cwd);
+  if (!pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)) {
     return actual_cwd;
   }
-  if (st_pwd.device() == st_cwd.device() && st_pwd.inode() == st_cwd.inode()) {
-    return pwd;
-  } else {
-    return actual_cwd;
-  }
+  std::string normalized_pwd = normalize_absolute_path(pwd);
+  return normalized_pwd == pwd
+             || Stat::stat(normalized_pwd).same_inode_as(pwd_stat)
+           ? normalized_pwd
+           : pwd;
 #endif
 }
 
