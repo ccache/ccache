@@ -25,7 +25,24 @@
 
 using Catch::Equals;
 
-TEST_CASE("Constructor")
+TEST_CASE("Default constructor")
+{
+  Stat stat;
+  CHECK(!stat);
+  CHECK(stat.error_number() == -1);
+  CHECK(stat.device() == 0);
+  CHECK(stat.inode() == 0);
+  CHECK(stat.mode() == 0);
+  CHECK(stat.ctime() == 0);
+  CHECK(stat.mtime() == 0);
+  CHECK(stat.size() == 0);
+  CHECK(stat.size_on_disk() == 0);
+  CHECK(!stat.is_directory());
+  CHECK(!stat.is_regular());
+  CHECK(!stat.is_symlink());
+}
+
+TEST_CASE("Named constructors")
 {
   CHECK(!Stat::stat("does_not_exist"));
   CHECK(!Stat::stat("does_not_exist", Stat::OnError::ignore));

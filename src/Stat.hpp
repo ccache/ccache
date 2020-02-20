@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -37,6 +37,10 @@ public:
     // Throw Error on errors (including missing file).
     throw_error,
   };
+
+  // Create an empty stat result. operator bool() will return false,
+  // error_number() will return -1 and other accessors will return false or 0.
+  Stat();
 
   // Run stat(2).
   //
@@ -82,6 +86,10 @@ private:
   struct stat m_stat;
   int m_errno;
 };
+
+inline Stat::Stat() : m_stat{}, m_errno(-1)
+{
+}
 
 inline Stat
 Stat::stat(const std::string& path, OnError on_error)
