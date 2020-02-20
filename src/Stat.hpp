@@ -61,6 +61,10 @@ public:
   // otherwise false.
   operator bool() const;
 
+  // Return whether this object refers to the same device and i-node as `other`
+  // does.
+  bool same_inode_as(const Stat& other) const;
+
   // Return errno from the (l)stat call (0 if successful).
   int error_number() const;
 
@@ -85,6 +89,9 @@ protected:
 private:
   struct stat m_stat;
   int m_errno;
+
+  bool operator==(const Stat&) const;
+  bool operator!=(const Stat&) const;
 };
 
 inline Stat::Stat() : m_stat{}, m_errno(-1)
@@ -113,6 +120,12 @@ Stat::lstat(const std::string& path, OnError on_error)
 inline Stat::operator bool() const
 {
   return m_errno == 0;
+}
+
+inline bool
+Stat::same_inode_as(const Stat& other) const
+{
+  return device() == other.device() && inode() == other.inode();
 }
 
 inline int

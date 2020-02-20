@@ -52,6 +52,25 @@ TEST_CASE("Named constructors")
     Equals("failed to stat does_not_exist: No such file or directory"));
 }
 
+TEST_CASE("Same i-node as")
+{
+  Util::write_file("a", "");
+  Util::write_file("b", "");
+  auto a_stat = Stat::stat("a");
+  auto b_stat = Stat::stat("b");
+
+  CHECK(a_stat.same_inode_as(a_stat));
+#ifdef _WIN32 // no i-node concept
+  (void)b_stat;
+#else
+  CHECK(!a_stat.same_inode_as(b_stat));
+#endif
+
+  Util::write_file("a", "change size");
+  auto new_a_stat = Stat::stat("a");
+  CHECK(new_a_stat.same_inode_as(a_stat));
+}
+
 TEST_CASE("Return values when file is missing")
 {
   auto stat = Stat::stat("does_not_exist");
