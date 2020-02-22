@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2019 Joel Rosdahl
+// Copyright (C) 2009-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -1519,9 +1519,8 @@ x_rename(const char *oldpath, const char *newpath)
 	return rename(oldpath, newpath);
 #else
 	// Windows' rename() refuses to overwrite an existing file.
-	unlink(newpath); // Not x_unlink, as x_unlink calls x_rename.
 	// If the function succeeds, the return value is nonzero.
-	if (MoveFileA(oldpath, newpath) == 0) {
+	if (MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING) == 0) {
 		LPVOID lp_msg_buf;
 		DWORD dw = GetLastError();
 		FormatMessage(
