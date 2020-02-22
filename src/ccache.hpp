@@ -62,5 +62,4 @@ bool cc_process_args(Context& ctx,
                      struct args** preprocessor_args,
                      struct args** extra_args_to_hash,
                      struct args** compiler_args);
-void cc_reset();
 bool is_precompiled_header(const char* path);
