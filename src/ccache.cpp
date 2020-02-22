@@ -42,6 +42,7 @@
 
 #include "third_party/fmt/core.h"
 #include "third_party/minitrace.h"
+#include "third_party/nonstd/optional.hpp"
 
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
@@ -55,6 +56,8 @@
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
 
+using nonstd::nullopt;
+using nonstd::optional;
 using nonstd::string_view;
 
 static const char VERSION_TEXT[] = MYNAME
@@ -186,13 +189,16 @@ add_prefix(const Context& ctx, struct args* args, const char* prefix_command)
   args_free(prefix);
 }
 
-static void failed(enum stats stat = STATS_NONE) ATTR_NORETURN;
+// If `exit_code` is set, just exit with that code directly, otherwise execute
+// the real compiler and exit with its exit code. Also updates statistics
+// counter `stat` if it's not STATS_NONE.
+static void failed(enum stats stat = STATS_NONE,
+                   optional<int> exit_code = nullopt) ATTR_NORETURN;
 
-// Something went badly wrong - just execute the real compiler.
 static void
-failed(enum stats stat)
+failed(enum stats stat, optional<int> exit_code)
 {
-  throw Failure(stat);
+  throw Failure(stat, exit_code);
 }
 
 static const char*
@@ -1267,7 +1273,6 @@ to_cache(Context& ctx,
 
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
-    stats_update(ctx, STATS_STATUS);
 
     int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
     if (fd != -1) {
@@ -1276,11 +1281,11 @@ to_cache(Context& ctx,
       close(fd);
       tmp_unlink(tmp_stderr);
 
-      x_exit(status);
+      failed(STATS_STATUS, status);
     }
 
     tmp_unlink(tmp_stderr);
-    failed();
+    failed(STATS_STATUS);
   }
 
   if (ctx.config.depend_mode()) {
@@ -3557,11 +3562,11 @@ configuration_printer(const std::string& key,
   fmt::print("({}) {} = {}\n", origin, key, value);
 }
 
-static void cache_compilation(int argc, char* argv[]) ATTR_NORETURN;
+static int cache_compilation(int argc, char* argv[]);
 static void do_cache_compilation(Context& ctx, char* argv[]) ATTR_NORETURN;
 
 // The entry point when invoked to cache a compilation.
-static void
+static int
 cache_compilation(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -3583,6 +3588,11 @@ cache_compilation(int argc, char* argv[])
     if (e.stat() != STATS_NONE) {
       stats_update(ctx, e.stat());
     }
+
+    if (e.exit_code()) {
+      return *e.exit_code();
+    }
+    // Else: Fall back to running the real compiler.
 
     assert(ctx.orig_args);
 
@@ -3606,7 +3616,7 @@ do_cache_compilation(Context& ctx, char* argv[])
   if (ctx.actual_cwd.empty()) {
     cc_log("Unable to determine current working directory: %s",
            strerror(errno));
-    throw Failure(STATS_ERROR);
+    failed(STATS_ERROR);
   }
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
@@ -4039,7 +4049,7 @@ ccache_main(int argc, char* argv[])
       }
     }
 
-    cache_compilation(argc, argv);
+    return cache_compilation(argc, argv);
   } catch (const ErrorBase& e) {
     fmt::print(stderr, "ccache: error: {}\n", e.what());
     return EXIT_FAILURE;

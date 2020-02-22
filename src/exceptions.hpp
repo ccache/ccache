@@ -22,6 +22,8 @@
 
 #include "stats.hpp"
 
+#include "third_party/nonstd/optional.hpp"
+
 #include <stdexcept>
 
 // Don't throw or catch ErrorBase directly, use a subclass.
@@ -45,21 +47,32 @@ class FatalError : public ErrorBase
   using ErrorBase::ErrorBase;
 };
 
-// Throw a Failure to make ccache fall back to running the real compiler. Also
-// updates statistics counter `stat` if it's not STATS_NONE.
+// Throw a Failure if ccache did not succeed in getting or putting a result in
+// the cache. If `exit_code` is set, just exit with that code directly,
+// otherwise execute the real compiler and exit with its exit code. Also updates
+// statistics counter `stat` if it's not STATS_NONE.
 class Failure : public std::exception
 {
 public:
-  Failure(enum stats stat = STATS_NONE);
+  Failure(enum stats stat, nonstd::optional<int> exit_code);
 
+  nonstd::optional<int> exit_code() const;
   enum stats stat() const;
 
 private:
   enum stats m_stat;
+  nonstd::optional<int> m_exit_code;
 };
 
-inline Failure::Failure(enum stats stat) : m_stat(stat)
+inline Failure::Failure(enum stats stat, nonstd::optional<int> exit_code)
+  : m_stat(stat), m_exit_code(exit_code)
 {
+}
+
+inline nonstd::optional<int>
+Failure::exit_code() const
+{
+  return m_exit_code;
 }
 
 inline enum stats
