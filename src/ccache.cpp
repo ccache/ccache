@@ -2198,11 +2198,11 @@ detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
 // Returns nullopt on success, otherwise the statistics counter that should be
 // incremented.
 optional<enum stats>
-cc_process_args(Context& ctx,
-                struct args* args,
-                struct args** preprocessor_args,
-                struct args** extra_args_to_hash,
-                struct args** compiler_args)
+process_args(Context& ctx,
+             struct args* args,
+             struct args** preprocessor_args,
+             struct args** extra_args_to_hash,
+             struct args** compiler_args)
 {
   ArgsInfo& args_info = ctx.args_info;
   Config& config = ctx.config;
@@ -3595,11 +3595,11 @@ do_cache_compilation(Context& ctx, char* argv[])
   struct args* compiler_args;
   MTR_BEGIN("main", "process_args");
 
-  auto error = cc_process_args(ctx,
-                               ctx.orig_args,
-                               &preprocessor_args,
-                               &extra_args_to_hash,
-                               &compiler_args);
+  auto error = process_args(ctx,
+                            ctx.orig_args,
+                            &preprocessor_args,
+                            &extra_args_to_hash,
+                            &compiler_args);
   if (error) {
     failed(*error);
   }

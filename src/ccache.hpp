@@ -60,9 +60,9 @@ enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 
 void block_signals();
 void unblock_signals();
-nonstd::optional<enum stats> cc_process_args(Context& ctx,
-                                             struct args* args,
-                                             struct args** preprocessor_args,
-                                             struct args** extra_args_to_hash,
-                                             struct args** compiler_args);
+nonstd::optional<enum stats> process_args(Context& ctx,
+                                          struct args* args,
+                                          struct args** preprocessor_args,
+                                          struct args** extra_args_to_hash,
+                                          struct args** compiler_args);
 bool is_precompiled_header(const char* path);
