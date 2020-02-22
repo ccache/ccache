@@ -857,9 +857,6 @@ EOF
     chmod +x compiler.sh
 
     CCACHE_COMPILERCHECK="unknown_command" $CCACHE ./compiler.sh -c test1.c 2>/dev/null
-    if [ "$?" -eq 0 ]; then
-        test_failed "Expected failure running unknown_command to verify compiler but was success"
-    fi
     expect_stat 'compiler check failed' 1
 
     # -------------------------------------------------------------------------

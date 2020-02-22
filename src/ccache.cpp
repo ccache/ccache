@@ -1499,8 +1499,9 @@ hash_compiler(Context& ctx,
     bool ok = hash_multicommand_output(
       ctx, hash, ctx.config.compiler_check().c_str(), ctx.orig_args->argv[0]);
     if (!ok) {
-      fatal("Failure running compiler check command: %s",
-            ctx.config.compiler_check().c_str());
+      cc_log("Failure running compiler check command: %s",
+             ctx.config.compiler_check().c_str());
+      failed();
     }
   }
 }
