@@ -1,8 +1,15 @@
 SUITE_pch_PROBE() {
-    touch pch.h
+    touch pch.h empty.c
+    mkdir dir
+
     if ! $REAL_COMPILER $SYSROOT -fpch-preprocess pch.h 2>/dev/null \
             || [ ! -f pch.h.gch ]; then
-        echo "compiler ($($COMPILER --version | head -1)) doesn't support precompiled headers"
+        echo "compiler ($($COMPILER --version | head -n 1)) doesn't support precompiled headers"
+    fi
+
+    $REAL_COMPILER $SYSROOT -c pch.h -o dir/pch.h.gch 2>/dev/null
+    if ! $REAL_COMPILER $SYSROOT -c -include dir/pch.h empty.c 2>/dev/null; then
+        echo "compiler ($($COMPILER --version | head -n 1)) seems to have broken support for precompiled headers"
     fi
 }
 
