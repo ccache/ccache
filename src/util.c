@@ -1125,7 +1125,7 @@ static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
 								           TEXT("%s%s"),
 								           drive,
 								           filename+name_len);
-								_tcsncpy(filename, temp_file, _tcslen(temp_file));
+								strcpy(filename, temp_file);
 							}
 						}
 					}
