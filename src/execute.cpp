@@ -28,10 +28,6 @@
 
 using nonstd::string_view;
 
-static char* find_executable_in_path(const char* name,
-                                     const char* exclude_name,
-                                     const char* path);
-
 #ifdef _WIN32
 int
 execute(char** argv, int fd_out, int fd_err, pid_t* /*pid*/)
@@ -324,11 +320,15 @@ find_executable(const Context& ctx, const char* name, const char* exclude_name)
   return find_executable_in_path(name, exclude_name, path);
 }
 
-static char*
+char*
 find_executable_in_path(const char* name,
                         const char* exclude_name,
                         const char* path)
 {
+  if (!path) {
+    return nullptr;
+  }
+
   char* path_buf = x_strdup(path);
 
   // Search the path looking for the first compiler of the right name that

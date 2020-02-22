@@ -325,7 +325,7 @@ hash_command_output(Context& ctx,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* path = find_executable(ctx, args->argv[0], nullptr);
+  char* path = find_executable_in_path(args->argv[0], nullptr, getenv("PATH"));
   if (!path) {
     path = args->argv[0];
   }
