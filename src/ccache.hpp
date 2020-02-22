@@ -33,13 +33,7 @@ class Config;
 
 extern const char CCACHE_VERSION[];
 
-enum guessed_compiler {
-  GUESSED_CLANG,
-  GUESSED_GCC,
-  GUESSED_NVCC,
-  GUESSED_PUMP,
-  GUESSED_UNKNOWN
-};
+enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 
 #define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
 #define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
@@ -61,8 +55,6 @@ enum guessed_compiler {
 // Allow caching even if -fmodules is used.
 #define SLOPPY_MODULES (1U << 9)
 
-extern time_t time_of_compilation;
-extern bool output_is_precompiled_header;
 void block_signals();
 void unblock_signals();
 bool cc_process_args(Context& ctx,

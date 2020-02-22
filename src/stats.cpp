@@ -41,9 +41,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern unsigned lock_staleness_limit;
-
-static struct counters* counter_updates;
+// How long (in microseconds) to wait before breaking a stale lock.
+constexpr unsigned k_lock_staleness_limit = 2000000;
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
@@ -245,10 +244,10 @@ stats_write(const std::string& path, struct counters* counters)
 }
 
 static void
-init_counter_updates(void)
+init_counter_updates(Context& ctx)
 {
-  if (!counter_updates) {
-    counter_updates = counters_init(STATS_END);
+  if (!ctx.counter_updates) {
+    ctx.counter_updates = counters_init(STATS_END);
   }
 }
 
@@ -299,7 +298,7 @@ stats_collect(const Config& config,
 // Record that a number of bytes and files have been added to the cache. Size
 // is in bytes.
 void
-stats_update_size(const Context& ctx,
+stats_update_size(Context& ctx,
                   const std::string& sfile,
                   int64_t size,
                   int files)
@@ -310,8 +309,8 @@ stats_update_size(const Context& ctx,
 
   struct counters* updates;
   if (sfile == ctx.stats_file) {
-    init_counter_updates();
-    updates = counter_updates;
+    init_counter_updates(ctx);
+    updates = ctx.counter_updates;
   } else {
     updates = counters_init(STATS_END);
   }
@@ -381,7 +380,7 @@ stats_flush_to_file(const Config& config,
       "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
   }
 
-  if (!lockfile_acquire(sfile.c_str(), lock_staleness_limit)) {
+  if (!lockfile_acquire(sfile.c_str(), k_lock_staleness_limit)) {
     return;
   }
 
@@ -428,26 +427,24 @@ void
 stats_flush(void* context)
 {
   Context& ctx = *static_cast<Context*>(context);
-  stats_flush_to_file(ctx.config, ctx.stats_file, counter_updates);
-  counters_free(counter_updates);
-  counter_updates = NULL;
+  stats_flush_to_file(ctx.config, ctx.stats_file, ctx.counter_updates);
 }
 
 // Update a normal stat.
 void
-stats_update(enum stats stat)
+stats_update(Context& ctx, enum stats stat)
 {
   assert(stat > STATS_NONE && stat < STATS_END);
-  init_counter_updates();
-  counter_updates->data[stat]++;
+  init_counter_updates(ctx);
+  ctx.counter_updates->data[stat]++;
 }
 
 // Get the pending update of a counter value.
 unsigned
-stats_get_pending(enum stats stat)
+stats_get_pending(Context& ctx, enum stats stat)
 {
-  init_counter_updates();
-  return counter_updates->data[stat];
+  init_counter_updates(ctx);
+  return ctx.counter_updates->data[stat];
 }
 
 // Sum and display the total stats for all cache dirs.
@@ -548,7 +545,7 @@ stats_zero(const Config& config)
       free(fname);
       continue;
     }
-    if (lockfile_acquire(fname, lock_staleness_limit)) {
+    if (lockfile_acquire(fname, k_lock_staleness_limit)) {
       stats_read(fname, counters);
       for (unsigned i = 0; stats_info[i].message; i++) {
         if (!(stats_info[i].flags & FLAG_NOZERO)) {
@@ -585,7 +582,7 @@ stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size)
 {
   struct counters* counters = counters_init(STATS_END);
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, lock_staleness_limit)) {
+  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
     stats_read(statsfile, counters);
     counters->data[STATS_NUMFILES] = num_files;
     counters->data[STATS_TOTALSIZE] = total_size / 1024;
@@ -602,7 +599,7 @@ stats_add_cleanup(const char* dir, unsigned count)
 {
   struct counters* counters = counters_init(STATS_END);
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, lock_staleness_limit)) {
+  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
     stats_read(statsfile, counters);
     counters->data[STATS_NUMCLEANUPS] += count;
     stats_write(statsfile, counters);

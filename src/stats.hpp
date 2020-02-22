@@ -64,13 +64,13 @@ enum stats {
   STATS_END
 };
 
-void stats_update(enum stats stat);
+void stats_update(Context& ctx, enum stats stat);
 void stats_flush(void* context);
-unsigned stats_get_pending(enum stats stat);
+unsigned stats_get_pending(Context& ctx, enum stats stat);
 void stats_zero(const Config& config);
 void stats_summary(const Config& config);
 void stats_print(const Config& config);
-void stats_update_size(const Context& ctx,
+void stats_update_size(Context& ctx,
                        const std::string& sfile,
                        int64_t size,
                        int files);

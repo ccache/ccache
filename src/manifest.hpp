@@ -35,5 +35,6 @@ bool manifest_put(const Config& config,
                   const std::string& path,
                   const struct digest& result_name,
                   const std::unordered_map<std::string, digest>& included_files,
+                  time_t time_of_compilation,
                   bool save_timestamp);
 bool manifest_dump(const std::string& path, FILE* stream);

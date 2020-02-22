@@ -23,6 +23,10 @@
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
 #include "NonCopyable.hpp"
+#include "ccache.hpp"
+#include "hash.hpp"
+
+#include <unordered_map>
 
 struct args;
 
@@ -46,4 +50,49 @@ struct Context : NonCopyable
 
   // The original argument list.
   struct args* orig_args = nullptr;
+
+  // Name (represented as a struct digest) of the file containing the cached
+  // result.
+  struct digest* result_name = nullptr;
+
+  // Full path to the file containing the result
+  // (cachedir/a/b/cdef[...]-size.result).
+  std::string result_path;
+
+  // Full path to the file containing the manifest
+  // (cachedir/a/b/cdef[...]-size.manifest).
+  std::string manifest_path;
+
+  // Time of compilation. Used to see if include files have changed after
+  // compilation.
+  time_t time_of_compilation = 0;
+
+  // Files included by the preprocessor and their hashes.
+  // Key: file path. Value: struct digest.
+  std::unordered_map<std::string, digest> included_files;
+
+  // Uses absolute path for some include files.
+  bool has_absolute_include_headers = false;
+
+  // The name of the temporary preprocessed file.
+  std::string i_tmpfile;
+
+  // The name of the cpp stderr file.
+  std::string cpp_stderr;
+
+  // The stats file to use for the manifest.
+  std::string manifest_stats_file;
+
+  // Compiler guessing is currently only based on the compiler name, so nothing
+  // should hard-depend on it if possible.
+  GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
+
+  // The .gch/.pch/.pth file used for compilation.
+  std::string included_pch_file;
+
+  // List of headers to ignore.
+  char** ignore_headers = nullptr;
+  size_t ignore_headers_len = 0;
+
+  struct counters* counter_updates = nullptr;
 };

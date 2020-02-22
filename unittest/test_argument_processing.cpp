@@ -23,7 +23,6 @@
 #include "../src/Util.hpp"
 #include "../src/args.hpp"
 #include "../src/ccache.hpp"
-#include "../src/legacy_globals.hpp"
 #include "../src/stats.hpp"
 #include "framework.hpp"
 #include "util.hpp"
@@ -76,7 +75,7 @@ TEST(dash_E_should_result_in_called_for_preprocessing)
 
   create_file("foo.c", "");
   CHECK(!cc_process_args(ctx, orig, &preprocessed, NULL, &compiler));
-  CHECK_INT_EQ(1, stats_get_pending(STATS_PREPROCESSING));
+  CHECK_INT_EQ(1, stats_get_pending(ctx, STATS_PREPROCESSING));
 
   args_free(orig);
 }
@@ -90,7 +89,7 @@ TEST(dash_M_should_be_unsupported)
 
   create_file("foo.c", "");
   CHECK(!cc_process_args(ctx, orig, &preprocessed, NULL, &compiler));
-  CHECK_INT_EQ(1, stats_get_pending(STATS_UNSUPPORTED_OPTION));
+  CHECK_INT_EQ(1, stats_get_pending(ctx, STATS_UNSUPPORTED_OPTION));
 
   args_free(orig);
 }
