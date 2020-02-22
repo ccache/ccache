@@ -1496,12 +1496,11 @@ hash_compiler(Context& ctx,
     hash_delimiter(hash, "cc_content");
     hash_file(hash, path);
   } else { // command string
-    bool ok = hash_multicommand_output(
-      ctx, hash, ctx.config.compiler_check().c_str(), ctx.orig_args->argv[0]);
-    if (!ok) {
+    if (!hash_multicommand_output(
+          hash, ctx.config.compiler_check().c_str(), ctx.orig_args->argv[0])) {
       cc_log("Failure running compiler check command: %s",
              ctx.config.compiler_check().c_str());
-      failed();
+      failed(STATS_COMPCHECK);
     }
   }
 }
