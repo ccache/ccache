@@ -42,7 +42,6 @@
 
 #include "third_party/fmt/core.h"
 #include "third_party/minitrace.h"
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #ifdef HAVE_GETOPT_LONG
@@ -2196,8 +2195,9 @@ detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
 // this is added later. extra_args_to_hash are the arguments that are not
 // included in preprocessor_args but that should be included in the hash.
 //
-// Returns true on success, otherwise false.
-bool
+// Returns nullopt on success, otherwise the statistics counter that should be
+// incremented.
+optional<enum stats>
 cc_process_args(Context& ctx,
                 struct args* args,
                 struct args** preprocessor_args,
@@ -2283,8 +2283,7 @@ cc_process_args(Context& ctx,
       i++;
       if (i == argc) {
         cc_log("--ccache-skip lacks an argument");
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       args_add(common_args, argv[i]);
       continue;
@@ -2292,8 +2291,7 @@ cc_process_args(Context& ctx,
 
     // Special case for -E.
     if (str_eq(argv[i], "-E")) {
-      stats_update(ctx, STATS_PREPROCESSING);
-      return false;
+      return STATS_PREPROCESSING;
     }
 
     // Handle "@file" argument.
@@ -2306,8 +2304,7 @@ cc_process_args(Context& ctx,
       struct args* file_args = args_init_from_gcc_atfile(argpath);
       if (!file_args) {
         cc_log("Couldn't read arg file %s", argpath);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
 
       args_insert(expanded_args, i, file_args, true);
@@ -2322,8 +2319,7 @@ cc_process_args(Context& ctx,
         && (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))) {
       if (i == argc - 1) {
         cc_log("Expected argument after %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       ++i;
 
@@ -2341,8 +2337,7 @@ cc_process_args(Context& ctx,
         struct args* file_args = args_init_from_gcc_atfile(str_start);
         if (!file_args) {
           cc_log("Couldn't read cuda options file %s", str_start);
-          stats_update(ctx, STATS_ARGS);
-          return false;
+          return STATS_ARGS;
         }
 
         int new_index = file_args->argc + index;
@@ -2361,8 +2356,7 @@ cc_process_args(Context& ctx,
     if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")
         || str_startswith(argv[i], "-MJ")) {
       cc_log("Compiler option %s is unsupported", argv[i]);
-      stats_update(ctx, STATS_UNSUPPORTED_OPTION);
-      return false;
+      return STATS_UNSUPPORTED_OPTION;
     }
 
     // These are too hard in direct mode.
@@ -2374,8 +2368,7 @@ cc_process_args(Context& ctx,
     // -Xarch_* options are too hard.
     if (str_startswith(argv[i], "-Xarch_")) {
       cc_log("Unsupported compiler option :%s", argv[i]);
-      stats_update(ctx, STATS_UNSUPPORTED_OPTION);
-      return false;
+      return STATS_UNSUPPORTED_OPTION;
     }
 
     // Handle -arch options.
@@ -2383,8 +2376,7 @@ cc_process_args(Context& ctx,
       if (args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
         cc_log("Too many -arch compiler options; ccache supports at most %d",
                ArgsInfo::max_arch_args);
-        stats_update(ctx, STATS_UNSUPPORTED_OPTION);
-        return false;
+        return STATS_UNSUPPORTED_OPTION;
       }
 
       ++i;
@@ -2403,8 +2395,7 @@ cc_process_args(Context& ctx,
       if (compopt_takes_arg(argv[i])) {
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(ctx, STATS_ARGS);
-          return false;
+          return STATS_ARGS;
         }
         args_add(compiler_only_args, argv[i + 1]);
         ++i;
@@ -2433,14 +2424,12 @@ cc_process_args(Context& ctx,
       if (!config.depend_mode() || !config.direct_mode()) {
         cc_log("Compiler option %s is unsupported without direct depend mode",
                argv[i]);
-        stats_update(ctx, STATS_CANTUSEMODULES);
-        return false;
-      } else if (!(ctx.config.sloppiness() & SLOPPY_MODULES)) {
+        return STATS_CANTUSEMODULES;
+      } else if (!(config.sloppiness() & SLOPPY_MODULES)) {
         cc_log(
           "You have to specify \"modules\" sloppiness when using"
           " -fmodules to get hits");
-        stats_update(ctx, STATS_CANTUSEMODULES);
-        return false;
+        return STATS_CANTUSEMODULES;
       }
     }
 
@@ -2469,8 +2458,7 @@ cc_process_args(Context& ctx,
     if (str_eq(argv[i], "-x")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       if (args_info.input_file.empty()) {
         explicit_language = argv[i + 1];
@@ -2489,8 +2477,7 @@ cc_process_args(Context& ctx,
     if (str_eq(argv[i], "-o")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       args_info.output_obj = make_relative_path(ctx, argv[i + 1]);
       i++;
@@ -2500,7 +2487,7 @@ cc_process_args(Context& ctx,
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o")
         && ctx.guessed_compiler != GuessedCompiler::nvcc) {
-      ctx.args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
+      args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
       continue;
     }
 
@@ -2565,8 +2552,7 @@ cc_process_args(Context& ctx,
         // -MF arg
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(ctx, STATS_ARGS);
-          return false;
+          return STATS_ARGS;
         }
         arg = argv[i + 1];
         i++;
@@ -2596,8 +2582,7 @@ cc_process_args(Context& ctx,
         // -MQ arg or -MT arg
         if (i == argc - 1) {
           cc_log("Missing argument to %s", argv[i]);
-          stats_update(ctx, STATS_ARGS);
-          return false;
+          return STATS_ARGS;
         }
         args_add(dep_args, argv[i]);
         std::string relpath = make_relative_path(ctx, argv[i + 1]);
@@ -2659,8 +2644,7 @@ cc_process_args(Context& ctx,
     if (str_eq(argv[i], "--sysroot")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       args_add(common_args, argv[i]);
       std::string relpath = make_relative_path(ctx, argv[i + 1]);
@@ -2672,8 +2656,7 @@ cc_process_args(Context& ctx,
     if (str_eq(argv[i], "-target")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       args_add(common_args, argv[i]);
       args_add(common_args, argv[i + 1]);
@@ -2687,8 +2670,7 @@ cc_process_args(Context& ctx,
         // file from compiling the preprocessed file will not be equal to the
         // object file produced when compiling without ccache.
         cc_log("Too hard option -Wp,-P detected");
-        stats_update(ctx, STATS_UNSUPPORTED_OPTION);
-        failed();
+        return STATS_UNSUPPORTED_OPTION;
       } else if (str_startswith(argv[i], "-Wp,-MD,")
                  && !strchr(argv[i] + 8, ',')) {
         args_info.generating_dependencies = true;
@@ -2742,8 +2724,7 @@ cc_process_args(Context& ctx,
     if (str_eq(argv[i], "--serialize-diagnostics")) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
       args_info.generating_diagnostics = true;
       args_info.output_dia = make_relative_path(ctx, argv[i + 1]);
@@ -2787,8 +2768,7 @@ cc_process_args(Context& ctx,
         // know what the user means, and what the compiler will do.
         if (arg_profile_dir && !args_info.profile_dir.empty()) {
           cc_log("Profile directory already set; giving up");
-          stats_update(ctx, STATS_UNSUPPORTED_OPTION);
-          return false;
+          return STATS_UNSUPPORTED_OPTION;
         } else if (arg_profile_dir) {
           cc_log("Setting profile directory to %s", arg_profile_dir);
           args_info.profile_dir = from_cstr(arg_profile_dir);
@@ -2851,13 +2831,11 @@ cc_process_args(Context& ctx,
     if (compopt_takes_path(argv[i])) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
 
       if (!detect_pch(ctx, argv[i], argv[i + 1], &found_pch)) {
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
 
       std::string relpath = make_relative_path(ctx, argv[i + 1]);
@@ -2900,8 +2878,7 @@ cc_process_args(Context& ctx,
     if (compopt_takes_arg(argv[i])) {
       if (i == argc - 1) {
         cc_log("Missing argument to %s", argv[i]);
-        stats_update(ctx, STATS_ARGS);
-        return false;
+        return STATS_ARGS;
       }
 
       if (compopt_affects_cpp(argv[i])) {
@@ -2946,19 +2923,18 @@ cc_process_args(Context& ctx,
         cc_log("Multiple input files: %s and %s",
                args_info.input_file.c_str(),
                argv[i]);
-        stats_update(ctx, STATS_MULTIPLE);
+        return STATS_MULTIPLE;
       } else if (!found_c_opt && !found_dc_opt) {
         cc_log("Called for link with %s", argv[i]);
         if (strstr(argv[i], "conftest.")) {
-          stats_update(ctx, STATS_CONFTEST);
+          return STATS_CONFTEST;
         } else {
-          stats_update(ctx, STATS_LINK);
+          return STATS_LINK;
         }
       } else {
         cc_log("Unsupported source extension: %s", argv[i]);
-        stats_update(ctx, STATS_SOURCELANG);
+        return STATS_SOURCELANG;
       }
-      return false;
     }
 
     // The source code file path gets put into the notes.
@@ -3035,8 +3011,7 @@ cc_process_args(Context& ctx,
 
   if (args_info.input_file.empty()) {
     cc_log("No input file found");
-    stats_update(ctx, STATS_NOINPUT);
-    return false;
+    return STATS_NOINPUT;
   }
 
   if (found_pch || found_fpch_preprocess) {
@@ -3046,8 +3021,7 @@ cc_process_args(Context& ctx,
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
       cc_log("Disabling direct mode");
-      stats_update(ctx, STATS_CANTUSEPCH);
-      return false;
+      return STATS_CANTUSEPCH;
     }
   }
 
@@ -3058,8 +3032,7 @@ cc_process_args(Context& ctx,
   if (explicit_language) {
     if (!language_is_supported(explicit_language)) {
       cc_log("Unsupported language: %s", explicit_language);
-      stats_update(ctx, STATS_SOURCELANG);
-      return false;
+      return STATS_SOURCELANG;
     }
     args_info.actual_language = from_cstr(explicit_language);
   } else {
@@ -3074,8 +3047,7 @@ cc_process_args(Context& ctx,
     cc_log(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
-    stats_update(ctx, STATS_CANTUSEPCH);
-    return false;
+    return STATS_CANTUSEPCH;
   }
 
   if (!found_c_opt && !found_dc_opt && !found_S_opt) {
@@ -3086,18 +3058,16 @@ cc_process_args(Context& ctx,
       // I find that having a separate statistic for autoconf tests is useful,
       // as they are the dominant form of "called for link" in many cases.
       if (args_info.input_file.find("conftest.") != std::string::npos) {
-        stats_update(ctx, STATS_CONFTEST);
+        return STATS_CONFTEST;
       } else {
-        stats_update(ctx, STATS_LINK);
+        return STATS_LINK;
       }
-      return false;
     }
   }
 
   if (args_info.actual_language.empty()) {
     cc_log("Unsupported source extension: %s", args_info.input_file.c_str());
-    stats_update(ctx, STATS_SOURCELANG);
-    return false;
+    return STATS_SOURCELANG;
   }
 
   if (!config.run_second_cpp() && args_info.actual_language == "cu") {
@@ -3122,9 +3092,8 @@ cc_process_args(Context& ctx,
 
   // Don't try to second guess the compilers heuristics for stdout handling.
   if (args_info.output_obj == "-") {
-    stats_update(ctx, STATS_OUTSTDOUT);
     cc_log("Output file is -");
-    return false;
+    return STATS_OUTSTDOUT;
   }
 
   if (args_info.output_obj.empty()) {
@@ -3141,8 +3110,7 @@ cc_process_args(Context& ctx,
     size_t pos = args_info.output_obj.rfind('.');
     if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
       cc_log("Badly formed object filename");
-      stats_update(ctx, STATS_ARGS);
-      return false;
+      return STATS_ARGS;
     }
 
     args_info.output_dwo = Util::change_extension(args_info.output_obj, ".dwo");
@@ -3153,8 +3121,7 @@ cc_process_args(Context& ctx,
     auto st = Stat::stat(args_info.output_obj);
     if (st && !st.is_regular()) {
       cc_log("Not a regular file: %s", args_info.output_obj.c_str());
-      stats_update(ctx, STATS_BADOUTPUTFILE);
-      return false;
+      return STATS_BADOUTPUTFILE;
     }
   }
 
@@ -3163,9 +3130,8 @@ cc_process_args(Context& ctx,
     auto st = Stat::stat(output_dir);
     if (!st || !st.is_directory()) {
       cc_log("Directory does not exist: %s", output_dir);
-      stats_update(ctx, STATS_BADOUTPUTFILE);
       free(output_dir);
-      return false;
+      return STATS_BADOUTPUTFILE;
     }
     free(output_dir);
   }
@@ -3190,7 +3156,7 @@ cc_process_args(Context& ctx,
   // default, so force it explicitly if it would be otherwise done.
   if (!found_color_diagnostics && color_output_possible()) {
     if (ctx.guessed_compiler == GuessedCompiler::clang) {
-      if (ctx.args_info.actual_language != "assembler") {
+      if (args_info.actual_language != "assembler") {
         args_add(common_args, "-fcolor-diagnostics");
         add_extra_arg("-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
@@ -3214,7 +3180,7 @@ cc_process_args(Context& ctx,
         Util::change_extension(args_info.output_obj, ".d");
       args_info.output_dep =
         make_relative_path(ctx, default_depfile_name.c_str());
-      if (!ctx.config.run_second_cpp()) {
+      if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
         // location since the preprocessor doesn't know the final object path.
@@ -3224,7 +3190,7 @@ cc_process_args(Context& ctx,
     }
 
     if (!dependency_target_specified && !dependency_implicit_target_specified
-        && !ctx.config.run_second_cpp()) {
+        && !config.run_second_cpp()) {
       // If we're compiling preprocessed code we're sending dep_args to the
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
@@ -3287,7 +3253,7 @@ cc_process_args(Context& ctx,
   *preprocessor_args = args_copy(common_args);
   args_extend(*preprocessor_args, cpp_args);
 
-  if (ctx.config.run_second_cpp()) {
+  if (config.run_second_cpp()) {
     // When not compiling the preprocessed source code, only pass dependency
     // arguments to the compiler to avoid having to add -MQ, supporting e.g.
     // EDG-based compilers which don't support -MQ.
@@ -3300,11 +3266,11 @@ cc_process_args(Context& ctx,
   }
 
   *extra_args_to_hash = compiler_only_args;
-  if (ctx.config.run_second_cpp()) {
+  if (config.run_second_cpp()) {
     args_extend(*extra_args_to_hash, dep_args);
   }
 
-  return true;
+  return nullopt;
 }
 
 static void
@@ -3629,12 +3595,13 @@ do_cache_compilation(Context& ctx, char* argv[])
   struct args* compiler_args;
   MTR_BEGIN("main", "process_args");
 
-  if (!cc_process_args(ctx,
-                       ctx.orig_args,
-                       &preprocessor_args,
-                       &extra_args_to_hash,
-                       &compiler_args)) {
-    failed(); // stats_update is called in cc_process_args.
+  auto error = cc_process_args(ctx,
+                               ctx.orig_args,
+                               &preprocessor_args,
+                               &extra_args_to_hash,
+                               &compiler_args);
+  if (error) {
+    failed(*error);
   }
 
   MTR_END("main", "process_args");
