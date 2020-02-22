@@ -602,7 +602,7 @@ remember_include_file(Context& ctx,
 }
 
 static void
-print_included_files(Context& ctx, FILE* fp)
+print_included_files(const Context& ctx, FILE* fp)
 {
   for (const auto& item : ctx.included_files) {
     fprintf(fp, "%s\n", item.first.c_str());
@@ -1477,7 +1477,7 @@ get_result_name_from_cpp(Context& ctx, struct args* args, struct hash* hash)
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
-hash_compiler(Context& ctx,
+hash_compiler(const Context& ctx,
               struct hash* hash,
               const Stat& st,
               const char* path,
@@ -1511,7 +1511,7 @@ hash_compiler(Context& ctx,
 // with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
 // in PATH instead.
 static void
-hash_nvcc_host_compiler(Context& ctx,
+hash_nvcc_host_compiler(const Context& ctx,
                         struct hash* hash,
                         const Stat* ccbin_st,
                         const char* ccbin)
@@ -1560,7 +1560,7 @@ hash_nvcc_host_compiler(Context& ctx,
 
 // Update a hash with information common for the direct and preprocessor modes.
 static void
-hash_common_info(Context& ctx,
+hash_common_info(const Context& ctx,
                  struct args* args,
                  struct hash* hash,
                  const ArgsInfo& args_info)
@@ -2088,7 +2088,7 @@ from_cache(Context& ctx,
 // Find the real compiler. We just search the PATH to find an executable of the
 // same name that isn't a link to ourselves.
 static void
-find_compiler(Context& ctx, char** argv)
+find_compiler(const Context& ctx, char** argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
