@@ -1891,9 +1891,6 @@ calculate_result_name(Context& ctx,
   // The profile directory can be specified as an argument to
   // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
   if (ctx.args_info.profile_generate) {
-    if (ctx.args_info.profile_dir.empty()) {
-      ctx.args_info.profile_dir = ctx.apparent_cwd;
-    }
     cc_log("Adding profile directory %s to our hash",
            ctx.args_info.profile_dir.c_str());
     hash_delimiter(hash, "-fprofile-dir");
@@ -1902,9 +1899,6 @@ calculate_result_name(Context& ctx,
 
   if (ctx.args_info.profile_use) {
     // Calculate gcda name.
-    if (ctx.args_info.profile_dir.empty()) {
-      ctx.args_info.profile_dir = ctx.apparent_cwd;
-    }
     string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
     std::string gcda_name =
       fmt::format("{}/{}.gcda", ctx.args_info.profile_dir, base_name);
@@ -3023,6 +3017,10 @@ process_args(Context& ctx,
       cc_log("Disabling direct mode");
       return STATS_CANTUSEPCH;
     }
+  }
+
+  if (args_info.profile_dir.empty()) {
+    args_info.profile_dir = ctx.apparent_cwd;
   }
 
   if (explicit_language && str_eq(explicit_language, "none")) {
