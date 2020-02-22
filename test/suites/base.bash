@@ -97,7 +97,10 @@ base_tests() {
     TEST "Couldn't find the compiler"
 
     $CCACHE blahblah -c test1.c 2>/dev/null
-    expect_stat "couldn't find the compiler" 1
+    exit_code=$?
+    if [ $exit_code -ne 1 ]; then
+        test_failed "Expected exit code to be 1, actual value $exit_code"
+    fi
 
     # -------------------------------------------------------------------------
     TEST "Bad compiler arguments"

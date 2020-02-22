@@ -2147,7 +2147,6 @@ find_compiler(Context& ctx, char** argv)
 
   char* compiler = find_executable(ctx, base.c_str(), MYNAME);
   if (!compiler) {
-    stats_update(ctx, STATS_COMPILER);
     fatal("Could not find compiler \"%s\" in PATH", base.c_str());
   }
   if (str_eq(compiler, argv[0])) {
