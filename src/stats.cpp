@@ -439,14 +439,6 @@ stats_update(Context& ctx, enum stats stat)
   ctx.counter_updates->data[stat]++;
 }
 
-// Get the pending update of a counter value.
-unsigned
-stats_get_pending(Context& ctx, enum stats stat)
-{
-  init_counter_updates(ctx);
-  return ctx.counter_updates->data[stat];
-}
-
 // Sum and display the total stats for all cache dirs.
 void
 stats_summary(const Config& config)
