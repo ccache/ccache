@@ -119,6 +119,9 @@ common_dir_prefix_length(string_view dir, string_view path)
     return 0;
   }
 
+  assert(dir[0] == '/');
+  assert(path[0] == '/');
+
   const size_t limit = std::min(dir.length(), path.length());
   size_t i = 0;
 
@@ -134,7 +137,7 @@ common_dir_prefix_length(string_view dir, string_view path)
 
   do {
     --i;
-  } while (i > 0 && i != string_view::npos && dir[i] != '/' && path[i] != '/');
+  } while (i > 0 && dir[i] != '/' && path[i] != '/');
 
   return i;
 }
@@ -220,7 +223,13 @@ get_actual_cwd()
 {
   char buffer[PATH_MAX];
   if (getcwd(buffer, sizeof(buffer))) {
+#ifndef _WIN32
     return buffer;
+#else
+    std::string cwd = buffer;
+    std::replace(cwd.begin(), cwd.end(), '\\', '/');
+    return cwd;
+#endif
   } else {
     return {};
   }

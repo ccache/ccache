@@ -683,6 +683,7 @@ Config::set_item(const std::string& key,
     m_base_dir = parse_env_string(value);
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
+      m_base_dir = Util::normalize_absolute_path(m_base_dir);
     }
     break;
 

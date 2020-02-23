@@ -35,6 +35,7 @@ get_root()
 #else
   char volume[4]; // "C:\"
   GetVolumePathName(Util::get_actual_cwd().c_str(), volume, sizeof(volume));
+  volume[2] = '/'; // Since base directory is normalized to forward slashes
   return volume;
 #endif
 }
