@@ -292,11 +292,12 @@ bool
 is_absolute_path(string_view path)
 {
 #ifdef _WIN32
-  return path.length() >= 2 && path[1] == ':'
-         && (path[2] == '/' || path[2] == '\\');
-#else
-  return !path.empty() && path[0] == '/';
+  if (path.length() >= 2 && path[1] == ':'
+      && (path[2] == '/' || path[2] == '\\')) {
+    return true;
+  }
 #endif
+  return !path.empty() && path[0] == '/';
 }
 
 int
