@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -31,7 +31,7 @@ path_exists(const char *path)
 void
 create_file(const char *path, const char *content)
 {
-	FILE *f = fopen(path, "w");
+	FILE *f = fopen(path, "wb");
 	if (!f || fputs(content, f) < 0) {
 		fprintf(stderr, "create_file: %s: %s\n", path, strerror(errno));
 	}
