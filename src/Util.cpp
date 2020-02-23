@@ -401,13 +401,12 @@ normalize_absolute_path(string_view path)
   std::string result = "/";
   const size_t npos = string_view::npos;
   size_t left = 1;
-  size_t right = 1;
 
   while (true) {
     if (left >= path.length()) {
       break;
     }
-    right = path.find('/', left);
+    const auto right = path.find('/', left);
     string_view part = path.substr(left, right == npos ? npos : right - left);
     if (part == "..") {
       if (result.length() > 1) {

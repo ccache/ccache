@@ -977,7 +977,7 @@ subst_env_in_string(const char* str, char** errmsg)
   char* result = x_strdup("");
   const char* p = str; // Interval start.
   const char* q = str; // Interval end.
-  for (q = str; *q; ++q) {
+  for (; *q; ++q) {
     if (*q == '$') {
       reformat(&result, "%s%.*s", result, (int)(q - p), p);
       if (!expand_variable(&q, &result, errmsg)) {

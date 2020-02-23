@@ -3399,7 +3399,7 @@ initialize(int argc, char* argv[])
 {
   // This object is placed onto the heap so it is available in exit functions
   // which run after main(). It is cleaned up by the last exit function.
-  Context* ctx = new Context{};
+  Context* ctx = new Context;
 
   set_up_config(ctx->config);
 

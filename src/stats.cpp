@@ -426,7 +426,7 @@ stats_flush_to_file(const Config& config,
 void
 stats_flush(void* context)
 {
-  Context& ctx = *static_cast<Context*>(context);
+  const Context& ctx = *static_cast<Context*>(context);
   stats_flush_to_file(ctx.config, ctx.stats_file, ctx.counter_updates);
 }
 
