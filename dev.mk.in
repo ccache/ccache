@@ -188,8 +188,8 @@ check-syntax:
 
 .PHONY: cppcheck
 cppcheck:
-	$(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
-	  --inline-suppr -q --enable=all --force -I . \
+	cd $(srcdir) && $(CPPCHECK) --suppressions-list=$(CPPCHECK_SUPPRESSIONS) \
+	  --inline-suppr -q --enable=all --force -I $(CURDIR) \
 	  --template='cppcheck: warning: {id}:{file}:{line}: {message}' \
 	  $(non_third_party_sources) src/main.cpp $(test_sources)
 
@@ -199,7 +199,7 @@ shellcheck: test/suites/*.bash
 
 .PHONY: format
 format:
-	@echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P8 \
+	@cd $(srcdir) && echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P8 \
 	    misc/run-clang-format
 
 # Not using parallel execution because target is most likely being run on non-interactive CI system,
@@ -207,7 +207,7 @@ format:
 .PHONY: check_format
 check_format:
 	@[ -t 1 ] && export cf_diff_color="--color=always"; \
-	echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P1 \
+	cd $(srcdir) && echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P1 \
 	    misc/run-clang-format --check || \
 		{  echo; echo "Error: Sources are not formatted with clang-format."; \
 		   echo 'Run "make format" or apply the above diff.'; }
