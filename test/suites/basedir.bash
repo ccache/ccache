@@ -49,8 +49,7 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     TEST "Path normalization"
 
     cd dir1
-    CCACHE_DEBUG=1 CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
-    mv test.o*text first.text
+    CCACHE_BASEDIR="`pwd`" $CCACHE_COMPILE -I$(pwd)/include -c src/test.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -59,7 +58,7 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
 
     # Rewriting triggered by CCACHE_BASEDIR should handle paths with multiple
     # slashes, redundant "/." parts and "foo/.." parts correctly.
-    CCACHE_DEBUG=1 CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)//./subdir/../include -c $(pwd)/src/test.c
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)//./subdir/../include -c $(pwd)/src/test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -134,18 +133,18 @@ if ! $HOST_OS_WINDOWS && ! $HOST_OS_CYGWIN; then
     # dir2/src/build -> /absolute/path/to/build2
 
     cd dir1/src
-    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
     cd ../../dir2/src
     # Apparent CWD:
-    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd)/../include -c $(pwd)/test.c -o $(pwd)/build/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
 
     # Actual CWD (e.g. from $(CURDIR) in a Makefile):
-    CCACHE_DEBUG=1 CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/../include -c $(pwd -P)/test.c -o $(pwd -P)/build/test.o
+    CCACHE_BASEDIR=/ $CCACHE_COMPILE -I$(pwd -P)/../include -c $(pwd -P)/test.c -o $(pwd -P)/build/test.o
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache miss' 1
 fi
