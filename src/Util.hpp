@@ -189,6 +189,9 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
   buffer[0] = value;
 }
 
+// Return whether `path` is absolute.
+bool is_absolute_path(nonstd::string_view path);
+
 // Parse a string into an integer.
 //
 // Throws Error on error.

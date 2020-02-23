@@ -812,7 +812,7 @@ process_preprocessed_file(Context& ctx,
       // p and q span the include file path.
       char* inc_path = x_strndup(p, q - p);
       if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = is_absolute_path(inc_path);
+        ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
       }
       char* saved_inc_path = inc_path;
       inc_path = x_strdup(make_relative_path(ctx, inc_path).c_str());
@@ -921,7 +921,7 @@ use_relative_paths_in_depfile(const Context& ctx)
     char* token = strtok_r(buf, " \t", &saveptr);
     while (token) {
       char* relpath = nullptr;
-      if (is_absolute_path(token)
+      if (Util::is_absolute_path(token)
           && str_startswith(token, ctx.config.base_dir().c_str())) {
         relpath = x_strdup(make_relative_path(ctx, token).c_str());
         result = true;
@@ -1000,7 +1000,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
         continue;
       }
       if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = is_absolute_path(token);
+        ctx.has_absolute_include_headers = Util::is_absolute_path(token);
       }
       std::string path = make_relative_path(ctx, token);
       remember_include_file(ctx, path, hash, false, hash);

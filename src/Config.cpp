@@ -363,7 +363,7 @@ parse_unsigned(const std::string& value)
 void
 verify_absolute_path(const std::string& value)
 {
-  if (!is_absolute_path(value.c_str())) {
+  if (!Util::is_absolute_path(value)) {
     throw Error(fmt::format("not an absolute path: \"{}\"", value));
   }
 }

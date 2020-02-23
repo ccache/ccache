@@ -288,6 +288,17 @@ get_truncated_base_name(string_view path, size_t max_length)
   return input_base.substr(0, truncate_pos);
 }
 
+bool
+is_absolute_path(string_view path)
+{
+#ifdef _WIN32
+  return path.length() >= 2 && path[1] == ':'
+         && (path[2] == '/' || path[2] == '\\');
+#else
+  return !path.empty() && path[0] == '/';
+#endif
+}
+
 int
 parse_int(const std::string& value)
 {

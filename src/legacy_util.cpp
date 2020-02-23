@@ -740,10 +740,10 @@ get_relative_path(const char* from, const char* to)
   size_t common_prefix_len;
   char* result;
 
-  assert(from && is_absolute_path(from));
+  assert(from && Util::is_absolute_path(from));
   assert(to);
 
-  if (!*to || !is_absolute_path(to)) {
+  if (!*to || !Util::is_absolute_path(to)) {
     return x_strdup(to);
   }
 
@@ -782,17 +782,6 @@ get_relative_path(const char* from, const char* to)
     result = x_strdup(".");
   }
   return result;
-}
-
-// Return whether path is absolute.
-bool
-is_absolute_path(const char* path)
-{
-#ifdef _WIN32
-  return path[0] && path[1] == ':';
-#else
-  return path[0] == '/';
-#endif
 }
 
 // Return whether the argument is a full path.

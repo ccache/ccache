@@ -301,6 +301,22 @@ TEST_CASE("Util::int_to_big_endian")
   CHECK(bytes[7] == 0xca);
 }
 
+TEST_CASE("Util::is_absolute_path")
+{
+#ifdef _WIN32
+  CHECK(Util::is_absolute_path("C:/"));
+  CHECK(Util::is_absolute_path("C:\\foo/fie"));
+  CHECK(!Util::is_absolute_path(""));
+  CHECK(!Util::is_absolute_path("foo\\fie/fum"));
+  CHECK(!Util::is_absolute_path("C:foo/fie"));
+#else
+  CHECK(Util::is_absolute_path("/"));
+  CHECK(Util::is_absolute_path("/foo/fie"));
+  CHECK(!Util::is_absolute_path(""));
+  CHECK(!Util::is_absolute_path("foo/fie"));
+#endif
+}
+
 TEST_CASE("Util::parse_int")
 {
   CHECK(Util::parse_int("0") == 0);

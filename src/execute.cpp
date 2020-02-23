@@ -304,7 +304,7 @@ execute(char** argv, int fd_out, int fd_err, pid_t* pid)
 char*
 find_executable(const Context& ctx, const char* name, const char* exclude_name)
 {
-  if (is_absolute_path(name)) {
+  if (Util::is_absolute_path(name)) {
     return x_strdup(name);
   }
 
