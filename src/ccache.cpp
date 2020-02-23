@@ -1325,7 +1325,7 @@ to_cache(Context& ctx,
     failed(STATS_ERROR);
   }
   stats_update_size(ctx,
-                    ctx.stats_file.c_str(),
+                    ctx.stats_file,
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);
