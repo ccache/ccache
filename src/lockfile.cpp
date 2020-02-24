@@ -33,9 +33,9 @@ bool
 lockfile_acquire(const char* path, unsigned staleness_limit)
 {
   char* lockfile = format("%s.lock", path);
-  char* my_content = NULL;
-  char* content = NULL;
-  char* initial_content = NULL;
+  char* my_content = nullptr;
+  char* content = nullptr;
+  char* initial_content = nullptr;
   const char* hostname = get_hostname();
   bool acquired = false;
   unsigned to_sleep = 1000; // Microseconds.
@@ -43,7 +43,8 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
 
   while (true) {
     free(my_content);
-    my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
+    my_content =
+      format("%s:%d:%d", hostname, (int)getpid(), (int)time(nullptr));
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     int fd = open(lockfile, O_WRONLY | O_CREAT | O_EXCL | O_BINARY, 0666);

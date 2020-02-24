@@ -42,7 +42,7 @@ const suite_fn k_legacy_suites[] = {
   &suite_legacy_util,
   &suite_lockfile,
   &suite_stats,
-  NULL,
+  nullptr,
 };
 
 int

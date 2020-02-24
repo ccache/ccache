@@ -85,7 +85,7 @@ exitfn_add_last(void (*function)(void*), void* context)
   auto p = static_cast<exit_function*>(x_malloc(sizeof(exit_function)));
   p->function = function;
   p->context = context;
-  p->next = NULL;
+  p->next = nullptr;
 
   struct exit_function** q = &exit_functions;
   while (*q) {
@@ -108,7 +108,7 @@ void
 exitfn_call(void)
 {
   struct exit_function* p = exit_functions;
-  exit_functions = NULL;
+  exit_functions = nullptr;
   while (p) {
     p->function(p->context);
     struct exit_function* q = p;

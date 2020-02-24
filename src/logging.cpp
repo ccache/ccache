@@ -120,7 +120,7 @@ log_prefix(bool log_updated_time)
     char timestamp[100];
     struct tm tm;
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
 #  ifdef __MINGW64_VERSION_MAJOR
     localtime_r((time_t*)&tv.tv_sec, &tm);
 #  else

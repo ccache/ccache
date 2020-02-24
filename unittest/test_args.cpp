@@ -26,7 +26,7 @@ TEST_SUITE(args)
 
 TEST(args_init_empty)
 {
-  struct args* args = args_init(0, NULL);
+  struct args* args = args_init(0, nullptr);
   CHECK(args);
   CHECK_INT_EQ(0, args->argc);
   CHECK(!args->argv[0]);

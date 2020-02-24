@@ -95,7 +95,7 @@ struct ArgsInfo
   // Array for storing -arch options.
   static constexpr int max_arch_args = 10;
   size_t arch_args_size = 0;
-  char* arch_args[max_arch_args] = {NULL};
+  char* arch_args[max_arch_args] = {nullptr};
 
   // Relocating debuginfo in the format old=new.
   char** debug_prefix_maps = nullptr;
