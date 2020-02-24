@@ -115,7 +115,6 @@ exitfn_call(void)
     p = p->next;
     free(q);
   }
-  if (context_to_clean_up) {
-    delete context_to_clean_up;
-  }
+
+  delete context_to_clean_up;
 }
