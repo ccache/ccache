@@ -394,8 +394,8 @@ verify_result(const Context& ctx,
               std::unordered_map<std::string, FileStats>& stated_files,
               std::unordered_map<std::string, digest>& hashed_files)
 {
-  for (unsigned int file_info_indexe : result.file_info_indexes) {
-    const auto& fi = mf.file_infos[file_info_indexe];
+  for (uint32_t file_info_index : result.file_info_indexes) {
+    const auto& fi = mf.file_infos[file_info_index];
     const auto& path = mf.files[fi.index];
 
     auto stated_files_iter = stated_files.find(path);
@@ -608,8 +608,8 @@ manifest_dump(const std::string& path, FILE* stream)
     char name[DIGEST_STRING_BUFFER_SIZE];
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    File info indexes:");
-    for (unsigned int& file_info_indexe : mf->results[i].file_info_indexes) {
-      fmt::print(stream, " {}", file_info_indexe);
+    for (uint32_t file_info_index : mf->results[i].file_info_indexes) {
+      fmt::print(stream, " {}", file_info_index);
     }
     fmt::print(stream, "\n");
     digest_as_string(&mf->results[i].name, name);

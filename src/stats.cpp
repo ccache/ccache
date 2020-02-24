@@ -362,9 +362,9 @@ stats_flush_to_file(const Config& config,
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    for (auto& i : stats_info) {
-      if (updates->data[i.stat] != 0 && !(i.flags & FLAG_NOZERO)) {
-        cc_log("Result: %s", i.message);
+    for (auto& info : stats_info) {
+      if (updates->data[info.stat] != 0 && !(info.flags & FLAG_NOZERO)) {
+        cc_log("Result: %s", info.message);
       }
     }
   }

@@ -90,8 +90,8 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
 {
   char data[100000];
-  for (char& i : data) {
-    i = rand() % 256;
+  for (char& c : data) {
+    c = rand() % 256;
   }
 
   File f("data.zstd", "wb");
