@@ -31,7 +31,7 @@ struct exit_function
 
 struct nullary_exit_function
 {
-  void (*function)(void);
+  void (*function)();
 };
 
 static struct exit_function* exit_functions;
@@ -47,7 +47,7 @@ call_nullary_exit_function(void* context)
 
 // Initialize exit functions. Must be called once before exitfn_add* are used.
 void
-exitfn_init(void)
+exitfn_init()
 {
   if (atexit(exitfn_call) != 0) {
     fatal("atexit failed: %s", strerror(errno));
@@ -57,7 +57,7 @@ exitfn_init(void)
 // Add a nullary function to be called when ccache exits. Functions are called
 // in reverse order.
 void
-exitfn_add_nullary(void (*function)(void))
+exitfn_add_nullary(void (*function)())
 {
   auto p = static_cast<exit_function*>(x_malloc(sizeof(exit_function)));
   p->function = reinterpret_cast<void (*)(void*)>(function);
@@ -105,7 +105,7 @@ exitfn_delete_context(Context* ctx)
 
 // Call added functions.
 void
-exitfn_call(void)
+exitfn_call()
 {
   struct exit_function* p = exit_functions;
   exit_functions = nullptr;

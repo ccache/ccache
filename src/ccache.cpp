@@ -216,7 +216,7 @@ temp_dir(const Context& ctx)
 }
 
 void
-block_signals(void)
+block_signals()
 {
 #ifndef _WIN32
   sigprocmask(SIG_BLOCK, &fatal_signal_set, nullptr);
@@ -224,7 +224,7 @@ block_signals(void)
 }
 
 void
-unblock_signals(void)
+unblock_signals()
 {
 #ifndef _WIN32
   sigset_t empty;
@@ -245,7 +245,7 @@ add_pending_tmp_file(const char* path)
 }
 
 static void
-do_clean_up_pending_tmp_files(void)
+do_clean_up_pending_tmp_files()
 {
   struct pending_tmp_file* p = pending_tmp_files;
   while (p) {
@@ -258,7 +258,7 @@ do_clean_up_pending_tmp_files(void)
 }
 
 static void
-clean_up_pending_tmp_files(void)
+clean_up_pending_tmp_files()
 {
   block_signals();
   do_clean_up_pending_tmp_files();
@@ -306,7 +306,7 @@ register_signal_handler(int signum)
 }
 
 static void
-set_up_signal_handlers(void)
+set_up_signal_handlers()
 {
   sigemptyset(&fatal_signal_set);
   sigaddset(&fatal_signal_set, SIGINT);
@@ -2109,7 +2109,7 @@ is_precompiled_header(const char* path)
 }
 
 static bool
-color_output_possible(void)
+color_output_possible()
 {
   const char* term_env = getenv("TERM");
   return isatty(STDERR_FILENO) && term_env && strcasecmp(term_env, "DUMB") != 0;

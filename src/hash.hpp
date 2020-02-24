@@ -43,7 +43,7 @@ bool digests_equal(const struct digest* d1, const struct digest* d2);
 struct hash;
 
 // Create a new hash state.
-struct hash* hash_init(void);
+struct hash* hash_init();
 
 // Create a new hash state from an existing hash state.
 struct hash* hash_copy(struct hash* hash);
