@@ -3845,7 +3845,7 @@ handle_main_options(int argc, char* argv[])
       break;
 
     case 'F': { // --max-files
-      ctx.config.set_value_in_file(
+      Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", optarg);
       unsigned files = atoi(optarg);
       if (files == 0) {
@@ -3861,7 +3861,7 @@ handle_main_options(int argc, char* argv[])
       if (!parse_size_with_suffix(optarg, &size)) {
         fatal("invalid size: %s", optarg);
       }
-      ctx.config.set_value_in_file(
+      Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_size", optarg);
       if (size == 0) {
         printf("Unset cache size limit\n");
@@ -3880,8 +3880,7 @@ handle_main_options(int argc, char* argv[])
       }
       char* key = x_strndup(optarg, p - optarg);
       char* value = p + 1;
-      ctx.config.set_value_in_file(
-        ctx.config.primary_config_path(), key, value);
+      Config::set_value_in_file(ctx.config.primary_config_path(), key, value);
       free(key);
       break;
     }
