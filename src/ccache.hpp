@@ -21,7 +21,7 @@
 
 #include "system.hpp"
 
-#include "counters.hpp"
+#include "Counters.hpp"
 #include "stats.hpp"
 
 #include "third_party/nonstd/optional.hpp"

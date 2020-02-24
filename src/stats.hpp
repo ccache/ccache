@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include "Counters.hpp"
+
 #include <string>
 
 class Config;
@@ -66,18 +68,18 @@ enum stats {
 
 void stats_update(Context& ctx, enum stats stat);
 void stats_flush(void* context);
+void stats_flush_to_file(const Config& config,
+                         std::string sfile,
+                         const Counters& updates);
 void stats_zero(const Config& config);
 void stats_summary(const Config& config);
 void stats_print(const Config& config);
-void stats_update_size(Context& ctx,
-                       const std::string& sfile,
-                       int64_t size,
-                       int files);
+
+void stats_update_size(Counters& counters, int64_t size, int files);
 void stats_get_obsolete_limits(const char* dir,
                                unsigned* maxfiles,
                                uint64_t* maxsize);
 void stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size);
 void stats_add_cleanup(const char* dir, unsigned count);
-void stats_timestamp(time_t time, struct counters* counters);
-void stats_read(const std::string& path, struct counters* counters);
-void stats_write(const std::string& path, struct counters* counters);
+void stats_read(const std::string& path, Counters& counters);
+void stats_write(const std::string& path, const Counters& counters);

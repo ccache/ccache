@@ -351,6 +351,23 @@ base_tests() {
     expect_stat 'cache miss' 0
 
     # -------------------------------------------------------------------------
+    TEST "stats file forward compatibility"
+
+    mkdir -p "$CCACHE_DIR/4/"
+    stats_file="$CCACHE_DIR/4/stats"
+    touch "$CCACHE_DIR/timestamp_reference"
+
+    for i in `seq 101`; do
+       echo $i
+    done > "$stats_file"
+
+    expect_stat 'cache miss' 5
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache miss' 6
+    expect_file_contains "$stats_file" 101
+    expect_file_newer_than "$stats_file" "$CCACHE_DIR/timestamp_reference"
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_RECACHE"
 
     $CCACHE_COMPILE -c test1.c

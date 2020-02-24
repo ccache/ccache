@@ -44,10 +44,6 @@ struct Context : NonCopyable
   // Current working directory according to $PWD (falling back to getcwd(3)).
   std::string apparent_cwd;
 
-  // Full path to the statistics file in the subdirectory where the cached
-  // result belongs (<cache_dir>/<x>/stats).
-  std::string stats_file;
-
   // The original argument list.
   struct args* orig_args = nullptr;
 
@@ -94,5 +90,10 @@ struct Context : NonCopyable
   char** ignore_headers = nullptr;
   size_t ignore_headers_len = 0;
 
-  struct counters* counter_updates = nullptr;
+  // Full path to the statistics file in the subdirectory where the cached
+  // result belongs (<cache_dir>/<x>/stats).
+  std::string stats_file;
+
+  // Statistics which get written into the `stats_file` upon exit.
+  Counters counter_updates;
 };

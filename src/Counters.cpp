@@ -16,36 +16,38 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for statistics handling.
+#include "Counters.hpp"
 
-#include "../src/counters.hpp"
-#include "../src/stats.hpp"
-#include "framework.hpp"
-#include "util.hpp"
+#include "stats.hpp"
 
-TEST_SUITE(stats)
+#include <algorithm>
 
-TEST(forward_compatibility)
+Counters::Counters() : m_counters(STATS_END)
 {
-  unsigned i;
-  FILE* f;
-  struct counters* counters = counters_init(0);
-
-  f = fopen("stats", "w");
-  for (i = 0; i < 100; i++) {
-    fprintf(f, "%u\n", i);
-  }
-  fclose(f);
-
-  stats_read("stats", counters);
-  CHECK_INT_EQ(100, counters->size);
-  CHECK_INT_EQ(73, counters->data[73]);
-
-  stats_write("stats", counters);
-  CHECK_INT_EQ(100, counters->size);
-  CHECK_INT_EQ(99, counters->data[99]);
-
-  counters_free(counters);
 }
 
-TEST_SUITE_END
+unsigned& Counters::operator[](size_t index)
+{
+  if (index >= m_counters.size()) {
+    m_counters.resize(index + 1);
+  }
+  return m_counters.at(index);
+}
+
+unsigned Counters::operator[](size_t index) const
+{
+  return index < m_counters.size() ? m_counters.at(index) : 0;
+}
+
+size_t
+Counters::size() const
+{
+  return m_counters.size();
+}
+
+bool
+Counters::all_zero() const
+{
+  return !std::any_of(
+    m_counters.begin(), m_counters.end(), [](unsigned v) { return v != 0; });
+}
