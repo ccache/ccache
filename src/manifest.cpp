@@ -337,15 +337,15 @@ write_manifest(const Config& config,
 {
   uint64_t payload_size = 0;
   payload_size += 4; // n_files
-  for (size_t i = 0; i < mf.files.size(); ++i) {
-    payload_size += 2 + mf.files[i].length();
+  for (const auto& file : mf.files) {
+    payload_size += 2 + file.length();
   }
   payload_size += 4; // n_file_infos
   payload_size += mf.file_infos.size() * (4 + DIGEST_SIZE + 8 + 8 + 8);
   payload_size += 4; // n_results
-  for (size_t i = 0; i < mf.results.size(); ++i) {
+  for (const auto& result : mf.results) {
     payload_size += 4; // n_file_info_indexes
-    payload_size += mf.results[i].file_info_indexes.size() * 4;
+    payload_size += result.file_info_indexes.size() * 4;
     payload_size += DIGEST_SIZE;
   }
 
@@ -357,27 +357,27 @@ write_manifest(const Config& config,
                           Compression::level_from_config(config),
                           payload_size);
   writer.write<uint32_t>(mf.files.size());
-  for (uint32_t i = 0; i < mf.files.size(); ++i) {
-    writer.write<uint16_t>(mf.files[i].length());
-    writer.write(mf.files[i].data(), mf.files[i].length());
+  for (const auto& file : mf.files) {
+    writer.write<uint16_t>(file.length());
+    writer.write(file.data(), file.length());
   }
 
   writer.write<uint32_t>(mf.file_infos.size());
-  for (uint32_t i = 0; i < mf.file_infos.size(); ++i) {
-    writer.write<uint32_t>(mf.file_infos[i].index);
-    writer.write(mf.file_infos[i].digest.bytes, DIGEST_SIZE);
-    writer.write(mf.file_infos[i].fsize);
-    writer.write(mf.file_infos[i].mtime);
-    writer.write(mf.file_infos[i].ctime);
+  for (const auto& file_info : mf.file_infos) {
+    writer.write<uint32_t>(file_info.index);
+    writer.write(file_info.digest.bytes, DIGEST_SIZE);
+    writer.write(file_info.fsize);
+    writer.write(file_info.mtime);
+    writer.write(file_info.ctime);
   }
 
   writer.write<uint32_t>(mf.results.size());
-  for (uint32_t i = 0; i < mf.results.size(); ++i) {
-    writer.write<uint32_t>(mf.results[i].file_info_indexes.size());
-    for (uint32_t j = 0; j < mf.results[i].file_info_indexes.size(); ++j) {
-      writer.write(mf.results[i].file_info_indexes[j]);
+  for (const auto& result : mf.results) {
+    writer.write<uint32_t>(result.file_info_indexes.size());
+    for (uint32_t j = 0; j < result.file_info_indexes.size(); ++j) {
+      writer.write(result.file_info_indexes[j]);
     }
-    writer.write(mf.results[i].name.bytes, DIGEST_SIZE);
+    writer.write(result.name.bytes, DIGEST_SIZE);
   }
 
   writer.finalize();
@@ -392,8 +392,8 @@ verify_result(const Context& ctx,
               std::unordered_map<std::string, FileStats>& stated_files,
               std::unordered_map<std::string, digest>& hashed_files)
 {
-  for (uint32_t i = 0; i < result.file_info_indexes.size(); ++i) {
-    const auto& fi = mf.file_infos[result.file_info_indexes[i]];
+  for (unsigned int file_info_indexe : result.file_info_indexes) {
+    const auto& fi = mf.file_infos[file_info_indexe];
     const auto& path = mf.files[fi.index];
 
     auto stated_files_iter = stated_files.find(path);
@@ -606,8 +606,8 @@ manifest_dump(const std::string& path, FILE* stream)
     char name[DIGEST_STRING_BUFFER_SIZE];
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    File info indexes:");
-    for (unsigned j = 0; j < mf->results[i].file_info_indexes.size(); ++j) {
-      fmt::print(stream, " {}", mf->results[i].file_info_indexes[j]);
+    for (unsigned int& file_info_indexe : mf->results[i].file_info_indexes) {
+      fmt::print(stream, " {}", file_info_indexe);
     }
     fmt::print(stream, "\n");
     digest_as_string(&mf->results[i].name, name);

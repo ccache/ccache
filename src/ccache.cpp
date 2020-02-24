@@ -1513,16 +1513,16 @@ hash_nvcc_host_compiler(const Context& ctx,
 #else
     const char* compilers[] = {"gcc", "g++"};
 #endif
-    for (size_t i = 0; i < ARRAY_SIZE(compilers); i++) {
+    for (auto& compiler : compilers) {
       if (ccbin) {
-        char* path = format("%s/%s", ccbin, compilers[i]);
+        char* path = format("%s/%s", ccbin, compiler);
         auto st = Stat::stat(path);
         if (st) {
           hash_compiler(ctx, hash, st, path, false);
         }
         free(path);
       } else {
-        char* path = find_executable(ctx, compilers[i], MYNAME);
+        char* path = find_executable(ctx, compiler, MYNAME);
         if (path) {
           auto st = Stat::stat(path, Stat::OnError::log);
           hash_compiler(ctx, hash, st, ccbin, false);
