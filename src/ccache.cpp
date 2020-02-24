@@ -1094,7 +1094,7 @@ create_cachedir_tag(nonstd::string_view dir)
     return false;
   }
   f << cachedir_tag;
-  return !!f;
+  return static_cast<bool>(f);
 }
 
 // Run the real compiler and put the result in cache.
@@ -1513,7 +1513,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 #else
     const char* compilers[] = {"gcc", "g++"};
 #endif
-    for (auto& compiler : compilers) {
+    for (const char* compiler : compilers) {
       if (ccbin) {
         char* path = format("%s/%s", ccbin, compiler);
         auto st = Stat::stat(path);
