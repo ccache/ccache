@@ -426,7 +426,7 @@ stats_flush_to_file(const Config& config,
 void
 stats_flush(void* context)
 {
-  Context& ctx = *static_cast<Context*>(context);
+  const Context& ctx = *static_cast<Context*>(context);
   stats_flush_to_file(ctx.config, ctx.stats_file, ctx.counter_updates);
 }
 
@@ -437,14 +437,6 @@ stats_update(Context& ctx, enum stats stat)
   assert(stat > STATS_NONE && stat < STATS_END);
   init_counter_updates(ctx);
   ctx.counter_updates->data[stat]++;
-}
-
-// Get the pending update of a counter value.
-unsigned
-stats_get_pending(Context& ctx, enum stats stat)
-{
-  init_counter_updates(ctx);
-  return ctx.counter_updates->data[stat];
 }
 
 // Sum and display the total stats for all cache dirs.

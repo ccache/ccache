@@ -1325,7 +1325,7 @@ to_cache(Context& ctx,
     failed(STATS_ERROR);
   }
   stats_update_size(ctx,
-                    ctx.stats_file.c_str(),
+                    ctx.stats_file,
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);
@@ -3399,7 +3399,7 @@ initialize(int argc, char* argv[])
 {
   // This object is placed onto the heap so it is available in exit functions
   // which run after main(). It is cleaned up by the last exit function.
-  Context* ctx = new Context{};
+  Context* ctx = new Context;
 
   set_up_config(ctx->config);
 
