@@ -1094,11 +1094,7 @@ create_cachedir_tag(nonstd::string_view dir)
     return false;
   }
   f << cachedir_tag;
-  if (!f) {
-    return false;
-  }
-
-  return true;
+  return !!f;
 }
 
 // Run the real compiler and put the result in cache.
