@@ -191,6 +191,8 @@ struct ManifestData
     }
 
     std::vector<uint32_t> file_info_indexes;
+    file_info_indexes.reserve(included_files.size());
+
     for (const auto& item : included_files) {
       file_info_indexes.push_back(get_file_info_index(item.first,
                                                       item.second,
