@@ -19,7 +19,7 @@ SUITE_fileclone() {
     expect_stat 'files in cache' 2
     expect_equal_object_files reference_test.o test.o
 
-    CCACHE_FILECLONE=1 $CCACHE_COMPILE -c test.c
+    CCACHE_FILECLONE=1 CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
@@ -44,7 +44,7 @@ SUITE_fileclone() {
     expect_stat 'files in cache' 1
     expect_equal_object_files reference_test.o test.o
 
-    CCACHE_FILECLONE=1 $CCACHE_COMPILE -c test.c
+    CCACHE_FILECLONE=1 CCACHE_DEBUG=1 $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
