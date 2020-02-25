@@ -63,39 +63,30 @@ static size_t debug_log_size;
 #define DEBUG_LOG_BUFFER_MARGIN 1024
 
 // Initialize logging. Call only once.
-bool
+void
 init_log(const Config& config)
 {
-  logfile_path = config.log_file();
-
-  if (logfile_path.empty()) {
-    return false;
-  }
-
   if (config.debug()) {
     debug_log_buffer_capacity = DEBUG_LOG_BUFFER_MARGIN;
     debug_log_buffer = static_cast<char*>(x_malloc(debug_log_buffer_capacity));
     debug_log_size = 0;
   }
-  if (config.log_file().empty()) {
-    return config.debug();
-  }
+
 #ifdef HAVE_SYSLOG
   if (config.log_file() == "syslog") {
     use_syslog = true;
     openlog("ccache", LOG_PID, LOG_USER);
-    return true;
+    return; // Don't open logfile
   }
 #endif
+
+  logfile_path = config.log_file();
   logfile = fopen(logfile_path.c_str(), "a");
-  if (logfile) {
 #ifndef _WIN32
+  if (logfile) {
     set_cloexec_flag(fileno(logfile));
-#endif
-    return true;
-  } else {
-    return false;
   }
+#endif
 }
 
 static void

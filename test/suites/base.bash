@@ -297,6 +297,24 @@ base_tests() {
     expect_stat 'files in cache' 1
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_DEBUG"
+
+    unset CCACHE_LOGFILE
+    unset CCACHE_NODIRECT
+    CCACHE_DEBUG=1 $CCACHE_COMPILE -c test1.c
+    if ! grep -q Result: test1.o.ccache-log; then
+        test_failed "Unexpected data in <obj>.ccache-log"
+    fi
+    if ! grep -q "PREPROCESSOR MODE" test1.o.ccache-input-text; then
+        test_failed "Unexpected data in <obj>.ccache-input-text"
+    fi
+    for ext in c p d; do
+        if ! [ -f test1.o.ccache-input-$ext ]; then
+            test_failed "<obj>.ccache-input-$ext missing"
+        fi
+    done
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_DISABLE"
 
     CCACHE_DISABLE=1 $CCACHE_COMPILE -c test1.c 2>/dev/null
