@@ -61,7 +61,7 @@ clean_up_dir(const std::string& subdir,
 
   uint64_t cache_size = 0;
   uint32_t files_in_cache = 0;
-  time_t current_time = time(NULL);
+  time_t current_time = time(nullptr);
 
   for (size_t i = 0; i < files.size();
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {

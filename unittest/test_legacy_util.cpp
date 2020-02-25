@@ -127,7 +127,7 @@ TEST(parse_size_with_suffix)
 
 TEST(format_command)
 {
-  const char* argv[] = {"foo", "bar", NULL};
+  const char* argv[] = {"foo", "bar", nullptr};
 
   CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
 }

@@ -21,11 +21,12 @@
 #include "../src/compopt.hpp"
 #include "framework.hpp"
 
+bool compopt_verify_sortedness_and_flags();
+
 TEST_SUITE(compopt)
 
 TEST(option_table_should_be_sorted)
 {
-  bool compopt_verify_sortedness_and_flags(void);
   CHECK(compopt_verify_sortedness_and_flags());
 }
 

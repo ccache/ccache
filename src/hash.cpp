@@ -65,12 +65,12 @@ do_debug_text(struct hash* hash, const void* s, size_t len)
 }
 
 struct hash*
-hash_init(void)
+hash_init()
 {
   auto hash = static_cast<struct hash*>(malloc(sizeof(struct hash)));
   blake2b_init(&hash->state, DIGEST_SIZE);
-  hash->debug_binary = NULL;
-  hash->debug_text = NULL;
+  hash->debug_binary = nullptr;
+  hash->debug_text = nullptr;
   return hash;
 }
 
@@ -79,8 +79,8 @@ hash_copy(struct hash* hash)
 {
   auto result = static_cast<struct hash*>(malloc(sizeof(struct hash)));
   result->state = hash->state;
-  result->debug_binary = NULL;
-  result->debug_text = NULL;
+  result->debug_binary = nullptr;
+  result->debug_text = nullptr;
   return result;
 }
 

@@ -210,7 +210,7 @@ hash_source_code_string(const Config& config,
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __DATE__ changes.
-    time_t t = time(NULL);
+    time_t t = time(nullptr);
     struct tm now;
     hash_delimiter(hash, "date");
     if (!localtime_r(&t, &now)) {
@@ -430,13 +430,13 @@ hash_multicommand_output(struct hash* hash,
   char* command_string = x_strdup(commands);
   char* p = command_string;
   char* command;
-  char* saveptr = NULL;
+  char* saveptr = nullptr;
   bool ok = true;
   while ((command = strtok_r(p, ";", &saveptr))) {
     if (!hash_command_output(hash, command, compiler)) {
       ok = false;
     }
-    p = NULL;
+    p = nullptr;
   }
   free(command_string);
   return ok;

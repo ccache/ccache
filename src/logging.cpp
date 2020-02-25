@@ -120,7 +120,7 @@ log_prefix(bool log_updated_time)
     char timestamp[100];
     struct tm tm;
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
 #  ifdef __MINGW64_VERSION_MAJOR
     localtime_r((time_t*)&tv.tv_sec, &tm);
 #  else
@@ -150,11 +150,11 @@ log_prefix(bool log_updated_time)
   }
 }
 
-static void warn_log_fail(void) ATTR_NORETURN;
+static void warn_log_fail() ATTR_NORETURN;
 
 // Warn about failure writing to the log file and then exit.
 static void
-warn_log_fail(void)
+warn_log_fail()
 {
   // Note: Can't call fatal() since that would lead to recursion.
   fprintf(stderr,

@@ -654,6 +654,8 @@ void
 Config::visit_items(const ItemVisitor& item_visitor) const
 {
   std::vector<std::string> keys;
+  keys.reserve(k_config_key_table.size());
+
   for (const auto& item : k_config_key_table) {
     keys.emplace_back(item.first);
   }
