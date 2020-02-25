@@ -3346,6 +3346,7 @@ static void
 set_up_config(Config& config)
 {
   char* p;
+
   config.set_secondary_config_path(
     fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
   MTR_BEGIN("config", "conf_read_secondary");
@@ -3354,17 +3355,50 @@ set_up_config(Config& config)
   MTR_END("config", "conf_read_secondary");
 
   if (config.cache_dir().empty()) {
-    fatal("configuration setting \"cache_dir\" must not be the empty string");
-  }
-  if ((p = getenv("CCACHE_DIR"))) {
-    config.set_cache_dir(p);
-  }
-  if (config.cache_dir().empty()) {
-    fatal("CCACHE_DIR must not be the empty string");
+    // If the system cache_dir isn’t set, first check for the legacy path.
+    const char* home = get_home_directory();
+    std::string legacy_cache_dir = fmt::format("{}/.ccache", home);
+    if (access(legacy_cache_dir.c_str(), F_OK) != -1) {
+      config.set_primary_config_path(
+        fmt::format("{}/ccache.conf", legacy_cache_dir));
+      config.set_cache_dir(legacy_cache_dir);
+    } else {
+      // If the legacy path doesn’t exist, use the XDG base directories.
+      char* xdg_config_home = getenv("XDG_CONFIG_HOME");
+      std::string default_config_dir;
+      if (xdg_config_home) {
+        if (xdg_config_home[0] != '/') {
+          fatal("XDG_CONFIG_HOME must be an absolute path if defined");
+        }
+        default_config_dir = fmt::format("{}/ccache", xdg_config_home);
+      } else {
+        default_config_dir = fmt::format("{}/.config/ccache", home);
+      }
+      config.set_primary_config_path(
+        fmt::format("{}/ccache.conf", default_config_dir));
+
+      char* xdg_cache_home = getenv("XDG_CACHE_HOME");
+      std::string default_cache_dir;
+      if (xdg_cache_home) {
+        if (xdg_cache_home[0] != '/') {
+          fatal("XDG_CACHE_HOME must be an absolute path if defined");
+        }
+        default_cache_dir = fmt::format("{}/ccache", xdg_cache_home);
+      } else {
+        default_cache_dir = fmt::format("{}/.cache/ccache", home);
+      }
+      config.set_cache_dir(default_cache_dir);
+    }
   }
 
-  config.set_primary_config_path(
-    fmt::format("{}/ccache.conf", config.cache_dir()));
+  if ((p = getenv("CCACHE_DIR"))) {
+    config.set_cache_dir(p);
+    if (config.cache_dir().empty()) {
+      fatal("CCACHE_DIR must not be the empty string");
+    }
+    config.set_primary_config_path(
+      fmt::format("{}/ccache.conf", config.cache_dir()));
+  }
 
   bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");

@@ -34,7 +34,7 @@ TEST_CASE("Config: default values")
 {
   Config config;
   CHECK(config.base_dir().empty());
-  CHECK(config.cache_dir() == std::string(get_home_directory()) + "/.ccache");
+  CHECK(config.cache_dir().empty());
   CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");

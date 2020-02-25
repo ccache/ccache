@@ -121,7 +121,7 @@ private:
   std::string m_secondary_config_path;
 
   std::string m_base_dir = "";
-  std::string m_cache_dir = fmt::format("{}/.ccache", get_home_directory());
+  std::string m_cache_dir = "";
   uint32_t m_cache_dir_levels = 2;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";
