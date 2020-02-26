@@ -16,6 +16,8 @@
 
 #include "ccache.h"
 
+#ifndef _WIN32
+
 // This function acquires a lockfile for the given path. Returns true if the
 // lock was acquired, otherwise false. If the lock has been considered stale
 // for the number of microseconds specified by staleness_limit, the function
@@ -41,59 +43,6 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		free(my_content);
 		my_content = format("%s:%d:%d", hostname, (int)getpid(), (int)time(NULL));
 
-#ifdef _WIN32
-		int fd = open(lockfile, O_WRONLY|O_CREAT|O_EXCL|O_BINARY, 0666);
-		if (fd == -1) {
-			int saved_errno = errno;
-			cc_log("lockfile_acquire: open WRONLY %s: %s", lockfile, strerror(errno));
-			if (saved_errno == ENOENT) {
-				// Directory doesn't exist?
-				if (create_parent_dirs(lockfile) == 0) {
-					// OK. Retry.
-					continue;
-				}
-			}
-			if (saved_errno != EEXIST) {
-				// Directory doesn't exist or isn't writable?
-				goto out;
-			}
-			// Someone else has the lock.
-			fd = open(lockfile, O_RDONLY|O_BINARY);
-			if (fd == -1) {
-				if (errno == ENOENT) {
-					// The file was removed after the open() call above, so retry
-					// acquiring it.
-					continue;
-				} else {
-					cc_log("lockfile_acquire: open RDONLY %s: %s",
-					       lockfile, strerror(errno));
-					goto out;
-				}
-			}
-			free(content);
-			const size_t bufsize = 1024;
-			content = x_malloc(bufsize);
-			int len = read(fd, content, bufsize - 1);
-			if (len == -1) {
-				cc_log("lockfile_acquire: read %s: %s", lockfile, strerror(errno));
-				close(fd);
-				goto out;
-			}
-			close(fd);
-			content[len] = '\0';
-		} else {
-			// We got the lock.
-			if (write(fd, my_content, strlen(my_content)) == -1) {
-				cc_log("lockfile_acquire: write %s: %s", lockfile, strerror(errno));
-				close(fd);
-				x_unlink(lockfile);
-				goto out;
-			}
-			close(fd);
-			acquired = true;
-			goto out;
-		}
-#else
 		if (symlink(my_content, lockfile) == 0) {
 			// We got the lock.
 			acquired = true;
@@ -130,7 +79,6 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 				goto out;
 			}
 		}
-#endif
 
 		if (str_eq(content, my_content)) {
 			// Lost NFS reply?
@@ -192,23 +140,114 @@ lockfile_release(const char *path)
 	free(lockfile);
 }
 
+#else
+
+HANDLE lockfile_handle = NULL;
+
+// This function acquires a lockfile for the given path. Returns true if the
+// lock was acquired, otherwise false. If the lock has been acquired within the
+// limit (in microseconds) the function will give up and return false. The time
+// limit should be reasonably larger than the longest time the lock can be
+// expected to be held.
+bool
+lockfile_acquire(const char *path, unsigned time_limit)
+{
+	char *lockfile = format("%s.lock", path);
+	unsigned to_sleep = 1000; // Microseconds.
+	unsigned max_to_sleep = 10000; // Microseconds.
+	unsigned slept = 0; // Microseconds.
+	bool acquired = false;
+
+	while (true) {
+		DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE;
+		lockfile_handle = CreateFile(
+			lockfile,
+			GENERIC_WRITE, // desired access
+			0,             // shared mode (0 = not shared)
+			NULL,          // security attributes
+			CREATE_ALWAYS, // creation disposition,
+			flags,         // flags and attributes
+			NULL           // template file
+		);
+		if (lockfile_handle != INVALID_HANDLE_VALUE) {
+			acquired = true;
+			break;
+		}
+
+		DWORD error = GetLastError();
+		cc_log("lockfile_acquire: CreateFile %s: error code %lu", lockfile, error);
+		if (error == ERROR_PATH_NOT_FOUND) {
+			// Directory doesn't exist?
+			if (create_parent_dirs(lockfile) == 0) {
+				// OK. Retry.
+				continue;
+			}
+		}
+
+		// ERROR_SHARING_VIOLATION: lock already held.
+		// ERROR_ACCESS_DENIED: maybe pending delete.
+		if (error != ERROR_SHARING_VIOLATION && error != ERROR_ACCESS_DENIED) {
+			// Fatal error, give up.
+			break;
+		}
+
+		if (slept > time_limit) {
+			cc_log("lockfile_acquire: gave up acquiring %s", lockfile);
+			break;
+		}
+
+		cc_log("lockfile_acquire: failed to acquire %s; sleeping %u microseconds",
+		       lockfile, to_sleep);
+		usleep(to_sleep);
+		slept += to_sleep;
+		to_sleep = MIN(max_to_sleep, 2 * to_sleep);
+	}
+
+	if (acquired) {
+		cc_log("Acquired lock %s", lockfile);
+	} else {
+		cc_log("Failed to acquire lock %s", lockfile);
+	}
+	free(lockfile);
+	return acquired;
+}
+
+// Release the lockfile for the given path. Assumes that we are the legitimate
+// owner.
+void
+lockfile_release(const char *path)
+{
+	assert(lockfile_handle != INVALID_HANDLE_VALUE);
+	cc_log("Releasing lock %s.lock", path);
+	CloseHandle(lockfile_handle);
+	lockfile_handle = NULL;
+}
+
+#endif
+
 #ifdef TEST_LOCKFILE
+
 int
 main(int argc, char **argv)
 {
-	extern char *cache_logfile;
-	cache_logfile = "/dev/stdout";
-	if (argc == 4) {
+	extern struct conf *conf;
+	conf = conf_create();
+	if (argc == 3) {
 		unsigned staleness_limit = atoi(argv[1]);
-		if (str_eq(argv[2], "acquire")) {
-			return lockfile_acquire(argv[3], staleness_limit) == 0;
-		} else if (str_eq(argv[2], "release")) {
-			lockfile_release(argv[3]);
-			return 0;
+		printf("Acquiring\n");
+		bool acquired = lockfile_acquire(argv[2], staleness_limit);
+		if (acquired) {
+			printf("Sleeping 2 seconds\n");
+			sleep(2);
+			lockfile_release(argv[2]);
+			printf("Released\n");
+		} else {
+			printf("Failed to acquire\n");
 		}
+	} else {
+		fprintf(stderr,
+		        "Usage: testlockfile <staleness_limit> <path>\n");
 	}
-	fprintf(stderr,
-	        "Usage: testlockfile <staleness_limit> <acquire|release> <path>\n");
 	return 1;
 }
 #endif
