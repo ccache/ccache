@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2018 Joel Rosdahl
+// Copyright (C) 2010-2020 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free
@@ -34,6 +34,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 	const char *hostname = get_hostname();
 	bool acquired = false;
 	unsigned to_sleep = 1000; // Microseconds.
+	unsigned max_to_sleep = 10000; // Microseconds.
 	unsigned slept = 0; // Microseconds.
 
 	while (true) {
@@ -164,7 +165,7 @@ lockfile_acquire(const char *path, unsigned staleness_limit)
 		       lockfile, to_sleep);
 		usleep(to_sleep);
 		slept += to_sleep;
-		to_sleep *= 2;
+		to_sleep = MIN(max_to_sleep, 2 * to_sleep);
 	}
 
 out:
