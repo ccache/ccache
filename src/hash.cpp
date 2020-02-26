@@ -175,7 +175,7 @@ hash_int(struct hash* hash, int x)
 }
 
 bool
-hash_fd(struct hash* hash, int fd)
+hash_fd(struct hash* hash, int fd, bool fd_is_file)
 {
   char buf[READ_BUFFER_SIZE];
   ssize_t n;
@@ -187,7 +187,7 @@ hash_fd(struct hash* hash, int fd)
     if (n > 0) {
       do_hash_buffer(hash, buf, n);
       do_debug_text(hash, buf, n);
-      if (static_cast<size_t>(n) < sizeof(buf)) {
+      if (fd_is_file && static_cast<size_t>(n) < sizeof(buf)) {
         break;
       }
     }
@@ -204,7 +204,7 @@ hash_file(struct hash* hash, const char* fname)
     return false;
   }
 
-  bool ret = hash_fd(hash, fd);
+  bool ret = hash_fd(hash, fd, true);
   close(fd);
   return ret;
 }

@@ -88,7 +88,7 @@ write_fd(int fd, const void* buf, size_t size)
 
 // Copy all data from fd_in to fd_out.
 bool
-copy_fd(int fd_in, int fd_out)
+copy_fd(int fd_in, int fd_out, bool fd_in_is_file)
 {
   ssize_t n;
   char buf[READ_BUFFER_SIZE];
@@ -97,7 +97,7 @@ copy_fd(int fd_in, int fd_out)
       return false;
     }
 
-    if (static_cast<size_t>(n) < sizeof(buf)) {
+    if (fd_in_is_file && static_cast<size_t>(n) < sizeof(buf)) {
       break;
     }
   }
@@ -230,7 +230,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
     }
   }
 
-  if (copy_fd(src_fd, dest_fd)) {
+  if (copy_fd(src_fd, dest_fd, true)) {
     result = true;
   }
 
