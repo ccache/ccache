@@ -67,24 +67,35 @@ fatal(const char* format, ...)
   throw FatalError(msg);
 }
 
+bool
+write_fd(int fd, const void* buf, size_t size)
+{
+  ssize_t written = 0;
+  do {
+    ssize_t count =
+      write(fd, static_cast<const uint8_t*>(buf) + written, size - written);
+    if (count == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        return false;
+      }
+    } else {
+      written += count;
+    }
+  } while (static_cast<size_t>(written) < size);
+
+  return true;
+}
+
 // Copy all data from fd_in to fd_out.
 bool
 copy_fd(int fd_in, int fd_out)
 {
-  int n;
+  ssize_t n;
   char buf[READ_BUFFER_SIZE];
   while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
-    ssize_t written = 0;
-    do {
-      ssize_t count = write(fd_out, buf + written, n - written);
-      if (count == -1) {
-        if (errno != EAGAIN && errno != EINTR) {
-          return false;
-        }
-      } else {
-        written += count;
-      }
-    } while (written < n);
+    if (!write_fd(fd_out, buf, n)) {
+      return false;
+    }
 
     if (static_cast<size_t>(n) < sizeof(buf)) {
       break;
