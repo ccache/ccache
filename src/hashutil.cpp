@@ -264,7 +264,10 @@ hash_source_code_string(const Config& config,
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
 // results.
 int
-hash_source_code_file(const Config& config, struct hash* hash, const char* path)
+hash_source_code_file(const Config& config,
+                      struct hash* hash,
+                      const char* path,
+                      size_t size_hint)
 {
   if (is_precompiled_header(path)) {
     if (hash_file(hash, path)) {
@@ -275,7 +278,7 @@ hash_source_code_file(const Config& config, struct hash* hash, const char* path)
   } else {
     char* data;
     size_t size;
-    if (!read_file(path, 0, &data, &size)) {
+    if (!read_file(path, size_hint, &data, &size)) {
       return HASH_SOURCE_CODE_ERROR;
     }
     int result = hash_source_code_string(config, hash, data, size, path);
