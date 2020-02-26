@@ -85,6 +85,10 @@ copy_fd(int fd_in, int fd_out)
         written += count;
       }
     } while (written < n);
+
+    if (static_cast<size_t>(n) < sizeof(buf)) {
+      break;
+    }
   }
 
   return true;
@@ -866,7 +870,8 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   if (size_hint == 0) {
     size_hint = Stat::stat(path, Stat::OnError::log).size();
   }
-  size_hint = (size_hint < 1024) ? 1024 : size_hint;
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
 
   int fd = open(path, O_RDONLY | O_BINARY);
   if (fd == -1) {
@@ -874,19 +879,23 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   }
   size_t allocated = size_hint;
   *data = static_cast<char*>(x_malloc(allocated));
-  int ret;
+  ssize_t ret;
   size_t pos = 0;
   while (true) {
     if (pos > allocated / 2) {
       allocated *= 2;
       *data = static_cast<char*>(x_realloc(*data, allocated));
     }
-    ret = read(fd, *data + pos, allocated - pos);
+    const size_t max_read = allocated - pos;
+    ret = read(fd, *data + pos, max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
     if (ret > 0) {
       pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
     }
   }
   close(fd);

@@ -187,9 +187,12 @@ hash_fd(struct hash* hash, int fd)
     if (n > 0) {
       do_hash_buffer(hash, buf, n);
       do_debug_text(hash, buf, n);
+      if (static_cast<size_t>(n) < sizeof(buf)) {
+        break;
+      }
     }
   }
-  return n == 0;
+  return n >= 0;
 }
 
 bool
