@@ -38,8 +38,9 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
   char* initial_content = nullptr;
   const char* hostname = get_hostname();
   bool acquired = false;
-  unsigned to_sleep = 1000; // Microseconds.
-  unsigned slept = 0;       // Microseconds.
+  unsigned to_sleep = 1000;      // Microseconds.
+  unsigned max_to_sleep = 10000; // Microseconds.
+  unsigned slept = 0;            // Microseconds.
 
   while (true) {
     free(my_content);
@@ -171,7 +172,7 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
            to_sleep);
     usleep(to_sleep);
     slept += to_sleep;
-    to_sleep *= 2;
+    to_sleep = std::min(max_to_sleep, 2 * to_sleep);
   }
 
 out:
