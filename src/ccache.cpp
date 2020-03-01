@@ -21,6 +21,7 @@
 
 #include "ArgsInfo.hpp"
 #include "Context.hpp"
+#include "File.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
 #include "ScopeGuard.hpp"
@@ -50,7 +51,6 @@
 #  include "third_party/getopt_long.h"
 #endif
 
-#include <fstream>
 #include <limits>
 
 #define STRINGIFY(x) #x
@@ -1072,7 +1072,7 @@ update_cached_result_globals(Context& ctx, struct digest* result_name)
 static bool
 create_cachedir_tag(nonstd::string_view dir)
 {
-  static char const cachedir_tag[] =
+  constexpr char cachedir_tag[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"
     "# This file is a cache directory tag created by ccache.\n"
     "# For information about cache directory tags, see:\n"
@@ -1089,12 +1089,13 @@ create_cachedir_tag(nonstd::string_view dir)
     return false;
   }
 
-  std::ofstream f(filename);
+  File f(filename, "w");
+
   if (!f) {
     return false;
   }
-  f << cachedir_tag;
-  return static_cast<bool>(f);
+
+  return fwrite(cachedir_tag, strlen(cachedir_tag), 1, f.get()) == 1;
 }
 
 // Run the real compiler and put the result in cache.
@@ -1333,7 +1334,7 @@ to_cache(Context& ctx,
   // save the stat call if we exit early.
   {
     std::string first_level_dir(Util::dir_name(ctx.stats_file));
-    if (!create_cachedir_tag(first_level_dir) != 0) {
+    if (!create_cachedir_tag(first_level_dir)) {
       cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
              first_level_dir.c_str(),
              strerror(errno));
