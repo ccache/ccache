@@ -43,7 +43,8 @@ int hash_source_code_string(const Config& config,
                             const char* path);
 int hash_source_code_file(const Config& config,
                           struct hash* hash,
-                          const char* path);
+                          const char* path,
+                          size_t size_hint = 0);
 bool hash_command_output(struct hash* hash,
                          const char* command,
                          const char* compiler);
