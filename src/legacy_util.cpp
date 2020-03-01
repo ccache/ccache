@@ -67,24 +67,39 @@ fatal(const char* format, ...)
   throw FatalError(msg);
 }
 
+bool
+write_fd(int fd, const void* buf, size_t size)
+{
+  ssize_t written = 0;
+  do {
+    ssize_t count =
+      write(fd, static_cast<const uint8_t*>(buf) + written, size - written);
+    if (count == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        return false;
+      }
+    } else {
+      written += count;
+    }
+  } while (static_cast<size_t>(written) < size);
+
+  return true;
+}
+
 // Copy all data from fd_in to fd_out.
 bool
-copy_fd(int fd_in, int fd_out)
+copy_fd(int fd_in, int fd_out, bool fd_in_is_file)
 {
-  int n;
+  ssize_t n;
   char buf[READ_BUFFER_SIZE];
   while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
-    ssize_t written = 0;
-    do {
-      ssize_t count = write(fd_out, buf + written, n - written);
-      if (count == -1) {
-        if (errno != EAGAIN && errno != EINTR) {
-          return false;
-        }
-      } else {
-        written += count;
-      }
-    } while (written < n);
+    if (!write_fd(fd_out, buf, n)) {
+      return false;
+    }
+
+    if (fd_in_is_file && static_cast<size_t>(n) < sizeof(buf)) {
+      break;
+    }
   }
 
   return true;
@@ -215,7 +230,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
     }
   }
 
-  if (copy_fd(src_fd, dest_fd)) {
+  if (copy_fd(src_fd, dest_fd, true)) {
     result = true;
   }
 
@@ -866,7 +881,8 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   if (size_hint == 0) {
     size_hint = Stat::stat(path, Stat::OnError::log).size();
   }
-  size_hint = (size_hint < 1024) ? 1024 : size_hint;
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
 
   int fd = open(path, O_RDONLY | O_BINARY);
   if (fd == -1) {
@@ -874,19 +890,23 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   }
   size_t allocated = size_hint;
   *data = static_cast<char*>(x_malloc(allocated));
-  int ret;
+  ssize_t ret;
   size_t pos = 0;
   while (true) {
     if (pos > allocated / 2) {
       allocated *= 2;
       *data = static_cast<char*>(x_realloc(*data, allocated));
     }
-    ret = read(fd, *data + pos, allocated - pos);
+    const size_t max_read = allocated - pos;
+    ret = read(fd, *data + pos, max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
     if (ret > 0) {
       pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
     }
   }
   close(fd);

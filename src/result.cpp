@@ -176,12 +176,16 @@ read_embedded_file_entry(const Context&,
         throw Error(fmt::format(
           "Failed to open {} for writing: {}", path, strerror(errno)));
       }
+      int subfile_fd = fileno(subfile.get());
+
       uint8_t buf[READ_BUFFER_SIZE];
       size_t remain = file_len;
       while (remain > 0) {
         size_t n = std::min(remain, sizeof(buf));
         reader.read(buf, n);
-        if (fwrite(buf, n, 1, subfile.get()) != 1) {
+
+        // Write directly to the file descriptor to avoid stdio caching.
+        if (!write_fd(subfile_fd, buf, n)) {
           throw Error(fmt::format("Failed to write to {}", path));
         }
         remain -= n;
