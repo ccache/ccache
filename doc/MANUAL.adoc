@@ -212,10 +212,6 @@ highest):
    */etc/ccache.conf* or */usr/local/etc/ccache.conf*).
 4. Compile-time defaults.
 
-As a special case, if the environment variable *CCACHE_CONFIGPATH* is set,
-ccache reads configuration from the specified path instead of the default
-paths.
-
 
 Configuration file syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~

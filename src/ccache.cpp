@@ -3345,30 +3345,26 @@ tmpdir()
 static void
 set_up_config(Config& config)
 {
-  char* p = getenv("CCACHE_CONFIGPATH");
-  if (p) {
-    config.set_primary_config_path(p);
-  } else {
-    config.set_secondary_config_path(
-      fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
-    MTR_BEGIN("config", "conf_read_secondary");
-    // A missing config file in SYSCONFDIR is OK so don't check return value.
-    config.update_from_file(config.secondary_config_path());
-    MTR_END("config", "conf_read_secondary");
+  char* p;
+  config.set_secondary_config_path(
+    fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
+  MTR_BEGIN("config", "conf_read_secondary");
+  // A missing config file in SYSCONFDIR is OK so don't check return value.
+  config.update_from_file(config.secondary_config_path());
+  MTR_END("config", "conf_read_secondary");
 
-    if (config.cache_dir().empty()) {
-      fatal("configuration setting \"cache_dir\" must not be the empty string");
-    }
-    if ((p = getenv("CCACHE_DIR"))) {
-      config.set_cache_dir(p);
-    }
-    if (config.cache_dir().empty()) {
-      fatal("CCACHE_DIR must not be the empty string");
-    }
-
-    config.set_primary_config_path(
-      fmt::format("{}/ccache.conf", config.cache_dir()));
+  if (config.cache_dir().empty()) {
+    fatal("configuration setting \"cache_dir\" must not be the empty string");
   }
+  if ((p = getenv("CCACHE_DIR"))) {
+    config.set_cache_dir(p);
+  }
+  if (config.cache_dir().empty()) {
+    fatal("CCACHE_DIR must not be the empty string");
+  }
+
+  config.set_primary_config_path(
+    fmt::format("{}/ccache.conf", config.cache_dir()));
 
   bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");
