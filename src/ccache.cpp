@@ -2923,16 +2923,8 @@ process_args(Context& ctx,
       continue;
     }
 
-    if (Stat::lstat(argv[i], Stat::OnError::log).is_symlink()) {
-      // Don't rewrite source file path if it's a symlink since
-      // make_relative_path resolves symlinks using realpath(3) and this leads
-      // to potentially choosing incorrect relative header files. See the
-      // "symlink to source file" test.
-      args_info.input_file = from_cstr(argv[i]);
-    } else {
-      // Rewrite to relative to increase hit rate.
-      args_info.input_file = make_relative_path(ctx, argv[i]);
-    }
+    // Rewrite to relative to increase hit rate.
+    args_info.input_file = make_relative_path(ctx, argv[i]);
   } // for
 
   if (generating_debuginfo_level_3 && !config.run_second_cpp()) {
