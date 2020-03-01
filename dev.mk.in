@@ -17,9 +17,11 @@ SHELLCHECK = shellcheck
 SHELLCHECK_EXCLUDES = misc/shellcheck-excludes.txt
 TEST = test
 
+git := git --git-dir=$(srcdir)/.git
 version := \
-    $(shell (git --git-dir=$(srcdir)/.git describe --dirty || git --git-dir=$(srcdir)/.git describe || echo vunknown) \
-            2>/dev/null | sed -e 's/v//' -e 's/-/+/' -e 's/-/_/g')
+    $(shell ($(git) describe --exact-match \
+             || echo "$$($(git) rev-parse --abbrev-ref HEAD).$$($(git) rev-parse HEAD | cut -c1-8)") 2>/dev/null \
+            | sed -re 's/^v([0-9].+)/\1/')
 
 dist_dir = ccache-$(version)
 dist_archives = \
