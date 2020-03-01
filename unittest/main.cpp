@@ -25,23 +25,19 @@ unsigned suite_args(unsigned);
 unsigned suite_argument_processing(unsigned);
 unsigned suite_compopt(unsigned);
 unsigned suite_conf(unsigned);
-unsigned suite_counters(unsigned);
 unsigned suite_hash(unsigned);
 unsigned suite_hashutil(unsigned);
 unsigned suite_legacy_util(unsigned);
 unsigned suite_lockfile(unsigned);
-unsigned suite_stats(unsigned);
 
 const suite_fn k_legacy_suites[] = {
   &suite_args,
   &suite_argument_processing,
   &suite_compopt,
-  &suite_counters,
   &suite_hash,
   &suite_hashutil,
   &suite_legacy_util,
   &suite_lockfile,
-  &suite_stats,
   nullptr,
 };
 

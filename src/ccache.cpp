@@ -1047,10 +1047,17 @@ update_manifest_file(Context& ctx)
     cc_log("Failed to add result name to %s", ctx.manifest_path.c_str());
   } else {
     auto st = Stat::stat(ctx.manifest_path, Stat::OnError::log);
-    stats_update_size(ctx,
-                      ctx.manifest_stats_file,
-                      st.size_on_disk() - old_st.size_on_disk(),
-                      !old_st && st ? 1 : 0);
+
+    int64_t size_delta = st.size_on_disk() - old_st.size_on_disk();
+    int nof_files_delta = !old_st && st ? 1 : 0;
+
+    if (ctx.stats_file == ctx.manifest_stats_file) {
+      stats_update_size(ctx.counter_updates, size_delta, nof_files_delta);
+    } else {
+      Counters counters;
+      stats_update_size(counters, size_delta, nof_files_delta);
+      stats_flush_to_file(ctx.config, ctx.manifest_stats_file, counters);
+    }
   }
   MTR_END("manifest", "manifest_put");
 }
@@ -1321,8 +1328,7 @@ to_cache(Context& ctx,
   if (!new_dest_stat) {
     failed(STATS_ERROR);
   }
-  stats_update_size(ctx,
-                    ctx.stats_file,
+  stats_update_size(ctx.counter_updates,
                     new_dest_stat.size_on_disk()
                       - orig_dest_stat.size_on_disk(),
                     orig_dest_stat ? 0 : 1);

@@ -20,15 +20,23 @@
 
 #include "system.hpp"
 
-#include <cstddef>
+#include <vector>
 
-struct counters
+// A simple wrapper around a vector of integers
+// used for the statistics counters.
+class Counters
 {
-  unsigned* data;   // counter value
-  size_t size;      // logical array size
-  size_t allocated; // allocated size
-};
+public:
+  Counters();
 
-struct counters* counters_init(size_t initial_size);
-void counters_resize(struct counters* c, size_t new_size);
-void counters_free(struct counters* c);
+  unsigned& operator[](size_t index);
+  unsigned operator[](size_t index) const;
+
+  size_t size() const;
+
+  // Return true if all counters are zero, false otherwise.
+  bool all_zero() const;
+
+private:
+  std::vector<unsigned> m_counters;
+};

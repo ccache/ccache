@@ -40,6 +40,7 @@ non_third_party_sources = \
     src/Compressor.cpp \
     src/Config.cpp \
     src/Context.cpp \
+    src/Counters.cpp \
     src/Decompressor.cpp \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
@@ -53,7 +54,6 @@ non_third_party_sources = \
     src/cleanup.cpp \
     src/compopt.cpp \
     src/compress.cpp \
-    src/counters.cpp \
     src/execute.cpp \
     src/exitfn.cpp \
     src/hash.cpp \
@@ -94,12 +94,10 @@ test_suites += unittest/test_ZstdCompression.cpp
 test_suites += unittest/test_args.cpp
 test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
-test_suites += unittest/test_counters.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
 test_suites += unittest/test_legacy_util.cpp
 test_suites += unittest/test_lockfile.cpp
-test_suites += unittest/test_stats.cpp
 
 test_sources += unittest/catch2_tests.cpp
 test_sources += unittest/framework.cpp
