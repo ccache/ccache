@@ -330,10 +330,8 @@ hash_command_output(struct hash* hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* exe_path =
+  std::string path =
     find_executable_in_path(args[0].c_str(), nullptr, getenv("PATH"));
-  std::string path = exe_path ? exe_path : "";
-  free(exe_path);
   if (path.empty()) {
     path = args[0];
   }

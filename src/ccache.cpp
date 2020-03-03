@@ -167,13 +167,12 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   Args prefix;
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
-    char* path = find_executable(ctx, word.c_str(), MYNAME);
-    if (!path) {
+    std::string path = find_executable(ctx, word.c_str(), MYNAME);
+    if (path.empty()) {
       fatal("%s: %s", word.c_str(), strerror(errno));
     }
 
-    args_add(prefix, path);
-    free(path);
+    args_add(prefix, path.c_str());
   }
 
   cc_log("Using command-line prefix %s", prefix_command.c_str());
@@ -1522,11 +1521,10 @@ hash_nvcc_host_compiler(const Context& ctx,
         }
         free(path);
       } else {
-        char* path = find_executable(ctx, compiler, MYNAME);
-        if (path) {
+        std::string path = find_executable(ctx, compiler, MYNAME);
+        if (!path.empty()) {
           auto st = Stat::stat(path, Stat::OnError::log);
           hash_compiler(ctx, hash, st, ccbin, false);
-          free(path);
         }
       }
     }
@@ -2083,11 +2081,11 @@ find_compiler(Context& ctx, const char* const* argv)
     base = ctx.config.compiler();
   }
 
-  char* compiler = find_executable(ctx, base.c_str(), MYNAME);
-  if (!compiler) {
+  std::string compiler = find_executable(ctx, base.c_str(), MYNAME);
+  if (compiler.empty()) {
     fatal("Could not find compiler \"%s\" in PATH", base.c_str());
   }
-  if (str_eq(compiler, argv[0])) {
+  if (compiler == argv[0]) {
     fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
           MYNAME);
   }
