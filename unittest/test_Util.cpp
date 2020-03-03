@@ -456,6 +456,88 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
 }
 
+TEST_CASE("Util::split_into_views")
+{
+  {
+    CHECK(Util::split_into_views("", "/").empty());
+  }
+  {
+    CHECK(Util::split_into_views("///", "/").empty());
+  }
+  {
+    auto s = Util::split_into_views("a/b", "/");
+    REQUIRE(s.size() == 2);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+  }
+  {
+    auto s = Util::split_into_views("a/b", "x");
+    REQUIRE(s.size() == 1);
+    CHECK(s.at(0) == "a/b");
+  }
+  {
+    auto s = Util::split_into_views("a/b:c", "/:");
+    REQUIRE(s.size() == 3);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+    CHECK(s.at(2) == "c");
+  }
+  {
+    auto s = Util::split_into_views(":a//b..:.c/:/.", "/:.");
+    REQUIRE(s.size() == 3);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+    CHECK(s.at(2) == "c");
+  }
+  {
+    auto s = Util::split_into_views(".0.1.2.3.4.5.6.7.8.9.", "/:.+_abcdef");
+    REQUIRE(s.size() == 10);
+    CHECK(s.at(0) == "0");
+    CHECK(s.at(9) == "9");
+  }
+}
+
+TEST_CASE("Util::split_into_strings")
+{
+  {
+    CHECK(Util::split_into_strings("", "/").empty());
+  }
+  {
+    CHECK(Util::split_into_strings("///", "/").empty());
+  }
+  {
+    auto s = Util::split_into_strings("a/b", "/");
+    REQUIRE(s.size() == 2);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+  }
+  {
+    auto s = Util::split_into_strings("a/b", "x");
+    REQUIRE(s.size() == 1);
+    CHECK(s.at(0) == "a/b");
+  }
+  {
+    auto s = Util::split_into_strings("a/b:c", "/:");
+    REQUIRE(s.size() == 3);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+    CHECK(s.at(2) == "c");
+  }
+  {
+    auto s = Util::split_into_strings(":a//b..:.c/:/.", "/:.");
+    REQUIRE(s.size() == 3);
+    CHECK(s.at(0) == "a");
+    CHECK(s.at(1) == "b");
+    CHECK(s.at(2) == "c");
+  }
+  {
+    auto s = Util::split_into_strings(".0.1.2.3.4.5.6.7.8.9.", "/:.+_abcdef");
+    REQUIRE(s.size() == 10);
+    CHECK(s.at(0) == "0");
+    CHECK(s.at(9) == "9");
+  }
+}
+
 TEST_CASE("Util::starts_with")
 {
   CHECK(Util::starts_with("", ""));

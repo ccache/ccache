@@ -89,6 +89,31 @@ path_max(const char* path)
 #endif
 }
 
+template<typename T>
+std::vector<T>
+split_at(string_view input, const char* separators)
+{
+  assert(separators != nullptr && separators[0] != '\0');
+
+  std::vector<T> result;
+
+  size_t start = 0;
+  while (start < input.size()) {
+    size_t end = input.find_first_of(separators, start);
+
+    if (end == string_view::npos) {
+      result.emplace_back(input.data() + start, input.size() - start);
+      break;
+    } else if (start != end) {
+      result.emplace_back(input.data() + start, end - start);
+    }
+
+    start = end + 1;
+  }
+
+  return result;
+}
+
 } // namespace
 
 namespace Util {
@@ -536,6 +561,18 @@ string_view
 remove_extension(string_view path)
 {
   return path.substr(0, path.length() - get_extension(path).length());
+}
+
+std::vector<string_view>
+split_into_views(string_view s, const char* separators)
+{
+  return split_at<string_view>(s, separators);
+}
+
+std::vector<std::string>
+split_into_strings(string_view s, const char* separators)
+{
+  return split_at<std::string>(s, separators);
 }
 
 bool
