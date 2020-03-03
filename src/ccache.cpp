@@ -2926,15 +2926,18 @@ process_args(Context& ctx,
     if (dependencies_env) {
       args_info.generating_dependencies = true;
       dependency_filename_specified = true;
-      char* saveptr = nullptr;
-      char* abspath_file = strtok_r(dependencies_env, " ", &saveptr);
 
-      args_info.output_dep = make_relative_path(ctx, abspath_file);
+      auto dependencies = Util::split_into_views(dependencies_env, " ");
+
+      if (dependencies.size() > 0) {
+        auto abspath_file = dependencies.at(0);
+        args_info.output_dep = make_relative_path(ctx, abspath_file);
+      }
 
       // specifying target object is optional.
-      char* abspath_obj = strtok_r(nullptr, " ", &saveptr);
-      if (abspath_obj) {
+      if (dependencies.size() > 1) {
         // it's the "file target" form.
+        string_view abspath_obj = dependencies.at(1);
 
         dependency_target_specified = true;
         std::string relpath_obj = make_relative_path(ctx, abspath_obj);
