@@ -159,30 +159,24 @@ static pid_t compiler_pid = 0;
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(const Context& ctx, Args& args, const char* prefix_command)
+add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 {
-  if (str_eq(prefix_command, "")) {
+  if (prefix_command.empty()) {
     return;
   }
 
   Args prefix;
-  char* e = x_strdup(prefix_command);
-  char* saveptr = nullptr;
-  for (char* tok = strtok_r(e, " ", &saveptr); tok;
-       tok = strtok_r(nullptr, " ", &saveptr)) {
-    char* p;
-
-    p = find_executable(ctx, tok, MYNAME);
-    if (!p) {
-      fatal("%s: %s", tok, strerror(errno));
+  for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
+    char* path = find_executable(ctx, word.c_str(), MYNAME);
+    if (!path) {
+      fatal("%s: %s", word.c_str(), strerror(errno));
     }
 
-    args_add(prefix, p);
-    free(p);
+    args_add(prefix, path);
+    free(path);
   }
-  free(e);
 
-  cc_log("Using command-line prefix %s", prefix_command);
+  cc_log("Using command-line prefix %s", prefix_command.c_str());
   for (size_t i = prefix.size(); i != 0; i--) {
     args_add_prefix(args, prefix->argv[i - 1]);
   }
@@ -1179,7 +1173,7 @@ to_cache(Context& ctx,
     Args depend_mode_args = ctx.orig_args;
     args_strip(depend_mode_args, "--ccache-");
     args_extend(depend_mode_args, depend_extra_args);
-    add_prefix(ctx, depend_mode_args, ctx.config.prefix_command().c_str());
+    add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
     status = execute(depend_mode_args.to_argv().data(),
@@ -1401,7 +1395,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
       args_added = 3;
     }
     args_add(args, ctx.args_info.input_file.c_str());
-    add_prefix(ctx, args, ctx.config.prefix_command_cpp().c_str());
+    add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     status = execute(
@@ -3492,7 +3486,7 @@ cache_compilation(int argc, const char* const* argv)
     assert(ctx.orig_args.size() > 0);
 
     args_strip(ctx.orig_args, "--ccache-");
-    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command().c_str());
+    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
     cc_log("Failed; falling back to running the real compiler");
 
@@ -3723,7 +3717,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     failed(STATS_CACHEMISS);
   }
 
-  add_prefix(ctx, compiler_args, ctx.config.prefix_command().c_str());
+  add_prefix(ctx, compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   struct hash* depend_mode_hash =
