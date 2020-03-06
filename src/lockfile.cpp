@@ -101,16 +101,15 @@ lockfile_acquire(const char* path, unsigned staleness_limit)
     }
     if (slept > staleness_limit) {
       if (str_eq(content, initial_content)) {
-        // The lock seems to be stale -- break it.
+        // The lock seems to be stale -- break it and try again.
         cc_log("lockfile_acquire: breaking %s", lockfile);
-        // Try to acquire path.lock.lock:
-        if (lockfile_acquire(lockfile, staleness_limit)) {
-          lockfile_release(path);     // Remove path.lock
-          lockfile_release(lockfile); // Remove path.lock.lock
-          to_sleep = 1000;
-          slept = 0;
-          continue;
+        if (tmp_unlink(lockfile) != 0) {
+          cc_log("Failed to unlink %s: %s", lockfile, strerror(errno));
+          goto out;
         }
+        to_sleep = 1000;
+        slept = 0;
+        continue;
       }
       cc_log("lockfile_acquire: gave up acquiring %s", lockfile);
       goto out;
@@ -143,6 +142,9 @@ lockfile_release(const char* path)
 {
   char* lockfile = format("%s.lock", path);
   cc_log("Releasing lock %s", lockfile);
+  if (tmp_unlink(lockfile) != 0) {
+    cc_log("Failed to unlink %s: %s", lockfile, strerror(errno));
+  }
   tmp_unlink(lockfile);
   free(lockfile);
 }

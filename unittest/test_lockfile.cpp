@@ -52,10 +52,8 @@ TEST(lock_breaking)
 
 #if defined(_WIN32) || defined(__CYGWIN__)
   create_file("test.lock", "foo");
-  create_file("test.lock.lock", "foo");
 #else
   CHECK_INT_EQ(0, symlink("foo", "test.lock"));
-  CHECK_INT_EQ(0, symlink("foo", "test.lock.lock"));
 #endif
   CHECK(lockfile_acquire("test", 1000));
 
@@ -66,7 +64,6 @@ TEST(lock_breaking)
 #endif
   CHECK(p);
   CHECK(!str_eq(p, "foo"));
-  CHECK(!path_exists("test.lock.lock"));
 
   free(p);
 }
