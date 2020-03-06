@@ -18,5 +18,38 @@
 
 #pragma once
 
-bool lockfile_acquire(const char* path, unsigned staleness_limit);
-void lockfile_release(const char* path);
+#include "system.hpp"
+
+#include <string>
+
+class Lockfile
+{
+public:
+  // Acquire a lock on `path`. Break the lock (or give up, depending on
+  // implementation) after `staleness_limit` Microseconds.
+  Lockfile(const std::string& path, uint32_t staleness_limit = 2000000);
+
+  // Release the lock if acquired.
+  ~Lockfile();
+
+  // Return whether the lockfile was acquired successfully.
+  bool acquired() const;
+
+private:
+  std::string m_lockfile;
+#ifndef _WIN32
+  bool m_acquired = false;
+#else
+  HANDLE m_handle = nullptr;
+#endif
+};
+
+inline bool
+Lockfile::acquired() const
+{
+#ifndef _WIN32
+  return m_acquired;
+#else
+  return m_handle != INVALID_HANDLE_VALUE;
+#endif
+}

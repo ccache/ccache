@@ -28,7 +28,6 @@ unsigned suite_conf(unsigned);
 unsigned suite_hash(unsigned);
 unsigned suite_hashutil(unsigned);
 unsigned suite_legacy_util(unsigned);
-unsigned suite_lockfile(unsigned);
 
 const suite_fn k_legacy_suites[] = {
   &suite_args,
@@ -37,7 +36,6 @@ const suite_fn k_legacy_suites[] = {
   &suite_hash,
   &suite_hashutil,
   &suite_legacy_util,
-  &suite_lockfile,
   nullptr,
 };
 

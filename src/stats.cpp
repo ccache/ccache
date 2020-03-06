@@ -25,9 +25,9 @@
 #include "AtomicFile.hpp"
 #include "Context.hpp"
 #include "Counters.hpp"
+#include "Lockfile.hpp"
 #include "cleanup.hpp"
 #include "hashutil.hpp"
-#include "lockfile.hpp"
 #include "logging.hpp"
 
 #include "third_party/fmt/core.h"
@@ -40,9 +40,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-// How long (in microseconds) to wait before breaking a stale lock.
-constexpr unsigned k_lock_staleness_limit = 2000000;
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
@@ -349,17 +346,20 @@ stats_flush_to_file(const Config& config,
       "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
   }
 
-  if (!lockfile_acquire(sfile.c_str(), k_lock_staleness_limit)) {
-    return;
-  }
-
   Counters counters;
-  stats_read(sfile, counters);
-  for (int i = 0; i < STATS_END; ++i) {
-    counters[i] += updates[i];
+
+  {
+    Lockfile lock(sfile);
+    if (!lock.acquired()) {
+      return;
+    }
+
+    stats_read(sfile, counters);
+    for (int i = 0; i < STATS_END; ++i) {
+      counters[i] += updates[i];
+    }
+    stats_write(sfile, counters);
   }
-  stats_write(sfile, counters);
-  lockfile_release(sfile.c_str());
 
   std::string subdir(Util::dir_name(sfile));
   bool need_cleanup = false;
@@ -499,7 +499,8 @@ stats_zero(const Config& config)
       free(fname);
       continue;
     }
-    if (lockfile_acquire(fname, k_lock_staleness_limit)) {
+    Lockfile lock(fname);
+    if (lock.acquired()) {
       stats_read(fname, counters);
       for (unsigned i = 0; stats_info[i].message; i++) {
         if (!(stats_info[i].flags & FLAG_NOZERO)) {
@@ -508,7 +509,6 @@ stats_zero(const Config& config)
       }
       counters[STATS_ZEROTIMESTAMP] = timestamp;
       stats_write(fname, counters);
-      lockfile_release(fname);
     }
     free(fname);
   }
@@ -534,12 +534,12 @@ stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size)
 {
   Counters counters;
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
+  Lockfile lock(statsfile);
+  if (lock.acquired()) {
     stats_read(statsfile, counters);
     counters[STATS_NUMFILES] = num_files;
     counters[STATS_TOTALSIZE] = total_size / 1024;
     stats_write(statsfile, counters);
-    lockfile_release(statsfile);
   }
   free(statsfile);
 }
@@ -550,11 +550,11 @@ stats_add_cleanup(const char* dir, unsigned count)
 {
   Counters counters;
   char* statsfile = format("%s/stats", dir);
-  if (lockfile_acquire(statsfile, k_lock_staleness_limit)) {
+  Lockfile lock(statsfile);
+  if (lock.acquired()) {
     stats_read(statsfile, counters);
     counters[STATS_NUMCLEANUPS] += count;
     stats_write(statsfile, counters);
-    lockfile_release(statsfile);
   }
   free(statsfile);
 }

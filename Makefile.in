@@ -42,6 +42,7 @@ non_third_party_sources = \
     src/Context.cpp \
     src/Counters.cpp \
     src/Decompressor.cpp \
+    src/Lockfile.cpp \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
     src/ProgressBar.cpp \
@@ -60,7 +61,6 @@ non_third_party_sources = \
     src/hashutil.cpp \
     src/language.cpp \
     src/legacy_util.cpp \
-    src/lockfile.cpp \
     src/logging.cpp \
     src/manifest.cpp \
     src/result.cpp \
@@ -86,6 +86,7 @@ test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Compression.cpp
 test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_FormatNonstdStringView.cpp
+test_suites += unittest/test_Lockfile.cpp
 test_suites += unittest/test_NullCompression.cpp
 test_suites += unittest/test_ScopeGuard.cpp
 test_suites += unittest/test_Stat.cpp
@@ -97,7 +98,6 @@ test_suites += unittest/test_compopt.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
 test_suites += unittest/test_legacy_util.cpp
-test_suites += unittest/test_lockfile.cpp
 
 test_sources += unittest/catch2_tests.cpp
 test_sources += unittest/framework.cpp
