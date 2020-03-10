@@ -1156,7 +1156,7 @@ out:
 	}
 	if (!result) {
 		cc_log("Removing temporary dependency file: %s", tmp_file);
-		x_unlink(tmp_file);
+		tmp_unlink(tmp_file);
 	}
 	free(tmp_file);
 }
