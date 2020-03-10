@@ -85,7 +85,7 @@ public:
   Compression::Type compression_type() const;
 
   // Get compression level.
-  uint64_t compression_level() const;
+  int8_t compression_level() const;
 
   // Get size of the content (header + payload + checksum).
   uint64_t content_size() const;
@@ -127,7 +127,7 @@ CacheEntryReader::compression_type() const
   return m_compression_type;
 }
 
-inline uint64_t
+inline int8_t
 CacheEntryReader::compression_level() const
 {
   return m_compression_level;
