@@ -97,12 +97,11 @@ log_prefix(bool log_updated_time)
 		struct tm tm;
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
-#ifdef __MINGW64_VERSION_MAJOR
-		localtime_r((time_t *)&tv.tv_sec, &tm);
-#else
-		localtime_r(&tv.tv_sec, &tm);
-#endif
-		strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
+		if (localtime_r((time_t *)&tv.tv_sec, &tm) != NULL) {
+			strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
+		} else {
+			snprintf(timestamp, sizeof(timestamp), "%lu", tv.tv_sec);
+		}
 		snprintf(prefix, sizeof(prefix),
 		         "[%s.%06d %-5d] ", timestamp, (int)tv.tv_usec, (int)getpid());
 	}
