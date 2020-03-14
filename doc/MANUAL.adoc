@@ -629,7 +629,7 @@ still has to do _some_ preprocessing (like macros).
     Ignore ctimes when *file_stat_matches* is enabled. This can be useful when
     backdating files' mtimes in a controlled way.
 *include_file_ctime*::
-    By default, ccache also will not cache a file if it includes a header whose
+    By default, ccache will not cache a file if it includes a header whose
     ctime is too new. This option disables that check.
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
@@ -1322,11 +1322,11 @@ problems and what may be done to increase the hit rate:
    second as the compilation is being done). This check is made to avoid a race
    condition. To fix this, create the include file earlier in the build
    process, if possible, or set <<config_sloppiness,*sloppiness*>> to
-   *include_file_mtime* if you are willing to take the risk. (The race
-   condition consists of these events: the preprocessor is run; an include file
-   is modified by someone; the new include file is hashed by ccache; the real
-   compiler is run on the preprocessor's output, which contains data from the
-   old header file; the wrong object file is stored in the cache.)
+   *include_file_ctime, include_file_mtime* if you are willing to take the risk.
+   (The race condition consists of these events: the preprocessor is run; an
+   include file is modified by someone; the new include file is hashed by
+   ccache; the real compiler is run on the preprocessor's output, which contains
+   data from the old header file; the wrong object file is stored in the cache.)
 ** The `__TIME__` preprocessor macro is (potentially) being used. ccache turns
    off direct mode if `__TIME__` is present in the source code. This is done as
    a safety measure since the string indicates that a `__TIME__` macro _may_
