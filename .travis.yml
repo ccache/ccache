@@ -5,7 +5,7 @@ script:
   - ./autogen.sh
   - test -z $BUILD_DIR || { mkdir -p $BUILD_DIR; cd $BUILD_DIR; }
   - ${SRC_DIR:-.}/configure $CONFIGURE
-  - make
+  - test "$NO_COMPILE" || make
   - make ${TEST:-test}
 
 matrix:
@@ -111,3 +111,50 @@ matrix:
         - libb2-dev
     before_install:
     - source ./.travis/install_cuda.sh
+
+  # Job: Clang tidy
+  - os: linux
+    env: V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=tidy
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+    before_install:
+    - pip install --user compiledb
+
+  # Job: Check formatting
+  - os: linux
+    env: V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=check_format
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+
+  # New Jobs go here until they are established for some weeks
+  allow_failures:
+
+  # Job: Clang tidy
+  - os: linux
+    env: V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=tidy
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+    before_install:
+    - pip install --user compiledb
+
+  # Job: Check formatting
+  - os: linux
+    env: V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=check_format
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev

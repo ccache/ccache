@@ -1,8 +1,0 @@
----
-Checks:          'clang-diagnostic-*,clang-analyzer-*,-clang-analyzer-alpha*,-clang-analyzer-optin.performance.Padding'
-HeaderFilterRegex: 'src/.*|unittest/.*'
-CheckOptions:    
-  - key:             readability-braces-around-statements.ShortStatementLines
-    value:           1
-...
-

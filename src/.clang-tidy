@@ -1,0 +1,83 @@
+# This .clang-tidy file is used by CI to ensure commits do not worsen the
+# codebase. If you want to improve the codebase this config is not for you.
+# Some checks are highly style dependant. The goal is NOT to activate all
+# of them.
+
+---
+Checks:          '-*,
+                  readability-*,
+                  -readability-implicit-bool-conversion,
+                  -readability-magic-numbers,
+                  -readability-else-after-return,
+                  -readability-named-parameter,
+                  -readability-qualified-auto,
+                  -readability-magic-numbers,
+                  -readability-isolate-declaration,
+                  -readability-inconsistent-declaration-parameter-name,
+                  -readability-simplify-boolean-expr,
+                  performance-*,
+                  -performance-unnecessary-value-param,
+                  -performance-faster-string-find,
+                  modernize-*,
+                  -modernize-avoid-c-arrays,
+                  -modernize-deprecated-headers,
+                  -modernize-loop-convert,
+                  -modernize-pass-by-value,
+                  -modernize-use-auto,
+                  -modernize-use-bool-literals,
+                  -modernize-use-using,
+                  -modernize-use-trailing-return-type,
+                  cppcoreguidelines-*,
+                  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+                  -cppcoreguidelines-pro-type-vararg,
+                  -cppcoreguidelines-owning-memory,
+                  -cppcoreguidelines-avoid-magic-numbers,
+                  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+                  -cppcoreguidelines-no-malloc,
+                  -cppcoreguidelines-init-variables,
+                  -cppcoreguidelines-avoid-c-arrays,
+                  -cppcoreguidelines-pro-bounds-constant-array-index,
+                  -cppcoreguidelines-pro-type-cstyle-cast,
+                  -cppcoreguidelines-avoid-goto,
+                  -cppcoreguidelines-pro-type-member-init,
+                  -cppcoreguidelines-macro-usage,
+                  -cppcoreguidelines-pro-type-reinterpret-cast,
+                  -cppcoreguidelines-pro-type-union-access,
+                  -cppcoreguidelines-narrowing-conversions,
+                  bugprone-*,
+                  -bugprone-signed-char-misuse,
+                  -bugprone-branch-clone,
+                  -bugprone-narrowing-conversions,
+                  cert-*,
+                  -cert-err34-c,
+                  -cert-dcl50-cpp,
+                  -cert-err58-cpp,
+                  clang-diagnostic-*,
+                  clang-analyzer-*,
+                  -clang-analyzer-alpha*,
+                  -clang-analyzer-valist.Uninitialized,
+                  -clang-analyzer-optin.performance.Padding'
+WarningsAsErrors: '*'
+# Exclude subdirectories (currently there is only thrid_party)
+HeaderFilterRegex: 'src/[^\\/]*^'
+CheckOptions:    
+  - key:             readability-braces-around-statements.ShortStatementLines
+    value:           2
+
+  # extremly high limits, they are just here to ensure the situation doesn't
+  # get worse than it already is.
+  # If you hit the limits, please change the code and not the limits!!
+  - key:             readability-function-size.LineThreshold
+    value:           1100
+  - key:             readability-function-size.StatementThreshold
+    value:           760
+  - key:             readability-function-size.BranchThreshold
+    value:           170
+  - key:             readability-function-size.ParameterThreshold
+    value:           6
+  - key:             readability-function-size.NestingThreshold
+    value:           6
+  - key:             readability-function-size.VariableThreshold
+    value:           80
+...
+

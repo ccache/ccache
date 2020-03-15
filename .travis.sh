@@ -8,3 +8,5 @@ make travis CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CONFIGU
 make travis CC=clang CXX=clang++ CFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
 make travis CC=clang CXX=clang++ CFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
 make travis CC=/usr/bin/clang CXX=/usr/bin/clang++ TEST=analyze
+make travis CC=/usr/bin/clang CXX=/usr/bin/clang++ TEST=tidy
+make travis CC=/usr/bin/clang CXX=/usr/bin/clang++ TEST=check_format
