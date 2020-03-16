@@ -47,6 +47,48 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.8
+------------
+Release date: 2020-03-16
+
+Bug fixes
+~~~~~~~~~
+
+- Use `$PWD` instead of the real CWD (current working directory) when checking
+  for CWD in preprocessed output. This fixes a problem when `$PWD` includes a
+  symlink part and the user has set `hash_dir = false`.
+
+- Rewrote the Windows version of the lockfile routines. This should mitigate
+  several problems with the old implementation.
+
+- If `localtime_r` fails the epoch time is now logged instead of garbage.
+
+
+Other
+~~~~~
+
+- Improved error message when a boolean environment variable has an invalid
+  value.
+
+- Improved the regression fix in ccache 3.7.5 related to not passing
+  compilation-only options to the preprocessor.
+
+- ccache’s PCH test suite now skips running the tests if it detects broken PCH
+  compiler support.
+
+- Fixed unit test failure on Windows.
+
+- Fixed “stringop-truncation” build warning on Windows.
+
+- Improved “x_rename” implementation on Windows.
+
+- Improved removal of temporary file when rewriting absolute paths to relative
+  in the dependency file.
+
+- Clarified “include_file_ctime sloppiness” in the Performance section in the
+  manual.
+
+
 ccache 3.7.7
 ------------
 Release date: 2020-01-05
