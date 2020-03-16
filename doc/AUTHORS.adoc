@@ -12,7 +12,7 @@ ccache is a collective work with contributions from many people, including:
 * Andrea Bittau
 * Andreas Huber
 * André Klitzing
-* Andrew P Boie
+* Andrew Boie
 * Andrew Stubbs
 * Andrew Tridgell
 * Bernhard Bauer
@@ -93,6 +93,7 @@ ccache is a collective work with contributions from many people, including:
 * RW
 * Ryan Brown
 * Sam Gross
+* Steffen Dettmer
 * Thomas Otto
 * Thomas Röfer
 * Timofei Kushnir
