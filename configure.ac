@@ -166,6 +166,9 @@ else
             fi
         fi
     fi
+    if ! test -f $zstd_archive; then
+        AC_MSG_ERROR(failed to download $zstd_url)
+    fi
     (cd src/third_party && tar -xzf ../../${zstd_archive})
     rm -rf src/third_party/zstd
     mv src/third_party/zstd-${zstd_version} src/third_party/zstd
@@ -202,6 +205,9 @@ else
                 AC_MSG_ERROR(please install wget or curl)
             fi
         fi
+    fi
+    if ! test -f $libb2_archive; then
+        AC_MSG_ERROR(failed to download $libb2_url)
     fi
     (cd src/third_party && tar -xzf ../../${libb2_archive})
     rm -rf src/third_party/libb2
