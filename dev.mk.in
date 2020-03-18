@@ -54,7 +54,8 @@ non_third_party_headers_without_cpp = \
     unittest/framework.hpp \
     unittest/util.hpp
 
-non_third_party_headers = $(subst .cpp,.hpp,$(non_third_party_sources)) \
+non_third_party_headers = \
+    $(subst .cpp,.hpp,$(non_third_party_sources)) \
     $(non_third_party_headers_without_cpp)
 
 third_party_headers = \
