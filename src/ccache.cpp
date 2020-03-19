@@ -679,17 +679,14 @@ process_preprocessed_file(Context& ctx,
 
   ctx.ignore_headers = nullptr;
   ctx.ignore_headers_len = 0;
+
   if (!ctx.config.ignore_headers_in_manifest().empty()) {
-    char *header, *p, *q, *saveptr = nullptr;
-    p = x_strdup(ctx.config.ignore_headers_in_manifest().c_str());
-    q = p;
-    while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
+    for (const std::string& header : Util::split_into_strings(
+           ctx.config.ignore_headers_in_manifest(), PATH_DELIM)) {
       ctx.ignore_headers = static_cast<char**>(x_realloc(
         ctx.ignore_headers, (ctx.ignore_headers_len + 1) * sizeof(char*)));
-      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header);
-      q = nullptr;
+      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header.c_str());
     }
-    free(p);
   }
 
   // Bytes between p and q are pending to be hashed.
