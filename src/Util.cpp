@@ -461,7 +461,7 @@ read_file(const std::string& path)
 {
   std::ifstream file(path);
   if (!file) {
-    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+    throw Error(strerror(errno));
   }
   return std::string(std::istreambuf_iterator<char>(file),
                      std::istreambuf_iterator<char>());
@@ -568,7 +568,7 @@ write_file(const std::string& path, const std::string& data, bool binary)
   std::ofstream file(path,
                      binary ? std::ios::out | std::ios::binary : std::ios::out);
   if (!file) {
-    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+    throw Error(strerror(errno));
   }
   file << data;
 }

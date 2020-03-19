@@ -433,6 +433,12 @@ TEST_CASE("Util::read_file and Util::write_file")
   Util::write_file("test", "foo\nbar\n");
   std::string data = Util::read_file("test");
   CHECK(data == "foo\nbar\n");
+
+  CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
+                    Equals("No such file or directory"));
+
+  CHECK_THROWS_WITH(Util::write_file("", "does/not/exist"),
+                    Equals("No such file or directory"));
 }
 
 TEST_CASE("Util::remove_extension")

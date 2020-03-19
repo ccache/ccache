@@ -220,7 +220,8 @@ int parse_int(const std::string& value);
 
 // Read file data as a string.
 //
-// Throws Error on error.
+// Throws `Error` on error. The description contains the error message without
+// the path.
 std::string read_file(const std::string& path);
 
 #ifndef _WIN32
@@ -250,7 +251,8 @@ strip_whitespace(const std::string& string);
 
 // Write file data from a string.
 //
-// Throws Error on error.
+// Throws `Error` on error. The description contains the error message without
+// the path.
 void write_file(const std::string& path,
                 const std::string& data,
                 bool binary = false);
