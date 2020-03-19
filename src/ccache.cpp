@@ -861,90 +861,74 @@ process_preprocessed_file(Context& ctx,
 static void
 use_relative_paths_in_depfile(const Context& ctx)
 {
-  const char* depfile = ctx.args_info.output_dep.c_str();
-
   if (ctx.config.base_dir().empty()) {
     cc_log("Base dir not set, skip using relative paths");
     return; // nothing to do
   }
   if (!ctx.has_absolute_include_headers) {
     cc_log(
-      "No absolute path for included files found, skip using relative"
-      " paths");
+      "No absolute path for included files found, skip using relative paths");
     return; // nothing to do
   }
 
-  FILE* f;
-  f = fopen(depfile, "r");
-  if (!f) {
-    cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+  const std::string& output_dep = ctx.args_info.output_dep;
+  std::string file_content;
+  try {
+    file_content = Util::read_file(output_dep);
+  } catch (const Error& e) {
+    cc_log("Cannot open dependency file %s: %s", output_dep.c_str(), e.what());
     return;
   }
 
-  char* tmp_file = format("%s.tmp", depfile);
-  FILE* tmpf = create_tmp_file(&tmp_file, "w");
+  std::string adjusted_file_content;
+  adjusted_file_content.reserve(file_content.size());
 
-  bool result = false;
-  char buf[10000];
-  while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
-    char* saveptr;
-    char* token = strtok_r(buf, " \t", &saveptr);
-    while (token) {
-      char* relpath = nullptr;
-      if (Util::is_absolute_path(token)
-          && str_startswith(token, ctx.config.base_dir().c_str())) {
-        relpath = x_strdup(make_relative_path(ctx, token).c_str());
-        result = true;
-      } else {
-        relpath = token;
-      }
-      if (token != buf) { // This is a dependency file.
-        fputc(' ', tmpf);
-      }
-      fputs(relpath, tmpf);
-      if (relpath != token) {
-        free(relpath);
-      }
-      token = strtok_r(nullptr, " \t", &saveptr);
-    }
-  }
+  bool rewritten = false;
 
-  if (ferror(f)) {
-    cc_log("Error reading dependency file: %s, skip relative path usage",
-           depfile);
-    result = false;
-    goto out;
-  }
-  if (ferror(tmpf)) {
-    cc_log(
-      "Error writing temporary dependency file: %s, skip relative path"
-      " usage",
-      tmp_file);
-    result = false;
-    goto out;
-  }
-
-out:
-  fclose(tmpf);
-  fclose(f);
-  if (result) {
-    if (x_rename(tmp_file, depfile) != 0) {
-      cc_log(
-        "Error renaming dependency file: %s -> %s (%s), skip relative"
-        " path usage",
-        tmp_file,
-        depfile,
-        strerror(errno));
-      result = false;
+  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
+    if (Util::is_absolute_path(token)
+        && token.starts_with(ctx.config.base_dir())) {
+      adjusted_file_content.append(make_relative_path(ctx, token));
+      rewritten = true;
     } else {
-      cc_log("Renamed dependency file: %s -> %s", tmp_file, depfile);
+      adjusted_file_content.append(token.begin(), token.end());
     }
+    adjusted_file_content.push_back(' ');
   }
-  if (!result) {
-    cc_log("Removing temporary dependency file: %s", tmp_file);
-    tmp_unlink(tmp_file);
+
+  if (!rewritten) {
+    cc_log(
+      "No paths in dependency file %s made relative, skip relative path usage",
+      output_dep.c_str());
+    return;
   }
-  free(tmp_file);
+
+  std::string tmp_file = fmt::format("{}.tmp{}", output_dep, tmp_string());
+
+  try {
+    Util::write_file(tmp_file, adjusted_file_content);
+  } catch (const Error& e) {
+    cc_log(
+      "Error writing temporary dependency file %s (%s), skip relative path"
+      " usage",
+      tmp_file.c_str(),
+      e.what());
+    x_unlink(tmp_file.c_str());
+    return;
+  }
+
+  if (x_rename(tmp_file.c_str(), output_dep.c_str()) != 0) {
+    cc_log(
+      "Error renaming dependency file: %s -> %s (%s), skip relative path usage",
+      tmp_file.c_str(),
+      output_dep.c_str(),
+      strerror(errno));
+    x_unlink(tmp_file.c_str());
+  } else {
+    cc_log("Renamed dependency file: %s -> %s",
+           tmp_file.c_str(),
+           output_dep.c_str());
+  }
 }
 
 // Extract the used includes from the dependency file. Note that we cannot
@@ -952,32 +936,26 @@ out:
 static struct digest*
 result_name_from_depfile(Context& ctx, struct hash* hash)
 {
-  FILE* f = fopen(ctx.args_info.output_dep.c_str(), "r");
-  if (!f) {
+  std::string file_content;
+  try {
+    file_content = Util::read_file(ctx.args_info.output_dep);
+  } catch (const Error& e) {
     cc_log("Cannot open dependency file %s: %s",
            ctx.args_info.output_dep.c_str(),
-           strerror(errno));
+           e.what());
     return nullptr;
   }
 
-  char buf[10000];
-  while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
-    char* saveptr;
-    char* token;
-    for (token = strtok_r(buf, " \t\n", &saveptr); token;
-         token = strtok_r(nullptr, " \t\n", &saveptr)) {
-      if (str_endswith(token, ":") || str_eq(token, "\\")) {
-        continue;
-      }
-      if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = Util::is_absolute_path(token);
-      }
-      std::string path = make_relative_path(ctx, token);
-      remember_include_file(ctx, path, hash, false, hash);
+  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
+    if (token == "\\" || token.ends_with(":")) {
+      continue;
     }
+    if (!ctx.has_absolute_include_headers) {
+      ctx.has_absolute_include_headers = Util::is_absolute_path(token);
+    }
+    std::string path = make_relative_path(ctx, token);
+    remember_include_file(ctx, path, hash, false, hash);
   }
-
-  fclose(f);
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
