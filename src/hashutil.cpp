@@ -433,17 +433,11 @@ hash_multicommand_output(struct hash* hash,
                          const char* commands,
                          const char* compiler)
 {
-  char* command_string = x_strdup(commands);
-  char* p = command_string;
-  char* command;
-  char* saveptr = nullptr;
   bool ok = true;
-  while ((command = strtok_r(p, ";", &saveptr))) {
-    if (!hash_command_output(hash, command, compiler)) {
+  for (const std::string& cmd : Util::split_into_strings(commands, ";")) {
+    if (!hash_command_output(hash, cmd.c_str(), compiler)) {
       ok = false;
     }
-    p = nullptr;
   }
-  free(command_string);
   return ok;
 }
