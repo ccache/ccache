@@ -1625,19 +1625,14 @@ hash_common_info(const Context& ctx,
   }
 
   if (!ctx.config.extra_files_to_hash().empty()) {
-    char* p = x_strdup(ctx.config.extra_files_to_hash().c_str());
-    char* q = p;
-    char* path;
-    char* saveptr = nullptr;
-    while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
-      cc_log("Hashing extra file %s", path);
+    for (const std::string& path : Util::split_into_strings(
+           ctx.config.extra_files_to_hash(), PATH_DELIM)) {
+      cc_log("Hashing extra file %s", path.c_str());
       hash_delimiter(hash, "extrafile");
-      if (!hash_file(hash, path)) {
+      if (!hash_file(hash, path.c_str())) {
         failed(STATS_BADEXTRAFILE);
       }
-      q = nullptr;
     }
-    free(p);
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
