@@ -3,14 +3,13 @@ Checks:          '-*,readability-function-size'
 WarningsAsErrors: '*'
 HeaderFilterRegex: 'unittest/.*'
 CheckOptions:    
+  # Always add braces (added here just in case clang-tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
-    value:           2
+    value:           0
 
-  # extremly high limits, they are just here to ensure the situation doesn't
-  # get worse than it already is
   # If you hit the limits, please change the code and not the limits!!
-  # Note: some limits disabled due to TEST_SUITE macro.
-  # It generates hundreds of statements, branches and variables.
+  # Note: some limits "disabled" due to TEST_SUITE macro.
+  # The macro generates hundreds of statements, branches and variables.
   - key:             readability-function-size.LineThreshold
     value:           130
   - key:             readability-function-size.StatementThreshold

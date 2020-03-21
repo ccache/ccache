@@ -1,5 +1,5 @@
 # It's currently not possible to disable all checkers within a subdirectory via
-# config file... So just pick a check that will never fail.
+# config file... So just pick a fast check that will never fail.
 ---
 Checks:          '-*,readability-function-size'
 CheckOptions:    

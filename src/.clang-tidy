@@ -1,6 +1,6 @@
-# This .clang-tidy file is used by CI to ensure commits do not worsen the
+# This .clang-tidy file is used by CI to ensure that commits do not worsen the
 # codebase. If you want to improve the codebase this config is not for you.
-# Some checks are highly style dependant. The goal is NOT to activate all
+# Some checks are highly style dependent. The goal is NOT to activate all
 # of them.
 
 ---
@@ -58,14 +58,13 @@ Checks:          '-*,
                   -clang-analyzer-valist.Uninitialized,
                   -clang-analyzer-optin.performance.Padding'
 WarningsAsErrors: '*'
-# Exclude subdirectories (currently there is only thrid_party)
+# Exclude subdirectories (currently there is only third_party)
 HeaderFilterRegex: 'src/[^\\/]*^'
 CheckOptions:    
+  # Always add braces (added here just in case clang-tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
-    value:           2
+    value:           0
 
-  # extremly high limits, they are just here to ensure the situation doesn't
-  # get worse than it already is.
   # If you hit the limits, please change the code and not the limits!!
   - key:             readability-function-size.LineThreshold
     value:           1100

@@ -112,7 +112,7 @@ log_prefix(bool log_updated_time)
     struct tm tm;
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    if (localtime_r((time_t*)&tv.tv_sec, &tm) != NULL) {
+    if (localtime_r((time_t*)&tv.tv_sec, &tm) != nullptr) {
       strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
     } else {
       snprintf(timestamp, sizeof(timestamp), "%lu", tv.tv_sec);
