@@ -190,7 +190,7 @@ vlog(const char* format, va_list ap, bool log_updated_time)
 
 // Write a message to the log file (adding a newline) and flush.
 void
-cc_log(const char* format, ...)
+cc_log_old(const char* format, ...)
 {
   va_list ap;
   va_start(ap, format);

@@ -46,9 +46,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     int saved_errno = errno;
-    cc_log("lockfile_acquire: symlink %s: %s",
-           lockfile.c_str(),
-           strerror(saved_errno));
+    cc_fmt("lockfile_acquire: symlink {}: {}", lockfile, strerror(saved_errno));
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
       if (Util::create_dir(Util::dir_name(lockfile))) {
@@ -195,19 +193,19 @@ Lockfile::Lockfile(const std::string& path, uint32_t staleness_limit)
   m_handle = do_acquire_win32(m_lockfile, staleness_limit);
 #endif
   if (acquired()) {
-    cc_log("Acquired lock %s", m_lockfile.c_str());
+    cc_fmt("Acquired lock {}", m_lockfile);
   } else {
-    cc_log("Failed to acquire lock %s", m_lockfile.c_str());
+    cc_fmt("Failed to acquire lock {}", m_lockfile);
   }
 }
 
 Lockfile::~Lockfile()
 {
   if (acquired()) {
-    cc_log("Releasing lock %s", m_lockfile.c_str());
+    cc_fmt("Releasing lock {}", m_lockfile);
 #ifndef _WIN32
     if (tmp_unlink(m_lockfile.c_str()) != 0) {
-      cc_log("Failed to unlink %s: %s", m_lockfile.c_str(), strerror(errno));
+      cc_fmt("Failed to unlink {}: {}", m_lockfile, strerror(errno));
     }
 #else
     CloseHandle(m_handle);
