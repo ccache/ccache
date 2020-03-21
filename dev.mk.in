@@ -212,8 +212,8 @@ check_format:
 	@[ -t 1 ] && export cf_diff_color="--color=always"; \
 	cd $(srcdir) && echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P1 \
 	    misc/run-clang-format --check || \
-		{  echo; echo "Error: Sources are not formatted with clang-format."; \
-		   echo 'Run "make format" or apply the above diff.'; }
+	        { echo; echo "Error: Sources are not formatted with clang-format."; \
+	          echo 'Run "make format" or apply the above diff.'; echo; exit 1; } 1>&2
 
 # pip install compiledb
 compile_commands.json:
