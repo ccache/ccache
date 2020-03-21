@@ -2353,9 +2353,9 @@ process_args(Context& ctx,
 
     // Handle -arch options.
     if (str_eq(argv[i], "-arch")) {
-      if (args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
+      if (args_info.arch_args_size == ArgsInfo_max_arch_args - 1) {
         cc_log("Too many -arch compiler options; ccache supports at most %d",
-               ArgsInfo::max_arch_args);
+               ArgsInfo_max_arch_args);
         return STATS_UNSUPPORTED_OPTION;
       }
 

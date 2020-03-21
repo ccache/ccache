@@ -22,6 +22,9 @@
 
 #include <string>
 
+// linker error with -flto otherwise (as static constexpr)
+constexpr int ArgsInfo_max_arch_args = 10;
+
 // This class holds meta-information derived from the compiler arguments.
 struct ArgsInfo
 {
@@ -93,9 +96,8 @@ struct ArgsInfo
   size_t sanitize_blacklists_len = 0;
 
   // Array for storing -arch options.
-  static constexpr int max_arch_args = 10;
   size_t arch_args_size = 0;
-  char* arch_args[max_arch_args] = {nullptr};
+  char* arch_args[ArgsInfo_max_arch_args] = {nullptr};
 
   // Relocating debuginfo in the format old=new.
   char** debug_prefix_maps = nullptr;
