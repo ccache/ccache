@@ -105,6 +105,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
       slept += to_sleep;
       to_sleep = std::min(max_to_sleep, 2 * to_sleep);
       cc_log("_Mockfile_acquire: gave up acquiring %s", lockfile.c_str());
+      fmt::print("_Mockfile_acquire: gave up acquiring {}", lockfile.c_str());
     } else if (content != initial_content) {
       cc_log("lockfile_acquire: gave up acquiring %s", lockfile.c_str());
       return false;
