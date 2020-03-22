@@ -829,7 +829,7 @@ do_x_unlink(const char* path, bool log_failure)
   // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
   // file. We don't care if the temp file is trashed, so it's always safe to
   // unlink it first.
-  char* tmp_name = format("%s.rm.%s", path, tmp_string());
+  char* tmp_name = format("%s.ccache.rm.tmp", path);
 
   int result = 0;
   if (x_rename(path, tmp_name) == -1) {
