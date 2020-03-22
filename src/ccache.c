@@ -1299,6 +1299,11 @@ move_file_to_cache_same_fs(const char *source, const char *dest)
 static void
 do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 {
+	if (str_eq(dest, "/dev/null")) {
+		cc_log("Skipping copy from %s to %s", source, dest);
+		return;
+	}
+
 	int ret;
 	bool do_link = !copy && conf->hard_link && !file_is_compressed(source);
 	if (do_link) {
@@ -1432,7 +1437,8 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	args_add(args, "-o");
 	args_add(args, output_obj);
 
-	if (conf->hard_link) {
+	if (conf->hard_link && !str_eq(output_obj, "/dev/null")) {
+		// This is a workaround for https://bugs.llvm.org/show_bug.cgi?id=39782.
 		x_unlink(output_obj);
 	}
 
