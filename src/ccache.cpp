@@ -1115,7 +1115,7 @@ to_cache(Context& ctx,
   args_add(args, "-o");
   args_add(args, ctx.args_info.output_obj.c_str());
 
-  if (ctx.config.hard_link()) {
+  if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.

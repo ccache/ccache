@@ -165,7 +165,11 @@ read_embedded_file_entry(const Context&,
            (unsigned long long)file_len);
 
     const auto it = result_file_map->find(FileType(type));
-    if (it != result_file_map->end()) {
+    if (it == result_file_map->end()) {
+      cc_log("Not copying");
+    } else if (it->second == "/dev/null") {
+      cc_log("Not copying to /dev/null");
+    } else {
       content_read = true;
 
       const auto& path = it->second;
@@ -279,7 +283,11 @@ read_raw_file_entry(const Context& ctx,
     }
 
     const auto it = result_file_map->find(FileType(type));
-    if (it != result_file_map->end()) {
+    if (it == result_file_map->end()) {
+      cc_log("Not copying");
+    } else if (it->second == "/dev/null") {
+      cc_log("Not copying to /dev/null");
+    } else {
       const auto& dest_path = it->second;
       if (!copy_raw_file(ctx, raw_path, dest_path, false)) {
         throw Error(
