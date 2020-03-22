@@ -178,7 +178,6 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   close(src_fd);
 
   if (via_tmp_file) {
-    x_try_unlink(dest);
     if (x_rename(tmp_file, dest) != 0) {
       result = false;
     }
@@ -238,7 +237,6 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
   close(src_fd);
 
   if (via_tmp_file) {
-    x_try_unlink(dest);
     if (x_rename(tmp_file, dest) != 0) {
       result = false;
     }
