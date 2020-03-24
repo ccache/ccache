@@ -703,9 +703,6 @@ format(const char *format, ...)
 	}
 	va_end(ap);
 
-	if (!*ptr) {
-		fatal("Internal error in format");
-	}
 	return ptr;
 }
 
