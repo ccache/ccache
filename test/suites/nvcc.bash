@@ -127,10 +127,10 @@ nvcc_tests() {
     expect_stat 'files in cache' 3
     $cuobjdump test_cuda.o > test1.dump
     expect_equal_files reference_test3.dump test1.dump
-    
+
     # -------------------------------------------------------------------------
     TEST "Option -dc"
-    
+
     $REAL_NVCC $nvcc_opts_cuda -dc -o reference_test4.o test_cuda.cu
     $cuobjdump reference_test4.o > reference_test4.dump
 

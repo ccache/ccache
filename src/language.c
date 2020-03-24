@@ -1,6 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
-//
-// See doc/AUTHORS.adoc for a complete list of contributors.
+// Copyright (C) 2010-2019 Joel Rosdahl
 //
 // This program is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the Free

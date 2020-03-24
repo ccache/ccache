@@ -2756,7 +2756,8 @@ cc_process_args(struct args *args,
 		}
 
 		// when using nvcc with separable compilation, -dc implies -c
-		if ((str_eq(argv[i], "-dc") || str_eq(argv[i], "--device-c")) && guessed_compiler == GUESSED_NVCC) {
+		if ((str_eq(argv[i], "-dc") || str_eq(argv[i], "--device-c"))
+		    && guessed_compiler == GUESSED_NVCC) {
 			found_dc_opt = true;
 			continue;
 		}
