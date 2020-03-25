@@ -2805,6 +2805,10 @@ process_args(Context& ctx,
       continue;
     }
 
+    if (str_startswith(argv[i], "-fmessage-length=")) {
+        continue;
+    }
+
     // Options taking an argument that we may want to rewrite to relative paths
     // to get better hit rate. A secondary effect is that paths in the standard
     // error output produced by the compiler will be normalized.
