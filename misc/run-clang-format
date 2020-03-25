@@ -38,9 +38,9 @@ if ! cmp -s "$file" "$tmp_file"; then
         git diff $cf_diff_color --no-index "$file" "$tmp_file" |
             sed -r -e "s!^---.*!--- a/$file!" -e "s!^\+\+\+.*!+++ b/$file!" \
             -e "/diff --/d" -e "/index /d" -e "s/.[0-9]*.clang-format.tmp//"
+        exit 1
     else
         echo "Reformatted $file"
         mv "$tmp_file" "$file" && trap '' EXIT
     fi
-    exit 1
 fi
