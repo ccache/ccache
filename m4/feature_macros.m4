@@ -119,6 +119,8 @@ then
       AC_DEFINE(_XOPEN_SOURCE, 500,
                 Define to the level of X/Open that your system supports)
       ;;
+    SunOS/5.11)
+      ;;
     *)
       AC_DEFINE(_XOPEN_SOURCE, 700,
                 Define to the level of X/Open that your system supports)
