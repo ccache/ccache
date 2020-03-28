@@ -1,5 +1,8 @@
 # This .clang-tidy file is used by CI to ensure that commits do not worsen the
-# codebase. If you want to improve the codebase this config is not for you.
+# codebase. The checks and values below are the minimum standard for new code.
+(Without claiming that they are 100% correct. They can be modified on demand!)
+If you want to improve the codebase try enabling some additional checks or
+playing with the configuration values.
 # Some checks are highly style dependent. The goal is NOT to activate all
 # of them.
 
