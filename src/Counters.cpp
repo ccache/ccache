@@ -26,8 +26,12 @@ Counters::Counters() : m_counters(STATS_END)
 {
 }
 
+// Return type is on separate line since clang-format 10.
+// Since different people use different versions, auto formatting is disabled.
+// clang-format off
 unsigned&
 Counters::operator[](size_t index)
+// clang-format on
 {
   if (index >= m_counters.size()) {
     m_counters.resize(index + 1);
@@ -35,8 +39,12 @@ Counters::operator[](size_t index)
   return m_counters.at(index);
 }
 
+// Return type is on separate line since clang-format 10.
+// Since different people use different versions, auto formatting is disabled.
+// clang-format off
 unsigned
 Counters::operator[](size_t index) const
+// clang-format on
 {
   return index < m_counters.size() ? m_counters.at(index) : 0;
 }
