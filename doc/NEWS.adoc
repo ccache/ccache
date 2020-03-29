@@ -47,6 +47,28 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.9
+------------
+Release date: 2020-03-29
+
+Bug fixes
+~~~~~~~~~
+
+- Fixed replacing of /dev/null when building as root with hard link mode
+  enabled and using `-o /dev/null`.
+
+- Removed incorrect assertion resulting in “ccache: error: Internal error in
+  format” when using `-fdebug-prefix-map=X=` with X equal to `$PWD`.
+
+
+Other
+~~~~~
+
+- Improved CUDA/NVCC support: Recognize `-dc` and `-x cu` options.
+
+- Improved name of temporary file used in NFS-safe unlink.
+
+
 ccache 3.7.8
 ------------
 Release date: 2020-03-16
