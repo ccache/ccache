@@ -21,6 +21,7 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "InodeCache.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
@@ -261,13 +262,11 @@ hash_source_code_string(const Config& config,
   return result;
 }
 
-// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
-// results.
-int
-hash_source_code_file(const Config& config,
-                      struct hash* hash,
-                      const char* path,
-                      size_t size_hint)
+static int
+hash_source_code_file_nocache(const Config& config,
+                              struct hash* hash,
+                              const char* path,
+                              size_t size_hint)
 {
   if (is_precompiled_header(path)) {
     if (hash_file(hash, path)) {
@@ -285,6 +284,43 @@ hash_source_code_file(const Config& config,
     free(data);
     return result;
   }
+}
+
+// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+// results.
+int
+hash_source_code_file(const Config& config,
+                      struct hash* hash,
+                      const char* path,
+                      size_t size_hint)
+{
+#ifdef INODE_CACHE_SUPPORTED
+  if (!config.inode_cache())
+#endif
+    return hash_source_code_file_nocache(config, hash, path, size_hint);
+
+#ifdef INODE_CACHE_SUPPORTED
+  // Reusable file hashes must be independent of the outer context. Thus hash
+  // files separately so that digests based on file contents can be reused. Then
+  // add the digest into the outer hash instead.
+  struct digest digest;
+  int return_value;
+  if (!InodeCache::get(config, path, &digest, &return_value)) {
+    cc_log(
+      "File not found in inode cache, falling back on content hashing for %s",
+      path);
+    struct hash* file_hash = hash_init();
+    return_value =
+      hash_source_code_file_nocache(config, file_hash, path, size_hint);
+    if (return_value == HASH_SOURCE_CODE_ERROR)
+      return HASH_SOURCE_CODE_ERROR;
+    hash_result_as_bytes(file_hash, &digest);
+    hash_free(file_hash);
+    InodeCache::put(config, path, digest, return_value);
+  }
+  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  return return_value;
+#endif
 }
 
 bool

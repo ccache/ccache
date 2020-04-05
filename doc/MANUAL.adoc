@@ -495,6 +495,28 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
+[[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE*)::
+
+    If true, enables caching of source file hashes based on device, inode and
+    timestamps. This will reduce the time spent on hashing included files as
+    the result can be resused between compilations.
++
+The feature is still experimental and thus off by default. It is currently not
+available on Windows.
+
+[[config_inode_cache_file]] *inode_cache_file* (*CCACHE_INODECACHEFILE*)::
+
+    Specifies an optional location for the persistent inode cache file. If not
+    specified the cache will be stored in *_<ccachedir>_/inode/inode_cache*.
++
+It is usually not necessary to specify a nondefault location unless
+*_<ccachedir>_* is located on a filesystem type that doesn't support mmap. The
+cache file should always be located on a local filesystem even if
+*_<ccachedir>_* is located on a remote filesystem shared by several hosts.
++
+It is perfectly fine to place the cache file on tmpfs as it will be silently
+regenerated if missing after a reboot.
+
 [[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not discard the comments before hashing preprocessor

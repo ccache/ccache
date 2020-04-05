@@ -126,12 +126,15 @@ AC_CHECK_FUNCS(getpwuid)
 AC_CHECK_FUNCS(gettimeofday)
 AC_CHECK_FUNCS(localtime_r)
 AC_CHECK_FUNCS(mkstemp)
+AC_CHECK_FUNCS(posix_fallocate)
 AC_CHECK_FUNCS(realpath)
 AC_CHECK_FUNCS(setenv)
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
+
+AC_CHECK_MEMBERS([struct stat.st_ctim, struct stat.st_mtim])
 
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)

@@ -528,20 +528,29 @@ do_remember_include_file(Context& ctx,
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      char* source = nullptr;
-      size_t size;
-      if (st.size() > 0) {
-        if (!read_file(path.c_str(), st.size(), &source, &size)) {
-          return false;
-        }
+      int result;
+#ifdef INODE_CACHE_SUPPORTED
+      if (ctx.config.inode_cache()) {
+        result = hash_source_code_file(ctx.config, fhash, path.c_str());
       } else {
-        source = x_strdup("");
-        size = 0;
-      }
+#endif
+        char* source = nullptr;
+        size_t size;
+        if (st.size() > 0) {
+          if (!read_file(path.c_str(), st.size(), &source, &size)) {
+            return false;
+          }
+        } else {
+          source = x_strdup("");
+          size = 0;
+        }
 
-      int result =
-        hash_source_code_string(ctx.config, fhash, source, size, path.c_str());
-      free(source);
+        result = hash_source_code_string(
+          ctx.config, fhash, source, size, path.c_str());
+        free(source);
+#ifdef INODE_CACHE_SUPPORTED
+      }
+#endif
       if (result & HASH_SOURCE_CODE_ERROR
           || result & HASH_SOURCE_CODE_FOUND_TIME) {
         return false;

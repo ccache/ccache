@@ -55,6 +55,10 @@ public:
   bool hard_link() const;
   bool hash_dir() const;
   const std::string& ignore_headers_in_manifest() const;
+#ifdef INODE_CACHE_SUPPORTED
+  bool inode_cache() const;
+  const std::string& inode_cache_file() const;
+#endif
   bool keep_comments_cpp() const;
   double limit_multiple() const;
   const std::string& log_file() const;
@@ -78,6 +82,9 @@ public:
   void set_cpp_extension(const std::string& value);
   void set_depend_mode(bool value);
   void set_direct_mode(bool value);
+#ifdef INODE_CACHE_SUPPORTED
+  void set_inode_cache(bool value);
+#endif
   void set_limit_multiple(double value);
   void set_max_files(uint32_t value);
   void set_max_size(uint64_t value);
@@ -137,6 +144,10 @@ private:
   bool m_hard_link = false;
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest = "";
+#ifdef INODE_CACHE_SUPPORTED
+  bool m_inode_cache = false;
+  std::string m_inode_cache_file = "";
+#endif
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file = "";
@@ -265,6 +276,20 @@ Config::ignore_headers_in_manifest() const
 {
   return m_ignore_headers_in_manifest;
 }
+
+#ifdef INODE_CACHE_SUPPORTED
+inline bool
+Config::inode_cache() const
+{
+  return m_inode_cache;
+}
+
+inline const std::string&
+Config::inode_cache_file() const
+{
+  return m_inode_cache_file;
+}
+#endif
 
 inline bool
 Config::keep_comments_cpp() const
@@ -397,6 +422,14 @@ Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
 }
+
+#ifdef INODE_CACHE_SUPPORTED
+inline void
+Config::set_inode_cache(bool value)
+{
+  m_inode_cache = value;
+}
+#endif
 
 inline void
 Config::set_limit_multiple(double value)

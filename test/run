@@ -449,6 +449,7 @@ nvcc
 nvcc_direct
 nvcc_ldir
 nvcc_nocpp2
+inode_cache
 "
 
 for suite in $all_suites; do

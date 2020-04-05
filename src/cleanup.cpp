@@ -21,6 +21,7 @@
 
 #include "CacheFile.hpp"
 #include "Config.hpp"
+#include "InodeCache.hpp"
 #include "logging.hpp"
 #include "stats.hpp"
 
@@ -192,4 +193,7 @@ wipe_all(const Config& config, const Util::ProgressReceiver& progress_receiver)
 {
   Util::for_each_level_1_subdir(
     config.cache_dir(), wipe_dir, progress_receiver);
+#ifdef INODE_CACHE_SUPPORTED
+  InodeCache::drop(config);
+#endif
 }
