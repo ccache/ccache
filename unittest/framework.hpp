@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,6 +19,8 @@
 #pragma once
 
 #include "../src/system.hpp"
+
+class Args;
 
 // ============================================================================
 
@@ -126,17 +128,14 @@
 
 // ============================================================================
 
-#define CHECK_ARGS_EQ(expected, actual)                                        \
-  CHECK_POINTER_EQ_BASE(args, expected, actual, false, false)
-
-#define CHECK_ARGS_EQ_FREE1(expected, actual)                                  \
-  CHECK_POINTER_EQ_BASE(args, expected, actual, true, false)
-
-#define CHECK_ARGS_EQ_FREE2(expected, actual)                                  \
-  CHECK_POINTER_EQ_BASE(args, expected, actual, false, true)
-
-#define CHECK_ARGS_EQ_FREE12(expected, actual)                                 \
-  CHECK_POINTER_EQ_BASE(args, expected, actual, true, true)
+#define CHECK_ARGS_EQ_FREE12(e, a)                                             \
+  do {                                                                         \
+    if (!cct_check_args_eq(__FILE__, __LINE__, #a, (e), (a))) {                \
+      cct_test_end();                                                          \
+      cct_suite_end();                                                         \
+      return _test_counter;                                                    \
+    }                                                                          \
+  } while (false)
 
 // ============================================================================
 
@@ -179,10 +178,8 @@ bool cct_check_str_eq(const char* file,
 bool cct_check_args_eq(const char* file,
                        int line,
                        const char* expression,
-                       const struct args* expected,
-                       const struct args* actual,
-                       bool free1,
-                       bool free2);
+                       const Args& expected,
+                       const Args& actual);
 void cct_chdir(const char* path);
 void cct_wipe(const char* path);
 void cct_create_fresh_dir(const char* path);

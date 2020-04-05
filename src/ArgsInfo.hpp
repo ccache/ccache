@@ -20,6 +20,8 @@
 
 #include "system.hpp"
 
+#include "Args.hpp"
+
 #include <string>
 
 // This class holds meta-information derived from the compiler arguments.
@@ -102,7 +104,7 @@ struct ArgsInfo
   size_t debug_prefix_maps_len = 0;
 
   // Argument list to add to compiler invocation in depend mode.
-  struct args* depend_extra_args = nullptr;
+  Args depend_extra_args;
 
   ArgsInfo() = default;
   ~ArgsInfo();

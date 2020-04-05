@@ -20,6 +20,7 @@
 
 #include "system.hpp"
 
+#include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
 #include "NonCopyable.hpp"
@@ -27,8 +28,6 @@
 #include "hash.hpp"
 
 #include <unordered_map>
-
-struct args;
 
 struct Context : NonCopyable
 {
@@ -45,7 +44,7 @@ struct Context : NonCopyable
   std::string apparent_cwd;
 
   // The original argument list.
-  struct args* orig_args = nullptr;
+  Args orig_args;
 
   // Name (represented as a struct digest) of the file containing the cached
   // result.

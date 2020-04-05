@@ -18,9 +18,9 @@
 
 #include "framework.hpp"
 
+#include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "../src/args.hpp"
 #include "../src/ccache.hpp"
 #include "util.hpp"
 
@@ -287,32 +287,20 @@ bool
 cct_check_args_eq(const char* file,
                   int line,
                   const char* expression,
-                  const struct args* expected,
-                  const struct args* actual,
-                  bool free1,
-                  bool free2)
+                  const Args& expected,
+                  const Args& actual)
 {
-  bool result;
-
-  if (expected && actual && args_equal(actual, expected)) {
+  if (actual == expected) {
     cct_check_passed(file, line, expression);
-    result = true;
+    return true;
   } else {
-    char* exp_str = expected ? args_to_string(expected) : x_strdup("(null)");
-    char* act_str = actual ? args_to_string(actual) : x_strdup("(null)");
-    cct_check_failed(file, line, expression, exp_str, act_str);
-    free(exp_str);
-    free(act_str);
-    result = false;
+    cct_check_failed(file,
+                     line,
+                     expression,
+                     expected.to_string().c_str(),
+                     actual.to_string().c_str());
+    return false;
   }
-
-  if (free1) {
-    args_free(const_cast<struct args*>(expected));
-  }
-  if (free2) {
-    args_free(const_cast<struct args*>(actual));
-  }
-  return result;
 }
 
 void

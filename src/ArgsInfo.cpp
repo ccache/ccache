@@ -18,14 +18,10 @@
 
 #include "ArgsInfo.hpp"
 
-#include "args.hpp"
-
 ArgsInfo::~ArgsInfo()
 {
   for (size_t i = 0; i < debug_prefix_maps_len; i++) {
     free(debug_prefix_maps[i]);
   }
   free(debug_prefix_maps);
-
-  args_free(depend_extra_args);
 }

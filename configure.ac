@@ -93,6 +93,7 @@ if test "$dev_mode" = yes -o "$enable_more_warnings" = yes; then
         AX_CHECK_COMPILE_FLAG([-Wno-global-constructors], [extra_warnings="$extra_warnings -Wno-global-constructors"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-implicit-fallthrough], [extra_warnings="$extra_warnings -Wno-implicit-fallthrough"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-padded], [extra_warnings="$extra_warnings -Wno-padded"],, [-Werror])
+        AX_CHECK_COMPILE_FLAG([-Wno-return-std-move-in-c++11], [extra_warnings="$extra_warnings -Wno-return-std-move-in-c++11"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-shadow-field-in-constructor], [extra_warnings="$extra_warnings -Wno-shadow-field-in-constructor"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-shorten-64-to-32], [extra_warnings="$extra_warnings -Wno-shorten-64-to-32"],, [-Werror])
         AX_CHECK_COMPILE_FLAG([-Wno-sign-conversion], [extra_warnings="$extra_warnings -Wno-sign-conversion"],, [-Werror])

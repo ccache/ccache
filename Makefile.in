@@ -31,6 +31,7 @@ quiet := $(v_at_$(V))
 Q=$(if $(quiet),@)
 
 non_third_party_sources = \
+    src/Args.cpp \
     src/ArgsInfo.cpp \
     src/AtomicFile.cpp \
     src/CacheEntryReader.cpp \
@@ -50,7 +51,6 @@ non_third_party_sources = \
     src/Util.cpp \
     src/ZstdCompressor.cpp \
     src/ZstdDecompressor.cpp \
-    src/args.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \
     src/compopt.cpp \
@@ -81,6 +81,7 @@ non_third_party_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(non_third_p
 ccache_sources = src/main.cpp $(base_sources)
 ccache_objs = $(patsubst %.c, %.o, $(patsubst %.cpp, %.o, $(ccache_sources)))
 
+test_suites += unittest/test_Args.cpp
 test_suites += unittest/test_AtomicFile.cpp
 test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Compression.cpp
@@ -92,11 +93,11 @@ test_suites += unittest/test_ScopeGuard.cpp
 test_suites += unittest/test_Stat.cpp
 test_suites += unittest/test_Util.cpp
 test_suites += unittest/test_ZstdCompression.cpp
-test_suites += unittest/test_args.cpp
 test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
+test_suites += unittest/test_legacy_args.cpp
 test_suites += unittest/test_legacy_util.cpp
 
 test_sources += unittest/catch2_tests.cpp
