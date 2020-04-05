@@ -2073,7 +2073,7 @@ from_cache(Context& ctx,
 // Find the real compiler. We just search the PATH to find an executable of the
 // same name that isn't a link to ourselves.
 static void
-find_compiler(const Context& ctx, char** argv)
+find_compiler(const Context& ctx, const char* const* argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
@@ -3392,7 +3392,7 @@ set_up_config(Config& config)
 
 // Initialize ccache, must be called once before anything else is run.
 static Context&
-initialize(int argc, char* argv[])
+initialize(int argc, const char* const* argv)
 {
   // This object is placed onto the heap so it is available in exit functions
   // which run after main(). It is cleaned up by the last exit function.
@@ -3468,12 +3468,12 @@ configuration_printer(const std::string& key,
   fmt::print("({}) {} = {}\n", origin, key, value);
 }
 
-static int cache_compilation(int argc, char* argv[]);
-static enum stats do_cache_compilation(Context& ctx, char* argv[]);
+static int cache_compilation(int argc, const char* const* argv);
+static enum stats do_cache_compilation(Context& ctx, const char* const* argv);
 
 // The entry point when invoked to cache a compilation.
 static int
-cache_compilation(int argc, char* argv[])
+cache_compilation(int argc, const char* const* argv)
 {
 #ifndef _WIN32
   set_up_signal_handlers();
@@ -3519,7 +3519,7 @@ cache_compilation(int argc, char* argv[])
 }
 
 static enum stats
-do_cache_compilation(Context& ctx, char* argv[])
+do_cache_compilation(Context& ctx, const char* const* argv)
 {
   if (ctx.actual_cwd.empty()) {
     cc_log("Unable to determine current working directory: %s",
@@ -3753,7 +3753,7 @@ do_cache_compilation(Context& ctx, char* argv[])
 
 // The main program when not doing a compile.
 static int
-handle_main_options(int argc, char* argv[])
+handle_main_options(int argc, const char* const* argv)
 {
   enum longopts {
     DUMP_MANIFEST,
@@ -3785,7 +3785,11 @@ handle_main_options(int argc, char* argv[])
   (void)ctx;
 
   int c;
-  while ((c = getopt_long(argc, argv, "cCk:hF:M:po:sVxX:z", options, nullptr))
+  while ((c = getopt_long(argc,
+                          const_cast<char* const*>(argv),
+                          "cCk:hF:M:po:sVxX:z",
+                          options,
+                          nullptr))
          != -1) {
     switch (c) {
     case DUMP_MANIFEST:
@@ -3942,10 +3946,10 @@ handle_main_options(int argc, char* argv[])
   return 0;
 }
 
-int ccache_main(int argc, char* argv[]);
+int ccache_main(int argc, const char* const* argv);
 
 int
-ccache_main(int argc, char* argv[])
+ccache_main(int argc, const char* const* argv)
 {
   try {
     // Check if we are being invoked as "ccache".

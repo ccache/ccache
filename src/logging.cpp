@@ -214,7 +214,7 @@ cc_bulklog(const char* format, ...)
 
 // Log an executed command to the CCACHE_LOGFILE location.
 void
-cc_log_argv(const char* prefix, char** argv)
+cc_log_argv(const char* prefix, const char* const* argv)
 {
   if (!(debug_log_buffer || logfile || use_syslog)) {
     return;

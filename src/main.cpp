@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2016 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,11 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-int
-ccache_main(int argc, char *argv[]);
+int ccache_main(int argc, const char* const* argv);
 
 int
-main(int argc, char *argv[])
+main(int argc, char* const* argv)
 {
-	return ccache_main(argc, argv);
+  return ccache_main(argc, argv);
 }

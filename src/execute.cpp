@@ -30,7 +30,7 @@ using nonstd::string_view;
 
 #ifdef _WIN32
 int
-execute(char** argv, int fd_out, int fd_err, pid_t* /*pid*/)
+execute(const char* const* argv, int fd_out, int fd_err, pid_t* /*pid*/)
 {
   return win32execute(argv[0], argv, 1, fd_out, fd_err);
 }
@@ -38,11 +38,11 @@ execute(char** argv, int fd_out, int fd_err, pid_t* /*pid*/)
 // Re-create a win32 command line string based on **argv.
 // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
 char*
-win32argvtos(char* prefix, char** argv, int* length)
+win32argvtos(const char* prefix, const char* const* argv, int* length)
 {
   int i = 0;
   int k = 0;
-  char* arg = prefix ? prefix : argv[i++];
+  const char* arg = prefix ? prefix : argv[i++];
   do {
     int bs = 0;
     for (int j = 0; arg[j]; j++) {
@@ -103,7 +103,7 @@ win32argvtos(char* prefix, char** argv, int* length)
 }
 
 char*
-win32getshell(char* path)
+win32getshell(const char* path)
 {
   char* path_env;
   char* sh = NULL;
@@ -144,8 +144,11 @@ add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
 }
 
 int
-win32execute(
-  char* path, char** argv, int doreturn, int fd_stdout, int fd_stderr)
+win32execute(const char* path,
+             const char* const* argv,
+             int doreturn,
+             int fd_stdout,
+             int fd_stderr)
 {
   PROCESS_INFORMATION pi;
   memset(&pi, 0x00, sizeof(pi));
@@ -258,7 +261,7 @@ win32execute(
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(char** argv, int fd_out, int fd_err, pid_t* pid)
+execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 {
   cc_log_argv("Executing ", argv);
 
@@ -276,7 +279,7 @@ execute(char** argv, int fd_out, int fd_err, pid_t* pid)
     close(fd_out);
     dup2(fd_err, 2);
     close(fd_err);
-    x_exit(execv(argv[0], argv));
+    x_exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
 
   close(fd_out);
@@ -377,7 +380,7 @@ find_executable_in_path(const char* name,
 }
 
 void
-print_command(FILE* fp, char** argv)
+print_command(FILE* fp, const char* const* argv)
 {
   for (int i = 0; argv[i]; i++) {
     fprintf(fp, "%s%s", (i == 0) ? "" : " ", argv[i]);
