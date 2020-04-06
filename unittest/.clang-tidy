@@ -1,0 +1,26 @@
+---
+Checks:          '-*,readability-function-size'
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'unittest/.*'
+CheckOptions:    
+  # Always add braces (added here just in case clang-tidy default changes).
+  - key:             readability-braces-around-statements.ShortStatementLines
+    value:           0
+
+  # If you hit the limits, please change the code and not the limits!!
+  # Note: some limits "disabled" due to TEST_SUITE macro.
+  # The macro generates hundreds of statements, branches and variables.
+  - key:             readability-function-size.LineThreshold
+    value:           130
+  - key:             readability-function-size.StatementThreshold
+    value:           999999
+  - key:             readability-function-size.ParameterThreshold
+    value:           7
+  - key:             readability-function-size.NestingThreshold
+    value:           6
+  - key:             readability-function-size.NestingThreshold
+    value:           999999
+  - key:             readability-function-size.VariableThreshold
+    value:           999999
+...
+

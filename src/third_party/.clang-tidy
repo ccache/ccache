@@ -1,0 +1,9 @@
+# It's currently not possible to disable all checkers within a subdirectory via
+# config file... So just pick a fast check that will never fail.
+---
+Checks:          '-*,readability-function-size'
+CheckOptions:    
+  - key:             readability-function-size.LineThreshold
+    value:           99999999
+...
+
