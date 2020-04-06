@@ -27,6 +27,10 @@
 #  include <sys/ioctl.h>
 #endif
 
+#ifdef __sun
+#  include <termios.h>
+#endif
+
 namespace {
 
 const size_t k_max_width = 120;
