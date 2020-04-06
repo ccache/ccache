@@ -305,9 +305,9 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		return false;
 	}
 
-	char dummy[8] = {0}; // The maximum entry size in struct conf.
-	if (!item->parser(value, (void *)dummy, errmsg)
-	    || (item->verifier && !item->verifier(value, errmsg))) {
+	char parsed[8] = {0}; // The maximum entry size in struct conf.
+	if (!item->parser(value, (void *)parsed, errmsg)
+	    || (item->verifier && !item->verifier(&parsed, errmsg))) {
 		return false;
 	}
 
