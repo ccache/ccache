@@ -113,7 +113,7 @@ Args::from_gcc_atfile(const std::string& filename)
       // End of token
       *argpos = '\0';
       if (argbuf[0] != '\0') {
-        args_add(args, argbuf);
+        args_add(args, argbuf.c_str());
       }
       argpos = argbuf.begin();
       if (*pos == '\0') {

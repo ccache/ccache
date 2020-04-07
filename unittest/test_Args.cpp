@@ -71,6 +71,66 @@ TEST_CASE("Args::from_string")
   CHECK(args[3] == "f");
 }
 
+TEST_CASE("Args::from_gcc_atfile")
+{
+  Args args;
+
+  SECTION("Non-existing file")
+  {
+    CHECK(Args::from_gcc_atfile("at_file") == nonstd::nullopt);
+  }
+
+  SECTION("Empty")
+  {
+    Util::write_file("at_file", "");
+    args = *Args::from_gcc_atfile("at_file");
+    CHECK(args.size() == 0);
+  }
+
+  SECTION("One argument without newline")
+  {
+    Util::write_file("at_file", "foo");
+    args = *Args::from_gcc_atfile("at_file");
+    CHECK(args.size() == 1);
+    CHECK(args[0] == "foo");
+  }
+
+  SECTION("One argument with newline")
+  {
+    Util::write_file("at_file", "foo\n");
+    args = *Args::from_gcc_atfile("at_file");
+    CHECK(args.size() == 1);
+    CHECK(args[0] == "foo");
+  }
+
+  SECTION("Multiple simple arguments")
+  {
+    Util::write_file("at_file", "x y z\n");
+    args = *Args::from_gcc_atfile("at_file");
+    CHECK(args.size() == 3);
+    CHECK(args[0] == "x");
+    CHECK(args[1] == "y");
+    CHECK(args[2] == "z");
+  }
+
+  SECTION("Tricky quoting")
+  {
+    Util::write_file(
+      "at_file",
+      "first\rsec\\\tond\tthi\\\\rd\nfourth  \tfif\\ th \"si'x\\\" th\""
+      " 'seve\nth'\\");
+    args = *Args::from_gcc_atfile("at_file");
+    CHECK(args.size() == 7);
+    CHECK(args[0] == "first");
+    CHECK(args[1] == "sec\tond");
+    CHECK(args[2] == "thi\\rd");
+    CHECK(args[3] == "fourth");
+    CHECK(args[4] == "fif th");
+    CHECK(args[5] == "si'x\" th");
+    CHECK(args[6] == "seve\nth");
+  }
+}
+
 TEST_CASE("Args copy assignment operator")
 {
   Args args1 = Args::from_string("x y");
