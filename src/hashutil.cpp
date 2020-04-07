@@ -18,10 +18,10 @@
 
 #include "hashutil.hpp"
 
+#include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Stat.hpp"
-#include "args.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
 #include "logging.hpp"
@@ -313,13 +313,16 @@ hash_command_output(struct hash* hash,
   }
 #endif
 
-  struct args* args = args_init_from_string(command);
-  for (int i = 0; i < args->argc; i++) {
+  Args args = Args::from_string(command);
+
+  for (size_t i = 0; i < args.size(); i++) {
     if (str_eq(args->argv[i], "%compiler%")) {
       args_set(args, i, compiler);
     }
   }
-  cc_log_argv("Executing compiler check command ", args->argv);
+
+  auto argv = args.to_argv();
+  cc_log_argv("Executing compiler check command ", argv.data());
 
 #ifdef _WIN32
   PROCESS_INFORMATION pi;
@@ -327,9 +330,10 @@ hash_command_output(struct hash* hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* path = find_executable_in_path(args->argv[0], nullptr, getenv("PATH"));
+  char* path =
+    find_executable_in_path(args[0].c_str(), nullptr, getenv("PATH"));
   if (!path) {
-    path = args->argv[0];
+    path = x_strdup(args[0].c_str());
   }
   char* sh = win32getshell(path);
   if (sh) {
@@ -350,14 +354,14 @@ hash_command_output(struct hash* hash,
   char* win32args;
   if (!cmd) {
     int length;
-    win32args = win32argvtos(sh, args->argv, &length);
+    win32args = win32argvtos(sh, argv.data(), &length);
   } else {
     win32args = (char*)command; // quoted
   }
   BOOL ret =
     CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+  free(path);
   CloseHandle(pipe_out[1]);
-  args_free(args);
   free(win32args);
   if (!cmd) {
     free((char*)command); // Original argument was replaced above.
@@ -398,11 +402,10 @@ hash_command_output(struct hash* hash,
     close(0);
     dup2(pipefd[1], 1);
     dup2(pipefd[1], 2);
-    _exit(execvp(args->argv[0], args->argv));
+    _exit(execvp(argv[0], const_cast<char* const*>(argv.data())));
     // Never reached.
   } else {
     // Parent.
-    args_free(args);
     close(pipefd[1]);
     bool ok = hash_fd(hash, pipefd[0]);
     if (!ok) {
