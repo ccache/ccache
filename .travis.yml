@@ -22,7 +22,17 @@ matrix:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 2: Build on Linux with native Clang
+  # Job 2: Build on Linux with native 32-bit GCC
+  - os: linux
+    compiler: gcc
+    env: T="Linux GCC 32-bit" V=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    addons:
+      apt:
+        packages:
+        - gcc-multilib
+        - lib32stdc++-5-dev
+
+  # Job 3: Build on Linux with native Clang
   - os: linux
     compiler: clang
     env: T="Linux Clang" V=1 ENABLE_CACHE_CLEANUP_TESTS=1
@@ -33,20 +43,19 @@ matrix:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 3: Build on MacOS with native Clang
-  - os: osx
-    compiler: clang
-    env: T="MacOS Clang" V=1 CONFIGURE="--with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
-
-  # Job 4: Build on Linux with native 32-bit GCC
+  # Job 4: Build on Linux with native GCC and CUDA compiler
   - os: linux
     compiler: gcc
-    env: T="Linux GCC 32-bit" V=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux GCC CUDA" V=1 CUDA=10.1.243-1 ENABLE_CACHE_CLEANUP_TESTS=1
+    sudo: required
     addons:
       apt:
         packages:
-        - gcc-multilib
-        - lib32stdc++-5-dev
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+    before_install:
+    - source ./.travis/install_cuda.sh
 
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux
@@ -66,7 +75,12 @@ matrix:
         packages:
         - elfutils
 
-  # Job 7: Run Clang's undefined behavior sanitizer
+  # Job 7: Build on MacOS with native Clang
+  - os: osx
+    compiler: clang
+    env: T="MacOS Clang" V=1 CONFIGURE="--with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+
+  # Job 8: Run Clang's undefined behavior sanitizer
   - os: linux
     compiler: clang
     env: T="Clang UB sanitizer" V=1 CFLAGS="-fsanitize=undefined" CXXFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
@@ -77,7 +91,7 @@ matrix:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 8: Run Clang's address sanitizer
+  # Job 9: Run Clang's address sanitizer
   - os: linux
     compiler: clang
     env: T="Clang address sanitizer" V=1 CFLAGS="-fsanitize=address -g" CXXFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
@@ -88,7 +102,7 @@ matrix:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 9: Run Clang's static analyzer
+  # Job 10: Run Clang's static analyzer
   - os: linux
     compiler: clang
     env: T="Clang static analyzer" V=1 PATH="/usr/bin:$PATH" SCAN_BUILD=scan-build-7 TEST=analyze
@@ -97,20 +111,6 @@ matrix:
         packages:
         - libzstd1-dev
         - libb2-dev
-
-  # Job 10: Build on Linux with native GCC and CUDA compiler
-  - os: linux
-    compiler: gcc
-    env: T="Linux GCC CUDA" V=1 CUDA=10.1.243-1 ENABLE_CACHE_CLEANUP_TESTS=1
-    sudo: required
-    addons:
-      apt:
-        packages:
-        - elfutils
-        - libzstd1-dev
-        - libb2-dev
-    before_install:
-    - source ./.travis/install_cuda.sh
 
   # Job 11: Run Clang-Tidy
   - os: linux
