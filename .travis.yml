@@ -60,7 +60,7 @@ matrix:
   # Job 6: Linux cross-compiled 64-bit MinGW
   - os: linux
     compiler: x86_64-w64-mingw32-g++
-    env: V=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: V=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
