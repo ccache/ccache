@@ -55,7 +55,7 @@ under less restrictive terms.
 src/third_party/fmt/*.h and src/third_party/format.cpp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a subset of https://fmt.dev[fmt] 6.1.2 with the following license:
+This is a subset of https://fmt.dev[fmt] 6.2.0 with the following license:
 
 -------------------------------------------------------------------------------
   Formatting library for C++
