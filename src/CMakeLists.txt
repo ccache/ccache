@@ -80,3 +80,4 @@ target_link_libraries(
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(third_party)
+add_subdirectory(util)

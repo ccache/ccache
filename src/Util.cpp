@@ -26,6 +26,8 @@
 #include "TemporaryFile.hpp"
 #include "fmtmacros.hpp"
 
+#include <util/Tokenizer.hpp>
+
 extern "C" {
 #include "third_party/base32hex.h"
 }
@@ -136,26 +138,12 @@ path_max(const std::string& path)
 
 template<typename T>
 std::vector<T>
-split_at(string_view input, const char* separators)
+split_into(string_view input, const char* separators)
 {
-  ASSERT(separators != nullptr && separators[0] != '\0');
-
   std::vector<T> result;
-
-  size_t start = 0;
-  while (start < input.size()) {
-    size_t end = input.find_first_of(separators, start);
-
-    if (end == string_view::npos) {
-      result.emplace_back(input.data() + start, input.size() - start);
-      break;
-    } else if (start != end) {
-      result.emplace_back(input.data() + start, end - start);
-    }
-
-    start = end + 1;
+  for (const auto token : util::Tokenizer(input, separators)) {
+    result.emplace_back(token);
   }
-
   return result;
 }
 
@@ -1357,13 +1345,13 @@ setenv(const std::string& name, const std::string& value)
 std::vector<string_view>
 split_into_views(string_view input, const char* separators)
 {
-  return split_at<string_view>(input, separators);
+  return split_into<string_view>(input, separators);
 }
 
 std::vector<std::string>
 split_into_strings(string_view input, const char* separators)
 {
-  return split_at<std::string>(input, separators);
+  return split_into<std::string>(input, separators);
 }
 
 std::string
