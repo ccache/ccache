@@ -330,13 +330,15 @@ hash_command_output(struct hash* hash,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* path =
+  char* exe_path =
     find_executable_in_path(args[0].c_str(), nullptr, getenv("PATH"));
-  if (!path) {
-    path = x_strdup(args[0].c_str());
+  std::string path = exe_path ? exe_path : "";
+  free(exe_path);
+  if (path.empty()) {
+    path = args[0];
   }
-  char* sh = win32getshell(path);
-  if (sh) {
+  std::string sh = win32getshell(path.c_str());
+  if (!sh.empty()) {
     path = sh;
   }
 
@@ -354,13 +356,13 @@ hash_command_output(struct hash* hash,
   char* win32args;
   if (!cmd) {
     int length;
-    win32args = win32argvtos(sh, argv.data(), &length);
+    const char* prefix = sh.empty() ? nullptr : sh.c_str();
+    win32args = win32argvtos(prefix, argv.data(), &length);
   } else {
     win32args = (char*)command; // quoted
   }
-  BOOL ret =
-    CreateProcess(path, win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
-  free(path);
+  BOOL ret = CreateProcess(
+    path.c_str(), win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
   CloseHandle(pipe_out[1]);
   free(win32args);
   if (!cmd) {

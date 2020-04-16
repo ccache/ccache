@@ -102,7 +102,7 @@ win32argvtos(const char* prefix, const char* const* argv, int* length)
   return str;
 }
 
-char*
+std::string
 win32getshell(const char* path)
 {
   char* path_env;
@@ -125,7 +125,9 @@ win32getshell(const char* path)
     }
   }
 
-  return sh;
+  std::string result = sh ? sh : "";
+  free(sh);
+  return result;
 }
 
 void
@@ -156,9 +158,9 @@ win32execute(const char* path,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* sh = win32getshell(path);
-  if (sh) {
-    path = sh;
+  std::string sh = win32getshell(path);
+  if (!sh.empty()) {
+    path = sh.c_str();
   }
 
   si.cb = sizeof(STARTUPINFO);
@@ -184,7 +186,8 @@ win32execute(const char* path,
   }
 
   int length;
-  char* args = win32argvtos(sh, argv, &length);
+  const char* prefix = sh.empty() ? nullptr : sh.c_str();
+  char* args = win32argvtos(prefix, argv, &length);
   const char* ext = strrchr(path, '.');
   char full_path_win_ext[MAX_PATH] = {0};
   add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
