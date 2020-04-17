@@ -160,6 +160,8 @@ const char *get_hostname(void);
 const char *tmp_string(void);
 char *format_hash_as_string(const unsigned char *hash, int size);
 int create_cachedirtag(const char *dir);
+char *slash_to_backslash(char* str);
+char *double_backslash_to_backslash(const char *path);
 char *format(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void reformat(char **ptr, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 char *x_strdup(const char *s);

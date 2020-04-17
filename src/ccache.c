@@ -806,6 +806,14 @@ print_included_files(FILE *fp)
 static char *
 make_relative_path(char *path)
 {
+#ifdef _WIN32
+	if(strchr(path, '\\')) {
+		path = double_backslash_to_backslash(path);
+	}
+	if(strchr(path, '/')) {
+		path = slash_to_backslash(path);
+	}
+#endif
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {
 		return path;
 	}

@@ -690,6 +690,68 @@ error:
 	return 1;
 }
 
+#ifdef _WIN32
+// Replace forward slashes with backslashes
+// Fixes issues when path got backslashes AND forward slashes
+char* 
+slash_to_backslash(char* str)
+{
+	char temp[256];
+	int len = (int)strlen(str);
+	int i;
+	if (len > 255) len = 255;
+	
+	for (i = 0; i < len; i++) {
+		temp[i] = str[i] == '/' ? '\\' : str[i];
+	}
+	temp[len] = 0;
+
+	return str;
+}
+#endif
+
+#ifdef _WIN32
+// Function to replace a double backslashes with single backslash
+char *
+double_backslash_to_backslash(const char *path) 
+{ 
+	char *result; 
+	int i, cnt = 0; 
+	char* doublebackslash = "\\\\";
+	char* backslash = "\\";
+	int backslashlen = 1; 
+	int doublebackslashlen = 2; 
+  
+	// Counting the number of double backslashes
+	// occur in the string 
+	for (i = 0; path[i] != '\0'; i++) { 
+		if (strstr(&path[i], doublebackslash) == &path[i]) { 
+			cnt++; 
+			// Jumping to index after the double backslash. 
+			i++; 
+		} 
+	} 
+  
+	// Making new string of enough length 
+	result = (char *)malloc(i - cnt + 1); 
+  
+	i = 0; 
+	while (*path) { 
+		// compare the substring with the result 
+		if (strstr(path, doublebackslash) == path) { 
+			strcpy(&result[i], backslash); 
+			i += backslashlen; 
+			path += doublebackslashlen; 
+		} 
+		else
+			result[i++] = *path++; 
+	} 
+  
+	result[i] = '\0'; 
+	return result; 
+} 
+#endif
+
 // Construct a string according to a format. Caller frees.
 char *
 format(const char *format, ...)
@@ -1167,7 +1229,11 @@ x_realpath(const char *path)
 		GetFileNameFromHandle(path_handle, ret, maxlen);
 #endif
 		CloseHandle(path_handle);
-		p = ret + 4; // Strip \\?\ from the file name.
+		if(str_startswith(ret, "\\\\?\\")) {
+			p = ret + 4; // Strip \\?\ from the file name.        
+		} else {
+			p = ret;
+		}
 	} else {
 		snprintf(ret, maxlen, "%s", path);
 		p = ret;
@@ -1254,12 +1320,28 @@ strtok_r(char *str, const char *delim, char **saveptr)
 }
 #endif
 
+extern char *current_working_dir;
+
 // Create an empty temporary file. *fname will be reallocated and set to the
 // resulting filename. Returns an open file descriptor to the file.
 int
 create_tmp_fd(char **fname)
 {
-	char *template = format("%s.%s", *fname, tmp_string());
+	char* template = NULL;
+#ifdef _WIN32
+		int maxlen=190;
+		int pathlen = strlen(format("%s.%s", *fname, tmp_string()));
+
+		if(pathlen > maxlen && atof(format("%ld.%ld", (DWORD)(LOBYTE(LOWORD(GetVersion()))), (DWORD)(HIBYTE(LOWORD(GetVersion()))))) > 6.1) {
+			char* temp = slash_to_backslash(format("%s.%s", *fname, tmp_string()));
+			char* currentdir = slash_to_backslash(current_working_dir);
+			template = format("\\\\?\\%s\\%s", currentdir, temp);
+		} else {
+			template = format("%s.%s", *fname, tmp_string());
+		}
+#else
+		template = format("%s.%s", *fname, tmp_string());
+#endif
 	int fd = mkstemp(template);
 	if (fd == -1 && errno == ENOENT) {
 		if (create_parent_dirs(*fname) != 0) {
@@ -1380,7 +1462,7 @@ common_dir_prefix_length(const char *s1, const char *s2)
 		++p1;
 		++p2;
 	}
-	while ((*p1 && *p1 != '/') || (*p2 && *p2 != '/')) {
+	while ((*p1 && *p1 != '/' && *p1 != '\\') || (*p2 && *p2 != '/' && *p2 != '\\')) {
 		p1--;
 		p2--;
 	}
@@ -1429,12 +1511,15 @@ get_relative_path(const char *from, const char *to)
 			if (*p == '/') {
 				reformat(&result, "../%s", result);
 			}
+			if (*p == '\\') {
+				reformat(&result, "..\\%s", result);
+			}
 		}
 	}
 	if (strlen(to) > common_prefix_len) {
 		reformat(&result, "%s%s", result, to + common_prefix_len + 1);
 	}
-	for (int i = strlen(result) - 1; i >= 0 && result[i] == '/'; i--) {
+	for (int i = strlen(result) - 1; i >= 0 && result[i] == '/' && result[i] == '\\'; i--) {
 		result[i] = '\0';
 	}
 	if (str_eq(result, "")) {
