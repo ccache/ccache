@@ -42,5 +42,5 @@ TEST_CASE("Not committing")
     atomic_file.write("hello");
   }
   CHECK_THROWS_WITH(Util::read_file("test"),
-                    Equals("test: No such file or directory"));
+                    Equals("No such file or directory"));
 }

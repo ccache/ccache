@@ -612,30 +612,6 @@ localtime_r(const time_t* timep, struct tm* result)
 }
 #endif
 
-#ifndef HAVE_STRTOK_R
-// strtok_r replacement.
-char*
-strtok_r(char* str, const char* delim, char** saveptr)
-{
-  if (!str) {
-    str = *saveptr;
-  }
-  int len = strlen(str);
-  char* ret = strtok(str, delim);
-  if (ret) {
-    char* save = ret;
-    while (*save++) {
-      // Do nothing.
-    }
-    if ((len + 1) == (intptr_t)(save - str)) {
-      save--;
-    }
-    *saveptr = save;
-  }
-  return ret;
-}
-#endif
-
 // Create an empty temporary file. *fname will be reallocated and set to the
 // resulting filename. Returns an open file descriptor to the file.
 int

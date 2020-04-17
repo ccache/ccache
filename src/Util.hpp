@@ -220,7 +220,8 @@ int parse_int(const std::string& value);
 
 // Read file data as a string.
 //
-// Throws Error on error.
+// Throws `Error` on error. The description contains the error message without
+// the path.
 std::string read_file(const std::string& path);
 
 #ifndef _WIN32
@@ -238,6 +239,16 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Split `input` into words at any of the characters listed in `separators`.
+// These words are a view into `input`; empty words are omitted. `separators`
+// must neither be the empty string nor a nullptr.
+std::vector<nonstd::string_view> split_into_views(nonstd::string_view input,
+                                                  const char* separators);
+
+// Same as `split_into_views` but the words are copied from `input`.
+std::vector<std::string> split_into_strings(nonstd::string_view input,
+                                            const char* separators);
+
 // Return true if prefix is a prefix of string.
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 
@@ -250,7 +261,8 @@ strip_whitespace(const std::string& string);
 
 // Write file data from a string.
 //
-// Throws Error on error.
+// Throws `Error` on error. The description contains the error message without
+// the path.
 void write_file(const std::string& path,
                 const std::string& data,
                 bool binary = false);

@@ -18,6 +18,8 @@
 
 #include "Args.hpp"
 
+#include "Util.hpp"
+
 Args::Args() : argv(m_args)
 {
 }
@@ -41,17 +43,10 @@ Args::from_argv(int argc, const char* const* argv)
 Args
 Args::from_string(const std::string& command)
 {
-  char* p = x_strdup(command.c_str());
-  char* q = p;
-  char* word;
-  char* saveptr = NULL;
   Args args;
-  while ((word = strtok_r(q, " \t\r\n", &saveptr))) {
+  for (const std::string& word : Util::split_into_strings(command, " \t\r\n")) {
     args.push_back(word);
-    q = NULL;
   }
-
-  free(p);
   return args;
 }
 

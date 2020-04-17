@@ -48,9 +48,6 @@ bool parse_size_with_suffix(const char* str, uint64_t* size);
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
-#ifndef HAVE_STRTOK_R
-char* strtok_r(char* str, const char* delim, char** saveptr);
-#endif
 int create_tmp_fd(char** fname);
 FILE* create_tmp_file(char** fname, const char* mode);
 const char* get_home_directory();

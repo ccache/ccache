@@ -89,6 +89,31 @@ path_max(const char* path)
 #endif
 }
 
+template<typename T>
+std::vector<T>
+split_at(string_view input, const char* separators)
+{
+  assert(separators != nullptr && separators[0] != '\0');
+
+  std::vector<T> result;
+
+  size_t start = 0;
+  while (start < input.size()) {
+    size_t end = input.find_first_of(separators, start);
+
+    if (end == string_view::npos) {
+      result.emplace_back(input.data() + start, input.size() - start);
+      break;
+    } else if (start != end) {
+      result.emplace_back(input.data() + start, end - start);
+    }
+
+    start = end + 1;
+  }
+
+  return result;
+}
+
 } // namespace
 
 namespace Util {
@@ -461,7 +486,7 @@ read_file(const std::string& path)
 {
   std::ifstream file(path);
   if (!file) {
-    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+    throw Error(strerror(errno));
   }
   return std::string(std::istreambuf_iterator<char>(file),
                      std::istreambuf_iterator<char>());
@@ -538,6 +563,18 @@ remove_extension(string_view path)
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
+std::vector<string_view>
+split_into_views(string_view s, const char* separators)
+{
+  return split_at<string_view>(s, separators);
+}
+
+std::vector<std::string>
+split_into_strings(string_view s, const char* separators)
+{
+  return split_at<std::string>(s, separators);
+}
+
 bool
 starts_with(string_view string, string_view prefix)
 {
@@ -568,7 +605,7 @@ write_file(const std::string& path, const std::string& data, bool binary)
   std::ofstream file(path,
                      binary ? std::ios::out | std::ios::binary : std::ios::out);
   if (!file) {
-    throw Error(fmt::format("{}: {}", path, strerror(errno)));
+    throw Error(strerror(errno));
   }
   file << data;
 }

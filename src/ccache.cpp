@@ -159,30 +159,23 @@ static pid_t compiler_pid = 0;
 static const char HASH_PREFIX[] = "3";
 
 static void
-add_prefix(const Context& ctx, Args& args, const char* prefix_command)
+add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 {
-  if (str_eq(prefix_command, "")) {
+  if (prefix_command.empty()) {
     return;
   }
 
   Args prefix;
-  char* e = x_strdup(prefix_command);
-  char* saveptr = nullptr;
-  for (char* tok = strtok_r(e, " ", &saveptr); tok;
-       tok = strtok_r(nullptr, " ", &saveptr)) {
-    char* p;
-
-    p = find_executable(ctx, tok, MYNAME);
-    if (!p) {
-      fatal("%s: %s", tok, strerror(errno));
+  for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
+    std::string path = find_executable(ctx, word.c_str(), MYNAME);
+    if (path.empty()) {
+      fatal("%s: %s", word.c_str(), strerror(errno));
     }
 
-    args_add(prefix, p);
-    free(p);
+    args_add(prefix, path.c_str());
   }
-  free(e);
 
-  cc_log("Using command-line prefix %s", prefix_command);
+  cc_log("Using command-line prefix %s", prefix_command.c_str());
   for (size_t i = prefix.size(); i != 0; i--) {
     args_add_prefix(args, prefix->argv[i - 1]);
   }
@@ -686,17 +679,14 @@ process_preprocessed_file(Context& ctx,
 
   ctx.ignore_headers = nullptr;
   ctx.ignore_headers_len = 0;
+
   if (!ctx.config.ignore_headers_in_manifest().empty()) {
-    char *header, *p, *q, *saveptr = nullptr;
-    p = x_strdup(ctx.config.ignore_headers_in_manifest().c_str());
-    q = p;
-    while ((header = strtok_r(q, PATH_DELIM, &saveptr))) {
+    for (const std::string& header : Util::split_into_strings(
+           ctx.config.ignore_headers_in_manifest(), PATH_DELIM)) {
       ctx.ignore_headers = static_cast<char**>(x_realloc(
         ctx.ignore_headers, (ctx.ignore_headers_len + 1) * sizeof(char*)));
-      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header);
-      q = nullptr;
+      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header.c_str());
     }
-    free(p);
   }
 
   // Bytes between p and q are pending to be hashed.
@@ -871,90 +861,74 @@ process_preprocessed_file(Context& ctx,
 static void
 use_relative_paths_in_depfile(const Context& ctx)
 {
-  const char* depfile = ctx.args_info.output_dep.c_str();
-
   if (ctx.config.base_dir().empty()) {
     cc_log("Base dir not set, skip using relative paths");
     return; // nothing to do
   }
   if (!ctx.has_absolute_include_headers) {
     cc_log(
-      "No absolute path for included files found, skip using relative"
-      " paths");
+      "No absolute path for included files found, skip using relative paths");
     return; // nothing to do
   }
 
-  FILE* f;
-  f = fopen(depfile, "r");
-  if (!f) {
-    cc_log("Cannot open dependency file: %s (%s)", depfile, strerror(errno));
+  const std::string& output_dep = ctx.args_info.output_dep;
+  std::string file_content;
+  try {
+    file_content = Util::read_file(output_dep);
+  } catch (const Error& e) {
+    cc_log("Cannot open dependency file %s: %s", output_dep.c_str(), e.what());
     return;
   }
 
-  char* tmp_file = format("%s.tmp", depfile);
-  FILE* tmpf = create_tmp_file(&tmp_file, "w");
+  std::string adjusted_file_content;
+  adjusted_file_content.reserve(file_content.size());
 
-  bool result = false;
-  char buf[10000];
-  while (fgets(buf, sizeof(buf), f) && !ferror(tmpf)) {
-    char* saveptr;
-    char* token = strtok_r(buf, " \t", &saveptr);
-    while (token) {
-      char* relpath = nullptr;
-      if (Util::is_absolute_path(token)
-          && str_startswith(token, ctx.config.base_dir().c_str())) {
-        relpath = x_strdup(make_relative_path(ctx, token).c_str());
-        result = true;
-      } else {
-        relpath = token;
-      }
-      if (token != buf) { // This is a dependency file.
-        fputc(' ', tmpf);
-      }
-      fputs(relpath, tmpf);
-      if (relpath != token) {
-        free(relpath);
-      }
-      token = strtok_r(nullptr, " \t", &saveptr);
-    }
-  }
+  bool rewritten = false;
 
-  if (ferror(f)) {
-    cc_log("Error reading dependency file: %s, skip relative path usage",
-           depfile);
-    result = false;
-    goto out;
-  }
-  if (ferror(tmpf)) {
-    cc_log(
-      "Error writing temporary dependency file: %s, skip relative path"
-      " usage",
-      tmp_file);
-    result = false;
-    goto out;
-  }
-
-out:
-  fclose(tmpf);
-  fclose(f);
-  if (result) {
-    if (x_rename(tmp_file, depfile) != 0) {
-      cc_log(
-        "Error renaming dependency file: %s -> %s (%s), skip relative"
-        " path usage",
-        tmp_file,
-        depfile,
-        strerror(errno));
-      result = false;
+  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
+    if (Util::is_absolute_path(token)
+        && token.starts_with(ctx.config.base_dir())) {
+      adjusted_file_content.append(make_relative_path(ctx, token));
+      rewritten = true;
     } else {
-      cc_log("Renamed dependency file: %s -> %s", tmp_file, depfile);
+      adjusted_file_content.append(token.begin(), token.end());
     }
+    adjusted_file_content.push_back(' ');
   }
-  if (!result) {
-    cc_log("Removing temporary dependency file: %s", tmp_file);
-    tmp_unlink(tmp_file);
+
+  if (!rewritten) {
+    cc_log(
+      "No paths in dependency file %s made relative, skip relative path usage",
+      output_dep.c_str());
+    return;
   }
-  free(tmp_file);
+
+  std::string tmp_file = fmt::format("{}.tmp{}", output_dep, tmp_string());
+
+  try {
+    Util::write_file(tmp_file, adjusted_file_content);
+  } catch (const Error& e) {
+    cc_log(
+      "Error writing temporary dependency file %s (%s), skip relative path"
+      " usage",
+      tmp_file.c_str(),
+      e.what());
+    x_unlink(tmp_file.c_str());
+    return;
+  }
+
+  if (x_rename(tmp_file.c_str(), output_dep.c_str()) != 0) {
+    cc_log(
+      "Error renaming dependency file: %s -> %s (%s), skip relative path usage",
+      tmp_file.c_str(),
+      output_dep.c_str(),
+      strerror(errno));
+    x_unlink(tmp_file.c_str());
+  } else {
+    cc_log("Renamed dependency file: %s -> %s",
+           tmp_file.c_str(),
+           output_dep.c_str());
+  }
 }
 
 // Extract the used includes from the dependency file. Note that we cannot
@@ -962,32 +936,26 @@ out:
 static struct digest*
 result_name_from_depfile(Context& ctx, struct hash* hash)
 {
-  FILE* f = fopen(ctx.args_info.output_dep.c_str(), "r");
-  if (!f) {
+  std::string file_content;
+  try {
+    file_content = Util::read_file(ctx.args_info.output_dep);
+  } catch (const Error& e) {
     cc_log("Cannot open dependency file %s: %s",
            ctx.args_info.output_dep.c_str(),
-           strerror(errno));
+           e.what());
     return nullptr;
   }
 
-  char buf[10000];
-  while (fgets(buf, sizeof(buf), f) && !ferror(f)) {
-    char* saveptr;
-    char* token;
-    for (token = strtok_r(buf, " \t\n", &saveptr); token;
-         token = strtok_r(nullptr, " \t\n", &saveptr)) {
-      if (str_endswith(token, ":") || str_eq(token, "\\")) {
-        continue;
-      }
-      if (!ctx.has_absolute_include_headers) {
-        ctx.has_absolute_include_headers = Util::is_absolute_path(token);
-      }
-      std::string path = make_relative_path(ctx, token);
-      remember_include_file(ctx, path, hash, false, hash);
+  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
+    if (token == "\\" || token.ends_with(":")) {
+      continue;
     }
+    if (!ctx.has_absolute_include_headers) {
+      ctx.has_absolute_include_headers = Util::is_absolute_path(token);
+    }
+    std::string path = make_relative_path(ctx, token);
+    remember_include_file(ctx, path, hash, false, hash);
   }
-
-  fclose(f);
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
@@ -1179,7 +1147,7 @@ to_cache(Context& ctx,
     Args depend_mode_args = ctx.orig_args;
     args_strip(depend_mode_args, "--ccache-");
     args_extend(depend_mode_args, depend_extra_args);
-    add_prefix(ctx, depend_mode_args, ctx.config.prefix_command().c_str());
+    add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
     status = execute(depend_mode_args.to_argv().data(),
@@ -1401,7 +1369,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
       args_added = 3;
     }
     args_add(args, ctx.args_info.input_file.c_str());
-    add_prefix(ctx, args, ctx.config.prefix_command_cpp().c_str());
+    add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     status = execute(
@@ -1528,11 +1496,10 @@ hash_nvcc_host_compiler(const Context& ctx,
         }
         free(path);
       } else {
-        char* path = find_executable(ctx, compiler, MYNAME);
-        if (path) {
+        std::string path = find_executable(ctx, compiler, MYNAME);
+        if (!path.empty()) {
           auto st = Stat::stat(path, Stat::OnError::log);
           hash_compiler(ctx, hash, st, ccbin, false);
-          free(path);
         }
       }
     }
@@ -1658,19 +1625,14 @@ hash_common_info(const Context& ctx,
   }
 
   if (!ctx.config.extra_files_to_hash().empty()) {
-    char* p = x_strdup(ctx.config.extra_files_to_hash().c_str());
-    char* q = p;
-    char* path;
-    char* saveptr = nullptr;
-    while ((path = strtok_r(q, PATH_DELIM, &saveptr))) {
-      cc_log("Hashing extra file %s", path);
+    for (const std::string& path : Util::split_into_strings(
+           ctx.config.extra_files_to_hash(), PATH_DELIM)) {
+      cc_log("Hashing extra file %s", path.c_str());
       hash_delimiter(hash, "extrafile");
-      if (!hash_file(hash, path)) {
+      if (!hash_file(hash, path.c_str())) {
         failed(STATS_BADEXTRAFILE);
       }
-      q = nullptr;
     }
-    free(p);
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
@@ -2089,11 +2051,11 @@ find_compiler(Context& ctx, const char* const* argv)
     base = ctx.config.compiler();
   }
 
-  char* compiler = find_executable(ctx, base.c_str(), MYNAME);
-  if (!compiler) {
+  std::string compiler = find_executable(ctx, base.c_str(), MYNAME);
+  if (compiler.empty()) {
     fatal("Could not find compiler \"%s\" in PATH", base.c_str());
   }
-  if (str_eq(compiler, argv[0])) {
+  if (compiler == argv[0]) {
     fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
           MYNAME);
   }
@@ -2934,15 +2896,18 @@ process_args(Context& ctx,
     if (dependencies_env) {
       args_info.generating_dependencies = true;
       dependency_filename_specified = true;
-      char* saveptr = nullptr;
-      char* abspath_file = strtok_r(dependencies_env, " ", &saveptr);
 
-      args_info.output_dep = make_relative_path(ctx, abspath_file);
+      auto dependencies = Util::split_into_views(dependencies_env, " ");
+
+      if (dependencies.size() > 0) {
+        auto abspath_file = dependencies.at(0);
+        args_info.output_dep = make_relative_path(ctx, abspath_file);
+      }
 
       // specifying target object is optional.
-      char* abspath_obj = strtok_r(nullptr, " ", &saveptr);
-      if (abspath_obj) {
+      if (dependencies.size() > 1) {
         // it's the "file target" form.
+        string_view abspath_obj = dependencies.at(1);
 
         dependency_target_specified = true;
         std::string relpath_obj = make_relative_path(ctx, abspath_obj);
@@ -3492,7 +3457,7 @@ cache_compilation(int argc, const char* const* argv)
     assert(ctx.orig_args.size() > 0);
 
     args_strip(ctx.orig_args, "--ccache-");
-    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command().c_str());
+    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
     cc_log("Failed; falling back to running the real compiler");
 
@@ -3723,7 +3688,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     failed(STATS_CACHEMISS);
   }
 
-  add_prefix(ctx, compiler_args, ctx.config.prefix_command().c_str());
+  add_prefix(ctx, compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   struct hash* depend_mode_hash =

@@ -102,16 +102,16 @@ win32argvtos(const char* prefix, const char* const* argv, int* length)
   return str;
 }
 
-char*
+std::string
 win32getshell(const char* path)
 {
   char* path_env;
-  char* sh = NULL;
+  std::string sh;
   const char* ext = get_extension(path);
   if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
     sh = find_executable_in_path("sh.exe", NULL, path_env);
   }
-  if (!sh && getenv("CCACHE_DETECT_SHEBANG")) {
+  if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
     FILE* fp = fopen(path, "r");
     if (fp) {
@@ -156,9 +156,9 @@ win32execute(const char* path,
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  char* sh = win32getshell(path);
-  if (sh) {
-    path = sh;
+  std::string sh = win32getshell(path);
+  if (!sh.empty()) {
+    path = sh.c_str();
   }
 
   si.cb = sizeof(STARTUPINFO);
@@ -184,7 +184,8 @@ win32execute(const char* path,
   }
 
   int length;
-  char* args = win32argvtos(sh, argv, &length);
+  const char* prefix = sh.empty() ? nullptr : sh.c_str();
+  char* args = win32argvtos(prefix, argv, &length);
   const char* ext = strrchr(path, '.');
   char full_path_win_ext[MAX_PATH] = {0};
   add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
@@ -304,11 +305,11 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 
 // Find an executable by name in $PATH. Exclude any that are links to
 // exclude_name.
-char*
+std::string
 find_executable(const Context& ctx, const char* name, const char* exclude_name)
 {
   if (Util::is_absolute_path(name)) {
-    return x_strdup(name);
+    return name;
   }
 
   const char* path = ctx.config.path().c_str();
@@ -317,13 +318,13 @@ find_executable(const Context& ctx, const char* name, const char* exclude_name)
   }
   if (!path) {
     cc_log("No PATH variable");
-    return nullptr;
+    return "";
   }
 
   return find_executable_in_path(name, exclude_name, path);
 }
 
-char*
+std::string
 find_executable_in_path(const char* name,
                         const char* exclude_name,
                         const char* path)
@@ -332,33 +333,30 @@ find_executable_in_path(const char* name,
     return nullptr;
   }
 
-  char* path_buf = x_strdup(path);
-
   // Search the path looking for the first compiler of the right name that
   // isn't us.
-  char* saveptr = nullptr;
-  for (char* tok = strtok_r(path_buf, PATH_DELIM, &saveptr); tok;
-       tok = strtok_r(nullptr, PATH_DELIM, &saveptr)) {
+  for (const std::string& dir : Util::split_into_strings(path, PATH_DELIM)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
-    int ret = SearchPath(tok, name, NULL, sizeof(namebuf), namebuf, NULL);
+    int ret =
+      SearchPath(dir.c_str(), name, NULL, sizeof(namebuf), namebuf, NULL);
     if (!ret) {
       char* exename = format("%s.exe", name);
-      ret = SearchPath(tok, exename, NULL, sizeof(namebuf), namebuf, NULL);
+      ret =
+        SearchPath(dir.c_str(), exename, NULL, sizeof(namebuf), namebuf, NULL);
       free(exename);
     }
     (void)exclude_name;
     if (ret) {
-      free(path_buf);
-      return x_strdup(namebuf);
+      return std::string(namebuf);
     }
 #else
     assert(exclude_name);
-    char* fname = format("%s/%s", tok, name);
+    std::string fname = fmt::format("{}/{}", dir, name);
     auto st1 = Stat::lstat(fname);
     auto st2 = Stat::stat(fname);
     // Look for a normal executable file.
-    if (st1 && st2 && st2.is_regular() && access(fname, X_OK) == 0) {
+    if (st1 && st2 && st2.is_regular() && access(fname.c_str(), X_OK) == 0) {
       if (st1.is_symlink()) {
         std::string real_path = Util::real_path(fname, true);
         if (Util::base_name(real_path) == exclude_name) {
@@ -368,15 +366,12 @@ find_executable_in_path(const char* name,
       }
 
       // Found it!
-      free(path_buf);
       return fname;
     }
-    free(fname);
 #endif
   }
 
-  free(path_buf);
-  return nullptr;
+  return "";
 }
 
 void
