@@ -3734,7 +3734,6 @@ handle_main_options(int argc, const char* const* argv)
     {nullptr, 0, nullptr, 0}};
 
   Context& ctx = initialize(argc, argv);
-  (void)ctx;
 
   int c;
   while ((c = getopt_long(argc,
