@@ -3252,7 +3252,7 @@ trace_init(char* path)
 }
 
 static void
-trace_start(void)
+trace_start()
 {
   MTR_META_PROCESS_NAME(MYNAME);
   trace_id = (void*)((long)getpid());
@@ -3260,7 +3260,7 @@ trace_start(void)
 }
 
 static void
-trace_stop(void)
+trace_stop()
 {
   char* trace_file = format("%s.ccache-trace", output_obj);
   MTR_FINISH("program", "ccache", trace_id);
