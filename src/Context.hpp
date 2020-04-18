@@ -27,7 +27,9 @@
 #include "ccache.hpp"
 #include "hash.hpp"
 
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 struct Context : NonCopyable
 {
@@ -85,9 +87,8 @@ struct Context : NonCopyable
   // The .gch/.pch/.pth file used for compilation.
   std::string included_pch_file;
 
-  // List of headers to ignore.
-  char** ignore_headers = nullptr;
-  size_t ignore_headers_len = 0;
+  // Headers (or directories with headers) to ignore in manifest mode.
+  std::vector<std::string> ignore_header_paths;
 
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).

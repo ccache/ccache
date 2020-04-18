@@ -443,6 +443,11 @@ do_remember_include_file(Context& ctx,
     return true;
   }
 
+  // Canonicalize path for comparison; Clang uses ./header.h.
+  if (Util::starts_with(path, "./")) {
+    path.erase(0, 2);
+  }
+
 #ifdef _WIN32
   {
     // stat fails on directories on win32.
@@ -468,27 +473,9 @@ do_remember_include_file(Context& ctx,
     return false;
   }
 
-  // Canonicalize path for comparison; clang uses ./header.h.
-  {
-    const char* canonical = path.c_str();
-    size_t canonical_len = path.length();
-    if (canonical[0] == '.' && canonical[1] == '/') {
-      canonical += 2;
-      canonical_len -= 2;
-    }
-
-    for (size_t i = 0; i < ctx.ignore_headers_len; i++) {
-      char* ignore = ctx.ignore_headers[i];
-      size_t ignore_len = strlen(ignore);
-      if (ignore_len > canonical_len) {
-        continue;
-      }
-      if (strncmp(canonical, ignore, ignore_len) == 0
-          && (ignore[ignore_len - 1] == DIR_DELIM_CH
-              || canonical[ignore_len] == DIR_DELIM_CH
-              || canonical[ignore_len] == '\0')) {
-        return true;
-      }
+  for (const auto& ignore_header_path : ctx.ignore_header_paths) {
+    if (Util::matches_dir_prefix_or_file(ignore_header_path, path)) {
+      return true;
     }
   }
 
@@ -675,18 +662,6 @@ process_preprocessed_file(Context& ctx,
   size_t size;
   if (!read_file(path, 0, &data, &size)) {
     return false;
-  }
-
-  ctx.ignore_headers = nullptr;
-  ctx.ignore_headers_len = 0;
-
-  if (!ctx.config.ignore_headers_in_manifest().empty()) {
-    for (const std::string& header : Util::split_into_strings(
-           ctx.config.ignore_headers_in_manifest(), PATH_DELIM)) {
-      ctx.ignore_headers = static_cast<char**>(x_realloc(
-        ctx.ignore_headers, (ctx.ignore_headers_len + 1) * sizeof(char*)));
-      ctx.ignore_headers[ctx.ignore_headers_len++] = x_strdup(header.c_str());
-    }
   }
 
   // Bytes between p and q are pending to be hashed.
@@ -3346,6 +3321,8 @@ static void
 set_up_context(Context& ctx, int argc, const char* const* argv)
 {
   ctx.orig_args = args_init(argc, argv);
+  ctx.ignore_header_paths = Util::split_into_strings(
+    ctx.config.ignore_headers_in_manifest(), PATH_DELIM);
 }
 
 // Initialize ccache, must be called once before anything else is run.

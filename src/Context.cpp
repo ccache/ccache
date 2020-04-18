@@ -30,9 +30,4 @@ Context::Context()
 Context::~Context()
 {
   free(result_name);
-
-  for (size_t i = 0; i < ignore_headers_len; i++) {
-    free(ignore_headers[i]);
-  }
-  free(ignore_headers);
 }
