@@ -3342,6 +3342,12 @@ set_up_config(Config& config)
   }
 }
 
+static void
+set_up_context(Context& ctx, int argc, const char* const* argv)
+{
+  ctx.orig_args = args_init(argc, argv);
+}
+
 // Initialize ccache, must be called once before anything else is run.
 static Context&
 initialize(int argc, const char* const* argv)
@@ -3351,10 +3357,8 @@ initialize(int argc, const char* const* argv)
   Context* ctx = new Context;
 
   set_up_config(ctx->config);
-
+  set_up_context(*ctx, argc, argv);
   init_log(ctx->config);
-
-  ctx->orig_args = args_init(argc, argv);
 
   exitfn_init();
   exitfn_delete_context(ctx);
