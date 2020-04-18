@@ -364,6 +364,17 @@ TEST_CASE("Util::is_absolute_path")
   CHECK(!Util::is_absolute_path("foo/fie"));
 }
 
+TEST_CASE("Util::is_dir_separator")
+{
+  CHECK(!Util::is_dir_separator('x'));
+  CHECK(Util::is_dir_separator('/'));
+#ifdef _WIN32
+  CHECK(Util::is_dir_separator('\\'));
+#else
+  CHECK(!Util::is_dir_separator('\\'));
+#endif
+}
+
 TEST_CASE("Util::normalize_absolute_path")
 {
   CHECK(Util::normalize_absolute_path("") == "");

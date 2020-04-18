@@ -204,6 +204,18 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
 
+// Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
+// '/' or '\\' on Windows systems.
+inline bool
+is_dir_separator(char ch)
+{
+  return ch == '/'
+#ifdef _WIN32
+         || ch == '\\'
+#endif
+    ;
+}
+
 // Normalize absolute path `path`, not taking symlinks into account.
 //
 // Normalization here means syntactically removing redundant slashes and
