@@ -375,6 +375,35 @@ TEST_CASE("Util::is_dir_separator")
 #endif
 }
 
+TEST_CASE("Util::matches_dir_prefix_or_file")
+{
+  CHECK(!Util::matches_dir_prefix_or_file("", ""));
+  CHECK(!Util::matches_dir_prefix_or_file("/", ""));
+  CHECK(!Util::matches_dir_prefix_or_file("", "/"));
+
+  CHECK(Util::matches_dir_prefix_or_file("aa", "aa"));
+  CHECK(!Util::matches_dir_prefix_or_file("aaa", "aa"));
+  CHECK(!Util::matches_dir_prefix_or_file("aa", "aaa"));
+  CHECK(!Util::matches_dir_prefix_or_file("aa/", "aa"));
+
+  CHECK(Util::matches_dir_prefix_or_file("/aa/bb", "/aa/bb"));
+  CHECK(!Util::matches_dir_prefix_or_file("/aa/b", "/aa/bb"));
+  CHECK(!Util::matches_dir_prefix_or_file("/aa/bbb", "/aa/bb"));
+
+  CHECK(Util::matches_dir_prefix_or_file("/aa", "/aa/bb"));
+  CHECK(Util::matches_dir_prefix_or_file("/aa/", "/aa/bb"));
+  CHECK(!Util::matches_dir_prefix_or_file("/aa/bb", "/aa"));
+  CHECK(!Util::matches_dir_prefix_or_file("/aa/bb", "/aa/"));
+
+#ifdef _WIN32
+  CHECK(Util::matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
+  CHECK(Util::matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
+#else
+  CHECK(!Util::matches_dir_prefix_or_file("\\aa", "\\aa\\bb"));
+  CHECK(!Util::matches_dir_prefix_or_file("\\aa\\", "\\aa\\bb"));
+#endif
+}
+
 TEST_CASE("Util::normalize_absolute_path")
 {
   CHECK(Util::normalize_absolute_path("") == "");

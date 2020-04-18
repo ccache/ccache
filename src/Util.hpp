@@ -216,6 +216,11 @@ is_dir_separator(char ch)
     ;
 }
 
+// Return whether `path` is equal to `dir_prefix_or_file` or if
+// `dir_prefix_or_file` is a directory prefix of `path`.
+bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
+                                nonstd::string_view path);
+
 // Normalize absolute path `path`, not taking symlinks into account.
 //
 // Normalization here means syntactically removing redundant slashes and

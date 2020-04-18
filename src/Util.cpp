@@ -405,6 +405,18 @@ is_absolute_path(string_view path)
   return !path.empty() && path[0] == '/';
 }
 
+bool
+matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
+                           nonstd::string_view path)
+{
+  return !dir_prefix_or_file.empty() && !path.empty()
+         && dir_prefix_or_file.length() <= path.length()
+         && path.starts_with(dir_prefix_or_file)
+         && (dir_prefix_or_file.length() == path.length()
+             || is_dir_separator(path[dir_prefix_or_file.length()])
+             || is_dir_separator(dir_prefix_or_file.back()));
+}
+
 std::string
 normalize_absolute_path(string_view path)
 {
