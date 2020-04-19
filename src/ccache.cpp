@@ -1009,7 +1009,7 @@ update_cached_result_globals(Context& ctx, struct digest* result_name)
 {
   char result_name_string[DIGEST_STRING_BUFFER_SIZE];
   digest_as_string(result_name, result_name_string);
-  ctx.result_name = result_name;
+  ctx.result_name = *result_name;
   ctx.result_path = Util::get_path_in_cache(ctx.config.cache_dir(),
                                             ctx.config.cache_dir_levels(),
                                             result_name_string,

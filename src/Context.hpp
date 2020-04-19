@@ -27,6 +27,8 @@
 #include "ccache.hpp"
 #include "hash.hpp"
 
+#include "third_party/nonstd/optional.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -34,7 +36,6 @@
 struct Context : NonCopyable
 {
   Context();
-  ~Context();
 
   ArgsInfo args_info;
   Config config;
@@ -50,7 +51,7 @@ struct Context : NonCopyable
 
   // Name (represented as a struct digest) of the file containing the cached
   // result.
-  struct digest* result_name = nullptr;
+  nonstd::optional<struct digest> result_name;
 
   // Full path to the file containing the result
   // (cachedir/a/b/cdef[...]-size.result).

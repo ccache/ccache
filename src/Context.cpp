@@ -26,8 +26,3 @@ Context::Context()
     apparent_cwd(Util::get_apparent_cwd(actual_cwd))
 {
 }
-
-Context::~Context()
-{
-  free(result_name);
-}
