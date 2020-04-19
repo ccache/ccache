@@ -22,7 +22,7 @@
 
 #include <string>
 
-struct Context;
+class Context;
 
 int execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid);
 std::string

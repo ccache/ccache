@@ -25,7 +25,7 @@
 #include <map>
 #include <string>
 
-struct Context;
+class Context;
 
 extern const uint8_t k_result_magic[4];
 extern const uint8_t k_result_version;

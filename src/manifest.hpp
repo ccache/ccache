@@ -24,7 +24,7 @@
 #include <unordered_map>
 
 class Config;
-struct Context;
+class Context;
 struct digest;
 
 extern const uint8_t k_manifest_magic[4];

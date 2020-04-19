@@ -25,7 +25,7 @@
 #include <string>
 
 class Config;
-struct Context;
+class Context;
 
 // Statistics fields in storage order.
 enum stats {

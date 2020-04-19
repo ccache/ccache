@@ -35,7 +35,7 @@ struct nullary_exit_function
 };
 
 static struct exit_function* exit_functions;
-static struct Context* context_to_clean_up;
+static class Context* context_to_clean_up;
 
 static void
 call_nullary_exit_function(void* context)

@@ -33,8 +33,9 @@
 #include <unordered_map>
 #include <vector>
 
-struct Context : NonCopyable
+class Context : NonCopyable
 {
+public:
   Context();
 
   ArgsInfo args_info;

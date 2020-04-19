@@ -18,7 +18,7 @@
 
 #pragma once
 
-struct Context;
+class Context;
 
 void exitfn_init();
 void exitfn_add_nullary(void (*function)());

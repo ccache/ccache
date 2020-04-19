@@ -25,7 +25,7 @@
 #include <inttypes.h>
 
 class Config;
-struct Context;
+class Context;
 
 unsigned hash_from_int(int i);
 

@@ -28,7 +28,7 @@
 #include "third_party/nonstd/optional.hpp"
 
 struct ArgsInfo;
-struct Context;
+class Context;
 class Config;
 
 #ifndef MYNAME

@@ -23,7 +23,7 @@
 #include "Util.hpp"
 
 struct Confix;
-struct Context;
+class Context;
 
 void compress_stats(const Config& config,
                     const Util::ProgressReceiver& progress_receiver);
