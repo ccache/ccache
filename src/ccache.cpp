@@ -1300,8 +1300,6 @@ to_cache(Context& ctx,
   send_cached_stderr(tmp_stderr);
   tmp_unlink(tmp_stderr);
 
-  update_manifest_file(ctx);
-
   free(tmp_stderr);
   free(tmp_stdout);
 }
@@ -1922,9 +1920,7 @@ calculate_result_name(Context& ctx,
 
 // Try to return the compile result from cache.
 static optional<enum stats>
-from_cache(Context& ctx,
-           enum fromcache_call_mode mode,
-           bool put_result_in_manifest)
+from_cache(Context& ctx, enum fromcache_call_mode mode)
 {
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
@@ -1989,10 +1985,6 @@ from_cache(Context& ctx,
   MTR_END("file", "file_get");
 
   send_cached_stderr(tmp_stderr);
-
-  if (put_result_in_manifest) {
-    update_manifest_file(ctx);
-  }
 
   tmp_unlink(tmp_stderr);
   free(tmp_stderr);
@@ -3594,7 +3586,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       update_cached_result_globals(ctx, result_name);
 
       // If we can return from cache at this point then do so.
-      auto result = from_cache(ctx, FROMCACHE_DIRECT_MODE, 0);
+      auto result = from_cache(ctx, FROMCACHE_DIRECT_MODE);
       if (result) {
         return *result;
       }
@@ -3658,8 +3650,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     // If we can return from cache at this point then do.
-    auto result = from_cache(ctx, FROMCACHE_CPP_MODE, put_result_in_manifest);
+    auto result = from_cache(ctx, FROMCACHE_CPP_MODE);
     if (result) {
+      if (put_result_in_manifest) {
+        update_manifest_file(ctx);
+      }
       return *result;
     }
   }
@@ -3679,6 +3674,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_BEGIN("cache", "to_cache");
   to_cache(
     ctx, compiler_args, ctx.args_info.depend_extra_args, depend_mode_hash);
+  update_manifest_file(ctx);
   MTR_END("cache", "to_cache");
 
   return STATS_CACHEMISS;
