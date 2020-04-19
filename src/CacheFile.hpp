@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -23,7 +23,6 @@
 #include "Stat.hpp"
 #include "exceptions.hpp"
 
-#include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
 #include <cerrno>
