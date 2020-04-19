@@ -128,7 +128,7 @@ recompress_file(Context& ctx,
     Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
 
   size_t size_delta = new_size - old_size;
-  if (ctx.stats_file == stats_file) {
+  if (ctx.stats_file() == stats_file) {
     stats_update_size(ctx.counter_updates, size_delta, 0);
   } else {
     Counters counters;

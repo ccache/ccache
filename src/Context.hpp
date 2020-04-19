@@ -28,6 +28,7 @@
 #include "hash.hpp"
 
 #include "third_party/nonstd/optional.hpp"
+#include "third_party/nonstd/string_view.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -52,15 +53,15 @@ public:
 
   // Name (represented as a struct digest) of the file containing the cached
   // result.
-  nonstd::optional<struct digest> result_name;
+  const struct digest& result_name() const;
 
   // Full path to the file containing the result
   // (cachedir/a/b/cdef[...]-size.result).
-  std::string result_path;
+  const std::string& result_path() const;
 
   // Full path to the file containing the manifest
   // (cachedir/a/b/cdef[...]-size.manifest).
-  std::string manifest_path;
+  const std::string& manifest_path() const;
 
   // Time of compilation. Used to see if include files have changed after
   // compilation.
@@ -79,8 +80,12 @@ public:
   // The name of the cpp stderr file.
   std::string cpp_stderr;
 
+  // Name (represented as a struct digest) of the file containing the manifest
+  // for the cached result.
+  const struct digest& manifest_name() const;
+
   // The stats file to use for the manifest.
-  std::string manifest_stats_file;
+  const std::string& manifest_stats_file() const;
 
   // Compiler guessing is currently only based on the compiler name, so nothing
   // should hard-depend on it if possible.
@@ -94,8 +99,58 @@ public:
 
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).
-  std::string stats_file;
+  const std::string& stats_file() const;
 
   // Statistics which get written into the `stats_file` upon exit.
   Counters counter_updates;
+
+  void set_manifest_name(const struct digest& name);
+  void set_result_name(const struct digest& name);
+
+private:
+  nonstd::optional<struct digest> m_manifest_name;
+  std::string m_manifest_path;
+  std::string m_manifest_stats_file;
+
+  nonstd::optional<struct digest> m_result_name;
+  std::string m_result_path;
+  mutable std::string m_result_stats_file;
+
+  void set_path_and_stats_file(const struct digest& name,
+                               nonstd::string_view suffix,
+                               std::string& path_var,
+                               std::string& stats_file_var);
 };
+
+inline const struct digest&
+Context::manifest_name() const
+{
+  return *m_manifest_name;
+}
+
+inline const std::string&
+Context::manifest_path() const
+{
+  assert(m_manifest_name); // set_manifest_name must have been called
+  return m_manifest_path;
+}
+
+inline const std::string&
+Context::manifest_stats_file() const
+{
+  assert(m_manifest_name); // set_manifest_name must have been called
+  return m_manifest_stats_file;
+}
+
+inline const struct digest&
+Context::result_name() const
+{
+  return *m_result_name;
+}
+
+inline const std::string&
+Context::result_path() const
+{
+  assert(m_result_name); // set_result_name must have been called
+  return m_result_path;
+}

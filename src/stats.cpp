@@ -339,13 +339,6 @@ stats_flush_to_file(const Config& config,
     return;
   }
 
-  if (sfile.empty()) {
-    // An empty sfile means that we didn't get past calculate_object_hash(), so
-    // we just choose one of stats files in the 16 subdirectories.
-    sfile = fmt::format(
-      "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
-  }
-
   Counters counters;
 
   {
@@ -394,7 +387,7 @@ void
 stats_flush(void* context)
 {
   const Context& ctx = *static_cast<Context*>(context);
-  stats_flush_to_file(ctx.config, ctx.stats_file, ctx.counter_updates);
+  stats_flush_to_file(ctx.config, ctx.stats_file(), ctx.counter_updates);
 }
 
 // Update a normal stat.
