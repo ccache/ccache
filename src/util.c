@@ -696,17 +696,12 @@ error:
 char* 
 slash_to_backslash(char* str)
 {
-	char temp[256];
-	int len = (int)strlen(str);
-	int i;
-	if (len > 255) len = 255;
-	
-	for (i = 0; i < len; i++) {
-		temp[i] = str[i] == '/' ? '\\' : str[i];
-	}
-	temp[len] = 0;
-
-	return temp;
+    char *current_pos = strchr(str,"/");
+    while (current_pos){
+        *current_pos = "\\";
+        current_pos = strchr(current_pos,"/");
+    }
+    return str;
 }
 #endif
 
