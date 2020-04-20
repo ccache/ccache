@@ -811,7 +811,9 @@ make_relative_path(char *path)
 		path = double_backslash_to_backslash(path);
 	}
 	if(strchr(path, '/')) {
-		path = slash_to_backslash(path);
+		cc_log("path: %s", path);
+        path = slash_to_backslash(path);
+        cc_log("path: %s", path);
 	}
 #endif
 	if (str_eq(conf->base_dir, "") || !str_startswith(path, conf->base_dir)) {

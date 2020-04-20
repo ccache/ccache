@@ -706,7 +706,7 @@ slash_to_backslash(char* str)
 	}
 	temp[len] = 0;
 
-	return str;
+	return temp;
 }
 #endif
 
@@ -1462,7 +1462,7 @@ common_dir_prefix_length(const char *s1, const char *s2)
 		++p1;
 		++p2;
 	}
-	while ((*p1 && *p1 != '/' && *p1 != '\\') || (*p2 && *p2 != '/' && *p2 != '\\')) {
+	while ((*p1 && (*p1 != '/' || *p1 != '\\')) || (*p2 && (*p2 != '/' || *p2 != '\\'))) {
 		p1--;
 		p2--;
 	}
@@ -1519,7 +1519,7 @@ get_relative_path(const char *from, const char *to)
 	if (strlen(to) > common_prefix_len) {
 		reformat(&result, "%s%s", result, to + common_prefix_len + 1);
 	}
-	for (int i = strlen(result) - 1; i >= 0 && result[i] == '/' && result[i] == '\\'; i--) {
+	for (int i = strlen(result) - 1; i >= 0 && (result[i] == '/' || result[i] == '\\'); i--) {
 		result[i] = '\0';
 	}
 	if (str_eq(result, "")) {
