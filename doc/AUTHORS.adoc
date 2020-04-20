@@ -11,9 +11,9 @@ ccache is a collective work with contributions from many people, including:
 * Alexey Tourbin
 * Alfred Landrum
 * Anders F Björklund
-* André Klitzing
 * Andrea Bittau
 * Andreas Huber
+* André Klitzing
 * Andrew Boie
 * Andrew Stubbs
 * Andrew Tridgell
@@ -47,8 +47,8 @@ ccache is a collective work with contributions from many people, including:
 * John Coiner
 * Jon Bernard
 * Jonny Yu
-* Josh Soref
 * Jørgen P. Tjernø
+* Josh Soref
 * Justin Lebar
 * Karl Chen
 * Kona Blend
@@ -66,9 +66,9 @@ ccache is a collective work with contributions from many people, including:
 * Mathias De Maré
 * Matthias Kretz
 * Melven Roehrig-Zoellner
-* Michał Mirosław
 * Michael Marineau
 * Michael Meeks
+* Michał Mirosław
 * Mihai Serban
 * Mike Blumenkrantz
 * Mike Frysinger
@@ -90,6 +90,7 @@ ccache is a collective work with contributions from many people, including:
 * Per Nordlöw
 * Peter Budai
 * Philippe Proulx
+* Philipp Storz
 * Rafael Kitover
 * Ramiro Polla
 * Robert Yang
@@ -100,10 +101,10 @@ ccache is a collective work with contributions from many people, including:
 * Sam Gross
 * Thomas Otto
 * Thomas Röfer
-* Tim Potter
 * Timofei Kushnir
-* Tom Hughes
+* Tim Potter
 * Tomasz Miąsko
+* Tom Hughes
 * Tor Arne Vestbø
 * Vadim Petrochenkov
 * Ville Skyttä
