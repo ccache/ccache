@@ -7,7 +7,7 @@ Prerequisites
 To build ccache from a source repository, you need:
 
 - A C++11 compiler.
-- A C89 compiler.
+- A C99 compiler.
 - GNU Bourne Again SHell (bash) for tests.
 - [AsciiDoc](https://www.methods.co.nz/asciidoc/) to build the HTML
   documentation.

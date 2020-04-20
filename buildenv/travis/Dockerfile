@@ -12,7 +12,9 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 RUN apt-get -qq update && apt-get install -y --no-install-recommends \
                 libc6-dev \
                 gcc \
+                build-essential \
                 clang \
+                cmake \
                 libc6-dev-i386 \
                 gcc-multilib \
                 gcc-mingw-w64 \

@@ -55,7 +55,7 @@ matrix:
         - libzstd1-dev
         - libb2-dev
     before_install:
-    - source ./.travis/install_cuda.sh
+    - source ./misc/install_cuda.sh
 
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux

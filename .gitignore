@@ -30,8 +30,16 @@ testdir.*
 unittest/run
 zstd-*.tar.gz
 
+# Version is generated into src, because it should be included into src packages
+/src/Version.cpp
+
+# Typical build directories
+/build/
+/build-*
+/build_*
+
 # Visual Studio
-.vs/
+/.vs/
 
 # Visual Studio Code
-.vscode/
+/.vscode/

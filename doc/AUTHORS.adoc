@@ -7,17 +7,19 @@ maintained by Joel Rosdahl.
 ccache is a collective work with contributions from many people, including:
 
 * Alexander Korsunsky
+* Alexander Lanin
 * Alexey Tourbin
 * Alfred Landrum
 * Anders F Björklund
+* André Klitzing
 * Andrea Bittau
 * Andreas Huber
-* André Klitzing
 * Andrew Boie
 * Andrew Stubbs
 * Andrew Tridgell
 * Bernhard Bauer
 * Björn Jacke
+* Breno Guimaraes
 * Chiaki Ishikawa
 * Chris AtLee
 * Clemens Rabe
@@ -25,14 +27,17 @@ ccache is a collective work with contributions from many people, including:
 * David Givone
 * Doug Anderson
 * Edward Z. Yang
+* Enrico Sorichetti
 * Erik Johansson
 * Francois Marier
 * Gabriel Scherer
 * Geert Bosch
 * Geert Kloosterman
 * Grigory Entin
+* Harsh Shandilya
 * Havard Graff
 * Hongli Lai
+* Igor Pylypiv
 * Ivan Vaigult
 * Ivan Volnov
 * Jiang Jiang
@@ -42,8 +47,8 @@ ccache is a collective work with contributions from many people, including:
 * John Coiner
 * Jon Bernard
 * Jonny Yu
-* Jørgen P. Tjernø
 * Josh Soref
+* Jørgen P. Tjernø
 * Justin Lebar
 * Karl Chen
 * Kona Blend
@@ -61,9 +66,9 @@ ccache is a collective work with contributions from many people, including:
 * Mathias De Maré
 * Matthias Kretz
 * Melven Roehrig-Zoellner
+* Michał Mirosław
 * Michael Marineau
 * Michael Meeks
-* Michał Mirosław
 * Mihai Serban
 * Mike Blumenkrantz
 * Mike Frysinger
@@ -90,17 +95,15 @@ ccache is a collective work with contributions from many people, including:
 * Robert Yang
 * Robin H. Johnson
 * Rolf Bjarne Kvinge
-* Russell King
 * RW
 * Ryan Brown
 * Sam Gross
-* Steffen Dettmer
 * Thomas Otto
 * Thomas Röfer
-* Timofei Kushnir
 * Tim Potter
-* Tomasz Miąsko
+* Timofei Kushnir
 * Tom Hughes
+* Tomasz Miąsko
 * Tor Arne Vestbø
 * Vadim Petrochenkov
 * Ville Skyttä
