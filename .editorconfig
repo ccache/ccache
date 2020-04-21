@@ -9,7 +9,7 @@ charset = utf-8
 indent_style = space
 indent_size = 2
 
-[*.{bash,py}]
+[*.{bash,py,sh}]
 indent_style = space
 indent_size = 4
 
