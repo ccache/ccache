@@ -6,7 +6,7 @@ if [ -d .git ]; then
 
     # Update doc/AUTHORS.adoc with Git commit authors plus authors mentioned via
     # a "Co-authored-by:" in the commit message.
-    (git log --pretty=format:"%(trailers)" | grep -Po "(?<=Co-authored-by: )(.*)(?= <)"; \
+    (git log | grep -Po "(?<=Co-authored-by: )(.*)(?= <)"; \
      git log --format="%aN") \
         | sed 's/^/* /' \
         | LANG=en_US.utf8 sort -uf \

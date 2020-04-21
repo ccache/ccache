@@ -99,6 +99,7 @@ ccache is a collective work with contributions from many people, including:
 * RW
 * Ryan Brown
 * Sam Gross
+* Steffen Dettmer
 * Thomas Otto
 * Thomas Röfer
 * Timofei Kushnir
