@@ -6,6 +6,8 @@ RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.n
                 gcc \
                 make \
                 bash \
+                build-essential \
+                cmake \
                 asciidoc \
                 autoconf \
                 libzstd-devel \

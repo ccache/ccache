@@ -233,7 +233,10 @@ Args::ArgvAccessWrapper::ArgvAccessWrapper(const std::deque<std::string>& args)
 {
 }
 
-const char* Args::ArgvAccessWrapper::operator[](size_t i) const
+// clang-format off
+const char*
+Args::ArgvAccessWrapper::operator[](size_t i) const
+// clang-format on
 {
   return i == m_args->size() ? nullptr : m_args->at(i).c_str();
 }

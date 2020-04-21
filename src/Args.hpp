@@ -126,22 +126,34 @@ Args::size() const
   return m_args.size();
 }
 
-inline const std::string& Args::operator[](size_t i) const
+// clang-format off
+inline const std::string&
+Args::operator[](size_t i) const
+// clang-format on
 {
   return m_args[i];
 }
 
-inline std::string& Args::operator[](size_t i)
+// clang-format off
+inline std::string&
+Args::operator[](size_t i)
+// clang-format on
 {
   return m_args[i];
 }
 
-inline Args& Args::operator*()
+// clang-format off
+inline Args&
+Args::operator*()
+// clang-format on
 {
   return *this;
 }
 
-inline const Args* Args::operator->() const
+// clang-format off
+inline const Args*
+Args::operator->() const
+// clang-format on
 {
   return this;
 }
