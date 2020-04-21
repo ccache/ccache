@@ -50,7 +50,7 @@ Context::~Context()
 }
 
 void
-Context::set_manifest_name(const struct digest& name)
+Context::set_manifest_name(const Digest& name)
 {
   m_manifest_name = name;
   set_path_and_stats_file(
@@ -58,7 +58,7 @@ Context::set_manifest_name(const struct digest& name)
 }
 
 void
-Context::set_result_name(const struct digest& name)
+Context::set_result_name(const Digest& name)
 {
   m_result_name = name;
   set_path_and_stats_file(name, ".result", m_result_path, m_result_stats_file);
@@ -78,13 +78,12 @@ Context::stats_file() const
 }
 
 void
-Context::set_path_and_stats_file(const struct digest& name,
+Context::set_path_and_stats_file(const Digest& name,
                                  string_view suffix,
                                  std::string& path_var,
                                  std::string& stats_file_var)
 {
-  char name_string[DIGEST_STRING_BUFFER_SIZE];
-  digest_as_string(&name, name_string);
+  std::string name_string = name.to_string();
   path_var = Util::get_path_in_cache(
     config.cache_dir(), config.cache_dir_levels(), name_string, suffix);
   stats_file_var =

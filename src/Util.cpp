@@ -268,6 +268,17 @@ for_each_level_1_subdir(const std::string& cache_dir,
 }
 
 std::string
+format_hex(const uint8_t* data, size_t size)
+{
+  std::string result;
+  result.reserve(size);
+  for (size_t i = 0; i < size; i++) {
+    result += fmt::format("{:02x}", data[i]);
+  }
+  return result;
+}
+
+std::string
 get_actual_cwd()
 {
   char buffer[PATH_MAX];

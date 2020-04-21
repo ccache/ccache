@@ -251,6 +251,17 @@ TEST_CASE("Util::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
+TEST_CASE("format_hex")
+{
+  uint8_t none[] = "";
+  uint8_t text[4] = "foo"; // incl. NUL
+  uint8_t data[4] = {0, 1, 2, 3};
+
+  CHECK(Util::format_hex(none, 0) == "");
+  CHECK(Util::format_hex(text, sizeof(text)) == "666f6f00");
+  CHECK(Util::format_hex(data, sizeof(data)) == "00010203");
+}
+
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

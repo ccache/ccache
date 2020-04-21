@@ -134,20 +134,3 @@ TEST_CASE("format_command")
 
   CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
 }
-
-TEST_CASE("format_hex")
-{
-  uint8_t none[] = "";
-  uint8_t text[4] = "foo"; // incl. NUL
-  uint8_t data[4] = {0, 1, 2, 3};
-  char result[2 * sizeof(data) + 1] = ".";
-
-  format_hex(none, 0, result);
-  CHECK(strcmp("", result) == 0);
-
-  format_hex(text, sizeof(text), result);
-  CHECK(strcmp("666f6f00", result) == 0);
-
-  format_hex(data, sizeof(data), result);
-  CHECK(strcmp("00010203", result) == 0);
-}

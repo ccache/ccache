@@ -322,9 +322,9 @@ hash_source_code_file(const Context& ctx,
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
   InodeCache::ContentType content_type = get_content_type(ctx.config, path);
-  struct digest digest;
+  Digest digest;
   int return_value;
-  if (!ctx.inode_cache.get(path, content_type, &digest, &return_value)) {
+  if (!ctx.inode_cache.get(path, content_type, digest, &return_value)) {
     struct hash* file_hash = hash_init();
     return_value = hash_source_code_file_nocache(
       ctx,
@@ -335,11 +335,11 @@ hash_source_code_file(const Context& ctx,
     if (return_value == HASH_SOURCE_CODE_ERROR) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    hash_result_as_bytes(file_hash, &digest);
+    digest = hash_result(file_hash);
     hash_free(file_hash);
     ctx.inode_cache.put(path, content_type, digest, return_value);
   }
-  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  hash_buffer(hash, digest.bytes(), Digest::size());
   return return_value;
 #endif
 }
@@ -358,17 +358,17 @@ hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
-  struct digest digest;
-  if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, &digest)) {
+  Digest digest;
+  if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, digest)) {
     struct hash* file_hash = hash_init();
     if (!hash_file(hash, path)) {
       return false;
     }
-    hash_result_as_bytes(file_hash, &digest);
+    digest = hash_result(file_hash);
     hash_free(file_hash);
     ctx.inode_cache.put(path, InodeCache::ContentType::binary, digest);
   }
-  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  hash_buffer(hash, digest.bytes(), Digest::size());
   return true;
 #else
   return hash_file(hash, path);

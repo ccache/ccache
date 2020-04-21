@@ -29,7 +29,7 @@
 
 class Config;
 class Context;
-struct digest;
+class Digest;
 
 class InodeCache
 {
@@ -54,7 +54,7 @@ public:
   // otherwise.
   bool get(const char* path,
            ContentType type,
-           digest* file_digest,
+           Digest& file_digest,
            int* return_value = nullptr);
 
   // Put hash digest and return value from a successful call to
@@ -63,7 +63,7 @@ public:
   // Returns true if values could be stored in the cache, false otherwise.
   bool put(const char* path,
            ContentType type,
-           const digest& file_digest,
+           const Digest& file_digest,
            int return_value = 0);
 
   // Unmaps the current cache and removes the mapped file from disk.
@@ -99,9 +99,9 @@ private:
   struct SharedRegion;
 
   bool mmap_file(const std::string& inode_cache_file);
-  bool hash_inode(const char* path, ContentType type, digest* digest);
+  bool hash_inode(const char* path, ContentType type, Digest& digest);
   Bucket* acquire_bucket(uint32_t index);
-  Bucket* acquire_bucket(const digest& key_digest);
+  Bucket* acquire_bucket(const Digest& key_digest);
   void release_bucket(Bucket* bucket);
   bool create_new_file(const std::string& filename);
   bool initialize();

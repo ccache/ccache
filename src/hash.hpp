@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2018-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,24 +20,9 @@
 
 #include "system.hpp"
 
+#include "Digest.hpp"
+
 #include "third_party/nonstd/string_view.hpp"
-
-#define DIGEST_SIZE 20
-#define DIGEST_STRING_BUFFER_SIZE (2 * DIGEST_SIZE + 1)
-
-// struct digest represents the binary form of the final digest (AKA hash or
-// checksum) produced by the hash algorithm.
-struct digest
-{
-  uint8_t bytes[DIGEST_SIZE];
-};
-
-// Format the digest as a NUL-terminated hex string. The string buffer must
-// contain at least DIGEST_STRING_BUFFER_SIZE bytes.
-void digest_as_string(const struct digest* d, char* buffer);
-
-// Return true if d1 and d2 are equal, else false.
-bool digests_equal(const struct digest* d1, const struct digest* d2);
 
 // struct hash represents the hash algorithm's inner state.
 struct hash;
@@ -57,12 +42,8 @@ void hash_enable_debug(struct hash* hash,
                        FILE* debug_binary,
                        FILE* debug_text);
 
-// Retrieve the digest as bytes.
-void hash_result_as_bytes(struct hash* hash, struct digest* digest);
-
-// Retrieve the digest as a NUL-terminated hex string. The string buffer must
-// contain at least DIGEST_STRING_BUFFER_SIZE bytes.
-void hash_result_as_string(struct hash* hash, char* buffer);
+// Retrieve the digest.
+Digest hash_result(struct hash* hash);
 
 // Hash some data that is unlikely to occur in the input. The idea is twofold:
 //

@@ -24,6 +24,7 @@
 #include "Checksum.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Digest.hpp"
 #include "File.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
@@ -57,7 +58,7 @@
 // <n_includes>    ::= uint32_t
 // <include_entry> ::= <path_index> <digest> <fsize> <mtime> <ctime>
 // <path_index>    ::= uint32_t
-// <digest>        ::= DIGEST_SIZE bytes
+// <digest>        ::= Digest::size() bytes
 // <fsize>         ::= uint64_t ; file size
 // <mtime>         ::= int64_t ; modification time
 // <ctime>         ::= int64_t ; status change time
@@ -66,7 +67,7 @@
 // <result>        ::= <n_indexes> <include_index>* <name>
 // <n_indexes>     ::= uint32_t
 // <include_index> ::= uint32_t
-// <name>          ::= DIGEST_SIZE bytes
+// <name>          ::= Digest::size() bytes
 // <epilogue>      ::= <checksum>
 // <checksum>      ::= uint64_t ; XXH64 of content bytes
 //
@@ -85,7 +86,7 @@
 // ----------------------------------------------------------------------------
 // <n_includes>    4 bytes
 // <path_index>    4 bytes
-// <digest>        DIGEST_SIZE bytes
+// <digest>        Digest::size() bytes
 // <fsize>         8 bytes
 // <mtime>         8 bytes
 // <ctime>         8 bytes
@@ -95,7 +96,7 @@
 // <n_indexes>     4 bytes
 // <include_index> 4 bytes
 // ...
-// <name>          DIGEST_SIZE bytes
+// <name>          Digest::size() bytes
 // ...
 // checksum        8 bytes
 //
@@ -105,6 +106,9 @@
 //
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 4.0.
+
+using nonstd::nullopt;
+using nonstd::optional;
 
 const uint8_t k_manifest_magic[4] = {'c', 'C', 'm', 'F'};
 const uint8_t k_manifest_version = 2;
@@ -118,7 +122,7 @@ struct FileInfo
   // Index to n_files.
   uint32_t index;
   // Digest of referenced file.
-  struct digest digest;
+  Digest digest;
   // Size of referenced file.
   uint64_t fsize;
   // mtime of referenced file.
@@ -130,7 +134,7 @@ struct FileInfo
 bool
 operator==(const FileInfo& lhs, const FileInfo& rhs)
 {
-  return lhs.index == rhs.index && digests_equal(&lhs.digest, &rhs.digest)
+  return lhs.index == rhs.index && lhs.digest == rhs.digest
          && lhs.fsize == rhs.fsize && lhs.mtime == rhs.mtime
          && lhs.ctime == rhs.ctime;
 }
@@ -159,7 +163,7 @@ struct ResultEntry
   std::vector<uint32_t> file_info_indexes;
 
   // Name of the result.
-  struct digest name;
+  Digest name;
 };
 
 struct ManifestData
@@ -175,8 +179,8 @@ struct ManifestData
 
   void
   add_result_entry(
-    const struct digest& result_digest,
-    const std::unordered_map<std::string, digest>& included_files,
+    const Digest& result_digest,
+    const std::unordered_map<std::string, Digest>& included_files,
     time_t time_of_compilation,
     bool save_timestamp)
   {
@@ -209,7 +213,7 @@ private:
   uint32_t
   get_file_info_index(
     const std::string& path,
-    const digest& digest,
+    const Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
     const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
     time_t time_of_compilation,
@@ -307,7 +311,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
     auto& entry = mf->file_infos.back();
 
     reader.read(entry.index);
-    reader.read(entry.digest.bytes, DIGEST_SIZE);
+    reader.read(entry.digest.bytes(), Digest::size());
     reader.read(entry.fsize);
     reader.read(entry.mtime);
     reader.read(entry.ctime);
@@ -325,7 +329,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
       reader.read(file_info_index);
       entry.file_info_indexes.push_back(file_info_index);
     }
-    reader.read(entry.name.bytes, DIGEST_SIZE);
+    reader.read(entry.name.bytes(), Digest::size());
   }
 
   reader.finalize();
@@ -343,12 +347,12 @@ write_manifest(const Config& config,
     payload_size += 2 + file.length();
   }
   payload_size += 4; // n_file_infos
-  payload_size += mf.file_infos.size() * (4 + DIGEST_SIZE + 8 + 8 + 8);
+  payload_size += mf.file_infos.size() * (4 + Digest::size() + 8 + 8 + 8);
   payload_size += 4; // n_results
   for (const auto& result : mf.results) {
     payload_size += 4; // n_file_info_indexes
     payload_size += result.file_info_indexes.size() * 4;
-    payload_size += DIGEST_SIZE;
+    payload_size += Digest::size();
   }
 
   AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
@@ -367,7 +371,7 @@ write_manifest(const Config& config,
   writer.write<uint32_t>(mf.file_infos.size());
   for (const auto& file_info : mf.file_infos) {
     writer.write<uint32_t>(file_info.index);
-    writer.write(file_info.digest.bytes, DIGEST_SIZE);
+    writer.write(file_info.digest.bytes(), Digest::size());
     writer.write(file_info.fsize);
     writer.write(file_info.mtime);
     writer.write(file_info.ctime);
@@ -379,7 +383,7 @@ write_manifest(const Config& config,
     for (uint32_t j = 0; j < result.file_info_indexes.size(); ++j) {
       writer.write(result.file_info_indexes[j]);
     }
-    writer.write(result.name.bytes, DIGEST_SIZE);
+    writer.write(result.name.bytes(), Digest::size());
   }
 
   writer.finalize();
@@ -392,7 +396,7 @@ verify_result(const Context& ctx,
               const ManifestData& mf,
               const ResultEntry& result,
               std::unordered_map<std::string, FileStats>& stated_files,
-              std::unordered_map<std::string, digest>& hashed_files)
+              std::unordered_map<std::string, Digest>& hashed_files)
 {
   for (uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = mf.file_infos[file_info_index];
@@ -458,13 +462,12 @@ verify_result(const Context& ctx,
         return false;
       }
 
-      digest actual;
-      hash_result_as_bytes(hash, &actual);
+      Digest actual = hash_result(hash);
       hash_free(hash);
       hashed_files_iter = hashed_files.emplace(path, actual).first;
     }
 
-    if (!digests_equal(&fi.digest, &hashed_files_iter->second)) {
+    if (fi.digest != hashed_files_iter->second) {
       return false;
     }
   }
@@ -474,7 +477,7 @@ verify_result(const Context& ctx,
 
 // Try to get the result name from a manifest file. Caller frees. Returns NULL
 // on failure.
-struct digest*
+optional<Digest>
 manifest_get(const Context& ctx, const std::string& path)
 {
   std::unique_ptr<ManifestData> mf;
@@ -485,28 +488,25 @@ manifest_get(const Context& ctx, const std::string& path)
       update_mtime(path.c_str());
     } else {
       cc_log("No such manifest file");
-      return nullptr;
+      return nullopt;
     }
   } catch (const Error& e) {
     cc_log("Error: %s", e.what());
-    return nullptr;
+    return nullopt;
   }
 
   std::unordered_map<std::string, FileStats> stated_files;
-  std::unordered_map<std::string, digest> hashed_files;
+  std::unordered_map<std::string, Digest> hashed_files;
 
   // Check newest result first since it's a bit more likely to match.
-  struct digest* name = nullptr;
   for (uint32_t i = mf->results.size(); i > 0; i--) {
     if (verify_result(
           ctx, *mf, mf->results[i - 1], stated_files, hashed_files)) {
-      name = static_cast<digest*>(x_malloc(sizeof(digest)));
-      *name = mf->results[i - 1].name;
-      break;
+      return mf->results[i - 1].name;
     }
   }
 
-  return name;
+  return nullopt;
 }
 
 // Put the result name into a manifest file given a set of included files.
@@ -514,8 +514,8 @@ manifest_get(const Context& ctx, const std::string& path)
 bool
 manifest_put(const Config& config,
              const std::string& path,
-             const struct digest& result_name,
-             const std::unordered_map<std::string, digest>& included_files,
+             const Digest& result_name,
+             const std::unordered_map<std::string, Digest>& included_files,
 
              time_t time_of_compilation,
              bool save_timestamp)
@@ -594,26 +594,22 @@ manifest_dump(const std::string& path, FILE* stream)
   }
   fmt::print(stream, "File infos ({}):\n", mf->file_infos.size());
   for (unsigned i = 0; i < mf->file_infos.size(); ++i) {
-    char digest[DIGEST_STRING_BUFFER_SIZE];
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    Path index: {}\n", mf->file_infos[i].index);
-    digest_as_string(&mf->file_infos[i].digest, digest);
-    fmt::print(stream, "    Hash: {}\n", digest);
+    fmt::print(stream, "    Hash: {}\n", mf->file_infos[i].digest.to_string());
     fmt::print(stream, "    File size: {}\n", mf->file_infos[i].fsize);
     fmt::print(stream, "    Mtime: {}\n", mf->file_infos[i].mtime);
     fmt::print(stream, "    Ctime: {}\n", mf->file_infos[i].ctime);
   }
   fmt::print(stream, "Results ({}):\n", mf->results.size());
   for (unsigned i = 0; i < mf->results.size(); ++i) {
-    char name[DIGEST_STRING_BUFFER_SIZE];
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    File info indexes:");
     for (uint32_t file_info_index : mf->results[i].file_info_indexes) {
       fmt::print(stream, " {}", file_info_index);
     }
     fmt::print(stream, "\n");
-    digest_as_string(&mf->results[i].name, name);
-    fmt::print(stream, "    Name: {}\n", name);
+    fmt::print(stream, "    Name: {}\n", mf->results[i].name.to_string());
   }
 
   return true;

@@ -346,9 +346,7 @@ do_remember_include_file(Context& ctx,
       return false;
     }
     hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
-    char pch_digest[DIGEST_STRING_BUFFER_SIZE];
-    hash_result_as_string(fhash, pch_digest);
-    hash_string(cpp_hash, pch_digest);
+    hash_string(cpp_hash, hash_result(fhash).to_string());
   }
 
   if (ctx.config.direct_mode()) {
@@ -382,15 +380,12 @@ do_remember_include_file(Context& ctx,
       }
     }
 
-    digest d;
-    hash_result_as_bytes(fhash, &d);
+    Digest d = hash_result(fhash);
     ctx.included_files.emplace(path, d);
 
     if (depend_mode_hash) {
       hash_delimiter(depend_mode_hash, "include");
-      char digest[DIGEST_STRING_BUFFER_SIZE];
-      digest_as_string(&d, digest);
-      hash_string(depend_mode_hash, digest);
+      hash_string(depend_mode_hash, d.to_string());
     }
   }
 
@@ -685,7 +680,7 @@ use_relative_paths_in_depfile(const Context& ctx)
 
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
-static struct digest*
+static optional<Digest>
 result_name_from_depfile(Context& ctx, struct hash* hash)
 {
   std::string file_content;
@@ -695,7 +690,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
     cc_log("Cannot open dependency file %s: %s",
            ctx.args_info.output_dep.c_str(),
            e.what());
-    return nullptr;
+    return nullopt;
   }
 
   for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
@@ -723,9 +718,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
     print_included_files(ctx, stdout);
   }
 
-  auto d = static_cast<digest*>(x_malloc(sizeof(digest)));
-  hash_result_as_bytes(hash, d);
-  return d;
+  return hash_result(hash);
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -977,8 +970,7 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.depend_mode()) {
-    struct digest* result_name =
-      result_name_from_depfile(ctx, depend_mode_hash);
+    auto result_name = result_name_from_depfile(ctx, depend_mode_hash);
     if (!result_name) {
       failed(STATS_ERROR);
     }
@@ -1071,7 +1063,7 @@ to_cache(Context& ctx,
 
 // Find the result name by running the compiler in preprocessor mode and
 // hashing the result.
-static struct digest*
+static Digest
 get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
 {
   ctx.time_of_compilation = time(nullptr);
@@ -1156,9 +1148,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     hash_string(hash, "false");
   }
 
-  auto name = static_cast<digest*>(x_malloc(sizeof(digest)));
-  hash_result_as_bytes(hash, name);
-  return name;
+  return hash_result(hash);
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
@@ -1418,7 +1408,7 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
-static struct digest*
+static optional<Digest>
 calculate_result_name(Context& ctx,
                       const Args& args,
                       Args& preprocessor_args,
@@ -1625,7 +1615,7 @@ calculate_result_name(Context& ctx,
     hash_string(hash, arch);
   }
 
-  struct digest* result_name = nullptr;
+  optional<Digest> result_name;
   if (direct_mode) {
     // Hash environment variables that affect the preprocessor output.
     const char* envvars[] = {"CPATH",
@@ -1665,12 +1655,10 @@ calculate_result_name(Context& ctx,
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       cc_log("Disabling direct mode");
       ctx.config.set_direct_mode(false);
-      return nullptr;
+      return nullopt;
     }
 
-    struct digest manifest_name;
-    hash_result_as_bytes(hash, &manifest_name);
-    ctx.set_manifest_name(manifest_name);
+    ctx.set_manifest_name(hash_result(hash));
 
     cc_log("Looking for result name in %s", ctx.manifest_path().c_str());
     MTR_BEGIN("manifest", "manifest_get");
@@ -1693,8 +1681,7 @@ calculate_result_name(Context& ctx,
         cc_log("Got result name from preprocessor with -arch %s",
                ctx.args_info.arch_args[i].c_str());
         if (i != ctx.args_info.arch_args.size() - 1) {
-          free(result_name);
-          result_name = nullptr;
+          result_name = nullopt;
         }
         preprocessor_args.pop_back();
       }
@@ -2153,8 +2140,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   args_to_hash.push_back(extra_args_to_hash);
 
   bool put_result_in_manifest = false;
-  struct digest* result_name = nullptr;
-  struct digest* result_name_from_manifest = nullptr;
+  optional<Digest> result_name;
+  optional<Digest> result_name_from_manifest;
   if (ctx.config.direct_mode()) {
     cc_log("Trying direct lookup");
     MTR_BEGIN("hash", "direct_hash");
@@ -2207,8 +2194,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
     ctx.set_result_name(*result_name);
 
-    if (result_name_from_manifest
-        && !digests_equal(result_name_from_manifest, result_name)) {
+    if (result_name_from_manifest && result_name_from_manifest != result_name) {
       // The hash from manifest differs from the hash of the preprocessor
       // output. This could be because:
       //
@@ -2314,9 +2300,7 @@ handle_main_options(int argc, const char* const* argv)
       } else {
         hash_binary_file(ctx, hash, optarg);
       }
-      char digest[DIGEST_STRING_BUFFER_SIZE];
-      hash_result_as_string(hash, digest);
-      puts(digest);
+      puts(hash_result(hash).to_string().c_str());
       hash_free(hash);
       break;
     }

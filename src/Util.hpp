@@ -135,6 +135,10 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Format a hexadecimal string representing `size` bytes of `data`. The returned
+// string will be `2 * size` long.
+std::string format_hex(const uint8_t* data, size_t size);
+
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
 std::string get_actual_cwd();

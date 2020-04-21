@@ -32,7 +32,6 @@ bool move_file(const char* src, const char* dest);
 const char* get_hostname();
 const char* tmp_string();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void format_hex(const uint8_t* data, size_t size, char* buffer);
 void reformat(char** ptr, const char* format, ...) ATTR_FORMAT(printf, 2, 3);
 char* x_strdup(const char* s);
 char* x_strndup(const char* s, size_t n);

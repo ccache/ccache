@@ -38,6 +38,7 @@
 #  include <sys/stat.h>
 #  include <sys/types.h>
 #  include <time.h>
+#  include <type_traits>
 #  include <unistd.h>
 
 namespace {
@@ -59,8 +60,10 @@ const uint32_t k_version = 1;
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
-static_assert(sizeof(digest::bytes) == 20,
+static_assert(Digest::size() == 20,
               "Increment version number if size of digest is changed.");
+static_assert(std::is_trivially_copyable<Digest>::value,
+              "Digest is expected to be trivially copyable.");
 
 static_assert(
   static_cast<int>(InodeCache::ContentType::binary) == 0,
@@ -99,8 +102,8 @@ struct InodeCache::Key
 
 struct InodeCache::Entry
 {
-  digest key_digest;  // Hashed key
-  digest file_digest; // Cached file hash
+  Digest key_digest;  // Hashed key
+  Digest file_digest; // Cached file hash
   int return_value;   // Cached return value
 };
 
@@ -168,7 +171,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 }
 
 bool
-InodeCache::hash_inode(const char* path, ContentType type, digest* digest)
+InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
 {
   Stat stat = Stat::stat(path);
   if (!stat) {
@@ -196,7 +199,7 @@ InodeCache::hash_inode(const char* path, ContentType type, digest* digest)
 
   struct hash* hash = hash_init();
   hash_buffer(hash, &key, sizeof(Key));
-  hash_result_as_bytes(hash, digest);
+  digest = hash_result(hash);
   hash_free(hash);
   return true;
 }
@@ -235,10 +238,10 @@ InodeCache::acquire_bucket(uint32_t index)
 }
 
 InodeCache::Bucket*
-InodeCache::acquire_bucket(const digest& key_digest)
+InodeCache::acquire_bucket(const Digest& key_digest)
 {
   uint32_t hash;
-  Util::big_endian_to_int(key_digest.bytes, hash);
+  Util::big_endian_to_int(key_digest.bytes(), hash);
   return acquire_bucket(hash % k_num_buckets);
 }
 
@@ -362,15 +365,15 @@ InodeCache::~InodeCache()
 bool
 InodeCache::get(const char* path,
                 ContentType type,
-                digest* file_digest,
+                Digest& file_digest,
                 int* return_value)
 {
   if (!initialize()) {
     return false;
   }
 
-  digest key_digest;
-  if (!hash_inode(path, type, &key_digest)) {
+  Digest key_digest;
+  if (!hash_inode(path, type, key_digest)) {
     return false;
   }
 
@@ -383,14 +386,14 @@ InodeCache::get(const char* path,
   bool found = false;
 
   for (uint32_t i = 0; i < k_num_entries; ++i) {
-    if (digests_equal(&bucket->entries[i].key_digest, &key_digest)) {
+    if (bucket->entries[i].key_digest == key_digest) {
       if (i > 0) {
         Entry tmp = bucket->entries[i];
         memmove(&bucket->entries[1], &bucket->entries[0], sizeof(Entry) * i);
         bucket->entries[0] = tmp;
       }
 
-      *file_digest = bucket->entries[0].file_digest;
+      file_digest = bucket->entries[0].file_digest;
       if (return_value) {
         *return_value = bucket->entries[0].return_value;
       }
@@ -420,15 +423,15 @@ InodeCache::get(const char* path,
 bool
 InodeCache::put(const char* path,
                 ContentType type,
-                const digest& file_digest,
+                const Digest& file_digest,
                 int return_value)
 {
   if (!initialize()) {
     return false;
   }
 
-  digest key_digest;
-  if (!hash_inode(path, type, &key_digest)) {
+  Digest key_digest;
+  if (!hash_inode(path, type, key_digest)) {
     return false;
   }
 

@@ -19,7 +19,7 @@
 
 #include "hash.hpp"
 
-#include "legacy_util.hpp"
+#include "Util.hpp"
 #include "logging.hpp"
 
 #include <blake2.h>
@@ -32,18 +32,6 @@ struct hash
   FILE* debug_binary;
   FILE* debug_text;
 };
-
-void
-digest_as_string(const struct digest* d, char* buffer)
-{
-  format_hex(d->bytes, DIGEST_SIZE, buffer);
-}
-
-bool
-digests_equal(const struct digest* d1, const struct digest* d2)
-{
-  return memcmp(d1->bytes, d2->bytes, DIGEST_SIZE) == 0;
-}
 
 static void
 do_hash_buffer(struct hash* hash, const void* s, size_t len)
@@ -68,7 +56,7 @@ struct hash*
 hash_init()
 {
   auto hash = static_cast<struct hash*>(malloc(sizeof(struct hash)));
-  blake2b_init(&hash->state, DIGEST_SIZE);
+  blake2b_init(&hash->state, Digest::size());
   hash->debug_binary = nullptr;
   hash->debug_text = nullptr;
   return hash;
@@ -111,21 +99,15 @@ hash_buffer(struct hash* hash, const void* s, size_t len)
   do_debug_text(hash, s, len);
 }
 
-void
-hash_result_as_bytes(struct hash* hash, struct digest* digest)
+Digest
+hash_result(struct hash* hash)
 {
   // make a copy before altering state
   struct hash* copy = hash_copy(hash);
-  blake2b_final(&copy->state, digest->bytes, DIGEST_SIZE);
+  Digest digest;
+  blake2b_final(&copy->state, digest.bytes(), digest.size());
   hash_free(copy);
-}
-
-void
-hash_result_as_string(struct hash* hash, char* buffer)
-{
-  struct digest d;
-  hash_result_as_bytes(hash, &d);
-  digest_as_string(&d, buffer);
+  return digest;
 }
 
 void

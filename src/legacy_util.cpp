@@ -309,17 +309,6 @@ format(const char* format, ...)
   return ptr;
 }
 
-// Construct a hexadecimal string representing binary data. The buffer must
-// hold at least 2 * size + 1 bytes.
-void
-format_hex(const uint8_t* data, size_t size, char* buffer)
-{
-  for (size_t i = 0; i < size; i++) {
-    sprintf(&buffer[i * 2], "%02x", (unsigned)data[i]);
-  }
-  buffer[2 * size] = '\0';
-}
-
 // This is like strdup() but dies if the malloc fails.
 char*
 x_strdup(const char* s)
