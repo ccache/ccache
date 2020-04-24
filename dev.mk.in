@@ -109,7 +109,7 @@ dist_files = \
     $(built_dist_files)
 
 ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.cpp 2>/dev/null),$(version))
-  $(shell echo 'extern const char CCACHE_VERSION[]; const char CCACHE_VERSION[] = "$(version)";' >src/version.cpp)
+  $(shell echo 'extern const char CCACHE_VERSION[];\nconst char CCACHE_VERSION[] = "$(version)";' >src/version.cpp)
 endif
 src/version.o: src/version.cpp
 
@@ -202,16 +202,14 @@ shellcheck: test/suites/*.bash
 
 .PHONY: format
 format:
-	@cd $(srcdir) && echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P8 \
-	    misc/run-clang-format
+	@cd $(srcdir) && misc/format.sh
 
 # Not using parallel execution because target is most likely being run on non-interactive CI system,
 # so no user is waiting for immediate results, and it avoids possibly interleaved output.
 .PHONY: check_format
 check_format:
 	@[ -t 1 ] && export cf_diff_color="--color=always"; \
-	cd $(srcdir) && echo $(non_third_party_headers) $(non_third_party_sources) $(test_sources) | xargs -n1 -P1 \
-	    misc/run-clang-format --check || \
+	cd $(srcdir) && misc/check_format.sh || \
 	        { echo; echo "Error: Sources are not formatted with clang-format."; \
 	          echo 'Run "make format" or apply the above diff.'; echo; exit 1; } 1>&2
 
