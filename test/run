@@ -418,6 +418,7 @@ fi
 
 # ---------------------------------------
 
+# Note: this list is currently duplicated within CMakeLists.txt until further cleanup. Keep them in sync!
 all_suites="
 base
 nocpp2

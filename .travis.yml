@@ -1,20 +1,15 @@
 language: cpp
 dist: xenial
 
-script:
-  - ./autogen.sh
-  - test -z $BUILD_DIR || { mkdir -p $BUILD_DIR; cd $BUILD_DIR; }
-  - ${SRC_DIR:-.}/configure $CONFIGURE
-  - test "$NO_COMPILE" || make
-  - make ${TEST:-test}
+script: ci/build.sh
 
-matrix:
+jobs:
   include:
 
-  # Job 1: Build (in separate build directory) on Linux with native GCC
+  # Job 1: Build on Linux with native GCC
   - os: linux
     compiler: gcc
-    env: T="Linux GCC, separate build directory" V=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILD_DIR=build SRC_DIR=..
+    env: T="Linux GCC" V=1 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -25,7 +20,7 @@ matrix:
   # Job 2: Build on Linux with native 32-bit GCC
   - os: linux
     compiler: gcc
-    env: T="Linux GCC 32-bit" V=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CONFIGURE="--host=i386-linux-gnu --with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux GCC 32-bit" V=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -47,7 +42,6 @@ matrix:
   - os: linux
     compiler: gcc
     env: T="Linux GCC CUDA" V=1 CUDA=10.1.243-1 ENABLE_CACHE_CLEANUP_TESTS=1
-    sudo: required
     addons:
       apt:
         packages:
@@ -60,7 +54,7 @@ matrix:
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux
     compiler: i686-w64-mingw32-g++-posix
-    env: T="Linux MinGW 32-bit" V=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CONFIGURE="--host=i686-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 32-bit" V=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -69,7 +63,7 @@ matrix:
   # Job 6: Build on Linux with 64-bit MinGW cross-compiler
   - os: linux
     compiler: x86_64-w64-mingw32-g++
-    env: T="Linux MinGW 64-bit" V=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CONFIGURE="--host=x86_64-w64-mingw32 --with-libzstd-from-internet --with-libb2-from-internet" TEST="unittest/run.exe" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 64-bit" V=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -78,12 +72,12 @@ matrix:
   # Job 7: Build on MacOS with native Clang
   - os: osx
     compiler: clang
-    env: T="MacOS Clang" V=1 CONFIGURE="--with-libzstd-from-internet --with-libb2-from-internet" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="MacOS Clang" V=1 CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
 
   # Job 8: Run Clang's undefined behavior sanitizer
   - os: linux
     compiler: clang
-    env: T="Clang UB sanitizer" V=1 CFLAGS="-fsanitize=undefined" CXXFLAGS="-fsanitize=undefined" LDFLAGS="-fsanitize=undefined" ASAN_OPTIONS="detect_leaks=0"
+    env: T="Clang UB sanitizer" V=1 CMAKE_PARAMS="-DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON" ASAN_OPTIONS="detect_leaks=0"
     addons:
       apt:
         packages:
@@ -94,7 +88,7 @@ matrix:
   # Job 9: Run Clang's address sanitizer
   - os: linux
     compiler: clang
-    env: T="Clang address sanitizer" V=1 CFLAGS="-fsanitize=address -g" CXXFLAGS="-fsanitize=address -g" LDFLAGS="-fsanitize=address" ASAN_OPTIONS="detect_leaks=0"
+    env: T="Clang address sanitizer" V=1 CMAKE_PARAMS="-DENABLE_SANITIZER_ADDRESS=ON" ASAN_OPTIONS="detect_leaks=0"
     addons:
       apt:
         packages:
@@ -105,7 +99,7 @@ matrix:
   # Job 10: Run Clang's static analyzer
   - os: linux
     compiler: clang
-    env: T="Clang static analyzer" V=1 PATH="/usr/bin:$PATH" SCAN_BUILD=scan-build-7 TEST=analyze
+    env: T="Clang static analyzer" V=1 PATH="/usr/bin:$PATH" CMAKE_PREFIX=scan-build RUN_TESTS=0
     addons:
       apt:
         packages:
@@ -114,19 +108,29 @@ matrix:
 
   # Job 11: Run Clang-Tidy
   - os: linux
-    env: T="Clang-Tidy" TEST=tidy V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1
+    compiler: clang
+    env: T="Clang-Tidy" CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
     addons:
       apt:
         packages:
-        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+
+  # Job 12: Run Clang-Format amd CMake-Format check mode
+  - os: linux
+    compiler: clang
+    env: T="Clang-Format" BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
         - libzstd1-dev
         - libb2-dev
     before_install:
-    - pip install --user compiledb
+    - pip install --user cmake_format
 
-  # Job 12: Run Clang-Format
+  # Job 13: Build binary package, extract it out of source, run tests.
   - os: linux
-    env: T="Clang-Format" V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=check_format
+    env: T="Build binary and verify" SPECIAL=build_and_verify_package
     addons:
       apt:
         packages:
@@ -134,27 +138,35 @@ matrix:
         - libzstd1-dev
         - libb2-dev
 
-  # New jobs go here until they are established for some weeks
-  allow_failures:
-
-  # Job 11: Clang-Tidy
+  # Job 13: Build source package, extract it out of source, run tests.
   - os: linux
-    env: T="Clang-Tidy" V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=tidy
+    env: T="Build source package and verify" SPECIAL=build_and_verify_package_source
     addons:
       apt:
         packages:
         - elfutils
         - libzstd1-dev
         - libb2-dev
-    before_install:
-    - pip install --user compiledb
-
-  # Job 12: Clang-Format
+    
+  # Job 14: Build documentation
   - os: linux
-    env: T="Clang-Format" V=1 PATH="/usr/bin:$PATH" NO_COMPILE=1 TEST=check_format
+    env: T="Build documentation" BUILDEXTRAFLAGS="--target documentation" RUN_TESTS=0
     addons:
       apt:
         packages:
         - elfutils
         - libzstd1-dev
         - libb2-dev
+        - asciidoc
+    
+  # Job 15: Build manpage
+  - os: linux
+    env: T="Build manpage" BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+        - libb2-dev
+        - asciidoc
+        - xsltproc
