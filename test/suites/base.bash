@@ -17,6 +17,17 @@ base_tests() {
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
+    TEST "Version output readable"
+
+    # The exact output is not tested, but at least it's something human readable
+    # and not random memory
+    if [ $($CCACHE --version | grep -c -e "^ccache version [a-zA-Z0-9_./-]*$") -eq 1 ]; then
+        : OK
+    else
+        test_failed "Unexpected output of --version"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "Debug option"
 
     $CCACHE_COMPILE -c test1.c -g
