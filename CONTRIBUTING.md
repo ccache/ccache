@@ -58,12 +58,14 @@ little by little.
 
 Source code formatting is defined by `.clang-format` in the root directory.
 It's based on [LLVM's code formatting
-style](https://llvm.org/docs/CodingStandards.html) with some deviations. You
+style](https://llvm.org/docs/CodingStandards.html) with some exceptions. You
 can install the [clang-format](https://clang.llvm.org/docs/ClangFormat.html)
 6.0 or newer and run `make format` to fix up the source code formatting.
 
-Regarding naming:
+Please follow these conventions:
 
+* Always use curly braces around if/for/while/do bodies, even if they only
+  contain one statement.
 * Use `UpperCamelCase` for types (e.g. classes and structs) and namespaces.
 * Use `UPPER_CASE` names for macros.
 * Use `snake_case` for other names (functions, variables, enum values, etc.).
