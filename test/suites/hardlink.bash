@@ -1,7 +1,7 @@
 SUITE_hardlink_PROBE() {
     # Probe hard link across directories since AFS doesn't support those.
-    mkdir dir;
-    touch dir/file1;
+    mkdir dir
+    touch dir/file1
     if ! ln dir/file1 file2 >/dev/null 2>&1; then
         echo "file system doesn't support hardlinks"
     fi
