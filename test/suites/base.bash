@@ -20,10 +20,8 @@ base_tests() {
     TEST "Version output readable"
 
     # The exact output is not tested, but at least it's something human readable
-    # and not random memory
-    if [ $($CCACHE --version | grep -c -e "^ccache version [a-zA-Z0-9_./-]*$") -eq 1 ]; then
-        : OK
-    else
+    # and not random memory.
+    if [ $($CCACHE --version | grep -c '^ccache version [a-zA-Z0-9_./-]*$') -ne 1 ]; then
         test_failed "Unexpected output of --version"
     fi
 
