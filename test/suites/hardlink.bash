@@ -1,5 +1,5 @@
 SUITE_hardlink_PROBE() {
-    # AFS kind of supports hardlinks, but not really - you can't make hardlinks across directories, only within them.
+    # Probe hard link across directories since AFS doesn't support those.
     mkdir dir;
     touch dir/file1;
     if ! ln dir/file1 file2 >/dev/null 2>&1; then
