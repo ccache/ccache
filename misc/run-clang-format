@@ -28,6 +28,11 @@ if [[ ! -e "$file" ]]; then
     exit 1
 fi
 
+if [[ -d "$file" ]]; then
+    echo "Please pass files and not directories: $file"
+    exit 1
+fi
+
 tmp_file="$file.$$.clang-format.tmp"
 trap "rm -f \"$tmp_file\"" EXIT
 
