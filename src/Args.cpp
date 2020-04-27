@@ -129,16 +129,20 @@ Args::from_gcc_atfile(const std::string& filename)
 Args&
 Args::operator=(const Args& other)
 {
-  m_args = other.m_args;
-  argv.m_args = &m_args;
+  if (&other != this) {
+    m_args = other.m_args;
+    argv.m_args = &m_args;
+  }
   return *this;
 }
 
 Args&
 Args::operator=(Args&& other) noexcept
 {
-  m_args = std::move(other.m_args);
-  argv.m_args = &m_args;
+  if (&other != this) {
+    m_args = std::move(other.m_args);
+    argv.m_args = &m_args;
+  }
   return *this;
 }
 
