@@ -172,7 +172,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
       fatal("%s: %s", word.c_str(), strerror(errno));
     }
 
-    args_add(prefix, path.c_str());
+    prefix.push_back(path);
   }
 
   cc_log("Using command-line prefix %s", prefix_command.c_str());
@@ -1041,7 +1041,7 @@ to_cache(Context& ctx,
          struct hash* depend_mode_hash)
 {
   args_add(args, "-o");
-  args_add(args, ctx.args_info.output_obj.c_str());
+  args.push_back(ctx.args_info.output_obj);
 
   if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
     // Workaround for Clang bug where it overwrites an existing object file
@@ -1052,7 +1052,7 @@ to_cache(Context& ctx,
 
   if (ctx.args_info.generating_diagnostics) {
     args_add(args, "--serialize-diagnostics");
-    args_add(args, ctx.args_info.output_dia.c_str());
+    args.push_back(ctx.args_info.output_dia);
   }
 
   // Turn off DEPENDENCIES_OUTPUT when running cc1, because otherwise it will
@@ -1063,9 +1063,9 @@ to_cache(Context& ctx,
   x_unsetenv("SUNPRO_DEPENDENCIES");
 
   if (ctx.config.run_second_cpp()) {
-    args_add(args, ctx.args_info.input_file.c_str());
+    args.push_back(ctx.args_info.input_file);
   } else {
-    args_add(args, ctx.i_tmpfile.c_str());
+    args.push_back(ctx.i_tmpfile);
   }
 
   if (ctx.args_info.seen_split_dwarf) {
@@ -1327,7 +1327,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
       args_add(args, "-C");
       args_added = 3;
     }
-    args_add(args, ctx.args_info.input_file.c_str());
+    args.push_back(ctx.args_info.input_file);
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
@@ -2444,7 +2444,7 @@ process_args(Context& ctx,
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
-        args_add(dep_args, args_info.output_dep.c_str());
+        dep_args.push_back(args_info.output_dep);
       } else {
         char* option = format("-MF%s", args_info.output_dep.c_str());
         args_add(dep_args, option);
@@ -2463,7 +2463,7 @@ process_args(Context& ctx,
         }
         args_add(dep_args, argv[i]);
         std::string relpath = make_relative_path(ctx, argv[i + 1]);
-        args_add(dep_args, relpath.c_str());
+        dep_args.push_back(relpath);
         i++;
       } else {
         char* arg_opt = x_strndup(argv[i], 3);
@@ -2514,7 +2514,7 @@ process_args(Context& ctx,
     if (str_startswith(argv[i], "--sysroot=")) {
       std::string relpath = make_relative_path(ctx, argv[i] + 10);
       std::string option = fmt::format("--sysroot={}", relpath);
-      args_add(common_args, option.c_str());
+      common_args.push_back(option);
       continue;
     }
     // Alternate form of specifying sysroot without =
@@ -2525,7 +2525,7 @@ process_args(Context& ctx,
       }
       args_add(common_args, argv[i]);
       std::string relpath = make_relative_path(ctx, argv[i + 1]);
-      args_add(common_args, relpath.c_str());
+      common_args.push_back(relpath);
       i++;
       continue;
     }
@@ -2718,10 +2718,10 @@ process_args(Context& ctx,
       std::string relpath = make_relative_path(ctx, argv[i + 1]);
       if (compopt_affects_cpp(argv[i])) {
         args_add(cpp_args, argv[i]);
-        args_add(cpp_args, relpath.c_str());
+        cpp_args.push_back(relpath);
       } else {
         args_add(common_args, argv[i]);
-        args_add(common_args, relpath.c_str());
+        common_args.push_back(relpath);
       }
 
       i++;
@@ -3060,7 +3060,7 @@ process_args(Context& ctx,
         // preprocessor so we need to use -MF to write to the correct .d file
         // location since the preprocessor doesn't know the final object path.
         args_add(dep_args, "-MF");
-        args_add(dep_args, default_depfile_name.c_str());
+        dep_args.push_back(default_depfile_name);
       }
     }
 
@@ -3070,7 +3070,7 @@ process_args(Context& ctx,
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
       args_add(dep_args, "-MQ");
-      args_add(dep_args, args_info.output_obj.c_str());
+      dep_args.push_back(args_info.output_obj);
     }
   }
   if (args_info.generating_coverage) {
@@ -3102,7 +3102,7 @@ process_args(Context& ctx,
       args_add(cpp_args, "-frewrite-includes");
       // The preprocessed source code still needs some more preprocessing.
       args_add(*compiler_args, "-x");
-      args_add(*compiler_args, args_info.actual_language.c_str());
+      compiler_args.push_back(args_info.actual_language);
     }
   } else if (explicit_language) {
     // Workaround for a bug in Apple's patched distcc -- it doesn't properly
