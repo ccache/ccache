@@ -2847,7 +2847,7 @@ process_args(Context& ctx,
 
       auto dependencies = Util::split_into_views(dependencies_env, " ");
 
-      if (dependencies.size() > 0) {
+      if (!dependencies.empty()) {
         auto abspath_file = dependencies.at(0);
         args_info.output_dep = make_relative_path(ctx, abspath_file);
       }
