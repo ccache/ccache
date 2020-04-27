@@ -28,7 +28,8 @@ Args::Args(const Args& other) : m_args(other.m_args), argv(m_args)
 {
 }
 
-Args::Args(Args&& other) : m_args(std::move(other.m_args)), argv(m_args)
+Args::Args(Args&& other) noexcept
+  : m_args(std::move(other.m_args)), argv(m_args)
 {
 }
 
@@ -134,7 +135,7 @@ Args::operator=(const Args& other)
 }
 
 Args&
-Args::operator=(Args&& other)
+Args::operator=(Args&& other) noexcept
 {
   m_args = std::move(other.m_args);
   argv.m_args = &m_args;

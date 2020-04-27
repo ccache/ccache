@@ -34,14 +34,14 @@ class Args
 public:
   Args();
   Args(const Args& other);
-  Args(Args&& other);
+  Args(Args&& other) noexcept;
 
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(const std::string& command);
   static nonstd::optional<Args> from_gcc_atfile(const std::string& filename);
 
   Args& operator=(const Args& other);
-  Args& operator=(Args&& other);
+  Args& operator=(Args&& other) noexcept;
 
   bool operator==(const Args& other) const;
   bool operator!=(const Args& other) const;
