@@ -3,8 +3,9 @@
 # (Without claiming that they are 100% correct. They can be modified on demand!)
 # If you want to improve the codebase try enabling some additional checks or
 # playing with the configuration values.
-# Some checks are highly style dependent. The goal is NOT to activate all
-# of them.
+#
+# Some checks are highly style dependent. The goal is NOT to activate all of
+# them.
 
 ---
 Checks:          '-*,
@@ -44,6 +45,7 @@ Checks:          '-*,
                   -cppcoreguidelines-avoid-goto,
                   -cppcoreguidelines-pro-type-member-init,
                   -cppcoreguidelines-macro-usage,
+                  -cppcoreguidelines-pro-type-const-cast,
                   -cppcoreguidelines-pro-type-reinterpret-cast,
                   -cppcoreguidelines-pro-type-union-access,
                   -cppcoreguidelines-narrowing-conversions,
@@ -63,7 +65,7 @@ Checks:          '-*,
 WarningsAsErrors: '*'
 # Exclude subdirectories (currently there is only third_party)
 HeaderFilterRegex: 'src/[^\\/]*^'
-CheckOptions:    
+CheckOptions:
   # Always add braces (added here just in case clang-tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           0
