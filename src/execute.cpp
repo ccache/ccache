@@ -330,7 +330,7 @@ find_executable_in_path(const char* name,
                         const char* path)
 {
   if (!path) {
-    return nullptr;
+    return {};
   }
 
   // Search the path looking for the first compiler of the right name that
