@@ -696,10 +696,10 @@ error:
 char* 
 slash_to_backslash(char* str)
 {
-    char *current_pos = strchr(str,"/");
+    char *current_pos = strchr(str,'/');
     while (current_pos){
-        *current_pos = "\\";
-        current_pos = strchr(current_pos,"/");
+        *current_pos = '\\';
+        current_pos = strchr(current_pos,'/');
     }
     return str;
 }
@@ -1457,7 +1457,7 @@ common_dir_prefix_length(const char *s1, const char *s2)
 		++p1;
 		++p2;
 	}
-	while ((*p1 && (*p1 != '/' || *p1 != '\\')) || (*p2 && (*p2 != '/' || *p2 != '\\'))) {
+	while ((*p1 && *p1 != '/') || (*p1 && *p1 != '\\') || (*p2 && *p2 != '/')  || (*p2 && *p2 != '\\')) {
 		p1--;
 		p2--;
 	}
