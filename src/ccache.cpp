@@ -2345,6 +2345,10 @@ process_args(Context& ctx,
     }
     if (str_startswith(argv[i], "-x")) {
       if (args_info.input_file.empty()) {
+        if (str_eq(&argv[i][2], "Host")) {
+            // Skip -xHost for Intel compiler support
+            continue;
+        }
         explicit_language = &argv[i][2];
       }
       continue;
