@@ -1452,7 +1452,7 @@ common_dir_prefix_length(const char *s1, const char *s2)
 {
 	const char *p1 = s1;
 	const char *p2 = s2;
-    char separator = NULL;
+    char separator = '\0';
 
     if(strchr(p1, '/') != NULL)
     {
@@ -1507,7 +1507,7 @@ get_relative_path(const char *from, const char *to)
 #endif
 
 	result = x_strdup("");
-    char separator = NULL;
+    char separator = '\0';
 	common_prefix_len = common_dir_prefix_length(from, to);
 	if (common_prefix_len > 0 || !str_eq(from, "/")) {
 		const char *p;
