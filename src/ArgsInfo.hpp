@@ -79,8 +79,8 @@ struct ArgsInfo
   // Is the compiler being asked to output coverage data (.gcda) at runtime?
   bool profile_arcs = false;
 
-  // Name of the custom profile directory (default: object dirname).
-  std::string profile_dir;
+  // Name of the custom profile directory or file.
+  std::string profile_path;
 
   // Profile generation / usage information.
   bool profile_use = false;

@@ -1559,8 +1559,8 @@ hash_common_info(const Context& ctx,
   // Possibly hash the coverage data file path.
   if (ctx.args_info.generating_coverage && ctx.args_info.profile_arcs) {
     std::string dir;
-    if (!ctx.args_info.profile_dir.empty()) {
-      dir = ctx.args_info.profile_dir;
+    if (!ctx.args_info.profile_path.empty()) {
+      dir = ctx.args_info.profile_path;
     } else {
       dir =
         Util::real_path(std::string(Util::dir_name(ctx.args_info.output_obj)));
@@ -1602,6 +1602,43 @@ hash_common_info(const Context& ctx,
       hash_string(hash, gcc_colors);
     }
   }
+}
+
+static bool
+hash_profile_data_file(const Context& ctx, struct hash* hash)
+{
+  const std::string& profile_path = ctx.args_info.profile_path;
+  string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
+  std::string hashified_cwd = ctx.apparent_cwd;
+  std::replace(hashified_cwd.begin(), hashified_cwd.end(), '/', '#');
+
+  std::vector<std::string> paths_to_try{
+    // -fprofile-use[=dir]/-fbranch-probabilities (GCC <9)
+    fmt::format("{}/{}.gcda", profile_path, base_name),
+    // -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
+    fmt::format("{}/{}#{}.gcda", profile_path, hashified_cwd, base_name),
+    // -fprofile(-instr)-use=file (Clang), -fauto-profile=file (GCC >=5)
+    profile_path,
+    // -fprofile(-instr)-use=dir (Clang)
+    fmt::format("{}/default.profdata", profile_path),
+    // -fauto-profile (GCC >=5)
+    "fbdata.afdo", // -fprofile-dir is not used
+  };
+
+  bool found = false;
+  for (const std::string& p : paths_to_try) {
+    cc_log("Checking for profile data file %s", p.c_str());
+    auto st = Stat::stat(p);
+    if (st && !st.is_directory()) {
+      cc_log("Adding profile data %s to the hash", p.c_str());
+      hash_delimiter(hash, "-fprofile-use");
+      if (hash_file(hash, p.c_str())) {
+        found = true;
+      }
+    }
+  }
+
+  return found;
 }
 
 // Update a hash sum with information specific to the direct and preprocessor
@@ -1784,33 +1821,29 @@ calculate_result_name(Context& ctx,
     hash_nvcc_host_compiler(ctx, hash, nullptr, nullptr);
   }
 
-  // For profile generation (-fprofile-arcs, -fprofile-generate):
-  // - hash profile directory
+  // For profile generation (-fprofile(-instr)-generate[=path])
+  // - hash profile path
   //
-  // For profile usage (-fprofile-use):
+  // For profile usage (-fprofile(-instr)-use, -fbranch-probabilities):
   // - hash profile data
   //
   // -fbranch-probabilities and -fvpt usage is covered by
   // -fprofile-generate/-fprofile-use.
   //
   // The profile directory can be specified as an argument to
-  // -fprofile-generate=, -fprofile-use= or -fprofile-dir=.
+  // -fprofile(-instr)-generate=, -fprofile(-instr)-use= or -fprofile-dir=.
+
   if (ctx.args_info.profile_generate) {
+    assert(!ctx.args_info.profile_path.empty());
     cc_log("Adding profile directory %s to our hash",
-           ctx.args_info.profile_dir.c_str());
+           ctx.args_info.profile_path.c_str());
     hash_delimiter(hash, "-fprofile-dir");
-    hash_string(hash, ctx.args_info.profile_dir);
+    hash_string(hash, ctx.args_info.profile_path);
   }
 
-  if (ctx.args_info.profile_use) {
-    // Calculate gcda name.
-    string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
-    std::string gcda_name =
-      fmt::format("{}/{}.gcda", ctx.args_info.profile_dir, base_name);
-    cc_log("Adding profile data %s to our hash", gcda_name.c_str());
-    // Add the gcda to our hash.
-    hash_delimiter(hash, "-fprofile-use");
-    hash_file(hash, gcda_name.c_str());
+  if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
+    cc_log("No profile data file found");
+    failed(STATS_NOINPUT);
   }
 
   // Adding -arch to hash since cpp output is affected.
@@ -2077,6 +2110,64 @@ detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
   return true;
 }
 
+static bool
+process_profiling_option(Context& ctx, const std::string& arg)
+{
+  std::string new_profile_path;
+  bool new_profile_use = false;
+
+  if (Util::starts_with(arg, "-fprofile-dir=")) {
+    new_profile_path = arg.substr(arg.find('=') + 1);
+  } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
+    ctx.args_info.profile_generate = true;
+    if (ctx.guessed_compiler == GuessedCompiler::clang) {
+      new_profile_path = ".";
+    } else {
+      // GCC uses $PWD/$(basename $obj).
+      new_profile_path = ctx.apparent_cwd;
+    }
+  } else if (Util::starts_with(arg, "-fprofile-generate=")
+             || Util::starts_with(arg, "-fprofile-instr-generate=")) {
+    ctx.args_info.profile_generate = true;
+    new_profile_path = arg.substr(arg.find('=') + 1);
+  } else if (arg == "-fprofile-use" || arg == "-fprofile-instr-use"
+             || arg == "-fbranch-probabilities" || arg == "-fauto-profile") {
+    new_profile_use = true;
+    if (ctx.args_info.profile_path.empty()) {
+      new_profile_path = ".";
+    }
+  } else if (Util::starts_with(arg, "-fprofile-use=")
+             || Util::starts_with(arg, "-fprofile-instr-use=")
+             || Util::starts_with(arg, "-fauto-profile=")) {
+    new_profile_use = true;
+    new_profile_path = arg.substr(arg.find('=') + 1);
+  } else {
+    cc_log("Unknown profiling option: %s", arg.c_str());
+    return false;
+  }
+
+  if (new_profile_use) {
+    if (ctx.args_info.profile_use) {
+      cc_log("Multiple profiling options not supported");
+      return false;
+    }
+    ctx.args_info.profile_use = true;
+  }
+
+  if (!new_profile_path.empty()) {
+    ctx.args_info.profile_path = new_profile_path;
+    cc_log("Set profile directory to %s", ctx.args_info.profile_path.c_str());
+  }
+
+  if (ctx.args_info.profile_generate && ctx.args_info.profile_use) {
+    // Too hard to figure out what the compiler will do.
+    cc_log("Both generating and using profile info, giving up");
+    return false;
+  }
+
+  return true;
+}
+
 // Process the compiler options into options suitable for passing to the
 // preprocessor and the real compiler. preprocessor_args doesn't include -E;
 // this is added later. extra_args_to_hash are the arguments that are not
@@ -2158,6 +2249,7 @@ process_args(Context& ctx,
 
   for (size_t i = 1; i < expanded_args.size(); i++) {
     size_t argc = expanded_args.size();
+    const std::string& arg = expanded_args[i];
 
     // The user knows best: just swallow the next arg.
     if (str_eq(argv[i], "--ccache-skip")) {
@@ -2244,7 +2336,7 @@ process_args(Context& ctx,
 
     // -Xarch_* options are too hard.
     if (str_startswith(argv[i], "-Xarch_")) {
-      cc_log("Unsupported compiler option :%s", argv[i]);
+      cc_log("Unsupported compiler option: %s", argv[i]);
       return STATS_UNSUPPORTED_OPTION;
     }
 
@@ -2497,8 +2589,13 @@ process_args(Context& ctx,
       args_add(common_args, argv[i]);
       continue;
     }
-    if (str_startswith(argv[i], "-fprofile-dir=")) {
-      args_info.profile_dir.assign(argv[i] + 14);
+    if (Util::starts_with(arg, "-fprofile-")
+        || Util::starts_with(arg, "-fauto-profile")
+        || arg == "-fbranch-probabilities") {
+      if (!process_profiling_option(ctx, argv[i])) {
+        // The failure is logged by process_profiling_option.
+        return STATS_UNSUPPORTED_OPTION;
+      }
       args_add(common_args, argv[i]);
       continue;
     }
@@ -2607,53 +2704,6 @@ process_args(Context& ctx,
       args_info.output_dia = make_relative_path(ctx, argv[i + 1]);
       i++;
       continue;
-    }
-
-    if (str_startswith(argv[i], "-fprofile-")) {
-      char* arg = x_strdup(argv[i]);
-      const char* arg_profile_dir = strchr(argv[i], '=');
-      if (arg_profile_dir) {
-        // Convert to absolute path.
-        std::string dir = Util::real_path(arg_profile_dir + 1);
-
-        // We can get a better hit rate by using the real path here.
-        free(arg);
-        char* option = x_strndup(argv[i], arg_profile_dir - argv[i]);
-        arg = format("%s=%s", option, dir.c_str());
-        cc_log("Rewriting %s to %s", argv[i], arg);
-        free(option);
-      }
-
-      bool supported_profile_option = false;
-      if (str_startswith(argv[i], "-fprofile-generate")
-          || str_eq(argv[i], "-fprofile-arcs")) {
-        args_info.profile_generate = true;
-        supported_profile_option = true;
-      } else if (str_startswith(argv[i], "-fprofile-use")
-                 || str_eq(argv[i], "-fbranch-probabilities")) {
-        args_info.profile_use = true;
-        supported_profile_option = true;
-      } else if (str_eq(argv[i], "-fprofile-dir")) {
-        supported_profile_option = true;
-      }
-
-      if (supported_profile_option) {
-        args_add(common_args, arg);
-        free(arg);
-
-        // If the profile directory has already been set, give up... Hard to
-        // know what the user means, and what the compiler will do.
-        if (arg_profile_dir && !args_info.profile_dir.empty()) {
-          cc_log("Profile directory already set; giving up");
-          return STATS_UNSUPPORTED_OPTION;
-        } else if (arg_profile_dir) {
-          cc_log("Setting profile directory to %s", arg_profile_dir);
-          args_info.profile_dir = from_cstr(arg_profile_dir);
-        }
-        continue;
-      }
-      cc_log("Unknown profile option: %s", argv[i]);
-      free(arg);
     }
 
     if (str_eq(argv[i], "-fcolor-diagnostics")
@@ -2897,8 +2947,8 @@ process_args(Context& ctx,
     }
   }
 
-  if (args_info.profile_dir.empty()) {
-    args_info.profile_dir = ctx.apparent_cwd;
+  if (args_info.profile_path.empty()) {
+    args_info.profile_path = ctx.apparent_cwd;
   }
 
   if (explicit_language && str_eq(explicit_language, "none")) {
