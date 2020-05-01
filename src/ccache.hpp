@@ -62,7 +62,6 @@ enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 void block_signals();
 void unblock_signals();
 nonstd::optional<enum stats> process_args(Context& ctx,
-                                          const Args& args,
                                           Args& preprocessor_args,
                                           Args& extra_args_to_hash,
                                           Args& compiler_args);

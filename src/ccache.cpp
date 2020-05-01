@@ -2177,7 +2177,6 @@ process_profiling_option(Context& ctx, const std::string& arg)
 // incremented.
 optional<enum stats>
 process_args(Context& ctx,
-             const Args& args,
              Args& preprocessor_args,
              Args& extra_args_to_hash,
              Args& compiler_args)
@@ -2210,7 +2209,7 @@ process_args(Context& ctx,
   // expanded_args is a copy of the original arguments given to the compiler
   // but with arguments from @file and similar constructs expanded. It's only
   // used as a temporary data structure to loop over.
-  Args expanded_args = args;
+  Args expanded_args = ctx.orig_args;
 
   // common_args contains all original arguments except:
   // * those that never should be passed to the preprocessor,
@@ -3528,8 +3527,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   Args compiler_args;
   MTR_BEGIN("main", "process_args");
 
-  auto error = process_args(
-    ctx, ctx.orig_args, preprocessor_args, extra_args_to_hash, compiler_args);
+  auto error =
+    process_args(ctx, preprocessor_args, extra_args_to_hash, compiler_args);
   if (error) {
     failed(*error);
   }
