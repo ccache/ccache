@@ -72,9 +72,9 @@ CheckOptions:
 
   # If you hit a limit, please consider changing the code instead of the limit.
   - key:             readability-function-size.LineThreshold
-    value:           1100
+    value:           700
   - key:             readability-function-size.StatementThreshold
-    value:           760
+    value:           500
   - key:             readability-function-size.BranchThreshold
     value:           170
   - key:             readability-function-size.ParameterThreshold

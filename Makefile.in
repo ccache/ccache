@@ -51,6 +51,7 @@ non_third_party_sources = \
     src/Util.cpp \
     src/ZstdCompressor.cpp \
     src/ZstdDecompressor.cpp \
+    src/argprocessing.cpp \
     src/ccache.cpp \
     src/cleanup.cpp \
     src/compopt.cpp \

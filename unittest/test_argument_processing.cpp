@@ -24,6 +24,7 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/stats.hpp"
+#include "argprocessing.hpp"
 #include "framework.hpp"
 #include "util.hpp"
 
