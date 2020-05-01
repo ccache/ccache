@@ -46,6 +46,7 @@ public:
   bool operator==(const Args& other) const;
   bool operator!=(const Args& other) const;
 
+  bool empty() const;
   size_t size() const;
   const std::string& operator[](size_t i) const;
   std::string& operator[](size_t i);
@@ -118,6 +119,12 @@ inline bool
 Args::operator!=(const Args& other) const
 {
   return m_args != other.m_args;
+}
+
+inline bool
+Args::empty() const
+{
+  return m_args.empty();
 }
 
 inline size_t

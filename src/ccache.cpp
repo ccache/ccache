@@ -3457,7 +3457,7 @@ cache_compilation(int argc, const char* const* argv)
     }
     // Else: Fall back to running the real compiler.
 
-    assert(ctx.orig_args.size() > 0);
+    assert(!ctx.orig_args.empty());
 
     args_strip(ctx.orig_args, "--ccache-");
     add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
