@@ -19,6 +19,7 @@
 #include "Util.hpp"
 
 #include "Config.hpp"
+#include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
 
 #include <algorithm>
@@ -403,6 +404,61 @@ is_absolute_path(string_view path)
   }
 #endif
   return !path.empty() && path[0] == '/';
+}
+
+std::string
+make_relative_path(const Context& ctx, string_view path)
+{
+  if (ctx.config.base_dir().empty()
+      || !Util::starts_with(path, ctx.config.base_dir())) {
+    return std::string(path);
+  }
+
+#ifdef _WIN32
+  std::string winpath;
+  if (path.length() >= 3 && path[0] == '/') {
+    if (isalpha(path[1]) && path[2] == '/') {
+      // Transform /c/path... to c:/path...
+      winpath = fmt::format("{}:/{}", path[1], path.substr(3));
+      path = winpath;
+    } else if (path[2] == ':') {
+      // Transform /c:/path to c:/path
+      winpath = std::string(path.substr(1));
+      path = winpath;
+    }
+  }
+#endif
+
+  // The algorithm for computing relative paths below only works for existing
+  // paths. If the path doesn't exist, find the first ancestor directory that
+  // does exist and assemble the path again afterwards.
+  string_view original_path = path;
+  std::string path_suffix;
+  Stat path_stat;
+  while (!(path_stat = Stat::stat(std::string(path)))) {
+    path = Util::dir_name(path);
+  }
+  path_suffix = std::string(original_path.substr(path.length()));
+
+  std::string path_str(path);
+  std::string normalized_path = Util::normalize_absolute_path(path_str);
+  std::vector<std::string> relpath_candidates = {
+    Util::get_relative_path(ctx.actual_cwd, normalized_path),
+    Util::get_relative_path(ctx.apparent_cwd, normalized_path),
+  };
+  // Move best (= shortest) match first:
+  if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
+    std::swap(relpath_candidates[0], relpath_candidates[1]);
+  }
+
+  for (const auto& relpath : relpath_candidates) {
+    if (Stat::stat(relpath).same_inode_as(path_stat)) {
+      return relpath + path_suffix;
+    }
+  }
+
+  // No match so nothing else to do than to return the unmodified path.
+  return std::string(original_path);
 }
 
 bool

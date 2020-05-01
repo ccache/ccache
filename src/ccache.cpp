@@ -588,63 +588,6 @@ print_included_files(const Context& ctx, FILE* fp)
   }
 }
 
-// Make a relative path from current working directory to `path` if `path` is
-// under the base directory.
-static std::string
-make_relative_path(const Context& ctx, string_view path)
-{
-  if (ctx.config.base_dir().empty()
-      || !Util::starts_with(path, ctx.config.base_dir())) {
-    return std::string(path);
-  }
-
-#ifdef _WIN32
-  std::string winpath;
-  if (path.length() >= 3 && path[0] == '/') {
-    if (isalpha(path[1]) && path[2] == '/') {
-      // Transform /c/path... to c:/path...
-      winpath = fmt::format("{}:/{}", path[1], path.substr(3));
-      path = winpath;
-    } else if (path[2] == ':') {
-      // Transform /c:/path to c:/path
-      winpath = std::string(path.substr(1));
-      path = winpath;
-    }
-  }
-#endif
-
-  // The algorithm for computing relative paths below only works for existing
-  // paths. If the path doesn't exist, find the first ancestor directory that
-  // does exist and assemble the path again afterwards.
-  string_view original_path = path;
-  std::string path_suffix;
-  Stat path_stat;
-  while (!(path_stat = Stat::stat(std::string(path)))) {
-    path = Util::dir_name(path);
-  }
-  path_suffix = std::string(original_path.substr(path.length()));
-
-  std::string path_str(path);
-  std::string normalized_path = Util::normalize_absolute_path(path_str);
-  std::vector<std::string> relpath_candidates = {
-    Util::get_relative_path(ctx.actual_cwd, normalized_path),
-    Util::get_relative_path(ctx.apparent_cwd, normalized_path),
-  };
-  // Move best (= shortest) match first:
-  if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
-    std::swap(relpath_candidates[0], relpath_candidates[1]);
-  }
-
-  for (const auto& relpath : relpath_candidates) {
-    if (Stat::stat(relpath).same_inode_as(path_stat)) {
-      return relpath + path_suffix;
-    }
-  }
-
-  // No match so nothing else to do than to return the unmodified path.
-  return std::string(original_path);
-}
-
 // This function reads and hashes a file. While doing this, it also does these
 // things:
 //
@@ -760,7 +703,7 @@ process_preprocessed_file(Context& ctx,
         ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
       }
       char* saved_inc_path = inc_path;
-      inc_path = x_strdup(make_relative_path(ctx, inc_path).c_str());
+      inc_path = x_strdup(Util::make_relative_path(ctx, inc_path).c_str());
       free(saved_inc_path);
 
       bool should_hash_inc_path = true;
@@ -819,7 +762,7 @@ process_preprocessed_file(Context& ctx,
   // mention of it in the preprocessed output.
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path =
-      make_relative_path(ctx, ctx.included_pch_file.c_str());
+      Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -863,7 +806,7 @@ use_relative_paths_in_depfile(const Context& ctx)
   for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
     if (Util::is_absolute_path(token)
         && token.starts_with(ctx.config.base_dir())) {
-      adjusted_file_content.append(make_relative_path(ctx, token));
+      adjusted_file_content.append(Util::make_relative_path(ctx, token));
       rewritten = true;
     } else {
       adjusted_file_content.append(token.begin(), token.end());
@@ -928,7 +871,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
     if (!ctx.has_absolute_include_headers) {
       ctx.has_absolute_include_headers = Util::is_absolute_path(token);
     }
-    std::string path = make_relative_path(ctx, token);
+    std::string path = Util::make_relative_path(ctx, token);
     remember_include_file(ctx, path, hash, false, hash);
   }
 
@@ -936,7 +879,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
   // dependencies output.
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path =
-      make_relative_path(ctx, ctx.included_pch_file.c_str());
+      Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
     hash_string(hash, pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -2447,7 +2390,7 @@ process_args(Context& ctx,
         cc_log("Missing argument to %s", argv[i]);
         return STATS_ARGS;
       }
-      args_info.output_obj = make_relative_path(ctx, argv[i + 1]);
+      args_info.output_obj = Util::make_relative_path(ctx, argv[i + 1]);
       i++;
       continue;
     }
@@ -2455,7 +2398,7 @@ process_args(Context& ctx,
     // Alternate form of -o with no space. Nvcc does not support this.
     if (str_startswith(argv[i], "-o")
         && ctx.guessed_compiler != GuessedCompiler::nvcc) {
-      args_info.output_obj = make_relative_path(ctx, &argv[i][2]);
+      args_info.output_obj = Util::make_relative_path(ctx, &argv[i][2]);
       continue;
     }
 
@@ -2531,7 +2474,7 @@ process_args(Context& ctx,
           ++dep_file;
         }
       }
-      args_info.output_dep = make_relative_path(ctx, dep_file);
+      args_info.output_dep = Util::make_relative_path(ctx, dep_file);
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
@@ -2553,12 +2496,12 @@ process_args(Context& ctx,
           return STATS_ARGS;
         }
         args_add(dep_args, argv[i]);
-        std::string relpath = make_relative_path(ctx, argv[i + 1]);
+        std::string relpath = Util::make_relative_path(ctx, argv[i + 1]);
         dep_args.push_back(relpath);
         i++;
       } else {
         char* arg_opt = x_strndup(argv[i], 3);
-        std::string relpath = make_relative_path(ctx, argv[i] + 3);
+        std::string relpath = Util::make_relative_path(ctx, argv[i] + 3);
         char* option = format("%s%s", arg_opt, relpath.c_str());
         args_add(dep_args, option);
         free(arg_opt);
@@ -2608,7 +2551,7 @@ process_args(Context& ctx,
       continue;
     }
     if (str_startswith(argv[i], "--sysroot=")) {
-      std::string relpath = make_relative_path(ctx, argv[i] + 10);
+      std::string relpath = Util::make_relative_path(ctx, argv[i] + 10);
       std::string option = fmt::format("--sysroot={}", relpath);
       common_args.push_back(option);
       continue;
@@ -2620,7 +2563,7 @@ process_args(Context& ctx,
         return STATS_ARGS;
       }
       args_add(common_args, argv[i]);
-      std::string relpath = make_relative_path(ctx, argv[i + 1]);
+      std::string relpath = Util::make_relative_path(ctx, argv[i + 1]);
       common_args.push_back(relpath);
       i++;
       continue;
@@ -2648,14 +2591,14 @@ process_args(Context& ctx,
                  && !strchr(argv[i] + 8, ',')) {
         args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep = make_relative_path(ctx, argv[i] + 8);
+        args_info.output_dep = Util::make_relative_path(ctx, argv[i] + 8);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-MMD,")
                  && !strchr(argv[i] + 9, ',')) {
         args_info.generating_dependencies = true;
         dependency_filename_specified = true;
-        args_info.output_dep = make_relative_path(ctx, argv[i] + 9);
+        args_info.output_dep = Util::make_relative_path(ctx, argv[i] + 9);
         args_add(dep_args, argv[i]);
         continue;
       } else if (str_startswith(argv[i], "-Wp,-D")
@@ -2700,7 +2643,7 @@ process_args(Context& ctx,
         return STATS_ARGS;
       }
       args_info.generating_diagnostics = true;
-      args_info.output_dia = make_relative_path(ctx, argv[i + 1]);
+      args_info.output_dia = Util::make_relative_path(ctx, argv[i + 1]);
       i++;
       continue;
     }
@@ -2764,7 +2707,7 @@ process_args(Context& ctx,
         return STATS_ARGS;
       }
 
-      std::string relpath = make_relative_path(ctx, argv[i + 1]);
+      std::string relpath = Util::make_relative_path(ctx, argv[i + 1]);
       if (compopt_affects_cpp(argv[i])) {
         args_add(cpp_args, argv[i]);
         cpp_args.push_back(relpath);
@@ -2784,7 +2727,7 @@ process_args(Context& ctx,
       if (slash_pos) {
         char* option = x_strndup(argv[i], slash_pos - argv[i]);
         if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-          std::string relpath = make_relative_path(ctx, slash_pos);
+          std::string relpath = Util::make_relative_path(ctx, slash_pos);
           char* new_option = format("%s%s", option, relpath.c_str());
           if (compopt_affects_cpp(option)) {
             args_add(cpp_args, new_option);
@@ -2870,7 +2813,7 @@ process_args(Context& ctx,
     }
 
     // Rewrite to relative to increase hit rate.
-    args_info.input_file = make_relative_path(ctx, argv[i]);
+    args_info.input_file = Util::make_relative_path(ctx, argv[i]);
   } // for
 
   if (generating_debuginfo_level_3 && !config.run_second_cpp()) {
@@ -2898,7 +2841,7 @@ process_args(Context& ctx,
 
       if (!dependencies.empty()) {
         auto abspath_file = dependencies.at(0);
-        args_info.output_dep = make_relative_path(ctx, abspath_file);
+        args_info.output_dep = Util::make_relative_path(ctx, abspath_file);
       }
 
       // specifying target object is optional.
@@ -2907,7 +2850,7 @@ process_args(Context& ctx,
         string_view abspath_obj = dependencies.at(1);
 
         dependency_target_specified = true;
-        std::string relpath_obj = make_relative_path(ctx, abspath_obj);
+        std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
         // ensure compiler gets relative path.
         std::string relpath_both =
           fmt::format("{} {}", args_info.output_dep, relpath_obj);
@@ -3103,7 +3046,8 @@ process_args(Context& ctx,
     if (!dependency_filename_specified) {
       std::string default_depfile_name =
         Util::change_extension(args_info.output_obj, ".d");
-      args_info.output_dep = make_relative_path(ctx, default_depfile_name);
+      args_info.output_dep =
+        Util::make_relative_path(ctx, default_depfile_name);
       if (!config.run_second_cpp()) {
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
@@ -3125,12 +3069,12 @@ process_args(Context& ctx,
   if (args_info.generating_coverage) {
     std::string gcda_path =
       Util::change_extension(args_info.output_obj, ".gcno");
-    args_info.output_cov = make_relative_path(ctx, gcda_path);
+    args_info.output_cov = Util::make_relative_path(ctx, gcda_path);
   }
   if (args_info.generating_stackusage) {
     std::string default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
-    args_info.output_su = make_relative_path(ctx, default_sufile_name);
+    args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
   }
 
   *compiler_args = args_copy(common_args);
