@@ -2515,7 +2515,7 @@ process_args(Context& ctx,
     if (str_startswith(argv[i], "-MF")) {
       dependency_filename_specified = true;
 
-      const char* arg;
+      const char* dep_file;
       bool separate_argument = (strlen(argv[i]) == 3);
       if (separate_argument) {
         // -MF arg
@@ -2523,16 +2523,16 @@ process_args(Context& ctx,
           cc_log("Missing argument to %s", argv[i]);
           return STATS_ARGS;
         }
-        arg = argv[i + 1];
+        dep_file = argv[i + 1];
         i++;
       } else {
         // -MFarg or -MF=arg (EDG-based compilers)
-        arg = &argv[i][3];
-        if (arg[0] == '=') {
-          ++arg;
+        dep_file = &argv[i][3];
+        if (dep_file[0] == '=') {
+          ++dep_file;
         }
       }
-      args_info.output_dep = make_relative_path(ctx, arg);
+      args_info.output_dep = make_relative_path(ctx, dep_file);
       // Keep the format of the args the same.
       if (separate_argument) {
         args_add(dep_args, "-MF");
