@@ -108,7 +108,7 @@ dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
-ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.cpp 2>/dev/null),$(version))
+ifneq ($(shell sed -n 's/.*"\(.*\)".*/\1/p' src/version.cpp 2>/dev/null),$(version))
   $(shell echo 'extern const char CCACHE_VERSION[];' >src/version.cpp)
   $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >>src/version.cpp)
 endif
