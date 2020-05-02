@@ -478,8 +478,7 @@ std::string
 get_file(const Config& config)
 {
   std::string filename = get_file_from_config(config);
-  struct stat st_buf;
-  if (!stat(filename.c_str(), &st_buf))
+  if (Stat::stat(filename))
     return filename;
   return std::string();
 }
