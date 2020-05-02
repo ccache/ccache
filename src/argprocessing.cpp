@@ -23,6 +23,8 @@
 #include "language.hpp"
 #include "logging.hpp"
 
+#include <cassert>
+
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -86,44 +88,46 @@ color_output_possible()
 }
 
 bool
-detect_pch(Context& ctx, const char* option, const char* arg, bool* found_pch)
+detect_pch(Context& ctx,
+           const std::string& option,
+           const std::string& arg,
+           bool* found_pch)
 {
+  assert(found_pch);
+
   // Try to be smart about detecting precompiled headers.
-  char* pch_file = nullptr;
-  if (str_eq(option, "-include-pch") || str_eq(option, "-include-pth")) {
+  std::string pch_file;
+  if (option == "-include-pch" || option == "-include-pth") {
     if (Stat::stat(arg)) {
-      cc_log("Detected use of precompiled header: %s", arg);
-      pch_file = x_strdup(arg);
+      cc_log("Detected use of precompiled header: %s", arg.c_str());
+      pch_file = arg;
     }
   } else {
-    char* gchpath = format("%s.gch", arg);
-    if (Stat::stat(gchpath)) {
-      cc_log("Detected use of precompiled header: %s", gchpath);
-      pch_file = x_strdup(gchpath);
+    std::string gch_path = fmt::format("{}.gch", arg);
+    if (Stat::stat(gch_path)) {
+      cc_log("Detected use of precompiled header: %s", gch_path.c_str());
+      pch_file = gch_path;
     } else {
-      char* pchpath = format("%s.pch", arg);
-      if (Stat::stat(pchpath)) {
-        cc_log("Detected use of precompiled header: %s", pchpath);
-        pch_file = x_strdup(pchpath);
+      std::string pch_path = fmt::format("{}.pch", arg);
+      if (Stat::stat(pch_path)) {
+        cc_log("Detected use of precompiled header: %s", pch_path.c_str());
+        pch_file = pch_path;
       } else {
-        // clang may use pretokenized headers.
-        char* pthpath = format("%s.pth", arg);
-        if (Stat::stat(pthpath)) {
-          cc_log("Detected use of pretokenized header: %s", pthpath);
-          pch_file = x_strdup(pthpath);
+        // Clang may use pretokenized headers.
+        std::string pth_path = fmt::format("{}.pth", arg);
+        if (Stat::stat(pth_path)) {
+          cc_log("Detected use of pretokenized header: %s", pth_path.c_str());
+          pch_file = pth_path;
         }
-        free(pthpath);
       }
-      free(pchpath);
     }
-    free(gchpath);
   }
 
-  if (pch_file) {
+  if (!pch_file.empty()) {
     if (!ctx.included_pch_file.empty()) {
-      cc_log("Multiple precompiled headers used: %s and %s\n",
+      cc_log("Multiple precompiled headers used: %s and %s",
              ctx.included_pch_file.c_str(),
-             pch_file);
+             pch_file.c_str());
       return false;
     }
     ctx.included_pch_file = pch_file;
@@ -930,7 +934,8 @@ process_args(Context& ctx,
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
     state.explicit_language.clear();
   }
-  state.file_language = language_for_file(args_info.input_file.c_str());
+  state.file_language =
+    from_cstr(language_for_file(args_info.input_file.c_str()));
   if (!state.explicit_language.empty()) {
     if (!language_is_supported(state.explicit_language.c_str())) {
       cc_log("Unsupported language: %s", state.explicit_language.c_str());
