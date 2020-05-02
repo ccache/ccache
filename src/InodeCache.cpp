@@ -326,7 +326,7 @@ create_new_file(const std::string& filename)
   munmap(sr, sizeof(SharedRegion));
 
   // linkat() will fail silently if a file with the same name already exists.
-  // This will be the case if two processes tries to create a new file
+  // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us using the first created file also if we didn't win the
   // race.
