@@ -176,28 +176,28 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 bool
 InodeCache::hash_inode(const char* path, digest* digest)
 {
-  struct stat st_buf;
-  if (stat(path, &st_buf)) {
-    cc_log("Could not stat %s: %s", path, strerror(errno));
+  Stat stat = Stat::stat(path);
+  if (!stat) {
+    cc_log("Could not stat %s: %s", path, strerror(stat.error_number()));
     return false;
   }
 
   Key key;
   memset(&key, 0, sizeof(Key));
-  key.st_dev = st_buf.st_dev;
-  key.st_ino = st_buf.st_ino;
-  key.st_mode = st_buf.st_mode;
+  key.st_dev = stat.device();
+  key.st_ino = stat.inode();
+  key.st_mode = stat.mode();
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM
-  key.st_mtim = st_buf.st_mtim;
+  key.st_mtim = stat.mtim();
 #  else
-  key.st_mtim = st_buf.st_mtime;
+  key.st_mtim = stat.mtime();
 #  endif
 #  ifdef HAVE_STRUCT_STAT_ST_CTIM
-  key.st_ctim = st_buf.st_ctim;
+  key.st_ctim = stat.ctim();
 #  else
-  key.st_ctim = st_buf.st_ctime;
+  key.st_ctim = stat.ctime();
 #  endif
-  key.st_size = st_buf.st_size;
+  key.st_size = stat.size();
   key.sloppy_time_macros = m_config.sloppiness() & SLOPPY_TIME_MACROS;
 
   struct hash* hash = hash_init();

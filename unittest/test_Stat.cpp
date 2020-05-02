@@ -40,6 +40,16 @@ TEST_CASE("Default constructor")
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == 0);
+  CHECK(stat.ctim().tv_nsec == 0);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == 0);
+  CHECK(stat.mtim().tv_nsec == 0);
+#endif
 }
 
 TEST_CASE("Named constructors")
@@ -86,6 +96,16 @@ TEST_CASE("Return values when file is missing")
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == 0);
+  CHECK(stat.ctim().tv_nsec == 0);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == 0);
+  CHECK(stat.mtim().tv_nsec == 0);
+#endif
 }
 
 TEST_CASE("Return values when file exists")
@@ -112,6 +132,16 @@ TEST_CASE("Return values when file exists")
   CHECK(!stat.is_directory());
   CHECK(stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == st.st_ctim.tv_sec);
+  CHECK(stat.ctim().tv_nsec == st.st_ctim.tv_nsec);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
+  CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+#endif
 }
 
 TEST_CASE("Directory")
