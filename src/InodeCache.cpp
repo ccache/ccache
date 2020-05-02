@@ -392,7 +392,7 @@ get(const Config& config,
 
   for (uint32_t i = 0; i < k_num_entries; ++i) {
     if (digests_equal(&bucket->entries[i].key_digest, &key_digest)) {
-      if (i) {
+      if (i > 0) {
         Entry tmp;
         memcpy(&tmp, &bucket->entries[i], sizeof(Entry));
         memmove(&bucket->entries[1], &bucket->entries[0], sizeof(Entry) * i);
