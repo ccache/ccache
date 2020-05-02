@@ -147,10 +147,8 @@ mmap_file(const std::string& inode_cache_file)
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   close(fd);
   if (sr == reinterpret_cast<void*>(-1)) {
-    fprintf(stderr,
-            "Failed to mmap %s: %s\n",
-            inode_cache_file.c_str(),
-            strerror(errno));
+    cc_log(
+      "Failed to mmap %s: %s\n", inode_cache_file.c_str(), strerror(errno));
     return false;
   }
   // Drop the file from disk if the found version is not matching. This will
@@ -213,24 +211,18 @@ acquire_bucket(uint32_t index)
     ++g_sr->errors;
     err = pthread_mutex_consistent(&bucket->mt);
     if (err) {
-      fprintf(stderr,
-              "Can't consolidate stale mutex at index %u: %s\n",
-              index,
-              strerror(err));
-      fprintf(
-        stderr,
-        "Consider removing the inode cache file if the problem persists.\n");
+      cc_log(
+        "Can't consolidate stale mutex at index %u: %s", index, strerror(err));
+      cc_log("Consider removing the inode cache file if the problem persists");
       return nullptr;
     }
-    cc_log("Wiping bucket at index %u because of stale mutex.\n", index);
+    cc_log("Wiping bucket at index %u because of stale mutex", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
 #  endif
     if (err) {
-      fprintf(
-        stderr, "Failed to lock mutex at index %u: %s\n", index, strerror(err));
-      fprintf(stderr,
-              "Consider removing the inode cache file if preblem persists.\n");
+      cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
+      cc_log("Consider removing the inode cache file if preblem persists");
       ++g_sr->errors;
       return nullptr;
     }
@@ -284,7 +276,7 @@ create_new_file(const std::string& filename)
                                          temp_fd.first,
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
-    fprintf(stderr, "Failed to mmap new inode cache: %s\n", strerror(errno));
+    cc_log("Failed to mmap new inode cache: %s", strerror(errno));
     close(temp_fd.first);
     return false;
   }
