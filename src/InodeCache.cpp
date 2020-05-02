@@ -46,7 +46,7 @@ namespace {
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the
 // top level is a hash table consisting of buckets. Each bucket contains entries
-// that are sorted in lru order. Entries maps from keys representing files to
+// that are sorted in LRU order. Entries map from keys representing files to
 // cached hash results.
 //
 // Concurrent access is guarded by a mutex in each bucket.
