@@ -495,7 +495,7 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
-[[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE*)::
+[[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, enables caching of source file hashes based on device, inode and
     timestamps. This will reduce the time spent on hashing included files as
