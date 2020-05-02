@@ -200,7 +200,7 @@ acquire_bucket(uint32_t index)
               "Consider removing the inode cache file if the problem persists.\n");
       return nullptr;
     }
-    cc_log("Whiping bucket at index %u because of stale mutex.\n", index);
+    cc_log("Wiping bucket at index %u because of stale mutex.\n", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
 #  endif
