@@ -40,9 +40,9 @@ struct ArgumentProcessingState
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
 
-  const char* explicit_language = nullptr; // As specified with -x.
-  const char* file_language = nullptr;     // As deduced from file extension.
-  const char* input_charset = nullptr;
+  std::string explicit_language; // As specified with -x.
+  std::string file_language;     // As deduced from file extension.
+  std::string input_charset;
 
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
@@ -927,18 +927,18 @@ process_args(Context& ctx,
     args_info.profile_path = ctx.apparent_cwd;
   }
 
-  if (state.explicit_language && str_eq(state.explicit_language, "none")) {
-    state.explicit_language = nullptr;
+  if (!state.explicit_language.empty() && state.explicit_language == "none") {
+    state.explicit_language.clear();
   }
   state.file_language = language_for_file(args_info.input_file.c_str());
-  if (state.explicit_language) {
-    if (!language_is_supported(state.explicit_language)) {
-      cc_log("Unsupported language: %s", state.explicit_language);
+  if (!state.explicit_language.empty()) {
+    if (!language_is_supported(state.explicit_language.c_str())) {
+      cc_log("Unsupported language: %s", state.explicit_language.c_str());
       return STATS_SOURCELANG;
     }
-    args_info.actual_language = from_cstr(state.explicit_language);
+    args_info.actual_language = state.explicit_language;
   } else {
-    args_info.actual_language = from_cstr(state.file_language);
+    args_info.actual_language = state.file_language;
   }
 
   args_info.output_is_precompiled_header =
@@ -1043,13 +1043,13 @@ process_args(Context& ctx,
   //
   // -finput-charset=XXX (otherwise conversion happens twice)
   // -x XXX (otherwise the wrong language is selected)
-  if (state.input_charset) {
+  if (!state.input_charset.empty()) {
     args_add(state.cpp_args, state.input_charset);
   }
   if (state.found_pch) {
     args_add(state.cpp_args, "-fpch-preprocess");
   }
-  if (state.explicit_language) {
+  if (!state.explicit_language.empty()) {
     args_add(state.cpp_args, "-x");
     args_add(state.cpp_args, state.explicit_language);
   }
@@ -1132,12 +1132,13 @@ process_args(Context& ctx,
       args_add(*compiler_args, "-x");
       compiler_args.push_back(args_info.actual_language);
     }
-  } else if (state.explicit_language) {
+  } else if (!state.explicit_language.empty()) {
     // Workaround for a bug in Apple's patched distcc -- it doesn't properly
     // reset the language specified with -x, so if -x is given, we have to
     // specify the preprocessed language explicitly.
     args_add(*compiler_args, "-x");
-    args_add(*compiler_args, p_language_for_language(state.explicit_language));
+    args_add(*compiler_args,
+             p_language_for_language(state.explicit_language.c_str()));
   }
 
   if (state.found_c_opt) {
