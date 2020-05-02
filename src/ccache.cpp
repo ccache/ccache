@@ -531,7 +531,7 @@ do_remember_include_file(Context& ctx,
       int result;
 #ifdef INODE_CACHE_SUPPORTED
       if (ctx.config.inode_cache()) {
-        result = hash_source_code_file(ctx.config, fhash, path.c_str());
+        result = hash_source_code_file(ctx, fhash, path.c_str());
       } else {
 #endif
         char* source = nullptr;
@@ -545,8 +545,8 @@ do_remember_include_file(Context& ctx,
           size = 0;
         }
 
-        result = hash_source_code_string(
-          ctx.config, fhash, source, size, path.c_str());
+        result =
+          hash_source_code_string(ctx, fhash, source, size, path.c_str());
         free(source);
 #ifdef INODE_CACHE_SUPPORTED
       }
@@ -1894,7 +1894,7 @@ calculate_result_name(Context& ctx,
 
     hash_delimiter(hash, "sourcecode");
     int result =
-      hash_source_code_file(ctx.config, hash, ctx.args_info.input_file.c_str());
+      hash_source_code_file(ctx, hash, ctx.args_info.input_file.c_str());
     if (result & HASH_SOURCE_CODE_ERROR) {
       failed(STATS_ERROR);
     }
@@ -3798,8 +3798,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      wipe_all(ctx.config,
-               [&](double progress) { progress_bar.update(progress); });
+      wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         printf("\n");
       }
@@ -3860,7 +3859,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 's': // --show-stats
-      stats_summary(ctx.config);
+      stats_summary(ctx);
       break;
 
     case 'V': // --version
@@ -3897,7 +3896,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'z': // --zero-stats
-      stats_zero(ctx.config);
+      stats_zero(ctx);
       printf("Statistics zeroed\n");
       break;
 

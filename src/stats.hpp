@@ -71,8 +71,8 @@ void stats_flush(void* context);
 void stats_flush_to_file(const Config& config,
                          std::string sfile,
                          const Counters& updates);
-void stats_zero(const Config& config);
-void stats_summary(const Config& config);
+void stats_zero(const Context& ctx);
+void stats_summary(const Context& ctx);
 void stats_print(const Config& config);
 
 void stats_update_size(Counters& counters, int64_t size, int files);

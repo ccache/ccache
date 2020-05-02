@@ -36,12 +36,12 @@ unsigned hash_from_int(int i);
 #define HASH_SOURCE_CODE_FOUND_TIMESTAMP 8
 
 int check_for_temporal_macros(const char* str, size_t len);
-int hash_source_code_string(const Config& config,
+int hash_source_code_string(const Context& ctx,
                             struct hash* hash,
                             const char* str,
                             size_t len,
                             const char* path);
-int hash_source_code_file(const Config& config,
+int hash_source_code_file(const Context& ctx,
                           struct hash* hash,
                           const char* path,
                           size_t size_hint = 0);

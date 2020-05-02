@@ -189,7 +189,7 @@ check_for_temporal_macros(const char* str, size_t len)
 
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
-hash_source_code_string(const Config& config,
+hash_source_code_string(const Context& ctx,
                         struct hash* hash,
                         const char* str,
                         size_t len,
@@ -199,7 +199,7 @@ hash_source_code_string(const Config& config,
 
   // Check for __DATE__, __TIME__ and __TIMESTAMP__if the sloppiness
   // configuration tells us we should.
-  if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
+  if (!(ctx.config.sloppiness() & SLOPPY_TIME_MACROS)) {
     result |= check_for_temporal_macros(str, len);
   }
 
@@ -263,7 +263,7 @@ hash_source_code_string(const Config& config,
 }
 
 static int
-hash_source_code_file_nocache(const Config& config,
+hash_source_code_file_nocache(const Context& ctx,
                               struct hash* hash,
                               const char* path,
                               size_t size_hint)
@@ -280,7 +280,7 @@ hash_source_code_file_nocache(const Config& config,
     if (!read_file(path, size_hint, &data, &size)) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(config, hash, data, size, path);
+    int result = hash_source_code_string(ctx, hash, data, size, path);
     free(data);
     return result;
   }
@@ -289,15 +289,15 @@ hash_source_code_file_nocache(const Config& config,
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
 // results.
 int
-hash_source_code_file(const Config& config,
+hash_source_code_file(const Context& ctx,
                       struct hash* hash,
                       const char* path,
                       size_t size_hint)
 {
 #ifdef INODE_CACHE_SUPPORTED
-  if (!config.inode_cache())
+  if (!ctx.config.inode_cache())
 #endif
-    return hash_source_code_file_nocache(config, hash, path, size_hint);
+    return hash_source_code_file_nocache(ctx, hash, path, size_hint);
 
 #ifdef INODE_CACHE_SUPPORTED
   // Reusable file hashes must be independent of the outer context. Thus hash
@@ -305,18 +305,18 @@ hash_source_code_file(const Config& config,
   // add the digest into the outer hash instead.
   struct digest digest;
   int return_value;
-  if (!InodeCache::get(config, path, &digest, &return_value)) {
+  if (!ctx.inode_cache.get(path, &digest, &return_value)) {
     cc_log(
       "File not found in inode cache, falling back on content hashing for %s",
       path);
     struct hash* file_hash = hash_init();
     return_value =
-      hash_source_code_file_nocache(config, file_hash, path, size_hint);
+      hash_source_code_file_nocache(ctx, file_hash, path, size_hint);
     if (return_value == HASH_SOURCE_CODE_ERROR)
       return HASH_SOURCE_CODE_ERROR;
     hash_result_as_bytes(file_hash, &digest);
     hash_free(file_hash);
-    InodeCache::put(config, path, digest, return_value);
+    ctx.inode_cache.put(path, digest, return_value);
   }
   hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
   return return_value;

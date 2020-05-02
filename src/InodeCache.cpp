@@ -40,8 +40,6 @@
 #  include <time.h>
 #  include <unistd.h>
 
-namespace InodeCache {
-
 namespace {
 
 // The inode cache resides on a file that is mapped into shared memory by
@@ -86,7 +84,17 @@ get_default_filename()
   return filename;
 }
 
-struct Key
+std::string
+get_file_from_config(const Config& config)
+{
+  return config.inode_cache_file().empty()
+           ? get_default_filename()
+           : config.inode_cache_file() + version_suffix;
+}
+
+} // namespace
+
+struct InodeCache::Key
 {
   dev_t st_dev;
   ino_t st_ino;
@@ -105,14 +113,14 @@ struct Key
   bool sloppy_time_macros;
 };
 
-struct Entry
+struct InodeCache::Entry
 {
   digest key_digest;  // Hashed key
   digest file_digest; // Cached file hash
   int return_value;   // Cached return value
 };
 
-struct Bucket
+struct InodeCache::Bucket
 {
   pthread_mutex_t mt;
   int32_t hits;
@@ -120,21 +128,19 @@ struct Bucket
   Entry entries[k_num_entries];
 };
 
-struct SharedRegion
+struct InodeCache::SharedRegion
 {
   uint32_t version;
   std::atomic<int64_t> errors;
   Bucket buckets[k_num_buckets];
 };
 
-SharedRegion* g_sr;
-
 bool
-mmap_file(const std::string& inode_cache_file)
+InodeCache::mmap_file(const std::string& inode_cache_file)
 {
-  if (g_sr) {
-    munmap(g_sr, sizeof(SharedRegion));
-    g_sr = nullptr;
+  if (m_sr) {
+    munmap(m_sr, sizeof(SharedRegion));
+    m_sr = nullptr;
   }
   int fd = open(inode_cache_file.c_str(), O_RDWR);
   if (fd < 0) {
@@ -163,12 +169,12 @@ mmap_file(const std::string& inode_cache_file)
     unlink(inode_cache_file.c_str());
     return false;
   }
-  g_sr = sr;
+  m_sr = sr;
   return true;
 }
 
 bool
-hash_inode(const Config& config, const char* path, digest* digest)
+InodeCache::hash_inode(const char* path, digest* digest)
 {
   struct stat st_buf;
   if (stat(path, &st_buf)) {
@@ -192,7 +198,7 @@ hash_inode(const Config& config, const char* path, digest* digest)
   key.st_ctim = st_buf.st_ctime;
 #  endif
   key.st_size = st_buf.st_size;
-  key.sloppy_time_macros = config.sloppiness() & SLOPPY_TIME_MACROS;
+  key.sloppy_time_macros = m_config.sloppiness() & SLOPPY_TIME_MACROS;
 
   struct hash* hash = hash_init();
   hash_buffer(hash, &key, sizeof(Key));
@@ -201,14 +207,14 @@ hash_inode(const Config& config, const char* path, digest* digest)
   return true;
 }
 
-Bucket*
-acquire_bucket(uint32_t index)
+InodeCache::Bucket*
+InodeCache::acquire_bucket(uint32_t index)
 {
-  Bucket* bucket = &g_sr->buckets[index];
+  Bucket* bucket = &m_sr->buckets[index];
   int err = pthread_mutex_lock(&bucket->mt);
 #  ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
-    ++g_sr->errors;
+    ++m_sr->errors;
     err = pthread_mutex_consistent(&bucket->mt);
     if (err) {
       cc_log(
@@ -223,7 +229,7 @@ acquire_bucket(uint32_t index)
     if (err) {
       cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
       cc_log("Consider removing the inode cache file if preblem persists");
-      ++g_sr->errors;
+      ++m_sr->errors;
       return nullptr;
     }
 #  ifdef PTHREAD_MUTEX_ROBUST
@@ -232,8 +238,8 @@ acquire_bucket(uint32_t index)
   return bucket;
 }
 
-Bucket*
-acquire_bucket(const digest& key_digest)
+InodeCache::Bucket*
+InodeCache::acquire_bucket(const digest& key_digest)
 {
   uint32_t hash;
   Util::big_endian_to_int(key_digest.bytes, hash);
@@ -241,21 +247,13 @@ acquire_bucket(const digest& key_digest)
 }
 
 void
-release_bucket(Bucket* bucket)
+InodeCache::release_bucket(Bucket* bucket)
 {
   pthread_mutex_unlock(&bucket->mt);
 }
 
-std::string
-get_file_from_config(const Config& config)
-{
-  return config.inode_cache_file().empty()
-           ? get_default_filename()
-           : config.inode_cache_file() + version_suffix;
-}
-
 bool
-create_new_file(const std::string& filename)
+InodeCache::create_new_file(const std::string& filename)
 {
   cc_log("Creating a new inode cache");
 
@@ -311,16 +309,16 @@ create_new_file(const std::string& filename)
 }
 
 bool
-initialize(const Config& config)
+InodeCache::initialize()
 {
-  if (!config.inode_cache())
+  if (!m_config.inode_cache())
     return false;
 
-  if (g_sr)
+  if (m_sr)
     return true;
 
-  std::string filename = get_file_from_config(config);
-  if (g_sr || mmap_file(filename))
+  std::string filename = get_file_from_config(m_config);
+  if (m_sr || mmap_file(filename))
     return true;
 
   // Try to create a new cache if we failed to map an existing file.
@@ -333,19 +331,24 @@ initialize(const Config& config)
   return mmap_file(filename);
 }
 
-} // namespace
+InodeCache::InodeCache(const Config& config) : m_config(config), m_sr(nullptr)
+{
+}
+
+InodeCache::~InodeCache()
+{
+  if (m_sr)
+    munmap(m_sr, sizeof(SharedRegion));
+}
 
 bool
-get(const Config& config,
-    const char* path,
-    digest* file_digest,
-    int* return_value)
+InodeCache::get(const char* path, digest* file_digest, int* return_value)
 {
-  if (!initialize(config))
+  if (!initialize())
     return false;
 
   digest key_digest;
-  if (!hash_inode(config, path, &key_digest))
+  if (!hash_inode(path, &key_digest))
     return false;
 
   Bucket* bucket = acquire_bucket(key_digest);
@@ -375,16 +378,13 @@ get(const Config& config,
 }
 
 bool
-put(const Config& config,
-    const char* path,
-    const digest& file_digest,
-    int return_value)
+InodeCache::put(const char* path, const digest& file_digest, int return_value)
 {
-  if (!initialize(config))
+  if (!initialize())
     return false;
 
   digest key_digest;
-  if (!hash_inode(config, path, &key_digest))
+  if (!hash_inode(path, &key_digest))
     return false;
 
   Bucket* bucket = acquire_bucket(key_digest);
@@ -406,9 +406,9 @@ put(const Config& config,
 }
 
 bool
-zero_stats(const Config& config)
+InodeCache::zero_stats()
 {
-  if (!initialize(config))
+  if (!initialize())
     return false;
   for (uint32_t i = 0; i < k_num_buckets; ++i) {
     Bucket* bucket = acquire_bucket(i);
@@ -419,36 +419,36 @@ zero_stats(const Config& config)
     bucket->misses = 0;
     release_bucket(bucket);
   }
-  g_sr->errors = 0;
+  m_sr->errors = 0;
   return true;
 }
 
 bool
-drop(const Config& config)
+InodeCache::drop()
 {
-  std::string file = get_file(config);
+  std::string file = get_file();
   if (file.empty() || unlink(file.c_str()) != 0)
     return false;
-  if (g_sr) {
-    munmap(g_sr, sizeof(SharedRegion));
-    g_sr = nullptr;
+  if (m_sr) {
+    munmap(m_sr, sizeof(SharedRegion));
+    m_sr = nullptr;
   }
   return true;
 }
 
 std::string
-get_file(const Config& config)
+InodeCache::get_file()
 {
-  std::string filename = get_file_from_config(config);
+  std::string filename = get_file_from_config(m_config);
   if (Stat::stat(filename))
     return filename;
   return std::string();
 }
 
 int64_t
-get_hits(const Config& config)
+InodeCache::get_hits()
 {
-  if (!initialize(config))
+  if (!initialize())
     return -1;
   int64_t sum = 0;
   for (uint32_t i = 0; i < k_num_buckets; ++i) {
@@ -463,9 +463,9 @@ get_hits(const Config& config)
 }
 
 int64_t
-get_misses(const Config& config)
+InodeCache::get_misses()
 {
-  if (!initialize(config))
+  if (!initialize())
     return -1;
   int64_t sum = 0;
   for (uint32_t i = 0; i < k_num_buckets; ++i) {
@@ -480,10 +480,9 @@ get_misses(const Config& config)
 }
 
 int64_t
-get_errors(const Config& config)
+InodeCache::get_errors()
 {
-  return initialize(config) ? g_sr->errors.load() : -1;
+  return initialize() ? m_sr->errors.load() : -1;
 }
 
-} // namespace InodeCache
 #endif

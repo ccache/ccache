@@ -401,17 +401,18 @@ stats_update(Context& ctx, enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(const Config& config)
+stats_summary(const Context& ctx)
 {
   Counters counters;
   time_t last_updated;
-  stats_collect(config, counters, &last_updated);
+  stats_collect(ctx.config, counters, &last_updated);
 
-  fmt::print("cache directory                     {}\n", config.cache_dir());
+  fmt::print("cache directory                     {}\n",
+             ctx.config.cache_dir());
   fmt::print("primary config                      {}\n",
-             config.primary_config_path());
+             ctx.config.primary_config_path());
   fmt::print("secondary config (readonly)         {}\n",
-             config.secondary_config_path());
+             ctx.config.secondary_config_path());
   if (last_updated > 0) {
     struct tm tm;
     localtime_r(&last_updated, &tm);
@@ -448,11 +449,11 @@ stats_summary(const Config& config)
     }
   }
 
-  if (config.max_files() != 0) {
-    printf("max files                       %8u\n", config.max_files());
+  if (ctx.config.max_files() != 0) {
+    printf("max files                       %8u\n", ctx.config.max_files());
   }
-  if (config.max_size() != 0) {
-    char* value = format_size(config.max_size());
+  if (ctx.config.max_size() != 0) {
+    char* value = format_size(ctx.config.max_size());
     printf("max cache size                  %s\n", value);
     free(value);
   }
@@ -460,14 +461,14 @@ stats_summary(const Config& config)
 #ifdef INODE_CACHE_SUPPORTED
   // The statistics is probably uninteresting for most users and could be
   // removed once the feature has proven useful and is enabled by default.
-  if (config.inode_cache()) {
-    std::string inode_cache_file = InodeCache::get_file(config);
+  if (ctx.config.inode_cache()) {
+    std::string inode_cache_file = ctx.inode_cache.get_file();
     if (!inode_cache_file.empty()) {
       fmt::print("inode cache file                    {}\n", inode_cache_file);
     }
-    int64_t hits = InodeCache::get_hits(config);
-    int64_t misses = InodeCache::get_misses(config);
-    int64_t errors = InodeCache::get_errors(config);
+    int64_t hits = ctx.inode_cache.get_hits();
+    int64_t misses = ctx.inode_cache.get_misses();
+    int64_t errors = ctx.inode_cache.get_errors();
     printf("inode cache hits              %10ld\n", static_cast<long>(hits));
     printf("inode cache misses            %10ld\n", static_cast<long>(misses));
     printf("inode cache errors            %10ld\n", static_cast<long>(errors));
@@ -498,9 +499,9 @@ stats_print(const Config& config)
 
 // Zero all the stats structures.
 void
-stats_zero(const Config& config)
+stats_zero(const Context& ctx)
 {
-  char* fname = format("%s/stats", config.cache_dir().c_str());
+  char* fname = format("%s/stats", ctx.config.cache_dir().c_str());
   x_unlink(fname);
   free(fname);
 
@@ -508,7 +509,7 @@ stats_zero(const Config& config)
 
   for (int dir = 0; dir <= 0xF; dir++) {
     Counters counters;
-    fname = format("%s/%1x/stats", config.cache_dir().c_str(), dir);
+    fname = format("%s/%1x/stats", ctx.config.cache_dir().c_str(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);
@@ -528,7 +529,7 @@ stats_zero(const Config& config)
     free(fname);
   }
 #ifdef INODE_CACHE_SUPPORTED
-  InodeCache::zero_stats(config);
+  ctx.inode_cache.zero_stats();
 #endif
 }
 

@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Config.hpp"
+#include "../src/Context.hpp"
 #include "../src/InodeCache.hpp"
 #include "../src/Util.hpp"
 #include "../src/hash.hpp"
@@ -46,93 +47,93 @@ digest_equals_string(const struct digest& digest, const char* s)
 }
 
 bool
-put(const Config& config, const char* filename, const char* s, int return_value)
+put(const Context& ctx, const char* filename, const char* s, int return_value)
 {
-  return InodeCache::put(config, filename, digest_from_string(s), return_value);
+  return ctx.inode_cache.put(filename, digest_from_string(s), return_value);
 }
 
 } // namespace
 
 TEST_CASE("Test disabled")
 {
-  Config config;
-  config.set_inode_cache(false);
+  Context ctx;
+  ctx.config.set_inode_cache(false);
 
   struct digest digest;
   int return_value;
 
-  CHECK(!InodeCache::get(config, "a", &digest, &return_value));
-  CHECK(!InodeCache::put(config, "a", digest, return_value));
-  CHECK(!InodeCache::zero_stats(config));
-  CHECK(-1 == InodeCache::get_hits(config));
-  CHECK(-1 == InodeCache::get_misses(config));
-  CHECK(-1 == InodeCache::get_errors(config));
+  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(!ctx.inode_cache.put("a", digest, return_value));
+  CHECK(!ctx.inode_cache.zero_stats());
+  CHECK(-1 == ctx.inode_cache.get_hits());
+  CHECK(-1 == ctx.inode_cache.get_misses());
+  CHECK(-1 == ctx.inode_cache.get_errors());
 }
 
 TEST_CASE("Test lookup nonexistent")
 {
-  Config config;
-  config.set_inode_cache(true);
+  Context ctx;
+  ctx.config.set_inode_cache(true);
   Util::write_file("a", "");
 
   struct digest digest;
   int return_value;
 
-  CHECK(InodeCache::zero_stats(config));
+  CHECK(ctx.inode_cache.zero_stats());
 
-  CHECK(!InodeCache::get(config, "a", &digest, &return_value));
-  CHECK(0 == InodeCache::get_hits(config));
-  CHECK(1 == InodeCache::get_misses(config));
-  CHECK(0 == InodeCache::get_errors(config));
+  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(0 == ctx.inode_cache.get_hits());
+  CHECK(1 == ctx.inode_cache.get_misses());
+  CHECK(0 == ctx.inode_cache.get_errors());
 }
 
 TEST_CASE("Test put and lookup")
 {
-  Config config;
-  config.set_inode_cache(true);
+  Context ctx;
+  ctx.config.set_inode_cache(true);
   Util::write_file("a", "a text");
 
-  CHECK(put(config, "a", "a text", 1));
+  CHECK(put(ctx, "a", "a text", 1));
 
   struct digest digest;
   int return_value;
 
-  CHECK(InodeCache::zero_stats(config));
+  CHECK(ctx.inode_cache.zero_stats());
 
-  CHECK(InodeCache::get(config, "a", &digest, &return_value));
+  CHECK(ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(digest_equals_string(digest, "a text"));
   CHECK(1 == return_value);
-  CHECK(1 == InodeCache::get_hits(config));
-  CHECK(0 == InodeCache::get_misses(config));
-  CHECK(0 == InodeCache::get_errors(config));
+  CHECK(1 == ctx.inode_cache.get_hits());
+  CHECK(0 == ctx.inode_cache.get_misses());
+  CHECK(0 == ctx.inode_cache.get_errors());
 
   Util::write_file("a", "something else");
 
-  CHECK(!InodeCache::get(config, "a", &digest, &return_value));
-  CHECK(1 == InodeCache::get_hits(config));
-  CHECK(1 == InodeCache::get_misses(config));
-  CHECK(0 == InodeCache::get_errors(config));
+  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(1 == ctx.inode_cache.get_hits());
+  CHECK(1 == ctx.inode_cache.get_misses());
+  CHECK(0 == ctx.inode_cache.get_errors());
 
-  CHECK(put(config, "a", "something else", 2));
+  CHECK(put(ctx, "a", "something else", 2));
 
-  CHECK(InodeCache::get(config, "a", &digest, &return_value));
+  CHECK(ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(digest_equals_string(digest, "something else"));
   CHECK(2 == return_value);
-  CHECK(2 == InodeCache::get_hits(config));
-  CHECK(1 == InodeCache::get_misses(config));
-  CHECK(0 == InodeCache::get_errors(config));
+  CHECK(2 == ctx.inode_cache.get_hits());
+  CHECK(1 == ctx.inode_cache.get_misses());
+  CHECK(0 == ctx.inode_cache.get_errors());
 }
 
 TEST_CASE("Drop file")
 {
-  Config config;
-  config.set_inode_cache(true);
+  Context ctx;
+  ctx.config.set_inode_cache(true);
 
-  InodeCache::zero_stats(config);
+  ctx.inode_cache.zero_stats();
 
-  CHECK(!InodeCache::get_file(config).empty());
-  CHECK(InodeCache::drop(config));
-  CHECK(InodeCache::get_file(config).empty());
-  CHECK(!InodeCache::drop(config));
+  CHECK(!ctx.inode_cache.get_file().empty());
+  CHECK(ctx.inode_cache.drop());
+  CHECK(ctx.inode_cache.get_file().empty());
+  CHECK(!ctx.inode_cache.drop());
 }
 #endif

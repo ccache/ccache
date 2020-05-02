@@ -28,53 +28,68 @@
 #  include <string>
 
 class Config;
+class Context;
 struct digest;
 
-namespace InodeCache {
+class InodeCache
+{
+public:
+  InodeCache(const Config& config);
+  ~InodeCache();
 
-// Get saved hash digest and return value from a previous call to
-// hash_source_code_file().
-//
-// Returns true if saved values could be retrieved from the cache, false
-// otherwise.
-bool get(const Config& config,
-         const char* path,
-         digest* file_digest,
-         int* return_value);
+  // Get saved hash digest and return value from a previous call to
+  // hash_source_code_file().
+  //
+  // Returns true if saved values could be retrieved from the cache, false
+  // otherwise.
+  bool get(const char* path, digest* file_digest, int* return_value);
 
-// Put hash digest and return value from a successful call to
-// hash_source_code_file().
-//
-// Returns true if values could be stored in the cache, false otherwise.
-bool put(const Config& config,
-         const char* path,
-         const digest& file_digest,
-         int return_value);
+  // Put hash digest and return value from a successful call to
+  // hash_source_code_file().
+  //
+  // Returns true if values could be stored in the cache, false otherwise.
+  bool put(const char* path, const digest& file_digest, int return_value);
 
-// Clears persistent counters.
-//
-// Returns true on success, false otherwise.
-bool zero_stats(const Config& config);
+  // Clears persistent counters.
+  //
+  // Returns true on success, false otherwise.
+  bool zero_stats();
 
-// Unmaps the current cache and removes the mapped file from disk.
-//
-// Returns true on success, false otherwise.
-bool drop(const Config& config);
+  // Unmaps the current cache and removes the mapped file from disk.
+  //
+  // Returns true on success, false otherwise.
+  bool drop();
 
-// Returns name of the persistent file.
-std::string get_file(const Config& config);
+  // Returns name of the persistent file.
+  std::string get_file();
 
-// Returns total number of cache hits.
-int64_t get_hits(const Config& config);
+  // Returns total number of cache hits.
+  int64_t get_hits();
 
-// Returns total number of cache misses.
-int64_t get_misses(const Config& config);
+  // Returns total number of cache misses.
+  int64_t get_misses();
 
-// Returns total number of errors.
-//
-// Currently only lock errors will be counted, since the counter is not
-// accessible before the file has been successfully mapped into memory.
-int64_t get_errors(const Config& config);
+  // Returns total number of errors.
+  //
+  // Currently only lock errors will be counted, since the counter is not
+  // accessible before the file has been successfully mapped into memory.
+  int64_t get_errors();
 
-} // namespace InodeCache
+private:
+  struct Bucket;
+  struct Entry;
+  struct Key;
+  struct SharedRegion;
+
+  bool mmap_file(const std::string& inode_cache_file);
+  bool hash_inode(const char* path, digest* digest);
+  Bucket* acquire_bucket(uint32_t index);
+  Bucket* acquire_bucket(const digest& key_digest);
+  void release_bucket(Bucket* bucket);
+  bool create_new_file(const std::string& filename);
+  bool initialize();
+
+  const Config& m_config;
+  struct SharedRegion* m_sr;
+};
 #endif

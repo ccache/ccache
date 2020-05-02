@@ -26,7 +26,8 @@ using nonstd::string_view;
 
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),
-    apparent_cwd(Util::get_apparent_cwd(actual_cwd))
+    apparent_cwd(Util::get_apparent_cwd(actual_cwd)),
+    inode_cache(config)
 {
 }
 
