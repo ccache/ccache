@@ -331,7 +331,7 @@ create_new_file(const std::string& filename)
   // which will make us using the first created file also if we didn't win the
   // race.
   if (linkat(
-        AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW)) {
+        AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW) != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
 #  ifndef O_TMPFILE
     unlink(path_buf);
