@@ -465,7 +465,7 @@ bool
 drop(const Config& config)
 {
   std::string file = get_file(config);
-  if (file.empty() || unlink(file.c_str()))
+  if (file.empty() || unlink(file.c_str()) != 0)
     return false;
   if (g_sr) {
     munmap(g_sr, sizeof(SharedRegion));
