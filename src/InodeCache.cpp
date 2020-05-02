@@ -197,7 +197,7 @@ acquire_bucket(uint32_t index)
               index,
               strerror(err));
       fprintf(stderr,
-              "Consider removing the inode cache file if preblem persists.\n");
+              "Consider removing the inode cache file if the problem persists.\n");
       return nullptr;
     }
     cc_log("Whiping bucket at index %u because of stale mutex.\n", index);
