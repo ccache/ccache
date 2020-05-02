@@ -266,53 +266,22 @@ create_new_file(const std::string& filename)
 {
   cc_log("Creating a new inode cache");
 
-  char path_buf[PATH_MAX];
-  snprintf(path_buf, PATH_MAX, "%s", filename.c_str());
-  const char* dname = dirname(path_buf);
-  if (!Util::create_dir(dname)) {
-    fprintf(stderr,
-            "Failed to create directory %s for inode cache: %s\n",
-            dname,
-            strerror(errno));
-  }
-#  ifdef O_TMPFILE
-  // Create the new file as invisible to prevent other processes from mapping it
-  // before it is fully initialized.
-  int fd = open(dname, O_TMPFILE | O_RDWR, S_IRUSR | S_IWUSR);
-  if (fd < 0) {
-    fprintf(stderr,
-            "Failed to create new inode cache in directory %s: %s\n",
-            dname,
-            strerror(errno));
-    return false;
-  }
-  snprintf(path_buf, PATH_MAX, "/proc/self/fd/%d", fd);
-#  else
   // Create the new file to a a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  snprintf(path_buf, PATH_MAX, "%s_XXXXXX", filename.c_str());
-  int fd = mkstemp(path_buf);
-  if (fd < 0) {
-    fprintf(stderr,
-            "Failed to create new inode cache to temporary file %s: %s\n",
-            path_buf,
-            strerror(errno));
-    return false;
-  }
-#  endif
+  auto temp_fd = Util::create_temp_fd(filename);
 #  ifdef HAVE_POSIX_FALLOCATE
-  if (posix_fallocate(fd, 0, sizeof(SharedRegion))) {
+  if (posix_fallocate(temp_fd.first, 0, sizeof(SharedRegion))) {
     fprintf(stderr,
             "Failed to allocate file space for inode cache: %s\n",
             strerror(errno));
-    close(fd);
+    close(temp_fd.first);
     return false;
   }
 #  else
   void* buf = calloc(sizeof(SharedRegion), 1);
   if (!buf) {
     fprintf(stderr, "Failed to allocate temporary memory for inode cache.");
-    close(fd);
+    close(temp_fd.first);
     return false;
   }
   if (write(fd, buf, sizeof(SharedRegion)) != sizeof(SharedRegion)) {
@@ -320,16 +289,21 @@ create_new_file(const std::string& filename)
             "Failed to allocate file space for inode cache: %s\n",
             strerror(errno));
     free(buf);
-    close(fd);
+    close(temp_fd.first);
     return false;
   }
   free(buf);
 #  endif
-  SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
-    nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+  SharedRegion* sr =
+    reinterpret_cast<SharedRegion*>(mmap(nullptr,
+                                         sizeof(SharedRegion),
+                                         PROT_READ | PROT_WRITE,
+                                         MAP_SHARED,
+                                         temp_fd.first,
+                                         0));
   if (sr == reinterpret_cast<void*>(-1)) {
     fprintf(stderr, "Failed to mmap new inode cache: %s\n", strerror(errno));
-    close(fd);
+    close(temp_fd.first);
     return false;
   }
 
@@ -345,26 +319,20 @@ create_new_file(const std::string& filename)
     pthread_mutex_init(&sr->buckets[i].mt, &mattr);
 
   munmap(sr, sizeof(SharedRegion));
+  close(temp_fd.first);
 
-  // linkat() will fail silently if a file with the same name already exists.
+  // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (linkat(AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW)
-      != 0) {
+  if (link(temp_fd.second.c_str(), filename.c_str()) != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
-#  ifndef O_TMPFILE
-    unlink(path_buf);
-#  endif
-    close(fd);
+    unlink(temp_fd.second.c_str());
     return false;
   }
 
-#  ifndef O_TMPFILE
-  unlink(path_buf);
-#  endif
-  close(fd);
+  unlink(temp_fd.second.c_str());
   return true;
 }
 
