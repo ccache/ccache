@@ -1790,9 +1790,9 @@ calculate_result_name(Context& ctx,
   }
 
   // Adding -arch to hash since cpp output is affected.
-  for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
+  for (const auto& arch : ctx.args_info.arch_args) {
     hash_delimiter(hash, "-arch");
-    hash_string(hash, ctx.args_info.arch_args[i]);
+    hash_string(hash, arch);
   }
 
   struct digest* result_name = nullptr;
@@ -1852,17 +1852,17 @@ calculate_result_name(Context& ctx,
       cc_log("Did not find result name in manifest");
     }
   } else {
-    if (ctx.args_info.arch_args_size == 0) {
+    if (ctx.args_info.arch_args.empty()) {
       result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
       cc_log("Got result name from preprocessor");
     } else {
       args_add(preprocessor_args, "-arch");
-      for (size_t i = 0; i < ctx.args_info.arch_args_size; ++i) {
+      for (size_t i = 0; i < ctx.args_info.arch_args.size(); ++i) {
         args_add(preprocessor_args, ctx.args_info.arch_args[i]);
         result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
         cc_log("Got result name from preprocessor with -arch %s",
-               ctx.args_info.arch_args[i]);
-        if (i != ctx.args_info.arch_args_size - 1) {
+               ctx.args_info.arch_args[i].c_str());
+        if (i != ctx.args_info.arch_args.size() - 1) {
           free(result_name);
           result_name = nullptr;
         }

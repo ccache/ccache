@@ -94,10 +94,8 @@ struct ArgsInfo
   // Files referenced by -fsanitize-blacklist options.
   std::vector<std::string> sanitize_blacklists;
 
-  // Array for storing -arch options.
-  static constexpr int max_arch_args = 10;
-  size_t arch_args_size = 0;
-  char* arch_args[max_arch_args] = {nullptr};
+  // Architectures from -arch options.
+  std::vector<std::string> arch_args;
 
   // Relocating debuginfo in the format old=new.
   char** debug_prefix_maps = nullptr;

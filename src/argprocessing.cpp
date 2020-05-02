@@ -305,17 +305,9 @@ process_arg(Context& ctx,
 
   // Handle -arch options.
   if (str_eq(argv[i], "-arch")) {
-    if (args_info.arch_args_size == ArgsInfo::max_arch_args - 1) {
-      cc_log("Too many -arch compiler options; ccache supports at most %d",
-             ArgsInfo::max_arch_args);
-      return STATS_UNSUPPORTED_OPTION;
-    }
-
     ++i;
-    args_info.arch_args[args_info.arch_args_size] =
-      x_strdup(argv[i]); // It will leak.
-    ++args_info.arch_args_size;
-    if (args_info.arch_args_size == 2) {
+    args_info.arch_args.emplace_back(argv[i]);
+    if (args_info.arch_args.size() == 2) {
       config.set_run_second_cpp(true);
     }
     return nullopt;
@@ -1160,9 +1152,9 @@ process_args(Context& ctx,
     args_add(*compiler_args, "-dc");
   }
 
-  for (size_t i = 0; i < args_info.arch_args_size; ++i) {
+  for (const auto& arch : args_info.arch_args) {
     args_add(*compiler_args, "-arch");
-    args_add(*compiler_args, args_info.arch_args[i]);
+    args_add(*compiler_args, arch);
   }
 
   *preprocessor_args = args_copy(state.common_args);
