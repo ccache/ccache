@@ -36,6 +36,10 @@ struct ArgumentProcessingState
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
+  bool found_color_diagnostics = false;
+  bool found_directives_only = false;
+  bool found_rewrite_includes = false;
+
   const char* explicit_language = nullptr; // As specified with -x.
   const char* file_language = nullptr;     // As deduced from file extension.
   const char* input_charset = nullptr;
@@ -72,10 +76,6 @@ struct ArgumentProcessingState
   // compiler_only_args contains arguments that should only be passed to the
   // compiler, not the preprocessor.
   Args compiler_only_args;
-
-  bool found_color_diagnostics = false;
-  bool found_directives_only = false;
-  bool found_rewrite_includes = false;
 };
 
 bool
