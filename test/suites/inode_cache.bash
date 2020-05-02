@@ -1,3 +1,13 @@
+SUITE_inode_cache_SETUP() {
+    generate_code 1 test1.c
+    export CCACHE_INODECACHE=1
+    unset CCACHE_NODIRECT
+}
+
+SUITE_inode_cache() {
+    inode_cache_tests
+}
+
 inode_cache_tests() {
     # -------------------------------------------------------------------------
     TEST "Initial stats"
@@ -53,14 +63,4 @@ inode_cache_tests() {
     # Updated mtime should cause one miss, not two
     expect_stat 'inode cache misses' 1
     expect_stat 'inode cache errors' 0
-}
-
-SUITE_inode_cache_SETUP() {
-    generate_code 1 test1.c
-    export CCACHE_INODECACHE=1
-    unset CCACHE_NODIRECT
-}
-
-SUITE_inode_cache() {
-    inode_cache_tests
 }
