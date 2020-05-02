@@ -328,7 +328,7 @@ create_new_file(const std::string& filename)
   // linkat() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
-  // which will make us using the first created file also if we didn't win the
+  // which will make us use the first created file even if we didn't win the
   // race.
   if (linkat(
         AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW) != 0) {
