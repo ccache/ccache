@@ -21,6 +21,7 @@
 #ifdef INODE_CACHE_SUPPORTED
 
 #  include "Config.hpp"
+#  include "Stat.hpp"
 #  include "Util.hpp"
 #  include "ccache.hpp"
 #  include "hash.hpp"
@@ -63,7 +64,27 @@ const uint32_t k_num_entries = 4;
 static_assert(sizeof(digest::bytes) == 20,
               "Increment version number if size of digest is changed.");
 
-const char k_default_basename[] = "/inode_cache";
+static const std::string version_suffix =
+  std::string(".v") + std::to_string(k_version);
+
+// Return path to /run/user/{euid} if it exists since it is likely to be on
+// tmpfs, otherwise fall back on /tmp.
+std::string
+get_tmpdir()
+{
+  std::string tmpdir = "/run/user/" + std::to_string(geteuid());
+  if (!Stat::stat(tmpdir).is_directory())
+    tmpdir = "/tmp";
+  return tmpdir;
+}
+
+const std::string&
+get_default_filename()
+{
+  static const std::string filename =
+    get_tmpdir() + "/ccache_inode_cache" + version_suffix;
+  return filename;
+}
 
 struct Key
 {
@@ -236,8 +257,8 @@ std::string
 get_file_from_config(const Config& config)
 {
   return config.inode_cache_file().empty()
-           ? config.cache_dir() + k_default_basename
-           : config.inode_cache_file();
+           ? get_default_filename()
+           : config.inode_cache_file() + version_suffix;
 }
 
 bool
@@ -330,8 +351,8 @@ create_new_file(const std::string& filename)
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (linkat(
-        AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW) != 0) {
+  if (linkat(AT_FDCWD, path_buf, AT_FDCWD, filename.c_str(), AT_SYMLINK_FOLLOW)
+      != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
 #  ifndef O_TMPFILE
     unlink(path_buf);
