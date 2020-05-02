@@ -54,10 +54,8 @@ enum class ConfigItem {
   hard_link,
   hash_dir,
   ignore_headers_in_manifest,
-#ifdef INODE_CACHE_SUPPORTED
   inode_cache,
   inode_cache_file,
-#endif
   keep_comments_cpp,
   limit_multiple,
   log_file,
@@ -95,10 +93,8 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"hard_link", ConfigItem::hard_link},
   {"hash_dir", ConfigItem::hash_dir},
   {"ignore_headers_in_manifest", ConfigItem::ignore_headers_in_manifest},
-#ifdef INODE_CACHE_SUPPORTED
   {"inode_cache", ConfigItem::inode_cache},
   {"inode_cache_file", ConfigItem::inode_cache_file},
-#endif
   {"keep_comments_cpp", ConfigItem::keep_comments_cpp},
   {"limit_multiple", ConfigItem::limit_multiple},
   {"log_file", ConfigItem::log_file},
@@ -138,10 +134,8 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"HARDLINK", "hard_link"},
   {"HASHDIR", "hash_dir"},
   {"IGNOREHEADERS", "ignore_headers_in_manifest"},
-#ifdef INODE_CACHE_SUPPORTED
   {"INODECACHE", "inode_cache"},
   {"INODECACHEFILE", "inode_cache_file"},
-#endif
   {"LIMIT_MULTIPLE", "limit_multiple"},
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
@@ -569,13 +563,11 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::ignore_headers_in_manifest:
     return m_ignore_headers_in_manifest;
 
-#ifdef INODE_CACHE_SUPPORTED
   case ConfigItem::inode_cache:
     return format_bool(m_inode_cache);
 
   case ConfigItem::inode_cache_file:
     return m_inode_cache_file;
-#endif
 
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
@@ -781,7 +773,6 @@ Config::set_item(const std::string& key,
     m_ignore_headers_in_manifest = parse_env_string(value);
     break;
 
-#ifdef INODE_CACHE_SUPPORTED
   case ConfigItem::inode_cache:
     m_inode_cache = parse_bool(value, env_var_key, negate);
     break;
@@ -789,7 +780,6 @@ Config::set_item(const std::string& key,
   case ConfigItem::inode_cache_file:
     m_inode_cache_file = parse_env_string(value);
     break;
-#endif
 
   case ConfigItem::keep_comments_cpp:
     m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
