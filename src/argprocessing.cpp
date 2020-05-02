@@ -563,11 +563,7 @@ process_arg(Context& ctx,
     return nullopt;
   }
   if (str_startswith(argv[i], "-fsanitize-blacklist=")) {
-    args_info.sanitize_blacklists = static_cast<char**>(
-      x_realloc(args_info.sanitize_blacklists,
-                (args_info.sanitize_blacklists_len + 1) * sizeof(char*)));
-    args_info.sanitize_blacklists[args_info.sanitize_blacklists_len++] =
-      x_strdup(argv[i] + 21);
+    args_info.sanitize_blacklists.emplace_back(argv[i] + 21);
     args_add(state.common_args, argv[i]);
     return nullopt;
   }

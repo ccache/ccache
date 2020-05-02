@@ -1518,11 +1518,10 @@ hash_common_info(const Context& ctx,
   }
 
   // Possibly hash the sanitize blacklist file path.
-  for (size_t i = 0; i < args_info.sanitize_blacklists_len; i++) {
-    char* sanitize_blacklist = args_info.sanitize_blacklists[i];
-    cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
+  for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
+    cc_log("Hashing sanitize blacklist %s", sanitize_blacklist.c_str());
     hash_delimiter(hash, "sanitizeblacklist");
-    if (!hash_file(hash, sanitize_blacklist)) {
+    if (!hash_file(hash, sanitize_blacklist.c_str())) {
       failed(STATS_BADEXTRAFILE);
     }
   }

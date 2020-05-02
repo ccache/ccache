@@ -23,6 +23,7 @@
 #include "Args.hpp"
 
 #include <string>
+#include <vector>
 
 // This class holds meta-information derived from the compiler arguments.
 struct ArgsInfo
@@ -90,9 +91,8 @@ struct ArgsInfo
   // clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;
 
-  // Sanitize blacklist
-  char** sanitize_blacklists = nullptr;
-  size_t sanitize_blacklists_len = 0;
+  // Files referenced by -fsanitize-blacklist options.
+  std::vector<std::string> sanitize_blacklists;
 
   // Array for storing -arch options.
   static constexpr int max_arch_args = 10;
