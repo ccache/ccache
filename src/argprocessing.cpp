@@ -415,14 +415,10 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (str_startswith(argv[i], "-fdebug-prefix-map=")
-      || str_startswith(argv[i], "-ffile-prefix-map=")) {
-    args_info.debug_prefix_maps = static_cast<char**>(
-      x_realloc(args_info.debug_prefix_maps,
-                (args_info.debug_prefix_maps_len + 1) * sizeof(char*)));
-    args_info.debug_prefix_maps[args_info.debug_prefix_maps_len++] =
-      x_strdup(&argv[i][argv[i][2] == 'f' ? 18 : 19]);
-    args_add(state.common_args, argv[i]);
+  if (Util::starts_with(arg, "-fdebug-prefix-map=")
+      || Util::starts_with(arg, "-ffile-prefix-map=")) {
+    args_info.debug_prefix_maps.push_back(arg.substr(arg.find('=') + 1));
+    state.common_args.push_back(arg);
     return nullopt;
   }
 

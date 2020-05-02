@@ -98,18 +98,8 @@ struct ArgsInfo
   std::vector<std::string> arch_args;
 
   // Relocating debuginfo in the format old=new.
-  char** debug_prefix_maps = nullptr;
-  size_t debug_prefix_maps_len = 0;
+  std::vector<std::string> debug_prefix_maps;
 
   // Argument list to add to compiler invocation in depend mode.
   Args depend_extra_args;
-
-  ArgsInfo() = default;
-  ~ArgsInfo();
-
-  ArgsInfo(const ArgsInfo&) = delete;
-  ArgsInfo& operator=(const ArgsInfo&) = delete;
-
-  ArgsInfo(ArgsInfo&&) = delete;
-  ArgsInfo& operator=(ArgsInfo&&) = delete;
 };

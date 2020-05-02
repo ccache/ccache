@@ -32,7 +32,6 @@ Q=$(if $(quiet),@)
 
 non_third_party_sources = \
     src/Args.cpp \
-    src/ArgsInfo.cpp \
     src/AtomicFile.cpp \
     src/CacheEntryReader.cpp \
     src/CacheEntryWriter.cpp \

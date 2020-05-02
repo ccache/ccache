@@ -37,6 +37,7 @@ generated_docs = \
 built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers_without_cpp = \
+    src/ArgsInfo.hpp \
     src/Checksum.hpp \
     src/File.hpp \
     src/FormatNonstdStringView.hpp \

@@ -1466,21 +1466,18 @@ hash_common_info(const Context& ctx,
   // Possibly hash the current working directory.
   if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
     std::string dir_to_hash = ctx.apparent_cwd;
-    for (size_t i = 0; i < args_info.debug_prefix_maps_len; i++) {
-      char* map = args_info.debug_prefix_maps[i];
-      char* sep = strchr(map, '=');
-      if (sep) {
-        char* old_path = x_strndup(map, sep - map);
-        char* new_path = static_cast<char*>(x_strdup(sep + 1));
+    for (const auto& map : args_info.debug_prefix_maps) {
+      size_t sep_pos = map.find('=');
+      if (sep_pos != std::string::npos) {
+        std::string old_path = map.substr(0, sep_pos);
+        std::string new_path = map.substr(sep_pos + 1);
         cc_log("Relocating debuginfo from %s to %s (CWD: %s)",
-               old_path,
-               new_path,
+               old_path.c_str(),
+               new_path.c_str(),
                ctx.apparent_cwd.c_str());
         if (Util::starts_with(ctx.apparent_cwd, old_path)) {
-          dir_to_hash = new_path + ctx.apparent_cwd.substr(strlen(old_path));
+          dir_to_hash = new_path + ctx.apparent_cwd.substr(old_path.size());
         }
-        free(old_path);
-        free(new_path);
       }
     }
     cc_log("Hashing CWD %s", dir_to_hash.c_str());
