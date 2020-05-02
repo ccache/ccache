@@ -103,6 +103,15 @@ nonstd::string_view dir_name(nonstd::string_view path);
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
+// Extends file size to at least new_size by calling posix_fallocate() if
+// supported, otherwise by writing zeros last to the file.
+//
+// Note that existing holes are not filled in case posix_fallocate() is not
+// supported.
+//
+// Returns 0 on success, an error number otherwise.
+int fallocate(int fd, long new_size);
+
 // Call a function for each subdir (0-9a-f) in the cache.
 //
 // Parameters:

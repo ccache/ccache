@@ -217,8 +217,9 @@ acquire_bucket(uint32_t index)
               "Can't consolidate stale mutex at index %u: %s\n",
               index,
               strerror(err));
-      fprintf(stderr,
-              "Consider removing the inode cache file if the problem persists.\n");
+      fprintf(
+        stderr,
+        "Consider removing the inode cache file if the problem persists.\n");
       return nullptr;
     }
     cc_log("Wiping bucket at index %u because of stale mutex.\n", index);
@@ -269,31 +270,12 @@ create_new_file(const std::string& filename)
   // Create the new file to a a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   auto temp_fd = Util::create_temp_fd(filename);
-#  ifdef HAVE_POSIX_FALLOCATE
-  if (posix_fallocate(temp_fd.first, 0, sizeof(SharedRegion))) {
-    fprintf(stderr,
-            "Failed to allocate file space for inode cache: %s\n",
-            strerror(errno));
+  int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
+  if (err) {
+    cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
     close(temp_fd.first);
     return false;
   }
-#  else
-  void* buf = calloc(sizeof(SharedRegion), 1);
-  if (!buf) {
-    fprintf(stderr, "Failed to allocate temporary memory for inode cache.");
-    close(temp_fd.first);
-    return false;
-  }
-  if (write(fd, buf, sizeof(SharedRegion)) != sizeof(SharedRegion)) {
-    fprintf(stderr,
-            "Failed to allocate file space for inode cache: %s\n",
-            strerror(errno));
-    free(buf);
-    close(temp_fd.first);
-    return false;
-  }
-  free(buf);
-#  endif
   SharedRegion* sr =
     reinterpret_cast<SharedRegion*>(mmap(nullptr,
                                          sizeof(SharedRegion),

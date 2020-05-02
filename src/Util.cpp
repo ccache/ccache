@@ -20,6 +20,7 @@
 
 #include "Config.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "legacy_util.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -225,6 +226,38 @@ bool
 ends_with(string_view string, string_view suffix)
 {
   return string.ends_with(suffix);
+}
+
+int
+fallocate(int fd, long new_size)
+{
+#ifdef HAVE_POSIX_FALLOCATE
+  return posix_fallocate(fd, 0, new_size);
+#else
+  off_t saved_pos = lseek(fd, 0, SEEK_END);
+  off_t old_size = lseek(fd, 0, SEEK_END);
+  if (old_size == -1) {
+    int err = errno;
+    lseek(fd, saved_pos, SEEK_SET);
+    return err;
+  }
+  if (old_size >= new_size) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return 0;
+  }
+  long bytes_to_write = new_size - old_size;
+  void* buf = calloc(bytes_to_write, 1);
+  if (!buf) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return ENOMEM;
+  }
+  int err = 0;
+  if (!write_fd(fd, buf, bytes_to_write))
+    err = errno;
+  lseek(fd, saved_pos, SEEK_SET);
+  free(buf);
+  return err;
+#endif
 }
 
 void

@@ -143,6 +143,22 @@ TEST_CASE("Util::ends_with")
   CHECK_FALSE(Util::ends_with("x", "xy"));
 }
 
+TEST_CASE("Util::fallocate")
+{
+  const char* filename = "test-file";
+  int fd = creat(filename, S_IWUSR);
+  CHECK(Util::fallocate(fd, 10000) == 0);
+  fsync(fd);
+  CHECK(Stat::stat(filename).size() == 10000);
+  CHECK(Util::fallocate(fd, 5000) == 0);
+  fsync(fd);
+  CHECK(Stat::stat(filename).size() == 10000);
+  CHECK(Util::fallocate(fd, 20000) == 0);
+  close(fd);
+  CHECK(Stat::stat(filename).size() == 20000);
+  unlink(filename);
+}
+
 TEST_CASE("Util::for_each_level_1_subdir")
 {
   std::vector<std::string> actual;
