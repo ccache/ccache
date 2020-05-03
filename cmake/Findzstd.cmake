@@ -44,6 +44,9 @@ else()
 endif()
 
 include(FeatureSummary)
+# cmake-format: off
+# (behaviour change in cmake-format 0.6.10)
 set_package_properties(
-  zstd PROPERTIES URL "https://facebook.github.io/zstd" DESCRIPTION
-  "Zstandard - Fast real-time compression algorithm")
+  zstd PROPERTIES URL "https://facebook.github.io/zstd"
+  DESCRIPTION "Zstandard - Fast real-time compression algorithm")
+# cmake-format: on
