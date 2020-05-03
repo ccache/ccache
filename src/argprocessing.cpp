@@ -103,22 +103,11 @@ detect_pch(Context& ctx,
       pch_file = arg;
     }
   } else {
-    std::string gch_path = fmt::format("{}.gch", arg);
-    if (Stat::stat(gch_path)) {
-      cc_log("Detected use of precompiled header: %s", gch_path.c_str());
-      pch_file = gch_path;
-    } else {
-      std::string pch_path = fmt::format("{}.pch", arg);
-      if (Stat::stat(pch_path)) {
-        cc_log("Detected use of precompiled header: %s", pch_path.c_str());
-        pch_file = pch_path;
-      } else {
-        // Clang may use pretokenized headers.
-        std::string pth_path = fmt::format("{}.pth", arg);
-        if (Stat::stat(pth_path)) {
-          cc_log("Detected use of pretokenized header: %s", pth_path.c_str());
-          pch_file = pth_path;
-        }
+    for (const auto& extension : {".gch", ".pch", ".pth"}) {
+      std::string path = arg + extension;
+      if (Stat::stat(path)) {
+        cc_log("Detected use of precompiled header: %s", path.c_str());
+        pch_file = path;
       }
     }
   }
