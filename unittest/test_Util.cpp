@@ -148,10 +148,12 @@ TEST_CASE("Util::fallocate")
   const char* filename = "test-file";
   int fd = creat(filename, S_IWUSR);
   CHECK(Util::fallocate(fd, 10000) == 0);
-  fsync(fd);
+  close(fd);
+  fd = open(filename, O_WRONLY, S_IWUSR);
   CHECK(Stat::stat(filename).size() == 10000);
   CHECK(Util::fallocate(fd, 5000) == 0);
-  fsync(fd);
+  close(fd);
+  fd = open(filename, O_WRONLY, S_IWUSR);
   CHECK(Stat::stat(filename).size() == 10000);
   CHECK(Util::fallocate(fd, 20000) == 0);
   close(fd);
