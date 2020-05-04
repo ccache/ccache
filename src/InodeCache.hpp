@@ -50,11 +50,6 @@ public:
   // Returns true if values could be stored in the cache, false otherwise.
   bool put(const char* path, const digest& file_digest, int return_value);
 
-  // Clears persistent counters.
-  //
-  // Returns true on success, false otherwise.
-  bool zero_stats();
-
   // Unmaps the current cache and removes the mapped file from disk.
   //
   // Returns true on success, false otherwise.
@@ -64,15 +59,21 @@ public:
   std::string get_file();
 
   // Returns total number of cache hits.
+  //
+  // Counters are incremented in debug mode only.
   int64_t get_hits();
 
   // Returns total number of cache misses.
+  //
+  // Counters are incremented in debug mode only.
   int64_t get_misses();
 
   // Returns total number of errors.
   //
   // Currently only lock errors will be counted, since the counter is not
   // accessible before the file has been successfully mapped into memory.
+  //
+  // Counters are incremented in debug mode only.
   int64_t get_errors();
 
 private:

@@ -123,14 +123,14 @@ struct InodeCache::Entry
 struct InodeCache::Bucket
 {
   pthread_mutex_t mt;
-  int32_t hits;
-  int32_t misses;
   Entry entries[k_num_entries];
 };
 
 struct InodeCache::SharedRegion
 {
   uint32_t version;
+  std::atomic<int64_t> hits;
+  std::atomic<int64_t> misses;
   std::atomic<int64_t> errors;
   Bucket buckets[k_num_buckets];
 };
@@ -214,7 +214,8 @@ InodeCache::acquire_bucket(uint32_t index)
   int err = pthread_mutex_lock(&bucket->mt);
 #  ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
-    ++m_sr->errors;
+    if (m_config.debug())
+      ++m_sr->errors;
     err = pthread_mutex_consistent(&bucket->mt);
     if (err) {
       cc_log(
@@ -356,6 +357,8 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
   if (!bucket)
     return false;
 
+  bool found = false;
+
   for (uint32_t i = 0; i < k_num_entries; ++i) {
     if (digests_equal(&bucket->entries[i].key_digest, &key_digest)) {
       if (i > 0) {
@@ -366,15 +369,27 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
 
       *file_digest = bucket->entries[0].file_digest;
       *return_value = bucket->entries[0].return_value;
-      ++bucket->hits;
-      release_bucket(bucket);
-
-      return true;
+      found = true;
+      break;
     }
   }
-  ++bucket->misses;
   release_bucket(bucket);
-  return false;
+
+  cc_log("inode cache %s: %s", found ? "hit" : "miss", path);
+
+  if (m_config.debug()) {
+    if (found) {
+      ++m_sr->hits;
+    } else {
+      ++m_sr->misses;
+    }
+    cc_log(
+      "accumulated stats for inode cache: hits=%ld, misses=%ld, errors=%ld",
+      m_sr->hits.load(),
+      m_sr->misses.load(),
+      m_sr->errors.load());
+  }
+  return found;
 }
 
 bool
@@ -402,24 +417,8 @@ InodeCache::put(const char* path, const digest& file_digest, int return_value)
 
   release_bucket(bucket);
 
-  return true;
-}
+  cc_log("inode cache insert: %s", path);
 
-bool
-InodeCache::zero_stats()
-{
-  if (!initialize())
-    return false;
-  for (uint32_t i = 0; i < k_num_buckets; ++i) {
-    Bucket* bucket = acquire_bucket(i);
-    if (!bucket)
-      return false;
-
-    bucket->hits = 0;
-    bucket->misses = 0;
-    release_bucket(bucket);
-  }
-  m_sr->errors = 0;
   return true;
 }
 
@@ -448,35 +447,13 @@ InodeCache::get_file()
 int64_t
 InodeCache::get_hits()
 {
-  if (!initialize())
-    return -1;
-  int64_t sum = 0;
-  for (uint32_t i = 0; i < k_num_buckets; ++i) {
-    Bucket* bucket = acquire_bucket(i);
-    if (!bucket)
-      return -1;
-
-    sum += bucket->hits;
-    release_bucket(bucket);
-  }
-  return sum;
+  return initialize() ? m_sr->hits.load() : -1;
 }
 
 int64_t
 InodeCache::get_misses()
 {
-  if (!initialize())
-    return -1;
-  int64_t sum = 0;
-  for (uint32_t i = 0; i < k_num_buckets; ++i) {
-    Bucket* bucket = acquire_bucket(i);
-    if (!bucket)
-      return -1;
-
-    sum += bucket->misses;
-    release_bucket(bucket);
-  }
-  return sum;
+  return initialize() ? m_sr->misses.load() : -1;
 }
 
 int64_t

@@ -306,9 +306,6 @@ hash_source_code_file(const Context& ctx,
   struct digest digest;
   int return_value;
   if (!ctx.inode_cache.get(path, &digest, &return_value)) {
-    cc_log(
-      "File not found in inode cache, falling back on content hashing for %s",
-      path);
     struct hash* file_hash = hash_init();
     return_value =
       hash_source_code_file_nocache(ctx, file_hash, path, size_hint);

@@ -25,7 +25,6 @@
 #include "AtomicFile.hpp"
 #include "Context.hpp"
 #include "Counters.hpp"
-#include "InodeCache.hpp"
 #include "Lockfile.hpp"
 #include "cleanup.hpp"
 #include "hashutil.hpp"
@@ -457,27 +456,6 @@ stats_summary(const Context& ctx)
     printf("max cache size                  %s\n", value);
     free(value);
   }
-
-#ifdef INODE_CACHE_SUPPORTED
-  // The statistics is probably uninteresting for most users and could be
-  // removed once the feature has proven useful and is enabled by default.
-  if (ctx.config.inode_cache()) {
-    std::string inode_cache_file = ctx.inode_cache.get_file();
-    if (!inode_cache_file.empty()) {
-      fmt::print("inode cache file                    {}\n", inode_cache_file);
-    }
-    int64_t hits = ctx.inode_cache.get_hits();
-    int64_t misses = ctx.inode_cache.get_misses();
-    int64_t errors = ctx.inode_cache.get_errors();
-    printf("inode cache hits              %10ld\n", static_cast<long>(hits));
-    printf("inode cache misses            %10ld\n", static_cast<long>(misses));
-    printf("inode cache errors            %10ld\n", static_cast<long>(errors));
-    if (hits + misses > 0) {
-      double ratio = 100.0 * hits / (hits + misses);
-      printf("inode cache hit rate               %2.2f %%\n", ratio);
-    }
-  }
-#endif
 }
 
 // Print machine-parsable (tab-separated) statistics counters.
@@ -528,9 +506,6 @@ stats_zero(const Context& ctx)
     }
     free(fname);
   }
-#ifdef INODE_CACHE_SUPPORTED
-  ctx.inode_cache.zero_stats();
-#endif
 }
 
 // Get the per-directory limits.

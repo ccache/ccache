@@ -57,6 +57,7 @@ put(const Context& ctx, const char* filename, const char* s, int return_value)
 TEST_CASE("Test disabled")
 {
   Context ctx;
+  ctx.config.set_debug(true);
   ctx.config.set_inode_cache(false);
 
   struct digest digest;
@@ -64,7 +65,6 @@ TEST_CASE("Test disabled")
 
   CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(!ctx.inode_cache.put("a", digest, return_value));
-  CHECK(!ctx.inode_cache.zero_stats());
   CHECK(ctx.inode_cache.get_hits() == -1);
   CHECK(ctx.inode_cache.get_misses() == -1);
   CHECK(ctx.inode_cache.get_errors() == -1);
@@ -73,13 +73,12 @@ TEST_CASE("Test disabled")
 TEST_CASE("Test lookup nonexistent")
 {
   Context ctx;
+  ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
   Util::write_file("a", "");
 
   struct digest digest;
   int return_value;
-
-  CHECK(ctx.inode_cache.zero_stats());
 
   CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(ctx.inode_cache.get_hits() == 0);
@@ -90,6 +89,7 @@ TEST_CASE("Test lookup nonexistent")
 TEST_CASE("Test put and lookup")
 {
   Context ctx;
+  ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
   Util::write_file("a", "a text");
 
@@ -98,20 +98,18 @@ TEST_CASE("Test put and lookup")
   struct digest digest;
   int return_value;
 
-  CHECK(ctx.inode_cache.zero_stats());
-
   CHECK(ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(digest_equals_string(digest, "a text"));
   CHECK(return_value == 1);
   CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 0);
+  CHECK(ctx.inode_cache.get_misses() == 1);
   CHECK(ctx.inode_cache.get_errors() == 0);
 
   Util::write_file("a", "something else");
 
   CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
   CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 1);
+  CHECK(ctx.inode_cache.get_misses() == 2);
   CHECK(ctx.inode_cache.get_errors() == 0);
 
   CHECK(put(ctx, "a", "something else", 2));
@@ -120,16 +118,15 @@ TEST_CASE("Test put and lookup")
   CHECK(digest_equals_string(digest, "something else"));
   CHECK(return_value == 2);
   CHECK(ctx.inode_cache.get_hits() == 2);
-  CHECK(ctx.inode_cache.get_misses() == 1);
+  CHECK(ctx.inode_cache.get_misses() == 2);
   CHECK(ctx.inode_cache.get_errors() == 0);
 }
 
 TEST_CASE("Drop file")
 {
   Context ctx;
+  ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
-
-  ctx.inode_cache.zero_stats();
 
   CHECK(!ctx.inode_cache.get_file().empty());
   CHECK(ctx.inode_cache.drop());

@@ -79,6 +79,7 @@ public:
   void set_cache_dir(const std::string& value);
   void set_cpp_extension(const std::string& value);
   void set_depend_mode(bool value);
+  void set_debug(bool value);
   void set_direct_mode(bool value);
   void set_inode_cache(bool value);
   void set_limit_multiple(double value);
@@ -407,6 +408,12 @@ inline void
 Config::set_depend_mode(bool value)
 {
   m_depend_mode = value;
+}
+
+inline void
+Config::set_debug(bool value)
+{
+  m_debug = value;
 }
 
 inline void
