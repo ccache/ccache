@@ -3201,9 +3201,12 @@ trace_start()
 }
 
 static void
-trace_stop()
+trace_stop(void* context)
 {
-  char* trace_file = format("%s.ccache-trace", output_obj);
+  const Context& ctx = *static_cast<Context*>(context);
+
+  char* trace_file =
+    format("%s.ccache-trace", ctx.args_info.output_obj.c_str());
   MTR_FINISH("program", "ccache", trace_id);
   mtr_flush();
   mtr_shutdown();
@@ -3322,7 +3325,7 @@ initialize(int argc, const char* const* argv)
   if (enable_internal_trace) {
 #ifdef MTR_ENABLED
     trace_start();
-    exitfn_add_nullary(trace_stop);
+    exitfn_add(trace_stop, ctx);
 #else
     cc_log("Error: tracing is not enabled!");
 #endif
@@ -3505,7 +3508,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
-  MTR_META_THREAD_NAME(ctx.args_info.output_obj);
+  MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
   // Need to dump log buffer as the last exit function to not lose any logs.
   exitfn_add_last(dump_debug_log_buffer_exitfn, &ctx);
