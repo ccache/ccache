@@ -138,7 +138,7 @@ jobs:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 13: Build source package, extract it out of source, run tests.
+  # Job 14: Build source package, extract it out of source, run tests.
   - os: linux
     env: T="Build source package and verify" SPECIAL=build_and_verify_package_source
     addons:
@@ -147,8 +147,8 @@ jobs:
         - elfutils
         - libzstd1-dev
         - libb2-dev
-    
-  # Job 14: Build documentation
+
+  # Job 15: Build documentation
   - os: linux
     env: T="Build documentation" BUILDEXTRAFLAGS="--target documentation" RUN_TESTS=0
     addons:
@@ -158,8 +158,8 @@ jobs:
         - libzstd1-dev
         - libb2-dev
         - asciidoc
-    
-  # Job 15: Build manpage
+
+  # Job 16: Build manpage
   - os: linux
     env: T="Build manpage" BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
     addons:
