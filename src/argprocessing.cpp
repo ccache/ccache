@@ -357,6 +357,13 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (str_eq(argv[i], "-xHost")) {
+    // -xHost is an ordinary Intel compiler option, not a language
+    // specification.
+    state.common_args.push_back(args[i]);
+    return nullopt;
+  }
+
   // Special handling for -x: remember the last specified language before the
   // input file and strip all -x options from the arguments.
   if (str_eq(argv[i], "-x")) {
