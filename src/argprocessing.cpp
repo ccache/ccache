@@ -205,7 +205,6 @@ process_arg(Context& ctx,
   size_t argc = args.size();
   auto& argv = args->argv; // Remove after last usage has been removed
   size_t& i = args_index;
-  const std::string& arg = args[i];
 
   // The user knows best: just swallow the next arg.
   if (args[i] == "--ccache-skip") {
@@ -396,10 +395,11 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (Util::starts_with(arg, "-fdebug-prefix-map=")
-      || Util::starts_with(arg, "-ffile-prefix-map=")) {
-    args_info.debug_prefix_maps.push_back(arg.substr(arg.find('=') + 1));
-    state.common_args.push_back(arg);
+  if (Util::starts_with(args[i], "-fdebug-prefix-map=")
+      || Util::starts_with(args[i], "-ffile-prefix-map=")) {
+    std::string map = args[i].substr(args[i].find('=') + 1);
+    args_info.debug_prefix_maps.push_back(map);
+    state.common_args.push_back(args[i]);
     return nullopt;
   }
 
@@ -521,10 +521,10 @@ process_arg(Context& ctx,
     args_add(state.common_args, argv[i]);
     return nullopt;
   }
-  if (Util::starts_with(arg, "-fprofile-")
-      || Util::starts_with(arg, "-fauto-profile")
-      || arg == "-fbranch-probabilities") {
-    if (!process_profiling_option(ctx, argv[i])) {
+  if (Util::starts_with(args[i], "-fprofile-")
+      || Util::starts_with(args[i], "-fauto-profile")
+      || args[i] == "-fbranch-probabilities") {
+    if (!process_profiling_option(ctx, args[i])) {
       // The failure is logged by process_profiling_option.
       return STATS_UNSUPPORTED_OPTION;
     }
