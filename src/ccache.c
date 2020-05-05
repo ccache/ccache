@@ -2892,6 +2892,13 @@ cc_process_args(struct args *args,
 			continue;
 		}
 
+		if (str_eq(argv[i], "-xHost")) {
+			// -xHost is an ordinary Intel compiler option, not a language
+			// specification.
+			args_add(common_args, argv[i]);
+			continue;
+		}
+
 		// Special handling for -x: remember the last specified language before the
 		// input file and strip all -x options from the arguments.
 		if (str_eq(argv[i], "-x")) {
