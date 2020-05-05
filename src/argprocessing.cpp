@@ -183,8 +183,8 @@ process_profiling_option(Context& ctx, const std::string& arg)
   return true;
 }
 
-// Compiler in depend mode is invoked with the original arguments.
-// Collect extra arguments that should be added.
+// Compiler in depend mode is invoked with the original arguments. Collect extra
+// arguments that should be added.
 void
 add_extra_arg(Context& ctx, const std::string& arg)
 {
@@ -208,23 +208,23 @@ process_arg(Context& ctx,
   const std::string& arg = args[i];
 
   // The user knows best: just swallow the next arg.
-  if (str_eq(argv[i], "--ccache-skip")) {
+  if (args[i] == "--ccache-skip") {
     i++;
-    if (i == argc) {
+    if (i == args.size()) {
       cc_log("--ccache-skip lacks an argument");
       return STATS_ARGS;
     }
-    args_add(state.common_args, argv[i]);
+    state.common_args.push_back(args[i]);
     return nullopt;
   }
 
   // Special case for -E.
-  if (str_eq(argv[i], "-E")) {
+  if (args[i] == "-E") {
     return STATS_PREPROCESSING;
   }
 
   // Handle "@file" argument.
-  if (str_startswith(argv[i], "@") || str_startswith(argv[i], "-@")) {
+  if (Util::starts_with(args[i], "@") || Util::starts_with(args[i], "-@")) {
     const char* argpath = argv[i] + 1;
 
     if (argpath[-1] == '-') {
@@ -236,7 +236,7 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
 
-    args_insert(args, i, *file_args, true);
+    args.replace(i, *file_args);
     i--;
     return nullopt;
   }
