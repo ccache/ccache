@@ -639,4 +639,26 @@ TEST(options_not_to_be_passed_to_the_preprocesor)
   CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
 }
 
+TEST(cuda_option_file)
+{
+  Context ctx;
+  ctx.guessed_compiler = GuessedCompiler::nvcc;
+
+  ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
+  Args exp_cpp = args_init_from_string("nvcc -g -Wall -DX");
+  Args exp_extra = args_init_from_string("");
+  Args exp_cc = args_init_from_string("nvcc -g -Wall -DX -c");
+  Args act_cpp;
+  Args act_extra;
+  Args act_cc;
+
+  create_file("foo.c", "");
+  create_file("foo.optf", "-c foo.c -g -Wall -o");
+  create_file("bar.optf", "out -DX");
+  CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
+  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
+  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
+  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+}
+
 TEST_SUITE_END

@@ -243,35 +243,23 @@ process_arg(Context& ctx,
 
   // Handle cuda "-optf" and "--options-file" argument.
   if (ctx.guessed_compiler == GuessedCompiler::nvcc
-      && (str_eq(argv[i], "-optf") || str_eq(argv[i], "--options-file"))) {
-    if (i == argc - 1) {
-      cc_log("Expected argument after %s", argv[i]);
+      && (args[i] == "-optf" || args[i] == "--options-file")) {
+    if (i == args.size() - 1) {
+      cc_log("Expected argument after %s", args[i].c_str());
       return STATS_ARGS;
     }
     ++i;
 
     // Argument is a comma-separated list of files.
-    const char* str_start = argv[i];
-    const char* str_end = strchr(str_start, ',');
-    size_t index = i + 1;
-
-    if (!str_end) {
-      str_end = str_start + strlen(str_start);
-    }
-
-    while (str_end) {
-      std::string path(str_start, str_end - str_start);
-      auto file_args = args_init_from_gcc_atfile(path);
+    auto paths = Util::split_into_strings(args[i], ",");
+    for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
+      auto file_args = args_init_from_gcc_atfile(*it);
       if (!file_args) {
-        cc_log("Couldn't read cuda options file %s", path.c_str());
+        cc_log("Couldn't read CUDA options file %s", it->c_str());
         return STATS_ARGS;
       }
 
-      size_t new_index = file_args->size() + index;
-      args_insert(args, index, *file_args, false);
-      index = new_index;
-      str_start = str_end;
-      str_end = strchr(str_start, ',');
+      args.insert(i + 1, *file_args);
     }
 
     return nullopt;
