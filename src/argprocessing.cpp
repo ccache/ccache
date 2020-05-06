@@ -19,6 +19,7 @@
 #include "argprocessing.hpp"
 
 #include "Context.hpp"
+#include "FormatNonstdStringView.hpp"
 #include "compopt.hpp"
 #include "language.hpp"
 #include "logging.hpp"
@@ -224,7 +225,7 @@ process_arg(Context& ctx,
 
   // Handle "@file" argument.
   if (Util::starts_with(args[i], "@") || Util::starts_with(args[i], "-@")) {
-    const char* argpath = argv[i] + 1;
+    const char* argpath = args[i].c_str() + 1;
 
     if (argpath[-1] == '-') {
       ++argpath;
@@ -265,28 +266,28 @@ process_arg(Context& ctx,
   }
 
   // These are always too hard.
-  if (compopt_too_hard(argv[i]) || str_startswith(argv[i], "-fdump-")
-      || str_startswith(argv[i], "-MJ")) {
-    cc_log("Compiler option %s is unsupported", argv[i]);
+  if (compopt_too_hard(args[i]) || Util::starts_with(args[i], "-fdump-")
+      || Util::starts_with(args[i], "-MJ")) {
+    cc_log("Compiler option %s is unsupported", args[i].c_str());
     return STATS_UNSUPPORTED_OPTION;
   }
 
   // These are too hard in direct mode.
-  if (config.direct_mode() && compopt_too_hard_for_direct_mode(argv[i])) {
-    cc_log("Unsupported compiler option for direct mode: %s", argv[i]);
+  if (config.direct_mode() && compopt_too_hard_for_direct_mode(args[i])) {
+    cc_log("Unsupported compiler option for direct mode: %s", args[i].c_str());
     config.set_direct_mode(false);
   }
 
   // -Xarch_* options are too hard.
-  if (str_startswith(argv[i], "-Xarch_")) {
-    cc_log("Unsupported compiler option: %s", argv[i]);
+  if (Util::starts_with(args[i], "-Xarch_")) {
+    cc_log("Unsupported compiler option: %s", args[i].c_str());
     return STATS_UNSUPPORTED_OPTION;
   }
 
   // Handle -arch options.
-  if (str_eq(argv[i], "-arch")) {
+  if (args[i] == "-arch") {
     ++i;
-    args_info.arch_args.emplace_back(argv[i]);
+    args_info.arch_args.emplace_back(args[i]);
     if (args_info.arch_args.size() == 2) {
       config.set_run_second_cpp(true);
     }
@@ -294,40 +295,40 @@ process_arg(Context& ctx,
   }
 
   // Handle options that should not be passed to the preprocessor.
-  if (compopt_affects_comp(argv[i])) {
-    args_add(state.compiler_only_args, argv[i]);
-    if (compopt_takes_arg(argv[i])) {
-      if (i == argc - 1) {
-        cc_log("Missing argument to %s", argv[i]);
+  if (compopt_affects_comp(args[i])) {
+    state.compiler_only_args.push_back(args[i]);
+    if (compopt_takes_arg(args[i])) {
+      if (i == args.size() - 1) {
+        cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;
       }
-      args_add(state.compiler_only_args, argv[i + 1]);
+      state.compiler_only_args.push_back(args[i + 1]);
       ++i;
     }
     return nullopt;
   }
-  if (compopt_prefix_affects_comp(argv[i])) {
-    args_add(state.compiler_only_args, argv[i]);
+  if (compopt_prefix_affects_comp(args[i])) {
+    state.compiler_only_args.push_back(args[i]);
     return nullopt;
   }
 
-  if (str_eq(argv[i], "-fpch-preprocess") || str_eq(argv[i], "-emit-pch")
-      || str_eq(argv[i], "-emit-pth")) {
+  if (args[i] == "-fpch-preprocess" || args[i] == "-emit-pch"
+      || args[i] == "-emit-pth") {
     state.found_fpch_preprocess = true;
   }
 
-  // Modules are handled on demand as necessary in the background,
-  // so there is no need to cache them, they can be in practice ignored.
-  // All that is needed is to correctly depend also on module.modulemap files,
-  // and those are included only in depend mode (preprocessed output does not
-  // list them). Still, not including the modules themselves in the hash
-  // could possibly result in an object file that would be different
-  // from the actual compilation (even though it should be compatible),
-  // so require a sloppiness flag.
-  if (str_eq(argv[i], "-fmodules")) {
+  // Modules are handled on demand as necessary in the background, so there is
+  // no need to cache them, they can in practice be ignored. All that is needed
+  // is to correctly depend also on module.modulemap files, and those are
+  // included only in depend mode (preprocessed output does not list them).
+  // Still, not including the modules themselves in the hash could possibly
+  // result in an object file that would be different from the actual
+  // compilation (even though it should be compatible), so require a sloppiness
+  // flag.
+  if (args[i] == "-fmodules") {
     if (!config.depend_mode() || !config.direct_mode()) {
       cc_log("Compiler option %s is unsupported without direct depend mode",
-             argv[i]);
+             args[i].c_str());
       return STATS_CANTUSEMODULES;
     } else if (!(config.sloppiness() & SLOPPY_MODULES)) {
       cc_log(
@@ -338,26 +339,26 @@ process_arg(Context& ctx,
   }
 
   // We must have -c.
-  if (str_eq(argv[i], "-c")) {
+  if (args[i] == "-c") {
     state.found_c_opt = true;
     return nullopt;
   }
 
   // when using nvcc with separable compilation, -dc implies -c
-  if ((str_eq(argv[i], "-dc") || str_eq(argv[i], "--device-c"))
+  if ((args[i] == "-dc" || args[i] == "--device-c")
       && ctx.guessed_compiler == GuessedCompiler::nvcc) {
     state.found_dc_opt = true;
     return nullopt;
   }
 
   // -S changes the default extension.
-  if (str_eq(argv[i], "-S")) {
-    args_add(state.common_args, argv[i]);
+  if (args[i] == "-S") {
+    state.common_args.push_back(args[i]);
     state.found_S_opt = true;
     return nullopt;
   }
 
-  if (str_eq(argv[i], "-xHost")) {
+  if (args[i] == "-xHost") {
     // -xHost is an ordinary Intel compiler option, not a language
     // specification.
     state.common_args.push_back(args[i]);
@@ -366,39 +367,40 @@ process_arg(Context& ctx,
 
   // Special handling for -x: remember the last specified language before the
   // input file and strip all -x options from the arguments.
-  if (str_eq(argv[i], "-x")) {
-    if (i == argc - 1) {
-      cc_log("Missing argument to %s", argv[i]);
+  if (args[i] == "-x") {
+    if (i == args.size() - 1) {
+      cc_log("Missing argument to %s", args[i].c_str());
       return STATS_ARGS;
     }
     if (args_info.input_file.empty()) {
-      state.explicit_language = argv[i + 1];
+      state.explicit_language = args[i + 1];
     }
     i++;
     return nullopt;
   }
-  if (str_startswith(argv[i], "-x")) {
+  if (Util::starts_with(args[i], "-x")) {
     if (args_info.input_file.empty()) {
-      state.explicit_language = &argv[i][2];
+      state.explicit_language = args[i].substr(2);
     }
     return nullopt;
   }
 
   // We need to work out where the output was meant to go.
-  if (str_eq(argv[i], "-o")) {
-    if (i == argc - 1) {
-      cc_log("Missing argument to %s", argv[i]);
+  if (args[i] == "-o") {
+    if (i == args.size() - 1) {
+      cc_log("Missing argument to %s", args[i].c_str());
       return STATS_ARGS;
     }
-    args_info.output_obj = Util::make_relative_path(ctx, argv[i + 1]);
+    args_info.output_obj = Util::make_relative_path(ctx, args[i + 1]);
     i++;
     return nullopt;
   }
 
   // Alternate form of -o with no space. Nvcc does not support this.
-  if (str_startswith(argv[i], "-o")
+  if (Util::starts_with(args[i], "-o")
       && ctx.guessed_compiler != GuessedCompiler::nvcc) {
-    args_info.output_obj = Util::make_relative_path(ctx, &argv[i][2]);
+    args_info.output_obj =
+      Util::make_relative_path(ctx, string_view(args[i]).substr(2));
     return nullopt;
   }
 
@@ -412,22 +414,22 @@ process_arg(Context& ctx,
 
   // Debugging is handled specially, so that we know if we can strip line
   // number info.
-  if (str_startswith(argv[i], "-g")) {
-    args_add(state.common_args, argv[i]);
+  if (Util::starts_with(args[i], "-g")) {
+    state.common_args.push_back(args[i]);
 
-    if (str_startswith(argv[i], "-gdwarf")) {
+    if (Util::starts_with(args[i], "-gdwarf")) {
       // Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
       // debug info on level 2.
       args_info.generating_debuginfo = true;
       return nullopt;
     }
 
-    if (str_startswith(argv[i], "-gz")) {
+    if (Util::starts_with(args[i], "-gz")) {
       // -gz[=type] neither disables nor enables debug info.
       return nullopt;
     }
 
-    char last_char = argv[i][strlen(argv[i]) - 1];
+    char last_char = args[i].back();
     if (last_char == '0') {
       // "-g0", "-ggdb0" or similar: All debug information disabled.
       args_info.generating_debuginfo = false;
@@ -437,7 +439,7 @@ process_arg(Context& ctx,
       if (last_char == '3') {
         state.generating_debuginfo_level_3 = true;
       }
-      if (str_eq(argv[i], "-gsplit-dwarf")) {
+      if (args[i] == "-gsplit-dwarf") {
         args_info.seen_split_dwarf = true;
       }
     }
@@ -446,66 +448,62 @@ process_arg(Context& ctx,
 
   // These options require special handling, because they behave differently
   // with gcc -E, when the output file is not specified.
-  if (str_eq(argv[i], "-MD") || str_eq(argv[i], "-MMD")) {
+  if (args[i] == "-MD" || args[i] == "-MMD") {
     args_info.generating_dependencies = true;
-    args_add(state.dep_args, argv[i]);
+    state.dep_args.push_back(args[i]);
     return nullopt;
   }
-  if (str_startswith(argv[i], "-MF")) {
+
+  if (Util::starts_with(args[i], "-MF")) {
     state.dependency_filename_specified = true;
 
-    const char* dep_file;
-    bool separate_argument = (strlen(argv[i]) == 3);
+    std::string dep_file;
+    bool separate_argument = (args[i].size() == 3);
     if (separate_argument) {
       // -MF arg
-      if (i == argc - 1) {
-        cc_log("Missing argument to %s", argv[i]);
+      if (i == args.size() - 1) {
+        cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;
       }
-      dep_file = argv[i + 1];
+      dep_file = args[i + 1];
       i++;
     } else {
       // -MFarg or -MF=arg (EDG-based compilers)
-      dep_file = &argv[i][3];
-      if (dep_file[0] == '=') {
-        ++dep_file;
-      }
+      dep_file = args[i].substr(args[i][3] == '=' ? 4 : 3);
     }
     args_info.output_dep = Util::make_relative_path(ctx, dep_file);
     // Keep the format of the args the same.
     if (separate_argument) {
-      args_add(state.dep_args, "-MF");
+      state.dep_args.push_back("-MF");
       state.dep_args.push_back(args_info.output_dep);
     } else {
-      char* option = format("-MF%s", args_info.output_dep.c_str());
-      args_add(state.dep_args, option);
-      free(option);
+      state.dep_args.push_back("-MF" + args_info.output_dep);
     }
     return nullopt;
   }
-  if (str_startswith(argv[i], "-MQ") || str_startswith(argv[i], "-MT")) {
+
+  if (Util::starts_with(args[i], "-MQ") || Util::starts_with(args[i], "-MT")) {
     state.dependency_target_specified = true;
 
-    if (strlen(argv[i]) == 3) {
+    if (args[i].size() == 3) {
       // -MQ arg or -MT arg
-      if (i == argc - 1) {
-        cc_log("Missing argument to %s", argv[i]);
+      if (i == args.size() - 1) {
+        cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;
       }
-      args_add(state.dep_args, argv[i]);
-      std::string relpath = Util::make_relative_path(ctx, argv[i + 1]);
+      state.dep_args.push_back(args[i]);
+      std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
       state.dep_args.push_back(relpath);
       i++;
     } else {
-      char* arg_opt = x_strndup(argv[i], 3);
-      std::string relpath = Util::make_relative_path(ctx, argv[i] + 3);
-      char* option = format("%s%s", arg_opt, relpath.c_str());
-      args_add(state.dep_args, option);
-      free(arg_opt);
-      free(option);
+      auto arg_opt = string_view(args[i]).substr(0, 3);
+      auto option = string_view(args[i]).substr(3);
+      auto relpath = Util::make_relative_path(ctx, option);
+      state.dep_args.push_back(fmt::format("{}{}", arg_opt, relpath));
     }
     return nullopt;
   }
+
   if (str_eq(argv[i], "-fprofile-arcs")) {
     args_info.profile_arcs = true;
     args_add(state.common_args, argv[i]);
