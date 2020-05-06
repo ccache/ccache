@@ -18,15 +18,17 @@
 
 #include "language.hpp"
 
-#include "legacy_util.hpp"
+#include "Util.hpp"
+
+namespace {
 
 // Supported file extensions and corresponding languages (as in parameter to
 // the -x option).
-static const struct
+const struct
 {
   const char* extension;
   const char* language;
-} extensions[] = {
+} k_ext_lang_table[] = {
   {".c", "c"},
   {".C", "c++"},
   {".cc", "c++"},
@@ -70,11 +72,11 @@ static const struct
 };
 
 // Supported languages and corresponding preprocessed languages.
-static const struct
+const struct
 {
   const char* language;
   const char* p_language;
-} languages[] = {
+} k_lang_p_lang_table[] = {
   {"c", "cpp-output"},
   {"cpp-output", "cpp-output"},
   {"c-header", "cpp-output"},
@@ -95,61 +97,50 @@ static const struct
   {nullptr, nullptr},
 };
 
-// Guess the language of a file based on its extension. Returns NULL if the
-// extension is unknown.
-const char*
-language_for_file(const char* fname)
+} // namespace
+
+std::string
+language_for_file(const std::string& fname)
 {
-  const char* p = get_extension(fname);
-  for (int i = 0; extensions[i].extension; i++) {
-    if (str_eq(p, extensions[i].extension)) {
-      return extensions[i].language;
+  auto ext = Util::get_extension(fname);
+  for (size_t i = 0; k_ext_lang_table[i].extension; ++i) {
+    if (k_ext_lang_table[i].extension == ext) {
+      return k_ext_lang_table[i].language;
     }
   }
-  return nullptr;
+  return {};
 }
 
-// Return the preprocessed language for a given language, or NULL if unknown.
-const char*
-p_language_for_language(const char* language)
+std::string
+p_language_for_language(const std::string& language)
 {
-  if (!language) {
-    return nullptr;
-  }
-  for (int i = 0; languages[i].language; ++i) {
-    if (str_eq(language, languages[i].language)) {
-      return languages[i].p_language;
+  for (size_t i = 0; k_lang_p_lang_table[i].language; ++i) {
+    if (language == k_lang_p_lang_table[i].language) {
+      return k_lang_p_lang_table[i].p_language;
     }
   }
-  return nullptr;
+  return {};
 }
 
-// Return the default file extension (including dot) for a language, or NULL if
-// unknown.
-const char*
-extension_for_language(const char* language)
+std::string
+extension_for_language(const std::string& language)
 {
-  if (!language) {
-    return nullptr;
-  }
-  for (int i = 0; extensions[i].extension; i++) {
-    if (str_eq(language, extensions[i].language)) {
-      return extensions[i].extension;
+  for (size_t i = 0; k_ext_lang_table[i].extension; i++) {
+    if (language == k_ext_lang_table[i].language) {
+      return k_ext_lang_table[i].extension;
     }
   }
-  return nullptr;
+  return {};
 }
 
 bool
-language_is_supported(const char* language)
+language_is_supported(const std::string& language)
 {
-  return p_language_for_language(language) != nullptr;
+  return !p_language_for_language(language).empty();
 }
 
 bool
-language_is_preprocessed(const char* language)
+language_is_preprocessed(const std::string& language)
 {
-  const char* p_language = p_language_for_language(language);
-  assert(p_language);
-  return str_eq(language, p_language);
+  return language == p_language_for_language(language);
 }

@@ -778,7 +778,7 @@ process_arg(Context& ctx,
   }
 
   if (!args_info.input_file.empty()) {
-    if (language_for_file(argv[i])) {
+    if (!language_for_file(argv[i]).empty()) {
       cc_log("Multiple input files: %s and %s",
              args_info.input_file.c_str(),
              argv[i]);
@@ -916,10 +916,9 @@ process_args(Context& ctx,
   if (!state.explicit_language.empty() && state.explicit_language == "none") {
     state.explicit_language.clear();
   }
-  state.file_language =
-    from_cstr(language_for_file(args_info.input_file.c_str()));
+  state.file_language = language_for_file(args_info.input_file);
   if (!state.explicit_language.empty()) {
-    if (!language_is_supported(state.explicit_language.c_str())) {
+    if (!language_is_supported(state.explicit_language)) {
       cc_log("Unsupported language: %s", state.explicit_language.c_str());
       return STATS_SOURCELANG;
     }
@@ -964,8 +963,7 @@ process_args(Context& ctx,
     config.set_run_second_cpp(true);
   }
 
-  args_info.direct_i_file =
-    language_is_preprocessed(args_info.actual_language.c_str());
+  args_info.direct_i_file = language_is_preprocessed(args_info.actual_language);
 
   if (args_info.output_is_precompiled_header && !config.run_second_cpp()) {
     // It doesn't work to create the .gch from preprocessed source.
@@ -974,9 +972,8 @@ process_args(Context& ctx,
   }
 
   if (config.cpp_extension().empty()) {
-    const char* p_language =
-      p_language_for_language(args_info.actual_language.c_str());
-    config.set_cpp_extension(extension_for_language(p_language) + 1);
+    std::string p_language = p_language_for_language(args_info.actual_language);
+    config.set_cpp_extension(extension_for_language(p_language).substr(1));
   }
 
   // Don't try to second guess the compilers heuristics for stdout handling.
@@ -1124,8 +1121,7 @@ process_args(Context& ctx,
     // reset the language specified with -x, so if -x is given, we have to
     // specify the preprocessed language explicitly.
     args_add(*compiler_args, "-x");
-    args_add(*compiler_args,
-             p_language_for_language(state.explicit_language.c_str()));
+    args_add(*compiler_args, p_language_for_language(state.explicit_language));
   }
 
   if (state.found_c_opt) {
