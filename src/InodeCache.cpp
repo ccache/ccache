@@ -24,8 +24,11 @@
 #  include "Stat.hpp"
 #  include "Util.hpp"
 #  include "ccache.hpp"
+#  include "exceptions.hpp"
 #  include "hash.hpp"
 #  include "logging.hpp"
+
+#  include "third_party/fmt/core.h"
 
 #  include <atomic>
 #  include <errno.h>
@@ -76,11 +79,20 @@ get_tmpdir()
   return tmpdir;
 }
 
+std::string
+suffix(const std::string& tmpdir)
+{
+  if (tmpdir == "/tmp")
+    return std::string("-u") + std::to_string(geteuid()) + version_suffix;
+  return version_suffix;
+}
+
 const std::string&
 get_default_filename()
 {
+  static const std::string tmpdir = get_tmpdir();
   static const std::string filename =
-    get_tmpdir() + "/ccache_inode_cache" + version_suffix;
+    tmpdir + "/ccache-inode-cache" + suffix(tmpdir);
   return filename;
 }
 
@@ -142,13 +154,15 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
   }
-  int fd = open(inode_cache_file.c_str(), O_RDWR);
+  int fd = open(inode_cache_file.c_str(), O_RDWR, O_NOFOLLOW);
   if (fd < 0) {
     cc_log("Failed to open inode cache %s: %s",
            inode_cache_file.c_str(),
            strerror(errno));
     return false;
   }
+  if (Stat::fstat(fd, Stat::OnError::throw_error).uid() != geteuid())
+    throw Error(fmt::format("not owner of {}", inode_cache_file.c_str()));
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   close(fd);
@@ -170,6 +184,8 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     return false;
   }
   m_sr = sr;
+  if (m_config.debug())
+    cc_log("inode cache file loaded: %s", inode_cache_file.c_str());
   return true;
 }
 
@@ -261,6 +277,9 @@ InodeCache::create_new_file(const std::string& filename)
   // Create the new file to a a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   auto temp_fd = Util::create_temp_fd(filename);
+  if (fchmod(temp_fd.first, 0600) != 0)
+    throw Error(
+      fmt::format("failed to chmod {}: {}", temp_fd.second, strerror(errno)));
   int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));

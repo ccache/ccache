@@ -50,6 +50,10 @@ TEST_CASE("Default constructor")
   CHECK(stat.mtim().tv_sec == 0);
   CHECK(stat.mtim().tv_nsec == 0);
 #endif
+
+#ifdef HAVE_STRUCT_STAT_ST_UID
+  CHECK(stat.uid() == 0);
+#endif
 }
 
 TEST_CASE("Named constructors")
@@ -106,6 +110,10 @@ TEST_CASE("Return values when file is missing")
   CHECK(stat.mtim().tv_sec == 0);
   CHECK(stat.mtim().tv_nsec == 0);
 #endif
+
+#ifdef HAVE_STRUCT_STAT_ST_UID
+  CHECK(stat.uid() == 0);
+#endif
 }
 
 TEST_CASE("Return values when file exists")
@@ -141,6 +149,10 @@ TEST_CASE("Return values when file exists")
 #ifdef HAVE_STRUCT_STAT_ST_MTIM
   CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
   CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+#endif
+
+#if defined(HAVE_STRUCT_STAT_ST_UID) && defined(HAVE_GETEUID)
+  CHECK(stat.uid() == geteuid());
 #endif
 }
 
@@ -204,6 +216,30 @@ TEST_CASE("Symlinks")
     CHECK(stat.is_regular());
     CHECK(!stat.is_symlink());
     CHECK(stat.size() == 7);
+  }
+}
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+TEST_CASE("Descriptor stat")
+{
+  SECTION("bad descriptor")
+  {
+    CHECK(!Stat::fstat(-1));
+    CHECK(!Stat::fstat(-1, Stat::OnError::ignore));
+    CHECK(!Stat::fstat(-1, Stat::OnError::log));
+    CHECK_THROWS_WITH(
+      Stat::fstat(-1, Stat::OnError::throw_error),
+      Equals("failed to stat descriptor -1: Bad file descriptor"));
+  }
+
+  SECTION("good descriptor")
+  {
+    Util::write_file("a", "a text");
+    int fd = open("a", O_RDONLY);
+    auto stat = Stat::fstat(fd, Stat::OnError::ignore);
+    CHECK(stat);
+    CHECK(stat.size() == strlen("a text"));
   }
 }
 #endif

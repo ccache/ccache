@@ -43,3 +43,26 @@ Stat::Stat(StatFunction stat_function,
     memset(&m_stat, '\0', sizeof(m_stat));
   }
 }
+
+#ifdef HAVE_FSTAT
+Stat::Stat(int fd, Stat::OnError on_error)
+{
+  int result = ::fstat(fd, &m_stat);
+  if (result == 0) {
+    m_errno = 0;
+  } else {
+    m_errno = errno;
+    if (on_error == OnError::throw_error) {
+      throw Error(
+        fmt::format("failed to stat descriptor {}: {}", fd, strerror(errno)));
+    }
+    if (on_error == OnError::log) {
+      cc_log("Failed to stat descriptor %d: %s", fd, strerror(errno));
+    }
+
+    // The file is missing, so just zero fill the stat structure. This will
+    // make e.g. the is_*() methods return false and mtime() will be 0, etc.
+    memset(&m_stat, '\0', sizeof(m_stat));
+  }
+}
+#endif
