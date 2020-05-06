@@ -21,12 +21,6 @@
 #include "../src/Stat.hpp"
 #include "../src/system.hpp"
 
-bool
-path_exists(const char* path)
-{
-  return Stat::lstat(path);
-}
-
 void
 create_file(const char* path, const char* content)
 {
