@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,13 +20,16 @@
 
 #include "system.hpp"
 
-bool compopt_short(bool (*fn)(const char* option), const char* option);
-bool compopt_affects_cpp(const char* option);
-bool compopt_affects_comp(const char* option);
-bool compopt_too_hard(const char* option);
-bool compopt_too_hard_for_direct_mode(const char* option);
-bool compopt_takes_path(const char* option);
-bool compopt_takes_arg(const char* option);
-bool compopt_takes_concat_arg(const char* option);
-bool compopt_prefix_affects_cpp(const char* option);
-bool compopt_prefix_affects_comp(const char* option);
+#include <string>
+
+bool compopt_short(bool (*fn)(const std::string& option),
+                   const std::string& option);
+bool compopt_affects_cpp(const std::string& option);
+bool compopt_affects_comp(const std::string& option);
+bool compopt_too_hard(const std::string& option);
+bool compopt_too_hard_for_direct_mode(const std::string& option);
+bool compopt_takes_path(const std::string& option);
+bool compopt_takes_arg(const std::string& option);
+bool compopt_takes_concat_arg(const std::string& option);
+bool compopt_prefix_affects_cpp(const std::string& option);
+bool compopt_prefix_affects_comp(const std::string& option);
