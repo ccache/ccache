@@ -2144,7 +2144,7 @@ set_up_config(Config& config)
 static void
 set_up_context(Context& ctx, int argc, const char* const* argv)
 {
-  ctx.orig_args = args_init(argc, argv);
+  ctx.orig_args = Args::from_argv(argc, argv);
   ctx.ignore_header_paths = Util::split_into_strings(
     ctx.config.ignore_headers_in_manifest(), PATH_DELIM);
 }

@@ -105,7 +105,7 @@ TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
   " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
   ctx.orig_args = Args::from_string("cc " DEP_ARGS " -c foo.c -o foo.o");
   Args exp_cpp = args_init_from_string("cc " DEP_ARGS);
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -c");
 #undef DEP_ARGS
   Args act_cpp;
@@ -158,7 +158,7 @@ TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
   ctx.orig_args =
     Args::from_string("cc " CPP_ARGS " " DEP_ARGS " -c foo.c -o foo.o");
   Args exp_cpp = args_init_from_string("cc " CPP_ARGS " " DEP_ARGS);
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -c");
 #undef DEP_ARGS
 #undef CPP_ARGS
@@ -250,7 +250,7 @@ TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
   Args exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -c");
   Args act_cpp;
   Args act_extra;
@@ -270,7 +270,7 @@ TEST(MF_should_be_added_if_run_second_cpp_is_false)
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
   Args exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -c");
   Args act_cpp;
   Args act_extra;
@@ -585,7 +585,7 @@ TEST(debug_flag_order_with_known_option_first)
 
   ctx.orig_args = Args::from_string("cc -g1 -gsplit-dwarf foo.c -c");
   Args exp_cpp = args_init_from_string("cc -g1 -gsplit-dwarf");
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -g1 -gsplit-dwarf -c");
   Args act_cpp;
   Args act_extra;
@@ -604,7 +604,7 @@ TEST(debug_flag_order_with_known_option_last)
 
   ctx.orig_args = Args::from_string("cc -gsplit-dwarf -g1 foo.c -c");
   Args exp_cpp = args_init_from_string("cc -gsplit-dwarf -g1");
-  Args exp_extra = args_init(0, NULL);
+  Args exp_extra;
   Args exp_cc = args_init_from_string("cc -gsplit-dwarf -g1 -c");
   Args act_cpp;
   Args act_extra;
