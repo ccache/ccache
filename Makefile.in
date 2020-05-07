@@ -97,7 +97,6 @@ test_suites += unittest/test_argument_processing.cpp
 test_suites += unittest/test_compopt.cpp
 test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
-test_suites += unittest/test_legacy_args.cpp
 test_suites += unittest/test_legacy_util.cpp
 
 test_sources += unittest/catch2_tests.cpp

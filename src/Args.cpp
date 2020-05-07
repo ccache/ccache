@@ -20,16 +20,7 @@
 
 #include "Util.hpp"
 
-Args::Args() : argv(m_args)
-{
-}
-
-Args::Args(const Args& other) : m_args(other.m_args), argv(m_args)
-{
-}
-
-Args::Args(Args&& other) noexcept
-  : m_args(std::move(other.m_args)), argv(m_args)
+Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
 {
 }
 
@@ -127,21 +118,10 @@ Args::from_gcc_atfile(const std::string& filename)
 }
 
 Args&
-Args::operator=(const Args& other)
-{
-  if (&other != this) {
-    m_args = other.m_args;
-    argv.m_args = &m_args;
-  }
-  return *this;
-}
-
-Args&
 Args::operator=(Args&& other) noexcept
 {
   if (&other != this) {
     m_args = std::move(other.m_args);
-    argv.m_args = &m_args;
   }
   return *this;
 }
@@ -231,95 +211,4 @@ Args::replace(size_t index, const Args& args)
     m_args.erase(m_args.begin() + index);
     insert(index, args);
   }
-}
-
-Args::ArgvAccessWrapper::ArgvAccessWrapper(const std::deque<std::string>& args)
-  : m_args(&args)
-{
-}
-
-// clang-format off
-const char*
-Args::ArgvAccessWrapper::operator[](size_t i) const
-// clang-format on
-{
-  return i == m_args->size() ? nullptr : m_args->at(i).c_str();
-}
-
-// === Wrapper functions for the legacy API: ===
-
-void
-args_add(Args& args, const std::string& arg)
-{
-  args.push_back(arg);
-}
-
-void
-args_add_prefix(Args& args, const std::string& arg)
-{
-  args.push_front(arg);
-}
-
-Args
-args_copy(const Args& args)
-{
-  return args;
-}
-
-void
-args_extend(Args& args, const Args& to_append)
-{
-  args.push_back(to_append);
-}
-
-Args
-args_init(int argc, const char* const* argv)
-{
-  return Args::from_argv(argc, argv);
-}
-
-nonstd::optional<Args>
-args_init_from_gcc_atfile(const std::string& filename)
-{
-  return Args::from_gcc_atfile(filename);
-}
-
-Args
-args_init_from_string(const std::string& s)
-{
-  return Args::from_string(s);
-}
-
-void
-args_insert(Args& args, size_t index, const Args& to_insert, bool replace)
-{
-  if (replace) {
-    args.replace(index, to_insert);
-  } else {
-    args.insert(index, to_insert);
-  }
-}
-
-void
-args_pop(Args& args, size_t count)
-{
-  args.pop_back(count);
-}
-
-void
-args_remove_first(Args& args)
-{
-  args.pop_front(1);
-}
-
-void
-args_set(Args& args, size_t index, const std::string& value)
-{
-  args[index] = value;
-}
-
-void
-args_strip(Args& args, nonstd::string_view prefix)
-{
-  args.erase_with_prefix(prefix);
 }

@@ -32,15 +32,15 @@
 class Args
 {
 public:
-  Args();
-  Args(const Args& other);
+  Args() = default;
+  Args(const Args& other) = default;
   Args(Args&& other) noexcept;
 
   static Args from_argv(int argc, const char* const* argv);
   static Args from_string(const std::string& command);
   static nonstd::optional<Args> from_gcc_atfile(const std::string& filename);
 
-  Args& operator=(const Args& other);
+  Args& operator=(const Args& other) = default;
   Args& operator=(Args&& other) noexcept;
 
   bool operator==(const Args& other) const;
@@ -50,10 +50,6 @@ public:
   size_t size() const;
   const std::string& operator[](size_t i) const;
   std::string& operator[](size_t i);
-
-  // Accessor functions for the legacy API:
-  Args& operator*();
-  const Args* operator->() const;
 
   // Return the argument list as a vector of raw string pointers. Callers can
   // use `const_cast<char* const*>(args.to_argv().data())` to get an array
@@ -90,23 +86,6 @@ public:
 
 private:
   std::deque<std::string> m_args;
-
-public:
-  // Wrapper for legacy API:
-  class ArgvAccessWrapper
-  {
-  public:
-    friend Args;
-
-    ArgvAccessWrapper(const std::deque<std::string>& args);
-
-    const char* operator[](size_t i) const;
-
-  private:
-    const std::deque<std::string>* m_args;
-  };
-
-  ArgvAccessWrapper argv;
 };
 
 inline bool
@@ -148,33 +127,3 @@ Args::operator[](size_t i)
 {
   return m_args[i];
 }
-
-// clang-format off
-inline Args&
-Args::operator*()
-// clang-format on
-{
-  return *this;
-}
-
-// clang-format off
-inline const Args*
-Args::operator->() const
-// clang-format on
-{
-  return this;
-}
-
-// Wrapper functions for the legacy API:
-void args_add(Args& args, const std::string& arg);
-void args_add_prefix(Args& args, const std::string& arg);
-Args args_copy(const Args& args);
-void args_extend(Args& args, const Args& to_append);
-Args args_init(int argc, const char* const* argv);
-nonstd::optional<Args> args_init_from_gcc_atfile(const std::string& filename);
-Args args_init_from_string(const std::string& s);
-void args_insert(Args& args, size_t index, const Args& to_insert, bool replace);
-void args_pop(Args& args, size_t count);
-void args_remove_first(Args& args);
-void args_set(Args& args, size_t index, const std::string& value);
-void args_strip(Args& args, nonstd::string_view prefix);
