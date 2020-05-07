@@ -1051,7 +1051,7 @@ to_cache(Context& ctx,
     // mode.
     Args depend_mode_args = ctx.orig_args;
     args_strip(depend_mode_args, "--ccache-");
-    args_extend(depend_mode_args, depend_extra_args);
+    depend_mode_args.push_back(depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
@@ -2402,7 +2402,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                   debug_text_file);
 
   Args args_to_hash = preprocessor_args;
-  args_extend(args_to_hash, extra_args_to_hash);
+  args_to_hash.push_back(extra_args_to_hash);
 
   bool put_result_in_manifest = false;
   struct digest* result_name = nullptr;
