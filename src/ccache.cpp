@@ -1039,7 +1039,7 @@ to_cache(Context& ctx,
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(
       args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
-    args_pop(args, 3);
+    args.pop_back(3);
   } else {
     // The cached result path is not known yet, use temporary files.
     tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx));
@@ -1278,7 +1278,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     status = execute(
       args.to_argv().data(), path_stdout_fd, path_stderr_fd, &compiler_pid);
     MTR_END("execute", "preprocessor");
-    args_pop(args, args_added);
+    args.pop_back(args_added);
   }
 
   if (status != 0) {
@@ -1863,9 +1863,9 @@ calculate_result_name(Context& ctx,
           free(result_name);
           result_name = nullptr;
         }
-        args_pop(preprocessor_args, 1);
+        preprocessor_args.pop_back();
       }
-      args_pop(preprocessor_args, 1);
+      preprocessor_args.pop_back();
     }
   }
 
