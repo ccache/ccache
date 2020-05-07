@@ -818,6 +818,63 @@ process_arg(Context& ctx,
   return nullopt;
 }
 
+void
+handle_dependency_environment_variables(Context& ctx,
+                                        ArgumentProcessingState& state)
+{
+  ArgsInfo& args_info = ctx.args_info;
+
+  // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
+  // Contrary to what the documentation seems to imply the compiler still
+  // creates object files with these defined (confirmed with GCC 8.2.1), i.e.
+  // they work as -MMD/-MD, not -MM/-M. These environment variables do nothing
+  // on Clang.
+  const char* dependencies_env = getenv("DEPENDENCIES_OUTPUT");
+  bool using_sunpro_dependencies = false;
+  if (!dependencies_env) {
+    dependencies_env = getenv("SUNPRO_DEPENDENCIES");
+    using_sunpro_dependencies = true;
+  }
+  if (!dependencies_env) {
+    return;
+  }
+
+  args_info.generating_dependencies = true;
+  state.dependency_filename_specified = true;
+
+  auto dependencies = Util::split_into_views(dependencies_env, " ");
+
+  if (!dependencies.empty()) {
+    auto abspath_file = dependencies[0];
+    args_info.output_dep = Util::make_relative_path(ctx, abspath_file);
+  }
+
+  // Specifying target object is optional.
+  if (dependencies.size() > 1) {
+    // It's the "file target" form.
+    state.dependency_target_specified = true;
+    string_view abspath_obj = dependencies[1];
+    std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
+    // Ensure that the compiler gets a relative path.
+    std::string relpath_both =
+      fmt::format("{} {}", args_info.output_dep, relpath_obj);
+    if (using_sunpro_dependencies) {
+      x_setenv("SUNPRO_DEPENDENCIES", relpath_both.c_str());
+    } else {
+      x_setenv("DEPENDENCIES_OUTPUT", relpath_both.c_str());
+    }
+  } else {
+    // It's the "file" form.
+    state.dependency_implicit_target_specified = true;
+    // Ensure that the compiler gets a relative path.
+    if (using_sunpro_dependencies) {
+      x_setenv("SUNPRO_DEPENDENCIES", args_info.output_dep.c_str());
+    } else {
+      x_setenv("DEPENDENCIES_OUTPUT", args_info.output_dep.c_str());
+    }
+  }
+}
+
 } // namespace
 
 optional<enum stats>
@@ -851,57 +908,7 @@ process_args(Context& ctx,
     config.set_run_second_cpp(true);
   }
 
-  // See <http://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html>.
-  // Contrary to what the documentation seems to imply the compiler still
-  // creates object files with these defined (confirmed with GCC 8.2.1), i.e.
-  // they work as -MMD/-MD, not -MM/-M. These environment variables do nothing
-  // on Clang.
-  {
-    char* dependencies_env = getenv("DEPENDENCIES_OUTPUT");
-    bool using_sunpro_dependencies = false;
-    if (!dependencies_env) {
-      dependencies_env = getenv("SUNPRO_DEPENDENCIES");
-      using_sunpro_dependencies = true;
-    }
-    if (dependencies_env) {
-      args_info.generating_dependencies = true;
-      state.dependency_filename_specified = true;
-
-      auto dependencies = Util::split_into_views(dependencies_env, " ");
-
-      if (!dependencies.empty()) {
-        auto abspath_file = dependencies.at(0);
-        args_info.output_dep = Util::make_relative_path(ctx, abspath_file);
-      }
-
-      // specifying target object is optional.
-      if (dependencies.size() > 1) {
-        // it's the "file target" form.
-        string_view abspath_obj = dependencies.at(1);
-
-        state.dependency_target_specified = true;
-        std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
-        // ensure compiler gets relative path.
-        std::string relpath_both =
-          fmt::format("{} {}", args_info.output_dep, relpath_obj);
-        if (using_sunpro_dependencies) {
-          x_setenv("SUNPRO_DEPENDENCIES", relpath_both.c_str());
-        } else {
-          x_setenv("DEPENDENCIES_OUTPUT", relpath_both.c_str());
-        }
-      } else {
-        // it's the "file" form.
-
-        state.dependency_implicit_target_specified = true;
-        // ensure compiler gets relative path.
-        if (using_sunpro_dependencies) {
-          x_setenv("SUNPRO_DEPENDENCIES", args_info.output_dep.c_str());
-        } else {
-          x_setenv("DEPENDENCIES_OUTPUT", args_info.output_dep.c_str());
-        }
-      }
-    }
-  }
+  handle_dependency_environment_variables(ctx, state);
 
   if (args_info.input_file.empty()) {
     cc_log("No input file found");
