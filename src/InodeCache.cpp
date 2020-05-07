@@ -427,8 +427,9 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
 bool
 InodeCache::put(const char* path, const digest& file_digest, int return_value)
 {
-  if (!initialize())
+  if (!initialize()) {
     return false;
+  }
 
   digest key_digest;
   if (!hash_inode(path, &key_digest)) {
