@@ -228,7 +228,7 @@ process_arg(Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
-    auto file_args = args_init_from_gcc_atfile(argpath);
+    auto file_args = Args::from_gcc_atfile(argpath);
     if (!file_args) {
       cc_log("Couldn't read arg file %s", argpath);
       return STATS_ARGS;
@@ -251,7 +251,7 @@ process_arg(Context& ctx,
     // Argument is a comma-separated list of files.
     auto paths = Util::split_into_strings(args[i], ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = args_init_from_gcc_atfile(*it);
+      auto file_args = Args::from_gcc_atfile(*it);
       if (!file_args) {
         cc_log("Couldn't read CUDA options file %s", it->c_str());
         return STATS_ARGS;
