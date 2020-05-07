@@ -1959,7 +1959,7 @@ find_compiler(Context& ctx, const char* const* argv)
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
   if (same_executable_name(base.c_str(), MYNAME)) {
-    args_remove_first(ctx.orig_args);
+    ctx.orig_args.pop_front();
     if (is_full_path(ctx.orig_args->argv[0])) {
       // A full path was given.
       return;
