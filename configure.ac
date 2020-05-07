@@ -138,6 +138,8 @@ AC_CHECK_FUNCS(utimes)
 
 AC_CHECK_MEMBERS([struct stat.st_ctim, struct stat.st_mtim, struct stat.st_uid])
 
+AC_TYPE_UID_T
+
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
 
