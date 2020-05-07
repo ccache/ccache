@@ -295,11 +295,12 @@ hash_source_code_file(const Context& ctx,
                       size_t size_hint)
 {
 #ifdef INODE_CACHE_SUPPORTED
-  if (!ctx.config.inode_cache())
+  if (!ctx.config.inode_cache()) {
 #endif
     return hash_source_code_file_nocache(ctx, hash, path, size_hint);
 
 #ifdef INODE_CACHE_SUPPORTED
+  }
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
@@ -309,8 +310,9 @@ hash_source_code_file(const Context& ctx,
     struct hash* file_hash = hash_init();
     return_value =
       hash_source_code_file_nocache(ctx, file_hash, path, size_hint);
-    if (return_value == HASH_SOURCE_CODE_ERROR)
+    if (return_value == HASH_SOURCE_CODE_ERROR) {
       return HASH_SOURCE_CODE_ERROR;
+    }
     hash_result_as_bytes(file_hash, &digest);
     hash_free(file_hash);
     ctx.inode_cache.put(path, digest, return_value);

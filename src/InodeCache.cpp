@@ -65,7 +65,7 @@ const uint32_t k_num_entries = 4;
 static_assert(sizeof(digest::bytes) == 20,
               "Increment version number if size of digest is changed.");
 
-static const std::string version_suffix =
+const std::string version_suffix =
   std::string(".v") + std::to_string(k_version);
 
 // Return path to /run/user/{euid} if it exists since it is likely to be on
@@ -74,16 +74,18 @@ std::string
 get_tmpdir()
 {
   std::string tmpdir = "/run/user/" + std::to_string(geteuid());
-  if (!Stat::stat(tmpdir).is_directory())
+  if (!Stat::stat(tmpdir).is_directory()) {
     tmpdir = "/tmp";
+  }
   return tmpdir;
 }
 
 std::string
 suffix(const std::string& tmpdir)
 {
-  if (tmpdir == "/tmp")
+  if (tmpdir == "/tmp") {
     return std::string("-u") + std::to_string(geteuid()) + version_suffix;
+  }
   return version_suffix;
 }
 
@@ -161,8 +163,9 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
            strerror(errno));
     return false;
   }
-  if (Stat::fstat(fd, Stat::OnError::throw_error).uid() != geteuid())
+  if (Stat::fstat(fd, Stat::OnError::throw_error).uid() != geteuid()) {
     throw Error(fmt::format("not owner of {}", inode_cache_file.c_str()));
+  }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   close(fd);
@@ -184,8 +187,9 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     return false;
   }
   m_sr = sr;
-  if (m_config.debug())
+  if (m_config.debug()) {
     cc_log("inode cache file loaded: %s", inode_cache_file.c_str());
+  }
   return true;
 }
 
@@ -277,9 +281,10 @@ InodeCache::create_new_file(const std::string& filename)
   // Create the new file to a a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   auto temp_fd = Util::create_temp_fd(filename);
-  if (fchmod(temp_fd.first, 0600) != 0)
+  if (fchmod(temp_fd.first, 0600) != 0) {
     throw Error(
       fmt::format("failed to chmod {}: {}", temp_fd.second, strerror(errno)));
+  }
   int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
@@ -307,8 +312,9 @@ InodeCache::create_new_file(const std::string& filename)
 #  ifdef PTHREAD_MUTEX_ROBUST
   pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
 #  endif
-  for (uint32_t i = 0; i < k_num_buckets; ++i)
+  for (uint32_t i = 0; i < k_num_buckets; ++i) {
     pthread_mutex_init(&sr->buckets[i].mt, &mattr);
+  }
 
   munmap(sr, sizeof(SharedRegion));
   close(temp_fd.first);
@@ -331,15 +337,18 @@ InodeCache::create_new_file(const std::string& filename)
 bool
 InodeCache::initialize()
 {
-  if (!m_config.inode_cache())
+  if (!m_config.inode_cache()) {
     return false;
+  }
 
-  if (m_sr)
+  if (m_sr) {
     return true;
+  }
 
   std::string filename = get_file_from_config(m_config);
-  if (m_sr || mmap_file(filename))
+  if (m_sr || mmap_file(filename)) {
     return true;
+  }
 
   // Try to create a new cache if we failed to map an existing file.
   create_new_file(filename);
@@ -357,24 +366,28 @@ InodeCache::InodeCache(const Config& config) : m_config(config), m_sr(nullptr)
 
 InodeCache::~InodeCache()
 {
-  if (m_sr)
+  if (m_sr) {
     munmap(m_sr, sizeof(SharedRegion));
+  }
 }
 
 bool
 InodeCache::get(const char* path, digest* file_digest, int* return_value)
 {
-  if (!initialize())
+  if (!initialize()) {
     return false;
+  }
 
   digest key_digest;
-  if (!hash_inode(path, &key_digest))
+  if (!hash_inode(path, &key_digest)) {
     return false;
+  }
 
   Bucket* bucket = acquire_bucket(key_digest);
 
-  if (!bucket)
+  if (!bucket) {
     return false;
+  }
 
   bool found = false;
 
@@ -418,13 +431,15 @@ InodeCache::put(const char* path, const digest& file_digest, int return_value)
     return false;
 
   digest key_digest;
-  if (!hash_inode(path, &key_digest))
+  if (!hash_inode(path, &key_digest)) {
     return false;
+  }
 
   Bucket* bucket = acquire_bucket(key_digest);
 
-  if (!bucket)
+  if (!bucket) {
     return false;
+  }
 
   memmove(&bucket->entries[1],
           &bucket->entries[0],
@@ -445,8 +460,9 @@ bool
 InodeCache::drop()
 {
   std::string file = get_file();
-  if (file.empty() || unlink(file.c_str()) != 0)
+  if (file.empty() || unlink(file.c_str()) != 0) {
     return false;
+  }
   if (m_sr) {
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
@@ -458,8 +474,9 @@ std::string
 InodeCache::get_file()
 {
   std::string filename = get_file_from_config(m_config);
-  if (Stat::stat(filename))
+  if (Stat::stat(filename)) {
     return filename;
+  }
   return std::string();
 }
 
