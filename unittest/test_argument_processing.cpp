@@ -104,9 +104,9 @@ TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
   "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"        \
   " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
   ctx.orig_args = Args::from_string("cc " DEP_ARGS " -c foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc " DEP_ARGS);
+  Args exp_cpp = Args::from_string("cc " DEP_ARGS);
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -c");
+  Args exp_cc = Args::from_string("cc -c");
 #undef DEP_ARGS
   Args act_cpp;
   Args act_extra;
@@ -128,9 +128,9 @@ TEST(dependency_args_to_compiler_if_run_second_cpp_is_true)
   "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"        \
   " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
   ctx.orig_args = Args::from_string("cc " DEP_ARGS " -c foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string(DEP_ARGS);
-  Args exp_cc = args_init_from_string("cc -c " DEP_ARGS);
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string(DEP_ARGS);
+  Args exp_cc = Args::from_string("cc -c " DEP_ARGS);
 #undef DEP_ARGS
   Args act_cpp;
   Args act_extra;
@@ -157,9 +157,9 @@ TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
   " -Wp,-MMD,wpmmd -Wp,-MP -Wp,-MT,wpmt -Wp,-MQ,wpmq -Wp,-MF,wpf"
   ctx.orig_args =
     Args::from_string("cc " CPP_ARGS " " DEP_ARGS " -c foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc " CPP_ARGS " " DEP_ARGS);
+  Args exp_cpp = Args::from_string("cc " CPP_ARGS " " DEP_ARGS);
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -c");
+  Args exp_cc = Args::from_string("cc -c");
 #undef DEP_ARGS
 #undef CPP_ARGS
   Args act_cpp;
@@ -188,9 +188,9 @@ TEST(cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
   " -Wp,-MMD,wpmmd"
   ctx.orig_args =
     Args::from_string("cc " CPP_ARGS " " DEP_ARGS " -c foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc " CPP_ARGS);
-  Args exp_extra = args_init_from_string(DEP_ARGS);
-  Args exp_cc = args_init_from_string("cc " CPP_ARGS " -c " DEP_ARGS);
+  Args exp_cpp = Args::from_string("cc " CPP_ARGS);
+  Args exp_extra = Args::from_string(DEP_ARGS);
+  Args exp_cc = Args::from_string("cc " CPP_ARGS " -c " DEP_ARGS);
 #undef DEP_ARGS
 #undef CPP_ARGS
   Args act_cpp;
@@ -210,9 +210,9 @@ TEST(dependency_args_that_take_an_argument_should_not_require_space_delimiter)
 
 #define DEP_ARGS "-MMD -MFfoo.d -MT mt -MTmt -MQmq"
   ctx.orig_args = Args::from_string("cc -c " DEP_ARGS " foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string(DEP_ARGS);
-  Args exp_cc = args_init_from_string("cc -c " DEP_ARGS);
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string(DEP_ARGS);
+  Args exp_cc = Args::from_string("cc -c " DEP_ARGS);
 #undef DEP_ARGS
   Args act_cpp;
   Args act_extra;
@@ -230,9 +230,9 @@ TEST(MQ_flag_should_not_be_added_if_run_second_cpp_is_true)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MD -MF foo.d");
-  Args exp_cc = args_init_from_string("cc -c -MD -MF foo.d");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MD -MF foo.d");
+  Args exp_cc = Args::from_string("cc -c -MD -MF foo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -249,9 +249,9 @@ TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
-  Args exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
+  Args exp_cpp = Args::from_string("cc -MD -MF foo.d -MQ foo.o");
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -c");
+  Args exp_cc = Args::from_string("cc -c");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -269,9 +269,9 @@ TEST(MF_should_be_added_if_run_second_cpp_is_false)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc -MD -MF foo.d -MQ foo.o");
+  Args exp_cpp = Args::from_string("cc -MD -MF foo.d -MQ foo.o");
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -c");
+  Args exp_cc = Args::from_string("cc -c");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -290,9 +290,9 @@ TEST(MF_should_not_be_added_if_run_second_cpp_is_true)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MD");
-  Args exp_cc = args_init_from_string("cc -c -MD");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MD");
+  Args exp_cc = Args::from_string("cc -c -MD");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -310,9 +310,9 @@ TEST(equal_sign_after_MF_should_be_removed)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MF=path foo.c -o foo.o");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MFpath");
-  Args exp_cc = args_init_from_string("cc -c -MFpath");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MFpath");
+  Args exp_cc = Args::from_string("cc -c -MFpath");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -371,9 +371,9 @@ TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
 
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MT bar -MFfoo.d");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MMD -MT bar -MFfoo.d");
-  Args exp_cc = args_init_from_string("cc -c -MMD -MT bar -MFfoo.d");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MMD -MT bar -MFfoo.d");
+  Args exp_cc = Args::from_string("cc -c -MMD -MT bar -MFfoo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -392,9 +392,9 @@ TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
 
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MT foo -MTbar");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MMD -MFfoo.d -MT foo -MTbar");
-  Args exp_cc = args_init_from_string("cc -c -MMD -MFfoo.d -MT foo -MTbar");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MMD -MFfoo.d -MT foo -MTbar");
+  Args exp_cc = Args::from_string("cc -c -MMD -MFfoo.d -MT foo -MTbar");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -413,9 +413,9 @@ TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
 
   ctx.orig_args =
     Args::from_string("cc -c foo.c -o foo.o -MMD -MFfoo.d -MQ foo -MQbar");
-  Args exp_cpp = args_init_from_string("cc");
-  Args exp_extra = args_init_from_string("-MMD -MFfoo.d -MQ foo -MQbar");
-  Args exp_cc = args_init_from_string("cc -c -MMD -MFfoo.d -MQ foo -MQbar");
+  Args exp_cpp = Args::from_string("cc");
+  Args exp_extra = Args::from_string("-MMD -MFfoo.d -MQ foo -MQbar");
+  Args exp_cc = Args::from_string("cc -c -MMD -MFfoo.d -MQ foo -MQbar");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -432,11 +432,10 @@ TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
 {
   Context ctx;
 
-  ctx.orig_args =
-    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
-  Args exp_cpp = args_init_from_string("gcc");
-  Args exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MQ foo.d");
-  Args exp_cc = args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d");
+  ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
+  Args exp_cpp = Args::from_string("gcc");
+  Args exp_extra = Args::from_string("-MD -MP -MFfoo.d -MQ foo.d");
+  Args exp_cc = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -453,11 +452,10 @@ TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
 {
   Context ctx;
 
-  ctx.orig_args =
-    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
-  Args exp_cpp = args_init_from_string("gcc");
-  Args exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MT foo.d");
-  Args exp_cc = args_init_from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d");
+  ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
+  Args exp_cpp = Args::from_string("gcc");
+  Args exp_extra = Args::from_string("-MD -MP -MFfoo.d -MT foo.d");
+  Args exp_cc = Args::from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -474,11 +472,10 @@ TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
 {
   Context ctx;
 
-  ctx.orig_args =
-    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
-  Args exp_cpp = args_init_from_string("gcc");
-  Args exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MQfoo.d");
-  Args exp_cc = args_init_from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d");
+  ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
+  Args exp_cpp = Args::from_string("gcc");
+  Args exp_extra = Args::from_string("-MD -MP -MFfoo.d -MQfoo.d");
+  Args exp_cc = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -495,11 +492,10 @@ TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
 {
   Context ctx;
 
-  ctx.orig_args =
-    args_init_from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
-  Args exp_cpp = args_init_from_string("gcc");
-  Args exp_extra = args_init_from_string("-MD -MP -MFfoo.d -MTfoo.d");
-  Args exp_cc = args_init_from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d");
+  ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
+  Args exp_cpp = Args::from_string("gcc");
+  Args exp_extra = Args::from_string("-MD -MP -MFfoo.d -MTfoo.d");
+  Args exp_cc = Args::from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -584,9 +580,9 @@ TEST(debug_flag_order_with_known_option_first)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -g1 -gsplit-dwarf foo.c -c");
-  Args exp_cpp = args_init_from_string("cc -g1 -gsplit-dwarf");
+  Args exp_cpp = Args::from_string("cc -g1 -gsplit-dwarf");
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -g1 -gsplit-dwarf -c");
+  Args exp_cc = Args::from_string("cc -g1 -gsplit-dwarf -c");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -603,9 +599,9 @@ TEST(debug_flag_order_with_known_option_last)
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -gsplit-dwarf -g1 foo.c -c");
-  Args exp_cpp = args_init_from_string("cc -gsplit-dwarf -g1");
+  Args exp_cpp = Args::from_string("cc -gsplit-dwarf -g1");
   Args exp_extra;
-  Args exp_cc = args_init_from_string("cc -gsplit-dwarf -g1 -c");
+  Args exp_cc = Args::from_string("cc -gsplit-dwarf -g1 -c");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -623,10 +619,10 @@ TEST(options_not_to_be_passed_to_the_preprocesor)
 
   ctx.orig_args = Args::from_string(
     "cc -Wa,foo foo.c -g -c -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error");
-  Args exp_cpp = args_init_from_string("cc -g -DX");
-  Args exp_extra = args_init_from_string(
-    " -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error");
-  Args exp_cc = args_init_from_string(
+  Args exp_cpp = Args::from_string("cc -g -DX");
+  Args exp_extra =
+    Args::from_string(" -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error");
+  Args exp_cc = Args::from_string(
     "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c");
   Args act_cpp;
   Args act_extra;
@@ -645,9 +641,9 @@ TEST(cuda_option_file)
   ctx.guessed_compiler = GuessedCompiler::nvcc;
 
   ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
-  Args exp_cpp = args_init_from_string("nvcc -g -Wall -DX");
-  Args exp_extra = args_init_from_string("");
-  Args exp_cc = args_init_from_string("nvcc -g -Wall -DX -c");
+  Args exp_cpp = Args::from_string("nvcc -g -Wall -DX");
+  Args exp_extra = Args::from_string("");
+  Args exp_cc = Args::from_string("nvcc -g -Wall -DX -c");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
