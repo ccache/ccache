@@ -984,7 +984,7 @@ to_cache(Context& ctx,
          Args& depend_extra_args,
          struct hash* depend_mode_hash)
 {
-  args_add(args, "-o");
+  args.push_back("-o");
   args.push_back(ctx.args_info.output_obj);
 
   if (ctx.config.hard_link() && ctx.args_info.output_obj != "/dev/null") {
@@ -995,7 +995,7 @@ to_cache(Context& ctx,
   }
 
   if (ctx.args_info.generating_diagnostics) {
-    args_add(args, "--serialize-diagnostics");
+    args.push_back("--serialize-diagnostics");
     args.push_back(ctx.args_info.output_dia);
   }
 
@@ -1266,9 +1266,9 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     add_pending_tmp_file(path_stderr);
 
     int args_added = 2;
-    args_add(args, "-E");
+    args.push_back("-E");
     if (ctx.config.keep_comments_cpp()) {
-      args_add(args, "-C");
+      args.push_back("-C");
       args_added = 3;
     }
     args.push_back(ctx.args_info.input_file);
@@ -1853,9 +1853,9 @@ calculate_result_name(Context& ctx,
       result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
       cc_log("Got result name from preprocessor");
     } else {
-      args_add(preprocessor_args, "-arch");
+      preprocessor_args.push_back("-arch");
       for (size_t i = 0; i < ctx.args_info.arch_args.size(); ++i) {
-        args_add(preprocessor_args, ctx.args_info.arch_args[i]);
+        preprocessor_args.push_back(ctx.args_info.arch_args[i]);
         result_name = get_result_name_from_cpp(ctx, preprocessor_args, hash);
         cc_log("Got result name from preprocessor with -arch %s",
                ctx.args_info.arch_args[i].c_str());
