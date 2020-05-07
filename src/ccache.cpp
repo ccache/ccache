@@ -1050,7 +1050,7 @@ to_cache(Context& ctx,
     // Use the original arguments (including dependency options) in depend
     // mode.
     Args depend_mode_args = ctx.orig_args;
-    args_strip(depend_mode_args, "--ccache-");
+    depend_mode_args.erase_with_prefix("--ccache-");
     depend_mode_args.push_back(depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
@@ -2261,7 +2261,7 @@ cache_compilation(int argc, const char* const* argv)
 
     assert(!ctx.orig_args.empty());
 
-    args_strip(ctx.orig_args, "--ccache-");
+    ctx.orig_args.erase_with_prefix("--ccache-");
     add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
     cc_log("Failed; falling back to running the real compiler");
