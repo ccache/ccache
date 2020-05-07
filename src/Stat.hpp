@@ -49,15 +49,6 @@ public:
   // - on_error: What to do on errors (including missing file).
   static Stat stat(const std::string& path, OnError on_error = OnError::ignore);
 
-#ifdef HAVE_FSTAT
-  // Run fstat(2).
-  //
-  // Arguments:
-  // - fd: File descriptor to stat.
-  // - on_error: What to do on errors (including missing file).
-  static Stat fstat(int fd, OnError on_error = OnError::ignore);
-#endif
-
   // Run lstat(2) if available, otherwise stat(2).
   //
   // Arguments:
@@ -98,18 +89,10 @@ public:
   timespec mtim() const;
 #endif
 
-#ifdef HAVE_STRUCT_STAT_ST_UID
-  uid_t uid() const;
-#endif
-
 protected:
   using StatFunction = int (*)(const char*, struct stat*);
 
   Stat(StatFunction stat_function, const std::string& path, OnError on_error);
-
-#ifdef HAVE_FSTAT
-  Stat(int fd, OnError on_error);
-#endif
 
 private:
   struct stat m_stat;
@@ -128,14 +111,6 @@ Stat::stat(const std::string& path, OnError on_error)
 {
   return Stat(::stat, path, on_error);
 }
-
-#ifdef HAVE_FSTAT
-inline Stat
-Stat::fstat(int fd, OnError on_error)
-{
-  return Stat(fd, on_error);
-}
-#endif
 
 inline Stat
 Stat::lstat(const std::string& path, OnError on_error)
@@ -248,13 +223,5 @@ inline timespec
 Stat::mtim() const
 {
   return m_stat.st_mtim;
-}
-#endif
-
-#ifdef HAVE_STRUCT_STAT_ST_UID
-inline uid_t
-Stat::uid() const
-{
-  return m_stat.st_uid;
 }
 #endif

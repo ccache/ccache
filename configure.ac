@@ -120,8 +120,6 @@ AC_CHECK_HEADERS(linux/fs.h)
 AC_CHECK_HEADERS(sys/clonefile.h)
 
 AC_CHECK_FUNCS(asctime_r)
-AC_CHECK_FUNCS(fstat)
-AC_CHECK_FUNCS(geteuid)
 AC_CHECK_FUNCS(gethostname)
 AC_CHECK_FUNCS(getopt_long)
 AC_CHECK_FUNCS(getpwuid)
@@ -136,9 +134,7 @@ AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
 
-AC_CHECK_MEMBERS([struct stat.st_ctim, struct stat.st_mtim, struct stat.st_uid])
-
-AC_TYPE_UID_T
+AC_CHECK_MEMBERS([struct stat.st_ctim, struct stat.st_mtim])
 
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)
