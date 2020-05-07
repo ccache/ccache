@@ -178,7 +178,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   cc_log("Using command-line prefix %s", prefix_command.c_str());
   for (size_t i = prefix.size(); i != 0; i--) {
-    args_add_prefix(args, prefix->argv[i - 1]);
+    args.push_front(prefix->argv[i - 1]);
   }
 }
 
