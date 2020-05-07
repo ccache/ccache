@@ -404,9 +404,9 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
     }
     cc_log(
       "accumulated stats for inode cache: hits=%ld, misses=%ld, errors=%ld",
-      m_sr->hits.load(),
-      m_sr->misses.load(),
-      m_sr->errors.load());
+      static_cast<long>(m_sr->hits.load()),
+      static_cast<long>(m_sr->misses.load()),
+      static_cast<long>(m_sr->errors.load()));
   }
   return found;
 }
