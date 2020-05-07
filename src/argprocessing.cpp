@@ -957,16 +957,14 @@ process_args(Context& ctx,
 
   if (!state.found_c_opt && !state.found_dc_opt && !state.found_S_opt) {
     if (args_info.output_is_precompiled_header) {
-      args_add(state.common_args, "-c");
+      state.common_args.push_back("-c");
     } else {
       cc_log("No -c option found");
-      // I find that having a separate statistic for autoconf tests is useful,
-      // as they are the dominant form of "called for link" in many cases.
-      if (args_info.input_file.find("conftest.") != std::string::npos) {
-        return STATS_CONFTEST;
-      } else {
-        return STATS_LINK;
-      }
+      // Having a separate statistic for autoconf tests is useful, as they are
+      // the dominant form of "called for link" in many cases.
+      return args_info.input_file.find("conftest.") != std::string::npos
+               ? STATS_CONFTEST
+               : STATS_LINK;
     }
   }
 
@@ -1028,15 +1026,11 @@ process_args(Context& ctx,
     }
   }
 
-  {
-    char* output_dir = x_dirname(args_info.output_obj.c_str());
-    auto st = Stat::stat(output_dir);
-    if (!st || !st.is_directory()) {
-      cc_log("Directory does not exist: %s", output_dir);
-      free(output_dir);
-      return STATS_BADOUTPUTFILE;
-    }
-    free(output_dir);
+  auto output_dir = std::string(Util::dir_name(args_info.output_obj));
+  auto st = Stat::stat(output_dir);
+  if (!st || !st.is_directory()) {
+    cc_log("Directory does not exist: %s", output_dir.c_str());
+    return STATS_BADOUTPUTFILE;
   }
 
   // Some options shouldn't be passed to the real compiler when it compiles
@@ -1045,14 +1039,14 @@ process_args(Context& ctx,
   // -finput-charset=XXX (otherwise conversion happens twice)
   // -x XXX (otherwise the wrong language is selected)
   if (!state.input_charset.empty()) {
-    args_add(state.cpp_args, state.input_charset);
+    state.cpp_args.push_back(state.input_charset);
   }
   if (state.found_pch) {
-    args_add(state.cpp_args, "-fpch-preprocess");
+    state.cpp_args.push_back("-fpch-preprocess");
   }
   if (!state.explicit_language.empty()) {
-    args_add(state.cpp_args, "-x");
-    args_add(state.cpp_args, state.explicit_language);
+    state.cpp_args.push_back("-x");
+    state.cpp_args.push_back(state.explicit_language);
   }
 
   // Since output is redirected, compilers will not color their output by
@@ -1060,17 +1054,17 @@ process_args(Context& ctx,
   if (!state.found_color_diagnostics && color_output_possible()) {
     if (ctx.guessed_compiler == GuessedCompiler::clang) {
       if (args_info.actual_language != "assembler") {
-        args_add(state.common_args, "-fcolor-diagnostics");
+        state.common_args.push_back("-fcolor-diagnostics");
         add_extra_arg(ctx, "-fcolor-diagnostics");
         cc_log("Automatically enabling colors");
       }
     } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
       // GCC has it since 4.9, but that'd require detecting what GCC version is
       // used for the actual compile. However it requires also GCC_COLORS to be
-      // set (and not empty), so use that for detecting if GCC would use
-      // colors.
-      if (getenv("GCC_COLORS") && getenv("GCC_COLORS")[0] != '\0') {
-        args_add(state.common_args, "-fdiagnostics-color");
+      // set (and not empty), so use that for detecting if GCC would use colors.
+      const char* gcc_colors = getenv("GCC_COLORS");
+      if (gcc_colors && gcc_colors[0] != '\0') {
+        state.common_args.push_back("-fdiagnostics-color");
         add_extra_arg(ctx, "-fdiagnostics-color");
         cc_log("Automatically enabling colors");
       }
@@ -1079,7 +1073,7 @@ process_args(Context& ctx,
 
   if (args_info.generating_dependencies) {
     if (!state.dependency_filename_specified) {
-      std::string default_depfile_name =
+      auto default_depfile_name =
         Util::change_extension(args_info.output_obj, ".d");
       args_info.output_dep =
         Util::make_relative_path(ctx, default_depfile_name);
@@ -1087,7 +1081,7 @@ process_args(Context& ctx,
         // If we're compiling preprocessed code we're sending dep_args to the
         // preprocessor so we need to use -MF to write to the correct .d file
         // location since the preprocessor doesn't know the final object path.
-        args_add(state.dep_args, "-MF");
+        state.dep_args.push_back("-MF");
         state.dep_args.push_back(default_depfile_name);
       }
     }
@@ -1098,80 +1092,81 @@ process_args(Context& ctx,
       // If we're compiling preprocessed code we're sending dep_args to the
       // preprocessor so we need to use -MQ to get the correct target object
       // file in the .d file.
-      args_add(state.dep_args, "-MQ");
+      state.dep_args.push_back("-MQ");
       state.dep_args.push_back(args_info.output_obj);
     }
   }
+
   if (args_info.generating_coverage) {
-    std::string gcda_path =
-      Util::change_extension(args_info.output_obj, ".gcno");
+    auto gcda_path = Util::change_extension(args_info.output_obj, ".gcno");
     args_info.output_cov = Util::make_relative_path(ctx, gcda_path);
   }
+
   if (args_info.generating_stackusage) {
-    std::string default_sufile_name =
+    auto default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
   }
 
-  *compiler_args = args_copy(state.common_args);
-  args_extend(*compiler_args, state.compiler_only_args);
+  compiler_args = state.common_args;
+  compiler_args.push_back(state.compiler_only_args);
 
   if (config.run_second_cpp()) {
-    args_extend(*compiler_args, state.cpp_args);
+    compiler_args.push_back(state.cpp_args);
   } else if (state.found_directives_only || state.found_rewrite_includes) {
     // Need to pass the macros and any other preprocessor directives again.
-    args_extend(*compiler_args, state.cpp_args);
+    compiler_args.push_back(state.cpp_args);
     if (state.found_directives_only) {
-      args_add(state.cpp_args, "-fdirectives-only");
+      state.cpp_args.push_back("-fdirectives-only");
       // The preprocessed source code still needs some more preprocessing.
-      args_add(*compiler_args, "-fpreprocessed");
-      args_add(*compiler_args, "-fdirectives-only");
+      compiler_args.push_back("-fpreprocessed");
+      compiler_args.push_back("-fdirectives-only");
     }
     if (state.found_rewrite_includes) {
-      args_add(state.cpp_args, "-frewrite-includes");
+      state.cpp_args.push_back("-frewrite-includes");
       // The preprocessed source code still needs some more preprocessing.
-      args_add(*compiler_args, "-x");
+      compiler_args.push_back("-x");
       compiler_args.push_back(args_info.actual_language);
     }
   } else if (!state.explicit_language.empty()) {
     // Workaround for a bug in Apple's patched distcc -- it doesn't properly
     // reset the language specified with -x, so if -x is given, we have to
     // specify the preprocessed language explicitly.
-    args_add(*compiler_args, "-x");
-    args_add(*compiler_args, p_language_for_language(state.explicit_language));
+    compiler_args.push_back("-x");
+    compiler_args.push_back(p_language_for_language(state.explicit_language));
   }
 
   if (state.found_c_opt) {
-    args_add(*compiler_args, "-c");
+    compiler_args.push_back("-c");
   }
 
   if (state.found_dc_opt) {
-    args_add(*compiler_args, "-dc");
+    compiler_args.push_back("-dc");
   }
 
   for (const auto& arch : args_info.arch_args) {
-    args_add(*compiler_args, "-arch");
-    args_add(*compiler_args, arch);
+    compiler_args.push_back("-arch");
+    compiler_args.push_back(arch);
   }
 
-  *preprocessor_args = args_copy(state.common_args);
-  args_extend(*preprocessor_args, state.cpp_args);
+  preprocessor_args = state.common_args;
+  preprocessor_args.push_back(state.cpp_args);
 
   if (config.run_second_cpp()) {
     // When not compiling the preprocessed source code, only pass dependency
     // arguments to the compiler to avoid having to add -MQ, supporting e.g.
     // EDG-based compilers which don't support -MQ.
-    args_extend(*compiler_args, state.dep_args);
+    compiler_args.push_back(state.dep_args);
   } else {
     // When compiling the preprocessed source code, pass dependency arguments to
     // the preprocessor since the compiler doesn't produce a .d file when
     // compiling preprocessed source code.
-    args_extend(*preprocessor_args, state.dep_args);
+    preprocessor_args.push_back(state.dep_args);
   }
 
-  *extra_args_to_hash = state.compiler_only_args;
+  extra_args_to_hash = state.compiler_only_args;
   if (config.run_second_cpp()) {
-    args_extend(*extra_args_to_hash, state.dep_args);
+    extra_args_to_hash.push_back(state.dep_args);
   }
 
   return nullopt;
