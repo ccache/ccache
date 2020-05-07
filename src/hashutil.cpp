@@ -317,7 +317,7 @@ hash_command_output(struct hash* hash,
 
   for (size_t i = 0; i < args.size(); i++) {
     if (str_eq(args->argv[i], "%compiler%")) {
-      args_set(args, i, compiler);
+      args[i] = compiler;
     }
   }
 
