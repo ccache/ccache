@@ -316,7 +316,7 @@ hash_command_output(struct hash* hash,
   Args args = Args::from_string(command);
 
   for (size_t i = 0; i < args.size(); i++) {
-    if (str_eq(args->argv[i], "%compiler%")) {
+    if (args[i] == "%compiler%") {
       args[i] = compiler;
     }
   }

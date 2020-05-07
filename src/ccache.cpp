@@ -178,7 +178,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   cc_log("Using command-line prefix %s", prefix_command.c_str());
   for (size_t i = prefix.size(); i != 0; i--) {
-    args.push_front(prefix->argv[i - 1]);
+    args.push_front(prefix[i - 1]);
   }
 }
 
@@ -1350,8 +1350,9 @@ hash_compiler(const Context& ctx,
     hash_delimiter(hash, "cc_content");
     hash_file(hash, path);
   } else { // command string
-    if (!hash_multicommand_output(
-          hash, ctx.config.compiler_check().c_str(), ctx.orig_args->argv[0])) {
+    if (!hash_multicommand_output(hash,
+                                  ctx.config.compiler_check().c_str(),
+                                  ctx.orig_args[0].c_str())) {
       cc_log("Failure running compiler check command: %s",
              ctx.config.compiler_check().c_str());
       failed(STATS_COMPCHECK);
@@ -1426,13 +1427,13 @@ hash_common_info(const Context& ctx,
   hash_string(hash, ctx.config.cpp_extension().c_str());
 
 #ifdef _WIN32
-  const char* ext = strrchr(args->argv[0], '.');
+  const char* ext = strrchr(args[0].c_str(), '.');
   char full_path_win_ext[MAX_PATH + 1] = {0};
   add_exe_ext_if_no_to_fullpath(
-    full_path_win_ext, MAX_PATH, ext, args->argv[0]);
+    full_path_win_ext, MAX_PATH, ext, args[0].c_str());
   const char* full_path = full_path_win_ext;
 #else
-  const char* full_path = args->argv[0];
+  const char* full_path = args[0].c_str();
 #endif
 
   auto st = Stat::stat(full_path, Stat::OnError::log);
@@ -1441,12 +1442,12 @@ hash_common_info(const Context& ctx,
   }
 
   // Hash information about the compiler.
-  hash_compiler(ctx, hash, st, args->argv[0], true);
+  hash_compiler(ctx, hash, st, args[0].c_str(), true);
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
   hash_delimiter(hash, "cc_name");
-  string_view base = Util::base_name(args->argv[0]);
+  string_view base = Util::base_name(args[0]);
   hash_string_view(hash, base);
 
   if (!(ctx.config.sloppiness() & SLOPPY_LOCALE)) {
@@ -1609,16 +1610,16 @@ calculate_result_name(Context& ctx,
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
     // -L doesn't affect compilation (except for clang).
-    if (i < args.size() - 1 && str_eq(args->argv[i], "-L") && !is_clang) {
+    if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
       i++;
       continue;
     }
-    if (str_startswith(args->argv[i], "-L") && !is_clang) {
+    if (Util::starts_with(args[i], "-L") && !is_clang) {
       continue;
     }
 
     // -Wl,... doesn't affect compilation (except for clang).
-    if (str_startswith(args->argv[i], "-Wl,") && !is_clang) {
+    if (Util::starts_with(args[i], "-Wl,") && !is_clang) {
       continue;
     }
 
@@ -1626,17 +1627,17 @@ calculate_result_name(Context& ctx,
     // CCACHE_BASEDIR to reuse results across different directories. Skip using
     // the value of the option from hashing but still hash the existence of the
     // option.
-    if (str_startswith(args->argv[i], "-fdebug-prefix-map=")) {
+    if (Util::starts_with(args[i], "-fdebug-prefix-map=")) {
       hash_delimiter(hash, "arg");
       hash_string(hash, "-fdebug-prefix-map=");
       continue;
     }
-    if (str_startswith(args->argv[i], "-ffile-prefix-map=")) {
+    if (Util::starts_with(args[i], "-ffile-prefix-map=")) {
       hash_delimiter(hash, "arg");
       hash_string(hash, "-ffile-prefix-map=");
       continue;
     }
-    if (str_startswith(args->argv[i], "-fmacro-prefix-map=")) {
+    if (Util::starts_with(args[i], "-fmacro-prefix-map=")) {
       hash_delimiter(hash, "arg");
       hash_string(hash, "-fmacro-prefix-map=");
       continue;
@@ -1648,13 +1649,13 @@ calculate_result_name(Context& ctx,
     // might not be the case.
     if (!direct_mode && !ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.using_precompiled_header) {
-      if (compopt_affects_cpp(args->argv[i])) {
-        if (compopt_takes_arg(args->argv[i])) {
+      if (compopt_affects_cpp(args[i])) {
+        if (compopt_takes_arg(args[i])) {
           i++;
         }
         continue;
       }
-      if (compopt_short(compopt_affects_cpp, args->argv[i])) {
+      if (compopt_short(compopt_affects_cpp, args[i])) {
         continue;
       }
     }
@@ -1662,23 +1663,23 @@ calculate_result_name(Context& ctx,
     // If we're generating dependencies, we make sure to skip the filename of
     // the dependency file, since it doesn't impact the output.
     if (ctx.args_info.generating_dependencies) {
-      if (str_startswith(args->argv[i], "-Wp,")) {
-        if (str_startswith(args->argv[i], "-Wp,-MD,")
-            && !strchr(args->argv[i] + 8, ',')) {
-          hash_string_buffer(hash, args->argv[i], 8);
+      if (Util::starts_with(args[i], "-Wp,")) {
+        if (Util::starts_with(args[i], "-Wp,-MD,")
+            && !strchr(args[i].c_str() + 8, ',')) {
+          hash_string_buffer(hash, args[i].c_str(), 8);
           continue;
-        } else if (str_startswith(args->argv[i], "-Wp,-MMD,")
-                   && !strchr(args->argv[i] + 9, ',')) {
-          hash_string_buffer(hash, args->argv[i], 9);
+        } else if (Util::starts_with(args[i], "-Wp,-MMD,")
+                   && !strchr(args[i].c_str() + 9, ',')) {
+          hash_string_buffer(hash, args[i].c_str(), 9);
           continue;
         }
-      } else if (str_startswith(args->argv[i], "-MF")) {
+      } else if (Util::starts_with(args[i], "-MF")) {
         // In either case, hash the "-MF" part.
         hash_delimiter(hash, "arg");
-        hash_string_buffer(hash, args->argv[i], 3);
+        hash_string_buffer(hash, args[i].c_str(), 3);
 
         if (ctx.args_info.output_dep != "/dev/null") {
-          bool separate_argument = (strlen(args->argv[i]) == 3);
+          bool separate_argument = (args[i].size() == 3);
           if (separate_argument) {
             // Next argument is dependency name, so skip it.
             i++;
@@ -1689,10 +1690,10 @@ calculate_result_name(Context& ctx,
     }
 
     const char* p = nullptr;
-    if (str_startswith(args->argv[i], "-specs=")) {
-      p = args->argv[i] + 7;
-    } else if (str_startswith(args->argv[i], "--specs=")) {
-      p = args->argv[i] + 8;
+    if (Util::starts_with(args[i], "-specs=")) {
+      p = args[i].c_str() + 7;
+    } else if (Util::starts_with(args[i], "--specs=")) {
+      p = args[i].c_str() + 8;
     }
 
     if (p) {
@@ -1706,35 +1707,33 @@ calculate_result_name(Context& ctx,
       }
     }
 
-    if (str_startswith(args->argv[i], "-fplugin=")) {
-      auto st = Stat::stat(args->argv[i] + 9, Stat::OnError::log);
+    if (Util::starts_with(args[i], "-fplugin=")) {
+      auto st = Stat::stat(args[i].c_str() + 9, Stat::OnError::log);
       if (st) {
         hash_delimiter(hash, "plugin");
-        hash_compiler(ctx, hash, st, args->argv[i] + 9, false);
+        hash_compiler(ctx, hash, st, args[i].c_str() + 9, false);
         continue;
       }
     }
 
-    if (str_eq(args->argv[i], "-Xclang") && i + 3 < args.size()
-        && str_eq(args->argv[i + 1], "-load")
-        && str_eq(args->argv[i + 2], "-Xclang")) {
-      auto st = Stat::stat(args->argv[i + 3], Stat::OnError::log);
+    if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
+        && args[i + 2] == "-Xclang") {
+      auto st = Stat::stat(args[i + 3], Stat::OnError::log);
       if (st) {
         hash_delimiter(hash, "plugin");
-        hash_compiler(ctx, hash, st, args->argv[i + 3], false);
+        hash_compiler(ctx, hash, st, args[i + 3].c_str(), false);
         i += 3;
         continue;
       }
     }
 
-    if ((str_eq(args->argv[i], "-ccbin")
-         || str_eq(args->argv[i], "--compiler-bindir"))
+    if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
         && i + 1 < args.size()) {
-      auto st = Stat::stat(args->argv[i + 1], Stat::OnError::log);
+      auto st = Stat::stat(args[i + 1], Stat::OnError::log);
       if (st) {
         found_ccbin = true;
         hash_delimiter(hash, "ccbin");
-        hash_nvcc_host_compiler(ctx, hash, &st, args->argv[i + 1]);
+        hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1].c_str());
         i++;
         continue;
       }
@@ -1742,11 +1741,11 @@ calculate_result_name(Context& ctx,
 
     // All other arguments are included in the hash.
     hash_delimiter(hash, "arg");
-    hash_string(hash, args->argv[i]);
-    if (i + 1 < args.size() && compopt_takes_arg(args->argv[i])) {
+    hash_string(hash, args[i]);
+    if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
       i++;
       hash_delimiter(hash, "arg");
-      hash_string(hash, args->argv[i]);
+      hash_string(hash, args[i]);
     }
   }
 
@@ -1960,11 +1959,11 @@ find_compiler(Context& ctx, const char* const* argv)
   std::string base(Util::base_name(argv[0]));
   if (same_executable_name(base.c_str(), MYNAME)) {
     ctx.orig_args.pop_front();
-    if (is_full_path(ctx.orig_args->argv[0])) {
+    if (is_full_path(ctx.orig_args[0].c_str())) {
       // A full path was given.
       return;
     }
-    base = std::string(Util::base_name(ctx.orig_args->argv[0]));
+    base = std::string(Util::base_name(ctx.orig_args[0]));
   }
 
   // Support user override of the compiler.
@@ -2317,7 +2316,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     std::min(std::max(ctx.config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
-  ctx.guessed_compiler = guess_compiler(ctx.orig_args->argv[0]);
+  ctx.guessed_compiler = guess_compiler(ctx.orig_args[0].c_str());
   MTR_END("main", "guess_compiler");
 
   // Arguments (except -E) to send to the preprocessor.

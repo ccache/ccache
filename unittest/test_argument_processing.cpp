@@ -342,7 +342,7 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
   free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_STR_EQ(act_cpp->argv[1], "--sysroot=./foo/bar");
+  CHECK(act_cpp[1] == "--sysroot=./foo/bar");
 }
 
 TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
@@ -361,8 +361,8 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
   free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_STR_EQ(act_cpp->argv[1], "--sysroot");
-  CHECK_STR_EQ(act_cpp->argv[2], "./foo");
+  CHECK(act_cpp[1] == "--sysroot");
+  CHECK(act_cpp[2] == "./foo");
 }
 
 TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
@@ -524,7 +524,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
   free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_STR_EQ("./foo", act_cpp->argv[2]);
+  CHECK("./foo" == act_cpp[2]);
 }
 
 TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
@@ -546,7 +546,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_STR_EQ("-isystem./foo", act_cpp->argv[1]);
+  CHECK("-isystem./foo" == act_cpp[1]);
 
   free(cwd);
 }
@@ -570,7 +570,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_STR_EQ("-I./foo", act_cpp->argv[1]);
+  CHECK("-I./foo" == act_cpp[1]);
 
   free(cwd);
 }
