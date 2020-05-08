@@ -2025,9 +2025,9 @@ hash_profile_data_file(const char *path, struct hash *hash)
 		format("%s/%s.gcda", path, base_name),
 		// -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
 		format("%s/%s#%s.gcda", path, hashified_cwd, base_name),
-		// -fprofile(-instr)-use=file (Clang), -fauto-profile=file (GCC >=5)
+		// -fprofile(-instr|-sample)-use=file (Clang), -fauto-profile=file (GCC >=5)
 		x_strdup(path),
-		// -fprofile(-instr)-use=dir (Clang)
+		// -fprofile(-instr|-sample)-use=dir (Clang)
 		format("%s/default.profdata", path),
 		// -fauto-profile (GCC >=5)
 		x_strdup("fbdata.afdo"), // -fprofile-dir is not used
@@ -2222,11 +2222,12 @@ calculate_object_hash(struct args *args, struct args *preprocessor_args,
 	// For profile generation (-fprofile(-instr)-generate[=path])
 	// - hash profile path
 	//
-	// For profile usage (-fprofile(-instr)-use, -fbranch-probabilities):
+	// For profile usage (-fprofile(-instr|-sample)-use, -fbranch-probabilities):
 	// - hash profile data
 	//
 	// The profile directory can be specified as an argument to
-	// -fprofile(-instr)-generate=, -fprofile(-instr)-use= or -fprofile-dir=.
+	// -fprofile(-instr)-generate=, -fprofile(-instr|-sample)-use= or
+	// --fprofile-dir=.
 	if (profile_generate) {
 		assert(profile_path);
 		cc_log("Adding profile directory %s to our hash", profile_path);
@@ -2581,6 +2582,7 @@ process_profiling_option(const char *arg)
 		new_profile_path = x_strdup(strchr(arg, '=') + 1);
 	} else if (str_eq(arg, "-fprofile-use")
 	           || str_eq(arg, "-fprofile-instr-use")
+	           || str_eq(arg, "-fprofile-sample-use")
 	           || str_eq(arg, "-fbranch-probabilities")
 	           || str_eq(arg, "-fauto-profile")) {
 		new_profile_use = true;
@@ -2589,9 +2591,12 @@ process_profiling_option(const char *arg)
 		}
 	} else if (str_startswith(arg, "-fprofile-use=")
 		         || str_startswith(arg, "-fprofile-instr-use=")
+		         || str_startswith(arg, "-fprofile-sample-use=")
 		         || str_startswith(arg, "-fauto-profile=")) {
 		new_profile_use = true;
 		new_profile_path = x_strdup(strchr(arg, '=') + 1);
+	} else if (str_eq(arg, "-fprofile-sample-accurate")) {
+		return true;
 	} else {
 		cc_log("Unknown profiling option: %s", arg);
 		stats_update(STATS_UNSUPPORTED_OPTION);
