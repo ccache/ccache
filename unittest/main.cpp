@@ -21,10 +21,7 @@
 #include "catch2_tests.hpp"
 #include "framework.hpp"
 
-unsigned suite_legacy_util(unsigned);
-
 const suite_fn k_legacy_suites[] = {
-  &suite_legacy_util,
   nullptr,
 };
 
