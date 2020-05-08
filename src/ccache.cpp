@@ -1241,13 +1241,13 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
 {
   ctx.time_of_compilation = time(nullptr);
 
-  char* path_stderr = nullptr;
-  char* path_stdout = nullptr;
+  std::string stderr_path;
+  std::string stdout_path;
   int status;
   if (ctx.args_info.direct_i_file) {
     // We are compiling a .i or .ii file - that means we can skip the cpp stage
     // and directly form the correct i_tmpfile.
-    path_stdout = x_strdup(ctx.args_info.input_file.c_str());
+    stdout_path = ctx.args_info.input_file;
     status = 0;
   } else {
     // Run cpp on the input file to obtain the .i.
@@ -1256,16 +1256,19 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     // small maximum filename length limits.
     string_view input_base =
       Util::get_truncated_base_name(ctx.args_info.input_file, 10);
-    path_stdout =
-      x_strdup(fmt::format("{}/{}.stdout", temp_dir(ctx), input_base).c_str());
-    int path_stdout_fd = create_tmp_fd(&path_stdout);
-    add_pending_tmp_file(path_stdout);
+    auto stdout_fd_and_path = Util::create_temp_fd(
+      fmt::format("{}/{}.stdout", temp_dir(ctx), input_base));
+    int stdout_fd = stdout_fd_and_path.first;
+    stdout_path = stdout_fd_and_path.second;
+    add_pending_tmp_file(stdout_path.c_str());
 
-    path_stderr = format("%s/tmp.cpp_stderr", temp_dir(ctx));
-    int path_stderr_fd = create_tmp_fd(&path_stderr);
-    add_pending_tmp_file(path_stderr);
+    auto stderr_fd_and_path =
+      Util::create_temp_fd(fmt::format("{}/tmp.cpp_stderr", temp_dir(ctx)));
+    int stderr_fd = stderr_fd_and_path.first;
+    stderr_path = stderr_fd_and_path.second;
+    add_pending_tmp_file(stderr_path.c_str());
 
-    int args_added = 2;
+    size_t args_added = 2;
     args.push_back("-E");
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
@@ -1275,8 +1278,8 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
-    status = execute(
-      args.to_argv().data(), path_stdout_fd, path_stderr_fd, &compiler_pid);
+    status =
+      execute(args.to_argv().data(), stdout_fd, stderr_fd, &compiler_pid);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
@@ -1287,18 +1290,15 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cpp");
-  if (!process_preprocessed_file(ctx,
-                                 hash,
-                                 path_stdout,
-                                 ctx.guessed_compiler
-                                   == GuessedCompiler::pump)) {
+  bool is_pump = ctx.guessed_compiler == GuessedCompiler::pump;
+  if (!process_preprocessed_file(ctx, hash, stdout_path.c_str(), is_pump)) {
     failed(STATS_ERROR);
   }
 
   hash_delimiter(hash, "cppstderr");
-  if (!ctx.args_info.direct_i_file && !hash_file(hash, path_stderr)) {
+  if (!ctx.args_info.direct_i_file && !hash_file(hash, stderr_path.c_str())) {
     // Somebody removed the temporary file?
-    cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
+    cc_log("Failed to open %s: %s", stderr_path.c_str(), strerror(errno));
     failed(STATS_ERROR);
   }
 
@@ -1308,17 +1308,15 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
     // thing correctly
     ctx.i_tmpfile =
-      fmt::format("{}.{}", path_stdout, ctx.config.cpp_extension());
-    x_rename(path_stdout, ctx.i_tmpfile.c_str());
+      fmt::format("{}.{}", stdout_path, ctx.config.cpp_extension());
+    x_rename(stdout_path.c_str(), ctx.i_tmpfile.c_str());
     add_pending_tmp_file(ctx.i_tmpfile.c_str());
   }
 
-  if (ctx.config.run_second_cpp()) {
-    free(path_stderr);
-  } else {
+  if (!ctx.config.run_second_cpp()) {
     // If we are using the CPP trick, we need to remember this stderr data and
     // output it just before the main stderr from the compiler pass.
-    ctx.cpp_stderr = from_cstr(path_stderr);
+    ctx.cpp_stderr = stderr_path;
     hash_delimiter(hash, "runsecondcpp");
     hash_string(hash, "false");
   }
