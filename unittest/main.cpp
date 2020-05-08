@@ -21,11 +21,9 @@
 #include "catch2_tests.hpp"
 #include "framework.hpp"
 
-unsigned suite_hashutil(unsigned);
 unsigned suite_legacy_util(unsigned);
 
 const suite_fn k_legacy_suites[] = {
-  &suite_hashutil,
   &suite_legacy_util,
   nullptr,
 };

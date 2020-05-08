@@ -20,12 +20,11 @@
 
 #include "../src/Context.hpp"
 #include "../src/hashutil.hpp"
-#include "framework.hpp"
 #include "util.hpp"
 
-TEST_SUITE(hashutil)
+#include "third_party/catch.hpp"
 
-TEST(hash_command_output_simple)
+TEST_CASE("hash_command_output_simple")
 {
   char d1[DIGEST_STRING_BUFFER_SIZE];
   char d2[DIGEST_STRING_BUFFER_SIZE];
@@ -37,13 +36,13 @@ TEST(hash_command_output_simple)
   CHECK(hash_command_output(h2, "echo", "not used"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
+  CHECK(strcmp(d1, d2) == 0);
 
   hash_free(h2);
   hash_free(h1);
 }
 
-TEST(hash_command_output_space_removal)
+TEST_CASE("hash_command_output_space_removal")
 {
   Context ctx;
 
@@ -57,13 +56,13 @@ TEST(hash_command_output_space_removal)
   CHECK(hash_command_output(h2, " echo ", "not used"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
+  CHECK(strcmp(d1, d2) == 0);
 
   hash_free(h2);
   hash_free(h1);
 }
 
-TEST(hash_command_output_hash_inequality)
+TEST_CASE("hash_command_output_hash_inequality")
 {
   Context ctx;
 
@@ -83,7 +82,7 @@ TEST(hash_command_output_hash_inequality)
   hash_free(h1);
 }
 
-TEST(hash_command_output_compiler_substitution)
+TEST_CASE("hash_command_output_compiler_substitution")
 {
   Context ctx;
 
@@ -97,13 +96,13 @@ TEST(hash_command_output_compiler_substitution)
   CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
+  CHECK(strcmp(d1, d2) == 0);
 
   hash_free(h2);
   hash_free(h1);
 }
 
-TEST(hash_command_output_stdout_versus_stderr)
+TEST_CASE("hash_command_output_stdout_versus_stderr")
 {
   Context ctx;
 
@@ -125,13 +124,13 @@ TEST(hash_command_output_stdout_versus_stderr)
 #endif
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
+  CHECK(strcmp(d1, d2) == 0);
 
   hash_free(h2);
   hash_free(h1);
 }
 
-TEST(hash_multicommand_output)
+TEST_CASE("hash_multicommand_output")
 {
   Context ctx;
 
@@ -153,13 +152,13 @@ TEST(hash_multicommand_output)
 #endif
   hash_result_as_string(h1, d1);
   hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
+  CHECK(strcmp(d1, d2) == 0);
 
   hash_free(h2);
   hash_free(h1);
 }
 
-TEST(hash_multicommand_output_error_handling)
+TEST_CASE("hash_multicommand_output_error_handling")
 {
   Context ctx;
 
@@ -172,7 +171,7 @@ TEST(hash_multicommand_output_error_handling)
   hash_free(h1);
 }
 
-TEST(check_for_temporal_macros)
+TEST_CASE("check_for_temporal_macros")
 {
   const char time_start[] =
     "__TIME__\n"
@@ -296,10 +295,7 @@ TEST(check_for_temporal_macros)
   CHECK(!check_for_temporal_macros(no_temporal + 7, sizeof(no_temporal) - 7));
 
   for (size_t i = 0; i < sizeof(temporal_at_avx_boundary) - 8; ++i) {
-    CHECKM(check_for_temporal_macros(temporal_at_avx_boundary + i,
-                                     sizeof(temporal_at_avx_boundary) - i),
-           temporal_at_avx_boundary + i);
+    CHECK(check_for_temporal_macros(temporal_at_avx_boundary + i,
+                                    sizeof(temporal_at_avx_boundary) - i));
   }
 }
-
-TEST_SUITE_END
