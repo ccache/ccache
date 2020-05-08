@@ -25,10 +25,13 @@
 #include "../src/ccache.hpp"
 #include "../src/stats.hpp"
 #include "argprocessing.hpp"
-#include "framework.hpp"
 #include "util.hpp"
 
-static std::string
+#include "third_party/catch.hpp"
+
+namespace {
+
+std::string
 get_root()
 {
 #ifndef _WIN32
@@ -41,7 +44,7 @@ get_root()
 #endif
 }
 
-static char*
+char*
 get_posix_path(const char* path)
 {
 #ifndef _WIN32
@@ -66,9 +69,9 @@ get_posix_path(const char* path)
 #endif
 }
 
-TEST_SUITE(argument_processing)
+} // namespace
 
-TEST(dash_E_should_result_in_called_for_preprocessing)
+TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
   Context ctx;
 
@@ -82,7 +85,7 @@ TEST(dash_E_should_result_in_called_for_preprocessing)
         == STATS_PREPROCESSING);
 }
 
-TEST(dash_M_should_be_unsupported)
+TEST_CASE("dash_M_should_be_unsupported")
 {
   Context ctx;
 
@@ -96,7 +99,7 @@ TEST(dash_M_should_be_unsupported)
         == STATS_UNSUPPORTED_OPTION);
 }
 
-TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
+TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
 {
   Context ctx;
 
@@ -115,12 +118,12 @@ TEST(dependency_args_to_preprocessor_if_run_second_cpp_is_false)
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(dependency_args_to_compiler_if_run_second_cpp_is_true)
+TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
 {
   Context ctx;
 
@@ -138,12 +141,12 @@ TEST(dependency_args_to_compiler_if_run_second_cpp_is_true)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
+TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
 {
   Context ctx;
 
@@ -169,12 +172,13 @@ TEST(cpp_only_args_to_preprocessor_if_run_second_cpp_is_false)
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
+TEST_CASE(
+  "cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true")
 {
   Context ctx;
 
@@ -199,12 +203,13 @@ TEST(cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(dependency_args_that_take_an_argument_should_not_require_space_delimiter)
+TEST_CASE(
+  "dependency_args_that_take_an_argument_should_not_require_space_delimiter")
 {
   Context ctx;
 
@@ -220,12 +225,12 @@ TEST(dependency_args_that_take_an_argument_should_not_require_space_delimiter)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MQ_flag_should_not_be_added_if_run_second_cpp_is_true)
+TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
 {
   Context ctx;
 
@@ -239,12 +244,12 @@ TEST(MQ_flag_should_not_be_added_if_run_second_cpp_is_true)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
+TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
 {
   Context ctx;
 
@@ -259,12 +264,12 @@ TEST(MQ_flag_should_be_added_if_run_second_cpp_is_false)
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MF_should_be_added_if_run_second_cpp_is_false)
+TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
 {
   Context ctx;
 
@@ -280,12 +285,12 @@ TEST(MF_should_be_added_if_run_second_cpp_is_false)
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MF_should_not_be_added_if_run_second_cpp_is_true)
+TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
 {
   Context ctx;
 
@@ -300,12 +305,12 @@ TEST(MF_should_not_be_added_if_run_second_cpp_is_true)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(equal_sign_after_MF_should_be_removed)
+TEST_CASE("equal_sign_after_MF_should_be_removed")
 {
   Context ctx;
 
@@ -320,12 +325,12 @@ TEST(equal_sign_after_MF_should_be_removed)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(sysroot_should_be_rewritten_if_basedir_is_used)
+TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 {
   Context ctx;
 
@@ -345,7 +350,8 @@ TEST(sysroot_should_be_rewritten_if_basedir_is_used)
   CHECK(act_cpp[1] == "--sysroot=./foo/bar");
 }
 
-TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
+TEST_CASE(
+  "sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used")
 {
   Context ctx;
 
@@ -365,7 +371,7 @@ TEST(sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used)
   CHECK(act_cpp[2] == "./foo");
 }
 
-TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
+TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
 {
   Context ctx;
 
@@ -381,12 +387,12 @@ TEST(MF_flag_with_immediate_argument_should_work_as_last_argument)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
+TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
 {
   Context ctx;
 
@@ -402,12 +408,12 @@ TEST(MT_flag_with_immediate_argument_should_work_as_last_argument)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
+TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
 {
   Context ctx;
 
@@ -423,12 +429,12 @@ TEST(MQ_flag_with_immediate_argument_should_work_as_last_argument)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
+TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
 {
   Context ctx;
 
@@ -443,12 +449,12 @@ TEST(MQ_flag_without_immediate_argument_should_not_add_MQobj)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
+TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
 {
   Context ctx;
 
@@ -463,12 +469,12 @@ TEST(MT_flag_without_immediate_argument_should_not_add_MTobj)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
+TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
 {
   Context ctx;
 
@@ -483,12 +489,12 @@ TEST(MQ_flag_with_immediate_argument_should_not_add_MQobj)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
+TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
 {
   Context ctx;
 
@@ -503,12 +509,13 @@ TEST(MT_flag_with_immediate_argument_should_not_add_MQobj)
   create_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
+TEST_CASE(
+  "isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used")
 {
   Context ctx;
 
@@ -527,7 +534,7 @@ TEST(isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used)
   CHECK("./foo" == act_cpp[2]);
 }
 
-TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
+TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 {
   Context ctx;
 
@@ -551,7 +558,7 @@ TEST(isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   free(cwd);
 }
 
-TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
+TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 {
   Context ctx;
 
@@ -575,7 +582,7 @@ TEST(I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used)
   free(cwd);
 }
 
-TEST(debug_flag_order_with_known_option_first)
+TEST_CASE("debug_flag_order_with_known_option_first")
 {
   Context ctx;
 
@@ -589,12 +596,12 @@ TEST(debug_flag_order_with_known_option_first)
 
   create_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(debug_flag_order_with_known_option_last)
+TEST_CASE("debug_flag_order_with_known_option_last")
 {
   Context ctx;
 
@@ -608,12 +615,12 @@ TEST(debug_flag_order_with_known_option_last)
 
   create_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(options_not_to_be_passed_to_the_preprocesor)
+TEST_CASE("options_not_to_be_passed_to_the_preprocesor")
 {
   Context ctx;
 
@@ -630,12 +637,12 @@ TEST(options_not_to_be_passed_to_the_preprocesor)
 
   create_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
 
-TEST(cuda_option_file)
+TEST_CASE("cuda_option_file")
 {
   Context ctx;
   ctx.guessed_compiler = GuessedCompiler::nvcc;
@@ -652,9 +659,7 @@ TEST(cuda_option_file)
   create_file("foo.optf", "-c foo.c -g -Wall -o");
   create_file("bar.optf", "out -DX");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
-  CHECK_ARGS_EQ_FREE12(exp_cpp, act_cpp);
-  CHECK_ARGS_EQ_FREE12(exp_extra, act_extra);
-  CHECK_ARGS_EQ_FREE12(exp_cc, act_cc);
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
 }
-
-TEST_SUITE_END

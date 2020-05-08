@@ -21,7 +21,6 @@
 #include "catch2_tests.hpp"
 #include "framework.hpp"
 
-unsigned suite_argument_processing(unsigned);
 unsigned suite_compopt(unsigned);
 unsigned suite_conf(unsigned);
 unsigned suite_hash(unsigned);
@@ -29,7 +28,6 @@ unsigned suite_hashutil(unsigned);
 unsigned suite_legacy_util(unsigned);
 
 const suite_fn k_legacy_suites[] = {
-  &suite_argument_processing,
   &suite_compopt,
   &suite_hash,
   &suite_hashutil,
