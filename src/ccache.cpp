@@ -25,7 +25,6 @@
 #include "File.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "ProgressBar.hpp"
-#include "ScopeGuard.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"

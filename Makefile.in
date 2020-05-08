@@ -89,7 +89,6 @@ test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_FormatNonstdStringView.cpp
 test_suites += unittest/test_Lockfile.cpp
 test_suites += unittest/test_NullCompression.cpp
-test_suites += unittest/test_ScopeGuard.cpp
 test_suites += unittest/test_Stat.cpp
 test_suites += unittest/test_Util.cpp
 test_suites += unittest/test_ZstdCompression.cpp
