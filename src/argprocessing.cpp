@@ -147,16 +147,20 @@ process_profiling_option(Context& ctx, const std::string& arg)
     ctx.args_info.profile_generate = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-use" || arg == "-fprofile-instr-use"
-             || arg == "-fbranch-probabilities" || arg == "-fauto-profile") {
+             || arg == "-fprofile-sample-use" || arg == "-fbranch-probabilities"
+             || arg == "-fauto-profile") {
     new_profile_use = true;
     if (ctx.args_info.profile_path.empty()) {
       new_profile_path = ".";
     }
   } else if (Util::starts_with(arg, "-fprofile-use=")
              || Util::starts_with(arg, "-fprofile-instr-use=")
+             || Util::starts_with(arg, "-fprofile-sample-use=")
              || Util::starts_with(arg, "-fauto-profile=")) {
     new_profile_use = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
+  } else if (arg == "-fprofile-sample-accurate") {
+    return true;
   } else {
     cc_log("Unknown profiling option: %s", arg.c_str());
     return false;
