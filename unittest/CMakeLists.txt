@@ -1,7 +1,6 @@
 set(
   source_files
   TestUtil.cpp
-  catch2_tests.cpp
   main.cpp
   test_Args.cpp
   test_AtomicFile.cpp

@@ -18,7 +18,9 @@
 
 #include "../src/hash.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
+
+TEST_SUITE_BEGIN("hash");
 
 TEST_CASE("test_known_strings")
 {
@@ -99,3 +101,5 @@ TEST_CASE("hash_once")
   CHECK(hash_buffer_once("a", 1).to_string()
         == "17762fddd969a453925d65717ac3eea21320b66b");
 }
+
+TEST_SUITE_END();

@@ -21,11 +21,11 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
-using Catch::EndsWith;
-using Catch::Equals;
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("Util");
 
 TEST_CASE("Util::base_name")
 {
@@ -138,7 +138,7 @@ TEST_CASE("Util::{edit,strip}_ansi_csi_seqs")
     "\x1B[31mred\x1B[m, "
     "\x1B[1;32mbold green\x1B[m.\n";
 
-  SECTION("Remove bold attributes")
+  SUBCASE("Remove bold attributes")
   {
     CHECK(Util::edit_ansi_csi_seqs(input,
               [](nonstd::string_view::size_type,
@@ -171,13 +171,13 @@ TEST_CASE("Util::{edit,strip}_ansi_csi_seqs")
           "\x1B[32mbold green\x1B[m.\n");
   }
 
-  SECTION("Strip SGR sequences only")
+  SUBCASE("Strip SGR sequences only")
   {
     CHECK(Util::strip_ansi_csi_seqs(input, "m")
           == "Normal, \x1B[Kbold, red, bold green.\n");
   }
 
-  SECTION("Strip default set of CSI sequences")
+  SUBCASE("Strip default set of CSI sequences")
   {
     CHECK(Util::strip_ansi_csi_seqs(input)
           == "Normal, bold, red, bold green.\n");
@@ -296,19 +296,19 @@ TEST_CASE("Util::get_level_1_files")
   std::vector<std::shared_ptr<CacheFile>> files;
   auto null_receiver = [](double) {};
 
-  SECTION("nonexistent subdirectory")
+  SUBCASE("nonexistent subdirectory")
   {
     Util::get_level_1_files("2", null_receiver, files);
     CHECK(files.empty());
   }
 
-  SECTION("empty subdirectory")
+  SUBCASE("empty subdirectory")
   {
     Util::get_level_1_files("e", null_receiver, files);
     CHECK(files.empty());
   }
 
-  SECTION("simple case")
+  SUBCASE("simple case")
   {
     Util::get_level_1_files("0", null_receiver, files);
     REQUIRE(files.size() == 4);
@@ -536,28 +536,26 @@ TEST_CASE("Util::parse_int")
   CHECK(Util::parse_int("0666") == 666);
   CHECK(Util::parse_int(" 777") == 777);
 
-  CHECK_THROWS_WITH(Util::parse_int(""), Equals("invalid integer: \"\""));
-  CHECK_THROWS_WITH(Util::parse_int("x"), Equals("invalid integer: \"x\""));
-  CHECK_THROWS_WITH(Util::parse_int("0x"), Equals("invalid integer: \"0x\""));
-  CHECK_THROWS_WITH(Util::parse_int("0x4"), Equals("invalid integer: \"0x4\""));
-  CHECK_THROWS_WITH(Util::parse_int("0 "), Equals("invalid integer: \"0 \""));
+  CHECK_THROWS_WITH(Util::parse_int(""), "invalid integer: \"\"");
+  CHECK_THROWS_WITH(Util::parse_int("x"), "invalid integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_int("0x"), "invalid integer: \"0x\"");
+  CHECK_THROWS_WITH(Util::parse_int("0x4"), "invalid integer: \"0x4\"");
+  CHECK_THROWS_WITH(Util::parse_int("0 "), "invalid integer: \"0 \"");
 
   // check boundary values
   if (sizeof(int) == 2) {
     CHECK(Util::parse_int("-32768") == -32768);
     CHECK(Util::parse_int("32767") == 32767);
-    CHECK_THROWS_WITH(Util::parse_int("-32768"),
-                      Equals("invalid integer: \"-32768\""));
-    CHECK_THROWS_WITH(Util::parse_int("32768"),
-                      Equals("invalid integer: \"32768\""));
+    CHECK_THROWS_WITH(Util::parse_int("-32768"), "invalid integer: \"-32768\"");
+    CHECK_THROWS_WITH(Util::parse_int("32768"), "invalid integer: \"32768\"");
   }
   if (sizeof(int) == 4) {
     CHECK(Util::parse_int("-2147483648") == -2147483648);
     CHECK(Util::parse_int("2147483647") == 2147483647);
     CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
-                      Equals("invalid integer: \"-2147483649\""));
+                      "invalid integer: \"-2147483649\"");
     CHECK_THROWS_WITH(Util::parse_int("2147483648"),
-                      Equals("invalid integer: \"2147483648\""));
+                      "invalid integer: \"2147483648\"");
   }
 }
 
@@ -578,10 +576,10 @@ TEST_CASE("Util::read_file and Util::write_file")
   CHECK(data == "carpet");
 
   CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
-                    Equals("No such file or directory"));
+                    "No such file or directory");
 
   CHECK_THROWS_WITH(Util::write_file("", "does/not/exist"),
-                    Equals("No such file or directory"));
+                    "No such file or directory");
 }
 
 TEST_CASE("Util::remove_extension")
@@ -734,28 +732,28 @@ TEST_CASE("Util::traverse")
     visited.push_back(fmt::format("[{}] {}", is_dir ? 'd' : 'f', path));
   };
 
-  SECTION("traverse nonexistent path")
+  SUBCASE("traverse nonexistent path")
   {
     CHECK_THROWS_WITH(
       Util::traverse("nonexistent", visitor),
       "failed to open directory nonexistent: No such file or directory");
   }
 
-  SECTION("traverse file")
+  SUBCASE("traverse file")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file/subdir/f", visitor));
     REQUIRE(visited.size() == 1);
     CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
   }
 
-  SECTION("traverse empty directory")
+  SUBCASE("traverse empty directory")
   {
     CHECK_NOTHROW(Util::traverse("empty-dir", visitor));
     REQUIRE(visited.size() == 1);
     CHECK(visited[0] == "[d] empty-dir");
   }
 
-  SECTION("traverse directory with files")
+  SUBCASE("traverse directory with files")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
     REQUIRE(visited.size() == 3);
@@ -766,7 +764,7 @@ TEST_CASE("Util::traverse")
     CHECK(visited[2] == "[d] dir-with-files");
   }
 
-  SECTION("traverse directory hierarchy")
+  SUBCASE("traverse directory hierarchy")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file", visitor));
     REQUIRE(visited.size() == 3);
@@ -780,19 +778,19 @@ TEST_CASE("Util::wipe_path")
 {
   TestContext test_context;
 
-  SECTION("Wipe non-existing path")
+  SUBCASE("Wipe non-existing path")
   {
     CHECK_NOTHROW(Util::wipe_path("a"));
   }
 
-  SECTION("Wipe file")
+  SUBCASE("Wipe file")
   {
     Util::write_file("a", "");
     CHECK_NOTHROW(Util::wipe_path("a"));
     CHECK(!Stat::stat("a"));
   }
 
-  SECTION("Wipe directory")
+  SUBCASE("Wipe directory")
   {
     REQUIRE(Util::create_dir("a/b"));
     Util::write_file("a/1", "");
@@ -801,7 +799,7 @@ TEST_CASE("Util::wipe_path")
     CHECK(!Stat::stat("a"));
   }
 
-  SECTION("Wipe bad path")
+  SUBCASE("Wipe bad path")
   {
 #ifdef _WIN32
     const char error[] = "failed to rmdir .: Permission denied";
@@ -811,3 +809,5 @@ TEST_CASE("Util::wipe_path")
     CHECK_THROWS_WITH(Util::wipe_path("."), error);
   }
 }
+
+TEST_SUITE_END();

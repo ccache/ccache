@@ -19,13 +19,15 @@
 #include "../src/execute.hpp"
 #include "../src/legacy_util.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 #define CHECK_STR_EQ_FREE2(a, b)                                               \
   do {                                                                         \
     CHECK(strcmp((a), (b)) == 0);                                              \
     free(b);                                                                   \
   } while (false)
+
+TEST_SUITE_BEGIN("legacy_util");
 
 TEST_CASE("x_dirname")
 {

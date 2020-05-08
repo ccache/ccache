@@ -23,7 +23,7 @@
 #include "../src/hash.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 using TestUtil::TestContext;
 
@@ -56,6 +56,8 @@ put(const Context& ctx, const char* filename, const char* s, int return_value)
 }
 
 } // namespace
+
+TEST_SUITE_BEGIN("InodeCache");
 
 TEST_CASE("Test disabled")
 {
@@ -201,3 +203,5 @@ TEST_CASE("Test content type")
   CHECK(digest == code_with_sloppy_time_macros_digest);
   CHECK(return_value == 3);
 }
+
+TEST_SUITE_END();

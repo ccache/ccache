@@ -20,7 +20,9 @@
 #include "../src/Stat.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
+
+TEST_SUITE_BEGIN("LockFile");
 
 using TestUtil::TestContext;
 
@@ -54,3 +56,5 @@ TEST_CASE("Lockfile breaking")
   CHECK(lock.acquired());
 }
 #endif // !_WIN32
+
+TEST_SUITE_END();

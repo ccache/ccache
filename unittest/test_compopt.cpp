@@ -18,9 +18,11 @@
 
 #include "../src/compopt.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 bool compopt_verify_sortedness_and_flags();
+
+TEST_SUITE_BEGIN("compopt");
 
 TEST_CASE("option_table_should_be_sorted")
 {
@@ -133,3 +135,5 @@ TEST_CASE("dash_dash_analyze_too_hard")
 {
   CHECK(compopt_too_hard("--analyze"));
 }
+
+TEST_SUITE_END();

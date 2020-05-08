@@ -25,7 +25,7 @@
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 using TestUtil::TestContext;
 
@@ -65,6 +65,8 @@ get_posix_path(const std::string& path)
 }
 
 } // namespace
+
+TEST_SUITE_BEGIN("argprocessing");
 
 TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
@@ -700,3 +702,5 @@ TEST_CASE("cuda_option_file")
   CHECK(exp_extra == act_extra);
   CHECK(exp_cc == act_cc);
 }
+
+TEST_SUITE_END();

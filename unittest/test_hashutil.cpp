@@ -20,9 +20,11 @@
 #include "../src/hashutil.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("hashutil");
 
 TEST_CASE("hash_command_output_simple")
 {
@@ -261,3 +263,5 @@ TEST_CASE("check_for_temporal_macros")
                                     sizeof(temporal_at_avx_boundary) - i));
   }
 }
+
+TEST_SUITE_END();
