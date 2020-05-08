@@ -402,11 +402,12 @@ guess_compiler(const char* path)
 {
   string_view name = Util::base_name(path);
   GuessedCompiler result = GuessedCompiler::unknown;
-  if (name == "clang") {
+  if (name.find("clang") != std::string::npos) {
     result = GuessedCompiler::clang;
-  } else if (name == "gcc" || name == "g++") {
+  } else if (name.find("gcc") != std::string::npos
+             || name.find("g++") != std::string::npos) {
     result = GuessedCompiler::gcc;
-  } else if (name == "nvcc") {
+  } else if (name.find("nvcc") != std::string::npos) {
     result = GuessedCompiler::nvcc;
   } else if (name == "pump" || name == "distcc-pump") {
     result = GuessedCompiler::pump;
