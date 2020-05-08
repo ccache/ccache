@@ -1009,9 +1009,3 @@ time_seconds()
   return (double)time(NULL);
 #endif
 }
-
-std::string
-from_cstr(const char* str)
-{
-  return str ? str : std::string{};
-}

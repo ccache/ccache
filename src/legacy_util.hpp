@@ -64,6 +64,3 @@ char* read_text_file(const char* path, size_t size_hint);
 char* subst_env_in_string(const char* str, char** errmsg);
 void set_cloexec_flag(int fd);
 double time_seconds();
-
-// Convert a char* string `str` to an std::string, if `str` is NULL return "".
-std::string from_cstr(const char* str);
