@@ -189,7 +189,7 @@ update-authors:
 
 .PHONY: check-syntax
 check-syntax:
-	$(CC) $(all_cppflags) -I. $(all_cxxflags) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) $(all_cppflags) -I. $(filter-out -g% -O%,$(all_cxxflags)) -S -o /dev/null $(CHK_SOURCES)
 
 .PHONY: cppcheck
 cppcheck:
