@@ -95,4 +95,37 @@ SUITE_profiling_clang() {
     $CCACHE_COMPILE -fprofile-instr-use=foo.profdata -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 3
+
+    # -------------------------------------------------------------------------
+    TEST "-fprofile-sample-use"
+
+    echo 'main:1:1' > sample.prof
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -fprofile-sample-accurate -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 2
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -fprofile-sample-accurate -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 2
+
+    echo 'main:2:2' > sample.prof
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache miss' 3
+
+     echo 'main:1:1' > sample.prof
+
+    $CCACHE_COMPILE -fprofile-sample-use=sample.prof -c test.c
+    expect_stat 'cache hit (direct)' 3
+    expect_stat 'cache miss' 3
 }

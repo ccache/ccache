@@ -1558,9 +1558,9 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
     fmt::format("{}/{}.gcda", profile_path, base_name),
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
     fmt::format("{}/{}#{}.gcda", profile_path, hashified_cwd, base_name),
-    // -fprofile(-instr)-use=file (Clang), -fauto-profile=file (GCC >=5)
+    // -fprofile(-instr|-sample)-use=file (Clang), -fauto-profile=file (GCC >=5)
     profile_path,
-    // -fprofile(-instr)-use=dir (Clang)
+    // -fprofile(-instr|-sample)-use=dir (Clang)
     fmt::format("{}/default.profdata", profile_path),
     // -fauto-profile (GCC >=5)
     "fbdata.afdo", // -fprofile-dir is not used
@@ -1763,14 +1763,15 @@ calculate_result_name(Context& ctx,
   // For profile generation (-fprofile(-instr)-generate[=path])
   // - hash profile path
   //
-  // For profile usage (-fprofile(-instr)-use, -fbranch-probabilities):
+  // For profile usage (-fprofile(-instr|-sample)-use, -fbranch-probabilities):
   // - hash profile data
   //
   // -fbranch-probabilities and -fvpt usage is covered by
   // -fprofile-generate/-fprofile-use.
   //
   // The profile directory can be specified as an argument to
-  // -fprofile(-instr)-generate=, -fprofile(-instr)-use= or -fprofile-dir=.
+  // -fprofile(-instr)-generate=, -fprofile(-instr|-sample)-use= or
+  // -fprofile-dir=.
 
   if (ctx.args_info.profile_generate) {
     assert(!ctx.args_info.profile_path.empty());
