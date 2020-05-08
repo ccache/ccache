@@ -180,7 +180,7 @@ compopt_short(bool (*fn)(const std::string&), const std::string& option)
   return retval;
 }
 
-// Used by unittest/test_compopt.c.
+// Used by unittest/test_compopt.cpp.
 bool compopt_verify_sortedness_and_flags();
 
 // For test purposes.
