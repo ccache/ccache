@@ -666,7 +666,53 @@ to_lowercase(const std::string& string)
   return result;
 }
 
-// Write file data from a string.
+void
+traverse(const std::string& path, const TraverseVisitor& visitor)
+{
+  DIR* dir = opendir(path.c_str());
+  if (dir) {
+    struct dirent* entry;
+    while ((entry = readdir(dir))) {
+      if (strcmp(entry->d_name, "") == 0 || strcmp(entry->d_name, ".") == 0
+          || strcmp(entry->d_name, "..") == 0) {
+        continue;
+      }
+
+      std::string entry_path = path + "/" + entry->d_name;
+      bool is_dir;
+#ifdef _DIRENT_HAVE_D_TYPE
+      if (entry->d_type != DT_UNKNOWN) {
+        is_dir = entry->d_type == DT_DIR;
+      } else
+#endif
+      {
+        auto stat = Stat::lstat(entry_path);
+        if (!stat) {
+          if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
+            continue;
+          }
+          throw Error(fmt::format("failed to lstat {}: {}",
+                                  entry_path,
+                                  strerror(stat.error_number())));
+        }
+        is_dir = stat.is_directory();
+      }
+      if (is_dir) {
+        traverse(entry_path, visitor);
+      } else {
+        visitor(entry_path, false);
+      }
+    }
+    closedir(dir);
+    visitor(path, true);
+  } else if (errno == ENOTDIR) {
+    visitor(path, false);
+  } else {
+    throw Error(
+      fmt::format("failed to open directory {}: {}", path, strerror(errno)));
+  }
+}
+
 void
 write_file(const std::string& path, const std::string& data, bool binary)
 {

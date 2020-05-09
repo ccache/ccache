@@ -614,3 +614,60 @@ TEST_CASE("Util::to_lowercase")
   CHECK(Util::to_lowercase("X") == "x");
   CHECK(Util::to_lowercase(" x_X@") == " x_x@");
 }
+
+TEST_CASE("Util::traverse")
+{
+  REQUIRE(Util::create_dir("traverse/dir-with-subdir-and-file/subdir"));
+  Util::write_file("traverse/dir-with-subdir-and-file/subdir/f", "");
+  REQUIRE(Util::create_dir("traverse/dir-with-files"));
+  Util::write_file("traverse/dir-with-files/f1", "");
+  Util::write_file("traverse/dir-with-files/f2", "");
+  REQUIRE(Util::create_dir("traverse/empty-dir"));
+
+  std::vector<std::string> visited;
+  auto visitor = [&visited](const std::string& path, bool is_dir) {
+    visited.push_back(fmt::format("[{}] {}", is_dir ? 'd' : 'f', path));
+  };
+
+  SECTION("traverse nonexistent path")
+  {
+    CHECK_THROWS_WITH(
+      Util::traverse("nonexistent", visitor),
+      "failed to open directory nonexistent: No such file or directory");
+  }
+
+  SECTION("traverse file")
+  {
+    CHECK_NOTHROW(
+      Util::traverse("traverse/dir-with-subdir-and-file/subdir/f", visitor));
+    REQUIRE(visited.size() == 1);
+    CHECK(visited[0] == "[f] traverse/dir-with-subdir-and-file/subdir/f");
+  }
+
+  SECTION("traverse empty directory")
+  {
+    CHECK_NOTHROW(Util::traverse("traverse/empty-dir", visitor));
+    REQUIRE(visited.size() == 1);
+    CHECK(visited[0] == "[d] traverse/empty-dir");
+  }
+
+  SECTION("traverse directory with files")
+  {
+    CHECK_NOTHROW(Util::traverse("traverse/dir-with-files", visitor));
+    REQUIRE(visited.size() == 3);
+    std::string f1 = "[f] traverse/dir-with-files/f1";
+    std::string f2 = "[f] traverse/dir-with-files/f2";
+    CHECK(((visited[0] == f1 && visited[1] == f2)
+           || (visited[0] == f2 && visited[1] == f1)));
+    CHECK(visited[2] == "[d] traverse/dir-with-files");
+  }
+
+  SECTION("traverse directory hierarchy")
+  {
+    CHECK_NOTHROW(Util::traverse("traverse/dir-with-subdir-and-file", visitor));
+    REQUIRE(visited.size() == 3);
+    CHECK(visited[0] == "[f] traverse/dir-with-subdir-and-file/subdir/f");
+    CHECK(visited[1] == "[d] traverse/dir-with-subdir-and-file/subdir");
+    CHECK(visited[2] == "[d] traverse/dir-with-subdir-and-file");
+  }
+}
