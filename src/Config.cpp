@@ -148,9 +148,8 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"UMASK", "umask"},
 };
 
-typedef std::function<void(
-  const std::string& line, const std::string& key, const std::string& value)>
-  ConfigLineHandler;
+using ConfigLineHandler = std::function<void(
+  const std::string& line, const std::string& key, const std::string& value)>;
 
 bool
 parse_bool(const std::string& value,
