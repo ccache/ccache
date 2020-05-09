@@ -45,6 +45,7 @@ int hash_source_code_file(const Context& ctx,
                           struct hash* hash,
                           const char* path,
                           size_t size_hint = 0);
+bool hash_binary_file(const Context& ctx, struct hash* hash, const char* path);
 bool hash_command_output(struct hash* hash,
                          const char* command,
                          const char* compiler);

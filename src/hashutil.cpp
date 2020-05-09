@@ -304,9 +304,13 @@ hash_source_code_file(const Context& ctx,
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
+  InodeCache::ContentType content_type =
+    ctx.config.sloppiness() & SLOPPY_TIME_MACROS
+      ? InodeCache::ContentType::code_with_sloppy_time_macros
+      : InodeCache::ContentType::code;
   struct digest digest;
   int return_value;
-  if (!ctx.inode_cache.get(path, &digest, &return_value)) {
+  if (!ctx.inode_cache.get(path, content_type, &digest, &return_value)) {
     struct hash* file_hash = hash_init();
     return_value =
       hash_source_code_file_nocache(ctx, file_hash, path, size_hint);
@@ -315,10 +319,41 @@ hash_source_code_file(const Context& ctx,
     }
     hash_result_as_bytes(file_hash, &digest);
     hash_free(file_hash);
-    ctx.inode_cache.put(path, digest, return_value);
+    ctx.inode_cache.put(path, content_type, digest, return_value);
   }
   hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
   return return_value;
+#endif
+}
+
+// Hash a binary file using the inode cache if enabled.
+//
+// Returns true on success, otherwise false.
+bool
+hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
+{
+#ifdef INODE_CACHE_SUPPORTED
+  if (!ctx.config.inode_cache()) {
+#endif
+    return hash_file(hash, path);
+
+#ifdef INODE_CACHE_SUPPORTED
+  }
+  // Reusable file hashes must be independent of the outer context. Thus hash
+  // files separately so that digests based on file contents can be reused. Then
+  // add the digest into the outer hash instead.
+  struct digest digest;
+  if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, &digest)) {
+    struct hash* file_hash = hash_init();
+    if (!hash_file(hash, path)) {
+      return false;
+    }
+    hash_result_as_bytes(file_hash, &digest);
+    hash_free(file_hash);
+    ctx.inode_cache.put(path, InodeCache::ContentType::binary, digest);
+  }
+  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  return true;
 #endif
 }
 

@@ -75,6 +75,7 @@ get_file_from_config(const Config& config)
 
 struct InodeCache::Key
 {
+  ContentType type;
   dev_t st_dev;
   ino_t st_ino;
   mode_t st_mode;
@@ -156,7 +157,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 }
 
 bool
-InodeCache::hash_inode(const char* path, digest* digest)
+InodeCache::hash_inode(const char* path, ContentType type, digest* digest)
 {
   Stat stat = Stat::stat(path);
   if (!stat) {
@@ -166,6 +167,7 @@ InodeCache::hash_inode(const char* path, digest* digest)
 
   Key key;
   memset(&key, 0, sizeof(Key));
+  key.type = type;
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
@@ -180,7 +182,6 @@ InodeCache::hash_inode(const char* path, digest* digest)
   key.st_ctim = stat.ctime();
 #  endif
   key.st_size = stat.size();
-  key.sloppy_time_macros = m_config.sloppiness() & SLOPPY_TIME_MACROS;
 
   struct hash* hash = hash_init();
   hash_buffer(hash, &key, sizeof(Key));
@@ -330,14 +331,17 @@ InodeCache::~InodeCache()
 }
 
 bool
-InodeCache::get(const char* path, digest* file_digest, int* return_value)
+InodeCache::get(const char* path,
+                ContentType type,
+                digest* file_digest,
+                int* return_value)
 {
   if (!initialize()) {
     return false;
   }
 
   digest key_digest;
-  if (!hash_inode(path, &key_digest)) {
+  if (!hash_inode(path, type, &key_digest)) {
     return false;
   }
 
@@ -358,7 +362,8 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
       }
 
       *file_digest = bucket->entries[0].file_digest;
-      *return_value = bucket->entries[0].return_value;
+      if (return_value)
+        *return_value = bucket->entries[0].return_value;
       found = true;
       break;
     }
@@ -383,14 +388,17 @@ InodeCache::get(const char* path, digest* file_digest, int* return_value)
 }
 
 bool
-InodeCache::put(const char* path, const digest& file_digest, int return_value)
+InodeCache::put(const char* path,
+                ContentType type,
+                const digest& file_digest,
+                int return_value)
 {
   if (!initialize()) {
     return false;
   }
 
   digest key_digest;
-  if (!hash_inode(path, &key_digest)) {
+  if (!hash_inode(path, type, &key_digest)) {
     return false;
   }
 

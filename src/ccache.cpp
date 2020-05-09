@@ -517,7 +517,7 @@ do_remember_include_file(Context& ctx,
       }
     }
 
-    if (!hash_file(fhash, path.c_str())) {
+    if (!hash_binary_file(ctx, fhash, path.c_str())) {
       return false;
     }
     hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
@@ -1361,7 +1361,8 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cppstderr");
-  if (!ctx.args_info.direct_i_file && !hash_file(hash, path_stderr)) {
+  if (!ctx.args_info.direct_i_file
+      && !hash_binary_file(ctx, hash, path_stderr)) {
     // Somebody removed the temporary file?
     cc_log("Failed to open %s: %s", path_stderr, strerror(errno));
     failed(STATS_ERROR);
@@ -1413,7 +1414,7 @@ hash_compiler(const Context& ctx,
     hash_string(hash, ctx.config.compiler_check().c_str() + strlen("string:"));
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
     hash_delimiter(hash, "cc_content");
-    hash_file(hash, path);
+    hash_binary_file(ctx, hash, path);
   } else { // command string
     if (!hash_multicommand_output(
           hash, ctx.config.compiler_check().c_str(), ctx.orig_args->argv[0])) {
@@ -1587,7 +1588,7 @@ hash_common_info(const Context& ctx,
     char* sanitize_blacklist = args_info.sanitize_blacklists[i];
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist);
     hash_delimiter(hash, "sanitizeblacklist");
-    if (!hash_file(hash, sanitize_blacklist)) {
+    if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
       failed(STATS_BADEXTRAFILE);
     }
   }
@@ -1597,7 +1598,7 @@ hash_common_info(const Context& ctx,
            ctx.config.extra_files_to_hash(), PATH_DELIM)) {
       cc_log("Hashing extra file %s", path.c_str());
       hash_delimiter(hash, "extrafile");
-      if (!hash_file(hash, path.c_str())) {
+      if (!hash_binary_file(ctx, hash, path.c_str())) {
         failed(STATS_BADEXTRAFILE);
       }
     }
@@ -1641,7 +1642,7 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
     if (st && !st.is_directory()) {
       cc_log("Adding profile data %s to the hash", p.c_str());
       hash_delimiter(hash, "-fprofile-use");
-      if (hash_file(hash, p.c_str())) {
+      if (hash_binary_file(ctx, hash, p.c_str())) {
         found = true;
       }
     }
@@ -3771,7 +3772,7 @@ handle_main_options(int argc, const char* const* argv)
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
       } else {
-        hash_file(hash, optarg);
+        hash_binary_file(ctx, hash, optarg);
       }
       char digest[DIGEST_STRING_BUFFER_SIZE];
       hash_result_as_string(hash, digest);

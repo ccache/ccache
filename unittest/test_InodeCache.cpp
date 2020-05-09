@@ -49,7 +49,10 @@ digest_equals_string(const struct digest& digest, const char* s)
 bool
 put(const Context& ctx, const char* filename, const char* s, int return_value)
 {
-  return ctx.inode_cache.put(filename, digest_from_string(s), return_value);
+  return ctx.inode_cache.put(filename,
+                             InodeCache::ContentType::code,
+                             digest_from_string(s),
+                             return_value);
 }
 
 } // namespace
@@ -63,8 +66,10 @@ TEST_CASE("Test disabled")
   struct digest digest;
   int return_value;
 
-  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
-  CHECK(!ctx.inode_cache.put("a", digest, return_value));
+  CHECK(!ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
+  CHECK(!ctx.inode_cache.put(
+    "a", InodeCache::ContentType::code, digest, return_value));
   CHECK(ctx.inode_cache.get_hits() == -1);
   CHECK(ctx.inode_cache.get_misses() == -1);
   CHECK(ctx.inode_cache.get_errors() == -1);
@@ -75,12 +80,14 @@ TEST_CASE("Test lookup nonexistent")
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
+  ctx.inode_cache.drop();
   Util::write_file("a", "");
 
   struct digest digest;
   int return_value;
 
-  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(!ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
   CHECK(ctx.inode_cache.get_hits() == 0);
   CHECK(ctx.inode_cache.get_misses() == 1);
   CHECK(ctx.inode_cache.get_errors() == 0);
@@ -91,6 +98,7 @@ TEST_CASE("Test put and lookup")
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
+  ctx.inode_cache.drop();
   Util::write_file("a", "a text");
 
   CHECK(put(ctx, "a", "a text", 1));
@@ -98,27 +106,30 @@ TEST_CASE("Test put and lookup")
   struct digest digest;
   int return_value;
 
-  CHECK(ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
   CHECK(digest_equals_string(digest, "a text"));
   CHECK(return_value == 1);
   CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 1);
+  CHECK(ctx.inode_cache.get_misses() == 0);
   CHECK(ctx.inode_cache.get_errors() == 0);
 
   Util::write_file("a", "something else");
 
-  CHECK(!ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(!ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
   CHECK(ctx.inode_cache.get_hits() == 1);
-  CHECK(ctx.inode_cache.get_misses() == 2);
+  CHECK(ctx.inode_cache.get_misses() == 1);
   CHECK(ctx.inode_cache.get_errors() == 0);
 
   CHECK(put(ctx, "a", "something else", 2));
 
-  CHECK(ctx.inode_cache.get("a", &digest, &return_value));
+  CHECK(ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
   CHECK(digest_equals_string(digest, "something else"));
   CHECK(return_value == 2);
   CHECK(ctx.inode_cache.get_hits() == 2);
-  CHECK(ctx.inode_cache.get_misses() == 2);
+  CHECK(ctx.inode_cache.get_misses() == 1);
   CHECK(ctx.inode_cache.get_errors() == 0);
 }
 
@@ -133,4 +144,49 @@ TEST_CASE("Drop file")
   CHECK(ctx.inode_cache.get_file().empty());
   CHECK(!ctx.inode_cache.drop());
 }
+
+TEST_CASE("Test content type")
+{
+  Context ctx;
+  ctx.config.set_debug(true);
+  ctx.inode_cache.drop();
+  ctx.config.set_inode_cache(true);
+  Util::write_file("a", "a text");
+  digest binary_digest = digest_from_string("binary");
+  digest code_digest = digest_from_string("code");
+  digest code_with_sloppy_time_macros_digest =
+    digest_from_string("sloppy_time_macros");
+
+  CHECK(ctx.inode_cache.put(
+    "a", InodeCache::ContentType::binary, binary_digest, 1));
+  CHECK(
+    ctx.inode_cache.put("a", InodeCache::ContentType::code, code_digest, 2));
+  CHECK(
+    ctx.inode_cache.put("a",
+                        InodeCache::ContentType::code_with_sloppy_time_macros,
+                        code_with_sloppy_time_macros_digest,
+                        3));
+
+  digest digest;
+  int return_value;
+
+  CHECK(ctx.inode_cache.get(
+    "a", InodeCache::ContentType::binary, &digest, &return_value));
+  CHECK(digests_equal(&digest, &binary_digest));
+  CHECK(return_value == 1);
+
+  CHECK(ctx.inode_cache.get(
+    "a", InodeCache::ContentType::code, &digest, &return_value));
+  CHECK(digests_equal(&digest, &code_digest));
+  CHECK(return_value == 2);
+
+  CHECK(
+    ctx.inode_cache.get("a",
+                        InodeCache::ContentType::code_with_sloppy_time_macros,
+                        &digest,
+                        &return_value));
+  CHECK(digests_equal(&digest, &code_with_sloppy_time_macros_digest));
+  CHECK(return_value == 3);
+}
+
 #endif
