@@ -18,12 +18,14 @@
 
 #include "../src/Stat.hpp"
 #include "../src/Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 #include <unistd.h>
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Default constructor")
 {
@@ -54,6 +56,8 @@ TEST_CASE("Named constructors")
 
 TEST_CASE("Same i-node as")
 {
+  TestContext test_context;
+
   Util::write_file("a", "");
   Util::write_file("b", "");
   auto a_stat = Stat::stat("a");
@@ -90,6 +94,8 @@ TEST_CASE("Return values when file is missing")
 
 TEST_CASE("Return values when file exists")
 {
+  TestContext test_context;
+
   Util::write_file("file", "1234567");
 
   auto stat = Stat::stat("file");
@@ -116,7 +122,8 @@ TEST_CASE("Return values when file exists")
 
 TEST_CASE("Directory")
 {
-  rmdir("directory");
+  TestContext test_context;
+
   REQUIRE(mkdir("directory", 0456) == 0);
   auto stat = Stat::stat("directory");
 
@@ -130,6 +137,8 @@ TEST_CASE("Directory")
 #ifndef _WIN32
 TEST_CASE("Symlinks")
 {
+  TestContext test_context;
+
   Util::write_file("file", "1234567");
 
   SECTION("file lstat")
@@ -154,7 +163,6 @@ TEST_CASE("Symlinks")
 
   SECTION("symlink lstat")
   {
-    unlink("symlink");
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
     CHECK(stat);
@@ -166,7 +174,6 @@ TEST_CASE("Symlinks")
 
   SECTION("symlink stat")
   {
-    unlink("symlink");
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::stat("symlink", Stat::OnError::ignore);
     CHECK(stat);

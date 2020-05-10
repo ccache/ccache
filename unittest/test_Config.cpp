@@ -20,6 +20,7 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/exceptions.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 #include "third_party/fmt/core.h"
@@ -29,6 +30,7 @@
 #include <vector>
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Config: default values")
 {
@@ -71,6 +73,8 @@ TEST_CASE("Config: default values")
 
 TEST_CASE("Config::update_from_file")
 {
+  TestContext test_context;
+
   const char user[] = "rabbit";
   x_setenv("USER", user);
 
@@ -165,8 +169,9 @@ TEST_CASE("Config::update_from_file")
 
 TEST_CASE("Config::update_from_file, error handling")
 {
+  TestContext test_context;
+
   Config config;
-  unlink("ccache.conf"); // Make sure it doesn't exist.
 
   SECTION("missing equal sign")
   {
@@ -296,6 +301,8 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::set_value_in_file")
 {
+  TestContext test_context;
+
   SECTION("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
@@ -358,6 +365,8 @@ TEST_CASE("Config::get_string_value")
 
 TEST_CASE("Config::visit_items")
 {
+  TestContext test_context;
+
   Util::write_file(
     "test.conf",
 #ifndef _WIN32

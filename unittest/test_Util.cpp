@@ -18,11 +18,13 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 using Catch::EndsWith;
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Util::base_name")
 {
@@ -106,6 +108,8 @@ TEST_CASE("Util::common_dir_prefix_length")
 
 TEST_CASE("Util::create_dir")
 {
+  TestContext test_context;
+
   CHECK(Util::create_dir("/"));
 
   CHECK(Util::create_dir("create/dir"));
@@ -191,6 +195,8 @@ TEST_CASE("Util::get_extension")
 
 TEST_CASE("Util::get_level_1_files")
 {
+  TestContext test_context;
+
   Util::create_dir("e/m/p/t/y");
 
   Util::create_dir("0/1");
@@ -470,6 +476,8 @@ TEST_CASE("Util::parse_int")
 
 TEST_CASE("Util::read_file and Util::write_file")
 {
+  TestContext test_context;
+
   Util::write_file("test", "foo\nbar\n");
   std::string data = Util::read_file("test");
   CHECK(data == "foo\nbar\n");
@@ -617,12 +625,14 @@ TEST_CASE("Util::to_lowercase")
 
 TEST_CASE("Util::traverse")
 {
-  REQUIRE(Util::create_dir("traverse/dir-with-subdir-and-file/subdir"));
-  Util::write_file("traverse/dir-with-subdir-and-file/subdir/f", "");
-  REQUIRE(Util::create_dir("traverse/dir-with-files"));
-  Util::write_file("traverse/dir-with-files/f1", "");
-  Util::write_file("traverse/dir-with-files/f2", "");
-  REQUIRE(Util::create_dir("traverse/empty-dir"));
+  TestContext test_context;
+
+  REQUIRE(Util::create_dir("dir-with-subdir-and-file/subdir"));
+  Util::write_file("dir-with-subdir-and-file/subdir/f", "");
+  REQUIRE(Util::create_dir("dir-with-files"));
+  Util::write_file("dir-with-files/f1", "");
+  Util::write_file("dir-with-files/f2", "");
+  REQUIRE(Util::create_dir("empty-dir"));
 
   std::vector<std::string> visited;
   auto visitor = [&visited](const std::string& path, bool is_dir) {
@@ -638,42 +648,43 @@ TEST_CASE("Util::traverse")
 
   SECTION("traverse file")
   {
-    CHECK_NOTHROW(
-      Util::traverse("traverse/dir-with-subdir-and-file/subdir/f", visitor));
+    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file/subdir/f", visitor));
     REQUIRE(visited.size() == 1);
-    CHECK(visited[0] == "[f] traverse/dir-with-subdir-and-file/subdir/f");
+    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
   }
 
   SECTION("traverse empty directory")
   {
-    CHECK_NOTHROW(Util::traverse("traverse/empty-dir", visitor));
+    CHECK_NOTHROW(Util::traverse("empty-dir", visitor));
     REQUIRE(visited.size() == 1);
-    CHECK(visited[0] == "[d] traverse/empty-dir");
+    CHECK(visited[0] == "[d] empty-dir");
   }
 
   SECTION("traverse directory with files")
   {
-    CHECK_NOTHROW(Util::traverse("traverse/dir-with-files", visitor));
+    CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
     REQUIRE(visited.size() == 3);
-    std::string f1 = "[f] traverse/dir-with-files/f1";
-    std::string f2 = "[f] traverse/dir-with-files/f2";
+    std::string f1 = "[f] dir-with-files/f1";
+    std::string f2 = "[f] dir-with-files/f2";
     CHECK(((visited[0] == f1 && visited[1] == f2)
            || (visited[0] == f2 && visited[1] == f1)));
-    CHECK(visited[2] == "[d] traverse/dir-with-files");
+    CHECK(visited[2] == "[d] dir-with-files");
   }
 
   SECTION("traverse directory hierarchy")
   {
-    CHECK_NOTHROW(Util::traverse("traverse/dir-with-subdir-and-file", visitor));
+    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file", visitor));
     REQUIRE(visited.size() == 3);
-    CHECK(visited[0] == "[f] traverse/dir-with-subdir-and-file/subdir/f");
-    CHECK(visited[1] == "[d] traverse/dir-with-subdir-and-file/subdir");
-    CHECK(visited[2] == "[d] traverse/dir-with-subdir-and-file");
+    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
+    CHECK(visited[1] == "[d] dir-with-subdir-and-file/subdir");
+    CHECK(visited[2] == "[d] dir-with-subdir-and-file");
   }
 }
 
 TEST_CASE("Util::wipe_path")
 {
+  TestContext test_context;
+
   SECTION("Wipe non-existing path")
   {
     CHECK_NOTHROW(Util::wipe_path("a"));

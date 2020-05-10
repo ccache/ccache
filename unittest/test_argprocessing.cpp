@@ -24,10 +24,13 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/stats.hpp"
+#include "TestUtil.hpp"
 #include "argprocessing.hpp"
 #include "util.hpp"
 
 #include "third_party/catch.hpp"
+
+using TestUtil::TestContext;
 
 namespace {
 
@@ -73,6 +76,8 @@ get_posix_path(const char* path)
 
 TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c foo.c -E");
@@ -87,6 +92,8 @@ TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 
 TEST_CASE("dash_M_should_be_unsupported")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c foo.c -M");
@@ -101,6 +108,8 @@ TEST_CASE("dash_M_should_be_unsupported")
 
 TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
 {
+  TestContext test_context;
+
   Context ctx;
 
 #define DEP_ARGS                                                               \
@@ -125,6 +134,8 @@ TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
 
 TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
 {
+  TestContext test_context;
+
   Context ctx;
 
 #define DEP_ARGS                                                               \
@@ -148,6 +159,8 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
 
 TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
 {
+  TestContext test_context;
+
   Context ctx;
 
 #define CPP_ARGS                                                               \
@@ -180,6 +193,8 @@ TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
 TEST_CASE(
   "cpp_only_args_to_preprocessor_and_compiler_if_run_second_cpp_is_true")
 {
+  TestContext test_context;
+
   Context ctx;
 
 #define CPP_ARGS                                                               \
@@ -211,6 +226,8 @@ TEST_CASE(
 TEST_CASE(
   "dependency_args_that_take_an_argument_should_not_require_space_delimiter")
 {
+  TestContext test_context;
+
   Context ctx;
 
 #define DEP_ARGS "-MMD -MFfoo.d -MT mt -MTmt -MQmq"
@@ -232,6 +249,8 @@ TEST_CASE(
 
 TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
@@ -251,6 +270,8 @@ TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
 
 TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -MF foo.d -o foo.o");
@@ -271,6 +292,8 @@ TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
 
 TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
@@ -292,6 +315,8 @@ TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
 
 TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MD foo.c -o foo.o");
@@ -312,6 +337,8 @@ TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
 
 TEST_CASE("equal_sign_after_MF_should_be_removed")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -c -MF=path foo.c -o foo.o");
@@ -332,6 +359,8 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
 
 TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char* arg_string;
@@ -353,6 +382,8 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 TEST_CASE(
   "sysroot_with_separate_argument_should_be_rewritten_if_basedir_is_used")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char* arg_string;
@@ -373,6 +404,8 @@ TEST_CASE(
 
 TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args =
@@ -394,6 +427,8 @@ TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
 
 TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args =
@@ -415,6 +450,8 @@ TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args =
@@ -436,6 +473,8 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
 
 TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d foo.c");
@@ -456,6 +495,8 @@ TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
 
 TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d foo.c");
@@ -476,6 +517,8 @@ TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d foo.c");
@@ -496,6 +539,8 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
 
 TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d foo.c");
@@ -517,6 +562,8 @@ TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
 TEST_CASE(
   "isystem_flag_with_separate_arg_should_be_rewritten_if_basedir_is_used")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char* arg_string;
@@ -536,6 +583,8 @@ TEST_CASE(
 
 TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char* cwd;
@@ -560,6 +609,8 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
 TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char* cwd;
@@ -584,6 +635,8 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
 TEST_CASE("debug_flag_order_with_known_option_first")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -g1 -gsplit-dwarf foo.c -c");
@@ -603,6 +656,8 @@ TEST_CASE("debug_flag_order_with_known_option_first")
 
 TEST_CASE("debug_flag_order_with_known_option_last")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string("cc -gsplit-dwarf -g1 foo.c -c");
@@ -622,6 +677,8 @@ TEST_CASE("debug_flag_order_with_known_option_last")
 
 TEST_CASE("options_not_to_be_passed_to_the_preprocesor")
 {
+  TestContext test_context;
+
   Context ctx;
 
   ctx.orig_args = Args::from_string(
@@ -644,6 +701,8 @@ TEST_CASE("options_not_to_be_passed_to_the_preprocesor")
 
 TEST_CASE("cuda_option_file")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.guessed_compiler = GuessedCompiler::nvcc;
 

@@ -20,9 +20,12 @@
 
 #include "../src/Context.hpp"
 #include "../src/hashutil.hpp"
+#include "TestUtil.hpp"
 #include "util.hpp"
 
 #include "third_party/catch.hpp"
+
+using TestUtil::TestContext;
 
 TEST_CASE("hash_command_output_simple")
 {
@@ -104,6 +107,8 @@ TEST_CASE("hash_command_output_compiler_substitution")
 
 TEST_CASE("hash_command_output_stdout_versus_stderr")
 {
+  TestContext test_context;
+
   Context ctx;
 
   char d1[DIGEST_STRING_BUFFER_SIZE];
