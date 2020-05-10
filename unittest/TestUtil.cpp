@@ -45,4 +45,13 @@ TestContext::~TestContext()
   }
 }
 
+void
+check_chdir(const std::string& dir)
+{
+  if (chdir(dir.c_str()) != 0) {
+    throw Error(fmt::format(
+      "failed to change directory to {}: {}", dir, strerror(errno)));
+  }
+}
+
 } // namespace TestUtil

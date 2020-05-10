@@ -35,4 +35,7 @@ private:
   static size_t m_subdir_counter;
 };
 
+// Change directory to `dir`, throwing Error on failure.
+void check_chdir(const std::string& dir);
+
 } // namespace TestUtil

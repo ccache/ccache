@@ -51,7 +51,6 @@ non_third_party_headers_without_cpp = \
     src/exceptions.hpp \
     src/macroskip.hpp \
     src/system.hpp \
-    unittest/framework.hpp \
     unittest/util.hpp
 
 non_third_party_headers = \
