@@ -13,7 +13,7 @@ tmp_dir=$(mktemp -d)
 
 tar -xzf ccache-binary.tar.gz -C $tmp_dir
 
-CCACHE=$tmp_dir/bin/ccache ../test/run
+CCACHE=$tmp_dir/ccache-binary/bin/ccache ../test/run
 
 rm -rf $tmp_dir
 

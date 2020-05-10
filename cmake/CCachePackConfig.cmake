@@ -35,11 +35,6 @@ list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_SOURCE_DIR}/\\.git")
 list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_SOURCE_DIR}/build[\\-_/]")
 list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_BINARY_DIR}")
 
-# A top level directory is nice for extracting in-place, but prevents extracting
-# directly to e.g. /usr/local. Unfortunately this is not split between binary
-# and source build, so there is always no top level directory.
-set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
-
 set(CPACK_PACKAGE_FILE_NAME "ccache-binary")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "ccache-src")
 
