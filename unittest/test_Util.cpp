@@ -671,3 +671,37 @@ TEST_CASE("Util::traverse")
     CHECK(visited[2] == "[d] traverse/dir-with-subdir-and-file");
   }
 }
+
+TEST_CASE("Util::wipe_path")
+{
+  SECTION("Wipe non-existing path")
+  {
+    CHECK_NOTHROW(Util::wipe_path("a"));
+  }
+
+  SECTION("Wipe file")
+  {
+    Util::write_file("a", "");
+    CHECK_NOTHROW(Util::wipe_path("a"));
+    CHECK(!Stat::stat("a"));
+  }
+
+  SECTION("Wipe directory")
+  {
+    REQUIRE(Util::create_dir("a/b"));
+    Util::write_file("a/1", "");
+    Util::write_file("a/b/1", "");
+    CHECK_NOTHROW(Util::wipe_path("a"));
+    CHECK(!Stat::stat("a"));
+  }
+
+  SECTION("Wipe bad path")
+  {
+#ifdef _WIN32
+    const char error[] = "failed to rmdir .: Permission denied";
+#else
+    const char error[] = "failed to rmdir .: Invalid argument";
+#endif
+    CHECK_THROWS_WITH(Util::wipe_path("."), error);
+  }
+}

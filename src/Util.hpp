@@ -288,6 +288,12 @@ strip_whitespace(const std::string& string);
 // Throws Error on error.
 void traverse(const std::string& path, const TraverseVisitor& visitor);
 
+// Remove `path` (and its contents if it's a directory). A non-existing path is
+// not considered an error.
+//
+// Throws Error on error.
+void wipe_path(const std::string& path);
+
 // Write file data from a string.
 //
 // Throws `Error` on error. The description contains the error message without

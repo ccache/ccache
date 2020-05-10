@@ -693,6 +693,23 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
 }
 
 void
+wipe_path(const std::string& path)
+{
+  if (!Stat::lstat(path)) {
+    return;
+  }
+  traverse(path, [](const std::string& p, bool is_dir) {
+    if (is_dir) {
+      if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
+        throw Error(fmt::format("failed to rmdir {}: {}", p, strerror(errno)));
+      }
+    } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
+      throw Error(fmt::format("failed to unlink {}: {}", p, strerror(errno)));
+    }
+  });
+}
+
+void
 write_file(const std::string& path, const std::string& data, bool binary)
 {
   std::ofstream file(path,
