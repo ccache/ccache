@@ -98,6 +98,7 @@ test_suites += unittest/test_hash.cpp
 test_suites += unittest/test_hashutil.cpp
 test_suites += unittest/test_legacy_util.cpp
 
+test_sources += unittest/TestUtil.cpp
 test_sources += unittest/catch2_tests.cpp
 test_sources += unittest/framework.cpp
 test_sources += unittest/main.cpp
