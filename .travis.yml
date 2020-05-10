@@ -170,3 +170,28 @@ jobs:
         - libb2-dev
         - asciidoc
         - xsltproc
+
+  # New jobs go here until they are established for some weeks
+  allow_failures:
+
+  # Job 11: Run Clang-Tidy
+  - os: linux
+    compiler: clang
+    env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
+        - libb2-dev
+
+  # Job 12: Run Clang-Format amd CMake-Format check mode
+  - os: linux
+    compiler: clang
+    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
+        - libb2-dev
+    before_install:
+    - pip install --user cmake_format
