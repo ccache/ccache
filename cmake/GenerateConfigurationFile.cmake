@@ -37,9 +37,6 @@ if(WIN32)
   set(_WIN32_WINNT 0x0600)
 endif()
 
-set(_GNU_SOURCE 1)
-set(_POSIX_C_SOURCE 1)
-
 if(CMAKE_SYSTEM MATCHES "Darwin")
   set(_DARWIN_C_SOURCE 1)
 endif()
