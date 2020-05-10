@@ -62,6 +62,16 @@ const uint32_t k_num_entries = 4;
 static_assert(sizeof(digest::bytes) == 20,
               "Increment version number if size of digest is changed.");
 
+static_assert(
+  static_cast<int>(InodeCache::ContentType::binary) == 0,
+  "Numeric value is part of key, increment version number if changed.");
+static_assert(
+  static_cast<int>(InodeCache::ContentType::code) == 1,
+  "Numeric value is part of key, increment version number if changed.");
+static_assert(
+  static_cast<int>(InodeCache::ContentType::code_with_sloppy_time_macros) == 2,
+  "Numeric value is part of key, increment version number if changed.");
+
 std::string
 get_file_from_config(const Config& config)
 {

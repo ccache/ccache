@@ -34,7 +34,11 @@ struct digest;
 class InodeCache
 {
 public:
-  enum class ContentType { binary, code, code_with_sloppy_time_macros };
+  enum class ContentType {
+    binary = 0,
+    code = 1,
+    code_with_sloppy_time_macros = 2
+  };
 
   InodeCache(const Config& config);
   ~InodeCache();
