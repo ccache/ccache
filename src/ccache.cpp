@@ -1529,7 +1529,7 @@ hash_common_info(const Context& ctx,
   for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist.c_str());
     hash_delimiter(hash, "sanitizeblacklist");
-    if (!hash_binary_file(ctx, hash, sanitize_blacklist.c_str)) {
+    if (!hash_binary_file(ctx, hash, sanitize_blacklist.c_str())) {
       failed(STATS_BADEXTRAFILE);
     }
   }
