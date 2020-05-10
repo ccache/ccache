@@ -325,34 +325,27 @@ static void
 clean_up_internal_tempdir(const Context& ctx)
 {
   time_t now = time(nullptr);
-  auto st = Stat::stat(ctx.config.cache_dir(), Stat::OnError::log);
-  if (!st || st.mtime() + k_tempdir_cleanup_interval >= now) {
+  auto dir_st = Stat::stat(ctx.config.cache_dir(), Stat::OnError::log);
+  if (!dir_st || dir_st.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
 
   update_mtime(ctx.config.cache_dir().c_str());
 
-  DIR* dir = opendir(temp_dir(ctx));
-  if (!dir) {
+  if (!Stat::lstat(temp_dir(ctx))) {
     return;
   }
 
-  struct dirent* entry;
-  while ((entry = readdir(dir))) {
-    if (str_eq(entry->d_name, ".") || str_eq(entry->d_name, "..")) {
-      continue;
+  Util::traverse(temp_dir(ctx), [now](const std::string& path, bool is_dir) {
+    if (is_dir) {
+      return;
     }
-
-    char* path = format("%s/%s", temp_dir(ctx), entry->d_name);
-    st = Stat::lstat(path, Stat::OnError::log);
+    auto st = Stat::lstat(path, Stat::OnError::log);
     if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-      tmp_unlink(path);
+      tmp_unlink(path.c_str());
     }
-    free(path);
-  }
-
-  closedir(dir);
+  });
 }
 
 static void
