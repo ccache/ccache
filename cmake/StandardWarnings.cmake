@@ -2,7 +2,16 @@
 # privately by all product and test code, but not by third_party code.
 add_library(standard_warnings INTERFACE)
 
-option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
+if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git" || DEFINED ENV{"CI"})
+  # Enabled by default for builds based on git as this will prevent bad pull
+  # requests to ccache repository. Also enabled in case of Travis builds
+  # (Environment var CI is set).
+  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
+else()
+  # Disabled by default so compilation doesn't fail with new compilers, just
+  # because they produce a new warning.
+  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
+endif()
 
 include(CheckCXXCompilerFlag)
 
