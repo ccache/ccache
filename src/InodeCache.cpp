@@ -372,8 +372,9 @@ InodeCache::get(const char* path,
       }
 
       *file_digest = bucket->entries[0].file_digest;
-      if (return_value)
+      if (return_value) {
         *return_value = bucket->entries[0].return_value;
+      }
       found = true;
       break;
     }
