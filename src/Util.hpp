@@ -225,6 +225,10 @@ is_dir_separator(char ch)
     ;
 }
 
+// Make a relative path from current working directory to `path` if `path` is
+// under the base directory.
+std::string make_relative_path(const Context& ctx, nonstd::string_view path);
+
 // Return whether `path` is equal to `dir_prefix_or_file` or if
 // `dir_prefix_or_file` is a directory prefix of `path`.
 bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,

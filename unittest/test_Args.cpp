@@ -167,6 +167,14 @@ TEST_CASE("Args equality operators")
   CHECK(args3 != args1);
 }
 
+TEST_CASE("Args::empty")
+{
+  Args args;
+  CHECK(args.empty());
+  args.push_back("1");
+  CHECK(!args.empty());
+}
+
 TEST_CASE("Args::size")
 {
   Args args;

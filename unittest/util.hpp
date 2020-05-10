@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,6 +20,5 @@
 
 #include "../src/system.hpp"
 
-bool path_exists(const char* path);
 bool is_symlink(const char* path);
 void create_file(const char* path, const char* content);

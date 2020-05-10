@@ -37,6 +37,7 @@ generated_docs = \
 built_dist_files = $(generated_sources) $(generated_docs)
 
 non_third_party_headers_without_cpp = \
+    src/ArgsInfo.hpp \
     src/Checksum.hpp \
     src/File.hpp \
     src/FormatNonstdStringView.hpp \
@@ -108,8 +109,9 @@ dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
     $(built_dist_files)
 
-ifneq ($(shell sed 's/.*"\(.*\)".*/\1/' src/version.cpp 2>/dev/null),$(version))
-  $(shell echo 'extern const char CCACHE_VERSION[];\nconst char CCACHE_VERSION[] = "$(version)";' >src/version.cpp)
+ifneq ($(shell sed -n 's/.*"\(.*\)".*/\1/p' src/version.cpp 2>/dev/null),$(version))
+  $(shell echo 'extern const char CCACHE_VERSION[];' >src/version.cpp)
+  $(shell echo 'const char CCACHE_VERSION[] = "$(version)";' >>src/version.cpp)
 endif
 src/version.o: src/version.cpp
 

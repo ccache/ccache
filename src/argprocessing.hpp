@@ -16,12 +16,24 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "ArgsInfo.hpp"
+#pragma once
 
-ArgsInfo::~ArgsInfo()
-{
-  for (size_t i = 0; i < debug_prefix_maps_len; i++) {
-    free(debug_prefix_maps[i]);
-  }
-  free(debug_prefix_maps);
-}
+#include "stats.hpp"
+
+#include "third_party/nonstd/optional.hpp"
+
+class Context;
+class Args;
+
+// Process the compiler options into options suitable for passing to the
+// preprocessor (`preprocessor_args`) and the real compiler (`compiler_args`).
+// `preprocessor_args` doesn't include -E; this is added later.
+// `extra_args_to_hash` are the arguments that are not included in
+// `preprocessor_args` but that should be included in the hash.
+//
+// Returns nullopt on success, otherwise the statistics counter that should be
+// incremented.
+nonstd::optional<enum stats> process_args(Context& ctx,
+                                          Args& preprocessor_args,
+                                          Args& extra_args_to_hash,
+                                          Args& compiler_args);

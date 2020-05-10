@@ -23,6 +23,7 @@
 #include "Args.hpp"
 
 #include <string>
+#include <vector>
 
 // This class holds meta-information derived from the compiler arguments.
 struct ArgsInfo
@@ -90,28 +91,15 @@ struct ArgsInfo
   // clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;
 
-  // Sanitize blacklist
-  char** sanitize_blacklists = nullptr;
-  size_t sanitize_blacklists_len = 0;
+  // Files referenced by -fsanitize-blacklist options.
+  std::vector<std::string> sanitize_blacklists;
 
-  // Array for storing -arch options.
-  static constexpr int max_arch_args = 10;
-  size_t arch_args_size = 0;
-  char* arch_args[max_arch_args] = {nullptr};
+  // Architectures from -arch options.
+  std::vector<std::string> arch_args;
 
   // Relocating debuginfo in the format old=new.
-  char** debug_prefix_maps = nullptr;
-  size_t debug_prefix_maps_len = 0;
+  std::vector<std::string> debug_prefix_maps;
 
   // Argument list to add to compiler invocation in depend mode.
   Args depend_extra_args;
-
-  ArgsInfo() = default;
-  ~ArgsInfo();
-
-  ArgsInfo(const ArgsInfo&) = delete;
-  ArgsInfo& operator=(const ArgsInfo&) = delete;
-
-  ArgsInfo(ArgsInfo&&) = delete;
-  ArgsInfo& operator=(ArgsInfo&&) = delete;
 };

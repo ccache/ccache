@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,8 +20,22 @@
 
 #include "system.hpp"
 
-const char* language_for_file(const char* fname);
-const char* p_language_for_language(const char* language);
-const char* extension_for_language(const char* language);
-bool language_is_supported(const char* language);
-bool language_is_preprocessed(const char* language);
+#include <string>
+
+// Guess the language of `fname` based on its extension. Returns the empty
+// string if the extension is unknown.
+std::string language_for_file(const std::string& fname);
+
+// Return the preprocessed language for `language`, or the empty string if
+// unknown.
+std::string p_language_for_language(const std::string& language);
+
+// Return the default file extension (including dot) for `language`, or the
+// empty string if unknown.
+std::string extension_for_language(const std::string& language);
+
+// Return whether `language` is a supported language.
+bool language_is_supported(const std::string& language);
+
+// Return whether `language` is supported preprocessed language.
+bool language_is_preprocessed(const std::string& language);

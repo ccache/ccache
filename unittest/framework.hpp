@@ -90,18 +90,6 @@ class Args;
 
 // ============================================================================
 
-#define CHECK_DOUBLE_EQ(expected, actual)                                      \
-  do {                                                                         \
-    if (!cct_check_double_eq(                                                  \
-          __FILE__, __LINE__, #actual, (expected), (actual))) {                \
-      cct_test_end();                                                          \
-      cct_suite_end();                                                         \
-      return _test_counter;                                                    \
-    }                                                                          \
-  } while (false)
-
-// ============================================================================
-
 #define CHECK_DATA_EQ(expected, actual, size)                                  \
   do {                                                                         \
     if (!cct_check_data_eq(                                                    \
@@ -152,11 +140,6 @@ void cct_check_failed(const char* file,
                       const char* assertion,
                       const char* expected,
                       const char* actual);
-bool cct_check_double_eq(const char* file,
-                         int line,
-                         const char* expression,
-                         double expected,
-                         double actual);
 bool cct_check_int_eq(const char* file,
                       int line,
                       const char* expression,
