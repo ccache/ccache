@@ -139,6 +139,12 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
            strerror(errno));
     return false;
   }
+  bool is_nfs;
+  if (Util::is_nfs_fd(fd, &is_nfs) == 0 && is_nfs) {
+    throw Error(fmt::format(
+      "Inode cache file \"{}\" must be located on a local filesystem.",
+      inode_cache_file));
+  }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   close(fd);

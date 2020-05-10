@@ -26,6 +26,11 @@
 #include <algorithm>
 #include <fstream>
 
+#ifdef HAVE_FSTATFS
+#  include <linux/magic.h>
+#  include <sys/statfs.h>
+#endif
+
 #ifdef _WIN32
 #  include "win32compat.hpp"
 #endif
@@ -438,6 +443,25 @@ is_absolute_path(string_view path)
 #endif
   return !path.empty() && path[0] == '/';
 }
+
+#if HAVE_FSTATFS
+bool
+is_nfs_fd(int fd, bool* is_nfs)
+{
+  struct statfs buf;
+  if (fstatfs(fd, &buf) != 0) {
+    return errno;
+  }
+  *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
+  return 0;
+}
+#else
+bool
+is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
+{
+  return -1;
+}
+#endif
 
 std::string
 make_relative_path(const Context& ctx, string_view path)
