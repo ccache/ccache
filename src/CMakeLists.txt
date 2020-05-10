@@ -38,7 +38,7 @@ add_library(
   Version.cpp)
 
 if(WIN32)
-  target_link_libraries(ccache_lib PRIVATE ws2_32)
+  target_link_libraries(ccache_lib PRIVATE ws2_32 "Psapi")
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_link_libraries(ccache_lib PRIVATE -static gcc stdc++ winpthread
