@@ -2,7 +2,7 @@
 # privately by all product and test code, but not by third_party code.
 add_library(standard_warnings INTERFACE)
 
-if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git" || DEFINED ENV{"CI"})
+if(IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git" OR DEFINED ENV{"CI"})
   # Enabled by default for builds based on git as this will prevent bad pull
   # requests to ccache repository. Also enabled in case of Travis builds
   # (Environment var CI is set).
