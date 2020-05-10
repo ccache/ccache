@@ -332,13 +332,11 @@ hash_source_code_file(const Context& ctx,
 bool
 hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
 {
-#ifdef INODE_CACHE_SUPPORTED
   if (!ctx.config.inode_cache()) {
-#endif
     return hash_file(hash, path);
+  }
 
 #ifdef INODE_CACHE_SUPPORTED
-  }
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
@@ -354,6 +352,8 @@ hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
   }
   hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
   return true;
+#else
+  return hash_file(hash, path);
 #endif
 }
 
