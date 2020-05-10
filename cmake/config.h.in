@@ -18,13 +18,13 @@
 #cmakedefine MTR_ENABLED
 
 /* Defined to 1 if you have the `GetFinalPathNameByHandleW' function. */
-#cmakedefine01 HAVE_GETFINALPATHNAMEBYHANDLEW
+#cmakedefine HAVE_GETFINALPATHNAMEBYHANDLEW
 
 /* Defined to 1 if you have the `gethostname' function. */
-#cmakedefine01 HAVE_GETHOSTNAME
+#cmakedefine HAVE_GETHOSTNAME
 
 /* Defined to 1 if you have the `getopt_long' function. */
-#cmakedefine01 HAVE_GETOPT_LONG
+#cmakedefine HAVE_GETOPT_LONG
 
 /* Defined to 1 if you have the `getpwuid' function. */
 #cmakedefine HAVE_GETPWUID
@@ -36,25 +36,22 @@
 #cmakedefine HAVE_LOCALTIME_R
 
 /* Defined to 1 if the system has the type `long long'. */
-#cmakedefine01 HAVE_LONG_LONG
+#cmakedefine HAVE_LONG_LONG
 
 /* Defined to 1 if you have the `mkstemp' function. */
-#cmakedefine01 HAVE_MKSTEMP
+#cmakedefine HAVE_MKSTEMP
 
 /* Defined to 1 if you have the <pwd.h> header file. */
 #cmakedefine HAVE_PWD_H
 
 /* Defined to 1 if you have the `realpath' function. */
-#cmakedefine01 HAVE_REALPATH
+#cmakedefine HAVE_REALPATH
 
 /* Defined to 1 if you have the `setenv' function. */
 #cmakedefine HAVE_SETENV
 
 /* Defined to 1 if you have the `strndup' function. */
 #cmakedefine HAVE_STRNDUP
-
-/* Defined to 1 if you have the `strtok_r' function. */
-#cmakedefine01 HAVE_STRTOK_R
 
 /* Defined to 1 if you have the <sys/mman.h> header file. */
 #cmakedefine HAVE_SYS_MMAN_H

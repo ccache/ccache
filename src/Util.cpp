@@ -631,7 +631,7 @@ real_path(const std::string& path, bool return_empty_on_error)
   char* buffer = managed_buffer.get();
   char* resolved = nullptr;
 
-#if HAVE_REALPATH
+#ifdef HAVE_REALPATH
   resolved = realpath(c_path, buffer);
 #elif defined(_WIN32)
   if (c_path[0] == '/') {
