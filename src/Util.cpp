@@ -444,7 +444,7 @@ is_absolute_path(string_view path)
   return !path.empty() && path[0] == '/';
 }
 
-#if HAVE_LINUX_FS_H
+#ifdef HAVE_LINUX_FS_H
 bool
 is_nfs_fd(int fd, bool* is_nfs)
 {
