@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <fstream>
 
-#ifdef HAVE_FSTATFS
+#ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
 #endif
@@ -444,7 +444,7 @@ is_absolute_path(string_view path)
   return !path.empty() && path[0] == '/';
 }
 
-#if HAVE_FSTATFS
+#if HAVE_LINUX_FS_H
 bool
 is_nfs_fd(int fd, bool* is_nfs)
 {
