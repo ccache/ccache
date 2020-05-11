@@ -138,7 +138,7 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(const Context&,
+read_embedded_file_entry(const Context& ctx,
                          CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
@@ -172,6 +172,12 @@ read_embedded_file_entry(const Context&,
     } else {
       content_read = true;
 
+      bool changeDepFile = false;
+      if (ctx.args_info.seen_MD_MMD && !ctx.args_info.seen_split_dwarf
+          && ctx.args_info.generating_dependencies
+          && FileType(type) == FileType::dependency) {
+        changeDepFile = true;
+      }
       const auto& path = it->second;
       cc_log("Copying to %s", path.c_str());
 
@@ -184,13 +190,33 @@ read_embedded_file_entry(const Context&,
 
       uint8_t buf[READ_BUFFER_SIZE];
       size_t remain = file_len;
+      bool first = true;
       while (remain > 0) {
         size_t n = std::min(remain, sizeof(buf));
         reader.read(buf, n);
 
-        // Write directly to the file descriptor to avoid stdio caching.
-        if (!write_fd(subfile_fd, buf, n)) {
-          throw Error(fmt::format("Failed to write to {}", path));
+        if (changeDepFile && first) {
+          // Change the obj path in .d file name
+          first = false;
+
+          const auto it_obj = result_file_map->find(FileType::object);
+          std::string obj_path = it_obj->second;
+          if (!write_fd(subfile_fd, obj_path.data(), obj_path.length())) {
+            throw Error(fmt::format("Failed to write to {}", path));
+          }
+          for(size_t i = 0; i < n; i++) {
+            if (buf[i] == ':') {
+              if (!write_fd(subfile_fd, &buf[i], n-i)) {
+                throw Error(fmt::format("Failed to write to {}", path));
+              }
+              break;
+            }
+          }
+        } else {
+          // Write directly to the file descriptor to avoid stdio caching.
+          if (!write_fd(subfile_fd, buf, n)) {
+            throw Error(fmt::format("Failed to write to {}", path));
+          }
         }
         remain -= n;
       }

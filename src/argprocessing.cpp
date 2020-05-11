@@ -452,6 +452,7 @@ process_arg(Context& ctx,
   // with gcc -E, when the output file is not specified.
   if (args[i] == "-MD" || args[i] == "-MMD") {
     args_info.generating_dependencies = true;
+    args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
     return nullopt;
   }

@@ -58,6 +58,9 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
+  // Option MD/MMD
+  bool seen_MD_MMD = false;
+
   // Is the compiler being asked to output coverage?
   bool generating_coverage = false;
 
