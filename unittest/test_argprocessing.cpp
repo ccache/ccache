@@ -47,27 +47,22 @@ get_root()
 #endif
 }
 
-char*
-get_posix_path(const char* path)
+std::string
+get_posix_path(const std::string& path)
 {
 #ifndef _WIN32
-  return x_strdup(path);
+  return path;
 #else
-  char* posix;
-  char* p;
+  std::string posix;
 
   // /-escape volume.
   if (path[0] >= 'A' && path[0] <= 'Z' && path[1] == ':') {
-    posix = format("/%s", path);
+    posix = "/" + path;
   } else {
-    posix = x_strdup(path);
+    posix = path;
   }
   // Convert slashes.
-  for (p = posix; *p; p++) {
-    if (*p == '\\') {
-      *p = '/';
-    }
-  }
+  std::replace(posix.begin(), posix.end(), '\\', '/');
   return posix;
 #endif
 }
@@ -363,17 +358,15 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  char* arg_string;
   Args act_cpp;
   Args act_extra;
   Args act_cc;
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  arg_string =
-    format("cc --sysroot=%s/foo/bar -c foo.c", ctx.actual_cwd.c_str());
+  std::string arg_string =
+    fmt::format("cc --sysroot={}/foo/bar -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
-  free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(act_cpp[1] == "--sysroot=./foo/bar");
@@ -386,16 +379,15 @@ TEST_CASE(
 
   Context ctx;
 
-  char* arg_string;
   Args act_cpp;
   Args act_extra;
   Args act_cc;
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  arg_string = format("cc --sysroot %s/foo -c foo.c", ctx.actual_cwd.c_str());
+  std::string arg_string =
+    fmt::format("cc --sysroot {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
-  free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(act_cpp[1] == "--sysroot");
@@ -566,16 +558,15 @@ TEST_CASE(
 
   Context ctx;
 
-  char* arg_string;
   Args act_cpp;
   Args act_extra;
   Args act_cc;
 
   create_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  arg_string = format("cc -isystem %s/foo -c foo.c", ctx.actual_cwd.c_str());
+  std::string arg_string =
+    fmt::format("cc -isystem {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
-  free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK("./foo" == act_cpp[2]);
@@ -587,8 +578,6 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  char* cwd;
-  char* arg_string;
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -596,15 +585,12 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   create_file("foo.c", "");
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
-  cwd = get_posix_path(ctx.actual_cwd.c_str());
-  arg_string = format("cc -isystem%s/foo -c foo.c", cwd);
+  std::string cwd = get_posix_path(ctx.actual_cwd);
+  std::string arg_string = fmt::format("cc -isystem{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
-  free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK("-isystem./foo" == act_cpp[1]);
-
-  free(cwd);
 }
 
 TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -613,8 +599,6 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   Context ctx;
 
-  char* cwd;
-  char* arg_string;
   Args act_cpp;
   Args act_extra;
   Args act_cc;
@@ -622,15 +606,12 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   create_file("foo.c", "");
   ctx.config.set_base_dir(x_strdup("/")); // posix
   // Windows path doesn't work concatenated.
-  cwd = get_posix_path(ctx.actual_cwd.c_str());
-  arg_string = format("cc -I%s/foo -c foo.c", cwd);
+  std::string cwd = get_posix_path(ctx.actual_cwd);
+  std::string arg_string = fmt::format("cc -I{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
-  free(arg_string);
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK("-I./foo" == act_cpp[1]);
-
-  free(cwd);
 }
 
 TEST_CASE("debug_flag_order_with_known_option_first")
