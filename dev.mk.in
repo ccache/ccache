@@ -50,8 +50,7 @@ non_third_party_headers_without_cpp = \
     src/ThreadPool.hpp \
     src/exceptions.hpp \
     src/macroskip.hpp \
-    src/system.hpp \
-    unittest/util.hpp
+    src/system.hpp
 
 non_third_party_headers = \
     $(subst .cpp,.hpp,$(non_third_party_sources)) \
