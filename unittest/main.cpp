@@ -18,10 +18,11 @@
 
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
-#include "catch2_tests.hpp"
 
-#include "third_party/catch.hpp"
 #include "third_party/fmt/core.h"
+
+#define CATCH_CONFIG_RUNNER
+#include "third_party/catch.hpp"
 
 int
 main(int argc, char** argv)
@@ -37,7 +38,7 @@ main(int argc, char** argv)
   Util::create_dir(testdir);
   TestUtil::check_chdir(testdir);
 
-  int result = run_catch2_tests(argc, argv);
+  int result = Catch::Session().run(argc, argv);
 
   if (result == 0) {
     TestUtil::check_chdir(dir_before);
