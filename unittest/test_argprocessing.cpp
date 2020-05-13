@@ -26,7 +26,6 @@
 #include "../src/stats.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
-#include "util.hpp"
 
 #include "third_party/catch.hpp"
 
@@ -80,7 +79,7 @@ TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
   Args extra;
   Args compiler;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   CHECK(process_args(ctx, preprocessed, extra, compiler)
         == STATS_PREPROCESSING);
 }
@@ -96,7 +95,7 @@ TEST_CASE("dash_M_should_be_unsupported")
   Args extra;
   Args compiler;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   CHECK(process_args(ctx, preprocessed, extra, compiler)
         == STATS_UNSUPPORTED_OPTION);
 }
@@ -118,7 +117,7 @@ TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
@@ -144,7 +143,7 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -176,7 +175,7 @@ TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
@@ -210,7 +209,7 @@ TEST_CASE(
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -234,7 +233,7 @@ TEST_CASE(
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -255,7 +254,7 @@ TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -276,7 +275,7 @@ TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
   Args act_cpp;
   Args act_extra;
   Args act_cc;
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
@@ -299,7 +298,7 @@ TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   ctx.config.set_run_second_cpp(false);
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
@@ -322,7 +321,7 @@ TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -344,7 +343,7 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -362,7 +361,7 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string =
     fmt::format("cc --sysroot={}/foo/bar -c foo.c", ctx.actual_cwd);
@@ -383,7 +382,7 @@ TEST_CASE(
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string =
     fmt::format("cc --sysroot {}/foo -c foo.c", ctx.actual_cwd);
@@ -409,7 +408,7 @@ TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -432,7 +431,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -455,7 +454,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -477,7 +476,7 @@ TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -499,7 +498,7 @@ TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -521,7 +520,7 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -543,7 +542,7 @@ TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
 
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
@@ -562,7 +561,7 @@ TEST_CASE(
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string =
     fmt::format("cc -isystem {}/foo -c foo.c", ctx.actual_cwd);
@@ -582,7 +581,7 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
@@ -603,7 +602,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   ctx.config.set_base_dir(x_strdup("/")); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
@@ -628,7 +627,7 @@ TEST_CASE("debug_flag_order_with_known_option_first")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);
@@ -649,7 +648,7 @@ TEST_CASE("debug_flag_order_with_known_option_last")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);
@@ -673,7 +672,7 @@ TEST_CASE("options_not_to_be_passed_to_the_preprocesor")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
+  Util::write_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);
@@ -695,9 +694,9 @@ TEST_CASE("cuda_option_file")
   Args act_extra;
   Args act_cc;
 
-  create_file("foo.c", "");
-  create_file("foo.optf", "-c foo.c -g -Wall -o");
-  create_file("bar.optf", "out -DX");
+  Util::write_file("foo.c", "");
+  Util::write_file("foo.optf", "-c foo.c -g -Wall -o");
+  Util::write_file("bar.optf", "out -DX");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);
