@@ -43,6 +43,7 @@ non_third_party_sources = \
     src/Counters.cpp \
     src/Decompressor.cpp \
     src/Lockfile.cpp \
+    src/MiniTrace.cpp \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
     src/ProgressBar.cpp \

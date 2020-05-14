@@ -23,6 +23,7 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
+#include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
 #include "ccache.hpp"
 #include "hash.hpp"
@@ -103,6 +104,11 @@ public:
 
   // Statistics which get written into the `stats_file` upon exit.
   Counters counter_updates;
+
+#ifdef MTR_ENABLED
+  // Internal tracing.
+  std::unique_ptr<MiniTrace> mini_trace;
+#endif
 
   void set_manifest_name(const struct digest& name);
   void set_result_name(const struct digest& name);

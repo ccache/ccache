@@ -24,7 +24,9 @@
 #include "Context.hpp"
 #include "File.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
+#include "StdMakeUnique.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
@@ -42,7 +44,6 @@
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
-#include "third_party/minitrace.h"
 #include "third_party/nonstd/string_view.hpp"
 
 #ifdef HAVE_GETOPT_LONG
@@ -2025,62 +2026,6 @@ create_initial_config_file(Config& config)
   fclose(f);
 }
 
-#ifdef MTR_ENABLED
-static void* trace_id;
-static char* tmp_trace_file;
-
-static void
-trace_init(char* path)
-{
-  tmp_trace_file = path;
-  mtr_init(tmp_trace_file);
-  char* s = format("%f", time_seconds());
-  MTR_INSTANT_C("", "", "time", s);
-}
-
-static void
-trace_start()
-{
-  MTR_META_PROCESS_NAME(MYNAME);
-  trace_id = (void*)((long)getpid());
-  MTR_START("program", "ccache", trace_id);
-}
-
-static void
-trace_stop(void* context)
-{
-  const Context& ctx = *static_cast<Context*>(context);
-
-  char* trace_file =
-    format("%s.ccache-trace", ctx.args_info.output_obj.c_str());
-  MTR_FINISH("program", "ccache", trace_id);
-  mtr_flush();
-  mtr_shutdown();
-  move_file(tmp_trace_file, trace_file);
-  free(trace_file);
-  free(tmp_trace_file);
-}
-
-static const char*
-tmpdir()
-{
-#  ifndef _WIN32
-  const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir != NULL) {
-    return tmpdir;
-  }
-#  else
-  static char dirbuf[PATH_MAX];
-  DWORD retval = GetTempPath(PATH_MAX, dirbuf);
-  if (retval > 0 && retval < PATH_MAX) {
-    return dirbuf;
-  }
-#  endif
-  return "/tmp";
-}
-
-#endif // MTR_ENABLED
-
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
@@ -2157,21 +2102,12 @@ initialize(int argc, const char* const* argv)
   exitfn_add(stats_flush, ctx);
   exitfn_add_nullary(clean_up_pending_tmp_files);
 
-  bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
-  if (enable_internal_trace) {
-#ifdef MTR_ENABLED
-    // We don't have any conf yet, so we can't use temp_dir() here.
-    trace_init(format("%s/tmp.ccache-trace.%d", tmpdir(), (int)getpid()));
-#endif
-  }
-
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
 
-  if (enable_internal_trace) {
+  if (getenv("CCACHE_INTERNAL_TRACE")) {
 #ifdef MTR_ENABLED
-    trace_start();
-    exitfn_add(trace_stop, ctx);
+    ctx->mini_trace = std::make_unique<MiniTrace>(ctx->args_info);
 #else
     cc_log("Error: tracing is not enabled!");
 #endif
