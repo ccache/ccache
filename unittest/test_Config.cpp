@@ -35,8 +35,12 @@ using TestUtil::TestContext;
 TEST_CASE("Config: default values")
 {
   Config config;
+
+  std::string expected_cache_dir =
+    fmt::format("{}/.ccache", get_home_directory());
+
   CHECK(config.base_dir().empty());
-  CHECK(config.cache_dir() == std::string(get_home_directory()) + "/.ccache");
+  CHECK(config.cache_dir() == expected_cache_dir);
   CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
@@ -67,7 +71,7 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-  CHECK(config.temporary_dir().empty());
+  CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 

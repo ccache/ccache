@@ -194,20 +194,6 @@ failed(enum stats stat, optional<int> exit_code)
   throw Failure(stat, exit_code);
 }
 
-static const char*
-temp_dir(const Context& ctx)
-{
-  static const char* path = nullptr;
-  if (path) {
-    return path; // Memoize
-  }
-  path = ctx.config.temporary_dir().c_str();
-  if (str_eq(path, "")) {
-    path = format("%s/tmp", ctx.config.cache_dir().c_str());
-  }
-  return path;
-}
-
 void
 block_signals()
 {
@@ -323,22 +309,23 @@ set_up_signal_handlers()
 #endif // _WIN32
 
 static void
-clean_up_internal_tempdir(const Context& ctx)
+clean_up_internal_tempdir(const Config& config)
 {
   time_t now = time(nullptr);
-  auto dir_st = Stat::stat(ctx.config.cache_dir(), Stat::OnError::log);
+  auto dir_st = Stat::stat(config.cache_dir(), Stat::OnError::log);
   if (!dir_st || dir_st.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
 
-  update_mtime(ctx.config.cache_dir().c_str());
+  update_mtime(config.cache_dir().c_str());
 
-  if (!Stat::lstat(temp_dir(ctx))) {
+  const std::string& temp_dir = config.temporary_dir();
+  if (!Stat::lstat(temp_dir)) {
     return;
   }
 
-  Util::traverse(temp_dir(ctx), [now](const std::string& path, bool is_dir) {
+  Util::traverse(temp_dir, [now](const std::string& path, bool is_dir) {
     if (is_dir) {
       return;
     }
@@ -1027,18 +1014,18 @@ to_cache(Context& ctx,
   int tmp_stderr_fd;
   int status;
   if (!ctx.config.depend_mode()) {
-    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx));
+    tmp_stdout = format("%s/tmp.stdout", ctx.config.temporary_dir().c_str());
     tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
+    tmp_stderr = format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(
       args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
     args.pop_back(3);
   } else {
     // The cached result path is not known yet, use temporary files.
-    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx));
+    tmp_stdout = format("%s/tmp.stdout", ctx.config.temporary_dir().c_str());
     tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
+    tmp_stderr = format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
 
     // Use the original arguments (including dependency options) in depend
@@ -1251,13 +1238,13 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     string_view input_base =
       Util::get_truncated_base_name(ctx.args_info.input_file, 10);
     auto stdout_fd_and_path = Util::create_temp_fd(
-      fmt::format("{}/{}.stdout", temp_dir(ctx), input_base));
+      fmt::format("{}/{}.stdout", ctx.config.temporary_dir(), input_base));
     int stdout_fd = stdout_fd_and_path.first;
     stdout_path = stdout_fd_and_path.second;
     add_pending_tmp_file(stdout_path.c_str());
 
-    auto stderr_fd_and_path =
-      Util::create_temp_fd(fmt::format("{}/tmp.cpp_stderr", temp_dir(ctx)));
+    auto stderr_fd_and_path = Util::create_temp_fd(
+      fmt::format("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
     int stderr_fd = stderr_fd_and_path.first;
     stderr_path = stderr_fd_and_path.second;
     add_pending_tmp_file(stderr_path.c_str());
@@ -1896,7 +1883,8 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   MTR_BEGIN("file", "file_get");
 
   // Get result from cache.
-  char* tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
+  char* tmp_stderr =
+    format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
   int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
   close(tmp_stderr_fd);
 
@@ -2214,8 +2202,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
-  if (ctx.config.temporary_dir().empty()) {
-    clean_up_internal_tempdir(ctx);
+  if (ctx.config.temporary_dir() == ctx.config.cache_dir() + "/tmp") {
+    clean_up_internal_tempdir(ctx.config);
   }
   MTR_END("main", "clean_up_internal_tempdir");
 

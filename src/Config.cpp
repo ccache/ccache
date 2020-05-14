@@ -689,7 +689,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    m_cache_dir = parse_env_string(value);
+    set_cache_dir(parse_env_string(value));
     break;
 
   case ConfigItem::cache_dir_levels:
@@ -822,6 +822,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::temporary_dir:
     m_temporary_dir = parse_env_string(value);
+    m_temporary_dir_configured_explicitly = true;
     break;
 
   case ConfigItem::umask:
