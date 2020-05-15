@@ -115,6 +115,9 @@ public:
                                 const std::string& key,
                                 const std::string& value);
 
+  // Called from unit tests.
+  static void check_key_tables_consistency();
+
 private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;

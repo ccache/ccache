@@ -832,3 +832,16 @@ Config::set_item(const std::string& key,
 
   m_origins.emplace(key, origin);
 }
+
+void
+Config::check_key_tables_consistency()
+{
+  for (const auto& item : k_env_variable_table) {
+    if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
+      throw Error(fmt::format(
+        "env var {} mapped to {} which is missing from k_config_key_table",
+        item.first,
+        item.second));
+    }
+  }
+}

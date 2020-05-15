@@ -474,5 +474,7 @@ TEST_CASE("Config::visit_items")
   }
 }
 
-// TODO Test that values in k_env_variable_table map to keys in
-//   k_config_item_table.;
+TEST_CASE("Check key tables consistency")
+{
+  CHECK_NOTHROW(Config::check_key_tables_consistency());
+}
