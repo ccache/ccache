@@ -267,65 +267,9 @@ get_hostname()
     return hostname;
   }
 
-  strcpy(hostname, "unknown");
-#if HAVE_GETHOSTNAME
-  gethostname(hostname, sizeof(hostname) - 1);
-#elif defined(_WIN32)
-  const char* computer_name = getenv("COMPUTERNAME");
-  if (computer_name) {
-    snprintf(hostname, sizeof(hostname), "%s", computer_name);
-    return hostname;
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    strcpy(hostname, "unknown");
   }
-
-  WORD w_version_requested = MAKEWORD(2, 2);
-  WSADATA wsa_data;
-  int err = WSAStartup(w_version_requested, &wsa_data);
-  if (err != 0) {
-    // Tell the user that we could not find a usable Winsock DLL.
-    cc_log("WSAStartup failed with error: %d", err);
-    return hostname;
-  }
-
-  if (LOBYTE(wsa_data.wVersion) != 2 || HIBYTE(wsa_data.wVersion) != 2) {
-    // Tell the user that we could not find a usable WinSock DLL.
-    cc_log("Could not find a usable version of Winsock.dll");
-    WSACleanup();
-    return hostname;
-  }
-
-  int result = gethostname(hostname, sizeof(hostname) - 1);
-  if (result != 0) {
-    LPVOID lp_msg_buf;
-    DWORD dw = WSAGetLastError();
-
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                    | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL,
-                  dw,
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR)&lp_msg_buf,
-                  0,
-                  NULL);
-
-    LPVOID lp_display_buf = (LPVOID)LocalAlloc(
-      LMEM_ZEROINIT,
-      (lstrlen((LPCTSTR)lp_msg_buf) + lstrlen((LPCTSTR)__FILE__) + 200)
-        * sizeof(TCHAR));
-    _snprintf((LPTSTR)lp_display_buf,
-              LocalSize(lp_display_buf) / sizeof(TCHAR),
-              TEXT("%s failed with error %lu: %s"),
-              __FILE__,
-              dw,
-              (const char*)lp_msg_buf);
-
-    cc_log("can't get hostname OS returned error: %s", (char*)lp_display_buf);
-
-    LocalFree(lp_msg_buf);
-    LocalFree(lp_display_buf);
-  }
-  WSACleanup();
-#endif
-
   hostname[sizeof(hostname) - 1] = 0;
   return hostname;
 }
