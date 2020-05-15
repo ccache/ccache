@@ -61,73 +61,59 @@ using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
 
-static const char VERSION_TEXT[] = MYNAME
-  " version %s\n"
-  "\n"
-  "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2020 Joel Rosdahl and other contributors\n"
-  "\n"
-  "See <https://ccache.dev/credits.html> for a complete list of "
-  "contributors.\n"
-  "\n"
-  "This program is free software; you can redistribute it and/or modify it "
-  "under\n"
-  "the terms of the GNU General Public License as published by the Free "
-  "Software\n"
-  "Foundation; either version 3 of the License, or (at your option) any "
-  "later\n"
-  "version.\n";
+static const char VERSION_TEXT[] =
+  R"(%s version %s
+
+Copyright (C) 2002-2007 Andrew Tridgell
+Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+
+See <https://ccache.dev/credits.html> for a complete list of contributors.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 3 of the License, or (at your option) any later
+version.
+)";
 
 static const char USAGE_TEXT[] =
-  "Usage:\n"
-  "    " MYNAME
-  " [options]\n"
-  "    " MYNAME
-  " compiler [compiler options]\n"
-  "    compiler [compiler options]          (via symbolic link)\n"
-  "\n"
-  "Common options:\n"
-  "    -c, --cleanup             delete old files and recalculate size "
-  "counters\n"
-  "                              (normally not needed as this is done\n"
-  "                              automatically)\n"
-  "    -C, --clear               clear the cache completely (except"
-  " configuration)\n"
-  "    -F, --max-files NUM       set maximum number of files in cache to NUM"
-  " (use 0\n"
-  "                              for no limit)\n"
-  "    -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 "
-  "for no\n"
-  "                              limit); available suffixes: k, M, G, T "
-  "(decimal)\n"
-  "                              and Ki, Mi, Gi, Ti (binary); default "
-  "suffix: G\n"
-  "    -X, --recompress LEVEL    recompress the cache to LEVEL (integer level"
-  " or\n"
-  "                              \"uncompressed\")\n"
-  "    -x, --show-compression    show compression statistics\n"
-  "    -p, --show-config         show current configuration options in\n"
-  "                              human-readable format\n"
-  "    -s, --show-stats          show summary of configuration and "
-  "statistics\n"
-  "                              counters in human-readable format\n"
-  "    -z, --zero-stats          zero statistics counters\n"
-  "\n"
-  "    -h, --help                print this help text\n"
-  "    -V, --version             print version and copyright information\n"
-  "\n"
-  "Options for scripting or debugging:\n"
-  "        --dump-manifest PATH  dump manifest file at PATH in text format\n"
-  "    -k, --get-config KEY      print the value of configuration key KEY\n"
-  "        --hash-file PATH      print the hash (160 bit BLAKE2b) of the "
-  "file at\n"
-  "                              PATH\n"
-  "        --print-stats         print statistics counter IDs and "
-  "corresponding\n"
-  "                              values in machine-parsable format\n"
-  "    -o, --set-config KEY=VAL  set configuration item KEY to value VAL\n"
-  "\n"
-  "See also <https://ccache.dev>.\n";
+  R"(Usage:
+    %s [options]
+    %s compiler [compiler options]
+    compiler [compiler options]          (via symbolic link)
+
+Common options:
+    -c, --cleanup             delete old files and recalculate size counters
+                              (normally not needed as this is done
+                              automatically)
+    -C, --clear               clear the cache completely (except configuration)
+    -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
+                              for no limit)
+    -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 for no
+                              limit); available suffixes: k, M, G, T (decimal)
+                              and Ki, Mi, Gi, Ti (binary); default suffix: G
+    -X, --recompress LEVEL    recompress the cache to LEVEL (integer level or
+                              "uncompressed")
+    -x, --show-compression    show compression statistics
+    -p, --show-config         show current configuration options in
+                              human-readable format
+    -s, --show-stats          show summary of configuration and statistics
+                              counters in human-readable format
+    -z, --zero-stats          zero statistics counters
+
+    -h, --help                print this help text
+    -V, --version             print version and copyright information
+
+Options for scripting or debugging:
+        --dump-manifest PATH  dump manifest file at PATH in text format
+    -k, --get-config KEY      print the value of configuration key KEY
+        --hash-file PATH      print the hash (160 bit BLAKE2b) of the file at
+                              PATH
+        --print-stats         print statistics counter IDs and corresponding
+                              values in machine-parsable format
+    -o, --set-config KEY=VAL  set configuration item KEY to value VAL
+
+See also <https://ccache.dev>.
+)";
 
 enum fromcache_call_mode { FROMCACHE_DIRECT_MODE, FROMCACHE_CPP_MODE };
 
@@ -2514,7 +2500,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      fputs(USAGE_TEXT, stdout);
+      fprintf(stdout, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(0);
 
     case 'k': // --get-config
@@ -2571,7 +2557,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
+      fprintf(stdout, VERSION_TEXT, MYNAME, CCACHE_VERSION);
       x_exit(0);
 
     case 'x': // --show-compression
@@ -2609,7 +2595,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      fputs(USAGE_TEXT, stderr);
+      fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(1);
     }
 
@@ -2631,7 +2617,7 @@ ccache_main(int argc, const char* const* argv)
     std::string program_name(Util::base_name(argv[0]));
     if (same_executable_name(program_name.c_str(), MYNAME)) {
       if (argc < 2) {
-        fputs(USAGE_TEXT, stderr);
+        fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
         x_exit(1);
       }
       // If the first argument isn't an option, then assume we are being passed
