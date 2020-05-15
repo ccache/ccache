@@ -26,6 +26,10 @@
 #include "ccache.hpp"
 #include "logging.hpp"
 
+#ifdef _WIN32
+#  include "win32compat.hpp"
+#endif
+
 using nonstd::string_view;
 
 #ifdef _WIN32
@@ -214,35 +218,12 @@ win32execute(const char* path,
   }
   free(args);
   if (ret == 0) {
-    LPVOID lpMsgBuf;
-    DWORD dw = GetLastError();
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                    | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL,
-                  dw,
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR)&lpMsgBuf,
-                  0,
-                  NULL);
-
-    LPVOID lpDisplayBuf = (LPVOID)LocalAlloc(
-      LMEM_ZEROINIT,
-      (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)__FILE__) + 200)
-        * sizeof(TCHAR));
-    _snprintf((LPTSTR)lpDisplayBuf,
-              LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-              TEXT("%s failed with error %lu: %s"),
-              __FILE__,
-              dw,
-              (const char*)lpMsgBuf);
-
-    cc_log("can't execute %s; OS returned error: %s",
+    DWORD error = GetLastError();
+    std::string error_message = win32_error_message(error);
+    cc_log("failed to execute %s: %s (%lu)",
            full_path_win_ext,
-           (char*)lpDisplayBuf);
-
-    LocalFree(lpMsgBuf);
-    LocalFree(lpDisplayBuf);
-
+           win32_error_message(error).c_str(),
+           error);
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);

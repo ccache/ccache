@@ -23,6 +23,10 @@
 #include "exceptions.hpp"
 #include "logging.hpp"
 
+#ifdef _WIN32
+#  include "win32compat.hpp"
+#endif
+
 #include "third_party/fmt/core.h"
 
 #include <string>
@@ -692,35 +696,12 @@ x_rename(const char* oldpath, const char* newpath)
   // Windows' rename() refuses to overwrite an existing file.
   // If the function succeeds, the return value is nonzero.
   if (MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING) == 0) {
-    LPVOID lp_msg_buf;
-    DWORD dw = GetLastError();
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                    | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL,
-                  dw,
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR)&lp_msg_buf,
-                  0,
-                  NULL);
-
-    LPVOID lp_display_buf = (LPVOID)LocalAlloc(
-      LMEM_ZEROINIT,
-      (lstrlen((LPCTSTR)lp_msg_buf) + lstrlen((LPCTSTR)__FILE__) + 40)
-        * sizeof(TCHAR));
-    _snprintf((LPTSTR)lp_display_buf,
-              LocalSize(lp_display_buf) / sizeof(TCHAR),
-              TEXT("%s failed with error %lu: %s"),
-              __FILE__,
-              dw,
-              (const char*)lp_msg_buf);
-
-    cc_log("can't rename file %s to %s OS returned error: %s",
+    DWORD error = GetLastError();
+    cc_log("failed to rename %s to %s: %s (%lu)",
            oldpath,
            newpath,
-           (char*)lp_display_buf);
-
-    LocalFree(lp_msg_buf);
-    LocalFree(lp_display_buf);
+           win32_error_message(error).c_str(),
+           error);
     return -1;
   } else {
     return 0;

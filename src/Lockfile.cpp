@@ -22,6 +22,10 @@
 #include "legacy_util.hpp"
 #include "logging.hpp"
 
+#ifdef _WIN32
+#  include "win32compat.hpp"
+#endif
+
 #include "third_party/fmt/core.h"
 
 namespace {
@@ -148,8 +152,9 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     DWORD error = GetLastError();
-    cc_log("lockfile_acquire: CreateFile %s: error code %lu",
+    cc_log("lockfile_acquire: CreateFile %s: %s (%lu)",
            lockfile.c_str(),
+           win32_error_message(error).c_str(),
            error);
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?

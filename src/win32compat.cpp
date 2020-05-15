@@ -24,6 +24,24 @@
 #  include <sys/locking.h>
 #  include <tchar.h>
 
+std::string
+win32_error_message(DWORD error_code)
+{
+  LPSTR buffer;
+  size_t size =
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                     | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   nullptr,
+                   error_code,
+                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   reinterpret_cast<LPSTR>(&buffer),
+                   0,
+                   nullptr);
+  std::string message(buffer, size);
+  LocalFree(buffer);
+  return message;
+}
+
 #  if !defined(HAVE_REALPATH) && !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
 BOOL
 GetFileNameFromHandle(HANDLE file_handle, TCHAR* filename, WORD cch_filename)

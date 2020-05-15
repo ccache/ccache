@@ -22,12 +22,12 @@
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
 
-#include <algorithm>
-#include <fstream>
-
 #ifdef _WIN32
 #  include "win32compat.hpp"
 #endif
+
+#include <algorithm>
+#include <fstream>
 
 using nonstd::string_view;
 
