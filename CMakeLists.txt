@@ -121,14 +121,8 @@ find_program(CLANG_FORMAT_EXE NAMES "clang-format"
              DOC "Path to clang-format executable")
 mark_as_advanced(CLANG_FORMAT_EXE) # don't show in ccmake
 
-find_program(CMAKE_FORMAT_EXE NAMES "cmake-format"
-             DOC "Path to cmake-format executable")
-mark_as_advanced(CMAKE_FORMAT_EXE) # don't show in ccmake
-
 if(NOT CLANG_FORMAT_EXE)
   message(WARNING "clang-format not found.")
-elseif(NOT CMAKE_FORMAT_EXE)
-  message(WARNING "cmake-format not found.")
 else()
   add_custom_target(
     format
