@@ -256,7 +256,7 @@ move_file(const char* src, const char* dest)
 {
   bool ok = copy_file(src, dest, false);
   if (ok) {
-    x_unlink(src);
+    Util::unlink_safe(src);
   }
   return ok;
 }
@@ -707,69 +707,6 @@ x_rename(const char* oldpath, const char* newpath)
     return 0;
   }
 #endif
-}
-
-// Remove path, NFS hazardous. Use only for temporary files that will not exist
-// on other systems. That is, the path should include tmp_string().
-int
-tmp_unlink(const char* path)
-{
-  cc_log("Unlink %s", path);
-  int rc = unlink(path);
-  if (rc) {
-    cc_log("Unlink failed: %s", strerror(errno));
-  }
-  return rc;
-}
-
-static int
-do_x_unlink(const char* path, bool log_failure)
-{
-  int saved_errno = 0;
-
-  // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
-  // file. We don't care if the temp file is trashed, so it's always safe to
-  // unlink it first.
-  char* tmp_name = format("%s.ccache.rm.tmp", path);
-
-  int result = 0;
-  if (x_rename(path, tmp_name) == -1) {
-    result = -1;
-    saved_errno = errno;
-    goto out;
-  }
-  if (unlink(tmp_name) == -1) {
-    // If it was released in a race, that's OK.
-    if (errno != ENOENT && errno != ESTALE) {
-      result = -1;
-      saved_errno = errno;
-    }
-  }
-
-out:
-  if (result == 0 || log_failure) {
-    cc_log("Unlink %s via %s", path, tmp_name);
-    if (result != 0 && log_failure) {
-      cc_log("x_unlink failed: %s", strerror(saved_errno));
-    }
-  }
-  free(tmp_name);
-  errno = saved_errno;
-  return result;
-}
-
-// Remove path, NFS safe, log both successes and failures.
-int
-x_unlink(const char* path)
-{
-  return do_x_unlink(path, true);
-}
-
-// Remove path, NFS safe, only log successes.
-int
-x_try_unlink(const char* path)
-{
-  return do_x_unlink(path, false);
 }
 
 // Reads the content of a file. Size hint 0 means no hint. Returns true on

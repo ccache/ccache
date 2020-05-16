@@ -21,6 +21,7 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "logging.hpp"
 
 #ifdef _WIN32
 #  include "win32compat.hpp"
@@ -690,6 +691,57 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
     throw Error(
       fmt::format("failed to open directory {}: {}", path, strerror(errno)));
   }
+}
+
+bool
+unlink_safe(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
+  // file. We don't care if the temp file is trashed, so it's always safe to
+  // unlink it first.
+  std::string tmp_name = path + ".ccache.rm.tmp";
+
+  bool success = true;
+  if (x_rename(path.c_str(), tmp_name.c_str()) != 0) {
+    success = false;
+    saved_errno = errno;
+  } else if (unlink(tmp_name.c_str()) != 0) {
+    // It's OK if it was unlinked in a race.
+    if (errno != ENOENT && errno != ESTALE) {
+      success = false;
+      saved_errno = errno;
+    }
+  }
+
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
+}
+
+bool
+unlink_tmp(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  bool success =
+    unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s", path.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
 }
 
 void

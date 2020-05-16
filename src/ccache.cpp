@@ -317,7 +317,7 @@ clean_up_internal_tempdir(const Config& config)
     }
     auto st = Stat::lstat(path, Stat::OnError::log);
     if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-      tmp_unlink(path.c_str());
+      Util::unlink_tmp(path);
     }
   });
 }
@@ -799,7 +799,7 @@ use_relative_paths_in_depfile(const Context& ctx)
       " usage",
       tmp_file.c_str(),
       e.what());
-    x_unlink(tmp_file.c_str());
+    Util::unlink_safe(tmp_file);
     return;
   }
 
@@ -809,7 +809,7 @@ use_relative_paths_in_depfile(const Context& ctx)
       tmp_file.c_str(),
       output_dep.c_str(),
       strerror(errno));
-    x_unlink(tmp_file.c_str());
+    Util::unlink_safe(tmp_file);
   } else {
     cc_log("Renamed dependency file: %s -> %s",
            tmp_file.c_str(),
@@ -958,7 +958,7 @@ to_cache(Context& ctx,
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    x_unlink(ctx.args_info.output_obj.c_str());
+    Util::unlink_safe(ctx.args_info.output_obj);
   }
 
   if (ctx.args_info.generating_diagnostics) {
@@ -984,7 +984,8 @@ to_cache(Context& ctx,
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
     // non-existent .dwo files.
-    if (unlink(ctx.args_info.output_dwo.c_str()) == -1 && errno != ENOENT) {
+    if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
+        && errno != ESTALE) {
       cc_log("Failed to unlink %s: %s",
              ctx.args_info.output_dwo.c_str(),
              strerror(errno));
@@ -1032,8 +1033,8 @@ to_cache(Context& ctx,
   auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
-    tmp_unlink(tmp_stdout);
-    tmp_unlink(tmp_stderr);
+    Util::unlink_tmp(tmp_stdout);
+    Util::unlink_tmp(tmp_stderr);
     failed(STATS_MISSING);
   }
 
@@ -1041,11 +1042,11 @@ to_cache(Context& ctx,
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
     cc_log("Compiler produced stdout");
-    tmp_unlink(tmp_stdout);
-    tmp_unlink(tmp_stderr);
+    Util::unlink_tmp(tmp_stdout);
+    Util::unlink_tmp(tmp_stderr);
     failed(STATS_STDOUT);
   }
-  tmp_unlink(tmp_stdout);
+  Util::unlink_tmp(tmp_stdout);
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler into tmp_stderr.
@@ -1083,7 +1084,7 @@ to_cache(Context& ctx,
     close(fd_cpp_stderr);
     close(fd_real_stderr);
     close(fd_result);
-    tmp_unlink(tmp_stderr2);
+    Util::unlink_tmp(tmp_stderr2);
     free(tmp_stderr2);
   }
 
@@ -1095,12 +1096,12 @@ to_cache(Context& ctx,
       // We can output stderr immediately instead of rerunning the compiler.
       copy_fd(fd, 2);
       close(fd);
-      tmp_unlink(tmp_stderr);
+      Util::unlink_tmp(tmp_stderr);
 
       failed(STATS_STATUS, status);
     }
 
-    tmp_unlink(tmp_stderr);
+    Util::unlink_tmp(tmp_stderr);
     failed(STATS_STATUS);
   }
 
@@ -1188,14 +1189,14 @@ to_cache(Context& ctx,
     // previous ccache versions.
     if (getpid() % 1000 == 0) {
       char* path = format("%s/CACHEDIR.TAG", ctx.config.cache_dir().c_str());
-      x_unlink(path);
+      Util::unlink_safe(path);
       free(path);
     }
   }
 
   // Everything OK.
   send_cached_stderr(tmp_stderr);
-  tmp_unlink(tmp_stderr);
+  Util::unlink_tmp(tmp_stderr);
 
   free(tmp_stderr);
   free(tmp_stdout);
@@ -1897,7 +1898,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   bool ok = result_get(ctx, ctx.result_path(), result_file_map);
   if (!ok) {
     cc_log("Failed to get result from cache");
-    tmp_unlink(tmp_stderr);
+    Util::unlink_tmp(tmp_stderr);
     free(tmp_stderr);
     return nullopt;
   }
@@ -1906,7 +1907,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   send_cached_stderr(tmp_stderr);
 
-  tmp_unlink(tmp_stderr);
+  Util::unlink_tmp(tmp_stderr);
   free(tmp_stderr);
 
   cc_log("Succeeded getting cached result");
@@ -2377,7 +2378,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       cc_log("Hash from manifest doesn't match preprocessor output");
       cc_log("Likely reason: different CCACHE_BASEDIRs used");
       cc_log("Removing manifest as a safety measure");
-      x_unlink(ctx.manifest_path().c_str());
+      Util::unlink_safe(ctx.manifest_path());
 
       put_result_in_manifest = true;
     }

@@ -205,7 +205,7 @@ win32execute(const char* path,
     fclose(fp);
     snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
     ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
-    tmp_unlink(tmp_file);
+    Util::unlink_tmp(tmp_file);
     free(tmp_file);
   }
   if (!ret) {

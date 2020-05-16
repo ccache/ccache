@@ -116,7 +116,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
     } else {
       // The lock seems to be stale -- break it and try again.
       cc_log("lockfile_acquire: breaking %s", lockfile.c_str());
-      if (tmp_unlink(lockfile.c_str()) != 0) {
+      if (!Util::unlink_tmp(lockfile)) {
         cc_log("Failed to unlink %s: %s", lockfile.c_str(), strerror(errno));
         return false;
       }
@@ -211,7 +211,7 @@ Lockfile::~Lockfile()
   if (acquired()) {
     cc_log("Releasing lock %s", m_lockfile.c_str());
 #ifndef _WIN32
-    if (tmp_unlink(m_lockfile.c_str()) != 0) {
+    if (!Util::unlink_tmp(m_lockfile)) {
       cc_log("Failed to unlink %s: %s", m_lockfile.c_str(), strerror(errno));
     }
 #else

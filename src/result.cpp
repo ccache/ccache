@@ -233,7 +233,7 @@ copy_raw_file(const Context& ctx,
     cc_log("Failed to clone: %s", strerror(errno));
   }
   if (ctx.config.hard_link()) {
-    x_try_unlink(dest.c_str());
+    unlink(dest.c_str());
     cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
     int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {

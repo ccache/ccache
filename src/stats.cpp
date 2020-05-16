@@ -479,7 +479,7 @@ void
 stats_zero(const Config& config)
 {
   char* fname = format("%s/stats", config.cache_dir().c_str());
-  x_unlink(fname);
+  Util::unlink_safe(fname);
   free(fname);
 
   time_t timestamp = time(nullptr);
