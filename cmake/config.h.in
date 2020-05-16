@@ -33,8 +33,18 @@
 // For example for localtime_r under i686-w64-mingw32-g++-posix.
 #define _POSIX_C_SOURCE 1
 
-// Todo: lots of stuff from feature macros missing:
-// https://github.com/ccache/ccache/pull/573/files#diff-f566dd2345b2f0f4ae9308ad4ef0eb43
+#if defined(__SunOS_5_8) || defined(__SunOS_5_9) || defined(__SunOS_5_10)
+  #define _XOPEN_SOURCE 500
+#elif !defined(__SunOS_5_11) && !defined(__APPLE__)
+  #define _XOPEN_SOURCE
+#endif
+
+#if defined(__SunOS_5_10) || defined(__SunOS_5_11)
+  #define __EXTENSIONS__ 1
+#else
+  #define _XOPEN_SOURCE_EXTENDED
+#endif
+
 
 #cmakedefine _WIN32_WINNT @_WIN32_WINNT@
 
