@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,35 +16,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Util.hpp"
-#include "TestUtil.hpp"
 #include "catch2_tests.hpp"
 
+#define CATCH_CONFIG_RUNNER
 #include "third_party/catch.hpp"
-#include "third_party/fmt/core.h"
 
 int
-main(int argc, char** argv)
+run_catch2_tests(int argc, char** argv)
 {
-#ifdef _WIN32
-  x_setenv("CCACHE_DETECT_SHEBANG", "1");
-#endif
-  x_unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
-
-  std::string dir_before = Util::get_actual_cwd();
-  std::string testdir = fmt::format("testdir.{}", getpid());
-  Util::wipe_path(testdir);
-  Util::create_dir(testdir);
-  TestUtil::check_chdir(testdir);
-
-  int result = run_catch2_tests(argc, argv);
-
-  if (result == 0) {
-    TestUtil::check_chdir(dir_before);
-    Util::wipe_path(testdir);
-  } else {
-    fmt::print(stderr, "Note: Test data has been left in {}\n", testdir);
-  }
-
-  return result;
+  return Catch::Session().run(argc, argv);
 }
