@@ -4,8 +4,8 @@
 if [ -n "${SPECIAL}" ]; then
   sh ci/${SPECIAL}.sh
 else
-  mkdir -p build
-  cd build
+  mkdir -p ${BUILDDIR:-build}
+  cd ${BUILDDIR:-build}
   ${CMAKE_PREFIX:-} cmake ${CCACHE_LOC:-..} ${CMAKE_PARAMS:-}
   # 4 threads seems a reasonable default for Travis
   ${CMAKE_PREFIX:-} cmake --build . ${BUILDEXTRAFLAGS:-} -- -j4

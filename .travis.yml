@@ -6,10 +6,10 @@ script: ci/build.sh
 jobs:
   include:
 
-  # Job 1: Build on Linux with native GCC
+  # Job 1: Build (in source directory) on Linux with native GCC
   - os: linux
     compiler: gcc
-    env: T="Linux GCC" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux GCC" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILDDIR=. CCACHE_LOC=.
     addons:
       apt:
         packages:
