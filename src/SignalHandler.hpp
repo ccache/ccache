@@ -18,11 +18,29 @@
 
 #pragma once
 
+#include "system.hpp"
+
+#include "signal.h"
+
 class Context;
 
-void exitfn_init();
-void exitfn_add_nullary(void (*function)());
-void exitfn_add(void (*function)(void*), void* context);
-void exitfn_add_last(void (*function)(void*), void* context);
-void exitfn_delete_context(Context* ctx);
-void exitfn_call();
+class SignalHandler
+{
+public:
+  SignalHandler(Context& ctx);
+  ~SignalHandler();
+
+  static void on_signal(int signum);
+  static void block_signals();
+  static void unblock_signals();
+
+private:
+  Context& m_ctx;
+};
+
+class SignalHandlerBlocker
+{
+public:
+  SignalHandlerBlocker();
+  ~SignalHandlerBlocker();
+};

@@ -47,6 +47,7 @@ non_third_party_sources = \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
     src/ProgressBar.cpp \
+    src/SignalHandler.cpp \
     src/Stat.cpp \
     src/Util.cpp \
     src/ZstdCompressor.cpp \
@@ -57,7 +58,6 @@ non_third_party_sources = \
     src/compopt.cpp \
     src/compress.cpp \
     src/execute.cpp \
-    src/exitfn.cpp \
     src/hash.cpp \
     src/hashutil.cpp \
     src/language.cpp \

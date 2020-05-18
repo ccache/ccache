@@ -26,6 +26,7 @@
 #include "FormatNonstdStringView.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
+#include "SignalHandler.hpp"
 #include "StdMakeUnique.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
@@ -34,7 +35,6 @@
 #include "compress.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
-#include "exitfn.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
@@ -123,20 +123,9 @@ struct pending_tmp_file
   struct pending_tmp_file* next;
 };
 
-// Temporary files to remove at program exit.
-static struct pending_tmp_file* pending_tmp_files = nullptr;
-
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
 static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
-
-#ifndef _WIN32
-static sigset_t fatal_signal_set;
-#endif
-
-// PID of currently executing compiler that we have started, if any. 0 means no
-// ongoing compilation. Not used in the _WIN32 case.
-static pid_t compiler_pid = 0;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -180,120 +169,6 @@ failed(enum stats stat, optional<int> exit_code)
   throw Failure(stat, exit_code);
 }
 
-void
-block_signals()
-{
-#ifndef _WIN32
-  sigprocmask(SIG_BLOCK, &fatal_signal_set, nullptr);
-#endif
-}
-
-void
-unblock_signals()
-{
-#ifndef _WIN32
-  sigset_t empty;
-  sigemptyset(&empty);
-  sigprocmask(SIG_SETMASK, &empty, nullptr);
-#endif
-}
-
-static void
-add_pending_tmp_file(const char* path)
-{
-  block_signals();
-  auto e = static_cast<pending_tmp_file*>(x_malloc(sizeof(pending_tmp_file)));
-  e->path = x_strdup(path);
-  e->next = pending_tmp_files;
-  pending_tmp_files = e;
-  unblock_signals();
-}
-
-static void
-do_clean_up_pending_tmp_files()
-{
-  struct pending_tmp_file* p = pending_tmp_files;
-  while (p) {
-    // Can't call tmp_unlink here since its cc_log calls aren't signal safe.
-    unlink(p->path);
-    p = p->next;
-    // Leak p->path and p here because clean_up_pending_tmp_files needs to be
-    // signal safe.
-  }
-}
-
-static void
-clean_up_pending_tmp_files()
-{
-  block_signals();
-  do_clean_up_pending_tmp_files();
-  unblock_signals();
-}
-
-#ifndef _WIN32
-static void
-signal_handler(int signum)
-{
-  // Unregister handler for this signal so that we can send the signal to
-  // ourselves at the end of the handler.
-  signal(signum, SIG_DFL);
-
-  // If ccache was killed explicitly, then bring the compiler subprocess (if
-  // any) with us as well.
-  if (signum == SIGTERM && compiler_pid != 0
-      && waitpid(compiler_pid, nullptr, WNOHANG) == 0) {
-    kill(compiler_pid, signum);
-  }
-
-  do_clean_up_pending_tmp_files();
-
-  if (compiler_pid != 0) {
-    // Wait for compiler subprocess to exit before we snuff it.
-    waitpid(compiler_pid, nullptr, 0);
-  }
-
-  // Resend signal to ourselves to exit properly after returning from the
-  // handler.
-  kill(getpid(), signum);
-}
-
-static void
-register_signal_handler(int signum)
-{
-  struct sigaction act;
-  memset(&act, 0, sizeof(act));
-  act.sa_handler = signal_handler;
-  act.sa_mask = fatal_signal_set;
-#  ifdef SA_RESTART
-  act.sa_flags = SA_RESTART;
-#  endif
-  sigaction(signum, &act, nullptr);
-}
-
-static void
-set_up_signal_handlers()
-{
-  sigemptyset(&fatal_signal_set);
-  sigaddset(&fatal_signal_set, SIGINT);
-  sigaddset(&fatal_signal_set, SIGTERM);
-#  ifdef SIGHUP
-  sigaddset(&fatal_signal_set, SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  sigaddset(&fatal_signal_set, SIGQUIT);
-#  endif
-
-  register_signal_handler(SIGINT);
-  register_signal_handler(SIGTERM);
-#  ifdef SIGHUP
-  register_signal_handler(SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  register_signal_handler(SIGQUIT);
-#  endif
-}
-#endif // _WIN32
-
 static void
 clean_up_internal_tempdir(const Config& config)
 {
@@ -323,25 +198,7 @@ clean_up_internal_tempdir(const Config& config)
 }
 
 static void
-fclose_exitfn(void* context)
-{
-  fclose((FILE*)context);
-}
-
-static void
-dump_debug_log_buffer_exitfn(void* context)
-{
-  Context& ctx = *static_cast<Context*>(context);
-  if (!ctx.config.debug()) {
-    return;
-  }
-
-  std::string path = fmt::format("{}.ccache-log", ctx.args_info.output_obj);
-  cc_dump_debug_log_buffer(path.c_str());
-}
-
-static void
-init_hash_debug(const Context& ctx,
+init_hash_debug(Context& ctx,
                 struct hash* hash,
                 const char* obj_path,
                 char type,
@@ -352,15 +209,15 @@ init_hash_debug(const Context& ctx,
     return;
   }
 
-  char* path = format("%s.ccache-input-%c", obj_path, type);
-  FILE* debug_binary_file = fopen(path, "wb");
+  std::string path = fmt::format("{}.ccache-input-{}", obj_path, type);
+  File debug_binary_file(path, "wb");
   if (debug_binary_file) {
-    hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
-    exitfn_add(fclose_exitfn, debug_binary_file);
+    hash_enable_debug(
+      hash, section_name, debug_binary_file.get(), debug_text_file);
+    ctx.hash_debug_files.push_back(std::move(debug_binary_file));
   } else {
-    cc_log("Failed to open %s: %s", path, strerror(errno));
+    cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
   }
-  free(path);
 }
 
 static GuessedCompiler
@@ -1006,7 +863,7 @@ to_cache(Context& ctx,
     tmp_stderr = format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
     tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(
-      args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+      args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &ctx.compiler_pid);
     args.pop_back(3);
   } else {
     // The cached result path is not known yet, use temporary files.
@@ -1026,7 +883,7 @@ to_cache(Context& ctx,
     status = execute(depend_mode_args.to_argv().data(),
                      tmp_stdout_fd,
                      tmp_stderr_fd,
-                     &compiler_pid);
+                     &ctx.compiler_pid);
   }
   MTR_END("execute", "compiler");
 
@@ -1228,13 +1085,13 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
       fmt::format("{}/{}.stdout", ctx.config.temporary_dir(), input_base));
     int stdout_fd = stdout_fd_and_path.first;
     stdout_path = stdout_fd_and_path.second;
-    add_pending_tmp_file(stdout_path.c_str());
+    ctx.register_pending_tmp_file(stdout_path);
 
     auto stderr_fd_and_path = Util::create_temp_fd(
       fmt::format("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
     int stderr_fd = stderr_fd_and_path.first;
     stderr_path = stderr_fd_and_path.second;
-    add_pending_tmp_file(stderr_path.c_str());
+    ctx.register_pending_tmp_file(stderr_path);
 
     size_t args_added = 2;
     args.push_back("-E");
@@ -1247,7 +1104,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     status =
-      execute(args.to_argv().data(), stdout_fd, stderr_fd, &compiler_pid);
+      execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
@@ -1278,7 +1135,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     ctx.i_tmpfile =
       fmt::format("{}.{}", stdout_path, ctx.config.cpp_extension());
     x_rename(stdout_path.c_str(), ctx.i_tmpfile.c_str());
-    add_pending_tmp_file(ctx.i_tmpfile.c_str());
+    ctx.register_pending_tmp_file(ctx.i_tmpfile);
   }
 
   if (!ctx.config.run_second_cpp()) {
@@ -2061,34 +1918,23 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
 }
 
 // Initialize ccache, must be called once before anything else is run.
-static Context&
-initialize(int argc, const char* const* argv)
+static void
+initialize(Context& ctx, int argc, const char* const* argv)
 {
-  // This object is placed onto the heap so it is available in exit functions
-  // which run after main(). It is cleaned up by the last exit function.
-  Context* ctx = new Context;
-
-  set_up_config(ctx->config);
-  set_up_context(*ctx, argc, argv);
-  init_log(ctx->config);
-
-  exitfn_init();
-  exitfn_delete_context(ctx);
-  exitfn_add(stats_flush, ctx);
-  exitfn_add_nullary(clean_up_pending_tmp_files);
+  set_up_config(ctx.config);
+  set_up_context(ctx, argc, argv);
+  init_log(ctx.config);
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
 
   if (getenv("CCACHE_INTERNAL_TRACE")) {
 #ifdef MTR_ENABLED
-    ctx->mini_trace = std::make_unique<MiniTrace>(ctx->args_info);
+    ctx.mini_trace = std::make_unique<MiniTrace>(ctx->args_info);
 #else
     cc_log("Error: tracing is not enabled!");
 #endif
   }
-
-  return *ctx;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -2134,26 +1980,25 @@ static enum stats do_cache_compilation(Context& ctx, const char* const* argv);
 static int
 cache_compilation(int argc, const char* const* argv)
 {
-#ifndef _WIN32
-  set_up_signal_handlers();
-#endif
-
   // Needed for portability when using localtime_r.
   tzset();
 
-  Context& ctx = initialize(argc, argv);
+  auto ctx = std::make_unique<Context>();
+  SignalHandler signal_handler(*ctx);
+
+  initialize(*ctx, argc, argv);
 
   MTR_BEGIN("main", "find_compiler");
-  find_compiler(ctx, argv);
+  find_compiler(*ctx, argv);
   MTR_END("main", "find_compiler");
 
   try {
-    enum stats stat = do_cache_compilation(ctx, argv);
-    stats_update(ctx, stat);
+    enum stats stat = do_cache_compilation(*ctx, argv);
+    stats_update(*ctx, stat);
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
     if (e.stat() != STATS_NONE) {
-      stats_update(ctx, e.stat());
+      stats_update(*ctx, e.stat());
     }
 
     if (e.exit_code()) {
@@ -2161,19 +2006,18 @@ cache_compilation(int argc, const char* const* argv)
     }
     // Else: Fall back to running the real compiler.
 
-    assert(!ctx.orig_args.empty());
+    assert(!ctx->orig_args.empty());
 
-    ctx.orig_args.erase_with_prefix("--ccache-");
-    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
+    ctx->orig_args.erase_with_prefix("--ccache-");
+    add_prefix(*ctx, ctx->orig_args, ctx->config.prefix_command());
 
     cc_log("Failed; falling back to running the real compiler");
 
-    // exitfn_call deletes ctx and thereby ctx.orig_orgs, so save it.
-    Args saved_orig_args(std::move(ctx.orig_args));
+    Args saved_orig_args(std::move(ctx->orig_args));
     auto execv_argv = saved_orig_args.to_argv();
 
     cc_log_argv("Executing ", execv_argv.data());
-    exitfn_call();
+    ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
     fatal("execv of %s failed: %s", execv_argv[0], strerror(errno));
   }
@@ -2267,20 +2111,20 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
-  // Need to dump log buffer as the last exit function to not lose any logs.
-  exitfn_add_last(dump_debug_log_buffer_exitfn, &ctx);
-
-  FILE* debug_text_file = nullptr;
   if (ctx.config.debug()) {
     std::string path =
       fmt::format("{}.ccache-input-text", ctx.args_info.output_obj);
-    debug_text_file = fopen(path.c_str(), "w");
+    File debug_text_file(path, "w");
     if (debug_text_file) {
-      exitfn_add(fclose_exitfn, debug_text_file);
+      ctx.hash_debug_files.push_back(std::move(debug_text_file));
     } else {
       cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
     }
   }
+
+  FILE* debug_text_file = !ctx.hash_debug_files.empty()
+                            ? ctx.hash_debug_files.front().get()
+                            : nullptr;
 
   struct hash* common_hash = hash_init();
   init_hash_debug(ctx,
@@ -2444,7 +2288,8 @@ handle_main_options(int argc, const char* const* argv)
     {"zero-stats", no_argument, nullptr, 'z'},
     {nullptr, 0, nullptr, 0}};
 
-  Context& ctx = initialize(argc, argv);
+  Context ctx;
+  initialize(ctx, argc, argv);
 
   int c;
   while ((c = getopt_long(argc,

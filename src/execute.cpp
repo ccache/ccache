@@ -21,6 +21,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "SignalHandler.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
@@ -247,9 +248,10 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 {
   cc_log_argv("Executing ", argv);
 
-  block_signals();
-  *pid = fork();
-  unblock_signals();
+  {
+    SignalHandlerBlocker signal_handler_blocker;
+    *pid = fork();
+  }
 
   if (*pid == -1) {
     fatal("Failed to fork: %s", strerror(errno));
@@ -272,9 +274,10 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
     fatal("waitpid failed: %s", strerror(errno));
   }
 
-  block_signals();
-  *pid = 0;
-  unblock_signals();
+  {
+    SignalHandlerBlocker signal_handler_blocker;
+    *pid = 0;
+  }
 
   if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
     return -1;

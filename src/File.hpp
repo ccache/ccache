@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -28,6 +28,8 @@
 class File : public NonCopyable
 {
 public:
+  File() = default;
+
   File(const std::string& path, const char* mode)
   {
     open(path, mode);
