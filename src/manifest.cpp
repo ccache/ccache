@@ -484,7 +484,7 @@ manifest_get(const Context& ctx, const std::string& path)
       // Update modification timestamp to save files from LRU cleanup.
       update_mtime(path.c_str());
     } else {
-      cc_log("No such result file");
+      cc_log("No such manifest file");
       return nullptr;
     }
   } catch (const Error& e) {

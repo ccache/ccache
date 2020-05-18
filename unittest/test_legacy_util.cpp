@@ -16,15 +16,18 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for functions in util.c.
-
 #include "../src/execute.hpp"
 #include "../src/legacy_util.hpp"
-#include "framework.hpp"
 
-TEST_SUITE(legacy_util)
+#include "third_party/catch.hpp"
 
-TEST(x_dirname)
+#define CHECK_STR_EQ_FREE2(a, b)                                               \
+  do {                                                                         \
+    CHECK(strcmp((a), (b)) == 0);                                              \
+    free(b);                                                                   \
+  } while (false)
+
+TEST_CASE("x_dirname")
 {
   CHECK_STR_EQ_FREE2(".", x_dirname("foo.c"));
   CHECK_STR_EQ_FREE2(".", x_dirname(""));
@@ -35,7 +38,7 @@ TEST(x_dirname)
   CHECK_STR_EQ_FREE2("dir1/dir2", x_dirname("dir1/dir2/"));
 }
 
-TEST(subst_env_in_string)
+TEST_CASE("subst_env_in_string")
 {
   char* errmsg;
 
@@ -65,7 +68,7 @@ TEST(subst_env_in_string)
   CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"FOO\"", errmsg);
 }
 
-TEST(format_human_readable_size)
+TEST_CASE("format_human_readable_size")
 {
   CHECK_STR_EQ_FREE2("0.0 MB", format_human_readable_size(0));
   CHECK_STR_EQ_FREE2("0.0 MB", format_human_readable_size(49));
@@ -79,7 +82,7 @@ TEST(format_human_readable_size)
                      format_human_readable_size(17.11 * 1000 * 1000 * 1000));
 }
 
-TEST(format_parsable_size_with_suffix)
+TEST_CASE("format_parsable_size_with_suffix")
 {
   CHECK_STR_EQ_FREE2("0", format_parsable_size_with_suffix(0));
   CHECK_STR_EQ_FREE2("42000", format_parsable_size_with_suffix(42 * 1000));
@@ -93,7 +96,7 @@ TEST(format_parsable_size_with_suffix)
     "17.1G", format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000));
 }
 
-TEST(parse_size_with_suffix)
+TEST_CASE("parse_size_with_suffix")
 {
   uint64_t size;
   size_t i;
@@ -120,19 +123,19 @@ TEST(parse_size_with_suffix)
   };
 
   for (i = 0; i < ARRAY_SIZE(sizes); ++i) {
-    CHECKM(parse_size_with_suffix(sizes[i].size, &size), sizes[i].size);
-    CHECK_INT_EQ(sizes[i].expected, size);
+    CHECK(parse_size_with_suffix(sizes[i].size, &size));
+    CHECK(size == sizes[i].expected);
   }
 }
 
-TEST(format_command)
+TEST_CASE("format_command")
 {
   const char* argv[] = {"foo", "bar", nullptr};
 
   CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
 }
 
-TEST(format_hex)
+TEST_CASE("format_hex")
 {
   uint8_t none[] = "";
   uint8_t text[4] = "foo"; // incl. NUL
@@ -140,33 +143,11 @@ TEST(format_hex)
   char result[2 * sizeof(data) + 1] = ".";
 
   format_hex(none, 0, result);
-  CHECK_STR_EQ("", result);
+  CHECK(strcmp("", result) == 0);
 
   format_hex(text, sizeof(text), result);
-  CHECK_STR_EQ("666f6f00", result);
+  CHECK(strcmp("666f6f00", result) == 0);
 
   format_hex(data, sizeof(data), result);
-  CHECK_STR_EQ("00010203", result);
+  CHECK(strcmp("00010203", result) == 0);
 }
-
-TEST(from_cstr)
-{
-  char* cstr1 = x_strdup("foo");
-  const char* cstr2 = "bar";
-  const char* cstr3 = nullptr;
-  const char* cstr4 = "";
-
-  std::string str1 = from_cstr(cstr1);
-  std::string str2 = from_cstr(cstr2);
-  std::string str3 = from_cstr(cstr3);
-  std::string str4 = from_cstr(cstr4);
-
-  CHECK(str1 == "foo");
-  CHECK(str2 == "bar");
-  CHECK(str3 == "");
-  CHECK(str4 == "");
-
-  free(cstr1);
-}
-
-TEST_SUITE_END

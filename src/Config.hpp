@@ -95,10 +95,9 @@ public:
   void set_primary_config_path(std::string path);
   void set_secondary_config_path(std::string path);
 
-  typedef std::function<void(const std::string& key,
-                             const std::string& value,
-                             const std::string& origin)>
-    ItemVisitor;
+  using ItemVisitor = std::function<void(const std::string& key,
+                                         const std::string& value,
+                                         const std::string& origin)>;
 
   // Set config values from a configuration file.
   //

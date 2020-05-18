@@ -16,15 +16,18 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for functions in lockfile.c.
-
 #include "../src/Lockfile.hpp"
 #include "../src/Stat.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
+using TestUtil::TestContext;
+
 TEST_CASE("Lockfile acquire and release")
 {
+  TestContext test_context;
+
   {
     Lockfile lock("test", 1000);
     CHECK(lock.acquired());
@@ -43,6 +46,8 @@ TEST_CASE("Lockfile acquire and release")
 #ifndef _WIN32
 TEST_CASE("Lockfile breaking")
 {
+  TestContext test_context;
+
   CHECK(symlink("foo", "test.lock") == 0);
 
   Lockfile lock("test", 1000);

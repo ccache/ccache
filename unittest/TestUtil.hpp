@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,24 @@
 
 #pragma once
 
-#include "../src/system.hpp"
+#include "../src/Util.hpp"
 
-bool is_symlink(const char* path);
-void create_file(const char* path, const char* content);
+namespace TestUtil {
+
+// This class is intended to be instantiated in all test cases that create local
+// files.
+class TestContext
+{
+public:
+  TestContext();
+  ~TestContext();
+
+private:
+  std::string m_test_dir;
+  static size_t m_subdir_counter;
+};
+
+// Change directory to `dir`, throwing Error on failure.
+void check_chdir(const std::string& dir);
+
+} // namespace TestUtil

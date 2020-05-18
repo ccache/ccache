@@ -16,60 +16,42 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "NonCopyable.hpp"
-#include "ScopeGuard.hpp"
+#include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "../src/exceptions.hpp"
 
-struct ptr_deleter
+namespace TestUtil {
+
+size_t TestContext::m_subdir_counter = 0;
+
+TestContext::TestContext() : m_test_dir(Util::get_actual_cwd())
 {
-  void
-  operator()(int*& ptr)
-  {
-    delete ptr;
-    ptr = nullptr;
+  if (!Util::base_name(m_test_dir).starts_with("testdir.")) {
+    throw Error("TestContext instantiated outside test directory");
   }
-};
-
-TEST_CASE("delete pointer")
-{
-  using ScopeGuardInt = ScopeGuard<ptr_deleter, int*>;
-  int* i = new int(3);
-
-  {
-    ScopeGuardInt guard(i);
-    CHECK(*i == 3);
+  ++m_subdir_counter;
+  std::string subtest_dir =
+    fmt::format("{}/test_{}", m_test_dir, m_subdir_counter);
+  Util::create_dir(subtest_dir);
+  if (chdir(subtest_dir.c_str()) != 0) {
+    abort();
   }
-
-  CHECK(i == nullptr);
 }
 
-struct Value : NonCopyable
+TestContext::~TestContext()
 {
-  int i = 3;
-};
-
-struct reset_value
-{
-  void
-  operator()(Value& v)
-  {
-    v.i = 0;
+  if (chdir(m_test_dir.c_str()) != 0) {
+    abort();
   }
-};
-
-TEST_CASE("reset a value type")
-{
-  using ScopeGuardValue = ScopeGuard<reset_value, Value>;
-
-  Value v;
-
-  CHECK(v.i == 3);
-
-  {
-    ScopeGuardValue guard(v);
-    CHECK(v.i == 3);
-  }
-
-  CHECK(v.i == 0);
 }
+
+void
+check_chdir(const std::string& dir)
+{
+  if (chdir(dir.c_str()) != 0) {
+    throw Error(fmt::format(
+      "failed to change directory to {}: {}", dir, strerror(errno)));
+  }
+}
+
+} // namespace TestUtil

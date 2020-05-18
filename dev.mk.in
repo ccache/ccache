@@ -45,15 +45,12 @@ non_third_party_headers_without_cpp = \
     src/NullCompressor.hpp \
     src/NullDecompressor.hpp \
     src/ProgressBar.hpp \
-    src/ScopeGuard.hpp \
     src/Stat.hpp \
     src/StdMakeUnique.hpp \
     src/ThreadPool.hpp \
     src/exceptions.hpp \
     src/macroskip.hpp \
-    src/system.hpp \
-    unittest/framework.hpp \
-    unittest/util.hpp
+    src/system.hpp
 
 non_third_party_headers = \
     $(subst .cpp,.hpp,$(non_third_party_sources)) \
@@ -101,9 +98,7 @@ source_dist_files = \
     src/main.cpp \
     src/third_party/minitrace.c \
     test/run \
-    test/suites/*.bash \
-    unittest/catch2_tests.cpp \
-    unittest/catch2_tests.hpp
+    test/suites/*.bash
 
 dist_files = \
     $(addprefix $(srcdir)/, $(source_dist_files)) \
@@ -189,7 +184,7 @@ update-authors:
 
 .PHONY: check-syntax
 check-syntax:
-	$(CC) $(all_cppflags) -I. $(all_cxxflags) -S -o /dev/null $(CHK_SOURCES)
+	$(CC) $(all_cppflags) -I. $(filter-out -g% -O%,$(all_cxxflags)) -S -o /dev/null $(CHK_SOURCES)
 
 .PHONY: cppcheck
 cppcheck:

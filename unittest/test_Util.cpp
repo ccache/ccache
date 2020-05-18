@@ -18,11 +18,13 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 using Catch::EndsWith;
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Util::base_name")
 {
@@ -106,6 +108,8 @@ TEST_CASE("Util::common_dir_prefix_length")
 
 TEST_CASE("Util::create_dir")
 {
+  TestContext test_context;
+
   CHECK(Util::create_dir("/"));
 
   CHECK(Util::create_dir("create/dir"));
@@ -209,6 +213,8 @@ TEST_CASE("Util::get_extension")
 
 TEST_CASE("Util::get_level_1_files")
 {
+  TestContext test_context;
+
   Util::create_dir("e/m/p/t/y");
 
   Util::create_dir("0/1");
@@ -488,6 +494,8 @@ TEST_CASE("Util::parse_int")
 
 TEST_CASE("Util::read_file and Util::write_file")
 {
+  TestContext test_context;
+
   Util::write_file("test", "foo\nbar\n");
   std::string data = Util::read_file("test");
   CHECK(data == "foo\nbar\n");
@@ -631,4 +639,98 @@ TEST_CASE("Util::to_lowercase")
   CHECK(Util::to_lowercase("x") == "x");
   CHECK(Util::to_lowercase("X") == "x");
   CHECK(Util::to_lowercase(" x_X@") == " x_x@");
+}
+
+TEST_CASE("Util::traverse")
+{
+  TestContext test_context;
+
+  REQUIRE(Util::create_dir("dir-with-subdir-and-file/subdir"));
+  Util::write_file("dir-with-subdir-and-file/subdir/f", "");
+  REQUIRE(Util::create_dir("dir-with-files"));
+  Util::write_file("dir-with-files/f1", "");
+  Util::write_file("dir-with-files/f2", "");
+  REQUIRE(Util::create_dir("empty-dir"));
+
+  std::vector<std::string> visited;
+  auto visitor = [&visited](const std::string& path, bool is_dir) {
+    visited.push_back(fmt::format("[{}] {}", is_dir ? 'd' : 'f', path));
+  };
+
+  SECTION("traverse nonexistent path")
+  {
+    CHECK_THROWS_WITH(
+      Util::traverse("nonexistent", visitor),
+      "failed to open directory nonexistent: No such file or directory");
+  }
+
+  SECTION("traverse file")
+  {
+    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file/subdir/f", visitor));
+    REQUIRE(visited.size() == 1);
+    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
+  }
+
+  SECTION("traverse empty directory")
+  {
+    CHECK_NOTHROW(Util::traverse("empty-dir", visitor));
+    REQUIRE(visited.size() == 1);
+    CHECK(visited[0] == "[d] empty-dir");
+  }
+
+  SECTION("traverse directory with files")
+  {
+    CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
+    REQUIRE(visited.size() == 3);
+    std::string f1 = "[f] dir-with-files/f1";
+    std::string f2 = "[f] dir-with-files/f2";
+    CHECK(((visited[0] == f1 && visited[1] == f2)
+           || (visited[0] == f2 && visited[1] == f1)));
+    CHECK(visited[2] == "[d] dir-with-files");
+  }
+
+  SECTION("traverse directory hierarchy")
+  {
+    CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file", visitor));
+    REQUIRE(visited.size() == 3);
+    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
+    CHECK(visited[1] == "[d] dir-with-subdir-and-file/subdir");
+    CHECK(visited[2] == "[d] dir-with-subdir-and-file");
+  }
+}
+
+TEST_CASE("Util::wipe_path")
+{
+  TestContext test_context;
+
+  SECTION("Wipe non-existing path")
+  {
+    CHECK_NOTHROW(Util::wipe_path("a"));
+  }
+
+  SECTION("Wipe file")
+  {
+    Util::write_file("a", "");
+    CHECK_NOTHROW(Util::wipe_path("a"));
+    CHECK(!Stat::stat("a"));
+  }
+
+  SECTION("Wipe directory")
+  {
+    REQUIRE(Util::create_dir("a/b"));
+    Util::write_file("a/1", "");
+    Util::write_file("a/b/1", "");
+    CHECK_NOTHROW(Util::wipe_path("a"));
+    CHECK(!Stat::stat("a"));
+  }
+
+  SECTION("Wipe bad path")
+  {
+#ifdef _WIN32
+    const char error[] = "failed to rmdir .: Permission denied";
+#else
+    const char error[] = "failed to rmdir .: Invalid argument";
+#endif
+    CHECK_THROWS_WITH(Util::wipe_path("."), error);
+  }
 }

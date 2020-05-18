@@ -33,11 +33,13 @@
 
 namespace Util {
 
-typedef std::function<void(double)> ProgressReceiver;
-typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
-typedef std::function<void(const std::string& /*dir_path*/,
-                           const ProgressReceiver& /*progress_receiver*/)>
-  SubdirVisitor;
+using ProgressReceiver = std::function<void(double)>;
+using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
+using SubdirVisitor =
+  std::function<void(const std::string& /*dir_path*/,
+                     const ProgressReceiver& /*progress_receiver*/)>;
+using TraverseVisitor =
+  std::function<void(const std::string& path, bool is_dir)>;
 
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
@@ -296,6 +298,18 @@ strip_whitespace(const std::string& string);
 
 // Convert a string to lowercase.
 [[gnu::warn_unused_result]] std::string to_lowercase(const std::string& string);
+
+// Traverse `path` recursively (postorder, i.e. files are visited before their
+// parent directory).
+//
+// Throws Error on error.
+void traverse(const std::string& path, const TraverseVisitor& visitor);
+
+// Remove `path` (and its contents if it's a directory). A non-existing path is
+// not considered an error.
+//
+// Throws Error on error.
+void wipe_path(const std::string& path);
 
 // Write file data from a string.
 //
