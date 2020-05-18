@@ -953,6 +953,34 @@ EOF
     expect_equal_files reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
+    TEST "Merging stderr"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+if [ \$1 = -E ]; then
+    echo preprocessed
+    printf "[%s]" cpp_stderr >&2
+else
+    echo object >test1.o
+    printf "[%s]" cc_stderr >&2
+fi
+EOF
+    chmod +x compiler.sh
+
+    unset CCACHE_NOCPP2
+    stderr=$($CCACHE ./compiler.sh -c test1.c 2>stderr)
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_file_content stderr "[cc_stderr]"
+
+    stderr=$(CCACHE_NOCPP2=1 $CCACHE ./compiler.sh -c test1.c 2>stderr)
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+    expect_file_content stderr "[cpp_stderr][cc_stderr]"
+
+    # -------------------------------------------------------------------------
     TEST "--zero-stats"
 
     $CCACHE_COMPILE -c test1.c
