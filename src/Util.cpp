@@ -762,10 +762,12 @@ wipe_path(const std::string& path)
 }
 
 void
-write_file(const std::string& path, const std::string& data, bool binary)
+write_file(const std::string& path,
+           const std::string& data,
+           std::ios_base::openmode open_mode)
 {
-  std::ofstream file(path,
-                     binary ? std::ios::out | std::ios::binary : std::ios::out);
+  open_mode |= std::ios::out;
+  std::ofstream file(path, open_mode);
   if (!file) {
     throw Error(strerror(errno));
   }
