@@ -138,7 +138,7 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(const Context& ctx,
+read_embedded_file_entry(const Context&,
                          CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
@@ -167,18 +167,12 @@ read_embedded_file_entry(const Context& ctx,
     const auto it = result_file_map->find(FileType(type));
     if (it == result_file_map->end()) {
       cc_log("Not copying");
-    } else if (it->second == "/dev/null") {
+    } else if (it->second->isDevNull()) {
       cc_log("Not copying to /dev/null");
     } else {
       content_read = true;
 
-      bool changeDepFile = false;
-      if (ctx.args_info.seen_MD_MMD && !ctx.args_info.seen_split_dwarf
-          && ctx.args_info.generating_dependencies
-          && FileType(type) == FileType::dependency) {
-        changeDepFile = true;
-      }
-      const auto& path = it->second;
+      const auto& path = it->second->getFile();
       cc_log("Copying to %s", path.c_str());
 
       File subfile(path, "wb");
@@ -195,29 +189,8 @@ read_embedded_file_entry(const Context& ctx,
         size_t n = std::min(remain, sizeof(buf));
         reader.read(buf, n);
 
-        if (changeDepFile && first) {
-          // Change the obj path in .d file name
-          first = false;
-
-          const auto it_obj = result_file_map->find(FileType::object);
-          std::string obj_path = it_obj->second;
-          if (!write_fd(subfile_fd, obj_path.data(), obj_path.length())) {
-            throw Error(fmt::format("Failed to write to {}", path));
-          }
-          for(size_t i = 0; i < n; i++) {
-            if (buf[i] == ':') {
-              if (!write_fd(subfile_fd, &buf[i], n-i)) {
-                throw Error(fmt::format("Failed to write to {}", path));
-              }
-              break;
-            }
-          }
-        } else {
-          // Write directly to the file descriptor to avoid stdio caching.
-          if (!write_fd(subfile_fd, buf, n)) {
-            throw Error(fmt::format("Failed to write to {}", path));
-          }
-        }
+        it->second->write(subfile_fd, &buf[0], n, first);
+        first = false;
         remain -= n;
       }
     }
@@ -311,10 +284,10 @@ read_raw_file_entry(const Context& ctx,
     const auto it = result_file_map->find(FileType(type));
     if (it == result_file_map->end()) {
       cc_log("Not copying");
-    } else if (it->second == "/dev/null") {
+    } else if (it->second->isDevNull()) {
       cc_log("Not copying to /dev/null");
     } else {
-      const auto& dest_path = it->second;
+      const auto& dest_path = it->second->getFile();
       if (!copy_raw_file(ctx, raw_path, dest_path, false)) {
         throw Error(
           fmt::format("Failed to copy raw file {} to {}", raw_path, dest_path));
@@ -388,7 +361,7 @@ write_embedded_file_entry(Context&,
                           const ResultFileMap::value_type& suffix_and_path)
 {
   auto type = UnderlyingFileTypeInt(suffix_and_path.first);
-  const auto& source_path = suffix_and_path.second;
+  const auto& source_path = suffix_and_path.second->getFile();
 
   uint64_t source_file_size =
     Stat::stat(source_path, Stat::OnError::throw_error).size();
@@ -428,7 +401,7 @@ write_raw_file_entry(Context& ctx,
                      const ResultFileMap::value_type& suffix_and_path)
 {
   auto type = UnderlyingFileTypeInt(suffix_and_path.first);
-  const auto& source_path = suffix_and_path.second;
+  const auto& source_path = suffix_and_path.second->getFile();
 
   uint64_t source_file_size =
     Stat::stat(source_path, Stat::OnError::throw_error).size();
@@ -488,7 +461,7 @@ write_result(Context& ctx,
   uint64_t payload_size = 0;
   payload_size += 1; // n_entries
   for (const auto& pair : result_file_map) {
-    const auto& result_file = pair.second;
+    const auto& result_file = pair.second->getFile();
     auto st = Stat::stat(result_file, Stat::OnError::throw_error);
     payload_size += 1;         // embedded_file_marker
     payload_size += 1;         // embedded_file_type
@@ -518,6 +491,38 @@ write_result(Context& ctx,
 
   writer.finalize();
   atomic_result_file.commit();
+}
+
+void WriteFd::write(int fd, const uint8_t* buf, size_t size, bool) const
+{
+  if (!write_fd(fd, buf, size)) {
+    throw Error(fmt::format("Failed to write to {}", mFile));
+  }
+}
+
+void ChangeDepWriteFd::write(int fd, const uint8_t* buf, size_t size, bool first) const
+{
+  if (first)
+  {
+    // Write the object file name
+    if (!write_fd(fd, mObjFile.data(), mObjFile.length())) {
+      throw Error(fmt::format("Failed to write to {}", getFile()));
+    }
+
+    for(size_t i = 0; i < size; i++) {
+      if (buf[i] == ':') {
+        // Write the rest line
+        if (!write_fd(fd, &buf[i], size-i)) {
+          throw Error(fmt::format("Failed to write to {}", getFile()));
+        }
+        break;
+      }
+    }
+  }
+  else
+  {
+    WriteFd::write(fd, buf, size, first);
+  }
 }
 
 bool

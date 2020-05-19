@@ -131,6 +131,8 @@ EOF
     TEST "Calculation of dependency file names"
 
     i=0
+    hit=-1
+    miss=1
     for ext in .o .obj "" . .foo.bar; do
         rm -rf testdir
         mkdir testdir
@@ -138,13 +140,15 @@ EOF
         dep_file=testdir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
 
         $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        expect_stat 'cache hit (direct)' $((2 * i))
-        expect_stat 'cache miss' $((2 * i + 1))
+        hit=$((hit + 1))
+        expect_stat 'cache hit (direct)' $hit
+        expect_stat 'cache miss' $miss
         rm -f $dep_file
 
         $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        expect_stat 'cache hit (direct)' $((2 * i + 1))
-        expect_stat 'cache miss' $((2 * i + 1))
+        hit=$((hit + 1))
+        expect_stat 'cache hit (direct)' $hit
+        expect_stat 'cache miss' $miss
         expect_file_exists $dep_file
         if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain \"test$ext:\""
@@ -152,13 +156,15 @@ EOF
 
         dep_target=foo.bar
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        expect_stat 'cache hit (direct)' $((2 * i + 1))
-        expect_stat 'cache miss' $((2 * i + 2))
+        miss=$((miss + 1))
+        expect_stat 'cache hit (direct)' $hit
+        expect_stat 'cache miss' $miss
         rm -f $dep_target
 
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        expect_stat 'cache hit (direct)' $((2 * i + 2))
-        expect_stat 'cache miss' $((2 * i + 2))
+        hit=$((hit + 1))
+        expect_stat 'cache hit (direct)' $hit
+        expect_stat 'cache miss' $miss
         expect_file_exists $dep_file
         if ! grep $dep_target $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain $dep_target"
@@ -166,7 +172,7 @@ EOF
 
         i=$((i + 1))
     done
-    expect_stat 'files in cache' $((4 * i))
+    expect_stat 'files in cache' $((2*i + 2))
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -182,6 +188,46 @@ EOF
 
     $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
     expect_file_content a/source.d "a/source.o: a/source.c"
+
+    # -------------------------------------------------------------------------
+    TEST "-MD: cache hits and miss and dependency"
+
+    touch test1.c
+
+    hit=0
+    src=test1.c
+    for dir1 in build1 build2 dir1/dir2/dir3; do 
+        mkdir -p $dir1
+        for name in test1 obj1 random2; do
+            obj=$dir1/$name.o
+            $CCACHE_COMPILE -MD -c $src -o $obj
+            dep=$(echo $obj | sed 's/\.o$/.d/')
+            expect_file_content $dep "$obj: $src"
+            expect_stat 'cache hit (direct)' $hit
+            expect_stat 'cache miss' 1
+            hit=$((hit + 1))
+        done
+    done
+
+    # -------------------------------------------------------------------------
+    TEST "-MMD: cache hits and miss and dependency"
+
+    touch test1.c
+
+    hit=0
+    src=test1.c
+    for dir1 in build1 build2 dir1/dir2/dir3; do 
+        mkdir -p $dir1
+        for name in test1 obj1 obj2; do
+            obj=$dir1/$name.o
+            $CCACHE_COMPILE -MMD -c $src -o $obj
+            dep=$(echo $obj | sed 's/\.o$/.d/')
+            expect_file_content $dep "$obj: $src"
+            expect_stat 'cache hit (direct)' $hit
+            expect_stat 'cache miss' 1
+            hit=$((hit + 1))
+        done
+    done
 
     # -------------------------------------------------------------------------
     TEST "Dependency file content"

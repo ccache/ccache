@@ -1076,14 +1076,11 @@ EOF
     mkdir build
     cp test1.c build
 
-    i=0
     for src in test1.c build/test1.c; do
         for obj in test1.o build/test1.o; do
-            i=$((i + 1))
             $CCACHE_COMPILE -c -MMD $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
             expect_file_content $dep "$obj: $src"
-            expect_stat 'cache miss' $i
         done
     done
 

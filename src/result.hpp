@@ -44,7 +44,29 @@ enum class FileType : UnderlyingFileTypeInt {
   dwarf_object = 6,
 };
 
-using ResultFileMap = std::map<FileType, std::string /*path*/>;
+class WriteFd {
+public:
+  WriteFd(std::string file) : mFile(file) {};
+  virtual ~WriteFd() {}
+  virtual void write(int fd, const uint8_t* buf, size_t size, bool first) const;
+  bool isDevNull(void) const { return (mFile == "/dev/null"); }
+  std::string getFile(void) const { return mFile; }
+private:
+  const std::string mFile;
+};
+
+class ChangeDepWriteFd : public WriteFd {
+public:
+  ChangeDepWriteFd(std::string file, std::string objFile) :
+    WriteFd(file), mObjFile(objFile) {};
+  virtual ~ChangeDepWriteFd() {}
+  virtual void write(int fd, const uint8_t* buf, size_t size, bool first) const;
+private:
+  const std::string mObjFile;
+};
+
+
+using ResultFileMap = std::map<FileType, WriteFd *>;
 
 bool result_get(const Context& ctx,
                 const std::string& path,

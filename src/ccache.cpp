@@ -1169,25 +1169,30 @@ to_cache(Context& ctx,
   }
   ResultFileMap result_file_map;
   if (st.size() > 0) {
-    result_file_map.emplace(FileType::stderr_output, tmp_stderr);
+    result_file_map.emplace(FileType::stderr_output, new WriteFd(tmp_stderr));
   }
-  result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
+  result_file_map.emplace(FileType::object, new WriteFd(ctx.args_info.output_obj));
   if (ctx.args_info.generating_dependencies) {
-    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
+    WriteFd *obj;
+    if (ctx.args_info.change_dep_file)
+      obj = new ChangeDepWriteFd(ctx.args_info.output_dep, ctx.args_info.output_obj);
+    else
+      obj = new WriteFd(ctx.args_info.output_dep);
+    result_file_map.emplace(FileType::dependency, obj);
   }
   if (ctx.args_info.generating_coverage) {
-    result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
+    result_file_map.emplace(FileType::coverage, new WriteFd(ctx.args_info.output_cov));
   }
   if (ctx.args_info.generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
+    result_file_map.emplace(FileType::stackusage, new WriteFd(ctx.args_info.output_su));
   }
   if (ctx.args_info.generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
+    result_file_map.emplace(FileType::diagnostic, new WriteFd(ctx.args_info.output_dia));
   }
   if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
     // Only copy .dwo file if it was created by the compiler (GCC and Clang
     // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
+    result_file_map.emplace(FileType::dwarf_object, new WriteFd(ctx.args_info.output_dwo));
   }
 
   auto orig_dest_stat = Stat::stat(ctx.result_path());
@@ -1486,7 +1491,7 @@ hash_common_info(const Context& ctx,
     hash_string(hash, dir_to_hash);
   }
 
-  if ((!ctx.args_info.seen_MD_MMD && ctx.args_info.generating_dependencies)
+  if ((!ctx.args_info.change_dep_file && ctx.args_info.generating_dependencies)
       || ctx.args_info.seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
@@ -1911,23 +1916,28 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   ResultFileMap result_file_map;
   if (ctx.args_info.output_obj != "/dev/null") {
-    result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
+    result_file_map.emplace(FileType::object, new WriteFd(ctx.args_info.output_obj));
     if (ctx.args_info.seen_split_dwarf) {
-      result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
+      result_file_map.emplace(FileType::dwarf_object, new WriteFd(ctx.args_info.output_dwo));
     }
   }
-  result_file_map.emplace(FileType::stderr_output, tmp_stderr);
+  result_file_map.emplace(FileType::stderr_output, new WriteFd(tmp_stderr));
   if (produce_dep_file) {
-    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
+    WriteFd *obj;
+    if (ctx.args_info.change_dep_file)
+      obj = new ChangeDepWriteFd(ctx.args_info.output_dep, ctx.args_info.output_obj);
+    else
+      obj = new WriteFd(ctx.args_info.output_dep);
+    result_file_map.emplace(FileType::dependency, obj);
   }
   if (ctx.args_info.generating_coverage) {
-    result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
+    result_file_map.emplace(FileType::coverage, new WriteFd(ctx.args_info.output_cov));
   }
   if (ctx.args_info.generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
+    result_file_map.emplace(FileType::stackusage, new WriteFd(ctx.args_info.output_su));
   }
   if (ctx.args_info.generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
+    result_file_map.emplace(FileType::diagnostic, new WriteFd(ctx.args_info.output_dia));
   }
   bool ok = result_get(ctx, ctx.result_path(), result_file_map);
   if (!ok) {
