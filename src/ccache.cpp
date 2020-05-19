@@ -1174,10 +1174,11 @@ to_cache(Context& ctx,
   result_file_map.emplace(FileType::object, new WriteFd(ctx.args_info.output_obj));
   if (ctx.args_info.generating_dependencies) {
     WriteFd *obj;
-    if (ctx.args_info.change_dep_file)
+    if (ctx.args_info.change_dep_file) {
       obj = new ChangeDepWriteFd(ctx.args_info.output_dep, ctx.args_info.output_obj);
-    else
+    } else {
       obj = new WriteFd(ctx.args_info.output_dep);
+    }
     result_file_map.emplace(FileType::dependency, obj);
   }
   if (ctx.args_info.generating_coverage) {
@@ -1924,10 +1925,11 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   result_file_map.emplace(FileType::stderr_output, new WriteFd(tmp_stderr));
   if (produce_dep_file) {
     WriteFd *obj;
-    if (ctx.args_info.change_dep_file)
+    if (ctx.args_info.change_dep_file) {
       obj = new ChangeDepWriteFd(ctx.args_info.output_dep, ctx.args_info.output_obj);
-    else
+    } else {
       obj = new WriteFd(ctx.args_info.output_dep);
+    }
     result_file_map.emplace(FileType::dependency, obj);
   }
   if (ctx.args_info.generating_coverage) {

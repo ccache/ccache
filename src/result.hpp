@@ -46,7 +46,7 @@ enum class FileType : UnderlyingFileTypeInt {
 
 class WriteFd {
 public:
-  WriteFd(std::string file) : mFile(file) {};
+  WriteFd(std::string file) : mFile(file) {}
   virtual ~WriteFd() {}
   virtual void write(int fd, const uint8_t* buf, size_t size, bool first) const;
   bool isDevNull(void) const { return (mFile == "/dev/null"); }
@@ -58,7 +58,7 @@ private:
 class ChangeDepWriteFd : public WriteFd {
 public:
   ChangeDepWriteFd(std::string file, std::string objFile) :
-    WriteFd(file), mObjFile(objFile) {};
+    WriteFd(file), mObjFile(objFile) {}
   virtual ~ChangeDepWriteFd() {}
   virtual void write(int fd, const uint8_t* buf, size_t size, bool first) const;
 private:

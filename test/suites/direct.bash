@@ -192,41 +192,58 @@ EOF
     # -------------------------------------------------------------------------
     TEST "-MD: cache hits and miss and dependency"
 
-    touch test1.c
 
     hit=0
     src=test1.c
+    touch $src
+    orig_dep=orig.d
     for dir1 in build1 build2 dir1/dir2/dir3; do 
         mkdir -p $dir1
         for name in test1 obj1 random2; do
             obj=$dir1/$name.o
-            $CCACHE_COMPILE -MD -c $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
-            expect_file_content $dep "$obj: $src"
+            $REAL_COMPILER -MD -c $src -o $obj
+            mv $dep $orig_dep
+            rm $obj
+
+            $CCACHE_COMPILE -MD -c $src -o $obj
+            expect_equal_files $dep $orig_dep
             expect_stat 'cache hit (direct)' $hit
             expect_stat 'cache miss' 1
             hit=$((hit + 1))
+
+            rm $orig_dep
         done
+        rm -rf $dir1
     done
 
     # -------------------------------------------------------------------------
     TEST "-MMD: cache hits and miss and dependency"
 
-    touch test1.c
 
     hit=0
-    src=test1.c
+    src=test2.c
+    touch $src
+    orig_dep=orig.d
     for dir1 in build1 build2 dir1/dir2/dir3; do 
         mkdir -p $dir1
-        for name in test1 obj1 obj2; do
+        for name in test2 obj1 obj2; do
             obj=$dir1/$name.o
+            dep=$(echo $obj | sed 's/\.o$/.d/')
+            $REAL_COMPILER -MMD -c $src -o $obj
+            mv $dep $orig_dep
+            rm $obj
+
             $CCACHE_COMPILE -MMD -c $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
             expect_file_content $dep "$obj: $src"
             expect_stat 'cache hit (direct)' $hit
             expect_stat 'cache miss' 1
             hit=$((hit + 1))
+
+            rm $orig_dep
         done
+        rm -rf $dir1
     done
 
     # -------------------------------------------------------------------------
