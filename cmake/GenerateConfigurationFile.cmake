@@ -25,9 +25,7 @@ foreach(
   check_function_exists(${func} ${func_var})
 endforeach()
 
-include(CheckSymbolExists)
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
-check_symbol_exists(gethostname winsock2.h HAVE_GETHOSTNAME)
 list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
 
 include(CheckTypeSize)
