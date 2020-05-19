@@ -852,26 +852,25 @@ to_cache(Context& ctx,
 
   cc_log("Running real compiler");
   MTR_BEGIN("execute", "compiler");
-  char* tmp_stdout;
-  int tmp_stdout_fd;
-  char* tmp_stderr;
-  int tmp_stderr_fd;
+
+  const auto tmp_stdout_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stdout", ctx.config.temporary_dir()));
+  int tmp_stdout_fd = tmp_stdout_fd_and_path.first;
+  const std::string& tmp_stdout = tmp_stdout_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stdout);
+
+  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
+  int tmp_stderr_fd = tmp_stderr_fd_and_path.first;
+  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stderr);
+
   int status;
   if (!ctx.config.depend_mode()) {
-    tmp_stdout = format("%s/tmp.stdout", ctx.config.temporary_dir().c_str());
-    tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
-    tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(
       args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &ctx.compiler_pid);
     args.pop_back(3);
   } else {
-    // The cached result path is not known yet, use temporary files.
-    tmp_stdout = format("%s/tmp.stdout", ctx.config.temporary_dir().c_str());
-    tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
-    tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
     // Use the original arguments (including dependency options) in depend
     // mode.
     Args depend_mode_args = ctx.orig_args;
@@ -890,8 +889,6 @@ to_cache(Context& ctx,
   auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
-    Util::unlink_tmp(tmp_stdout);
-    Util::unlink_tmp(tmp_stderr);
     failed(STATS_MISSING);
   }
 
@@ -899,66 +896,29 @@ to_cache(Context& ctx,
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
     cc_log("Compiler produced stdout");
-    Util::unlink_tmp(tmp_stdout);
-    Util::unlink_tmp(tmp_stderr);
     failed(STATS_STDOUT);
   }
-  Util::unlink_tmp(tmp_stdout);
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler into tmp_stderr.
   if (!ctx.cpp_stderr.empty()) {
-    char* tmp_stderr2 = format("%s.2", tmp_stderr);
-    if (x_rename(tmp_stderr, tmp_stderr2)) {
-      cc_log("Failed to rename %s to %s: %s",
-             tmp_stderr,
-             tmp_stderr2,
-             strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_cpp_stderr = open(ctx.cpp_stderr.c_str(), O_RDONLY | O_BINARY);
-    if (fd_cpp_stderr == -1) {
-      cc_log("Failed opening %s: %s", ctx.cpp_stderr.c_str(), strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
-    if (fd_real_stderr == -1) {
-      cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_result =
-      open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
-    if (fd_result == -1) {
-      cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    copy_fd(fd_cpp_stderr, fd_result);
-    copy_fd(fd_real_stderr, fd_result);
-    close(fd_cpp_stderr);
-    close(fd_real_stderr);
-    close(fd_result);
-    Util::unlink_tmp(tmp_stderr2);
-    free(tmp_stderr2);
+    std::string combined_stderr =
+      Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr);
+    Util::write_file(tmp_stderr, combined_stderr);
   }
 
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
 
-    int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
+    int fd = open(tmp_stderr.c_str(), O_RDONLY | O_BINARY);
     if (fd != -1) {
       // We can output stderr immediately instead of rerunning the compiler.
       copy_fd(fd, 2);
       close(fd);
-      Util::unlink_tmp(tmp_stderr);
 
       failed(STATS_STATUS, status);
     }
 
-    Util::unlink_tmp(tmp_stderr);
     failed(STATS_STATUS);
   }
 
@@ -1052,11 +1012,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  send_cached_stderr(tmp_stderr);
-  Util::unlink_tmp(tmp_stderr);
-
-  free(tmp_stderr);
-  free(tmp_stdout);
+  send_cached_stderr(tmp_stderr.c_str());
 }
 
 // Find the result name by running the compiler in preprocessor mode and
@@ -1727,10 +1683,11 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   MTR_BEGIN("file", "file_get");
 
   // Get result from cache.
-  char* tmp_stderr =
-    format("%s/tmp.stderr", ctx.config.temporary_dir().c_str());
-  int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-  close(tmp_stderr_fd);
+  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
+  close(tmp_stderr_fd_and_path.first);
+  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stderr);
 
   ResultFileMap result_file_map;
   if (ctx.args_info.output_obj != "/dev/null") {
@@ -1755,17 +1712,12 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   bool ok = result_get(ctx, ctx.result_path(), result_file_map);
   if (!ok) {
     cc_log("Failed to get result from cache");
-    Util::unlink_tmp(tmp_stderr);
-    free(tmp_stderr);
     return nullopt;
   }
 
   MTR_END("file", "file_get");
 
-  send_cached_stderr(tmp_stderr);
-
-  Util::unlink_tmp(tmp_stderr);
-  free(tmp_stderr);
+  send_cached_stderr(tmp_stderr.c_str());
 
   cc_log("Succeeded getting cached result");
 
