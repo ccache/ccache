@@ -12,9 +12,11 @@ add_library(
   Counters.cpp
   Decompressor.cpp
   Lockfile.cpp
+  MiniTrace.cpp
   NullCompressor.cpp
   NullDecompressor.cpp
   ProgressBar.cpp
+  SignalHandler.cpp
   Stat.cpp
   Util.cpp
   ZstdCompressor.cpp
@@ -25,7 +27,6 @@ add_library(
   compopt.cpp
   compress.cpp
   execute.cpp
-  exitfn.cpp
   hash.cpp
   hashutil.cpp
   language.cpp

@@ -1,6 +1,7 @@
 add_executable(
   unittest
   TestUtil.cpp
+  catch2_tests.cpp
   main.cpp
   test_Args.cpp
   test_AtomicFile.cpp
