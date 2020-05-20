@@ -2892,9 +2892,13 @@ cc_process_args(struct args *args,
 			continue;
 		}
 
-		if (str_eq(argv[i], "-xHost")) {
-			// -xHost is an ordinary Intel compiler option, not a language
-			// specification.
+		if (strlen(argv[i]) >= 3
+		    && str_startswith(argv[i], "-x")
+		    && !islower(argv[i][2])) {
+			// -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with
+			// an uppercase letter) is an ordinary Intel compiler option, not a
+			// language specification. (GCC's "-x" language argument is always
+			// lowercase.)
 			args_add(common_args, argv[i]);
 			continue;
 		}
