@@ -1,3 +1,10 @@
+# This .clang-tidy file is used by CI to ensure that commits do not worsen the
+# codebase. The checks and values below are the minimum standard for new code.
+# (Without claiming that they are 100% correct. They can be modified on demand!)
+# If you want to improve the codebase try enabling some additional checks or
+# playing with the configuration values.
+# Some checks are highly style dependent. Activating all of them is NOT the goal.
+
 ---
 Checks:          '-*,readability-function-size'
 WarningsAsErrors: '*'
@@ -11,7 +18,7 @@ CheckOptions:
   # Note: some limits "disabled" due to TEST_SUITE macro.
   # The macro generates hundreds of statements, branches and variables.
   - key:             readability-function-size.LineThreshold
-    value:           130
+    value:           200
   - key:             readability-function-size.StatementThreshold
     value:           999999
   - key:             readability-function-size.ParameterThreshold

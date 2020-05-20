@@ -440,38 +440,99 @@ TEST_CASE("Util::normalize_absolute_path")
 #endif
 }
 
-TEST_CASE("Util::parse_int")
+TEST_CASE("Util::stoi<int>")
 {
-  CHECK(Util::parse_int("0") == 0);
-  CHECK(Util::parse_int("2") == 2);
-  CHECK(Util::parse_int("-17") == -17);
-  CHECK(Util::parse_int("42") == 42);
-  CHECK(Util::parse_int("0666") == 666);
-  CHECK(Util::parse_int(" 777") == 777);
+  CHECK(Util::stoi<int>("0") == 0);
+  CHECK(Util::stoi<int>("2") == 2);
+  CHECK(Util::stoi<int>("-17") == -17);
+  CHECK(Util::stoi<int>("42") == 42);
+  CHECK(Util::stoi<int>("0666") == 666);
+  CHECK(Util::stoi<int>(" 777") == 777);
 
-  CHECK_THROWS_WITH(Util::parse_int(""), Equals("invalid integer: \"\""));
-  CHECK_THROWS_WITH(Util::parse_int("x"), Equals("invalid integer: \"x\""));
-  CHECK_THROWS_WITH(Util::parse_int("0x"), Equals("invalid integer: \"0x\""));
-  CHECK_THROWS_WITH(Util::parse_int("0x4"), Equals("invalid integer: \"0x4\""));
-  CHECK_THROWS_WITH(Util::parse_int("0 "), Equals("invalid integer: \"0 \""));
+  CHECK_THROWS_WITH(Util::stoi<int>(""), Equals("invalid number: \"\""));
+  CHECK_THROWS_WITH(Util::stoi<int>("x"), Equals("invalid number: \"x\""));
+  CHECK_THROWS_WITH(Util::stoi<int>("0x"),
+                    Equals("invalid number (no suffix allowed): \"0x\""));
+  CHECK_THROWS_WITH(Util::stoi<int>("0x4"),
+                    Equals("invalid number (no suffix allowed): \"0x4\""));
+  CHECK_THROWS_WITH(Util::stoi<int>("0 "),
+                    Equals("invalid number (no suffix allowed): \"0 \""));
 
   // check boundary values
   if (sizeof(int) == 2) {
-    CHECK(Util::parse_int("-32768") == -32768);
-    CHECK(Util::parse_int("32767") == 32767);
-    CHECK_THROWS_WITH(Util::parse_int("-32768"),
-                      Equals("invalid integer: \"-32768\""));
-    CHECK_THROWS_WITH(Util::parse_int("32768"),
-                      Equals("invalid integer: \"32768\""));
+    CHECK(Util::stoi<int>("-32768") == -32768);
+    CHECK(Util::stoi<int>("32767") == 32767);
+    CHECK_THROWS_WITH(Util::stoi<int>("-32768"),
+                      Equals("invalid number: \"-32768\""));
+    CHECK_THROWS_WITH(Util::stoi<int>("32768"),
+                      Equals("invalid number: \"32768\""));
   }
   if (sizeof(int) == 4) {
-    CHECK(Util::parse_int("-2147483648") == -2147483648);
-    CHECK(Util::parse_int("2147483647") == 2147483647);
-    CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
-                      Equals("invalid integer: \"-2147483649\""));
-    CHECK_THROWS_WITH(Util::parse_int("2147483648"),
-                      Equals("invalid integer: \"2147483648\""));
+    CHECK(Util::stoi<int>("-2147483648") == -2147483648);
+    CHECK(Util::stoi<int>("2147483647") == 2147483647);
+    CHECK_THROWS_WITH(Util::stoi<int>("-2147483649"),
+                      Equals("invalid number: \"-2147483649\""));
+    CHECK_THROWS_WITH(Util::stoi<int>("2147483648"),
+                      Equals("invalid number: \"2147483648\""));
   }
+}
+
+TEST_CASE("Util::stoi<unsigned>")
+{
+  CHECK(Util::stoi<unsigned>("0") == 0);
+  CHECK(Util::stoi<unsigned>("2") == 2);
+  CHECK(Util::stoi<unsigned>("42") == 42);
+  CHECK(Util::stoi<unsigned>("0666") == 666);
+  CHECK(Util::stoi<unsigned>(" 777") == 777);
+
+  CHECK_THROWS_WITH(Util::stoi<unsigned>("-17"),
+                    Equals("invalid number (negative value passed "
+                           "where positive was expected): \"-17\""));
+
+  CHECK_THROWS_WITH(Util::stoi<unsigned>(""), Equals("invalid number: \"\""));
+  CHECK_THROWS_WITH(Util::stoi<unsigned>("x"), Equals("invalid number: \"x\""));
+  CHECK_THROWS_WITH(Util::stoi<unsigned>("0x"),
+                    Equals("invalid number (no suffix allowed): \"0x\""));
+  CHECK_THROWS_WITH(Util::stoi<unsigned>("0x4"),
+                    Equals("invalid number (no suffix allowed): \"0x4\""));
+  CHECK_THROWS_WITH(Util::stoi<unsigned>("0 "),
+                    Equals("invalid number (no suffix allowed): \"0 \""));
+
+  // check boundary values
+  if (sizeof(unsigned) == 2) {
+    CHECK(Util::stoi<unsigned>("65535") == 65535);
+    CHECK_THROWS_WITH(Util::stoi<unsigned>("65535"),
+                      Equals("invalid number: \"65536\""));
+  }
+  if (sizeof(unsigned) == 4) {
+    CHECK(Util::stoi<unsigned>("4294967295") == 4294967295);
+    CHECK_THROWS_WITH(Util::stoi<unsigned>("4294967296"),
+                      Equals("invalid number: \"4294967296\""));
+  }
+}
+
+TEST_CASE("Util::stoi<int8_t>")
+{
+  CHECK(Util::stoi<int8_t>("0") == 0);
+  CHECK(Util::stoi<int8_t>("2") == 2);
+  CHECK(Util::stoi<int8_t>("-17") == -17);
+  CHECK(Util::stoi<int8_t>("42") == 42);
+
+  CHECK_THROWS_WITH(Util::stoi<int8_t>(""), Equals("invalid number: \"\""));
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("x"), Equals("invalid number: \"x\""));
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("0x"),
+                    Equals("invalid number (no suffix allowed): \"0x\""));
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("0x4"),
+                    Equals("invalid number (no suffix allowed): \"0x4\""));
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("0 "),
+                    Equals("invalid number (no suffix allowed): \"0 \""));
+
+  CHECK(Util::stoi<int8_t>("-128") == -128);
+  CHECK(Util::stoi<int8_t>("127") == 127);
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("-129"),
+                    Equals("invalid number (out of range): \"-129\""));
+  CHECK_THROWS_WITH(Util::stoi<int8_t>("128"),
+                    Equals("invalid number (out of range): \"128\""));
 }
 
 TEST_CASE("Util::read_file and Util::write_file")

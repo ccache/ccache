@@ -3,9 +3,7 @@
 # (Without claiming that they are 100% correct. They can be modified on demand!)
 # If you want to improve the codebase try enabling some additional checks or
 # playing with the configuration values.
-#
-# Some checks are highly style dependent. The goal is NOT to activate all of
-# them.
+# Some checks are highly style dependent. Activating all of them is NOT the goal.
 
 ---
 Checks:          '-*,

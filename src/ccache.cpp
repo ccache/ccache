@@ -2308,7 +2308,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'F': { // --max-files
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", optarg);
-      unsigned files = atoi(optarg);
+      const unsigned files = Util::stoi<unsigned>(optarg, "max files");
       if (files == 0) {
         printf("Unset cache file limit\n");
       } else {
@@ -2372,10 +2372,7 @@ handle_main_options(int argc, const char* const* argv)
       if (std::string(optarg) == "uncompressed") {
         level = 0;
       } else {
-        level = Util::parse_int(optarg);
-        if (level < -128 || level > 127) {
-          throw Error("compression level must be between -128 and 127");
-        }
+        level = Util::stoi<int8_t>(optarg, "compression level");
         if (level == 0) {
           level = ctx.config.compression_level();
         }

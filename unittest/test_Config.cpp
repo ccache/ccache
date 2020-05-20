@@ -235,19 +235,37 @@ TEST_CASE("Config::update_from_file, error handling")
   SECTION("invalid unsigned")
   {
     Util::write_file("ccache.conf", "max_files =");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"\""));
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        Equals("ccache.conf:1: invalid number: \"\""));
 
     Util::write_file("ccache.conf", "max_files = -42");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"-42\""));
+      Equals("ccache.conf:1: invalid number (negative value passed "
+             "where positive was expected): \"-42\""));
 
     Util::write_file("ccache.conf", "max_files = foo");
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        Equals("ccache.conf:1: invalid number: \"foo\""));
+  }
+
+  SECTION("invalid compression_level")
+  {
+    Util::write_file("ccache.conf", "compression_level =");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"foo\""));
+      Equals("ccache.conf:1: invalid compression level: \"\""));
+
+    Util::write_file("ccache.conf", "compression_level = -400");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      Equals(
+        "ccache.conf:1: invalid compression level (out of range): \"-400\""));
+
+    Util::write_file("ccache.conf", "compression_level = foo");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      Equals("ccache.conf:1: invalid compression level: \"foo\""));
   }
 
   SECTION("missing file")

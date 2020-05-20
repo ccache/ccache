@@ -342,23 +342,6 @@ format_umask(uint32_t umask)
   }
 }
 
-unsigned
-parse_unsigned(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-  if (failed || end != value.size() || result < 0) {
-    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
-  }
-  return result;
-}
-
 void
 verify_absolute_path(const std::string& value)
 {
@@ -693,7 +676,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir_levels:
-    m_cache_dir_levels = parse_unsigned(value);
+    m_cache_dir_levels = Util::stoi<uint32_t>(value, "cache directory levels");
     if (m_cache_dir_levels < 1 || m_cache_dir_levels > 8) {
       throw Error("cache directory levels must be between 1 and 8");
     }
@@ -712,11 +695,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level: {
-    auto level = Util::parse_int(value);
-    if (level < -128 || level > 127) {
-      throw Error("compression level must be between -128 and 127");
-    }
-    m_compression_level = level;
+    m_compression_level = Util::stoi<int8_t>(value, "compression level");
     break;
   }
 
@@ -773,7 +752,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = parse_unsigned(value);
+    m_max_files = Util::stoi<uint32_t>(value);
     break;
 
   case ConfigItem::max_size:

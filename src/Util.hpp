@@ -27,6 +27,7 @@
 
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -238,10 +239,55 @@ bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
 // On Windows: Backslashes are replaced with forward slashes.
 std::string normalize_absolute_path(nonstd::string_view path);
 
-// Parse a string into an integer.
-//
-// Throws Error on error.
-int parse_int(const std::string& value);
+/// Parse a string into an integer.
+/// Integer type must be passed as template parameter.
+///
+/// Pass a human readable error_string for better error messages.
+/// Function will throw Error on error.
+template<class IntType>
+IntType
+stoi(const std::string& value, const char* const error_string = "number")
+{
+  // Don't treat int8_t as ASCII char.
+  if (std::is_same<IntType, int8_t>::value
+      || std::is_same<IntType, uint8_t>::value) {
+    const int temp = Util::stoi<int>(value, error_string);
+    if (temp < static_cast<int>(std::numeric_limits<IntType>::min())
+        || temp > static_cast<int>(std::numeric_limits<IntType>::max())) {
+      throw Error(
+        fmt::format("invalid {} (out of range): \"{}\"", error_string, value));
+    }
+    return temp;
+  }
+
+  // Stream operator doesn't handle negative values for unsigned types.
+  if (std::is_unsigned<IntType>::value && value[0] == '-')
+    throw Error(fmt::format(
+      "invalid {} (negative value passed where positive was expected): \"{}\"",
+      error_string,
+      value));
+
+  std::istringstream ss(value);
+  IntType result;
+  try {
+    ss >> result;
+  } catch (...) {
+    // Internal error in Stream operator (rare).
+    throw Error(
+      fmt::format("invalid {} (exception): \"{}\"", error_string, value));
+  }
+
+  // Invalid format etc.
+  if (!ss)
+    throw Error(fmt::format("invalid {}: \"{}\"", error_string, value));
+
+  // Not entire string has been parsed.
+  if (!ss.eof())
+    throw Error(fmt::format(
+      "invalid {} (no suffix allowed): \"{}\"", error_string, value));
+
+  return result;
+}
 
 // Read file data as a string.
 //

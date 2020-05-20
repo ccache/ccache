@@ -512,23 +512,6 @@ normalize_absolute_path(string_view path)
 #endif
 }
 
-int
-parse_int(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-  try {
-    result = std::stoi(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-  if (failed || end != value.size()) {
-    throw Error(fmt::format("invalid integer: \"{}\"", value));
-  }
-  return result;
-}
-
 std::string
 read_file(const std::string& path)
 {
