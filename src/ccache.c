@@ -1237,7 +1237,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 			}
 		}
 		if (!do_link) {
-			int ret = copy_file(source, dest, compression_level);
+			int ret = copy_file(source, dest, compression_level, true);
 			if (ret != 0) {
 				cc_log("Failed to copy %s to %s: %s", source, dest, strerror(errno));
 				stats_update(STATS_ERROR);
@@ -1307,7 +1307,7 @@ do_copy_or_link_file_from_cache(const char *source, const char *dest, bool copy)
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		ret = copy_file(source, dest, 0);
+		ret = copy_file(source, dest, 0, false);
 	}
 
 	if (ret == -1) {

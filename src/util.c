@@ -315,18 +315,34 @@ get_umask(void)
 // whether dest will be compressed, and with which compression level. Returns 0
 // on success and -1 on failure. On failure, errno represents the error.
 int
-copy_file(const char *src, const char *dest, int compress_level)
+copy_file(const char *src,
+          const char *dest,
+          int compress_level,
+          bool via_tmp_file)
 {
 	int fd_out;
+	char *tmp_name = NULL;
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
 
 	// Open destination file.
-	char *tmp_name = x_strdup(dest);
-	fd_out = create_tmp_fd(&tmp_name);
-	cc_log("Copying %s to %s via %s (%scompressed)",
-	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+	if (via_tmp_file) {
+		tmp_name = x_strdup(dest);
+		fd_out = create_tmp_fd(&tmp_name);
+		cc_log("Copying %s to %s via %s (%scompressed)",
+		       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+	} else {
+		fd_out = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+		if (fd_out == -1) {
+			saved_errno = errno;
+			close(fd_out);
+			errno = saved_errno;
+			return -1;
+		}
+		cc_log("Copying %s to %s (%scompressed)",
+		       src, dest, compress_level > 0 ? "" : "un");
+	}
 
 	// Open source file.
 	int fd_in = open(src, O_RDONLY | O_BINARY);
@@ -410,8 +426,10 @@ copy_file(const char *src, const char *dest, int compress_level)
 			gzclose(gz_out);
 		}
 		close(fd_out);
-		tmp_unlink(tmp_name);
-		free(tmp_name);
+		if (via_tmp_file) {
+			tmp_unlink(tmp_name);
+			free(tmp_name);
+		}
 		return -1;
 	}
 
@@ -433,13 +451,15 @@ copy_file(const char *src, const char *dest, int compress_level)
 		goto error;
 	}
 
-	if (x_rename(tmp_name, dest) == -1) {
-		saved_errno = errno;
-		cc_log("rename error: %s", strerror(saved_errno));
-		goto error;
-	}
+	if (via_tmp_file) {
+		if (x_rename(tmp_name, dest) == -1) {
+			saved_errno = errno;
+			cc_log("rename error: %s", strerror(saved_errno));
+			goto error;
+		}
 
-	free(tmp_name);
+		free(tmp_name);
+	}
 
 	return 0;
 
@@ -453,8 +473,10 @@ error:
 	if (fd_out != -1) {
 		close(fd_out);
 	}
-	tmp_unlink(tmp_name);
-	free(tmp_name);
+	if (via_tmp_file) {
+		tmp_unlink(tmp_name);
+		free(tmp_name);
+	}
 	errno = saved_errno;
 	return -1;
 }
@@ -463,7 +485,7 @@ error:
 int
 move_file(const char *src, const char *dest, int compress_level)
 {
-	int ret = copy_file(src, dest, compress_level);
+	int ret = copy_file(src, dest, compress_level, true);
 	if (ret != -1) {
 		x_unlink(src);
 	}

@@ -149,7 +149,8 @@ void fatal(const char *format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
 void warn(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 void copy_fd(int fd_in, int fd_out);
-int copy_file(const char *src, const char *dest, int compress_level);
+int copy_file(const char *src, const char *dest, int compress_level,
+              bool via_tmp_file);
 int move_file(const char *src, const char *dest, int compress_level);
 int move_uncompressed_file(const char *src, const char *dest,
                            int compress_level);
