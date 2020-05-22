@@ -109,6 +109,74 @@ copy_fd(int fd_in, int fd_out, bool fd_in_is_file)
   return true;
 }
 
+// Copy all data from fd_in to fd_out, omitting any ANSI CSI escape sequences
+// whose action character is in the specified set.
+bool
+copy_fd_strip_csi_seqs(int fd_in, int fd_out, const char* strip_actions)
+{
+  ssize_t n;
+  char buf[READ_BUFFER_SIZE];
+  char* out = buf, * in = buf, * esc = nullptr;
+
+  while ((n = read(fd_in, in, std::end(buf) - in)) > 0) {
+    char* end = in + n;
+    if (esc) {
+      if (in > esc + 1) {
+        goto csi; // seen ESC [
+      }
+      goto esc; // seen ESC
+    }
+    while ((esc = static_cast<char*>(memchr(in, '\x1B', end - in)))) {
+      if (out != in) {
+        memmove(out, in, esc - in);
+      }
+      out += esc - in, in = esc;
+      if (++in == end) {
+        in = esc, esc = buf;
+        goto slide;
+      }
+esc:
+      if (*in == '[') {
+        do {
+          if (++in == end) {
+            in = esc, esc = buf;
+            goto slide;
+          }
+csi:;
+        } while ((*in & 0xE0) == 0x20); // 0x20..0x3F
+        if (strchr(strip_actions, *in)) {
+          ++in;
+          continue;
+        }
+      }
+      if (out != esc) {
+        memmove(out, esc, in - esc);
+      }
+      out += in - esc;
+    }
+    if (out != in) {
+      memmove(out, in, end - in);
+    }
+    out += end - in, in = end;
+slide:
+    if (out > buf && !write_fd(fd_out, buf, out - buf)) {
+      return false;
+    }
+    if (buf != in) {
+      memmove(buf, in, end - in);
+    }
+    out = buf, in = buf + (end - in);
+    if (in == std::end(buf)) {
+      // pathological case: an apparent CSI sequence is longer than
+      // READ_BUFFER_SIZE; punt and pass it through
+      out = in, esc = nullptr;
+      goto slide;
+    }
+  }
+
+  return n == 0;
+}
+
 #ifndef HAVE_MKSTEMP
 // Cheap and nasty mkstemp replacement.
 int
