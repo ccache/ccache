@@ -21,10 +21,13 @@
 #include "../src/InodeCache.hpp"
 #include "../src/Util.hpp"
 #include "../src/hash.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED
+
+using TestUtil::TestContext;
 
 namespace {
 
@@ -59,6 +62,8 @@ put(const Context& ctx, const char* filename, const char* s, int return_value)
 
 TEST_CASE("Test disabled")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(false);
@@ -77,6 +82,8 @@ TEST_CASE("Test disabled")
 
 TEST_CASE("Test lookup nonexistent")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
@@ -95,6 +102,8 @@ TEST_CASE("Test lookup nonexistent")
 
 TEST_CASE("Test put and lookup")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
@@ -135,6 +144,8 @@ TEST_CASE("Test put and lookup")
 
 TEST_CASE("Drop file")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
@@ -147,6 +158,8 @@ TEST_CASE("Drop file")
 
 TEST_CASE("Test content type")
 {
+  TestContext test_context;
+
   Context ctx;
   ctx.config.set_debug(true);
   ctx.inode_cache.drop();
