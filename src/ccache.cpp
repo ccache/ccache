@@ -1899,12 +1899,7 @@ set_up_uncached_err()
     failed(STATS_ERROR);
   }
 
-  // Leak a pointer to the environment.
-  char* buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
-  if (putenv(buf) == -1) {
-    cc_log("putenv failed: %s", strerror(errno));
-    failed(STATS_ERROR);
-  }
+  x_setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd).c_str());
 }
 
 static void
