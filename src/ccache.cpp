@@ -915,11 +915,9 @@ to_cache(Context& ctx,
       // We can output stderr immediately instead of rerunning the compiler.
       copy_fd(fd, 2);
       close(fd);
-
-      failed(STATS_STATUS, status);
     }
 
-    failed(STATS_STATUS);
+    failed(STATS_STATUS, status);
   }
 
   if (ctx.config.depend_mode()) {

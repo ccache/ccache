@@ -170,6 +170,7 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint32_t levels,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
+
 // Return a shortened view into the base name of `path`. This view starts at the
 // beginning of the base name and ends at either the position the first dot, or
 // `max_length`, or the length of the base name, whichever is the shortest.
