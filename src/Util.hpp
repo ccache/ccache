@@ -41,6 +41,8 @@ using SubdirVisitor =
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
+enum class UnlinkLog { log_failure, ignore_failure };
+
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
 
@@ -305,18 +307,35 @@ strip_whitespace(const std::string& string);
 // Throws Error on error.
 void traverse(const std::string& path, const TraverseVisitor& visitor);
 
+// Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_safe(const std::string& path,
+                 UnlinkLog unlink_log = UnlinkLog::log_failure);
+
+// Remove `path` (non-directory), NFS hazardous. Use only for files that will
+// not exist on other systems. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_tmp(const std::string& path,
+                UnlinkLog unlink_log = UnlinkLog::log_failure);
+
 // Remove `path` (and its contents if it's a directory). A non-existing path is
 // not considered an error.
 //
 // Throws Error on error.
 void wipe_path(const std::string& path);
 
-// Write file data from a string.
+// Write file data from a string. The file will be opened according to
+// `open_mode`, which always will include `std::ios::out` even if not specified
+// at the call site.
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
 void write_file(const std::string& path,
                 const std::string& data,
-                bool binary = false);
+                std::ios_base::openmode open_mode = std::ios::out);
 
 } // namespace Util

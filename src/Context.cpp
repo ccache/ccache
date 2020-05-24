@@ -19,8 +19,11 @@
 #include "Context.hpp"
 
 #include "Counters.hpp"
+#include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
+#include "logging.hpp"
+#include "stats.hpp"
 
 using nonstd::string_view;
 
@@ -32,6 +35,18 @@ Context::Context()
     inode_cache(config)
 #endif
 {
+}
+
+Context::~Context()
+{
+  stats_flush(this);
+  unlink_pending_tmp_files();
+
+  // Dump log buffer last to not lose any logs.
+  if (config.debug()) {
+    std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
+    cc_dump_debug_log_buffer(path.c_str());
+  }
 }
 
 void
@@ -74,4 +89,33 @@ Context::set_path_and_stats_file(const struct digest& name,
     config.cache_dir(), config.cache_dir_levels(), name_string, suffix);
   stats_file_var =
     fmt::format("{}/{}/stats", config.cache_dir(), name_string[0]);
+}
+
+void
+Context::register_pending_tmp_file(const std::string& path)
+{
+  SignalHandlerBlocker signal_handler_blocker;
+
+  m_pending_tmp_files.push_back(path);
+}
+
+void
+Context::unlink_pending_tmp_files_signal_safe()
+{
+  for (const std::string& path : m_pending_tmp_files) {
+    // Don't call Util::unlink_tmp since its cc_log calls aren't signal safe.
+    unlink(path.c_str());
+  }
+  // Don't clear m_pending_tmp_files since this method must be signal safe.
+}
+
+void
+Context::unlink_pending_tmp_files()
+{
+  SignalHandlerBlocker signal_handler_blocker;
+
+  for (const std::string& path : m_pending_tmp_files) {
+    Util::unlink_tmp(path, Util::UnlinkLog::ignore_failure);
+  }
+  m_pending_tmp_files.clear();
 }

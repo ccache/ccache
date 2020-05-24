@@ -120,7 +120,6 @@ AC_CHECK_HEADERS(linux/fs.h)
 AC_CHECK_HEADERS(sys/clonefile.h)
 
 AC_CHECK_FUNCS(asctime_r)
-AC_CHECK_FUNCS(gethostname)
 AC_CHECK_FUNCS(getopt_long)
 AC_CHECK_FUNCS(getpwuid)
 AC_CHECK_FUNCS(gettimeofday)

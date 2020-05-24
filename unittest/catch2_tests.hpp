@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,14 +18,4 @@
 
 #pragma once
 
-#ifdef _WIN32
-#  include "system.hpp"
-
-#  include <string>
-
-std::string win32_error_message(DWORD error_code);
-
-BOOL
-GetFileNameFromHandle(HANDLE file_handle, TCHAR* filename, WORD cch_filename);
-
-#endif
+int run_catch2_tests(int argc, char** argv);

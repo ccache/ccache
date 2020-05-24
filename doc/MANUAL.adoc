@@ -382,7 +382,7 @@ Semantics of *compression_level*:
     the *zstd* command line tool.
 *0* (default)::
     The value *0* means that ccache will choose a suitable level, currently
-    *-1*.
+    *1*.
 --
 
 [[config_cpp_extension]] *cpp_extension* (*CCACHE_EXTENSION*)::

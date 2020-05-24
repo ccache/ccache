@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,66 +20,27 @@
 
 #include "system.hpp"
 
-#include "NonCopyable.hpp"
+#include "signal.h"
 
-#include <cstdio>
-#include <string>
+class Context;
 
-class File : public NonCopyable
+class SignalHandler
 {
 public:
-  File() = default;
+  SignalHandler(Context& ctx);
+  ~SignalHandler();
 
-  File(const std::string& path, const char* mode)
-  {
-    open(path, mode);
-  }
-
-  File(File&& other) : m_file(other.m_file)
-  {
-    other.m_file = nullptr;
-  }
-
-  File&
-  operator=(File&& other)
-  {
-    m_file = other.m_file;
-    other.m_file = nullptr;
-    return *this;
-  }
-
-  void
-  open(const std::string& path, const char* mode)
-  {
-    close();
-    m_file = fopen(path.c_str(), mode);
-  }
-
-  void
-  close()
-  {
-    if (m_file) {
-      fclose(m_file);
-      m_file = nullptr;
-    }
-  }
-
-  ~File()
-  {
-    close();
-  }
-
-  operator bool() const
-  {
-    return m_file;
-  }
-
-  FILE*
-  get()
-  {
-    return m_file;
-  }
+  static void on_signal(int signum);
+  static void block_signals();
+  static void unblock_signals();
 
 private:
-  FILE* m_file = nullptr;
+  Context& m_ctx;
+};
+
+class SignalHandlerBlocker
+{
+public:
+  SignalHandlerBlocker();
+  ~SignalHandlerBlocker();
 };

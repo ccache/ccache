@@ -500,6 +500,14 @@ TEST_CASE("Util::read_file and Util::write_file")
   std::string data = Util::read_file("test");
   CHECK(data == "foo\nbar\n");
 
+  Util::write_file("test", "car");
+  data = Util::read_file("test");
+  CHECK(data == "car");
+
+  Util::write_file("test", "pet", std::ios::app);
+  data = Util::read_file("test");
+  CHECK(data == "carpet");
+
   CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
                     Equals("No such file or directory"));
 

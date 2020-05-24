@@ -701,7 +701,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    m_cache_dir = parse_env_string(value);
+    set_cache_dir(parse_env_string(value));
     break;
 
   case ConfigItem::cache_dir_levels:
@@ -842,6 +842,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::temporary_dir:
     m_temporary_dir = parse_env_string(value);
+    m_temporary_dir_configured_explicitly = true;
     break;
 
   case ConfigItem::umask:
@@ -850,4 +851,17 @@ Config::set_item(const std::string& key,
   }
 
   m_origins.emplace(key, origin);
+}
+
+void
+Config::check_key_tables_consistency()
+{
+  for (const auto& item : k_env_variable_table) {
+    if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
+      throw Error(fmt::format(
+        "env var {} mapped to {} which is missing from k_config_key_table",
+        item.first,
+        item.second));
+    }
+  }
 }

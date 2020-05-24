@@ -23,7 +23,9 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
+#include "File.hpp"
 #include "InodeCache.hpp"
+#include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
 #include "ccache.hpp"
 #include "hash.hpp"
@@ -35,10 +37,13 @@
 #include <unordered_map>
 #include <vector>
 
+class SignalHandler;
+
 class Context : NonCopyable
 {
 public:
   Context();
+  ~Context();
 
   ArgsInfo args_info;
   Config config;
@@ -110,8 +115,23 @@ public:
   // Statistics which get written into the `stats_file` upon exit.
   Counters counter_updates;
 
+  // PID of currently executing compiler that we have started, if any. 0 means
+  // no ongoing compilation.
+  pid_t compiler_pid = 0;
+
+  // Files used by the hash debugging functionality.
+  std::vector<File> hash_debug_files;
+
+#ifdef MTR_ENABLED
+  // Internal tracing.
+  std::unique_ptr<MiniTrace> mini_trace;
+#endif
+
   void set_manifest_name(const struct digest& name);
   void set_result_name(const struct digest& name);
+
+  // Register a temporary file to remove at program exit.
+  void register_pending_tmp_file(const std::string& path);
 
 private:
   nonstd::optional<struct digest> m_manifest_name;
@@ -121,6 +141,17 @@ private:
   nonstd::optional<struct digest> m_result_name;
   std::string m_result_path;
   mutable std::string m_result_stats_file;
+
+  // [Start of variables touched by the signal handler]
+
+  // Temporary files to remove at program exit.
+  std::vector<std::string> m_pending_tmp_files;
+
+  // [End of variables touched by the signal handler]
+
+  friend SignalHandler;
+  void unlink_pending_tmp_files();
+  void unlink_pending_tmp_files_signal_safe(); // called from signal handler
 
   void set_path_and_stats_file(const struct digest& name,
                                nonstd::string_view suffix,

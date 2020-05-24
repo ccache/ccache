@@ -360,9 +360,11 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i] == "-xHost") {
-    // -xHost is an ordinary Intel compiler option, not a language
-    // specification.
+  if (args[i].length() >= 3 && Util::starts_with(args[i], "-x")
+      && !islower(args[i][2])) {
+    // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with an
+    // uppercase letter) is an ordinary Intel compiler option, not a language
+    // specification. (GCC's "-x" language argument is always lowercase.)
     state.common_args.push_back(args[i]);
     return nullopt;
   }

@@ -24,7 +24,10 @@
 #include "Context.hpp"
 #include "File.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
+#include "SignalHandler.hpp"
+#include "StdMakeUnique.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
@@ -32,7 +35,6 @@
 #include "compress.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
-#include "exitfn.hpp"
 #include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
@@ -42,7 +44,6 @@
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
-#include "third_party/minitrace.h"
 #include "third_party/nonstd/string_view.hpp"
 
 #ifdef HAVE_GETOPT_LONG
@@ -60,73 +61,59 @@ using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
 
-static const char VERSION_TEXT[] = MYNAME
-  " version %s\n"
-  "\n"
-  "Copyright (C) 2002-2007 Andrew Tridgell\n"
-  "Copyright (C) 2009-2020 Joel Rosdahl and other contributors\n"
-  "\n"
-  "See <https://ccache.dev/credits.html> for a complete list of "
-  "contributors.\n"
-  "\n"
-  "This program is free software; you can redistribute it and/or modify it "
-  "under\n"
-  "the terms of the GNU General Public License as published by the Free "
-  "Software\n"
-  "Foundation; either version 3 of the License, or (at your option) any "
-  "later\n"
-  "version.\n";
+static const char VERSION_TEXT[] =
+  R"(%s version %s
+
+Copyright (C) 2002-2007 Andrew Tridgell
+Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+
+See <https://ccache.dev/credits.html> for a complete list of contributors.
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation; either version 3 of the License, or (at your option) any later
+version.
+)";
 
 static const char USAGE_TEXT[] =
-  "Usage:\n"
-  "    " MYNAME
-  " [options]\n"
-  "    " MYNAME
-  " compiler [compiler options]\n"
-  "    compiler [compiler options]          (via symbolic link)\n"
-  "\n"
-  "Common options:\n"
-  "    -c, --cleanup             delete old files and recalculate size "
-  "counters\n"
-  "                              (normally not needed as this is done\n"
-  "                              automatically)\n"
-  "    -C, --clear               clear the cache completely (except"
-  " configuration)\n"
-  "    -F, --max-files NUM       set maximum number of files in cache to NUM"
-  " (use 0\n"
-  "                              for no limit)\n"
-  "    -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 "
-  "for no\n"
-  "                              limit); available suffixes: k, M, G, T "
-  "(decimal)\n"
-  "                              and Ki, Mi, Gi, Ti (binary); default "
-  "suffix: G\n"
-  "    -X, --recompress LEVEL    recompress the cache to LEVEL (integer level"
-  " or\n"
-  "                              \"uncompressed\")\n"
-  "    -x, --show-compression    show compression statistics\n"
-  "    -p, --show-config         show current configuration options in\n"
-  "                              human-readable format\n"
-  "    -s, --show-stats          show summary of configuration and "
-  "statistics\n"
-  "                              counters in human-readable format\n"
-  "    -z, --zero-stats          zero statistics counters\n"
-  "\n"
-  "    -h, --help                print this help text\n"
-  "    -V, --version             print version and copyright information\n"
-  "\n"
-  "Options for scripting or debugging:\n"
-  "        --dump-manifest PATH  dump manifest file at PATH in text format\n"
-  "    -k, --get-config KEY      print the value of configuration key KEY\n"
-  "        --hash-file PATH      print the hash (160 bit BLAKE2b) of the "
-  "file at\n"
-  "                              PATH\n"
-  "        --print-stats         print statistics counter IDs and "
-  "corresponding\n"
-  "                              values in machine-parsable format\n"
-  "    -o, --set-config KEY=VAL  set configuration item KEY to value VAL\n"
-  "\n"
-  "See also <https://ccache.dev>.\n";
+  R"(Usage:
+    %s [options]
+    %s compiler [compiler options]
+    compiler [compiler options]          (via symbolic link)
+
+Common options:
+    -c, --cleanup             delete old files and recalculate size counters
+                              (normally not needed as this is done
+                              automatically)
+    -C, --clear               clear the cache completely (except configuration)
+    -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
+                              for no limit)
+    -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 for no
+                              limit); available suffixes: k, M, G, T (decimal)
+                              and Ki, Mi, Gi, Ti (binary); default suffix: G
+    -X, --recompress LEVEL    recompress the cache to LEVEL (integer level or
+                              "uncompressed")
+    -x, --show-compression    show compression statistics
+    -p, --show-config         show current configuration options in
+                              human-readable format
+    -s, --show-stats          show summary of configuration and statistics
+                              counters in human-readable format
+    -z, --zero-stats          zero statistics counters
+
+    -h, --help                print this help text
+    -V, --version             print version and copyright information
+
+Options for scripting or debugging:
+        --dump-manifest PATH  dump manifest file at PATH in text format
+    -k, --get-config KEY      print the value of configuration key KEY
+        --hash-file PATH      print the hash (160 bit BLAKE2b) of the file at
+                              PATH
+        --print-stats         print statistics counter IDs and corresponding
+                              values in machine-parsable format
+    -o, --set-config KEY=VAL  set configuration item KEY to value VAL
+
+See also <https://ccache.dev>.
+)";
 
 enum fromcache_call_mode { FROMCACHE_DIRECT_MODE, FROMCACHE_CPP_MODE };
 
@@ -136,20 +123,9 @@ struct pending_tmp_file
   struct pending_tmp_file* next;
 };
 
-// Temporary files to remove at program exit.
-static struct pending_tmp_file* pending_tmp_files = nullptr;
-
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
 static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
-
-#ifndef _WIN32
-static sigset_t fatal_signal_set;
-#endif
-
-// PID of currently executing compiler that we have started, if any. 0 means no
-// ongoing compilation. Not used in the _WIN32 case.
-static pid_t compiler_pid = 0;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
@@ -193,181 +169,36 @@ failed(enum stats stat, optional<int> exit_code)
   throw Failure(stat, exit_code);
 }
 
-static const char*
-temp_dir(const Context& ctx)
-{
-  static const char* path = nullptr;
-  if (path) {
-    return path; // Memoize
-  }
-  path = ctx.config.temporary_dir().c_str();
-  if (str_eq(path, "")) {
-    path = format("%s/tmp", ctx.config.cache_dir().c_str());
-  }
-  return path;
-}
-
-void
-block_signals()
-{
-#ifndef _WIN32
-  sigprocmask(SIG_BLOCK, &fatal_signal_set, nullptr);
-#endif
-}
-
-void
-unblock_signals()
-{
-#ifndef _WIN32
-  sigset_t empty;
-  sigemptyset(&empty);
-  sigprocmask(SIG_SETMASK, &empty, nullptr);
-#endif
-}
-
 static void
-add_pending_tmp_file(const char* path)
-{
-  block_signals();
-  auto e = static_cast<pending_tmp_file*>(x_malloc(sizeof(pending_tmp_file)));
-  e->path = x_strdup(path);
-  e->next = pending_tmp_files;
-  pending_tmp_files = e;
-  unblock_signals();
-}
-
-static void
-do_clean_up_pending_tmp_files()
-{
-  struct pending_tmp_file* p = pending_tmp_files;
-  while (p) {
-    // Can't call tmp_unlink here since its cc_log calls aren't signal safe.
-    unlink(p->path);
-    p = p->next;
-    // Leak p->path and p here because clean_up_pending_tmp_files needs to be
-    // signal safe.
-  }
-}
-
-static void
-clean_up_pending_tmp_files()
-{
-  block_signals();
-  do_clean_up_pending_tmp_files();
-  unblock_signals();
-}
-
-#ifndef _WIN32
-static void
-signal_handler(int signum)
-{
-  // Unregister handler for this signal so that we can send the signal to
-  // ourselves at the end of the handler.
-  signal(signum, SIG_DFL);
-
-  // If ccache was killed explicitly, then bring the compiler subprocess (if
-  // any) with us as well.
-  if (signum == SIGTERM && compiler_pid != 0
-      && waitpid(compiler_pid, nullptr, WNOHANG) == 0) {
-    kill(compiler_pid, signum);
-  }
-
-  do_clean_up_pending_tmp_files();
-
-  if (compiler_pid != 0) {
-    // Wait for compiler subprocess to exit before we snuff it.
-    waitpid(compiler_pid, nullptr, 0);
-  }
-
-  // Resend signal to ourselves to exit properly after returning from the
-  // handler.
-  kill(getpid(), signum);
-}
-
-static void
-register_signal_handler(int signum)
-{
-  struct sigaction act;
-  memset(&act, 0, sizeof(act));
-  act.sa_handler = signal_handler;
-  act.sa_mask = fatal_signal_set;
-#  ifdef SA_RESTART
-  act.sa_flags = SA_RESTART;
-#  endif
-  sigaction(signum, &act, nullptr);
-}
-
-static void
-set_up_signal_handlers()
-{
-  sigemptyset(&fatal_signal_set);
-  sigaddset(&fatal_signal_set, SIGINT);
-  sigaddset(&fatal_signal_set, SIGTERM);
-#  ifdef SIGHUP
-  sigaddset(&fatal_signal_set, SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  sigaddset(&fatal_signal_set, SIGQUIT);
-#  endif
-
-  register_signal_handler(SIGINT);
-  register_signal_handler(SIGTERM);
-#  ifdef SIGHUP
-  register_signal_handler(SIGHUP);
-#  endif
-#  ifdef SIGQUIT
-  register_signal_handler(SIGQUIT);
-#  endif
-}
-#endif // _WIN32
-
-static void
-clean_up_internal_tempdir(const Context& ctx)
+clean_up_internal_tempdir(const Config& config)
 {
   time_t now = time(nullptr);
-  auto dir_st = Stat::stat(ctx.config.cache_dir(), Stat::OnError::log);
+  auto dir_st = Stat::stat(config.cache_dir(), Stat::OnError::log);
   if (!dir_st || dir_st.mtime() + k_tempdir_cleanup_interval >= now) {
     // No cleanup needed.
     return;
   }
 
-  update_mtime(ctx.config.cache_dir().c_str());
+  update_mtime(config.cache_dir().c_str());
 
-  if (!Stat::lstat(temp_dir(ctx))) {
+  const std::string& temp_dir = config.temporary_dir();
+  if (!Stat::lstat(temp_dir)) {
     return;
   }
 
-  Util::traverse(temp_dir(ctx), [now](const std::string& path, bool is_dir) {
+  Util::traverse(temp_dir, [now](const std::string& path, bool is_dir) {
     if (is_dir) {
       return;
     }
     auto st = Stat::lstat(path, Stat::OnError::log);
     if (st && st.mtime() + k_tempdir_cleanup_interval < now) {
-      tmp_unlink(path.c_str());
+      Util::unlink_tmp(path);
     }
   });
 }
 
 static void
-fclose_exitfn(void* context)
-{
-  fclose((FILE*)context);
-}
-
-static void
-dump_debug_log_buffer_exitfn(void* context)
-{
-  Context& ctx = *static_cast<Context*>(context);
-  if (!ctx.config.debug()) {
-    return;
-  }
-
-  std::string path = fmt::format("{}.ccache-log", ctx.args_info.output_obj);
-  cc_dump_debug_log_buffer(path.c_str());
-}
-
-static void
-init_hash_debug(const Context& ctx,
+init_hash_debug(Context& ctx,
                 struct hash* hash,
                 const char* obj_path,
                 char type,
@@ -378,15 +209,15 @@ init_hash_debug(const Context& ctx,
     return;
   }
 
-  char* path = format("%s.ccache-input-%c", obj_path, type);
-  FILE* debug_binary_file = fopen(path, "wb");
+  std::string path = fmt::format("{}.ccache-input-{}", obj_path, type);
+  File debug_binary_file(path, "wb");
   if (debug_binary_file) {
-    hash_enable_debug(hash, section_name, debug_binary_file, debug_text_file);
-    exitfn_add(fclose_exitfn, debug_binary_file);
+    hash_enable_debug(
+      hash, section_name, debug_binary_file.get(), debug_text_file);
+    ctx.hash_debug_files.push_back(std::move(debug_binary_file));
   } else {
-    cc_log("Failed to open %s: %s", path, strerror(errno));
+    cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
   }
-  free(path);
 }
 
 static GuessedCompiler
@@ -834,7 +665,7 @@ use_relative_paths_in_depfile(const Context& ctx)
       " usage",
       tmp_file.c_str(),
       e.what());
-    x_unlink(tmp_file.c_str());
+    Util::unlink_safe(tmp_file);
     return;
   }
 
@@ -844,7 +675,7 @@ use_relative_paths_in_depfile(const Context& ctx)
       tmp_file.c_str(),
       output_dep.c_str(),
       strerror(errno));
-    x_unlink(tmp_file.c_str());
+    Util::unlink_safe(tmp_file);
   } else {
     cc_log("Renamed dependency file: %s -> %s",
            tmp_file.c_str(),
@@ -993,7 +824,7 @@ to_cache(Context& ctx,
     // Workaround for Clang bug where it overwrites an existing object file
     // when it's compiling an assembler file, see
     // <https://bugs.llvm.org/show_bug.cgi?id=39782>.
-    x_unlink(ctx.args_info.output_obj.c_str());
+    Util::unlink_safe(ctx.args_info.output_obj);
   }
 
   if (ctx.args_info.generating_diagnostics) {
@@ -1019,7 +850,8 @@ to_cache(Context& ctx,
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
     // non-existent .dwo files.
-    if (unlink(ctx.args_info.output_dwo.c_str()) == -1 && errno != ENOENT) {
+    if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
+        && errno != ESTALE) {
       cc_log("Failed to unlink %s: %s",
              ctx.args_info.output_dwo.c_str(),
              strerror(errno));
@@ -1029,26 +861,25 @@ to_cache(Context& ctx,
 
   cc_log("Running real compiler");
   MTR_BEGIN("execute", "compiler");
-  char* tmp_stdout;
-  int tmp_stdout_fd;
-  char* tmp_stderr;
-  int tmp_stderr_fd;
+
+  const auto tmp_stdout_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stdout", ctx.config.temporary_dir()));
+  int tmp_stdout_fd = tmp_stdout_fd_and_path.first;
+  const std::string& tmp_stdout = tmp_stdout_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stdout);
+
+  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
+  int tmp_stderr_fd = tmp_stderr_fd_and_path.first;
+  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stderr);
+
   int status;
   if (!ctx.config.depend_mode()) {
-    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx));
-    tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
-    tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
     status = execute(
-      args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
+      args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &ctx.compiler_pid);
     args.pop_back(3);
   } else {
-    // The cached result path is not known yet, use temporary files.
-    tmp_stdout = format("%s/tmp.stdout", temp_dir(ctx));
-    tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
-    tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
-    tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-
     // Use the original arguments (including dependency options) in depend
     // mode.
     Args depend_mode_args = ctx.orig_args;
@@ -1060,15 +891,13 @@ to_cache(Context& ctx,
     status = execute(depend_mode_args.to_argv().data(),
                      tmp_stdout_fd,
                      tmp_stderr_fd,
-                     &compiler_pid);
+                     &ctx.compiler_pid);
   }
   MTR_END("execute", "compiler");
 
   auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
-    tmp_unlink(tmp_stdout);
-    tmp_unlink(tmp_stderr);
     failed(STATS_MISSING);
   }
 
@@ -1076,66 +905,29 @@ to_cache(Context& ctx,
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
     cc_log("Compiler produced stdout");
-    tmp_unlink(tmp_stdout);
-    tmp_unlink(tmp_stderr);
     failed(STATS_STDOUT);
   }
-  tmp_unlink(tmp_stdout);
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
   // compiler into tmp_stderr.
   if (!ctx.cpp_stderr.empty()) {
-    char* tmp_stderr2 = format("%s.2", tmp_stderr);
-    if (x_rename(tmp_stderr, tmp_stderr2)) {
-      cc_log("Failed to rename %s to %s: %s",
-             tmp_stderr,
-             tmp_stderr2,
-             strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_cpp_stderr = open(ctx.cpp_stderr.c_str(), O_RDONLY | O_BINARY);
-    if (fd_cpp_stderr == -1) {
-      cc_log("Failed opening %s: %s", ctx.cpp_stderr.c_str(), strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_real_stderr = open(tmp_stderr2, O_RDONLY | O_BINARY);
-    if (fd_real_stderr == -1) {
-      cc_log("Failed opening %s: %s", tmp_stderr2, strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    int fd_result =
-      open(tmp_stderr, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
-    if (fd_result == -1) {
-      cc_log("Failed opening %s: %s", tmp_stderr, strerror(errno));
-      failed(STATS_ERROR);
-    }
-
-    copy_fd(fd_cpp_stderr, fd_result);
-    copy_fd(fd_real_stderr, fd_result);
-    close(fd_cpp_stderr);
-    close(fd_real_stderr);
-    close(fd_result);
-    tmp_unlink(tmp_stderr2);
-    free(tmp_stderr2);
+    std::string combined_stderr =
+      Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr);
+    Util::write_file(tmp_stderr, combined_stderr);
   }
 
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
 
-    int fd = open(tmp_stderr, O_RDONLY | O_BINARY);
+    int fd = open(tmp_stderr.c_str(), O_RDONLY | O_BINARY);
     if (fd != -1) {
       // We can output stderr immediately instead of rerunning the compiler.
       copy_fd(fd, 2);
       close(fd);
-      tmp_unlink(tmp_stderr);
 
       failed(STATS_STATUS, status);
     }
 
-    tmp_unlink(tmp_stderr);
     failed(STATS_STATUS);
   }
 
@@ -1223,17 +1015,13 @@ to_cache(Context& ctx,
     // previous ccache versions.
     if (getpid() % 1000 == 0) {
       char* path = format("%s/CACHEDIR.TAG", ctx.config.cache_dir().c_str());
-      x_unlink(path);
+      Util::unlink_safe(path);
       free(path);
     }
   }
 
   // Everything OK.
-  send_cached_stderr(tmp_stderr);
-  tmp_unlink(tmp_stderr);
-
-  free(tmp_stderr);
-  free(tmp_stdout);
+  send_cached_stderr(tmp_stderr.c_str());
 }
 
 // Find the result name by running the compiler in preprocessor mode and
@@ -1259,16 +1047,16 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     string_view input_base =
       Util::get_truncated_base_name(ctx.args_info.input_file, 10);
     auto stdout_fd_and_path = Util::create_temp_fd(
-      fmt::format("{}/{}.stdout", temp_dir(ctx), input_base));
+      fmt::format("{}/{}.stdout", ctx.config.temporary_dir(), input_base));
     int stdout_fd = stdout_fd_and_path.first;
     stdout_path = stdout_fd_and_path.second;
-    add_pending_tmp_file(stdout_path.c_str());
+    ctx.register_pending_tmp_file(stdout_path);
 
-    auto stderr_fd_and_path =
-      Util::create_temp_fd(fmt::format("{}/tmp.cpp_stderr", temp_dir(ctx)));
+    auto stderr_fd_and_path = Util::create_temp_fd(
+      fmt::format("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
     int stderr_fd = stderr_fd_and_path.first;
     stderr_path = stderr_fd_and_path.second;
-    add_pending_tmp_file(stderr_path.c_str());
+    ctx.register_pending_tmp_file(stderr_path);
 
     size_t args_added = 2;
     args.push_back("-E");
@@ -1281,7 +1069,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
     status =
-      execute(args.to_argv().data(), stdout_fd, stderr_fd, &compiler_pid);
+      execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
@@ -1313,7 +1101,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     ctx.i_tmpfile =
       fmt::format("{}.{}", stdout_path, ctx.config.cpp_extension());
     x_rename(stdout_path.c_str(), ctx.i_tmpfile.c_str());
-    add_pending_tmp_file(ctx.i_tmpfile.c_str());
+    ctx.register_pending_tmp_file(ctx.i_tmpfile);
   }
 
   if (!ctx.config.run_second_cpp()) {
@@ -1905,9 +1693,11 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   MTR_BEGIN("file", "file_get");
 
   // Get result from cache.
-  char* tmp_stderr = format("%s/tmp.stderr", temp_dir(ctx));
-  int tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
-  close(tmp_stderr_fd);
+  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
+    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
+  close(tmp_stderr_fd_and_path.first);
+  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
+  ctx.register_pending_tmp_file(tmp_stderr);
 
   ResultFileMap result_file_map;
   if (ctx.args_info.output_obj != "/dev/null") {
@@ -1932,17 +1722,12 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   bool ok = result_get(ctx, ctx.result_path(), result_file_map);
   if (!ok) {
     cc_log("Failed to get result from cache");
-    tmp_unlink(tmp_stderr);
-    free(tmp_stderr);
     return nullopt;
   }
 
   MTR_END("file", "file_get");
 
-  send_cached_stderr(tmp_stderr);
-
-  tmp_unlink(tmp_stderr);
-  free(tmp_stderr);
+  send_cached_stderr(tmp_stderr.c_str());
 
   cc_log("Succeeded getting cached result");
 
@@ -2035,62 +1820,6 @@ create_initial_config_file(Config& config)
   fclose(f);
 }
 
-#ifdef MTR_ENABLED
-static void* trace_id;
-static char* tmp_trace_file;
-
-static void
-trace_init(char* path)
-{
-  tmp_trace_file = path;
-  mtr_init(tmp_trace_file);
-  char* s = format("%f", time_seconds());
-  MTR_INSTANT_C("", "", "time", s);
-}
-
-static void
-trace_start()
-{
-  MTR_META_PROCESS_NAME(MYNAME);
-  trace_id = (void*)((long)getpid());
-  MTR_START("program", "ccache", trace_id);
-}
-
-static void
-trace_stop(void* context)
-{
-  const Context& ctx = *static_cast<Context*>(context);
-
-  char* trace_file =
-    format("%s.ccache-trace", ctx.args_info.output_obj.c_str());
-  MTR_FINISH("program", "ccache", trace_id);
-  mtr_flush();
-  mtr_shutdown();
-  move_file(tmp_trace_file, trace_file);
-  free(trace_file);
-  free(tmp_trace_file);
-}
-
-static const char*
-tmpdir()
-{
-#  ifndef _WIN32
-  const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir != NULL) {
-    return tmpdir;
-  }
-#  else
-  static char dirbuf[PATH_MAX];
-  DWORD retval = GetTempPath(PATH_MAX, dirbuf);
-  if (retval > 0 && retval < PATH_MAX) {
-    return dirbuf;
-  }
-#  endif
-  return "/tmp";
-}
-
-#endif // MTR_ENABLED
-
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc.
 static void
@@ -2151,43 +1880,23 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
 }
 
 // Initialize ccache, must be called once before anything else is run.
-static Context&
-initialize(int argc, const char* const* argv)
+static void
+initialize(Context& ctx, int argc, const char* const* argv)
 {
-  // This object is placed onto the heap so it is available in exit functions
-  // which run after main(). It is cleaned up by the last exit function.
-  Context* ctx = new Context;
-
-  set_up_config(ctx->config);
-  set_up_context(*ctx, argc, argv);
-  init_log(ctx->config);
-
-  exitfn_init();
-  exitfn_delete_context(ctx);
-  exitfn_add(stats_flush, ctx);
-  exitfn_add_nullary(clean_up_pending_tmp_files);
-
-  bool enable_internal_trace = getenv("CCACHE_INTERNAL_TRACE");
-  if (enable_internal_trace) {
-#ifdef MTR_ENABLED
-    // We don't have any conf yet, so we can't use temp_dir() here.
-    trace_init(format("%s/tmp.ccache-trace.%d", tmpdir(), (int)getpid()));
-#endif
-  }
+  set_up_config(ctx.config);
+  set_up_context(ctx, argc, argv);
+  init_log(ctx.config);
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
 
-  if (enable_internal_trace) {
+  if (getenv("CCACHE_INTERNAL_TRACE")) {
 #ifdef MTR_ENABLED
-    trace_start();
-    exitfn_add(trace_stop, ctx);
+    ctx.mini_trace = std::make_unique<MiniTrace>(ctx->args_info);
 #else
     cc_log("Error: tracing is not enabled!");
 #endif
   }
-
-  return *ctx;
 }
 
 // Make a copy of stderr that will not be cached, so things like distcc can
@@ -2233,26 +1942,25 @@ static enum stats do_cache_compilation(Context& ctx, const char* const* argv);
 static int
 cache_compilation(int argc, const char* const* argv)
 {
-#ifndef _WIN32
-  set_up_signal_handlers();
-#endif
-
   // Needed for portability when using localtime_r.
   tzset();
 
-  Context& ctx = initialize(argc, argv);
+  auto ctx = std::make_unique<Context>();
+  SignalHandler signal_handler(*ctx);
+
+  initialize(*ctx, argc, argv);
 
   MTR_BEGIN("main", "find_compiler");
-  find_compiler(ctx, argv);
+  find_compiler(*ctx, argv);
   MTR_END("main", "find_compiler");
 
   try {
-    enum stats stat = do_cache_compilation(ctx, argv);
-    stats_update(ctx, stat);
+    enum stats stat = do_cache_compilation(*ctx, argv);
+    stats_update(*ctx, stat);
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
     if (e.stat() != STATS_NONE) {
-      stats_update(ctx, e.stat());
+      stats_update(*ctx, e.stat());
     }
 
     if (e.exit_code()) {
@@ -2260,19 +1968,18 @@ cache_compilation(int argc, const char* const* argv)
     }
     // Else: Fall back to running the real compiler.
 
-    assert(!ctx.orig_args.empty());
+    assert(!ctx->orig_args.empty());
 
-    ctx.orig_args.erase_with_prefix("--ccache-");
-    add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
+    ctx->orig_args.erase_with_prefix("--ccache-");
+    add_prefix(*ctx, ctx->orig_args, ctx->config.prefix_command());
 
     cc_log("Failed; falling back to running the real compiler");
 
-    // exitfn_call deletes ctx and thereby ctx.orig_orgs, so save it.
-    Args saved_orig_args(std::move(ctx.orig_args));
+    Args saved_orig_args(std::move(ctx->orig_args));
     auto execv_argv = saved_orig_args.to_argv();
 
     cc_log_argv("Executing ", execv_argv.data());
-    exitfn_call();
+    ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
     fatal("execv of %s failed: %s", execv_argv[0], strerror(errno));
   }
@@ -2288,8 +1995,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
-  if (ctx.config.temporary_dir().empty()) {
-    clean_up_internal_tempdir(ctx);
+  if (ctx.config.temporary_dir() == ctx.config.cache_dir() + "/tmp") {
+    clean_up_internal_tempdir(ctx.config);
   }
   MTR_END("main", "clean_up_internal_tempdir");
 
@@ -2366,20 +2073,20 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   cc_log("Object file: %s", ctx.args_info.output_obj.c_str());
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
-  // Need to dump log buffer as the last exit function to not lose any logs.
-  exitfn_add_last(dump_debug_log_buffer_exitfn, &ctx);
-
-  FILE* debug_text_file = nullptr;
   if (ctx.config.debug()) {
     std::string path =
       fmt::format("{}.ccache-input-text", ctx.args_info.output_obj);
-    debug_text_file = fopen(path.c_str(), "w");
+    File debug_text_file(path, "w");
     if (debug_text_file) {
-      exitfn_add(fclose_exitfn, debug_text_file);
+      ctx.hash_debug_files.push_back(std::move(debug_text_file));
     } else {
       cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
     }
   }
+
+  FILE* debug_text_file = !ctx.hash_debug_files.empty()
+                            ? ctx.hash_debug_files.front().get()
+                            : nullptr;
 
   struct hash* common_hash = hash_init();
   init_hash_debug(ctx,
@@ -2477,7 +2184,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       cc_log("Hash from manifest doesn't match preprocessor output");
       cc_log("Likely reason: different CCACHE_BASEDIRs used");
       cc_log("Removing manifest as a safety measure");
-      x_unlink(ctx.manifest_path().c_str());
+      Util::unlink_safe(ctx.manifest_path());
 
       put_result_in_manifest = true;
     }
@@ -2543,7 +2250,8 @@ handle_main_options(int argc, const char* const* argv)
     {"zero-stats", no_argument, nullptr, 'z'},
     {nullptr, 0, nullptr, 0}};
 
-  Context& ctx = initialize(argc, argv);
+  Context ctx;
+  initialize(ctx, argc, argv);
 
   int c;
   while ((c = getopt_long(argc,
@@ -2599,7 +2307,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      fputs(USAGE_TEXT, stdout);
+      fprintf(stdout, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(0);
 
     case 'k': // --get-config
@@ -2656,7 +2364,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      fprintf(stdout, VERSION_TEXT, CCACHE_VERSION);
+      fprintf(stdout, VERSION_TEXT, MYNAME, CCACHE_VERSION);
       x_exit(0);
 
     case 'x': // --show-compression
@@ -2694,7 +2402,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      fputs(USAGE_TEXT, stderr);
+      fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(1);
     }
 
@@ -2716,7 +2424,7 @@ ccache_main(int argc, const char* const* argv)
     std::string program_name(Util::base_name(argv[0]));
     if (same_executable_name(program_name.c_str(), MYNAME)) {
       if (argc < 2) {
-        fputs(USAGE_TEXT, stderr);
+        fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
         x_exit(1);
       }
       // If the first argument isn't an option, then assume we are being passed

@@ -18,11 +18,26 @@
 
 #pragma once
 
-class Context;
+#include "system.hpp"
 
-void exitfn_init();
-void exitfn_add_nullary(void (*function)());
-void exitfn_add(void (*function)(void*), void* context);
-void exitfn_add_last(void (*function)(void*), void* context);
-void exitfn_delete_context(Context* ctx);
-void exitfn_call();
+#include "third_party/minitrace.h"
+
+#ifdef MTR_ENABLED
+
+#  include <string>
+
+struct ArgsInfo;
+
+class MiniTrace
+{
+public:
+  MiniTrace(const ArgsInfo& args_info);
+  ~MiniTrace();
+
+private:
+  const ArgsInfo& m_args_info;
+  const void* const m_trace_id;
+  std::string m_tmp_trace_file;
+};
+
+#endif

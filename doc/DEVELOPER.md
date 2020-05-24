@@ -4,7 +4,7 @@ Developer manual
 Tracing
 -------
 
-In order to see what ccache is doing, it is possible to enable microsecond
+In order to see what ccache is doing, it is possible to enable internal
 tracing:
 
 * Build ccache with the `--enable-tracing` configure option.

@@ -480,7 +480,7 @@ void
 stats_zero(const Context& ctx)
 {
   char* fname = format("%s/stats", ctx.config.cache_dir().c_str());
-  x_unlink(fname);
+  Util::unlink_safe(fname);
   free(fname);
 
   time_t timestamp = time(nullptr);

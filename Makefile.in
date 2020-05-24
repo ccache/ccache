@@ -44,9 +44,11 @@ non_third_party_sources = \
     src/Decompressor.cpp \
     src/InodeCache.cpp \
     src/Lockfile.cpp \
+    src/MiniTrace.cpp \
     src/NullCompressor.cpp \
     src/NullDecompressor.cpp \
     src/ProgressBar.cpp \
+    src/SignalHandler.cpp \
     src/Stat.cpp \
     src/Util.cpp \
     src/ZstdCompressor.cpp \
@@ -57,7 +59,6 @@ non_third_party_sources = \
     src/compopt.cpp \
     src/compress.cpp \
     src/execute.cpp \
-    src/exitfn.cpp \
     src/hash.cpp \
     src/hashutil.cpp \
     src/language.cpp \
@@ -101,6 +102,7 @@ test_suites += unittest/test_hashutil.cpp
 test_suites += unittest/test_legacy_util.cpp
 
 test_sources += unittest/TestUtil.cpp
+test_sources += unittest/catch2_tests.cpp
 test_sources += unittest/main.cpp
 test_sources += $(test_suites)
 test_objs = $(test_sources:.cpp=.o)

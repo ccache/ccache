@@ -22,6 +22,7 @@
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "legacy_util.hpp"
+#include "logging.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -34,6 +35,9 @@
 #ifdef _WIN32
 #  include "win32compat.hpp"
 #endif
+
+#include <algorithm>
+#include <fstream>
 
 using nonstd::string_view;
 
@@ -749,6 +753,57 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   }
 }
 
+bool
+unlink_safe(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
+  // file. We don't care if the temp file is trashed, so it's always safe to
+  // unlink it first.
+  std::string tmp_name = path + ".ccache.rm.tmp";
+
+  bool success = true;
+  if (x_rename(path.c_str(), tmp_name.c_str()) != 0) {
+    success = false;
+    saved_errno = errno;
+  } else if (unlink(tmp_name.c_str()) != 0) {
+    // It's OK if it was unlinked in a race.
+    if (errno != ENOENT && errno != ESTALE) {
+      success = false;
+      saved_errno = errno;
+    }
+  }
+
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
+}
+
+bool
+unlink_tmp(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  bool success =
+    unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s", path.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
+}
+
 void
 wipe_path(const std::string& path)
 {
@@ -767,10 +822,12 @@ wipe_path(const std::string& path)
 }
 
 void
-write_file(const std::string& path, const std::string& data, bool binary)
+write_file(const std::string& path,
+           const std::string& data,
+           std::ios_base::openmode open_mode)
 {
-  std::ofstream file(path,
-                     binary ? std::ios::out | std::ios::binary : std::ios::out);
+  open_mode |= std::ios::out;
+  std::ofstream file(path, open_mode);
   if (!file) {
     throw Error(strerror(errno));
   }
