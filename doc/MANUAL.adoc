@@ -1271,9 +1271,9 @@ Caveats
 * If ccache guesses that the compiler may emit colored warnings, then a
   compilation with stderr referring to a TTY will be considered different from
   a compilation with a redirected stderr, thus not sharing cache entries. This
-  happens for clang by default and for GCC when *GCC_COLORS* is set as
+  happens for Clang by default and for GCC when *GCC_COLORS* is set as
   mentioned above. If you want to share cache hits, you can pass
-  `-f[no-]diagnostics-color` (GCC) or `-f[no-]color-diagnostics` (clang)
+  `-f[no-]diagnostics-color` (GCC) or `-f[no-]color-diagnostics` (Clang)
   explicitly when compiling (but then color codes will be either on or off for
   both the TTY and the redirected case).
 

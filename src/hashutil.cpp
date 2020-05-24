@@ -38,7 +38,7 @@
 // as of 3.9 (see https://bugs.llvm.org/show_bug.cgi?id=25510). But if libgcc
 // is used we have the same problem as mentioned above. Unfortunately there
 // doesn't seem to be a way to detect which one is used, or the version of
-// libgcc when used by clang, so assume that it works with Clang >= 3.9.
+// libgcc when used by Clang, so assume that it works with Clang >= 3.9.
 #if !(__GNUC__ >= 8 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 4)                  \
       || (__GNUC__ == 6 && __GNUC_MINOR__ >= 5) || __clang_major__ > 3         \
       || (__clang_major__ == 3 && __clang_minor__ >= 9))

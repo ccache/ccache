@@ -43,7 +43,7 @@ struct ArgsInfo
   // The path to the stack usage (implicit when using -fstack-usage).
   std::string output_su;
 
-  // Diagnostic generation information (clang). Contains pathname if not empty.
+  // Diagnostic generation information (Clang). Contains pathname if not empty.
   std::string output_dia;
 
   // Split dwarf information (GCC 4.8 and up). Contains pathname if not empty.
@@ -88,7 +88,7 @@ struct ArgsInfo
   bool profile_generate = false;
 
   // Whether we are using a precompiled header (either via -include, #include or
-  // clang's -include-pch or -include-pth).
+  // Clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;
 
   // Files referenced by -fsanitize-blacklist options.
