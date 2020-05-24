@@ -259,9 +259,9 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 
   if (*pid == 0) {
     // Child.
-    dup2(fd_out, 1);
+    dup2(fd_out, STDOUT_FILENO);
     close(fd_out);
-    dup2(fd_err, 2);
+    dup2(fd_err, STDERR_FILENO);
     close(fd_err);
     x_exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
