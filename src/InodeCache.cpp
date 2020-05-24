@@ -257,7 +257,7 @@ InodeCache::create_new_file(const std::string& filename)
 {
   cc_log("Creating a new inode cache");
 
-  // Create the new file to a a temporary name to prevent other processes from
+  // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   auto temp_fd = Util::create_temp_fd(filename);
   int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
