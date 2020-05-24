@@ -603,7 +603,8 @@ create_tmp_file(char** fname, const char* mode)
   return file;
 }
 
-// Return current user's home directory, or NULL if it can't be determined.
+// Return current user's home directory, or throw FatalError if it can't be
+// determined.
 const char*
 get_home_directory()
 {
@@ -625,7 +626,7 @@ get_home_directory()
     }
   }
 #endif
-  return nullptr;
+  fatal("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 // Check whether s1 and s2 have the same executable name.
