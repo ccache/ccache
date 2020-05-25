@@ -79,6 +79,9 @@ public:
   // Uses absolute path for some include files.
   bool has_absolute_include_headers = false;
 
+  // Have we tried and failed to get colored diagnostics?
+  bool diagnostics_color_failed = false;
+
   // The name of the temporary preprocessed file.
   std::string i_tmpfile;
 

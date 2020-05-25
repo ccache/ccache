@@ -68,6 +68,9 @@ struct ArgsInfo
   // (--serialize-diagnostics)?
   bool generating_diagnostics = false;
 
+  // Whether to strip color codes from diagnostic messages on output.
+  bool strip_diagnostics_colors = false;
+
   // Have we seen -gsplit-dwarf?
   bool seen_split_dwarf = false;
 
