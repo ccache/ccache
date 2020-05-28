@@ -78,19 +78,4 @@ inode_cache_tests() {
     echo "// replace" > test1.c
     $CCACHE_COMPILE -c test1.c
     expect_inode_cache 0 2 2 test1.c
-
-    # -------------------------------------------------------------------------
-    TEST "Profile file"
-
-return
-    echo "// replace" > test1.c
-    echo 'main:1:1' > sample.prof
-    $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 0 2 2 test1.c
-    echo 'main:2:2' > sample.prof
-    $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 1 3 3 test1.c
-    echo 'main:1:1' > sample.prof
-    $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 2 3 3 test1.c
 }
