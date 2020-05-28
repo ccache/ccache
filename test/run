@@ -436,6 +436,7 @@ nocpp2
 cpp1
 multi_arch
 serialize_diagnostics
+color_diagnostics
 sanitize_blacklist
 debug_prefix_map
 profiling
