@@ -150,14 +150,14 @@ TEST_CASE("Util::ends_with")
 TEST_CASE("Util::fallocate")
 {
   const char* filename = "test-file";
-  int fd = creat(filename, S_IWUSR);
+  int fd = creat(filename, S_IRUSR | S_IWUSR);
   CHECK(Util::fallocate(fd, 10000) == 0);
   close(fd);
-  fd = open(filename, O_WRONLY, S_IWUSR);
+  fd = open(filename, O_RDWR, S_IRUSR | S_IWUSR);
   CHECK(Stat::stat(filename).size() == 10000);
   CHECK(Util::fallocate(fd, 5000) == 0);
   close(fd);
-  fd = open(filename, O_WRONLY, S_IWUSR);
+  fd = open(filename, O_RDWR, S_IRUSR | S_IWUSR);
   CHECK(Stat::stat(filename).size() == 10000);
   CHECK(Util::fallocate(fd, 20000) == 0);
   close(fd);
