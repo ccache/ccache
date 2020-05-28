@@ -144,9 +144,11 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   }
   bool is_nfs;
   if (Util::is_nfs_fd(fd, &is_nfs) == 0 && is_nfs) {
-    throw Error(fmt::format(
-      "Inode cache file \"{}\" must be located on a local filesystem.",
-      inode_cache_file));
+    cc_log(
+      "Inode cache not supported because the cache file is located on nfs: %s",
+      inode_cache_file.c_str());
+    close(fd);
+    return false;
   }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
@@ -263,9 +265,20 @@ InodeCache::create_new_file(const std::string& filename)
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
   auto temp_fd = Util::create_temp_fd(filename);
+  bool is_nfs;
+  if (Util::is_nfs_fd(temp_fd.first, &is_nfs) == 0 && is_nfs) {
+    cc_log(
+      "Inode cache not supported because the cache file would be located on "
+      "nfs: %s",
+      filename.c_str());
+    unlink(temp_fd.second.c_str());
+    close(temp_fd.first);
+    return false;
+  }
   int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
+    unlink(temp_fd.second.c_str());
     close(temp_fd.first);
     return false;
   }
@@ -278,6 +291,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
     cc_log("Failed to mmap new inode cache: %s", strerror(errno));
+    unlink(temp_fd.second.c_str());
     close(temp_fd.first);
     return false;
   }
@@ -315,7 +329,7 @@ InodeCache::create_new_file(const std::string& filename)
 bool
 InodeCache::initialize()
 {
-  if (!m_config.inode_cache()) {
+  if (m_failed || !m_config.inode_cache()) {
     return false;
   }
 
@@ -335,10 +349,16 @@ InodeCache::initialize()
   // file that actually landed on disk will be from the process that won the
   // race. Thus we try to open the file from disk instead of reusing the file
   // handle to the file we just created.
-  return mmap_file(filename);
+  if (mmap_file(filename)) {
+    return true;
+  }
+
+  m_failed = true;
+  return false;
 }
 
-InodeCache::InodeCache(const Config& config) : m_config(config), m_sr(nullptr)
+InodeCache::InodeCache(const Config& config)
+  : m_config(config), m_sr(nullptr), m_failed(false)
 {
 }
 

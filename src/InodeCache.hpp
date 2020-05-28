@@ -108,5 +108,6 @@ private:
 
   const Config& m_config;
   struct SharedRegion* m_sr;
+  bool m_failed;
 };
 #endif
