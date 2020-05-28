@@ -227,6 +227,18 @@ expect_file_contains() {
     fi
 }
 
+expect_file_not_contains() {
+    local file="$1"
+    local string="$2"
+
+    if [ ! -e "$file" ]; then
+        test_failed "$file not found"
+    fi
+    if grep -q "$string" "$file"; then
+        test_failed "File $file contains: $string. Actual content: $(cat $file)"
+    fi
+}
+
 expect_file_count() {
     local expected=$1
     local pattern=$2
