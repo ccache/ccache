@@ -145,13 +145,13 @@ expect_stat() {
 }
 
 expect_file_exists() {
-    if [ ! -f "$1" ]; then
+    if [ ! -e "$1" ]; then
         test_failed "Expected $1 to exist, but it's missing"
     fi
 }
 
 expect_file_missing() {
-    if [ -f "$1" ]; then
+    if [ -e "$1" ]; then
         test_failed "Expected $1 to be missing, but it exists"
     fi
 }
@@ -207,7 +207,7 @@ expect_file_content() {
     local file="$1"
     local content="$2"
 
-    if [ ! -f "$file" ]; then
+    if [ ! -e "$file" ]; then
         test_failed "$file not found"
     fi
     if [ "$(cat $file)" != "$content" ]; then
@@ -219,7 +219,7 @@ expect_file_contains() {
     local file="$1"
     local string="$2"
 
-    if [ ! -f "$file" ]; then
+    if [ ! -e "$file" ]; then
         test_failed "$file not found"
     fi
     if ! grep -q "$string" "$file"; then
