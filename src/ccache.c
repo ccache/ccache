@@ -1230,6 +1230,10 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		if (do_link) {
 			x_unlink(dest);
 			int ret = link(source, dest);
+			if (ret != 0 && errno == ENOENT) {
+				create_parent_dirs(dest);
+				ret = link(source, dest);
+			}
 			if (ret != 0) {
 				cc_log("Failed to link %s to %s: %s", source, dest, strerror(errno));
 				cc_log("Falling back to copying");
