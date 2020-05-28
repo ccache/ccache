@@ -71,7 +71,16 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-  CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    CHECK(config.temporary_dir()
+          == fmt::format("/run/user/{}/ccache-tmp", geteuid()));
+  } else {
+#endif
+    CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
+#ifdef HAVE_GETEUID
+  }
+#endif
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 

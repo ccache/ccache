@@ -865,3 +865,14 @@ Config::check_key_tables_consistency()
     }
   }
 }
+
+std::string
+Config::default_temporary_dir(const std::string& cache_dir)
+{
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    return fmt::format("/run/user/{}/ccache-tmp", geteuid());
+  }
+#endif
+  return cache_dir + "/tmp";
+}

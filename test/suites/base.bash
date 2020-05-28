@@ -540,7 +540,11 @@ base_tests() {
     # - a/b/c
     # - a/b/c/d
     actual_dirs=$(find $CCACHE_DIR -type d | wc -l)
-    expected_dirs=6
+    if [ -d /run/user/$(id -u) ]; then
+        expected_dirs=5
+    else
+        expected_dirs=6
+    fi
     if [ $actual_dirs -ne $expected_dirs ]; then
         test_failed "Expected $expected_dirs directories, found $actual_dirs"
     fi

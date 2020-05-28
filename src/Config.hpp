@@ -160,7 +160,7 @@ private:
   bool m_run_second_cpp = true;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
-  std::string m_temporary_dir = fmt::format(m_cache_dir + "/tmp");
+  std::string m_temporary_dir = default_temporary_dir(m_cache_dir);
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
 
   bool m_temporary_dir_configured_explicitly = false;
@@ -172,6 +172,8 @@ private:
                 const nonstd::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
+
+  static std::string default_temporary_dir(const std::string& cache_dir);
 };
 
 inline const std::string&
@@ -401,7 +403,7 @@ Config::set_cache_dir(const std::string& value)
 {
   m_cache_dir = value;
   if (!m_temporary_dir_configured_explicitly) {
-    m_temporary_dir = m_cache_dir + "/tmp";
+    m_temporary_dir = default_temporary_dir(m_cache_dir);
   }
 }
 
