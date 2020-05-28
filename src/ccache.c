@@ -1471,8 +1471,11 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	if (!conf->depend_mode) {
 		tmp_stdout = format("%s.tmp.stdout", cached_obj);
 		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		add_pending_tmp_file(tmp_stdout);
+
 		tmp_stderr = format("%s.tmp.stderr", cached_obj);
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+		add_pending_tmp_file(tmp_stderr);
 
 		status = execute(args->argv, tmp_stdout_fd, tmp_stderr_fd, &compiler_pid);
 		args_pop(args, 3);
@@ -1480,8 +1483,11 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		// The cached object path is not known yet, use temporary files.
 		tmp_stdout = format("%s/tmp.stdout", temp_dir());
 		tmp_stdout_fd = create_tmp_fd(&tmp_stdout);
+		add_pending_tmp_file(tmp_stdout);
+
 		tmp_stderr = format("%s/tmp.stderr", temp_dir());
 		tmp_stderr_fd = create_tmp_fd(&tmp_stderr);
+		add_pending_tmp_file(tmp_stderr);
 
 		// Use the original arguments (including dependency options) in depend
 		// mode.
