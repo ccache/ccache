@@ -71,6 +71,9 @@ static_assert(
 static_assert(
   static_cast<int>(InodeCache::ContentType::code_with_sloppy_time_macros) == 2,
   "Numeric value is part of key, increment version number if changed.");
+static_assert(
+  static_cast<int>(InodeCache::ContentType::precompiled_header) == 3,
+  "Numeric value is part of key, increment version number if changed.");
 
 std::string
 get_file_from_config(const Config& config)

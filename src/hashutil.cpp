@@ -266,9 +266,10 @@ static int
 hash_source_code_file_nocache(const Context& ctx,
                               struct hash* hash,
                               const char* path,
-                              size_t size_hint)
+                              size_t size_hint,
+                              bool is_precompiled)
 {
-  if (is_precompiled_header(path)) {
+  if (is_precompiled) {
     if (hash_file(hash, path)) {
       return HASH_SOURCE_CODE_OK;
     } else {
@@ -286,6 +287,20 @@ hash_source_code_file_nocache(const Context& ctx,
   }
 }
 
+#ifdef INODE_CACHE_SUPPORTED
+static InodeCache::ContentType
+get_content_type(const Config& config, const char* path)
+{
+  if (is_precompiled_header(path)) {
+    return InodeCache::ContentType::precompiled_header;
+  }
+  if (config.sloppiness() & SLOPPY_TIME_MACROS) {
+    return InodeCache::ContentType::code_with_sloppy_time_macros;
+  }
+  return InodeCache::ContentType::code;
+}
+#endif
+
 // Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
 // results.
 int
@@ -297,23 +312,26 @@ hash_source_code_file(const Context& ctx,
 #ifdef INODE_CACHE_SUPPORTED
   if (!ctx.config.inode_cache()) {
 #endif
-    return hash_source_code_file_nocache(ctx, hash, path, size_hint);
+    return hash_source_code_file_nocache(
+      ctx, hash, path, size_hint, is_precompiled_header(path));
 
 #ifdef INODE_CACHE_SUPPORTED
   }
+
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
-  InodeCache::ContentType content_type =
-    ctx.config.sloppiness() & SLOPPY_TIME_MACROS
-      ? InodeCache::ContentType::code_with_sloppy_time_macros
-      : InodeCache::ContentType::code;
+  InodeCache::ContentType content_type = get_content_type(ctx.config, path);
   struct digest digest;
   int return_value;
   if (!ctx.inode_cache.get(path, content_type, &digest, &return_value)) {
     struct hash* file_hash = hash_init();
-    return_value =
-      hash_source_code_file_nocache(ctx, file_hash, path, size_hint);
+    return_value = hash_source_code_file_nocache(
+      ctx,
+      file_hash,
+      path,
+      size_hint,
+      content_type == InodeCache::ContentType::precompiled_header);
     if (return_value == HASH_SOURCE_CODE_ERROR) {
       return HASH_SOURCE_CODE_ERROR;
     }

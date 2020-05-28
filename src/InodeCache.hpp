@@ -40,7 +40,8 @@ public:
   enum class ContentType {
     binary = 0,
     code = 1,
-    code_with_sloppy_time_macros = 2
+    code_with_sloppy_time_macros = 2,
+    precompiled_header = 3,
   };
 
   InodeCache(const Config& config);
