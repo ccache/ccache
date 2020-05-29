@@ -135,6 +135,7 @@ AC_CHECK_FUNCS(unsetenv)
 AC_CHECK_FUNCS(utimes)
 
 AC_CHECK_MEMBERS([struct stat.st_ctim, struct stat.st_mtim])
+AC_CHECK_MEMBERS([struct statfs.f_fstypename], [], [], [#include <sys/mount.h>])
 
 dnl Check if -lm is needed.
 AC_SEARCH_LIBS(cos, m)

@@ -30,6 +30,9 @@
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+#  include <sys/mount.h>
+#  include <sys/param.h>
 #endif
 
 #ifdef _WIN32
@@ -427,7 +430,7 @@ is_absolute_path(string_view path)
   return !path.empty() && path[0] == '/';
 }
 
-#ifdef HAVE_LINUX_FS_H
+#if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
 bool
 is_nfs_fd(int fd, bool* is_nfs)
 {
@@ -435,7 +438,11 @@ is_nfs_fd(int fd, bool* is_nfs)
   if (fstatfs(fd, &buf) != 0) {
     return errno;
   }
+#  ifdef HAVE_LINUX_FS_H
   *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
+#  else // Mac OS X and some other BSD flavors
+  *is_nfs = !strcmp(buf.f_fstypename, "nfs");
+#  endif
   return 0;
 }
 #else
