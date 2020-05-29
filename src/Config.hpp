@@ -56,7 +56,6 @@ public:
   bool hash_dir() const;
   const std::string& ignore_headers_in_manifest() const;
   bool inode_cache() const;
-  const std::string& inode_cache_file() const;
   bool keep_comments_cpp() const;
   double limit_multiple() const;
   const std::string& log_file() const;
@@ -144,7 +143,6 @@ private:
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest = "";
   bool m_inode_cache = false;
-  std::string m_inode_cache_file = "";
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file = "";
@@ -282,12 +280,6 @@ inline bool
 Config::inode_cache() const
 {
   return m_inode_cache;
-}
-
-inline const std::string&
-Config::inode_cache_file() const
-{
-  return m_inode_cache_file;
 }
 
 inline bool

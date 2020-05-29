@@ -150,9 +150,12 @@ TEST_CASE("Drop file")
   ctx.config.set_debug(true);
   ctx.config.set_inode_cache(true);
 
-  CHECK(!ctx.inode_cache.get_file().empty());
+  struct digest digest;
+
+  ctx.inode_cache.get("a", InodeCache::ContentType::binary, &digest);
+  CHECK(Stat::stat(ctx.inode_cache.get_file()));
   CHECK(ctx.inode_cache.drop());
-  CHECK(ctx.inode_cache.get_file().empty());
+  CHECK(!Stat::stat(ctx.inode_cache.get_file()));
   CHECK(!ctx.inode_cache.drop());
 }
 

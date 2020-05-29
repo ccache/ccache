@@ -404,7 +404,6 @@ TEST_CASE("Config::visit_items")
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
     "inode_cache = false\n"
-    "inode_cache_file = icf\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 0.0\n"
     "log_file = lf\n"
@@ -459,7 +458,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",
     "(test.conf) inode_cache = false",
-    "(test.conf) inode_cache_file = icf",
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) limit_multiple = 0.0",
     "(test.conf) log_file = lf",

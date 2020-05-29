@@ -75,15 +75,6 @@ static_assert(
   static_cast<int>(InodeCache::ContentType::precompiled_header) == 3,
   "Numeric value is part of key, increment version number if changed.");
 
-std::string
-get_file_from_config(const Config& config)
-{
-  return (config.inode_cache_file().empty()
-            ? config.cache_dir() + "/inode_cache"
-            : config.inode_cache_file())
-         + ".v" + std::to_string(k_version);
-}
-
 } // namespace
 
 struct InodeCache::Key
@@ -337,7 +328,7 @@ InodeCache::initialize()
     return true;
   }
 
-  std::string filename = get_file_from_config(m_config);
+  std::string filename = get_file();
   if (m_sr || mmap_file(filename)) {
     return true;
   }
@@ -467,7 +458,7 @@ bool
 InodeCache::drop()
 {
   std::string file = get_file();
-  if (file.empty() || unlink(file.c_str()) != 0) {
+  if (unlink(file.c_str()) != 0) {
     return false;
   }
   if (m_sr) {
@@ -480,11 +471,7 @@ InodeCache::drop()
 std::string
 InodeCache::get_file()
 {
-  std::string filename = get_file_from_config(m_config);
-  if (Stat::stat(filename)) {
-    return filename;
-  }
-  return std::string();
+  return fmt::format("{}/inode-cache.v{}", m_config.temporary_dir(), k_version);
 }
 
 int64_t

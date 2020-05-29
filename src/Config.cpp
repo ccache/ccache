@@ -55,7 +55,6 @@ enum class ConfigItem {
   hash_dir,
   ignore_headers_in_manifest,
   inode_cache,
-  inode_cache_file,
   keep_comments_cpp,
   limit_multiple,
   log_file,
@@ -94,7 +93,6 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"hash_dir", ConfigItem::hash_dir},
   {"ignore_headers_in_manifest", ConfigItem::ignore_headers_in_manifest},
   {"inode_cache", ConfigItem::inode_cache},
-  {"inode_cache_file", ConfigItem::inode_cache_file},
   {"keep_comments_cpp", ConfigItem::keep_comments_cpp},
   {"limit_multiple", ConfigItem::limit_multiple},
   {"log_file", ConfigItem::log_file},
@@ -135,7 +133,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"HASHDIR", "hash_dir"},
   {"IGNOREHEADERS", "ignore_headers_in_manifest"},
   {"INODECACHE", "inode_cache"},
-  {"INODECACHEFILE", "inode_cache_file"},
   {"LIMIT_MULTIPLE", "limit_multiple"},
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
@@ -565,9 +562,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::inode_cache:
     return format_bool(m_inode_cache);
 
-  case ConfigItem::inode_cache_file:
-    return m_inode_cache_file;
-
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
 
@@ -774,10 +768,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::inode_cache:
     m_inode_cache = parse_bool(value, env_var_key, negate);
-    break;
-
-  case ConfigItem::inode_cache_file:
-    m_inode_cache_file = parse_env_string(value);
     break;
 
   case ConfigItem::keep_comments_cpp:

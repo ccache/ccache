@@ -503,19 +503,8 @@ might be incorrect.
 +
 The feature is still experimental and thus off by default. It is currently not
 available on Windows.
-
-[[config_inode_cache_file]] *inode_cache_file* (*CCACHE_INODECACHEFILE*)::
-
-    Specifies an optional location for the persistent inode cache file. If not
-    specified, the cache will be stored in *_<ccachedir>_/inode_cache.v$n*.
 +
-A version suffix in the form *.v$n*, where *$n* is the current file version,
-will be appended to the given filename and should not be included in the
-specified value.
-+
-The location must be on a local filesystem of a type that supports mmap. It is
-perfectly fine to place the cache file on tmpfs as it will be silently
-regenerated if missing after a reboot.
+The feature requires *temporary_dir* to be located on a locale filesystem.
 
 [[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
