@@ -1211,9 +1211,10 @@ object_hash_from_depfile(const char *depfile, struct hash *hash)
 	return result;
 }
 
-// Helper function for copy_file_to_cache and move_file_to_cache_same_fs.
+// Helper function for put_file_in_cache and move_file_to_cache_same_fs.
 static void
-do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
+do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy,
+                              bool attempt_link)
 {
 	assert(!conf->read_only);
 	assert(!conf->read_only_direct);
@@ -1222,7 +1223,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 	bool orig_dest_existed = stat(dest, &orig_dest_st) == 0;
 	int compression_level = conf->compression ? conf->compression_level : 0;
 	bool do_move = !copy && !conf->compression;
-	bool do_link = copy && conf->hard_link && !conf->compression;
+	bool do_link = attempt_link && copy && conf->hard_link && !conf->compression;
 
 	if (do_move) {
 		move_uncompressed_file(source, dest, compression_level);
@@ -1271,7 +1272,7 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 		orig_dest_existed ? 0 : 1);
 }
 
-// Copy a file into the cache.
+// Copy or link a file into the cache.
 //
 // dest must be a path in the cache (see get_path_in_cache). source does not
 // have to be on the same file system as dest.
@@ -1280,9 +1281,19 @@ do_copy_or_move_file_to_cache(const char *source, const char *dest, bool copy)
 // true and conf->compression is false, otherwise copy. dest will be compressed
 // if conf->compression is true.
 static void
+put_file_in_cache(const char *source, const char *dest)
+{
+	do_copy_or_move_file_to_cache(source, dest, true, true);
+}
+
+// Copy a file to the cache.
+//
+// dest must be a path in the cache (see get_path_in_cache). source does not
+// have to be on the same file system as dest.
+static void
 copy_file_to_cache(const char *source, const char *dest)
 {
-	do_copy_or_move_file_to_cache(source, dest, true);
+	do_copy_or_move_file_to_cache(source, dest, true, false);
 }
 
 // Move a file into the cache.
@@ -1293,7 +1304,7 @@ copy_file_to_cache(const char *source, const char *dest)
 static void
 move_file_to_cache_same_fs(const char *source, const char *dest)
 {
-	do_copy_or_move_file_to_cache(source, dest, false);
+	do_copy_or_move_file_to_cache(source, dest, false, true);
 }
 
 // Helper function for get_file_from_cache and copy_file_from_cache.
@@ -1622,7 +1633,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 		if (!conf->depend_mode) {
 			move_file_to_cache_same_fs(tmp_stderr, cached_stderr);
 		} else {
-			copy_file_to_cache(tmp_stderr, cached_stderr);
+			put_file_in_cache(tmp_stderr, cached_stderr);
 		}
 	} else if (conf->recache) {
 		// If recaching, we need to remove any previous .stderr.
@@ -1634,7 +1645,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 	MTR_BEGIN("file", "file_put");
 
-	copy_file_to_cache(output_obj, cached_obj);
+	put_file_in_cache(output_obj, cached_obj);
 	if (produce_dep_file) {
 		copy_file_to_cache(output_dep, cached_dep);
 	}
@@ -2399,7 +2410,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	if (!str_eq(output_obj, "/dev/null")) {
 		get_file_from_cache(cached_obj, output_obj);
 		if (using_split_dwarf) {
-			get_file_from_cache(cached_dwo, output_dwo);
+			copy_file_from_cache(cached_dwo, output_dwo);
 		}
 	}
 	if (produce_dep_file) {
@@ -2408,13 +2419,13 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 		copy_file_from_cache(cached_dep, output_dep);
 	}
 	if (generating_coverage) {
-		get_file_from_cache(cached_cov, output_cov);
+		copy_file_from_cache(cached_cov, output_cov);
 	}
 	if (generating_stackusage) {
-		get_file_from_cache(cached_su, output_su);
+		copy_file_from_cache(cached_su, output_su);
 	}
 	if (generating_diagnostics) {
-		get_file_from_cache(cached_dia, output_dia);
+		copy_file_from_cache(cached_dia, output_dia);
 	}
 
 	MTR_END("file", "file_get");
