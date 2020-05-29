@@ -333,7 +333,7 @@ copy_file(const char *src,
 		cc_log("Copying %s to %s via %s (%scompressed)",
 		       src, dest, tmp_name, compress_level > 0 ? "" : "un");
 	} else {
-		fd_out = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+		fd_out = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
 		if (fd_out == -1) {
 			saved_errno = errno;
 			close(fd_out);
