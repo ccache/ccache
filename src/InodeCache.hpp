@@ -36,7 +36,7 @@ class InodeCache
 public:
   // Specifies in which role a file was hashed, since the hash result does not
   // only depend on the actual content but also what we used it for. Source code
-  // file are scanned for macros while binary files are not as one example.
+  // files are scanned for macros while binary files are not as one example.
   enum class ContentType {
     binary = 0,
     code = 1,

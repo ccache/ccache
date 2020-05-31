@@ -504,7 +504,7 @@ might be incorrect.
 The feature is still experimental and thus off by default. It is currently not
 available on Windows.
 +
-The feature requires *temporary_dir* to be located on a locale filesystem.
+The feature requires *temporary_dir* to be located on a local filesystem.
 
 [[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 

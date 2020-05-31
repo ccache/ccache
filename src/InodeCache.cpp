@@ -224,7 +224,7 @@ InodeCache::acquire_bucket(uint32_t index)
 #  endif
     if (err) {
       cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
-      cc_log("Consider removing the inode cache file if preblem persists");
+      cc_log("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
       return nullptr;
     }
