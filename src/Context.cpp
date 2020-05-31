@@ -30,6 +30,10 @@ using nonstd::string_view;
 Context::Context()
   : actual_cwd(Util::get_actual_cwd()),
     apparent_cwd(Util::get_apparent_cwd(actual_cwd))
+#ifdef INODE_CACHE_SUPPORTED
+    ,
+    inode_cache(config)
+#endif
 {
 }
 

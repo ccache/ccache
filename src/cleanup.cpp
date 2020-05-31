@@ -21,6 +21,8 @@
 
 #include "CacheFile.hpp"
 #include "Config.hpp"
+#include "Context.hpp"
+#include "InodeCache.hpp"
 #include "Util.hpp"
 #include "logging.hpp"
 #include "stats.hpp"
@@ -189,8 +191,11 @@ wipe_dir(const std::string& subdir,
 
 // Wipe all cached files in all subdirectories.
 void
-wipe_all(const Config& config, const Util::ProgressReceiver& progress_receiver)
+wipe_all(const Context& ctx, const Util::ProgressReceiver& progress_receiver)
 {
   Util::for_each_level_1_subdir(
-    config.cache_dir(), wipe_dir, progress_receiver);
+    ctx.config.cache_dir(), wipe_dir, progress_receiver);
+#ifdef INODE_CACHE_SUPPORTED
+  ctx.inode_cache.drop();
+#endif
 }

@@ -24,6 +24,7 @@
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
 #include "File.hpp"
+#include "InodeCache.hpp"
 #include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
 #include "ccache.hpp"
@@ -101,6 +102,11 @@ public:
 
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;
+
+#ifdef INODE_CACHE_SUPPORTED
+  // InodeCache that caches source file hashes when enabled.
+  mutable InodeCache inode_cache;
+#endif
 
   // Full path to the statistics file in the subdirectory where the cached
   // result belongs (<cache_dir>/<x>/stats).

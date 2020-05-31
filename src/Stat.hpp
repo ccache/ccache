@@ -81,6 +81,14 @@ public:
   bool is_regular() const;
   bool is_symlink() const;
 
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  timespec ctim() const;
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  timespec mtim() const;
+#endif
+
 protected:
   using StatFunction = int (*)(const char*, struct stat*);
 
@@ -201,3 +209,19 @@ Stat::is_regular() const
 {
   return S_ISREG(mode());
 }
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+inline timespec
+Stat::ctim() const
+{
+  return m_stat.st_ctim;
+}
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+inline timespec
+Stat::mtim() const
+{
+  return m_stat.st_mtim;
+}
+#endif

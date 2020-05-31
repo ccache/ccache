@@ -107,6 +107,15 @@ nonstd::string_view dir_name(nonstd::string_view path);
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
+// Extends file size to at least new_size by calling posix_fallocate() if
+// supported, otherwise by writing zeros last to the file.
+//
+// Note that existing holes are not filled in case posix_fallocate() is not
+// supported.
+//
+// Returns 0 on success, an error number otherwise.
+int fallocate(int fd, long new_size);
+
 // Call a function for each subdir (0-9a-f) in the cache.
 //
 // Parameters:
@@ -208,6 +217,14 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
+
+// Test if a file is on nfs.
+//
+// Sets is_nfs to the result if fstatfs is available and no error occurred.
+//
+// Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
+// error occured.
+int is_nfs_fd(int fd, bool* is_nfs);
 
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.

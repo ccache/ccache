@@ -71,7 +71,16 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-  CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    CHECK(config.temporary_dir()
+          == fmt::format("/run/user/{}/ccache-tmp", geteuid()));
+  } else {
+#endif
+    CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
+#ifdef HAVE_GETEUID
+  }
+#endif
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 
@@ -394,6 +403,7 @@ TEST_CASE("Config::visit_items")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
+    "inode_cache = false\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 0.0\n"
     "log_file = lf\n"
@@ -447,6 +457,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) hard_link = true",
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",
+    "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) limit_multiple = 0.0",
     "(test.conf) log_file = lf",

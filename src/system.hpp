@@ -111,3 +111,7 @@ extern char** environ;
 #ifndef O_BINARY
 #  define O_BINARY 0
 #endif
+
+#ifdef HAVE_SYS_MMAN_H
+#  define INODE_CACHE_SUPPORTED
+#endif
