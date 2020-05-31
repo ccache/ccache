@@ -441,7 +441,7 @@ is_nfs_fd(int fd, bool* is_nfs)
 #  ifdef HAVE_LINUX_FS_H
   *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
 #  else // Mac OS X and some other BSD flavors
-  *is_nfs = !strcmp(buf.f_fstypename, "nfs");
+  *is_nfs = strcmp(buf.f_fstypename, "nfs") == 0;
 #  endif
   return 0;
 }

@@ -107,7 +107,7 @@ private:
   bool initialize();
 
   const Config& m_config;
-  struct SharedRegion* m_sr;
-  bool m_failed;
+  struct SharedRegion* m_sr = nullptr;
+  bool m_failed = false;
 };
 #endif

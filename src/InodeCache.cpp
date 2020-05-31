@@ -152,8 +152,8 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   // allow a new file to be generated.
   if (sr->version != k_version) {
     cc_log(
-      "Dropping inode cache because found version %u does not match expected "
-      "version %u",
+      "Dropping inode cache because found version %u does not match expected"
+      " version %u",
       sr->version,
       k_version);
     munmap(sr, sizeof(SharedRegion));
@@ -208,8 +208,9 @@ InodeCache::acquire_bucket(uint32_t index)
   int err = pthread_mutex_lock(&bucket->mt);
 #  ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
-    if (m_config.debug())
+    if (m_config.debug()) {
       ++m_sr->errors;
+    }
     err = pthread_mutex_consistent(&bucket->mt);
     if (err) {
       cc_log(
@@ -258,8 +259,8 @@ InodeCache::create_new_file(const std::string& filename)
   bool is_nfs;
   if (Util::is_nfs_fd(temp_fd.first, &is_nfs) == 0 && is_nfs) {
     cc_log(
-      "Inode cache not supported because the cache file would be located on "
-      "nfs: %s",
+      "Inode cache not supported because the cache file would be located on"
+      " nfs: %s",
       filename.c_str());
     unlink(temp_fd.second.c_str());
     close(temp_fd.first);
@@ -347,8 +348,7 @@ InodeCache::initialize()
   return false;
 }
 
-InodeCache::InodeCache(const Config& config)
-  : m_config(config), m_sr(nullptr), m_failed(false)
+InodeCache::InodeCache(const Config& config) : m_config(config)
 {
 }
 
