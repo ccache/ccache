@@ -145,8 +145,7 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
   close(fd);
   if (sr == reinterpret_cast<void*>(-1)) {
-    cc_log(
-      "Failed to mmap %s: %s\n", inode_cache_file.c_str(), strerror(errno));
+    cc_log("Failed to mmap %s: %s", inode_cache_file.c_str(), strerror(errno));
     return false;
   }
   // Drop the file from disk if the found version is not matching. This will
