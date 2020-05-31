@@ -677,7 +677,8 @@ information.
 [[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This setting specifies where ccache will put temporary files. The default
-    is *<cache_dir>/tmp*.
+    is */run/user/<UID>/ccache-tmp* if */run/user/<UID>* exists, otherwise
+    *<cache_dir>/tmp*.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     filesystem as the *CCACHE_DIR* path, but this requirement has been
