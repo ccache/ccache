@@ -1,7 +1,7 @@
 SUITE_inode_cache_SETUP() {
     export CCACHE_INODECACHE=1
+    export CCACHE_DEBUG=1
     unset CCACHE_NODIRECT
-    cat /dev/null > $CCACHE_LOGFILE
 }
 
 SUITE_inode_cache() {
@@ -12,7 +12,9 @@ expect_inode_cache_type() {
     local expected=$1
     local source_file=$2
     local type=$3
-    local actual=`grep "inode cache $type: $source_file" $CCACHE_LOGFILE|wc -l`
+
+    local log_file=$(echo $source_file | sed 's/\.c$/.o.ccache-log/')
+    local actual=$(grep -c "inode cache $type: $source_file" "$log_file")
     if [ $actual -ne $expected ]; then
         test_failed "Found $actual (expected $expected) $type for $source_file"
     fi
@@ -37,17 +39,20 @@ inode_cache_tests() {
 
     echo "// recompile" > test1.c
     $CCACHE_COMPILE -c test1.c
+    expect_inode_cache 0 1 1 test1.c
     $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 1 1 1 test1.c
+    expect_inode_cache 1 0 0 test1.c
 
     # -------------------------------------------------------------------------
     TEST "Backdate"
 
     echo "// backdate" > test1.c
     $CCACHE_COMPILE -c test1.c
+    expect_inode_cache 0 1 1 test1.c
+
     backdate test1.c
     $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 0 2 2 test1.c
+    expect_inode_cache 0 1 1 test1.c
 
     # -------------------------------------------------------------------------
     TEST "Hard link"
@@ -74,8 +79,10 @@ inode_cache_tests() {
 
     echo "// replace" > test1.c
     $CCACHE_COMPILE -c test1.c
+    expect_inode_cache 0 1 1 test1.c
+
     rm test1.c
     echo "// replace" > test1.c
     $CCACHE_COMPILE -c test1.c
-    expect_inode_cache 0 2 2 test1.c
+    expect_inode_cache 0 1 1 test1.c
 }
