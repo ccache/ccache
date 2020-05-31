@@ -431,7 +431,7 @@ is_absolute_path(string_view path)
 }
 
 #if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
-bool
+int
 is_nfs_fd(int fd, bool* is_nfs)
 {
   struct statfs buf;
@@ -446,7 +446,7 @@ is_nfs_fd(int fd, bool* is_nfs)
   return 0;
 }
 #else
-bool
+int
 is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
 {
   return -1;

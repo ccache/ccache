@@ -224,7 +224,7 @@ bool is_absolute_path(nonstd::string_view path);
 //
 // Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
 // error occured.
-bool is_nfs_fd(int fd, bool* is_nfs);
+int is_nfs_fd(int fd, bool* is_nfs);
 
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
