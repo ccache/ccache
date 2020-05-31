@@ -734,7 +734,7 @@ send_cached_stderr(const char* path_stderr)
 {
   int fd_stderr = open(path_stderr, O_RDONLY | O_BINARY);
   if (fd_stderr != -1) {
-    copy_fd(fd_stderr, 2);
+    copy_fd(fd_stderr, STDERR_FILENO);
     close(fd_stderr);
   }
 }
@@ -922,13 +922,11 @@ to_cache(Context& ctx,
     int fd = open(tmp_stderr.c_str(), O_RDONLY | O_BINARY);
     if (fd != -1) {
       // We can output stderr immediately instead of rerunning the compiler.
-      copy_fd(fd, 2);
+      copy_fd(fd, STDERR_FILENO);
       close(fd);
-
-      failed(STATS_STATUS, status);
     }
 
-    failed(STATS_STATUS);
+    failed(STATS_STATUS, status);
   }
 
   if (ctx.config.depend_mode()) {
@@ -1904,18 +1902,14 @@ initialize(Context& ctx, int argc, const char* const* argv)
 static void
 set_up_uncached_err()
 {
-  int uncached_fd = dup(2); // The file descriptor is intentionally leaked.
+  int uncached_fd =
+    dup(STDERR_FILENO); // The file descriptor is intentionally leaked.
   if (uncached_fd == -1) {
     cc_log("dup(2) failed: %s", strerror(errno));
     failed(STATS_ERROR);
   }
 
-  // Leak a pointer to the environment.
-  char* buf = format("UNCACHED_ERR_FD=%d", uncached_fd);
-  if (putenv(buf) == -1) {
-    cc_log("putenv failed: %s", strerror(errno));
-    failed(STATS_ERROR);
-  }
+  x_setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd).c_str());
 }
 
 static void

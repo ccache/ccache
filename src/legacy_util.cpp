@@ -162,7 +162,7 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
     if (dest_fd == -1) {
       close(dest_fd);
       close(src_fd);
@@ -225,7 +225,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
     if (dest_fd == -1) {
       close(dest_fd);
       close(src_fd);
@@ -603,7 +603,8 @@ create_tmp_file(char** fname, const char* mode)
   return file;
 }
 
-// Return current user's home directory, or NULL if it can't be determined.
+// Return current user's home directory, or throw FatalError if it can't be
+// determined.
 const char*
 get_home_directory()
 {
@@ -625,7 +626,7 @@ get_home_directory()
     }
   }
 #endif
-  return nullptr;
+  fatal("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 // Check whether s1 and s2 have the same executable name.

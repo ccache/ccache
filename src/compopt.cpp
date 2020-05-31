@@ -50,7 +50,7 @@ struct compopt
 };
 
 static const struct compopt compopts[] = {
-  {"--analyze", TOO_HARD},                            // clang
+  {"--analyze", TOO_HARD},                            // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc
   {"--libdevice-directory", AFFECTS_CPP | TAKES_ARG}, // nvcc
   {"--output-directory", AFFECTS_CPP | TAKES_ARG},    // nvcc
@@ -85,7 +85,7 @@ static const struct compopt compopts[] = {
   {"-Xlinker", TAKES_ARG | TAKES_CONCAT_ARG | AFFECTS_COMP},
   {"-Xpreprocessor", AFFECTS_CPP | TOO_HARD_DIRECT | TAKES_ARG},
   {"-all_load", AFFECTS_COMP},
-  {"-analyze", TOO_HARD}, // clang
+  {"-analyze", TOO_HARD}, // Clang
   {"-arch", TAKES_ARG},
   {"-aux-info", TAKES_ARG},
   {"-b", TAKES_ARG},
@@ -95,7 +95,7 @@ static const struct compopt compopts[] = {
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
-  {"-ftime-trace", TOO_HARD}, // clang
+  {"-ftime-trace", TOO_HARD}, // Clang
   {"-fworking-directory", AFFECTS_CPP},
   {"-gtoggle", TOO_HARD},
   {"-idirafter", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
