@@ -149,6 +149,8 @@ TEST_CASE("Util::ends_with")
 
 TEST_CASE("Util::fallocate")
 {
+  TestContext test_context;
+
   const char* filename = "test-file";
   int fd = creat(filename, S_IRUSR | S_IWUSR);
   CHECK(Util::fallocate(fd, 10000) == 0);
@@ -162,7 +164,6 @@ TEST_CASE("Util::fallocate")
   CHECK(Util::fallocate(fd, 20000) == 0);
   close(fd);
   CHECK(Stat::stat(filename).size() == 20000);
-  unlink(filename);
 }
 
 TEST_CASE("Util::for_each_level_1_subdir")
