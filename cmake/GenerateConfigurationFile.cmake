@@ -47,6 +47,9 @@ check_struct_has_member("struct stat" st_mtim sys/stat.h
 check_struct_has_member("struct statfs" f_fstypename sys/mount.h
                         HAVE_STRUCT_STATFS_F_FSTYPENAME)
 
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-mavx2 HAVE_AVX2)
+
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
 list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
 
