@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Config.hpp"
+#include "../src/Fd.hpp"
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
@@ -205,18 +206,20 @@ TEST_CASE("Util::fallocate")
 {
   TestContext test_context;
 
-  const char* filename = "test-file";
-  int fd = creat(filename, S_IRUSR | S_IWUSR);
-  CHECK(Util::fallocate(fd, 10000) == 0);
-  close(fd);
-  fd = open(filename, O_RDWR, S_IRUSR | S_IWUSR);
+  const char filename[] = "test-file";
+
+  CHECK(Util::fallocate(Fd(creat(filename, S_IRUSR | S_IWUSR)).get(), 10000)
+        == 0);
   CHECK(Stat::stat(filename).size() == 10000);
-  CHECK(Util::fallocate(fd, 5000) == 0);
-  close(fd);
-  fd = open(filename, O_RDWR, S_IRUSR | S_IWUSR);
+
+  CHECK(
+    Util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 5000)
+    == 0);
   CHECK(Stat::stat(filename).size() == 10000);
-  CHECK(Util::fallocate(fd, 20000) == 0);
-  close(fd);
+
+  CHECK(
+    Util::fallocate(Fd(open(filename, O_RDWR, S_IRUSR | S_IWUSR)).get(), 20000)
+    == 0);
   CHECK(Stat::stat(filename).size() == 20000);
 }
 

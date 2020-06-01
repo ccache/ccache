@@ -19,6 +19,7 @@
 
 #include "hash.hpp"
 
+#include "Fd.hpp"
 #include "Util.hpp"
 #include "logging.hpp"
 
@@ -180,13 +181,12 @@ hash_fd(struct hash* hash, int fd, bool fd_is_file)
 bool
 hash_file(struct hash* hash, const char* fname)
 {
-  int fd = open(fname, O_RDONLY | O_BINARY);
-  if (fd == -1) {
+  Fd fd(open(fname, O_RDONLY | O_BINARY));
+  if (!fd) {
     cc_log("Failed to open %s: %s", fname, strerror(errno));
     return false;
   }
 
-  bool ret = hash_fd(hash, fd, true);
-  close(fd);
+  bool ret = hash_fd(hash, *fd, true);
   return ret;
 }

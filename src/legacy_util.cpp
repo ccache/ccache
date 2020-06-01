@@ -19,6 +19,7 @@
 
 #include "legacy_util.hpp"
 
+#include "Fd.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
 #include "logging.hpp"
@@ -151,35 +152,33 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   bool result;
 
 #  if defined(__linux__)
-  int src_fd = open(src, O_RDONLY);
-  if (src_fd == -1) {
+  Fd src_fd(open(src, O_RDONLY));
+  if (!src_fd) {
     return false;
   }
 
-  int dest_fd;
+  Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
     tmp_file = x_strdup(dest);
-    dest_fd = create_tmp_fd(&tmp_file);
+    dest_fd = Fd(create_tmp_fd(&tmp_file));
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
-    if (dest_fd == -1) {
-      close(dest_fd);
-      close(src_fd);
+    dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
       return false;
     }
   }
 
   int saved_errno = 0;
-  if (ioctl(dest_fd, FICLONE, src_fd) == 0) {
+  if (ioctl(*dest_fd, FICLONE, *src_fd) == 0) {
     result = true;
   } else {
     result = false;
     saved_errno = errno;
   }
 
-  close(dest_fd);
-  close(src_fd);
+  dest_fd.close();
+  src_fd.close();
 
   if (via_tmp_file) {
     if (x_rename(tmp_file, dest) != 0) {
@@ -214,31 +213,29 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
 {
   bool result = false;
 
-  int src_fd = open(src, O_RDONLY);
-  if (src_fd == -1) {
+  Fd src_fd(open(src, O_RDONLY));
+  if (!src_fd) {
     return false;
   }
 
-  int dest_fd;
+  Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
     tmp_file = x_strdup(dest);
-    dest_fd = create_tmp_fd(&tmp_file);
+    dest_fd = Fd(create_tmp_fd(&tmp_file));
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
-    if (dest_fd == -1) {
-      close(dest_fd);
-      close(src_fd);
+    dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
       return false;
     }
   }
 
-  if (copy_fd(src_fd, dest_fd, true)) {
+  if (copy_fd(*src_fd, *dest_fd, true)) {
     result = true;
   }
 
-  close(dest_fd);
-  close(src_fd);
+  dest_fd.close();
+  src_fd.close();
 
   if (via_tmp_file) {
     if (x_rename(tmp_file, dest) != 0) {
@@ -710,8 +707,8 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
   // +1 to be able to detect EOF in the first read call
   size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
 
-  int fd = open(path, O_RDONLY | O_BINARY);
-  if (fd == -1) {
+  Fd fd(open(path, O_RDONLY | O_BINARY));
+  if (!fd) {
     return false;
   }
   size_t allocated = size_hint;
@@ -724,7 +721,7 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
       *data = static_cast<char*>(x_realloc(*data, allocated));
     }
     const size_t max_read = allocated - pos;
-    ret = read(fd, *data + pos, max_read);
+    ret = read(*fd, *data + pos, max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
@@ -735,7 +732,7 @@ read_file(const char* path, size_t size_hint, char** data, size_t* size)
       }
     }
   }
-  close(fd);
+
   if (ret == -1) {
     cc_log("Failed reading %s", path);
     free(*data);

@@ -22,7 +22,9 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Context.hpp"
+#include "Fd.hpp"
 #include "File.hpp"
+#include "Finalizer.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
@@ -245,7 +247,6 @@ do_remember_include_file(Context& ctx,
                          bool system,
                          struct hash* depend_mode_hash)
 {
-  struct hash* fhash = nullptr;
   bool is_pch = false;
 
   if (path.length() >= 2 && path[0] == '<' && path[path.length() - 1] == '>') {
@@ -321,9 +322,8 @@ do_remember_include_file(Context& ctx,
   }
 
   // Let's hash the include file content.
-  std::unique_ptr<struct hash, decltype(&hash_free)> fhash_holder(hash_init(),
-                                                                  &hash_free);
-  fhash = fhash_holder.get();
+  struct hash* fhash = hash_init();
+  Finalizer fhash_finalizer([=] { hash_free(fhash); });
 
   is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
@@ -773,10 +773,9 @@ send_cached_stderr(const std::string& path_stderr, bool strip_colors)
       // Fall through
     }
   } else {
-    int fd_stderr = open(path_stderr.c_str(), O_RDONLY | O_BINARY);
-    if (fd_stderr != -1) {
-      copy_fd(fd_stderr, STDERR_FILENO);
-      close(fd_stderr);
+    Fd fd_stderr(open(path_stderr.c_str(), O_RDONLY | O_BINARY));
+    if (fd_stderr) {
+      copy_fd(*fd_stderr, STDERR_FILENO);
     }
   }
 }

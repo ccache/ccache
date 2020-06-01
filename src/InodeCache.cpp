@@ -21,6 +21,8 @@
 #ifdef INODE_CACHE_SUPPORTED
 
 #  include "Config.hpp"
+#  include "Fd.hpp"
+#  include "Finalizer.hpp"
 #  include "Stat.hpp"
 #  include "Util.hpp"
 #  include "ccache.hpp"
@@ -129,24 +131,23 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
     munmap(m_sr, sizeof(SharedRegion));
     m_sr = nullptr;
   }
-  int fd = open(inode_cache_file.c_str(), O_RDWR);
-  if (fd < 0) {
+  Fd fd(open(inode_cache_file.c_str(), O_RDWR));
+  if (!fd) {
     cc_log("Failed to open inode cache %s: %s",
            inode_cache_file.c_str(),
            strerror(errno));
     return false;
   }
   bool is_nfs;
-  if (Util::is_nfs_fd(fd, &is_nfs) == 0 && is_nfs) {
+  if (Util::is_nfs_fd(*fd, &is_nfs) == 0 && is_nfs) {
     cc_log(
       "Inode cache not supported because the cache file is located on nfs: %s",
       inode_cache_file.c_str());
-    close(fd);
     return false;
   }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
-    nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-  close(fd);
+    nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0));
+  fd.close();
   if (sr == reinterpret_cast<void*>(-1)) {
     cc_log("Failed to mmap %s: %s", inode_cache_file.c_str(), strerror(errno));
     return false;
@@ -258,22 +259,23 @@ InodeCache::create_new_file(const std::string& filename)
 
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  auto temp_fd = Util::create_temp_fd(filename);
+  auto temp_fd_and_path = Util::create_temp_fd(filename);
+  const auto& temp_path = temp_fd_and_path.second;
+
+  Fd temp_fd(temp_fd_and_path.first);
+  Finalizer temp_file_remover([=] { unlink(temp_path.c_str()); });
+
   bool is_nfs;
-  if (Util::is_nfs_fd(temp_fd.first, &is_nfs) == 0 && is_nfs) {
+  if (Util::is_nfs_fd(*temp_fd, &is_nfs) == 0 && is_nfs) {
     cc_log(
       "Inode cache not supported because the cache file would be located on"
       " nfs: %s",
       filename.c_str());
-    unlink(temp_fd.second.c_str());
-    close(temp_fd.first);
     return false;
   }
-  int err = Util::fallocate(temp_fd.first, sizeof(SharedRegion));
+  int err = Util::fallocate(*temp_fd, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
-    unlink(temp_fd.second.c_str());
-    close(temp_fd.first);
     return false;
   }
   SharedRegion* sr =
@@ -281,12 +283,10 @@ InodeCache::create_new_file(const std::string& filename)
                                          sizeof(SharedRegion),
                                          PROT_READ | PROT_WRITE,
                                          MAP_SHARED,
-                                         temp_fd.first,
+                                         *temp_fd,
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
     cc_log("Failed to mmap new inode cache: %s", strerror(errno));
-    unlink(temp_fd.second.c_str());
-    close(temp_fd.first);
     return false;
   }
 
@@ -303,20 +303,18 @@ InodeCache::create_new_file(const std::string& filename)
   }
 
   munmap(sr, sizeof(SharedRegion));
-  close(temp_fd.first);
+  temp_fd.close();
 
   // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (link(temp_fd.second.c_str(), filename.c_str()) != 0) {
+  if (link(temp_path.c_str(), filename.c_str()) != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
-    unlink(temp_fd.second.c_str());
     return false;
   }
 
-  unlink(temp_fd.second.c_str());
   return true;
 }
 
