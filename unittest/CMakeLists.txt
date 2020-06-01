@@ -9,6 +9,7 @@ add_executable(
   test_Compression.cpp
   test_Config.cpp
   test_FormatNonstdStringView.cpp
+  test_InodeCache.cpp
   test_Lockfile.cpp
   test_NullCompression.cpp
   test_Stat.cpp

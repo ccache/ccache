@@ -11,6 +11,7 @@ add_library(
   Context.cpp
   Counters.cpp
   Decompressor.cpp
+  InodeCache.cpp
   Lockfile.cpp
   MiniTrace.cpp
   NullCompressor.cpp
@@ -18,6 +19,7 @@ add_library(
   ProgressBar.cpp
   SignalHandler.cpp
   Stat.cpp
+  ThreadPool.cpp
   Util.cpp
   ZstdCompressor.cpp
   ZstdDecompressor.cpp
