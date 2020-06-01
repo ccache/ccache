@@ -30,8 +30,8 @@
 // them.
 #cmakedefine _DARWIN_C_SOURCE
 
-// For example for localtime_r under i686-w64-mingw32-g++-posix.
-#define _POSIX_C_SOURCE 1
+// Define to activate features from IEEE Stds 1003.1-2001.
+#define _POSIX_C_SOURCE 200809L
 
 #if defined(__SunOS_5_8) || defined(__SunOS_5_9) || defined(__SunOS_5_10)
   #define _XOPEN_SOURCE 500
