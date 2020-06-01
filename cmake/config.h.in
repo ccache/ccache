@@ -54,6 +54,9 @@
 
 #cmakedefine MTR_ENABLED
 
+/* Define to 1 if you have the `asctime_r' function. */
+#cmakedefine HAVE_ASCTIME_R
+
 /* Define to 1 if you have the `geteuid' function. */
 #cmakedefine HAVE_GETEUID
 

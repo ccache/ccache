@@ -9,7 +9,8 @@ endforeach()
 include(CheckFunctionExists)
 foreach(
   func IN
-  ITEMS geteuid
+  ITEMS asctime_r
+        geteuid
         GetFinalPathNameByHandleW
         getopt_long
         getpwuid
