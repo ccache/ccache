@@ -54,43 +54,43 @@
 
 #cmakedefine MTR_ENABLED
 
-/* Defined to 1 if you have the `geteuid' function. */
+/* Define to 1 if you have the `geteuid' function. */
 #cmakedefine HAVE_GETEUID
 
-/* Defined to 1 if you have the `GetFinalPathNameByHandleW' function. */
+/* Define to 1 if you have the `GetFinalPathNameByHandleW' function. */
 #cmakedefine HAVE_GETFINALPATHNAMEBYHANDLEW
 
-/* Defined to 1 if you have the `getopt_long' function. */
+/* Define to 1 if you have the `getopt_long' function. */
 #cmakedefine HAVE_GETOPT_LONG
 
-/* Defined to 1 if you have the `getpwuid' function. */
+/* Define to 1 if you have the `getpwuid' function. */
 #cmakedefine HAVE_GETPWUID
 
-/* Defined to 1 if you have the `gettimeofday' function. */
+/* Define to 1 if you have the `gettimeofday' function. */
 #cmakedefine HAVE_GETTIMEOFDAY
 
-/* Defined to 1 if you have the `localtime_r' function. */
+/* Define to 1 if you have the `localtime_r' function. */
 #cmakedefine HAVE_LOCALTIME_R
 
-/* Defined to 1 if the system has the type `long long'. */
+/* Define to 1 if the system has the type `long long'. */
 #cmakedefine HAVE_LONG_LONG
 
-/* Defined to 1 if you have the `mkstemp' function. */
+/* Define to 1 if you have the `mkstemp' function. */
 #cmakedefine HAVE_MKSTEMP
 
-/* Defined to 1 if you have the `posix_fallocate. */
+/* Define to 1 if you have the `posix_fallocate. */
 #cmakedefine HAVE_POSIX_FALLOCATE
 
-/* Defined to 1 if you have the <pwd.h> header file. */
+/* Define to 1 if you have the <pwd.h> header file. */
 #cmakedefine HAVE_PWD_H
 
-/* Defined to 1 if you have the `realpath' function. */
+/* Define to 1 if you have the `realpath' function. */
 #cmakedefine HAVE_REALPATH
 
-/* Defined to 1 if you have the `setenv' function. */
+/* Define to 1 if you have the `setenv' function. */
 #cmakedefine HAVE_SETENV
 
-/* Defined to 1 if you have the `strndup' function. */
+/* Define to 1 if you have the `strndup' function. */
 #cmakedefine HAVE_STRNDUP
 
 /* Define to 1 if `f_fstypename' is a member of `struct statfs'. */
@@ -102,20 +102,20 @@
 /* Define to 1 if `st_mtim' is a member of `struct stat'. */
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
 
-/* Defined to 1 if you have the <sys/mman.h> header file. */
+/* Define to 1 if you have the <sys/mman.h> header file. */
 #cmakedefine HAVE_SYS_MMAN_H
 
-/* Defined to 1 if you have the <sys/time.h> header file. */
+/* Define to 1 if you have the <sys/time.h> header file. */
 #cmakedefine HAVE_SYS_TIME_H
 
-/* Defined to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #cmakedefine HAVE_SYS_WAIT_H
 
-/* Defined to 1 if you have the <termios.h> header file. */
+/* Define to 1 if you have the <termios.h> header file. */
 #cmakedefine HAVE_TERMIOS_H
 
-/* Defined to 1 if you have the `unsetenv' function. */
+/* Define to 1 if you have the `unsetenv' function. */
 #cmakedefine HAVE_UNSETENV
 
-/* Defined to 1 if you have the `utimes' function. */
+/* Define to 1 if you have the `utimes' function. */
 #cmakedefine HAVE_UTIMES
