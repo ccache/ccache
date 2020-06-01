@@ -30,7 +30,6 @@ set(functions
     realpath
     setenv
     strndup
-    strtok_r
     syslog
     unsetenv
     utimes)
