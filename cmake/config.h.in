@@ -93,6 +93,15 @@
 /* Defined to 1 if you have the `strndup' function. */
 #cmakedefine HAVE_STRNDUP
 
+/* Define to 1 if `f_fstypename' is a member of `struct statfs'. */
+#cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
+
+/* Define to 1 if `st_ctim' is a member of `struct stat'. */
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIM
+
+/* Define to 1 if `st_mtim' is a member of `struct stat'. */
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
 /* Defined to 1 if you have the <sys/mman.h> header file. */
 #cmakedefine HAVE_SYS_MMAN_H
 
