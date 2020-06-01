@@ -28,6 +28,7 @@ set(functions
     mkstemp
     posix_fallocate
     realpath
+    setenv
     strndup
     strtok_r
     syslog
