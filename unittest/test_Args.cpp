@@ -76,7 +76,7 @@ TEST_CASE("Args::from_string")
 
 TEST_CASE("Args::from_gcc_atfile")
 {
-  TestContext testContext;
+  TestContext test_context;
 
   Args args;
 
