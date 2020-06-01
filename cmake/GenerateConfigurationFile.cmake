@@ -30,6 +30,7 @@ set(functions
     realpath
     strndup
     strtok_r
+    syslog
     unsetenv
     utimes)
 foreach(func IN ITEMS ${functions})

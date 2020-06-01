@@ -108,6 +108,9 @@
 /* Define to 1 if `st_mtim' is a member of `struct stat'. */
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
 
+/* Define to 1 if you have the `syslog' function. */
+#cmakedefine HAVE_SYSLOG
+
 /* Define to 1 if you have the <syslog.h> header file. */
 #cmakedefine HAVE_SYSLOG_H
 
