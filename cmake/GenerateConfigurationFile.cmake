@@ -1,5 +1,14 @@
 include(CheckIncludeFile)
-set(include_files pwd.h sys/mman.h sys/time.h sys/wait.h termios.h)
+set(include_files
+    linux/fs.h
+    pwd.h
+    sys/clonefile.h
+    sys/ioctl.h
+    sys/mman.h
+    sys/time.h
+    sys/wait.h
+    syslog.h
+    termios.h)
 foreach(include_file IN ITEMS ${include_files})
   string(TOUPPER ${include_file} include_var)
   string(REGEX REPLACE "[/.]" "_" include_var ${include_var})

@@ -72,6 +72,9 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #cmakedefine HAVE_GETTIMEOFDAY
 
+/* Define to 1 if you have the <linux/fs.h> header file. */
+#cmakedefine HAVE_LINUX_FS_H
+
 /* Define to 1 if you have the `localtime_r' function. */
 #cmakedefine HAVE_LOCALTIME_R
 
@@ -104,6 +107,15 @@
 
 /* Define to 1 if `st_mtim' is a member of `struct stat'. */
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#cmakedefine HAVE_SYSLOG_H
+
+/* Define to 1 if you have the <sys/clonefile.h> header file. */
+#cmakedefine HAVE_SYS_CLONEFILE_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#cmakedefine HAVE_SYS_IOCTL_H
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #cmakedefine HAVE_SYS_MMAN_H
