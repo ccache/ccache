@@ -1,5 +1,6 @@
 include(CheckIncludeFile)
-foreach(include_file IN ITEMS pwd.h sys/mman.h sys/time.h sys/wait.h termios.h)
+set(include_files pwd.h sys/mman.h sys/time.h sys/wait.h termios.h)
+foreach(include_file IN ITEMS ${include_files})
   string(TOUPPER ${include_file} include_var)
   string(REGEX REPLACE "[/.]" "_" include_var ${include_var})
   set(include_var HAVE_${include_var})
@@ -7,22 +8,22 @@ foreach(include_file IN ITEMS pwd.h sys/mman.h sys/time.h sys/wait.h termios.h)
 endforeach()
 
 include(CheckFunctionExists)
-foreach(
-  func IN
-  ITEMS asctime_r
-        geteuid
-        GetFinalPathNameByHandleW
-        getopt_long
-        getpwuid
-        gettimeofday
-        localtime_r
-        mkstemp
-        posix_fallocate
-        realpath
-        strndup
-        strtok_r
-        unsetenv
-        utimes)
+set(functions
+    asctime_r
+    geteuid
+    GetFinalPathNameByHandleW
+    getopt_long
+    getpwuid
+    gettimeofday
+    localtime_r
+    mkstemp
+    posix_fallocate
+    realpath
+    strndup
+    strtok_r
+    unsetenv
+    utimes)
+foreach(func IN ITEMS ${functions})
   string(TOUPPER ${func} func_var)
   set(func_var HAVE_${func_var})
   check_function_exists(${func} ${func_var})
