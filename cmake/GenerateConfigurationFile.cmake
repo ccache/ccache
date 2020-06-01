@@ -9,12 +9,14 @@ endforeach()
 include(CheckFunctionExists)
 foreach(
   func IN
-  ITEMS GetFinalPathNameByHandleW
+  ITEMS geteuid
+        GetFinalPathNameByHandleW
         getopt_long
         getpwuid
         gettimeofday
         localtime_r
         mkstemp
+        posix_fallocate
         realpath
         strndup
         strtok_r

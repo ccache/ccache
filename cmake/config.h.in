@@ -54,6 +54,9 @@
 
 #cmakedefine MTR_ENABLED
 
+/* Defined to 1 if you have the `geteuid' function. */
+#cmakedefine HAVE_GETEUID
+
 /* Defined to 1 if you have the `GetFinalPathNameByHandleW' function. */
 #cmakedefine HAVE_GETFINALPATHNAMEBYHANDLEW
 
@@ -74,6 +77,9 @@
 
 /* Defined to 1 if you have the `mkstemp' function. */
 #cmakedefine HAVE_MKSTEMP
+
+/* Defined to 1 if you have the `posix_fallocate. */
+#cmakedefine HAVE_POSIX_FALLOCATE
 
 /* Defined to 1 if you have the <pwd.h> header file. */
 #cmakedefine HAVE_PWD_H
