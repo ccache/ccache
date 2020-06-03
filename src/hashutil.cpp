@@ -21,6 +21,7 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "InodeCache.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
@@ -188,7 +189,7 @@ check_for_temporal_macros(const char* str, size_t len)
 
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
-hash_source_code_string(const Config& config,
+hash_source_code_string(const Context& ctx,
                         struct hash* hash,
                         const char* str,
                         size_t len,
@@ -198,7 +199,7 @@ hash_source_code_string(const Config& config,
 
   // Check for __DATE__, __TIME__ and __TIMESTAMP__if the sloppiness
   // configuration tells us we should.
-  if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
+  if (!(ctx.config.sloppiness() & SLOPPY_TIME_MACROS)) {
     result |= check_for_temporal_macros(str, len);
   }
 
@@ -261,15 +262,14 @@ hash_source_code_string(const Config& config,
   return result;
 }
 
-// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
-// results.
-int
-hash_source_code_file(const Config& config,
-                      struct hash* hash,
-                      const char* path,
-                      size_t size_hint)
+static int
+hash_source_code_file_nocache(const Context& ctx,
+                              struct hash* hash,
+                              const char* path,
+                              size_t size_hint,
+                              bool is_precompiled)
 {
-  if (is_precompiled_header(path)) {
+  if (is_precompiled) {
     if (hash_file(hash, path)) {
       return HASH_SOURCE_CODE_OK;
     } else {
@@ -281,10 +281,98 @@ hash_source_code_file(const Config& config,
     if (!read_file(path, size_hint, &data, &size)) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(config, hash, data, size, path);
+    int result = hash_source_code_string(ctx, hash, data, size, path);
     free(data);
     return result;
   }
+}
+
+#ifdef INODE_CACHE_SUPPORTED
+static InodeCache::ContentType
+get_content_type(const Config& config, const char* path)
+{
+  if (is_precompiled_header(path)) {
+    return InodeCache::ContentType::precompiled_header;
+  }
+  if (config.sloppiness() & SLOPPY_TIME_MACROS) {
+    return InodeCache::ContentType::code_with_sloppy_time_macros;
+  }
+  return InodeCache::ContentType::code;
+}
+#endif
+
+// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+// results.
+int
+hash_source_code_file(const Context& ctx,
+                      struct hash* hash,
+                      const char* path,
+                      size_t size_hint)
+{
+#ifdef INODE_CACHE_SUPPORTED
+  if (!ctx.config.inode_cache()) {
+#endif
+    return hash_source_code_file_nocache(
+      ctx, hash, path, size_hint, is_precompiled_header(path));
+
+#ifdef INODE_CACHE_SUPPORTED
+  }
+
+  // Reusable file hashes must be independent of the outer context. Thus hash
+  // files separately so that digests based on file contents can be reused. Then
+  // add the digest into the outer hash instead.
+  InodeCache::ContentType content_type = get_content_type(ctx.config, path);
+  struct digest digest;
+  int return_value;
+  if (!ctx.inode_cache.get(path, content_type, &digest, &return_value)) {
+    struct hash* file_hash = hash_init();
+    return_value = hash_source_code_file_nocache(
+      ctx,
+      file_hash,
+      path,
+      size_hint,
+      content_type == InodeCache::ContentType::precompiled_header);
+    if (return_value == HASH_SOURCE_CODE_ERROR) {
+      return HASH_SOURCE_CODE_ERROR;
+    }
+    hash_result_as_bytes(file_hash, &digest);
+    hash_free(file_hash);
+    ctx.inode_cache.put(path, content_type, digest, return_value);
+  }
+  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  return return_value;
+#endif
+}
+
+// Hash a binary file using the inode cache if enabled.
+//
+// Returns true on success, otherwise false.
+bool
+hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
+{
+  if (!ctx.config.inode_cache()) {
+    return hash_file(hash, path);
+  }
+
+#ifdef INODE_CACHE_SUPPORTED
+  // Reusable file hashes must be independent of the outer context. Thus hash
+  // files separately so that digests based on file contents can be reused. Then
+  // add the digest into the outer hash instead.
+  struct digest digest;
+  if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, &digest)) {
+    struct hash* file_hash = hash_init();
+    if (!hash_file(hash, path)) {
+      return false;
+    }
+    hash_result_as_bytes(file_hash, &digest);
+    hash_free(file_hash);
+    ctx.inode_cache.put(path, InodeCache::ContentType::binary, digest);
+  }
+  hash_buffer(hash, &digest.bytes, sizeof(digest::bytes));
+  return true;
+#else
+  return hash_file(hash, path);
+#endif
 }
 
 bool

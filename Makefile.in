@@ -42,6 +42,7 @@ non_third_party_sources = \
     src/Context.cpp \
     src/Counters.cpp \
     src/Decompressor.cpp \
+    src/InodeCache.cpp \
     src/Lockfile.cpp \
     src/MiniTrace.cpp \
     src/NullCompressor.cpp \
@@ -89,6 +90,7 @@ test_suites += unittest/test_Checksum.cpp
 test_suites += unittest/test_Compression.cpp
 test_suites += unittest/test_Config.cpp
 test_suites += unittest/test_FormatNonstdStringView.cpp
+test_suites += unittest/test_InodeCache.cpp
 test_suites += unittest/test_Lockfile.cpp
 test_suites += unittest/test_NullCompression.cpp
 test_suites += unittest/test_Stat.cpp

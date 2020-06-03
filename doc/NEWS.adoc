@@ -44,6 +44,9 @@ High-level summary of changes (work in progress)
   decrease the number of CPU cycles for a direct cache hit with up to 15% in
   some cases.
 
+- Added a new inode cache for file hashes, allowing computed hash values to be
+  reused both within and between builds.
+
 - Compiler diagnostic messages are now always cached in color, and ccache
   strips the color codes on the fly when requested explicitly by command-line
   option or when stderr does not refer to a TTY. This allows IDEs and terminals

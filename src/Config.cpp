@@ -54,6 +54,7 @@ enum class ConfigItem {
   hard_link,
   hash_dir,
   ignore_headers_in_manifest,
+  inode_cache,
   keep_comments_cpp,
   limit_multiple,
   log_file,
@@ -91,6 +92,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"hard_link", ConfigItem::hard_link},
   {"hash_dir", ConfigItem::hash_dir},
   {"ignore_headers_in_manifest", ConfigItem::ignore_headers_in_manifest},
+  {"inode_cache", ConfigItem::inode_cache},
   {"keep_comments_cpp", ConfigItem::keep_comments_cpp},
   {"limit_multiple", ConfigItem::limit_multiple},
   {"log_file", ConfigItem::log_file},
@@ -130,6 +132,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"HARDLINK", "hard_link"},
   {"HASHDIR", "hash_dir"},
   {"IGNOREHEADERS", "ignore_headers_in_manifest"},
+  {"INODECACHE", "inode_cache"},
   {"LIMIT_MULTIPLE", "limit_multiple"},
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
@@ -556,6 +559,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::ignore_headers_in_manifest:
     return m_ignore_headers_in_manifest;
 
+  case ConfigItem::inode_cache:
+    return format_bool(m_inode_cache);
+
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
 
@@ -760,6 +766,10 @@ Config::set_item(const std::string& key,
     m_ignore_headers_in_manifest = parse_env_string(value);
     break;
 
+  case ConfigItem::inode_cache:
+    m_inode_cache = parse_bool(value, env_var_key, negate);
+    break;
+
   case ConfigItem::keep_comments_cpp:
     m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
     break;
@@ -844,4 +854,15 @@ Config::check_key_tables_consistency()
         item.second));
     }
   }
+}
+
+std::string
+Config::default_temporary_dir(const std::string& cache_dir)
+{
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    return fmt::format("/run/user/{}/ccache-tmp", geteuid());
+  }
+#endif
+  return cache_dir + "/tmp";
 }

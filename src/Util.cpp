@@ -21,7 +21,19 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "legacy_util.hpp"
 #include "logging.hpp"
+
+#include <algorithm>
+#include <fstream>
+
+#ifdef HAVE_LINUX_FS_H
+#  include <linux/magic.h>
+#  include <sys/statfs.h>
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+#  include <sys/mount.h>
+#  include <sys/param.h>
+#endif
 
 #ifdef _WIN32
 #  include "win32compat.hpp"
@@ -185,6 +197,38 @@ bool
 ends_with(string_view string, string_view suffix)
 {
   return string.ends_with(suffix);
+}
+
+int
+fallocate(int fd, long new_size)
+{
+#ifdef HAVE_POSIX_FALLOCATE
+  return posix_fallocate(fd, 0, new_size);
+#else
+  off_t saved_pos = lseek(fd, 0, SEEK_END);
+  off_t old_size = lseek(fd, 0, SEEK_END);
+  if (old_size == -1) {
+    int err = errno;
+    lseek(fd, saved_pos, SEEK_SET);
+    return err;
+  }
+  if (old_size >= new_size) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return 0;
+  }
+  long bytes_to_write = new_size - old_size;
+  void* buf = calloc(bytes_to_write, 1);
+  if (!buf) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return ENOMEM;
+  }
+  int err = 0;
+  if (!write_fd(fd, buf, bytes_to_write))
+    err = errno;
+  lseek(fd, saved_pos, SEEK_SET);
+  free(buf);
+  return err;
+#endif
 }
 
 void
@@ -385,6 +429,29 @@ is_absolute_path(string_view path)
 #endif
   return !path.empty() && path[0] == '/';
 }
+
+#if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+int
+is_nfs_fd(int fd, bool* is_nfs)
+{
+  struct statfs buf;
+  if (fstatfs(fd, &buf) != 0) {
+    return errno;
+  }
+#  ifdef HAVE_LINUX_FS_H
+  *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
+#  else // Mac OS X and some other BSD flavors
+  *is_nfs = strcmp(buf.f_fstypename, "nfs") == 0;
+#  endif
+  return 0;
+}
+#else
+int
+is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
+{
+  return -1;
+}
+#endif
 
 std::string
 make_relative_path(const Context& ctx, string_view path)

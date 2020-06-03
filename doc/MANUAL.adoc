@@ -495,6 +495,17 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
+[[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, enables caching of source file hashes based on device, inode and
+    timestamps. This will reduce the time spent on hashing included files as
+    the result can be resused between compilations.
++
+The feature is still experimental and thus off by default. It is currently not
+available on Windows.
++
+The feature requires *temporary_dir* to be located on a local filesystem.
+
 [[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will not discard the comments before hashing preprocessor
@@ -666,7 +677,8 @@ information.
 [[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This setting specifies where ccache will put temporary files. The default
-    is *<cache_dir>/tmp*.
+    is */run/user/<UID>/ccache-tmp* if */run/user/<UID>* exists, otherwise
+    *<cache_dir>/tmp*.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     filesystem as the *CCACHE_DIR* path, but this requirement has been

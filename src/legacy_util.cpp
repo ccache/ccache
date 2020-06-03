@@ -230,7 +230,7 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
     if (dest_fd == -1) {
       close(dest_fd);
       close(src_fd);
@@ -293,7 +293,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
     tmp_file = x_strdup(dest);
     dest_fd = create_tmp_fd(&tmp_file);
   } else {
-    dest_fd = open(dest, O_WRONLY | O_CREAT | O_BINARY, 0666);
+    dest_fd = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
     if (dest_fd == -1) {
       close(dest_fd);
       close(src_fd);

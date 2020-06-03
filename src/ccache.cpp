@@ -342,7 +342,7 @@ do_remember_include_file(Context& ctx,
       }
     }
 
-    if (!hash_file(fhash, path.c_str())) {
+    if (!hash_binary_file(ctx, fhash, path.c_str())) {
       return false;
     }
     hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
@@ -353,20 +353,29 @@ do_remember_include_file(Context& ctx,
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      char* source = nullptr;
-      size_t size;
-      if (st.size() > 0) {
-        if (!read_file(path.c_str(), st.size(), &source, &size)) {
-          return false;
-        }
+      int result;
+#ifdef INODE_CACHE_SUPPORTED
+      if (ctx.config.inode_cache()) {
+        result = hash_source_code_file(ctx, fhash, path.c_str());
       } else {
-        source = x_strdup("");
-        size = 0;
-      }
+#endif
+        char* source = nullptr;
+        size_t size;
+        if (st.size() > 0) {
+          if (!read_file(path.c_str(), st.size(), &source, &size)) {
+            return false;
+          }
+        } else {
+          source = x_strdup("");
+          size = 0;
+        }
 
-      int result =
-        hash_source_code_string(ctx.config, fhash, source, size, path.c_str());
-      free(source);
+        result =
+          hash_source_code_string(ctx, fhash, source, size, path.c_str());
+        free(source);
+#ifdef INODE_CACHE_SUPPORTED
+      }
+#endif
       if (result & HASH_SOURCE_CODE_ERROR
           || result & HASH_SOURCE_CODE_FOUND_TIME) {
         return false;
@@ -1118,7 +1127,8 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
   }
 
   hash_delimiter(hash, "cppstderr");
-  if (!ctx.args_info.direct_i_file && !hash_file(hash, stderr_path.c_str())) {
+  if (!ctx.args_info.direct_i_file
+      && !hash_binary_file(ctx, hash, stderr_path.c_str())) {
     // Somebody removed the temporary file?
     cc_log("Failed to open %s: %s", stderr_path.c_str(), strerror(errno));
     failed(STATS_ERROR);
@@ -1168,7 +1178,7 @@ hash_compiler(const Context& ctx,
     hash_string(hash, ctx.config.compiler_check().c_str() + strlen("string:"));
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
     hash_delimiter(hash, "cc_content");
-    hash_file(hash, path);
+    hash_binary_file(ctx, hash, path);
   } else { // command string
     if (!hash_multicommand_output(hash,
                                   ctx.config.compiler_check().c_str(),
@@ -1339,7 +1349,7 @@ hash_common_info(const Context& ctx,
   for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist.c_str());
     hash_delimiter(hash, "sanitizeblacklist");
-    if (!hash_file(hash, sanitize_blacklist.c_str())) {
+    if (!hash_binary_file(ctx, hash, sanitize_blacklist.c_str())) {
       failed(STATS_BADEXTRAFILE);
     }
   }
@@ -1349,7 +1359,7 @@ hash_common_info(const Context& ctx,
            ctx.config.extra_files_to_hash(), PATH_DELIM)) {
       cc_log("Hashing extra file %s", path.c_str());
       hash_delimiter(hash, "extrafile");
-      if (!hash_file(hash, path.c_str())) {
+      if (!hash_binary_file(ctx, hash, path.c_str())) {
         failed(STATS_BADEXTRAFILE);
       }
     }
@@ -1393,7 +1403,7 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
     if (st && !st.is_directory()) {
       cc_log("Adding profile data %s to the hash", p.c_str());
       hash_delimiter(hash, "-fprofile-use");
-      if (hash_file(hash, p.c_str())) {
+      if (hash_binary_file(ctx, hash, p.c_str())) {
         found = true;
       }
     }
@@ -1645,7 +1655,7 @@ calculate_result_name(Context& ctx,
 
     hash_delimiter(hash, "sourcecode");
     int result =
-      hash_source_code_file(ctx.config, hash, ctx.args_info.input_file.c_str());
+      hash_source_code_file(ctx, hash, ctx.args_info.input_file.c_str());
     if (result & HASH_SOURCE_CODE_ERROR) {
       failed(STATS_ERROR);
     }
@@ -2299,7 +2309,7 @@ handle_main_options(int argc, const char* const* argv)
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
       } else {
-        hash_file(hash, optarg);
+        hash_binary_file(ctx, hash, optarg);
       }
       char digest[DIGEST_STRING_BUFFER_SIZE];
       hash_result_as_string(hash, digest);
@@ -2326,8 +2336,7 @@ handle_main_options(int argc, const char* const* argv)
     case 'C': // --clear
     {
       ProgressBar progress_bar("Clearing...");
-      wipe_all(ctx.config,
-               [&](double progress) { progress_bar.update(progress); });
+      wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         printf("\n");
       }
@@ -2388,7 +2397,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 's': // --show-stats
-      stats_summary(ctx.config);
+      stats_summary(ctx);
       break;
 
     case 'V': // --version
@@ -2425,7 +2434,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'z': // --zero-stats
-      stats_zero(ctx.config);
+      stats_zero(ctx);
       printf("Statistics zeroed\n");
       break;
 
