@@ -40,6 +40,8 @@ using SubdirVisitor =
                      const ProgressReceiver& /*progress_receiver*/)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
+using SubstringEditor =
+  std::function<void(nonstd::string_view::size_type pos, std::string& substr)>;
 
 enum class UnlinkLog { log_failure, ignore_failure };
 
@@ -103,6 +105,13 @@ std::pair<int, std::string> create_temp_fd(nonstd::string_view path_prefix);
 
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
+
+// Returns a copy of string with any contained ANSI CSI sequences edited by the
+// given SubstringEditor, which is invoked once for each ANSI CSI sequence
+// encountered in string. The original string is not modified.
+[[gnu::warn_unused_result]] std::string
+edit_ansi_csi_seqs(nonstd::string_view string,
+                   const SubstringEditor& editor);
 
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
@@ -294,6 +303,10 @@ std::vector<std::string> split_into_strings(nonstd::string_view input,
 
 // Return true if prefix is a prefix of string.
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
+
+// Returns a copy of string with the specified ANSI CSI sequences removed.
+[[gnu::warn_unused_result]] std::string
+strip_ansi_csi_seqs(nonstd::string_view string, nonstd::string_view strip_actions = "Km");
 
 // Strip whitespace from left and right side of a string.
 [[gnu::warn_unused_result]] std::string

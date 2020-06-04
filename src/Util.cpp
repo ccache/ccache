@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <regex>
 
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
@@ -191,6 +192,27 @@ dir_name(string_view path)
   } else {
     return n == 0 ? "/" : path.substr(0, n);
   }
+}
+
+std::string
+edit_ansi_csi_seqs(string_view string, const SubstringEditor& editor)
+{
+  static const std::regex csi_regex("\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
+  std::string ret, substr;
+  ret.reserve(string.size());
+  for (std::cregex_token_iterator itr(string.begin(), string.end(), csi_regex, { -1, 0 });
+       itr != std::cregex_token_iterator { };
+       ++itr)
+  {
+    ret.append(itr->first, itr->second);
+    if (++itr == std::cregex_token_iterator { }) {
+      break;
+    }
+    substr.assign(itr->first, itr->second);
+    editor(itr->first - string.begin(), substr);
+    ret.append(substr);
+  }
+  return ret;
 }
 
 bool
@@ -694,6 +716,19 @@ bool
 starts_with(string_view string, string_view prefix)
 {
   return string.starts_with(prefix);
+}
+
+std::string
+strip_ansi_csi_seqs(string_view string, string_view strip_actions)
+{
+  return edit_ansi_csi_seqs(string,
+                            [strip_actions](string_view::size_type,
+                                            std::string& substr)
+                            {
+                              if (strip_actions.find(substr.back()) != string_view::npos) {
+                                substr.clear();
+                              }
+                            });
 }
 
 std::string

@@ -768,16 +768,21 @@ execute(Context& ctx,
 
 // Send cached stderr, if any, to stderr.
 static void
-send_cached_stderr(const char* path_stderr, bool strip_colors)
+send_cached_stderr(const std::string& path_stderr, bool strip_colors)
 {
-  int fd_stderr = open(path_stderr, O_RDONLY | O_BINARY);
-  if (fd_stderr != -1) {
-    if (strip_colors) {
-      copy_fd_strip_csi_seqs(fd_stderr, STDERR_FILENO);
-    } else {
-      copy_fd(fd_stderr, STDERR_FILENO);
+  if (strip_colors) {
+    try {
+      auto stderr = Util::strip_ansi_csi_seqs(Util::read_file(path_stderr));
+      write_fd(STDERR_FILENO, stderr.data(), stderr.size());
+    } catch (const Error&) {
+      // Fall through
     }
-    close(fd_stderr);
+  } else {
+    int fd_stderr = open(path_stderr.c_str(), O_RDONLY | O_BINARY);
+    if (fd_stderr != -1) {
+      copy_fd(fd_stderr, STDERR_FILENO);
+      close(fd_stderr);
+    }
   }
 }
 
@@ -959,16 +964,8 @@ to_cache(Context& ctx,
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
 
-    int fd = open(tmp_stderr.c_str(), O_RDONLY | O_BINARY);
-    if (fd != -1) {
-      // We can output stderr immediately instead of rerunning the compiler.
-      if (ctx.args_info.strip_diagnostics_colors) {
-        copy_fd_strip_csi_seqs(fd, STDERR_FILENO);
-      } else {
-        copy_fd(fd, STDERR_FILENO);
-      }
-      close(fd);
-    }
+    // We can output stderr immediately instead of rerunning the compiler.
+    send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 
     failed(STATS_STATUS, status);
   }
@@ -1063,7 +1060,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  send_cached_stderr(tmp_stderr.c_str(), ctx.args_info.strip_diagnostics_colors);
+  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 }
 
 // Find the result name by running the compiler in preprocessor mode and
@@ -1768,7 +1765,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_END("file", "file_get");
 
-  send_cached_stderr(tmp_stderr.c_str(), ctx.args_info.strip_diagnostics_colors);
+  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 
   cc_log("Succeeded getting cached result");
 
