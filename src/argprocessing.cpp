@@ -32,6 +32,12 @@ using nonstd::string_view;
 
 namespace {
 
+enum class ColorDiagnostics : int8_t {
+  automatic,
+  always,
+  never = -1
+};
+
 struct ArgumentProcessingState
 {
   bool found_c_opt = false;
@@ -39,7 +45,7 @@ struct ArgumentProcessingState
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
-  signed char found_color_diagnostics = 0; // 0=auto, -1=no, 1=yes
+  ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
 
@@ -659,17 +665,17 @@ process_arg(Context& ctx,
   if (args[i] == "-fcolor-diagnostics"
       || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
-    state.found_color_diagnostics = 1;
+    state.color_diagnostics = ColorDiagnostics::always;
     return nullopt;
   }
   if (args[i] == "-fno-color-diagnostics"
       || args[i] == "-fno-diagnostics-color"
       || args[i] == "-fdiagnostics-color=never") {
-    state.found_color_diagnostics = -1;
+    state.color_diagnostics = ColorDiagnostics::never;
     return nullopt;
   }
   if (args[i] == "-fdiagnostics-color=auto") {
-    state.found_color_diagnostics = 0;
+    state.color_diagnostics = ColorDiagnostics::automatic;
     return nullopt;
   }
 
@@ -1049,8 +1055,10 @@ process_args(Context& ctx,
     state.cpp_args.push_back(state.explicit_language);
   }
 
-  args_info.strip_diagnostics_colors = state.found_color_diagnostics ?
-      state.found_color_diagnostics < 0 : !color_output_possible();
+  args_info.strip_diagnostics_colors =
+      state.color_diagnostics != ColorDiagnostics::automatic ?
+      state.color_diagnostics == ColorDiagnostics::never :
+      !color_output_possible();
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
   if (ctx.guessed_compiler == GuessedCompiler::clang) {
