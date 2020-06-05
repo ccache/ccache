@@ -59,7 +59,7 @@ color_diagnostics_generate_permutations() {
 }
 
 color_diagnostics_run_on_pty() {
-    script --return --quiet --command "${1:?}" --log-out /dev/null </dev/null
+    script --return --quiet --command "${1:?}" /dev/null </dev/null
 }
 
 color_diagnostics_test() {
