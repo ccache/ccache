@@ -26,13 +26,13 @@ SUITE_color_diagnostics_SETUP() {
 }
 
 color_diagnostics_expect_color() {
-    expect_file_contains "${1:?}" $'\033\\['
-    expect_file_contains <(fgrep 'previous prototype' "$1") $'\033\\['
-    expect_file_contains <(fgrep 'from preprocessor' "$1") $'\033\\['
+    expect_file_contains "${1:?}" $'\033['
+    expect_file_contains <(fgrep 'previous prototype' "$1") $'\033['
+    expect_file_contains <(fgrep 'from preprocessor' "$1") $'\033['
 }
 
 color_diagnostics_expect_no_color() {
-    expect_file_not_contains "${1:?}" $'\033\\['
+    expect_file_not_contains "${1:?}" $'\033['
 }
 
 color_diagnostics_generate_code() {
