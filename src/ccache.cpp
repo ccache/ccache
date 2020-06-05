@@ -738,10 +738,9 @@ execute(Context& ctx,
         const std::string& stderr_path,
         int stderr_fd)
 {
-  if (ctx.diagnostics_color_failed) {
-    if (ctx.guessed_compiler == GuessedCompiler::gcc) {
-      args.erase_with_prefix("-fdiagnostics-color");
-    }
+  if (ctx.diagnostics_color_failed
+      && ctx.guessed_compiler == GuessedCompiler::gcc) {
+    args.erase_with_prefix("-fdiagnostics-color");
   }
   int status = execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
   if (status != 0 && !ctx.diagnostics_color_failed
