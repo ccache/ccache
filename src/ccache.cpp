@@ -771,8 +771,8 @@ send_cached_stderr(const std::string& path_stderr, bool strip_colors)
 {
   if (strip_colors) {
     try {
-      auto stderr = Util::strip_ansi_csi_seqs(Util::read_file(path_stderr));
-      write_fd(STDERR_FILENO, stderr.data(), stderr.size());
+      auto stripped = Util::strip_ansi_csi_seqs(Util::read_file(path_stderr));
+      write_fd(STDERR_FILENO, stripped.data(), stripped.size());
     } catch (const Error&) {
       // Fall through
     }
