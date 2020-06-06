@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -xe
 
 # This script will run misc/build.sh within a docker image.
 # ToDo: use ccache within docker and preserve the cache.
@@ -14,34 +14,21 @@ BUILDENV=${1:-travis}
 # expose remaining parameters as $*
 shift $(( $# > 0 ? 1 : 0 ))
 
-DOCKER_EXE=docker
-DOCKER_IMAGE_TAG=ccache/build:${BUILDENV}-2.0
+# Pulling the docker image is actually slower than just creating it locally!
+# (comparison on same machine: ~90 sec for pulling but only ~50secs for building locally)
+DOCKER_IMAGE_TAG=alexanderlanin/ccache:${BUILDENV}-1
 
 # Build (if not exists):
-${DOCKER_EXE} build -t ${DOCKER_IMAGE_TAG} buildenv/${BUILDENV}
+docker build -t ${DOCKER_IMAGE_TAG} buildenv/${BUILDENV}
 
-# Run:
-echo "Executing: ${DOCKER_EXE} run --rm \\
-  --volume ${PWD}:/source \\
-  --tmpfs /builddir:rw,exec \\
-  --workdir /builddir \\
-  --env CC=\"${CC:-}\" \\
-  --env CFLAGS=\"${CFLAGS:-}\" \\
-  --env CXX=\"${CXX:-}\" \\
-  --env CXXFLAGS=\"${CXXFLAGS:-}\" \\
-  --env LDFLAGS=\"${LDFLAGS:-}\" \\
-  --env ASAN_OPTIONS=\"${ASAN_OPTIONS:-}\" \\
-  --env CCACHE_LOC=\"/source\" \\
-  --env SPECIAL=\"${SPECIAL:-}\" \\
-  --env SCAN_BUILD=\"${SCAN_BUILD:-}\" \\
-  --env CONFIGURE=\"${CONFIGURE:-}\" \\
-  --env BUILDEXTRAFLAGS=\"${BUILDEXTRAFLAGS:-}\" \\
-  --env NO_TEST=\"${NO_TEST:-}\" \\
-  ${DOCKER_IMAGE_TAG} \\
-  /source/ci/build.sh $*\n\n"
+# Cache compilation across docker sessions
+# ToDo: separate cache for each docker image or is it fine like that?
+mkdir -p build
+mkdir -p build/docker-ccache
 
-${DOCKER_EXE} run --rm \
+docker run --rm \
   --volume ${PWD}:/source \
+  --volume ${PWD}/build/docker-ccache:/ccache \
   --tmpfs /builddir:rw,exec \
   --workdir /builddir \
   --env CC="${CC:-}" \
@@ -56,5 +43,6 @@ ${DOCKER_EXE} run --rm \
   --env CONFIGURE="${CONFIGURE:-}" \
   --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
   --env NO_TEST="${NO_TEST:-}" \
+  --env CCACHE_DIR=/ccache \
   ${DOCKER_IMAGE_TAG} \
   /source/ci/build.sh $*
