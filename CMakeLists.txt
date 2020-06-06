@@ -91,7 +91,8 @@ if(ENABLE_TESTING)
   add_subdirectory(unittest)
   add_subdirectory(test)
 
-  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17")
+  # Note: VERSION_GREATER_EQUAL requires cmake 3.17
+  if(NOT ${CMAKE_VERSION} VERSION_LESS "3.17")
     list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
   endif()
 
