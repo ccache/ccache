@@ -23,6 +23,8 @@ SUITE_color_diagnostics_SETUP() {
     else
         export CCACHE_NOCPP2=1
     fi
+
+    unset GCC_COLORS
 }
 
 color_diagnostics_expect_color() {
@@ -59,7 +61,7 @@ color_diagnostics_generate_permutations() {
 }
 
 color_diagnostics_run_on_pty() {
-    script --return --quiet --command "${1:?}" /dev/null </dev/null
+    script --return --quiet --command "unset GCC_COLORS; ${1:?}" /dev/null </dev/null
 }
 
 color_diagnostics_test() {
