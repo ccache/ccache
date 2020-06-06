@@ -1,5 +1,5 @@
 language: cpp
-dist: xenial
+dist: bionic
 
 script:
   - ./autogen.sh
@@ -30,6 +30,7 @@ matrix:
       apt:
         packages:
         - gcc-multilib
+        - g++-multilib
         - lib32stdc++-5-dev
 
   # Job 3: Build on Linux with native Clang
