@@ -40,9 +40,6 @@
 #  include "win32compat.hpp"
 #endif
 
-#include <algorithm>
-#include <fstream>
-
 using nonstd::string_view;
 
 namespace {
