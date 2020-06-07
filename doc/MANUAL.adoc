@@ -440,9 +440,7 @@ systems, ccache will fall back to use plain copying (or hard links if
 [[config_hard_link]] *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use hard links to store and fetch cached
-    compiler results. The default is false.
-+
-An exception is dependency files (`.d`) which are never stored as hard links.
+    object files. The default is false.
 +
 Files stored via hard links cannot be compressed, so the cache size will likely
 be significantly larger if this option is enabled. However, performance may be
