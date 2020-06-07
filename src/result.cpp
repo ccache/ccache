@@ -237,6 +237,9 @@ copy_raw_file(const Context& ctx,
     cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
     int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {
+      if (chmod(dest.c_str(), 0444) != 0) {
+        cc_log("Failed to chmod: %s", strerror(errno));
+      }
       return true;
     }
     cc_log("Failed to hard link: %s", strerror(errno));

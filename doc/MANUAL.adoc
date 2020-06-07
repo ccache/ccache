@@ -450,10 +450,12 @@ WARNING: Do not enable this option unless you are aware of these caveats:
 +
 * If the resulting file is modified, the file in the cache will also be
   modified since they share content, which corrupts the cache entry. As of
-  version 4.0, ccache performs a simple integrity check for cached files by
-  verifying that their sizes are correct. This means that mistakes like `strip
-  file.o` or `echo >file.o` will be detected, but a modification that doesn't
-  change the file size will not.
+  version 4.0, ccache makes stored and fetched object files read-only as a
+  safety measure guard. Furthermore, a simple integrity check is made for
+  cached object files by verifying that their sizes are correct. This means
+  that mistakes like `strip file.o` or `echo >file.o` will be detected even if
+  the object file is made writeable, but a modification that doesn't change the
+  file size will not.
 * Programs that don't expect that files from two different identical
   compilations are hard links to each other can fail.
 * Programs that rely on modification times (like ``make'') can be confused if
