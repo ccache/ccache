@@ -168,6 +168,18 @@ expect_equal_files() {
     fi
 }
 
+expect_equal_text_files() {
+    if [ ! -e "$1" ]; then
+        test_failed "expect_equal_files: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed "expect_equal_files: $2 missing"
+    fi
+    if ! cmp -s "$1" "$2"; then
+        test_failed "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
+    fi
+}
+
 expect_different_files() {
     if [ ! -e "$1" ]; then
         test_failed "expect_different_files: $1 missing"
