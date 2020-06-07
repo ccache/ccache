@@ -197,15 +197,16 @@ dir_name(string_view path)
 std::string
 edit_ansi_csi_seqs(string_view string, const SubstringEditor& editor)
 {
-  static const std::regex csi_regex("\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
+  static const std::regex csi_regex(
+    "\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
   std::string ret, substr;
   ret.reserve(string.size());
-  for (std::cregex_token_iterator itr(string.begin(), string.end(), csi_regex, { -1, 0 });
-       itr != std::cregex_token_iterator { };
-       ++itr)
-  {
+  for (std::cregex_token_iterator itr(
+         string.begin(), string.end(), csi_regex, {-1, 0});
+       itr != std::cregex_token_iterator{};
+       ++itr) {
     ret.append(itr->first, itr->second);
-    if (++itr == std::cregex_token_iterator { }) {
+    if (++itr == std::cregex_token_iterator{}) {
       break;
     }
     substr.assign(itr->first, itr->second);
@@ -721,14 +722,12 @@ starts_with(string_view string, string_view prefix)
 std::string
 strip_ansi_csi_seqs(string_view string, string_view strip_actions)
 {
-  return edit_ansi_csi_seqs(string,
-                            [strip_actions](string_view::size_type,
-                                            std::string& substr)
-                            {
-                              if (strip_actions.find(substr.back()) != string_view::npos) {
-                                substr.clear();
-                              }
-                            });
+  return edit_ansi_csi_seqs(
+    string, [strip_actions](string_view::size_type, std::string& substr) {
+      if (strip_actions.find(substr.back()) != string_view::npos) {
+        substr.clear();
+      }
+    });
 }
 
 std::string

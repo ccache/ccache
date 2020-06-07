@@ -742,7 +742,8 @@ execute(Context& ctx,
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
     args.erase_with_prefix("-fdiagnostics-color");
   }
-  int status = execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
+  int status =
+    execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
     auto errors = Util::read_file(stderr_path);
@@ -751,11 +752,13 @@ execute(Context& ctx,
       // Old versions of GCC did not support colored diagnostics.
       cc_log("-fdiagnostics-color is unsupported; trying again without it");
       if (ftruncate(stdout_fd, 0) < 0 || lseek(stdout_fd, 0, SEEK_SET) < 0) {
-        cc_log("Failed to truncate %s: %s", stdout_path.c_str(), strerror(errno));
+        cc_log(
+          "Failed to truncate %s: %s", stdout_path.c_str(), strerror(errno));
         failed(STATS_ERROR);
       }
       if (ftruncate(stderr_fd, 0) < 0 || lseek(stderr_fd, 0, SEEK_SET) < 0) {
-        cc_log("Failed to truncate %s: %s", stderr_path.c_str(), strerror(errno));
+        cc_log(
+          "Failed to truncate %s: %s", stderr_path.c_str(), strerror(errno));
         failed(STATS_ERROR);
       }
       ctx.diagnostics_color_failed = true;
@@ -922,8 +925,8 @@ to_cache(Context& ctx,
 
   int status;
   if (!ctx.config.depend_mode()) {
-    status = execute(
-      ctx, args, tmp_stdout, tmp_stdout_fd, tmp_stderr, tmp_stderr_fd);
+    status =
+      execute(ctx, args, tmp_stdout, tmp_stdout_fd, tmp_stderr, tmp_stderr_fd);
     args.pop_back(3);
   } else {
     // Use the original arguments (including dependency options) in depend
@@ -934,8 +937,12 @@ to_cache(Context& ctx,
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
-    status = execute(
-      ctx, depend_mode_args, tmp_stdout, tmp_stdout_fd, tmp_stderr, tmp_stderr_fd);
+    status = execute(ctx,
+                     depend_mode_args,
+                     tmp_stdout,
+                     tmp_stdout_fd,
+                     tmp_stderr,
+                     tmp_stderr_fd);
   }
   MTR_END("execute", "compiler");
 

@@ -32,11 +32,7 @@ using nonstd::string_view;
 
 namespace {
 
-enum class ColorDiagnostics : int8_t {
-  automatic,
-  always,
-  never = -1
-};
+enum class ColorDiagnostics : int8_t { automatic, always, never = -1 };
 
 struct ArgumentProcessingState
 {
@@ -662,14 +658,12 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i] == "-fcolor-diagnostics"
-      || args[i] == "-fdiagnostics-color"
+  if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;
     return nullopt;
   }
-  if (args[i] == "-fno-color-diagnostics"
-      || args[i] == "-fno-diagnostics-color"
+  if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
       || args[i] == "-fdiagnostics-color=never") {
     state.color_diagnostics = ColorDiagnostics::never;
     return nullopt;
@@ -1056,9 +1050,9 @@ process_args(Context& ctx,
   }
 
   args_info.strip_diagnostics_colors =
-      state.color_diagnostics != ColorDiagnostics::automatic ?
-      state.color_diagnostics == ColorDiagnostics::never :
-      !color_output_possible();
+    state.color_diagnostics != ColorDiagnostics::automatic
+      ? state.color_diagnostics == ColorDiagnostics::never
+      : !color_output_possible();
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
   if (ctx.guessed_compiler == GuessedCompiler::clang) {

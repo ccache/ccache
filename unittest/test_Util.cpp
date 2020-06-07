@@ -137,7 +137,8 @@ TEST_CASE("Util::{edit,strip}_ansi_csi_seqs")
     "\x1B[31mred\x1B[m, "
     "\x1B[1;32mbold green\x1B[m.\n";
 
-  SECTION("Remove bold attributes") {
+  SECTION("Remove bold attributes")
+  {
     CHECK(Util::edit_ansi_csi_seqs(input,
               [](nonstd::string_view::size_type,
                  std::string& substr)
@@ -169,14 +170,16 @@ TEST_CASE("Util::{edit,strip}_ansi_csi_seqs")
           "\x1B[32mbold green\x1B[m.\n");
   }
 
-  SECTION("Strip SGR sequences only") {
-    CHECK(Util::strip_ansi_csi_seqs(input, "m") ==
-          "Normal, \x1B[Kbold, red, bold green.\n");
+  SECTION("Strip SGR sequences only")
+  {
+    CHECK(Util::strip_ansi_csi_seqs(input, "m")
+          == "Normal, \x1B[Kbold, red, bold green.\n");
   }
 
-  SECTION("Strip default set of CSI sequences") {
-    CHECK(Util::strip_ansi_csi_seqs(input) ==
-          "Normal, bold, red, bold green.\n");
+  SECTION("Strip default set of CSI sequences")
+  {
+    CHECK(Util::strip_ansi_csi_seqs(input)
+          == "Normal, bold, red, bold green.\n");
   }
 }
 
