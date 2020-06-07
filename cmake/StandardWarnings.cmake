@@ -58,7 +58,6 @@ set(CLANG_GCC_WARNINGS
     -Wunused
     -Woverloaded-virtual
     -Wpedantic
-    -Wdouble-promotion
     # To be enabled in the future:
     #
     # * -Wshadow
@@ -68,12 +67,19 @@ set(CLANG_GCC_WARNINGS
     # * -Wnull-dereference
     # * -Wformat=2
 )
+# Tested seperatly as this is not supported by clang 3.4
+add_target_compile_flag_if_supported(standard_warnings "-Wdouble-promotion")
 
 if(WARNINGS_AS_ERRORS)
   set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS} -Werror)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # Exact version or reason unknown, discovered in Ubuntu 14 docker test with clang 3.4
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
+    set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS}  "-Qunused-arguments" "-Wno-unreachable-code")
+  endif()
+
   target_compile_options(
     standard_warnings
     INTERFACE ${CLANG_GCC_WARNINGS}
@@ -112,9 +118,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(
     standard_warnings
-    INTERFACE ${CLANG_GCC_WARNINGS} -Wlogical-op # warn about logical operations
-                                                 # being used where bitwise were
-    # probably wanted.
+    INTERFACE ${CLANG_GCC_WARNINGS}
+
+    -Wlogical-op # warn about logical operations being used where bitwise were probably wanted.
+
     #
     # To be enabled in the future:
     #
@@ -124,4 +131,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # * -Wduplicated-branches # warn if if / else branches have duplicated code
     # * -Wuseless-cast # warn if you perform a cast to the same type
   )
+
+  # Exact version or reason unknown, discovered in Ubuntu 14 docker test with gcc 4.8.4
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8.5)
+    add_target_compile_flag_if_supported(standard_warnings "-Wno-missing-field-initializers")
+    add_target_compile_flag_if_supported(standard_warnings "-Wno-unused-variable")
+  endif()
 endif()

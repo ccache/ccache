@@ -1,21 +1,20 @@
-FROM debian:10
+FROM ubuntu:focal
 
 # Seperate layer because this is required no matter what
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
         && rm -rf /var/lib/apt/lists/*
 
-# All the rest
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# noninteractive: do not set up timezone settings.
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
                 asciidoc \
                 bash \
-                build-essential \
                 ccache \
                 clang \
                 cmake \
                 elfutils \
                 gcc-multilib \
                 libb2-dev \
-                libzstd-dev \
+                #libzstd1-dev \ not available?!
                 xsltproc \
         && rm -rf /var/lib/apt/lists/*
 

@@ -40,7 +40,7 @@ docker run --rm \
   --env CCACHE_LOC="/source" \
   --env SPECIAL="${SPECIAL:-}" \
   --env SCAN_BUILD="${SCAN_BUILD:-}" \
-  --env CONFIGURE="${CONFIGURE:-}" \
+  --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
   --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
   --env NO_TEST="${NO_TEST:-}" \
   --env CCACHE_DIR=/ccache \

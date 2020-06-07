@@ -12,11 +12,20 @@
 
 echo "Warning: Docker support is rather experimental\n"
 
-CC=gcc   CXX=g++     ./docker.sh debian-9-stretch
-CC=clang CXX=clang++ ./docker.sh debian-9-stretch
+#CC=gcc   CXX=g++     ./docker.sh debian-9-stretch
+#CC=clang CXX=clang++ ./docker.sh debian-9-stretch
 
 CC=gcc   CXX=g++     ./docker.sh debian-10-buster
 CC=clang CXX=clang++ ./docker.sh debian-10-buster
 
+# zstd and libb2 not available for Ubuntu 14.
+CC=gcc   CXX=g++     CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ./docker.sh ubuntu-14-trusty
+
+# See https://github.com/ccache/ccache/issues/601
+#CC=clang CXX=clang++ CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ./docker.sh ubuntu-14-tusty
+
 CC=gcc   CXX=g++     ./docker.sh ubuntu-16-xenial
 CC=clang CXX=clang++ ./docker.sh ubuntu-16-xenial
+
+CC=gcc   CXX=g++     CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON" ./docker.sh ubuntu-20-focal
+CC=clang CXX=clang++ CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON" ./docker.sh ubuntu-20-focal
