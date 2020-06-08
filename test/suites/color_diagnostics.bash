@@ -7,6 +7,11 @@ elif $COMPILER_TYPE_CLANG ; then
 fi
 
 SUITE_color_diagnostics_PROBE() {
+    if ! script --return --quiet --command true /dev/null </dev/null >/dev/null 2>&1; then
+        echo "the script tool is not installed or does not support required options"
+        return
+    fi
+
     # Probe that real compiler actually supports colored diagnostics.
     if [[ ! $color_diagnostics_enable || ! $color_diagnostics_disable ]] ; then
         echo "compiler $COMPILER does not support colored diagnostics"
