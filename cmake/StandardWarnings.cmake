@@ -76,8 +76,9 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Exact version or reason unknown, discovered in Ubuntu 14 docker test with clang 3.4
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
-    set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS}  "-Qunused-arguments" "-Wno-unreachable-code")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.0)
+    # reserved-id-macro issued by clang 3.6 - 3.9 for libb2 blake2.h
+    set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS}  -Qunused-arguments -Wno-error=unreachable-code -Wno-error=reserved-id-macro)
   endif()
 
   target_compile_options(
