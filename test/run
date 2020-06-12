@@ -286,6 +286,9 @@ run_suite() {
         rm -rf $ABS_TESTDIR/probe
         if [ -n "$skip_reason" ]; then
             echo "Skipped test suite $suite_name [$skip_reason]"
+            if [ -n "$EXIT_IF_SKIPPED" ]; then
+                exit 125
+            fi
             return
         fi
     fi
