@@ -67,7 +67,7 @@ set(CLANG_GCC_WARNINGS
     # * -Wnull-dereference
     # * -Wformat=2
 )
-# Tested seperatly as this is not supported by clang 3.4
+# Tested separately as this is not supported by clang 3.4
 add_target_compile_flag_if_supported(standard_warnings "-Wdouble-promotion")
 
 if(WARNINGS_AS_ERRORS)
@@ -126,7 +126,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     #
     # To be enabled in the future:
     #
-    # * -Wmisleading- indentation # warn if identation implies blocks where
+    # * -Wmisleading- indentation # warn if indentation implies blocks where
     #   blocks do not exist
     # * -Wduplicated-cond # warn if if / else chain has duplicated conditions
     # * -Wduplicated-branches # warn if if / else branches have duplicated code

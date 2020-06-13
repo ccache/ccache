@@ -1,6 +1,6 @@
 FROM debian:9
 
-# Seperate layer because this is required no matter what
+# Separate layer because this is required no matter what
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
         && rm -rf /var/lib/apt/lists/*
 

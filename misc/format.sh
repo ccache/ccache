@@ -17,4 +17,4 @@ else
   echo "You can install it via pip3 install cmake-format"
 fi
 
-echo "Formating complete"
+echo "Formatting complete"

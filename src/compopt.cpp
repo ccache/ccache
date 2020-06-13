@@ -40,7 +40,7 @@
 // run_second_cpp is false.
 #define AFFECTS_CPP (1 << 5)
 
-// The option only affects compilation; not passed to the preprocesor.
+// The option only affects compilation; not passed to the preprocessor.
 #define AFFECTS_COMP (1 << 6)
 
 struct compopt

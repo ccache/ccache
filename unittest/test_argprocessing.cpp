@@ -653,7 +653,7 @@ TEST_CASE("debug_flag_order_with_known_option_last")
   CHECK(exp_cc == act_cc);
 }
 
-TEST_CASE("options_not_to_be_passed_to_the_preprocesor")
+TEST_CASE("options_not_to_be_passed_to_the_preprocessor")
 {
   TestContext test_context;
 
