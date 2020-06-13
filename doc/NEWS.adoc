@@ -25,7 +25,7 @@ High-level summary of changes (work in progress)
 
 - A C++11 compiler is now required to build ccache.
 
-- Build tooling switched from automake to cmake.
+- Build tooling switched from Autoconf to CMake.
 
 - Added a `-x/--show-compression` option which shows some statistics about
   cache compression.
