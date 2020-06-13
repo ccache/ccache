@@ -8,23 +8,17 @@
 .DS_Store
 .deps
 ccache-*.tar.*
+perfdir.*
 testdir.*
 
 # Version is generated into src, because it should be included into src packages
 /src/Version.cpp
 
 # Typical build directories
-/build/
-/build-*
-/build_*
+/build*
 
-# Version is generated into src, because it should be included into src packages
-/src/Version.cpp
-
-# Typical build directories
-/build/
-/build-*
-/build_*
+# Unignore buildenv directory matched by the pattern above
+!/buildenv/
 
 # Visual Studio
 /.vs/
