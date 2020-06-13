@@ -908,9 +908,7 @@ process_args(Context& ctx,
     }
   }
 
-  if (!state.dependency_target_specified
-      && ctx.args_info.generating_dependencies
-      && ctx.args_info.seen_MD_MMD)
+  if (!state.dependency_target_specified && ctx.args_info.seen_MD_MMD)
   {
     ctx.args_info.change_dep_file = true;
   }
