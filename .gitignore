@@ -7,36 +7,18 @@
 *~
 .DS_Store
 .deps
-Makefile
-autom4te.cache
-ccache
 ccache-*.tar.*
-compile_commands.json
-config.cache
-config.h
-config.h.in
-config.log
-config.status
-configure
-dev.mk
-dev_mode_disabled
-doc/ccache.1
-libb2-*.tar.gz
 perfdir.*
-src/third_party/libb2
-src/third_party/zstd
-src/version.cpp
 testdir.*
-unittest/run
-zstd-*.tar.gz
 
 # Version is generated into src, because it should be included into src packages
 /src/Version.cpp
 
 # Typical build directories
-/build/
-/build-*
-/build_*
+/build*
+
+# Unignore buildenv directory matched by the pattern above
+!/buildenv/
 
 # Visual Studio
 /.vs/

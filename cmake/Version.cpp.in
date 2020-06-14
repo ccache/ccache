@@ -1,0 +1,2 @@
+extern const char CCACHE_VERSION[];
+const char CCACHE_VERSION[] = "@VERSION@";

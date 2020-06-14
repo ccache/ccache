@@ -7,7 +7,7 @@ Tracing
 In order to see what ccache is doing, it is possible to enable internal
 tracing:
 
-* Build ccache with the `--enable-tracing` configure option.
+* Build ccache with the `-DENABLE_TRACING=1` cmake option.
 * Set the environment variable `CCACHE_INTERNAL_TRACE` to instruct ccache to
   create trace files at runtime.
 
