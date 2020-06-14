@@ -6,7 +6,6 @@ if(ENABLE_CPPCHECK)
     find_program(CPPCHECK_EXE cppcheck)
     mark_as_advanced(CPPCHECK_EXE) # don't show in ccmake
     if(CPPCHECK_EXE)
-      # cmake-format: off
       set(CMAKE_CXX_CPPCHECK
           ${CPPCHECK_EXE}
           --suppressions-list=${CMAKE_SOURCE_DIR}/misc/cppcheck-suppressions.txt
@@ -18,7 +17,6 @@ if(ENABLE_CPPCHECK)
           -I ${CMAKE_SOURCE_DIR}
           --template="cppcheck: warning: {id}:{file}:{line}: {message}"
           -i src/third_party)
-      # cmake-format: on
     else()
       message(WARNING "cppcheck requested but executable not found")
     endif()

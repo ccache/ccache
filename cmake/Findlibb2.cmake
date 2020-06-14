@@ -97,9 +97,6 @@ else()
 endif()
 
 include(FeatureSummary)
-# cmake-format: off
-# (behaviour change in cmake-format 0.6.10)
 set_package_properties(
   libb2 PROPERTIES URL "http://blake2.net/"
   DESCRIPTION "C library providing BLAKE2b, BLAKE2s, BLAKE2bp, BLAKE2sp")
-# cmake-format: on

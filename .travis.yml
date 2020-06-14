@@ -117,7 +117,7 @@ jobs:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 12: Run Clang-Format amd CMake-Format check mode
+  # Job 12: Run Clang-Format in check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
@@ -185,7 +185,7 @@ jobs:
         - libzstd1-dev
         - libb2-dev
 
-  # Job 12: Run Clang-Format amd CMake-Format check mode
+  # Job 12: Run Clang-Format check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
