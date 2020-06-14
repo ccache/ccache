@@ -184,6 +184,47 @@ EOF
     expect_file_content a/source.d "a/source.o: a/source.c"
 
     # -------------------------------------------------------------------------
+    for dep_args in "-MMD" "-MMD -MF foo.d" "-Wp,-MMD,foo.d"; do
+        for obj_args in "" "-o bar.o"; do
+            if [ "$dep_args" != "-MMD" ]; then
+                dep_file=foo.d
+                another_dep_file=foo.d
+            elif [ -z "$obj_args" ]; then
+                dep_file=test.d
+                another_dep_file=another.d
+            else
+                dep_file=bar.d
+                another_dep_file=another.d
+            fi
+
+            TEST "Dependency file content, $dep_args $obj_args"
+            # -----------------------------------------------------------------
+
+            $REAL_COMPILER -c test.c $dep_args $obj_args
+            mv $dep_file $dep_file.real
+
+            $REAL_COMPILER -c test.c $dep_args -o another.o
+            mv $another_dep_file another.d.real
+
+            # cache miss
+            $CCACHE_COMPILE -c test.c $dep_args $obj_args
+            expect_stat 'cache hit (direct)' 0
+            expect_stat 'cache miss' 1
+            expect_equal_text_files $dep_file.real $dep_file
+
+            # cache hit
+            $CCACHE_COMPILE -c test.c $dep_args $obj_args
+            expect_stat 'cache hit (direct)' 1
+            expect_stat 'cache miss' 1
+            expect_equal_text_files $dep_file.real $dep_file
+
+            # change object file name
+            $CCACHE_COMPILE -c test.c $dep_args -o another.o
+            expect_equal_text_files another.d.real $another_dep_file
+        done
+    done
+
+    # -------------------------------------------------------------------------
     TEST "Dependency file content"
 
     mkdir build

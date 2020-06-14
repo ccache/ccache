@@ -145,13 +145,13 @@ expect_stat() {
 }
 
 expect_file_exists() {
-    if [ ! -f "$1" ]; then
+    if [ ! -e "$1" ]; then
         test_failed "Expected $1 to exist, but it's missing"
     fi
 }
 
 expect_file_missing() {
-    if [ -f "$1" ]; then
+    if [ -e "$1" ]; then
         test_failed "Expected $1 to be missing, but it exists"
     fi
 }
@@ -165,6 +165,18 @@ expect_equal_files() {
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed "$1 and $2 differ"
+    fi
+}
+
+expect_equal_text_files() {
+    if [ ! -e "$1" ]; then
+        test_failed "expect_equal_files: $1 missing"
+    fi
+    if [ ! -e "$2" ]; then
+        test_failed "expect_equal_files: $2 missing"
+    fi
+    if ! cmp -s "$1" "$2"; then
+        test_failed "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
     fi
 }
 
@@ -207,7 +219,7 @@ expect_file_content() {
     local file="$1"
     local content="$2"
 
-    if [ ! -f "$file" ]; then
+    if [ ! -e "$file" ]; then
         test_failed "$file not found"
     fi
     if [ "$(cat $file)" != "$content" ]; then
@@ -219,11 +231,23 @@ expect_file_contains() {
     local file="$1"
     local string="$2"
 
-    if [ ! -f "$file" ]; then
+    if [ ! -e "$file" ]; then
         test_failed "$file not found"
     fi
-    if ! grep -q "$string" "$file"; then
+    if ! fgrep -q "$string" "$file"; then
         test_failed "File $file does not contain: $string. Actual content: $(cat $file)"
+    fi
+}
+
+expect_file_not_contains() {
+    local file="$1"
+    local string="$2"
+
+    if [ ! -e "$file" ]; then
+        test_failed "$file not found"
+    fi
+    if fgrep -q "$string" "$file"; then
+        test_failed "File $file contains: $string. Actual content: $(cat $file)"
     fi
 }
 
@@ -363,7 +387,7 @@ case $compiler_version in
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
-        CLANG_VERSION_SUFFIX=$(echo $COMPILER | sed -r 's/.*clang//')
+        CLANG_VERSION_SUFFIX=$(echo $COMPILER | sed 's/.*clang//')
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
@@ -425,6 +449,7 @@ nocpp2
 cpp1
 multi_arch
 serialize_diagnostics
+color_diagnostics
 sanitize_blacklist
 debug_prefix_map
 profiling

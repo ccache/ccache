@@ -728,14 +728,63 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
   return d;
 }
 
+// Execute the compiler/preprocessor, with logic to retry without requesting
+// colored diagnostics messages if that fails.
+static int
+execute(Context& ctx,
+        Args& args,
+        const std::string& stdout_path,
+        int stdout_fd,
+        const std::string& stderr_path,
+        int stderr_fd)
+{
+  if (ctx.diagnostics_color_failed
+      && ctx.guessed_compiler == GuessedCompiler::gcc) {
+    args.erase_with_prefix("-fdiagnostics-color");
+  }
+  int status =
+    execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
+  if (status != 0 && !ctx.diagnostics_color_failed
+      && ctx.guessed_compiler == GuessedCompiler::gcc) {
+    auto errors = Util::read_file(stderr_path);
+    if (errors.find("unrecognized command-line option") != std::string::npos
+        && errors.find("-fdiagnostics-color") != std::string::npos) {
+      // Old versions of GCC did not support colored diagnostics.
+      cc_log("-fdiagnostics-color is unsupported; trying again without it");
+      if (ftruncate(stdout_fd, 0) < 0 || lseek(stdout_fd, 0, SEEK_SET) < 0) {
+        cc_log(
+          "Failed to truncate %s: %s", stdout_path.c_str(), strerror(errno));
+        failed(STATS_ERROR);
+      }
+      if (ftruncate(stderr_fd, 0) < 0 || lseek(stderr_fd, 0, SEEK_SET) < 0) {
+        cc_log(
+          "Failed to truncate %s: %s", stderr_path.c_str(), strerror(errno));
+        failed(STATS_ERROR);
+      }
+      ctx.diagnostics_color_failed = true;
+      return execute(ctx, args, stdout_path, stdout_fd, stderr_path, stderr_fd);
+    }
+  }
+  return status;
+}
+
 // Send cached stderr, if any, to stderr.
 static void
-send_cached_stderr(const char* path_stderr)
+send_cached_stderr(const std::string& path_stderr, bool strip_colors)
 {
-  int fd_stderr = open(path_stderr, O_RDONLY | O_BINARY);
-  if (fd_stderr != -1) {
-    copy_fd(fd_stderr, STDERR_FILENO);
-    close(fd_stderr);
+  if (strip_colors) {
+    try {
+      auto stripped = Util::strip_ansi_csi_seqs(Util::read_file(path_stderr));
+      write_fd(STDERR_FILENO, stripped.data(), stripped.size());
+    } catch (const Error&) {
+      // Fall through
+    }
+  } else {
+    int fd_stderr = open(path_stderr.c_str(), O_RDONLY | O_BINARY);
+    if (fd_stderr != -1) {
+      copy_fd(fd_stderr, STDERR_FILENO);
+      close(fd_stderr);
+    }
   }
 }
 
@@ -876,8 +925,8 @@ to_cache(Context& ctx,
 
   int status;
   if (!ctx.config.depend_mode()) {
-    status = execute(
-      args.to_argv().data(), tmp_stdout_fd, tmp_stderr_fd, &ctx.compiler_pid);
+    status =
+      execute(ctx, args, tmp_stdout, tmp_stdout_fd, tmp_stderr, tmp_stderr_fd);
     args.pop_back(3);
   } else {
     // Use the original arguments (including dependency options) in depend
@@ -888,10 +937,12 @@ to_cache(Context& ctx,
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
-    status = execute(depend_mode_args.to_argv().data(),
+    status = execute(ctx,
+                     depend_mode_args,
+                     tmp_stdout,
                      tmp_stdout_fd,
-                     tmp_stderr_fd,
-                     &ctx.compiler_pid);
+                     tmp_stderr,
+                     tmp_stderr_fd);
   }
   MTR_END("execute", "compiler");
 
@@ -919,12 +970,8 @@ to_cache(Context& ctx,
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
 
-    int fd = open(tmp_stderr.c_str(), O_RDONLY | O_BINARY);
-    if (fd != -1) {
-      // We can output stderr immediately instead of rerunning the compiler.
-      copy_fd(fd, STDERR_FILENO);
-      close(fd);
-    }
+    // We can output stderr immediately instead of rerunning the compiler.
+    send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 
     failed(STATS_STATUS, status);
   }
@@ -1019,7 +1066,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  send_cached_stderr(tmp_stderr.c_str());
+  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 }
 
 // Find the result name by running the compiler in preprocessor mode and
@@ -1066,8 +1113,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
-    status =
-      execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
+    status = execute(ctx, args, stdout_path, stdout_fd, stderr_path, stderr_fd);
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
@@ -1725,7 +1771,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_END("file", "file_get");
 
-  send_cached_stderr(tmp_stderr.c_str());
+  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
 
   cc_log("Succeeded getting cached result");
 
