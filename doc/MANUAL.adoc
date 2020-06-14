@@ -1232,14 +1232,16 @@ filesystems), but keep in mind that:
 * Having the cache on NFS may slow down compilation. Make sure to do some
   benchmarking to see if it's worth it.
 * ccache hasn't been tested very thoroughly on NFS.
-* If operating system versions is different then cache direct hit will be lesser,
-  and it will lead to slower cache preprocessor hits. sloppiness config can be set to 
-  system_headers to ignore different system header and increase cache direct hits.
-  It is recommended to have same operating system version when using cache on NFS
-  to increase cache direct hits.
 
 A tip is to set <<config_temporary_dir,*temporary_dir*>> to a directory on the
 local host to avoid NFS traffic for temporary files.
+
+It is recommended to use the same operating system version when using a shared
+cache. If operating system versions are different then system include files
+will likely be different and there will be few or no cache hits between the
+systems. One way of improving cache hit rate in that case is to set
+<<config_sloppiness,*sloppiness*>> to *system_headers* to ignore system
+headers.
 
 
 Using ccache with other compiler wrappers
