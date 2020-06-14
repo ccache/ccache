@@ -73,10 +73,6 @@ add_subdirectory(doc)
 include(GNUInstallDirs)
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# before adding documentation to package run misc/update_authors.sh
-#
-# install(TARGETS documentation DESTINATION ${CMAKE_INSTALL_DOCDIR})
-
 #
 # packaging
 #

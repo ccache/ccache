@@ -20,7 +20,6 @@ else()
   add_custom_command (
     TARGET documentation
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/doc"
-    COMMAND misc/update_authors.sh
     BYPRODUCTS "doc"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
