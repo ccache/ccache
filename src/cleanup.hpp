@@ -25,6 +25,7 @@
 #include <string>
 
 class Config;
+class Context;
 
 void clean_up_dir(const std::string& subdir,
                   uint64_t max_size,
@@ -34,5 +35,5 @@ void clean_up_dir(const std::string& subdir,
 void clean_up_all(const Config& config,
                   const Util::ProgressReceiver& progress_receiver);
 
-void wipe_all(const Config& config,
+void wipe_all(const Context& ctx,
               const Util::ProgressReceiver& progress_receiver);

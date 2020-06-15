@@ -17,8 +17,11 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Args.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
+
+using TestUtil::TestContext;
 
 TEST_CASE("Args default constructor")
 {
@@ -73,6 +76,8 @@ TEST_CASE("Args::from_string")
 
 TEST_CASE("Args::from_gcc_atfile")
 {
+  TestContext test_context;
+
   Args args;
 
   SECTION("Non-existing file")

@@ -26,8 +26,6 @@ Counters::Counters() : m_counters(STATS_END)
 {
 }
 
-// Return type is on separate line since clang-format 10.
-// Since different people use different versions, auto formatting is disabled.
 // clang-format off
 unsigned&
 Counters::operator[](size_t index)
@@ -39,8 +37,6 @@ Counters::operator[](size_t index)
   return m_counters.at(index);
 }
 
-// Return type is on separate line since clang-format 10.
-// Since different people use different versions, auto formatting is disabled.
 // clang-format off
 unsigned
 Counters::operator[](size_t index) const

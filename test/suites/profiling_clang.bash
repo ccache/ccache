@@ -1,8 +1,7 @@
 SUITE_profiling_clang_PROBE() {
     if ! $COMPILER_TYPE_CLANG; then
         echo "compiler is not Clang"
-    fi
-    if ! which llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null 2>/dev/null; then
+    elif ! which llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null 2>/dev/null; then
         echo "llvm-profdata$CLANG_VERSION_SUFFIX tool not found"
     fi
 }

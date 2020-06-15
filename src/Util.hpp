@@ -33,11 +33,17 @@
 
 namespace Util {
 
-typedef std::function<void(double)> ProgressReceiver;
-typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
-typedef std::function<void(const std::string& /*dir_path*/,
-                           const ProgressReceiver& /*progress_receiver*/)>
-  SubdirVisitor;
+using ProgressReceiver = std::function<void(double)>;
+using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
+using SubdirVisitor =
+  std::function<void(const std::string& /*dir_path*/,
+                     const ProgressReceiver& /*progress_receiver*/)>;
+using TraverseVisitor =
+  std::function<void(const std::string& path, bool is_dir)>;
+using SubstringEditor =
+  std::function<void(nonstd::string_view::size_type pos, std::string& substr)>;
+
+enum class UnlinkLog { log_failure, ignore_failure };
 
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
@@ -100,8 +106,23 @@ std::pair<int, std::string> create_temp_fd(nonstd::string_view path_prefix);
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
 
+// Returns a copy of string with any contained ANSI CSI sequences edited by the
+// given SubstringEditor, which is invoked once for each ANSI CSI sequence
+// encountered in string. The original string is not modified.
+[[gnu::warn_unused_result]] std::string
+edit_ansi_csi_seqs(nonstd::string_view string, const SubstringEditor& editor);
+
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
+
+// Extends file size to at least new_size by calling posix_fallocate() if
+// supported, otherwise by writing zeros last to the file.
+//
+// Note that existing holes are not filled in case posix_fallocate() is not
+// supported.
+//
+// Returns 0 on success, an error number otherwise.
+int fallocate(int fd, long new_size);
 
 // Call a function for each subdir (0-9a-f) in the cache.
 //
@@ -113,6 +134,10 @@ bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
+
+// Format a hexadecimal string representing `size` bytes of `data`. The returned
+// string will be `2 * size` long.
+std::string format_hex(const uint8_t* data, size_t size);
 
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
@@ -166,6 +191,7 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint32_t levels,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
+
 // Return a shortened view into the base name of `path`. This view starts at the
 // beginning of the base name and ends at either the position the first dot, or
 // `max_length`, or the length of the base name, whichever is the shortest.
@@ -203,6 +229,14 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
+
+// Test if a file is on nfs.
+//
+// Sets is_nfs to the result if fstatfs is available and no error occurred.
+//
+// Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
+// error occurred.
+int is_nfs_fd(int fd, bool* is_nfs);
 
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
@@ -273,6 +307,11 @@ std::vector<std::string> split_into_strings(nonstd::string_view input,
 // Return true if prefix is a prefix of string.
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 
+// Returns a copy of string with the specified ANSI CSI sequences removed.
+[[gnu::warn_unused_result]] std::string
+strip_ansi_csi_seqs(nonstd::string_view string,
+                    nonstd::string_view strip_actions = "Km");
+
 // Strip whitespace from left and right side of a string.
 [[gnu::warn_unused_result]] std::string
 strip_whitespace(const std::string& string);
@@ -280,12 +319,41 @@ strip_whitespace(const std::string& string);
 // Convert a string to lowercase.
 [[gnu::warn_unused_result]] std::string to_lowercase(const std::string& string);
 
-// Write file data from a string.
+// Traverse `path` recursively (postorder, i.e. files are visited before their
+// parent directory).
+//
+// Throws Error on error.
+void traverse(const std::string& path, const TraverseVisitor& visitor);
+
+// Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_safe(const std::string& path,
+                 UnlinkLog unlink_log = UnlinkLog::log_failure);
+
+// Remove `path` (non-directory), NFS hazardous. Use only for files that will
+// not exist on other systems. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_tmp(const std::string& path,
+                UnlinkLog unlink_log = UnlinkLog::log_failure);
+
+// Remove `path` (and its contents if it's a directory). A non-existing path is
+// not considered an error.
+//
+// Throws Error on error.
+void wipe_path(const std::string& path);
+
+// Write file data from a string. The file will be opened according to
+// `open_mode`, which always will include `std::ios::out` even if not specified
+// at the call site.
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
 void write_file(const std::string& path,
                 const std::string& data,
-                bool binary = false);
+                std::ios_base::openmode open_mode = std::ios::out);
 
 } // namespace Util

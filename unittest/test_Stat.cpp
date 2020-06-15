@@ -18,12 +18,14 @@
 
 #include "../src/Stat.hpp"
 #include "../src/Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 #include <unistd.h>
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Default constructor")
 {
@@ -40,6 +42,16 @@ TEST_CASE("Default constructor")
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == 0);
+  CHECK(stat.ctim().tv_nsec == 0);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == 0);
+  CHECK(stat.mtim().tv_nsec == 0);
+#endif
 }
 
 TEST_CASE("Named constructors")
@@ -54,6 +66,8 @@ TEST_CASE("Named constructors")
 
 TEST_CASE("Same i-node as")
 {
+  TestContext test_context;
+
   Util::write_file("a", "");
   Util::write_file("b", "");
   auto a_stat = Stat::stat("a");
@@ -86,10 +100,22 @@ TEST_CASE("Return values when file is missing")
   CHECK(!stat.is_directory());
   CHECK(!stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == 0);
+  CHECK(stat.ctim().tv_nsec == 0);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == 0);
+  CHECK(stat.mtim().tv_nsec == 0);
+#endif
 }
 
 TEST_CASE("Return values when file exists")
 {
+  TestContext test_context;
+
   Util::write_file("file", "1234567");
 
   auto stat = Stat::stat("file");
@@ -112,11 +138,22 @@ TEST_CASE("Return values when file exists")
   CHECK(!stat.is_directory());
   CHECK(stat.is_regular());
   CHECK(!stat.is_symlink());
+
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
+  CHECK(stat.ctim().tv_sec == st.st_ctim.tv_sec);
+  CHECK(stat.ctim().tv_nsec == st.st_ctim.tv_nsec);
+#endif
+
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
+  CHECK(stat.mtim().tv_sec == st.st_mtim.tv_sec);
+  CHECK(stat.mtim().tv_nsec == st.st_mtim.tv_nsec);
+#endif
 }
 
 TEST_CASE("Directory")
 {
-  rmdir("directory");
+  TestContext test_context;
+
   REQUIRE(mkdir("directory", 0456) == 0);
   auto stat = Stat::stat("directory");
 
@@ -130,6 +167,8 @@ TEST_CASE("Directory")
 #ifndef _WIN32
 TEST_CASE("Symlinks")
 {
+  TestContext test_context;
+
   Util::write_file("file", "1234567");
 
   SECTION("file lstat")
@@ -154,7 +193,6 @@ TEST_CASE("Symlinks")
 
   SECTION("symlink lstat")
   {
-    unlink("symlink");
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
     CHECK(stat);
@@ -166,7 +204,6 @@ TEST_CASE("Symlinks")
 
   SECTION("symlink stat")
   {
-    unlink("symlink");
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::stat("symlink", Stat::OnError::ignore);
     CHECK(stat);

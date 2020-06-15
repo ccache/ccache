@@ -32,7 +32,6 @@ bool move_file(const char* src, const char* dest);
 const char* get_hostname();
 const char* tmp_string();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void format_hex(const uint8_t* data, size_t size, char* buffer);
 void reformat(char** ptr, const char* format, ...) ATTR_FORMAT(printf, 2, 3);
 char* x_strdup(const char* s);
 char* x_strndup(const char* s, size_t n);
@@ -56,14 +55,8 @@ bool is_full_path(const char* path);
 void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char* oldpath, const char* newpath);
-int tmp_unlink(const char* path);
-int x_unlink(const char* path);
-int x_try_unlink(const char* path);
 bool read_file(const char* path, size_t size_hint, char** data, size_t* size);
 char* read_text_file(const char* path, size_t size_hint);
 char* subst_env_in_string(const char* str, char** errmsg);
 void set_cloexec_flag(int fd);
 double time_seconds();
-
-// Convert a char* string `str` to an std::string, if `str` is NULL return "".
-std::string from_cstr(const char* str);

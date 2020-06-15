@@ -21,6 +21,10 @@
 #ifdef _WIN32
 #  include "system.hpp"
 
+#  include <string>
+
+std::string win32_error_message(DWORD error_code);
+
 BOOL
 GetFileNameFromHandle(HANDLE file_handle, TCHAR* filename, WORD cch_filename);
 

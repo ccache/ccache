@@ -232,10 +232,13 @@ copy_raw_file(const Context& ctx,
     cc_log("Failed to clone: %s", strerror(errno));
   }
   if (ctx.config.hard_link()) {
-    x_try_unlink(dest.c_str());
+    unlink(dest.c_str());
     cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
     int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {
+      if (chmod(dest.c_str(), 0444) != 0) {
+        cc_log("Failed to chmod: %s", strerror(errno));
+      }
       return true;
     }
     cc_log("Failed to hard link: %s", strerror(errno));
@@ -436,21 +439,23 @@ should_store_raw_file(const Config& config, FileType type)
     return false;
   }
 
-  // - Don't store stderr outputs as raw files since they:
-  //   1. Never are large.
-  //   2. Will end up in a temporary file anyway.
+  // Only store object files as raw files since there are several problems with
+  // storing other file types:
   //
-  // - Don't store .d/dependency files since they:
-  //   1. Never are large.
-  //   2. Compress well.
-  //   3. Cause trouble for automake if hard-linked (see ccache issue 378).
+  // 1. The compiler unlinks object files before writing to them but it doesn't
+  //    unlink .d files, so just it's possible to corrupt .d files just by
+  //    running the compiler (see ccache issue 599).
+  // 2. .d files cause trouble for automake if hard-linked (see ccache issue
+  //    378).
+  // 3. It's unknown how the compiler treats other file types, so better safe
+  //    than sorry.
   //
-  // Note that .d files can't be stored as raw files for the file_clone case
-  // since the hard link mode happily will try to use them if they exist. This
-  // could be fixed by letting read_raw_file_entry refuse to hard link .d
-  // files, but it's easier to simply always store them embedded. This will
-  // also save i-nodes in the cache.
-  return type != FileType::stderr_output && type != FileType::dependency;
+  // It would be possible to store all files in raw form for the file_clone case
+  // and only hard link object files. However, most likely it's only object
+  // files that become large enough that it's of interest to clone or hard link
+  // them, so we keep things simple for now. This will also save i-nodes in the
+  // cache.
+  return type == FileType::object;
 }
 
 static void

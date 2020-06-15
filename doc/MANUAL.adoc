@@ -382,7 +382,7 @@ Semantics of *compression_level*:
     the *zstd* command line tool.
 *0* (default)::
     The value *0* means that ccache will choose a suitable level, currently
-    *-1*.
+    *1*.
 --
 
 [[config_cpp_extension]] *cpp_extension* (*CCACHE_EXTENSION*)::
@@ -440,9 +440,7 @@ systems, ccache will fall back to use plain copying (or hard links if
 [[config_hard_link]] *hard_link* (*CCACHE_HARDLINK* or *CCACHE_NOHARDLINK*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will attempt to use hard links to store and fetch cached
-    compiler results. The default is false.
-+
-An exception is dependency files (`.d`) which are never stored as hard links.
+    object files. The default is false.
 +
 Files stored via hard links cannot be compressed, so the cache size will likely
 be significantly larger if this option is enabled. However, performance may be
@@ -452,10 +450,12 @@ WARNING: Do not enable this option unless you are aware of these caveats:
 +
 * If the resulting file is modified, the file in the cache will also be
   modified since they share content, which corrupts the cache entry. As of
-  version 4.0, ccache performs a simple integrity check for cached files by
-  verifying that their sizes are correct. This means that mistakes like `strip
-  file.o` or `echo >file.o` will be detected, but a modification that doesn't
-  change the file size will not.
+  version 4.0, ccache makes stored and fetched object files read-only as a
+  safety measure guard. Furthermore, a simple integrity check is made for
+  cached object files by verifying that their sizes are correct. This means
+  that mistakes like `strip file.o` or `echo >file.o` will be detected even if
+  the object file is made writeable, but a modification that doesn't change the
+  file size will not.
 * Programs that don't expect that files from two different identical
   compilations are hard links to each other can fail.
 * Programs that rely on modification times (like ``make'') can be confused if
@@ -494,6 +494,17 @@ might be incorrect.
     mode. Note that this can cause stale cache hits if those headers do indeed
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
+
+[[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
+
+    If true, enables caching of source file hashes based on device, inode and
+    timestamps. This will reduce the time spent on hashing included files as
+    the result can be resused between compilations.
++
+The feature is still experimental and thus off by default. It is currently not
+available on Windows.
++
+The feature requires *temporary_dir* to be located on a local filesystem.
 
 [[config_keep_comments_cpp]] *keep_comments_cpp* (*CCACHE_COMMENTS* or *CCACHE_NOCOMMENTS*, see <<_boolean_values,Boolean values>> above)::
 
@@ -666,7 +677,8 @@ information.
 [[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 
     This setting specifies where ccache will put temporary files. The default
-    is *<cache_dir>/tmp*.
+    is */run/user/<UID>/ccache-tmp* if */run/user/<UID>* exists, otherwise
+    *<cache_dir>/tmp*.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
     filesystem as the *CCACHE_DIR* path, but this requirement has been
@@ -1224,6 +1236,13 @@ filesystems), but keep in mind that:
 A tip is to set <<config_temporary_dir,*temporary_dir*>> to a directory on the
 local host to avoid NFS traffic for temporary files.
 
+It is recommended to use the same operating system version when using a shared
+cache. If operating system versions are different then system include files
+will likely be different and there will be few or no cache hits between the
+systems. One way of improving cache hit rate in that case is to set
+<<config_sloppiness,*sloppiness*>> to *system_headers* to ignore system
+headers.
+
 
 Using ccache with other compiler wrappers
 -----------------------------------------
@@ -1263,19 +1282,6 @@ Caveats
 
 * The direct mode fails to pick up new header files in some rare scenarios. See
   <<_the_direct_mode,THE DIRECT MODE>> above.
-* When run via ccache, warning messages produced by GCC 4.9 and newer will only
-  be colored when the environment variable *GCC_COLORS* is set. An alternative
-  to setting *GCC_COLORS* is to pass `-fdiagnostics-color` explicitly when
-  compiling (but then color codes will also be present when redirecting stderr
-  to a file).
-* If ccache guesses that the compiler may emit colored warnings, then a
-  compilation with stderr referring to a TTY will be considered different from
-  a compilation with a redirected stderr, thus not sharing cache entries. This
-  happens for clang by default and for GCC when *GCC_COLORS* is set as
-  mentioned above. If you want to share cache hits, you can pass
-  `-f[no-]diagnostics-color` (GCC) or `-f[no-]color-diagnostics` (clang)
-  explicitly when compiling (but then color codes will be either on or off for
-  both the TTY and the redirected case).
 
 
 Troubleshooting

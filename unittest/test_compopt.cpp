@@ -16,125 +16,120 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for the compopt_* functions.
-
 #include "../src/compopt.hpp"
-#include "framework.hpp"
+
+#include "third_party/catch.hpp"
 
 bool compopt_verify_sortedness_and_flags();
 
-TEST_SUITE(compopt)
-
-TEST(option_table_should_be_sorted)
+TEST_CASE("option_table_should_be_sorted")
 {
   CHECK(compopt_verify_sortedness_and_flags());
 }
 
-TEST(dash_I_affects_cpp)
+TEST_CASE("dash_I_affects_cpp")
 {
   CHECK(compopt_affects_cpp("-I"));
   CHECK(!compopt_affects_cpp("-Ifoo"));
 }
 
-TEST(compopt_short)
+TEST_CASE("compopt_short")
 {
   CHECK(compopt_short(compopt_affects_cpp, "-Ifoo"));
   CHECK(!compopt_short(compopt_affects_cpp, "-include"));
 }
 
-TEST(dash_V_doesnt_affect_cpp)
+TEST_CASE("dash_V_doesnt_affect_cpp")
 {
   CHECK(!compopt_affects_cpp("-V"));
 }
 
-TEST(dash_doesntexist_doesnt_affect_cpp)
+TEST_CASE("dash_doesntexist_doesnt_affect_cpp")
 {
   CHECK(!compopt_affects_cpp("-doesntexist"));
 }
 
-TEST(dash_MM_too_hard)
+TEST_CASE("dash_MM_too_hard")
 {
   CHECK(compopt_too_hard("-MM"));
 }
 
-TEST(dash_save_temps_too_hard)
+TEST_CASE("dash_save_temps_too_hard")
 {
   CHECK(compopt_too_hard("-save-temps"));
 }
 
-TEST(dash_save_temps_cwd_too_hard)
+TEST_CASE("dash_save_temps_cwd_too_hard")
 {
   CHECK(compopt_too_hard("-save-temps=cwd"));
 }
 
-TEST(dash_save_temps_obj_too_hard)
+TEST_CASE("dash_save_temps_obj_too_hard")
 {
   CHECK(compopt_too_hard("-save-temps=obj"));
 }
 
-TEST(dash_MD_not_too_hard)
+TEST_CASE("dash_MD_not_too_hard")
 {
   CHECK(!compopt_too_hard("-MD"));
 }
 
-TEST(dash_fprofile_arcs_not_too_hard)
+TEST_CASE("dash_fprofile_arcs_not_too_hard")
 {
   CHECK(!compopt_too_hard("-fprofile-arcs"));
 }
 
-TEST(dash_ftest_coverage_not_too_hard)
+TEST_CASE("dash_ftest_coverage_not_too_hard")
 {
   CHECK(!compopt_too_hard("-ftest-coverage"));
 }
 
-TEST(dash_fstack_usage_not_too_hard)
+TEST_CASE("dash_fstack_usage_not_too_hard")
 {
   CHECK(!compopt_too_hard("-fstack-usage"));
 }
 
-TEST(dash_doesntexist_not_too_hard)
+TEST_CASE("dash_doesntexist_not_too_hard")
 {
   CHECK(!compopt_too_hard("-doesntexist"));
 }
 
-TEST(dash_Xpreprocessor_too_hard_for_direct_mode)
+TEST_CASE("dash_Xpreprocessor_too_hard_for_direct_mode")
 {
   CHECK(compopt_too_hard_for_direct_mode("-Xpreprocessor"));
 }
 
-TEST(dash_nostdinc_not_too_hard_for_direct_mode)
+TEST_CASE("dash_nostdinc_not_too_hard_for_direct_mode")
 {
   CHECK(!compopt_too_hard_for_direct_mode("-nostdinc"));
 }
 
-TEST(dash_I_takes_path)
+TEST_CASE("dash_I_takes_path")
 {
   CHECK(compopt_takes_path("-I"));
 }
 
-TEST(dash_Xlinker_takes_arg)
+TEST_CASE("dash_Xlinker_takes_arg")
 {
   CHECK(compopt_takes_arg("-Xlinker"));
 }
 
-TEST(dash_xxx_doesnt_take_arg)
+TEST_CASE("dash_xxx_doesnt_take_arg")
 {
   CHECK(!compopt_takes_arg("-xxx"));
 }
 
-TEST(dash_iframework_prefix_affects_cpp)
+TEST_CASE("dash_iframework_prefix_affects_cpp")
 {
   CHECK(compopt_prefix_affects_cpp("-iframework"));
 }
 
-TEST(dash_analyze_too_hard)
+TEST_CASE("dash_analyze_too_hard")
 {
   CHECK(compopt_too_hard("-analyze"));
 }
 
-TEST(dash_dash_analyze_too_hard)
+TEST_CASE("dash_dash_analyze_too_hard")
 {
   CHECK(compopt_too_hard("--analyze"));
 }
-
-TEST_SUITE_END

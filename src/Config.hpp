@@ -55,6 +55,7 @@ public:
   bool hard_link() const;
   bool hash_dir() const;
   const std::string& ignore_headers_in_manifest() const;
+  bool inode_cache() const;
   bool keep_comments_cpp() const;
   double limit_multiple() const;
   const std::string& log_file() const;
@@ -77,7 +78,9 @@ public:
   void set_cache_dir(const std::string& value);
   void set_cpp_extension(const std::string& value);
   void set_depend_mode(bool value);
+  void set_debug(bool value);
   void set_direct_mode(bool value);
+  void set_inode_cache(bool value);
   void set_limit_multiple(double value);
   void set_max_files(uint32_t value);
   void set_max_size(uint64_t value);
@@ -91,10 +94,9 @@ public:
   void set_primary_config_path(std::string path);
   void set_secondary_config_path(std::string path);
 
-  typedef std::function<void(const std::string& key,
-                             const std::string& value,
-                             const std::string& origin)>
-    ItemVisitor;
+  using ItemVisitor = std::function<void(const std::string& key,
+                                         const std::string& value,
+                                         const std::string& origin)>;
 
   // Set config values from a configuration file.
   //
@@ -115,6 +117,9 @@ public:
   static void set_value_in_file(const std::string& path,
                                 const std::string& key,
                                 const std::string& value);
+
+  // Called from unit tests.
+  static void check_key_tables_consistency();
 
 private:
   std::string m_primary_config_path;
@@ -137,6 +142,7 @@ private:
   bool m_hard_link = false;
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest = "";
+  bool m_inode_cache = false;
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file = "";
@@ -152,8 +158,10 @@ private:
   bool m_run_second_cpp = true;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
-  std::string m_temporary_dir = "";
+  std::string m_temporary_dir = default_temporary_dir(m_cache_dir);
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
+
+  bool m_temporary_dir_configured_explicitly = false;
 
   std::unordered_map<std::string /*key*/, std::string /*origin*/> m_origins;
 
@@ -162,6 +170,8 @@ private:
                 const nonstd::optional<std::string>& env_var_key,
                 bool negate,
                 const std::string& origin);
+
+  static std::string default_temporary_dir(const std::string& cache_dir);
 };
 
 inline const std::string&
@@ -264,6 +274,12 @@ inline const std::string&
 Config::ignore_headers_in_manifest() const
 {
   return m_ignore_headers_in_manifest;
+}
+
+inline bool
+Config::inode_cache() const
+{
+  return m_inode_cache;
 }
 
 inline bool
@@ -378,6 +394,9 @@ inline void
 Config::set_cache_dir(const std::string& value)
 {
   m_cache_dir = value;
+  if (!m_temporary_dir_configured_explicitly) {
+    m_temporary_dir = default_temporary_dir(m_cache_dir);
+  }
 }
 
 inline void
@@ -393,9 +412,21 @@ Config::set_depend_mode(bool value)
 }
 
 inline void
+Config::set_debug(bool value)
+{
+  m_debug = value;
+}
+
+inline void
 Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
+}
+
+inline void
+Config::set_inode_cache(bool value)
+{
+  m_inode_cache = value;
 }
 
 inline void

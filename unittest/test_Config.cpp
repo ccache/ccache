@@ -20,6 +20,7 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/exceptions.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 #include "third_party/fmt/core.h"
@@ -29,12 +30,17 @@
 #include <vector>
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Config: default values")
 {
   Config config;
+
+  std::string expected_cache_dir =
+    fmt::format("{}/.ccache", get_home_directory());
+
   CHECK(config.base_dir().empty());
-  CHECK(config.cache_dir() == std::string(get_home_directory()) + "/.ccache");
+  CHECK(config.cache_dir() == expected_cache_dir);
   CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
@@ -65,12 +71,23 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-  CHECK(config.temporary_dir().empty());
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    CHECK(config.temporary_dir()
+          == fmt::format("/run/user/{}/ccache-tmp", geteuid()));
+  } else {
+#endif
+    CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
+#ifdef HAVE_GETEUID
+  }
+#endif
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 
 TEST_CASE("Config::update_from_file")
 {
+  TestContext test_context;
+
   const char user[] = "rabbit";
   x_setenv("USER", user);
 
@@ -165,8 +182,9 @@ TEST_CASE("Config::update_from_file")
 
 TEST_CASE("Config::update_from_file, error handling")
 {
+  TestContext test_context;
+
   Config config;
-  unlink("ccache.conf"); // Make sure it doesn't exist.
 
   SECTION("missing equal sign")
   {
@@ -296,6 +314,8 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::set_value_in_file")
 {
+  TestContext test_context;
+
   SECTION("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
@@ -358,6 +378,8 @@ TEST_CASE("Config::get_string_value")
 
 TEST_CASE("Config::visit_items")
 {
+  TestContext test_context;
+
   Util::write_file(
     "test.conf",
 #ifndef _WIN32
@@ -381,6 +403,7 @@ TEST_CASE("Config::visit_items")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
+    "inode_cache = false\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 0.0\n"
     "log_file = lf\n"
@@ -434,6 +457,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) hard_link = true",
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",
+    "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) limit_multiple = 0.0",
     "(test.conf) log_file = lf",
@@ -461,5 +485,7 @@ TEST_CASE("Config::visit_items")
   }
 }
 
-// TODO Test that values in k_env_variable_table map to keys in
-//   k_config_item_table.;
+TEST_CASE("Check key tables consistency")
+{
+  CHECK_NOTHROW(Config::check_key_tables_consistency());
+}

@@ -18,14 +18,17 @@
 
 #include "../src/AtomicFile.hpp"
 #include "../src/Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Base case")
 {
-  unlink("test");
+  TestContext test_context;
+
   AtomicFile atomic_file("test", AtomicFile::Mode::text);
   atomic_file.write("h");
   atomic_file.write(std::vector<uint8_t>{0x65, 0x6c});
@@ -36,7 +39,8 @@ TEST_CASE("Base case")
 
 TEST_CASE("Not committing")
 {
-  unlink("test");
+  TestContext test_context;
+
   {
     AtomicFile atomic_file("test", AtomicFile::Mode::text);
     atomic_file.write("hello");

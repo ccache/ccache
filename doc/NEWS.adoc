@@ -25,6 +25,8 @@ High-level summary of changes (work in progress)
 
 - A C++11 compiler is now required to build ccache.
 
+- Build tooling switched from Autoconf to CMake.
+
 - Added a `-x/--show-compression` option which shows some statistics about
   cache compression.
 
@@ -43,6 +45,14 @@ High-level summary of changes (work in progress)
   to scan input source code for `__DATE__` and `__TIME__` macros. This can
   decrease the number of CPU cycles for a direct cache hit with up to 15% in
   some cases.
+
+- Added a new inode cache for file hashes, allowing computed hash values to be
+  reused both within and between builds.
+
+- Compiler diagnostic messages are now always cached in color, and ccache
+  strips the color codes on the fly when requested explicitly by command-line
+  option or when stderr does not refer to a TTY. This allows IDEs and terminals
+  to share cached compilation results.
 
 - (More to be written.)
 

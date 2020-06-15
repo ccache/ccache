@@ -1,4 +1,4 @@
-// Copyright (C) 2009-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,21 +20,24 @@
 
 #include "system.hpp"
 
+#include "third_party/nonstd/optional.hpp"
+
 #include <string>
 #include <unordered_map>
 
 class Config;
 class Context;
-struct digest;
+class Digest;
 
 extern const uint8_t k_manifest_magic[4];
 extern const uint8_t k_manifest_version;
 
-struct digest* manifest_get(const Context& ctx, const std::string& path);
+nonstd::optional<Digest> manifest_get(const Context& ctx,
+                                      const std::string& path);
 bool manifest_put(const Config& config,
                   const std::string& path,
-                  const struct digest& result_name,
-                  const std::unordered_map<std::string, digest>& included_files,
+                  const Digest& result_name,
+                  const std::unordered_map<std::string, Digest>& included_files,
                   time_t time_of_compilation,
                   bool save_timestamp);
 bool manifest_dump(const std::string& path, FILE* stream);

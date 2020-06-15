@@ -540,7 +540,11 @@ base_tests() {
     # - a/b/c
     # - a/b/c/d
     actual_dirs=$(find $CCACHE_DIR -type d | wc -l)
-    expected_dirs=6
+    if [ -d /run/user/$(id -u) ]; then
+        expected_dirs=5
+    else
+        expected_dirs=6
+    fi
     if [ $actual_dirs -ne $expected_dirs ]; then
         test_failed "Expected $expected_dirs directories, found $actual_dirs"
     fi
@@ -951,6 +955,34 @@ EOF
     $REAL_COMPILER -c -Wall -W -c stderr.c 2>reference_stderr.txt
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>stderr.txt
     expect_equal_files reference_stderr.txt stderr.txt
+
+    # -------------------------------------------------------------------------
+    TEST "Merging stderr"
+
+    cat >compiler.sh <<EOF
+#!/bin/sh
+if [ \$1 = -E ]; then
+    echo preprocessed
+    printf "[%s]" cpp_stderr >&2
+else
+    echo object >test1.o
+    printf "[%s]" cc_stderr >&2
+fi
+EOF
+    chmod +x compiler.sh
+
+    unset CCACHE_NOCPP2
+    stderr=$($CCACHE ./compiler.sh -c test1.c 2>stderr)
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_file_content stderr "[cc_stderr]"
+
+    stderr=$(CCACHE_NOCPP2=1 $CCACHE ./compiler.sh -c test1.c 2>stderr)
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+    expect_file_content stderr "[cpp_stderr][cc_stderr]"
 
     # -------------------------------------------------------------------------
     TEST "--zero-stats"

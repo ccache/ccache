@@ -20,13 +20,17 @@
 #include "../src/Compressor.hpp"
 #include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/catch.hpp"
 
 using Catch::Equals;
+using TestUtil::TestContext;
 
 TEST_CASE("Compression::Type::none roundtrip")
 {
+  TestContext test_context;
+
   File f("data.uncompressed", "w");
   auto compressor =
     Compressor::create_from_type(Compression::Type::none, f.get(), 1);

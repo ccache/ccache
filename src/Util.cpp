@@ -21,9 +21,20 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "legacy_util.hpp"
+#include "logging.hpp"
 
 #include <algorithm>
 #include <fstream>
+#include <regex>
+
+#ifdef HAVE_LINUX_FS_H
+#  include <linux/magic.h>
+#  include <sys/statfs.h>
+#elif defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+#  include <sys/mount.h>
+#  include <sys/param.h>
+#endif
 
 #ifdef _WIN32
 #  include "win32compat.hpp"
@@ -32,48 +43,6 @@
 using nonstd::string_view;
 
 namespace {
-
-void
-get_cache_files_internal(const std::string& dir,
-                         uint8_t level,
-                         const Util::ProgressReceiver& progress_receiver,
-                         std::vector<std::shared_ptr<CacheFile>>& files)
-{
-  DIR* d = opendir(dir.c_str());
-  if (!d) {
-    return;
-  }
-
-  std::vector<std::string> directories;
-  dirent* de;
-  while ((de = readdir(d))) {
-    string_view name(de->d_name);
-    if (name == "" || name == "." || name == ".." || name == "CACHEDIR.TAG"
-        || name == "stats" || name.starts_with(".nfs")) {
-      continue;
-    }
-
-    if (name.length() == 1) {
-      directories.emplace_back(name);
-    } else {
-      files.push_back(
-        std::make_shared<CacheFile>(fmt::format("{}/{}", dir, name)));
-    }
-  }
-  closedir(d);
-
-  if (level == 1) {
-    progress_receiver(1.0 / (directories.size() + 1));
-  }
-
-  for (size_t i = 0; i < directories.size(); ++i) {
-    get_cache_files_internal(
-      dir + "/" + directories[i], level + 1, progress_receiver, files);
-    if (level == 1) {
-      progress_receiver(1.0 * (i + 1) / (directories.size() + 1));
-    }
-  }
-}
 
 size_t
 path_max(const char* path)
@@ -222,10 +191,64 @@ dir_name(string_view path)
   }
 }
 
+std::string
+edit_ansi_csi_seqs(string_view string, const SubstringEditor& editor)
+{
+  static const std::regex csi_regex(
+    "\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
+  std::string ret, substr;
+  ret.reserve(string.size());
+  for (std::cregex_token_iterator itr(
+         string.begin(), string.end(), csi_regex, {-1, 0});
+       itr != std::cregex_token_iterator{};
+       ++itr) {
+    ret.append(itr->first, itr->second);
+    if (++itr == std::cregex_token_iterator{}) {
+      break;
+    }
+    substr.assign(itr->first, itr->second);
+    editor(itr->first - string.begin(), substr);
+    ret.append(substr);
+  }
+  return ret;
+}
+
 bool
 ends_with(string_view string, string_view suffix)
 {
   return string.ends_with(suffix);
+}
+
+int
+fallocate(int fd, long new_size)
+{
+#ifdef HAVE_POSIX_FALLOCATE
+  return posix_fallocate(fd, 0, new_size);
+#else
+  off_t saved_pos = lseek(fd, 0, SEEK_END);
+  off_t old_size = lseek(fd, 0, SEEK_END);
+  if (old_size == -1) {
+    int err = errno;
+    lseek(fd, saved_pos, SEEK_SET);
+    return err;
+  }
+  if (old_size >= new_size) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return 0;
+  }
+  long bytes_to_write = new_size - old_size;
+  void* buf = calloc(bytes_to_write, 1);
+  if (!buf) {
+    lseek(fd, saved_pos, SEEK_SET);
+    return ENOMEM;
+  }
+  int err = 0;
+  if (!write_fd(fd, buf, bytes_to_write))
+    err = errno;
+  lseek(fd, saved_pos, SEEK_SET);
+  free(buf);
+  return err;
+#endif
 }
 
 void
@@ -242,6 +265,17 @@ for_each_level_1_subdir(const std::string& cache_dir,
     });
   }
   progress_receiver(1.0);
+}
+
+std::string
+format_hex(const uint8_t* data, size_t size)
+{
+  std::string result;
+  result.reserve(size);
+  for (size_t i = 0; i < size; i++) {
+    result += fmt::format("{:02x}", data[i]);
+  }
+  return result;
 }
 
 std::string
@@ -310,7 +344,28 @@ get_level_1_files(const std::string& dir,
                   const ProgressReceiver& progress_receiver,
                   std::vector<std::shared_ptr<CacheFile>>& files)
 {
-  get_cache_files_internal(dir, 1, progress_receiver, files);
+  if (!Stat::stat(dir)) {
+    return;
+  }
+
+  size_t level_2_directories = 0;
+
+  Util::traverse(dir, [&](const std::string& path, bool is_dir) {
+    auto name = Util::base_name(path);
+    if (name == "CACHEDIR.TAG" || name == "stats" || name.starts_with(".nfs")) {
+      return;
+    }
+
+    if (!is_dir) {
+      files.push_back(std::make_shared<CacheFile>(path));
+    } else if (path != dir
+               && path.find('/', dir.size() + 1) == std::string::npos) {
+      ++level_2_directories;
+      progress_receiver(level_2_directories / 16.0);
+    }
+  });
+
+  progress_receiver(1.0);
 }
 
 std::string
@@ -405,6 +460,29 @@ is_absolute_path(string_view path)
 #endif
   return !path.empty() && path[0] == '/';
 }
+
+#if defined(HAVE_LINUX_FS_H) || defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
+int
+is_nfs_fd(int fd, bool* is_nfs)
+{
+  struct statfs buf;
+  if (fstatfs(fd, &buf) != 0) {
+    return errno;
+  }
+#  ifdef HAVE_LINUX_FS_H
+  *is_nfs = buf.f_type == NFS_SUPER_MAGIC;
+#  else // Mac OS X and some other BSD flavors
+  *is_nfs = strcmp(buf.f_fstypename, "nfs") == 0;
+#  endif
+  return 0;
+}
+#else
+int
+is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
+{
+  return -1;
+}
+#endif
 
 std::string
 make_relative_path(const Context& ctx, string_view path)
@@ -584,7 +662,7 @@ real_path(const std::string& path, bool return_empty_on_error)
   char* buffer = managed_buffer.get();
   char* resolved = nullptr;
 
-#if HAVE_REALPATH
+#ifdef HAVE_REALPATH
   resolved = realpath(c_path, buffer);
 #elif defined(_WIN32)
   if (c_path[0] == '/') {
@@ -650,6 +728,17 @@ starts_with(string_view string, string_view prefix)
 }
 
 std::string
+strip_ansi_csi_seqs(string_view string, string_view strip_actions)
+{
+  return edit_ansi_csi_seqs(
+    string, [strip_actions](string_view::size_type, std::string& substr) {
+      if (strip_actions.find(substr.back()) != string_view::npos) {
+        substr.clear();
+      }
+    });
+}
+
+std::string
 strip_whitespace(const std::string& string)
 {
   auto is_space = [](int ch) { return std::isspace(ch); };
@@ -666,12 +755,128 @@ to_lowercase(const std::string& string)
   return result;
 }
 
-// Write file data from a string.
 void
-write_file(const std::string& path, const std::string& data, bool binary)
+traverse(const std::string& path, const TraverseVisitor& visitor)
 {
-  std::ofstream file(path,
-                     binary ? std::ios::out | std::ios::binary : std::ios::out);
+  DIR* dir = opendir(path.c_str());
+  if (dir) {
+    struct dirent* entry;
+    while ((entry = readdir(dir))) {
+      if (strcmp(entry->d_name, "") == 0 || strcmp(entry->d_name, ".") == 0
+          || strcmp(entry->d_name, "..") == 0) {
+        continue;
+      }
+
+      std::string entry_path = path + "/" + entry->d_name;
+      bool is_dir;
+#ifdef _DIRENT_HAVE_D_TYPE
+      if (entry->d_type != DT_UNKNOWN) {
+        is_dir = entry->d_type == DT_DIR;
+      } else
+#endif
+      {
+        auto stat = Stat::lstat(entry_path);
+        if (!stat) {
+          if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
+            continue;
+          }
+          throw Error(fmt::format("failed to lstat {}: {}",
+                                  entry_path,
+                                  strerror(stat.error_number())));
+        }
+        is_dir = stat.is_directory();
+      }
+      if (is_dir) {
+        traverse(entry_path, visitor);
+      } else {
+        visitor(entry_path, false);
+      }
+    }
+    closedir(dir);
+    visitor(path, true);
+  } else if (errno == ENOTDIR) {
+    visitor(path, false);
+  } else {
+    throw Error(
+      fmt::format("failed to open directory {}: {}", path, strerror(errno)));
+  }
+}
+
+bool
+unlink_safe(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
+  // file. We don't care if the temp file is trashed, so it's always safe to
+  // unlink it first.
+  std::string tmp_name = path + ".ccache.rm.tmp";
+
+  bool success = true;
+  if (x_rename(path.c_str(), tmp_name.c_str()) != 0) {
+    success = false;
+    saved_errno = errno;
+  } else if (unlink(tmp_name.c_str()) != 0) {
+    // It's OK if it was unlinked in a race.
+    if (errno != ENOENT && errno != ESTALE) {
+      success = false;
+      saved_errno = errno;
+    }
+  }
+
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
+}
+
+bool
+unlink_tmp(const std::string& path, UnlinkLog unlink_log)
+{
+  int saved_errno = 0;
+
+  bool success =
+    unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
+  if (success || unlink_log == UnlinkLog::log_failure) {
+    cc_log("Unlink %s", path.c_str());
+    if (!success) {
+      cc_log("Unlink failed: %s", strerror(saved_errno));
+    }
+  }
+
+  errno = saved_errno;
+  return success;
+}
+
+void
+wipe_path(const std::string& path)
+{
+  if (!Stat::lstat(path)) {
+    return;
+  }
+  traverse(path, [](const std::string& p, bool is_dir) {
+    if (is_dir) {
+      if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
+        throw Error(fmt::format("failed to rmdir {}: {}", p, strerror(errno)));
+      }
+    } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
+      throw Error(fmt::format("failed to unlink {}: {}", p, strerror(errno)));
+    }
+  });
+}
+
+void
+write_file(const std::string& path,
+           const std::string& data,
+           std::ios_base::openmode open_mode)
+{
+  open_mode |= std::ios::out;
+  std::ofstream file(path, open_mode);
   if (!file) {
     throw Error(strerror(errno));
   }

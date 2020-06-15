@@ -54,6 +54,7 @@ enum class ConfigItem {
   hard_link,
   hash_dir,
   ignore_headers_in_manifest,
+  inode_cache,
   keep_comments_cpp,
   limit_multiple,
   log_file,
@@ -91,6 +92,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"hard_link", ConfigItem::hard_link},
   {"hash_dir", ConfigItem::hash_dir},
   {"ignore_headers_in_manifest", ConfigItem::ignore_headers_in_manifest},
+  {"inode_cache", ConfigItem::inode_cache},
   {"keep_comments_cpp", ConfigItem::keep_comments_cpp},
   {"limit_multiple", ConfigItem::limit_multiple},
   {"log_file", ConfigItem::log_file},
@@ -130,6 +132,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"HARDLINK", "hard_link"},
   {"HASHDIR", "hash_dir"},
   {"IGNOREHEADERS", "ignore_headers_in_manifest"},
+  {"INODECACHE", "inode_cache"},
   {"LIMIT_MULTIPLE", "limit_multiple"},
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
@@ -148,9 +151,8 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"UMASK", "umask"},
 };
 
-typedef std::function<void(
-  const std::string& line, const std::string& key, const std::string& value)>
-  ConfigLineHandler;
+using ConfigLineHandler = std::function<void(
+  const std::string& line, const std::string& key, const std::string& value)>;
 
 bool
 parse_bool(const std::string& value,
@@ -557,6 +559,9 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::ignore_headers_in_manifest:
     return m_ignore_headers_in_manifest;
 
+  case ConfigItem::inode_cache:
+    return format_bool(m_inode_cache);
+
   case ConfigItem::keep_comments_cpp:
     return format_bool(m_keep_comments_cpp);
 
@@ -690,7 +695,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    m_cache_dir = parse_env_string(value);
+    set_cache_dir(parse_env_string(value));
     break;
 
   case ConfigItem::cache_dir_levels:
@@ -761,6 +766,10 @@ Config::set_item(const std::string& key,
     m_ignore_headers_in_manifest = parse_env_string(value);
     break;
 
+  case ConfigItem::inode_cache:
+    m_inode_cache = parse_bool(value, env_var_key, negate);
+    break;
+
   case ConfigItem::keep_comments_cpp:
     m_keep_comments_cpp = parse_bool(value, env_var_key, negate);
     break;
@@ -823,6 +832,7 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::temporary_dir:
     m_temporary_dir = parse_env_string(value);
+    m_temporary_dir_configured_explicitly = true;
     break;
 
   case ConfigItem::umask:
@@ -831,4 +841,28 @@ Config::set_item(const std::string& key,
   }
 
   m_origins.emplace(key, origin);
+}
+
+void
+Config::check_key_tables_consistency()
+{
+  for (const auto& item : k_env_variable_table) {
+    if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
+      throw Error(fmt::format(
+        "env var {} mapped to {} which is missing from k_config_key_table",
+        item.first,
+        item.second));
+    }
+  }
+}
+
+std::string
+Config::default_temporary_dir(const std::string& cache_dir)
+{
+#ifdef HAVE_GETEUID
+  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
+    return fmt::format("/run/user/{}/ccache-tmp", geteuid());
+  }
+#endif
+  return cache_dir + "/tmp";
 }

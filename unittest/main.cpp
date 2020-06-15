@@ -17,25 +17,11 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Util.hpp"
-#include "../src/legacy_util.hpp"
+#include "TestUtil.hpp"
 #include "catch2_tests.hpp"
-#include "framework.hpp"
 
-unsigned suite_argument_processing(unsigned);
-unsigned suite_compopt(unsigned);
-unsigned suite_conf(unsigned);
-unsigned suite_hash(unsigned);
-unsigned suite_hashutil(unsigned);
-unsigned suite_legacy_util(unsigned);
-
-const suite_fn k_legacy_suites[] = {
-  &suite_argument_processing,
-  &suite_compopt,
-  &suite_hash,
-  &suite_hashutil,
-  &suite_legacy_util,
-  nullptr,
-};
+#include "third_party/catch.hpp"
+#include "third_party/fmt/core.h"
 
 int
 main(int argc, char** argv)
@@ -43,25 +29,22 @@ main(int argc, char** argv)
 #ifdef _WIN32
   x_setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
+  x_unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
   std::string dir_before = Util::get_actual_cwd();
-  char* testdir = format("testdir.%d", (int)getpid());
-  cct_create_fresh_dir(testdir);
-  cct_chdir(testdir);
+  std::string testdir = fmt::format("testdir.{}", getpid());
+  Util::wipe_path(testdir);
+  Util::create_dir(testdir);
+  TestUtil::check_chdir(testdir);
 
-  // Run Catch2 tests.
   int result = run_catch2_tests(argc, argv);
 
-  // Run legacy tests.
   if (result == 0) {
-    bool verbose = false;
-    result = cct_run(k_legacy_suites, verbose);
+    TestUtil::check_chdir(dir_before);
+    Util::wipe_path(testdir);
+  } else {
+    fmt::print(stderr, "Note: Test data has been left in {}\n", testdir);
   }
 
-  if (result == 0) {
-    cct_chdir(dir_before.c_str());
-    cct_wipe(testdir);
-  }
-  free(testdir);
   return result;
 }
