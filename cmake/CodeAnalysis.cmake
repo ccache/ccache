@@ -4,7 +4,7 @@ if(ENABLE_CPPCHECK)
     message(WARNING "CppCheck requires cmake 3.10")
   else()
     find_program(CPPCHECK_EXE cppcheck)
-    mark_as_advanced(CPPCHECK_EXE) # don't show in ccmake
+    mark_as_advanced(CPPCHECK_EXE) # Don't show in CMake UIs
     if(CPPCHECK_EXE)
       set(CMAKE_CXX_CPPCHECK
           ${CPPCHECK_EXE}

@@ -1,0 +1,33 @@
+project(libb2 C)
+
+include(CheckFunctionExists)
+foreach(func IN ITEMS explicit_bzero explicit_memset memset memset_s)
+  string(TOUPPER ${func} func_var)
+  set(func_var HAVE_${func_var})
+  check_function_exists(${func} ${func_var})
+endforeach()
+
+configure_file(config.h.cmake.in config.h)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+add_library(libblake2b_ref STATIC blake2b-ref.c blake2s-ref.c)
+target_compile_definitions(libblake2b_ref PRIVATE SUFFIX=_ref)
+
+function(add_libblake2b name suffix)
+  add_library(${name} STATIC blake2b.c blake2s.c)
+  target_compile_definitions(${name} PRIVATE ${suffix})
+  target_compile_options(${name} PRIVATE ${ARGN})
+endfunction()
+
+add_libblake2b(libblake2b_sse2 SUFFIX=_sse2 -msse2)
+add_libblake2b(libblake2b_ssse3 SUFFIX=_ssse3 -msse2 -mssse3)
+add_libblake2b(libblake2b_sse41 SUFFIX=_sse41 -msse2 -mssse3 -msse4.1)
+add_libblake2b(libblake2s_avx SUFFIX=_avx -msse2 -mssse3 -msse4.1 -mavx)
+add_libblake2b(libblake2b_xop SUFFIX=_xop -msse2 -mssse3 -msse4.1 -mavx -mxop)
+
+add_library(libb2 STATIC blake2-dispatch.c)
+target_link_libraries(
+  libb2
+  PUBLIC
+    libblake2b_ref libblake2b_sse2 libblake2b_ssse3 libblake2b_sse41
+    libblake2s_avx libblake2b_xop)

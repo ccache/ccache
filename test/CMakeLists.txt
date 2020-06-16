@@ -1,13 +1,10 @@
 function(addtest name)
-  add_test(NAME "producttest.${name}"
+  add_test(
+    NAME "producttest.${name}"
     COMMAND ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
-  set(
-    environment
-    CCACHE=${CMAKE_BINARY_DIR}/ccache
-    EXIT_IF_SKIPPED=true
-  )
+  set(environment CCACHE=${CMAKE_BINARY_DIR}/ccache EXIT_IF_SKIPPED=true)
   set_tests_properties(
     "producttest.${name}"
     PROPERTIES

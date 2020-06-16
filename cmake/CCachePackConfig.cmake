@@ -1,22 +1,22 @@
-# Note: this is part of CMakeLists.txt file, not to be confused with
-# CPackConfig.cmake
+# Note: This is part of CMakeLists.txt file, not to be confused with
+# CPackConfig.cmake.
 
-find_program(NINJA_EXE NAMES "ninja" DOC "Path to ninja executable")
-mark_as_advanced(NINJA_EXE) # don't show in ccmake
+find_program(NINJA_EXE NAMES "ninja" DOC "Path to Ninja executable")
+mark_as_advanced(NINJA_EXE) # Don't show in CMake UIs
 if(NINJA_EXE)
   set(CPACK_CMAKE_GENERATOR "Ninja")
 else()
   set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
 endif()
 
-# make obvious which version is used
+# Make it obvious which version is used.
 set(CMAKE_DEBUG_POSTFIX "-d")
 
 if(${CMAKE_VERSION} VERSION_LESS "3.9")
   set(CPACK_PACKAGE_DESCRIPTION "${CMAKE_PROJECT_DESCRIPTION}")
 endif()
 
-# from GenerateVersionFile.cmake
+# From GenerateVersionFile.cmake.
 set(CPACK_PACKAGE_VERSION ${VERSION})
 
 set(CPACK_VERBATIM_VARIABLES ON)
@@ -29,10 +29,8 @@ endif()
 
 set(CPACK_SOURCE_GENERATOR "TGZ")
 
-# Default includes build directory, so improve it: Include buildenv, but exclude
-# other build directories like /build/, /build-* and /build_*
 list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_SOURCE_DIR}/\\.git")
-list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_SOURCE_DIR}/build[\\-_/]")
+list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_SOURCE_DIR}/build[-_/]")
 list(APPEND CPACK_SOURCE_IGNORE_FILES "^${CMAKE_BINARY_DIR}")
 
 set(CPACK_PACKAGE_FILE_NAME "ccache-binary")

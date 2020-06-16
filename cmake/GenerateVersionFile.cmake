@@ -1,4 +1,4 @@
-# Determines VERSION from git. See also VERSION_ERROR and VERSION_DIRTY.
+# Determines VERSION from Git. See also VERSION_ERROR and VERSION_DIRTY.
 function(get_version_from_git)
   find_package(Git)
   if(NOT GIT_FOUND)

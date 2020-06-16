@@ -21,10 +21,10 @@ add_executable(
   test_hashutil.cpp
   test_legacy_util.cpp)
 
-target_link_libraries(unittest PRIVATE standard_settings standard_warnings
-                                       ccache_lib)
+target_link_libraries(
+  unittest
+  PRIVATE standard_settings standard_warnings ccache_lib)
 
 target_include_directories(unittest PRIVATE ${CMAKE_BINARY_DIR} . ../src)
 
-# add to ctest
 add_test(NAME unittest COMMAND unittest)

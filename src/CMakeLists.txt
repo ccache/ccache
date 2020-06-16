@@ -44,8 +44,8 @@ if(WIN32)
   target_link_libraries(ccache_lib PRIVATE ws2_32 "psapi")
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    target_link_libraries(ccache_lib PRIVATE -static gcc stdc++ winpthread
-                                             -dynamic)
+    target_link_libraries(
+      ccache_lib PRIVATE -static gcc stdc++ winpthread -dynamic)
   else()
     target_link_libraries(ccache_lib PRIVATE -static c++ -dynamic)
   endif()
@@ -53,10 +53,10 @@ endif()
 
 find_package(Threads REQUIRED)
 target_link_libraries(
-  ccache_lib PRIVATE standard_settings standard_warnings ZSTD::ZSTD
-                     libb2::libb2 Threads::Threads third_party_lib)
+  ccache_lib
+  PRIVATE standard_settings standard_warnings ZSTD::ZSTD libb2::libb2
+          Threads::Threads third_party_lib)
 
-# There is currently no separate interface directory.
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} .)
 
 add_subdirectory(third_party)
