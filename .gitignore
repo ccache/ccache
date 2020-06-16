@@ -17,9 +17,6 @@ testdir.*
 # Typical build directories
 /build*
 
-# Unignore buildenv directory matched by the pattern above
-!/buildenv/
-
 # Visual Studio
 /.vs/
 

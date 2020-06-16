@@ -12,4 +12,3 @@ finally build ccache and run the ccache test suite.
 You can also download prebuilt Docker images like this:
 
     docker pull ccache/build:$BUILDENV
-

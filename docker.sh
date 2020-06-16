@@ -4,7 +4,7 @@
 # ToDo: use ccache within docker and preserve the cache.
 
 # Parameter:
-#  First parameter     directory name within buildenv, defaults to travis
+#  First parameter     directory name within dockerfiles, defaults to travis
 #  Other parameters    will be passed to misc/build.sh
 
 echo "Warning: Docker support is rather experimental\n"
@@ -19,7 +19,7 @@ shift $(( $# > 0 ? 1 : 0 ))
 DOCKER_IMAGE_TAG=alexanderlanin/ccache:${BUILDENV}-1
 
 # Build (if not exists):
-docker build -t ${DOCKER_IMAGE_TAG} buildenv/${BUILDENV}
+docker build -t ${DOCKER_IMAGE_TAG} dockerfiles/${BUILDENV}
 
 # Cache compilation across docker sessions
 # ToDo: separate cache for each docker image or is it fine like that?
