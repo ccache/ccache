@@ -75,10 +75,8 @@ if(WARNINGS_AS_ERRORS)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  # Exact version or reason unknown, discovered in Ubuntu 14 docker test with clang 3.4
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.0)
-    # reserved-id-macro issued by clang 3.6 - 3.9 for libb2 blake2.h
-    set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS}  -Qunused-arguments -Wno-error=unreachable-code -Wno-error=reserved-id-macro)
+    set(CLANG_GCC_WARNINGS ${CLANG_GCC_WARNINGS}  -Qunused-arguments -Wno-error=unreachable-code)
   endif()
 
   target_compile_options(
@@ -91,6 +89,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
               -Wno-conversion
               -Wno-disabled-macro-expansion
               -Wno-documentation-unknown-command
+              -Wno-error=reserved-id-macro # libb2 blake2.h
               -Wno-exit-time-destructors
               -Wno-format-nonliteral
               -Wno-global-constructors
