@@ -2293,7 +2293,7 @@ handle_main_options(int argc, const char* const* argv)
       if (str_eq(optarg, "-")) {
         hash_fd(hash, STDIN_FILENO);
       } else {
-        hash_binary_file(ctx, hash, optarg);
+        hash_file(hash, optarg);
       }
       puts(hash_result(hash).to_string().c_str());
       hash_free(hash);
