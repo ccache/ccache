@@ -26,7 +26,7 @@ TEST_CASE("test_known_strings")
     struct hash* h = hash_init();
     hash_string(h, "");
     CHECK(hash_result(h).to_string()
-          == "3345524abf6bbe1809449224b5972c41790b6cf2");
+          == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
     hash_free(h);
   }
 
@@ -34,7 +34,7 @@ TEST_CASE("test_known_strings")
     struct hash* h = hash_init();
     hash_string(h, "a");
     CHECK(hash_result(h).to_string()
-          == "948caa2db61bc4cdb4faf7740cd491f195043914");
+          == "17762fddd969a453925d65717ac3eea21320b66b");
     hash_free(h);
   }
 
@@ -42,7 +42,7 @@ TEST_CASE("test_known_strings")
     struct hash* h = hash_init();
     hash_string(h, "message digest");
     CHECK(hash_result(h).to_string()
-          == "6bfec6f65e52962be863d6ea1005fc5e4cc8478c");
+          == "7bc2a2eeb95ddbf9b7ecf6adcb76b453091c58dc");
     hash_free(h);
   }
 
@@ -51,10 +51,9 @@ TEST_CASE("test_known_strings")
     hash_string(
       h,
       "1234567890123456789012345678901234567890123456789012345678901234567890"
-      "1"
-      "234567890");
+      "1234567890");
     CHECK(hash_result(h).to_string()
-          == "c2be0e534a67d25947f0c7e78527b2f82abd260f");
+          == "f263acf51621980b9c8de5da4a17d314984e05ab");
     hash_free(h);
   }
 }
@@ -66,7 +65,7 @@ TEST_CASE("hash_result_should_not_alter_state")
   hash_result(h);
   hash_string(h, " digest");
   CHECK(hash_result(h).to_string()
-        == "6bfec6f65e52962be863d6ea1005fc5e4cc8478c");
+        == "7bc2a2eeb95ddbf9b7ecf6adcb76b453091c58dc");
   hash_free(h);
 }
 
@@ -76,9 +75,9 @@ TEST_CASE("hash_result_should_be_idempotent")
   hash_string(h, "");
   hash_result(h);
   CHECK(hash_result(h).to_string()
-        == "3345524abf6bbe1809449224b5972c41790b6cf2");
+        == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
   CHECK(hash_result(h).to_string()
-        == "3345524abf6bbe1809449224b5972c41790b6cf2");
+        == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
   hash_free(h);
 }
 
@@ -88,8 +87,8 @@ TEST_CASE("hash_result digest bytes")
   hash_string(h, "message digest");
   Digest d = hash_result(h);
   uint8_t expected[Digest::size()] = {
-    0x6b, 0xfe, 0xc6, 0xf6, 0x5e, 0x52, 0x96, 0x2b, 0xe8, 0x63,
-    0xd6, 0xea, 0x10, 0x05, 0xfc, 0x5e, 0x4c, 0xc8, 0x47, 0x8c,
+    0x7b, 0xc2, 0xa2, 0xee, 0xb9, 0x5d, 0xdb, 0xf9, 0xb7, 0xec,
+    0xf6, 0xad, 0xcb, 0x76, 0xb4, 0x53, 0x09, 0x1c, 0x58, 0xdc,
   };
   CHECK(memcmp(d.bytes(), expected, sizeof(Digest::size())) == 0);
   hash_free(h);

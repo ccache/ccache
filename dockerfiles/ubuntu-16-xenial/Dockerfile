@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 cmake \
                 elfutils \
                 gcc-multilib \
-                libb2-dev \
                 libzstd1-dev \
                 xsltproc \
         && rm -rf /var/lib/apt/lists/*

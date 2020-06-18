@@ -9,11 +9,6 @@ To build ccache you need:
 - CMake 3.4.3 or newer.
 - A C++11 compiler.
 - A C99 compiler.
-- [libb2](https://github.com/BLAKE2/libb2). If you don't have libb2 installed
-  and can't or don't want to install it on your system, you can pass
-  `-DUSE_LIBB2_FROM_INTERNET=ON` to cmake, which will download libb2 from the
-  Internet and unpack it in the local binary tree.
-  ccache will then be linked statically to the locally built libb2.
 - [libzstd](https://www.zstd.net). If you don't have libzstd installed and
   can't or don't want to install it on your system, you can pass
   `-DUSE_LIBZSTD_FROM_INTERNET=ON` to cmake, which will download libzstd from

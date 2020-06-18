@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.3)
 
-project(ccache LANGUAGES C CXX)
+project(ccache LANGUAGES ASM C CXX)
 set(CMAKE_PROJECT_DESCRIPTION "a fast C/C++ compiler cache")
 
 set(CMAKE_CXX_STANDARD 11)
@@ -35,14 +35,11 @@ include(GenerateVersionFile)
 option(USE_LIBZSTD_FROM_INTERNET "Download and use libzstd from the Internet" OFF)
 find_package(zstd 1.1.2 REQUIRED)
 
-option(USE_LIBB2_FROM_INTERNET "Download and use libb2 from the Internet" OFF)
-find_package(libb2 0.98 REQUIRED)
-
 #
 # Special flags
 #
-# Note: Cppcheck will scan everything after this point. zstd and libb2 are above
-# so they don't get scanned.
+# Note: Cppcheck will scan everything after this point. zstd is above so it
+# doesn't get scanned.
 #
 include(CodeAnalysis)
 option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)

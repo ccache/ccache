@@ -54,7 +54,7 @@ endif()
 find_package(Threads REQUIRED)
 target_link_libraries(
   ccache_lib
-  PRIVATE standard_settings standard_warnings ZSTD::ZSTD libb2::libb2
+  PRIVATE standard_settings standard_warnings ZSTD::ZSTD
           Threads::Threads third_party_lib)
 
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} .)

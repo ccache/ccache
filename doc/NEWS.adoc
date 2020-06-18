@@ -14,7 +14,7 @@ High-level summary of changes (work in progress)
 - Result and manifest files are now compressed by the real-time compression
   algorithm Zstandard by default.
 
-- BLAKE2b is now used instead of MD4 for hashing input.
+- BLAKE3 is now used instead of MD4 for hashing input.
 
 - Added checksumming of result files using XXH64 to detect data corruption.
 

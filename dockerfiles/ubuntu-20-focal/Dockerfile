@@ -13,7 +13,6 @@ RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-i
                 cmake \
                 elfutils \
                 gcc-multilib \
-                libb2-dev \
                 #libzstd1-dev \ not available?!
                 xsltproc \
         && rm -rf /var/lib/apt/lists/*

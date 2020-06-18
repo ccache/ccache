@@ -1227,8 +1227,8 @@ EOF
     $CCACHE --hash-file /dev/null > hash.out
     printf "a" | $CCACHE --hash-file - >> hash.out
 
-    hash_0='3345524abf6bbe1809449224b5972c41790b6cf2'
-    hash_1='948caa2db61bc4cdb4faf7740cd491f195043914'
+    hash_0='af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9'
+    hash_1='17762fddd969a453925d65717ac3eea21320b66b'
 
     if grep "$hash_0" hash.out >/dev/null 2>&1 && \
        grep "$hash_1" hash.out >/dev/null 2>&1; then

@@ -56,7 +56,7 @@ namespace {
 // Current cache size is fixed and the given constants are considered large
 // enough for most projects. The size could be made configurable if there is a
 // demand for it.
-const uint32_t k_version = 1;
+const uint32_t k_version = 2;
 
 // Increment version number if constants affecting storage size are changed.
 const uint32_t k_num_buckets = 32 * 1024;

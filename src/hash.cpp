@@ -23,13 +23,13 @@
 #include "Util.hpp"
 #include "logging.hpp"
 
-#include <blake2.h>
+#include "third_party/blake3/blake3.h"
 
 #define HASH_DELIMITER "\000cCaChE"
 
 struct hash
 {
-  blake2b_state state;
+  blake3_hasher hasher;
   FILE* debug_binary;
   FILE* debug_text;
 };
@@ -39,7 +39,7 @@ do_hash_buffer(struct hash* hash, const void* s, size_t len)
 {
   assert(s);
 
-  blake2b_update(&hash->state, (const uint8_t*)s, len);
+  blake3_hasher_update(&hash->hasher, s, len);
   if (len > 0 && hash->debug_binary) {
     (void)fwrite(s, 1, len, hash->debug_binary);
   }
@@ -57,7 +57,7 @@ struct hash*
 hash_init()
 {
   auto hash = static_cast<struct hash*>(malloc(sizeof(struct hash)));
-  blake2b_init(&hash->state, Digest::size());
+  blake3_hasher_init(&hash->hasher);
   hash->debug_binary = nullptr;
   hash->debug_text = nullptr;
   return hash;
@@ -67,7 +67,7 @@ struct hash*
 hash_copy(struct hash* hash)
 {
   auto result = static_cast<struct hash*>(malloc(sizeof(struct hash)));
-  result->state = hash->state;
+  result->hasher = hash->hasher;
   result->debug_binary = nullptr;
   result->debug_text = nullptr;
   return result;
@@ -106,7 +106,7 @@ hash_result(struct hash* hash)
   // make a copy before altering state
   struct hash* copy = hash_copy(hash);
   Digest digest;
-  blake2b_final(&copy->state, digest.bytes(), digest.size());
+  blake3_hasher_finalize(&copy->hasher, digest.bytes(), digest.size());
   hash_free(copy);
   return digest;
 }

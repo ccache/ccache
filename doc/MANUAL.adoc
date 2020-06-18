@@ -102,7 +102,7 @@ compiler options apply and you should refer to the compiler's documentation.
 
 *`--hash-file`* _PATH_::
 
-    Print the hash (160 bit BLAKE2b) of the file at _PATH_. This is only useful
+    Print the hash (160 bit BLAKE3) of the file at _PATH_. This is only useful
     when debugging ccache and its behavior.
 
 *`-h`*, *`--help`*::
@@ -916,7 +916,7 @@ The basic idea is to detect when you are compiling exactly the same code a
 second time and reuse the previously produced output. The detection is done by
 hashing different kinds of information that should be unique for the
 compilation and then using the hash sum to identify the cached output. ccache
-uses BLAKE2b, a very fast cryptographic hash algorithm, for the hashing. On a
+uses BLAKE3, a very fast cryptographic hash algorithm, for the hashing. On a
 cache hit, ccache is able to supply all of the correct compiler outputs
 (including all warnings, dependency file, etc) from the cache. Data stored in
 the cache is checksummed with XXH64, an extremely fast non-cryptographic
@@ -1082,7 +1082,7 @@ Log for this object file.
 
 |==============================================================================
 
-In the direct mode, ccache uses the 160 bit BLAKE2b hash of the
+In the direct mode, ccache uses the 160 bit BLAKE3 hash of the
 *ccache-input-c* + *ccache-input-d* data (where *+* means concatenation), while
 the *ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
 
