@@ -56,9 +56,6 @@
 
 #include <limits>
 
-#define STRINGIFY(x) #x
-#define TO_STRING(x) STRINGIFY(x)
-
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -1859,8 +1856,7 @@ set_up_config(Config& config)
   if (p) {
     config.set_primary_config_path(p);
   } else {
-    config.set_secondary_config_path(
-      fmt::format("{}/ccache.conf", TO_STRING(SYSCONFDIR)));
+    config.set_secondary_config_path(fmt::format("{}/ccache.conf", SYSCONFDIR));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     config.update_from_file(config.secondary_config_path());

@@ -26,6 +26,7 @@ include(DefaultBuildType)
 #
 # Configuration
 #
+include(GNUInstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
@@ -63,7 +64,6 @@ add_subdirectory(doc)
 #
 # Installation
 #
-include(GNUInstallDirs)
 install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 #

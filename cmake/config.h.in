@@ -46,6 +46,8 @@
 #cmakedefine _WIN32_WINNT @_WIN32_WINNT@
 // clang-format on
 
+#define SYSCONFDIR "@CMAKE_INSTALL_FULL_SYSCONFDIR@"
+
 #ifdef __clang__
 #  pragma clang diagnostic pop
 #endif
