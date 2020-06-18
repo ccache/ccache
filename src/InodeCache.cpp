@@ -43,11 +43,9 @@
 #  include <type_traits>
 #  include <unistd.h>
 
-namespace {
-
 // The inode cache resides on a file that is mapped into shared memory by
-// running processes. It is implemented as a two level structure, where the
-// top level is a hash table consisting of buckets. Each bucket contains entries
+// running processes. It is implemented as a two level structure, where the top
+// level is a hash table consisting of buckets. Each bucket contains entries
 // that are sorted in LRU order. Entries map from keys representing files to
 // cached hash results.
 //
@@ -56,9 +54,19 @@ namespace {
 // Current cache size is fixed and the given constants are considered large
 // enough for most projects. The size could be made configurable if there is a
 // demand for it.
-const uint32_t k_version = 2;
 
-// Increment version number if constants affecting storage size are changed.
+namespace {
+
+// The version number corresponds to the format of the cache entries and to
+// semantics of the key fields.
+//
+// Note: The key is hashed using the main hash algorithm, so the version number
+// does not need to be incremented if said algorithm is changed (except if the
+// digest size changes since that affects the entry format).
+const uint32_t k_version = 1;
+
+// Note: Increment the version number if constants affecting storage size are
+// changed.
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
