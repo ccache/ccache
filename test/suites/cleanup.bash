@@ -179,4 +179,14 @@ SUITE_cleanup() {
     $CCACHE -c >/dev/null
     expect_file_count 1 '.nfs*' $CCACHE_DIR
     expect_stat 'files in cache' 10
+    # -------------------------------------------------------------------------
+    TEST "cleanup of files older than n seconds"
+
+    prepare_cleanup_test_dir $CCACHE_DIR/a
+
+    touch $CCACHE_DIR/a/now.result
+    $CCACHE -F 0 -M 0 >/dev/null
+    $CCACHE -e 10 >/dev/null
+    expect_file_count 1 '*.result' $CCACHE_DIR
+    expect_stat 'files in cache' 1
 }

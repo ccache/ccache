@@ -372,7 +372,8 @@ stats_flush_to_file(const Config& config,
     double factor = config.limit_multiple() / 16;
     uint64_t max_size = round(config.max_size() * factor);
     uint32_t max_files = round(config.max_files() * factor);
-    clean_up_dir(subdir, max_size, max_files, [](double /*progress*/) {});
+    uint32_t max_old = 0;
+    clean_up_dir(subdir, max_size, max_files, max_old, [](double /*progress*/) {});
   }
 }
 
