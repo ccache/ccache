@@ -361,7 +361,7 @@ hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
   Digest digest;
   if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, digest)) {
     struct hash* file_hash = hash_init();
-    if (!hash_file(hash, path)) {
+    if (!hash_file(file_hash, path)) {
       return false;
     }
     digest = hash_result(file_hash);
