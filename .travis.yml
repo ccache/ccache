@@ -101,27 +101,7 @@ jobs:
         packages:
         - libzstd1-dev
 
-  # Job 11: Run Clang-Tidy
-  - os: linux
-    compiler: clang
-    env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
-    addons:
-      apt:
-        packages:
-        - libzstd1-dev
-
-  # Job 12: Run Clang-Format in check mode
-  - os: linux
-    compiler: clang
-    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
-    addons:
-      apt:
-        packages:
-        - libzstd1-dev
-    before_install:
-    - pip install --user cmake_format
-
-  # Job 13: Build binary package, extract it out of source, run tests.
+  # Job 11: Build binary package, extract it out of source, run tests.
   - os: linux
     env: T="Build binary and verify" VERBOSE=1 SPECIAL=build_and_verify_package
     addons:
@@ -130,7 +110,7 @@ jobs:
         - elfutils
         - libzstd1-dev
 
-  # Job 14: Build source package, extract it out of source, run tests.
+  # Job 12: Build source package, extract it out of source, run tests.
   - os: linux
     env: T="Build source package and verify" VERBOSE=1 SPECIAL=build_and_verify_package_source
     addons:
@@ -139,7 +119,7 @@ jobs:
         - elfutils
         - libzstd1-dev
 
-  # Job 15: Build documentation
+  # Job 13: Build documentation
   - os: linux
     env: T="Build documentation" VERBOSE=1 BUILDEXTRAFLAGS="--target documentation" RUN_TESTS=0
     addons:
@@ -149,7 +129,7 @@ jobs:
         - libzstd1-dev
         - asciidoc
 
-  # Job 16: Build manpage
+  # Job 14: Build manpage
   - os: linux
     env: T="Build manpage" VERBOSE=1 BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
     addons:
@@ -160,10 +140,7 @@ jobs:
         - asciidoc
         - xsltproc
 
-  # New jobs go here until they are established for some weeks
-  allow_failures:
-
-  # Job 11: Run Clang-Tidy
+  # Job 15: Run Clang-Tidy
   - os: linux
     compiler: clang
     env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
@@ -172,7 +149,28 @@ jobs:
         packages:
         - libzstd1-dev
 
-  # Job 12: Run Clang-Format check mode
+  # Job 16: Run Clang-Format in check mode
+  - os: linux
+    compiler: clang
+    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
+    before_install:
+    - pip install --user cmake_format
+
+  allow_failures:
+  # Job 15: Run Clang-Tidy
+  - os: linux
+    compiler: clang
+    env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
+
+  # Job 16: Run Clang-Format check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
