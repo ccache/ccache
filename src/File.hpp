@@ -22,7 +22,6 @@
 
 #include "NonCopyable.hpp"
 
-#include <cstdio>
 #include <string>
 
 class File : public NonCopyable

@@ -33,13 +33,6 @@
 #include "third_party/fmt/core.h"
 
 #include <cmath>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero

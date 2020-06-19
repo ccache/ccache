@@ -30,18 +30,9 @@
 #  include "logging.hpp"
 
 #  include <atomic>
-#  include <errno.h>
-#  include <fcntl.h>
 #  include <libgen.h>
-#  include <stdio.h>
-#  include <stdlib.h>
-#  include <string.h>
 #  include <sys/mman.h>
-#  include <sys/stat.h>
-#  include <sys/types.h>
-#  include <time.h>
 #  include <type_traits>
-#  include <unistd.h>
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
