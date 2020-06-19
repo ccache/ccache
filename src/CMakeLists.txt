@@ -11,7 +11,6 @@ set(
   Context.cpp
   Counters.cpp
   Decompressor.cpp
-  InodeCache.cpp
   Lockfile.cpp
   MiniTrace.cpp
   NullCompressor.cpp
@@ -38,6 +37,10 @@ set(
   result.cpp
   stats.cpp
   Version.cpp)
+
+if(INODE_CACHE_SUPPORTED)
+  list(APPEND source_files InodeCache.cpp)
+endif()
 
 if(WIN32)
   list(APPEND source_files win32compat.cpp)

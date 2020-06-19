@@ -22,10 +22,8 @@
 
 #include "config.h"
 
-#ifdef INODE_CACHE_SUPPORTED
-
-#  include <stdint.h>
-#  include <string>
+#include <stdint.h>
+#include <string>
 
 class Config;
 class Context;
@@ -110,4 +108,3 @@ private:
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
 };
-#endif

@@ -18,21 +18,19 @@
 
 #include "InodeCache.hpp"
 
-#ifdef INODE_CACHE_SUPPORTED
+#include "Config.hpp"
+#include "Fd.hpp"
+#include "Finalizer.hpp"
+#include "Stat.hpp"
+#include "Util.hpp"
+#include "ccache.hpp"
+#include "hash.hpp"
+#include "logging.hpp"
 
-#  include "Config.hpp"
-#  include "Fd.hpp"
-#  include "Finalizer.hpp"
-#  include "Stat.hpp"
-#  include "Util.hpp"
-#  include "ccache.hpp"
-#  include "hash.hpp"
-#  include "logging.hpp"
-
-#  include <atomic>
-#  include <libgen.h>
-#  include <sys/mman.h>
-#  include <type_traits>
+#include <atomic>
+#include <libgen.h>
+#include <sys/mman.h>
+#include <type_traits>
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -87,16 +85,16 @@ struct InodeCache::Key
   dev_t st_dev;
   ino_t st_ino;
   mode_t st_mode;
-#  ifdef HAVE_STRUCT_STAT_ST_MTIM
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
   timespec st_mtim;
-#  else
+#else
   time_t st_mtim;
-#  endif
-#  ifdef HAVE_STRUCT_STAT_ST_CTIM
+#endif
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
   timespec st_ctim; // Included for sanity checking.
-#  else
+#else
   time_t st_ctim; // Included for sanity checking.
-#  endif
+#endif
   off_t st_size; // Included for sanity checking.
   bool sloppy_time_macros;
 };
@@ -185,16 +183,16 @@ InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
-#  ifdef HAVE_STRUCT_STAT_ST_MTIM
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
   key.st_mtim = stat.mtim();
-#  else
+#else
   key.st_mtim = stat.mtime();
-#  endif
-#  ifdef HAVE_STRUCT_STAT_ST_CTIM
+#endif
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
   key.st_ctim = stat.ctim();
-#  else
+#else
   key.st_ctim = stat.ctime();
-#  endif
+#endif
   key.st_size = stat.size();
 
   digest = hash_buffer_once(&key, sizeof(Key));
@@ -206,7 +204,7 @@ InodeCache::acquire_bucket(uint32_t index)
 {
   Bucket* bucket = &m_sr->buckets[index];
   int err = pthread_mutex_lock(&bucket->mt);
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
     if (m_config.debug()) {
       ++m_sr->errors;
@@ -221,16 +219,16 @@ InodeCache::acquire_bucket(uint32_t index)
     cc_log("Wiping bucket at index %u because of stale mutex", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
-#  endif
+#endif
     if (err) {
       cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
       cc_log("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
       return nullptr;
     }
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   }
-#  endif
+#endif
   return bucket;
 }
 
@@ -291,9 +289,9 @@ InodeCache::create_new_file(const std::string& filename)
   pthread_mutexattr_t mattr;
   pthread_mutexattr_init(&mattr);
   pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
-#  endif
+#endif
   for (auto& bucket : sr->buckets) {
     pthread_mutex_init(&bucket.mt, &mattr);
   }
@@ -487,5 +485,3 @@ InodeCache::get_errors()
 {
   return initialize() ? m_sr->errors.load() : -1;
 }
-
-#endif

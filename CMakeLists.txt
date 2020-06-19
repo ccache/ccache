@@ -30,6 +30,10 @@ include(GNUInstallDirs)
 include(GenerateConfigurationFile)
 include(GenerateVersionFile)
 
+if(HAVE_SYS_MMAN_H)
+  set(INODE_CACHE_SUPPORTED 1)
+endif()
+
 #
 # Third party
 #

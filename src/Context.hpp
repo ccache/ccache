@@ -24,11 +24,14 @@
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
 #include "File.hpp"
-#include "InodeCache.hpp"
 #include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
 #include "ccache.hpp"
 #include "hash.hpp"
+
+#ifdef INODE_CACHE_SUPPORTED
+#  include "InodeCache.hpp"
+#endif
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"

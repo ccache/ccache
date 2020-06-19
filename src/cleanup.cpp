@@ -22,10 +22,13 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "InodeCache.hpp"
 #include "Util.hpp"
 #include "logging.hpp"
 #include "stats.hpp"
+
+#ifdef INODE_CACHE_SUPPORTED
+#  include "InodeCache.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>

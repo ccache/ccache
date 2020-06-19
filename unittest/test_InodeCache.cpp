@@ -25,8 +25,6 @@
 
 #include "third_party/catch.hpp"
 
-#ifdef INODE_CACHE_SUPPORTED
-
 using TestUtil::TestContext;
 
 namespace {
@@ -203,5 +201,3 @@ TEST_CASE("Test content type")
   CHECK(digest == code_with_sloppy_time_macros_digest);
   CHECK(return_value == 3);
 }
-
-#endif

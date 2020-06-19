@@ -21,13 +21,16 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "InodeCache.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
 #include "logging.hpp"
 #include "macroskip.hpp"
 #include "stats.hpp"
+
+#ifdef INODE_CACHE_SUPPORTED
+#  include "InodeCache.hpp"
+#endif
 
 #include "third_party/xxhash.h"
 
