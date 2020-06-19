@@ -157,7 +157,7 @@ private:
   void set_path_and_stats_file(const Digest& name,
                                nonstd::string_view suffix,
                                std::string& path_var,
-                               std::string& stats_file_var);
+                               std::string& stats_file_var) const;
 };
 
 inline const Digest&
