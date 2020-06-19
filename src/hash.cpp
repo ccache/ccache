@@ -160,7 +160,7 @@ hash_string_buffer(struct hash* hash, const char* s, size_t length)
 void
 hash_int(struct hash* hash, int x)
 {
-  do_hash_buffer(hash, (char*)&x, sizeof(x));
+  do_hash_buffer(hash, reinterpret_cast<const char*>(&x), sizeof(x));
 
   char buf[16];
   snprintf(buf, sizeof(buf), "%d", x);

@@ -28,7 +28,7 @@
 #include "stats.hpp"
 
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
 static void
 delete_file(const std::string& path,

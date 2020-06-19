@@ -134,16 +134,16 @@ static const struct compopt compopts[] = {
 static int
 compare_compopts(const void* key1, const void* key2)
 {
-  const struct compopt* opt1 = (const struct compopt*)key1;
-  const struct compopt* opt2 = (const struct compopt*)key2;
+  const struct compopt* opt1 = static_cast<const struct compopt*>(key1);
+  const struct compopt* opt2 = static_cast<const struct compopt*>(key2);
   return strcmp(opt1->name, opt2->name);
 }
 
 static int
 compare_prefix_compopts(const void* key1, const void* key2)
 {
-  const struct compopt* opt1 = (const struct compopt*)key1;
-  const struct compopt* opt2 = (const struct compopt*)key2;
+  const struct compopt* opt1 = static_cast<const struct compopt*>(key1);
+  const struct compopt* opt2 = static_cast<const struct compopt*>(key2);
   return strncmp(opt1->name, opt2->name, strlen(opt2->name));
 }
 

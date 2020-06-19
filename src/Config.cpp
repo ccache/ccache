@@ -380,7 +380,7 @@ parse_line(const std::string& line,
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
-  size_t equal_pos = stripped_line.find("=");
+  size_t equal_pos = stripped_line.find('=');
   if (equal_pos == std::string::npos) {
     *error_message = "missing equal sign";
     return false;

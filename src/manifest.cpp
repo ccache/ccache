@@ -380,8 +380,8 @@ write_manifest(const Config& config,
   writer.write<uint32_t>(mf.results.size());
   for (const auto& result : mf.results) {
     writer.write<uint32_t>(result.file_info_indexes.size());
-    for (uint32_t j = 0; j < result.file_info_indexes.size(); ++j) {
-      writer.write(result.file_info_indexes[j]);
+    for (auto index : result.file_info_indexes) {
+      writer.write(index);
     }
     writer.write(result.name.bytes(), Digest::size());
   }

@@ -458,13 +458,13 @@ get_extension(const char* path)
 
 // Format a size as a human-readable string. Caller frees.
 char*
-format_human_readable_size(uint64_t v)
+format_human_readable_size(uint64_t size)
 {
   char* s;
-  if (v >= 1000 * 1000 * 1000) {
-    s = format("%.1f GB", v / ((double)(1000 * 1000 * 1000)));
+  if (size >= 1000 * 1000 * 1000) {
+    s = format("%.1f GB", size / ((double)(1000 * 1000 * 1000)));
   } else {
-    s = format("%.1f MB", v / ((double)(1000 * 1000)));
+    s = format("%.1f MB", size / ((double)(1000 * 1000)));
   }
   return s;
 }
@@ -636,15 +636,12 @@ same_executable_name(const char* s1, const char* s2)
 bool
 is_full_path(const char* path)
 {
-  if (strchr(path, '/')) {
-    return true;
-  }
 #ifdef _WIN32
   if (strchr(path, '\\')) {
     return true;
   }
 #endif
-  return false;
+  return strchr(path, '/');
 }
 
 // Update the modification time of a file in the cache to save it from LRU

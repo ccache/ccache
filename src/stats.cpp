@@ -195,7 +195,7 @@ format_timestamp(uint64_t timestamp)
 {
   if (timestamp > 0) {
     struct tm tm;
-    localtime_r((time_t*)&timestamp, &tm);
+    localtime_r(reinterpret_cast<time_t*>(&timestamp), &tm);
     char buffer[100];
     strftime(buffer, sizeof(buffer), "%c", &tm);
     return format("    %s", buffer);
@@ -295,9 +295,9 @@ stats_update_size(Counters& counters, int64_t size, int files)
 
 // Read in the stats from one directory and add to the counters.
 void
-stats_read(const std::string& sfile, Counters& counters)
+stats_read(const std::string& path, Counters& counters)
 {
-  char* data = read_text_file(sfile.c_str(), 1024);
+  char* data = read_text_file(path.c_str(), 1024);
   if (data) {
     parse_stats(counters, data);
   }
@@ -371,7 +371,7 @@ stats_flush_to_file(const Config& config,
     double factor = config.limit_multiple() / 16;
     uint64_t max_size = round(config.max_size() * factor);
     uint32_t max_files = round(config.max_files() * factor);
-    clean_up_dir(subdir, max_size, max_files, [](double) {});
+    clean_up_dir(subdir, max_size, max_files, [](double /*progress*/) {});
   }
 }
 

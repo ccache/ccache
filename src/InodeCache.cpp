@@ -294,8 +294,8 @@ InodeCache::create_new_file(const std::string& filename)
 #  ifdef PTHREAD_MUTEX_ROBUST
   pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
 #  endif
-  for (uint32_t i = 0; i < k_num_buckets; ++i) {
-    pthread_mutex_init(&sr->buckets[i].mt, &mattr);
+  for (auto& bucket : sr->buckets) {
+    pthread_mutex_init(&bucket.mt, &mattr);
   }
 
   munmap(sr, sizeof(SharedRegion));

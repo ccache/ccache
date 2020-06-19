@@ -138,7 +138,7 @@ UnderlyingFileTypeIntToString(UnderlyingFileTypeInt underlying_type)
 }
 
 static void
-read_embedded_file_entry(const Context&,
+read_embedded_file_entry(const Context& /*ctx*/,
                          CacheEntryReader& reader,
                          const std::string& /*result_path_in_cache*/,
                          uint32_t entry_number,
@@ -358,7 +358,7 @@ read_result(const Context& ctx,
 }
 
 static void
-write_embedded_file_entry(Context&,
+write_embedded_file_entry(Context& /*ctx*/,
                           CacheEntryWriter& writer,
                           const std::string& /*result_path_in_cache*/,
                           uint32_t entry_number,

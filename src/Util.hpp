@@ -33,7 +33,7 @@
 
 namespace Util {
 
-using ProgressReceiver = std::function<void(double)>;
+using ProgressReceiver = std::function<void(double /*progress*/)>;
 using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
 using SubdirVisitor =
   std::function<void(const std::string& /*dir_path*/,
