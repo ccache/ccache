@@ -1,5 +1,5 @@
-add_library(
-  ccache_lib STATIC
+set(
+  source_files
   Args.cpp
   AtomicFile.cpp
   CacheEntryReader.cpp
@@ -37,8 +37,13 @@ add_library(
   manifest.cpp
   result.cpp
   stats.cpp
-  win32compat.cpp
   Version.cpp)
+
+if(WIN32)
+  list(APPEND source_files win32compat.cpp)
+endif()
+
+add_library(ccache_lib STATIC ${source_files})
 
 if(WIN32)
   target_link_libraries(ccache_lib PRIVATE ws2_32 "psapi")
