@@ -11,7 +11,7 @@ To build ccache you need:
 - A C99 compiler.
 - [libzstd](https://www.zstd.net). If you don't have libzstd installed and
   can't or don't want to install it on your system, you can pass
-  `-DUSE_LIBZSTD_FROM_INTERNET=ON` to cmake, which will download libzstd from
+  `-DZSTD_FROM_INTERNET=ON` to cmake, which will download libzstd from
   the Internet and unpack it in the local binary tree.
   ccache will then be linked statically to the locally built libzstd.
 

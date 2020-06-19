@@ -37,7 +37,7 @@ endif()
 #
 # Third party
 #
-option(USE_LIBZSTD_FROM_INTERNET "Download and use libzstd from the Internet" OFF)
+option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" OFF)
 find_package(zstd 1.1.2 REQUIRED)
 
 #

@@ -19,7 +19,7 @@ jobs:
   # Job 2: Build on Linux with native 32-bit GCC
   - os: linux
     compiler: gcc
-    env: T="Linux GCC 32-bit" VERBOSE=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux GCC 32-bit" VERBOSE=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -52,7 +52,7 @@ jobs:
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux
     compiler: i686-w64-mingw32-g++-posix
-    env: T="Linux MinGW 32-bit" VERBOSE=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 32-bit" VERBOSE=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -61,7 +61,7 @@ jobs:
   # Job 6: Build on Linux with 64-bit MinGW cross-compiler
   - os: linux
     compiler: x86_64-w64-mingw32-g++
-    env: T="Linux MinGW 64-bit" VERBOSE=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 64-bit" VERBOSE=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -70,7 +70,7 @@ jobs:
   # Job 7: Build on MacOS with native Clang
   - os: osx
     compiler: clang
-    env: T="MacOS Clang" VERBOSE=1 CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="MacOS Clang" VERBOSE=1 CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
 
   # Job 8: Run Clang's undefined behavior sanitizer
   - os: linux

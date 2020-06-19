@@ -2,7 +2,7 @@ if(zstd_FOUND)
   return()
 endif()
 
-if(USE_LIBZSTD_FROM_INTERNET)
+if(ZSTD_FROM_INTERNET)
   # Although ${zstd_FIND_VERSION} was requested, let's download a newer version.
   # Note: The directory structure has changed in 1.3.0; we only support 1.3.0
   # and newer.
@@ -36,7 +36,7 @@ else()
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(
-    zstd "please install libzstd or use -DUSE_LIBZSTD_FROM_INTERNET=ON"
+    zstd "please install libzstd or use -DZSTD_FROM_INTERNET=ON"
     ZSTD_INCLUDE_DIR ZSTD_LIBRARY)
   mark_as_advanced(ZSTD_INCLUDE_DIR ZSTD_LIBRARY)
 
