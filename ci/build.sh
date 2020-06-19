@@ -1,5 +1,5 @@
 #!/bin/sh -ex
-# This script is used by travis.yml and docker.sh
+# This script is used by .travis.yml and build-in-docker
 
 if [ -n "${SPECIAL}" ]; then
   sh ci/${SPECIAL}.sh
