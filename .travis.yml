@@ -1,7 +1,7 @@
 language: cpp
 dist: bionic
 
-script: ci/build.sh
+script: ci/build
 
 jobs:
   include:
@@ -47,7 +47,7 @@ jobs:
         - elfutils
         - libzstd1-dev
     before_install:
-    - source ./misc/install_cuda.sh
+    - source ./ci/install-cuda.sh
 
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux
@@ -103,7 +103,7 @@ jobs:
 
   # Job 11: Build binary package, extract it out of source, run tests.
   - os: linux
-    env: T="Build binary and verify" VERBOSE=1 SPECIAL=build_and_verify_package
+    env: T="Build binary and verify" VERBOSE=1 SPECIAL=build-and-verify-package
     addons:
       apt:
         packages:
@@ -112,7 +112,7 @@ jobs:
 
   # Job 12: Build source package, extract it out of source, run tests.
   - os: linux
-    env: T="Build source package and verify" VERBOSE=1 SPECIAL=build_and_verify_package_source
+    env: T="Build source package and verify" VERBOSE=1 SPECIAL=build-and-verify-package-source
     addons:
       apt:
         packages:

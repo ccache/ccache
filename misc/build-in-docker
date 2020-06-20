@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# This script runs ci/build.sh in a Docker container.
+# This script runs ci/build in a Docker container.
 #
 # Usage:
 #
 #   build-in-docker NAME [ARGUMENTS]
 #
 # NAME: Sudirectory name in the dockerfiles directory.
-# ARGUMENTS: Arguments that will be passed to ci/build.sh.
+# ARGUMENTS: Arguments that will be passed to ci/build.
 
 set -eu
 
@@ -42,4 +42,4 @@ docker run --rm \
   --env NO_TEST="${NO_TEST:-}" \
   --env CCACHE_DIR=/ccache \
   "$tag" \
-  /source/ci/build.sh "$@"
+  /source/ci/build "$@"
