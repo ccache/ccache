@@ -1,34 +1,31 @@
-#!/bin/sh -xe
+#!/bin/bash
 
-# This script will run misc/build.sh within a docker image.
-# ToDo: use ccache within docker and preserve the cache.
+# This script runs ci/build.sh in a Docker container.
+#
+# Usage:
+#
+#   build-in-docker NAME [ARGUMENTS]
+#
+# NAME: Sudirectory name in the dockerfiles directory.
+# ARGUMENTS: Arguments that will be passed to ci/build.sh.
 
-# Parameter:
-#  First parameter     directory name within dockerfiles, defaults to travis
-#  Other parameters    will be passed to misc/build.sh
+set -eu
 
-echo "Warning: Docker support is rather experimental\n"
+name=${1}
+shift
 
-BUILDENV=${1:-travis}
-
-# expose remaining parameters as $*
-shift $(( $# > 0 ? 1 : 0 ))
-
-# Pulling the docker image is actually slower than just creating it locally!
-# (comparison on same machine: ~90 sec for pulling but only ~50secs for building locally)
-DOCKER_IMAGE_TAG=alexanderlanin/ccache:${BUILDENV}-1
+tag="ccache-build:$name-1"
 
 # Build (if not exists):
-docker build -t ${DOCKER_IMAGE_TAG} dockerfiles/${BUILDENV}
+docker build -t "$tag" "dockerfiles/$name"
 
 # Cache compilation across docker sessions
-# ToDo: separate cache for each docker image or is it fine like that?
-mkdir -p build
-mkdir -p build/docker-ccache
+mkdir -p build-in-docker
+mkdir -p build-in-docker/docker-ccache
 
 docker run --rm \
-  --volume ${PWD}:/source \
-  --volume ${PWD}/build/docker-ccache:/ccache \
+  --volume "$PWD:/source" \
+  --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
   --tmpfs /builddir:rw,exec \
   --workdir /builddir \
   --env CC="${CC:-}" \
@@ -44,5 +41,5 @@ docker run --rm \
   --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
   --env NO_TEST="${NO_TEST:-}" \
   --env CCACHE_DIR=/ccache \
-  ${DOCKER_IMAGE_TAG} \
-  /source/ci/build.sh $*
+  "$tag" \
+  /source/ci/build.sh "$@"
