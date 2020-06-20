@@ -93,3 +93,9 @@ TEST_CASE("hash_result digest bytes")
   CHECK(memcmp(d.bytes(), expected, sizeof(Digest::size())) == 0);
   hash_free(h);
 }
+
+TEST_CASE("hash_once")
+{
+  CHECK(hash_buffer_once("a", 1).to_string()
+        == "17762fddd969a453925d65717ac3eea21320b66b");
+}

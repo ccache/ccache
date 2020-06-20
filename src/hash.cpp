@@ -101,13 +101,24 @@ hash_buffer(struct hash* hash, const void* s, size_t len)
 }
 
 Digest
+hash_buffer_once(const void* s, size_t len)
+{
+  blake3_hasher hasher;
+  blake3_hasher_init(&hasher);
+  blake3_hasher_update(&hasher, s, len);
+
+  Digest digest;
+  blake3_hasher_finalize(&hasher, digest.bytes(), digest.size());
+  return digest;
+}
+
+Digest
 hash_result(struct hash* hash)
 {
-  // make a copy before altering state
-  struct hash* copy = hash_copy(hash);
+  // Note that blake3_hasher_finalize doesn't modify the hasher itself, thus it
+  // is possible to finalize again after more data has been added.
   Digest digest;
-  blake3_hasher_finalize(&copy->hasher, digest.bytes(), digest.size());
-  hash_free(copy);
+  blake3_hasher_finalize(&hash->hasher, digest.bytes(), digest.size());
   return digest;
 }
 
