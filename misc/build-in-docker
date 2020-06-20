@@ -1,15 +1,22 @@
 #!/bin/bash
-
+#
 # This script runs ci/build in a Docker container.
-#
-# Usage:
-#
-#   build-in-docker NAME [ARGUMENTS]
-#
-# NAME: Sudirectory name in the dockerfiles directory.
-# ARGUMENTS: Arguments that will be passed to ci/build.
+
+if [ $# -eq 0 ] || [ ${1:-} = -h ] || [ ${1:-} = --help ]; then
+    cat <<EOF
+Usage: build-in-docker NAME [ARGUMENTS]
+
+NAME: Subdirectory name in the dockerfiles directory.
+ARGUMENTS: Arguments that will be passed to ci/build.
+EOF
+    exit 1
+fi
 
 set -eu
+
+if [ -n "${VERBOSE:-}" ]; then
+    set -x
+fi
 
 name=${1}
 shift
@@ -24,22 +31,22 @@ mkdir -p build-in-docker
 mkdir -p build-in-docker/docker-ccache
 
 docker run --rm \
-  --volume "$PWD:/source" \
-  --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
-  --tmpfs /builddir:rw,exec \
-  --workdir /builddir \
-  --env CC="${CC:-}" \
-  --env CFLAGS="${CFLAGS:-}" \
-  --env CXX="${CXX:-}" \
-  --env CXXFLAGS="${CXXFLAGS:-}" \
-  --env LDFLAGS="${LDFLAGS:-}" \
-  --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
-  --env CCACHE_LOC="/source" \
-  --env SPECIAL="${SPECIAL:-}" \
-  --env SCAN_BUILD="${SCAN_BUILD:-}" \
-  --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
-  --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
-  --env NO_TEST="${NO_TEST:-}" \
-  --env CCACHE_DIR=/ccache \
-  "$tag" \
-  /source/ci/build "$@"
+    --volume "$PWD:/source" \
+    --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
+    --tmpfs /builddir:rw,exec \
+    --workdir /builddir \
+    --env CC="${CC:-}" \
+    --env CFLAGS="${CFLAGS:-}" \
+    --env CXX="${CXX:-}" \
+    --env CXXFLAGS="${CXXFLAGS:-}" \
+    --env LDFLAGS="${LDFLAGS:-}" \
+    --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
+    --env CCACHE_LOC="/source" \
+    --env SPECIAL="${SPECIAL:-}" \
+    --env SCAN_BUILD="${SCAN_BUILD:-}" \
+    --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
+    --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
+    --env NO_TEST="${NO_TEST:-}" \
+    --env CCACHE_DIR=/ccache \
+    "$tag" \
+    /source/ci/build "$@"
