@@ -117,14 +117,14 @@ if(NOT CLANG_FORMAT_EXE)
 else()
   add_custom_target(
     format
-    COMMAND misc/format.sh
+    COMMAND misc/format-files --all
     COMMENT "Formatting code"
     USES_TERMINAL
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   add_custom_target(
     check_format
-    COMMAND misc/check_format.sh
+    COMMAND misc/format-files --all --check
     COMMENT "Checking code formatting"
     USES_TERMINAL
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
