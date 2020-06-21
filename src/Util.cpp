@@ -676,13 +676,12 @@ real_path(const std::string& path, bool return_empty_on_error)
                                   FILE_ATTRIBUTE_NORMAL,
                                   NULL);
   if (INVALID_HANDLE_VALUE != path_handle) {
-#  ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
-    GetFinalPathNameByHandle(
+    bool ok = GetFinalPathNameByHandle(
       path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
-#  else
-    GetFileNameFromHandle(path_handle, buffer, buffer_size);
-#  endif
     CloseHandle(path_handle);
+    if (!ok) {
+      return path;
+    }
     resolved = buffer + 4; // Strip \\?\ from the file name.
   } else {
     snprintf(buffer, buffer_size, "%s", c_path);

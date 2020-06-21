@@ -63,9 +63,6 @@
 /* Define to 1 if you have the `geteuid' function. */
 #cmakedefine HAVE_GETEUID
 
-/* Define to 1 if you have the `GetFinalPathNameByHandleW' function. */
-#cmakedefine HAVE_GETFINALPATHNAMEBYHANDLEW
-
 /* Define to 1 if you have the `getopt_long' function. */
 #cmakedefine HAVE_GETOPT_LONG
 
