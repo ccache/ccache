@@ -361,8 +361,8 @@ conf_set_value_in_file(const char *conf_path, const char *key,
 		free(path);
 		return false;
 	}
-		free(outpath);
-		free(path);
+	free(outpath);
+	free(path);
 
 	return true;
 }
