@@ -11,7 +11,6 @@
 
 # Next steps:
 # * run compilation, tests and/or docker instances in parallel to improve runtime.
-# * improve detection of failures so this script can be executed as a whole (see Note in alpine 3.4 Dockerfile).
 
 echo "Warning: Docker support is rather experimental\n"
 
