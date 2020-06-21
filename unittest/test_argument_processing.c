@@ -463,7 +463,7 @@ TEST(debug_flag_order_with_known_option_last)
 	args_free(orig);
 }
 
-TEST(options_not_to_be_passed_to_the_preprocesor)
+TEST(options_not_to_be_passed_to_the_preprocessor)
 {
 	struct args *orig = args_init_from_string(
 		"cc -Wa,foo foo.c -g -c -DX -Werror -Xlinker fie -Xlinker,fum -Wno-error");
