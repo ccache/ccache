@@ -128,7 +128,7 @@ Common options:
     -V, --version              print version and copyright information
 
 Options for scripting or debugging:
-        --checksum-file PATH   print the checksum (64 bit XXH64) of the file at
+        --checksum-file PATH   print the checksum (64 bit XXH3) of the file at
                                PATH
         --dump-manifest PATH   dump manifest file at PATH in text format
         --dump-result PATH     dump result file at PATH in text format

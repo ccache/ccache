@@ -61,7 +61,7 @@
 // <raw_file_marker>      ::= 1 (uint8_t)
 // <file_len>             ::= uint64_t
 // <epilogue>             ::= <checksum>
-// <checksum>             ::= uint64_t ; XXH64 of content bytes
+// <checksum>             ::= uint64_t ; XXH3 of content bytes
 //
 // Sketch of concrete layout:
 //

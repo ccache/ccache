@@ -20,7 +20,11 @@
 
 #include "system.hpp"
 
-#include "third_party/xxhash.h"
+#ifdef USE_XXH_DISPATCH
+#  include "third_party/xxh_x86dispatch.h"
+#else
+#  include "third_party/xxhash.h"
+#endif
 
 class Checksum
 {
@@ -33,33 +37,33 @@ public:
   uint64_t digest() const;
 
 private:
-  XXH64_state_t* m_state;
+  XXH3_state_t* m_state;
 };
 
-inline Checksum::Checksum() : m_state(XXH64_createState())
+inline Checksum::Checksum() : m_state(XXH3_createState())
 {
   reset();
 }
 
 inline Checksum::~Checksum()
 {
-  XXH64_freeState(m_state);
+  XXH3_freeState(m_state);
 }
 
 inline void
 Checksum::reset()
 {
-  XXH64_reset(m_state, 0);
+  XXH3_64bits_reset(m_state);
 }
 
 inline void
 Checksum::update(const void* data, size_t length)
 {
-  XXH64_update(m_state, data, length);
+  XXH3_64bits_update(m_state, data, length);
 }
 
 inline uint64_t
 Checksum::digest() const
 {
-  return XXH64_digest(m_state);
+  return XXH3_64bits_digest(m_state);
 }

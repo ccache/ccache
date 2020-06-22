@@ -268,14 +268,15 @@ SOFTWARE.
 -------------------------------------------------------------------------------
 
 
-src/third_party/xxhash.[hc]
+src/third_party/xxh(ash|_x86dispatch).[hc]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.6.5 downloaded
+xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.0 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.
 
 -------------------------------------------------------------------------------
-   Copyright (C) 2012-2016, Yann Collet.
+   Copyright (c) 2012-2020 Yann Collet
+   All rights reserved.
 
    BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
 
@@ -301,9 +302,6 @@ from <https://github.com/Cyan4973/xxHash/releases>.
    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   You can contact the author at :
-   - xxHash source repository : https://github.com/Cyan4973/xxHash
 -------------------------------------------------------------------------------
 
 
