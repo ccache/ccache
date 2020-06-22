@@ -206,10 +206,7 @@ InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
 #  endif
   key.st_size = stat.size();
 
-  struct hash* hash = hash_init();
-  hash_buffer(hash, &key, sizeof(Key));
-  digest = hash_result(hash);
-  hash_free(hash);
+  digest = hash_buffer_once(&key, sizeof(Key));
   return true;
 }
 

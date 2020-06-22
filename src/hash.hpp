@@ -61,6 +61,11 @@ void hash_delimiter(struct hash* hash, const char* type);
 // input file.
 void hash_buffer(struct hash* hash, const void* s, size_t len);
 
+// Hash bytes in a buffer.
+//
+// Returns the digest.
+Digest hash_buffer_once(const void* s, size_t len);
+
 // Hash a NUL terminated string.
 //
 // If hash debugging is enabled, the string is written to the text input file
