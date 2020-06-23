@@ -36,7 +36,7 @@ set(
   manifest.cpp
   result.cpp
   stats.cpp
-  Version.cpp)
+  version.cpp)
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files InodeCache.cpp)

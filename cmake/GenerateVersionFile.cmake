@@ -51,6 +51,8 @@ get_version_from_git()
 if(VERSION_ERROR)
   message(STATUS "Not within git repository")
 else()
-  configure_file(${CMAKE_SOURCE_DIR}/cmake/Version.cpp.in
-                 ${CMAKE_SOURCE_DIR}/src/Version.cpp @ONLY)
+  configure_file(
+    ${CMAKE_SOURCE_DIR}/cmake/version.cpp.in
+    ${CMAKE_SOURCE_DIR}/src/version.cpp
+    @ONLY)
 endif()

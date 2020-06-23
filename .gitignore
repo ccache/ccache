@@ -11,8 +11,9 @@ ccache-*.tar.*
 perfdir.*
 testdir.*
 
-# Version is generated into src, because it should be included into src packages
-/src/Version.cpp
+# version.cpp is generated in src because it should be included into source
+# packages
+/src/version.cpp
 
 # Typical build directories
 /build*
