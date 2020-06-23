@@ -6,10 +6,10 @@ script: ci/build
 jobs:
   include:
 
-  # Job 1: Build (in source directory) on Linux with native GCC
+  # Job 1: Build (in source directory) on Linux with native GCC in release build mode
   - os: linux
     compiler: gcc
-    env: T="Linux GCC" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILDDIR=. CCACHE_LOC=.
+    env: T="Linux GCC release" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILDDIR=. CCACHE_LOC=. CMAKE_PARAMS="-DCMAKE_BUILD_TYPE=Release"
     addons:
       apt:
         packages:
