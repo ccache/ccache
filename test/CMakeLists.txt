@@ -1,11 +1,11 @@
 function(addtest name)
   add_test(
-    NAME "producttest.${name}"
+    NAME "test.${name}"
     COMMAND ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   set_tests_properties(
-    "producttest.${name}"
+    "test.${name}"
     PROPERTIES
     ENVIRONMENT "CCACHE=${CMAKE_BINARY_DIR}/ccache;EXIT_IF_SKIPPED=true")
 
@@ -14,12 +14,12 @@ function(addtest name)
     # parsing output for those cases (exit code is not considered). Skipped
     # tests will appear as "Passed".
     set_tests_properties(
-      "producttest.${name}"
+      "test.${name}"
       PROPERTIES
       PASS_REGULAR_EXPRESSION "PASSED|Passed|Skipped"
       FAIL_REGULAR_EXPRESSION "[Ww]arning|[Ff]ail|[Er]rror")
   else()
-    set_tests_properties("producttest.${name}" PROPERTIES SKIP_RETURN_CODE 125)
+    set_tests_properties("test.${name}" PROPERTIES SKIP_RETURN_CODE 125)
   endif()
 
 endfunction()
