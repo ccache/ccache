@@ -271,7 +271,7 @@ std::string
 format_hex(const uint8_t* data, size_t size)
 {
   std::string result;
-  result.reserve(size);
+  result.reserve(2 * size);
   for (size_t i = 0; i < size; i++) {
     result += fmt::format("{:02x}", data[i]);
   }
