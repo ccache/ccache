@@ -66,7 +66,7 @@ color_diagnostics_generate_permutations() {
 }
 
 color_diagnostics_run_on_pty() {
-    script --return --quiet --command "unset GCC_COLORS; ${1:?}" /dev/null </dev/null
+    script --return --quiet --command "unset GCC_COLORS; CCACHE_DIR='$CCACHE_DIR' ${1:?}" /dev/null </dev/null
 }
 
 color_diagnostics_test() {
