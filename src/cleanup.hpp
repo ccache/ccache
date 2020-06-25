@@ -30,7 +30,7 @@ class Context;
 void clean_up_dir(const std::string& subdir,
                   uint64_t max_size,
                   uint32_t max_files,
-                  time_t max_old,
+                  time_t max_age,
                   const Util::ProgressReceiver& progress_receiver);
 
 void clean_up_all(const Config& config,
@@ -41,4 +41,4 @@ void wipe_all(const Context& ctx,
 
 void clean_old(const Context& ctx,
               const Util::ProgressReceiver& progress_receiver,
-              time_t max_old);
+              time_t max_age);
