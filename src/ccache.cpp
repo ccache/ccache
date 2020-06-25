@@ -89,7 +89,7 @@ Common options:
                               (normally not needed as this is done
                               automatically)
     -C, --clear               clear the cache completely (except configuration)
-    -e, --evict-older-than N  delete files older than N seconds (this will not
+        --evict-older-than N  delete files older than N seconds (this will not
                               take max_files, max_size into consideration)
     -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
                               for no limit)
@@ -2202,16 +2202,17 @@ handle_main_options(int argc, const char* const* argv)
     DUMP_MANIFEST,
     DUMP_RESULT,
     EXTRACT_RESULT,
+    EVICT_OLDER_THAN,
     HASH_FILE,
     PRINT_STATS,
   };
   static const struct option options[] = {
     {"cleanup", no_argument, nullptr, 'c'},
     {"clear", no_argument, nullptr, 'C'},
-    {"evict-older-than", required_argument, nullptr, 'e'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
     {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
+    {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
     {"get-config", required_argument, nullptr, 'k'},
     {"hash-file", required_argument, nullptr, HASH_FILE},
     {"help", no_argument, nullptr, 'h'},
@@ -2233,7 +2234,7 @@ handle_main_options(int argc, const char* const* argv)
   int c;
   while ((c = getopt_long(argc,
                           const_cast<char* const*>(argv),
-                          "cCe:k:hF:M:po:sVxX:z",
+                          "cCk:hF:M:po:sVxX:z",
                           options,
                           nullptr))
          != -1) {
@@ -2259,6 +2260,20 @@ handle_main_options(int argc, const char* const* argv)
         fmt::print(stderr, "Error: {}\n", *error);
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
+
+    case EVICT_OLDER_THAN:
+    {
+      int32_t seconds = atoi(optarg);
+      if (seconds < 0) {
+        throw Error("seconds cannot be negative");
+      }
+      ProgressBar progress_bar("Clearing...");
+      clean_old(ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
+      if (isatty(STDOUT_FILENO)) {
+        printf("\n");
+      }
+      break;
     }
 
     case HASH_FILE: {
@@ -2291,20 +2306,6 @@ handle_main_options(int argc, const char* const* argv)
     {
       ProgressBar progress_bar("Clearing...");
       wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
-      if (isatty(STDOUT_FILENO)) {
-        printf("\n");
-      }
-      break;
-    }
-
-    case 'e': // --evict-older-than
-    {
-      int32_t seconds = atoi(optarg);
-      if (seconds < 0) {
-        throw Error("seconds cannot be negative");
-      }
-      ProgressBar progress_bar("Clearing...");
-      clean_old(ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
         printf("\n");
       }

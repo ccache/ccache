@@ -186,7 +186,7 @@ SUITE_cleanup() {
 
     touch $CCACHE_DIR/a/now.result
     $CCACHE -F 0 -M 0 >/dev/null
-    $CCACHE -e 10 >/dev/null
+    $CCACHE --evict-older-than 10 >/dev/null
     expect_file_count 1 '*.result' $CCACHE_DIR
     expect_stat 'files in cache' 1
 }
