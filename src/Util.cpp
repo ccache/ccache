@@ -107,6 +107,36 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
+bool
+clone_hard_link_or_copy_file(const Context& ctx,
+                             const std::string& source,
+                             const std::string& dest,
+                             bool via_tmp_file)
+{
+  if (ctx.config.file_clone()) {
+    cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
+    if (clone_file(source.c_str(), dest.c_str(), via_tmp_file)) {
+      return true;
+    }
+    cc_log("Failed to clone: %s", strerror(errno));
+  }
+  if (ctx.config.hard_link()) {
+    unlink(dest.c_str());
+    cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
+    int ret = link(source.c_str(), dest.c_str());
+    if (ret == 0) {
+      if (chmod(dest.c_str(), 0444) != 0) {
+        cc_log("Failed to chmod: %s", strerror(errno));
+      }
+      return true;
+    }
+    cc_log("Failed to hard link: %s", strerror(errno));
+  }
+
+  cc_log("Copying %s to %s", source.c_str(), dest.c_str());
+  return copy_file(source.c_str(), dest.c_str(), via_tmp_file);
+}
+
 size_t
 common_dir_prefix_length(string_view dir, string_view path)
 {

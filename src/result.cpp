@@ -219,36 +219,6 @@ get_raw_file_path(const std::string& result_path_in_cache,
                      entry_number);
 }
 
-static bool
-copy_raw_file(const Context& ctx,
-              const std::string& source,
-              const std::string& dest,
-              bool to_cache)
-{
-  if (ctx.config.file_clone()) {
-    cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
-    if (clone_file(source.c_str(), dest.c_str(), to_cache)) {
-      return true;
-    }
-    cc_log("Failed to clone: %s", strerror(errno));
-  }
-  if (ctx.config.hard_link()) {
-    unlink(dest.c_str());
-    cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
-    int ret = link(source.c_str(), dest.c_str());
-    if (ret == 0) {
-      if (chmod(dest.c_str(), 0444) != 0) {
-        cc_log("Failed to chmod: %s", strerror(errno));
-      }
-      return true;
-    }
-    cc_log("Failed to hard link: %s", strerror(errno));
-  }
-
-  cc_log("Copying %s to %s", source.c_str(), dest.c_str());
-  return copy_file(source.c_str(), dest.c_str(), to_cache);
-}
-
 static void
 read_raw_file_entry(const Context& ctx,
                     CacheEntryReader& reader,
@@ -292,7 +262,8 @@ read_raw_file_entry(const Context& ctx,
       cc_log("Not copying to /dev/null");
     } else {
       const auto& dest_path = it->second;
-      if (!copy_raw_file(ctx, raw_path, dest_path, false)) {
+      if (!Util::clone_hard_link_or_copy_file(
+            ctx, raw_path, dest_path, false)) {
         throw Error(
           fmt::format("Failed to copy raw file {} to {}", raw_path, dest_path));
       }
@@ -422,7 +393,7 @@ write_raw_file_entry(Context& ctx,
 
   auto raw_file = get_raw_file_path(result_path_in_cache, entry_number);
   auto old_stat = Stat::stat(raw_file);
-  if (!copy_raw_file(ctx, source_path, raw_file, true)) {
+  if (!Util::clone_hard_link_or_copy_file(ctx, source_path, raw_file, true)) {
     throw Error(
       fmt::format("Failed to store {} as raw file {}", source_path, raw_file));
   }
