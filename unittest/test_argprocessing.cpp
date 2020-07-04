@@ -27,6 +27,8 @@
 
 #include "third_party/catch.hpp"
 
+#include <iostream>
+
 using TestUtil::TestContext;
 
 namespace {
@@ -695,6 +697,30 @@ TEST_CASE("cuda_option_file")
   Util::write_file("foo.c", "");
   Util::write_file("foo.optf", "-c foo.c -g -Wall -o");
   Util::write_file("bar.optf", "out -DX");
+  CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
+  CHECK(exp_cpp == act_cpp);
+  CHECK(exp_extra == act_extra);
+  CHECK(exp_cc == act_cc);
+}
+
+TEST_CASE("ignore_options")
+{
+  TestContext test_context;
+
+  Context ctx;
+
+  ctx.orig_args = Args::from_string(
+    "cc -c foo.c -fmessage-length=20 -Wall -Werror -ignored-option -g");
+  ctx.ignore_options = Util::split_into_strings(
+      "-fmessage-length=* -ignored-option", " ");
+  Args exp_cpp = Args::from_string("cc -Wall -g");
+  Args exp_extra = Args::from_string(" -Werror");
+  Args exp_cc = Args::from_string("cc -Wall -g -Werror -c");
+  Args act_cpp;
+  Args act_extra;
+  Args act_cc;
+
+  Util::write_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);

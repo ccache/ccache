@@ -107,6 +107,10 @@ public:
   // Headers (or directories with headers) to ignore in manifest mode.
   std::vector<std::string> ignore_header_paths;
 
+  // Options to completely ignore on the command line. They will not be passed
+  // to either the preprocessor or the compiler.
+  std::vector<std::string> ignore_options;
+
 #ifdef INODE_CACHE_SUPPORTED
   // InodeCache that caches source file hashes when enabled.
   mutable InodeCache inode_cache;

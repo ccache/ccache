@@ -55,6 +55,7 @@ public:
   bool hard_link() const;
   bool hash_dir() const;
   const std::string& ignore_headers_in_manifest() const;
+  const std::string& ignore_options() const;
   bool inode_cache() const;
   bool keep_comments_cpp() const;
   double limit_multiple() const;
@@ -80,6 +81,7 @@ public:
   void set_depend_mode(bool value);
   void set_debug(bool value);
   void set_direct_mode(bool value);
+  void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_limit_multiple(double value);
   void set_max_files(uint32_t value);
@@ -142,6 +144,7 @@ private:
   bool m_hard_link = false;
   bool m_hash_dir = true;
   std::string m_ignore_headers_in_manifest = "";
+  std::string m_ignore_options = "";
   bool m_inode_cache = false;
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
@@ -274,6 +277,12 @@ inline const std::string&
 Config::ignore_headers_in_manifest() const
 {
   return m_ignore_headers_in_manifest;
+}
+
+inline const std::string&
+Config::ignore_options() const
+{
+  return m_ignore_options;
 }
 
 inline bool
@@ -421,6 +430,12 @@ inline void
 Config::set_direct_mode(bool value)
 {
   m_direct_mode = value;
+}
+
+inline void
+Config::set_ignore_options(const std::string& value)
+{
+  m_ignore_options = value;
 }
 
 inline void
