@@ -515,6 +515,15 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
+[[config_ignore_options]] *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
+
+    This setting is a list of options that ccache will exlude from the hash.
+    This is useful in scenarios where some compiler options that don't affect
+    compilation results might affect the hash produced by ccache. If an option
+    in the list is suffixed with an asterisk (`*`), the option is matched as a
+    prefix. For example, `-fmessage-length=*` will match both
+    `-fmessage-length=20` and `-fmessage-length=70`.
+
 [[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, enables caching of source file hashes based on device, inode and

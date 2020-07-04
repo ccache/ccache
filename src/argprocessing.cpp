@@ -222,6 +222,14 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  for (const std::string& option : ctx.ignore_options) {
+    if (option == args[i] || (Util::ends_with(option, "*") &&
+          Util::starts_with(args[i], option.substr(0, option.length() - 1)))) {
+      cc_log("Skipping argument: %s", args[i].c_str());
+      return nullopt;
+    }
+  }
+
   // Special case for -E.
   if (args[i] == "-E") {
     return STATS_PREPROCESSING;

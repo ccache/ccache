@@ -58,6 +58,7 @@ TEST_CASE("Config: default values")
   CHECK(!config.hard_link());
   CHECK(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest().empty());
+  CHECK(config.ignore_options().empty());
   CHECK_FALSE(config.keep_comments_cpp());
   CHECK(config.limit_multiple() == Approx(0.8));
   CHECK(config.log_file().empty());
@@ -121,6 +122,7 @@ TEST_CASE("Config::update_from_file")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = a:b/c\n"
+    "ignore_options = -a=* -b\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 1.0\n"
     "log_file = $USER${USER} \n"
@@ -159,6 +161,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.hard_link());
   CHECK_FALSE(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest() == "a:b/c");
+  CHECK(config.ignore_options() == "-a=* -b");
   CHECK(config.keep_comments_cpp());
   CHECK(config.limit_multiple() == Approx(1.0));
   CHECK(config.log_file() == fmt::format("{0}{0}", user));
@@ -402,6 +405,7 @@ TEST_CASE("Config::visit_items")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
+    "ignore_options = -a=* -b\n"
     "inode_cache = false\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 0.0\n"
@@ -456,6 +460,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) hard_link = true",
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",
+    "(test.conf) ignore_options = -a=* -b",
     "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) limit_multiple = 0.0",
