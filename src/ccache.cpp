@@ -737,25 +737,6 @@ execute(Context& ctx,
   return status;
 }
 
-// Send cached stderr, if any, to stderr.
-static void
-send_cached_stderr(const std::string& path_stderr, bool strip_colors)
-{
-  if (strip_colors) {
-    try {
-      auto stripped = Util::strip_ansi_csi_seqs(Util::read_file(path_stderr));
-      write_fd(STDERR_FILENO, stripped.data(), stripped.size());
-    } catch (const Error&) {
-      // Fall through
-    }
-  } else {
-    Fd fd_stderr(open(path_stderr.c_str(), O_RDONLY | O_BINARY));
-    if (fd_stderr) {
-      copy_fd(*fd_stderr, STDERR_FILENO);
-    }
-  }
-}
-
 // Create or update the manifest file.
 static void
 update_manifest_file(Context& ctx)
@@ -939,7 +920,8 @@ to_cache(Context& ctx,
     cc_log("Compiler gave exit status %d", status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
+    Util::send_to_stderr(Util::read_file(tmp_stderr),
+                         ctx.args_info.strip_diagnostics_colors);
 
     failed(STATS_STATUS, status);
   }
@@ -1033,7 +1015,8 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
+  Util::send_to_stderr(Util::read_file(tmp_stderr),
+                       ctx.args_info.strip_diagnostics_colors);
 }
 
 // Find the result name by running the compiler in preprocessor mode and
@@ -1733,7 +1716,8 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_END("file", "file_get");
 
-  send_cached_stderr(tmp_stderr, ctx.args_info.strip_diagnostics_colors);
+  Util::send_to_stderr(Util::read_file(tmp_stderr),
+                       ctx.args_info.strip_diagnostics_colors);
 
   cc_log("Succeeded getting cached result");
 

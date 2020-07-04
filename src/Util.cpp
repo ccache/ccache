@@ -739,6 +739,26 @@ remove_extension(string_view path)
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
+void
+send_to_stderr(const std::string& text, bool strip_colors)
+{
+  const std::string* text_to_send = &text;
+  std::string stripped_text;
+
+  if (strip_colors) {
+    try {
+      stripped_text = Util::strip_ansi_csi_seqs(text);
+      text_to_send = &stripped_text;
+    } catch (const Error&) {
+      // Fall through
+    }
+  }
+
+  if (!write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length())) {
+    throw Error("Failed to write to stderr");
+  }
+}
+
 std::vector<string_view>
 split_into_views(string_view input, const char* separators)
 {

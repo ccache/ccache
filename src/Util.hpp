@@ -302,6 +302,10 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
+// `strip_colors` is true. Throws `Error` on error.
+void send_to_stderr(const std::string& text, bool strip_colors);
+
 // Split `input` into words at any of the characters listed in `separators`.
 // These words are a view into `input`; empty words are omitted. `separators`
 // must neither be the empty string nor a nullptr.
