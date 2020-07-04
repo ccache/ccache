@@ -133,3 +133,8 @@ TEST_CASE("dash_dash_analyze_too_hard")
 {
   CHECK(compopt_too_hard("--analyze"));
 }
+
+TEST_CASE("dash_fdirectives_only_affects_cpp")
+{
+  CHECK(compopt_affects_cpp("-fdirectives-only"));
+}
