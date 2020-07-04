@@ -28,6 +28,9 @@
 #include "FormatNonstdStringView.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
+#include "Result.hpp"
+#include "ResultDumper.hpp"
+#include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
 #include "StdMakeUnique.hpp"
 #include "Util.hpp"
@@ -42,7 +45,6 @@
 #include "language.hpp"
 #include "logging.hpp"
 #include "manifest.hpp"
-#include "result.hpp"
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
@@ -955,33 +957,39 @@ to_cache(Context& ctx,
   if (!st) {
     failed(STATS_ERROR);
   }
-  ResultFileMap result_file_map;
-  if (st.size() > 0) {
-    result_file_map.emplace(FileType::stderr_output, tmp_stderr);
-  }
-  result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
-  if (ctx.args_info.generating_dependencies) {
-    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
-  }
-  if (ctx.args_info.generating_coverage) {
-    result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
-  }
-  if (ctx.args_info.generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
-  }
-  if (ctx.args_info.generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
-  }
-  if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
-    // Only copy .dwo file if it was created by the compiler (GCC and Clang
-    // behave differently e.g. for "-gsplit-dwarf -g1").
-    result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
-  }
 
   auto orig_dest_stat = Stat::stat(ctx.result_path());
-  result_put(ctx, ctx.result_path(), result_file_map);
+  Result::Writer result_writer(ctx, ctx.result_path());
 
-  cc_log("Stored in cache: %s", ctx.result_path().c_str());
+  if (st.size() > 0) {
+    result_writer.write(Result::FileType::stderr_output, tmp_stderr);
+  }
+  result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
+  if (ctx.args_info.generating_dependencies) {
+    result_writer.write(Result::FileType::dependency, ctx.args_info.output_dep);
+  }
+  if (ctx.args_info.generating_coverage) {
+    result_writer.write(Result::FileType::coverage, ctx.args_info.output_cov);
+  }
+  if (ctx.args_info.generating_stackusage) {
+    result_writer.write(Result::FileType::stackusage, ctx.args_info.output_su);
+  }
+  if (ctx.args_info.generating_diagnostics) {
+    result_writer.write(Result::FileType::diagnostic, ctx.args_info.output_dia);
+  }
+  if (ctx.args_info.seen_split_dwarf && Stat::stat(ctx.args_info.output_dwo)) {
+    // Only store .dwo file if it was created by the compiler (GCC and Clang
+    // behave differently e.g. for "-gsplit-dwarf -g1").
+    result_writer.write(Result::FileType::dwarf_object,
+                        ctx.args_info.output_dwo);
+  }
+
+  auto error = result_writer.finalize();
+  if (error) {
+    cc_log("Error: %s", error->c_str());
+  } else {
+    cc_log("Stored in cache: %s", ctx.result_path().c_str());
+  }
 
   auto new_dest_stat = Stat::stat(ctx.result_path(), Stat::OnError::log);
   if (!new_dest_stat) {
@@ -1376,7 +1384,7 @@ calculate_result_name(Context& ctx,
   bool found_ccbin = false;
 
   hash_delimiter(hash, "result version");
-  hash_int(hash, k_result_version);
+  hash_int(hash, Result::k_version);
 
   if (direct_mode) {
     hash_delimiter(hash, "manifest version");
@@ -1676,48 +1684,18 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_BEGIN("cache", "from_cache");
 
-  bool produce_dep_file = ctx.args_info.generating_dependencies
-                          && ctx.args_info.output_dep != "/dev/null";
-
-  MTR_BEGIN("file", "file_get");
-
   // Get result from cache.
-  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
-    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
-  close(tmp_stderr_fd_and_path.first);
-  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
-  ctx.register_pending_tmp_file(tmp_stderr);
+  Result::Reader result_reader(ctx.result_path());
+  ResultRetriever result_retriever(ctx);
 
-  ResultFileMap result_file_map;
-  if (ctx.args_info.output_obj != "/dev/null") {
-    result_file_map.emplace(FileType::object, ctx.args_info.output_obj);
-    if (ctx.args_info.seen_split_dwarf) {
-      result_file_map.emplace(FileType::dwarf_object, ctx.args_info.output_dwo);
-    }
-  }
-  result_file_map.emplace(FileType::stderr_output, tmp_stderr);
-  if (produce_dep_file) {
-    result_file_map.emplace(FileType::dependency, ctx.args_info.output_dep);
-  }
-  if (ctx.args_info.generating_coverage) {
-    result_file_map.emplace(FileType::coverage, ctx.args_info.output_cov);
-  }
-  if (ctx.args_info.generating_stackusage) {
-    result_file_map.emplace(FileType::stackusage, ctx.args_info.output_su);
-  }
-  if (ctx.args_info.generating_diagnostics) {
-    result_file_map.emplace(FileType::diagnostic, ctx.args_info.output_dia);
-  }
-  bool ok = result_get(ctx, ctx.result_path(), result_file_map);
-  if (!ok) {
-    cc_log("Failed to get result from cache");
+  auto error = result_reader.read(result_retriever);
+  if (error) {
+    cc_log("Failed to get result from cache: %s", error->c_str());
     return nullopt;
+  } else {
+    // Update modification timestamp to save file from LRU cleanup.
+    update_mtime(ctx.result_path().c_str());
   }
-
-  MTR_END("file", "file_get");
-
-  Util::send_to_stderr(Util::read_file(tmp_stderr),
-                       ctx.args_info.strip_diagnostics_colors);
 
   cc_log("Succeeded getting cached result");
 
@@ -2248,8 +2226,15 @@ handle_main_options(int argc, const char* const* argv)
     case DUMP_MANIFEST:
       return manifest_dump(optarg, stdout) ? 0 : 1;
 
-    case DUMP_RESULT:
-      return result_dump(ctx, optarg, stdout) ? 0 : 1;
+    case DUMP_RESULT: {
+      ResultDumper result_dumper(stdout);
+      Result::Reader result_reader(optarg);
+      auto error = result_reader.read(result_dumper);
+      if (error) {
+        fmt::print(stderr, "Error: {}\n", *error);
+      }
+      return error ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
 
     case HASH_FILE: {
       struct hash* hash = hash_init();

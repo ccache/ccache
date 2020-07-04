@@ -16,6 +16,9 @@ set(
   NullCompressor.cpp
   NullDecompressor.cpp
   ProgressBar.cpp
+  Result.cpp
+  ResultDumper.cpp
+  ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
   ThreadPool.cpp
@@ -34,7 +37,6 @@ set(
   legacy_util.cpp
   logging.cpp
   manifest.cpp
-  result.cpp
   stats.cpp
   version.cpp)
 
