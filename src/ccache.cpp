@@ -92,6 +92,7 @@ Common options:
                               and Ki, Mi, Gi, Ti (binary); default suffix: G
     -X, --recompress LEVEL    recompress the cache to LEVEL (integer level or
                               "uncompressed")
+    -o, --set-config KEY=VAL  set configuration item KEY to value VAL
     -x, --show-compression    show compression statistics
     -p, --show-config         show current configuration options in
                               human-readable format
@@ -109,7 +110,6 @@ Options for scripting or debugging:
                               PATH
         --print-stats         print statistics counter IDs and corresponding
                               values in machine-parsable format
-    -o, --set-config KEY=VAL  set configuration item KEY to value VAL
 
 See also <https://ccache.dev>.
 )";
