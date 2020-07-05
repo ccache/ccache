@@ -20,6 +20,6 @@ else
     # 4 jobs seem to be a reasonable default for Travis.
     ${CMAKE_PREFIX:-} cmake --build . ${BUILDEXTRAFLAGS:-} -- -j${JOBS}
     # Warning: Rare random failures when running with -j4.
-    [ "${RUN_TESTS:-1}" -ne "1" ] || ctest --output-on-failure -j${JOBS}
+    [ "${RUN_TESTS:-1}" -ne "1" ] || ctest --output-on-failure -j${JOBS} "$@"
 fi
 exit 0
