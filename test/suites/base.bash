@@ -458,7 +458,8 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz"
 
-    if $REAL_COMPILER -c test1.c -gz -o /dev/null 2>/dev/null; then
+    $REAL_COMPILER -E test1.c -gz >preprocessed.i 2>/dev/null
+    if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
         cp test1.c dir2
@@ -480,7 +481,8 @@ base_tests() {
     # -------------------------------------------------------------------------
     TEST "Directory is not hashed if using -gz=zlib"
 
-    if $REAL_COMPILER -c test1.c -gz=zlib -o /dev/null 2>/dev/null; then
+    $REAL_COMPILER -E test1.c -gz=zlib >preprocessed.i 2>/dev/null
+    if [ -s preprocessed.i ] && ! fgrep -q $PWD preprocessed.i; then
         mkdir dir1 dir2
         cp test1.c dir1
         cp test1.c dir2
