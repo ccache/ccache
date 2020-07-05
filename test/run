@@ -321,7 +321,7 @@ EOF
 
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
-    if $VERBOSE; then
+    if $verbose; then
         printf "\n  %s" "$CURRENT_TEST"
     else
         printf .
@@ -523,8 +523,8 @@ else
 fi
 echo
 
-VERBOSE=false
-[ "$1" = "-v" ] && { VERBOSE=true; shift; }
+[ -z "${VERBOSE:-}" ] && verbose=false || verbose=true
+[ "$1" = "-v" ] && { verbose=true; shift; }
 
 suites="$*"
 if [ -z "$suites" ]; then

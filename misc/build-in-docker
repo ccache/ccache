@@ -48,5 +48,6 @@ docker run --rm \
     --env NO_TEST="${NO_TEST:-}" \
     --env SCAN_BUILD="${SCAN_BUILD:-}" \
     --env SPECIAL="${SPECIAL:-}" \
+    --env VERBOSE="${VERBOSE:-}" \
     "$tag" \
     /source/ci/build "$@"
