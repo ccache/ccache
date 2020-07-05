@@ -307,6 +307,7 @@ TEST() {
 $(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
 EOF
     unset GCC_COLORS
+    unset TERM
 
     export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
     export CCACHE_DETECT_SHEBANG=1

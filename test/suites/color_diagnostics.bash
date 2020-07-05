@@ -30,6 +30,7 @@ SUITE_color_diagnostics_SETUP() {
     fi
 
     unset GCC_COLORS
+    export TERM=vt100
 }
 
 color_diagnostics_expect_color() {
