@@ -21,7 +21,7 @@ fi
 name=${1}
 shift
 
-tag="ccache-build:$name-1"
+tag="ccache-build:$name"
 
 # Build (if not exists):
 docker build -t "$tag" "dockerfiles/$name"
