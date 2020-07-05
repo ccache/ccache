@@ -105,6 +105,7 @@ Common options:
 
 Options for scripting or debugging:
         --dump-manifest PATH  dump manifest file at PATH in text format
+        --dump-result PATH    dump result file at PATH in text format
     -k, --get-config KEY      print the value of configuration key KEY
         --hash-file PATH      print the hash (160 bit BLAKE3) of the file at
                               PATH

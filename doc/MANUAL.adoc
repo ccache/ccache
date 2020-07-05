@@ -162,6 +162,11 @@ Options for scripting or debugging
     Dump manifest file at _PATH_ in text format. This is only useful when
     debugging ccache and its behavior.
 
+*`--dump-result`* _PATH_::
+
+    Dump result file at _PATH_ in text format. This is only useful when
+    debugging ccache and its behavior.
+
 *`-k`* _KEY_, *`--get-config`* _KEY_::
 
     Print the value of configuration option _KEY_. See
