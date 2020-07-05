@@ -35,18 +35,18 @@ docker run --rm \
     --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
     --tmpfs /builddir:rw,exec \
     --workdir /builddir \
+    --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
+    --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
     --env CC="${CC:-}" \
+    --env CCACHE_DIR=/ccache \
+    --env CCACHE_LOC="/source" \
     --env CFLAGS="${CFLAGS:-}" \
+    --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
     --env CXX="${CXX:-}" \
     --env CXXFLAGS="${CXXFLAGS:-}" \
     --env LDFLAGS="${LDFLAGS:-}" \
-    --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
-    --env CCACHE_LOC="/source" \
-    --env SPECIAL="${SPECIAL:-}" \
-    --env SCAN_BUILD="${SCAN_BUILD:-}" \
-    --env CMAKE_PARAMS="${CMAKE_PARAMS:-}" \
-    --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
     --env NO_TEST="${NO_TEST:-}" \
-    --env CCACHE_DIR=/ccache \
+    --env SCAN_BUILD="${SCAN_BUILD:-}" \
+    --env SPECIAL="${SPECIAL:-}" \
     "$tag" \
     /source/ci/build "$@"
