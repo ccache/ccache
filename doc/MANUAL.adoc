@@ -159,13 +159,19 @@ Options for scripting or debugging
 
 *`--dump-manifest`* _PATH_::
 
-    Dump manifest file at _PATH_ in text format. This is only useful when
-    debugging ccache and its behavior.
+    Dump manifest file at _PATH_ in text format to standard output. This is
+    only useful when debugging ccache and its behavior.
 
 *`--dump-result`* _PATH_::
 
-    Dump result file at _PATH_ in text format. This is only useful when
-    debugging ccache and its behavior.
+    Dump result file at _PATH_ in text format to standard output. This is only
+    useful when debugging ccache and its behavior.
+
+*`--extract-result`* _PATH_::
+
+    Extract data stored in the result file at _PATH_. The data will be written
+    to *ccache-result.** files in to the current working directory. This is
+    only useful when debugging ccache and its behavior.
 
 *`-k`* _KEY_, *`--get-config`* _KEY_::
 

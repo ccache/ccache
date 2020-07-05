@@ -25,11 +25,11 @@
 
 class Context;
 
-// This class retrieves a result entry to the local file system.
-class ResultRetriever : public Result::Reader::Consumer
+// This class extracts the parts of a result entry to a directory.
+class ResultExtractor : public Result::Reader::Consumer
 {
 public:
-  ResultRetriever(Context& ctx);
+  ResultExtractor(const std::string& directory);
 
   virtual void on_header(CacheEntryReader& cache_entry_reader);
   virtual void on_entry_start(uint32_t entry_number,
@@ -40,10 +40,7 @@ public:
   virtual void on_entry_end();
 
 private:
-  Context& m_ctx;
-  bool m_dest_stderr = false;
-  Result::FileType m_dest_file_type;
+  const std::string m_directory;
   Fd m_dest_fd;
   std::string m_dest_path;
-  std::string m_stderr_text;
 };

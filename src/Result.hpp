@@ -34,6 +34,7 @@ namespace Result {
 
 extern const uint8_t k_magic[4];
 extern const uint8_t k_version;
+extern const char* const k_unknown_file_type;
 
 using UnderlyingFileTypeInt = uint8_t;
 enum class FileType : UnderlyingFileTypeInt {

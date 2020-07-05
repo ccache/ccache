@@ -18,6 +18,7 @@ set(
   ProgressBar.cpp
   Result.cpp
   ResultDumper.cpp
+  ResultExtractor.cpp
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp

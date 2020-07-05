@@ -30,6 +30,7 @@
 #include "ProgressBar.hpp"
 #include "Result.hpp"
 #include "ResultDumper.hpp"
+#include "ResultExtractor.hpp"
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
 #include "StdMakeUnique.hpp"
@@ -108,6 +109,8 @@ Common options:
 Options for scripting or debugging:
         --dump-manifest PATH  dump manifest file at PATH in text format
         --dump-result PATH    dump result file at PATH in text format
+        --extract-result PATH extract data stored in result file at PATH to the
+                              current working directory
     -k, --get-config KEY      print the value of configuration key KEY
         --hash-file PATH      print the hash (160 bit BLAKE3) of the file at
                               PATH
@@ -2189,6 +2192,7 @@ handle_main_options(int argc, const char* const* argv)
   enum longopts {
     DUMP_MANIFEST,
     DUMP_RESULT,
+    EXTRACT_RESULT,
     HASH_FILE,
     PRINT_STATS,
   };
@@ -2197,6 +2201,7 @@ handle_main_options(int argc, const char* const* argv)
     {"clear", no_argument, nullptr, 'C'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
+    {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
     {"get-config", required_argument, nullptr, 'k'},
     {"hash-file", required_argument, nullptr, HASH_FILE},
     {"help", no_argument, nullptr, 'h'},
@@ -2230,6 +2235,16 @@ handle_main_options(int argc, const char* const* argv)
       ResultDumper result_dumper(stdout);
       Result::Reader result_reader(optarg);
       auto error = result_reader.read(result_dumper);
+      if (error) {
+        fmt::print(stderr, "Error: {}\n", *error);
+      }
+      return error ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
+
+    case EXTRACT_RESULT: {
+      ResultExtractor result_extractor(".");
+      Result::Reader result_reader(optarg);
+      auto error = result_reader.read(result_extractor);
       if (error) {
         fmt::print(stderr, "Error: {}\n", *error);
       }

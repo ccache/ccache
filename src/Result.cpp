@@ -140,6 +140,7 @@ namespace Result {
 
 const uint8_t k_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_version = 1;
+const char* const k_unknown_file_type = "<unknown type>";
 
 const char*
 file_type_to_string(FileType type)
@@ -167,7 +168,7 @@ file_type_to_string(FileType type)
     return ".dwo";
   }
 
-  return "<unknown type>";
+  return k_unknown_file_type;
 }
 
 Result::Reader::Reader(const std::string& result_path)
