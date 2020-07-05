@@ -11,15 +11,12 @@ fi
 if [ -n "${SPECIAL:-}" ]; then
     exec "ci/$SPECIAL"
 else
-    [ -z ${JOBS+x} ] && JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null)
-    [ -z ${JOBS+x} ] && JOBS=2
+    [ -z ${JOBS:+x} ] && JOBS=$(getconf _NPROCESSORS_ONLN 2>/dev/null)
+    [ -z ${JOBS:+x} ] && JOBS=2
 
     mkdir -p ${BUILDDIR:-build}
     cd ${BUILDDIR:-build}
     ${CMAKE_PREFIX:-} cmake ${CMAKE_PARAMS:-} ${CCACHE_LOC:-..}
-    # 4 jobs seem to be a reasonable default for Travis.
-    ${CMAKE_PREFIX:-} cmake --build . ${BUILDEXTRAFLAGS:-} -- -j${JOBS}
-    # Warning: Rare random failures when running with -j4.
-    [ "${RUN_TESTS:-1}" -ne "1" ] || ctest --output-on-failure -j${JOBS} "$@"
+    ${CMAKE_PREFIX:-} cmake --build . ${BUILDEXTRAFLAGS:-} -- -j$JOBS
+    [ "${RUN_TESTS:-1}" -ne "1" ] || ctest --output-on-failure -j$JOBS "$@"
 fi
-exit 0
