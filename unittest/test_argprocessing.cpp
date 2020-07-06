@@ -27,7 +27,7 @@
 
 #include "third_party/doctest.h"
 
-#include <iostream>
+#include <vector>
 
 using TestUtil::TestContext;
 
@@ -712,18 +712,26 @@ TEST_CASE("ignore_options")
   Context ctx;
 
   ctx.orig_args = Args::from_string(
-    "cc -c foo.c -fmessage-length=20 -Wall -Werror -ignored-option -g");
-  ctx.ignore_options =
-    Util::split_into_strings("-fmessage-length=* -ignored-option", " ");
-  Args exp_cpp = Args::from_string("cc -Wall -g");
+    "cc -c foo.c -fmessage-length=20 -Wall -Werror -ignored-option"
+    " -has-value1=40 -has-value2=50 -g");
+  ctx.set_ignore_options(Util::split_into_strings(
+    "-fmessage-length=* -ignored-option -not*valid -also*not*valid*"
+    " -has-value1=2* -has-value2=30",
+    " "));
+  Args exp_cpp = Args::from_string("cc -Wall -has-value1=40 -has-value2=50 -g");
   Args exp_extra = Args::from_string(" -Werror");
-  Args exp_cc = Args::from_string("cc -Wall -g -Werror -c");
+  Args exp_cc = Args::from_string(
+    "cc -Wall -has-value1=40 -has-value2=50"
+    " -g -Werror -c");
+  std::vector<std::string> exp_ignore_options = Util::split_into_strings(
+    "-fmessage-length=* -ignored-option -has-value1=2* -has-value2=30", " ");
   Args act_cpp;
   Args act_extra;
   Args act_cc;
 
   Util::write_file("foo.c", "");
   CHECK(!process_args(ctx, act_cpp, act_extra, act_cc));
+  CHECK(ctx.ignore_options() == exp_ignore_options);
   CHECK(exp_cpp == act_cpp);
   CHECK(exp_extra == act_extra);
   CHECK(exp_cc == act_cc);

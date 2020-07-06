@@ -1847,8 +1847,8 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
   ctx.orig_args = Args::from_argv(argc, argv);
   ctx.ignore_header_paths = Util::split_into_strings(
     ctx.config.ignore_headers_in_manifest(), PATH_DELIM);
-  ctx.ignore_options = Util::split_into_strings(
-      ctx.config.ignore_options(), " ");
+  ctx.set_ignore_options(Util::split_into_strings(
+      ctx.config.ignore_options(), " "));
 }
 
 // Initialize ccache, must be called once before anything else is run.
