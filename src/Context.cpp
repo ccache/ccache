@@ -124,7 +124,7 @@ Context::unlink_pending_tmp_files()
 }
 
 void
-Context::set_ignore_options(const std::vector<std::string> options)
+Context::set_ignore_options(const std::vector<std::string>& options)
 {
   for (const std::string& option : options) {
     std::size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');

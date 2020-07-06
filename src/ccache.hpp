@@ -23,6 +23,7 @@
 
 #include "Args.hpp"
 #include "Counters.hpp"
+#include "Digest.hpp"
 #include "stats.hpp"
 
 #include "third_party/nonstd/optional.hpp"
@@ -62,3 +63,11 @@ enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 void block_signals();
 void unblock_signals();
 bool is_precompiled_header(const char* path);
+
+bool
+option_should_be_ignored(const std::string& arg,
+                         const std::vector<std::string>& ignore_options);
+
+nonstd::optional<Digest>
+calculate_result_name(Context& ctx, const Args& args, Args& preprocessor_args,
+                      struct hash* hash, bool direct_mode);

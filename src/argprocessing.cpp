@@ -200,19 +200,6 @@ add_extra_arg(Context& ctx, const std::string& arg)
   }
 }
 
-bool
-shouldBeIgnoredForCache(const std::string& arg,
-                        const std::vector<std::string> ignored_options)
-{
-  for (const std::string& option : ignored_options) {
-    if (option == arg || (Util::ends_with(option, "*") &&
-          Util::starts_with(arg, option.substr(0, option.length() - 1)))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 
 optional<enum stats>
 process_arg(Context& ctx,
@@ -233,11 +220,6 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
     state.common_args.push_back(args[i]);
-    return nullopt;
-  }
-
-  if (shouldBeIgnoredForCache(args[i], ctx.ignore_options())) {
-    cc_log("Skipping ignored argument: %s", args[i].c_str());
     return nullopt;
   }
 

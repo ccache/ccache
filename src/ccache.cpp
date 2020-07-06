@@ -58,6 +58,7 @@
 #endif
 
 #include <limits>
+#include <algorithm>
 
 using nonstd::nullopt;
 using nonstd::optional;
@@ -1374,10 +1375,23 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
   return found;
 }
 
+bool
+option_should_be_ignored(const std::string& arg,
+                         const std::vector<std::string>& ignore_options)
+{
+  auto pred = [&arg](const std::string& option)
+  {
+    const auto& prefix = string_view(option).substr(0, option.length() - 1);
+    return (option == arg ||
+            (Util::ends_with(option, "*") && Util::starts_with(arg, prefix)));
+  };
+  return std::any_of(ignore_options.cbegin(), ignore_options.cend(), pred);
+}
+
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
-static optional<Digest>
+optional<Digest>
 calculate_result_name(Context& ctx,
                       const Args& args,
                       Args& preprocessor_args,
@@ -1401,6 +1415,16 @@ calculate_result_name(Context& ctx,
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
+    // Trust the user if they've said we should not hash a given option.
+    if (option_should_be_ignored(args[i], ctx.ignore_options())) {
+      cc_log("Skipping ignored argument: %s", args[i].c_str());
+      if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+        i++;
+        cc_log("Not hashing argument of ignored option: %s", args[i].c_str());
+      }
+      continue;
+    }
+
     // -L doesn't affect compilation (except for clang).
     if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
       i++;
@@ -1534,10 +1558,12 @@ calculate_result_name(Context& ctx,
     // All other arguments are included in the hash.
     hash_delimiter(hash, "arg");
     hash_string(hash, args[i]);
+    ctx.hashed_args.push_back(args[i]);
     if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
       i++;
       hash_delimiter(hash, "arg");
       hash_string(hash, args[i]);
+      ctx.hashed_args.push_back(args[i]);
     }
   }
 
@@ -1628,6 +1654,7 @@ calculate_result_name(Context& ctx,
     }
 
     ctx.set_manifest_name(hash_result(hash));
+    cc_log("Hashed command line: %s", ctx.hashed_args.to_string().c_str());
 
     cc_log("Looking for result name in %s", ctx.manifest_path().c_str());
     MTR_BEGIN("manifest", "manifest_get");
