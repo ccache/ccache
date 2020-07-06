@@ -30,7 +30,7 @@ class AtomicFile
 public:
   enum class Mode { binary, text };
 
-  AtomicFile(const std::string& destination_path, Mode mode);
+  AtomicFile(const std::string& path, Mode mode);
   ~AtomicFile();
 
   FILE* stream();
