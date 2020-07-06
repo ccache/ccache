@@ -23,6 +23,7 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
+using Result::FileType;
 using string_view = nonstd::string_view;
 
 ResultRetriever::ResultRetriever(Context& ctx) : m_ctx(ctx)
@@ -36,7 +37,7 @@ ResultRetriever::on_header(CacheEntryReader& /*cache_entry_reader*/)
 
 void
 ResultRetriever::on_entry_start(uint32_t entry_number,
-                                Result::FileType file_type,
+                                FileType file_type,
                                 uint64_t file_len,
                                 nonstd::optional<std::string> raw_file)
 {
@@ -45,47 +46,44 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   m_dest_file_type = file_type;
 
   switch (file_type) {
-  case Result::FileType::object:
+  case FileType::object:
     dest_path = m_ctx.args_info.output_obj;
     break;
 
-  case Result::FileType::dependency:
+  case FileType::dependency:
     if (m_ctx.args_info.generating_dependencies) {
       dest_path = m_ctx.args_info.output_dep;
     }
     break;
 
-  case Result::FileType::stderr_output:
-    m_dest_stderr = true;
+  case FileType::stderr_output:
     return;
 
-  case Result::FileType::coverage:
+  case FileType::coverage:
     if (m_ctx.args_info.generating_coverage) {
       dest_path = m_ctx.args_info.output_cov;
     }
     break;
 
-  case Result::FileType::stackusage:
+  case FileType::stackusage:
     if (m_ctx.args_info.generating_stackusage) {
       dest_path = m_ctx.args_info.output_su;
     }
     break;
 
-  case Result::FileType::diagnostic:
+  case FileType::diagnostic:
     if (m_ctx.args_info.generating_diagnostics) {
       dest_path = m_ctx.args_info.output_dia;
     }
     break;
 
-  case Result::FileType::dwarf_object:
+  case FileType::dwarf_object:
     if (m_ctx.args_info.seen_split_dwarf
         && m_ctx.args_info.output_obj != "/dev/null") {
       dest_path = m_ctx.args_info.output_dwo;
     }
     break;
   }
-
-  m_dest_stderr = false;
 
   if (dest_path.empty()) {
     cc_log("Not copying");
@@ -120,9 +118,10 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
 void
 ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 {
-  assert((m_dest_stderr && !m_dest_fd) || (!m_dest_stderr && m_dest_fd));
+  assert((m_dest_file_type == FileType::stderr_output && !m_dest_fd)
+         || (m_dest_file_type != FileType::stderr_output && m_dest_fd));
 
-  if (m_dest_stderr) {
+  if (m_dest_file_type == FileType::stderr_output) {
     m_stderr_text.append(reinterpret_cast<const char*>(data), size);
   } else if (!write_fd(*m_dest_fd, data, size)) {
     throw Error(fmt::format("Failed to write to {}", m_dest_path));
@@ -132,7 +131,7 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 void
 ResultRetriever::on_entry_end()
 {
-  if (m_dest_stderr) {
+  if (m_dest_file_type == FileType::stderr_output) {
     Util::send_to_stderr(m_stderr_text,
                          m_ctx.args_info.strip_diagnostics_colors);
   } else if (m_dest_fd) {

@@ -41,7 +41,6 @@ public:
 
 private:
   Context& m_ctx;
-  bool m_dest_stderr = false;
   Result::FileType m_dest_file_type;
   Fd m_dest_fd;
   std::string m_dest_path;
