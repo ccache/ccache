@@ -52,8 +52,8 @@ Checks:          '-*,
                   -clang-analyzer-valist.Uninitialized,
                   -clang-analyzer-optin.performance.Padding'
 WarningsAsErrors: '*'
-# Exclude subdirectories (currently there is only third_party)
-HeaderFilterRegex: 'src/[^\\/]*^'
+# Only include headers directly in src.
+HeaderFilterRegex: 'src/[^/]*$'
 CheckOptions:
   # Always add braces (added here just in case clang-tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
