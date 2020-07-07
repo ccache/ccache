@@ -89,8 +89,10 @@ Common options:
                               (normally not needed as this is done
                               automatically)
     -C, --clear               clear the cache completely (except configuration)
-        --evict-older-than N  delete files older than N seconds (this will not
-                              take max_files, max_size into consideration)
+        --evict-older-than N  delete files older than N (days/seconds) (this will not
+                              take max_files, max_size into consideration).
+                              N should be an unsigned number with an optional suffix:
+                              d(ays)/s(econds). Default being d(ays).
     -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
                               for no limit)
     -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 for no
