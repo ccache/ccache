@@ -104,9 +104,9 @@ private:
   std::vector<std::pair<FileType, std::string>> m_entries_to_write;
 
   void do_finalize();
-  void write_embedded_file_entry(CacheEntryWriter& writer,
-                                 const std::string& path,
-                                 uint64_t file_size);
+  static void write_embedded_file_entry(CacheEntryWriter& writer,
+                                        const std::string& path,
+                                        uint64_t file_size);
   void write_raw_file_entry(const std::string& path, uint32_t entry_number);
 };
 
