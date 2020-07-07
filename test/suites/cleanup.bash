@@ -195,6 +195,6 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 1
 
     backdate $CCACHE_DIR/a/now.result
-    $CCACHE --evict-older-than 1s  >/dev/null
+    $CCACHE --evict-older-than 10s  >/dev/null
     expect_stat 'files in cache' 0
 }

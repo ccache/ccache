@@ -766,4 +766,16 @@ TEST_CASE("Util::wipe_path")
   }
 }
 
+TEST_CASE("Util::parse_duration_with_suffix_to_seconds")
+{
+  CHECK(Util::parse_duration_with_suffix_to_seconds("0") == 0);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("2s") == 2);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("1") == 3600 * 24);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("2") == 2 * 3600 * 24);
+  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("-2"),
+                    "invalid unsigned integer: \"-2\"");
+  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("2x"),
+                    "Invalid suffix, Supported: d(ay)/s(econd): \"2x\"");
+}
+
 TEST_SUITE_END();
