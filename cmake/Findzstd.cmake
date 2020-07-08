@@ -6,7 +6,7 @@ if(ZSTD_FROM_INTERNET)
   # Although ${zstd_FIND_VERSION} was requested, let's download a newer version.
   # Note: The directory structure has changed in 1.3.0; we only support 1.3.0
   # and newer.
-  set(zstd_version "1.4.4")
+  set(zstd_version "1.4.5")
   set(zstd_url https://github.com/facebook/zstd/archive/v${zstd_version}.tar.gz)
 
   set(zstd_dir ${CMAKE_BINARY_DIR}/zstd-${zstd_version})
@@ -27,7 +27,7 @@ if(ZSTD_FROM_INTERNET)
   set_target_properties(
     libzstd_static
     PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${zstd_dir}/lib")
+    INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${zstd_dir}/lib>")
 
   set(zstd_FOUND TRUE)
 else()
