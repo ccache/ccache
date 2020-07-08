@@ -8,6 +8,7 @@ set(
   test_Compression.cpp
   test_Config.cpp
   test_FormatNonstdStringView.cpp
+  test_Hash.cpp
   test_Lockfile.cpp
   test_NullCompression.cpp
   test_Stat.cpp
@@ -15,7 +16,6 @@ set(
   test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_compopt.cpp
-  test_hash.cpp
   test_hashutil.cpp
   test_legacy_util.cpp)
 

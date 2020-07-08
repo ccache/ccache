@@ -11,6 +11,7 @@ set(
   Context.cpp
   Counters.cpp
   Decompressor.cpp
+  Hash.cpp
   Lockfile.cpp
   MiniTrace.cpp
   NullCompressor.cpp
@@ -32,7 +33,6 @@ set(
   compopt.cpp
   compress.cpp
   execute.cpp
-  hash.cpp
   hashutil.cpp
   language.cpp
   legacy_util.cpp

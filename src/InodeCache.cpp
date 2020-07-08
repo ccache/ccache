@@ -21,10 +21,10 @@
 #include "Config.hpp"
 #include "Fd.hpp"
 #include "Finalizer.hpp"
+#include "Hash.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
-#include "hash.hpp"
 #include "logging.hpp"
 
 #include <atomic>
@@ -195,7 +195,9 @@ InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
 #endif
   key.st_size = stat.size();
 
-  digest = hash_buffer_once(&key, sizeof(Key));
+  Hash hash;
+  hash.hash(&key, sizeof(Key));
+  digest = hash.digest();
   return true;
 }
 

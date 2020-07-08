@@ -21,6 +21,7 @@
 #include "Args.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Hash.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
@@ -192,11 +193,8 @@ check_for_temporal_macros(const char* str, size_t len)
 
 // Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int
-hash_source_code_string(const Context& ctx,
-                        struct hash* hash,
-                        const char* str,
-                        size_t len,
-                        const char* path)
+hash_source_code_string(
+  const Context& ctx, Hash& hash, const char* str, size_t len, const char* path)
 {
   int result = HASH_SOURCE_CODE_OK;
 
@@ -207,7 +205,7 @@ hash_source_code_string(const Context& ctx,
   }
 
   // Hash the source string.
-  hash_string_buffer(hash, str, len);
+  hash.hash(str, len);
 
   if (result & HASH_SOURCE_CODE_FOUND_DATE) {
     cc_log("Found __DATE__ in %s", path);
@@ -216,13 +214,13 @@ hash_source_code_string(const Context& ctx,
     // __DATE__ changes.
     time_t t = time(nullptr);
     struct tm now;
-    hash_delimiter(hash, "date");
+    hash.hash_delimiter("date");
     if (!localtime_r(&t, &now)) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    hash_int(hash, now.tm_year);
-    hash_int(hash, now.tm_mon);
-    hash_int(hash, now.tm_mday);
+    hash.hash(now.tm_year);
+    hash.hash(now.tm_mon);
+    hash.hash(now.tm_mday);
   }
   if (result & HASH_SOURCE_CODE_FOUND_TIME) {
     // We don't know for sure that the program actually uses the __TIME__
@@ -245,7 +243,7 @@ hash_source_code_string(const Context& ctx,
 
     time_t t = stat.mtime();
     tm modified;
-    hash_delimiter(hash, "timestamp");
+    hash.hash_delimiter("timestamp");
     if (!localtime_r(&t, &modified)) {
       return HASH_SOURCE_CODE_ERROR;
     }
@@ -259,7 +257,7 @@ hash_source_code_string(const Context& ctx,
     if (!timestamp) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    hash_string(hash, timestamp);
+    hash.hash(timestamp);
   }
 
   return result;
@@ -267,13 +265,13 @@ hash_source_code_string(const Context& ctx,
 
 static int
 hash_source_code_file_nocache(const Context& ctx,
-                              struct hash* hash,
+                              Hash& hash,
                               const char* path,
                               size_t size_hint,
                               bool is_precompiled)
 {
   if (is_precompiled) {
-    if (hash_file(hash, path)) {
+    if (hash.hash_file(path)) {
       return HASH_SOURCE_CODE_OK;
     } else {
       return HASH_SOURCE_CODE_ERROR;
@@ -308,7 +306,7 @@ get_content_type(const Config& config, const char* path)
 // results.
 int
 hash_source_code_file(const Context& ctx,
-                      struct hash* hash,
+                      Hash& hash,
                       const char* path,
                       size_t size_hint)
 {
@@ -328,7 +326,7 @@ hash_source_code_file(const Context& ctx,
   Digest digest;
   int return_value;
   if (!ctx.inode_cache.get(path, content_type, digest, &return_value)) {
-    struct hash* file_hash = hash_init();
+    Hash file_hash;
     return_value = hash_source_code_file_nocache(
       ctx,
       file_hash,
@@ -338,11 +336,10 @@ hash_source_code_file(const Context& ctx,
     if (return_value == HASH_SOURCE_CODE_ERROR) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    digest = hash_result(file_hash);
-    hash_free(file_hash);
+    digest = file_hash.digest();
     ctx.inode_cache.put(path, content_type, digest, return_value);
   }
-  hash_buffer(hash, digest.bytes(), Digest::size());
+  hash.hash(digest.bytes(), Digest::size(), Hash::HashType::binary);
   return return_value;
 #endif
 }
@@ -351,10 +348,10 @@ hash_source_code_file(const Context& ctx,
 //
 // Returns true on success, otherwise false.
 bool
-hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
+hash_binary_file(const Context& ctx, Hash& hash, const char* path)
 {
   if (!ctx.config.inode_cache()) {
-    return hash_file(hash, path);
+    return hash.hash_file(path);
   }
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -363,25 +360,22 @@ hash_binary_file(const Context& ctx, struct hash* hash, const char* path)
   // add the digest into the outer hash instead.
   Digest digest;
   if (!ctx.inode_cache.get(path, InodeCache::ContentType::binary, digest)) {
-    struct hash* file_hash = hash_init();
-    if (!hash_file(file_hash, path)) {
+    Hash file_hash;
+    if (!file_hash.hash_file(path)) {
       return false;
     }
-    digest = hash_result(file_hash);
-    hash_free(file_hash);
+    digest = file_hash.digest();
     ctx.inode_cache.put(path, InodeCache::ContentType::binary, digest);
   }
-  hash_buffer(hash, digest.bytes(), Digest::size());
+  hash.hash(digest.bytes(), Digest::size(), Hash::HashType::binary);
   return true;
 #else
-  return hash_file(hash, path);
+  return hash.hash_file(path);
 #endif
 }
 
 bool
-hash_command_output(struct hash* hash,
-                    const char* command,
-                    const char* compiler)
+hash_command_output(Hash& hash, const char* command, const char* compiler)
 {
 #ifdef _WIN32
   // Trim leading space.
@@ -461,7 +455,7 @@ hash_command_output(struct hash* hash,
     return false;
   }
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
-  bool ok = hash_fd(hash, fd);
+  bool ok = hash.hash_fd(fd);
   if (!ok) {
     cc_log("Error hashing compiler check command output: %s", strerror(errno));
   }
@@ -498,7 +492,7 @@ hash_command_output(struct hash* hash,
   } else {
     // Parent.
     close(pipefd[1]);
-    bool ok = hash_fd(hash, pipefd[0]);
+    bool ok = hash.hash_fd(pipefd[0]);
     if (!ok) {
       cc_log("Error hashing compiler check command output: %s",
              strerror(errno));
@@ -520,9 +514,7 @@ hash_command_output(struct hash* hash,
 }
 
 bool
-hash_multicommand_output(struct hash* hash,
-                         const char* commands,
-                         const char* compiler)
+hash_multicommand_output(Hash& hash, const char* commands, const char* compiler)
 {
   bool ok = true;
   for (const std::string& cmd : Util::split_into_strings(commands, ";")) {

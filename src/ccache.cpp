@@ -24,8 +24,8 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "File.hpp"
-#include "Finalizer.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "Hash.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
 #include "Result.hpp"
@@ -41,7 +41,6 @@
 #include "compress.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
-#include "hash.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
 #include "logging.hpp"
@@ -205,7 +204,7 @@ clean_up_internal_tempdir(const Config& config)
 
 static void
 init_hash_debug(Context& ctx,
-                struct hash* hash,
+                Hash& hash,
                 const char* obj_path,
                 char type,
                 const char* section_name,
@@ -218,8 +217,7 @@ init_hash_debug(Context& ctx,
   std::string path = fmt::format("{}.ccache-input-{}", obj_path, type);
   File debug_binary_file(path, "wb");
   if (debug_binary_file) {
-    hash_enable_debug(
-      hash, section_name, debug_binary_file.get(), debug_text_file);
+    hash.enable_debug(section_name, debug_binary_file.get(), debug_text_file);
     ctx.hash_debug_files.push_back(std::move(debug_binary_file));
   } else {
     cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
@@ -247,9 +245,9 @@ guess_compiler(const char* path)
 static bool
 do_remember_include_file(Context& ctx,
                          std::string path,
-                         struct hash* cpp_hash,
+                         Hash& cpp_hash,
                          bool system,
-                         struct hash* depend_mode_hash)
+                         Hash* depend_mode_hash)
 {
   bool is_pch = false;
 
@@ -326,8 +324,7 @@ do_remember_include_file(Context& ctx,
   }
 
   // Let's hash the include file content.
-  struct hash* fhash = hash_init();
-  Finalizer fhash_finalizer([=] { hash_free(fhash); });
+  Hash fhash;
 
   is_pch = is_precompiled_header(path.c_str());
   if (is_pch) {
@@ -349,8 +346,8 @@ do_remember_include_file(Context& ctx,
     if (!hash_binary_file(ctx, fhash, path.c_str())) {
       return false;
     }
-    hash_delimiter(cpp_hash, using_pch_sum ? "pch_sum_hash" : "pch_hash");
-    hash_string(cpp_hash, hash_result(fhash).to_string());
+    cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
+    cpp_hash.hash(fhash.digest().to_string());
   }
 
   if (ctx.config.direct_mode()) {
@@ -362,12 +359,12 @@ do_remember_include_file(Context& ctx,
       }
     }
 
-    Digest d = hash_result(fhash);
+    Digest d = fhash.digest();
     ctx.included_files.emplace(path, d);
 
     if (depend_mode_hash) {
-      hash_delimiter(depend_mode_hash, "include");
-      hash_string(depend_mode_hash, d.to_string());
+      depend_mode_hash->hash_delimiter("include");
+      depend_mode_hash->hash(d.to_string());
     }
   }
 
@@ -380,9 +377,9 @@ do_remember_include_file(Context& ctx,
 static void
 remember_include_file(Context& ctx,
                       const std::string& path,
-                      struct hash* cpp_hash,
+                      Hash& cpp_hash,
                       bool system,
-                      struct hash* depend_mode_hash)
+                      Hash* depend_mode_hash)
 {
   if (!do_remember_include_file(ctx, path, cpp_hash, system, depend_mode_hash)
       && ctx.config.direct_mode()) {
@@ -407,10 +404,7 @@ print_included_files(const Context& ctx, FILE* fp)
 // - Stores the paths and hashes of included files in the global variable
 //   g_included_files.
 static bool
-process_preprocessed_file(Context& ctx,
-                          struct hash* hash,
-                          const char* path,
-                          bool pump)
+process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
 {
   char* data;
   size_t size;
@@ -461,7 +455,7 @@ process_preprocessed_file(Context& ctx,
         if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
           // Bogus extra line with #31, after the regular #1: Ignore the whole
           // line, and continue parsing.
-          hash_string_buffer(hash, p, q - p);
+          hash.hash(p, q - p);
           while (q < end && *q != '\n') {
             q++;
           }
@@ -471,7 +465,7 @@ process_preprocessed_file(Context& ctx,
         } else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
           // Bogus wrong line with #32, instead of regular #1: Replace the line
           // number with the usual one.
-          hash_string_buffer(hash, p, q - p);
+          hash.hash(p, q - p);
           q += 1;
           q[0] = '#';
           q[1] = ' ';
@@ -494,7 +488,7 @@ process_preprocessed_file(Context& ctx,
         return false;
       }
       // q points to the beginning of an include file path
-      hash_string_buffer(hash, p, q - p);
+      hash.hash(p, q - p);
       p = q;
       while (q < end && *q != '"') {
         q++;
@@ -532,7 +526,7 @@ process_preprocessed_file(Context& ctx,
         }
       }
       if (should_hash_inc_path) {
-        hash_string_buffer(hash, inc_path, strlen(inc_path));
+        hash.hash(inc_path);
       }
 
       remember_include_file(ctx, inc_path, hash, system, nullptr);
@@ -566,7 +560,7 @@ process_preprocessed_file(Context& ctx,
     }
   }
 
-  hash_string_buffer(hash, p, (end - p));
+  hash.hash(p, (end - p));
   free(data);
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
@@ -574,7 +568,7 @@ process_preprocessed_file(Context& ctx,
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
-    hash_string(hash, pch_path);
+    hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
 
@@ -663,7 +657,7 @@ use_relative_paths_in_depfile(const Context& ctx)
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static optional<Digest>
-result_name_from_depfile(Context& ctx, struct hash* hash)
+result_name_from_depfile(Context& ctx, Hash& hash)
 {
   std::string file_content;
   try {
@@ -683,7 +677,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
       ctx.has_absolute_include_headers = Util::is_absolute_path(token);
     }
     std::string path = Util::make_relative_path(ctx, token);
-    remember_include_file(ctx, path, hash, false, hash);
+    remember_include_file(ctx, path, hash, false, &hash);
   }
 
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
@@ -691,7 +685,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
   if (!ctx.included_pch_file.empty()) {
     std::string pch_path =
       Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
-    hash_string(hash, pch_path);
+    hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
 
@@ -700,7 +694,7 @@ result_name_from_depfile(Context& ctx, struct hash* hash)
     print_included_files(ctx, stdout);
   }
 
-  return hash_result(hash);
+  return hash.digest();
 }
 
 // Execute the compiler/preprocessor, with logic to retry without requesting
@@ -819,7 +813,7 @@ static void
 to_cache(Context& ctx,
          Args& args,
          Args& depend_extra_args,
-         struct hash* depend_mode_hash)
+         Hash* depend_mode_hash)
 {
   args.push_back("-o");
   args.push_back(ctx.args_info.output_obj);
@@ -933,7 +927,8 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.depend_mode()) {
-    auto result_name = result_name_from_depfile(ctx, depend_mode_hash);
+    assert(depend_mode_hash);
+    auto result_name = result_name_from_depfile(ctx, *depend_mode_hash);
     if (!result_name) {
       failed(STATS_ERROR);
     }
@@ -1034,7 +1029,7 @@ to_cache(Context& ctx,
 // Find the result name by running the compiler in preprocessor mode and
 // hashing the result.
 static Digest
-get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
+get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 {
   ctx.time_of_compilation = time(nullptr);
 
@@ -1085,13 +1080,13 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     failed(STATS_PREPROCESSOR);
   }
 
-  hash_delimiter(hash, "cpp");
+  hash.hash_delimiter("cpp");
   bool is_pump = ctx.guessed_compiler == GuessedCompiler::pump;
   if (!process_preprocessed_file(ctx, hash, stdout_path.c_str(), is_pump)) {
     failed(STATS_ERROR);
   }
 
-  hash_delimiter(hash, "cppstderr");
+  hash.hash_delimiter("cppstderr");
   if (!ctx.args_info.direct_i_file
       && !hash_binary_file(ctx, hash, stderr_path.c_str())) {
     // Somebody removed the temporary file?
@@ -1114,18 +1109,18 @@ get_result_name_from_cpp(Context& ctx, Args& args, struct hash* hash)
     // If we are using the CPP trick, we need to remember this stderr data and
     // output it just before the main stderr from the compiler pass.
     ctx.cpp_stderr = stderr_path;
-    hash_delimiter(hash, "runsecondcpp");
-    hash_string(hash, "false");
+    hash.hash_delimiter("runsecondcpp");
+    hash.hash("false");
   }
 
-  return hash_result(hash);
+  return hash.digest();
 }
 
 // Hash mtime or content of a file, or the output of a command, according to
 // the CCACHE_COMPILERCHECK setting.
 static void
 hash_compiler(const Context& ctx,
-              struct hash* hash,
+              Hash& hash,
               const Stat& st,
               const char* path,
               bool allow_command)
@@ -1133,14 +1128,14 @@ hash_compiler(const Context& ctx,
   if (ctx.config.compiler_check() == "none") {
     // Do nothing.
   } else if (ctx.config.compiler_check() == "mtime") {
-    hash_delimiter(hash, "cc_mtime");
-    hash_int(hash, st.size());
-    hash_int(hash, st.mtime());
+    hash.hash_delimiter("cc_mtime");
+    hash.hash(st.size());
+    hash.hash(st.mtime());
   } else if (Util::starts_with(ctx.config.compiler_check(), "string:")) {
-    hash_delimiter(hash, "cc_hash");
-    hash_string(hash, ctx.config.compiler_check().c_str() + strlen("string:"));
+    hash.hash_delimiter("cc_hash");
+    hash.hash(ctx.config.compiler_check().c_str() + strlen("string:"));
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
-    hash_delimiter(hash, "cc_content");
+    hash.hash_delimiter("cc_content");
     hash_binary_file(ctx, hash, path);
   } else { // command string
     if (!hash_multicommand_output(hash,
@@ -1160,7 +1155,7 @@ hash_compiler(const Context& ctx,
 // in PATH instead.
 static void
 hash_nvcc_host_compiler(const Context& ctx,
-                        struct hash* hash,
+                        Hash& hash,
                         const Stat* ccbin_st,
                         const char* ccbin)
 {
@@ -1209,15 +1204,15 @@ hash_nvcc_host_compiler(const Context& ctx,
 static void
 hash_common_info(const Context& ctx,
                  const Args& args,
-                 struct hash* hash,
+                 Hash& hash,
                  const ArgsInfo& args_info)
 {
-  hash_string(hash, HASH_PREFIX);
+  hash.hash(HASH_PREFIX);
 
   // We have to hash the extension, as a .i file isn't treated the same by the
   // compiler as a .ii file.
-  hash_delimiter(hash, "ext");
-  hash_string(hash, ctx.config.cpp_extension().c_str());
+  hash.hash_delimiter("ext");
+  hash.hash(ctx.config.cpp_extension().c_str());
 
 #ifdef _WIN32
   const char* ext = strrchr(args[0].c_str(), '.');
@@ -1239,9 +1234,8 @@ hash_common_info(const Context& ctx,
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
-  hash_delimiter(hash, "cc_name");
-  string_view base = Util::base_name(args[0]);
-  hash_string_view(hash, base);
+  hash.hash_delimiter("cc_name");
+  hash.hash(Util::base_name(args[0]));
 
   if (!(ctx.config.sloppiness() & SLOPPY_LOCALE)) {
     // Hash environment variables that may affect localization of compiler
@@ -1251,8 +1245,8 @@ hash_common_info(const Context& ctx,
     for (const char** p = envvars; *p; ++p) {
       char* v = getenv(*p);
       if (v) {
-        hash_delimiter(hash, *p);
-        hash_string(hash, v);
+        hash.hash_delimiter(*p);
+        hash.hash(v);
       }
     }
   }
@@ -1275,8 +1269,8 @@ hash_common_info(const Context& ctx,
       }
     }
     cc_log("Hashing CWD %s", dir_to_hash.c_str());
-    hash_delimiter(hash, "cwd");
-    hash_string(hash, dir_to_hash);
+    hash.hash_delimiter("cwd");
+    hash.hash(dir_to_hash);
   }
 
   if (ctx.args_info.generating_dependencies || ctx.args_info.seen_split_dwarf) {
@@ -1287,8 +1281,8 @@ hash_common_info(const Context& ctx,
     // target object filename when using -gsplit-dwarf, so hashing the object
     // file path will do it, although just hashing the object file base name
     // would be enough.
-    hash_delimiter(hash, "object file");
-    hash_string_view(hash, ctx.args_info.output_obj);
+    hash.hash_delimiter("object file");
+    hash.hash(ctx.args_info.output_obj);
   }
 
   // Possibly hash the coverage data file path.
@@ -1304,14 +1298,14 @@ hash_common_info(const Context& ctx,
       Util::remove_extension(Util::base_name(ctx.args_info.output_obj));
     std::string gcda_path = fmt::format("{}/{}.gcda", dir, stem);
     cc_log("Hashing coverage path %s", gcda_path.c_str());
-    hash_delimiter(hash, "gcda");
-    hash_string(hash, gcda_path);
+    hash.hash_delimiter("gcda");
+    hash.hash(gcda_path);
   }
 
   // Possibly hash the sanitize blacklist file path.
   for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist.c_str());
-    hash_delimiter(hash, "sanitizeblacklist");
+    hash.hash("sanitizeblacklist");
     if (!hash_binary_file(ctx, hash, sanitize_blacklist.c_str())) {
       failed(STATS_BADEXTRAFILE);
     }
@@ -1321,7 +1315,7 @@ hash_common_info(const Context& ctx,
     for (const std::string& path : Util::split_into_strings(
            ctx.config.extra_files_to_hash(), PATH_DELIM)) {
       cc_log("Hashing extra file %s", path.c_str());
-      hash_delimiter(hash, "extrafile");
+      hash.hash_delimiter("extrafile");
       if (!hash_binary_file(ctx, hash, path.c_str())) {
         failed(STATS_BADEXTRAFILE);
       }
@@ -1332,14 +1326,14 @@ hash_common_info(const Context& ctx,
   if (ctx.guessed_compiler == GuessedCompiler::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
-      hash_delimiter(hash, "gcccolors");
-      hash_string(hash, gcc_colors);
+      hash.hash_delimiter("gcccolors");
+      hash.hash(gcc_colors);
     }
   }
 }
 
 static bool
-hash_profile_data_file(const Context& ctx, struct hash* hash)
+hash_profile_data_file(const Context& ctx, Hash& hash)
 {
   const std::string& profile_path = ctx.args_info.profile_path;
   string_view base_name = Util::remove_extension(ctx.args_info.output_obj);
@@ -1365,7 +1359,7 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
     auto st = Stat::stat(p);
     if (st && !st.is_directory()) {
       cc_log("Adding profile data %s to the hash", p.c_str());
-      hash_delimiter(hash, "-fprofile-use");
+      hash.hash_delimiter("-fprofile-use");
       if (hash_binary_file(ctx, hash, p.c_str())) {
         found = true;
       }
@@ -1395,17 +1389,17 @@ static optional<Digest>
 calculate_result_name(Context& ctx,
                       const Args& args,
                       Args& preprocessor_args,
-                      struct hash* hash,
+                      Hash& hash,
                       bool direct_mode)
 {
   bool found_ccbin = false;
 
-  hash_delimiter(hash, "result version");
-  hash_int(hash, Result::k_version);
+  hash.hash_delimiter("result version");
+  hash.hash(Result::k_version);
 
   if (direct_mode) {
-    hash_delimiter(hash, "manifest version");
-    hash_int(hash, k_manifest_version);
+    hash.hash_delimiter("manifest version");
+    hash.hash(k_manifest_version);
   }
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
@@ -1444,18 +1438,18 @@ calculate_result_name(Context& ctx,
     // the value of the option from hashing but still hash the existence of the
     // option.
     if (Util::starts_with(args[i], "-fdebug-prefix-map=")) {
-      hash_delimiter(hash, "arg");
-      hash_string(hash, "-fdebug-prefix-map=");
+      hash.hash_delimiter("arg");
+      hash.hash("-fdebug-prefix-map=");
       continue;
     }
     if (Util::starts_with(args[i], "-ffile-prefix-map=")) {
-      hash_delimiter(hash, "arg");
-      hash_string(hash, "-ffile-prefix-map=");
+      hash.hash_delimiter("arg");
+      hash.hash("-ffile-prefix-map=");
       continue;
     }
     if (Util::starts_with(args[i], "-fmacro-prefix-map=")) {
-      hash_delimiter(hash, "arg");
-      hash_string(hash, "-fmacro-prefix-map=");
+      hash.hash_delimiter("arg");
+      hash.hash("-fmacro-prefix-map=");
       continue;
     }
 
@@ -1482,17 +1476,17 @@ calculate_result_name(Context& ctx,
       if (Util::starts_with(args[i], "-Wp,")) {
         if (Util::starts_with(args[i], "-Wp,-MD,")
             && !strchr(args[i].c_str() + 8, ',')) {
-          hash_string_buffer(hash, args[i].c_str(), 8);
+          hash.hash(args[i].c_str(), 8);
           continue;
         } else if (Util::starts_with(args[i], "-Wp,-MMD,")
                    && !strchr(args[i].c_str() + 9, ',')) {
-          hash_string_buffer(hash, args[i].c_str(), 9);
+          hash.hash(args[i].c_str(), 9);
           continue;
         }
       } else if (Util::starts_with(args[i], "-MF")) {
         // In either case, hash the "-MF" part.
-        hash_delimiter(hash, "arg");
-        hash_string_buffer(hash, args[i].c_str(), 3);
+        hash.hash_delimiter("arg");
+        hash.hash(args[i].c_str(), 3);
 
         if (ctx.args_info.output_dep != "/dev/null") {
           bool separate_argument = (args[i].size() == 3);
@@ -1517,7 +1511,7 @@ calculate_result_name(Context& ctx,
       if (st) {
         // If given an explicit specs file, then hash that file, but don't
         // include the path to it in the hash.
-        hash_delimiter(hash, "specs");
+        hash.hash_delimiter("specs");
         hash_compiler(ctx, hash, st, p, false);
         continue;
       }
@@ -1526,7 +1520,7 @@ calculate_result_name(Context& ctx,
     if (Util::starts_with(args[i], "-fplugin=")) {
       auto st = Stat::stat(args[i].c_str() + 9, Stat::OnError::log);
       if (st) {
-        hash_delimiter(hash, "plugin");
+        hash.hash_delimiter("plugin");
         hash_compiler(ctx, hash, st, args[i].c_str() + 9, false);
         continue;
       }
@@ -1536,7 +1530,7 @@ calculate_result_name(Context& ctx,
         && args[i + 2] == "-Xclang") {
       auto st = Stat::stat(args[i + 3], Stat::OnError::log);
       if (st) {
-        hash_delimiter(hash, "plugin");
+        hash.hash_delimiter("plugin");
         hash_compiler(ctx, hash, st, args[i + 3].c_str(), false);
         i += 3;
         continue;
@@ -1548,7 +1542,7 @@ calculate_result_name(Context& ctx,
       auto st = Stat::stat(args[i + 1], Stat::OnError::log);
       if (st) {
         found_ccbin = true;
-        hash_delimiter(hash, "ccbin");
+        hash.hash_delimiter("ccbin");
         hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1].c_str());
         i++;
         continue;
@@ -1556,12 +1550,12 @@ calculate_result_name(Context& ctx,
     }
 
     // All other arguments are included in the hash.
-    hash_delimiter(hash, "arg");
-    hash_string(hash, args[i]);
+    hash.hash_delimiter("arg");
+    hash.hash(args[i]);
     if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
       i++;
-      hash_delimiter(hash, "arg");
-      hash_string(hash, args[i]);
+      hash.hash_delimiter("arg");
+      hash.hash(args[i]);
     }
   }
 
@@ -1569,7 +1563,7 @@ calculate_result_name(Context& ctx,
   // it.
   if (ctx.args_info.generating_dependencies
       && ctx.args_info.output_dep == "/dev/null") {
-    hash_delimiter(hash, "/dev/null dependency file");
+    hash.hash_delimiter("/dev/null dependency file");
   }
 
   if (!found_ccbin && ctx.args_info.actual_language == "cu") {
@@ -1593,8 +1587,8 @@ calculate_result_name(Context& ctx,
     assert(!ctx.args_info.profile_path.empty());
     cc_log("Adding profile directory %s to our hash",
            ctx.args_info.profile_path.c_str());
-    hash_delimiter(hash, "-fprofile-dir");
-    hash_string(hash, ctx.args_info.profile_path);
+    hash.hash_delimiter("-fprofile-dir");
+    hash.hash(ctx.args_info.profile_path);
   }
 
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
@@ -1604,8 +1598,8 @@ calculate_result_name(Context& ctx,
 
   // Adding -arch to hash since cpp output is affected.
   for (const auto& arch : ctx.args_info.arch_args) {
-    hash_delimiter(hash, "-arch");
-    hash_string(hash, arch);
+    hash.hash_delimiter("-arch");
+    hash.hash(arch);
   }
 
   optional<Digest> result_name;
@@ -1620,8 +1614,8 @@ calculate_result_name(Context& ctx,
     for (const char** p = envvars; *p; ++p) {
       char* v = getenv(*p);
       if (v) {
-        hash_delimiter(hash, *p);
-        hash_string(hash, v);
+        hash.hash_delimiter(*p);
+        hash.hash(v);
       }
     }
 
@@ -1636,10 +1630,10 @@ calculate_result_name(Context& ctx,
     //   - Compiling b/x.c results in a false cache hit since a/x.c and b/x.c
     //     share manifests and a/r.h exists.
     // * The expansion of __FILE__ may be incorrect.
-    hash_delimiter(hash, "inputfile");
-    hash_string(hash, ctx.args_info.input_file);
+    hash.hash_delimiter("inputfile");
+    hash.hash(ctx.args_info.input_file);
 
-    hash_delimiter(hash, "sourcecode");
+    hash.hash_delimiter("sourcecode");
     int result =
       hash_source_code_file(ctx, hash, ctx.args_info.input_file.c_str());
     if (result & HASH_SOURCE_CODE_ERROR) {
@@ -1651,7 +1645,7 @@ calculate_result_name(Context& ctx,
       return nullopt;
     }
 
-    ctx.set_manifest_name(hash_result(hash));
+    ctx.set_manifest_name(hash.digest());
 
     cc_log("Looking for result name in %s", ctx.manifest_path().c_str());
     MTR_BEGIN("manifest", "manifest_get");
@@ -2080,7 +2074,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                             ? ctx.hash_debug_files.front().get()
                             : nullptr;
 
-  struct hash* common_hash = hash_init();
+  Hash common_hash;
   init_hash_debug(ctx,
                   common_hash,
                   ctx.args_info.output_obj.c_str(),
@@ -2093,7 +2087,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
-  struct hash* direct_hash = hash_copy(common_hash);
+  Hash direct_hash = common_hash;
   init_hash_debug(ctx,
                   direct_hash,
                   ctx.args_info.output_obj.c_str(),
@@ -2142,7 +2136,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   if (!ctx.config.depend_mode()) {
     // Find the hash using the preprocessed output. Also updates
     // g_included_files.
-    struct hash* cpp_hash = hash_copy(common_hash);
+    Hash cpp_hash = common_hash;
     init_hash_debug(ctx,
                     cpp_hash,
                     ctx.args_info.output_obj.c_str(),
@@ -2198,8 +2192,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   add_prefix(ctx, compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
-  struct hash* depend_mode_hash =
-    ctx.config.depend_mode() ? direct_hash : nullptr;
+  Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
@@ -2278,14 +2271,13 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case HASH_FILE: {
-      struct hash* hash = hash_init();
+      Hash hash;
       if (str_eq(optarg, "-")) {
-        hash_fd(hash, STDIN_FILENO);
+        hash.hash_fd(STDIN_FILENO);
       } else {
-        hash_file(hash, optarg);
+        hash.hash_file(optarg);
       }
-      puts(hash_result(hash).to_string().c_str());
-      hash_free(hash);
+      fmt::print("{}", hash.digest().to_string());
       break;
     }
 
