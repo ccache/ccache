@@ -92,7 +92,7 @@ void hash_int(struct hash* hash, int x);
 // file.
 //
 // Returns true on success, otherwise false.
-bool hash_fd(struct hash* hash, int fd, bool fd_is_file = false);
+bool hash_fd(struct hash* hash, int fd);
 
 // Add contents of a file to the hash.
 //
