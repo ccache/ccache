@@ -57,6 +57,7 @@
 #  include "third_party/getopt_long.h"
 #endif
 
+#include <algorithm>
 #include <limits>
 
 using nonstd::nullopt;
@@ -1374,6 +1375,19 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
   return found;
 }
 
+static bool
+option_should_be_ignored(const std::string& arg,
+                         const std::vector<std::string>& ignore_options)
+{
+  auto pred = [&arg](const std::string& option) {
+    const auto& prefix = string_view(option).substr(0, option.length() - 1);
+    return (
+      option == arg
+      || (Util::ends_with(option, "*") && Util::starts_with(arg, prefix)));
+  };
+  return std::any_of(ignore_options.cbegin(), ignore_options.cend(), pred);
+}
+
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result name. Returns the result name on success,
 // otherwise NULL. Caller frees.
@@ -1401,6 +1415,16 @@ calculate_result_name(Context& ctx,
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
+    // Trust the user if they've said we should not hash a given option.
+    if (option_should_be_ignored(args[i], ctx.ignore_options())) {
+      cc_log("Not hashing ignored option: %s", args[i].c_str());
+      if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+        i++;
+        cc_log("Not hashing argument of ignored option: %s", args[i].c_str());
+      }
+      continue;
+    }
+
     // -L doesn't affect compilation (except for clang).
     if (i < args.size() - 1 && args[i] == "-L" && !is_clang) {
       i++;
@@ -1847,6 +1871,8 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
   ctx.orig_args = Args::from_argv(argc, argv);
   ctx.ignore_header_paths = Util::split_into_strings(
     ctx.config.ignore_headers_in_manifest(), PATH_DELIM);
+  ctx.set_ignore_options(
+    Util::split_into_strings(ctx.config.ignore_options(), " "));
 }
 
 // Initialize ccache, must be called once before anything else is run.

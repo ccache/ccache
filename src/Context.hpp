@@ -126,6 +126,10 @@ public:
   // Files used by the hash debugging functionality.
   std::vector<File> hash_debug_files;
 
+  // Options to ignore for the hash.
+  const std::vector<std::string>& ignore_options() const;
+  void set_ignore_options(const std::vector<std::string>& options);
+
 #ifdef MTR_ENABLED
   // Internal tracing.
   std::unique_ptr<MiniTrace> mini_trace;
@@ -145,6 +149,9 @@ private:
   nonstd::optional<Digest> m_result_name;
   std::string m_result_path;
   mutable std::string m_result_stats_file;
+
+  // Options to ignore for the hash.
+  std::vector<std::string> m_ignore_options;
 
   // [Start of variables touched by the signal handler]
 
@@ -194,4 +201,10 @@ Context::result_path() const
 {
   assert(m_result_name); // set_result_name must have been called
   return m_result_path;
+}
+
+inline const std::vector<std::string>&
+Context::ignore_options() const
+{
+  return m_ignore_options;
 }

@@ -25,6 +25,10 @@
 #include "logging.hpp"
 #include "stats.hpp"
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 using nonstd::string_view;
 
 Context::Context()
@@ -117,4 +121,18 @@ Context::unlink_pending_tmp_files()
     Util::unlink_tmp(path, Util::UnlinkLog::ignore_failure);
   }
   m_pending_tmp_files.clear();
+}
+
+void
+Context::set_ignore_options(const std::vector<std::string>& options)
+{
+  for (const std::string& option : options) {
+    std::size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');
+    if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
+      m_ignore_options.push_back(option);
+    } else {
+      cc_log("Skipping malformed ignore_options item: %s", option.c_str());
+      continue;
+    }
+  }
 }
