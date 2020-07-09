@@ -97,8 +97,11 @@ copy_fd(int fd_in, int fd_out)
 {
   ssize_t n;
   char buf[READ_BUFFER_SIZE];
-  while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
-    if (!write_fd(fd_out, buf, n)) {
+  while ((n = read(fd_in, buf, sizeof(buf))) != 0) {
+    if (n == -1 && errno != EINTR) {
+      break;
+    }
+    if (n > 0 && !write_fd(fd_out, buf, n)) {
       return false;
     }
   }
