@@ -25,9 +25,9 @@
 #include "logging.hpp"
 #include "stats.hpp"
 
-#include <vector>
-#include <string>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 using nonstd::string_view;
 
