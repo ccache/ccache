@@ -1377,15 +1377,15 @@ hash_profile_data_file(const Context& ctx, struct hash* hash)
 
 static bool
 option_should_be_ignored(const std::string& arg,
-                         const std::vector<std::string>& ignore_options)
+                         const std::vector<std::string>& patterns)
 {
-  auto pred = [&arg](const std::string& option) {
-    const auto& prefix = string_view(option).substr(0, option.length() - 1);
-    return (
-      option == arg
-      || (Util::ends_with(option, "*") && Util::starts_with(arg, prefix)));
-  };
-  return std::any_of(ignore_options.cbegin(), ignore_options.cend(), pred);
+  return std::any_of(
+    patterns.cbegin(), patterns.cend(), [&arg](const std::string& pattern) {
+      const auto& prefix = string_view(pattern).substr(0, pattern.length() - 1);
+      return (
+        pattern == arg
+        || (Util::ends_with(pattern, "*") && Util::starts_with(arg, prefix)));
+    });
 }
 
 // Update a hash sum with information specific to the direct and preprocessor

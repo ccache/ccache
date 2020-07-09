@@ -127,7 +127,7 @@ void
 Context::set_ignore_options(const std::vector<std::string>& options)
 {
   for (const std::string& option : options) {
-    std::size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');
+    size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');
     if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
       m_ignore_options.push_back(option);
     } else {
