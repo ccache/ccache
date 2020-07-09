@@ -27,8 +27,6 @@
 
 #include "third_party/doctest.h"
 
-#include <vector>
-
 using TestUtil::TestContext;
 
 namespace {

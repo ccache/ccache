@@ -200,7 +200,6 @@ add_extra_arg(Context& ctx, const std::string& arg)
   }
 }
 
-
 optional<enum stats>
 process_arg(Context& ctx,
             Args& args,

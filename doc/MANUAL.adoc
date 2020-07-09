@@ -517,7 +517,7 @@ might be incorrect.
 
 [[config_ignore_options]] *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
 
-    This setting is a spece-delimited list of options that ccache will exclude
+    This setting is a space-delimited list of options that ccache will exclude
     from the hash. Excluding a compiler option from the hash can be useful when
     you know it doesn't affect the result (but ccache doesn't know that), or
     when it does and you don't care. If an option in the list is suffixed with

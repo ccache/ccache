@@ -15,7 +15,6 @@ set(
   test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_compopt.cpp
-  test_ccache.cpp
   test_hash.cpp
   test_hashutil.cpp
   test_legacy_util.cpp)

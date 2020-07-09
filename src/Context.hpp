@@ -126,12 +126,9 @@ public:
   // Files used by the hash debugging functionality.
   std::vector<File> hash_debug_files;
 
-  // Options to ignore for the cache
+  // Options to ignore for the hash.
   const std::vector<std::string>& ignore_options() const;
   void set_ignore_options(const std::vector<std::string>& options);
-
-  // Arguments actually added to the hash
-  Args hashed_args;
 
 #ifdef MTR_ENABLED
   // Internal tracing.
@@ -153,7 +150,7 @@ private:
   std::string m_result_path;
   mutable std::string m_result_stats_file;
 
-  // Options to ignore for the hash
+  // Options to ignore for the hash.
   std::vector<std::string> m_ignore_options;
 
   // [Start of variables touched by the signal handler]

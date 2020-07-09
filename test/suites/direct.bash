@@ -1042,4 +1042,27 @@ EOF
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_IGNOREOPTIONS"
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1" $CCACHE_COMPILE -DTEST=1 -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1*" $CCACHE_COMPILE -DTEST=1 -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1*" $CCACHE_COMPILE -DTEST=12 -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=2*" $CCACHE_COMPILE -DTEST=12 -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
 }
