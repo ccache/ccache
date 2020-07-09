@@ -193,7 +193,7 @@ compress_stats(const Config& config,
   printf("Total data:            %8s (%s disk blocks)\n",
          cache_size_str,
          on_disk_size_str);
-  printf("Compressible data:     %8s (%.1f%% of original size)\n",
+  printf("Compressed data:       %8s (%.1f%% of original size)\n",
          compr_size_str,
          100.0 - savings);
   printf("  - Original size:     %8s\n", compr_orig_size_str);
