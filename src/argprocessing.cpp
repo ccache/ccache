@@ -328,10 +328,14 @@ process_arg(Context& ctx,
   // Some arguments that clang passes directly to cc1 (related to precompiled
   // headers) need the usual ccache handling. In those cases, the -Xclang
   // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i != args.size() - 1
+  if (args[i] == "-Xclang" && i < args.size() - 1
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
           || args[i + 1] == "-include" || args[i + 1] == "-include-pch")) {
-    state.common_args.push_back(args[i]);
+    if (compopt_affects_cpp(args[i + 1])) {
+      state.cpp_args.push_back(args[i]);
+    } else {
+      state.common_args.push_back(args[i]);
+    }
     ++i;
   }
 
@@ -740,9 +744,15 @@ process_arg(Context& ctx,
     std::string relpath = Util::make_relative_path(ctx, args[i + next]);
     if (compopt_affects_cpp(args[i])) {
       state.cpp_args.push_back(args[i]);
+      if (next == 2) {
+        state.cpp_args.push_back(args[i + 1]);
+      }
       state.cpp_args.push_back(relpath);
     } else {
       state.common_args.push_back(args[i]);
+      if (next == 2) {
+        state.common_args.push_back(args[i + 1]);
+      }
       state.common_args.push_back(relpath);
     }
 
