@@ -10,10 +10,13 @@ To build ccache you need:
 - A C++11 compiler.
 - A C99 compiler.
 - [libzstd](https://www.zstd.net). If you don't have libzstd installed and
-  can't or don't want to install it on your system, you can pass
-  `-DZSTD_FROM_INTERNET=ON` to cmake to make it download libzstd from the
-  Internet and unpack it in the local binary tree. ccache will then be linked
-  statically to the locally built libzstd.
+  can't or don't want to install it in a standard system location, there are
+  two options:
+    1. Install zstd in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
+       by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
+    2. Pass `-DZSTD_FROM_INTERNET=ON` to `cmake` to make it download libzstd
+       from the Internet and unpack it in the local binary tree. ccache will
+       then be linked statically to the locally built libzstd.
 
 Optional:
 
