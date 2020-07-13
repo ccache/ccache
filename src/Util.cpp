@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <fstream>
-#include <regex>
 
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
@@ -43,6 +42,40 @@
 using nonstd::string_view;
 
 namespace {
+
+// Search for the first match of the following regular expression:
+//
+//   \x1b\[[\x30-\x3f]*[\x20-\x2f]*[Km]
+//
+// The primary reason for not using std::regex is that it's not available for
+// GCC 4.8. It's also a bit bloated. The reason for not using POSIX regex
+// functionality is that it's are not available in MinGW.
+string_view
+find_first_ansi_csi_seq(string_view string)
+{
+  size_t pos = 0;
+  while (pos < string.length() && string[pos] != 0x1b) {
+    ++pos;
+  }
+  if (pos + 1 >= string.length() || string[pos + 1] != '[') {
+    return {};
+  }
+  size_t start = pos;
+  pos += 2;
+  while (pos < string.length()
+         && (string[pos] >= 0x30 && string[pos] <= 0x3f)) {
+    ++pos;
+  }
+  while (pos < string.length()
+         && (string[pos] >= 0x20 && string[pos] <= 0x2f)) {
+    ++pos;
+  }
+  if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
+    return string.substr(start, pos + 1 - start);
+  } else {
+    return {};
+  }
+}
 
 size_t
 path_max(const char* path)
@@ -219,29 +252,6 @@ dir_name(string_view path)
   } else {
     return n == 0 ? "/" : path.substr(0, n);
   }
-}
-
-std::string
-edit_ansi_csi_seqs(string_view string, const SubstringEditor& editor)
-{
-  static const std::regex csi_regex(
-    "\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
-  std::string ret;
-  std::string substr;
-  ret.reserve(string.size());
-  for (std::cregex_token_iterator itr(
-         string.begin(), string.end(), csi_regex, {-1, 0});
-       itr != std::cregex_token_iterator{};
-       ++itr) {
-    ret.append(itr->first, itr->second);
-    if (++itr == std::cregex_token_iterator{}) {
-      break;
-    }
-    substr.assign(itr->first, itr->second);
-    editor(itr->first - string.begin(), substr);
-    ret.append(substr);
-  }
-  return ret;
 }
 
 bool
@@ -778,14 +788,25 @@ starts_with(string_view string, string_view prefix)
 }
 
 std::string
-strip_ansi_csi_seqs(string_view string, string_view strip_actions)
+strip_ansi_csi_seqs(string_view string)
 {
-  return edit_ansi_csi_seqs(
-    string, [=](string_view::size_type /*pos*/, std::string& substr) {
-      if (strip_actions.find(substr.back()) != string_view::npos) {
-        substr.clear();
-      }
-    });
+  size_t pos = 0;
+  std::string result;
+
+  while (true) {
+    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
+    auto data_start = string.data() + pos;
+    auto data_length =
+      seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
+    result.append(data_start, data_length);
+    if (seq_span.empty()) {
+      // Reached tail.
+      break;
+    }
+    pos += data_length + seq_span.length();
+  }
+
+  return result;
 }
 
 std::string

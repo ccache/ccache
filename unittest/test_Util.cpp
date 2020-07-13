@@ -130,58 +130,15 @@ TEST_CASE("Util::dir_name")
   CHECK(Util::dir_name("/foo/bar/f.txt") == "/foo/bar");
 }
 
-TEST_CASE("Util::{edit,strip}_ansi_csi_seqs")
+TEST_CASE("Util::strip_ansi_csi_seqs")
 {
-  static constexpr auto input =
-    "Normal, "
-    "\x1B[K\x1B[1mbold\x1B[m, "
-    "\x1B[31mred\x1B[m, "
-    "\x1B[1;32mbold green\x1B[m.\n";
+  const char input[] =
+    "Normal,"
+    " \x1B[K\x1B[1mbold\x1B[m,"
+    " \x1B[31mred\x1B[m,"
+    " \x1B[1;32mbold green\x1B[m.\n";
 
-  SUBCASE("Remove bold attributes")
-  {
-    CHECK(Util::edit_ansi_csi_seqs(input,
-              [](nonstd::string_view::size_type,
-                 std::string& substr)
-              {
-                if (substr.size() > 3 && substr.back() == 'm') {
-                  nonstd::string_view attrs = substr;
-                  attrs.remove_prefix(2); // ESC [
-                  attrs.remove_suffix(1); // m
-                  std::string edited;
-                  edited.reserve(attrs.size());
-                  for (auto& attr : Util::split_into_views(attrs, ";")) {
-                    if (attr != "1") {
-                      if (!edited.empty()) {
-                        edited += ';';
-                      }
-                      edited.append(attr.begin(), attr.end());
-                    }
-                  }
-                  if (edited.empty()) {
-                    substr.clear();
-                  } else {
-                    substr.replace(2, attrs.size(), std::move(edited));
-                  }
-                }
-              }) ==
-          "Normal, "
-          "\x1B[Kbold\x1B[m, "
-          "\x1B[31mred\x1B[m, "
-          "\x1B[32mbold green\x1B[m.\n");
-  }
-
-  SUBCASE("Strip SGR sequences only")
-  {
-    CHECK(Util::strip_ansi_csi_seqs(input, "m")
-          == "Normal, \x1B[Kbold, red, bold green.\n");
-  }
-
-  SUBCASE("Strip default set of CSI sequences")
-  {
-    CHECK(Util::strip_ansi_csi_seqs(input)
-          == "Normal, bold, red, bold green.\n");
-  }
+  CHECK(Util::strip_ansi_csi_seqs(input) == "Normal, bold, red, bold green.\n");
 }
 
 TEST_CASE("Util::ends_with")
