@@ -322,7 +322,8 @@ strip_ansi_csi_seqs(nonstd::string_view string);
 strip_whitespace(const std::string& string);
 
 // Convert a string to lowercase.
-[[gnu::warn_unused_result]] std::string to_lowercase(const std::string& string);
+[[gnu::warn_unused_result]] std::string
+to_lowercase(nonstd::string_view string);
 
 // Traverse `path` recursively (postorder, i.e. files are visited before their
 // parent directory).

@@ -819,10 +819,11 @@ strip_whitespace(const std::string& string)
 }
 
 std::string
-to_lowercase(const std::string& string)
+to_lowercase(string_view string)
 {
-  std::string result = string;
-  std::transform(result.begin(), result.end(), result.begin(), tolower);
+  std::string result;
+  result.resize(string.length());
+  std::transform(string.begin(), string.end(), result.begin(), tolower);
   return result;
 }
 
