@@ -1761,14 +1761,10 @@ find_compiler(Context& ctx, const char* const* argv)
 bool
 is_precompiled_header(const char* path)
 {
-  const char* ext = get_extension(path);
-  char* dir = x_dirname(path);
-  const char* dir_ext = get_extension(dir);
-  bool result =
-    str_eq(ext, ".gch") || str_eq(ext, ".pch") || str_eq(ext, ".pth")
-    || str_eq(dir_ext, ".gch"); // See "Precompiled Headers" in GCC docs.
-  free(dir);
-  return result;
+  // See "Precompiled Headers" in GCC docs.
+  string_view ext = Util::get_extension(path);
+  return ext == ".gch" || ext == ".pch" || ext == ".pth"
+         || Util::get_extension(Util::dir_name(path)) == ".gch";
 }
 
 static void
