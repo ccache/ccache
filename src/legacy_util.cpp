@@ -437,24 +437,6 @@ x_dirname(const char* path)
   return s;
 }
 
-// Return the file extension (including the dot) of a path as a pointer into
-// path. If path has no file extension, the empty string and the end of path is
-// returned.
-const char*
-get_extension(const char* path)
-{
-  size_t len = strlen(path);
-  for (const char* p = &path[len - 1]; p >= path; --p) {
-    if (*p == '.') {
-      return p;
-    }
-    if (*p == '/') {
-      break;
-    }
-  }
-  return &path[len];
-}
-
 // Format a size as a human-readable string. Caller frees.
 char*
 format_human_readable_size(uint64_t size)
