@@ -110,23 +110,21 @@ win32argvtos(const char* prefix, const char* const* argv, int* length)
 std::string
 win32getshell(const char* path)
 {
-  char* path_env;
+  const char* path_env = getenv("PATH");
   std::string sh;
-  const char* ext = get_extension(path);
-  if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
-    sh = find_executable_in_path("sh.exe", NULL, path_env);
+  std::string ext = std::string(Util::get_extension(path));
+  if (!ext.empty() && strcasecmp(ext.c_str(), ".sh") == 0 && path_env) {
+    sh = find_executable_in_path("sh.exe", nullptr, path_env);
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
-    FILE* fp = fopen(path, "r");
+    File fp(path, "r");
     if (fp) {
-      char buf[10];
-      fgets(buf, sizeof(buf), fp);
-      buf[9] = 0;
-      if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH"))) {
+      char buf[10] = {0};
+      fgets(buf, sizeof(buf) - 1, fp.get());
+      if (std::string(buf) == "#!/bin/sh" && path_env) {
         sh = find_executable_in_path("sh.exe", NULL, path_env);
       }
-      fclose(fp);
     }
   }
 
