@@ -24,6 +24,15 @@ function(addtest name)
 
 endfunction()
 
+if(${CMAKE_VERSION} VERSION_LESS "3.15")
+  set(clean_files_prop_name ADDITIONAL_MAKE_CLEAN_FILES)
+else()
+  set(clean_files_prop_name ADDITIONAL_CLEAN_FILES)
+endif()
+set_property(
+  DIRECTORY PROPERTY
+  ${clean_files_prop_name} "${CMAKE_BINARY_DIR}/testdir")
+
 addtest(base)
 addtest(nocpp2)
 addtest(cpp1)

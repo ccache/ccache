@@ -488,11 +488,11 @@ done
 
 # ---------------------------------------
 
-TESTDIR=testdir.$$
-TEST_FAILED_SYMLINK=testdir.failed
+TESTDIR=testdir/$$
+TEST_FAILED_SYMLINK=testdir/failed
 ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
-mkdir $TESTDIR
+mkdir -p $TESTDIR
 
 START_PWD="$PWD"
 symlink_testdir_on_failure() {

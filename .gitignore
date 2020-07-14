@@ -8,8 +8,8 @@
 .DS_Store
 .deps
 ccache-*.tar.*
-perfdir.*
-testdir.*
+perfdir.*/
+testdir/
 
 # version.cpp is generated in src because it should be included into source
 # packages
