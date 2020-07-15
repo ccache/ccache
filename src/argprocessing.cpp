@@ -314,7 +314,8 @@ process_arg(Context& ctx,
   // prefix is skipped and the cc1 argument is handled instead.
   if (args[i] == "-Xclang" && i < args.size() - 1
       && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
-          || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth") {
+          || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
+          || args[i + 1] == "-fno-pch-timestamp")) {
     if (compopt_affects_comp(args[i + 1])) {
       state.compiler_only_args.push_back(args[i]);
     } else if (compopt_affects_cpp(args[i + 1])) {
@@ -712,6 +713,12 @@ process_arg(Context& ctx,
   // Clang
   if (args[i] == "-frewrite-includes") {
     state.found_rewrite_includes = true;
+    return nullopt;
+  }
+
+  if (args[i] == "-fno-pch-timestamp") {
+    args_info.fno_pch_timestamp = true;
+    state.common_args.push_back(args[i]);
     return nullopt;
   }
 

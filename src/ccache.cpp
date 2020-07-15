@@ -1690,7 +1690,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   if ((ctx.guessed_compiler == GuessedCompiler::clang
        || ctx.guessed_compiler == GuessedCompiler::unknown)
       && ctx.args_info.output_is_precompiled_header
-      && mode == FROMCACHE_CPP_MODE) {
+      && !ctx.args_info.fno_pch_timestamp && mode == FROMCACHE_CPP_MODE) {
     cc_log("Not considering cached precompiled header in preprocessor mode");
     return nullopt;
   }
