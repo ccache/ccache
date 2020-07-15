@@ -309,6 +309,27 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  // Some arguments that clang passes directly to cc1 (related to precompiled
+  // headers) need the usual ccache handling. In those cases, the -Xclang
+  // prefix is skipped and the cc1 argument is handled instead.
+  if (args[i] == "-Xclang" && i < args.size() - 1
+      && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
+          || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth") {
+    if (compopt_affects_comp(args[i + 1])) {
+      state.compiler_only_args.push_back(args[i]);
+    } else if (compopt_affects_cpp(args[i + 1])) {
+      state.cpp_args.push_back(args[i]);
+    } else {
+      state.common_args.push_back(args[i]);
+    }
+    ++i;
+  }
+
+  if (args[i] == "-fpch-preprocess" || args[i] == "-emit-pch"
+      || args[i] == "-emit-pth") {
+    state.found_fpch_preprocess = true;
+  }
+
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
@@ -327,25 +348,6 @@ process_arg(Context& ctx,
   if (compopt_prefix_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
     return nullopt;
-  }
-
-  // Some arguments that clang passes directly to cc1 (related to precompiled
-  // headers) need the usual ccache handling. In those cases, the -Xclang
-  // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i < args.size() - 1
-      && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
-          || args[i + 1] == "-include" || args[i + 1] == "-include-pch")) {
-    if (compopt_affects_cpp(args[i + 1])) {
-      state.cpp_args.push_back(args[i]);
-    } else {
-      state.common_args.push_back(args[i]);
-    }
-    ++i;
-  }
-
-  if (args[i] == "-fpch-preprocess" || args[i] == "-emit-pch"
-      || args[i] == "-emit-pth") {
-    state.found_fpch_preprocess = true;
   }
 
   // Modules are handled on demand as necessary in the background, so there is
@@ -734,8 +736,8 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
 
-    // In the -Xclang -include(-pch) -Xclang <path> case, the path is one index
-    // further behind.
+    // In the -Xclang -include-(pch/pth) -Xclang <path> case, the path is one
+    // index further behind.
     int next = 1;
     if (args[i + 1] == "-Xclang" && i + 2 < args.size()) {
       next = 2;

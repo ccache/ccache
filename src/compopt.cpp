@@ -93,6 +93,8 @@ static const struct compopt compopts[] = {
   {"-bind_at_load", AFFECTS_COMP},
   {"-bundle", AFFECTS_COMP},
   {"-ccbin", AFFECTS_CPP | TAKES_ARG}, // nvcc
+  {"-emit-pch", AFFECTS_COMP},         // Clang
+  {"-emit-pth", AFFECTS_COMP},         // Clang
   {"-fno-working-directory", AFFECTS_CPP},
   {"-fplugin=libcc1plugin", TOO_HARD}, // interaction with GDB
   {"-frepo", TOO_HARD},
@@ -105,6 +107,7 @@ static const struct compopt compopts[] = {
   {"-imultilib", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-include", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-include-pch", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
+  {"-include-pth", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-install_name", TAKES_ARG}, // Darwin linker option
   {"-iprefix", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
   {"-iquote", AFFECTS_CPP | TAKES_ARG | TAKES_CONCAT_ARG | TAKES_PATH},
