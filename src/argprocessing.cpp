@@ -91,18 +91,22 @@ bool
 detect_pch(Context& ctx,
            const std::string& option,
            const std::string& arg,
+           bool is_cc1_option,
            bool* found_pch)
 {
   assert(found_pch);
 
   // Try to be smart about detecting precompiled headers.
+  // If the option is an option for Clang (is_cc1_option), don't accept
+  // anything just because it has a corresponding precompiled header,
+  // because Clang doesn't behave that way either.
   std::string pch_file;
   if (option == "-include-pch" || option == "-include-pth") {
     if (Stat::stat(arg)) {
       cc_log("Detected use of precompiled header: %s", arg.c_str());
       pch_file = arg;
     }
-  } else {
+  } else if (!is_cc1_option) {
     for (const auto& extension : {".gch", ".pch", ".pth"}) {
       std::string path = arg + extension;
       if (Stat::stat(path)) {
@@ -113,7 +117,7 @@ detect_pch(Context& ctx,
   }
 
   if (!pch_file.empty()) {
-    if (!ctx.included_pch_file.empty() && ctx.included_pch_file != pch_file) {
+    if (!ctx.included_pch_file.empty()) {
       cc_log("Multiple precompiled headers used: %s and %s",
              ctx.included_pch_file.c_str(),
              pch_file.c_str());
@@ -737,24 +741,19 @@ process_arg(Context& ctx,
       next = 2;
     }
 
-    if (!detect_pch(ctx, args[i], args[i + next], &state.found_pch)) {
+    if (!detect_pch(
+          ctx, args[i], args[i + next], next == 2, &state.found_pch)) {
       return STATS_ARGS;
     }
 
     std::string relpath = Util::make_relative_path(ctx, args[i + next]);
-    if (compopt_affects_cpp(args[i])) {
-      state.cpp_args.push_back(args[i]);
-      if (next == 2) {
-        state.cpp_args.push_back(args[i + 1]);
-      }
-      state.cpp_args.push_back(relpath);
-    } else {
-      state.common_args.push_back(args[i]);
-      if (next == 2) {
-        state.common_args.push_back(args[i + 1]);
-      }
-      state.common_args.push_back(relpath);
+    auto& dest_args =
+      compopt_affects_cpp(args[i]) ? state.cpp_args : state.common_args;
+    dest_args.push_back(args[i]);
+    if (next == 2) {
+      dest_args.push_back(args[i + 1]);
     }
+    dest_args.push_back(relpath);
 
     i += next;
     return nullopt;
