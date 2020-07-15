@@ -326,11 +326,6 @@ process_arg(Context& ctx,
     ++i;
   }
 
-  if (args[i] == "-fpch-preprocess" || args[i] == "-emit-pch"
-      || args[i] == "-emit-pth") {
-    state.found_fpch_preprocess = true;
-  }
-
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
@@ -718,6 +713,12 @@ process_arg(Context& ctx,
 
   if (args[i] == "-fno-pch-timestamp") {
     args_info.fno_pch_timestamp = true;
+    state.common_args.push_back(args[i]);
+    return nullopt;
+  }
+
+  if (args[i] == "-fpch-preprocess") {
+    state.found_fpch_preprocess = true;
     state.common_args.push_back(args[i]);
     return nullopt;
   }
