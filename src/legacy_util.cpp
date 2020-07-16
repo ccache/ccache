@@ -342,36 +342,6 @@ x_strndup(const char* s, size_t n)
   return ret;
 }
 
-// This is like malloc() but dies if the malloc fails.
-void*
-x_malloc(size_t size)
-{
-  if (size == 0) {
-    // malloc() may return NULL if size is zero, so always do this to make sure
-    // that the code handles it regardless of platform.
-    return nullptr;
-  }
-  void* ret = malloc(size);
-  if (!ret) {
-    fatal("x_malloc: Could not allocate %lu bytes", (unsigned long)size);
-  }
-  return ret;
-}
-
-// This is like realloc() but dies if the malloc fails.
-void*
-x_realloc(void* ptr, size_t size)
-{
-  if (!ptr) {
-    return x_malloc(size);
-  }
-  void* p2 = realloc(ptr, size);
-  if (!p2) {
-    fatal("x_realloc: Could not allocate %lu bytes", (unsigned long)size);
-  }
-  return p2;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)
@@ -412,29 +382,6 @@ reformat(char** ptr, const char* format, ...)
   if (saved) {
     free(saved);
   }
-}
-
-// Return the dir name of a file - caller frees.
-char*
-x_dirname(const char* path)
-{
-  char* s = x_strdup(path);
-  char* p = strrchr(s, '/');
-#ifdef _WIN32
-  char* p2 = strrchr(s, '\\');
-  if (!p || (p2 && p < p2)) {
-    p = p2;
-  }
-#endif
-  if (!p) {
-    free(s);
-    s = x_strdup(".");
-  } else if (p == s) {
-    *(p + 1) = 0;
-  } else {
-    *p = 0;
-  }
-  return s;
 }
 
 // Format a size as a human-readable string. Caller frees.
@@ -673,70 +620,6 @@ x_rename(const char* oldpath, const char* newpath)
     return 0;
   }
 #endif
-}
-
-// Reads the content of a file. Size hint 0 means no hint. Returns true on
-// success, otherwise false.
-bool
-read_file(const char* path, size_t size_hint, char** data, size_t* size)
-{
-  if (size_hint == 0) {
-    size_hint = Stat::stat(path, Stat::OnError::log).size();
-  }
-  // +1 to be able to detect EOF in the first read call
-  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
-
-  Fd fd(open(path, O_RDONLY | O_BINARY));
-  if (!fd) {
-    return false;
-  }
-  size_t allocated = size_hint;
-  *data = static_cast<char*>(x_malloc(allocated));
-  ssize_t ret;
-  size_t pos = 0;
-  while (true) {
-    if (pos > allocated / 2) {
-      allocated *= 2;
-      *data = static_cast<char*>(x_realloc(*data, allocated));
-    }
-    const size_t max_read = allocated - pos;
-    ret = read(*fd, *data + pos, max_read);
-    if (ret == 0 || (ret == -1 && errno != EINTR)) {
-      break;
-    }
-    if (ret > 0) {
-      pos += ret;
-      if (static_cast<size_t>(ret) < max_read) {
-        break;
-      }
-    }
-  }
-
-  if (ret == -1) {
-    cc_log("Failed reading %s", path);
-    free(*data);
-    *data = nullptr;
-    return false;
-  }
-
-  *size = pos;
-  return true;
-}
-
-// Return the content (with NUL termination) of a text file, or NULL on error.
-// Caller frees. Size hint 0 means no hint.
-char*
-read_text_file(const char* path, size_t size_hint)
-{
-  size_t size;
-  char* data;
-  if (read_file(path, size_hint, &data, &size)) {
-    data = static_cast<char*>(x_realloc(data, size + 1));
-    data[size] = '\0';
-    return data;
-  } else {
-    return nullptr;
-  }
 }
 
 static bool
