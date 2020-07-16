@@ -43,35 +43,29 @@
 #  include <tchar.h>
 #endif
 
+namespace {
+
 // Destination for g_config.log_file.
-static File logfile;
+File logfile;
 
 // Path to the logfile.
-static std::string logfile_path;
+std::string logfile_path;
 
 // Whether to use syslog() instead.
-static bool use_syslog;
+bool use_syslog;
 
 // Buffer used for logs in debug mode.
-static char* debug_log_buffer;
+std::string debug_log_buffer;
 
-// Allocated debug_log_buffer size.
-static size_t debug_log_buffer_capacity;
+bool debug_log_enabled = false;
 
-// The amount of log data stored in debug_log_buffer.
-static size_t debug_log_size;
-
-#define DEBUG_LOG_BUFFER_MARGIN 1024
+} // namespace
 
 // Initialize logging. Call only once.
 void
 init_log(const Config& config)
 {
-  if (config.debug()) {
-    debug_log_buffer_capacity = DEBUG_LOG_BUFFER_MARGIN;
-    debug_log_buffer = static_cast<char*>(x_malloc(debug_log_buffer_capacity));
-    debug_log_size = 0;
-  }
+  debug_log_enabled = config.debug();
 
 #ifdef HAVE_SYSLOG
   if (config.log_file() == "syslog") {
@@ -88,19 +82,6 @@ init_log(const Config& config)
     set_cloexec_flag(fileno(*logfile));
   }
 #endif
-}
-
-static void
-append_to_debug_log(const char* s, size_t len)
-{
-  assert(debug_log_buffer);
-  if (debug_log_size + len + 1 > debug_log_buffer_capacity) {
-    debug_log_buffer_capacity += len + 1 + DEBUG_LOG_BUFFER_MARGIN;
-    debug_log_buffer = static_cast<char*>(
-      x_realloc(debug_log_buffer, debug_log_buffer_capacity));
-  }
-  memcpy(debug_log_buffer + debug_log_size, s, len);
-  debug_log_size += len;
 }
 
 static void
@@ -123,11 +104,11 @@ log_prefix(bool log_updated_time)
              sizeof(prefix),
              "[%s.%06d %-5d] ",
              timestamp,
-             (int)tv.tv_usec,
-             (int)getpid());
+             static_cast<int>(tv.tv_usec),
+             static_cast<int>(getpid()));
   }
 #else
-  snprintf(prefix, sizeof(prefix), "[%-5d] ", (int)getpid());
+  snprintf(prefix, sizeof(prefix), "[%-5d] ", static_cast<int>(getpid()));
 #endif
   if (logfile) {
     fputs(prefix, *logfile);
@@ -137,8 +118,8 @@ log_prefix(bool log_updated_time)
     // prefix information will be added by syslog
   }
 #endif
-  if (debug_log_buffer) {
-    append_to_debug_log(prefix, strlen(prefix));
+  if (debug_log_enabled) {
+    debug_log_buffer += prefix;
   }
 }
 
@@ -159,7 +140,7 @@ warn_log_fail()
 static void
 vlog(const char* format, va_list ap, bool log_updated_time)
 {
-  if (!(debug_log_buffer || logfile || use_syslog)) {
+  if (!(debug_log_enabled || logfile || use_syslog)) {
     return;
   }
 
@@ -178,12 +159,13 @@ vlog(const char* format, va_list ap, bool log_updated_time)
     vsyslog(LOG_DEBUG, format, ap);
   }
 #endif
-  if (debug_log_buffer) {
+  if (debug_log_enabled) {
     char buf[8192];
     int len = vsnprintf(buf, sizeof(buf), format, aq);
     if (len >= 0) {
-      append_to_debug_log(buf, std::min((size_t)len, sizeof(buf) - 1));
-      append_to_debug_log("\n", 1);
+      debug_log_buffer.append(
+        buf, std::min(static_cast<size_t>(len), sizeof(buf) - 1));
+      debug_log_buffer += "\n";
     }
   }
   va_end(aq);
@@ -217,7 +199,7 @@ cc_bulklog(const char* format, ...)
 void
 cc_log_argv(const char* prefix, const char* const* argv)
 {
-  if (!(debug_log_buffer || logfile || use_syslog)) {
+  if (!(debug_log_enabled || logfile || use_syslog)) {
     return;
   }
 
@@ -237,10 +219,10 @@ cc_log_argv(const char* prefix, const char* const* argv)
     free(s);
   }
 #endif
-  if (debug_log_buffer) {
-    append_to_debug_log(prefix, strlen(prefix));
+  if (debug_log_enabled) {
+    debug_log_buffer += prefix;
     char* s = format_command(argv);
-    append_to_debug_log(s, strlen(s));
+    debug_log_buffer += s;
     free(s);
   }
 }
@@ -249,13 +231,12 @@ cc_log_argv(const char* prefix, const char* const* argv)
 void
 cc_dump_debug_log_buffer(const char* path)
 {
-  if (!debug_log_buffer) {
+  if (!debug_log_enabled) {
     return;
   }
-  FILE* file = fopen(path, "w");
+  File file(path, "w");
   if (file) {
-    (void)fwrite(debug_log_buffer, 1, debug_log_size, file);
-    fclose(file);
+    (void)fwrite(debug_log_buffer.data(), 1, debug_log_buffer.length(), *file);
   } else {
     cc_log("Failed to open %s: %s", path, strerror(errno));
   }
