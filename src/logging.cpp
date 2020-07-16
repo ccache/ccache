@@ -20,6 +20,7 @@
 #include "logging.hpp"
 
 #include "Config.hpp"
+#include "File.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
 
@@ -43,7 +44,7 @@
 #endif
 
 // Destination for g_config.log_file.
-static FILE* logfile;
+static File logfile;
 
 // Path to the logfile.
 static std::string logfile_path;
@@ -81,10 +82,10 @@ init_log(const Config& config)
 #endif
 
   logfile_path = config.log_file();
-  logfile = fopen(logfile_path.c_str(), "a");
+  logfile.open(logfile_path, "a");
 #ifndef _WIN32
   if (logfile) {
-    set_cloexec_flag(fileno(logfile));
+    set_cloexec_flag(fileno(*logfile));
   }
 #endif
 }
@@ -129,7 +130,7 @@ log_prefix(bool log_updated_time)
   snprintf(prefix, sizeof(prefix), "[%-5d] ", (int)getpid());
 #endif
   if (logfile) {
-    fputs(prefix, logfile);
+    fputs(prefix, *logfile);
   }
 #ifdef HAVE_SYSLOG
   if (use_syslog) {
@@ -166,8 +167,8 @@ vlog(const char* format, va_list ap, bool log_updated_time)
   va_copy(aq, ap);
   log_prefix(log_updated_time);
   if (logfile) {
-    int rc1 = vfprintf(logfile, format, ap);
-    int rc2 = fprintf(logfile, "\n");
+    int rc1 = vfprintf(*logfile, format, ap);
+    int rc2 = fprintf(*logfile, "\n");
     if (rc1 < 0 || rc2 < 0) {
       warn_log_fail();
     }
@@ -197,7 +198,7 @@ cc_log(const char* format, ...)
   vlog(format, ap, true);
   va_end(ap);
   if (logfile) {
-    fflush(logfile);
+    fflush(*logfile);
   }
 }
 
@@ -222,9 +223,9 @@ cc_log_argv(const char* prefix, const char* const* argv)
 
   log_prefix(true);
   if (logfile) {
-    fputs(prefix, logfile);
-    print_command(logfile, argv);
-    int rc = fflush(logfile);
+    fputs(prefix, *logfile);
+    print_command(*logfile, argv);
+    int rc = fflush(*logfile);
     if (rc) {
       warn_log_fail();
     }
