@@ -297,11 +297,12 @@ stats_update_size(Counters& counters, int64_t size, int files)
 void
 stats_read(const std::string& path, Counters& counters)
 {
-  char* data = read_text_file(path.c_str(), 1024);
-  if (data) {
-    parse_stats(counters, data);
+  try {
+    std::string data = Util::read_file(path);
+    parse_stats(counters, data.c_str());
+  } catch (Error&) {
+    // Ignore.
   }
-  free(data);
 }
 
 // Write counter updates in updates to sfile.
