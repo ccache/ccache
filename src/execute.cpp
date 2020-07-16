@@ -355,36 +355,3 @@ find_executable_in_path(const char* name,
 
   return "";
 }
-
-void
-print_command(FILE* fp, const char* const* argv)
-{
-  for (int i = 0; argv[i]; i++) {
-    fprintf(fp, "%s%s", (i == 0) ? "" : " ", argv[i]);
-  }
-  fprintf(fp, "\n");
-}
-
-char*
-format_command(const char* const* argv)
-{
-  size_t len = 0;
-  for (int i = 0; argv[i]; i++) {
-    len += (i == 0) ? 0 : 1;
-    len += strlen(argv[i]);
-  }
-  len += 1;
-  char* buf = static_cast<char*>(x_malloc(len + 1));
-  char* p = buf;
-  for (int i = 0; argv[i]; i++) {
-    if (i != 0) {
-      *p++ = ' ';
-    }
-    for (const char* q = argv[i]; *q != '\0'; q++) {
-      *p++ = *q;
-    }
-  }
-  *p++ = '\n';
-  *p++ = '\0';
-  return buf;
-}

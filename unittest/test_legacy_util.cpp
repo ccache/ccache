@@ -16,7 +16,6 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/execute.hpp"
 #include "../src/legacy_util.hpp"
 
 #include "third_party/doctest.h"
@@ -130,9 +129,4 @@ TEST_CASE("parse_size_with_suffix")
   }
 }
 
-TEST_CASE("format_command")
-{
-  const char* argv[] = {"foo", "bar", nullptr};
-
-  CHECK_STR_EQ_FREE2("foo bar\n", format_command(argv));
-}
+TEST_SUITE_END();
