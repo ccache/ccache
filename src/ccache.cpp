@@ -1000,21 +1000,11 @@ to_cache(Context& ctx,
   // Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
   // be done almost anywhere, but we might as well do it near the end as we
   // save the stat call if we exit early.
-  {
-    std::string first_level_dir(Util::dir_name(ctx.stats_file()));
-    if (!create_cachedir_tag(first_level_dir)) {
-      cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
-             first_level_dir.c_str(),
-             strerror(errno));
-    }
-
-    // Remove any CACHEDIR.TAG on the cache_dir level where it was located in
-    // previous ccache versions.
-    if (getpid() % 1000 == 0) {
-      char* path = format("%s/CACHEDIR.TAG", ctx.config.cache_dir().c_str());
-      Util::unlink_safe(path);
-      free(path);
-    }
+  std::string first_level_dir(Util::dir_name(ctx.stats_file()));
+  if (!create_cachedir_tag(first_level_dir)) {
+    cc_log("Failed to create %s/CACHEDIR.TAG (%s)",
+           first_level_dir.c_str(),
+           strerror(errno));
   }
 
   // Everything OK.
