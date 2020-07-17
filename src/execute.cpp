@@ -21,6 +21,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Fd.hpp"
 #include "SignalHandler.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
@@ -194,22 +195,36 @@ win32execute(const char* path,
   add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
   BOOL ret = FALSE;
   if (length > 8192) {
-    char* tmp_file = format("%s.tmp", path);
-    FILE* fp = create_tmp_file(&tmp_file, "w");
-    char atfile[MAX_PATH + 3];
-    fwrite(args, 1, length, fp);
-    if (ferror(fp)) {
+    auto fd_and_path = Util::create_temp_fd(path);
+    Fd fd(fd_and_path.first);
+    const char* tmp_file = fd_and_path.second.c_str();
+    if (!write_fd(*fd, args, length)) {
       cc_log("Error writing @file; this command will probably fail: %s", args);
     }
-    fclose(fp);
-    snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
-    ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+    std::string atfile = fmt::format("\"@{}\"", tmp_file);
+    ret = CreateProcess(nullptr,
+                        const_cast<char*>(atfile.c_str()),
+                        nullptr,
+                        nullptr,
+                        1,
+                        0,
+                        nullptr,
+                        nullptr,
+                        &si,
+                        &pi);
     Util::unlink_tmp(tmp_file);
-    free(tmp_file);
   }
   if (!ret) {
-    ret = CreateProcess(
-      full_path_win_ext, args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+    ret = CreateProcess(full_path_win_ext,
+                        args,
+                        nullptr,
+                        nullptr,
+                        1,
+                        0,
+                        nullptr,
+                        nullptr,
+                        &si,
+                        &pi);
   }
   if (fd_stdout != -1) {
     close(fd_stdout);
@@ -321,12 +336,15 @@ find_executable_in_path(const char* name,
 #ifdef _WIN32
     char namebuf[MAX_PATH];
     int ret =
-      SearchPath(dir.c_str(), name, NULL, sizeof(namebuf), namebuf, NULL);
+      SearchPath(dir.c_str(), name, nullptr, sizeof(namebuf), namebuf, nullptr);
     if (!ret) {
-      char* exename = format("%s.exe", name);
-      ret =
-        SearchPath(dir.c_str(), exename, NULL, sizeof(namebuf), namebuf, NULL);
-      free(exename);
+      std::string exename = fmt::format("{}.exe", name);
+      ret = SearchPath(dir.c_str(),
+                       exename.c_str(),
+                       nullptr,
+                       sizeof(namebuf),
+                       namebuf,
+                       nullptr);
     }
     (void)exclude_name;
     if (ret) {
