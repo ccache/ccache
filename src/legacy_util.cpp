@@ -535,9 +535,10 @@ create_tmp_fd(char** fname)
   char* tmpl = format("%s.%s", *fname, tmp_string());
   int fd = mkstemp(tmpl);
   if (fd == -1 && errno == ENOENT) {
-    if (!Util::create_dir(Util::dir_name(*fname))) {
+    auto dir = Util::dir_name(*fname);
+    if (!Util::create_dir(dir)) {
       fatal("Failed to create directory %s: %s",
-            x_dirname(*fname),
+            std::string(dir).c_str(),
             strerror(errno));
     }
     reformat(&tmpl, "%s.%s", *fname, tmp_string());
