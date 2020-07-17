@@ -277,13 +277,14 @@ hash_source_code_file_nocache(const Context& ctx,
       return HASH_SOURCE_CODE_ERROR;
     }
   } else {
-    char* data;
-    size_t size;
-    if (!read_file(path, size_hint, &data, &size)) {
+    std::string data;
+    try {
+      data = Util::read_file(path, size_hint);
+    } catch (Error&) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(ctx, hash, data, size, path);
-    free(data);
+    int result =
+      hash_source_code_string(ctx, hash, data.data(), data.size(), path);
     return result;
   }
 }

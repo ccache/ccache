@@ -406,16 +406,17 @@ print_included_files(const Context& ctx, FILE* fp)
 static bool
 process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
 {
-  char* data;
-  size_t size;
-  if (!read_file(path, 0, &data, &size)) {
+  std::string data;
+  try {
+    data = Util::read_file(path);
+  } catch (Error&) {
     return false;
   }
 
   // Bytes between p and q are pending to be hashed.
-  char* p = data;
-  char* q = data;
-  char* end = data + size;
+  const char* p = data.data();
+  char* q = const_cast<char*>(data.data()); // cast needed before C++17
+  const char* end = data.c_str() + data.length();
 
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.
@@ -449,7 +450,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
-        && (q == data || q[-1] == '\n')) {
+        && (q == data.data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
         if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
@@ -484,7 +485,6 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
       q++;
       if (q >= end) {
         cc_log("Failed to parse included file path");
-        free(data);
         return false;
       }
       // q points to the beginning of an include file path
@@ -495,7 +495,7 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
       }
       // Look for preprocessor flags, after the "filename".
       bool system = false;
-      char* r = q + 1;
+      const char* r = q + 1;
       while (r < end && *r != '\n') {
         if (*r == '3') { // System header.
           system = true;
@@ -561,7 +561,6 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
   }
 
   hash.hash(p, (end - p));
-  free(data);
 
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
