@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,13 +20,18 @@
 #include "../src/Compressor.hpp"
 #include "../src/Decompressor.hpp"
 #include "../src/File.hpp"
+#include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
-using Catch::Equals;
+using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("ZstdCompression");
 
 TEST_CASE("Small Compression::Type::zstd roundtrip")
 {
+  TestContext test_context;
+
   File f("data.zstd", "wb");
   auto compressor =
     Compressor::create_from_type(Compression::Type::zstd, f.get(), 1);
@@ -44,7 +49,7 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
 
   // Not reached the end.
   CHECK_THROWS_WITH(decompressor->finalize(),
-                    Equals("garbage data at end of zstd input stream"));
+                    "garbage data at end of zstd input stream");
 
   decompressor->read(buffer, 2);
   CHECK(memcmp(buffer, "ar", 2) == 0);
@@ -54,11 +59,13 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
 
   // Nothing left to read.
   CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                    Equals("failed to read from zstd input stream"));
+                    "failed to read from zstd input stream");
 }
 
 TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 {
+  TestContext test_context;
+
   char data[] = "The quick brown fox jumps over the lazy dog";
 
   File f("data.zstd", "wb");
@@ -84,11 +91,13 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 
   // Nothing left to read.
   CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                    Equals("failed to read from zstd input stream"));
+                    "failed to read from zstd input stream");
 }
 
 TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
 {
+  TestContext test_context;
+
   char data[100000];
   for (char& c : data) {
     c = rand() % 256;
@@ -110,3 +119,5 @@ TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
 
   decompressor->finalize();
 }
+
+TEST_SUITE_END();

@@ -14,7 +14,7 @@ High-level summary of changes (work in progress)
 - Result and manifest files are now compressed by the real-time compression
   algorithm Zstandard by default.
 
-- BLAKE2b is now used instead of MD4 for hashing input.
+- BLAKE3 is now used instead of MD4 for hashing input.
 
 - Added checksumming of result files using XXH64 to detect data corruption.
 
@@ -24,6 +24,8 @@ High-level summary of changes (work in progress)
   to and from the cache.
 
 - A C++11 compiler is now required to build ccache.
+
+- Build tooling switched from Autoconf to CMake.
 
 - Added a `-x/--show-compression` option which shows some statistics about
   cache compression.
@@ -44,7 +46,49 @@ High-level summary of changes (work in progress)
   decrease the number of CPU cycles for a direct cache hit with up to 15% in
   some cases.
 
+- Added a new inode cache for file hashes, allowing computed hash values to be
+  reused both within and between builds.
+
+- Compiler diagnostic messages are now always cached in color, and ccache
+  strips the color codes on the fly when requested explicitly by command-line
+  option or when stderr does not refer to a TTY. This allows IDEs and terminals
+  to share cached compilation results.
+
 - (More to be written.)
+
+
+ccache 3.7.10
+------------
+Release date: 2020-06-22
+
+Bug fixes
+~~~~~~~~~
+
+- Improved handling of profiling options. ccache should now work correctly for
+  profiling options like `-fprofile-{generate,use}[=path]` for GCC ≥ 9 and
+  Clang as well as `-fauto-profile[=path]` and the Clang-specific
+  `-fprofile-instr-{generate,use}[=path]` and `-fprofile-sample-{use,accurate}`
+  options.
+
+- ccache now copies files directly from the cache to the destination file
+  instead of via a temporary file. This avoids problems when using filenames
+  long enough to be near the file system's filename max limit.
+
+- When the hard-link mode is enabled, ccache now only uses hard links for
+  object files, not other files like dependency files. This is because
+  compilers unlink object files before writing to them but they don't do that
+  for dependency files, so the latter can become overwritten and therefore
+  corrupted in the cache.
+
+- Fixed a glitch related to hard-link mode and an empty cache.
+
+- ccache now supports the ccache.conf file to be a symlink.
+
+- Temporary files are now deleted immediately on signals like SIGTERM and
+  SIGINT instead of some time later in a cleanup phase.
+
+- Fixed a bug that affected ccache's `-o/--set-config` option for the
+  `base_dir` and `cache_dir_levels` keys.
 
 
 ccache 3.7.9

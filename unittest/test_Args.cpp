@@ -17,8 +17,13 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Args.hpp"
+#include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
+
+TEST_SUITE_BEGIN("Args");
+
+using TestUtil::TestContext;
 
 TEST_CASE("Args default constructor")
 {
@@ -73,21 +78,23 @@ TEST_CASE("Args::from_string")
 
 TEST_CASE("Args::from_gcc_atfile")
 {
+  TestContext test_context;
+
   Args args;
 
-  SECTION("Non-existing file")
+  SUBCASE("Non-existing file")
   {
     CHECK(Args::from_gcc_atfile("at_file") == nonstd::nullopt);
   }
 
-  SECTION("Empty")
+  SUBCASE("Empty")
   {
     Util::write_file("at_file", "");
     args = *Args::from_gcc_atfile("at_file");
     CHECK(args.size() == 0);
   }
 
-  SECTION("One argument without newline")
+  SUBCASE("One argument without newline")
   {
     Util::write_file("at_file", "foo");
     args = *Args::from_gcc_atfile("at_file");
@@ -95,7 +102,7 @@ TEST_CASE("Args::from_gcc_atfile")
     CHECK(args[0] == "foo");
   }
 
-  SECTION("One argument with newline")
+  SUBCASE("One argument with newline")
   {
     Util::write_file("at_file", "foo\n");
     args = *Args::from_gcc_atfile("at_file");
@@ -103,7 +110,7 @@ TEST_CASE("Args::from_gcc_atfile")
     CHECK(args[0] == "foo");
   }
 
-  SECTION("Multiple simple arguments")
+  SUBCASE("Multiple simple arguments")
   {
     Util::write_file("at_file", "x y z\n");
     args = *Args::from_gcc_atfile("at_file");
@@ -113,7 +120,7 @@ TEST_CASE("Args::from_gcc_atfile")
     CHECK(args[2] == "z");
   }
 
-  SECTION("Tricky quoting")
+  SUBCASE("Tricky quoting")
   {
     Util::write_file(
       "at_file",
@@ -219,19 +226,19 @@ TEST_CASE("Args operations")
   Args more_args = Args::from_string("x y");
   Args no_args;
 
-  SECTION("erase_with_prefix")
+  SUBCASE("erase_with_prefix")
   {
     args.erase_with_prefix("m");
     CHECK(args == Args::from_string("eeny"));
   }
 
-  SECTION("insert empty args")
+  SUBCASE("insert empty args")
   {
     args.insert(2, no_args);
     CHECK(args == Args::from_string("eeny meeny miny moe"));
   }
 
-  SECTION("insert non-empty args")
+  SUBCASE("insert non-empty args")
   {
     args.insert(4, more_args);
     args.insert(2, more_args);
@@ -239,7 +246,7 @@ TEST_CASE("Args operations")
     CHECK(args == Args::from_string("x y eeny meeny x y miny moe x y"));
   }
 
-  SECTION("pop_back")
+  SUBCASE("pop_back")
   {
     args.pop_back();
     CHECK(args == Args::from_string("eeny meeny miny"));
@@ -248,7 +255,7 @@ TEST_CASE("Args operations")
     CHECK(args == Args::from_string("eeny"));
   }
 
-  SECTION("pop_front")
+  SUBCASE("pop_front")
   {
     args.pop_front();
     CHECK(args == Args::from_string("meeny miny moe"));
@@ -257,25 +264,25 @@ TEST_CASE("Args operations")
     CHECK(args == Args::from_string("moe"));
   }
 
-  SECTION("push_back string")
+  SUBCASE("push_back string")
   {
     args.push_back("foo");
     CHECK(args == Args::from_string("eeny meeny miny moe foo"));
   }
 
-  SECTION("push_back args")
+  SUBCASE("push_back args")
   {
     args.push_back(more_args);
     CHECK(args == Args::from_string("eeny meeny miny moe x y"));
   }
 
-  SECTION("push_front string")
+  SUBCASE("push_front string")
   {
     args.push_front("foo");
     CHECK(args == Args::from_string("foo eeny meeny miny moe"));
   }
 
-  SECTION("replace")
+  SUBCASE("replace")
   {
     args.replace(3, more_args);
     args.replace(2, no_args);
@@ -283,3 +290,5 @@ TEST_CASE("Args operations")
     CHECK(args == Args::from_string("x y meeny x y"));
   }
 }
+
+TEST_SUITE_END();

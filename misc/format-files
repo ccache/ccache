@@ -1,0 +1,59 @@
+#!/bin/sh
+
+set -eu
+
+tmp_file=$(mktemp)
+trap "rm $tmp_file" EXIT
+
+all=
+check=
+
+for arg in "$@"; do
+    case $arg in
+        --all)
+            all=$arg
+            ;;
+        --check)
+            check=$arg
+            ;;
+        *)
+            break
+            ;;
+    esac
+    shift
+done
+
+if [ -n "$all" ]; then
+    exec "$0" $check $(git ls-files '*.[ch]' '*.[ch]pp' ':!:src/third_party')
+fi
+
+clang_format=${CLANG_FORMAT:-clang-format}
+[ -t 1 ] && cf_color="--color=always" || cf_color=""
+
+if [ -n "${VERBOSE:-}" ]; then
+    "$clang_format" --version
+fi
+
+status=0
+for file in "$@"; do
+    "$clang_format" "$file" >"$tmp_file"
+    if cmp -s "$file" "$tmp_file"; then
+        continue
+    fi
+
+    if [ -n "$check" ]; then
+        status=1
+        echo "Error: $file not formatted with clang-format"
+        echo 'Run "make format" or apply this diff:'
+        git diff $cf_color --no-index "$file" "$tmp_file" \
+            | sed -r -e "s!^---.*!--- a/$file!" \
+                     -e "s!^\+\+\+.*!+++ b/$file!" \
+                     -e "/diff --/d" -e "/index /d" \
+                     -e "s/.[0-9]*.clang-format.tmp//"
+    else
+        echo "Reformatted $file"
+        cp "$tmp_file" "$file"
+    fi
+done
+
+exit $status

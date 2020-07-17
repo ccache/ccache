@@ -248,6 +248,9 @@ cc_log_argv(const char* prefix, const char* const* argv)
 void
 cc_dump_debug_log_buffer(const char* path)
 {
+  if (!debug_log_buffer) {
+    return;
+  }
   FILE* file = fopen(path, "w");
   if (file) {
     (void)fwrite(debug_log_buffer, 1, debug_log_size, file);

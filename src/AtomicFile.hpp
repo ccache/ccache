@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,7 +20,6 @@
 
 #include "system.hpp"
 
-#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -31,7 +30,7 @@ class AtomicFile
 public:
   enum class Mode { binary, text };
 
-  AtomicFile(const std::string& destination_path, Mode mode);
+  AtomicFile(const std::string& path, Mode mode);
   ~AtomicFile();
 
   FILE* stream();

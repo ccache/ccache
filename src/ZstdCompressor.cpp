@@ -21,7 +21,7 @@
 #include "exceptions.hpp"
 #include "logging.hpp"
 
-const uint8_t k_default_zstd_compression_level = -1;
+const uint8_t k_default_zstd_compression_level = 1;
 
 ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
   : m_stream(stream), m_zstd_stream(ZSTD_createCStream())

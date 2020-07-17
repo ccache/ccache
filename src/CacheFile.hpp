@@ -25,12 +25,7 @@
 
 #include "third_party/nonstd/optional.hpp"
 
-#include <cerrno>
-#include <cstring>
 #include <string>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 class CacheFile
 {

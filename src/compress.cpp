@@ -23,10 +23,11 @@
 #include "CacheEntryWriter.hpp"
 #include "Context.hpp"
 #include "File.hpp"
+#include "Result.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
+#include "logging.hpp"
 #include "manifest.hpp"
-#include "result.hpp"
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
@@ -55,7 +56,7 @@ create_reader(const CacheFile& cache_file, FILE* stream)
   switch (cache_file.type()) {
   case CacheFile::Type::result:
     return std::make_unique<CacheEntryReader>(
-      stream, k_result_magic, k_result_version);
+      stream, Result::k_magic, Result::k_version);
 
   case CacheFile::Type::manifest:
     return std::make_unique<CacheEntryReader>(
@@ -192,7 +193,7 @@ compress_stats(const Config& config,
   printf("Total data:            %8s (%s disk blocks)\n",
          cache_size_str,
          on_disk_size_str);
-  printf("Compressible data:     %8s (%.1f%% of original size)\n",
+  printf("Compressed data:       %8s (%.1f%% of original size)\n",
          compr_size_str,
          100.0 - savings);
   printf("  - Original size:     %8s\n", compr_orig_size_str);

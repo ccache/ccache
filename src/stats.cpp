@@ -33,13 +33,6 @@
 #include "third_party/fmt/core.h"
 
 #include <cmath>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #define FLAG_NOZERO 1 // don't zero with the -z option
 #define FLAG_ALWAYS 2 // always show, even if zero
@@ -47,7 +40,7 @@
 
 // Returns a formatted version of a statistics value, or NULL if the statistics
 // line shouldn't be printed. Caller frees.
-typedef char* (*format_fn)(uint64_t value);
+using format_fn = char* (*)(uint64_t value);
 
 static char* format_size_times_1024(uint64_t size);
 static char* format_timestamp(uint64_t timestamp);
@@ -202,7 +195,7 @@ format_timestamp(uint64_t timestamp)
 {
   if (timestamp > 0) {
     struct tm tm;
-    localtime_r((time_t*)&timestamp, &tm);
+    localtime_r(reinterpret_cast<time_t*>(&timestamp), &tm);
     char buffer[100];
     strftime(buffer, sizeof(buffer), "%c", &tm);
     return format("    %s", buffer);
@@ -302,9 +295,9 @@ stats_update_size(Counters& counters, int64_t size, int files)
 
 // Read in the stats from one directory and add to the counters.
 void
-stats_read(const std::string& sfile, Counters& counters)
+stats_read(const std::string& path, Counters& counters)
 {
-  char* data = read_text_file(sfile.c_str(), 1024);
+  char* data = read_text_file(path.c_str(), 1024);
   if (data) {
     parse_stats(counters, data);
   }
@@ -378,7 +371,7 @@ stats_flush_to_file(const Config& config,
     double factor = config.limit_multiple() / 16;
     uint64_t max_size = round(config.max_size() * factor);
     uint32_t max_files = round(config.max_files() * factor);
-    clean_up_dir(subdir, max_size, max_files, [](double) {});
+    clean_up_dir(subdir, max_size, max_files, [](double /*progress*/) {});
   }
 }
 
@@ -400,17 +393,18 @@ stats_update(Context& ctx, enum stats stat)
 
 // Sum and display the total stats for all cache dirs.
 void
-stats_summary(const Config& config)
+stats_summary(const Context& ctx)
 {
   Counters counters;
   time_t last_updated;
-  stats_collect(config, counters, &last_updated);
+  stats_collect(ctx.config, counters, &last_updated);
 
-  fmt::print("cache directory                     {}\n", config.cache_dir());
+  fmt::print("cache directory                     {}\n",
+             ctx.config.cache_dir());
   fmt::print("primary config                      {}\n",
-             config.primary_config_path());
+             ctx.config.primary_config_path());
   fmt::print("secondary config (readonly)         {}\n",
-             config.secondary_config_path());
+             ctx.config.secondary_config_path());
   if (last_updated > 0) {
     struct tm tm;
     localtime_r(&last_updated, &tm);
@@ -447,11 +441,11 @@ stats_summary(const Config& config)
     }
   }
 
-  if (config.max_files() != 0) {
-    printf("max files                       %8u\n", config.max_files());
+  if (ctx.config.max_files() != 0) {
+    printf("max files                       %8u\n", ctx.config.max_files());
   }
-  if (config.max_size() != 0) {
-    char* value = format_size(config.max_size());
+  if (ctx.config.max_size() != 0) {
+    char* value = format_size(ctx.config.max_size());
     printf("max cache size                  %s\n", value);
     free(value);
   }
@@ -476,17 +470,17 @@ stats_print(const Config& config)
 
 // Zero all the stats structures.
 void
-stats_zero(const Config& config)
+stats_zero(const Context& ctx)
 {
-  char* fname = format("%s/stats", config.cache_dir().c_str());
-  x_unlink(fname);
+  char* fname = format("%s/stats", ctx.config.cache_dir().c_str());
+  Util::unlink_safe(fname);
   free(fname);
 
   time_t timestamp = time(nullptr);
 
   for (int dir = 0; dir <= 0xF; dir++) {
     Counters counters;
-    fname = format("%s/%1x/stats", config.cache_dir().c_str(), dir);
+    fname = format("%s/%1x/stats", ctx.config.cache_dir().c_str(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       free(fname);

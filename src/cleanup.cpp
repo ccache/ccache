@@ -21,11 +21,17 @@
 
 #include "CacheFile.hpp"
 #include "Config.hpp"
+#include "Context.hpp"
+#include "Util.hpp"
 #include "logging.hpp"
 #include "stats.hpp"
 
+#ifdef INODE_CACHE_SUPPORTED
+#  include "InodeCache.hpp"
+#endif
+
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
 static void
 delete_file(const std::string& path,
@@ -33,7 +39,7 @@ delete_file(const std::string& path,
             uint64_t* cache_size,
             uint32_t* files_in_cache)
 {
-  bool deleted = x_try_unlink(path.c_str()) == 0;
+  bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
     cc_log("Failed to unlink %s (%s)", path.c_str(), strerror(errno));
   } else if (cache_size && files_in_cache) {
@@ -75,7 +81,7 @@ clean_up_dir(const std::string& subdir,
     // Delete any tmp files older than 1 hour right away.
     if (file->lstat().mtime() + 3600 < current_time
         && Util::base_name(file->path()).find(".tmp.") != std::string::npos) {
-      x_unlink(file->path().c_str());
+      Util::unlink_tmp(file->path());
       continue;
     }
 
@@ -174,7 +180,7 @@ wipe_dir(const std::string& subdir,
     subdir, [&](double progress) { progress_receiver(progress / 2); }, files);
 
   for (size_t i = 0; i < files.size(); ++i) {
-    x_unlink(files[i]->path().c_str());
+    Util::unlink_safe(files[i]->path());
     progress_receiver(0.5 + 0.5 * i / files.size());
   }
 
@@ -188,8 +194,11 @@ wipe_dir(const std::string& subdir,
 
 // Wipe all cached files in all subdirectories.
 void
-wipe_all(const Config& config, const Util::ProgressReceiver& progress_receiver)
+wipe_all(const Context& ctx, const Util::ProgressReceiver& progress_receiver)
 {
   Util::for_each_level_1_subdir(
-    config.cache_dir(), wipe_dir, progress_receiver);
+    ctx.config.cache_dir(), wipe_dir, progress_receiver);
+#ifdef INODE_CACHE_SUPPORTED
+  ctx.inode_cache.drop();
+#endif
 }

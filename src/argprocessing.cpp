@@ -32,6 +32,8 @@ using nonstd::string_view;
 
 namespace {
 
+enum class ColorDiagnostics : int8_t { automatic, always, never = -1 };
+
 struct ArgumentProcessingState
 {
   bool found_c_opt = false;
@@ -39,7 +41,7 @@ struct ArgumentProcessingState
   bool found_S_opt = false;
   bool found_pch = false;
   bool found_fpch_preprocess = false;
-  bool found_color_diagnostics = false;
+  ColorDiagnostics color_diagnostics = ColorDiagnostics::automatic;
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
 
@@ -360,9 +362,11 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i] == "-xHost") {
-    // -xHost is an ordinary Intel compiler option, not a language
-    // specification.
+  if (args[i].length() >= 3 && Util::starts_with(args[i], "-x")
+      && !islower(args[i][2])) {
+    // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with an
+    // uppercase letter) is an ordinary Intel compiler option, not a language
+    // specification. (GCC's "-x" language argument is always lowercase.)
     state.common_args.push_back(args[i]);
     return nullopt;
   }
@@ -655,26 +659,18 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i] == "-fcolor-diagnostics" || args[i] == "-fno-color-diagnostics"
-      || args[i] == "-fdiagnostics-color"
-      || args[i] == "-fdiagnostics-color=always"
-      || args[i] == "-fno-diagnostics-color"
-      || args[i] == "-fdiagnostics-color=never") {
-    state.common_args.push_back(args[i]);
-    state.found_color_diagnostics = true;
+  if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
+      || args[i] == "-fdiagnostics-color=always") {
+    state.color_diagnostics = ColorDiagnostics::always;
     return nullopt;
   }
-
+  if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
+      || args[i] == "-fdiagnostics-color=never") {
+    state.color_diagnostics = ColorDiagnostics::never;
+    return nullopt;
+  }
   if (args[i] == "-fdiagnostics-color=auto") {
-    if (color_output_possible()) {
-      // Output is redirected, so color output must be forced.
-      state.common_args.push_back("-fdiagnostics-color=always");
-      add_extra_arg(ctx, "-fdiagnostics-color=always");
-      cc_log("Automatically forcing colors");
-    } else {
-      state.common_args.push_back(args[i]);
-    }
-    state.found_color_diagnostics = true;
+    state.color_diagnostics = ColorDiagnostics::automatic;
     return nullopt;
   }
 
@@ -908,9 +904,7 @@ process_args(Context& ctx,
     }
   }
 
-  if (!state.dependency_target_specified
-      && ctx.args_info.generating_dependencies
-      && ctx.args_info.seen_MD_MMD)
+  if (!state.dependency_target_specified && ctx.args_info.seen_MD_MMD)
   {
     ctx.args_info.change_dep_file = true;
   }
@@ -1061,26 +1055,29 @@ process_args(Context& ctx,
     state.cpp_args.push_back(state.explicit_language);
   }
 
+  args_info.strip_diagnostics_colors =
+    state.color_diagnostics != ColorDiagnostics::automatic
+      ? state.color_diagnostics == ColorDiagnostics::never
+      : !color_output_possible();
   // Since output is redirected, compilers will not color their output by
-  // default, so force it explicitly if it would be otherwise done.
-  if (!state.found_color_diagnostics && color_output_possible()) {
-    if (ctx.guessed_compiler == GuessedCompiler::clang) {
-      if (args_info.actual_language != "assembler") {
-        state.common_args.push_back("-fcolor-diagnostics");
-        add_extra_arg(ctx, "-fcolor-diagnostics");
-        cc_log("Automatically enabling colors");
+  // default, so force it explicitly.
+  if (ctx.guessed_compiler == GuessedCompiler::clang) {
+    if (args_info.actual_language != "assembler") {
+      if (!config.run_second_cpp()) {
+        state.cpp_args.push_back("-fcolor-diagnostics");
       }
-    } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
-      // GCC has it since 4.9, but that'd require detecting what GCC version is
-      // used for the actual compile. However it requires also GCC_COLORS to be
-      // set (and not empty), so use that for detecting if GCC would use colors.
-      const char* gcc_colors = getenv("GCC_COLORS");
-      if (gcc_colors && gcc_colors[0] != '\0') {
-        state.common_args.push_back("-fdiagnostics-color");
-        add_extra_arg(ctx, "-fdiagnostics-color");
-        cc_log("Automatically enabling colors");
-      }
+      state.compiler_only_args.push_back("-fcolor-diagnostics");
+      add_extra_arg(ctx, "-fcolor-diagnostics");
     }
+  } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
+    if (!config.run_second_cpp()) {
+      state.cpp_args.push_back("-fdiagnostics-color");
+    }
+    state.compiler_only_args.push_back("-fdiagnostics-color");
+    add_extra_arg(ctx, "-fdiagnostics-color");
+  } else {
+    // Other compilers shouldn't output color, so no need to strip it.
+    args_info.strip_diagnostics_colors = false;
   }
 
   if (args_info.generating_dependencies) {

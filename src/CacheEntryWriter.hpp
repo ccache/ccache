@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,7 +24,6 @@
 #include "Compressor.hpp"
 #include "Util.hpp"
 
-#include <cstdio>
 #include <memory>
 
 // This class knows how to write a cache entry with a common header and a

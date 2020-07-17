@@ -190,8 +190,48 @@ EOF
     expect_file_content a/source.d "a/source.o: a/source.c"
 
     # -------------------------------------------------------------------------
-    TEST "-MD: cache hits and miss and dependency"
+    for dep_args in "-MMD" "-MMD -MF foo.d" "-Wp,-MMD,foo.d"; do
+        for obj_args in "" "-o bar.o"; do
+            if [ "$dep_args" != "-MMD" ]; then
+                dep_file=foo.d
+                another_dep_file=foo.d
+            elif [ -z "$obj_args" ]; then
+                dep_file=test.d
+                another_dep_file=another.d
+            else
+                dep_file=bar.d
+                another_dep_file=another.d
+            fi
 
+            TEST "Dependency file content, $dep_args $obj_args"
+            # -----------------------------------------------------------------
+
+            $REAL_COMPILER -c test.c $dep_args $obj_args
+            mv $dep_file $dep_file.real
+
+            $REAL_COMPILER -c test.c $dep_args -o another.o
+            mv $another_dep_file another.d.real
+
+            # cache miss
+            $CCACHE_COMPILE -c test.c $dep_args $obj_args
+            expect_stat 'cache hit (direct)' 0
+            expect_stat 'cache miss' 1
+            expect_equal_text_files $dep_file.real $dep_file
+
+            # cache hit
+            $CCACHE_COMPILE -c test.c $dep_args $obj_args
+            expect_stat 'cache hit (direct)' 1
+            expect_stat 'cache miss' 1
+            expect_equal_text_files $dep_file.real $dep_file
+
+            # change object file name
+            $CCACHE_COMPILE -c test.c $dep_args -o another.o
+            expect_equal_text_files another.d.real $another_dep_file
+        done
+    done
+
+    # -------------------------------------------------------------------------
+    TEST "-MD: cache hits and miss and dependency"
 
     hit=0
     src=test1.c
@@ -219,7 +259,6 @@ EOF
 
     # -------------------------------------------------------------------------
     TEST "-MMD: cache hits and miss and dependency"
-
 
     hit=0
     src=test2.c
@@ -991,9 +1030,9 @@ EOF
     manifest=`find $CCACHE_DIR -name '*.manifest'`
     $CCACHE --dump-manifest $manifest >manifest.dump
 
-    checksum_test1_h='7706603374730d6e19c22f607768040f13be686d'
-    checksum_test2_h='0f1d0cf7d790a6a31248d8a52e826dad433d191c'
-    checksum_test3_h='d07f2a91a649bc56a1b008279b326201077d341b'
+    checksum_test1_h='b7271c414e35d190304ccbb02cdce8aaa391497e'
+    checksum_test2_h='24f1184b3644bd65db35d8de74fbe468757a4200'
+    checksum_test3_h='56a66d1ef7bfe44154ecd084e395a1c8d55bb3a1'
 
     if grep "Hash: $checksum_test1_h" manifest.dump >/dev/null 2>&1 && \
        grep "Hash: $checksum_test2_h" manifest.dump >/dev/null 2>&1 && \
@@ -1064,4 +1103,27 @@ EOF
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_IGNOREOPTIONS"
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1" $CCACHE_COMPILE -DTEST=1 -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1*" $CCACHE_COMPILE -DTEST=1 -c test.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=1*" $CCACHE_COMPILE -DTEST=12 -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_IGNOREOPTIONS="-DTEST=2*" $CCACHE_COMPILE -DTEST=12 -c test.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
 }

@@ -21,10 +21,15 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "SignalHandler.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
 #include "logging.hpp"
+
+#ifdef _WIN32
+#  include "win32compat.hpp"
+#endif
 
 using nonstd::string_view;
 
@@ -105,23 +110,21 @@ win32argvtos(const char* prefix, const char* const* argv, int* length)
 std::string
 win32getshell(const char* path)
 {
-  char* path_env;
+  const char* path_env = getenv("PATH");
   std::string sh;
-  const char* ext = get_extension(path);
-  if (ext && strcasecmp(ext, ".sh") == 0 && (path_env = getenv("PATH"))) {
-    sh = find_executable_in_path("sh.exe", NULL, path_env);
+  std::string ext = std::string(Util::get_extension(path));
+  if (!ext.empty() && strcasecmp(ext.c_str(), ".sh") == 0 && path_env) {
+    sh = find_executable_in_path("sh.exe", nullptr, path_env);
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
-    FILE* fp = fopen(path, "r");
+    File fp(path, "r");
     if (fp) {
-      char buf[10];
-      fgets(buf, sizeof(buf), fp);
-      buf[9] = 0;
-      if (str_eq(buf, "#!/bin/sh") && (path_env = getenv("PATH"))) {
+      char buf[10] = {0};
+      fgets(buf, sizeof(buf) - 1, fp.get());
+      if (std::string(buf) == "#!/bin/sh" && path_env) {
         sh = find_executable_in_path("sh.exe", NULL, path_env);
       }
-      fclose(fp);
     }
   }
 
@@ -201,7 +204,7 @@ win32execute(const char* path,
     fclose(fp);
     snprintf(atfile, sizeof(atfile), "\"@%s\"", tmp_file);
     ret = CreateProcess(NULL, atfile, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
-    tmp_unlink(tmp_file);
+    Util::unlink_tmp(tmp_file);
     free(tmp_file);
   }
   if (!ret) {
@@ -214,35 +217,12 @@ win32execute(const char* path,
   }
   free(args);
   if (ret == 0) {
-    LPVOID lpMsgBuf;
-    DWORD dw = GetLastError();
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                    | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL,
-                  dw,
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR)&lpMsgBuf,
-                  0,
-                  NULL);
-
-    LPVOID lpDisplayBuf = (LPVOID)LocalAlloc(
-      LMEM_ZEROINIT,
-      (lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)__FILE__) + 200)
-        * sizeof(TCHAR));
-    _snprintf((LPTSTR)lpDisplayBuf,
-              LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-              TEXT("%s failed with error %lu: %s"),
-              __FILE__,
-              dw,
-              (const char*)lpMsgBuf);
-
-    cc_log("can't execute %s; OS returned error: %s",
+    DWORD error = GetLastError();
+    std::string error_message = win32_error_message(error);
+    cc_log("failed to execute %s: %s (%lu)",
            full_path_win_ext,
-           (char*)lpDisplayBuf);
-
-    LocalFree(lpMsgBuf);
-    LocalFree(lpDisplayBuf);
-
+           win32_error_message(error).c_str(),
+           error);
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
@@ -266,9 +246,10 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 {
   cc_log_argv("Executing ", argv);
 
-  block_signals();
-  *pid = fork();
-  unblock_signals();
+  {
+    SignalHandlerBlocker signal_handler_blocker;
+    *pid = fork();
+  }
 
   if (*pid == -1) {
     fatal("Failed to fork: %s", strerror(errno));
@@ -276,9 +257,9 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 
   if (*pid == 0) {
     // Child.
-    dup2(fd_out, 1);
+    dup2(fd_out, STDOUT_FILENO);
     close(fd_out);
-    dup2(fd_err, 2);
+    dup2(fd_err, STDERR_FILENO);
     close(fd_err);
     x_exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
@@ -291,9 +272,10 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
     fatal("waitpid failed: %s", strerror(errno));
   }
 
-  block_signals();
-  *pid = 0;
-  unblock_signals();
+  {
+    SignalHandlerBlocker signal_handler_blocker;
+    *pid = 0;
+  }
 
   if (WEXITSTATUS(status) == 0 && WIFSIGNALED(status)) {
     return -1;

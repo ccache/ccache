@@ -23,10 +23,6 @@
 
 #include "third_party/fmt/core.h"
 
-#include <cassert>
-#include <cerrno>
-#include <unistd.h>
-
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
   auto fd_and_path = Util::create_temp_fd(path + ".tmp");
@@ -39,7 +35,7 @@ AtomicFile::~AtomicFile()
   if (m_stream) {
     // commit() was not called so remove the lingering temporary file.
     fclose(m_stream);
-    tmp_unlink(m_tmp_path.c_str());
+    Util::unlink_tmp(m_tmp_path);
   }
 }
 
@@ -68,7 +64,7 @@ AtomicFile::commit()
   int result = fclose(m_stream);
   m_stream = nullptr;
   if (result == EOF) {
-    tmp_unlink(m_tmp_path.c_str());
+    Util::unlink_tmp(m_tmp_path);
     throw Error(
       fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
   }

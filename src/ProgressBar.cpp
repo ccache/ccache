@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,9 +19,6 @@
 #include "ProgressBar.hpp"
 
 #include "third_party/fmt/core.h"
-
-#include <cstdio>
-#include <unistd.h>
 
 #ifndef _WIN32
 #  include <sys/ioctl.h>

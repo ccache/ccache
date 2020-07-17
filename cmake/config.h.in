@@ -1,0 +1,139 @@
+#pragma once
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  if __has_warning("-Wreserved-id-macro")
+#    pragma clang diagnostic ignored "-Wreserved-id-macro"
+#  endif
+#endif
+
+// For example for vasprintf under i686-w64-mingw32-g++-posix. The later
+// definition of _XOPEN_SOURCE disables certain features on Linux, so we need
+// _GNU_SOURCE to re-enable them (makedev, tm_zone).
+#define _GNU_SOURCE 1
+
+// The later definition of _XOPEN_SOURCE and _POSIX_C_SOURCE disables certain
+// features on NetBSD, so we need _NETBSD_SOURCE to re-enable them.
+#define _NETBSD_SOURCE 1
+
+// The later definition of _XOPEN_SOURCE and _POSIX_C_SOURCE disables certain
+// features on FreeBSD, so we need __BSD_VISIBLE to re-enable them.
+#define __BSD_VISIBLE 1
+
+// The later definition of _XOPEN_SOURCE and _POSIX_C_SOURCE disables u_int on
+// Irix 5.3. Defining _BSD_TYPES brings it back.
+#define _BSD_TYPES 1
+
+// The later definition of _XOPEN_SOURCE and _POSIX_C_SOURCE disables certain
+// features on Mac OS X, so we need _DARWIN_C_SOURCE to re-enable them.
+#cmakedefine _DARWIN_C_SOURCE
+
+// Define to activate features from IEEE Stds 1003.1-2001.
+#define _POSIX_C_SOURCE 200809L
+
+#if defined(__SunOS_5_8) || defined(__SunOS_5_9) || defined(__SunOS_5_10)
+#  define _XOPEN_SOURCE 500
+#elif !defined(__SunOS_5_11) && !defined(__APPLE__)
+#  define _XOPEN_SOURCE
+#endif
+
+#if defined(__SunOS_5_10) || defined(__SunOS_5_11)
+#  define __EXTENSIONS__ 1
+#else
+#  define _XOPEN_SOURCE_EXTENDED
+#endif
+
+// clang-format off
+#cmakedefine _WIN32_WINNT @_WIN32_WINNT@
+// clang-format on
+
+#define SYSCONFDIR "@CMAKE_INSTALL_FULL_SYSCONFDIR@"
+
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
+
+#cmakedefine MTR_ENABLED
+
+/* Define to 1 if you have the `asctime_r' function. */
+#cmakedefine HAVE_ASCTIME_R
+
+/* Define to 1 if your compiler supports AVX2. */
+#cmakedefine HAVE_AVX2
+
+/* Define to 1 if you have the `geteuid' function. */
+#cmakedefine HAVE_GETEUID
+
+/* Define to 1 if you have the `getopt_long' function. */
+#cmakedefine HAVE_GETOPT_LONG
+
+/* Define to 1 if you have the `getpwuid' function. */
+#cmakedefine HAVE_GETPWUID
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#cmakedefine HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the <linux/fs.h> header file. */
+#cmakedefine HAVE_LINUX_FS_H
+
+/* Define to 1 if you have the `localtime_r' function. */
+#cmakedefine HAVE_LOCALTIME_R
+
+/* Define to 1 if the system has the type `long long'. */
+#cmakedefine HAVE_LONG_LONG
+
+/* Define to 1 if you have the `mkstemp' function. */
+#cmakedefine HAVE_MKSTEMP
+
+/* Define to 1 if you have the `posix_fallocate. */
+#cmakedefine HAVE_POSIX_FALLOCATE
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#cmakedefine HAVE_PWD_H
+
+/* Define to 1 if you have the `realpath' function. */
+#cmakedefine HAVE_REALPATH
+
+/* Define to 1 if you have the `setenv' function. */
+#cmakedefine HAVE_SETENV
+
+/* Define to 1 if you have the `strndup' function. */
+#cmakedefine HAVE_STRNDUP
+
+/* Define to 1 if `f_fstypename' is a member of `struct statfs'. */
+#cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
+
+/* Define to 1 if `st_ctim' is a member of `struct stat'. */
+#cmakedefine HAVE_STRUCT_STAT_ST_CTIM
+
+/* Define to 1 if `st_mtim' is a member of `struct stat'. */
+#cmakedefine HAVE_STRUCT_STAT_ST_MTIM
+
+/* Define to 1 if you have the `syslog' function. */
+#cmakedefine HAVE_SYSLOG
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#cmakedefine HAVE_SYSLOG_H
+
+/* Define to 1 if you have the <sys/clonefile.h> header file. */
+#cmakedefine HAVE_SYS_CLONEFILE_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#cmakedefine HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#cmakedefine HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#cmakedefine HAVE_SYS_TIME_H
+
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+#cmakedefine HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <termios.h> header file. */
+#cmakedefine HAVE_TERMIOS_H
+
+/* Define to 1 if you have the `unsetenv' function. */
+#cmakedefine HAVE_UNSETENV
+
+/* Define to 1 if you have the `utimes' function. */
+#cmakedefine HAVE_UTIMES

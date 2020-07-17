@@ -16,163 +16,106 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-// This file contains tests for functions in hashutil.c.
-
 #include "../src/Context.hpp"
+#include "../src/Hash.hpp"
 #include "../src/hashutil.hpp"
-#include "framework.hpp"
-#include "util.hpp"
+#include "TestUtil.hpp"
 
-TEST_SUITE(hashutil)
+#include "third_party/doctest.h"
 
-TEST(hash_command_output_simple)
+using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("hashutil");
+
+TEST_CASE("hash_command_output_simple")
 {
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo", "not used"));
   CHECK(hash_command_output(h2, "echo", "not used"));
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
-TEST(hash_command_output_space_removal)
+TEST_CASE("hash_command_output_space_removal")
 {
-  Context ctx;
-
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo", "not used"));
   CHECK(hash_command_output(h2, " echo ", "not used"));
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
-TEST(hash_command_output_hash_inequality)
+TEST_CASE("hash_command_output_hash_inequality")
 {
-  Context ctx;
-
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "echo bar", "not used"));
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK(!str_eq(d1, d2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() != h2.digest());
 }
 
-TEST(hash_command_output_compiler_substitution)
+TEST_CASE("hash_command_output_compiler_substitution")
 {
-  Context ctx;
-
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
-TEST(hash_command_output_stdout_versus_stderr)
+TEST_CASE("hash_command_output_stdout_versus_stderr")
 {
-  Context ctx;
+  TestContext test_context;
 
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
 #ifndef _WIN32
-  create_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
+  Util::write_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
   chmod("stderr.sh", 0555);
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "./stderr.sh", "not used"));
 #else
-  create_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
+  Util::write_file("stderr.bat", "@echo off\r\necho foo>&2\r\n");
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "stderr.bat", "not used"));
 #endif
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
-TEST(hash_multicommand_output)
+TEST_CASE("hash_multicommand_output")
 {
-  Context ctx;
-
-  char d1[DIGEST_STRING_BUFFER_SIZE];
-  char d2[DIGEST_STRING_BUFFER_SIZE];
-
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
 #ifndef _WIN32
-  create_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
+  Util::write_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
   chmod("foo.sh", 0555);
   CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
   CHECK(hash_multicommand_output(h1, "./foo.sh", "not used"));
 #else
-  create_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
+  Util::write_file("foo.bat", "@echo off\r\necho foo\r\necho bar\r\n");
   CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
   CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
 #endif
-  hash_result_as_string(h1, d1);
-  hash_result_as_string(h2, d2);
-  CHECK_STR_EQ(d1, d2);
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
-TEST(hash_multicommand_output_error_handling)
+TEST_CASE("hash_multicommand_output_error_handling")
 {
   Context ctx;
 
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
-
-  hash_free(h2);
-  hash_free(h1);
 }
 
-TEST(check_for_temporal_macros)
+TEST_CASE("check_for_temporal_macros")
 {
   const char time_start[] =
     "__TIME__\n"
@@ -296,10 +239,9 @@ TEST(check_for_temporal_macros)
   CHECK(!check_for_temporal_macros(no_temporal + 7, sizeof(no_temporal) - 7));
 
   for (size_t i = 0; i < sizeof(temporal_at_avx_boundary) - 8; ++i) {
-    CHECKM(check_for_temporal_macros(temporal_at_avx_boundary + i,
-                                     sizeof(temporal_at_avx_boundary) - i),
-           temporal_at_avx_boundary + i);
+    CHECK(check_for_temporal_macros(temporal_at_avx_boundary + i,
+                                    sizeof(temporal_at_avx_boundary) - i));
   }
 }
 
-TEST_SUITE_END
+TEST_SUITE_END();

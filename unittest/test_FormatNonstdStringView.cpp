@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 #include "FormatNonstdStringView.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
+
+TEST_SUITE_BEGIN("FormatNonstdStringView");
 
 TEST_CASE("fmt::format and nonstd::string_view")
 {
@@ -42,3 +44,5 @@ TEST_CASE("fmt::format and nonstd::string_view")
   nonstd::string_view end(s.data() + s.length() - 2, 2);
   CHECK(fmt::format("{}", end) == "89");
 }
+
+TEST_SUITE_END();

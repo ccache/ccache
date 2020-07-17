@@ -33,11 +33,17 @@
 
 namespace Util {
 
-typedef std::function<void(double)> ProgressReceiver;
-typedef std::function<void(std::shared_ptr<CacheFile>)> CacheFileVisitor;
-typedef std::function<void(const std::string& /*dir_path*/,
-                           const ProgressReceiver& /*progress_receiver*/)>
-  SubdirVisitor;
+using ProgressReceiver = std::function<void(double /*progress*/)>;
+using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
+using SubdirVisitor =
+  std::function<void(const std::string& /*dir_path*/,
+                     const ProgressReceiver& /*progress_receiver*/)>;
+using TraverseVisitor =
+  std::function<void(const std::string& path, bool is_dir)>;
+using SubstringEditor =
+  std::function<void(nonstd::string_view::size_type pos, std::string& substr)>;
+
+enum class UnlinkLog { log_failure, ignore_failure };
 
 // Get base name of path.
 nonstd::string_view base_name(nonstd::string_view path);
@@ -77,6 +83,14 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
 
+// Clone, hard link or copy a file from `source` to `dest` depending on settings
+// in `ctx`. If cloning or hard linking cannot and should not be done the file
+// will be copied instead. Returns true if successful otherwise false.
+bool clone_hard_link_or_copy_file(const Context& ctx,
+                                  const std::string& source,
+                                  const std::string& dest,
+                                  bool via_tmp_file);
+
 // Compute the length of the longest directory path that is common to paths
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(nonstd::string_view dir,
@@ -103,6 +117,15 @@ nonstd::string_view dir_name(nonstd::string_view path);
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
+// Extends file size to at least new_size by calling posix_fallocate() if
+// supported, otherwise by writing zeros last to the file.
+//
+// Note that existing holes are not filled in case posix_fallocate() is not
+// supported.
+//
+// Returns 0 on success, an error number otherwise.
+int fallocate(int fd, long new_size);
+
 // Call a function for each subdir (0-9a-f) in the cache.
 //
 // Parameters:
@@ -113,6 +136,10 @@ bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
+
+// Format a hexadecimal string representing `size` bytes of `data`. The returned
+// string will be `2 * size` long.
+std::string format_hex(const uint8_t* data, size_t size);
 
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
@@ -166,6 +193,7 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint32_t levels,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
+
 // Return a shortened view into the base name of `path`. This view starts at the
 // beginning of the base name and ends at either the position the first dot, or
 // `max_length`, or the length of the base name, whichever is the shortest.
@@ -203,6 +231,14 @@ int_to_big_endian(int8_t value, uint8_t* buffer)
 
 // Return whether `path` is absolute.
 bool is_absolute_path(nonstd::string_view path);
+
+// Test if a file is on nfs.
+//
+// Sets is_nfs to the result if fstatfs is available and no error occurred.
+//
+// Returns 0 if is_nfs was set, -1 if fstatfs is not available or errno if an
+// error occurred.
+int is_nfs_fd(int fd, bool* is_nfs);
 
 // Return whether `ch` is a directory separator, i.e. '/' on POSIX systems and
 // '/' or '\\' on Windows systems.
@@ -260,6 +296,10 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
+// `strip_colors` is true. Throws `Error` on error.
+void send_to_stderr(const std::string& text, bool strip_colors);
+
 // Split `input` into words at any of the characters listed in `separators`.
 // These words are a view into `input`; empty words are omitted. `separators`
 // must neither be the empty string nor a nullptr.
@@ -273,19 +313,53 @@ std::vector<std::string> split_into_strings(nonstd::string_view input,
 // Return true if prefix is a prefix of string.
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 
+// Returns a copy of string with the specified ANSI CSI sequences removed.
+[[gnu::warn_unused_result]] std::string
+strip_ansi_csi_seqs(nonstd::string_view string);
+
 // Strip whitespace from left and right side of a string.
 [[gnu::warn_unused_result]] std::string
 strip_whitespace(const std::string& string);
 
 // Convert a string to lowercase.
-[[gnu::warn_unused_result]] std::string to_lowercase(const std::string& string);
+[[gnu::warn_unused_result]] std::string
+to_lowercase(nonstd::string_view string);
 
-// Write file data from a string.
+// Traverse `path` recursively (postorder, i.e. files are visited before their
+// parent directory).
+//
+// Throws Error on error.
+void traverse(const std::string& path, const TraverseVisitor& visitor);
+
+// Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_safe(const std::string& path,
+                 UnlinkLog unlink_log = UnlinkLog::log_failure);
+
+// Remove `path` (non-directory), NFS hazardous. Use only for files that will
+// not exist on other systems. Logs according to `unlink_log`.
+//
+// Returns whether removal was successful. A non-existing `path` is considered
+// successful.
+bool unlink_tmp(const std::string& path,
+                UnlinkLog unlink_log = UnlinkLog::log_failure);
+
+// Remove `path` (and its contents if it's a directory). A non-existing path is
+// not considered an error.
+//
+// Throws Error on error.
+void wipe_path(const std::string& path);
+
+// Write file data from a string. The file will be opened according to
+// `open_mode`, which always will include `std::ios::out` even if not specified
+// at the call site.
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
 void write_file(const std::string& path,
                 const std::string& data,
-                bool binary = false);
+                std::ios_base::openmode open_mode = std::ios::out);
 
 } // namespace Util
