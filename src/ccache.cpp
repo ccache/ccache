@@ -503,18 +503,16 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
         r++;
       }
       // p and q span the include file path.
-      char* inc_path = x_strndup(p, q - p);
+      std::string inc_path(p, q - p);
       if (!ctx.has_absolute_include_headers) {
         ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
       }
-      char* saved_inc_path = inc_path;
-      inc_path = x_strdup(Util::make_relative_path(ctx, inc_path).c_str());
-      free(saved_inc_path);
+      inc_path = Util::make_relative_path(ctx, inc_path);
 
       bool should_hash_inc_path = true;
       if (!ctx.config.hash_dir()) {
         if (Util::starts_with(inc_path, ctx.apparent_cwd)
-            && str_endswith(inc_path, "//")) {
+            && Util::ends_with(inc_path, "//")) {
           // When compiling with -g or similar, GCC adds the absolute path to
           // CWD like this:
           //
@@ -530,7 +528,6 @@ process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
       }
 
       remember_include_file(ctx, inc_path, hash, system, nullptr);
-      free(inc_path);
       p = q; // Everything of interest between p and q has been hashed now.
     } else if (q[0] == '.' && q[1] == 'i' && q[2] == 'n' && q[3] == 'c'
                && q[4] == 'b' && q[5] == 'i' && q[6] == 'n') {

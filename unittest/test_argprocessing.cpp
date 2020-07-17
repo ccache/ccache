@@ -603,7 +603,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   Args act_cc;
 
   Util::write_file("foo.c", "");
-  ctx.config.set_base_dir(x_strdup("/")); // posix
+  ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
   std::string arg_string = fmt::format("cc -I{}/foo -c foo.c", cwd);
