@@ -352,14 +352,14 @@ bool unlink_tmp(const std::string& path,
 // Throws Error on error.
 void wipe_path(const std::string& path);
 
-// Write file data from a string. The file will be opened according to
-// `open_mode`, which always will include `std::ios::out` even if not specified
-// at the call site.
+// Write `data` to `path`. The file will be opened according to `open_mode`,
+// which always will include `std::ios::out` even if not specified at the call
+// site.
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
 void write_file(const std::string& path,
                 const std::string& data,
-                std::ios_base::openmode open_mode = std::ios::out);
+                std::ios_base::openmode open_mode = std::ios::binary);
 
 } // namespace Util

@@ -532,6 +532,17 @@ TEST_CASE("Util::read_file and Util::write_file")
   data = Util::read_file("test");
   CHECK(data == "carpet");
 
+  Util::write_file("test", "\n", std::ios::app | std::ios::binary);
+  data = Util::read_file("test");
+  CHECK(data == "carpet\n");
+
+  Util::write_file("test", "\n", std::ios::app); // text mode
+  data = Util::read_file("test");
+#ifdef _WIN32
+  CHECK(data == "carpet\n\r\n");
+#else
+  CHECK(data == "carpet\n\n");
+#endif
   CHECK_THROWS_WITH(Util::read_file("does/not/exist"),
                     "No such file or directory");
 
