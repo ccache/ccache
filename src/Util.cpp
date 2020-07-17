@@ -20,6 +20,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "legacy_util.hpp"
 #include "logging.hpp"
@@ -669,14 +670,54 @@ parse_int(const std::string& value)
 }
 
 std::string
-read_file(const std::string& path)
+read_file(const std::string& path, size_t size_hint)
 {
-  std::ifstream file(path);
-  if (!file) {
+  if (size_hint == 0) {
+    auto stat = Stat::stat(path, Stat::OnError::log);
+    if (!stat) {
+      throw Error(strerror(errno));
+    }
+    size_hint = stat.size();
+  }
+
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
+
+  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  if (!fd) {
     throw Error(strerror(errno));
   }
-  return std::string(std::istreambuf_iterator<char>(file),
-                     std::istreambuf_iterator<char>());
+
+  ssize_t ret = 0;
+  size_t pos = 0;
+  std::string result;
+  result.resize(size_hint);
+
+  while (true) {
+    if (pos > result.size()) {
+      result.resize(2 * result.size());
+    }
+    const size_t max_read = result.size() - pos;
+    char* data = const_cast<char*>(result.data()); // cast needed before C++17
+    ret = read(*fd, data + pos, max_read);
+    if (ret == 0 || (ret == -1 && errno != EINTR)) {
+      break;
+    }
+    if (ret > 0) {
+      pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
+    }
+  }
+
+  if (ret == -1) {
+    cc_log("Failed reading %s", path.c_str());
+    throw Error(strerror(errno));
+  }
+
+  result.resize(pos);
+  return result;
 }
 
 #ifndef _WIN32

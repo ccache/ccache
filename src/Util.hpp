@@ -275,11 +275,12 @@ std::string normalize_absolute_path(nonstd::string_view path);
 // Throws Error on error.
 int parse_int(const std::string& value);
 
-// Read file data as a string.
+// Return `path`'s content as a string. If `size_hint` is not 0 then assume that
+// `path` has this size (this saves system calls).
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
-std::string read_file(const std::string& path);
+std::string read_file(const std::string& path, size_t size_hint = 0);
 
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
