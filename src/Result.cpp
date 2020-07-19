@@ -380,10 +380,14 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
     uint8_t buf[READ_BUFFER_SIZE];
     size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
     ssize_t bytes_read = read(*file, buf, n);
-    if (bytes_read < 1) {
+    if (bytes_read == -1) {
+      if (errno == EINTR) {
+        continue;
+      }
       throw Error(
         fmt::format("Error reading from {}: {}", path, strerror(errno)));
-    } else if (bytes_read == 0) {
+    }
+    if (bytes_read == 0) {
       throw Error(fmt::format("Error reading from {}: end of file", path));
     }
     writer.write(buf, n);
