@@ -16,11 +16,11 @@ Bug fixes
 
 - ccache now copies files directly from the cache to the destination file
   instead of via a temporary file. This avoids problems when using filenames
-  long enough to be near the file system's filename max limit.
+  long enough to be near the file system’s filename max limit.
 
 - When the hard-link mode is enabled, ccache now only uses hard links for
   object files, not other files like dependency files. This is because
-  compilers unlink object files before writing to them but they don't do that
+  compilers unlink object files before writing to them but they don’t do that
   for dependency files, so the latter can become overwritten and therefore
   corrupted in the cache.
 
@@ -31,7 +31,7 @@ Bug fixes
 - Temporary files are now deleted immediately on signals like SIGTERM and
   SIGINT instead of some time later in a cleanup phase.
 
-- Fixed a bug that affected ccache's `-o/--set-config` option for the
+- Fixed a bug that affected ccache’s `-o/--set-config` option for the
   `base_dir` and `cache_dir_levels` keys.
 
 
@@ -208,7 +208,7 @@ Bug fixes
 - The cache size (which is counted in “used disk blocks”) is now correct on
   filesystems that use more or less disk blocks than conventional filesystems,
   e.g. ecryptfs or btrfs/zfs with transparent compression. This also fixes a
-  related problem with ccache's own test suite when run on such file systems.
+  related problem with ccache’s own test suite when run on such file systems.
 
 - Fixed a regression in 3.7.2 when using the compiler option “-Werror” and then
   “-Wno-error” later on the command line.
@@ -747,7 +747,7 @@ New features and enhancements
 
 - Added support for Fortran 77.
 
-- Added support for multiple `-arch` options to produce "fat binaries".
+- Added support for multiple `-arch` options to produce “fat binaries”.
 
 - Multiple identical `-arch` arguments are now handled without bailing.
 
@@ -866,7 +866,7 @@ Bug fixes
 
 - Include m4 files used by configure.ac in the source dist archives.
 
-- Corrected "Performance" section in the manual regarding `__DATE_`, `__TIME__`
+- Corrected “Performance” section in the manual regarding `__DATE_`, `__TIME__`
   and `__FILE__` macros.
 
 - Fixed build on Solaris 10+ and AIX 7.
@@ -934,7 +934,7 @@ Bug fixes
 
 - Bail out on compiler option `--save-temps` in addition to `-save-temps`.
 
-- Only log "Disabling direct mode" once when failing to read potential include
+- Only log “Disabling direct mode” once when failing to read potential include
   files.
 
 
@@ -1280,7 +1280,7 @@ Bug fixes
 
 - Made failure to create files (typically due to bad directory permissions) in
   the cache directory fatal. Previously, such failures were silently and
-  erroneously flagged as "compiler produced stdout".
+  erroneously flagged as “compiler produced stdout”.
 
 - Both the `-specs=file` and `--specs=file` forms are now recognized.
 
