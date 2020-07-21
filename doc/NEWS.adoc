@@ -57,6 +57,29 @@ High-level summary of changes (work in progress)
 - (More to be written.)
 
 
+ccache 3.7.11
+-------------
+
+Release date: 2020-07-21
+
+Bug fixes
+~~~~~~~~~
+
+- Added knowledge about `-fprofile-{correction,reorder-functions,values}`.
+
+- ccache now handles the Intel compiler option `-xCODE` (where `CODE` is a
+  processor feature code) correctly.
+
+- Added support for NVCC’s `-Werror` and `--Werror` options.
+
+
+Other
+~~~~~
+
+- ccache’s “Directory is not hashed if using -gz[=zlib]” tests are now skipped
+  for GCC 6.
+
+
 ccache 3.7.10
 ------------
 Release date: 2020-06-22
