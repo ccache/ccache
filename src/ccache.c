@@ -2616,7 +2616,10 @@ process_profiling_option(const char *arg)
 		         || str_startswith(arg, "-fauto-profile=")) {
 		new_profile_use = true;
 		new_profile_path = x_strdup(strchr(arg, '=') + 1);
-	} else if (str_eq(arg, "-fprofile-sample-accurate")) {
+	} else if (str_eq(arg, "-fprofile-correction")
+	           || str_eq(arg, "-fprofile-reorder-functions")
+	           || str_eq(arg, "-fprofile-sample-accurate")
+	           || str_eq(arg, "-fprofile-values")) {
 		return true;
 	} else {
 		cc_log("Unknown profiling option: %s", arg);
