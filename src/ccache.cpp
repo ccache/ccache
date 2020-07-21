@@ -1524,7 +1524,7 @@ calculate_result_name(Context& ctx,
 
     if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
         && i + 1 < args.size()) {
-      auto st = Stat::stat(args[i + 1], Stat::OnError::log);
+      auto st = Stat::stat(args[i + 1]);
       if (st) {
         found_ccbin = true;
         hash.hash_delimiter("ccbin");

@@ -311,7 +311,9 @@ process_arg(Context& ctx,
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
-    if (compopt_takes_arg(args[i])) {
+    if (compopt_takes_arg(args[i])
+        || (ctx.guessed_compiler == GuessedCompiler::nvcc
+            && args[i] == "-Werror")) {
       if (i == args.size() - 1) {
         cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;
