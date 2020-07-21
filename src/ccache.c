@@ -2212,7 +2212,7 @@ calculate_object_hash(struct args *args, struct args *preprocessor_args,
 		if ((str_eq(args->argv[i], "-ccbin")
 		     || str_eq(args->argv[i], "--compiler-bindir"))
 		    && i + 1 < args->argc
-		    && x_stat(args->argv[i+1], &st) == 0) {
+		    && stat(args->argv[i+1], &st) == 0) {
 			found_ccbin = true;
 			hash_delimiter(hash, "ccbin");
 			hash_nvcc_host_compiler(hash, &st, args->argv[i+1]);
@@ -2849,7 +2849,8 @@ cc_process_args(struct args *args,
 		// Handle options that should not be passed to the preprocessor.
 		if (compopt_affects_comp(argv[i])) {
 			args_add(compiler_only_args, argv[i]);
-			if (compopt_takes_arg(argv[i])) {
+			if (compopt_takes_arg(argv[i])
+			    || (guessed_compiler == GUESSED_NVCC && str_eq(argv[i], "-Werror"))) {
 				if (i == argc - 1) {
 					cc_log("Missing argument to %s", argv[i]);
 					stats_update(STATS_ARGS);

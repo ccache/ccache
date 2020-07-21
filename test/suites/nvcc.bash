@@ -286,6 +286,19 @@ nvcc_tests() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     expect_equal_files reference_test1.o test_cpp.o
+
+    # -------------------------------------------------------------------------
+    TEST "Option -Werror"
+
+    $ccache_nvcc_cpp -Werror cross-execution-space-call test_cpp.cu
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    $ccache_nvcc_cpp -Werror cross-execution-space-call test_cpp.cu
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
 }
 
 SUITE_nvcc_PROBE() {
