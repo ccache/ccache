@@ -131,6 +131,18 @@ detect_pch(Context& ctx,
 bool
 process_profiling_option(Context& ctx, const std::string& arg)
 {
+  static const std::vector<std::string> known_simple_options = {
+    "-fprofile-correction",
+    "-fprofile-reorder-functions",
+    "-fprofile-sample-accurate",
+    "-fprofile-values",
+  };
+
+  if (std::find(known_simple_options.begin(), known_simple_options.end(), arg)
+      != known_simple_options.end()) {
+    return true;
+  }
+
   std::string new_profile_path;
   bool new_profile_use = false;
 
@@ -161,8 +173,6 @@ process_profiling_option(Context& ctx, const std::string& arg)
              || Util::starts_with(arg, "-fauto-profile=")) {
     new_profile_use = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
-  } else if (arg == "-fprofile-sample-accurate") {
-    return true;
   } else {
     cc_log("Unknown profiling option: %s", arg.c_str());
     return false;
