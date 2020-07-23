@@ -993,10 +993,6 @@ parse_duration_with_suffix_to_seconds(const std::string& value)
         throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
     }
 
-    if (end == value.size()) {
-        return result * 24 * 3600;
-    }
-
     if (end + 1 != value.size()) {
         throw Error(fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
     }

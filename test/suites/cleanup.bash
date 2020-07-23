@@ -190,7 +190,7 @@ SUITE_cleanup() {
     expect_file_count 1 '*.result' $CCACHE_DIR
     expect_stat 'files in cache' 1
 
-    $CCACHE --evict-older-than 1  >/dev/null
+    $CCACHE --evict-older-than 1d  >/dev/null
     expect_file_count 1 '*.result' $CCACHE_DIR
     expect_stat 'files in cache' 1
 
