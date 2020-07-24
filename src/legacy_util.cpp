@@ -506,18 +506,6 @@ create_tmp_fd(char** fname)
   return fd;
 }
 
-// Create an empty temporary file. *fname will be reallocated and set to the
-// resulting filename. Returns an open FILE*.
-FILE*
-create_tmp_file(char** fname, const char* mode)
-{
-  FILE* file = fdopen(create_tmp_fd(fname), mode);
-  if (!file) {
-    fatal("Failed to create file %s: %s", *fname, strerror(errno));
-  }
-  return file;
-}
-
 // Return current user's home directory, or throw FatalError if it can't be
 // determined.
 const char*

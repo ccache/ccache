@@ -44,7 +44,6 @@ bool parse_size_with_suffix(const char* str, uint64_t* size);
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
 int create_tmp_fd(char** fname);
-FILE* create_tmp_file(char** fname, const char* mode);
 const char* get_home_directory();
 bool same_executable_name(const char* s1, const char* s2);
 bool is_full_path(const char* path);
