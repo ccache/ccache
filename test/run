@@ -545,8 +545,9 @@ for suite in $suites; do
 done
 
 cd /
-rm -rf $ABS_TESTDIR
-
+if [ -z "$KEEP_TESTDIR"]; then
+    rm -rf $ABS_TESTDIR
+fi
 if $skipped; then
     exit $skip_code
 else
