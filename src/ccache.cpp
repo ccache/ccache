@@ -712,7 +712,7 @@ execute(Context& ctx,
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
     auto errors = Util::read_file(stderr_path);
-    if (errors.find("unrecognized command-line option") != std::string::npos
+    if (errors.find("unrecognized command line option") != std::string::npos
         && errors.find("-fdiagnostics-color") != std::string::npos) {
       // Old versions of GCC did not support colored diagnostics.
       cc_log("-fdiagnostics-color is unsupported; trying again without it");
