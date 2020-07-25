@@ -613,7 +613,7 @@ pch_suite_gcc() {
 
 pch_suite_clang() {
     # -------------------------------------------------------------------------
-    TEST "Create .gch, include file mtime changed"
+    TEST "Create .pch, include file mtime changed"
 
     backdate test.h
     cat <<EOF >pch2.h
@@ -771,5 +771,60 @@ EOF
     CCACHE_NODIRECT=1 CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -c -include-pch pch.h.pch pch.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 2
+
+    # -------------------------------------------------------------------------
+    TEST "Create .pch with -Xclang options"
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    rm pch.h.pch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_file_exists pch.h.pch
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    rm pch.h.pch
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+    expect_file_exists pch.h.pch
+
+    # -------------------------------------------------------------------------
+    TEST "Use .pch the with -Xclang options"
+
+    $REAL_COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    backdate pch.h.pch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    echo '#include <string.h> /*change pch*/' >>pch.h
+    backdate pch.h
+    $REAL_COMPILER $SYSROOT -Xclang -emit-pch -o pch.h.pch -c pch.h
+    backdate pch.h.pch
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 2
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS time_macros" $CCACHE_COMPILE $SYSROOT -Xclang -include-pch -Xclang pch.h.pch -Xclang -include -Xclang pch.h -c pch.c
+    expect_stat 'cache hit (direct)' 2
+    expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
 }

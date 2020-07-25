@@ -91,18 +91,22 @@ bool
 detect_pch(Context& ctx,
            const std::string& option,
            const std::string& arg,
+           bool is_cc1_option,
            bool* found_pch)
 {
   assert(found_pch);
 
   // Try to be smart about detecting precompiled headers.
+  // If the option is an option for Clang (is_cc1_option), don't accept
+  // anything just because it has a corresponding precompiled header,
+  // because Clang doesn't behave that way either.
   std::string pch_file;
   if (option == "-include-pch" || option == "-include-pth") {
     if (Stat::stat(arg)) {
       cc_log("Detected use of precompiled header: %s", arg.c_str());
       pch_file = arg;
     }
-  } else {
+  } else if (!is_cc1_option) {
     for (const auto& extension : {".gch", ".pch", ".pth"}) {
       std::string path = arg + extension;
       if (Stat::stat(path)) {
@@ -305,6 +309,23 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  // Some arguments that clang passes directly to cc1 (related to precompiled
+  // headers) need the usual ccache handling. In those cases, the -Xclang
+  // prefix is skipped and the cc1 argument is handled instead.
+  if (args[i] == "-Xclang" && i < args.size() - 1
+      && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
+          || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
+          || args[i + 1] == "-fno-pch-timestamp")) {
+    if (compopt_affects_comp(args[i + 1])) {
+      state.compiler_only_args.push_back(args[i]);
+    } else if (compopt_affects_cpp(args[i + 1])) {
+      state.cpp_args.push_back(args[i]);
+    } else {
+      state.common_args.push_back(args[i]);
+    }
+    ++i;
+  }
+
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
@@ -323,11 +344,6 @@ process_arg(Context& ctx,
   if (compopt_prefix_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
     return nullopt;
-  }
-
-  if (args[i] == "-fpch-preprocess" || args[i] == "-emit-pch"
-      || args[i] == "-emit-pth") {
-    state.found_fpch_preprocess = true;
   }
 
   // Modules are handled on demand as necessary in the background, so there is
@@ -695,6 +711,18 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (args[i] == "-fno-pch-timestamp") {
+    args_info.fno_pch_timestamp = true;
+    state.common_args.push_back(args[i]);
+    return nullopt;
+  }
+
+  if (args[i] == "-fpch-preprocess") {
+    state.found_fpch_preprocess = true;
+    state.common_args.push_back(args[i]);
+    return nullopt;
+  }
+
   if (config.sloppiness() & SLOPPY_CLANG_INDEX_STORE
       && args[i] == "-index-store-path") {
     // Xcode 9 or later calls Clang with this option. The given path includes a
@@ -716,20 +744,28 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
 
-    if (!detect_pch(ctx, args[i], args[i + 1], &state.found_pch)) {
+    // In the -Xclang -include-(pch/pth) -Xclang <path> case, the path is one
+    // index further behind.
+    int next = 1;
+    if (args[i + 1] == "-Xclang" && i + 2 < args.size()) {
+      next = 2;
+    }
+
+    if (!detect_pch(
+          ctx, args[i], args[i + next], next == 2, &state.found_pch)) {
       return STATS_ARGS;
     }
 
-    std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
-    if (compopt_affects_cpp(args[i])) {
-      state.cpp_args.push_back(args[i]);
-      state.cpp_args.push_back(relpath);
-    } else {
-      state.common_args.push_back(args[i]);
-      state.common_args.push_back(relpath);
+    std::string relpath = Util::make_relative_path(ctx, args[i + next]);
+    auto& dest_args =
+      compopt_affects_cpp(args[i]) ? state.cpp_args : state.common_args;
+    dest_args.push_back(args[i]);
+    if (next == 2) {
+      dest_args.push_back(args[i + 1]);
     }
+    dest_args.push_back(relpath);
 
-    i++;
+    i += next;
     return nullopt;
   }
 
@@ -959,7 +995,8 @@ process_args(Context& ctx,
   }
 
   args_info.output_is_precompiled_header =
-    args_info.actual_language.find("-header") != std::string::npos;
+    args_info.actual_language.find("-header") != std::string::npos
+    || is_precompiled_header(args_info.output_obj.c_str());
 
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {

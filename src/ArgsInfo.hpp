@@ -103,6 +103,10 @@ struct ArgsInfo
   // Clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;
 
+  // Whether Clang is instructed not to include timestamps in the precompiled
+  // header it generates.
+  bool fno_pch_timestamp = false;
+
   // Files referenced by -fsanitize-blacklist options.
   std::vector<std::string> sanitize_blacklists;
 
