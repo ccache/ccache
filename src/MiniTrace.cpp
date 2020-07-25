@@ -22,6 +22,7 @@
 
 #  include "ArgsInfo.hpp"
 #  include "MiniTrace.hpp"
+#  include "TemporaryFile.hpp"
 #  include "Util.hpp"
 #  include "legacy_util.hpp"
 
@@ -49,10 +50,8 @@ get_system_tmp_dir()
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
   : m_args_info(args_info), m_trace_id(reinterpret_cast<void*>(getpid()))
 {
-  auto fd_and_path =
-    Util::create_temp_fd(get_system_tmp_dir() + "/ccache-trace");
-  m_tmp_trace_file = fd_and_path.second;
-  close(fd_and_path.first);
+  TemporaryFile tmp_file(get_system_tmp_dir() + "/ccache-trace");
+  m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
   MTR_INSTANT_C("", "", "time", fmt::format("{:f}", time_seconds()).c_str());

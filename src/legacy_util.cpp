@@ -20,6 +20,7 @@
 #include "legacy_util.hpp"
 
 #include "Fd.hpp"
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
 #include "logging.hpp"
@@ -159,8 +160,9 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
-    tmp_file = x_strdup(dest);
-    dest_fd = Fd(create_tmp_fd(&tmp_file));
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = x_strdup(temp_file.path.c_str());
   } else {
     dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
@@ -220,8 +222,9 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
   Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
-    tmp_file = x_strdup(dest);
-    dest_fd = Fd(create_tmp_fd(&tmp_file));
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = x_strdup(temp_file.path.c_str());
   } else {
     dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {

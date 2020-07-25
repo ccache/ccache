@@ -24,6 +24,7 @@
 #include "Fd.hpp"
 #include "SignalHandler.hpp"
 #include "Stat.hpp"
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
 #include "logging.hpp"
@@ -36,9 +37,9 @@ using nonstd::string_view;
 
 #ifdef _WIN32
 int
-execute(const char* const* argv, int fd_out, int fd_err, pid_t* /*pid*/)
+execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* /*pid*/)
 {
-  return win32execute(argv[0], argv, 1, fd_out, fd_err);
+  return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release());
 }
 
 // Re-create a win32 command line string based on **argv.
@@ -195,13 +196,11 @@ win32execute(const char* path,
   add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
   BOOL ret = FALSE;
   if (length > 8192) {
-    auto fd_and_path = Util::create_temp_fd(path);
-    Fd fd(fd_and_path.first);
-    const char* tmp_file = fd_and_path.second.c_str();
-    if (!write_fd(*fd, args, length)) {
+    TemporaryFile tmp_file(path);
+    if (!write_fd(*tmp_file.fd, args, length)) {
       cc_log("Error writing @file; this command will probably fail: %s", args);
     }
-    std::string atfile = fmt::format("\"@{}\"", tmp_file);
+    std::string atfile = fmt::format("\"@{}\"", tmp_file.path);
     ret = CreateProcess(nullptr,
                         const_cast<char*>(atfile.c_str()),
                         nullptr,
@@ -212,7 +211,7 @@ win32execute(const char* path,
                         nullptr,
                         &si,
                         &pi);
-    Util::unlink_tmp(tmp_file);
+    Util::unlink_tmp(tmp_file.path);
   }
   if (!ret) {
     ret = CreateProcess(full_path_win_ext,
@@ -257,7 +256,7 @@ win32execute(const char* path,
 // Execute a compiler backend, capturing all output to the given paths the full
 // path to the compiler to run is in argv[0].
 int
-execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
+execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 {
   cc_log_argv("Executing ", argv);
 
@@ -272,15 +271,15 @@ execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid)
 
   if (*pid == 0) {
     // Child.
-    dup2(fd_out, STDOUT_FILENO);
-    close(fd_out);
-    dup2(fd_err, STDERR_FILENO);
-    close(fd_err);
+    dup2(*fd_out, STDOUT_FILENO);
+    fd_out.close();
+    dup2(*fd_err, STDERR_FILENO);
+    fd_err.close();
     x_exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
 
-  close(fd_out);
-  close(fd_err);
+  fd_out.close();
+  fd_err.close();
 
   int status;
   if (waitpid(*pid, &status, 0) != *pid) {

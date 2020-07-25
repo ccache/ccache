@@ -34,6 +34,7 @@
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
 #include "StdMakeUnique.hpp"
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
@@ -622,8 +623,7 @@ use_relative_paths_in_depfile(const Context& ctx)
     return;
   }
 
-  std::string tmp_file = fmt::format("{}.tmp{}", output_dep, tmp_string());
-
+  std::string tmp_file = output_dep + ".tmp";
   try {
     Util::write_file(tmp_file, adjusted_file_content);
   } catch (const Error& e) {
@@ -696,38 +696,48 @@ result_name_from_depfile(Context& ctx, Hash& hash)
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
 static int
-execute(Context& ctx,
-        Args& args,
-        const std::string& stdout_path,
-        int stdout_fd,
-        const std::string& stderr_path,
-        int stderr_fd)
+do_execute(Context& ctx,
+           Args& args,
+           TemporaryFile&& tmp_stdout,
+           TemporaryFile&& tmp_stderr)
 {
   if (ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
     args.erase_with_prefix("-fdiagnostics-color");
   }
-  int status =
-    execute(args.to_argv().data(), stdout_fd, stderr_fd, &ctx.compiler_pid);
+  int status = execute(args.to_argv().data(),
+                       std::move(tmp_stdout.fd),
+                       std::move(tmp_stderr.fd),
+                       &ctx.compiler_pid);
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
-    auto errors = Util::read_file(stderr_path);
+    auto errors = Util::read_file(tmp_stderr.path);
     if (errors.find("unrecognized command line option") != std::string::npos
         && errors.find("-fdiagnostics-color") != std::string::npos) {
-      // Old versions of GCC did not support colored diagnostics.
+      // Old versions of GCC do not support colored diagnostics.
       cc_log("-fdiagnostics-color is unsupported; trying again without it");
-      if (ftruncate(stdout_fd, 0) < 0 || lseek(stdout_fd, 0, SEEK_SET) < 0) {
-        cc_log(
-          "Failed to truncate %s: %s", stdout_path.c_str(), strerror(errno));
+
+      tmp_stdout.fd = Fd(open(
+        tmp_stdout.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
+      if (!tmp_stdout.fd) {
+        cc_log("Failed to truncate %s: %s",
+               tmp_stdout.path.c_str(),
+               strerror(errno));
         failed(STATS_ERROR);
       }
-      if (ftruncate(stderr_fd, 0) < 0 || lseek(stderr_fd, 0, SEEK_SET) < 0) {
-        cc_log(
-          "Failed to truncate %s: %s", stderr_path.c_str(), strerror(errno));
+
+      tmp_stderr.fd = Fd(open(
+        tmp_stderr.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
+      if (!tmp_stderr.fd) {
+        cc_log("Failed to truncate %s: %s",
+               tmp_stderr.path.c_str(),
+               strerror(errno));
         failed(STATS_ERROR);
       }
+
       ctx.diagnostics_color_failed = true;
-      return execute(ctx, args, stdout_path, stdout_fd, stderr_path, stderr_fd);
+      return do_execute(
+        ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
     }
   }
   return status;
@@ -856,22 +866,20 @@ to_cache(Context& ctx,
   cc_log("Running real compiler");
   MTR_BEGIN("execute", "compiler");
 
-  const auto tmp_stdout_fd_and_path = Util::create_temp_fd(
+  TemporaryFile tmp_stdout(
     fmt::format("{}/tmp.stdout", ctx.config.temporary_dir()));
-  int tmp_stdout_fd = tmp_stdout_fd_and_path.first;
-  const std::string& tmp_stdout = tmp_stdout_fd_and_path.second;
-  ctx.register_pending_tmp_file(tmp_stdout);
+  ctx.register_pending_tmp_file(tmp_stdout.path);
+  std::string tmp_stdout_path = tmp_stdout.path;
 
-  const auto tmp_stderr_fd_and_path = Util::create_temp_fd(
+  TemporaryFile tmp_stderr(
     fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
-  int tmp_stderr_fd = tmp_stderr_fd_and_path.first;
-  const std::string& tmp_stderr = tmp_stderr_fd_and_path.second;
-  ctx.register_pending_tmp_file(tmp_stderr);
+  ctx.register_pending_tmp_file(tmp_stderr.path);
+  std::string tmp_stderr_path = tmp_stderr.path;
 
   int status;
   if (!ctx.config.depend_mode()) {
     status =
-      execute(ctx, args, tmp_stdout, tmp_stdout_fd, tmp_stderr, tmp_stderr_fd);
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
     args.pop_back(3);
   } else {
     // Use the original arguments (including dependency options) in depend
@@ -882,16 +890,12 @@ to_cache(Context& ctx,
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
 
     ctx.time_of_compilation = time(nullptr);
-    status = execute(ctx,
-                     depend_mode_args,
-                     tmp_stdout,
-                     tmp_stdout_fd,
-                     tmp_stderr,
-                     tmp_stderr_fd);
+    status = do_execute(
+      ctx, depend_mode_args, std::move(tmp_stdout), std::move(tmp_stderr));
   }
   MTR_END("execute", "compiler");
 
-  auto st = Stat::stat(tmp_stdout, Stat::OnError::log);
+  auto st = Stat::stat(tmp_stdout_path, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
     failed(STATS_MISSING);
@@ -908,15 +912,15 @@ to_cache(Context& ctx,
   // compiler into tmp_stderr.
   if (!ctx.cpp_stderr.empty()) {
     std::string combined_stderr =
-      Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr);
-    Util::write_file(tmp_stderr, combined_stderr);
+      Util::read_file(ctx.cpp_stderr) + Util::read_file(tmp_stderr_path);
+    Util::write_file(tmp_stderr_path, combined_stderr);
   }
 
   if (status != 0) {
     cc_log("Compiler gave exit status %d", status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_stderr(Util::read_file(tmp_stderr),
+    Util::send_to_stderr(Util::read_file(tmp_stderr_path),
                          ctx.args_info.strip_diagnostics_colors);
 
     failed(STATS_STATUS, status);
@@ -948,7 +952,7 @@ to_cache(Context& ctx,
     failed(STATS_EMPTYOUTPUT);
   }
 
-  st = Stat::stat(tmp_stderr, Stat::OnError::log);
+  st = Stat::stat(tmp_stderr_path, Stat::OnError::log);
   if (!st) {
     failed(STATS_ERROR);
   }
@@ -957,7 +961,7 @@ to_cache(Context& ctx,
   Result::Writer result_writer(ctx, ctx.result_path());
 
   if (st.size() > 0) {
-    result_writer.write(Result::FileType::stderr_output, tmp_stderr);
+    result_writer.write(Result::FileType::stderr_output, tmp_stderr_path);
   }
   result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
   if (ctx.args_info.generating_dependencies) {
@@ -1008,7 +1012,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  Util::send_to_stderr(Util::read_file(tmp_stderr),
+  Util::send_to_stderr(Util::read_file(tmp_stderr_path),
                        ctx.args_info.strip_diagnostics_colors);
 }
 
@@ -1030,20 +1034,14 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   } else {
     // Run cpp on the input file to obtain the .i.
 
-    // Limit the basename to 10 characters in order to cope with filesystem with
-    // small maximum filename length limits.
-    string_view input_base =
-      Util::get_truncated_base_name(ctx.args_info.input_file, 10);
-    auto stdout_fd_and_path = Util::create_temp_fd(
-      fmt::format("{}/{}.stdout", ctx.config.temporary_dir(), input_base));
-    int stdout_fd = stdout_fd_and_path.first;
-    stdout_path = stdout_fd_and_path.second;
+    TemporaryFile tmp_stdout(
+      fmt::format("{}/tmp.cpp_stdout", ctx.config.temporary_dir()));
+    stdout_path = tmp_stdout.path;
     ctx.register_pending_tmp_file(stdout_path);
 
-    auto stderr_fd_and_path = Util::create_temp_fd(
+    TemporaryFile tmp_stderr(
       fmt::format("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
-    int stderr_fd = stderr_fd_and_path.first;
-    stderr_path = stderr_fd_and_path.second;
+    stderr_path = tmp_stderr.path;
     ctx.register_pending_tmp_file(stderr_path);
 
     size_t args_added = 2;
@@ -1056,7 +1054,8 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
     cc_log("Running preprocessor");
     MTR_BEGIN("execute", "preprocessor");
-    status = execute(ctx, args, stdout_path, stdout_fd, stderr_path, stderr_fd);
+    status =
+      do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
     MTR_END("execute", "preprocessor");
     args.pop_back(args_added);
   }
