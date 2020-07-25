@@ -45,4 +45,5 @@ private:
   Fd m_dest_fd;
   std::string m_dest_path;
   std::string m_stderr_text;
+  bool m_first;
 };

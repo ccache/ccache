@@ -44,6 +44,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   std::string dest_path;
 
   m_dest_file_type = file_type;
+  m_first = true;
 
   switch (file_type) {
   case FileType::object:
@@ -123,9 +124,28 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 
   if (m_dest_file_type == FileType::stderr_output) {
     m_stderr_text.append(reinterpret_cast<const char*>(data), size);
+  } else if (m_dest_file_type == FileType::dependency && m_first
+             && m_ctx.args_info.change_dep_file) {
+    // Write the object file name
+    if (!write_fd(*m_dest_fd,
+                  m_ctx.args_info.output_obj.data(),
+                  m_ctx.args_info.output_obj.length())) {
+      throw Error(fmt::format("Failed to write to {}", m_dest_path));
+    }
+
+    for (size_t i = 0; i < size; i++) {
+      if (data[i] == ':') {
+        // Write the rest line
+        if (!write_fd(*m_dest_fd, &data[i], size - i)) {
+          throw Error(fmt::format("Failed to write to {}", m_dest_path));
+        }
+        break;
+      }
+    }
   } else if (!write_fd(*m_dest_fd, data, size)) {
     throw Error(fmt::format("Failed to write to {}", m_dest_path));
   }
+  m_first = false;
 }
 
 void

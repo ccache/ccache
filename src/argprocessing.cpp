@@ -52,9 +52,6 @@ struct ArgumentProcessingState
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
 
-  // Is the dependency makefile target name specified with -MT or -MQ?
-  bool dependency_target_specified = false;
-
   // Is the dependency target name implicitly specified using
   // DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
   bool dependency_implicit_target_specified = false;
@@ -468,6 +465,7 @@ process_arg(Context& ctx,
   // with gcc -E, when the output file is not specified.
   if (args[i] == "-MD" || args[i] == "-MMD") {
     args_info.generating_dependencies = true;
+    args_info.seen_MD_MMD = true;
     state.dep_args.push_back(args[i]);
     return nullopt;
   }
@@ -501,7 +499,7 @@ process_arg(Context& ctx,
   }
 
   if (Util::starts_with(args[i], "-MQ") || Util::starts_with(args[i], "-MT")) {
-    state.dependency_target_specified = true;
+    ctx.args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
@@ -864,7 +862,7 @@ handle_dependency_environment_variables(Context& ctx,
   // Specifying target object is optional.
   if (dependencies.size() > 1) {
     // It's the "file target" form.
-    state.dependency_target_specified = true;
+    ctx.args_info.dependency_target_specified = true;
     string_view abspath_obj = dependencies[1];
     std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
     // Ensure that the compiler gets a relative path.
@@ -913,6 +911,10 @@ process_args(Context& ctx,
     if (error) {
       return error;
     }
+  }
+
+  if (!ctx.args_info.dependency_target_specified && ctx.args_info.seen_MD_MMD) {
+    ctx.args_info.change_dep_file = true;
   }
 
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
@@ -1101,7 +1103,7 @@ process_args(Context& ctx,
       }
     }
 
-    if (!state.dependency_target_specified
+    if (!ctx.args_info.dependency_target_specified
         && !state.dependency_implicit_target_specified
         && !config.run_second_cpp()) {
       // If we're compiling preprocessed code we're sending dep_args to the

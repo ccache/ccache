@@ -1257,7 +1257,8 @@ hash_common_info(const Context& ctx,
     hash.hash(dir_to_hash);
   }
 
-  if (ctx.args_info.generating_dependencies || ctx.args_info.seen_split_dwarf) {
+  if ((!ctx.args_info.change_dep_file && ctx.args_info.generating_dependencies)
+      || ctx.args_info.seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
     //
