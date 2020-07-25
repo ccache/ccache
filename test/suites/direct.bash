@@ -131,8 +131,6 @@ EOF
     TEST "Calculation of dependency file names"
 
     i=0
-    hit=-1
-    miss=1
     for ext in .o .obj "" . .foo.bar; do
         rm -rf testdir
         mkdir testdir
@@ -140,15 +138,13 @@ EOF
         dep_file=testdir/`echo test$ext | sed 's/\.[^.]*\$//'`.d
 
         $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        hit=$((hit + 1))
-        expect_stat 'cache hit (direct)' $hit
-        expect_stat 'cache miss' $miss
+        expect_stat 'cache hit (direct)' $((3 * i))
+        expect_stat 'cache miss' $((i + 1))
         rm -f $dep_file
 
         $CCACHE_COMPILE -MD -c test.c -o testdir/test$ext
-        hit=$((hit + 1))
-        expect_stat 'cache hit (direct)' $hit
-        expect_stat 'cache miss' $miss
+        expect_stat 'cache hit (direct)' $((3 * i + 1))
+        expect_stat 'cache miss' $((i + 1))
         expect_file_exists $dep_file
         if ! grep "test$ext:" $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain \"test$ext:\""
@@ -156,15 +152,13 @@ EOF
 
         dep_target=foo.bar
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        miss=$((miss + 1))
-        expect_stat 'cache hit (direct)' $hit
-        expect_stat 'cache miss' $miss
+        expect_stat 'cache hit (direct)' $((3 * i + 1))
+        expect_stat 'cache miss' $((i + 2))
         rm -f $dep_target
 
         $CCACHE_COMPILE -MD -MQ $dep_target -c test.c -o testdir/test$ext
-        hit=$((hit + 1))
-        expect_stat 'cache hit (direct)' $hit
-        expect_stat 'cache miss' $miss
+        expect_stat 'cache hit (direct)' $((3 * i + 2))
+        expect_stat 'cache miss' $((i + 2))
         expect_file_exists $dep_file
         if ! grep $dep_target $dep_file >/dev/null 2>&1; then
             test_failed "$dep_file does not contain $dep_target"
@@ -172,7 +166,7 @@ EOF
 
         i=$((i + 1))
     done
-    expect_stat 'files in cache' $((2*i + 2))
+    expect_stat 'files in cache' $((2 * i + 2))
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -231,30 +225,32 @@ EOF
     done
 
     # -------------------------------------------------------------------------
-    TEST "-MD: cache hits and miss and dependency"
+    TEST "-MD/-MMD dependency target rewriting"
 
-    hit=0
-    src=test1.c
-    touch $src
-    orig_dep=orig.d
-    for dir1 in build1 build2 dir1/dir2/dir3; do 
-        mkdir -p $dir1
-        for name in test1 obj1 random2; do
-            obj=$dir1/$name.o
-            dep=$(echo $obj | sed 's/\.o$/.d/')
-            $REAL_COMPILER -MD -c $src -o $obj
-            mv $dep $orig_dep
-            rm $obj
+    touch test1.c
 
-            $CCACHE_COMPILE -MD -c $src -o $obj
-            expect_equal_files $dep $orig_dep
-            expect_stat 'cache hit (direct)' $hit
-            expect_stat 'cache miss' 1
-            hit=$((hit + 1))
+    for option in -MD -MMD; do
+        $CCACHE -z >/dev/null
+        i=0
+        for dir in build1 build2 dir/dir2/dir3; do
+            mkdir -p $dir
+            for name in test1 obj1 random2; do
+                obj=$dir/$name.o
+                dep=$(echo $obj | sed 's/\.o$/.d/')
 
-            rm $orig_dep
+                $REAL_COMPILER $option -c test1.c -o $obj
+                mv $dep orig.d
+
+                $CCACHE_COMPILE $option -c test1.c -o $obj
+                diff -u orig.d $dep
+                expect_equal_files $dep orig.d
+                expect_stat 'cache hit (direct)' $i
+                expect_stat 'cache miss' 1
+
+                i=$((i + 1))
+            done
+            rm -rf $dir
         done
-        rm -rf $dir1
     done
 
     # -------------------------------------------------------------------------
@@ -264,7 +260,7 @@ EOF
     src=test2.c
     touch $src
     orig_dep=orig.d
-    for dir1 in build1 build2 dir1/dir2/dir3; do 
+    for dir1 in build1 build2 dir1/dir2/dir3; do
         mkdir -p $dir1
         for name in test2 obj1 obj2; do
             obj=$dir1/$name.o
