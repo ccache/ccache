@@ -1862,7 +1862,7 @@ initialize(Context& ctx, int argc, const char* const* argv)
 
   if (getenv("CCACHE_INTERNAL_TRACE")) {
 #ifdef MTR_ENABLED
-    ctx.mini_trace = std::make_unique<MiniTrace>(ctx->args_info);
+    ctx.mini_trace = std::make_unique<MiniTrace>(ctx.args_info);
 #else
     cc_log("Error: tracing is not enabled!");
 #endif

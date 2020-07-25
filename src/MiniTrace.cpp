@@ -16,15 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "system.hpp"
+
 #ifdef MTR_ENABLED
 
-#  include "MiniTrace.hpp"
-
 #  include "ArgsInfo.hpp"
+#  include "MiniTrace.hpp"
+#  include "Util.hpp"
 #  include "legacy_util.hpp"
 
 namespace {
-
 std::string
 get_system_tmp_dir()
 {
@@ -70,7 +71,7 @@ MiniTrace::~MiniTrace()
       fmt::format("{}.ccache-trace", m_args_info.output_obj);
     move_file(m_tmp_trace_file.c_str(), trace_file.c_str());
   } else {
-    tmp_unlink(m_tmp_trace_file.c_str());
+    Util::unlink_tmp(m_tmp_trace_file.c_str());
   }
 }
 
