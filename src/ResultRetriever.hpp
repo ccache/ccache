@@ -29,7 +29,7 @@ class Context;
 class ResultRetriever : public Result::Reader::Consumer
 {
 public:
-  ResultRetriever(Context& ctx);
+  ResultRetriever(Context& ctx, bool rewrite_dependency_target);
 
   virtual void on_header(CacheEntryReader& cache_entry_reader);
   virtual void on_entry_start(uint32_t entry_number,
@@ -46,4 +46,5 @@ private:
   std::string m_dest_path;
   std::string m_stderr_text;
   bool m_first;
+  bool m_rewrite_dependency_target;
 };

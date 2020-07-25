@@ -949,10 +949,6 @@ process_args(Context& ctx,
     }
   }
 
-  if (!ctx.args_info.dependency_target_specified && ctx.args_info.seen_MD_MMD) {
-    ctx.args_info.change_dep_file = true;
-  }
-
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
     cc_log("Generating debug info level 3; not compiling preprocessed code");
     config.set_run_second_cpp(true);

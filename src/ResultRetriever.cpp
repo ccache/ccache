@@ -26,7 +26,8 @@
 using Result::FileType;
 using string_view = nonstd::string_view;
 
-ResultRetriever::ResultRetriever(Context& ctx) : m_ctx(ctx)
+ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
+  : m_ctx(ctx), m_rewrite_dependency_target(rewrite_dependency_target)
 {
 }
 
@@ -125,7 +126,7 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
   if (m_dest_file_type == FileType::stderr_output) {
     m_stderr_text.append(reinterpret_cast<const char*>(data), size);
   } else if (m_dest_file_type == FileType::dependency && m_first
-             && m_ctx.args_info.change_dep_file) {
+             && m_rewrite_dependency_target) {
     // Write the object file name
     if (!write_fd(*m_dest_fd,
                   m_ctx.args_info.output_obj.data(),
