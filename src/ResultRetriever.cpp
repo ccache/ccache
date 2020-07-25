@@ -45,7 +45,6 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   std::string dest_path;
 
   m_dest_file_type = file_type;
-  m_first = true;
 
   switch (file_type) {
   case FileType::object:
@@ -55,10 +54,12 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   case FileType::dependency:
     if (m_ctx.args_info.generating_dependencies) {
       dest_path = m_ctx.args_info.output_dep;
+      m_dest_data.reserve(file_len);
     }
     break;
 
   case FileType::stderr_output:
+    m_dest_data.reserve(file_len);
     return;
 
   case FileType::coverage:
@@ -123,41 +124,51 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
   assert((m_dest_file_type == FileType::stderr_output && !m_dest_fd)
          || (m_dest_file_type != FileType::stderr_output && m_dest_fd));
 
-  if (m_dest_file_type == FileType::stderr_output) {
-    m_stderr_text.append(reinterpret_cast<const char*>(data), size);
-  } else if (m_dest_file_type == FileType::dependency && m_first
-             && m_rewrite_dependency_target) {
-    // Write the object file name
-    if (!write_fd(*m_dest_fd,
-                  m_ctx.args_info.output_obj.data(),
-                  m_ctx.args_info.output_obj.length())) {
-      throw Error(fmt::format("Failed to write to {}", m_dest_path));
-    }
-
-    for (size_t i = 0; i < size; i++) {
-      if (data[i] == ':') {
-        // Write the rest line
-        if (!write_fd(*m_dest_fd, &data[i], size - i)) {
-          throw Error(fmt::format("Failed to write to {}", m_dest_path));
-        }
-        break;
-      }
-    }
+  if (m_dest_file_type == FileType::stderr_output
+      || (m_dest_file_type == FileType::dependency && !m_dest_path.empty())) {
+    m_dest_data.append(reinterpret_cast<const char*>(data), size);
   } else if (!write_fd(*m_dest_fd, data, size)) {
     throw Error(fmt::format("Failed to write to {}", m_dest_path));
   }
-  m_first = false;
 }
 
 void
 ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stderr_output) {
-    Util::send_to_stderr(m_stderr_text,
-                         m_ctx.args_info.strip_diagnostics_colors);
-  } else if (m_dest_fd) {
+    Util::send_to_stderr(m_dest_data, m_ctx.args_info.strip_diagnostics_colors);
+  } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {
+    write_dependency_file();
+  }
+
+  if (m_dest_fd) {
     m_dest_fd.close();
   }
 
   m_dest_path.clear();
+}
+
+void
+ResultRetriever::write_dependency_file()
+{
+  size_t start_pos = 0;
+
+  if (m_rewrite_dependency_target) {
+    size_t colon_pos = m_dest_data.find(':');
+    if (colon_pos != std::string::npos) {
+      if (!write_fd(*m_dest_fd,
+                    m_ctx.args_info.output_obj.data(),
+                    m_ctx.args_info.output_obj.length())) {
+        throw Error(fmt::format("Failed to write to {}", m_dest_path));
+      }
+
+      start_pos = colon_pos;
+    }
+  }
+
+  if (!write_fd(*m_dest_fd,
+                m_dest_data.data() + start_pos,
+                m_dest_data.length() - start_pos)) {
+    throw Error(fmt::format("Failed to write to {}", m_dest_path));
+  }
 }
