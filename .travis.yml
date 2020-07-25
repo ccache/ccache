@@ -72,7 +72,17 @@ jobs:
     compiler: clang
     env: T="MacOS Clang" VERBOSE=1 CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
 
-  # Job 8: Run Clang's undefined behavior sanitizer
+  # Job 8: Build with ENABLE_TRACING
+  - os: linux
+    compiler: gcc
+    env: T="Enabled tracing" VERBOSE=1 CMAKE_PARAMS="-DENABLE_TRACING=1" ENABLE_CACHE_CLEANUP_TESTS=1
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+
+  # Job 9: Run Clang's undefined behavior sanitizer
   - os: linux
     compiler: clang
     env: T="Clang UB sanitizer" VERBOSE=1 CMAKE_PARAMS="-DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON" ASAN_OPTIONS="detect_leaks=0"
@@ -82,7 +92,7 @@ jobs:
         - elfutils
         - libzstd1-dev
 
-  # Job 9: Run Clang's address sanitizer
+  # Job 10: Run Clang's address sanitizer
   - os: linux
     compiler: clang
     env: T="Clang address sanitizer" VERBOSE=1 CMAKE_PARAMS="-DENABLE_SANITIZER_ADDRESS=ON" ASAN_OPTIONS="detect_leaks=0"
@@ -92,7 +102,7 @@ jobs:
         - elfutils
         - libzstd1-dev
 
-  # Job 10: Run Clang's static analyzer
+  # Job 11: Run Clang's static analyzer
   - os: linux
     compiler: clang
     env: T="Clang static analyzer" VERBOSE=1 PATH="/usr/bin:$PATH" CMAKE_PREFIX=scan-build RUN_TESTS=0
@@ -101,7 +111,7 @@ jobs:
         packages:
         - libzstd1-dev
 
-  # Job 11: Build binary package, extract it out of source, run tests.
+  # Job 12: Build binary package, extract it out of source, run tests.
   - os: linux
     env: T="Build binary and verify" VERBOSE=1 SPECIAL=build-and-verify-package
     addons:
@@ -110,7 +120,7 @@ jobs:
         - elfutils
         - libzstd1-dev
 
-  # Job 12: Build source package, extract it out of source, run tests.
+  # Job 13: Build source package, extract it out of source, run tests.
   - os: linux
     env: T="Build source package and verify" VERBOSE=1 SPECIAL=build-and-verify-package-source
     addons:
@@ -129,7 +139,7 @@ jobs:
         - libzstd1-dev
         - asciidoc
 
-  # Job 14: Build manpage
+  # Job 15: Build manpage
   - os: linux
     env: T="Build manpage" VERBOSE=1 BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
     addons:
@@ -140,7 +150,7 @@ jobs:
         - asciidoc
         - xsltproc
 
-  # Job 15: Run Clang-Tidy
+  # Job 16: Run Clang-Tidy
   - os: linux
     compiler: clang
     env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
@@ -149,7 +159,7 @@ jobs:
         packages:
         - libzstd1-dev
 
-  # Job 16: Run Clang-Format in check mode
+  # Job 17: Run Clang-Format in check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
@@ -161,7 +171,7 @@ jobs:
     - pip install --user cmake_format
 
   allow_failures:
-  # Job 15: Run Clang-Tidy
+  # Job 16: Run Clang-Tidy
   - os: linux
     compiler: clang
     env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
@@ -170,7 +180,7 @@ jobs:
         packages:
         - libzstd1-dev
 
-  # Job 16: Run Clang-Format check mode
+  # Job 17: Run Clang-Format check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
