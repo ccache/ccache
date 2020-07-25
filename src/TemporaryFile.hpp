@@ -18,15 +18,31 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "Fd.hpp"
+#include "NonCopyable.hpp"
 
-#include <string>
+#include "third_party/nonstd/string_view.hpp"
 
-class Config;
+// This class represents a unique temporary file created by mkstemp. The file is
+// not deleted by the destructor.
+class TemporaryFile : NonCopyable
+{
+public:
+  // `path_prefix` is the base path. The resulting filename will be this path
+  //  plus a unique suffix. If `path_prefix` refers to a nonexistent directory
+  //  the directory will be created if possible.`
+  TemporaryFile(nonstd::string_view path_prefix);
 
-void init_log(const Config& config);
-void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_argv(const char* prefix, const char* const* argv);
-void cc_dump_debug_log_buffer(const char* path);
-std::string format_command(const char* const* argv);
+  TemporaryFile(TemporaryFile&& other) = default;
+
+  TemporaryFile& operator=(TemporaryFile&& other) = default;
+
+  // The resulting open file descriptor in read/write mode. Unset on error.
+  Fd fd;
+
+  // The actual filename. Empty on error.
+  std::string path;
+
+private:
+  bool initialize(nonstd::string_view path_prefix);
+};

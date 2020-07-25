@@ -277,13 +277,14 @@ hash_source_code_file_nocache(const Context& ctx,
       return HASH_SOURCE_CODE_ERROR;
     }
   } else {
-    char* data;
-    size_t size;
-    if (!read_file(path, size_hint, &data, &size)) {
+    std::string data;
+    try {
+      data = Util::read_file(path, size_hint);
+    } catch (Error&) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(ctx, hash, data, size, path);
-    free(data);
+    int result =
+      hash_source_code_string(ctx, hash, data.data(), data.size(), path);
     return result;
   }
 }
@@ -384,18 +385,21 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
   }
 
   // Add "echo" command.
-  bool cmd;
+  bool using_cmd_exe;
+  std::string adjusted_command;
   if (str_startswith(command, "echo")) {
-    command = format("cmd.exe /c \"%s\"", command);
-    cmd = true;
+    adjusted_command = fmt::format("cmd.exe /c \"{}\"", command);
+    using_cmd_exe = true;
   } else if (str_startswith(command, "%compiler%")
              && str_eq(compiler, "echo")) {
-    command = format("cmd.exe /c \"%s%s\"", compiler, command + 10);
-    cmd = true;
+    adjusted_command =
+      fmt::format("cmd.exe /c \"{}{}\"", compiler, command + 10);
+    using_cmd_exe = true;
   } else {
-    command = x_strdup(command);
-    cmd = false;
+    adjusted_command = command;
+    using_cmd_exe = false;
   }
+  command = adjusted_command.c_str();
 #endif
 
   Args args = Args::from_string(command);
@@ -436,21 +440,27 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
   si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
   si.dwFlags = STARTF_USESTDHANDLES;
 
-  char* win32args;
-  if (!cmd) {
+  std::string win32args;
+  if (using_cmd_exe) {
+    win32args = command; // quoted
+  } else {
     int length;
     const char* prefix = sh.empty() ? nullptr : sh.c_str();
-    win32args = win32argvtos(prefix, argv.data(), &length);
-  } else {
-    win32args = (char*)command; // quoted
+    char* args = win32argvtos(prefix, argv.data(), &length);
+    win32args = args;
+    free(args);
   }
-  BOOL ret = CreateProcess(
-    path.c_str(), win32args, NULL, NULL, 1, 0, NULL, NULL, &si, &pi);
+  BOOL ret = CreateProcess(path.c_str(),
+                           const_cast<char*>(win32args.c_str()),
+                           nullptr,
+                           nullptr,
+                           1,
+                           0,
+                           nullptr,
+                           nullptr,
+                           &si,
+                           &pi);
   CloseHandle(pipe_out[1]);
-  free(win32args);
-  if (!cmd) {
-    free((char*)command); // Original argument was replaced above.
-  }
   if (ret == 0) {
     return false;
   }

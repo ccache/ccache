@@ -73,6 +73,14 @@ public:
     return m_file;
   }
 
+  // clang-format off
+  FILE*
+  operator*() const
+  // clang-format on
+  {
+    return m_file;
+  }
+
   FILE*
   get()
   {

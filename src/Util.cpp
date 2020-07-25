@@ -20,6 +20,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "legacy_util.hpp"
 #include "logging.hpp"
@@ -226,16 +227,6 @@ create_dir(string_view dir)
     // and we avoid a race condition.
     return result == 0 || errno == EEXIST;
   }
-}
-
-std::pair<int, std::string>
-create_temp_fd(string_view path_prefix)
-{
-  char* tmp_path = x_strndup(path_prefix.data(), path_prefix.length());
-  int fd = create_tmp_fd(&tmp_path);
-  std::string actual_path = tmp_path;
-  free(tmp_path);
-  return {fd, actual_path};
 }
 
 string_view
@@ -480,16 +471,6 @@ get_path_in_cache(string_view cache_dir,
   return path;
 }
 
-string_view
-get_truncated_base_name(string_view path, size_t max_length)
-{
-  string_view input_base = Util::base_name(path);
-  size_t dot_pos = input_base.find('.');
-  size_t truncate_pos =
-    std::min(max_length, std::min(input_base.size(), dot_pos));
-  return input_base.substr(0, truncate_pos);
-}
-
 bool
 is_absolute_path(string_view path)
 {
@@ -669,14 +650,54 @@ parse_int(const std::string& value)
 }
 
 std::string
-read_file(const std::string& path)
+read_file(const std::string& path, size_t size_hint)
 {
-  std::ifstream file(path);
-  if (!file) {
+  if (size_hint == 0) {
+    auto stat = Stat::stat(path, Stat::OnError::log);
+    if (!stat) {
+      throw Error(strerror(errno));
+    }
+    size_hint = stat.size();
+  }
+
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
+
+  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  if (!fd) {
     throw Error(strerror(errno));
   }
-  return std::string(std::istreambuf_iterator<char>(file),
-                     std::istreambuf_iterator<char>());
+
+  ssize_t ret = 0;
+  size_t pos = 0;
+  std::string result;
+  result.resize(size_hint);
+
+  while (true) {
+    if (pos > result.size()) {
+      result.resize(2 * result.size());
+    }
+    const size_t max_read = result.size() - pos;
+    char* data = const_cast<char*>(result.data()); // cast needed before C++17
+    ret = read(*fd, data + pos, max_read);
+    if (ret == 0 || (ret == -1 && errno != EINTR)) {
+      break;
+    }
+    if (ret > 0) {
+      pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
+    }
+  }
+
+  if (ret == -1) {
+    cc_log("Failed reading %s", path.c_str());
+    throw Error(strerror(errno));
+  }
+
+  result.resize(pos);
+  return result;
 }
 
 #ifndef _WIN32

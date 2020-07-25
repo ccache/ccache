@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,17 +16,19 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "../src/logging.hpp"
 
-#include "system.hpp"
+#include "third_party/doctest.h"
 
-#include <string>
+TEST_SUITE_BEGIN("logging");
 
-class Config;
+TEST_CASE("format_command")
+{
+  const char* argv_0[] = {nullptr};
+  CHECK(format_command(argv_0) == "\n");
 
-void init_log(const Config& config);
-void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_argv(const char* prefix, const char* const* argv);
-void cc_dump_debug_log_buffer(const char* path);
-std::string format_command(const char* const* argv);
+  const char* argv_2[] = {"foo", "bar", nullptr};
+  CHECK(format_command(argv_2) == "foo bar\n");
+}
+
+TEST_SUITE_END();

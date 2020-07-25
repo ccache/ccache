@@ -23,6 +23,7 @@ set(
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
+  TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp
   ZstdCompressor.cpp

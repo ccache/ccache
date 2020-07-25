@@ -128,6 +128,18 @@ detect_pch(Context& ctx,
 bool
 process_profiling_option(Context& ctx, const std::string& arg)
 {
+  static const std::vector<std::string> known_simple_options = {
+    "-fprofile-correction",
+    "-fprofile-reorder-functions",
+    "-fprofile-sample-accurate",
+    "-fprofile-values",
+  };
+
+  if (std::find(known_simple_options.begin(), known_simple_options.end(), arg)
+      != known_simple_options.end()) {
+    return true;
+  }
+
   std::string new_profile_path;
   bool new_profile_use = false;
 
@@ -158,8 +170,6 @@ process_profiling_option(Context& ctx, const std::string& arg)
              || Util::starts_with(arg, "-fauto-profile=")) {
     new_profile_use = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
-  } else if (arg == "-fprofile-sample-accurate") {
-    return true;
   } else {
     cc_log("Unknown profiling option: %s", arg.c_str());
     return false;
@@ -298,7 +308,9 @@ process_arg(Context& ctx,
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
-    if (compopt_takes_arg(args[i])) {
+    if (compopt_takes_arg(args[i])
+        || (ctx.guessed_compiler == GuessedCompiler::nvcc
+            && args[i] == "-Werror")) {
       if (i == args.size() - 1) {
         cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;

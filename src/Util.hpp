@@ -101,16 +101,6 @@ size_t common_dir_prefix_length(nonstd::string_view dir,
 // Returns true if the directory exists or could be created, otherwise false.
 bool create_dir(nonstd::string_view dir);
 
-// Create a unique temporary file.
-//
-// Parameters:
-// - path_prefix: Base path. The resulting filename will be this path plus a
-//   unique suffix.
-//
-// Returns the open file descriptor (in read/write mode) and the actual
-// filename.
-std::pair<int, std::string> create_temp_fd(nonstd::string_view path_prefix);
-
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
 
@@ -194,12 +184,6 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
 
-// Return a shortened view into the base name of `path`. This view starts at the
-// beginning of the base name and ends at either the position the first dot, or
-// `max_length`, or the length of the base name, whichever is the shortest.
-nonstd::string_view get_truncated_base_name(nonstd::string_view path,
-                                            size_t max_length);
-
 // Write bytes in big endian order from an integer value.
 //
 // Parameters:
@@ -275,11 +259,12 @@ std::string normalize_absolute_path(nonstd::string_view path);
 // Throws Error on error.
 int parse_int(const std::string& value);
 
-// Read file data as a string.
+// Return `path`'s content as a string. If `size_hint` is not 0 then assume that
+// `path` has this size (this saves system calls).
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
-std::string read_file(const std::string& path);
+std::string read_file(const std::string& path, size_t size_hint = 0);
 
 #ifndef _WIN32
 // Like readlink(2) but returns the string (or the empty string on failure).
@@ -352,14 +337,14 @@ bool unlink_tmp(const std::string& path,
 // Throws Error on error.
 void wipe_path(const std::string& path);
 
-// Write file data from a string. The file will be opened according to
-// `open_mode`, which always will include `std::ios::out` even if not specified
-// at the call site.
+// Write `data` to `path`. The file will be opened according to `open_mode`,
+// which always will include `std::ios::out` even if not specified at the call
+// site.
 //
 // Throws `Error` on error. The description contains the error message without
 // the path.
 void write_file(const std::string& path,
                 const std::string& data,
-                std::ios_base::openmode open_mode = std::ios::out);
+                std::ios_base::openmode open_mode = std::ios::binary);
 
 } // namespace Util

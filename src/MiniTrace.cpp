@@ -16,15 +16,17 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#include "system.hpp"
+
 #ifdef MTR_ENABLED
 
-#  include "MiniTrace.hpp"
-
 #  include "ArgsInfo.hpp"
+#  include "MiniTrace.hpp"
+#  include "TemporaryFile.hpp"
+#  include "Util.hpp"
 #  include "legacy_util.hpp"
 
 namespace {
-
 std::string
 get_system_tmp_dir()
 {
@@ -48,10 +50,8 @@ get_system_tmp_dir()
 MiniTrace::MiniTrace(const ArgsInfo& args_info)
   : m_args_info(args_info), m_trace_id(reinterpret_cast<void*>(getpid()))
 {
-  auto fd_and_path =
-    Util::create_temp_fd(get_system_tmp_dir() + "/ccache-trace");
-  m_tmp_trace_file = fd_and_path.second;
-  close(fd_and_path.first);
+  TemporaryFile tmp_file(get_system_tmp_dir() + "/ccache-trace");
+  m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
   MTR_INSTANT_C("", "", "time", fmt::format("{:f}", time_seconds()).c_str());
@@ -70,7 +70,7 @@ MiniTrace::~MiniTrace()
       fmt::format("{}.ccache-trace", m_args_info.output_obj);
     move_file(m_tmp_trace_file.c_str(), trace_file.c_str());
   } else {
-    tmp_unlink(m_tmp_trace_file.c_str());
+    Util::unlink_tmp(m_tmp_trace_file.c_str());
   }
 }
 

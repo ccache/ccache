@@ -23,6 +23,7 @@
 #include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Stat.hpp"
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
 #include "logging.hpp"
@@ -255,21 +256,19 @@ InodeCache::create_new_file(const std::string& filename)
 
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  auto temp_fd_and_path = Util::create_temp_fd(filename);
-  const auto& temp_path = temp_fd_and_path.second;
+  TemporaryFile tmp_file(filename);
 
-  Fd temp_fd(temp_fd_and_path.first);
-  Finalizer temp_file_remover([=] { unlink(temp_path.c_str()); });
+  Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
 
   bool is_nfs;
-  if (Util::is_nfs_fd(*temp_fd, &is_nfs) == 0 && is_nfs) {
+  if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
     cc_log(
       "Inode cache not supported because the cache file would be located on"
       " nfs: %s",
       filename.c_str());
     return false;
   }
-  int err = Util::fallocate(*temp_fd, sizeof(SharedRegion));
+  int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
     return false;
@@ -279,7 +278,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          sizeof(SharedRegion),
                                          PROT_READ | PROT_WRITE,
                                          MAP_SHARED,
-                                         *temp_fd,
+                                         *tmp_file.fd,
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
     cc_log("Failed to mmap new inode cache: %s", strerror(errno));
@@ -299,14 +298,14 @@ InodeCache::create_new_file(const std::string& filename)
   }
 
   munmap(sr, sizeof(SharedRegion));
-  temp_fd.close();
+  tmp_file.fd.close();
 
   // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (link(temp_path.c_str(), filename.c_str()) != 0) {
+  if (link(tmp_file.path.c_str(), filename.c_str()) != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
     return false;
   }
