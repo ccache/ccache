@@ -229,16 +229,6 @@ create_dir(string_view dir)
   }
 }
 
-std::pair<int, std::string>
-create_temp_fd(string_view path_prefix)
-{
-  char* tmp_path = x_strndup(path_prefix.data(), path_prefix.length());
-  int fd = create_tmp_fd(&tmp_path);
-  std::string actual_path = tmp_path;
-  free(tmp_path);
-  return {fd, actual_path};
-}
-
 string_view
 dir_name(string_view path)
 {
@@ -479,16 +469,6 @@ get_path_in_cache(string_view cache_dir,
   path.append(suffix.data(), suffix.length());
 
   return path;
-}
-
-string_view
-get_truncated_base_name(string_view path, size_t max_length)
-{
-  string_view input_base = Util::base_name(path);
-  size_t dot_pos = input_base.find('.');
-  size_t truncate_pos =
-    std::min(max_length, std::min(input_base.size(), dot_pos));
-  return input_base.substr(0, truncate_pos);
 }
 
 bool

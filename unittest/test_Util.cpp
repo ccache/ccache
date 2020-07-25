@@ -327,18 +327,6 @@ TEST_CASE("Util::get_path_in_cache")
         == "/zz/ccache/A/B/C/D/EF.suffix");
 }
 
-TEST_CASE("Util:get_truncated_base_name")
-{
-  CHECK(Util::get_truncated_base_name("", 5) == "");
-  CHECK(Util::get_truncated_base_name("a", 5) == "a");
-  CHECK(Util::get_truncated_base_name("abcdefg", 5) == "abcde");
-  CHECK(Util::get_truncated_base_name("abc.foo", 5) == "abc");
-  CHECK(Util::get_truncated_base_name("/path/to/abc.foo", 5) == "abc");
-  CHECK(Util::get_truncated_base_name("/path/to/abcdefg.foo", 5) == "abcde");
-  CHECK(Util::get_truncated_base_name("/path/to/.hidden", 5) == "");
-  CHECK(Util::get_truncated_base_name("/path/to/", 5) == "");
-}
-
 TEST_CASE("Util::int_to_big_endian")
 {
   uint8_t bytes[8];

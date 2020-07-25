@@ -30,7 +30,6 @@ bool clone_file(const char* src, const char* dest, bool via_tmp_file);
 bool copy_file(const char* src, const char* dest, bool via_tmp_file);
 bool move_file(const char* src, const char* dest);
 const char* get_hostname();
-const char* tmp_string();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void reformat(char** ptr, const char* format, ...) ATTR_FORMAT(printf, 2, 3);
 char* x_strdup(const char* s);
@@ -43,7 +42,6 @@ bool parse_size_with_suffix(const char* str, uint64_t* size);
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
-int create_tmp_fd(char** fname);
 const char* get_home_directory();
 bool same_executable_name(const char* s1, const char* s2);
 bool is_full_path(const char* path);

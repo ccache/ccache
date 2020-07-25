@@ -110,45 +110,12 @@ copy_fd(int fd_in, int fd_out)
   return true;
 }
 
-#ifndef HAVE_MKSTEMP
-// Cheap and nasty mkstemp replacement.
-int
-mkstemp(char* name_template)
-{
-#  ifdef __GNUC__
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#  endif
-  mktemp(name_template);
-#  ifdef __GNUC__
-#    pragma GCC diagnostic pop
-#  endif
-  return open(name_template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
-}
-#endif
-
-#ifndef _WIN32
-static mode_t
-get_umask()
-{
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
-  return mask;
-}
-#endif
-
 // Clone a file from src to dest. If via_tmp_file is true, the file is cloned
 // to a temporary file and then renamed to dest.
 bool
 clone_file(const char* src, const char* dest, bool via_tmp_file)
 {
 #ifdef FILE_CLONING_SUPPORTED
-
   bool result;
 
 #  if defined(__linux__)
@@ -275,18 +242,6 @@ get_hostname()
   }
   hostname[sizeof(hostname) - 1] = 0;
   return hostname;
-}
-
-// Return a string to be passed to mkstemp to create a temporary file. Also
-// tries to cope with NFS by adding the local hostname.
-const char*
-tmp_string()
-{
-  static char* ret;
-  if (!ret) {
-    ret = format("%s.%u.XXXXXX", get_hostname(), (unsigned)getpid());
-  }
-  return ret;
 }
 
 // Construct a string according to a format. Caller frees.
@@ -476,38 +431,6 @@ localtime_r(const time_t* timep, struct tm* result)
   }
 }
 #endif
-
-// Create an empty temporary file. *fname will be reallocated and set to the
-// resulting filename. Returns an open file descriptor to the file.
-int
-create_tmp_fd(char** fname)
-{
-  char* tmpl = format("%s.%s", *fname, tmp_string());
-  int fd = mkstemp(tmpl);
-  if (fd == -1 && errno == ENOENT) {
-    auto dir = Util::dir_name(*fname);
-    if (!Util::create_dir(dir)) {
-      fatal("Failed to create directory %s: %s",
-            std::string(dir).c_str(),
-            strerror(errno));
-    }
-    reformat(&tmpl, "%s.%s", *fname, tmp_string());
-    fd = mkstemp(tmpl);
-  }
-  if (fd == -1) {
-    fatal(
-      "Failed to create temporary file for %s: %s", *fname, strerror(errno));
-  }
-  set_cloexec_flag(fd);
-
-#ifndef _WIN32
-  fchmod(fd, 0666 & ~get_umask());
-#endif
-
-  free(*fname);
-  *fname = tmpl;
-  return fd;
-}
 
 // Return current user's home directory, or throw FatalError if it can't be
 // determined.
