@@ -1184,7 +1184,13 @@ hash_nvcc_host_compiler(const Context& ctx,
   }
 }
 
-// Update a hash with information common for the direct and preprocessor modes.
+static bool
+should_rewrite_dependency_target(const ArgsInfo& args_info)
+{
+  return !args_info.dependency_target_specified && args_info.seen_MD_MMD;
+}
+
+// update a hash with information common for the direct and preprocessor modes.
 static void
 hash_common_info(const Context& ctx,
                  const Args& args,
@@ -1257,7 +1263,8 @@ hash_common_info(const Context& ctx,
     hash.hash(dir_to_hash);
   }
 
-  if ((!ctx.args_info.change_dep_file && ctx.args_info.generating_dependencies)
+  if ((!should_rewrite_dependency_target(ctx.args_info)
+       && ctx.args_info.generating_dependencies)
       || ctx.args_info.seen_split_dwarf) {
     // The output object file name is part of the .d file, so include the path
     // in the hash if generating dependencies.
@@ -1692,7 +1699,8 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   // Get result from cache.
   Result::Reader result_reader(ctx.result_path());
-  ResultRetriever result_retriever(ctx);
+  ResultRetriever result_retriever(
+    ctx, should_rewrite_dependency_target(ctx.args_info));
 
   auto error = result_reader.read(result_retriever);
   if (error) {
