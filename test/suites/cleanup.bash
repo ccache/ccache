@@ -179,8 +179,9 @@ SUITE_cleanup() {
     $CCACHE -c >/dev/null
     expect_file_count 1 '.nfs*' $CCACHE_DIR
     expect_stat 'files in cache' 10
+
     # -------------------------------------------------------------------------
-    TEST "cleanup of old files by age"
+    TEST "Cleanup of old files by age"
 
     prepare_cleanup_test_dir $CCACHE_DIR/a
     touch $CCACHE_DIR/a/now.result

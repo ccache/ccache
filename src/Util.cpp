@@ -654,38 +654,26 @@ normalize_absolute_path(string_view path)
 #endif
 }
 
-unsigned
-parse_duration_with_suffix_to_seconds(const std::string& value)
+uint32_t
+parse_duration(const std::string& duration)
 {
-  size_t end;
-  long result;
-  bool failed = false;
+  unsigned factor = 0;
+  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
 
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-
-  if (failed || result < 0) {
-    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
-  }
-
-  if (end + 1 != value.size()) {
-    throw Error(
-      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
-  }
-
-  switch (value[end]) {
+  switch (last_ch) {
   case 'd':
-    result *= 24 * 3600;
+    factor = 24 * 60 * 60;
+    break;
   case 's':
+    factor = 1;
     break;
   default:
-    throw Error(
-      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
+    throw Error(fmt::format(
+      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
-  return result;
+
+  const size_t end = factor == 0 ? duration.length() : duration.length() - 1;
+  return factor * parse_uint32(duration.substr(0, end));
 }
 
 int

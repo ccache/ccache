@@ -2252,8 +2252,8 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case EVICT_OLDER_THAN: {
-      unsigned seconds = Util::parse_duration_with_suffix_to_seconds(optarg);
-      ProgressBar progress_bar("Clearing ...");
+      auto seconds = Util::parse_duration(optarg);
+      ProgressBar progress_bar("Evicting ...");
       clean_old(
         ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
