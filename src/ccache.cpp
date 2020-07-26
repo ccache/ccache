@@ -89,6 +89,10 @@ Common options:
                               (normally not needed as this is done
                               automatically)
     -C, --clear               clear the cache completely (except configuration)
+        --evict-older-than N  delete files older than N (days/seconds) (this will not
+                              take max_files, max_size into consideration).
+                              N should be an unsigned number with a suffix:
+                              d(ays)/s(econds).
     -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
                               for no limit)
     -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 for no
@@ -2200,6 +2204,7 @@ handle_main_options(int argc, const char* const* argv)
     DUMP_MANIFEST,
     DUMP_RESULT,
     EXTRACT_RESULT,
+    EVICT_OLDER_THAN,
     HASH_FILE,
     PRINT_STATS,
   };
@@ -2209,6 +2214,7 @@ handle_main_options(int argc, const char* const* argv)
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
     {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
+    {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
     {"get-config", required_argument, nullptr, 'k'},
     {"hash-file", required_argument, nullptr, HASH_FILE},
     {"help", no_argument, nullptr, 'h'},
@@ -2256,6 +2262,17 @@ handle_main_options(int argc, const char* const* argv)
         fmt::print(stderr, "Error: {}\n", *error);
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
+    }
+
+    case EVICT_OLDER_THAN: {
+      unsigned seconds = Util::parse_duration_with_suffix_to_seconds(optarg);
+      ProgressBar progress_bar("Clearing ...");
+      clean_old(
+        ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
+      if (isatty(STDOUT_FILENO)) {
+        printf("\n");
+      }
+      break;
     }
 
     case HASH_FILE: {

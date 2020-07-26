@@ -94,6 +94,16 @@ Common options
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`--evict-older-than`* _NUM_::
+
+    This is another cleanup mechanism (independent of max_files and max_size).
+    It instructs ccache to perform cleanup based on age of the stored files.
+    The value _NUM_ is duration and means any cache entry older than it from CURRENT_TIME
+    should be deleted. _NUM_ should be an unsigned number with a suffix:
+    d(ays)/s(econds).
+    This cleanup can be performed from the cli with this option only. During the
+    cleanup max_files/max_size will not be taken into consideration.
+
 *`-h`*, *`--help`*::
 
     Print an options summary page.

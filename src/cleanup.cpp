@@ -57,6 +57,7 @@ void
 clean_up_dir(const std::string& subdir,
              uint64_t max_size,
              uint32_t max_files,
+             time_t max_age,
              const Util::ProgressReceiver& progress_receiver)
 {
   cc_log("Cleaning up cache directory %s", subdir.c_str());
@@ -111,7 +112,8 @@ clean_up_dir(const std::string& subdir,
     }
 
     if ((max_size == 0 || cache_size <= max_size)
-        && (max_files == 0 || files_in_cache <= max_files)) {
+        && (max_files == 0 || files_in_cache <= max_files)
+        && (max_age == 0 || file->lstat().mtime() > (current_time - max_age))) {
       break;
     }
 
@@ -163,6 +165,7 @@ clean_up_all(const Config& config,
       clean_up_dir(subdir,
                    config.max_size() / 16,
                    config.max_files() / 16,
+                   0,
                    sub_progress_receiver);
     },
     progress_receiver);
@@ -201,4 +204,18 @@ wipe_all(const Context& ctx, const Util::ProgressReceiver& progress_receiver)
 #ifdef INODE_CACHE_SUPPORTED
   ctx.inode_cache.drop();
 #endif
+}
+
+void
+clean_old(const Context& ctx,
+          const Util::ProgressReceiver& progress_receiver,
+          time_t max_age)
+{
+  Util::for_each_level_1_subdir(
+    ctx.config.cache_dir(),
+    [&](const std::string& subdir,
+        const Util::ProgressReceiver& sub_progress_receiver) {
+      clean_up_dir(subdir, 0, 0, max_age, sub_progress_receiver);
+    },
+    progress_receiver);
 }
