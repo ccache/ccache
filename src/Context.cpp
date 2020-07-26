@@ -43,7 +43,7 @@ Context::Context()
 
 Context::~Context()
 {
-  stats_flush(this);
+  stats_flush(*this);
   unlink_pending_tmp_files();
 
   // Dump log buffer last to not lose any logs.

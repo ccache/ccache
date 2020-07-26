@@ -147,10 +147,10 @@ clean_up_dir(const std::string& subdir,
 
   if (cleaned) {
     cc_log("Cleaned up cache directory %s", subdir.c_str());
-    stats_add_cleanup(subdir.c_str(), 1);
+    stats_add_cleanup(subdir, 1);
   }
 
-  stats_set_sizes(subdir.c_str(), files_in_cache, cache_size);
+  stats_set_sizes(subdir, files_in_cache, cache_size);
 }
 
 // Clean up all cache subdirectories.
@@ -189,10 +189,10 @@ wipe_dir(const std::string& subdir,
 
   if (!files.empty()) {
     cc_log("Cleared out cache directory %s", subdir.c_str());
-    stats_add_cleanup(subdir.c_str(), 1);
+    stats_add_cleanup(subdir, 1);
   }
 
-  stats_set_sizes(subdir.c_str(), 0, 0);
+  stats_set_sizes(subdir, 0, 0);
 }
 
 // Wipe all cached files in all subdirectories.

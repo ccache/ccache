@@ -1775,7 +1775,7 @@ create_initial_config_file(Config& config)
   uint64_t max_size;
   std::string stats_dir = fmt::format("{}/0", config.cache_dir());
   if (Stat::stat(stats_dir)) {
-    stats_get_obsolete_limits(stats_dir.c_str(), &max_files, &max_size);
+    stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
     // STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory.
     max_files *= 16;
     max_size *= 16;
