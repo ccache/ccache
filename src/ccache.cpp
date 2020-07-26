@@ -85,42 +85,40 @@ static const char USAGE_TEXT[] =
     compiler [compiler options]          (via symbolic link)
 
 Common options:
-    -c, --cleanup             delete old files and recalculate size counters
-                              (normally not needed as this is done
-                              automatically)
-    -C, --clear               clear the cache completely (except configuration)
-        --evict-older-than N  delete files older than N (days/seconds) (this will not
-                              take max_files, max_size into consideration).
-                              N should be an unsigned number with a suffix:
-                              d(ays)/s(econds).
-    -F, --max-files NUM       set maximum number of files in cache to NUM (use 0
-                              for no limit)
-    -M, --max-size SIZE       set maximum size of cache to SIZE (use 0 for no
-                              limit); available suffixes: k, M, G, T (decimal)
-                              and Ki, Mi, Gi, Ti (binary); default suffix: G
-    -X, --recompress LEVEL    recompress the cache to LEVEL (integer level or
-                              "uncompressed")
-    -o, --set-config KEY=VAL  set configuration item KEY to value VAL
-    -x, --show-compression    show compression statistics
-    -p, --show-config         show current configuration options in
-                              human-readable format
-    -s, --show-stats          show summary of configuration and statistics
-                              counters in human-readable format
-    -z, --zero-stats          zero statistics counters
+    -c, --cleanup              delete old files and recalculate size counters
+                               (normally not needed as this is done
+                               automatically)
+    -C, --clear                clear the cache completely (except configuration)
+        --evict-older-than AGE remove files older than AGE (unsigned integer
+                               with a d (days) or s (seconds) suffix)
+    -F, --max-files NUM        set maximum number of files in cache to NUM (use
+                               0 for no limit)
+    -M, --max-size SIZE        set maximum size of cache to SIZE (use 0 for no
+                               limit); available suffixes: k, M, G, T (decimal)
+                               and Ki, Mi, Gi, Ti (binary); default suffix: G
+    -X, --recompress LEVEL     recompress the cache to LEVEL (integer level or
+                               "uncompressed")
+    -o, --set-config KEY=VAL   set configuration item KEY to value VAL
+    -x, --show-compression     show compression statistics
+    -p, --show-config          show current configuration options in
+                               human-readable format
+    -s, --show-stats           show summary of configuration and statistics
+                               counters in human-readable format
+    -z, --zero-stats           zero statistics counters
 
-    -h, --help                print this help text
-    -V, --version             print version and copyright information
+    -h, --help                 print this help text
+    -V, --version              print version and copyright information
 
 Options for scripting or debugging:
-        --dump-manifest PATH  dump manifest file at PATH in text format
-        --dump-result PATH    dump result file at PATH in text format
-        --extract-result PATH extract data stored in result file at PATH to the
-                              current working directory
-    -k, --get-config KEY      print the value of configuration key KEY
-        --hash-file PATH      print the hash (160 bit BLAKE3) of the file at
-                              PATH
-        --print-stats         print statistics counter IDs and corresponding
-                              values in machine-parsable format
+        --dump-manifest PATH   dump manifest file at PATH in text format
+        --dump-result PATH     dump result file at PATH in text format
+        --extract-result PATH  extract data stored in result file at PATH to the
+                               current working directory
+    -k, --get-config KEY       print the value of configuration key KEY
+        --hash-file PATH       print the hash (160 bit BLAKE3) of the file at
+                               PATH
+        --print-stats          print statistics counter IDs and corresponding
+                               values in machine-parsable format
 
 See also <https://ccache.dev>.
 )";
