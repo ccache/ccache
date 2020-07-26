@@ -52,6 +52,20 @@ delete_file(const std::string& path,
   }
 }
 
+void
+clean_old(const Context& ctx,
+          const Util::ProgressReceiver& progress_receiver,
+          time_t max_age)
+{
+  Util::for_each_level_1_subdir(
+    ctx.config.cache_dir(),
+    [&](const std::string& subdir,
+        const Util::ProgressReceiver& sub_progress_receiver) {
+      clean_up_dir(subdir, 0, 0, max_age, sub_progress_receiver);
+    },
+    progress_receiver);
+}
+
 // Clean up one cache subdirectory.
 void
 clean_up_dir(const std::string& subdir,
@@ -204,18 +218,4 @@ wipe_all(const Context& ctx, const Util::ProgressReceiver& progress_receiver)
 #ifdef INODE_CACHE_SUPPORTED
   ctx.inode_cache.drop();
 #endif
-}
-
-void
-clean_old(const Context& ctx,
-          const Util::ProgressReceiver& progress_receiver,
-          time_t max_age)
-{
-  Util::for_each_level_1_subdir(
-    ctx.config.cache_dir(),
-    [&](const std::string& subdir,
-        const Util::ProgressReceiver& sub_progress_receiver) {
-      clean_up_dir(subdir, 0, 0, max_age, sub_progress_receiver);
-    },
-    progress_receiver);
 }

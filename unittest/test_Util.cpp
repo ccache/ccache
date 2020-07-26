@@ -498,6 +498,20 @@ TEST_CASE("Util::normalize_absolute_path")
 #endif
 }
 
+TEST_CASE("Util::parse_duration_with_suffix_to_seconds")
+{
+  CHECK(Util::parse_duration_with_suffix_to_seconds("0s") == 0);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("2s") == 2);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("1d") == 3600 * 24);
+  CHECK(Util::parse_duration_with_suffix_to_seconds("2d") == 2 * 3600 * 24);
+  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("-2"),
+                    "invalid unsigned integer: \"-2\"");
+  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("2x"),
+                    "Invalid suffix, Supported: d(ay)/s(econd): \"2x\"");
+  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("2"),
+                    "Invalid suffix, Supported: d(ay)/s(econd): \"2\"");
+}
+
 TEST_CASE("Util::parse_int")
 {
   CHECK(Util::parse_int("0") == 0);
@@ -790,20 +804,6 @@ TEST_CASE("Util::wipe_path")
 #endif
     CHECK_THROWS_WITH(Util::wipe_path("."), error);
   }
-}
-
-TEST_CASE("Util::parse_duration_with_suffix_to_seconds")
-{
-  CHECK(Util::parse_duration_with_suffix_to_seconds("0s") == 0);
-  CHECK(Util::parse_duration_with_suffix_to_seconds("2s") == 2);
-  CHECK(Util::parse_duration_with_suffix_to_seconds("1d") == 3600 * 24);
-  CHECK(Util::parse_duration_with_suffix_to_seconds("2d") == 2 * 3600 * 24);
-  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("-2"),
-                    "invalid unsigned integer: \"-2\"");
-  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("2x"),
-                    "Invalid suffix, Supported: d(ay)/s(econd): \"2x\"");
-  CHECK_THROWS_WITH(Util::parse_duration_with_suffix_to_seconds("2"),
-                    "Invalid suffix, Supported: d(ay)/s(econd): \"2\"");
 }
 
 TEST_SUITE_END();

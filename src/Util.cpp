@@ -654,6 +654,40 @@ normalize_absolute_path(string_view path)
 #endif
 }
 
+unsigned
+parse_duration_with_suffix_to_seconds(const std::string& value)
+{
+  size_t end;
+  long result;
+  bool failed = false;
+
+  try {
+    result = std::stol(value, &end, 10);
+  } catch (std::exception&) {
+    failed = true;
+  }
+
+  if (failed || result < 0) {
+    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
+  }
+
+  if (end + 1 != value.size()) {
+    throw Error(
+      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
+  }
+
+  switch (value[end]) {
+  case 'd':
+    result *= 24 * 3600;
+  case 's':
+    break;
+  default:
+    throw Error(
+      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
+  }
+  return result;
+}
+
 int
 parse_int(const std::string& value)
 {
@@ -998,37 +1032,4 @@ write_file(const std::string& path,
   file << data;
 }
 
-unsigned
-parse_duration_with_suffix_to_seconds(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-
-  if (failed || result < 0) {
-    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
-  }
-
-  if (end + 1 != value.size()) {
-    throw Error(
-      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
-  }
-
-  switch (value[end]) {
-  case 'd':
-    result *= 24 * 3600;
-  case 's':
-    break;
-  default:
-    throw Error(
-      fmt::format("Invalid suffix, Supported: d(ay)/s(econd): \"{}\"", value));
-  }
-  return result;
-}
 } // namespace Util

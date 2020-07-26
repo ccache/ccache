@@ -260,6 +260,13 @@ bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
 // On Windows: Backslashes are replaced with forward slashes.
 std::string normalize_absolute_path(nonstd::string_view path);
 
+// Parse the given string into an unsigned integer. Then based on suffix
+// provided convert the number to seconds possible suffixes = d(ays)/s(econds)
+//
+// Throws `Error` for any other suffix
+// Throws `Error` if parse value is <0
+unsigned parse_duration_with_suffix_to_seconds(const std::string& value);
+
 // Parse a string into an integer.
 //
 // Throws Error on error.
@@ -352,12 +359,5 @@ void wipe_path(const std::string& path);
 void write_file(const std::string& path,
                 const std::string& data,
                 std::ios_base::openmode open_mode = std::ios::binary);
-
-// Parse the given string into an unsigned integer. Then based on suffix
-// provided convert the number to seconds possible suffixes = d(ays)/s(econds)
-//
-// Throws `Error` for any other suffix
-// Throws `Error` if parse value is <0
-unsigned parse_duration_with_suffix_to_seconds(const std::string& value);
 
 } // namespace Util

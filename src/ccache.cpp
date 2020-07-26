@@ -2200,8 +2200,8 @@ handle_main_options(int argc, const char* const* argv)
   enum longopts {
     DUMP_MANIFEST,
     DUMP_RESULT,
-    EXTRACT_RESULT,
     EVICT_OLDER_THAN,
+    EXTRACT_RESULT,
     HASH_FILE,
     PRINT_STATS,
   };
@@ -2210,8 +2210,8 @@ handle_main_options(int argc, const char* const* argv)
     {"clear", no_argument, nullptr, 'C'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
-    {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
     {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
+    {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
     {"get-config", required_argument, nullptr, 'k'},
     {"hash-file", required_argument, nullptr, HASH_FILE},
     {"help", no_argument, nullptr, 'h'},
@@ -2251,16 +2251,6 @@ handle_main_options(int argc, const char* const* argv)
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
-    case EXTRACT_RESULT: {
-      ResultExtractor result_extractor(".");
-      Result::Reader result_reader(optarg);
-      auto error = result_reader.read(result_extractor);
-      if (error) {
-        fmt::print(stderr, "Error: {}\n", *error);
-      }
-      return error ? EXIT_FAILURE : EXIT_SUCCESS;
-    }
-
     case EVICT_OLDER_THAN: {
       unsigned seconds = Util::parse_duration_with_suffix_to_seconds(optarg);
       ProgressBar progress_bar("Clearing ...");
@@ -2270,6 +2260,16 @@ handle_main_options(int argc, const char* const* argv)
         printf("\n");
       }
       break;
+    }
+
+    case EXTRACT_RESULT: {
+      ResultExtractor result_extractor(".");
+      Result::Reader result_reader(optarg);
+      auto error = result_reader.read(result_extractor);
+      if (error) {
+        fmt::print(stderr, "Error: {}\n", *error);
+      }
+      return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
     case HASH_FILE: {
