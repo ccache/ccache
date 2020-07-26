@@ -40,5 +40,5 @@ void wipe_all(const Context& ctx,
               const Util::ProgressReceiver& progress_receiver);
 
 void clean_old(const Context& ctx,
-              const Util::ProgressReceiver& progress_receiver,
-              time_t max_age);
+               const Util::ProgressReceiver& progress_receiver,
+               time_t max_age);

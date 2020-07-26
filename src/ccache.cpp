@@ -2264,11 +2264,11 @@ handle_main_options(int argc, const char* const* argv)
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
-    case EVICT_OLDER_THAN:
-    {
+    case EVICT_OLDER_THAN: {
       unsigned seconds = Util::parse_duration_with_suffix_to_seconds(optarg);
       ProgressBar progress_bar("Clearing ...");
-      clean_old(ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
+      clean_old(
+        ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
         printf("\n");
       }

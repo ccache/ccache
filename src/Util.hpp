@@ -347,13 +347,11 @@ void write_file(const std::string& path,
                 const std::string& data,
                 std::ios_base::openmode open_mode = std::ios::binary);
 
-// Parse the given string into an unsigned integer. Then based on suffix provided
-// convert the number to seconds
-// possible suffixes = d(ays)/s(econds)
+// Parse the given string into an unsigned integer. Then based on suffix
+// provided convert the number to seconds possible suffixes = d(ays)/s(econds)
 //
 // Throws `Error` for any other suffix
 // Throws `Error` if parse value is <0
-unsigned
-parse_duration_with_suffix_to_seconds(const std::string& value);
+unsigned parse_duration_with_suffix_to_seconds(const std::string& value);
 
 } // namespace Util

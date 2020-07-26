@@ -373,7 +373,8 @@ stats_flush_to_file(const Config& config,
     uint64_t max_size = round(config.max_size() * factor);
     uint32_t max_files = round(config.max_files() * factor);
     uint32_t max_age = 0;
-    clean_up_dir(subdir, max_size, max_files, max_age, [](double /*progress*/) {});
+    clean_up_dir(
+      subdir, max_size, max_files, max_age, [](double /*progress*/) {});
   }
 }
 
