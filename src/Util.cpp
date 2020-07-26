@@ -311,6 +311,28 @@ format_hex(const uint8_t* data, size_t size)
 }
 
 std::string
+format_human_readable_size(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return fmt::format("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
+  } else {
+    return fmt::format("{:.1f} MB", size / ((double)(1000 * 1000)));
+  }
+}
+
+std::string
+format_parsable_size_with_suffix(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return fmt::format("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
+  } else if (size >= 1000 * 1000) {
+    return fmt::format("{:.1f}M", size / ((double)(1000 * 1000)));
+  } else {
+    return fmt::format("{}", (unsigned)size);
+  }
+}
+
+std::string
 get_actual_cwd()
 {
   char buffer[PATH_MAX];

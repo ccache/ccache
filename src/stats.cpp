@@ -179,9 +179,9 @@ static struct
 static char*
 format_size(uint64_t size)
 {
-  char* s = format_human_readable_size(size);
-  reformat(&s, "%11s", s);
-  return s;
+  std::string result =
+    fmt::format("{:>11}", Util::format_human_readable_size(size));
+  return x_strdup(result.c_str());
 }
 
 static char*

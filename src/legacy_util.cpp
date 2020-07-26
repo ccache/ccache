@@ -342,34 +342,6 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Format a size as a human-readable string. Caller frees.
-char*
-format_human_readable_size(uint64_t size)
-{
-  char* s;
-  if (size >= 1000 * 1000 * 1000) {
-    s = format("%.1f GB", size / ((double)(1000 * 1000 * 1000)));
-  } else {
-    s = format("%.1f MB", size / ((double)(1000 * 1000)));
-  }
-  return s;
-}
-
-// Format a size as a parsable string. Caller frees.
-char*
-format_parsable_size_with_suffix(uint64_t size)
-{
-  char* s;
-  if (size >= 1000 * 1000 * 1000) {
-    s = format("%.1fG", size / ((double)(1000 * 1000 * 1000)));
-  } else if (size >= 1000 * 1000) {
-    s = format("%.1fM", size / ((double)(1000 * 1000)));
-  } else {
-    s = format("%u", (unsigned)size);
-  }
-  return s;
-}
-
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility,
 // K is also recognized as a synonym of k.

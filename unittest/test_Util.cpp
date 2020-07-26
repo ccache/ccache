@@ -222,6 +222,32 @@ TEST_CASE("format_hex")
   CHECK(Util::format_hex(data, sizeof(data)) == "00010203");
 }
 
+TEST_CASE("format_human_readable_size")
+{
+  CHECK(Util::format_human_readable_size(0) == "0.0 MB");
+  CHECK(Util::format_human_readable_size(49) == "0.0 MB");
+  CHECK(Util::format_human_readable_size(420 * 1000) == "0.4 MB");
+  CHECK(Util::format_human_readable_size(1000 * 1000) == "1.0 MB");
+  CHECK(Util::format_human_readable_size(1234 * 1000) == "1.2 MB");
+  CHECK(Util::format_human_readable_size(438.5 * 1000 * 1000) == "438.5 MB");
+  CHECK(Util::format_human_readable_size(1000 * 1000 * 1000) == "1.0 GB");
+  CHECK(Util::format_human_readable_size(17.11 * 1000 * 1000 * 1000)
+        == "17.1 GB");
+}
+
+TEST_CASE("format_parsable_size_with_suffix")
+{
+  CHECK(Util::format_parsable_size_with_suffix(0) == "0");
+  CHECK(Util::format_parsable_size_with_suffix(42 * 1000) == "42000");
+  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000) == "1.0M");
+  CHECK(Util::format_parsable_size_with_suffix(1234 * 1000) == "1.2M");
+  CHECK(Util::format_parsable_size_with_suffix(438.5 * 1000 * 1000)
+        == "438.5M");
+  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000 * 1000) == "1.0G");
+  CHECK(Util::format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000)
+        == "17.1G");
+}
+
 TEST_CASE("Util::get_extension")
 {
   CHECK(Util::get_extension("") == "");

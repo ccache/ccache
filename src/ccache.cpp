@@ -1793,9 +1793,8 @@ create_initial_config_file(Config& config)
     config.set_max_files(max_files);
   }
   if (max_size != 0) {
-    char* size = format_parsable_size_with_suffix(max_size);
-    fprintf(f, "max_size = %s\n", size);
-    free(size);
+    std::string size = Util::format_parsable_size_with_suffix(max_size);
+    fprintf(f, "max_size = %s\n", size.c_str());
     config.set_max_size(max_size);
   }
   fclose(f);
@@ -2341,9 +2340,8 @@ handle_main_options(int argc, const char* const* argv)
       if (size == 0) {
         printf("Unset cache size limit\n");
       } else {
-        char* s = format_human_readable_size(size);
-        printf("Set cache size limit to %s\n", s);
-        free(s);
+        fmt::print("Set cache size limit to {}\n",
+                   Util::format_human_readable_size(size));
       }
       break;
     }

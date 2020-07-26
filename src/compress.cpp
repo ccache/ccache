@@ -184,28 +184,25 @@ compress_stats(const Config& config,
   double ratio = compr_size > 0 ? ((double)compr_orig_size) / compr_size : 0.0;
   double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
-  char* on_disk_size_str = format_human_readable_size(on_disk_size);
-  char* cache_size_str = format_human_readable_size(compr_size + incompr_size);
-  char* compr_size_str = format_human_readable_size(compr_size);
-  char* compr_orig_size_str = format_human_readable_size(compr_orig_size);
-  char* incompr_size_str = format_human_readable_size(incompr_size);
+  std::string on_disk_size_str = Util::format_human_readable_size(on_disk_size);
+  std::string cache_size_str =
+    Util::format_human_readable_size(compr_size + incompr_size);
+  std::string compr_size_str = Util::format_human_readable_size(compr_size);
+  std::string compr_orig_size_str =
+    Util::format_human_readable_size(compr_orig_size);
+  std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
 
-  printf("Total data:            %8s (%s disk blocks)\n",
-         cache_size_str,
-         on_disk_size_str);
-  printf("Compressed data:       %8s (%.1f%% of original size)\n",
-         compr_size_str,
-         100.0 - savings);
-  printf("  - Original size:     %8s\n", compr_orig_size_str);
-  printf(
-    "  - Compression ratio: %5.3f x  (%.1f%% space savings)\n", ratio, savings);
-  printf("Incompressible data:   %8s\n", incompr_size_str);
-
-  free(incompr_size_str);
-  free(compr_orig_size_str);
-  free(compr_size_str);
-  free(cache_size_str);
-  free(on_disk_size_str);
+  fmt::print("Total data:            {:8s} ({} disk blocks)\n",
+             cache_size_str,
+             on_disk_size_str);
+  fmt::print("Compressed data:       {:8s} ({:.1f}% of original size)\n",
+             compr_size_str,
+             100.0 - savings);
+  fmt::print("  - Original size:     {:8s}\n", compr_orig_size_str);
+  fmt::print("  - Compression ratio: %5.3f x  ({:.1f}% space savings)\n",
+             ratio,
+             savings);
+  fmt::print("Incompressible data:   {:8s}\n", incompr_size_str);
 }
 
 void

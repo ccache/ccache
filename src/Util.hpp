@@ -131,6 +131,12 @@ void for_each_level_1_subdir(const std::string& cache_dir,
 // string will be `2 * size` long.
 std::string format_hex(const uint8_t* data, size_t size);
 
+// Format `size` as a human-readable string.
+std::string format_human_readable_size(uint64_t size);
+
+// Format `size` as a parsable string.
+std::string format_parsable_size_with_suffix(uint64_t size);
+
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
 std::string get_actual_cwd();
