@@ -267,10 +267,15 @@ std::string normalize_absolute_path(nonstd::string_view path);
 // Throws `Error` if parse value is <0
 unsigned parse_duration_with_suffix_to_seconds(const std::string& value);
 
-// Parse a string into an integer.
+// Parse a string into a signed integer.
 //
-// Throws Error on error.
+// Throws `Error` on error.
 int parse_int(const std::string& value);
+
+// Parse a string into an unsigned 32-bit integer.
+//
+// Throws `Error` on error.
+uint32_t parse_uint32(const std::string& value);
 
 // Return `path`'s content as a string. If `size_hint` is not 0 then assume that
 // `path` has this size (this saves system calls).

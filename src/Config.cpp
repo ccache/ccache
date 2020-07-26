@@ -345,23 +345,6 @@ format_umask(uint32_t umask)
   }
 }
 
-unsigned
-parse_unsigned(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-  if (failed || end != value.size() || result < 0) {
-    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
-  }
-  return result;
-}
-
 void
 verify_absolute_path(const std::string& value)
 {
@@ -702,7 +685,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir_levels:
-    m_cache_dir_levels = parse_unsigned(value);
+    m_cache_dir_levels = Util::parse_uint32(value);
     if (m_cache_dir_levels < 1 || m_cache_dir_levels > 8) {
       throw Error("cache directory levels must be between 1 and 8");
     }
@@ -790,7 +773,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = parse_unsigned(value);
+    m_max_files = Util::parse_uint32(value);
     break;
 
   case ConfigItem::max_size:

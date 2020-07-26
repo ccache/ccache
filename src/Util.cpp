@@ -705,6 +705,24 @@ parse_int(const std::string& value)
   return result;
 }
 
+uint32_t
+parse_uint32(const std::string& value)
+{
+  size_t end;
+  long long result;
+  bool failed = false;
+  try {
+    result = std::stoll(value, &end, 10);
+  } catch (std::exception&) {
+    failed = true;
+  }
+  if (failed || end != value.size() || result < 0
+      || result > std::numeric_limits<uint32_t>::max()) {
+    throw Error(fmt::format("invalid 32-bit unsigned integer: \"{}\"", value));
+  }
+  return result;
+}
+
 std::string
 read_file(const std::string& path, size_t size_hint)
 {

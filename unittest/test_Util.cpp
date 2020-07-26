@@ -544,6 +544,33 @@ TEST_CASE("Util::parse_int")
   }
 }
 
+TEST_CASE("Util::parse_uint32")
+{
+  CHECK(Util::parse_uint32("0") == 0);
+  CHECK(Util::parse_uint32("2") == 2);
+  CHECK(Util::parse_uint32("42") == 42);
+  CHECK(Util::parse_uint32("0666") == 666);
+  CHECK(Util::parse_uint32(" 777") == 777);
+
+  CHECK_THROWS_WITH(Util::parse_uint32(""),
+                    "invalid 32-bit unsigned integer: \"\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("x"),
+                    "invalid 32-bit unsigned integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0x"),
+                    "invalid 32-bit unsigned integer: \"0x\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0x4"),
+                    "invalid 32-bit unsigned integer: \"0x4\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0 "),
+                    "invalid 32-bit unsigned integer: \"0 \"");
+
+  // check boundary values
+  CHECK(Util::parse_uint32("4294967295") == 4294967295);
+  CHECK_THROWS_WITH(Util::parse_uint32("-1"),
+                    "invalid 32-bit unsigned integer: \"-1\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("4294967296"),
+                    "invalid 32-bit unsigned integer: \"4294967296\"");
+}
+
 TEST_CASE("Util::read_file and Util::write_file")
 {
   TestContext test_context;

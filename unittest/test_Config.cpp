@@ -250,15 +250,17 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "max_files =");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"\"");
+                        "ccache.conf:1: invalid 32-bit unsigned integer: \"\"");
 
     Util::write_file("ccache.conf", "max_files = -42");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"-42\"");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      "ccache.conf:1: invalid 32-bit unsigned integer: \"-42\"");
 
     Util::write_file("ccache.conf", "max_files = foo");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"foo\"");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      "ccache.conf:1: invalid 32-bit unsigned integer: \"foo\"");
   }
 
   SUBCASE("missing file")
