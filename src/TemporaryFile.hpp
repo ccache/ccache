@@ -19,13 +19,12 @@
 #pragma once
 
 #include "Fd.hpp"
-#include "NonCopyable.hpp"
 
 #include "third_party/nonstd/string_view.hpp"
 
 // This class represents a unique temporary file created by mkstemp. The file is
 // not deleted by the destructor.
-class TemporaryFile : NonCopyable
+class TemporaryFile
 {
 public:
   // `path_prefix` is the base path. The resulting filename will be this path
