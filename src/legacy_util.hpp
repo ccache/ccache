@@ -46,6 +46,5 @@ bool is_full_path(const char* path);
 void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char* oldpath, const char* newpath);
-char* subst_env_in_string(const char* str, char** errmsg);
 void set_cloexec_flag(int fd);
 double time_seconds();

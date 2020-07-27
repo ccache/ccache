@@ -107,6 +107,11 @@ nonstd::string_view dir_name(nonstd::string_view path);
 // Return true if suffix is a suffix of string.
 bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
 
+// Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
+// in `str`. Throws `Error` if one of the environment variables.
+[[gnu::warn_unused_result]] std::string
+expand_environment_variables(const std::string& str);
+
 // Extends file size to at least new_size by calling posix_fallocate() if
 // supported, otherwise by writing zeros last to the file.
 //

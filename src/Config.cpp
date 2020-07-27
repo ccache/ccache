@@ -196,21 +196,6 @@ format_bool(bool value)
   return value ? "true" : "false";
 }
 
-std::string
-parse_env_string(const std::string& value)
-{
-  char* errmsg = nullptr;
-  char* substituted = subst_env_in_string(value.c_str(), &errmsg);
-  if (!substituted) {
-    std::string error_message = errmsg;
-    free(errmsg);
-    throw Error(error_message);
-  }
-  std::string result = substituted;
-  free(substituted);
-  return result;
-}
-
 double
 parse_double(const std::string& value)
 {
@@ -673,7 +658,7 @@ Config::set_item(const std::string& key,
 
   switch (it->second) {
   case ConfigItem::base_dir:
-    m_base_dir = parse_env_string(value);
+    m_base_dir = Util::expand_environment_variables(value);
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
       m_base_dir = Util::normalize_absolute_path(m_base_dir);
@@ -681,7 +666,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    set_cache_dir(parse_env_string(value));
+    set_cache_dir(Util::expand_environment_variables(value));
     break;
 
   case ConfigItem::cache_dir_levels:
@@ -733,7 +718,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::extra_files_to_hash:
-    m_extra_files_to_hash = parse_env_string(value);
+    m_extra_files_to_hash = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::file_clone:
@@ -749,11 +734,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::ignore_headers_in_manifest:
-    m_ignore_headers_in_manifest = parse_env_string(value);
+    m_ignore_headers_in_manifest = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::ignore_options:
-    m_ignore_options = parse_env_string(value);
+    m_ignore_options = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::inode_cache:
@@ -769,7 +754,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::log_file:
-    m_log_file = parse_env_string(value);
+    m_log_file = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::max_files:
@@ -781,7 +766,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::path:
-    m_path = parse_env_string(value);
+    m_path = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::pch_external_checksum:
@@ -789,11 +774,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::prefix_command:
-    m_prefix_command = parse_env_string(value);
+    m_prefix_command = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::prefix_command_cpp:
-    m_prefix_command_cpp = parse_env_string(value);
+    m_prefix_command_cpp = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::read_only:
@@ -821,7 +806,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::temporary_dir:
-    m_temporary_dir = parse_env_string(value);
+    m_temporary_dir = Util::expand_environment_variables(value);
     m_temporary_dir_configured_explicitly = true;
     break;
 

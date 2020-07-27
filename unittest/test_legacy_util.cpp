@@ -28,36 +28,6 @@
 
 TEST_SUITE_BEGIN("legacy_util");
 
-TEST_CASE("subst_env_in_string")
-{
-  char* errmsg;
-
-  x_setenv("FOO", "bar");
-
-  CHECK_STR_EQ_FREE2("bar", subst_env_in_string("$FOO", &errmsg));
-  CHECK(!errmsg);
-
-  CHECK_STR_EQ_FREE2("$", subst_env_in_string("$", &errmsg));
-  CHECK(!errmsg);
-
-  CHECK_STR_EQ_FREE2("bar bar:bar",
-                     subst_env_in_string("$FOO $FOO:$FOO", &errmsg));
-  CHECK(!errmsg);
-
-  CHECK_STR_EQ_FREE2("xbar", subst_env_in_string("x$FOO", &errmsg));
-  CHECK(!errmsg);
-
-  CHECK_STR_EQ_FREE2("barx", subst_env_in_string("${FOO}x", &errmsg));
-  CHECK(!errmsg);
-
-  CHECK(!subst_env_in_string("$surelydoesntexist", &errmsg));
-  CHECK_STR_EQ_FREE2("environment variable \"surelydoesntexist\" not set",
-                     errmsg);
-
-  CHECK(!subst_env_in_string("${FOO", &errmsg));
-  CHECK_STR_EQ_FREE2("syntax error: missing '}' after \"FOO\"", errmsg);
-}
-
 TEST_CASE("parse_size_with_suffix")
 {
   uint64_t size;

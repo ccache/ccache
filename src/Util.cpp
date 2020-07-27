@@ -251,6 +251,49 @@ ends_with(string_view string, string_view suffix)
   return string.ends_with(suffix);
 }
 
+std::string
+expand_environment_variables(const std::string& str)
+{
+  std::string result;
+  const char* left = str.c_str();
+  for (const char* right = left; *right; ++right) {
+    if (*right == '$') {
+      result.append(left, right - left);
+
+      left = right + 1;
+      bool curly = *left == '{';
+      if (curly) {
+        ++left;
+      }
+      right = left;
+      while (isalnum(*right) || *right == '_') {
+        ++right;
+      }
+      if (curly && *right != '}') {
+        throw Error(
+          fmt::format("syntax error: missing '}}' after \"{}\"", left));
+      }
+      if (right == left) {
+        // Special case: don't consider a single $ the left of a variable.
+        result += '$';
+      } else {
+        std::string name(left, right - left);
+        const char* value = getenv(name.c_str());
+        if (!value) {
+          throw Error(fmt::format("environment variable \"{}\" not set", name));
+        }
+        result += value;
+        if (!curly) {
+          --right;
+        }
+        left = right + 1;
+      }
+    }
+  }
+  result += left;
+  return result;
+}
+
 int
 fallocate(int fd, long new_size)
 {

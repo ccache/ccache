@@ -159,6 +159,27 @@ TEST_CASE("Util::ends_with")
   CHECK_FALSE(Util::ends_with("x", "xy"));
 }
 
+TEST_CASE("Util::expand_environment_variables")
+{
+  x_setenv("FOO", "bar");
+
+  CHECK(Util::expand_environment_variables("") == "");
+  CHECK(Util::expand_environment_variables("$FOO") == "bar");
+  CHECK(Util::expand_environment_variables("$") == "$");
+  CHECK(Util::expand_environment_variables("$FOO $FOO:$FOO") == "bar bar:bar");
+  CHECK(Util::expand_environment_variables("x$FOO") == "xbar");
+  CHECK(Util::expand_environment_variables("${FOO}x") == "barx");
+
+  DOCTEST_GCC_SUPPRESS_WARNING_PUSH
+  DOCTEST_GCC_SUPPRESS_WARNING("-Wunused-result")
+  CHECK_THROWS_WITH(
+    (void)Util::expand_environment_variables("$surelydoesntexist"),
+    "environment variable \"surelydoesntexist\" not set");
+  CHECK_THROWS_WITH((void)Util::expand_environment_variables("${FOO"),
+                    "syntax error: missing '}' after \"FOO\"");
+  DOCTEST_GCC_SUPPRESS_WARNING_POP
+}
+
 TEST_CASE("Util::fallocate")
 {
   TestContext test_context;
