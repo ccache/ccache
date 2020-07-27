@@ -80,8 +80,8 @@ version.
 
 static const char USAGE_TEXT[] =
   R"(Usage:
-    %s [options]
-    %s compiler [compiler options]
+    {} [options]
+    {} compiler [compiler options]
     compiler [compiler options]          (via symbolic link)
 
 Common options:
@@ -2237,13 +2237,15 @@ handle_main_options(int argc, const char* const* argv)
                           options,
                           nullptr))
          != -1) {
+    std::string arg = optarg ? optarg : std::string();
+
     switch (c) {
     case DUMP_MANIFEST:
-      return manifest_dump(optarg, stdout) ? 0 : 1;
+      return manifest_dump(arg, stdout) ? 0 : 1;
 
     case DUMP_RESULT: {
       ResultDumper result_dumper(stdout);
-      Result::Reader result_reader(optarg);
+      Result::Reader result_reader(arg);
       auto error = result_reader.read(result_dumper);
       if (error) {
         fmt::print(stderr, "Error: {}\n", *error);
@@ -2252,8 +2254,8 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case EVICT_OLDER_THAN: {
-      auto seconds = Util::parse_duration(optarg);
-      ProgressBar progress_bar("Evicting ...");
+      auto seconds = Util::parse_duration(arg);
+      ProgressBar progress_bar("Evicting...");
       clean_old(
         ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
@@ -2264,7 +2266,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case EXTRACT_RESULT: {
       ResultExtractor result_extractor(".");
-      Result::Reader result_reader(optarg);
+      Result::Reader result_reader(arg);
       auto error = result_reader.read(result_extractor);
       if (error) {
         fmt::print(stderr, "Error: {}\n", *error);
@@ -2274,10 +2276,10 @@ handle_main_options(int argc, const char* const* argv)
 
     case HASH_FILE: {
       Hash hash;
-      if (str_eq(optarg, "-")) {
+      if (arg == "-") {
         hash.hash_fd(STDIN_FILENO);
       } else {
-        hash.hash_file(optarg);
+        hash.hash_file(arg);
       }
       fmt::print("{}", hash.digest().to_string());
       break;
@@ -2309,29 +2311,29 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      fprintf(stdout, USAGE_TEXT, MYNAME, MYNAME);
+      fmt::print(stdout, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(0);
 
     case 'k': // --get-config
-      fmt::print("{}\n", ctx.config.get_string_value(optarg));
+      fmt::print("{}\n", ctx.config.get_string_value(arg));
       break;
 
     case 'F': { // --max-files
+      auto files = Util::parse_uint32(arg);
       Config::set_value_in_file(
-        ctx.config.primary_config_path(), "max_files", optarg);
-      unsigned files = atoi(optarg);
+        ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
         printf("Unset cache file limit\n");
       } else {
-        printf("Set cache file limit to %u\n", files);
+        fmt::print("Set cache file limit to {}\n", files);
       }
       break;
     }
 
     case 'M': { // --max-size
-      uint64_t size = Util::parse_size(optarg);
+      uint64_t size = Util::parse_size(arg);
       Config::set_value_in_file(
-        ctx.config.primary_config_path(), "max_size", optarg);
+        ctx.config.primary_config_path(), "max_size", arg);
       if (size == 0) {
         printf("Unset cache size limit\n");
       } else {
@@ -2341,15 +2343,16 @@ handle_main_options(int argc, const char* const* argv)
       break;
     }
 
-    case 'o': {                          // --set-config
-      char* p = strchr(optarg + 1, '='); // Improve error message for -o=K=V
-      if (!p) {
-        fatal("missing equal sign in \"%s\"", optarg);
+    case 'o': { // --set-config
+      // Start searching for equal sign at position 1 to improve error message
+      // for the -o=K=V case (key "=K" and value "V").
+      size_t eq_pos = arg.find('=', 1);
+      if (eq_pos == std::string::npos) {
+        throw Error(fmt::format("missing equal sign in \"{}\"", arg));
       }
-      char* key = x_strndup(optarg, p - optarg);
-      char* value = p + 1;
+      std::string key = arg.substr(0, eq_pos);
+      std::string value = arg.substr(eq_pos + 1);
       Config::set_value_in_file(ctx.config.primary_config_path(), key, value);
-      free(key);
       break;
     }
 
@@ -2376,10 +2379,10 @@ handle_main_options(int argc, const char* const* argv)
     case 'X': // --recompress
     {
       int level;
-      if (std::string(optarg) == "uncompressed") {
+      if (arg == "uncompressed") {
         level = 0;
       } else {
-        level = Util::parse_int(optarg);
+        level = Util::parse_int(arg);
         if (level < -128 || level > 127) {
           throw Error("compression level must be between -128 and 127");
         }
@@ -2400,7 +2403,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
+      fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
       x_exit(1);
     }
 
@@ -2422,7 +2425,7 @@ ccache_main(int argc, const char* const* argv)
     std::string program_name(Util::base_name(argv[0]));
     if (same_executable_name(program_name.c_str(), MYNAME)) {
       if (argc < 2) {
-        fprintf(stderr, USAGE_TEXT, MYNAME, MYNAME);
+        fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
         x_exit(1);
       }
       // If the first argument isn't an option, then assume we are being passed
