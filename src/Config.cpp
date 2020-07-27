@@ -212,16 +212,6 @@ parse_double(const std::string& value)
   return result;
 }
 
-uint64_t
-parse_cache_size(const std::string& value)
-{
-  uint64_t result;
-  if (!parse_size_with_suffix(value.c_str(), &result)) {
-    throw Error(fmt::format("invalid size: \"{}\"", value));
-  }
-  return result;
-}
-
 std::string
 format_cache_size(uint64_t value)
 {
@@ -762,7 +752,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_size:
-    m_max_size = parse_cache_size(value);
+    m_max_size = Util::parse_size(value);
     break;
 
   case ConfigItem::path:

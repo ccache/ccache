@@ -2329,10 +2329,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'M': { // --max-size
-      uint64_t size;
-      if (!parse_size_with_suffix(optarg, &size)) {
-        fatal("invalid size: %s", optarg);
-      }
+      uint64_t size = Util::parse_size(optarg);
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_size", optarg);
       if (size == 0) {

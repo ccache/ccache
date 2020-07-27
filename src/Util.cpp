@@ -737,6 +737,47 @@ parse_int(const std::string& value)
   return result;
 }
 
+uint64_t
+parse_size(const std::string& value)
+{
+  errno = 0;
+
+  char* p;
+  double result = strtod(value.c_str(), &p);
+  if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
+    throw Error(fmt::format("invalid size: \"{}\"", value));
+  }
+
+  while (isspace(*p)) {
+    ++p;
+  }
+
+  if (*p != '\0') {
+    unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
+    switch (*p) {
+    case 'T':
+      result *= multiplier;
+    // Fallthrough.
+    case 'G':
+      result *= multiplier;
+    // Fallthrough.
+    case 'M':
+      result *= multiplier;
+    // Fallthrough.
+    case 'K':
+    case 'k':
+      result *= multiplier;
+      break;
+    default:
+      throw Error(fmt::format("invalid size: \"{}\"", value));
+    }
+  } else {
+    // Default suffix: G.
+    result *= 1000 * 1000 * 1000;
+  }
+  return static_cast<uint64_t>(result);
+}
+
 uint32_t
 parse_uint32(const std::string& value)
 {

@@ -568,6 +568,30 @@ TEST_CASE("Util::parse_int")
   }
 }
 
+TEST_CASE("Util::parse_size")
+{
+  CHECK(Util::parse_size("0") == 0);
+  CHECK(Util::parse_size("42") // Default suffix: G
+        == static_cast<uint64_t>(42) * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("78k") == 78 * 1000);
+  CHECK(Util::parse_size("78K") == 78 * 1000);
+  CHECK(Util::parse_size("1.1 M") == (int64_t(1.1 * 1000 * 1000)));
+  CHECK(Util::parse_size("438.55M") == (int64_t(438.55 * 1000 * 1000)));
+  CHECK(Util::parse_size("1 G") == 1 * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("2T")
+        == static_cast<uint64_t>(2) * 1000 * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("78 Ki") == 78 * 1024);
+  CHECK(Util::parse_size("1.1Mi") == (int64_t(1.1 * 1024 * 1024)));
+  CHECK(Util::parse_size("438.55 Mi") == (int64_t(438.55 * 1024 * 1024)));
+  CHECK(Util::parse_size("1Gi") == 1 * 1024 * 1024 * 1024);
+  CHECK(Util::parse_size("2 Ti")
+        == static_cast<uint64_t>(2) * 1024 * 1024 * 1024 * 1024);
+
+  CHECK_THROWS_WITH(Util::parse_size(""), "invalid size: \"\"");
+  CHECK_THROWS_WITH(Util::parse_size("x"), "invalid size: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
+}
+
 TEST_CASE("Util::parse_uint32")
 {
   CHECK(Util::parse_uint32("0") == 0);

@@ -36,7 +36,6 @@ char* x_strdup(const char* s);
 char* x_strndup(const char* s, size_t n);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
-bool parse_size_with_suffix(const char* str, uint64_t* size);
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif

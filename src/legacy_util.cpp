@@ -342,51 +342,6 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
-// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility,
-// K is also recognized as a synonym of k.
-bool
-parse_size_with_suffix(const char* str, uint64_t* size)
-{
-  errno = 0;
-
-  char* p;
-  double x = strtod(str, &p);
-  if (errno != 0 || x < 0 || p == str || *str == '\0') {
-    return false;
-  }
-
-  while (isspace(*p)) {
-    ++p;
-  }
-
-  if (*p != '\0') {
-    unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
-    switch (*p) {
-    case 'T':
-      x *= multiplier;
-    // Fallthrough.
-    case 'G':
-      x *= multiplier;
-    // Fallthrough.
-    case 'M':
-      x *= multiplier;
-    // Fallthrough.
-    case 'K':
-    case 'k':
-      x *= multiplier;
-      break;
-    default:
-      return false;
-    }
-  } else {
-    // Default suffix: G.
-    x *= 1000 * 1000 * 1000;
-  }
-  *size = (uint64_t)x;
-  return true;
-}
-
 #if !defined(_WIN32) && !defined(HAVE_LOCALTIME_R)
 // localtime_r replacement. (Mingw-w64 has an inline localtime_r which is not
 // detected by AC_CHECK_FUNCS.)

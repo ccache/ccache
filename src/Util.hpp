@@ -274,6 +274,11 @@ uint32_t parse_duration(const std::string& duration);
 // Throws `Error` on error.
 int parse_int(const std::string& value);
 
+// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
+// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
+// is also recognized as a synonym of k. Throws `Error` on parse error.
+uint64_t parse_size(const std::string& value);
+
 // Parse a string into an unsigned 32-bit integer.
 //
 // Throws `Error` on error.

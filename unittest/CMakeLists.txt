@@ -17,7 +17,6 @@ set(
   test_argprocessing.cpp
   test_compopt.cpp
   test_hashutil.cpp
-  test_legacy_util.cpp
   test_logging.cpp)
 
 if(INODE_CACHE_SUPPORTED)
