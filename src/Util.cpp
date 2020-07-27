@@ -275,8 +275,9 @@ fallocate(int fd, long new_size)
     return ENOMEM;
   }
   int err = 0;
-  if (!write_fd(fd, buf, bytes_to_write))
+  if (!write_fd(fd, buf, bytes_to_write)) {
     err = errno;
+  }
   lseek(fd, saved_pos, SEEK_SET);
   free(buf);
   return err;
