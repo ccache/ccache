@@ -274,32 +274,6 @@ x_strdup(const char* s)
   return ret;
 }
 
-// This is like strndup() but dies if the malloc fails.
-char*
-x_strndup(const char* s, size_t n)
-{
-#ifndef HAVE_STRNDUP
-  if (!s) {
-    return NULL;
-  }
-  size_t m = 0;
-  while (m < n && s[m]) {
-    m++;
-  }
-  char* ret = static_cast<char*>(malloc(m + 1));
-  if (ret) {
-    memcpy(ret, s, m);
-    ret[m] = '\0';
-  }
-#else
-  char* ret = strndup(s, n);
-#endif
-  if (!ret) {
-    fatal("x_strndup: Could not allocate %lu bytes", (unsigned long)n);
-  }
-  return ret;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)

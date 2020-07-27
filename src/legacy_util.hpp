@@ -32,7 +32,6 @@ bool move_file(const char* src, const char* dest);
 const char* get_hostname();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 char* x_strdup(const char* s);
-char* x_strndup(const char* s, size_t n);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
 #ifndef HAVE_LOCALTIME_R
