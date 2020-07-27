@@ -322,26 +322,6 @@ x_unsetenv(const char* name)
 #endif
 }
 
-// Construct a string according to the format and store it in *ptr. The
-// original *ptr is then freed.
-void
-reformat(char** ptr, const char* format, ...)
-{
-  char* saved = *ptr;
-  *ptr = nullptr;
-
-  va_list ap;
-  va_start(ap, format);
-  if (vasprintf(ptr, format, ap) == -1) {
-    fatal("Out of memory in reformat");
-  }
-  va_end(ap);
-
-  if (saved) {
-    free(saved);
-  }
-}
-
 #if !defined(_WIN32) && !defined(HAVE_LOCALTIME_R)
 // localtime_r replacement. (Mingw-w64 has an inline localtime_r which is not
 // detected by AC_CHECK_FUNCS.)
