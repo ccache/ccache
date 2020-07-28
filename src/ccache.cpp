@@ -1378,7 +1378,7 @@ option_should_be_ignored(const std::string& arg,
 
 // Update a hash sum with information specific to the direct and preprocessor
 // modes and calculate the result name. Returns the result name on success,
-// otherwise NULL. Caller frees.
+// otherwise NULL.
 static optional<Digest>
 calculate_result_name(Context& ctx,
                       const Args& args,

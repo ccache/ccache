@@ -473,8 +473,7 @@ verify_result(const Context& ctx,
   return true;
 }
 
-// Try to get the result name from a manifest file. Caller frees. Returns NULL
-// on failure.
+// Try to get the result name from a manifest file. Returns nullopt on failure.
 optional<Digest>
 manifest_get(const Context& ctx, const std::string& path)
 {

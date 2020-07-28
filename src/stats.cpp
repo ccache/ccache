@@ -38,8 +38,8 @@
 #define FLAG_ALWAYS 2 // always show, even if zero
 #define FLAG_NEVER 4  // never show
 
-// Returns a formatted version of a statistics value, or NULL if the statistics
-// line shouldn't be printed. Caller frees.
+// Returns a formatted version of a statistics value, or the empty string if the
+// statistics line shouldn't be printed.
 using format_fn = std::string (*)(uint64_t value);
 
 static std::string format_size_times_1024(uint64_t size);
