@@ -419,8 +419,7 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
   STARTUPINFO si;
   memset(&si, 0x00, sizeof(si));
 
-  std::string path =
-    find_executable_in_path(args[0].c_str(), nullptr, getenv("PATH"));
+  std::string path = find_executable_in_path(args[0], "", getenv("PATH"));
   if (path.empty()) {
     path = args[0];
   }

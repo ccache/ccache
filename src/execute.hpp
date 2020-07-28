@@ -27,11 +27,16 @@
 class Context;
 
 int execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid);
-std::string
-find_executable(const Context& ctx, const char* name, const char* exclude_name);
-std::string find_executable_in_path(const char* name,
-                                    const char* exclude_name,
-                                    const char* path);
+
+// Find an executable named `name` in `$PATH`. Exclude any executables that are
+// links to `exclude_name`.
+std::string find_executable(const Context& ctx,
+                            const std::string& name,
+                            const std::string& exclude_name);
+
+std::string find_executable_in_path(const std::string& name,
+                                    const std::string& exclude_name,
+                                    const std::string& path);
 
 #ifdef _WIN32
 char* win32argvtos(const char* prefix, const char* const* argv, int* length);

@@ -145,7 +145,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   Args prefix;
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
-    std::string path = find_executable(ctx, word.c_str(), MYNAME);
+    std::string path = find_executable(ctx, word, MYNAME);
     if (path.empty()) {
       FATAL("{}: {}", word, strerror(errno));
     }
@@ -1736,7 +1736,7 @@ find_compiler(Context& ctx, const char* const* argv)
     base = ctx.config.compiler();
   }
 
-  std::string compiler = find_executable(ctx, base.c_str(), MYNAME);
+  std::string compiler = find_executable(ctx, base, MYNAME);
   if (compiler.empty()) {
     FATAL("Could not find compiler \"{}\" in PATH", base);
   }
