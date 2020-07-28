@@ -22,6 +22,7 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "TemporaryFile.hpp"
 #include "legacy_util.hpp"
 #include "logging.hpp"
 
@@ -38,6 +39,26 @@
 
 #ifdef _WIN32
 #  include "win32compat.hpp"
+#endif
+
+#ifdef __linux__
+#  ifdef HAVE_SYS_IOCTL_H
+#    include <sys/ioctl.h>
+#  endif
+#  ifdef HAVE_LINUX_FS_H
+#    include <linux/fs.h>
+#    ifndef FICLONE
+#      define FICLONE _IOW(0x94, 9, int)
+#    endif
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
+#endif
+
+#ifdef __APPLE__
+#  ifdef HAVE_SYS_CLONEFILE_H
+#    include <sys/clonefile.h>
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
 #endif
 
 using nonstd::string_view;
@@ -141,7 +162,64 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
-bool
+void
+clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
+{
+#ifdef FILE_CLONING_SUPPORTED
+
+#  if defined(__linux__)
+  Fd src_fd(open(src.c_str(), O_RDONLY));
+  if (!src_fd) {
+    throw Error(fmt::format("{}: {}", src, strerror(errno)));
+  }
+
+  Fd dest_fd;
+  std::string tmp_file;
+  if (via_tmp_file) {
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = temp_file.path;
+  } else {
+    dest_fd =
+      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      throw Error(fmt::format("{}: {}", src, strerror(errno)));
+    }
+  }
+
+  if (ioctl(*dest_fd, FICLONE, *src_fd) != 0) {
+    throw Error(strerror(errno));
+  }
+
+  dest_fd.close();
+  src_fd.close();
+
+  if (via_tmp_file && x_rename(tmp_file.c_str(), dest.c_str()) != 0) {
+    throw Error(strerror(errno));
+  }
+#  elif defined(__APPLE__)
+  (void)via_tmp_file;
+  if (clonefile(src.c_str(), dest.c_str(), CLONE_NOOWNERCOPY) != 0) {
+    throw Error(strerror(errno));
+  }
+#  else
+  (void)src;
+  (void)dest;
+  (void)via_tmp_file;
+  throw Error(strerror(EOPNOTSUPP));
+#  endif
+
+#else // FILE_CLONING_SUPPORTED
+
+  (void)src;
+  (void)dest;
+  (void)via_tmp_file;
+  throw Error(strerror(EOPNOTSUPP));
+
+#endif // FILE_CLONING_SUPPORTED
+}
+
+void
 clone_hard_link_or_copy_file(const Context& ctx,
                              const std::string& source,
                              const std::string& dest,
@@ -149,10 +227,12 @@ clone_hard_link_or_copy_file(const Context& ctx,
 {
   if (ctx.config.file_clone()) {
     cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
-    if (clone_file(source.c_str(), dest.c_str(), via_tmp_file)) {
-      return true;
+    try {
+      clone_file(source, dest, via_tmp_file);
+      return;
+    } catch (Error& e) {
+      cc_log("Failed to clone: %s", e.what());
     }
-    cc_log("Failed to clone: %s", strerror(errno));
   }
   if (ctx.config.hard_link()) {
     unlink(dest.c_str());
@@ -162,13 +242,13 @@ clone_hard_link_or_copy_file(const Context& ctx,
       if (chmod(dest.c_str(), 0444) != 0) {
         cc_log("Failed to chmod: %s", strerror(errno));
       }
-      return true;
+      return;
     }
     cc_log("Failed to hard link: %s", strerror(errno));
   }
 
   cc_log("Copying %s to %s", source.c_str(), dest.c_str());
-  return copy_file(source.c_str(), dest.c_str(), via_tmp_file);
+  copy_file(source, dest, via_tmp_file);
 }
 
 size_t
@@ -199,6 +279,40 @@ common_dir_prefix_length(string_view dir, string_view path)
   } while (i > 0 && dir[i] != '/' && path[i] != '/');
 
   return i;
+}
+
+void
+copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
+{
+  Fd src_fd(open(src.c_str(), O_RDONLY));
+  if (!src_fd) {
+    throw Error(fmt::format("{}: {}", src, strerror(errno)));
+  }
+
+  Fd dest_fd;
+  std::string tmp_file;
+  if (via_tmp_file) {
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = temp_file.path;
+  } else {
+    dest_fd =
+      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      throw Error(fmt::format("{}: {}", dest, strerror(errno)));
+    }
+  }
+
+  if (!copy_fd(*src_fd, *dest_fd)) {
+    throw Error(strerror(errno));
+  }
+
+  dest_fd.close();
+  src_fd.close();
+
+  if (via_tmp_file && x_rename(tmp_file.c_str(), dest.c_str()) != 0) {
+    throw Error(strerror(errno));
+  }
 }
 
 bool

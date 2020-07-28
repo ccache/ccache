@@ -401,9 +401,11 @@ Result::Writer::write_raw_file_entry(const std::string& path,
 {
   auto raw_file = get_raw_file_path(m_result_path, entry_number);
   auto old_stat = Stat::stat(raw_file);
-  if (!Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true)) {
-    throw Error(
-      fmt::format("Failed to store {} as raw file {}", path, raw_file));
+  try {
+    Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
+  } catch (Error& e) {
+    throw Error(fmt::format(
+      "Failed to store {} as raw file {}: {}", path, raw_file, e.what()));
   }
   auto new_stat = Stat::stat(raw_file);
   stats_update_size(m_ctx.counter_updates,

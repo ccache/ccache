@@ -27,6 +27,7 @@
 #  include "legacy_util.hpp"
 
 namespace {
+
 std::string
 get_system_tmp_dir()
 {
@@ -66,12 +67,9 @@ MiniTrace::~MiniTrace()
   mtr_shutdown();
 
   if (!m_args_info.output_obj.empty()) {
-    std::string trace_file =
-      fmt::format("{}.ccache-trace", m_args_info.output_obj);
-    move_file(m_tmp_trace_file.c_str(), trace_file.c_str());
-  } else {
-    Util::unlink_tmp(m_tmp_trace_file.c_str());
+    Util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
   }
+  Util::unlink_tmp(m_tmp_trace_file);
 }
 
 #endif

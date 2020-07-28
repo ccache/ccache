@@ -20,8 +20,6 @@
 #include "legacy_util.hpp"
 
 #include "Fd.hpp"
-#include "TemporaryFile.hpp"
-#include "Util.hpp"
 #include "exceptions.hpp"
 #include "logging.hpp"
 
@@ -29,35 +27,11 @@
 #  include "win32compat.hpp"
 #endif
 
-#include "third_party/fmt/core.h"
-
-#include <string>
-
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
 #endif
 #ifdef HAVE_SYS_TIME_H
 #  include <sys/time.h>
-#endif
-
-#ifdef __linux__
-#  ifdef HAVE_SYS_IOCTL_H
-#    include <sys/ioctl.h>
-#  endif
-#  ifdef HAVE_LINUX_FS_H
-#    include <linux/fs.h>
-#    ifndef FICLONE
-#      define FICLONE _IOW(0x94, 9, int)
-#    endif
-#    define FILE_CLONING_SUPPORTED 1
-#  endif
-#endif
-
-#ifdef __APPLE__
-#  ifdef HAVE_SYS_CLONEFILE_H
-#    include <sys/clonefile.h>
-#    define FILE_CLONING_SUPPORTED 1
-#  endif
 #endif
 
 // Something went badly wrong!
@@ -108,123 +82,6 @@ copy_fd(int fd_in, int fd_out)
   }
 
   return true;
-}
-
-// Clone a file from src to dest. If via_tmp_file is true, the file is cloned
-// to a temporary file and then renamed to dest.
-bool
-clone_file(const char* src, const char* dest, bool via_tmp_file)
-{
-#ifdef FILE_CLONING_SUPPORTED
-  bool result;
-
-#  if defined(__linux__)
-  Fd src_fd(open(src, O_RDONLY));
-  if (!src_fd) {
-    return false;
-  }
-
-  Fd dest_fd;
-  char* tmp_file = nullptr;
-  if (via_tmp_file) {
-    TemporaryFile temp_file(dest);
-    dest_fd = std::move(temp_file.fd);
-    tmp_file = x_strdup(temp_file.path.c_str());
-  } else {
-    dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
-      return false;
-    }
-  }
-
-  int saved_errno = 0;
-  if (ioctl(*dest_fd, FICLONE, *src_fd) == 0) {
-    result = true;
-  } else {
-    result = false;
-    saved_errno = errno;
-  }
-
-  dest_fd.close();
-  src_fd.close();
-
-  if (via_tmp_file) {
-    if (x_rename(tmp_file, dest) != 0) {
-      result = false;
-    }
-    free(tmp_file);
-  }
-
-  errno = saved_errno;
-#  elif defined(__APPLE__)
-  (void)via_tmp_file;
-  result = clonefile(src, dest, CLONE_NOOWNERCOPY) == 0;
-#  endif
-
-  return result;
-
-#else // FILE_CLONING_SUPPORTED
-
-  (void)src;
-  (void)dest;
-  (void)via_tmp_file;
-  errno = EOPNOTSUPP;
-  return false;
-
-#endif // FILE_CLONING_SUPPORTED
-}
-
-// Copy a file from src to dest. If via_tmp_file is true, the file is copied to
-// a temporary file and then renamed to dest.
-bool
-copy_file(const char* src, const char* dest, bool via_tmp_file)
-{
-  bool result = false;
-
-  Fd src_fd(open(src, O_RDONLY));
-  if (!src_fd) {
-    return false;
-  }
-
-  Fd dest_fd;
-  char* tmp_file = nullptr;
-  if (via_tmp_file) {
-    TemporaryFile temp_file(dest);
-    dest_fd = std::move(temp_file.fd);
-    tmp_file = x_strdup(temp_file.path.c_str());
-  } else {
-    dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-    if (!dest_fd) {
-      return false;
-    }
-  }
-
-  if (copy_fd(*src_fd, *dest_fd)) {
-    result = true;
-  }
-
-  dest_fd.close();
-  src_fd.close();
-
-  if (via_tmp_file) {
-    if (x_rename(tmp_file, dest) != 0) {
-      result = false;
-    }
-    free(tmp_file);
-  }
-
-  return result;
-}
-
-// Run copy_file() and, if successful, delete the source file.
-bool
-move_file(const char* src, const char* dest)
-{
-  bool ok = copy_file(src, dest, false);
-  if (ok) {
-    Util::unlink_safe(src);
-  }
-  return ok;
 }
 
 // Return a static string with the current hostname.

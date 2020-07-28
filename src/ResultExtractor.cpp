@@ -58,10 +58,13 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
       throw Error(fmt::format(
         "Failed to open {} for writing: {}", m_dest_path, strerror(errno)));
     }
-
-  } else if (!copy_file(raw_file->c_str(), m_dest_path.c_str(), false)) {
-    throw Error(fmt::format(
-      "Failed to copy {} to {}: {}", *raw_file, m_dest_path, strerror(errno)));
+  } else {
+    try {
+      Util::copy_file(*raw_file, m_dest_path, false);
+    } catch (Error& e) {
+      throw Error(fmt::format(
+        "Failed to copy {} to {}: {}", *raw_file, m_dest_path, e.what()));
+    }
   }
 }
 

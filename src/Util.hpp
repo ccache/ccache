@@ -83,18 +83,30 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
 
+// Clone a file from `src` to `dest`. If `via_tmp_file` is true, `src` is cloned
+// to a temporary file and then renamed to `dest`. Throws `Error` on error.
+void clone_file(const std::string& src,
+                const std::string& dest,
+                bool via_tmp_file = false);
+
 // Clone, hard link or copy a file from `source` to `dest` depending on settings
 // in `ctx`. If cloning or hard linking cannot and should not be done the file
-// will be copied instead. Returns true if successful otherwise false.
-bool clone_hard_link_or_copy_file(const Context& ctx,
+// will be copied instead. Throws `Error` on error.
+void clone_hard_link_or_copy_file(const Context& ctx,
                                   const std::string& source,
                                   const std::string& dest,
-                                  bool via_tmp_file);
+                                  bool via_tmp_file = false);
 
 // Compute the length of the longest directory path that is common to paths
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(nonstd::string_view dir,
                                 nonstd::string_view path);
+
+// Copy a file from `src` to `dest`. If via_tmp_file is true, `src` is copied to
+// a temporary file and then renamed to dest. Throws `Error` on error.
+void copy_file(const std::string& src,
+               const std::string& dest,
+               bool via_tmp_file = false);
 
 // Create a directory if needed, including its parents if needed.
 //
