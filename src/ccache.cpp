@@ -125,12 +125,6 @@ See also <https://ccache.dev>.
 
 enum fromcache_call_mode { FROMCACHE_DIRECT_MODE, FROMCACHE_CPP_MODE };
 
-struct pending_tmp_file
-{
-  char* path;
-  struct pending_tmp_file* next;
-};
-
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
 static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
