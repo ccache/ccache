@@ -120,17 +120,6 @@ format(const char* format, ...)
   return ptr;
 }
 
-// This is like strdup() but dies if the malloc fails.
-char*
-x_strdup(const char* s)
-{
-  char* ret = strdup(s);
-  if (!ret) {
-    fatal("Out of memory in x_strdup");
-  }
-  return ret;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)
@@ -149,7 +138,7 @@ x_unsetenv(const char* name)
 #ifdef HAVE_UNSETENV
   unsetenv(name);
 #else
-  putenv(x_strdup(name));               // Leak to environment.
+  putenv(strdup(name));                 // Leak to environment.
 #endif
 }
 

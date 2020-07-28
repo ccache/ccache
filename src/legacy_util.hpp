@@ -28,7 +28,6 @@ bool write_fd(int fd, const void* buf, size_t size);
 bool copy_fd(int fd_in, int fd_out);
 const char* get_hostname();
 char* format(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-char* x_strdup(const char* s);
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
 #ifndef HAVE_LOCALTIME_R
