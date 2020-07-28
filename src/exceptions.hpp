@@ -20,11 +20,20 @@
 
 #include "system.hpp"
 
+#include "FormatNonstdStringView.hpp"
 #include "stats.hpp"
 
+#include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
 #include <stdexcept>
+
+// Something went badly wrong! Print a message to stderr and exit with non-zero
+// exit code.
+#define FATAL(...)                                                             \
+  do {                                                                         \
+    throw FatalError(fmt::format(__VA_ARGS__));                                \
+  } while (false)
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error

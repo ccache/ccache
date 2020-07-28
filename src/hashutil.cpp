@@ -483,12 +483,12 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    fatal("pipe failed");
+    FATAL("pipe failed: {}", strerror(errno));
   }
 
   pid_t pid = fork();
   if (pid == -1) {
-    fatal("fork failed");
+    FATAL("fork failed: {}", strerror(errno));
   }
 
   if (pid == 0) {

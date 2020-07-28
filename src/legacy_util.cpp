@@ -34,19 +34,6 @@
 #  include <sys/time.h>
 #endif
 
-// Something went badly wrong!
-void
-fatal(const char* format, ...)
-{
-  va_list ap;
-  va_start(ap, format);
-  char msg[8192];
-  vsnprintf(msg, sizeof(msg), format, ap);
-  va_end(ap);
-
-  throw FatalError(msg);
-}
-
 // Return a static string with the current hostname.
 const char*
 get_hostname()
@@ -128,7 +115,7 @@ get_home_directory()
     }
   }
 #endif
-  fatal("Could not determine home directory from $HOME or getpwuid(3)");
+  FATAL("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 // Return whether the argument is a full path.

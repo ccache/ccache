@@ -138,7 +138,7 @@ static void warn_log_fail() ATTR_NORETURN;
 static void
 warn_log_fail()
 {
-  // Note: Can't call fatal() since that would lead to recursion.
+  // Note: Can't call FATAL() since that would lead to recursion.
   fprintf(stderr,
           "ccache: error: Failed to write to %s: %s\n",
           logfile_path.c_str(),

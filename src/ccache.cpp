@@ -153,7 +153,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
     std::string path = find_executable(ctx, word.c_str(), MYNAME);
     if (path.empty()) {
-      fatal("%s: %s", word.c_str(), strerror(errno));
+      FATAL("{}: {}", word, strerror(errno));
     }
 
     prefix.push_back(path);
@@ -1744,10 +1744,10 @@ find_compiler(Context& ctx, const char* const* argv)
 
   std::string compiler = find_executable(ctx, base.c_str(), MYNAME);
   if (compiler.empty()) {
-    fatal("Could not find compiler \"%s\" in PATH", base.c_str());
+    FATAL("Could not find compiler \"{}\" in PATH", base);
   }
   if (compiler == argv[0]) {
-    fatal("Recursive invocation (the name of the ccache binary must be \"%s\")",
+    FATAL("Recursive invocation (the name of the ccache binary must be \"{}\")",
           MYNAME);
   }
   ctx.orig_args[0] = compiler;
@@ -1814,13 +1814,13 @@ set_up_config(Config& config)
     MTR_END("config", "conf_read_secondary");
 
     if (config.cache_dir().empty()) {
-      fatal("configuration setting \"cache_dir\" must not be the empty string");
+      FATAL("configuration setting \"cache_dir\" must not be the empty string");
     }
     if ((p = getenv("CCACHE_DIR"))) {
       config.set_cache_dir(p);
     }
     if (config.cache_dir().empty()) {
-      fatal("CCACHE_DIR must not be the empty string");
+      FATAL("CCACHE_DIR must not be the empty string");
     }
 
     config.set_primary_config_path(
@@ -1956,7 +1956,7 @@ cache_compilation(int argc, const char* const* argv)
     cc_log_argv("Executing ", execv_argv.data());
     ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
-    fatal("execv of %s failed: %s", execv_argv[0], strerror(errno));
+    FATAL("execv of {} failed: {}", execv_argv[0], strerror(errno));
   }
 }
 
@@ -2137,9 +2137,10 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     result_name = calculate_result_name(
       ctx, args_to_hash, preprocessor_args, cpp_hash, false);
     MTR_END("hash", "cpp_hash");
-    if (!result_name) {
-      fatal("internal error: calculate_result_name returned NULL for cpp");
-    }
+
+    // calculate_result_name does not return nullopt if the last (direct_mode)
+    // argument is false.
+    assert(result_name);
     ctx.set_result_name(*result_name);
 
     if (result_name_from_manifest && result_name_from_manifest != result_name) {

@@ -64,16 +64,12 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
   if (!initialize(path_prefix) && errno == ENOENT) {
     auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
-      fatal("Failed to create directory %s: %s",
-            std::string(dir).c_str(),
-            strerror(errno));
+      FATAL("Failed to create directory {}: {}", dir, strerror(errno));
     }
     initialize(path_prefix);
   }
   if (!fd) {
-    fatal("Failed to create temporary file for %s: %s",
-          path.c_str(),
-          strerror(errno));
+    FATAL("Failed to create temporary file for {}: {}", path, strerror(errno));
   }
 
   set_cloexec_flag(*fd);

@@ -22,8 +22,6 @@
 
 #include <string>
 
-void fatal(const char* format, ...) ATTR_FORMAT(printf, 1, 2) ATTR_NORETURN;
-
 const char* get_hostname();
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
