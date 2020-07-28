@@ -282,6 +282,21 @@ common_dir_prefix_length(string_view dir, string_view path)
 }
 
 void
+copy_fd(int fd_in, int fd_out)
+{
+  ssize_t n;
+  char buf[READ_BUFFER_SIZE];
+  while ((n = read(fd_in, buf, sizeof(buf))) != 0) {
+    if (n == -1 && errno != EINTR) {
+      break;
+    }
+    if (n > 0) {
+      write_fd(fd_out, buf, n);
+    }
+  }
+}
+
+void
 copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY));
@@ -303,10 +318,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     }
   }
 
-  if (!copy_fd(*src_fd, *dest_fd)) {
-    throw Error(strerror(errno));
-  }
-
+  copy_fd(*src_fd, *dest_fd);
   dest_fd.close();
   src_fd.close();
 
@@ -432,7 +444,9 @@ fallocate(int fd, long new_size)
     return ENOMEM;
   }
   int err = 0;
-  if (!write_fd(fd, buf, bytes_to_write)) {
+  try {
+    write_fd(fd, buf, bytes_to_write);
+  } catch (Error& e) {
     err = errno;
   }
   lseek(fd, saved_pos, SEEK_SET);
@@ -1059,8 +1073,10 @@ send_to_stderr(const std::string& text, bool strip_colors)
     }
   }
 
-  if (!write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length())) {
-    throw Error("Failed to write to stderr");
+  try {
+    write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
+  } catch (Error& e) {
+    throw Error(fmt::format("Failed to write to stderr: {}", e.what()));
   }
 }
 
@@ -1235,6 +1251,23 @@ wipe_path(const std::string& path)
       throw Error(fmt::format("failed to unlink {}: {}", p, strerror(errno)));
     }
   });
+}
+
+void
+write_fd(int fd, const void* data, size_t size)
+{
+  ssize_t written = 0;
+  do {
+    ssize_t count =
+      write(fd, static_cast<const uint8_t*>(data) + written, size - written);
+    if (count == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        throw Error(strerror(errno));
+      }
+    } else {
+      written += count;
+    }
+  } while (static_cast<size_t>(written) < size);
 }
 
 void

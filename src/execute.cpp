@@ -197,9 +197,7 @@ win32execute(const char* path,
   BOOL ret = FALSE;
   if (length > 8192) {
     TemporaryFile tmp_file(path);
-    if (!write_fd(*tmp_file.fd, args, length)) {
-      cc_log("Error writing @file; this command will probably fail: %s", args);
-    }
+    Util::write_fd(*tmp_file.fd, args, length);
     std::string atfile = fmt::format("\"@{}\"", tmp_file.path);
     ret = CreateProcess(nullptr,
                         const_cast<char*>(atfile.c_str()),

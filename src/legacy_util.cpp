@@ -47,43 +47,6 @@ fatal(const char* format, ...)
   throw FatalError(msg);
 }
 
-bool
-write_fd(int fd, const void* buf, size_t size)
-{
-  ssize_t written = 0;
-  do {
-    ssize_t count =
-      write(fd, static_cast<const uint8_t*>(buf) + written, size - written);
-    if (count == -1) {
-      if (errno != EAGAIN && errno != EINTR) {
-        return false;
-      }
-    } else {
-      written += count;
-    }
-  } while (static_cast<size_t>(written) < size);
-
-  return true;
-}
-
-// Copy all data from fd_in to fd_out.
-bool
-copy_fd(int fd_in, int fd_out)
-{
-  ssize_t n;
-  char buf[READ_BUFFER_SIZE];
-  while ((n = read(fd_in, buf, sizeof(buf))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0 && !write_fd(fd_out, buf, n)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // Return a static string with the current hostname.
 const char*
 get_hostname()

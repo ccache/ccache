@@ -18,8 +18,7 @@
 
 #include "ResultExtractor.hpp"
 
-#include "Context.hpp"
-#include "logging.hpp"
+#include "Util.hpp"
 
 #include "third_party/nonstd/string_view.hpp"
 
@@ -73,8 +72,11 @@ ResultExtractor::on_entry_data(const uint8_t* data, size_t size)
 {
   assert(m_dest_fd);
 
-  if (!write_fd(*m_dest_fd, data, size)) {
-    throw Error(fmt::format("Failed to write to {}", m_dest_path));
+  try {
+    Util::write_fd(*m_dest_fd, data, size);
+  } catch (Error& e) {
+    throw Error(
+      fmt::format("Failed to write to {}: {}", m_dest_path, e.what()));
   }
 }
 

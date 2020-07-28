@@ -127,8 +127,13 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
   if (m_dest_file_type == FileType::stderr_output
       || (m_dest_file_type == FileType::dependency && !m_dest_path.empty())) {
     m_dest_data.append(reinterpret_cast<const char*>(data), size);
-  } else if (!write_fd(*m_dest_fd, data, size)) {
-    throw Error(fmt::format("Failed to write to {}", m_dest_path));
+  } else {
+    try {
+      Util::write_fd(*m_dest_fd, data, size);
+    } catch (Error& e) {
+      throw Error(
+        fmt::format("Failed to write to {}: {}", m_dest_path, e.what()));
+    }
   }
 }
 
@@ -153,22 +158,22 @@ ResultRetriever::write_dependency_file()
 {
   size_t start_pos = 0;
 
-  if (m_rewrite_dependency_target) {
-    size_t colon_pos = m_dest_data.find(':');
-    if (colon_pos != std::string::npos) {
-      if (!write_fd(*m_dest_fd,
-                    m_ctx.args_info.output_obj.data(),
-                    m_ctx.args_info.output_obj.length())) {
-        throw Error(fmt::format("Failed to write to {}", m_dest_path));
+  try {
+    if (m_rewrite_dependency_target) {
+      size_t colon_pos = m_dest_data.find(':');
+      if (colon_pos != std::string::npos) {
+        Util::write_fd(*m_dest_fd,
+                       m_ctx.args_info.output_obj.data(),
+                       m_ctx.args_info.output_obj.length());
+        start_pos = colon_pos;
       }
-
-      start_pos = colon_pos;
     }
-  }
 
-  if (!write_fd(*m_dest_fd,
-                m_dest_data.data() + start_pos,
-                m_dest_data.length() - start_pos)) {
-    throw Error(fmt::format("Failed to write to {}", m_dest_path));
+    Util::write_fd(*m_dest_fd,
+                   m_dest_data.data() + start_pos,
+                   m_dest_data.length() - start_pos);
+  } catch (Error& e) {
+    throw Error(
+      fmt::format("Failed to write to {}: {}", m_dest_path, e.what()));
   }
 }

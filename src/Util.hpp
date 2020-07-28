@@ -102,6 +102,9 @@ void clone_hard_link_or_copy_file(const Context& ctx,
 size_t common_dir_prefix_length(nonstd::string_view dir,
                                 nonstd::string_view path);
 
+// Copy all data from `fd_in` to `fd_out`. Throws `Error` on error.
+void copy_fd(int fd_in, int fd_out);
+
 // Copy a file from `src` to `dest`. If via_tmp_file is true, `src` is copied to
 // a temporary file and then renamed to dest. Throws `Error` on error.
 void copy_file(const std::string& src,
@@ -379,6 +382,9 @@ bool unlink_tmp(const std::string& path,
 //
 // Throws Error on error.
 void wipe_path(const std::string& path);
+
+// Write `size` bytes from `data` to `fd`. Throws `Error` on error.
+void write_fd(int fd, const void* data, size_t size);
 
 // Write `data` to `path`. The file will be opened according to `open_mode`,
 // which always will include `std::ios::out` even if not specified at the call
