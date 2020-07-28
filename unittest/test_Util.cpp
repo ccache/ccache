@@ -668,6 +668,18 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
 }
 
+TEST_CASE("Util::same_program_name")
+{
+  CHECK(Util::same_program_name("foo", "foo"));
+#ifdef _WIN32
+  CHECK(Util::same_program_name("FOO", "foo"));
+  CHECK(Util::same_program_name("FOO.exe", "foo"));
+#else
+  CHECK(!Util::same_program_name("FOO", "foo"));
+  CHECK(!Util::same_program_name("FOO.exe", "foo"));
+#endif
+}
+
 TEST_CASE("Util::split_into_views")
 {
   {

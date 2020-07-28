@@ -185,23 +185,6 @@ get_home_directory()
   fatal("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
-// Check whether s1 and s2 have the same executable name.
-bool
-same_executable_name(const char* s1, const char* s2)
-{
-#ifdef _WIN32
-  bool eq = strcasecmp(s1, s2) == 0;
-  if (!eq) {
-    char* tmp = format("%s.exe", s2);
-    eq = strcasecmp(s1, tmp) == 0;
-    free(tmp);
-  }
-  return eq;
-#else
-  return str_eq(s1, s2);
-#endif
-}
-
 // Return whether the argument is a full path.
 bool
 is_full_path(const char* path)

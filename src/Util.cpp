@@ -1031,6 +1031,19 @@ remove_extension(string_view path)
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
+bool
+same_program_name(const std::string& program_name,
+                  const std::string& canonical_program_name)
+{
+#ifdef _WIN32
+  std::string lowercase_program_name = Util::to_lowercase(program_name);
+  return lowercase_program_name == canonical_program_name
+         || lowercase_program_name == (canonical_program_name + ".exe");
+#else
+  return program_name == canonical_program_name;
+#endif
+}
+
 void
 send_to_stderr(const std::string& text, bool strip_colors)
 {

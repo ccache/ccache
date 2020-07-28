@@ -318,6 +318,12 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Detmine if `program_name` is equal to `canonical_program_name`. On Windows,
+// this means performing a case insensitive equality check with and without a
+// ".exe" suffix. On non-Windows, it is a simple equality check.
+bool same_program_name(const std::string& program_name,
+                       const std::string& canonical_program_name);
+
 // Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
 // `strip_colors` is true. Throws `Error` on error.
 void send_to_stderr(const std::string& text, bool strip_colors);

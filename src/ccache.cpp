@@ -1728,7 +1728,7 @@ find_compiler(Context& ctx, const char* const* argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
-  if (same_executable_name(base.c_str(), MYNAME)) {
+  if (Util::same_program_name(base, MYNAME)) {
     ctx.orig_args.pop_front();
     if (is_full_path(ctx.orig_args[0].c_str())) {
       // A full path was given.
@@ -2423,7 +2423,7 @@ ccache_main(int argc, const char* const* argv)
   try {
     // Check if we are being invoked as "ccache".
     std::string program_name(Util::base_name(argv[0]));
-    if (same_executable_name(program_name.c_str(), MYNAME)) {
+    if (Util::same_program_name(program_name, MYNAME)) {
       if (argc < 2) {
         fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
         x_exit(1);

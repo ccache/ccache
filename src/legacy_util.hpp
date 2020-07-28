@@ -34,7 +34,6 @@ void x_unsetenv(const char* name);
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif
 const char* get_home_directory();
-bool same_executable_name(const char* s1, const char* s2);
 bool is_full_path(const char* path);
 void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;
