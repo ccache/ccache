@@ -101,25 +101,6 @@ get_hostname()
   return hostname;
 }
 
-// Construct a string according to a format. Caller frees.
-char*
-format(const char* format, ...)
-{
-  va_list ap;
-  va_start(ap, format);
-
-  char* ptr = nullptr;
-  if (vasprintf(&ptr, format, ap) == -1) {
-    fatal("Out of memory in format");
-  }
-  va_end(ap);
-
-  if (!*ptr) {
-    fatal("Internal error in format");
-  }
-  return ptr;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)
