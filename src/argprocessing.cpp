@@ -32,7 +32,7 @@ using nonstd::string_view;
 
 namespace {
 
-enum class ColorDiagnostics : int8_t { automatic, always, never = -1 };
+enum class ColorDiagnostics : int8_t { never, automatic, always };
 
 struct ArgumentProcessingState
 {
