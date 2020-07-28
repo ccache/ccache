@@ -196,7 +196,7 @@ format_timestamp(uint64_t timestamp)
     localtime_r(reinterpret_cast<time_t*>(&timestamp), &tm);
     char buffer[100];
     strftime(buffer, sizeof(buffer), "%c", &tm);
-    return format("    %s", buffer);
+    return std::string("    ") + buffer;
   } else {
     return {};
   }

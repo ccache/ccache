@@ -127,7 +127,9 @@ x_setenv(const char* name, const char* value)
 #ifdef HAVE_SETENV
   setenv(name, value, true);
 #else
-  putenv(format("%s=%s", name, value)); // Leak to environment.
+  char* string;
+  asprintf(&string, "%s=%s", name, value);
+  putenv(string);       // Leak to environment.
 #endif
 }
 
@@ -138,7 +140,7 @@ x_unsetenv(const char* name)
 #ifdef HAVE_UNSETENV
   unsetenv(name);
 #else
-  putenv(strdup(name));                 // Leak to environment.
+  putenv(strdup(name)); // Leak to environment.
 #endif
 }
 
