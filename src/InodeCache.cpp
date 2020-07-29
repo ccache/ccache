@@ -170,11 +170,14 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
 }
 
 bool
-InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
+InodeCache::hash_inode(const std::string& path,
+                       ContentType type,
+                       Digest& digest)
 {
   Stat stat = Stat::stat(path);
   if (!stat) {
-    cc_log("Could not stat %s: %s", path, strerror(stat.error_number()));
+    cc_log(
+      "Could not stat %s: %s", path.c_str(), strerror(stat.error_number()));
     return false;
   }
 
@@ -356,7 +359,7 @@ InodeCache::~InodeCache()
 }
 
 bool
-InodeCache::get(const char* path,
+InodeCache::get(const std::string& path,
                 ContentType type,
                 Digest& file_digest,
                 int* return_value)
@@ -396,7 +399,7 @@ InodeCache::get(const char* path,
   }
   release_bucket(bucket);
 
-  cc_log("inode cache %s: %s", found ? "hit" : "miss", path);
+  cc_log("inode cache %s: %s", found ? "hit" : "miss", path.c_str());
 
   if (m_config.debug()) {
     if (found) {
@@ -414,7 +417,7 @@ InodeCache::get(const char* path,
 }
 
 bool
-InodeCache::put(const char* path,
+InodeCache::put(const std::string& path,
                 ContentType type,
                 const Digest& file_digest,
                 int return_value)
@@ -444,7 +447,7 @@ InodeCache::put(const char* path,
 
   release_bucket(bucket);
 
-  cc_log("inode cache insert: %s", path);
+  cc_log("inode cache insert: %s", path.c_str());
 
   return true;
 }

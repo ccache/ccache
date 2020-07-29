@@ -30,11 +30,14 @@ using TestUtil::TestContext;
 namespace {
 
 bool
-put(const Context& ctx, const char* filename, const char* s, int return_value)
+put(const Context& ctx,
+    const std::string& filename,
+    const std::string& str,
+    int return_value)
 {
   return ctx.inode_cache.put(filename,
                              InodeCache::ContentType::code,
-                             Hash().hash(s).digest(),
+                             Hash().hash(str).digest(),
                              return_value);
 }
 
