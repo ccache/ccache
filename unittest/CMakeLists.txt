@@ -23,6 +23,10 @@ if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_InodeCache.cpp)
 endif()
 
+if(WIN32)
+  list(APPEND source_files test_Win32Util.cpp)
+endif()
+
 add_executable(unittest ${source_files})
 
 target_link_libraries(

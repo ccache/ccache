@@ -16,19 +16,28 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "../src/Win32Util.hpp"
+#include "TestUtil.hpp"
 
-#include "system.hpp"
+#include "third_party/doctest.h"
 
-#include <string>
+TEST_SUITE_BEGIN("Win32Util");
 
-namespace Win32Util {
+TEST_CASE("Win32Util::argv_to_string")
+{
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "") == R"("a")");
+  }
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "p") == R"("p" "a")");
+  }
+  {
+    const char* const argv[] = {"a", "b c", "\"d\"", "'e'", "\\\"h", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "")
+          == R"("a" "b c" "\"d\"" "'e'" "\\\"h")");
+  }
+}
 
-// Recreate a Windows command line string based on `argv`. If `prefix` is
-// non-empty, add it as the first argument.
-std::string argv_to_string(const char* const* argv, const std::string& prefix);
-
-// Return the error message corresponding to `error_code`.
-std::string error_message(DWORD error_code);
-
-} // namespace Win32Util
+TEST_SUITE_END();

@@ -39,8 +39,7 @@ std::string find_executable_in_path(const std::string& name,
                                     const std::string& path);
 
 #ifdef _WIN32
-char* win32argvtos(const char* prefix, const char* const* argv, int* length);
-std::string win32getshell(const char* path);
+std::string win32getshell(const std::string& path);
 int win32execute(const char* path,
                  const char* const* argv,
                  int doreturn,

@@ -42,75 +42,8 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* /*pid*/)
   return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release());
 }
 
-// Re-create a win32 command line string based on **argv.
-// http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
-char*
-win32argvtos(const char* prefix, const char* const* argv, int* length)
-{
-  int i = 0;
-  int k = 0;
-  const char* arg = prefix ? prefix : argv[i++];
-  do {
-    int bs = 0;
-    for (int j = 0; arg[j]; j++) {
-      switch (arg[j]) {
-      case '\\':
-        bs++;
-        break;
-      case '"':
-        bs = (bs << 1) + 1;
-      // Fallthrough.
-      default:
-        k += bs + 1;
-        bs = 0;
-      }
-    }
-    k += (bs << 1) + 3;
-  } while ((arg = argv[i++]));
-
-  char* ptr = static_cast<char*>(malloc(k + 1));
-  char* str = ptr;
-  if (!str) {
-    *length = 0;
-    return NULL;
-  }
-
-  i = 0;
-  arg = prefix ? prefix : argv[i++];
-  do {
-    int bs = 0;
-    *ptr++ = '"';
-    for (int j = 0; arg[j]; j++) {
-      switch (arg[j]) {
-      case '\\':
-        bs++;
-        break;
-      // Fallthrough.
-      case '"':
-        bs = (bs << 1) + 1;
-      // Fallthrough.
-      default:
-        while (bs && bs--) {
-          *ptr++ = '\\';
-        }
-        *ptr++ = arg[j];
-      }
-    }
-    bs <<= 1;
-    while (bs && bs--) {
-      *ptr++ = '\\';
-    }
-    *ptr++ = '"';
-    *ptr++ = ' ';
-  } while ((arg = argv[i++]));
-  ptr[-1] = '\0';
-
-  *length = ptr - str - 1;
-  return str;
-}
-
 std::string
-win32getshell(const char* path)
+win32getshell(const std::string& path)
 {
   const char* path_env = getenv("PATH");
   std::string sh;
@@ -187,16 +120,14 @@ win32execute(const char* path,
     }
   }
 
-  int length;
-  const char* prefix = sh.empty() ? nullptr : sh.c_str();
-  char* args = win32argvtos(prefix, argv, &length);
+  std::string args = Win32Util::argv_to_string(argv, sh);
   const char* ext = strrchr(path, '.');
   char full_path_win_ext[MAX_PATH] = {0};
   add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
   BOOL ret = FALSE;
-  if (length > 8192) {
+  if (args.length() > 8192) {
     TemporaryFile tmp_file(path);
-    Util::write_fd(*tmp_file.fd, args, length);
+    Util::write_fd(*tmp_file.fd, args.data(), args.length());
     std::string atfile = fmt::format("\"@{}\"", tmp_file.path);
     ret = CreateProcess(nullptr,
                         const_cast<char*>(atfile.c_str()),
@@ -212,7 +143,7 @@ win32execute(const char* path,
   }
   if (!ret) {
     ret = CreateProcess(full_path_win_ext,
-                        args,
+                        const_cast<char*>(args.c_str()),
                         nullptr,
                         nullptr,
                         1,
@@ -226,7 +157,6 @@ win32execute(const char* path,
     close(fd_stdout);
     close(fd_stderr);
   }
-  free(args);
   if (ret == 0) {
     DWORD error = GetLastError();
     cc_log("failed to execute %s: %s (%lu)",

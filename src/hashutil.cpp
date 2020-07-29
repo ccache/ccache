@@ -33,6 +33,10 @@
 #  include "InodeCache.hpp"
 #endif
 
+#ifdef _WIN32
+#  include "Win32Util.hpp"
+#endif
+
 #include "third_party/xxhash.h"
 
 // With older GCC (libgcc), __builtin_cpu_supports("avx2) returns true if AVX2
@@ -423,7 +427,7 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
   if (path.empty()) {
     path = args[0];
   }
-  std::string sh = win32getshell(path.c_str());
+  std::string sh = win32getshell(path);
   if (!sh.empty()) {
     path = sh;
   }
@@ -443,11 +447,7 @@ hash_command_output(Hash& hash, const char* command, const char* compiler)
   if (using_cmd_exe) {
     win32args = command; // quoted
   } else {
-    int length;
-    const char* prefix = sh.empty() ? nullptr : sh.c_str();
-    char* args = win32argvtos(prefix, argv.data(), &length);
-    win32args = args;
-    free(args);
+    win32args = Win32Util::argv_to_string(argv.data(), sh);
   }
   BOOL ret = CreateProcess(path.c_str(),
                            const_cast<char*>(win32args.c_str()),
