@@ -58,11 +58,6 @@
 #  include <immintrin.h>
 #endif
 
-unsigned
-hash_from_int(int i)
-{
-  return XXH64(&i, sizeof(int), 0);
-}
 
 // Returns one of HASH_SOURCE_CODE_FOUND_DATE, HASH_SOURCE_CODE_FOUND_TIME or
 // HASH_SOURCE_CODE_FOUND_TIMESTAMP if "_DATE__", "_TIME__" or "_TIMESTAMP__"

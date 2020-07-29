@@ -26,8 +26,6 @@ class Config;
 class Context;
 class Hash;
 
-unsigned hash_from_int(int i);
-
 #define HASH_SOURCE_CODE_OK 0
 #define HASH_SOURCE_CODE_ERROR 1
 #define HASH_SOURCE_CODE_FOUND_DATE 2

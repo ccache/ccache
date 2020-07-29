@@ -75,8 +75,8 @@ Context::stats_file() const
     // An empty m_result_stats_file means that set_result_name hasn't been
     // called yet, so we just choose one of stats files in the 16
     // subdirectories.
-    m_result_stats_file = fmt::format(
-      "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
+    m_result_stats_file =
+      fmt::format("{}/{:x}/stats", config.cache_dir(), getpid() % 16);
   }
   return m_result_stats_file;
 }
