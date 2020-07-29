@@ -206,9 +206,9 @@ clean_up_internal_tempdir(const Config& config)
 static void
 init_hash_debug(Context& ctx,
                 Hash& hash,
-                const char* obj_path,
+                string_view obj_path,
                 char type,
-                const char* section_name,
+                string_view section_name,
                 FILE* debug_text_file)
 {
   if (!ctx.config.debug()) {
@@ -226,7 +226,7 @@ init_hash_debug(Context& ctx,
 }
 
 static GuessedCompiler
-guess_compiler(const char* path)
+guess_compiler(string_view path)
 {
   string_view name = Util::base_name(path);
   GuessedCompiler result = GuessedCompiler::unknown;
@@ -405,7 +405,10 @@ print_included_files(const Context& ctx, FILE* fp)
 // - Stores the paths and hashes of included files in the global variable
 //   g_included_files.
 static bool
-process_preprocessed_file(Context& ctx, Hash& hash, const char* path, bool pump)
+process_preprocessed_file(Context& ctx,
+                          Hash& hash,
+                          const std::string& path,
+                          bool pump)
 {
   std::string data;
   try {
@@ -1067,7 +1070,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   hash.hash_delimiter("cpp");
   bool is_pump = ctx.guessed_compiler == GuessedCompiler::pump;
-  if (!process_preprocessed_file(ctx, hash, stdout_path.c_str(), is_pump)) {
+  if (!process_preprocessed_file(ctx, hash, stdout_path, is_pump)) {
     failed(STATS_ERROR);
   }
 
@@ -1107,7 +1110,7 @@ static void
 hash_compiler(const Context& ctx,
               Hash& hash,
               const Stat& st,
-              const char* path,
+              const std::string& path,
               bool allow_command)
 {
   if (ctx.config.compiler_check() == "none") {
@@ -1118,7 +1121,7 @@ hash_compiler(const Context& ctx,
     hash.hash(st.mtime());
   } else if (Util::starts_with(ctx.config.compiler_check(), "string:")) {
     hash.hash_delimiter("cc_hash");
-    hash.hash(ctx.config.compiler_check().c_str() + strlen("string:"));
+    hash.hash(&ctx.config.compiler_check()[7]);
   } else if (ctx.config.compiler_check() == "content" || !allow_command) {
     hash.hash_delimiter("cc_content");
     hash_binary_file(ctx, hash, path);
@@ -1134,14 +1137,14 @@ hash_compiler(const Context& ctx,
 
 // Hash the host compiler(s) invoked by nvcc.
 //
-// If ccbin_st and ccbin are set, they refer to a directory or compiler set
-// with -ccbin/--compiler-bindir. If they are NULL, the compilers are looked up
-// in PATH instead.
+// If `ccbin_st` and `ccbin` are set, they refer to a directory or compiler set
+// with -ccbin/--compiler-bindir. If `ccbin_st` is nullptr or `ccbin` is the
+// empty string, the compilers are looked up in PATH instead.
 static void
 hash_nvcc_host_compiler(const Context& ctx,
                         Hash& hash,
-                        const Stat* ccbin_st,
-                        const char* ccbin)
+                        const Stat* ccbin_st = nullptr,
+                        const std::string& ccbin = {})
 {
   // From <http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html>:
   //
@@ -1155,7 +1158,7 @@ hash_nvcc_host_compiler(const Context& ctx,
   //   Linux, clang and clang++ on Mac OS X, and cl.exe on Windows) found in
   //   the current execution search path will be used".
 
-  if (!ccbin || ccbin_st->is_directory()) {
+  if (ccbin.empty() || !ccbin_st || ccbin_st->is_directory()) {
 #if defined(__APPLE__)
     const char* compilers[] = {"clang", "clang++"};
 #elif defined(_WIN32)
@@ -1164,11 +1167,11 @@ hash_nvcc_host_compiler(const Context& ctx,
     const char* compilers[] = {"gcc", "g++"};
 #endif
     for (const char* compiler : compilers) {
-      if (ccbin) {
+      if (!ccbin.empty()) {
         std::string path = fmt::format("{}/{}", ccbin, compiler);
         auto st = Stat::stat(path);
         if (st) {
-          hash_compiler(ctx, hash, st, path.c_str(), false);
+          hash_compiler(ctx, hash, st, path, false);
         }
       } else {
         std::string path = find_executable(ctx, compiler, MYNAME);
@@ -1215,7 +1218,7 @@ hash_common_info(const Context& ctx,
   }
 
   // Hash information about the compiler.
-  hash_compiler(ctx, hash, st, compiler_path.c_str(), true);
+  hash_compiler(ctx, hash, st, compiler_path, true);
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
@@ -1228,7 +1231,7 @@ hash_common_info(const Context& ctx,
     const char* envvars[] = {
       "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", nullptr};
     for (const char** p = envvars; *p; ++p) {
-      char* v = getenv(*p);
+      const char* v = getenv(*p);
       if (v) {
         hash.hash_delimiter(*p);
         hash.hash(v);
@@ -1486,29 +1489,24 @@ calculate_result_name(Context& ctx,
       }
     }
 
-    const char* p = nullptr;
-    if (Util::starts_with(args[i], "-specs=")) {
-      p = args[i].c_str() + 7;
-    } else if (Util::starts_with(args[i], "--specs=")) {
-      p = args[i].c_str() + 8;
-    }
-
-    if (p) {
-      auto st = Stat::stat(p, Stat::OnError::log);
+    if (Util::starts_with(args[i], "-specs=")
+        || Util::starts_with(args[i], "--specs=")) {
+      std::string path = args[i].substr(args[i].find('=') + 1);
+      auto st = Stat::stat(path, Stat::OnError::log);
       if (st) {
         // If given an explicit specs file, then hash that file, but don't
         // include the path to it in the hash.
         hash.hash_delimiter("specs");
-        hash_compiler(ctx, hash, st, p, false);
+        hash_compiler(ctx, hash, st, path, false);
         continue;
       }
     }
 
     if (Util::starts_with(args[i], "-fplugin=")) {
-      auto st = Stat::stat(args[i].c_str() + 9, Stat::OnError::log);
+      auto st = Stat::stat(&args[i][9], Stat::OnError::log);
       if (st) {
         hash.hash_delimiter("plugin");
-        hash_compiler(ctx, hash, st, args[i].c_str() + 9, false);
+        hash_compiler(ctx, hash, st, &args[i][9], false);
         continue;
       }
     }
@@ -1518,7 +1516,7 @@ calculate_result_name(Context& ctx,
       auto st = Stat::stat(args[i + 3], Stat::OnError::log);
       if (st) {
         hash.hash_delimiter("plugin");
-        hash_compiler(ctx, hash, st, args[i + 3].c_str(), false);
+        hash_compiler(ctx, hash, st, args[i + 3], false);
         i += 3;
         continue;
       }
@@ -1530,7 +1528,7 @@ calculate_result_name(Context& ctx,
       if (st) {
         found_ccbin = true;
         hash.hash_delimiter("ccbin");
-        hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1].c_str());
+        hash_nvcc_host_compiler(ctx, hash, &st, args[i + 1]);
         i++;
         continue;
       }
@@ -1554,7 +1552,7 @@ calculate_result_name(Context& ctx,
   }
 
   if (!found_ccbin && ctx.args_info.actual_language == "cu") {
-    hash_nvcc_host_compiler(ctx, hash, nullptr, nullptr);
+    hash_nvcc_host_compiler(ctx, hash);
   }
 
   // For profile generation (-fprofile(-instr)-generate[=path])
@@ -1599,7 +1597,7 @@ calculate_result_name(Context& ctx,
                              "OBJCPLUS_INCLUDE_PATH", // clang
                              nullptr};
     for (const char** p = envvars; *p; ++p) {
-      char* v = getenv(*p);
+      const char* v = getenv(*p);
       if (v) {
         hash.hash_delimiter(*p);
         hash.hash(v);
@@ -1786,7 +1784,7 @@ create_initial_config_file(Config& config)
 static void
 set_up_config(Config& config)
 {
-  char* p = getenv("CCACHE_CONFIGPATH");
+  const char* p = getenv("CCACHE_CONFIGPATH");
   if (p) {
     config.set_primary_config_path(p);
   } else {
@@ -1983,7 +1981,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     std::min(std::max(ctx.config.limit_multiple(), 0.0), 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
-  ctx.guessed_compiler = guess_compiler(ctx.orig_args[0].c_str());
+  ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);
   MTR_END("main", "guess_compiler");
 
   // Arguments (except -E) to send to the preprocessor.
@@ -2047,12 +2045,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                             : nullptr;
 
   Hash common_hash;
-  init_hash_debug(ctx,
-                  common_hash,
-                  ctx.args_info.output_obj.c_str(),
-                  'c',
-                  "COMMON",
-                  debug_text_file);
+  init_hash_debug(
+    ctx, common_hash, ctx.args_info.output_obj, 'c', "COMMON", debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
   hash_common_info(ctx, preprocessor_args, common_hash, ctx.args_info);
@@ -2062,7 +2056,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx,
                   direct_hash,
-                  ctx.args_info.output_obj.c_str(),
+                  ctx.args_info.output_obj,
                   'd',
                   "DIRECT MODE",
                   debug_text_file);
@@ -2111,7 +2105,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx,
                     cpp_hash,
-                    ctx.args_info.output_obj.c_str(),
+                    ctx.args_info.output_obj,
                     'p',
                     "PREPROCESSOR MODE",
                     debug_text_file);
