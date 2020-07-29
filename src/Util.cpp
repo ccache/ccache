@@ -37,10 +37,6 @@
 #  include <sys/param.h>
 #endif
 
-#ifdef _WIN32
-#  include "win32compat.hpp"
-#endif
-
 #ifdef __linux__
 #  ifdef HAVE_SYS_IOCTL_H
 #    include <sys/ioctl.h>

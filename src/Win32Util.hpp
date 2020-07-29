@@ -22,7 +22,8 @@
 
 #include <string>
 
-std::string win32_error_message(DWORD error_code);
+namespace Win32Util {
 
-BOOL
-GetFileNameFromHandle(HANDLE file_handle, TCHAR* filename, WORD cch_filename);
+std::string error_message(DWORD error_code);
+
+} // namespace Win32Util

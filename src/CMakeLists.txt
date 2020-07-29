@@ -47,7 +47,7 @@ if(INODE_CACHE_SUPPORTED)
 endif()
 
 if(WIN32)
-  list(APPEND source_files win32compat.cpp)
+  list(APPEND source_files Win32Util.cpp)
 endif()
 
 add_library(ccache_lib STATIC ${source_files})

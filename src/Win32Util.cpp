@@ -16,12 +16,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "win32compat.hpp"
+#include "Win32Util.hpp"
 
-#ifdef _WIN32
+namespace Win32Util {
 
 std::string
-win32_error_message(DWORD error_code)
+error_message(DWORD error_code)
 {
   LPSTR buffer;
   size_t size =
@@ -38,4 +38,4 @@ win32_error_message(DWORD error_code)
   return message;
 }
 
-#endif
+} // namespace Win32Util

@@ -30,7 +30,7 @@
 #include "logging.hpp"
 
 #ifdef _WIN32
-#  include "win32compat.hpp"
+#  include "Win32Util.hpp"
 #endif
 
 using nonstd::string_view;
@@ -229,10 +229,9 @@ win32execute(const char* path,
   free(args);
   if (ret == 0) {
     DWORD error = GetLastError();
-    std::string error_message = win32_error_message(error);
     cc_log("failed to execute %s: %s (%lu)",
            full_path_win_ext,
-           win32_error_message(error).c_str(),
+           Win32Util::error_message(error).c_str(),
            error);
     return -1;
   }

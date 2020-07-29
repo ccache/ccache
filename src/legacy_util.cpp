@@ -24,7 +24,7 @@
 #include "logging.hpp"
 
 #ifdef _WIN32
-#  include "win32compat.hpp"
+#  include "Win32Util.hpp"
 #endif
 
 #ifdef HAVE_PWD_H
@@ -170,7 +170,7 @@ x_rename(const char* oldpath, const char* newpath)
     cc_log("failed to rename %s to %s: %s (%lu)",
            oldpath,
            newpath,
-           win32_error_message(error).c_str(),
+           Win32Util::error_message(error).c_str(),
            error);
     return -1;
   } else {
