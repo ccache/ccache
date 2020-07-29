@@ -344,7 +344,7 @@ do_remember_include_file(Context& ctx,
       }
     }
 
-    if (!hash_binary_file(ctx, fhash, path.c_str())) {
+    if (!hash_binary_file(ctx, fhash, path)) {
       return false;
     }
     cpp_hash.hash_delimiter(using_pch_sum ? "pch_sum_hash" : "pch_hash");
@@ -353,7 +353,7 @@ do_remember_include_file(Context& ctx,
 
   if (ctx.config.direct_mode()) {
     if (!is_pch) { // else: the file has already been hashed.
-      int result = hash_source_code_file(ctx, fhash, path.c_str());
+      int result = hash_source_code_file(ctx, fhash, path);
       if (result & HASH_SOURCE_CODE_ERROR
           || result & HASH_SOURCE_CODE_FOUND_TIME) {
         return false;
@@ -1073,7 +1073,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   hash.hash_delimiter("cppstderr");
   if (!ctx.args_info.direct_i_file
-      && !hash_binary_file(ctx, hash, stderr_path.c_str())) {
+      && !hash_binary_file(ctx, hash, stderr_path)) {
     // Somebody removed the temporary file?
     cc_log("Failed to open %s: %s", stderr_path.c_str(), strerror(errno));
     failed(STATS_ERROR);
@@ -1123,9 +1123,8 @@ hash_compiler(const Context& ctx,
     hash.hash_delimiter("cc_content");
     hash_binary_file(ctx, hash, path);
   } else { // command string
-    if (!hash_multicommand_output(hash,
-                                  ctx.config.compiler_check().c_str(),
-                                  ctx.orig_args[0].c_str())) {
+    if (!hash_multicommand_output(
+          hash, ctx.config.compiler_check(), ctx.orig_args[0])) {
       cc_log("Failure running compiler check command: %s",
              ctx.config.compiler_check().c_str());
       failed(STATS_COMPCHECK);
@@ -1294,7 +1293,7 @@ hash_common_info(const Context& ctx,
   for (const auto& sanitize_blacklist : args_info.sanitize_blacklists) {
     cc_log("Hashing sanitize blacklist %s", sanitize_blacklist.c_str());
     hash.hash("sanitizeblacklist");
-    if (!hash_binary_file(ctx, hash, sanitize_blacklist.c_str())) {
+    if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
       failed(STATS_BADEXTRAFILE);
     }
   }
@@ -1304,7 +1303,7 @@ hash_common_info(const Context& ctx,
            ctx.config.extra_files_to_hash(), PATH_DELIM)) {
       cc_log("Hashing extra file %s", path.c_str());
       hash.hash_delimiter("extrafile");
-      if (!hash_binary_file(ctx, hash, path.c_str())) {
+      if (!hash_binary_file(ctx, hash, path)) {
         failed(STATS_BADEXTRAFILE);
       }
     }
@@ -1348,7 +1347,7 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
     if (st && !st.is_directory()) {
       cc_log("Adding profile data %s to the hash", p.c_str());
       hash.hash_delimiter("-fprofile-use");
-      if (hash_binary_file(ctx, hash, p.c_str())) {
+      if (hash_binary_file(ctx, hash, p)) {
         found = true;
       }
     }
@@ -1622,8 +1621,7 @@ calculate_result_name(Context& ctx,
     hash.hash(ctx.args_info.input_file);
 
     hash.hash_delimiter("sourcecode");
-    int result =
-      hash_source_code_file(ctx, hash, ctx.args_info.input_file.c_str());
+    int result = hash_source_code_file(ctx, hash, ctx.args_info.input_file);
     if (result & HASH_SOURCE_CODE_ERROR) {
       failed(STATS_ERROR);
     }
