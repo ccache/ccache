@@ -65,21 +65,6 @@ win32getshell(const std::string& path)
   return sh;
 }
 
-void
-add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
-                              size_t max_size,
-                              const char* ext,
-                              const char* path)
-{
-  if (!ext
-      || (!str_eq(".exe", ext) && !str_eq(".sh", ext) && !str_eq(".bat", ext)
-          && !str_eq(".EXE", ext) && !str_eq(".BAT", ext))) {
-    snprintf(full_path_win_ext, max_size, "%s.exe", path);
-  } else {
-    snprintf(full_path_win_ext, max_size, "%s", path);
-  }
-}
-
 int
 win32execute(const char* path,
              const char* const* argv,
@@ -121,37 +106,26 @@ win32execute(const char* path,
   }
 
   std::string args = Win32Util::argv_to_string(argv, sh);
-  const char* ext = strrchr(path, '.');
-  char full_path_win_ext[MAX_PATH] = {0};
-  add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
-  BOOL ret = FALSE;
+  std::string full_path = Win32Util::add_exe_suffix(path);
+  std::string tmp_file_path;
   if (args.length() > 8192) {
     TemporaryFile tmp_file(path);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    std::string atfile = fmt::format("\"@{}\"", tmp_file.path);
-    ret = CreateProcess(nullptr,
-                        const_cast<char*>(atfile.c_str()),
-                        nullptr,
-                        nullptr,
-                        1,
-                        0,
-                        nullptr,
-                        nullptr,
-                        &si,
-                        &pi);
-    Util::unlink_tmp(tmp_file.path);
+    args = fmt::format("\"@{}\"", tmp_file.path);
+    tmp_file_path = tmp_file.path;
   }
-  if (!ret) {
-    ret = CreateProcess(full_path_win_ext,
-                        const_cast<char*>(args.c_str()),
-                        nullptr,
-                        nullptr,
-                        1,
-                        0,
-                        nullptr,
-                        nullptr,
-                        &si,
-                        &pi);
+  BOOL ret = CreateProcess(full_path.c_str(),
+                           const_cast<char*>(args.c_str()),
+                           nullptr,
+                           nullptr,
+                           1,
+                           0,
+                           nullptr,
+                           nullptr,
+                           &si,
+                           &pi);
+  if (!tmp_file_path.empty()) {
+    Util::unlink_tmp(tmp_file_path);
   }
   if (fd_stdout != -1) {
     close(fd_stdout);
@@ -160,7 +134,7 @@ win32execute(const char* path,
   if (ret == 0) {
     DWORD error = GetLastError();
     cc_log("failed to execute %s: %s (%lu)",
-           full_path_win_ext,
+           full_path.c_str(),
            Win32Util::error_message(error).c_str(),
            error);
     return -1;

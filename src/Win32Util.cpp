@@ -18,7 +18,20 @@
 
 #include "Win32Util.hpp"
 
+#include "Util.hpp"
+
 namespace Win32Util {
+
+std::string
+add_exe_suffix(const std::string& path)
+{
+  auto ext = Util::to_lowercase(Util::get_extension(path));
+  if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
+    return path;
+  } else {
+    return path + ".exe";
+  }
+}
 
 std::string
 error_message(DWORD error_code)

@@ -57,6 +57,10 @@
 #  include "third_party/getopt_long.h"
 #endif
 
+#ifdef _WIN32
+#  include "Win32Util.hpp"
+#endif
+
 #include <algorithm>
 #include <limits>
 
@@ -1201,22 +1205,18 @@ hash_common_info(const Context& ctx,
   hash.hash(ctx.config.cpp_extension().c_str());
 
 #ifdef _WIN32
-  const char* ext = strrchr(args[0].c_str(), '.');
-  char full_path_win_ext[MAX_PATH + 1] = {0};
-  add_exe_ext_if_no_to_fullpath(
-    full_path_win_ext, MAX_PATH, ext, args[0].c_str());
-  const char* full_path = full_path_win_ext;
+  const std::string compiler_path = Win32Util::add_exe_suffix(args[0]);
 #else
-  const char* full_path = args[0].c_str();
+  const std::string compiler_path = args[0];
 #endif
 
-  auto st = Stat::stat(full_path, Stat::OnError::log);
+  auto st = Stat::stat(compiler_path, Stat::OnError::log);
   if (!st) {
     failed(STATS_COMPILER);
   }
 
   // Hash information about the compiler.
-  hash_compiler(ctx, hash, st, args[0].c_str(), true);
+  hash_compiler(ctx, hash, st, compiler_path.c_str(), true);
 
   // Also hash the compiler name as some compilers use hard links and behave
   // differently depending on the real name.
