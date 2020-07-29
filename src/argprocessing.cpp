@@ -992,7 +992,7 @@ process_args(Context& ctx,
 
   args_info.output_is_precompiled_header =
     args_info.actual_language.find("-header") != std::string::npos
-    || is_precompiled_header(args_info.output_obj.c_str());
+    || Util::is_precompiled_header(args_info.output_obj);
 
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {

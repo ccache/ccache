@@ -696,6 +696,14 @@ is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
 }
 #endif
 
+bool
+is_precompiled_header(string_view path)
+{
+  string_view ext = get_extension(path);
+  return ext == ".gch" || ext == ".pch" || ext == ".pth"
+         || get_extension(dir_name(path)) == ".gch";
+}
+
 std::string
 make_relative_path(const Context& ctx, string_view path)
 {

@@ -62,4 +62,3 @@ enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 
 void block_signals();
 void unblock_signals();
-bool is_precompiled_header(const char* path);

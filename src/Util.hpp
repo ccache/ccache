@@ -262,6 +262,10 @@ is_dir_separator(char ch)
     ;
 }
 
+// Return whether `path` represents a precompiled header (see "Precompiled
+// Headers" in GCC docs).
+bool is_precompiled_header(nonstd::string_view path);
+
 // Make a relative path from current working directory to `path` if `path` is
 // under the base directory.
 std::string make_relative_path(const Context& ctx, nonstd::string_view path);

@@ -58,7 +58,6 @@
 #  include <immintrin.h>
 #endif
 
-
 // Returns one of HASH_SOURCE_CODE_FOUND_DATE, HASH_SOURCE_CODE_FOUND_TIME or
 // HASH_SOURCE_CODE_FOUND_TIMESTAMP if "_DATE__", "_TIME__" or "_TIMESTAMP__"
 // starts at str[pos].
@@ -292,7 +291,7 @@ hash_source_code_file_nocache(const Context& ctx,
 static InodeCache::ContentType
 get_content_type(const Config& config, const char* path)
 {
-  if (is_precompiled_header(path)) {
+  if (Util::is_precompiled_header(path)) {
     return InodeCache::ContentType::precompiled_header;
   }
   if (config.sloppiness() & SLOPPY_TIME_MACROS) {
@@ -314,7 +313,7 @@ hash_source_code_file(const Context& ctx,
   if (!ctx.config.inode_cache()) {
 #endif
     return hash_source_code_file_nocache(
-      ctx, hash, path, size_hint, is_precompiled_header(path));
+      ctx, hash, path, size_hint, Util::is_precompiled_header(path));
 
 #ifdef INODE_CACHE_SUPPORTED
   }

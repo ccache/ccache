@@ -327,7 +327,7 @@ do_remember_include_file(Context& ctx,
   // Let's hash the include file content.
   Hash fhash;
 
-  is_pch = is_precompiled_header(path.c_str());
+  is_pch = Util::is_precompiled_header(path);
   if (is_pch) {
     if (ctx.included_pch_file.empty()) {
       cc_log("Detected use of precompiled header: %s", path.c_str());
@@ -1745,15 +1745,6 @@ find_compiler(Context& ctx, const char* const* argv)
           MYNAME);
   }
   ctx.orig_args[0] = compiler;
-}
-
-bool
-is_precompiled_header(const char* path)
-{
-  // See "Precompiled Headers" in GCC docs.
-  string_view ext = Util::get_extension(path);
-  return ext == ".gch" || ext == ".pch" || ext == ".pth"
-         || Util::get_extension(Util::dir_name(path)) == ".gch";
 }
 
 static void
