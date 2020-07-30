@@ -250,15 +250,14 @@ hash_source_code_string(const Context& ctx,
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __DATE__ changes.
-    time_t t = time(nullptr);
-    struct tm now;
     hash.hash_delimiter("date");
-    if (!localtime_r(&t, &now)) {
+    auto now = Util::localtime();
+    if (!now) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    hash.hash(now.tm_year);
-    hash.hash(now.tm_mon);
-    hash.hash(now.tm_mday);
+    hash.hash(now->tm_year);
+    hash.hash(now->tm_mon);
+    hash.hash(now->tm_mday);
   }
   if (result & HASH_SOURCE_CODE_FOUND_TIME) {
     // We don't know for sure that the program actually uses the __TIME__ macro,
@@ -278,18 +277,16 @@ hash_source_code_string(const Context& ctx,
       return HASH_SOURCE_CODE_ERROR;
     }
 
-    time_t t = stat.mtime();
-    tm modified;
-    hash.hash_delimiter("timestamp");
-    if (!localtime_r(&t, &modified)) {
+    auto modified_time = Util::localtime(stat.mtime());
+    if (!modified_time) {
       return HASH_SOURCE_CODE_ERROR;
     }
-
+    hash.hash_delimiter("timestamp");
 #ifdef HAVE_ASCTIME_R
     char buffer[26];
-    auto timestamp = asctime_r(&modified, buffer);
+    auto timestamp = asctime_r(&*modified_time, buffer);
 #else
-    auto timestamp = asctime(&modified);
+    auto timestamp = asctime(&*modified_time);
 #endif
     if (!timestamp) {
       return HASH_SOURCE_CODE_ERROR;

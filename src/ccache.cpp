@@ -1898,8 +1898,7 @@ static enum stats do_cache_compilation(Context& ctx, const char* const* argv);
 static int
 cache_compilation(int argc, const char* const* argv)
 {
-  // Needed for portability when using localtime_r.
-  tzset();
+  tzset(); // Needed for localtime_r.
 
   auto ctx = std::make_unique<Context>();
   SignalHandler signal_handler(*ctx);

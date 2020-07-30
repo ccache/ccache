@@ -21,6 +21,7 @@
 
 #include "Config.hpp"
 #include "File.hpp"
+#include "Util.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
 
@@ -100,11 +101,11 @@ log_prefix(bool log_updated_time)
 #ifdef HAVE_GETTIMEOFDAY
   if (log_updated_time) {
     char timestamp[100];
-    struct tm tm;
     struct timeval tv;
     gettimeofday(&tv, nullptr);
-    if (localtime_r((time_t*)&tv.tv_sec, &tm) != nullptr) {
-      strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
+    auto tm = Util::localtime(tv.tv_sec);
+    if (tm) {
+      strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
     } else {
       snprintf(timestamp, sizeof(timestamp), "%lu", tv.tv_sec);
     }

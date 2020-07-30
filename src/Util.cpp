@@ -57,6 +57,8 @@
 #  endif
 #endif
 
+using nonstd::nullopt;
+using nonstd::optional;
 using nonstd::string_view;
 
 namespace {
@@ -718,6 +720,18 @@ is_precompiled_header(string_view path)
   string_view ext = get_extension(path);
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
          || get_extension(dir_name(path)) == ".gch";
+}
+
+optional<tm>
+localtime(optional<time_t> time)
+{
+  time_t timestamp = time ? *time : ::time(nullptr);
+  tm result;
+  if (localtime_r(&timestamp, &result)) {
+    return result;
+  } else {
+    return nullopt;
+  }
 }
 
 std::string

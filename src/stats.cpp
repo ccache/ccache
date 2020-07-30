@@ -192,10 +192,11 @@ static std::string
 format_timestamp(uint64_t timestamp)
 {
   if (timestamp > 0) {
-    struct tm tm;
-    localtime_r(reinterpret_cast<time_t*>(&timestamp), &tm);
-    char buffer[100];
-    strftime(buffer, sizeof(buffer), "%c", &tm);
+    auto tm = Util::localtime(timestamp);
+    char buffer[100] = "?";
+    if (tm) {
+      strftime(buffer, sizeof(buffer), "%c", &*tm);
+    }
     return std::string("    ") + buffer;
   } else {
     return {};
@@ -405,10 +406,11 @@ stats_summary(const Context& ctx)
   fmt::print("secondary config (readonly)         {}\n",
              ctx.config.secondary_config_path());
   if (last_updated > 0) {
-    struct tm tm;
-    localtime_r(&last_updated, &tm);
-    char timestamp[100];
-    strftime(timestamp, sizeof(timestamp), "%c", &tm);
+    auto tm = Util::localtime(last_updated);
+    char timestamp[100] = "?";
+    if (tm) {
+      strftime(timestamp, sizeof(timestamp), "%c", &*tm);
+    }
     fmt::print("stats updated                       {}\n", timestamp);
   }
 

@@ -75,9 +75,6 @@
 /* Define to 1 if you have the <linux/fs.h> header file. */
 #cmakedefine HAVE_LINUX_FS_H
 
-/* Define to 1 if you have the `localtime_r' function. */
-#cmakedefine HAVE_LOCALTIME_R
-
 /* Define to 1 if the system has the type `long long'. */
 #cmakedefine HAVE_LONG_LONG
 

@@ -34,23 +34,6 @@
 #  include <sys/time.h>
 #endif
 
-#if !defined(_WIN32) && !defined(HAVE_LOCALTIME_R)
-// localtime_r replacement. (Mingw-w64 has an inline localtime_r which is not
-// detected by AC_CHECK_FUNCS.)
-struct tm*
-localtime_r(const time_t* timep, struct tm* result)
-{
-  struct tm* tm = localtime(timep);
-  if (tm) {
-    *result = *tm;
-    return result;
-  } else {
-    memset(result, 0, sizeof(*result));
-    return NULL;
-  }
-}
-#endif
-
 // Return current user's home directory, or throw FatalError if it can't be
 // determined.
 const char*

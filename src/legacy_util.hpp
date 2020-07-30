@@ -22,9 +22,6 @@
 
 #include <string>
 
-#ifndef HAVE_LOCALTIME_R
-struct tm* localtime_r(const time_t* timep, struct tm* result);
-#endif
 const char* get_home_directory();
 bool is_full_path(const char* path);
 void update_mtime(const char* path);

@@ -23,6 +23,7 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 
+#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <functional>
@@ -268,6 +269,10 @@ is_dir_separator(char ch)
 // Return whether `path` represents a precompiled header (see "Precompiled
 // Headers" in GCC docs).
 bool is_precompiled_header(nonstd::string_view path);
+
+// Thread-safe version of `localtime(3)`. If `time` is not specified the current
+// time of day is used.
+nonstd::optional<tm> localtime(nonstd::optional<time_t> time = {});
 
 // Make a relative path from current working directory to `path` if `path` is
 // under the base directory.
