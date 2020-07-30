@@ -1398,14 +1398,7 @@ common_dir_prefix_length(const char *s1, const char *s2)
 {
 	const char *p1 = s1;
 	const char *p2 = s2;
-    char separator = '\0';
-
-    if(strchr(p1, '/') != NULL)
-    {
-        separator = '/';
-    } else {
-        separator = '\\';
-    }
+    const char separator = strchr(p1, '/') ? '/' : '\\';
 
 	while (*p1 && *p2 && *p1 == *p2) {
 		++p1;
