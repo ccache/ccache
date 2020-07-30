@@ -1327,10 +1327,14 @@ create_tmp_fd(char **fname)
 		int maxlen=190;
 		int pathlen = strlen(format("%s.%s", *fname, tmp_string()));
 
-		if(pathlen > maxlen && atof(format("%ld.%ld", (DWORD)(LOBYTE(LOWORD(GetVersion()))), (DWORD)(HIBYTE(LOWORD(GetVersion()))))) > 6.1) {
+		if(pathlen > maxlen && atof(format("%ld.%ld", (DWORD)(LOBYTE(LOWORD(GetVersion()))), (DWORD)(HIBYTE(LOWORD(GetVersion()))))) > 6.0) {
 			char* temp = slash_to_backslash(format("%s.%s", *fname, tmp_string()));
 			char* currentdir = slash_to_backslash(current_working_dir);
-			template = format("\\\\?\\%s\\%s", currentdir, temp);
+			if(strstr(temp, currentdir)) {
+				template = format("\\\\?\\%s", temp);
+			} else {
+				template = format("\\\\?\\%s\\%s", currentdir, temp);
+			}
 		} else {
 			template = format("%s.%s", *fname, tmp_string());
 		}
