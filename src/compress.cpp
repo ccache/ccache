@@ -199,7 +199,7 @@ compress_stats(const Config& config,
              compr_size_str,
              100.0 - savings);
   fmt::print("  - Original size:     {:8s}\n", compr_orig_size_str);
-  fmt::print("  - Compression ratio: %5.3f x  ({:.1f}% space savings)\n",
+  fmt::print("  - Compression ratio: {:5.3f} x  ({:.1f}% space savings)\n",
              ratio,
              savings);
   fmt::print("Incompressible data:   {:8s}\n", incompr_size_str);
