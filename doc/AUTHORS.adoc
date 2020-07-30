@@ -7,6 +7,7 @@ maintained by Joel Rosdahl.
 ccache is a collective work with contributions from many people, including:
 
 * Alexander Korsunsky
+* Alexander Lanin
 * Alexey Tourbin
 * Alfred Landrum
 * Anders F Björklund
@@ -75,6 +76,7 @@ ccache is a collective work with contributions from many people, including:
 * Nick Schultz
 * Norbert Lange
 * Oded Shimon
+* Olle Liljenzin
 * Orgad Shaneh
 * Orion Poplawski
 * Owen Mann

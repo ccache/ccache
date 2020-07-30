@@ -315,18 +315,34 @@ get_umask(void)
 // whether dest will be compressed, and with which compression level. Returns 0
 // on success and -1 on failure. On failure, errno represents the error.
 int
-copy_file(const char *src, const char *dest, int compress_level)
+copy_file(const char *src,
+          const char *dest,
+          int compress_level,
+          bool via_tmp_file)
 {
 	int fd_out;
+	char *tmp_name = NULL;
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
 
 	// Open destination file.
-	char *tmp_name = x_strdup(dest);
-	fd_out = create_tmp_fd(&tmp_name);
-	cc_log("Copying %s to %s via %s (%scompressed)",
-	       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+	if (via_tmp_file) {
+		tmp_name = x_strdup(dest);
+		fd_out = create_tmp_fd(&tmp_name);
+		cc_log("Copying %s to %s via %s (%scompressed)",
+		       src, dest, tmp_name, compress_level > 0 ? "" : "un");
+	} else {
+		fd_out = open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666);
+		if (fd_out == -1) {
+			saved_errno = errno;
+			close(fd_out);
+			errno = saved_errno;
+			return -1;
+		}
+		cc_log("Copying %s to %s (%scompressed)",
+		       src, dest, compress_level > 0 ? "" : "un");
+	}
 
 	// Open source file.
 	int fd_in = open(src, O_RDONLY | O_BINARY);
@@ -410,8 +426,10 @@ copy_file(const char *src, const char *dest, int compress_level)
 			gzclose(gz_out);
 		}
 		close(fd_out);
-		tmp_unlink(tmp_name);
-		free(tmp_name);
+		if (via_tmp_file) {
+			tmp_unlink(tmp_name);
+			free(tmp_name);
+		}
 		return -1;
 	}
 
@@ -433,13 +451,15 @@ copy_file(const char *src, const char *dest, int compress_level)
 		goto error;
 	}
 
-	if (x_rename(tmp_name, dest) == -1) {
-		saved_errno = errno;
-		cc_log("rename error: %s", strerror(saved_errno));
-		goto error;
-	}
+	if (via_tmp_file) {
+		if (x_rename(tmp_name, dest) == -1) {
+			saved_errno = errno;
+			cc_log("rename error: %s", strerror(saved_errno));
+			goto error;
+		}
 
-	free(tmp_name);
+		free(tmp_name);
+	}
 
 	return 0;
 
@@ -453,8 +473,10 @@ error:
 	if (fd_out != -1) {
 		close(fd_out);
 	}
-	tmp_unlink(tmp_name);
-	free(tmp_name);
+	if (via_tmp_file) {
+		tmp_unlink(tmp_name);
+		free(tmp_name);
+	}
 	errno = saved_errno;
 	return -1;
 }
@@ -463,7 +485,7 @@ error:
 int
 move_file(const char *src, const char *dest, int compress_level)
 {
-	int ret = copy_file(src, dest, compress_level);
+	int ret = copy_file(src, dest, compress_level, true);
 	if (ret != -1) {
 		x_unlink(src);
 	}
@@ -1118,87 +1140,6 @@ parse_size_with_suffix(const char *str, uint64_t *size)
 	return true;
 }
 
-
-#if !defined(HAVE_REALPATH) && \
-  defined(_WIN32) && \
-  !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
-static BOOL GetFileNameFromHandle(HANDLE file_handle, TCHAR *filename,
-                                  WORD cch_filename)
-{
-	BOOL success = FALSE;
-
-	// Get the file size.
-	DWORD file_size_hi = 0;
-	DWORD file_size_lo = GetFileSize(file_handle, &file_size_hi);
-	if (file_size_lo == 0 && file_size_hi == 0) {
-		// Cannot map a file with a length of zero.
-		return FALSE;
-	}
-
-	// Create a file mapping object.
-	HANDLE file_map =
-		CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
-	if (!file_map) {
-		return FALSE;
-	}
-
-	// Create a file mapping to get the file name.
-	void *mem = MapViewOfFile(file_map, FILE_MAP_READ, 0, 0, 1);
-	if (mem) {
-		if (GetMappedFileName(GetCurrentProcess(),
-		                      mem,
-		                      filename,
-		                      cch_filename)) {
-			// Translate path with device name to drive letters.
-			TCHAR temp[512];
-			temp[0] = '\0';
-
-			if (GetLogicalDriveStrings(512-1, temp)) {
-				TCHAR name[MAX_PATH];
-				TCHAR drive[3] = TEXT(" :");
-				BOOL found = FALSE;
-				TCHAR *p = temp;
-
-				do {
-					// Copy the drive letter to the template string.
-					*drive = *p;
-
-					// Look up each device name.
-					if (QueryDosDevice(drive, name, MAX_PATH)) {
-						size_t name_len = _tcslen(name);
-						if (name_len < MAX_PATH) {
-							found = _tcsnicmp(filename, name, name_len) == 0
-							        && *(filename + name_len) == _T('\\');
-							if (found) {
-								// Reconstruct filename using temp_file and replace device path
-								// with DOS path.
-								TCHAR temp_file[MAX_PATH];
-								_sntprintf(temp_file,
-								           MAX_PATH - 1,
-								           TEXT("%s%s"),
-								           drive,
-								           filename+name_len);
-								strcpy(filename, temp_file);
-							}
-						}
-					}
-
-					// Go to the next NULL character.
-					while (*p++) {
-						// Do nothing.
-					}
-				} while (!found && *p); // End of string.
-			}
-		}
-		success = TRUE;
-		UnmapViewOfFile(mem);
-	}
-
-	CloseHandle(file_map);
-	return success;
-}
-#endif
-
 // A sane realpath() function, trying to cope with stupid path limits and a
 // broken API. Caller frees.
 char *
@@ -1218,12 +1159,13 @@ x_realpath(const char *path)
 		path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE != path_handle) {
-#ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
-		GetFinalPathNameByHandle(path_handle, ret, maxlen, FILE_NAME_NORMALIZED);
-#else
-		GetFileNameFromHandle(path_handle, ret, maxlen);
-#endif
+		bool ok = GetFinalPathNameByHandle(
+			path_handle, ret, maxlen, FILE_NAME_NORMALIZED) != 0;
 		CloseHandle(path_handle);
+		if (!ok) {
+			free(ret);
+			return x_strdup(path);
+		}
 		if(str_startswith(ret, "\\\\?\\")) {
 			p = ret + 4; // Strip \\?\ from the file name.        
 		} else {

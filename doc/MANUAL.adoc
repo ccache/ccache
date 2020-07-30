@@ -1098,6 +1098,13 @@ filesystems), but keep in mind that:
 A tip is to set *temporary_dir* to a directory on the local host to avoid NFS
 traffic for temporary files.
 
+It is recommended to use the same operating system version when using a shared
+cache. If operating system versions are different then system include files
+will likely be different and there will be few or no cache hits between the
+systems. One way of improving cache hit rate in that case is to set
+<<config_sloppiness,*sloppiness*>> to *system_headers* to ignore system
+headers.
+
 
 Using ccache with other compiler wrappers
 -----------------------------------------

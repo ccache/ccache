@@ -322,6 +322,7 @@ case $compiler_version in
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
+        CLANG_VERSION_SUFFIX=$(echo $COMPILER | sed -r 's/.*clang//')
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
@@ -394,6 +395,9 @@ multi_arch
 serialize_diagnostics
 sanitize_blacklist
 debug_prefix_map
+profiling
+profiling_gcc
+profiling_clang
 split_dwarf
 masquerading
 hardlink

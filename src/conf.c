@@ -296,8 +296,8 @@ conf_update_from_environment(struct conf *conf, char **errmsg)
 }
 
 bool
-conf_set_value_in_file(const char *path, const char *key, const char *value,
-                       char **errmsg)
+conf_set_value_in_file(const char *conf_path, const char *key,
+                       const char *value, char **errmsg)
 {
 	const struct conf_item *item = find_conf(key);
 	if (!item) {
@@ -311,9 +311,14 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 		return false;
 	}
 
+	char *path = x_realpath(conf_path);
+	if (!path) {
+		path = x_strdup(conf_path);
+	}
 	FILE *infile = fopen(path, "r");
 	if (!infile) {
 		*errmsg = format("%s: %s", path, strerror(errno));
+		free(path);
 		return false;
 	}
 
@@ -322,6 +327,7 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	if (!outfile) {
 		*errmsg = format("%s: %s", outpath, strerror(errno));
 		free(outpath);
+		free(path);
 		fclose(infile);
 		return false;
 	}
@@ -351,9 +357,12 @@ conf_set_value_in_file(const char *path, const char *key, const char *value,
 	fclose(outfile);
 	if (x_rename(outpath, path) != 0) {
 		*errmsg = format("rename %s to %s: %s", outpath, path, strerror(errno));
+		free(outpath);
+		free(path);
 		return false;
 	}
 	free(outpath);
+	free(path);
 
 	return true;
 }
