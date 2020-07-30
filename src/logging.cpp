@@ -108,7 +108,6 @@ log_prefix(bool log_updated_time)
     } else {
       snprintf(timestamp, sizeof(timestamp), "%lu", tv.tv_sec);
     }
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &tm);
     snprintf(prefix,
              sizeof(prefix),
              "[%s.%06d %-5d] ",
