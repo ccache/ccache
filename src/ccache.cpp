@@ -1971,7 +1971,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_END("main", "set_up_uncached_err");
 
   cc_log_argv("Command line: ", argv);
-  cc_log("Hostname: %s", get_hostname());
+  cc_log("Hostname: %s", Util::get_hostname());
   cc_log("Working directory: %s", ctx.actual_cwd.c_str());
   if (ctx.apparent_cwd != ctx.actual_cwd) {
     cc_log("Apparent working directory: %s", ctx.apparent_cwd.c_str());

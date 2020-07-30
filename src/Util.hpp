@@ -190,6 +190,9 @@ void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
 
+// Return a static string with the current hostname.
+const char* get_hostname();
+
 // Compute a relative path from `dir` (an absolute path to a directory) to
 // `path` (an absolute path). Assumes that both `dir` and `path` are normalized.
 // The algorithm does *not* follow symlinks, so the result may not actually

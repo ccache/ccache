@@ -22,7 +22,6 @@
 
 #include <string>
 
-const char* get_hostname();
 void x_setenv(const char* name, const char* value);
 void x_unsetenv(const char* name);
 #ifndef HAVE_LOCALTIME_R

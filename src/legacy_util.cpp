@@ -34,23 +34,6 @@
 #  include <sys/time.h>
 #endif
 
-// Return a static string with the current hostname.
-const char*
-get_hostname()
-{
-  static char hostname[260] = "";
-
-  if (hostname[0]) {
-    return hostname;
-  }
-
-  if (gethostname(hostname, sizeof(hostname)) != 0) {
-    strcpy(hostname, "unknown");
-  }
-  hostname[sizeof(hostname) - 1] = 0;
-  return hostname;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)

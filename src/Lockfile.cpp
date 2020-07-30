@@ -42,7 +42,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
 
   while (true) {
     std::string my_content =
-      fmt::format("{}:{}:{}", get_hostname(), getpid(), time(nullptr));
+      fmt::format("{}:{}:{}", Util::get_hostname(), getpid(), time(nullptr));
 
     if (symlink(my_content.c_str(), lockfile.c_str()) == 0) {
       // We got the lock.
