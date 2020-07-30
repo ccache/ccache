@@ -74,12 +74,6 @@ extern char** environ;
 #  define ATTR_NORETURN
 #endif
 
-#define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
-#define str_startswith(s, prefix)                                              \
-  (strncmp((s), (prefix), strlen((prefix))) == 0)
-#define str_endswith(s, suffix)                                                \
-  (strlen(s) >= strlen(suffix)                                                 \
-   && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 // Buffer size for I/O operations. Should be a multiple of 4 KiB.
