@@ -864,8 +864,7 @@ parse_duration(const std::string& duration)
       "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
   }
 
-  const size_t end = factor == 0 ? duration.length() : duration.length() - 1;
-  return factor * parse_uint32(duration.substr(0, end));
+  return factor * parse_uint32(duration.substr(0, duration.length() - 1));
 }
 
 int
