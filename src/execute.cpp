@@ -26,7 +26,6 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
 #include "logging.hpp"
 
 #ifdef _WIN32

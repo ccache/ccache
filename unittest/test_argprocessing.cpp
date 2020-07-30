@@ -20,7 +20,6 @@
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
 #include "../src/Util.hpp"
-#include "../src/ccache.hpp"
 #include "../src/stats.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
