@@ -22,7 +22,6 @@
 
 #include <string>
 
-void x_unsetenv(const char* name);
 #ifndef HAVE_LOCALTIME_R
 struct tm* localtime_r(const time_t* timep, struct tm* result);
 #endif

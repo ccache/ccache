@@ -34,17 +34,6 @@
 #  include <sys/time.h>
 #endif
 
-// This is like unsetenv.
-void
-x_unsetenv(const char* name)
-{
-#ifdef HAVE_UNSETENV
-  unsetenv(name);
-#else
-  putenv(strdup(name)); // Leak to environment.
-#endif
-}
-
 #if !defined(_WIN32) && !defined(HAVE_LOCALTIME_R)
 // localtime_r replacement. (Mingw-w64 has an inline localtime_r which is not
 // detected by AC_CHECK_FUNCS.)

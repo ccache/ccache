@@ -387,6 +387,9 @@ bool unlink_safe(const std::string& path,
 bool unlink_tmp(const std::string& path,
                 UnlinkLog unlink_log = UnlinkLog::log_failure);
 
+// Unset environment variable `name`.
+void unsetenv(const std::string& name);
+
 // Remove `path` (and its contents if it's a directory). A non-existing path is
 // not considered an error.
 //

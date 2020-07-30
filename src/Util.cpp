@@ -1108,7 +1108,7 @@ setenv(const std::string& name, const std::string& value)
 #else
   char* string;
   asprintf(&string, "%s=%s", name.c_str(), value.c_str());
-  putenv(string); // Leak to environment.
+  putenv(string);               // Leak to environment.
 #endif
 }
 
@@ -1266,6 +1266,16 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
 
   errno = saved_errno;
   return success;
+}
+
+void
+unsetenv(const std::string& name)
+{
+#ifdef HAVE_UNSETENV
+  ::unsetenv(name.c_str());
+#else
+  putenv(strdup(name.c_str())); // Leak to environment.
+#endif
 }
 
 void

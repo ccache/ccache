@@ -309,7 +309,7 @@ TEST_CASE("Config::update_from_environment")
   config.update_from_environment();
   CHECK(config.compression());
 
-  x_unsetenv("CCACHE_COMPRESS");
+  Util::unsetenv("CCACHE_COMPRESS");
 
   Util::setenv("CCACHE_NOCOMPRESS", "1");
   config.update_from_environment();

@@ -843,8 +843,8 @@ to_cache(Context& ctx,
   // emit a line like this:
   //
   //   tmp.stdout.vexed.732.o: /home/mbp/.ccache/tmp.stdout.vexed.732.i
-  x_unsetenv("DEPENDENCIES_OUTPUT");
-  x_unsetenv("SUNPRO_DEPENDENCIES");
+  Util::unsetenv("DEPENDENCIES_OUTPUT");
+  Util::unsetenv("SUNPRO_DEPENDENCIES");
 
   if (ctx.config.run_second_cpp()) {
     args.push_back(ctx.args_info.input_file);
