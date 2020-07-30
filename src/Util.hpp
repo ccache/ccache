@@ -356,7 +356,8 @@ std::vector<nonstd::string_view> split_into_views(nonstd::string_view input,
 std::vector<std::string> split_into_strings(nonstd::string_view input,
                                             const char* separators);
 
-// Return true if prefix is a prefix of string.
+// Return true if `prefix` is a prefix of `string`.
+bool starts_with(const char* string, nonstd::string_view prefix);
 bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.

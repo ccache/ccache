@@ -425,6 +425,13 @@ process_preprocessed_file(Context& ctx,
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.
   while (q < end - 7) {
+    static const string_view pragma_gcc_pch_preprocess =
+      "pragma GCC pch_preprocess ";
+    static const string_view hash_31_command_line_newline =
+      "# 31 \"<command-line>\"\n";
+    static const string_view hash_32_command_line_2_newline =
+      "# 32 \"<command-line>\" 2\n";
+
     // Check if we look at a line containing the file name of an included file.
     // At least the following formats exist (where N is a positive integer):
     //
@@ -449,15 +456,14 @@ process_preprocessed_file(Context& ctx,
         // GCC:
         && ((q[1] == ' ' && q[2] >= '0' && q[2] <= '9')
             // GCC precompiled header:
-            || (q[1] == 'p'
-                && str_startswith(&q[2], "ragma GCC pch_preprocess "))
+            || Util::starts_with(&q[1], pragma_gcc_pch_preprocess)
             // HP/AIX:
             || (q[1] == 'l' && q[2] == 'i' && q[3] == 'n' && q[4] == 'e'
                 && q[5] == ' '))
         && (q == data.data() || q[-1] == '\n')) {
       // Workarounds for preprocessor linemarker bugs in GCC version 6.
       if (q[2] == '3') {
-        if (str_startswith(q, "# 31 \"<command-line>\"\n")) {
+        if (Util::starts_with(q, hash_31_command_line_newline)) {
           // Bogus extra line with #31, after the regular #1: Ignore the whole
           // line, and continue parsing.
           hash.hash(p, q - p);
@@ -467,7 +473,7 @@ process_preprocessed_file(Context& ctx,
           q++;
           p = q;
           continue;
-        } else if (str_startswith(q, "# 32 \"<command-line>\" 2\n")) {
+        } else if (Util::starts_with(q, hash_32_command_line_2_newline)) {
           // Bogus wrong line with #32, instead of regular #1: Replace the line
           // number with the usual one.
           hash.hash(p, q - p);

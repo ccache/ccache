@@ -1138,6 +1138,14 @@ split_into_strings(string_view input, const char* separators)
 }
 
 bool
+starts_with(const char* string, nonstd::string_view prefix)
+{
+  // Optimized version of starts_with(string_view, string_view): avoid computing
+  // the length of the string argument.
+  return strncmp(string, prefix.data(), prefix.length()) == 0;
+}
+
+bool
 starts_with(string_view string, string_view prefix)
 {
   return string.starts_with(prefix);

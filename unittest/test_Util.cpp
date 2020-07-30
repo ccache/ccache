@@ -764,6 +764,7 @@ TEST_CASE("Util::split_into_strings")
 
 TEST_CASE("Util::starts_with")
 {
+  // starts_with(const char*, string_view)
   CHECK(Util::starts_with("", ""));
   CHECK(Util::starts_with("x", ""));
   CHECK(Util::starts_with("x", "x"));
@@ -778,6 +779,22 @@ TEST_CASE("Util::starts_with")
   CHECK_FALSE(Util::starts_with("", "x"));
   CHECK_FALSE(Util::starts_with("x", "y"));
   CHECK_FALSE(Util::starts_with("x", "xy"));
+
+  // starts_with(string_view, string_view)
+  CHECK(Util::starts_with(std::string(""), ""));
+  CHECK(Util::starts_with(std::string("x"), ""));
+  CHECK(Util::starts_with(std::string("x"), "x"));
+  CHECK(Util::starts_with(std::string("xy"), ""));
+  CHECK(Util::starts_with(std::string("xy"), "x"));
+  CHECK(Util::starts_with(std::string("xy"), "xy"));
+  CHECK(Util::starts_with(std::string("xyz"), ""));
+  CHECK(Util::starts_with(std::string("xyz"), "x"));
+  CHECK(Util::starts_with(std::string("xyz"), "xy"));
+  CHECK(Util::starts_with(std::string("xyz"), "xyz"));
+
+  CHECK_FALSE(Util::starts_with(std::string(""), "x"));
+  CHECK_FALSE(Util::starts_with(std::string("x"), "y"));
+  CHECK_FALSE(Util::starts_with(std::string("x"), "xy"));
 }
 
 TEST_CASE("Util::strip_whitespace")
