@@ -161,7 +161,7 @@ TEST_CASE("Util::ends_with")
 
 TEST_CASE("Util::expand_environment_variables")
 {
-  x_setenv("FOO", "bar");
+  Util::setenv("FOO", "bar");
 
   CHECK(Util::expand_environment_variables("") == "");
   CHECK(Util::expand_environment_variables("$FOO") == "bar");

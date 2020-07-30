@@ -92,7 +92,7 @@ TEST_CASE("Config::update_from_file")
   TestContext test_context;
 
   const char user[] = "rabbit";
-  x_setenv("USER", user);
+  Util::setenv("USER", user);
 
 #ifndef _WIN32
   std::string base_dir = fmt::format("/{0}/foo/{0}", user);
@@ -305,13 +305,13 @@ TEST_CASE("Config::update_from_environment")
 {
   Config config;
 
-  x_setenv("CCACHE_COMPRESS", "1");
+  Util::setenv("CCACHE_COMPRESS", "1");
   config.update_from_environment();
   CHECK(config.compression());
 
   x_unsetenv("CCACHE_COMPRESS");
 
-  x_setenv("CCACHE_NOCOMPRESS", "1");
+  Util::setenv("CCACHE_NOCOMPRESS", "1");
   config.update_from_environment();
   CHECK(!config.compression());
 }

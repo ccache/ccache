@@ -34,19 +34,6 @@
 #  include <sys/time.h>
 #endif
 
-// This is like setenv.
-void
-x_setenv(const char* name, const char* value)
-{
-#ifdef HAVE_SETENV
-  setenv(name, value, true);
-#else
-  char* string;
-  asprintf(&string, "%s=%s", name, value);
-  putenv(string);       // Leak to environment.
-#endif
-}
-
 // This is like unsetenv.
 void
 x_unsetenv(const char* name)

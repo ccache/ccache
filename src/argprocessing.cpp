@@ -905,18 +905,18 @@ handle_dependency_environment_variables(Context& ctx,
     std::string relpath_both =
       fmt::format("{} {}", args_info.output_dep, relpath_obj);
     if (using_sunpro_dependencies) {
-      x_setenv("SUNPRO_DEPENDENCIES", relpath_both.c_str());
+      Util::setenv("SUNPRO_DEPENDENCIES", relpath_both);
     } else {
-      x_setenv("DEPENDENCIES_OUTPUT", relpath_both.c_str());
+      Util::setenv("DEPENDENCIES_OUTPUT", relpath_both);
     }
   } else {
     // It's the "file" form.
     state.dependency_implicit_target_specified = true;
     // Ensure that the compiler gets a relative path.
     if (using_sunpro_dependencies) {
-      x_setenv("SUNPRO_DEPENDENCIES", args_info.output_dep.c_str());
+      Util::setenv("SUNPRO_DEPENDENCIES", args_info.output_dep);
     } else {
-      x_setenv("DEPENDENCIES_OUTPUT", args_info.output_dep.c_str());
+      Util::setenv("DEPENDENCIES_OUTPUT", args_info.output_dep);
     }
   }
 }

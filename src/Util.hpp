@@ -338,6 +338,9 @@ bool same_program_name(const std::string& program_name,
 // `strip_colors` is true. Throws `Error` on error.
 void send_to_stderr(const std::string& text, bool strip_colors);
 
+// Set environment variable `name` to `value`.
+void setenv(const std::string& name, const std::string& value);
+
 // Split `input` into words at any of the characters listed in `separators`.
 // These words are a view into `input`; empty words are omitted. `separators`
 // must neither be the empty string nor a nullptr.

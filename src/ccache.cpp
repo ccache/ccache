@@ -1871,7 +1871,7 @@ set_up_uncached_err()
     failed(STATS_ERROR);
   }
 
-  x_setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd).c_str());
+  Util::setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd));
 }
 
 static void

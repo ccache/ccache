@@ -1100,6 +1100,18 @@ send_to_stderr(const std::string& text, bool strip_colors)
   }
 }
 
+void
+setenv(const std::string& name, const std::string& value)
+{
+#ifdef HAVE_SETENV
+  ::setenv(name.c_str(), value.c_str(), true);
+#else
+  char* string;
+  asprintf(&string, "%s=%s", name.c_str(), value.c_str());
+  putenv(string); // Leak to environment.
+#endif
+}
+
 std::vector<string_view>
 split_into_views(string_view input, const char* separators)
 {
