@@ -145,7 +145,7 @@ win32execute(const char* path,
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   if (!doreturn) {
-    x_exit(exitcode);
+    exit(exitcode);
   }
   return exitcode;
 }
@@ -174,7 +174,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
     fd_out.close();
     dup2(*fd_err, STDERR_FILENO);
     fd_err.close();
-    x_exit(execv(argv[0], const_cast<char* const*>(argv)));
+    exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
 
   fd_out.close();

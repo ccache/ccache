@@ -143,7 +143,7 @@ warn_log_fail()
           "ccache: error: Failed to write to %s: %s\n",
           logfile_path.c_str(),
           strerror(errno));
-  x_exit(EXIT_FAILURE);
+  exit(EXIT_FAILURE);
 }
 
 static void

@@ -31,20 +31,6 @@
 #  include <sys/time.h>
 #endif
 
-// If exit() already has been called, call _exit(), otherwise exit(). This is
-// used to avoid calling exit() inside an atexit handler.
-void
-x_exit(int status)
-{
-  static bool first_time = true;
-  if (first_time) {
-    first_time = false;
-    exit(status);
-  } else {
-    _exit(status);
-  }
-}
-
 // Rename oldpath to newpath (deleting newpath).
 int
 x_rename(const char* oldpath, const char* newpath)

@@ -2294,7 +2294,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'h': // --help
       fmt::print(stdout, USAGE_TEXT, MYNAME, MYNAME);
-      x_exit(0);
+      exit(EXIT_SUCCESS);
 
     case 'k': // --get-config
       fmt::print("{}\n", ctx.config.get_string_value(arg));
@@ -2348,7 +2348,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'V': // --version
       fprintf(stdout, VERSION_TEXT, MYNAME, CCACHE_VERSION);
-      x_exit(0);
+      exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression
     {
@@ -2386,7 +2386,7 @@ handle_main_options(int argc, const char* const* argv)
 
     default:
       fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
-      x_exit(1);
+      exit(EXIT_FAILURE);
     }
 
     // Some of the above switches might have changed config settings, so run the
@@ -2408,7 +2408,7 @@ ccache_main(int argc, const char* const* argv)
     if (Util::same_program_name(program_name, MYNAME)) {
       if (argc < 2) {
         fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
-        x_exit(1);
+        exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being passed
       // a compiler name and options.
