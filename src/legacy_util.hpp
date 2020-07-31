@@ -21,5 +21,3 @@
 #include "system.hpp"
 
 #include <string>
-
-double time_seconds();

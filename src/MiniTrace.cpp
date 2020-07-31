@@ -26,6 +26,10 @@
 #  include "Util.hpp"
 #  include "legacy_util.hpp"
 
+#  ifdef HAVE_SYS_TIME_H
+#    include <sys/time.h>
+#  endif
+
 namespace {
 
 std::string
@@ -44,6 +48,18 @@ get_system_tmp_dir()
   }
 #  endif
   return "/tmp";
+}
+
+double
+time_seconds()
+{
+#  ifdef HAVE_GETTIMEOFDAY
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+#  else
+  return (double)time(nullptr);
+#  endif
 }
 
 } // namespace
