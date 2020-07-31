@@ -31,18 +31,6 @@
 #  include <sys/time.h>
 #endif
 
-// Update the modification time of a file in the cache to save it from LRU
-// cleanup.
-void
-update_mtime(const char* path)
-{
-#ifdef HAVE_UTIMES
-  utimes(path, nullptr);
-#else
-  utime(path, NULL);
-#endif
-}
-
 // If exit() already has been called, call _exit(), otherwise exit(). This is
 // used to avoid calling exit() inside an atexit handler.
 void

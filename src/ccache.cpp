@@ -185,7 +185,7 @@ clean_up_internal_tempdir(const Config& config)
     return;
   }
 
-  update_mtime(config.cache_dir().c_str());
+  Util::update_mtime(config.cache_dir());
 
   const std::string& temp_dir = config.temporary_dir();
   if (!Stat::lstat(temp_dir)) {
@@ -1706,7 +1706,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
     return nullopt;
   } else {
     // Update modification timestamp to save file from LRU cleanup.
-    update_mtime(ctx.result_path().c_str());
+    Util::update_mtime(ctx.result_path());
   }
 
   cc_log("Succeeded getting cached result");

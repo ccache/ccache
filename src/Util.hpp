@@ -427,6 +427,9 @@ bool unlink_tmp(const std::string& path,
 // Unset environment variable `name`.
 void unsetenv(const std::string& name);
 
+// Set mtime of `path` to the current timestamp.
+void update_mtime(const std::string& path);
+
 // Remove `path` (and its contents if it's a directory). A non-existing path is
 // not considered an error.
 //

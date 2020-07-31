@@ -22,7 +22,6 @@
 
 #include <string>
 
-void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;
 int x_rename(const char* oldpath, const char* newpath);
 void set_cloexec_flag(int fd);

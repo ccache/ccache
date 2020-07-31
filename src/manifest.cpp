@@ -482,7 +482,7 @@ manifest_get(const Context& ctx, const std::string& path)
     mf = read_manifest(path);
     if (mf) {
       // Update modification timestamp to save files from LRU cleanup.
-      update_mtime(path.c_str());
+      Util::update_mtime(path);
     } else {
       cc_log("No such manifest file");
       return nullopt;

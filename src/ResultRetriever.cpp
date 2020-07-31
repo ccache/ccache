@@ -104,7 +104,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
 
       // Update modification timestamp to save the file from LRU cleanup (and,
       // if hard-linked, to make the object file newer than the source file).
-      update_mtime(raw_file->c_str());
+      Util::update_mtime(*raw_file);
     } else {
       cc_log("Copying to %s", dest_path.c_str());
       m_dest_fd = Fd(
