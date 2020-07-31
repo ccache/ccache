@@ -19,7 +19,6 @@
 #include "Lockfile.hpp"
 
 #include "Util.hpp"
-#include "legacy_util.hpp"
 #include "logging.hpp"
 
 #ifdef _WIN32

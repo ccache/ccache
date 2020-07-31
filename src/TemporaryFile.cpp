@@ -19,7 +19,6 @@
 #include "TemporaryFile.hpp"
 
 #include "Util.hpp"
-#include "legacy_util.hpp"
 
 using nonstd::string_view;
 

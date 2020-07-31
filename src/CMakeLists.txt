@@ -36,7 +36,6 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  legacy_util.cpp
   logging.cpp
   manifest.cpp
   stats.cpp

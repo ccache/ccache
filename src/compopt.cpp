@@ -18,8 +18,6 @@
 
 #include "compopt.hpp"
 
-#include "legacy_util.hpp"
-
 // The option it too hard to handle at all.
 #define TOO_HARD (1 << 0)
 

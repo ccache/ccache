@@ -23,7 +23,6 @@
 #include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "TemporaryFile.hpp"
-#include "legacy_util.hpp"
 #include "logging.hpp"
 
 #include <algorithm>

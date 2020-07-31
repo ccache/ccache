@@ -24,7 +24,6 @@
 #  include "MiniTrace.hpp"
 #  include "TemporaryFile.hpp"
 #  include "Util.hpp"
-#  include "legacy_util.hpp"
 
 #  ifdef HAVE_SYS_TIME_H
 #    include <sys/time.h>
