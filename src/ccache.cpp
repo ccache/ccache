@@ -633,30 +633,8 @@ use_relative_paths_in_depfile(const Context& ctx)
   }
 
   std::string tmp_file = output_dep + ".tmp";
-  try {
-    Util::write_file(tmp_file, adjusted_file_content);
-  } catch (const Error& e) {
-    cc_log(
-      "Error writing temporary dependency file %s (%s), skip relative path"
-      " usage",
-      tmp_file.c_str(),
-      e.what());
-    Util::unlink_safe(tmp_file);
-    return;
-  }
-
-  if (x_rename(tmp_file.c_str(), output_dep.c_str()) != 0) {
-    cc_log(
-      "Error renaming dependency file: %s -> %s (%s), skip relative path usage",
-      tmp_file.c_str(),
-      output_dep.c_str(),
-      strerror(errno));
-    Util::unlink_safe(tmp_file);
-  } else {
-    cc_log("Renamed dependency file: %s -> %s",
-           tmp_file.c_str(),
-           output_dep.c_str());
-  }
+  Util::write_file(tmp_file, adjusted_file_content);
+  Util::rename(tmp_file, output_dep);
 }
 
 // Extract the used includes from the dependency file. Note that we cannot
@@ -1095,7 +1073,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     // thing correctly
     ctx.i_tmpfile =
       fmt::format("{}.{}", stdout_path, ctx.config.cpp_extension());
-    x_rename(stdout_path.c_str(), ctx.i_tmpfile.c_str());
+    Util::rename(stdout_path, ctx.i_tmpfile);
     ctx.register_pending_tmp_file(ctx.i_tmpfile);
   }
 

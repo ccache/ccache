@@ -352,6 +352,9 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Rename `oldpath` to `newpath` (deleting `newpath`). Throws `Error` on error.
+void rename(const std::string& oldpath, const std::string& newpath);
+
 // Detmine if `program_name` is equal to `canonical_program_name`. On Windows,
 // this means performing a case insensitive equality check with and without a
 // ".exe" suffix. On non-Windows, it is a simple equality check.

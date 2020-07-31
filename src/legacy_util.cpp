@@ -31,29 +31,6 @@
 #  include <sys/time.h>
 #endif
 
-// Rename oldpath to newpath (deleting newpath).
-int
-x_rename(const char* oldpath, const char* newpath)
-{
-#ifndef _WIN32
-  return rename(oldpath, newpath);
-#else
-  // Windows' rename() refuses to overwrite an existing file.
-  // If the function succeeds, the return value is nonzero.
-  if (MoveFileExA(oldpath, newpath, MOVEFILE_REPLACE_EXISTING) == 0) {
-    DWORD error = GetLastError();
-    cc_log("failed to rename %s to %s: %s (%lu)",
-           oldpath,
-           newpath,
-           Win32Util::error_message(error).c_str(),
-           error);
-    return -1;
-  } else {
-    return 0;
-  }
-#endif
-}
-
 void
 set_cloexec_flag(int fd)
 {

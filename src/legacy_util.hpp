@@ -22,6 +22,5 @@
 
 #include <string>
 
-int x_rename(const char* oldpath, const char* newpath);
 void set_cloexec_flag(int fd);
 double time_seconds();

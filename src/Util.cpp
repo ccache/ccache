@@ -45,6 +45,10 @@
 #  include <sys/param.h>
 #endif
 
+#ifdef _WIN32
+#  include "Win32Util.hpp"
+#endif
+
 #ifdef __linux__
 #  ifdef HAVE_SYS_IOCTL_H
 #    include <sys/ioctl.h>
@@ -200,8 +204,8 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   dest_fd.close();
   src_fd.close();
 
-  if (via_tmp_file && x_rename(tmp_file.c_str(), dest.c_str()) != 0) {
-    throw Error(strerror(errno));
+  if (via_tmp_file) {
+    Util::rename(tmp_file, dest);
   }
 #  elif defined(__APPLE__)
   (void)via_tmp_file;
@@ -328,8 +332,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   dest_fd.close();
   src_fd.close();
 
-  if (via_tmp_file && x_rename(tmp_file.c_str(), dest.c_str()) != 0) {
-    throw Error(strerror(errno));
+  if (via_tmp_file) {
+    Util::rename(tmp_file, dest);
   }
 }
 
@@ -1104,6 +1108,28 @@ remove_extension(string_view path)
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
+void
+rename(const std::string& oldpath, const std::string& newpath)
+{
+#ifndef _WIN32
+  if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
+    throw Error(fmt::format(
+      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno)));
+  }
+#else
+  // Windows' rename() won't overwrite an existing file, so need to use
+  // MoveFileEx instead.
+  if (!MoveFileExA(
+        oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
+    DWORD error = GetLastError();
+    throw Error(fmt::format("failed to rename {} to {}: {}",
+                            oldpath,
+                            newpath,
+                            Win32Util::error_message(error)));
+  }
+#endif
+}
+
 bool
 same_program_name(const std::string& program_name,
                   const std::string& canonical_program_name)
@@ -1261,17 +1287,19 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   std::string tmp_name = path + ".ccache.rm.tmp";
 
   bool success = true;
-  if (x_rename(path.c_str(), tmp_name.c_str()) != 0) {
+  try {
+    Util::rename(path, tmp_name);
+  } catch (Error&) {
     success = false;
     saved_errno = errno;
-  } else if (unlink(tmp_name.c_str()) != 0) {
+  }
+  if (success && unlink(tmp_name.c_str()) != 0) {
     // It's OK if it was unlinked in a race.
     if (errno != ENOENT && errno != ESTALE) {
       success = false;
       saved_errno = errno;
     }
   }
-
   if (success || unlink_log == UnlinkLog::log_failure) {
     cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
     if (!success) {
