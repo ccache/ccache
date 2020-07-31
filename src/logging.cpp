@@ -89,7 +89,7 @@ init_log(const Config& config)
   logfile.open(logfile_path, "a");
 #ifndef _WIN32
   if (logfile) {
-    set_cloexec_flag(fileno(*logfile));
+    Util::set_cloexec_flag(fileno(*logfile));
   }
 #endif
 }

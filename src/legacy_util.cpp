@@ -31,19 +31,6 @@
 #  include <sys/time.h>
 #endif
 
-void
-set_cloexec_flag(int fd)
-{
-#ifndef _WIN32
-  int flags = fcntl(fd, F_GETFD, 0);
-  if (flags >= 0) {
-    fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-  }
-#else
-  (void)fd;
-#endif
-}
-
 double
 time_seconds()
 {

@@ -365,6 +365,9 @@ bool same_program_name(const std::string& program_name,
 // `strip_colors` is true. Throws `Error` on error.
 void send_to_stderr(const std::string& text, bool strip_colors);
 
+// Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
+void set_cloexec_flag(int fd);
+
 // Set environment variable `name` to `value`.
 void setenv(const std::string& name, const std::string& value);
 

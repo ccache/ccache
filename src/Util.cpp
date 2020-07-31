@@ -1166,6 +1166,19 @@ send_to_stderr(const std::string& text, bool strip_colors)
 }
 
 void
+set_cloexec_flag(int fd)
+{
+#ifndef _WIN32
+  int flags = fcntl(fd, F_GETFD, 0);
+  if (flags >= 0) {
+    fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+  }
+#else
+  (void)fd;
+#endif
+}
+
+void
 setenv(const std::string& name, const std::string& value)
 {
 #ifdef HAVE_SETENV

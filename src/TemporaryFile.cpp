@@ -72,7 +72,7 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
     fatal("Failed to create temporary file for {}: {}", path, strerror(errno));
   }
 
-  set_cloexec_flag(*fd);
+  Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~get_umask());
 #endif

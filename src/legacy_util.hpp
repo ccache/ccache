@@ -22,5 +22,4 @@
 
 #include <string>
 
-void set_cloexec_flag(int fd);
 double time_seconds();
