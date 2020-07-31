@@ -611,7 +611,7 @@ get_home_directory()
     }
   }
 #endif
-  FATAL("Could not determine home directory from $HOME or getpwuid(3)");
+  fatal("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 const char*

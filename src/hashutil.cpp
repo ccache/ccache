@@ -464,12 +464,12 @@ hash_command_output(Hash& hash,
 #else
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    FATAL("pipe failed: {}", strerror(errno));
+    fatal("pipe failed: {}", strerror(errno));
   }
 
   pid_t pid = fork();
   if (pid == -1) {
-    FATAL("fork failed: {}", strerror(errno));
+    fatal("fork failed: {}", strerror(errno));
   }
 
   if (pid == 0) {

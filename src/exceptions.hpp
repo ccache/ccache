@@ -27,13 +27,7 @@
 #include "third_party/nonstd/optional.hpp"
 
 #include <stdexcept>
-
-// Something went badly wrong! Print a message to stderr and exit with non-zero
-// exit code.
-#define FATAL(...)                                                             \
-  do {                                                                         \
-    throw FatalError(fmt::format(__VA_ARGS__));                                \
-  } while (false)
+#include <utility>
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error
@@ -88,4 +82,13 @@ inline enum stats
 Failure::stat() const
 {
   return m_stat;
+}
+
+// Something went badly wrong! Print a message to stderr and exit with non-zero
+// exit code. `args` are forwarded to `fmt::format`.
+template<typename... T>
+[[noreturn]] inline void
+fatal(T&&... args)
+{
+  throw FatalError(fmt::format(std::forward<T>(args)...));
 }
