@@ -120,8 +120,12 @@ bool create_dir(nonstd::string_view dir);
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
 
-// Return true if suffix is a suffix of string.
-bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
+// Return true if `suffix` is a suffix of `string`.
+inline bool
+ends_with(nonstd::string_view string, nonstd::string_view suffix)
+{
+  return string.ends_with(suffix);
+}
 
 // Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
 // in `str`. Throws `Error` if one of the environment variables.
@@ -357,8 +361,20 @@ std::vector<std::string> split_into_strings(nonstd::string_view input,
                                             const char* separators);
 
 // Return true if `prefix` is a prefix of `string`.
-bool starts_with(const char* string, nonstd::string_view prefix);
-bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
+inline bool
+starts_with(const char* string, nonstd::string_view prefix)
+{
+  // Optimized version of starts_with(string_view, string_view): avoid computing
+  // the length of the string argument.
+  return strncmp(string, prefix.data(), prefix.length()) == 0;
+}
+
+// Return true if `prefix` is a prefix of `string`.
+inline bool
+starts_with(nonstd::string_view string, nonstd::string_view prefix)
+{
+  return string.starts_with(prefix);
+}
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[gnu::warn_unused_result]] std::string

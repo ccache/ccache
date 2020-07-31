@@ -369,12 +369,6 @@ dir_name(string_view path)
   }
 }
 
-bool
-ends_with(string_view string, string_view suffix)
-{
-  return string.ends_with(suffix);
-}
-
 std::string
 expand_environment_variables(const std::string& str)
 {
@@ -1135,20 +1129,6 @@ std::vector<std::string>
 split_into_strings(string_view input, const char* separators)
 {
   return split_at<std::string>(input, separators);
-}
-
-bool
-starts_with(const char* string, nonstd::string_view prefix)
-{
-  // Optimized version of starts_with(string_view, string_view): avoid computing
-  // the length of the string argument.
-  return strncmp(string, prefix.data(), prefix.length()) == 0;
-}
-
-bool
-starts_with(string_view string, string_view prefix)
-{
-  return string.starts_with(prefix);
 }
 
 std::string
