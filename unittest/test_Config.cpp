@@ -38,8 +38,7 @@ TEST_CASE("Config: default values")
 {
   Config config;
 
-  std::string expected_cache_dir =
-    fmt::format("{}/.ccache", get_home_directory());
+  std::string expected_cache_dir = Util::get_home_directory() + "/.ccache";
 
   CHECK(config.base_dir().empty());
   CHECK(config.cache_dir() == expected_cache_dir);

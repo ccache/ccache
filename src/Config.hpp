@@ -21,9 +21,9 @@
 #include "system.hpp"
 
 #include "NonCopyable.hpp"
+#include "Util.hpp"
 #include "legacy_util.hpp"
 
-#include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
 #include <functional>
@@ -128,7 +128,7 @@ private:
   std::string m_secondary_config_path;
 
   std::string m_base_dir = "";
-  std::string m_cache_dir = fmt::format("{}/.ccache", get_home_directory());
+  std::string m_cache_dir = Util::get_home_directory() + "/.ccache";
   uint32_t m_cache_dir_levels = 2;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";

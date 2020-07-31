@@ -27,38 +27,9 @@
 #  include "Win32Util.hpp"
 #endif
 
-#ifdef HAVE_PWD_H
-#  include <pwd.h>
-#endif
 #ifdef HAVE_SYS_TIME_H
 #  include <sys/time.h>
 #endif
-
-// Return current user's home directory, or throw FatalError if it can't be
-// determined.
-const char*
-get_home_directory()
-{
-  const char* p = getenv("HOME");
-  if (p) {
-    return p;
-  }
-#ifdef _WIN32
-  p = getenv("APPDATA");
-  if (p) {
-    return p;
-  }
-#endif
-#ifdef HAVE_GETPWUID
-  {
-    struct passwd* pwd = getpwuid(getuid());
-    if (pwd) {
-      return pwd->pw_dir;
-    }
-  }
-#endif
-  FATAL("Could not determine home directory from $HOME or getpwuid(3)");
-}
 
 // Return whether the argument is a full path.
 bool

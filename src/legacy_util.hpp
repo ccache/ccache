@@ -22,7 +22,6 @@
 
 #include <string>
 
-const char* get_home_directory();
 bool is_full_path(const char* path);
 void update_mtime(const char* path);
 void x_exit(int status) ATTR_NORETURN;

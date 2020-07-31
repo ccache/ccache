@@ -21,7 +21,6 @@
 #include "system.hpp"
 
 #include "CacheFile.hpp"
-#include "Config.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
@@ -194,6 +193,10 @@ nonstd::string_view get_extension(nonstd::string_view path);
 void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
+
+// Return the current user's home directory, or throw `FatalError` if it can't
+// be determined.
+std::string get_home_directory();
 
 // Return a static string with the current hostname.
 const char* get_hostname();

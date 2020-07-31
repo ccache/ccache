@@ -21,6 +21,7 @@
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
+#include "legacy_util.hpp"
 
 #include "third_party/fmt/core.h"
 

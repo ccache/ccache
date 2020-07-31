@@ -23,6 +23,8 @@
 #include "ccache.hpp"
 #include "exceptions.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>

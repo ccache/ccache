@@ -29,6 +29,10 @@
 #include <algorithm>
 #include <fstream>
 
+#ifdef HAVE_PWD_H
+#  include <pwd.h>
+#endif
+
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
 #  include <sys/statfs.h>
@@ -584,6 +588,30 @@ get_level_1_files(const std::string& dir,
   });
 
   progress_receiver(1.0);
+}
+
+std::string
+get_home_directory()
+{
+  const char* p = getenv("HOME");
+  if (p) {
+    return p;
+  }
+#ifdef _WIN32
+  p = getenv("APPDATA");
+  if (p) {
+    return p;
+  }
+#endif
+#ifdef HAVE_GETPWUID
+  {
+    struct passwd* pwd = getpwuid(getuid());
+    if (pwd) {
+      return pwd->pw_dir;
+    }
+  }
+#endif
+  FATAL("Could not determine home directory from $HOME or getpwuid(3)");
 }
 
 const char*
