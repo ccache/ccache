@@ -31,18 +31,6 @@
 #  include <sys/time.h>
 #endif
 
-// Return whether the argument is a full path.
-bool
-is_full_path(const char* path)
-{
-#ifdef _WIN32
-  if (strchr(path, '\\')) {
-    return true;
-  }
-#endif
-  return strchr(path, '/');
-}
-
 // Update the modification time of a file in the cache to save it from LRU
 // cleanup.
 void

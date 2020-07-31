@@ -273,6 +273,18 @@ is_dir_separator(char ch)
     ;
 }
 
+// Return whether `path` is a full path.
+inline bool
+is_full_path(nonstd::string_view path)
+{
+#ifdef _WIN32
+  if (path.find('\\') != nonstd::string_view::npos) {
+    return true;
+  }
+#endif
+  return path.find('/') != nonstd::string_view::npos;
+}
+
 // Return whether `path` represents a precompiled header (see "Precompiled
 // Headers" in GCC docs).
 bool is_precompiled_header(nonstd::string_view path);

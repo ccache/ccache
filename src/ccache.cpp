@@ -1726,8 +1726,7 @@ find_compiler(Context& ctx, const char* const* argv)
   std::string base(Util::base_name(argv[0]));
   if (Util::same_program_name(base, MYNAME)) {
     ctx.orig_args.pop_front();
-    if (is_full_path(ctx.orig_args[0].c_str())) {
-      // A full path was given.
+    if (Util::is_full_path(ctx.orig_args[0])) {
       return;
     }
     base = std::string(Util::base_name(ctx.orig_args[0]));
