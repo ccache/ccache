@@ -16,8 +16,7 @@ set(
   test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_compopt.cpp
-  test_hashutil.cpp
-  test_logging.cpp)
+  test_hashutil.cpp)
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_InodeCache.cpp)

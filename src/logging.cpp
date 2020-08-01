@@ -60,15 +60,6 @@ std::string debug_log_buffer;
 
 bool debug_log_enabled = false;
 
-void
-print_command(FILE* fp, const char* const* argv)
-{
-  for (int i = 0; argv[i]; i++) {
-    fprintf(fp, "%s%s", (i == 0) ? "" : " ", argv[i]);
-  }
-  fprintf(fp, "\n");
-}
-
 } // namespace
 
 // Initialize logging. Call only once.
@@ -212,10 +203,13 @@ cc_log_argv(const char* prefix, const char* const* argv)
     return;
   }
 
+  std::string argv_as_string = Util::format_argv_for_logging(argv);
+
   log_prefix(true);
   if (logfile) {
     fputs(prefix, *logfile);
-    print_command(*logfile, argv);
+    fwrite(argv_as_string.data(), argv_as_string.length(), 1, *logfile);
+    fputc('\n', *logfile);
     int rc = fflush(*logfile);
     if (rc) {
       warn_log_fail();
@@ -223,12 +217,13 @@ cc_log_argv(const char* prefix, const char* const* argv)
   }
 #ifdef HAVE_SYSLOG
   if (use_syslog) {
-    syslog(LOG_DEBUG, "%s", format_command(argv).c_str());
+    syslog(LOG_DEBUG, "%s", Util::format_argv_for_logging(argv).c_str());
   }
 #endif
   if (debug_log_enabled) {
     debug_log_buffer += prefix;
-    debug_log_buffer += format_command(argv);
+    debug_log_buffer += argv_as_string;
+    debug_log_buffer += '\n';
   }
 }
 
@@ -245,20 +240,4 @@ cc_dump_debug_log_buffer(const char* path)
   } else {
     cc_log("Failed to open %s: %s", path, strerror(errno));
   }
-}
-
-std::string
-format_command(const char* const* argv)
-{
-  std::string result;
-  for (int i = 0; argv[i]; i++) {
-    if (i != 0) {
-      result += ' ';
-    }
-    for (const char* arg = argv[i]; *arg != '\0'; arg++) {
-      result += *arg;
-    }
-  }
-  result += '\n';
-  return result;
 }

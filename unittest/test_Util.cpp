@@ -232,6 +232,15 @@ TEST_CASE("Util::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
+TEST_CASE("Util::format_argv_for_logging")
+{
+  const char* argv_0[] = {nullptr};
+  CHECK(Util::format_argv_for_logging(argv_0) == "");
+
+  const char* argv_2[] = {"foo", "bar", nullptr};
+  CHECK(Util::format_argv_for_logging(argv_2) == "foo bar");
+}
+
 TEST_CASE("format_hex")
 {
   uint8_t none[] = "";

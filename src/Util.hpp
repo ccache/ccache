@@ -151,6 +151,10 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Format `argv` as a simple string for logging purposes. That is, the result is
+// not intended to be machine parsable. `argv` must be terminated by a nullptr.
+std::string format_argv_for_logging(const char* const* argv);
+
 // Format a hexadecimal string representing `size` bytes of `data`. The returned
 // string will be `2 * size` long.
 std::string format_hex(const uint8_t* data, size_t size);

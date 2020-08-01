@@ -475,6 +475,21 @@ for_each_level_1_subdir(const std::string& cache_dir,
 }
 
 std::string
+format_argv_for_logging(const char* const* argv)
+{
+  std::string result;
+  for (size_t i = 0; argv[i]; ++i) {
+    if (i != 0) {
+      result += ' ';
+    }
+    for (const char* arg = argv[i]; *arg; ++arg) {
+      result += *arg;
+    }
+  }
+  return result;
+}
+
+std::string
 format_hex(const uint8_t* data, size_t size)
 {
   std::string result;

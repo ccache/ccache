@@ -29,4 +29,3 @@ void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
 void cc_log_argv(const char* prefix, const char* const* argv);
 void cc_dump_debug_log_buffer(const char* path);
-std::string format_command(const char* const* argv);
