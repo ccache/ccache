@@ -241,7 +241,7 @@ TEST_CASE("Util::format_argv_for_logging")
   CHECK(Util::format_argv_for_logging(argv_2) == "foo bar");
 }
 
-TEST_CASE("format_hex")
+TEST_CASE("Util::format_hex")
 {
   uint8_t none[] = "";
   uint8_t text[4] = "foo"; // incl. NUL
@@ -252,7 +252,7 @@ TEST_CASE("format_hex")
   CHECK(Util::format_hex(data, sizeof(data)) == "00010203");
 }
 
-TEST_CASE("format_human_readable_size")
+TEST_CASE("Util::format_human_readable_size")
 {
   CHECK(Util::format_human_readable_size(0) == "0.0 MB");
   CHECK(Util::format_human_readable_size(49) == "0.0 MB");
@@ -265,7 +265,7 @@ TEST_CASE("format_human_readable_size")
         == "17.1 GB");
 }
 
-TEST_CASE("format_parsable_size_with_suffix")
+TEST_CASE("Util::format_parsable_size_with_suffix")
 {
   CHECK(Util::format_parsable_size_with_suffix(0) == "0");
   CHECK(Util::format_parsable_size_with_suffix(42 * 1000) == "42000");
