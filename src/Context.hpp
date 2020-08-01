@@ -130,6 +130,10 @@ public:
   const std::vector<std::string>& ignore_options() const;
   void set_ignore_options(const std::vector<std::string>& options);
 
+  // Original umask before applying the `umask`/`CCACHE_UMASK` configuration, or
+  // `nullopt` if there is no such configuration.
+  nonstd::optional<mode_t> original_umask;
+
 #ifdef MTR_ENABLED
   // Internal tracing.
   std::unique_ptr<MiniTrace> mini_trace;

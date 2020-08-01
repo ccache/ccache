@@ -271,6 +271,16 @@ expect_file_newer_than() {
     fi
 }
 
+expect_perm() {
+    local path="$1"
+    local expected_perm="$2"
+    local actual_perm=$(ls -ld "$path" | awk '{print $1}')
+
+    if [ "$expected_perm" != "$actual_perm" ]; then
+        test_failed "Expected permissions for $path to be $expected_perm, actual $actual_perm"
+    fi
+}
+
 run_suite() {
     local suite_name=$1
 
@@ -312,9 +322,9 @@ EOF
     unset GCC_COLORS
     unset TERM
 
-    export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache
+    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
     export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
     export CCACHE_NODIRECT=1
 

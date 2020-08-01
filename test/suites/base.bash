@@ -909,6 +909,48 @@ EOF
     CCACHE_COMPILERCHECK="unknown_command" $CCACHE ./compiler.sh -c test1.c 2>/dev/null
     expect_stat 'compiler check failed' 1
 
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_UMASK"
+
+    saved_umask=$(umask)
+    umask 022
+    export CCACHE_UMASK=002
+
+    cat <<EOF >test.c
+int main() {}
+EOF
+
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    result_file=$(find $CCACHE_DIR -name '*.result')
+    level_2_dir=$(dirname $result_file)
+    level_1_dir=$(dirname $(dirname $result_file))
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+    expect_perm "$CCACHE_CONFIGPATH" -rw-rw-r--
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$level_1_dir" drwxrwxr-x
+    expect_perm "$level_1_dir/stats" -rw-rw-r--
+    expect_perm "$level_2_dir" drwxrwxr-x
+    expect_perm "$result_file" -rw-rw-r--
+
+    rm test.o test.d
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+
+    $CCACHE_COMPILE -o test test.o
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'called for link' 1
+    expect_perm test -rwxr-xr-x
+
+    umask $saved_umask
+
     # -------------------------------------------------------------------------
     TEST "No object file"
 

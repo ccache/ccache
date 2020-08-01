@@ -35,6 +35,7 @@
 #include "SignalHandler.hpp"
 #include "StdMakeUnique.hpp"
 #include "TemporaryFile.hpp"
+#include "UmaskScope.hpp"
 #include "Util.hpp"
 #include "argprocessing.hpp"
 #include "cleanup.hpp"
@@ -49,6 +50,7 @@
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #ifdef HAVE_GETOPT_LONG
@@ -688,6 +690,8 @@ do_execute(Context& ctx,
            TemporaryFile&& tmp_stdout,
            TemporaryFile&& tmp_stderr)
 {
+  UmaskScope umask_scope(ctx.original_umask);
+
   if (ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
     args.erase_with_prefix("-fdiagnostics-color");
@@ -1651,6 +1655,8 @@ calculate_result_name(Context& ctx,
 static optional<enum stats>
 from_cache(Context& ctx, enum fromcache_call_mode mode)
 {
+  UmaskScope umask_scope(ctx.original_umask);
+
   // The user might be disabling cache hits.
   if (ctx.config.recache()) {
     return nullopt;
@@ -1763,8 +1769,9 @@ create_initial_config_file(Config& config)
 }
 
 // Read config file(s), populate variables, create configuration file in cache
-// directory if missing, etc.
-static void
+// directory if missing, etc. Returns whether the primary configuration file
+// exists.
+static bool
 set_up_config(Config& config)
 {
   const char* p = getenv("CCACHE_CONFIGPATH");
@@ -1791,25 +1798,16 @@ set_up_config(Config& config)
       fmt::format("{}/ccache.conf", config.cache_dir()));
   }
 
-  bool should_create_initial_config = false;
   MTR_BEGIN("config", "conf_read_primary");
-  if (!config.update_from_file(config.primary_config_path())
-      && !config.disable()) {
-    should_create_initial_config = true;
-  }
+  bool primary_config_exists =
+    config.update_from_file(config.primary_config_path());
   MTR_END("config", "conf_read_primary");
 
   MTR_BEGIN("config", "conf_update_from_environment");
   config.update_from_environment();
   MTR_END("config", "conf_update_from_environment");
 
-  if (should_create_initial_config) {
-    create_initial_config_file(config);
-  }
-
-  if (config.umask() != std::numeric_limits<uint32_t>::max()) {
-    umask(config.umask());
-  }
+  return primary_config_exists;
 }
 
 static void
@@ -1826,9 +1824,23 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
 static void
 initialize(Context& ctx, int argc, const char* const* argv)
 {
-  set_up_config(ctx.config);
+  bool primary_config_exists = set_up_config(ctx.config);
   set_up_context(ctx, argc, argv);
   init_log(ctx.config);
+
+  // Set default umask for all files created by ccache from now on (if
+  // configured to). This is intentionally done after calling init_log so that
+  // the log file won't be affected by the umask but before creating the initial
+  // configuration file. The intention is that all files and directories in the
+  // cache directory should be affected by the configured umask and that no
+  // other files and directories should.
+  if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
+    ctx.original_umask = umask(ctx.config.umask());
+  }
+
+  if (!primary_config_exists && !ctx.config.disable()) {
+    create_initial_config_file(ctx.config);
+  }
 
   cc_log("=== CCACHE %s STARTED =========================================",
          CCACHE_VERSION);
@@ -1905,6 +1917,10 @@ cache_compilation(int argc, const char* const* argv)
       return *e.exit_code();
     }
     // Else: Fall back to running the real compiler.
+
+    if (ctx->original_umask) {
+      umask(*ctx->original_umask);
+    }
 
     assert(!ctx->orig_args.empty());
 
