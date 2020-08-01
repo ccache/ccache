@@ -987,6 +987,27 @@ EOF
     expect_file_content stderr "[cpp_stderr][cc_stderr]"
 
     # -------------------------------------------------------------------------
+    TEST "Stderr and dependency file"
+
+    cat <<EOF >test.c
+#warning Foo
+EOF
+    $REAL_COMPILER -c test.c -MMD 2>reference.stderr
+    mv test.d reference.d
+
+    $CCACHE_COMPILE -c test.c -MMD 2>test.stderr
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_files reference.stderr test.stderr
+    expect_equal_files reference.d test.d
+
+    $CCACHE_COMPILE -c test.c -MMD 2>test.stderr
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_equal_files reference.stderr test.stderr
+    expect_equal_files reference.d test.d
+
+    # -------------------------------------------------------------------------
     TEST "--zero-stats"
 
     $CCACHE_COMPILE -c test1.c

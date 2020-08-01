@@ -149,8 +149,8 @@ ResultRetriever::on_entry_end()
   if (m_dest_fd) {
     m_dest_fd.close();
   }
-
   m_dest_path.clear();
+  m_dest_data.clear();
 }
 
 void

@@ -53,7 +53,7 @@ private:
 
   // Whether to rewrite the first part of the dependency file data to the
   // destination object file.
-  bool m_rewrite_dependency_target;
+  const bool m_rewrite_dependency_target;
 
   void write_dependency_file();
 };
