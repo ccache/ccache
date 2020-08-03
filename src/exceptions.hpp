@@ -47,8 +47,23 @@ class Error : public ErrorBase
 // with a non-zero exit code.
 class FatalError : public ErrorBase
 {
-  using ErrorBase::ErrorBase;
+public:
+  // Special case: If given only one string, don't parse it as a format string.
+  FatalError(const std::string& message);
+
+  // `args` are forwarded to `fmt::format`.
+  template<typename... T> inline FatalError(T&&... args);
 };
+
+inline FatalError::FatalError(const std::string& message) : ErrorBase(message)
+{
+}
+
+template<typename... T>
+inline FatalError::FatalError(T&&... args)
+  : ErrorBase(fmt::format(std::forward<T>(args)...))
+{
+}
 
 // Throw a Failure if ccache did not succeed in getting or putting a result in
 // the cache. If `exit_code` is set, just exit with that code directly,
@@ -82,13 +97,4 @@ inline enum stats
 Failure::stat() const
 {
   return m_stat;
-}
-
-// Something went badly wrong! Print a message to stderr and exit with non-zero
-// exit code. `args` are forwarded to `fmt::format`.
-template<typename... T>
-[[noreturn]] inline void
-fatal(T&&... args)
-{
-  throw FatalError(fmt::format(std::forward<T>(args)...));
 }

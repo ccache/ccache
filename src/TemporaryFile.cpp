@@ -63,12 +63,14 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
   if (!initialize(path_prefix) && errno == ENOENT) {
     auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
-      fatal("Failed to create directory {}: {}", dir, strerror(errno));
+      throw FatalError(
+        "Failed to create directory {}: {}", dir, strerror(errno));
     }
     initialize(path_prefix);
   }
   if (!fd) {
-    fatal("Failed to create temporary file for {}: {}", path, strerror(errno));
+    throw FatalError(
+      "Failed to create temporary file for {}: {}", path, strerror(errno));
   }
 
   Util::set_cloexec_flag(*fd);
