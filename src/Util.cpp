@@ -110,7 +110,7 @@ find_first_ansi_csi_seq(string_view string)
 }
 
 size_t
-path_max(const char* path)
+path_max(const std::string& path)
 {
 #ifdef PATH_MAX
   (void)path;
@@ -119,7 +119,7 @@ path_max(const char* path)
   (void)path;
   return MAXPATHLEN;
 #elif defined(_PC_PATH_MAX)
-  long maxlen = pathconf(path, _PC_PATH_MAX);
+  long maxlen = pathconf(path.c_str(), _PC_PATH_MAX);
   return maxlen >= 4096 ? maxlen : 4096;
 #endif
 }
@@ -1057,7 +1057,7 @@ read_file(const std::string& path, size_t size_hint)
 std::string
 read_link(const std::string& path)
 {
-  size_t buffer_size = path_max(path.c_str());
+  size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> buffer(new char[buffer_size]);
   ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
   if (len == -1) {
@@ -1071,15 +1071,15 @@ read_link(const std::string& path)
 std::string
 real_path(const std::string& path, bool return_empty_on_error)
 {
-  const char* c_path = path.c_str();
-  size_t buffer_size = path_max(c_path);
+  size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
   char* buffer = managed_buffer.get();
   char* resolved = nullptr;
 
 #ifdef HAVE_REALPATH
-  resolved = realpath(c_path, buffer);
+  resolved = realpath(path.c_str(), buffer);
 #elif defined(_WIN32)
+  const char* c_path = path.c_str();
   if (c_path[0] == '/') {
     c_path++; // Skip leading slash.
   }
@@ -1106,7 +1106,7 @@ real_path(const std::string& path, bool return_empty_on_error)
   // Yes, there are such systems. This replacement relies on the fact that when
   // we call x_realpath we only care about symlinks.
   {
-    ssize_t len = readlink(c_path, buffer, buffer_size - 1);
+    ssize_t len = readlink(path.c_str(), buffer, buffer_size - 1);
     if (len != -1) {
       buffer[len] = 0;
       resolved = buffer;
