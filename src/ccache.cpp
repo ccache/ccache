@@ -2314,7 +2314,7 @@ handle_main_options(int argc, const char* const* argv)
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
       if (eq_pos == std::string::npos) {
-        throw Error(fmt::format("missing equal sign in \"{}\"", arg));
+        throw Error("missing equal sign in \"{}\"", arg);
       }
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);

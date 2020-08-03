@@ -176,11 +176,11 @@ parse_bool(const std::string& value,
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw Error(
-        fmt::format("invalid boolean environment variable value \"{}\" (did"
-                    " you mean to set \"CCACHE_{}{}=true\"?)",
-                    value,
-                    negate ? "" : "NO",
-                    *env_var_key));
+        "invalid boolean environment variable value \"{}\" (did you mean to"
+        " set \"CCACHE_{}{}=true\"?)",
+        value,
+        negate ? "" : "NO",
+        *env_var_key);
     }
     return !negate;
   } else if (value == "true") {
@@ -188,7 +188,7 @@ parse_bool(const std::string& value,
   } else if (value == "false") {
     return false;
   } else {
-    throw Error(fmt::format("not a boolean value: \"{}\"", value));
+    throw Error("not a boolean value: \"{}\"", value);
   }
 }
 
@@ -209,7 +209,7 @@ parse_double(const std::string& value)
     throw Error(e.what());
   }
   if (end != value.size()) {
-    throw Error(fmt::format("invalid floating point: \"{}\"", value));
+    throw Error("invalid floating point: \"{}\"", value);
   }
   return result;
 }
@@ -307,7 +307,7 @@ parse_umask(const std::string& value)
   size_t end;
   uint32_t result = std::stoul(value, &end, 8);
   if (end != value.size()) {
-    throw Error(fmt::format("not an octal integer: \"{}\"", value));
+    throw Error("not an octal integer: \"{}\"", value);
   }
   return result;
 }
@@ -326,7 +326,7 @@ void
 verify_absolute_path(const std::string& value)
 {
   if (!Util::is_absolute_path(value)) {
-    throw Error(fmt::format("not an absolute path: \"{}\"", value));
+    throw Error("not an absolute path: \"{}\"", value);
   }
 }
 
@@ -379,7 +379,7 @@ parse_config_file(const std::string& path,
         config_line_handler(line, key, value);
       }
     } catch (const Error& e) {
-      throw Error(fmt::format("{}:{}: {}", path, line_number, e.what()));
+      throw Error("{}:{}: {}", path, line_number, e.what());
     }
   }
   return true;
@@ -453,8 +453,7 @@ Config::update_from_environment()
     try {
       set_item(config_key, value, key, negate, "environment");
     } catch (const Error& e) {
-      throw Error(
-        fmt::format("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what()));
+      throw Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
     }
   }
 }
@@ -464,7 +463,7 @@ Config::get_string_value(const std::string& key) const
 {
   auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
-    throw Error(fmt::format("unknown configuration option \"{}\"", key));
+    throw Error("unknown configuration option \"{}\"", key);
   }
 
   switch (it->second) {
@@ -587,7 +586,7 @@ Config::set_value_in_file(const std::string& path,
                           const std::string& value)
 {
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
-    throw Error(fmt::format("unknown configuration option \"{}\"", key));
+    throw Error("unknown configuration option \"{}\"", key);
   }
 
   // Verify that the value is valid; set_item will throw if not.
@@ -608,7 +607,7 @@ Config::set_value_in_file(const std::string& path,
                              output.write(fmt::format("{}\n", c_line));
                            }
                          })) {
-    throw Error(fmt::format("failed to open {}: {}", path, strerror(errno)));
+    throw Error("failed to open {}: {}", path, strerror(errno));
   }
 
   if (!found) {
@@ -815,10 +814,10 @@ Config::check_key_tables_consistency()
 {
   for (const auto& item : k_env_variable_table) {
     if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
-      throw Error(fmt::format(
+      throw Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
         item.first,
-        item.second));
+        item.second);
     }
   }
 }

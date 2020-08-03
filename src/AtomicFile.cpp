@@ -22,8 +22,6 @@
 #include "Util.hpp"
 #include "exceptions.hpp"
 
-#include "third_party/fmt/core.h"
-
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
   TemporaryFile tmp_file(path + ".tmp");
@@ -44,8 +42,7 @@ void
 AtomicFile::write(const std::string& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
-    throw Error(
-      fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
+    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
   }
 }
 
@@ -53,8 +50,7 @@ void
 AtomicFile::write(const std::vector<uint8_t>& data)
 {
   if (fwrite(data.data(), data.size(), 1, m_stream) != 1) {
-    throw Error(
-      fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
+    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
   }
 }
 
@@ -66,8 +62,7 @@ AtomicFile::commit()
   m_stream = nullptr;
   if (result == EOF) {
     Util::unlink_tmp(m_tmp_path);
-    throw Error(
-      fmt::format("failed to write data to {}: {}", m_path, strerror(errno)));
+    throw Error("failed to write data to {}: {}", m_path, strerror(errno));
   }
   Util::rename(m_tmp_path, m_path);
 }

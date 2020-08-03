@@ -180,7 +180,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 #  if defined(__linux__)
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw Error(fmt::format("{}: {}", src, strerror(errno)));
+    throw Error("{}: {}", src, strerror(errno));
   }
 
   Fd dest_fd;
@@ -193,7 +193,7 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw Error(fmt::format("{}: {}", src, strerror(errno)));
+      throw Error("{}: {}", src, strerror(errno));
     }
   }
 
@@ -311,7 +311,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
-    throw Error(fmt::format("{}: {}", src, strerror(errno)));
+    throw Error("{}: {}", src, strerror(errno));
   }
 
   Fd dest_fd;
@@ -324,7 +324,7 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
     dest_fd =
       Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
-      throw Error(fmt::format("{}: {}", dest, strerror(errno)));
+      throw Error("{}: {}", dest, strerror(errno));
     }
   }
 
@@ -400,8 +400,7 @@ expand_environment_variables(const std::string& str)
         ++right;
       }
       if (curly && *right != '}') {
-        throw Error(
-          fmt::format("syntax error: missing '}}' after \"{}\"", left));
+        throw Error("syntax error: missing '}}' after \"{}\"", left);
       }
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
@@ -410,7 +409,7 @@ expand_environment_variables(const std::string& str)
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
-          throw Error(fmt::format("environment variable \"{}\" not set", name));
+          throw Error("environment variable \"{}\" not set", name);
         }
         result += value;
         if (!curly) {
@@ -920,8 +919,8 @@ parse_duration(const std::string& duration)
     factor = 1;
     break;
   default:
-    throw Error(fmt::format(
-      "invalid suffix (supported: d (day) and s (second)): \"{}\"", duration));
+    throw Error("invalid suffix (supported: d (day) and s (second)): \"{}\"",
+                duration);
   }
 
   return factor * parse_uint32(duration.substr(0, duration.length() - 1));
@@ -939,7 +938,7 @@ parse_int(const std::string& value)
     failed = true;
   }
   if (failed || end != value.size()) {
-    throw Error(fmt::format("invalid integer: \"{}\"", value));
+    throw Error("invalid integer: \"{}\"", value);
   }
   return result;
 }
@@ -952,7 +951,7 @@ parse_size(const std::string& value)
   char* p;
   double result = strtod(value.c_str(), &p);
   if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
-    throw Error(fmt::format("invalid size: \"{}\"", value));
+    throw Error("invalid size: \"{}\"", value);
   }
 
   while (isspace(*p)) {
@@ -976,7 +975,7 @@ parse_size(const std::string& value)
       result *= multiplier;
       break;
     default:
-      throw Error(fmt::format("invalid size: \"{}\"", value));
+      throw Error("invalid size: \"{}\"", value);
     }
   } else {
     // Default suffix: G.
@@ -998,7 +997,7 @@ parse_uint32(const std::string& value)
   }
   if (failed || end != value.size() || result < 0
       || result > std::numeric_limits<uint32_t>::max()) {
-    throw Error(fmt::format("invalid 32-bit unsigned integer: \"{}\"", value));
+    throw Error("invalid 32-bit unsigned integer: \"{}\"", value);
   }
   return result;
 }
@@ -1129,8 +1128,8 @@ rename(const std::string& oldpath, const std::string& newpath)
 {
 #ifndef _WIN32
   if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
-    throw Error(fmt::format(
-      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno)));
+    throw Error(
+      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno));
   }
 #else
   // Windows' rename() won't overwrite an existing file, so need to use
@@ -1138,10 +1137,10 @@ rename(const std::string& oldpath, const std::string& newpath)
   if (!MoveFileExA(
         oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
     DWORD error = GetLastError();
-    throw Error(fmt::format("failed to rename {} to {}: {}",
-                            oldpath,
-                            newpath,
-                            Win32Util::error_message(error)));
+    throw Error("failed to rename {} to {}: {}",
+                oldpath,
+                newpath,
+                Win32Util::error_message(error));
   }
 #endif
 }
@@ -1177,7 +1176,7 @@ send_to_stderr(const std::string& text, bool strip_colors)
   try {
     write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
   } catch (Error& e) {
-    throw Error(fmt::format("Failed to write to stderr: {}", e.what()));
+    throw Error("Failed to write to stderr: {}", e.what());
   }
 }
 
@@ -1283,9 +1282,9 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
           }
-          throw Error(fmt::format("failed to lstat {}: {}",
-                                  entry_path,
-                                  strerror(stat.error_number())));
+          throw Error("failed to lstat {}: {}",
+                      entry_path,
+                      strerror(stat.error_number()));
         }
         is_dir = stat.is_directory();
       }
@@ -1300,8 +1299,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (errno == ENOTDIR) {
     visitor(path, false);
   } else {
-    throw Error(
-      fmt::format("failed to open directory {}: {}", path, strerror(errno)));
+    throw Error("failed to open directory {}: {}", path, strerror(errno));
   }
 }
 
@@ -1387,10 +1385,10 @@ wipe_path(const std::string& path)
   traverse(path, [](const std::string& p, bool is_dir) {
     if (is_dir) {
       if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw Error(fmt::format("failed to rmdir {}: {}", p, strerror(errno)));
+        throw Error("failed to rmdir {}: {}", p, strerror(errno));
       }
     } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw Error(fmt::format("failed to unlink {}: {}", p, strerror(errno)));
+      throw Error("failed to unlink {}: {}", p, strerror(errno));
     }
   });
 }

@@ -21,10 +21,7 @@
 #include "Context.hpp"
 #include "Logging.hpp"
 
-#include "third_party/nonstd/string_view.hpp"
-
 using Logging::log;
-using nonstd::string_view;
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
@@ -111,8 +108,8 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
       m_dest_fd = Fd(
         open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
       if (!m_dest_fd) {
-        throw Error(fmt::format(
-          "Failed to open {} for writing: {}", dest_path, strerror(errno)));
+        throw Error(
+          "Failed to open {} for writing: {}", dest_path, strerror(errno));
       }
       m_dest_path = dest_path;
     }
@@ -132,8 +129,7 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
     try {
       Util::write_fd(*m_dest_fd, data, size);
     } catch (Error& e) {
-      throw Error(
-        fmt::format("Failed to write to {}: {}", m_dest_path, e.what()));
+      throw Error("Failed to write to {}: {}", m_dest_path, e.what());
     }
   }
 }
@@ -174,7 +170,6 @@ ResultRetriever::write_dependency_file()
                    m_dest_data.data() + start_pos,
                    m_dest_data.length() - start_pos);
   } catch (Error& e) {
-    throw Error(
-      fmt::format("Failed to write to {}: {}", m_dest_path, e.what()));
+    throw Error("Failed to write to {}: {}", m_dest_path, e.what());
   }
 }

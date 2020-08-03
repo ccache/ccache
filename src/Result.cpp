@@ -215,8 +215,7 @@ Reader::read_result(Consumer& consumer)
   }
 
   if (i != n_entries) {
-    throw Error(
-      fmt::format("Too few entries (read {}, expected {})", i, n_entries));
+    throw Error("Too few entries (read {}, expected {})", i, n_entries);
   }
 
   cache_entry_reader.finalize();
@@ -237,7 +236,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
     break;
 
   default:
-    throw Error(fmt::format("Unknown entry type: {}", marker));
+    throw Error("Unknown entry type: {}", marker);
   }
 
   UnderlyingFileTypeInt type;
@@ -264,11 +263,10 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
     auto raw_path = get_raw_file_path(m_result_path, entry_number);
     auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
     if (st.size() != file_len) {
-      throw Error(
-        fmt::format("Bad file size of {} (actual {} bytes, expected {} bytes)",
-                    raw_path,
-                    st.size(),
-                    file_len));
+      throw Error("Bad file size of {} (actual {} bytes, expected {} bytes)",
+                  raw_path,
+                  st.size(),
+                  file_len);
     }
 
     consumer.on_entry_start(entry_number, file_type, file_len, raw_path);
@@ -373,7 +371,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
 {
   Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!file) {
-    throw Error(fmt::format("Failed to open {} for reading", path));
+    throw Error("Failed to open {} for reading", path);
   }
 
   uint64_t remain = file_size;
@@ -385,11 +383,10 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
       if (errno == EINTR) {
         continue;
       }
-      throw Error(
-        fmt::format("Error reading from {}: {}", path, strerror(errno)));
+      throw Error("Error reading from {}: {}", path, strerror(errno));
     }
     if (bytes_read == 0) {
-      throw Error(fmt::format("Error reading from {}: end of file", path));
+      throw Error("Error reading from {}: end of file", path);
     }
     writer.write(buf, n);
     remain -= n;
@@ -405,8 +402,8 @@ Result::Writer::write_raw_file_entry(const std::string& path,
   try {
     Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
   } catch (Error& e) {
-    throw Error(fmt::format(
-      "Failed to store {} as raw file {}: {}", path, raw_file, e.what()));
+    throw Error(
+      "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
   }
   auto new_stat = Stat::stat(raw_file);
   stats_update_size(m_ctx.counter_updates,

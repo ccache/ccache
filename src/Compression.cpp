@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -47,7 +47,7 @@ type_from_int(uint8_t type)
     return Type::zstd;
   }
 
-  throw Error(fmt::format("Unknown type: {}", type));
+  throw Error("Unknown type: {}", type);
 }
 
 std::string

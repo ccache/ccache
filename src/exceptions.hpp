@@ -27,6 +27,7 @@
 #include "third_party/nonstd/optional.hpp"
 
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 // Don't throw or catch ErrorBase directly, use a subclass.
@@ -40,8 +41,23 @@ class ErrorBase : public std::runtime_error
 // treated similar to FatalError.
 class Error : public ErrorBase
 {
-  using ErrorBase::ErrorBase;
+public:
+  // Special case: If given only one string, don't parse it as a format string.
+  Error(const std::string& message);
+
+  // `args` are forwarded to `fmt::format`.
+  template<typename... T> inline Error(T&&... args);
 };
+
+inline Error::Error(const std::string& message) : ErrorBase(message)
+{
+}
+
+template<typename... T>
+inline Error::Error(T&&... args)
+  : ErrorBase(fmt::format(std::forward<T>(args)...))
+{
+}
 
 // Throw a FatalError to make ccache print the error message to stderr and exit
 // with a non-zero exit code.

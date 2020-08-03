@@ -20,8 +20,6 @@
 
 #include "Logging.hpp"
 
-#include "third_party/fmt/core.h"
-
 using Logging::log;
 
 Stat::Stat(StatFunction stat_function,
@@ -34,7 +32,7 @@ Stat::Stat(StatFunction stat_function,
   } else {
     m_errno = errno;
     if (on_error == OnError::throw_error) {
-      throw Error(fmt::format("failed to stat {}: {}", path, strerror(errno)));
+      throw Error("failed to stat {}: {}", path, strerror(errno));
     }
     if (on_error == OnError::log) {
       log("Failed to stat {}: {}", path, strerror(errno));
