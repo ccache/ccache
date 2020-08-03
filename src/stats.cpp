@@ -38,6 +38,8 @@
 #define FLAG_ALWAYS 2 // always show, even if zero
 #define FLAG_NEVER 4  // never show
 
+using Logging::log;
+
 // Returns a formatted version of a statistics value, or the empty string if the
 // statistics line shouldn't be printed.
 using format_fn = std::string (*)(uint64_t value);
@@ -234,7 +236,7 @@ stats_write(const std::string& path, const Counters& counters)
   } catch (const Error& e) {
     // Make failure to write a stats file a soft error since it's not important
     // enough to fail whole the process.
-    cc_log("Error: %s", e.what());
+    log("Error: {}", e.what());
   }
 }
 
@@ -315,14 +317,14 @@ stats_flush_to_file(const Config& config,
 
   if (config.disable()) {
     // Just log result, don't update statistics.
-    cc_log("Result: disabled");
+    log("Result: disabled");
     return;
   }
 
   if (!config.log_file().empty() || config.debug()) {
     for (auto& info : stats_info) {
       if (updates[info.stat] != 0 && !(info.flags & FLAG_NOZERO)) {
-        cc_log("Result: %s", info.message);
+        log("Result: {}", info.message);
       }
     }
   }
@@ -351,18 +353,18 @@ stats_flush_to_file(const Config& config,
 
   if (config.max_files() != 0
       && counters[STATS_NUMFILES] > config.max_files() / 16) {
-    cc_log("Need to clean up %s since it holds %u files (limit: %u files)",
-           subdir.c_str(),
-           counters[STATS_NUMFILES],
-           config.max_files() / 16);
+    log("Need to clean up {} since it holds {} files (limit: {} files)",
+        subdir,
+        counters[STATS_NUMFILES],
+        config.max_files() / 16);
     need_cleanup = true;
   }
   if (config.max_size() != 0
       && counters[STATS_TOTALSIZE] > config.max_size() / 1024 / 16) {
-    cc_log("Need to clean up %s since it holds %u KiB (limit: %lu KiB)",
-           subdir.c_str(),
-           counters[STATS_TOTALSIZE],
-           (unsigned long)config.max_size() / 1024 / 16);
+    log("Need to clean up {} since it holds {} KiB (limit: {} KiB)",
+        subdir,
+        counters[STATS_TOTALSIZE],
+        config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
 

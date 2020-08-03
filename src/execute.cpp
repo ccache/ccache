@@ -133,10 +133,10 @@ win32execute(const char* path,
   }
   if (ret == 0) {
     DWORD error = GetLastError();
-    cc_log("failed to execute %s: %s (%lu)",
-           full_path.c_str(),
-           Win32Util::error_message(error).c_str(),
-           error);
+    log("failed to execute {}: {} ({})",
+        full_path,
+        Win32Util::error_message(error),
+        error);
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
@@ -213,7 +213,7 @@ find_executable(const Context& ctx,
     path = getenv("PATH");
   }
   if (path.empty()) {
-    cc_log("No PATH variable");
+    log("No PATH variable");
     return {};
   }
 

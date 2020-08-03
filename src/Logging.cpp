@@ -189,20 +189,3 @@ dump_log(const std::string& path)
 }
 
 } // namespace Logging
-
-void
-cc_log(const char* format, ...)
-{
-  if (!Logging::enabled()) {
-    return;
-  }
-
-  va_list ap;
-  va_start(ap, format);
-
-  char buffer[16384];
-  int size = vsnprintf(buffer, sizeof(buffer), format, ap);
-  Logging::log(string_view(buffer, size));
-
-  va_end(ap);
-}

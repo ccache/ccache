@@ -23,8 +23,9 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
+using Logging::log;
+using nonstd::string_view;
 using Result::FileType;
-using string_view = nonstd::string_view;
 
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
   : m_ctx(ctx), m_rewrite_dependency_target(rewrite_dependency_target)
@@ -89,15 +90,15 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   }
 
   if (dest_path.empty()) {
-    cc_log("Not copying");
+    log("Not copying");
   } else if (dest_path == "/dev/null") {
-    cc_log("Not copying to /dev/null");
+    log("Not copying to /dev/null");
   } else {
-    cc_log("Retrieving %s file #%u %s (%llu bytes)",
-           raw_file ? "raw" : "embedded",
-           entry_number,
-           Result::file_type_to_string(file_type),
-           (unsigned long long)file_len);
+    log("Retrieving {} file #{} {} ({} bytes)",
+        raw_file ? "raw" : "embedded",
+        entry_number,
+        Result::file_type_to_string(file_type),
+        file_len);
 
     if (raw_file) {
       Util::clone_hard_link_or_copy_file(m_ctx, *raw_file, dest_path, false);
@@ -106,7 +107,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
       // if hard-linked, to make the object file newer than the source file).
       Util::update_mtime(*raw_file);
     } else {
-      cc_log("Copying to %s", dest_path.c_str());
+      log("Copying to {}", dest_path);
       m_dest_fd = Fd(
         open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
       if (!m_dest_fd) {

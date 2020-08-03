@@ -68,6 +68,7 @@
 #  endif
 #endif
 
+using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -235,28 +236,28 @@ clone_hard_link_or_copy_file(const Context& ctx,
                              bool via_tmp_file)
 {
   if (ctx.config.file_clone()) {
-    cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
+    log("Cloning {} to {}", source, dest);
     try {
       clone_file(source, dest, via_tmp_file);
       return;
     } catch (Error& e) {
-      cc_log("Failed to clone: %s", e.what());
+      log("Failed to clone: {}", e.what());
     }
   }
   if (ctx.config.hard_link()) {
     unlink(dest.c_str());
-    cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
+    log("Hard linking {} to {}", source, dest);
     int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {
       if (chmod(dest.c_str(), 0444) != 0) {
-        cc_log("Failed to chmod: %s", strerror(errno));
+        log("Failed to chmod: {}", strerror(errno));
       }
       return;
     }
-    cc_log("Failed to hard link: %s", strerror(errno));
+    log("Failed to hard link: {}", strerror(errno));
   }
 
-  cc_log("Copying %s to %s", source.c_str(), dest.c_str());
+  log("Copying {} to {}", source, dest);
   copy_file(source, dest, via_tmp_file);
 }
 
@@ -1044,7 +1045,7 @@ read_file(const std::string& path, size_t size_hint)
   }
 
   if (ret == -1) {
-    cc_log("Failed reading %s", path.c_str());
+    log("Failed reading {}", path);
     throw Error(strerror(errno));
   }
 
@@ -1328,9 +1329,9 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
     }
   }
   if (success || unlink_log == UnlinkLog::log_failure) {
-    cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
+    log("Unlink {} via {}", path, tmp_name);
     if (!success) {
-      cc_log("Unlink failed: %s", strerror(saved_errno));
+      log("Unlink failed: {}", strerror(saved_errno));
     }
   }
 
@@ -1346,9 +1347,9 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
   bool success =
     unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
   if (success || unlink_log == UnlinkLog::log_failure) {
-    cc_log("Unlink %s", path.c_str());
+    log("Unlink {}", path);
     if (!success) {
-      cc_log("Unlink failed: %s", strerror(saved_errno));
+      log("Unlink failed: {}", strerror(saved_errno));
     }
   }
 

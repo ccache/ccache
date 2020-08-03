@@ -247,7 +247,7 @@ hash_source_code_string(const Context& ctx,
   hash.hash(str);
 
   if (result & HASH_SOURCE_CODE_FOUND_DATE) {
-    cc_log("Found __DATE__ in %s", path.c_str());
+    log("Found __DATE__ in {}", path);
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __DATE__ changes.
@@ -266,10 +266,10 @@ hash_source_code_string(const Context& ctx,
     // not very useful since the chance that we get a cache hit later the same
     // second should be quite slim... So, just signal back to the caller that
     // __TIME__ has been found so that the direct mode can be disabled.
-    cc_log("Found __TIME__ in %s", path.c_str());
+    log("Found __TIME__ in {}", path);
   }
   if (result & HASH_SOURCE_CODE_FOUND_TIMESTAMP) {
-    cc_log("Found __TIMESTAMP__ in %s", path.c_str());
+    log("Found __TIMESTAMP__ in {}", path);
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __TIMESTAMP__ changes.
@@ -450,7 +450,7 @@ hash_command_output(Hash& hash,
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
   bool ok = hash.hash_fd(fd);
   if (!ok) {
-    cc_log("Error hashing compiler check command output: %s", strerror(errno));
+    log("Error hashing compiler check command output: {}", strerror(errno));
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
   DWORD exitcode;
@@ -459,7 +459,7 @@ hash_command_output(Hash& hash,
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   if (exitcode != 0) {
-    cc_log("Compiler check command returned %d", (int)exitcode);
+    log("Compiler check command returned {}", exitcode);
     return false;
   }
   return ok;
@@ -487,18 +487,17 @@ hash_command_output(Hash& hash,
     close(pipefd[1]);
     bool ok = hash.hash_fd(pipefd[0]);
     if (!ok) {
-      cc_log("Error hashing compiler check command output: %s",
-             strerror(errno));
+      log("Error hashing compiler check command output: {}", strerror(errno));
     }
     close(pipefd[0]);
 
     int status;
     if (waitpid(pid, &status, 0) != pid) {
-      cc_log("waitpid failed");
+      log("waitpid failed");
       return false;
     }
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-      cc_log("Compiler check command returned %d", WEXITSTATUS(status));
+      log("Compiler check command returned {}", WEXITSTATUS(status));
       return false;
     }
     return ok;

@@ -22,6 +22,8 @@
 
 #include "third_party/fmt/core.h"
 
+using Logging::log;
+
 Stat::Stat(StatFunction stat_function,
            const std::string& path,
            Stat::OnError on_error)
@@ -35,7 +37,7 @@ Stat::Stat(StatFunction stat_function,
       throw Error(fmt::format("failed to stat {}: {}", path, strerror(errno)));
     }
     if (on_error == OnError::log) {
-      cc_log("Failed to stat %s: %s", path.c_str(), strerror(errno));
+      log("Failed to stat {}: {}", path, strerror(errno));
     }
 
     // The file is missing, so just zero fill the stat structure. This will

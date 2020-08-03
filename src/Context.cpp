@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+using Logging::log;
 using nonstd::string_view;
 
 Context::Context()
@@ -106,7 +107,7 @@ void
 Context::unlink_pending_tmp_files_signal_safe()
 {
   for (const std::string& path : m_pending_tmp_files) {
-    // Don't call Util::unlink_tmp since its cc_log calls aren't signal safe.
+    // Don't call Util::unlink_tmp since its log calls aren't signal safe.
     unlink(path.c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
@@ -131,7 +132,7 @@ Context::set_ignore_options(const std::vector<std::string>& options)
     if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
       m_ignore_options.push_back(option);
     } else {
-      cc_log("Skipping malformed ignore_options item: %s", option.c_str());
+      log("Skipping malformed ignore_options item: {}", option);
       continue;
     }
   }

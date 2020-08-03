@@ -87,6 +87,7 @@
 //
 // 1: Introduced in ccache 4.0.
 
+using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 
@@ -179,7 +180,7 @@ Result::Reader::Reader(const std::string& result_path)
 optional<std::string>
 Result::Reader::read(Consumer& consumer)
 {
-  cc_log("Reading result %s", m_result_path.c_str());
+  log("Reading result {}", m_result_path);
 
   try {
     if (read_result(consumer)) {
@@ -335,17 +336,17 @@ Writer::do_finalize()
   for (const auto& pair : m_entries_to_write) {
     const auto file_type = pair.first;
     const auto& path = pair.second;
-    cc_log("Storing result %s", path.c_str());
+    log("Storing result {}", path);
 
     const bool store_raw = should_store_raw_file(m_ctx.config, file_type);
     uint64_t file_size = Stat::stat(path, Stat::OnError::throw_error).size();
 
-    cc_log("Storing %s file #%u %s (%llu bytes) from %s",
-           store_raw ? "raw" : "embedded",
-           entry_number,
-           file_type_to_string(file_type),
-           (unsigned long long)file_size,
-           path.c_str());
+    log("Storing {} file #{} {} ({} bytes) from {}",
+        store_raw ? "raw" : "embedded",
+        entry_number,
+        file_type_to_string(file_type),
+        file_size,
+        path);
 
     writer.write<uint8_t>(store_raw ? k_raw_file_marker
                                     : k_embedded_file_marker);

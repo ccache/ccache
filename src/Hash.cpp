@@ -21,6 +21,7 @@
 #include "Fd.hpp"
 #include "Logging.hpp"
 
+using Logging::log;
 using nonstd::string_view;
 
 const string_view HASH_DELIMITER("\000cCaChE\000", 8);
@@ -115,7 +116,7 @@ Hash::hash_file(const std::string& path)
 {
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
-    cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
+    log("Failed to open {}: {}", path, strerror(errno));
     return false;
   }
 

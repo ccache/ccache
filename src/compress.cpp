@@ -35,6 +35,8 @@
 #include <string>
 #include <thread>
 
+using Logging::log;
+
 static File
 open_file(const std::string& path, const char* mode)
 {
@@ -101,7 +103,7 @@ recompress_file(Context& ctx,
     return;
   }
 
-  cc_log("Recompressing %s to level %d", cache_file.path().c_str(), level);
+  log("Recompressing {} to level {}", cache_file.path(), level);
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
   auto writer = create_writer(atomic_new_file.stream(),
                               *reader,
@@ -137,7 +139,7 @@ recompress_file(Context& ctx,
     stats_flush_to_file(ctx.config, stats_file, counters);
   }
 
-  cc_log("Recompression of %s done", cache_file.path().c_str());
+  log("Recompression of {} done", cache_file.path());
 }
 
 void

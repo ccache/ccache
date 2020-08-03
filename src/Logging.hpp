@@ -75,6 +75,3 @@ bulk_log(T&&... args)
 }
 
 } // namespace Logging
-
-// Legacy API.
-void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);

@@ -21,6 +21,8 @@
 #include "Logging.hpp"
 #include "exceptions.hpp"
 
+using Logging::log;
+
 const uint8_t k_default_zstd_compression_level = 1;
 
 ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
@@ -28,25 +30,25 @@ ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
 {
   if (compression_level == 0) {
     compression_level = k_default_zstd_compression_level;
-    cc_log("Using default compression level %d", compression_level);
+    log("Using default compression level {}", compression_level);
   }
 
   // libzstd 1.3.4 and newer support negative levels. However, the query
   // function ZSTD_minCLevel did not appear until 1.3.6, so perform detection
   // based on version instead.
   if (ZSTD_versionNumber() < 10304 && compression_level < 1) {
-    cc_log(
+    log(
       "Using compression level 1 (minimum level supported by libzstd) instead"
-      " of %d",
+      " of {}",
       compression_level);
     compression_level = 1;
   }
 
   m_compression_level = std::min<int>(compression_level, ZSTD_maxCLevel());
   if (m_compression_level != compression_level) {
-    cc_log("Using compression level %d (max libzstd level) instead of %d",
-           m_compression_level,
-           compression_level);
+    log("Using compression level {} (max libzstd level) instead of {}",
+        m_compression_level,
+        compression_level);
   }
 
   size_t ret = ZSTD_initCStream(m_zstd_stream, m_compression_level);

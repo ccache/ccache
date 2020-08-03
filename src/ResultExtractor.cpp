@@ -22,7 +22,7 @@
 
 #include "third_party/nonstd/string_view.hpp"
 
-using string_view = nonstd::string_view;
+using nonstd::string_view;
 
 ResultExtractor::ResultExtractor(const std::string& directory)
   : m_directory(directory)

@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <cmath>
 
+using Logging::log;
+
 static void
 delete_file(const std::string& path,
             uint64_t size,
@@ -41,7 +43,7 @@ delete_file(const std::string& path,
 {
   bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
-    cc_log("Failed to unlink %s (%s)", path.c_str(), strerror(errno));
+    log("Failed to unlink {} ({})", path, strerror(errno));
   } else if (cache_size && files_in_cache) {
     // The counters are intentionally subtracted even if there was no file to
     // delete since the final cache size calculation will be incorrect if they
@@ -74,7 +76,7 @@ clean_up_dir(const std::string& subdir,
              time_t max_age,
              const Util::ProgressReceiver& progress_receiver)
 {
-  cc_log("Cleaning up cache directory %s", subdir.c_str());
+  log("Cleaning up cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -112,9 +114,9 @@ clean_up_dir(const std::string& subdir,
               return f1->lstat().mtime() < f2->lstat().mtime();
             });
 
-  cc_log("Before cleanup: %.0f KiB, %.0f files",
-         static_cast<double>(cache_size) / 1024,
-         static_cast<double>(files_in_cache));
+  log("Before cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
 
   bool cleaned = false;
   for (size_t i = 0; i < files.size();
@@ -155,12 +157,12 @@ clean_up_dir(const std::string& subdir,
     cleaned = true;
   }
 
-  cc_log("After cleanup: %.0f KiB, %.0f files",
-         static_cast<double>(cache_size) / 1024,
-         static_cast<double>(files_in_cache));
+  log("After cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
 
   if (cleaned) {
-    cc_log("Cleaned up cache directory %s", subdir.c_str());
+    log("Cleaned up cache directory {}", subdir);
     stats_add_cleanup(subdir, 1);
   }
 
@@ -190,7 +192,7 @@ static void
 wipe_dir(const std::string& subdir,
          const Util::ProgressReceiver& progress_receiver)
 {
-  cc_log("Clearing out cache directory %s", subdir.c_str());
+  log("Clearing out cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -202,7 +204,7 @@ wipe_dir(const std::string& subdir,
   }
 
   if (!files.empty()) {
-    cc_log("Cleared out cache directory %s", subdir.c_str());
+    log("Cleared out cache directory {}", subdir);
     stats_add_cleanup(subdir, 1);
   }
 
