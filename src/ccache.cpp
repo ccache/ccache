@@ -575,8 +575,7 @@ process_preprocessed_file(Context& ctx,
   // Explicitly check the .gch/.pch/.pth file as Clang does not include any
   // mention of it in the preprocessed output.
   if (!ctx.included_pch_file.empty()) {
-    std::string pch_path =
-      Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
+    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
     hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -667,8 +666,7 @@ result_name_from_depfile(Context& ctx, Hash& hash)
   // Explicitly check the .gch/.pch/.pth file as it may not be mentioned in the
   // dependencies output.
   if (!ctx.included_pch_file.empty()) {
-    std::string pch_path =
-      Util::make_relative_path(ctx, ctx.included_pch_file.c_str());
+    std::string pch_path = Util::make_relative_path(ctx, ctx.included_pch_file);
     hash.hash(pch_path);
     remember_include_file(ctx, pch_path, hash, false, nullptr);
   }
@@ -1185,7 +1183,7 @@ hash_common_info(const Context& ctx,
   // We have to hash the extension, as a .i file isn't treated the same by the
   // compiler as a .ii file.
   hash.hash_delimiter("ext");
-  hash.hash(ctx.config.cpp_extension().c_str());
+  hash.hash(ctx.config.cpp_extension());
 
 #ifdef _WIN32
   const std::string compiler_path = Win32Util::add_exe_suffix(args[0]);
@@ -1446,18 +1444,18 @@ calculate_result_name(Context& ctx,
     if (ctx.args_info.generating_dependencies) {
       if (Util::starts_with(args[i], "-Wp,")) {
         if (Util::starts_with(args[i], "-Wp,-MD,")
-            && !strchr(args[i].c_str() + 8, ',')) {
-          hash.hash(args[i].c_str(), 8);
+            && args[i].find(',', 8) == std::string::npos) {
+          hash.hash(args[i].data(), 8);
           continue;
         } else if (Util::starts_with(args[i], "-Wp,-MMD,")
-                   && !strchr(args[i].c_str() + 9, ',')) {
-          hash.hash(args[i].c_str(), 9);
+                   && args[i].find(',', 9) == std::string::npos) {
+          hash.hash(args[i].data(), 9);
           continue;
         }
       } else if (Util::starts_with(args[i], "-MF")) {
         // In either case, hash the "-MF" part.
         hash.hash_delimiter("arg");
-        hash.hash(args[i].c_str(), 3);
+        hash.hash(args[i].data(), 3);
 
         if (ctx.args_info.output_dep != "/dev/null") {
           bool separate_argument = (args[i].size() == 3);
