@@ -180,7 +180,7 @@ compress_stats(const Config& config,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    printf("\n\n");
+    fmt::print("\n\n");
   }
 
   double ratio = compr_size > 0 ? ((double)compr_orig_size) / compr_size : 0.0;
@@ -253,6 +253,6 @@ compress_recompress(Context& ctx,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    printf("\n");
+    fmt::print("\n");
   }
 }

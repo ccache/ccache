@@ -69,10 +69,10 @@ bool debug_log_enabled = false;
 print_fatal_error_and_exit()
 {
   // Note: Can't call fatal() since that would lead to recursion.
-  fprintf(stderr,
-          "ccache: error: Failed to write to %s: %s\n",
-          logfile_path.c_str(),
-          strerror(errno));
+  fmt::print(stderr,
+             "ccache: error: Failed to write to {}: {}\n",
+             logfile_path,
+             strerror(errno));
   exit(EXIT_FAILURE);
 }
 

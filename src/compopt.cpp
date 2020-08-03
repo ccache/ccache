@@ -18,6 +18,8 @@
 
 #include "compopt.hpp"
 
+#include "third_party/fmt/core.h"
+
 // The option it too hard to handle at all.
 #define TOO_HARD (1 << 0)
 
@@ -191,9 +193,9 @@ compopt_verify_sortedness_and_flags()
 {
   for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
     if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
-      fprintf(stderr,
-              "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by %s\n",
-              compopts[i].name);
+      fmt::print(stderr,
+                 "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by {}\n",
+                 compopts[i].name);
       return false;
     }
 
@@ -202,10 +204,10 @@ compopt_verify_sortedness_and_flags()
     }
 
     if (strcmp(compopts[i - 1].name, compopts[i].name) >= 0) {
-      fprintf(stderr,
-              "compopt_verify_sortedness: %s >= %s\n",
-              compopts[i - 1].name,
-              compopts[i].name);
+      fmt::print(stderr,
+                 "compopt_verify_sortedness: {} >= {}\n",
+                 compopts[i - 1].name,
+                 compopts[i].name);
       return false;
     }
   }

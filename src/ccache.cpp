@@ -72,7 +72,7 @@ using nonstd::optional;
 using nonstd::string_view;
 
 static const char VERSION_TEXT[] =
-  R"(%s version %s
+  R"({} version {}
 
 Copyright (C) 2002-2007 Andrew Tridgell
 Copyright (C) 2009-2020 Joel Rosdahl and other contributors
@@ -396,7 +396,7 @@ static void
 print_included_files(const Context& ctx, FILE* fp)
 {
   for (const auto& item : ctx.included_files) {
-    fprintf(fp, "%s\n", item.first.c_str());
+    fmt::print(fp, "{}\n", item.first);
   }
 }
 
@@ -1747,12 +1747,12 @@ create_initial_config_file(Config& config)
     return;
   }
   if (max_files != 0) {
-    fprintf(f, "max_files = %u\n", max_files);
+    fmt::print(f, "max_files = {}\n", max_files);
     config.set_max_files(max_files);
   }
   if (max_size != 0) {
     std::string size = Util::format_parsable_size_with_suffix(max_size);
-    fprintf(f, "max_size = %s\n", size.c_str());
+    fmt::print(f, "max_size = {}\n", size);
     config.set_max_size(max_size);
   }
   fclose(f);
@@ -2223,7 +2223,7 @@ handle_main_options(int argc, const char* const* argv)
       clean_old(
         ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
-        printf("\n");
+        fmt::print("\n");
       }
       break;
     }
@@ -2259,7 +2259,7 @@ handle_main_options(int argc, const char* const* argv)
       clean_up_all(ctx.config,
                    [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        printf("\n");
+        fmt::print("\n");
       }
       break;
     }
@@ -2269,7 +2269,7 @@ handle_main_options(int argc, const char* const* argv)
       ProgressBar progress_bar("Clearing...");
       wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        printf("\n");
+        fmt::print("\n");
       }
       break;
     }
@@ -2287,7 +2287,7 @@ handle_main_options(int argc, const char* const* argv)
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
-        printf("Unset cache file limit\n");
+        fmt::print("Unset cache file limit\n");
       } else {
         fmt::print("Set cache file limit to {}\n", files);
       }
@@ -2299,7 +2299,7 @@ handle_main_options(int argc, const char* const* argv)
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_size", arg);
       if (size == 0) {
-        printf("Unset cache size limit\n");
+        fmt::print("Unset cache size limit\n");
       } else {
         fmt::print("Set cache size limit to {}\n",
                    Util::format_human_readable_size(size));
@@ -2329,7 +2329,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      fprintf(stdout, VERSION_TEXT, MYNAME, CCACHE_VERSION);
+      fmt::print(VERSION_TEXT, MYNAME, CCACHE_VERSION);
       exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression
@@ -2363,7 +2363,7 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'z': // --zero-stats
       stats_zero(ctx);
-      printf("Statistics zeroed\n");
+      fmt::print("Statistics zeroed\n");
       break;
 
     default:
