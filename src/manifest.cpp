@@ -27,10 +27,10 @@
 #include "Digest.hpp"
 #include "File.hpp"
 #include "Hash.hpp"
+#include "Logging.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
 #include "hashutil.hpp"
-#include "logging.hpp"
 
 // Manifest data format
 // ====================

@@ -19,7 +19,7 @@
 #include "Hash.hpp"
 
 #include "Fd.hpp"
-#include "logging.hpp"
+#include "Logging.hpp"
 
 using nonstd::string_view;
 

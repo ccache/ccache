@@ -23,10 +23,10 @@
 #include "CacheEntryWriter.hpp"
 #include "Context.hpp"
 #include "File.hpp"
+#include "Logging.hpp"
 #include "Result.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
-#include "logging.hpp"
 #include "manifest.hpp"
 #include "stats.hpp"
 

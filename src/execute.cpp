@@ -22,16 +22,17 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
+#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "logging.hpp"
 
 #ifdef _WIN32
 #  include "Win32Util.hpp"
 #endif
 
+using Logging::log;
 using nonstd::string_view;
 
 #ifdef _WIN32
@@ -157,7 +158,7 @@ win32execute(const char* path,
 int
 execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 {
-  cc_log_argv("Executing ", argv);
+  log("Executing {}", Util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;

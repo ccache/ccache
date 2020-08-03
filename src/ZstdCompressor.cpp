@@ -18,8 +18,8 @@
 
 #include "ZstdCompressor.hpp"
 
+#include "Logging.hpp"
 #include "exceptions.hpp"
-#include "logging.hpp"
 
 const uint8_t k_default_zstd_compression_level = 1;
 

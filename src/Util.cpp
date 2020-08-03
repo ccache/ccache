@@ -22,8 +22,8 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "Logging.hpp"
 #include "TemporaryFile.hpp"
-#include "logging.hpp"
 
 #include <algorithm>
 #include <fstream>

@@ -20,9 +20,9 @@
 
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
+#include "Logging.hpp"
 #include "compopt.hpp"
 #include "language.hpp"
-#include "logging.hpp"
 
 #include <cassert>
 

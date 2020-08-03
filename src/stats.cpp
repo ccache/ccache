@@ -26,9 +26,9 @@
 #include "Context.hpp"
 #include "Counters.hpp"
 #include "Lockfile.hpp"
+#include "Logging.hpp"
 #include "cleanup.hpp"
 #include "hashutil.hpp"
-#include "logging.hpp"
 
 #include "third_party/fmt/core.h"
 

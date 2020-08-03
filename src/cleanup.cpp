@@ -22,8 +22,8 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Logging.hpp"
 #include "Util.hpp"
-#include "logging.hpp"
 #include "stats.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED

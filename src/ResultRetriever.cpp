@@ -19,7 +19,7 @@
 #include "ResultRetriever.hpp"
 
 #include "Context.hpp"
-#include "logging.hpp"
+#include "Logging.hpp"
 
 #include "third_party/nonstd/string_view.hpp"
 

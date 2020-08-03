@@ -22,10 +22,10 @@
 #include "Fd.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
+#include "Logging.hpp"
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "logging.hpp"
 
 #include <atomic>
 #include <libgen.h>

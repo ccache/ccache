@@ -13,6 +13,7 @@ set(
   Decompressor.cpp
   Hash.cpp
   Lockfile.cpp
+  Logging.cpp
   MiniTrace.cpp
   NullCompressor.cpp
   NullDecompressor.cpp
@@ -36,7 +37,6 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  logging.cpp
   manifest.cpp
   stats.cpp
   version.cpp)

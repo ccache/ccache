@@ -19,10 +19,10 @@
 #include "Context.hpp"
 
 #include "Counters.hpp"
+#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
-#include "logging.hpp"
 #include "stats.hpp"
 
 #include <algorithm>
@@ -49,7 +49,7 @@ Context::~Context()
   // Dump log buffer last to not lose any logs.
   if (config.debug()) {
     std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
-    cc_dump_debug_log_buffer(path.c_str());
+    Logging::dump_log(path);
   }
 }
 

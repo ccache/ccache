@@ -26,6 +26,7 @@
 #include "File.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "Hash.hpp"
+#include "Logging.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
 #include "Result.hpp"
@@ -45,7 +46,6 @@
 #include "execute.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
-#include "logging.hpp"
 #include "manifest.hpp"
 #include "stats.hpp"
 
@@ -66,6 +66,7 @@
 #include <algorithm>
 #include <limits>
 
+using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -1826,7 +1827,7 @@ initialize(Context& ctx, int argc, const char* const* argv)
 {
   bool primary_config_exists = set_up_config(ctx.config);
   set_up_context(ctx, argc, argv);
-  init_log(ctx.config);
+  Logging::init(ctx.config);
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling init_log so that
@@ -1874,8 +1875,7 @@ configuration_logger(const std::string& key,
                      const std::string& value,
                      const std::string& origin)
 {
-  cc_bulklog(
-    "Config: (%s) %s = %s", origin.c_str(), key.c_str(), value.c_str());
+  Logging::bulk_log("Config: ({}) {} = {}", origin, key, value);
 }
 
 static void
@@ -1932,7 +1932,7 @@ cache_compilation(int argc, const char* const* argv)
     Args saved_orig_args(std::move(ctx->orig_args));
     auto execv_argv = saved_orig_args.to_argv();
 
-    cc_log_argv("Executing ", execv_argv.data());
+    log("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
     ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
     fatal("execv of {} failed: {}", execv_argv[0], strerror(errno));
@@ -1968,7 +1968,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   set_up_uncached_err();
   MTR_END("main", "set_up_uncached_err");
 
-  cc_log_argv("Command line: ", argv);
+  log("Command line: {}", Util::format_argv_for_logging(argv));
   cc_log("Hostname: %s", Util::get_hostname());
   cc_log("Working directory: %s", ctx.actual_cwd.c_str());
   if (ctx.apparent_cwd != ctx.actual_cwd) {

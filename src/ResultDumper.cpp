@@ -20,7 +20,7 @@
 
 #include "CacheEntryReader.hpp"
 #include "Context.hpp"
-#include "logging.hpp"
+#include "Logging.hpp"
 
 using nonstd::optional;
 

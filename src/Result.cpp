@@ -25,10 +25,10 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "File.hpp"
+#include "Logging.hpp"
 #include "Stat.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
-#include "logging.hpp"
 #include "stats.hpp"
 
 // Result data format

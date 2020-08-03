@@ -18,8 +18,8 @@
 
 #include "Lockfile.hpp"
 
+#include "Logging.hpp"
 #include "Util.hpp"
-#include "logging.hpp"
 
 #ifdef _WIN32
 #  include "Win32Util.hpp"

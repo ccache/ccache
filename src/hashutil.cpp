@@ -22,10 +22,10 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Hash.hpp"
+#include "Logging.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
-#include "logging.hpp"
 #include "macroskip.hpp"
 #include "stats.hpp"
 
@@ -56,6 +56,7 @@
 #  include <immintrin.h>
 #endif
 
+using Logging::log;
 using nonstd::string_view;
 
 namespace {
@@ -397,7 +398,8 @@ hash_command_output(Hash& hash,
   }
 
   auto argv = args.to_argv();
-  cc_log_argv("Executing compiler check command ", argv.data());
+  log("Executing compiler check command {}",
+      Util::format_argv_for_logging(argv.data()));
 
 #ifdef _WIN32
   PROCESS_INFORMATION pi;
