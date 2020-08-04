@@ -174,10 +174,10 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 // If `exit_code` is set, just exit with that code directly, otherwise execute
 // the real compiler and exit with its exit code. Also updates statistics
 // counter `stat` if it's not STATS_NONE.
-static void failed(enum stats stat = STATS_NONE,
-                   optional<int> exit_code = nullopt) ATTR_NORETURN;
+[[noreturn]] static void failed(enum stats stat = STATS_NONE,
+                                optional<int> exit_code = nullopt);
 
-static void
+[[noreturn]] static void
 failed(enum stats stat, optional<int> exit_code)
 {
   throw Failure(stat, exit_code);

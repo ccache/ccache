@@ -21,9 +21,6 @@
 #ifdef __MINGW32__
 #  define __USE_MINGW_ANSI_STDIO 1
 #  define __STDC_FORMAT_MACROS 1
-#  define ATTRIBUTE_FORMAT_PRINTF __MINGW_PRINTF_FORMAT
-#else
-#  define ATTRIBUTE_FORMAT_PRINTF printf
 #endif
 
 #include "config.h"
@@ -65,19 +62,10 @@ extern int usleep(useconds_t);
 
 extern char** environ;
 
-#ifdef __GNUC__
-#  define ATTR_FORMAT(x, y, z)                                                 \
-    __attribute__((format(ATTRIBUTE_FORMAT_PRINTF, y, z)))
-#  define ATTR_NORETURN __attribute__((noreturn))
-#else
-#  define ATTR_FORMAT(x, y, z)
-#  define ATTR_NORETURN
-#endif
-
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 // Buffer size for I/O operations. Should be a multiple of 4 KiB.
-#define READ_BUFFER_SIZE 65536
+const size_t READ_BUFFER_SIZE = 65536;
 
 #ifndef ESTALE
 #  define ESTALE -1
@@ -94,8 +82,6 @@ extern char** environ;
 #  define execv(a, b) win32execute(a, b, 0, -1, -1)
 #  define DIR_DELIM_CH '\\'
 #  define PATH_DELIM ";"
-#  define F_RDLCK 0
-#  define F_WRLCK 0
 #else
 #  define DIR_DELIM_CH '/'
 #  define PATH_DELIM ":"
