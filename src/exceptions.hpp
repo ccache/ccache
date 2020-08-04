@@ -88,7 +88,7 @@ inline FatalError::FatalError(T&&... args)
 class Failure : public std::exception
 {
 public:
-  Failure(enum stats stat, nonstd::optional<int> exit_code);
+  Failure(enum stats stat, nonstd::optional<int> exit_code = nonstd::nullopt);
 
   nonstd::optional<int> exit_code() const;
   enum stats stat() const;
