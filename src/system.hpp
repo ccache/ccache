@@ -95,3 +95,10 @@ const size_t READ_BUFFER_SIZE = 65536;
 #ifdef HAVE_SYS_MMAN_H
 #  define INODE_CACHE_SUPPORTED
 #endif
+
+// Workaround for missing std::is_trivially_copyable in GCC < 5.
+#if __GNUG__ && __GNUC__ < 5
+#  define IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#else
+#  define IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
+#endif
