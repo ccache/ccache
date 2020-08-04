@@ -405,8 +405,7 @@ print_included_files(const Context& ctx, FILE* fp)
 //
 // - Makes include file paths for which the base directory is a prefix relative
 //   when computing the hash sum.
-// - Stores the paths and hashes of included files in the global variable
-//   g_included_files.
+// - Stores the paths and hashes of included files in ctx.included_files.
 static bool
 process_preprocessed_file(Context& ctx,
                           Hash& hash,
