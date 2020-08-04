@@ -66,6 +66,11 @@
 #include <algorithm>
 #include <limits>
 
+#ifndef MYNAME
+#  define MYNAME "ccache"
+#endif
+static const char CCACHE_NAME[] = MYNAME;
+
 using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
@@ -152,7 +157,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
 
   Args prefix;
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
-    std::string path = find_executable(ctx, word, MYNAME);
+    std::string path = find_executable(ctx, word, CCACHE_NAME);
     if (path.empty()) {
       throw FatalError("{}: {}", word, strerror(errno));
     }
@@ -1152,7 +1157,7 @@ hash_nvcc_host_compiler(const Context& ctx,
           hash_compiler(ctx, hash, st, path, false);
         }
       } else {
-        std::string path = find_executable(ctx, compiler, MYNAME);
+        std::string path = find_executable(ctx, compiler, CCACHE_NAME);
         if (!path.empty()) {
           auto st = Stat::stat(path, Stat::OnError::log);
           hash_compiler(ctx, hash, st, ccbin, false);
@@ -1697,7 +1702,7 @@ find_compiler(Context& ctx, const char* const* argv)
 {
   // We might be being invoked like "ccache gcc -c foo.c".
   std::string base(Util::base_name(argv[0]));
-  if (Util::same_program_name(base, MYNAME)) {
+  if (Util::same_program_name(base, CCACHE_NAME)) {
     ctx.orig_args.pop_front();
     if (Util::is_full_path(ctx.orig_args[0])) {
       return;
@@ -1710,14 +1715,14 @@ find_compiler(Context& ctx, const char* const* argv)
     base = ctx.config.compiler();
   }
 
-  std::string compiler = find_executable(ctx, base, MYNAME);
+  std::string compiler = find_executable(ctx, base, CCACHE_NAME);
   if (compiler.empty()) {
     throw FatalError("Could not find compiler \"{}\" in PATH", base);
   }
   if (compiler == argv[0]) {
     throw FatalError(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
-      MYNAME);
+      CCACHE_NAME);
   }
   ctx.orig_args[0] = compiler;
 }
@@ -2276,7 +2281,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'h': // --help
-      fmt::print(stdout, USAGE_TEXT, MYNAME, MYNAME);
+      fmt::print(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_SUCCESS);
 
     case 'k': // --get-config
@@ -2330,7 +2335,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'V': // --version
-      fmt::print(VERSION_TEXT, MYNAME, CCACHE_VERSION);
+      fmt::print(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
       exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression
@@ -2368,7 +2373,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     default:
-      fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
+      fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_FAILURE);
     }
 
@@ -2388,9 +2393,9 @@ ccache_main(int argc, const char* const* argv)
   try {
     // Check if we are being invoked as "ccache".
     std::string program_name(Util::base_name(argv[0]));
-    if (Util::same_program_name(program_name, MYNAME)) {
+    if (Util::same_program_name(program_name, CCACHE_NAME)) {
       if (argc < 2) {
-        fmt::print(stderr, USAGE_TEXT, MYNAME, MYNAME);
+        fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being passed
