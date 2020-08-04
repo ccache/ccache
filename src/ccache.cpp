@@ -413,9 +413,9 @@ process_preprocessed_file(Context& ctx,
   }
 
   // Bytes between p and q are pending to be hashed.
-  const char* p = data.data();
-  char* q = const_cast<char*>(data.data()); // cast needed before C++17
-  const char* end = data.c_str() + data.length();
+  const char* p = &data[0];
+  char* q = &data[0];
+  const char* end = p + data.length();
 
   // There must be at least 7 characters (# 1 "x") left to potentially find an
   // include file path.

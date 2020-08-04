@@ -84,6 +84,6 @@ TemporaryFile::initialize(string_view path_prefix)
 {
   path = std::string(path_prefix);
   path += ".XXXXXX";
-  fd = Fd(mkstemp(const_cast<char*>(path.data()))); // cast needed before C++17
+  fd = Fd(mkstemp(&path[0]));
   return bool(fd);
 }

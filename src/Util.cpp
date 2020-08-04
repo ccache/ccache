@@ -1031,8 +1031,7 @@ read_file(const std::string& path, size_t size_hint)
       result.resize(2 * result.size());
     }
     const size_t max_read = result.size() - pos;
-    char* data = const_cast<char*>(result.data()); // cast needed before C++17
-    ret = read(*fd, data + pos, max_read);
+    ret = read(*fd, &result[pos], max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
