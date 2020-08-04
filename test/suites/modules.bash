@@ -70,7 +70,14 @@ SUITE_modules() {
 #include <string>
 void f();
 EOF
+    backdate test1.h
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache miss' 2
+
+    echo >>module.modulemap
+    backdate test1.h
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
+    expect_stat 'cache miss' 3
 }
