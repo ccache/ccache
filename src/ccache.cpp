@@ -1046,8 +1046,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cppstderr");
-  if (!ctx.args_info.direct_i_file
-      && !hash_binary_file(ctx, hash, stderr_path)) {
+  if (!ctx.args_info.direct_i_file && !hash.hash_file(stderr_path)) {
     // Somebody removed the temporary file?
     log("Failed to open {}: {}", stderr_path, strerror(errno));
     throw Failure(STATS_ERROR);
