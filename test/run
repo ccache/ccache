@@ -195,7 +195,7 @@ expect_different_files() {
 
 is_equal_object_files() {
     if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
-        if ! which eu-elfcmp >/dev/null 2>&1; then
+        if ! command -v eu-elfcmp >/dev/null; then
             test_failed "Please install elfutils to get eu-elfcmp"
         fi
         eu-elfcmp -q "$1" "$2"
