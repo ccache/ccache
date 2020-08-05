@@ -172,11 +172,10 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
+#ifdef FILE_CLONING_SUPPORTED
 void
 clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 {
-#ifdef FILE_CLONING_SUPPORTED
-
 #  if defined(__linux__)
   Fd src_fd(open(src.c_str(), O_RDONLY));
   if (!src_fd) {
@@ -218,16 +217,8 @@ clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
   (void)via_tmp_file;
   throw Error(strerror(EOPNOTSUPP));
 #  endif
-
-#else // FILE_CLONING_SUPPORTED
-
-  (void)src;
-  (void)dest;
-  (void)via_tmp_file;
-  throw Error(strerror(EOPNOTSUPP));
-
-#endif // FILE_CLONING_SUPPORTED
 }
+#endif // FILE_CLONING_SUPPORTED
 
 void
 clone_hard_link_or_copy_file(const Context& ctx,
@@ -236,6 +227,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
                              bool via_tmp_file)
 {
   if (ctx.config.file_clone()) {
+#ifdef FILE_CLONING_SUPPORTED
     log("Cloning {} to {}", source, dest);
     try {
       clone_file(source, dest, via_tmp_file);
@@ -243,6 +235,9 @@ clone_hard_link_or_copy_file(const Context& ctx,
     } catch (Error& e) {
       log("Failed to clone: {}", e.what());
     }
+#else
+    log("Not cloning {} to {} since it's unsupported");
+#endif
   }
   if (ctx.config.hard_link()) {
     unlink(dest.c_str());
