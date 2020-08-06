@@ -67,7 +67,14 @@ color_diagnostics_generate_permutations() {
 }
 
 color_diagnostics_run_on_pty() {
-    script --return --quiet --command "unset GCC_COLORS; CCACHE_DIR='$CCACHE_DIR' ${1:?}" /dev/null </dev/null
+    script --return --quiet --command "unset GCC_COLORS; CCACHE_DIR='$CCACHE_DIR' ${2:?}" /dev/null </dev/null >"${1:?}"
+
+    # script returns early on some platforms (leaving a child process living for
+    # a short while) and the output may therefore still be pending. Work around
+    # this by sleeping until the output file has content.
+    while [ ! -s "$1" ]; do
+        sleep 0.1
+    done
 }
 
 color_diagnostics_test() {
@@ -78,7 +85,7 @@ color_diagnostics_test() {
     color_diagnostics_expect_no_color test1.stderr
 
     # Check that subsequently running on a TTY generates a cache hit.
-    color_diagnostics_run_on_pty "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c" >test1.output
+    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c"
     color_diagnostics_expect_color test1.output
     expect_stat 'cache miss' 1
     expect_stat 'cache hit (preprocessed)' 1
@@ -86,7 +93,7 @@ color_diagnostics_test() {
     # -------------------------------------------------------------------------
     TEST "Colored diagnostics automatically enabled when stderr is a TTY (run_second_cpp=$run_second_cpp)"
     color_diagnostics_generate_code 1 test1.c
-    color_diagnostics_run_on_pty "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c" >test1.output
+    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c"
     color_diagnostics_expect_color test1.output
 
     # Check that subsequently running without a TTY generates a cache hit.
@@ -110,7 +117,7 @@ color_diagnostics_test() {
             esac
             case $each in
                 *,tty)
-                    color_diagnostics_run_on_pty "$CCACHE_COMPILE $color_flag -Wmissing-prototypes -c -o test1.o test1.c" >test1.output
+                    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE $color_flag -Wmissing-prototypes -c -o test1.o test1.c"
                     color_diagnostics_expect_$color_expect test1.output
                     ;;
                 *,notty)
