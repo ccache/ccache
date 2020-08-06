@@ -162,6 +162,10 @@ Common options
 Options for scripting or debugging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+*`--checksum-file`* _PATH_::
+
+    Print the checksum (64 bit XXH64) of the file at _PATH_.
+
 *`--dump-manifest`* _PATH_::
 
     Dump manifest file at _PATH_ in text format to standard output. This is

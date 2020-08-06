@@ -21,6 +21,7 @@
 
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
+#include "Checksum.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "File.hpp"
@@ -122,6 +123,8 @@ Common options:
     -V, --version              print version and copyright information
 
 Options for scripting or debugging:
+        --checksum-file PATH   print the checksum (64 bit XXH64) of the file at
+                               PATH
         --dump-manifest PATH   dump manifest file at PATH in text format
         --dump-result PATH     dump result file at PATH in text format
         --extract-result PATH  extract data stored in result file at PATH to the
@@ -2155,6 +2158,7 @@ static int
 handle_main_options(int argc, const char* const* argv)
 {
   enum longopts {
+    CHECKSUM_FILE,
     DUMP_MANIFEST,
     DUMP_RESULT,
     EVICT_OLDER_THAN,
@@ -2163,6 +2167,7 @@ handle_main_options(int argc, const char* const* argv)
     PRINT_STATS,
   };
   static const struct option options[] = {
+    {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
     {"cleanup", no_argument, nullptr, 'c'},
     {"clear", no_argument, nullptr, 'C'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
@@ -2197,6 +2202,16 @@ handle_main_options(int argc, const char* const* argv)
     std::string arg = optarg ? optarg : std::string();
 
     switch (c) {
+    case CHECKSUM_FILE: {
+      Checksum checksum;
+      Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
+      Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
+        checksum.update(data, size);
+      });
+      fmt::print("{:016x}\n", checksum.digest());
+      break;
+    }
+
     case DUMP_MANIFEST:
       return manifest_dump(arg, stdout) ? 0 : 1;
 
