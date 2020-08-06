@@ -56,9 +56,14 @@ public:
 
   // Add bytes to the hash.
   //
-  // If hash debugging is enabled, the buffer content is written verbatim to the
-  // text input file, followed by a newline character if `hash_type` is
-  // HashType::text.
+  // If hash debugging is enabled:
+  //
+  // - If `hash_type` is `HashType::binary`, the buffer content is written in
+  //   hex format to the text input file.
+  // - If `hash_type` is `HashType::text`, the buffer content is written
+  //   verbatim to the text input file.
+  //
+  // In both cases a newline character is added as well.
   Hash&
   hash(const void* data, size_t size, HashType hash_type = HashType::text);
 

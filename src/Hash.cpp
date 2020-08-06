@@ -71,10 +71,18 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 {
   string_view buffer(static_cast<const char*>(data), size);
   hash_buffer(buffer);
-  add_debug_text(buffer);
-  if (hash_type == HashType::text) {
-    add_debug_text("\n");
+
+  switch (hash_type) {
+  case HashType::binary:
+    add_debug_text(Util::format_hex(static_cast<const uint8_t*>(data), size));
+    break;
+
+  case HashType::text:
+    add_debug_text(buffer);
+    break;
   }
+
+  add_debug_text("\n");
   return *this;
 }
 
