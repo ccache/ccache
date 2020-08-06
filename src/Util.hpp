@@ -33,15 +33,11 @@
 
 namespace Util {
 
-using ProgressReceiver = std::function<void(double /*progress*/)>;
-using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
-using SubdirVisitor =
-  std::function<void(const std::string& /*dir_path*/,
-                     const ProgressReceiver& /*progress_receiver*/)>;
+using ProgressReceiver = std::function<void(double progress)>;
+using SubdirVisitor = std::function<void(
+  const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
-using SubstringEditor =
-  std::function<void(nonstd::string_view::size_type pos, std::string& substr)>;
 
 enum class UnlinkLog { log_failure, ignore_failure };
 
