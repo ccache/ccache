@@ -419,7 +419,7 @@ hash_command_output(Hash& hash,
   si.cb = sizeof(STARTUPINFO);
 
   HANDLE pipe_out[2];
-  SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
+  SECURITY_ATTRIBUTES sa = {sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
   CreatePipe(&pipe_out[0], &pipe_out[1], &sa, 0);
   SetHandleInformation(pipe_out[0], HANDLE_FLAG_INHERIT, 0);
   si.hStdOutput = pipe_out[1];

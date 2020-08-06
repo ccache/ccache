@@ -36,7 +36,7 @@ get_system_tmp_dir()
 {
 #  ifndef _WIN32
   const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir != NULL) {
+  if (tmpdir) {
     return tmpdir;
   }
 #  else

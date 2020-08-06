@@ -137,10 +137,10 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     handle = CreateFile(lockfile.c_str(),
                         GENERIC_WRITE, // desired access
                         0,             // shared mode (0 = not shared)
-                        NULL,          // security attributes
+                        nullptr,       // security attributes
                         CREATE_ALWAYS, // creation disposition
                         flags,         // flags and attributes
-                        NULL           // template file
+                        nullptr        // template file
     );
     if (handle != INVALID_HANDLE_VALUE) {
       break;

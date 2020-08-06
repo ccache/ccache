@@ -78,7 +78,7 @@ const size_t READ_BUFFER_SIZE = 65536;
 #  endif
 #  include <windows.h>
 #  define mkdir(a, b) mkdir(a)
-#  define link(src, dst) (CreateHardLink(dst, src, NULL) ? 0 : -1)
+#  define link(src, dst) (CreateHardLink(dst, src, nullptr) ? 0 : -1)
 #  define execv(a, b) win32execute(a, b, 0, -1, -1)
 #  define DIR_DELIM_CH '\\'
 #  define PATH_DELIM ";"

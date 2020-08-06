@@ -1080,10 +1080,10 @@ real_path(const std::string& path, bool return_empty_on_error)
   HANDLE path_handle = CreateFile(c_path,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
-                                  NULL,
+                                  nullptr,
                                   OPEN_EXISTING,
                                   FILE_ATTRIBUTE_NORMAL,
-                                  NULL);
+                                  nullptr);
   if (INVALID_HANDLE_VALUE != path_handle) {
     bool ok = GetFinalPathNameByHandle(
       path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
