@@ -593,7 +593,7 @@ base_tests() {
 
     cat <<'EOF' >prefix-a
 #!/bin/sh
-echo a >>prefix.result
+echo a >prefix.result
 exec "$@"
 EOF
     cat <<'EOF' >prefix-b
