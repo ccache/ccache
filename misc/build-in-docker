@@ -22,6 +22,8 @@ name=${1}
 shift
 
 tag="ccache-build:$name"
+command="${COMMAND:-/source/ci/build}"
+interactive="${INTERACTIVE:+--interactive --tty}"
 
 # Build (if not exists):
 docker build -t "$tag" "dockerfiles/$name"
@@ -30,7 +32,8 @@ docker build -t "$tag" "dockerfiles/$name"
 mkdir -p build-in-docker
 mkdir -p build-in-docker/docker-ccache
 
-docker run --rm \
+docker run \
+    --rm \
     --volume "$PWD:/source" \
     --volume "$PWD/build-in-docker/docker-ccache:/ccache" \
     --tmpfs /builddir:rw,exec \
@@ -49,5 +52,6 @@ docker run --rm \
     --env SCAN_BUILD="${SCAN_BUILD:-}" \
     --env SPECIAL="${SPECIAL:-}" \
     --env VERBOSE="${VERBOSE:-}" \
+    $interactive \
     "$tag" \
-    /source/ci/build "$@"
+    "$command" "$@"

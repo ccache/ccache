@@ -1,17 +1,17 @@
-FROM alpine:3.12
+FROM debian:10
 
-RUN apk add --no-cache \
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
         bash \
+        build-essential \
         ccache \
         clang \
         cmake \
         elfutils \
-        g++ \
-        gcc \
-        libc-dev \
-        make \
-        perl \
-        zstd-dev
+        gcc-multilib \
+        libzstd-dev \
+        xsltproc \
+ && rm -rf /var/lib/apt/lists/*
 
 # Redirect all compilers to ccache.
 RUN for t in gcc g++ cc c++ clang clang++; do ln -vs /usr/bin/ccache /usr/local/bin/$t; done
