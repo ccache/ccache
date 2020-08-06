@@ -33,6 +33,7 @@
 
 namespace Util {
 
+using DataReceiver = std::function<void(const void* data, size_t size)>;
 using ProgressReceiver = std::function<void(double progress)>;
 using SubdirVisitor = std::function<void(
   const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
@@ -329,6 +330,11 @@ uint64_t parse_size(const std::string& value);
 //
 // Throws `Error` on error.
 uint32_t parse_uint32(const std::string& value);
+
+// Read data from `fd` until end of file and call `data_receiver` with the read
+// data. Returns whether reading was successful, i.e. whether the read(2) call
+// did not return -1.
+bool read_fd(int fd, DataReceiver data_receiver);
 
 // Return `path`'s content as a string. If `size_hint` is not 0 then assume that
 // `path` has this size (this saves system calls).

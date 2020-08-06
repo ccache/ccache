@@ -104,19 +104,8 @@ Hash::hash(int64_t x)
 bool
 Hash::hash_fd(int fd)
 {
-  char buf[READ_BUFFER_SIZE];
-  ssize_t n;
-
-  while ((n = read(fd, buf, sizeof(buf))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0) {
-      hash_buffer(string_view(buf, n));
-      add_debug_text(string_view(buf, n));
-    }
-  }
-  return n >= 0;
+  return Util::read_fd(
+    fd, [=](const void* data, size_t size) { hash(data, size); });
 }
 
 bool

@@ -289,16 +289,8 @@ common_dir_prefix_length(string_view dir, string_view path)
 void
 copy_fd(int fd_in, int fd_out)
 {
-  ssize_t n;
-  char buf[READ_BUFFER_SIZE];
-  while ((n = read(fd_in, buf, sizeof(buf))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0) {
-      write_fd(fd_out, buf, n);
-    }
-  }
+  read_fd(fd_in,
+          [=](const void* data, size_t size) { write_fd(fd_out, data, size); });
 }
 
 void
@@ -995,6 +987,22 @@ parse_uint32(const std::string& value)
     throw Error("invalid 32-bit unsigned integer: \"{}\"", value);
   }
   return result;
+}
+
+bool
+read_fd(int fd, DataReceiver data_receiver)
+{
+  ssize_t n;
+  char buffer[READ_BUFFER_SIZE];
+  while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
+    if (n == -1 && errno != EINTR) {
+      break;
+    }
+    if (n > 0) {
+      data_receiver(buffer, n);
+    }
+  }
+  return n >= 0;
 }
 
 std::string
