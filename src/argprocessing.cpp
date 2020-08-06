@@ -202,10 +202,10 @@ process_profiling_option(Context& ctx, const std::string& arg)
   return true;
 }
 
-// Compiler in depend mode is invoked with the original arguments. Collect extra
-// arguments that should be added.
+// The compiler is invoked with the original arguments in the depend mode.
+// Collect extra arguments that should be added.
 void
-add_extra_arg(Context& ctx, const std::string& arg)
+add_depend_mode_extra_original_args(Context& ctx, const std::string& arg)
 {
   if (ctx.config.depend_mode()) {
     ctx.args_info.depend_extra_args.push_back(arg);
@@ -1105,14 +1105,14 @@ process_args(Context& ctx,
         state.cpp_args.push_back("-fcolor-diagnostics");
       }
       state.compiler_only_args.push_back("-fcolor-diagnostics");
-      add_extra_arg(ctx, "-fcolor-diagnostics");
+      add_depend_mode_extra_original_args(ctx, "-fcolor-diagnostics");
     }
   } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
     if (!config.run_second_cpp()) {
       state.cpp_args.push_back("-fdiagnostics-color");
     }
     state.compiler_only_args.push_back("-fdiagnostics-color");
-    add_extra_arg(ctx, "-fdiagnostics-color");
+    add_depend_mode_extra_original_args(ctx, "-fdiagnostics-color");
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
     args_info.strip_diagnostics_colors = false;
