@@ -94,6 +94,12 @@ Common options
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`-d`*, *`--directory`* _PATH_
+
+    Let the subsequent command line options operate on cache directory PATH
+    instead of the default for. For example, to show statistics for a cache
+    directory at `/shared/ccache` you can run `ccache -d /shared/ccache -s`.
+
 *`--evict-older-than`* _AGE_::
 
     Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned

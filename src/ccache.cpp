@@ -102,6 +102,8 @@ Common options:
                                (normally not needed as this is done
                                automatically)
     -C, --clear                clear the cache completely (except configuration)
+    -d, --directory PATH       operate on cache directory PATH instead of the
+                               default
         --evict-older-than AGE remove files older than AGE (unsigned integer
                                with a d (days) or s (seconds) suffix)
     -F, --max-files NUM        set maximum number of files in cache to NUM (use
@@ -2170,6 +2172,7 @@ handle_main_options(int argc, const char* const* argv)
     {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
     {"cleanup", no_argument, nullptr, 'c'},
     {"clear", no_argument, nullptr, 'C'},
+    {"directory", no_argument, nullptr, 'd'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
     {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
@@ -2195,7 +2198,7 @@ handle_main_options(int argc, const char* const* argv)
   int c;
   while ((c = getopt_long(argc,
                           const_cast<char* const*>(argv),
-                          "cCk:hF:M:po:sVxX:z",
+                          "cCd:k:hF:M:po:sVxX:z",
                           options,
                           nullptr))
          != -1) {
@@ -2281,6 +2284,10 @@ handle_main_options(int argc, const char* const* argv)
       }
       break;
     }
+
+    case 'd': // --directory
+      Util::setenv("CCACHE_DIR", arg);
+      break;
 
     case 'h': // --help
       fmt::print(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
