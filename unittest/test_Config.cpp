@@ -38,10 +38,8 @@ TEST_CASE("Config: default values")
 {
   Config config;
 
-  std::string expected_cache_dir = Util::get_home_directory() + "/.ccache";
-
   CHECK(config.base_dir().empty());
-  CHECK(config.cache_dir() == expected_cache_dir);
+  CHECK(config.cache_dir().empty()); // Set later
   CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
@@ -73,16 +71,7 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-#ifdef HAVE_GETEUID
-  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
-    CHECK(config.temporary_dir()
-          == fmt::format("/run/user/{}/ccache-tmp", geteuid()));
-  } else {
-#endif
-    CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
-#ifdef HAVE_GETEUID
-  }
-#endif
+  CHECK(config.temporary_dir().empty()); // Set later
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 

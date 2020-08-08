@@ -29,6 +29,14 @@ using TestUtil::TestContext;
 
 namespace {
 
+void
+init(Context& ctx)
+{
+  ctx.config.set_debug(true);
+  ctx.config.set_inode_cache(true);
+  ctx.config.set_cache_dir(Util::get_home_directory());
+}
+
 bool
 put(const Context& ctx,
     const std::string& filename,
@@ -50,7 +58,7 @@ TEST_CASE("Test disabled")
   TestContext test_context;
 
   Context ctx;
-  ctx.config.set_debug(true);
+  init(ctx);
   ctx.config.set_inode_cache(false);
 
   Digest digest;
@@ -70,8 +78,7 @@ TEST_CASE("Test lookup nonexistent")
   TestContext test_context;
 
   Context ctx;
-  ctx.config.set_debug(true);
-  ctx.config.set_inode_cache(true);
+  init(ctx);
   ctx.inode_cache.drop();
   Util::write_file("a", "");
 
@@ -90,8 +97,7 @@ TEST_CASE("Test put and lookup")
   TestContext test_context;
 
   Context ctx;
-  ctx.config.set_debug(true);
-  ctx.config.set_inode_cache(true);
+  init(ctx);
   ctx.inode_cache.drop();
   Util::write_file("a", "a text");
 
@@ -132,8 +138,7 @@ TEST_CASE("Drop file")
   TestContext test_context;
 
   Context ctx;
-  ctx.config.set_debug(true);
-  ctx.config.set_inode_cache(true);
+  init(ctx);
 
   Digest digest;
 
@@ -149,9 +154,8 @@ TEST_CASE("Test content type")
   TestContext test_context;
 
   Context ctx;
-  ctx.config.set_debug(true);
+  init(ctx);
   ctx.inode_cache.drop();
-  ctx.config.set_inode_cache(true);
   Util::write_file("a", "a text");
   Digest binary_digest = Hash().hash("binary").digest();
   Digest code_digest = Hash().hash("code").digest();

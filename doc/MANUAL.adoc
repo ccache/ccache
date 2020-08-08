@@ -241,15 +241,33 @@ file. The priority of configuration settings is as follows (where 1 is
 highest):
 
 1. Environment variables.
-2. The cache-specific configuration file *_<ccachedir>_/ccache.conf* (typically
-   *$HOME/.ccache/ccache.conf*).
-3. The system-wide configuration file *_<sysconfdir>_/ccache.conf* (typically
-   */etc/ccache.conf* or */usr/local/etc/ccache.conf*).
+2. The primary (cache-specific) configuration file (see below).
+3. The secondary (system-wide read-only) configuration file
+   *_<sysconfdir>_/ccache.conf* (typically */etc/ccache.conf* or
+    */usr/local/etc/ccache.conf*).
 4. Compile-time defaults.
 
-As a special case, if the environment variable *CCACHE_CONFIGPATH* is set,
-ccache reads configuration from the specified path instead of the default
-paths.
+As a special case, if the the environment variable *CCACHE_CONFIGPATH* is set
+it specifies the primary configuration file and the secondary (system-wide)
+configuration file won't be read.
+
+
+Location of the primary configuration file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The location of the primary (cache-specific) configuration is determined like
+this:
+
+1. If *CCACHE_CONFIGPATH* is set, use that path.
+2. Otherwise, if <<config_ccache_dir,*ccache_dir*>> (*CCACHE_DIR*) is set then
+   use *<ccache_dir>/ccache.conf*.
+3. Otherwise, if there is a legacy *$HOME/.ccache* directory then use
+   *$HOME/.ccache/ccache.conf.
+4. Otherwise, if *XDG_CONFIG_HOME* is set then use
+   *$XDG_CONFIG_HOME/ccache/ccache.conf*.
+5. Otherwise, use *%APPDATA%/ccache/ccache.conf* (Windows),
+   *$HOME/Library/Preferences/ccache/ccache.conf (macOS) or
+   *$HOME/.config/ccache/ccache.conf* (other systems).
 
 
 Configuration file syntax
@@ -304,7 +322,12 @@ IN DIFFERENT DIRECTORIES>>.
 
     This setting specifies where ccache will keep its cached compiler outputs.
     It will only take effect if set in the system-wide configuration file or as
-    an environment variable. The default is *$HOME/.ccache*.
+    an environment variable. The default is *$XDG_CACHE_HOME/ccache* if
+    *XDG_CACHE_HOME* is set, otherwise *$HOME/.cache/ccache*. Exception: If the
+    legacy directory *$HOME/.ccache* exists then that directory is the default.
+
+    See also <<_location_of_the_primary_configuration_file,LOCATION OF THE
+    PRIMARY CONFIGURATION FILE>>.
 
 [[config_cache_dir_levels]] *cache_dir_levels* (*CCACHE_NLEVELS*)::
 

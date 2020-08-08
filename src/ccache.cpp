@@ -1755,45 +1755,102 @@ create_initial_config_file(Config& config)
   fclose(f);
 }
 
+static std::string
+default_cache_dir(const std::string& home_dir)
+{
+#ifdef _WIN32
+  return home_dir + "/ccache";
+#elif defined(__APPLE__)
+  return home_dir + "/Library/Caches/ccache";
+#else
+  return home_dir + "/.cache/ccache";
+#endif
+}
+
+static std::string
+default_config_dir(const std::string& home_dir)
+{
+#ifdef _WIN32
+  return home_dir + "/ccache";
+#elif defined(__APPLE__)
+  return home_dir + "/Library/Preferences/ccache";
+#else
+  return home_dir + "/.config/ccache";
+#endif
+}
+
 // Read config file(s), populate variables, create configuration file in cache
 // directory if missing, etc. Returns whether the primary configuration file
 // exists.
 static bool
 set_up_config(Config& config)
 {
-  const char* p = getenv("CCACHE_CONFIGPATH");
-  if (p) {
-    config.set_primary_config_path(p);
+  const std::string home_dir = Util::get_home_directory();
+  const std::string legacy_ccache_dir = home_dir + "/.ccache";
+  const bool legacy_ccache_dir_exists =
+    Stat::stat(legacy_ccache_dir).is_directory();
+  const char* const env_xdg_cache_home = getenv("XDG_CACHE_HOME");
+  const char* const env_xdg_config_home = getenv("XDG_CONFIG_HOME");
+
+  const char* env_ccache_configpath = getenv("CCACHE_CONFIGPATH");
+  if (env_ccache_configpath) {
+    config.set_primary_config_path(env_ccache_configpath);
   } else {
-    config.set_secondary_config_path(fmt::format("{}/ccache.conf", SYSCONFDIR));
+    // Only used for ccache tests:
+    const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
+
+    config.set_secondary_config_path(
+      env_ccache_configpath2 ? env_ccache_configpath2
+                             : fmt::format("{}/ccache.conf", SYSCONFDIR));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     config.update_from_file(config.secondary_config_path());
     MTR_END("config", "conf_read_secondary");
 
-    if (config.cache_dir().empty()) {
-      throw FatalError(
-        "configuration setting \"cache_dir\" must not be the empty string");
+    const char* const env_ccache_dir = getenv("CCACHE_DIR");
+    std::string primary_config_dir;
+    if (env_ccache_dir && *env_ccache_dir) {
+      primary_config_dir = env_ccache_dir;
+    } else if (!config.cache_dir().empty() && !env_ccache_dir) {
+      primary_config_dir = config.cache_dir();
+    } else if (legacy_ccache_dir_exists) {
+      primary_config_dir = legacy_ccache_dir;
+    } else if (env_xdg_config_home) {
+      primary_config_dir = fmt::format("{}/ccache", env_xdg_config_home);
+    } else {
+      primary_config_dir = default_config_dir(home_dir);
     }
-    if ((p = getenv("CCACHE_DIR"))) {
-      config.set_cache_dir(p);
-    }
-    if (config.cache_dir().empty()) {
-      throw FatalError("CCACHE_DIR must not be the empty string");
-    }
-
-    config.set_primary_config_path(
-      fmt::format("{}/ccache.conf", config.cache_dir()));
+    config.set_primary_config_path(primary_config_dir + "/ccache.conf");
   }
 
+  const std::string& cache_dir_before_primary_config = config.cache_dir();
+
   MTR_BEGIN("config", "conf_read_primary");
-  bool primary_config_exists =
+  const bool primary_config_exists =
     config.update_from_file(config.primary_config_path());
   MTR_END("config", "conf_read_primary");
 
+  // Ignore cache_dir set in primary config.
+  config.set_cache_dir(cache_dir_before_primary_config);
+
   MTR_BEGIN("config", "conf_update_from_environment");
   config.update_from_environment();
+  // (config.cache_dir is set above if CCACHE_DIR is set.)
   MTR_END("config", "conf_update_from_environment");
+
+  if (config.cache_dir().empty()) {
+    if (legacy_ccache_dir_exists) {
+      config.set_cache_dir(legacy_ccache_dir);
+    } else if (env_xdg_cache_home) {
+      config.set_cache_dir(fmt::format("{}/ccache", env_xdg_cache_home));
+    } else {
+      config.set_cache_dir(default_cache_dir(home_dir));
+    }
+  }
+  // else: cache_dir was set explicitly via environment or via secondary config.
+
+  // We have now determined config.cache_dir and populated the rest of config in
+  // prio order (1. environment, 2. primary config, 3. secondary config).
 
   return primary_config_exists;
 }
@@ -2388,6 +2445,7 @@ handle_main_options(int argc, const char* const* argv)
 
     // Some of the above switches might have changed config settings, so run the
     // setup again.
+    ctx.config = Config();
     set_up_config(ctx.config);
   }
 

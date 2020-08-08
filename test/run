@@ -321,6 +321,8 @@ $(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
 EOF
     unset GCC_COLORS
     unset TERM
+    unset XDG_CACHE_HOME
+    unset XDG_CONFIG_HOME
 
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache

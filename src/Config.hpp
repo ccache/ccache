@@ -32,10 +32,12 @@
 
 class Config;
 
-class Config : NonCopyable
+class Config
 {
 public:
   Config() = default;
+  Config(Config&) = default;
+  Config& operator=(const Config&) = default;
 
   const std::string& base_dir() const;
   const std::string& cache_dir() const;
@@ -127,7 +129,7 @@ private:
   std::string m_secondary_config_path;
 
   std::string m_base_dir = "";
-  std::string m_cache_dir = Util::get_home_directory() + "/.ccache";
+  std::string m_cache_dir;
   uint32_t m_cache_dir_levels = 2;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";
@@ -160,7 +162,7 @@ private:
   bool m_run_second_cpp = true;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
-  std::string m_temporary_dir = default_temporary_dir(m_cache_dir);
+  std::string m_temporary_dir;
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
 
   bool m_temporary_dir_configured_explicitly = false;
