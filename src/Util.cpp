@@ -392,6 +392,7 @@ expand_environment_variables(const std::string& str)
       if (right == left) {
         // Special case: don't consider a single $ the left of a variable.
         result += '$';
+        --right;
       } else {
         std::string name(left, right - left);
         const char* value = getenv(name.c_str());
