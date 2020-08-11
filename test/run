@@ -513,7 +513,7 @@ START_PWD="$PWD"
 symlink_testdir_on_failure() {
     cd "$START_PWD"
     rm -f "$TEST_FAILED_SYMLINK"
-    ln -s "$TESTDIR" "$TEST_FAILED_SYMLINK"
+    ln -s "$$" "$TEST_FAILED_SYMLINK"
 }
 
 cd $TESTDIR || exit 1
