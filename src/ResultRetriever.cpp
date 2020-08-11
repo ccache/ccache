@@ -138,7 +138,7 @@ void
 ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stderr_output) {
-    Util::send_to_stderr(m_dest_data, m_ctx.args_info.strip_diagnostics_colors);
+    Util::send_to_stderr(m_ctx, m_dest_data);
   } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {
     write_dependency_file();
   }

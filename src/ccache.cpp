@@ -899,8 +899,7 @@ to_cache(Context& ctx,
     log("Compiler gave exit status {}", status);
 
     // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_stderr(Util::read_file(tmp_stderr_path),
-                         ctx.args_info.strip_diagnostics_colors);
+    Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
 
     throw Failure(STATS_STATUS, status);
   }
@@ -991,8 +990,7 @@ to_cache(Context& ctx,
   }
 
   // Everything OK.
-  Util::send_to_stderr(Util::read_file(tmp_stderr_path),
-                       ctx.args_info.strip_diagnostics_colors);
+  Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
 }
 
 // Find the result name by running the compiler in preprocessor mode and

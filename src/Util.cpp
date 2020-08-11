@@ -1162,15 +1162,15 @@ same_program_name(const std::string& program_name,
 }
 
 void
-send_to_stderr(const std::string& text, bool strip_colors)
+send_to_stderr(const Context& ctx, const std::string& text)
 {
   const std::string* text_to_send = &text;
-  std::string stripped_text;
+  std::string modified_text;
 
-  if (strip_colors) {
+  if (ctx.args_info.strip_diagnostics_colors) {
     try {
-      stripped_text = Util::strip_ansi_csi_seqs(text);
-      text_to_send = &stripped_text;
+      modified_text = strip_ansi_csi_seqs(text);
+      text_to_send = &modified_text;
     } catch (const Error&) {
       // Fall through
     }
