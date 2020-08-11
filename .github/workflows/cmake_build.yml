@@ -21,26 +21,23 @@ jobs:
       - name: Get Source
         uses: actions/checkout@v2
   
-      - name: "Linux: Run Apt-Get"
+      - name: "Install dependencies (Ubuntu 16 & 18)"
         if: startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-20.04'
         run: sudo apt-get install elfutils libzstd1-dev
   
-      - name: "Linux (Ubuntu 20.04): Run Apt-Get"
+      - name: "Install dependencies (Ubuntu 20)"
         if: matrix.os == 'ubuntu-20.04'
         run: sudo apt-get install elfutils libzstd-dev
-  
-      - name: "Setup common ENV"
-        uses: allenevans/set-env@v1.1.0
-        with:
+      
+      - name: Build and Test
+        shell: bash
+        run: ci/build
+        env:
           CC: ${{ matrix.compiler.CC }}
           CXX: ${{ matrix.compiler.CXX }}
           VERBOSE: 1
           ENABLE_CACHE_CLEANUP_TESTS: true
           CTEST_OUTPUT_ON_FAILURE: ON
-      
-      - name: Build and Test
-        shell: bash
-        run: ci/build
   
       - name: Collect testdirs from failed tests
         if: failure()
@@ -52,32 +49,6 @@ jobs:
         with:
           name: ${{ matrix.config.name }} - testdirs.zip
           path: testdirs.zip
-
-      # Does it make sense to do this on every matrix element?
-      - name: "Build binary and verify it"
-        run: ci/build-and-verify-package
-        # ToDo: upload testdirs in case of errors
-
-      - name: Upload binary
-        uses: actions/upload-artifact@v2
-        with:
-          # Does it make sense to upload all of them?
-          # What is even the use case? People using specific versions without compiling on their own.
-          name: ${{ matrix.os }}-${{ matrix.compiler.CXX }}-ccache.tar.gz
-          path: build_package_dir_test/ccache-binary.tar.gz
-
-      # Does it make sense to do this on every matrix element?
-      - name: "Create source package and verify it"
-        run: ci/build-and-verify-package-source
-        # ToDo: upload testdirs in case of errors
-
-      - name: Upload source zip
-        # Uploading once is enough
-        if: matrix.os == 'ubuntu-20.04' && matrix.CC == 'gcc'
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.os }}-${{ matrix.compiler.CXX }}-ccache-src.tar.gz
-          path: build_package_source_dir_test/ccache-src.tar.gz
 
   # These mimic the old Travis tests as far as not replaced by standard_tests:
   specific_tests:
@@ -146,7 +117,19 @@ jobs:
           }
           # Job 7: Build on MacOS with native Clang moved to standard tests
           - {
-            # Job 8: Run Clang's undefined behavior sanitizer
+            # Job 8: Build with ENABLE_TRACING
+            name: "Enabled tracing",
+            os: ubuntu-18.04,
+            CC: "gcc",
+            CXX: "g++",
+            ENABLE_CACHE_CLEANUP_TESTS: 1,
+            BUILDDIR: .,
+            CCACHE_LOC: .,
+            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release",
+            apt_get: elfutils libzstd1-dev
+            }
+          - {
+            # Job 9: Run Clang's undefined behavior sanitizer
             name: "Clang UB sanitizer",
             os: ubuntu-20.04,
             CC: "clang",
@@ -157,7 +140,7 @@ jobs:
             apt_get: elfutils libzstd-dev
           }
           - {
-            # Job 9: Run Clang's address sanitizer
+            # Job 10: Run Clang's address sanitizer
             name: "Clang address sanitizer",
             os: ubuntu-20.04,
             CC: "clang",
@@ -168,7 +151,7 @@ jobs:
             apt_get: elfutils libzstd-dev
           }
           - {
-            # Job 10: Run Clang's static analyzer
+            # Job 11: Run Clang's static analyzer
             name: "Clang static analyzer",
             os: ubuntu-20.04,
             CC: "clang",
@@ -179,30 +162,43 @@ jobs:
             path: "/usr/bin",
             apt_get: libzstd-dev
           }
-          # Job 11: Build binary package, extract it out of source, run tests. Moved to standard_tests.
-          # Job 12: Build source package, extract it out of source, run tests. Moved to standard_tests.
           - {
-            # Job 13: Build documentation
+            # Job 12: Build binary package, extract it out of source, run tests.
+            name: "Build binary and verify it",
+            os: ubuntu-20.04,
+            CC: "clang",
+            CXX: "clang++",
+            SPECIAL: build-and-verify-package,
+            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release",
+            apt_get: elfutils libzstd-dev
+          }
+          - {
+            # Job 13: Build source package, extract it out of source, run tests.
+            name: "Build source package and verify it",
+            os: ubuntu-20.04,
+            CC: "clang",
+            CXX: "clang++",
+            SPECIAL: build-and-verify-package-source,
+            apt_get: elfutils libzstd-dev
+          }
+          - {
+            # Job 14: Build documentation
             name: "Build documentation",
             os: ubuntu-18.04,
             BUILDEXTRAFLAGS: "--target documentation",
             RUN_TESTS: 0,
             apt_get: libzstd1-dev asciidoc
-
-            # Upload documentation as artifact?
           }
           - {
-            # Job 14: Build manpage
+            # Job 15: Build manpage
             name: "Build manpage",
             os: ubuntu-18.04,
             BUILDEXTRAFLAGS: "--target manpage",
             RUN_TESTS: 0,
             apt_get: libzstd1-dev asciidoc xsltproc
-
-            # Upload manpage as artifact?
           }
           - {
-            # Job 15: Run Clang-Tidy
+            # Job 16: Run Clang-Tidy
             name: "Run Clang-Tidy",
             os: ubuntu-20.04,
             CC: "clang",
@@ -250,6 +246,7 @@ jobs:
     - name: Collect testdirs from failed tests
       if: failure()
       run: zip -r testdirs.zip ${{ matrix.config.BUILDDIR }}/testdir.* -x testdir.failed
+      # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
 
     - name: Upload testdirs from failed tests
       if: failure()
