@@ -125,7 +125,7 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1,
             BUILDDIR: .,
             CCACHE_LOC: .,
-            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release",
+            CMAKE_PARAMS: "-DENABLE_TRACING=1",
             apt_get: elfutils libzstd1-dev
             }
           - {
