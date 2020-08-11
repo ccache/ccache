@@ -374,6 +374,7 @@ TEST_CASE("Config::visit_items")
 
   Util::write_file(
     "test.conf",
+    "absolute_paths_in_stderr = true\n"
 #ifndef _WIN32
     "base_dir = /bd\n"
 #else
@@ -429,6 +430,7 @@ TEST_CASE("Config::visit_items")
   });
 
   std::vector<std::string> expected = {
+    "(test.conf) absolute_paths_in_stderr = true",
 #ifndef _WIN32
     "(test.conf) base_dir = /bd",
 #else

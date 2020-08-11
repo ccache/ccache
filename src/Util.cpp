@@ -149,6 +149,46 @@ split_at(string_view input, const char* separators)
   return result;
 }
 
+std::string
+rewrite_stderr_to_absolute_paths(string_view text)
+{
+  static const std::string in_file_included_from = "In file included from ";
+
+  std::string result;
+  for (auto line : Util::split_into_views(text, "\n")) {
+    // Rewrite <path> to <absolute path> in the following two cases, where X may
+    // be optional ANSI CSI sequences:
+    //
+    // In file included from X<path>X:1:
+    // X<path>X:1:2: ...
+
+    if (Util::starts_with(line, in_file_included_from)) {
+      result += in_file_included_from;
+      line = line.substr(in_file_included_from.length());
+    }
+    while (!line.empty() && line[0] == 0x1b) {
+      auto csi_seq = find_first_ansi_csi_seq(line);
+      result.append(csi_seq.data(), csi_seq.length());
+      line = line.substr(csi_seq.length());
+    }
+    size_t path_end = line.find(':');
+    if (path_end == nonstd::string_view::npos) {
+      result.append(line.data(), line.length());
+    } else {
+      std::string path(line.substr(0, path_end));
+      if (Stat::stat(path)) {
+        result += Util::real_path(path);
+        auto tail = line.substr(path_end);
+        result.append(tail.data(), tail.length());
+      } else {
+        result.append(line.data(), line.length());
+      }
+    }
+    result += '\n';
+  }
+  return result;
+}
+
 } // namespace
 
 namespace Util {
@@ -1174,6 +1214,11 @@ send_to_stderr(const Context& ctx, const std::string& text)
     } catch (const Error&) {
       // Fall through
     }
+  }
+
+  if (ctx.config.absolute_paths_in_stderr()) {
+    modified_text = rewrite_stderr_to_absolute_paths(*text_to_send);
+    text_to_send = &modified_text;
   }
 
   try {

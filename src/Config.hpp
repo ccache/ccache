@@ -39,6 +39,7 @@ public:
   Config(Config&) = default;
   Config& operator=(const Config&) = default;
 
+  bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
   const std::string& cache_dir() const;
   uint32_t cache_dir_levels() const;
@@ -128,6 +129,7 @@ private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;
 
+  bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir = "";
   std::string m_cache_dir;
   uint32_t m_cache_dir_levels = 2;
@@ -177,6 +179,12 @@ private:
 
   static std::string default_temporary_dir(const std::string& cache_dir);
 };
+
+inline bool
+Config::absolute_paths_in_stderr() const
+{
+  return m_absolute_paths_in_stderr;
+}
 
 inline const std::string&
 Config::base_dir() const

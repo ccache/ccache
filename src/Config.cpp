@@ -39,6 +39,7 @@ using nonstd::optional;
 namespace {
 
 enum class ConfigItem {
+  absolute_paths_in_stderr,
   base_dir,
   cache_dir,
   cache_dir_levels,
@@ -78,6 +79,7 @@ enum class ConfigItem {
 };
 
 const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
+  {"absolute_paths_in_stderr", ConfigItem::absolute_paths_in_stderr},
   {"base_dir", ConfigItem::base_dir},
   {"cache_dir", ConfigItem::cache_dir},
   {"cache_dir_levels", ConfigItem::cache_dir_levels},
@@ -117,6 +119,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
+  {"ABSSTDERR", "absolute_paths_in_stderr"},
   {"BASEDIR", "base_dir"},
   {"CC", "compiler"}, // Alias for CCACHE_COMPILER
   {"COMMENTS", "keep_comments_cpp"},
@@ -467,6 +470,9 @@ Config::get_string_value(const std::string& key) const
   }
 
   switch (it->second) {
+  case ConfigItem::absolute_paths_in_stderr:
+    return format_bool(m_absolute_paths_in_stderr);
+
   case ConfigItem::base_dir:
     return m_base_dir;
 
@@ -648,6 +654,10 @@ Config::set_item(const std::string& key,
   }
 
   switch (it->second) {
+  case ConfigItem::absolute_paths_in_stderr:
+    m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
+    break;
+
   case ConfigItem::base_dir:
     m_base_dir = Util::expand_environment_variables(value);
     if (!m_base_dir.empty()) { // The empty string means "disable"

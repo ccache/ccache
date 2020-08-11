@@ -304,6 +304,15 @@ Below is a list of available configuration settings. The corresponding
 environment variable name is indicated in parentheses after each configuration
 setting key.
 
+[[config_absolute_paths_in_stderr]] *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
+
+    This setting specifies whether ccache should rewrite relative paths in the
+    compiler's standard error output to absolute paths. This can be useful if
+    you use <<config_base_dir,*base_dir*>> with a build system (e.g. CMake with
+    the "Unix Makefiles" generator) that executes the compiler in a different
+    working directory, which makes relative paths in compiler errors or
+    warnings incorrect. The default is false.
+
 [[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
     This setting should be an absolute path to a directory. ccache then
@@ -317,6 +326,9 @@ setting key.
 +
 See also the discussion under <<_compiling_in_different_directories,COMPILING
 IN DIFFERENT DIRECTORIES>>.
++
+You may also want to enable the
+<<config_absolute_paths_in_stderr,*absolute_paths_in_stderr*>> option.
 
 [[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 

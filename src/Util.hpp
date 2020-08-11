@@ -368,7 +368,9 @@ bool same_program_name(const std::string& program_name,
                        const std::string& canonical_program_name);
 
 // Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
-// `ctx.args_info.strip_diagnostics_colors` is true. Throws `Error` on error.
+// `ctx.args_info.strip_diagnostics_colors` is true and rewriting paths to
+// absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws `Error` on
+// error.
 void send_to_stderr(const Context& ctx, const std::string& text);
 
 // Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
