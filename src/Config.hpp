@@ -398,12 +398,18 @@ inline void
 Config::set_base_dir(const std::string& value)
 {
   m_base_dir = value;
+#ifdef _WIN32
+  std::replace(m_base_dir.begin(), m_base_dir.end(), '\\', '/');
+#endif
 }
 
 inline void
 Config::set_cache_dir(const std::string& value)
 {
   m_cache_dir = value;
+#ifdef _WIN32
+  std::replace(m_cache_dir.begin(), m_cache_dir.end(), '\\', '/');
+#endif
   if (!m_temporary_dir_configured_explicitly) {
     m_temporary_dir = default_temporary_dir(m_cache_dir);
   }

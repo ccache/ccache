@@ -18,6 +18,10 @@
 
 #pragma once
 
+#ifdef __MINGW32__
+#include <windows.h>
+#endif
+
 #include "system.hpp"
 
 #include <string>

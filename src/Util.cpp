@@ -1100,7 +1100,15 @@ real_path(const std::string& path, bool return_empty_on_error)
     if (!ok) {
       return path;
     }
+#ifdef _WIN32
+    if(starts_with(buffer, "\\\\?\\")) {
+        resolved = buffer + 4; // Strip \\?\ from the file name.
+    } else {
+        resolved = buffer;
+    }
+#else
     resolved = buffer + 4; // Strip \\?\ from the file name.
+#endif
   } else {
     snprintf(buffer, buffer_size, "%s", c_path);
     resolved = buffer;

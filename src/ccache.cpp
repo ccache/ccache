@@ -1511,7 +1511,25 @@ calculate_result_name(Context& ctx,
 
     // All other arguments are included in the hash.
     hash.hash_delimiter("arg");
+
+#ifdef _WIN32    
+    std::string hash_path = args[i];
+    int pos = hash_path.find(":") - 1; //Get the index of the beginning of the path string 
+    if (pos > 0) {
+      std::string prefix = hash_path.substr(0, pos);
+      hash_path = hash_path.substr(pos);
+      if (!ctx.config.base_dir().empty() && Util::is_absolute_path(hash_path)) {
+        hash_path = Util::get_relative_path(ctx.config.base_dir(), hash_path);
+      }
+      hash_path = prefix + hash_path;
+      hash.hash(hash_path);
+    } else {
+      hash.hash(args[i]);
+    }
+#else
     hash.hash(args[i]);
+#endif
+    
     if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
       i++;
       hash.hash_delimiter("arg");
@@ -1590,7 +1608,14 @@ calculate_result_name(Context& ctx,
     //     share manifests and a/r.h exists.
     // * The expansion of __FILE__ may be incorrect.
     hash.hash_delimiter("inputfile");
-    hash.hash(ctx.args_info.input_file);
+
+    // If base_dir is set, use the relative path to generate hash
+    if (!ctx.config.base_dir().empty() && Util::is_absolute_path(ctx.args_info.input_file)) { 
+      std::string hash_path = Util::get_relative_path(ctx.config.base_dir(), ctx.args_info.input_file);
+      hash.hash(hash_path);
+    } else {
+        hash.hash(ctx.args_info.input_file);
+    }
 
     hash.hash_delimiter("sourcecode");
     int result = hash_source_code_file(ctx, hash, ctx.args_info.input_file);
