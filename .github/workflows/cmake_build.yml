@@ -59,14 +59,14 @@ jobs:
       matrix:
         config:
           # Job 1: Build (in source directory) on Linux with native GCC in release build mode
-          - name: "Linux GCC release"
+          - name: "Linux GCC release + tracing"
             os: ubuntu-18.04
             CC: "gcc"
             CXX: "g++"
             ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
-            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release"
+            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release -DENABLE_TRACING=1"
             apt_get: elfutils libzstd1-dev
 
           # Job 2: Build on Linux with native 32-bit GCC
@@ -114,16 +114,7 @@ jobs:
 
           # Job 7: Build on MacOS with native Clang moved to standard tests
 
-          # Job 8: Build with ENABLE_TRACING
-          - name: "Enabled tracing"
-            os: ubuntu-18.04
-            CC: "gcc"
-            CXX: "g++"
-            ENABLE_CACHE_CLEANUP_TESTS: 1
-            BUILDDIR: .
-            CCACHE_LOC: .
-            CMAKE_PARAMS: "-DENABLE_TRACING=1"
-            apt_get: elfutils libzstd1-dev
+          # Job 8: Build with ENABLE_TRACING merged into Job 1
 
           # Job 9: Run Clang's undefined behavior sanitizer
           - name: "Clang UB sanitizer"
