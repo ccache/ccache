@@ -235,7 +235,8 @@ stats_write(const std::string& path, const Counters& counters)
     file.commit();
   } catch (const Error& e) {
     // Make failure to write a stats file a soft error since it's not important
-    // enough to fail whole the process.
+    // enough to fail whole the process AND because it is called in the Context
+    // destructor.
     log("Error: {}", e.what());
   }
 }

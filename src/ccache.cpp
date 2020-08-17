@@ -373,9 +373,8 @@ do_remember_include_file(Context& ctx,
   return true;
 }
 
-// This function hashes an include file and stores the path and hash in the
-// global g_included_files variable. If the include file is a PCH, cpp_hash is
-// also updated.
+// This function hashes an include file and stores the path and hash in
+// ctx.included_files. If the include file is a PCH, cpp_hash is also updated.
 static void
 remember_include_file(Context& ctx,
                       const std::string& path,
@@ -2140,7 +2139,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (!ctx.config.depend_mode()) {
     // Find the hash using the preprocessed output. Also updates
-    // g_included_files.
+    // ctx.included_files.
     Hash cpp_hash = common_hash;
     init_hash_debug(ctx,
                     cpp_hash,
