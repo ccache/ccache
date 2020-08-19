@@ -38,7 +38,7 @@ class ErrorBase : public std::runtime_error
 
 // Throw an Error to indicate a potentially non-fatal error that may be caught
 // and handled by callers. An uncaught Error that reaches the top level will be
-// treated similar to FatalError.
+// treated similar to Fatal.
 class Error : public ErrorBase
 {
 public:
@@ -59,24 +59,24 @@ inline Error::Error(T&&... args)
 {
 }
 
-// Throw a FatalError to make ccache print the error message to stderr and exit
+// Throw a Fatal to make ccache print the error message to stderr and exit
 // with a non-zero exit code.
-class FatalError : public ErrorBase
+class Fatal : public ErrorBase
 {
 public:
   // Special case: If given only one string, don't parse it as a format string.
-  FatalError(const std::string& message);
+  Fatal(const std::string& message);
 
   // `args` are forwarded to `fmt::format`.
-  template<typename... T> inline FatalError(T&&... args);
+  template<typename... T> inline Fatal(T&&... args);
 };
 
-inline FatalError::FatalError(const std::string& message) : ErrorBase(message)
+inline Fatal::Fatal(const std::string& message) : ErrorBase(message)
 {
 }
 
 template<typename... T>
-inline FatalError::FatalError(T&&... args)
+inline Fatal::Fatal(T&&... args)
   : ErrorBase(fmt::format(std::forward<T>(args)...))
 {
 }

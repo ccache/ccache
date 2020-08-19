@@ -166,7 +166,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   }
 
   if (*pid == -1) {
-    throw FatalError("Failed to fork: {}", strerror(errno));
+    throw Fatal("Failed to fork: {}", strerror(errno));
   }
 
   if (*pid == 0) {
@@ -183,7 +183,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 
   int status;
   if (waitpid(*pid, &status, 0) != *pid) {
-    throw FatalError("waitpid failed: {}", strerror(errno));
+    throw Fatal("waitpid failed: {}", strerror(errno));
   }
 
   {

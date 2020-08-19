@@ -68,7 +68,7 @@ bool debug_log_enabled = false;
 [[noreturn]] void
 print_fatal_error_and_exit()
 {
-  // Note: Can't throw FatalError since that would lead to recursion.
+  // Note: Can't throw Fatal since that would lead to recursion.
   fmt::print(stderr,
              "ccache: error: Failed to write to {}: {}\n",
              logfile_path,

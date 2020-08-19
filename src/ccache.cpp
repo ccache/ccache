@@ -164,7 +164,7 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
     std::string path = find_executable(ctx, word, CCACHE_NAME);
     if (path.empty()) {
-      throw FatalError("{}: {}", word, strerror(errno));
+      throw Fatal("{}: {}", word, strerror(errno));
     }
 
     prefix.push_back(path);
@@ -1707,10 +1707,10 @@ find_compiler(Context& ctx, const char* const* argv)
 
   std::string compiler = find_executable(ctx, base, CCACHE_NAME);
   if (compiler.empty()) {
-    throw FatalError("Could not find compiler \"{}\" in PATH", base);
+    throw Fatal("Could not find compiler \"{}\" in PATH", base);
   }
   if (compiler == argv[0]) {
-    throw FatalError(
+    throw Fatal(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
   }
@@ -1977,7 +1977,7 @@ cache_compilation(int argc, const char* const* argv)
     log("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
     ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
-    throw FatalError("execv of {} failed: {}", execv_argv[0], strerror(errno));
+    throw Fatal("execv of {} failed: {}", execv_argv[0], strerror(errno));
   }
 }
 

@@ -195,7 +195,7 @@ void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
 
-// Return the current user's home directory, or throw `FatalError` if it can't
+// Return the current user's home directory, or throw `Fatal` if it can't
 // be determined.
 std::string get_home_directory();
 
