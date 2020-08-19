@@ -73,7 +73,7 @@ install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
 #
 # Packaging
 #
-include(CCachePackConfig)
+include(CcachePackConfig)
 
 #
 # Tests
