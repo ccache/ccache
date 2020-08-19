@@ -45,7 +45,7 @@ SUITE_direct() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
     expect_equal_object_files reference_test.o test.o
-    expect_file_newer_than $manifest_file test.c
+    expect_newer_than $manifest_file test.c
 
     # -------------------------------------------------------------------------
     TEST "Corrupt manifest file"
@@ -175,13 +175,13 @@ EOF
     touch a/source.c b/source.c
     backdate a/source.h b/source.h
     $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
-    expect_file_content a/source.d "a/source.o: a/source.c"
+    expect_content a/source.d "a/source.o: a/source.c"
 
     $CCACHE_COMPILE -MMD -c b/source.c -o b/source.o
-    expect_file_content b/source.d "b/source.o: b/source.c"
+    expect_content b/source.d "b/source.o: b/source.c"
 
     $CCACHE_COMPILE -MMD -c a/source.c -o a/source.o
-    expect_file_content a/source.d "a/source.o: a/source.c"
+    expect_content a/source.d "a/source.o: a/source.c"
 
     # -------------------------------------------------------------------------
     for dep_args in "-MMD" "-MMD -MF foo.d" "-Wp,-MMD,foo.d"; do
@@ -210,17 +210,17 @@ EOF
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat 'cache hit (direct)' 0
             expect_stat 'cache miss' 1
-            expect_equal_text_files $dep_file.real $dep_file
+            expect_equal_text_content $dep_file.real $dep_file
 
             # cache hit
             $CCACHE_COMPILE -c test.c $dep_args $obj_args
             expect_stat 'cache hit (direct)' 1
             expect_stat 'cache miss' 1
-            expect_equal_text_files $dep_file.real $dep_file
+            expect_equal_text_content $dep_file.real $dep_file
 
             # change object file name
             $CCACHE_COMPILE -c test.c $dep_args -o another.o
-            expect_equal_text_files another.d.real $another_dep_file
+            expect_equal_text_content another.d.real $another_dep_file
         done
     done
 
@@ -243,7 +243,7 @@ EOF
 
                 $CCACHE_COMPILE $option -c test1.c -o $obj
                 diff -u orig.d $dep
-                expect_equal_files $dep orig.d
+                expect_equal_content $dep orig.d
                 expect_stat 'cache hit (direct)' $i
                 expect_stat 'cache miss' 1
 
@@ -271,7 +271,7 @@ EOF
 
             $CCACHE_COMPILE -MMD -c $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
-            expect_file_content $dep "$obj: $src"
+            expect_content $dep "$obj: $src"
             expect_stat 'cache hit (direct)' $hit
             expect_stat 'cache miss' 1
             hit=$((hit + 1))
@@ -292,7 +292,7 @@ EOF
         for obj in test1.o build/test1.o; do
             $CCACHE_COMPILE -c -MMD $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
-            expect_file_content $dep "$obj: $src"
+            expect_content $dep "$obj: $src"
         done
     done
 
@@ -304,13 +304,13 @@ EOF
     backdate a/source.h b/source.h
     echo '#include <source.h>' >source.c
     $CCACHE_COMPILE -MMD -Ia -c source.c
-    expect_file_content source.d "source.o: source.c a/source.h"
+    expect_content source.d "source.o: source.c a/source.h"
 
     $CCACHE_COMPILE -MMD -Ib -c source.c
-    expect_file_content source.d "source.o: source.c b/source.h"
+    expect_content source.d "source.o: source.c b/source.h"
 
     $CCACHE_COMPILE -MMD -Ia -c source.c
-    expect_file_content source.d "source.o: source.c a/source.h"
+    expect_content source.d "source.o: source.c a/source.h"
 
     # -------------------------------------------------------------------------
     TEST "-Wp,-MD"
@@ -319,7 +319,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected.d
+    expect_equal_content other.d expected.d
 
     $REAL_COMPILER -c -Wp,-MD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -329,14 +329,14 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected.d
+    expect_equal_content other.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     $CCACHE_COMPILE -c -Wp,-MD,different_name.d test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected.d
+    expect_equal_content different_name.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -346,7 +346,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_mmd.d
+    expect_equal_content other.d expected_mmd.d
 
     $REAL_COMPILER -c -Wp,-MMD,other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -356,14 +356,14 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_mmd.d
+    expect_equal_content other.d expected_mmd.d
     expect_equal_object_files reference_test.o test.o
 
     $CCACHE_COMPILE -c -Wp,-MMD,different_name.d test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected_mmd.d
+    expect_equal_content different_name.d expected_mmd.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -391,13 +391,13 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_content source.d "source.o: source.c"
+    expect_content source.d "source.o: source.c"
 
     $CCACHE_COMPILE -c -Wp,-MMD,source.d,-MT,source.o source.c 2>/dev/null
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_content source.d "source.o: source.c"
+    expect_content source.d "source.o: source.c"
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -405,13 +405,13 @@ EOF
     mkdir a b
     touch a/source.c b/source.c
     $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
+    expect_content source.d "source.o: a/source.c"
 
     $CCACHE_COMPILE -MMD -c b/source.c
-    expect_file_content source.d "source.o: b/source.c"
+    expect_content source.d "source.o: b/source.c"
 
     $CCACHE_COMPILE -MMD -c a/source.c
-    expect_file_content source.d "source.o: a/source.c"
+    expect_content source.d "source.o: a/source.c"
 
     # -------------------------------------------------------------------------
     TEST "Multiple object entries in manifest"
@@ -433,7 +433,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
 
     $REAL_COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -443,7 +443,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -497,7 +497,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
     $REAL_COMPILER -c -MD test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
@@ -507,7 +507,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -516,7 +516,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     rm -f test.d
@@ -525,7 +525,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -535,7 +535,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected.d
+    expect_equal_content other.d expected.d
     $REAL_COMPILER -c -MD -MF other.d test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
 
@@ -545,14 +545,14 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected.d
+    expect_equal_content other.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     $CCACHE_COMPILE -c -MD -MF different_name.d test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected.d
+    expect_equal_content different_name.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     rm -f different_name.d
@@ -561,7 +561,7 @@ EOF
     expect_stat 'cache hit (direct)' 3
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files third_name.d expected.d
+    expect_equal_content third_name.d expected.d
     expect_equal_object_files reference_test.o test.o
 
     rm -f third_name.d
@@ -586,7 +586,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 4
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
 
     rm -f test.d
 
@@ -595,7 +595,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 4
-    expect_equal_files test.d expected.d
+    expect_equal_content test.d expected.d
 
     # -------------------------------------------------------------------------
     TEST "stderr from both preprocessor and compiler"
@@ -618,13 +618,13 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_content stderr-cpp.txt "`cat stderr-orig.txt`"
+    expect_content stderr-cpp.txt "`cat stderr-orig.txt`"
 
     $CCACHE_COMPILE -Wall -W -c cpp-warning.c 2>stderr-mf.txt
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_content stderr-mf.txt "`cat stderr-orig.txt`"
+    expect_content stderr-mf.txt "`cat stderr-orig.txt`"
 
     # -------------------------------------------------------------------------
     TEST "Empty source file"

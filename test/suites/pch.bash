@@ -93,7 +93,7 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists pch.h.gch
+    expect_exists pch.h.gch
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
@@ -102,7 +102,7 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-    expect_file_exists pch.h.gch
+    expect_exists pch.h.gch
 
     # -------------------------------------------------------------------------
     TEST "Create .gch, no -c, -o, with opt-in"
@@ -116,7 +116,7 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists pch.gch
+    expect_exists pch.gch
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, #include, remove pch.h"
@@ -221,7 +221,7 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists pch.h.gch
+    expect_exists pch.h.gch
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
@@ -231,7 +231,7 @@ pch_suite_common() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-    expect_file_exists pch.h.gch
+    expect_exists pch.h.gch
 
     # -------------------------------------------------------------------------
     TEST "Use .gch, -include, PCH_EXTSUM=1"
@@ -513,7 +513,7 @@ pch_suite_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists pch.h.gch/foo
+    expect_exists pch.h.gch/foo
 
     backdate pch.h.gch/foo
 
@@ -639,7 +639,7 @@ EOF
     expect_stat 'cache miss' 2
 
     $REAL_COMPILER $SYSROOT -c -include pch2.h pch2.c
-    expect_file_exists pch2.o
+    expect_exists pch2.o
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS pch_defines" $CCACHE_COMPILE $SYSROOT -c pch2.h
     expect_stat 'cache hit (direct)' 1
@@ -786,7 +786,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists pch.h.pch
+    expect_exists pch.h.pch
 
     echo '#include <string.h> /*change pch*/' >>pch.h
     backdate pch.h
@@ -795,7 +795,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-    expect_file_exists pch.h.pch
+    expect_exists pch.h.pch
 
     # -------------------------------------------------------------------------
     TEST "Use .pch the with -Xclang options"

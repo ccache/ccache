@@ -105,7 +105,7 @@ SUITE_hardlink() {
     $CCACHE_COMPILE -c -MMD test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
-    expect_file_content test1.d "test1.o: test1.c"
+    expect_content test1.d "test1.o: test1.c"
 
     touch test1.h
     echo '#include "test1.h"' >>test1.c
@@ -113,12 +113,12 @@ SUITE_hardlink() {
     $CCACHE_COMPILE -c -MMD test1.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 2
-    expect_file_content test1.d "test1.o: test1.c test1.h"
+    expect_content test1.d "test1.o: test1.c test1.h"
 
     echo "int x;" >test1.c
 
     $CCACHE_COMPILE -c -MMD test1.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 2
-    expect_file_content test1.d "test1.o: test1.c"
+    expect_content test1.d "test1.o: test1.c"
 }

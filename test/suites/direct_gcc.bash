@@ -39,7 +39,7 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_dependencies_output.d
+    expect_equal_content other.d expected_dependencies_output.d
 
     DEPENDENCIES_OUTPUT="other.d" $REAL_COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -49,14 +49,14 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_dependencies_output.d
+    expect_equal_content other.d expected_dependencies_output.d
     expect_equal_object_files reference_test.o test.o
 
     DEPENDENCIES_OUTPUT="different_name.d" $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected_dependencies_output.d
+    expect_equal_content different_name.d expected_dependencies_output.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -66,7 +66,7 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_dependencies_output_target.d
+    expect_equal_content other.d expected_dependencies_output_target.d
 
     DEPENDENCIES_OUTPUT="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -76,14 +76,14 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_dependencies_output_target.d
+    expect_equal_content other.d expected_dependencies_output_target.d
     expect_equal_object_files reference_test.o test.o
 
     DEPENDENCIES_OUTPUT="different_name.d target.o" $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected_dependencies_output_target.d
+    expect_equal_content different_name.d expected_dependencies_output_target.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -93,7 +93,7 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_sunpro_dependencies.d
+    expect_equal_content other.d expected_sunpro_dependencies.d
 
     SUNPRO_DEPENDENCIES="other.d" $REAL_COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -103,14 +103,14 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_sunpro_dependencies.d
+    expect_equal_content other.d expected_sunpro_dependencies.d
     expect_equal_object_files reference_test.o test.o
 
     SUNPRO_DEPENDENCIES="different_name.d" $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected_sunpro_dependencies.d
+    expect_equal_content different_name.d expected_sunpro_dependencies.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------
@@ -120,7 +120,7 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_sunpro_dependencies_target.d
+    expect_equal_content other.d expected_sunpro_dependencies_target.d
 
     SUNPRO_DEPENDENCIES="other.d target.o" $REAL_COMPILER -c test.c -o reference_test.o
     expect_equal_object_files reference_test.o test.o
@@ -130,14 +130,14 @@ SUITE_direct_gcc() {
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files other.d expected_sunpro_dependencies_target.d
+    expect_equal_content other.d expected_sunpro_dependencies_target.d
     expect_equal_object_files reference_test.o test.o
 
     SUNPRO_DEPENDENCIES="different_name.d target.o" $CCACHE_COMPILE -c test.c
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_equal_files different_name.d expected_sunpro_dependencies_target.d
+    expect_equal_content different_name.d expected_sunpro_dependencies_target.d
     expect_equal_object_files reference_test.o test.o
 
     # -------------------------------------------------------------------------

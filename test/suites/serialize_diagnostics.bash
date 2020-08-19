@@ -20,7 +20,7 @@ SUITE_serialize_diagnostics() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
-    expect_equal_files expected.dia test.dia
+    expect_equal_content expected.dia test.dia
 
     rm test.dia
 
@@ -28,7 +28,7 @@ SUITE_serialize_diagnostics() {
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
-    expect_equal_files expected.dia test.dia
+    expect_equal_content expected.dia test.dia
 
     # -------------------------------------------------------------------------
     TEST "Compile failed"
@@ -43,8 +43,8 @@ SUITE_serialize_diagnostics() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 0
     expect_stat 'files in cache' 0
-    expect_equal_files expected.dia test.dia
-    expect_equal_files expected.stderr test.stderr
+    expect_equal_content expected.dia test.dia
+    expect_equal_content expected.stderr test.stderr
 
     # -------------------------------------------------------------------------
     TEST "--serialize-diagnostics + CCACHE_BASEDIR"

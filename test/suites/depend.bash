@@ -168,13 +168,13 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_content stderr-orig.txt "`cat stderr-baseline.txt`"
+    expect_content stderr-orig.txt "`cat stderr-baseline.txt`"
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -Wall -W -c cpp-warning.c 2>stderr-mf.txt
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_content stderr-mf.txt "`cat stderr-baseline.txt`"
+    expect_content stderr-mf.txt "`cat stderr-baseline.txt`"
 
     # -------------------------------------------------------------------------
     # This test case covers a case in depend mode with unchanged source file
@@ -196,7 +196,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR1 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -206,7 +206,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR1 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
@@ -217,7 +217,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR2 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
@@ -230,7 +230,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR3 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 3
@@ -241,8 +241,8 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR4 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
-    expect_different_files reference_test.d $BASEDIR1/test.d
+    expect_equal_content reference_test.d test.d
+    expect_different_content reference_test.d $BASEDIR1/test.d
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
@@ -253,7 +253,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR1 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
@@ -264,7 +264,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR2 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 3
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
@@ -275,7 +275,7 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR3 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
+    expect_equal_content reference_test.d test.d
     expect_stat 'cache hit (direct)' 4
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
@@ -286,8 +286,8 @@ EOF
     generate_reference_compiler_output
     CCACHE_DEPEND=1 CCACHE_BASEDIR=$BASEDIR4 $CCACHE_COMPILE $DEPFLAGS -c test.c
     expect_equal_object_files reference_test.o test.o
-    expect_equal_files reference_test.d test.d
-    expect_different_files reference_test.d $BASEDIR1/test.d
+    expect_equal_content reference_test.d test.d
+    expect_different_content reference_test.d $BASEDIR1/test.d
     expect_stat 'cache hit (direct)' 5
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4

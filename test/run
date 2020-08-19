@@ -145,48 +145,48 @@ expect_stat() {
     fi
 }
 
-expect_file_exists() {
+expect_exists() {
     if [ ! -e "$1" ]; then
         test_failed "Expected $1 to exist, but it's missing"
     fi
 }
 
-expect_file_missing() {
+expect_missing() {
     if [ -e "$1" ]; then
         test_failed "Expected $1 to be missing, but it exists"
     fi
 }
 
-expect_equal_files() {
+expect_equal_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_equal_files: $1 missing"
+        test_failed "expect_equal_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_equal_files: $2 missing"
+        test_failed "expect_equal_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed "$1 and $2 differ"
     fi
 }
 
-expect_equal_text_files() {
+expect_equal_text_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_equal_files: $1 missing"
+        test_failed "expect_equal_text_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_equal_files: $2 missing"
+        test_failed "expect_equal_text_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
     fi
 }
 
-expect_different_files() {
+expect_different_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_different_files: $1 missing"
+        test_failed "expect_different_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_different_files: $2 missing"
+        test_failed "expect_different_content: $2 missing"
     fi
     if cmp -s "$1" "$2"; then
         test_failed "$1 and $2 are identical"
@@ -216,7 +216,7 @@ expect_equal_object_files() {
     fi
 }
 
-expect_file_content() {
+expect_content() {
     local file="$1"
     local content="$2"
 
@@ -228,7 +228,7 @@ expect_file_content() {
     fi
 }
 
-expect_file_contains() {
+expect_contains() {
     local file="$1"
     local string="$2"
 
@@ -240,7 +240,7 @@ expect_file_contains() {
     fi
 }
 
-expect_file_not_contains() {
+expect_not_contains() {
     local file="$1"
     local string="$2"
 
@@ -263,7 +263,7 @@ expect_file_count() {
 }
 
 # Verify that $1 is newer than (or same age as) $2.
-expect_file_newer_than() {
+expect_newer_than() {
     local newer_file=$1
     local older_file=$2
     if [ "$newer_file" -ot "$older_file" ]; then
