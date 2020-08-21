@@ -193,7 +193,9 @@ jobs:
 
     - name: Install CUDA
       if: matrix.config.CUDA != ''
-      run: sudo sh ./ci/install-cuda.sh
+      run: sudo --preserve-env=CUDA ci/install-cuda
+      env:
+        CUDA: ${{ matrix.config.CUDA }}
 
     - name: Run Apt-Get
       if: matrix.config.apt_get != ''

@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# Version is given in the CUDA variable.
+
+set -eu
+
+retry() {
+    local i=0
+    while [ $i -lt 3 ]; do
+        if "$@"; then
+            return 0
+        fi
+        i=$((i + 1))
+    done
+    return 1
+}
+
+echo "Installing CUDA support"
+
+retry wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_${CUDA}_amd64.deb
+retry sudo dpkg -i cuda-repo-ubuntu1804_${CUDA}_amd64.deb
+retry sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+retry sudo apt-get update -qq
+
+cuda_prefix=${CUDA:0:4}
+cuda_prefix=${cuda_prefix/./-}
+retry sudo apt-get install --allow-unauthenticated -y cuda-command-line-tools-${cuda_prefix}
+retry sudo apt-get clean
+
+cuda_home=/usr/local/cuda-${CUDA:0:4}
+$cuda_home/bin/nvcc --version
+echo "::set-env name=PATH::${cuda_home}/bin:${PATH}"
