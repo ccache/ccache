@@ -167,8 +167,6 @@ jobs:
       apt:
         packages:
         - libzstd1-dev
-    before_install:
-    - pip install --user cmake_format
 
   allow_failures:
   # Job 16: Run Clang-Tidy
@@ -188,5 +186,3 @@ jobs:
       apt:
         packages:
         - libzstd1-dev
-    before_install:
-    - pip install --user cmake_format
