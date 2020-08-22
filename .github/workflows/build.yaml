@@ -38,16 +38,16 @@ jobs:
           ENABLE_CACHE_CLEANUP_TESTS: true
           CTEST_OUTPUT_ON_FAILURE: ON
 
-      - name: Collect testdirs from failed tests
+      - name: Collect testdir from failed tests
         if: failure()
-        run: zip -r testdirs.zip ${{ matrix.config.BUILDDIR }}/testdir.* -x testdir.failed
+        run: zip -r testdir.zip ${{ matrix.config.BUILDDIR }}/testdir
 
-      - name: Upload testdirs from failed tests
+      - name: Upload testdir from failed tests
         if: failure()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.name }} - testdirs.zip
-          path: testdirs.zip
+          name: ${{ matrix.config.name }} - testdir.zip
+          path: testdir.zip
 
   # These mimic the old Travis tests that are not replaced by standard_tests:
   specific_tests:
@@ -223,14 +223,14 @@ jobs:
       shell: bash
       run: ci/build
 
-    - name: Collect testdirs from failed tests
+    - name: Collect testdir from failed tests
       if: failure()
-      run: zip -r testdirs.zip ${{ matrix.config.BUILDDIR }}/testdir.* -x testdir.failed
+      run: zip -r testdir.zip ${{ matrix.config.BUILDDIR }}/testdir
       # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
 
-    - name: Upload testdirs from failed tests
+    - name: Upload testdir from failed tests
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.config.name }} - testdirs.zip
-        path: testdirs.zip
+        name: ${{ matrix.config.name }} - testdir.zip
+        path: testdir.zip
