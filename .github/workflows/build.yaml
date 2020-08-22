@@ -40,14 +40,14 @@ jobs:
 
       - name: Collect testdir from failed tests
         if: failure()
-        run: zip -r testdir.zip ${{ matrix.config.BUILDDIR }}/testdir
+        run: tar -caf testdir.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
 
       - name: Upload testdir from failed tests
         if: failure()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.name }} - testdir.zip
-          path: testdir.zip
+          name: ${{ matrix.config.name }} - testdir.tar.xz
+          path: testdir.tar.xz
 
   # These mimic the old Travis tests that are not replaced by standard_tests:
   specific_tests:
@@ -225,12 +225,12 @@ jobs:
 
     - name: Collect testdir from failed tests
       if: failure()
-      run: zip -r testdir.zip ${{ matrix.config.BUILDDIR }}/testdir
+      run: tar -caf testdirs.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
       # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
 
     - name: Upload testdir from failed tests
       if: failure()
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.config.name }} - testdir.zip
-        path: testdir.zip
+        name: ${{ matrix.config.name }} - testdir.tar.xz
+        path: testdir.tar.xz
