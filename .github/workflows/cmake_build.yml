@@ -1,0 +1,235 @@
+name: Build and Test on Push
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  # These test the 'standard' build on several systems with gcc + clang.
+  standard_tests:
+    name: ${{ matrix.os }} & ${{ matrix.compiler.CC }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, 	ubuntu-20.04, macos-10.15]
+        compiler:
+          - { CC: gcc, CXX: g++ }
+          - { CC: clang, CXX: clang++ }
+
+    steps:
+      - name: Get Source
+        uses: actions/checkout@v2
+  
+      - name: "Install dependencies (Ubuntu 16 & 18)"
+        if: startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-20.04'
+        run: sudo apt-get install elfutils libzstd1-dev
+  
+      - name: "Install dependencies (Ubuntu 20)"
+        if: matrix.os == 'ubuntu-20.04'
+        run: sudo apt-get install elfutils libzstd-dev
+      
+      - name: Build and Test
+        shell: bash
+        run: ci/build
+        env:
+          CC: ${{ matrix.compiler.CC }}
+          CXX: ${{ matrix.compiler.CXX }}
+          VERBOSE: 1
+          ENABLE_CACHE_CLEANUP_TESTS: true
+          CTEST_OUTPUT_ON_FAILURE: ON
+  
+      - name: Collect testdirs from failed tests
+        if: failure()
+        run: zip -r testdirs.zip ${{ matrix.config.BUILDDIR }}/testdir.* -x testdir.failed
+
+      - name: Upload testdirs from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.name }} - testdirs.zip
+          path: testdirs.zip
+
+  # These mimic the old Travis tests as far as not replaced by standard_tests:
+  specific_tests:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Job 1: Build (in source directory) on Linux with native GCC in release build mode
+          - name: "Linux GCC release + tracing"
+            os: ubuntu-18.04
+            CC: "gcc"
+            CXX: "g++"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            BUILDDIR: .
+            CCACHE_LOC: .
+            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release -DENABLE_TRACING=1"
+            apt_get: elfutils libzstd1-dev
+
+          # Job 2: Build on Linux with native 32-bit GCC
+          - name: "Linux GCC 32-bit"
+            os: ubuntu-18.04
+            CC: "gcc"
+            CXX: "g++"
+            CFLAGS: "-m32 -g -O2"
+            CXXFLAGS: "-m32 -g -O2"
+            LDFLAGS: "-m32"
+            CMAKE_PARAMS: "-DZSTD_FROM_INTERNET=ON"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
+
+          # Job 3: Build on Linux with native Clang moved to standard tests
+
+          # Job 4: Build on Linux with native GCC and CUDA compiler
+
+          - name: "Linux GCC CUDA"
+            os: ubuntu-18.04
+            CC: "gcc"
+            CXX: "g++"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CUDA: 10.1.243-1
+            apt_get: elfutils libzstd1-dev
+
+          # Job 5: Build on Linux with 32-bit MinGW cross-compiler
+          - name: "Linux MinGW 32-bit"
+            os: ubuntu-18.04
+            CC: "i686-w64-mingw32-gcc-posix"
+            CXX: "i686-w64-mingw32-g++-posix"
+            CMAKE_PARAMS: "-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON"
+            RUN_TESTS: 0
+            apt_get: elfutils mingw-w64
+
+          # Job 6: Build on Linux with 64-bit MinGW cross-compiler
+          - name: "Linux MinGW 64-bit"
+            os: ubuntu-18.04
+            CC: "x86_64-w64-mingw32-gcc-posix"
+            CXX: "x86_64-w64-mingw32-g++-posix"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: "-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON"
+            RUN_TESTS: 0
+            apt_get: elfutils mingw-w64
+
+          # Job 7: Build on MacOS with native Clang moved to standard tests
+
+          # Job 8: Build with ENABLE_TRACING merged into Job 1
+
+          # Job 9: Run Clang's undefined behavior sanitizer
+          - name: "Clang UB sanitizer"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: "-DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON"
+            ASAN_OPTIONS: "detect_leaks=0"
+            apt_get: elfutils libzstd-dev
+
+          # Job 10: Run Clang's address sanitizer
+          - name: "Clang address sanitizer"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: "-DENABLE_SANITIZER_ADDRESS=ON"
+            ASAN_OPTIONS: "detect_leaks=0"
+            apt_get: elfutils libzstd-dev
+
+          # Job 11: Run Clang's static analyzer
+          - name: "Clang static analyzer"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PREFIX: scan-build
+            RUN_TESTS: 0
+            path: "/usr/bin"
+            apt_get: libzstd-dev
+
+          # Job 12: Build binary package, extract it out of source, run tests.
+          - name: "Build binary and verify it"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            SPECIAL: build-and-verify-package
+            CMAKE_PARAMS: "-DCMAKE_BUILD_TYPE=Release"
+            apt_get: elfutils libzstd-dev
+
+          # Job 13: Build source package, extract it out of source, run tests.
+          - name: "Build source package and verify it"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            SPECIAL: build-and-verify-package-source
+            apt_get: elfutils libzstd-dev
+
+          # Job 14: Build documentation
+          - name: "Build documentation"
+            os: ubuntu-18.04
+            BUILDEXTRAFLAGS: "--target documentation"
+            RUN_TESTS: 0
+            apt_get: libzstd1-dev asciidoc
+
+          # Job 15: Build manpage
+          - name: "Build manpage"
+            os: ubuntu-18.04
+            BUILDEXTRAFLAGS: "--target manpage"
+            RUN_TESTS: 0
+            apt_get: libzstd1-dev asciidoc xsltproc
+
+          # Job 16: Run Clang-Tidy
+          - name: "Run Clang-Tidy"
+            os: ubuntu-20.04
+            CC: "clang"
+            CXX: "clang++"
+            RUN_TESTS: 0
+            CMAKE_PARAMS: "-DENABLE_CLANG_TIDY=ON"
+            apt_get: libzstd-dev clang-tidy
+
+    steps:
+    - name: Get Source
+      uses: actions/checkout@v2
+
+    - name: Install CUDA
+      if: matrix.config.CUDA != ''
+      run: sudo sh ./ci/install-cuda.sh
+
+    - name: Run Apt-Get
+      if: matrix.config.apt_get != ''
+      run: sudo apt-get install ${{ matrix.config.apt_get }}
+
+    - name: Prefix $PATH
+      if: matrix.config.path != ''
+      run: echo "::add-path::${{ matrix.config.path }}"
+
+    - name: Build and Test
+      env:
+        ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
+        CC: ${{ matrix.config.CC }}
+        CXX: ${{ matrix.config.CXX }}
+        CFLAGS: ${{ matrix.config.CFLAGS }}
+        CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
+        LDFLAGS: ${{ matrix.config.LDFLAGS }}
+        VERBOSE: 1
+        ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
+        BUILDDIR: ${{ matrix.config.BUILDDIR }}
+        CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
+        CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
+        CTEST_OUTPUT_ON_FAILURE: ON
+        RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
+        SPECIAL: ${{ matrix.config.SPECIAL }}
+      shell: bash
+      run: ci/build
+
+    - name: Collect testdirs from failed tests
+      if: failure()
+      run: zip -r testdirs.zip ${{ matrix.config.BUILDDIR }}/testdir.* -x testdir.failed
+      # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
+
+    - name: Upload testdirs from failed tests
+      if: failure()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.config.name }} - testdirs.zip
+        path: testdirs.zip
