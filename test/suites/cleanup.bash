@@ -57,11 +57,11 @@ SUITE_cleanup() {
     expect_stat 'cleanups performed' 1
     for i in 0 1 2; do
         file=$CCACHE_DIR/a/result$i-4017.result
-        expect_file_missing $CCACHE_DIR/a/result$i-4017.result
+        expect_missing $CCACHE_DIR/a/result$i-4017.result
     done
     for i in 3 4 5 6 7 8 9; do
         file=$CCACHE_DIR/a/result$i-4017.result
-        expect_file_exists $file
+        expect_exists $file
     done
 
     # -------------------------------------------------------------------------
@@ -84,11 +84,11 @@ SUITE_cleanup() {
         expect_stat 'cleanups performed' 1
         for i in 0 1 2 3 4 5 6; do
             file=$CCACHE_DIR/a/result$i-4017.result
-            expect_file_missing $file
+            expect_missing $file
         done
         for i in 7 8 9; do
             file=$CCACHE_DIR/a/result$i-4017.result
-            expect_file_exists $file
+            expect_exists $file
         done
     fi
     # -------------------------------------------------------------------------
@@ -140,7 +140,7 @@ SUITE_cleanup() {
 
     $CCACHE -F 160 -M 0 >/dev/null
     $CCACHE -c >/dev/null
-    expect_file_exists $CCACHE_DIR/a/abcd.unknown
+    expect_exists $CCACHE_DIR/a/abcd.unknown
     expect_stat 'files in cache' 10
 
     # -------------------------------------------------------------------------
@@ -154,7 +154,7 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 11
 
     $CCACHE -F 160 -M 0 -c >/dev/null
-    expect_file_missing $CCACHE_DIR/a/abcd.unknown
+    expect_missing $CCACHE_DIR/a/abcd.unknown
     expect_stat 'files in cache' 10
 
     # -------------------------------------------------------------------------
@@ -166,7 +166,7 @@ SUITE_cleanup() {
     expect_stat 'files in cache' 1
     backdate $CCACHE_DIR/a/abcd.tmp.efgh
     $CCACHE -c >/dev/null
-    expect_file_missing $CCACHE_DIR/a/abcd.tmp.efgh
+    expect_missing $CCACHE_DIR/a/abcd.tmp.efgh
     expect_stat 'files in cache' 0
 
     # -------------------------------------------------------------------------
