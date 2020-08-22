@@ -29,7 +29,6 @@ jobs:
         run: sudo apt-get install elfutils libzstd-dev
 
       - name: Build and test
-        shell: bash
         run: ci/build
         env:
           CC: ${{ matrix.compiler.CC }}
@@ -220,7 +219,6 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: ON
         RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
         SPECIAL: ${{ matrix.config.SPECIAL }}
-      shell: bash
       run: ci/build
 
     - name: Collect testdir from failed tests
