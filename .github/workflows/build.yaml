@@ -167,14 +167,14 @@ jobs:
           # Job 14: Build documentation
           - name: Build documentation
             os: ubuntu-18.04
-            BUILDEXTRAFLAGS: --target documentation
+            EXTRA_CMAKE_BUILD_FLAGS: --target documentation
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc
 
           # Job 15: Build manpage
           - name: Build manpage
             os: ubuntu-18.04
-            BUILDEXTRAFLAGS: --target manpage
+            EXTRA_CMAKE_BUILD_FLAGS: --target manpage
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc xsltproc
 

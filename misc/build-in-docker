@@ -39,7 +39,7 @@ docker run \
     --tmpfs /builddir:rw,exec \
     --workdir /builddir \
     --env ASAN_OPTIONS="${ASAN_OPTIONS:-}" \
-    --env BUILDEXTRAFLAGS="${BUILDEXTRAFLAGS:-}" \
+    --env EXTRA_CMAKE_BUILD_FLAGS="${EXTRA_CMAKE_BUILD_FLAGS:-}" \
     --env CC="${CC:-}" \
     --env CCACHE_DIR=/ccache \
     --env CCACHE_LOC="/source" \

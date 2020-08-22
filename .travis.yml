@@ -131,7 +131,7 @@ jobs:
 
   # Job 13: Build documentation
   - os: linux
-    env: T="Build documentation" VERBOSE=1 BUILDEXTRAFLAGS="--target documentation" RUN_TESTS=0
+    env: T="Build documentation" VERBOSE=1 EXTRA_CMAKE_BUILD_FLAGS="--target documentation" RUN_TESTS=0
     addons:
       apt:
         packages:
@@ -141,7 +141,7 @@ jobs:
 
   # Job 15: Build manpage
   - os: linux
-    env: T="Build manpage" VERBOSE=1 BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
+    env: T="Build manpage" VERBOSE=1 EXTRA_CMAKE_BUILD_FLAGS="--target manpage" RUN_TESTS=0
     addons:
       apt:
         packages:
@@ -162,7 +162,7 @@ jobs:
   # Job 17: Run Clang-Format in check mode
   - os: linux
     compiler: clang
-    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    env: T="Clang-Format" VERBOSE=1 EXTRA_CMAKE_BUILD_FLAGS="--target check_format" RUN_TESTS=0
     addons:
       apt:
         packages:
@@ -181,7 +181,7 @@ jobs:
   # Job 17: Run Clang-Format check mode
   - os: linux
     compiler: clang
-    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    env: T="Clang-Format" VERBOSE=1 EXTRA_CMAKE_BUILD_FLAGS="--target check_format" RUN_TESTS=0
     addons:
       apt:
         packages:
