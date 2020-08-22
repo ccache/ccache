@@ -34,10 +34,10 @@ jobs:
         run: ci/build
         env:
           CC: ${{ matrix.compiler.CC }}
-          CXX: ${{ matrix.compiler.CXX }}
-          VERBOSE: 1
-          ENABLE_CACHE_CLEANUP_TESTS: true
           CTEST_OUTPUT_ON_FAILURE: ON
+          CXX: ${{ matrix.compiler.CXX }}
+          ENABLE_CACHE_CLEANUP_TESTS: true
+          VERBOSE: 1
 
       - name: Collect testdir from failed tests
         if: failure()
@@ -208,19 +208,19 @@ jobs:
     - name: Build and test
       env:
         ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
-        CC: ${{ matrix.config.CC }}
-        CXX: ${{ matrix.config.CXX }}
-        CFLAGS: ${{ matrix.config.CFLAGS }}
-        CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
-        LDFLAGS: ${{ matrix.config.LDFLAGS }}
-        VERBOSE: 1
-        ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
         BUILDDIR: ${{ matrix.config.BUILDDIR }}
+        CC: ${{ matrix.config.CC }}
         CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
+        CFLAGS: ${{ matrix.config.CFLAGS }}
         CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
         CTEST_OUTPUT_ON_FAILURE: ON
+        CXX: ${{ matrix.config.CXX }}
+        CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
+        ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
+        LDFLAGS: ${{ matrix.config.LDFLAGS }}
         RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
         SPECIAL: ${{ matrix.config.SPECIAL }}
+        VERBOSE: 1
       run: ci/build
 
     - name: Collect testdir from failed tests
