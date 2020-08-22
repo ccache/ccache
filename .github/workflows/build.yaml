@@ -13,8 +13,10 @@ jobs:
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15]
         compiler:
-          - { CC: gcc, CXX: g++ }
-          - { CC: clang, CXX: clang++ }
+          - CC: gcc
+            CXX: g++
+          - CC: clang
+            CXX: clang++
 
     steps:
       - name: Get source
