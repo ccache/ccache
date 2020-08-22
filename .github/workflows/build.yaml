@@ -217,6 +217,7 @@ jobs:
         CXX: ${{ matrix.config.CXX }}
         CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
         ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
+        EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
         LDFLAGS: ${{ matrix.config.LDFLAGS }}
         RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
         SPECIAL: ${{ matrix.config.SPECIAL }}
