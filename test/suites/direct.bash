@@ -131,8 +131,6 @@ EOF
     TEST "Calculation of dependency file names"
 
     i=0
-    hit=-1
-    miss=1
     for ext in .o .obj "" . .foo.bar; do
         rm -rf testdir
         mkdir testdir
@@ -168,11 +166,7 @@ EOF
 
         i=$((i + 1))
     done
-<<<<<<< HEAD
-    expect_stat 'files in cache' $((2*i + 2))
-=======
     expect_stat 'files in cache' $((2 * i + 2))
->>>>>>> c2a6ea1d106adcce9b2ae43f15263e6e692b251c
 
     # -------------------------------------------------------------------------
     TEST "-MMD for different source files"
@@ -231,32 +225,6 @@ EOF
     done
 
     # -------------------------------------------------------------------------
-<<<<<<< HEAD
-    TEST "-MD: cache hits and miss and dependency"
-
-    hit=0
-    src=test1.c
-    touch $src
-    orig_dep=orig.d
-    for dir1 in build1 build2 dir1/dir2/dir3; do 
-        mkdir -p $dir1
-        for name in test1 obj1 random2; do
-            obj=$dir1/$name.o
-            dep=$(echo $obj | sed 's/\.o$/.d/')
-            $REAL_COMPILER -MD -c $src -o $obj
-            mv $dep $orig_dep
-            rm $obj
-
-            $CCACHE_COMPILE -MD -c $src -o $obj
-            expect_equal_files $dep $orig_dep
-            expect_stat 'cache hit (direct)' $hit
-            expect_stat 'cache miss' 1
-            hit=$((hit + 1))
-
-            rm $orig_dep
-        done
-        rm -rf $dir1
-=======
     TEST "-MD/-MMD dependency target rewriting"
 
     touch test1.c
@@ -283,7 +251,6 @@ EOF
             done
             rm -rf $dir
         done
->>>>>>> c2a6ea1d106adcce9b2ae43f15263e6e692b251c
     done
 
     # -------------------------------------------------------------------------
@@ -293,11 +260,7 @@ EOF
     src=test2.c
     touch $src
     orig_dep=orig.d
-<<<<<<< HEAD
-    for dir1 in build1 build2 dir1/dir2/dir3; do 
-=======
     for dir1 in build1 build2 dir1/dir2/dir3; do
->>>>>>> c2a6ea1d106adcce9b2ae43f15263e6e692b251c
         mkdir -p $dir1
         for name in test2 obj1 obj2; do
             obj=$dir1/$name.o
@@ -308,11 +271,7 @@ EOF
 
             $CCACHE_COMPILE -MMD -c $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
-<<<<<<< HEAD
-            expect_file_content $dep "$obj: $src"
-=======
             expect_content $dep "$obj: $src"
->>>>>>> c2a6ea1d106adcce9b2ae43f15263e6e692b251c
             expect_stat 'cache hit (direct)' $hit
             expect_stat 'cache miss' 1
             hit=$((hit + 1))

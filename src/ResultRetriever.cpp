@@ -43,7 +43,6 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   std::string dest_path;
 
   m_dest_file_type = file_type;
-  m_first = true;
 
   switch (file_type) {
   case FileType::object:
@@ -133,7 +132,6 @@ ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
       throw Error("Failed to write to {}: {}", m_dest_path, e.what());
     }
   }
-  m_first = false;
 }
 
 void
