@@ -34,6 +34,7 @@ jobs:
         run: ci/build
         env:
           CC: ${{ matrix.compiler.CC }}
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
           CTEST_OUTPUT_ON_FAILURE: ON
           CXX: ${{ matrix.compiler.CXX }}
           ENABLE_CACHE_CLEANUP_TESTS: true
@@ -57,14 +58,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Linux GCC release + tracing
+          - name: Linux GCC debug + in source + tracing
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
             ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release -DENABLE_TRACING=1
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
             apt_get: elfutils libzstd1-dev
 
           - name: Linux GCC 32-bit
@@ -74,7 +75,7 @@ jobs:
             CFLAGS: -m32 -g -O2
             CXXFLAGS: -m32 -g -O2
             LDFLAGS: -m32
-            CMAKE_PARAMS: -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
 
@@ -82,6 +83,7 @@ jobs:
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CUDA: 10.1.243-1
             apt_get: elfutils libzstd1-dev
@@ -90,16 +92,16 @@ jobs:
             os: ubuntu-18.04
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
-            CMAKE_PARAMS: -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
             RUN_TESTS: 0
             apt_get: elfutils mingw-w64
 
           - name: Linux MinGW 64-bit
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             CC: x86_64-w64-mingw32-gcc-posix
             CXX: x86_64-w64-mingw32-g++-posix
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
             RUN_TESTS: 0
             apt_get: elfutils mingw-w64
 
@@ -108,7 +110,7 @@ jobs:
             CC: clang
             CXX: clang++
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev
 
@@ -117,7 +119,7 @@ jobs:
             CC: clang
             CXX: clang++
             ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DENABLE_SANITIZER_ADDRESS=ON
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DENABLE_SANITIZER_ADDRESS=ON
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev
 
