@@ -235,3 +235,19 @@ jobs:
       with:
         name: ${{ matrix.config.name }} - testdir.tar.xz
         path: testdir.tar.xz
+
+  check_format:
+    name: Check code formatting
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+
+      # Job 17: Run Clang-Format in check mode
+      - name: Run Clang-Format in check mode
+        run: misc/format-files --all --check
+        continue-on-error: true
+        env:
+          VERBOSE: 1
