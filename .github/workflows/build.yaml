@@ -42,13 +42,13 @@ jobs:
 
       - name: Collect testdir from failed tests
         if: failure()
-        run: tar -caf testdir.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
+        run: ci/collect-testdir
 
       - name: Upload testdir from failed tests
         if: failure()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.name }} - testdir.tar.xz
+          name: ${{ matrix.os }} - ${{ matrix.compiler.CC }} - testdir.tar.xz
           path: testdir.tar.xz
 
   specific_tests:
@@ -207,7 +207,7 @@ jobs:
 
       - name: Collect testdir from failed tests
         if: failure()
-        run: tar -caf testdirs.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
+        run: ci/collect-testdir
         # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
 
       - name: Upload testdir from failed tests

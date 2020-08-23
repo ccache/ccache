@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -d testdir ]; then
+    testdir=testdir
+elif [ -d build/testdir ]; then
+    testdir=build/testdir
+else
+    echo "No testdir found" >&2
+    exit 1
+fi
+
+tar -caf testdir.tar.xz $testdir
