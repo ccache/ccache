@@ -22,17 +22,17 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
+#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
-#include "logging.hpp"
 
 #ifdef _WIN32
-#  include "win32compat.hpp"
+#  include "Win32Util.hpp"
 #endif
 
+using Logging::log;
 using nonstd::string_view;
 
 #ifdef _WIN32
@@ -42,81 +42,13 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* /*pid*/)
   return win32execute(argv[0], argv, 1, fd_out.release(), fd_err.release());
 }
 
-// Re-create a win32 command line string based on **argv.
-// http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
-char*
-win32argvtos(const char* prefix, const char* const* argv, int* length)
-{
-  int i = 0;
-  int k = 0;
-  const char* arg = prefix ? prefix : argv[i++];
-  do {
-    int bs = 0;
-    for (int j = 0; arg[j]; j++) {
-      switch (arg[j]) {
-      case '\\':
-        bs++;
-        break;
-      case '"':
-        bs = (bs << 1) + 1;
-      // Fallthrough.
-      default:
-        k += bs + 1;
-        bs = 0;
-      }
-    }
-    k += (bs << 1) + 3;
-  } while ((arg = argv[i++]));
-
-  char* ptr = static_cast<char*>(malloc(k + 1));
-  char* str = ptr;
-  if (!str) {
-    *length = 0;
-    return NULL;
-  }
-
-  i = 0;
-  arg = prefix ? prefix : argv[i++];
-  do {
-    int bs = 0;
-    *ptr++ = '"';
-    for (int j = 0; arg[j]; j++) {
-      switch (arg[j]) {
-      case '\\':
-        bs++;
-        break;
-      // Fallthrough.
-      case '"':
-        bs = (bs << 1) + 1;
-      // Fallthrough.
-      default:
-        while (bs && bs--) {
-          *ptr++ = '\\';
-        }
-        *ptr++ = arg[j];
-      }
-    }
-    bs <<= 1;
-    while (bs && bs--) {
-      *ptr++ = '\\';
-    }
-    *ptr++ = '"';
-    *ptr++ = ' ';
-  } while ((arg = argv[i++]));
-  ptr[-1] = '\0';
-
-  *length = ptr - str - 1;
-  return str;
-}
-
 std::string
-win32getshell(const char* path)
+win32getshell(const std::string& path)
 {
   const char* path_env = getenv("PATH");
   std::string sh;
-  std::string ext = std::string(Util::get_extension(path));
-  if (!ext.empty() && strcasecmp(ext.c_str(), ".sh") == 0 && path_env) {
-    sh = find_executable_in_path("sh.exe", nullptr, path_env);
+  if (Util::to_lowercase(Util::get_extension(path)) == ".sh" && path_env) {
+    sh = find_executable_in_path("sh.exe", "", path_env);
   }
   if (sh.empty() && getenv("CCACHE_DETECT_SHEBANG")) {
     // Detect shebang.
@@ -125,27 +57,12 @@ win32getshell(const char* path)
       char buf[10] = {0};
       fgets(buf, sizeof(buf) - 1, fp.get());
       if (std::string(buf) == "#!/bin/sh" && path_env) {
-        sh = find_executable_in_path("sh.exe", NULL, path_env);
+        sh = find_executable_in_path("sh.exe", "", path_env);
       }
     }
   }
 
   return sh;
-}
-
-void
-add_exe_ext_if_no_to_fullpath(char* full_path_win_ext,
-                              size_t max_size,
-                              const char* ext,
-                              const char* path)
-{
-  if (!ext
-      || (!str_eq(".exe", ext) && !str_eq(".sh", ext) && !str_eq(".bat", ext)
-          && !str_eq(".EXE", ext) && !str_eq(".BAT", ext))) {
-    snprintf(full_path_win_ext, max_size, "%s.exe", path);
-  } else {
-    snprintf(full_path_win_ext, max_size, "%s", path);
-  }
 }
 
 int
@@ -188,55 +105,38 @@ win32execute(const char* path,
     }
   }
 
-  int length;
-  const char* prefix = sh.empty() ? nullptr : sh.c_str();
-  char* args = win32argvtos(prefix, argv, &length);
-  const char* ext = strrchr(path, '.');
-  char full_path_win_ext[MAX_PATH] = {0};
-  add_exe_ext_if_no_to_fullpath(full_path_win_ext, MAX_PATH, ext, path);
-  BOOL ret = FALSE;
-  if (length > 8192) {
+  std::string args = Win32Util::argv_to_string(argv, sh);
+  std::string full_path = Win32Util::add_exe_suffix(path);
+  std::string tmp_file_path;
+  if (args.length() > 8192) {
     TemporaryFile tmp_file(path);
-    if (!write_fd(*tmp_file.fd, args, length)) {
-      cc_log("Error writing @file; this command will probably fail: %s", args);
-    }
-    std::string atfile = fmt::format("\"@{}\"", tmp_file.path);
-    ret = CreateProcess(nullptr,
-                        const_cast<char*>(atfile.c_str()),
-                        nullptr,
-                        nullptr,
-                        1,
-                        0,
-                        nullptr,
-                        nullptr,
-                        &si,
-                        &pi);
-    Util::unlink_tmp(tmp_file.path);
+    Util::write_fd(*tmp_file.fd, args.data(), args.length());
+    args = fmt::format("\"@{}\"", tmp_file.path);
+    tmp_file_path = tmp_file.path;
   }
-  if (!ret) {
-    ret = CreateProcess(full_path_win_ext,
-                        args,
-                        nullptr,
-                        nullptr,
-                        1,
-                        0,
-                        nullptr,
-                        nullptr,
-                        &si,
-                        &pi);
+  BOOL ret = CreateProcess(full_path.c_str(),
+                           const_cast<char*>(args.c_str()),
+                           nullptr,
+                           nullptr,
+                           1,
+                           0,
+                           nullptr,
+                           nullptr,
+                           &si,
+                           &pi);
+  if (!tmp_file_path.empty()) {
+    Util::unlink_tmp(tmp_file_path);
   }
   if (fd_stdout != -1) {
     close(fd_stdout);
     close(fd_stderr);
   }
-  free(args);
   if (ret == 0) {
     DWORD error = GetLastError();
-    std::string error_message = win32_error_message(error);
-    cc_log("failed to execute %s: %s (%lu)",
-           full_path_win_ext,
-           win32_error_message(error).c_str(),
-           error);
+    log("failed to execute {}: {} ({})",
+        full_path,
+        Win32Util::error_message(error),
+        error);
     return -1;
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
@@ -246,7 +146,7 @@ win32execute(const char* path,
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   if (!doreturn) {
-    x_exit(exitcode);
+    exit(exitcode);
   }
   return exitcode;
 }
@@ -258,7 +158,7 @@ win32execute(const char* path,
 int
 execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 {
-  cc_log_argv("Executing ", argv);
+  log("Executing {}", Util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;
@@ -266,7 +166,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   }
 
   if (*pid == -1) {
-    fatal("Failed to fork: %s", strerror(errno));
+    throw Fatal("Failed to fork: {}", strerror(errno));
   }
 
   if (*pid == 0) {
@@ -275,7 +175,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
     fd_out.close();
     dup2(*fd_err, STDERR_FILENO);
     fd_err.close();
-    x_exit(execv(argv[0], const_cast<char* const*>(argv)));
+    exit(execv(argv[0], const_cast<char* const*>(argv)));
   }
 
   fd_out.close();
@@ -283,7 +183,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 
   int status;
   if (waitpid(*pid, &status, 0) != *pid) {
-    fatal("waitpid failed: %s", strerror(errno));
+    throw Fatal("waitpid failed: {}", strerror(errno));
   }
 
   {
@@ -299,43 +199,43 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 }
 #endif
 
-// Find an executable by name in $PATH. Exclude any that are links to
-// exclude_name.
 std::string
-find_executable(const Context& ctx, const char* name, const char* exclude_name)
+find_executable(const Context& ctx,
+                const std::string& name,
+                const std::string& exclude_name)
 {
   if (Util::is_absolute_path(name)) {
     return name;
   }
 
-  const char* path = ctx.config.path().c_str();
-  if (str_eq(path, "")) {
+  std::string path = ctx.config.path();
+  if (path.empty()) {
     path = getenv("PATH");
   }
-  if (!path) {
-    cc_log("No PATH variable");
-    return "";
+  if (path.empty()) {
+    log("No PATH variable");
+    return {};
   }
 
   return find_executable_in_path(name, exclude_name, path);
 }
 
 std::string
-find_executable_in_path(const char* name,
-                        const char* exclude_name,
-                        const char* path)
+find_executable_in_path(const std::string& name,
+                        const std::string& exclude_name,
+                        const std::string& path)
 {
-  if (!path) {
+  if (path.empty()) {
     return {};
   }
 
-  // Search the path looking for the first compiler of the right name that
-  // isn't us.
+  // Search the path looking for the first compiler of the right name that isn't
+  // us.
   for (const std::string& dir : Util::split_into_strings(path, PATH_DELIM)) {
 #ifdef _WIN32
     char namebuf[MAX_PATH];
-    int ret =
-      SearchPath(dir.c_str(), name, nullptr, sizeof(namebuf), namebuf, nullptr);
+    int ret = SearchPath(
+      dir.c_str(), name.c_str(), nullptr, sizeof(namebuf), namebuf, nullptr);
     if (!ret) {
       std::string exename = fmt::format("{}.exe", name);
       ret = SearchPath(dir.c_str(),
@@ -347,10 +247,10 @@ find_executable_in_path(const char* name,
     }
     (void)exclude_name;
     if (ret) {
-      return std::string(namebuf);
+      return namebuf;
     }
 #else
-    assert(exclude_name);
+    assert(!exclude_name.empty());
     std::string fname = fmt::format("{}/{}", dir, name);
     auto st1 = Stat::lstat(fname);
     auto st2 = Stat::stat(fname);
@@ -370,5 +270,5 @@ find_executable_in_path(const char* name,
 #endif
   }
 
-  return "";
+  return {};
 }

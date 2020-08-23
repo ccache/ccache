@@ -29,7 +29,7 @@ class Context;
 class ResultRetriever : public Result::Reader::Consumer
 {
 public:
-  ResultRetriever(Context& ctx);
+  ResultRetriever(Context& ctx, bool rewrite_dependency_target);
 
   virtual void on_header(CacheEntryReader& cache_entry_reader);
   virtual void on_entry_start(uint32_t entry_number,
@@ -44,6 +44,16 @@ private:
   Result::FileType m_dest_file_type;
   Fd m_dest_fd;
   std::string m_dest_path;
-  std::string m_stderr_text;
-  bool m_first;
+
+  // Collects the full data of stderr output (since we want to potentially strip
+  // color codes which could span chunk boundaries) or dependency data (since we
+  // potentially want to rewrite the dependency target which in theory can span
+  // a chunk boundary).
+  std::string m_dest_data;
+
+  // Whether to rewrite the first part of the dependency file data to the
+  // destination object file.
+  const bool m_rewrite_dependency_target;
+
+  void write_dependency_file();
 };

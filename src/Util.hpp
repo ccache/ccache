@@ -21,8 +21,8 @@
 #include "system.hpp"
 
 #include "CacheFile.hpp"
-#include "Config.hpp"
 
+#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <functional>
@@ -33,15 +33,12 @@
 
 namespace Util {
 
-using ProgressReceiver = std::function<void(double /*progress*/)>;
-using CacheFileVisitor = std::function<void(std::shared_ptr<CacheFile>)>;
-using SubdirVisitor =
-  std::function<void(const std::string& /*dir_path*/,
-                     const ProgressReceiver& /*progress_receiver*/)>;
+using DataReceiver = std::function<void(const void* data, size_t size)>;
+using ProgressReceiver = std::function<void(double progress)>;
+using SubdirVisitor = std::function<void(
+  const std::string& dir_path, const ProgressReceiver& progress_receiver)>;
 using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
-using SubstringEditor =
-  std::function<void(nonstd::string_view::size_type pos, std::string& substr)>;
 
 enum class UnlinkLog { log_failure, ignore_failure };
 
@@ -83,18 +80,33 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
 
+// Clone a file from `src` to `dest`. If `via_tmp_file` is true, `src` is cloned
+// to a temporary file and then renamed to `dest`. Throws `Error` on error.
+void clone_file(const std::string& src,
+                const std::string& dest,
+                bool via_tmp_file = false);
+
 // Clone, hard link or copy a file from `source` to `dest` depending on settings
 // in `ctx`. If cloning or hard linking cannot and should not be done the file
-// will be copied instead. Returns true if successful otherwise false.
-bool clone_hard_link_or_copy_file(const Context& ctx,
+// will be copied instead. Throws `Error` on error.
+void clone_hard_link_or_copy_file(const Context& ctx,
                                   const std::string& source,
                                   const std::string& dest,
-                                  bool via_tmp_file);
+                                  bool via_tmp_file = false);
 
 // Compute the length of the longest directory path that is common to paths
 // `dir` (a directory) and `path` (any path).
 size_t common_dir_prefix_length(nonstd::string_view dir,
                                 nonstd::string_view path);
+
+// Copy all data from `fd_in` to `fd_out`. Throws `Error` on error.
+void copy_fd(int fd_in, int fd_out);
+
+// Copy a file from `src` to `dest`. If via_tmp_file is true, `src` is copied to
+// a temporary file and then renamed to dest. Throws `Error` on error.
+void copy_file(const std::string& src,
+               const std::string& dest,
+               bool via_tmp_file = false);
 
 // Create a directory if needed, including its parents if needed.
 //
@@ -104,8 +116,17 @@ bool create_dir(nonstd::string_view dir);
 // Get directory name of path.
 nonstd::string_view dir_name(nonstd::string_view path);
 
-// Return true if suffix is a suffix of string.
-bool ends_with(nonstd::string_view string, nonstd::string_view suffix);
+// Return true if `suffix` is a suffix of `string`.
+inline bool
+ends_with(nonstd::string_view string, nonstd::string_view suffix)
+{
+  return string.ends_with(suffix);
+}
+
+// Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
+// in `str`. Throws `Error` if one of the environment variables.
+[[gnu::warn_unused_result]] std::string
+expand_environment_variables(const std::string& str);
 
 // Extends file size to at least new_size by calling posix_fallocate() if
 // supported, otherwise by writing zeros last to the file.
@@ -127,9 +148,19 @@ void for_each_level_1_subdir(const std::string& cache_dir,
                              const SubdirVisitor& visitor,
                              const ProgressReceiver& progress_receiver);
 
+// Format `argv` as a simple string for logging purposes. That is, the result is
+// not intended to be machine parsable. `argv` must be terminated by a nullptr.
+std::string format_argv_for_logging(const char* const* argv);
+
 // Format a hexadecimal string representing `size` bytes of `data`. The returned
 // string will be `2 * size` long.
 std::string format_hex(const uint8_t* data, size_t size);
+
+// Format `size` as a human-readable string.
+std::string format_human_readable_size(uint64_t size);
+
+// Format `size` as a parsable string.
+std::string format_parsable_size_with_suffix(uint64_t size);
 
 // Return current working directory (CWD) as returned from getcwd(3) (i.e.,
 // normalized path without symlink parts). Returns the empty string on error.
@@ -163,6 +194,13 @@ nonstd::string_view get_extension(nonstd::string_view path);
 void get_level_1_files(const std::string& dir,
                        const ProgressReceiver& progress_receiver,
                        std::vector<std::shared_ptr<CacheFile>>& files);
+
+// Return the current user's home directory, or throw `Fatal` if it can't
+// be determined.
+std::string get_home_directory();
+
+// Return a static string with the current hostname.
+const char* get_hostname();
 
 // Compute a relative path from `dir` (an absolute path to a directory) to
 // `path` (an absolute path). Assumes that both `dir` and `path` are normalized.
@@ -236,6 +274,26 @@ is_dir_separator(char ch)
     ;
 }
 
+// Return whether `path` is a full path.
+inline bool
+is_full_path(nonstd::string_view path)
+{
+#ifdef _WIN32
+  if (path.find('\\') != nonstd::string_view::npos) {
+    return true;
+  }
+#endif
+  return path.find('/') != nonstd::string_view::npos;
+}
+
+// Return whether `path` represents a precompiled header (see "Precompiled
+// Headers" in GCC docs).
+bool is_precompiled_header(nonstd::string_view path);
+
+// Thread-safe version of `localtime(3)`. If `time` is not specified the current
+// time of day is used.
+nonstd::optional<tm> localtime(nonstd::optional<time_t> time = {});
+
 // Make a relative path from current working directory to `path` if `path` is
 // under the base directory.
 std::string make_relative_path(const Context& ctx, nonstd::string_view path);
@@ -254,10 +312,29 @@ bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
 // On Windows: Backslashes are replaced with forward slashes.
 std::string normalize_absolute_path(nonstd::string_view path);
 
-// Parse a string into an integer.
+// Parse `duration`, an unsigned 32-bit integer with d (days) or s (seconds)
+// suffix, into seconds. Throws `Error` on error.
+uint32_t parse_duration(const std::string& duration);
+
+// Parse a string into a signed integer.
 //
-// Throws Error on error.
+// Throws `Error` on error.
 int parse_int(const std::string& value);
+
+// Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
+// suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
+// is also recognized as a synonym of k. Throws `Error` on parse error.
+uint64_t parse_size(const std::string& value);
+
+// Parse a string into an unsigned 32-bit integer.
+//
+// Throws `Error` on error.
+uint32_t parse_uint32(const std::string& value);
+
+// Read data from `fd` until end of file and call `data_receiver` with the read
+// data. Returns whether reading was successful, i.e. whether the read(2) call
+// did not return -1.
+bool read_fd(int fd, DataReceiver data_receiver);
 
 // Return `path`'s content as a string. If `size_hint` is not 0 then assume that
 // `path` has this size (this saves system calls).
@@ -281,9 +358,26 @@ std::string real_path(const std::string& path,
 // extension as determined by `get_extension()`.
 nonstd::string_view remove_extension(nonstd::string_view path);
 
+// Rename `oldpath` to `newpath` (deleting `newpath`). Throws `Error` on error.
+void rename(const std::string& oldpath, const std::string& newpath);
+
+// Detmine if `program_name` is equal to `canonical_program_name`. On Windows,
+// this means performing a case insensitive equality check with and without a
+// ".exe" suffix. On non-Windows, it is a simple equality check.
+bool same_program_name(const std::string& program_name,
+                       const std::string& canonical_program_name);
+
 // Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
-// `strip_colors` is true. Throws `Error` on error.
-void send_to_stderr(const std::string& text, bool strip_colors);
+// `ctx.args_info.strip_diagnostics_colors` is true and rewriting paths to
+// absolute if `ctx.config.absolute_paths_in_stderr` is true. Throws `Error` on
+// error.
+void send_to_stderr(const Context& ctx, const std::string& text);
+
+// Set the FD_CLOEXEC on file descriptor `fd`. This is a NOP on Windows.
+void set_cloexec_flag(int fd);
+
+// Set environment variable `name` to `value`.
+void setenv(const std::string& name, const std::string& value);
 
 // Split `input` into words at any of the characters listed in `separators`.
 // These words are a view into `input`; empty words are omitted. `separators`
@@ -295,8 +389,21 @@ std::vector<nonstd::string_view> split_into_views(nonstd::string_view input,
 std::vector<std::string> split_into_strings(nonstd::string_view input,
                                             const char* separators);
 
-// Return true if prefix is a prefix of string.
-bool starts_with(nonstd::string_view string, nonstd::string_view prefix);
+// Return true if `prefix` is a prefix of `string`.
+inline bool
+starts_with(const char* string, nonstd::string_view prefix)
+{
+  // Optimized version of starts_with(string_view, string_view): avoid computing
+  // the length of the string argument.
+  return strncmp(string, prefix.data(), prefix.length()) == 0;
+}
+
+// Return true if `prefix` is a prefix of `string`.
+inline bool
+starts_with(nonstd::string_view string, nonstd::string_view prefix)
+{
+  return string.starts_with(prefix);
+}
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
 [[gnu::warn_unused_result]] std::string
@@ -331,11 +438,20 @@ bool unlink_safe(const std::string& path,
 bool unlink_tmp(const std::string& path,
                 UnlinkLog unlink_log = UnlinkLog::log_failure);
 
+// Unset environment variable `name`.
+void unsetenv(const std::string& name);
+
+// Set mtime of `path` to the current timestamp.
+void update_mtime(const std::string& path);
+
 // Remove `path` (and its contents if it's a directory). A non-existing path is
 // not considered an error.
 //
 // Throws Error on error.
 void wipe_path(const std::string& path);
+
+// Write `size` bytes from `data` to `fd`. Throws `Error` on error.
+void write_fd(int fd, const void* data, size_t size);
 
 // Write `data` to `path`. The file will be opened according to `open_mode`,
 // which always will include `std::ios::out` even if not specified at the call

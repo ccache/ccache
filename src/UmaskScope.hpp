@@ -20,13 +20,36 @@
 
 #include "system.hpp"
 
-#include <string>
+#include "third_party/nonstd/optional.hpp"
 
-class Config;
+// This class sets a new (process-global) umask and restores the previous umask
+// when destructed.
+class UmaskScope
+{
+public:
+  UmaskScope(nonstd::optional<mode_t> new_umask);
+  ~UmaskScope();
 
-void init_log(const Config& config);
-void cc_log(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_bulklog(const char* format, ...) ATTR_FORMAT(printf, 1, 2);
-void cc_log_argv(const char* prefix, const char* const* argv);
-void cc_dump_debug_log_buffer(const char* path);
-std::string format_command(const char* const* argv);
+private:
+  nonstd::optional<mode_t> m_saved_umask;
+};
+
+UmaskScope::UmaskScope(nonstd::optional<mode_t> new_umask)
+{
+#ifndef _WIN32
+  if (new_umask) {
+    m_saved_umask = umask(*new_umask);
+  }
+#else
+  (void)new_umask;
+#endif
+}
+
+UmaskScope::~UmaskScope()
+{
+#ifndef _WIN32
+  if (m_saved_umask) {
+    umask(*m_saved_umask);
+  }
+#endif
+}

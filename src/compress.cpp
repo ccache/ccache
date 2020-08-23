@@ -23,10 +23,10 @@
 #include "CacheEntryWriter.hpp"
 #include "Context.hpp"
 #include "File.hpp"
+#include "Logging.hpp"
 #include "Result.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
-#include "logging.hpp"
 #include "manifest.hpp"
 #include "stats.hpp"
 
@@ -35,13 +35,14 @@
 #include <string>
 #include <thread>
 
+using Logging::log;
+
 static File
 open_file(const std::string& path, const char* mode)
 {
   File f(path, mode);
   if (!f) {
-    throw Error(
-      fmt::format("failed to open {} for reading: {}", path, strerror(errno)));
+    throw Error("failed to open {} for reading: {}", path, strerror(errno));
   }
   return f;
 }
@@ -50,7 +51,7 @@ static std::unique_ptr<CacheEntryReader>
 create_reader(const CacheFile& cache_file, FILE* stream)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
-    throw Error(fmt::format("unknown file type for {}", cache_file.path()));
+    throw Error("unknown file type for {}", cache_file.path());
   }
 
   switch (cache_file.type()) {
@@ -101,7 +102,7 @@ recompress_file(Context& ctx,
     return;
   }
 
-  cc_log("Recompressing %s to level %d", cache_file.path().c_str(), level);
+  log("Recompressing {} to level {}", cache_file.path(), level);
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
   auto writer = create_writer(atomic_new_file.stream(),
                               *reader,
@@ -137,7 +138,7 @@ recompress_file(Context& ctx,
     stats_flush_to_file(ctx.config, stats_file, counters);
   }
 
-  cc_log("Recompression of %s done", cache_file.path().c_str());
+  log("Recompression of {} done", cache_file.path());
 }
 
 void
@@ -178,34 +179,31 @@ compress_stats(const Config& config,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    printf("\n\n");
+    fmt::print("\n\n");
   }
 
   double ratio = compr_size > 0 ? ((double)compr_orig_size) / compr_size : 0.0;
   double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
-  char* on_disk_size_str = format_human_readable_size(on_disk_size);
-  char* cache_size_str = format_human_readable_size(compr_size + incompr_size);
-  char* compr_size_str = format_human_readable_size(compr_size);
-  char* compr_orig_size_str = format_human_readable_size(compr_orig_size);
-  char* incompr_size_str = format_human_readable_size(incompr_size);
+  std::string on_disk_size_str = Util::format_human_readable_size(on_disk_size);
+  std::string cache_size_str =
+    Util::format_human_readable_size(compr_size + incompr_size);
+  std::string compr_size_str = Util::format_human_readable_size(compr_size);
+  std::string compr_orig_size_str =
+    Util::format_human_readable_size(compr_orig_size);
+  std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
 
-  printf("Total data:            %8s (%s disk blocks)\n",
-         cache_size_str,
-         on_disk_size_str);
-  printf("Compressed data:       %8s (%.1f%% of original size)\n",
-         compr_size_str,
-         100.0 - savings);
-  printf("  - Original size:     %8s\n", compr_orig_size_str);
-  printf(
-    "  - Compression ratio: %5.3f x  (%.1f%% space savings)\n", ratio, savings);
-  printf("Incompressible data:   %8s\n", incompr_size_str);
-
-  free(incompr_size_str);
-  free(compr_orig_size_str);
-  free(compr_size_str);
-  free(cache_size_str);
-  free(on_disk_size_str);
+  fmt::print("Total data:            {:8s} ({} disk blocks)\n",
+             cache_size_str,
+             on_disk_size_str);
+  fmt::print("Compressed data:       {:8s} ({:.1f}% of original size)\n",
+             compr_size_str,
+             100.0 - savings);
+  fmt::print("  - Original size:     {:8s}\n", compr_orig_size_str);
+  fmt::print("  - Compression ratio: {:5.3f} x  ({:.1f}% space savings)\n",
+             ratio,
+             savings);
+  fmt::print("Incompressible data:   {:8s}\n", incompr_size_str);
 }
 
 void
@@ -254,6 +252,6 @@ compress_recompress(Context& ctx,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    printf("\n");
+    fmt::print("\n");
   }
 }

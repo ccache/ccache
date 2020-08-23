@@ -13,6 +13,7 @@ set(
   Decompressor.cpp
   Hash.cpp
   Lockfile.cpp
+  Logging.cpp
   MiniTrace.cpp
   NullCompressor.cpp
   NullDecompressor.cpp
@@ -36,8 +37,6 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  legacy_util.cpp
-  logging.cpp
   manifest.cpp
   stats.cpp
   version.cpp)
@@ -47,7 +46,7 @@ if(INODE_CACHE_SUPPORTED)
 endif()
 
 if(WIN32)
-  list(APPEND source_files win32compat.cpp)
+  list(APPEND source_files Win32Util.cpp)
 endif()
 
 add_library(ccache_lib STATIC ${source_files})

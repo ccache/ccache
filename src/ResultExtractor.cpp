@@ -18,12 +18,7 @@
 
 #include "ResultExtractor.hpp"
 
-#include "Context.hpp"
-#include "logging.hpp"
-
-#include "third_party/nonstd/string_view.hpp"
-
-using string_view = nonstd::string_view;
+#include "Util.hpp"
 
 ResultExtractor::ResultExtractor(const std::string& directory)
   : m_directory(directory)
@@ -55,13 +50,16 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
     m_dest_fd = Fd(
       open(m_dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!m_dest_fd) {
-      throw Error(fmt::format(
-        "Failed to open {} for writing: {}", m_dest_path, strerror(errno)));
+      throw Error(
+        "Failed to open {} for writing: {}", m_dest_path, strerror(errno));
     }
-
-  } else if (!copy_file(raw_file->c_str(), m_dest_path.c_str(), false)) {
-    throw Error(fmt::format(
-      "Failed to copy {} to {}: {}", *raw_file, m_dest_path, strerror(errno)));
+  } else {
+    try {
+      Util::copy_file(*raw_file, m_dest_path, false);
+    } catch (Error& e) {
+      throw Error(
+        "Failed to copy {} to {}: {}", *raw_file, m_dest_path, e.what());
+    }
   }
 }
 
@@ -70,8 +68,10 @@ ResultExtractor::on_entry_data(const uint8_t* data, size_t size)
 {
   assert(m_dest_fd);
 
-  if (!write_fd(*m_dest_fd, data, size)) {
-    throw Error(fmt::format("Failed to write to {}", m_dest_path));
+  try {
+    Util::write_fd(*m_dest_fd, data, size);
+  } catch (Error& e) {
+    throw Error("Failed to write to {}: {}", m_dest_path, e.what());
   }
 }
 

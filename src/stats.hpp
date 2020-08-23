@@ -67,19 +67,21 @@ enum stats {
 };
 
 void stats_update(Context& ctx, enum stats stat);
-void stats_flush(void* context);
+void stats_flush(Context& ctx);
 void stats_flush_to_file(const Config& config,
-                         std::string sfile,
+                         const std::string& sfile,
                          const Counters& updates);
 void stats_zero(const Context& ctx);
 void stats_summary(const Context& ctx);
 void stats_print(const Config& config);
 
 void stats_update_size(Counters& counters, int64_t size, int files);
-void stats_get_obsolete_limits(const char* dir,
+void stats_get_obsolete_limits(const std::string& dir,
                                unsigned* maxfiles,
                                uint64_t* maxsize);
-void stats_set_sizes(const char* dir, unsigned num_files, uint64_t total_size);
-void stats_add_cleanup(const char* dir, unsigned count);
+void stats_set_sizes(const std::string& dir,
+                     unsigned num_files,
+                     uint64_t total_size);
+void stats_add_cleanup(const std::string& dir, unsigned count);
 void stats_read(const std::string& path, Counters& counters);
 void stats_write(const std::string& path, const Counters& counters);

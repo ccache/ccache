@@ -23,6 +23,8 @@
 #include "ccache.hpp"
 #include "exceptions.hpp"
 
+#include "third_party/fmt/core.h"
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -37,6 +39,7 @@ using nonstd::optional;
 namespace {
 
 enum class ConfigItem {
+  absolute_paths_in_stderr,
   base_dir,
   cache_dir,
   cache_dir_levels,
@@ -76,6 +79,7 @@ enum class ConfigItem {
 };
 
 const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
+  {"absolute_paths_in_stderr", ConfigItem::absolute_paths_in_stderr},
   {"base_dir", ConfigItem::base_dir},
   {"cache_dir", ConfigItem::cache_dir},
   {"cache_dir_levels", ConfigItem::cache_dir_levels},
@@ -115,6 +119,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
+  {"ABSSTDERR", "absolute_paths_in_stderr"},
   {"BASEDIR", "base_dir"},
   {"CC", "compiler"}, // Alias for CCACHE_COMPILER
   {"COMMENTS", "keep_comments_cpp"},
@@ -174,11 +179,11 @@ parse_bool(const std::string& value,
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw Error(
-        fmt::format("invalid boolean environment variable value \"{}\" (did"
-                    " you mean to set \"CCACHE_{}{}=true\"?)",
-                    value,
-                    negate ? "" : "NO",
-                    *env_var_key));
+        "invalid boolean environment variable value \"{}\" (did you mean to"
+        " set \"CCACHE_{}{}=true\"?)",
+        value,
+        negate ? "" : "NO",
+        *env_var_key);
     }
     return !negate;
   } else if (value == "true") {
@@ -186,7 +191,7 @@ parse_bool(const std::string& value,
   } else if (value == "false") {
     return false;
   } else {
-    throw Error(fmt::format("not a boolean value: \"{}\"", value));
+    throw Error("not a boolean value: \"{}\"", value);
   }
 }
 
@@ -194,21 +199,6 @@ std::string
 format_bool(bool value)
 {
   return value ? "true" : "false";
-}
-
-std::string
-parse_env_string(const std::string& value)
-{
-  char* errmsg = nullptr;
-  char* substituted = subst_env_in_string(value.c_str(), &errmsg);
-  if (!substituted) {
-    std::string error_message = errmsg;
-    free(errmsg);
-    throw Error(error_message);
-  }
-  std::string result = substituted;
-  free(substituted);
-  return result;
 }
 
 double
@@ -222,17 +212,7 @@ parse_double(const std::string& value)
     throw Error(e.what());
   }
   if (end != value.size()) {
-    throw Error(fmt::format("invalid floating point: \"{}\"", value));
-  }
-  return result;
-}
-
-uint64_t
-parse_cache_size(const std::string& value)
-{
-  uint64_t result;
-  if (!parse_size_with_suffix(value.c_str(), &result)) {
-    throw Error(fmt::format("invalid size: \"{}\"", value));
+    throw Error("invalid floating point: \"{}\"", value);
   }
   return result;
 }
@@ -240,10 +220,7 @@ parse_cache_size(const std::string& value)
 std::string
 format_cache_size(uint64_t value)
 {
-  char* string = format_parsable_size_with_suffix(value);
-  std::string result = string;
-  free(string);
-  return result;
+  return Util::format_parsable_size_with_suffix(value);
 }
 
 uint32_t
@@ -333,7 +310,7 @@ parse_umask(const std::string& value)
   size_t end;
   uint32_t result = std::stoul(value, &end, 8);
   if (end != value.size()) {
-    throw Error(fmt::format("not an octal integer: \"{}\"", value));
+    throw Error("not an octal integer: \"{}\"", value);
   }
   return result;
 }
@@ -348,28 +325,11 @@ format_umask(uint32_t umask)
   }
 }
 
-unsigned
-parse_unsigned(const std::string& value)
-{
-  size_t end;
-  long result;
-  bool failed = false;
-  try {
-    result = std::stol(value, &end, 10);
-  } catch (std::exception&) {
-    failed = true;
-  }
-  if (failed || end != value.size() || result < 0) {
-    throw Error(fmt::format("invalid unsigned integer: \"{}\"", value));
-  }
-  return result;
-}
-
 void
 verify_absolute_path(const std::string& value)
 {
   if (!Util::is_absolute_path(value)) {
-    throw Error(fmt::format("not an absolute path: \"{}\"", value));
+    throw Error("not an absolute path: \"{}\"", value);
   }
 }
 
@@ -422,7 +382,7 @@ parse_config_file(const std::string& path,
         config_line_handler(line, key, value);
       }
     } catch (const Error& e) {
-      throw Error(fmt::format("{}:{}: {}", path, line_number, e.what()));
+      throw Error("{}:{}: {}", path, line_number, e.what());
     }
   }
   return true;
@@ -496,8 +456,7 @@ Config::update_from_environment()
     try {
       set_item(config_key, value, key, negate, "environment");
     } catch (const Error& e) {
-      throw Error(
-        fmt::format("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what()));
+      throw Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
     }
   }
 }
@@ -507,10 +466,13 @@ Config::get_string_value(const std::string& key) const
 {
   auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
-    throw Error(fmt::format("unknown configuration option \"{}\"", key));
+    throw Error("unknown configuration option \"{}\"", key);
   }
 
   switch (it->second) {
+  case ConfigItem::absolute_paths_in_stderr:
+    return format_bool(m_absolute_paths_in_stderr);
+
   case ConfigItem::base_dir:
     return m_base_dir;
 
@@ -630,7 +592,7 @@ Config::set_value_in_file(const std::string& path,
                           const std::string& value)
 {
   if (k_config_key_table.find(key) == k_config_key_table.end()) {
-    throw Error(fmt::format("unknown configuration option \"{}\"", key));
+    throw Error("unknown configuration option \"{}\"", key);
   }
 
   // Verify that the value is valid; set_item will throw if not.
@@ -651,7 +613,7 @@ Config::set_value_in_file(const std::string& path,
                              output.write(fmt::format("{}\n", c_line));
                            }
                          })) {
-    throw Error(fmt::format("failed to open {}: {}", path, strerror(errno)));
+    throw Error("failed to open {}: {}", path, strerror(errno));
   }
 
   if (!found) {
@@ -692,8 +654,12 @@ Config::set_item(const std::string& key,
   }
 
   switch (it->second) {
+  case ConfigItem::absolute_paths_in_stderr:
+    m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
+    break;
+
   case ConfigItem::base_dir:
-    m_base_dir = parse_env_string(value);
+    m_base_dir = Util::expand_environment_variables(value);
     if (!m_base_dir.empty()) { // The empty string means "disable"
       verify_absolute_path(m_base_dir);
       m_base_dir = Util::normalize_absolute_path(m_base_dir);
@@ -701,11 +667,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir:
-    set_cache_dir(parse_env_string(value));
+    set_cache_dir(Util::expand_environment_variables(value));
     break;
 
   case ConfigItem::cache_dir_levels:
-    m_cache_dir_levels = parse_unsigned(value);
+    m_cache_dir_levels = Util::parse_uint32(value);
     if (m_cache_dir_levels < 1 || m_cache_dir_levels > 8) {
       throw Error("cache directory levels must be between 1 and 8");
     }
@@ -753,7 +719,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::extra_files_to_hash:
-    m_extra_files_to_hash = parse_env_string(value);
+    m_extra_files_to_hash = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::file_clone:
@@ -769,11 +735,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::ignore_headers_in_manifest:
-    m_ignore_headers_in_manifest = parse_env_string(value);
+    m_ignore_headers_in_manifest = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::ignore_options:
-    m_ignore_options = parse_env_string(value);
+    m_ignore_options = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::inode_cache:
@@ -789,19 +755,19 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::log_file:
-    m_log_file = parse_env_string(value);
+    m_log_file = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::max_files:
-    m_max_files = parse_unsigned(value);
+    m_max_files = Util::parse_uint32(value);
     break;
 
   case ConfigItem::max_size:
-    m_max_size = parse_cache_size(value);
+    m_max_size = Util::parse_size(value);
     break;
 
   case ConfigItem::path:
-    m_path = parse_env_string(value);
+    m_path = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::pch_external_checksum:
@@ -809,11 +775,11 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::prefix_command:
-    m_prefix_command = parse_env_string(value);
+    m_prefix_command = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::prefix_command_cpp:
-    m_prefix_command_cpp = parse_env_string(value);
+    m_prefix_command_cpp = Util::expand_environment_variables(value);
     break;
 
   case ConfigItem::read_only:
@@ -841,7 +807,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::temporary_dir:
-    m_temporary_dir = parse_env_string(value);
+    m_temporary_dir = Util::expand_environment_variables(value);
     m_temporary_dir_configured_explicitly = true;
     break;
 
@@ -858,10 +824,10 @@ Config::check_key_tables_consistency()
 {
   for (const auto& item : k_env_variable_table) {
     if (k_config_key_table.find(item.second) == k_config_key_table.end()) {
-      throw Error(fmt::format(
+      throw Error(
         "env var {} mapped to {} which is missing from k_config_key_table",
         item.first,
-        item.second));
+        item.second);
     }
   }
 }

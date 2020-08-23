@@ -21,9 +21,8 @@
 #include "system.hpp"
 
 #include "NonCopyable.hpp"
-#include "legacy_util.hpp"
+#include "Util.hpp"
 
-#include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
 #include <functional>
@@ -33,11 +32,14 @@
 
 class Config;
 
-class Config : NonCopyable
+class Config
 {
 public:
   Config() = default;
+  Config(Config&) = default;
+  Config& operator=(const Config&) = default;
 
+  bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
   const std::string& cache_dir() const;
   uint32_t cache_dir_levels() const;
@@ -127,8 +129,9 @@ private:
   std::string m_primary_config_path;
   std::string m_secondary_config_path;
 
+  bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir = "";
-  std::string m_cache_dir = fmt::format("{}/.ccache", get_home_directory());
+  std::string m_cache_dir;
   uint32_t m_cache_dir_levels = 2;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";
@@ -161,7 +164,7 @@ private:
   bool m_run_second_cpp = true;
   uint32_t m_sloppiness = 0;
   bool m_stats = true;
-  std::string m_temporary_dir = default_temporary_dir(m_cache_dir);
+  std::string m_temporary_dir;
   uint32_t m_umask = std::numeric_limits<uint32_t>::max(); // Don't set umask
 
   bool m_temporary_dir_configured_explicitly = false;
@@ -176,6 +179,12 @@ private:
 
   static std::string default_temporary_dir(const std::string& cache_dir);
 };
+
+inline bool
+Config::absolute_paths_in_stderr() const
+{
+  return m_absolute_paths_in_stderr;
+}
 
 inline const std::string&
 Config::base_dir() const

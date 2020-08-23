@@ -58,11 +58,8 @@ struct ArgsInfo
   // Is the compiler being asked to output dependencies?
   bool generating_dependencies = false;
 
-  // Option MD/MMD
+  // Seen -MD or -MMD?
   bool seen_MD_MMD = false;
-
-  // Change target of dependency file
-  bool change_dep_file = false;
 
   // Is the dependency makefile target name specified with -MT or -MQ?
   bool dependency_target_specified = false;
@@ -102,6 +99,10 @@ struct ArgsInfo
   // Whether we are using a precompiled header (either via -include, #include or
   // Clang's -include-pch or -include-pth).
   bool using_precompiled_header = false;
+
+  // Whether Clang is instructed not to include timestamps in the precompiled
+  // header it generates.
+  bool fno_pch_timestamp = false;
 
   // Files referenced by -fsanitize-blacklist options.
   std::vector<std::string> sanitize_blacklists;

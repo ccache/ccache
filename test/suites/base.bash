@@ -158,7 +158,7 @@ base_tests() {
     $CCACHE_COMPILE -c test1.c -o out/foo.o 2>/dev/null
     expect_stat 'could not write to output file' 1
     expect_stat 'cache miss' 1
-    expect_file_missing out/foo.o
+    expect_missing out/foo.o
 
     # -------------------------------------------------------------------------
     TEST "No input file"
@@ -175,13 +175,13 @@ base_tests() {
     $CCACHE_COMPILE -x c -c src/foo
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists foo.o
+    expect_exists foo.o
     rm foo.o
 
     $CCACHE_COMPILE -x c -c src/foo
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_exists foo.o
+    expect_exists foo.o
     rm foo.o
 
     rm -rf src
@@ -195,13 +195,13 @@ base_tests() {
     $CCACHE_COMPILE -x c -c src/foo.
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists foo.o
+    expect_exists foo.o
     rm foo.o
 
     $CCACHE_COMPILE -x c -c src/foo.
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_exists foo.o
+    expect_exists foo.o
     rm foo.o
 
     rm -rf src
@@ -215,13 +215,13 @@ base_tests() {
     $CCACHE_COMPILE -c src/foo.c.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_exists foo.c.o
+    expect_exists foo.c.o
     rm foo.c.o
 
     $CCACHE_COMPILE -c src/foo.c.c
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_exists foo.c.o
+    expect_exists foo.c.o
     rm foo.c.o
 
     rm -rf src
@@ -373,8 +373,8 @@ base_tests() {
     expect_stat 'cache miss' 5
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache miss' 6
-    expect_file_contains "$stats_file" 101
-    expect_file_newer_than "$stats_file" "$CCACHE_DIR/timestamp_reference"
+    expect_contains "$stats_file" 101
+    expect_newer_than "$stats_file" "$CCACHE_DIR/timestamp_reference"
 
     # -------------------------------------------------------------------------
     TEST "CCACHE_RECACHE"
@@ -593,7 +593,7 @@ base_tests() {
 
     cat <<'EOF' >prefix-a
 #!/bin/sh
-echo a >>prefix.result
+echo a >prefix.result
 exec "$@"
 EOF
     cat <<'EOF' >prefix-b
@@ -609,14 +609,14 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_file_content prefix.result "a
+    expect_content prefix.result "a
 b"
 
     PATH=.:$PATH CCACHE_PREFIX="prefix-a prefix-b" $CCACHE_COMPILE -c file.c
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
-    expect_file_content prefix.result "a
+    expect_content prefix.result "a
 b"
 
     rm -f prefix.result
@@ -624,7 +624,7 @@ b"
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 2
     expect_stat 'cache miss' 1
-    expect_file_content prefix.result "a
+    expect_content prefix.result "a
 b"
 
     # -------------------------------------------------------------------------
@@ -909,6 +909,48 @@ EOF
     CCACHE_COMPILERCHECK="unknown_command" $CCACHE ./compiler.sh -c test1.c 2>/dev/null
     expect_stat 'compiler check failed' 1
 
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_UMASK"
+
+    saved_umask=$(umask)
+    umask 022
+    export CCACHE_UMASK=002
+
+    cat <<EOF >test.c
+int main() {}
+EOF
+
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    result_file=$(find $CCACHE_DIR -name '*.result')
+    level_2_dir=$(dirname $result_file)
+    level_1_dir=$(dirname $(dirname $result_file))
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+    expect_perm "$CCACHE_CONFIGPATH" -rw-rw-r--
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$level_1_dir" drwxrwxr-x
+    expect_perm "$level_1_dir/stats" -rw-rw-r--
+    expect_perm "$level_2_dir" drwxrwxr-x
+    expect_perm "$result_file" -rw-rw-r--
+
+    rm test.o test.d
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+
+    $CCACHE_COMPILE -o test test.o
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'called for link' 1
+    expect_perm test -rwxr-xr-x
+
+    umask $saved_umask
+
     # -------------------------------------------------------------------------
     TEST "No object file"
 
@@ -956,7 +998,7 @@ int stderr(void)
 EOF
     $REAL_COMPILER -c -Wall -W -c stderr.c 2>reference_stderr.txt
     $CCACHE_COMPILE -Wall -W -c stderr.c 2>stderr.txt
-    expect_equal_files reference_stderr.txt stderr.txt
+    expect_equal_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
     TEST "Merging stderr"
@@ -978,13 +1020,34 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
-    expect_file_content stderr "[cc_stderr]"
+    expect_content stderr "[cc_stderr]"
 
     stderr=$(CCACHE_NOCPP2=1 $CCACHE ./compiler.sh -c test1.c 2>stderr)
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 2
-    expect_file_content stderr "[cpp_stderr][cc_stderr]"
+    expect_content stderr "[cpp_stderr][cc_stderr]"
+
+    # -------------------------------------------------------------------------
+    TEST "Stderr and dependency file"
+
+    cat <<EOF >test.c
+#warning Foo
+EOF
+    $REAL_COMPILER -c test.c -MMD 2>reference.stderr
+    mv test.d reference.d
+
+    $CCACHE_COMPILE -c test.c -MMD 2>test.stderr
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_content reference.stderr test.stderr
+    expect_equal_content reference.d test.d
+
+    $CCACHE_COMPILE -c test.c -MMD 2>test.stderr
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_equal_content reference.stderr test.stderr
+    expect_equal_content reference.d test.d
 
     # -------------------------------------------------------------------------
     TEST "--zero-stats"
@@ -1082,7 +1145,7 @@ EOF
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_file_content compiler.args "[-E test1.c][-c -o test1.o test1.c]"
+        expect_content compiler.args "[-E test1.c][-c -o test1.o test1.c]"
     fi
     rm compiler.args
 
@@ -1090,7 +1153,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
-    expect_file_content compiler.args "[-E test1.c]"
+    expect_content compiler.args "[-E test1.c]"
     rm compiler.args
 
     # Even though -Werror is not passed to the preprocessor, it should be part
@@ -1100,7 +1163,7 @@ EOF
     expect_stat 'cache miss' 2
     expect_stat 'files in cache' 2
     if [ -z "$CCACHE_NOCPP2" ]; then
-        expect_file_content compiler.args "[-E test1.c][-Werror -rdynamic -c -o test1.o test1.c]"
+        expect_content compiler.args "[-E test1.c][-Werror -rdynamic -c -o test1.o test1.c]"
     fi
     rm compiler.args
 
@@ -1114,7 +1177,7 @@ EOF
         for obj in test1.o build/test1.o; do
             $CCACHE_COMPILE -c -MMD $src -o $obj
             dep=$(echo $obj | sed 's/\.o$/.d/')
-            expect_file_content $dep "$obj: $src"
+            expect_content $dep "$obj: $src"
         done
     done
 

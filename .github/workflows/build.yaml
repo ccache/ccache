@@ -1,0 +1,253 @@
+name: Build and test on push
+on:
+  push:
+  pull_request:
+
+jobs:
+  # These test the standard build on several systems with GCC + Clang.
+  standard_tests:
+    name: ${{ matrix.os }} & ${{ matrix.compiler.CC }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15]
+        compiler:
+          - CC: gcc
+            CXX: g++
+          - CC: clang
+            CXX: clang++
+
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+
+      - name: Install dependencies (Ubuntu 16 & 18)
+        if: startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-20.04'
+        run: sudo apt-get install elfutils libzstd1-dev
+
+      - name: Install dependencies (Ubuntu 20)
+        if: matrix.os == 'ubuntu-20.04'
+        run: sudo apt-get install elfutils libzstd-dev
+
+      - name: Build and test
+        run: ci/build
+        env:
+          CC: ${{ matrix.compiler.CC }}
+          CTEST_OUTPUT_ON_FAILURE: ON
+          CXX: ${{ matrix.compiler.CXX }}
+          ENABLE_CACHE_CLEANUP_TESTS: true
+          VERBOSE: 1
+
+      - name: Collect testdir from failed tests
+        if: failure()
+        run: tar -caf testdir.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
+
+      - name: Upload testdir from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.name }} - testdir.tar.xz
+          path: testdir.tar.xz
+
+  # These mimic the old Travis tests that are not replaced by standard_tests:
+  specific_tests:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Job 1: Build (in source directory) on Linux with native GCC in release build mode
+          - name: Linux GCC release + tracing
+            os: ubuntu-18.04
+            CC: gcc
+            CXX: g++
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            BUILDDIR: .
+            CCACHE_LOC: .
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release -DENABLE_TRACING=1
+            apt_get: elfutils libzstd1-dev
+
+          # Job 2: Build on Linux with native 32-bit GCC
+          - name: Linux GCC 32-bit
+            os: ubuntu-18.04
+            CC: gcc
+            CXX: g++
+            CFLAGS: -m32 -g -O2
+            CXXFLAGS: -m32 -g -O2
+            LDFLAGS: -m32
+            CMAKE_PARAMS: -DZSTD_FROM_INTERNET=ON
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
+
+          # Job 3: Build on Linux with native Clang moved to standard tests
+
+          # Job 4: Build on Linux with native GCC and CUDA compiler
+
+          - name: Linux GCC CUDA
+            os: ubuntu-18.04
+            CC: gcc
+            CXX: g++
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CUDA: 10.1.243-1
+            apt_get: elfutils libzstd1-dev
+
+          # Job 5: Build on Linux with 32-bit MinGW cross-compiler
+          - name: Linux MinGW 32-bit
+            os: ubuntu-18.04
+            CC: i686-w64-mingw32-gcc-posix
+            CXX: i686-w64-mingw32-g++-posix
+            CMAKE_PARAMS: -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            RUN_TESTS: 0
+            apt_get: elfutils mingw-w64
+
+          # Job 6: Build on Linux with 64-bit MinGW cross-compiler
+          - name: Linux MinGW 64-bit
+            os: ubuntu-18.04
+            CC: x86_64-w64-mingw32-gcc-posix
+            CXX: x86_64-w64-mingw32-g++-posix
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
+            RUN_TESTS: 0
+            apt_get: elfutils mingw-w64
+
+          # Job 7: Build on MacOS with native Clang moved to standard tests
+
+          # Job 8: Build with ENABLE_TRACING merged into Job 1
+
+          # Job 9: Run Clang's undefined behavior sanitizer
+          - name: Clang UB sanitizer
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: -DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON
+            ASAN_OPTIONS: detect_leaks=0
+            apt_get: elfutils libzstd-dev
+
+          # Job 10: Run Clang's address sanitizer
+          - name: Clang address sanitizer
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: -DENABLE_SANITIZER_ADDRESS=ON
+            ASAN_OPTIONS: detect_leaks=0
+            apt_get: elfutils libzstd-dev
+
+          # Job 11: Run Clang's static analyzer
+          - name: Clang static analyzer
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PREFIX: scan-build
+            RUN_TESTS: 0
+            path: /usr/bin
+            apt_get: libzstd-dev
+
+          # Job 12: Build binary package, extract it out of source, run tests.
+          - name: Build binary and verify it
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            SPECIAL: build-and-verify-package
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
+            apt_get: elfutils libzstd-dev
+
+          # Job 13: Build source package, extract it out of source, run tests.
+          - name: Build source package and verify it
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            SPECIAL: build-and-verify-package-source
+            apt_get: elfutils libzstd-dev
+
+          # Job 14: Build documentation
+          - name: Build documentation
+            os: ubuntu-18.04
+            EXTRA_CMAKE_BUILD_FLAGS: --target documentation
+            RUN_TESTS: 0
+            apt_get: libzstd1-dev asciidoc
+
+          # Job 15: Build manpage
+          - name: Build manpage
+            os: ubuntu-18.04
+            EXTRA_CMAKE_BUILD_FLAGS: --target manpage
+            RUN_TESTS: 0
+            apt_get: libzstd1-dev asciidoc xsltproc
+
+          # Job 16: Run Clang-Tidy
+          - name: Run Clang-Tidy
+            os: ubuntu-20.04
+            CC: clang
+            CXX: clang++
+            RUN_TESTS: 0
+            CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON
+            apt_get: libzstd-dev clang-tidy
+
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+
+      - name: Install CUDA
+        if: matrix.config.CUDA != ''
+        run: sudo --preserve-env=CUDA ci/install-cuda
+        env:
+          CUDA: ${{ matrix.config.CUDA }}
+
+      - name: Run apt-get
+        if: matrix.config.apt_get != ''
+        run: sudo apt-get install ${{ matrix.config.apt_get }}
+
+      - name: Prefix PATH
+        if: matrix.config.path != ''
+        run: echo "::add-path::${{ matrix.config.path }}"
+
+      - name: Build and test
+        env:
+          ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
+          BUILDDIR: ${{ matrix.config.BUILDDIR }}
+          CC: ${{ matrix.config.CC }}
+          CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
+          CFLAGS: ${{ matrix.config.CFLAGS }}
+          CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
+          CTEST_OUTPUT_ON_FAILURE: ON
+          CXX: ${{ matrix.config.CXX }}
+          CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
+          ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
+          EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
+          LDFLAGS: ${{ matrix.config.LDFLAGS }}
+          RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
+          SPECIAL: ${{ matrix.config.SPECIAL }}
+          VERBOSE: 1
+        run: ci/build
+
+      - name: Collect testdir from failed tests
+        if: failure()
+        run: tar -caf testdirs.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
+        # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
+
+      - name: Upload testdir from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.name }} - testdir.tar.xz
+          path: testdir.tar.xz
+
+  check_format:
+    name: Check code formatting
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+
+      # Job 17: Run Clang-Format in check mode
+      - name: Run Clang-Format in check mode
+        run: misc/format-files --all --check
+        continue-on-error: true
+        env:
+          VERBOSE: 1

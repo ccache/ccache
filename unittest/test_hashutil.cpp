@@ -23,6 +23,7 @@
 
 #include "third_party/doctest.h"
 
+using nonstd::string_view;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("hashutil");
@@ -117,31 +118,31 @@ TEST_CASE("hash_multicommand_output_error_handling")
 
 TEST_CASE("check_for_temporal_macros")
 {
-  const char time_start[] =
+  const string_view time_start =
     "__TIME__\n"
     "int a;\n";
-  const char time_middle[] =
+  const string_view time_middle =
     "#define a __TIME__\n"
     "int a;\n";
-  const char time_end[] = "#define a __TIME__";
+  const string_view time_end = "#define a __TIME__";
 
-  const char date_start[] =
+  const string_view date_start =
     "__DATE__\n"
     "int ab;\n";
-  const char date_middle[] =
+  const string_view date_middle =
     "#define ab __DATE__\n"
     "int ab;\n";
-  const char date_end[] = "#define ab __DATE__";
+  const string_view date_end = "#define ab __DATE__";
 
-  const char timestamp_start[] =
+  const string_view timestamp_start =
     "__TIMESTAMP__\n"
     "int c;\n";
-  const char timestamp_middle[] =
+  const string_view timestamp_middle =
     "#define c __TIMESTAMP__\n"
     "int c;\n";
-  const char timestamp_end[] = "#define c __TIMESTAMP__";
+  const string_view timestamp_end = "#define c __TIMESTAMP__";
 
-  const char no_temporal[] =
+  const string_view no_temporal =
     "#define ab a__DATE__\n"
     "#define ab  __DATE__a\n"
     "#define ab A__DATE__\n"
@@ -164,83 +165,71 @@ TEST_CASE("check_for_temporal_macros")
     "#define ab __TIME __\n"
     "#define ab __TIME_ _\n";
 
-  const char temporal_at_avx_boundary[] =
+  const string_view temporal_at_avx_boundary =
     "#define alphabet abcdefghijklmnopqrstuvwxyz\n"
     "__DATE__";
 
-  CHECK(check_for_temporal_macros(time_start + 0, sizeof(time_start) - 0));
-  CHECK(!check_for_temporal_macros(time_start + 1, sizeof(time_start) - 1));
+  CHECK(check_for_temporal_macros(time_start));
+  CHECK(!check_for_temporal_macros(time_start.substr(1)));
 
-  CHECK(check_for_temporal_macros(time_middle + 0, sizeof(time_middle) - 0));
-  CHECK(check_for_temporal_macros(time_middle + 1, sizeof(time_middle) - 1));
-  CHECK(check_for_temporal_macros(time_middle + 2, sizeof(time_middle) - 2));
-  CHECK(check_for_temporal_macros(time_middle + 3, sizeof(time_middle) - 3));
-  CHECK(check_for_temporal_macros(time_middle + 4, sizeof(time_middle) - 4));
-  CHECK(check_for_temporal_macros(time_middle + 5, sizeof(time_middle) - 5));
-  CHECK(check_for_temporal_macros(time_middle + 6, sizeof(time_middle) - 6));
-  CHECK(check_for_temporal_macros(time_middle + 7, sizeof(time_middle) - 7));
+  CHECK(check_for_temporal_macros(time_middle.substr(0)));
+  CHECK(check_for_temporal_macros(time_middle.substr(1)));
+  CHECK(check_for_temporal_macros(time_middle.substr(2)));
+  CHECK(check_for_temporal_macros(time_middle.substr(3)));
+  CHECK(check_for_temporal_macros(time_middle.substr(4)));
+  CHECK(check_for_temporal_macros(time_middle.substr(5)));
+  CHECK(check_for_temporal_macros(time_middle.substr(6)));
+  CHECK(check_for_temporal_macros(time_middle.substr(7)));
 
-  CHECK(check_for_temporal_macros(time_end + 0, sizeof(time_end) - 0));
-  CHECK(check_for_temporal_macros(time_end + sizeof(time_end) - 9, 9));
-  CHECK(!check_for_temporal_macros(time_end + sizeof(time_end) - 8, 8));
+  CHECK(check_for_temporal_macros(time_end));
+  CHECK(check_for_temporal_macros(time_end.substr(time_end.length() - 8)));
+  CHECK(!check_for_temporal_macros(time_end.substr(time_end.length() - 7)));
 
-  CHECK(check_for_temporal_macros(date_start + 0, sizeof(date_start) - 0));
-  CHECK(!check_for_temporal_macros(date_start + 1, sizeof(date_start) - 1));
+  CHECK(check_for_temporal_macros(date_start));
+  CHECK(!check_for_temporal_macros(date_start.substr(1)));
 
-  CHECK(check_for_temporal_macros(date_middle + 0, sizeof(date_middle) - 0));
-  CHECK(check_for_temporal_macros(date_middle + 1, sizeof(date_middle) - 1));
-  CHECK(check_for_temporal_macros(date_middle + 2, sizeof(date_middle) - 2));
-  CHECK(check_for_temporal_macros(date_middle + 3, sizeof(date_middle) - 3));
-  CHECK(check_for_temporal_macros(date_middle + 4, sizeof(date_middle) - 4));
-  CHECK(check_for_temporal_macros(date_middle + 5, sizeof(date_middle) - 5));
-  CHECK(check_for_temporal_macros(date_middle + 6, sizeof(date_middle) - 6));
-  CHECK(check_for_temporal_macros(date_middle + 7, sizeof(date_middle) - 7));
+  CHECK(check_for_temporal_macros(date_middle.substr(0)));
+  CHECK(check_for_temporal_macros(date_middle.substr(1)));
+  CHECK(check_for_temporal_macros(date_middle.substr(2)));
+  CHECK(check_for_temporal_macros(date_middle.substr(3)));
+  CHECK(check_for_temporal_macros(date_middle.substr(4)));
+  CHECK(check_for_temporal_macros(date_middle.substr(5)));
+  CHECK(check_for_temporal_macros(date_middle.substr(6)));
+  CHECK(check_for_temporal_macros(date_middle.substr(7)));
 
-  CHECK(check_for_temporal_macros(date_end + 0, sizeof(date_end) - 0));
-  CHECK(check_for_temporal_macros(date_end + sizeof(date_end) - 9, 9));
-  CHECK(!check_for_temporal_macros(date_end + sizeof(date_end) - 8, 8));
+  CHECK(check_for_temporal_macros(date_end));
+  CHECK(check_for_temporal_macros(date_end.substr(date_end.length() - 8)));
+  CHECK(!check_for_temporal_macros(date_end.substr(date_end.length() - 7)));
 
-  CHECK(check_for_temporal_macros(timestamp_start + 0,
-                                  sizeof(timestamp_start) - 0));
-  CHECK(!check_for_temporal_macros(timestamp_start + 1,
-                                   sizeof(timestamp_start) - 1));
+  CHECK(check_for_temporal_macros(timestamp_start));
+  CHECK(!check_for_temporal_macros(timestamp_start.substr(1)));
 
-  CHECK(check_for_temporal_macros(timestamp_middle + 0,
-                                  sizeof(timestamp_middle) - 0));
-  CHECK(check_for_temporal_macros(timestamp_middle + 1,
-                                  sizeof(timestamp_middle) - 1));
-  CHECK(check_for_temporal_macros(timestamp_middle + 2,
-                                  sizeof(timestamp_middle) - 2));
-  CHECK(check_for_temporal_macros(timestamp_middle + 3,
-                                  sizeof(timestamp_middle) - 3));
-  CHECK(check_for_temporal_macros(timestamp_middle + 4,
-                                  sizeof(timestamp_middle) - 4));
-  CHECK(check_for_temporal_macros(timestamp_middle + 5,
-                                  sizeof(timestamp_middle) - 5));
-  CHECK(check_for_temporal_macros(timestamp_middle + 6,
-                                  sizeof(timestamp_middle) - 6));
-  CHECK(check_for_temporal_macros(timestamp_middle + 7,
-                                  sizeof(timestamp_middle) - 7));
+  CHECK(check_for_temporal_macros(timestamp_middle));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(1)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(2)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(3)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(4)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(5)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(6)));
+  CHECK(check_for_temporal_macros(timestamp_middle.substr(7)));
 
-  CHECK(
-    check_for_temporal_macros(timestamp_end + 0, sizeof(timestamp_end) - 0));
-  CHECK(
-    check_for_temporal_macros(timestamp_end + sizeof(timestamp_end) - 14, 14));
-  CHECK(
-    !check_for_temporal_macros(timestamp_end + sizeof(timestamp_end) - 13, 13));
+  CHECK(check_for_temporal_macros(timestamp_end));
+  CHECK(check_for_temporal_macros(
+    timestamp_end.substr(timestamp_end.length() - 13)));
+  CHECK(!check_for_temporal_macros(
+    timestamp_end.substr(timestamp_end.length() - 12)));
 
-  CHECK(!check_for_temporal_macros(no_temporal + 0, sizeof(no_temporal) - 0));
-  CHECK(!check_for_temporal_macros(no_temporal + 1, sizeof(no_temporal) - 1));
-  CHECK(!check_for_temporal_macros(no_temporal + 2, sizeof(no_temporal) - 2));
-  CHECK(!check_for_temporal_macros(no_temporal + 3, sizeof(no_temporal) - 3));
-  CHECK(!check_for_temporal_macros(no_temporal + 4, sizeof(no_temporal) - 4));
-  CHECK(!check_for_temporal_macros(no_temporal + 5, sizeof(no_temporal) - 5));
-  CHECK(!check_for_temporal_macros(no_temporal + 6, sizeof(no_temporal) - 6));
-  CHECK(!check_for_temporal_macros(no_temporal + 7, sizeof(no_temporal) - 7));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(0)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(1)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(2)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(3)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(4)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(5)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(6)));
+  CHECK(!check_for_temporal_macros(no_temporal.substr(7)));
 
   for (size_t i = 0; i < sizeof(temporal_at_avx_boundary) - 8; ++i) {
-    CHECK(check_for_temporal_macros(temporal_at_avx_boundary + i,
-                                    sizeof(temporal_at_avx_boundary) - i));
+    CHECK(check_for_temporal_macros(temporal_at_avx_boundary.substr(i)));
   }
 }
 

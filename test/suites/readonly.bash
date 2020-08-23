@@ -42,8 +42,8 @@ SUITE_readonly() {
     if [ $status2 -ne 0 ]; then
         test_failed "Failure when compiling test2.c read-only"
     fi
-    expect_file_exists test.o
-    expect_file_exists test2.o
+    expect_exists test.o
+    expect_exists test2.o
 
     # -------------------------------------------------------------------------
     TEST "Cache miss"

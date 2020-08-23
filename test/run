@@ -145,48 +145,48 @@ expect_stat() {
     fi
 }
 
-expect_file_exists() {
+expect_exists() {
     if [ ! -e "$1" ]; then
         test_failed "Expected $1 to exist, but it's missing"
     fi
 }
 
-expect_file_missing() {
+expect_missing() {
     if [ -e "$1" ]; then
         test_failed "Expected $1 to be missing, but it exists"
     fi
 }
 
-expect_equal_files() {
+expect_equal_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_equal_files: $1 missing"
+        test_failed "expect_equal_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_equal_files: $2 missing"
+        test_failed "expect_equal_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed "$1 and $2 differ"
     fi
 }
 
-expect_equal_text_files() {
+expect_equal_text_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_equal_files: $1 missing"
+        test_failed "expect_equal_text_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_equal_files: $2 missing"
+        test_failed "expect_equal_text_content: $2 missing"
     fi
     if ! cmp -s "$1" "$2"; then
         test_failed "$1 and $2 differ: $(echo; diff -u "$1" "$2")"
     fi
 }
 
-expect_different_files() {
+expect_different_content() {
     if [ ! -e "$1" ]; then
-        test_failed "expect_different_files: $1 missing"
+        test_failed "expect_different_content: $1 missing"
     fi
     if [ ! -e "$2" ]; then
-        test_failed "expect_different_files: $2 missing"
+        test_failed "expect_different_content: $2 missing"
     fi
     if cmp -s "$1" "$2"; then
         test_failed "$1 and $2 are identical"
@@ -195,7 +195,7 @@ expect_different_files() {
 
 is_equal_object_files() {
     if $HOST_OS_LINUX && $COMPILER_TYPE_CLANG; then
-        if ! which eu-elfcmp >/dev/null 2>&1; then
+        if ! command -v eu-elfcmp >/dev/null; then
             test_failed "Please install elfutils to get eu-elfcmp"
         fi
         eu-elfcmp -q "$1" "$2"
@@ -216,7 +216,7 @@ expect_equal_object_files() {
     fi
 }
 
-expect_file_content() {
+expect_content() {
     local file="$1"
     local content="$2"
 
@@ -228,7 +228,7 @@ expect_file_content() {
     fi
 }
 
-expect_file_contains() {
+expect_contains() {
     local file="$1"
     local string="$2"
 
@@ -240,7 +240,7 @@ expect_file_contains() {
     fi
 }
 
-expect_file_not_contains() {
+expect_not_contains() {
     local file="$1"
     local string="$2"
 
@@ -263,11 +263,21 @@ expect_file_count() {
 }
 
 # Verify that $1 is newer than (or same age as) $2.
-expect_file_newer_than() {
+expect_newer_than() {
     local newer_file=$1
     local older_file=$2
     if [ "$newer_file" -ot "$older_file" ]; then
         test_failed "$newer_file is older than $older_file"
+    fi
+}
+
+expect_perm() {
+    local path="$1"
+    local expected_perm="$2"
+    local actual_perm=$(ls -ld "$path" | awk '{print $1}')
+
+    if [ "$expected_perm" != "$actual_perm" ]; then
+        test_failed "Expected permissions for $path to be $expected_perm, actual $actual_perm"
     fi
 }
 
@@ -311,10 +321,12 @@ $(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
 EOF
     unset GCC_COLORS
     unset TERM
+    unset XDG_CACHE_HOME
+    unset XDG_CONFIG_HOME
 
-    export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
     export CCACHE_DETECT_SHEBANG=1
     export CCACHE_DIR=$ABS_TESTDIR/.ccache
+    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
     export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
     export CCACHE_NODIRECT=1
 
@@ -501,7 +513,7 @@ START_PWD="$PWD"
 symlink_testdir_on_failure() {
     cd "$START_PWD"
     rm -f "$TEST_FAILED_SYMLINK"
-    ln -s "$TESTDIR" "$TEST_FAILED_SYMLINK"
+    ln -s "$$" "$TEST_FAILED_SYMLINK"
 }
 
 cd $TESTDIR || exit 1

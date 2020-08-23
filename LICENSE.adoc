@@ -86,7 +86,7 @@ SOFTWARE.
 src/third_party/fmt/*.h and src/third_party/format.cpp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a subset of https://fmt.dev[fmt] 6.2.0 with the following license:
+This is a subset of https://fmt.dev[fmt] 7.0.3 with the following license:
 
 -------------------------------------------------------------------------------
   Formatting library for C++
@@ -299,8 +299,8 @@ from <https://github.com/Cyan4973/xxHash/releases>.
 src/third_party/blake3/*.[hcS]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a subset of <https://github.com/BLAKE3-team/BLAKE3> with the following
-license:
+This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 0.3.6 with
+the following license:
 
 -------------------------------------------------------------------------------
 This work is released into the public domain with CC0 1.0. Alternatively, it is

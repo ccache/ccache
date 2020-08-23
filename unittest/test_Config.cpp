@@ -38,11 +38,8 @@ TEST_CASE("Config: default values")
 {
   Config config;
 
-  std::string expected_cache_dir =
-    fmt::format("{}/.ccache", get_home_directory());
-
   CHECK(config.base_dir().empty());
-  CHECK(config.cache_dir() == expected_cache_dir);
+  CHECK(config.cache_dir().empty()); // Set later
   CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
@@ -74,16 +71,7 @@ TEST_CASE("Config: default values")
   CHECK(config.run_second_cpp());
   CHECK(config.sloppiness() == 0);
   CHECK(config.stats());
-#ifdef HAVE_GETEUID
-  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
-    CHECK(config.temporary_dir()
-          == fmt::format("/run/user/{}/ccache-tmp", geteuid()));
-  } else {
-#endif
-    CHECK(config.temporary_dir() == expected_cache_dir + "/tmp");
-#ifdef HAVE_GETEUID
-  }
-#endif
+  CHECK(config.temporary_dir().empty()); // Set later
   CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
 }
 
@@ -92,7 +80,7 @@ TEST_CASE("Config::update_from_file")
   TestContext test_context;
 
   const char user[] = "rabbit";
-  x_setenv("USER", user);
+  Util::setenv("USER", user);
 
 #ifndef _WIN32
   std::string base_dir = fmt::format("/{0}/foo/{0}", user);
@@ -250,15 +238,17 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "max_files =");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"\"");
+                        "ccache.conf:1: invalid 32-bit unsigned integer: \"\"");
 
     Util::write_file("ccache.conf", "max_files = -42");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"-42\"");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      "ccache.conf:1: invalid 32-bit unsigned integer: \"-42\"");
 
     Util::write_file("ccache.conf", "max_files = foo");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid unsigned integer: \"foo\"");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      "ccache.conf:1: invalid 32-bit unsigned integer: \"foo\"");
   }
 
   SUBCASE("missing file")
@@ -303,13 +293,13 @@ TEST_CASE("Config::update_from_environment")
 {
   Config config;
 
-  x_setenv("CCACHE_COMPRESS", "1");
+  Util::setenv("CCACHE_COMPRESS", "1");
   config.update_from_environment();
   CHECK(config.compression());
 
-  x_unsetenv("CCACHE_COMPRESS");
+  Util::unsetenv("CCACHE_COMPRESS");
 
-  x_setenv("CCACHE_NOCOMPRESS", "1");
+  Util::setenv("CCACHE_NOCOMPRESS", "1");
   config.update_from_environment();
   CHECK(!config.compression());
 }
@@ -384,6 +374,7 @@ TEST_CASE("Config::visit_items")
 
   Util::write_file(
     "test.conf",
+    "absolute_paths_in_stderr = true\n"
 #ifndef _WIN32
     "base_dir = /bd\n"
 #else
@@ -439,6 +430,7 @@ TEST_CASE("Config::visit_items")
   });
 
   std::vector<std::string> expected = {
+    "(test.conf) absolute_paths_in_stderr = true",
 #ifndef _WIN32
     "(test.conf) base_dir = /bd",
 #else

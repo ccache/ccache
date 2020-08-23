@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -39,15 +39,15 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
   Util::big_endian_to_int(header_bytes + 7, m_content_size);
 
   if (memcmp(m_magic, expected_magic, sizeof(m_magic)) != 0) {
-    throw Error(fmt::format("Bad magic value 0x{:02x}{:02x}{:02x}{:02x}",
-                            m_magic[0],
-                            m_magic[1],
-                            m_magic[2],
-                            m_magic[3]));
+    throw Error("Bad magic value 0x{:02x}{:02x}{:02x}{:02x}",
+                m_magic[0],
+                m_magic[1],
+                m_magic[2],
+                m_magic[3]);
   }
   if (m_version != expected_version) {
-    throw Error(fmt::format(
-      "Unknown version (actual {}, expected {})", m_version, expected_version));
+    throw Error(
+      "Unknown version (actual {}, expected {})", m_version, expected_version);
   }
 
   m_checksum.update(header_bytes, sizeof(header_bytes));
@@ -84,10 +84,9 @@ CacheEntryReader::finalize()
   Util::big_endian_to_int(buffer, expected_digest);
 
   if (actual_digest != expected_digest) {
-    throw Error(
-      fmt::format("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
-                  actual_digest,
-                  expected_digest));
+    throw Error("Incorrect checksum (actual 0x{:016x}, expected 0x{:016x})",
+                actual_digest,
+                expected_digest);
   }
 
   m_decompressor->finalize();

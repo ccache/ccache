@@ -20,31 +20,53 @@
 
 #include "system.hpp"
 
-#include <inttypes.h>
+#include "third_party/nonstd/string_view.hpp"
+
+#include <string>
 
 class Config;
 class Context;
 class Hash;
 
-unsigned hash_from_int(int i);
+const int HASH_SOURCE_CODE_OK = 0;
+const int HASH_SOURCE_CODE_ERROR = (1 << 0);
+const int HASH_SOURCE_CODE_FOUND_DATE = (1 << 1);
+const int HASH_SOURCE_CODE_FOUND_TIME = (1 << 2);
+const int HASH_SOURCE_CODE_FOUND_TIMESTAMP = (1 << 3);
 
-#define HASH_SOURCE_CODE_OK 0
-#define HASH_SOURCE_CODE_ERROR 1
-#define HASH_SOURCE_CODE_FOUND_DATE 2
-#define HASH_SOURCE_CODE_FOUND_TIME 4
-#define HASH_SOURCE_CODE_FOUND_TIMESTAMP 8
+// Search for the strings "__DATE__", "__TIME__" and "__TIMESTAMP__" in `str`.
+//
+// Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE,
+// HASH_SOURCE_CODE_FOUND_TIME and HASH_SOURCE_CODE_FOUND_TIMESTAMP set
+// appropriately.
+int check_for_temporal_macros(nonstd::string_view str);
 
-int check_for_temporal_macros(const char* str, size_t len);
+// Hash a string. Returns a bitmask of HASH_SOURCE_CODE_* results.
 int hash_source_code_string(const Context& ctx,
                             Hash& hash,
-                            const char* str,
-                            size_t len,
-                            const char* path);
+                            nonstd::string_view str,
+                            const std::string& path);
+
+// Hash a file ignoring comments. Returns a bitmask of HASH_SOURCE_CODE_*
+// results.
 int hash_source_code_file(const Context& ctx,
                           Hash& hash,
-                          const char* path,
+                          const std::string& path,
                           size_t size_hint = 0);
-bool hash_binary_file(const Context& ctx, Hash& hash, const char* path);
-bool hash_command_output(Hash& hash, const char* command, const char* compiler);
-bool
-hash_multicommand_output(Hash& hash, const char* command, const char* compiler);
+
+// Hash a binary file using the inode cache if enabled.
+//
+// Returns true on success, otherwise false.
+bool hash_binary_file(const Context& ctx, Hash& hash, const std::string& path);
+
+// Hash the output of `command` (not executed via a shell). A "%compiler%"
+// string in `command` will be replaced with `compiler`.
+bool hash_command_output(Hash& hash,
+                         const std::string& command,
+                         const std::string& compiler);
+
+// Like `hash_command_output` but for each semicolon-separated command in
+// `command`.
+bool hash_multicommand_output(Hash& hash,
+                              const std::string& command,
+                              const std::string& compiler);

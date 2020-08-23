@@ -159,6 +159,27 @@ TEST_CASE("Util::ends_with")
   CHECK_FALSE(Util::ends_with("x", "xy"));
 }
 
+TEST_CASE("Util::expand_environment_variables")
+{
+  Util::setenv("FOO", "bar");
+
+  CHECK(Util::expand_environment_variables("") == "");
+  CHECK(Util::expand_environment_variables("$FOO") == "bar");
+  CHECK(Util::expand_environment_variables("$") == "$");
+  CHECK(Util::expand_environment_variables("$FOO $FOO:$FOO") == "bar bar:bar");
+  CHECK(Util::expand_environment_variables("x$FOO") == "xbar");
+  CHECK(Util::expand_environment_variables("${FOO}x") == "barx");
+
+  DOCTEST_GCC_SUPPRESS_WARNING_PUSH
+  DOCTEST_GCC_SUPPRESS_WARNING("-Wunused-result")
+  CHECK_THROWS_WITH(
+    (void)Util::expand_environment_variables("$surelydoesntexist"),
+    "environment variable \"surelydoesntexist\" not set");
+  CHECK_THROWS_WITH((void)Util::expand_environment_variables("${FOO"),
+                    "syntax error: missing '}' after \"FOO\"");
+  DOCTEST_GCC_SUPPRESS_WARNING_POP
+}
+
 TEST_CASE("Util::fallocate")
 {
   TestContext test_context;
@@ -211,7 +232,16 @@ TEST_CASE("Util::for_each_level_1_subdir")
   CHECK(actual == expected);
 }
 
-TEST_CASE("format_hex")
+TEST_CASE("Util::format_argv_for_logging")
+{
+  const char* argv_0[] = {nullptr};
+  CHECK(Util::format_argv_for_logging(argv_0) == "");
+
+  const char* argv_2[] = {"foo", "bar", nullptr};
+  CHECK(Util::format_argv_for_logging(argv_2) == "foo bar");
+}
+
+TEST_CASE("Util::format_hex")
 {
   uint8_t none[] = "";
   uint8_t text[4] = "foo"; // incl. NUL
@@ -220,6 +250,32 @@ TEST_CASE("format_hex")
   CHECK(Util::format_hex(none, 0) == "");
   CHECK(Util::format_hex(text, sizeof(text)) == "666f6f00");
   CHECK(Util::format_hex(data, sizeof(data)) == "00010203");
+}
+
+TEST_CASE("Util::format_human_readable_size")
+{
+  CHECK(Util::format_human_readable_size(0) == "0.0 MB");
+  CHECK(Util::format_human_readable_size(49) == "0.0 MB");
+  CHECK(Util::format_human_readable_size(420 * 1000) == "0.4 MB");
+  CHECK(Util::format_human_readable_size(1000 * 1000) == "1.0 MB");
+  CHECK(Util::format_human_readable_size(1234 * 1000) == "1.2 MB");
+  CHECK(Util::format_human_readable_size(438.5 * 1000 * 1000) == "438.5 MB");
+  CHECK(Util::format_human_readable_size(1000 * 1000 * 1000) == "1.0 GB");
+  CHECK(Util::format_human_readable_size(17.11 * 1000 * 1000 * 1000)
+        == "17.1 GB");
+}
+
+TEST_CASE("Util::format_parsable_size_with_suffix")
+{
+  CHECK(Util::format_parsable_size_with_suffix(0) == "0");
+  CHECK(Util::format_parsable_size_with_suffix(42 * 1000) == "42000");
+  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000) == "1.0M");
+  CHECK(Util::format_parsable_size_with_suffix(1234 * 1000) == "1.2M");
+  CHECK(Util::format_parsable_size_with_suffix(438.5 * 1000 * 1000)
+        == "438.5M");
+  CHECK(Util::format_parsable_size_with_suffix(1000 * 1000 * 1000) == "1.0G");
+  CHECK(Util::format_parsable_size_with_suffix(17.11 * 1000 * 1000 * 1000)
+        == "17.1G");
 }
 
 TEST_CASE("Util::get_extension")
@@ -472,6 +528,23 @@ TEST_CASE("Util::normalize_absolute_path")
 #endif
 }
 
+TEST_CASE("Util::parse_duration")
+{
+  CHECK(Util::parse_duration("0s") == 0);
+  CHECK(Util::parse_duration("2s") == 2);
+  CHECK(Util::parse_duration("1d") == 3600 * 24);
+  CHECK(Util::parse_duration("2d") == 2 * 3600 * 24);
+  CHECK_THROWS_WITH(
+    Util::parse_duration("-2"),
+    "invalid suffix (supported: d (day) and s (second)): \"-2\"");
+  CHECK_THROWS_WITH(
+    Util::parse_duration("2x"),
+    "invalid suffix (supported: d (day) and s (second)): \"2x\"");
+  CHECK_THROWS_WITH(
+    Util::parse_duration("2"),
+    "invalid suffix (supported: d (day) and s (second)): \"2\"");
+}
+
 TEST_CASE("Util::parse_int")
 {
   CHECK(Util::parse_int("0") == 0);
@@ -502,6 +575,57 @@ TEST_CASE("Util::parse_int")
     CHECK_THROWS_WITH(Util::parse_int("2147483648"),
                       "invalid integer: \"2147483648\"");
   }
+}
+
+TEST_CASE("Util::parse_size")
+{
+  CHECK(Util::parse_size("0") == 0);
+  CHECK(Util::parse_size("42") // Default suffix: G
+        == static_cast<uint64_t>(42) * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("78k") == 78 * 1000);
+  CHECK(Util::parse_size("78K") == 78 * 1000);
+  CHECK(Util::parse_size("1.1 M") == (int64_t(1.1 * 1000 * 1000)));
+  CHECK(Util::parse_size("438.55M") == (int64_t(438.55 * 1000 * 1000)));
+  CHECK(Util::parse_size("1 G") == 1 * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("2T")
+        == static_cast<uint64_t>(2) * 1000 * 1000 * 1000 * 1000);
+  CHECK(Util::parse_size("78 Ki") == 78 * 1024);
+  CHECK(Util::parse_size("1.1Mi") == (int64_t(1.1 * 1024 * 1024)));
+  CHECK(Util::parse_size("438.55 Mi") == (int64_t(438.55 * 1024 * 1024)));
+  CHECK(Util::parse_size("1Gi") == 1 * 1024 * 1024 * 1024);
+  CHECK(Util::parse_size("2 Ti")
+        == static_cast<uint64_t>(2) * 1024 * 1024 * 1024 * 1024);
+
+  CHECK_THROWS_WITH(Util::parse_size(""), "invalid size: \"\"");
+  CHECK_THROWS_WITH(Util::parse_size("x"), "invalid size: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
+}
+
+TEST_CASE("Util::parse_uint32")
+{
+  CHECK(Util::parse_uint32("0") == 0);
+  CHECK(Util::parse_uint32("2") == 2);
+  CHECK(Util::parse_uint32("42") == 42);
+  CHECK(Util::parse_uint32("0666") == 666);
+  CHECK(Util::parse_uint32(" 777") == 777);
+
+  CHECK_THROWS_WITH(Util::parse_uint32(""),
+                    "invalid 32-bit unsigned integer: \"\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("x"),
+                    "invalid 32-bit unsigned integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0x"),
+                    "invalid 32-bit unsigned integer: \"0x\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0x4"),
+                    "invalid 32-bit unsigned integer: \"0x4\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("0 "),
+                    "invalid 32-bit unsigned integer: \"0 \"");
+
+  // check boundary values
+  CHECK(Util::parse_uint32("4294967295") == 4294967295);
+  CHECK_THROWS_WITH(Util::parse_uint32("-1"),
+                    "invalid 32-bit unsigned integer: \"-1\"");
+  CHECK_THROWS_WITH(Util::parse_uint32("4294967296"),
+                    "invalid 32-bit unsigned integer: \"4294967296\"");
 }
 
 TEST_CASE("Util::read_file and Util::write_file")
@@ -551,6 +675,18 @@ TEST_CASE("Util::remove_extension")
   CHECK(Util::remove_extension("f.abc.txt") == "f.abc");
   CHECK(Util::remove_extension("/foo/bar/f.txt") == "/foo/bar/f");
   CHECK(Util::remove_extension("/foo/bar/f.abc.txt") == "/foo/bar/f.abc");
+}
+
+TEST_CASE("Util::same_program_name")
+{
+  CHECK(Util::same_program_name("foo", "foo"));
+#ifdef _WIN32
+  CHECK(Util::same_program_name("FOO", "foo"));
+  CHECK(Util::same_program_name("FOO.exe", "foo"));
+#else
+  CHECK(!Util::same_program_name("FOO", "foo"));
+  CHECK(!Util::same_program_name("FOO.exe", "foo"));
+#endif
 }
 
 TEST_CASE("Util::split_into_views")
@@ -637,6 +773,7 @@ TEST_CASE("Util::split_into_strings")
 
 TEST_CASE("Util::starts_with")
 {
+  // starts_with(const char*, string_view)
   CHECK(Util::starts_with("", ""));
   CHECK(Util::starts_with("x", ""));
   CHECK(Util::starts_with("x", "x"));
@@ -651,6 +788,22 @@ TEST_CASE("Util::starts_with")
   CHECK_FALSE(Util::starts_with("", "x"));
   CHECK_FALSE(Util::starts_with("x", "y"));
   CHECK_FALSE(Util::starts_with("x", "xy"));
+
+  // starts_with(string_view, string_view)
+  CHECK(Util::starts_with(std::string(""), ""));
+  CHECK(Util::starts_with(std::string("x"), ""));
+  CHECK(Util::starts_with(std::string("x"), "x"));
+  CHECK(Util::starts_with(std::string("xy"), ""));
+  CHECK(Util::starts_with(std::string("xy"), "x"));
+  CHECK(Util::starts_with(std::string("xy"), "xy"));
+  CHECK(Util::starts_with(std::string("xyz"), ""));
+  CHECK(Util::starts_with(std::string("xyz"), "x"));
+  CHECK(Util::starts_with(std::string("xyz"), "xy"));
+  CHECK(Util::starts_with(std::string("xyz"), "xyz"));
+
+  CHECK_FALSE(Util::starts_with(std::string(""), "x"));
+  CHECK_FALSE(Util::starts_with(std::string("x"), "y"));
+  CHECK_FALSE(Util::starts_with(std::string("x"), "xy"));
 }
 
 TEST_CASE("Util::strip_whitespace")

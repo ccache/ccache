@@ -21,9 +21,6 @@
 #ifdef __MINGW32__
 #  define __USE_MINGW_ANSI_STDIO 1
 #  define __STDC_FORMAT_MACROS 1
-#  define ATTRIBUTE_FORMAT_PRINTF __MINGW_PRINTF_FORMAT
-#else
-#  define ATTRIBUTE_FORMAT_PRINTF printf
 #endif
 
 #include "config.h"
@@ -65,25 +62,10 @@ extern int usleep(useconds_t);
 
 extern char** environ;
 
-#ifdef __GNUC__
-#  define ATTR_FORMAT(x, y, z)                                                 \
-    __attribute__((format(ATTRIBUTE_FORMAT_PRINTF, y, z)))
-#  define ATTR_NORETURN __attribute__((noreturn))
-#else
-#  define ATTR_FORMAT(x, y, z)
-#  define ATTR_NORETURN
-#endif
-
-#define str_eq(s1, s2) (strcmp((s1), (s2)) == 0)
-#define str_startswith(s, prefix)                                              \
-  (strncmp((s), (prefix), strlen((prefix))) == 0)
-#define str_endswith(s, suffix)                                                \
-  (strlen(s) >= strlen(suffix)                                                 \
-   && str_eq((s) + strlen(s) - strlen(suffix), (suffix)))
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 // Buffer size for I/O operations. Should be a multiple of 4 KiB.
-#define READ_BUFFER_SIZE 65536
+const size_t READ_BUFFER_SIZE = 65536;
 
 #ifndef ESTALE
 #  define ESTALE -1
@@ -96,12 +78,10 @@ extern char** environ;
 #  endif
 #  include <windows.h>
 #  define mkdir(a, b) mkdir(a)
-#  define link(src, dst) (CreateHardLink(dst, src, NULL) ? 0 : -1)
+#  define link(src, dst) (CreateHardLink(dst, src, nullptr) ? 0 : -1)
 #  define execv(a, b) win32execute(a, b, 0, -1, -1)
 #  define DIR_DELIM_CH '\\'
 #  define PATH_DELIM ";"
-#  define F_RDLCK 0
-#  define F_WRLCK 0
 #else
 #  define DIR_DELIM_CH '/'
 #  define PATH_DELIM ":"
@@ -114,4 +94,11 @@ extern char** environ;
 
 #ifdef HAVE_SYS_MMAN_H
 #  define INODE_CACHE_SUPPORTED
+#endif
+
+// Workaround for missing std::is_trivially_copyable in GCC < 5.
+#if __GNUG__ && __GNUC__ < 5
+#  define IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#else
+#  define IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
 #endif

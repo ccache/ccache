@@ -16,12 +16,25 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "win32compat.hpp"
+#include "Win32Util.hpp"
 
-#ifdef _WIN32
+#include "Util.hpp"
+
+namespace Win32Util {
 
 std::string
-win32_error_message(DWORD error_code)
+add_exe_suffix(const std::string& path)
+{
+  auto ext = Util::to_lowercase(Util::get_extension(path));
+  if (ext == ".exe" || ext == ".bat" || ext == ".sh") {
+    return path;
+  } else {
+    return path + ".exe";
+  }
+}
+
+std::string
+error_message(DWORD error_code)
 {
   LPSTR buffer;
   size_t size =
@@ -38,4 +51,43 @@ win32_error_message(DWORD error_code)
   return message;
 }
 
-#endif
+std::string
+argv_to_string(const char* const* argv, const std::string& prefix)
+{
+  std::string result;
+  size_t i = 0;
+  const char* arg = prefix.empty() ? argv[i++] : prefix.c_str();
+
+  do {
+    int bs = 0;
+    result += '"';
+    for (size_t j = 0; arg[j]; ++j) {
+      switch (arg[j]) {
+      case '\\':
+        ++bs;
+        break;
+      // Fallthrough.
+      case '"':
+        bs = (bs << 1) + 1;
+      // Fallthrough.
+      default:
+        while (bs > 0) {
+          result += '\\';
+          --bs;
+        }
+        result += arg[j];
+      }
+    }
+    bs <<= 1;
+    while (bs > 0) {
+      result += '\\';
+      --bs;
+    }
+    result += "\" ";
+  } while ((arg = argv[i++]));
+
+  result.resize(result.length() - 1);
+  return result;
+}
+
+} // namespace Win32Util

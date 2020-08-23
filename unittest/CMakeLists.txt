@@ -16,12 +16,14 @@ set(
   test_ZstdCompression.cpp
   test_argprocessing.cpp
   test_compopt.cpp
-  test_hashutil.cpp
-  test_legacy_util.cpp
-  test_logging.cpp)
+  test_hashutil.cpp)
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files test_InodeCache.cpp)
+endif()
+
+if(WIN32)
+  list(APPEND source_files test_Win32Util.cpp)
 endif()
 
 add_executable(unittest ${source_files})

@@ -73,7 +73,7 @@ install(TARGETS ccache DESTINATION ${CMAKE_INSTALL_BINDIR})
 #
 # Packaging
 #
-include(CCachePackConfig)
+include(CcachePackConfig)
 
 #
 # Tests
@@ -113,7 +113,7 @@ find_program(
 mark_as_advanced(CLANG_FORMAT_EXE) # Don't show in CMake UIs
 
 if(NOT CLANG_FORMAT_EXE)
-  message(WARNING "clang-format not found")
+  message(NOTICE "clang-format not found")
 else()
   add_custom_target(
     format

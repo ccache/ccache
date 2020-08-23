@@ -22,16 +22,17 @@
 #include "Fd.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
+#include "Logging.hpp"
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
-#include "logging.hpp"
 
 #include <atomic>
 #include <libgen.h>
 #include <sys/mman.h>
 #include <type_traits>
+
+using Logging::log;
 
 // The inode cache resides on a file that is mapped into shared memory by
 // running processes. It is implemented as a two level structure, where the top
@@ -62,7 +63,7 @@ const uint32_t k_num_entries = 4;
 
 static_assert(Digest::size() == 20,
               "Increment version number if size of digest is changed.");
-static_assert(std::is_trivially_copyable<Digest>::value,
+static_assert(IS_TRIVIALLY_COPYABLE(Digest),
               "Digest is expected to be trivially copyable.");
 
 static_assert(
@@ -131,31 +132,29 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   }
   Fd fd(open(inode_cache_file.c_str(), O_RDWR));
   if (!fd) {
-    cc_log("Failed to open inode cache %s: %s",
-           inode_cache_file.c_str(),
-           strerror(errno));
+    log("Failed to open inode cache {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
   bool is_nfs;
   if (Util::is_nfs_fd(*fd, &is_nfs) == 0 && is_nfs) {
-    cc_log(
-      "Inode cache not supported because the cache file is located on nfs: %s",
-      inode_cache_file.c_str());
+    log(
+      "Inode cache not supported because the cache file is located on nfs: {}",
+      inode_cache_file);
     return false;
   }
   SharedRegion* sr = reinterpret_cast<SharedRegion*>(mmap(
     nullptr, sizeof(SharedRegion), PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0));
   fd.close();
   if (sr == reinterpret_cast<void*>(-1)) {
-    cc_log("Failed to mmap %s: %s", inode_cache_file.c_str(), strerror(errno));
+    log("Failed to mmap {}: {}", inode_cache_file, strerror(errno));
     return false;
   }
   // Drop the file from disk if the found version is not matching. This will
   // allow a new file to be generated.
   if (sr->version != k_version) {
-    cc_log(
-      "Dropping inode cache because found version %u does not match expected"
-      " version %u",
+    log(
+      "Dropping inode cache because found version {} does not match expected"
+      " version {}",
       sr->version,
       k_version);
     munmap(sr, sizeof(SharedRegion));
@@ -164,17 +163,19 @@ InodeCache::mmap_file(const std::string& inode_cache_file)
   }
   m_sr = sr;
   if (m_config.debug()) {
-    cc_log("inode cache file loaded: %s", inode_cache_file.c_str());
+    log("inode cache file loaded: {}", inode_cache_file);
   }
   return true;
 }
 
 bool
-InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
+InodeCache::hash_inode(const std::string& path,
+                       ContentType type,
+                       Digest& digest)
 {
   Stat stat = Stat::stat(path);
   if (!stat) {
-    cc_log("Could not stat %s: %s", path, strerror(stat.error_number()));
+    log("Could not stat {}: {}", path, strerror(stat.error_number()));
     return false;
   }
 
@@ -214,18 +215,18 @@ InodeCache::acquire_bucket(uint32_t index)
     }
     err = pthread_mutex_consistent(&bucket->mt);
     if (err) {
-      cc_log(
-        "Can't consolidate stale mutex at index %u: %s", index, strerror(err));
-      cc_log("Consider removing the inode cache file if the problem persists");
+      log(
+        "Can't consolidate stale mutex at index {}: {}", index, strerror(err));
+      log("Consider removing the inode cache file if the problem persists");
       return nullptr;
     }
-    cc_log("Wiping bucket at index %u because of stale mutex", index);
+    log("Wiping bucket at index {} because of stale mutex", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
 #endif
     if (err) {
-      cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
-      cc_log("Consider removing the inode cache file if problem persists");
+      log("Failed to lock mutex at index {}: {}", index, strerror(err));
+      log("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
       return nullptr;
     }
@@ -252,7 +253,7 @@ InodeCache::release_bucket(Bucket* bucket)
 bool
 InodeCache::create_new_file(const std::string& filename)
 {
-  cc_log("Creating a new inode cache");
+  log("Creating a new inode cache");
 
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
@@ -262,15 +263,15 @@ InodeCache::create_new_file(const std::string& filename)
 
   bool is_nfs;
   if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
-    cc_log(
+    log(
       "Inode cache not supported because the cache file would be located on"
-      " nfs: %s",
-      filename.c_str());
+      " nfs: {}",
+      filename);
     return false;
   }
   int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
   if (err) {
-    cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
+    log("Failed to allocate file space for inode cache: {}", strerror(err));
     return false;
   }
   SharedRegion* sr =
@@ -281,7 +282,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          *tmp_file.fd,
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
-    cc_log("Failed to mmap new inode cache: %s", strerror(errno));
+    log("Failed to mmap new inode cache: {}", strerror(errno));
     return false;
   }
 
@@ -306,7 +307,7 @@ InodeCache::create_new_file(const std::string& filename)
   // which will make us use the first created file even if we didn't win the
   // race.
   if (link(tmp_file.path.c_str(), filename.c_str()) != 0) {
-    cc_log("Failed to link new inode cache: %s", strerror(errno));
+    log("Failed to link new inode cache: {}", strerror(errno));
     return false;
   }
 
@@ -356,7 +357,7 @@ InodeCache::~InodeCache()
 }
 
 bool
-InodeCache::get(const char* path,
+InodeCache::get(const std::string& path,
                 ContentType type,
                 Digest& file_digest,
                 int* return_value)
@@ -396,7 +397,7 @@ InodeCache::get(const char* path,
   }
   release_bucket(bucket);
 
-  cc_log("inode cache %s: %s", found ? "hit" : "miss", path);
+  log("inode cache {}: {}", found ? "hit" : "miss", path);
 
   if (m_config.debug()) {
     if (found) {
@@ -404,17 +405,16 @@ InodeCache::get(const char* path,
     } else {
       ++m_sr->misses;
     }
-    cc_log(
-      "accumulated stats for inode cache: hits=%ld, misses=%ld, errors=%ld",
-      static_cast<long>(m_sr->hits.load()),
-      static_cast<long>(m_sr->misses.load()),
-      static_cast<long>(m_sr->errors.load()));
+    log("accumulated stats for inode cache: hits={}, misses={}, errors={}",
+        m_sr->hits.load(),
+        m_sr->misses.load(),
+        m_sr->errors.load());
   }
   return found;
 }
 
 bool
-InodeCache::put(const char* path,
+InodeCache::put(const std::string& path,
                 ContentType type,
                 const Digest& file_digest,
                 int return_value)
@@ -444,7 +444,7 @@ InodeCache::put(const char* path,
 
   release_bucket(bucket);
 
-  cc_log("inode cache insert: %s", path);
+  log("inode cache insert: {}", path);
 
   return true;
 }

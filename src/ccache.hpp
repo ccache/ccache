@@ -21,45 +21,26 @@
 
 #include "system.hpp"
 
-#include "Args.hpp"
-#include "Counters.hpp"
-#include "Digest.hpp"
-#include "stats.hpp"
-
-#include "third_party/nonstd/optional.hpp"
-
-struct ArgsInfo;
-class Context;
-class Config;
-
-#ifndef MYNAME
-#  define MYNAME "ccache"
-#endif
-
 extern const char CCACHE_VERSION[];
 
 enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
 
-#define SLOPPY_INCLUDE_FILE_MTIME (1U << 0)
-#define SLOPPY_INCLUDE_FILE_CTIME (1U << 1)
-#define SLOPPY_TIME_MACROS (1U << 2)
-#define SLOPPY_PCH_DEFINES (1U << 3)
+const uint32_t SLOPPY_INCLUDE_FILE_MTIME = 1 << 0;
+const uint32_t SLOPPY_INCLUDE_FILE_CTIME = 1 << 1;
+const uint32_t SLOPPY_TIME_MACROS = 1 << 2;
+const uint32_t SLOPPY_PCH_DEFINES = 1 << 3;
 // Allow us to match files based on their stats (size, mtime, ctime), without
 // looking at their contents.
-#define SLOPPY_FILE_STAT_MATCHES (1U << 4)
+const uint32_t SLOPPY_FILE_STAT_MATCHES = 1 << 4;
 // Allow us to not include any system headers in the manifest include files,
 // similar to -MM versus -M for dependencies.
-#define SLOPPY_SYSTEM_HEADERS (1U << 5)
+const uint32_t SLOPPY_SYSTEM_HEADERS = 1 << 5;
 // Allow us to ignore ctimes when comparing file stats, so we can fake mtimes
 // if we want to (it is much harder to fake ctimes, requires changing clock)
-#define SLOPPY_FILE_STAT_MATCHES_CTIME (1U << 6)
+const uint32_t SLOPPY_FILE_STAT_MATCHES_CTIME = 1 << 6;
 // Allow us to not include the -index-store-path option in the manifest hash.
-#define SLOPPY_CLANG_INDEX_STORE (1U << 7)
+const uint32_t SLOPPY_CLANG_INDEX_STORE = 1 << 7;
 // Ignore locale settings.
-#define SLOPPY_LOCALE (1U << 8)
+const uint32_t SLOPPY_LOCALE = 1 << 8;
 // Allow caching even if -fmodules is used.
-#define SLOPPY_MODULES (1U << 9)
-
-void block_signals();
-void unblock_signals();
-bool is_precompiled_header(const char* path);
+const uint32_t SLOPPY_MODULES = 1 << 9;

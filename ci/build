@@ -17,6 +17,8 @@ else
     mkdir -p ${BUILDDIR:-build}
     cd ${BUILDDIR:-build}
     ${CMAKE_PREFIX:-} cmake ${CMAKE_PARAMS:-} ${CCACHE_LOC:-..}
-    ${CMAKE_PREFIX:-} cmake --build . ${BUILDEXTRAFLAGS:-} -- -j$JOBS
-    [ "${RUN_TESTS:-1}" -ne "1" ] || ctest --output-on-failure -j$JOBS "$@"
+    ${CMAKE_PREFIX:-} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS:-} -- -j$JOBS
+    if [ "${RUN_TESTS:-1}" -eq 1 ]; then
+        CC=${TEST_CC:-${CC}} ctest --output-on-failure -j$JOBS "$@"
+    fi
 fi

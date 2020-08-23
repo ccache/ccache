@@ -24,15 +24,19 @@
 #  include "MiniTrace.hpp"
 #  include "TemporaryFile.hpp"
 #  include "Util.hpp"
-#  include "legacy_util.hpp"
+
+#  ifdef HAVE_SYS_TIME_H
+#    include <sys/time.h>
+#  endif
 
 namespace {
+
 std::string
 get_system_tmp_dir()
 {
 #  ifndef _WIN32
   const char* tmpdir = getenv("TMPDIR");
-  if (tmpdir != NULL) {
+  if (tmpdir) {
     return tmpdir;
   }
 #  else
@@ -43,6 +47,18 @@ get_system_tmp_dir()
   }
 #  endif
   return "/tmp";
+}
+
+double
+time_seconds()
+{
+#  ifdef HAVE_GETTIMEOFDAY
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+#  else
+  return (double)time(nullptr);
+#  endif
 }
 
 } // namespace
@@ -66,12 +82,9 @@ MiniTrace::~MiniTrace()
   mtr_shutdown();
 
   if (!m_args_info.output_obj.empty()) {
-    std::string trace_file =
-      fmt::format("{}.ccache-trace", m_args_info.output_obj);
-    move_file(m_tmp_trace_file.c_str(), trace_file.c_str());
-  } else {
-    Util::unlink_tmp(m_tmp_trace_file.c_str());
+    Util::copy_file(m_tmp_trace_file, m_args_info.output_obj + ".ccache-trace");
   }
+  Util::unlink_tmp(m_tmp_trace_file);
 }
 
 #endif

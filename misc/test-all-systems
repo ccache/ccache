@@ -1,52 +1,51 @@
 #!/bin/sh
-
-set -eu
-
+#
 # While it's obviously quite impossible to support and test every single
 # distribution, this script enables easy checking of the most common standard
 # distributions at least.
 
-# Note: Currently this is more a reference on how to run each instance, instead
-# of running this entire script at once. See next steps.
-
-# Next steps:
-# * Run compilation, tests and/or docker instances in parallel to improve
-#   runtime.
+set -eu
 
 build_in_docker=$(dirname $0)/build-in-docker
 
-# -------------------------------------------------------------------------------
-# Debian
+build() {
+    local name=$1
+    local cc=$2
+    local cxx=$3
+    local test_cc=$4
+    shift 4
+    echo "Build in Docker: $name CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS=\"$*\""
+    ASM=$cc CC=$cc CXX=$cxx TEST_CC=$test_cc CMAKE_PARAMS="$*" $build_in_docker $name
+}
 
-# See https://github.com/ccache/ccache/issues/602
-#CC=gcc   CXX=g++     $build_in_docker debian-9-stretch
-#CC=clang CXX=clang++ $build_in_docker debian-9-stretch
+#     NAME         CC    CXX     TEST_CC CMAKE_PARAMS
 
-CC=gcc   CXX=g++     $build_in_docker debian-10-buster
-CC=clang CXX=clang++ $build_in_docker debian-10-buster
+build debian-9     gcc   g++     gcc
+build debian-9     clang clang++ clang
 
-# -------------------------------------------------------------------------------
-# Ubuntu (ancient, old and latest)
+build debian-10    gcc   g++     gcc
+build debian-10    clang clang++ clang
 
-# zstd not available for Ubuntu 14.
-CC=gcc   CXX=g++     CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker ubuntu-14-trusty
+build ubuntu-14.04 gcc   g++     gcc     -DZSTD_FROM_INTERNET=ON
+build ubuntu-14.04 gcc   g++     clang   -DZSTD_FROM_INTERNET=ON
 
-# See https://github.com/ccache/ccache/issues/601
-#CC=clang CXX=clang++ CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker ubuntu-14-tusty
+build ubuntu-16.04 gcc   g++     gcc
+build ubuntu-16.04 clang clang++ clang
 
-CC=gcc   CXX=g++     $build_in_docker ubuntu-16-xenial
-CC=clang CXX=clang++ $build_in_docker ubuntu-16-xenial
+build ubuntu-20.04 gcc   g++     gcc
+build ubuntu-20.04 clang clang++ clang
 
-CC=gcc   CXX=g++     CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker ubuntu-20-focal
-CC=clang CXX=clang++ CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker ubuntu-20-focal
+build centos-7     gcc   g++     gcc     -DWARNINGS_AS_ERRORS=false
+build centos-7     gcc   g++     clang   -DWARNINGS_AS_ERRORS=false
 
-# -------------------------------------------------------------------------------
-# Alpine (old and latest)
+build centos-8     gcc   g++     gcc
+build centos-8     clang clang++ clang
 
-CC=gcc   CXX=g++     CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker alpine-3.4
-# Clang is not capable to compile libzstd from internet before alpine 3.12 (some
-# SSE2 error regarding missing file emmintrin.h)
-#CC=clang CXX=clang++ CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker alpine-3.4
-CC=clang CXX=clang++ CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" $build_in_docker alpine-3.12
-CC=gcc   CXX=g++     $build_in_docker alpine-3.12
-CC=clang CXX=clang++ $build_in_docker alpine-3.12
+build fedora-32    gcc   g++     gcc
+build fedora-32    clang clang++ clang
+
+build alpine-3.4   gcc   g++     gcc     -DZSTD_FROM_INTERNET=ON
+build alpine-3.4   gcc   g++     clang   -DZSTD_FROM_INTERNET=ON
+
+build alpine-3.12  gcc   g++     gcc
+build alpine-3.12  clang clang++ clang

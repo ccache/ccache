@@ -22,7 +22,6 @@
 
 #include "config.h"
 
-#include <stdint.h>
 #include <string>
 
 class Config;
@@ -50,7 +49,7 @@ public:
   //
   // Returns true if saved values could be retrieved from the cache, false
   // otherwise.
-  bool get(const char* path,
+  bool get(const std::string& path,
            ContentType type,
            Digest& file_digest,
            int* return_value = nullptr);
@@ -59,7 +58,7 @@ public:
   // hash_source_code_file().
   //
   // Returns true if values could be stored in the cache, false otherwise.
-  bool put(const char* path,
+  bool put(const std::string& path,
            ContentType type,
            const Digest& file_digest,
            int return_value = 0);
@@ -97,7 +96,8 @@ private:
   struct SharedRegion;
 
   bool mmap_file(const std::string& inode_cache_file);
-  static bool hash_inode(const char* path, ContentType type, Digest& digest);
+  static bool
+  hash_inode(const std::string& path, ContentType type, Digest& digest);
   Bucket* acquire_bucket(uint32_t index);
   Bucket* acquire_bucket(const Digest& key_digest);
   static void release_bucket(Bucket* bucket);

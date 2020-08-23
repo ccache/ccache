@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -27,9 +27,14 @@
 class Config;
 class Context;
 
+void clean_old(const Context& ctx,
+               const Util::ProgressReceiver& progress_receiver,
+               time_t max_age);
+
 void clean_up_dir(const std::string& subdir,
                   uint64_t max_size,
                   uint32_t max_files,
+                  time_t max_age,
                   const Util::ProgressReceiver& progress_receiver);
 
 void clean_up_all(const Config& config,

@@ -20,11 +20,15 @@
 
 #include "system.hpp"
 
+#include "FormatNonstdStringView.hpp"
 #include "stats.hpp"
 
+#include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 // Don't throw or catch ErrorBase directly, use a subclass.
 class ErrorBase : public std::runtime_error
@@ -34,18 +38,48 @@ class ErrorBase : public std::runtime_error
 
 // Throw an Error to indicate a potentially non-fatal error that may be caught
 // and handled by callers. An uncaught Error that reaches the top level will be
-// treated similar to FatalError.
+// treated similar to Fatal.
 class Error : public ErrorBase
 {
-  using ErrorBase::ErrorBase;
+public:
+  // Special case: If given only one string, don't parse it as a format string.
+  Error(const std::string& message);
+
+  // `args` are forwarded to `fmt::format`.
+  template<typename... T> inline Error(T&&... args);
 };
 
-// Throw a FatalError to make ccache print the error message to stderr and exit
-// with a non-zero exit code.
-class FatalError : public ErrorBase
+inline Error::Error(const std::string& message) : ErrorBase(message)
 {
-  using ErrorBase::ErrorBase;
+}
+
+template<typename... T>
+inline Error::Error(T&&... args)
+  : ErrorBase(fmt::format(std::forward<T>(args)...))
+{
+}
+
+// Throw a Fatal to make ccache print the error message to stderr and exit
+// with a non-zero exit code.
+class Fatal : public ErrorBase
+{
+public:
+  // Special case: If given only one string, don't parse it as a format string.
+  Fatal(const std::string& message);
+
+  // `args` are forwarded to `fmt::format`.
+  template<typename... T> inline Fatal(T&&... args);
 };
+
+inline Fatal::Fatal(const std::string& message) : ErrorBase(message)
+{
+}
+
+template<typename... T>
+inline Fatal::Fatal(T&&... args)
+  : ErrorBase(fmt::format(std::forward<T>(args)...))
+{
+}
 
 // Throw a Failure if ccache did not succeed in getting or putting a result in
 // the cache. If `exit_code` is set, just exit with that code directly,
@@ -54,7 +88,7 @@ class FatalError : public ErrorBase
 class Failure : public std::exception
 {
 public:
-  Failure(enum stats stat, nonstd::optional<int> exit_code);
+  Failure(enum stats stat, nonstd::optional<int> exit_code = nonstd::nullopt);
 
   nonstd::optional<int> exit_code() const;
   enum stats stat() const;

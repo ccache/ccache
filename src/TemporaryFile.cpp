@@ -19,7 +19,6 @@
 #include "TemporaryFile.hpp"
 
 #include "Util.hpp"
-#include "legacy_util.hpp"
 
 using nonstd::string_view;
 
@@ -64,19 +63,16 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
   if (!initialize(path_prefix) && errno == ENOENT) {
     auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
-      fatal("Failed to create directory %s: %s",
-            std::string(dir).c_str(),
-            strerror(errno));
+      throw Fatal("Failed to create directory {}: {}", dir, strerror(errno));
     }
     initialize(path_prefix);
   }
   if (!fd) {
-    fatal("Failed to create temporary file for %s: %s",
-          path.c_str(),
-          strerror(errno));
+    throw Fatal(
+      "Failed to create temporary file for {}: {}", path, strerror(errno));
   }
 
-  set_cloexec_flag(*fd);
+  Util::set_cloexec_flag(*fd);
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~get_umask());
 #endif
@@ -87,6 +83,6 @@ TemporaryFile::initialize(string_view path_prefix)
 {
   path = std::string(path_prefix);
   path += ".XXXXXX";
-  fd = Fd(mkstemp(const_cast<char*>(path.data()))); // cast needed before C++17
+  fd = Fd(mkstemp(&path[0]));
   return bool(fd);
 }

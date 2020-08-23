@@ -3,7 +3,7 @@ SUITE_modules_PROBE() {
         echo "-fmodules/-fcxx-modules not supported by compiler"
         return
     fi
- }
+}
 
 SUITE_modules_SETUP() {
     unset CCACHE_NODIRECT
@@ -29,11 +29,6 @@ EOF
 }
 
 SUITE_modules() {
-    # -------------------------------------------------------------------------
-    TEST "preprocessor output"
-    $COMPILER -fmodules -fcxx-modules test1.cpp -E > test1.preprocessed.cpp
-    expect_file_contains "test1.preprocessed.cpp" "#pragma clang module import Test1"
-
     # -------------------------------------------------------------------------
     TEST "fall back to real compiler, no sloppiness"
 
@@ -75,7 +70,14 @@ SUITE_modules() {
 #include <string>
 void f();
 EOF
+    backdate test1.h
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
     expect_stat 'cache miss' 2
+
+    echo >>module.modulemap
+    backdate test1.h
+
+    CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS modules" $CCACHE_COMPILE -MD -fmodules -fcxx-modules -c test1.cpp -MD
+    expect_stat 'cache miss' 3
 }

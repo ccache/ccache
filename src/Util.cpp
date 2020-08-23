@@ -22,11 +22,19 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
-#include "legacy_util.hpp"
-#include "logging.hpp"
+#include "Logging.hpp"
+#include "TemporaryFile.hpp"
 
 #include <algorithm>
 #include <fstream>
+
+#ifdef HAVE_PWD_H
+#  include <pwd.h>
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+#endif
 
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
@@ -37,9 +45,32 @@
 #endif
 
 #ifdef _WIN32
-#  include "win32compat.hpp"
+#  include "Win32Util.hpp"
 #endif
 
+#ifdef __linux__
+#  ifdef HAVE_SYS_IOCTL_H
+#    include <sys/ioctl.h>
+#  endif
+#  ifdef HAVE_LINUX_FS_H
+#    include <linux/fs.h>
+#    ifndef FICLONE
+#      define FICLONE _IOW(0x94, 9, int)
+#    endif
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
+#endif
+
+#ifdef __APPLE__
+#  ifdef HAVE_SYS_CLONEFILE_H
+#    include <sys/clonefile.h>
+#    define FILE_CLONING_SUPPORTED 1
+#  endif
+#endif
+
+using Logging::log;
+using nonstd::nullopt;
+using nonstd::optional;
 using nonstd::string_view;
 
 namespace {
@@ -79,7 +110,7 @@ find_first_ansi_csi_seq(string_view string)
 }
 
 size_t
-path_max(const char* path)
+path_max(const std::string& path)
 {
 #ifdef PATH_MAX
   (void)path;
@@ -88,7 +119,7 @@ path_max(const char* path)
   (void)path;
   return MAXPATHLEN;
 #elif defined(_PC_PATH_MAX)
-  long maxlen = pathconf(path, _PC_PATH_MAX);
+  long maxlen = pathconf(path.c_str(), _PC_PATH_MAX);
   return maxlen >= 4096 ? maxlen : 4096;
 #endif
 }
@@ -118,6 +149,46 @@ split_at(string_view input, const char* separators)
   return result;
 }
 
+std::string
+rewrite_stderr_to_absolute_paths(string_view text)
+{
+  static const std::string in_file_included_from = "In file included from ";
+
+  std::string result;
+  for (auto line : Util::split_into_views(text, "\n")) {
+    // Rewrite <path> to <absolute path> in the following two cases, where X may
+    // be optional ANSI CSI sequences:
+    //
+    // In file included from X<path>X:1:
+    // X<path>X:1:2: ...
+
+    if (Util::starts_with(line, in_file_included_from)) {
+      result += in_file_included_from;
+      line = line.substr(in_file_included_from.length());
+    }
+    while (!line.empty() && line[0] == 0x1b) {
+      auto csi_seq = find_first_ansi_csi_seq(line);
+      result.append(csi_seq.data(), csi_seq.length());
+      line = line.substr(csi_seq.length());
+    }
+    size_t path_end = line.find(':');
+    if (path_end == nonstd::string_view::npos) {
+      result.append(line.data(), line.length());
+    } else {
+      std::string path(line.substr(0, path_end));
+      if (Stat::stat(path)) {
+        result += Util::real_path(path);
+        auto tail = line.substr(path_end);
+        result.append(tail.data(), tail.length());
+      } else {
+        result.append(line.data(), line.length());
+      }
+    }
+    result += '\n';
+  }
+  return result;
+}
+
 } // namespace
 
 namespace Util {
@@ -141,34 +212,88 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
-bool
+#ifdef FILE_CLONING_SUPPORTED
+void
+clone_file(const std::string& src, const std::string& dest, bool via_tmp_file)
+{
+#  if defined(__linux__)
+  Fd src_fd(open(src.c_str(), O_RDONLY));
+  if (!src_fd) {
+    throw Error("{}: {}", src, strerror(errno));
+  }
+
+  Fd dest_fd;
+  std::string tmp_file;
+  if (via_tmp_file) {
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = temp_file.path;
+  } else {
+    dest_fd =
+      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      throw Error("{}: {}", src, strerror(errno));
+    }
+  }
+
+  if (ioctl(*dest_fd, FICLONE, *src_fd) != 0) {
+    throw Error(strerror(errno));
+  }
+
+  dest_fd.close();
+  src_fd.close();
+
+  if (via_tmp_file) {
+    Util::rename(tmp_file, dest);
+  }
+#  elif defined(__APPLE__)
+  (void)via_tmp_file;
+  if (clonefile(src.c_str(), dest.c_str(), CLONE_NOOWNERCOPY) != 0) {
+    throw Error(strerror(errno));
+  }
+#  else
+  (void)src;
+  (void)dest;
+  (void)via_tmp_file;
+  throw Error(strerror(EOPNOTSUPP));
+#  endif
+}
+#endif // FILE_CLONING_SUPPORTED
+
+void
 clone_hard_link_or_copy_file(const Context& ctx,
                              const std::string& source,
                              const std::string& dest,
                              bool via_tmp_file)
 {
   if (ctx.config.file_clone()) {
-    cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
-    if (clone_file(source.c_str(), dest.c_str(), via_tmp_file)) {
-      return true;
+#ifdef FILE_CLONING_SUPPORTED
+    log("Cloning {} to {}", source, dest);
+    try {
+      clone_file(source, dest, via_tmp_file);
+      return;
+    } catch (Error& e) {
+      log("Failed to clone: {}", e.what());
     }
-    cc_log("Failed to clone: %s", strerror(errno));
+#else
+    log("Not cloning {} to {} since it's unsupported");
+#endif
   }
   if (ctx.config.hard_link()) {
     unlink(dest.c_str());
-    cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
+    log("Hard linking {} to {}", source, dest);
     int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {
       if (chmod(dest.c_str(), 0444) != 0) {
-        cc_log("Failed to chmod: %s", strerror(errno));
+        log("Failed to chmod: {}", strerror(errno));
       }
-      return true;
+      return;
     }
-    cc_log("Failed to hard link: %s", strerror(errno));
+    log("Failed to hard link: {}", strerror(errno));
   }
 
-  cc_log("Copying %s to %s", source.c_str(), dest.c_str());
-  return copy_file(source.c_str(), dest.c_str(), via_tmp_file);
+  log("Copying {} to {}", source, dest);
+  copy_file(source, dest, via_tmp_file);
 }
 
 size_t
@@ -199,6 +324,44 @@ common_dir_prefix_length(string_view dir, string_view path)
   } while (i > 0 && dir[i] != '/' && path[i] != '/');
 
   return i;
+}
+
+void
+copy_fd(int fd_in, int fd_out)
+{
+  read_fd(fd_in,
+          [=](const void* data, size_t size) { write_fd(fd_out, data, size); });
+}
+
+void
+copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
+{
+  Fd src_fd(open(src.c_str(), O_RDONLY));
+  if (!src_fd) {
+    throw Error("{}: {}", src, strerror(errno));
+  }
+
+  Fd dest_fd;
+  std::string tmp_file;
+  if (via_tmp_file) {
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = temp_file.path;
+  } else {
+    dest_fd =
+      Fd(open(dest.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!dest_fd) {
+      throw Error("{}: {}", dest, strerror(errno));
+    }
+  }
+
+  copy_fd(*src_fd, *dest_fd);
+  dest_fd.close();
+  src_fd.close();
+
+  if (via_tmp_file) {
+    Util::rename(tmp_file, dest);
+  }
 }
 
 bool
@@ -245,10 +408,47 @@ dir_name(string_view path)
   }
 }
 
-bool
-ends_with(string_view string, string_view suffix)
+std::string
+expand_environment_variables(const std::string& str)
 {
-  return string.ends_with(suffix);
+  std::string result;
+  const char* left = str.c_str();
+  for (const char* right = left; *right; ++right) {
+    if (*right == '$') {
+      result.append(left, right - left);
+
+      left = right + 1;
+      bool curly = *left == '{';
+      if (curly) {
+        ++left;
+      }
+      right = left;
+      while (isalnum(*right) || *right == '_') {
+        ++right;
+      }
+      if (curly && *right != '}') {
+        throw Error("syntax error: missing '}}' after \"{}\"", left);
+      }
+      if (right == left) {
+        // Special case: don't consider a single $ the left of a variable.
+        result += '$';
+        --right;
+      } else {
+        std::string name(left, right - left);
+        const char* value = getenv(name.c_str());
+        if (!value) {
+          throw Error("environment variable \"{}\" not set", name);
+        }
+        result += value;
+        if (!curly) {
+          --right;
+        }
+        left = right + 1;
+      }
+    }
+  }
+  result += left;
+  return result;
 }
 
 int
@@ -275,8 +475,11 @@ fallocate(int fd, long new_size)
     return ENOMEM;
   }
   int err = 0;
-  if (!write_fd(fd, buf, bytes_to_write))
+  try {
+    write_fd(fd, buf, bytes_to_write);
+  } catch (Error& e) {
     err = errno;
+  }
   lseek(fd, saved_pos, SEEK_SET);
   free(buf);
   return err;
@@ -300,6 +503,21 @@ for_each_level_1_subdir(const std::string& cache_dir,
 }
 
 std::string
+format_argv_for_logging(const char* const* argv)
+{
+  std::string result;
+  for (size_t i = 0; argv[i]; ++i) {
+    if (i != 0) {
+      result += ' ';
+    }
+    for (const char* arg = argv[i]; *arg; ++arg) {
+      result += *arg;
+    }
+  }
+  return result;
+}
+
+std::string
 format_hex(const uint8_t* data, size_t size)
 {
   std::string result;
@@ -308,6 +526,28 @@ format_hex(const uint8_t* data, size_t size)
     result += fmt::format("{:02x}", data[i]);
   }
   return result;
+}
+
+std::string
+format_human_readable_size(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return fmt::format("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
+  } else {
+    return fmt::format("{:.1f} MB", size / ((double)(1000 * 1000)));
+  }
+}
+
+std::string
+format_parsable_size_with_suffix(uint64_t size)
+{
+  if (size >= 1000 * 1000 * 1000) {
+    return fmt::format("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
+  } else if (size >= 1000 * 1000) {
+    return fmt::format("{:.1f}M", size / ((double)(1000 * 1000)));
+  } else {
+    return fmt::format("{}", (unsigned)size);
+  }
 }
 
 std::string
@@ -398,6 +638,46 @@ get_level_1_files(const std::string& dir,
   });
 
   progress_receiver(1.0);
+}
+
+std::string
+get_home_directory()
+{
+  const char* p = getenv("HOME");
+  if (p) {
+    return p;
+  }
+#ifdef _WIN32
+  p = getenv("APPDATA");
+  if (p) {
+    return p;
+  }
+#endif
+#ifdef HAVE_GETPWUID
+  {
+    struct passwd* pwd = getpwuid(getuid());
+    if (pwd) {
+      return pwd->pw_dir;
+    }
+  }
+#endif
+  throw Fatal("Could not determine home directory from $HOME or getpwuid(3)");
+}
+
+const char*
+get_hostname()
+{
+  static char hostname[260] = "";
+
+  if (hostname[0]) {
+    return hostname;
+  }
+
+  if (gethostname(hostname, sizeof(hostname)) != 0) {
+    strcpy(hostname, "unknown");
+  }
+  hostname[sizeof(hostname) - 1] = 0;
+  return hostname;
 }
 
 std::string
@@ -505,6 +785,26 @@ is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
   return -1;
 }
 #endif
+
+bool
+is_precompiled_header(string_view path)
+{
+  string_view ext = get_extension(path);
+  return ext == ".gch" || ext == ".pch" || ext == ".pth"
+         || get_extension(dir_name(path)) == ".gch";
+}
+
+optional<tm>
+localtime(optional<time_t> time)
+{
+  time_t timestamp = time ? *time : ::time(nullptr);
+  tm result;
+  if (localtime_r(&timestamp, &result)) {
+    return result;
+  } else {
+    return nullopt;
+  }
+}
 
 std::string
 make_relative_path(const Context& ctx, string_view path)
@@ -632,6 +932,27 @@ normalize_absolute_path(string_view path)
 #endif
 }
 
+uint32_t
+parse_duration(const std::string& duration)
+{
+  unsigned factor = 0;
+  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
+
+  switch (last_ch) {
+  case 'd':
+    factor = 24 * 60 * 60;
+    break;
+  case 's':
+    factor = 1;
+    break;
+  default:
+    throw Error("invalid suffix (supported: d (day) and s (second)): \"{}\"",
+                duration);
+  }
+
+  return factor * parse_uint32(duration.substr(0, duration.length() - 1));
+}
+
 int
 parse_int(const std::string& value)
 {
@@ -644,9 +965,84 @@ parse_int(const std::string& value)
     failed = true;
   }
   if (failed || end != value.size()) {
-    throw Error(fmt::format("invalid integer: \"{}\"", value));
+    throw Error("invalid integer: \"{}\"", value);
   }
   return result;
+}
+
+uint64_t
+parse_size(const std::string& value)
+{
+  errno = 0;
+
+  char* p;
+  double result = strtod(value.c_str(), &p);
+  if (errno != 0 || result < 0 || p == value.c_str() || value.empty()) {
+    throw Error("invalid size: \"{}\"", value);
+  }
+
+  while (isspace(*p)) {
+    ++p;
+  }
+
+  if (*p != '\0') {
+    unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
+    switch (*p) {
+    case 'T':
+      result *= multiplier;
+    // Fallthrough.
+    case 'G':
+      result *= multiplier;
+    // Fallthrough.
+    case 'M':
+      result *= multiplier;
+    // Fallthrough.
+    case 'K':
+    case 'k':
+      result *= multiplier;
+      break;
+    default:
+      throw Error("invalid size: \"{}\"", value);
+    }
+  } else {
+    // Default suffix: G.
+    result *= 1000 * 1000 * 1000;
+  }
+  return static_cast<uint64_t>(result);
+}
+
+uint32_t
+parse_uint32(const std::string& value)
+{
+  size_t end;
+  long long result;
+  bool failed = false;
+  try {
+    result = std::stoll(value, &end, 10);
+  } catch (std::exception&) {
+    failed = true;
+  }
+  if (failed || end != value.size() || result < 0
+      || result > std::numeric_limits<uint32_t>::max()) {
+    throw Error("invalid 32-bit unsigned integer: \"{}\"", value);
+  }
+  return result;
+}
+
+bool
+read_fd(int fd, DataReceiver data_receiver)
+{
+  ssize_t n;
+  char buffer[READ_BUFFER_SIZE];
+  while ((n = read(fd, buffer, sizeof(buffer))) != 0) {
+    if (n == -1 && errno != EINTR) {
+      break;
+    }
+    if (n > 0) {
+      data_receiver(buffer, n);
+    }
+  }
+  return n >= 0;
 }
 
 std::string
@@ -678,8 +1074,7 @@ read_file(const std::string& path, size_t size_hint)
       result.resize(2 * result.size());
     }
     const size_t max_read = result.size() - pos;
-    char* data = const_cast<char*>(result.data()); // cast needed before C++17
-    ret = read(*fd, data + pos, max_read);
+    ret = read(*fd, &result[pos], max_read);
     if (ret == 0 || (ret == -1 && errno != EINTR)) {
       break;
     }
@@ -692,7 +1087,7 @@ read_file(const std::string& path, size_t size_hint)
   }
 
   if (ret == -1) {
-    cc_log("Failed reading %s", path.c_str());
+    log("Failed reading {}", path);
     throw Error(strerror(errno));
   }
 
@@ -704,7 +1099,7 @@ read_file(const std::string& path, size_t size_hint)
 std::string
 read_link(const std::string& path)
 {
-  size_t buffer_size = path_max(path.c_str());
+  size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> buffer(new char[buffer_size]);
   ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
   if (len == -1) {
@@ -718,25 +1113,25 @@ read_link(const std::string& path)
 std::string
 real_path(const std::string& path, bool return_empty_on_error)
 {
-  const char* c_path = path.c_str();
-  size_t buffer_size = path_max(c_path);
+  size_t buffer_size = path_max(path);
   std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
   char* buffer = managed_buffer.get();
   char* resolved = nullptr;
 
 #ifdef HAVE_REALPATH
-  resolved = realpath(c_path, buffer);
+  resolved = realpath(path.c_str(), buffer);
 #elif defined(_WIN32)
+  const char* c_path = path.c_str();
   if (c_path[0] == '/') {
     c_path++; // Skip leading slash.
   }
   HANDLE path_handle = CreateFile(c_path,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
-                                  NULL,
+                                  nullptr,
                                   OPEN_EXISTING,
                                   FILE_ATTRIBUTE_NORMAL,
-                                  NULL);
+                                  nullptr);
   if (INVALID_HANDLE_VALUE != path_handle) {
     bool ok = GetFinalPathNameByHandle(
       path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
@@ -753,7 +1148,7 @@ real_path(const std::string& path, bool return_empty_on_error)
   // Yes, there are such systems. This replacement relies on the fact that when
   // we call x_realpath we only care about symlinks.
   {
-    ssize_t len = readlink(c_path, buffer, buffer_size - 1);
+    ssize_t len = readlink(path.c_str(), buffer, buffer_size - 1);
     if (len != -1) {
       buffer[len] = 0;
       resolved = buffer;
@@ -771,23 +1166,90 @@ remove_extension(string_view path)
 }
 
 void
-send_to_stderr(const std::string& text, bool strip_colors)
+rename(const std::string& oldpath, const std::string& newpath)
+{
+#ifndef _WIN32
+  if (::rename(oldpath.c_str(), newpath.c_str()) != 0) {
+    throw Error(
+      "failed to rename {} to {}: {}", oldpath, newpath, strerror(errno));
+  }
+#else
+  // Windows' rename() won't overwrite an existing file, so need to use
+  // MoveFileEx instead.
+  if (!MoveFileExA(
+        oldpath.c_str(), newpath.c_str(), MOVEFILE_REPLACE_EXISTING)) {
+    DWORD error = GetLastError();
+    throw Error("failed to rename {} to {}: {}",
+                oldpath,
+                newpath,
+                Win32Util::error_message(error));
+  }
+#endif
+}
+
+bool
+same_program_name(const std::string& program_name,
+                  const std::string& canonical_program_name)
+{
+#ifdef _WIN32
+  std::string lowercase_program_name = Util::to_lowercase(program_name);
+  return lowercase_program_name == canonical_program_name
+         || lowercase_program_name == (canonical_program_name + ".exe");
+#else
+  return program_name == canonical_program_name;
+#endif
+}
+
+void
+send_to_stderr(const Context& ctx, const std::string& text)
 {
   const std::string* text_to_send = &text;
-  std::string stripped_text;
+  std::string modified_text;
 
-  if (strip_colors) {
+  if (ctx.args_info.strip_diagnostics_colors) {
     try {
-      stripped_text = Util::strip_ansi_csi_seqs(text);
-      text_to_send = &stripped_text;
+      modified_text = strip_ansi_csi_seqs(text);
+      text_to_send = &modified_text;
     } catch (const Error&) {
       // Fall through
     }
   }
 
-  if (!write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length())) {
-    throw Error("Failed to write to stderr");
+  if (ctx.config.absolute_paths_in_stderr()) {
+    modified_text = rewrite_stderr_to_absolute_paths(*text_to_send);
+    text_to_send = &modified_text;
   }
+
+  try {
+    write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length());
+  } catch (Error& e) {
+    throw Error("Failed to write to stderr: {}", e.what());
+  }
+}
+
+void
+set_cloexec_flag(int fd)
+{
+#ifndef _WIN32
+  int flags = fcntl(fd, F_GETFD, 0);
+  if (flags >= 0) {
+    fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+  }
+#else
+  (void)fd;
+#endif
+}
+
+void
+setenv(const std::string& name, const std::string& value)
+{
+#ifdef HAVE_SETENV
+  ::setenv(name.c_str(), value.c_str(), true);
+#else
+  char* string;
+  asprintf(&string, "%s=%s", name.c_str(), value.c_str());
+  putenv(string);               // Leak to environment.
+#endif
 }
 
 std::vector<string_view>
@@ -800,12 +1262,6 @@ std::vector<std::string>
 split_into_strings(string_view input, const char* separators)
 {
   return split_at<std::string>(input, separators);
-}
-
-bool
-starts_with(string_view string, string_view prefix)
-{
-  return string.starts_with(prefix);
 }
 
 std::string
@@ -873,9 +1329,9 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
           }
-          throw Error(fmt::format("failed to lstat {}: {}",
-                                  entry_path,
-                                  strerror(stat.error_number())));
+          throw Error("failed to lstat {}: {}",
+                      entry_path,
+                      strerror(stat.error_number()));
         }
         is_dir = stat.is_directory();
       }
@@ -890,8 +1346,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
   } else if (errno == ENOTDIR) {
     visitor(path, false);
   } else {
-    throw Error(
-      fmt::format("failed to open directory {}: {}", path, strerror(errno)));
+    throw Error("failed to open directory {}: {}", path, strerror(errno));
   }
 }
 
@@ -906,21 +1361,23 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   std::string tmp_name = path + ".ccache.rm.tmp";
 
   bool success = true;
-  if (x_rename(path.c_str(), tmp_name.c_str()) != 0) {
+  try {
+    Util::rename(path, tmp_name);
+  } catch (Error&) {
     success = false;
     saved_errno = errno;
-  } else if (unlink(tmp_name.c_str()) != 0) {
+  }
+  if (success && unlink(tmp_name.c_str()) != 0) {
     // It's OK if it was unlinked in a race.
     if (errno != ENOENT && errno != ESTALE) {
       success = false;
       saved_errno = errno;
     }
   }
-
   if (success || unlink_log == UnlinkLog::log_failure) {
-    cc_log("Unlink %s via %s", path.c_str(), tmp_name.c_str());
+    log("Unlink {} via {}", path, tmp_name);
     if (!success) {
-      cc_log("Unlink failed: %s", strerror(saved_errno));
+      log("Unlink failed: {}", strerror(saved_errno));
     }
   }
 
@@ -936,14 +1393,34 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
   bool success =
     unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
   if (success || unlink_log == UnlinkLog::log_failure) {
-    cc_log("Unlink %s", path.c_str());
+    log("Unlink {}", path);
     if (!success) {
-      cc_log("Unlink failed: %s", strerror(saved_errno));
+      log("Unlink failed: {}", strerror(saved_errno));
     }
   }
 
   errno = saved_errno;
   return success;
+}
+
+void
+unsetenv(const std::string& name)
+{
+#ifdef HAVE_UNSETENV
+  ::unsetenv(name.c_str());
+#else
+  putenv(strdup(name.c_str())); // Leak to environment.
+#endif
+}
+
+void
+update_mtime(const std::string& path)
+{
+#ifdef HAVE_UTIMES
+  utimes(path.c_str(), nullptr);
+#else
+  utime(path.c_str(), nullptr);
+#endif
 }
 
 void
@@ -955,12 +1432,29 @@ wipe_path(const std::string& path)
   traverse(path, [](const std::string& p, bool is_dir) {
     if (is_dir) {
       if (rmdir(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-        throw Error(fmt::format("failed to rmdir {}: {}", p, strerror(errno)));
+        throw Error("failed to rmdir {}: {}", p, strerror(errno));
       }
     } else if (unlink(p.c_str()) != 0 && errno != ENOENT && errno != ESTALE) {
-      throw Error(fmt::format("failed to unlink {}: {}", p, strerror(errno)));
+      throw Error("failed to unlink {}: {}", p, strerror(errno));
     }
   });
+}
+
+void
+write_fd(int fd, const void* data, size_t size)
+{
+  ssize_t written = 0;
+  do {
+    ssize_t count =
+      write(fd, static_cast<const uint8_t*>(data) + written, size - written);
+    if (count == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        throw Error(strerror(errno));
+      }
+    } else {
+      written += count;
+    }
+  } while (static_cast<size_t>(written) < size);
 }
 
 void

@@ -29,9 +29,9 @@ int
 main(int argc, char** argv)
 {
 #ifdef _WIN32
-  x_setenv("CCACHE_DETECT_SHEBANG", "1");
+  Util::setenv("CCACHE_DETECT_SHEBANG", "1");
 #endif
-  x_unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
+  Util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
   std::string dir_before = Util::get_actual_cwd();
   std::string testdir = fmt::format("testdir.{}", getpid());

@@ -19,16 +19,17 @@
 #include "Context.hpp"
 
 #include "Counters.hpp"
+#include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
-#include "logging.hpp"
 #include "stats.hpp"
 
 #include <algorithm>
 #include <string>
 #include <vector>
 
+using Logging::log;
 using nonstd::string_view;
 
 Context::Context()
@@ -43,13 +44,13 @@ Context::Context()
 
 Context::~Context()
 {
-  stats_flush(this);
+  stats_flush(*this);
   unlink_pending_tmp_files();
 
   // Dump log buffer last to not lose any logs.
   if (config.debug()) {
     std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
-    cc_dump_debug_log_buffer(path.c_str());
+    Logging::dump_log(path);
   }
 }
 
@@ -75,8 +76,8 @@ Context::stats_file() const
     // An empty m_result_stats_file means that set_result_name hasn't been
     // called yet, so we just choose one of stats files in the 16
     // subdirectories.
-    m_result_stats_file = fmt::format(
-      "{}/{:x}/stats", config.cache_dir(), hash_from_int(getpid()) % 16);
+    m_result_stats_file =
+      fmt::format("{}/{:x}/stats", config.cache_dir(), getpid() % 16);
   }
   return m_result_stats_file;
 }
@@ -106,7 +107,7 @@ void
 Context::unlink_pending_tmp_files_signal_safe()
 {
   for (const std::string& path : m_pending_tmp_files) {
-    // Don't call Util::unlink_tmp since its cc_log calls aren't signal safe.
+    // Don't call Util::unlink_tmp since its log calls aren't signal safe.
     unlink(path.c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
@@ -131,7 +132,7 @@ Context::set_ignore_options(const std::vector<std::string>& options)
     if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
       m_ignore_options.push_back(option);
     } else {
-      cc_log("Skipping malformed ignore_options item: %s", option.c_str());
+      log("Skipping malformed ignore_options item: {}", option);
       continue;
     }
   }

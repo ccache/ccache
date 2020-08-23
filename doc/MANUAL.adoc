@@ -94,6 +94,17 @@ Common options
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`-d`*, *`--directory`* _PATH_
+
+    Let the subsequent command line options operate on cache directory PATH
+    instead of the default for. For example, to show statistics for a cache
+    directory at `/shared/ccache` you can run `ccache -d /shared/ccache -s`.
+
+*`--evict-older-than`* _AGE_::
+
+    Remove files older than _AGE_ from the cache. _AGE_ should be an unsigned
+    integer with a `d` (days) or `s` (seconds) suffix.
+
 *`-h`*, *`--help`*::
 
     Print an options summary page.
@@ -156,6 +167,10 @@ Common options
 
 Options for scripting or debugging
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*`--checksum-file`* _PATH_::
+
+    Print the checksum (64 bit XXH64) of the file at _PATH_.
 
 *`--dump-manifest`* _PATH_::
 
@@ -226,15 +241,33 @@ file. The priority of configuration settings is as follows (where 1 is
 highest):
 
 1. Environment variables.
-2. The cache-specific configuration file *_<ccachedir>_/ccache.conf* (typically
-   *$HOME/.ccache/ccache.conf*).
-3. The system-wide configuration file *_<sysconfdir>_/ccache.conf* (typically
-   */etc/ccache.conf* or */usr/local/etc/ccache.conf*).
+2. The primary (cache-specific) configuration file (see below).
+3. The secondary (system-wide read-only) configuration file
+   *_<sysconfdir>_/ccache.conf* (typically */etc/ccache.conf* or
+    */usr/local/etc/ccache.conf*).
 4. Compile-time defaults.
 
-As a special case, if the environment variable *CCACHE_CONFIGPATH* is set,
-ccache reads configuration from the specified path instead of the default
-paths.
+As a special case, if the the environment variable *CCACHE_CONFIGPATH* is set
+it specifies the primary configuration file and the secondary (system-wide)
+configuration file won't be read.
+
+
+Location of the primary configuration file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The location of the primary (cache-specific) configuration is determined like
+this:
+
+1. If *CCACHE_CONFIGPATH* is set, use that path.
+2. Otherwise, if <<config_ccache_dir,*ccache_dir*>> (*CCACHE_DIR*) is set then
+   use *<ccache_dir>/ccache.conf*.
+3. Otherwise, if there is a legacy *$HOME/.ccache* directory then use
+   *$HOME/.ccache/ccache.conf.
+4. Otherwise, if *XDG_CONFIG_HOME* is set then use
+   *$XDG_CONFIG_HOME/ccache/ccache.conf*.
+5. Otherwise, use *%APPDATA%/ccache/ccache.conf* (Windows),
+   *$HOME/Library/Preferences/ccache/ccache.conf (macOS) or
+   *$HOME/.config/ccache/ccache.conf* (other systems).
 
 
 Configuration file syntax
@@ -271,6 +304,15 @@ Below is a list of available configuration settings. The corresponding
 environment variable name is indicated in parentheses after each configuration
 setting key.
 
+[[config_absolute_paths_in_stderr]] *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
+
+    This setting specifies whether ccache should rewrite relative paths in the
+    compiler's standard error output to absolute paths. This can be useful if
+    you use <<config_base_dir,*base_dir*>> with a build system (e.g. CMake with
+    the "Unix Makefiles" generator) that executes the compiler in a different
+    working directory, which makes relative paths in compiler errors or
+    warnings incorrect. The default is false.
+
 [[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
     This setting should be an absolute path to a directory. ccache then
@@ -284,12 +326,20 @@ setting key.
 +
 See also the discussion under <<_compiling_in_different_directories,COMPILING
 IN DIFFERENT DIRECTORIES>>.
++
+You may also want to enable the
+<<config_absolute_paths_in_stderr,*absolute_paths_in_stderr*>> option.
 
 [[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 
     This setting specifies where ccache will keep its cached compiler outputs.
     It will only take effect if set in the system-wide configuration file or as
-    an environment variable. The default is *$HOME/.ccache*.
+    an environment variable. The default is *$XDG_CACHE_HOME/ccache* if
+    *XDG_CACHE_HOME* is set, otherwise *$HOME/.cache/ccache*. Exception: If the
+    legacy directory *$HOME/.ccache* exists then that directory is the default.
+
+    See also <<_location_of_the_primary_configuration_file,LOCATION OF THE
+    PRIMARY CONFIGURATION FILE>>.
 
 [[config_cache_dir_levels]] *cache_dir_levels* (*CCACHE_NLEVELS*)::
 
@@ -716,10 +766,9 @@ NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
 
 [[config_umask]] *umask* (*CCACHE_UMASK*)::
 
-    This setting specifies the umask for ccache and all child processes (such
-    as the compiler). This is mostly useful when you wish to share your cache
-    with other users. Note that this also affects the file permissions set on
-    the object files created from your compilations.
+    This setting specifies the umask for files and directories in the cache
+    directory. This is mostly useful when you wish to share your cache with
+    other users.
 
 
 Cache size management

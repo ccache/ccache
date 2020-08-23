@@ -268,4 +268,47 @@ EOF
         expect_stat 'cache miss' 1
         cd ..
     done
+
+    # -------------------------------------------------------------------------
+    TEST "Absolute paths in stderr"
+
+    cat <<EOF >test.c
+#include "test.h"
+#warning test.c
+EOF
+    cat <<EOF >test.h
+#warning test.h
+EOF
+    backdate test.h
+
+    pwd=$PWD.real
+    $REAL_COMPILER -c $pwd/test.c 2>reference.stderr
+
+    CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_content reference.stderr ccache.stderr
+
+    CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -c $pwd/test.c 2>ccache.stderr
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_content reference.stderr ccache.stderr
+
+    if $REAL_COMPILER -fdiagnostics-color=always -c test.c 2>/dev/null; then
+        $REAL_COMPILER -fdiagnostics-color=always -c $pwd/test.c 2>reference.stderr
+
+        CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
+        expect_stat 'cache hit (direct)' 2
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        expect_equal_content reference.stderr ccache.stderr
+
+        CCACHE_ABSSTDERR=1 CCACHE_BASEDIR="$pwd" $CCACHE_COMPILE -fdiagnostics-color=always -c $pwd/test.c 2>ccache.stderr
+        expect_stat 'cache hit (direct)' 3
+        expect_stat 'cache hit (preprocessed)' 0
+        expect_stat 'cache miss' 1
+        expect_equal_content reference.stderr ccache.stderr
+    fi
 }

@@ -57,14 +57,14 @@ SUITE_nvcc_ldir() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     $cuobjdump test_cuda.o > test1.dump
-    expect_equal_files reference_test1.dump test1.dump
+    expect_equal_content reference_test1.dump test1.dump
 
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     $cuobjdump test_cuda.o > test1.dump
-    expect_equal_files reference_test1.dump test1.dump
+    expect_equal_content reference_test1.dump test1.dump
 
     # ---------------------------------------------------------------------
     TEST "Option -ldir"
@@ -79,14 +79,14 @@ SUITE_nvcc_ldir() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     $cuobjdump test_cuda.o > test1.dump
-    expect_equal_files reference_test1.dump test1.dump
+    expect_equal_content reference_test1.dump test1.dump
 
     $ccache_nvcc_cuda $TEST_OPTS test_cuda.cu
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
     $cuobjdump test_cuda.o > test1.dump
-    expect_equal_files reference_test1.dump test1.dump
+    expect_equal_content reference_test1.dump test1.dump
 
     export PATH=$OLD_PATH
 }

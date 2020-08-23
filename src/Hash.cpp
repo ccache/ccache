@@ -19,8 +19,9 @@
 #include "Hash.hpp"
 
 #include "Fd.hpp"
-#include "logging.hpp"
+#include "Logging.hpp"
 
+using Logging::log;
 using nonstd::string_view;
 
 const string_view HASH_DELIMITER("\000cCaChE\000", 8);
@@ -70,10 +71,18 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 {
   string_view buffer(static_cast<const char*>(data), size);
   hash_buffer(buffer);
-  add_debug_text(buffer);
-  if (hash_type == HashType::text) {
-    add_debug_text("\n");
+
+  switch (hash_type) {
+  case HashType::binary:
+    add_debug_text(Util::format_hex(static_cast<const uint8_t*>(data), size));
+    break;
+
+  case HashType::text:
+    add_debug_text(buffer);
+    break;
   }
+
+  add_debug_text("\n");
   return *this;
 }
 
@@ -95,19 +104,8 @@ Hash::hash(int64_t x)
 bool
 Hash::hash_fd(int fd)
 {
-  char buf[READ_BUFFER_SIZE];
-  ssize_t n;
-
-  while ((n = read(fd, buf, sizeof(buf))) != 0) {
-    if (n == -1 && errno != EINTR) {
-      break;
-    }
-    if (n > 0) {
-      hash_buffer(string_view(buf, n));
-      add_debug_text(string_view(buf, n));
-    }
-  }
-  return n >= 0;
+  return Util::read_fd(
+    fd, [=](const void* data, size_t size) { hash(data, size); });
 }
 
 bool
@@ -115,7 +113,7 @@ Hash::hash_file(const std::string& path)
 {
   Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
-    cc_log("Failed to open %s: %s", path.c_str(), strerror(errno));
+    log("Failed to open {}: {}", path, strerror(errno));
     return false;
   }
 

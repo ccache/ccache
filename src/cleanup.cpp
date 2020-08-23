@@ -22,8 +22,8 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Logging.hpp"
 #include "Util.hpp"
-#include "logging.hpp"
 #include "stats.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED
@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <cmath>
 
+using Logging::log;
+
 static void
 delete_file(const std::string& path,
             uint64_t size,
@@ -41,7 +43,7 @@ delete_file(const std::string& path,
 {
   bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
-    cc_log("Failed to unlink %s (%s)", path.c_str(), strerror(errno));
+    log("Failed to unlink {} ({})", path, strerror(errno));
   } else if (cache_size && files_in_cache) {
     // The counters are intentionally subtracted even if there was no file to
     // delete since the final cache size calculation will be incorrect if they
@@ -52,14 +54,29 @@ delete_file(const std::string& path,
   }
 }
 
+void
+clean_old(const Context& ctx,
+          const Util::ProgressReceiver& progress_receiver,
+          time_t max_age)
+{
+  Util::for_each_level_1_subdir(
+    ctx.config.cache_dir(),
+    [&](const std::string& subdir,
+        const Util::ProgressReceiver& sub_progress_receiver) {
+      clean_up_dir(subdir, 0, 0, max_age, sub_progress_receiver);
+    },
+    progress_receiver);
+}
+
 // Clean up one cache subdirectory.
 void
 clean_up_dir(const std::string& subdir,
              uint64_t max_size,
              uint32_t max_files,
+             time_t max_age,
              const Util::ProgressReceiver& progress_receiver)
 {
-  cc_log("Cleaning up cache directory %s", subdir.c_str());
+  log("Cleaning up cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -97,9 +114,9 @@ clean_up_dir(const std::string& subdir,
               return f1->lstat().mtime() < f2->lstat().mtime();
             });
 
-  cc_log("Before cleanup: %.0f KiB, %.0f files",
-         static_cast<double>(cache_size) / 1024,
-         static_cast<double>(files_in_cache));
+  log("Before cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
 
   bool cleaned = false;
   for (size_t i = 0; i < files.size();
@@ -111,7 +128,8 @@ clean_up_dir(const std::string& subdir,
     }
 
     if ((max_size == 0 || cache_size <= max_size)
-        && (max_files == 0 || files_in_cache <= max_files)) {
+        && (max_files == 0 || files_in_cache <= max_files)
+        && (max_age == 0 || file->lstat().mtime() > (current_time - max_age))) {
       break;
     }
 
@@ -139,16 +157,16 @@ clean_up_dir(const std::string& subdir,
     cleaned = true;
   }
 
-  cc_log("After cleanup: %.0f KiB, %.0f files",
-         static_cast<double>(cache_size) / 1024,
-         static_cast<double>(files_in_cache));
+  log("After cleanup: {:.0f} KiB, {:.0f} files",
+      static_cast<double>(cache_size) / 1024,
+      static_cast<double>(files_in_cache));
 
   if (cleaned) {
-    cc_log("Cleaned up cache directory %s", subdir.c_str());
-    stats_add_cleanup(subdir.c_str(), 1);
+    log("Cleaned up cache directory {}", subdir);
+    stats_add_cleanup(subdir, 1);
   }
 
-  stats_set_sizes(subdir.c_str(), files_in_cache, cache_size);
+  stats_set_sizes(subdir, files_in_cache, cache_size);
 }
 
 // Clean up all cache subdirectories.
@@ -163,6 +181,7 @@ clean_up_all(const Config& config,
       clean_up_dir(subdir,
                    config.max_size() / 16,
                    config.max_files() / 16,
+                   0,
                    sub_progress_receiver);
     },
     progress_receiver);
@@ -173,7 +192,7 @@ static void
 wipe_dir(const std::string& subdir,
          const Util::ProgressReceiver& progress_receiver)
 {
-  cc_log("Clearing out cache directory %s", subdir.c_str());
+  log("Clearing out cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -185,11 +204,11 @@ wipe_dir(const std::string& subdir,
   }
 
   if (!files.empty()) {
-    cc_log("Cleared out cache directory %s", subdir.c_str());
-    stats_add_cleanup(subdir.c_str(), 1);
+    log("Cleared out cache directory {}", subdir);
+    stats_add_cleanup(subdir, 1);
   }
 
-  stats_set_sizes(subdir.c_str(), 0, 0);
+  stats_set_sizes(subdir, 0, 0);
 }
 
 // Wipe all cached files in all subdirectories.

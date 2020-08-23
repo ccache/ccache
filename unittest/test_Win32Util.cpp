@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,19 +16,28 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/logging.hpp"
+#include "../src/Win32Util.hpp"
+#include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
 
-TEST_SUITE_BEGIN("logging");
+TEST_SUITE_BEGIN("Win32Util");
 
-TEST_CASE("format_command")
+TEST_CASE("Win32Util::argv_to_string")
 {
-  const char* argv_0[] = {nullptr};
-  CHECK(format_command(argv_0) == "\n");
-
-  const char* argv_2[] = {"foo", "bar", nullptr};
-  CHECK(format_command(argv_2) == "foo bar\n");
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "") == R"("a")");
+  }
+  {
+    const char* const argv[] = {"a", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "p") == R"("p" "a")");
+  }
+  {
+    const char* const argv[] = {"a", "b c", "\"d\"", "'e'", "\\\"h", nullptr};
+    CHECK(Win32Util::argv_to_string(argv, "")
+          == R"("a" "b c" "\"d\"" "'e'" "\\\"h")");
+  }
 }
 
 TEST_SUITE_END();
