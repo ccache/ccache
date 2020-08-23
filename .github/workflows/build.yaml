@@ -188,53 +188,53 @@ jobs:
             apt_get: libzstd-dev clang-tidy
 
     steps:
-    - name: Get source
-      uses: actions/checkout@v2
+      - name: Get source
+        uses: actions/checkout@v2
 
-    - name: Install CUDA
-      if: matrix.config.CUDA != ''
-      run: sudo --preserve-env=CUDA ci/install-cuda
-      env:
-        CUDA: ${{ matrix.config.CUDA }}
+      - name: Install CUDA
+        if: matrix.config.CUDA != ''
+        run: sudo --preserve-env=CUDA ci/install-cuda
+        env:
+          CUDA: ${{ matrix.config.CUDA }}
 
-    - name: Run apt-get
-      if: matrix.config.apt_get != ''
-      run: sudo apt-get install ${{ matrix.config.apt_get }}
+      - name: Run apt-get
+        if: matrix.config.apt_get != ''
+        run: sudo apt-get install ${{ matrix.config.apt_get }}
 
-    - name: Prefix PATH
-      if: matrix.config.path != ''
-      run: echo "::add-path::${{ matrix.config.path }}"
+      - name: Prefix PATH
+        if: matrix.config.path != ''
+        run: echo "::add-path::${{ matrix.config.path }}"
 
-    - name: Build and test
-      env:
-        ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
-        BUILDDIR: ${{ matrix.config.BUILDDIR }}
-        CC: ${{ matrix.config.CC }}
-        CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
-        CFLAGS: ${{ matrix.config.CFLAGS }}
-        CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
-        CTEST_OUTPUT_ON_FAILURE: ON
-        CXX: ${{ matrix.config.CXX }}
-        CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
-        ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
-        EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
-        LDFLAGS: ${{ matrix.config.LDFLAGS }}
-        RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
-        SPECIAL: ${{ matrix.config.SPECIAL }}
-        VERBOSE: 1
-      run: ci/build
+      - name: Build and test
+        env:
+          ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
+          BUILDDIR: ${{ matrix.config.BUILDDIR }}
+          CC: ${{ matrix.config.CC }}
+          CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
+          CFLAGS: ${{ matrix.config.CFLAGS }}
+          CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
+          CTEST_OUTPUT_ON_FAILURE: ON
+          CXX: ${{ matrix.config.CXX }}
+          CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
+          ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
+          EXTRA_CMAKE_BUILD_FLAGS: ${{ matrix.config.EXTRA_CMAKE_BUILD_FLAGS }}
+          LDFLAGS: ${{ matrix.config.LDFLAGS }}
+          RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
+          SPECIAL: ${{ matrix.config.SPECIAL }}
+          VERBOSE: 1
+        run: ci/build
 
-    - name: Collect testdir from failed tests
-      if: failure()
-      run: tar -caf testdirs.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
-      # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
+      - name: Collect testdir from failed tests
+        if: failure()
+        run: tar -caf testdirs.tar.xz ${{ matrix.config.BUILDDIR }}/testdir
+        # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
 
-    - name: Upload testdir from failed tests
-      if: failure()
-      uses: actions/upload-artifact@v2
-      with:
-        name: ${{ matrix.config.name }} - testdir.tar.xz
-        path: testdir.tar.xz
+      - name: Upload testdir from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config.name }} - testdir.tar.xz
+          path: testdir.tar.xz
 
   check_format:
     name: Check code formatting
