@@ -20,6 +20,7 @@
 #include "legacy_util.hpp"
 
 #include "Fd.hpp"
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
 #include "logging.hpp"
@@ -93,54 +94,21 @@ write_fd(int fd, const void* buf, size_t size)
 
 // Copy all data from fd_in to fd_out.
 bool
-copy_fd(int fd_in, int fd_out, bool fd_in_is_file)
+copy_fd(int fd_in, int fd_out)
 {
   ssize_t n;
   char buf[READ_BUFFER_SIZE];
-  while ((n = read(fd_in, buf, sizeof(buf))) > 0) {
-    if (!write_fd(fd_out, buf, n)) {
-      return false;
-    }
-
-    if (fd_in_is_file && static_cast<size_t>(n) < sizeof(buf)) {
+  while ((n = read(fd_in, buf, sizeof(buf))) != 0) {
+    if (n == -1 && errno != EINTR) {
       break;
+    }
+    if (n > 0 && !write_fd(fd_out, buf, n)) {
+      return false;
     }
   }
 
   return true;
 }
-
-#ifndef HAVE_MKSTEMP
-// Cheap and nasty mkstemp replacement.
-int
-mkstemp(char* name_template)
-{
-#  ifdef __GNUC__
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#  endif
-  mktemp(name_template);
-#  ifdef __GNUC__
-#    pragma GCC diagnostic pop
-#  endif
-  return open(name_template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
-}
-#endif
-
-#ifndef _WIN32
-static mode_t
-get_umask()
-{
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
-  }
-  return mask;
-}
-#endif
 
 // Clone a file from src to dest. If via_tmp_file is true, the file is cloned
 // to a temporary file and then renamed to dest.
@@ -148,7 +116,6 @@ bool
 clone_file(const char* src, const char* dest, bool via_tmp_file)
 {
 #ifdef FILE_CLONING_SUPPORTED
-
   bool result;
 
 #  if defined(__linux__)
@@ -160,8 +127,9 @@ clone_file(const char* src, const char* dest, bool via_tmp_file)
   Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
-    tmp_file = x_strdup(dest);
-    dest_fd = Fd(create_tmp_fd(&tmp_file));
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = x_strdup(temp_file.path.c_str());
   } else {
     dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
@@ -221,8 +189,9 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
   Fd dest_fd;
   char* tmp_file = nullptr;
   if (via_tmp_file) {
-    tmp_file = x_strdup(dest);
-    dest_fd = Fd(create_tmp_fd(&tmp_file));
+    TemporaryFile temp_file(dest);
+    dest_fd = std::move(temp_file.fd);
+    tmp_file = x_strdup(temp_file.path.c_str());
   } else {
     dest_fd = Fd(open(dest, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
     if (!dest_fd) {
@@ -230,7 +199,7 @@ copy_file(const char* src, const char* dest, bool via_tmp_file)
     }
   }
 
-  if (copy_fd(*src_fd, *dest_fd, true)) {
+  if (copy_fd(*src_fd, *dest_fd)) {
     result = true;
   }
 
@@ -273,18 +242,6 @@ get_hostname()
   }
   hostname[sizeof(hostname) - 1] = 0;
   return hostname;
-}
-
-// Return a string to be passed to mkstemp to create a temporary file. Also
-// tries to cope with NFS by adding the local hostname.
-const char*
-tmp_string()
-{
-  static char* ret;
-  if (!ret) {
-    ret = format("%s.%u.XXXXXX", get_hostname(), (unsigned)getpid());
-  }
-  return ret;
 }
 
 // Construct a string according to a format. Caller frees.
@@ -343,36 +300,6 @@ x_strndup(const char* s, size_t n)
   return ret;
 }
 
-// This is like malloc() but dies if the malloc fails.
-void*
-x_malloc(size_t size)
-{
-  if (size == 0) {
-    // malloc() may return NULL if size is zero, so always do this to make sure
-    // that the code handles it regardless of platform.
-    return nullptr;
-  }
-  void* ret = malloc(size);
-  if (!ret) {
-    fatal("x_malloc: Could not allocate %lu bytes", (unsigned long)size);
-  }
-  return ret;
-}
-
-// This is like realloc() but dies if the malloc fails.
-void*
-x_realloc(void* ptr, size_t size)
-{
-  if (!ptr) {
-    return x_malloc(size);
-  }
-  void* p2 = realloc(ptr, size);
-  if (!p2) {
-    fatal("x_realloc: Could not allocate %lu bytes", (unsigned long)size);
-  }
-  return p2;
-}
-
 // This is like setenv.
 void
 x_setenv(const char* name, const char* value)
@@ -415,56 +342,15 @@ reformat(char** ptr, const char* format, ...)
   }
 }
 
-// Return the dir name of a file - caller frees.
-char*
-x_dirname(const char* path)
-{
-  char* s = x_strdup(path);
-  char* p = strrchr(s, '/');
-#ifdef _WIN32
-  char* p2 = strrchr(s, '\\');
-  if (!p || (p2 && p < p2)) {
-    p = p2;
-  }
-#endif
-  if (!p) {
-    free(s);
-    s = x_strdup(".");
-  } else if (p == s) {
-    *(p + 1) = 0;
-  } else {
-    *p = 0;
-  }
-  return s;
-}
-
-// Return the file extension (including the dot) of a path as a pointer into
-// path. If path has no file extension, the empty string and the end of path is
-// returned.
-const char*
-get_extension(const char* path)
-{
-  size_t len = strlen(path);
-  for (const char* p = &path[len - 1]; p >= path; --p) {
-    if (*p == '.') {
-      return p;
-    }
-    if (*p == '/') {
-      break;
-    }
-  }
-  return &path[len];
-}
-
 // Format a size as a human-readable string. Caller frees.
 char*
-format_human_readable_size(uint64_t v)
+format_human_readable_size(uint64_t size)
 {
   char* s;
-  if (v >= 1000 * 1000 * 1000) {
-    s = format("%.1f GB", v / ((double)(1000 * 1000 * 1000)));
+  if (size >= 1000 * 1000 * 1000) {
+    s = format("%.1f GB", size / ((double)(1000 * 1000 * 1000)));
   } else {
-    s = format("%.1f MB", v / ((double)(1000 * 1000)));
+    s = format("%.1f MB", size / ((double)(1000 * 1000)));
   }
   return s;
 }
@@ -546,49 +432,6 @@ localtime_r(const time_t* timep, struct tm* result)
 }
 #endif
 
-// Create an empty temporary file. *fname will be reallocated and set to the
-// resulting filename. Returns an open file descriptor to the file.
-int
-create_tmp_fd(char** fname)
-{
-  char* tmpl = format("%s.%s", *fname, tmp_string());
-  int fd = mkstemp(tmpl);
-  if (fd == -1 && errno == ENOENT) {
-    if (!Util::create_dir(Util::dir_name(*fname))) {
-      fatal("Failed to create directory %s: %s",
-            x_dirname(*fname),
-            strerror(errno));
-    }
-    reformat(&tmpl, "%s.%s", *fname, tmp_string());
-    fd = mkstemp(tmpl);
-  }
-  if (fd == -1) {
-    fatal(
-      "Failed to create temporary file for %s: %s", *fname, strerror(errno));
-  }
-  set_cloexec_flag(fd);
-
-#ifndef _WIN32
-  fchmod(fd, 0666 & ~get_umask());
-#endif
-
-  free(*fname);
-  *fname = tmpl;
-  return fd;
-}
-
-// Create an empty temporary file. *fname will be reallocated and set to the
-// resulting filename. Returns an open FILE*.
-FILE*
-create_tmp_file(char** fname, const char* mode)
-{
-  FILE* file = fdopen(create_tmp_fd(fname), mode);
-  if (!file) {
-    fatal("Failed to create file %s: %s", *fname, strerror(errno));
-  }
-  return file;
-}
-
 // Return current user's home directory, or throw FatalError if it can't be
 // determined.
 const char*
@@ -636,15 +479,12 @@ same_executable_name(const char* s1, const char* s2)
 bool
 is_full_path(const char* path)
 {
-  if (strchr(path, '/')) {
-    return true;
-  }
 #ifdef _WIN32
   if (strchr(path, '\\')) {
     return true;
   }
 #endif
-  return false;
+  return strchr(path, '/');
 }
 
 // Update the modification time of a file in the cache to save it from LRU
@@ -694,70 +534,6 @@ x_rename(const char* oldpath, const char* newpath)
     return 0;
   }
 #endif
-}
-
-// Reads the content of a file. Size hint 0 means no hint. Returns true on
-// success, otherwise false.
-bool
-read_file(const char* path, size_t size_hint, char** data, size_t* size)
-{
-  if (size_hint == 0) {
-    size_hint = Stat::stat(path, Stat::OnError::log).size();
-  }
-  // +1 to be able to detect EOF in the first read call
-  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
-
-  Fd fd(open(path, O_RDONLY | O_BINARY));
-  if (!fd) {
-    return false;
-  }
-  size_t allocated = size_hint;
-  *data = static_cast<char*>(x_malloc(allocated));
-  ssize_t ret;
-  size_t pos = 0;
-  while (true) {
-    if (pos > allocated / 2) {
-      allocated *= 2;
-      *data = static_cast<char*>(x_realloc(*data, allocated));
-    }
-    const size_t max_read = allocated - pos;
-    ret = read(*fd, *data + pos, max_read);
-    if (ret == 0 || (ret == -1 && errno != EINTR)) {
-      break;
-    }
-    if (ret > 0) {
-      pos += ret;
-      if (static_cast<size_t>(ret) < max_read) {
-        break;
-      }
-    }
-  }
-
-  if (ret == -1) {
-    cc_log("Failed reading %s", path);
-    free(*data);
-    *data = nullptr;
-    return false;
-  }
-
-  *size = pos;
-  return true;
-}
-
-// Return the content (with NUL termination) of a text file, or NULL on error.
-// Caller frees. Size hint 0 means no hint.
-char*
-read_text_file(const char* path, size_t size_hint)
-{
-  size_t size;
-  char* data;
-  if (read_file(path, size_hint, &data, &size)) {
-    data = static_cast<char*>(x_realloc(data, size + 1));
-    data[size] = '\0';
-    return data;
-  } else {
-    return nullptr;
-  }
 }
 
 static bool

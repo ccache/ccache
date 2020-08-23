@@ -17,71 +17,62 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Context.hpp"
+#include "../src/Hash.hpp"
 #include "../src/hashutil.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 using TestUtil::TestContext;
 
+TEST_SUITE_BEGIN("hashutil");
+
 TEST_CASE("hash_command_output_simple")
 {
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo", "not used"));
   CHECK(hash_command_output(h2, "echo", "not used"));
-  CHECK(hash_result(h1) == hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_command_output_space_removal")
 {
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo", "not used"));
   CHECK(hash_command_output(h2, " echo ", "not used"));
-  CHECK(hash_result(h1) == hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_command_output_hash_inequality")
 {
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "echo bar", "not used"));
-  CHECK(hash_result(h1) != hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() != h2.digest());
 }
 
 TEST_CASE("hash_command_output_compiler_substitution")
 {
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "%compiler% foo", "echo"));
-  CHECK(hash_result(h1) == hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_command_output_stdout_versus_stderr")
 {
   TestContext test_context;
 
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
 #ifndef _WIN32
   Util::write_file("stderr.sh", "#!/bin/sh\necho foo >&2\n");
@@ -93,16 +84,13 @@ TEST_CASE("hash_command_output_stdout_versus_stderr")
   CHECK(hash_command_output(h1, "echo foo", "not used"));
   CHECK(hash_command_output(h2, "stderr.bat", "not used"));
 #endif
-  CHECK(hash_result(h1) == hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_multicommand_output")
 {
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
 #ifndef _WIN32
   Util::write_file("foo.sh", "#!/bin/sh\necho foo\necho bar\n");
@@ -114,23 +102,17 @@ TEST_CASE("hash_multicommand_output")
   CHECK(hash_multicommand_output(h2, "echo foo; echo bar", "not used"));
   CHECK(hash_multicommand_output(h1, "foo.bat", "not used"));
 #endif
-  CHECK(hash_result(h1) == hash_result(h2));
-
-  hash_free(h2);
-  hash_free(h1);
+  CHECK(h1.digest() == h2.digest());
 }
 
 TEST_CASE("hash_multicommand_output_error_handling")
 {
   Context ctx;
 
-  struct hash* h1 = hash_init();
-  struct hash* h2 = hash_init();
+  Hash h1;
+  Hash h2;
 
   CHECK(!hash_multicommand_output(h2, "false; true", "not used"));
-
-  hash_free(h2);
-  hash_free(h1);
 }
 
 TEST_CASE("check_for_temporal_macros")
@@ -261,3 +243,5 @@ TEST_CASE("check_for_temporal_macros")
                                     sizeof(temporal_at_avx_boundary) - i));
   }
 }
+
+TEST_SUITE_END();

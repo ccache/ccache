@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,10 +20,11 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
-using Catch::Equals;
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("AtomicFile");
 
 TEST_CASE("Base case")
 {
@@ -45,6 +46,7 @@ TEST_CASE("Not committing")
     AtomicFile atomic_file("test", AtomicFile::Mode::text);
     atomic_file.write("hello");
   }
-  CHECK_THROWS_WITH(Util::read_file("test"),
-                    Equals("No such file or directory"));
+  CHECK_THROWS_WITH(Util::read_file("test"), "No such file or directory");
 }
+
+TEST_SUITE_END();

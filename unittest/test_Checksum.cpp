@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,7 +18,9 @@
 
 #include "../src/Checksum.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
+
+TEST_SUITE_BEGIN("Checksum");
 
 TEST_CASE("Checksums")
 {
@@ -34,3 +36,5 @@ TEST_CASE("Checksums")
   checksum.reset();
   CHECK(checksum.digest() == 0xef46db3751d8e999);
 }
+
+TEST_SUITE_END();

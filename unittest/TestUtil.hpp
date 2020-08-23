@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include "../src/Util.hpp"
+#include "system.hpp"
+
+#include <string>
 
 namespace TestUtil {
 

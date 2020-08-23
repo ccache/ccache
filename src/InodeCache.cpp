@@ -18,36 +18,24 @@
 
 #include "InodeCache.hpp"
 
-#ifdef INODE_CACHE_SUPPORTED
+#include "Config.hpp"
+#include "Fd.hpp"
+#include "Finalizer.hpp"
+#include "Hash.hpp"
+#include "Stat.hpp"
+#include "TemporaryFile.hpp"
+#include "Util.hpp"
+#include "ccache.hpp"
+#include "logging.hpp"
 
-#  include "Config.hpp"
-#  include "Fd.hpp"
-#  include "Finalizer.hpp"
-#  include "Stat.hpp"
-#  include "Util.hpp"
-#  include "ccache.hpp"
-#  include "hash.hpp"
-#  include "logging.hpp"
-
-#  include <atomic>
-#  include <errno.h>
-#  include <fcntl.h>
-#  include <libgen.h>
-#  include <stdio.h>
-#  include <stdlib.h>
-#  include <string.h>
-#  include <sys/mman.h>
-#  include <sys/stat.h>
-#  include <sys/types.h>
-#  include <time.h>
-#  include <type_traits>
-#  include <unistd.h>
-
-namespace {
+#include <atomic>
+#include <libgen.h>
+#include <sys/mman.h>
+#include <type_traits>
 
 // The inode cache resides on a file that is mapped into shared memory by
-// running processes. It is implemented as a two level structure, where the
-// top level is a hash table consisting of buckets. Each bucket contains entries
+// running processes. It is implemented as a two level structure, where the top
+// level is a hash table consisting of buckets. Each bucket contains entries
 // that are sorted in LRU order. Entries map from keys representing files to
 // cached hash results.
 //
@@ -56,9 +44,19 @@ namespace {
 // Current cache size is fixed and the given constants are considered large
 // enough for most projects. The size could be made configurable if there is a
 // demand for it.
+
+namespace {
+
+// The version number corresponds to the format of the cache entries and to
+// semantics of the key fields.
+//
+// Note: The key is hashed using the main hash algorithm, so the version number
+// does not need to be incremented if said algorithm is changed (except if the
+// digest size changes since that affects the entry format).
 const uint32_t k_version = 1;
 
-// Increment version number if constants affecting storage size are changed.
+// Note: Increment the version number if constants affecting storage size are
+// changed.
 const uint32_t k_num_buckets = 32 * 1024;
 const uint32_t k_num_entries = 4;
 
@@ -88,16 +86,16 @@ struct InodeCache::Key
   dev_t st_dev;
   ino_t st_ino;
   mode_t st_mode;
-#  ifdef HAVE_STRUCT_STAT_ST_MTIM
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
   timespec st_mtim;
-#  else
+#else
   time_t st_mtim;
-#  endif
-#  ifdef HAVE_STRUCT_STAT_ST_CTIM
+#endif
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
   timespec st_ctim; // Included for sanity checking.
-#  else
+#else
   time_t st_ctim; // Included for sanity checking.
-#  endif
+#endif
   off_t st_size; // Included for sanity checking.
   bool sloppy_time_macros;
 };
@@ -186,22 +184,21 @@ InodeCache::hash_inode(const char* path, ContentType type, Digest& digest)
   key.st_dev = stat.device();
   key.st_ino = stat.inode();
   key.st_mode = stat.mode();
-#  ifdef HAVE_STRUCT_STAT_ST_MTIM
+#ifdef HAVE_STRUCT_STAT_ST_MTIM
   key.st_mtim = stat.mtim();
-#  else
+#else
   key.st_mtim = stat.mtime();
-#  endif
-#  ifdef HAVE_STRUCT_STAT_ST_CTIM
+#endif
+#ifdef HAVE_STRUCT_STAT_ST_CTIM
   key.st_ctim = stat.ctim();
-#  else
+#else
   key.st_ctim = stat.ctime();
-#  endif
+#endif
   key.st_size = stat.size();
 
-  struct hash* hash = hash_init();
-  hash_buffer(hash, &key, sizeof(Key));
-  digest = hash_result(hash);
-  hash_free(hash);
+  Hash hash;
+  hash.hash(&key, sizeof(Key));
+  digest = hash.digest();
   return true;
 }
 
@@ -210,7 +207,7 @@ InodeCache::acquire_bucket(uint32_t index)
 {
   Bucket* bucket = &m_sr->buckets[index];
   int err = pthread_mutex_lock(&bucket->mt);
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
     if (m_config.debug()) {
       ++m_sr->errors;
@@ -225,16 +222,16 @@ InodeCache::acquire_bucket(uint32_t index)
     cc_log("Wiping bucket at index %u because of stale mutex", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
-#  endif
+#endif
     if (err) {
       cc_log("Failed to lock mutex at index %u: %s", index, strerror(err));
       cc_log("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
       return nullptr;
     }
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   }
-#  endif
+#endif
   return bucket;
 }
 
@@ -259,21 +256,19 @@ InodeCache::create_new_file(const std::string& filename)
 
   // Create the new file to a temporary name to prevent other processes from
   // mapping it before it is fully initialized.
-  auto temp_fd_and_path = Util::create_temp_fd(filename);
-  const auto& temp_path = temp_fd_and_path.second;
+  TemporaryFile tmp_file(filename);
 
-  Fd temp_fd(temp_fd_and_path.first);
-  Finalizer temp_file_remover([=] { unlink(temp_path.c_str()); });
+  Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
 
   bool is_nfs;
-  if (Util::is_nfs_fd(*temp_fd, &is_nfs) == 0 && is_nfs) {
+  if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
     cc_log(
       "Inode cache not supported because the cache file would be located on"
       " nfs: %s",
       filename.c_str());
     return false;
   }
-  int err = Util::fallocate(*temp_fd, sizeof(SharedRegion));
+  int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
   if (err) {
     cc_log("Failed to allocate file space for inode cache: %s", strerror(err));
     return false;
@@ -283,7 +278,7 @@ InodeCache::create_new_file(const std::string& filename)
                                          sizeof(SharedRegion),
                                          PROT_READ | PROT_WRITE,
                                          MAP_SHARED,
-                                         *temp_fd,
+                                         *tmp_file.fd,
                                          0));
   if (sr == reinterpret_cast<void*>(-1)) {
     cc_log("Failed to mmap new inode cache: %s", strerror(errno));
@@ -295,22 +290,22 @@ InodeCache::create_new_file(const std::string& filename)
   pthread_mutexattr_t mattr;
   pthread_mutexattr_init(&mattr);
   pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-#  ifdef PTHREAD_MUTEX_ROBUST
+#ifdef PTHREAD_MUTEX_ROBUST
   pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
-#  endif
-  for (uint32_t i = 0; i < k_num_buckets; ++i) {
-    pthread_mutex_init(&sr->buckets[i].mt, &mattr);
+#endif
+  for (auto& bucket : sr->buckets) {
+    pthread_mutex_init(&bucket.mt, &mattr);
   }
 
   munmap(sr, sizeof(SharedRegion));
-  temp_fd.close();
+  tmp_file.fd.close();
 
   // link() will fail silently if a file with the same name already exists.
   // This will be the case if two processes try to create a new file
   // simultaneously. Thus close the current file handle and reopen a new one,
   // which will make us use the first created file even if we didn't win the
   // race.
-  if (link(temp_path.c_str(), filename.c_str()) != 0) {
+  if (link(tmp_file.path.c_str(), filename.c_str()) != 0) {
     cc_log("Failed to link new inode cache: %s", strerror(errno));
     return false;
   }
@@ -491,5 +486,3 @@ InodeCache::get_errors()
 {
   return initialize() ? m_sr->errors.load() : -1;
 }
-
-#endif

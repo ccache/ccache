@@ -20,10 +20,6 @@
 
 #ifdef _WIN32
 
-#  include <psapi.h>
-#  include <sys/locking.h>
-#  include <tchar.h>
-
 std::string
 win32_error_message(DWORD error_code)
 {
@@ -41,80 +37,5 @@ win32_error_message(DWORD error_code)
   LocalFree(buffer);
   return message;
 }
-
-#  if !defined(HAVE_REALPATH) && !defined(HAVE_GETFINALPATHNAMEBYHANDLEW)
-BOOL
-GetFileNameFromHandle(HANDLE file_handle, TCHAR* filename, WORD cch_filename)
-{
-  BOOL success = FALSE;
-
-  // Get the file size.
-  DWORD file_size_hi = 0;
-  DWORD file_size_lo = GetFileSize(file_handle, &file_size_hi);
-  if (file_size_lo == 0 && file_size_hi == 0) {
-    // Cannot map a file with a length of zero.
-    return FALSE;
-  }
-
-  // Create a file mapping object.
-  HANDLE file_map =
-    CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 1, NULL);
-  if (!file_map) {
-    return FALSE;
-  }
-
-  // Create a file mapping to get the file name.
-  void* mem = MapViewOfFile(file_map, FILE_MAP_READ, 0, 0, 1);
-  if (mem) {
-    if (GetMappedFileName(GetCurrentProcess(), mem, filename, cch_filename)) {
-      // Translate path with device name to drive letters.
-      TCHAR temp[512];
-      temp[0] = '\0';
-
-      if (GetLogicalDriveStrings(512 - 1, temp)) {
-        TCHAR name[MAX_PATH];
-        TCHAR drive[3] = TEXT(" :");
-        BOOL found = FALSE;
-        TCHAR* p = temp;
-
-        do {
-          // Copy the drive letter to the template string.
-          *drive = *p;
-
-          // Look up each device name.
-          if (QueryDosDevice(drive, name, MAX_PATH)) {
-            size_t name_len = _tcslen(name);
-            if (name_len < MAX_PATH) {
-              found = _tcsnicmp(filename, name, name_len) == 0
-                      && *(filename + name_len) == _T('\\');
-              if (found) {
-                // Reconstruct filename using temp_file and replace device path
-                // with DOS path.
-                TCHAR temp_file[MAX_PATH];
-                _sntprintf(temp_file,
-                           MAX_PATH - 1,
-                           TEXT("%s%s"),
-                           drive,
-                           filename + name_len);
-                strcpy(filename, temp_file);
-              }
-            }
-          }
-
-          // Go to the next NULL character.
-          while (*p++) {
-            // Do nothing.
-          }
-        } while (!found && *p); // End of string.
-      }
-    }
-    success = TRUE;
-    UnmapViewOfFile(mem);
-  }
-
-  CloseHandle(file_map);
-  return success;
-}
-#  endif
 
 #endif

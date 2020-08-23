@@ -20,12 +20,11 @@
 
 #include "system.hpp"
 
-#include "hash.hpp"
-
 #include <inttypes.h>
 
 class Config;
 class Context;
+class Hash;
 
 unsigned hash_from_int(int i);
 
@@ -37,18 +36,15 @@ unsigned hash_from_int(int i);
 
 int check_for_temporal_macros(const char* str, size_t len);
 int hash_source_code_string(const Context& ctx,
-                            struct hash* hash,
+                            Hash& hash,
                             const char* str,
                             size_t len,
                             const char* path);
 int hash_source_code_file(const Context& ctx,
-                          struct hash* hash,
+                          Hash& hash,
                           const char* path,
                           size_t size_hint = 0);
-bool hash_binary_file(const Context& ctx, struct hash* hash, const char* path);
-bool hash_command_output(struct hash* hash,
-                         const char* command,
-                         const char* compiler);
-bool hash_multicommand_output(struct hash* hash,
-                              const char* command,
-                              const char* compiler);
+bool hash_binary_file(const Context& ctx, Hash& hash, const char* path);
+bool hash_command_output(Hash& hash, const char* command, const char* compiler);
+bool
+hash_multicommand_output(Hash& hash, const char* command, const char* compiler);

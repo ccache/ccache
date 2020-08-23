@@ -18,6 +18,7 @@
 
 #include "TestUtil.hpp"
 
+#include "../src/Util.hpp"
 #include "../src/exceptions.hpp"
 
 namespace TestUtil {

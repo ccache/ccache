@@ -18,46 +18,29 @@
 
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
+#include "../src/Hash.hpp"
 #include "../src/InodeCache.hpp"
 #include "../src/Util.hpp"
-#include "../src/hash.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
-
-#ifdef INODE_CACHE_SUPPORTED
+#include "third_party/doctest.h"
 
 using TestUtil::TestContext;
 
 namespace {
-
-Digest
-digest_from_string(const char* s)
-{
-  Digest digest;
-  struct hash* hash = hash_init();
-  hash_string(hash, s);
-  digest = hash_result(hash);
-  hash_free(hash);
-  return digest;
-}
-
-bool
-digest_equals_string(const Digest& digest, const char* s)
-{
-  return digest == digest_from_string(s);
-}
 
 bool
 put(const Context& ctx, const char* filename, const char* s, int return_value)
 {
   return ctx.inode_cache.put(filename,
                              InodeCache::ContentType::code,
-                             digest_from_string(s),
+                             Hash().hash(s).digest(),
                              return_value);
 }
 
 } // namespace
+
+TEST_SUITE_BEGIN("InodeCache");
 
 TEST_CASE("Test disabled")
 {
@@ -116,7 +99,7 @@ TEST_CASE("Test put and lookup")
 
   CHECK(ctx.inode_cache.get(
     "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(digest_equals_string(digest, "a text"));
+  CHECK(digest == Hash().hash("a text").digest());
   CHECK(return_value == 1);
   CHECK(ctx.inode_cache.get_hits() == 1);
   CHECK(ctx.inode_cache.get_misses() == 0);
@@ -134,7 +117,7 @@ TEST_CASE("Test put and lookup")
 
   CHECK(ctx.inode_cache.get(
     "a", InodeCache::ContentType::code, digest, &return_value));
-  CHECK(digest_equals_string(digest, "something else"));
+  CHECK(digest == Hash().hash("something else").digest());
   CHECK(return_value == 2);
   CHECK(ctx.inode_cache.get_hits() == 2);
   CHECK(ctx.inode_cache.get_misses() == 1);
@@ -167,10 +150,10 @@ TEST_CASE("Test content type")
   ctx.inode_cache.drop();
   ctx.config.set_inode_cache(true);
   Util::write_file("a", "a text");
-  Digest binary_digest = digest_from_string("binary");
-  Digest code_digest = digest_from_string("code");
+  Digest binary_digest = Hash().hash("binary").digest();
+  Digest code_digest = Hash().hash("code").digest();
   Digest code_with_sloppy_time_macros_digest =
-    digest_from_string("sloppy_time_macros");
+    Hash().hash("sloppy_time_macros").digest();
 
   CHECK(ctx.inode_cache.put(
     "a", InodeCache::ContentType::binary, binary_digest, 1));
@@ -204,4 +187,4 @@ TEST_CASE("Test content type")
   CHECK(return_value == 3);
 }
 
-#endif
+TEST_SUITE_END();

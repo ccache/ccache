@@ -52,9 +52,6 @@ struct ArgumentProcessingState
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
 
-  // Is the dependency makefile target name specified with -MT or -MQ?
-  bool dependency_target_specified = false;
-
   // Is the dependency target name implicitly specified using
   // DEPENDENCIES_OUTPUT or SUNPRO_DEPENDENCIES?
   bool dependency_implicit_target_specified = false;
@@ -131,6 +128,18 @@ detect_pch(Context& ctx,
 bool
 process_profiling_option(Context& ctx, const std::string& arg)
 {
+  static const std::vector<std::string> known_simple_options = {
+    "-fprofile-correction",
+    "-fprofile-reorder-functions",
+    "-fprofile-sample-accurate",
+    "-fprofile-values",
+  };
+
+  if (std::find(known_simple_options.begin(), known_simple_options.end(), arg)
+      != known_simple_options.end()) {
+    return true;
+  }
+
   std::string new_profile_path;
   bool new_profile_use = false;
 
@@ -161,8 +170,6 @@ process_profiling_option(Context& ctx, const std::string& arg)
              || Util::starts_with(arg, "-fauto-profile=")) {
     new_profile_use = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
-  } else if (arg == "-fprofile-sample-accurate") {
-    return true;
   } else {
     cc_log("Unknown profiling option: %s", arg.c_str());
     return false;
@@ -301,7 +308,9 @@ process_arg(Context& ctx,
   // Handle options that should not be passed to the preprocessor.
   if (compopt_affects_comp(args[i])) {
     state.compiler_only_args.push_back(args[i]);
-    if (compopt_takes_arg(args[i])) {
+    if (compopt_takes_arg(args[i])
+        || (ctx.guessed_compiler == GuessedCompiler::nvcc
+            && args[i] == "-Werror")) {
       if (i == args.size() - 1) {
         cc_log("Missing argument to %s", args[i].c_str());
         return STATS_ARGS;
@@ -490,7 +499,7 @@ process_arg(Context& ctx,
   }
 
   if (Util::starts_with(args[i], "-MQ") || Util::starts_with(args[i], "-MT")) {
-    state.dependency_target_specified = true;
+    ctx.args_info.dependency_target_specified = true;
 
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
@@ -853,7 +862,7 @@ handle_dependency_environment_variables(Context& ctx,
   // Specifying target object is optional.
   if (dependencies.size() > 1) {
     // It's the "file target" form.
-    state.dependency_target_specified = true;
+    ctx.args_info.dependency_target_specified = true;
     string_view abspath_obj = dependencies[1];
     std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
     // Ensure that the compiler gets a relative path.
@@ -904,8 +913,7 @@ process_args(Context& ctx,
     }
   }
 
-  if (!state.dependency_target_specified && ctx.args_info.seen_MD_MMD)
-  {
+  if (!ctx.args_info.dependency_target_specified && ctx.args_info.seen_MD_MMD) {
     ctx.args_info.change_dep_file = true;
   }
 
@@ -1095,7 +1103,7 @@ process_args(Context& ctx,
       }
     }
 
-    if (!state.dependency_target_specified
+    if (!ctx.args_info.dependency_target_specified
         && !state.dependency_implicit_target_specified
         && !config.run_second_cpp()) {
       // If we're compiling preprocessed code we're sending dep_args to the

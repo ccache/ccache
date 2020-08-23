@@ -22,15 +22,17 @@
 #include "../src/exceptions.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 #include "third_party/fmt/core.h"
 
 #include <limits>
 #include <string>
 #include <vector>
 
-using Catch::Equals;
+using doctest::Approx;
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("Config");
 
 TEST_CASE("Config: default values")
 {
@@ -56,6 +58,7 @@ TEST_CASE("Config: default values")
   CHECK(!config.hard_link());
   CHECK(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest().empty());
+  CHECK(config.ignore_options().empty());
   CHECK_FALSE(config.keep_comments_cpp());
   CHECK(config.limit_multiple() == Approx(0.8));
   CHECK(config.log_file().empty());
@@ -119,6 +122,7 @@ TEST_CASE("Config::update_from_file")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = a:b/c\n"
+    "ignore_options = -a=* -b\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 1.0\n"
     "log_file = $USER${USER} \n"
@@ -157,6 +161,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.hard_link());
   CHECK_FALSE(config.hash_dir());
   CHECK(config.ignore_headers_in_manifest() == "a:b/c");
+  CHECK(config.ignore_options() == "-a=* -b");
   CHECK(config.keep_comments_cpp());
   CHECK(config.limit_multiple() == Approx(1.0));
   CHECK(config.log_file() == fmt::format("{0}{0}", user));
@@ -186,96 +191,93 @@ TEST_CASE("Config::update_from_file, error handling")
 
   Config config;
 
-  SECTION("missing equal sign")
+  SUBCASE("missing equal sign")
   {
     Util::write_file("ccache.conf", "no equal sign");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: missing equal sign"));
+                        "ccache.conf:1: missing equal sign");
   }
 
-  SECTION("unknown key")
+  SUBCASE("unknown key")
   {
     Util::write_file("ccache.conf", "# Comment\nfoo = bar");
     CHECK(config.update_from_file("ccache.conf"));
   }
 
-  SECTION("invalid bool")
+  SUBCASE("invalid bool")
   {
     Util::write_file("ccache.conf", "disable=");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: not a boolean value: \"\""));
+                        "ccache.conf:1: not a boolean value: \"\"");
 
     Util::write_file("ccache.conf", "disable=foo");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: not a boolean value: \"foo\""));
+                        "ccache.conf:1: not a boolean value: \"foo\"");
   }
 
-  SECTION("invalid variable reference")
+  SUBCASE("invalid variable reference")
   {
     Util::write_file("ccache.conf", "base_dir = ${foo");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: syntax error: missing '}' after \"foo\""));
+      "ccache.conf:1: syntax error: missing '}' after \"foo\"");
     // Other cases tested in test_Util.c.
   }
 
-  SECTION("empty umask")
+  SUBCASE("empty umask")
   {
     Util::write_file("ccache.conf", "umask = ");
     CHECK(config.update_from_file("ccache.conf"));
     CHECK(config.umask() == std::numeric_limits<uint32_t>::max());
   }
 
-  SECTION("invalid size")
+  SUBCASE("invalid size")
   {
     Util::write_file("ccache.conf", "max_size = foo");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        Equals("ccache.conf:1: invalid size: \"foo\""));
+                        "ccache.conf:1: invalid size: \"foo\"");
     // Other cases tested in test_Util.c.
   }
 
-  SECTION("unknown sloppiness")
+  SUBCASE("unknown sloppiness")
   {
     Util::write_file("ccache.conf", "sloppiness = time_macros, foo");
     CHECK(config.update_from_file("ccache.conf"));
     CHECK(config.sloppiness() == SLOPPY_TIME_MACROS);
   }
 
-  SECTION("invalid unsigned")
+  SUBCASE("invalid unsigned")
   {
     Util::write_file("ccache.conf", "max_files =");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"\""));
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: invalid unsigned integer: \"\"");
 
     Util::write_file("ccache.conf", "max_files = -42");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"-42\""));
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: invalid unsigned integer: \"-42\"");
 
     Util::write_file("ccache.conf", "max_files = foo");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: invalid unsigned integer: \"foo\""));
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: invalid unsigned integer: \"foo\"");
   }
 
-  SECTION("missing file")
+  SUBCASE("missing file")
   {
     CHECK(!config.update_from_file("ccache.conf"));
   }
 
-  SECTION("relative base dir")
+  SUBCASE("relative base dir")
   {
     Util::write_file("ccache.conf", "base_dir = relative/path");
     REQUIRE_THROWS_WITH(
       config.update_from_file("ccache.conf"),
-      Equals("ccache.conf:1: not an absolute path: \"relative/path\""));
+      "ccache.conf:1: not an absolute path: \"relative/path\"");
 
     Util::write_file("ccache.conf", "base_dir =");
     CHECK(config.update_from_file("ccache.conf"));
   }
 
-  SECTION("bad dir levels")
+  SUBCASE("bad dir levels")
   {
     Util::write_file("ccache.conf", "cache_dir_levels = 0");
     try {
@@ -316,7 +318,7 @@ TEST_CASE("Config::set_value_in_file")
 {
   TestContext test_context;
 
-  SECTION("set new value")
+  SUBCASE("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
     Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
@@ -324,7 +326,7 @@ TEST_CASE("Config::set_value_in_file")
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
   }
 
-  SECTION("existing value")
+  SUBCASE("existing value")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     Config::set_value_in_file("ccache.conf", "path", "vanilla");
@@ -332,7 +334,7 @@ TEST_CASE("Config::set_value_in_file")
     CHECK(content == "path = vanilla\nstats = chocolate\n");
   }
 
-  SECTION("unknown option")
+  SUBCASE("unknown option")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     try {
@@ -346,7 +348,7 @@ TEST_CASE("Config::set_value_in_file")
     CHECK(content == "path = chocolate\nstats = chocolate\n");
   }
 
-  SECTION("unknown sloppiness")
+  SUBCASE("unknown sloppiness")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
     Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
@@ -359,13 +361,13 @@ TEST_CASE("Config::get_string_value")
 {
   Config config;
 
-  SECTION("base case")
+  SUBCASE("base case")
   {
     config.set_max_files(42);
     CHECK(config.get_string_value("max_files") == "42");
   }
 
-  SECTION("unknown key")
+  SUBCASE("unknown key")
   {
     try {
       config.get_string_value("foo");
@@ -403,6 +405,7 @@ TEST_CASE("Config::visit_items")
     "hard_link = true\n"
     "hash_dir = false\n"
     "ignore_headers_in_manifest = ihim\n"
+    "ignore_options = -a=* -b\n"
     "inode_cache = false\n"
     "keep_comments_cpp = true\n"
     "limit_multiple = 0.0\n"
@@ -457,6 +460,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) hard_link = true",
     "(test.conf) hash_dir = false",
     "(test.conf) ignore_headers_in_manifest = ihim",
+    "(test.conf) ignore_options = -a=* -b",
     "(test.conf) inode_cache = false",
     "(test.conf) keep_comments_cpp = true",
     "(test.conf) limit_multiple = 0.0",

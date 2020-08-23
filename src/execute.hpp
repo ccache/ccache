@@ -20,19 +20,18 @@
 
 #include "system.hpp"
 
+#include "Fd.hpp"
+
 #include <string>
 
 class Context;
 
-int execute(const char* const* argv, int fd_out, int fd_err, pid_t* pid);
+int execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid);
 std::string
 find_executable(const Context& ctx, const char* name, const char* exclude_name);
 std::string find_executable_in_path(const char* name,
                                     const char* exclude_name,
                                     const char* path);
-
-void print_command(FILE* fp, const char* const* argv);
-char* format_command(const char* const* argv);
 
 #ifdef _WIN32
 char* win32argvtos(const char* prefix, const char* const* argv, int* length);

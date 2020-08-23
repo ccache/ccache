@@ -20,12 +20,13 @@
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
 #include <unistd.h>
 
-using Catch::Equals;
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("Stat");
 
 TEST_CASE("Default constructor")
 {
@@ -59,9 +60,8 @@ TEST_CASE("Named constructors")
   CHECK(!Stat::stat("does_not_exist"));
   CHECK(!Stat::stat("does_not_exist", Stat::OnError::ignore));
   CHECK(!Stat::stat("does_not_exist", Stat::OnError::log));
-  CHECK_THROWS_WITH(
-    Stat::stat("does_not_exist", Stat::OnError::throw_error),
-    Equals("failed to stat does_not_exist: No such file or directory"));
+  CHECK_THROWS_WITH(Stat::stat("does_not_exist", Stat::OnError::throw_error),
+                    "failed to stat does_not_exist: No such file or directory");
 }
 
 TEST_CASE("Same i-node as")
@@ -171,7 +171,7 @@ TEST_CASE("Symlinks")
 
   Util::write_file("file", "1234567");
 
-  SECTION("file lstat")
+  SUBCASE("file lstat")
   {
     auto stat = Stat::lstat("file", Stat::OnError::ignore);
     CHECK(stat);
@@ -181,7 +181,7 @@ TEST_CASE("Symlinks")
     CHECK(stat.size() == 7);
   }
 
-  SECTION("file stat")
+  SUBCASE("file stat")
   {
     auto stat = Stat::stat("file", Stat::OnError::ignore);
     CHECK(stat);
@@ -191,7 +191,7 @@ TEST_CASE("Symlinks")
     CHECK(stat.size() == 7);
   }
 
-  SECTION("symlink lstat")
+  SUBCASE("symlink lstat")
   {
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
@@ -202,7 +202,7 @@ TEST_CASE("Symlinks")
     CHECK(stat.size() == 4);
   }
 
-  SECTION("symlink stat")
+  SUBCASE("symlink stat")
   {
     REQUIRE(symlink("file", "symlink") == 0);
     auto stat = Stat::stat("symlink", Stat::OnError::ignore);
@@ -214,3 +214,5 @@ TEST_CASE("Symlinks")
   }
 }
 #endif
+
+TEST_SUITE_END();

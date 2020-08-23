@@ -23,12 +23,15 @@
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
+#include "Digest.hpp"
 #include "File.hpp"
-#include "InodeCache.hpp"
 #include "MiniTrace.hpp"
 #include "NonCopyable.hpp"
 #include "ccache.hpp"
-#include "hash.hpp"
+
+#ifdef INODE_CACHE_SUPPORTED
+#  include "InodeCache.hpp"
+#endif
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
@@ -123,6 +126,10 @@ public:
   // Files used by the hash debugging functionality.
   std::vector<File> hash_debug_files;
 
+  // Options to ignore for the hash.
+  const std::vector<std::string>& ignore_options() const;
+  void set_ignore_options(const std::vector<std::string>& options);
+
 #ifdef MTR_ENABLED
   // Internal tracing.
   std::unique_ptr<MiniTrace> mini_trace;
@@ -143,6 +150,9 @@ private:
   std::string m_result_path;
   mutable std::string m_result_stats_file;
 
+  // Options to ignore for the hash.
+  std::vector<std::string> m_ignore_options;
+
   // [Start of variables touched by the signal handler]
 
   // Temporary files to remove at program exit.
@@ -157,7 +167,7 @@ private:
   void set_path_and_stats_file(const Digest& name,
                                nonstd::string_view suffix,
                                std::string& path_var,
-                               std::string& stats_file_var);
+                               std::string& stats_file_var) const;
 };
 
 inline const Digest&
@@ -191,4 +201,10 @@ Context::result_path() const
 {
   assert(m_result_name); // set_result_name must have been called
   return m_result_path;
+}
+
+inline const std::vector<std::string>&
+Context::ignore_options() const
+{
+  return m_ignore_options;
 }

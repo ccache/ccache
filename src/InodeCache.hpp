@@ -22,10 +22,8 @@
 
 #include "config.h"
 
-#ifdef INODE_CACHE_SUPPORTED
-
-#  include <stdint.h>
-#  include <string>
+#include <stdint.h>
+#include <string>
 
 class Config;
 class Context;
@@ -99,15 +97,14 @@ private:
   struct SharedRegion;
 
   bool mmap_file(const std::string& inode_cache_file);
-  bool hash_inode(const char* path, ContentType type, Digest& digest);
+  static bool hash_inode(const char* path, ContentType type, Digest& digest);
   Bucket* acquire_bucket(uint32_t index);
   Bucket* acquire_bucket(const Digest& key_digest);
-  void release_bucket(Bucket* bucket);
-  bool create_new_file(const std::string& filename);
+  static void release_bucket(Bucket* bucket);
+  static bool create_new_file(const std::string& filename);
   bool initialize();
 
   const Config& m_config;
   struct SharedRegion* m_sr = nullptr;
   bool m_failed = false;
 };
-#endif

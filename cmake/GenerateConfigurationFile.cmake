@@ -20,7 +20,6 @@ include(CheckFunctionExists)
 set(functions
     asctime_r
     geteuid
-    GetFinalPathNameByHandleW
     getopt_long
     getpwuid
     gettimeofday

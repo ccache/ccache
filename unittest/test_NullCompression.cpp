@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,10 +22,11 @@
 #include "../src/File.hpp"
 #include "TestUtil.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
-using Catch::Equals;
 using TestUtil::TestContext;
+
+TEST_SUITE_BEGIN("NullCompression");
 
 TEST_CASE("Compression::Type::none roundtrip")
 {
@@ -46,14 +47,14 @@ TEST_CASE("Compression::Type::none roundtrip")
   decompressor->read(buffer, 4);
   CHECK(memcmp(buffer, "foob", 4) == 0);
 
-  SECTION("Garbage data")
+  SUBCASE("Garbage data")
   {
     // Not reached the end.
     CHECK_THROWS_WITH(decompressor->finalize(),
-                      Equals("garbage data at end of uncompressed stream"));
+                      "garbage data at end of uncompressed stream");
   }
 
-  SECTION("Read to end")
+  SUBCASE("Read to end")
   {
     decompressor->read(buffer, 2);
     CHECK(memcmp(buffer, "ar", 2) == 0);
@@ -63,6 +64,8 @@ TEST_CASE("Compression::Type::none roundtrip")
 
     // Nothing left to read.
     CHECK_THROWS_WITH(decompressor->read(buffer, 1),
-                      Equals("failed to read from uncompressed stream"));
+                      "failed to read from uncompressed stream");
   }
 }
+
+TEST_SUITE_END();

@@ -80,6 +80,7 @@ ccache is a collective work with contributions from many people, including:
 * Nick Schultz
 * Norbert Lange
 * Oded Shimon
+* Olle Liljenzin
 * Orgad Shaneh
 * Orion Poplawski
 * Owen Mann

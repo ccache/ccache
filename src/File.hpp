@@ -22,7 +22,6 @@
 
 #include "NonCopyable.hpp"
 
-#include <cstdio>
 #include <string>
 
 class File : public NonCopyable
@@ -70,6 +69,14 @@ public:
   }
 
   operator bool() const
+  {
+    return m_file;
+  }
+
+  // clang-format off
+  FILE*
+  operator*() const
+  // clang-format on
   {
     return m_file;
   }

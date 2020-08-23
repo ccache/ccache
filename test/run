@@ -21,6 +21,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+skip_code=125
 
 # only use ansi color codes if output is to a terminal
 if [[ -t 1 ]]; then
@@ -287,15 +288,17 @@ run_suite() {
         if [ -n "$skip_reason" ]; then
             echo "Skipped test suite $suite_name [$skip_reason]"
             if [ -n "$EXIT_IF_SKIPPED" ]; then
-                exit 125
+                return $skip_code
             fi
-            return
+            return 0
         fi
     fi
 
     printf "Running test suite %s" "$(bold $suite_name)"
     SUITE_$suite_name
     echo
+
+    return 0
 }
 
 TEST() {
@@ -307,6 +310,7 @@ TEST() {
 $(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
 EOF
     unset GCC_COLORS
+    unset TERM
 
     export CCACHE_CONFIGPATH=$ABS_TESTDIR/ccache.conf
     export CCACHE_DETECT_SHEBANG=1
@@ -321,7 +325,7 @@ EOF
 
     CCACHE_COMPILE="$CCACHE $COMPILER"
 
-    if $VERBOSE; then
+    if $verbose; then
         printf "\n  %s" "$CURRENT_TEST"
     else
         printf .
@@ -487,11 +491,11 @@ done
 
 # ---------------------------------------
 
-TESTDIR=testdir.$$
-TEST_FAILED_SYMLINK=testdir.failed
+TESTDIR=testdir/$$
+TEST_FAILED_SYMLINK=testdir/failed
 ABS_TESTDIR=$PWD/$TESTDIR
 rm -rf $TESTDIR
-mkdir $TESTDIR
+mkdir -p $TESTDIR
 
 START_PWD="$PWD"
 symlink_testdir_on_failure() {
@@ -523,19 +527,31 @@ else
 fi
 echo
 
-VERBOSE=false
-[ "$1" = "-v" ] && { VERBOSE=true; shift; }
+[ -z "${VERBOSE:-}" ] && verbose=false || verbose=true
+[ "$1" = "-v" ] && { verbose=true; shift; }
 
 suites="$*"
 if [ -z "$suites" ]; then
     suites="$all_suites"
 fi
 
+skipped=false
 for suite in $suites; do
     run_suite $suite
+    if [ $? -eq $skip_code ]; then
+        skipped=true
+        break
+    fi
 done
 
 cd /
-rm -rf $ABS_TESTDIR
-green PASSED
-exit 0
+if [ -z "$KEEP_TESTDIR"]; then
+    rm -rf $ABS_TESTDIR
+fi
+if $skipped; then
+    exit $skip_code
+else
+    green PASSED
+    exit 0
+fi
+

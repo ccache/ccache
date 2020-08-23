@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -19,9 +19,9 @@
 #include "../src/Compression.hpp"
 #include "../src/Config.hpp"
 
-#include "third_party/catch.hpp"
+#include "third_party/doctest.h"
 
-using Catch::Equals;
+TEST_SUITE_BEGIN("Compression");
 
 TEST_CASE("Compression::level_from_config")
 {
@@ -39,7 +39,7 @@ TEST_CASE("Compression::type_from_int")
 {
   CHECK(Compression::type_from_int(0) == Compression::Type::none);
   CHECK(Compression::type_from_int(1) == Compression::Type::zstd);
-  CHECK_THROWS_WITH(Compression::type_from_int(2), Equals("Unknown type: 2"));
+  CHECK_THROWS_WITH(Compression::type_from_int(2), "Unknown type: 2");
 }
 
 TEST_CASE("Compression::type_to_string")
@@ -47,3 +47,5 @@ TEST_CASE("Compression::type_to_string")
   CHECK(Compression::type_to_string(Compression::Type::none) == "none");
   CHECK(Compression::type_to_string(Compression::Type::zstd) == "zstd");
 }
+
+TEST_SUITE_END();

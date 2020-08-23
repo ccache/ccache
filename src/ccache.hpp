@@ -23,6 +23,7 @@
 
 #include "Args.hpp"
 #include "Counters.hpp"
+#include "Digest.hpp"
 #include "stats.hpp"
 
 #include "third_party/nonstd/optional.hpp"

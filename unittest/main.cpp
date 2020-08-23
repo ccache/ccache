@@ -18,10 +18,12 @@
 
 #include "../src/Util.hpp"
 #include "TestUtil.hpp"
-#include "catch2_tests.hpp"
 
-#include "third_party/catch.hpp"
 #include "third_party/fmt/core.h"
+
+#define DOCTEST_THREAD_LOCAL // Avoid MinGW thread_local bug
+#define DOCTEST_CONFIG_IMPLEMENT
+#include "third_party/doctest.h"
 
 int
 main(int argc, char** argv)
@@ -37,7 +39,9 @@ main(int argc, char** argv)
   Util::create_dir(testdir);
   TestUtil::check_chdir(testdir);
 
-  int result = run_catch2_tests(argc, argv);
+  doctest::Context context;
+  context.applyCommandLine(argc, argv);
+  int result = context.run();
 
   if (result == 0) {
     TestUtil::check_chdir(dir_before);

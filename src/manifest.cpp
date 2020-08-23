@@ -26,9 +26,9 @@
 #include "Context.hpp"
 #include "Digest.hpp"
 #include "File.hpp"
+#include "Hash.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
-#include "hash.hpp"
 #include "hashutil.hpp"
 #include "logging.hpp"
 
@@ -380,8 +380,8 @@ write_manifest(const Config& config,
   writer.write<uint32_t>(mf.results.size());
   for (const auto& result : mf.results) {
     writer.write<uint32_t>(result.file_info_indexes.size());
-    for (uint32_t j = 0; j < result.file_info_indexes.size(); ++j) {
-      writer.write(result.file_info_indexes[j]);
+    for (auto index : result.file_info_indexes) {
+      writer.write(index);
     }
     writer.write(result.name.bytes(), Digest::size());
   }
@@ -450,20 +450,17 @@ verify_result(const Context& ctx,
 
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
-      struct hash* hash = hash_init();
+      Hash hash;
       int ret = hash_source_code_file(ctx, hash, path.c_str(), fs.size);
       if (ret & HASH_SOURCE_CODE_ERROR) {
         cc_log("Failed hashing %s", path.c_str());
-        hash_free(hash);
         return false;
       }
       if (ret & HASH_SOURCE_CODE_FOUND_TIME) {
-        hash_free(hash);
         return false;
       }
 
-      Digest actual = hash_result(hash);
-      hash_free(hash);
+      Digest actual = hash.digest();
       hashed_files_iter = hashed_files.emplace(path, actual).first;
     }
 

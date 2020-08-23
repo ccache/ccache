@@ -1,26 +1,25 @@
 language: cpp
 dist: bionic
 
-script: ci/build.sh
+script: ci/build
 
 jobs:
   include:
 
-  # Job 1: Build (in source directory) on Linux with native GCC
+  # Job 1: Build (in source directory) on Linux with native GCC in release build mode
   - os: linux
     compiler: gcc
-    env: T="Linux GCC" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILDDIR=. CCACHE_LOC=.
+    env: T="Linux GCC release" VERBOSE=1 ENABLE_CACHE_CLEANUP_TESTS=1 BUILDDIR=. CCACHE_LOC=. CMAKE_PARAMS="-DCMAKE_BUILD_TYPE=Release"
     addons:
       apt:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
   # Job 2: Build on Linux with native 32-bit GCC
   - os: linux
     compiler: gcc
-    env: T="Linux GCC 32-bit" VERBOSE=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux GCC 32-bit" VERBOSE=1 CFLAGS="-m32 -g -O2" CXXFLAGS="-m32 -g -O2" LDFLAGS="-m32" CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -37,7 +36,6 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
   # Job 4: Build on Linux with native GCC and CUDA compiler
   - os: linux
@@ -48,14 +46,13 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
     before_install:
-    - source ./misc/install_cuda.sh
+    - source ./ci/install-cuda.sh
 
   # Job 5: Build on Linux with 32-bit MinGW cross-compiler
   - os: linux
     compiler: i686-w64-mingw32-g++-posix
-    env: T="Linux MinGW 32-bit" VERBOSE=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 32-bit" VERBOSE=1 CC=i686-w64-mingw32-gcc-posix CXX=i686-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -64,7 +61,7 @@ jobs:
   # Job 6: Build on Linux with 64-bit MinGW cross-compiler
   - os: linux
     compiler: x86_64-w64-mingw32-g++
-    env: T="Linux MinGW 64-bit" VERBOSE=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="Linux MinGW 64-bit" VERBOSE=1 CC=x86_64-w64-mingw32-gcc-posix CXX=x86_64-w64-mingw32-g++-posix CMAKE_PARAMS="-DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON" RUN_TESTS=0 ENABLE_CACHE_CLEANUP_TESTS=1
     addons:
       apt:
         packages:
@@ -73,9 +70,19 @@ jobs:
   # Job 7: Build on MacOS with native Clang
   - os: osx
     compiler: clang
-    env: T="MacOS Clang" VERBOSE=1 CMAKE_PARAMS="-DUSE_LIBZSTD_FROM_INTERNET=ON -DUSE_LIBB2_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
+    env: T="MacOS Clang" VERBOSE=1 CMAKE_PARAMS="-DZSTD_FROM_INTERNET=ON" ENABLE_CACHE_CLEANUP_TESTS=1
 
-  # Job 8: Run Clang's undefined behavior sanitizer
+  # Job 8: Build with ENABLE_TRACING
+  - os: linux
+    compiler: gcc
+    env: T="Enabled tracing" VERBOSE=1 CMAKE_PARAMS="-DENABLE_TRACING=1" ENABLE_CACHE_CLEANUP_TESTS=1
+    addons:
+      apt:
+        packages:
+        - elfutils
+        - libzstd1-dev
+
+  # Job 9: Run Clang's undefined behavior sanitizer
   - os: linux
     compiler: clang
     env: T="Clang UB sanitizer" VERBOSE=1 CMAKE_PARAMS="-DENABLE_SANITIZER_UNDEFINED_BEHAVIOR=ON" ASAN_OPTIONS="detect_leaks=0"
@@ -84,9 +91,8 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 9: Run Clang's address sanitizer
+  # Job 10: Run Clang's address sanitizer
   - os: linux
     compiler: clang
     env: T="Clang address sanitizer" VERBOSE=1 CMAKE_PARAMS="-DENABLE_SANITIZER_ADDRESS=ON" ASAN_OPTIONS="detect_leaks=0"
@@ -95,9 +101,8 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 10: Run Clang's static analyzer
+  # Job 11: Run Clang's static analyzer
   - os: linux
     compiler: clang
     env: T="Clang static analyzer" VERBOSE=1 PATH="/usr/bin:$PATH" CMAKE_PREFIX=scan-build RUN_TESTS=0
@@ -105,51 +110,26 @@ jobs:
       apt:
         packages:
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 11: Run Clang-Tidy
+  # Job 12: Build binary package, extract it out of source, run tests.
   - os: linux
-    compiler: clang
-    env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
-    addons:
-      apt:
-        packages:
-        - libzstd1-dev
-        - libb2-dev
-
-  # Job 12: Run Clang-Format amd CMake-Format check mode
-  - os: linux
-    compiler: clang
-    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
-    addons:
-      apt:
-        packages:
-        - libzstd1-dev
-        - libb2-dev
-    before_install:
-    - pip install --user cmake_format
-
-  # Job 13: Build binary package, extract it out of source, run tests.
-  - os: linux
-    env: T="Build binary and verify" VERBOSE=1 SPECIAL=build_and_verify_package
+    env: T="Build binary and verify" VERBOSE=1 SPECIAL=build-and-verify-package
     addons:
       apt:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 14: Build source package, extract it out of source, run tests.
+  # Job 13: Build source package, extract it out of source, run tests.
   - os: linux
-    env: T="Build source package and verify" VERBOSE=1 SPECIAL=build_and_verify_package_source
+    env: T="Build source package and verify" VERBOSE=1 SPECIAL=build-and-verify-package-source
     addons:
       apt:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 15: Build documentation
+  # Job 13: Build documentation
   - os: linux
     env: T="Build documentation" VERBOSE=1 BUILDEXTRAFLAGS="--target documentation" RUN_TESTS=0
     addons:
@@ -157,10 +137,9 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
         - asciidoc
 
-  # Job 16: Build manpage
+  # Job 15: Build manpage
   - os: linux
     env: T="Build manpage" VERBOSE=1 BUILDEXTRAFLAGS="--target manpage" RUN_TESTS=0
     addons:
@@ -168,14 +147,10 @@ jobs:
         packages:
         - elfutils
         - libzstd1-dev
-        - libb2-dev
         - asciidoc
         - xsltproc
 
-  # New jobs go here until they are established for some weeks
-  allow_failures:
-
-  # Job 11: Run Clang-Tidy
+  # Job 16: Run Clang-Tidy
   - os: linux
     compiler: clang
     env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
@@ -183,9 +158,8 @@ jobs:
       apt:
         packages:
         - libzstd1-dev
-        - libb2-dev
 
-  # Job 12: Run Clang-Format amd CMake-Format check mode
+  # Job 17: Run Clang-Format in check mode
   - os: linux
     compiler: clang
     env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
@@ -193,6 +167,26 @@ jobs:
       apt:
         packages:
         - libzstd1-dev
-        - libb2-dev
+    before_install:
+    - pip install --user cmake_format
+
+  allow_failures:
+  # Job 16: Run Clang-Tidy
+  - os: linux
+    compiler: clang
+    env: T="Clang-Tidy" VERBOSE=1 CMAKE_PARAMS="-DENABLE_CLANG_TIDY=ON" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
+
+  # Job 17: Run Clang-Format check mode
+  - os: linux
+    compiler: clang
+    env: T="Clang-Format" VERBOSE=1 BUILDEXTRAFLAGS="--target check_format" RUN_TESTS=0
+    addons:
+      apt:
+        packages:
+        - libzstd1-dev
     before_install:
     - pip install --user cmake_format

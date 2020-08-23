@@ -64,6 +64,9 @@ struct ArgsInfo
   // Change target of dependency file
   bool change_dep_file = false;
 
+  // Is the dependency makefile target name specified with -MT or -MQ?
+  bool dependency_target_specified = false;
+
   // Is the compiler being asked to output coverage?
   bool generating_coverage = false;
 

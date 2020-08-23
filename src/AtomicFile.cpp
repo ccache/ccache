@@ -18,20 +18,17 @@
 
 #include "AtomicFile.hpp"
 
+#include "TemporaryFile.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
 
 #include "third_party/fmt/core.h"
 
-#include <cassert>
-#include <cerrno>
-#include <unistd.h>
-
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {
-  auto fd_and_path = Util::create_temp_fd(path + ".tmp");
-  m_stream = fdopen(fd_and_path.first, mode == Mode::binary ? "w+b" : "w+");
-  m_tmp_path = std::move(fd_and_path.second);
+  TemporaryFile tmp_file(path + ".tmp");
+  m_stream = fdopen(tmp_file.fd.release(), mode == Mode::binary ? "w+b" : "w+");
+  m_tmp_path = std::move(tmp_file.path);
 }
 
 AtomicFile::~AtomicFile()

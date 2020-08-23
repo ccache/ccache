@@ -20,13 +20,13 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Fd.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "legacy_util.hpp"
 #include "logging.hpp"
 
 #include <algorithm>
 #include <fstream>
-#include <regex>
 
 #ifdef HAVE_LINUX_FS_H
 #  include <linux/magic.h>
@@ -43,6 +43,40 @@
 using nonstd::string_view;
 
 namespace {
+
+// Search for the first match of the following regular expression:
+//
+//   \x1b\[[\x30-\x3f]*[\x20-\x2f]*[Km]
+//
+// The primary reason for not using std::regex is that it's not available for
+// GCC 4.8. It's also a bit bloated. The reason for not using POSIX regex
+// functionality is that it's are not available in MinGW.
+string_view
+find_first_ansi_csi_seq(string_view string)
+{
+  size_t pos = 0;
+  while (pos < string.length() && string[pos] != 0x1b) {
+    ++pos;
+  }
+  if (pos + 1 >= string.length() || string[pos + 1] != '[') {
+    return {};
+  }
+  size_t start = pos;
+  pos += 2;
+  while (pos < string.length()
+         && (string[pos] >= 0x30 && string[pos] <= 0x3f)) {
+    ++pos;
+  }
+  while (pos < string.length()
+         && (string[pos] >= 0x20 && string[pos] <= 0x2f)) {
+    ++pos;
+  }
+  if (pos < string.length() && (string[pos] == 'K' || string[pos] == 'm')) {
+    return string.substr(start, pos + 1 - start);
+  } else {
+    return {};
+  }
+}
 
 size_t
 path_max(const char* path)
@@ -107,6 +141,36 @@ change_extension(string_view path, string_view new_ext)
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
+bool
+clone_hard_link_or_copy_file(const Context& ctx,
+                             const std::string& source,
+                             const std::string& dest,
+                             bool via_tmp_file)
+{
+  if (ctx.config.file_clone()) {
+    cc_log("Cloning %s to %s", source.c_str(), dest.c_str());
+    if (clone_file(source.c_str(), dest.c_str(), via_tmp_file)) {
+      return true;
+    }
+    cc_log("Failed to clone: %s", strerror(errno));
+  }
+  if (ctx.config.hard_link()) {
+    unlink(dest.c_str());
+    cc_log("Hard linking %s to %s", source.c_str(), dest.c_str());
+    int ret = link(source.c_str(), dest.c_str());
+    if (ret == 0) {
+      if (chmod(dest.c_str(), 0444) != 0) {
+        cc_log("Failed to chmod: %s", strerror(errno));
+      }
+      return true;
+    }
+    cc_log("Failed to hard link: %s", strerror(errno));
+  }
+
+  cc_log("Copying %s to %s", source.c_str(), dest.c_str());
+  return copy_file(source.c_str(), dest.c_str(), via_tmp_file);
+}
+
 size_t
 common_dir_prefix_length(string_view dir, string_view path)
 {
@@ -165,16 +229,6 @@ create_dir(string_view dir)
   }
 }
 
-std::pair<int, std::string>
-create_temp_fd(string_view path_prefix)
-{
-  char* tmp_path = x_strndup(path_prefix.data(), path_prefix.length());
-  int fd = create_tmp_fd(&tmp_path);
-  std::string actual_path = tmp_path;
-  free(tmp_path);
-  return {fd, actual_path};
-}
-
 string_view
 dir_name(string_view path)
 {
@@ -189,28 +243,6 @@ dir_name(string_view path)
   } else {
     return n == 0 ? "/" : path.substr(0, n);
   }
-}
-
-std::string
-edit_ansi_csi_seqs(string_view string, const SubstringEditor& editor)
-{
-  static const std::regex csi_regex(
-    "\x1B\\[[\x30-\x3F]*[\x20-\x2F]*[\x40-\x7E]");
-  std::string ret, substr;
-  ret.reserve(string.size());
-  for (std::cregex_token_iterator itr(
-         string.begin(), string.end(), csi_regex, {-1, 0});
-       itr != std::cregex_token_iterator{};
-       ++itr) {
-    ret.append(itr->first, itr->second);
-    if (++itr == std::cregex_token_iterator{}) {
-      break;
-    }
-    substr.assign(itr->first, itr->second);
-    editor(itr->first - string.begin(), substr);
-    ret.append(substr);
-  }
-  return ret;
 }
 
 bool
@@ -271,7 +303,7 @@ std::string
 format_hex(const uint8_t* data, size_t size)
 {
   std::string result;
-  result.reserve(size);
+  result.reserve(2 * size);
   for (size_t i = 0; i < size; i++) {
     result += fmt::format("{:02x}", data[i]);
   }
@@ -437,16 +469,6 @@ get_path_in_cache(string_view cache_dir,
   path.append(suffix.data(), suffix.length());
 
   return path;
-}
-
-string_view
-get_truncated_base_name(string_view path, size_t max_length)
-{
-  string_view input_base = Util::base_name(path);
-  size_t dot_pos = input_base.find('.');
-  size_t truncate_pos =
-    std::min(max_length, std::min(input_base.size(), dot_pos));
-  return input_base.substr(0, truncate_pos);
 }
 
 bool
@@ -628,14 +650,54 @@ parse_int(const std::string& value)
 }
 
 std::string
-read_file(const std::string& path)
+read_file(const std::string& path, size_t size_hint)
 {
-  std::ifstream file(path);
-  if (!file) {
+  if (size_hint == 0) {
+    auto stat = Stat::stat(path, Stat::OnError::log);
+    if (!stat) {
+      throw Error(strerror(errno));
+    }
+    size_hint = stat.size();
+  }
+
+  // +1 to be able to detect EOF in the first read call
+  size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
+
+  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  if (!fd) {
     throw Error(strerror(errno));
   }
-  return std::string(std::istreambuf_iterator<char>(file),
-                     std::istreambuf_iterator<char>());
+
+  ssize_t ret = 0;
+  size_t pos = 0;
+  std::string result;
+  result.resize(size_hint);
+
+  while (true) {
+    if (pos > result.size()) {
+      result.resize(2 * result.size());
+    }
+    const size_t max_read = result.size() - pos;
+    char* data = const_cast<char*>(result.data()); // cast needed before C++17
+    ret = read(*fd, data + pos, max_read);
+    if (ret == 0 || (ret == -1 && errno != EINTR)) {
+      break;
+    }
+    if (ret > 0) {
+      pos += ret;
+      if (static_cast<size_t>(ret) < max_read) {
+        break;
+      }
+    }
+  }
+
+  if (ret == -1) {
+    cc_log("Failed reading %s", path.c_str());
+    throw Error(strerror(errno));
+  }
+
+  result.resize(pos);
+  return result;
 }
 
 #ifndef _WIN32
@@ -676,13 +738,12 @@ real_path(const std::string& path, bool return_empty_on_error)
                                   FILE_ATTRIBUTE_NORMAL,
                                   NULL);
   if (INVALID_HANDLE_VALUE != path_handle) {
-#  ifdef HAVE_GETFINALPATHNAMEBYHANDLEW
-    GetFinalPathNameByHandle(
+    bool ok = GetFinalPathNameByHandle(
       path_handle, buffer, buffer_size, FILE_NAME_NORMALIZED);
-#  else
-    GetFileNameFromHandle(path_handle, buffer, buffer_size);
-#  endif
     CloseHandle(path_handle);
+    if (!ok) {
+      return path;
+    }
     resolved = buffer + 4; // Strip \\?\ from the file name.
   } else {
     snprintf(buffer, buffer_size, "%s", c_path);
@@ -709,16 +770,36 @@ remove_extension(string_view path)
   return path.substr(0, path.length() - get_extension(path).length());
 }
 
-std::vector<string_view>
-split_into_views(string_view s, const char* separators)
+void
+send_to_stderr(const std::string& text, bool strip_colors)
 {
-  return split_at<string_view>(s, separators);
+  const std::string* text_to_send = &text;
+  std::string stripped_text;
+
+  if (strip_colors) {
+    try {
+      stripped_text = Util::strip_ansi_csi_seqs(text);
+      text_to_send = &stripped_text;
+    } catch (const Error&) {
+      // Fall through
+    }
+  }
+
+  if (!write_fd(STDERR_FILENO, text_to_send->data(), text_to_send->length())) {
+    throw Error("Failed to write to stderr");
+  }
+}
+
+std::vector<string_view>
+split_into_views(string_view input, const char* separators)
+{
+  return split_at<string_view>(input, separators);
 }
 
 std::vector<std::string>
-split_into_strings(string_view s, const char* separators)
+split_into_strings(string_view input, const char* separators)
 {
-  return split_at<std::string>(s, separators);
+  return split_at<std::string>(input, separators);
 }
 
 bool
@@ -728,14 +809,25 @@ starts_with(string_view string, string_view prefix)
 }
 
 std::string
-strip_ansi_csi_seqs(string_view string, string_view strip_actions)
+strip_ansi_csi_seqs(string_view string)
 {
-  return edit_ansi_csi_seqs(
-    string, [strip_actions](string_view::size_type, std::string& substr) {
-      if (strip_actions.find(substr.back()) != string_view::npos) {
-        substr.clear();
-      }
-    });
+  size_t pos = 0;
+  std::string result;
+
+  while (true) {
+    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
+    auto data_start = string.data() + pos;
+    auto data_length =
+      seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
+    result.append(data_start, data_length);
+    if (seq_span.empty()) {
+      // Reached tail.
+      break;
+    }
+    pos += data_length + seq_span.length();
+  }
+
+  return result;
 }
 
 std::string
@@ -748,10 +840,11 @@ strip_whitespace(const std::string& string)
 }
 
 std::string
-to_lowercase(const std::string& string)
+to_lowercase(string_view string)
 {
-  std::string result = string;
-  std::transform(result.begin(), result.end(), result.begin(), tolower);
+  std::string result;
+  result.resize(string.length());
+  std::transform(string.begin(), string.end(), result.begin(), tolower);
   return result;
 }
 

@@ -75,6 +75,10 @@ These options only apply when you invoke ccache as ``ccache''. When invoked as
 a compiler (via a symlink as described in the previous section), the normal
 compiler options apply and you should refer to the compiler's documentation.
 
+
+Common options
+~~~~~~~~~~~~~~
+
 *`-c`*, *`--cleanup`*::
 
     Clean up the cache by removing old cached files until the specified file
@@ -89,21 +93,6 @@ compiler options apply and you should refer to the compiler's documentation.
 
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
-
-*`--dump-manifest`* _PATH_::
-
-    Dump manifest file at _PATH_ in text format. This is only useful when
-    debugging ccache and its behavior.
-
-*`-k`* _KEY_, *`--get-config`* _KEY_::
-
-    Print the value of configuration option _KEY_. See
-    <<_configuration,CONFIGURATION>> for more information.
-
-*`--hash-file`* _PATH_::
-
-    Print the hash (160 bit BLAKE2b) of the file at _PATH_. This is only useful
-    when debugging ccache and its behavior.
 
 *`-h`*, *`--help`*::
 
@@ -123,28 +112,6 @@ compiler options apply and you should refer to the compiler's documentation.
     stored in a configuration file in the cache directory and applies to all
     future compilations.
 
-*`--print-stats`*::
-
-    Print statistics counter IDs and corresponding values machine-parsable
-    (tab-separated) format.
-
-*`-o`* _KEY=VALUE_, *`--set-config`* _KEY_=_VALUE_::
-
-    Set configuration option _KEY_ to _VALUE_. See
-    <<_configuration,CONFIGURATION>> for more information.
-
-*`-p`*, *`--show-config`*::
-
-    Print current configuration options and from where they originate
-    (environment variable, configuration file or compile-time default) in
-    human-readable format.
-
-*`-x`*, *`--show-compression`*::
-
-    Print cache compression statistics. See <<_cache_compression,CACHE
-    COMPRESSION>> for more information. This can potentionally take a long time
-    since all files in the cache need to be visited.
-
 *`-X`* _LEVEL_, *`--recompress`* _LEVEL_::
 
     Recompress the cache using compression level _LEVEL_. The level can be an
@@ -155,6 +122,23 @@ compiler options apply and you should refer to the compiler's documentation.
     potentionally take a long time since all files in the cache need to be
     visited. Only files that are currently compressed with a different level
     than _LEVEL_ will be recompressed.
+
+*`-o`* _KEY=VALUE_, *`--set-config`* _KEY_=_VALUE_::
+
+    Set configuration option _KEY_ to _VALUE_. See
+    <<_configuration,CONFIGURATION>> for more information.
+
+*`-x`*, *`--show-compression`*::
+
+    Print cache compression statistics. See <<_cache_compression,CACHE
+    COMPRESSION>> for more information. This can potentionally take a long time
+    since all files in the cache need to be visited.
+
+*`-p`*, *`--show-config`*::
+
+    Print current configuration options and from where they originate
+    (environment variable, configuration file or compile-time default) in
+    human-readable format.
 
 *`-s`*, *`--show-stats`*::
 
@@ -168,6 +152,42 @@ compiler options apply and you should refer to the compiler's documentation.
 *`-z`*, *`--zero-stats`*::
 
     Zero the cache statistics (but not the configuration options).
+
+
+Options for scripting or debugging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*`--dump-manifest`* _PATH_::
+
+    Dump manifest file at _PATH_ in text format to standard output. This is
+    only useful when debugging ccache and its behavior.
+
+*`--dump-result`* _PATH_::
+
+    Dump result file at _PATH_ in text format to standard output. This is only
+    useful when debugging ccache and its behavior.
+
+*`--extract-result`* _PATH_::
+
+    Extract data stored in the result file at _PATH_. The data will be written
+    to *ccache-result.** files in to the current working directory. This is
+    only useful when debugging ccache and its behavior.
+
+*`-k`* _KEY_, *`--get-config`* _KEY_::
+
+    Print the value of configuration option _KEY_. See
+    <<_configuration,CONFIGURATION>> for more information.
+
+*`--hash-file`* _PATH_::
+
+    Print the hash (160 bit BLAKE3) of the file at _PATH_. This is only useful
+    when debugging ccache and its behavior.
+
+*`--print-stats`*::
+
+    Print statistics counter IDs and corresponding values machine-parsable
+    (tab-separated) format.
+
 
 
 Extra options
@@ -495,6 +515,16 @@ might be incorrect.
     change. The list separator is semicolon on Windows systems and colon on
     other systems.
 
+[[config_ignore_options]] *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
+
+    This setting is a space-delimited list of options that ccache will exclude
+    from the hash. Excluding a compiler option from the hash can be useful when
+    you know it doesn't affect the result (but ccache doesn't know that), or
+    when it does and you don't care. If an option in the list is suffixed with
+    an asterisk (`*`), the option is matched as a prefix. For example,
+    `-fmessage-length=*` will match both `-fmessage-length=20` and
+    `-fmessage-length=70`.
+
 [[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
 
     If true, enables caching of source file hashes based on device, inode and
@@ -761,7 +791,7 @@ compression. Example:
 
 -------------------------------------------------------------------------------
 Total data:              14.8 GB (16.0 GB disk blocks)
-Compressible data:       11.3 GB (30.6% of original size)
+Compressed data:         11.3 GB (30.6% of original size)
   - Original size:       36.9 GB
   - Compression ratio:  3.267 x  (69.4% space savings)
 Incompressible data:      3.5 GB
@@ -772,7 +802,7 @@ Notes:
 * The “disk blocks” size is the cache size when taking disk block size into
   account. This value should match the “cache size” value from “ccache
   --show-stats”. The other size numbers refer to actual content sizes.
-* “Compressible data” refers to result and manifest files stored in the cache.
+* “Compressed data” refers to result and manifest files stored in the cache.
 * “Incompressible data” refers to files that are always stored uncompressed
   (triggered by enabling the <<config_file_clone,*file_clone*>> or
   <<config_hard_link,*hard_link*>> settings) or unknown files (for instance
@@ -916,7 +946,7 @@ The basic idea is to detect when you are compiling exactly the same code a
 second time and reuse the previously produced output. The detection is done by
 hashing different kinds of information that should be unique for the
 compilation and then using the hash sum to identify the cached output. ccache
-uses BLAKE2b, a very fast cryptographic hash algorithm, for the hashing. On a
+uses BLAKE3, a very fast cryptographic hash algorithm, for the hashing. On a
 cache hit, ccache is able to supply all of the correct compiler outputs
 (including all warnings, dependency file, etc) from the cache. Data stored in
 the cache is checksummed with XXH64, an extremely fast non-cryptographic
@@ -1082,7 +1112,7 @@ Log for this object file.
 
 |==============================================================================
 
-In the direct mode, ccache uses the 160 bit BLAKE2b hash of the
+In the direct mode, ccache uses the 160 bit BLAKE3 hash of the
 *ccache-input-c* + *ccache-input-d* data (where *+* means concatenation), while
 the *ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
 

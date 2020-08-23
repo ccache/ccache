@@ -16,6 +16,8 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+#pragma once
+
 #include "system.hpp"
 
 #include "NonCopyable.hpp"
@@ -69,8 +71,10 @@ Fd::get() const
   return m_fd;
 }
 
+// clang-format off
 inline int
 Fd::operator*() const
+// clang-format on
 {
   assert(m_fd != -1);
   return m_fd;

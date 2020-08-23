@@ -1,8 +1,9 @@
 ---
 Checks:          '-*,readability-function-size'
 WarningsAsErrors: '*'
-HeaderFilterRegex: 'unittest/.*'
-CheckOptions:    
+# Only include headers directly in unittest.
+HeaderFilterRegex: 'unittest/[^/]*$'
+CheckOptions:
   # Always add braces (added here just in case clang-tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           0
