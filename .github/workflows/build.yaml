@@ -1,4 +1,4 @@
-name: Build and test on push
+name: Build
 on:
   push:
   pull_request:
@@ -50,7 +50,6 @@ jobs:
           name: ${{ matrix.config.name }} - testdir.tar.xz
           path: testdir.tar.xz
 
-  # These mimic the old Travis tests that are not replaced by standard_tests:
   specific_tests:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
@@ -58,7 +57,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          # Job 1: Build (in source directory) on Linux with native GCC in release build mode
           - name: Linux GCC release + tracing
             os: ubuntu-18.04
             CC: gcc
@@ -69,7 +67,6 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release -DENABLE_TRACING=1
             apt_get: elfutils libzstd1-dev
 
-          # Job 2: Build on Linux with native 32-bit GCC
           - name: Linux GCC 32-bit
             os: ubuntu-18.04
             CC: gcc
@@ -81,10 +78,6 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             apt_get: elfutils gcc-multilib g++-multilib lib32stdc++-5-dev
 
-          # Job 3: Build on Linux with native Clang moved to standard tests
-
-          # Job 4: Build on Linux with native GCC and CUDA compiler
-
           - name: Linux GCC CUDA
             os: ubuntu-18.04
             CC: gcc
@@ -93,7 +86,6 @@ jobs:
             CUDA: 10.1.243-1
             apt_get: elfutils libzstd1-dev
 
-          # Job 5: Build on Linux with 32-bit MinGW cross-compiler
           - name: Linux MinGW 32-bit
             os: ubuntu-18.04
             CC: i686-w64-mingw32-gcc-posix
@@ -102,7 +94,6 @@ jobs:
             RUN_TESTS: 0
             apt_get: elfutils mingw-w64
 
-          # Job 6: Build on Linux with 64-bit MinGW cross-compiler
           - name: Linux MinGW 64-bit
             os: ubuntu-18.04
             CC: x86_64-w64-mingw32-gcc-posix
@@ -112,11 +103,6 @@ jobs:
             RUN_TESTS: 0
             apt_get: elfutils mingw-w64
 
-          # Job 7: Build on MacOS with native Clang moved to standard tests
-
-          # Job 8: Build with ENABLE_TRACING merged into Job 1
-
-          # Job 9: Run Clang's undefined behavior sanitizer
           - name: Clang UB sanitizer
             os: ubuntu-20.04
             CC: clang
@@ -126,7 +112,6 @@ jobs:
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev
 
-          # Job 10: Run Clang's address sanitizer
           - name: Clang address sanitizer
             os: ubuntu-20.04
             CC: clang
@@ -136,7 +121,6 @@ jobs:
             ASAN_OPTIONS: detect_leaks=0
             apt_get: elfutils libzstd-dev
 
-          # Job 11: Run Clang's static analyzer
           - name: Clang static analyzer
             os: ubuntu-20.04
             CC: clang
@@ -147,7 +131,6 @@ jobs:
             path: /usr/bin
             apt_get: libzstd-dev
 
-          # Job 12: Build binary package, extract it out of source, run tests.
           - name: Build binary and verify it
             os: ubuntu-20.04
             CC: clang
@@ -156,7 +139,6 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
             apt_get: elfutils libzstd-dev
 
-          # Job 13: Build source package, extract it out of source, run tests.
           - name: Build source package and verify it
             os: ubuntu-20.04
             CC: clang
@@ -164,21 +146,18 @@ jobs:
             SPECIAL: build-and-verify-package-source
             apt_get: elfutils libzstd-dev
 
-          # Job 14: Build documentation
           - name: Build documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target documentation
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc
 
-          # Job 15: Build manpage
           - name: Build manpage
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target manpage
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc xsltproc
 
-          # Job 16: Run Clang-Tidy
           - name: Run Clang-Tidy
             os: ubuntu-20.04
             CC: clang
@@ -245,7 +224,6 @@ jobs:
       - name: Get source
         uses: actions/checkout@v2
 
-      # Job 17: Run Clang-Format in check mode
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
         continue-on-error: true

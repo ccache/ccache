@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ -d .git ]; then
-    # Fetch full Git history if needed, e.g. when run via Travis-CI.
+    # Fetch full Git history if needed, e.g. when run via CI.
     git fetch --unshallow 2>/dev/null
 
     # Update doc/AUTHORS.adoc with Git commit authors plus authors mentioned via

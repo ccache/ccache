@@ -1,7 +1,7 @@
 ccache – a fast compiler cache
 ==============================
 
-[![Build Status](https://travis-ci.com/ccache/ccache.svg?branch=master)](https://travis-ci.com/ccache/ccache)
+[![Build Status](https://github.com/ccache/ccache/workflows/Build/badge.svg)](https://github.com/ccache/ccache/actions?query=workflow%3A%22Build%22)
 [![Code Quality: Cpp](https://img.shields.io/lgtm/grade/cpp/g/ccache/ccache.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ccache/ccache/context:cpp)
 [![Total Alerts](https://img.shields.io/lgtm/alerts/g/ccache/ccache.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/ccache/ccache/alerts)
 [![Gitter](https://img.shields.io/gitter/room/ccache/ccache.svg)](https://gitter.im/ccache/ccache)
