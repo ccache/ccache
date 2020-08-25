@@ -48,11 +48,9 @@ using nonstd::string_view;
 
 namespace {
 
-// Destination for g_config.log_file.
-File logfile;
-
-// Path to the logfile.
+// Logfile path and file handle, read from Config::log_file().
 std::string logfile_path;
+File logfile;
 
 // Whether to use syslog() instead.
 bool use_syslog;
