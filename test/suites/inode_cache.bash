@@ -1,3 +1,10 @@
+SUITE_inode_cache_PROBE() {
+    disk=`stat -f -L -c %T .`
+    if [ "$disk" == "nfs" ]; then
+        echo "test does not support NFS disk"
+    fi
+}
+
 SUITE_inode_cache_SETUP() {
     export CCACHE_INODECACHE=1
     export CCACHE_DEBUG=1
