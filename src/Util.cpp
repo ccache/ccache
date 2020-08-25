@@ -1392,6 +1392,7 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
 
   bool success =
     unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
+  saved_errno = errno;
   if (success || unlink_log == UnlinkLog::log_failure) {
     log("Unlink {}", path);
     if (!success) {
