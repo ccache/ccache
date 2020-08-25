@@ -133,7 +133,7 @@ jobs:
             path: /usr/bin
             apt_get: libzstd-dev
 
-          - name: Build binary and verify it
+          - name: Linux binary
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
@@ -141,26 +141,26 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
             apt_get: elfutils libzstd-dev
 
-          - name: Build source package and verify it
+          - name: Source package
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
             SPECIAL: build-and-verify-package-source
             apt_get: elfutils libzstd-dev
 
-          - name: Build documentation
+          - name: Documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target documentation
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc
 
-          - name: Build manpage
+          - name: Man page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target manpage
             RUN_TESTS: 0
             apt_get: libzstd1-dev asciidoc xsltproc
 
-          - name: Run Clang-Tidy
+          - name: Clang-Tidy
             os: ubuntu-20.04
             CC: clang
             CXX: clang++
@@ -218,7 +218,7 @@ jobs:
           path: testdir.tar.xz
 
   check_format:
-    name: Check code formatting
+    name: Code formatting
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
