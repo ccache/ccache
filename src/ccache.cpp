@@ -50,17 +50,10 @@
 #include "manifest.hpp"
 #include "stats.hpp"
 
+#include "third_party/argh.h"
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
-
-#ifdef HAVE_GETOPT_LONG
-#  include <getopt.h>
-#elif defined(_WIN32)
-#  include "third_party/win32/getopt.h"
-#else
-#  include "third_party/getopt_long.h"
-#endif
 
 #ifdef _WIN32
 #  include "Win32Util.hpp"
@@ -2211,70 +2204,41 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   return STATS_CACHEMISS;
 }
 
+// nice idea by Léo but doesn't really improve usage
+template <typename T>
+optional<T> get_arg(argh::parser& cmdl, const std::initializer_list<char const* const> names)
+{
+    T value;
+    if (cmdl(names) >> value)
+        return value;
+    else
+        return nullopt;
+}
+
 // The main program when not doing a compile.
 static int
-handle_main_options(int argc, const char* const* argv)
+handle_main_options(const int argc, const char* const* argv)
 {
-  enum longopts {
-    CHECKSUM_FILE,
-    DUMP_MANIFEST,
-    DUMP_RESULT,
-    EVICT_OLDER_THAN,
-    EXTRACT_RESULT,
-    HASH_FILE,
-    PRINT_STATS,
-  };
-  static const struct option options[] = {
-    {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
-    {"cleanup", no_argument, nullptr, 'c'},
-    {"clear", no_argument, nullptr, 'C'},
-    {"directory", no_argument, nullptr, 'd'},
-    {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
-    {"dump-result", required_argument, nullptr, DUMP_RESULT},
-    {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
-    {"extract-result", required_argument, nullptr, EXTRACT_RESULT},
-    {"get-config", required_argument, nullptr, 'k'},
-    {"hash-file", required_argument, nullptr, HASH_FILE},
-    {"help", no_argument, nullptr, 'h'},
-    {"max-files", required_argument, nullptr, 'F'},
-    {"max-size", required_argument, nullptr, 'M'},
-    {"print-stats", no_argument, nullptr, PRINT_STATS},
-    {"recompress", required_argument, nullptr, 'X'},
-    {"set-config", required_argument, nullptr, 'o'},
-    {"show-compression", no_argument, nullptr, 'x'},
-    {"show-config", no_argument, nullptr, 'p'},
-    {"show-stats", no_argument, nullptr, 's'},
-    {"version", no_argument, nullptr, 'V'},
-    {"zero-stats", no_argument, nullptr, 'z'},
-    {nullptr, 0, nullptr, 0}};
-
   Context ctx;
   initialize(ctx, argc, argv);
 
-  int c;
-  while ((c = getopt_long(argc,
-                          const_cast<char* const*>(argv),
-                          "cCd:k:hF:M:po:sVxX:z",
-                          options,
-                          nullptr))
-         != -1) {
-    std::string arg = optarg ? optarg : std::string();
+  argh::parser cmdl(argv);
+  std::string arg;
 
-    switch (c) {
-    case CHECKSUM_FILE: {
+  // ToDo: why was it a for loop if it breaks on any case anyway?
+
+    if(cmdl("checksum-file") >> arg) {
       Checksum checksum;
       Fd fd(arg == "-" ? STDIN_FILENO : open(arg.c_str(), O_RDONLY));
       Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
         checksum.update(data, size);
       });
       fmt::print("{:016x}\n", checksum.digest());
-      break;
     }
-
-    case DUMP_MANIFEST:
+    else if(cmdl("dump-manifest") >> arg) {
       return manifest_dump(arg, stdout) ? 0 : 1;
-
-    case DUMP_RESULT: {
+    }
+    else if(cmdl("dump-result") >> arg) {
       ResultDumper result_dumper(stdout);
       Result::Reader result_reader(arg);
       auto error = result_reader.read(result_dumper);
@@ -2283,8 +2247,7 @@ handle_main_options(int argc, const char* const* argv)
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
-
-    case EVICT_OLDER_THAN: {
+    else if(cmdl("evict-older-than") >> arg) {
       auto seconds = Util::parse_duration(arg);
       ProgressBar progress_bar("Evicting...");
       clean_old(
@@ -2292,10 +2255,8 @@ handle_main_options(int argc, const char* const* argv)
       if (isatty(STDOUT_FILENO)) {
         fmt::print("\n");
       }
-      break;
     }
-
-    case EXTRACT_RESULT: {
+    else if(cmdl("extract-result") >> arg) {
       ResultExtractor result_extractor(".");
       Result::Reader result_reader(arg);
       auto error = result_reader.read(result_extractor);
@@ -2304,8 +2265,7 @@ handle_main_options(int argc, const char* const* argv)
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
-
-    case HASH_FILE: {
+    else if(cmdl("hash-file") >> arg) {
       Hash hash;
       if (arg == "-") {
         hash.hash_fd(STDIN_FILENO);
@@ -2313,47 +2273,40 @@ handle_main_options(int argc, const char* const* argv)
         hash.hash_file(arg);
       }
       fmt::print("{}", hash.digest().to_string());
-      break;
     }
 
-    case PRINT_STATS:
+    else if(cmdl["print-stats"])
       stats_print(ctx.config);
-      break;
 
-    case 'c': // --cleanup
-    {
+    else if(cmdl[{"-c", "--cleanup"}]) {
       ProgressBar progress_bar("Cleaning...");
       clean_up_all(ctx.config,
-                   [&](double progress) { progress_bar.update(progress); });
+                    [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         fmt::print("\n");
       }
-      break;
     }
 
-    case 'C': // --clear
-    {
+    else if(cmdl[{"-C", "--clear"}]) {
       ProgressBar progress_bar("Clearing...");
       wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
         fmt::print("\n");
       }
-      break;
     }
 
-    case 'd': // --directory
+    else if(cmdl({"-d", "--directory"}) >> arg)
       Util::setenv("CCACHE_DIR", arg);
-      break;
 
-    case 'h': // --help
+    else if(cmdl[{"-h", "--help"}]) {
       fmt::print(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_SUCCESS);
+    }
 
-    case 'k': // --get-config
+    else if(cmdl({"-k", "--get-config"}) >> arg)
       fmt::print("{}\n", ctx.config.get_string_value(arg));
-      break;
 
-    case 'F': { // --max-files
+    else if(cmdl({"-F", "--max-files"}) >> arg) {
       auto files = Util::parse_uint32(arg);
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
@@ -2362,10 +2315,9 @@ handle_main_options(int argc, const char* const* argv)
       } else {
         fmt::print("Set cache file limit to {}\n", files);
       }
-      break;
     }
 
-    case 'M': { // --max-size
+    else if(cmdl({"-M", "--max-size"}) >> arg) {
       uint64_t size = Util::parse_size(arg);
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_size", arg);
@@ -2373,12 +2325,11 @@ handle_main_options(int argc, const char* const* argv)
         fmt::print("Unset cache size limit\n");
       } else {
         fmt::print("Set cache size limit to {}\n",
-                   Util::format_human_readable_size(size));
+                    Util::format_human_readable_size(size));
       }
-      break;
     }
 
-    case 'o': { // --set-config
+    else if(cmdl({"-o", "---set-config"}) >> arg) {
       // Start searching for equal sign at position 1 to improve error message
       // for the -o=K=V case (key "=K" and value "V").
       size_t eq_pos = arg.find('=', 1);
@@ -2388,31 +2339,26 @@ handle_main_options(int argc, const char* const* argv)
       std::string key = arg.substr(0, eq_pos);
       std::string value = arg.substr(eq_pos + 1);
       Config::set_value_in_file(ctx.config.primary_config_path(), key, value);
-      break;
     }
 
-    case 'p': // --show-config
+    else if(cmdl[{"-p", "--show-config"}])
       ctx.config.visit_items(configuration_printer);
-      break;
 
-    case 's': // --show-stats
+    else if(cmdl[{"-s", "--show-stats"}])
       stats_summary(ctx);
-      break;
 
-    case 'V': // --version
+    else if(cmdl[{"-V", "--version"}]) {
       fmt::print(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
       exit(EXIT_SUCCESS);
-
-    case 'x': // --show-compression
-    {
-      ProgressBar progress_bar("Scanning...");
-      compress_stats(ctx.config,
-                     [&](double progress) { progress_bar.update(progress); });
-      break;
     }
 
-    case 'X': // --recompress
-    {
+    else if(cmdl[{"-x", "--show-compression"}]) {
+      ProgressBar progress_bar("Scanning...");
+      compress_stats(ctx.config,
+                      [&](double progress) { progress_bar.update(progress); });
+    }
+
+    else if(cmdl({"-X", "--recompress"}) >> arg) {
       optional<int8_t> wanted_level;
       if (arg == "uncompressed") {
         wanted_level = nullopt;
@@ -2428,24 +2374,22 @@ handle_main_options(int argc, const char* const* argv)
       compress_recompress(ctx, wanted_level, [&](double progress) {
         progress_bar.update(progress);
       });
-      break;
     }
 
-    case 'z': // --zero-stats
+    else if(cmdl[{"-z", "--zero-stats"}]) {
       stats_zero(ctx);
       fmt::print("Statistics zeroed\n");
-      break;
+    }
 
-    default:
+    else {
       fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_FAILURE);
     }
 
-    // Some of the above switches might have changed config settings, so run the
-    // setup again.
-    ctx.config = Config();
-    set_up_config(ctx.config);
-  }
+  // Some of the above switches might have changed config settings, so run the
+  // setup again.
+  ctx.config = Config();
+  set_up_config(ctx.config);
 
   return 0;
 }

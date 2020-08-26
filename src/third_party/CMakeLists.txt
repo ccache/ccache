@@ -1,11 +1,4 @@
-if(NOT MSVC)
-  add_library(third_party_lib STATIC format.cpp getopt_long.c xxhash.c)
-else()
-  add_library(third_party_lib STATIC format.cpp win32/getopt.c xxhash.c)
-
-  target_compile_definitions(third_party_lib PUBLIC -DSTATIC_GETOPT)
-endif()
-
+add_library(third_party_lib STATIC format.cpp xxhash.c)
 if(ENABLE_TRACING)
   target_sources(third_party_lib PRIVATE minitrace.c)
 endif()

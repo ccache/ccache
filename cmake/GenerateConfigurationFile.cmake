@@ -27,7 +27,6 @@ include(CheckFunctionExists)
 set(functions
     asctime_r
     geteuid
-    getopt_long
     getpwuid
     gettimeofday
     mkstemp
