@@ -28,13 +28,13 @@ class ResultDumper : public Result::Reader::Consumer
 public:
   ResultDumper(FILE* stream);
 
-  void on_header(CacheEntryReader& cache_entry_reader) final;
+  void on_header(CacheEntryReader& cache_entry_reader) override;
   void on_entry_start(uint32_t entry_number,
                               Result::FileType file_type,
                               uint64_t file_len,
-                              nonstd::optional<std::string> raw_file) final;
-  void on_entry_data(const uint8_t* data, size_t size) final;
-  void on_entry_end() final;
+                              nonstd::optional<std::string> raw_file) override;
+  void on_entry_data(const uint8_t* data, size_t size) override;
+  void on_entry_end() override;
 
 private:
   FILE* m_stream;
