@@ -98,7 +98,7 @@ argv_to_string(const char* const* argv, const std::string& prefix)
 // From: https://stackoverflow.com/a/58162122/262458
 #ifdef _MSC_VER
 int
-gettimeofday(struct timeval* tp, [[maybe_unused]] struct timezone* tzp)
+gettimeofday(struct timeval* tp, struct timezone* /*tzp*/)
 {
   namespace sc = std::chrono;
   sc::system_clock::duration d = sc::system_clock::now().time_since_epoch();

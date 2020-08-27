@@ -481,7 +481,7 @@ fallocate(int fd, long new_size)
   int err = 0;
   try {
     write_fd(fd, buf, bytes_to_write);
-  } catch ([[maybe_unused]] Error& e) {
+  } catch (Error&) {
     err = errno;
   }
   lseek(fd, saved_pos, SEEK_SET);
@@ -786,7 +786,7 @@ is_nfs_fd(int fd, bool* is_nfs)
 }
 #else
 int
-is_nfs_fd([[maybe_unused]] int fd, [[maybe_unused]] bool* is_nfs)
+is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
 {
   return -1;
 }
