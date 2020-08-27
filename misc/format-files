@@ -24,7 +24,7 @@ for arg in "$@"; do
 done
 
 if [ -n "$all" ]; then
-    exec "$0" $check $(git ls-files '*.[ch]' '*.[ch]pp' ':!:src/third_party')
+    exec sh "$0" $check $(git ls-files '*.[ch]' '*.[ch]pp' ':!:src/third_party')
 fi
 
 clang_format=${CLANG_FORMAT:-clang-format}

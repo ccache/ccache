@@ -137,4 +137,24 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_target_compile_flag_if_supported(
       standard_warnings "-Wno-unused-variable")
   endif()
+elseif(MSVC)
+  # Remove any warning level flags added by cmake.
+  string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+  string(REGEX REPLACE "/W[0-4]" "" CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS}")
+  string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+  target_compile_options(
+    standard_warnings
+    INTERFACE
+    /W4
+    # Ignore bad macro in winbase.h triggered by /Zc:preprocessor
+    /wd5105
+    # Conversion warnings.
+    /wd4244
+    /wd4267
+    # Assignment in conditional.
+    /wd4706
+    # Non-underscore-prefixed POSIX functions.
+    /wd4996
+  )
 endif()

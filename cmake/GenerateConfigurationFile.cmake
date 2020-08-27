@@ -7,8 +7,15 @@ set(include_files
     sys/mman.h
     sys/time.h
     sys/wait.h
+    sys/file.h
     syslog.h
-    termios.h)
+    termios.h
+    dirent.h
+    strings.h
+    unistd.h
+    utime.h
+    sys/utime.h
+    varargs.h)
 foreach(include_file IN ITEMS ${include_files})
   string(TOUPPER ${include_file} include_var)
   string(REGEX REPLACE "[/.]" "_" include_var ${include_var})
@@ -64,6 +71,10 @@ endif()
 
 # alias
 set(MTR_ENABLED "${ENABLE_TRACING}")
+
+# Check sizeof(int).
+include(CheckTypeSize)
+check_type_size(int SIZEOF_INT)
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in
                ${CMAKE_BINARY_DIR}/config.h @ONLY)

@@ -22,6 +22,10 @@
 
 #include <string>
 
+#ifdef _MSC_VER
+#  define DOCTEST_CONFIG_USE_STD_HEADERS
+#endif
+
 namespace TestUtil {
 
 // This class is intended to be instantiated in all test cases that create local

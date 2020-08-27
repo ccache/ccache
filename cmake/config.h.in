@@ -52,6 +52,8 @@
 #  pragma clang diagnostic pop
 #endif
 
+#define SIZEOF_INT @SIZEOF_INT@
+
 #cmakedefine MTR_ENABLED
 
 /* Define to 1 if you have the `asctime_r' function. */
@@ -126,8 +128,29 @@
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #cmakedefine HAVE_SYS_WAIT_H
 
+/* Define to 1 if you have the <sys/file.h> header file. */
+#cmakedefine HAVE_SYS_FILE_H
+
 /* Define to 1 if you have the <termios.h> header file. */
 #cmakedefine HAVE_TERMIOS_H
+
+/* Define to 1 if you have the <dirent.h> header file. */
+#cmakedefine HAVE_DIRENT_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#cmakedefine HAVE_STRINGS_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H
+
+/* Define to 1 if you have the <utime.h> header file. */
+#cmakedefine HAVE_UTIME_H
+
+/* Define to 1 if you have the <sys/utime.h> header file. */
+#cmakedefine HAVE_SYS_UTIME_H
+
+/* Define to 1 if you have the <varargs.h> header file. */
+#cmakedefine HAVE_VARARGS_H
 
 /* Define to 1 if you have the `unsetenv' function. */
 #cmakedefine HAVE_UNSETENV

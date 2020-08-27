@@ -20,6 +20,9 @@
 
 #include "Util.hpp"
 
+#include <chrono>
+#include <thread>
+
 namespace Win32Util {
 
 std::string
@@ -91,3 +94,75 @@ argv_to_string(const char* const* argv, const std::string& prefix)
 }
 
 } // namespace Win32Util
+
+// From: https://stackoverflow.com/a/58162122/262458
+#ifdef _MSC_VER
+int
+gettimeofday(struct timeval* tp, [[maybe_unused]] struct timezone* tzp)
+{
+  namespace sc = std::chrono;
+  sc::system_clock::duration d = sc::system_clock::now().time_since_epoch();
+  sc::seconds s = sc::duration_cast<sc::seconds>(d);
+  tp->tv_sec = static_cast<long>(s.count());
+  tp->tv_usec =
+    static_cast<long>(sc::duration_cast<sc::microseconds>(d - s).count());
+
+  return 0;
+}
+#endif
+
+void
+usleep(int64_t usec)
+{
+  std::this_thread::sleep_for(std::chrono::microseconds(usec));
+}
+
+struct tm*
+localtime_r(time_t* _clock, struct tm* _result)
+{
+  struct tm* p = localtime(_clock);
+
+  if (p)
+    *(_result) = *p;
+
+  return p;
+}
+
+// From: https://stackoverflow.com/a/40160038/262458
+#ifdef _MSC_VER
+int
+vasprintf(char** strp, const char* fmt, va_list ap)
+{
+  // _vscprintf tells you how big the buffer needs to be
+  int len = _vscprintf(fmt, ap);
+  if (len == -1) {
+    return -1;
+  }
+  size_t size = (size_t)len + 1;
+  char* str = static_cast<char*>(malloc(size));
+  if (!str) {
+    return -1;
+  }
+  // vsprintf_s is the "secure" version of vsprintf
+  int r = vsprintf_s(str, len + 1, fmt, ap);
+  if (r == -1) {
+    free(str);
+    return -1;
+  }
+  *strp = str;
+  return r;
+}
+#endif
+
+// Also from: https://stackoverflow.com/a/40160038/262458
+#ifdef _MSC_VER
+int
+asprintf(char** strp, const char* fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  int r = vasprintf(strp, fmt, ap);
+  va_end(ap);
+  return r;
+}
+#endif

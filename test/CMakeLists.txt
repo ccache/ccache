@@ -1,7 +1,7 @@
 function(addtest name)
   add_test(
     NAME "test.${name}"
-    COMMAND ${CMAKE_SOURCE_DIR}/test/run ${name}
+    COMMAND bash ${CMAKE_SOURCE_DIR}/test/run ${name}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   set_tests_properties(

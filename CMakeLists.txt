@@ -38,7 +38,14 @@ endif()
 #
 # Third party
 #
-option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" OFF)
+set(ZSTD_FROM_INTERNET_DEFAULT OFF)
+
+# Default to downloading deps for Visual Studio, unless using a package manager.
+if(MSVC AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "vcpkg|conan")
+  set(ZSTD_FROM_INTERNET_DEFAULT ON)
+endif()
+
+option(ZSTD_FROM_INTERNET "Download and use libzstd from the Internet" ${ZSTD_FROM_INTERNET_DEFAULT})
 find_package(zstd 1.1.2 REQUIRED)
 
 #

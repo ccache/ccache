@@ -158,6 +158,17 @@ https://www.postgresql.org[PostgreSQL] and has the following license text:
 -------------------------------------------------------------------------------
 
 
+src/third_party/win32/getopt.[hc]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This implementation of `getopt_long()` for Win32 was taken from
+https://www.codeproject.com/Articles/157001/Full-getopt-Port-for-Unicode-and-Multibyte-Microso
+and is licensed under the LGPL.
+
+The full license text can be found in LGPL-3.0.txt and at
+https://www.gnu.org/licenses/lgpl-3.0.html.
+
+
 src/third_party/nonstd/optional.hpp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

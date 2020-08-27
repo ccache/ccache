@@ -21,6 +21,8 @@
 #include "Logging.hpp"
 #include "exceptions.hpp"
 
+#include <algorithm>
+
 using Logging::log;
 
 ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
