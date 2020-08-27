@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -22,7 +22,9 @@
 
 #include "Util.hpp"
 
-struct Confix;
+#include "third_party/nonstd/optional.hpp"
+
+class Config;
 class Context;
 
 void compress_stats(const Config& config,
@@ -32,9 +34,9 @@ void compress_stats(const Config& config,
 //
 // Arguments:
 // - ctx: The context.
-// - level: Target compression level (positive or negative value), or 0 for no
-//   compression.
+// - level: Target compression level (positive or negative value for actual
+//   level, 0 for default level and nonstd::nullopt for no compression).
 // - progress_receiver: Function that will be called for progress updates.
 void compress_recompress(Context& ctx,
-                         int8_t level,
+                         nonstd::optional<int8_t> level,
                          const Util::ProgressReceiver& progress_receiver);

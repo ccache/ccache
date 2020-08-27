@@ -27,6 +27,7 @@
 #include "Result.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
+#include "ZstdCompressor.hpp"
 #include "manifest.hpp"
 #include "stats.hpp"
 
@@ -36,6 +37,7 @@
 #include <thread>
 
 using Logging::log;
+using nonstd::optional;
 
 namespace {
 
@@ -154,29 +156,31 @@ recompress_file(Context& ctx,
                 RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
-                int8_t level)
+                optional<int8_t> level)
 {
   auto file = open_file(cache_file.path(), "rb");
   auto reader = create_reader(cache_file, file.get());
 
-  int8_t current_level = reader->compression_type() == Compression::Type::none
-                           ? 0
-                           : reader->compression_level();
   auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
   uint64_t content_size = reader->content_size();
+  int8_t wanted_level =
+    level ? (*level == 0 ? ZstdCompressor::default_compression_level : *level)
+          : 0;
 
-  if (current_level == level) {
+  if (reader->compression_level() == wanted_level) {
     statistics.update(content_size, old_stat.size(), old_stat.size(), 0);
     return;
   }
 
-  log("Recompressing {} to level {}", cache_file.path(), level);
+  log("Recompressing {} to {}",
+      cache_file.path(),
+      level ? fmt::format("level {}", wanted_level) : "uncompressed");
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
-  auto writer = create_writer(atomic_new_file.stream(),
-                              *reader,
-                              level == 0 ? Compression::Type::none
-                                         : Compression::Type::zstd,
-                              level);
+  auto writer =
+    create_writer(atomic_new_file.stream(),
+                  *reader,
+                  level ? Compression::Type::zstd : Compression::Type::none,
+                  wanted_level);
 
   char buffer[READ_BUFFER_SIZE];
   size_t bytes_left = reader->payload_size();
@@ -277,7 +281,7 @@ compress_stats(const Config& config,
 
 void
 compress_recompress(Context& ctx,
-                    int8_t level,
+                    optional<int8_t> level,
                     const Util::ProgressReceiver& progress_receiver)
 {
   const size_t threads = std::thread::hardware_concurrency();

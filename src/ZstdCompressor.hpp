@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -39,6 +39,8 @@ public:
   int8_t actual_compression_level() const override;
   void write(const void* data, size_t count) override;
   void finalize() override;
+
+  constexpr static uint8_t default_compression_level = 1;
 
 private:
   FILE* m_stream;

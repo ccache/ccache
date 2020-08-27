@@ -23,13 +23,11 @@
 
 using Logging::log;
 
-const uint8_t k_default_zstd_compression_level = 1;
-
 ZstdCompressor::ZstdCompressor(FILE* stream, int8_t compression_level)
   : m_stream(stream), m_zstd_stream(ZSTD_createCStream())
 {
   if (compression_level == 0) {
-    compression_level = k_default_zstd_compression_level;
+    compression_level = default_compression_level;
     log("Using default compression level {}", compression_level);
   }
 

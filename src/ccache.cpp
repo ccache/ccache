@@ -2411,22 +2411,21 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'X': // --recompress
     {
-      int level;
+      optional<int8_t> wanted_level;
       if (arg == "uncompressed") {
-        level = 0;
+        wanted_level = nullopt;
       } else {
-        level = Util::parse_int(arg);
+        int level = Util::parse_int(arg);
         if (level < -128 || level > 127) {
           throw Error("compression level must be between -128 and 127");
         }
-        if (level == 0) {
-          level = ctx.config.compression_level();
-        }
+        wanted_level = level;
       }
 
       ProgressBar progress_bar("Recompressing...");
-      compress_recompress(
-        ctx, level, [&](double progress) { progress_bar.update(progress); });
+      compress_recompress(ctx, wanted_level, [&](double progress) {
+        progress_bar.update(progress);
+      });
       break;
     }
 
