@@ -533,8 +533,10 @@ format_human_readable_size(uint64_t size)
 {
   if (size >= 1000 * 1000 * 1000) {
     return fmt::format("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
-  } else {
+  } else if (size >= 1000 * 1000) {
     return fmt::format("{:.1f} MB", size / ((double)(1000 * 1000)));
+  } else {
+    return fmt::format("{:.1f} kB", size / 1000.0);
   }
 }
 

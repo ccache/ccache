@@ -254,9 +254,13 @@ TEST_CASE("Util::format_hex")
 
 TEST_CASE("Util::format_human_readable_size")
 {
-  CHECK(Util::format_human_readable_size(0) == "0.0 MB");
-  CHECK(Util::format_human_readable_size(49) == "0.0 MB");
-  CHECK(Util::format_human_readable_size(420 * 1000) == "0.4 MB");
+  CHECK(Util::format_human_readable_size(0) == "0.0 kB");
+  CHECK(Util::format_human_readable_size(1) == "0.0 kB");
+  CHECK(Util::format_human_readable_size(49) == "0.0 kB");
+  CHECK(Util::format_human_readable_size(51) == "0.1 kB");
+  CHECK(Util::format_human_readable_size(949) == "0.9 kB");
+  CHECK(Util::format_human_readable_size(951) == "1.0 kB");
+  CHECK(Util::format_human_readable_size(499.7 * 1000) == "499.7 kB");
   CHECK(Util::format_human_readable_size(1000 * 1000) == "1.0 MB");
   CHECK(Util::format_human_readable_size(1234 * 1000) == "1.2 MB");
   CHECK(Util::format_human_readable_size(438.5 * 1000 * 1000) == "438.5 MB");
