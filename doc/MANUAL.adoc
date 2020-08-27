@@ -841,7 +841,7 @@ compression. Example:
 -------------------------------------------------------------------------------
 Total data:              14.8 GB (16.0 GB disk blocks)
 Compressed data:         11.3 GB (30.6% of original size)
-  - Original size:       36.9 GB
+  - Original data:       36.9 GB
   - Compression ratio:  3.267 x  (69.4% space savings)
 Incompressible data:      3.5 GB
 -------------------------------------------------------------------------------

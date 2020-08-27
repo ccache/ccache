@@ -37,7 +37,70 @@
 
 using Logging::log;
 
-static File
+namespace {
+
+class RecompressionStatistics
+{
+public:
+  void update(uint64_t content_size,
+              uint64_t old_size,
+              uint64_t new_size,
+              uint64_t incompressible_size);
+  uint64_t content_size() const;
+  uint64_t old_size() const;
+  uint64_t new_size() const;
+  uint64_t incompressible_size() const;
+
+private:
+  mutable std::mutex m_mutex;
+  uint64_t m_content_size = 0;
+  uint64_t m_old_size = 0;
+  uint64_t m_new_size = 0;
+  uint64_t m_incompressible_size = 0;
+};
+
+void
+RecompressionStatistics::update(uint64_t content_size,
+                                uint64_t old_size,
+                                uint64_t new_size,
+                                uint64_t incompressible_size)
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+  m_incompressible_size += incompressible_size;
+  m_content_size += content_size;
+  m_old_size += old_size;
+  m_new_size += new_size;
+}
+
+uint64_t
+RecompressionStatistics::content_size() const
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+  return m_content_size;
+}
+
+uint64_t
+RecompressionStatistics::old_size() const
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+  return m_old_size;
+}
+
+uint64_t
+RecompressionStatistics::new_size() const
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+  return m_new_size;
+}
+
+uint64_t
+RecompressionStatistics::incompressible_size() const
+{
+  std::unique_lock<std::mutex> lock(m_mutex);
+  return m_incompressible_size;
+}
+
+File
 open_file(const std::string& path, const char* mode)
 {
   File f(path, mode);
@@ -47,7 +110,7 @@ open_file(const std::string& path, const char* mode)
   return f;
 }
 
-static std::unique_ptr<CacheEntryReader>
+std::unique_ptr<CacheEntryReader>
 create_reader(const CacheFile& cache_file, FILE* stream)
 {
   if (cache_file.type() == CacheFile::Type::unknown) {
@@ -72,7 +135,7 @@ create_reader(const CacheFile& cache_file, FILE* stream)
   return {};
 }
 
-static std::unique_ptr<CacheEntryWriter>
+std::unique_ptr<CacheEntryWriter>
 create_writer(FILE* stream,
               const CacheEntryReader& reader,
               Compression::Type compression_type,
@@ -86,8 +149,9 @@ create_writer(FILE* stream,
                                             reader.payload_size());
 }
 
-static void
+void
 recompress_file(Context& ctx,
+                RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
                 int8_t level)
@@ -98,7 +162,11 @@ recompress_file(Context& ctx,
   int8_t current_level = reader->compression_type() == Compression::Type::none
                            ? 0
                            : reader->compression_level();
+  auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
+  uint64_t content_size = reader->content_size();
+
   if (current_level == level) {
+    statistics.update(content_size, old_stat.size(), old_stat.size(), 0);
     return;
   }
 
@@ -123,23 +191,24 @@ recompress_file(Context& ctx,
 
   file.close();
 
-  uint64_t old_size =
-    Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
   atomic_new_file.commit();
-  uint64_t new_size =
-    Stat::stat(cache_file.path(), Stat::OnError::log).size_on_disk();
+  auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  size_t size_delta = new_size - old_size;
+  size_t size_on_disk_delta = new_stat.size_on_disk() - old_stat.size_on_disk();
   if (ctx.stats_file() == stats_file) {
-    stats_update_size(ctx.counter_updates, size_delta, 0);
+    stats_update_size(ctx.counter_updates, size_on_disk_delta, 0);
   } else {
     Counters counters;
-    stats_update_size(counters, size_delta, 0);
+    stats_update_size(counters, size_on_disk_delta, 0);
     stats_flush_to_file(ctx.config, stats_file, counters);
   }
 
+  statistics.update(content_size, old_stat.size(), new_stat.size(), 0);
+
   log("Recompression of {} done", cache_file.path());
 }
+
+} // namespace
 
 void
 compress_stats(const Config& config,
@@ -199,7 +268,7 @@ compress_stats(const Config& config,
   fmt::print("Compressed data:       {:>8s} ({:.1f}% of original size)\n",
              compr_size_str,
              100.0 - savings);
-  fmt::print("  - Original size:     {:>8s}\n", content_size_str);
+  fmt::print("  - Original data:     {:>8s}\n", content_size_str);
   fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
              ratio,
              savings);
@@ -214,6 +283,7 @@ compress_recompress(Context& ctx,
   const size_t threads = std::thread::hardware_concurrency();
   const size_t read_ahead = 2 * threads;
   ThreadPool thread_pool(threads, read_ahead);
+  RecompressionStatistics statistics;
 
   Util::for_each_level_1_subdir(
     ctx.config.cache_dir(),
@@ -231,13 +301,15 @@ compress_recompress(Context& ctx,
         const auto& file = files[i];
 
         if (file->type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([&ctx, stats_file, file, level] {
+          thread_pool.enqueue([&ctx, &statistics, stats_file, file, level] {
             try {
-              recompress_file(ctx, stats_file, *file, level);
+              recompress_file(ctx, statistics, stats_file, *file, level);
             } catch (Error&) {
               // Ignore for now.
             }
           });
+        } else {
+          statistics.update(0, 0, 0, file->lstat().size());
         }
 
         sub_progress_receiver(0.1 + 0.9 * i / files.size());
@@ -252,6 +324,48 @@ compress_recompress(Context& ctx,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    fmt::print("\n");
+    fmt::print("\n\n");
   }
+
+  double old_ratio =
+    statistics.old_size() > 0
+      ? static_cast<double>(statistics.content_size()) / statistics.old_size()
+      : 0.0;
+  double old_savings = old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
+  double new_ratio =
+    statistics.new_size() > 0
+      ? static_cast<double>(statistics.content_size()) / statistics.new_size()
+      : 0.0;
+  double new_savings = new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
+  int64_t size_difference = static_cast<int64_t>(statistics.new_size())
+                            - static_cast<int64_t>(statistics.old_size());
+
+  std::string old_compr_size_str =
+    Util::format_human_readable_size(statistics.old_size());
+  std::string new_compr_size_str =
+    Util::format_human_readable_size(statistics.new_size());
+  std::string content_size_str =
+    Util::format_human_readable_size(statistics.content_size());
+  std::string incompr_size_str =
+    Util::format_human_readable_size(statistics.incompressible_size());
+  std::string size_difference_str =
+    fmt::format("{}{}",
+                size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
+                Util::format_human_readable_size(
+                  size_difference < 0 ? -size_difference : size_difference));
+
+  fmt::print("Original data:         {:>8s}\n", content_size_str);
+  fmt::print("Old compressed data:   {:>8s} ({:.1f}% of original size)\n",
+             old_compr_size_str,
+             100.0 - old_savings);
+  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+             old_ratio,
+             old_savings);
+  fmt::print("New compressed data:   {:>8s} ({:.1f}% of original size)\n",
+             new_compr_size_str,
+             100.0 - new_savings);
+  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+             new_ratio,
+             new_savings);
+  fmt::print("Size change:          {:>9s}\n", size_difference_str);
 }
