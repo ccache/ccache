@@ -26,6 +26,8 @@
 
 #include "third_party/doctest.h"
 
+#include <algorithm>
+
 using TestUtil::TestContext;
 
 namespace {

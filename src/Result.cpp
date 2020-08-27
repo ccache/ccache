@@ -31,6 +31,8 @@
 #include "exceptions.hpp"
 #include "stats.hpp"
 
+#include <algorithm>
+
 // Result data format
 // ==================
 //

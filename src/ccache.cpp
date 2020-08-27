@@ -56,6 +56,8 @@
 
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
+#elif defined(_WIN32)
+#  include "third_party/win32/getopt.h"
 #else
 #  include "third_party/getopt_long.h"
 #endif

@@ -23,3 +23,7 @@ testdir/
 
 # Visual Studio Code
 /.vscode/
+
+# Vim
+.*.sw?
+.*.un~

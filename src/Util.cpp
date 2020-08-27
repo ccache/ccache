@@ -28,6 +28,10 @@
 #include <algorithm>
 #include <fstream>
 
+#ifndef HAVE_DIRENT_H
+#  include <filesystem>
+#endif
+
 #ifdef HAVE_PWD_H
 #  include <pwd.h>
 #endif
@@ -477,7 +481,7 @@ fallocate(int fd, long new_size)
   int err = 0;
   try {
     write_fd(fd, buf, bytes_to_write);
-  } catch (Error& e) {
+  } catch ([[maybe_unused]] Error& e) {
     err = errno;
   }
   lseek(fd, saved_pos, SEEK_SET);
@@ -780,7 +784,7 @@ is_nfs_fd(int fd, bool* is_nfs)
 }
 #else
 int
-is_nfs_fd([[gnu::unused]] int fd, [[gnu::unused]] bool* is_nfs)
+is_nfs_fd([[maybe_unused]] int fd, [[maybe_unused]] bool* is_nfs)
 {
   return -1;
 }
@@ -957,7 +961,7 @@ int
 parse_int(const std::string& value)
 {
   size_t end;
-  long result;
+  long result = 0;
   bool failed = false;
   try {
     result = std::stoi(value, &end, 10);
@@ -1015,7 +1019,7 @@ uint32_t
 parse_uint32(const std::string& value)
 {
   size_t end;
-  long long result;
+  long long result = 0;
   bool failed = false;
   try {
     result = std::stoll(value, &end, 10);
@@ -1248,7 +1252,7 @@ setenv(const std::string& name, const std::string& value)
 #else
   char* string;
   asprintf(&string, "%s=%s", name.c_str(), value.c_str());
-  putenv(string);               // Leak to environment.
+  putenv(string); // Leak to environment.
 #endif
 }
 
@@ -1304,6 +1308,8 @@ to_lowercase(string_view string)
   return result;
 }
 
+#ifdef HAVE_DIRENT_H
+
 void
 traverse(const std::string& path, const TraverseVisitor& visitor)
 {
@@ -1318,11 +1324,11 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
 
       std::string entry_path = path + "/" + entry->d_name;
       bool is_dir;
-#ifdef _DIRENT_HAVE_D_TYPE
+#  ifdef _DIRENT_HAVE_D_TYPE
       if (entry->d_type != DT_UNKNOWN) {
         is_dir = entry->d_type == DT_DIR;
       } else
-#endif
+#  endif
       {
         auto stat = Stat::lstat(entry_path);
         if (!stat) {
@@ -1349,6 +1355,31 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
     throw Error("failed to open directory {}: {}", path, strerror(errno));
   }
 }
+
+#else // If not available, use the C++17 std::filesystem implementation.
+
+void
+traverse(const std::string& path, const TraverseVisitor& visitor)
+{
+  if (std::filesystem::is_directory(path)) {
+    for (auto&& p : std::filesystem::directory_iterator(path)) {
+      std::string entry = p.path().string();
+
+      if (p.is_directory()) {
+        traverse(entry, visitor);
+      } else {
+        visitor(entry, false);
+      }
+    }
+    visitor(path, true);
+  } else if (std::filesystem::exists(path)) {
+    visitor(path, false);
+  } else {
+    throw Error("failed to open directory {}: {}", path, strerror(errno));
+  }
+}
+
+#endif
 
 bool
 unlink_safe(const std::string& path, UnlinkLog unlink_log)
@@ -1463,6 +1494,10 @@ write_file(const std::string& path,
            const std::string& data,
            std::ios_base::openmode open_mode)
 {
+  if (path.empty()) {
+    throw Error("No such file or directory");
+  }
+
   open_mode |= std::ios::out;
   std::ofstream file(path, open_mode);
   if (!file) {

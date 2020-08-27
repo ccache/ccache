@@ -53,7 +53,7 @@ Args::from_gcc_atfile(const std::string& filename)
   }
 
   Args args;
-  auto pos = argtext.cbegin();
+  auto pos = argtext.c_str();
   std::string argbuf;
   argbuf.resize(argtext.length() + 1);
   auto argpos = argbuf.begin();

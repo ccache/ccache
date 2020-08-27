@@ -23,6 +23,8 @@
 
 #include "third_party/doctest.h"
 
+#include <algorithm>
+
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Util");
@@ -293,6 +295,16 @@ TEST_CASE("Util::get_extension")
   CHECK(Util::get_extension("/foo/bar/f.abc.txt") == ".txt");
 }
 
+static inline std::string
+os_path(std::string path)
+{
+#if !defined(HAVE_DIRENT_H) && DIR_DELIM_CH != '/'
+  std::replace(path.begin(), path.end(), '/', DIR_DELIM_CH);
+#endif
+
+  return path;
+}
+
 TEST_CASE("Util::get_level_1_files")
 {
   TestContext test_context;
@@ -335,13 +347,13 @@ TEST_CASE("Util::get_level_1_files")
                 return f1->path() < f2->path();
               });
 
-    CHECK(files[0]->path() == "0/1/file_b");
+    CHECK(files[0]->path() == os_path("0/1/file_b"));
     CHECK(files[0]->lstat().size() == 1);
-    CHECK(files[1]->path() == "0/1/file_c");
+    CHECK(files[1]->path() == os_path("0/1/file_c"));
     CHECK(files[1]->lstat().size() == 2);
-    CHECK(files[2]->path() == "0/f/c/file_d");
+    CHECK(files[2]->path() == os_path("0/f/c/file_d"));
     CHECK(files[2]->lstat().size() == 3);
-    CHECK(files[3]->path() == "0/file_a");
+    CHECK(files[3]->path() == os_path("0/file_a"));
     CHECK(files[3]->lstat().size() == 0);
   }
 }
@@ -561,20 +573,19 @@ TEST_CASE("Util::parse_int")
   CHECK_THROWS_WITH(Util::parse_int("0 "), "invalid integer: \"0 \"");
 
   // check boundary values
-  if (sizeof(int) == 2) {
-    CHECK(Util::parse_int("-32768") == -32768);
-    CHECK(Util::parse_int("32767") == 32767);
-    CHECK_THROWS_WITH(Util::parse_int("-32768"), "invalid integer: \"-32768\"");
-    CHECK_THROWS_WITH(Util::parse_int("32768"), "invalid integer: \"32768\"");
-  }
-  if (sizeof(int) == 4) {
-    CHECK(Util::parse_int("-2147483648") == -2147483648);
-    CHECK(Util::parse_int("2147483647") == 2147483647);
-    CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
-                      "invalid integer: \"-2147483649\"");
-    CHECK_THROWS_WITH(Util::parse_int("2147483648"),
-                      "invalid integer: \"2147483648\"");
-  }
+#if SIZEOF_INT == 2
+  CHECK(Util::parse_int("-32768") == -32768);
+  CHECK(Util::parse_int("32767") == 32767);
+  CHECK_THROWS_WITH(Util::parse_int("-32768"), "invalid integer: \"-32768\"");
+  CHECK_THROWS_WITH(Util::parse_int("32768"), "invalid integer: \"32768\"");
+#elif SIZEOF_INT == 4
+  CHECK(Util::parse_int("-2147483648") == -2147483648LL);
+  CHECK(Util::parse_int("2147483647") == 2147483647);
+  CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
+                    "invalid integer: \"-2147483649\"");
+  CHECK_THROWS_WITH(Util::parse_int("2147483648"),
+                    "invalid integer: \"2147483648\"");
+#endif
 }
 
 TEST_CASE("Util::parse_size")
@@ -659,6 +670,9 @@ TEST_CASE("Util::read_file and Util::write_file")
                     "No such file or directory");
 
   CHECK_THROWS_WITH(Util::write_file("", "does/not/exist"),
+                    "No such file or directory");
+
+  CHECK_THROWS_WITH(Util::write_file("does/not/exist", "does/not/exist"),
                     "No such file or directory");
 }
 
@@ -866,8 +880,8 @@ TEST_CASE("Util::traverse")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
     REQUIRE(visited.size() == 3);
-    std::string f1 = "[f] dir-with-files/f1";
-    std::string f2 = "[f] dir-with-files/f2";
+    std::string f1 = os_path("[f] dir-with-files/f1");
+    std::string f2 = os_path("[f] dir-with-files/f2");
     CHECK(((visited[0] == f1 && visited[1] == f2)
            || (visited[0] == f2 && visited[1] == f1)));
     CHECK(visited[2] == "[d] dir-with-files");
@@ -877,8 +891,8 @@ TEST_CASE("Util::traverse")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-subdir-and-file", visitor));
     REQUIRE(visited.size() == 3);
-    CHECK(visited[0] == "[f] dir-with-subdir-and-file/subdir/f");
-    CHECK(visited[1] == "[d] dir-with-subdir-and-file/subdir");
+    CHECK(visited[0] == os_path("[f] dir-with-subdir-and-file/subdir/f"));
+    CHECK(visited[1] == os_path("[d] dir-with-subdir-and-file/subdir"));
     CHECK(visited[2] == "[d] dir-with-subdir-and-file");
   }
 }

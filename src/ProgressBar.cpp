@@ -28,6 +28,8 @@
 #  include <termios.h>
 #endif
 
+#include <algorithm>
+
 namespace {
 
 const size_t k_max_width = 120;

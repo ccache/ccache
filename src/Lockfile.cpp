@@ -27,6 +27,8 @@
 
 #include "third_party/fmt/core.h"
 
+#include <algorithm>
+
 using Logging::log;
 
 namespace {

@@ -26,6 +26,7 @@
 #include "third_party/nonstd/string_view.hpp"
 
 #include <functional>
+#include <ios>
 #include <memory>
 #include <string>
 #include <utility>
@@ -125,8 +126,7 @@ ends_with(nonstd::string_view string, nonstd::string_view suffix)
 
 // Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
 // in `str`. Throws `Error` if one of the environment variables.
-[[gnu::warn_unused_result]] std::string
-expand_environment_variables(const std::string& str);
+[[nodiscard]] std::string expand_environment_variables(const std::string& str);
 
 // Extends file size to at least new_size by calling posix_fallocate() if
 // supported, otherwise by writing zeros last to the file.
@@ -406,16 +406,13 @@ starts_with(nonstd::string_view string, nonstd::string_view prefix)
 }
 
 // Returns a copy of string with the specified ANSI CSI sequences removed.
-[[gnu::warn_unused_result]] std::string
-strip_ansi_csi_seqs(nonstd::string_view string);
+[[nodiscard]] std::string strip_ansi_csi_seqs(nonstd::string_view string);
 
 // Strip whitespace from left and right side of a string.
-[[gnu::warn_unused_result]] std::string
-strip_whitespace(const std::string& string);
+[[nodiscard]] std::string strip_whitespace(const std::string& string);
 
 // Convert a string to lowercase.
-[[gnu::warn_unused_result]] std::string
-to_lowercase(nonstd::string_view string);
+[[nodiscard]] std::string to_lowercase(nonstd::string_view string);
 
 // Traverse `path` recursively (postorder, i.e. files are visited before their
 // parent directory).

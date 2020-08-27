@@ -21,6 +21,8 @@
 #include "Logging.hpp"
 #include "exceptions.hpp"
 
+#include <algorithm>
+
 using Logging::log;
 
 const uint8_t k_default_zstd_compression_level = 1;
