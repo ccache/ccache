@@ -147,7 +147,7 @@ compress_stats(const Config& config,
 {
   uint64_t on_disk_size = 0;
   uint64_t compr_size = 0;
-  uint64_t compr_orig_size = 0;
+  uint64_t content_size = 0;
   uint64_t incompr_size = 0;
 
   Util::for_each_level_1_subdir(
@@ -168,7 +168,7 @@ compress_stats(const Config& config,
           auto file = open_file(cache_file->path(), "rb");
           auto reader = create_reader(*cache_file, file.get());
           compr_size += cache_file->lstat().size();
-          compr_orig_size += reader->content_size();
+          content_size += reader->content_size();
         } catch (Error&) {
           incompr_size += cache_file->lstat().size();
         }
@@ -182,28 +182,28 @@ compress_stats(const Config& config,
     fmt::print("\n\n");
   }
 
-  double ratio = compr_size > 0 ? ((double)compr_orig_size) / compr_size : 0.0;
+  double ratio =
+    compr_size > 0 ? static_cast<double>(content_size) / compr_size : 0.0;
   double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
   std::string on_disk_size_str = Util::format_human_readable_size(on_disk_size);
   std::string cache_size_str =
     Util::format_human_readable_size(compr_size + incompr_size);
   std::string compr_size_str = Util::format_human_readable_size(compr_size);
-  std::string compr_orig_size_str =
-    Util::format_human_readable_size(compr_orig_size);
+  std::string content_size_str = Util::format_human_readable_size(content_size);
   std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
 
-  fmt::print("Total data:            {:8s} ({} disk blocks)\n",
+  fmt::print("Total data:            {:>8s} ({} disk blocks)\n",
              cache_size_str,
              on_disk_size_str);
-  fmt::print("Compressed data:       {:8s} ({:.1f}% of original size)\n",
+  fmt::print("Compressed data:       {:>8s} ({:.1f}% of original size)\n",
              compr_size_str,
              100.0 - savings);
-  fmt::print("  - Original size:     {:8s}\n", compr_orig_size_str);
-  fmt::print("  - Compression ratio: {:5.3f} x  ({:.1f}% space savings)\n",
+  fmt::print("  - Original size:     {:>8s}\n", content_size_str);
+  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
              ratio,
              savings);
-  fmt::print("Incompressible data:   {:8s}\n", incompr_size_str);
+  fmt::print("Incompressible data:   {:>8s}\n", incompr_size_str);
 }
 
 void
