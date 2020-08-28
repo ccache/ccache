@@ -281,6 +281,29 @@ expect_perm() {
     fi
 }
 
+reset_environment() {
+    while read name; do
+        unset $name
+    done <<EOF
+$(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
+EOF
+    unset GCC_COLORS
+    unset TERM
+    unset XDG_CACHE_HOME
+    unset XDG_CONFIG_HOME
+
+    export CCACHE_DETECT_SHEBANG=1
+    export CCACHE_DIR=$ABS_TESTDIR/.ccache
+    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
+    export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
+    export CCACHE_NODIRECT=1
+
+    # Many tests backdate files, which updates their ctimes. In those tests, we
+    # must ignore ctimes. Might as well do so everywhere.
+    DEFAULT_SLOPPINESS=include_file_ctime
+    export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
+}
+
 run_suite() {
     local suite_name=$1
 
@@ -288,6 +311,8 @@ run_suite() {
 
     cd $ABS_TESTDIR
     rm -rf $ABS_TESTDIR/fixture
+
+    reset_environment
 
     if type SUITE_${suite_name}_PROBE >/dev/null 2>&1; then
         mkdir $ABS_TESTDIR/probe
@@ -313,29 +338,9 @@ run_suite() {
 
 TEST() {
     CURRENT_TEST=$1
-
-    while read name; do
-        unset $name
-    done <<EOF
-$(env | sed -n 's/^\(CCACHE_[A-Z0-9_]*\)=.*$/\1/p')
-EOF
-    unset GCC_COLORS
-    unset TERM
-    unset XDG_CACHE_HOME
-    unset XDG_CONFIG_HOME
-
-    export CCACHE_DETECT_SHEBANG=1
-    export CCACHE_DIR=$ABS_TESTDIR/.ccache
-    export CCACHE_CONFIGPATH=$CCACHE_DIR/ccache.conf # skip secondary config
-    export CCACHE_LOGFILE=$ABS_TESTDIR/ccache.log
-    export CCACHE_NODIRECT=1
-
-    # Many tests backdate files, which updates their ctimes. In those tests, we
-    # must ignore ctimes. Might as well do so everywhere.
-    DEFAULT_SLOPPINESS=include_file_ctime
-    export CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS"
-
     CCACHE_COMPILE="$CCACHE $COMPILER"
+
+    reset_environment
 
     if $verbose; then
         printf "\n  %s" "$CURRENT_TEST"
