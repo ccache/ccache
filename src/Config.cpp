@@ -836,8 +836,9 @@ std::string
 Config::default_temporary_dir(const std::string& cache_dir)
 {
 #ifdef HAVE_GETEUID
-  if (Stat::stat(fmt::format("/run/user/{}", geteuid())).is_directory()) {
-    return fmt::format("/run/user/{}/ccache-tmp", geteuid());
+  std::string user_tmp_dir = fmt::format("/run/user/{}", geteuid());
+  if (Stat::stat(user_tmp_dir).is_directory()) {
+    return user_tmp_dir + "/ccache-tmp";
   }
 #endif
   return cache_dir + "/tmp";
