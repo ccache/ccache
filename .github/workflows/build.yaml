@@ -228,6 +228,5 @@ jobs:
 
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
-        continue-on-error: true
         env:
           VERBOSE: 1
