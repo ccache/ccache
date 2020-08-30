@@ -2,11 +2,15 @@
 
 set -eu
 
+# Ninja builds with relative paths so that ccache can be used to cache the build
+# without resorting to setting base_dir.
+export CMAKE_GENERATOR=Ninja
+
 rm -rf build_package_dir_test
 mkdir -p build_package_dir_test
 cd build_package_dir_test
 cmake ..
-cmake --build . --target package
+ninja -v package
 
 # Get out of git directory just to be sure.
 tmp_dir=$(mktemp -d)

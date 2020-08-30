@@ -2,11 +2,15 @@
 
 set -eu
 
+# Ninja builds with relative paths so that ccache can be used to cache the build
+# without resorting to setting base_dir.
+export CMAKE_GENERATOR=Ninja
+
 rm -rf build_package_source_dir_test
 mkdir -p build_package_source_dir_test
 cd build_package_source_dir_test
 cmake ..
-cmake --build . --target package_source
+ninja -v package_source
 
 tmp_dir=$(mktemp -d)
 trap "rm -rf $tmp_dir" EXIT
@@ -14,6 +18,9 @@ trap "rm -rf $tmp_dir" EXIT
 tar -xf ccache-*.tar.xz -C $tmp_dir
 cd $tmp_dir/ccache-*
 
-cmake .
-cmake --build . -- -j4
-ctest --output-on-failure -j4
+mkdir build
+cd build
+cmake ..
+ninja -v
+jobs=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
+ctest --output-on-failure -j $jobs
