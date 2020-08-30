@@ -9,9 +9,6 @@ else()
   set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
 endif()
 
-# Make it obvious which version is used.
-set(CMAKE_DEBUG_POSTFIX "-d")
-
 if(${CMAKE_VERSION} VERSION_LESS "3.9")
   set(CPACK_PACKAGE_DESCRIPTION "${CMAKE_PROJECT_DESCRIPTION}")
 endif()
