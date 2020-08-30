@@ -1,14 +1,6 @@
 # Note: This is part of CMakeLists.txt file, not to be confused with
 # CPackConfig.cmake.
 
-find_program(NINJA_EXE NAMES "ninja" DOC "Path to Ninja executable")
-mark_as_advanced(NINJA_EXE) # Don't show in CMake UIs
-if(NINJA_EXE)
-  set(CPACK_CMAKE_GENERATOR "Ninja")
-else()
-  set(CPACK_CMAKE_GENERATOR "Unix Makefiles")
-endif()
-
 if(${CMAKE_VERSION} VERSION_LESS "3.9")
   set(CPACK_PACKAGE_DESCRIPTION "${CMAKE_PROJECT_DESCRIPTION}")
 endif()
