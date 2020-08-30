@@ -38,15 +38,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|Clang$")
     list(APPEND SANITIZERS "thread")
   endif()
 
-  if(SANITIZERS)
-    string(REPLACE ";" " " LIST_OF_SANITIZERS "${SANITIZERS}")
+  foreach(SANITIZER IN LISTS SANITIZERS)
     target_compile_options(
       standard_settings
-      INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
+      INTERFACE -fsanitize=${SANITIZER})
     target_link_libraries(
       standard_settings
-      INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
-  endif()
+      INTERFACE -fsanitize=${SANITIZER})
+  endforeach()
+
 elseif(MSVC)
   target_compile_options(standard_settings INTERFACE /std:c++latest /Zc:preprocessor /Zc:__cplusplus /D_CRT_SECURE_NO_WARNINGS)
 endif()
