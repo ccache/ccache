@@ -8,12 +8,10 @@ cd build_package_dir_test
 cmake ..
 cmake --build . --target package
 
-# get out of git directory just to be sure
+# Get out of git directory just to be sure.
 tmp_dir=$(mktemp -d)
 trap "rm -rf $tmp_dir" EXIT
 
-tar -xzf ccache-binary.tar.gz -C $tmp_dir
+tar -xf ccache-*.tar.xz -C $tmp_dir
 
-CCACHE=$tmp_dir/ccache-binary/bin/ccache ../test/run
-
-echo "Binary package is fine and can be used."
+CCACHE=$(echo $tmp_dir/ccache-*/bin/ccache) ../test/run
