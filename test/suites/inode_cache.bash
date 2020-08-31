@@ -1,9 +1,8 @@
 SUITE_inode_cache_PROBE() {
-    temp_dir=`$CCACHE -k temporary_dir`
-    temp_dir=`dirname $temp_dir`
-    disk=`stat -f -L -c %T $temp_dir`
-    if [ "$disk" == "nfs" ]; then
-        echo "test does not support NFS disk"
+    temp_dir=$(dirname $($CCACHE -k temporary_dir))
+    fs=$(stat -fLc %T $temp_dir)
+    if [ "$fs" = "nfs" ]; then
+        echo "ccache temporary directory is on NFS"
     fi
 }
 
