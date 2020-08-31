@@ -135,16 +135,16 @@ jobs:
 
           - name: Linux binary
             os: ubuntu-20.04
-            CC: clang
-            CXX: clang++
+            CC: gcc
+            CXX: g++
             SPECIAL: build-and-verify-package
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Release
             apt_get: elfutils libzstd-dev ninja-build
 
           - name: Source package
             os: ubuntu-20.04
-            CC: clang
-            CXX: clang++
+            CC: gcc
+            CXX: g++
             SPECIAL: build-and-verify-package-source
             apt_get: elfutils libzstd-dev ninja-build
 
