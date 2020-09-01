@@ -124,12 +124,24 @@ file_size() {
 }
 
 objdump_cmd() {
+    local file="$1"
+
     if $HOST_OS_APPLE; then
-        xcrun dwarfdump -r 0 $1
+        xcrun dwarfdump -r 0 "$file"
     elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
-        strings $1 # for some reason objdump only shows the basename of the file, so fall back to brute force and ignorance
+        # For some reason objdump only shows the basename of the file, so fall
+        # back to brute force and ignorance.
+        strings "$1"
     else
-        objdump -W $1
+        objdump -W "$file"
+    fi
+}
+
+objdump_grep_cmd() {
+    if $HOST_OS_APPLE; then
+        fgrep -q "\"$1\""
+    else
+        fgrep -q ": $1"
     fi
 }
 
@@ -247,6 +259,24 @@ expect_not_contains() {
     fi
     if fgrep -q "$string" "$file"; then
         test_failed "File $file contains \"$string\"\nActual content: $(cat $file)"
+    fi
+}
+
+expect_objdump_contains() {
+    local file="$1"
+    local string="$2"
+
+    if ! objdump_cmd "$file" | objdump_grep_cmd "$string"; then
+        test_failed "File $file does not contain \"$string\""
+    fi
+}
+
+expect_objdump_not_contains() {
+    local file="$1"
+    local string="$2"
+
+    if objdump_cmd "$file" | objdump_grep_cmd "$string"; then
+        test_failed "File $file contains \"$string\""
     fi
 }
 

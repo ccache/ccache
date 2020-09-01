@@ -106,9 +106,7 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o 2>/dev/null | grep_cmd "$(pwd)" >/dev/null 2>&1; then
-        test_failed "Source dir ($(pwd)) found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
 
     cd ../dir2
     CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -gsplit-dwarf -fdebug-prefix-map=$(pwd)=. -c $(pwd)/src/test.c -o $(pwd)/test.o
@@ -116,9 +114,7 @@ SUITE_split_dwarf() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o 2>/dev/null | grep_cmd "$(pwd)" >/dev/null 2>&1; then
-        test_failed "Source dir ($(pwd)) found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
 
     # -------------------------------------------------------------------------
     TEST "-gsplit-dwarf -g1"

@@ -20,66 +20,44 @@ EOF
     backdate dir1/include/test.h dir2/include/test.h
 }
 
-grep_cmd() {
-    if $HOST_OS_APPLE; then
-        grep \"$1\"
-    elif $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
-        test -n "$2" && grep -E "$1|$2" || grep "$1" # accept a relative path for source code, in addition to relocation dir
-    else
-        grep ": $1[[:space:]]*$"
-    fi
-}
-
 SUITE_debug_prefix_map() {
     # -------------------------------------------------------------------------
     TEST "Mapping of debug info CWD"
 
     cd dir1
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-prefix-map=$(pwd)=some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
-        test_failed "Source dir (`pwd`) found in test.o"
-    fi
-    if ! objdump_cmd test.o | grep_cmd "dir" src/test.c >/dev/null 2>&1; then
-        test_failed "Relocation (dir) not found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
+    expect_objdump_contains test.o some_name_not_likely_to_exist_in_path
 
     cd ../dir2
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=dir -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-prefix-map=$(pwd)=some_name_not_likely_to_exist_in_path -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
-        test_failed "Source dir (`pwd`) found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
 
     # -------------------------------------------------------------------------
     TEST "Multiple -fdebug-prefix-map"
 
     cd dir1
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=name -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-prefix-map=$(pwd)=some_name_not_likely_to_exist_in_path -fdebug-prefix-map=foo=bar -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
-        test_failed "Source dir (`pwd`) found in test.o"
-    fi
-    if ! objdump_cmd test.o | grep_cmd "name" src/test.c >/dev/null 2>&1; then
-        test_failed "Relocation (name) not found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
+    expect_objdump_contains test.o some_name_not_likely_to_exist_in_path
 
     cd ../dir2
-    CCACHE_BASEDIR=`pwd` $CCACHE_COMPILE -I`pwd`/include -g -fdebug-prefix-map=`pwd`=name -fdebug-prefix-map=foo=bar -c `pwd`/src/test.c -o `pwd`/test.o
+    CCACHE_BASEDIR=$(pwd) $CCACHE_COMPILE -I$(pwd)/include -g -fdebug-prefix-map=$(pwd)=some_name_not_likely_to_exist_in_path -fdebug-prefix-map=foo=bar -c $(pwd)/src/test.c -o $(pwd)/test.o
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
-    if objdump_cmd test.o | grep_cmd "`pwd`" >/dev/null 2>&1; then
-        test_failed "Source dir (`pwd`) found in test.o"
-    fi
+    expect_objdump_not_contains test.o "$(pwd)"
 }
