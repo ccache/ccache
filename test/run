@@ -234,7 +234,7 @@ expect_contains() {
         test_failed "$file not found"
     fi
     if ! fgrep -q "$string" "$file"; then
-        test_failed "File $file does not contain: $string. Actual content: $(cat $file)"
+        test_failed "File $file does not contain \"$string\"\nActual content: $(cat $file)"
     fi
 }
 
@@ -246,7 +246,7 @@ expect_not_contains() {
         test_failed "$file not found"
     fi
     if fgrep -q "$string" "$file"; then
-        test_failed "File $file contains: $string. Actual content: $(cat $file)"
+        test_failed "File $file contains \"$string\"\nActual content: $(cat $file)"
     fi
 }
 
