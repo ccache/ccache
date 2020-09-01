@@ -23,10 +23,8 @@ EOF
 objdump_cmd() {
     if $HOST_OS_APPLE; then
         xcrun dwarfdump -r0 $1
-    elif $HOST_OS_FREEBSD; then
-        objdump -W $1
     else
-        objdump -g $1
+        objdump -W $1
     fi
 }
 
