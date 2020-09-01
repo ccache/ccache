@@ -1,5 +1,6 @@
 set(
   source_files
+  Arg.cpp
   Args.cpp
   AtomicFile.cpp
   CacheEntryReader.cpp

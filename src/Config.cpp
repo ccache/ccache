@@ -18,6 +18,7 @@
 
 #include "Config.hpp"
 
+#include "Arg.hpp"
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
 #include "Util.hpp"
@@ -344,15 +345,13 @@ parse_line(const std::string& line,
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
-  size_t equal_pos = stripped_line.find('=');
-  if (equal_pos == std::string::npos) {
-    *error_message = "missing equal sign";
+  const auto arg = Arg(stripped_line);
+  if (!arg.has_been_split()) {
+    *error_message = fmt::format("missing equal sign in \"{}\"", stripped_line);
     return false;
   }
-  *key = stripped_line.substr(0, equal_pos);
-  *value = stripped_line.substr(equal_pos + 1);
-  *key = Util::strip_whitespace(*key);
-  *value = Util::strip_whitespace(*value);
+  *key = Util::strip_whitespace(arg.key());
+  *value = Util::strip_whitespace(arg.value());
   return true;
 }
 
@@ -430,24 +429,23 @@ void
 Config::update_from_environment()
 {
   for (char** env = environ; *env; ++env) {
-    std::string setting = *env;
     const std::string prefix = "CCACHE_";
-    if (!Util::starts_with(setting, prefix)) {
+    if (!Util::starts_with(*env, prefix)) {
       continue;
     }
-    size_t equal_pos = setting.find('=');
-    if (equal_pos == std::string::npos) {
-      continue;
-    }
+    nonstd::string_view str = *env + strlen("CCACHE_");
 
-    std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
-    std::string value = setting.substr(equal_pos + 1);
-    bool negate = Util::starts_with(key, "NO");
+    const bool negate = Util::starts_with(str, "NO");
     if (negate) {
-      key = key.substr(2);
+      str = str.substr(2);
     }
 
-    auto it = k_env_variable_table.find(key);
+    const Arg setting(str);
+    if (!setting.has_been_split()) {
+      continue;
+    }
+
+    const auto it = k_env_variable_table.find(std::string(setting.key()));
     if (it == k_env_variable_table.end()) {
       // Ignore unknown keys.
       continue;
@@ -455,9 +453,14 @@ Config::update_from_environment()
     const auto& config_key = it->second;
 
     try {
-      set_item(config_key, value, key, negate, "environment");
+      set_item(config_key,
+               std::string(setting.value()),
+               std::string(setting.key()),
+               negate,
+               "environment");
     } catch (const Error& e) {
-      throw Error("CCACHE_{}{}: {}", negate ? "NO" : "", key, e.what());
+      throw Error(
+        "CCACHE_{}{}: {}", negate ? "NO" : "", setting.key(), e.what());
     }
   }
 }

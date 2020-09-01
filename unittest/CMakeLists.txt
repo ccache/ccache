@@ -2,6 +2,7 @@ set(
   source_files
   TestUtil.cpp
   main.cpp
+  test_Arg.cpp
   test_Args.cpp
   test_AtomicFile.cpp
   test_Checksum.cpp

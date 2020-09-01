@@ -182,8 +182,9 @@ TEST_CASE("Config::update_from_file, error handling")
   SUBCASE("missing equal sign")
   {
     Util::write_file("ccache.conf", "no equal sign");
-    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: missing equal sign");
+    REQUIRE_THROWS_WITH(
+      config.update_from_file("ccache.conf"),
+      "ccache.conf:1: missing equal sign in \"no equal sign\"");
   }
 
   SUBCASE("unknown key")

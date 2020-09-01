@@ -19,6 +19,7 @@
 
 #include "ccache.hpp"
 
+#include "Arg.hpp"
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
 #include "Checksum.hpp"
@@ -1215,17 +1216,18 @@ hash_common_info(const Context& ctx,
   // Possibly hash the current working directory.
   if (args_info.generating_debuginfo && ctx.config.hash_dir()) {
     std::string dir_to_hash = ctx.apparent_cwd;
-    for (const auto& map : args_info.debug_prefix_maps) {
-      size_t sep_pos = map.find('=');
-      if (sep_pos != std::string::npos) {
-        std::string old_path = map.substr(0, sep_pos);
-        std::string new_path = map.substr(sep_pos + 1);
+    for (const auto& debug_prefix_map : args_info.debug_prefix_maps) {
+      const auto map = Arg(debug_prefix_map);
+      if (map.has_been_split()) {
+        const nonstd::string_view old_path = map.key();
+        const nonstd::string_view new_path = map.value();
         log("Relocating debuginfo from {} to {} (CWD: {})",
             old_path,
             new_path,
             ctx.apparent_cwd);
         if (Util::starts_with(ctx.apparent_cwd, old_path)) {
-          dir_to_hash = new_path + ctx.apparent_cwd.substr(old_path.size());
+          dir_to_hash =
+            std::string(new_path) + ctx.apparent_cwd.substr(old_path.size());
         }
       }
     }
@@ -1396,21 +1398,25 @@ calculate_result_name(Context& ctx,
       continue;
     }
 
+    // Several of the following checks require split of "key=value" type
+    // arguments.
+    const auto arg = Arg(args[i]);
+
     // The -fdebug-prefix-map option may be used in combination with
     // CCACHE_BASEDIR to reuse results across different directories. Skip using
     // the value of the option from hashing but still hash the existence of the
     // option.
-    if (Util::starts_with(args[i], "-fdebug-prefix-map=")) {
+    if (arg.key() == "-fdebug-prefix-map") {
       hash.hash_delimiter("arg");
       hash.hash("-fdebug-prefix-map=");
       continue;
     }
-    if (Util::starts_with(args[i], "-ffile-prefix-map=")) {
+    if (arg.key() == "-ffile-prefix-map") {
       hash.hash_delimiter("arg");
       hash.hash("-ffile-prefix-map=");
       continue;
     }
-    if (Util::starts_with(args[i], "-fmacro-prefix-map=")) {
+    if (arg.key() == "-fmacro-prefix-map") {
       hash.hash_delimiter("arg");
       hash.hash("-fmacro-prefix-map=");
       continue;
@@ -1422,13 +1428,13 @@ calculate_result_name(Context& ctx,
     // might not be the case.
     if (!direct_mode && !ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.using_precompiled_header) {
-      if (compopt_affects_cpp(args[i])) {
-        if (compopt_takes_arg(args[i])) {
+      if (compopt_affects_cpp(arg)) {
+        if (compopt_takes_arg(arg)) {
           i++;
         }
         continue;
       }
-      if (compopt_short(compopt_affects_cpp, args[i])) {
+      if (compopt_short(compopt_affects_cpp, arg)) {
         continue;
       }
     }
@@ -1436,23 +1442,23 @@ calculate_result_name(Context& ctx,
     // If we're generating dependencies, we make sure to skip the filename of
     // the dependency file, since it doesn't impact the output.
     if (ctx.args_info.generating_dependencies) {
-      if (Util::starts_with(args[i], "-Wp,")) {
-        if (Util::starts_with(args[i], "-Wp,-MD,")
-            && args[i].find(',', 8) == std::string::npos) {
-          hash.hash(args[i].data(), 8);
+      if (Util::starts_with(arg, "-Wp,")) {
+        if (Util::starts_with(arg, "-Wp,-MD,")
+            && arg.full().find(',', 8) == std::string::npos) {
+          hash.hash(arg.full().data(), 8);
           continue;
-        } else if (Util::starts_with(args[i], "-Wp,-MMD,")
-                   && args[i].find(',', 9) == std::string::npos) {
-          hash.hash(args[i].data(), 9);
+        } else if (Util::starts_with(arg, "-Wp,-MMD,")
+                   && arg.full().find(',', 9) == std::string::npos) {
+          hash.hash(arg.full().data(), 9);
           continue;
         }
-      } else if (Util::starts_with(args[i], "-MF")) {
+      } else if (Util::starts_with(arg, "-MF")) {
         // In either case, hash the "-MF" part.
         hash.hash_delimiter("arg");
-        hash.hash(args[i].data(), 3);
+        hash.hash(arg.full().data(), 3);
 
         if (ctx.args_info.output_dep != "/dev/null") {
-          bool separate_argument = (args[i].size() == 3);
+          bool separate_argument = (arg.full().size() == 3);
           if (separate_argument) {
             // Next argument is dependency name, so skip it.
             i++;
@@ -1462,9 +1468,8 @@ calculate_result_name(Context& ctx,
       }
     }
 
-    if (Util::starts_with(args[i], "-specs=")
-        || Util::starts_with(args[i], "--specs=")) {
-      std::string path = args[i].substr(args[i].find('=') + 1);
+    if (arg.key() == "-specs" || arg.key() == "--specs") {
+      const std::string path = std::string(arg.value());
       auto st = Stat::stat(path, Stat::OnError::log);
       if (st) {
         // If given an explicit specs file, then hash that file, but don't
@@ -1475,16 +1480,17 @@ calculate_result_name(Context& ctx,
       }
     }
 
-    if (Util::starts_with(args[i], "-fplugin=")) {
-      auto st = Stat::stat(&args[i][9], Stat::OnError::log);
+    if (arg.key() == "-fplugin") {
+      const std::string path = std::string(arg.value());
+      const auto st = Stat::stat(path, Stat::OnError::log);
       if (st) {
         hash.hash_delimiter("plugin");
-        hash_compiler(ctx, hash, st, &args[i][9], false);
+        hash_compiler(ctx, hash, st, path, false);
         continue;
       }
     }
 
-    if (args[i] == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
+    if (arg == "-Xclang" && i + 3 < args.size() && args[i + 1] == "-load"
         && args[i + 2] == "-Xclang") {
       auto st = Stat::stat(args[i + 3], Stat::OnError::log);
       if (st) {
@@ -1495,7 +1501,7 @@ calculate_result_name(Context& ctx,
       }
     }
 
-    if ((args[i] == "-ccbin" || args[i] == "--compiler-bindir")
+    if ((arg == "-ccbin" || arg == "--compiler-bindir")
         && i + 1 < args.size()) {
       auto st = Stat::stat(args[i + 1]);
       if (st) {
@@ -1509,8 +1515,8 @@ calculate_result_name(Context& ctx,
 
     // All other arguments are included in the hash.
     hash.hash_delimiter("arg");
-    hash.hash(args[i]);
-    if (i + 1 < args.size() && compopt_takes_arg(args[i])) {
+    hash.hash(arg);
+    if (i + 1 < args.size() && compopt_takes_arg(arg)) {
       i++;
       hash.hash_delimiter("arg");
       hash.hash(args[i]);

@@ -421,7 +421,7 @@ starts_with(nonstd::string_view string, nonstd::string_view prefix)
 [[nodiscard]] std::string strip_ansi_csi_seqs(nonstd::string_view string);
 
 // Strip whitespace from left and right side of a string.
-[[nodiscard]] std::string strip_whitespace(const std::string& string);
+[[nodiscard]] std::string strip_whitespace(nonstd::string_view string);
 
 // Convert a string to lowercase.
 [[nodiscard]] std::string to_lowercase(nonstd::string_view string);
