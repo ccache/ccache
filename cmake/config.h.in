@@ -42,6 +42,11 @@
 #  define _XOPEN_SOURCE_EXTENDED
 #endif
 
+// Handle large files when compiled in 32-bit mode.
+#ifndef _FILE_OFFSET_BITS
+#  define _FILE_OFFSET_BITS 64
+#endif
+
 // clang-format off
 #cmakedefine _WIN32_WINNT @_WIN32_WINNT@
 // clang-format on
