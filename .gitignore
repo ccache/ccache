@@ -20,6 +20,7 @@ testdir/
 
 # Visual Studio
 /.vs/
+/out/build/
 
 # Visual Studio Code
 /.vscode/
