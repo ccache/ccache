@@ -19,8 +19,17 @@
 
 #include "config.h"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#if __has_warning("-Wreserved-id-macro")
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
+#endif
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 #include <sys/file.h>
