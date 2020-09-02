@@ -920,11 +920,8 @@ handle_dependency_environment_variables(Context& ctx,
 
 } // namespace
 
-optional<Statistic>
-process_args(Context& ctx,
-             Args& preprocessor_args,
-             Args& extra_args_to_hash,
-             Args& compiler_args)
+ProcessArgsResult
+process_args(Context& ctx)
 {
   assert(!ctx.orig_args.empty());
 
@@ -942,7 +939,7 @@ process_args(Context& ctx,
   for (size_t i = 1; i < args.size(); i++) {
     auto error = process_arg(ctx, args, i, state);
     if (error) {
-      return error;
+      return *error;
     }
   }
 
@@ -1155,7 +1152,7 @@ process_args(Context& ctx,
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
   }
 
-  compiler_args = state.common_args;
+  Args compiler_args = state.common_args;
   compiler_args.push_back(state.compiler_only_args);
 
   if (config.run_second_cpp()) {
@@ -1196,7 +1193,7 @@ process_args(Context& ctx,
     compiler_args.push_back(arch);
   }
 
-  preprocessor_args = state.common_args;
+  Args preprocessor_args = state.common_args;
   preprocessor_args.push_back(state.cpp_args);
 
   if (config.run_second_cpp()) {
@@ -1211,10 +1208,10 @@ process_args(Context& ctx,
     preprocessor_args.push_back(state.dep_args);
   }
 
-  extra_args_to_hash = state.compiler_only_args;
+  Args extra_args_to_hash = state.compiler_only_args;
   if (config.run_second_cpp()) {
     extra_args_to_hash.push_back(state.dep_args);
   }
 
-  return nullopt;
+  return {preprocessor_args, extra_args_to_hash, compiler_args};
 }

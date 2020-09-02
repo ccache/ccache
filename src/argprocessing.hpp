@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "Args.hpp"
 #include "stats.hpp"
 
 #include "third_party/nonstd/optional.hpp"
@@ -25,15 +26,33 @@
 class Context;
 class Args;
 
-// Process the compiler options into options suitable for passing to the
-// preprocessor (`preprocessor_args`) and the real compiler (`compiler_args`).
-// `preprocessor_args` doesn't include -E; this is added later.
-// `extra_args_to_hash` are the arguments that are not included in
-// `preprocessor_args` but that should be included in the hash.
-//
-// Returns nullopt on success, otherwise the statistics counter that should be
-// incremented.
-nonstd::optional<Statistic> process_args(Context& ctx,
-                                         Args& preprocessor_args,
-                                         Args& extra_args_to_hash,
-                                         Args& compiler_args);
+struct ProcessArgsResult
+{
+  ProcessArgsResult(Statistic err) : error(err)
+  {
+  }
+  ProcessArgsResult(Args preprocessor_args,
+                    Args extra_args_to_hash,
+                    Args compiler_args)
+    : preprocessor_args(preprocessor_args),
+      extra_args_to_hash(extra_args_to_hash),
+      compiler_args(compiler_args)
+  {
+  }
+
+  // nullopt on success, otherwise the statistics counter that should be
+  // incremented.
+  nonstd::optional<Statistic> error;
+
+  // Arguments (except -E) to send to the preprocessor.
+  Args preprocessor_args;
+
+  // Arguments not sent to the preprocessor but that should be part of the
+  // hash.
+  Args extra_args_to_hash;
+
+  // Arguments to send to the real compiler.
+  Args compiler_args;
+};
+
+ProcessArgsResult process_args(Context& ctx);
