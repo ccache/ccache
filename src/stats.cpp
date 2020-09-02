@@ -50,133 +50,137 @@ static std::string format_timestamp(uint64_t timestamp);
 // Statistics fields in display order.
 static struct
 {
-  enum stats stat;
+  Stats stat;
   const char* id;      // for --print-stats
   const char* message; // for --show-stats
   format_fn format;    // nullptr -> use plain integer format
   unsigned flags;
 } stats_info[] = {
-  {STATS_ZEROTIMESTAMP,
+  {Stats::ZEROTIMESTAMP,
    "stats_zeroed_timestamp",
    "stats zeroed",
    format_timestamp,
    FLAG_ALWAYS},
-  {STATS_CACHEHIT_DIR,
+  {Stats::CACHEHIT_DIR,
    "direct_cache_hit",
    "cache hit (direct)",
    nullptr,
    FLAG_ALWAYS},
-  {STATS_CACHEHIT_CPP,
+  {Stats::CACHEHIT_CPP,
    "preprocessed_cache_hit",
    "cache hit (preprocessed)",
    nullptr,
    FLAG_ALWAYS},
-  {STATS_CACHEMISS, "cache_miss", "cache miss", nullptr, FLAG_ALWAYS},
-  {STATS_LINK, "called_for_link", "called for link", nullptr, 0},
-  {STATS_PREPROCESSING,
+  {Stats::CACHEMISS, "cache_miss", "cache miss", nullptr, FLAG_ALWAYS},
+  {Stats::LINK, "called_for_link", "called for link", nullptr, 0},
+  {Stats::PREPROCESSING,
    "called_for_preprocessing",
    "called for preprocessing",
    nullptr,
    0},
-  {STATS_MULTIPLE,
+  {Stats::MULTIPLE,
    "multiple_source_files",
    "multiple source files",
    nullptr,
    0},
-  {STATS_STDOUT,
+  {Stats::STDOUT,
    "compiler_produced_stdout",
    "compiler produced stdout",
    nullptr,
    0},
-  {STATS_NOOUTPUT,
+  {Stats::NOOUTPUT,
    "compiler_produced_no_output",
    "compiler produced no output",
    nullptr,
    0},
-  {STATS_EMPTYOUTPUT,
+  {Stats::EMPTYOUTPUT,
    "compiler_produced_empty_output",
    "compiler produced empty output",
    nullptr,
    0},
-  {STATS_STATUS, "compile_failed", "compile failed", nullptr, 0},
-  {STATS_ERROR, "internal_error", "ccache internal error", nullptr, 0},
-  {STATS_PREPROCESSOR, "preprocessor_error", "preprocessor error", nullptr, 0},
-  {STATS_CANTUSEPCH,
+  {Stats::STATUS, "compile_failed", "compile failed", nullptr, 0},
+  {Stats::INTERNAL_ERROR,
+   "internal_error",
+   "ccache internal error",
+   nullptr,
+   0},
+  {Stats::PREPROCESSOR, "preprocessor_error", "preprocessor error", nullptr, 0},
+  {Stats::CANTUSEPCH,
    "could_not_use_precompiled_header",
    "can't use precompiled header",
    nullptr,
    0},
-  {STATS_CANTUSEMODULES,
+  {Stats::CANTUSEMODULES,
    "could_not_use_modules",
    "can't use modules",
    nullptr,
    0},
-  {STATS_COMPILER,
+  {Stats::COMPILER,
    "could_not_find_compiler",
    "couldn't find the compiler",
    nullptr,
    0},
-  {STATS_MISSING, "missing_cache_file", "cache file missing", nullptr, 0},
-  {STATS_ARGS, "bad_compiler_arguments", "bad compiler arguments", nullptr, 0},
-  {STATS_SOURCELANG,
+  {Stats::MISSING, "missing_cache_file", "cache file missing", nullptr, 0},
+  {Stats::ARGS, "bad_compiler_arguments", "bad compiler arguments", nullptr, 0},
+  {Stats::SOURCELANG,
    "unsupported_source_language",
    "unsupported source language",
    nullptr,
    0},
-  {STATS_COMPCHECK,
+  {Stats::COMPCHECK,
    "compiler_check_failed",
    "compiler check failed",
    nullptr,
    0},
-  {STATS_CONFTEST, "autoconf_test", "autoconf compile/link", nullptr, 0},
-  {STATS_UNSUPPORTED_OPTION,
+  {Stats::CONFTEST, "autoconf_test", "autoconf compile/link", nullptr, 0},
+  {Stats::UNSUPPORTED_OPTION,
    "unsupported_compiler_option",
    "unsupported compiler option",
    nullptr,
    0},
-  {STATS_UNSUPPORTED_DIRECTIVE,
+  {Stats::UNSUPPORTED_DIRECTIVE,
    "unsupported_code_directive",
    "unsupported code directive",
    nullptr,
    0},
-  {STATS_OUTSTDOUT, "output_to_stdout", "output to stdout", nullptr, 0},
-  {STATS_BADOUTPUTFILE,
+  {Stats::OUTSTDOUT, "output_to_stdout", "output to stdout", nullptr, 0},
+  {Stats::BADOUTPUTFILE,
    "bad_output_file",
    "could not write to output file",
    nullptr,
    0},
-  {STATS_NOINPUT, "no_input_file", "no input file", nullptr, 0},
-  {STATS_BADEXTRAFILE,
+  {Stats::NOINPUT, "no_input_file", "no input file", nullptr, 0},
+  {Stats::BADEXTRAFILE,
    "error_hashing_extra_file",
    "error hashing extra file",
    nullptr,
    0},
-  {STATS_NUMCLEANUPS,
+  {Stats::NUMCLEANUPS,
    "cleanups_performed",
    "cleanups performed",
    nullptr,
    FLAG_ALWAYS},
-  {STATS_NUMFILES,
+  {Stats::NUMFILES,
    "files_in_cache",
    "files in cache",
    nullptr,
    FLAG_NOZERO | FLAG_ALWAYS},
-  {STATS_TOTALSIZE,
+  {Stats::TOTALSIZE,
    "cache_size_kibibyte",
    "cache size",
    format_size_times_1024,
    FLAG_NOZERO | FLAG_ALWAYS},
-  {STATS_OBSOLETE_MAXFILES,
+  {Stats::OBSOLETE_MAXFILES,
    "OBSOLETE",
    "OBSOLETE",
    nullptr,
    FLAG_NOZERO | FLAG_NEVER},
-  {STATS_OBSOLETE_MAXSIZE,
+  {Stats::OBSOLETE_MAXSIZE,
    "OBSOLETE",
    "OBSOLETE",
    nullptr,
    FLAG_NOZERO | FLAG_NEVER},
-  {STATS_NONE, nullptr, nullptr, nullptr, 0}};
+  {Stats::NONE, nullptr, nullptr, nullptr, 0}};
 
 static std::string
 format_size(uint64_t size)
@@ -217,7 +221,7 @@ parse_stats(Counters& counters, const std::string& buf)
     if (p2 == p) {
       break;
     }
-    counters[i] += val;
+    counters[static_cast<Stats>(i)] += val;
     i++;
     p = p2;
   }
@@ -229,7 +233,7 @@ stats_write(const std::string& path, const Counters& counters)
 {
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(fmt::format("{}\n", counters[i]));
+    file.write(fmt::format("{}\n", counters[static_cast<Stats>(i)]));
   }
   try {
     file.commit();
@@ -244,10 +248,10 @@ stats_write(const std::string& path, const Counters& counters)
 static double
 stats_hit_rate(const Counters& counters)
 {
-  unsigned direct = counters[STATS_CACHEHIT_DIR];
-  unsigned preprocessed = counters[STATS_CACHEHIT_CPP];
+  unsigned direct = counters[Stats::CACHEHIT_DIR];
+  unsigned preprocessed = counters[Stats::CACHEHIT_CPP];
   unsigned hit = direct + preprocessed;
-  unsigned miss = counters[STATS_CACHEMISS];
+  unsigned miss = counters[Stats::CACHEMISS];
   unsigned total = hit + miss;
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
@@ -269,16 +273,16 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
       fname = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
     }
 
-    counters[STATS_ZEROTIMESTAMP] = 0; // Don't add
+    counters[Stats::ZEROTIMESTAMP] = 0; // Don't add
     stats_read(fname, counters);
-    zero_timestamp = std::max(counters[STATS_ZEROTIMESTAMP], zero_timestamp);
+    zero_timestamp = std::max(counters[Stats::ZEROTIMESTAMP], zero_timestamp);
     auto st = Stat::stat(fname);
     if (st && st.mtime() > *last_updated) {
       *last_updated = st.mtime();
     }
   }
 
-  counters[STATS_ZEROTIMESTAMP] = zero_timestamp;
+  counters[Stats::ZEROTIMESTAMP] = zero_timestamp;
 }
 
 // Record that a number of bytes and files have been added to the cache. Size
@@ -290,8 +294,8 @@ stats_update_size(Counters& counters, int64_t size, int files)
     return;
   }
 
-  counters[STATS_TOTALSIZE] += size / 1024;
-  counters[STATS_NUMFILES] += files;
+  counters[Stats::TOTALSIZE] += size / 1024;
+  counters[Stats::NUMFILES] += files;
 }
 
 // Read in the stats from one directory and add to the counters.
@@ -343,8 +347,8 @@ stats_flush_to_file(const Config& config,
     }
 
     stats_read(sfile, counters);
-    for (int i = 0; i < STATS_END; ++i) {
-      counters[i] += updates[i];
+    for (size_t i = 0; i < static_cast<size_t>(Stats::END); ++i) {
+      counters[static_cast<Stats>(i)] += updates[static_cast<Stats>(i)];
     }
     stats_write(sfile, counters);
   }
@@ -353,18 +357,18 @@ stats_flush_to_file(const Config& config,
   bool need_cleanup = false;
 
   if (config.max_files() != 0
-      && counters[STATS_NUMFILES] > config.max_files() / 16) {
+      && counters[Stats::NUMFILES] > config.max_files() / 16) {
     log("Need to clean up {} since it holds {} files (limit: {} files)",
         subdir,
-        counters[STATS_NUMFILES],
+        counters[Stats::NUMFILES],
         config.max_files() / 16);
     need_cleanup = true;
   }
   if (config.max_size() != 0
-      && counters[STATS_TOTALSIZE] > config.max_size() / 1024 / 16) {
+      && counters[Stats::TOTALSIZE] > config.max_size() / 1024 / 16) {
     log("Need to clean up {} since it holds {} KiB (limit: {} KiB)",
         subdir,
-        counters[STATS_TOTALSIZE],
+        counters[Stats::TOTALSIZE],
         config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
@@ -388,9 +392,9 @@ stats_flush(Context& ctx)
 
 // Update a normal stat.
 void
-stats_update(Context& ctx, enum stats stat)
+stats_update(Context& ctx, Stats stat)
 {
-  assert(stat > STATS_NONE && stat < STATS_END);
+  assert(stat > Stats::NONE && stat < Stats::END);
   ctx.counter_updates[stat] += 1;
 }
 
@@ -419,7 +423,7 @@ stats_summary(const Context& ctx)
 
   // ...and display them.
   for (int i = 0; stats_info[i].message; i++) {
-    enum stats stat = stats_info[i].stat;
+    Stats stat = stats_info[i].stat;
 
     if (stats_info[i].flags & FLAG_NEVER) {
       continue;
@@ -438,7 +442,7 @@ stats_summary(const Context& ctx)
       fmt::print("{:31} {}\n", stats_info[i].message, value);
     }
 
-    if (stat == STATS_CACHEMISS) {
+    if (stat == Stats::CACHEMISS) {
       double percent = stats_hit_rate(counters);
       fmt::print("cache hit rate                    {:6.2f} %\n", percent);
     }
@@ -495,7 +499,7 @@ stats_zero(const Context& ctx)
           counters[stats_info[i].stat] = 0;
         }
       }
-      counters[STATS_ZEROTIMESTAMP] = timestamp;
+      counters[Stats::ZEROTIMESTAMP] = timestamp;
       stats_write(fname, counters);
     }
   }
@@ -513,8 +517,8 @@ stats_get_obsolete_limits(const std::string& dir,
   Counters counters;
   std::string sname = dir + "/stats";
   stats_read(sname, counters);
-  *maxfiles = counters[STATS_OBSOLETE_MAXFILES];
-  *maxsize = static_cast<uint64_t>(counters[STATS_OBSOLETE_MAXSIZE]) * 1024;
+  *maxfiles = counters[Stats::OBSOLETE_MAXFILES];
+  *maxsize = static_cast<uint64_t>(counters[Stats::OBSOLETE_MAXSIZE]) * 1024;
 }
 
 // Set the per-directory sizes.
@@ -526,8 +530,8 @@ stats_set_sizes(const std::string& dir, unsigned num_files, uint64_t total_size)
   Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
-    counters[STATS_NUMFILES] = num_files;
-    counters[STATS_TOTALSIZE] = total_size / 1024;
+    counters[Stats::NUMFILES] = num_files;
+    counters[Stats::TOTALSIZE] = total_size / 1024;
     stats_write(statsfile, counters);
   }
 }
@@ -541,7 +545,7 @@ stats_add_cleanup(const std::string& dir, unsigned count)
   Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
-    counters[STATS_NUMCLEANUPS] += count;
+    counters[Stats::NUMCLEANUPS] += count;
     stats_write(statsfile, counters);
   }
 }

@@ -549,7 +549,7 @@ process_preprocessed_file(Context& ctx,
       log(
         "Found unsupported .inc"
         "bin directive in source code");
-      throw Failure(STATS_UNSUPPORTED_DIRECTIVE);
+      throw Failure(Stats::UNSUPPORTED_DIRECTIVE);
     } else if (pump && strncmp(q, "_________", 9) == 0) {
       // Unfortunately the distcc-pump wrapper outputs standard output lines:
       // __________Using distcc-pump from /usr/bin
@@ -707,14 +707,14 @@ do_execute(Context& ctx,
         tmp_stdout.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
       if (!tmp_stdout.fd) {
         log("Failed to truncate {}: {}", tmp_stdout.path, strerror(errno));
-        throw Failure(STATS_ERROR);
+        throw Failure(Stats::INTERNAL_ERROR);
       }
 
       tmp_stderr.fd = Fd(open(
         tmp_stderr.path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0600));
       if (!tmp_stderr.fd) {
         log("Failed to truncate {}: {}", tmp_stderr.path, strerror(errno));
-        throw Failure(STATS_ERROR);
+        throw Failure(Stats::INTERNAL_ERROR);
       }
 
       ctx.diagnostics_color_failed = true;
@@ -839,7 +839,7 @@ to_cache(Context& ctx,
     if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
         && errno != ESTALE) {
       log("Failed to unlink {}: {}", ctx.args_info.output_dwo, strerror(errno));
-      throw Failure(STATS_BADOUTPUTFILE);
+      throw Failure(Stats::BADOUTPUTFILE);
     }
   }
 
@@ -878,14 +878,14 @@ to_cache(Context& ctx,
   auto st = Stat::stat(tmp_stdout_path, Stat::OnError::log);
   if (!st) {
     // The stdout file was removed - cleanup in progress? Better bail out.
-    throw Failure(STATS_MISSING);
+    throw Failure(Stats::MISSING);
   }
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
   if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
     log("Compiler produced stdout");
-    throw Failure(STATS_STDOUT);
+    throw Failure(Stats::STDOUT);
   }
 
   // Merge stderr from the preprocessor (if any) and stderr from the real
@@ -902,14 +902,14 @@ to_cache(Context& ctx,
     // We can output stderr immediately instead of rerunning the compiler.
     Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
 
-    throw Failure(STATS_STATUS, status);
+    throw Failure(Stats::STATUS, status);
   }
 
   if (ctx.config.depend_mode()) {
     assert(depend_mode_hash);
     auto result_name = result_name_from_depfile(ctx, *depend_mode_hash);
     if (!result_name) {
-      throw Failure(STATS_ERROR);
+      throw Failure(Stats::INTERNAL_ERROR);
     }
     ctx.set_result_name(*result_name);
   }
@@ -924,16 +924,16 @@ to_cache(Context& ctx,
   st = Stat::stat(ctx.args_info.output_obj);
   if (!st) {
     log("Compiler didn't produce an object file");
-    throw Failure(STATS_NOOUTPUT);
+    throw Failure(Stats::NOOUTPUT);
   }
   if (st.size() == 0) {
     log("Compiler produced an empty object file");
-    throw Failure(STATS_EMPTYOUTPUT);
+    throw Failure(Stats::EMPTYOUTPUT);
   }
 
   st = Stat::stat(tmp_stderr_path, Stat::OnError::log);
   if (!st) {
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
 
   auto orig_dest_stat = Stat::stat(ctx.result_path());
@@ -971,7 +971,7 @@ to_cache(Context& ctx,
 
   auto new_dest_stat = Stat::stat(ctx.result_path(), Stat::OnError::log);
   if (!new_dest_stat) {
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
   stats_update_size(ctx.counter_updates,
                     new_dest_stat.size_on_disk()
@@ -1040,20 +1040,20 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
   if (status != 0) {
     log("Preprocessor gave exit status {}", status);
-    throw Failure(STATS_PREPROCESSOR);
+    throw Failure(Stats::PREPROCESSOR);
   }
 
   hash.hash_delimiter("cpp");
   bool is_pump = ctx.guessed_compiler == GuessedCompiler::pump;
   if (!process_preprocessed_file(ctx, hash, stdout_path, is_pump)) {
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
 
   hash.hash_delimiter("cppstderr");
   if (!ctx.args_info.direct_i_file && !hash.hash_file(stderr_path)) {
     // Somebody removed the temporary file?
     log("Failed to open {}: {}", stderr_path, strerror(errno));
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
 
   if (ctx.args_info.direct_i_file) {
@@ -1104,7 +1104,7 @@ hash_compiler(const Context& ctx,
           hash, ctx.config.compiler_check(), ctx.orig_args[0])) {
       log("Failure running compiler check command: {}",
           ctx.config.compiler_check());
-      throw Failure(STATS_COMPCHECK);
+      throw Failure(Stats::COMPCHECK);
     }
   }
 }
@@ -1188,7 +1188,7 @@ hash_common_info(const Context& ctx,
 
   auto st = Stat::stat(compiler_path, Stat::OnError::log);
   if (!st) {
-    throw Failure(STATS_COMPILER);
+    throw Failure(Stats::COMPILER);
   }
 
   // Hash information about the compiler.
@@ -1271,7 +1271,7 @@ hash_common_info(const Context& ctx,
     log("Hashing sanitize blacklist {}", sanitize_blacklist);
     hash.hash("sanitizeblacklist");
     if (!hash_binary_file(ctx, hash, sanitize_blacklist)) {
-      throw Failure(STATS_BADEXTRAFILE);
+      throw Failure(Stats::BADEXTRAFILE);
     }
   }
 
@@ -1281,7 +1281,7 @@ hash_common_info(const Context& ctx,
       log("Hashing extra file {}", path);
       hash.hash_delimiter("extrafile");
       if (!hash_binary_file(ctx, hash, path)) {
-        throw Failure(STATS_BADEXTRAFILE);
+        throw Failure(Stats::BADEXTRAFILE);
       }
     }
   }
@@ -1551,7 +1551,7 @@ calculate_result_name(Context& ctx,
 
   if (ctx.args_info.profile_use && !hash_profile_data_file(ctx, hash)) {
     log("No profile data file found");
-    throw Failure(STATS_NOINPUT);
+    throw Failure(Stats::NOINPUT);
   }
 
   // Adding -arch to hash since cpp output is affected.
@@ -1594,7 +1594,7 @@ calculate_result_name(Context& ctx,
     hash.hash_delimiter("sourcecode");
     int result = hash_source_code_file(ctx, hash, ctx.args_info.input_file);
     if (result & HASH_SOURCE_CODE_ERROR) {
-      throw Failure(STATS_ERROR);
+      throw Failure(Stats::INTERNAL_ERROR);
     }
     if (result & HASH_SOURCE_CODE_FOUND_TIME) {
       log("Disabling direct mode");
@@ -1637,7 +1637,7 @@ calculate_result_name(Context& ctx,
 }
 
 // Try to return the compile result from cache.
-static optional<enum stats>
+static optional<Stats>
 from_cache(Context& ctx, enum fromcache_call_mode mode)
 {
   UmaskScope umask_scope(ctx.original_umask);
@@ -1682,8 +1682,8 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_END("cache", "from_cache");
 
-  return mode == FROMCACHE_DIRECT_MODE ? STATS_CACHEHIT_DIR
-                                       : STATS_CACHEHIT_CPP;
+  return mode == FROMCACHE_DIRECT_MODE ? Stats::CACHEHIT_DIR
+                                       : Stats::CACHEHIT_CPP;
 }
 
 // Find the real compiler. We just search the PATH to find an executable of the
@@ -1730,7 +1730,7 @@ create_initial_config_file(Config& config)
   std::string stats_dir = fmt::format("{}/0", config.cache_dir());
   if (Stat::stat(stats_dir)) {
     stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
-    // STATS_MAXFILES and STATS_MAXSIZE was stored for each top directory.
+    // Stats::MAXFILES and Stats::MAXSIZE was stored for each top directory.
     max_files *= 16;
     max_size *= 16;
   } else {
@@ -1907,7 +1907,7 @@ set_up_uncached_err()
     dup(STDERR_FILENO); // The file descriptor is intentionally leaked.
   if (uncached_fd == -1) {
     log("dup(2) failed: {}", strerror(errno));
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
 
   Util::setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd));
@@ -1930,7 +1930,7 @@ configuration_printer(const std::string& key,
 }
 
 static int cache_compilation(int argc, const char* const* argv);
-static enum stats do_cache_compilation(Context& ctx, const char* const* argv);
+static Stats do_cache_compilation(Context& ctx, const char* const* argv);
 
 // The entry point when invoked to cache a compilation.
 static int
@@ -1948,11 +1948,11 @@ cache_compilation(int argc, const char* const* argv)
   MTR_END("main", "find_compiler");
 
   try {
-    enum stats stat = do_cache_compilation(*ctx, argv);
+    Stats stat = do_cache_compilation(*ctx, argv);
     stats_update(*ctx, stat);
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
-    if (e.stat() != STATS_NONE) {
+    if (e.stat() != Stats::NONE) {
       stats_update(*ctx, e.stat());
     }
 
@@ -1982,12 +1982,12 @@ cache_compilation(int argc, const char* const* argv)
   }
 }
 
-static enum stats
+static Stats
 do_cache_compilation(Context& ctx, const char* const* argv)
 {
   if (ctx.actual_cwd.empty()) {
     log("Unable to determine current working directory: {}", strerror(errno));
-    throw Failure(STATS_ERROR);
+    throw Failure(Stats::INTERNAL_ERROR);
   }
 
   MTR_BEGIN("main", "clean_up_internal_tempdir");
@@ -2002,8 +2002,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.disable()) {
     log("ccache is disabled");
-    // STATS_CACHEMISS is a dummy to trigger stats_flush.
-    throw Failure(STATS_CACHEMISS);
+    // Stats::CACHEMISS is a dummy to trigger stats_flush.
+    throw Failure(Stats::CACHEMISS);
   }
 
   MTR_BEGIN("main", "set_up_uncached_err");
@@ -2136,7 +2136,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.read_only_direct()) {
     log("Read-only direct mode; running real compiler");
-    throw Failure(STATS_CACHEMISS);
+    throw Failure(Stats::CACHEMISS);
   }
 
   if (!ctx.config.depend_mode()) {
@@ -2193,7 +2193,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.read_only()) {
     log("Read-only mode; running real compiler");
-    throw Failure(STATS_CACHEMISS);
+    throw Failure(Stats::CACHEMISS);
   }
 
   add_prefix(ctx, compiler_args, ctx.config.prefix_command());
@@ -2208,7 +2208,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   update_manifest_file(ctx);
   MTR_END("cache", "to_cache");
 
-  return STATS_CACHEMISS;
+  return Stats::CACHEMISS;
 }
 
 // The main program when not doing a compile.

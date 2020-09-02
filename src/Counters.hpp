@@ -22,6 +22,8 @@
 
 #include <vector>
 
+enum class Stats;
+
 // A simple wrapper around a vector of integers
 // used for the statistics counters.
 class Counters
@@ -29,13 +31,13 @@ class Counters
 public:
   Counters();
 
-  unsigned& operator[](size_t index);
-  unsigned operator[](size_t index) const;
+  unsigned& operator[](Stats index);
+  unsigned operator[](Stats index) const;
 
   size_t size() const;
 
   // Return true if all counters are zero, false otherwise.
-  bool all_zero() const;
+  [[nodiscard]] bool all_zero() const;
 
 private:
   std::vector<unsigned> m_counters;
