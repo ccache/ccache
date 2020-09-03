@@ -102,7 +102,7 @@ const struct
 std::string
 language_for_file(const std::string& fname)
 {
-  auto ext = Util::get_extension(fname);
+  const auto ext = Util::get_extension(fname);
   for (size_t i = 0; k_ext_lang_table[i].extension; ++i) {
     if (k_ext_lang_table[i].extension == ext) {
       return k_ext_lang_table[i].language;

@@ -70,7 +70,7 @@ TEST_CASE("hash_command_output_compiler_substitution")
 
 TEST_CASE("hash_command_output_stdout_versus_stderr")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Hash h1;
   Hash h2;
@@ -108,9 +108,9 @@ TEST_CASE("hash_multicommand_output")
 
 TEST_CASE("hash_multicommand_output_error_handling")
 {
-  Context ctx;
+  const Context ctx;
 
-  Hash h1;
+  const Hash h1;
   Hash h2;
 
   CHECK(!hash_multicommand_output(h2, "false; true", "not used"));

@@ -55,7 +55,7 @@ TEST_SUITE_BEGIN("InodeCache");
 
 TEST_CASE("Test disabled")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Context ctx;
   init(ctx);
@@ -75,7 +75,7 @@ TEST_CASE("Test disabled")
 
 TEST_CASE("Test lookup nonexistent")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Context ctx;
   init(ctx);
@@ -94,7 +94,7 @@ TEST_CASE("Test lookup nonexistent")
 
 TEST_CASE("Test put and lookup")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Context ctx;
   init(ctx);
@@ -135,7 +135,7 @@ TEST_CASE("Test put and lookup")
 
 TEST_CASE("Drop file")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Context ctx;
   init(ctx);
@@ -151,15 +151,15 @@ TEST_CASE("Drop file")
 
 TEST_CASE("Test content type")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Context ctx;
   init(ctx);
   ctx.inode_cache.drop();
   Util::write_file("a", "a text");
-  Digest binary_digest = Hash().hash("binary").digest();
-  Digest code_digest = Hash().hash("code").digest();
-  Digest code_with_sloppy_time_macros_digest =
+  const Digest binary_digest = Hash().hash("binary").digest();
+  const Digest code_digest = Hash().hash("code").digest();
+  const Digest code_with_sloppy_time_macros_digest =
     Hash().hash("sloppy_time_macros").digest();
 
   CHECK(ctx.inode_cache.put(

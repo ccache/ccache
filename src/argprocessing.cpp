@@ -109,7 +109,7 @@ detect_pch(Context& ctx,
     }
   } else if (!is_cc1_option) {
     for (const auto& extension : {".gch", ".pch", ".pth"}) {
-      std::string path = arg + extension;
+      const std::string path = arg + extension;
       if (Stat::stat(path)) {
         log("Detected use of precompiled header: {}", path);
         pch_file = path;
@@ -438,7 +438,7 @@ process_arg(Context& ctx,
 
   if (Util::starts_with(args[i], "-fdebug-prefix-map=")
       || Util::starts_with(args[i], "-ffile-prefix-map=")) {
-    std::string map = args[i].substr(args[i].find('=') + 1);
+    const std::string map = args[i].substr(args[i].find('=') + 1);
     args_info.debug_prefix_maps.push_back(map);
     state.common_args.push_back(args[i]);
     return nullopt;
@@ -461,7 +461,7 @@ process_arg(Context& ctx,
       return nullopt;
     }
 
-    char last_char = args[i].back();
+    const char last_char = args[i].back();
     if (last_char == '0') {
       // "-g0", "-ggdb0" or similar: All debug information disabled.
       args_info.generating_debuginfo = false;
@@ -491,7 +491,7 @@ process_arg(Context& ctx,
     state.dependency_filename_specified = true;
 
     std::string dep_file;
-    bool separate_argument = (args[i].size() == 3);
+    const bool separate_argument = (args[i].size() == 3);
     if (separate_argument) {
       // -MF arg
       if (i == args.size() - 1) {
@@ -525,13 +525,13 @@ process_arg(Context& ctx,
         return STATS_ARGS;
       }
       state.dep_args.push_back(args[i]);
-      std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
+      const std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
       state.dep_args.push_back(relpath);
       i++;
     } else {
-      auto arg_opt = string_view(args[i]).substr(0, 3);
-      auto option = string_view(args[i]).substr(3);
-      auto relpath = Util::make_relative_path(ctx, option);
+      const auto arg_opt = string_view(args[i]).substr(0, 3);
+      const auto option = string_view(args[i]).substr(3);
+      const auto relpath = Util::make_relative_path(ctx, option);
       state.dep_args.push_back(fmt::format("{}{}", arg_opt, relpath));
     }
     return nullopt;
@@ -581,8 +581,8 @@ process_arg(Context& ctx,
   }
 
   if (Util::starts_with(args[i], "--sysroot=")) {
-    auto path = string_view(args[i]).substr(10);
-    auto relpath = Util::make_relative_path(ctx, path);
+    const auto path = string_view(args[i]).substr(10);
+    const auto relpath = Util::make_relative_path(ctx, path);
     state.common_args.push_back("--sysroot=" + relpath);
     return nullopt;
   }
@@ -594,7 +594,7 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
     state.common_args.push_back(args[i]);
-    auto relpath = Util::make_relative_path(ctx, args[i + 1]);
+    const auto relpath = Util::make_relative_path(ctx, args[i + 1]);
     state.common_args.push_back(relpath);
     i++;
     return nullopt;
@@ -756,7 +756,7 @@ process_arg(Context& ctx,
       return STATS_ARGS;
     }
 
-    std::string relpath = Util::make_relative_path(ctx, args[i + next]);
+    const std::string relpath = Util::make_relative_path(ctx, args[i + next]);
     auto& dest_args =
       compopt_affects_cpp(args[i]) ? state.cpp_args : state.common_args;
     dest_args.push_back(args[i]);
@@ -772,13 +772,13 @@ process_arg(Context& ctx,
   // Same as above but options with concatenated argument beginning with a
   // slash.
   if (args[i][0] == '-') {
-    size_t slash_pos = args[i].find('/');
+    const size_t slash_pos = args[i].find('/');
     if (slash_pos != std::string::npos) {
-      std::string option = args[i].substr(0, slash_pos);
+      const std::string option = args[i].substr(0, slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
-        auto relpath =
+        const auto relpath =
           Util::make_relative_path(ctx, string_view(args[i]).substr(slash_pos));
-        std::string new_option = option + relpath;
+        const std::string new_option = option + relpath;
         if (compopt_affects_cpp(option)) {
           state.cpp_args.push_back(new_option);
         } else {
@@ -824,7 +824,7 @@ process_arg(Context& ctx,
   // Note that "/dev/null" is an exception that is sometimes used as an input
   // file when code is testing compiler flags.
   if (args[i] != "/dev/null") {
-    auto st = Stat::stat(args[i]);
+    const auto st = Stat::stat(args[i]);
     if (!st || !st.is_regular()) {
       log("{} is not a regular file, not considering as input file", args[i]);
       state.common_args.push_back(args[i]);
@@ -888,7 +888,7 @@ handle_dependency_environment_variables(Context& ctx,
   auto dependencies = Util::split_into_views(dependencies_env, " ");
 
   if (!dependencies.empty()) {
-    auto abspath_file = dependencies[0];
+    const auto abspath_file = dependencies[0];
     args_info.output_dep = Util::make_relative_path(ctx, abspath_file);
   }
 
@@ -896,10 +896,10 @@ handle_dependency_environment_variables(Context& ctx,
   if (dependencies.size() > 1) {
     // It's the "file target" form.
     ctx.args_info.dependency_target_specified = true;
-    string_view abspath_obj = dependencies[1];
-    std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
+    const string_view abspath_obj = dependencies[1];
+    const std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
     // Ensure that the compiler gets a relative path.
-    std::string relpath_both =
+    const std::string relpath_both =
       fmt::format("{} {}", args_info.output_dep, relpath_obj);
     if (using_sunpro_dependencies) {
       Util::setenv("SUNPRO_DEPENDENCIES", relpath_both);
@@ -1031,7 +1031,8 @@ process_args(Context& ctx,
   }
 
   if (config.cpp_extension().empty()) {
-    std::string p_language = p_language_for_language(args_info.actual_language);
+    const std::string p_language =
+      p_language_for_language(args_info.actual_language);
     config.set_cpp_extension(extension_for_language(p_language).substr(1));
   }
 
@@ -1045,14 +1046,14 @@ process_args(Context& ctx,
     if (args_info.output_is_precompiled_header) {
       args_info.output_obj = args_info.input_file + ".gch";
     } else {
-      string_view extension = state.found_S_opt ? ".s" : ".o";
+      const string_view extension = state.found_S_opt ? ".s" : ".o";
       args_info.output_obj = Util::change_extension(
         Util::base_name(args_info.input_file), extension);
     }
   }
 
   if (args_info.seen_split_dwarf) {
-    size_t pos = args_info.output_obj.rfind('.');
+    const size_t pos = args_info.output_obj.rfind('.');
     if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
       log("Badly formed object filename");
       return STATS_ARGS;
@@ -1063,15 +1064,15 @@ process_args(Context& ctx,
 
   // Cope with -o /dev/null.
   if (args_info.output_obj != "/dev/null") {
-    auto st = Stat::stat(args_info.output_obj);
+    const auto st = Stat::stat(args_info.output_obj);
     if (st && !st.is_regular()) {
       log("Not a regular file: {}", args_info.output_obj);
       return STATS_BADOUTPUTFILE;
     }
   }
 
-  auto output_dir = std::string(Util::dir_name(args_info.output_obj));
-  auto st = Stat::stat(output_dir);
+  const auto output_dir = std::string(Util::dir_name(args_info.output_obj));
+  const auto st = Stat::stat(output_dir);
   if (!st || !st.is_directory()) {
     log("Directory does not exist: {}", output_dir);
     return STATS_BADOUTPUTFILE;
@@ -1120,7 +1121,7 @@ process_args(Context& ctx,
 
   if (args_info.generating_dependencies) {
     if (!state.dependency_filename_specified) {
-      auto default_depfile_name =
+      const auto default_depfile_name =
         Util::change_extension(args_info.output_obj, ".d");
       args_info.output_dep =
         Util::make_relative_path(ctx, default_depfile_name);
@@ -1145,12 +1146,13 @@ process_args(Context& ctx,
   }
 
   if (args_info.generating_coverage) {
-    auto gcda_path = Util::change_extension(args_info.output_obj, ".gcno");
+    const auto gcda_path =
+      Util::change_extension(args_info.output_obj, ".gcno");
     args_info.output_cov = Util::make_relative_path(ctx, gcda_path);
   }
 
   if (args_info.generating_stackusage) {
-    auto default_sufile_name =
+    const auto default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");
     args_info.output_su = Util::make_relative_path(ctx, default_sufile_name);
   }

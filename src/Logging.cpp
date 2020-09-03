@@ -178,7 +178,7 @@ dump_log(const std::string& path)
   if (!enabled()) {
     return;
   }
-  File file(path, "w");
+  const File file(path, "w");
   if (file) {
     (void)fwrite(debug_log_buffer.data(), debug_log_buffer.length(), 1, *file);
   } else {

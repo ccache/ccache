@@ -36,7 +36,7 @@ TEST_SUITE_BEGIN("Config");
 
 TEST_CASE("Config: default values")
 {
-  Config config;
+  const Config config;
 
   CHECK(config.base_dir().empty());
   CHECK(config.cache_dir().empty()); // Set later
@@ -77,13 +77,13 @@ TEST_CASE("Config: default values")
 
 TEST_CASE("Config::update_from_file")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   const char user[] = "rabbit";
   Util::setenv("USER", user);
 
 #ifndef _WIN32
-  std::string base_dir = fmt::format("/{0}/foo/{0}", user);
+  const std::string base_dir = fmt::format("/{0}/foo/{0}", user);
 #else
   std::string base_dir = fmt::format("C:/{0}/foo/{0}", user);
 #endif
@@ -175,7 +175,7 @@ TEST_CASE("Config::update_from_file")
 
 TEST_CASE("Config::update_from_file, error handling")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Config config;
 
@@ -306,13 +306,13 @@ TEST_CASE("Config::update_from_environment")
 
 TEST_CASE("Config::set_value_in_file")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   SUBCASE("set new value")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
     Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
-    std::string content = Util::read_file("ccache.conf");
+    const std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\ncompiler = chocolate\n");
   }
 
@@ -320,7 +320,7 @@ TEST_CASE("Config::set_value_in_file")
   {
     Util::write_file("ccache.conf", "path = chocolate\nstats = chocolate\n");
     Config::set_value_in_file("ccache.conf", "path", "vanilla");
-    std::string content = Util::read_file("ccache.conf");
+    const std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nstats = chocolate\n");
   }
 
@@ -334,7 +334,7 @@ TEST_CASE("Config::set_value_in_file")
       CHECK(std::string(e.what()) == "unknown configuration option \"foo\"");
     }
 
-    std::string content = Util::read_file("ccache.conf");
+    const std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = chocolate\nstats = chocolate\n");
   }
 
@@ -342,7 +342,7 @@ TEST_CASE("Config::set_value_in_file")
   {
     Util::write_file("ccache.conf", "path = vanilla\n");
     Config::set_value_in_file("ccache.conf", "sloppiness", "foo");
-    std::string content = Util::read_file("ccache.conf");
+    const std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nsloppiness = foo\n");
   }
 }
@@ -370,7 +370,7 @@ TEST_CASE("Config::get_string_value")
 
 TEST_CASE("Config::visit_items")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::write_file(
     "test.conf",

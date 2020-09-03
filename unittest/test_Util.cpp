@@ -111,7 +111,7 @@ TEST_CASE("Util::common_dir_prefix_length")
 
 TEST_CASE("Util::create_dir")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   CHECK(Util::create_dir("/"));
 
@@ -184,7 +184,7 @@ TEST_CASE("Util::expand_environment_variables")
 
 TEST_CASE("Util::fallocate")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   const char filename[] = "test-file";
 
@@ -213,7 +213,7 @@ TEST_CASE("Util::for_each_level_1_subdir")
     },
     [](double) {});
 
-  std::vector<std::string> expected = {
+  const std::vector<std::string> expected = {
     "cache_dir/0",
     "cache_dir/1",
     "cache_dir/2",
@@ -311,7 +311,7 @@ os_path(std::string path)
 
 TEST_CASE("Util::get_level_1_files")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::create_dir("e/m/p/t/y");
 
@@ -403,39 +403,39 @@ TEST_CASE("Util::int_to_big_endian")
 {
   uint8_t bytes[8];
 
-  uint8_t uint8 = 0x70;
+  const uint8_t uint8 = 0x70;
   Util::int_to_big_endian(uint8, bytes);
   CHECK(bytes[0] == 0x70);
 
-  int8_t int8 = 0x70;
+  const int8_t int8 = 0x70;
   Util::int_to_big_endian(int8, bytes);
   CHECK(bytes[0] == 0x70);
 
-  uint16_t uint16 = 0x709e;
+  const uint16_t uint16 = 0x709e;
   Util::int_to_big_endian(uint16, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
 
-  int16_t int16 = 0x709e;
+  const int16_t int16 = 0x709e;
   Util::int_to_big_endian(int16, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
 
-  uint32_t uint32 = 0x709e9abc;
+  const uint32_t uint32 = 0x709e9abc;
   Util::int_to_big_endian(uint32, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
   CHECK(bytes[2] == 0x9a);
   CHECK(bytes[3] == 0xbc);
 
-  int32_t int32 = 0x709e9abc;
+  const int32_t int32 = 0x709e9abc;
   Util::int_to_big_endian(int32, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
   CHECK(bytes[2] == 0x9a);
   CHECK(bytes[3] == 0xbc);
 
-  uint64_t uint64 = 0x709e9abcd6544bca;
+  const uint64_t uint64 = 0x709e9abcd6544bca;
   Util::int_to_big_endian(uint64, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
@@ -446,7 +446,7 @@ TEST_CASE("Util::int_to_big_endian")
   CHECK(bytes[6] == 0x4b);
   CHECK(bytes[7] == 0xca);
 
-  int64_t int64 = 0x709e9abcd6544bca;
+  const int64_t int64 = 0x709e9abcd6544bca;
   Util::int_to_big_endian(int64, bytes);
   CHECK(bytes[0] == 0x70);
   CHECK(bytes[1] == 0x9e);
@@ -645,7 +645,7 @@ TEST_CASE("Util::parse_uint32")
 
 TEST_CASE("Util::read_file and Util::write_file")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::write_file("test", "foo\nbar\n");
   std::string data = Util::read_file("test");
@@ -845,7 +845,7 @@ TEST_CASE("Util::to_lowercase")
 
 TEST_CASE("Util::traverse")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   REQUIRE(Util::create_dir("dir-with-subdir-and-file/subdir"));
   Util::write_file("dir-with-subdir-and-file/subdir/f", "");
@@ -884,8 +884,8 @@ TEST_CASE("Util::traverse")
   {
     CHECK_NOTHROW(Util::traverse("dir-with-files", visitor));
     REQUIRE(visited.size() == 3);
-    std::string f1 = os_path("[f] dir-with-files/f1");
-    std::string f2 = os_path("[f] dir-with-files/f2");
+    const std::string f1 = os_path("[f] dir-with-files/f1");
+    const std::string f2 = os_path("[f] dir-with-files/f2");
     CHECK(((visited[0] == f1 && visited[1] == f2)
            || (visited[0] == f2 && visited[1] == f1)));
     CHECK(visited[2] == "[d] dir-with-files");
@@ -903,7 +903,7 @@ TEST_CASE("Util::traverse")
 
 TEST_CASE("Util::wipe_path")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   SUBCASE("Wipe non-existing path")
   {

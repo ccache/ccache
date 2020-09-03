@@ -27,7 +27,7 @@ ZstdDecompressor::ZstdDecompressor(FILE* stream)
     m_zstd_stream(ZSTD_createDStream()),
     m_reached_stream_end(false)
 {
-  size_t ret = ZSTD_initDStream(m_zstd_stream);
+  const size_t ret = ZSTD_initDStream(m_zstd_stream);
   if (ZSTD_isError(ret)) {
     ZSTD_freeDStream(m_zstd_stream);
     throw Error("failed to initialize zstd decompression stream");
@@ -60,7 +60,8 @@ ZstdDecompressor::read(void* data, size_t count)
     m_zstd_out.dst = static_cast<uint8_t*>(data) + bytes_read;
     m_zstd_out.size = count - bytes_read;
     m_zstd_out.pos = 0;
-    size_t ret = ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
+    const size_t ret =
+      ZSTD_decompressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
     if (ZSTD_isError(ret)) {
       throw Error("failed to read from zstd input stream");
     }

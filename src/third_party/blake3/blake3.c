@@ -92,7 +92,7 @@ INLINE void output_root_bytes(const output_t *self, uint64_t seek, uint8_t *out,
   while (out_len > 0) {
     blake3_compress_xof(self->input_cv, self->block, self->block_len,
                         output_block_counter, self->flags | ROOT, wide_buf);
-    size_t available_bytes = 64 - offset_within_block;
+    const size_t available_bytes = 64 - offset_within_block;
     size_t memcpy_len;
     if (out_len > available_bytes) {
       memcpy_len = available_bytes;
@@ -110,7 +110,7 @@ INLINE void output_root_bytes(const output_t *self, uint64_t seek, uint8_t *out,
 INLINE void chunk_state_update(blake3_chunk_state *self, const uint8_t *input,
                                size_t input_len) {
   if (self->buf_len > 0) {
-    size_t take = chunk_state_fill_buf(self, input, input_len);
+    const size_t take = chunk_state_fill_buf(self, input, input_len);
     input += take;
     input_len -= take;
     if (input_len > 0) {
@@ -132,13 +132,13 @@ INLINE void chunk_state_update(blake3_chunk_state *self, const uint8_t *input,
     input_len -= BLAKE3_BLOCK_LEN;
   }
 
-  size_t take = chunk_state_fill_buf(self, input, input_len);
+  const size_t take = chunk_state_fill_buf(self, input, input_len);
   input += take;
   input_len -= take;
 }
 
 INLINE output_t chunk_state_output(const blake3_chunk_state *self) {
-  uint8_t block_flags =
+  const uint8_t block_flags =
       self->flags | chunk_state_maybe_start_flag(self) | CHUNK_END;
   return make_output(self->cv, self->buf, self->buf_len, self->chunk_counter,
                      block_flags);
@@ -155,7 +155,7 @@ INLINE output_t parent_output(const uint8_t block[BLAKE3_BLOCK_LEN],
 INLINE size_t left_len(size_t content_len) {
   // Subtract 1 to reserve at least one byte for the right side. content_len
   // should always be greater than BLAKE3_CHUNK_LEN.
-  size_t full_chunks = (content_len - 1) / BLAKE3_CHUNK_LEN;
+  const size_t full_chunks = (content_len - 1) / BLAKE3_CHUNK_LEN;
   return round_down_to_power_of_2(full_chunks) * BLAKE3_CHUNK_LEN;
 }
 
@@ -188,13 +188,13 @@ INLINE size_t compress_chunks_parallel(const uint8_t *input, size_t input_len,
   // Hash the remaining partial chunk, if there is one. Note that the empty
   // chunk (meaning the empty message) is a different codepath.
   if (input_len > input_position) {
-    uint64_t counter = chunk_counter + (uint64_t)chunks_array_len;
+    const uint64_t counter = chunk_counter + (uint64_t)chunks_array_len;
     blake3_chunk_state chunk_state;
     chunk_state_init(&chunk_state, key, flags);
     chunk_state.chunk_counter = counter;
     chunk_state_update(&chunk_state, &input[input_position],
                        input_len - input_position);
-    output_t output = chunk_state_output(&chunk_state);
+    const output_t output = chunk_state_output(&chunk_state);
     output_chaining_value(&output, &out[chunks_array_len * BLAKE3_OUT_LEN]);
     return chunks_array_len + 1;
   } else {
@@ -277,10 +277,10 @@ static size_t blake3_compress_subtree_wide(const uint8_t *input,
   // the input into left and right subtrees. (Note that this is only optimal
   // as long as the SIMD degree is a power of 2. If we ever get a SIMD degree
   // of 3 or something, we'll need a more complicated strategy.)
-  size_t left_input_len = left_len(input_len);
-  size_t right_input_len = input_len - left_input_len;
+  const size_t left_input_len = left_len(input_len);
+  const size_t right_input_len = input_len - left_input_len;
   const uint8_t *right_input = &input[left_input_len];
-  uint64_t right_chunk_counter =
+  const uint64_t right_chunk_counter =
       chunk_counter + (uint64_t)(left_input_len / BLAKE3_CHUNK_LEN);
 
   // Make space for the child outputs. Here we use MAX_SIMD_DEGREE_OR_2 to
@@ -299,9 +299,9 @@ static size_t blake3_compress_subtree_wide(const uint8_t *input,
 
   // Recurse! If this implementation adds multi-threading support in the
   // future, this is where it will go.
-  size_t left_n = blake3_compress_subtree_wide(input, left_input_len, key,
+  const size_t left_n = blake3_compress_subtree_wide(input, left_input_len, key,
                                                chunk_counter, flags, cv_array);
-  size_t right_n = blake3_compress_subtree_wide(
+  const size_t right_n = blake3_compress_subtree_wide(
       right_input, right_input_len, key, right_chunk_counter, flags, right_cvs);
 
   // The special case again. If simd_degree=1, then we'll have left_n=1 and
@@ -313,7 +313,7 @@ static size_t blake3_compress_subtree_wide(const uint8_t *input,
   }
 
   // Otherwise, do one layer of parent node compression.
-  size_t num_chaining_values = left_n + right_n;
+  const size_t num_chaining_values = left_n + right_n;
   return compress_parents_parallel(cv_array, num_chaining_values, key, flags,
                                    out);
 }
@@ -389,11 +389,11 @@ void blake3_hasher_init_derive_key(blake3_hasher *self, const char *context) {
 // stack. The principle is the same: each CV that should remain in the stack is
 // represented by a 1-bit in the total number of chunks (or bytes) so far.
 INLINE void hasher_merge_cv_stack(blake3_hasher *self, uint64_t total_len) {
-  size_t post_merge_stack_len = (size_t)popcnt(total_len);
+  const size_t post_merge_stack_len = (size_t)popcnt(total_len);
   while (self->cv_stack_len > post_merge_stack_len) {
     uint8_t *parent_node =
         &self->cv_stack[(self->cv_stack_len - 2) * BLAKE3_OUT_LEN];
-    output_t output = parent_output(parent_node, self->key, self->chunk.flags);
+    const output_t output = parent_output(parent_node, self->key, self->chunk.flags);
     output_chaining_value(&output, parent_node);
     self->cv_stack_len -= 1;
   }
@@ -464,7 +464,7 @@ void blake3_hasher_update(blake3_hasher *self, const void *input,
     // If we've filled the current chunk and there's more coming, finalize this
     // chunk and proceed. In this case we know it's not the root.
     if (input_len > 0) {
-      output_t output = chunk_state_output(&self->chunk);
+      const output_t output = chunk_state_output(&self->chunk);
       uint8_t chunk_cv[32];
       output_chaining_value(&output, chunk_cv);
       hasher_push_cv(self, chunk_cv, self->chunk.chunk_counter);
@@ -489,7 +489,7 @@ void blake3_hasher_update(blake3_hasher *self, const void *input,
   // evenly divide what we already have, this part runs in a loop.
   while (input_len > BLAKE3_CHUNK_LEN) {
     size_t subtree_len = round_down_to_power_of_2(input_len);
-    uint64_t count_so_far = self->chunk.chunk_counter * BLAKE3_CHUNK_LEN;
+    const uint64_t count_so_far = self->chunk.chunk_counter * BLAKE3_CHUNK_LEN;
     // Shrink the subtree_len until it evenly divides the count so far. We know
     // that subtree_len itself is a power of 2, so we can use a bitmasking
     // trick instead of an actual remainder operation. (Note that if the caller
@@ -510,13 +510,13 @@ void blake3_hasher_update(blake3_hasher *self, const void *input,
     }
     // The shrunken subtree_len might now be 1 chunk long. If so, hash that one
     // chunk by itself. Otherwise, compress the subtree into a pair of CVs.
-    uint64_t subtree_chunks = subtree_len / BLAKE3_CHUNK_LEN;
+    const uint64_t subtree_chunks = subtree_len / BLAKE3_CHUNK_LEN;
     if (subtree_len <= BLAKE3_CHUNK_LEN) {
       blake3_chunk_state chunk_state;
       chunk_state_init(&chunk_state, self->key, self->chunk.flags);
       chunk_state.chunk_counter = self->chunk.chunk_counter;
       chunk_state_update(&chunk_state, input_bytes, subtree_len);
-      output_t output = chunk_state_output(&chunk_state);
+      const output_t output = chunk_state_output(&chunk_state);
       uint8_t cv[BLAKE3_OUT_LEN];
       output_chaining_value(&output, cv);
       hasher_push_cv(self, cv, chunk_state.chunk_counter);
@@ -565,7 +565,7 @@ void blake3_hasher_finalize_seek(const blake3_hasher *self, uint64_t seek,
 
   // If the subtree stack is empty, then the current chunk is the root.
   if (self->cv_stack_len == 0) {
-    output_t output = chunk_state_output(&self->chunk);
+    const output_t output = chunk_state_output(&self->chunk);
     output_root_bytes(&output, seek, out, out_len);
     return;
   }

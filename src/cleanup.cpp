@@ -41,7 +41,7 @@ delete_file(const std::string& path,
             uint64_t* cache_size,
             uint32_t* files_in_cache)
 {
-  bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
+  const bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
     log("Failed to unlink {} ({})", path, strerror(errno));
   } else if (cache_size && files_in_cache) {
@@ -84,7 +84,7 @@ clean_up_dir(const std::string& subdir,
 
   uint64_t cache_size = 0;
   uint32_t files_in_cache = 0;
-  time_t current_time = time(nullptr);
+  const time_t current_time = time(nullptr);
 
   for (size_t i = 0; i < files.size();
        ++i, progress_receiver(1.0 / 3 + 1.0 * i / files.size() / 3)) {
@@ -140,7 +140,7 @@ clean_up_dir(const std::string& subdir,
       // cached result will be inconsistent. (.stderr is the only file that is
       // optional for legacy ccache versions; any other file missing from the
       // cache will be detected.)
-      std::string o_file =
+      const std::string o_file =
         file->path().substr(0, file->path().size() - 6) + "o";
 
       // Don't subtract this extra deletion from the cache size; that

@@ -222,7 +222,7 @@ private:
   {
     struct FileInfo fi;
 
-    auto f_it = mf_files.find(path);
+    const auto f_it = mf_files.find(path);
     if (f_it != mf_files.end()) {
       fi.index = f_it->second;
     } else {
@@ -243,7 +243,7 @@ private:
     // so mtimes/ctimes are stored as a dummy value (-1) if not enabled. This
     // reduces the number of file_info entries for the common case.
 
-    auto file_stat = Stat::stat(path, Stat::OnError::log);
+    const auto file_stat = Stat::stat(path, Stat::OnError::log);
     if (file_stat) {
       if (save_timestamp
           && time_of_compilation
@@ -261,7 +261,7 @@ private:
       fi.fsize = 0;
     }
 
-    auto fi_it = mf_file_infos.find(fi);
+    const auto fi_it = mf_file_infos.find(fi);
     if (fi_it != mf_file_infos.end()) {
       return fi_it->second;
     } else {
@@ -381,7 +381,7 @@ write_manifest(const Config& config,
   writer.write<uint32_t>(mf.results.size());
   for (const auto& result : mf.results) {
     writer.write<uint32_t>(result.file_info_indexes.size());
-    for (auto index : result.file_info_indexes) {
+    for (const auto index : result.file_info_indexes) {
       writer.write(index);
     }
     writer.write(result.name.bytes(), Digest::size());
@@ -399,13 +399,13 @@ verify_result(const Context& ctx,
               std::unordered_map<std::string, FileStats>& stated_files,
               std::unordered_map<std::string, Digest>& hashed_files)
 {
-  for (uint32_t file_info_index : result.file_info_indexes) {
+  for (const uint32_t file_info_index : result.file_info_indexes) {
     const auto& fi = mf.file_infos[file_info_index];
     const auto& path = mf.files[fi.index];
 
     auto stated_files_iter = stated_files.find(path);
     if (stated_files_iter == stated_files.end()) {
-      auto file_stat = Stat::stat(path, Stat::OnError::log);
+      const auto file_stat = Stat::stat(path, Stat::OnError::log);
       if (!file_stat) {
         return false;
       }
@@ -452,7 +452,7 @@ verify_result(const Context& ctx,
     auto hashed_files_iter = hashed_files.find(path);
     if (hashed_files_iter == hashed_files.end()) {
       Hash hash;
-      int ret = hash_source_code_file(ctx, hash, path, fs.size);
+      const int ret = hash_source_code_file(ctx, hash, path, fs.size);
       if (ret & HASH_SOURCE_CODE_ERROR) {
         log("Failed hashing {}", path);
         return false;
@@ -461,7 +461,7 @@ verify_result(const Context& ctx,
         return false;
       }
 
-      Digest actual = hash.digest();
+      const Digest actual = hash.digest();
       hashed_files_iter = hashed_files.emplace(path, actual).first;
     }
 
@@ -602,7 +602,7 @@ manifest_dump(const std::string& path, FILE* stream)
   for (unsigned i = 0; i < mf->results.size(); ++i) {
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    File info indexes:");
-    for (uint32_t file_info_index : mf->results[i].file_info_indexes) {
+    for (const uint32_t file_info_index : mf->results[i].file_info_indexes) {
       fmt::print(stream, " {}", file_info_index);
     }
     fmt::print(stream, "\n");

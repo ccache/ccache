@@ -58,7 +58,7 @@ void
 AtomicFile::commit()
 {
   assert(m_stream);
-  int result = fclose(m_stream);
+  const int result = fclose(m_stream);
   m_stream = nullptr;
   if (result == EOF) {
     Util::unlink_tmp(m_tmp_path);

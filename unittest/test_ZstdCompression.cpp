@@ -30,7 +30,7 @@ TEST_SUITE_BEGIN("ZstdCompression");
 
 TEST_CASE("Small Compression::Type::zstd roundtrip")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   File f("data.zstd", "wb");
   auto compressor =
@@ -64,7 +64,7 @@ TEST_CASE("Small Compression::Type::zstd roundtrip")
 
 TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   char data[] = "The quick brown fox jumps over the lazy dog";
 
@@ -96,7 +96,7 @@ TEST_CASE("Large compressible Compression::Type::zstd roundtrip")
 
 TEST_CASE("Large uncompressible Compression::Type::zstd roundtrip")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   char data[100000];
   for (char& c : data) {

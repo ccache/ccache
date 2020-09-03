@@ -35,7 +35,7 @@ CacheEntryWriter::CacheEntryWriter(FILE* stream,
   header_bytes[4] = version;
   header_bytes[5] = static_cast<uint8_t>(compression_type);
   header_bytes[6] = m_compressor->actual_compression_level();
-  uint64_t content_size = 15 + payload_size + 8;
+  const uint64_t content_size = 15 + payload_size + 8;
   Util::int_to_big_endian(content_size, header_bytes + 7);
   if (fwrite(header_bytes, sizeof(header_bytes), 1, stream) != 1) {
     throw Error("Failed to write cache entry header");

@@ -25,13 +25,13 @@ TEST_SUITE_BEGIN("Compression");
 
 TEST_CASE("Compression::level_from_config")
 {
-  Config config;
+  const Config config;
   CHECK(Compression::level_from_config(config) == 0);
 }
 
 TEST_CASE("Compression::type_from_config")
 {
-  Config config;
+  const Config config;
   CHECK(Compression::type_from_config(config) == Compression::Type::zstd);
 }
 

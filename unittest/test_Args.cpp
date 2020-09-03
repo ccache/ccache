@@ -27,7 +27,7 @@ using TestUtil::TestContext;
 
 TEST_CASE("Args default constructor")
 {
-  Args args;
+  const Args args;
   CHECK(args.size() == 0);
 }
 
@@ -37,7 +37,7 @@ TEST_CASE("Args copy constructor")
   args1.push_back("foo");
   args1.push_back("bar");
 
-  Args args2(args1);
+  const Args args2(args1);
   CHECK(args1 == args2);
 }
 
@@ -58,7 +58,7 @@ TEST_CASE("Args move constructor")
 
 TEST_CASE("Args::from_argv")
 {
-  int argc = 2;
+  const int argc = 2;
   const char* argv[] = {"a", "b"};
   Args args = Args::from_argv(argc, argv);
   CHECK(args.size() == 2);
@@ -78,7 +78,7 @@ TEST_CASE("Args::from_string")
 
 TEST_CASE("Args::from_gcc_atfile")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Args args;
 
@@ -140,7 +140,7 @@ TEST_CASE("Args::from_gcc_atfile")
 
 TEST_CASE("Args copy assignment operator")
 {
-  Args args1 = Args::from_string("x y");
+  const Args args1 = Args::from_string("x y");
   Args args2;
   args2 = args1;
   CHECK(args2.size() == 2);
@@ -164,9 +164,9 @@ TEST_CASE("Args move assignment operator")
 
 TEST_CASE("Args equality operators")
 {
-  Args args1 = Args::from_string("x y");
-  Args args2 = Args::from_string("x y");
-  Args args3 = Args::from_string("y x");
+  const Args args1 = Args::from_string("x y");
+  const Args args2 = Args::from_string("x y");
+  const Args args3 = Args::from_string("y x");
   CHECK(args1 == args1);
   CHECK(args1 == args2);
   CHECK(args2 == args1);
@@ -207,7 +207,7 @@ TEST_CASE("Args indexing")
 
 TEST_CASE("Args::to_argv")
 {
-  Args args = Args::from_string("1 2 3");
+  const Args args = Args::from_string("1 2 3");
   auto argv = args.to_argv();
   CHECK(std::string(argv[0]) == "1");
   CHECK(std::string(argv[1]) == "2");
@@ -223,8 +223,8 @@ TEST_CASE("Args::to_string")
 TEST_CASE("Args operations")
 {
   Args args = Args::from_string("eeny meeny miny moe");
-  Args more_args = Args::from_string("x y");
-  Args no_args;
+  const Args more_args = Args::from_string("x y");
+  const Args no_args;
 
   SUBCASE("erase_with_prefix")
   {

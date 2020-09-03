@@ -30,7 +30,7 @@ TEST_SUITE_BEGIN("NullCompression");
 
 TEST_CASE("Compression::Type::none roundtrip")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   File f("data.uncompressed", "w");
   auto compressor =

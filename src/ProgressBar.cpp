@@ -65,21 +65,21 @@ ProgressBar::update(double value)
     return;
   }
 
-  int16_t new_value = static_cast<int16_t>(1000 * value);
+  const int16_t new_value = static_cast<int16_t>(1000 * value);
   if (new_value == m_current_value) {
     return;
   }
   m_current_value = new_value;
 
-  size_t first_part_width = m_header.size() + 10;
+  const size_t first_part_width = m_header.size() + 10;
   if (first_part_width + 10 > m_width) {
     // The progress bar would be less than 10 characters, so just print the
     // percentage.
     fmt::print("\r{} {:5.1f}%", m_header, 100 * value);
   } else {
-    size_t total_bar_width = m_width - first_part_width;
-    size_t filled_bar_width = value * total_bar_width;
-    size_t unfilled_bar_width = total_bar_width - filled_bar_width;
+    const size_t total_bar_width = m_width - first_part_width;
+    const size_t filled_bar_width = value * total_bar_width;
+    const size_t unfilled_bar_width = total_bar_width - filled_bar_width;
     fmt::print("\r{} {:5.1f}% [{:=<{}}{: <{}}]",
                m_header,
                100 * value,

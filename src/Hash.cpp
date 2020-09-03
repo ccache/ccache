@@ -69,7 +69,7 @@ Hash::hash_delimiter(string_view type)
 Hash&
 Hash::hash(const void* data, size_t size, HashType hash_type)
 {
-  string_view buffer(static_cast<const char*>(data), size);
+  const string_view buffer(static_cast<const char*>(data), size);
   hash_buffer(buffer);
 
   switch (hash_type) {
@@ -111,13 +111,13 @@ Hash::hash_fd(int fd)
 bool
 Hash::hash_file(const std::string& path)
 {
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  const Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     log("Failed to open {}: {}", path, strerror(errno));
     return false;
   }
 
-  bool ret = hash_fd(*fd);
+  const bool ret = hash_fd(*fd);
   return ret;
 }
 

@@ -96,7 +96,7 @@ find_first_ansi_csi_seq(string_view string)
   if (pos + 1 >= string.length() || string[pos + 1] != '[') {
     return {};
   }
-  size_t start = pos;
+  const size_t start = pos;
   pos += 2;
   while (pos < string.length()
          && (string[pos] >= 0x30 && string[pos] <= 0x3f)) {
@@ -138,7 +138,7 @@ split_at(string_view input, const char* separators)
 
   size_t start = 0;
   while (start < input.size()) {
-    size_t end = input.find_first_of(separators, start);
+    const size_t end = input.find_first_of(separators, start);
 
     if (end == string_view::npos) {
       result.emplace_back(input.data() + start, input.size() - start);
@@ -171,18 +171,18 @@ rewrite_stderr_to_absolute_paths(string_view text)
       line = line.substr(in_file_included_from.length());
     }
     while (!line.empty() && line[0] == 0x1b) {
-      auto csi_seq = find_first_ansi_csi_seq(line);
+      const auto csi_seq = find_first_ansi_csi_seq(line);
       result.append(csi_seq.data(), csi_seq.length());
       line = line.substr(csi_seq.length());
     }
-    size_t path_end = line.find(':');
+    const size_t path_end = line.find(':');
     if (path_end == nonstd::string_view::npos) {
       result.append(line.data(), line.length());
     } else {
-      std::string path(line.substr(0, path_end));
+      const std::string path(line.substr(0, path_end));
       if (Stat::stat(path)) {
         result += Util::real_path(path);
-        auto tail = line.substr(path_end);
+        const auto tail = line.substr(path_end);
         result.append(tail.data(), tail.length());
       } else {
         result.append(line.data(), line.length());
@@ -205,14 +205,14 @@ base_name(string_view path)
 #else
   const char delim[] = "/";
 #endif
-  size_t n = path.find_last_of(delim);
+  const size_t n = path.find_last_of(delim);
   return n == std::string::npos ? path : path.substr(n + 1);
 }
 
 std::string
 change_extension(string_view path, string_view new_ext)
 {
-  string_view without_ext = Util::remove_extension(path);
+  const string_view without_ext = Util::remove_extension(path);
   return std::string(without_ext).append(new_ext.data(), new_ext.length());
 }
 
@@ -286,7 +286,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
   if (ctx.config.hard_link()) {
     unlink(dest.c_str());
     log("Hard linking {} to {}", source, dest);
-    int ret = link(source.c_str(), dest.c_str());
+    const int ret = link(source.c_str(), dest.c_str());
     if (ret == 0) {
       if (chmod(dest.c_str(), 0444) != 0) {
         log("Failed to chmod: {}", strerror(errno));
@@ -371,8 +371,8 @@ copy_file(const std::string& src, const std::string& dest, bool via_tmp_file)
 bool
 create_dir(string_view dir)
 {
-  std::string dir_str(dir);
-  auto st = Stat::stat(dir_str);
+  const std::string dir_str(dir);
+  const auto st = Stat::stat(dir_str);
   if (st) {
     if (st.is_directory()) {
       return true;
@@ -384,7 +384,7 @@ create_dir(string_view dir)
     if (!create_dir(Util::dir_name(dir))) {
       return false;
     }
-    int result = mkdir(dir_str.c_str(), 0777);
+    const int result = mkdir(dir_str.c_str(), 0777);
     // Treat an already existing directory as OK since the file system could
     // have changed in between calling stat and actually creating the
     // directory. This can happen when there are multiple instances of ccache
@@ -404,7 +404,7 @@ dir_name(string_view path)
 #else
   const char delim[] = "/";
 #endif
-  size_t n = path.find_last_of(delim);
+  const size_t n = path.find_last_of(delim);
   if (n == std::string::npos) {
     return ".";
   } else {
@@ -422,7 +422,7 @@ expand_environment_variables(const std::string& str)
       result.append(left, right - left);
 
       left = right + 1;
-      bool curly = *left == '{';
+      const bool curly = *left == '{';
       if (curly) {
         ++left;
       }
@@ -438,7 +438,7 @@ expand_environment_variables(const std::string& str)
         result += '$';
         --right;
       } else {
-        std::string name(left, right - left);
+        const std::string name(left, right - left);
         const char* value = getenv(name.c_str());
         if (!value) {
           throw Error("environment variable \"{}\" not set", name);
@@ -498,7 +498,7 @@ for_each_level_1_subdir(const std::string& cache_dir,
   for (int i = 0; i <= 0xF; i++) {
     double progress = 1.0 * i / 16;
     progress_receiver(progress);
-    std::string subdir_path = fmt::format("{}/{:x}", cache_dir, i);
+    const std::string subdir_path = fmt::format("{}/{:x}", cache_dir, i);
     subdir_visitor(subdir_path, [&](double inner_progress) {
       progress_receiver(progress + inner_progress / 16);
     });
@@ -584,12 +584,12 @@ get_apparent_cwd(const std::string& actual_cwd)
     return actual_cwd;
   }
 
-  auto pwd_stat = Stat::stat(pwd);
-  auto cwd_stat = Stat::stat(actual_cwd);
+  const auto pwd_stat = Stat::stat(pwd);
+  const auto cwd_stat = Stat::stat(actual_cwd);
   if (!pwd_stat || !cwd_stat || !pwd_stat.same_inode_as(cwd_stat)) {
     return actual_cwd;
   }
-  std::string normalized_pwd = normalize_absolute_path(pwd);
+  const std::string normalized_pwd = normalize_absolute_path(pwd);
   return normalized_pwd == pwd
              || Stat::stat(normalized_pwd).same_inode_as(pwd_stat)
            ? normalized_pwd
@@ -605,7 +605,7 @@ get_extension(string_view path)
 #else
   const char stop_at_chars[] = "./\\";
 #endif
-  size_t pos = path.find_last_of(stop_at_chars);
+  const size_t pos = path.find_last_of(stop_at_chars);
   if (pos == string_view::npos || path.at(pos) == '/') {
     return {};
 #ifdef _WIN32
@@ -629,7 +629,7 @@ get_level_1_files(const std::string& dir,
   size_t level_2_directories = 0;
 
   Util::traverse(dir, [&](const std::string& path, bool is_dir) {
-    auto name = Util::base_name(path);
+    const auto name = Util::base_name(path);
     if (name == "CACHEDIR.TAG" || name == "stats" || name.starts_with(".nfs")) {
       return;
     }
@@ -709,7 +709,7 @@ get_relative_path(string_view dir, string_view path)
 #endif
 
   std::string result;
-  size_t common_prefix_len = Util::common_dir_prefix_length(dir, path);
+  const size_t common_prefix_len = Util::common_dir_prefix_length(dir, path);
   if (common_prefix_len > 0 || dir != "/") {
     for (size_t i = common_prefix_len; i < dir.length(); ++i) {
       if (dir[i] == '/') {
@@ -750,7 +750,7 @@ get_path_in_cache(string_view cache_dir,
   }
 
   path.push_back('/');
-  string_view name_remaining = name.substr(level);
+  const string_view name_remaining = name.substr(level);
   path.append(name_remaining.data(), name_remaining.length());
   path.append(suffix.data(), suffix.length());
 
@@ -795,7 +795,7 @@ is_nfs_fd(int /*fd*/, bool* /*is_nfs*/)
 bool
 is_precompiled_header(string_view path)
 {
-  string_view ext = get_extension(path);
+  const string_view ext = get_extension(path);
   return ext == ".gch" || ext == ".pch" || ext == ".pth"
          || get_extension(dir_name(path)) == ".gch";
 }
@@ -803,7 +803,7 @@ is_precompiled_header(string_view path)
 optional<tm>
 localtime(optional<time_t> time)
 {
-  time_t timestamp = time ? *time : ::time(nullptr);
+  const time_t timestamp = time ? *time : ::time(nullptr);
   tm result;
   if (localtime_r(&timestamp, &result)) {
     return result;
@@ -838,7 +838,7 @@ make_relative_path(const Context& ctx, string_view path)
   // The algorithm for computing relative paths below only works for existing
   // paths. If the path doesn't exist, find the first ancestor directory that
   // does exist and assemble the path again afterwards.
-  string_view original_path = path;
+  const string_view original_path = path;
   std::string path_suffix;
   Stat path_stat;
   while (!(path_stat = Stat::stat(std::string(path)))) {
@@ -846,8 +846,8 @@ make_relative_path(const Context& ctx, string_view path)
   }
   path_suffix = std::string(original_path.substr(path.length()));
 
-  std::string path_str(path);
-  std::string normalized_path = Util::normalize_absolute_path(path_str);
+  const std::string path_str(path);
+  const std::string normalized_path = Util::normalize_absolute_path(path_str);
   std::vector<std::string> relpath_candidates = {
     Util::get_relative_path(ctx.actual_cwd, normalized_path),
     Util::get_relative_path(ctx.apparent_cwd, normalized_path),
@@ -906,7 +906,8 @@ normalize_absolute_path(string_view path)
       break;
     }
     const auto right = path.find('/', left);
-    string_view part = path.substr(left, right == npos ? npos : right - left);
+    const string_view part =
+      path.substr(left, right == npos ? npos : right - left);
     if (part == "..") {
       if (result.length() > 1) {
         // "/x/../part" -> "/part"
@@ -942,7 +943,8 @@ uint32_t
 parse_duration(const std::string& duration)
 {
   unsigned factor = 0;
-  char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
+  const char last_ch =
+    duration.empty() ? '\0' : duration[duration.length() - 1];
 
   switch (last_ch) {
   case 'd':
@@ -992,7 +994,7 @@ parse_size(const std::string& value)
   }
 
   if (*p != '\0') {
-    unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
+    const unsigned multiplier = *(p + 1) == 'i' ? 1024 : 1000;
     switch (*p) {
     case 'T':
       result *= multiplier;
@@ -1055,7 +1057,7 @@ std::string
 read_file(const std::string& path, size_t size_hint)
 {
   if (size_hint == 0) {
-    auto stat = Stat::stat(path, Stat::OnError::log);
+    const auto stat = Stat::stat(path, Stat::OnError::log);
     if (!stat) {
       throw Error(strerror(errno));
     }
@@ -1065,7 +1067,7 @@ read_file(const std::string& path, size_t size_hint)
   // +1 to be able to detect EOF in the first read call
   size_hint = (size_hint < 1024) ? 1024 : size_hint + 1;
 
-  Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
+  const Fd fd(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!fd) {
     throw Error(strerror(errno));
   }
@@ -1105,9 +1107,9 @@ read_file(const std::string& path, size_t size_hint)
 std::string
 read_link(const std::string& path)
 {
-  size_t buffer_size = path_max(path);
-  std::unique_ptr<char[]> buffer(new char[buffer_size]);
-  ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
+  const size_t buffer_size = path_max(path);
+  const std::unique_ptr<char[]> buffer(new char[buffer_size]);
+  const ssize_t len = readlink(path.c_str(), buffer.get(), buffer_size - 1);
   if (len == -1) {
     return "";
   }
@@ -1119,8 +1121,8 @@ read_link(const std::string& path)
 std::string
 real_path(const std::string& path, bool return_empty_on_error)
 {
-  size_t buffer_size = path_max(path);
-  std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
+  const size_t buffer_size = path_max(path);
+  const std::unique_ptr<char[]> managed_buffer(new char[buffer_size]);
   char* buffer = managed_buffer.get();
   char* resolved = nullptr;
 
@@ -1237,7 +1239,7 @@ void
 set_cloexec_flag(int fd)
 {
 #ifndef _WIN32
-  int flags = fcntl(fd, F_GETFD, 0);
+  const int flags = fcntl(fd, F_GETFD, 0);
   if (flags >= 0) {
     fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
   }
@@ -1277,9 +1279,9 @@ strip_ansi_csi_seqs(string_view string)
   std::string result;
 
   while (true) {
-    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
+    const auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
     auto data_start = string.data() + pos;
-    auto data_length =
+    const auto data_length =
       seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
     result.append(data_start, data_length);
     if (seq_span.empty()) {
@@ -1296,8 +1298,9 @@ std::string
 strip_whitespace(const std::string& string)
 {
   auto is_space = [](int ch) { return std::isspace(ch); };
-  auto start = std::find_if_not(string.begin(), string.end(), is_space);
-  auto end = std::find_if_not(string.rbegin(), string.rend(), is_space).base();
+  const auto start = std::find_if_not(string.begin(), string.end(), is_space);
+  const auto end =
+    std::find_if_not(string.rbegin(), string.rend(), is_space).base();
   return start < end ? std::string(start, end) : std::string();
 }
 
@@ -1324,7 +1327,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
         continue;
       }
 
-      std::string entry_path = path + "/" + entry->d_name;
+      const std::string entry_path = path + "/" + entry->d_name;
       bool is_dir;
 #  ifdef _DIRENT_HAVE_D_TYPE
       if (entry->d_type != DT_UNKNOWN) {
@@ -1332,7 +1335,7 @@ traverse(const std::string& path, const TraverseVisitor& visitor)
       } else
 #  endif
       {
-        auto stat = Stat::lstat(entry_path);
+        const auto stat = Stat::lstat(entry_path);
         if (!stat) {
           if (stat.error_number() == ENOENT || stat.error_number() == ESTALE) {
             continue;
@@ -1391,7 +1394,7 @@ unlink_safe(const std::string& path, UnlinkLog unlink_log)
   // If path is on an NFS share, unlink isn't atomic, so we rename to a temp
   // file. We don't care if the temp file is trashed, so it's always safe to
   // unlink it first.
-  std::string tmp_name = path + ".ccache.rm.tmp";
+  const std::string tmp_name = path + ".ccache.rm.tmp";
 
   bool success = true;
   try {
@@ -1423,7 +1426,7 @@ unlink_tmp(const std::string& path, UnlinkLog unlink_log)
 {
   int saved_errno = 0;
 
-  bool success =
+  const bool success =
     unlink(path.c_str()) == 0 || (errno == ENOENT || errno == ESTALE);
   saved_errno = errno;
   if (success || unlink_log == UnlinkLog::log_failure) {
@@ -1479,7 +1482,7 @@ write_fd(int fd, const void* data, size_t size)
 {
   ssize_t written = 0;
   do {
-    ssize_t count =
+    const ssize_t count =
       write(fd, static_cast<const uint8_t*>(data) + written, size - written);
     if (count == -1) {
       if (errno != EAGAIN && errno != EINTR) {

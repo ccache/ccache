@@ -197,7 +197,7 @@ hash_source_code_file_nocache(const Context& ctx,
     } catch (Error&) {
       return HASH_SOURCE_CODE_ERROR;
     }
-    int result = hash_source_code_string(ctx, hash, data, path);
+    const int result = hash_source_code_string(ctx, hash, data, path);
     return result;
   }
 }
@@ -316,7 +316,8 @@ hash_source_code_file(const Context& ctx,
   // Reusable file hashes must be independent of the outer context. Thus hash
   // files separately so that digests based on file contents can be reused. Then
   // add the digest into the outer hash instead.
-  InodeCache::ContentType content_type = get_content_type(ctx.config, path);
+  const InodeCache::ContentType content_type =
+    get_content_type(ctx.config, path);
   Digest digest;
   int return_value;
   if (!ctx.inode_cache.get(path, content_type, digest, &return_value)) {
@@ -469,7 +470,7 @@ hash_command_output(Hash& hash,
     throw Fatal("pipe failed: {}", strerror(errno));
   }
 
-  pid_t pid = fork();
+  const pid_t pid = fork();
   if (pid == -1) {
     throw Fatal("fork failed: {}", strerror(errno));
   }
@@ -485,7 +486,7 @@ hash_command_output(Hash& hash,
   } else {
     // Parent.
     close(pipefd[1]);
-    bool ok = hash.hash_fd(pipefd[0]);
+    const bool ok = hash.hash_fd(pipefd[0]);
     if (!ok) {
       log("Error hashing compiler check command output: {}", strerror(errno));
     }

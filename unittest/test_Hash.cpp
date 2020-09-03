@@ -69,7 +69,7 @@ TEST_CASE("Hash::digest should not alter state")
 
 TEST_CASE("Hash::digest should be idempotent")
 {
-  Hash h;
+  const Hash h;
   CHECK(h.digest().to_string() == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
   CHECK(h.digest().to_string() == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
 }

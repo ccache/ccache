@@ -180,7 +180,7 @@ find_prefix(const std::string& option)
 bool
 compopt_short(bool (*fn)(const std::string&), const std::string& option)
 {
-  bool retval = fn(option.substr(0, 2));
+  const bool retval = fn(option.substr(0, 2));
   return retval;
 }
 

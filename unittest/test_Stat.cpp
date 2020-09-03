@@ -32,7 +32,7 @@ TEST_SUITE_BEGIN("Stat");
 
 TEST_CASE("Default constructor")
 {
-  Stat stat;
+  const Stat stat;
   CHECK(!stat);
   CHECK(stat.error_number() == -1);
   CHECK(stat.device() == 0);
@@ -68,12 +68,12 @@ TEST_CASE("Named constructors")
 
 TEST_CASE("Same i-node as")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::write_file("a", "");
   Util::write_file("b", "");
-  auto a_stat = Stat::stat("a");
-  auto b_stat = Stat::stat("b");
+  const auto a_stat = Stat::stat("a");
+  const auto b_stat = Stat::stat("b");
 
   CHECK(a_stat.same_inode_as(a_stat));
 #ifdef _WIN32 // no i-node concept
@@ -83,13 +83,13 @@ TEST_CASE("Same i-node as")
 #endif
 
   Util::write_file("a", "change size");
-  auto new_a_stat = Stat::stat("a");
+  const auto new_a_stat = Stat::stat("a");
   CHECK(new_a_stat.same_inode_as(a_stat));
 }
 
 TEST_CASE("Return values when file is missing")
 {
-  auto stat = Stat::stat("does_not_exist");
+  const auto stat = Stat::stat("does_not_exist");
   CHECK(!stat);
   CHECK(stat.error_number() == ENOENT);
   CHECK(stat.device() == 0);
@@ -116,11 +116,11 @@ TEST_CASE("Return values when file is missing")
 
 TEST_CASE("Return values when file exists")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::write_file("file", "1234567");
 
-  auto stat = Stat::stat("file");
+  const auto stat = Stat::stat("file");
   struct stat st;
   CHECK(::stat("file", &st) == 0);
 
@@ -154,10 +154,10 @@ TEST_CASE("Return values when file exists")
 
 TEST_CASE("Directory")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   REQUIRE(mkdir("directory", 0456) == 0);
-  auto stat = Stat::stat("directory");
+  const auto stat = Stat::stat("directory");
 
   CHECK(stat);
   CHECK(stat.error_number() == 0);
@@ -169,13 +169,13 @@ TEST_CASE("Directory")
 #ifndef _WIN32
 TEST_CASE("Symlinks")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   Util::write_file("file", "1234567");
 
   SUBCASE("file lstat")
   {
-    auto stat = Stat::lstat("file", Stat::OnError::ignore);
+    const auto stat = Stat::lstat("file", Stat::OnError::ignore);
     CHECK(stat);
     CHECK(!stat.is_directory());
     CHECK(stat.is_regular());
@@ -185,7 +185,7 @@ TEST_CASE("Symlinks")
 
   SUBCASE("file stat")
   {
-    auto stat = Stat::stat("file", Stat::OnError::ignore);
+    const auto stat = Stat::stat("file", Stat::OnError::ignore);
     CHECK(stat);
     CHECK(!stat.is_directory());
     CHECK(stat.is_regular());
@@ -196,7 +196,7 @@ TEST_CASE("Symlinks")
   SUBCASE("symlink lstat")
   {
     REQUIRE(symlink("file", "symlink") == 0);
-    auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
+    const auto stat = Stat::lstat("symlink", Stat::OnError::ignore);
     CHECK(stat);
     CHECK(!stat.is_directory());
     CHECK(!stat.is_regular());
@@ -207,7 +207,7 @@ TEST_CASE("Symlinks")
   SUBCASE("symlink stat")
   {
     REQUIRE(symlink("file", "symlink") == 0);
-    auto stat = Stat::stat("symlink", Stat::OnError::ignore);
+    const auto stat = Stat::stat("symlink", Stat::OnError::ignore);
     CHECK(stat);
     CHECK(!stat.is_directory());
     CHECK(stat.is_regular());

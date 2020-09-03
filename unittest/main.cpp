@@ -33,15 +33,15 @@ main(int argc, char** argv)
 #endif
   Util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
-  std::string dir_before = Util::get_actual_cwd();
-  std::string testdir = fmt::format("testdir.{}", getpid());
+  const std::string dir_before = Util::get_actual_cwd();
+  const std::string testdir = fmt::format("testdir.{}", getpid());
   Util::wipe_path(testdir);
   Util::create_dir(testdir);
   TestUtil::check_chdir(testdir);
 
   doctest::Context context;
   context.applyCommandLine(argc, argv);
-  int result = context.run();
+  const int result = context.run();
 
   if (result == 0) {
     TestUtil::check_chdir(dir_before);

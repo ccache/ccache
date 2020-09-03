@@ -76,7 +76,7 @@ CacheEntryReader::read(void* data, size_t count)
 void
 CacheEntryReader::finalize()
 {
-  uint64_t actual_digest = m_checksum.digest();
+  const uint64_t actual_digest = m_checksum.digest();
 
   uint8_t buffer[8];
   read(buffer, sizeof(buffer));

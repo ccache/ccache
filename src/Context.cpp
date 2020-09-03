@@ -49,7 +49,7 @@ Context::~Context()
 
   // Dump log buffer last to not lose any logs.
   if (config.debug()) {
-    std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
+    const std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
     Logging::dump_log(path);
   }
 }
@@ -98,7 +98,7 @@ Context::set_path_and_stats_file(const Digest& name,
 void
 Context::register_pending_tmp_file(const std::string& path)
 {
-  SignalHandlerBlocker signal_handler_blocker;
+  const SignalHandlerBlocker signal_handler_blocker;
 
   m_pending_tmp_files.push_back(path);
 }
@@ -116,7 +116,7 @@ Context::unlink_pending_tmp_files_signal_safe()
 void
 Context::unlink_pending_tmp_files()
 {
-  SignalHandlerBlocker signal_handler_blocker;
+  const SignalHandlerBlocker signal_handler_blocker;
 
   for (const std::string& path : m_pending_tmp_files) {
     Util::unlink_tmp(path, Util::UnlinkLog::ignore_failure);
@@ -128,7 +128,7 @@ void
 Context::set_ignore_options(const std::vector<std::string>& options)
 {
   for (const std::string& option : options) {
-    size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');
+    const size_t n_wildcards = std::count(option.cbegin(), option.cend(), '*');
     if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
       m_ignore_options.push_back(option);
     } else {

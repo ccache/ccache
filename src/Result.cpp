@@ -243,7 +243,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
 
   UnderlyingFileTypeInt type;
   cache_entry_reader.read(type);
-  FileType file_type = FileType(type);
+  const FileType file_type = FileType(type);
 
   uint64_t file_len;
   cache_entry_reader.read(file_len);
@@ -254,7 +254,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
     uint8_t buf[READ_BUFFER_SIZE];
     size_t remain = file_len;
     while (remain > 0) {
-      size_t n = std::min(remain, sizeof(buf));
+      const size_t n = std::min(remain, sizeof(buf));
       cache_entry_reader.read(buf, n);
       consumer.on_entry_data(buf, n);
       remain -= n;
@@ -262,8 +262,8 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
   } else {
     assert(marker == k_raw_file_marker);
 
-    auto raw_path = get_raw_file_path(m_result_path, entry_number);
-    auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
+    const auto raw_path = get_raw_file_path(m_result_path, entry_number);
+    const auto st = Stat::stat(raw_path, Stat::OnError::throw_error);
     if (st.size() != file_len) {
       throw Error("Bad file size of {} (actual {} bytes, expected {} bytes)",
                   raw_path,
@@ -314,7 +314,7 @@ Writer::do_finalize()
   payload_size += 1; // n_entries
   for (const auto& pair : m_entries_to_write) {
     const auto& path = pair.second;
-    auto st = Stat::stat(path, Stat::OnError::throw_error);
+    const auto st = Stat::stat(path, Stat::OnError::throw_error);
 
     payload_size += 1;         // embedded_file_marker
     payload_size += 1;         // embedded_file_type
@@ -339,7 +339,8 @@ Writer::do_finalize()
     log("Storing result {}", path);
 
     const bool store_raw = should_store_raw_file(m_ctx.config, file_type);
-    uint64_t file_size = Stat::stat(path, Stat::OnError::throw_error).size();
+    const uint64_t file_size =
+      Stat::stat(path, Stat::OnError::throw_error).size();
 
     log("Storing {} file #{} {} ({} bytes) from {}",
         store_raw ? "raw" : "embedded",
@@ -371,7 +372,7 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
                                           const std::string& path,
                                           uint64_t file_size)
 {
-  Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
+  const Fd file(open(path.c_str(), O_RDONLY | O_BINARY));
   if (!file) {
     throw Error("Failed to open {} for reading", path);
   }
@@ -379,8 +380,8 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
   uint64_t remain = file_size;
   while (remain > 0) {
     uint8_t buf[READ_BUFFER_SIZE];
-    size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
-    ssize_t bytes_read = read(*file, buf, n);
+    const size_t n = std::min(remain, static_cast<uint64_t>(sizeof(buf)));
+    const ssize_t bytes_read = read(*file, buf, n);
     if (bytes_read == -1) {
       if (errno == EINTR) {
         continue;
@@ -399,15 +400,15 @@ void
 Result::Writer::write_raw_file_entry(const std::string& path,
                                      uint32_t entry_number)
 {
-  auto raw_file = get_raw_file_path(m_result_path, entry_number);
-  auto old_stat = Stat::stat(raw_file);
+  const auto raw_file = get_raw_file_path(m_result_path, entry_number);
+  const auto old_stat = Stat::stat(raw_file);
   try {
     Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
   } catch (Error& e) {
     throw Error(
       "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
   }
-  auto new_stat = Stat::stat(raw_file);
+  const auto new_stat = Stat::stat(raw_file);
   stats_update_size(m_ctx.counter_updates,
                     new_stat.size_on_disk() - old_stat.size_on_disk(),
                     (new_stat ? 1 : 0) - (old_stat ? 1 : 0));

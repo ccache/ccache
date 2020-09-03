@@ -157,7 +157,7 @@ ResultRetriever::write_dependency_file()
 
   try {
     if (m_rewrite_dependency_target) {
-      size_t colon_pos = m_dest_data.find(':');
+      const size_t colon_pos = m_dest_data.find(':');
       if (colon_pos != std::string::npos) {
         Util::write_fd(*m_dest_fd,
                        m_ctx.args_info.output_obj.data(),

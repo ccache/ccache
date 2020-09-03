@@ -161,7 +161,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   log("Executing {}", Util::format_argv_for_logging(argv));
 
   {
-    SignalHandlerBlocker signal_handler_blocker;
+    const SignalHandlerBlocker signal_handler_blocker;
     *pid = fork();
   }
 
@@ -187,7 +187,7 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   }
 
   {
-    SignalHandlerBlocker signal_handler_blocker;
+    const SignalHandlerBlocker signal_handler_blocker;
     *pid = 0;
   }
 
@@ -252,12 +252,12 @@ find_executable_in_path(const std::string& name,
 #else
     assert(!exclude_name.empty());
     std::string fname = fmt::format("{}/{}", dir, name);
-    auto st1 = Stat::lstat(fname);
-    auto st2 = Stat::stat(fname);
+    const auto st1 = Stat::lstat(fname);
+    const auto st2 = Stat::stat(fname);
     // Look for a normal executable file.
     if (st1 && st2 && st2.is_regular() && access(fname.c_str(), X_OK) == 0) {
       if (st1.is_symlink()) {
-        std::string real_path = Util::real_path(fname, true);
+        const std::string real_path = Util::real_path(fname, true);
         if (Util::base_name(real_path) == exclude_name) {
           // It's a link to "ccache"!
           continue;

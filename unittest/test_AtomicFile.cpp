@@ -28,7 +28,7 @@ TEST_SUITE_BEGIN("AtomicFile");
 
 TEST_CASE("Base case")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   AtomicFile atomic_file("test", AtomicFile::Mode::text);
   atomic_file.write("h");
@@ -40,7 +40,7 @@ TEST_CASE("Base case")
 
 TEST_CASE("Not committing")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   {
     AtomicFile atomic_file("test", AtomicFile::Mode::text);

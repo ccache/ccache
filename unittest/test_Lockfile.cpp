@@ -28,12 +28,12 @@ using TestUtil::TestContext;
 
 TEST_CASE("Lockfile acquire and release")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   {
-    Lockfile lock("test", 1000);
+    const Lockfile lock("test", 1000);
     CHECK(lock.acquired());
-    auto st = Stat::lstat("test.lock");
+    const auto st = Stat::lstat("test.lock");
     CHECK(st);
 #ifndef _WIN32
     CHECK(st.is_symlink());
@@ -48,11 +48,11 @@ TEST_CASE("Lockfile acquire and release")
 #ifndef _WIN32
 TEST_CASE("Lockfile breaking")
 {
-  TestContext test_context;
+  const TestContext test_context;
 
   CHECK(symlink("foo", "test.lock") == 0);
 
-  Lockfile lock("test", 1000);
+  const Lockfile lock("test", 1000);
   CHECK(lock.acquired());
 }
 #endif // !_WIN32

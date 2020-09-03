@@ -213,7 +213,7 @@ parse_stats(Counters& counters, const std::string& buf)
   const char* p = buf.c_str();
   while (true) {
     char* p2;
-    long val = strtol(p, &p2, 10);
+    const long val = strtol(p, &p2, 10);
     if (p2 == p) {
       break;
     }
@@ -244,11 +244,11 @@ stats_write(const std::string& path, const Counters& counters)
 static double
 stats_hit_rate(const Counters& counters)
 {
-  unsigned direct = counters[STATS_CACHEHIT_DIR];
-  unsigned preprocessed = counters[STATS_CACHEHIT_CPP];
-  unsigned hit = direct + preprocessed;
-  unsigned miss = counters[STATS_CACHEMISS];
-  unsigned total = hit + miss;
+  const unsigned direct = counters[STATS_CACHEHIT_DIR];
+  const unsigned preprocessed = counters[STATS_CACHEHIT_CPP];
+  const unsigned hit = direct + preprocessed;
+  const unsigned miss = counters[STATS_CACHEMISS];
+  const unsigned total = hit + miss;
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
 
@@ -272,7 +272,7 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
     counters[STATS_ZEROTIMESTAMP] = 0; // Don't add
     stats_read(fname, counters);
     zero_timestamp = std::max(counters[STATS_ZEROTIMESTAMP], zero_timestamp);
-    auto st = Stat::stat(fname);
+    const auto st = Stat::stat(fname);
     if (st && st.mtime() > *last_updated) {
       *last_updated = st.mtime();
     }
@@ -299,7 +299,7 @@ void
 stats_read(const std::string& path, Counters& counters)
 {
   try {
-    std::string data = Util::read_file(path);
+    const std::string data = Util::read_file(path);
     parse_stats(counters, data);
   } catch (Error&) {
     // Ignore.
@@ -323,7 +323,7 @@ stats_flush_to_file(const Config& config,
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    for (auto& info : stats_info) {
+    for (const auto& info : stats_info) {
       if (updates[info.stat] != 0 && !(info.flags & FLAG_NOZERO)) {
         log("Result: {}", info.message);
       }
@@ -337,7 +337,7 @@ stats_flush_to_file(const Config& config,
   Counters counters;
 
   {
-    Lockfile lock(sfile);
+    const Lockfile lock(sfile);
     if (!lock.acquired()) {
       return;
     }
@@ -349,7 +349,7 @@ stats_flush_to_file(const Config& config,
     stats_write(sfile, counters);
   }
 
-  std::string subdir(Util::dir_name(sfile));
+  const std::string subdir(Util::dir_name(sfile));
   bool need_cleanup = false;
 
   if (config.max_files() != 0
@@ -370,10 +370,10 @@ stats_flush_to_file(const Config& config,
   }
 
   if (need_cleanup) {
-    double factor = config.limit_multiple() / 16;
-    uint64_t max_size = round(config.max_size() * factor);
-    uint32_t max_files = round(config.max_files() * factor);
-    uint32_t max_age = 0;
+    const double factor = config.limit_multiple() / 16;
+    const uint64_t max_size = round(config.max_size() * factor);
+    const uint32_t max_files = round(config.max_files() * factor);
+    const uint32_t max_age = 0;
     clean_up_dir(
       subdir, max_size, max_files, max_age, [](double /*progress*/) {});
   }
@@ -419,7 +419,7 @@ stats_summary(const Context& ctx)
 
   // ...and display them.
   for (int i = 0; stats_info[i].message; i++) {
-    enum stats stat = stats_info[i].stat;
+    const enum stats stat = stats_info[i].stat;
 
     if (stats_info[i].flags & FLAG_NEVER) {
       continue;
@@ -439,7 +439,7 @@ stats_summary(const Context& ctx)
     }
 
     if (stat == STATS_CACHEMISS) {
-      double percent = stats_hit_rate(counters);
+      const double percent = stats_hit_rate(counters);
       fmt::print("cache hit rate                    {:6.2f} %\n", percent);
     }
   }
@@ -478,16 +478,17 @@ stats_zero(const Context& ctx)
   // Remove old legacy stats file at cache top directory.
   Util::unlink_safe(ctx.config.cache_dir() + "/stats");
 
-  time_t timestamp = time(nullptr);
+  const time_t timestamp = time(nullptr);
 
   for (int dir = 0; dir <= 0xF; dir++) {
     Counters counters;
-    auto fname = fmt::format("{}/{:x}/stats", ctx.config.cache_dir(), dir);
+    const auto fname =
+      fmt::format("{}/{:x}/stats", ctx.config.cache_dir(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
       continue;
     }
-    Lockfile lock(fname);
+    const Lockfile lock(fname);
     if (lock.acquired()) {
       stats_read(fname, counters);
       for (unsigned i = 0; stats_info[i].message; i++) {
@@ -511,7 +512,7 @@ stats_get_obsolete_limits(const std::string& dir,
   assert(maxsize);
 
   Counters counters;
-  std::string sname = dir + "/stats";
+  const std::string sname = dir + "/stats";
   stats_read(sname, counters);
   *maxfiles = counters[STATS_OBSOLETE_MAXFILES];
   *maxsize = static_cast<uint64_t>(counters[STATS_OBSOLETE_MAXSIZE]) * 1024;
@@ -522,8 +523,8 @@ void
 stats_set_sizes(const std::string& dir, unsigned num_files, uint64_t total_size)
 {
   Counters counters;
-  std::string statsfile = dir + "/stats";
-  Lockfile lock(statsfile);
+  const std::string statsfile = dir + "/stats";
+  const Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
     counters[STATS_NUMFILES] = num_files;
@@ -537,8 +538,8 @@ void
 stats_add_cleanup(const std::string& dir, unsigned count)
 {
   Counters counters;
-  std::string statsfile = dir + "/stats";
-  Lockfile lock(statsfile);
+  const std::string statsfile = dir + "/stats";
+  const Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
     counters[STATS_NUMCLEANUPS] += count;

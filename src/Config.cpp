@@ -175,7 +175,7 @@ parse_bool(const std::string& value,
     // Previously any value meant true, but this was surprising to users, who
     // might do something like CCACHE_DISABLE=0 and expect ccache to be
     // enabled.
-    std::string lower_value = Util::to_lowercase(value);
+    const std::string lower_value = Util::to_lowercase(value);
     if (value == "0" || lower_value == "false" || lower_value == "disable"
         || lower_value == "no") {
       throw Error(
@@ -231,7 +231,7 @@ parse_sloppiness(const std::string& value)
   uint32_t result = 0;
   while (end != std::string::npos) {
     end = value.find_first_of(", ", start);
-    std::string token =
+    const std::string token =
       Util::strip_whitespace(value.substr(start, end - start));
     if (token == "file_stat_matches") {
       result |= SLOPPY_FILE_STAT_MATCHES;
@@ -308,7 +308,7 @@ parse_umask(const std::string& value)
   }
 
   size_t end;
-  uint32_t result = std::stoul(value, &end, 8);
+  const uint32_t result = std::stoul(value, &end, 8);
   if (end != value.size()) {
     throw Error("not an octal integer: \"{}\"", value);
   }
@@ -343,7 +343,7 @@ parse_line(const std::string& line,
   if (stripped_line.empty() || stripped_line[0] == '#') {
     return true;
   }
-  size_t equal_pos = stripped_line.find('=');
+  const size_t equal_pos = stripped_line.find('=');
   if (equal_pos == std::string::npos) {
     *error_message = "missing equal sign";
     return false;
@@ -429,24 +429,24 @@ void
 Config::update_from_environment()
 {
   for (char** env = environ; *env; ++env) {
-    std::string setting = *env;
+    const std::string setting = *env;
     const std::string prefix = "CCACHE_";
     if (!Util::starts_with(setting, prefix)) {
       continue;
     }
-    size_t equal_pos = setting.find('=');
+    const size_t equal_pos = setting.find('=');
     if (equal_pos == std::string::npos) {
       continue;
     }
 
     std::string key = setting.substr(prefix.size(), equal_pos - prefix.size());
-    std::string value = setting.substr(equal_pos + 1);
-    bool negate = Util::starts_with(key, "NO");
+    const std::string value = setting.substr(equal_pos + 1);
+    const bool negate = Util::starts_with(key, "NO");
     if (negate) {
       key = key.substr(2);
     }
 
-    auto it = k_env_variable_table.find(key);
+    const auto it = k_env_variable_table.find(key);
     if (it == k_env_variable_table.end()) {
       // Ignore unknown keys.
       continue;
@@ -464,7 +464,7 @@ Config::update_from_environment()
 std::string
 Config::get_string_value(const std::string& key) const
 {
-  auto it = k_config_key_table.find(key);
+  const auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
     throw Error("unknown configuration option \"{}\"", key);
   }
@@ -634,8 +634,8 @@ Config::visit_items(const ItemVisitor& item_visitor) const
   }
   std::sort(keys.begin(), keys.end());
   for (const auto& key : keys) {
-    auto it = m_origins.find(key);
-    std::string origin = it != m_origins.end() ? it->second : "default";
+    const auto it = m_origins.find(key);
+    const std::string origin = it != m_origins.end() ? it->second : "default";
     item_visitor(key, get_string_value(key), origin);
   }
 }
@@ -647,7 +647,7 @@ Config::set_item(const std::string& key,
                  bool negate,
                  const std::string& origin)
 {
-  auto it = k_config_key_table.find(key);
+  const auto it = k_config_key_table.find(key);
   if (it == k_config_key_table.end()) {
     // Ignore unknown keys.
     return;
@@ -690,7 +690,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level: {
-    auto level = Util::parse_int(value);
+    const auto level = Util::parse_int(value);
     if (level < -128 || level > 127) {
       throw Error("compression level must be between -128 and 127");
     }
@@ -836,7 +836,7 @@ std::string
 Config::default_temporary_dir(const std::string& cache_dir)
 {
 #ifdef HAVE_GETEUID
-  std::string user_tmp_dir = fmt::format("/run/user/{}", geteuid());
+  const std::string user_tmp_dir = fmt::format("/run/user/{}", geteuid());
   if (Stat::stat(user_tmp_dir).is_directory()) {
     return user_tmp_dir + "/ccache-tmp";
   }

@@ -67,7 +67,7 @@ RecompressionStatistics::update(uint64_t content_size,
                                 uint64_t new_size,
                                 uint64_t incompressible_size)
 {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  const std::unique_lock<std::mutex> lock(m_mutex);
   m_incompressible_size += incompressible_size;
   m_content_size += content_size;
   m_old_size += old_size;
@@ -77,28 +77,28 @@ RecompressionStatistics::update(uint64_t content_size,
 uint64_t
 RecompressionStatistics::content_size() const
 {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  const std::unique_lock<std::mutex> lock(m_mutex);
   return m_content_size;
 }
 
 uint64_t
 RecompressionStatistics::old_size() const
 {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  const std::unique_lock<std::mutex> lock(m_mutex);
   return m_old_size;
 }
 
 uint64_t
 RecompressionStatistics::new_size() const
 {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  const std::unique_lock<std::mutex> lock(m_mutex);
   return m_new_size;
 }
 
 uint64_t
 RecompressionStatistics::incompressible_size() const
 {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  const std::unique_lock<std::mutex> lock(m_mutex);
   return m_incompressible_size;
 }
 
@@ -161,9 +161,9 @@ recompress_file(Context& ctx,
   auto file = open_file(cache_file.path(), "rb");
   auto reader = create_reader(cache_file, file.get());
 
-  auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
-  uint64_t content_size = reader->content_size();
-  int8_t wanted_level =
+  const auto old_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
+  const uint64_t content_size = reader->content_size();
+  const int8_t wanted_level =
     level ? (*level == 0 ? ZstdCompressor::default_compression_level : *level)
           : 0;
 
@@ -185,7 +185,7 @@ recompress_file(Context& ctx,
   char buffer[READ_BUFFER_SIZE];
   size_t bytes_left = reader->payload_size();
   while (bytes_left > 0) {
-    size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));
+    const size_t bytes_to_read = std::min(bytes_left, sizeof(buffer));
     reader->read(buffer, bytes_to_read);
     writer->write(buffer, bytes_to_read);
     bytes_left -= bytes_to_read;
@@ -196,9 +196,10 @@ recompress_file(Context& ctx,
   file.close();
 
   atomic_new_file.commit();
-  auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
+  const auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  size_t size_on_disk_delta = new_stat.size_on_disk() - old_stat.size_on_disk();
+  const size_t size_on_disk_delta =
+    new_stat.size_on_disk() - old_stat.size_on_disk();
   if (ctx.stats_file() == stats_file) {
     stats_update_size(ctx.counter_updates, size_on_disk_delta, 0);
   } else {
@@ -255,16 +256,20 @@ compress_stats(const Config& config,
     fmt::print("\n\n");
   }
 
-  double ratio =
+  const double ratio =
     compr_size > 0 ? static_cast<double>(content_size) / compr_size : 0.0;
-  double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
+  const double savings = ratio > 0.0 ? 100.0 - (100.0 / ratio) : 0.0;
 
-  std::string on_disk_size_str = Util::format_human_readable_size(on_disk_size);
-  std::string cache_size_str =
+  const std::string on_disk_size_str =
+    Util::format_human_readable_size(on_disk_size);
+  const std::string cache_size_str =
     Util::format_human_readable_size(compr_size + incompr_size);
-  std::string compr_size_str = Util::format_human_readable_size(compr_size);
-  std::string content_size_str = Util::format_human_readable_size(content_size);
-  std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
+  const std::string compr_size_str =
+    Util::format_human_readable_size(compr_size);
+  const std::string content_size_str =
+    Util::format_human_readable_size(content_size);
+  const std::string incompr_size_str =
+    Util::format_human_readable_size(incompr_size);
 
   fmt::print("Total data:            {:>8s} ({} disk blocks)\n",
              cache_size_str,
@@ -299,7 +304,7 @@ compress_recompress(Context& ctx,
         [&](double progress) { sub_progress_receiver(0.1 * progress); },
         files);
 
-      auto stats_file = subdir + "/stats";
+      const auto stats_file = subdir + "/stats";
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& file = files[i];
@@ -331,28 +336,30 @@ compress_recompress(Context& ctx,
     fmt::print("\n\n");
   }
 
-  double old_ratio =
+  const double old_ratio =
     statistics.old_size() > 0
       ? static_cast<double>(statistics.content_size()) / statistics.old_size()
       : 0.0;
-  double old_savings = old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
-  double new_ratio =
+  const double old_savings =
+    old_ratio > 0.0 ? 100.0 - (100.0 / old_ratio) : 0.0;
+  const double new_ratio =
     statistics.new_size() > 0
       ? static_cast<double>(statistics.content_size()) / statistics.new_size()
       : 0.0;
-  double new_savings = new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
-  int64_t size_difference = static_cast<int64_t>(statistics.new_size())
-                            - static_cast<int64_t>(statistics.old_size());
+  const double new_savings =
+    new_ratio > 0.0 ? 100.0 - (100.0 / new_ratio) : 0.0;
+  const int64_t size_difference = static_cast<int64_t>(statistics.new_size())
+                                  - static_cast<int64_t>(statistics.old_size());
 
-  std::string old_compr_size_str =
+  const std::string old_compr_size_str =
     Util::format_human_readable_size(statistics.old_size());
-  std::string new_compr_size_str =
+  const std::string new_compr_size_str =
     Util::format_human_readable_size(statistics.new_size());
-  std::string content_size_str =
+  const std::string content_size_str =
     Util::format_human_readable_size(statistics.content_size());
-  std::string incompr_size_str =
+  const std::string incompr_size_str =
     Util::format_human_readable_size(statistics.incompressible_size());
-  std::string size_difference_str =
+  const std::string size_difference_str =
     fmt::format("{}{}",
                 size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
                 Util::format_human_readable_size(

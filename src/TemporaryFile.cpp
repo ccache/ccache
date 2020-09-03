@@ -61,7 +61,7 @@ mkstemp(char* name_template)
 TemporaryFile::TemporaryFile(string_view path_prefix)
 {
   if (!initialize(path_prefix) && errno == ENOENT) {
-    auto dir = Util::dir_name(path);
+    const auto dir = Util::dir_name(path);
     if (!Util::create_dir(dir)) {
       throw Fatal("Failed to create directory {}: {}", dir, strerror(errno));
     }

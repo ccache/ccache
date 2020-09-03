@@ -173,7 +173,7 @@ InodeCache::hash_inode(const std::string& path,
                        ContentType type,
                        Digest& digest)
 {
-  Stat stat = Stat::stat(path);
+  const Stat stat = Stat::stat(path);
   if (!stat) {
     log("Could not stat {}: {}", path, strerror(stat.error_number()));
     return false;
@@ -207,7 +207,7 @@ InodeCache::Bucket*
 InodeCache::acquire_bucket(uint32_t index)
 {
   Bucket* bucket = &m_sr->buckets[index];
-  int err = pthread_mutex_lock(&bucket->mt);
+  const int err = pthread_mutex_lock(&bucket->mt);
 #ifdef PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
     if (m_config.debug()) {
@@ -259,7 +259,7 @@ InodeCache::create_new_file(const std::string& filename)
   // mapping it before it is fully initialized.
   TemporaryFile tmp_file(filename);
 
-  Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
+  const Finalizer temp_file_remover([&] { unlink(tmp_file.path.c_str()); });
 
   bool is_nfs;
   if (Util::is_nfs_fd(*tmp_file.fd, &is_nfs) == 0 && is_nfs) {
@@ -269,7 +269,7 @@ InodeCache::create_new_file(const std::string& filename)
       filename);
     return false;
   }
-  int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
+  const int err = Util::fallocate(*tmp_file.fd, sizeof(SharedRegion));
   if (err) {
     log("Failed to allocate file space for inode cache: {}", strerror(err));
     return false;
@@ -325,7 +325,7 @@ InodeCache::initialize()
     return true;
   }
 
-  std::string filename = get_file();
+  const std::string filename = get_file();
   if (m_sr || mmap_file(filename)) {
     return true;
   }
@@ -382,7 +382,7 @@ InodeCache::get(const std::string& path,
   for (uint32_t i = 0; i < k_num_entries; ++i) {
     if (bucket->entries[i].key_digest == key_digest) {
       if (i > 0) {
-        Entry tmp = bucket->entries[i];
+        const Entry tmp = bucket->entries[i];
         memmove(&bucket->entries[1], &bucket->entries[0], sizeof(Entry) * i);
         bucket->entries[0] = tmp;
       }
@@ -452,7 +452,7 @@ InodeCache::put(const std::string& path,
 bool
 InodeCache::drop()
 {
-  std::string file = get_file();
+  const std::string file = get_file();
   if (unlink(file.c_str()) != 0) {
     return false;
   }

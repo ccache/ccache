@@ -44,7 +44,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
   std::string initial_content;
 
   while (true) {
-    std::string my_content =
+    const std::string my_content =
       fmt::format("{}:{}:{}", Util::get_hostname(), getpid(), time(nullptr));
 
     if (symlink(my_content.c_str(), lockfile.c_str()) == 0) {
@@ -52,7 +52,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
       return true;
     }
 
-    int saved_errno = errno;
+    const int saved_errno = errno;
     log("lockfile_acquire: symlink {}: {}", lockfile, strerror(saved_errno));
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
@@ -73,7 +73,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
       return false;
     }
 
-    std::string content = Util::read_link(lockfile);
+    const std::string content = Util::read_link(lockfile);
     if (content.empty()) {
       if (errno == ENOENT) {
         // The symlink was removed after the symlink() call above, so retry
