@@ -66,8 +66,8 @@ you don't run clang-format then the ccache authors have to do it for you.
 Please follow these conventions:
 
 * Use `UpperCamelCase` for types (e.g. classes and structs) and namespaces.
-* Use `UPPER_CASE` names for macros.
-* Use `snake_case` for other names (functions, variables, enum values, etc.).
+* Use `UPPER_CASE` names for macros and (non-class )enum values.
+* Use `snake_case` for other names (functions, variables, enum class values, etc.).
 * Use an `m_` prefix for non-public member variables.
 * Use a `g_` prefix for global mutable variables.
 * Use a `k_` prefix for global constants.
