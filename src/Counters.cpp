@@ -22,13 +22,13 @@
 
 #include <algorithm>
 
-Counters::Counters() : m_counters(static_cast<size_t>(Stats::END))
+Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
 {
 }
 
 // clang-format off
 unsigned&
-Counters::operator[](Stats index)
+Counters::operator[](Statistic index)
 // clang-format on
 {
   const size_t i = static_cast<size_t>(index);
@@ -40,7 +40,7 @@ Counters::operator[](Stats index)
 
 // clang-format off
 unsigned
-Counters::operator[](Stats index) const
+Counters::operator[](Statistic index) const
 // clang-format on
 {
   const size_t i = static_cast<size_t>(index);

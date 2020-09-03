@@ -82,7 +82,7 @@ TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 
   Util::write_file("foo.c", "");
   CHECK(process_args(ctx, preprocessed, extra, compiler)
-        == Stats::PREPROCESSING);
+        == Statistic::called_for_preprocessing);
 }
 
 TEST_CASE("dash_M_should_be_unsupported")
@@ -98,7 +98,7 @@ TEST_CASE("dash_M_should_be_unsupported")
 
   Util::write_file("foo.c", "");
   CHECK(process_args(ctx, preprocessed, extra, compiler)
-        == Stats::UNSUPPORTED_OPTION);
+        == Statistic::unsupported_compiler_option);
 }
 
 TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")

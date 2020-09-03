@@ -22,7 +22,7 @@
 
 #include <vector>
 
-enum class Stats;
+enum class Statistic;
 
 // A simple wrapper around a vector of integers
 // used for the statistics counters.
@@ -31,13 +31,13 @@ class Counters
 public:
   Counters();
 
-  unsigned& operator[](Stats index);
-  unsigned operator[](Stats index) const;
+  unsigned& operator[](Statistic index);
+  unsigned operator[](Statistic index) const;
 
   size_t size() const;
 
   // Return true if all counters are zero, false otherwise.
-  [[nodiscard]] bool all_zero() const;
+  bool all_zero() const;
 
 private:
   std::vector<unsigned> m_counters;

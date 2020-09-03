@@ -88,17 +88,17 @@ inline Fatal::Fatal(T&&... args)
 class Failure : public std::exception
 {
 public:
-  Failure(Stats stat, nonstd::optional<int> exit_code = nonstd::nullopt);
+  Failure(Statistic stat, nonstd::optional<int> exit_code = nonstd::nullopt);
 
   nonstd::optional<int> exit_code() const;
-  Stats stat() const;
+  Statistic stat() const;
 
 private:
-  Stats m_stat;
+  Statistic m_stat;
   nonstd::optional<int> m_exit_code;
 };
 
-inline Failure::Failure(Stats stat, nonstd::optional<int> exit_code)
+inline Failure::Failure(Statistic stat, nonstd::optional<int> exit_code)
   : m_stat(stat), m_exit_code(exit_code)
 {
 }
@@ -109,7 +109,7 @@ Failure::exit_code() const
   return m_exit_code;
 }
 
-inline Stats
+inline Statistic
 Failure::stat() const
 {
   return m_stat;
