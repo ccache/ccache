@@ -22,27 +22,29 @@
 
 #include <algorithm>
 
-Counters::Counters() : m_counters(STATS_END)
+Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
 {
 }
 
 // clang-format off
 unsigned&
-Counters::operator[](size_t index)
+Counters::operator[](Statistic index)
 // clang-format on
 {
-  if (index >= m_counters.size()) {
-    m_counters.resize(index + 1);
+  const size_t i = static_cast<size_t>(index);
+  if (i >= m_counters.size()) {
+    m_counters.resize(i + 1);
   }
-  return m_counters.at(index);
+  return m_counters.at(i);
 }
 
 // clang-format off
 unsigned
-Counters::operator[](size_t index) const
+Counters::operator[](Statistic index) const
 // clang-format on
 {
-  return index < m_counters.size() ? m_counters.at(index) : 0;
+  const size_t i = static_cast<size_t>(index);
+  return i < m_counters.size() ? m_counters.at(i) : 0;
 }
 
 size_t

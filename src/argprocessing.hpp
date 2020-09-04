@@ -33,7 +33,7 @@ class Args;
 //
 // Returns nullopt on success, otherwise the statistics counter that should be
 // incremented.
-nonstd::optional<enum stats> process_args(Context& ctx,
-                                          Args& preprocessor_args,
-                                          Args& extra_args_to_hash,
-                                          Args& compiler_args);
+nonstd::optional<Statistic> process_args(Context& ctx,
+                                         Args& preprocessor_args,
+                                         Args& extra_args_to_hash,
+                                         Args& compiler_args);

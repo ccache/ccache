@@ -22,6 +22,8 @@
 
 #include <vector>
 
+enum class Statistic;
+
 // A simple wrapper around a vector of integers
 // used for the statistics counters.
 class Counters
@@ -29,8 +31,8 @@ class Counters
 public:
   Counters();
 
-  unsigned& operator[](size_t index);
-  unsigned operator[](size_t index) const;
+  unsigned& operator[](Statistic index);
+  unsigned operator[](Statistic index) const;
 
   size_t size() const;
 

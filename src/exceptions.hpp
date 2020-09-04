@@ -84,21 +84,21 @@ inline Fatal::Fatal(T&&... args)
 // Throw a Failure if ccache did not succeed in getting or putting a result in
 // the cache. If `exit_code` is set, just exit with that code directly,
 // otherwise execute the real compiler and exit with its exit code. Also updates
-// statistics counter `stat` if it's not STATS_NONE.
+// statistics counter `stat` if it's not `Statistic::none`.
 class Failure : public std::exception
 {
 public:
-  Failure(enum stats stat, nonstd::optional<int> exit_code = nonstd::nullopt);
+  Failure(Statistic stat, nonstd::optional<int> exit_code = nonstd::nullopt);
 
   nonstd::optional<int> exit_code() const;
-  enum stats stat() const;
+  Statistic stat() const;
 
 private:
-  enum stats m_stat;
+  Statistic m_stat;
   nonstd::optional<int> m_exit_code;
 };
 
-inline Failure::Failure(enum stats stat, nonstd::optional<int> exit_code)
+inline Failure::Failure(Statistic stat, nonstd::optional<int> exit_code)
   : m_stat(stat), m_exit_code(exit_code)
 {
 }
@@ -109,7 +109,7 @@ Failure::exit_code() const
   return m_exit_code;
 }
 
-inline enum stats
+inline Statistic
 Failure::stat() const
 {
   return m_stat;
