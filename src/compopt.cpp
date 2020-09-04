@@ -49,7 +49,7 @@ struct compopt
   int type;
 };
 
-static const struct compopt compopts[] = {
+const struct compopt compopts[] = {
   {"--Werror", TAKES_ARG},                            // nvcc
   {"--analyze", TOO_HARD},                            // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc

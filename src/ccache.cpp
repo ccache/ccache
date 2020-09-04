@@ -72,14 +72,14 @@
 #ifndef MYNAME
 #  define MYNAME "ccache"
 #endif
-static const char CCACHE_NAME[] = MYNAME;
+const char CCACHE_NAME[] = MYNAME;
 
 using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
 
-static const char VERSION_TEXT[] =
+const char VERSION_TEXT[] =
   R"({} version {}
 
 Copyright (C) 2002-2007 Andrew Tridgell
@@ -93,7 +93,7 @@ Foundation; either version 3 of the License, or (at your option) any later
 version.
 )";
 
-static const char USAGE_TEXT[] =
+const char USAGE_TEXT[] =
   R"(Usage:
     {} [options]
     {} compiler [compiler options]
