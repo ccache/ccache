@@ -1,30 +1,19 @@
-*.a
-*.ccache-*
-*.exe
-*.html
-*.o
-*.xml
-*~
-.DS_Store
-.deps
-ccache-*.tar.*
-perfdir.*/
-testdir/
-
-# version.cpp is generated in src because it should be included into source
-# packages
-/src/version.cpp
-
 # Typical build directories
-/build*
+/build*/
 
-# Visual Studio
+# Emacs save files
+*~
+
+# Vim save files
+.*.sw?
+.*.un~
+
+# Visual Studio settings and build output
 /.vs/
 /out/build/
 
-# Visual Studio Code
+# Visual Studio Code settings
 /.vscode/
 
-# Vim
-.*.sw?
-.*.un~
+# macOS custom attributes
+.DS_Store/
