@@ -34,177 +34,93 @@
 
 #include <cmath>
 
-#define FLAG_NOZERO 1 // don't zero with the -z option
-#define FLAG_ALWAYS 2 // always show, even if zero
-#define FLAG_NEVER 4  // never show
+const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
+const unsigned FLAG_ALWAYS = 2; // always show, even if zero
+const unsigned FLAG_NEVER = 4;  // never show
 
 using Logging::log;
 
 // Returns a formatted version of a statistics value, or the empty string if the
 // statistics line shouldn't be printed.
-using format_fn = std::string (*)(uint64_t value);
+using FormatFunction = std::string (*)(uint64_t value);
 
 static std::string format_size_times_1024(uint64_t size);
 static std::string format_timestamp(uint64_t timestamp);
 
-// Statistics fields in display order.
-static const struct
+namespace {
+
+struct StatisticsField
 {
-  Statistic statistic;
-  const char* id;      // for --print-stats
-  const char* message; // for --show-stats
-  format_fn format;    // nullptr -> use plain integer format
-  unsigned flags;
-} k_statistics_fields[] = {
-  {Statistic::stats_zeroed_timestamp,
-   "stats_zeroed_timestamp",
-   "stats zeroed",
-   format_timestamp,
-   FLAG_ALWAYS},
-  {Statistic::direct_cache_hit,
-   "direct_cache_hit",
-   "cache hit (direct)",
-   nullptr,
-   FLAG_ALWAYS},
-  {Statistic::preprocessed_cache_hit,
-   "preprocessed_cache_hit",
-   "cache hit (preprocessed)",
-   nullptr,
-   FLAG_ALWAYS},
-  {Statistic::cache_miss, "cache_miss", "cache miss", nullptr, FLAG_ALWAYS},
-  {Statistic::called_for_link,
-   "called_for_link",
-   "called for link",
-   nullptr,
-   0},
-  {Statistic::called_for_preprocessing,
-   "called_for_preprocessing",
-   "called for preprocessing",
-   nullptr,
-   0},
-  {Statistic::multiple_source_files,
-   "multiple_source_files",
-   "multiple source files",
-   nullptr,
-   0},
-  {Statistic::compiler_produced_stdout,
-   "compiler_produced_stdout",
-   "compiler produced stdout",
-   nullptr,
-   0},
-  {Statistic::compiler_produced_no_output,
-   "compiler_produced_no_output",
-   "compiler produced no output",
-   nullptr,
-   0},
-  {Statistic::compiler_produced_empty_output,
-   "compiler_produced_empty_output",
-   "compiler produced empty output",
-   nullptr,
-   0},
-  {Statistic::compile_failed, "compile_failed", "compile failed", nullptr, 0},
-  {Statistic::internal_error,
-   "internal_error",
-   "ccache internal error",
-   nullptr,
-   0},
-  {Statistic::preprocessor_error,
-   "preprocessor_error",
-   "preprocessor error",
-   nullptr,
-   0},
-  {Statistic::could_not_use_precompiled_header,
-   "could_not_use_precompiled_header",
-   "can't use precompiled header",
-   nullptr,
-   0},
-  {Statistic::could_not_use_modules,
-   "could_not_use_modules",
-   "can't use modules",
-   nullptr,
-   0},
-  {Statistic::could_not_find_compiler,
-   "could_not_find_compiler",
-   "couldn't find the compiler",
-   nullptr,
-   0},
-  {Statistic::missing_cache_file,
-   "missing_cache_file",
-   "cache file missing",
-   nullptr,
-   0},
-  {Statistic::bad_compiler_arguments,
-   "bad_compiler_arguments",
-   "bad compiler arguments",
-   nullptr,
-   0},
-  {Statistic::unsupported_source_language,
-   "unsupported_source_language",
-   "unsupported source language",
-   nullptr,
-   0},
-  {Statistic::compiler_check_failed,
-   "compiler_check_failed",
-   "compiler check failed",
-   nullptr,
-   0},
-  {Statistic::autoconf_test,
-   "autoconf_test",
-   "autoconf compile/link",
-   nullptr,
-   0},
-  {Statistic::unsupported_compiler_option,
-   "unsupported_compiler_option",
-   "unsupported compiler option",
-   nullptr,
-   0},
-  {Statistic::unsupported_code_directive,
-   "unsupported_code_directive",
-   "unsupported code directive",
-   nullptr,
-   0},
-  {Statistic::output_to_stdout,
-   "output_to_stdout",
-   "output to stdout",
-   nullptr,
-   0},
-  {Statistic::bad_output_file,
-   "bad_output_file",
-   "could not write to output file",
-   nullptr,
-   0},
-  {Statistic::no_input_file, "no_input_file", "no input file", nullptr, 0},
-  {Statistic::error_hashing_extra_file,
-   "error_hashing_extra_file",
-   "error hashing extra file",
-   nullptr,
-   0},
-  {Statistic::cleanups_performed,
-   "cleanups_performed",
-   "cleanups performed",
-   nullptr,
-   FLAG_ALWAYS},
-  {Statistic::files_in_cache,
-   "files_in_cache",
-   "files in cache",
-   nullptr,
-   FLAG_NOZERO | FLAG_ALWAYS},
-  {Statistic::cache_size_kibibyte,
-   "cache_size_kibibyte",
-   "cache size",
-   format_size_times_1024,
-   FLAG_NOZERO | FLAG_ALWAYS},
-  {Statistic::obsolete_max_files,
-   "OBSOLETE",
-   "OBSOLETE",
-   nullptr,
-   FLAG_NOZERO | FLAG_NEVER},
-  {Statistic::obsolete_max_size,
-   "OBSOLETE",
-   "OBSOLETE",
-   nullptr,
-   FLAG_NOZERO | FLAG_NEVER},
-  {Statistic::none, nullptr, nullptr, nullptr, 0}};
+  StatisticsField(Statistic statistic,
+                  const char* id,
+                  const char* message,
+                  unsigned flags = 0,
+                  FormatFunction format = nullptr)
+    : statistic(statistic),
+      id(id),
+      message(message),
+      flags(flags),
+      format(format)
+  {
+  }
+
+  const Statistic statistic;
+  const char* const id;        // for --print-stats
+  const char* const message;   // for --show-stats
+  const unsigned flags;        // bitmask of FLAG_* values
+  const FormatFunction format; // nullptr -> use plain integer format
+};
+
+} // namespace
+
+#define STATISTICS_FIELD(id, ...)                                              \
+  {                                                                            \
+    Statistic::id, #id, __VA_ARGS__                                            \
+  }
+
+// Statistics fields in display order.
+const StatisticsField k_statistics_fields[] = {
+  STATISTICS_FIELD(
+    stats_zeroed_timestamp, "stats zeroed", FLAG_ALWAYS, format_timestamp),
+  STATISTICS_FIELD(direct_cache_hit, "cache hit (direct)", FLAG_ALWAYS),
+  STATISTICS_FIELD(
+    preprocessed_cache_hit, "cache hit (preprocessed)", FLAG_ALWAYS),
+  STATISTICS_FIELD(cache_miss, "cache miss", FLAG_ALWAYS),
+  STATISTICS_FIELD(called_for_link, "called for link"),
+  STATISTICS_FIELD(called_for_preprocessing, "called for preprocessing"),
+  STATISTICS_FIELD(multiple_source_files, "multiple source files"),
+  STATISTICS_FIELD(compiler_produced_stdout, "compiler produced stdout"),
+  STATISTICS_FIELD(compiler_produced_no_output, "compiler produced no output"),
+  STATISTICS_FIELD(compiler_produced_empty_output,
+                   "compiler produced empty output"),
+  STATISTICS_FIELD(compile_failed, "compile failed"),
+  STATISTICS_FIELD(internal_error, "ccache internal error"),
+  STATISTICS_FIELD(preprocessor_error, "preprocessor error"),
+  STATISTICS_FIELD(could_not_use_precompiled_header,
+                   "can't use precompiled header"),
+  STATISTICS_FIELD(could_not_use_modules, "can't use modules"),
+  STATISTICS_FIELD(could_not_find_compiler, "couldn't find the compiler"),
+  STATISTICS_FIELD(missing_cache_file, "cache file missing"),
+  STATISTICS_FIELD(bad_compiler_arguments, "bad compiler arguments"),
+  STATISTICS_FIELD(unsupported_source_language, "unsupported source language"),
+  STATISTICS_FIELD(compiler_check_failed, "compiler check failed"),
+  STATISTICS_FIELD(autoconf_test, "autoconf compile/link"),
+  STATISTICS_FIELD(unsupported_compiler_option, "unsupported compiler option"),
+  STATISTICS_FIELD(unsupported_code_directive, "unsupported code directive"),
+  STATISTICS_FIELD(output_to_stdout, "output to stdout"),
+  STATISTICS_FIELD(bad_output_file, "could not write to output file"),
+  STATISTICS_FIELD(no_input_file, "no input file"),
+  STATISTICS_FIELD(error_hashing_extra_file, "error hashing extra file"),
+  STATISTICS_FIELD(cleanups_performed, "cleanups performed", FLAG_ALWAYS),
+  STATISTICS_FIELD(files_in_cache, "files in cache", FLAG_NOZERO | FLAG_ALWAYS),
+  STATISTICS_FIELD(cache_size_kibibyte,
+                   "cache size",
+                   FLAG_NOZERO | FLAG_ALWAYS,
+                   format_size_times_1024),
+  STATISTICS_FIELD(obsolete_max_files, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
+  STATISTICS_FIELD(obsolete_max_size, "OBSOLETE", FLAG_NOZERO | FLAG_NEVER),
+  STATISTICS_FIELD(none, nullptr),
+};
 
 static std::string
 format_size(uint64_t size)
