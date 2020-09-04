@@ -50,12 +50,12 @@ static std::string format_timestamp(uint64_t timestamp);
 // Statistics fields in display order.
 static const struct
 {
-  Statistic stat;
+  Statistic statistic;
   const char* id;      // for --print-stats
   const char* message; // for --show-stats
   format_fn format;    // nullptr -> use plain integer format
   unsigned flags;
-} stats_info[] = {
+} k_statistics_fields[] = {
   {Statistic::stats_zeroed_timestamp,
    "stats_zeroed_timestamp",
    "stats zeroed",
@@ -352,9 +352,9 @@ stats_flush_to_file(const Config& config,
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    for (auto& info : stats_info) {
-      if (updates[info.stat] != 0 && !(info.flags & FLAG_NOZERO)) {
-        log("Result: {}", info.message);
+    for (auto& field : k_statistics_fields) {
+      if (updates[field.statistic] != 0 && !(field.flags & FLAG_NOZERO)) {
+        log("Result: {}", field.message);
       }
     }
   }
@@ -416,12 +416,12 @@ stats_flush(Context& ctx)
   stats_flush_to_file(ctx.config, ctx.stats_file(), ctx.counter_updates);
 }
 
-// Update a normal stat.
+// Update a normal statistics counter.
 void
-stats_update(Context& ctx, Statistic stat)
+stats_update(Context& ctx, Statistic statistic)
 {
-  assert(stat > Statistic::none && stat < Statistic::END);
-  ctx.counter_updates[stat] += 1;
+  assert(statistic > Statistic::none && statistic < Statistic::END);
+  ctx.counter_updates[statistic] += 1;
 }
 
 // Sum and display the total stats for all cache dirs.
@@ -448,27 +448,28 @@ stats_summary(const Context& ctx)
   }
 
   // ...and display them.
-  for (int i = 0; stats_info[i].message; i++) {
-    Statistic stat = stats_info[i].stat;
+  for (size_t i = 0; k_statistics_fields[i].message; i++) {
+    Statistic statistic = k_statistics_fields[i].statistic;
 
-    if (stats_info[i].flags & FLAG_NEVER) {
+    if (k_statistics_fields[i].flags & FLAG_NEVER) {
       continue;
     }
-    if (counters[stat] == 0 && !(stats_info[i].flags & FLAG_ALWAYS)) {
+    if (counters[statistic] == 0
+        && !(k_statistics_fields[i].flags & FLAG_ALWAYS)) {
       continue;
     }
 
     std::string value;
-    if (stats_info[i].format) {
-      value = stats_info[i].format(counters[stat]);
+    if (k_statistics_fields[i].format) {
+      value = k_statistics_fields[i].format(counters[statistic]);
     } else {
-      value = fmt::format("{:8}", counters[stat]);
+      value = fmt::format("{:8}", counters[statistic]);
     }
     if (!value.empty()) {
-      fmt::print("{:31} {}\n", stats_info[i].message, value);
+      fmt::print("{:31} {}\n", k_statistics_fields[i].message, value);
     }
 
-    if (stat == Statistic::cache_miss) {
+    if (statistic == Statistic::cache_miss) {
       double percent = stats_hit_rate(counters);
       fmt::print("cache hit rate                    {:6.2f} %\n", percent);
     }
@@ -494,9 +495,11 @@ stats_print(const Config& config)
 
   fmt::print("stats_updated_timestamp\t{}\n", last_updated);
 
-  for (int i = 0; stats_info[i].message; i++) {
-    if (!(stats_info[i].flags & FLAG_NEVER)) {
-      fmt::print("{}\t{}\n", stats_info[i].id, counters[stats_info[i].stat]);
+  for (size_t i = 0; k_statistics_fields[i].message; i++) {
+    if (!(k_statistics_fields[i].flags & FLAG_NEVER)) {
+      fmt::print("{}\t{}\n",
+                 k_statistics_fields[i].id,
+                 counters[k_statistics_fields[i].statistic]);
     }
   }
 }
@@ -520,9 +523,9 @@ stats_zero(const Context& ctx)
     Lockfile lock(fname);
     if (lock.acquired()) {
       stats_read(fname, counters);
-      for (unsigned i = 0; stats_info[i].message; i++) {
-        if (!(stats_info[i].flags & FLAG_NOZERO)) {
-          counters[stats_info[i].stat] = 0;
+      for (size_t i = 0; k_statistics_fields[i].message; i++) {
+        if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
+          counters[k_statistics_fields[i].statistic] = 0;
         }
       }
       counters[Statistic::stats_zeroed_timestamp] = timestamp;

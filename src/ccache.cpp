@@ -1948,12 +1948,12 @@ cache_compilation(int argc, const char* const* argv)
   MTR_END("main", "find_compiler");
 
   try {
-    Statistic stat = do_cache_compilation(*ctx, argv);
-    stats_update(*ctx, stat);
+    Statistic statistic = do_cache_compilation(*ctx, argv);
+    stats_update(*ctx, statistic);
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
-    if (e.stat() != Statistic::none) {
-      stats_update(*ctx, e.stat());
+    if (e.statistic() != Statistic::none) {
+      stats_update(*ctx, e.statistic());
     }
 
     if (e.exit_code()) {
