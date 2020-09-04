@@ -46,9 +46,9 @@ struct ArgumentProcessingState
   bool found_directives_only = false;
   bool found_rewrite_includes = false;
 
-  std::string explicit_language; // As specified with -x.
-  std::string file_language;     // As deduced from file extension.
-  std::string input_charset;
+  std::string explicit_language;    // As specified with -x.
+  std::string file_language;        // As deduced from file extension.
+  std::string input_charset_option; // -finput-charset=...
 
   // Is the dependency makefile name overridden with -MF?
   bool dependency_filename_specified = false;
@@ -669,7 +669,7 @@ process_arg(Context& ctx,
 
   // Input charset needs to be handled specially.
   if (Util::starts_with(args[i], "-finput-charset=")) {
-    state.input_charset = args[i];
+    state.input_charset_option = args[i];
     return nullopt;
   }
 
@@ -1079,8 +1079,8 @@ process_args(Context& ctx)
   //
   // -finput-charset=XXX (otherwise conversion happens twice)
   // -x XXX (otherwise the wrong language is selected)
-  if (!state.input_charset.empty()) {
-    state.cpp_args.push_back(state.input_charset);
+  if (!state.input_charset_option.empty()) {
+    state.cpp_args.push_back(state.input_charset_option);
   }
   if (state.found_pch) {
     state.cpp_args.push_back("-fpch-preprocess");
