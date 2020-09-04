@@ -2024,19 +2024,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);
   MTR_END("main", "guess_compiler");
 
-  // Arguments (except -E) to send to the preprocessor.
-  Args preprocessor_args;
-  // Arguments not sent to the preprocessor but that should be part of the
-  // hash.
-  Args extra_args_to_hash;
-  // Arguments to send to the real compiler.
-  Args compiler_args;
   MTR_BEGIN("main", "process_args");
 
-  auto error =
-    process_args(ctx, preprocessor_args, extra_args_to_hash, compiler_args);
-  if (error) {
-    throw Failure(*error);
+  ProcessArgsResult processed = process_args(ctx);
+  if (processed.error) {
+    throw Failure(*processed.error);
   }
 
   MTR_END("main", "process_args");
@@ -2089,7 +2081,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx, common_hash, ctx.args_info.output_obj, 'c', "COMMON", debug_text_file);
 
   MTR_BEGIN("hash", "common_hash");
-  hash_common_info(ctx, preprocessor_args, common_hash, ctx.args_info);
+  hash_common_info(
+    ctx, processed.preprocessor_args, common_hash, ctx.args_info);
   MTR_END("hash", "common_hash");
 
   // Try to find the hash using the manifest.
@@ -2101,8 +2094,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
                   "DIRECT MODE",
                   debug_text_file);
 
-  Args args_to_hash = preprocessor_args;
-  args_to_hash.push_back(extra_args_to_hash);
+  Args args_to_hash = processed.preprocessor_args;
+  args_to_hash.push_back(processed.extra_args_to_hash);
 
   bool put_result_in_manifest = false;
   optional<Digest> result_name;
@@ -2152,7 +2145,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
     MTR_BEGIN("hash", "cpp_hash");
     result_name = calculate_result_name(
-      ctx, args_to_hash, preprocessor_args, cpp_hash, false);
+      ctx, args_to_hash, processed.preprocessor_args, cpp_hash, false);
     MTR_END("hash", "cpp_hash");
 
     // calculate_result_name does not return nullopt if the last (direct_mode)
@@ -2196,15 +2189,17 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     throw Failure(Statistic::cache_miss);
   }
 
-  add_prefix(ctx, compiler_args, ctx.config.prefix_command());
+  add_prefix(ctx, processed.compiler_args, ctx.config.prefix_command());
 
   // In depend_mode, extend the direct hash.
   Hash* depend_mode_hash = ctx.config.depend_mode() ? &direct_hash : nullptr;
 
   // Run real compiler, sending output to cache.
   MTR_BEGIN("cache", "to_cache");
-  to_cache(
-    ctx, compiler_args, ctx.args_info.depend_extra_args, depend_mode_hash);
+  to_cache(ctx,
+           processed.compiler_args,
+           ctx.args_info.depend_extra_args,
+           depend_mode_hash);
   update_manifest_file(ctx);
   MTR_END("cache", "to_cache");
 
