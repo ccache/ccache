@@ -142,8 +142,6 @@ Options for scripting or debugging:
 See also <https://ccache.dev>.
 )";
 
-enum fromcache_call_mode { FROMCACHE_DIRECT_MODE, FROMCACHE_CPP_MODE };
-
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
 static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
@@ -1636,9 +1634,11 @@ calculate_result_name(Context& ctx,
   return result_name;
 }
 
+enum class FromCacheCallMode { direct, cpp };
+
 // Try to return the compile result from cache.
 static optional<Statistic>
-from_cache(Context& ctx, enum fromcache_call_mode mode)
+from_cache(Context& ctx, FromCacheCallMode mode)
 {
   UmaskScope umask_scope(ctx.original_umask);
 
@@ -1657,7 +1657,7 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
   if ((ctx.guessed_compiler == GuessedCompiler::clang
        || ctx.guessed_compiler == GuessedCompiler::unknown)
       && ctx.args_info.output_is_precompiled_header
-      && !ctx.args_info.fno_pch_timestamp && mode == FROMCACHE_CPP_MODE) {
+      && !ctx.args_info.fno_pch_timestamp && mode == FromCacheCallMode::cpp) {
     log("Not considering cached precompiled header in preprocessor mode");
     return nullopt;
   }
@@ -1682,8 +1682,8 @@ from_cache(Context& ctx, enum fromcache_call_mode mode)
 
   MTR_END("cache", "from_cache");
 
-  return mode == FROMCACHE_DIRECT_MODE ? Statistic::direct_cache_hit
-                                       : Statistic::preprocessed_cache_hit;
+  return mode == FromCacheCallMode::direct ? Statistic::direct_cache_hit
+                                           : Statistic::preprocessed_cache_hit;
 }
 
 // Find the real compiler. We just search the PATH to find an executable of the
@@ -2111,7 +2111,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       ctx.set_result_name(*result_name);
 
       // If we can return from cache at this point then do so.
-      auto result = from_cache(ctx, FROMCACHE_DIRECT_MODE);
+      auto result = from_cache(ctx, FromCacheCallMode::direct);
       if (result) {
         return *result;
       }
@@ -2175,7 +2175,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     }
 
     // If we can return from cache at this point then do.
-    auto result = from_cache(ctx, FROMCACHE_CPP_MODE);
+    auto result = from_cache(ctx, FromCacheCallMode::cpp);
     if (result) {
       if (put_result_in_manifest) {
         update_manifest_file(ctx);
