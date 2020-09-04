@@ -2002,7 +2002,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   if (ctx.config.disable()) {
     log("ccache is disabled");
-    // Stats::CACHEMISS is a dummy to trigger stats_flush.
+    // Statistic::cache_miss is a dummy to trigger stats_flush.
     throw Failure(Statistic::cache_miss);
   }
 
