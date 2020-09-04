@@ -24,21 +24,13 @@
 #include "third_party/nonstd/optional.hpp"
 
 class Context;
-class Args;
 
 struct ProcessArgsResult
 {
-  ProcessArgsResult(Statistic err) : error(err)
-  {
-  }
+  ProcessArgsResult(Statistic error);
   ProcessArgsResult(Args preprocessor_args,
                     Args extra_args_to_hash,
-                    Args compiler_args)
-    : preprocessor_args(preprocessor_args),
-      extra_args_to_hash(extra_args_to_hash),
-      compiler_args(compiler_args)
-  {
-  }
+                    Args compiler_args);
 
   // nullopt on success, otherwise the statistics counter that should be
   // incremented.
@@ -47,12 +39,24 @@ struct ProcessArgsResult
   // Arguments (except -E) to send to the preprocessor.
   Args preprocessor_args;
 
-  // Arguments not sent to the preprocessor but that should be part of the
-  // hash.
+  // Arguments not sent to the preprocessor but that should be part of the hash.
   Args extra_args_to_hash;
 
   // Arguments to send to the real compiler.
   Args compiler_args;
 };
+
+inline ProcessArgsResult::ProcessArgsResult(Statistic error) : error(error)
+{
+}
+
+inline ProcessArgsResult::ProcessArgsResult(Args preprocessor_args,
+                                            Args extra_args_to_hash,
+                                            Args compiler_args)
+  : preprocessor_args(preprocessor_args),
+    extra_args_to_hash(extra_args_to_hash),
+    compiler_args(compiler_args)
+{
+}
 
 ProcessArgsResult process_args(Context& ctx);
