@@ -238,17 +238,15 @@ TEST_CASE("Config::update_from_file, error handling")
   {
     Util::write_file("ccache.conf", "max_files =");
     REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
-                        "ccache.conf:1: invalid 32-bit unsigned integer: \"\"");
+                        "ccache.conf:1: invalid unsigned integer: \"\"");
 
     Util::write_file("ccache.conf", "max_files = -42");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      "ccache.conf:1: invalid 32-bit unsigned integer: \"-42\"");
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: invalid unsigned integer: \"-42\"");
 
     Util::write_file("ccache.conf", "max_files = foo");
-    REQUIRE_THROWS_WITH(
-      config.update_from_file("ccache.conf"),
-      "ccache.conf:1: invalid 32-bit unsigned integer: \"foo\"");
+    REQUIRE_THROWS_WITH(config.update_from_file("ccache.conf"),
+                        "ccache.conf:1: invalid unsigned integer: \"foo\"");
   }
 
   SUBCASE("missing file")
@@ -275,7 +273,7 @@ TEST_CASE("Config::update_from_file, error handling")
       CHECK(false);
     } catch (const Error& e) {
       CHECK(std::string(e.what())
-            == "ccache.conf:1: cache directory levels must be between 1 and 8");
+            == "ccache.conf:1: cache_dir_levels must be between 1 and 8");
     }
 
     Util::write_file("ccache.conf", "cache_dir_levels = 9");
@@ -284,7 +282,7 @@ TEST_CASE("Config::update_from_file, error handling")
       CHECK(false);
     } catch (const Error& e) {
       CHECK(std::string(e.what())
-            == "ccache.conf:1: cache directory levels must be between 1 and 8");
+            == "ccache.conf:1: cache_dir_levels must be between 1 and 8");
     }
   }
 }

@@ -318,18 +318,30 @@ uint64_t parse_duration(const std::string& duration);
 
 // Parse a string into a signed integer.
 //
-// Throws `Error` on error.
-int parse_int(const std::string& value);
+// Throws `Error` if `value` cannot be parsed as an int64_t or if the value
+// falls out of the range [`min_value`, `max_value`]. `min_value` and
+// `max_value` default to min and max values of int64_t. `description` is
+// included in the error message for range violations.
+int64_t parse_signed(const std::string& value,
+                     nonstd::optional<int64_t> min_value = nonstd::nullopt,
+                     nonstd::optional<int64_t> max_value = nonstd::nullopt,
+                     nonstd::string_view description = "integer");
 
 // Parse a "size value", i.e. a string that can end in k, M, G, T (10-based
 // suffixes) or Ki, Mi, Gi, Ti (2-based suffixes). For backward compatibility, K
 // is also recognized as a synonym of k. Throws `Error` on parse error.
 uint64_t parse_size(const std::string& value);
 
-// Parse a string into an unsigned 32-bit integer.
+// Parse a string into an unsigned integer.
 //
-// Throws `Error` on error.
-uint32_t parse_uint32(const std::string& value);
+// Throws `Error` if `value` cannot be parsed as an uint64_t or if the value
+// falls out of the range [`min_value`, `max_value`]. `min_value` and
+// `max_value` default to min and max values of uint64_t. `description` is
+// included in the error message for range violations.
+uint64_t parse_unsigned(const std::string& value,
+                        nonstd::optional<uint64_t> min_value = nonstd::nullopt,
+                        nonstd::optional<uint64_t> max_value = nonstd::nullopt,
+                        nonstd::string_view description = "integer");
 
 // Read data from `fd` until end of file and call `data_receiver` with the read
 // data. Returns whether reading was successful, i.e. whether the read(2) call

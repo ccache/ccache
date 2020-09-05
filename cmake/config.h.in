@@ -57,10 +57,6 @@
 #  pragma clang diagnostic pop
 #endif
 
-// clang-format off
-#define SIZEOF_INT @SIZEOF_INT@
-// clang-format on
-
 #cmakedefine MTR_ENABLED
 
 /* Define to 1 if you have the `asctime_r' function. */

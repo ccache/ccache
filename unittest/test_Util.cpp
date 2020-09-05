@@ -22,9 +22,11 @@
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
+#include "third_party/nonstd/optional.hpp"
 
 #include <algorithm>
 
+using nonstd::nullopt;
 using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Util");
@@ -561,35 +563,44 @@ TEST_CASE("Util::parse_duration")
     "invalid suffix (supported: d (day) and s (second)): \"2\"");
 }
 
-TEST_CASE("Util::parse_int")
+TEST_CASE("Util::parse_signed")
 {
-  CHECK(Util::parse_int("0") == 0);
-  CHECK(Util::parse_int("2") == 2);
-  CHECK(Util::parse_int("-17") == -17);
-  CHECK(Util::parse_int("42") == 42);
-  CHECK(Util::parse_int("0666") == 666);
-  CHECK(Util::parse_int(" 777") == 777);
+  CHECK(Util::parse_signed("0") == 0);
+  CHECK(Util::parse_signed("2") == 2);
+  CHECK(Util::parse_signed("-17") == -17);
+  CHECK(Util::parse_signed("42") == 42);
+  CHECK(Util::parse_signed("0666") == 666);
+  CHECK(Util::parse_signed(" 777 ") == 777);
 
-  CHECK_THROWS_WITH(Util::parse_int(""), "invalid integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_int("x"), "invalid integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_int("0x"), "invalid integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_int("0x4"), "invalid integer: \"0x4\"");
-  CHECK_THROWS_WITH(Util::parse_int("0 "), "invalid integer: \"0 \"");
+  CHECK_THROWS_WITH(Util::parse_signed(""), "invalid integer: \"\"");
+  CHECK_THROWS_WITH(Util::parse_signed("x"), "invalid integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_signed("0x"), "invalid integer: \"0x\"");
+  CHECK_THROWS_WITH(Util::parse_signed("0x4"), "invalid integer: \"0x4\"");
 
-  // check boundary values
-#if SIZEOF_INT == 2
-  CHECK(Util::parse_int("-32768") == -32768);
-  CHECK(Util::parse_int("32767") == 32767);
-  CHECK_THROWS_WITH(Util::parse_int("-32768"), "invalid integer: \"-32768\"");
-  CHECK_THROWS_WITH(Util::parse_int("32768"), "invalid integer: \"32768\"");
-#elif SIZEOF_INT == 4
-  CHECK(Util::parse_int("-2147483648") == -2147483648LL);
-  CHECK(Util::parse_int("2147483647") == 2147483647);
-  CHECK_THROWS_WITH(Util::parse_int("-2147483649"),
-                    "invalid integer: \"-2147483649\"");
-  CHECK_THROWS_WITH(Util::parse_int("2147483648"),
-                    "invalid integer: \"2147483648\"");
-#endif
+  // Custom description not used for invalid value.
+  CHECK_THROWS_WITH(Util::parse_signed("apple", nullopt, nullopt, "banana"),
+                    "invalid integer: \"apple\"");
+
+  // Boundary values.
+  CHECK_THROWS_WITH(Util::parse_signed("-9223372036854775809"),
+                    "invalid integer: \"-9223372036854775809\"");
+  CHECK(Util::parse_signed("-9223372036854775808") == INT64_MIN);
+  CHECK(Util::parse_signed("9223372036854775807") == INT64_MAX);
+  CHECK_THROWS_WITH(Util::parse_signed("9223372036854775808"),
+                    "invalid integer: \"9223372036854775808\"");
+
+  // Min and max values.
+  CHECK_THROWS_WITH(Util::parse_signed("-2", -1, 1),
+                    "integer must be between -1 and 1");
+  CHECK(Util::parse_signed("-1", -1, 1) == -1);
+  CHECK(Util::parse_signed("0", -1, 1) == 0);
+  CHECK(Util::parse_signed("1", -1, 1) == 1);
+  CHECK_THROWS_WITH(Util::parse_signed("2", -1, 1),
+                    "integer must be between -1 and 1");
+
+  // Custom description used for boundary violation.
+  CHECK_THROWS_WITH(Util::parse_signed("0", 1, 2, "banana"),
+                    "banana must be between 1 and 2");
 }
 
 TEST_CASE("Util::parse_size")
@@ -616,31 +627,33 @@ TEST_CASE("Util::parse_size")
   CHECK_THROWS_WITH(Util::parse_size("10x"), "invalid size: \"10x\"");
 }
 
-TEST_CASE("Util::parse_uint32")
+TEST_CASE("Util::parse_unsigned")
 {
-  CHECK(Util::parse_uint32("0") == 0);
-  CHECK(Util::parse_uint32("2") == 2);
-  CHECK(Util::parse_uint32("42") == 42);
-  CHECK(Util::parse_uint32("0666") == 666);
-  CHECK(Util::parse_uint32(" 777") == 777);
+  CHECK(Util::parse_unsigned("0") == 0);
+  CHECK(Util::parse_unsigned("2") == 2);
+  CHECK(Util::parse_unsigned("42") == 42);
+  CHECK(Util::parse_unsigned("0666") == 666);
+  CHECK(Util::parse_unsigned(" 777 ") == 777);
 
-  CHECK_THROWS_WITH(Util::parse_uint32(""),
-                    "invalid 32-bit unsigned integer: \"\"");
-  CHECK_THROWS_WITH(Util::parse_uint32("x"),
-                    "invalid 32-bit unsigned integer: \"x\"");
-  CHECK_THROWS_WITH(Util::parse_uint32("0x"),
-                    "invalid 32-bit unsigned integer: \"0x\"");
-  CHECK_THROWS_WITH(Util::parse_uint32("0x4"),
-                    "invalid 32-bit unsigned integer: \"0x4\"");
-  CHECK_THROWS_WITH(Util::parse_uint32("0 "),
-                    "invalid 32-bit unsigned integer: \"0 \"");
+  CHECK_THROWS_WITH(Util::parse_unsigned(""), "invalid unsigned integer: \"\"");
+  CHECK_THROWS_WITH(Util::parse_unsigned("x"),
+                    "invalid unsigned integer: \"x\"");
+  CHECK_THROWS_WITH(Util::parse_unsigned("0x"),
+                    "invalid unsigned integer: \"0x\"");
+  CHECK_THROWS_WITH(Util::parse_unsigned("0x4"),
+                    "invalid unsigned integer: \"0x4\"");
 
-  // check boundary values
-  CHECK(Util::parse_uint32("4294967295") == 4294967295);
-  CHECK_THROWS_WITH(Util::parse_uint32("-1"),
-                    "invalid 32-bit unsigned integer: \"-1\"");
-  CHECK_THROWS_WITH(Util::parse_uint32("4294967296"),
-                    "invalid 32-bit unsigned integer: \"4294967296\"");
+  // Custom description not used for invalid value.
+  CHECK_THROWS_WITH(Util::parse_unsigned("apple", nullopt, nullopt, "banana"),
+                    "invalid unsigned integer: \"apple\"");
+
+  // Boundary values.
+  CHECK_THROWS_WITH(Util::parse_unsigned("-1"),
+                    "invalid unsigned integer: \"-1\"");
+  CHECK(Util::parse_unsigned("0") == 0);
+  CHECK(Util::parse_unsigned("18446744073709551615") == UINT64_MAX);
+  CHECK_THROWS_WITH(Util::parse_unsigned("18446744073709551616"),
+                    "invalid unsigned integer: \"18446744073709551616\"");
 }
 
 TEST_CASE("Util::read_file and Util::write_file")

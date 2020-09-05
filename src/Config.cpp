@@ -19,6 +19,7 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
+#include "Compression.hpp"
 #include "Util.hpp"
 #include "ccache.hpp"
 #include "exceptions.hpp"
@@ -671,10 +672,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::cache_dir_levels:
-    m_cache_dir_levels = Util::parse_uint32(value);
-    if (m_cache_dir_levels < 1 || m_cache_dir_levels > 8) {
-      throw Error("cache directory levels must be between 1 and 8");
-    }
+    m_cache_dir_levels = Util::parse_unsigned(value, 1, 8, "cache_dir_levels");
     break;
 
   case ConfigItem::compiler:
@@ -690,11 +688,8 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::compression_level: {
-    auto level = Util::parse_int(value);
-    if (level < -128 || level > 127) {
-      throw Error("compression level must be between -128 and 127");
-    }
-    m_compression_level = level;
+    m_compression_level =
+      Util::parse_signed(value, INT8_MIN, INT8_MAX, "compression_level");
     break;
   }
 
@@ -759,7 +754,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::max_files:
-    m_max_files = Util::parse_uint32(value);
+    m_max_files = Util::parse_unsigned(value, nullopt, nullopt, "max_files");
     break;
 
   case ConfigItem::max_size:

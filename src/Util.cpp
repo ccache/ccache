@@ -941,7 +941,7 @@ normalize_absolute_path(string_view path)
 uint64_t
 parse_duration(const std::string& duration)
 {
-  unsigned factor = 0;
+  uint64_t factor = 0;
   char last_ch = duration.empty() ? '\0' : duration[duration.length() - 1];
 
   switch (last_ch) {
@@ -956,22 +956,34 @@ parse_duration(const std::string& duration)
                 duration);
   }
 
-  return factor * parse_uint32(duration.substr(0, duration.length() - 1));
+  return factor * parse_unsigned(duration.substr(0, duration.length() - 1));
 }
 
-int
-parse_int(const std::string& value)
+int64_t
+parse_signed(const std::string& value,
+             optional<int64_t> min_value,
+             optional<int64_t> max_value,
+             string_view description)
 {
-  size_t end;
-  long result = 0;
+  std::string stripped_value = strip_whitespace(value);
+
+  size_t end = 0;
+  long long result = 0;
   bool failed = false;
   try {
-    result = std::stoi(value, &end, 10);
+    // Note: sizeof(long long) is guaranteed to be >= sizeof(int64_t)
+    result = std::stoll(stripped_value, &end, 10);
   } catch (std::exception&) {
     failed = true;
   }
-  if (failed || end != value.size()) {
-    throw Error("invalid integer: \"{}\"", value);
+  if (failed || end != stripped_value.size()) {
+    throw Error("invalid integer: \"{}\"", stripped_value);
+  }
+
+  int64_t min = min_value ? *min_value : INT64_MIN;
+  int64_t max = max_value ? *max_value : INT64_MAX;
+  if (result < min || result > max) {
+    throw Error("{} must be between {} and {}", description, min, max);
   }
   return result;
 }
@@ -1017,20 +1029,36 @@ parse_size(const std::string& value)
   return static_cast<uint64_t>(result);
 }
 
-uint32_t
-parse_uint32(const std::string& value)
+uint64_t
+parse_unsigned(const std::string& value,
+               optional<uint64_t> min_value,
+               optional<uint64_t> max_value,
+               string_view description)
 {
-  size_t end;
-  long long result = 0;
+  std::string stripped_value = strip_whitespace(value);
+
+  size_t end = 0;
+  unsigned long long result = 0;
   bool failed = false;
-  try {
-    result = std::stoll(value, &end, 10);
-  } catch (std::exception&) {
+  if (Util::starts_with(stripped_value, "-")) {
     failed = true;
+  } else {
+    try {
+      // Note: sizeof(unsigned long long) is guaranteed to be >=
+      // sizeof(uint64_t)
+      result = std::stoull(stripped_value, &end, 10);
+    } catch (std::exception&) {
+      failed = true;
+    }
   }
-  if (failed || end != value.size() || result < 0
-      || result > std::numeric_limits<uint32_t>::max()) {
-    throw Error("invalid 32-bit unsigned integer: \"{}\"", value);
+  if (failed || end != stripped_value.size()) {
+    throw Error("invalid unsigned integer: \"{}\"", stripped_value);
+  }
+
+  uint64_t min = min_value ? *min_value : 0;
+  uint64_t max = max_value ? *max_value : UINT64_MAX;
+  if (result < min || result > max) {
+    throw Error("{} must be between {} and {}", description, min, max);
   }
   return result;
 }

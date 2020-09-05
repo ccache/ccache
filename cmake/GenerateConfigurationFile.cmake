@@ -72,9 +72,5 @@ endif()
 # alias
 set(MTR_ENABLED "${ENABLE_TRACING}")
 
-# Check sizeof(int).
-include(CheckTypeSize)
-check_type_size(int SIZEOF_INT)
-
 configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in
                ${CMAKE_BINARY_DIR}/config.h @ONLY)
