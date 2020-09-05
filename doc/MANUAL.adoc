@@ -827,7 +827,7 @@ Cache compression
 -----------------
 
 ccache will by default compress all data it puts into the cache using the
-compression algorithm Zstandard (zstd) using compression level -1. The algorithm
+compression algorithm Zstandard (zstd) using compression level 1. The algorithm
 is fast enough that there should be little reason to turn off compression to
 gain performance. One exception is if the cache is located on a compressed file
 system, in which case the compression performed by ccache of course is
