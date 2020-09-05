@@ -20,6 +20,10 @@
 
 #include "Util.hpp"
 
+using nonstd::nullopt;
+using nonstd::optional;
+using nonstd::string_view;
+
 Args::Args(Args&& other) noexcept : m_args(std::move(other.m_args))
 {
 }
@@ -42,14 +46,14 @@ Args::from_string(const std::string& command)
   return args;
 }
 
-nonstd::optional<Args>
+optional<Args>
 Args::from_gcc_atfile(const std::string& filename)
 {
   std::string argtext;
   try {
     argtext = Util::read_file(filename);
   } catch (Error&) {
-    return nonstd::nullopt;
+    return nullopt;
   }
 
   Args args;
@@ -152,7 +156,7 @@ Args::to_string() const
 }
 
 void
-Args::erase_with_prefix(nonstd::string_view prefix)
+Args::erase_with_prefix(string_view prefix)
 {
   m_args.erase(std::remove_if(m_args.begin(),
                               m_args.end(),

@@ -87,7 +87,7 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 }
 
 Hash&
-Hash::hash(nonstd::string_view data)
+Hash::hash(string_view data)
 {
   hash(data.data(), data.length());
   return *this;

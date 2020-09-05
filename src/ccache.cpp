@@ -767,7 +767,7 @@ update_manifest_file(Context& ctx)
 }
 
 static bool
-create_cachedir_tag(nonstd::string_view dir)
+create_cachedir_tag(string_view dir)
 {
   constexpr char cachedir_tag[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"

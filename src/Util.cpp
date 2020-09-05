@@ -176,7 +176,7 @@ rewrite_stderr_to_absolute_paths(string_view text)
       line = line.substr(csi_seq.length());
     }
     size_t path_end = line.find(':');
-    if (path_end == nonstd::string_view::npos) {
+    if (path_end == string_view::npos) {
       result.append(line.data(), line.length());
     } else {
       std::string path(line.substr(0, path_end));
@@ -868,8 +868,7 @@ make_relative_path(const Context& ctx, string_view path)
 }
 
 bool
-matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
-                           nonstd::string_view path)
+matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
 {
   return !dir_prefix_or_file.empty() && !path.empty()
          && dir_prefix_or_file.length() <= path.length()
