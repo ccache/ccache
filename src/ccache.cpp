@@ -1713,7 +1713,7 @@ find_compiler(Context& ctx, const char* const* argv)
     base = ctx.config.compiler();
   }
 
-  std::string compiler = find_executable(ctx, base, CCACHE_NAME);
+  const std::string compiler = find_executable(ctx, base, CCACHE_NAME);
   if (compiler.empty()) {
     throw Fatal("Could not find compiler \"{}\" in PATH", base);
   }
@@ -1722,7 +1722,7 @@ find_compiler(Context& ctx, const char* const* argv)
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
   }
-  ctx.orig_args[0] = compiler;
+  ctx.orig_args[0] = Arg(compiler);
 }
 
 static void

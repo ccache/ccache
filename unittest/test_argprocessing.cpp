@@ -452,7 +452,7 @@ TEST_CASE(
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("./foo" == result.preprocessor_args[2]);
+  CHECK(result.preprocessor_args[2] == "./foo");
 }
 
 TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -470,7 +470,7 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("-isystem./foo" == result.preprocessor_args[1]);
+  CHECK(result.preprocessor_args[1] == "-isystem./foo");
 }
 
 TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -488,7 +488,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("-I./foo" == result.preprocessor_args[1]);
+  CHECK(result.preprocessor_args[1] == "-I./foo");
 }
 
 TEST_CASE("debug_flag_order_with_known_option_first")

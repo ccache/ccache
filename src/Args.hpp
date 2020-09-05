@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
-
-#include "NonCopyable.hpp"
-#include "Util.hpp"
+#include "Arg.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
@@ -48,8 +45,8 @@ public:
 
   bool empty() const;
   size_t size() const;
-  const std::string& operator[](size_t i) const;
-  std::string& operator[](size_t i);
+  const Arg& operator[](size_t i) const;
+  Arg& operator[](size_t i);
 
   // Return the argument list as a vector of raw string pointers. Callers can
   // use `const_cast<char* const*>(args.to_argv().data())` to get an array
@@ -73,19 +70,19 @@ public:
   void pop_front(size_t count = 1);
 
   // Add `arg` to the end.
-  void push_back(const std::string& arg);
+  void push_back(const nonstd::string_view arg);
 
   // Add `args` to the end.
   void push_back(const Args& args);
 
   // Add `arg` to the front.
-  void push_front(const std::string& arg);
+  void push_front(const nonstd::string_view arg);
 
   // Replace the argument at `index` with all arguments in `args`.
   void replace(size_t index, const Args& args);
 
 private:
-  std::deque<std::string> m_args;
+  std::deque<Arg> m_args;
 };
 
 inline bool
@@ -113,7 +110,7 @@ Args::size() const
 }
 
 // clang-format off
-inline const std::string&
+inline const Arg&
 Args::operator[](size_t i) const
 // clang-format on
 {
@@ -121,7 +118,7 @@ Args::operator[](size_t i) const
 }
 
 // clang-format off
-inline std::string&
+inline Arg&
 Args::operator[](size_t i)
 // clang-format on
 {

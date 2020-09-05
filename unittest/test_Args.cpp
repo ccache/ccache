@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Args.hpp"
+#include "../src/Util.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
@@ -46,20 +47,20 @@ TEST_CASE("Args move constructor")
   Args args1;
   args1.push_back("foo");
   args1.push_back("bar");
-  const char* foo_pointer = args1[0].c_str();
-  const char* bar_pointer = args1[1].c_str();
+  const char* foo_pointer = args1[0].full().c_str();
+  const char* bar_pointer = args1[1].full().c_str();
 
   Args args2(std::move(args1));
   CHECK(args1.size() == 0);
   CHECK(args2.size() == 2);
-  CHECK(args2[0].c_str() == foo_pointer);
-  CHECK(args2[1].c_str() == bar_pointer);
+  CHECK(args2[0] == foo_pointer);
+  CHECK(args2[1] == bar_pointer);
 }
 
 TEST_CASE("Args::from_argv")
 {
   int argc = 2;
-  const char* argv[] = {"a", "b"};
+  const char* argv[] = {"a", "b", nullptr};
   Args args = Args::from_argv(argc, argv);
   CHECK(args.size() == 2);
   CHECK(args[0] == "a");
@@ -151,14 +152,14 @@ TEST_CASE("Args copy assignment operator")
 TEST_CASE("Args move assignment operator")
 {
   Args args1 = Args::from_string("x y");
-  const char* x_pointer = args1[0].c_str();
-  const char* y_pointer = args1[1].c_str();
+  const char* x_pointer = args1[0].full().c_str();
+  const char* y_pointer = args1[1].full().c_str();
 
   Args args2;
   args2 = std::move(args1);
   CHECK(args1.size() == 0);
   CHECK(args2.size() == 2);
-  CHECK(args2[0].c_str() == x_pointer);
+  CHECK(args2[0].full().c_str() == x_pointer);
   CHECK(args2[1] == y_pointer);
 }
 

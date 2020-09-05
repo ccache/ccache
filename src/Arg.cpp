@@ -29,3 +29,26 @@ Arg::Arg(nonstd::string_view full) : m_full(full), m_split_char(0)
     m_value = nonstd::string_view(m_full).substr(sep_pos + 1);
   }
 }
+
+Arg::Arg(const Arg& other)
+  : m_full(other.m_full), m_split_char(other.m_split_char)
+{
+  if (other.has_been_split()) {
+    m_key = nonstd::string_view(m_full).substr(0, other.key().size());
+    m_value = nonstd::string_view(m_full).substr(other.key().size() + 1);
+  }
+  assert(*this == other);
+}
+
+Arg&
+Arg::operator=(const Arg& other)
+{
+  m_full = other.full();
+  m_split_char = other.m_split_char;
+  if (other.has_been_split()) {
+    m_key = nonstd::string_view(m_full).substr(0, other.key().size());
+    m_value = nonstd::string_view(m_full).substr(other.key().size() + 1);
+  }
+  assert(*this == other);
+  return *this;
+}

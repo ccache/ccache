@@ -243,7 +243,7 @@ process_arg(Context& ctx,
 
   // Handle "@file" argument.
   if (Util::starts_with(args[i], "@") || Util::starts_with(args[i], "-@")) {
-    const char* argpath = args[i].c_str() + 1;
+    const char* argpath = args[i].full().c_str() + 1;
 
     if (argpath[-1] == '-') {
       ++argpath;
@@ -390,8 +390,8 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i].length() >= 3 && Util::starts_with(args[i], "-x")
-      && !islower(args[i][2])) {
+  if (args[i].full().length() >= 3 && Util::starts_with(args[i], "-x")
+      && !islower(args[i].full()[2])) {
     // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with an
     // uppercase letter) is an ordinary Intel compiler option, not a language
     // specification. (GCC's "-x" language argument is always lowercase.)
@@ -414,7 +414,7 @@ process_arg(Context& ctx,
   }
   if (Util::starts_with(args[i], "-x")) {
     if (args_info.input_file.empty()) {
-      state.explicit_language = args[i].substr(2);
+      state.explicit_language = args[i].full().substr(2);
     }
     return nullopt;
   }
@@ -774,10 +774,10 @@ process_arg(Context& ctx,
 
   // Same as above but options with concatenated argument beginning with a
   // slash.
-  if (args[i][0] == '-') {
-    size_t slash_pos = args[i].find('/');
+  if (args[i].full()[0] == '-') {
+    size_t slash_pos = args[i].full().find('/');
     if (slash_pos != std::string::npos) {
-      std::string option = args[i].substr(0, slash_pos);
+      std::string option = args[i].full().substr(0, slash_pos);
       if (compopt_takes_concat_arg(option) && compopt_takes_path(option)) {
         auto relpath =
           Util::make_relative_path(ctx, string_view(args[i]).substr(slash_pos));
@@ -812,7 +812,7 @@ process_arg(Context& ctx,
   }
 
   // Other options.
-  if (args[i][0] == '-') {
+  if (args[i].full()[0] == '-') {
     if (compopt_affects_cpp(args[i]) || compopt_prefix_affects_cpp(args[i])) {
       state.cpp_args.push_back(args[i]);
     } else {
@@ -841,7 +841,7 @@ process_arg(Context& ctx,
       return Statistic::multiple_source_files;
     } else if (!state.found_c_opt && !state.found_dc_opt) {
       log("Called for link with {}", args[i]);
-      if (args[i].find("conftest.") != std::string::npos) {
+      if (args[i].full().find("conftest.") != std::string::npos) {
         return Statistic::autoconf_test;
       } else {
         return Statistic::called_for_link;

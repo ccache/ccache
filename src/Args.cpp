@@ -32,7 +32,9 @@ Args
 Args::from_argv(int argc, const char* const* argv)
 {
   Args args;
-  args.m_args.assign(argv, argv + argc);
+  for (int i = 0; i < argc; ++i) {
+    args.push_back(Arg(argv[i]));
+  }
   return args;
 }
 
@@ -136,7 +138,7 @@ Args::to_argv() const
   std::vector<const char*> result;
   result.reserve(m_args.size() + 1);
   for (const auto& arg : m_args) {
-    result.push_back(arg.c_str());
+    result.push_back(arg.full().c_str());
   }
   result.push_back(nullptr);
   return result;
@@ -188,7 +190,7 @@ Args::pop_front(size_t count)
 }
 
 void
-Args::push_back(const std::string& arg)
+Args::push_back(const string_view arg)
 {
   m_args.push_back(arg);
 }
@@ -200,7 +202,7 @@ Args::push_back(const Args& args)
 }
 
 void
-Args::push_front(const std::string& arg)
+Args::push_front(const string_view arg)
 {
   m_args.push_front(arg);
 }

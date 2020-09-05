@@ -393,7 +393,7 @@ hash_command_output(Hash& hash,
 
   for (size_t i = 0; i < args.size(); i++) {
     if (args[i] == "%compiler%") {
-      args[i] = compiler;
+      args[i] = Arg(compiler);
     }
   }
 
