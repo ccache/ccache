@@ -48,7 +48,7 @@ operator==(const Arg& lhs, const NotSplit& rhs)
          && lhs.full() == rhs.full;
 }
 
-TEST_CASE("Arg")
+TEST_CASE("Constructor")
 {
   CHECK(Arg("") == NotSplit{""});
   CHECK(Arg("=") == Split{"", ""});

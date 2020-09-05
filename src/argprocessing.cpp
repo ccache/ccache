@@ -441,14 +441,14 @@ process_arg(Context& ctx,
   const auto arg = Arg(args[i]);
   if (arg.key() == "-fdebug-prefix-map" || arg.key() == "-ffile-prefix-map") {
     args_info.debug_prefix_maps.emplace_back(arg.value());
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
   // Debugging is handled specially, so that we know if we can strip line
   // number info.
   if (Util::starts_with(arg.full(), "-g")) {
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
 
     if (Util::starts_with(arg.full(), "-gdwarf")) {
       // Selection of DWARF format (-gdwarf or -gdwarf-<version>) enables
@@ -484,7 +484,7 @@ process_arg(Context& ctx,
   if (arg == "-MD" || arg == "-MMD") {
     args_info.generating_dependencies = true;
     args_info.seen_MD_MMD = true;
-    state.dep_args.push_back(arg.full());
+    state.dep_args.push_back(arg);
     return nullopt;
   }
 
@@ -526,7 +526,7 @@ process_arg(Context& ctx,
         log("Missing argument to {}", arg.full());
         return Statistic::bad_compiler_arguments;
       }
-      state.dep_args.push_back(arg.full());
+      state.dep_args.push_back(arg);
       std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
       state.dep_args.push_back(relpath);
       i++;
@@ -541,19 +541,19 @@ process_arg(Context& ctx,
 
   if (arg == "-fprofile-arcs") {
     args_info.profile_arcs = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
   if (arg == "-ftest-coverage") {
     args_info.generating_coverage = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
   if (arg == "-fstack-usage") {
     args_info.generating_stackusage = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
@@ -561,7 +561,7 @@ process_arg(Context& ctx,
       || arg == "-coverage") { // Undocumented but still works.
     args_info.profile_arcs = true;
     args_info.generating_coverage = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
@@ -572,13 +572,13 @@ process_arg(Context& ctx,
       // The failure is logged by process_profiling_option.
       return Statistic::unsupported_compiler_option;
     }
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
   if (arg.key() == "-fsanitize-blacklist") {
     args_info.sanitize_blacklists.emplace_back(arg.value());
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
@@ -595,7 +595,7 @@ process_arg(Context& ctx,
       log("Missing argument to {}", arg.full());
       return Statistic::bad_compiler_arguments;
     }
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     auto relpath = Util::make_relative_path(ctx, args[i + 1]);
     state.common_args.push_back(relpath);
     i++;
@@ -608,7 +608,7 @@ process_arg(Context& ctx,
       log("Missing argument to {}", arg.full());
       return Statistic::bad_compiler_arguments;
     }
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     state.common_args.push_back(args[i + 1]);
     i++;
     return nullopt;
@@ -628,7 +628,7 @@ process_arg(Context& ctx,
       state.dependency_filename_specified = true;
       args_info.output_dep =
         Util::make_relative_path(ctx, string_view(arg.full()).substr(8));
-      state.dep_args.push_back(arg.full());
+      state.dep_args.push_back(arg);
       return nullopt;
     } else if (Util::starts_with(arg.full(), "-Wp,-MMD,")
                && arg.full().find(',', 9) == std::string::npos) {
@@ -636,7 +636,7 @@ process_arg(Context& ctx,
       state.dependency_filename_specified = true;
       args_info.output_dep =
         Util::make_relative_path(ctx, string_view(arg.full()).substr(9));
-      state.dep_args.push_back(arg.full());
+      state.dep_args.push_back(arg);
       return nullopt;
     } else if (Util::starts_with(arg.full(), "-Wp,-D")
                && arg.full().find(',', 6) == std::string::npos) {
@@ -651,7 +651,7 @@ process_arg(Context& ctx,
                        || arg.full()[6] == 'T')
                    && arg.full().find(',', 8) == std::string::npos)) {
       // TODO: Make argument to MF/MQ/MT relative.
-      state.dep_args.push_back(arg.full());
+      state.dep_args.push_back(arg);
       return nullopt;
     } else if (config.direct_mode()) {
       // -Wp, can be used to pass too hard options to the preprocessor.
@@ -661,12 +661,12 @@ process_arg(Context& ctx,
     }
 
     // Any other -Wp,* arguments are only relevant for the preprocessor.
-    state.cpp_args.push_back(arg.full());
+    state.cpp_args.push_back(arg);
     return nullopt;
   }
 
   if (arg == "-MP") {
-    state.dep_args.push_back(arg.full());
+    state.dep_args.push_back(arg);
     return nullopt;
   }
 
@@ -716,13 +716,13 @@ process_arg(Context& ctx,
 
   if (arg == "-fno-pch-timestamp") {
     args_info.fno_pch_timestamp = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 
   if (arg == "-fpch-preprocess") {
     state.found_fpch_preprocess = true;
-    state.common_args.push_back(arg.full());
+    state.common_args.push_back(arg);
     return nullopt;
   }
 

@@ -162,9 +162,9 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
     return;
   }
 
-  Args prefix;
+  std::vector<std::string> prefix;
   for (const auto& word : Util::split_into_strings(prefix_command, " ")) {
-    std::string path = find_executable(ctx, word, CCACHE_NAME);
+    const std::string path = find_executable(ctx, word, CCACHE_NAME);
     if (path.empty()) {
       throw Fatal("{}: {}", word, strerror(errno));
     }
@@ -173,8 +173,8 @@ add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
   }
 
   log("Using command-line prefix {}", prefix_command);
-  for (size_t i = prefix.size(); i != 0; i--) {
-    args.push_front(prefix[i - 1]);
+  for (auto iter = prefix.rbegin(); iter != prefix.rend(); iter++) {
+    args.push_front(Arg(*iter));
   }
 }
 

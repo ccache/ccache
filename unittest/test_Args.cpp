@@ -77,6 +77,16 @@ TEST_CASE("Args::from_string")
   CHECK(args[3] == "f");
 }
 
+TEST_CASE("Args::from_string with space separated param")
+{
+  Args args = Args::from_string("Test Value", {{"Test", {' '}}});
+  CHECK(args.size() == 1);
+  CHECK(args[0].key() == "Test");
+  CHECK(args[0].value() == "Value");
+  CHECK(args[0].split_char() == ' ');
+  CHECK(args[0] == Arg("Test", ' ', "Value"));
+}
+
 TEST_CASE("Args::from_gcc_atfile")
 {
   TestContext test_context;
@@ -279,7 +289,7 @@ TEST_CASE("Args operations")
 
   SUBCASE("push_front string")
   {
-    args.push_front("foo");
+    args.push_front(Arg("foo"));
     CHECK(args == Args::from_string("foo eeny meeny miny moe"));
   }
 

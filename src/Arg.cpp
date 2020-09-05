@@ -18,6 +18,8 @@
 
 #include "Arg.hpp"
 
+#include "FormatNonstdStringView.hpp"
+
 static const std::string emptyString;
 
 Arg::Arg(nonstd::string_view full) : m_full(full), m_split_char(0)
@@ -28,6 +30,16 @@ Arg::Arg(nonstd::string_view full) : m_full(full), m_split_char(0)
     m_key = nonstd::string_view(m_full).substr(0, sep_pos);
     m_value = nonstd::string_view(m_full).substr(sep_pos + 1);
   }
+}
+
+Arg::Arg(const nonstd::string_view key,
+         const char split_char,
+         const nonstd::string_view value)
+  : m_full(fmt::format("{}{}{}", key, split_char, value)),
+    m_split_char(split_char)
+{
+  m_key = nonstd::string_view(m_full).substr(0, key.length());
+  m_value = nonstd::string_view(m_full).substr(key.length() + 1);
 }
 
 Arg::Arg(const Arg& other)

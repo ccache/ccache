@@ -29,12 +29,20 @@
 class Args
 {
 public:
+  struct ParamAndSplitChars
+  {
+    std::string param;
+    std::vector<char> allowed_split_chars;
+  };
+
   Args() = default;
   Args(const Args& other) = default;
   Args(Args&& other) noexcept;
 
   static Args from_argv(int argc, const char* const* argv);
-  static Args from_string(const std::string& command);
+  static Args from_string(
+    const std::string& command,
+    const std::vector<ParamAndSplitChars>& params_and_split_chars = {});
   static nonstd::optional<Args> from_gcc_atfile(const std::string& filename);
 
   Args& operator=(const Args& other) = default;
@@ -72,11 +80,14 @@ public:
   // Add `arg` to the end.
   void push_back(const nonstd::string_view arg);
 
+  // Add `arg` to the end.
+  void push_back(const Arg& arg);
+
   // Add `args` to the end.
   void push_back(const Args& args);
 
   // Add `arg` to the front.
-  void push_front(const nonstd::string_view arg);
+  void push_front(const Arg& arg);
 
   // Replace the argument at `index` with all arguments in `args`.
   void replace(size_t index, const Args& args);

@@ -28,6 +28,9 @@ class Arg
 public:
   // Splits strings like "key=value" into key and value.
   Arg(nonstd::string_view full);
+  Arg(nonstd::string_view key,
+      const char split_char,
+      nonstd::string_view value);
 
   Arg(const Arg&);
   Arg& operator=(const Arg&);

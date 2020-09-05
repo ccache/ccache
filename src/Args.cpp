@@ -20,6 +20,8 @@
 
 #include "Util.hpp"
 
+#include <algorithm>
+
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -39,11 +41,32 @@ Args::from_argv(int argc, const char* const* argv)
 }
 
 Args
-Args::from_string(const std::string& command)
+Args::from_string(const std::string& command,
+                  const std::vector<ParamAndSplitChars>& params_and_split_chars)
 {
   Args args;
+  std::string dangling_key;
   for (const std::string& word : Util::split_into_strings(command, " \t\r\n")) {
-    args.push_back(word);
+    const auto param_and_split_char_iter =
+      std::find_if(params_and_split_chars.begin(),
+                   params_and_split_chars.end(),
+                   [&word](const ParamAndSplitChars& p) {
+                     return p.param == word && p.allowed_split_chars[0] == ' ';
+                   });
+
+    if (dangling_key != "") {
+      args.push_back(Arg(dangling_key, ' ', word));
+      dangling_key = "";
+    } else if (param_and_split_char_iter != params_and_split_chars.end()) {
+      dangling_key = word;
+    } else {
+      args.push_back(word);
+    }
+  }
+
+  if (dangling_key != "") {
+    throw(Failure(
+      Statistic::bad_compiler_arguments)); // it's not always compiler...
   }
   return args;
 }
@@ -196,13 +219,19 @@ Args::push_back(const string_view arg)
 }
 
 void
+Args::push_back(const Arg& arg)
+{
+  m_args.push_back(arg);
+}
+
+void
 Args::push_back(const Args& args)
 {
   m_args.insert(m_args.end(), args.m_args.begin(), args.m_args.end());
 }
 
 void
-Args::push_front(const string_view arg)
+Args::push_front(const Arg& arg)
 {
   m_args.push_front(arg);
 }
