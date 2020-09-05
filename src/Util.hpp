@@ -312,9 +312,9 @@ bool matches_dir_prefix_or_file(nonstd::string_view dir_prefix_or_file,
 // On Windows: Backslashes are replaced with forward slashes.
 std::string normalize_absolute_path(nonstd::string_view path);
 
-// Parse `duration`, an unsigned 32-bit integer with d (days) or s (seconds)
-// suffix, into seconds. Throws `Error` on error.
-uint32_t parse_duration(const std::string& duration);
+// Parse `duration`, an unsigned integer with d (days) or s (seconds) suffix,
+// into seconds. Throws `Error` on error.
+uint64_t parse_duration(const std::string& duration);
 
 // Parse a string into a signed integer.
 //

@@ -1725,7 +1725,7 @@ create_initial_config_file(Config& config)
     return;
   }
 
-  unsigned max_files;
+  uint64_t max_files;
   uint64_t max_size;
   std::string stats_dir = fmt::format("{}/0", config.cache_dir());
   if (Stat::stat(stats_dir)) {

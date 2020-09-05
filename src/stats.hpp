@@ -77,11 +77,11 @@ void stats_print(const Config& config);
 
 void stats_update_size(Counters& counters, int64_t size, int files);
 void stats_get_obsolete_limits(const std::string& dir,
-                               unsigned* maxfiles,
+                               uint64_t* maxfiles,
                                uint64_t* maxsize);
 void stats_set_sizes(const std::string& dir,
-                     unsigned num_files,
+                     uint64_t num_files,
                      uint64_t total_size);
-void stats_add_cleanup(const std::string& dir, unsigned count);
+void stats_add_cleanup(const std::string& dir, uint64_t count);
 void stats_read(const std::string& path, Counters& counters);
 void stats_write(const std::string& path, const Counters& counters);

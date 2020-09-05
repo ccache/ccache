@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2019 Joel Rosdahl and other contributors
+// Copyright (C) 2010-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -24,15 +24,15 @@
 
 enum class Statistic;
 
-// A simple wrapper around a vector of integers
-// used for the statistics counters.
+// A simple wrapper around a vector of integers used for the statistics
+// counters.
 class Counters
 {
 public:
   Counters();
 
-  unsigned& operator[](Statistic index);
-  unsigned operator[](Statistic index) const;
+  uint64_t& operator[](Statistic index);
+  uint64_t operator[](Statistic index) const;
 
   size_t size() const;
 
@@ -40,5 +40,5 @@ public:
   bool all_zero() const;
 
 private:
-  std::vector<unsigned> m_counters;
+  std::vector<uint64_t> m_counters;
 };

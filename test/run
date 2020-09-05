@@ -148,7 +148,7 @@ objdump_grep_cmd() {
 expect_stat() {
     local stat="$1"
     local expected_value="$2"
-    local value="$(echo $($CCACHE -s | fgrep "$stat" | cut -c34-))"
+    local value="$(echo $($CCACHE -s | fgrep "$stat" | cut -c33-))"
 
     if [ "$expected_value" != "$value" ]; then
         test_failed "Expected \"$stat\" to be $expected_value, actual $value"

@@ -938,7 +938,7 @@ normalize_absolute_path(string_view path)
 #endif
 }
 
-uint32_t
+uint64_t
 parse_duration(const std::string& duration)
 {
   unsigned factor = 0;

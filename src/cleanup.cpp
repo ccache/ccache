@@ -39,7 +39,7 @@ static void
 delete_file(const std::string& path,
             uint64_t size,
             uint64_t* cache_size,
-            uint32_t* files_in_cache)
+            uint64_t* files_in_cache)
 {
   bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
@@ -57,7 +57,7 @@ delete_file(const std::string& path,
 void
 clean_old(const Context& ctx,
           const Util::ProgressReceiver& progress_receiver,
-          time_t max_age)
+          uint64_t max_age)
 {
   Util::for_each_level_1_subdir(
     ctx.config.cache_dir(),
@@ -72,8 +72,8 @@ clean_old(const Context& ctx,
 void
 clean_up_dir(const std::string& subdir,
              uint64_t max_size,
-             uint32_t max_files,
-             time_t max_age,
+             uint64_t max_files,
+             uint64_t max_age,
              const Util::ProgressReceiver& progress_receiver)
 {
   log("Cleaning up cache directory {}", subdir);
@@ -83,7 +83,7 @@ clean_up_dir(const std::string& subdir,
     subdir, [&](double progress) { progress_receiver(progress / 3); }, files);
 
   uint64_t cache_size = 0;
-  uint32_t files_in_cache = 0;
+  uint64_t files_in_cache = 0;
   time_t current_time = time(nullptr);
 
   for (size_t i = 0; i < files.size();
@@ -129,7 +129,9 @@ clean_up_dir(const std::string& subdir,
 
     if ((max_size == 0 || cache_size <= max_size)
         && (max_files == 0 || files_in_cache <= max_files)
-        && (max_age == 0 || file->lstat().mtime() > (current_time - max_age))) {
+        && (max_age == 0
+            || file->lstat().mtime()
+                 > (current_time - static_cast<int64_t>(max_age)))) {
       break;
     }
 

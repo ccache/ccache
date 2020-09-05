@@ -27,7 +27,7 @@ Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
 }
 
 // clang-format off
-unsigned&
+uint64_t&
 Counters::operator[](Statistic index)
 // clang-format on
 {
@@ -39,7 +39,7 @@ Counters::operator[](Statistic index)
 }
 
 // clang-format off
-unsigned
+uint64_t
 Counters::operator[](Statistic index) const
 // clang-format on
 {

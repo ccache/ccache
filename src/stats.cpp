@@ -157,7 +157,7 @@ parse_stats(Counters& counters, const std::string& buf)
   const char* p = buf.c_str();
   while (true) {
     char* p2;
-    long val = strtol(p, &p2, 10);
+    unsigned long long val = std::strtoull(p, &p2, 10);
     if (p2 == p) {
       break;
     }
@@ -188,18 +188,18 @@ stats_write(const std::string& path, const Counters& counters)
 static double
 stats_hit_rate(const Counters& counters)
 {
-  unsigned direct = counters[Statistic::direct_cache_hit];
-  unsigned preprocessed = counters[Statistic::preprocessed_cache_hit];
-  unsigned hit = direct + preprocessed;
-  unsigned miss = counters[Statistic::cache_miss];
-  unsigned total = hit + miss;
+  uint64_t direct = counters[Statistic::direct_cache_hit];
+  uint64_t preprocessed = counters[Statistic::preprocessed_cache_hit];
+  uint64_t hit = direct + preprocessed;
+  uint64_t miss = counters[Statistic::cache_miss];
+  uint64_t total = hit + miss;
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
 
 static void
 stats_collect(const Config& config, Counters& counters, time_t* last_updated)
 {
-  unsigned zero_timestamp = 0;
+  uint64_t zero_timestamp = 0;
 
   *last_updated = 0;
 
@@ -319,7 +319,7 @@ stats_flush_to_file(const Config& config,
     double factor = config.limit_multiple() / 16;
     uint64_t max_size = round(config.max_size() * factor);
     uint32_t max_files = round(config.max_files() * factor);
-    uint32_t max_age = 0;
+    time_t max_age = 0;
     clean_up_dir(
       subdir, max_size, max_files, max_age, [](double /*progress*/) {});
   }
@@ -453,7 +453,7 @@ stats_zero(const Context& ctx)
 // Get the per-directory limits.
 void
 stats_get_obsolete_limits(const std::string& dir,
-                          unsigned* maxfiles,
+                          uint64_t* maxfiles,
                           uint64_t* maxsize)
 {
   assert(maxfiles);
@@ -463,13 +463,12 @@ stats_get_obsolete_limits(const std::string& dir,
   std::string sname = dir + "/stats";
   stats_read(sname, counters);
   *maxfiles = counters[Statistic::obsolete_max_files];
-  *maxsize =
-    static_cast<uint64_t>(counters[Statistic::obsolete_max_size]) * 1024;
+  *maxsize = counters[Statistic::obsolete_max_size] * 1024;
 }
 
 // Set the per-directory sizes.
 void
-stats_set_sizes(const std::string& dir, unsigned num_files, uint64_t total_size)
+stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)
 {
   Counters counters;
   std::string statsfile = dir + "/stats";
@@ -484,7 +483,7 @@ stats_set_sizes(const std::string& dir, unsigned num_files, uint64_t total_size)
 
 // Count directory cleanup run.
 void
-stats_add_cleanup(const std::string& dir, unsigned count)
+stats_add_cleanup(const std::string& dir, uint64_t count)
 {
   Counters counters;
   std::string statsfile = dir + "/stats";

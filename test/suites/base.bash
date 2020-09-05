@@ -377,6 +377,18 @@ base_tests() {
     expect_newer_than "$stats_file" "$CCACHE_DIR/timestamp_reference"
 
     # -------------------------------------------------------------------------
+    TEST "stats file with large counter values"
+
+    mkdir -p "$CCACHE_DIR/4/"
+    stats_file="$CCACHE_DIR/4/stats"
+
+    echo "0 0 0 0 1234567890123456789" >"$stats_file"
+
+    expect_stat 'cache miss' 1234567890123456789
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache miss' 1234567890123456790
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_RECACHE"
 
     $CCACHE_COMPILE -c test1.c

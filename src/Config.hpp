@@ -62,7 +62,7 @@ public:
   bool keep_comments_cpp() const;
   double limit_multiple() const;
   const std::string& log_file() const;
-  uint32_t max_files() const;
+  uint64_t max_files() const;
   uint64_t max_size() const;
   const std::string& path() const;
   bool pch_external_checksum() const;
@@ -86,7 +86,7 @@ public:
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
   void set_limit_multiple(double value);
-  void set_max_files(uint32_t value);
+  void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
 
@@ -152,7 +152,7 @@ private:
   bool m_keep_comments_cpp = false;
   double m_limit_multiple = 0.8;
   std::string m_log_file = "";
-  uint32_t m_max_files = 0;
+  uint64_t m_max_files = 0;
   uint64_t m_max_size = 5ULL * 1000 * 1000 * 1000;
   std::string m_path = "";
   bool m_pch_external_checksum = false;
@@ -318,7 +318,7 @@ Config::log_file() const
   return m_log_file;
 }
 
-inline uint32_t
+inline uint64_t
 Config::max_files() const
 {
   return m_max_files;
@@ -460,7 +460,7 @@ Config::set_limit_multiple(double value)
 }
 
 inline void
-Config::set_max_files(uint32_t value)
+Config::set_max_files(uint64_t value)
 {
   m_max_files = value;
 }
