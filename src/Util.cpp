@@ -552,7 +552,7 @@ format_parsable_size_with_suffix(uint64_t size)
   } else if (size >= 1000 * 1000) {
     return fmt::format("{:.1f}M", size / ((double)(1000 * 1000)));
   } else {
-    return fmt::format("{}", (unsigned)size);
+    return fmt::format("{}", size);
   }
 }
 
@@ -743,7 +743,7 @@ get_path_in_cache(string_view cache_dir,
   path.reserve(path.size() + levels * 2 + 1 + name.length() - levels
                + suffix.length());
 
-  unsigned level = 0;
+  uint32_t level = 0;
   for (; level < levels; ++level) {
     path.push_back('/');
     path.push_back(name.at(level));

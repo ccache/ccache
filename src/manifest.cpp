@@ -586,11 +586,11 @@ manifest_dump(const std::string& path, FILE* stream)
   }
 
   fmt::print(stream, "File paths ({}):\n", mf->files.size());
-  for (unsigned i = 0; i < mf->files.size(); ++i) {
+  for (size_t i = 0; i < mf->files.size(); ++i) {
     fmt::print(stream, "  {}: {}\n", i, mf->files[i]);
   }
   fmt::print(stream, "File infos ({}):\n", mf->file_infos.size());
-  for (unsigned i = 0; i < mf->file_infos.size(); ++i) {
+  for (size_t i = 0; i < mf->file_infos.size(); ++i) {
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    Path index: {}\n", mf->file_infos[i].index);
     fmt::print(stream, "    Hash: {}\n", mf->file_infos[i].digest.to_string());
@@ -599,7 +599,7 @@ manifest_dump(const std::string& path, FILE* stream)
     fmt::print(stream, "    Ctime: {}\n", mf->file_infos[i].ctime);
   }
   fmt::print(stream, "Results ({}):\n", mf->results.size());
-  for (unsigned i = 0; i < mf->results.size(); ++i) {
+  for (size_t i = 0; i < mf->results.size(); ++i) {
     fmt::print(stream, "  {}:\n", i);
     fmt::print(stream, "    File info indexes:");
     for (uint32_t file_info_index : mf->results[i].file_info_indexes) {
