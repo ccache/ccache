@@ -2308,7 +2308,7 @@ handle_main_options(int argc, const char* const* argv)
       } else {
         hash.hash_file(arg);
       }
-      fmt::print("{}", hash.digest().to_string());
+      fmt::print("{}\n", hash.digest().to_string());
       break;
     }
 
