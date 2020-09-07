@@ -225,14 +225,20 @@ process_arg(Context& ctx,
 
   size_t& i = args_index;
 
+  // move out of this inner function!!
+  args.add_param("--ccache-skip", {' '});
+  args.add_param("-optf", {' '});
+  args.add_param("--options-file", {' '});
+  args.add_param("-arch", {' '});
+  args.add_param("-Xclang", {' '});
+  args.add_param("-x", {' ', 0});
+  args.add_param("-MF", {' ', '=', 0});
+  args.add_param("-MQ", {' ', 0});
+  args.add_param("-MT", {' ', 0});
+
   // The user knows best: just swallow the next arg.
-  if (args[i] == "--ccache-skip") {
-    i++;
-    if (i == args.size()) {
-      log("--ccache-skip lacks an argument");
-      return Statistic::bad_compiler_arguments;
-    }
-    state.common_args.push_back(args[i]);
+  if (args[i].key() == "--ccache-skip") {
+    state.common_args.push_back(args[i].value());
     return nullopt;
   }
 
@@ -261,17 +267,11 @@ process_arg(Context& ctx,
 
   // Handle cuda "-optf" and "--options-file" argument.
   if (ctx.guessed_compiler == GuessedCompiler::nvcc
-      && (args[i] == "-optf" || args[i] == "--options-file")) {
-    if (i == args.size() - 1) {
-      log("Expected argument after {}", args[i]);
-      return Statistic::bad_compiler_arguments;
-    }
-    ++i;
-
+      && (args[i].key() == "-optf" || args[i].key() == "--options-file")) {
     // Argument is a comma-separated list of files.
-    auto paths = Util::split_into_strings(args[i], ",");
+    const auto paths = Util::split_into_strings(args[i].value(), ",");
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
-      auto file_args = Args::from_gcc_atfile(*it);
+      const auto file_args = Args::from_gcc_atfile(*it);
       if (!file_args) {
         log("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
@@ -303,9 +303,8 @@ process_arg(Context& ctx,
   }
 
   // Handle -arch options.
-  if (args[i] == "-arch") {
-    ++i;
-    args_info.arch_args.emplace_back(args[i]);
+  if (args[i].key() == "-arch") {
+    args_info.arch_args.emplace_back(args[i].value());
     if (args_info.arch_args.size() == 2) {
       config.set_run_second_cpp(true);
     }
@@ -315,16 +314,15 @@ process_arg(Context& ctx,
   // Some arguments that clang passes directly to cc1 (related to precompiled
   // headers) need the usual ccache handling. In those cases, the -Xclang
   // prefix is skipped and the cc1 argument is handled instead.
-  if (args[i] == "-Xclang" && i < args.size() - 1
-      && (args[i + 1] == "-emit-pch" || args[i + 1] == "-emit-pth"
-          || args[i + 1] == "-include-pch" || args[i + 1] == "-include-pth"
-          || args[i + 1] == "-fno-pch-timestamp")) {
-    if (compopt_affects_comp(args[i + 1])) {
-      state.compiler_only_args.push_back(args[i]);
-    } else if (compopt_affects_cpp(args[i + 1])) {
-      state.cpp_args.push_back(args[i]);
+  if (args[i] == "-Xclang -emit-pch" || args[i] == "-Xclang -emit-pth"
+      || args[i] == "-Xclang -include-pch" || args[i] == "--Xclang include-pth"
+      || args[i] == "-Xclang -fno-pch-timestamp") {
+    if (compopt_affects_comp(std::string(args[i].value()))) {
+      state.compiler_only_args.push_back("-Xclang");
+    } else if (compopt_affects_cpp(std::string(args[i].value()))) {
+      state.cpp_args.push_back("-Xclang");
     } else {
-      state.common_args.push_back(args[i]);
+      state.common_args.push_back("-Xclang");
     }
     ++i;
   }
@@ -390,31 +388,20 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i].full().length() >= 3 && Util::starts_with(args[i], "-x")
-      && !islower(args[i].full()[2])) {
+  if (args[i].key() == "-x") {
     // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with an
     // uppercase letter) is an ordinary Intel compiler option, not a language
     // specification. (GCC's "-x" language argument is always lowercase.)
-    state.common_args.push_back(args[i]);
-    return nullopt;
-  }
+    if (!islower(args[i].value()[0])) {
+      state.common_args.push_back(args[i]);
+    }
 
-  // Special handling for -x: remember the last specified language before the
-  // input file and strip all -x options from the arguments.
-  if (args[i] == "-x") {
-    if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
-      return Statistic::bad_compiler_arguments;
-    }
-    if (args_info.input_file.empty()) {
-      state.explicit_language = args[i + 1];
-    }
-    i++;
-    return nullopt;
-  }
-  if (Util::starts_with(args[i], "-x")) {
-    if (args_info.input_file.empty()) {
-      state.explicit_language = args[i].full().substr(2);
+    // Special handling for -x: remember the last specified language before the
+    // input file and strip all -x options from the arguments.
+    else {
+      if (args_info.input_file.empty()) {
+        state.explicit_language = std::string(args[i].value());
+      }
     }
     return nullopt;
   }
@@ -488,54 +475,17 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (Util::starts_with(arg.full(), "-MF")) {
+  if (arg.key() == "-MF") {
     state.dependency_filename_specified = true;
-
-    std::string dep_file;
-    const bool separate_argument = (arg.full().size() == 3);
-    if (separate_argument) {
-      // -MF arg
-      if (i == args.size() - 1) {
-        log("Missing argument to {}", arg.full());
-        return Statistic::bad_compiler_arguments;
-      }
-      dep_file = args[i + 1];
-      i++;
-    } else {
-      // -MFarg or -MF=arg (EDG-based compilers)
-      dep_file = arg.full().substr(arg.full()[3] == '=' ? 4 : 3);
-    }
-    args_info.output_dep = Util::make_relative_path(ctx, dep_file);
-    // Keep the format of the args the same.
-    if (separate_argument) {
-      state.dep_args.push_back("-MF");
-      state.dep_args.push_back(args_info.output_dep);
-    } else {
-      state.dep_args.push_back("-MF" + args_info.output_dep);
-    }
+    const auto dep_file = Util::make_relative_path(ctx, arg.value());
+    state.dep_args.push_back(Arg(arg.key(), arg.split_char(), dep_file));
     return nullopt;
   }
 
-  if (Util::starts_with(arg.full(), "-MQ")
-      || Util::starts_with(arg.full(), "-MT")) {
+  if (arg.key() == "-MQ" || arg.key() == "-MT") {
     ctx.args_info.dependency_target_specified = true;
-
-    if (arg.full().size() == 3) {
-      // -MQ arg or -MT arg
-      if (i == args.size() - 1) {
-        log("Missing argument to {}", arg.full());
-        return Statistic::bad_compiler_arguments;
-      }
-      state.dep_args.push_back(arg);
-      std::string relpath = Util::make_relative_path(ctx, args[i + 1]);
-      state.dep_args.push_back(relpath);
-      i++;
-    } else {
-      const auto arg_opt = string_view(arg.full()).substr(0, 3);
-      const auto option = string_view(arg.full()).substr(3);
-      const auto relpath = Util::make_relative_path(ctx, option);
-      state.dep_args.push_back(fmt::format("{}{}", arg_opt, relpath));
-    }
+    const auto relpath = Util::make_relative_path(ctx, arg.value());
+    state.dep_args.push_back(Arg(arg.key(), arg.split_char(), relpath));
     return nullopt;
   }
 

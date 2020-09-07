@@ -35,11 +35,15 @@ Arg::Arg(nonstd::string_view full) : m_full(full), m_split_char(0)
 Arg::Arg(const nonstd::string_view key,
          const char split_char,
          const nonstd::string_view value)
-  : m_full(fmt::format("{}{}{}", key, split_char, value)),
-    m_split_char(split_char)
+  : m_split_char(split_char)
 {
+  if (split_char)
+    m_full = fmt::format("{}{}{}", key, split_char, value);
+  else
+    m_full = fmt::format("{}{}", key, value);
   m_key = nonstd::string_view(m_full).substr(0, key.length());
-  m_value = nonstd::string_view(m_full).substr(key.length() + 1);
+  m_value =
+    nonstd::string_view(m_full).substr(key.length() + (split_char != 0));
 }
 
 Arg::Arg(const Arg& other)
@@ -47,7 +51,8 @@ Arg::Arg(const Arg& other)
 {
   if (other.has_been_split()) {
     m_key = nonstd::string_view(m_full).substr(0, other.key().size());
-    m_value = nonstd::string_view(m_full).substr(other.key().size() + 1);
+    m_value = nonstd::string_view(m_full).substr(other.key().size()
+                                                 + (m_split_char != 0));
   }
   assert(*this == other);
 }
@@ -59,7 +64,8 @@ Arg::operator=(const Arg& other)
   m_split_char = other.m_split_char;
   if (other.has_been_split()) {
     m_key = nonstd::string_view(m_full).substr(0, other.key().size());
-    m_value = nonstd::string_view(m_full).substr(other.key().size() + 1);
+    m_value = nonstd::string_view(m_full).substr(other.key().size()
+                                                 + (m_split_char != 0));
   }
   assert(*this == other);
   return *this;

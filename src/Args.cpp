@@ -247,3 +247,41 @@ Args::replace(size_t index, const Args& args)
     insert(index, args);
   }
 }
+
+template<typename T>
+static bool
+contains(const std::vector<T>& vec, const T& element)
+{
+  return std::find(std::begin(vec), std::end(vec), element) != std::end(vec);
+}
+
+size_t
+Args::add_param(std::string param, std::vector<char> allowed_split_chars)
+{
+  size_t found = 0;
+
+  if (contains(allowed_split_chars, ' ')) {
+    for (size_t i = 0; i < m_args.size(); ++i) {
+      if (m_args[i].full() == param) {
+        if (i + 1 >= m_args.size()) {
+          return -1; // FIXME throw Failure?! Which one?
+        }
+        m_args[i] = Arg(param, ' ', m_args[i + 1]);
+        m_args.erase(std::begin(m_args) + i + 1);
+        ++found;
+      }
+    }
+  }
+
+  if (contains(allowed_split_chars, (char)0)) {
+    for (Arg& arg : m_args) {
+      if (arg.has_been_split() == false
+          && Util::starts_with(arg.full(), param)) {
+        arg = Arg(param, (char)0, arg.full().substr(param.length()));
+        ++found;
+      }
+    }
+  }
+
+  return found;
+}

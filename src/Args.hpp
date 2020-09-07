@@ -65,6 +65,14 @@ public:
   // in arguments is performed.
   std::string to_string() const;
 
+  // Reparse arguments and detects such `param` as indicated by
+  // `allowed_split_chars`. In case of ' ' it would detect a standalone
+  // `param` which is followed by a value. Special value in
+  // `allowed_split_chars` is 0 which will then detect "paramvalue". Returns how
+  // many such keys have been found.
+  // TBD: is allowed_split_chars really any char or is it an enum?
+  size_t add_param(std::string param, std::vector<char> allowed_split_chars);
+
   // Remove all arguments with prefix `prefix`.
   void erase_with_prefix(nonstd::string_view prefix);
 
