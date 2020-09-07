@@ -29,15 +29,18 @@ class Config;
 class Context;
 class Digest;
 
-extern const uint8_t k_manifest_magic[4];
-extern const uint8_t k_manifest_version;
+namespace Manifest {
 
-nonstd::optional<Digest> manifest_get(const Context& ctx,
-                                      const std::string& path);
-bool manifest_put(const Config& config,
-                  const std::string& path,
-                  const Digest& result_name,
-                  const std::unordered_map<std::string, Digest>& included_files,
-                  time_t time_of_compilation,
-                  bool save_timestamp);
-bool manifest_dump(const std::string& path, FILE* stream);
+extern const uint8_t k_magic[4];
+extern const uint8_t k_version;
+
+nonstd::optional<Digest> get(const Context& ctx, const std::string& path);
+bool put(const Config& config,
+         const std::string& path,
+         const Digest& result_name,
+         const std::unordered_map<std::string, Digest>& included_files,
+         time_t time_of_compilation,
+         bool save_timestamp);
+bool dump(const std::string& path, FILE* stream);
+
+} // namespace Manifest

@@ -29,6 +29,7 @@
 #include "FormatNonstdStringView.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
+#include "Manifest.hpp"
 #include "MiniTrace.hpp"
 #include "ProgressBar.hpp"
 #include "Result.hpp"
@@ -48,7 +49,6 @@
 #include "execute.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
-#include "manifest.hpp"
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
@@ -742,12 +742,12 @@ update_manifest_file(Context& ctx)
 
   MTR_BEGIN("manifest", "manifest_put");
   log("Adding result name to {}", ctx.manifest_path());
-  if (!manifest_put(ctx.config,
-                    ctx.manifest_path(),
-                    ctx.result_name(),
-                    ctx.included_files,
-                    ctx.time_of_compilation,
-                    save_timestamp)) {
+  if (!Manifest::put(ctx.config,
+                     ctx.manifest_path(),
+                     ctx.result_name(),
+                     ctx.included_files,
+                     ctx.time_of_compilation,
+                     save_timestamp)) {
     log("Failed to add result name to {}", ctx.manifest_path());
   } else {
     auto st = Stat::stat(ctx.manifest_path(), Stat::OnError::log);
@@ -1362,7 +1362,7 @@ calculate_result_name(Context& ctx,
 
   if (direct_mode) {
     hash.hash_delimiter("manifest version");
-    hash.hash(k_manifest_version);
+    hash.hash(Manifest::k_version);
   }
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
@@ -1605,7 +1605,7 @@ calculate_result_name(Context& ctx,
 
     log("Looking for result name in {}", ctx.manifest_path());
     MTR_BEGIN("manifest", "manifest_get");
-    result_name = manifest_get(ctx, ctx.manifest_path());
+    result_name = Manifest::get(ctx, ctx.manifest_path());
     MTR_END("manifest", "manifest_get");
     if (result_name) {
       log("Got result name from manifest");
@@ -2268,7 +2268,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case DUMP_MANIFEST:
-      return manifest_dump(arg, stdout) ? 0 : 1;
+      return Manifest::dump(arg, stdout) ? 0 : 1;
 
     case DUMP_RESULT: {
       ResultDumper result_dumper(stdout);

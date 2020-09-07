@@ -24,11 +24,11 @@
 #include "Context.hpp"
 #include "File.hpp"
 #include "Logging.hpp"
+#include "Manifest.hpp"
 #include "Result.hpp"
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
-#include "manifest.hpp"
 #include "stats.hpp"
 
 #include "third_party/fmt/core.h"
@@ -126,7 +126,7 @@ create_reader(const CacheFile& cache_file, FILE* stream)
 
   case CacheFile::Type::manifest:
     return std::make_unique<CacheEntryReader>(
-      stream, k_manifest_magic, k_manifest_version);
+      stream, Manifest::k_magic, Manifest::k_version);
 
   case CacheFile::Type::unknown:
     assert(false); // Handled at function entry.

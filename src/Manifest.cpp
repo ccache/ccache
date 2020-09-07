@@ -16,7 +16,7 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "manifest.hpp"
+#include "Manifest.hpp"
 
 #include "AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
@@ -111,8 +111,6 @@ using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 
-const uint8_t k_manifest_magic[4] = {'c', 'C', 'm', 'F'};
-const uint8_t k_manifest_version = 2;
 const uint32_t k_max_manifest_entries = 100;
 const uint32_t k_max_manifest_file_info_entries = 10000;
 
@@ -157,6 +155,8 @@ template<> struct hash<FileInfo>
 };
 
 } // namespace std
+
+namespace {
 
 struct ResultEntry
 {
@@ -278,7 +278,7 @@ struct FileStats
   int64_t ctime;
 };
 
-static std::unique_ptr<ManifestData>
+std::unique_ptr<ManifestData>
 read_manifest(const std::string& path, FILE* dump_stream = nullptr)
 {
   File file(path, "rb");
@@ -286,7 +286,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
     return {};
   }
 
-  CacheEntryReader reader(file.get(), k_manifest_magic, k_manifest_version);
+  CacheEntryReader reader(file.get(), Manifest::k_magic, Manifest::k_version);
 
   if (dump_stream) {
     reader.dump_header(dump_stream);
@@ -337,7 +337,7 @@ read_manifest(const std::string& path, FILE* dump_stream = nullptr)
   return mf;
 }
 
-static bool
+bool
 write_manifest(const Config& config,
                const std::string& path,
                const ManifestData& mf)
@@ -358,8 +358,8 @@ write_manifest(const Config& config,
 
   AtomicFile atomic_manifest_file(path, AtomicFile::Mode::binary);
   CacheEntryWriter writer(atomic_manifest_file.stream(),
-                          k_manifest_magic,
-                          k_manifest_version,
+                          Manifest::k_magic,
+                          Manifest::k_version,
                           Compression::type_from_config(config),
                           Compression::level_from_config(config),
                           payload_size);
@@ -392,7 +392,7 @@ write_manifest(const Config& config,
   return true;
 }
 
-static bool
+bool
 verify_result(const Context& ctx,
               const ManifestData& mf,
               const ResultEntry& result,
@@ -473,9 +473,16 @@ verify_result(const Context& ctx,
   return true;
 }
 
+} // namespace
+
+namespace Manifest {
+
+const uint8_t k_magic[4] = {'c', 'C', 'm', 'F'};
+const uint8_t k_version = 2;
+
 // Try to get the result name from a manifest file. Returns nullopt on failure.
 optional<Digest>
-manifest_get(const Context& ctx, const std::string& path)
+get(const Context& ctx, const std::string& path)
 {
   std::unique_ptr<ManifestData> mf;
   try {
@@ -509,13 +516,13 @@ manifest_get(const Context& ctx, const std::string& path)
 // Put the result name into a manifest file given a set of included files.
 // Returns true on success, otherwise false.
 bool
-manifest_put(const Config& config,
-             const std::string& path,
-             const Digest& result_name,
-             const std::unordered_map<std::string, Digest>& included_files,
+put(const Config& config,
+    const std::string& path,
+    const Digest& result_name,
+    const std::unordered_map<std::string, Digest>& included_files,
 
-             time_t time_of_compilation,
-             bool save_timestamp)
+    time_t time_of_compilation,
+    bool save_timestamp)
 {
   // We don't bother to acquire a lock when writing the manifest to disk. A
   // race between two processes will only result in one lost entry, which is
@@ -570,7 +577,7 @@ manifest_put(const Config& config,
 }
 
 bool
-manifest_dump(const std::string& path, FILE* stream)
+dump(const std::string& path, FILE* stream)
 {
   std::unique_ptr<ManifestData> mf;
   try {
@@ -611,3 +618,5 @@ manifest_dump(const std::string& path, FILE* stream)
 
   return true;
 }
+
+} // namespace Manifest
