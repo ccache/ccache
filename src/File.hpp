@@ -28,65 +28,77 @@ class File : public NonCopyable
 {
 public:
   File() = default;
+  File(const std::string& path, const char* mode);
+  File(File&& other);
+  ~File();
 
-  File(const std::string& path, const char* mode)
-  {
-    open(path, mode);
-  }
+  File& operator=(File&& other);
 
-  File(File&& other) : m_file(other.m_file)
-  {
-    other.m_file = nullptr;
-  }
+  void open(const std::string& path, const char* mode);
+  void close();
 
-  File&
-  operator=(File&& other)
-  {
-    m_file = other.m_file;
-    other.m_file = nullptr;
-    return *this;
-  }
-
-  void
-  open(const std::string& path, const char* mode)
-  {
-    close();
-    m_file = fopen(path.c_str(), mode);
-  }
-
-  void
-  close()
-  {
-    if (m_file) {
-      fclose(m_file);
-      m_file = nullptr;
-    }
-  }
-
-  ~File()
-  {
-    close();
-  }
-
-  operator bool() const
-  {
-    return m_file;
-  }
-
-  // clang-format off
-  FILE*
-  operator*() const
-  // clang-format on
-  {
-    return m_file;
-  }
-
-  FILE*
-  get()
-  {
-    return m_file;
-  }
+  operator bool() const;
+  FILE* operator*() const;
+  FILE* get();
 
 private:
   FILE* m_file = nullptr;
 };
+
+inline File::File(const std::string& path, const char* mode)
+{
+  open(path, mode);
+}
+
+inline File::File(File&& other) : m_file(other.m_file)
+{
+  other.m_file = nullptr;
+}
+
+inline File::~File()
+{
+  close();
+}
+
+inline File&
+File::operator=(File&& other)
+{
+  m_file = other.m_file;
+  other.m_file = nullptr;
+  return *this;
+}
+
+inline void
+File::open(const std::string& path, const char* mode)
+{
+  close();
+  m_file = fopen(path.c_str(), mode);
+}
+
+inline void
+File::close()
+{
+  if (m_file) {
+    fclose(m_file);
+    m_file = nullptr;
+  }
+}
+
+inline File::operator bool() const
+{
+  return m_file;
+}
+
+// clang-format off
+inline FILE*
+File::operator*() const
+// clang-format on
+{
+  return m_file;
+}
+
+inline FILE*
+File::get()
+{
+  return m_file;
+}
