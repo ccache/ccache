@@ -59,14 +59,10 @@ mkstemp(char* name_template)
 } // namespace
 
 TemporaryFile::TemporaryFile(string_view path_prefix)
+  : path(std::string(path_prefix) + ".XXXXXX")
 {
-  if (!initialize(path_prefix) && errno == ENOENT) {
-    auto dir = Util::dir_name(path);
-    if (!Util::create_dir(dir)) {
-      throw Fatal("Failed to create directory {}: {}", dir, strerror(errno));
-    }
-    initialize(path_prefix);
-  }
+  Util::ensure_dir_exists(Util::dir_name(path));
+  fd = Fd(mkstemp(&path[0]));
   if (!fd) {
     throw Fatal(
       "Failed to create temporary file for {}: {}", path, strerror(errno));
@@ -76,13 +72,4 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
 #ifndef _WIN32
   fchmod(*fd, 0666 & ~get_umask());
 #endif
-}
-
-bool
-TemporaryFile::initialize(string_view path_prefix)
-{
-  path = std::string(path_prefix);
-  path += ".XXXXXX";
-  fd = Fd(mkstemp(&path[0]));
-  return bool(fd);
 }

@@ -41,7 +41,4 @@ public:
 
   // The actual filename. Empty on error.
   std::string path;
-
-private:
-  bool initialize(nonstd::string_view path_prefix);
 };
