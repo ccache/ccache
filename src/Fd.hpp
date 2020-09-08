@@ -27,7 +27,7 @@ class Fd : NonCopyable
 public:
   Fd() = default;
   explicit Fd(int fd);
-  Fd(Fd&& other_fd);
+  Fd(Fd&& other_fd) noexcept;
   ~Fd();
 
   explicit operator bool() const;
@@ -35,7 +35,7 @@ public:
   int get() const;
   int operator*() const;
 
-  Fd& operator=(Fd&& other_fd);
+  Fd& operator=(Fd&& other_fd) noexcept;
 
   // Close wrapped fd before the lifetime of Fd has ended.
   bool close();
@@ -51,7 +51,7 @@ inline Fd::Fd(int fd) : m_fd(fd)
 {
 }
 
-inline Fd::Fd(Fd&& other_fd) : m_fd(other_fd.release())
+inline Fd::Fd(Fd&& other_fd) noexcept : m_fd(other_fd.release())
 {
 }
 
@@ -81,7 +81,7 @@ Fd::operator*() const
 }
 
 inline Fd&
-Fd::operator=(Fd&& other_fd)
+Fd::operator=(Fd&& other_fd) noexcept
 {
   close();
   m_fd = other_fd.release();

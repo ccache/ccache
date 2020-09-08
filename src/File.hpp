@@ -29,10 +29,10 @@ class File : public NonCopyable
 public:
   File() = default;
   File(const std::string& path, const char* mode);
-  File(File&& other);
+  File(File&& other) noexcept;
   ~File();
 
-  File& operator=(File&& other);
+  File& operator=(File&& other) noexcept;
 
   void open(const std::string& path, const char* mode);
   void close();
@@ -50,7 +50,7 @@ inline File::File(const std::string& path, const char* mode)
   open(path, mode);
 }
 
-inline File::File(File&& other) : m_file(other.m_file)
+inline File::File(File&& other) noexcept : m_file(other.m_file)
 {
   other.m_file = nullptr;
 }
@@ -61,7 +61,7 @@ inline File::~File()
 }
 
 inline File&
-File::operator=(File&& other)
+File::operator=(File&& other) noexcept
 {
   m_file = other.m_file;
   other.m_file = nullptr;

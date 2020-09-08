@@ -32,9 +32,9 @@ public:
   //  the directory will be created if possible.`
   TemporaryFile(nonstd::string_view path_prefix);
 
-  TemporaryFile(TemporaryFile&& other) = default;
+  TemporaryFile(TemporaryFile&& other) noexcept = default;
 
-  TemporaryFile& operator=(TemporaryFile&& other) = default;
+  TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;
