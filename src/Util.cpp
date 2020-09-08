@@ -1090,7 +1090,7 @@ std::string
 read_file(const std::string& path, size_t size_hint)
 {
   if (size_hint == 0) {
-    auto stat = Stat::stat(path, Stat::OnError::log);
+    auto stat = Stat::stat(path);
     if (!stat) {
       throw Error(strerror(errno));
     }
