@@ -124,6 +124,9 @@ ends_with(nonstd::string_view string, nonstd::string_view suffix)
   return string.ends_with(suffix);
 }
 
+// Like create_dir but throws Fatal on error.
+void ensure_dir_exists(nonstd::string_view dir);
+
 // Expand all instances of $VAR or ${VAR}, where VAR is an environment variable,
 // in `str`. Throws `Error` if one of the environment variables.
 [[nodiscard]] std::string expand_environment_variables(const std::string& str);

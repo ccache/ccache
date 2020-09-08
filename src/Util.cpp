@@ -556,6 +556,14 @@ format_parsable_size_with_suffix(uint64_t size)
   }
 }
 
+void
+ensure_dir_exists(nonstd::string_view dir)
+{
+  if (!create_dir(dir)) {
+    throw Fatal("Failed to create directory {}: {}", dir, strerror(errno));
+  }
+}
+
 std::string
 get_actual_cwd()
 {

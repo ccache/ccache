@@ -163,6 +163,21 @@ TEST_CASE("Util::ends_with")
   CHECK_FALSE(Util::ends_with("x", "xy"));
 }
 
+TEST_CASE("Util::ensure_dir_exists")
+{
+  TestContext test_context;
+
+  CHECK_NOTHROW(Util::ensure_dir_exists("/"));
+
+  CHECK_NOTHROW(Util::ensure_dir_exists("create/dir"));
+  CHECK(Stat::stat("create/dir").is_directory());
+
+  Util::write_file("create/dir/file", "");
+  CHECK_THROWS_WITH(
+    Util::ensure_dir_exists("create/dir/file"),
+    "Failed to create directory create/dir/file: Not a directory");
+}
+
 TEST_CASE("Util::expand_environment_variables")
 {
   Util::setenv("FOO", "bar");
