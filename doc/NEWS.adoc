@@ -16,7 +16,7 @@ High-level summary of changes (work in progress)
 
 - BLAKE3 is now used instead of MD4 for hashing input.
 
-- Added checksumming of result files using XXH64 to detect data corruption.
+- Added checksumming of result files using XXH3 to detect data corruption.
 
 - Made the hard link mode less error prone.
 

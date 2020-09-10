@@ -10,6 +10,29 @@ if(ENABLE_TRACING)
   target_sources(third_party_lib PRIVATE minitrace.c)
 endif()
 
+set(xxhdispatchtest [=[
+#include "xxh_x86dispatch.c"
+
+int main()
+{
+  XXH3_64bits_dispatch("foo", 3);
+  return 1;
+}
+]=])
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/xxhdispatchtest.c" "${xxhdispatchtest}")
+
+try_compile(USE_XXH_DISPATCH ${CMAKE_CURRENT_BINARY_DIR}
+  "${CMAKE_CURRENT_BINARY_DIR}/xxhdispatchtest.c"
+  CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}"
+  COMPILE_DEFINITIONS "-DXXH_STATIC_LINKING_ONLY")
+
+target_compile_definitions(third_party_lib INTERFACE "-DXXH_STATIC_LINKING_ONLY")
+if(USE_XXH_DISPATCH)
+  target_sources(third_party_lib PRIVATE xxh_x86dispatch.c)
+  target_compile_definitions(third_party_lib INTERFACE "-DUSE_XXH_DISPATCH")
+endif()
+
 # Treat third party headers as system files (no warning for those headers).
 target_include_directories(
   third_party_lib

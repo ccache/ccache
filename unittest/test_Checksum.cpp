@@ -25,16 +25,16 @@ TEST_SUITE_BEGIN("Checksum");
 TEST_CASE("Checksums")
 {
   Checksum checksum;
-  CHECK(checksum.digest() == 0xef46db3751d8e999);
+  CHECK(checksum.digest() == 0x2d06800538d394c2);
 
   checksum.update("foo", 3);
-  CHECK(checksum.digest() == 0x33bf00a859c4ba3f);
+  CHECK(checksum.digest() == 0xab6e5f64077e7d8a);
 
   checksum.update("t", 1);
-  CHECK(checksum.digest() == 0xef78250064b0eea7);
+  CHECK(checksum.digest() == 0x3fd918aed1a9e7e4);
 
   checksum.reset();
-  CHECK(checksum.digest() == 0xef46db3751d8e999);
+  CHECK(checksum.digest() == 0x2d06800538d394c2);
 }
 
 TEST_SUITE_END();

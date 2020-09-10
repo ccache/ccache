@@ -69,7 +69,7 @@
 // <include_index> ::= uint32_t
 // <name>          ::= Digest::size() bytes
 // <epilogue>      ::= <checksum>
-// <checksum>      ::= uint64_t ; XXH64 of content bytes
+// <checksum>      ::= uint64_t ; XXH3 of content bytes
 //
 // Sketch of concrete layout:
 
