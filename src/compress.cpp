@@ -198,12 +198,13 @@ recompress_file(Context& ctx,
   atomic_new_file.commit();
   auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  size_t size_on_disk_delta = new_stat.size_on_disk() - old_stat.size_on_disk();
+  const size_t size_delta =
+    (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
   if (ctx.stats_file() == stats_file) {
-    stats_update_size(ctx.counter_updates, size_on_disk_delta, 0);
+    ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
   } else {
     Counters counters;
-    stats_update_size(counters, size_on_disk_delta, 0);
+    counters[Statistic::cache_size_kibibyte] += size_delta;
     stats_flush_to_file(ctx.config, stats_file, counters);
   }
 

@@ -399,18 +399,20 @@ void
 Result::Writer::write_raw_file_entry(const std::string& path,
                                      uint32_t entry_number)
 {
-  auto raw_file = get_raw_file_path(m_result_path, entry_number);
-  auto old_stat = Stat::stat(raw_file);
+  const auto raw_file = get_raw_file_path(m_result_path, entry_number);
+  const auto old_stat = Stat::stat(raw_file);
   try {
     Util::clone_hard_link_or_copy_file(m_ctx, path, raw_file, true);
   } catch (Error& e) {
     throw Error(
       "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
   }
-  auto new_stat = Stat::stat(raw_file);
-  stats_update_size(m_ctx.counter_updates,
-                    new_stat.size_on_disk() - old_stat.size_on_disk(),
-                    (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
+  const auto new_stat = Stat::stat(raw_file);
+  const auto size_delta =
+    (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
+  const auto files_delta = (new_stat ? 1 : 0) - (old_stat ? 1 : 0);
+  m_ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
+  m_ctx.counter_updates[Statistic::files_in_cache] += files_delta;
 }
 
 } // namespace Result

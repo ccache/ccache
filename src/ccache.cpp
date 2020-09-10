@@ -750,16 +750,19 @@ update_manifest_file(Context& ctx)
                      save_timestamp)) {
     log("Failed to add result name to {}", ctx.manifest_path());
   } else {
-    auto st = Stat::stat(ctx.manifest_path(), Stat::OnError::log);
+    const auto st = Stat::stat(ctx.manifest_path(), Stat::OnError::log);
 
-    int64_t size_delta = st.size_on_disk() - old_st.size_on_disk();
-    int nof_files_delta = !old_st && st ? 1 : 0;
+    const int64_t size_delta =
+      (st.size_on_disk() - old_st.size_on_disk()) / 1024;
+    const int64_t files_delta = !old_st && st ? 1 : 0;
 
     if (ctx.stats_file() == ctx.manifest_stats_file()) {
-      stats_update_size(ctx.counter_updates, size_delta, nof_files_delta);
+      ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
+      ctx.counter_updates[Statistic::files_in_cache] += files_delta;
     } else {
       Counters counters;
-      stats_update_size(counters, size_delta, nof_files_delta);
+      counters[Statistic::cache_size_kibibyte] += size_delta;
+      counters[Statistic::files_in_cache] += files_delta;
       stats_flush_to_file(ctx.config, ctx.manifest_stats_file(), counters);
     }
   }
@@ -972,10 +975,10 @@ to_cache(Context& ctx,
   if (!new_dest_stat) {
     throw Failure(Statistic::internal_error);
   }
-  stats_update_size(ctx.counter_updates,
-                    new_dest_stat.size_on_disk()
-                      - orig_dest_stat.size_on_disk(),
-                    orig_dest_stat ? 0 : 1);
+  const auto size_delta =
+    (new_dest_stat.size_on_disk() - orig_dest_stat.size_on_disk()) / 1024;
+  ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
+  ctx.counter_updates[Statistic::files_in_cache] += orig_dest_stat ? 0 : 1;
 
   MTR_END("file", "file_put");
 

@@ -226,19 +226,6 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
   counters[Statistic::stats_zeroed_timestamp] = zero_timestamp;
 }
 
-// Record that a number of bytes and files have been added to the cache. Size
-// is in bytes.
-void
-stats_update_size(Counters& counters, int64_t size, int files)
-{
-  if (size == 0 && files == 0) {
-    return;
-  }
-
-  counters[Statistic::cache_size_kibibyte] += size / 1024;
-  counters[Statistic::files_in_cache] += files;
-}
-
 // Read in the stats from one directory and add to the counters.
 void
 stats_read(const std::string& path, Counters& counters)
