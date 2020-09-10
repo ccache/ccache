@@ -161,7 +161,7 @@ parse_stats(Counters& counters, const std::string& buf)
     if (p2 == p) {
       break;
     }
-    counters[static_cast<Statistic>(i)] += val;
+    counters.increment(static_cast<Statistic>(i), val);
     i++;
     p = p2;
   }
@@ -173,7 +173,7 @@ stats_write(const std::string& path, const Counters& counters)
 {
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(fmt::format("{}\n", counters[static_cast<Statistic>(i)]));
+    file.write(fmt::format("{}\n", counters.get(static_cast<Statistic>(i))));
   }
   try {
     file.commit();
@@ -188,10 +188,10 @@ stats_write(const std::string& path, const Counters& counters)
 static double
 stats_hit_rate(const Counters& counters)
 {
-  uint64_t direct = counters[Statistic::direct_cache_hit];
-  uint64_t preprocessed = counters[Statistic::preprocessed_cache_hit];
+  uint64_t direct = counters.get(Statistic::direct_cache_hit);
+  uint64_t preprocessed = counters.get(Statistic::preprocessed_cache_hit);
   uint64_t hit = direct + preprocessed;
-  uint64_t miss = counters[Statistic::cache_miss];
+  uint64_t miss = counters.get(Statistic::cache_miss);
   uint64_t total = hit + miss;
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
@@ -213,17 +213,17 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
       fname = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
     }
 
-    counters[Statistic::stats_zeroed_timestamp] = 0; // Don't add
+    counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
     stats_read(fname, counters);
     zero_timestamp =
-      std::max(counters[Statistic::stats_zeroed_timestamp], zero_timestamp);
+      std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
     auto st = Stat::stat(fname);
     if (st && st.mtime() > *last_updated) {
       *last_updated = st.mtime();
     }
   }
 
-  counters[Statistic::stats_zeroed_timestamp] = zero_timestamp;
+  counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
 }
 
 // Read in the stats from one directory and add to the counters.
@@ -256,7 +256,7 @@ stats_flush_to_file(const Config& config,
 
   if (!config.log_file().empty() || config.debug()) {
     for (auto& field : k_statistics_fields) {
-      if (updates[field.statistic] != 0 && !(field.flags & FLAG_NOZERO)) {
+      if (updates.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
         log("Result: {}", field.message);
       }
     }
@@ -276,7 +276,8 @@ stats_flush_to_file(const Config& config,
 
     stats_read(sfile, counters);
     for (size_t i = 0; i < static_cast<size_t>(Statistic::END); ++i) {
-      counters[static_cast<Statistic>(i)] += updates[static_cast<Statistic>(i)];
+      counters.increment(static_cast<Statistic>(i),
+                         updates.get(static_cast<Statistic>(i)));
     }
     stats_write(sfile, counters);
   }
@@ -285,19 +286,19 @@ stats_flush_to_file(const Config& config,
   bool need_cleanup = false;
 
   if (config.max_files() != 0
-      && counters[Statistic::files_in_cache] > config.max_files() / 16) {
+      && counters.get(Statistic::files_in_cache) > config.max_files() / 16) {
     log("Need to clean up {} since it holds {} files (limit: {} files)",
         subdir,
-        counters[Statistic::files_in_cache],
+        counters.get(Statistic::files_in_cache),
         config.max_files() / 16);
     need_cleanup = true;
   }
   if (config.max_size() != 0
-      && counters[Statistic::cache_size_kibibyte]
+      && counters.get(Statistic::cache_size_kibibyte)
            > config.max_size() / 1024 / 16) {
     log("Need to clean up {} since it holds {} KiB (limit: {} KiB)",
         subdir,
-        counters[Statistic::cache_size_kibibyte],
+        counters.get(Statistic::cache_size_kibibyte),
         config.max_size() / 1024 / 16);
     need_cleanup = true;
   }
@@ -349,16 +350,16 @@ stats_summary(const Context& ctx)
     if (k_statistics_fields[i].flags & FLAG_NEVER) {
       continue;
     }
-    if (counters[statistic] == 0
+    if (counters.get(statistic) == 0
         && !(k_statistics_fields[i].flags & FLAG_ALWAYS)) {
       continue;
     }
 
     std::string value;
     if (k_statistics_fields[i].format) {
-      value = k_statistics_fields[i].format(counters[statistic]);
+      value = k_statistics_fields[i].format(counters.get(statistic));
     } else {
-      value = fmt::format("{:8}", counters[statistic]);
+      value = fmt::format("{:8}", counters.get(statistic));
     }
     if (!value.empty()) {
       fmt::print("{:31} {}\n", k_statistics_fields[i].message, value);
@@ -394,7 +395,7 @@ stats_print(const Config& config)
     if (!(k_statistics_fields[i].flags & FLAG_NEVER)) {
       fmt::print("{}\t{}\n",
                  k_statistics_fields[i].id,
-                 counters[k_statistics_fields[i].statistic]);
+                 counters.get(k_statistics_fields[i].statistic));
     }
   }
 }
@@ -420,10 +421,10 @@ stats_zero(const Context& ctx)
       stats_read(fname, counters);
       for (size_t i = 0; k_statistics_fields[i].message; i++) {
         if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
-          counters[k_statistics_fields[i].statistic] = 0;
+          counters.set(k_statistics_fields[i].statistic, 0);
         }
       }
-      counters[Statistic::stats_zeroed_timestamp] = timestamp;
+      counters.set(Statistic::stats_zeroed_timestamp, timestamp);
       stats_write(fname, counters);
     }
   }
@@ -441,8 +442,8 @@ stats_get_obsolete_limits(const std::string& dir,
   Counters counters;
   std::string sname = dir + "/stats";
   stats_read(sname, counters);
-  *maxfiles = counters[Statistic::obsolete_max_files];
-  *maxsize = counters[Statistic::obsolete_max_size] * 1024;
+  *maxfiles = counters.get(Statistic::obsolete_max_files);
+  *maxsize = counters.get(Statistic::obsolete_max_size) * 1024;
 }
 
 // Set the per-directory sizes.
@@ -454,8 +455,8 @@ stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)
   Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
-    counters[Statistic::files_in_cache] = num_files;
-    counters[Statistic::cache_size_kibibyte] = total_size / 1024;
+    counters.set(Statistic::files_in_cache, num_files);
+    counters.set(Statistic::cache_size_kibibyte, total_size / 1024);
     stats_write(statsfile, counters);
   }
 }
@@ -469,7 +470,7 @@ stats_add_cleanup(const std::string& dir, uint64_t count)
   Lockfile lock(statsfile);
   if (lock.acquired()) {
     stats_read(statsfile, counters);
-    counters[Statistic::cleanups_performed] += count;
+    counters.increment(Statistic::cleanups_performed, count);
     stats_write(statsfile, counters);
   }
 }

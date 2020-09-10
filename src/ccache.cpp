@@ -757,12 +757,12 @@ update_manifest_file(Context& ctx)
     const int64_t files_delta = !old_st && st ? 1 : 0;
 
     if (ctx.stats_file() == ctx.manifest_stats_file()) {
-      ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
-      ctx.counter_updates[Statistic::files_in_cache] += files_delta;
+      ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
+      ctx.counter_updates.increment(Statistic::files_in_cache, files_delta);
     } else {
       Counters counters;
-      counters[Statistic::cache_size_kibibyte] += size_delta;
-      counters[Statistic::files_in_cache] += files_delta;
+      counters.increment(Statistic::cache_size_kibibyte, size_delta);
+      counters.increment(Statistic::files_in_cache, files_delta);
       stats_flush_to_file(ctx.config, ctx.manifest_stats_file(), counters);
     }
   }
@@ -977,8 +977,9 @@ to_cache(Context& ctx,
   }
   const auto size_delta =
     (new_dest_stat.size_on_disk() - orig_dest_stat.size_on_disk()) / 1024;
-  ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
-  ctx.counter_updates[Statistic::files_in_cache] += orig_dest_stat ? 0 : 1;
+  ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
+  ctx.counter_updates.increment(Statistic::files_in_cache,
+                                orig_dest_stat ? 0 : 1);
 
   MTR_END("file", "file_put");
 
@@ -1953,11 +1954,11 @@ cache_compilation(int argc, const char* const* argv)
 
   try {
     Statistic statistic = do_cache_compilation(*ctx, argv);
-    ctx->counter_updates[statistic] += 1;
+    ctx->counter_updates.increment(statistic);
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
     if (e.statistic() != Statistic::none) {
-      ctx->counter_updates[e.statistic()] += 1;
+      ctx->counter_updates.increment(e.statistic());
     }
 
     if (e.exit_code()) {

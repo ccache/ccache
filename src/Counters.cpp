@@ -26,25 +26,35 @@ Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
 {
 }
 
-// clang-format off
-uint64_t&
-Counters::operator[](Statistic index)
-// clang-format on
+uint64_t
+Counters::get(Statistic statistic) const
 {
-  const size_t i = static_cast<size_t>(index);
+  assert(static_cast<size_t>(statistic) < static_cast<size_t>(Statistic::END));
+  const size_t i = static_cast<size_t>(statistic);
+  return i < m_counters.size() ? m_counters[i] : 0;
+}
+
+void
+Counters::set(Statistic statistic, uint64_t value)
+{
+  const auto i = static_cast<size_t>(statistic);
   if (i >= m_counters.size()) {
     m_counters.resize(i + 1);
   }
-  return m_counters.at(i);
+  m_counters[i] = value;
 }
 
-// clang-format off
-uint64_t
-Counters::operator[](Statistic index) const
-// clang-format on
+void
+Counters::increment(Statistic statistic, int64_t value)
 {
-  const size_t i = static_cast<size_t>(index);
-  return i < m_counters.size() ? m_counters.at(i) : 0;
+  const auto i = static_cast<size_t>(statistic);
+  if (i >= m_counters.size()) {
+    m_counters.resize(i + 1);
+  }
+  auto& counter = m_counters[i];
+  counter =
+    std::max(static_cast<int64_t>(0), static_cast<int64_t>(counter + value));
+  }
 }
 
 size_t

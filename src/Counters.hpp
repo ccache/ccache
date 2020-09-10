@@ -31,8 +31,9 @@ class Counters
 public:
   Counters();
 
-  uint64_t& operator[](Statistic index);
-  uint64_t operator[](Statistic index) const;
+  uint64_t get(Statistic statistic) const;
+  void set(Statistic statistic, uint64_t value);
+  void increment(Statistic statistic, int64_t value = 1);
 
   size_t size() const;
 

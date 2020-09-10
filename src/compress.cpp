@@ -201,10 +201,10 @@ recompress_file(Context& ctx,
   const size_t size_delta =
     (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
   if (ctx.stats_file() == stats_file) {
-    ctx.counter_updates[Statistic::cache_size_kibibyte] += size_delta;
+    ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
   } else {
     Counters counters;
-    counters[Statistic::cache_size_kibibyte] += size_delta;
+    counters.increment(Statistic::cache_size_kibibyte, size_delta);
     stats_flush_to_file(ctx.config, stats_file, counters);
   }
 
