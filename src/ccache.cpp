@@ -1950,11 +1950,11 @@ cache_compilation(int argc, const char* const* argv)
 
   try {
     Statistic statistic = do_cache_compilation(*ctx, argv);
-    stats_update(*ctx, statistic);
+    ctx->counter_updates[statistic] += 1;
     return EXIT_SUCCESS;
   } catch (const Failure& e) {
     if (e.statistic() != Statistic::none) {
-      stats_update(*ctx, e.statistic());
+      ctx->counter_updates[e.statistic()] += 1;
     }
 
     if (e.exit_code()) {

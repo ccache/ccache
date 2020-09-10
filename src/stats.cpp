@@ -332,14 +332,6 @@ stats_flush(Context& ctx)
   stats_flush_to_file(ctx.config, ctx.stats_file(), ctx.counter_updates);
 }
 
-// Update a normal statistics counter.
-void
-stats_update(Context& ctx, Statistic statistic)
-{
-  assert(statistic > Statistic::none && statistic < Statistic::END);
-  ctx.counter_updates[statistic] += 1;
-}
-
 // Sum and display the total stats for all cache dirs.
 void
 stats_summary(const Context& ctx)

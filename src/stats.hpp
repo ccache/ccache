@@ -66,7 +66,6 @@ enum class Statistic {
   END
 };
 
-void stats_update(Context& ctx, Statistic statistic);
 void stats_flush(Context& ctx);
 void stats_flush_to_file(const Config& config,
                          const std::string& sfile,
