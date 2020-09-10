@@ -269,7 +269,7 @@ SOFTWARE.
 
 
 src/third_party/xxh(ash|_x86dispatch).[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.0 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.
