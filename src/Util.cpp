@@ -740,21 +740,20 @@ get_relative_path(string_view dir, string_view path)
 
 std::string
 get_path_in_cache(string_view cache_dir,
-                  uint32_t levels,
+                  uint8_t level,
                   string_view name,
                   string_view suffix)
 {
-  assert(levels >= 1 && levels <= 8);
-  assert(levels < name.length());
+  assert(level >= 1 && level <= 8);
+  assert(name.length() >= level);
 
   std::string path(cache_dir);
-  path.reserve(path.size() + levels * 2 + 1 + name.length() - levels
+  path.reserve(path.size() + level * 2 + 1 + name.length() - level
                + suffix.length());
 
-  uint32_t level = 0;
-  for (; level < levels; ++level) {
+  for (uint8_t i = 0; i < level; ++i) {
     path.push_back('/');
-    path.push_back(name.at(level));
+    path.push_back(name.at(i));
   }
 
   path.push_back('/');

@@ -43,7 +43,6 @@ enum class ConfigItem {
   absolute_paths_in_stderr,
   base_dir,
   cache_dir,
-  cache_dir_levels,
   compiler,
   compiler_check,
   compression,
@@ -83,7 +82,6 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"absolute_paths_in_stderr", ConfigItem::absolute_paths_in_stderr},
   {"base_dir", ConfigItem::base_dir},
   {"cache_dir", ConfigItem::cache_dir},
-  {"cache_dir_levels", ConfigItem::cache_dir_levels},
   {"compiler", ConfigItem::compiler},
   {"compiler_check", ConfigItem::compiler_check},
   {"compression", ConfigItem::compression},
@@ -146,7 +144,6 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"LOGFILE", "log_file"},
   {"MAXFILES", "max_files"},
   {"MAXSIZE", "max_size"},
-  {"NLEVELS", "cache_dir_levels"},
   {"PATH", "path"},
   {"PCH_EXTSUM", "pch_external_checksum"},
   {"PREFIX", "prefix_command"},
@@ -480,9 +477,6 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::cache_dir:
     return m_cache_dir;
 
-  case ConfigItem::cache_dir_levels:
-    return fmt::format("{}", m_cache_dir_levels);
-
   case ConfigItem::compiler:
     return m_compiler;
 
@@ -680,10 +674,6 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::cache_dir:
     set_cache_dir(Util::expand_environment_variables(value));
-    break;
-
-  case ConfigItem::cache_dir_levels:
-    m_cache_dir_levels = Util::parse_unsigned(value, 1, 8, "cache_dir_levels");
     break;
 
   case ConfigItem::compiler:

@@ -214,16 +214,11 @@ const char* get_hostname();
 std::string get_relative_path(nonstd::string_view dir,
                               nonstd::string_view path);
 
-// Join `cache_dir`, a '/', `name`, and `suffix` into a single path and return
-// it. Additionally `levels` single-character, '/'-separated subpaths are split
+// Join `cache_dir`, a '/', `name` and `suffix` into a single path and return
+// it. Additionally, `level` single-character, '/'-separated subpaths are split
 // from the beginning of `name` before joining them all.
-//
-// `levels` must be less than the length of `name` and in the interval [1,8].
-//
-// E.g. "ABCDEF" and ".foo" will become "/ccache/A/B/CDEF.foo" when the cache
-// directory is "/ccache" and cache dir levels is 2.
 std::string get_path_in_cache(nonstd::string_view cache_dir,
-                              uint32_t levels,
+                              uint8_t level,
                               nonstd::string_view name,
                               nonstd::string_view suffix);
 

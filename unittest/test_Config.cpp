@@ -40,7 +40,6 @@ TEST_CASE("Config: default values")
 
   CHECK(config.base_dir().empty());
   CHECK(config.cache_dir().empty()); // Set later
-  CHECK(config.cache_dir_levels() == 2);
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
   CHECK(config.compression());
@@ -96,7 +95,6 @@ TEST_CASE("Config::update_from_file")
     "\n"
     "\n"
     "  #A comment\n"
-    " cache_dir_levels = 4\n"
     "\t compiler = foo\n"
     "compiler_check = none\n"
     "compression=false\n"
@@ -135,7 +133,6 @@ TEST_CASE("Config::update_from_file")
   REQUIRE(config.update_from_file("ccache.conf"));
   CHECK(config.base_dir() == base_dir);
   CHECK(config.cache_dir() == fmt::format("{0}$/{0}/.ccache", user));
-  CHECK(config.cache_dir_levels() == 4);
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
   CHECK_FALSE(config.compression());
@@ -264,27 +261,6 @@ TEST_CASE("Config::update_from_file, error handling")
     Util::write_file("ccache.conf", "base_dir =");
     CHECK(config.update_from_file("ccache.conf"));
   }
-
-  SUBCASE("bad dir levels")
-  {
-    Util::write_file("ccache.conf", "cache_dir_levels = 0");
-    try {
-      config.update_from_file("ccache.conf");
-      CHECK(false);
-    } catch (const Error& e) {
-      CHECK(std::string(e.what())
-            == "ccache.conf:1: cache_dir_levels must be between 1 and 8");
-    }
-
-    Util::write_file("ccache.conf", "cache_dir_levels = 9");
-    try {
-      config.update_from_file("ccache.conf");
-      CHECK(false);
-    } catch (const Error& e) {
-      CHECK(std::string(e.what())
-            == "ccache.conf:1: cache_dir_levels must be between 1 and 8");
-    }
-  }
 }
 
 TEST_CASE("Config::update_from_environment")
@@ -379,7 +355,6 @@ TEST_CASE("Config::visit_items")
     "base_dir = C:/bd\n"
 #endif
     "cache_dir = cd\n"
-    "cache_dir_levels = 7\n"
     "compiler = c\n"
     "compiler_check = cc\n"
     "compression = true\n"
@@ -435,7 +410,6 @@ TEST_CASE("Config::visit_items")
     "(test.conf) base_dir = C:/bd",
 #endif
     "(test.conf) cache_dir = cd",
-    "(test.conf) cache_dir_levels = 7",
     "(test.conf) compiler = c",
     "(test.conf) compiler_check = cc",
     "(test.conf) compression = true",

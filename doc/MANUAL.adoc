@@ -341,11 +341,6 @@ You may also want to enable the
     See also <<_location_of_the_primary_configuration_file,LOCATION OF THE
     PRIMARY CONFIGURATION FILE>>.
 
-[[config_cache_dir_levels]] *cache_dir_levels* (*CCACHE_NLEVELS*)::
-
-    This setting allows you to choose the number of directory levels in the
-    cache directory. The default is 2. The minimum is 1 and the maximum is 8.
-
 [[config_compiler]] *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
 
     This setting can be used to force the name of the compiler to use. If set

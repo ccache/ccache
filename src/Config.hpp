@@ -42,7 +42,6 @@ public:
   bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
   const std::string& cache_dir() const;
-  uint32_t cache_dir_levels() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
   bool compression() const;
@@ -132,7 +131,6 @@ private:
   bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir = "";
   std::string m_cache_dir;
-  uint32_t m_cache_dir_levels = 2;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";
   bool m_compression = true;
@@ -196,12 +194,6 @@ inline const std::string&
 Config::cache_dir() const
 {
   return m_cache_dir;
-}
-
-inline uint32_t
-Config::cache_dir_levels() const
-{
-  return m_cache_dir_levels;
 }
 
 inline const std::string&

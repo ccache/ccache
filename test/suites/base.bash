@@ -534,36 +534,6 @@ base_tests() {
     expect_stat 'cache miss' 1
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_NLEVELS"
-
-    CCACHE_NLEVELS=4 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 0
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
-
-    CCACHE_NLEVELS=4 $CCACHE_COMPILE -c test1.c
-    expect_stat 'cache hit (preprocessed)' 1
-    expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 1
-
-    # Directories in $CCACHE_DIR:
-    # - .
-    # - tmp
-    # - a
-    # - a/b
-    # - a/b/c
-    # - a/b/c/d
-    actual_dirs=$(find $CCACHE_DIR -type d | wc -l)
-    if [ -d /run/user/$(id -u) ]; then
-        expected_dirs=5
-    else
-        expected_dirs=6
-    fi
-    if [ $actual_dirs -ne $expected_dirs ]; then
-        test_failed "Expected $expected_dirs directories, found $actual_dirs"
-    fi
-
-    # -------------------------------------------------------------------------
     TEST "CCACHE_EXTRAFILES"
 
     echo "a" >a
