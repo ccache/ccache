@@ -411,10 +411,7 @@ void
 stats_add_cleanup(const std::string& dir, uint64_t count)
 {
   std::string statsfile = dir + "/stats";
-  Lockfile lock(statsfile);
-  if (lock.acquired()) {
-    Counters counters = Statistics::read(statsfile);
-    counters.increment(Statistic::cleanups_performed, count);
-    Statistics::write(statsfile, counters);
-  }
+  Counters updates;
+  updates.increment(Statistic::cleanups_performed, count);
+  Statistics::increment(statsfile, updates);
 }

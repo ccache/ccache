@@ -22,6 +22,8 @@
 
 #include "Counters.hpp"
 
+#include "third_party/nonstd/optional.hpp"
+
 #include <string>
 
 // Statistics fields in storage order.
@@ -70,5 +72,11 @@ Counters read(const std::string& path);
 
 // Write `counters` to `path`. No lock is acquired.
 void write(const std::string& path, const Counters& counters);
+
+// Acquire a lock, read counters from `path`, apply `updates`, write result to
+// `path` and release the lock. Returns the resulting counters or nullopt on
+// error (e.g. if the lock could not be acquired).
+nonstd::optional<Counters> increment(const std::string& path,
+                                     const Counters& updates);
 
 } // namespace Statistics

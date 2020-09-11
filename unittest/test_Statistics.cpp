@@ -97,4 +97,21 @@ TEST_CASE("Write")
   }
 }
 
+TEST_CASE("Increment")
+{
+  TestContext test_context;
+
+  Util::write_file("test", "0 1 2 3 27 5\n");
+
+  Counters updates;
+  updates.set(Statistic::internal_error, 1);
+  updates.set(Statistic::cache_miss, 6);
+
+  Statistics::increment("test", updates);
+
+  Counters counters = Statistics::read("test");
+  CHECK(counters.get(Statistic::internal_error) == 4);
+  CHECK(counters.get(Statistic::cache_miss) == 33);
+}
+
 TEST_SUITE_END();

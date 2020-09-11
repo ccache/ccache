@@ -19,6 +19,7 @@
 #include "Statistics.hpp"
 
 #include "AtomicFile.hpp"
+#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
 #include "exceptions.hpp"
@@ -73,6 +74,19 @@ write(const std::string& path, const Counters& counters)
     // Context destructor.
     log("Error: {}", e.what());
   }
+}
+
+optional<Counters>
+increment(const std::string& path, const Counters& updates)
+{
+  Lockfile lock(path);
+  if (!lock.acquired()) {
+    return nullopt;
+  }
+  auto counters = Statistics::read(path);
+  counters.increment(updates);
+  Statistics::write(path, counters);
+  return counters;
 }
 
 } // namespace Statistics

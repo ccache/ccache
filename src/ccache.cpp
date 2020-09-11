@@ -760,10 +760,10 @@ update_manifest_file(Context& ctx)
       ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
       ctx.counter_updates.increment(Statistic::files_in_cache, files_delta);
     } else {
-      Counters counters;
-      counters.increment(Statistic::cache_size_kibibyte, size_delta);
-      counters.increment(Statistic::files_in_cache, files_delta);
-      stats_flush_to_file(ctx.config, ctx.manifest_stats_file(), counters);
+      Counters updates;
+      updates.increment(Statistic::cache_size_kibibyte, size_delta);
+      updates.increment(Statistic::files_in_cache, files_delta);
+      Statistics::increment(ctx.manifest_stats_file(), updates);
     }
   }
   MTR_END("manifest", "manifest_put");
