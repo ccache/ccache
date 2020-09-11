@@ -29,19 +29,33 @@ Counters::Counters() : m_counters(static_cast<size_t>(Statistic::END))
 uint64_t
 Counters::get(Statistic statistic) const
 {
-  assert(static_cast<size_t>(statistic) < static_cast<size_t>(Statistic::END));
-  const size_t i = static_cast<size_t>(statistic);
-  return i < m_counters.size() ? m_counters[i] : 0;
+  const auto index = static_cast<size_t>(statistic);
+  assert(index < static_cast<size_t>(Statistic::END));
+  return index < m_counters.size() ? m_counters[index] : 0;
 }
 
 void
 Counters::set(Statistic statistic, uint64_t value)
 {
-  const auto i = static_cast<size_t>(statistic);
-  if (i >= m_counters.size()) {
-    m_counters.resize(i + 1);
+  const auto index = static_cast<size_t>(statistic);
+  assert(index < static_cast<size_t>(Statistic::END));
+  m_counters[index] = value;
+}
+
+uint64_t
+Counters::get_raw(size_t index) const
+{
+  assert(index < size());
+  return m_counters[index];
+}
+
+void
+Counters::set_raw(size_t index, uint64_t value)
+{
+  if (index >= m_counters.size()) {
+    m_counters.resize(index + 1);
   }
-  m_counters[i] = value;
+  m_counters[index] = value;
 }
 
 void
@@ -54,7 +68,6 @@ Counters::increment(Statistic statistic, int64_t value)
   auto& counter = m_counters[i];
   counter =
     std::max(static_cast<int64_t>(0), static_cast<int64_t>(counter + value));
-  }
 }
 
 size_t

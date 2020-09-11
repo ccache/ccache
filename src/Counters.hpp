@@ -33,6 +33,10 @@ public:
 
   uint64_t get(Statistic statistic) const;
   void set(Statistic statistic, uint64_t value);
+
+  uint64_t get_raw(size_t index) const;
+  void set_raw(size_t index, uint64_t value);
+
   void increment(Statistic statistic, int64_t value = 1);
 
   size_t size() const;

@@ -173,7 +173,7 @@ stats_write(const std::string& path, const Counters& counters)
 {
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(fmt::format("{}\n", counters.get(static_cast<Statistic>(i))));
+    file.write(fmt::format("{}\n", counters.get_raw(i)));
   }
   try {
     file.commit();
