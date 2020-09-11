@@ -44,14 +44,7 @@ Context::Context()
 
 Context::~Context()
 {
-  stats_flush(*this);
   unlink_pending_tmp_files();
-
-  // Dump log buffer last to not lose any logs.
-  if (config.debug() && !args_info.output_obj.empty()) {
-    std::string path = fmt::format("{}.ccache-log", args_info.output_obj);
-    Logging::dump_log(path);
-  }
 }
 
 void

@@ -34,13 +34,13 @@
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
 
-#include <cmath>
-
 const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
 const unsigned FLAG_ALWAYS = 2; // always show, even if zero
 const unsigned FLAG_NEVER = 4;  // never show
 
 using Logging::log;
+using nonstd::nullopt;
+using nonstd::optional;
 
 // Returns a formatted version of a statistics value, or the empty string if the
 // statistics line shouldn't be printed.
@@ -189,85 +189,6 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
 }
 
-// Write counter updates in updates to sfile.
-void
-stats_flush_to_file(const Config& config,
-                    const std::string& sfile,
-                    const Counters& updates)
-{
-  if (updates.all_zero()) {
-    return;
-  }
-
-  if (config.disable()) {
-    // Just log result, don't update statistics.
-    log("Result: disabled");
-    return;
-  }
-
-  if (!config.log_file().empty() || config.debug()) {
-    for (auto& field : k_statistics_fields) {
-      if (updates.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
-        log("Result: {}", field.message);
-      }
-    }
-  }
-
-  if (!config.stats()) {
-    return;
-  }
-
-  Counters counters;
-
-  {
-    Lockfile lock(sfile);
-    if (!lock.acquired()) {
-      return;
-    }
-
-    counters = Statistics::read(sfile);
-    counters.increment(updates);
-    Statistics::write(sfile, counters);
-  }
-
-  std::string subdir(Util::dir_name(sfile));
-  bool need_cleanup = false;
-
-  if (config.max_files() != 0
-      && counters.get(Statistic::files_in_cache) > config.max_files() / 16) {
-    log("Need to clean up {} since it holds {} files (limit: {} files)",
-        subdir,
-        counters.get(Statistic::files_in_cache),
-        config.max_files() / 16);
-    need_cleanup = true;
-  }
-  if (config.max_size() != 0
-      && counters.get(Statistic::cache_size_kibibyte)
-           > config.max_size() / 1024 / 16) {
-    log("Need to clean up {} since it holds {} KiB (limit: {} KiB)",
-        subdir,
-        counters.get(Statistic::cache_size_kibibyte),
-        config.max_size() / 1024 / 16);
-    need_cleanup = true;
-  }
-
-  if (need_cleanup) {
-    double factor = config.limit_multiple() / 16;
-    uint64_t max_size = round(config.max_size() * factor);
-    uint32_t max_files = round(config.max_files() * factor);
-    time_t max_age = 0;
-    clean_up_dir(
-      subdir, max_size, max_files, max_age, [](double /*progress*/) {});
-  }
-}
-
-// Write counter updates in counter_updates to disk.
-void
-stats_flush(Context& ctx)
-{
-  stats_flush_to_file(ctx.config, ctx.stats_file(), ctx.counter_updates);
-}
-
 // Sum and display the total stats for all cache dirs.
 void
 stats_summary(const Context& ctx)
@@ -414,4 +335,15 @@ stats_add_cleanup(const std::string& dir, uint64_t count)
   Counters updates;
   updates.increment(Statistic::cleanups_performed, count);
   Statistics::increment(statsfile, updates);
+}
+
+optional<std::string>
+stats_get_result(const Counters& counters)
+{
+  for (const auto& field : k_statistics_fields) {
+    if (counters.get(field.statistic) != 0 && !(field.flags & FLAG_NOZERO)) {
+      return field.message;
+    }
+  }
+  return nullopt;
 }

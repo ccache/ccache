@@ -31,7 +31,6 @@
 #endif
 
 #include <algorithm>
-#include <cmath>
 
 using Logging::log;
 

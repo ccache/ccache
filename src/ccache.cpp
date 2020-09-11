@@ -26,8 +26,10 @@
 #include "Context.hpp"
 #include "Fd.hpp"
 #include "File.hpp"
+#include "Finalizer.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "Hash.hpp"
+#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Manifest.hpp"
 #include "MiniTrace.hpp"
@@ -68,6 +70,7 @@
 #endif
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 #ifndef MYNAME
@@ -1937,54 +1940,136 @@ configuration_printer(const std::string& key,
 static int cache_compilation(int argc, const char* const* argv);
 static Statistic do_cache_compilation(Context& ctx, const char* const* argv);
 
+static void
+finalize_stats(const Context& ctx)
+{
+  const auto& config = ctx.config;
+
+  if (config.disable()) {
+    // Just log result, don't update statistics.
+    log("Result: disabled");
+    return;
+  }
+
+  if (!config.log_file().empty() || config.debug()) {
+    const auto result = stats_get_result(ctx.counter_updates);
+    if (result) {
+      log("Result: {}", *result);
+    }
+  }
+
+  if (!config.stats()) {
+    return;
+  }
+
+  const auto counters =
+    Statistics::increment(ctx.stats_file(), ctx.counter_updates);
+  if (!counters) {
+    return;
+  }
+
+  const std::string subdir(Util::dir_name(ctx.stats_file()));
+  bool need_cleanup = false;
+
+  if (config.max_files() != 0
+      && counters->get(Statistic::files_in_cache) > config.max_files() / 16) {
+    log("Need to clean up {} since it holds {} files (limit: {} files)",
+        subdir,
+        counters->get(Statistic::files_in_cache),
+        config.max_files() / 16);
+    need_cleanup = true;
+  }
+  if (config.max_size() != 0
+      && counters->get(Statistic::cache_size_kibibyte)
+           > config.max_size() / 1024 / 16) {
+    log("Need to clean up {} since it holds {} KiB (limit: {} KiB)",
+        subdir,
+        counters->get(Statistic::cache_size_kibibyte),
+        config.max_size() / 1024 / 16);
+    need_cleanup = true;
+  }
+
+  if (need_cleanup) {
+    const double factor = config.limit_multiple() / 16;
+    const uint64_t max_size = round(config.max_size() * factor);
+    const uint32_t max_files = round(config.max_files() * factor);
+    const time_t max_age = 0;
+    clean_up_dir(
+      subdir, max_size, max_files, max_age, [](double /*progress*/) {});
+  }
+}
+
+static void
+finalize_at_exit(const Context& ctx)
+{
+  finalize_stats(ctx);
+
+  // Dump log buffer last to not lose any logs.
+  if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
+    const auto path = fmt::format("{}.ccache-log", ctx.args_info.output_obj);
+    Logging::dump_log(path);
+  }
+}
+
 // The entry point when invoked to cache a compilation.
 static int
 cache_compilation(int argc, const char* const* argv)
 {
   tzset(); // Needed for localtime_r.
 
-  auto ctx = std::make_unique<Context>();
-  SignalHandler signal_handler(*ctx);
+  bool fall_back_to_original_compiler = false;
+  Args saved_orig_args;
 
-  initialize(*ctx, argc, argv);
+  {
+    Context ctx;
+    SignalHandler signal_handler(ctx);
+    Finalizer finalizer([&ctx] { finalize_at_exit(ctx); });
 
-  MTR_BEGIN("main", "find_compiler");
-  find_compiler(*ctx, argv);
-  MTR_END("main", "find_compiler");
+    initialize(ctx, argc, argv);
 
-  try {
-    Statistic statistic = do_cache_compilation(*ctx, argv);
-    ctx->counter_updates.increment(statistic);
-    return EXIT_SUCCESS;
-  } catch (const Failure& e) {
-    if (e.statistic() != Statistic::none) {
-      ctx->counter_updates.increment(e.statistic());
+    MTR_BEGIN("main", "find_compiler");
+    find_compiler(ctx, argv);
+    MTR_END("main", "find_compiler");
+
+    try {
+      Statistic statistic = do_cache_compilation(ctx, argv);
+      ctx.counter_updates.increment(statistic);
+    } catch (const Failure& e) {
+      if (e.statistic() != Statistic::none) {
+        ctx.counter_updates.increment(e.statistic());
+      }
+
+      if (e.exit_code()) {
+        return *e.exit_code();
+      }
+      // Else: Fall back to running the real compiler.
+      fall_back_to_original_compiler = true;
+
+      if (ctx.original_umask) {
+        umask(*ctx.original_umask);
+      }
+
+      assert(!ctx.orig_args.empty());
+
+      ctx.orig_args.erase_with_prefix("--ccache-");
+      add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
+
+      log("Failed; falling back to running the real compiler");
+
+      saved_orig_args = std::move(ctx.orig_args);
+      auto execv_argv = saved_orig_args.to_argv();
+      log("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
+      // Run execv below after ctx and finalizer have been destructed.
     }
+  }
 
-    if (e.exit_code()) {
-      return *e.exit_code();
-    }
-    // Else: Fall back to running the real compiler.
-
-    if (ctx->original_umask) {
-      umask(*ctx->original_umask);
-    }
-
-    assert(!ctx->orig_args.empty());
-
-    ctx->orig_args.erase_with_prefix("--ccache-");
-    add_prefix(*ctx, ctx->orig_args, ctx->config.prefix_command());
-
-    log("Failed; falling back to running the real compiler");
-
-    Args saved_orig_args(std::move(ctx->orig_args));
+  if (fall_back_to_original_compiler) {
     auto execv_argv = saved_orig_args.to_argv();
-
-    log("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
-    ctx.reset(); // Dump debug logs last thing before executing.
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
     throw Fatal("execv of {} failed: {}", execv_argv[0], strerror(errno));
   }
+
+  return EXIT_SUCCESS;
 }
 
 static Statistic
