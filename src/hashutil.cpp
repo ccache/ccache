@@ -27,7 +27,6 @@
 #include "ccache.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
-#include "stats.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"

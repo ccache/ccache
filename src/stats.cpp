@@ -27,10 +27,12 @@
 #include "Counters.hpp"
 #include "Lockfile.hpp"
 #include "Logging.hpp"
+#include "Statistics.hpp"
 #include "cleanup.hpp"
 #include "hashutil.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/nonstd/optional.hpp"
 
 #include <cmath>
 
@@ -149,42 +151,6 @@ format_timestamp(uint64_t timestamp)
   }
 }
 
-// Parse a stats file from a buffer, adding to the counters.
-static void
-parse_stats(Counters& counters, const std::string& buf)
-{
-  size_t i = 0;
-  const char* p = buf.c_str();
-  while (true) {
-    char* p2;
-    unsigned long long val = std::strtoull(p, &p2, 10);
-    if (p2 == p) {
-      break;
-    }
-    counters.increment(static_cast<Statistic>(i), val);
-    i++;
-    p = p2;
-  }
-}
-
-// Write out a stats file.
-void
-stats_write(const std::string& path, const Counters& counters)
-{
-  AtomicFile file(path, AtomicFile::Mode::text);
-  for (size_t i = 0; i < counters.size(); ++i) {
-    file.write(fmt::format("{}\n", counters.get_raw(i)));
-  }
-  try {
-    file.commit();
-  } catch (const Error& e) {
-    // Make failure to write a stats file a soft error since it's not important
-    // enough to fail whole the process AND because it is called in the Context
-    // destructor.
-    log("Error: {}", e.what());
-  }
-}
-
 static double
 stats_hit_rate(const Counters& counters)
 {
@@ -214,28 +180,13 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
     }
 
     counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
-    stats_read(fname, counters);
+    counters.increment(Statistics::read(fname));
     zero_timestamp =
       std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
-    auto st = Stat::stat(fname);
-    if (st && st.mtime() > *last_updated) {
-      *last_updated = st.mtime();
-    }
+    *last_updated = std::max(*last_updated, Stat::stat(fname).mtime());
   }
 
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
-}
-
-// Read in the stats from one directory and add to the counters.
-void
-stats_read(const std::string& path, Counters& counters)
-{
-  try {
-    std::string data = Util::read_file(path);
-    parse_stats(counters, data);
-  } catch (Error&) {
-    // Ignore.
-  }
 }
 
 // Write counter updates in updates to sfile.
@@ -274,9 +225,9 @@ stats_flush_to_file(const Config& config,
       return;
     }
 
-    stats_read(sfile, counters);
+    counters = Statistics::read(sfile);
     counters.increment(updates);
-    stats_write(sfile, counters);
+    Statistics::write(sfile, counters);
   }
 
   std::string subdir(Util::dir_name(sfile));
@@ -407,7 +358,6 @@ stats_zero(const Context& ctx)
   time_t timestamp = time(nullptr);
 
   for (int dir = 0; dir <= 0xF; dir++) {
-    Counters counters;
     auto fname = fmt::format("{}/{:x}/stats", ctx.config.cache_dir(), dir);
     if (!Stat::stat(fname)) {
       // No point in trying to reset the stats file if it doesn't exist.
@@ -415,14 +365,14 @@ stats_zero(const Context& ctx)
     }
     Lockfile lock(fname);
     if (lock.acquired()) {
-      stats_read(fname, counters);
+      Counters counters = Statistics::read(fname);
       for (size_t i = 0; k_statistics_fields[i].message; i++) {
         if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
           counters.set(k_statistics_fields[i].statistic, 0);
         }
       }
       counters.set(Statistic::stats_zeroed_timestamp, timestamp);
-      stats_write(fname, counters);
+      Statistics::write(fname, counters);
     }
   }
 }
@@ -436,9 +386,8 @@ stats_get_obsolete_limits(const std::string& dir,
   assert(maxfiles);
   assert(maxsize);
 
-  Counters counters;
   std::string sname = dir + "/stats";
-  stats_read(sname, counters);
+  Counters counters = Statistics::read(sname);
   *maxfiles = counters.get(Statistic::obsolete_max_files);
   *maxsize = counters.get(Statistic::obsolete_max_size) * 1024;
 }
@@ -447,14 +396,13 @@ stats_get_obsolete_limits(const std::string& dir,
 void
 stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)
 {
-  Counters counters;
   std::string statsfile = dir + "/stats";
   Lockfile lock(statsfile);
   if (lock.acquired()) {
-    stats_read(statsfile, counters);
+    Counters counters = Statistics::read(statsfile);
     counters.set(Statistic::files_in_cache, num_files);
     counters.set(Statistic::cache_size_kibibyte, total_size / 1024);
-    stats_write(statsfile, counters);
+    Statistics::write(statsfile, counters);
   }
 }
 
@@ -462,12 +410,11 @@ stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)
 void
 stats_add_cleanup(const std::string& dir, uint64_t count)
 {
-  Counters counters;
   std::string statsfile = dir + "/stats";
   Lockfile lock(statsfile);
   if (lock.acquired()) {
-    stats_read(statsfile, counters);
+    Counters counters = Statistics::read(statsfile);
     counters.increment(Statistic::cleanups_performed, count);
-    stats_write(statsfile, counters);
+    Statistics::write(statsfile, counters);
   }
 }

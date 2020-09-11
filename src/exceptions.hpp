@@ -21,7 +21,7 @@
 #include "system.hpp"
 
 #include "FormatNonstdStringView.hpp"
-#include "stats.hpp"
+#include "Statistics.hpp"
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"

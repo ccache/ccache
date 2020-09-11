@@ -19,8 +19,8 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
+#include "../src/Statistics.hpp"
 #include "../src/Util.hpp"
-#include "../src/stats.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 

@@ -32,6 +32,8 @@
 #include <utility>
 #include <vector>
 
+class Context;
+
 namespace Util {
 
 using DataReceiver = std::function<void(const void* data, size_t size)>;

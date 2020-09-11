@@ -27,45 +27,6 @@
 class Config;
 class Context;
 
-// Statistics fields in storage order.
-enum class Statistic {
-  none = 0,
-  compiler_produced_stdout = 1,
-  compile_failed = 2,
-  internal_error = 3,
-  cache_miss = 4,
-  preprocessor_error = 5,
-  could_not_find_compiler = 6,
-  missing_cache_file = 7,
-  preprocessed_cache_hit = 8,
-  bad_compiler_arguments = 9,
-  called_for_link = 10,
-  files_in_cache = 11,
-  cache_size_kibibyte = 12,
-  obsolete_max_files = 13,
-  obsolete_max_size = 14,
-  unsupported_source_language = 15,
-  bad_output_file = 16,
-  no_input_file = 17,
-  multiple_source_files = 18,
-  autoconf_test = 19,
-  unsupported_compiler_option = 20,
-  output_to_stdout = 21,
-  direct_cache_hit = 22,
-  compiler_produced_no_output = 23,
-  compiler_produced_empty_output = 24,
-  error_hashing_extra_file = 25,
-  compiler_check_failed = 26,
-  could_not_use_precompiled_header = 27,
-  called_for_preprocessing = 28,
-  cleanups_performed = 29,
-  unsupported_code_directive = 30,
-  stats_zeroed_timestamp = 31,
-  could_not_use_modules = 32,
-
-  END
-};
-
 void stats_flush(Context& ctx);
 void stats_flush_to_file(const Config& config,
                          const std::string& sfile,
@@ -81,5 +42,3 @@ void stats_set_sizes(const std::string& dir,
                      uint64_t num_files,
                      uint64_t total_size);
 void stats_add_cleanup(const std::string& dir, uint64_t count);
-void stats_read(const std::string& path, Counters& counters);
-void stats_write(const std::string& path, const Counters& counters);

@@ -25,6 +25,7 @@ set(
   ResultRetriever.cpp
   SignalHandler.cpp
   Stat.cpp
+  Statistics.cpp
   TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp
