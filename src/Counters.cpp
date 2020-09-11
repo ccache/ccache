@@ -70,6 +70,17 @@ Counters::increment(Statistic statistic, int64_t value)
     std::max(static_cast<int64_t>(0), static_cast<int64_t>(counter + value));
 }
 
+void
+Counters::increment(const Counters& other)
+{
+  m_counters.resize(std::max(size(), other.size()));
+  for (size_t i = 0; i < other.size(); ++i) {
+    auto& counter = m_counters[i];
+    counter = std::max(static_cast<int64_t>(0),
+                       static_cast<int64_t>(counter + other.m_counters[i]));
+  }
+}
+
 size_t
 Counters::size() const
 {

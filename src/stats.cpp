@@ -275,10 +275,7 @@ stats_flush_to_file(const Config& config,
     }
 
     stats_read(sfile, counters);
-    for (size_t i = 0; i < static_cast<size_t>(Statistic::END); ++i) {
-      counters.increment(static_cast<Statistic>(i),
-                         updates.get(static_cast<Statistic>(i)));
-    }
+    counters.increment(updates);
     stats_write(sfile, counters);
   }
 

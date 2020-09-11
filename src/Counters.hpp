@@ -38,6 +38,7 @@ public:
   void set_raw(size_t index, uint64_t value);
 
   void increment(Statistic statistic, int64_t value = 1);
+  void increment(const Counters& other);
 
   size_t size() const;
 
