@@ -755,18 +755,19 @@ update_manifest_file(Context& ctx)
   } else {
     const auto st = Stat::stat(ctx.manifest_path(), Stat::OnError::log);
 
-    const int64_t size_delta =
+    const int64_t size_delta_kibibyte =
       (st.size_on_disk() - old_st.size_on_disk()) / 1024;
     const int64_t files_delta = !old_st && st ? 1 : 0;
 
     if (ctx.stats_file() == ctx.manifest_stats_file()) {
-      ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
+      ctx.counter_updates.increment(Statistic::cache_size_kibibyte,
+                                    size_delta_kibibyte);
       ctx.counter_updates.increment(Statistic::files_in_cache, files_delta);
     } else {
-      Counters updates;
-      updates.increment(Statistic::cache_size_kibibyte, size_delta);
-      updates.increment(Statistic::files_in_cache, files_delta);
-      Statistics::increment(ctx.manifest_stats_file(), updates);
+      Statistics::update(ctx.manifest_stats_file(), [=](Counters& cs) {
+        cs.increment(Statistic::cache_size_kibibyte, size_delta_kibibyte);
+        cs.increment(Statistic::files_in_cache, files_delta);
+      });
     }
   }
   MTR_END("manifest", "manifest_put");
@@ -1919,7 +1920,9 @@ finalize_stats(const Context& ctx)
   }
 
   const auto counters =
-    Statistics::increment(ctx.stats_file(), ctx.counter_updates);
+    Statistics::update(ctx.stats_file(), [&ctx](Counters& cs) {
+      cs.increment(ctx.counter_updates);
+    });
   if (!counters) {
     return;
   }

@@ -24,6 +24,7 @@
 
 #include "third_party/nonstd/optional.hpp"
 
+#include <functional>
 #include <string>
 
 // Statistics fields in storage order.
@@ -70,13 +71,10 @@ namespace Statistics {
 // Read counters from `path`. No lock is acquired.
 Counters read(const std::string& path);
 
-// Write `counters` to `path`. No lock is acquired.
-void write(const std::string& path, const Counters& counters);
-
-// Acquire a lock, read counters from `path`, apply `updates`, write result to
-// `path` and release the lock. Returns the resulting counters or nullopt on
-// error (e.g. if the lock could not be acquired).
-nonstd::optional<Counters> increment(const std::string& path,
-                                     const Counters& updates);
+// Acquire a lock, read counters from `path`, call `function` with the counters,
+// write the counters to `path` and release the lock. Returns the resulting
+// counters or nullopt on error (e.g. if the lock could not be acquired).
+nonstd::optional<Counters> update(const std::string& path,
+                                  std::function<void(Counters& counters)>);
 
 } // namespace Statistics

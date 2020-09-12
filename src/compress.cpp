@@ -204,9 +204,9 @@ recompress_file(Context& ctx,
   if (ctx.stats_file() == stats_file) {
     ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
   } else {
-    Counters updates;
-    updates.increment(Statistic::cache_size_kibibyte, size_delta);
-    Statistics::increment(stats_file, updates);
+    Statistics::update(stats_file, [=](Counters& cs) {
+      cs.increment(Statistic::cache_size_kibibyte, size_delta);
+    });
   }
 
   statistics.update(content_size, old_stat.size(), new_stat.size(), 0);

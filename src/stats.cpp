@@ -25,7 +25,6 @@
 #include "AtomicFile.hpp"
 #include "Context.hpp"
 #include "Counters.hpp"
-#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Statistics.hpp"
 #include "cleanup.hpp"
@@ -284,17 +283,15 @@ stats_zero(const Context& ctx)
       // No point in trying to reset the stats file if it doesn't exist.
       continue;
     }
-    Lockfile lock(fname);
-    if (lock.acquired()) {
-      Counters counters = Statistics::read(fname);
-      for (size_t i = 0; k_statistics_fields[i].message; i++) {
+
+    Statistics::update(fname, [=](Counters& cs) {
+      for (size_t i = 0; k_statistics_fields[i].message; ++i) {
         if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
-          counters.set(k_statistics_fields[i].statistic, 0);
+          cs.set(k_statistics_fields[i].statistic, 0);
         }
       }
-      counters.set(Statistic::stats_zeroed_timestamp, timestamp);
-      Statistics::write(fname, counters);
-    }
+      cs.set(Statistic::stats_zeroed_timestamp, timestamp);
+    });
   }
 }
 

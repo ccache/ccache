@@ -22,7 +22,6 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
-#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
 #include "stats.hpp"
@@ -61,16 +60,13 @@ update_counters(const std::string& dir,
                 bool cleanup_performed)
 {
   const std::string stats_file = dir + "/stats";
-  Lockfile lock(stats_file);
-  if (lock.acquired()) {
-    Counters counters = Statistics::read(stats_file);
+  Statistics::update(stats_file, [=](Counters& cs) {
     if (cleanup_performed) {
-      counters.increment(Statistic::cleanups_performed);
+      cs.increment(Statistic::cleanups_performed);
     }
-    counters.set(Statistic::files_in_cache, files_in_cache);
-    counters.set(Statistic::cache_size_kibibyte, cache_size / 1024);
-    Statistics::write(stats_file, counters);
-  }
+    cs.set(Statistic::files_in_cache, files_in_cache);
+    cs.set(Statistic::cache_size_kibibyte, cache_size / 1024);
+  });
 }
 
 void

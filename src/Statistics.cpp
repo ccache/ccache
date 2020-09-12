@@ -59,9 +59,19 @@ read(const std::string& path)
   return counters;
 }
 
-void
-write(const std::string& path, const Counters& counters)
+optional<Counters>
+update(const std::string& path,
+       std::function<void(Counters& counters)> function)
 {
+  Lockfile lock(path);
+  if (!lock.acquired()) {
+    log("failed to acquire lock for {}", path);
+    return nullopt;
+  }
+
+  auto counters = Statistics::read(path);
+  function(counters);
+
   AtomicFile file(path, AtomicFile::Mode::text);
   for (size_t i = 0; i < counters.size(); ++i) {
     file.write(fmt::format("{}\n", counters.get_raw(i)));
@@ -69,23 +79,12 @@ write(const std::string& path, const Counters& counters)
   try {
     file.commit();
   } catch (const Error& e) {
-    // Make failure to write a stats file a soft error since it's not important
-    // enough to fail whole the process and also because it is called in the
-    // Context destructor.
+    // Make failure to write a stats file a soft error since it's not
+    // important enough to fail whole the process and also because it is
+    // called in the Context destructor.
     log("Error: {}", e.what());
   }
-}
 
-optional<Counters>
-increment(const std::string& path, const Counters& updates)
-{
-  Lockfile lock(path);
-  if (!lock.acquired()) {
-    return nullopt;
-  }
-  auto counters = Statistics::read(path);
-  counters.increment(updates);
-  Statistics::write(path, counters);
   return counters;
 }
 

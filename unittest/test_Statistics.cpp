@@ -78,40 +78,24 @@ TEST_CASE("Read future counters")
   }
 }
 
-TEST_CASE("Write")
-{
-  TestContext test_context;
-
-  Counters counters;
-  size_t count = static_cast<size_t>(Statistic::END) + 1;
-  for (size_t i = 0; i < count; ++i) {
-    counters.set_raw(i, i);
-  }
-
-  Statistics::write("test", counters);
-  counters = Statistics::read("test");
-
-  REQUIRE(counters.size() == count);
-  for (size_t i = 0; i < count; ++i) {
-    CHECK(counters.get_raw(i) == i);
-  }
-}
-
-TEST_CASE("Increment")
+TEST_CASE("Update")
 {
   TestContext test_context;
 
   Util::write_file("test", "0 1 2 3 27 5\n");
 
-  Counters updates;
-  updates.set(Statistic::internal_error, 1);
-  updates.set(Statistic::cache_miss, 6);
+  auto counters = Statistics::update("test", [](Counters& cs) {
+    cs.increment(Statistic::internal_error, 1);
+    cs.increment(Statistic::cache_miss, 6);
+  });
+  REQUIRE(counters);
 
-  Statistics::increment("test", updates);
+  CHECK(counters->get(Statistic::internal_error) == 4);
+  CHECK(counters->get(Statistic::cache_miss) == 33);
 
-  Counters counters = Statistics::read("test");
-  CHECK(counters.get(Statistic::internal_error) == 4);
-  CHECK(counters.get(Statistic::cache_miss) == 33);
+  counters = Statistics::read("test");
+  CHECK(counters->get(Statistic::internal_error) == 4);
+  CHECK(counters->get(Statistic::cache_miss) == 33);
 }
 
 TEST_SUITE_END();
