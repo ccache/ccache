@@ -169,20 +169,14 @@ stats_collect(const Config& config, Counters& counters, time_t* last_updated)
   *last_updated = 0;
 
   // Add up the stats in each directory.
-  for (int dir = -1; dir <= 0xF; dir++) {
-    std::string fname;
-
-    if (dir == -1) {
-      fname = config.cache_dir() + "/stats";
-    } else {
-      fname = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
-    }
+  for (size_t dir = 0; dir <= 0xF; ++dir) {
+    const auto path = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
 
     counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
-    counters.increment(Statistics::read(fname));
+    counters.increment(Statistics::read(path));
     zero_timestamp =
       std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
-    *last_updated = std::max(*last_updated, Stat::stat(fname).mtime());
+    *last_updated = std::max(*last_updated, Stat::stat(path).mtime());
   }
 
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
@@ -272,9 +266,6 @@ stats_print(const Config& config)
 void
 stats_zero(const Context& ctx)
 {
-  // Remove old legacy stats file at cache top directory.
-  Util::unlink_safe(ctx.config.cache_dir() + "/stats");
-
   time_t timestamp = time(nullptr);
 
   for (int dir = 0; dir <= 0xF; dir++) {
