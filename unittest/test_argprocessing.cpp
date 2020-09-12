@@ -105,9 +105,9 @@ TEST_CASE("dependency_args_to_preprocessor_if_run_second_cpp_is_false")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc " + dep_args));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc " + dep_args);
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -c");
 }
 
 TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
@@ -123,9 +123,9 @@ TEST_CASE("dependency_args_to_compiler_if_run_second_cpp_is_true")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash == Args::from_string(dep_args));
-  CHECK(result.compiler_args == Args::from_string("cc -c " + dep_args));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == dep_args);
+  CHECK(result.compiler_args.to_string() == "cc -c " + dep_args);
 }
 
 TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
@@ -148,10 +148,10 @@ TEST_CASE("cpp_only_args_to_preprocessor_if_run_second_cpp_is_false")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args
-        == Args::from_string("cc " + cpp_args + " " + dep_args));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -c"));
+  CHECK(result.preprocessor_args.to_string()
+        == "cc " + cpp_args + " " + dep_args);
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -c");
 }
 
 TEST_CASE(
@@ -164,7 +164,7 @@ TEST_CASE(
     " -iwithprefix . -iwithprefixbefore . -DTEST_MACRO -DTEST_MACRO2=1 -F."
     " -trigraphs -fworking-directory -fno-working-directory";
   const std::string dep_args =
-    " -MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
+    "-MD -MMD -MP -MF foo.d -MT mt1 -MT mt2 -MQ mq1 -MQ mq2 -Wp,-MD,wpmd"
     " -Wp,-MMD,wpmmd";
   Context ctx;
   ctx.orig_args =
@@ -174,10 +174,10 @@ TEST_CASE(
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc " + cpp_args));
-  CHECK(result.extra_args_to_hash == Args::from_string(dep_args));
-  CHECK(result.compiler_args
-        == Args::from_string("cc " + cpp_args + " -c " + dep_args));
+  CHECK(result.preprocessor_args.to_string() == "cc " + cpp_args);
+  CHECK(result.extra_args_to_hash.to_string() == dep_args);
+  CHECK(result.compiler_args.to_string()
+        == "cc " + cpp_args + " -c " + dep_args);
 }
 
 TEST_CASE(
@@ -192,9 +192,9 @@ TEST_CASE(
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash == Args::from_string(dep_args));
-  CHECK(result.compiler_args == Args::from_string("cc -c " + dep_args));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == dep_args);
+  CHECK(result.compiler_args.to_string() == "cc -c " + dep_args);
 }
 
 TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
@@ -207,9 +207,9 @@ TEST_CASE("MQ_flag_should_not_be_added_if_run_second_cpp_is_true")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash == Args::from_string("-MD -MF foo.d"));
-  CHECK(result.compiler_args == Args::from_string("cc -c -MD -MF foo.d"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD -MF foo.d");
+  CHECK(result.compiler_args.to_string() == "cc -c -MD -MF foo.d");
 }
 
 TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
@@ -223,10 +223,9 @@ TEST_CASE("MQ_flag_should_be_added_if_run_second_cpp_is_false")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args
-        == Args::from_string("cc -MD -MF foo.d -MQ foo.o"));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc -MD -MF foo.d -MQ foo.o");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -c");
 }
 
 TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
@@ -240,10 +239,9 @@ TEST_CASE("MF_should_be_added_if_run_second_cpp_is_false")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args
-        == Args::from_string("cc -MD -MF foo.d -MQ foo.o"));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc -MD -MF foo.d -MQ foo.o");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -c");
 }
 
 TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
@@ -256,9 +254,9 @@ TEST_CASE("MF_should_not_be_added_if_run_second_cpp_is_true")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash == Args::from_string("-MD"));
-  CHECK(result.compiler_args == Args::from_string("cc -c -MD"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD");
+  CHECK(result.compiler_args.to_string() == "cc -c -MD");
 }
 
 TEST_CASE("equal_sign_after_MF_should_be_removed")
@@ -271,9 +269,9 @@ TEST_CASE("equal_sign_after_MF_should_be_removed")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash == Args::from_string("-MFpath"));
-  CHECK(result.compiler_args == Args::from_string("cc -c -MFpath"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MFpath");
+  CHECK(result.compiler_args.to_string() == "cc -c -MFpath");
 }
 
 TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
@@ -324,11 +322,9 @@ TEST_CASE("MF_flag_with_immediate_argument_should_work_as_last_argument")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MMD -MT bar -MFfoo.d"));
-  CHECK(result.compiler_args
-        == Args::from_string("cc -c -MMD -MT bar -MFfoo.d"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MMD -MT bar -MFfoo.d");
+  CHECK(result.compiler_args.to_string() == "cc -c -MMD -MT bar -MFfoo.d");
 }
 
 TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
@@ -343,11 +339,11 @@ TEST_CASE("MT_flag_with_immediate_argument_should_work_as_last_argument")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MMD -MFfoo.d -MT foo -MTbar"));
-  CHECK(result.compiler_args
-        == Args::from_string("cc -c -MMD -MFfoo.d -MT foo -MTbar"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string()
+        == "-MMD -MFfoo.d -MT foo -MTbar");
+  CHECK(result.compiler_args.to_string()
+        == "cc -c -MMD -MFfoo.d -MT foo -MTbar");
 }
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
@@ -362,11 +358,11 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_work_as_last_argument")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MMD -MFfoo.d -MQ foo -MQbar"));
-  CHECK(result.compiler_args
-        == Args::from_string("cc -c -MMD -MFfoo.d -MQ foo -MQbar"));
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string()
+        == "-MMD -MFfoo.d -MQ foo -MQbar");
+  CHECK(result.compiler_args.to_string()
+        == "cc -c -MMD -MFfoo.d -MQ foo -MQbar");
 }
 
 TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
@@ -379,11 +375,10 @@ TEST_CASE("MQ_flag_without_immediate_argument_should_not_add_MQobj")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("gcc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MD -MP -MFfoo.d -MQ foo.d"));
-  CHECK(result.compiler_args
-        == Args::from_string("gcc -c -MD -MP -MFfoo.d -MQ foo.d"));
+  CHECK(result.preprocessor_args.to_string() == "gcc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MQ foo.d");
+  CHECK(result.compiler_args.to_string()
+        == "gcc -c -MD -MP -MFfoo.d -MQ foo.d");
 }
 
 TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
@@ -396,11 +391,10 @@ TEST_CASE("MT_flag_without_immediate_argument_should_not_add_MTobj")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("gcc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MD -MP -MFfoo.d -MT foo.d"));
-  CHECK(result.compiler_args
-        == Args::from_string("gcc -c -MD -MP -MFfoo.d -MT foo.d"));
+  CHECK(result.preprocessor_args.to_string() == "gcc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MT foo.d");
+  CHECK(result.compiler_args.to_string()
+        == "gcc -c -MD -MP -MFfoo.d -MT foo.d");
 }
 
 TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
@@ -413,11 +407,9 @@ TEST_CASE("MQ_flag_with_immediate_argument_should_not_add_MQobj")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("gcc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MD -MP -MFfoo.d -MQfoo.d"));
-  CHECK(result.compiler_args
-        == Args::from_string("gcc -c -MD -MP -MFfoo.d -MQfoo.d"));
+  CHECK(result.preprocessor_args.to_string() == "gcc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MQfoo.d");
+  CHECK(result.compiler_args.to_string() == "gcc -c -MD -MP -MFfoo.d -MQfoo.d");
 }
 
 TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
@@ -430,11 +422,9 @@ TEST_CASE("MT_flag_with_immediate_argument_should_not_add_MQobj")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("gcc"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string("-MD -MP -MFfoo.d -MTfoo.d"));
-  CHECK(result.compiler_args
-        == Args::from_string("gcc -c -MD -MP -MFfoo.d -MTfoo.d"));
+  CHECK(result.preprocessor_args.to_string() == "gcc");
+  CHECK(result.extra_args_to_hash.to_string() == "-MD -MP -MFfoo.d -MTfoo.d");
+  CHECK(result.compiler_args.to_string() == "gcc -c -MD -MP -MFfoo.d -MTfoo.d");
 }
 
 TEST_CASE(
@@ -452,7 +442,7 @@ TEST_CASE(
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("./foo" == result.preprocessor_args[2]);
+  CHECK(result.preprocessor_args[2] == "./foo");
 }
 
 TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -470,7 +460,7 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("-isystem./foo" == result.preprocessor_args[1]);
+  CHECK(result.preprocessor_args[1] == "-isystem./foo");
 }
 
 TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
@@ -488,7 +478,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
 
   const ProcessArgsResult result = process_args(ctx);
   CHECK(!result.error);
-  CHECK("-I./foo" == result.preprocessor_args[1]);
+  CHECK(result.preprocessor_args[1] == "-I./foo");
 }
 
 TEST_CASE("debug_flag_order_with_known_option_first")
@@ -501,9 +491,9 @@ TEST_CASE("debug_flag_order_with_known_option_first")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc -g1 -gsplit-dwarf"));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -g1 -gsplit-dwarf -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc -g1 -gsplit-dwarf");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -g1 -gsplit-dwarf -c");
 }
 
 TEST_CASE("debug_flag_order_with_known_option_last")
@@ -516,9 +506,9 @@ TEST_CASE("debug_flag_order_with_known_option_last")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc -gsplit-dwarf -g1"));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("cc -gsplit-dwarf -g1 -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc -gsplit-dwarf -g1");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "cc -gsplit-dwarf -g1 -c");
 }
 
 TEST_CASE("options_not_to_be_passed_to_the_preprocessor")
@@ -532,13 +522,11 @@ TEST_CASE("options_not_to_be_passed_to_the_preprocessor")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
-  CHECK(result.preprocessor_args == Args::from_string("cc -g -DX"));
-  CHECK(result.extra_args_to_hash
-        == Args::from_string(
-          " -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error"));
-  CHECK(result.compiler_args
-        == Args::from_string(
-          "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c"));
+  CHECK(result.preprocessor_args.to_string() == "cc -g -DX");
+  CHECK(result.extra_args_to_hash.to_string()
+        == "-Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error");
+  CHECK(result.compiler_args.to_string()
+        == "cc -g -Wa,foo -Werror -Xlinker fie -Xlinker,fum -Wno-error -DX -c");
 }
 
 TEST_CASE("cuda_option_file")
@@ -554,6 +542,9 @@ TEST_CASE("cuda_option_file")
   const ProcessArgsResult result = process_args(ctx);
 
   CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "nvcc -g -Wall -DX");
+  CHECK(result.extra_args_to_hash.to_string() == "");
+  CHECK(result.compiler_args.to_string() == "nvcc -g -Wall -DX -c");
   CHECK(result.preprocessor_args == Args::from_string("nvcc -g -Wall -DX"));
   CHECK(result.extra_args_to_hash == Args::from_string(""));
   CHECK(result.compiler_args == Args::from_string("nvcc -g -Wall -DX -c"));
