@@ -298,21 +298,6 @@ stats_zero(const Context& ctx)
   }
 }
 
-// Get the per-directory limits.
-void
-stats_get_obsolete_limits(const std::string& dir,
-                          uint64_t* maxfiles,
-                          uint64_t* maxsize)
-{
-  assert(maxfiles);
-  assert(maxsize);
-
-  std::string sname = dir + "/stats";
-  Counters counters = Statistics::read(sname);
-  *maxfiles = counters.get(Statistic::obsolete_max_files);
-  *maxsize = counters.get(Statistic::obsolete_max_size) * 1024;
-}
-
 // Set the per-directory sizes.
 void
 stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)

@@ -600,7 +600,18 @@ Config::set_value_in_file(const std::string& path,
   Config dummy_config;
   dummy_config.set_item(key, value, nullopt, false, "");
 
-  AtomicFile output(Util::real_path(path), AtomicFile::Mode::text);
+  const auto resolved_path = Util::real_path(path);
+  const auto st = Stat::stat(resolved_path);
+  if (!st) {
+    Util::ensure_dir_exists(Util::dir_name(resolved_path));
+    try {
+      Util::write_file(resolved_path, "");
+    } catch (const Error& e) {
+      throw Error("failed to write to {}: {}", resolved_path, e.what());
+    }
+  }
+
+  AtomicFile output(resolved_path, AtomicFile::Mode::text);
   bool found = false;
 
   if (!parse_config_file(path,

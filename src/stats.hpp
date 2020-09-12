@@ -33,9 +33,6 @@ void stats_zero(const Context& ctx);
 void stats_summary(const Context& ctx);
 void stats_print(const Config& config);
 
-void stats_get_obsolete_limits(const std::string& dir,
-                               uint64_t* maxfiles,
-                               uint64_t* maxsize);
 void stats_set_sizes(const std::string& dir,
                      uint64_t num_files,
                      uint64_t total_size);

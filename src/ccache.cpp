@@ -1726,42 +1726,6 @@ find_compiler(Context& ctx, const char* const* argv)
   ctx.orig_args[0] = compiler;
 }
 
-static void
-create_initial_config_file(Config& config)
-{
-  if (!Util::create_dir(Util::dir_name(config.primary_config_path()))) {
-    return;
-  }
-
-  uint64_t max_files;
-  uint64_t max_size;
-  std::string stats_dir = fmt::format("{}/0", config.cache_dir());
-  if (Stat::stat(stats_dir)) {
-    stats_get_obsolete_limits(stats_dir, &max_files, &max_size);
-    // Max files and max size were stored for each top directory.
-    max_files *= 16;
-    max_size *= 16;
-  } else {
-    max_files = 0;
-    max_size = config.max_size();
-  }
-
-  FILE* f = fopen(config.primary_config_path().c_str(), "w");
-  if (!f) {
-    return;
-  }
-  if (max_files != 0) {
-    fmt::print(f, "max_files = {}\n", max_files);
-    config.set_max_files(max_files);
-  }
-  if (max_size != 0) {
-    std::string size = Util::format_parsable_size_with_suffix(max_size);
-    fmt::print(f, "max_size = {}\n", size);
-    config.set_max_size(max_size);
-  }
-  fclose(f);
-}
-
 static std::string
 default_cache_dir(const std::string& home_dir)
 {
@@ -1787,9 +1751,8 @@ default_config_dir(const std::string& home_dir)
 }
 
 // Read config file(s), populate variables, create configuration file in cache
-// directory if missing, etc. Returns whether the primary configuration file
-// exists.
-static bool
+// directory if missing, etc.
+static void
 set_up_config(Config& config)
 {
   const std::string home_dir = Util::get_home_directory();
@@ -1833,8 +1796,7 @@ set_up_config(Config& config)
   const std::string& cache_dir_before_primary_config = config.cache_dir();
 
   MTR_BEGIN("config", "conf_read_primary");
-  const bool primary_config_exists =
-    config.update_from_file(config.primary_config_path());
+  config.update_from_file(config.primary_config_path());
   MTR_END("config", "conf_read_primary");
 
   // Ignore cache_dir set in primary config.
@@ -1858,8 +1820,6 @@ set_up_config(Config& config)
 
   // We have now determined config.cache_dir and populated the rest of config in
   // prio order (1. environment, 2. primary config, 3. secondary config).
-
-  return primary_config_exists;
 }
 
 static void
@@ -1876,7 +1836,7 @@ set_up_context(Context& ctx, int argc, const char* const* argv)
 static void
 initialize(Context& ctx, int argc, const char* const* argv)
 {
-  bool primary_config_exists = set_up_config(ctx.config);
+  set_up_config(ctx.config);
   set_up_context(ctx, argc, argv);
   Logging::init(ctx.config);
 
@@ -1888,10 +1848,6 @@ initialize(Context& ctx, int argc, const char* const* argv)
   // other files and directories should.
   if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
     ctx.original_umask = umask(ctx.config.umask());
-  }
-
-  if (!primary_config_exists && !ctx.config.disable()) {
-    create_initial_config_file(ctx.config);
   }
 
   log("=== CCACHE {} STARTED =========================================",
