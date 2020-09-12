@@ -27,6 +27,8 @@
 #include <functional>
 #include <string>
 
+class Config;
+
 // Statistics fields in storage order.
 enum class Statistic {
   none = 0,
@@ -76,5 +78,19 @@ Counters read(const std::string& path);
 // counters or nullopt on error (e.g. if the lock could not be acquired).
 nonstd::optional<Counters> update(const std::string& path,
                                   std::function<void(Counters& counters)>);
+
+// Return a human-readable string representing the final ccache result, or
+// nullopt if there was no result.
+nonstd::optional<std::string> get_result(const Counters& counters);
+
+// Zero all statistics counters except those tracking cache size and number of
+// files in the cache.
+void zero_all_counters(const Config& config);
+
+// Format cache statistics in human-readable format.
+std::string format_human_readable(const Config& config);
+
+// Format cache statistics in machine-readable format.
+std::string format_machine_readable(const Config& config);
 
 } // namespace Statistics

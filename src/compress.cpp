@@ -30,7 +30,6 @@
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
-#include "stats.hpp"
 
 #include "third_party/fmt/core.h"
 

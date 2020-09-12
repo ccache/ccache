@@ -23,7 +23,6 @@
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"
-#include "stats.hpp"
 
 #include <algorithm>
 #include <string>

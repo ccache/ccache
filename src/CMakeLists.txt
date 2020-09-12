@@ -39,7 +39,6 @@ set(
   execute.cpp
   hashutil.cpp
   language.cpp
-  stats.cpp
   version.cpp)
 
 if(INODE_CACHE_SUPPORTED)

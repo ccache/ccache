@@ -51,7 +51,6 @@
 #include "execute.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
-#include "stats.hpp"
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"
@@ -1909,7 +1908,7 @@ finalize_stats(const Context& ctx)
   }
 
   if (!config.log_file().empty() || config.debug()) {
-    const auto result = stats_get_result(ctx.counter_updates);
+    const auto result = Statistics::get_result(ctx.counter_updates);
     if (result) {
       log("Result: {}", *result);
     }
@@ -2361,7 +2360,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case PRINT_STATS:
-      stats_print(ctx.config);
+      fmt::print(Statistics::format_machine_readable(ctx.config));
       break;
 
     case 'c': // --cleanup
@@ -2440,7 +2439,7 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 's': // --show-stats
-      stats_summary(ctx);
+      fmt::print(Statistics::format_human_readable(ctx.config));
       break;
 
     case 'V': // --version
@@ -2473,7 +2472,7 @@ handle_main_options(int argc, const char* const* argv)
     }
 
     case 'z': // --zero-stats
-      stats_zero(ctx);
+      Statistics::zero_all_counters(ctx.config);
       fmt::print("Statistics zeroed\n");
       break;
 
