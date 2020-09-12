@@ -33,9 +33,4 @@ void stats_zero(const Context& ctx);
 void stats_summary(const Context& ctx);
 void stats_print(const Config& config);
 
-void stats_set_sizes(const std::string& dir,
-                     uint64_t num_files,
-                     uint64_t total_size);
-void stats_add_cleanup(const std::string& dir, uint64_t count);
-
 nonstd::optional<std::string> stats_get_result(const Counters& counters);

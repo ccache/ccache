@@ -298,30 +298,6 @@ stats_zero(const Context& ctx)
   }
 }
 
-// Set the per-directory sizes.
-void
-stats_set_sizes(const std::string& dir, uint64_t num_files, uint64_t total_size)
-{
-  std::string statsfile = dir + "/stats";
-  Lockfile lock(statsfile);
-  if (lock.acquired()) {
-    Counters counters = Statistics::read(statsfile);
-    counters.set(Statistic::files_in_cache, num_files);
-    counters.set(Statistic::cache_size_kibibyte, total_size / 1024);
-    Statistics::write(statsfile, counters);
-  }
-}
-
-// Count directory cleanup run.
-void
-stats_add_cleanup(const std::string& dir, uint64_t count)
-{
-  std::string statsfile = dir + "/stats";
-  Counters updates;
-  updates.increment(Statistic::cleanups_performed, count);
-  Statistics::increment(statsfile, updates);
-}
-
 optional<std::string>
 stats_get_result(const Counters& counters)
 {

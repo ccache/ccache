@@ -22,6 +22,7 @@
 #include "CacheFile.hpp"
 #include "Config.hpp"
 #include "Context.hpp"
+#include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
 #include "stats.hpp"
@@ -50,6 +51,25 @@ delete_file(const std::string& path,
     // cleanups of the same directory.)
     *cache_size -= size;
     --*files_in_cache;
+  }
+}
+
+static void
+update_counters(const std::string& dir,
+                uint64_t files_in_cache,
+                uint64_t cache_size,
+                bool cleanup_performed)
+{
+  const std::string stats_file = dir + "/stats";
+  Lockfile lock(stats_file);
+  if (lock.acquired()) {
+    Counters counters = Statistics::read(stats_file);
+    if (cleanup_performed) {
+      counters.increment(Statistic::cleanups_performed);
+    }
+    counters.set(Statistic::files_in_cache, files_in_cache);
+    counters.set(Statistic::cache_size_kibibyte, cache_size / 1024);
+    Statistics::write(stats_file, counters);
   }
 }
 
@@ -164,10 +184,9 @@ clean_up_dir(const std::string& subdir,
 
   if (cleaned) {
     log("Cleaned up cache directory {}", subdir);
-    stats_add_cleanup(subdir, 1);
   }
 
-  stats_set_sizes(subdir, files_in_cache, cache_size);
+  update_counters(subdir, files_in_cache, cache_size, cleaned);
 }
 
 // Clean up all cache subdirectories.
@@ -204,12 +223,11 @@ wipe_dir(const std::string& subdir,
     progress_receiver(0.5 + 0.5 * i / files.size());
   }
 
-  if (!files.empty()) {
+  const bool cleared = !files.empty();
+  if (cleared) {
     log("Cleared out cache directory {}", subdir);
-    stats_add_cleanup(subdir, 1);
   }
-
-  stats_set_sizes(subdir, 0, 0);
+  update_counters(subdir, 0, 0, cleared);
 }
 
 // Wipe all cached files in all subdirectories.
