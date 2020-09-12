@@ -559,4 +559,35 @@ TEST_CASE("cuda_option_file")
   CHECK(result.compiler_args == Args::from_string("nvcc -g -Wall -DX -c"));
 }
 
+TEST_CASE("-Xclang")
+{
+  TestContext test_context;
+  Context ctx;
+  const std::string common_args =
+    "-Xclang -fno-pch-timestamp"
+    " -Xclang unsupported";
+
+  const std::string extra_args =
+    "-Xclang -emit-pch"
+    " -Xclang -emit-pth";
+
+  const std::string pch_pth_variants =
+    "-Xclang -include-pch pch_path1"
+    " -Xclang -include-pch -Xclang pch_path2"
+    " -Xclang -include-pth pth_path1"
+    " -Xclang -include-pth -Xclang pth_path2";
+
+  ctx.orig_args = Args::from_string("gcc -c foo.c " + common_args + " "
+                                    + extra_args + " " + pch_pth_variants);
+  Util::write_file("foo.c", "");
+
+  const ProcessArgsResult result = process_args(ctx);
+  CHECK(result.preprocessor_args.to_string()
+        == "gcc " + common_args + " " + pch_pth_variants);
+  CHECK(result.extra_args_to_hash.to_string() == extra_args);
+  CHECK(result.compiler_args.to_string()
+        == "gcc " + common_args + " " + extra_args + " " + pch_pth_variants
+             + " -c");
+}
+
 TEST_SUITE_END();
