@@ -29,111 +29,66 @@ TEST_CASE("option_table_should_be_sorted")
   CHECK(compopt_verify_sortedness_and_flags());
 }
 
-TEST_CASE("dash_I_affects_cpp")
+TEST_CASE("affects_cpp_output")
 {
-  CHECK(compopt_affects_cpp("-I"));
-  CHECK(!compopt_affects_cpp("-Ifoo"));
+  CHECK(compopt_affects_cpp_output("-I"));
+  CHECK(!compopt_affects_cpp_output("-Ifoo"));
+  CHECK(!compopt_affects_cpp_output("-V"));
+  CHECK(!compopt_affects_cpp_output("-doesntexist"));
 }
 
-TEST_CASE("compopt_short")
+TEST_CASE("affects_compiler_output")
 {
-  CHECK(compopt_short(compopt_affects_cpp, "-Ifoo"));
-  CHECK(!compopt_short(compopt_affects_cpp, "-include"));
+  CHECK(compopt_affects_compiler_output("-Xlinker"));
+  CHECK(compopt_affects_compiler_output("-all_load"));
+  CHECK(!compopt_affects_compiler_output("-U"));
 }
 
-TEST_CASE("dash_V_doesnt_affect_cpp")
-{
-  CHECK(!compopt_affects_cpp("-V"));
-}
-
-TEST_CASE("dash_doesntexist_doesnt_affect_cpp")
-{
-  CHECK(!compopt_affects_cpp("-doesntexist"));
-}
-
-TEST_CASE("dash_MM_too_hard")
+TEST_CASE("too_hard")
 {
   CHECK(compopt_too_hard("-MM"));
-}
-
-TEST_CASE("dash_save_temps_too_hard")
-{
   CHECK(compopt_too_hard("-save-temps"));
-}
-
-TEST_CASE("dash_save_temps_cwd_too_hard")
-{
   CHECK(compopt_too_hard("-save-temps=cwd"));
-}
-
-TEST_CASE("dash_save_temps_obj_too_hard")
-{
   CHECK(compopt_too_hard("-save-temps=obj"));
-}
-
-TEST_CASE("dash_MD_not_too_hard")
-{
+  CHECK(compopt_too_hard("-analyze"));
+  CHECK(compopt_too_hard("--analyze"));
   CHECK(!compopt_too_hard("-MD"));
-}
-
-TEST_CASE("dash_fprofile_arcs_not_too_hard")
-{
   CHECK(!compopt_too_hard("-fprofile-arcs"));
-}
-
-TEST_CASE("dash_ftest_coverage_not_too_hard")
-{
   CHECK(!compopt_too_hard("-ftest-coverage"));
-}
-
-TEST_CASE("dash_fstack_usage_not_too_hard")
-{
   CHECK(!compopt_too_hard("-fstack-usage"));
-}
-
-TEST_CASE("dash_doesntexist_not_too_hard")
-{
   CHECK(!compopt_too_hard("-doesntexist"));
 }
 
-TEST_CASE("dash_Xpreprocessor_too_hard_for_direct_mode")
+TEST_CASE("too_hard_for_direct_mode")
 {
   CHECK(compopt_too_hard_for_direct_mode("-Xpreprocessor"));
-}
-
-TEST_CASE("dash_nostdinc_not_too_hard_for_direct_mode")
-{
   CHECK(!compopt_too_hard_for_direct_mode("-nostdinc"));
 }
 
-TEST_CASE("dash_I_takes_path")
+TEST_CASE("compopt_takes_path")
 {
   CHECK(compopt_takes_path("-I"));
+  CHECK(!compopt_takes_path("-L"));
 }
 
-TEST_CASE("dash_Xlinker_takes_arg")
+TEST_CASE("compopt_takes_arg")
 {
   CHECK(compopt_takes_arg("-Xlinker"));
-}
-
-TEST_CASE("dash_xxx_doesnt_take_arg")
-{
   CHECK(!compopt_takes_arg("-xxx"));
 }
 
-TEST_CASE("dash_iframework_prefix_affects_cpp")
+TEST_CASE("prefix_affects_cpp_output")
 {
-  CHECK(compopt_prefix_affects_cpp("-iframework"));
+  CHECK(compopt_prefix_affects_cpp_output("-iframework"));
+  CHECK(compopt_prefix_affects_cpp_output("-iframework42"));
+  CHECK(!compopt_prefix_affects_cpp_output("-iframewor"));
 }
 
-TEST_CASE("dash_analyze_too_hard")
+TEST_CASE("prefix_affects_compiler_output")
 {
-  CHECK(compopt_too_hard("-analyze"));
-}
-
-TEST_CASE("dash_dash_analyze_too_hard")
-{
-  CHECK(compopt_too_hard("--analyze"));
+  CHECK(compopt_prefix_affects_compiler_output("-Wa,"));
+  CHECK(compopt_prefix_affects_compiler_output("-Wa,something"));
+  CHECK(!compopt_prefix_affects_compiler_output("-Wa"));
 }
 
 TEST_SUITE_END();

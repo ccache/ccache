@@ -43,13 +43,13 @@
 // The option only affects compilation; not passed to the preprocessor.
 #define AFFECTS_COMP (1 << 6)
 
-struct compopt
+struct CompOpt
 {
   const char* name;
   int type;
 };
 
-const struct compopt compopts[] = {
+const CompOpt compopts[] = {
   {"--Werror", TAKES_ARG},                            // nvcc
   {"--analyze", TOO_HARD},                            // Clang
   {"--compiler-bindir", AFFECTS_CPP | TAKES_ARG},     // nvcc
@@ -137,51 +137,43 @@ const struct compopt compopts[] = {
 static int
 compare_compopts(const void* key1, const void* key2)
 {
-  const struct compopt* opt1 = static_cast<const struct compopt*>(key1);
-  const struct compopt* opt2 = static_cast<const struct compopt*>(key2);
+  const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
+  const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
   return strcmp(opt1->name, opt2->name);
 }
 
 static int
 compare_prefix_compopts(const void* key1, const void* key2)
 {
-  const struct compopt* opt1 = static_cast<const struct compopt*>(key1);
-  const struct compopt* opt2 = static_cast<const struct compopt*>(key2);
+  const CompOpt* opt1 = static_cast<const CompOpt*>(key1);
+  const CompOpt* opt2 = static_cast<const CompOpt*>(key2);
   return strncmp(opt1->name, opt2->name, strlen(opt2->name));
 }
 
-static const struct compopt*
+static const CompOpt*
 find(const std::string& option)
 {
-  struct compopt key;
+  CompOpt key;
   key.name = option.c_str();
   void* result = bsearch(&key,
                          compopts,
                          ARRAY_SIZE(compopts),
                          sizeof(compopts[0]),
                          compare_compopts);
-  return static_cast<compopt*>(result);
+  return static_cast<CompOpt*>(result);
 }
 
-static const struct compopt*
+static const CompOpt*
 find_prefix(const std::string& option)
 {
-  struct compopt key;
+  CompOpt key;
   key.name = option.c_str();
   void* result = bsearch(&key,
                          compopts,
                          ARRAY_SIZE(compopts),
                          sizeof(compopts[0]),
                          compare_prefix_compopts);
-  return static_cast<compopt*>(result);
-}
-
-// Runs fn on the first two characters of option.
-bool
-compopt_short(bool (*fn)(const std::string&), const std::string& option)
-{
-  bool retval = fn(option.substr(0, 2));
-  return retval;
+  return static_cast<CompOpt*>(result);
 }
 
 // Used by unittest/test_compopt.cpp.
@@ -215,70 +207,70 @@ compopt_verify_sortedness_and_flags()
 }
 
 bool
-compopt_affects_cpp(const std::string& option)
+compopt_affects_cpp_output(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & AFFECTS_CPP);
 }
 
 bool
-compopt_affects_comp(const std::string& option)
+compopt_affects_compiler_output(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & AFFECTS_COMP);
 }
 
 bool
 compopt_too_hard(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & TOO_HARD);
 }
 
 bool
 compopt_too_hard_for_direct_mode(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & TOO_HARD_DIRECT);
 }
 
 bool
 compopt_takes_path(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & TAKES_PATH);
 }
 
 bool
 compopt_takes_arg(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & TAKES_ARG);
 }
 
 bool
 compopt_takes_concat_arg(const std::string& option)
 {
-  const struct compopt* co = find(option);
+  const CompOpt* co = find(option);
   return co && (co->type & TAKES_CONCAT_ARG);
 }
 
 // Determines if the prefix of the option matches any option and affects the
 // preprocessor.
 bool
-compopt_prefix_affects_cpp(const std::string& option)
+compopt_prefix_affects_cpp_output(const std::string& option)
 {
   // Prefix options have to take concatenated args.
-  const struct compopt* co = find_prefix(option);
+  const CompOpt* co = find_prefix(option);
   return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_CPP);
 }
 
 // Determines if the prefix of the option matches any option and affects the
 // preprocessor.
 bool
-compopt_prefix_affects_comp(const std::string& option)
+compopt_prefix_affects_compiler_output(const std::string& option)
 {
   // Prefix options have to take concatenated args.
-  const struct compopt* co = find_prefix(option);
+  const CompOpt* co = find_prefix(option);
   return co && (co->type & TAKES_CONCAT_ARG) && (co->type & AFFECTS_COMP);
 }

@@ -24,12 +24,12 @@
 
 bool compopt_short(bool (*fn)(const std::string& option),
                    const std::string& option);
-bool compopt_affects_cpp(const std::string& option);
-bool compopt_affects_comp(const std::string& option);
+bool compopt_affects_cpp_output(const std::string& option);
+bool compopt_affects_compiler_output(const std::string& option);
 bool compopt_too_hard(const std::string& option);
 bool compopt_too_hard_for_direct_mode(const std::string& option);
 bool compopt_takes_path(const std::string& option);
 bool compopt_takes_arg(const std::string& option);
 bool compopt_takes_concat_arg(const std::string& option);
-bool compopt_prefix_affects_cpp(const std::string& option);
-bool compopt_prefix_affects_comp(const std::string& option);
+bool compopt_prefix_affects_cpp_output(const std::string& option);
+bool compopt_prefix_affects_compiler_output(const std::string& option);
