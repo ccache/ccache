@@ -739,17 +739,13 @@ get_relative_path(string_view dir, string_view path)
 }
 
 std::string
-get_path_in_cache(string_view cache_dir,
-                  uint8_t level,
-                  string_view name,
-                  string_view suffix)
+get_path_in_cache(string_view cache_dir, uint8_t level, string_view name)
 {
   assert(level >= 1 && level <= 8);
   assert(name.length() >= level);
 
   std::string path(cache_dir);
-  path.reserve(path.size() + level * 2 + 1 + name.length() - level
-               + suffix.length());
+  path.reserve(path.size() + level * 2 + 1 + name.length() - level);
 
   for (uint8_t i = 0; i < level; ++i) {
     path.push_back('/');
@@ -759,7 +755,6 @@ get_path_in_cache(string_view cache_dir,
   path.push_back('/');
   string_view name_remaining = name.substr(level);
   path.append(name_remaining.data(), name_remaining.length());
-  path.append(suffix.data(), suffix.length());
 
   return path;
 }

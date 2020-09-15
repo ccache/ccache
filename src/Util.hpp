@@ -214,13 +214,12 @@ const char* get_hostname();
 std::string get_relative_path(nonstd::string_view dir,
                               nonstd::string_view path);
 
-// Join `cache_dir`, a '/', `name` and `suffix` into a single path and return
-// it. Additionally, `level` single-character, '/'-separated subpaths are split
-// from the beginning of `name` before joining them all.
+// Join `cache_dir`, a '/' and `name` into a single path and return it.
+// Additionally, `level` single-character, '/'-separated subpaths are split from
+// the beginning of `name` before joining them all.
 std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint8_t level,
-                              nonstd::string_view name,
-                              nonstd::string_view suffix);
+                              nonstd::string_view name);
 
 // Write bytes in big endian order from an integer value.
 //

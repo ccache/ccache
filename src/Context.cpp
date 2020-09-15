@@ -80,9 +80,8 @@ Context::set_path_and_stats_file(const Digest& name,
                                  std::string& path_var,
                                  std::string& stats_file_var) const
 {
-  std::string name_string = name.to_string();
-  path_var =
-    Util::get_path_in_cache(config.cache_dir(), 2, name_string, suffix);
+  const std::string name_string = name.to_string() + std::string(suffix);
+  path_var = Util::get_path_in_cache(config.cache_dir(), 2, name_string);
   stats_file_var =
     fmt::format("{}/{}/stats", config.cache_dir(), name_string[0]);
 }
