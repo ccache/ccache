@@ -772,8 +772,8 @@ update_manifest_file(Context& ctx)
   MTR_END("manifest", "manifest_put");
 }
 
-static bool
-create_cachedir_tag(string_view dir)
+static void
+create_cachedir_tag(const Context& ctx)
 {
   constexpr char cachedir_tag[] =
     "Signature: 8a477f597d28d172789f06886806bc55\n"
@@ -781,24 +781,18 @@ create_cachedir_tag(string_view dir)
     "# For information about cache directory tags, see:\n"
     "#\thttp://www.brynosaurus.com/cachedir/\n";
 
-  std::string filename = fmt::format("{}/CACHEDIR.TAG", dir);
-  auto st = Stat::stat(filename);
-
-  if (st) {
-    if (st.is_regular()) {
-      return true;
-    }
-    errno = EEXIST;
-    return false;
+  const std::string path = fmt::format("{}/{}/CACHEDIR.TAG",
+                                       ctx.config.cache_dir(),
+                                       ctx.result_name().to_string()[0]);
+  const auto stat = Stat::stat(path);
+  if (stat) {
+    return;
   }
-
-  File f(filename, "w");
-
-  if (!f) {
-    return false;
+  try {
+    Util::write_file(path, cachedir_tag);
+  } catch (const Error& e) {
+    log("Failed to create {}: {}", path, e.what());
   }
-
-  return fwrite(cachedir_tag, strlen(cachedir_tag), 1, f.get()) == 1;
 }
 
 // Run the real compiler and put the result in cache.
@@ -987,14 +981,9 @@ to_cache(Context& ctx,
   MTR_END("file", "file_put");
 
   // Make sure we have a CACHEDIR.TAG in the cache part of cache_dir. This can
-  // be done almost anywhere, but we might as well do it near the end as we
-  // save the stat call if we exit early.
-  std::string first_level_dir(Util::dir_name(ctx.stats_file()));
-  if (!create_cachedir_tag(first_level_dir)) {
-    log("Failed to create {}/CACHEDIR.TAG ({})",
-        first_level_dir,
-        strerror(errno));
-  }
+  // be done almost anywhere, but we might as well do it near the end as we save
+  // the stat call if we exit early.
+  create_cachedir_tag(ctx);
 
   // Everything OK.
   Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
