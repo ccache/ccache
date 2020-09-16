@@ -152,8 +152,7 @@ create_writer(FILE* stream,
 }
 
 void
-recompress_file(Context& ctx,
-                RecompressionStatistics& statistics,
+recompress_file(RecompressionStatistics& statistics,
                 const std::string& stats_file,
                 const CacheFile& cache_file,
                 optional<int8_t> level)
@@ -200,13 +199,9 @@ recompress_file(Context& ctx,
 
   const size_t size_delta =
     (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
-  if (ctx.stats_file() == stats_file) {
-    ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
-  } else {
-    Statistics::update(stats_file, [=](Counters& cs) {
-      cs.increment(Statistic::cache_size_kibibyte, size_delta);
-    });
-  }
+  Statistics::update(stats_file, [=](Counters& cs) {
+    cs.increment(Statistic::cache_size_kibibyte, size_delta);
+  });
 
   statistics.update(content_size, old_stat.size(), new_stat.size(), 0);
 
@@ -306,9 +301,9 @@ compress_recompress(Context& ctx,
         const auto& file = files[i];
 
         if (file->type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([&ctx, &statistics, stats_file, file, level] {
+          thread_pool.enqueue([&statistics, stats_file, file, level] {
             try {
-              recompress_file(ctx, statistics, stats_file, *file, level);
+              recompress_file(statistics, stats_file, *file, level);
             } catch (Error&) {
               // Ignore for now.
             }
