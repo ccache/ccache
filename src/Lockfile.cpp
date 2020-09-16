@@ -28,6 +28,8 @@
 #include "third_party/fmt/core.h"
 
 #include <algorithm>
+#include <sstream>
+#include <thread>
 
 using Logging::log;
 
@@ -43,9 +45,13 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
   uint32_t slept = 0;                  // Microseconds.
   std::string initial_content;
 
+  std::stringstream ss;
+  ss << Util::get_hostname() << ':' << getpid() << ':'
+     << std::this_thread::get_id();
+  const auto content_prefix = ss.str();
+
   while (true) {
-    std::string my_content =
-      fmt::format("{}:{}:{}", Util::get_hostname(), getpid(), time(nullptr));
+    auto my_content = fmt::format("{}:{}", content_prefix, time(nullptr));
 
     if (symlink(my_content.c_str(), lockfile.c_str()) == 0) {
       // We got the lock.
