@@ -408,11 +408,11 @@ Result::Writer::write_raw_file_entry(const std::string& path,
       "Failed to store {} as raw file {}: {}", path, raw_file, e.what());
   }
   const auto new_stat = Stat::stat(raw_file);
-  const auto size_delta =
-    (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
-  const auto files_delta = (new_stat ? 1 : 0) - (old_stat ? 1 : 0);
-  m_ctx.counter_updates.increment(Statistic::cache_size_kibibyte, size_delta);
-  m_ctx.counter_updates.increment(Statistic::files_in_cache, files_delta);
+  m_ctx.counter_updates.increment(
+    Statistic::cache_size_kibibyte,
+    Util::size_change_kibibyte(old_stat, new_stat));
+  m_ctx.counter_updates.increment(Statistic::files_in_cache,
+                                  (new_stat ? 1 : 0) - (old_stat ? 1 : 0));
 }
 
 } // namespace Result

@@ -390,6 +390,15 @@ void set_cloexec_flag(int fd);
 // Set environment variable `name` to `value`.
 void setenv(const std::string& name, const std::string& value);
 
+// Return size change in KiB between `old_stat`  and `new_stat`.
+inline int64_t
+size_change_kibibyte(const Stat& old_stat, const Stat& new_stat)
+{
+  return (static_cast<int64_t>(new_stat.size_on_disk())
+          - static_cast<int64_t>(old_stat.size_on_disk()))
+         / 1024;
+}
+
 // Split `input` into words at any of the characters listed in `separators`.
 // These words are a view into `input`; empty words are omitted. `separators`
 // must neither be the empty string nor a nullptr.
