@@ -197,7 +197,7 @@ recompress_file(RecompressionStatistics& statistics,
   atomic_new_file.commit();
   auto new_stat = Stat::stat(cache_file.path(), Stat::OnError::log);
 
-  const size_t size_delta =
+  const uint64_t size_delta =
     (new_stat.size_on_disk() - old_stat.size_on_disk()) / 1024;
   Statistics::update(stats_file, [=](Counters& cs) {
     cs.increment(Statistic::cache_size_kibibyte, size_delta);
