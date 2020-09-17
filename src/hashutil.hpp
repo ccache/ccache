@@ -34,7 +34,8 @@ const int HASH_SOURCE_CODE_FOUND_DATE = (1 << 1);
 const int HASH_SOURCE_CODE_FOUND_TIME = (1 << 2);
 const int HASH_SOURCE_CODE_FOUND_TIMESTAMP = (1 << 3);
 
-// Search for the strings "__DATE__", "__TIME__" and "__TIMESTAMP__" in `str`.
+// Search for the strings "DATE", "TIME" and "TIMESTAMP" with two surrounding
+// underscores in `str`.
 //
 // Returns a bitmask with HASH_SOURCE_CODE_FOUND_DATE,
 // HASH_SOURCE_CODE_FOUND_TIME and HASH_SOURCE_CODE_FOUND_TIMESTAMP set
