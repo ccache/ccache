@@ -1749,13 +1749,15 @@ from_cache(Context& ctx, FromCacheCallMode mode)
                                            : Statistic::preprocessed_cache_hit;
 }
 
-// Find the real compiler. We just search the PATH to find an executable of the
-// same name that isn't a link to ourselves.
+// Find the real compiler and put it into ctx.orig_args[0]. We just search the
+// PATH to find an executable of the same name that isn't a link to ourselves.
 static void
-find_compiler(Context& ctx, const char* const* argv)
+find_compiler(Context& ctx)
 {
+  const std::string orig_first_arg = ctx.orig_args[0];
+
   // We might be being invoked like "ccache gcc -c foo.c".
-  std::string base(Util::base_name(argv[0]));
+  std::string base(Util::base_name(ctx.orig_args[0]));
   if (Util::same_program_name(base, CCACHE_NAME)) {
     ctx.orig_args.pop_front();
     if (Util::is_full_path(ctx.orig_args[0])) {
@@ -1773,7 +1775,7 @@ find_compiler(Context& ctx, const char* const* argv)
   if (compiler.empty()) {
     throw Fatal("Could not find compiler \"{}\" in PATH", base);
   }
-  if (compiler == argv[0]) {
+  if (compiler == orig_first_arg) {
     throw Fatal(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
@@ -2133,7 +2135,7 @@ cache_compilation(int argc, const char* const* argv)
     initialize(ctx, argc, argv);
 
     MTR_BEGIN("main", "find_compiler");
-    find_compiler(ctx, argv);
+    find_compiler(ctx);
     MTR_END("main", "find_compiler");
 
     try {
