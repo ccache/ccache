@@ -1328,7 +1328,7 @@ strip_ansi_csi_seqs(string_view string)
 }
 
 std::string
-strip_whitespace(nonstd::string_view string)
+strip_whitespace(string_view string)
 {
   const auto is_space = [](const int ch) { return std::isspace(ch); };
   const auto start = std::find_if_not(string.begin(), string.end(), is_space);
