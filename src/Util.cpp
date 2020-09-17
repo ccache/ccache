@@ -1312,9 +1312,9 @@ strip_ansi_csi_seqs(string_view string)
   std::string result;
 
   while (true) {
-    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
+    const auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
     auto data_start = string.data() + pos;
-    auto data_length =
+    const auto data_length =
       seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
     result.append(data_start, data_length);
     if (seq_span.empty()) {
@@ -1328,11 +1328,12 @@ strip_ansi_csi_seqs(string_view string)
 }
 
 std::string
-strip_whitespace(const std::string& string)
+strip_whitespace(nonstd::string_view string)
 {
-  auto is_space = [](int ch) { return std::isspace(ch); };
-  auto start = std::find_if_not(string.begin(), string.end(), is_space);
-  auto end = std::find_if_not(string.rbegin(), string.rend(), is_space).base();
+  const auto is_space = [](const int ch) { return std::isspace(ch); };
+  const auto start = std::find_if_not(string.begin(), string.end(), is_space);
+  const auto end =
+    std::find_if_not(string.rbegin(), string.rend(), is_space).base();
   return start < end ? std::string(start, end) : std::string();
 }
 
