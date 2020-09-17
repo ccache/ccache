@@ -494,41 +494,7 @@ fi
 
 # ---------------------------------------
 
-# Note: this list is currently duplicated within CMakeLists.txt until further cleanup. Keep them in sync!
-all_suites="
-base
-nocpp2
-cpp1
-multi_arch
-serialize_diagnostics
-color_diagnostics
-sanitize_blacklist
-debug_prefix_map
-profiling
-profiling_gcc
-profiling_clang
-split_dwarf
-masquerading
-hardlink
-fileclone
-direct
-direct_gcc
-depend
-basedir
-no_compression
-readonly
-readonly_direct
-cleanup
-pch
-modules
-upgrade
-input_charset
-nvcc
-nvcc_direct
-nvcc_ldir
-nvcc_nocpp2
-inode_cache
-"
+all_suites="$(sed -rn 's/^addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
 
 for suite in $all_suites; do
     . $(dirname $0)/suites/$suite.bash
