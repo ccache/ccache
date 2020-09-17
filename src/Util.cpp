@@ -1312,7 +1312,7 @@ strip_ansi_csi_seqs(string_view string)
   std::string result;
 
   while (true) {
-    const auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
+    auto seq_span = find_first_ansi_csi_seq(string.substr(pos));
     auto data_start = string.data() + pos;
     auto data_length =
       seq_span.empty() ? string.length() - pos : seq_span.data() - data_start;
