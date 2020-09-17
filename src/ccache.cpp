@@ -2053,7 +2053,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   }
 
   ctx.config.set_limit_multiple(
-    std::min(std::max(ctx.config.limit_multiple(), 0.0), 1.0));
+    Util::clamp(ctx.config.limit_multiple(), 0.0, 1.0));
 
   MTR_BEGIN("main", "guess_compiler");
   ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);

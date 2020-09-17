@@ -25,6 +25,7 @@
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <ios>
 #include <memory>
@@ -82,6 +83,14 @@ big_endian_to_int(const uint8_t* buffer, uint8_t& value)
 // should start with a dot, no extra dot is inserted.
 std::string change_extension(nonstd::string_view path,
                              nonstd::string_view new_ext);
+
+// Return `value` adjusted to not be less than `min` and not more than `max`.
+template<typename T>
+T
+clamp(T value, T min, T max)
+{
+  return std::min(max, std::max(min, value));
+}
 
 // Clone a file from `src` to `dest`. If `via_tmp_file` is true, `src` is cloned
 // to a temporary file and then renamed to `dest`. Throws `Error` on error.

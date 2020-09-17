@@ -26,6 +26,7 @@
 
 #include <algorithm>
 
+using doctest::Approx;
 using nonstd::nullopt;
 using TestUtil::TestContext;
 
@@ -91,6 +92,18 @@ TEST_CASE("Util::change_extension")
   CHECK(Util::change_extension("foo.ext", "e2") == "fooe2");
   CHECK(Util::change_extension("bar.txt", ".o") == "bar.o");
   CHECK(Util::change_extension("foo.bar.txt", ".o") == "foo.bar.o");
+}
+
+TEST_CASE("Util::clamp")
+{
+  CHECK(Util::clamp(0, 1, 2) == 1);
+  CHECK(Util::clamp(1, 1, 2) == 1);
+  CHECK(Util::clamp(2, 1, 2) == 2);
+  CHECK(Util::clamp(3, 1, 2) == 2);
+
+  CHECK(Util::clamp(7.0, 7.7, 8.8) == Approx(7.7));
+  CHECK(Util::clamp(8.0, 7.7, 8.8) == Approx(8.0));
+  CHECK(Util::clamp(9.0, 7.7, 8.8) == Approx(8.8));
 }
 
 TEST_CASE("Util::common_dir_prefix_length")
