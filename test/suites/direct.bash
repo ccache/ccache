@@ -361,7 +361,7 @@ EOF
 int test() { return 0; }
 EOF
 
-    if $COMPILER -c -fstack-usage code.c >/dev/null 2>&1; then
+    if $REAL_COMPILER -c -fstack-usage code.c >/dev/null 2>&1; then
         $CCACHE_COMPILE -c -fstack-usage code.c
         expect_stat 'cache hit (direct)' 0
         expect_stat 'cache hit (preprocessed)' 0
