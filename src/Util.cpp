@@ -1239,13 +1239,14 @@ rename(const std::string& oldpath, const std::string& newpath)
 }
 
 bool
-same_program_name(const std::string& program_name,
-                  const std::string& canonical_program_name)
+same_program_name(nonstd::string_view program_name,
+                  nonstd::string_view canonical_program_name)
 {
 #ifdef _WIN32
   std::string lowercase_program_name = Util::to_lowercase(program_name);
   return lowercase_program_name == canonical_program_name
-         || lowercase_program_name == (canonical_program_name + ".exe");
+         || lowercase_program_name
+              == fmt::format("{}.exe", canonical_program_name);
 #else
   return program_name == canonical_program_name;
 #endif

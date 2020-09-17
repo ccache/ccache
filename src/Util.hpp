@@ -388,8 +388,8 @@ void rename(const std::string& oldpath, const std::string& newpath);
 // Detmine if `program_name` is equal to `canonical_program_name`. On Windows,
 // this means performing a case insensitive equality check with and without a
 // ".exe" suffix. On non-Windows, it is a simple equality check.
-bool same_program_name(const std::string& program_name,
-                       const std::string& canonical_program_name);
+bool same_program_name(nonstd::string_view program_name,
+                       nonstd::string_view canonical_program_name);
 
 // Send `text` to STDERR_FILENO, optionally stripping ANSI color sequences if
 // `ctx.args_info.strip_diagnostics_colors` is true and rewriting paths to
