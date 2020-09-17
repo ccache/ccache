@@ -88,6 +88,15 @@ static const char USAGE_TEXT[] =
 	"\n"
 	"See also <https://ccache.dev>.\n";
 
+static const char *preproc_envvars[] = {
+	"CPATH",
+	"C_INCLUDE_PATH",
+	"CPLUS_INCLUDE_PATH",
+	"OBJC_INCLUDE_PATH",
+	"OBJCPLUS_INCLUDE_PATH", // clang
+	NULL
+};
+
 // Global configuration data.
 struct conf *conf = NULL;
 
@@ -2271,15 +2280,7 @@ calculate_object_hash(struct args *args, struct args *preprocessor_args,
 	struct file_hash *object_hash = NULL;
 	if (direct_mode) {
 		// Hash environment variables that affect the preprocessor output.
-		const char *envvars[] = {
-			"CPATH",
-			"C_INCLUDE_PATH",
-			"CPLUS_INCLUDE_PATH",
-			"OBJC_INCLUDE_PATH",
-			"OBJCPLUS_INCLUDE_PATH", // clang
-			NULL
-		};
-		for (const char **p = envvars; *p; ++p) {
+		for (const char **p = preproc_envvars; *p; ++p) {
 			char *v = getenv(*p);
 			if (v) {
 				hash_delimiter(hash, *p);
@@ -4065,6 +4066,17 @@ ccache(int argc, char *argv[])
 	cc_log_argv("Command line: ", argv);
 	cc_log("Hostname: %s", get_hostname());
 	cc_log("Working directory: %s", get_current_working_dir());
+
+    // Since some environment variables can affect preprocessing
+    // and make logs unreplayable, this is an outlet
+    // See https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html
+	for(const char **p = preproc_envvars ; *p ; ++p) {
+        char *v = getenv(*p);
+        if (v) {
+            cc_log("Environment variable affects preprocessing: %s='%s'"
+                , *p, v);
+        }
+    }
 
 	conf->limit_multiple = MIN(MAX(conf->limit_multiple, 0.0), 1.0);
 
