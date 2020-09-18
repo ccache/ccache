@@ -138,7 +138,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       standard_warnings "-Wno-unused-variable")
   endif()
 elseif(MSVC)
-  # Remove any warning level flags added by cmake.
+  # Remove any warning level flags added by CMake.
   string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
   string(REGEX REPLACE "/W[0-4]" "" CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS}")
   string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

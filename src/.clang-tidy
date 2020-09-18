@@ -55,7 +55,7 @@ WarningsAsErrors: '*'
 # Only include headers directly in src.
 HeaderFilterRegex: 'src/[^/]*$'
 CheckOptions:
-  # Always add braces (added here just in case clang-tidy default changes).
+  # Always add braces (added here just in case Clang-Tidy default changes).
   - key:             readability-braces-around-statements.ShortStatementLines
     value:           0
 

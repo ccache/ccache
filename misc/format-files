@@ -43,7 +43,7 @@ for file in "$@"; do
 
     if [ -n "$check" ]; then
         status=1
-        echo "Error: $file not formatted with clang-format"
+        echo "Error: $file not formatted with Clang-Format"
         echo 'Run "make format" or apply this diff:'
         git diff $cf_color --no-index "$file" "$tmp_file" \
             | sed -r -e "s!^---.*!--- a/$file!" \
