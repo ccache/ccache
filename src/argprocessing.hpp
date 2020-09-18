@@ -46,16 +46,16 @@ struct ProcessArgsResult
   Args compiler_args;
 };
 
-inline ProcessArgsResult::ProcessArgsResult(Statistic error) : error(error)
+inline ProcessArgsResult::ProcessArgsResult(Statistic error_) : error(error_)
 {
 }
 
-inline ProcessArgsResult::ProcessArgsResult(Args preprocessor_args,
-                                            Args extra_args_to_hash,
-                                            Args compiler_args)
-  : preprocessor_args(preprocessor_args),
-    extra_args_to_hash(extra_args_to_hash),
-    compiler_args(compiler_args)
+inline ProcessArgsResult::ProcessArgsResult(Args preprocessor_args_,
+                                            Args extra_args_to_hash_,
+                                            Args compiler_args_)
+  : preprocessor_args(preprocessor_args_),
+    extra_args_to_hash(extra_args_to_hash_),
+    compiler_args(compiler_args_)
 {
 }
 

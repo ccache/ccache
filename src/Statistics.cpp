@@ -105,16 +105,16 @@ namespace {
 
 struct StatisticsField
 {
-  StatisticsField(Statistic statistic,
-                  const char* id,
-                  const char* message,
-                  unsigned flags = 0,
-                  FormatFunction format = nullptr)
-    : statistic(statistic),
-      id(id),
-      message(message),
-      flags(flags),
-      format(format)
+  StatisticsField(Statistic statistic_,
+                  const char* id_,
+                  const char* message_,
+                  unsigned flags_ = 0,
+                  FormatFunction format_ = nullptr)
+    : statistic(statistic_),
+      id(id_),
+      message(message_),
+      flags(flags_),
+      format(format_)
   {
   }
 
