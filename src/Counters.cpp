@@ -19,6 +19,7 @@
 #include "Counters.hpp"
 
 #include "Statistics.hpp"
+#include "assertions.hpp"
 
 #include <algorithm>
 
@@ -30,7 +31,7 @@ uint64_t
 Counters::get(Statistic statistic) const
 {
   const auto index = static_cast<size_t>(statistic);
-  assert(index < static_cast<size_t>(Statistic::END));
+  ASSERT(index < static_cast<size_t>(Statistic::END));
   return index < m_counters.size() ? m_counters[index] : 0;
 }
 
@@ -38,14 +39,14 @@ void
 Counters::set(Statistic statistic, uint64_t value)
 {
   const auto index = static_cast<size_t>(statistic);
-  assert(index < static_cast<size_t>(Statistic::END));
+  ASSERT(index < static_cast<size_t>(Statistic::END));
   m_counters[index] = value;
 }
 
 uint64_t
 Counters::get_raw(size_t index) const
 {
-  assert(index < size());
+  ASSERT(index < size());
   return m_counters[index];
 }
 

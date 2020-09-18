@@ -255,7 +255,7 @@ find_executable_in_path(const std::string& name,
       return namebuf;
     }
 #else
-    assert(!exclude_name.empty());
+    ASSERT(!exclude_name.empty());
     std::string fname = fmt::format("{}/{}", dir, name);
     auto st1 = Stat::lstat(fname);
     auto st2 = Stat::stat(fname);

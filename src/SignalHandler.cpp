@@ -18,6 +18,8 @@
 
 #include "SignalHandler.hpp"
 
+#include "assertions.hpp"
+
 #ifndef _WIN32
 
 #  include "Context.hpp"
@@ -44,7 +46,7 @@ register_signal_handler(int signum)
 
 SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
 {
-  assert(!g_the_signal_handler);
+  ASSERT(!g_the_signal_handler);
   g_the_signal_handler = this;
 
   sigemptyset(&g_fatal_signal_set);
@@ -69,14 +71,14 @@ SignalHandler::SignalHandler(Context& ctx) : m_ctx(ctx)
 
 SignalHandler::~SignalHandler()
 {
-  assert(g_the_signal_handler);
+  ASSERT(g_the_signal_handler);
   g_the_signal_handler = nullptr;
 }
 
 void
 SignalHandler::on_signal(int signum)
 {
-  assert(g_the_signal_handler);
+  ASSERT(g_the_signal_handler);
   Context& ctx = g_the_signal_handler->m_ctx;
 
   // Unregister handler for this signal so that we can send the signal to

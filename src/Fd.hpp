@@ -21,6 +21,7 @@
 #include "system.hpp"
 
 #include "NonCopyable.hpp"
+#include "assertions.hpp"
 
 class Fd : NonCopyable
 {
@@ -76,7 +77,7 @@ inline int
 Fd::operator*() const
 // clang-format on
 {
-  assert(m_fd != -1);
+  ASSERT(m_fd != -1);
   return m_fd;
 }
 

@@ -20,6 +20,7 @@
 
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
+#include "assertions.hpp"
 #include "exceptions.hpp"
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
@@ -57,7 +58,7 @@ AtomicFile::write(const std::vector<uint8_t>& data)
 void
 AtomicFile::commit()
 {
-  assert(m_stream);
+  ASSERT(m_stream);
   int result = fclose(m_stream);
   m_stream = nullptr;
   if (result == EOF) {

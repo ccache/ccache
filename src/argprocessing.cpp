@@ -21,6 +21,7 @@
 #include "Context.hpp"
 #include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
+#include "assertions.hpp"
 #include "compopt.hpp"
 #include "language.hpp"
 
@@ -95,7 +96,7 @@ detect_pch(Context& ctx,
            bool is_cc1_option,
            bool* found_pch)
 {
-  assert(found_pch);
+  ASSERT(found_pch);
 
   // Try to be smart about detecting precompiled headers.
   // If the option is an option for Clang (is_cc1_option), don't accept
@@ -923,7 +924,7 @@ handle_dependency_environment_variables(Context& ctx,
 ProcessArgsResult
 process_args(Context& ctx)
 {
-  assert(!ctx.orig_args.empty());
+  ASSERT(!ctx.orig_args.empty());
 
   ArgsInfo& args_info = ctx.args_info;
   Config& config = ctx.config;

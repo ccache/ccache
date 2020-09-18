@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,6 +18,7 @@
 
 #include "ZstdDecompressor.hpp"
 
+#include "assertions.hpp"
 #include "exceptions.hpp"
 
 ZstdDecompressor::ZstdDecompressor(FILE* stream)
@@ -44,7 +45,7 @@ ZstdDecompressor::read(void* data, size_t count)
 {
   size_t bytes_read = 0;
   while (bytes_read < count) {
-    assert(m_input_size >= m_input_consumed);
+    ASSERT(m_input_size >= m_input_consumed);
     if (m_input_size == m_input_consumed) {
       m_input_size = fread(m_input_buffer, 1, sizeof(m_input_buffer), m_stream);
       if (m_input_size == 0) {

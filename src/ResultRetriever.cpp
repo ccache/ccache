@@ -119,7 +119,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
 void
 ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 {
-  assert((m_dest_file_type == FileType::stderr_output && !m_dest_fd)
+  ASSERT((m_dest_file_type == FileType::stderr_output && !m_dest_fd)
          || (m_dest_file_type != FileType::stderr_output && m_dest_fd));
 
   if (m_dest_file_type == FileType::stderr_output

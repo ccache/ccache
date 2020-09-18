@@ -19,6 +19,7 @@
 #include "ZstdCompressor.hpp"
 
 #include "Logging.hpp"
+#include "assertions.hpp"
 #include "exceptions.hpp"
 
 #include <algorithm>
@@ -85,7 +86,7 @@ ZstdCompressor::write(const void* data, size_t count)
     m_zstd_out.size = sizeof(buffer);
     m_zstd_out.pos = 0;
     ret = ZSTD_compressStream(m_zstd_stream, &m_zstd_out, &m_zstd_in);
-    assert(!(ZSTD_isError(ret)));
+    ASSERT(!(ZSTD_isError(ret)));
     size_t compressed_bytes = m_zstd_out.pos;
     if (fwrite(buffer, 1, compressed_bytes, m_stream) != compressed_bytes
         || ferror(m_stream)) {

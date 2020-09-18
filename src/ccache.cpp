@@ -903,7 +903,7 @@ to_cache(Context& ctx,
   }
 
   if (ctx.config.depend_mode()) {
-    assert(depend_mode_hash);
+    ASSERT(depend_mode_hash);
     auto result_name = result_name_from_depfile(ctx, *depend_mode_hash);
     if (!result_name) {
       throw Failure(Statistic::internal_error);
@@ -1541,7 +1541,7 @@ calculate_result_name(Context& ctx,
   // -fprofile-dir=.
 
   if (ctx.args_info.profile_generate) {
-    assert(!ctx.args_info.profile_path.empty());
+    ASSERT(!ctx.args_info.profile_path.empty());
     log("Adding profile directory {} to our hash", ctx.args_info.profile_path);
     hash.hash_delimiter("-fprofile-dir");
     hash.hash(ctx.args_info.profile_path);
@@ -1999,7 +1999,7 @@ cache_compilation(int argc, const char* const* argv)
         umask(*ctx.original_umask);
       }
 
-      assert(!ctx.orig_args.empty());
+      ASSERT(!ctx.orig_args.empty());
 
       ctx.orig_args.erase_with_prefix("--ccache-");
       add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
@@ -2190,7 +2190,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
     // calculate_result_name does not return nullopt if the last (direct_mode)
     // argument is false.
-    assert(result_name);
+    ASSERT(result_name);
     ctx.set_result_name(*result_name);
 
     if (result_name_from_manifest && result_name_from_manifest != result_name) {

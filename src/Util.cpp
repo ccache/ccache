@@ -132,7 +132,7 @@ template<typename T>
 std::vector<T>
 split_at(string_view input, const char* separators)
 {
-  assert(separators != nullptr && separators[0] != '\0');
+  ASSERT(separators != nullptr && separators[0] != '\0');
 
   std::vector<T> result;
 
@@ -307,8 +307,8 @@ common_dir_prefix_length(string_view dir, string_view path)
     return 0;
   }
 
-  assert(dir[0] == '/');
-  assert(path[0] == '/');
+  ASSERT(dir[0] == '/');
+  ASSERT(path[0] == '/');
 
   const size_t limit = std::min(dir.length(), path.length());
   size_t i = 0;
@@ -697,8 +697,8 @@ get_hostname()
 std::string
 get_relative_path(string_view dir, string_view path)
 {
-  assert(Util::is_absolute_path(dir));
-  assert(Util::is_absolute_path(path));
+  ASSERT(Util::is_absolute_path(dir));
+  ASSERT(Util::is_absolute_path(path));
 
 #ifdef _WIN32
   // Paths can be escaped by a slash for use with e.g. -isystem.
@@ -741,8 +741,8 @@ get_relative_path(string_view dir, string_view path)
 std::string
 get_path_in_cache(string_view cache_dir, uint8_t level, string_view name)
 {
-  assert(level >= 1 && level <= 8);
-  assert(name.length() >= level);
+  ASSERT(level >= 1 && level <= 8);
+  ASSERT(name.length() >= level);
 
   std::string path(cache_dir);
   path.reserve(path.size() + level * 2 + 1 + name.length() - level);

@@ -260,7 +260,7 @@ Reader::read_entry(CacheEntryReader& cache_entry_reader,
       remain -= n;
     }
   } else {
-    assert(marker == k_raw_file_marker);
+    ASSERT(marker == k_raw_file_marker);
 
     auto raw_path = get_raw_file_path(m_result_path, entry_number);
     auto st = Stat::stat(raw_path, Stat::OnError::throw_error);

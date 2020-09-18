@@ -20,6 +20,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
+#include "assertions.hpp"
 #include "exceptions.hpp"
 
 namespace Compression {
@@ -61,8 +62,7 @@ type_to_string(Type type)
     return "zstd";
   }
 
-  assert(false);
-  return {};
+  ASSERT(false);
 }
 
 } // namespace Compression

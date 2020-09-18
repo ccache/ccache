@@ -21,6 +21,7 @@
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
 #include "Util.hpp"
+#include "assertions.hpp"
 #include "ccache.hpp"
 #include "exceptions.hpp"
 
@@ -577,8 +578,7 @@ Config::get_string_value(const std::string& key) const
     return format_umask(m_umask);
   }
 
-  assert(false);
-  return {}; // Never reached
+  ASSERT(false); // Never reached
 }
 
 void

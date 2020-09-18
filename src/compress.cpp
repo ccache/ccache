@@ -30,6 +30,7 @@
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
+#include "assertions.hpp"
 
 #include "third_party/fmt/core.h"
 
@@ -129,12 +130,10 @@ create_reader(const CacheFile& cache_file, FILE* stream)
       stream, Manifest::k_magic, Manifest::k_version);
 
   case CacheFile::Type::unknown:
-    assert(false); // Handled at function entry.
-    return {};
+    ASSERT(false); // Handled at function entry.
   }
 
-  assert(false);
-  return {};
+  ASSERT(false);
 }
 
 std::unique_ptr<CacheEntryWriter>

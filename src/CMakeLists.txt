@@ -32,6 +32,7 @@ set(
   ZstdCompressor.cpp
   ZstdDecompressor.cpp
   argprocessing.cpp
+  assertions.cpp
   ccache.cpp
   cleanup.cpp
   compopt.cpp

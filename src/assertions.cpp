@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,23 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Decompressor.hpp"
-
-#include "NullDecompressor.hpp"
-#include "StdMakeUnique.hpp"
-#include "ZstdDecompressor.hpp"
 #include "assertions.hpp"
 
-std::unique_ptr<Decompressor>
-Decompressor::create_from_type(Compression::Type type, FILE* stream)
+#include "Util.hpp"
+
+#include "third_party/fmt/core.h"
+
+void
+handle_failed_assertion(const char* file,
+                        size_t line,
+                        const char* function,
+                        const char* condition)
 {
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullDecompressor>(stream);
-
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdDecompressor>(stream);
-  }
-
-  ASSERT(false);
+  fmt::print(stderr,
+             "ccache: {}:{}: {}: failed assertion: {}\n",
+             Util::base_name(file),
+             line,
+             function,
+             condition);
+  abort();
 }

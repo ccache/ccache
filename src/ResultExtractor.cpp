@@ -66,7 +66,7 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
 void
 ResultExtractor::on_entry_data(const uint8_t* data, size_t size)
 {
-  assert(m_dest_fd);
+  ASSERT(m_dest_fd);
 
   try {
     Util::write_fd(*m_dest_fd, data, size);

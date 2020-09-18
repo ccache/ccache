@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -21,6 +21,7 @@
 #include "NullCompressor.hpp"
 #include "StdMakeUnique.hpp"
 #include "ZstdCompressor.hpp"
+#include "assertions.hpp"
 
 std::unique_ptr<Compressor>
 Compressor::create_from_type(Compression::Type type,
@@ -35,6 +36,5 @@ Compressor::create_from_type(Compression::Type type,
     return std::make_unique<ZstdCompressor>(stream, compression_level);
   }
 
-  assert(false);
-  return {};
+  ASSERT(false);
 }
