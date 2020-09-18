@@ -31,6 +31,7 @@ class Digest;
 
 namespace Manifest {
 
+extern const std::string k_file_suffix;
 extern const uint8_t k_magic[4];
 extern const uint8_t k_version;
 

@@ -60,16 +60,20 @@ public:
   // The original argument list.
   Args orig_args;
 
+  // Name (represented as a hash) of the file containing the manifest for the
+  // cached result.
+  const nonstd::optional<Digest>& manifest_name() const;
+
+  // Full path to the file containing the manifest
+  // (cachedir/a/b/cdef[...]-size.manifest), if any.
+  const nonstd::optional<std::string>& manifest_path() const;
+
   // Name (represented as a hash) of the file containing the cached result.
-  const Digest& result_name() const;
+  const nonstd::optional<Digest>& result_name() const;
 
   // Full path to the file containing the result
   // (cachedir/a/b/cdef[...]-size.result).
-  const std::string& result_path() const;
-
-  // Full path to the file containing the manifest
-  // (cachedir/a/b/cdef[...]-size.manifest).
-  const std::string& manifest_path() const;
+  const nonstd::optional<std::string>& result_path() const;
 
   // Time of compilation. Used to see if include files have changed after
   // compilation.
@@ -90,13 +94,6 @@ public:
   // The name of the cpp stderr file.
   std::string cpp_stderr;
 
-  // Name (represented as a hash) of the file containing the manifest for the
-  // cached result.
-  const Digest& manifest_name() const;
-
-  // The stats file to use for the manifest.
-  const std::string& manifest_stats_file() const;
-
   // Compiler guessing is currently only based on the compiler name, so nothing
   // should hard-depend on it if possible.
   GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
@@ -112,12 +109,13 @@ public:
   mutable InodeCache inode_cache;
 #endif
 
-  // Full path to the statistics file in the subdirectory where the cached
-  // result belongs (<cache_dir>/<x>/stats).
-  const std::string& stats_file() const;
-
-  // Statistics which get written into the `stats_file` upon exit.
+  // Statistics updates which get written into the statistics file belonging to
+  // the result.
   Counters counter_updates;
+
+  // Statistics updates which get written into the statistics file belonging to
+  // the manifest.
+  Counters manifest_counter_updates;
 
   // PID of currently executing compiler that we have started, if any. 0 means
   // no ongoing compilation.
@@ -140,19 +138,19 @@ public:
 #endif
 
   void set_manifest_name(const Digest& name);
+  void set_manifest_path(const std::string& path);
   void set_result_name(const Digest& name);
+  void set_result_path(const std::string& path);
 
   // Register a temporary file to remove at program exit.
   void register_pending_tmp_file(const std::string& path);
 
 private:
   nonstd::optional<Digest> m_manifest_name;
-  std::string m_manifest_path;
-  std::string m_manifest_stats_file;
+  nonstd::optional<std::string> m_manifest_path;
 
   nonstd::optional<Digest> m_result_name;
-  std::string m_result_path;
-  mutable std::string m_result_stats_file;
+  nonstd::optional<std::string> m_result_path;
 
   // Options to ignore for the hash.
   std::vector<std::string> m_ignore_options;
@@ -167,43 +165,29 @@ private:
   friend SignalHandler;
   void unlink_pending_tmp_files();
   void unlink_pending_tmp_files_signal_safe(); // called from signal handler
-
-  void set_path_and_stats_file(const Digest& name,
-                               nonstd::string_view suffix,
-                               std::string& path_var,
-                               std::string& stats_file_var) const;
 };
 
-inline const Digest&
+inline const nonstd::optional<Digest>&
 Context::manifest_name() const
 {
-  return *m_manifest_name;
+  return m_manifest_name;
 }
 
-inline const std::string&
+inline const nonstd::optional<std::string>&
 Context::manifest_path() const
 {
-  assert(m_manifest_name); // set_manifest_name must have been called
   return m_manifest_path;
 }
 
-inline const std::string&
-Context::manifest_stats_file() const
-{
-  assert(m_manifest_name); // set_manifest_name must have been called
-  return m_manifest_stats_file;
-}
-
-inline const Digest&
+inline const nonstd::optional<Digest>&
 Context::result_name() const
 {
-  return *m_result_name;
+  return m_result_name;
 }
 
-inline const std::string&
+inline const nonstd::optional<std::string>&
 Context::result_path() const
 {
-  assert(m_result_name); // set_result_name must have been called
   return m_result_path;
 }
 
@@ -211,4 +195,28 @@ inline const std::vector<std::string>&
 Context::ignore_options() const
 {
   return m_ignore_options;
+}
+
+inline void
+Context::set_manifest_name(const Digest& name)
+{
+  m_manifest_name = name;
+}
+
+inline void
+Context::set_manifest_path(const std::string& path)
+{
+  m_manifest_path = path;
+}
+
+inline void
+Context::set_result_name(const Digest& name)
+{
+  m_result_name = name;
+}
+
+inline void
+Context::set_result_path(const std::string& path)
+{
+  m_result_path = path;
 }

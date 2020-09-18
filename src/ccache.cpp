@@ -147,14 +147,35 @@ See also <https://ccache.dev>.
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary
 // files.
-static const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
+const int k_tempdir_cleanup_interval = 2 * 24 * 60 * 60; // 2 days
+
+// Maximum files per cache directory. This constant is somewhat arbitrarily
+// chosen to be large enough to avoid unnecessary cache levels but small enough
+// not to make esoteric file systems (with bad performance for large
+// directories) too slow. It could be made configurable, but hopefully there
+// will be no need to do that.
+const uint64_t k_max_cache_files_per_directory = 2000;
+
+// Minimum number of cache levels ($CCACHE_DIR/1/2/stored_file).
+const uint8_t k_min_cache_levels = 2;
+
+// Maximum number of cache levels ($CCACHE_DIR/1/2/3/stored_file).
+//
+// On a cache miss, (k_max_cache_levels - k_min_cache_levels + 1) cache lookups
+// (i.e. stat system calls) will be performed for a cache entry.
+//
+// An assumption made here is that if a cache is so large that it holds more
+// than 16^4 * k_max_cache_files_per_directory files then we can assume that the
+// file system is sane enough to handle more than
+// k_max_cache_files_per_directory.
+const uint8_t k_max_cache_levels = 4;
 
 // This is a string that identifies the current "version" of the hash sum
 // computed by ccache. If, for any reason, we want to force the hash sum to be
 // different for the same input in a new ccache version, we can just change
 // this string. A typical example would be if the format of one of the files
 // stored in the cache changes in a backwards-incompatible way.
-static const char HASH_PREFIX[] = "3";
+const char HASH_PREFIX[] = "3";
 
 static void
 add_prefix(const Context& ctx, Args& args, const std::string& prefix_command)
@@ -726,6 +747,34 @@ do_execute(Context& ctx,
   return status;
 }
 
+struct LookUpCacheFileResult
+{
+  std::string path;
+  Stat stat;
+  uint8_t level;
+};
+
+static LookUpCacheFileResult
+look_up_cache_file(const std::string& cache_dir,
+                   const Digest& name,
+                   nonstd::string_view suffix)
+{
+  const auto name_string = fmt::format("{}{}", name.to_string(), suffix);
+
+  for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
+       ++level) {
+    const auto path = Util::get_path_in_cache(cache_dir, level, name_string);
+    const auto stat = Stat::stat(path);
+    if (stat) {
+      return {path, stat, level};
+    }
+  }
+
+  const auto shallowest_path =
+    Util::get_path_in_cache(cache_dir, k_min_cache_levels, name_string);
+  return {shallowest_path, Stat(), k_min_cache_levels};
+}
+
 // Create or update the manifest file.
 static void
 update_manifest_file(Context& ctx)
@@ -735,37 +784,34 @@ update_manifest_file(Context& ctx)
     return;
   }
 
-  auto old_st = Stat::stat(ctx.manifest_path());
+  ASSERT(ctx.manifest_path());
+  ASSERT(ctx.result_path());
+
+  MTR_BEGIN("manifest", "manifest_put");
+
+  const auto old_stat = Stat::stat(*ctx.manifest_path());
 
   // See comment in get_file_hash_index for why saving of timestamps is forced
   // for precompiled headers.
-  bool save_timestamp = (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
-                        || ctx.args_info.output_is_precompiled_header;
+  const bool save_timestamp =
+    (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES)
+    || ctx.args_info.output_is_precompiled_header;
 
-  MTR_BEGIN("manifest", "manifest_put");
-  log("Adding result name to {}", ctx.manifest_path());
+  log("Adding result name to {}", *ctx.manifest_path());
   if (!Manifest::put(ctx.config,
-                     ctx.manifest_path(),
-                     ctx.result_name(),
+                     *ctx.manifest_path(),
+                     *ctx.result_name(),
                      ctx.included_files,
                      ctx.time_of_compilation,
                      save_timestamp)) {
-    log("Failed to add result name to {}", ctx.manifest_path());
+    log("Failed to add result name to {}", *ctx.manifest_path());
   } else {
-    const auto st = Stat::stat(ctx.manifest_path(), Stat::OnError::log);
-    const int64_t size_delta_kibibyte = Util::size_change_kibibyte(old_st, st);
-    const int64_t files_delta = !old_st && st ? 1 : 0;
-
-    if (ctx.stats_file() == ctx.manifest_stats_file()) {
-      ctx.counter_updates.increment(Statistic::cache_size_kibibyte,
-                                    size_delta_kibibyte);
-      ctx.counter_updates.increment(Statistic::files_in_cache, files_delta);
-    } else {
-      Statistics::update(ctx.manifest_stats_file(), [=](Counters& cs) {
-        cs.increment(Statistic::cache_size_kibibyte, size_delta_kibibyte);
-        cs.increment(Statistic::files_in_cache, files_delta);
-      });
-    }
+    const auto new_stat = Stat::stat(*ctx.manifest_path(), Stat::OnError::log);
+    ctx.manifest_counter_updates.increment(
+      Statistic::cache_size_kibibyte,
+      Util::size_change_kibibyte(old_stat, new_stat));
+    ctx.manifest_counter_updates.increment(Statistic::files_in_cache,
+                                           !old_stat && new_stat ? 1 : 0);
   }
   MTR_END("manifest", "manifest_put");
 }
@@ -781,7 +827,7 @@ create_cachedir_tag(const Context& ctx)
 
   const std::string path = fmt::format("{}/{}/CACHEDIR.TAG",
                                        ctx.config.cache_dir(),
-                                       ctx.result_name().to_string()[0]);
+                                       ctx.result_name()->to_string()[0]);
   const auto stat = Stat::stat(path);
   if (stat) {
     return;
@@ -918,25 +964,27 @@ to_cache(Context& ctx,
     use_relative_paths_in_depfile(ctx);
   }
 
-  st = Stat::stat(ctx.args_info.output_obj);
-  if (!st) {
+  const auto obj_stat = Stat::stat(ctx.args_info.output_obj);
+  if (!obj_stat) {
     log("Compiler didn't produce an object file");
     throw Failure(Statistic::compiler_produced_no_output);
   }
-  if (st.size() == 0) {
+  if (obj_stat.size() == 0) {
     log("Compiler produced an empty object file");
     throw Failure(Statistic::compiler_produced_empty_output);
   }
 
-  st = Stat::stat(tmp_stderr_path, Stat::OnError::log);
-  if (!st) {
+  const auto stderr_stat = Stat::stat(tmp_stderr_path, Stat::OnError::log);
+  if (!stderr_stat) {
     throw Failure(Statistic::internal_error);
   }
 
-  auto orig_dest_stat = Stat::stat(ctx.result_path());
-  Result::Writer result_writer(ctx, ctx.result_path());
+  const auto result_file = look_up_cache_file(
+    ctx.config.cache_dir(), *ctx.result_name(), Result::k_file_suffix);
+  ctx.set_result_path(result_file.path);
+  Result::Writer result_writer(ctx, result_file.path);
 
-  if (st.size() > 0) {
+  if (stderr_stat.size() > 0) {
     result_writer.write(Result::FileType::stderr_output, tmp_stderr_path);
   }
   result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
@@ -963,18 +1011,18 @@ to_cache(Context& ctx,
   if (error) {
     log("Error: {}", *error);
   } else {
-    log("Stored in cache: {}", ctx.result_path());
+    log("Stored in cache: {}", result_file.path);
   }
 
-  auto new_dest_stat = Stat::stat(ctx.result_path(), Stat::OnError::log);
-  if (!new_dest_stat) {
+  auto new_result_stat = Stat::stat(result_file.path, Stat::OnError::log);
+  if (!new_result_stat) {
     throw Failure(Statistic::internal_error);
   }
   ctx.counter_updates.increment(
     Statistic::cache_size_kibibyte,
-    Util::size_change_kibibyte(orig_dest_stat, new_dest_stat));
+    Util::size_change_kibibyte(result_file.stat, new_result_stat));
   ctx.counter_updates.increment(Statistic::files_in_cache,
-                                orig_dest_stat ? 0 : 1);
+                                result_file.stat ? 0 : 1);
 
   MTR_END("file", "file_put");
 
@@ -1600,16 +1648,25 @@ calculate_result_name(Context& ctx,
       return nullopt;
     }
 
-    ctx.set_manifest_name(hash.digest());
+    const auto manifest_name = hash.digest();
+    ctx.set_manifest_name(manifest_name);
 
-    log("Looking for result name in {}", ctx.manifest_path());
-    MTR_BEGIN("manifest", "manifest_get");
-    result_name = Manifest::get(ctx, ctx.manifest_path());
-    MTR_END("manifest", "manifest_get");
-    if (result_name) {
-      log("Got result name from manifest");
+    const auto manifest_file = look_up_cache_file(
+      ctx.config.cache_dir(), manifest_name, Manifest::k_file_suffix);
+    ctx.set_manifest_path(manifest_file.path);
+
+    if (manifest_file.stat) {
+      log("Looking for result name in {}", manifest_file.path);
+      MTR_BEGIN("manifest", "manifest_get");
+      result_name = Manifest::get(ctx, manifest_file.path);
+      MTR_END("manifest", "manifest_get");
+      if (result_name) {
+        log("Got result name from manifest");
+      } else {
+        log("Did not find result name in manifest");
+      }
     } else {
-      log("Did not find result name in manifest");
+      log("No manifest with name {} in the cache", manifest_name.to_string());
     }
   } else {
     if (ctx.args_info.arch_args.empty()) {
@@ -1665,22 +1722,28 @@ from_cache(Context& ctx, FromCacheCallMode mode)
   MTR_BEGIN("cache", "from_cache");
 
   // Get result from cache.
-  Result::Reader result_reader(ctx.result_path());
+  const auto result_file = look_up_cache_file(
+    ctx.config.cache_dir(), *ctx.result_name(), Result::k_file_suffix);
+  if (!result_file.stat) {
+    log("No result with name {} in the cache", ctx.result_name()->to_string());
+    return nullopt;
+  }
+  ctx.set_result_path(result_file.path);
+  Result::Reader result_reader(result_file.path);
   ResultRetriever result_retriever(
     ctx, should_rewrite_dependency_target(ctx.args_info));
 
   auto error = result_reader.read(result_retriever);
+  MTR_END("cache", "from_cache");
   if (error) {
     log("Failed to get result from cache: {}", *error);
     return nullopt;
-  } else {
-    // Update modification timestamp to save file from LRU cleanup.
-    Util::update_mtime(ctx.result_path());
   }
 
-  log("Succeeded getting cached result");
+  // Update modification timestamp to save file from LRU cleanup.
+  Util::update_mtime(*ctx.result_path());
 
-  MTR_END("cache", "from_cache");
+  log("Succeeded getting cached result");
 
   return mode == FromCacheCallMode::direct ? Statistic::direct_cache_hit
                                            : Statistic::preprocessed_cache_hit;
@@ -1888,8 +1951,55 @@ configuration_printer(const std::string& key,
 static int cache_compilation(int argc, const char* const* argv);
 static Statistic do_cache_compilation(Context& ctx, const char* const* argv);
 
+static uint8_t
+calculate_wanted_cache_level(uint64_t files_in_level_1)
+{
+  uint64_t files_per_directory = files_in_level_1 / 16;
+  for (uint8_t i = k_min_cache_levels; i <= k_max_cache_levels; ++i) {
+    if (files_per_directory < k_max_cache_files_per_directory) {
+      return i;
+    }
+    files_per_directory /= 16;
+  }
+  return k_max_cache_levels;
+}
+
+static optional<Counters>
+update_stats_and_maybe_move_cache_file(const Context& ctx,
+                                       const Digest& name,
+                                       const std::string& current_path,
+                                       const Counters& counter_updates,
+                                       const std::string& file_suffix)
+{
+  const auto stats_file =
+    fmt::format("{}/{:x}/stats", ctx.config.cache_dir(), name.bytes()[0] >> 4);
+  auto counters =
+    Statistics::update(stats_file, [&counter_updates](Counters& cs) {
+      cs.increment(counter_updates);
+    });
+  if (!counters) {
+    return nullopt;
+  }
+
+  const auto wanted_level =
+    calculate_wanted_cache_level(counters->get(Statistic::files_in_cache));
+  const auto wanted_path = Util::get_path_in_cache(
+    ctx.config.cache_dir(), wanted_level, name.to_string() + file_suffix);
+  if (current_path != wanted_path) {
+    Util::ensure_dir_exists(Util::dir_name(wanted_path));
+    log("Moving {} to {}", current_path, wanted_path);
+    try {
+      Util::rename(current_path, wanted_path);
+    } catch (const Error&) {
+      // Two ccache processes may move the file at the same time, so failure to
+      // rename is OK.
+    }
+  }
+  return counters;
+}
+
 static void
-finalize_stats(const Context& ctx)
+finalize_stats_and_trigger_cleanup(Context& ctx)
 {
   const auto& config = ctx.config;
 
@@ -1910,15 +2020,36 @@ finalize_stats(const Context& ctx)
     return;
   }
 
+  if (!ctx.result_path()) {
+    // Context::set_result_path hasn't been called yet, so we just choose one of
+    // stats files in the 16 subdirectories.
+    const auto stats_file =
+      fmt::format("{}/{:x}/stats", config.cache_dir(), getpid() % 16);
+    Statistics::update(
+      stats_file, [&ctx](Counters& cs) { cs.increment(ctx.counter_updates); });
+    return;
+  }
+
+  if (ctx.manifest_path()) {
+    update_stats_and_maybe_move_cache_file(ctx,
+                                           *ctx.manifest_name(),
+                                           *ctx.manifest_path(),
+                                           ctx.manifest_counter_updates,
+                                           Manifest::k_file_suffix);
+  }
+
   const auto counters =
-    Statistics::update(ctx.stats_file(), [&ctx](Counters& cs) {
-      cs.increment(ctx.counter_updates);
-    });
+    update_stats_and_maybe_move_cache_file(ctx,
+                                           *ctx.result_name(),
+                                           *ctx.result_path(),
+                                           ctx.counter_updates,
+                                           Result::k_file_suffix);
   if (!counters) {
     return;
   }
 
-  const std::string subdir(Util::dir_name(ctx.stats_file()));
+  const auto subdir = fmt::format(
+    "{}/{:x}", config.cache_dir(), ctx.result_name()->bytes()[0] >> 4);
   bool need_cleanup = false;
 
   if (config.max_files() != 0
@@ -1950,9 +2081,14 @@ finalize_stats(const Context& ctx)
 }
 
 static void
-finalize_at_exit(const Context& ctx)
+finalize_at_exit(Context& ctx)
 {
-  finalize_stats(ctx);
+  try {
+    finalize_stats_and_trigger_cleanup(ctx);
+  } catch (const ErrorBase& e) {
+    // finalize_at_exit must not throw since it's called by a destructor.
+    log("Error while finalizing stats: {}", e.what());
+  }
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
@@ -2065,13 +2201,12 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_END("main", "guess_compiler");
 
   MTR_BEGIN("main", "process_args");
-
   ProcessArgsResult processed = process_args(ctx);
+  MTR_END("main", "process_args");
+
   if (processed.error) {
     throw Failure(*processed.error);
   }
-
-  MTR_END("main", "process_args");
 
   if (ctx.config.depend_mode()
       && (!ctx.args_info.generating_dependencies
@@ -2194,6 +2329,11 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.set_result_name(*result_name);
 
     if (result_name_from_manifest && result_name_from_manifest != result_name) {
+      // manifest_path is guaranteed to be set when calculate_result_name
+      // returns a non-nullopt result in direct mode, i.e. when
+      // result_name_from_manifest is set.
+      ASSERT(ctx.manifest_path());
+
       // The hash from manifest differs from the hash of the preprocessor
       // output. This could be because:
       //
@@ -2209,7 +2349,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
       log("Hash from manifest doesn't match preprocessor output");
       log("Likely reason: different CCACHE_BASEDIRs used");
       log("Removing manifest as a safety measure");
-      Util::unlink_safe(ctx.manifest_path());
+      Util::unlink_safe(*ctx.manifest_path());
 
       put_result_in_manifest = true;
     }

@@ -141,6 +141,7 @@ should_store_raw_file(const Config& config, Result::FileType type)
 
 namespace Result {
 
+const std::string k_file_suffix = ".result";
 const uint8_t k_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_version = 1;
 const char* const k_unknown_file_type = "<unknown type>";

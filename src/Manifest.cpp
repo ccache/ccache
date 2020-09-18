@@ -477,6 +477,7 @@ verify_result(const Context& ctx,
 
 namespace Manifest {
 
+const std::string k_file_suffix = ".manifest";
 const uint8_t k_magic[4] = {'c', 'C', 'm', 'F'};
 const uint8_t k_version = 2;
 
