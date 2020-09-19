@@ -1971,8 +1971,19 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
                                        const Counters& counter_updates,
                                        const std::string& file_suffix)
 {
+  // Use stats file in the level one subdirectory for cache bookkeeping counters
+  // since cleanup is performed on level one. Use stats file in the level two
+  // subdirectory for other counters to reduce lock contention.
+  const bool updated_file_size_or_count =
+    counter_updates.get(Statistic::cache_size_kibibyte) != 0
+    || counter_updates.get(Statistic::files_in_cache) != 0;
+  std::string level_string = fmt::format("{:x}", name.bytes()[0] >> 4);
+  if (!updated_file_size_or_count) {
+    level_string += fmt::format("/{:x}", name.bytes()[0] & 0xF);
+  }
   const auto stats_file =
-    fmt::format("{}/{:x}/stats", ctx.config.cache_dir(), name.bytes()[0] >> 4);
+    fmt::format("{}/{}/stats", ctx.config.cache_dir(), level_string);
+
   auto counters =
     Statistics::update(stats_file, [&counter_updates](Counters& cs) {
       cs.increment(counter_updates);
@@ -2021,10 +2032,14 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
   }
 
   if (!ctx.result_path()) {
+    ASSERT(ctx.counter_updates.get(Statistic::cache_size_kibibyte) == 0);
+    ASSERT(ctx.counter_updates.get(Statistic::files_in_cache) == 0);
+
     // Context::set_result_path hasn't been called yet, so we just choose one of
-    // stats files in the 16 subdirectories.
-    const auto stats_file =
-      fmt::format("{}/{:x}/stats", config.cache_dir(), getpid() % 16);
+    // the stats files in the 256 level 2 directories.
+    const auto bucket = getpid() % 256;
+    const auto stats_file = fmt::format(
+      "{}/{:x}/{:x}/stats", config.cache_dir(), bucket / 16, bucket % 16);
     Statistics::update(
       stats_file, [&ctx](Counters& cs) { cs.increment(ctx.counter_updates); });
     return;

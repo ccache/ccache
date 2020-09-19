@@ -79,6 +79,19 @@ hit_rate(const Counters& counters)
   return total > 0 ? (100.0 * hit) / total : 0.0;
 }
 
+static void
+for_each_level_1_and_2_stats_file(
+  const std::string& cache_dir,
+  const std::function<void(const std::string& path)> function)
+{
+  for (size_t level_1 = 0; level_1 <= 0xF; ++level_1) {
+    function(fmt::format("{}/{:x}/stats", cache_dir, level_1));
+    for (size_t level_2 = 0; level_2 <= 0xF; ++level_2) {
+      function(fmt::format("{}/{:x}/{:x}/stats", cache_dir, level_1, level_2));
+    }
+  }
+}
+
 static std::pair<Counters, time_t>
 collect_counters(const Config& config)
 {
@@ -87,15 +100,14 @@ collect_counters(const Config& config)
   time_t last_updated = 0;
 
   // Add up the stats in each directory.
-  for (size_t dir = 0; dir <= 0xF; ++dir) {
-    const auto path = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
-
-    counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
-    counters.increment(Statistics::read(path));
-    zero_timestamp =
-      std::max(counters.get(Statistic::stats_zeroed_timestamp), zero_timestamp);
-    last_updated = std::max(last_updated, Stat::stat(path).mtime());
-  }
+  for_each_level_1_and_2_stats_file(
+    config.cache_dir(), [&](const std::string& path) {
+      counters.set(Statistic::stats_zeroed_timestamp, 0); // Don't add
+      counters.increment(Statistics::read(path));
+      zero_timestamp = std::max(counters.get(Statistic::stats_zeroed_timestamp),
+                                zero_timestamp);
+      last_updated = std::max(last_updated, Stat::stat(path).mtime());
+    });
 
   counters.set(Statistic::stats_zeroed_timestamp, zero_timestamp);
   return std::make_pair(counters, last_updated);
@@ -252,22 +264,17 @@ zero_all_counters(const Config& config)
 {
   const time_t timestamp = time(nullptr);
 
-  for (size_t dir = 0; dir <= 0xF; ++dir) {
-    auto fname = fmt::format("{}/{:x}/stats", config.cache_dir(), dir);
-    if (!Stat::stat(fname)) {
-      // No point in trying to reset the stats file if it doesn't exist.
-      continue;
-    }
-
-    Statistics::update(fname, [=](Counters& cs) {
-      for (size_t i = 0; k_statistics_fields[i].message; ++i) {
-        if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
-          cs.set(k_statistics_fields[i].statistic, 0);
+  for_each_level_1_and_2_stats_file(
+    config.cache_dir(), [=](const std::string& path) {
+      Statistics::update(path, [=](Counters& cs) {
+        for (size_t i = 0; k_statistics_fields[i].message; ++i) {
+          if (!(k_statistics_fields[i].flags & FLAG_NOZERO)) {
+            cs.set(k_statistics_fields[i].statistic, 0);
+          }
         }
-      }
-      cs.set(Statistic::stats_zeroed_timestamp, timestamp);
+        cs.set(Statistic::stats_zeroed_timestamp, timestamp);
+      });
     });
-  }
 }
 
 std::string
