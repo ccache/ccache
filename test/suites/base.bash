@@ -903,7 +903,7 @@ EOF
 int main() {}
 EOF
 
-    $CCACHE -M 5
+    $CCACHE -M 5 >/dev/null
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
