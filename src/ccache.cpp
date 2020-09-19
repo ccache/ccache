@@ -1017,9 +1017,14 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     size_t args_added = 2;
     args.push_back("-E");
+    if (ctx.args_info.actual_language == "hip") {
+      args.push_back("-o");
+      args.push_back("-");
+      args_added += 2;
+    }
     if (ctx.config.keep_comments_cpp()) {
       args.push_back("-C");
-      args_added = 3;
+      args_added++;
     }
     args.push_back(ctx.args_info.input_file);
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
