@@ -182,7 +182,12 @@ execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
   fd_err.close();
 
   int status;
-  if (waitpid(*pid, &status, 0) != *pid) {
+  int result;
+
+  while ((result = waitpid(*pid, &status, 0)) != *pid) {
+    if (result == -1 && errno == EINTR) {
+      continue;
+    }
     throw Fatal("waitpid failed: {}", strerror(errno));
   }
 
