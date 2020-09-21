@@ -1,4 +1,4 @@
-set(third_party_source_files format.cpp xxhash.c)
+set(third_party_source_files base32hex.c format.cpp xxhash.c)
 
 if(NOT MSVC)
   list(APPEND third_party_source_files getopt_long.c)
