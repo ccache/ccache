@@ -23,7 +23,7 @@
  * Returns length of encoded string.
  */
 unsigned int base32hex(char *out, const uint8_t *in, unsigned int len) {
-int buf = 0, bits = 0;
+unsigned int buf = 0, bits = 0;
 char *x = out;
 
     while (len-- > 0) {

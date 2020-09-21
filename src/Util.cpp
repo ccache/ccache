@@ -524,10 +524,12 @@ format_argv_for_logging(const char* const* argv)
 std::string
 format_hex(const uint8_t* data, size_t size)
 {
+  static const char digits[] = "0123456789abcdef";
   std::string result;
-  result.reserve(2 * size);
-  for (size_t i = 0; i < size; i++) {
-    result += fmt::format("{:02x}", data[i]);
+  result.resize(2 * size);
+  for (size_t i = 0; i < size; ++i) {
+    result[i * 2] = digits[data[i] >> 4];
+    result[i * 2 + 1] = digits[data[i] & 0xF];
   }
   return result;
 }
