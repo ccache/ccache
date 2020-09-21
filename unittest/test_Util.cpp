@@ -273,15 +273,15 @@ TEST_CASE("Util::format_argv_for_logging")
   CHECK(Util::format_argv_for_logging(argv_2) == "foo bar");
 }
 
-TEST_CASE("Util::format_hex")
+TEST_CASE("Util::format_base16")
 {
   uint8_t none[] = "";
   uint8_t text[4] = "foo"; // incl. NUL
   uint8_t data[4] = {0, 1, 2, 3};
 
-  CHECK(Util::format_hex(none, 0) == "");
-  CHECK(Util::format_hex(text, sizeof(text)) == "666f6f00");
-  CHECK(Util::format_hex(data, sizeof(data)) == "00010203");
+  CHECK(Util::format_base16(none, 0) == "");
+  CHECK(Util::format_base16(text, sizeof(text)) == "666f6f00");
+  CHECK(Util::format_base16(data, sizeof(data)) == "00010203");
 }
 
 TEST_CASE("Util::format_human_readable_size")

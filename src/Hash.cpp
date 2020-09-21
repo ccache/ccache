@@ -74,7 +74,8 @@ Hash::hash(const void* data, size_t size, HashType hash_type)
 
   switch (hash_type) {
   case HashType::binary:
-    add_debug_text(Util::format_hex(static_cast<const uint8_t*>(data), size));
+    add_debug_text(
+      Util::format_base16(static_cast<const uint8_t*>(data), size));
     break;
 
   case HashType::text:

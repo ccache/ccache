@@ -72,7 +72,7 @@ Digest::size()
 inline std::string
 Digest::to_string() const
 {
-  return Util::format_hex(m_bytes, size());
+  return Util::format_base16(m_bytes, size());
 }
 
 inline bool

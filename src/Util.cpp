@@ -522,7 +522,7 @@ format_argv_for_logging(const char* const* argv)
 }
 
 std::string
-format_hex(const uint8_t* data, size_t size)
+format_base16(const uint8_t* data, size_t size)
 {
   static const char digits[] = "0123456789abcdef";
   std::string result;

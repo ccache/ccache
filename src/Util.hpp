@@ -168,7 +168,7 @@ std::string format_argv_for_logging(const char* const* argv);
 
 // Format a hexadecimal string representing `size` bytes of `data`. The returned
 // string will be `2 * size` long.
-std::string format_hex(const uint8_t* data, size_t size);
+std::string format_base16(const uint8_t* data, size_t size);
 
 // Format `size` as a human-readable string.
 std::string format_human_readable_size(uint64_t size);
