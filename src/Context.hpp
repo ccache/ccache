@@ -64,15 +64,14 @@ public:
   // cached result.
   const nonstd::optional<Digest>& manifest_name() const;
 
-  // Full path to the file containing the manifest
-  // (cachedir/a/b/cdef[...]-size.manifest), if any.
+  // Full path to the file containing the manifest (cachedir/a/b/cdef[...]M), if
+  // any.
   const nonstd::optional<std::string>& manifest_path() const;
 
   // Name (represented as a hash) of the file containing the cached result.
   const nonstd::optional<Digest>& result_name() const;
 
-  // Full path to the file containing the result
-  // (cachedir/a/b/cdef[...]-size.result).
+  // Full path to the file containing the result (cachedir/a/b/cdef[...]R).
   const nonstd::optional<std::string>& result_path() const;
 
   // Time of compilation. Used to see if include files have changed after

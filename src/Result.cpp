@@ -92,6 +92,7 @@
 using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
+using nonstd::string_view;
 
 namespace {
 
@@ -102,13 +103,11 @@ const uint8_t k_embedded_file_marker = 0;
 const uint8_t k_raw_file_marker = 1;
 
 std::string
-get_raw_file_path(const std::string& result_path_in_cache,
-                  uint32_t entry_number)
+get_raw_file_path(string_view result_path, uint32_t entry_number)
 {
-  return fmt::format("{:{}}_{}.raw",
-                     result_path_in_cache.c_str(),
-                     result_path_in_cache.length() - 7, // .result
-                     entry_number);
+  const auto prefix = result_path.substr(
+    0, result_path.length() - Result::k_file_suffix.length());
+  return fmt::format("{}{}W", prefix, entry_number);
 }
 
 bool
@@ -141,7 +140,7 @@ should_store_raw_file(const Config& config, Result::FileType type)
 
 namespace Result {
 
-const std::string k_file_suffix = ".result";
+const std::string k_file_suffix = "R";
 const uint8_t k_magic[4] = {'c', 'C', 'r', 'S'};
 const uint8_t k_version = 1;
 const char* const k_unknown_file_type = "<unknown type>";

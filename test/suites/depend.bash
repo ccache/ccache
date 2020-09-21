@@ -99,7 +99,7 @@ SUITE_depend() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # .result + .manifest
+    expect_stat 'files in cache' 2 # result + manifest
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE $DEPSFLAGS_CCACHE -c test.c
     expect_equal_object_files reference_test.o test.o
@@ -115,7 +115,7 @@ SUITE_depend() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # .o + .manifest
+    expect_stat 'files in cache' 2 # result + manifest
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MP -MMD -MF /dev/null -c test.c
     expect_stat 'cache hit (direct)' 1
@@ -133,7 +133,7 @@ SUITE_depend() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # .result + .manifest
+    expect_stat 'files in cache' 2 # result + manifest
 
     CCACHE_DEPEND=1 $CCACHE_COMPILE -MD -c test.c
     expect_equal_object_files reference_test.o test.o
@@ -179,8 +179,8 @@ EOF
     # -------------------------------------------------------------------------
     # This test case covers a case in depend mode with unchanged source file
     # between compilations, but with changed headers. Header contents do not
-    # affect the common hash (by which .manifest is stored in cache), only the
-    # object's hash.
+    # affect the common hash (by which the manifest is stored in the cache),
+    # only the object's hash.
     #
     # dir1 is baseline
     # dir2 has a change in header which affects object file
@@ -200,7 +200,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2      # .result + .manifest
+    expect_stat 'files in cache' 2      # result + manifest
 
     # Recompile dir1 first time.
     generate_reference_compiler_output
@@ -221,7 +221,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 2
-    expect_stat 'files in cache' 3      # 2x .result, 1x manifest
+    expect_stat 'files in cache' 3      # 2x result, 1x manifest
 
     # Compile dir3. dir3 header change does not change object file compared to
     # dir1, but ccache still adds an additional .o/.d file in the cache due to
@@ -234,7 +234,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 3
-    expect_stat 'files in cache' 4      # 3x .result, 1x manifest
+    expect_stat 'files in cache' 4      # 3x result, 1x manifest
 
     # Compile dir4. dir4 header adds a new dependency.
     cd $BASEDIR4
@@ -246,7 +246,7 @@ EOF
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 4
-    expect_stat 'files in cache' 5      # 4x .result, 1x manifest
+    expect_stat 'files in cache' 5      # 4x result, 1x manifest
 
     # Recompile dir1 second time.
     cd $BASEDIR1

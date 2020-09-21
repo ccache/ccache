@@ -33,10 +33,10 @@ SUITE_direct() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # .o + .manifest
+    expect_stat 'files in cache' 2 # result + manifest
     expect_equal_object_files reference_test.o test.o
 
-    manifest_file=$(find $CCACHE_DIR -name '*.manifest')
+    manifest_file=$(find $CCACHE_DIR -name '*M')
     backdate $manifest_file
 
     $CCACHE_COMPILE -c test.c
@@ -55,7 +55,7 @@ SUITE_direct() {
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    manifest_file=`find $CCACHE_DIR -name '*.manifest'`
+    manifest_file=`find $CCACHE_DIR -name '*M'`
     rm $manifest_file
     touch $manifest_file
 
@@ -573,7 +573,7 @@ EOF
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    expect_stat 'files in cache' 2 # .o + .manifest
+    expect_stat 'files in cache' 2 # result + manifest
 
     $CCACHE_COMPILE -c -MD -MF /dev/null test.c
     expect_stat 'cache hit (direct)' 1
@@ -1010,7 +1010,7 @@ EOF
 
     CCACHE_SLOPPINESS="$DEFAULT_SLOPPINESS include_file_mtime" $CCACHE_COMPILE -c strange.c
 
-    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    manifest=`find $CCACHE_DIR -name '*M'`
     if [ -n "$manifest" ]; then
         data="`$CCACHE --dump-manifest $manifest | egrep '/dev/(stdout|tty|sda|hda'`"
         if [ -n "$data" ]; then
@@ -1023,7 +1023,7 @@ EOF
 
     $CCACHE_COMPILE test.c -c -o test.o
 
-    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    manifest=`find $CCACHE_DIR -name '*M'`
     $CCACHE --dump-manifest $manifest >manifest.dump
 
     checksum_test1_h='b7271c414e35d190304ccbb02cdce8aaa391497e'
@@ -1074,7 +1074,7 @@ int foo;
 EOF
 
     CCACHE_IGNOREHEADERS="subdir/ignore.h" $CCACHE_COMPILE -c ignore.c
-    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    manifest=`find $CCACHE_DIR -name '*M'`
     data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"
@@ -1094,7 +1094,7 @@ int foo;
 EOF
 
     CCACHE_IGNOREHEADERS="subdir" $CCACHE_COMPILE -c ignore.c
-    manifest=`find $CCACHE_DIR -name '*.manifest'`
+    manifest=`find $CCACHE_DIR -name '*M'`
     data="`$CCACHE --dump-manifest $manifest | grep subdir/ignore.h`"
     if [ -n "$data" ]; then
         test_failed "$manifest contained ignored header: $data"

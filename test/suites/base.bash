@@ -271,7 +271,7 @@ base_tests() {
     TEST "Result file is compressed"
 
     $CCACHE_COMPILE -c test1.c
-    result_file=$(find $CCACHE_DIR -name '*.result')
+    result_file=$(find $CCACHE_DIR -name '*R')
     if ! $CCACHE --dump-result $result_file | grep 'Compression type: zstd' >/dev/null 2>&1; then
         test_failed "Result file not uncompressed according to metadata"
     fi
@@ -292,7 +292,7 @@ base_tests() {
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 1
 
-    result_file=$(find $CCACHE_DIR -name '*.result')
+    result_file=$(find $CCACHE_DIR -name '*R')
     printf foo | dd of=$result_file bs=3 count=1 seek=20 conv=notrunc >&/dev/null
 
     $CCACHE_COMPILE -c test1.c
@@ -907,7 +907,7 @@ EOF
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    result_file=$(find $CCACHE_DIR -name '*.result')
+    result_file=$(find $CCACHE_DIR -name '*R')
     level_2_dir=$(dirname $result_file)
     level_1_dir=$(dirname $(dirname $result_file))
     expect_perm test.o -rw-r--r--

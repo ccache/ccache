@@ -4,8 +4,8 @@ prepare_cleanup_test_dir() {
     rm -rf $dir
     mkdir -p $dir
     for i in $(seq 0 9); do
-        printf '%4017s' '' | tr ' ' 'A' >$dir/result$i-4017.result
-        backdate $((3 * i + 1)) $dir/result$i-4017.result
+        printf '%4017s' '' | tr ' ' 'A' >$dir/result${i}R
+        backdate $((3 * i + 1)) $dir/result${i}R
     done
     # NUMFILES: 10, TOTALSIZE: 13 KiB, MAXFILES: 0, MAXSIZE: 0
     echo "0 0 0 0 0 0 0 0 0 0 0 10 13 0 0" >$dir/stats
@@ -18,7 +18,7 @@ SUITE_cleanup() {
     prepare_cleanup_test_dir $CCACHE_DIR/a
 
     $CCACHE -C >/dev/null
-    expect_file_count 0 '*.result' $CCACHE_DIR
+    expect_file_count 0 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 0
     expect_stat 'cleanups performed' 1
 
@@ -29,7 +29,7 @@ SUITE_cleanup() {
 
     $CCACHE -F 0 -M 0 >/dev/null
     $CCACHE -c >/dev/null
-    expect_file_count 10 '*.result' $CCACHE_DIR
+    expect_file_count 10 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 10
     expect_stat 'cleanups performed' 0
 
@@ -43,7 +43,7 @@ SUITE_cleanup() {
     # 10 * 16 = 160
     $CCACHE -F 160 -M 0 >/dev/null
     $CCACHE -c >/dev/null
-    expect_file_count 10 '*.result' $CCACHE_DIR
+    expect_file_count 10 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 10
     expect_stat 'cleanups performed' 0
 
@@ -52,15 +52,15 @@ SUITE_cleanup() {
     # 7 * 16 = 112
     $CCACHE -F 112 -M 0 >/dev/null
     $CCACHE -c >/dev/null
-    expect_file_count 7 '*.result' $CCACHE_DIR
+    expect_file_count 7 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 7
     expect_stat 'cleanups performed' 1
     for i in 0 1 2; do
-        file=$CCACHE_DIR/a/result$i-4017.result
-        expect_missing $CCACHE_DIR/a/result$i-4017.result
+        file=$CCACHE_DIR/a/result${i}R
+        expect_missing $CCACHE_DIR/a/result${i}R
     done
     for i in 3 4 5 6 7 8 9; do
-        file=$CCACHE_DIR/a/result$i-4017.result
+        file=$CCACHE_DIR/a/result${i}R
         expect_exists $file
     done
 
@@ -79,15 +79,15 @@ SUITE_cleanup() {
 
         $CCACHE -F 0 -M 256K >/dev/null
         $CCACHE -c >/dev/null
-        expect_file_count 3 '*.result' $CCACHE_DIR
+        expect_file_count 3 '*R' $CCACHE_DIR
         expect_stat 'files in cache' 3
         expect_stat 'cleanups performed' 1
         for i in 0 1 2 3 4 5 6; do
-            file=$CCACHE_DIR/a/result$i-4017.result
+            file=$CCACHE_DIR/a/result${i}R
             expect_missing $file
         done
         for i in 7 8 9; do
-            file=$CCACHE_DIR/a/result$i-4017.result
+            file=$CCACHE_DIR/a/result${i}R
             expect_exists $file
         done
     fi
@@ -100,13 +100,13 @@ SUITE_cleanup() {
 
     $CCACHE -F 160 -M 0 >/dev/null
 
-    expect_file_count 160 '*.result' $CCACHE_DIR
+    expect_file_count 160 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 160
     expect_stat 'cleanups performed' 0
 
     touch empty.c
     CCACHE_LIMIT_MULTIPLE=0.9 $CCACHE_COMPILE -c empty.c -o empty.o
-    expect_file_count 159 '*.result' $CCACHE_DIR
+    expect_file_count 159 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 159
     expect_stat 'cleanups performed' 1
 
@@ -119,13 +119,13 @@ SUITE_cleanup() {
 
     $CCACHE -F 160 -M 0 >/dev/null
 
-    expect_file_count 160 '*.result' $CCACHE_DIR
+    expect_file_count 160 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 160
     expect_stat 'cleanups performed' 0
 
     touch empty.c
     CCACHE_LIMIT_MULTIPLE=0.7 $CCACHE_COMPILE -c empty.c -o empty.o
-    expect_file_count 157 '*.result' $CCACHE_DIR
+    expect_file_count 157 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 157
     expect_stat 'cleanups performed' 1
 
@@ -184,18 +184,18 @@ SUITE_cleanup() {
     TEST "Cleanup of old files by age"
 
     prepare_cleanup_test_dir $CCACHE_DIR/a
-    touch $CCACHE_DIR/a/now.result
+    touch $CCACHE_DIR/a/nowR
     $CCACHE -F 0 -M 0 >/dev/null
 
     $CCACHE --evict-older-than 1d >/dev/null
-    expect_file_count 1 '*.result' $CCACHE_DIR
+    expect_file_count 1 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 1
 
     $CCACHE --evict-older-than 1d  >/dev/null
-    expect_file_count 1 '*.result' $CCACHE_DIR
+    expect_file_count 1 '*R' $CCACHE_DIR
     expect_stat 'files in cache' 1
 
-    backdate $CCACHE_DIR/a/now.result
+    backdate $CCACHE_DIR/a/nowR
     $CCACHE --evict-older-than 10s  >/dev/null
     expect_stat 'files in cache' 0
 }
