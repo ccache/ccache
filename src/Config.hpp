@@ -79,6 +79,7 @@ public:
   void set_base_dir(const std::string& value);
   void set_cache_dir(const std::string& value);
   void set_cpp_extension(const std::string& value);
+  void set_compiler(const std::string& value);
   void set_depend_mode(bool value);
   void set_debug(bool value);
   void set_direct_mode(bool value);
@@ -413,6 +414,12 @@ inline void
 Config::set_cpp_extension(const std::string& value)
 {
   m_cpp_extension = value;
+}
+
+inline void
+Config::set_compiler(const std::string& value)
+{
+  m_compiler = value;
 }
 
 inline void
