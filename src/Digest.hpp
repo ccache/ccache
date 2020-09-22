@@ -72,7 +72,14 @@ Digest::size()
 inline std::string
 Digest::to_string() const
 {
-  return Util::format_base16(m_bytes, size());
+  // The first two bytes are encoded as four lowercase base16 digits to maintain
+  // compatibility with the cleanup algorithm in older ccache versions and to
+  // allow for up to four uniform cache levels. The rest are encoded as
+  // lowercase base32hex digits without padding characters.
+  const size_t base16_bytes = 2;
+  return Util::format_base16(m_bytes, base16_bytes)
+         + Util::format_base32hex(m_bytes + base16_bytes,
+                                  size() - base16_bytes);
 }
 
 inline bool

@@ -26,26 +26,25 @@ TEST_CASE("known strings")
 {
   SUBCASE("initial state")
   {
-    CHECK(Hash().digest().to_string()
-          == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
+    CHECK(Hash().digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
   }
 
   SUBCASE("empty string")
   {
     CHECK(Hash().hash("").digest().to_string()
-          == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
+          == "af1396svbud1kqg40jfa6reciicrpcisi");
   }
 
   SUBCASE("a")
   {
     CHECK(Hash().hash("a").digest().to_string()
-          == "17762fddd969a453925d65717ac3eea21320b66b");
+          == "17765vetiqd4ae95qpbhfb1ut8gj42r6m");
   }
 
   SUBCASE("message digest")
   {
     CHECK(Hash().hash("message digest").digest().to_string()
-          == "7bc2a2eeb95ddbf9b7ecf6adcb76b453091c58dc");
+          == "7bc2kbnbinerv6ruptldpdrb8ko93hcdo");
   }
 
   SUBCASE("long string")
@@ -54,7 +53,7 @@ TEST_CASE("known strings")
       "123456789012345678901234567890123456789012345678901234567890"
       "12345678901234567890";
     CHECK(Hash().hash(long_string).digest().to_string()
-          == "f263acf51621980b9c8de5da4a17d314984e05ab");
+          == "f263ljqhc8co1ee8rpeq98bt654o9o2qm");
   }
 }
 
@@ -64,14 +63,14 @@ TEST_CASE("Hash::digest should not alter state")
   h.hash("message");
   h.digest();
   h.hash(" digest");
-  CHECK(h.digest().to_string() == "7bc2a2eeb95ddbf9b7ecf6adcb76b453091c58dc");
+  CHECK(h.digest().to_string() == "7bc2kbnbinerv6ruptldpdrb8ko93hcdo");
 }
 
 TEST_CASE("Hash::digest should be idempotent")
 {
   Hash h;
-  CHECK(h.digest().to_string() == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
-  CHECK(h.digest().to_string() == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9");
+  CHECK(h.digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
+  CHECK(h.digest().to_string() == "af1396svbud1kqg40jfa6reciicrpcisi");
 }
 
 TEST_CASE("Digest::bytes")

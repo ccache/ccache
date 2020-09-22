@@ -25,6 +25,10 @@
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
 
+extern "C" {
+#include "third_party/base32hex.h"
+}
+
 #include <algorithm>
 #include <fstream>
 
@@ -531,6 +535,16 @@ format_base16(const uint8_t* data, size_t size)
     result[i * 2] = digits[data[i] >> 4];
     result[i * 2 + 1] = digits[data[i] & 0xF];
   }
+  return result;
+}
+
+std::string
+format_base32hex(const uint8_t* data, size_t size)
+{
+  const size_t bytes_to_reserve = size * 8 / 5 + 1;
+  std::string result(bytes_to_reserve, 0);
+  const size_t actual_size = base32hex(&result[0], data, size);
+  result.resize(actual_size);
   return result;
 }
 

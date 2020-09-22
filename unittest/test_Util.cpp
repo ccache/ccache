@@ -284,6 +284,19 @@ TEST_CASE("Util::format_base16")
   CHECK(Util::format_base16(data, sizeof(data)) == "00010203");
 }
 
+TEST_CASE("Util::format_base32hex")
+{
+  // Test vectors (without padding) from RFC 4648.
+  const uint8_t input[] = {'f', 'o', 'o', 'b', 'a', 'r'};
+  CHECK(Util::format_base32hex(input, 0) == "");
+  CHECK(Util::format_base32hex(input, 1) == "co");
+  CHECK(Util::format_base32hex(input, 2) == "cpng");
+  CHECK(Util::format_base32hex(input, 3) == "cpnmu");
+  CHECK(Util::format_base32hex(input, 4) == "cpnmuog");
+  CHECK(Util::format_base32hex(input, 5) == "cpnmuoj1");
+  CHECK(Util::format_base32hex(input, 6) == "cpnmuoj1e8");
+}
+
 TEST_CASE("Util::format_human_readable_size")
 {
   CHECK(Util::format_human_readable_size(0) == "0.0 kB");
