@@ -91,7 +91,6 @@ class Writer
 {
 public:
   Writer(Context& ctx, const std::string& result_path);
-  ~Writer();
 
   // Register a file to include in the result. Does not throw.
   void write(FileType file_type, const std::string& file_path);
@@ -102,7 +101,6 @@ public:
 private:
   Context& m_ctx;
   const std::string m_result_path;
-  bool m_finalized = false;
   std::vector<std::pair<FileType, std::string>> m_entries_to_write;
 
   void do_finalize();

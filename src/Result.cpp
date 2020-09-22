@@ -282,13 +282,6 @@ Writer::Writer(Context& ctx, const std::string& result_path)
 {
 }
 
-Writer::~Writer()
-{
-  if (!m_finalized) {
-    finalize();
-  }
-}
-
 void
 Writer::write(FileType file_type, const std::string& file_path)
 {
@@ -298,7 +291,6 @@ Writer::write(FileType file_type, const std::string& file_path)
 optional<std::string>
 Writer::finalize()
 {
-  m_finalized = true;
   try {
     do_finalize();
     return nullopt;
