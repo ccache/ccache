@@ -13,11 +13,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _BASE32_HEX_H
-#define _BASE32_HEX_H
+#ifndef BASE32_HEX_H
+#define BASE32_HEX_H
 
 #include <stdint.h>
 
-extern unsigned int base32hex(char *out, uint8_t *in, unsigned int len);
+extern unsigned int base32hex(char *out, const uint8_t *in, unsigned int len);
 
 #endif
