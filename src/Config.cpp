@@ -414,13 +414,13 @@ Config::set_secondary_config_path(std::string path)
 }
 
 bool
-Config::update_from_file(const std::string& file_path)
+Config::update_from_file(const std::string& path)
 {
-  return parse_config_file(file_path,
+  return parse_config_file(path,
                            [&](const std::string& /*line*/,
                                const std::string& key,
                                const std::string& value) {
-                             set_item(key, value, nullopt, false, file_path);
+                             set_item(key, value, nullopt, false, path);
                            });
 }
 
