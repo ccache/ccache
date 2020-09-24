@@ -315,20 +315,59 @@ setting key.
 
 [[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
-    This setting should be an absolute path to a directory. ccache then
-    rewrites absolute paths into relative paths before computing the hash that
-    identifies the compilation, but only for paths under the specified
-    directory. If set to the empty string (which is the default), no rewriting
-    is done. A typical path to use as the base directory is your home directory
-    or another directory that is a parent of your build directories. Don't use
-    `/` as the base directory since that will make ccache also rewrite paths to
-    system header files, which doesn't gain anything.
+    This setting should be an absolute path to a directory. If set, ccache will
+    rewrite absolute paths into paths relative to the current working
+    directory, but only absolute paths that begin with *base_dir*. Cache
+    results can then be shared for compilations in different directories even
+    if the project uses absolute paths in the compiler command line. See also
+    the discussion under <<_compiling_in_different_directories,COMPILING IN
+    DIFFERENT DIRECTORIES>>. If set to the empty string (which is the default),
+    no rewriting is done.
 +
-See also the discussion under <<_compiling_in_different_directories,COMPILING
-IN DIFFERENT DIRECTORIES>>.
+A typical path to use as *base_dir* is your home directory or another directory
+that is a parent of your project directories. Don't use `/` as the base
+directory since that will make ccache also rewrite paths to system header
+files, which typically is contraproductive.
 +
-You may also want to enable the
-<<config_absolute_paths_in_stderr,*absolute_paths_in_stderr*>> option.
+For example, say that Alice's current working directory is
+`/home/alice/project1/build` and that she compiles like this:
++
+-------------------------------------------------------------------------------
+ccache gcc -I/usr/include/example -I/home/alice/project2/include -c /home/alice/project1/src/example.c
+-------------------------------------------------------------------------------
++
+Here is what ccache will actually execute for different *base_dir* settings:
++
+-------------------------------------------------------------------------------
+# Current working directory: /home/alice/project1/build
+
+# With base_dir = /:
+gcc -I../../../../usr/include/example -I../../project2/include -c ../src/example.c
+
+# With base_dir = /home or /home/alice:
+gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
+
+# With base_dir = /home/alice/project1 or /home/alice/project1/src:
+gcc -I/usr/include/example -I/home/alice/project2/include -c ../src/example.c
+-------------------------------------------------------------------------------
++
+If Bob has put `project1` and `project2` in `/home/bob/stuff` and both users
+have set *base_dir* to `/home` or `/home/$USER`, then Bob will get a cache hit
+(if they share ccache directory) since the actual command line will be
+identical to that of Alice:
++
+-------------------------------------------------------------------------------
+# Current working directory: /home/bob/stuff/project1/build
+
+# With base_dir = /home or /home/bob:
+gcc -I/usr/include/example -I../../project2/include -c ../src/example.c
+-------------------------------------------------------------------------------
++
+Without *base_dir* there will be a cache miss since the absolute paths will
+differ. With *base_dir* set to `/` there will be a cache miss since the
+relative path to `/usr/include/example` will be different. With *base_dir* set
+to `/home/bob/stuff/project1` there will a cache miss since the path to
+project2 will be a different absolute path.
 
 [[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 
