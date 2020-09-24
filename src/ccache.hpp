@@ -21,6 +21,8 @@
 
 #include "system.hpp"
 
+#include <functional>
+
 extern const char CCACHE_VERSION[];
 
 enum class GuessedCompiler { clang, gcc, nvcc, pump, unknown };
@@ -44,3 +46,13 @@ const uint32_t SLOPPY_CLANG_INDEX_STORE = 1 << 7;
 const uint32_t SLOPPY_LOCALE = 1 << 8;
 // Allow caching even if -fmodules is used.
 const uint32_t SLOPPY_MODULES = 1 << 9;
+
+class Context;
+using FindExecutableFunction =
+  const std::function<std::string(const Context& ctx,
+                                  const std::string& name,
+                                  const std::string& exclude_name)>&;
+
+// Tested by unittests
+void find_compiler(Context& ctx,
+                   FindExecutableFunction find_executable_function);

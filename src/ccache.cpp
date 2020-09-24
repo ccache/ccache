@@ -1749,23 +1749,11 @@ from_cache(Context& ctx, FromCacheCallMode mode)
                                            : Statistic::preprocessed_cache_hit;
 }
 
-// Tested by unittests
-void
-find_compiler(Context& ctx,
-              const std::function<std::string(const Context& ctx,
-                                              const std::string& name,
-                                              const std::string& exclude_name)>&
-                find_executable_function);
-
 // Find the real compiler and put it into ctx.orig_args[0]. We just search the
 // PATH to find an executable of the same name that isn't a link to ourselves.
 // Pass find_executable function as second parameter.
 void
-find_compiler(Context& ctx,
-              const std::function<std::string(const Context& ctx,
-                                              const std::string& name,
-                                              const std::string& exclude_name)>&
-                find_executable_function)
+find_compiler(Context& ctx, FindExecutableFunction find_executable_function)
 {
   const std::string orig_first_arg = ctx.orig_args[0];
 
