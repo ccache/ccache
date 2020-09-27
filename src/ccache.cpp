@@ -1971,6 +1971,10 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
                                        const Counters& counter_updates,
                                        const std::string& file_suffix)
 {
+  if (counter_updates.all_zero()) {
+    return nullopt;
+  }
+
   // Use stats file in the level one subdirectory for cache bookkeeping counters
   // since cleanup is performed on level one. Use stats file in the level two
   // subdirectory for other counters to reduce lock contention.
