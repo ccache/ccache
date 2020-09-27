@@ -382,8 +382,8 @@ Result::Writer::write_embedded_file_entry(CacheEntryWriter& writer,
     if (bytes_read == 0) {
       throw Error("Error reading from {}: end of file", path);
     }
-    writer.write(buf, n);
-    remain -= n;
+    writer.write(buf, bytes_read);
+    remain -= bytes_read;
   }
 }
 
