@@ -1753,7 +1753,8 @@ from_cache(Context& ctx, FromCacheCallMode mode)
 // PATH to find an executable of the same name that isn't a link to ourselves.
 // Pass find_executable function as second parameter.
 void
-find_compiler(Context& ctx, FindExecutableFunction find_executable_function)
+find_compiler(Context& ctx,
+              const FindExecutableFunction& find_executable_function)
 {
   const std::string orig_first_arg = ctx.orig_args[0];
 

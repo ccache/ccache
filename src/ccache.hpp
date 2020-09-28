@@ -48,11 +48,12 @@ const uint32_t SLOPPY_LOCALE = 1 << 8;
 const uint32_t SLOPPY_MODULES = 1 << 9;
 
 class Context;
+
 using FindExecutableFunction =
-  const std::function<std::string(const Context& ctx,
-                                  const std::string& name,
-                                  const std::string& exclude_name)>&;
+  std::function<std::string(const Context& ctx,
+                            const std::string& name,
+                            const std::string& exclude_name)>;
 
 // Tested by unittests
 void find_compiler(Context& ctx,
-                   FindExecutableFunction find_executable_function);
+                   const FindExecutableFunction& find_executable_function);
