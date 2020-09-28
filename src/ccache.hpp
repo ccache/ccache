@@ -22,6 +22,9 @@
 #include "system.hpp"
 
 #include <functional>
+#include <string>
+
+class Context;
 
 extern const char CCACHE_VERSION[];
 
@@ -46,8 +49,6 @@ const uint32_t SLOPPY_CLANG_INDEX_STORE = 1 << 7;
 const uint32_t SLOPPY_LOCALE = 1 << 8;
 // Allow caching even if -fmodules is used.
 const uint32_t SLOPPY_MODULES = 1 << 9;
-
-class Context;
 
 using FindExecutableFunction =
   std::function<std::string(const Context& ctx,
