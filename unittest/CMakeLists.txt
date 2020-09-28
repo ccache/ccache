@@ -17,6 +17,7 @@ set(
   test_Util.cpp
   test_ZstdCompression.cpp
   test_argprocessing.cpp
+  test_ccache.cpp
   test_compopt.cpp
   test_hashutil.cpp)
 
