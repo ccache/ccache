@@ -152,7 +152,7 @@ jobs:
             apt_get: libzstd1-dev asciidoc xsltproc
 
           - name: Clang-Tidy
-            os: ubuntu-20.04
+            os: ubuntu-18.04
             CC: clang
             CXX: clang++
             RUN_TESTS: 0

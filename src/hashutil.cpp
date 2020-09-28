@@ -506,10 +506,10 @@ hash_command_output(Hash& hash,
 
 bool
 hash_multicommand_output(Hash& hash,
-                         const std::string& commands,
+                         const std::string& command,
                          const std::string& compiler)
 {
-  for (const std::string& cmd : Util::split_into_strings(commands, ";")) {
+  for (const std::string& cmd : Util::split_into_strings(command, ";")) {
     if (!hash_command_output(hash, cmd, compiler)) {
       return false;
     }
