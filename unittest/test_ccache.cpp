@@ -56,14 +56,14 @@ TEST_CASE("find_compiler")
   SUBCASE("no config")
   {
     // In case the first parameter is gcc it must be a link to ccache, so
-    // find_compiler shall call find_executable to locate the next best "gcc"
+    // find_compiler should call find_executable to locate the next best "gcc"
     // and return that value.
     CHECK(helper("gcc", "") == "resolved_gcc");
     CHECK(helper("relative/gcc", "") == "resolved_gcc");
     CHECK(helper("/absolute/gcc", "") == "resolved_gcc");
 
-    // In case the first param is ccache, resolve the second param to the real
-    // compiler. Unless it's a relative/absolute path.
+    // In case the first parameter is ccache, resolve the second parameter to
+    // the real compiler unless it's a relative or absolute path.
     CHECK(helper(CCACHE_NAME " gcc", "") == "resolved_gcc");
     CHECK(helper(CCACHE_NAME " rel/gcc", "") == "rel/gcc");
     CHECK(helper(CCACHE_NAME " /abs/gcc", "") == "/abs/gcc");
@@ -76,10 +76,9 @@ TEST_CASE("find_compiler")
     CHECK(helper("/abs/" CCACHE_NAME " rel/gcc", "") == "rel/gcc");
     CHECK(helper("/abs/" CCACHE_NAME " /abs/gcc", "") == "/abs/gcc");
 
-    // If gcc points back to ccache throw. Unless either ccache or gcc is a
-    // relative/absolute path.
-    // If ccache *and* compiler have a relative/absolute path, call ccache from
-    // PATH.
+    // If gcc points back to ccache throw, unless either ccache or gcc is a
+    // relative or absolute path. If ccache *and* compiler have a relative or
+    // absolute path, call ccache from PATH.
     CHECK_THROWS(helper(CCACHE_NAME " gcc", "", CCACHE_NAME));
     CHECK(helper(CCACHE_NAME " rel/gcc", "", CCACHE_NAME) == "rel/gcc");
     CHECK(helper(CCACHE_NAME " /abs/gcc", "", CCACHE_NAME) == "/abs/gcc");
@@ -92,8 +91,8 @@ TEST_CASE("find_compiler")
     CHECK(helper("/abs/" CCACHE_NAME " rel/gcc", "", CCACHE_NAME) == "rel/gcc");
     CHECK(helper("/abs/" CCACHE_NAME " /a/gcc", "", CCACHE_NAME) == "/a/gcc");
 
-    // If compiler is not found throw. Unless compiler has a relative/absolute
-    // path.
+    // If compiler is not found then throw, unless the compiler has a relative
+    // or absolute path.
     CHECK_THROWS(helper(CCACHE_NAME " gcc", "", ""));
     CHECK(helper(CCACHE_NAME " rel/gcc", "", "") == "rel/gcc");
     CHECK(helper(CCACHE_NAME " /abs/gcc", "", "") == "/abs/gcc");
@@ -109,8 +108,8 @@ TEST_CASE("find_compiler")
 
   SUBCASE("config")
   {
-    // In case the first parameter is gcc it must be a link to ccache, use
-    // config value instead. Assume config value to be base name only.
+    // In case the first parameter is gcc it must be a link to ccache so use
+    // config value instead.
     CHECK(helper("gcc", "config") == "resolved_config");
     CHECK(helper("gcc", "rel/config") == "resolved_rel/config");
     CHECK(helper("gcc", "/abs/config") == "resolved_/abs/config");
@@ -121,8 +120,8 @@ TEST_CASE("find_compiler")
     CHECK(helper("/abs/gcc", "rel/config") == "resolved_rel/config");
     CHECK(helper("/abs/gcc", "/abs/config") == "resolved_/abs/config");
 
-    // In case the first param is ccache, use conf value. Unless the second
-    // param is a relative/absolute path.
+    // In case the first parameter is ccache, use the configuration value unless
+    // the second parameter is a relative or absolute path.
     CHECK(helper(CCACHE_NAME " gcc", "config") == "resolved_config");
     CHECK(helper(CCACHE_NAME " gcc", "rel/config") == "resolved_rel/config");
     CHECK(helper(CCACHE_NAME " gcc", "/abs/config") == "resolved_/abs/config");
