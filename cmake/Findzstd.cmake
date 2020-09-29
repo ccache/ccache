@@ -13,12 +13,22 @@ if(ZSTD_FROM_INTERNET)
   set(zstd_build ${CMAKE_BINARY_DIR}/zstd-build)
 
   if(NOT EXISTS "${zstd_dir}.tar.gz")
-    file(DOWNLOAD "${zstd_url}" "${zstd_dir}.tar.gz")
+    file(DOWNLOAD "${zstd_url}" "${zstd_dir}.tar.gz" STATUS download_status)
+    list(GET download_status 0 error_code)
+    if(error_code)
+      file(REMOVE "${zstd_dir}.tar.gz")
+      list(GET download_status 1 error_message)
+      message(FATAL "Failed to download zstd: ${error_message}")
+    endif()
   endif()
 
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E tar xf "${zstd_dir}.tar.gz"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+    COMMAND tar xf "${zstd_dir}.tar.gz"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    RESULT_VARIABLE tar_error)
+  if(NOT tar_error EQUAL 0)
+    message(FATAL "extracting ${zstd_dir}.tar.gz failed")
+  endif()
 
   set(ZSTD_BUILD_SHARED OFF)
   add_subdirectory("${zstd_dir}/build/cmake" "${zstd_build}" EXCLUDE_FROM_ALL)
