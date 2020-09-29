@@ -578,8 +578,7 @@ WARNING: Do not enable this option unless you are aware of these caveats:
     when generating debug info (compiler option *-g* with variations).
     Exception: The CWD will not be included in the hash if
     <<config_base_dir,*base_dir*>> is set (and matches the CWD) and the
-    compiler option *-fdebug-prefix-map* is used.
-    See also the discussion under
+    compiler option *-fdebug-prefix-map* is used. See also the discussion under
     <<_compiling_in_different_directories,COMPILING IN DIFFERENT DIRECTORIES>>.
 +
 The reason for including the CWD in the hash by default is to prevent a problem
@@ -1248,7 +1247,7 @@ directories:
 --
 * If you use absolute paths anywhere on the command line (e.g. the source code
   file path or an argument to compiler options like *-I* and *-MF*), you must
-  to set <<config_base_dir,*base_dir*>> to an absolute path to a ``base
+  set <<config_base_dir,*base_dir*>> to an absolute path to a ``base
   directory''. ccache will then rewrite absolute paths under that directory to
   relative before computing the hash.
 
