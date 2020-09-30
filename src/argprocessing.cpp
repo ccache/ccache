@@ -1143,8 +1143,8 @@ process_args(Context& ctx)
   }
 
   if (args_info.generating_coverage) {
-    auto gcda_path = Util::change_extension(args_info.output_obj, ".gcno");
-    args_info.output_cov = Util::make_relative_path(ctx, gcda_path);
+    args_info.output_cov = Util::make_relative_path(
+      ctx, Util::change_extension(args_info.output_obj, ".gcno"));
   }
 
   if (args_info.generating_stackusage) {
