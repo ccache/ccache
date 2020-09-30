@@ -1,4 +1,7 @@
 #!/bin/sh
+#
+# Test that it works to build from a source archive exported by "git archive"
+# outside a Git repository.
 
 set -eu
 
@@ -6,18 +9,13 @@ set -eu
 # without resorting to setting base_dir.
 export CMAKE_GENERATOR=Ninja
 
-rm -rf build_package_source_dir_test
-mkdir -p build_package_source_dir_test
-cd build_package_source_dir_test
-cmake ..
-ninja -v package_source
-
 tmp_dir=$(mktemp -d)
 trap "rm -rf $tmp_dir" EXIT
 
-tar -xf ccache-*.tar.xz -C $tmp_dir
-cd $tmp_dir/ccache-*
-
+git archive --prefix=ccache/ -o $tmp_dir/ccache.tar.gz HEAD
+cd $tmp_dir
+tar xf ccache.tar.gz
+cd ccache
 mkdir build
 cd build
 cmake ..

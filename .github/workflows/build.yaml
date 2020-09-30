@@ -136,8 +136,8 @@ jobs:
             os: ubuntu-20.04
             CC: gcc
             CXX: g++
-            SPECIAL: build-and-verify-package-source
-            apt_get: elfutils libzstd-dev ninja-build
+            SPECIAL: build-and-verify-source-package
+            apt_get: elfutils libzstd-dev ninja-build asciidoc xsltproc
 
           - name: HTML documentation
             os: ubuntu-18.04
@@ -199,7 +199,7 @@ jobs:
       - name: Collect testdir from failed tests
         if: failure()
         run: ci/collect-testdir
-        # TODO: in case of build-and-verify-package* the BUILDDIR is set within those scripts.
+        # TODO: in case of build-and-verify-*package the BUILDDIR is set within those scripts.
 
       - name: Upload testdir from failed tests
         if: failure()
