@@ -1,6 +1,31 @@
 ccache news
 ===========
 
+ccache 3.7.12
+-------------
+
+Release date: 2020-10-01
+
+Bug fixes
+~~~~~~~~~
+
+- Coverage files (`.gcno`) produced by GCC 9+ when using `-fprofile-dir=dir`
+  are now handled gracefully by falling back to running the compiler.
+
+- Fixed writing to log file larger than 2 GiB when running ccache compiled in
+  32-bit mode.
+
+
+Other
+~~~~~
+
+- Improved documentation about sharing a cache on NFS.
+
+- Fixed test case failures with old objdump versions.
+
+- Fixed test case failures with GCC 4.4.
+
+
 ccache 3.7.11
 -------------
 
