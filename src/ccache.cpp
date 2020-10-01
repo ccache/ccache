@@ -992,6 +992,15 @@ to_cache(Context& ctx,
     result_writer.write(Result::FileType::dependency, ctx.args_info.output_dep);
   }
   if (ctx.args_info.generating_coverage) {
+    if (!Stat::stat(ctx.args_info.output_cov)) {
+      // The .gcno file is missing. This is likely due to compiling with GCC 9+,
+      // which uses another name for the .gcno file when using -ftest-coverage
+      // or --coverage when -fprofile-dir=dir is given. The .gcno file is still
+      // placed next to the object file, not in the specified profile directory,
+      // though.
+      log("{} is missing", ctx.args_info.output_cov);
+      throw Failure(Statistic::unsupported_compiler_option);
+    }
     result_writer.write(Result::FileType::coverage, ctx.args_info.output_cov);
   }
   if (ctx.args_info.generating_stackusage) {
