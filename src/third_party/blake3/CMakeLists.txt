@@ -32,6 +32,7 @@ function(add_source_if_enabled feature compile_flags)
   endif()
 endfunction()
 
+add_source_if_enabled(sse2 "-msse2")
 add_source_if_enabled(sse41 "-msse4.1")
 add_source_if_enabled(avx2 "-mavx2")
 add_source_if_enabled(avx512 "-mavx512f -mavx512vl")
