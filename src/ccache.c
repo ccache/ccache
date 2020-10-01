@@ -1645,12 +1645,22 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 
 	MTR_BEGIN("file", "file_put");
 
-	put_file_in_cache(output_obj, cached_obj);
 	if (produce_dep_file) {
 		copy_file_to_cache(output_dep, cached_dep);
 	}
 	if (generating_coverage) {
-		copy_file_to_cache(output_cov, cached_cov);
+		if (stat(output_cov, &st) == 0) {
+			copy_file_to_cache(output_cov, cached_cov);
+		} else {
+			// The .gcno file is missing. This is likely due to compiling with GCC 9+,
+			// which uses another name for the .gcno file when using -ftest-coverage
+			// or --coverage when -fprofile-dir=dir is given. The .gcno file is still
+			// placed next to the object file, not in the specified profile directory,
+			// though.
+			cc_log("%s is missing", output_cov);
+			stats_update(STATS_UNSUPPORTED_OPTION);
+			failed();
+		}
 	}
 	if (generating_stackusage) {
 		copy_file_to_cache(output_su, cached_su);
@@ -1661,6 +1671,7 @@ to_cache(struct args *args, struct hash *depend_mode_hash)
 	if (using_split_dwarf) {
 		copy_file_to_cache(output_dwo, cached_dwo);
 	}
+	put_file_in_cache(output_obj, cached_obj);
 
 	MTR_END("file", "file_put");
 

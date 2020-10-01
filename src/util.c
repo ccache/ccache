@@ -320,11 +320,19 @@ copy_file(const char *src,
           int compress_level,
           bool via_tmp_file)
 {
-	int fd_out;
+	int fd_out = -1;
 	char *tmp_name = NULL;
 	gzFile gz_in = NULL;
 	gzFile gz_out = NULL;
 	int saved_errno = 0;
+
+	// Open source file.
+	int fd_in = open(src, O_RDONLY | O_BINARY);
+	if (fd_in == -1) {
+		saved_errno = errno;
+		cc_log("open error: %s", strerror(saved_errno));
+		goto error;
+	}
 
 	// Open destination file.
 	if (via_tmp_file) {
@@ -342,14 +350,6 @@ copy_file(const char *src,
 		}
 		cc_log("Copying %s to %s (%scompressed)",
 		       src, dest, compress_level > 0 ? "" : "un");
-	}
-
-	// Open source file.
-	int fd_in = open(src, O_RDONLY | O_BINARY);
-	if (fd_in == -1) {
-		saved_errno = errno;
-		cc_log("open error: %s", strerror(saved_errno));
-		goto error;
 	}
 
 	gz_in = gzdopen(fd_in, "rb");
@@ -473,7 +473,7 @@ error:
 	if (fd_out != -1) {
 		close(fd_out);
 	}
-	if (via_tmp_file) {
+	if (via_tmp_file && tmp_name) {
 		tmp_unlink(tmp_name);
 		free(tmp_name);
 	}
