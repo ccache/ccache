@@ -1828,33 +1828,42 @@ void
 find_compiler(Context& ctx,
               const FindExecutableFunction& find_executable_function)
 {
-  const std::string orig_first_arg = ctx.orig_args[0];
-
-  // We might be being invoked like "ccache gcc -c foo.c".
-  std::string base(Util::base_name(ctx.orig_args[0]));
-  if (Util::same_program_name(base, CCACHE_NAME)) {
-    ctx.orig_args.pop_front();
-    if (Util::is_full_path(ctx.orig_args[0])) {
-      return;
-    }
-    base = std::string(Util::base_name(ctx.orig_args[0]));
-  }
+  const bool first_param_is_ccache =
+    Util::same_program_name(Util::base_name(ctx.orig_args[0]), CCACHE_NAME);
 
   // Support user override of the compiler.
-  if (!ctx.config.compiler().empty()) {
-    base = ctx.config.compiler();
+  const std::string compiler = [&] {
+    if (!ctx.config.compiler().empty()) {
+      return ctx.config.compiler();
+    } else if (first_param_is_ccache) {
+      return ctx.orig_args[1];
+    } else {
+      // ccache is masquerading as compiler
+      return std::string(Util::base_name(ctx.orig_args[0]));
+    }
+  }();
+
+  const std::string resolved_compiler =
+    Util::is_full_path(compiler)
+      ? compiler
+      : find_executable_function(ctx, compiler, CCACHE_NAME);
+
+  if (resolved_compiler.empty()) {
+    throw Fatal("Could not find compiler \"{}\" in PATH", compiler);
   }
 
-  std::string compiler = find_executable_function(ctx, base, CCACHE_NAME);
-  if (compiler.empty()) {
-    throw Fatal("Could not find compiler \"{}\" in PATH", base);
-  }
-  if (compiler == orig_first_arg) {
+  if (Util::same_program_name(Util::base_name(resolved_compiler),
+                              CCACHE_NAME)) {
     throw Fatal(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
   }
-  ctx.orig_args[0] = compiler;
+
+  // Adjust ctx.orig_args
+  if (first_param_is_ccache) {
+    ctx.orig_args.pop_front();
+  }
+  ctx.orig_args[0] = resolved_compiler;
 }
 
 static std::string
@@ -1947,10 +1956,11 @@ set_up_config(Config& config)
       config.set_cache_dir(default_cache_dir(home_dir));
     }
   }
-  // else: cache_dir was set explicitly via environment or via secondary config.
+  // else: cache_dir was set explicitly via environment or via secondary
+  // config.
 
-  // We have now determined config.cache_dir and populated the rest of config in
-  // prio order (1. environment, 2. primary config, 3. secondary config).
+  // We have now determined config.cache_dir and populated the rest of config
+  // in prio order (1. environment, 2. primary config, 3. secondary config).
 }
 
 static void
@@ -1973,10 +1983,10 @@ initialize(Context& ctx, int argc, const char* const* argv)
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling init_log so that
-  // the log file won't be affected by the umask but before creating the initial
-  // configuration file. The intention is that all files and directories in the
-  // cache directory should be affected by the configured umask and that no
-  // other files and directories should.
+  // the log file won't be affected by the umask but before creating the
+  // initial configuration file. The intention is that all files and
+  // directories in the cache directory should be affected by the configured
+  // umask and that no other files and directories should.
   if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
     ctx.original_umask = umask(ctx.config.umask());
   }
@@ -2713,8 +2723,8 @@ handle_main_options(int argc, const char* const* argv)
       exit(EXIT_FAILURE);
     }
 
-    // Some of the above switches might have changed config settings, so run the
-    // setup again.
+    // Some of the above switches might have changed config settings, so run
+    // the setup again.
     ctx.config = Config();
     set_up_config(ctx.config);
   }
@@ -2735,8 +2745,8 @@ ccache_main(int argc, const char* const* argv)
         fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
         exit(EXIT_FAILURE);
       }
-      // If the first argument isn't an option, then assume we are being passed
-      // a compiler name and options.
+      // If the first argument isn't an option, then assume we are being
+      // passed a compiler name and options.
       if (argv[1][0] == '-') {
         return handle_main_options(argc, argv);
       }
