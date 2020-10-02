@@ -389,33 +389,35 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
-  if (args[i].length() >= 3 && Util::starts_with(args[i], "-x")
-      && !islower(args[i][2])) {
-    // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with an
-    // uppercase letter) is an ordinary Intel compiler option, not a language
-    // specification. (GCC's "-x" language argument is always lowercase.)
-    state.common_args.push_back(args[i]);
-    return nullopt;
-  }
-
-  // Special handling for -x: remember the last specified language before the
-  // input file and strip all -x options from the arguments.
-  if (args[i] == "-x") {
-    if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
-      return Statistic::bad_compiler_arguments;
-    }
-    if (args_info.input_file.empty()) {
-      state.explicit_language = args[i + 1];
-    }
-    i++;
-    return nullopt;
-  }
   if (Util::starts_with(args[i], "-x")) {
-    if (args_info.input_file.empty()) {
-      state.explicit_language = args[i].substr(2);
+    if (args[i].length() >= 3 && !islower(args[i][2])) {
+      // -xCODE (where CODE can be e.g. Host or CORE-AVX2, always starting with
+      // an uppercase letter) is an ordinary Intel compiler option, not a
+      // language specification. (GCC's "-x" language argument is always
+      // lowercase.)
+      state.common_args.push_back(args[i]);
+      return nullopt;
     }
-    return nullopt;
+
+    // Special handling for -x: remember the last specified language before the
+    // input file and strip all -x options from the arguments.
+    if (args[i].length() == 2) {
+      if (i == args.size() - 1) {
+        log("Missing argument to {}", args[i]);
+        return Statistic::bad_compiler_arguments;
+      }
+      if (args_info.input_file.empty()) {
+        state.explicit_language = args[i + 1];
+      }
+      i++;
+      return nullopt;
+    }
+    if (args[i].length() >= 3) {
+      if (args_info.input_file.empty()) {
+        state.explicit_language = args[i].substr(2);
+      }
+      return nullopt;
+    }
   }
 
   // We need to work out where the output was meant to go.
