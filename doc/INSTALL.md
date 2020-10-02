@@ -39,7 +39,9 @@ Here is the typical way to build and install ccache:
     make install
 
 You can set the installation directory to e.g. `/usr` by adding
-`-DCMAKE_INSTALL_PREFIX:PATH=/usr` to the cmake command.
+`-DCMAKE_INSTALL_PREFIX=/usr` to the `cmake` command. You can set the directory
+where the secondary configuration file should be located to e.g. `/etc` by
+adding `-DCMAKE_INSTALL_SYSCONFDIR=/etc`.
 
 There are two ways to use ccache. You can either prefix your compilation
 commands with `ccache` or you can create a symbolic link (named as your
