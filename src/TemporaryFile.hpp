@@ -36,7 +36,9 @@ public:
 
   TemporaryFile(TemporaryFile&& other) noexcept = default;
 
-  TemporaryFile& operator=(TemporaryFile&& other) noexcept = default;
+  // Note: Should be declared noexcept, but since GCC 4.8 trips on it, don't do
+  // that for now.
+  TemporaryFile& operator=(TemporaryFile&& other) = default;
 
   // The resulting open file descriptor in read/write mode. Unset on error.
   Fd fd;
