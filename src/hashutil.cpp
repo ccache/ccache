@@ -491,8 +491,12 @@ hash_command_output(Hash& hash,
     close(pipefd[0]);
 
     int status;
-    if (waitpid(pid, &status, 0) != pid) {
-      log("waitpid failed");
+    int result;
+    while ((result = waitpid(pid, &status, 0)) != pid) {
+      if (result == -1 && errno == EINTR) {
+        continue;
+      }
+      log("waitpid failed: {}", strerror(errno));
       return false;
     }
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
