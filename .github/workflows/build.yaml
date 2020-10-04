@@ -105,6 +105,14 @@ jobs:
             RUN_TESTS: 0
             apt_get: elfutils mingw-w64
 
+          - name: Linux GCC 4.8.5
+            os: ubuntu-16.04
+            CC: gcc-4.8
+            CXX: g++-4.8
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DWARNINGS_AS_ERRORS=OFF
+            apt_get: elfutils libzstd1-dev g++-4.8
+
           - name: Clang address & UB sanitizer
             os: ubuntu-20.04
             CC: clang
