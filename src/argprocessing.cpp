@@ -412,12 +412,12 @@ process_arg(Context& ctx,
       i++;
       return nullopt;
     }
-    if (args[i].length() >= 3) {
-      if (args_info.input_file.empty()) {
-        state.explicit_language = args[i].substr(2);
-      }
-      return nullopt;
+
+    DEBUG_ASSERT(args[i].length() >= 3);
+    if (args_info.input_file.empty()) {
+      state.explicit_language = args[i].substr(2);
     }
+    return nullopt;
   }
 
   // We need to work out where the output was meant to go.
