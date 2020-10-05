@@ -843,7 +843,7 @@ create_cachedir_tag(const Context& ctx)
 static void
 to_cache(Context& ctx,
          Args& args,
-         Args& depend_extra_args,
+         const Args& depend_extra_args,
          Hash* depend_mode_hash)
 {
   args.push_back("-o");
