@@ -68,12 +68,13 @@ COMPILER WRAPPERS>>.
 
 WARNING: Use a symbolic links for masquerading, not hard links.
 
-Options
--------
+Command line options
+--------------------
 
-These options only apply when you invoke ccache as ``ccache''. When invoked as
-a compiler (via a symlink as described in the previous section), the normal
-compiler options apply and you should refer to the compiler's documentation.
+These command line options only apply when you invoke ccache as ``ccache''.
+When invoked as a compiler (via a symlink as described in the previous
+section), the normal compiler options apply and you should refer to the
+compiler's documentation.
 
 
 Common options
@@ -107,7 +108,7 @@ Common options
 
 *`-h`*, *`--help`*::
 
-    Print an options summary page.
+    Print a summary of command line options.
 
 *`-F`* _NUM_, *`--max-files`* _NUM_::
 
@@ -206,7 +207,7 @@ Options for scripting or debugging
 
 
 Extra options
--------------
+~~~~~~~~~~~~~
 
 When run as a compiler, ccache usually just takes the same command line options
 as the compiler you are using. The only exception to this is the option
@@ -233,7 +234,7 @@ compiler than what ccache thinks.
 Configuration
 -------------
 
-ccache's default behavior can be overridden by configuration file settings,
+ccache's default behavior can be overridden by settings in configuration files,
 which in turn can be overridden by environment variables with names starting
 with *CCACHE_*. ccache normally reads configuration from two files: first a
 system-level configuration file and secondly a cache-specific configuration
@@ -285,28 +286,30 @@ max_size = 10G
 Boolean values
 ~~~~~~~~~~~~~~
 
-Some settings are boolean values (i.e. truth values). In a configuration file,
-such values must be set to the string *true* or *false*. For the corresponding
-environment variables, the semantics are a bit different: a set environment
-variable means ``true'' (even if set to the empty string), the following
-case-insensitive negative values are considered an error (rather than
-surprising the user): *0*, *false*, *disable* and *no*, and an unset
-environment variable means ``false''. Each boolean environment variable also
-has a negated form starting with *CCACHE_NO*. For example, *CCACHE_COMPRESS*
-can be set to force compression and *CCACHE_NOCOMPRESS* can be set to force no
-compression.
+Some configuration options are boolean values (i.e. truth values). In a
+configuration file, such values must be set to the string *true* or *false*.
+For the corresponding environment variables, the semantics are a bit different:
+
+* A set environment variable means ``true'' (even if set to the empty string).
+* The following case-insensitive negative values are considered an error
+  (instead of surprising the user): *0*, *false*, *disable* and *no*.
+* An unset environment variable means ``false''.
+
+Each boolean environment variable also has a negated form starting with
+*CCACHE_NO*. For example, *CCACHE_COMPRESS* can be set to force compression and
+*CCACHE_NOCOMPRESS* can be set to force no compression.
 
 
-Configuration settings
+Configuration options
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Below is a list of available configuration settings. The corresponding
+Below is a list of available configuration options. The corresponding
 environment variable name is indicated in parentheses after each configuration
-setting key.
+option key.
 
 [[config_absolute_paths_in_stderr]] *absolute_paths_in_stderr* (*CCACHE_ABSSTDERR*)::
 
-    This setting specifies whether ccache should rewrite relative paths in the
+    This option specifies whether ccache should rewrite relative paths in the
     compiler's standard error output to absolute paths. This can be useful if
     you use <<config_base_dir,*base_dir*>> with a build system (e.g. CMake with
     the "Unix Makefiles" generator) that executes the compiler in a different
@@ -315,7 +318,7 @@ setting key.
 
 [[config_base_dir]] *base_dir* (*CCACHE_BASEDIR*)::
 
-    This setting should be an absolute path to a directory. If set, ccache will
+    This option should be an absolute path to a directory. If set, ccache will
     rewrite absolute paths into paths relative to the current working
     directory, but only absolute paths that begin with *base_dir*. Cache
     results can then be shared for compilations in different directories even
@@ -336,7 +339,7 @@ For example, say that Alice's current working directory is
 ccache gcc -I/usr/include/example -I/home/alice/project2/include -c /home/alice/project1/src/example.c
 -------------------------------------------------------------------------------
 +
-Here is what ccache will actually execute for different *base_dir* settings:
+Here is what ccache will actually execute for different *base_dir* values:
 +
 -------------------------------------------------------------------------------
 # Current working directory: /home/alice/project1/build
@@ -371,7 +374,7 @@ project2 will be a different absolute path.
 
 [[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 
-    This setting specifies where ccache will keep its cached compiler outputs.
+    This option specifies where ccache will keep its cached compiler outputs.
     It will only take effect if set in the system-wide configuration file or as
     an environment variable. The default is *$XDG_CACHE_HOME/ccache* if
     *XDG_CACHE_HOME* is set, otherwise *$HOME/.cache/ccache*. Exception: If the
@@ -382,22 +385,22 @@ project2 will be a different absolute path.
 
 [[config_compiler]] *compiler* (*CCACHE_COMPILER* or (deprecated) *CCACHE_CC*)::
 
-    This setting can be used to force the name of the compiler to use. If set
-    to the empty string (which is the default), ccache works it out from the
+    This option can be used to force the name of the compiler to use. If set to
+    the empty string (which is the default), ccache works it out from the
     command line.
 
 [[config_compiler_check]] *compiler_check* (*CCACHE_COMPILERCHECK*)::
 
     By default, ccache includes the modification time (``mtime'') and size of
     the compiler in the hash to ensure that results retrieved from the cache
-    are accurate. This setting can be used to select another strategy. Possible
+    are accurate. This option can be used to select another strategy. Possible
     values are:
 +
 --
 *content*::
     Hash the content of the compiler binary. This makes ccache very slightly
-    slower compared to the *mtime* setting, but makes it cope better with
-    compiler upgrades during a build bootstrapping process.
+    slower compared to *mtime*, but makes it cope better with compiler upgrades
+    during a build bootstrapping process.
 *mtime*::
     Hash the compiler's mtime and size, which is fast. This is the default.
 *none*::
@@ -405,8 +408,8 @@ project2 will be a different absolute path.
     use the cached results even though the compiler's mtime or size has changed
     (e.g. if the compiler is built as part of your build system and the
     compiler's source has not changed, or if the compiler only has changes that
-    don't affect code generation). You should only use the *none* setting if
-    you know what you are doing.
+    don't affect code generation). You should only use *none* if you know what
+    you are doing.
 *string:value*::
     Use *value* as the string to calculate hash from. This can be the compiler
     revision number you retrieved earlier and set here via environment variable.
@@ -440,7 +443,7 @@ method will hash the mtime and size of the other compiler wrapper, which means
 that ccache won't be able to detect a compiler upgrade. Using a suitable
 command to identify the compiler is thus safer, but it's also slower, so you
 should consider continue using the *mtime* method in combination with
-the *prefix_command* setting if possible. See
+the *prefix_command* option if possible. See
 <<_using_ccache_with_other_compiler_wrappers,USING CCACHE WITH OTHER COMPILER
 WRAPPERS>>.
 --
@@ -449,8 +452,8 @@ WRAPPERS>>.
 [[config_compression]] *compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will compress data it puts in the cache. However, this
-    setting has no effect on how files are retrieved from the cache; compressed
-    and uncompressed results will still be usable regardless of this setting.
+    option has no effect on how files are retrieved from the cache; compressed
+    and uncompressed results will still be usable regardless of this option.
     The default is true.
 +
 Compression is done using the Zstandard algorithm. The algorithm is fast enough
@@ -459,16 +462,16 @@ One exception is if the cache is located on a compressed file system, in which
 case the compression performed by ccache of course is redundant.
 +
 Compression will be disabled if file cloning (the
-<<config_file_clone,*file_clone*>> setting) or hard linking (the
-<<config_hard_link,*hard_link*>> setting) is enabled.
+<<config_file_clone,*file_clone*>> option) or hard linking (the
+<<config_hard_link,*hard_link*>> option) is enabled.
 
 [[config_compression_level]] *compression_level* (*CCACHE_COMPRESSLEVEL*)::
 
-    This setting determines the level at which ccache will compress object
-    files using the real-time compression algorithm Zstandard. The setting only
-    has effect if <<config_compression,*compression*>> is enabled (which it is
-    by default). Zstandard is extremely fast for decompression and very fast
-    for compression for lower compression levels. The default is 0.
+    This option determines the level at which ccache will compress object files
+    using the real-time compression algorithm Zstandard. It only has effect if
+    <<config_compression,*compression*>> is enabled (which it is by default).
+    Zstandard is extremely fast for decompression and very fast for compression
+    for lower compression levels. The default is 0.
 +
 Semantics of *compression_level*:
 +
@@ -476,14 +479,14 @@ Semantics of *compression_level*:
 *> 0*::
     A positive value corresponds to normal Zstandard compression levels. Lower
     levels (e.g. *1*) mean faster compression but worse compression ratio.
-    Higher levels (e.g. *19*) mean slower compression but better
-    compression ratio. The maximum possible value depends on the libzstd
-    version. Decompression speed is essentially the same for all levels.
+    Higher levels (e.g. *19*) mean slower compression but better compression
+    ratio. The maximum possible value depends on the libzstd version.
+    Decompression speed is essentially the same for all levels.
 *< 0*::
     A negative value corresponds to Zstandard's “ultra-fast” compression
-    levels, which are even faster than level 1 but less good compression
-    ratios. For instance, level *-3* corresponds to the “--fast=3” option for
-    the *zstd* command line tool.
+    levels, which are even faster than level 1 but with less good compression
+    ratios. For instance, level *-3* corresponds to “--fast=3” for the *zstd*
+    command line tool.
 *0* (default)::
     The value *0* means that ccache will choose a suitable level, currently
     *1*.
@@ -491,7 +494,7 @@ Semantics of *compression_level*:
 
 [[config_cpp_extension]] *cpp_extension* (*CCACHE_EXTENSION*)::
 
-    This setting can be used to force a certain extension for the intermediate
+    This option can be used to force a certain extension for the intermediate
     preprocessed file. The default is to automatically determine the extension
     to use for intermediate preprocessor files based on the type of file being
     compiled, but that sometimes doesn't work. For example, when using the
@@ -521,8 +524,8 @@ Semantics of *compression_level*:
 
 [[config_extra_files_to_hash]] *extra_files_to_hash* (*CCACHE_EXTRAFILES*)::
 
-    This setting is a list of paths to files that ccache will include in the
-    the hash sum that identifies the build. The list separator is semicolon on
+    This option is a list of paths to files that ccache will include in the the
+    hash sum that identifies the build. The list separator is semicolon on
     Windows systems and colon on other systems.
 
 [[config_file_clone]] *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see <<_boolean_values,Boolean values>> above)::
@@ -536,7 +539,7 @@ Files stored by cloning cannot be compressed, so the cache size will likely be
 significantly larger if this option is enabled. However, performance may be
 improved depending on the use case.
 +
-Unlike the <<config_hard_link,*hard_link*>> setting, *file_clone* is completely
+Unlike the <<config_hard_link,*hard_link*>> option, *file_clone* is completely
 safe to use, but not all file systems support the feature. For such file
 systems, ccache will fall back to use plain copying (or hard links if
 <<config_hard_link,*hard_link*>> is enabled).
@@ -586,13 +589,13 @@ with the storage of the current working directory in the debug info of an
 object file, which can lead ccache to return a cached object file that has the
 working directory in the debug info set incorrectly.
 +
-You can disable this setting to get cache hits when compiling the same source
+You can disable this option to get cache hits when compiling the same source
 code in different directories if you don't mind that CWD in the debug info
 might be incorrect.
 
 [[config_ignore_headers_in_manifest]] *ignore_headers_in_manifest* (*CCACHE_IGNOREHEADERS*)::
 
-    This setting is a list of paths to files (or directories with headers) that
+    This option is a list of paths to files (or directories with headers) that
     ccache will *not* include in the manifest list that makes up the direct
     mode. Note that this can cause stale cache hits if those headers do indeed
     change. The list separator is semicolon on Windows systems and colon on
@@ -600,12 +603,12 @@ might be incorrect.
 
 [[config_ignore_options]] *ignore_options* (*CCACHE_IGNOREOPTIONS*)::
 
-    This setting is a space-delimited list of options that ccache will exclude
-    from the hash. Excluding a compiler option from the hash can be useful when
-    you know it doesn't affect the result (but ccache doesn't know that), or
-    when it does and you don't care. If an option in the list is suffixed with
-    an asterisk (`*`), the option is matched as a prefix. For example,
-    `-fmessage-length=*` will match both `-fmessage-length=20` and
+    This option is a space-delimited list of compiler options that ccache will
+    exclude from the hash. Excluding a compiler option from the hash can be
+    useful when you know it doesn't affect the result (but ccache doesn't know
+    that), or when it does and you don't care. If a compiler option in the list
+    is suffixed with an asterisk (`*`) it will be matched as a prefix. For
+    example, `-fmessage-length=*` will match both `-fmessage-length=20` and
     `-fmessage-length=70`.
 
 [[config_inode_cache]] *inode_cache* (*CCACHE_INODECACHE* or *CCACHE_NOINODECACHE*, see <<_boolean_values,Boolean values>> above)::
@@ -735,45 +738,48 @@ still has to do _some_ preprocessing (like macros).
 
     By default, ccache tries to give as few false cache hits as possible.
     However, in certain situations it's possible that you know things that
-    ccache can't take for granted. This setting makes it possible to tell
+    ccache can't take for granted. This option makes it possible to tell
     ccache to relax some checks in order to increase the hit rate. The value
-    should be a comma-separated string with options. Available options are:
+    should be a comma-separated string with one or several of the following
+    values:
 +
 --
 *clang_index_store*::
     Ignore the Clang compiler option *-index-store-path* and its argument when
     computing the manifest hash. This is useful if you use Xcode, which uses an
     index store path derived from the local project path. Note that the index
-    store won't be updated correctly on cache hits if you enable this option.
+    store won't be updated correctly on cache hits if you enable this
+    sloppiness.
 *file_stat_matches*::
     ccache normally examines a file's contents to determine whether it matches
-    the cached version. With this option set, ccache will consider a file as
-    matching its cached version if the mtimes and ctimes match.
+    the cached version. With this sloppiness set, ccache will consider a file
+    as matching its cached version if the mtimes and ctimes match.
 *file_stat_matches_ctime*::
     Ignore ctimes when *file_stat_matches* is enabled. This can be useful when
     backdating files' mtimes in a controlled way.
 *include_file_ctime*::
     By default, ccache will not cache a file if it includes a header whose
-    ctime is too new. This option disables that check.
+    ctime is too new. This sloppiness disables that check.
 *include_file_mtime*::
     By default, ccache will not cache a file if it includes a header whose
-    mtime is too new. This option disables that check.
+    mtime is too new. This sloppiness disables that check.
 *locale*::
     ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
     *LC_MESSAGES* in the hash by default since they may affect localization of
-    compiler warning messages. Set this option to tell ccache not to do that.
+    compiler warning messages. Set this sloppiness to tell ccache not to do
+    that.
 *pch_defines*::
     Be sloppy about **#define**s when precompiling a header file. See
     <<_precompiled_headers,PRECOMPILED HEADERS>> for more information.
 *modules*::
-    By default, ccache will not cache compilation if -fmodules is used, because
+    By default, ccache will not cache compilations if *-fmodules* is used since
     it cannot hash the state of compiler's internal representation of relevant
-    modules. This option allow caching in such case.
-    See <<_c_modules,C++ MODULES>> for more information.
+    modules. This sloppiness allows caching in such a case. See
+    <<_c_modules,C++ MODULES>> for more information.
 *system_headers*::
     By default, ccache will also include all system headers in the manifest.
-    With this option set, ccache will only include system headers in the hash
-    but not add the system header files to the list of include files.
+    With this sloppiness set, ccache will only include system headers in the
+    hash but not add the system header files to the list of include files.
 *time_macros*::
     Ignore `__DATE__`, `__TIME__` and `__TIMESTAMP__` being present in the
     source code.
@@ -789,17 +795,16 @@ information.
 
 [[config_temporary_dir]] *temporary_dir* (*CCACHE_TEMPDIR*)::
 
-    This setting specifies where ccache will put temporary files. The default
-    is */run/user/<UID>/ccache-tmp* if */run/user/<UID>* exists, otherwise
+    This option specifies where ccache will put temporary files. The default is
+    */run/user/<UID>/ccache-tmp* if */run/user/<UID>* exists, otherwise
     *<cache_dir>/tmp*.
 +
 NOTE: In previous versions of ccache, *CCACHE_TEMPDIR* had to be on the same
-    filesystem as the *CCACHE_DIR* path, but this requirement has been
-    relaxed.)
+filesystem as the *CCACHE_DIR* path, but this requirement has been relaxed.)
 
 [[config_umask]] *umask* (*CCACHE_UMASK*)::
 
-    This setting specifies the umask for files and directories in the cache
+    This option specifies the umask for files and directories in the cache
     directory. This is mostly useful when you wish to share your cache with
     other users.
 
@@ -808,10 +813,10 @@ Cache size management
 ---------------------
 
 By default, ccache has a 5 GB limit on the total size of files in the cache and
-no limit on the number of files. You can set different limits using the
-*-M*/*--max-size* and *-F*/*--max-files* options. Use *ccache -s/--show-stats*
-to see the cache size and the currently configured limits (in addition to other
-various statistics).
+no limit on the number of files. You can set different limits using the command
+line options *-M*/*--max-size* and *-F*/*--max-files*. Use *ccache
+-s/--show-stats* to see the cache size and the currently configured limits (in
+addition to other various statistics).
 
 Cleanup can be triggered in two different ways: automatic and manual.
 
@@ -838,7 +843,7 @@ will:
    *limit_multiple * max_size / 16* and the number of files is at most
    *limit_multiple * max_files / 16*, where
    <<config_limit_multiple,*limit_multiple*>>, <<config_max_size,*max_size*>>
-   and <<config_max_files,*max_files*>> are configuration settings.
+   and <<config_max_files,*max_files*>> are configuration options.
 3. Set the size and file number counters to match the files that were kept.
 
 The reason for removing more files than just those needed to not exceed the max
@@ -851,9 +856,10 @@ Manual cleanup
 
 You can run *ccache -c/--cleanup* to force cleanup of the whole cache, i.e. all
 of the sixteen subdirectories. This will recalculate the statistics counters
-and make sure that the *max_size* and <<config_max_files,*max_files*>> settings
-are not exceeded. Note that <<config_limit_multiple,*limit_multiple*>> is not
-taken into account for manual cleanup.
+and make sure that the configuration options *max_size* and
+<<config_max_files,*max_files*>> are not exceeded. Note that
+<<config_limit_multiple,*limit_multiple*>> is not taken into account for manual
+cleanup.
 
 
 Cache compression
@@ -864,12 +870,12 @@ compression algorithm Zstandard (zstd) using compression level 1. The algorithm
 is fast enough that there should be little reason to turn off compression to
 gain performance. One exception is if the cache is located on a compressed file
 system, in which case the compression performed by ccache of course is
-redundant. See the documentation for the <<config_compression,*compression*>>
-and <<config_compression_level,*compression_level*>> settings for more
-information.
+redundant. See the documentation for the configuration options
+<<config_compression,*compression*>> and
+<<config_compression_level,*compression_level*>> for more information.
 
-You can use the *-x/--show-compression* option to print information related to
-compression. Example:
+You can use the command line option *-x/--show-compression* to print
+information related to compression. Example:
 
 -------------------------------------------------------------------------------
 Total data:              14.8 GB (16.0 GB disk blocks)
@@ -886,19 +892,19 @@ Notes:
   --show-stats”. The other size numbers refer to actual content sizes.
 * “Compressed data” refers to result and manifest files stored in the cache.
 * “Incompressible data” refers to files that are always stored uncompressed
-  (triggered by enabling the <<config_file_clone,*file_clone*>> or
-  <<config_hard_link,*hard_link*>> settings) or unknown files (for instance
-  files created by older ccache versions).
-* The compression ratio is affected by the
-  <<config_compression_level,*compression_level*>> setting.
+  (triggered by enabling <<config_file_clone,*file_clone*>> or
+  <<config_hard_link,*hard_link*>>) or unknown files (for instance files
+  created by older ccache versions).
+* The compression ratio is affected by
+  <<config_compression_level,*compression_level*>>.
 
 The cache data can also be recompressed to another compression level (or made
-uncompressed) with the *-X/--recompress* option. If you choose to disable
-compression by default or to use a low compression level, you can (re)compress
-newly cached data with a higher compression level after the build or at another
-time when there are more CPU cycles available, for instance every night. Full
-recompression potentially takes a lot of time, but only files that are
-currently compressed with a different level than the target level will be
+uncompressed) with the command line option *-X/--recompress*. If you choose to
+disable compression by default or to use a low compression level, you can
+(re)compress newly cached data with a higher compression level after the build
+or at another time when there are more CPU cycles available, for instance every
+night. Full recompression potentially takes a lot of time, but only files that
+are currently compressed with a different level than the target level will be
 recompressed.
 
 
@@ -914,8 +920,9 @@ Cache statistics
 Uncachable compilation or linking by an autoconf test.
 
 | bad compiler arguments |
-Malformed compiler argument, e.g. missing a value for an option that requires
-an argument or failure to read a file specified by an option argument.
+Malformed compiler argument, e.g. missing a value for a compiler option that
+requires an argument or failure to read a file specified by a compiler option
+argument.
 
 | cache file missing |
 A file was unexpectedly missing from the cache. This only happens in rare
@@ -1060,13 +1067,11 @@ The following information is always included in the hash:
 * the extension used by the compiler for a file with preprocessor output
   (normally *.i* for C code and *.ii* for C++ code)
 * the compiler's size and modification time (or other compiler-specific
-  information specified by the <<config_compiler_check,*compiler_check*>>
-  setting)
+  information specified by <<config_compiler_check,*compiler_check*>>)
 * the name of the compiler
-* the current directory (if the <<config_hash_dir,*hash_dir*>> setting is
-  enabled)
-* contents of files specified by the
-  <<config_extra_file_to_hash,*extra_files_to_hash*>> setting (if any)
+* the current directory (if <<config_hash_dir,*hash_dir*>> is enabled)
+* contents of files specified by
+  <<config_extra_file_to_hash,*extra_files_to_hash*>> (if any)
 
 
 The preprocessor mode
@@ -1075,9 +1080,9 @@ The preprocessor mode
 In the preprocessor mode, the hash is formed of the common information and:
 
 * the preprocessor output from running the compiler with *-E*
-* the command line options except options that affect include files (*-I*,
-  *-include*, *-D*, etc; the theory is that these options will change the
-  preprocessor output if they have any effect at all)
+* the command line options except those that affect include files (*-I*,
+  *-include*, *-D*, etc; the theory is that these command line options will
+  change the preprocessor output if they have any effect at all)
 * any standard error output generated by the preprocessor
 
 Based on the hash, the cached compilation result can be looked up directly in
@@ -1090,7 +1095,7 @@ The direct mode
 In the direct mode, the hash is formed of the common information and:
 
 * the input source file
-* the command line options
+* the compiler options
 
 Based on the hash, a data structure called ``manifest'' is looked up in the
 cache. The manifest contains:
@@ -1119,7 +1124,7 @@ in the absolute majority of cases.
 
 The direct mode will be disabled if any of the following holds:
 
-* the configuration setting <<config_direct_mode,*direct_mode*>> is false
+* <<config_direct_mode,*direct_mode*>> is false
 * a modification time of one of the include files is too new (needed to avoid a
   race condition)
 * a compiler option not supported by the direct mode is used:
@@ -1158,16 +1163,16 @@ Disadvantages:
 
 The depend mode will be disabled if any of the following holds:
 
-* the configuration setting <<config_depend_mode,*depend_mode*>> is false
-* the configuration setting <<config_run_second_cpp,*run_second_cpp*>> is false
-* the compiler is not generating dependencies using *-MD* or *-MMD*
+* <<config_depend_mode,*depend_mode*>> is false.
+* <<config_run_second_cpp,*run_second_cpp*>> is false.
+* The compiler is not generating dependencies using *-MD* or *-MMD*.
 
 
 Cache debugging
 ---------------
 
 To find out what information ccache actually is hashing, you can enable the
-debug mode via the configuration setting <<config_debug,*debug*>> or by setting
+debug mode via the configuration option <<config_debug,*debug*>> or by setting
 *CCACHE_DEBUG* in the environment. This can be useful if you are investigating
 why you don't get cache hits. Note that performance will be reduced slightly.
 
@@ -1241,8 +1246,8 @@ directories:
   file, you must either:
 +
 --
-** use the *-fdebug-prefix-map=_old_=_new_* option for relocating debug info to
-   a common prefix (e.g. *-fdebug-prefix-map=$PWD=.*); or
+** use the compiler option *-fdebug-prefix-map=_old_=_new_* for relocating
+   debug info to a common prefix (e.g. *-fdebug-prefix-map=$PWD=.*); or
 ** set *hash_dir = false*.
 --
 * If you use absolute paths anywhere on the command line (e.g. the source code
@@ -1266,13 +1271,13 @@ things to make it work properly:
 * You must either:
 +
 --
-** use the *-include* compiler option to include the precompiled header (i.e.,
+** use the compiler option *-include* to include the precompiled header (i.e.,
    don't use *#include* in the source code to include the header; the filename
    itself must be sufficient to find the header, i.e. *-I* paths are not
    searched); or
-** (for the Clang compiler) use the *-include-pch* compiler option to include
+** (for the Clang compiler) use the compiler option *-include-pch* to include
    the PCH file generated from the precompiled header; or
-** (for the GCC compiler) add the *-fpch-preprocess* compiler option when
+** (for the GCC compiler) add the compiler option *-fpch-preprocess* when
    compiling.
 
 If you don't do this, either the non-precompiled version of the header file
@@ -1285,18 +1290,17 @@ non-precompiled header file is not available).
 C++ modules
 -----------
 
-ccache has support for Clang's -fmodules option. In practice ccache only
-additionally hashes module.modulemap files, it does not know how
-Clang handles its cached binary form of modules, and so those are ignored.
-This should not matter in practice, as long as everything else including
-module.modulemap files is the same the cached result should work. Still,
-you must set <<config_sloppiness,*sloppiness*>> to *modules* to allow
-caching.
+ccache has support for Clang's *-fmodules* option. In practice ccache only
+additionally hashes *module.modulemap* files; it does not know how Clang
+handles its cached binary form of modules so those are ignored. This should not
+matter in practice: as long as everything else (including *module.modulemap*
+files) is the same the cached result should work. Still, you must set
+<<config_sloppiness,*sloppiness*>> to *modules* to allow caching.
 
-You must use both <<_the_direct_mode,direct mode>> and
-<<_the_depend_mode,depend mode>>. When using
-<<_the_preprocessor_mode,the preprocessor mode>> Clang does not provide
-enough information to allow hashing of module.modulemap files.
+You must use both <<_the_direct_mode,*direct mode*>> and
+<<_the_depend_mode,*depend mode*>>. When using <<_the_preprocessor_mode,the
+preprocessor mode>> Clang does not provide enough information to allow hashing
+of *module.modulemap* files.
 
 
 Sharing a cache
@@ -1307,10 +1311,10 @@ directory. To share a cache without unpleasant side effects, the following
 conditions should to be met:
 
 * Use the same cache directory.
-* Make sure that the configuration setting <<config_hard_link,*hard_link*>> is
+* Make sure that the configuration option <<config_hard_link,*hard_link*>> is
   false (which is the default).
 * Make sure that all users are in the same group.
-* Set the configuration setting <<config_umask,*umask*>> to 002. This ensures
+* Set the configuration option <<config_umask,*umask*>> to 002. This ensures
   that cached files are accessible to everyone in the group.
 * Make sure that all users have write permission in the entire cache directory
   (and that you trust all users of the shared cache).
@@ -1361,13 +1365,12 @@ Using ccache with other compiler wrappers
 
 The recommended way of combining ccache with another compiler wrapper (such as
 ``distcc'') is by letting ccache execute the compiler wrapper. This is
-accomplished by defining the configuration setting
-<<config_prefix_command,*prefix_command*>>, for example by setting the
-environment variable *CCACHE_PREFIX* to the name of the wrapper (e.g.
-*distcc*). ccache will then prefix the command line with the specified command
-when running the compiler. To specify several prefix commands, set
-<<config_prefix_command,*prefix_command*>> to a colon-separated list of
-commands.
+accomplished by defining <<config_prefix_command,*prefix_command*>>, for
+example by setting the environment variable *CCACHE_PREFIX* to the name of the
+wrapper (e.g. *distcc*). ccache will then prefix the command line with the
+specified command when running the compiler. To specify several prefix
+commands, set <<config_prefix_command,*prefix_command*>> to a colon-separated
+list of commands.
 
 Unless you set <<config_compiler_check,*compiler_check*>> to a suitable command
 (see the description of that configuration option), it is not recommended to
@@ -1383,10 +1386,9 @@ means that:
 
 Another minor thing is that if <<config_prefix_command,*prefix_command*>> is
 used, ccache will not invoke the other wrapper when running the preprocessor,
-which increases performance. You can use the
-<<config_prefix_command_cpp,*prefix_command_cpp*>> configuration setting if you
-also want to invoke the other wrapper when doing preprocessing (normally by
-adding *-E*).
+which increases performance. You can use
+<<config_prefix_command_cpp,*prefix_command_cpp*>> if you also want to invoke
+the other wrapper when doing preprocessing (normally by adding *-E*).
 
 
 Caveats
@@ -1434,8 +1436,8 @@ problems and what may be done to increase the hit rate:
    affect the preprocessor output.
 ** The compiler option *-Xpreprocessor* or *-Wp,_X_* (except *-Wp,-MD,_path_*,
    *-Wp,-MMD,_path_*, and *-Wp,-D_define_*) is used.
-** This was the first compilation with a new value of the base directory
-   setting.
+** This was the first compilation with a new value of the
+   <<config_base_dir,base directory>>.
 ** A modification time of one of the include files is too new (created the same
    second as the compilation is being done). This check is made to avoid a race
    condition. To fix this, create the include file earlier in the build
@@ -1484,7 +1486,7 @@ problems and what may be done to increase the hit rate:
   the compiler has been invoked on several source code files at once. ccache
   doesn't support that. Compile the source code files separately if possible.
 * If ``unsupported compiler option'' has been incremented, enable debug logging
-  and check which option was rejected.
+  and check which compiler option was rejected.
 * If ``preprocessor error'' has been incremented, one possible reason is that
   precompiled headers are being used. See <<_precompiled_headers,PRECOMPILED
   HEADERS>> for how to remedy this.
