@@ -153,9 +153,8 @@ ResultRetriever::on_entry_end()
 void
 ResultRetriever::write_dependency_file()
 {
-  size_t start_pos = 0;
-
   try {
+    size_t start_pos = 0;
     if (m_rewrite_dependency_target) {
       size_t colon_pos = m_dest_data.find(':');
       if (colon_pos != std::string::npos) {
