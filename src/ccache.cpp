@@ -1991,11 +1991,11 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
   // Use stats file in the level one subdirectory for cache bookkeeping counters
   // since cleanup is performed on level one. Use stats file in the level two
   // subdirectory for other counters to reduce lock contention.
-  const bool updated_file_size_or_count =
+  const bool use_stats_on_level_1 =
     counter_updates.get(Statistic::cache_size_kibibyte) != 0
     || counter_updates.get(Statistic::files_in_cache) != 0;
   std::string level_string = fmt::format("{:x}", name.bytes()[0] >> 4);
-  if (!updated_file_size_or_count) {
+  if (!use_stats_on_level_1) {
     level_string += fmt::format("/{:x}", name.bytes()[0] & 0xF);
   }
   const auto stats_file =
@@ -2009,18 +2009,23 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
     return nullopt;
   }
 
-  const auto wanted_level =
-    calculate_wanted_cache_level(counters->get(Statistic::files_in_cache));
-  const auto wanted_path = Util::get_path_in_cache(
-    ctx.config.cache_dir(), wanted_level, name.to_string() + file_suffix);
-  if (current_path != wanted_path) {
-    Util::ensure_dir_exists(Util::dir_name(wanted_path));
-    log("Moving {} to {}", current_path, wanted_path);
-    try {
-      Util::rename(current_path, wanted_path);
-    } catch (const Error&) {
-      // Two ccache processes may move the file at the same time, so failure to
-      // rename is OK.
+  if (use_stats_on_level_1) {
+    // Only consider moving the cache file to another level when we have read
+    // the level 1 stats file since it's only then we know the proper
+    // files_in_cache value.
+    const auto wanted_level =
+      calculate_wanted_cache_level(counters->get(Statistic::files_in_cache));
+    const auto wanted_path = Util::get_path_in_cache(
+      ctx.config.cache_dir(), wanted_level, name.to_string() + file_suffix);
+    if (current_path != wanted_path) {
+      Util::ensure_dir_exists(Util::dir_name(wanted_path));
+      log("Moving {} to {}", current_path, wanted_path);
+      try {
+        Util::rename(current_path, wanted_path);
+      } catch (const Error&) {
+        // Two ccache processes may move the file at the same time, so failure
+        // to rename is OK.
+      }
     }
   }
   return counters;

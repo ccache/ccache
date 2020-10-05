@@ -55,6 +55,13 @@ SUITE_cache_levels() {
     expect_on_level R 2
     expect_on_level M 2
 
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' $((files + 2))
+    expect_on_level R 2
+    expect_on_level M 2
+
     # -------------------------------------------------------------------------
     TEST "Level 3"
 
@@ -63,6 +70,13 @@ SUITE_cache_levels() {
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' $((files + 2))
+    expect_on_level R 3
+    expect_on_level M 3
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' $((files + 2))
     expect_on_level R 3
@@ -81,6 +95,13 @@ SUITE_cache_levels() {
     expect_on_level R 4
     expect_on_level M 4
 
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' $((files + 2))
+    expect_on_level R 4
+    expect_on_level M 4
+
     # -------------------------------------------------------------------------
     TEST "No deeper than 4 levels"
 
@@ -89,6 +110,13 @@ SUITE_cache_levels() {
 
     $CCACHE_COMPILE -c test1.c
     expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' $((files + 2))
+    expect_on_level R 4
+    expect_on_level M 4
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' $((files + 2))
     expect_on_level R 4
