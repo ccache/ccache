@@ -2,4 +2,4 @@ ConfigurationNotChecked
 missingIncludeSystem
 
 // Ignore third party code.
-*:src/xxhash.c
+*:src/third_party
