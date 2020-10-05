@@ -545,9 +545,6 @@ TEST_CASE("cuda_option_file")
   CHECK(result.preprocessor_args.to_string() == "nvcc -g -Wall -DX");
   CHECK(result.extra_args_to_hash.to_string() == "");
   CHECK(result.compiler_args.to_string() == "nvcc -g -Wall -DX -c");
-  CHECK(result.preprocessor_args == Args::from_string("nvcc -g -Wall -DX"));
-  CHECK(result.extra_args_to_hash == Args::from_string(""));
-  CHECK(result.compiler_args == Args::from_string("nvcc -g -Wall -DX -c"));
 }
 
 TEST_CASE("-Xclang")
@@ -579,6 +576,80 @@ TEST_CASE("-Xclang")
   CHECK(result.compiler_args.to_string()
         == "gcc " + common_args + " " + extra_args + " " + pch_pth_variants
              + " -c");
+}
+
+TEST_CASE("-x")
+{
+  TestContext test_context;
+  Context ctx;
+  Util::write_file("foo.c", "");
+
+  SUBCASE("intel option")
+  {
+    // -xCODE1 (where CODE1 can be e.g. Host or CORE-AVX2, always starting with
+    // an uppercase letter) is an ordinary Intel compiler option, not a language
+    // specification.
+    ctx.orig_args = Args::from_string("gcc -c foo.c -xCODE");
+
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.preprocessor_args.to_string() == "gcc -xCODE");
+    CHECK(result.extra_args_to_hash.to_string() == "");
+    CHECK(result.compiler_args.to_string() == "gcc -xCODE -c");
+  }
+
+  SUBCASE("compile .c as c++ (without space)")
+  {
+    ctx.orig_args = Args::from_string("gcc -xc++ -c foo.c");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(ctx.args_info.actual_language == "c++");
+    CHECK(result.preprocessor_args.to_string() == "gcc -x c++");
+    CHECK(result.extra_args_to_hash.to_string() == "");
+    CHECK(result.compiler_args.to_string() == "gcc -x c++ -c");
+  }
+
+  SUBCASE("compile .c as c++ (with space)")
+  {
+    ctx.orig_args = Args::from_string("gcc -x c++ -c foo.c");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(ctx.args_info.actual_language == "c++");
+    CHECK(result.preprocessor_args.to_string() == "gcc -x c++");
+    CHECK(result.extra_args_to_hash.to_string() == "");
+    CHECK(result.compiler_args.to_string() == "gcc -x c++ -c");
+  }
+
+  SUBCASE("compile .c as c++ (file first, no effect)")
+  {
+    ctx.orig_args = Args::from_string("gcc -c foo.c -x c++");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(ctx.args_info.actual_language == "c");
+    CHECK(result.preprocessor_args.to_string() == "gcc");
+    CHECK(result.extra_args_to_hash.to_string() == "");
+    CHECK(result.compiler_args.to_string() == "gcc -c");
+  }
+
+  SUBCASE("unknown -x option (lowercase)")
+  {
+    ctx.orig_args = Args::from_string("gcc -x unsupported_language -c foo.c");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_source_language);
+    CHECK(ctx.args_info.actual_language == "");
+  }
+
+  SUBCASE("UNKNOWN -x option (uppercase)")
+  {
+    ctx.orig_args = Args::from_string("gcc -x UNSUPPORTED_LANGUGAGE -c foo.c");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::unsupported_source_language);
+    CHECK(ctx.args_info.actual_language == "");
+  }
+
+  SUBCASE("missing param")
+  {
+    ctx.orig_args = Args::from_string("gcc -c foo.c -x");
+    const ProcessArgsResult result = process_args(ctx);
+    CHECK(result.error == Statistic::bad_compiler_arguments);
+    CHECK(ctx.args_info.actual_language == "");
+  }
 }
 
 TEST_SUITE_END();
