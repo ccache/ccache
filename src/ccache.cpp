@@ -1478,13 +1478,13 @@ calculate_result_name(Context& ctx,
     // might not be the case.
     if (!direct_mode && !ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.using_precompiled_header) {
-      if (compopt_affects_cpp(args[i])) {
+      if (compopt_affects_cpp_output(args[i])) {
         if (compopt_takes_arg(args[i])) {
           i++;
         }
         continue;
       }
-      if (compopt_short(compopt_affects_cpp, args[i])) {
+      if (compopt_affects_cpp_output(args[i].substr(0, 2))) {
         continue;
       }
     }
