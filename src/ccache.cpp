@@ -608,6 +608,54 @@ process_preprocessed_file(Context& ctx,
   return true;
 }
 
+nonstd::optional<std::string>
+rewrite_dep_file_paths(const Context& ctx, const std::string& file_content)
+{
+  ASSERT(!ctx.config.base_dir().empty());
+  ASSERT(ctx.has_absolute_include_headers);
+
+  // Fast path for the common case:
+  if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
+    return nonstd::nullopt;
+  }
+
+  std::string adjusted_file_content;
+  adjusted_file_content.reserve(file_content.size());
+
+  bool content_rewritten = false;
+  for (const auto& line : Util::split_into_views(file_content, "\n")) {
+    const auto tokens = Util::split_into_views(line, " \t");
+    for (size_t i = 0; i < tokens.size(); ++i) {
+      DEBUG_ASSERT(line.length() > 0); // line.empty() -> no tokens
+      if (i > 0 || line[0] == ' ' || line[0] == '\t') {
+        adjusted_file_content.push_back(' ');
+      }
+
+      const auto& token = tokens[i];
+      bool token_rewritten = false;
+      if (Util::is_absolute_path(token)) {
+        const auto new_path = Util::make_relative_path(ctx, token);
+        if (new_path != token) {
+          adjusted_file_content.append(new_path);
+          token_rewritten = true;
+        }
+      }
+      if (token_rewritten) {
+        content_rewritten = true;
+      } else {
+        adjusted_file_content.append(token.begin(), token.end());
+      }
+    }
+    adjusted_file_content.push_back('\n');
+  }
+
+  if (content_rewritten) {
+    return adjusted_file_content;
+  } else {
+    return nonstd::nullopt;
+  }
+}
+
 // Replace absolute paths with relative paths in the provided dependency file.
 static void
 use_relative_paths_in_depfile(const Context& ctx)
@@ -629,33 +677,12 @@ use_relative_paths_in_depfile(const Context& ctx)
     log("Cannot open dependency file {}: {}", output_dep, e.what());
     return;
   }
-
-  std::string adjusted_file_content;
-  adjusted_file_content.reserve(file_content.size());
-
-  bool rewritten = false;
-
-  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
-    if (Util::is_absolute_path(token)
-        && token.starts_with(ctx.config.base_dir())) {
-      adjusted_file_content.append(Util::make_relative_path(ctx, token));
-      rewritten = true;
-    } else {
-      adjusted_file_content.append(token.begin(), token.end());
-    }
-    adjusted_file_content.push_back(' ');
+  const auto new_content = rewrite_dep_file_paths(ctx, file_content);
+  if (new_content) {
+    Util::write_file(output_dep, *new_content);
+  } else {
+    log("No paths in dependency file {} made relative", output_dep);
   }
-
-  if (!rewritten) {
-    log(
-      "No paths in dependency file {} made relative, skip relative path usage",
-      output_dep);
-    return;
-  }
-
-  std::string tmp_file = output_dep + ".tmp";
-  Util::write_file(tmp_file, adjusted_file_content);
-  Util::rename(tmp_file, output_dep);
 }
 
 // Extract the used includes from the dependency file. Note that we cannot

@@ -144,4 +144,43 @@ TEST_CASE("find_compiler")
   }
 }
 
+TEST_CASE("rewrite_dep_file_paths")
+{
+  Context ctx;
+
+  const auto cwd = Util::get_actual_cwd();
+  ctx.actual_cwd = cwd;
+  ctx.apparent_cwd = cwd;
+  ctx.has_absolute_include_headers = true;
+
+  const auto content =
+    fmt::format("foo.o: bar.c {0}/bar.h \\\n {1}/fie.h {0}/fum.h\n",
+                cwd,
+                Util::dir_name(cwd));
+
+  SUBCASE("Base directory not in dep file content")
+  {
+    ctx.config.set_base_dir("/foo/bar");
+    CHECK(!rewrite_dep_file_paths(ctx, ""));
+    CHECK(!rewrite_dep_file_paths(ctx, content));
+  }
+
+  SUBCASE("Base directory in dep file content but not matching")
+  {
+    ctx.config.set_base_dir(fmt::format("{}/other", Util::dir_name(cwd)));
+    CHECK(!rewrite_dep_file_paths(ctx, ""));
+    CHECK(!rewrite_dep_file_paths(ctx, content));
+  }
+
+  SUBCASE("Absolute paths under base directory rewritten")
+  {
+    ctx.config.set_base_dir(cwd);
+    const auto actual = rewrite_dep_file_paths(ctx, content);
+    const auto expected = fmt::format(
+      "foo.o: bar.c ./bar.h \\\n {}/fie.h ./fum.h\n", Util::dir_name(cwd));
+    REQUIRE(actual);
+    CHECK(*actual == expected);
+  }
+}
+
 TEST_SUITE_END();

@@ -21,6 +21,8 @@
 
 #include "system.hpp"
 
+#include "third_party/nonstd/optional.hpp"
+
 #include <functional>
 #include <string>
 
@@ -58,3 +60,5 @@ using FindExecutableFunction =
 // Tested by unit tests.
 void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function);
+nonstd::optional<std::string>
+rewrite_dep_file_paths(const Context& ctx, const std::string& file_content);
