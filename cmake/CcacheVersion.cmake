@@ -36,7 +36,8 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   macro(git)
     execute_process(
       COMMAND "${GIT_EXECUTABLE}" ${ARGN}
-      OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE)
+      OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
   endmacro()
 
   git(describe --abbrev=8 --dirty)
