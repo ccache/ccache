@@ -868,11 +868,14 @@ make_relative_path(const Context& ctx, string_view path)
   std::string normalized_path = Util::normalize_absolute_path(path_str);
   std::vector<std::string> relpath_candidates = {
     Util::get_relative_path(ctx.actual_cwd, normalized_path),
-    Util::get_relative_path(ctx.apparent_cwd, normalized_path),
   };
-  // Move best (= shortest) match first:
-  if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
-    std::swap(relpath_candidates[0], relpath_candidates[1]);
+  if (ctx.apparent_cwd != ctx.actual_cwd) {
+    relpath_candidates.emplace_back(
+      Util::get_relative_path(ctx.apparent_cwd, normalized_path));
+    // Move best (= shortest) match first:
+    if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
+      std::swap(relpath_candidates[0], relpath_candidates[1]);
+    }
   }
 
   for (const auto& relpath : relpath_candidates) {
