@@ -148,9 +148,7 @@ TEST_CASE("rewrite_dep_file_paths")
 {
   Context ctx;
 
-  const auto cwd = Util::get_actual_cwd();
-  ctx.actual_cwd = cwd;
-  ctx.apparent_cwd = cwd;
+  const auto cwd = ctx.actual_cwd;
   ctx.has_absolute_include_headers = true;
 
   const auto content =
