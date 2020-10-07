@@ -24,6 +24,14 @@ include(StandardWarnings)
 include(CIBuildType)
 include(DefaultBuildType)
 
+if(NOT ${CMAKE_VERSION} VERSION_LESS "3.9")
+  cmake_policy(SET CMP0069 NEW)
+  option(ENABLE_IPO "Enable interprocedural (link time, LTO) optimization" OFF)
+  if(ENABLE_IPO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  endif()
+endif()
+
 #
 # Configuration
 #
