@@ -49,7 +49,7 @@ Here are some hints to make the process smoother:
 
 ## Code style
 
-ccache was written in C99 until 2019 when it started being converted to C++11.
+Ccache was written in C99 until 2019 when it started being converted to C++11.
 The conversion is a slow work in progress, which is why there is a lot of
 C-style code left. Please refrain from doing large C to C++ conversions; do it
 little by little.

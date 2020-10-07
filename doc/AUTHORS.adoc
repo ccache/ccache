@@ -1,10 +1,10 @@
-ccache authors
+Ccache authors
 ==============
 
-ccache was originally written by Andrew Tridgell and is currently developed and
+Ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl.
 
-ccache is a collective work with contributions from many people, including:
+Ccache is a collective work with contributions from many people, including:
 
 * Alexander Korsunsky
 * Alexander Lanin

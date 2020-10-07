@@ -15,7 +15,7 @@ To build ccache you need:
     1. Install zstd in a custom path and set `CMAKE_PREFIX_PATH` to it, e.g.
        by passing `-DCMAKE_PREFIX_PATH=/some/custom/path` to `cmake`, or
     2. Pass `-DZSTD_FROM_INTERNET=ON` to `cmake` to make it download libzstd
-       from the Internet and unpack it in the local binary tree. ccache will
+       from the Internet and unpack it in the local binary tree. Ccache will
        then be linked statically to the locally built libzstd.
 
 Optional:

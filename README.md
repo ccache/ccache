@@ -1,4 +1,4 @@
-ccache – a fast compiler cache
+Ccache – a fast compiler cache
 ==============================
 
 [![Build Status](https://github.com/ccache/ccache/workflows/Build/badge.svg)](https://github.com/ccache/ccache/actions?query=workflow%3A%22Build%22)

@@ -8,7 +8,7 @@ CCACHE(1)
 Name
 ----
 
-ccache - a fast C/C++ compiler cache
+Ccache - a fast C/C++ compiler cache
 
 
 Synopsis
@@ -23,11 +23,11 @@ _compiler_ [_compiler options_]                   (via symbolic link)
 Description
 -----------
 
-ccache is a compiler cache. It speeds up recompilation by caching the result of
+Ccache is a compiler cache. It speeds up recompilation by caching the result of
 previous compilations and detecting when the same compilation is being done
 again.
 
-ccache has been carefully written to always produce exactly the same compiler
+Ccache has been carefully written to always produce exactly the same compiler
 output that you would get without the cache. The only way you should be able to
 tell that you are using ccache is the speed. Currently known exceptions to this
 goal are listed under <<_caveats,CAVEATS>>. If you discover an undocumented case
@@ -236,7 +236,7 @@ Configuration
 
 ccache's default behavior can be overridden by settings in configuration files,
 which in turn can be overridden by environment variables with names starting
-with *CCACHE_*. ccache normally reads configuration from two files: first a
+with *CCACHE_*. Ccache normally reads configuration from two files: first a
 system-level configuration file and secondly a cache-specific configuration
 file. The priority of configuration settings is as follows (where 1 is
 highest):
@@ -751,7 +751,7 @@ still has to do _some_ preprocessing (like macros).
     store won't be updated correctly on cache hits if you enable this
     sloppiness.
 *file_stat_matches*::
-    ccache normally examines a file's contents to determine whether it matches
+    Ccache normally examines a file's contents to determine whether it matches
     the cached version. With this sloppiness set, ccache will consider a file
     as matching its cached version if the mtimes and ctimes match.
 *file_stat_matches_ctime*::
@@ -764,7 +764,7 @@ still has to do _some_ preprocessing (like macros).
     By default, ccache will not cache a file if it includes a header whose
     mtime is too new. This sloppiness disables that check.
 *locale*::
-    ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
+    Ccache includes the environment variables *LANG*, *LC_ALL*, *LC_CTYPE* and
     *LC_MESSAGES* in the hash by default since they may affect localization of
     compiler warning messages. Set this sloppiness to tell ccache not to do
     that.
@@ -824,7 +824,7 @@ Cleanup can be triggered in two different ways: automatic and manual.
 Automatic cleanup
 ~~~~~~~~~~~~~~~~~
 
-ccache maintains counters for various statistics about the cache, including the
+Ccache maintains counters for various statistics about the cache, including the
 size and number of all cached files. In order to improve performance and reduce
 issues with concurrent ccache invocations, there is one statistics file for
 each of the sixteen subdirectories in the cache.
@@ -865,7 +865,7 @@ cleanup.
 Cache compression
 -----------------
 
-ccache will by default compress all data it puts into the cache using the
+Ccache will by default compress all data it puts into the cache using the
 compression algorithm Zstandard (zstd) using compression level 1. The algorithm
 is fast enough that there should be little reason to turn off compression to
 gain performance. One exception is if the cache is located on a compressed file
@@ -1034,14 +1034,14 @@ How ccache works
 The basic idea is to detect when you are compiling exactly the same code a
 second time and reuse the previously produced output. The detection is done by
 hashing different kinds of information that should be unique for the
-compilation and then using the hash sum to identify the cached output. ccache
+compilation and then using the hash sum to identify the cached output. Ccache
 uses BLAKE3, a very fast cryptographic hash algorithm, for the hashing. On a
 cache hit, ccache is able to supply all of the correct compiler outputs
 (including all warnings, dependency file, etc) from the cache. Data stored in
 the cache is checksummed with XXH3, an extremely fast non-cryptographic
 algorithm, to detect corruption.
 
-ccache has two ways of gathering information used to look up results in the
+Ccache has two ways of gathering information used to look up results in the
 cache:
 
 * the *preprocessor mode*, where ccache runs the preprocessor on the source
@@ -1253,14 +1253,14 @@ directories:
 * If you use absolute paths anywhere on the command line (e.g. the source code
   file path or an argument to compiler options like *-I* and *-MF*), you must
   set <<config_base_dir,*base_dir*>> to an absolute path to a ``base
-  directory''. ccache will then rewrite absolute paths under that directory to
+  directory''. Ccache will then rewrite absolute paths under that directory to
   relative before computing the hash.
 
 
 Precompiled headers
 -------------------
 
-ccache has support for GCC's precompiled headers. However, you have to do some
+Ccache has support for GCC's precompiled headers. However, you have to do some
 things to make it work properly:
 
 * You must set <<config_sloppiness,*sloppiness*>> to *pch_defines,time_macros*.
@@ -1290,7 +1290,7 @@ non-precompiled header file is not available).
 C++ modules
 -----------
 
-ccache has support for Clang's *-fmodules* option. In practice ccache only
+Ccache has support for Clang's *-fmodules* option. In practice ccache only
 additionally hashes *module.modulemap* files; it does not know how Clang
 handles its cached binary form of modules so those are ignored. This should not
 matter in practice: as long as everything else (including *module.modulemap*
@@ -1347,7 +1347,7 @@ filesystems), but keep in mind that:
 
 * Having the cache on NFS may slow down compilation. Make sure to do some
   benchmarking to see if it's worth it.
-* ccache hasn't been tested very thoroughly on NFS.
+* Ccache hasn't been tested very thoroughly on NFS.
 
 A tip is to set <<config_temporary_dir,*temporary_dir*>> to a directory on the
 local host to avoid NFS traffic for temporary files.
@@ -1367,7 +1367,7 @@ The recommended way of combining ccache with another compiler wrapper (such as
 ``distcc'') is by letting ccache execute the compiler wrapper. This is
 accomplished by defining <<config_prefix_command,*prefix_command*>>, for
 example by setting the environment variable *CCACHE_PREFIX* to the name of the
-wrapper (e.g. *distcc*). ccache will then prefix the command line with the
+wrapper (e.g. *distcc*). Ccache will then prefix the command line with the
 specified command when running the compiler. To specify several prefix
 commands, set <<config_prefix_command,*prefix_command*>> to a colon-separated
 list of commands.
@@ -1414,7 +1414,7 @@ check the output of *ccache -s*.
 Performance
 ~~~~~~~~~~~
 
-ccache has been written to perform well out of the box, but sometimes you may
+Ccache has been written to perform well out of the box, but sometimes you may
 have to do some adjustments of how you use the compiler and ccache in order to
 improve performance.
 
@@ -1447,7 +1447,7 @@ problems and what may be done to increase the hit rate:
    include file is modified by someone; the new include file is hashed by
    ccache; the real compiler is run on the preprocessor's output, which contains
    data from the old header file; the wrong object file is stored in the cache.)
-** The `__TIME__` preprocessor macro is (potentially) being used. ccache turns
+** The `__TIME__` preprocessor macro is (potentially) being used. Ccache turns
    off direct mode if `__TIME__` is present in the source code. This is done as
    a safety measure since the string indicates that a `__TIME__` macro _may_
    affect the output. (To be sure, ccache would have to run the preprocessor,
@@ -1471,7 +1471,7 @@ problems and what may be done to increase the hit rate:
    isn't used in practise, or don't care if ccache produces objects where
    `__TIMESTAMP__` is expanded to something in the past, you can set
    <<config_sloppiness,*sloppiness*>> to *time_macros*.
-** The input file path has changed. ccache includes the input file path in the
+** The input file path has changed. Ccache includes the input file path in the
    direct mode hash to be able to take relative include files into account and
    to produce a correct object file if the source code includes a `__FILE__`
    macro.
@@ -1483,7 +1483,7 @@ problems and what may be done to increase the hit rate:
   `__TIMESTAMP__` macros, or use of automatically generated code that contains
   a timestamp, build counter or other volatile information.
 * If ``multiple source files'' has been incremented, it's an indication that
-  the compiler has been invoked on several source code files at once. ccache
+  the compiler has been invoked on several source code files at once. Ccache
   doesn't support that. Compile the source code files separately if possible.
 * If ``unsupported compiler option'' has been incremented, enable debug logging
   and check which compiler option was rejected.
@@ -1528,6 +1528,6 @@ etc, can be found on ccache's web site: <https://ccache.dev>.
 Author
 ------
 
-ccache was originally written by Andrew Tridgell and is currently developed and
+Ccache was originally written by Andrew Tridgell and is currently developed and
 maintained by Joel Rosdahl. See AUTHORS.txt or AUTHORS.html and
 <https://ccache.dev/credits.html> for a list of contributors.
