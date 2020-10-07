@@ -60,9 +60,9 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     m_dest_data.reserve(file_len);
     return;
 
-  case FileType::coverage:
+  case FileType::coverage_unmangled:
     if (m_ctx.args_info.generating_coverage) {
-      dest_path = m_ctx.args_info.output_cov;
+      dest_path = Util::change_extension(m_ctx.args_info.output_obj, ".gcno");
     }
     break;
 
@@ -82,6 +82,12 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     if (m_ctx.args_info.seen_split_dwarf
         && m_ctx.args_info.output_obj != "/dev/null") {
       dest_path = m_ctx.args_info.output_dwo;
+    }
+    break;
+
+  case FileType::coverage_mangled:
+    if (m_ctx.args_info.generating_coverage) {
+      dest_path = Result::gcno_file_in_mangled_form(m_ctx);
     }
     break;
   }

@@ -111,6 +111,9 @@ Functional changes
   mode” is disabled the option is still considered too hard and ccache will
   fall back to running the compiler.
 
+- Ccache can now cache compilations with coverage notes (`.gcno` files)
+  produced by GCC 9+ in combination with `-fprofile-dir=dir`.
+
 - `realpath(3)` is no longer used for normalization when computing relative
   paths. This makes it possible to get cache hits when the source or build
   directory is a symbolic link to an absolute path that includes unstable

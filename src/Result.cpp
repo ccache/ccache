@@ -158,8 +158,8 @@ file_type_to_string(FileType type)
   case FileType::stderr_output:
     return "<stderr>";
 
-  case FileType::coverage:
-    return ".cov";
+  case FileType::coverage_unmangled:
+    return ".gcno-unmangled";
 
   case FileType::stackusage:
     return ".su";
@@ -169,9 +169,31 @@ file_type_to_string(FileType type)
 
   case FileType::dwarf_object:
     return ".dwo";
+
+  case FileType::coverage_mangled:
+    return ".gcno-mangled";
   }
 
   return k_unknown_file_type;
+}
+
+std::string
+gcno_file_in_mangled_form(const Context& ctx)
+{
+  const auto& output_obj = ctx.args_info.output_obj;
+  const std::string abs_output_obj =
+    Util::is_absolute_path(output_obj)
+      ? output_obj
+      : fmt::format("{}/{}", ctx.apparent_cwd, output_obj);
+  std::string hashified_obj = abs_output_obj;
+  std::replace(hashified_obj.begin(), hashified_obj.end(), '/', '#');
+  return Util::change_extension(hashified_obj, ".gcno");
+}
+
+std::string
+gcno_file_in_unmangled_form(const Context& ctx)
+{
+  return Util::change_extension(ctx.args_info.output_obj, ".gcno");
 }
 
 Result::Reader::Reader(const std::string& result_path)

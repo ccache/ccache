@@ -1145,11 +1145,6 @@ process_args(Context& ctx)
     }
   }
 
-  if (args_info.generating_coverage) {
-    args_info.output_cov = Util::make_relative_path(
-      ctx, Util::change_extension(args_info.output_obj, ".gcno"));
-  }
-
   if (args_info.generating_stackusage) {
     auto default_sufile_name =
       Util::change_extension(args_info.output_obj, ".su");

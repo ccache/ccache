@@ -37,9 +37,6 @@ struct ArgsInfo
   // The path to the dependency file (implicit or specified with -MF).
   std::string output_dep;
 
-  // The path to the coverage file (implicit when using -ftest-coverage).
-  std::string output_cov;
-
   // The path to the stack usage (implicit when using -fstack-usage).
   std::string output_su;
 

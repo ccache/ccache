@@ -93,6 +93,38 @@ SUITE_profiling() {
     $CCACHE_COMPILE -fprofile-use=data -c test.c
     expect_stat 'cache hit (direct)' 1
     expect_stat 'cache miss' 3
+
+    # -------------------------------------------------------------------------
+    TEST "-ftest-coverage with -fprofile-dir"
+
+    # GCC 9 and newer creates a mangled .gcno filename (still in the current
+    # working directory) if -fprofile-dir is given.
+
+    for flag in "" -fprofile-dir=dir; do
+        for dir in . subdir; do
+            $CCACHE -z >/dev/null
+
+            mkdir -p "$dir"
+            touch "$dir/test.c"
+            find -name '*.gcno' -delete
+
+            $REAL_COMPILER $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+            gcno_name=$(find -name '*.gcno')
+            rm "$gcno_name"
+
+            $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+            expect_stat 'cache hit (direct)' 0
+            expect_stat 'cache miss' 1
+            expect_exists "$gcno_name"
+            rm "$gcno_name"
+
+            $CCACHE_COMPILE $flag -ftest-coverage -c $dir/test.c -o $dir/test.o
+            expect_stat 'cache hit (direct)' 1
+            expect_stat 'cache miss' 1
+            expect_exists "$gcno_name"
+            rm "$gcno_name"
+        done
+    done
 }
 
 merge_profiling_data() {
