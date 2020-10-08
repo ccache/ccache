@@ -17,7 +17,7 @@ SUITE_profiling_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -fprofile-generate test.o -lgcov -o test
+    $COMPILER -fprofile-generate test.o -o test
 
     ./test
 
@@ -44,7 +44,7 @@ SUITE_profiling_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -fprofile-dir=data -fprofile-generate test.o -lgcov -o test
+    $COMPILER -fprofile-generate test.o -o test
 
     ./test
 
@@ -71,7 +71,7 @@ SUITE_profiling_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -fprofile-generate -fprofile-dir=data test.o -lgcov -o test
+    $COMPILER -fprofile-generate test.o -o test
 
     ./test
 
@@ -98,7 +98,7 @@ SUITE_profiling_gcc() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -fprofile-dir=data2 -fprofile-generate=data test.o -lgcov -o test
+    $COMPILER -fprofile-generate test.o -o test
 
     ./test
 
