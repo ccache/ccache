@@ -1,4 +1,4 @@
-ccache installation
+Ccache installation
 ===================
 
 Prerequisites
