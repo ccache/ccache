@@ -1859,7 +1859,6 @@ find_compiler(Context& ctx,
       CCACHE_NAME);
   }
 
-  // Adjust ctx.orig_args
   if (first_param_is_ccache) {
     ctx.orig_args.pop_front();
   }
