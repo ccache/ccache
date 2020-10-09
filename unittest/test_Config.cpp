@@ -319,6 +319,15 @@ TEST_CASE("Config::set_value_in_file")
     std::string content = Util::read_file("ccache.conf");
     CHECK(content == "path = vanilla\nsloppiness = foo\n");
   }
+
+  SUBCASE("comments are kept")
+  {
+    Util::write_file("ccache.conf", "# c1\npath = blueberry\n#c2\n");
+    Config::set_value_in_file("ccache.conf", "path", "vanilla");
+    Config::set_value_in_file("ccache.conf", "compiler", "chocolate");
+    std::string content = Util::read_file("ccache.conf");
+    CHECK(content == "# c1\npath = vanilla\n#c2\ncompiler = chocolate\n");
+  }
 }
 
 TEST_CASE("Config::get_string_value")
