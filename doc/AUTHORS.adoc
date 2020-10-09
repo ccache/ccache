@@ -17,6 +17,7 @@ Ccache is a collective work with contributions from many people, including:
 * Andrew Boie
 * Andrew Stubbs
 * Andrew Tridgell
+* Arne Hasselbring
 * Bernhard Bauer
 * Björn Jacke
 * Breno Guimaraes
@@ -25,14 +26,16 @@ Ccache is a collective work with contributions from many people, including:
 * Clemens Rabe
 * Cristian Adam
 * David Givone
+* Deepak Yadav
 * Doug Anderson
 * Edward Z. Yang
 * Enrico Sorichetti
-* Erik Johansson
+* Erik Flodin
 * Francois Marier
 * Gabriel Scherer
 * Geert Bosch
 * Geert Kloosterman
+* Gregor Jasny
 * Grigory Entin
 * Harsh Shandilya
 * Havard Graff
@@ -65,6 +68,7 @@ Ccache is a collective work with contributions from many people, including:
 * Martin Pool
 * Mathias De Maré
 * Matthias Kretz
+* Matt Whitlock
 * Melven Roehrig-Zoellner
 * Michael Marineau
 * Michael Meeks
@@ -85,6 +89,8 @@ Ccache is a collective work with contributions from many people, including:
 * Orion Poplawski
 * Owen Mann
 * Patrick von Reth
+* Paul Bunch
+* Paul Fultz II
 * Paul Griffith
 * Pavel Boldin
 * Pavol Sakac
@@ -99,8 +105,10 @@ Ccache is a collective work with contributions from many people, including:
 * Rolf Bjarne Kvinge
 * RW
 * Ryan Brown
+* Ryan Egesdahl
 * Sam Gross
 * Steffen Dettmer
+* Sumit Jamgade
 * Thomas Otto
 * Thomas Röfer
 * Timofei Kushnir
