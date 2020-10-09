@@ -1955,11 +1955,10 @@ set_up_config(Config& config)
       config.set_cache_dir(default_cache_dir(home_dir));
     }
   }
-  // else: cache_dir was set explicitly via environment or via secondary
-  // config.
+  // else: cache_dir was set explicitly via environment or via secondary config.
 
-  // We have now determined config.cache_dir and populated the rest of config
-  // in prio order (1. environment, 2. primary config, 3. secondary config).
+  // We have now determined config.cache_dir and populated the rest of config in
+  // prio order (1. environment, 2. primary config, 3. secondary config).
 }
 
 static void
@@ -1982,10 +1981,10 @@ initialize(Context& ctx, int argc, const char* const* argv)
 
   // Set default umask for all files created by ccache from now on (if
   // configured to). This is intentionally done after calling init_log so that
-  // the log file won't be affected by the umask but before creating the
-  // initial configuration file. The intention is that all files and
-  // directories in the cache directory should be affected by the configured
-  // umask and that no other files and directories should.
+  // the log file won't be affected by the umask but before creating the initial
+  // configuration file. The intention is that all files and directories in the
+  // cache directory should be affected by the configured umask and that no
+  // other files and directories should.
   if (ctx.config.umask() != std::numeric_limits<uint32_t>::max()) {
     ctx.original_umask = umask(ctx.config.umask());
   }
@@ -2722,8 +2721,8 @@ handle_main_options(int argc, const char* const* argv)
       exit(EXIT_FAILURE);
     }
 
-    // Some of the above switches might have changed config settings, so run
-    // the setup again.
+    // Some of the above switches might have changed config settings, so run the
+    // setup again.
     ctx.config = Config();
     set_up_config(ctx.config);
   }
@@ -2744,8 +2743,8 @@ ccache_main(int argc, const char* const* argv)
         fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
         exit(EXIT_FAILURE);
       }
-      // If the first argument isn't an option, then assume we are being
-      // passed a compiler name and options.
+      // If the first argument isn't an option, then assume we are being passed
+      // a compiler name and options.
       if (argv[1][0] == '-') {
         return handle_main_options(argc, argv);
       }
