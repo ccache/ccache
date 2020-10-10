@@ -74,7 +74,7 @@ SUITE_profiling() {
     expect_stat 'cache hit (direct)' 0
     expect_stat 'cache miss' 1
 
-    $COMPILER -fprofile-generate=data test.o -lgcov -o test
+    $COMPILER -fprofile-generate test.o -o test
 
     ./test
     merge_profiling_data data
