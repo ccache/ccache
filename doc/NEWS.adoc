@@ -105,6 +105,11 @@ Functional changes
   option or when stderr does not refer to a TTY. This allows IDEs and terminals
   to share cached compilation results.
 
+- The configuration option `compiler` (`CCACHE_COMPILER`) now always takes
+  effect if specified. Previously, the configuration option was only used when
+  the compiler specified on the command line was looked up via `PATH` (i.e.,
+  not when an absolute path was specified).
+
 - Added optional logging to syslog.
 
 - The compiler option `-fmodules` is now handled in “depend mode”. If “depend
@@ -194,6 +199,9 @@ Other improvements
 - Tweaked placement of “(readonly)” in output of `ccache -s`.
 
 - Improved visibility of color output from the test suite.
+
+- Fixed a problem when running the test suite with Clang without a libgcov
+  library available.
 
 - Fixed test suite problems on macOS.
 
