@@ -1828,33 +1828,41 @@ void
 find_compiler(Context& ctx,
               const FindExecutableFunction& find_executable_function)
 {
-  const std::string orig_first_arg = ctx.orig_args[0];
-
-  // We might be being invoked like "ccache gcc -c foo.c".
-  std::string base(Util::base_name(ctx.orig_args[0]));
-  if (Util::same_program_name(base, CCACHE_NAME)) {
-    ctx.orig_args.pop_front();
-    if (Util::is_full_path(ctx.orig_args[0])) {
-      return;
-    }
-    base = std::string(Util::base_name(ctx.orig_args[0]));
-  }
+  const bool first_param_is_ccache =
+    Util::same_program_name(Util::base_name(ctx.orig_args[0]), CCACHE_NAME);
 
   // Support user override of the compiler.
-  if (!ctx.config.compiler().empty()) {
-    base = ctx.config.compiler();
+  const std::string compiler = [&] {
+    if (!ctx.config.compiler().empty()) {
+      return ctx.config.compiler();
+    } else if (first_param_is_ccache) {
+      return ctx.orig_args[1];
+    } else {
+      // ccache is masquerading as compiler
+      return std::string(Util::base_name(ctx.orig_args[0]));
+    }
+  }();
+
+  const std::string resolved_compiler =
+    Util::is_full_path(compiler)
+      ? compiler
+      : find_executable_function(ctx, compiler, CCACHE_NAME);
+
+  if (resolved_compiler.empty()) {
+    throw Fatal("Could not find compiler \"{}\" in PATH", compiler);
   }
 
-  std::string compiler = find_executable_function(ctx, base, CCACHE_NAME);
-  if (compiler.empty()) {
-    throw Fatal("Could not find compiler \"{}\" in PATH", base);
-  }
-  if (compiler == orig_first_arg) {
+  if (Util::same_program_name(Util::base_name(resolved_compiler),
+                              CCACHE_NAME)) {
     throw Fatal(
       "Recursive invocation (the name of the ccache binary must be \"{}\")",
       CCACHE_NAME);
   }
-  ctx.orig_args[0] = compiler;
+
+  if (first_param_is_ccache) {
+    ctx.orig_args.pop_front();
+  }
+  ctx.orig_args[0] = resolved_compiler;
 }
 
 static std::string

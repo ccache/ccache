@@ -725,6 +725,35 @@ b"
     expect_stat 'cache miss' 2
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_COMPILER"
+
+    $REAL_COMPILER -c -o reference_test1.o test1.c
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    CCACHE_COMPILER=$COMPILER $CCACHE non_existing_compiler_will_be_overridden_anyway -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    CCACHE_COMPILER=$COMPILER $CCACHE same/for/relative -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    CCACHE_COMPILER=$COMPILER $CCACHE /and/even/absolute/compilers -c test1.c
+    expect_stat 'cache hit (preprocessed)' 3
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_PATH"
 
     override_path=`pwd`/override_path
