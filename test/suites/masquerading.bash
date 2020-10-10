@@ -1,10 +1,11 @@
 SUITE_masquerading_PROBE() {
     local compiler_binary
-    if [ "$(dirname $COMPILER_BIN)" != . ]; then
-        echo "compiler ($COMPILER_BIN) not taken from PATH"
-    fi
     if $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
         echo "symlinks not supported on $(uname -s)"
+        return
+    fi
+    if [ "$(dirname $COMPILER_BIN)" != . ]; then
+        echo "compiler ($COMPILER_BIN) not taken from PATH"
         return
     fi
 }
