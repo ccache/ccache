@@ -1,8 +1,7 @@
 SUITE_masquerading_PROBE() {
     local compiler_binary
-    compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
-    if [ "$(dirname $compiler_binary)" != . ]; then
-        echo "compiler ($compiler_binary) not taken from PATH"
+    if [ "$(dirname $COMPILER_BIN)" != . ]; then
+        echo "compiler ($COMPILER_BIN) not taken from PATH"
     fi
     if $HOST_OS_WINDOWS || $HOST_OS_CYGWIN; then
         echo "symlinks not supported on $(uname -s)"
@@ -11,13 +10,8 @@ SUITE_masquerading_PROBE() {
 }
 
 SUITE_masquerading_SETUP() {
-    local compiler_binary
-    compiler_binary=$(echo $COMPILER | cut -d' ' -f1)
-    local compiler_args
-    compiler_args=$(echo $COMPILER | cut -s -d' ' -f2-)
-
-    ln -s "$CCACHE" $compiler_binary
-    CCACHE_COMPILE="./$compiler_binary $compiler_args"
+    ln -s "$CCACHE" $COMPILER_BIN
+    CCACHE_COMPILE="./$COMPILER_BIN $COMPILER_ARGS"
     generate_code 1 test1.c
 }
 
