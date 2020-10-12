@@ -302,8 +302,7 @@ expect_newer_than() {
 expect_perm() {
     local path="$1"
     local expected_perm="$2"
-    local actual_perm=$(ls -ld "$path" | awk '{print $1}')
-
+    local actual_perm=$(ls -ld "$path" | awk '{print substr($1, 1, 10)}')
     if [ "$expected_perm" != "$actual_perm" ]; then
         test_failed "Expected permissions for $path to be $expected_perm, actual $actual_perm"
     fi
