@@ -1317,6 +1317,22 @@ hash_common_info(const Context& ctx,
   hash.hash_delimiter("cc_name");
   hash.hash(Util::base_name(args[0]));
 
+  // Hash variables that may affect the compilation.
+  const char* always_hash_env_vars[] = {
+    // From <https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html>:
+    "COMPILER_PATH",
+    "GCC_COMPARE_DEBUG",
+    "GCC_EXEC_PREFIX",
+    "SOURCE_DATE_EPOCH",
+  };
+  for (const char* name : always_hash_env_vars) {
+    const char* value = getenv(name);
+    if (value) {
+      hash.hash_delimiter(name);
+      hash.hash(value);
+    }
+  }
+
   if (!(ctx.config.sloppiness() & SLOPPY_LOCALE)) {
     // Hash environment variables that may affect localization of compiler
     // warning messages.
