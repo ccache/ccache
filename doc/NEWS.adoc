@@ -6,28 +6,51 @@ Ccache 4.0
 Unreleased
 
 
-Compatibility with older versions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Summary of major changes
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Changed the default cache directory location to follow the XDG base directory
+  specification.
+
+- Changed compression algorithm from Deflate (zlib) to Zstandard, enabled by
+  default.
+
+- Added functionality for recompressing cache content with a higher compression
+  level.
+
+- Changed hash algorithm from MD4 to BLAKE3.
+
+- Added checksumming with XXH3 to detect data corruption.
+
+- Improved cache directory structure.
+
+- Added support for using file cloning (AKA “reflinks”).
+
+- Added an experimental “inode cache” for file hashes.
+
+
+Compatibility notes
+~~~~~~~~~~~~~~~~~~~
 
 - The default location of the cache directory has changed to follow the XDG
-  base directory specification (read more below). This means that scripts can
-  no longer assume that the cache directory is `~/.ccache` by default. The
-  `CCACHE_DIR` environment variable still overrides the default location just
-  like before.
+  base directory specification (<<_detailed_functional_changes,more details
+  below>>). This means that scripts can no longer assume that the cache
+  directory is `~/.ccache` by default. The `CCACHE_DIR` environment variable
+  still overrides the default location just like before.
 
-- The cache directory structure has changed compared to previous versions (read
-  more below). This means that ccache 4.0 cannot share cache results with
-  earlier versions. It is however safe to run 4.0 and earlier versions against
-  the same cache directory; cache bookkeeping, statistics and cleanup are
-  backward compatible, with one minor exception: some statistics counters
-  incremented by ccache 4.0 won’t be visible when running “ccache -s” with an
-  older version.
+- The cache directory structure has changed compared to previous versions
+  (<<_detailed_functional_changes,more details below>>). This means that ccache
+  4.0 will not share cache results with earlier versions. It is however safe to
+  run ccache 4.0 and earlier versions against the same cache directory: cache
+  bookkeeping, statistics and cleanup are backward compatible, with the minor
+  exception that some statistics counters incremented by ccache 4.0 won’t be
+  visible when running `ccache -s` with an older version.
 
 
 Changed tooling
 ~~~~~~~~~~~~~~~
 
-- CMake is now used instead of Autoconf for build configuration.
+- CMake is now used instead of Autoconf for configuration and building.
 
 - A C++11 compiler, a C99 compiler and CMake 3.4.3 or newer are now required to
   build ccache.
@@ -35,23 +58,22 @@ Changed tooling
 - Ccache can now be built using Microsoft Visual C++.
 
 
-Functional changes
-~~~~~~~~~~~~~~~~~~
+Detailed functional changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - All data of a cached result is now stored in a single file called “result”
-  instead of up to seven files. This reduces i-node usage and improves data
+  instead of up to seven files. This reduces inode usage and improves data
   locality.
 
 - Added compression of result and manifest files using the
   http://zstd.net[Zstandard] algorithm. Compression is enabled by default with
   compression level 1. This makes ccache able to store more data in the cache.
-  Previously compression with zlib (deflate) was available but disabled by
-  default. Files can be recompressed with a another compression level later
-  with the `-X/--recompress` option described further below.
+  Previously compression using Deflate (zlib) was available but disabled by
+  default. Files can be recompressed with another compression level later with
+  the `-X/--recompress` option described further below.
 
-- Switched to use the https://blake3.io[BLAKE3] algorithm instead of MD4 for
-  hashing input. This improves performance and reduces the risk of hash
-  collisions.
+- Changed from MD4 to https://blake3.io[BLAKE3] for hashing input. This
+  improves performance and reduces the risk of hash collisions.
 
 - Added checksumming of result and manifest files using the
   http://xxhash.com[XXH3] algorithm to detect data corruption.
@@ -59,16 +81,14 @@ Functional changes
 - Ccache now follows the
   https://specifications.freedesktop.org/basedir-spec/[XDG base directory
   specification]. This means that the default cache directory on Unix systems
-  is `$XDG_CACHE_HOME/ccache` (with `$HOME/.cache/ccache` as the fallback if
+  is `$XDG_CACHE_HOME/ccache` (with `~/.cache/ccache` as the fallback if
   `XDG_CACHE_HOME` is not set) and the configuration file is
-  `$XDG_CONFIG_HOME/ccache/ccache.conf` (with
-  `$HOME/.config/ccache/ccache.conf` as the fallback). On macOS, the fallbacks
-  are `$HOME/Library/Caches/ccache` and
-  `$HOME/Library/Preferences/ccache/ccache.conf`. On Windows, the fallbacks are
+  `$XDG_CONFIG_HOME/ccache/ccache.conf` (with `~/.config/ccache/ccache.conf` as
+  the fallback). On macOS, the fallbacks are `~/Library/Caches/ccache` and
+  `~/Library/Preferences/ccache/ccache.conf`. On Windows, the fallbacks are
   `%APPDATA%/ccache` and `%APPDATA%/ccache/ccache.conf`. Exception: If the
-  legacy `$HOME/.ccache` directory exists, that directory is used for the
-  default cache location and `$HOME/.ccache/ccache.conf` for the configuration
-  file.
+  legacy `~/.ccache` directory exists, that directory is used as the default
+  cache location and the configuration file is `~/.ccache/ccache.conf`.
 
 - Cache statistics are now stored in files on cache level 2 to reduce lock
   contention when there are many parallel compilations.
@@ -92,18 +112,19 @@ Functional changes
 - Added a command line option `-x/--show-compression` which shows statistics
   about cache compression.
 
-- Added a command line option `-X/--recompress` which can be used to recompress
-  the cache data with another compression level or make it uncompressed. If you
-  choose to disable compression by default, or to use a compression level with
+- Added a command line option `-X/--recompress` which recompresses the cache
+  data with another compression level or makes it uncompressed. If you choose
+  to disable compression by default, or choose to use a compression level with
   a low compression ratio, you can recompress the cache with a higher
   compression level after the build or at another time when there are more CPU
-  cycles available, for instance every night.
+  cycles available, for instance every night. Only files that are currently
+  compressed with a different level than the wanted level will be recompressed.
 
-- Added a command line option `--evict-older-than` which can be used to remove
-  cache entries older than a certain age.
+- Added a command line option `--evict-older-than` which removes cache entries
+  older than a certain age.
 
-- Added a command line option `-d/--directory` which can be used to specify
-  cache directory to operate on instead of having to set `CCACHE_DIR`
+- Added a command line option `-d/--directory` which specifies a cache
+  directory to operate on. It can be used instead of setting `CCACHE_DIR`
   temporarily.
 
 - A progress bar has been added to show the progress of time-consuming options
@@ -118,8 +139,8 @@ Functional changes
 - Some unnecessary `stat(2)` system calls are now avoided when verifying header
   files.
 
-- Compiler diagnostic messages are now always cached in color, and ccache
-  strips the color codes on the fly when requested explicitly by a command-line
+- Compiler diagnostic messages are now always cached in color. Ccache then
+  strips the color codes on the fly when requested explicitly by a command line
   option or when stderr does not refer to a TTY. This allows IDEs and terminals
   to share cached compilation results.
 
@@ -128,11 +149,12 @@ Functional changes
   the compiler specified on the command line was looked up via `PATH` (i.e.,
   not when an absolute path was specified).
 
-- Added optional logging to syslog.
+- Added optional logging to syslog if `log_file` (`CCACHE_LOGFILE`) is set to
+  `syslog`.
 
-- The compiler option `-fmodules` is now handled in “depend mode”. If “depend
-  mode” is disabled the option is still considered too hard and ccache will
-  fall back to running the compiler.
+- The compiler option `-fmodules` is now handled in the “depend mode”. If
+  “depend mode” is disabled the option is still considered too hard and ccache
+  will fall back to running the compiler.
 
 - Ccache can now cache compilations with coverage notes (`.gcno` files)
   produced by GCC 9+ in combination with `-fprofile-dir=dir`.
@@ -142,12 +164,12 @@ Functional changes
   directory is a symbolic link to an absolute path that includes unstable
   information like build IDs or timestamps.
 
-- Added a new `ignore_options` (`CCACHE_IGNOREOPTIONS`) configuration option
-  which makes it possible to exclude compiler options from the hash.
+- Added an `ignore_options` (`CCACHE_IGNOREOPTIONS`) configuration option which
+  makes it possible to exclude compiler options from the hash.
 
 - Added an `absolute_paths_in_stderr` (`CCACHE_ABSSTDERR`) configuration option
-  which, if set, makes ccache rewrite absolute paths in compiler warnings and
-  errors to relative.
+  which makes ccache rewrite absolute paths in compiler warnings and errors to
+  relative.
 
 - Improved handling of umask. The configured `umask` (`CCACHE_UMASK`) is now
   only applied to files and directories in the cache directory. Previously the
@@ -189,16 +211,16 @@ Functional changes
 - Added a command line option `--checksum-file` for debugging or evaluating the
   checksum algorithm.
 
-- Improved error message for “ccache -o=K=V” (trying to set a configuration
-  option named “=K”).
+- Improved error message for `ccache -o=K=V` (trying to set a configuration
+  option named `=K`).
 
 - Made timestamps in statistics files Y2038-proof.
 
-- Removed code for populating a newly created configuration file with cache
-  size values for cache directories created by ccache versions older than 3.2
-  (released 2014).
+- Removed code for populating a newly created configuration file with max cache
+  size and max files values for cache directories created by ccache versions
+  older than 3.2 (released 2014).
 
-- Removed knowledge about a top-level stats file created by ccache versions
+- Removed knowledge about a top-level `stats` file created by ccache versions
   older than 3.1 (released 2010).
 
 
@@ -212,7 +234,7 @@ Other improvements
 - Improved documentation of preprocessor and direct modes.
 
 - Added HTML anchors to configuration options in the manual so that it is
-  possible to construct a URL to a specific item.
+  possible link to a specific option.
 
 - Tweaked placement of “(readonly)” in output of `ccache -s`.
 
