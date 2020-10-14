@@ -229,3 +229,18 @@ jobs:
         run: misc/format-files --all --check
         env:
           VERBOSE: 1
+
+  codespell:
+    name: Spelling
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Get source
+        uses: actions/checkout@v2
+
+      - name: Install codespell
+        run: sudo apt-get install codespell
+
+      - name: Run codespell
+        run: codespell -q 7 -S ".git,LICENSE.adoc,./src/third_party/*" -I misc/codespell-allowlist.txt
