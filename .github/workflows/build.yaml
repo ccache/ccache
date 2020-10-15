@@ -129,7 +129,6 @@ jobs:
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PREFIX: scan-build
             RUN_TESTS: none
-            path: /usr/bin
             apt_get: libzstd-dev
 
           - name: Linux binary
@@ -180,10 +179,6 @@ jobs:
       - name: Run apt-get
         if: matrix.config.apt_get != ''
         run: sudo apt-get install ${{ matrix.config.apt_get }}
-
-      - name: Prefix PATH
-        if: matrix.config.path != ''
-        run: echo "::add-path::${{ matrix.config.path }}"
 
       - name: Build and test
         env:
