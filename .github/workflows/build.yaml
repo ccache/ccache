@@ -173,7 +173,7 @@ jobs:
 
       - name: Install CUDA
         if: matrix.config.CUDA != ''
-        run: sudo --preserve-env=CUDA ci/install-cuda
+        run: sudo --preserve-env=CUDA,GITHUB_PATH ci/install-cuda
         env:
           CUDA: ${{ matrix.config.CUDA }}
 

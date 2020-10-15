@@ -29,4 +29,4 @@ retry sudo apt-get clean
 
 cuda_home=/usr/local/cuda-${CUDA:0:4}
 $cuda_home/bin/nvcc --version
-echo "::set-env name=PATH::${cuda_home}/bin:${PATH}"
+echo "${cuda_home}/bin" >>$GITHUB_PATH
