@@ -93,7 +93,7 @@ jobs:
             CC: i686-w64-mingw32-gcc-posix
             CXX: i686-w64-mingw32-g++-posix
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
-            RUN_TESTS: 0
+            RUN_TESTS: none
             apt_get: elfutils mingw-w64
 
           - name: Linux MinGW 64-bit
@@ -102,8 +102,8 @@ jobs:
             CXX: x86_64-w64-mingw32-g++-posix
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
-            RUN_TESTS: 0
-            apt_get: elfutils mingw-w64
+            RUN_TESTS: unittest-in-wine
+            apt_get: elfutils mingw-w64 wine
 
           - name: Linux GCC 4.8.5
             os: ubuntu-16.04
@@ -128,7 +128,7 @@ jobs:
             CXX: clang++
             ENABLE_CACHE_CLEANUP_TESTS: 1
             CMAKE_PREFIX: scan-build
-            RUN_TESTS: 0
+            RUN_TESTS: none
             path: /usr/bin
             apt_get: libzstd-dev
 
@@ -150,20 +150,20 @@ jobs:
           - name: HTML documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
-            RUN_TESTS: 0
+            RUN_TESTS: none
             apt_get: libzstd1-dev asciidoc
 
           - name: Manual page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
-            RUN_TESTS: 0
+            RUN_TESTS: none
             apt_get: libzstd1-dev asciidoc xsltproc
 
           - name: Clang-Tidy
             os: ubuntu-18.04
             CC: clang
             CXX: clang++
-            RUN_TESTS: 0
+            RUN_TESTS: none
             CMAKE_PARAMS: -DENABLE_CLANG_TIDY=ON
             apt_get: libzstd-dev clang-tidy
 

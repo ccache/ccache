@@ -18,7 +18,15 @@ else
     cd ${BUILDDIR:-build}
     ${CMAKE_PREFIX:-} cmake ${CMAKE_PARAMS:-} ${CCACHE_LOC:-..}
     ${CMAKE_PREFIX:-} cmake --build . ${EXTRA_CMAKE_BUILD_FLAGS:-} -- -j$JOBS
-    if [ "${RUN_TESTS:-1}" -eq 1 ]; then
-        CC=${TEST_CC:-${CC}} ctest --output-on-failure -j$JOBS "$@"
-    fi
+    case "${RUN_TESTS:-all}" in
+        all)
+            CC=${TEST_CC:-${CC}} ctest --output-on-failure -j$JOBS "$@"
+            ;;
+        unittest-in-wine)
+            wine ccache.exe --version
+            wine unittest/unittest.exe
+            ;;
+        none)
+            ;;
+    esac
 fi
