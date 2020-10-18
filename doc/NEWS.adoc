@@ -3,7 +3,7 @@ Ccache news
 
 Ccache 4.0
 ----------
-Unreleased
+Release date: 2020-10-18
 
 
 Summary of major changes
