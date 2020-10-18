@@ -23,6 +23,7 @@ Ccache is a collective work with contributions from many people, including:
 * Breno Guimaraes
 * Chiaki Ishikawa
 * Chris AtLee
+* Chris Burr
 * Clemens Rabe
 * Cristian Adam
 * David Givone
