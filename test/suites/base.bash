@@ -17,6 +17,31 @@ base_tests() {
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
+    TEST "ccache ccache gcc"
+    # e.g. due to some suboptimal setup, scripts etc.
+    # Source: https://github.com/ccache/ccache/issues/686
+
+    $REAL_COMPILER -c -o reference_test1.o test1.c
+
+    $CCACHE $COMPILER -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    $CCACHE $CCACHE $COMPILER -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    $CCACHE $CCACHE $CCACHE $COMPILER -c test1.c
+    expect_stat 'cache hit (preprocessed)' 2
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_object_files reference_test1.o test1.o
+
+    # -------------------------------------------------------------------------
     TEST "Version output readable"
 
     # The exact output is not tested, but at least it's something human readable
