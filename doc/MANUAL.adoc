@@ -8,7 +8,7 @@ CCACHE(1)
 Name
 ----
 
-Ccache - a fast C/C++ compiler cache
+ccache - a fast C/C++ compiler cache
 
 
 Synopsis
