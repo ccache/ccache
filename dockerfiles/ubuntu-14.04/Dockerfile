@@ -6,10 +6,11 @@ RUN apt-get update \
         bash \
         build-essential \
         ccache \
-        clang \
+        clang-3.4 \
         curl \
         elfutils \
-        gcc-multilib \
+        g++-multilib \
+        ninja-build \
         wget \
         xsltproc \
  && rm -rf /var/lib/apt/lists/*

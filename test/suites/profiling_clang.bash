@@ -3,6 +3,10 @@ SUITE_profiling_clang_PROBE() {
         echo "compiler is not Clang"
     elif ! command -v llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null; then
         echo "llvm-profdata$CLANG_VERSION_SUFFIX tool not found"
+    elif ! $COMPILER -fdebug-prefix-map -c test.c 2>/dev/null; then
+        echo "compiler does not support -fdebug-prefix-map"
+    elif ! $COMPILER -fprofile-sample-accurate -c test.c 2>/dev/null; then
+        echo "compiler does not support -fdebug-prefix-map"
     fi
 }
 

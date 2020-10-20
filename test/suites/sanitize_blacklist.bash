@@ -43,7 +43,8 @@ SUITE_sanitize_blacklist() {
     expect_stat 'files in cache' 4
 
     # -------------------------------------------------------------------------
-    TEST "Compile failed"
+    # Not "failed" as it triggers regex 'fail' detection on some older setups.
+    TEST "Compile fai-led"
 
     if $REAL_COMPILER -c -fsanitize-blacklist=nosuchfile.txt test1.c 2>expected.stderr; then
         test_failed "Expected an error compiling test1.c"

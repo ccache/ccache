@@ -31,7 +31,8 @@ SUITE_serialize_diagnostics() {
     expect_equal_content expected.dia test.dia
 
     # -------------------------------------------------------------------------
-    TEST "Compile failed"
+    # Not "failed" as it triggers regex 'fail' detection on some older setups.
+    TEST "Compile fai-led"
 
     echo "bad source" >error.c
     if $REAL_COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then

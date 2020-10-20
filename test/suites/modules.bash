@@ -1,7 +1,9 @@
 SUITE_modules_PROBE() {
     if ! $COMPILER_TYPE_CLANG; then
         echo "-fmodules/-fcxx-modules not supported by compiler"
-        return
+    else
+        touch test.c
+        $COMPILER -fmodules test.c -S || echo "Clang 3.4 does not support modules"
     fi
 }
 
