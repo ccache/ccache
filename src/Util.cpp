@@ -284,7 +284,7 @@ clone_hard_link_or_copy_file(const Context& ctx,
       log("Failed to clone: {}", e.what());
     }
 #else
-    log("Not cloning {} to {} since it's unsupported");
+    log("Not cloning {} to {} since it's unsupported", source, dest);
 #endif
   }
   if (ctx.config.hard_link()) {
