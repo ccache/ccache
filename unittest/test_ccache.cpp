@@ -105,6 +105,16 @@ TEST_CASE("find_compiler")
     CHECK(helper("/abs/" CCACHE_NAME " /abs/gcc", "", "") == "/abs/gcc");
   }
 
+  SUBCASE("double ccache")
+  {
+    // e.g. due to some suboptimal setup, scripts etc.
+    // Source: https://github.com/ccache/ccache/issues/686
+    CHECK(helper(CCACHE_NAME " gcc", "") == "resolved_gcc");
+    CHECK(helper(CCACHE_NAME " " CCACHE_NAME " gcc", "") == "resolved_gcc");
+    CHECK(helper(CCACHE_NAME " " CCACHE_NAME " " CCACHE_NAME " gcc", "")
+          == "resolved_gcc");
+  }
+
   SUBCASE("config")
   {
     // In case the first parameter is gcc it must be a link to ccache so use

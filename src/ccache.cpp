@@ -1844,18 +1844,24 @@ void
 find_compiler(Context& ctx,
               const FindExecutableFunction& find_executable_function)
 {
-  const nonstd::string_view first_param_base_name =
-    Util::base_name(ctx.orig_args[0]);
-  const bool first_param_is_ccache =
-    Util::same_program_name(first_param_base_name, CCACHE_NAME);
+  // gcc --> 0
+  // ccache gcc --> 1
+  // ccache ccache gcc --> 2
+  size_t compiler_pos = 0;
+  while (compiler_pos < ctx.orig_args.size()
+         && Util::same_program_name(
+           Util::base_name(ctx.orig_args[compiler_pos]), CCACHE_NAME)) {
+    compiler_pos++;
+  }
 
   // Support user override of the compiler.
   const std::string compiler =
     !ctx.config.compiler().empty()
       ? ctx.config.compiler()
-      : (first_param_is_ccache ? ctx.orig_args[1]
-                               // ccache is masquerading as compiler:
-                               : std::string(first_param_base_name));
+      // In case ccache is masquerading as compiler,
+      // use only base_name so the real compiler can be determined.
+      : compiler_pos == 0 ? std::string(Util::base_name(ctx.orig_args[0]))
+                          : ctx.orig_args[compiler_pos];
 
   const std::string resolved_compiler =
     Util::is_full_path(compiler)
@@ -1873,9 +1879,7 @@ find_compiler(Context& ctx,
       CCACHE_NAME);
   }
 
-  if (first_param_is_ccache) {
-    ctx.orig_args.pop_front();
-  }
+  ctx.orig_args.pop_front(compiler_pos);
   ctx.orig_args[0] = resolved_compiler;
 }
 
