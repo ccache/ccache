@@ -72,7 +72,9 @@ extern "C" {
 #ifdef __APPLE__
 #  ifdef HAVE_SYS_CLONEFILE_H
 #    include <sys/clonefile.h>
-#    define FILE_CLONING_SUPPORTED 1
+#    ifdef CLONE_NOOWNERCOPY
+#      define FILE_CLONING_SUPPORTED 1
+#    endif
 #  endif
 #endif
 
