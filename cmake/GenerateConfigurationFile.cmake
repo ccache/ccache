@@ -54,15 +54,16 @@ check_struct_has_member("struct statfs" f_fstypename sys/mount.h
 
 include(CheckCXXCompilerFlag)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
-  # Old GCC versions don't have the required header support.
+# Old GCC versions don't have the required header support.
+# Old Apple Clang versions seems to support -mavx2 but not the target
+# attribute that's used to enable AVX2 for a certain function.
+if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+   OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
   message(STATUS "Detected unsupported compiler for HAVE_AVX2 - disabled")
   set(HAVE_AVX2 FALSE)
 else()
   check_cxx_compiler_flag(-mavx2 HAVE_AVX2)
 endif()
-
 
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
 list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
