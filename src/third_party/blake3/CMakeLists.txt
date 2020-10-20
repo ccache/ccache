@@ -2,7 +2,9 @@ add_library(blake3 STATIC blake3.c blake3_dispatch.c blake3_portable.c)
 
 target_link_libraries(blake3 PRIVATE standard_settings)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8
+   AND NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+            AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
   set(blake_source_type asm)
   set(blake_suffix "_x86-64_unix.S")
 else()
