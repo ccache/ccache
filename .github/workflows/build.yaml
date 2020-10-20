@@ -4,41 +4,130 @@ on:
   pull_request:
 
 jobs:
-  # These test the standard build on several systems with GCC + Clang.
-  standard_tests:
-    name: ${{ matrix.os }} & ${{ matrix.compiler.CC }}
-    runs-on: ${{ matrix.os }}
+  build_and_test:
+    name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}
+    runs-on: ${{ matrix.config.os }}
+    env:
+      CMAKE_GENERATOR: Ninja
+      CTEST_OUTPUT_ON_FAILURE: ON
+      VERBOSE: 1
+
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15]
-        compiler:
-          - CC: gcc
-            CXX: g++
-          - CC: clang
-            CXX: clang++
+        config:
+          - os: ubuntu-16.04
+            compiler: gcc
+            version: "4.8" # results in 4.8.5
 
+          - os: ubuntu-16.04
+            compiler: gcc
+            version: "5"
+
+          - os: ubuntu-18.04
+            compiler: gcc
+            version: "6"
+
+          - os: ubuntu-18.04
+            compiler: gcc
+            version: "7"
+
+          - os: ubuntu-18.04
+            compiler: gcc
+            version: "8"
+
+          - os: ubuntu-18.04
+            compiler: gcc
+            version: "9"
+
+          - os: ubuntu-20.04
+            compiler: gcc
+            version: "10"
+
+          # Enable after https://github.com/ccache/ccache/pull/693
+          # - os: ubuntu-16.04
+          #   compiler: clang
+          #   version: "3.5"
+
+          # Enable after https://github.com/ccache/ccache/pull/693
+          # - os: ubuntu-16.04
+          #   compiler: clang
+          #   version: "5.0"
+
+          - os: ubuntu-16.04
+            compiler: clang
+            version: "6.0"
+
+          - os: ubuntu-18.04
+            compiler: clang
+            version: "7"
+
+          - os: ubuntu-18.04
+            compiler: clang
+            version: "8"
+
+          - os: ubuntu-20.04
+            compiler: clang
+            version: "9"
+
+          - os: ubuntu-20.04
+            compiler: clang
+            version: "10"
+
+          - os: macOS-latest
+            compiler: xcode
+            version: "10.3"
+
+          - os: macOS-latest
+            compiler: xcode
+            version: "11.0.0"
+
+          - os: macOS-latest
+            compiler: xcode
+            version: "12.2"
     steps:
+      - name: Install dependencies
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
+              sudo apt-get install -y ninja-build elfutils libzstd-dev
+            else
+              sudo apt-get install -y ninja-build elfutils libzstd1-dev
+            fi
+
+            if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+              echo "CC=gcc-${{ matrix.config.version }}" >> $GITHUB_ENV
+              echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
+
+              sudo apt install -y g++-${{ matrix.config.version }} g++-${{ matrix.config.version }}-multilib
+            else
+              echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
+              echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
+
+              sudo apt update
+              sudo apt install -y clang-${{ matrix.config.version }} g++-multilib
+            fi
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            brew install ninja
+            if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+              brew install gcc@${{ matrix.config.version }}
+              echo "CC=gcc-${{ matrix.config.version }}" >> $GITHUB_ENV
+              echo "CXX=g++-${{ matrix.config.version }}" >> $GITHUB_ENV
+            else
+              sudo xcode-select -switch /Applications/Xcode_${{ matrix.config.version }}.app
+              echo "CC=clang" >> $GITHUB_ENV
+              echo "CXX=clang++" >> $GITHUB_ENV
+            fi
+          fi
+
       - name: Get source
         uses: actions/checkout@v2
 
-      - name: Install dependencies (Ubuntu 16 & 18)
-        if: startsWith(matrix.os, 'ubuntu') && matrix.os != 'ubuntu-20.04'
-        run: sudo apt-get install elfutils libzstd1-dev
-
-      - name: Install dependencies (Ubuntu 20)
-        if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt-get install elfutils libzstd-dev
-
       - name: Build and test
-        run: ci/build
+        run:  ci/build
         env:
-          CC: ${{ matrix.compiler.CC }}
-          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
-          CTEST_OUTPUT_ON_FAILURE: ON
-          CXX: ${{ matrix.compiler.CXX }}
           ENABLE_CACHE_CLEANUP_TESTS: true
-          VERBOSE: 1
+          CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
 
       - name: Collect testdir from failed tests
         if: failure()
@@ -48,7 +137,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }} - ${{ matrix.compiler.CC }} - testdir.tar.xz
+          name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-{{ matrix.config.version }}-testdir.tar.xz
           path: testdir.tar.xz
 
   specific_tests:
@@ -104,14 +193,6 @@ jobs:
             CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DCMAKE_SYSTEM_NAME=Windows -DZSTD_FROM_INTERNET=ON
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
-
-          - name: Linux GCC 4.8.5
-            os: ubuntu-16.04
-            CC: gcc-4.8
-            CXX: g++-4.8
-            ENABLE_CACHE_CLEANUP_TESTS: 1
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DWARNINGS_AS_ERRORS=OFF
-            apt_get: elfutils libzstd1-dev g++-4.8
 
           - name: Clang address & UB sanitizer
             os: ubuntu-20.04
@@ -188,7 +269,6 @@ jobs:
           CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
           CFLAGS: ${{ matrix.config.CFLAGS }}
           CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
-          CTEST_OUTPUT_ON_FAILURE: ON
           CXX: ${{ matrix.config.CXX }}
           CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
           ENABLE_CACHE_CLEANUP_TESTS: ${{ matrix.config.ENABLE_CACHE_CLEANUP_TESTS }}
@@ -196,7 +276,6 @@ jobs:
           LDFLAGS: ${{ matrix.config.LDFLAGS }}
           RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
           SPECIAL: ${{ matrix.config.SPECIAL }}
-          VERBOSE: 1
         run: ci/build
 
       - name: Collect testdir from failed tests
@@ -222,8 +301,6 @@ jobs:
 
       - name: Run Clang-Format in check mode
         run: misc/format-files --all --check
-        env:
-          VERBOSE: 1
 
   codespell:
     name: Spelling
