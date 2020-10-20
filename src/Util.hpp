@@ -22,6 +22,8 @@
 
 #include "CacheFile.hpp"
 
+#include "third_party/fmt/core.h"
+#include "third_party/fmt/format.h"
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 

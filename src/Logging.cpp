@@ -182,7 +182,7 @@ dump_log(const std::string& path)
   if (file) {
     (void)fwrite(debug_log_buffer.data(), debug_log_buffer.length(), 1, *file);
   } else {
-    log("Failed to open {}: {}", path, strerror(errno));
+    LOG("Failed to open {}: {}", path, strerror(errno));
   }
 }
 

@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 
-using Logging::log;
 using nonstd::string_view;
 
 Context::Context()
@@ -83,7 +82,7 @@ Context::set_ignore_options(const std::vector<std::string>& options)
     if (n_wildcards == 0 || (n_wildcards == 1 && option.back() == '*')) {
       m_ignore_options.push_back(option);
     } else {
-      log("Skipping malformed ignore_options item: {}", option);
+      LOG("Skipping malformed ignore_options item: {}", option);
       continue;
     }
   }

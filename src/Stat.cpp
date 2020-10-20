@@ -20,8 +20,6 @@
 
 #include "Logging.hpp"
 
-using Logging::log;
-
 Stat::Stat(StatFunction stat_function,
            const std::string& path,
            Stat::OnError on_error)
@@ -35,7 +33,7 @@ Stat::Stat(StatFunction stat_function,
       throw Error("failed to stat {}: {}", path, strerror(errno));
     }
     if (on_error == OnError::log) {
-      log("Failed to stat {}: {}", path, strerror(errno));
+      LOG("Failed to stat {}: {}", path, strerror(errno));
     }
 
     // The file is missing, so just zero fill the stat structure. This will

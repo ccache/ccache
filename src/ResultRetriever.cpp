@@ -21,7 +21,6 @@
 #include "Context.hpp"
 #include "Logging.hpp"
 
-using Logging::log;
 using Result::FileType;
 
 ResultRetriever::ResultRetriever(Context& ctx, bool rewrite_dependency_target)
@@ -93,11 +92,11 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
   }
 
   if (dest_path.empty()) {
-    log("Not copying");
+    LOG_RAW("Not copying");
   } else if (dest_path == "/dev/null") {
-    log("Not copying to /dev/null");
+    LOG_RAW("Not copying to /dev/null");
   } else {
-    log("Retrieving {} file #{} {} ({} bytes)",
+    LOG("Retrieving {} file #{} {} ({} bytes)",
         raw_file ? "raw" : "embedded",
         entry_number,
         Result::file_type_to_string(file_type),
@@ -110,7 +109,7 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
       // if hard-linked, to make the object file newer than the source file).
       Util::update_mtime(*raw_file);
     } else {
-      log("Copying to {}", dest_path);
+      LOG("Copying to {}", dest_path);
       m_dest_fd = Fd(
         open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
       if (!m_dest_fd) {

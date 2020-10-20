@@ -31,8 +31,6 @@
 
 #include <algorithm>
 
-using Logging::log;
-
 static void
 delete_file(const std::string& path,
             uint64_t size,
@@ -41,7 +39,7 @@ delete_file(const std::string& path,
 {
   bool deleted = Util::unlink_safe(path, Util::UnlinkLog::ignore_failure);
   if (!deleted && errno != ENOENT && errno != ESTALE) {
-    log("Failed to unlink {} ({})", path, strerror(errno));
+    LOG("Failed to unlink {} ({})", path, strerror(errno));
   } else if (cache_size && files_in_cache) {
     // The counters are intentionally subtracted even if there was no file to
     // delete since the final cache size calculation will be incorrect if they
@@ -90,7 +88,7 @@ clean_up_dir(const std::string& subdir,
              uint64_t max_age,
              const Util::ProgressReceiver& progress_receiver)
 {
-  log("Cleaning up cache directory {}", subdir);
+  LOG("Cleaning up cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -128,7 +126,7 @@ clean_up_dir(const std::string& subdir,
               return f1->lstat().mtime() < f2->lstat().mtime();
             });
 
-  log("Before cleanup: {:.0f} KiB, {:.0f} files",
+  LOG("Before cleanup: {:.0f} KiB, {:.0f} files",
       static_cast<double>(cache_size) / 1024,
       static_cast<double>(files_in_cache));
 
@@ -173,12 +171,12 @@ clean_up_dir(const std::string& subdir,
     cleaned = true;
   }
 
-  log("After cleanup: {:.0f} KiB, {:.0f} files",
+  LOG("After cleanup: {:.0f} KiB, {:.0f} files",
       static_cast<double>(cache_size) / 1024,
       static_cast<double>(files_in_cache));
 
   if (cleaned) {
-    log("Cleaned up cache directory {}", subdir);
+    LOG("Cleaned up cache directory {}", subdir);
   }
 
   update_counters(subdir, files_in_cache, cache_size, cleaned);
@@ -207,7 +205,7 @@ static void
 wipe_dir(const std::string& subdir,
          const Util::ProgressReceiver& progress_receiver)
 {
-  log("Clearing out cache directory {}", subdir);
+  LOG("Clearing out cache directory {}", subdir);
 
   std::vector<std::shared_ptr<CacheFile>> files;
   Util::get_level_1_files(
@@ -220,7 +218,7 @@ wipe_dir(const std::string& subdir,
 
   const bool cleared = !files.empty();
   if (cleared) {
-    log("Cleared out cache directory {}", subdir);
+    LOG("Cleared out cache directory {}", subdir);
   }
   update_counters(subdir, 0, 0, cleared);
 }

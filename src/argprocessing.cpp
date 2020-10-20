@@ -27,7 +27,6 @@
 
 #include <cassert>
 
-using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 using nonstd::string_view;
@@ -105,14 +104,14 @@ detect_pch(Context& ctx,
   std::string pch_file;
   if (option == "-include-pch" || option == "-include-pth") {
     if (Stat::stat(arg)) {
-      log("Detected use of precompiled header: {}", arg);
+      LOG("Detected use of precompiled header: {}", arg);
       pch_file = arg;
     }
   } else if (!is_cc1_option) {
     for (const auto& extension : {".gch", ".pch", ".pth"}) {
       std::string path = arg + extension;
       if (Stat::stat(path)) {
-        log("Detected use of precompiled header: {}", path);
+        LOG("Detected use of precompiled header: {}", path);
         pch_file = path;
       }
     }
@@ -120,7 +119,7 @@ detect_pch(Context& ctx,
 
   if (!pch_file.empty()) {
     if (!ctx.included_pch_file.empty()) {
-      log("Multiple precompiled headers used: {} and {}",
+      LOG("Multiple precompiled headers used: {} and {}",
           ctx.included_pch_file,
           pch_file);
       return false;
@@ -177,13 +176,13 @@ process_profiling_option(Context& ctx, const std::string& arg)
     new_profile_use = true;
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else {
-    log("Unknown profiling option: {}", arg);
+    LOG("Unknown profiling option: {}", arg);
     return false;
   }
 
   if (new_profile_use) {
     if (ctx.args_info.profile_use) {
-      log("Multiple profiling options not supported");
+      LOG_RAW("Multiple profiling options not supported");
       return false;
     }
     ctx.args_info.profile_use = true;
@@ -191,12 +190,12 @@ process_profiling_option(Context& ctx, const std::string& arg)
 
   if (!new_profile_path.empty()) {
     ctx.args_info.profile_path = new_profile_path;
-    log("Set profile directory to {}", ctx.args_info.profile_path);
+    LOG("Set profile directory to {}", ctx.args_info.profile_path);
   }
 
   if (ctx.args_info.profile_generate && ctx.args_info.profile_use) {
     // Too hard to figure out what the compiler will do.
-    log("Both generating and using profile info, giving up");
+    LOG_RAW("Both generating and using profile info, giving up");
     return false;
   }
 
@@ -228,7 +227,7 @@ process_arg(Context& ctx,
   if (args[i] == "--ccache-skip") {
     i++;
     if (i == args.size()) {
-      log("--ccache-skip lacks an argument");
+      LOG_RAW("--ccache-skip lacks an argument");
       return Statistic::bad_compiler_arguments;
     }
     state.common_args.push_back(args[i]);
@@ -249,7 +248,7 @@ process_arg(Context& ctx,
     }
     auto file_args = Args::from_gcc_atfile(argpath);
     if (!file_args) {
-      log("Couldn't read arg file {}", argpath);
+      LOG("Couldn't read arg file {}", argpath);
       return Statistic::bad_compiler_arguments;
     }
 
@@ -262,7 +261,7 @@ process_arg(Context& ctx,
   if (ctx.guessed_compiler == GuessedCompiler::nvcc
       && (args[i] == "-optf" || args[i] == "--options-file")) {
     if (i == args.size() - 1) {
-      log("Expected argument after {}", args[i]);
+      LOG("Expected argument after {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     ++i;
@@ -272,7 +271,7 @@ process_arg(Context& ctx,
     for (auto it = paths.rbegin(); it != paths.rend(); ++it) {
       auto file_args = Args::from_gcc_atfile(*it);
       if (!file_args) {
-        log("Couldn't read CUDA options file {}", *it);
+        LOG("Couldn't read CUDA options file {}", *it);
         return Statistic::bad_compiler_arguments;
       }
 
@@ -285,19 +284,19 @@ process_arg(Context& ctx,
   // These are always too hard.
   if (compopt_too_hard(args[i]) || Util::starts_with(args[i], "-fdump-")
       || Util::starts_with(args[i], "-MJ")) {
-    log("Compiler option {} is unsupported", args[i]);
+    LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
   }
 
   // These are too hard in direct mode.
   if (config.direct_mode() && compopt_too_hard_for_direct_mode(args[i])) {
-    log("Unsupported compiler option for direct mode: {}", args[i]);
+    LOG("Unsupported compiler option for direct mode: {}", args[i]);
     config.set_direct_mode(false);
   }
 
   // -Xarch_* options are too hard.
   if (Util::starts_with(args[i], "-Xarch_")) {
-    log("Unsupported compiler option: {}", args[i]);
+    LOG("Unsupported compiler option: {}", args[i]);
     return Statistic::unsupported_compiler_option;
   }
 
@@ -335,7 +334,7 @@ process_arg(Context& ctx,
         || (ctx.guessed_compiler == GuessedCompiler::nvcc
             && args[i] == "-Werror")) {
       if (i == args.size() - 1) {
-        log("Missing argument to {}", args[i]);
+        LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
       state.compiler_only_args.push_back(args[i + 1]);
@@ -358,11 +357,11 @@ process_arg(Context& ctx,
   // flag.
   if (args[i] == "-fmodules") {
     if (!config.depend_mode() || !config.direct_mode()) {
-      log("Compiler option {} is unsupported without direct depend mode",
+      LOG("Compiler option {} is unsupported without direct depend mode",
           args[i]);
       return Statistic::could_not_use_modules;
     } else if (!(config.sloppiness() & SLOPPY_MODULES)) {
-      log(
+      LOG_RAW(
         "You have to specify \"modules\" sloppiness when using"
         " -fmodules to get hits");
       return Statistic::could_not_use_modules;
@@ -403,7 +402,7 @@ process_arg(Context& ctx,
     // input file and strip all -x options from the arguments.
     if (args[i].length() == 2) {
       if (i == args.size() - 1) {
-        log("Missing argument to {}", args[i]);
+        LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
       if (args_info.input_file.empty()) {
@@ -423,7 +422,7 @@ process_arg(Context& ctx,
   // We need to work out where the output was meant to go.
   if (args[i] == "-o") {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     args_info.output_obj = Util::make_relative_path(ctx, args[i + 1]);
@@ -498,7 +497,7 @@ process_arg(Context& ctx,
     if (separate_argument) {
       // -MF arg
       if (i == args.size() - 1) {
-        log("Missing argument to {}", args[i]);
+        LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
       dep_file = args[i + 1];
@@ -524,7 +523,7 @@ process_arg(Context& ctx,
     if (args[i].size() == 3) {
       // -MQ arg or -MT arg
       if (i == args.size() - 1) {
-        log("Missing argument to {}", args[i]);
+        LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
       }
       state.dep_args.push_back(args[i]);
@@ -593,7 +592,7 @@ process_arg(Context& ctx,
   // Alternate form of specifying sysroot without =
   if (args[i] == "--sysroot") {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     state.common_args.push_back(args[i]);
@@ -606,7 +605,7 @@ process_arg(Context& ctx,
   // Alternate form of specifying target without =
   if (args[i] == "-target") {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     state.common_args.push_back(args[i]);
@@ -621,7 +620,7 @@ process_arg(Context& ctx,
       // -P removes preprocessor information in such a way that the object file
       // from compiling the preprocessed file will not be equal to the object
       // file produced when compiling without ccache.
-      log("Too hard option -Wp,-P detected");
+      LOG_RAW("Too hard option -Wp,-P detected");
       return Statistic::unsupported_compiler_option;
     } else if (Util::starts_with(args[i], "-Wp,-MD,")
                && args[i].find(',', 8) == std::string::npos) {
@@ -656,7 +655,7 @@ process_arg(Context& ctx,
     } else if (config.direct_mode()) {
       // -Wp, can be used to pass too hard options to the preprocessor.
       // Hence, disable direct mode.
-      log("Unsupported compiler option for direct mode: {}", args[i]);
+      LOG("Unsupported compiler option for direct mode: {}", args[i]);
       config.set_direct_mode(false);
     }
 
@@ -678,7 +677,7 @@ process_arg(Context& ctx,
 
   if (args[i] == "--serialize-diagnostics") {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
     args_info.generating_diagnostics = true;
@@ -733,7 +732,7 @@ process_arg(Context& ctx,
     // among multiple users.
     i++;
     if (i <= args.size() - 1) {
-      log("Skipping argument -index-store-path {}", args[i]);
+      LOG("Skipping argument -index-store-path {}", args[i]);
     }
     return nullopt;
   }
@@ -743,7 +742,7 @@ process_arg(Context& ctx,
   // output produced by the compiler will be normalized.
   if (compopt_takes_path(args[i])) {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
 
@@ -795,7 +794,7 @@ process_arg(Context& ctx,
   // Options that take an argument.
   if (compopt_takes_arg(args[i])) {
     if (i == args.size() - 1) {
-      log("Missing argument to {}", args[i]);
+      LOG("Missing argument to {}", args[i]);
       return Statistic::bad_compiler_arguments;
     }
 
@@ -830,7 +829,7 @@ process_arg(Context& ctx,
   if (args[i] != "/dev/null") {
     auto st = Stat::stat(args[i]);
     if (!st || !st.is_regular()) {
-      log("{} is not a regular file, not considering as input file", args[i]);
+      LOG("{} is not a regular file, not considering as input file", args[i]);
       state.common_args.push_back(args[i]);
       return nullopt;
     }
@@ -838,17 +837,17 @@ process_arg(Context& ctx,
 
   if (!args_info.input_file.empty()) {
     if (!language_for_file(args[i]).empty()) {
-      log("Multiple input files: {} and {}", args_info.input_file, args[i]);
+      LOG("Multiple input files: {} and {}", args_info.input_file, args[i]);
       return Statistic::multiple_source_files;
     } else if (!state.found_c_opt && !state.found_dc_opt) {
-      log("Called for link with {}", args[i]);
+      LOG("Called for link with {}", args[i]);
       if (args[i].find("conftest.") != std::string::npos) {
         return Statistic::autoconf_test;
       } else {
         return Statistic::called_for_link;
       }
     } else {
-      log("Unsupported source extension: {}", args[i]);
+      LOG("Unsupported source extension: {}", args[i]);
       return Statistic::unsupported_source_language;
     }
   }
@@ -948,24 +947,24 @@ process_args(Context& ctx)
   }
 
   if (state.generating_debuginfo_level_3 && !config.run_second_cpp()) {
-    log("Generating debug info level 3; not compiling preprocessed code");
+    LOG_RAW("Generating debug info level 3; not compiling preprocessed code");
     config.set_run_second_cpp(true);
   }
 
   handle_dependency_environment_variables(ctx, state);
 
   if (args_info.input_file.empty()) {
-    log("No input file found");
+    LOG_RAW("No input file found");
     return Statistic::no_input_file;
   }
 
   if (state.found_pch || state.found_fpch_preprocess) {
     args_info.using_precompiled_header = true;
     if (!(config.sloppiness() & SLOPPY_TIME_MACROS)) {
-      log(
+      LOG_RAW(
         "You have to specify \"time_macros\" sloppiness when using"
         " precompiled headers to get direct hits");
-      log("Disabling direct mode");
+      LOG_RAW("Disabling direct mode");
       return Statistic::could_not_use_precompiled_header;
     }
   }
@@ -980,7 +979,7 @@ process_args(Context& ctx)
   state.file_language = language_for_file(args_info.input_file);
   if (!state.explicit_language.empty()) {
     if (!language_is_supported(state.explicit_language)) {
-      log("Unsupported language: {}", state.explicit_language);
+      LOG("Unsupported language: {}", state.explicit_language);
       return Statistic::unsupported_source_language;
     }
     args_info.actual_language = state.explicit_language;
@@ -994,7 +993,7 @@ process_args(Context& ctx)
 
   if (args_info.output_is_precompiled_header
       && !(config.sloppiness() & SLOPPY_PCH_DEFINES)) {
-    log(
+    LOG_RAW(
       "You have to specify \"pch_defines,time_macros\" sloppiness when"
       " creating precompiled headers");
     return Statistic::could_not_use_precompiled_header;
@@ -1004,7 +1003,7 @@ process_args(Context& ctx)
     if (args_info.output_is_precompiled_header) {
       state.common_args.push_back("-c");
     } else {
-      log("No -c option found");
+      LOG_RAW("No -c option found");
       // Having a separate statistic for autoconf tests is useful, as they are
       // the dominant form of "called for link" in many cases.
       return args_info.input_file.find("conftest.") != std::string::npos
@@ -1014,12 +1013,12 @@ process_args(Context& ctx)
   }
 
   if (args_info.actual_language.empty()) {
-    log("Unsupported source extension: {}", args_info.input_file);
+    LOG("Unsupported source extension: {}", args_info.input_file);
     return Statistic::unsupported_source_language;
   }
 
   if (!config.run_second_cpp() && args_info.actual_language == "cu") {
-    log("Using CUDA compiler; not compiling preprocessed code");
+    LOG_RAW("Using CUDA compiler; not compiling preprocessed code");
     config.set_run_second_cpp(true);
   }
 
@@ -1027,7 +1026,7 @@ process_args(Context& ctx)
 
   if (args_info.output_is_precompiled_header && !config.run_second_cpp()) {
     // It doesn't work to create the .gch from preprocessed source.
-    log("Creating precompiled header; not compiling preprocessed code");
+    LOG_RAW("Creating precompiled header; not compiling preprocessed code");
     config.set_run_second_cpp(true);
   }
 
@@ -1038,7 +1037,7 @@ process_args(Context& ctx)
 
   // Don't try to second guess the compilers heuristics for stdout handling.
   if (args_info.output_obj == "-") {
-    log("Output file is -");
+    LOG_RAW("Output file is -");
     return Statistic::output_to_stdout;
   }
 
@@ -1055,7 +1054,7 @@ process_args(Context& ctx)
   if (args_info.seen_split_dwarf) {
     size_t pos = args_info.output_obj.rfind('.');
     if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
-      log("Badly formed object filename");
+      LOG_RAW("Badly formed object filename");
       return Statistic::bad_compiler_arguments;
     }
 
@@ -1066,7 +1065,7 @@ process_args(Context& ctx)
   if (args_info.output_obj != "/dev/null") {
     auto st = Stat::stat(args_info.output_obj);
     if (st && !st.is_regular()) {
-      log("Not a regular file: {}", args_info.output_obj);
+      LOG("Not a regular file: {}", args_info.output_obj);
       return Statistic::bad_output_file;
     }
   }
@@ -1074,7 +1073,7 @@ process_args(Context& ctx)
   auto output_dir = std::string(Util::dir_name(args_info.output_obj));
   auto st = Stat::stat(output_dir);
   if (!st || !st.is_directory()) {
-    log("Directory does not exist: {}", output_dir);
+    LOG("Directory does not exist: {}", output_dir);
     return Statistic::bad_output_file;
   }
 

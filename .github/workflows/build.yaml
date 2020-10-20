@@ -58,14 +58,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Linux GCC debug + in source + tracing
+          - name: Linux GCC debug + C++14 + in source + tracing
             os: ubuntu-18.04
             CC: gcc
             CXX: g++
             ENABLE_CACHE_CLEANUP_TESTS: 1
             BUILDDIR: .
             CCACHE_LOC: .
-            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_TRACING=1 -DCMAKE_CXX_STANDARD=14
             apt_get: elfutils libzstd1-dev
 
           - name: Linux GCC 32-bit

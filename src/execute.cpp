@@ -32,7 +32,6 @@
 #  include "Win32Util.hpp"
 #endif
 
-using Logging::log;
 using nonstd::string_view;
 
 #ifdef _WIN32
@@ -133,7 +132,7 @@ win32execute(const char* path,
   }
   if (ret == 0) {
     DWORD error = GetLastError();
-    log("failed to execute {}: {} ({})",
+    LOG("failed to execute {}: {} ({})",
         full_path,
         Win32Util::error_message(error),
         error);
@@ -158,7 +157,7 @@ win32execute(const char* path,
 int
 execute(const char* const* argv, Fd&& fd_out, Fd&& fd_err, pid_t* pid)
 {
-  log("Executing {}", Util::format_argv_for_logging(argv));
+  LOG("Executing {}", Util::format_argv_for_logging(argv));
 
   {
     SignalHandlerBlocker signal_handler_blocker;
@@ -218,7 +217,7 @@ find_executable(const Context& ctx,
     path = getenv("PATH");
   }
   if (path.empty()) {
-    log("No PATH variable");
+    LOG_RAW("No PATH variable");
     return {};
   }
 

@@ -25,15 +25,10 @@
 #include "Util.hpp"
 #include "exceptions.hpp"
 
-using Logging::log;
-using nonstd::nullopt;
-using nonstd::optional;
-
 const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
 const unsigned FLAG_ALWAYS = 2; // always show, even if zero
 const unsigned FLAG_NEVER = 4;  // never show
 
-using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 
@@ -225,7 +220,7 @@ update(const std::string& path,
 {
   Lockfile lock(path);
   if (!lock.acquired()) {
-    log("failed to acquire lock for {}", path);
+    LOG("Failed to acquire lock for {}", path);
     return nullopt;
   }
 
@@ -242,7 +237,7 @@ update(const std::string& path,
     // Make failure to write a stats file a soft error since it's not
     // important enough to fail whole the process and also because it is
     // called in the Context destructor.
-    log("Error: {}", e.what());
+    LOG("Error: {}", e.what());
   }
 
   return counters;

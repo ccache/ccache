@@ -95,8 +95,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
       -Wno-global-constructors
       -Wno-implicit-fallthrough
       -Wno-padded
+      -Wno-shadow # Warnings in fmtlib
       -Wno-shorten-64-to-32
       -Wno-sign-conversion
+      -Wno-signed-enum-bitfield # Warnings in fmtlib
       -Wno-weak-vtables
       -Wno-old-style-cast)
 

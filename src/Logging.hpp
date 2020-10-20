@@ -23,11 +23,35 @@
 #include "FormatNonstdStringView.hpp"
 
 #include "third_party/fmt/core.h"
+#include "third_party/fmt/format.h"
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <string>
 #include <utility>
+
+// Log a raw message (plus a newline character).
+#define LOG_RAW(message_)                                                      \
+  do {                                                                         \
+    if (Logging::enabled()) {                                                  \
+      Logging::log(nonstd::string_view(message_));                             \
+    }                                                                          \
+  } while (false)
+
+// Log a message (plus a newline character) described by a format string with at
+// least one placeholder. `format` is compile-time checked if CMAKE_CXX_STANDARD
+// >= 14.
+#define LOG(format_, ...) LOG_RAW(fmt::format(FMT_STRING(format_), __VA_ARGS__))
+
+// Log a message (plus a newline character) described by a format string with at
+// least one placeholder without flushing and with a reused timestamp. `format`
+// is compile-time checked if CMAKE_CXX_STANDARD >= 14.
+#define BULK_LOG(format_, ...)                                                 \
+  do {                                                                         \
+    if (Logging::enabled()) {                                                  \
+      Logging::bulk_log(fmt::format(FMT_STRING(format_), __VA_ARGS__));        \
+    }                                                                          \
+  } while (false)
 
 class Config;
 
@@ -49,29 +73,5 @@ void bulk_log(nonstd::string_view message);
 
 // Write the current log memory buffer `path`.
 void dump_log(const std::string& path);
-
-// Log a message (plus a newline character). `args` are forwarded to
-// `fmt::format`.
-template<typename... T>
-inline void
-log(T&&... args)
-{
-  if (!enabled()) {
-    return;
-  }
-  log(nonstd::string_view(fmt::format(std::forward<T>(args)...)));
-}
-
-// Log a message (plus a newline character) without flushing and with a reused
-// timestamp. `args` are forwarded to `fmt::format`.
-template<typename... T>
-inline void
-bulk_log(T&&... args)
-{
-  if (!enabled()) {
-    return;
-  }
-  bulk_log(nonstd::string_view(fmt::format(std::forward<T>(args)...)));
-}
 
 } // namespace Logging

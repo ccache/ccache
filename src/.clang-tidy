@@ -65,13 +65,13 @@ CheckOptions:
   - key:             readability-function-size.LineThreshold
     value:           700
   - key:             readability-function-size.StatementThreshold
-    value:           500
+    value:           999999
   - key:             readability-function-size.BranchThreshold
     value:           170
   - key:             readability-function-size.ParameterThreshold
     value:           6
   - key:             readability-function-size.NestingThreshold
-    value:           6
+    value:           999999
   - key:             readability-function-size.VariableThreshold
     value:           80
 ...

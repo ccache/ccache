@@ -42,7 +42,6 @@
 #  include <immintrin.h>
 #endif
 
-using Logging::log;
 using nonstd::string_view;
 
 namespace {
@@ -233,7 +232,7 @@ hash_source_code_string(const Context& ctx,
   hash.hash(str);
 
   if (result & HASH_SOURCE_CODE_FOUND_DATE) {
-    log("Found __DATE__ in {}", path);
+    LOG("Found __DATE__ in {}", path);
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __DATE__ changes.
@@ -252,10 +251,10 @@ hash_source_code_string(const Context& ctx,
     // not very useful since the chance that we get a cache hit later the same
     // second should be quite slim... So, just signal back to the caller that
     // __TIME__ has been found so that the direct mode can be disabled.
-    log("Found __TIME__ in {}", path);
+    LOG("Found __TIME__ in {}", path);
   }
   if (result & HASH_SOURCE_CODE_FOUND_TIMESTAMP) {
-    log("Found __TIMESTAMP__ in {}", path);
+    LOG("Found __TIMESTAMP__ in {}", path);
 
     // Make sure that the hash sum changes if the (potential) expansion of
     // __TIMESTAMP__ changes.
@@ -384,7 +383,7 @@ hash_command_output(Hash& hash,
   }
 
   auto argv = args.to_argv();
-  log("Executing compiler check command {}",
+  LOG("Executing compiler check command {}",
       Util::format_argv_for_logging(argv.data()));
 
 #ifdef _WIN32
@@ -436,7 +435,7 @@ hash_command_output(Hash& hash,
   int fd = _open_osfhandle((intptr_t)pipe_out[0], O_BINARY);
   bool ok = hash.hash_fd(fd);
   if (!ok) {
-    log("Error hashing compiler check command output: {}", strerror(errno));
+    LOG("Error hashing compiler check command output: {}", strerror(errno));
   }
   WaitForSingleObject(pi.hProcess, INFINITE);
   DWORD exitcode;
@@ -445,7 +444,7 @@ hash_command_output(Hash& hash,
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   if (exitcode != 0) {
-    log("Compiler check command returned {}", exitcode);
+    LOG("Compiler check command returned {}", exitcode);
     return false;
   }
   return ok;
@@ -473,7 +472,7 @@ hash_command_output(Hash& hash,
     close(pipefd[1]);
     bool ok = hash.hash_fd(pipefd[0]);
     if (!ok) {
-      log("Error hashing compiler check command output: {}", strerror(errno));
+      LOG("Error hashing compiler check command output: {}", strerror(errno));
     }
     close(pipefd[0]);
 
@@ -483,11 +482,11 @@ hash_command_output(Hash& hash,
       if (result == -1 && errno == EINTR) {
         continue;
       }
-      log("waitpid failed: {}", strerror(errno));
+      LOG("waitpid failed: {}", strerror(errno));
       return false;
     }
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-      log("Compiler check command returned {}", WEXITSTATUS(status));
+      LOG("Compiler check command returned {}", WEXITSTATUS(status));
       return false;
     }
     return ok;

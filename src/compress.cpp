@@ -37,7 +37,6 @@
 #include <string>
 #include <thread>
 
-using Logging::log;
 using nonstd::optional;
 
 namespace {
@@ -170,7 +169,7 @@ recompress_file(RecompressionStatistics& statistics,
     return;
   }
 
-  log("Recompressing {} to {}",
+  LOG("Recompressing {} to {}",
       cache_file.path(),
       level ? fmt::format("level {}", wanted_level) : "uncompressed");
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
@@ -203,7 +202,7 @@ recompress_file(RecompressionStatistics& statistics,
 
   statistics.update(content_size, old_stat.size(), new_stat.size(), 0);
 
-  log("Recompression of {} done", cache_file.path());
+  LOG("Recompression of {} done", cache_file.path());
 }
 
 } // namespace

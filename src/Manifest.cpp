@@ -107,7 +107,6 @@
 // 1: Introduced in ccache 3.0. (Files are always compressed with gzip.)
 // 2: Introduced in ccache 4.0.
 
-using Logging::log;
 using nonstd::nullopt;
 using nonstd::optional;
 
@@ -427,24 +426,24 @@ verify_result(const Context& ctx,
          || ctx.guessed_compiler == GuessedCompiler::unknown)
         && ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.fno_pch_timestamp && fi.mtime != fs.mtime) {
-      log("Precompiled header includes {}, which has a new mtime", path);
+      LOG("Precompiled header includes {}, which has a new mtime", path);
       return false;
     }
 
     if (ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES) {
       if (!(ctx.config.sloppiness() & SLOPPY_FILE_STAT_MATCHES_CTIME)) {
         if (fi.mtime == fs.mtime && fi.ctime == fs.ctime) {
-          log("mtime/ctime hit for {}", path);
+          LOG("mtime/ctime hit for {}", path);
           continue;
         } else {
-          log("mtime/ctime miss for {}", path);
+          LOG("mtime/ctime miss for {}", path);
         }
       } else {
         if (fi.mtime == fs.mtime) {
-          log("mtime hit for {}", path);
+          LOG("mtime hit for {}", path);
           continue;
         } else {
-          log("mtime miss for {}", path);
+          LOG("mtime miss for {}", path);
         }
       }
     }
@@ -454,7 +453,7 @@ verify_result(const Context& ctx,
       Hash hash;
       int ret = hash_source_code_file(ctx, hash, path, fs.size);
       if (ret & HASH_SOURCE_CODE_ERROR) {
-        log("Failed hashing {}", path);
+        LOG("Failed hashing {}", path);
         return false;
       }
       if (ret & HASH_SOURCE_CODE_FOUND_TIME) {
@@ -492,11 +491,11 @@ get(const Context& ctx, const std::string& path)
       // Update modification timestamp to save files from LRU cleanup.
       Util::update_mtime(path);
     } else {
-      log("No such manifest file");
+      LOG_RAW("No such manifest file");
       return nullopt;
     }
   } catch (const Error& e) {
-    log("Error: {}", e.what());
+    LOG("Error: {}", e.what());
     return nullopt;
   }
 
@@ -537,7 +536,7 @@ put(const Config& config,
       mf = std::make_unique<ManifestData>();
     }
   } catch (const Error& e) {
-    log("Error: {}", e.what());
+    LOG("Error: {}", e.what());
     // Manifest file was corrupt, ignore.
     mf = std::make_unique<ManifestData>();
   }
@@ -553,14 +552,14 @@ put(const Config& config,
     // A good way of solving this would be to maintain the result entries in
     // LRU order and discarding the old ones. An easy way is to throw away all
     // entries when there are too many. Let's do that for now.
-    log("More than {} entries in manifest file; discarding",
+    LOG("More than {} entries in manifest file; discarding",
         k_max_manifest_entries);
     mf = std::make_unique<ManifestData>();
   } else if (mf->file_infos.size() > k_max_manifest_file_info_entries) {
     // Rarely, FileInfo entries can grow large in pathological cases where
     // many included files change, but the main file does not. This also puts
     // an upper bound on the number of FileInfo entries.
-    log("More than {} FileInfo entries in manifest file; discarding",
+    LOG("More than {} FileInfo entries in manifest file; discarding",
         k_max_manifest_file_info_entries);
     mf = std::make_unique<ManifestData>();
   }
@@ -572,7 +571,7 @@ put(const Config& config,
     write_manifest(config, path, *mf);
     return true;
   } catch (const Error& e) {
-    log("Error: {}", e.what());
+    LOG("Error: {}", e.what());
     return false;
   }
 }

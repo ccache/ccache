@@ -31,8 +31,6 @@
 #include <sstream>
 #include <thread>
 
-using Logging::log;
-
 namespace {
 
 #ifndef _WIN32
@@ -59,7 +57,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     int saved_errno = errno;
-    log("lockfile_acquire: symlink {}: {}", lockfile, strerror(saved_errno));
+    LOG("lockfile_acquire: symlink {}: {}", lockfile, strerror(saved_errno));
     if (saved_errno == ENOENT) {
       // Directory doesn't exist?
       if (Util::create_dir(Util::dir_name(lockfile))) {
@@ -86,41 +84,41 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
         // acquiring it.
         continue;
       } else {
-        log("lockfile_acquire: readlink {}: {}", lockfile, strerror(errno));
+        LOG("lockfile_acquire: readlink {}: {}", lockfile, strerror(errno));
         return false;
       }
     }
 
     if (content == my_content) {
       // Lost NFS reply?
-      log("lockfile_acquire: symlink {} failed but we got the lock anyway",
+      LOG("lockfile_acquire: symlink {} failed but we got the lock anyway",
           lockfile);
       return true;
     }
 
     // A possible improvement here would be to check if the process holding the
     // lock is still alive and break the lock early if it isn't.
-    log("lockfile_acquire: lock info for {}: {}", lockfile, content);
+    LOG("lockfile_acquire: lock info for {}: {}", lockfile, content);
 
     if (initial_content.empty()) {
       initial_content = content;
     }
 
     if (slept <= staleness_limit) {
-      log("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
+      LOG("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
           lockfile,
           to_sleep);
       usleep(to_sleep);
       slept += to_sleep;
       to_sleep = std::min(max_to_sleep, 2 * to_sleep);
     } else if (content != initial_content) {
-      log("lockfile_acquire: gave up acquiring {}", lockfile);
+      LOG("lockfile_acquire: gave up acquiring {}", lockfile);
       return false;
     } else {
       // The lock seems to be stale -- break it and try again.
-      log("lockfile_acquire: breaking {}", lockfile);
+      LOG("lockfile_acquire: breaking {}", lockfile);
       if (!Util::unlink_tmp(lockfile)) {
-        log("Failed to unlink {}: {}", lockfile, strerror(errno));
+        LOG("Failed to unlink {}: {}", lockfile, strerror(errno));
         return false;
       }
       to_sleep = 1000;
@@ -155,7 +153,7 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     DWORD error = GetLastError();
-    log("lockfile_acquire: CreateFile {}: {} ({})",
+    LOG("lockfile_acquire: CreateFile {}: {} ({})",
         lockfile,
         Win32Util::error_message(error),
         error);
@@ -175,11 +173,11 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
     }
 
     if (slept > staleness_limit) {
-      log("lockfile_acquire: gave up acquiring {}", lockfile);
+      LOG("lockfile_acquire: gave up acquiring {}", lockfile);
       break;
     }
 
-    log("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
+    LOG("lockfile_acquire: failed to acquire {}; sleeping {} microseconds",
         lockfile,
         to_sleep);
     usleep(to_sleep);
@@ -203,19 +201,19 @@ Lockfile::Lockfile(const std::string& path, uint32_t staleness_limit)
   m_handle = do_acquire_win32(m_lockfile, staleness_limit);
 #endif
   if (acquired()) {
-    log("Acquired lock {}", m_lockfile);
+    LOG("Acquired lock {}", m_lockfile);
   } else {
-    log("Failed to acquire lock {}", m_lockfile);
+    LOG("Failed to acquire lock {}", m_lockfile);
   }
 }
 
 Lockfile::~Lockfile()
 {
   if (acquired()) {
-    log("Releasing lock {}", m_lockfile);
+    LOG("Releasing lock {}", m_lockfile);
 #ifndef _WIN32
     if (!Util::unlink_tmp(m_lockfile)) {
-      log("Failed to unlink {}: {}", m_lockfile, strerror(errno));
+      LOG("Failed to unlink {}: {}", m_lockfile, strerror(errno));
     }
 #else
     CloseHandle(m_handle);
