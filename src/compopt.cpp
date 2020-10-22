@@ -18,6 +18,8 @@
 
 #include "compopt.hpp"
 
+#include "fmtmacros.hpp"
+
 #include "third_party/fmt/core.h"
 
 // The option it too hard to handle at all.
@@ -185,9 +187,9 @@ compopt_verify_sortedness_and_flags()
 {
   for (size_t i = 0; i < ARRAY_SIZE(compopts); i++) {
     if (compopts[i].type & TOO_HARD && compopts[i].type & TAKES_CONCAT_ARG) {
-      fmt::print(stderr,
-                 "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by {}\n",
-                 compopts[i].name);
+      PRINT(stderr,
+            "type (TOO_HARD | TAKES_CONCAT_ARG) not allowed, used by {}\n",
+            compopts[i].name);
       return false;
     }
 
@@ -196,10 +198,10 @@ compopt_verify_sortedness_and_flags()
     }
 
     if (strcmp(compopts[i - 1].name, compopts[i].name) >= 0) {
-      fmt::print(stderr,
-                 "compopt_verify_sortedness: {} >= {}\n",
-                 compopts[i - 1].name,
-                 compopts[i].name);
+      PRINT(stderr,
+            "compopt_verify_sortedness: {} >= {}\n",
+            compopts[i - 1].name,
+            compopts[i].name);
       return false;
     }
   }

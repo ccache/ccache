@@ -31,6 +31,7 @@
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
 #include "assertions.hpp"
+#include "fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 
@@ -245,7 +246,7 @@ compress_stats(const Config& config,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    fmt::print("\n\n");
+    PRINT_RAW(stdout, "\n\n");
   }
 
   double ratio =
@@ -259,17 +260,20 @@ compress_stats(const Config& config,
   std::string content_size_str = Util::format_human_readable_size(content_size);
   std::string incompr_size_str = Util::format_human_readable_size(incompr_size);
 
-  fmt::print("Total data:            {:>8s} ({} disk blocks)\n",
-             cache_size_str,
-             on_disk_size_str);
-  fmt::print("Compressed data:       {:>8s} ({:.1f}% of original size)\n",
-             compr_size_str,
-             100.0 - savings);
-  fmt::print("  - Original data:     {:>8s}\n", content_size_str);
-  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-             ratio,
-             savings);
-  fmt::print("Incompressible data:   {:>8s}\n", incompr_size_str);
+  PRINT(stdout,
+        "Total data:            {:>8s} ({} disk blocks)\n",
+        cache_size_str,
+        on_disk_size_str);
+  PRINT(stdout,
+        "Compressed data:       {:>8s} ({:.1f}% of original size)\n",
+        compr_size_str,
+        100.0 - savings);
+  PRINT(stdout, "  - Original data:     {:>8s}\n", content_size_str);
+  PRINT(stdout,
+        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+        ratio,
+        savings);
+  PRINT(stdout, "Incompressible data:   {:>8s}\n", incompr_size_str);
 }
 
 void
@@ -321,7 +325,7 @@ compress_recompress(Context& ctx,
     progress_receiver);
 
   if (isatty(STDOUT_FILENO)) {
-    fmt::print("\n\n");
+    PRINT_RAW(stdout, "\n\n");
   }
 
   double old_ratio =
@@ -351,18 +355,22 @@ compress_recompress(Context& ctx,
                 Util::format_human_readable_size(
                   size_difference < 0 ? -size_difference : size_difference));
 
-  fmt::print("Original data:         {:>8s}\n", content_size_str);
-  fmt::print("Old compressed data:   {:>8s} ({:.1f}% of original size)\n",
-             old_compr_size_str,
-             100.0 - old_savings);
-  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-             old_ratio,
-             old_savings);
-  fmt::print("New compressed data:   {:>8s} ({:.1f}% of original size)\n",
-             new_compr_size_str,
-             100.0 - new_savings);
-  fmt::print("  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
-             new_ratio,
-             new_savings);
-  fmt::print("Size change:          {:>9s}\n", size_difference_str);
+  PRINT(stdout, "Original data:         {:>8s}\n", content_size_str);
+  PRINT(stdout,
+        "Old compressed data:   {:>8s} ({:.1f}% of original size)\n",
+        old_compr_size_str,
+        100.0 - old_savings);
+  PRINT(stdout,
+        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+        old_ratio,
+        old_savings);
+  PRINT(stdout,
+        "New compressed data:   {:>8s} ({:.1f}% of original size)\n",
+        new_compr_size_str,
+        100.0 - new_savings);
+  PRINT(stdout,
+        "  - Compression ratio: {:>5.3f} x  ({:.1f}% space savings)\n",
+        new_ratio,
+        new_savings);
+  PRINT(stdout, "Size change:          {:>9s}\n", size_difference_str);
 }

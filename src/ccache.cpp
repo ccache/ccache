@@ -49,6 +49,7 @@
 #include "compress.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
+#include "fmtmacros.hpp"
 #include "hashutil.hpp"
 #include "language.hpp"
 
@@ -416,7 +417,7 @@ static void
 print_included_files(const Context& ctx, FILE* fp)
 {
   for (const auto& item : ctx.included_files) {
-    fmt::print(fp, "{}\n", item.first);
+    PRINT(fp, "{}\n", item.first);
   }
 }
 
@@ -2047,7 +2048,7 @@ configuration_printer(const std::string& key,
                       const std::string& value,
                       const std::string& origin)
 {
-  fmt::print("({}) {} = {}\n", origin, key, value);
+  PRINT(stdout, "({}) {} = {}\n", origin, key, value);
 }
 
 static int cache_compilation(int argc, const char* const* argv);
@@ -2568,7 +2569,7 @@ handle_main_options(int argc, const char* const* argv)
       Util::read_fd(*fd, [&checksum](const void* data, size_t size) {
         checksum.update(data, size);
       });
-      fmt::print("{:016x}\n", checksum.digest());
+      PRINT(stdout, "{:016x}\n", checksum.digest());
       break;
     }
 
@@ -2580,7 +2581,7 @@ handle_main_options(int argc, const char* const* argv)
       Result::Reader result_reader(arg);
       auto error = result_reader.read(result_dumper);
       if (error) {
-        fmt::print(stderr, "Error: {}\n", *error);
+        PRINT(stderr, "Error: {}\n", *error);
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
@@ -2591,7 +2592,7 @@ handle_main_options(int argc, const char* const* argv)
       clean_old(
         ctx, [&](double progress) { progress_bar.update(progress); }, seconds);
       if (isatty(STDOUT_FILENO)) {
-        fmt::print("\n");
+        PRINT_RAW(stdout, "\n");
       }
       break;
     }
@@ -2601,7 +2602,7 @@ handle_main_options(int argc, const char* const* argv)
       Result::Reader result_reader(arg);
       auto error = result_reader.read(result_extractor);
       if (error) {
-        fmt::print(stderr, "Error: {}\n", *error);
+        PRINT(stderr, "Error: {}\n", *error);
       }
       return error ? EXIT_FAILURE : EXIT_SUCCESS;
     }
@@ -2613,12 +2614,12 @@ handle_main_options(int argc, const char* const* argv)
       } else {
         hash.hash_file(arg);
       }
-      fmt::print("{}\n", hash.digest().to_string());
+      PRINT(stdout, "{}\n", hash.digest().to_string());
       break;
     }
 
     case PRINT_STATS:
-      fmt::print(Statistics::format_machine_readable(ctx.config));
+      PRINT_RAW(stdout, Statistics::format_machine_readable(ctx.config));
       break;
 
     case 'c': // --cleanup
@@ -2627,7 +2628,7 @@ handle_main_options(int argc, const char* const* argv)
       clean_up_all(ctx.config,
                    [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        fmt::print("\n");
+        PRINT_RAW(stdout, "\n");
       }
       break;
     }
@@ -2637,7 +2638,7 @@ handle_main_options(int argc, const char* const* argv)
       ProgressBar progress_bar("Clearing...");
       wipe_all(ctx, [&](double progress) { progress_bar.update(progress); });
       if (isatty(STDOUT_FILENO)) {
-        fmt::print("\n");
+        PRINT_RAW(stdout, "\n");
       }
       break;
     }
@@ -2647,11 +2648,11 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 'h': // --help
-      fmt::print(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stdout, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_SUCCESS);
 
     case 'k': // --get-config
-      fmt::print("{}\n", ctx.config.get_string_value(arg));
+      PRINT(stdout, "{}\n", ctx.config.get_string_value(arg));
       break;
 
     case 'F': { // --max-files
@@ -2659,9 +2660,9 @@ handle_main_options(int argc, const char* const* argv)
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_files", arg);
       if (files == 0) {
-        fmt::print("Unset cache file limit\n");
+        PRINT_RAW(stdout, "Unset cache file limit\n");
       } else {
-        fmt::print("Set cache file limit to {}\n", files);
+        PRINT(stdout, "Set cache file limit to {}\n", files);
       }
       break;
     }
@@ -2671,10 +2672,11 @@ handle_main_options(int argc, const char* const* argv)
       Config::set_value_in_file(
         ctx.config.primary_config_path(), "max_size", arg);
       if (size == 0) {
-        fmt::print("Unset cache size limit\n");
+        PRINT_RAW(stdout, "Unset cache size limit\n");
       } else {
-        fmt::print("Set cache size limit to {}\n",
-                   Util::format_human_readable_size(size));
+        PRINT(stdout,
+              "Set cache size limit to {}\n",
+              Util::format_human_readable_size(size));
       }
       break;
     }
@@ -2697,11 +2699,11 @@ handle_main_options(int argc, const char* const* argv)
       break;
 
     case 's': // --show-stats
-      fmt::print(Statistics::format_human_readable(ctx.config));
+      PRINT_RAW(stdout, Statistics::format_human_readable(ctx.config));
       break;
 
     case 'V': // --version
-      fmt::print(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
+      PRINT(VERSION_TEXT, CCACHE_NAME, CCACHE_VERSION);
       exit(EXIT_SUCCESS);
 
     case 'x': // --show-compression
@@ -2731,11 +2733,11 @@ handle_main_options(int argc, const char* const* argv)
 
     case 'z': // --zero-stats
       Statistics::zero_all_counters(ctx.config);
-      fmt::print("Statistics zeroed\n");
+      PRINT_RAW(stdout, "Statistics zeroed\n");
       break;
 
     default:
-      fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+      PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
       exit(EXIT_FAILURE);
     }
 
@@ -2758,7 +2760,7 @@ ccache_main(int argc, const char* const* argv)
     std::string program_name(Util::base_name(argv[0]));
     if (Util::same_program_name(program_name, CCACHE_NAME)) {
       if (argc < 2) {
-        fmt::print(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
+        PRINT(stderr, USAGE_TEXT, CCACHE_NAME, CCACHE_NAME);
         exit(EXIT_FAILURE);
       }
       // If the first argument isn't an option, then assume we are being passed
@@ -2770,7 +2772,7 @@ ccache_main(int argc, const char* const* argv)
 
     return cache_compilation(argc, argv);
   } catch (const ErrorBase& e) {
-    fmt::print(stderr, "ccache: error: {}\n", e.what());
+    PRINT(stderr, "ccache: error: {}\n", e.what());
     return EXIT_FAILURE;
   }
 }

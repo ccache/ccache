@@ -21,6 +21,7 @@
 #include "CacheEntryReader.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
+#include "fmtmacros.hpp"
 
 using nonstd::optional;
 
@@ -40,12 +41,12 @@ ResultDumper::on_entry_start(uint32_t entry_number,
                              uint64_t file_len,
                              optional<std::string> raw_file)
 {
-  fmt::print(m_stream,
-             "{} file #{}: {} ({} bytes)\n",
-             raw_file ? "Raw" : "Embedded",
-             entry_number,
-             Result::file_type_to_string(file_type),
-             file_len);
+  PRINT(m_stream,
+        "{} file #{}: {} ({} bytes)\n",
+        raw_file ? "Raw" : "Embedded",
+        entry_number,
+        Result::file_type_to_string(file_type),
+        file_len);
 }
 
 void

@@ -18,6 +18,8 @@
 
 #include "ProgressBar.hpp"
 
+#include "fmtmacros.hpp"
+
 #include "third_party/fmt/core.h"
 
 #ifndef _WIN32
@@ -75,18 +77,19 @@ ProgressBar::update(double value)
   if (first_part_width + 10 > m_width) {
     // The progress bar would be less than 10 characters, so just print the
     // percentage.
-    fmt::print("\r{} {:5.1f}%", m_header, 100 * value);
+    PRINT(stdout, "\r{} {:5.1f}%", m_header, 100 * value);
   } else {
     size_t total_bar_width = m_width - first_part_width;
     size_t filled_bar_width = value * total_bar_width;
     size_t unfilled_bar_width = total_bar_width - filled_bar_width;
-    fmt::print("\r{} {:5.1f}% [{:=<{}}{: <{}}]",
-               m_header,
-               100 * value,
-               "",
-               filled_bar_width,
-               "",
-               unfilled_bar_width);
+    PRINT(stdout,
+          "\r{} {:5.1f}% [{:=<{}}{: <{}}]",
+          m_header,
+          100 * value,
+          "",
+          filled_bar_width,
+          "",
+          unfilled_bar_width);
   }
 
   fflush(stdout);

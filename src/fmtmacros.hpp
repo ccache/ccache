@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,24 +16,16 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "assertions.hpp"
-
-#include "Util.hpp"
-#include "fmtmacros.hpp"
+#pragma once
 
 #include "third_party/fmt/core.h"
+#include "third_party/fmt/format.h"
 
-void
-handle_failed_assertion(const char* file,
-                        size_t line,
-                        const char* function,
-                        const char* condition)
-{
-  PRINT(stderr,
-        "ccache: {}:{}: {}: failed assertion: {}\n",
-        Util::base_name(file),
-        line,
-        function,
-        condition);
-  abort();
-}
+// Convenience macro for calling `fmt::print` with `FMT_STRING` around the
+// format string literal.
+#define PRINT(stream_, format_, ...)                                           \
+  fmt::print(stream_, FMT_STRING(format_), __VA_ARGS__)
+
+// Convenience macro for calling `fmt::print` with a message that is not a
+// format string.
+#define PRINT_RAW(stream_, message_) fmt::print(stream_, "{}", message_)

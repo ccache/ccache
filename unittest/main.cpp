@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Util.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/fmt/core.h"
@@ -47,7 +48,7 @@ main(int argc, char** argv)
     TestUtil::check_chdir(dir_before);
     Util::wipe_path(testdir);
   } else {
-    fmt::print(stderr, "Note: Test data has been left in {}\n", testdir);
+    PRINT(stderr, "Note: Test data has been left in {}\n", testdir);
   }
 
   return result;

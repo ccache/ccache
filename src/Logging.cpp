@@ -24,6 +24,7 @@
 #include "Util.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
+#include "fmtmacros.hpp"
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>
@@ -67,10 +68,10 @@ bool debug_log_enabled = false;
 print_fatal_error_and_exit()
 {
   // Note: Can't throw Fatal since that would lead to recursion.
-  fmt::print(stderr,
-             "ccache: error: Failed to write to {}: {}\n",
-             logfile_path,
-             strerror(errno));
+  PRINT(stderr,
+        "ccache: error: Failed to write to {}: {}\n",
+        logfile_path,
+        strerror(errno));
   exit(EXIT_FAILURE);
 }
 

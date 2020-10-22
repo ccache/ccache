@@ -20,6 +20,7 @@
 
 #include "Compressor.hpp"
 #include "exceptions.hpp"
+#include "fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 
@@ -57,13 +58,13 @@ CacheEntryReader::CacheEntryReader(FILE* stream,
 void
 CacheEntryReader::dump_header(FILE* dump_stream)
 {
-  fmt::print(dump_stream, "Magic: {:.4}\n", m_magic);
-  fmt::print(dump_stream, "Version: {}\n", m_version);
-  fmt::print(dump_stream,
-             "Compression type: {}\n",
-             Compression::type_to_string(m_compression_type));
-  fmt::print(dump_stream, "Compression level: {}\n", m_compression_level);
-  fmt::print(dump_stream, "Content size: {}\n", m_content_size);
+  PRINT(dump_stream, "Magic: {:.4}\n", m_magic);
+  PRINT(dump_stream, "Version: {}\n", m_version);
+  PRINT(dump_stream,
+        "Compression type: {}\n",
+        Compression::type_to_string(m_compression_type));
+  PRINT(dump_stream, "Compression level: {}\n", m_compression_level);
+  PRINT(dump_stream, "Content size: {}\n", m_content_size);
 }
 
 void

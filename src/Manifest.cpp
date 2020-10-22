@@ -30,6 +30,7 @@
 #include "Logging.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
+#include "fmtmacros.hpp"
 #include "hashutil.hpp"
 
 // Manifest data format
@@ -583,37 +584,37 @@ dump(const std::string& path, FILE* stream)
   try {
     mf = read_manifest(path, stream);
   } catch (const Error& e) {
-    fmt::print(stream, "Error: {}\n", e.what());
+    PRINT(stream, "Error: {}\n", e.what());
     return false;
   }
 
   if (!mf) {
-    fmt::print(stream, "Error: No such file: {}\n", path);
+    PRINT(stream, "Error: No such file: {}\n", path);
     return false;
   }
 
-  fmt::print(stream, "File paths ({}):\n", mf->files.size());
+  PRINT(stream, "File paths ({}):\n", mf->files.size());
   for (size_t i = 0; i < mf->files.size(); ++i) {
-    fmt::print(stream, "  {}: {}\n", i, mf->files[i]);
+    PRINT(stream, "  {}: {}\n", i, mf->files[i]);
   }
-  fmt::print(stream, "File infos ({}):\n", mf->file_infos.size());
+  PRINT(stream, "File infos ({}):\n", mf->file_infos.size());
   for (size_t i = 0; i < mf->file_infos.size(); ++i) {
-    fmt::print(stream, "  {}:\n", i);
-    fmt::print(stream, "    Path index: {}\n", mf->file_infos[i].index);
-    fmt::print(stream, "    Hash: {}\n", mf->file_infos[i].digest.to_string());
-    fmt::print(stream, "    File size: {}\n", mf->file_infos[i].fsize);
-    fmt::print(stream, "    Mtime: {}\n", mf->file_infos[i].mtime);
-    fmt::print(stream, "    Ctime: {}\n", mf->file_infos[i].ctime);
+    PRINT(stream, "  {}:\n", i);
+    PRINT(stream, "    Path index: {}\n", mf->file_infos[i].index);
+    PRINT(stream, "    Hash: {}\n", mf->file_infos[i].digest.to_string());
+    PRINT(stream, "    File size: {}\n", mf->file_infos[i].fsize);
+    PRINT(stream, "    Mtime: {}\n", mf->file_infos[i].mtime);
+    PRINT(stream, "    Ctime: {}\n", mf->file_infos[i].ctime);
   }
-  fmt::print(stream, "Results ({}):\n", mf->results.size());
+  PRINT(stream, "Results ({}):\n", mf->results.size());
   for (size_t i = 0; i < mf->results.size(); ++i) {
-    fmt::print(stream, "  {}:\n", i);
-    fmt::print(stream, "    File info indexes:");
+    PRINT(stream, "  {}:\n", i);
+    PRINT_RAW(stream, "    File info indexes:");
     for (uint32_t file_info_index : mf->results[i].file_info_indexes) {
-      fmt::print(stream, " {}", file_info_index);
+      PRINT(stream, " {}", file_info_index);
     }
-    fmt::print(stream, "\n");
-    fmt::print(stream, "    Name: {}\n", mf->results[i].name.to_string());
+    PRINT_RAW(stream, "\n");
+    PRINT(stream, "    Name: {}\n", mf->results[i].name.to_string());
   }
 
   return true;
