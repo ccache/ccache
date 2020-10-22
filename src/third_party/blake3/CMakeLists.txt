@@ -1,4 +1,4 @@
-add_library(blake3 STATIC blake3.c blake3_dispatch.c blake3_portable.c)
+add_library(blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
 
 target_link_libraries(blake3 PRIVATE standard_settings)
 

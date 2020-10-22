@@ -53,7 +53,16 @@ check_struct_has_member("struct statfs" f_fstypename sys/mount.h
                         HAVE_STRUCT_STATFS_F_FSTYPENAME)
 
 include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-mavx2 HAVE_AVX2)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
+  # Old GCC versions don't have the required header support.
+  message(STATUS "Detected unsupported compiler for HAVE_AVX2 - disabled")
+  set(HAVE_AVX2 FALSE)
+else()
+  check_cxx_compiler_flag(-mavx2 HAVE_AVX2)
+endif()
+
 
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
 list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
