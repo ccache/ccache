@@ -24,6 +24,7 @@
 #include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
+#include "fmtmacros.hpp"
 
 extern "C" {
 #include "third_party/base32hex.h"
@@ -503,7 +504,7 @@ for_each_level_1_subdir(const std::string& cache_dir,
   for (int i = 0; i <= 0xF; i++) {
     double progress = 1.0 * i / 16;
     progress_receiver(progress);
-    std::string subdir_path = fmt::format("{}/{:x}", cache_dir, i);
+    std::string subdir_path = FMT("{}/{:x}", cache_dir, i);
     visitor(subdir_path, [&](double inner_progress) {
       progress_receiver(progress + inner_progress / 16);
     });
@@ -553,11 +554,11 @@ std::string
 format_human_readable_size(uint64_t size)
 {
   if (size >= 1000 * 1000 * 1000) {
-    return fmt::format("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
+    return FMT("{:.1f} GB", size / ((double)(1000 * 1000 * 1000)));
   } else if (size >= 1000 * 1000) {
-    return fmt::format("{:.1f} MB", size / ((double)(1000 * 1000)));
+    return FMT("{:.1f} MB", size / ((double)(1000 * 1000)));
   } else {
-    return fmt::format("{:.1f} kB", size / 1000.0);
+    return FMT("{:.1f} kB", size / 1000.0);
   }
 }
 
@@ -565,11 +566,11 @@ std::string
 format_parsable_size_with_suffix(uint64_t size)
 {
   if (size >= 1000 * 1000 * 1000) {
-    return fmt::format("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
+    return FMT("{:.1f}G", size / ((double)(1000 * 1000 * 1000)));
   } else if (size >= 1000 * 1000) {
-    return fmt::format("{:.1f}M", size / ((double)(1000 * 1000)));
+    return FMT("{:.1f}M", size / ((double)(1000 * 1000)));
   } else {
-    return fmt::format("{}", size);
+    return FMT("{}", size);
   }
 }
 
@@ -844,7 +845,7 @@ make_relative_path(const Context& ctx, string_view path)
   if (path.length() >= 3 && path[0] == '/') {
     if (isalpha(path[1]) && path[2] == '/') {
       // Transform /c/path... to c:/path...
-      winpath = fmt::format("{}:/{}", path[1], path.substr(3));
+      winpath = FMT("{}:/{}", path[1], path.substr(3));
       path = winpath;
     } else if (path[2] == ':') {
       // Transform /c:/path to c:/path
@@ -1249,8 +1250,7 @@ same_program_name(nonstd::string_view program_name,
 #ifdef _WIN32
   std::string lowercase_program_name = Util::to_lowercase(program_name);
   return lowercase_program_name == canonical_program_name
-         || lowercase_program_name
-              == fmt::format("{}.exe", canonical_program_name);
+         || lowercase_program_name == FMT("{}.exe", canonical_program_name);
 #else
   return program_name == canonical_program_name;
 #endif

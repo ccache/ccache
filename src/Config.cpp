@@ -24,6 +24,7 @@
 #include "assertions.hpp"
 #include "ccache.hpp"
 #include "exceptions.hpp"
+#include "fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 
@@ -317,7 +318,7 @@ format_umask(uint32_t umask)
   if (umask == std::numeric_limits<uint32_t>::max()) {
     return {};
   } else {
-    return fmt::format("{:03o}", umask);
+    return FMT("{:03o}", umask);
   }
 }
 
@@ -490,7 +491,7 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_compression);
 
   case ConfigItem::compression_level:
-    return fmt::format("{}", m_compression_level);
+    return FMT("{}", m_compression_level);
 
   case ConfigItem::cpp_extension:
     return m_cpp_extension;
@@ -532,13 +533,13 @@ Config::get_string_value(const std::string& key) const
     return format_bool(m_keep_comments_cpp);
 
   case ConfigItem::limit_multiple:
-    return fmt::format("{:.1f}", m_limit_multiple);
+    return FMT("{:.1f}", m_limit_multiple);
 
   case ConfigItem::log_file:
     return m_log_file;
 
   case ConfigItem::max_files:
-    return fmt::format("{}", m_max_files);
+    return FMT("{}", m_max_files);
 
   case ConfigItem::max_size:
     return format_cache_size(m_max_size);
@@ -615,17 +616,17 @@ Config::set_value_in_file(const std::string& path,
                              const std::string& c_key,
                              const std::string& /*c_value*/) {
                            if (c_key == key) {
-                             output.write(fmt::format("{} = {}\n", key, value));
+                             output.write(FMT("{} = {}\n", key, value));
                              found = true;
                            } else {
-                             output.write(fmt::format("{}\n", c_line));
+                             output.write(FMT("{}\n", c_line));
                            }
                          })) {
     throw Error("failed to open {}: {}", path, strerror(errno));
   }
 
   if (!found) {
-    output.write(fmt::format("{} = {}\n", key, value));
+    output.write(FMT("{} = {}\n", key, value));
   }
 
   output.commit();
@@ -834,7 +835,7 @@ std::string
 Config::default_temporary_dir(const std::string& cache_dir)
 {
 #ifdef HAVE_GETEUID
-  std::string user_tmp_dir = fmt::format("/run/user/{}", geteuid());
+  std::string user_tmp_dir = FMT("/run/user/{}", geteuid());
   if (Stat::stat(user_tmp_dir).is_directory()) {
     return user_tmp_dir + "/ccache-tmp";
   }

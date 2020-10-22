@@ -240,7 +240,7 @@ init_hash_debug(Context& ctx,
     return;
   }
 
-  std::string path = fmt::format("{}.ccache-input-{}", obj_path, type);
+  std::string path = FMT("{}.ccache-input-{}", obj_path, type);
   File debug_binary_file(path, "wb");
   if (debug_binary_file) {
     hash.enable_debug(section_name, debug_binary_file.get(), debug_text_file);
@@ -361,7 +361,7 @@ do_remember_include_file(Context& ctx,
     if (ctx.config.pch_external_checksum()) {
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
-      std::string pch_sum_path = fmt::format("{}.sum", path);
+      std::string pch_sum_path = FMT("{}.sum", path);
       if (Stat::stat(pch_sum_path, Stat::OnError::log)) {
         path = std::move(pch_sum_path);
         using_pch_sum = true;
@@ -787,7 +787,7 @@ look_up_cache_file(const std::string& cache_dir,
                    const Digest& name,
                    nonstd::string_view suffix)
 {
-  const auto name_string = fmt::format("{}{}", name.to_string(), suffix);
+  const auto name_string = FMT("{}{}", name.to_string(), suffix);
 
   for (uint8_t level = k_min_cache_levels; level <= k_max_cache_levels;
        ++level) {
@@ -853,9 +853,9 @@ create_cachedir_tag(const Context& ctx)
     "# For information about cache directory tags, see:\n"
     "#\thttp://www.brynosaurus.com/cachedir/\n";
 
-  const std::string path = fmt::format("{}/{}/CACHEDIR.TAG",
-                                       ctx.config.cache_dir(),
-                                       ctx.result_name()->to_string()[0]);
+  const std::string path = FMT("{}/{}/CACHEDIR.TAG",
+                               ctx.config.cache_dir(),
+                               ctx.result_name()->to_string()[0]);
   const auto stat = Stat::stat(path);
   if (stat) {
     return;
@@ -955,13 +955,11 @@ to_cache(Context& ctx,
   LOG_RAW("Running real compiler");
   MTR_BEGIN("execute", "compiler");
 
-  TemporaryFile tmp_stdout(
-    fmt::format("{}/tmp.stdout", ctx.config.temporary_dir()));
+  TemporaryFile tmp_stdout(FMT("{}/tmp.stdout", ctx.config.temporary_dir()));
   ctx.register_pending_tmp_file(tmp_stdout.path);
   std::string tmp_stdout_path = tmp_stdout.path;
 
-  TemporaryFile tmp_stderr(
-    fmt::format("{}/tmp.stderr", ctx.config.temporary_dir()));
+  TemporaryFile tmp_stderr(FMT("{}/tmp.stderr", ctx.config.temporary_dir()));
   ctx.register_pending_tmp_file(tmp_stderr.path);
   std::string tmp_stderr_path = tmp_stderr.path;
 
@@ -1127,12 +1125,12 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     // Run cpp on the input file to obtain the .i.
 
     TemporaryFile tmp_stdout(
-      fmt::format("{}/tmp.cpp_stdout", ctx.config.temporary_dir()));
+      FMT("{}/tmp.cpp_stdout", ctx.config.temporary_dir()));
     stdout_path = tmp_stdout.path;
     ctx.register_pending_tmp_file(stdout_path);
 
     TemporaryFile tmp_stderr(
-      fmt::format("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
+      FMT("{}/tmp.cpp_stderr", ctx.config.temporary_dir()));
     stderr_path = tmp_stderr.path;
     ctx.register_pending_tmp_file(stderr_path);
 
@@ -1180,8 +1178,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   } else {
     // i_tmpfile needs the proper cpp_extension for the compiler to do its
     // thing correctly
-    ctx.i_tmpfile =
-      fmt::format("{}.{}", stdout_path, ctx.config.cpp_extension());
+    ctx.i_tmpfile = FMT("{}.{}", stdout_path, ctx.config.cpp_extension());
     Util::rename(stdout_path, ctx.i_tmpfile);
     ctx.register_pending_tmp_file(ctx.i_tmpfile);
   }
@@ -1261,7 +1258,7 @@ hash_nvcc_host_compiler(const Context& ctx,
 #endif
     for (const char* compiler : compilers) {
       if (!ccbin.empty()) {
-        std::string path = fmt::format("{}/{}", ccbin, compiler);
+        std::string path = FMT("{}/{}", ccbin, compiler);
         auto st = Stat::stat(path);
         if (st) {
           hash_compiler(ctx, hash, st, path, false);
@@ -1395,7 +1392,7 @@ hash_common_info(const Context& ctx,
     }
     string_view stem =
       Util::remove_extension(Util::base_name(ctx.args_info.output_obj));
-    std::string gcda_path = fmt::format("{}/{}.gcda", dir, stem);
+    std::string gcda_path = FMT("{}/{}.gcda", dir, stem);
     LOG("Hashing coverage path {}", gcda_path);
     hash.hash_delimiter("gcda");
     hash.hash(gcda_path);
@@ -1441,13 +1438,13 @@ hash_profile_data_file(const Context& ctx, Hash& hash)
 
   std::vector<std::string> paths_to_try{
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC <9)
-    fmt::format("{}/{}.gcda", profile_path, base_name),
+    FMT("{}/{}.gcda", profile_path, base_name),
     // -fprofile-use[=dir]/-fbranch-probabilities (GCC >=9)
-    fmt::format("{}/{}#{}.gcda", profile_path, hashified_cwd, base_name),
+    FMT("{}/{}#{}.gcda", profile_path, hashified_cwd, base_name),
     // -fprofile(-instr|-sample)-use=file (Clang), -fauto-profile=file (GCC >=5)
     profile_path,
     // -fprofile(-instr|-sample)-use=dir (Clang)
-    fmt::format("{}/default.profdata", profile_path),
+    FMT("{}/default.profdata", profile_path),
     // -fauto-profile (GCC >=5)
     "fbdata.afdo", // -fprofile-dir is not used
   };
@@ -1927,9 +1924,9 @@ set_up_config(Config& config)
     // Only used for ccache tests:
     const char* const env_ccache_configpath2 = getenv("CCACHE_CONFIGPATH2");
 
-    config.set_secondary_config_path(
-      env_ccache_configpath2 ? env_ccache_configpath2
-                             : fmt::format("{}/ccache.conf", SYSCONFDIR));
+    config.set_secondary_config_path(env_ccache_configpath2
+                                       ? env_ccache_configpath2
+                                       : FMT("{}/ccache.conf", SYSCONFDIR));
     MTR_BEGIN("config", "conf_read_secondary");
     // A missing config file in SYSCONFDIR is OK so don't check return value.
     config.update_from_file(config.secondary_config_path());
@@ -1944,7 +1941,7 @@ set_up_config(Config& config)
     } else if (legacy_ccache_dir_exists) {
       primary_config_dir = legacy_ccache_dir;
     } else if (env_xdg_config_home) {
-      primary_config_dir = fmt::format("{}/ccache", env_xdg_config_home);
+      primary_config_dir = FMT("{}/ccache", env_xdg_config_home);
     } else {
       primary_config_dir = default_config_dir(home_dir);
     }
@@ -1969,7 +1966,7 @@ set_up_config(Config& config)
     if (legacy_ccache_dir_exists) {
       config.set_cache_dir(legacy_ccache_dir);
     } else if (env_xdg_cache_home) {
-      config.set_cache_dir(fmt::format("{}/ccache", env_xdg_cache_home));
+      config.set_cache_dir(FMT("{}/ccache", env_xdg_cache_home));
     } else {
       config.set_cache_dir(default_cache_dir(home_dir));
     }
@@ -2032,7 +2029,7 @@ set_up_uncached_err()
     throw Failure(Statistic::internal_error);
   }
 
-  Util::setenv("UNCACHED_ERR_FD", fmt::format("{}", uncached_fd));
+  Util::setenv("UNCACHED_ERR_FD", FMT("{}", uncached_fd));
 }
 
 static void
@@ -2084,12 +2081,12 @@ update_stats_and_maybe_move_cache_file(const Context& ctx,
   const bool use_stats_on_level_1 =
     counter_updates.get(Statistic::cache_size_kibibyte) != 0
     || counter_updates.get(Statistic::files_in_cache) != 0;
-  std::string level_string = fmt::format("{:x}", name.bytes()[0] >> 4);
+  std::string level_string = FMT("{:x}", name.bytes()[0] >> 4);
   if (!use_stats_on_level_1) {
-    level_string += fmt::format("/{:x}", name.bytes()[0] & 0xF);
+    level_string += FMT("/{:x}", name.bytes()[0] & 0xF);
   }
   const auto stats_file =
-    fmt::format("{}/{}/stats", ctx.config.cache_dir(), level_string);
+    FMT("{}/{}/stats", ctx.config.cache_dir(), level_string);
 
   auto counters =
     Statistics::update(stats_file, [&counter_updates](Counters& cs) {
@@ -2150,8 +2147,8 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
     // Context::set_result_path hasn't been called yet, so we just choose one of
     // the stats files in the 256 level 2 directories.
     const auto bucket = getpid() % 256;
-    const auto stats_file = fmt::format(
-      "{}/{:x}/{:x}/stats", config.cache_dir(), bucket / 16, bucket % 16);
+    const auto stats_file =
+      FMT("{}/{:x}/{:x}/stats", config.cache_dir(), bucket / 16, bucket % 16);
     Statistics::update(
       stats_file, [&ctx](Counters& cs) { cs.increment(ctx.counter_updates); });
     return;
@@ -2175,8 +2172,8 @@ finalize_stats_and_trigger_cleanup(Context& ctx)
     return;
   }
 
-  const auto subdir = fmt::format(
-    "{}/{:x}", config.cache_dir(), ctx.result_name()->bytes()[0] >> 4);
+  const auto subdir =
+    FMT("{}/{:x}", config.cache_dir(), ctx.result_name()->bytes()[0] >> 4);
   bool need_cleanup = false;
 
   if (config.max_files() != 0
@@ -2219,7 +2216,7 @@ finalize_at_exit(Context& ctx)
 
   // Dump log buffer last to not lose any logs.
   if (ctx.config.debug() && !ctx.args_info.output_obj.empty()) {
-    const auto path = fmt::format("{}.ccache-log", ctx.args_info.output_obj);
+    const auto path = FMT("{}.ccache-log", ctx.args_info.output_obj);
     Logging::dump_log(path);
   }
 }
@@ -2364,8 +2361,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
   MTR_META_THREAD_NAME(ctx.args_info.output_obj.c_str());
 
   if (ctx.config.debug()) {
-    std::string path =
-      fmt::format("{}.ccache-input-text", ctx.args_info.output_obj);
+    std::string path = FMT("{}.ccache-input-text", ctx.args_info.output_obj);
     File debug_text_file(path, "w");
     if (debug_text_file) {
       ctx.hash_debug_files.push_back(std::move(debug_text_file));

@@ -18,6 +18,7 @@
 
 #include "../src/Statistics.hpp"
 #include "../src/Util.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
@@ -66,7 +67,7 @@ TEST_CASE("Read future counters")
   std::string content;
   size_t count = static_cast<size_t>(Statistic::END) + 1;
   for (size_t i = 0; i < count; ++i) {
-    content += fmt::format("{}\n", i);
+    content += FMT("{}\n", i);
   }
 
   Util::write_file("test", content);

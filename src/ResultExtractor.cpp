@@ -19,6 +19,7 @@
 #include "ResultExtractor.hpp"
 
 #include "Util.hpp"
+#include "fmtmacros.hpp"
 
 ResultExtractor::ResultExtractor(const std::string& directory)
   : m_directory(directory)
@@ -38,13 +39,13 @@ ResultExtractor::on_entry_start(uint32_t /*entry_number*/,
 {
   std::string suffix = Result::file_type_to_string(file_type);
   if (suffix == Result::k_unknown_file_type) {
-    suffix = fmt::format(".type_{}", file_type);
+    suffix = FMT(".type_{}", file_type);
   } else if (suffix[0] == '<') {
     suffix[0] = '.';
     suffix.resize(suffix.length() - 1);
   }
 
-  m_dest_path = fmt::format("{}/ccache-result{}", m_directory, suffix);
+  m_dest_path = FMT("{}/ccache-result{}", m_directory, suffix);
 
   if (!raw_file) {
     m_dest_fd = Fd(

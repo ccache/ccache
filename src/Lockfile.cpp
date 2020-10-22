@@ -20,6 +20,7 @@
 
 #include "Logging.hpp"
 #include "Util.hpp"
+#include "fmtmacros.hpp"
 
 #ifdef _WIN32
 #  include "Win32Util.hpp"
@@ -49,7 +50,7 @@ do_acquire_posix(const std::string& lockfile, uint32_t staleness_limit)
   const auto content_prefix = ss.str();
 
   while (true) {
-    auto my_content = fmt::format("{}:{}", content_prefix, time(nullptr));
+    auto my_content = FMT("{}:{}", content_prefix, time(nullptr));
 
     if (symlink(my_content.c_str(), lockfile.c_str()) == 0) {
       // We got the lock.

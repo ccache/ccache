@@ -27,6 +27,7 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
+#include "fmtmacros.hpp"
 
 #ifdef _WIN32
 #  include "Win32Util.hpp"
@@ -110,7 +111,7 @@ win32execute(const char* path,
   if (args.length() > 8192) {
     TemporaryFile tmp_file(path);
     Util::write_fd(*tmp_file.fd, args.data(), args.length());
-    args = fmt::format("\"@{}\"", tmp_file.path);
+    args = FMT("\"@{}\"", tmp_file.path);
     tmp_file_path = tmp_file.path;
   }
   BOOL ret = CreateProcess(full_path.c_str(),
@@ -241,7 +242,7 @@ find_executable_in_path(const std::string& name,
     int ret = SearchPath(
       dir.c_str(), name.c_str(), nullptr, sizeof(namebuf), namebuf, nullptr);
     if (!ret) {
-      std::string exename = fmt::format("{}.exe", name);
+      std::string exename = FMT("{}.exe", name);
       ret = SearchPath(dir.c_str(),
                        exename.c_str(),
                        nullptr,
@@ -255,7 +256,7 @@ find_executable_in_path(const std::string& name,
     }
 #else
     ASSERT(!exclude_name.empty());
-    std::string fname = fmt::format("{}/{}", dir, name);
+    std::string fname = FMT("{}/{}", dir, name);
     auto st1 = Stat::lstat(fname);
     auto st2 = Stat::stat(fname);
     // Look for a normal executable file.

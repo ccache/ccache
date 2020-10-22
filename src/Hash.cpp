@@ -20,6 +20,7 @@
 
 #include "Fd.hpp"
 #include "Logging.hpp"
+#include "fmtmacros.hpp"
 
 using nonstd::string_view;
 
@@ -97,7 +98,7 @@ Hash&
 Hash::hash(int64_t x)
 {
   hash_buffer(string_view(reinterpret_cast<const char*>(&x), sizeof(x)));
-  add_debug_text(fmt::format("{}\n", x));
+  add_debug_text(FMT("{}\n", x));
   return *this;
 }
 

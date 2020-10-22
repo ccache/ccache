@@ -19,6 +19,7 @@
 #include "../src/Config.hpp"
 #include "../src/Fd.hpp"
 #include "../src/Util.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
@@ -910,7 +911,7 @@ TEST_CASE("Util::traverse")
 
   std::vector<std::string> visited;
   auto visitor = [&visited](const std::string& path, bool is_dir) {
-    visited.push_back(fmt::format("[{}] {}", is_dir ? 'd' : 'f', path));
+    visited.push_back(FMT("[{}] {}", is_dir ? 'd' : 'f', path));
   };
 
   SUBCASE("traverse nonexistent path")

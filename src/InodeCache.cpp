@@ -26,6 +26,7 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
+#include "fmtmacros.hpp"
 
 #include <atomic>
 #include <libgen.h>
@@ -464,7 +465,7 @@ InodeCache::drop()
 std::string
 InodeCache::get_file()
 {
-  return fmt::format("{}/inode-cache.v{}", m_config.temporary_dir(), k_version);
+  return FMT("{}/inode-cache.v{}", m_config.temporary_dir(), k_version);
 }
 
 int64_t

@@ -21,6 +21,7 @@
 #include "../src/Context.hpp"
 #include "../src/Statistics.hpp"
 #include "../src/Util.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
 
@@ -283,7 +284,7 @@ TEST_CASE("sysroot_should_be_rewritten_if_basedir_is_used")
   Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
   std::string arg_string =
-    fmt::format("cc --sysroot={}/foo/bar -c foo.c", ctx.actual_cwd);
+    FMT("cc --sysroot={}/foo/bar -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -300,8 +301,7 @@ TEST_CASE(
 
   Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  std::string arg_string =
-    fmt::format("cc --sysroot {}/foo -c foo.c", ctx.actual_cwd);
+  std::string arg_string = FMT("cc --sysroot {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -436,8 +436,7 @@ TEST_CASE(
 
   Util::write_file("foo.c", "");
   ctx.config.set_base_dir(get_root());
-  std::string arg_string =
-    fmt::format("cc -isystem {}/foo -c foo.c", ctx.actual_cwd);
+  std::string arg_string = FMT("cc -isystem {}/foo -c foo.c", ctx.actual_cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -455,7 +454,7 @@ TEST_CASE("isystem_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
-  std::string arg_string = fmt::format("cc -isystem{}/foo -c foo.c", cwd);
+  std::string arg_string = FMT("cc -isystem{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);
@@ -473,7 +472,7 @@ TEST_CASE("I_flag_with_concat_arg_should_be_rewritten_if_basedir_is_used")
   ctx.config.set_base_dir("/"); // posix
   // Windows path doesn't work concatenated.
   std::string cwd = get_posix_path(ctx.actual_cwd);
-  std::string arg_string = fmt::format("cc -I{}/foo -c foo.c", cwd);
+  std::string arg_string = FMT("cc -I{}/foo -c foo.c", cwd);
   ctx.orig_args = Args::from_string(arg_string);
 
   const ProcessArgsResult result = process_args(ctx);

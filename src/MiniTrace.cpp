@@ -24,6 +24,7 @@
 #  include "MiniTrace.hpp"
 #  include "TemporaryFile.hpp"
 #  include "Util.hpp"
+#  include "fmtmacros.hpp"
 
 #  ifdef HAVE_SYS_TIME_H
 #    include <sys/time.h>
@@ -70,7 +71,7 @@ MiniTrace::MiniTrace(const ArgsInfo& args_info)
   m_tmp_trace_file = tmp_file.path;
 
   mtr_init(m_tmp_trace_file.c_str());
-  MTR_INSTANT_C("", "", "time", fmt::format("{:f}", time_seconds()).c_str());
+  MTR_INSTANT_C("", "", "time", FMT("{:f}", time_seconds()).c_str());
   MTR_META_PROCESS_NAME("ccache");
   MTR_START("program", "ccache", m_trace_id);
 }

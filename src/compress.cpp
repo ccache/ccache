@@ -172,7 +172,7 @@ recompress_file(RecompressionStatistics& statistics,
 
   LOG("Recompressing {} to {}",
       cache_file.path(),
-      level ? fmt::format("level {}", wanted_level) : "uncompressed");
+      level ? FMT("level {}", wanted_level) : "uncompressed");
   AtomicFile atomic_new_file(cache_file.path(), AtomicFile::Mode::binary);
   auto writer =
     create_writer(atomic_new_file.stream(),
@@ -350,10 +350,10 @@ compress_recompress(Context& ctx,
   std::string incompr_size_str =
     Util::format_human_readable_size(statistics.incompressible_size());
   std::string size_difference_str =
-    fmt::format("{}{}",
-                size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
-                Util::format_human_readable_size(
-                  size_difference < 0 ? -size_difference : size_difference));
+    FMT("{}{}",
+        size_difference < 0 ? "-" : (size_difference > 0 ? "+" : " "),
+        Util::format_human_readable_size(
+          size_difference < 0 ? -size_difference : size_difference));
 
   PRINT(stdout, "Original data:         {:>8s}\n", content_size_str);
   PRINT(stdout,

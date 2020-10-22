@@ -26,6 +26,7 @@
 #include "Stat.hpp"
 #include "ccache.hpp"
 #include "execute.hpp"
+#include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
 #include "third_party/blake3/blake3_cpu_supports_avx2.h"
@@ -361,12 +362,12 @@ hash_command_output(Hash& hash,
   // Add "echo" command.
   bool using_cmd_exe;
   if (Util::starts_with(adjusted_command, "echo")) {
-    adjusted_command = fmt::format("cmd.exe /c \"{}\"", adjusted_command);
+    adjusted_command = FMT("cmd.exe /c \"{}\"", adjusted_command);
     using_cmd_exe = true;
   } else if (Util::starts_with(adjusted_command, "%compiler%")
              && compiler == "echo") {
     adjusted_command =
-      fmt::format("cmd.exe /c \"{}{}\"", compiler, adjusted_command.substr(10));
+      FMT("cmd.exe /c \"{}{}\"", compiler, adjusted_command.substr(10));
     using_cmd_exe = true;
   } else {
     using_cmd_exe = false;

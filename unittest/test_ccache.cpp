@@ -16,9 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Context.hpp"
+#include "../src/Context.hpp"
+#include "../src/ccache.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
-#include "ccache.hpp"
 
 #include "third_party/doctest.h"
 #include "third_party/nonstd/optional.hpp"
@@ -161,10 +162,9 @@ TEST_CASE("rewrite_dep_file_paths")
   const auto cwd = ctx.actual_cwd;
   ctx.has_absolute_include_headers = true;
 
-  const auto content =
-    fmt::format("foo.o: bar.c {0}/bar.h \\\n {1}/fie.h {0}/fum.h\n",
-                cwd,
-                Util::dir_name(cwd));
+  const auto content = FMT("foo.o: bar.c {0}/bar.h \\\n {1}/fie.h {0}/fum.h\n",
+                           cwd,
+                           Util::dir_name(cwd));
 
   SUBCASE("Base directory not in dep file content")
   {
@@ -175,7 +175,7 @@ TEST_CASE("rewrite_dep_file_paths")
 
   SUBCASE("Base directory in dep file content but not matching")
   {
-    ctx.config.set_base_dir(fmt::format("{}/other", Util::dir_name(cwd)));
+    ctx.config.set_base_dir(FMT("{}/other", Util::dir_name(cwd)));
     CHECK(!rewrite_dep_file_paths(ctx, ""));
     CHECK(!rewrite_dep_file_paths(ctx, content));
   }
@@ -184,8 +184,8 @@ TEST_CASE("rewrite_dep_file_paths")
   {
     ctx.config.set_base_dir(cwd);
     const auto actual = rewrite_dep_file_paths(ctx, content);
-    const auto expected = fmt::format(
-      "foo.o: bar.c ./bar.h \\\n {}/fie.h ./fum.h\n", Util::dir_name(cwd));
+    const auto expected =
+      FMT("foo.o: bar.c ./bar.h \\\n {}/fie.h ./fum.h\n", Util::dir_name(cwd));
     REQUIRE(actual);
     CHECK(*actual == expected);
   }

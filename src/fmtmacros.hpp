@@ -21,6 +21,10 @@
 #include "third_party/fmt/core.h"
 #include "third_party/fmt/format.h"
 
+// Convenience macro for calling `fmt::format` with `FMT_STRING` around the
+// format string literal.
+#define FMT(format_, ...) fmt::format(FMT_STRING(format_), __VA_ARGS__)
+
 // Convenience macro for calling `fmt::print` with `FMT_STRING` around the
 // format string literal.
 #define PRINT(stream_, format_, ...)                                           \

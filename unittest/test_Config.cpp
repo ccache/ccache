@@ -20,6 +20,7 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/exceptions.hpp"
+#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"
@@ -82,9 +83,9 @@ TEST_CASE("Config::update_from_file")
   Util::setenv("USER", user);
 
 #ifndef _WIN32
-  std::string base_dir = fmt::format("/{0}/foo/{0}", user);
+  std::string base_dir = FMT("/{0}/foo/{0}", user);
 #else
-  std::string base_dir = fmt::format("C:/{0}/foo/{0}", user);
+  std::string base_dir = FMT("C:/{0}/foo/{0}", user);
 #endif
 
   Util::write_file(
@@ -132,7 +133,7 @@ TEST_CASE("Config::update_from_file")
   Config config;
   REQUIRE(config.update_from_file("ccache.conf"));
   CHECK(config.base_dir() == base_dir);
-  CHECK(config.cache_dir() == fmt::format("{0}$/{0}/.ccache", user));
+  CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
   CHECK_FALSE(config.compression());
@@ -141,7 +142,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.depend_mode());
   CHECK_FALSE(config.direct_mode());
   CHECK(config.disable());
-  CHECK(config.extra_files_to_hash() == fmt::format("a:b c:{}", user));
+  CHECK(config.extra_files_to_hash() == FMT("a:b c:{}", user));
   CHECK(config.file_clone());
   CHECK(config.hard_link());
   CHECK_FALSE(config.hash_dir());
@@ -149,12 +150,12 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.ignore_options() == "-a=* -b");
   CHECK(config.keep_comments_cpp());
   CHECK(config.limit_multiple() == Approx(1.0));
-  CHECK(config.log_file() == fmt::format("{0}{0}", user));
+  CHECK(config.log_file() == FMT("{0}{0}", user));
   CHECK(config.max_files() == 17);
   CHECK(config.max_size() == 123 * 1000 * 1000);
-  CHECK(config.path() == fmt::format("{}.x", user));
+  CHECK(config.path() == FMT("{}.x", user));
   CHECK(config.pch_external_checksum());
-  CHECK(config.prefix_command() == fmt::format("x{}", user));
+  CHECK(config.prefix_command() == FMT("x{}", user));
   CHECK(config.prefix_command_cpp() == "y");
   CHECK(config.read_only());
   CHECK(config.read_only_direct());
@@ -166,7 +167,7 @@ TEST_CASE("Config::update_from_file")
             | SLOPPY_FILE_STAT_MATCHES_CTIME | SLOPPY_SYSTEM_HEADERS
             | SLOPPY_PCH_DEFINES | SLOPPY_CLANG_INDEX_STORE));
   CHECK_FALSE(config.stats());
-  CHECK(config.temporary_dir() == fmt::format("{}_foo", user));
+  CHECK(config.temporary_dir() == FMT("{}_foo", user));
   CHECK(config.umask() == 0777);
 }
 
@@ -408,7 +409,7 @@ TEST_CASE("Config::visit_items")
   config.visit_items([&](const std::string& key,
                          const std::string& value,
                          const std::string& origin) {
-    received_items.push_back(fmt::format("({}) {} = {}", origin, key, value));
+    received_items.push_back(FMT("({}) {} = {}", origin, key, value));
   });
 
   std::vector<std::string> expected = {

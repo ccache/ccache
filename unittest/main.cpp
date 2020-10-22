@@ -35,7 +35,7 @@ main(int argc, char** argv)
   Util::unsetenv("GCC_COLORS"); // Don't confuse argument processing tests.
 
   std::string dir_before = Util::get_actual_cwd();
-  std::string testdir = fmt::format("testdir.{}", getpid());
+  std::string testdir = FMT("testdir.{}", getpid());
   Util::wipe_path(testdir);
   Util::create_dir(testdir);
   TestUtil::check_chdir(testdir);

@@ -23,6 +23,7 @@
 #include "Logging.hpp"
 #include "assertions.hpp"
 #include "compopt.hpp"
+#include "fmtmacros.hpp"
 #include "language.hpp"
 
 #include <cassert>
@@ -534,7 +535,7 @@ process_arg(Context& ctx,
       auto arg_opt = string_view(args[i]).substr(0, 3);
       auto option = string_view(args[i]).substr(3);
       auto relpath = Util::make_relative_path(ctx, option);
-      state.dep_args.push_back(fmt::format("{}{}", arg_opt, relpath));
+      state.dep_args.push_back(FMT("{}{}", arg_opt, relpath));
     }
     return nullopt;
   }
@@ -902,8 +903,7 @@ handle_dependency_environment_variables(Context& ctx,
     string_view abspath_obj = dependencies[1];
     std::string relpath_obj = Util::make_relative_path(ctx, abspath_obj);
     // Ensure that the compiler gets a relative path.
-    std::string relpath_both =
-      fmt::format("{} {}", args_info.output_dep, relpath_obj);
+    std::string relpath_both = FMT("{} {}", args_info.output_dep, relpath_obj);
     if (using_sunpro_dependencies) {
       Util::setenv("SUNPRO_DEPENDENCIES", relpath_both);
     } else {
