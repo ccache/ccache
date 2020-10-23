@@ -18,8 +18,8 @@ base_tests() {
 
     # -------------------------------------------------------------------------
     TEST "ccache ccache gcc"
-    # e.g. due to some suboptimal setup, scripts etc.
-    # Source: https://github.com/ccache/ccache/issues/686
+    # E.g. due to some suboptimal setup, scripts etc. Source:
+    # https://github.com/ccache/ccache/issues/686
 
     $REAL_COMPILER -c -o reference_test1.o test1.c
 

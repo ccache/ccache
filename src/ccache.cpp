@@ -1849,17 +1849,17 @@ find_compiler(Context& ctx,
   while (compiler_pos < ctx.orig_args.size()
          && Util::same_program_name(
            Util::base_name(ctx.orig_args[compiler_pos]), CCACHE_NAME)) {
-    compiler_pos++;
+    ++compiler_pos;
   }
 
   // Support user override of the compiler.
   const std::string compiler =
     !ctx.config.compiler().empty()
       ? ctx.config.compiler()
-      // In case ccache is masquerading as compiler,
-      // use only base_name so the real compiler can be determined.
-      : compiler_pos == 0 ? std::string(Util::base_name(ctx.orig_args[0]))
-                          : ctx.orig_args[compiler_pos];
+      // In case ccache is masquerading as the compiler, use only base_name so
+      // the real compiler can be determined.
+      : (compiler_pos == 0 ? std::string(Util::base_name(ctx.orig_args[0]))
+                           : ctx.orig_args[compiler_pos]);
 
   const std::string resolved_compiler =
     Util::is_full_path(compiler)

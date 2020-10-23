@@ -108,8 +108,8 @@ TEST_CASE("find_compiler")
 
   SUBCASE("double ccache")
   {
-    // e.g. due to some suboptimal setup, scripts etc.
-    // Source: https://github.com/ccache/ccache/issues/686
+    // E.g. due to some suboptimal setup, scripts etc. Source:
+    // https://github.com/ccache/ccache/issues/686
     CHECK(helper(CCACHE_NAME " gcc", "") == "resolved_gcc");
     CHECK(helper(CCACHE_NAME " " CCACHE_NAME " gcc", "") == "resolved_gcc");
     CHECK(helper(CCACHE_NAME " " CCACHE_NAME " " CCACHE_NAME " gcc", "")
