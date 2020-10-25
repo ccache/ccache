@@ -11,7 +11,9 @@
 #    version_info has not been substituted). In this case we fail the
 #    configuration.
 # 3. Building from a Git repository. In this case the version will be a proper
-#    version if building a tagged commit, otherwise "branch.hash(+dirty)".
+#    version if building a tagged commit, otherwise "branch.hash(+dirty)". In
+#    case where git is not available, version will be 'unknown' (e.g. mounting
+#    your source directory into docker without installing git).
 
 set(version_info "$Format:%H %D$")
 
@@ -30,7 +32,8 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   # Scenario 3.
   find_package(Git QUIET)
   if(NOT GIT_FOUND)
-    message(SEND_ERROR "Could not find git")
+    set(VERSION "unknown")
+    message(WARNING "Could not find git")
   endif()
 
   macro(git)
