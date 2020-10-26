@@ -3,15 +3,15 @@ on:
   push:
   pull_request:
 
+env:
+  CMAKE_GENERATOR: Ninja
+  CTEST_OUTPUT_ON_FAILURE: ON
+  VERBOSE: 1
+
 jobs:
   build_and_test:
     name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}
     runs-on: ${{ matrix.config.os }}
-    env:
-      CMAKE_GENERATOR: Ninja
-      CTEST_OUTPUT_ON_FAILURE: ON
-      VERBOSE: 1
-
     strategy:
       fail-fast: false
       matrix:
