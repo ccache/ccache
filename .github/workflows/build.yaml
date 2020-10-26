@@ -124,7 +124,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build and test
-        run:  ci/build
+        run: ci/build
         env:
           ENABLE_CACHE_CLEANUP_TESTS: true
           CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI
