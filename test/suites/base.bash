@@ -947,7 +947,7 @@ EOF
 
 
     # -------------------------------------------------------------------------
-    TEST "CCACHE_UMASK"
+    TEST "CCACHE_UMASK 002"
 
     saved_umask=$(umask)
     umask 022
@@ -961,17 +961,15 @@ EOF
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    result_file=$(find $CCACHE_DIR -name '*R')
-    level_2_dir=$(dirname $result_file)
-    level_1_dir=$(dirname $(dirname $result_file))
     expect_perm test.o -rw-r--r--
     expect_perm test.d -rw-r--r--
     expect_perm "$CCACHE_CONFIGPATH" -rw-rw-r--
     expect_perm "$CCACHE_DIR" drwxrwxr-x
-    expect_perm "$level_1_dir" drwxrwxr-x
-    expect_perm "$level_1_dir/stats" -rw-rw-r--
-    expect_perm "$level_2_dir" drwxrwxr-x
-    expect_perm "$result_file" -rw-rw-r--
+    if [ -n "$(find $CCACHE_DIR -perm 'o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR -perm '-o=w'
+      test_failed "File with unapplied umask detected (first run)"
+    fi
 
     rm test.o test.d
     $CCACHE_COMPILE -MMD -c test.c
@@ -979,12 +977,72 @@ EOF
     expect_stat 'cache miss' 1
     expect_perm test.o -rw-r--r--
     expect_perm test.d -rw-r--r--
+    if [ -n "$(find $CCACHE_DIR -perm 'o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR -perm '-o=w'
+      test_failed "File with unapplied umask detected (cached run)"
+    fi
 
     $CCACHE_COMPILE -o test test.o
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
     expect_stat 'called for link' 1
     expect_perm test -rwxr-xr-x
+    if [ -n "$(find $CCACHE_DIR -perm 'o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR -perm '-o=w'
+      test_failed "File with unapplied umask detected (linker run)"
+    fi
+
+    umask $saved_umask
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_UMASK 000"
+
+    saved_umask=$(umask)
+    umask 022
+    export CCACHE_UMASK=000
+
+    cat <<EOF >test.c
+int main() {}
+EOF
+
+    $CCACHE -M 5 >/dev/null
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+    expect_perm "$CCACHE_CONFIGPATH" -rw-rw-rw-
+    expect_perm "$CCACHE_DIR" drwxrwxrwx
+    if [ -n "$(find $CCACHE_DIR ! -perm '-o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR ! -perm '-o=w'
+      test_failed "File with unapplied umask detected (first run)"
+    fi
+
+    rm test.o test.d
+    $CCACHE_COMPILE -MMD -c test.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_perm test.o -rw-r--r--
+    expect_perm test.d -rw-r--r--
+    if [ -n "$(find $CCACHE_DIR ! -perm '-o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR ! -perm '-o=w'
+      test_failed "File with unapplied umask detected (cached run)"
+    fi
+
+    $CCACHE_COMPILE -o test test.o
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'called for link' 1
+    expect_perm test -rwxr-xr-x
+    if [ -n "$(find $CCACHE_DIR ! -perm '-o=w' | grep .)" ]; then
+      ls -Ral $CCACHE_DIR
+      find $CCACHE_DIR ! -perm '-o=w'
+      test_failed "File with unapplied umask detected (linker run)"
+    fi
 
     umask $saved_umask
 
