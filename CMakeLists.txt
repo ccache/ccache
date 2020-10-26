@@ -43,6 +43,9 @@ if((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSIO
     "The compiler you are using is rather old.\n"
     "If anything goes wrong you might be better off with one listed here:"
     " https://ccache.dev/platform-compiler-language-support.html")
+  
+  # Warnings of those old compilers are probably useless anyway.
+  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 endif()
 
 #
