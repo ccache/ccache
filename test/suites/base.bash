@@ -952,22 +952,26 @@ EOF
     saved_umask=$(umask)
     umask 022
     export CCACHE_UMASK=002
+    export CCACHE_TEMPDIR=$CCACHE_DIR/tmp
 
     cat <<EOF >test.c
 int main() {}
 EOF
 
+    # A cache-miss case which affects the stats file on level 1:
+
     $CCACHE -M 5 >/dev/null
     $CCACHE_COMPILE -MMD -c test.c
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
-    result_file=$(find $CCACHE_DIR -name '*R')
-    level_2_dir=$(dirname $result_file)
-    level_1_dir=$(dirname $(dirname $result_file))
+    result_file=$(find "$CCACHE_DIR" -name '*R')
+    level_2_dir=$(dirname "$result_file")
+    level_1_dir=$(dirname $(dirname "$result_file"))
     expect_perm test.o -rw-r--r--
     expect_perm test.d -rw-r--r--
     expect_perm "$CCACHE_CONFIGPATH" -rw-rw-r--
     expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$CCACHE_DIR/tmp" drwxrwxr-x
     expect_perm "$level_1_dir" drwxrwxr-x
     expect_perm "$level_1_dir/stats" -rw-rw-r--
     expect_perm "$level_2_dir" drwxrwxr-x
@@ -985,6 +989,20 @@ EOF
     expect_stat 'cache miss' 1
     expect_stat 'called for link' 1
     expect_perm test -rwxr-xr-x
+
+    # A non-cache-miss case which affects the stats file on level 2:
+
+    rm -rf "$CCACHE_DIR"
+
+    $CCACHE_COMPILE --version >/dev/null
+    expect_stat 'no input file' 1
+    stats_file=$(find "$CCACHE_DIR" -name stats)
+    level_2_dir=$(dirname "$stats_file")
+    level_1_dir=$(dirname $(dirname "$stats_file"))
+    expect_perm "$CCACHE_DIR" drwxrwxr-x
+    expect_perm "$level_1_dir" drwxrwxr-x
+    expect_perm "$level_2_dir" drwxrwxr-x
+    expect_perm "$stats_file" -rw-rw-r--
 
     umask $saved_umask
 

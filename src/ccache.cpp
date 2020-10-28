@@ -2229,6 +2229,7 @@ cache_compilation(int argc, const char* const* argv)
 
   bool fall_back_to_original_compiler = false;
   Args saved_orig_args;
+  nonstd::optional<mode_t> original_umask;
 
   {
     Context ctx;
@@ -2255,9 +2256,7 @@ cache_compilation(int argc, const char* const* argv)
       // Else: Fall back to running the real compiler.
       fall_back_to_original_compiler = true;
 
-      if (ctx.original_umask) {
-        umask(*ctx.original_umask);
-      }
+      original_umask = ctx.original_umask;
 
       ASSERT(!ctx.orig_args.empty());
 
@@ -2274,6 +2273,9 @@ cache_compilation(int argc, const char* const* argv)
   }
 
   if (fall_back_to_original_compiler) {
+    if (original_umask) {
+      umask(*original_umask);
+    }
     auto execv_argv = saved_orig_args.to_argv();
     execv(execv_argv[0], const_cast<char* const*>(execv_argv.data()));
     throw Fatal("execv of {} failed: {}", execv_argv[0], strerror(errno));
