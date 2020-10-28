@@ -501,4 +501,10 @@ void write_file(const std::string& path,
                 const std::string& data,
                 std::ios_base::openmode open_mode = std::ios::binary);
 
+// Replaces `from` with `to` in `str` in-place
+void
+str_replace(std::string &str,
+            const std::string &from,
+            const std::string &to);
+
 } // namespace Util

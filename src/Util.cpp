@@ -875,10 +875,6 @@ make_relative_path(const std::string& base_dir,
                    const std::string& apparent_cwd,
                    nonstd::string_view path)
 {
-  if (base_dir.empty() || !Util::starts_with(path, base_dir)) {
-    return std::string(path);
-  }
-
 #ifdef _WIN32
   std::string winpath;
   if (path.length() >= 3 && path[0] == '/') {
@@ -894,17 +890,24 @@ make_relative_path(const std::string& base_dir,
   }
 #endif
 
+  std::string normalized_path = Util::normalize_absolute_path(path);
+  if (base_dir.empty()
+      || !Util::starts_with(path, Util::normalize_absolute_path(base_dir))) {
+    return std::string(path);
+  }
+
   // The algorithm for computing relative paths below only works for existing
   // paths. If the path doesn't exist, find the first ancestor directory that
   // does exist and assemble the path again afterwards.
 
   std::vector<std::string> relpath_candidates;
-  const auto original_path = path;
+  const string_view original_path = normalized_path;
+  string_view path_prefix = normalized_path;
   Stat path_stat;
-  while (!(path_stat = Stat::stat(std::string(path)))) {
-    path = Util::dir_name(path);
+  while (!(path_stat = Stat::stat(std::string(path_prefix)))) {
+    path_prefix = Util::dir_name(path_prefix);
   }
-  const auto path_suffix = std::string(original_path.substr(path.length()));
+  const auto path_suffix = std::string(original_path.substr(path_prefix.length()));
   const auto real_path = Util::real_path(std::string(path));
 
   const auto add_relpath_candidates = [&](nonstd::string_view path) {
@@ -916,8 +919,8 @@ make_relative_path(const std::string& base_dir,
         Util::get_relative_path(apparent_cwd, normalized_path));
     }
   };
-  add_relpath_candidates(path);
-  if (real_path != path) {
+  add_relpath_candidates(path_prefix);
+  if (real_path != path_prefix) {
     add_relpath_candidates(real_path);
   }
 
@@ -958,17 +961,19 @@ matches_dir_prefix_or_file(string_view dir_prefix_or_file, string_view path)
 std::string
 normalize_absolute_path(string_view path)
 {
-  if (!is_absolute_path(path)) {
-    return std::string(path);
-  }
-
 #ifdef _WIN32
   if (path.find("\\") != string_view::npos) {
     std::string new_path(path);
     std::replace(new_path.begin(), new_path.end(), '\\', '/');
     return normalize_absolute_path(new_path);
   }
+#endif
 
+  if (!is_absolute_path(path)) {
+    return std::string(path);
+  }
+
+#ifdef _WIN32
   std::string drive(path.substr(0, 2));
   path = path.substr(2);
 #endif
@@ -1253,6 +1258,7 @@ real_path(const std::string& path, bool return_empty_on_error)
   } else {
     snprintf(buffer, buffer_size, "%s", c_path);
     resolved = buffer;
+    std::replace(resolved, resolved + strlen(resolved), '/', '\\');
   }
 #else
 #  error No realpath function available
@@ -1604,4 +1610,13 @@ write_file(const std::string& path,
   file << data;
 }
 
+void
+str_replace(std::string &str, const std::string &from, const std::string &to)
+{
+  size_t start_pos = 0;
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    start_pos += to.length();
+  }
+}
 } // namespace Util

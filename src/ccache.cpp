@@ -653,6 +653,13 @@ process_preprocessed_file(Context& ctx,
       }
       // p and q span the include file path.
       std::string inc_path(p, q - p);
+#ifdef _WIN32
+      // gcc-E [file.c] -g adds CWD with double forward slashes
+      // like:
+      // # 1 "C:\\msys64\\home\\user\\test//"
+      // double forward slashes should be replaced with simple slashes
+      Util::str_replace(inc_path, "\\\\", "\\");
+#endif
       if (!ctx.has_absolute_include_headers) {
         ctx.has_absolute_include_headers = Util::is_absolute_path(inc_path);
       }
