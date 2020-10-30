@@ -33,31 +33,31 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   if(NOT GIT_FOUND)
     set(VERSION "unknown")
     message(WARNING "Could not find git")
+  else()
+    macro(git)
+      execute_process(
+        COMMAND "${GIT_EXECUTABLE}" ${ARGN}
+        OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
+    endmacro()
+
+    git(describe --abbrev=8 --dirty)
+    if(git_stdout MATCHES "^v([^-]+)(-dirty)?$")
+      set(VERSION "${CMAKE_MATCH_1}")
+      if(NOT "${CMAKE_MATCH_2}" STREQUAL "")
+        set(VERSION "${VERSION}+dirty")
+      endif()
+    elseif(git_stdout MATCHES "^v[^-]+-[0-9]+-g([0-9a-f]+)(-dirty)?$")
+      set(hash "${CMAKE_MATCH_1}")
+      set(dirty "${CMAKE_MATCH_2}")
+      string(REPLACE "-" "+" dirty "${dirty}")
+
+      git(rev-parse --abbrev-ref HEAD)
+      set(branch "${git_stdout}")
+
+      set(VERSION "${branch}.${hash}${dirty}")
+    endif() # else: fail below
   endif()
-
-  macro(git)
-    execute_process(
-      COMMAND "${GIT_EXECUTABLE}" ${ARGN}
-      OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
-  endmacro()
-
-  git(describe --abbrev=8 --dirty)
-  if(git_stdout MATCHES "^v([^-]+)(-dirty)?$")
-    set(VERSION "${CMAKE_MATCH_1}")
-    if(NOT "${CMAKE_MATCH_2}" STREQUAL "")
-      set(VERSION "${VERSION}+dirty")
-    endif()
-  elseif(git_stdout MATCHES "^v[^-]+-[0-9]+-g([0-9a-f]+)(-dirty)?$")
-    set(hash "${CMAKE_MATCH_1}")
-    set(dirty "${CMAKE_MATCH_2}")
-    string(REPLACE "-" "+" dirty "${dirty}")
-
-    git(rev-parse --abbrev-ref HEAD)
-    set(branch "${git_stdout}")
-
-    set(VERSION "${branch}.${hash}${dirty}")
-  endif() # else: fail below
 endif()
 
 if(VERSION STREQUAL "")
