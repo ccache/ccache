@@ -12,8 +12,7 @@
 #    configuration.
 # 3. Building from a Git repository. In this case the version will be a proper
 #    version if building a tagged commit, otherwise "branch.hash(+dirty)". In
-#    case where git is not available, version will be 'unknown' (e.g. mounting
-#    your source directory into docker without installing git).
+#    case Git is not available, the version will be "unknown".
 
 set(version_info "$Format:%H %D$")
 
