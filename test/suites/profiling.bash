@@ -4,7 +4,7 @@ SUITE_profiling_PROBE() {
         echo "compiler does not support profiling"
     fi
     if ! $COMPILER -fprofile-generate=data -c test.c 2>/dev/null; then
-        echo "compiler does not support profiling with assignment"
+        echo "compiler does not support -fprofile-generate=path"
     fi
     if $COMPILER_TYPE_CLANG && ! command -v llvm-profdata$CLANG_VERSION_SUFFIX >/dev/null; then
         echo "llvm-profdata$CLANG_VERSION_SUFFIX tool not found"
