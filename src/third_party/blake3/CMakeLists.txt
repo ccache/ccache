@@ -17,7 +17,15 @@ include(CheckCCompilerFlag)
 
 function(add_source_if_enabled feature compile_flags)
   string(TOUPPER "have_${blake_source_type}_${feature}" have_feature)
-  if(${blake_source_type} STREQUAL "asm")
+
+  # AVX512 support fails to compile with old Apple Clang versions even though
+  # the compiler accepts the -m flags.
+  if(${feature} STREQUAL "avx512"
+      AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+      AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+    message(STATUS "Detected unsupported compiler for ${have_feature} - disabled")
+    set(${have_feature} FALSE)
+  elseif(${blake_source_type} STREQUAL "asm")
     check_asm_compiler_flag(${compile_flags} ${have_feature})
   else()
     check_c_compiler_flag(${compile_flags} ${have_feature})

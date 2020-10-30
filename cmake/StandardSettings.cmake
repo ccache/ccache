@@ -6,7 +6,7 @@ add_library(standard_settings INTERFACE)
 # Not supported in CMake 3.4: target_compile_features(project_options INTERFACE
 # c_std_11 cxx_std_11)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|Clang$")
+if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
   option(ENABLE_COVERAGE "Enable coverage reporting for GCC/Clang" FALSE)
   if(ENABLE_COVERAGE)
     target_compile_options(standard_settings INTERFACE --coverage -O0 -g)
