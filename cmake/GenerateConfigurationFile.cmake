@@ -55,7 +55,7 @@ check_struct_has_member("struct statfs" f_fstypename sys/mount.h
 include(CheckCXXCompilerFlag)
 
 # Old GCC versions don't have the required header support.
-# Old Apple Clang versions seems to support -mavx2 but not the target
+# Old Apple Clang versions seem to support -mavx2 but not the target
 # attribute that's used to enable AVX2 for a certain function.
 if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
    OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
