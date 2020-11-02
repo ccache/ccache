@@ -80,6 +80,11 @@ struct ArgumentProcessingState
   // compiler_only_args contains arguments that should only be passed to the
   // compiler, not the preprocessor.
   Args compiler_only_args;
+
+  // compiler_only_args_no_hash contains arguments that should only be passed to
+  // the compiler, not the preprocessor, and that also should not be part of the
+  // hash identifying the result.
+  Args compiler_only_args_no_hash;
 };
 
 bool
@@ -201,16 +206,6 @@ process_profiling_option(Context& ctx, const std::string& arg)
   }
 
   return true;
-}
-
-// The compiler is invoked with the original arguments in the depend mode.
-// Collect extra arguments that should be added.
-void
-add_depend_mode_extra_original_args(Context& ctx, const std::string& arg)
-{
-  if (ctx.config.depend_mode()) {
-    ctx.args_info.depend_extra_args.push_back(arg);
-  }
 }
 
 optional<Statistic>
@@ -690,15 +685,18 @@ process_arg(Context& ctx,
   if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;
+    state.compiler_only_args_no_hash.push_back(args[i]);
     return nullopt;
   }
   if (args[i] == "-fno-color-diagnostics" || args[i] == "-fno-diagnostics-color"
       || args[i] == "-fdiagnostics-color=never") {
     state.color_diagnostics = ColorDiagnostics::never;
+    state.compiler_only_args_no_hash.push_back(args[i]);
     return nullopt;
   }
   if (args[i] == "-fdiagnostics-color=auto") {
     state.color_diagnostics = ColorDiagnostics::automatic;
+    state.compiler_only_args_no_hash.push_back(args[i]);
     return nullopt;
   }
 
@@ -1097,22 +1095,16 @@ process_args(Context& ctx)
     state.color_diagnostics != ColorDiagnostics::automatic
       ? state.color_diagnostics == ColorDiagnostics::never
       : !color_output_possible();
+
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
+  nonstd::optional<std::string> diagnostics_color_arg;
   if (ctx.guessed_compiler == GuessedCompiler::clang) {
     if (args_info.actual_language != "assembler") {
-      if (!config.run_second_cpp()) {
-        state.cpp_args.push_back("-fcolor-diagnostics");
-      }
-      state.compiler_only_args.push_back("-fcolor-diagnostics");
-      add_depend_mode_extra_original_args(ctx, "-fcolor-diagnostics");
+      diagnostics_color_arg = "-fcolor-diagnostics";
     }
   } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
-    if (!config.run_second_cpp()) {
-      state.cpp_args.push_back("-fdiagnostics-color");
-    }
-    state.compiler_only_args.push_back("-fdiagnostics-color");
-    add_depend_mode_extra_original_args(ctx, "-fdiagnostics-color");
+    diagnostics_color_arg = "-fdiagnostics-color";
   } else {
     // Other compilers shouldn't output color, so no need to strip it.
     args_info.strip_diagnostics_colors = false;
@@ -1151,6 +1143,7 @@ process_args(Context& ctx)
   }
 
   Args compiler_args = state.common_args;
+  compiler_args.push_back(state.compiler_only_args_no_hash);
   compiler_args.push_back(state.compiler_only_args);
 
   if (config.run_second_cpp()) {
@@ -1209,6 +1202,19 @@ process_args(Context& ctx)
   Args extra_args_to_hash = state.compiler_only_args;
   if (config.run_second_cpp()) {
     extra_args_to_hash.push_back(state.dep_args);
+  }
+
+  if (diagnostics_color_arg) {
+    compiler_args.push_back(*diagnostics_color_arg);
+    if (!config.run_second_cpp()) {
+      // If we're compiling preprocessed code we're keeping any warnings from
+      // the preprocessor, so we need to make sure that they are in color.
+      preprocessor_args.push_back(*diagnostics_color_arg);
+    }
+    if (ctx.config.depend_mode()) {
+      // The compiler is invoked with the original arguments in the depend mode.
+      ctx.args_info.depend_extra_args.push_back(*diagnostics_color_arg);
+    }
   }
 
   return {preprocessor_args, extra_args_to_hash, compiler_args};

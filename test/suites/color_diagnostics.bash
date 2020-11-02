@@ -110,6 +110,15 @@ color_diagnostics_test() {
     expect_stat 'cache hit (preprocessed)' 1
 
     # -------------------------------------------------------------------------
+    if $COMPILER_TYPE_GCC; then
+        TEST "-fcolor-diagnostics not accepted for GCC"
+
+        generate_code 1 test.c
+        if $CCACHE_COMPILE -fcolor-diagnostics -c test.c >&/dev/null; then
+            test_failed "-fcolor-diagnostics unexpectedly accepted by GCC"
+        fi
+    fi
+
     while read -r case; do
         TEST "Cache object shared across ${case} (run_second_cpp=$run_second_cpp)"
 

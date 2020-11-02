@@ -739,7 +739,7 @@ do_execute(Context& ctx,
 
   if (ctx.diagnostics_color_failed
       && ctx.guessed_compiler == GuessedCompiler::gcc) {
-    args.erase_with_prefix("-fdiagnostics-color");
+    args.erase_last("-fdiagnostics-color");
   }
   int status = execute(args.to_argv().data(),
                        std::move(tmp_stdout.fd),

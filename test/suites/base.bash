@@ -1012,16 +1012,12 @@ EOF
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;
 EOF
-    cat <<'EOF' >prefix-remove.sh
+    cat <<'EOF' >no-object-prefix
 #!/bin/sh
-"$@"
-[ x$2 = x-fcolor-diagnostics ] && shift
-[ x$2 = x-fdiagnostics-color ] && shift
-[ x$2 = x-std=gnu99 ] && shift
-[ x$3 = x-o ] && rm $4
+# Emulate no object file from the compiler.
 EOF
-    chmod +x prefix-remove.sh
-    CCACHE_PREFIX=`pwd`/prefix-remove.sh $CCACHE_COMPILE -c test_no_obj.c
+    chmod +x no-object-prefix
+    CCACHE_PREFIX=$(pwd)/no-object-prefix $CCACHE_COMPILE -c test_no_obj.c
     expect_stat 'compiler produced no output' 1
 
     # -------------------------------------------------------------------------
@@ -1030,16 +1026,13 @@ EOF
     cat <<'EOF' >test_empty_obj.c
 int test_empty_obj;
 EOF
-    cat <<'EOF' >prefix-empty.sh
+    cat <<'EOF' >empty-object-prefix
 #!/bin/sh
-"$@"
-[ x$2 = x-fcolor-diagnostics ] && shift
-[ x$2 = x-fdiagnostics-color ] && shift
-[ x$2 = x-std=gnu99 ] && shift
-[ x$3 = x-o ] && cp /dev/null $4
+# Emulate empty object file from the compiler.
+touch test_empty_obj.o
 EOF
-    chmod +x prefix-empty.sh
-    CCACHE_PREFIX=`pwd`/prefix-empty.sh $CCACHE_COMPILE -c test_empty_obj.c
+    chmod +x empty-object-prefix
+    CCACHE_PREFIX=`pwd`/empty-object-prefix $CCACHE_COMPILE -c test_empty_obj.c
     expect_stat 'compiler produced empty output' 1
 
     # -------------------------------------------------------------------------
