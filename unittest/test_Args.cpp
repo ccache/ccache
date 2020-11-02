@@ -226,6 +226,23 @@ TEST_CASE("Args operations")
   Args more_args = Args::from_string("x y");
   Args no_args;
 
+  SUBCASE("erase_last")
+  {
+    Args repeated_args = Args::from_string("one two twotwo one two twotwo");
+
+    repeated_args.erase_last("three");
+    CHECK(repeated_args == Args::from_string("one two twotwo one two twotwo"));
+
+    repeated_args.erase_last("two");
+    CHECK(repeated_args == Args::from_string("one two twotwo one twotwo"));
+
+    repeated_args.erase_last("two");
+    CHECK(repeated_args == Args::from_string("one twotwo one twotwo"));
+
+    repeated_args.erase_last("two");
+    CHECK(repeated_args == Args::from_string("one twotwo one twotwo"));
+  }
+
   SUBCASE("erase_with_prefix")
   {
     args.erase_with_prefix("m");

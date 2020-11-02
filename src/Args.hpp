@@ -60,6 +60,9 @@ public:
   // in arguments is performed.
   std::string to_string() const;
 
+  // Remove last argument equal to `arg`, if any.
+  void erase_last(nonstd::string_view arg);
+
   // Remove all arguments with prefix `prefix`.
   void erase_with_prefix(nonstd::string_view prefix);
 

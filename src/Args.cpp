@@ -156,6 +156,15 @@ Args::to_string() const
 }
 
 void
+Args::erase_last(string_view arg)
+{
+  const auto it = std::find(m_args.rbegin(), m_args.rend(), arg);
+  if (it != m_args.rend()) {
+    m_args.erase(std::next(it).base());
+  }
+}
+
+void
 Args::erase_with_prefix(string_view prefix)
 {
   m_args.erase(std::remove_if(m_args.begin(),
