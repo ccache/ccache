@@ -95,9 +95,9 @@ Common options
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
-*`-d`*, *`--directory`* _PATH_
+*`-d`*, *`--directory`* _PATH_::
 
-    Let the subsequent command line options operate on cache directory PATH
+    Let the subsequent command line options operate on cache directory _PATH_
     instead of the default for. For example, to show statistics for a cache
     directory at `/shared/ccache` you can run `ccache -d /shared/ccache -s`.
 
@@ -260,14 +260,14 @@ The location of the primary (cache-specific) configuration is determined like
 this:
 
 1. If *CCACHE_CONFIGPATH* is set, use that path.
-2. Otherwise, if <<config_ccache_dir,*ccache_dir*>> (*CCACHE_DIR*) is set then
+2. Otherwise, if <<config_cache_dir,*cache_dir*>> (*CCACHE_DIR*) is set then
    use *<ccache_dir>/ccache.conf*.
 3. Otherwise, if there is a legacy *$HOME/.ccache* directory then use
-   *$HOME/.ccache/ccache.conf.
+   *$HOME/.ccache/ccache.conf*.
 4. Otherwise, if *XDG_CONFIG_HOME* is set then use
    *$XDG_CONFIG_HOME/ccache/ccache.conf*.
 5. Otherwise, use *%APPDATA%/ccache/ccache.conf* (Windows),
-   *$HOME/Library/Preferences/ccache/ccache.conf (macOS) or
+   *$HOME/Library/Preferences/ccache/ccache.conf* (macOS) or
    *$HOME/.config/ccache/ccache.conf* (other systems).
 
 
