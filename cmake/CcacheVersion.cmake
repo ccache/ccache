@@ -11,7 +11,8 @@
 #    version_info has not been substituted). In this case we fail the
 #    configuration.
 # 3. Building from a Git repository. In this case the version will be a proper
-#    version if building a tagged commit, otherwise "branch.hash(+dirty)".
+#    version if building a tagged commit, otherwise "branch.hash(+dirty)". In
+#    case Git is not available, the version will be "unknown".
 
 set(version_info "$Format:%H %D$")
 
@@ -30,32 +31,33 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   # Scenario 3.
   find_package(Git QUIET)
   if(NOT GIT_FOUND)
-    message(SEND_ERROR "Could not find git")
+    set(VERSION "unknown")
+    message(WARNING "Could not find git")
+  else()
+    macro(git)
+      execute_process(
+        COMMAND "${GIT_EXECUTABLE}" ${ARGN}
+        OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
+    endmacro()
+
+    git(describe --abbrev=8 --dirty)
+    if(git_stdout MATCHES "^v([^-]+)(-dirty)?$")
+      set(VERSION "${CMAKE_MATCH_1}")
+      if(NOT "${CMAKE_MATCH_2}" STREQUAL "")
+        set(VERSION "${VERSION}+dirty")
+      endif()
+    elseif(git_stdout MATCHES "^v[^-]+-[0-9]+-g([0-9a-f]+)(-dirty)?$")
+      set(hash "${CMAKE_MATCH_1}")
+      set(dirty "${CMAKE_MATCH_2}")
+      string(REPLACE "-" "+" dirty "${dirty}")
+
+      git(rev-parse --abbrev-ref HEAD)
+      set(branch "${git_stdout}")
+
+      set(VERSION "${branch}.${hash}${dirty}")
+    endif() # else: fail below
   endif()
-
-  macro(git)
-    execute_process(
-      COMMAND "${GIT_EXECUTABLE}" ${ARGN}
-      OUTPUT_VARIABLE git_stdout OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_VARIABLE git_stderr ERROR_STRIP_TRAILING_WHITESPACE)
-  endmacro()
-
-  git(describe --abbrev=8 --dirty)
-  if(git_stdout MATCHES "^v([^-]+)(-dirty)?$")
-    set(VERSION "${CMAKE_MATCH_1}")
-    if(NOT "${CMAKE_MATCH_2}" STREQUAL "")
-      set(VERSION "${VERSION}+dirty")
-    endif()
-  elseif(git_stdout MATCHES "^v[^-]+-[0-9]+-g([0-9a-f]+)(-dirty)?$")
-    set(hash "${CMAKE_MATCH_1}")
-    set(dirty "${CMAKE_MATCH_2}")
-    string(REPLACE "-" "+" dirty "${dirty}")
-
-    git(rev-parse --abbrev-ref HEAD)
-    set(branch "${git_stdout}")
-
-    set(VERSION "${branch}.${hash}${dirty}")
-  endif() # else: fail below
 endif()
 
 if(VERSION STREQUAL "")
