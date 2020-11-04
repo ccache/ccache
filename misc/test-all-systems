@@ -32,6 +32,9 @@ build ubuntu-14.04 gcc   g++     clang   -DZSTD_FROM_INTERNET=ON
 build ubuntu-16.04 gcc   g++     gcc
 build ubuntu-16.04 clang clang++ clang
 
+build ubuntu-18.04 gcc   g++     gcc
+build ubuntu-18.04 clang clang++ clang
+
 build ubuntu-20.04 gcc   g++     gcc
 build ubuntu-20.04 clang clang++ clang
 
