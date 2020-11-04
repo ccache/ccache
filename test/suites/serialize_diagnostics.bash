@@ -31,7 +31,7 @@ SUITE_serialize_diagnostics() {
     expect_equal_content expected.dia test.dia
 
     # -------------------------------------------------------------------------
-    TEST "Compile failed"
+    TEST "Unsuccessful compilation"
 
     echo "bad source" >error.c
     if $REAL_COMPILER -c --serialize-diagnostics expected.dia error.c 2>expected.stderr; then

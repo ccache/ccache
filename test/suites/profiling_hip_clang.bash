@@ -1,7 +1,7 @@
 SUITE_profiling_hip_clang_PROBE() {
     if ! $COMPILER_TYPE_CLANG; then
         echo "compiler is not Clang"
-    elif ! echo | $COMPILER -x hip --cuda-gpu-arch=gfx900 -nogpulib -c - > /dev/null; then
+    elif ! echo | $COMPILER -x hip --cuda-gpu-arch=gfx900 -nogpulib -c - 2> /dev/null; then
         echo "Hip not supported"
     fi
 }

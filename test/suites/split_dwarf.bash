@@ -2,6 +2,8 @@ SUITE_split_dwarf_PROBE() {
     touch test.c
     if ! $REAL_COMPILER -c -gsplit-dwarf test.c 2>/dev/null || [ ! -e test.dwo ]; then
         echo "-gsplit-dwarf not supported by compiler"
+    elif ! $COMPILER -fdebug-prefix-map=a=b -c test.c 2>/dev/null; then
+        echo "-fdebug-prefix-map not supported by compiler"
     fi
 }
 
