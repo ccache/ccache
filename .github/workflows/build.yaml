@@ -227,19 +227,19 @@ jobs:
             CC: gcc
             CXX: g++
             SPECIAL: build-and-verify-source-package
-            apt_get: elfutils libzstd-dev ninja-build asciidoc xsltproc
+            apt_get: elfutils libzstd-dev ninja-build asciidoc xsltproc docbook-xml docbook-xsl
 
           - name: HTML documentation
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-html
             RUN_TESTS: none
-            apt_get: libzstd1-dev asciidoc
+            apt_get: libzstd1-dev asciidoc docbook-xml docbook-xsl
 
           - name: Manual page
             os: ubuntu-18.04
             EXTRA_CMAKE_BUILD_FLAGS: --target doc-man-page
             RUN_TESTS: none
-            apt_get: libzstd1-dev asciidoc xsltproc
+            apt_get: libzstd1-dev asciidoc xsltproc docbook-xml docbook-xsl
 
           - name: Clang-Tidy
             os: ubuntu-18.04

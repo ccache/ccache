@@ -8,6 +8,8 @@ RUN apt-get update \
         ccache \
         clang-3.4 \
         curl \
+        docbook-xml \
+        docbook-xsl \
         elfutils \
         g++-multilib \
         ninja-build \

@@ -9,6 +9,8 @@ RUN apt-get update \
         ccache \
         clang \
         cmake \
+        docbook-xml \
+        docbook-xsl \
         elfutils \
         gcc-multilib \
         libzstd-dev \
