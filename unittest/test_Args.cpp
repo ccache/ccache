@@ -226,13 +226,6 @@ TEST_CASE("Args operations")
   Args more_args = Args::from_string("x y");
   Args no_args;
 
-  SUBCASE("contains")
-  {
-    CHECK(args.contains("miny"));
-    CHECK(!args.contains("tiny"));
-    CHECK(!args.contains(""));
-  }
-
   SUBCASE("erase_last")
   {
     Args repeated_args = Args::from_string("one two twotwo one two twotwo");

@@ -155,12 +155,6 @@ Args::to_string() const
   return result;
 }
 
-bool
-Args::contains(nonstd::string_view arg) const
-{
-  return std::find(m_args.begin(), m_args.end(), arg) != m_args.end();
-}
-
 void
 Args::erase_last(string_view arg)
 {

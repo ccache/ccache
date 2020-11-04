@@ -60,9 +60,6 @@ public:
   // in arguments is performed.
   std::string to_string() const;
 
-  // Check whether `arg` is a member of the argument list.
-  bool contains(nonstd::string_view arg) const;
-
   // Remove last argument equal to `arg`, if any.
   void erase_last(nonstd::string_view arg);
 
