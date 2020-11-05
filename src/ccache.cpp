@@ -250,22 +250,41 @@ init_hash_debug(Context& ctx,
   }
 }
 
-static GuessedCompiler
+GuessedCompiler
 guess_compiler(string_view path)
 {
-  string_view name = Util::base_name(path);
-  GuessedCompiler result = GuessedCompiler::unknown;
-  if (name.find("clang") != std::string::npos) {
-    result = GuessedCompiler::clang;
-  } else if (name.find("gcc") != std::string::npos
-             || name.find("g++") != std::string::npos) {
-    result = GuessedCompiler::gcc;
-  } else if (name.find("nvcc") != std::string::npos) {
-    result = GuessedCompiler::nvcc;
-  } else if (name == "pump" || name == "distcc-pump") {
-    result = GuessedCompiler::pump;
+  std::string compiler_path(path);
+
+#ifndef _WIN32
+  // Follow symlinks to the real compiler to learn its name. We're not using
+  // Util::real_path in order to save some unnecessary stat calls.
+  while (true) {
+    std::string symlink_value = Util::read_link(compiler_path);
+    if (symlink_value.empty()) {
+      break;
+    }
+    if (Util::is_absolute_path(symlink_value)) {
+      compiler_path = symlink_value;
+    } else {
+      compiler_path =
+        FMT("{}/{}", Util::dir_name(compiler_path), symlink_value);
+    }
   }
-  return result;
+#endif
+
+  const string_view name = Util::base_name(compiler_path);
+  if (name.find("clang") != nonstd::string_view::npos) {
+    return GuessedCompiler::clang;
+  } else if (name.find("gcc") != nonstd::string_view::npos
+             || name.find("g++") != nonstd::string_view::npos) {
+    return GuessedCompiler::gcc;
+  } else if (name.find("nvcc") != nonstd::string_view::npos) {
+    return GuessedCompiler::nvcc;
+  } else if (name == "pump" || name == "distcc-pump") {
+    return GuessedCompiler::pump;
+  } else {
+    return GuessedCompiler::unknown;
+  }
 }
 
 static bool
@@ -2284,6 +2303,25 @@ cache_compilation(int argc, const char* const* argv)
   return EXIT_SUCCESS;
 }
 
+static std::string
+guessed_compiler_to_string(GuessedCompiler guessed_compiler)
+{
+#define CASE(type)                                                             \
+  case GuessedCompiler::type:                                                  \
+    return #type
+
+  switch (guessed_compiler) {
+    CASE(clang);
+    CASE(gcc);
+    CASE(nvcc);
+    CASE(pump);
+    CASE(unknown);
+  }
+#undef CASE
+
+  ASSERT(false);
+}
+
 static Statistic
 do_cache_compilation(Context& ctx, const char* const* argv)
 {
@@ -2321,6 +2359,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
 
   MTR_BEGIN("main", "guess_compiler");
   ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);
+  LOG("Guessed compiler: {}", guessed_compiler_to_string(ctx.guessed_compiler));
   MTR_END("main", "guess_compiler");
 
   MTR_BEGIN("main", "process_args");

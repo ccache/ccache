@@ -30,6 +30,8 @@
 #  define CCACHE_NAME "ccache"
 #endif
 
+using TestUtil::TestContext;
+
 TEST_SUITE_BEGIN("ccache");
 
 // Wraps find_compiler in a test friendly interface.
@@ -153,6 +155,50 @@ TEST_CASE("find_compiler")
     CHECK(helper("/a/" CCACHE_NAME " rel/gcc", "conf") == "resolved_conf");
     CHECK(helper("/a/" CCACHE_NAME " /abs/gcc", "conf") == "resolved_conf");
   }
+}
+
+TEST_CASE("guess_compiler")
+{
+  TestContext test_context;
+
+  SUBCASE("Compiler not in file system")
+  {
+    CHECK(guess_compiler("/test/prefix/clang") == GuessedCompiler::clang);
+    CHECK(guess_compiler("/test/prefix/clang-3.8") == GuessedCompiler::clang);
+    CHECK(guess_compiler("/test/prefix/clang++") == GuessedCompiler::clang);
+    CHECK(guess_compiler("/test/prefix/clang++-10") == GuessedCompiler::clang);
+
+    CHECK(guess_compiler("/test/prefix/gcc") == GuessedCompiler::gcc);
+    CHECK(guess_compiler("/test/prefix/gcc-4.8") == GuessedCompiler::gcc);
+    CHECK(guess_compiler("/test/prefix/g++") == GuessedCompiler::gcc);
+    CHECK(guess_compiler("/test/prefix/g++-9") == GuessedCompiler::gcc);
+    CHECK(guess_compiler("/test/prefix/x86_64-w64-mingw32-gcc-posix")
+          == GuessedCompiler::gcc);
+
+    CHECK(guess_compiler("/test/prefix/nvcc") == GuessedCompiler::nvcc);
+    CHECK(guess_compiler("/test/prefix/nvcc-10.1.243")
+          == GuessedCompiler::nvcc);
+
+    CHECK(guess_compiler("/test/prefix/pump") == GuessedCompiler::pump);
+    CHECK(guess_compiler("/test/prefix/distcc-pump") == GuessedCompiler::pump);
+
+    CHECK(guess_compiler("/test/prefix/x") == GuessedCompiler::unknown);
+    CHECK(guess_compiler("/test/prefix/cc") == GuessedCompiler::unknown);
+    CHECK(guess_compiler("/test/prefix/c++") == GuessedCompiler::unknown);
+  }
+
+#ifndef _WIN32
+  SUBCASE("Follow symlink to actual compiler")
+  {
+    const auto cwd = Util::get_actual_cwd();
+    Util::write_file(FMT("{}/gcc", cwd), "");
+    CHECK(symlink("gcc", FMT("{}/intermediate", cwd).c_str()) == 0);
+    const auto cc = FMT("{}/cc", cwd);
+    CHECK(symlink("intermediate", cc.c_str()) == 0);
+
+    CHECK(guess_compiler(cc) == GuessedCompiler::gcc);
+  }
+#endif
 }
 
 TEST_CASE("rewrite_dep_file_paths")

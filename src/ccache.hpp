@@ -22,6 +22,7 @@
 #include "system.hpp"
 
 #include "third_party/nonstd/optional.hpp"
+#include "third_party/nonstd/string_view.hpp"
 
 #include <functional>
 #include <string>
@@ -60,5 +61,6 @@ using FindExecutableFunction =
 // Tested by unit tests.
 void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function);
+GuessedCompiler guess_compiler(nonstd::string_view path);
 nonstd::optional<std::string>
 rewrite_dep_file_paths(const Context& ctx, const std::string& file_content);
