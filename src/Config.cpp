@@ -750,7 +750,7 @@ Config::set_item(const std::string& key,
     break;
 
   case ConfigItem::limit_multiple:
-    m_limit_multiple = parse_double(value);
+    m_limit_multiple = Util::clamp(parse_double(value), 0.0, 1.0);
     break;
 
   case ConfigItem::log_file:

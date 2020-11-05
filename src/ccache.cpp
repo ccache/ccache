@@ -2319,9 +2319,6 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     LOG("Apparent working directory: {}", ctx.apparent_cwd);
   }
 
-  ctx.config.set_limit_multiple(
-    Util::clamp(ctx.config.limit_multiple(), 0.0, 1.0));
-
   MTR_BEGIN("main", "guess_compiler");
   ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);
   MTR_END("main", "guess_compiler");

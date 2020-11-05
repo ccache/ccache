@@ -85,7 +85,6 @@ public:
   void set_direct_mode(bool value);
   void set_ignore_options(const std::string& value);
   void set_inode_cache(bool value);
-  void set_limit_multiple(double value);
   void set_max_files(uint64_t value);
   void set_max_size(uint64_t value);
   void set_run_second_cpp(bool value);
@@ -450,12 +449,6 @@ inline void
 Config::set_inode_cache(bool value)
 {
   m_inode_cache = value;
-}
-
-inline void
-Config::set_limit_multiple(double value)
-{
-  m_limit_multiple = value;
 }
 
 inline void
