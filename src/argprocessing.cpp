@@ -1100,6 +1100,8 @@ process_args(Context& ctx)
   // default, so force it explicitly.
   nonstd::optional<std::string> diagnostics_color_arg;
   if (ctx.guessed_compiler == GuessedCompiler::clang) {
+    // Don't pass -fcolor-diagnostics when compiling assembler to avoid an
+    // "argument unused during compilation" warning.
     if (args_info.actual_language != "assembler") {
       diagnostics_color_arg = "-fcolor-diagnostics";
     }
