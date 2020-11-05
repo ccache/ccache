@@ -686,6 +686,71 @@ use_relative_paths_in_depfile(const Context& ctx)
   }
 }
 
+static inline bool
+is_blank(std::string s)
+{
+  return s.empty()
+         || all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
+}
+
+std::vector<std::string>
+parse_depfile(string_view input)
+{
+  std::vector<std::string> result;
+
+  // A depfile is formatted with Makefile syntax.
+  // This is not perfect parser, however, compilers don't generate a depfile
+  // that contains a complex syntax such as single or double quoted string,
+  // therefore, this is enough for parsing a depfile.
+  const size_t length = input.size();
+  std::string token;
+  size_t p{0};
+  while (p < length) {
+    // Each token is separated by the space.
+    if (isspace(input[p])) {
+      while (p < length && isspace(input[p])) {
+        p++;
+      }
+      if (!is_blank(token)) {
+        result.push_back(token);
+      }
+      token.clear();
+      continue;
+    }
+
+    char c{input[p]};
+
+    // Characters can be escaped by the backslash.
+    if (c == '\\') {
+      p++;
+      if (p < length) {
+        // Backslash/newline is ignored.
+        if (input[p] == '\n') {
+          p++;
+          if (p < length) {
+            // The following leading prefix which is tab is ignored.
+            if (input[p] == '\t') {
+              p++;
+            }
+          }
+          continue;
+        }
+        c = input[p];
+      } else {
+        continue;
+      }
+    }
+
+    token.push_back(c);
+    p++;
+  }
+  if (!is_blank(token)) {
+    result.push_back(token);
+  }
+
+  return result;
+}
+
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static optional<Digest>
@@ -700,8 +765,8 @@ result_name_from_depfile(Context& ctx, Hash& hash)
     return nullopt;
   }
 
-  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
-    if (token == "\\" || token.ends_with(":")) {
+  for (string_view token : parse_depfile(file_content)) {
+    if (token.ends_with(":")) {
       continue;
     }
     if (!ctx.has_absolute_include_headers) {
