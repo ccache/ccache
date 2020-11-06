@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 class Context;
 
