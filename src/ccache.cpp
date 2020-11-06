@@ -694,7 +694,7 @@ is_blank(std::string s)
 }
 
 std::vector<std::string>
-parse_depfile(string_view input)
+parse_depfile(string_view file_content)
 {
   std::vector<std::string> result;
 
@@ -702,13 +702,13 @@ parse_depfile(string_view input)
   // This is not perfect parser, however, compilers don't generate a depfile
   // that contains a complex syntax such as single or double quoted string,
   // therefore, this is enough for parsing a depfile.
-  const size_t length = input.size();
+  const size_t length = file_content.size();
   std::string token;
   size_t p{0};
   while (p < length) {
     // Each token is separated by the space.
-    if (isspace(input[p])) {
-      while (p < length && isspace(input[p])) {
+    if (isspace(file_content[p])) {
+      while (p < length && isspace(file_content[p])) {
         p++;
       }
       if (!is_blank(token)) {
@@ -718,24 +718,24 @@ parse_depfile(string_view input)
       continue;
     }
 
-    char c{input[p]};
+    char c{file_content[p]};
 
     // Characters can be escaped by the backslash.
     if (c == '\\') {
       p++;
       if (p < length) {
         // Backslash/newline is ignored.
-        if (input[p] == '\n') {
+        if (file_content[p] == '\n') {
           p++;
           if (p < length) {
             // The following leading prefix which is tab is ignored.
-            if (input[p] == '\t') {
+            if (file_content[p] == '\t') {
               p++;
             }
           }
           continue;
         }
-        c = input[p];
+        c = file_content[p];
       } else {
         continue;
       }
