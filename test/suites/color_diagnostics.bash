@@ -77,8 +77,10 @@ color_diagnostics_run_on_pty() {
     # script returns early on some platforms (leaving a child process living for
     # a short while) and the output may therefore still be pending. Work around
     # this by sleeping until the output file has content.
-    while [ ! -s "$1" ]; do
+    retries=0
+    while [ ! -s "$1" -a "$retries" -lt 100 ]; do
         sleep 0.1
+        retries=$((retries + 1))
     done
 }
 
