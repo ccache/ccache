@@ -532,7 +532,7 @@ TEST_CASE("cuda_option_file")
 {
   TestContext test_context;
   Context ctx;
-  ctx.guessed_compiler = GuessedCompiler::nvcc;
+  ctx.compiler_type = CompilerType::nvcc;
   ctx.orig_args = Args::from_string("nvcc -optf foo.optf,bar.optf");
   Util::write_file("foo.c", "");
   Util::write_file("foo.optf", "-c foo.c -g -Wall -o");

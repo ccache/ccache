@@ -163,28 +163,27 @@ TEST_CASE("guess_compiler")
 
   SUBCASE("Compiler not in file system")
   {
-    CHECK(guess_compiler("/test/prefix/clang") == GuessedCompiler::clang);
-    CHECK(guess_compiler("/test/prefix/clang-3.8") == GuessedCompiler::clang);
-    CHECK(guess_compiler("/test/prefix/clang++") == GuessedCompiler::clang);
-    CHECK(guess_compiler("/test/prefix/clang++-10") == GuessedCompiler::clang);
+    CHECK(guess_compiler("/test/prefix/clang") == CompilerType::clang);
+    CHECK(guess_compiler("/test/prefix/clang-3.8") == CompilerType::clang);
+    CHECK(guess_compiler("/test/prefix/clang++") == CompilerType::clang);
+    CHECK(guess_compiler("/test/prefix/clang++-10") == CompilerType::clang);
 
-    CHECK(guess_compiler("/test/prefix/gcc") == GuessedCompiler::gcc);
-    CHECK(guess_compiler("/test/prefix/gcc-4.8") == GuessedCompiler::gcc);
-    CHECK(guess_compiler("/test/prefix/g++") == GuessedCompiler::gcc);
-    CHECK(guess_compiler("/test/prefix/g++-9") == GuessedCompiler::gcc);
+    CHECK(guess_compiler("/test/prefix/gcc") == CompilerType::gcc);
+    CHECK(guess_compiler("/test/prefix/gcc-4.8") == CompilerType::gcc);
+    CHECK(guess_compiler("/test/prefix/g++") == CompilerType::gcc);
+    CHECK(guess_compiler("/test/prefix/g++-9") == CompilerType::gcc);
     CHECK(guess_compiler("/test/prefix/x86_64-w64-mingw32-gcc-posix")
-          == GuessedCompiler::gcc);
+          == CompilerType::gcc);
 
-    CHECK(guess_compiler("/test/prefix/nvcc") == GuessedCompiler::nvcc);
-    CHECK(guess_compiler("/test/prefix/nvcc-10.1.243")
-          == GuessedCompiler::nvcc);
+    CHECK(guess_compiler("/test/prefix/nvcc") == CompilerType::nvcc);
+    CHECK(guess_compiler("/test/prefix/nvcc-10.1.243") == CompilerType::nvcc);
 
-    CHECK(guess_compiler("/test/prefix/pump") == GuessedCompiler::pump);
-    CHECK(guess_compiler("/test/prefix/distcc-pump") == GuessedCompiler::pump);
+    CHECK(guess_compiler("/test/prefix/pump") == CompilerType::pump);
+    CHECK(guess_compiler("/test/prefix/distcc-pump") == CompilerType::pump);
 
-    CHECK(guess_compiler("/test/prefix/x") == GuessedCompiler::unknown);
-    CHECK(guess_compiler("/test/prefix/cc") == GuessedCompiler::unknown);
-    CHECK(guess_compiler("/test/prefix/c++") == GuessedCompiler::unknown);
+    CHECK(guess_compiler("/test/prefix/x") == CompilerType::unknown);
+    CHECK(guess_compiler("/test/prefix/cc") == CompilerType::unknown);
+    CHECK(guess_compiler("/test/prefix/c++") == CompilerType::unknown);
   }
 
 #ifndef _WIN32
@@ -196,7 +195,7 @@ TEST_CASE("guess_compiler")
     const auto cc = FMT("{}/cc", cwd);
     CHECK(symlink("intermediate", cc.c_str()) == 0);
 
-    CHECK(guess_compiler(cc) == GuessedCompiler::gcc);
+    CHECK(guess_compiler(cc) == CompilerType::gcc);
   }
 #endif
 }

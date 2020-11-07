@@ -158,7 +158,7 @@ process_profiling_option(Context& ctx, const std::string& arg)
     new_profile_path = arg.substr(arg.find('=') + 1);
   } else if (arg == "-fprofile-generate" || arg == "-fprofile-instr-generate") {
     ctx.args_info.profile_generate = true;
-    if (ctx.guessed_compiler == GuessedCompiler::clang) {
+    if (ctx.compiler_type == CompilerType::clang) {
       new_profile_path = ".";
     } else {
       // GCC uses $PWD/$(basename $obj).
@@ -254,7 +254,7 @@ process_arg(Context& ctx,
   }
 
   // Handle cuda "-optf" and "--options-file" argument.
-  if (ctx.guessed_compiler == GuessedCompiler::nvcc
+  if (ctx.compiler_type == CompilerType::nvcc
       && (args[i] == "-optf" || args[i] == "--options-file")) {
     if (i == args.size() - 1) {
       LOG("Expected argument after {}", args[i]);
@@ -327,8 +327,7 @@ process_arg(Context& ctx,
   if (compopt_affects_compiler_output(args[i])) {
     state.compiler_only_args.push_back(args[i]);
     if (compopt_takes_arg(args[i])
-        || (ctx.guessed_compiler == GuessedCompiler::nvcc
-            && args[i] == "-Werror")) {
+        || (ctx.compiler_type == CompilerType::nvcc && args[i] == "-Werror")) {
       if (i == args.size() - 1) {
         LOG("Missing argument to {}", args[i]);
         return Statistic::bad_compiler_arguments;
@@ -372,7 +371,7 @@ process_arg(Context& ctx,
 
   // when using nvcc with separable compilation, -dc implies -c
   if ((args[i] == "-dc" || args[i] == "--device-c")
-      && ctx.guessed_compiler == GuessedCompiler::nvcc) {
+      && ctx.compiler_type == CompilerType::nvcc) {
     state.found_dc_opt = true;
     return nullopt;
   }
@@ -428,7 +427,7 @@ process_arg(Context& ctx,
 
   // Alternate form of -o with no space. Nvcc does not support this.
   if (Util::starts_with(args[i], "-o")
-      && ctx.guessed_compiler != GuessedCompiler::nvcc) {
+      && ctx.compiler_type != CompilerType::nvcc) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(2));
     return nullopt;
@@ -1099,13 +1098,13 @@ process_args(Context& ctx)
   // Since output is redirected, compilers will not color their output by
   // default, so force it explicitly.
   nonstd::optional<std::string> diagnostics_color_arg;
-  if (ctx.guessed_compiler == GuessedCompiler::clang) {
+  if (ctx.compiler_type == CompilerType::clang) {
     // Don't pass -fcolor-diagnostics when compiling assembler to avoid an
     // "argument unused during compilation" warning.
     if (args_info.actual_language != "assembler") {
       diagnostics_color_arg = "-fcolor-diagnostics";
     }
-  } else if (ctx.guessed_compiler == GuessedCompiler::gcc) {
+  } else if (ctx.compiler_type == CompilerType::gcc) {
     diagnostics_color_arg = "-fdiagnostics-color";
   } else {
     // Other compilers shouldn't output color, so no need to strip it.

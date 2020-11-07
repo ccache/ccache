@@ -435,8 +435,8 @@ verify_result(const Context& ctx,
 
     // Clang stores the mtime of the included files in the precompiled header,
     // and will error out if that header is later used without rebuilding.
-    if ((ctx.guessed_compiler == GuessedCompiler::clang
-         || ctx.guessed_compiler == GuessedCompiler::unknown)
+    if ((ctx.compiler_type == CompilerType::clang
+         || ctx.compiler_type == CompilerType::unknown)
         && ctx.args_info.output_is_precompiled_header
         && !ctx.args_info.fno_pch_timestamp && fi.mtime != fs.mtime) {
       LOG("Precompiled header includes {}, which has a new mtime", path);

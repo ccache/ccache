@@ -250,7 +250,7 @@ init_hash_debug(Context& ctx,
   }
 }
 
-GuessedCompiler
+CompilerType
 guess_compiler(string_view path)
 {
   std::string compiler_path(path);
@@ -274,16 +274,16 @@ guess_compiler(string_view path)
 
   const string_view name = Util::base_name(compiler_path);
   if (name.find("clang") != nonstd::string_view::npos) {
-    return GuessedCompiler::clang;
+    return CompilerType::clang;
   } else if (name.find("gcc") != nonstd::string_view::npos
              || name.find("g++") != nonstd::string_view::npos) {
-    return GuessedCompiler::gcc;
+    return CompilerType::gcc;
   } else if (name.find("nvcc") != nonstd::string_view::npos) {
-    return GuessedCompiler::nvcc;
+    return CompilerType::nvcc;
   } else if (name == "pump" || name == "distcc-pump") {
-    return GuessedCompiler::pump;
+    return CompilerType::pump;
   } else {
-    return GuessedCompiler::unknown;
+    return CompilerType::unknown;
   }
 }
 
@@ -756,8 +756,7 @@ do_execute(Context& ctx,
 {
   UmaskScope umask_scope(ctx.original_umask);
 
-  if (ctx.diagnostics_color_failed
-      && ctx.guessed_compiler == GuessedCompiler::gcc) {
+  if (ctx.diagnostics_color_failed && ctx.compiler_type == CompilerType::gcc) {
     args.erase_last("-fdiagnostics-color");
   }
   int status = execute(args.to_argv().data(),
@@ -765,7 +764,7 @@ do_execute(Context& ctx,
                        std::move(tmp_stderr.fd),
                        &ctx.compiler_pid);
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.guessed_compiler == GuessedCompiler::gcc) {
+      && ctx.compiler_type == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
     if (errors.find("unrecognized command line option") != std::string::npos
         && errors.find("-fdiagnostics-color") != std::string::npos) {
@@ -1009,7 +1008,7 @@ to_cache(Context& ctx,
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && ctx.guessed_compiler != GuessedCompiler::pump) {
+  if (st.size() != 0 && ctx.compiler_type != CompilerType::pump) {
     LOG_RAW("Compiler produced stdout");
     throw Failure(Statistic::compiler_produced_stdout);
   }
@@ -1180,7 +1179,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cpp");
-  bool is_pump = ctx.guessed_compiler == GuessedCompiler::pump;
+  bool is_pump = ctx.compiler_type == CompilerType::pump;
   if (!process_preprocessed_file(ctx, hash, stdout_path, is_pump)) {
     throw Failure(Statistic::internal_error);
   }
@@ -1438,7 +1437,7 @@ hash_common_info(const Context& ctx,
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (ctx.guessed_compiler == GuessedCompiler::gcc) {
+  if (ctx.compiler_type == CompilerType::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
@@ -1519,8 +1518,8 @@ calculate_result_name(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = ctx.guessed_compiler == GuessedCompiler::clang
-                 || ctx.guessed_compiler == GuessedCompiler::unknown;
+  int is_clang = ctx.compiler_type == CompilerType::clang
+                 || ctx.compiler_type == CompilerType::unknown;
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
@@ -1816,8 +1815,8 @@ from_cache(Context& ctx, FromCacheCallMode mode)
   //
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
-  if ((ctx.guessed_compiler == GuessedCompiler::clang
-       || ctx.guessed_compiler == GuessedCompiler::unknown)
+  if ((ctx.compiler_type == CompilerType::clang
+       || ctx.compiler_type == CompilerType::unknown)
       && ctx.args_info.output_is_precompiled_header
       && !ctx.args_info.fno_pch_timestamp && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
@@ -2304,13 +2303,13 @@ cache_compilation(int argc, const char* const* argv)
 }
 
 static std::string
-guessed_compiler_to_string(GuessedCompiler guessed_compiler)
+compiler_type_to_string(CompilerType compiler_type)
 {
 #define CASE(type)                                                             \
-  case GuessedCompiler::type:                                                  \
+  case CompilerType::type:                                                     \
     return #type
 
-  switch (guessed_compiler) {
+  switch (compiler_type) {
     CASE(clang);
     CASE(gcc);
     CASE(nvcc);
@@ -2357,10 +2356,8 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     LOG("Apparent working directory: {}", ctx.apparent_cwd);
   }
 
-  MTR_BEGIN("main", "guess_compiler");
-  ctx.guessed_compiler = guess_compiler(ctx.orig_args[0]);
-  LOG("Guessed compiler: {}", guessed_compiler_to_string(ctx.guessed_compiler));
-  MTR_END("main", "guess_compiler");
+  ctx.compiler_type = guess_compiler(ctx.orig_args[0]);
+  LOG("Compiler type: {}", compiler_type_to_string(ctx.compiler_type));
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);

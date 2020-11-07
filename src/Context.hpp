@@ -93,9 +93,9 @@ public:
   // The name of the cpp stderr file.
   std::string cpp_stderr;
 
-  // Compiler guessing is currently only based on the compiler name, so nothing
-  // should hard-depend on it if possible.
-  GuessedCompiler guessed_compiler = GuessedCompiler::unknown;
+  // The compiler type is by default a guess based on the compiler name, so
+  // nothing should hard-depend on it if possible.
+  CompilerType compiler_type = CompilerType::unknown;
 
   // The .gch/.pch/.pth file used for compilation.
   std::string included_pch_file;
