@@ -1007,7 +1007,7 @@ EOF
     umask $saved_umask
 
     # -------------------------------------------------------------------------
-    TEST "No object file"
+    TEST "No object file due to bad prefix"
 
     cat <<'EOF' >test_no_obj.c
 int test_no_obj;
@@ -1019,6 +1019,33 @@ EOF
     chmod +x no-object-prefix
     CCACHE_PREFIX=$(pwd)/no-object-prefix $CCACHE_COMPILE -c test_no_obj.c
     expect_stat 'compiler produced no output' 1
+
+    CCACHE_PREFIX=$(pwd)/no-object-prefix $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 0
+    expect_stat 'files in cache' 0
+    expect_stat 'compiler produced no output' 2
+
+    # -------------------------------------------------------------------------
+    TEST "No object file due to -fsyntax-only"
+
+    echo '#warning This triggers a compiler warning' >stderr.c
+
+    $REAL_COMPILER -Wall -c stderr.c -fsyntax-only 2>reference_stderr.txt
+
+    expect_contains reference_stderr.txt "This triggers a compiler warning"
+
+    $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_text_content reference_stderr.txt stderr.txt
+
+    $CCACHE_COMPILE -Wall -c stderr.c -fsyntax-only 2>stderr.txt
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+    expect_equal_text_content reference_stderr.txt stderr.txt
 
     # -------------------------------------------------------------------------
     TEST "Empty object file"

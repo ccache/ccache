@@ -70,6 +70,22 @@ get_posix_path(const std::string& path)
 
 TEST_SUITE_BEGIN("argprocessing");
 
+TEST_CASE("pass -fsyntax-only to compiler only")
+{
+  TestContext test_context;
+  Context ctx;
+
+  ctx.orig_args = Args::from_string("cc -c foo.c -fsyntax-only");
+  Util::write_file("foo.c", "");
+
+  const ProcessArgsResult result = process_args(ctx);
+
+  CHECK(!result.error);
+  CHECK(result.preprocessor_args.to_string() == "cc");
+  CHECK(result.extra_args_to_hash.to_string() == "-fsyntax-only");
+  CHECK(result.compiler_args.to_string() == "cc -fsyntax-only -c");
+}
+
 TEST_CASE("dash_E_should_result_in_called_for_preprocessing")
 {
   TestContext test_context;

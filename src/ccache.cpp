@@ -1030,10 +1030,13 @@ to_cache(Context& ctx,
 
   const auto obj_stat = Stat::stat(ctx.args_info.output_obj);
   if (!obj_stat) {
-    LOG_RAW("Compiler didn't produce an object file");
-    throw Failure(Statistic::compiler_produced_no_output);
-  }
-  if (obj_stat.size() == 0) {
+    if (ctx.args_info.expect_output_obj) {
+      LOG_RAW("Compiler didn't produce an object file (unexpected)");
+      throw Failure(Statistic::compiler_produced_no_output);
+    } else {
+      LOG_RAW("Compiler didn't produce an object file (expected)");
+    }
+  } else if (obj_stat.size() == 0) {
     LOG_RAW("Compiler produced an empty object file");
     throw Failure(Statistic::compiler_produced_empty_output);
   }
@@ -1051,7 +1054,9 @@ to_cache(Context& ctx,
   if (stderr_stat.size() > 0) {
     result_writer.write(Result::FileType::stderr_output, tmp_stderr_path);
   }
-  result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
+  if (obj_stat) {
+    result_writer.write(Result::FileType::object, ctx.args_info.output_obj);
+  }
   if (ctx.args_info.generating_dependencies) {
     result_writer.write(Result::FileType::dependency, ctx.args_info.output_dep);
   }

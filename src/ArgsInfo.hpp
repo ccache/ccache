@@ -31,6 +31,11 @@ struct ArgsInfo
   // The source file.
   std::string input_file;
 
+  // In normal compiler operation an output file is created if there is no
+  // compiler error. However certain flags like -fsyntax-only change this
+  // behavior.
+  bool expect_output_obj = true;
+
   // The output file being compiled to.
   std::string output_obj;
 
