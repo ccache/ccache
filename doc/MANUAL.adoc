@@ -454,6 +454,29 @@ WRAPPERS>>.
 --
 --
 
+[[config_compiler_type]] *compiler_type* (*CCACHE_COMPILERTYPE*)::
+
+    Ccache normally guesses the compiler type based on the compiler name. The
+    *compiler_type* option lets you force a compiler type. This can be useful
+    if the compiler has a non-standard name but is actually one of the known
+    compiler types. Possible values are:
++
+--
+*auto*::
+    Guess one of the types below based on the compiler name (following
+    symlinks). This is the default.
+*clang*::
+    Clang-based compiler.
+*gcc*::
+    GCC-based compiler.
+*nvcc*::
+    NVCC (CUDA) compiler.
+*other::
+    Any compiler other than the known types.
+*pump*::
+    distcc's "pump" script.
+--
+
 [[config_compression]] *compression* (*CCACHE_COMPRESS* or *CCACHE_NOCOMPRESS*, see <<_boolean_values,Boolean values>> above)::
 
     If true, ccache will compress data it puts in the cache. However, this

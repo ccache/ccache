@@ -21,6 +21,8 @@
 
 #include "system.hpp"
 
+#include "Config.hpp"
+
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
@@ -30,8 +32,6 @@
 class Context;
 
 extern const char CCACHE_VERSION[];
-
-enum class CompilerType { clang, gcc, nvcc, pump, unknown };
 
 const uint32_t SLOPPY_INCLUDE_FILE_MTIME = 1 << 0;
 const uint32_t SLOPPY_INCLUDE_FILE_CTIME = 1 << 1;

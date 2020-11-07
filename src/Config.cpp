@@ -47,6 +47,7 @@ enum class ConfigItem {
   cache_dir,
   compiler,
   compiler_check,
+  compiler_type,
   compression,
   compression_level,
   cpp_extension,
@@ -86,6 +87,7 @@ const std::unordered_map<std::string, ConfigItem> k_config_key_table = {
   {"cache_dir", ConfigItem::cache_dir},
   {"compiler", ConfigItem::compiler},
   {"compiler_check", ConfigItem::compiler_check},
+  {"compiler_type", ConfigItem::compiler_type},
   {"compression", ConfigItem::compression},
   {"compression_level", ConfigItem::compression_level},
   {"cpp_extension", ConfigItem::cpp_extension},
@@ -126,6 +128,7 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"COMMENTS", "keep_comments_cpp"},
   {"COMPILER", "compiler"},
   {"COMPILERCHECK", "compiler_check"},
+  {"COMPILERTYPE", "compiler_type"},
   {"COMPRESS", "compression"},
   {"COMPRESSLEVEL", "compression_level"},
   {"CPP2", "run_second_cpp"},
@@ -218,6 +221,25 @@ std::string
 format_cache_size(uint64_t value)
 {
   return Util::format_parsable_size_with_suffix(value);
+}
+
+CompilerType
+parse_compiler_type(const std::string& value)
+{
+  if (value == "clang") {
+    return CompilerType::clang;
+  } else if (value == "gcc") {
+    return CompilerType::gcc;
+  } else if (value == "nvcc") {
+    return CompilerType::nvcc;
+  } else if (value == "other") {
+    return CompilerType::other;
+  } else if (value == "pump") {
+    return CompilerType::pump;
+  } else {
+    // Allow any unknown value for forward compatibility.
+    return CompilerType::auto_guess;
+  }
 }
 
 uint32_t
@@ -390,6 +412,28 @@ parse_config_file(const std::string& path,
 
 } // namespace
 
+std::string
+compiler_type_to_string(CompilerType compiler_type)
+{
+#define CASE(type)                                                             \
+  case CompilerType::type:                                                     \
+    return #type
+
+  switch (compiler_type) {
+  case CompilerType::auto_guess:
+    return "auto";
+
+    CASE(clang);
+    CASE(gcc);
+    CASE(nvcc);
+    CASE(other);
+    CASE(pump);
+  }
+#undef CASE
+
+  ASSERT(false);
+}
+
 const std::string&
 Config::primary_config_path() const
 {
@@ -486,6 +530,9 @@ Config::get_string_value(const std::string& key) const
 
   case ConfigItem::compiler_check:
     return m_compiler_check;
+
+  case ConfigItem::compiler_type:
+    return compiler_type_to_string(m_compiler_type);
 
   case ConfigItem::compression:
     return format_bool(m_compression);
@@ -685,6 +732,10 @@ Config::set_item(const std::string& key,
 
   case ConfigItem::compiler_check:
     m_compiler_check = value;
+    break;
+
+  case ConfigItem::compiler_type:
+    m_compiler_type = parse_compiler_type(value);
     break;
 
   case ConfigItem::compression:

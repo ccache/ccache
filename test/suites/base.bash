@@ -779,6 +779,29 @@ b"
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
+    TEST "CCACHE_COMPILERTYPE"
+
+    $CCACHE_COMPILE -c test1.c
+    cat >gcc <<EOF
+#!/bin/sh
+EOF
+    chmod +x gcc
+
+    CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
+    compiler_type=$(sed -rn 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    if [ "$compiler_type" != gcc ]; then
+        test_failed "Compiler type $compiler_type != gcc"
+    fi
+
+    rm test1.o.ccache-log
+
+    CCACHE_COMPILERTYPE=clang CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
+    compiler_type=$(sed -rn 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    if [ "$compiler_type" != clang ]; then
+        test_failed "Compiler type $compiler_type != clang"
+    fi
+
+    # -------------------------------------------------------------------------
     TEST "CCACHE_PATH"
 
     override_path=`pwd`/override_path

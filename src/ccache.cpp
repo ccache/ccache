@@ -283,7 +283,7 @@ guess_compiler(string_view path)
   } else if (name == "pump" || name == "distcc-pump") {
     return CompilerType::pump;
   } else {
-    return CompilerType::unknown;
+    return CompilerType::other;
   }
 }
 
@@ -756,7 +756,8 @@ do_execute(Context& ctx,
 {
   UmaskScope umask_scope(ctx.original_umask);
 
-  if (ctx.diagnostics_color_failed && ctx.compiler_type == CompilerType::gcc) {
+  if (ctx.diagnostics_color_failed
+      && ctx.config.compiler_type() == CompilerType::gcc) {
     args.erase_last("-fdiagnostics-color");
   }
   int status = execute(args.to_argv().data(),
@@ -764,7 +765,7 @@ do_execute(Context& ctx,
                        std::move(tmp_stderr.fd),
                        &ctx.compiler_pid);
   if (status != 0 && !ctx.diagnostics_color_failed
-      && ctx.compiler_type == CompilerType::gcc) {
+      && ctx.config.compiler_type() == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
     if (errors.find("unrecognized command line option") != std::string::npos
         && errors.find("-fdiagnostics-color") != std::string::npos) {
@@ -1008,7 +1009,7 @@ to_cache(Context& ctx,
 
   // distcc-pump outputs lines like this:
   // __________Using # distcc servers in pump mode
-  if (st.size() != 0 && ctx.compiler_type != CompilerType::pump) {
+  if (st.size() != 0 && ctx.config.compiler_type() != CompilerType::pump) {
     LOG_RAW("Compiler produced stdout");
     throw Failure(Statistic::compiler_produced_stdout);
   }
@@ -1179,7 +1180,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   hash.hash_delimiter("cpp");
-  bool is_pump = ctx.compiler_type == CompilerType::pump;
+  bool is_pump = ctx.config.compiler_type() == CompilerType::pump;
   if (!process_preprocessed_file(ctx, hash, stdout_path, is_pump)) {
     throw Failure(Statistic::internal_error);
   }
@@ -1437,7 +1438,7 @@ hash_common_info(const Context& ctx,
   }
 
   // Possibly hash GCC_COLORS (for color diagnostics).
-  if (ctx.compiler_type == CompilerType::gcc) {
+  if (ctx.config.compiler_type() == CompilerType::gcc) {
     const char* gcc_colors = getenv("GCC_COLORS");
     if (gcc_colors) {
       hash.hash_delimiter("gcccolors");
@@ -1518,8 +1519,8 @@ calculate_result_name(Context& ctx,
 
   // clang will emit warnings for unused linker flags, so we shouldn't skip
   // those arguments.
-  int is_clang = ctx.compiler_type == CompilerType::clang
-                 || ctx.compiler_type == CompilerType::unknown;
+  int is_clang = ctx.config.compiler_type() == CompilerType::clang
+                 || ctx.config.compiler_type() == CompilerType::other;
 
   // First the arguments.
   for (size_t i = 1; i < args.size(); i++) {
@@ -1815,8 +1816,8 @@ from_cache(Context& ctx, FromCacheCallMode mode)
   //
   //     file 'foo.h' has been modified since the precompiled header 'foo.pch'
   //     was built
-  if ((ctx.compiler_type == CompilerType::clang
-       || ctx.compiler_type == CompilerType::unknown)
+  if ((ctx.config.compiler_type() == CompilerType::clang
+       || ctx.config.compiler_type() == CompilerType::other)
       && ctx.args_info.output_is_precompiled_header
       && !ctx.args_info.fno_pch_timestamp && mode == FromCacheCallMode::cpp) {
     LOG_RAW("Not considering cached precompiled header in preprocessor mode");
@@ -2302,25 +2303,6 @@ cache_compilation(int argc, const char* const* argv)
   return EXIT_SUCCESS;
 }
 
-static std::string
-compiler_type_to_string(CompilerType compiler_type)
-{
-#define CASE(type)                                                             \
-  case CompilerType::type:                                                     \
-    return #type
-
-  switch (compiler_type) {
-    CASE(clang);
-    CASE(gcc);
-    CASE(nvcc);
-    CASE(pump);
-    CASE(unknown);
-  }
-#undef CASE
-
-  ASSERT(false);
-}
-
 static Statistic
 do_cache_compilation(Context& ctx, const char* const* argv)
 {
@@ -2339,6 +2321,13 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.config.visit_items(configuration_logger);
   }
 
+  // Guess compiler after logging the config value in order to be able to
+  // display "compiler_type = auto" before overwriting the value with the guess.
+  if (ctx.config.compiler_type() == CompilerType::auto_guess) {
+    ctx.config.set_compiler_type(guess_compiler(ctx.orig_args[0]));
+  }
+  DEBUG_ASSERT(ctx.config.compiler_type() != CompilerType::auto_guess);
+
   if (ctx.config.disable()) {
     LOG_RAW("ccache is disabled");
     // Statistic::cache_miss is a dummy to trigger stats_flush.
@@ -2356,8 +2345,7 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     LOG("Apparent working directory: {}", ctx.apparent_cwd);
   }
 
-  ctx.compiler_type = guess_compiler(ctx.orig_args[0]);
-  LOG("Compiler type: {}", compiler_type_to_string(ctx.compiler_type));
+  LOG("Compiler type: {}", compiler_type_to_string(ctx.config.compiler_type()));
 
   MTR_BEGIN("main", "process_args");
   ProcessArgsResult processed = process_args(ctx);

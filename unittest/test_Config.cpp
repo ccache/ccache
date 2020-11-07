@@ -43,6 +43,7 @@ TEST_CASE("Config: default values")
   CHECK(config.cache_dir().empty()); // Set later
   CHECK(config.compiler().empty());
   CHECK(config.compiler_check() == "mtime");
+  CHECK(config.compiler_type() == CompilerType::auto_guess);
   CHECK(config.compression());
   CHECK(config.compression_level() == 0);
   CHECK(config.cpp_extension().empty());
@@ -98,6 +99,7 @@ TEST_CASE("Config::update_from_file")
     "  #A comment\n"
     "\t compiler = foo\n"
     "compiler_check = none\n"
+    "compiler_type = pump\n"
     "compression=false\n"
     "compression_level= 2\n"
     "cpp_extension = .foo\n"
@@ -136,6 +138,7 @@ TEST_CASE("Config::update_from_file")
   CHECK(config.cache_dir() == FMT("{0}$/{0}/.ccache", user));
   CHECK(config.compiler() == "foo");
   CHECK(config.compiler_check() == "none");
+  CHECK(config.compiler_type() == CompilerType::pump);
   CHECK_FALSE(config.compression());
   CHECK(config.compression_level() == 2);
   CHECK(config.cpp_extension() == ".foo");
@@ -367,6 +370,7 @@ TEST_CASE("Config::visit_items")
     "cache_dir = cd\n"
     "compiler = c\n"
     "compiler_check = cc\n"
+    "compiler_type = clang\n"
     "compression = true\n"
     "compression_level = 8\n"
     "cpp_extension = ce\n"
@@ -422,6 +426,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) cache_dir = cd",
     "(test.conf) compiler = c",
     "(test.conf) compiler_check = cc",
+    "(test.conf) compiler_type = clang",
     "(test.conf) compression = true",
     "(test.conf) compression_level = 8",
     "(test.conf) cpp_extension = ce",

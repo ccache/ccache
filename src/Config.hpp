@@ -30,7 +30,9 @@
 #include <string>
 #include <unordered_map>
 
-class Config;
+enum class CompilerType { auto_guess, clang, gcc, nvcc, other, pump };
+
+std::string compiler_type_to_string(CompilerType compiler_type);
 
 class Config
 {
@@ -44,6 +46,7 @@ public:
   const std::string& cache_dir() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
+  CompilerType compiler_type() const;
   bool compression() const;
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
@@ -80,6 +83,7 @@ public:
   void set_cache_dir(const std::string& value);
   void set_cpp_extension(const std::string& value);
   void set_compiler(const std::string& value);
+  void set_compiler_type(CompilerType compiler_type);
   void set_depend_mode(bool value);
   void set_debug(bool value);
   void set_direct_mode(bool value);
@@ -133,6 +137,7 @@ private:
   std::string m_cache_dir;
   std::string m_compiler = "";
   std::string m_compiler_check = "mtime";
+  CompilerType m_compiler_type = CompilerType::auto_guess;
   bool m_compression = true;
   int8_t m_compression_level = 0; // Use default level
   std::string m_cpp_extension = "";
@@ -206,6 +211,12 @@ inline const std::string&
 Config::compiler_check() const
 {
   return m_compiler_check;
+}
+
+inline CompilerType
+Config::compiler_type() const
+{
+  return m_compiler_type;
 }
 
 inline bool
@@ -419,6 +430,12 @@ inline void
 Config::set_compiler(const std::string& value)
 {
   m_compiler = value;
+}
+
+inline void
+Config::set_compiler_type(CompilerType value)
+{
+  m_compiler_type = value;
 }
 
 inline void
