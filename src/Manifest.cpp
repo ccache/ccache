@@ -167,6 +167,12 @@ struct ResultEntry
   Digest name;
 };
 
+bool
+operator==(const ResultEntry& lhs, const ResultEntry& rhs)
+{
+  return lhs.file_info_indexes == rhs.file_info_indexes && lhs.name == rhs.name;
+}
+
 struct ManifestData
 {
   // Referenced include files.
@@ -178,7 +184,7 @@ struct ManifestData
   // Result names plus references to include file infos.
   std::vector<ResultEntry> results;
 
-  void
+  bool
   add_result_entry(
     const Digest& result_digest,
     const std::unordered_map<std::string, Digest>& included_files,
@@ -207,7 +213,13 @@ struct ManifestData
                                                       save_timestamp));
     }
 
-    results.push_back(ResultEntry{std::move(file_info_indexes), result_digest});
+    ResultEntry entry{std::move(file_info_indexes), result_digest};
+    if (std::find(results.begin(), results.end(), entry) == results.end()) {
+      results.push_back(std::move(entry));
+      return true;
+    } else {
+      return false;
+    }
   }
 
 private:
@@ -565,16 +577,18 @@ put(const Config& config,
     mf = std::make_unique<ManifestData>();
   }
 
-  mf->add_result_entry(
+  bool added = mf->add_result_entry(
     result_name, included_files, time_of_compilation, save_timestamp);
 
-  try {
-    write_manifest(config, path, *mf);
-    return true;
-  } catch (const Error& e) {
-    LOG("Error: {}", e.what());
-    return false;
+  if (added) {
+    try {
+      write_manifest(config, path, *mf);
+      return true;
+    } catch (const Error& e) {
+      LOG("Error: {}", e.what());
+    }
   }
+  return false;
 }
 
 bool

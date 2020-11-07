@@ -1122,4 +1122,22 @@ EOF
     expect_stat 'cache hit (direct)' 2
     expect_stat 'cache hit (preprocessed)' 1
     expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
+    TEST "CCACHE_RECACHE doesn't add a new manifest entry"
+
+    $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # result + manifest
+
+    manifest_file=$(find $CCACHE_DIR -name '*M')
+    cp $manifest_file saved.manifest
+
+    CCACHE_RECACHE=1 $CCACHE_COMPILE -c test.c
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    expect_equal_content $manifest_file saved.manifest
 }
