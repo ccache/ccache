@@ -59,104 +59,104 @@
 
 #cmakedefine MTR_ENABLED
 
-/* Define to 1 if you have the `asctime_r' function. */
+// Define if you have the `asctime_r' function.
 #cmakedefine HAVE_ASCTIME_R
 
-/* Define to 1 if your compiler supports AVX2. */
+// Define if your compiler supports AVX2.
 #cmakedefine HAVE_AVX2
 
-/* Define to 1 if you have the `geteuid' function. */
+// Define if you have the `geteuid' function.
 #cmakedefine HAVE_GETEUID
 
-/* Define to 1 if you have the `getopt_long' function. */
+// Define if you have the `getopt_long' function.
 #cmakedefine HAVE_GETOPT_LONG
 
-/* Define to 1 if you have the `getpwuid' function. */
+// Define if you have the `getpwuid' function.
 #cmakedefine HAVE_GETPWUID
 
-/* Define to 1 if you have the `gettimeofday' function. */
+// Define if you have the `gettimeofday' function.
 #cmakedefine HAVE_GETTIMEOFDAY
 
-/* Define to 1 if you have the <linux/fs.h> header file. */
+// Define if you have the <linux/fs.h> header file.
 #cmakedefine HAVE_LINUX_FS_H
 
-/* Define to 1 if the system has the type `long long'. */
+// Define if the system has the type `long long'.
 #cmakedefine HAVE_LONG_LONG
 
-/* Define to 1 if you have the `mkstemp' function. */
+// Define if you have the `mkstemp' function.
 #cmakedefine HAVE_MKSTEMP
 
-/* Define to 1 if you have the `posix_fallocate. */
+// Define if you have the `posix_fallocate.
 #cmakedefine HAVE_POSIX_FALLOCATE
 
-/* Define to 1 if you have the <pwd.h> header file. */
+// Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
 
-/* Define to 1 if you have the `realpath' function. */
+// Define if you have the `realpath' function.
 #cmakedefine HAVE_REALPATH
 
-/* Define to 1 if you have the `setenv' function. */
+// Define if you have the `setenv' function.
 #cmakedefine HAVE_SETENV
 
-/* Define to 1 if you have the `strndup' function. */
+// Define if you have the `strndup' function.
 #cmakedefine HAVE_STRNDUP
 
-/* Define to 1 if `f_fstypename' is a member of `struct statfs'. */
+// Define if `f_fstypename' is a member of `struct statfs'.
 #cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
 
-/* Define to 1 if `st_ctim' is a member of `struct stat'. */
+// Define if `st_ctim' is a member of `struct stat'.
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIM
 
-/* Define to 1 if `st_mtim' is a member of `struct stat'. */
+// Define if `st_mtim' is a member of `struct stat'.
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
 
-/* Define to 1 if you have the `syslog' function. */
+// Define if you have the `syslog' function.
 #cmakedefine HAVE_SYSLOG
 
-/* Define to 1 if you have the <syslog.h> header file. */
+// Define if you have the <syslog.h> header file.
 #cmakedefine HAVE_SYSLOG_H
 
-/* Define to 1 if you have the <sys/clonefile.h> header file. */
+// Define if you have the <sys/clonefile.h> header file.
 #cmakedefine HAVE_SYS_CLONEFILE_H
 
-/* Define to 1 if you have the <sys/ioctl.h> header file. */
+// Define if you have the <sys/ioctl.h> header file.
 #cmakedefine HAVE_SYS_IOCTL_H
 
-/* Define to 1 if you have the <sys/mman.h> header file. */
+// Define if you have the <sys/mman.h> header file.
 #cmakedefine HAVE_SYS_MMAN_H
 
-/* Define to 1 if you have the <sys/time.h> header file. */
+// Define if you have the <sys/time.h> header file.
 #cmakedefine HAVE_SYS_TIME_H
 
-/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+// Define if you have <sys/wait.h> that is POSIX.1 compatible.
 #cmakedefine HAVE_SYS_WAIT_H
 
-/* Define to 1 if you have the <sys/file.h> header file. */
+// Define if you have the <sys/file.h> header file.
 #cmakedefine HAVE_SYS_FILE_H
 
-/* Define to 1 if you have the <termios.h> header file. */
+// Define if you have the <termios.h> header file.
 #cmakedefine HAVE_TERMIOS_H
 
-/* Define to 1 if you have the <dirent.h> header file. */
+// Define if you have the <dirent.h> header file.
 #cmakedefine HAVE_DIRENT_H
 
-/* Define to 1 if you have the <strings.h> header file. */
+// Define if you have the <strings.h> header file.
 #cmakedefine HAVE_STRINGS_H
 
-/* Define to 1 if you have the <unistd.h> header file. */
+// Define if you have the <unistd.h> header file.
 #cmakedefine HAVE_UNISTD_H
 
-/* Define to 1 if you have the <utime.h> header file. */
+// Define if you have the <utime.h> header file.
 #cmakedefine HAVE_UTIME_H
 
-/* Define to 1 if you have the <sys/utime.h> header file. */
+// Define if you have the <sys/utime.h> header file.
 #cmakedefine HAVE_SYS_UTIME_H
 
-/* Define to 1 if you have the <varargs.h> header file. */
+// Define if you have the <varargs.h> header file.
 #cmakedefine HAVE_VARARGS_H
 
-/* Define to 1 if you have the `unsetenv' function. */
+// Define if you have the `unsetenv' function.
 #cmakedefine HAVE_UNSETENV
 
-/* Define to 1 if you have the `utimes' function. */
+// Define if you have the `utimes' function.
 #cmakedefine HAVE_UTIMES
