@@ -756,8 +756,8 @@ do_execute(Context& ctx,
 {
   UmaskScope umask_scope(ctx.original_umask);
 
-  if (ctx.diagnostics_color_failed
-      && ctx.config.compiler_type() == CompilerType::gcc) {
+  if (ctx.diagnostics_color_failed) {
+    DEBUG_ASSERT(ctx.config.compiler_type() == CompilerType::gcc);
     args.erase_last("-fdiagnostics-color");
   }
   int status = execute(args.to_argv().data(),
@@ -767,9 +767,15 @@ do_execute(Context& ctx,
   if (status != 0 && !ctx.diagnostics_color_failed
       && ctx.config.compiler_type() == CompilerType::gcc) {
     auto errors = Util::read_file(tmp_stderr.path);
-    if (errors.find("unrecognized command line option") != std::string::npos
-        && errors.find("-fdiagnostics-color") != std::string::npos) {
-      // Old versions of GCC do not support colored diagnostics.
+    if (errors.find("fdiagnostics-color") != std::string::npos) {
+      // GCC versions older than 4.9 don't understand -fdiagnostics-color, and
+      // non-GCC compilers misclassified as CompilerType::gcc might not do it
+      // either. We assume that if the error message contains
+      // "fdiagnostics-color" then the compilation failed due to
+      // -fdiagnostics-color being unsupported and we then retry without the
+      // flag. (Note that there intentionally is no leading dash in
+      // "fdiagnostics-color" since some compilers don't include the dash in the
+      // error message.)
       LOG_RAW("-fdiagnostics-color is unsupported; trying again without it");
 
       tmp_stdout.fd = Fd(open(
