@@ -207,7 +207,7 @@ InodeCache::acquire_bucket(uint32_t index)
 {
   Bucket* bucket = &m_sr->buckets[index];
   int err = pthread_mutex_lock(&bucket->mt);
-#ifdef PTHREAD_MUTEX_ROBUST
+#ifdef HAVE_PTHREAD_MUTEX_ROBUST
   if (err == EOWNERDEAD) {
     if (m_config.debug()) {
       ++m_sr->errors;
@@ -223,13 +223,13 @@ InodeCache::acquire_bucket(uint32_t index)
     memset(bucket->entries, 0, sizeof(Bucket::entries));
   } else {
 #endif
-    if (err) {
+    if (err != 0) {
       LOG("Failed to lock mutex at index {}: {}", index, strerror(err));
       LOG_RAW("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
       return nullptr;
     }
-#ifdef PTHREAD_MUTEX_ROBUST
+#ifdef HAVE_PTHREAD_MUTEX_ROBUST
   }
 #endif
   return bucket;
@@ -290,7 +290,7 @@ InodeCache::create_new_file(const std::string& filename)
   pthread_mutexattr_t mattr;
   pthread_mutexattr_init(&mattr);
   pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-#ifdef PTHREAD_MUTEX_ROBUST
+#ifdef HAVE_PTHREAD_MUTEX_ROBUST
   pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
 #endif
   for (auto& bucket : sr->buckets) {

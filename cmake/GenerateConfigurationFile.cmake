@@ -44,6 +44,21 @@ foreach(func IN ITEMS ${functions})
   check_function_exists(${func} ${func_var})
 endforeach()
 
+include(CheckCSourceCompiles)
+set(CMAKE_REQUIRED_LINK_OPTIONS -pthread)
+check_c_source_compiles(
+  [=[
+    #include <pthread.h>
+    int main()
+    {
+      pthread_mutexattr_t attr;
+      (void)pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+      return 0;
+    }
+  ]=]
+  HAVE_PTHREAD_MUTEX_ROBUST)
+set(CMAKE_REQUIRED_LINK_OPTIONS)
+
 include(CheckStructHasMember)
 check_struct_has_member("struct stat" st_ctim sys/stat.h
                         HAVE_STRUCT_STAT_ST_CTIM)
