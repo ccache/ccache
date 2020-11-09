@@ -59,58 +59,58 @@
 
 #cmakedefine MTR_ENABLED
 
-// Define if you have the `asctime_r' function.
+// Define if you have the "asctime_r" function.
 #cmakedefine HAVE_ASCTIME_R
 
 // Define if your compiler supports AVX2.
 #cmakedefine HAVE_AVX2
 
-// Define if you have the `geteuid' function.
+// Define if you have the "geteuid" function.
 #cmakedefine HAVE_GETEUID
 
-// Define if you have the `getopt_long' function.
+// Define if you have the "getopt_long" function.
 #cmakedefine HAVE_GETOPT_LONG
 
-// Define if you have the `getpwuid' function.
+// Define if you have the "getpwuid" function.
 #cmakedefine HAVE_GETPWUID
 
-// Define if you have the `gettimeofday' function.
+// Define if you have the "gettimeofday" function.
 #cmakedefine HAVE_GETTIMEOFDAY
 
 // Define if you have the <linux/fs.h> header file.
 #cmakedefine HAVE_LINUX_FS_H
 
-// Define if the system has the type `long long'.
+// Define if the system has the type "long long".
 #cmakedefine HAVE_LONG_LONG
 
-// Define if you have the `mkstemp' function.
+// Define if you have the "mkstemp" function.
 #cmakedefine HAVE_MKSTEMP
 
-// Define if you have the `posix_fallocate.
+// Define if you have the "posix_fallocate.
 #cmakedefine HAVE_POSIX_FALLOCATE
 
 // Define if you have the <pwd.h> header file.
 #cmakedefine HAVE_PWD_H
 
-// Define if you have the `realpath' function.
+// Define if you have the "realpath"" function.
 #cmakedefine HAVE_REALPATH
 
-// Define if you have the `setenv' function.
+// Define if you have the "setenv" function.
 #cmakedefine HAVE_SETENV
 
-// Define if you have the `strndup' function.
+// Define if you have the "strndup" function.
 #cmakedefine HAVE_STRNDUP
 
-// Define if `f_fstypename' is a member of `struct statfs'.
+// Define if "f_fstypename" is a member of "struct statfs".
 #cmakedefine HAVE_STRUCT_STATFS_F_FSTYPENAME
 
-// Define if `st_ctim' is a member of `struct stat'.
+// Define if "st_ctim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_CTIM
 
-// Define if `st_mtim' is a member of `struct stat'.
+// Define if "st_mtim" is a member of "struct stat".
 #cmakedefine HAVE_STRUCT_STAT_ST_MTIM
 
-// Define if you have the `syslog' function.
+// Define if you have the "syslog" function.
 #cmakedefine HAVE_SYSLOG
 
 // Define if you have the <syslog.h> header file.
@@ -155,8 +155,8 @@
 // Define if you have the <varargs.h> header file.
 #cmakedefine HAVE_VARARGS_H
 
-// Define if you have the `unsetenv' function.
+// Define if you have the "unsetenv" function.
 #cmakedefine HAVE_UNSETENV
 
-// Define if you have the `utimes' function.
+// Define if you have the "utimes" function.
 #cmakedefine HAVE_UTIMES
