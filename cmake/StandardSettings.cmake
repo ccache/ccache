@@ -47,6 +47,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^GNU|(Apple)?Clang$")
       INTERFACE -fsanitize=${SANITIZER})
   endforeach()
 
+  include(StdAtomic)
+
 elseif(MSVC)
   target_compile_options(standard_settings INTERFACE /std:c++latest /Zc:preprocessor /Zc:__cplusplus /D_CRT_SECURE_NO_WARNINGS)
 endif()
