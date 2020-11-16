@@ -553,6 +553,12 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (args[i] == "-fsyntax-only") {
+    args_info.expect_output_obj = false;
+    state.compiler_only_args.push_back(args[i]);
+    return nullopt;
+  }
+
   if (args[i] == "--coverage"      // = -fprofile-arcs -ftest-coverage
       || args[i] == "-coverage") { // Undocumented but still works.
     args_info.profile_arcs = true;
