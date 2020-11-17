@@ -703,7 +703,7 @@ parse_depfile(string_view file_content)
   std::string token;
   size_t p{0};
   while (p < length) {
-    // Each token is separated by a space.
+    // Each token is separated by spaces.
     if (isspace(file_content[p])) {
       while (p < length && isspace(file_content[p])) {
         p++;
@@ -730,7 +730,7 @@ parse_depfile(string_view file_content)
           c = next;
           p++;
           break;
-        // For this parser, it can treat backslash-newline as just a space.
+        // For this parser, it can treat a backslash-newline as just a space.
         // Therefore simply skip a backslash.
         case '\n':
           p++;
@@ -742,7 +742,7 @@ parse_depfile(string_view file_content)
       if (p + 1 < length) {
         const char next{file_content[p + 1]};
         switch (next) {
-        // A dollar sign can be followed by a dollar sign and lave it as-is.
+        // A dollar sign can be followed by a dollar sign and leave it as-is.
         case '$':
           c = next;
           p++;
