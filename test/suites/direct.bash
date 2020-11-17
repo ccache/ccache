@@ -977,7 +977,7 @@ EOF
     # -------------------------------------------------------------------------
     TEST "Comment in strings"
 
-    echo 'char *comment = " /* \\\\u" "foo" " */";' >comment.c
+    echo 'const char *comment = " /* \\\\u" "foo" " */";' >comment.c
 
     $CCACHE_COMPILE -c comment.c
     expect_stat 'cache hit (direct)' 0
@@ -989,7 +989,7 @@ EOF
     expect_stat 'cache hit (preprocessed)' 0
     expect_stat 'cache miss' 1
 
-    echo 'char *comment = " /* \\\\u" "goo" " */";' >comment.c
+    echo 'const char *comment = " /* \\\\u" "goo" " */";' >comment.c
 
     $CCACHE_COMPILE -c comment.c
     expect_stat 'cache hit (direct)' 1

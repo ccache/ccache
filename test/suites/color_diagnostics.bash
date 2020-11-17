@@ -35,7 +35,7 @@ SUITE_color_diagnostics_SETUP() {
 
 color_diagnostics_expect_color() {
     expect_contains "${1:?}" $'\033['
-    expect_contains <(fgrep 'previous prototype' "$1") $'\033['
+    expect_contains <(fgrep 'Wreturn-type' "$1") $'\033['
     expect_contains <(fgrep 'from preprocessor' "$1") $'\033['
 }
 
@@ -44,8 +44,10 @@ color_diagnostics_expect_no_color() {
 }
 
 color_diagnostics_generate_code() {
-    generate_code "$@"
-    echo '#warning "Warning from preprocessor"' >>"$2"
+    cat <<'EOF' >"$1"
+int stderr(void) { /* Warn about no return statement. */ }
+#warning "Warning from preprocessor"
+EOF
 }
 
 # Heap's permutation algorithm
@@ -88,12 +90,12 @@ color_diagnostics_test() {
     # -------------------------------------------------------------------------
     TEST "Colored diagnostics automatically disabled when stderr is not a TTY (run_second_cpp=$run_second_cpp)"
 
-    color_diagnostics_generate_code 1 test1.c
-    $CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c 2>test1.stderr
+    color_diagnostics_generate_code test1.c
+    $CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
     color_diagnostics_expect_no_color test1.stderr
 
     # Check that subsequently running on a TTY generates a cache hit.
-    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c"
+    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c"
     color_diagnostics_expect_color test1.output
     expect_stat 'cache miss' 1
     expect_stat 'cache hit (preprocessed)' 1
@@ -101,12 +103,12 @@ color_diagnostics_test() {
     # -------------------------------------------------------------------------
     TEST "Colored diagnostics automatically enabled when stderr is a TTY (run_second_cpp=$run_second_cpp)"
 
-    color_diagnostics_generate_code 1 test1.c
-    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c"
+    color_diagnostics_generate_code test1.c
+    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c"
     color_diagnostics_expect_color test1.output
 
     # Check that subsequently running without a TTY generates a cache hit.
-    $CCACHE_COMPILE -Wmissing-prototypes -c -o test1.o test1.c 2>test1.stderr
+    $CCACHE_COMPILE -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
     color_diagnostics_expect_no_color test1.stderr
     expect_stat 'cache miss' 1
     expect_stat 'cache hit (preprocessed)' 1
@@ -124,7 +126,7 @@ color_diagnostics_test() {
     while read -r case; do
         TEST "Cache object shared across ${case} (run_second_cpp=$run_second_cpp)"
 
-        color_diagnostics_generate_code 1 test1.c
+        color_diagnostics_generate_code test1.c
         local each
         for each in ${case}; do
             case $each in
@@ -139,11 +141,11 @@ color_diagnostics_test() {
             esac
             case $each in
                 *,tty)
-                    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE $color_flag -Wmissing-prototypes -c -o test1.o test1.c"
+                    color_diagnostics_run_on_pty test1.output "$CCACHE_COMPILE $color_flag -Wreturn-type -c -o test1.o test1.c"
                     color_diagnostics_expect_$color_expect test1.output
                     ;;
                 *,notty)
-                    $CCACHE_COMPILE $color_flag -Wmissing-prototypes -c -o test1.o test1.c 2>test1.stderr
+                    $CCACHE_COMPILE $color_flag -Wreturn-type -c -o test1.o test1.c 2>test1.stderr
                     color_diagnostics_expect_$color_expect test1.stderr
                     ;;
             esac
