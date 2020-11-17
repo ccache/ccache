@@ -698,14 +698,12 @@ parse_depfile(string_view file_content)
   std::vector<std::string> result;
 
   // A depfile is formatted with Makefile syntax.
-  // This is not perfect parser, however, compilers don't generate a depfile
-  // that contains a complex syntax such as single or double quoted string,
-  // therefore, this is enough for parsing a depfile.
+  // This is not perfect parser, however enough for parsing a regular depfile.
   const size_t length = file_content.size();
   std::string token;
   size_t p{0};
   while (p < length) {
-    // Each token is separated by the space.
+    // Each token is separated by a space.
     if (isspace(file_content[p])) {
       while (p < length && isspace(file_content[p])) {
         p++;
@@ -718,26 +716,40 @@ parse_depfile(string_view file_content)
     }
 
     char c{file_content[p]};
-
-    // Characters can be escaped by the backslash.
-    if (c == '\\') {
-      p++;
-      if (p < length) {
-        // Backslash/newline is ignored.
-        if (file_content[p] == '\n') {
+    switch (c) {
+    case '\\':
+      if (p + 1 < length) {
+        const char next{file_content[p + 1]};
+        switch (next) {
+        // A backspace can be followed by next characters and leave them as-is.
+        case '\\':
+        case '#':
+        case ':':
+        case ' ':
+        case '\t':
+          c = next;
           p++;
-          if (p < length) {
-            // The following leading prefix which is tab is ignored.
-            if (file_content[p] == '\t') {
-              p++;
-            }
-          }
+          break;
+        // For this parser, it can treat backslash-newline as just a space.
+        // Therefore simply skip a backslash.
+        case '\n':
+          p++;
           continue;
         }
-        c = file_content[p];
-      } else {
-        continue;
       }
+      break;
+    case '$':
+      if (p + 1 < length) {
+        const char next{file_content[p + 1]};
+        switch (next) {
+        // A dollar sign can be followed by a dollar sign and lave it as-is.
+        case '$':
+          c = next;
+          p++;
+          break;
+        }
+      }
+      break;
     }
 
     token.push_back(c);
