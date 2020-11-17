@@ -687,10 +687,9 @@ use_relative_paths_in_depfile(const Context& ctx)
 }
 
 static inline bool
-is_blank(std::string s)
+is_blank(const std::string& s)
 {
-  return s.empty()
-         || all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
+  return std::all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
 }
 
 std::vector<std::string>
