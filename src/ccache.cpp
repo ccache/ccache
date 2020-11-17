@@ -107,6 +107,8 @@ Common options:
                                (normally not needed as this is done
                                automatically)
     -C, --clear                clear the cache completely (except configuration)
+        --config-path PATH     operate on configuration file PATH instead of the
+                               default
     -d, --directory PATH       operate on cache directory PATH instead of the
                                default
         --evict-older-than AGE remove files older than AGE (unsigned integer
@@ -2549,6 +2551,7 @@ handle_main_options(int argc, const char* const* argv)
 {
   enum longopts {
     CHECKSUM_FILE,
+    CONFIG_PATH,
     DUMP_MANIFEST,
     DUMP_RESULT,
     EVICT_OLDER_THAN,
@@ -2560,7 +2563,8 @@ handle_main_options(int argc, const char* const* argv)
     {"checksum-file", required_argument, nullptr, CHECKSUM_FILE},
     {"cleanup", no_argument, nullptr, 'c'},
     {"clear", no_argument, nullptr, 'C'},
-    {"directory", no_argument, nullptr, 'd'},
+    {"config-path", required_argument, nullptr, CONFIG_PATH},
+    {"directory", required_argument, nullptr, 'd'},
     {"dump-manifest", required_argument, nullptr, DUMP_MANIFEST},
     {"dump-result", required_argument, nullptr, DUMP_RESULT},
     {"evict-older-than", required_argument, nullptr, EVICT_OLDER_THAN},
@@ -2602,6 +2606,10 @@ handle_main_options(int argc, const char* const* argv)
       PRINT(stdout, "{:016x}\n", checksum.digest());
       break;
     }
+
+    case CONFIG_PATH:
+      Util::setenv("CCACHE_CONFIGPATH", arg);
+      break;
 
     case DUMP_MANIFEST:
       return Manifest::dump(arg, stdout) ? 0 : 1;

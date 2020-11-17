@@ -95,10 +95,16 @@ Common options
     Clear the entire cache, removing all cached files, but keeping the
     configuration file.
 
+*`--config-path`* _PATH_::
+
+    Let the subsequent command line options operate on configuration file
+    _PATH_ instead of the default. Using this option has the same effect as
+    setting the environment variable `CCACHE_CONFIGPATH` temporarily.
+
 *`-d`*, *`--directory`* _PATH_::
 
     Let the subsequent command line options operate on cache directory _PATH_
-    instead of the default for. For example, to show statistics for a cache
+    instead of the default. For example, to show statistics for a cache
     directory at `/shared/ccache` you can run `ccache -d /shared/ccache -s`.
     Using this option has the same effect as setting the environment variable
     `CCACHE_DIR` temporarily.
