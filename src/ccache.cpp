@@ -707,6 +707,82 @@ use_relative_paths_in_depfile(const Context& ctx)
   }
 }
 
+static inline bool
+is_blank(const std::string& s)
+{
+  return std::all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
+}
+
+std::vector<std::string>
+parse_depfile(string_view file_content)
+{
+  std::vector<std::string> result;
+
+  // A depfile is formatted with Makefile syntax.
+  // This is not perfect parser, however enough for parsing a regular depfile.
+  const size_t length = file_content.size();
+  std::string token;
+  size_t p{0};
+  while (p < length) {
+    // Each token is separated by spaces.
+    if (isspace(file_content[p])) {
+      while (p < length && isspace(file_content[p])) {
+        p++;
+      }
+      if (!is_blank(token)) {
+        result.push_back(token);
+      }
+      token.clear();
+      continue;
+    }
+
+    char c{file_content[p]};
+    switch (c) {
+    case '\\':
+      if (p + 1 < length) {
+        const char next{file_content[p + 1]};
+        switch (next) {
+        // A backspace can be followed by next characters and leave them as-is.
+        case '\\':
+        case '#':
+        case ':':
+        case ' ':
+        case '\t':
+          c = next;
+          p++;
+          break;
+        // For this parser, it can treat a backslash-newline as just a space.
+        // Therefore simply skip a backslash.
+        case '\n':
+          p++;
+          continue;
+        }
+      }
+      break;
+    case '$':
+      if (p + 1 < length) {
+        const char next{file_content[p + 1]};
+        switch (next) {
+        // A dollar sign can be followed by a dollar sign and leave it as-is.
+        case '$':
+          c = next;
+          p++;
+          break;
+        }
+      }
+      break;
+    }
+
+    token.push_back(c);
+    p++;
+  }
+  if (!is_blank(token)) {
+    result.push_back(token);
+  }
+
+  return result;
+}
+
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static optional<Digest>
@@ -721,8 +797,8 @@ result_name_from_depfile(Context& ctx, Hash& hash)
     return nullopt;
   }
 
-  for (string_view token : Util::split_into_views(file_content, " \t\r\n")) {
-    if (token == "\\" || token.ends_with(":")) {
+  for (string_view token : parse_depfile(file_content)) {
+    if (token.ends_with(":")) {
       continue;
     }
     if (!ctx.has_absolute_include_headers) {

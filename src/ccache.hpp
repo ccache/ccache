@@ -28,6 +28,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 class Context;
 
@@ -64,3 +65,4 @@ void find_compiler(Context& ctx,
 CompilerType guess_compiler(nonstd::string_view path);
 nonstd::optional<std::string>
 rewrite_dep_file_paths(const Context& ctx, const std::string& file_content);
+std::vector<std::string> parse_depfile(nonstd::string_view file_content);

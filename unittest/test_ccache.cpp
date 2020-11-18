@@ -236,4 +236,128 @@ TEST_CASE("rewrite_dep_file_paths")
   }
 }
 
+TEST_CASE("parse_depfile")
+{
+  SUBCASE("Parse empty depfile")
+  {
+    std::vector<std::string> result = parse_depfile("");
+    CHECK(result.size() == 0);
+  }
+
+  SUBCASE("Parse simple depfile")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow meow purr");
+    REQUIRE(result.size() == 4);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+    CHECK(result[2] == "meow");
+    CHECK(result[3] == "purr");
+  }
+
+  SUBCASE("Parse depfile with a dollar sign followed by a dollar sign")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow$$");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow$");
+  }
+
+  SUBCASE("Parse depfile with a dollar sign followed by an alphabet")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow$w");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow$w");
+  }
+
+  SUBCASE("Parse depfile with a backslash followed by a number sign or a colon")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow\\# meow\\:");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow#");
+    CHECK(result[2] == "meow:");
+  }
+
+  SUBCASE("Parse depfile with a backslash followed by an alphabet")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow\\w purr\\r");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow\\w");
+    CHECK(result[2] == "purr\\r");
+  }
+
+  SUBCASE("Parse depfile with a backslash followed by a space or a tab")
+  {
+    std::vector<std::string> result =
+      parse_depfile("cat.o: meow\\ meow purr\\\tpurr");
+    REQUIRE(result.size() == 3);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow meow");
+    CHECK(result[2] == "purr\tpurr");
+  }
+
+  SUBCASE("Parse depfile with backslashes followed by a space or a tab")
+  {
+    std::vector<std::string> result =
+      parse_depfile("cat.o: meow\\\\\\ meow purr\\\\ purr");
+    REQUIRE(result.size() == 4);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow\\ meow");
+    CHECK(result[2] == "purr\\");
+    CHECK(result[3] == "purr");
+  }
+
+  SUBCASE("Parse depfile with a backslash newline")
+  {
+    std::vector<std::string> result =
+      parse_depfile("cat.o: meow\\\nmeow\\\n purr\\\n\tpurr");
+    REQUIRE(result.size() == 5);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+    CHECK(result[2] == "meow");
+    CHECK(result[3] == "purr");
+    CHECK(result[4] == "purr");
+  }
+
+  SUBCASE("Parse depfile with a new line")
+  {
+    // This is invalid depfile because it has multiple lines without backslash,
+    // which is not valid in Makefile syntax.
+    // However, parse_depfile is parsing it to each token, which is expected.
+    std::vector<std::string> result =
+      parse_depfile("cat.o: meow\nmeow\npurr\n");
+    REQUIRE(result.size() == 4);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+    CHECK(result[2] == "meow");
+    CHECK(result[3] == "purr");
+  }
+
+  SUBCASE("Parse depfile with a trailing dollar sign")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow$");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow$");
+  }
+
+  SUBCASE("Parse depfile with a trailing backslash")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow\\");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow\\");
+  }
+
+  SUBCASE("Parse depfile with a trailing backslash newline")
+  {
+    std::vector<std::string> result = parse_depfile("cat.o: meow\\\n");
+    REQUIRE(result.size() == 2);
+    CHECK(result[0] == "cat.o:");
+    CHECK(result[1] == "meow");
+  }
+}
+
 TEST_SUITE_END();
