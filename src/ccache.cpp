@@ -24,6 +24,7 @@
 #include "Checksum.hpp"
 #include "Compression.hpp"
 #include "Context.hpp"
+#include "Depfile.hpp"
 #include "Fd.hpp"
 #include "File.hpp"
 #include "Finalizer.hpp"
@@ -629,160 +630,6 @@ process_preprocessed_file(Context& ctx,
   return true;
 }
 
-nonstd::optional<std::string>
-rewrite_dep_file_paths(const Context& ctx, const std::string& file_content)
-{
-  ASSERT(!ctx.config.base_dir().empty());
-  ASSERT(ctx.has_absolute_include_headers);
-
-  // Fast path for the common case:
-  if (file_content.find(ctx.config.base_dir()) == std::string::npos) {
-    return nonstd::nullopt;
-  }
-
-  std::string adjusted_file_content;
-  adjusted_file_content.reserve(file_content.size());
-
-  bool content_rewritten = false;
-  for (const auto& line : Util::split_into_views(file_content, "\n")) {
-    const auto tokens = Util::split_into_views(line, " \t");
-    for (size_t i = 0; i < tokens.size(); ++i) {
-      DEBUG_ASSERT(line.length() > 0); // line.empty() -> no tokens
-      if (i > 0 || line[0] == ' ' || line[0] == '\t') {
-        adjusted_file_content.push_back(' ');
-      }
-
-      const auto& token = tokens[i];
-      bool token_rewritten = false;
-      if (Util::is_absolute_path(token)) {
-        const auto new_path = Util::make_relative_path(ctx, token);
-        if (new_path != token) {
-          adjusted_file_content.append(new_path);
-          token_rewritten = true;
-        }
-      }
-      if (token_rewritten) {
-        content_rewritten = true;
-      } else {
-        adjusted_file_content.append(token.begin(), token.end());
-      }
-    }
-    adjusted_file_content.push_back('\n');
-  }
-
-  if (content_rewritten) {
-    return adjusted_file_content;
-  } else {
-    return nonstd::nullopt;
-  }
-}
-
-// Replace absolute paths with relative paths in the provided dependency file.
-static void
-use_relative_paths_in_depfile(const Context& ctx)
-{
-  if (ctx.config.base_dir().empty()) {
-    LOG_RAW("Base dir not set, skip using relative paths");
-    return; // nothing to do
-  }
-  if (!ctx.has_absolute_include_headers) {
-    LOG_RAW(
-      "No absolute path for included files found, skip using relative paths");
-    return; // nothing to do
-  }
-
-  const std::string& output_dep = ctx.args_info.output_dep;
-  std::string file_content;
-  try {
-    file_content = Util::read_file(output_dep);
-  } catch (const Error& e) {
-    LOG("Cannot open dependency file {}: {}", output_dep, e.what());
-    return;
-  }
-  const auto new_content = rewrite_dep_file_paths(ctx, file_content);
-  if (new_content) {
-    Util::write_file(output_dep, *new_content);
-  } else {
-    LOG("No paths in dependency file {} made relative", output_dep);
-  }
-}
-
-static inline bool
-is_blank(const std::string& s)
-{
-  return std::all_of(s.begin(), s.end(), [](char c) { return isspace(c); });
-}
-
-std::vector<std::string>
-parse_depfile(string_view file_content)
-{
-  std::vector<std::string> result;
-
-  // A depfile is formatted with Makefile syntax.
-  // This is not perfect parser, however enough for parsing a regular depfile.
-  const size_t length = file_content.size();
-  std::string token;
-  size_t p{0};
-  while (p < length) {
-    // Each token is separated by spaces.
-    if (isspace(file_content[p])) {
-      while (p < length && isspace(file_content[p])) {
-        p++;
-      }
-      if (!is_blank(token)) {
-        result.push_back(token);
-      }
-      token.clear();
-      continue;
-    }
-
-    char c{file_content[p]};
-    switch (c) {
-    case '\\':
-      if (p + 1 < length) {
-        const char next{file_content[p + 1]};
-        switch (next) {
-        // A backspace can be followed by next characters and leave them as-is.
-        case '\\':
-        case '#':
-        case ':':
-        case ' ':
-        case '\t':
-          c = next;
-          p++;
-          break;
-        // For this parser, it can treat a backslash-newline as just a space.
-        // Therefore simply skip a backslash.
-        case '\n':
-          p++;
-          continue;
-        }
-      }
-      break;
-    case '$':
-      if (p + 1 < length) {
-        const char next{file_content[p + 1]};
-        switch (next) {
-        // A dollar sign can be followed by a dollar sign and leave it as-is.
-        case '$':
-          c = next;
-          p++;
-          break;
-        }
-      }
-      break;
-    }
-
-    token.push_back(c);
-    p++;
-  }
-  if (!is_blank(token)) {
-    result.push_back(token);
-  }
-
-  return result;
-}
-
 // Extract the used includes from the dependency file. Note that we cannot
 // distinguish system headers from other includes here.
 static optional<Digest>
@@ -797,7 +644,7 @@ result_name_from_depfile(Context& ctx, Hash& hash)
     return nullopt;
   }
 
-  for (string_view token : parse_depfile(file_content)) {
+  for (string_view token : Depfile::tokenize(file_content)) {
     if (token.ends_with(":")) {
       continue;
     }
@@ -823,7 +670,6 @@ result_name_from_depfile(Context& ctx, Hash& hash)
 
   return hash.digest();
 }
-
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
 static int
@@ -1128,7 +974,7 @@ to_cache(Context& ctx,
                           && ctx.args_info.output_dep != "/dev/null";
 
   if (produce_dep_file) {
-    use_relative_paths_in_depfile(ctx);
+    Depfile::make_paths_relative_in_output_dep(ctx);
   }
 
   const auto obj_stat = Stat::stat(ctx.args_info.output_obj);

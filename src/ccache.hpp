@@ -23,12 +23,10 @@
 
 #include "Config.hpp"
 
-#include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
 
 #include <functional>
 #include <string>
-#include <vector>
 
 class Context;
 
@@ -63,6 +61,3 @@ using FindExecutableFunction =
 void find_compiler(Context& ctx,
                    const FindExecutableFunction& find_executable_function);
 CompilerType guess_compiler(nonstd::string_view path);
-nonstd::optional<std::string>
-rewrite_dep_file_paths(const Context& ctx, const std::string& file_content);
-std::vector<std::string> parse_depfile(nonstd::string_view file_content);

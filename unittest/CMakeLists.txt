@@ -8,6 +8,7 @@ set(
   test_Compression.cpp
   test_Config.cpp
   test_Counters.cpp
+  test_Depfile.cpp
   test_FormatNonstdStringView.cpp
   test_Hash.cpp
   test_Lockfile.cpp

@@ -11,6 +11,7 @@ set(
   Context.cpp
   Counters.cpp
   Decompressor.cpp
+  Depfile.cpp
   Hash.cpp
   Lockfile.cpp
   Logging.cpp
