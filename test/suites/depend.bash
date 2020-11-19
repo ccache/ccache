@@ -294,6 +294,23 @@ EOF
     expect_stat 'files in cache' 5
 
     # -------------------------------------------------------------------------
+    TEST "Source file with special characters"
 
-    # TODO: Add more test cases (see direct.bash for inspiration)
+    touch 'file with$special#characters.c'
+    $REAL_COMPILER -MMD -c 'file with$special#characters.c'
+    mv 'file with$special#characters.d' reference.d
+
+    CCACHE_DEPEND=1 $CCACHE_COMPILE -MMD -c 'file with$special#characters.c'
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_content 'file with$special#characters.d' reference.d
+
+    rm 'file with$special#characters.d'
+
+    CCACHE_DEPEND=1 $CCACHE_COMPILE -MMD -c 'file with$special#characters.c'
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_equal_content 'file with$special#characters.d' reference.d
 }

@@ -31,6 +31,29 @@ is_blank(const std::string& s)
 
 namespace Depfile {
 
+std::string
+escape_filename(nonstd::string_view filename)
+{
+  std::string result;
+  result.reserve(filename.size());
+  for (const char c : filename) {
+    switch (c) {
+    case '\\':
+    case '#':
+    case ':':
+    case ' ':
+    case '\t':
+      result.push_back('\\');
+      break;
+    case '$':
+      result.push_back('$');
+      break;
+    }
+    result.push_back(c);
+  }
+  return result;
+}
+
 nonstd::optional<std::string>
 rewrite_paths(const Context& ctx, const std::string& file_content)
 {

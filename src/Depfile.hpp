@@ -29,6 +29,7 @@ class Hash;
 
 namespace Depfile {
 
+std::string escape_filename(nonstd::string_view filename);
 nonstd::optional<std::string> rewrite_paths(const Context& ctx,
                                             const std::string& file_content);
 void make_paths_relative_in_output_dep(const Context& ctx);

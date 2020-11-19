@@ -19,6 +19,7 @@
 #include "ResultRetriever.hpp"
 
 #include "Context.hpp"
+#include "Depfile.hpp"
 #include "Logging.hpp"
 
 using Result::FileType;
@@ -163,9 +164,10 @@ ResultRetriever::write_dependency_file()
     if (m_rewrite_dependency_target) {
       size_t colon_pos = m_dest_data.find(':');
       if (colon_pos != std::string::npos) {
-        Util::write_fd(*m_dest_fd,
-                       m_ctx.args_info.output_obj.data(),
-                       m_ctx.args_info.output_obj.length());
+        const auto escaped_output_obj =
+          Depfile::escape_filename(m_ctx.args_info.output_obj);
+        Util::write_fd(
+          *m_dest_fd, escaped_output_obj.data(), escaped_output_obj.length());
         start_pos = colon_pos;
       }
     }

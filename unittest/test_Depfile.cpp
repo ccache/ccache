@@ -27,6 +27,17 @@ using TestUtil::TestContext;
 
 TEST_SUITE_BEGIN("Depfile");
 
+TEST_CASE("Depfile::escape_filename")
+{
+  CHECK(Depfile::escape_filename("") == "");
+  CHECK(Depfile::escape_filename("foo") == "foo");
+  CHECK(Depfile::escape_filename("foo\\bar") == "foo\\\\bar");
+  CHECK(Depfile::escape_filename("foo#bar") == "foo\\#bar");
+  CHECK(Depfile::escape_filename("foo bar") == "foo\\ bar");
+  CHECK(Depfile::escape_filename("foo\tbar") == "foo\\\tbar");
+  CHECK(Depfile::escape_filename("foo$bar") == "foo$$bar");
+}
+
 TEST_CASE("Depfile::rewrite_paths")
 {
   Context ctx;
