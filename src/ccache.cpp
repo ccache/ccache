@@ -893,7 +893,7 @@ to_cache(Context& ctx,
     // Remove any pre-existing .dwo file since we want to check if the compiler
     // produced one, intentionally not using x_unlink or tmp_unlink since we're
     // not interested in logging successful deletions or failures due to
-    // non-existent .dwo files.
+    // nonexistent .dwo files.
     if (unlink(ctx.args_info.output_dwo.c_str()) != 0 && errno != ENOENT
         && errno != ESTALE) {
       LOG("Failed to unlink {}: {}", ctx.args_info.output_dwo, strerror(errno));

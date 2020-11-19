@@ -82,7 +82,7 @@ TEST_CASE("Args::from_gcc_atfile")
 
   Args args;
 
-  SUBCASE("Non-existing file")
+  SUBCASE("Nonexistent file")
   {
     CHECK(Args::from_gcc_atfile("at_file") == nonstd::nullopt);
   }

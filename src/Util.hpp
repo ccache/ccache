@@ -455,7 +455,7 @@ void traverse(const std::string& path, const TraverseVisitor& visitor);
 
 // Remove `path` (non-directory), NFS safe. Logs according to `unlink_log`.
 //
-// Returns whether removal was successful. A non-existing `path` is considered
+// Returns whether removal was successful. A nonexistent `path` is considered
 // successful.
 bool unlink_safe(const std::string& path,
                  UnlinkLog unlink_log = UnlinkLog::log_failure);
@@ -463,7 +463,7 @@ bool unlink_safe(const std::string& path,
 // Remove `path` (non-directory), NFS hazardous. Use only for files that will
 // not exist on other systems. Logs according to `unlink_log`.
 //
-// Returns whether removal was successful. A non-existing `path` is considered
+// Returns whether removal was successful. A nonexistent `path` is considered
 // successful.
 bool unlink_tmp(const std::string& path,
                 UnlinkLog unlink_log = UnlinkLog::log_failure);
@@ -474,7 +474,7 @@ void unsetenv(const std::string& name);
 // Set mtime of `path` to the current timestamp.
 void update_mtime(const std::string& path);
 
-// Remove `path` (and its contents if it's a directory). A non-existing path is
+// Remove `path` (and its contents if it's a directory). A nonexistent path is
 // not considered an error.
 //
 // Throws Error on error.

@@ -960,7 +960,7 @@ TEST_CASE("Util::wipe_path")
 {
   TestContext test_context;
 
-  SUBCASE("Wipe non-existing path")
+  SUBCASE("Wipe nonexistent path")
   {
     CHECK_NOTHROW(Util::wipe_path("a"));
   }
