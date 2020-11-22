@@ -1,6 +1,95 @@
 Ccache news
 ===========
 
+Ccache 4.1
+----------
+Release date: 2020-11-22
+
+New features
+~~~~~~~~~~~~
+
+- Symlinks are now followed when guessing the compiler. This makes ccache able
+  to guess compiler type “GCC” for a common symlink chain like this:
+  `/usr/bin/cc` → `/etc/alternatives/cc` → `/usr/bin/gcc` → `gcc-9` →
+  `x86_64-linux-gnu-gcc-9`.
+
+- Added a new `compiler_type` (`CCACHE_COMPILERTYPE`) configuration option that
+  allows for overriding the guessed compiler type.
+
+- Added support for caching compilations with `-fsyntax-only`.
+
+- Added a command line option `--config-path`, which specifies the
+  configuration file to operate on. It can be used instead of setting
+  `CCACHE_CONFIGPATH` temporarily.
+
+
+Bug fixes
+~~~~~~~~~
+
+- The original color diagnostics options are now retained when forcing colored
+  output. This fixes a bug where feature detection of the `-fcolor-diagnostics`
+  option would succeed when run via ccache even though the actual compiler
+  doesn’t support it (e.g. GCC <4.9).
+
+- Fixed a bug related to umask when using the `umask` (`CCACHE_UMASK`)
+  configuration option.
+
+- Allow `ccache ccache compiler ...` (repeated `ccache`) again.
+
+- Fixed parsing of dependency file in the “depend mode” so that filenames with
+  space or other special characters are handled correctly.
+
+- Fixed rewriting of the dependency file content when the object filename
+  includes space or other special characters.
+
+- Fixed runtime detection of AVX2 support, not relying on the sometimes broken
+  `__builtin_cpu_support` routine.
+
+- Added missing parameters to a log call, thus avoiding a crash when it is
+  found out at runtime that file cloning is unsupported by the OS.
+
+
+Portability and build fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The ccache binary is now linked with `libatomic` if needed. This fixes build
+  problems with GCC on ARM and PowerPC.
+
+- Fixed build of BLAKE3 code with Clang 3.4 and 3.5.
+
+- Fixed “use of undeclared identifier 'CLONE_NOOWNERCOPY'” build error on macOS
+  10.12.
+
+- Fixed build problems related to missing AVX2 and AVX512 support on older
+  macOS versions.
+
+- Fixed static linkage with libgcc and libstdc++ for MinGW and made it
+  optional.
+
+- Fixed conditional compilation of “robust mutex” code for the inode cache
+  routines.
+
+- Fixed badly named man page filename (`Ccache.1` instead of `ccache.1`).
+
+- Disabled some tests on ancient Clang versions.
+
+
+Other improvements and fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The man page is now built by default if the required tools are available.
+
+- Use CMake `A2X_EXE` variable instead of hardcoded `a2x`.
+
+- Improved build errors when building ccache with very old compiler versions.
+
+- Fall back to version “unknown” when Git is not installed.
+
+- Documented the relationship between `CCACHE_DIR` and `-d/--directory`.
+
+- Fixed incorrect reference and bad markup in the manual.
+
+
 Ccache 4.0
 ----------
 Release date: 2020-10-18
