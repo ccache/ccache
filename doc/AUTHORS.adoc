@@ -123,6 +123,7 @@ Ccache is a collective work with contributions from many people, including:
 * Wilson Snyder
 * Xavier René-Corail
 * Yiding Jia
+* Yoshimasa Niwa
 * Yvan Janssens
 
 Thanks!
