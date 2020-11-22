@@ -11,7 +11,7 @@ jobs:
   build_and_test:
     env:
       CMAKE_GENERATOR: Ninja
-    
+
     name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}
     runs-on: ${{ matrix.config.os }}
     strategy:
@@ -46,15 +46,9 @@ jobs:
             compiler: gcc
             version: "10"
 
-          # Enable after https://github.com/ccache/ccache/pull/693
-          # - os: ubuntu-16.04
-          #   compiler: clang
-          #   version: "3.5"
-
-          # Enable after https://github.com/ccache/ccache/pull/693
-          # - os: ubuntu-16.04
-          #   compiler: clang
-          #   version: "5.0"
+          - os: ubuntu-16.04
+            compiler: clang
+            version: "5.0"
 
           - os: ubuntu-16.04
             compiler: clang
