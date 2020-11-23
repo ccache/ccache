@@ -58,7 +58,7 @@ else()
       COMMAND ${A2X_EXE} --doctype manpage --format manpage MANUAL.xml
       MAIN_DEPENDENCY MANUAL.xml
     )
-    add_custom_target(doc-man-page ALL DEPENDS ccache.1)
+    add_custom_target(doc-man-page DEPENDS ccache.1)
     install(
       FILES "${CMAKE_CURRENT_BINARY_DIR}/ccache.1"
       DESTINATION "${CMAKE_INSTALL_MANDIR}/man1"
@@ -66,5 +66,5 @@ else()
     set(doc_files "${doc_files}" ccache.1)
   endif()
 
-  add_custom_target(doc DEPENDS "${doc_files}")
+  add_custom_target(doc ALL DEPENDS "${doc_files}")
 endif()
