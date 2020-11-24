@@ -563,6 +563,8 @@ This alternative implementation of `std::optional` was downloaded from
 text:
 
 -------------------------------------------------------------------------------
+Copyright (c) 2014-2018 Martin Moene
+
 Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
@@ -597,6 +599,8 @@ This alternative implementation of `std::string_view` was downloaded from
 text:
 
 -------------------------------------------------------------------------------
+Copyright 2017-2020 by Martin Moene
+
 Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
