@@ -52,8 +52,8 @@ the GPL: that is, if separated from the ccache sources, they may be usable
 under less restrictive terms.
 
 
-src/third_party/base32hex.[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/base32hex.*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This base32hex implementation comes from
 <https://github.com/pmconrad/tinydnssec>.
@@ -75,8 +75,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -------------------------------------------------------------------------------
 
 
-src/third_party/blake3/*.[hcS]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/blake3/blake3_*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is a subset of https://github.com/BLAKE3-team/BLAKE3[BLAKE3] 0.3.7 with
 the following license:
@@ -485,8 +485,8 @@ without including the above copyright and permission notices.
 -------------------------------------------------------------------------------
 
 
-src/third_party/getopt_long.[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/getopt_long.*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This implementation of `getopt_long()` was copied from
 https://www.postgresql.org[PostgreSQL] and has the following license text:
@@ -524,8 +524,8 @@ SUCH DAMAGE.
 -------------------------------------------------------------------------------
 
 
-src/third_party/minitrace.[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/minitrace.*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A library for producing JSON traces suitable for Chrome's built-in trace viewer
 (chrome://tracing). Downloaded from <https://github.com/hrydgard/minitrace>.
@@ -623,8 +623,8 @@ DEALINGS IN THE SOFTWARE.
 -------------------------------------------------------------------------------
 
 
-src/third_party/win32/getopt.[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/win32/getopt.*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This implementation of `getopt_long()` for Win32 was taken from
 https://www.codeproject.com/Articles/157001/Full-getopt-Port-for-Unicode-and-Multibyte-Microso
@@ -634,8 +634,8 @@ The full license text can be found in LGPL-3.0.txt and at
 https://www.gnu.org/licenses/lgpl-3.0.html.
 
 
-src/third_party/xxh(ash|_x86dispatch).[hc]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/third_party/xxh*
+~~~~~~~~~~~~~~~~~~~~
 
 xxHash - Extremely Fast Hash algorithm. Copied from xxHash v0.8.0 downloaded
 from <https://github.com/Cyan4973/xxHash/releases>.
