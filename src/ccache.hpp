@@ -51,6 +51,8 @@ const uint32_t SLOPPY_CLANG_INDEX_STORE = 1 << 7;
 const uint32_t SLOPPY_LOCALE = 1 << 8;
 // Allow caching even if -fmodules is used.
 const uint32_t SLOPPY_MODULES = 1 << 9;
+// Ignore virtual file system (VFS) overlay file.
+const uint32_t SLOPPY_IVFOVERLAY = 1 << 10;
 
 using FindExecutableFunction =
   std::function<std::string(const Context& ctx,
