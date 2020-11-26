@@ -202,6 +202,12 @@ InodeCache::hash_inode(const std::string& path,
   return true;
 }
 
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  if __has_warning("-Wthread-safety-analysis")
+#    pragma clang diagnostic ignored "-Wthread-safety-analysis"
+#  endif
+#endif
 InodeCache::Bucket*
 InodeCache::acquire_bucket(uint32_t index)
 {
@@ -234,6 +240,9 @@ InodeCache::acquire_bucket(uint32_t index)
 #endif
   return bucket;
 }
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
 
 InodeCache::Bucket*
 InodeCache::acquire_bucket(const Digest& key_digest)
@@ -243,11 +252,20 @@ InodeCache::acquire_bucket(const Digest& key_digest)
   return acquire_bucket(hash % k_num_buckets);
 }
 
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  if __has_warning("-Wthread-safety-analysis")
+#    pragma clang diagnostic ignored "-Wthread-safety-analysis"
+#  endif
+#endif
 void
 InodeCache::release_bucket(Bucket* bucket)
 {
   pthread_mutex_unlock(&bucket->mt);
 }
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
 
 bool
 InodeCache::create_new_file(const std::string& filename)
