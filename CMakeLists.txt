@@ -98,7 +98,7 @@ include(CodeAnalysis)
 option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
 
 if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  option(STATIC_LINK "Link statically with system libraries" OFF)
+  option(STATIC_LINK "Link statically with system libraries" ON)
 endif()
 
 #
