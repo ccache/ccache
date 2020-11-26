@@ -136,7 +136,7 @@ Common options
 
     Recompress the cache using compression level _LEVEL_. The level can be an
     integer, with the same semantics as the
-    <<config_compression_level,*compression_level*>> configuration setting), or
+    <<config_compression_level,*compression_level*>> configuration option), or
     the special value *uncompressed* for no compression. See
     <<_cache_compression,CACHE COMPRESSION>> for more information. This can
     potentionally take a long time since all files in the cache need to be
@@ -242,11 +242,11 @@ compiler than what ccache thinks.
 Configuration
 -------------
 
-ccache's default behavior can be overridden by settings in configuration files,
+ccache's default behavior can be overridden by options in configuration files,
 which in turn can be overridden by environment variables with names starting
 with *CCACHE_*. Ccache normally reads configuration from two files: first a
 system-level configuration file and secondly a cache-specific configuration
-file. The priority of configuration settings is as follows (where 1 is
+file. The priorities of configuration options are as follows (where 1 is
 highest):
 
 1. Environment variables.
@@ -282,7 +282,7 @@ this:
 Configuration file syntax
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configuration files are in a simple ``key = value'' format, one setting per
+Configuration files are in a simple ``key = value'' format, one option per
 line. Lines starting with a hash sign are comments. Blank lines are ignored, as
 is whitespace surrounding keys and values. Example:
 
