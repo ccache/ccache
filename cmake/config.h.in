@@ -32,6 +32,8 @@
 
 #if defined(__SunOS_5_8) || defined(__SunOS_5_9) || defined(__SunOS_5_10)
 #  define _XOPEN_SOURCE 500
+#elif defined(__FreeBSD__)
+#  define _XOPEN_SOURCE 700
 #elif !defined(__SunOS_5_11) && !defined(__APPLE__)
 #  define _XOPEN_SOURCE
 #endif
