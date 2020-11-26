@@ -422,8 +422,8 @@ project2 will be a different absolute path.
     don't affect code generation). You should only use *none* if you know what
     you are doing.
 *string:value*::
-    Use *value* as the string to calculate hash from. This can be the compiler
-    revision number you retrieved earlier and set here via environment variable.
+    Hash *value*. This can for instance be a compiler revision number or
+    another string that the build system generates to identify the compiler.
 _a command string_::
     Hash the standard output and standard error output of the specified
     command. The string will be split on whitespace to find out the command and
