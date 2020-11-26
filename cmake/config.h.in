@@ -27,7 +27,7 @@
 // features on Mac OS X, so we need _DARWIN_C_SOURCE to re-enable them.
 #cmakedefine _DARWIN_C_SOURCE
 
-// Define to activate features from IEEE Stds 1003.1-2001.
+// Define to activate features from IEEE Stds 1003.1-2008.
 #define _POSIX_C_SOURCE 200809L
 
 #if defined(__SunOS_5_8) || defined(__SunOS_5_9) || defined(__SunOS_5_10)
