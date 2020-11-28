@@ -67,29 +67,19 @@ check_struct_has_member("struct stat" st_mtim sys/stat.h
 check_struct_has_member("struct statfs" f_fstypename sys/mount.h
                         HAVE_STRUCT_STATFS_F_FSTYPENAME)
 
-include(CheckCXXCompilerFlag)
-
-# Old GCC versions don't have the required header support.
-# Old Apple Clang versions seem to support -mavx2 but not the target
-# attribute that's used to enable AVX2 for a certain function.
-if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
-   OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0))
-  message(STATUS "Detected unsupported compiler for HAVE_AVX2 - disabled")
-  set(HAVE_AVX2 FALSE)
-else()
-  set(CMAKE_REQUIRED_FLAGS "-mavx2")
-    check_c_source_compiles(
-      [=[
-        #include <immintrin.h>
-        int main()
-        {
-          _mm256_abs_epi8(_mm256_set1_epi32(42));
-          return 0;
-        }
-      ]=]
-      HAVE_AVX2)
-    unset(CMAKE_REQUIRED_FLAGS)
-endif()
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles(
+  [=[
+    #include <immintrin.h>
+    void func() __attribute__((target("avx2")));
+    void func() { _mm256_abs_epi8(_mm256_set1_epi32(42)); }
+    int main()
+    {
+      func();
+      return 0;
+    }
+  ]=]
+  HAVE_AVX2)
 
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
 list(REMOVE_ITEM CMAKE_REQUIRED_LIBRARIES ws2_32)
