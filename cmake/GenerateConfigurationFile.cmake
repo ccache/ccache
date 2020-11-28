@@ -77,7 +77,18 @@ if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_
   message(STATUS "Detected unsupported compiler for HAVE_AVX2 - disabled")
   set(HAVE_AVX2 FALSE)
 else()
-  check_cxx_compiler_flag(-mavx2 HAVE_AVX2)
+  set(CMAKE_REQUIRED_FLAGS "-mavx2")
+    check_c_source_compiles(
+      [=[
+        #include <immintrin.h>
+        int main()
+        {
+          _mm256_abs_epi8(_mm256_set1_epi32(42));
+          return 0;
+        }
+      ]=]
+      HAVE_AVX2)
+    unset(CMAKE_REQUIRED_FLAGS)
 endif()
 
 list(APPEND CMAKE_REQUIRED_LIBRARIES ws2_32)
