@@ -261,7 +261,7 @@ jobs:
 
       - name: Run apt-get
         if: matrix.config.apt_get != ''
-        run: sudo apt-get install ${{ matrix.config.apt_get }}
+        run: sudo apt-get update && sudo apt-get install ${{ matrix.config.apt_get }}
 
       - name: Build and test
         env:
@@ -314,7 +314,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install codespell
-        run: sudo apt-get install codespell
+        run: sudo apt-get update && sudo apt-get install codespell
 
       - name: Run codespell
         run: codespell -q 7 -S ".git,LICENSE.adoc,./src/third_party/*" -I misc/codespell-allowlist.txt
