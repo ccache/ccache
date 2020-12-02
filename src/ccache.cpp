@@ -119,8 +119,9 @@ Common options:
     -M, --max-size SIZE        set maximum size of cache to SIZE (use 0 for no
                                limit); available suffixes: k, M, G, T (decimal)
                                and Ki, Mi, Gi, Ti (binary); default suffix: G
-    -X, --recompress LEVEL     recompress the cache to LEVEL (integer level or
-                               "uncompressed")
+    -X, --recompress LEVEL     recompress the cache to level LEVEL (integer or
+                               "uncompressed") using the Zstandard algorithm;
+                               see "Cache compression" in the manual for details
     -o, --set-config KEY=VAL   set configuration item KEY to value VAL
     -x, --show-compression     show compression statistics
     -p, --show-config          show current configuration options in
@@ -145,7 +146,7 @@ Options for scripting or debugging:
         --print-stats          print statistics counter IDs and corresponding
                                values in machine-parsable format
 
-See also <https://ccache.dev>.
+See also the manual on <https://ccache.dev/documentation.html>.
 )";
 
 // How often (in seconds) to scan $CCACHE_DIR/tmp for left-over temporary

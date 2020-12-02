@@ -134,8 +134,8 @@ Common options
 
 *`-X`* _LEVEL_, *`--recompress`* _LEVEL_::
 
-    Recompress the cache using compression level _LEVEL_. The level can be an
-    integer, with the same semantics as the
+    Recompress the cache to level _LEVEL_ using the Zstandard algorithm. The
+    level can be an integer, with the same semantics as the
     <<config_compression_level,*compression_level*>> configuration option), or
     the special value *uncompressed* for no compression. See
     <<_cache_compression,CACHE COMPRESSION>> for more information. This can
@@ -514,17 +514,24 @@ Semantics of *compression_level*:
     A positive value corresponds to normal Zstandard compression levels. Lower
     levels (e.g. *1*) mean faster compression but worse compression ratio.
     Higher levels (e.g. *19*) mean slower compression but better compression
-    ratio. The maximum possible value depends on the libzstd version.
-    Decompression speed is essentially the same for all levels.
+    ratio. The maximum possible value depends on the libzstd version, but at
+    least up to 19 is available for all versions. Decompression speed is
+    essentially the same for all levels. As a rule of thumb, use level 5 or
+    lower since higher levels may slow down compilations noticeably. Higher
+    levels are however useful when recompressing the cache with command line
+    option *-X/--recompress*.
 *< 0*::
     A negative value corresponds to Zstandard's “ultra-fast” compression
     levels, which are even faster than level 1 but with less good compression
     ratios. For instance, level *-3* corresponds to “--fast=3” for the *zstd*
-    command line tool.
+    command line tool. In practice, there is little use for levels lower than
+    *-5* or so.
 *0* (default)::
     The value *0* means that ccache will choose a suitable level, currently
     *1*.
 --
++
+See the http://zstd.net[Zstandard documentation] for more information.
 
 [[config_cpp_extension]] *cpp_extension* (*CCACHE_EXTENSION*)::
 
@@ -900,11 +907,11 @@ Cache compression
 -----------------
 
 Ccache will by default compress all data it puts into the cache using the
-compression algorithm Zstandard (zstd) using compression level 1. The algorithm
-is fast enough that there should be little reason to turn off compression to
-gain performance. One exception is if the cache is located on a compressed file
-system, in which case the compression performed by ccache of course is
-redundant. See the documentation for the configuration options
+compression algorithm http://zstd.net[Zstandard] (zstd) using compression level
+1. The algorithm is fast enough that there should be little reason to turn off
+compression to gain performance. One exception is if the cache is located on a
+compressed file system, in which case the compression performed by ccache of
+course is redundant. See the documentation for the configuration options
 <<config_compression,*compression*>> and
 <<config_compression_level,*compression_level*>> for more information.
 
