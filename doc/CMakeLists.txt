@@ -15,7 +15,7 @@ else()
       COMMAND
         ${ASCIIDOC_EXE}
           -o "${html_file}"
-          -a revnumber="${VERSION}"
+          -a revnumber="${CCACHE_VERSION}"
           -a toc
           -b xhtml11
           "${CMAKE_SOURCE_DIR}/${adoc_file}"
@@ -46,7 +46,7 @@ else()
       COMMAND
         ${ASCIIDOC_EXE}
           -o -
-          -a revnumber=${VERSION}
+          -a revnumber=${CCACHE_VERSION}
           -d manpage
           -b docbook "${CMAKE_SOURCE_DIR}/doc/MANUAL.adoc"
         | perl -pe 's!<literal>\(.*?\)</literal>!<emphasis role="strong">\\1</emphasis>!g'

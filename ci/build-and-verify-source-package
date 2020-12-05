@@ -5,6 +5,9 @@
 
 set -eu
 
+# Unset CI variable to trigger ccache user build mode.
+unset CI
+
 # Ninja builds with relative paths so that ccache can be used to cache the build
 # without resorting to setting base_dir.
 export CMAKE_GENERATOR=Ninja
