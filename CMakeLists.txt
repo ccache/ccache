@@ -51,6 +51,15 @@ endif()
 #
 # Settings
 #
+include(CcacheVersion)
+
+if("${CCACHE_VERSION_ORIGIN}" STREQUAL git OR DEFINED ENV{CI})
+  set(CCACHE_DEV_MODE ON)
+else()
+  set(CCACHE_DEV_MODE OFF)
+endif()
+message(STATUS "Ccache dev mode: ${CCACHE_DEV_MODE}")
+
 include(StandardSettings)
 include(StandardWarnings)
 include(CIBuildType)
@@ -98,7 +107,7 @@ include(CodeAnalysis)
 option(ENABLE_TRACING "Enable possibility to use internal ccache tracing" OFF)
 
 if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  option(STATIC_LINK "Link statically with system libraries" OFF)
+  option(STATIC_LINK "Link statically with system libraries" ON)
 endif()
 
 #

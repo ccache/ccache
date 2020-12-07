@@ -85,9 +85,6 @@
 // Define if the system has the type "long long".
 #cmakedefine HAVE_LONG_LONG
 
-// Define if you have the "mkstemp" function.
-#cmakedefine HAVE_MKSTEMP
-
 // Define if you have the "posix_fallocate.
 #cmakedefine HAVE_POSIX_FALLOCATE
 

@@ -202,14 +202,13 @@ InodeCache::hash_inode(const std::string& path,
   return true;
 }
 
-#if defined(__clang__) && defined(__FreeBSD__)
-#  if __has_attribute(no_thread_safety_analysis)
-__attribute__((no_thread_safety_analysis))
-#  endif
-#endif
-InodeCache::Bucket*
-InodeCache::acquire_bucket(uint32_t index)
+bool
+InodeCache::with_bucket(const Digest& key_digest,
+                        const BucketHandler& bucket_handler)
 {
+  uint32_t hash;
+  Util::big_endian_to_int(key_digest.bytes(), hash);
+  const uint32_t index = hash % k_num_buckets;
   Bucket* bucket = &m_sr->buckets[index];
   int err = pthread_mutex_lock(&bucket->mt);
 #ifdef HAVE_PTHREAD_MUTEX_ROBUST
@@ -222,7 +221,7 @@ InodeCache::acquire_bucket(uint32_t index)
       LOG(
         "Can't consolidate stale mutex at index {}: {}", index, strerror(err));
       LOG_RAW("Consider removing the inode cache file if the problem persists");
-      return nullptr;
+      return false;
     }
     LOG("Wiping bucket at index {} because of stale mutex", index);
     memset(bucket->entries, 0, sizeof(Bucket::entries));
@@ -232,31 +231,20 @@ InodeCache::acquire_bucket(uint32_t index)
       LOG("Failed to lock mutex at index {}: {}", index, strerror(err));
       LOG_RAW("Consider removing the inode cache file if problem persists");
       ++m_sr->errors;
-      return nullptr;
+      return false;
     }
 #ifdef HAVE_PTHREAD_MUTEX_ROBUST
   }
 #endif
-  return bucket;
-}
 
-InodeCache::Bucket*
-InodeCache::acquire_bucket(const Digest& key_digest)
-{
-  uint32_t hash;
-  Util::big_endian_to_int(key_digest.bytes(), hash);
-  return acquire_bucket(hash % k_num_buckets);
-}
-
-#if defined(__clang__) && defined(__FreeBSD__)
-#  if __has_attribute(no_thread_safety_analysis)
-__attribute__((no_thread_safety_analysis))
-#  endif
-#endif
-void
-InodeCache::release_bucket(Bucket* bucket)
-{
+  try {
+    bucket_handler(bucket);
+  } catch (...) {
+    pthread_mutex_unlock(&bucket->mt);
+    throw;
+  }
   pthread_mutex_unlock(&bucket->mt);
+  return true;
 }
 
 bool
@@ -380,31 +368,28 @@ InodeCache::get(const std::string& path,
     return false;
   }
 
-  Bucket* bucket = acquire_bucket(key_digest);
+  bool found = false;
+  const bool success = with_bucket(key_digest, [&](Bucket* const bucket) {
+    for (uint32_t i = 0; i < k_num_entries; ++i) {
+      if (bucket->entries[i].key_digest == key_digest) {
+        if (i > 0) {
+          Entry tmp = bucket->entries[i];
+          memmove(&bucket->entries[1], &bucket->entries[0], sizeof(Entry) * i);
+          bucket->entries[0] = tmp;
+        }
 
-  if (!bucket) {
+        file_digest = bucket->entries[0].file_digest;
+        if (return_value) {
+          *return_value = bucket->entries[0].return_value;
+        }
+        found = true;
+        break;
+      }
+    }
+  });
+  if (!success) {
     return false;
   }
-
-  bool found = false;
-
-  for (uint32_t i = 0; i < k_num_entries; ++i) {
-    if (bucket->entries[i].key_digest == key_digest) {
-      if (i > 0) {
-        Entry tmp = bucket->entries[i];
-        memmove(&bucket->entries[1], &bucket->entries[0], sizeof(Entry) * i);
-        bucket->entries[0] = tmp;
-      }
-
-      file_digest = bucket->entries[0].file_digest;
-      if (return_value) {
-        *return_value = bucket->entries[0].return_value;
-      }
-      found = true;
-      break;
-    }
-  }
-  release_bucket(bucket);
 
   LOG("inode cache {}: {}", found ? "hit" : "miss", path);
 
@@ -437,21 +422,19 @@ InodeCache::put(const std::string& path,
     return false;
   }
 
-  Bucket* bucket = acquire_bucket(key_digest);
+  const bool success = with_bucket(key_digest, [&](Bucket* const bucket) {
+    memmove(&bucket->entries[1],
+            &bucket->entries[0],
+            sizeof(Entry) * (k_num_entries - 1));
 
-  if (!bucket) {
+    bucket->entries[0].key_digest = key_digest;
+    bucket->entries[0].file_digest = file_digest;
+    bucket->entries[0].return_value = return_value;
+  });
+
+  if (!success) {
     return false;
   }
-
-  memmove(&bucket->entries[1],
-          &bucket->entries[0],
-          sizeof(Entry) * (k_num_entries - 1));
-
-  bucket->entries[0].key_digest = key_digest;
-  bucket->entries[0].file_digest = file_digest;
-  bucket->entries[0].return_value = return_value;
-
-  release_bucket(bucket);
 
   LOG("inode cache insert: {}", path);
 

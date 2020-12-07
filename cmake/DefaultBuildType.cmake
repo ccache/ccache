@@ -6,7 +6,7 @@ endif()
 
 # Default to Release for end user builds (from source archive) and Debug for
 # development builds (in a Git repository).
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+if(CCACHE_DEV_MODE)
   set(
     CMAKE_BUILD_TYPE "Debug"
     CACHE STRING "Choose the type of build." FORCE)

@@ -30,7 +30,6 @@ set(functions
     getopt_long
     getpwuid
     gettimeofday
-    mkstemp
     posix_fallocate
     realpath
     setenv

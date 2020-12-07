@@ -39,23 +39,6 @@ get_umask()
 }
 #endif
 
-#ifndef HAVE_MKSTEMP
-// Cheap and nasty mkstemp replacement.
-int
-mkstemp(char* name_template)
-{
-#  ifdef __GNUC__
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#  endif
-  mktemp(name_template);
-#  ifdef __GNUC__
-#    pragma GCC diagnostic pop
-#  endif
-  return open(name_template, O_RDWR | O_CREAT | O_EXCL | O_BINARY, 0600);
-}
-#endif
-
 } // namespace
 
 TemporaryFile::TemporaryFile(string_view path_prefix)
