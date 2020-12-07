@@ -107,6 +107,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     CCACHE_COMPILER_WARNINGS "-Wno-undefined-func-template")
   add_compile_flag_if_supported(
     CCACHE_COMPILER_WARNINGS "-Wno-return-std-move-in-c++11")
+
+  # -Wthread-safety-analysis (on FreeBSD when dev mode is enabled) gives false
+  # positive results currently. See PR #730.
+  if (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    add_compile_flag_if_supported(
+      CCACHE_COMPILER_WARNINGS "-Wno-thread-safety-analysis")
+  endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(
     APPEND
