@@ -13,9 +13,9 @@ else()
 endif()
 
 include(CheckAsmCompilerFlag)
-include(CheckCCompilerFlag)
+include(CheckCSourceCompiles)
 
-function(add_source_if_enabled feature compile_flags)
+function(add_source_if_enabled feature compile_flags intrinsic)
   string(TOUPPER "have_${blake_source_type}_${feature}" have_feature)
 
   # AVX512 support fails to compile with old Apple Clang versions even though
@@ -28,7 +28,14 @@ function(add_source_if_enabled feature compile_flags)
   elseif(${blake_source_type} STREQUAL "asm")
     check_asm_compiler_flag(${compile_flags} ${have_feature})
   else()
-    check_c_compiler_flag(${compile_flags} ${have_feature})
+    set(CMAKE_REQUIRED_FLAGS ${compile_flags})
+    check_c_source_compiles(
+      [=[
+        #include <immintrin.h>
+        int main() { ${intrinsic}; return 0; }
+      ]=]
+      ${have_feature})
+    unset(CMAKE_REQUIRED_FLAGS)
   endif()
 
   if(${have_feature})
@@ -42,10 +49,23 @@ function(add_source_if_enabled feature compile_flags)
   endif()
 endfunction()
 
-add_source_if_enabled(sse2 "-msse2")
-add_source_if_enabled(sse41 "-msse4.1")
-add_source_if_enabled(avx2 "-mavx2")
-add_source_if_enabled(avx512 "-mavx512f -mavx512vl")
+# https://software.intel.com/sites/landingpage/IntrinsicsGuide/
+add_source_if_enabled(sse2 "-msse2" "_mm_set1_epi32(42)")
+add_source_if_enabled(sse41 "-msse4.1" "_mm_test_all_ones(_mm_set1_epi32(42))")
+add_source_if_enabled(avx2 "-mavx2" "_mm256_abs_epi8(_mm256_set1_epi32(42))")
+add_source_if_enabled(avx512 "-mavx512f -mavx512vl" "_mm256_abs_epi64(_mm256_set1_epi32(42))")
 
-# TODO: how to detect ARM NEON support?
-# If NEON, define BLAKE3_USE_NEON and build blake3_neon.c
+# Neon is always available on AArch64
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  # https://developer.arm.com/architectures/instruction-sets/simd-isas/neon/intrinsics
+  check_c_source_compiles(
+    [=[
+      #include <arm_neon.h>
+      int main() { vdupq_n_s32(42); return 0; }
+    ]=]
+    HAVE_NEON)
+  if(HAVE_NEON)
+    target_sources(blake3 PRIVATE blake3_neon.c)
+    target_compile_definitions(blake3 PRIVATE BLAKE3_USE_NEON)
+  endif()
+endif()
