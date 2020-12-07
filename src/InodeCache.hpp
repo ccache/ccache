@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <functional>
 #include <string>
 
 class Config;
@@ -94,13 +95,13 @@ private:
   struct Entry;
   struct Key;
   struct SharedRegion;
+  using BucketHandler = std::function<void(Bucket* bucket)>;
 
   bool mmap_file(const std::string& inode_cache_file);
   static bool
   hash_inode(const std::string& path, ContentType type, Digest& digest);
-  Bucket* acquire_bucket(uint32_t index);
-  Bucket* acquire_bucket(const Digest& key_digest);
-  static void release_bucket(Bucket* bucket);
+  bool with_bucket(const Digest& key_digest,
+                   const BucketHandler& bucket_handler);
   static bool create_new_file(const std::string& filename);
   bool initialize();
 
