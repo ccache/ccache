@@ -268,13 +268,15 @@ The location of the primary (cache-specific) configuration is determined like
 this:
 
 1. If *CCACHE_CONFIGPATH* is set, use that path.
-2. Otherwise, if <<config_cache_dir,*cache_dir*>> (*CCACHE_DIR*) is set then
-   use *<ccache_dir>/ccache.conf*.
-3. Otherwise, if there is a legacy *$HOME/.ccache* directory then use
+2. Otherwise, if the environment variable *CCACHE_DIR* is set then use
+   *$CCACHE_DIR/ccache.conf*.
+3. Otherwise, if <<config_cache_dir,*cache_dir*>> is set in the secondary
+   (system-wide) configuration file then use *<cache_dir>/ccache.conf*.
+4. Otherwise, if there is a legacy *$HOME/.ccache* directory then use
    *$HOME/.ccache/ccache.conf*.
-4. Otherwise, if *XDG_CONFIG_HOME* is set then use
+5. Otherwise, if *XDG_CONFIG_HOME* is set then use
    *$XDG_CONFIG_HOME/ccache/ccache.conf*.
-5. Otherwise, use *%APPDATA%/ccache/ccache.conf* (Windows),
+6. Otherwise, use *%APPDATA%/ccache/ccache.conf* (Windows),
    *$HOME/Library/Preferences/ccache/ccache.conf* (macOS) or
    *$HOME/.config/ccache/ccache.conf* (other systems).
 
@@ -383,12 +385,12 @@ project2 will be a different absolute path.
 [[config_cache_dir]] *cache_dir* (*CCACHE_DIR*)::
 
     This option specifies where ccache will keep its cached compiler outputs.
-    It will only take effect if set in the system-wide configuration file or as
-    an environment variable. The default is *$XDG_CACHE_HOME/ccache* if
-    *XDG_CACHE_HOME* is set, otherwise *$HOME/.cache/ccache*. Exception: If the
-    legacy directory *$HOME/.ccache* exists then that directory is the default.
-    See also _<<_location_of_the_primary_configuration_file,Location of the
-    primary configuration file>>_.
+    The default is *$XDG_CACHE_HOME/ccache* if *XDG_CACHE_HOME* is set,
+    otherwise *$HOME/.cache/ccache*. Exception: If the legacy directory
+    *$HOME/.ccache* exists then that directory is the default.
++
+See also _<<_location_of_the_primary_configuration_file,Location of the primary
+configuration file>>_.
 +
 If you want to use another *CCACHE_DIR* value temporarily for one ccache
 invocation you can use the `-d/--directory` command line option instead.
