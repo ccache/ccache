@@ -69,29 +69,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     )
   endif()
 
-  list(
-    APPEND
-    CCACHE_COMPILER_WARNINGS
-    -Weverything
-    -Wno-c++98-compat
-    -Wno-c++98-compat-pedantic
-    -Wno-constexpr-not-const
-    -Wno-conversion
-    -Wno-disabled-macro-expansion
-    -Wno-documentation-unknown-command
-    -Wno-exit-time-destructors
-    -Wno-format-nonliteral
-    -Wno-global-constructors
-    -Wno-implicit-fallthrough
-    -Wno-old-style-cast
-    -Wno-padded
-    -Wno-shadow # Warnings in fmtlib
-    -Wno-shorten-64-to-32
-    -Wno-sign-conversion
-    -Wno-signed-enum-bitfield # Warnings in fmtlib
-    -Wno-weak-vtables
-  )
-
   # If compiler supports -Wshadow-field-in-constructor, disable only that.
   # Otherwise disable shadow.
   add_compile_flag_if_supported_ex(
