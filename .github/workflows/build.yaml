@@ -82,11 +82,11 @@ jobs:
 
           - os: macOS-latest
             compiler: xcode
-            version: "11.0.0"
+            version: "11.7"
 
           - os: macOS-latest
             compiler: xcode
-            version: "12.2"
+            version: "12.3"
     steps:
       - name: Install dependencies
         run: |
