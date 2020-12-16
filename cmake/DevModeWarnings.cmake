@@ -115,7 +115,7 @@ elseif(MSVC)
   string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
   if(WARNINGS_AS_ERRORS)
-    list(APPEND CCACHE_COMPILER_WARNINGS /WE)
+    list(APPEND CCACHE_COMPILER_WARNINGS /WX)
   endif()
 
   list(
@@ -126,6 +126,7 @@ elseif(MSVC)
     /wd5105
     # Conversion warnings:
     /wd4244
+    /wd4245
     /wd4267
     # Assignment in conditional:
     /wd4706

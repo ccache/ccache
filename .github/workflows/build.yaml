@@ -7,6 +7,10 @@ env:
   CTEST_OUTPUT_ON_FAILURE: ON
   VERBOSE: 1
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build_and_test:
     env:
@@ -191,6 +195,30 @@ jobs:
             RUN_TESTS: unittest-in-wine
             apt_get: elfutils mingw-w64 wine
 
+          - name: Windows VS2019 32-bit
+            os: windows-2019
+            msvc_arch: x64_x86
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Ninja
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            # -mno-incremental-linker-compatible: reproducible object files
+            TEST_CC: clang -target i686-pc-windows-msvc -mno-incremental-linker-compatible
+
+          - name: Windows VS2019 64-bit
+            os: windows-2019
+            msvc_arch: x64
+            allow_test_failures: true  # For now, don't fail the build on failure
+            CC: cl
+            CXX: cl
+            ENABLE_CACHE_CLEANUP_TESTS: 1
+            CMAKE_GENERATOR: Ninja
+            CMAKE_PARAMS: -DCMAKE_BUILD_TYPE=CI -DZSTD_FROM_INTERNET=ON
+            # -mno-incremental-linker-compatible: reproducible object files
+            TEST_CC: clang -target x86_64-pc-windows-msvc -mno-incremental-linker-compatible
+
           - name: Clang address & UB sanitizer
             os: ubuntu-20.04
             CC: clang
@@ -258,13 +286,38 @@ jobs:
         if: matrix.config.apt_get != ''
         run: sudo apt-get update && sudo apt-get install ${{ matrix.config.apt_get }}
 
+      - name: Prepare Windows Environment (Visual Studio)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1.5.0
+        with:
+          arch: ${{ matrix.config.msvc_arch }}
+
+      - name: Prepare Windows Environment (Clang)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # The test suite currently requires that the compiler specified by the "CC"
+          # env variable is on a path without spaces. Provide that by creating a
+          # junction from ~/opt/llvm to the Visual Studio path.
+          $null = New-Item `
+            -Path "${HOME}\opt\llvm" `
+            -ItemType Junction `
+            -Target "${env:VCINSTALLDIR}\Tools\Llvm\x64" `
+            -Force
+          "Path=${HOME}\opt\llvm\bin;${env:Path}" | `
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Build and test
+        id: build-and-test
         env:
           ASAN_OPTIONS: ${{ matrix.config.ASAN_OPTIONS }}
           BUILDDIR: ${{ matrix.config.BUILDDIR }}
           CC: ${{ matrix.config.CC }}
           CCACHE_LOC: ${{ matrix.config.CCACHE_LOC }}
           CFLAGS: ${{ matrix.config.CFLAGS }}
+          CMAKE_GENERATOR: ${{ matrix.config.CMAKE_GENERATOR }}
           CMAKE_PARAMS: ${{ matrix.config.CMAKE_PARAMS }}
           CXX: ${{ matrix.config.CXX }}
           CXXFLAGS: ${{ matrix.config.CXXFLAGS }}
@@ -273,15 +326,23 @@ jobs:
           LDFLAGS: ${{ matrix.config.LDFLAGS }}
           RUN_TESTS: ${{ matrix.config.RUN_TESTS }}
           SPECIAL: ${{ matrix.config.SPECIAL }}
-        run: ci/build
+          TEST_CC: ${{ matrix.config.TEST_CC }}
+        run: |
+          rc=0
+          ci/build || rc=$?
+          echo "::set-output name=exit_status::$rc"
+          exit $rc
+        # Ctest exits with a return code of `8` on test failure.
+        continue-on-error: ${{ matrix.config.allow_test_failures == true &&
+          steps.build-and-test.outputs.exit_status == 8 }}
 
       - name: Collect testdir from failed tests
-        if: failure()
+        if: failure() || steps.build-and-test.outcome == 'failure'
         run: ci/collect-testdir
         # TODO: in case of build-and-verify-*package the BUILDDIR is set within those scripts.
 
       - name: Upload testdir from failed tests
-        if: failure()
+        if: failure() || steps.build-and-test.outcome == 'failure'
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.config.name }} - testdir.tar.xz
