@@ -20,6 +20,10 @@
 
 #include "Util.hpp"
 
+#ifdef _WIN32
+#  include "third_party/win32/mktemp.h"
+#endif
+
 using nonstd::string_view;
 
 namespace {
@@ -45,7 +49,16 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
   : path(std::string(path_prefix) + ".XXXXXX")
 {
   Util::ensure_dir_exists(Util::dir_name(path));
+#ifdef _WIN32
+  // MSVC lacks mkstemp() and [mingw-w64's implementation][1] is problematic, as
+  // it can reuse the names of recently-deleted files unless the caller
+  // remembers to call srand().
+  // [1]:
+  // https://github.com/Alexpux/mingw-w64/blob/d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c
+  fd = Fd(bsd_mkstemp(&path[0]));
+#else
   fd = Fd(mkstemp(&path[0]));
+#endif
   if (!fd) {
     throw Fatal(
       "Failed to create temporary file for {}: {}", path, strerror(errno));

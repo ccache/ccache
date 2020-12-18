@@ -6,6 +6,10 @@ else()
   target_compile_definitions(third_party_lib PUBLIC -DSTATIC_GETOPT)
 endif()
 
+if (WIN32)
+    target_sources(third_party_lib PRIVATE win32/mktemp.c)
+endif ()
+
 if(ENABLE_TRACING)
   target_sources(third_party_lib PRIVATE minitrace.c)
 endif()
