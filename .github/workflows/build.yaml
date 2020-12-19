@@ -85,6 +85,8 @@ jobs:
       - name: Install dependencies
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt-get update
+
             if [ "${{ matrix.config.os }}" = "ubuntu-20.04" ]; then
               sudo apt-get install -y ninja-build elfutils libzstd-dev
             else
@@ -100,7 +102,6 @@ jobs:
               echo "CC=clang-${{ matrix.config.version }}" >> $GITHUB_ENV
               echo "CXX=clang++-${{ matrix.config.version }}" >> $GITHUB_ENV
 
-              sudo apt update
               sudo apt install -y clang-${{ matrix.config.version }} g++-multilib
             fi
           elif [ "${{ runner.os }}" = "macOS" ]; then
