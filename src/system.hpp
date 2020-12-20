@@ -139,7 +139,6 @@ const mode_t S_IWUSR = mode_t(_S_IWRITE);
 #  define NOMINMAX 1
 #  include <windows.h>
 #  define mkdir(a, b) _mkdir(a)
-#  define link(src, dst) (CreateHardLink(dst, src, nullptr) ? 0 : -1)
 #  define execv(a, b) win32execute(a, b, 0, -1, -1)
 #  define strncasecmp _strnicmp
 #  define strcasecmp _stricmp

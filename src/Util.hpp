@@ -234,6 +234,9 @@ std::string get_path_in_cache(nonstd::string_view cache_dir,
                               uint8_t level,
                               nonstd::string_view name);
 
+// Hard-link `oldpath` to `newpath`. Throws `Error` on error.
+void hard_link(const std::string& oldpath, const std::string& newpath);
+
 // Write bytes in big endian order from an integer value.
 //
 // Parameters:

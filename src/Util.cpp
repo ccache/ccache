@@ -290,16 +290,17 @@ clone_hard_link_or_copy_file(const Context& ctx,
 #endif
   }
   if (ctx.config.hard_link()) {
-    unlink(dest.c_str());
     LOG("Hard linking {} to {}", source, dest);
-    int ret = link(source.c_str(), dest.c_str());
-    if (ret == 0) {
+    try {
+      Util::hard_link(source, dest);
       if (chmod(dest.c_str(), 0444) != 0) {
         LOG("Failed to chmod: {}", strerror(errno));
       }
       return;
+    } catch (const Error& e) {
+      LOG_RAW(e.what());
+      // Fall back to copying.
     }
-    LOG("Failed to hard link: {}", strerror(errno));
   }
 
   LOG("Copying {} to {}", source, dest);
@@ -775,6 +776,30 @@ get_path_in_cache(string_view cache_dir, uint8_t level, string_view name)
   path.append(name_remaining.data(), name_remaining.length());
 
   return path;
+}
+
+void
+hard_link(const std::string& oldpath, const std::string& newpath)
+{
+  // Assumption: newpath may already exist as a left-over file from a previous
+  // run, but it's only we who can create the file entry now so we don't try to
+  // handle a race between unlink() and link() below.
+  unlink(newpath.c_str());
+
+#ifndef _WIN32
+  if (link(oldpath.c_str(), newpath.c_str()) != 0) {
+    throw Error(
+      "failed to link {} to {}: {}", oldpath, newpath, strerror(errno));
+  }
+#else
+  if (!CreateHardLink(newpath.c_str(), oldpath.c_str(), nullptr)) {
+    DWORD error = GetLastError();
+    throw Error("failed to link {} to {}: {}",
+                oldpath,
+                newpath,
+                Win32Util::error_message(error));
+  }
+#endif
 }
 
 bool

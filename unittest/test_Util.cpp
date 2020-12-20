@@ -443,6 +443,31 @@ TEST_CASE("Util::get_path_in_cache")
         == "/zz/ccache/A/B/C/D/EF.suffix");
 }
 
+TEST_CASE("Util::hard_link")
+{
+  TestContext test_context;
+
+  SUBCASE("Link file to nonexistent destination")
+  {
+    Util::write_file("old", "content");
+    CHECK_NOTHROW(Util::hard_link("old", "new"));
+    CHECK(Util::read_file("new") == "content");
+  }
+
+  SUBCASE("Link file to existing destination")
+  {
+    Util::write_file("old", "content");
+    Util::write_file("new", "other content");
+    CHECK_NOTHROW(Util::hard_link("old", "new"));
+    CHECK(Util::read_file("new") == "content");
+  }
+
+  SUBCASE("Link nonexistent file")
+  {
+    CHECK_THROWS_AS(Util::hard_link("old", "new"), Error);
+  }
+}
+
 TEST_CASE("Util::int_to_big_endian")
 {
   uint8_t bytes[8];
