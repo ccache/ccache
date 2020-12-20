@@ -46,7 +46,6 @@ else()
     string(CONCAT zstd_library_name
       ${CMAKE_STATIC_LIBRARY_PREFIX} zstd ${CMAKE_STATIC_LIBRARY_SUFFIX})
   endif()
-  message(STATUS ${zstd_library_name})
   find_library(ZSTD_LIBRARY ${zstd_library_name})
   find_path(ZSTD_INCLUDE_DIR zstd.h)
 
