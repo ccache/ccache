@@ -1081,7 +1081,12 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
 
     TemporaryFile tmp_stdout(
       FMT("{}/tmp.cpp_stdout", ctx.config.temporary_dir()));
-    stdout_path = tmp_stdout.path;
+    ctx.register_pending_tmp_file(tmp_stdout.path);
+
+    // stdout_path needs the proper cpp_extension for the compiler to do its
+    // thing correctly.
+    stdout_path = FMT("{}.{}", tmp_stdout.path, ctx.config.cpp_extension());
+    Util::hard_link(tmp_stdout.path, stdout_path);
     ctx.register_pending_tmp_file(stdout_path);
 
     TemporaryFile tmp_stderr(
@@ -1131,11 +1136,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   if (ctx.args_info.direct_i_file) {
     ctx.i_tmpfile = ctx.args_info.input_file;
   } else {
-    // i_tmpfile needs the proper cpp_extension for the compiler to do its
-    // thing correctly
-    ctx.i_tmpfile = FMT("{}.{}", stdout_path, ctx.config.cpp_extension());
-    Util::rename(stdout_path, ctx.i_tmpfile);
-    ctx.register_pending_tmp_file(ctx.i_tmpfile);
+    ctx.i_tmpfile = stdout_path;
   }
 
   if (!ctx.config.run_second_cpp()) {

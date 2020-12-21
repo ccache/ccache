@@ -56,9 +56,10 @@ Context::register_pending_tmp_file(const std::string& path)
 void
 Context::unlink_pending_tmp_files_signal_safe()
 {
-  for (const std::string& path : m_pending_tmp_files) {
+  for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
+       ++it) {
     // Don't call Util::unlink_tmp since its log calls aren't signal safe.
-    unlink(path.c_str());
+    unlink(it->c_str());
   }
   // Don't clear m_pending_tmp_files since this method must be signal safe.
 }
@@ -68,8 +69,9 @@ Context::unlink_pending_tmp_files()
 {
   SignalHandlerBlocker signal_handler_blocker;
 
-  for (const std::string& path : m_pending_tmp_files) {
-    Util::unlink_tmp(path, Util::UnlinkLog::ignore_failure);
+  for (auto it = m_pending_tmp_files.rbegin(); it != m_pending_tmp_files.rend();
+       ++it) {
+    Util::unlink_tmp(*it, Util::UnlinkLog::ignore_failure);
   }
   m_pending_tmp_files.clear();
 }
