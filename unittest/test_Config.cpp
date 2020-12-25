@@ -18,9 +18,9 @@
 
 #include "../src/Config.hpp"
 #include "../src/Util.hpp"
-#include "../src/ccache.hpp"
 #include "../src/exceptions.hpp"
 #include "TestUtil.hpp"
+#include "core/Sloppy.hpp"
 #include "core/fmtmacros.hpp"
 
 #include "third_party/doctest.h"

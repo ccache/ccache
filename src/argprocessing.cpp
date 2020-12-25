@@ -22,6 +22,7 @@
 #include "Logging.hpp"
 #include "compopt.hpp"
 #include "core/FormatNonstdStringView.hpp"
+#include "core/Sloppy.hpp"
 #include "core/assertions.hpp"
 #include "core/fmtmacros.hpp"
 #include "language.hpp"

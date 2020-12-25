@@ -27,9 +27,9 @@
 #include "Manifest.hpp"
 #include "Result.hpp"
 #include "Statistics.hpp"
-#include "core/StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
+#include "core/StdMakeUnique.hpp"
 #include "core/assertions.hpp"
 #include "core/fmtmacros.hpp"
 

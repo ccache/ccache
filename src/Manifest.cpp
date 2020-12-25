@@ -28,7 +28,7 @@
 #include "File.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "ccache.hpp"
+#include "core/Sloppy.hpp"
 #include "core/StdMakeUnique.hpp"
 #include "core/fmtmacros.hpp"
 #include "hashutil.hpp"

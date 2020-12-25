@@ -19,9 +19,8 @@
 #include "Config.hpp"
 
 #include "AtomicFile.hpp"
-#include "Compression.hpp"
 #include "Util.hpp"
-#include "ccache.hpp"
+#include "core/Sloppy.hpp"
 #include "core/assertions.hpp"
 #include "core/fmtmacros.hpp"
 #include "exceptions.hpp"

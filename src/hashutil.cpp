@@ -24,7 +24,7 @@
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "Stat.hpp"
-#include "ccache.hpp"
+#include "core/Sloppy.hpp"
 #include "core/fmtmacros.hpp"
 #include "execute.hpp"
 #include "macroskip.hpp"
