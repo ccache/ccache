@@ -26,7 +26,7 @@
 #include "Digest.hpp"
 #include "File.hpp"
 #include "MiniTrace.hpp"
-#include "NonCopyable.hpp"
+#include "core/NonCopyable.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED
 #  include "InodeCache.hpp"

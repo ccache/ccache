@@ -21,7 +21,7 @@
 #include "core/system.hpp"
 
 #include "Compressor.hpp"
-#include "NonCopyable.hpp"
+#include "core/NonCopyable.hpp"
 
 #include <zstd.h>
 

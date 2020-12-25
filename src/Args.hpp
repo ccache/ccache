@@ -20,7 +20,6 @@
 
 #include "core/system.hpp"
 
-#include "NonCopyable.hpp"
 #include "Util.hpp"
 
 #include "third_party/nonstd/optional.hpp"

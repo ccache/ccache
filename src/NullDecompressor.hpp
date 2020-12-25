@@ -21,7 +21,7 @@
 #include "core/system.hpp"
 
 #include "Decompressor.hpp"
-#include "NonCopyable.hpp"
+#include "core/NonCopyable.hpp"
 
 // A decompressor of an uncompressed stream.
 class NullDecompressor : public Decompressor, NonCopyable

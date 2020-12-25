@@ -20,7 +20,7 @@
 
 #include "core/system.hpp"
 
-#include "NonCopyable.hpp"
+#include "core/NonCopyable.hpp"
 #include "core/assertions.hpp"
 
 class Fd : NonCopyable
