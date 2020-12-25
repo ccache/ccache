@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <memory>
+
 namespace std {
 
 #if __cplusplus < 201402L

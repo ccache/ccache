@@ -19,8 +19,8 @@
 #include "Compressor.hpp"
 
 #include "NullCompressor.hpp"
-#include "StdMakeUnique.hpp"
 #include "ZstdCompressor.hpp"
+#include "core/StdMakeUnique.hpp"
 #include "core/assertions.hpp"
 
 std::unique_ptr<Compressor>

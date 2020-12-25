@@ -19,8 +19,8 @@
 #include "Decompressor.hpp"
 
 #include "NullDecompressor.hpp"
-#include "StdMakeUnique.hpp"
 #include "ZstdDecompressor.hpp"
+#include "core/StdMakeUnique.hpp"
 #include "core/assertions.hpp"
 
 std::unique_ptr<Decompressor>
