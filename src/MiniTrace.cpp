@@ -24,7 +24,7 @@
 #  include "MiniTrace.hpp"
 #  include "TemporaryFile.hpp"
 #  include "Util.hpp"
-#  include "fmtmacros.hpp"
+#  include "core/fmtmacros.hpp"
 
 #  ifdef HAVE_SYS_TIME_H
 #    include <sys/time.h>
