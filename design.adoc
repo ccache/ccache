@@ -1,0 +1,18 @@
+= Overall
+
+`ccache_exe` as a thin wrapper around `ccache_lib`.
+Next to it there are `unittest` and `(product-)test`.
+
+
+= ccache_lib
+
+`ccache_lib` is currently right in the transition from 'everything in one
+directory' into separate libraries. This will enable cleaner interfaces
+and better understandability of the codebase.
+
+`ccache_core` is what everything in ccache builds upon. Not more and not less.
+For example basically everything is centered around `system.hpp` and
+`nonstd::string_view`, so that is part of core.
+
+For now `third_party` is completely inside `ccache_core` as it has no
+dependencies.

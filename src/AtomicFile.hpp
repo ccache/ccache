@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "core/system.hpp"
+
+#include "config.h"
 
 #include <string>
 #include <vector>

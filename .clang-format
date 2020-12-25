@@ -23,7 +23,7 @@ ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"system.hpp"$'
+  - Regex: '^"(core/)?system.hpp"$'
     Priority: 1
   - Regex: '^"third_party/'
     Priority: 3

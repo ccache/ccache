@@ -28,6 +28,7 @@ Contributing to ccache
 
 * [Source repository](https://github.com/ccache/ccache)
 * [Notes on how to contribute](https://github.com/ccache/ccache/blob/master/CONTRIBUTING.md)
+* [ccache architecture/design](design.adoc)
 * [Mailing list](https://lists.samba.org/mailman/listinfo/ccache/)
 * [Chat](https://gitter.im/ccache/ccache)
 * [Bug report info](https://ccache.dev/bugs.html)

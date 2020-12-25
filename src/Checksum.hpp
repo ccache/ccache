@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "core/system.hpp"
 
 #ifdef USE_XXH_DISPATCH
 #  include "third_party/xxh_x86dispatch.h"

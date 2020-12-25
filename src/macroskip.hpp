@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "core/system.hpp"
 
 // A Boyer-Moore-Horspool skip table used for searching for the strings
 // "__TIME__", "__DATE__" and "__TIMESTAMP__".

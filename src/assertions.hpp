@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "system.hpp"
+#include "core/system.hpp"
 
 #ifdef _MSC_VER
 #  define CCACHE_FUNCTION __func__

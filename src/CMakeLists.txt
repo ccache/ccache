@@ -74,6 +74,9 @@ target_link_libraries(
   PRIVATE standard_settings standard_warnings ZSTD::ZSTD
           Threads::Threads third_party_lib)
 
+target_link_libraries(ccache_lib PUBLIC ccache_core)
+
 target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} .)
 
 add_subdirectory(third_party)
+add_subdirectory(core)
