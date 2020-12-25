@@ -1,13 +1,13 @@
-add_library(third_party_lib STATIC base32hex.c format.cpp xxhash.c)
+add_library(third_party_lib STATIC code/third_party/base32hex.c code/third_party/format.cpp code/third_party/xxhash.c)
 if(NOT MSVC)
-  target_sources(third_party_lib PRIVATE getopt_long.c)
+  target_sources(third_party_lib PRIVATE code/third_party/getopt_long.c)
 else()
-  target_sources(third_party_lib PRIVATE win32/getopt.c)
+  target_sources(third_party_lib PRIVATE code/third_party/win32/getopt.c)
   target_compile_definitions(third_party_lib PUBLIC -DSTATIC_GETOPT)
 endif()
 
 if(ENABLE_TRACING)
-  target_sources(third_party_lib PRIVATE minitrace.c)
+  target_sources(third_party_lib PRIVATE code/third_party/minitrace.c)
 endif()
 
 set(xxhdispatchtest [=[
@@ -36,8 +36,13 @@ endif()
 # Treat third party headers as system files (no warning for those headers).
 target_include_directories(
   third_party_lib
-  PRIVATE ${CMAKE_BINARY_DIR} . SYSTEM)
+  PRIVATE ${CMAKE_BINARY_DIR} code/third_party SYSTEM)
 
+# Allow includes via third_party/[..].h
+target_include_directories(
+  third_party_lib
+  INTERFACE code)
+  
 target_link_libraries(third_party_lib PRIVATE standard_settings)
 target_link_libraries(third_party_lib INTERFACE blake3)
 
@@ -70,4 +75,4 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(third_party_lib INTERFACE -Wno-shadow)
 endif()
 
-add_subdirectory(blake3)
+add_subdirectory(code/third_party/blake3)
