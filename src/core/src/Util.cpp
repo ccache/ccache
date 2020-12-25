@@ -16,24 +16,23 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "assertions.hpp"
+#include "core/Util.hpp"
 
-#include "Util.hpp"
-#include "fmtmacros.hpp"
+#include "third_party/nonstd/string_view.hpp"
+using nonstd::string_view;
 
-#include "third_party/fmt/core.h"
+namespace Util {
 
-void
-handle_failed_assertion(const char* file,
-                        size_t line,
-                        const char* function,
-                        const char* condition)
+string_view
+base_name(string_view path)
 {
-  PRINT(stderr,
-        "ccache: {}:{}: {}: failed assertion: {}\n",
-        Util::base_name(file),
-        line,
-        function,
-        condition);
-  abort();
+#ifdef _WIN32
+  const char delim[] = "/\\";
+#else
+  const char delim[] = "/";
+#endif
+  size_t n = path.find_last_of(delim);
+  return n == std::string::npos ? path : path.substr(n + 1);
 }
+
+} // namespace Util

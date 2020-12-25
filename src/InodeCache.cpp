@@ -26,7 +26,7 @@
 #include "Stat.hpp"
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "fmtmacros.hpp"
+#include "core/fmtmacros.hpp"
 
 #include <atomic>
 #include <libgen.h>

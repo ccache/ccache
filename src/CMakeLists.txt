@@ -33,7 +33,6 @@ set(
   ZstdCompressor.cpp
   ZstdDecompressor.cpp
   argprocessing.cpp
-  assertions.cpp
   ccache.cpp
   cleanup.cpp
   compopt.cpp
@@ -75,8 +74,6 @@ target_link_libraries(
           Threads::Threads third_party_lib)
 
 target_link_libraries(ccache_lib PUBLIC ccache_core)
-
-target_include_directories(ccache_lib PRIVATE ${CMAKE_BINARY_DIR} .)
 
 add_subdirectory(third_party)
 add_subdirectory(core)

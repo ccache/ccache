@@ -21,10 +21,10 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Fd.hpp"
-#include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
 #include "TemporaryFile.hpp"
-#include "fmtmacros.hpp"
+#include "core/FormatNonstdStringView.hpp"
+#include "core/fmtmacros.hpp"
 
 extern "C" {
 #include "third_party/base32hex.h"
@@ -202,18 +202,6 @@ rewrite_stderr_to_absolute_paths(string_view text)
 } // namespace
 
 namespace Util {
-
-string_view
-base_name(string_view path)
-{
-#ifdef _WIN32
-  const char delim[] = "/\\";
-#else
-  const char delim[] = "/";
-#endif
-  size_t n = path.find_last_of(delim);
-  return n == std::string::npos ? path : path.substr(n + 1);
-}
 
 std::string
 change_extension(string_view path, string_view new_ext)

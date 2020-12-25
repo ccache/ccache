@@ -21,7 +21,7 @@
 #include "NullDecompressor.hpp"
 #include "StdMakeUnique.hpp"
 #include "ZstdDecompressor.hpp"
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 
 std::unique_ptr<Decompressor>
 Decompressor::create_from_type(Compression::Type type, FILE* stream)

@@ -23,8 +23,8 @@
 #include "Lockfile.hpp"
 #include "Logging.hpp"
 #include "Util.hpp"
+#include "core/fmtmacros.hpp"
 #include "exceptions.hpp"
-#include "fmtmacros.hpp"
 
 const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
 const unsigned FLAG_ALWAYS = 2; // always show, even if zero

@@ -29,8 +29,8 @@
 #include "Stat.hpp"
 #include "Statistics.hpp"
 #include "Util.hpp"
+#include "core/fmtmacros.hpp"
 #include "exceptions.hpp"
-#include "fmtmacros.hpp"
 
 #include <algorithm>
 

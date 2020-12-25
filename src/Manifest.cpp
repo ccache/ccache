@@ -30,7 +30,7 @@
 #include "Logging.hpp"
 #include "StdMakeUnique.hpp"
 #include "ccache.hpp"
-#include "fmtmacros.hpp"
+#include "core/fmtmacros.hpp"
 #include "hashutil.hpp"
 
 // Manifest data format

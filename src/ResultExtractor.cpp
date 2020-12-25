@@ -19,7 +19,7 @@
 #include "ResultExtractor.hpp"
 
 #include "Util.hpp"
-#include "fmtmacros.hpp"
+#include "core/fmtmacros.hpp"
 
 ResultExtractor::ResultExtractor(const std::string& directory)
   : m_directory(directory)

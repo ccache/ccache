@@ -18,7 +18,7 @@
 
 #include "SignalHandler.hpp"
 
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 
 #ifndef _WIN32
 

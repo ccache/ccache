@@ -19,7 +19,7 @@
 #include "Counters.hpp"
 
 #include "Statistics.hpp"
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 
 #include <algorithm>
 

@@ -19,8 +19,8 @@
 #include "../src/Config.hpp"
 #include "../src/Fd.hpp"
 #include "../src/Util.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
+#include "core/fmtmacros.hpp"
 
 #include "third_party/doctest.h"
 #include "third_party/nonstd/optional.hpp"

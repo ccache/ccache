@@ -21,7 +21,7 @@
 #include "Context.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 
 static inline bool
 is_blank(const std::string& s)

@@ -20,8 +20,8 @@
 
 #include "core/system.hpp"
 
-#include "FormatNonstdStringView.hpp"
 #include "Statistics.hpp"
+#include "core/FormatNonstdStringView.hpp"
 
 #include "third_party/fmt/core.h"
 #include "third_party/nonstd/optional.hpp"

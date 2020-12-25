@@ -30,8 +30,8 @@
 #include "StdMakeUnique.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
-#include "assertions.hpp"
-#include "fmtmacros.hpp"
+#include "core/assertions.hpp"
+#include "core/fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 

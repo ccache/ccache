@@ -20,8 +20,8 @@
 #include "../src/Util.hpp"
 #include "../src/ccache.hpp"
 #include "../src/exceptions.hpp"
-#include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
+#include "core/fmtmacros.hpp"
 
 #include "third_party/doctest.h"
 #include "third_party/fmt/core.h"

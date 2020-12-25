@@ -21,6 +21,7 @@
 #include "core/system.hpp"
 
 #include "CacheFile.hpp"
+#include "core/Util.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
@@ -45,9 +46,6 @@ using TraverseVisitor =
   std::function<void(const std::string& path, bool is_dir)>;
 
 enum class UnlinkLog { log_failure, ignore_failure };
-
-// Get base name of path.
-nonstd::string_view base_name(nonstd::string_view path);
 
 // Get an integer value from bytes in big endian order.
 //

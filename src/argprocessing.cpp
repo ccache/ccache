@@ -19,11 +19,11 @@
 #include "argprocessing.hpp"
 
 #include "Context.hpp"
-#include "FormatNonstdStringView.hpp"
 #include "Logging.hpp"
-#include "assertions.hpp"
 #include "compopt.hpp"
-#include "fmtmacros.hpp"
+#include "core/FormatNonstdStringView.hpp"
+#include "core/assertions.hpp"
+#include "core/fmtmacros.hpp"
 #include "language.hpp"
 
 #include <cassert>

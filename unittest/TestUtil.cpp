@@ -20,7 +20,7 @@
 
 #include "../src/Util.hpp"
 #include "../src/exceptions.hpp"
-#include "../src/fmtmacros.hpp"
+#include "core/fmtmacros.hpp"
 
 namespace TestUtil {
 

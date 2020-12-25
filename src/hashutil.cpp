@@ -25,8 +25,8 @@
 #include "Logging.hpp"
 #include "Stat.hpp"
 #include "ccache.hpp"
+#include "core/fmtmacros.hpp"
 #include "execute.hpp"
-#include "fmtmacros.hpp"
 #include "macroskip.hpp"
 
 #include "third_party/blake3/blake3_cpu_supports_avx2.h"

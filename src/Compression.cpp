@@ -20,7 +20,7 @@
 
 #include "Config.hpp"
 #include "Context.hpp"
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 #include "exceptions.hpp"
 
 namespace Compression {

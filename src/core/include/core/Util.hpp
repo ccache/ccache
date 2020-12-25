@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,25 +16,15 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compressor.hpp"
+#pragma once
 
-#include "NullCompressor.hpp"
-#include "StdMakeUnique.hpp"
-#include "ZstdCompressor.hpp"
-#include "core/assertions.hpp"
+#include "system.hpp"
 
-std::unique_ptr<Compressor>
-Compressor::create_from_type(Compression::Type type,
-                             FILE* stream,
-                             int8_t compression_level)
-{
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullCompressor>(stream);
+#include "third_party/nonstd/string_view.hpp"
 
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(stream, compression_level);
-  }
+namespace Util {
 
-  ASSERT(false);
-}
+// Get base name of path.
+nonstd::string_view base_name(nonstd::string_view path);
+
+} // namespace Util

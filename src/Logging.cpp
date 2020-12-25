@@ -22,9 +22,9 @@
 #include "Config.hpp"
 #include "File.hpp"
 #include "Util.hpp"
+#include "core/fmtmacros.hpp"
 #include "exceptions.hpp"
 #include "execute.hpp"
-#include "fmtmacros.hpp"
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>

@@ -21,10 +21,10 @@
 #include "AtomicFile.hpp"
 #include "Compression.hpp"
 #include "Util.hpp"
-#include "assertions.hpp"
 #include "ccache.hpp"
+#include "core/assertions.hpp"
+#include "core/fmtmacros.hpp"
 #include "exceptions.hpp"
-#include "fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 

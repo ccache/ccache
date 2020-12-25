@@ -20,7 +20,7 @@
 
 #include "TemporaryFile.hpp"
 #include "Util.hpp"
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 #include "exceptions.hpp"
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)

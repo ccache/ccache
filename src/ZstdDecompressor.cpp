@@ -18,7 +18,7 @@
 
 #include "ZstdDecompressor.hpp"
 
-#include "assertions.hpp"
+#include "core/assertions.hpp"
 #include "exceptions.hpp"
 
 ZstdDecompressor::ZstdDecompressor(FILE* stream)

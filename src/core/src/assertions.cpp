@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,25 +16,25 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compressor.hpp"
-
-#include "NullCompressor.hpp"
-#include "StdMakeUnique.hpp"
-#include "ZstdCompressor.hpp"
 #include "core/assertions.hpp"
 
-std::unique_ptr<Compressor>
-Compressor::create_from_type(Compression::Type type,
-                             FILE* stream,
-                             int8_t compression_level)
+#include "core/FormatNonstdStringView.hpp"
+#include "core/Util.hpp"
+#include "core/fmtmacros.hpp"
+
+#include "third_party/fmt/core.h"
+
+void
+handle_failed_assertion(const char* file,
+                        size_t line,
+                        const char* function,
+                        const char* condition)
 {
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullCompressor>(stream);
-
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(stream, compression_level);
-  }
-
-  ASSERT(false);
+  PRINT(stderr,
+        "ccache: {}:{}: {}: failed assertion: {}\n",
+        Util::base_name(file),
+        line,
+        function,
+        condition);
+  abort();
 }
