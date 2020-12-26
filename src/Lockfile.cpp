@@ -160,7 +160,7 @@ do_acquire_win32(const std::string& lockfile, uint32_t staleness_limit)
         error);
     if (error == ERROR_PATH_NOT_FOUND) {
       // Directory doesn't exist?
-      if (Util::create_dir(Util::dir_name(lockfile)) == 0) {
+      if (Util::create_dir(Util::dir_name(lockfile))) {
         // OK. Retry.
         continue;
       }

@@ -45,6 +45,15 @@ TEST_CASE("Lockfile acquire and release")
   CHECK(!Stat::lstat("test.lock"));
 }
 
+TEST_CASE("Lockfile creates missing directories")
+{
+  TestContext test_context;
+
+  Lockfile lock("a/b/c/test", 1000);
+  CHECK(lock.acquired());
+  CHECK(Stat::lstat("a/b/c/test.lock"));
+}
+
 #ifndef _WIN32
 TEST_CASE("Lockfile breaking")
 {
