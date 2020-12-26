@@ -46,7 +46,8 @@ base_tests() {
 
     # The exact output is not tested, but at least it's something human readable
     # and not random memory.
-    if [ $($CCACHE --version | grep -c '^ccache version [a-zA-Z0-9_./+-]*$') -ne 1 ]; then
+    local version_pattern=$'^ccache version [a-zA-Z0-9_./+-]*\r?$'
+    if [ $($CCACHE --version | grep -E -c "$version_pattern") -ne 1 ]; then
         test_failed "Unexpected output of --version"
     fi
 
@@ -212,6 +213,7 @@ base_tests() {
     rm -rf src
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "Source file ending with dot"
 
     mkdir src
@@ -230,6 +232,7 @@ base_tests() {
     rm foo.o
 
     rm -rf src
+fi
 
     # -------------------------------------------------------------------------
     TEST "Multiple file extensions"
@@ -992,6 +995,7 @@ EOF
 
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "CCACHE_UMASK"
 
     saved_umask=$(umask)
@@ -1050,6 +1054,7 @@ EOF
     expect_perm "$stats_file" -rw-rw-r--
 
     umask $saved_umask
+fi
 
     # -------------------------------------------------------------------------
     TEST "No object file due to bad prefix"
@@ -1369,6 +1374,7 @@ EOF
 fi
 
     # -------------------------------------------------------------------------
+if ! $HOST_OS_WINDOWS; then
     TEST "UNCACHED_ERR_FD"
 
     cat >compiler.sh <<'EOF'
@@ -1399,6 +1405,7 @@ EOF
     if [ "$stderr" != "2Pu1Cc" ]; then
         test_failed "Unexpected stderr: $stderr != 2Pu1Cc"
     fi
+fi
 
     # -------------------------------------------------------------------------
     TEST "Invalid boolean environment configuration options"
