@@ -6,8 +6,8 @@ Want to contribute to ccache? Awesome!
 
 There are several options:
 
-1. Ask a question in the [issue
-   tracker](https://github.com/ccache/ccache/issues/new/choose).
+1. Ask a question in
+   [discussions](https://github.com/ccache/ccache/issues/discussions).
 2. Post your question to the [mailing
    list](https://lists.samba.org/mailman/listinfo/ccache/).
 3. Chat in the [Gitter room](https://gitter.im/ccache/ccache).
