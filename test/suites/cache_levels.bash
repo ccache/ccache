@@ -11,7 +11,7 @@ expect_on_level() {
     local expected_level="$2"
 
     slashes=$(find $CCACHE_DIR -name "*$type" \
-                  | sed -r -e 's!.*\.ccache/!!' -e 's![^/]*$!!' -e 's![^/]!!g')
+                  | sed -E -e 's!.*\.ccache/!!' -e 's![^/]*$!!' -e 's![^/]!!g')
     actual_level=$(echo -n "$slashes" | wc -c)
     if [ "$actual_level" -ne "$expected_level" ]; then
         test_failed "$type file on level $actual_level, expected level $expected_level"
