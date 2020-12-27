@@ -50,9 +50,9 @@ Here are some hints to make the process smoother:
 ## Code style
 
 Ccache was written in C99 until 2019 when it started being converted to C++11.
-The conversion is a slow work in progress, which is why there is a lot of
-C-style code left. Please refrain from doing large C to C++ conversions; do it
-little by little.
+The conversion is a slow work in progress, which is why there is some C-style
+code left. Please refrain from doing large C to C++ conversions; do it little by
+little.
 
 Source code formatting is defined by `.clang-format` in the root directory. The
 format is loosely based on [LLVM's code formatting
