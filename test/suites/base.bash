@@ -293,6 +293,24 @@ base_tests() {
     expect_stat 'files in cache' 1
 
     # -------------------------------------------------------------------------
+    TEST "SOURCE_DATE_EPOCH with time_macros sloppiness"
+
+    CCACHE_SLOPPINESS=time_macros SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    CCACHE_SLOPPINESS=time_macros SOURCE_DATE_EPOCH=2 $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 1
+
+    SOURCE_DATE_EPOCH=1 $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 2
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
     TEST "Result file is compressed"
 
     $CCACHE_COMPILE -c test1.c
