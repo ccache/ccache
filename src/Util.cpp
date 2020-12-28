@@ -858,10 +858,12 @@ localtime(optional<time_t> time)
 }
 
 std::string
-make_relative_path(const Context& ctx, string_view path)
+make_relative_path(const std::string& base_dir,
+                   const std::string& actual_cwd,
+                   const std::string& apparent_cwd,
+                   nonstd::string_view path)
 {
-  if (ctx.config.base_dir().empty()
-      || !Util::starts_with(path, ctx.config.base_dir())) {
+  if (base_dir.empty() || !Util::starts_with(path, base_dir)) {
     return std::string(path);
   }
 
@@ -894,11 +896,11 @@ make_relative_path(const Context& ctx, string_view path)
   std::string path_str(path);
   std::string normalized_path = Util::normalize_absolute_path(path_str);
   std::vector<std::string> relpath_candidates = {
-    Util::get_relative_path(ctx.actual_cwd, normalized_path),
+    Util::get_relative_path(actual_cwd, normalized_path),
   };
-  if (ctx.apparent_cwd != ctx.actual_cwd) {
+  if (apparent_cwd != actual_cwd) {
     relpath_candidates.emplace_back(
-      Util::get_relative_path(ctx.apparent_cwd, normalized_path));
+      Util::get_relative_path(apparent_cwd, normalized_path));
     // Move best (= shortest) match first:
     if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
       std::swap(relpath_candidates[0], relpath_candidates[1]);
@@ -913,6 +915,13 @@ make_relative_path(const Context& ctx, string_view path)
 
   // No match so nothing else to do than to return the unmodified path.
   return std::string(original_path);
+}
+
+std::string
+make_relative_path(const Context& ctx, string_view path)
+{
+  return make_relative_path(
+    ctx.config.base_dir(), ctx.actual_cwd, ctx.apparent_cwd, path);
 }
 
 bool

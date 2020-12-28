@@ -554,6 +554,46 @@ TEST_CASE("Util::is_dir_separator")
 #endif
 }
 
+#ifndef _WIN32
+TEST_CASE("Util::make_relative_path")
+{
+  using Util::make_relative_path;
+
+  const TestContext test_context;
+
+  const std::string cwd = Util::get_actual_cwd();
+  const std::string actual_cwd = FMT("{}/d", cwd);
+  const std::string apparent_cwd = FMT("{}/s", cwd);
+
+  REQUIRE(Util::create_dir("d"));
+  REQUIRE(symlink("d", "s") == 0);
+  REQUIRE(chdir("s") == 0);
+  Util::setenv("PWD", apparent_cwd);
+
+  SUBCASE("No base directory")
+  {
+    CHECK(make_relative_path("", "/a", "/a", "/a/x") == "/a/x");
+  }
+
+  SUBCASE("Path matches neither actual nor apparent CWD")
+  {
+    CHECK(make_relative_path("/", "/a", "/b", "/x") == "/x");
+  }
+
+  SUBCASE("Match of actual CWD")
+  {
+    CHECK(make_relative_path("/", actual_cwd, apparent_cwd, actual_cwd + "/x")
+          == "./x");
+  }
+
+  SUBCASE("Match of apparent CWD")
+  {
+    CHECK(make_relative_path("/", actual_cwd, apparent_cwd, apparent_cwd + "/x")
+          == "./x");
+  }
+}
+#endif
+
 TEST_CASE("Util::matches_dir_prefix_or_file")
 {
   CHECK(!Util::matches_dir_prefix_or_file("", ""));
