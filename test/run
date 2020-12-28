@@ -438,7 +438,7 @@ case $compiler_version in
         ;;
     *clang*)
         COMPILER_TYPE_CLANG=true
-        CLANG_VERSION_SUFFIX=$(echo $COMPILER | sed 's/.*clang//')
+        CLANG_VERSION_SUFFIX=$(echo "${COMPILER%% *}" | sed 's/.*clang//')
         ;;
     *)
         echo "WARNING: Compiler $COMPILER not supported (version: $compiler_version) -- not running tests" >&2
