@@ -25,7 +25,7 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Digest.hpp"
-#include "File.hpp"
+#include "core/File.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
 #include "core/Sloppy.hpp"

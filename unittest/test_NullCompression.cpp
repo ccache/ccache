@@ -19,7 +19,7 @@
 #include "../src/Compression.hpp"
 #include "../src/Compressor.hpp"
 #include "../src/Decompressor.hpp"
-#include "../src/File.hpp"
+#include "core/File.hpp"
 #include "TestUtil.hpp"
 
 #include "third_party/doctest.h"

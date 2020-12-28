@@ -24,8 +24,8 @@
 #include "ArgsInfo.hpp"
 #include "Config.hpp"
 #include "Digest.hpp"
-#include "File.hpp"
 #include "MiniTrace.hpp"
+#include "core/File.hpp"
 #include "core/NonCopyable.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED

@@ -20,8 +20,6 @@
 
 #include "core/system.hpp"
 
-#include "Util.hpp"
-
 #include "third_party/nonstd/optional.hpp"
 
 #include <functional>

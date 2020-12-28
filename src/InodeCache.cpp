@@ -19,7 +19,7 @@
 #include "InodeCache.hpp"
 
 #include "Config.hpp"
-#include "Fd.hpp"
+#include "core/Fd.hpp"
 #include "Finalizer.hpp"
 #include "Hash.hpp"
 #include "Logging.hpp"
