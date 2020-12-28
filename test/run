@@ -479,6 +479,11 @@ else
     PATH_DELIM=":"
 fi
 
+if [[ $OSTYPE = msys* ]]; then
+    # Native symlink support for Windows.
+    export MSYS="${MSYS:-} winsymlinks:nativestrict"
+fi
+
 if $HOST_OS_APPLE; then
     SDKROOT=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null)
     if [ "$SDKROOT" = "" ]; then
