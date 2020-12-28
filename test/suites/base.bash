@@ -788,7 +788,7 @@ EOF
     chmod +x gcc
 
     CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -rn 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
     if [ "$compiler_type" != gcc ]; then
         test_failed "Compiler type $compiler_type != gcc"
     fi
@@ -796,7 +796,7 @@ EOF
     rm test1.o.ccache-log
 
     CCACHE_COMPILERTYPE=clang CCACHE_DEBUG=1 $CCACHE ./gcc -c test1.c
-    compiler_type=$(sed -rn 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
+    compiler_type=$(sed -En 's/.*Compiler type: (.*)/\1/p' test1.o.ccache-log)
     if [ "$compiler_type" != clang ]; then
         test_failed "Compiler type $compiler_type != clang"
     fi

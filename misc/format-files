@@ -46,7 +46,7 @@ for file in "$@"; do
         echo "Error: $file not formatted with Clang-Format"
         echo 'Run "make format" or apply this diff:'
         git diff $cf_color --no-index "$file" "$tmp_file" \
-            | sed -r -e "s!^---.*!--- a/$file!" \
+            | sed -E -e "s!^---.*!--- a/$file!" \
                      -e "s!^\+\+\+.*!+++ b/$file!" \
                      -e "/diff --/d" -e "/index /d" \
                      -e "s/.[0-9]*.clang-format.tmp//"

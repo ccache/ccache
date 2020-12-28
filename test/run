@@ -485,6 +485,7 @@ if $HOST_OS_APPLE; then
         echo "Error: xcrun --show-sdk-path failure"
         exit 1
     fi
+    export SDKROOT
 
     SYSROOT="-isysroot `echo \"$SDKROOT\" | sed 's/ /\\ /g'`"
 else
@@ -493,7 +494,7 @@ fi
 
 # ---------------------------------------
 
-all_suites="$(sed -rn 's/^addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
+all_suites="$(sed -En 's/^addtest\((.*)\)$/\1/p' $(dirname $0)/CMakeLists.txt)"
 
 for suite in $all_suites; do
     . $(dirname $0)/suites/$suite.bash
