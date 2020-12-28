@@ -32,15 +32,15 @@ if [[ -t 1 ]]; then
 fi
 
 green() {
-    printf "$ansi_boldgreen$*$ansi_reset\n"
+    printf "$ansi_boldgreen%s$ansi_reset\n" "$*"
 }
 
 red() {
-    printf "$ansi_boldred$*$ansi_reset\n"
+    printf "$ansi_boldred%s$ansi_reset\n" "$*"
 }
 
 bold() {
-    printf "$ansi_bold$*$ansi_reset\n"
+    printf "$ansi_bold%s$ansi_reset\n" "$*"
 }
 
 test_failed() {
