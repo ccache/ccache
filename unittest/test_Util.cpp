@@ -146,6 +146,16 @@ TEST_CASE("Util::dir_name")
   CHECK(Util::dir_name("/") == "/");
   CHECK(Util::dir_name("/foo") == "/");
   CHECK(Util::dir_name("/foo/bar/f.txt") == "/foo/bar");
+
+#ifdef _WIN32
+  CHECK(Util::dir_name("C:/x/y") == "C:/x");
+  CHECK(Util::dir_name("X:/x/y") == "X:/x");
+  CHECK(Util::dir_name("C:\\x\\y") == "C:\\x");
+  CHECK(Util::dir_name("C:/x") == "C:/");
+  CHECK(Util::dir_name("C:\\x") == "C:\\");
+  CHECK(Util::dir_name("C:/") == "C:/");
+  CHECK(Util::dir_name("C:\\") == "C:\\");
+#endif
 }
 
 TEST_CASE("Util::strip_ansi_csi_seqs")

@@ -413,9 +413,19 @@ dir_name(string_view path)
 #endif
   size_t n = path.find_last_of(delim);
   if (n == std::string::npos) {
+    // "foo" -> "."
     return ".";
+  } else if (n == 0) {
+    // "/" -> "/" (Windows: or "\\" -> "\\")
+    return path.substr(0, 1);
+#ifdef _WIN32
+  } else if (n == 2 && path[1] == ':') {
+    // Windows: "C:\\foo" -> "C:\\" or "C:/foo" -> "C:/"
+    return path.substr(0, 3);
+#endif
   } else {
-    return n == 0 ? "/" : path.substr(0, n);
+    // "/dir/foo" -> "/dir" (Windows: or "C:\\dir\\foo" -> "C:\\dir")
+    return path.substr(0, n);
   }
 }
 
