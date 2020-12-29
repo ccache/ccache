@@ -1245,15 +1245,7 @@ real_path(const std::string& path, bool return_empty_on_error)
     resolved = buffer;
   }
 #else
-  // Yes, there are such systems. This replacement relies on the fact that when
-  // we call x_realpath we only care about symlinks.
-  {
-    ssize_t len = readlink(path.c_str(), buffer, buffer_size - 1);
-    if (len != -1) {
-      buffer[len] = 0;
-      resolved = buffer;
-    }
-  }
+#  error No realpath function available
 #endif
 
   return resolved ? resolved : (return_empty_on_error ? "" : path);
