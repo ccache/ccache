@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -895,28 +895,36 @@ make_relative_path(const std::string& base_dir,
   // The algorithm for computing relative paths below only works for existing
   // paths. If the path doesn't exist, find the first ancestor directory that
   // does exist and assemble the path again afterwards.
-  string_view original_path = path;
-  std::string path_suffix;
+
+  std::vector<std::string> relpath_candidates;
+  const auto original_path = path;
   Stat path_stat;
   while (!(path_stat = Stat::stat(std::string(path)))) {
     path = Util::dir_name(path);
   }
-  path_suffix = std::string(original_path.substr(path.length()));
+  const auto path_suffix = std::string(original_path.substr(path.length()));
+  const auto real_path = Util::real_path(std::string(path));
 
-  std::string path_str(path);
-  std::string normalized_path = Util::normalize_absolute_path(path_str);
-  std::vector<std::string> relpath_candidates = {
-    Util::get_relative_path(actual_cwd, normalized_path),
-  };
-  if (apparent_cwd != actual_cwd) {
-    relpath_candidates.emplace_back(
-      Util::get_relative_path(apparent_cwd, normalized_path));
-    // Move best (= shortest) match first:
-    if (relpath_candidates[0].length() > relpath_candidates[1].length()) {
-      std::swap(relpath_candidates[0], relpath_candidates[1]);
+  const auto add_relpath_candidates = [&](nonstd::string_view path) {
+    const std::string normalized_path = Util::normalize_absolute_path(path);
+    relpath_candidates.push_back(
+      Util::get_relative_path(actual_cwd, normalized_path));
+    if (apparent_cwd != actual_cwd) {
+      relpath_candidates.emplace_back(
+        Util::get_relative_path(apparent_cwd, normalized_path));
     }
+  };
+  add_relpath_candidates(path);
+  if (real_path != path) {
+    add_relpath_candidates(real_path);
   }
 
+  // Find best (i.e. shortest existing) match:
+  std::sort(relpath_candidates.begin(),
+            relpath_candidates.end(),
+            [](const std::string& path1, const std::string& path2) {
+              return path1.length() < path2.length();
+            });
   for (const auto& relpath : relpath_candidates) {
     if (Stat::stat(relpath).same_inode_as(path_stat)) {
       return relpath + path_suffix;

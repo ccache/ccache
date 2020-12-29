@@ -564,7 +564,6 @@ TEST_CASE("Util::is_dir_separator")
 #endif
 }
 
-#ifndef _WIN32
 TEST_CASE("Util::make_relative_path")
 {
   using Util::make_relative_path;
@@ -573,11 +572,17 @@ TEST_CASE("Util::make_relative_path")
 
   const std::string cwd = Util::get_actual_cwd();
   const std::string actual_cwd = FMT("{}/d", cwd);
+#ifdef _WIN32
+  const std::string apparent_cwd = actual_cwd;
+#else
   const std::string apparent_cwd = FMT("{}/s", cwd);
+#endif
 
   REQUIRE(Util::create_dir("d"));
+#ifndef _WIN32
   REQUIRE(symlink("d", "s") == 0);
-  REQUIRE(chdir("s") == 0);
+#endif
+  REQUIRE(chdir("d") == 0);
   Util::setenv("PWD", apparent_cwd);
 
   SUBCASE("No base directory")
@@ -587,22 +592,40 @@ TEST_CASE("Util::make_relative_path")
 
   SUBCASE("Path matches neither actual nor apparent CWD")
   {
+#ifdef _WIN32
+    CHECK(make_relative_path("C:/", "C:/a", "C:/b", "C:/x") == "C:/x");
+#else
     CHECK(make_relative_path("/", "/a", "/b", "/x") == "/x");
+#endif
   }
 
   SUBCASE("Match of actual CWD")
   {
+#ifdef _WIN32
+    CHECK(
+      make_relative_path(
+        actual_cwd.substr(0, 3), actual_cwd, apparent_cwd, actual_cwd + "/x")
+      == "./x");
+#else
     CHECK(make_relative_path("/", actual_cwd, apparent_cwd, actual_cwd + "/x")
           == "./x");
+#endif
   }
 
+#ifndef _WIN32
   SUBCASE("Match of apparent CWD")
   {
     CHECK(make_relative_path("/", actual_cwd, apparent_cwd, apparent_cwd + "/x")
           == "./x");
   }
-}
+
+  SUBCASE("Match if using resolved (using realpath(3)) path")
+  {
+    CHECK(make_relative_path("/", actual_cwd, actual_cwd, apparent_cwd + "/x")
+          == "./x");
+  }
 #endif
+}
 
 TEST_CASE("Util::matches_dir_prefix_or_file")
 {
