@@ -2,7 +2,7 @@ find_program(ASCIIDOC_EXE asciidoc)
 mark_as_advanced(ASCIIDOC_EXE) # Don't show in CMake UIs
 
 if(NOT ASCIIDOC_EXE)
-  message(WARNING "Could not find asciidoc; documentation will not be generated")
+  message(NOTICE "Could not find asciidoc; documentation will not be generated")
 else()
   #
   # HTML documentation
