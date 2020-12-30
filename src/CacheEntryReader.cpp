@@ -20,7 +20,7 @@
 
 #include "Compressor.hpp"
 #include "core/fmtmacros.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 #include "third_party/fmt/core.h"
 

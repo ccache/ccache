@@ -22,7 +22,7 @@
 
 #include "Args.hpp"
 #include "ArgsInfo.hpp"
-#include "Config.hpp"
+#include "core/Config.hpp"
 #include "Digest.hpp"
 #include "MiniTrace.hpp"
 #include "core/File.hpp"

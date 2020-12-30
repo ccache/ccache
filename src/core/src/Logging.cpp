@@ -17,13 +17,13 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 
-#include "Config.hpp"
+#include "core/Config.hpp"
 #include "core/File.hpp"
-#include "Util.hpp"
+#include "core/Util.hpp"
 #include "core/fmtmacros.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>

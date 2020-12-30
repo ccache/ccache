@@ -18,15 +18,15 @@
 
 #include "compress.hpp"
 
-#include "AtomicFile.hpp"
+#include "core/AtomicFile.hpp"
 #include "CacheEntryReader.hpp"
 #include "CacheEntryWriter.hpp"
 #include "Context.hpp"
 #include "core/File.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "Manifest.hpp"
 #include "Result.hpp"
-#include "Statistics.hpp"
+#include "core/Statistics.hpp"
 #include "ThreadPool.hpp"
 #include "ZstdCompressor.hpp"
 #include "core/StdMakeUnique.hpp"

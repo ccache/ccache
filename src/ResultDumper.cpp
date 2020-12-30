@@ -20,7 +20,7 @@
 
 #include "CacheEntryReader.hpp"
 #include "Context.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "core/fmtmacros.hpp"
 
 using nonstd::optional;

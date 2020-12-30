@@ -19,7 +19,7 @@
 #include "argprocessing.hpp"
 
 #include "Context.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "compopt.hpp"
 #include "core/FormatNonstdStringView.hpp"
 #include "core/Sloppy.hpp"

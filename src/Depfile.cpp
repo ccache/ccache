@@ -20,7 +20,7 @@
 
 #include "Context.hpp"
 #include "Hash.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "core/assertions.hpp"
 
 static inline bool

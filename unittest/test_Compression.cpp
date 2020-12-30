@@ -17,7 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Compression.hpp"
-#include "../src/Config.hpp"
+#include "core/Config.hpp"
 
 #include "third_party/doctest.h"
 

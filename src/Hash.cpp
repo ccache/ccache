@@ -19,7 +19,7 @@
 #include "Hash.hpp"
 
 #include "core/Fd.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "core/fmtmacros.hpp"
 
 using nonstd::string_view;

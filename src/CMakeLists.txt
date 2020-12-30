@@ -1,20 +1,15 @@
 set(
   source_files
   Args.cpp
-  AtomicFile.cpp
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
   CacheFile.cpp
   Compression.cpp
   Compressor.cpp
-  Config.cpp
   Context.cpp
-  Counters.cpp
   Decompressor.cpp
   Depfile.cpp
   Hash.cpp
-  Lockfile.cpp
-  Logging.cpp
   Manifest.cpp
   MiniTrace.cpp
   NullCompressor.cpp
@@ -25,9 +20,6 @@ set(
   ResultExtractor.cpp
   ResultRetriever.cpp
   SignalHandler.cpp
-  Stat.cpp
-  Statistics.cpp
-  TemporaryFile.cpp
   ThreadPool.cpp
   Util.cpp
   ZstdCompressor.cpp

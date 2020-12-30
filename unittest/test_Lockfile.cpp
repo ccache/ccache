@@ -16,9 +16,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Lockfile.hpp"
-#include "../src/Stat.hpp"
 #include "TestUtil.hpp"
+#include "core/Lockfile.hpp"
+#include "core/Stat.hpp"
 
 #include "third_party/doctest.h"
 

@@ -1,5 +1,13 @@
 add_library(ccache_core
   src/assertions.cpp
+  src/AtomicFile.cpp
+  src/Config.cpp
+  src/Counters.cpp
+  src/Lockfile.cpp
+  src/Logging.cpp
+  src/Stat.cpp
+  src/Statistics.cpp
+  src/TemporaryFile.cpp
   src/Util.cpp
 )
 

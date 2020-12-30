@@ -18,8 +18,8 @@
 
 #include "TestUtil.hpp"
 
-#include "../src/Util.hpp"
-#include "../src/exceptions.hpp"
+#include "core/Util.hpp"
+#include "core/exceptions.hpp"
 #include "core/fmtmacros.hpp"
 
 namespace TestUtil {

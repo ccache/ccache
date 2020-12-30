@@ -17,12 +17,12 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Args.hpp"
-#include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/Statistics.hpp"
-#include "../src/Util.hpp"
 #include "TestUtil.hpp"
 #include "argprocessing.hpp"
+#include "core/Config.hpp"
+#include "core/Statistics.hpp"
+#include "core/Util.hpp"
 #include "core/fmtmacros.hpp"
 
 #include "third_party/doctest.h"

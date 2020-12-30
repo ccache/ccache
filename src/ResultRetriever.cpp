@@ -20,7 +20,7 @@
 
 #include "Context.hpp"
 #include "Depfile.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 
 using Result::FileType;
 

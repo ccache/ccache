@@ -18,8 +18,8 @@
 
 #include "Context.hpp"
 
-#include "Counters.hpp"
-#include "Logging.hpp"
+#include "core/Counters.hpp"
+#include "core/Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
 #include "hashutil.hpp"

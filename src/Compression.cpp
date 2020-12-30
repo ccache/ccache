@@ -18,10 +18,10 @@
 
 #include "Compression.hpp"
 
-#include "Config.hpp"
+#include "core/Config.hpp"
 #include "Context.hpp"
 #include "core/assertions.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 namespace Compression {
 

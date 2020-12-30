@@ -16,14 +16,14 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Config.hpp"
+#include "core/Config.hpp"
 
-#include "AtomicFile.hpp"
-#include "Util.hpp"
+#include "core/AtomicFile.hpp"
 #include "core/Sloppy.hpp"
+#include "core/Util.hpp"
 #include "core/assertions.hpp"
+#include "core/exceptions.hpp"
 #include "core/fmtmacros.hpp"
-#include "exceptions.hpp"
 
 #include "third_party/fmt/core.h"
 

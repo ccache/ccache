@@ -21,7 +21,7 @@
 
 #include "core/system.hpp"
 
-#include "Config.hpp"
+#include "core/Config.hpp"
 
 #include "third_party/nonstd/string_view.hpp"
 

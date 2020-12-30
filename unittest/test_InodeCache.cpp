@@ -16,12 +16,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Config.hpp"
 #include "../src/Context.hpp"
 #include "../src/Hash.hpp"
 #include "../src/InodeCache.hpp"
-#include "../src/Util.hpp"
 #include "TestUtil.hpp"
+#include "core/Config.hpp"
+#include "core/Util.hpp"
 
 #include "third_party/doctest.h"
 

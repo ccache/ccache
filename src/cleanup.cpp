@@ -20,9 +20,9 @@
 #include "cleanup.hpp"
 
 #include "CacheFile.hpp"
-#include "Config.hpp"
+#include "core/Config.hpp"
 #include "Context.hpp"
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "Util.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED

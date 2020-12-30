@@ -16,12 +16,12 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "AtomicFile.hpp"
+#include "core/AtomicFile.hpp"
 
-#include "TemporaryFile.hpp"
-#include "Util.hpp"
+#include "core/TemporaryFile.hpp"
+#include "core/Util.hpp"
 #include "core/assertions.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 AtomicFile::AtomicFile(const std::string& path, Mode mode) : m_path(path)
 {

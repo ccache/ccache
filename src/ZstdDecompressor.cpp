@@ -19,7 +19,7 @@
 #include "ZstdDecompressor.hpp"
 
 #include "core/assertions.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 ZstdDecompressor::ZstdDecompressor(FILE* stream)
   : m_stream(stream),

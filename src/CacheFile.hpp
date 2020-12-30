@@ -20,8 +20,8 @@
 
 #include "core/system.hpp"
 
-#include "Stat.hpp"
-#include "exceptions.hpp"
+#include "core/Stat.hpp"
+#include "core/exceptions.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 

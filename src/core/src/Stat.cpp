@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,43 +16,28 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "TemporaryFile.hpp"
+#include "core/Stat.hpp"
 
-#include "Util.hpp"
+#include "core/Logging.hpp"
 
-using nonstd::string_view;
-
-namespace {
-
-#ifndef _WIN32
-mode_t
-get_umask()
+Stat::Stat(StatFunction stat_function,
+           const std::string& path,
+           Stat::OnError on_error)
 {
-  static bool mask_retrieved = false;
-  static mode_t mask;
-  if (!mask_retrieved) {
-    mask = umask(0);
-    umask(mask);
-    mask_retrieved = true;
+  int result = stat_function(path.c_str(), &m_stat);
+  if (result == 0) {
+    m_errno = 0;
+  } else {
+    m_errno = errno;
+    if (on_error == OnError::throw_error) {
+      throw Error("failed to stat {}: {}", path, strerror(errno));
+    }
+    if (on_error == OnError::log) {
+      LOG("Failed to stat {}: {}", path, strerror(errno));
+    }
+
+    // The file is missing, so just zero fill the stat structure. This will
+    // make e.g. the is_*() methods return false and mtime() will be 0, etc.
+    memset(&m_stat, '\0', sizeof(m_stat));
   }
-  return mask;
-}
-#endif
-
-} // namespace
-
-TemporaryFile::TemporaryFile(string_view path_prefix)
-  : path(std::string(path_prefix) + ".XXXXXX")
-{
-  Util::ensure_dir_exists(Util::dir_name(path));
-  fd = Fd(mkstemp(&path[0]));
-  if (!fd) {
-    throw Fatal(
-      "Failed to create temporary file for {}: {}", path, strerror(errno));
-  }
-
-  Util::set_cloexec_flag(*fd);
-#ifndef _WIN32
-  fchmod(*fd, 0666 & ~get_umask());
-#endif
 }

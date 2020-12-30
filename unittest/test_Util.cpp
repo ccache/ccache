@@ -16,9 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Config.hpp"
-#include "../src/Util.hpp"
+#include "../src/CacheFile.hpp"
 #include "TestUtil.hpp"
+#include "Util.hpp"
+#include "core/Config.hpp"
 #include "core/Fd.hpp"
 #include "core/fmtmacros.hpp"
 

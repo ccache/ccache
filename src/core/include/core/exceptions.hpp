@@ -20,7 +20,7 @@
 
 #include "core/system.hpp"
 
-#include "Statistics.hpp"
+#include "core/Statistics.hpp"
 #include "core/FormatNonstdStringView.hpp"
 
 #include "third_party/fmt/core.h"

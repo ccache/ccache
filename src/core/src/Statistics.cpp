@@ -16,15 +16,15 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Statistics.hpp"
+#include "core/Statistics.hpp"
 
-#include "AtomicFile.hpp"
-#include "Config.hpp"
-#include "Lockfile.hpp"
-#include "Logging.hpp"
-#include "Util.hpp"
+#include "core/AtomicFile.hpp"
+#include "core/Config.hpp"
+#include "core/Lockfile.hpp"
+#include "core/Logging.hpp"
+#include "core/Util.hpp"
 #include "core/fmtmacros.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 const unsigned FLAG_NOZERO = 1; // don't zero with the -z option
 const unsigned FLAG_ALWAYS = 2; // always show, even if zero

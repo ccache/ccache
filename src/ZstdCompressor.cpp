@@ -18,9 +18,9 @@
 
 #include "ZstdCompressor.hpp"
 
-#include "Logging.hpp"
+#include "core/Logging.hpp"
 #include "core/assertions.hpp"
-#include "exceptions.hpp"
+#include "core/exceptions.hpp"
 
 #include <algorithm>
 

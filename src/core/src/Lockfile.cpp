@@ -16,10 +16,10 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Lockfile.hpp"
+#include "core/Lockfile.hpp"
 
-#include "Logging.hpp"
-#include "Util.hpp"
+#include "core/Logging.hpp"
+#include "core/Util.hpp"
 #include "core/fmtmacros.hpp"
 
 #ifdef _WIN32

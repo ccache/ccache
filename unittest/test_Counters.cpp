@@ -16,9 +16,9 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Counters.hpp"
-#include "../src/Statistics.hpp"
 #include "TestUtil.hpp"
+#include "core/Counters.hpp"
+#include "core/Statistics.hpp"
 
 #include "third_party/doctest.h"
 
