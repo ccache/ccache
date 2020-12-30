@@ -16,26 +16,24 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "NullDecompressor.hpp"
+#pragma once
 
-#include "core/exceptions.hpp"
+#include "core/system.hpp"
 
-NullDecompressor::NullDecompressor(FILE* stream) : m_stream(stream)
+#include "compression/Decompressor.hpp"
+#include "core/NonCopyable.hpp"
+
+// A decompressor of an uncompressed stream.
+class NullDecompressor : public Decompressor, NonCopyable
 {
-}
+public:
+  // Parameters:
+  // - stream: The file to read data from.
+  explicit NullDecompressor(FILE* stream);
 
-void
-NullDecompressor::read(void* data, size_t count)
-{
-  if (fread(data, count, 1, m_stream) != 1) {
-    throw Error("failed to read from uncompressed stream");
-  }
-}
+  void read(void* data, size_t count) override;
+  void finalize() override;
 
-void
-NullDecompressor::finalize()
-{
-  if (fgetc(m_stream) != EOF) {
-    throw Error("garbage data at end of uncompressed stream");
-  }
-}
+private:
+  FILE* m_stream;
+};

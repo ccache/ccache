@@ -4,16 +4,11 @@ set(
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
   CacheFile.cpp
-  Compression.cpp
-  Compressor.cpp
   Context.cpp
-  Decompressor.cpp
   Depfile.cpp
   Hash.cpp
   Manifest.cpp
   MiniTrace.cpp
-  NullCompressor.cpp
-  NullDecompressor.cpp
   ProgressBar.cpp
   Result.cpp
   ResultDumper.cpp
@@ -22,8 +17,6 @@ set(
   SignalHandler.cpp
   ThreadPool.cpp
   Util.cpp
-  ZstdCompressor.cpp
-  ZstdDecompressor.cpp
   argprocessing.cpp
   ccache.cpp
   cleanup.cpp
@@ -65,7 +58,8 @@ target_link_libraries(
   PRIVATE standard_settings standard_warnings ZSTD::ZSTD
           Threads::Threads third_party_lib)
 
-target_link_libraries(ccache_lib PUBLIC ccache_core)
+target_link_libraries(ccache_lib PUBLIC ccache_core ccache_compression)
 
 add_subdirectory(third_party)
 add_subdirectory(core)
+add_subdirectory(compression)

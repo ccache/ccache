@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -20,32 +20,21 @@
 
 #include "core/system.hpp"
 
-#include "Compressor.hpp"
+#include "compression/Compressor.hpp"
 #include "core/NonCopyable.hpp"
 
-#include <zstd.h>
-
-// A compressor of a Zstandard stream.
-class ZstdCompressor : public Compressor, NonCopyable
+// A compressor of an uncompressed stream.
+class NullCompressor : public Compressor, NonCopyable
 {
 public:
   // Parameters:
   // - stream: The file to write data to.
-  // - compression_level: Desired compression level.
-  ZstdCompressor(FILE* stream, int8_t compression_level);
-
-  ~ZstdCompressor() override;
+  explicit NullCompressor(FILE* stream);
 
   int8_t actual_compression_level() const override;
   void write(const void* data, size_t count) override;
   void finalize() override;
 
-  constexpr static uint8_t default_compression_level = 1;
-
 private:
   FILE* m_stream;
-  ZSTD_CStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  int8_t m_compression_level;
 };

@@ -21,8 +21,8 @@
 #include "core/system.hpp"
 
 #include "Checksum.hpp"
-#include "Decompressor.hpp"
-#include "Util.hpp"
+#include "compression/Decompressor.hpp"
+#include "core/Util.hpp"
 
 #include <memory>
 

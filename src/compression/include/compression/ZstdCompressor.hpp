@@ -16,25 +16,36 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compressor.hpp"
+#pragma once
 
-#include "NullCompressor.hpp"
-#include "ZstdCompressor.hpp"
-#include "core/StdMakeUnique.hpp"
-#include "core/assertions.hpp"
+#include "core/system.hpp"
 
-std::unique_ptr<Compressor>
-Compressor::create_from_type(Compression::Type type,
-                             FILE* stream,
-                             int8_t compression_level)
+#include "compression/Compressor.hpp"
+#include "core/NonCopyable.hpp"
+
+#include <zstd.h>
+
+// A compressor of a Zstandard stream.
+class ZstdCompressor : public Compressor, NonCopyable
 {
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullCompressor>(stream);
+public:
+  // Parameters:
+  // - stream: The file to write data to.
+  // - compression_level: Desired compression level.
+  ZstdCompressor(FILE* stream, int8_t compression_level);
 
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdCompressor>(stream, compression_level);
-  }
+  ~ZstdCompressor() override;
 
-  ASSERT(false);
-}
+  int8_t actual_compression_level() const override;
+  void write(const void* data, size_t count) override;
+  void finalize() override;
+
+  constexpr static uint8_t default_compression_level = 1;
+
+private:
+  FILE* m_stream;
+  ZSTD_CStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  int8_t m_compression_level;
+};

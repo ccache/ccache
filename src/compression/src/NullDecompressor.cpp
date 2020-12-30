@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2019 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,53 +16,26 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Compression.hpp"
+#include "compression/NullDecompressor.hpp"
 
-#include "core/Config.hpp"
-#include "Context.hpp"
-#include "core/assertions.hpp"
 #include "core/exceptions.hpp"
 
-namespace Compression {
-
-int8_t
-level_from_config(const Config& config)
+NullDecompressor::NullDecompressor(FILE* stream) : m_stream(stream)
 {
-  return config.compression() ? config.compression_level() : 0;
 }
 
-Type
-type_from_config(const Config& config)
+void
+NullDecompressor::read(void* data, size_t count)
 {
-  return config.compression() ? Type::zstd : Type::none;
-}
-
-Type
-type_from_int(uint8_t type)
-{
-  switch (type) {
-  case static_cast<uint8_t>(Type::none):
-    return Type::none;
-
-  case static_cast<uint8_t>(Type::zstd):
-    return Type::zstd;
+  if (fread(data, count, 1, m_stream) != 1) {
+    throw Error("failed to read from uncompressed stream");
   }
-
-  throw Error("Unknown type: {}", type);
 }
 
-std::string
-type_to_string(Type type)
+void
+NullDecompressor::finalize()
 {
-  switch (type) {
-  case Type::none:
-    return "none";
-
-  case Type::zstd:
-    return "zstd";
+  if (fgetc(m_stream) != EOF) {
+    throw Error("garbage data at end of uncompressed stream");
   }
-
-  ASSERT(false);
 }
-
-} // namespace Compression

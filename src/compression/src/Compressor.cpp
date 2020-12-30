@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Joel Rosdahl and other contributors
+// Copyright (C) 2019-2020 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -16,24 +16,25 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "compression/Compressor.hpp"
 
-#include "core/system.hpp"
+#include "compression/NullCompressor.hpp"
+#include "compression/ZstdCompressor.hpp"
+#include "core/StdMakeUnique.hpp"
+#include "core/assertions.hpp"
 
-#include "Decompressor.hpp"
-#include "core/NonCopyable.hpp"
-
-// A decompressor of an uncompressed stream.
-class NullDecompressor : public Decompressor, NonCopyable
+std::unique_ptr<Compressor>
+Compressor::create_from_type(Compression::Type type,
+                             FILE* stream,
+                             int8_t compression_level)
 {
-public:
-  // Parameters:
-  // - stream: The file to read data from.
-  explicit NullDecompressor(FILE* stream);
+  switch (type) {
+  case Compression::Type::none:
+    return std::make_unique<NullCompressor>(stream);
 
-  void read(void* data, size_t count) override;
-  void finalize() override;
+  case Compression::Type::zstd:
+    return std::make_unique<ZstdCompressor>(stream, compression_level);
+  }
 
-private:
-  FILE* m_stream;
-};
+  ASSERT(false);
+}

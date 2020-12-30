@@ -16,32 +16,35 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "NullCompressor.hpp"
+#pragma once
 
-#include "core/exceptions.hpp"
+#include "core/system.hpp"
 
-NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
+#include "compression/Decompressor.hpp"
+
+#include <fstream>
+#include <zstd.h>
+
+// A decompressor of a Zstandard stream.
+class ZstdDecompressor : public Decompressor
 {
-}
+public:
+  // Parameters:
+  // - stream: The file to read data from.
+  explicit ZstdDecompressor(FILE* stream);
 
-int8_t
-NullCompressor::actual_compression_level() const
-{
-  return 0;
-}
+  ~ZstdDecompressor() override;
 
-void
-NullCompressor::write(const void* data, size_t count)
-{
-  if (fwrite(data, 1, count, m_stream) != count) {
-    throw Error("failed to write to uncompressed stream");
-  }
-}
+  void read(void* data, size_t count) override;
+  void finalize() override;
 
-void
-NullCompressor::finalize()
-{
-  if (fflush(m_stream) != 0) {
-    throw Error("failed to finalize uncompressed stream");
-  }
-}
+private:
+  FILE* m_stream;
+  char m_input_buffer[READ_BUFFER_SIZE];
+  size_t m_input_size;
+  size_t m_input_consumed;
+  ZSTD_DStream* m_zstd_stream;
+  ZSTD_inBuffer m_zstd_in;
+  ZSTD_outBuffer m_zstd_out;
+  bool m_reached_stream_end;
+};

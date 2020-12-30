@@ -20,46 +20,33 @@
 
 #include "core/system.hpp"
 
-#include "Compression.hpp"
+#include "compression/Compression.hpp"
 
 #include <memory>
 
-class Compressor
+class Decompressor
 {
 public:
-  virtual ~Compressor() = default;
+  virtual ~Decompressor() = default;
 
-  // Create a compressor for the specified type.
+  // Create a decompressor for the specified type.
   //
   // Parameters:
   // - type: The type.
-  // - stream: The stream to write to.
-  // - compression_level: Desired compression level.
-  static std::unique_ptr<Compressor> create_from_type(Compression::Type type,
-                                                      FILE* stream,
-                                                      int8_t compression_level);
+  // - stream: The stream to read from.
+  static std::unique_ptr<Decompressor> create_from_type(Compression::Type type,
+                                                        FILE* stream);
 
-  // Get the actual compression level used for the compressed stream.
-  virtual int8_t actual_compression_level() const = 0;
-
-  // Write data from a buffer to the compressed stream.
+  // Read data into a buffer from the compressed stream.
   //
   // Parameters:
-  // - data: Data to write.
-  // - count: Size of data to write.
+  // - data: Buffer to write decompressed data to.
+  // - count: How many bytes to write.
   //
   // Throws Error on failure.
-  virtual void write(const void* data, size_t count) = 0;
+  virtual void read(void* data, size_t count) = 0;
 
-  // Write an unsigned integer to the compressed stream.
-  //
-  // Parameters:
-  // - value: Value to write.
-  //
-  // Throws Error on failure.
-  template<typename T> void write(T value);
-
-  // Finalize compression.
+  // Finalize decompression.
   //
   // This method checks that the end state of the compressed stream is correct
   // and throws Error if not.

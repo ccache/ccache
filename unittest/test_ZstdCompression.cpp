@@ -16,11 +16,11 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "../src/Compression.hpp"
-#include "../src/Compressor.hpp"
-#include "../src/Decompressor.hpp"
-#include "core/File.hpp"
 #include "TestUtil.hpp"
+#include "compression/Compression.hpp"
+#include "compression/Compressor.hpp"
+#include "compression/Decompressor.hpp"
+#include "core/File.hpp"
 
 #include "third_party/doctest.h"
 

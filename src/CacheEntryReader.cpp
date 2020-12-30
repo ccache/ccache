@@ -18,9 +18,9 @@
 
 #include "CacheEntryReader.hpp"
 
-#include "Compressor.hpp"
-#include "core/fmtmacros.hpp"
+#include "compression/Compressor.hpp"
 #include "core/exceptions.hpp"
+#include "core/fmtmacros.hpp"
 
 #include "third_party/fmt/core.h"
 

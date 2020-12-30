@@ -16,35 +16,52 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#pragma once
+#include "compression/Compression.hpp"
 
-#include "core/system.hpp"
+#include "core/Config.hpp"
+#include "core/assertions.hpp"
+#include "core/exceptions.hpp"
 
-#include "Decompressor.hpp"
+namespace Compression {
 
-#include <fstream>
-#include <zstd.h>
-
-// A decompressor of a Zstandard stream.
-class ZstdDecompressor : public Decompressor
+int8_t
+level_from_config(const Config& config)
 {
-public:
-  // Parameters:
-  // - stream: The file to read data from.
-  explicit ZstdDecompressor(FILE* stream);
+  return config.compression() ? config.compression_level() : 0;
+}
 
-  ~ZstdDecompressor() override;
+Type
+type_from_config(const Config& config)
+{
+  return config.compression() ? Type::zstd : Type::none;
+}
 
-  void read(void* data, size_t count) override;
-  void finalize() override;
+Type
+type_from_int(uint8_t type)
+{
+  switch (type) {
+  case static_cast<uint8_t>(Type::none):
+    return Type::none;
 
-private:
-  FILE* m_stream;
-  char m_input_buffer[READ_BUFFER_SIZE];
-  size_t m_input_size;
-  size_t m_input_consumed;
-  ZSTD_DStream* m_zstd_stream;
-  ZSTD_inBuffer m_zstd_in;
-  ZSTD_outBuffer m_zstd_out;
-  bool m_reached_stream_end;
-};
+  case static_cast<uint8_t>(Type::zstd):
+    return Type::zstd;
+  }
+
+  throw Error("Unknown type: {}", type);
+}
+
+std::string
+type_to_string(Type type)
+{
+  switch (type) {
+  case Type::none:
+    return "none";
+
+  case Type::zstd:
+    return "zstd";
+  }
+
+  ASSERT(false);
+}
+
+} // namespace Compression

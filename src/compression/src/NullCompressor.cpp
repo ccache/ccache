@@ -16,23 +16,32 @@
 // this program; if not, write to the Free Software Foundation, Inc., 51
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-#include "Decompressor.hpp"
+#include "compression/NullCompressor.hpp"
 
-#include "NullDecompressor.hpp"
-#include "ZstdDecompressor.hpp"
-#include "core/StdMakeUnique.hpp"
-#include "core/assertions.hpp"
+#include "core/exceptions.hpp"
 
-std::unique_ptr<Decompressor>
-Decompressor::create_from_type(Compression::Type type, FILE* stream)
+NullCompressor::NullCompressor(FILE* stream) : m_stream(stream)
 {
-  switch (type) {
-  case Compression::Type::none:
-    return std::make_unique<NullDecompressor>(stream);
+}
 
-  case Compression::Type::zstd:
-    return std::make_unique<ZstdDecompressor>(stream);
+int8_t
+NullCompressor::actual_compression_level() const
+{
+  return 0;
+}
+
+void
+NullCompressor::write(const void* data, size_t count)
+{
+  if (fwrite(data, 1, count, m_stream) != count) {
+    throw Error("failed to write to uncompressed stream");
   }
+}
 
-  ASSERT(false);
+void
+NullCompressor::finalize()
+{
+  if (fflush(m_stream) != 0) {
+    throw Error("failed to finalize uncompressed stream");
+  }
 }
