@@ -688,6 +688,19 @@ process_arg(Context& ctx,
     return nullopt;
   }
 
+  if (config.compiler_type() != CompilerType::clang
+      && (args[i] == "-fcolor-diagnostics"
+          || args[i] == "-fno-color-diagnostics")) {
+    // Special case: If a non-Clang compiler gets -f(no-)color-diagnostics we'll
+    // bail out and just execute the compiler. The reason is that we don't
+    // include -f(no-)color-diagnostics in the hash so there can be a false
+    // cache hit in the following scenario:
+    //
+    //   1. ccache gcc -c example.c                      # adds a cache entry
+    //   2. ccache gcc -c example.c -fcolor-diagnostics  # unexpectedly succeeds
+    return Statistic::unsupported_compiler_option;
+  }
+
   if (args[i] == "-fcolor-diagnostics" || args[i] == "-fdiagnostics-color"
       || args[i] == "-fdiagnostics-color=always") {
     state.color_diagnostics = ColorDiagnostics::always;
