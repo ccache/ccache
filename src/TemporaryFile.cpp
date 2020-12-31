@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -50,11 +50,12 @@ TemporaryFile::TemporaryFile(string_view path_prefix)
 {
   Util::ensure_dir_exists(Util::dir_name(path));
 #ifdef _WIN32
-  // MSVC lacks mkstemp() and [mingw-w64's implementation][1] is problematic, as
+  // MSVC lacks mkstemp() and Mingw-w64's implementation[1] is problematic, as
   // it can reuse the names of recently-deleted files unless the caller
   // remembers to call srand().
-  // [1]:
-  // https://github.com/Alexpux/mingw-w64/blob/d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c
+
+  // [1]: <https://github.com/Alexpux/mingw-w64/blob/
+  // d0d7f784833bbb0b2d279310ddc6afb52fe47a46/mingw-w64-crt/misc/mkstemp.c>
   fd = Fd(bsd_mkstemp(&path[0]));
 #else
   fd = Fd(mkstemp(&path[0]));
