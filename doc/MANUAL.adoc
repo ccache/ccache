@@ -522,9 +522,9 @@ Semantics of *compression_level*:
     levels are however useful when recompressing the cache with command line
     option *-X/--recompress*.
 *< 0*::
-    A negative value corresponds to Zstandard's “ultra-fast” compression
+    A negative value corresponds to Zstandard's ``ultra-fast'' compression
     levels, which are even faster than level 1 but with less good compression
-    ratios. For instance, level *-3* corresponds to “--fast=3” for the *zstd*
+    ratios. For instance, level *-3* corresponds to ``--fast=3'' for the *zstd*
     command line tool. In practice, there is little use for levels lower than
     *-5* or so.
 *0* (default)::
@@ -573,8 +573,8 @@ See the http://zstd.net[Zstandard documentation] for more information.
 
 [[config_file_clone]] *file_clone* (*CCACHE_FILECLONE* or *CCACHE_NOFILECLONE*, see _<<_boolean_values,Boolean values>>_ above)::
 
-    If true, ccache will attempt to use file cloning (also known as “copy on
-    write”, “CoW” or “reflinks”) to store and fetch cached compiler results.
+    If true, ccache will attempt to use file cloning (also known as ``copy on
+    write'', ``CoW'' or ``reflinks'') to store and fetch cached compiler results.
     *file_clone* has priority over <<config_hard_link,*hard_link*>>. The
     default is false.
 +
@@ -931,11 +931,11 @@ Incompressible data:      3.5 GB
 
 Notes:
 
-* The “disk blocks” size is the cache size when taking disk block size into
-  account. This value should match the “cache size” value from “ccache
-  --show-stats”. The other size numbers refer to actual content sizes.
-* “Compressed data” refers to result and manifest files stored in the cache.
-* “Incompressible data” refers to files that are always stored uncompressed
+* The ``disk blocks'' size is the cache size when taking disk block size into
+  account. This value should match the ``cache size'' value from ``ccache
+  --show-stats''. The other size numbers refer to actual content sizes.
+* ``Compressed data'' refers to result and manifest files stored in the cache.
+* ``Incompressible data'' refers to files that are always stored uncompressed
   (triggered by enabling <<config_file_clone,*file_clone*>> or
   <<config_hard_link,*hard_link*>>) or unknown files (for instance files
   created by older ccache versions).
@@ -1248,11 +1248,11 @@ In the direct mode, ccache uses the 160 bit BLAKE3 hash of the
 the *ccache-input-c* + *ccache-input-p* data is used in the preprocessor mode.
 
 The *ccache-input-text* file is a combined text version of the three
-binary input files. It has three sections (“COMMON”, “DIRECT MODE” and
-“PREPROCESSOR MODE”), which is turn contain annotations that say what kind of
+binary input files. It has three sections (``COMMON'', ``DIRECT MODE'' and
+``PREPROCESSOR MODE''), which is turn contain annotations that say what kind of
 data comes next.
 
-To debug why you don’t get an expected cache hit for an object file, you can do
+To debug why you don't get an expected cache hit for an object file, you can do
 something like this:
 
 1. Build with debug mode enabled.
