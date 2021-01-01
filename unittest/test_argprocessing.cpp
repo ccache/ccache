@@ -19,7 +19,7 @@
 #include "../src/Args.hpp"
 #include "../src/Config.hpp"
 #include "../src/Context.hpp"
-#include "../src/Statistics.hpp"
+#include "../src/StatisticEnum.hpp"
 #include "../src/Util.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"

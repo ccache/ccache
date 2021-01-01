@@ -23,6 +23,7 @@
 #include "Config.hpp"
 #include "Context.hpp"
 #include "Logging.hpp"
+#include "Statistics.hpp"
 #include "Util.hpp"
 
 #ifdef INODE_CACHE_SUPPORTED

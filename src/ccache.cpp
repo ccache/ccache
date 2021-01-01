@@ -40,6 +40,7 @@
 #include "ResultExtractor.hpp"
 #include "ResultRetriever.hpp"
 #include "SignalHandler.hpp"
+#include "Statistics.hpp"
 #include "StdMakeUnique.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"

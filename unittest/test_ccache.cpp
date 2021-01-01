@@ -17,6 +17,7 @@
 // Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include "../src/Context.hpp"
+#include "../src/SloppinessEnum.hpp"
 #include "../src/ccache.hpp"
 #include "../src/fmtmacros.hpp"
 #include "TestUtil.hpp"
