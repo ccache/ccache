@@ -134,7 +134,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-{{ matrix.config.version }}-testdir.tar.xz
+          name: ${{ matrix.config.os }}-${{ matrix.config.compiler }}-${{ matrix.config.version }}-testdir.tar.xz
           path: testdir.tar.xz
 
   specific_tests:
