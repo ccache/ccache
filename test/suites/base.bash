@@ -42,6 +42,116 @@ base_tests() {
     expect_equal_object_files reference_test1.o test1.o
 
     # -------------------------------------------------------------------------
+    TEST "don't cache non compiling file (compiler error)"
+    # Otherwise ccache would cache every single incorrect iteration which will never happen again.
+
+    echo 'int main(;' > error_dont_cache.c
+    
+    $REAL_COMPILER -c -o reference.o error_dont_cache.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "int main(;"
+
+    $CCACHE $COMPILER -c error_dont_cache.c -o error.o 2> stderr_cached.txt
+    expect_equal_text_content reference_stderr.txt stderr_cached.txt
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'compile failed' 1
+    expect_stat 'files in cache' 0
+
+    # -------------------------------------------------------------------------
+    TEST "cache non compiling file from cmake tests outside CMakeTmp (compiler error)"
+    unset CCACHE_NODIRECT
+
+    mkdir -p "CMakeFiles/CMakeTmp"
+    echo 'int main(;' > CMakeFiles/CMakeTmp/error.c
+
+    $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "int main(;"
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # direct + preprocessed
+
+    $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> cached_stderr.txt
+    expect_equal_text_content reference_stderr.txt cached_stderr.txt
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
+    TEST "cache non compiling file from cmake tests within CMakeTmp (compiler error)"
+    unset CCACHE_NODIRECT
+
+    mkdir -p "CMakeFiles/CMakeTmp"
+    cd "CMakeFiles/CMakeTmp"
+
+    echo 'int main(;' > error.c
+    backdate error.c
+
+    $CCACHE $COMPILER -c error.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "int main(;"
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+
+    $CCACHE $COMPILER -c error.c -o error.o 2> cached_stderr.txt
+    expect_equal_text_content reference_stderr.txt cached_stderr.txt
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'files in cache' 2
+
+
+    # -------------------------------------------------------------------------
+    TEST "don't cache non compiling file (preprocessor error)"
+    # Otherwise ccache would cache every single incorrect iteration which will never happen again.
+
+    echo '#error This triggers a compiler error' >error_dont_cache.c
+    
+    $REAL_COMPILER -c -o reference.o error_dont_cache.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "This triggers a compiler error"
+
+    $CCACHE $COMPILER -c error_dont_cache.c -o error.o 2> stderr_cached.txt
+    expect_equal_text_content reference_stderr.txt stderr_cached.txt
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'preprocessor error' 1
+    expect_stat 'files in cache' 0
+
+    # -------------------------------------------------------------------------
+    TEST "cache non compiling file from cmake tests outside CMakeTmp (preprocessor error)"
+    unset CCACHE_NODIRECT
+
+    mkdir -p "CMakeFiles/CMakeTmp"
+    echo '#error This triggers a compiler error' >CMakeFiles/CMakeTmp/error.c
+
+    $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "This triggers a compiler error"
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2 # direct + preprocessed
+
+    $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> cached_stderr.txt
+    expect_equal_text_content reference_stderr.txt cached_stderr.txt
+    expect_stat 'cache hit (direct)' 1 # FIXME: Not sure why this is not preprocessed!
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
+    TEST "cache non compiling file from cmake tests within CMakeTmp (preprocessor error)"
+    unset CCACHE_NODIRECT
+
+    mkdir -p "CMakeFiles/CMakeTmp"
+    cd "CMakeFiles/CMakeTmp"
+
+    echo '#error This triggers a compiler error' >error.c
+
+    $CCACHE $COMPILER -c error.c -o error.o 2> reference_stderr.txt
+    expect_contains reference_stderr.txt "error:"
+    expect_contains reference_stderr.txt "This triggers a compiler error"
+    expect_stat 'cache miss' 1
+    expect_stat 'files in cache' 2
+
+    $CCACHE $COMPILER -c error.c -o error.o 2> cached_stderr.txt
+    expect_equal_text_content reference_stderr.txt cached_stderr.txt
+    expect_stat 'cache hit (direct)' 1 # FIXME: Not sure why this is not preprocessed!
+    expect_stat 'files in cache' 2
+
+    # -------------------------------------------------------------------------
     TEST "Version output readable"
 
     # The exact output is not tested, but at least it's something human readable

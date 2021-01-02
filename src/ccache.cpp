@@ -855,6 +855,24 @@ find_coverage_file(const Context& ctx)
   return {true, found_file, found_file == mangled_form};
 }
 
+static bool
+cache_file_although_compilation_failed(std::string input_file,
+                                       std::string output_file)
+{
+  input_file = Util::real_path(input_file);
+  output_file = Util::real_path(output_file);
+
+  const bool cache = input_file.find("/CMakeFiles/") != std::string::npos
+                     || output_file.find("CMakeFiles/") != std::string::npos;
+
+  LOG("cache_file_although_compilation_failed of {} \\ {}: {}",
+      input_file,
+      output_file,
+      cache);
+
+  return cache;
+}
+
 // Run the real compiler and put the result in cache.
 static void
 to_cache(Context& ctx,
@@ -954,12 +972,18 @@ to_cache(Context& ctx,
   }
 
   if (status != 0) {
-    LOG("Compiler gave exit status {}", status);
+    if (cache_file_although_compilation_failed(ctx.args_info.input_file,
+                                               ctx.args_info.output_obj)) {
+      LOG("Compiler gave exit status {}, caching anyway", status);
+      ctx.args_info.expect_output_obj = false;
+    } else {
+      LOG("Compiler gave exit status {}, not caching", status);
 
-    // We can output stderr immediately instead of rerunning the compiler.
-    Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
+      // We can output stderr immediately instead of rerunning the compiler.
+      Util::send_to_stderr(ctx, Util::read_file(tmp_stderr_path));
 
-    throw Failure(Statistic::compile_failed, status);
+      throw Failure(Statistic::compile_failed, status);
+    }
   }
 
   if (ctx.config.depend_mode()) {
@@ -1107,7 +1131,7 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
     }
     args.push_back(ctx.args_info.input_file);
     add_prefix(ctx, args, ctx.config.prefix_command_cpp());
-    LOG_RAW("Running preprocessor");
+    LOG_RAW("Running preprocessor in order to determine result name");
     MTR_BEGIN("execute", "preprocessor");
     status =
       do_execute(ctx, args, std::move(tmp_stdout), std::move(tmp_stderr));
@@ -1116,8 +1140,18 @@ get_result_name_from_cpp(Context& ctx, Args& args, Hash& hash)
   }
 
   if (status != 0) {
-    LOG("Preprocessor gave exit status {}", status);
-    throw Failure(Statistic::preprocessor_error);
+    if (cache_file_although_compilation_failed(ctx.args_info.input_file,
+                                               stdout_path)) {
+      LOG("Preprocessor gave exit status {}, caching anyway", status);
+
+      hash.hash_delimiter("errorcode");
+      hash.hash(fmt::format("{}", status));
+      ctx.args_info.expect_output_obj = false;
+    } else {
+      LOG("Preprocessor gave exit status {}, not caching", status);
+
+      throw Failure(Statistic::preprocessor_error);
+    }
   }
 
   hash.hash_delimiter("cpp");
