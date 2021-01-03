@@ -1086,6 +1086,17 @@ EOF
     expect_stat 'compiler produced empty output' 1
 
     # -------------------------------------------------------------------------
+    TEST "Output to /dev/null"
+
+    $CCACHE_COMPILE -c test1.c
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+
+    $CCACHE_COMPILE -c test1.c -o /dev/null
+    expect_stat 'cache hit (preprocessed)' 1
+    expect_stat 'cache miss' 1
+
+    # -------------------------------------------------------------------------
     TEST "Caching stderr"
 
     cat <<EOF >stderr.c

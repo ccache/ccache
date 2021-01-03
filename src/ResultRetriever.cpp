@@ -128,13 +128,12 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
 void
 ResultRetriever::on_entry_data(const uint8_t* data, size_t size)
 {
-  ASSERT((m_dest_file_type == FileType::stderr_output && !m_dest_fd)
-         || (m_dest_file_type != FileType::stderr_output && m_dest_fd));
+  ASSERT(!(m_dest_file_type == FileType::stderr_output && m_dest_fd));
 
   if (m_dest_file_type == FileType::stderr_output
       || (m_dest_file_type == FileType::dependency && !m_dest_path.empty())) {
     m_dest_data.append(reinterpret_cast<const char*>(data), size);
-  } else {
+  } else if (m_dest_fd) {
     try {
       Util::write_fd(*m_dest_fd, data, size);
     } catch (Error& e) {
