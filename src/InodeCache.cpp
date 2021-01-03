@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -399,7 +399,7 @@ InodeCache::get(const std::string& path,
     } else {
       ++m_sr->misses;
     }
-    LOG("accumulated stats for inode cache: hits={}, misses={}, errors={}",
+    LOG("Accumulated stats for inode cache: hits={}, misses={}, errors={}",
         m_sr->hits.load(),
         m_sr->misses.load(),
         m_sr->errors.load());
