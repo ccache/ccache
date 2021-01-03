@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -40,8 +40,13 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
                                 uint64_t file_len,
                                 nonstd::optional<std::string> raw_file)
 {
-  std::string dest_path;
+  LOG("Reading {} entry #{} {} ({} bytes)",
+      raw_file ? "raw" : "embedded",
+      entry_number,
+      Result::file_type_to_string(file_type),
+      file_len);
 
+  std::string dest_path;
   m_dest_file_type = file_type;
 
   switch (file_type) {
@@ -50,6 +55,8 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     break;
 
   case FileType::dependency:
+    // Dependency file: Open destination file but accumulate data in m_dest_data
+    // and write it in on_entry_end.
     if (m_ctx.args_info.generating_dependencies) {
       dest_path = m_ctx.args_info.output_dep;
       m_dest_data.reserve(file_len);
@@ -57,8 +64,10 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     break;
 
   case FileType::stderr_output:
+    // Stderr data: Don't open a destination file. Instead accumulate it in
+    // m_dest_data and write it in on_entry_end.
     m_dest_data.reserve(file_len);
-    return;
+    break;
 
   case FileType::coverage_unmangled:
     if (m_ctx.args_info.generating_coverage) {
@@ -92,33 +101,27 @@ ResultRetriever::on_entry_start(uint32_t entry_number,
     break;
   }
 
-  if (dest_path.empty()) {
-    LOG_RAW("Not copying");
+  if (file_type == FileType::stderr_output) {
+    // Written in on_entry_end.
+  } else if (dest_path.empty()) {
+    LOG_RAW("Not writing");
   } else if (dest_path == "/dev/null") {
-    LOG_RAW("Not copying to /dev/null");
+    LOG_RAW("Not writing to /dev/null");
+  } else if (raw_file) {
+    Util::clone_hard_link_or_copy_file(m_ctx, *raw_file, dest_path, false);
+
+    // Update modification timestamp to save the file from LRU cleanup (and, if
+    // hard-linked, to make the object file newer than the source file).
+    Util::update_mtime(*raw_file);
   } else {
-    LOG("Retrieving {} file #{} {} ({} bytes)",
-        raw_file ? "raw" : "embedded",
-        entry_number,
-        Result::file_type_to_string(file_type),
-        file_len);
-
-    if (raw_file) {
-      Util::clone_hard_link_or_copy_file(m_ctx, *raw_file, dest_path, false);
-
-      // Update modification timestamp to save the file from LRU cleanup (and,
-      // if hard-linked, to make the object file newer than the source file).
-      Util::update_mtime(*raw_file);
-    } else {
-      LOG("Copying to {}", dest_path);
-      m_dest_fd = Fd(
-        open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
-      if (!m_dest_fd) {
-        throw Error(
-          "Failed to open {} for writing: {}", dest_path, strerror(errno));
-      }
-      m_dest_path = dest_path;
+    LOG("Writing to {}", dest_path);
+    m_dest_fd = Fd(
+      open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666));
+    if (!m_dest_fd) {
+      throw Error(
+        "Failed to open {} for writing: {}", dest_path, strerror(errno));
     }
+    m_dest_path = dest_path;
   }
 }
 
@@ -144,6 +147,7 @@ void
 ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stderr_output) {
+    LOG("Writing to file descriptor {}", STDERR_FILENO);
     Util::send_to_stderr(m_ctx, m_dest_data);
   } else if (m_dest_file_type == FileType::dependency && !m_dest_path.empty()) {
     write_dependency_file();
