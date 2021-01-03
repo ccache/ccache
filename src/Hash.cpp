@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -106,7 +106,7 @@ bool
 Hash::hash_fd(int fd)
 {
   return Util::read_fd(
-    fd, [=](const void* data, size_t size) { hash(data, size); });
+    fd, [this](const void* data, size_t size) { hash(data, size); });
 }
 
 bool
