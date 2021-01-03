@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -1069,12 +1069,6 @@ process_args(Context& ctx)
   }
 
   if (args_info.seen_split_dwarf) {
-    size_t pos = args_info.output_obj.rfind('.');
-    if (pos == std::string::npos || pos == args_info.output_obj.size() - 1) {
-      LOG_RAW("Badly formed object filename");
-      return Statistic::bad_compiler_arguments;
-    }
-
     args_info.output_dwo = Util::change_extension(args_info.output_obj, ".dwo");
   }
 

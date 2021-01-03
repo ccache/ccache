@@ -142,4 +142,38 @@ SUITE_split_dwarf() {
     elif [ ! -f reference.dwo ] && [ -f test.dwo ]; then
         test_failed ".dwo not missing"
     fi
+
+    # -------------------------------------------------------------------------
+    TEST "Object file without dot"
+
+    $CCACHE_COMPILE -gsplit-dwarf -c test.c -o test
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_exists test.dwo
+
+    rm test.dwo
+
+    $CCACHE_COMPILE -gsplit-dwarf -c test.c -o test
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_exists test.dwo
+
+    # -------------------------------------------------------------------------
+    TEST "Object file with two dots"
+
+    $CCACHE_COMPILE -gsplit-dwarf -c test.c -o test.x.y
+    expect_stat 'cache hit (direct)' 0
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_exists test.x.dwo
+
+    rm test.x.dwo
+
+    $CCACHE_COMPILE -gsplit-dwarf -c test.c -o test.x.y
+    expect_stat 'cache hit (direct)' 1
+    expect_stat 'cache hit (preprocessed)' 0
+    expect_stat 'cache miss' 1
+    expect_exists test.x.dwo
 }
