@@ -1,4 +1,4 @@
-// Copyright (C) 2011-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2011-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -48,6 +48,7 @@ TEST_CASE("Config: default values")
   CHECK(config.compression_level() == 0);
   CHECK(config.cpp_extension().empty());
   CHECK(!config.debug());
+  CHECK(config.debug_dir().empty());
   CHECK(!config.depend_mode());
   CHECK(config.direct_mode());
   CHECK(!config.disable());
@@ -375,6 +376,7 @@ TEST_CASE("Config::visit_items")
     "compression_level = 8\n"
     "cpp_extension = ce\n"
     "debug = false\n"
+    "debug_dir = /dd\n"
     "depend_mode = true\n"
     "direct_mode = false\n"
     "disable = true\n"
@@ -431,6 +433,7 @@ TEST_CASE("Config::visit_items")
     "(test.conf) compression_level = 8",
     "(test.conf) cpp_extension = ce",
     "(test.conf) debug = false",
+    "(test.conf) debug_dir = /dd",
     "(test.conf) depend_mode = true",
     "(test.conf) direct_mode = false",
     "(test.conf) disable = true",

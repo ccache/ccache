@@ -51,6 +51,7 @@ public:
   int8_t compression_level() const;
   const std::string& cpp_extension() const;
   bool debug() const;
+  const std::string& debug_dir() const;
   bool depend_mode() const;
   bool direct_mode() const;
   bool disable() const;
@@ -142,6 +143,7 @@ private:
   int8_t m_compression_level = 0; // Use default level
   std::string m_cpp_extension;
   bool m_debug = false;
+  std::string m_debug_dir;
   bool m_depend_mode = false;
   bool m_direct_mode = true;
   bool m_disable = false;
@@ -241,6 +243,12 @@ inline bool
 Config::debug() const
 {
   return m_debug;
+}
+
+inline const std::string&
+Config::debug_dir() const
+{
+  return m_debug_dir;
 }
 
 inline bool

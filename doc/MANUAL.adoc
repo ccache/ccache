@@ -550,6 +550,19 @@ See the http://zstd.net[Zstandard documentation] for more information.
     _<<_cache_debugging,Cache debugging>>_ for more information. The default is
     false.
 
+[[config_debug_dir]] *debug_dir* (*CCACHE_DEBUGDIR*)::
+
+    Specifies where to write per-object debug files if the _<<config_debug,debug
+    mode>>_ is enabled. If set to the empty string, the files will be written
+    next to the object file. If set to a directory, the debug files will be
+    written with full absolute paths in that directory, creating it if needed.
+    The default is the empty string.
+
+    For example, if *debug_dir* is set to `/example`, the current working
+    directory is `/home/user` and the object file is `build/output.o` then the
+    debug log will be written to `/example/home/user/build/output.o.ccache-log`.
+    See also _<<_cache_debugging,Cache debugging>>_.
+
 [[config_depend_mode]] *depend_mode* (*CCACHE_DEPEND* or *CCACHE_NODEPEND*, see _<<_boolean_values,Boolean values>>_ above)::
 
     If true, the depend mode will be used. The default is false. See
@@ -1242,6 +1255,10 @@ Human-readable combined diffable text version of the three files above.
 Log for this object file.
 
 |==============================================================================
+
+If <<config_debug_dir,*config_dir*>> (environment variable *CCACHE_DEBUGDIR*) is
+set, the files above will be written to that directory with full absolute paths
+instead of next to the object file.
 
 In the direct mode, ccache uses the 160 bit BLAKE3 hash of the
 *ccache-input-c* + *ccache-input-d* data (where *+* means concatenation), while
