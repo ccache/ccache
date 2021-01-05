@@ -22,6 +22,7 @@
 #include "Logging.hpp"
 #include "SignalHandler.hpp"
 #include "Util.hpp"
+#include "compilecommand.hpp"
 #include "hashutil.hpp"
 
 #include <algorithm>
@@ -43,6 +44,15 @@ Context::Context()
 Context::~Context()
 {
   unlink_pending_tmp_files();
+
+  if (compile_command() && args_info.expect_output_obj) {
+    if (ccmd_filename.empty()) {
+      ccmd_filename = Util::change_extension(args_info.output_obj, ".ccmd");
+    }
+
+    write_compile_command_json(
+      *this, ccmd_filename, args_info.input_file, args_info.output_obj);
+  }
 }
 
 void
@@ -88,4 +98,10 @@ Context::set_ignore_options(const std::vector<std::string>& options)
       continue;
     }
   }
+}
+
+bool
+Context::compile_command() const
+{
+  return ccmd_via_ccache || !ccmd_filename.empty();
 }

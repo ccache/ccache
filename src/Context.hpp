@@ -127,6 +127,13 @@ public:
   // `nullopt` if there is no such configuration.
   nonstd::optional<mode_t> original_umask;
 
+  // Is the compiler or ccache being asked to generate a compile_commands.json
+  // fragment?
+  std::string ccmd_filename;
+  bool ccmd_via_ccache = false;
+
+  bool compile_command() const;
+
 #ifdef MTR_ENABLED
   // Internal tracing.
   std::unique_ptr<MiniTrace> mini_trace;

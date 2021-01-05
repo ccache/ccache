@@ -278,10 +278,52 @@ process_arg(Context& ctx,
   }
 
   // These are always too hard.
-  if (compopt_too_hard(args[i]) || Util::starts_with(args[i], "-fdump-")
-      || Util::starts_with(args[i], "-MJ")) {
+  if (compopt_too_hard(args[i]) || Util::starts_with(args[i], "-fdump-")) {
     LOG("Compiler option {} is unsupported", args[i]);
     return Statistic::unsupported_compiler_option;
+  }
+
+  if (Util::starts_with(args[i], "-MJ")) {
+    if (!((config.sloppiness() & SLOPPY_COMPILE_COMMAND))) {
+      LOG_RAW(
+        "Compiler option -MJ only supported with sloppiness "
+        "\"compile_command\"");
+      return Statistic::unsupported_compiler_option;
+    }
+
+    nonstd::string_view MJ_arg;
+    // ["-MJfile"] or ["-MJ", "file"]
+    // note: No -MJ=...is possible
+    if (args[i].size() > 3) {
+      MJ_arg = nonstd::string_view(args[i].data() + 3, args[i].size() - 3);
+      ctx.orig_args.erase_with_prefix(args[i]);
+    } else if (i != args.size() - 1) {
+      MJ_arg = args[i + 1];
+      i++;
+      ctx.orig_args.erase_matching_and_next("-MJ");
+    } else {
+      LOG("Missing argument to {}", args[i]);
+      return Statistic::bad_compiler_arguments;
+    }
+
+    // --ccache-*-MJ overrules -MJ
+    if (!ctx.ccmd_via_ccache) {
+      ctx.ccmd_filename = std::string(MJ_arg);
+    }
+    return nullopt;
+  }
+
+  if (args[i] == "--ccache-MJ") {
+    i++;
+    ctx.ccmd_filename = std::string(args[i]);
+    ctx.ccmd_via_ccache = true;
+    return nullopt;
+  }
+
+  if (args[i] == "--ccache-auto-MJ") {
+    ctx.ccmd_filename.clear();
+    ctx.ccmd_via_ccache = true;
+    return nullopt;
   }
 
   // These are too hard in direct mode.

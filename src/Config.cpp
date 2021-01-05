@@ -272,6 +272,8 @@ parse_sloppiness(const std::string& value)
       result |= SLOPPY_LOCALE;
     } else if (token == "modules") {
       result |= SLOPPY_MODULES;
+    } else if (token == "compile_command" || token == "compile_commands") {
+      result |= SLOPPY_COMPILE_COMMAND;
     } // else: ignore unknown value for forward compatibility
     start = value.find_first_not_of(", ", end);
   }

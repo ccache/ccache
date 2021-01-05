@@ -36,12 +36,14 @@ set(
   assertions.cpp
   ccache.cpp
   cleanup.cpp
+  compilecommand.cpp
   compopt.cpp
   compress.cpp
   execute.cpp
   hashutil.cpp
   language.cpp
-  version.cpp)
+  version.cpp
+)
 
 if(INODE_CACHE_SUPPORTED)
   list(APPEND source_files InodeCache.cpp)

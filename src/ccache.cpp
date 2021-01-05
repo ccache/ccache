@@ -922,6 +922,9 @@ to_cache(Context& ctx,
     // Use the original arguments (including dependency options) in depend
     // mode.
     Args depend_mode_args = ctx.orig_args;
+    if (ctx.compile_command()) {
+      depend_mode_args.erase_matching_and_next("--ccache-MJ");
+    }
     depend_mode_args.erase_with_prefix("--ccache-");
     depend_mode_args.push_back(depend_extra_args);
     add_prefix(ctx, depend_mode_args, ctx.config.prefix_command());
@@ -2214,14 +2217,25 @@ cache_compilation(int argc, const char* const* argv)
 
       original_umask = ctx.original_umask;
 
+      bool create_ccmd = ctx.compile_command();
+
       ASSERT(!ctx.orig_args.empty());
 
+      if (create_ccmd) {
+        ctx.orig_args.erase_matching_and_next("--ccache-MJ");
+      }
       ctx.orig_args.erase_with_prefix("--ccache-");
+
       add_prefix(ctx, ctx.orig_args, ctx.config.prefix_command());
 
       LOG_RAW("Failed; falling back to running the real compiler");
 
-      saved_orig_args = std::move(ctx.orig_args);
+      if (create_ccmd) {
+        // leave ctx intact (something runs in the d'tor)
+        saved_orig_args = ctx.orig_args;
+      } else {
+        saved_orig_args = std::move(ctx.orig_args);
+      }
       auto execv_argv = saved_orig_args.to_argv();
       LOG("Executing {}", Util::format_argv_for_logging(execv_argv.data()));
       // Run execv below after ctx and finalizer have been destructed.

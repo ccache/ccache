@@ -66,6 +66,10 @@ public:
   // Remove all arguments with prefix `prefix`.
   void erase_with_prefix(nonstd::string_view prefix);
 
+  // Remove all arguments matching `name` and (if not the last) the one
+  // following it. E.g. given '-A' and [-A, b, c, -A, d, e, -A] -> [c, e].
+  void erase_matching_and_next(nonstd::string_view name);
+
   // Insert arguments in `args` at position `index`.
   void insert(size_t index, const Args& args);
 

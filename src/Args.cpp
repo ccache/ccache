@@ -176,6 +176,29 @@ Args::erase_with_prefix(string_view prefix)
 }
 
 void
+Args::erase_matching_and_next(nonstd::string_view name)
+{
+  auto erase_start = std::find(m_args.begin(), m_args.end(), name);
+  if (erase_start == m_args.end()) {
+    return;
+  }
+
+  for (auto it = erase_start; it != m_args.end();) {
+    if (*it == name) {
+      ++it;
+      if (it != m_args.end()) {
+        ++it;
+      }
+    } else {
+      *erase_start = std::move(*it);
+      erase_start++;
+      ++it;
+    }
+  }
+  m_args.erase(erase_start, m_args.end());
+}
+
+void
 Args::insert(size_t index, const Args& args)
 {
   if (args.size() == 0) {

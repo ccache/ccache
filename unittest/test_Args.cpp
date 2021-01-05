@@ -308,4 +308,76 @@ TEST_CASE("Args operations")
   }
 }
 
+TEST_CASE("Args erase_matching_and_next")
+{
+  Args no_args;
+
+  SUBCASE("empty 1")
+  {
+    no_args.erase_matching_and_next("");
+    CHECK(no_args == Args::from_string(""));
+  }
+
+  SUBCASE("empty 2")
+  {
+    no_args.erase_matching_and_next("foo");
+    CHECK(no_args == Args::from_string(""));
+  }
+
+  Args simple = Args::from_string("a X b");
+
+  SUBCASE("simple 1")
+  {
+    simple.erase_matching_and_next("");
+    CHECK(simple == Args::from_string("a X b"));
+  }
+
+  SUBCASE("simple 2")
+  {
+    simple.erase_matching_and_next("X");
+    CHECK(simple == Args::from_string("a"));
+  }
+
+  SUBCASE("simple 3")
+  {
+    simple.erase_matching_and_next("b");
+    CHECK(simple == Args::from_string("a X"));
+  }
+
+  Args longer = Args::from_string("A w A A x A A A y z A");
+
+  SUBCASE("longer 1")
+  {
+    auto orig = longer;
+    longer.erase_matching_and_next("C");
+    CHECK(longer == orig);
+  }
+
+  SUBCASE("longer 2")
+  {
+    longer.erase_matching_and_next("A");
+    CHECK(longer == Args::from_string("x z"));
+  }
+
+  SUBCASE("longer 3")
+  {
+    longer.erase_matching_and_next("y");
+    CHECK(longer == Args::from_string("A w A A x A A A A"));
+  }
+
+  SUBCASE("complete, even")
+  {
+    Args even = Args::from_string("c c c c");
+    even.erase_matching_and_next("c");
+    CHECK(even == Args::from_string(""));
+  }
+
+  SUBCASE("complete, odd")
+  {
+    Args odd = Args::from_string("c c c c c");
+    odd.erase_matching_and_next("c");
+    CHECK(odd == Args::from_string(""));
+  }
+}
+
 TEST_SUITE_END();

@@ -232,6 +232,12 @@ Detailed functional changes
   strips the color codes on the fly when requested explicitly by a command line
   option or when stderr does not refer to a TTY. This allows IDEs and terminals
   to share cached compilation results.
+- Add support for clang option `-MJ` which generates a compile_commands.json
+  fragment if sloppiness "compile_command" is set.
+  Also add explicit `--ccache-MJ output.ccmd` which writes to the provided file
+  and `--ccache-auto-MJ` which automatically deduces the output.ccmd filename
+  from the output object filename. These last two arguments do not require any
+  sloppiness to be set.
 
 - The configuration option `compiler` (`CCACHE_COMPILER`) now always takes
   effect if specified. Previously, the configuration option was only used when
