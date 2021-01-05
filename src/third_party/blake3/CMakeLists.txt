@@ -25,8 +25,6 @@ function(add_source_if_enabled feature compile_flags intrinsic)
       AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     message(STATUS "Detected unsupported compiler for ${have_feature} - disabled")
     set(${have_feature} FALSE)
-  elseif(${blake_source_type} STREQUAL "asm")
-    check_asm_compiler_flag(${compile_flags} ${have_feature})
   else()
     set(CMAKE_REQUIRED_FLAGS ${compile_flags})
     check_c_source_compiles(
