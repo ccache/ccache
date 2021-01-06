@@ -558,9 +558,9 @@ SOFTWARE.
 src/third_party/nonstd/optional.hpp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This alternative implementation of `std::optional` was downloaded from
-<https://github.com/martinmoene/optional-lite> and has the following license
-text:
+This is the single header version of
+https://github.com/martinmoene/optional-lite[optional-lite] 3.4.0 with the
+following license:
 
 -------------------------------------------------------------------------------
 Copyright (c) 2014-2018 Martin Moene
