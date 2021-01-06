@@ -20,6 +20,8 @@ To build ccache you need:
        from the Internet and unpack it in the local binary tree. Ccache will
        then be linked statically to the locally built libzstd.
 
+  To link libzstd statically you can use `-DZSTD_LIBRARY=/path/to/libzstd.a`.
+
 Optional:
 
 - GNU Bourne Again SHell (bash) for tests.
