@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Joel Rosdahl and other contributors
+// Copyright (C) 2020-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -18,11 +18,12 @@
 
 #include "SignalHandler.hpp"
 
-#include "assertions.hpp"
-
 #ifndef _WIN32
 
 #  include "Context.hpp"
+#  include "assertions.hpp"
+
+#  include <signal.h>
 
 namespace {
 
