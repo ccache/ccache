@@ -27,10 +27,10 @@ class Context;
 
 struct ProcessArgsResult
 {
-  ProcessArgsResult(Statistic error);
-  ProcessArgsResult(const Args& preprocessor_args,
-                    const Args& extra_args_to_hash,
-                    const Args& compiler_args);
+  ProcessArgsResult(Statistic error_);
+  ProcessArgsResult(const Args& preprocessor_args_,
+                    const Args& extra_args_to_hash_,
+                    const Args& compiler_args_);
 
   // nullopt on success, otherwise the statistics counter that should be
   // incremented.

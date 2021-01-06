@@ -84,7 +84,7 @@ public:
   void set_cache_dir(const std::string& value);
   void set_cpp_extension(const std::string& value);
   void set_compiler(const std::string& value);
-  void set_compiler_type(CompilerType compiler_type);
+  void set_compiler_type(CompilerType value);
   void set_depend_mode(bool value);
   void set_debug(bool value);
   void set_direct_mode(bool value);

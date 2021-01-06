@@ -40,7 +40,7 @@ endif()
 # Treat third party headers as system files (no warning for those headers).
 target_include_directories(
   third_party_lib
-  PRIVATE ${CMAKE_BINARY_DIR} . SYSTEM)
+  PRIVATE ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} SYSTEM)
 
 target_link_libraries(third_party_lib PRIVATE standard_settings)
 target_link_libraries(third_party_lib INTERFACE blake3)
