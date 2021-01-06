@@ -6,7 +6,7 @@ if(ZSTD_FROM_INTERNET)
   # Although ${zstd_FIND_VERSION} was requested, let's download a newer version.
   # Note: The directory structure has changed in 1.3.0; we only support 1.3.0
   # and newer.
-  set(zstd_version "1.4.5")
+  set(zstd_version "1.4.8")
   set(zstd_url https://github.com/facebook/zstd/archive/v${zstd_version}.tar.gz)
 
   set(zstd_dir ${CMAKE_BINARY_DIR}/zstd-${zstd_version})
