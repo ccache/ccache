@@ -286,21 +286,21 @@ jobs:
         if: matrix.config.apt_get != ''
         run: sudo apt-get update && sudo apt-get install ${{ matrix.config.apt_get }}
 
-      - name: Prepare Windows Environment (Visual Studio)
+      - name: Prepare Windows environment (Visual Studio)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1.5.0
         with:
           arch: ${{ matrix.config.msvc_arch }}
 
-      - name: Prepare Windows Environment (Clang)
+      - name: Prepare Windows environment (Clang)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
 
-          # The test suite currently requires that the compiler specified by the "CC"
-          # env variable is on a path without spaces. Provide that by creating a
-          # junction from ~/opt/llvm to the Visual Studio path.
+          # The test suite currently requires that the compiler specified by the
+          # "CC" environment variable is on a path without spaces. Provide that
+          # by creating a junction from ~/opt/llvm to the Visual Studio path.
           $null = New-Item `
             -Path "${HOME}\opt\llvm" `
             -ItemType Junction `
@@ -332,7 +332,7 @@ jobs:
           ci/build || rc=$?
           echo "::set-output name=exit_status::$rc"
           exit $rc
-        # Ctest exits with a return code of `8` on test failure.
+        # CTest exits with return code 8 on test failure.
         continue-on-error: ${{ matrix.config.allow_test_failures == true &&
           steps.build-and-test.outputs.exit_status == 8 }}
 
