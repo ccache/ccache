@@ -421,12 +421,12 @@ src/third_party/doctest.h
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is the single header version of https://github.com/onqtam/doctest[doctest]
-2.4.0 with the following license:
+2.4.4 with the following license:
 
 -------------------------------------------------------------------------------
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Viktor Kirilov
+Copyright (c) 2016-2020 Viktor Kirilov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
