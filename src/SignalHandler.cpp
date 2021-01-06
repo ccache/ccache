@@ -23,7 +23,7 @@
 #  include "Context.hpp"
 #  include "assertions.hpp"
 
-#  include <signal.h>
+#  include <signal.h> // NOLINT: sigaddset et al are defined in signal.h
 
 namespace {
 
