@@ -839,8 +839,9 @@ still has to do _some_ preprocessing (like macros).
     hash but not add the system header files to the list of include files.
 *time_macros*::
     Ignore `__DATE__`, `__TIME__` and `__TIMESTAMP__` being present in the
-    source code. It will also ignore `SOURCE_DATE_EPOCH`
-    https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html[environment variable]
+    source code. The
+    https://reproducible-builds.org/docs/source-date-epoch/[`SOURCE_DATE_EPOCH`
+    environment variable] will also be ignored.
 --
 +
 See the discussion under _<<_troubleshooting,Troubleshooting>>_ for more

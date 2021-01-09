@@ -1288,10 +1288,10 @@ hash_common_info(const Context& ctx,
   hash.hash(Util::base_name(args[0]));
 
   // Hash variables that may affect the compilation.
-  struct
+  const struct
   {
     const char* name;
-    uint32_t sloppiness;
+    uint32_t sloppiness; // 0 for "always hash"
   } hash_env_vars[] = {
     // From <https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html>:
     {"COMPILER_PATH", 0},
@@ -1300,7 +1300,7 @@ hash_common_info(const Context& ctx,
     {"SOURCE_DATE_EPOCH", SLOPPY_TIME_MACROS},
   };
   for (const auto& env : hash_env_vars) {
-    if (env.sloppiness && (ctx.config.sloppiness() & env.sloppiness)) {
+    if (env.sloppiness != 0 && (ctx.config.sloppiness() & env.sloppiness)) {
       continue;
     }
     const char* value = getenv(env.name);
