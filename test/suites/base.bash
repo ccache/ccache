@@ -101,11 +101,11 @@ base_tests() {
     TEST "don't cache non compiling file (preprocessor error)"
     # Otherwise ccache would cache every single incorrect iteration which will never happen again.
 
-    echo '#error This triggers a compiler error' >error_dont_cache.c
+    echo '#error This triggers a preprocessor error' >error_dont_cache.c
     
     $REAL_COMPILER -c -o reference.o error_dont_cache.c -o error.o 2> reference_stderr.txt
     expect_contains reference_stderr.txt "error:"
-    expect_contains reference_stderr.txt "This triggers a compiler error"
+    expect_contains reference_stderr.txt "This triggers a preprocessor error"
 
     $CCACHE $COMPILER -c error_dont_cache.c -o error.o 2> stderr_cached.txt
     expect_equal_text_content reference_stderr.txt stderr_cached.txt
@@ -118,17 +118,17 @@ base_tests() {
     unset CCACHE_NODIRECT
 
     mkdir -p "CMakeFiles/CMakeTmp"
-    echo '#error This triggers a compiler error' >CMakeFiles/CMakeTmp/error.c
+    echo '#error This triggers a preprocessor error' >CMakeFiles/CMakeTmp/error.c
 
     $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> reference_stderr.txt
     expect_contains reference_stderr.txt "error:"
-    expect_contains reference_stderr.txt "This triggers a compiler error"
+    expect_contains reference_stderr.txt "This triggers a preprocessor error"
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2 # direct + preprocessed
 
     $CCACHE $COMPILER -c CMakeFiles/CMakeTmp/error.c -o error.o 2> cached_stderr.txt
     expect_equal_text_content reference_stderr.txt cached_stderr.txt
-    expect_stat 'cache hit (direct)' 1 # FIXME: Not sure why this is not preprocessed!
+    expect_stat 'cache hit (direct)' 1
     expect_stat 'files in cache' 2
 
     # -------------------------------------------------------------------------
@@ -138,17 +138,17 @@ base_tests() {
     mkdir -p "CMakeFiles/CMakeTmp"
     cd "CMakeFiles/CMakeTmp"
 
-    echo '#error This triggers a compiler error' >error.c
+    echo '#error This triggers a preprocessor error' >error.c
 
     $CCACHE $COMPILER -c error.c -o error.o 2> reference_stderr.txt
     expect_contains reference_stderr.txt "error:"
-    expect_contains reference_stderr.txt "This triggers a compiler error"
+    expect_contains reference_stderr.txt "This triggers a preprocessor error"
     expect_stat 'cache miss' 1
     expect_stat 'files in cache' 2
 
     $CCACHE $COMPILER -c error.c -o error.o 2> cached_stderr.txt
     expect_equal_text_content reference_stderr.txt cached_stderr.txt
-    expect_stat 'cache hit (direct)' 1 # FIXME: Not sure why this is not preprocessed!
+    expect_stat 'cache hit (direct)' 1
     expect_stat 'files in cache' 2
 
     # -------------------------------------------------------------------------
