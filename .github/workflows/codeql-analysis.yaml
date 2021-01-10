@@ -1,0 +1,49 @@
+# More info:
+# https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning
+
+name: "CodeQL"
+
+on:
+  push:
+    branches: [*]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [*]
+    paths-ignore:
+      - '**/*.adoc'
+      - '**/*.bash'
+      - '**/*.md'
+  schedule:
+    # Full scan once a week
+    - cron: '0 14 * * 3'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        # We must fetch at least the immediate parents so that if this is
+        # a pull request then we can checkout the head.
+        fetch-depth: 2
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install ninja-build elfutils libzstd1-dev
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: cpp
+        queries: +security-and-quality
+
+    - name: Build
+      run: ci/build
+      env:
+        RUN_TESTS: none
+        CMAKE_GENERATOR: Ninja
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
