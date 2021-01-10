@@ -1,5 +1,5 @@
 // Copyright (C) 2002 Andrew Tridgell
-// Copyright (C) 2009-2020 Joel Rosdahl and other contributors
+// Copyright (C) 2009-2021 Joel Rosdahl and other contributors
 //
 // See doc/AUTHORS.adoc for a complete list of contributors.
 //
@@ -91,7 +91,7 @@ do_log(string_view message, bool bulk)
       snprintf(timestamp,
                sizeof(timestamp),
                "%llu",
-               (long long unsigned int)tv.tv_sec);
+               static_cast<long long unsigned int>(tv.tv_sec));
     }
     snprintf(prefix,
              sizeof(prefix),
