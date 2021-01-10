@@ -88,7 +88,10 @@ do_log(string_view message, bool bulk)
     if (tm) {
       strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S", &*tm);
     } else {
-      snprintf(timestamp, sizeof(timestamp), "%lu", tv.tv_sec);
+      snprintf(timestamp,
+               sizeof(timestamp),
+               "%llu",
+               (long long unsigned int)tv.tv_sec);
     }
     snprintf(prefix,
              sizeof(prefix),
