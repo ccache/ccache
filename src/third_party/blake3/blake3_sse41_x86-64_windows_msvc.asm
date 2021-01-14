@@ -1,15 +1,15 @@
-public _blake3_hash_many_sse2
-public blake3_hash_many_sse2
-public blake3_compress_in_place_sse2
-public _blake3_compress_in_place_sse2
-public blake3_compress_xof_sse2
-public _blake3_compress_xof_sse2
+public _blake3_hash_many_sse41
+public blake3_hash_many_sse41
+public blake3_compress_in_place_sse41
+public _blake3_compress_in_place_sse41
+public blake3_compress_xof_sse41
+public _blake3_compress_xof_sse41
 
 _TEXT   SEGMENT ALIGN(16) 'CODE'
 
 ALIGN   16
-blake3_hash_many_sse2 PROC
-_blake3_hash_many_sse2 PROC
+blake3_hash_many_sse41 PROC
+_blake3_hash_many_sse41 PROC
         push    r15
         push    r14
         push    r13
@@ -192,14 +192,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [BLAKE3_IV_0]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -238,22 +235,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -292,14 +278,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -338,22 +321,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -392,14 +364,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -438,22 +407,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -492,14 +450,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -538,22 +493,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -592,14 +536,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -638,22 +579,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -692,14 +622,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -738,22 +665,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -792,14 +708,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -838,22 +751,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -892,14 +794,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -938,22 +837,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -992,14 +880,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1038,22 +923,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1092,14 +966,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1138,22 +1009,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1192,14 +1052,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1238,22 +1095,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1292,14 +1138,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1338,22 +1181,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1392,14 +1224,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1438,22 +1267,11 @@ innerloop4:
         pxor    xmm13, xmm1
         pxor    xmm14, xmm2
         pxor    xmm15, xmm3
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
+        pshufb  xmm15, xmm8
         movdqa  xmm8, xmmword ptr [rsp+100H]
         paddd   xmm8, xmm12
         paddd   xmm9, xmm13
@@ -1492,14 +1310,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        pshuflw xmm15, xmm15, 0B1H
-        pshufhw xmm15, xmm15, 0B1H
-        pshuflw xmm12, xmm12, 0B1H
-        pshufhw xmm12, xmm12, 0B1H
-        pshuflw xmm13, xmm13, 0B1H
-        pshufhw xmm13, xmm13, 0B1H
-        pshuflw xmm14, xmm14, 0B1H
-        pshufhw xmm14, xmm14, 0B1H
+        movdqa  xmm8, xmmword ptr [ROT16]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1538,22 +1353,11 @@ innerloop4:
         pxor    xmm12, xmm1
         pxor    xmm13, xmm2
         pxor    xmm14, xmm3
-        movdqa  xmm8, xmm15
-        psrld   xmm15, 8
-        pslld   xmm8, 24
-        pxor    xmm15, xmm8
-        movdqa  xmm8, xmm12
-        psrld   xmm12, 8
-        pslld   xmm8, 24
-        pxor    xmm12, xmm8
-        movdqa  xmm8, xmm13
-        psrld   xmm13, 8
-        pslld   xmm8, 24
-        pxor    xmm13, xmm8
-        movdqa  xmm8, xmm14
-        psrld   xmm14, 8
-        pslld   xmm8, 24
-        pxor    xmm14, xmm8
+        movdqa  xmm8, xmmword ptr [ROT8]
+        pshufb  xmm15, xmm8
+        pshufb  xmm12, xmm8
+        pshufb  xmm13, xmm8
+        pshufb  xmm14, xmm8
         paddd   xmm10, xmm15
         paddd   xmm11, xmm12
         movdqa  xmm8, xmmword ptr [rsp+100H]
@@ -1668,12 +1472,12 @@ final3blocks:
         movaps  xmm8, xmm0
         movaps  xmm9, xmm1
         movd    xmm13, dword ptr [rsp+110H]
-        movd    xmm14, dword ptr [rsp+120H]
-        punpckldq xmm13, xmm14
+        pinsrd  xmm13, dword ptr [rsp+120H], 1
+        pinsrd  xmm13, dword ptr [BLAKE3_BLOCK_LEN], 2
         movaps  xmmword ptr [rsp], xmm13
         movd    xmm14, dword ptr [rsp+114H]
-        movd    xmm13, dword ptr [rsp+124H]
-        punpckldq xmm14, xmm13
+        pinsrd  xmm14, dword ptr [rsp+124H], 1
+        pinsrd  xmm14, dword ptr [BLAKE3_BLOCK_LEN], 2
         movaps  xmmword ptr [rsp+10H], xmm14
         mov     r8, qword ptr [rdi]
         mov     r9, qword ptr [rdi+8H]
@@ -1714,14 +1518,10 @@ innerloop2:
         pshufd  xmm14, xmm14, 93H
         shufps  xmm11, xmm15, 221
         pshufd  xmm15, xmm11, 93H
-        shl     rax, 20H
-        or      rax, 40H
-        movd    xmm3, rax
-        movdqa  xmmword ptr [rsp+20H], xmm3
         movaps  xmm3, xmmword ptr [rsp]
         movaps  xmm11, xmmword ptr [rsp+10H]
-        punpcklqdq xmm3, xmmword ptr [rsp+20H]
-        punpcklqdq xmm11, xmmword ptr [rsp+20H]
+        pinsrd  xmm3, eax, 3
+        pinsrd  xmm11, eax, 3
         mov     al, 7
 roundloop2:
         paddd   xmm0, xmm4
@@ -1732,10 +1532,9 @@ roundloop2:
         paddd   xmm8, xmm9
         pxor    xmm3, xmm0
         pxor    xmm11, xmm8
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
-        pshuflw xmm11, xmm11, 0B1H
-        pshufhw xmm11, xmm11, 0B1H
+        movaps  xmm12, xmmword ptr [ROT16]
+        pshufb  xmm3, xmm12
+        pshufb  xmm11, xmm12
         paddd   xmm2, xmm3
         paddd   xmm10, xmm11
         pxor    xmm1, xmm2
@@ -1756,14 +1555,9 @@ roundloop2:
         paddd   xmm8, xmm9
         pxor    xmm3, xmm0
         pxor    xmm11, xmm8
-        movdqa  xmm13, xmm3
-        psrld   xmm3, 8
-        pslld   xmm13, 24
-        pxor    xmm3, xmm13
-        movdqa  xmm13, xmm11
-        psrld   xmm11, 8
-        pslld   xmm13, 24
-        pxor    xmm11, xmm13
+        movaps  xmm13, xmmword ptr [ROT8]
+        pshufb  xmm3, xmm13
+        pshufb  xmm11, xmm13
         paddd   xmm2, xmm3
         paddd   xmm10, xmm11
         pxor    xmm1, xmm2
@@ -1788,10 +1582,8 @@ roundloop2:
         paddd   xmm8, xmm9
         pxor    xmm3, xmm0
         pxor    xmm11, xmm8
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
-        pshuflw xmm11, xmm11, 0B1H
-        pshufhw xmm11, xmm11, 0B1H
+        pshufb  xmm3, xmm12
+        pshufb  xmm11, xmm12
         paddd   xmm2, xmm3
         paddd   xmm10, xmm11
         pxor    xmm1, xmm2
@@ -1810,14 +1602,8 @@ roundloop2:
         paddd   xmm8, xmm9
         pxor    xmm3, xmm0
         pxor    xmm11, xmm8
-        movdqa  xmm13, xmm3
-        psrld   xmm3, 8
-        pslld   xmm13, 24
-        pxor    xmm3, xmm13
-        movdqa  xmm13, xmm11
-        psrld   xmm11, 8
-        pslld   xmm13, 24
-        pxor    xmm11, xmm13
+        pshufb  xmm3, xmm13
+        pshufb  xmm11, xmm13
         paddd   xmm2, xmm3
         paddd   xmm10, xmm11
         pxor    xmm1, xmm2
@@ -1845,20 +1631,15 @@ roundloop2:
         pshufd  xmm4, xmm12, 39H
         movdqa  xmm12, xmm6
         shufps  xmm12, xmm7, 250
-        pand    xmm13, xmmword ptr [PBLENDW_0x33_MASK]
-        pand    xmm12, xmmword ptr [PBLENDW_0xCC_MASK]
-        por     xmm13, xmm12
-        movdqa  xmmword ptr [rsp+20H], xmm13
+        pblendw xmm13, xmm12, 0CCH
         movdqa  xmm12, xmm7
         punpcklqdq xmm12, xmm5
-        movdqa  xmm13, xmm6
-        pand    xmm12, xmmword ptr [PBLENDW_0x3F_MASK]
-        pand    xmm13, xmmword ptr [PBLENDW_0xC0_MASK]
-        por     xmm12, xmm13
+        pblendw xmm12, xmm6, 0C0H
         pshufd  xmm12, xmm12, 78H
         punpckhdq xmm5, xmm7
         punpckldq xmm6, xmm5
         pshufd  xmm7, xmm6, 1EH
+        movdqa  xmmword ptr [rsp+20H], xmm13
         movdqa  xmmword ptr [rsp+40H], xmm12
         movdqa  xmm5, xmmword ptr [rsp+30H]
         movdqa  xmm13, xmmword ptr [rsp+50H]
@@ -1867,17 +1648,10 @@ roundloop2:
         pshufd  xmm12, xmm5, 39H
         movdqa  xmm5, xmm14
         shufps  xmm5, xmm15, 250
-        pand    xmm6, xmmword ptr [PBLENDW_0x33_MASK]
-        pand    xmm5, xmmword ptr [PBLENDW_0xCC_MASK]
-        por     xmm6, xmm5
+        pblendw xmm6, xmm5, 0CCH
         movdqa  xmm5, xmm15
         punpcklqdq xmm5, xmm13
-        movdqa  xmmword ptr [rsp+30H], xmm2
-        movdqa  xmm2, xmm14
-        pand    xmm5, xmmword ptr [PBLENDW_0x3F_MASK]
-        pand    xmm2, xmmword ptr [PBLENDW_0xC0_MASK]
-        por     xmm5, xmm2
-        movdqa  xmm2, xmmword ptr [rsp+30H]
+        pblendw xmm5, xmm14, 0C0H
         pshufd  xmm5, xmm5, 78H
         punpckhdq xmm13, xmm15
         punpckldq xmm14, xmm13
@@ -1899,12 +1673,15 @@ endroundloop2:
         movups  xmmword ptr [rbx+10H], xmm1
         movups  xmmword ptr [rbx+20H], xmm8
         movups  xmmword ptr [rbx+30H], xmm9
-        mov     eax, dword ptr [rsp+130H]
-        neg     eax
-        mov    r10d, dword ptr [rsp+110H+8*rax]
-        mov    r11d, dword ptr [rsp+120H+8*rax]
-        mov dword ptr [rsp+110H], r10d
-        mov dword ptr [rsp+120H], r11d
+        movdqa  xmm0, xmmword ptr [rsp+130H]
+        movdqa  xmm1, xmmword ptr [rsp+110H]
+        movdqa  xmm2, xmmword ptr [rsp+120H]
+        movdqu  xmm3, xmmword ptr [rsp+118H]
+        movdqu  xmm4, xmmword ptr [rsp+128H]
+        blendvps xmm1, xmm3, xmm0
+        blendvps xmm2, xmm4, xmm0
+        movdqa  xmmword ptr [rsp+110H], xmm1
+        movdqa  xmmword ptr [rsp+120H], xmm2
         add     rdi, 16
         add     rbx, 64
         sub     rsi, 2
@@ -1914,8 +1691,10 @@ final1block:
         movups  xmm0, xmmword ptr [rcx]
         movups  xmm1, xmmword ptr [rcx+10H]
         movd    xmm13, dword ptr [rsp+110H]
-        movd    xmm14, dword ptr [rsp+120H]
-        punpckldq xmm13, xmm14
+        pinsrd  xmm13, dword ptr [rsp+120H], 1
+        pinsrd  xmm13, dword ptr [BLAKE3_BLOCK_LEN], 2
+        movaps  xmm14, xmmword ptr [ROT8]
+        movaps  xmm15, xmmword ptr [ROT16]
         mov     r8, qword ptr [rdi]
         movzx   eax, byte ptr [rbp+80H]
         or      eax, r13d
@@ -1927,11 +1706,8 @@ innerloop1:
         cmp     rdx, r15
         cmovne  eax, r14d
         movaps  xmm2, xmmword ptr [BLAKE3_IV]
-        shl     rax, 32
-        or      rax, 64
-        movd    xmm12, rax
-        movdqa  xmm3, xmm13
-        punpcklqdq xmm3, xmm12
+        movaps  xmm3, xmm13
+        pinsrd  xmm3, eax, 3
         movups  xmm4, xmmword ptr [r8+rdx-40H]
         movups  xmm5, xmmword ptr [r8+rdx-30H]
         movaps  xmm8, xmm4
@@ -1950,8 +1726,7 @@ roundloop1:
         paddd   xmm0, xmm4
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -1961,10 +1736,7 @@ roundloop1:
         paddd   xmm0, xmm5
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -1977,8 +1749,7 @@ roundloop1:
         paddd   xmm0, xmm6
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -1988,10 +1759,7 @@ roundloop1:
         paddd   xmm0, xmm7
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2009,15 +1777,10 @@ roundloop1:
         pshufd  xmm4, xmm8, 39H
         movdqa  xmm8, xmm6
         shufps  xmm8, xmm7, 250
-        pand    xmm9, xmmword ptr [PBLENDW_0x33_MASK]
-        pand    xmm8, xmmword ptr [PBLENDW_0xCC_MASK]
-        por     xmm9, xmm8
+        pblendw xmm9, xmm8, 0CCH
         movdqa  xmm8, xmm7
         punpcklqdq xmm8, xmm5
-        movdqa  xmm10, xmm6
-        pand    xmm8, xmmword ptr [PBLENDW_0x3F_MASK]
-        pand    xmm10, xmmword ptr [PBLENDW_0xC0_MASK]
-        por     xmm8, xmm10
+        pblendw xmm8, xmm6, 0C0H
         pshufd  xmm8, xmm8, 78H
         punpckhdq xmm5, xmm7
         punpckldq xmm6, xmm5
@@ -2034,11 +1797,11 @@ endroundloop1:
         movups  xmmword ptr [rbx], xmm0
         movups  xmmword ptr [rbx+10H], xmm1
         jmp     unwind
-_blake3_hash_many_sse2 ENDP
-blake3_hash_many_sse2 ENDP
+_blake3_hash_many_sse41 ENDP
+blake3_hash_many_sse41 ENDP
 
-blake3_compress_in_place_sse2 PROC
-_blake3_compress_in_place_sse2 PROC
+blake3_compress_in_place_sse41 PROC
+_blake3_compress_in_place_sse41 PROC
         sub     rsp, 120
         movdqa  xmmword ptr [rsp], xmm6
         movdqa  xmmword ptr [rsp+10H], xmm7
@@ -2070,13 +1833,14 @@ _blake3_compress_in_place_sse2 PROC
         pshufd  xmm6, xmm6, 93H
         shufps  xmm8, xmm7, 221
         pshufd  xmm7, xmm8, 93H
+        movaps  xmm14, xmmword ptr [ROT8]
+        movaps  xmm15, xmmword ptr [ROT16]
         mov     al, 7
 @@:
         paddd   xmm0, xmm4
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2086,10 +1850,7 @@ _blake3_compress_in_place_sse2 PROC
         paddd   xmm0, xmm5
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2102,8 +1863,7 @@ _blake3_compress_in_place_sse2 PROC
         paddd   xmm0, xmm6
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2113,10 +1873,7 @@ _blake3_compress_in_place_sse2 PROC
         paddd   xmm0, xmm7
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2134,15 +1891,10 @@ _blake3_compress_in_place_sse2 PROC
         pshufd  xmm4, xmm8, 39H
         movdqa  xmm8, xmm6
         shufps  xmm8, xmm7, 250
-        pand    xmm9, xmmword ptr [PBLENDW_0x33_MASK]
-        pand    xmm8, xmmword ptr [PBLENDW_0xCC_MASK]
-        por     xmm9, xmm8
+        pblendw xmm9, xmm8, 0CCH
         movdqa  xmm8, xmm7
         punpcklqdq xmm8, xmm5
-        movdqa  xmm10, xmm6
-        pand    xmm8, xmmword ptr [PBLENDW_0x3F_MASK]
-        pand    xmm10, xmmword ptr [PBLENDW_0xC0_MASK]
-        por     xmm8, xmm10
+        pblendw xmm8, xmm6, 0C0H
         pshufd  xmm8, xmm8, 78H
         punpckhdq xmm5, xmm7
         punpckldq xmm6, xmm5
@@ -2164,12 +1916,12 @@ _blake3_compress_in_place_sse2 PROC
         movdqa  xmm15, xmmword ptr [rsp+60H]
         add     rsp, 120
         ret
-_blake3_compress_in_place_sse2 ENDP
-blake3_compress_in_place_sse2 ENDP
+_blake3_compress_in_place_sse41 ENDP
+blake3_compress_in_place_sse41 ENDP
 
 ALIGN 16
-blake3_compress_xof_sse2 PROC
-_blake3_compress_xof_sse2 PROC
+blake3_compress_xof_sse41 PROC
+_blake3_compress_xof_sse41 PROC
         sub     rsp, 120
         movdqa  xmmword ptr [rsp], xmm6
         movdqa  xmmword ptr [rsp+10H], xmm7
@@ -2202,13 +1954,14 @@ _blake3_compress_xof_sse2 PROC
         pshufd  xmm6, xmm6, 93H
         shufps  xmm8, xmm7, 221
         pshufd  xmm7, xmm8, 93H
+        movaps  xmm14, xmmword ptr [ROT8]
+        movaps  xmm15, xmmword ptr [ROT16]
         mov     al, 7
 @@:
         paddd   xmm0, xmm4
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2218,10 +1971,7 @@ _blake3_compress_xof_sse2 PROC
         paddd   xmm0, xmm5
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2234,8 +1984,7 @@ _blake3_compress_xof_sse2 PROC
         paddd   xmm0, xmm6
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        pshuflw xmm3, xmm3, 0B1H
-        pshufhw xmm3, xmm3, 0B1H
+        pshufb  xmm3, xmm15
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2245,10 +1994,7 @@ _blake3_compress_xof_sse2 PROC
         paddd   xmm0, xmm7
         paddd   xmm0, xmm1
         pxor    xmm3, xmm0
-        movdqa  xmm14, xmm3
-        psrld   xmm3, 8
-        pslld   xmm14, 24
-        pxor    xmm3, xmm14
+        pshufb  xmm3, xmm14
         paddd   xmm2, xmm3
         pxor    xmm1, xmm2
         movdqa  xmm11, xmm1
@@ -2266,15 +2012,10 @@ _blake3_compress_xof_sse2 PROC
         pshufd  xmm4, xmm8, 39H
         movdqa  xmm8, xmm6
         shufps  xmm8, xmm7, 250
-        pand    xmm9, xmmword ptr [PBLENDW_0x33_MASK]
-        pand    xmm8, xmmword ptr [PBLENDW_0xCC_MASK]
-        por     xmm9, xmm8
+        pblendw xmm9, xmm8, 0CCH
         movdqa  xmm8, xmm7
         punpcklqdq xmm8, xmm5
-        movdqa  xmm10, xmm6
-        pand    xmm8, xmmword ptr [PBLENDW_0x3F_MASK]
-        pand    xmm10, xmmword ptr [PBLENDW_0xC0_MASK]
-        por     xmm8, xmm10
+        pblendw xmm8, xmm6, 0C0H
         pshufd  xmm8, xmm8, 78H
         punpckhdq xmm5, xmm7
         punpckldq xmm6, xmm5
@@ -2302,8 +2043,8 @@ _blake3_compress_xof_sse2 PROC
         movdqa  xmm15, xmmword ptr [rsp+60H]
         add     rsp, 120
         ret
-_blake3_compress_xof_sse2 ENDP
-blake3_compress_xof_sse2 ENDP
+_blake3_compress_xof_sse41 ENDP
+blake3_compress_xof_sse41 ENDP
 
 _TEXT ENDS
 
@@ -2334,17 +2075,15 @@ BLAKE3_IV_3:
 BLAKE3_BLOCK_LEN:
         dd 4 dup (64)
 
+ROT16:
+        db 2, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13
+
+ROT8:
+        db 1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12
+
 CMP_MSB_MASK:
         dd 8 dup(80000000H)
 
-PBLENDW_0x33_MASK:
-       dd 0FFFFFFFFH, 000000000H, 0FFFFFFFFH, 000000000H
-PBLENDW_0xCC_MASK:
-       dd 000000000H, 0FFFFFFFFH, 000000000H, 0FFFFFFFFH
-PBLENDW_0x3F_MASK:
-	dd 0FFFFFFFFH, 0FFFFFFFFH, 0FFFFFFFFH, 000000000H
-PBLENDW_0xC0_MASK:
-       dd 000000000H, 000000000H, 000000000H, 0FFFFFFFFH
-
 _RDATA ENDS
 END
+
