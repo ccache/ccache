@@ -84,6 +84,7 @@ const struct
   {"c++", "c++-cpp-output"},
   {"c++-cpp-output", "c++-cpp-output"},
   {"c++-header", "c++-cpp-output"},
+  {"cuda", "cpp-output"},
   {"cu", "cpp-output"},
   {"hip", "cpp-output"},
   {"objective-c", "objective-c-cpp-output"},
