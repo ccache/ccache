@@ -2,32 +2,44 @@ add_library(blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
 
 target_link_libraries(blake3 PRIVATE standard_settings)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SIZEOF_VOID_P EQUAL 8
-   AND NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
-            AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
-  set(blake_source_type asm)
-  set(blake_suffix "_x86-64_unix.S")
-else()
-  set(blake_source_type c)
-  set(blake_suffix ".c")
-endif()
-
-include(CheckAsmCompilerFlag)
 include(CheckCSourceCompiles)
 
 function(add_source_if_enabled feature compile_flags intrinsic)
-  string(TOUPPER "have_${blake_source_type}_${feature}" have_feature)
+  # First check if it's possible to use the assembler variant for the feature.
+  string(TOUPPER "have_asm_${feature}" have_feature)
+  if(NOT DEFINED "${have_feature}" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    if(WIN32)
+      set(suffix "_x86-64_windows_gnu.S")
+    else()
+      set(suffix "_x86-64_unix.S")
+    endif()
 
-  # AVX512 support fails to compile with old Apple Clang versions even though
-  # the compiler accepts the -m flags.
-  if(${feature} STREQUAL "avx512"
-      AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
-      AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    message(STATUS "Detected unsupported compiler for ${have_feature} - disabled")
-    set(${have_feature} FALSE)
-  elseif(${blake_source_type} STREQUAL "asm")
-    check_asm_compiler_flag(${compile_flags} ${have_feature})
-  else()
+    if(NOT CMAKE_REQUIRED_QUIET)
+      message(STATUS "Performing Test ${have_feature}")
+    endif()
+
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+    try_compile(
+      ${have_feature}
+      ${CMAKE_CURRENT_BINARY_DIR}
+      "${CMAKE_CURRENT_SOURCE_DIR}/blake3_${feature}${suffix}"
+      COMPILE_DEFINITIONS ${compile_flags})
+    unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
+
+    if(NOT CMAKE_REQUIRED_QUIET)
+      if (${${have_feature}})
+        message(STATUS "Performing Test ${have_feature} - Success")
+      else()
+        message(STATUS "Performing Test ${have_feature} - Failed")
+      endif()
+    endif()
+  endif()
+
+  # If the assembler variant didn't work, try the c variant.
+  if(NOT ${have_feature})
+    string(TOUPPER "have_c_${feature}" have_feature)
+    set(suffix ".c")
+
     set(CMAKE_REQUIRED_FLAGS ${compile_flags})
     check_c_source_compiles(
       [=[
@@ -39,9 +51,9 @@ function(add_source_if_enabled feature compile_flags intrinsic)
   endif()
 
   if(${have_feature})
-    target_sources(blake3 PRIVATE blake3_${feature}${blake_suffix})
+    target_sources(blake3 PRIVATE blake3_${feature}${suffix})
     set_property(
-      SOURCE blake3_${feature}${blake_suffix}
+      SOURCE blake3_${feature}${suffix}
       APPEND PROPERTY COMPILE_FLAGS ${compile_flags})
   else()
     string(TOUPPER "blake3_no_${feature}" no_feature)
