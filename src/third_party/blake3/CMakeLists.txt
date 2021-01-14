@@ -2,13 +2,27 @@ add_library(blake3 STATIC blake3.c blake3_dispatch_ccache.c blake3_portable.c)
 
 target_link_libraries(blake3 PRIVATE standard_settings)
 
+if(MSVC)
+  # No object file is created if masm is passed the compile options from standard_settings,
+  # so don't pass any flags at all to assembler (as no flags are needed anyway).
+  string(REPLACE "<FLAGS> " "" CMAKE_ASM_MASM_COMPILE_OBJECT "${CMAKE_ASM_MASM_COMPILE_OBJECT}")
+endif()
+
 include(CheckCSourceCompiles)
 
-function(add_source_if_enabled feature compile_flags intrinsic)
+function(add_source_if_enabled feature msvc_flags others_flags intrinsic)
+  if(MSVC)
+    set(compile_flags "${msvc_flags}")
+  else()
+    set(compile_flags "${others_flags}")
+  endif()
+
   # First check if it's possible to use the assembler variant for the feature.
   string(TOUPPER "have_asm_${feature}" have_feature)
   if(NOT DEFINED "${have_feature}" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
-    if(WIN32)
+    if(MSVC)
+      set(suffix "_x86-64_windows_msvc.asm")
+    elseif(WIN32)
       set(suffix "_x86-64_windows_gnu.S")
     else()
       set(suffix "_x86-64_unix.S")
@@ -19,11 +33,16 @@ function(add_source_if_enabled feature compile_flags intrinsic)
     endif()
 
     set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+    # Must set CMAKE_ASM_MASM_CREATE_STATIC_LIBRARY explicitly otherwise try_compile
+    # fails, see https://discourse.cmake.org/t/building-lib-file-from-asm-cmake-bug/1959
     try_compile(
       ${have_feature}
       ${CMAKE_CURRENT_BINARY_DIR}
       "${CMAKE_CURRENT_SOURCE_DIR}/blake3_${feature}${suffix}"
+      CMAKE_FLAGS -DCMAKE_ASM_MASM_CREATE_STATIC_LIBRARY=${CMAKE_C_CREATE_STATIC_LIBRARY}
       COMPILE_DEFINITIONS ${compile_flags})
+
     unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
 
     if(NOT CMAKE_REQUIRED_QUIET)
@@ -52,9 +71,20 @@ function(add_source_if_enabled feature compile_flags intrinsic)
 
   if(${have_feature})
     target_sources(blake3 PRIVATE blake3_${feature}${suffix})
-    set_property(
-      SOURCE blake3_${feature}${suffix}
-      APPEND PROPERTY COMPILE_FLAGS ${compile_flags})
+    if(suffix STREQUAL ".c")
+      if(MINGW AND feature STREQUAL "avx512")
+        # Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65782.
+        # Taken from blake3's build.rs.
+        set(compile_flags "${compile_flags} -fno-asynchronous-unwind-tables")
+      endif()
+      set_property(
+        SOURCE blake3_${feature}${suffix}
+        APPEND PROPERTY COMPILE_FLAGS ${compile_flags})
+    elseif(NOT MSVC)
+      set_property(
+        SOURCE blake3_${feature}${suffix}
+        PROPERTY COMPILE_FLAGS ${compile_flags})
+    endif()
   else()
     string(TOUPPER "blake3_no_${feature}" no_feature)
     target_compile_definitions(blake3 PRIVATE ${no_feature})
@@ -62,10 +92,14 @@ function(add_source_if_enabled feature compile_flags intrinsic)
 endfunction()
 
 # https://software.intel.com/sites/landingpage/IntrinsicsGuide/
-add_source_if_enabled(sse2 "-msse2" "_mm_set1_epi32(42)")
-add_source_if_enabled(sse41 "-msse4.1" "_mm_test_all_ones(_mm_set1_epi32(42))")
-add_source_if_enabled(avx2 "-mavx2" "_mm256_abs_epi8(_mm256_set1_epi32(42))")
-add_source_if_enabled(avx512 "-mavx512f -mavx512vl" "_mm256_abs_epi64(_mm256_set1_epi32(42))")
+add_source_if_enabled(sse2 "" "-msse2"
+  "_mm_set1_epi32(42)")
+add_source_if_enabled(sse41 "" "-msse4.1"
+  "_mm_test_all_ones(_mm_set1_epi32(42))")
+add_source_if_enabled(avx2 "/arch:AVX2" "-mavx2"
+  "_mm256_abs_epi8(_mm256_set1_epi32(42))")
+add_source_if_enabled(avx512 "/arch:AVX512" "-mavx512f -mavx512vl"
+  "_mm256_abs_epi64(_mm256_set1_epi32(42))")
 
 # Neon is always available on AArch64
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)

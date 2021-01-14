@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.4.3)
 
-project(ccache LANGUAGES C CXX ASM)
+project(ccache LANGUAGES C CXX)
+if(MSVC)
+  enable_language(ASM_MASM)
+else()
+  enable_language(ASM)
+endif()
 set(CMAKE_PROJECT_DESCRIPTION "a fast C/C++ compiler cache")
 
 if(NOT "${CMAKE_CXX_STANDARD}")
