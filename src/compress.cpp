@@ -116,10 +116,6 @@ open_file(const std::string& path, const char* mode)
 std::unique_ptr<CacheEntryReader>
 create_reader(const CacheFile& cache_file, FILE* stream)
 {
-  if (cache_file.type() == CacheFile::Type::unknown) {
-    throw Error("unknown file type for {}", cache_file.path());
-  }
-
   switch (cache_file.type()) {
   case CacheFile::Type::result:
     return std::make_unique<CacheEntryReader>(
@@ -130,10 +126,11 @@ create_reader(const CacheFile& cache_file, FILE* stream)
       stream, Manifest::k_magic, Manifest::k_version);
 
   case CacheFile::Type::unknown:
-    ASSERT(false); // Handled at function entry.
+    // fallthrough
+    ;
   }
 
-  ASSERT(false);
+  throw Error("unknown file type for {}", cache_file.path());
 }
 
 std::unique_ptr<CacheEntryWriter>
@@ -221,23 +218,20 @@ compress_stats(const Config& config,
     config.cache_dir(),
     [&](const std::string& subdir,
         const Util::ProgressReceiver& sub_progress_receiver) {
-      std::vector<std::shared_ptr<CacheFile>> files;
-      Util::get_level_1_files(
-        subdir,
-        [&](double progress) { sub_progress_receiver(progress / 2); },
-        files);
+      const std::vector<FileInfo> files = Util::get_level_1_files(
+        subdir, [&](double progress) { sub_progress_receiver(progress / 2); });
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& cache_file = files[i];
-        on_disk_size += cache_file->lstat().size_on_disk();
+        on_disk_size += cache_file.lstat().size_on_disk();
 
         try {
-          auto file = open_file(cache_file->path(), "rb");
-          auto reader = create_reader(*cache_file, file.get());
-          compr_size += cache_file->lstat().size();
+          auto file = open_file(cache_file.path(), "rb");
+          auto reader = create_reader(CacheFile(cache_file.path()), file.get());
+          compr_size += cache_file.lstat().size();
           content_size += reader->content_size();
         } catch (Error&) {
-          incompr_size += cache_file->lstat().size();
+          incompr_size += cache_file.lstat().size();
         }
 
         sub_progress_receiver(1.0 / 2 + 1.0 * i / files.size() / 2);
@@ -290,27 +284,28 @@ compress_recompress(Context& ctx,
     ctx.config.cache_dir(),
     [&](const std::string& subdir,
         const Util::ProgressReceiver& sub_progress_receiver) {
-      std::vector<std::shared_ptr<CacheFile>> files;
-      Util::get_level_1_files(
-        subdir,
-        [&](double progress) { sub_progress_receiver(0.1 * progress); },
-        files);
+      const std::vector<FileInfo> files =
+        Util::get_level_1_files(subdir, [&](double progress) {
+          sub_progress_receiver(0.1 * progress);
+        });
 
       auto stats_file = subdir + "/stats";
 
       for (size_t i = 0; i < files.size(); ++i) {
         const auto& file = files[i];
 
-        if (file->type() != CacheFile::Type::unknown) {
-          thread_pool.enqueue([&statistics, stats_file, file, level] {
+        if (CacheFile(file.path()).type() != CacheFile::Type::unknown) {
+          const std::string& filePath = file.path();
+          thread_pool.enqueue([&statistics, stats_file, filePath, level] {
             try {
-              recompress_file(statistics, stats_file, *file, level);
+              recompress_file(
+                statistics, stats_file, CacheFile(filePath), level);
             } catch (Error&) {
               // Ignore for now.
             }
           });
         } else {
-          statistics.update(0, 0, 0, file->lstat().size());
+          statistics.update(0, 0, 0, file.lstat().size());
         }
 
         sub_progress_receiver(0.1 + 0.9 * i / files.size());

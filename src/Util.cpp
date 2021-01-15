@@ -654,13 +654,14 @@ get_extension(string_view path)
   }
 }
 
-void
+std::vector<FileInfo>
 get_level_1_files(const std::string& dir,
-                  const ProgressReceiver& progress_receiver,
-                  std::vector<std::shared_ptr<CacheFile>>& files)
+                  const ProgressReceiver& progress_receiver)
 {
+  std::vector<FileInfo> files;
+
   if (!Stat::stat(dir)) {
-    return;
+    return files;
   }
 
   size_t level_2_directories = 0;
@@ -672,7 +673,7 @@ get_level_1_files(const std::string& dir,
     }
 
     if (!is_dir) {
-      files.push_back(std::make_shared<CacheFile>(path));
+      files.push_back(FileInfo{path});
     } else if (path != dir
                && path.find('/', dir.size() + 1) == std::string::npos) {
       ++level_2_directories;
@@ -681,6 +682,8 @@ get_level_1_files(const std::string& dir,
   });
 
   progress_receiver(1.0);
+
+  return files;
 }
 
 std::string

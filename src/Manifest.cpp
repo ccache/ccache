@@ -116,7 +116,7 @@ const uint32_t k_max_manifest_file_info_entries = 10000;
 
 namespace {
 
-struct FileInfo
+struct FileInfoData
 {
   // Index to n_files.
   uint32_t index;
@@ -131,7 +131,7 @@ struct FileInfo
 };
 
 bool
-operator==(const FileInfo& lhs, const FileInfo& rhs)
+operator==(const FileInfoData& lhs, const FileInfoData& rhs)
 {
   return lhs.index == rhs.index && lhs.digest == rhs.digest
          && lhs.fsize == rhs.fsize && lhs.mtime == rhs.mtime
@@ -142,12 +142,12 @@ operator==(const FileInfo& lhs, const FileInfo& rhs)
 
 namespace std {
 
-template<> struct hash<FileInfo>
+template<> struct hash<FileInfoData>
 {
   size_t
-  operator()(const FileInfo& file_info) const
+  operator()(const FileInfoData& file_info) const
   {
-    static_assert(sizeof(FileInfo) == 48, "unexpected size"); // No padding.
+    static_assert(sizeof(FileInfoData) == 48, "unexpected size"); // No padding.
     Checksum checksum;
     checksum.update(&file_info, sizeof(file_info));
     return checksum.digest();
@@ -179,7 +179,7 @@ struct ManifestData
   std::vector<std::string> files;
 
   // Information about referenced include files.
-  std::vector<FileInfo> file_infos;
+  std::vector<FileInfoData> file_infos;
 
   // Result names plus references to include file infos.
   std::vector<ResultEntry> results;
@@ -196,7 +196,7 @@ struct ManifestData
       mf_files.emplace(files[i], i);
     }
 
-    std::unordered_map<FileInfo, uint32_t /*index*/> mf_file_infos;
+    std::unordered_map<FileInfoData, uint32_t /*index*/> mf_file_infos;
     for (uint32_t i = 0; i < file_infos.size(); ++i) {
       mf_file_infos.emplace(file_infos[i], i);
     }
@@ -228,11 +228,11 @@ private:
     const std::string& path,
     const Digest& digest,
     const std::unordered_map<std::string, uint32_t>& mf_files,
-    const std::unordered_map<FileInfo, uint32_t>& mf_file_infos,
+    const std::unordered_map<FileInfoData, uint32_t>& mf_file_infos,
     time_t time_of_compilation,
     bool save_timestamp)
   {
-    struct FileInfo fi;
+    struct FileInfoData fi;
 
     auto f_it = mf_files.find(path);
     if (f_it != mf_files.end()) {
@@ -569,10 +569,10 @@ put(const Config& config,
         k_max_manifest_entries);
     mf = std::make_unique<ManifestData>();
   } else if (mf->file_infos.size() > k_max_manifest_file_info_entries) {
-    // Rarely, FileInfo entries can grow large in pathological cases where
+    // Rarely, FileInfoData entries can grow large in pathological cases where
     // many included files change, but the main file does not. This also puts
-    // an upper bound on the number of FileInfo entries.
-    LOG("More than {} FileInfo entries in manifest file; discarding",
+    // an upper bound on the number of FileInfoData entries.
+    LOG("More than {} FileInfoData entries in manifest file; discarding",
         k_max_manifest_file_info_entries);
     mf = std::make_unique<ManifestData>();
   }

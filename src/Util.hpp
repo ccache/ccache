@@ -21,6 +21,7 @@
 #include "system.hpp"
 
 #include "CacheFile.hpp"
+#include "FileInfo.hpp"
 
 #include "third_party/nonstd/optional.hpp"
 #include "third_party/nonstd/string_view.hpp"
@@ -208,10 +209,9 @@ nonstd::string_view get_extension(nonstd::string_view path);
 // Parameters:
 // - dir: The directory to traverse recursively.
 // - progress_receiver: Function that will be called for progress updates.
-// - files: Found files.
-void get_level_1_files(const std::string& dir,
-                       const ProgressReceiver& progress_receiver,
-                       std::vector<std::shared_ptr<CacheFile>>& files);
+std::vector<FileInfo>
+get_level_1_files(const std::string& dir,
+                  const ProgressReceiver& progress_receiver);
 
 // Return the current user's home directory, or throw `Fatal` if it can't
 // be determined.

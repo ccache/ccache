@@ -5,6 +5,7 @@ set(
   CacheEntryReader.cpp
   CacheEntryWriter.cpp
   CacheFile.cpp
+  FileInfo.cpp
   Compression.cpp
   Compressor.cpp
   Config.cpp
